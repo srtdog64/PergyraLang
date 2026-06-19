@@ -3,6 +3,23 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-19 Zone Refresh LLVM Assignment Invalidation Cutover
+
+- LLVM host assignment projection invalidation now consumes
+  `LLVMHostedZoneRefreshView` for zone declarations instead of reopening
+  `ast_zone_refreshes(host_decl, &refresh_count)`.
+- LLVM world-embedded zone assignment invalidation uses the same view for the
+  resolved embedded zone, so nested world-zone member assignment dirty/ready
+  updates read `MIRDeclZoneRefresh` source slots and field maps through MIR
+  accessors.
+- Relation/effect assignment invalidation remains on the compatibility refresh
+  path until relation/effect refresh rows exist.
+- `mir-declaration-inventory-test-smoke` now requires the assignment
+  invalidation view consumer and rejects reopened zone refresh inventory in
+  that file.
+- Gates used: `make llvm-test-smoke` and
+  `make mir-declaration-inventory-test-smoke`.
+
 ## Progress Log - 2026-06-19 Zone Refresh Constructor Dirty Cutover
 
 - C zone constructors now initialize `__projection_dirty_*` fields through

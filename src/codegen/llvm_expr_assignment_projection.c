@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../compiler/mir_decl_headers.h"
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "parser/ast_api.h"
@@ -109,6 +110,27 @@ llvm_refresh_mentions_source_field(ASTNode *refresh, const char *source_field)
     return false;
 }
 
+static bool
+llvm_zone_refresh_metadata_mentions_source_field(
+    const MIRDeclZoneRefresh *refresh,
+    const char *source_field)
+{
+    if (refresh == NULL)
+        return false;
+    if (source_field == NULL)
+        return true;
+    if (mir_decl_zone_refresh_field_map_count(refresh) == 0)
+        return true;
+
+    for (size_t i = 0; i < mir_decl_zone_refresh_field_map_count(refresh); i++) {
+        const char *mapped_source =
+            mir_decl_zone_refresh_mapped_source_field(refresh, i);
+        if (mapped_source != NULL && strcmp(mapped_source, source_field) == 0)
+            return true;
+    }
+    return false;
+}
+
 static void
 llvm_emit_projection_invalidations_for_host(LLVMGenCtx *ctx,
                                             ASTNode **refreshes,
@@ -137,6 +159,67 @@ llvm_emit_projection_invalidations_for_host(LLVMGenCtx *ctx,
         if (target_slot == NULL || refresh_source == NULL
             || strcmp(refresh_source, source_slot) != 0
             || !llvm_refresh_mentions_source_field(refresh, source_field)) {
+            continue;
+        }
+
+        snprintf(field_name, sizeof(field_name), "__projection_dirty_%s",
+            target_slot);
+        field_idx = llvm_class_field_index(host_cls, field_name);
+        if (field_idx >= 0) {
+            LLVMValueRef dirty_ptr = LLVMBuildStructGEP2(ctx->builder,
+                host_cls->struct_type, host_ptr, (unsigned)field_idx,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0),
+                dirty_ptr);
+        }
+
+        snprintf(field_name, sizeof(field_name), "__projection_ready_%s",
+            target_slot);
+        field_idx = llvm_class_field_index(host_cls, field_name);
+        if (field_idx >= 0) {
+            LLVMValueRef ready_ptr = LLVMBuildStructGEP2(ctx->builder,
+                host_cls->struct_type, host_ptr, (unsigned)field_idx,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0),
+                ready_ptr);
+        }
+    }
+}
+
+static void
+llvm_emit_projection_invalidations_for_zone_refresh_view(
+    LLVMGenCtx *ctx,
+    const LLVMHostedZoneRefreshView *refresh_view,
+    LLVMClassTypeEntry *host_cls,
+    LLVMValueRef host_ptr,
+    const char *source_slot,
+    const char *source_field)
+{
+    if (ctx == NULL || refresh_view == NULL || refresh_view->count == 0
+        || host_cls == NULL || host_ptr == NULL || source_slot == NULL) {
+        return;
+    }
+
+    for (size_t i = 0; i < refresh_view->count; i++) {
+        const MIRDeclZoneRefresh *refresh =
+            llvm_hosted_zone_refresh_view_metadata(refresh_view, i);
+        const char *target_slot =
+            llvm_hosted_zone_refresh_view_object_slot_name(refresh_view, i);
+        const char *refresh_source =
+            llvm_hosted_zone_refresh_view_source_slot_name(refresh_view, i);
+        bool mentions_source_field = refresh != NULL
+            ? llvm_zone_refresh_metadata_mentions_source_field(refresh,
+                source_field)
+            : llvm_refresh_mentions_source_field(
+                refresh_view->ast_compat_refreshes != NULL
+                    ? refresh_view->ast_compat_refreshes[i] : NULL,
+                source_field);
+        char field_name[256];
+        int field_idx;
+
+        if (target_slot == NULL || refresh_source == NULL
+            || strcmp(refresh_source, source_slot) != 0
+            || !mentions_source_field) {
             continue;
         }
 
@@ -244,6 +327,8 @@ llvm_emit_host_projection_invalidations(LLVMGenCtx *ctx, ASTNode *target)
     ASTNode *host_decl;
     ASTNode **refreshes = NULL;
     size_t refresh_count = 0;
+    LLVMHostedZoneRefreshView zone_refresh_view = {0};
+    bool use_zone_refresh_view = false;
     const char *source_slot = NULL;
     const char *source_field = NULL;
     LLVMClassTypeEntry *host_cls;
@@ -260,7 +345,17 @@ llvm_emit_host_projection_invalidations(LLVMGenCtx *ctx, ASTNode *target)
 
     switch (host_decl->type) {
     case AST_ZONE_DECL:
-        refreshes = ast_zone_refreshes(host_decl, &refresh_count);
+        zone_refresh_view = llvm_hosted_zone_refresh_view_from_decl(ctx,
+            llvm_decl_node_name(host_decl), host_decl);
+        if (llvm_hosted_zone_refresh_view_missing_mir_metadata(
+                &zone_refresh_view)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing zone refresh assignment metadata for '%s'",
+                llvm_decl_node_name(host_decl) != NULL
+                    ? llvm_decl_node_name(host_decl) : "(anonymous-zone)");
+            return;
+        }
+        use_zone_refresh_view = true;
         break;
     case AST_RELATION_DECL:
         refreshes = ast_relation_refreshes(host_decl, &refresh_count);
@@ -272,8 +367,7 @@ llvm_emit_host_projection_invalidations(LLVMGenCtx *ctx, ASTNode *target)
         const char *zone_slot = NULL;
         ASTNode *zone_decl = NULL;
         LLVMClassTypeEntry *world_cls;
-        ASTNode **zone_refreshes;
-        size_t zone_refresh_count;
+        LLVMHostedZoneRefreshView embedded_refresh_view;
         int zone_field_idx;
         const char *world_name;
         const char *zone_name;
@@ -294,8 +388,16 @@ llvm_emit_host_projection_invalidations(LLVMGenCtx *ctx, ASTNode *target)
             return;
 
         host_cls = llvm_lookup_class(ctx, zone_name);
-        zone_refreshes = ast_zone_refreshes(zone_decl, &zone_refresh_count);
-        if (host_cls == NULL || zone_refreshes == NULL || zone_refresh_count == 0)
+        embedded_refresh_view = llvm_hosted_zone_refresh_view_from_decl(ctx,
+            zone_name, zone_decl);
+        if (llvm_hosted_zone_refresh_view_missing_mir_metadata(
+                &embedded_refresh_view)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing embedded zone refresh assignment metadata for '%s'",
+                zone_name != NULL ? zone_name : "(anonymous-zone)");
+            return;
+        }
+        if (host_cls == NULL || embedded_refresh_view.count == 0)
             return;
 
         host_ptr = self_var.alloca;
@@ -310,8 +412,8 @@ llvm_emit_host_projection_invalidations(LLVMGenCtx *ctx, ASTNode *target)
 
         host_ptr = LLVMBuildStructGEP2(ctx->builder, world_cls->struct_type,
             host_ptr, (unsigned)zone_field_idx, llvm_tmp_name(ctx));
-        llvm_emit_projection_invalidations_for_host(ctx,
-            zone_refreshes, zone_refresh_count, host_cls, host_ptr,
+        llvm_emit_projection_invalidations_for_zone_refresh_view(ctx,
+            &embedded_refresh_view, host_cls, host_ptr,
             source_slot, source_field);
         return;
     }
@@ -322,8 +424,9 @@ llvm_emit_host_projection_invalidations(LLVMGenCtx *ctx, ASTNode *target)
     if (!llvm_host_projection_source_from_assignment(ctx, host_decl, target,
             &source_slot, &source_field)
         || source_slot == NULL
-        || refreshes == NULL
-        || refresh_count == 0) {
+        || (!use_zone_refresh_view
+            && (refreshes == NULL || refresh_count == 0))
+        || (use_zone_refresh_view && zone_refresh_view.count == 0)) {
         return;
     }
 
@@ -337,9 +440,14 @@ llvm_emit_host_projection_invalidations(LLVMGenCtx *ctx, ASTNode *target)
         host_ptr = LLVMBuildLoad2(ctx->builder, self_var.type,
             self_var.alloca, llvm_tmp_name(ctx));
     }
-    llvm_emit_projection_invalidations_for_host(ctx,
-        refreshes, refresh_count, host_cls, host_ptr, source_slot,
-        source_field);
+    if (use_zone_refresh_view) {
+        llvm_emit_projection_invalidations_for_zone_refresh_view(ctx,
+            &zone_refresh_view, host_cls, host_ptr, source_slot, source_field);
+    } else {
+        llvm_emit_projection_invalidations_for_host(ctx,
+            refreshes, refresh_count, host_cls, host_ptr, source_slot,
+            source_field);
+    }
 }
 
 void
