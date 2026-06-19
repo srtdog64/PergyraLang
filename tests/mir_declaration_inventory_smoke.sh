@@ -2173,7 +2173,7 @@ require_term "src/codegen/llvm_expr_constructor_calls.c" \
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
     "llvm_hosted_domain_slot_view_from_decl(ctx, decl_name, decl)"
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
-    "llvm_domain_slot_view_is_projection_slot(&slot_view, i"
+    "llvm_domain_slot_view_is_projection_slot_in_zone_refresh_view("
 if grep -Eq 'ast_world_zones|ast_world_zone_(slot_name|type_name)' \
     "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"; then
     fail "LLVM world constructor dirty initialization must consume LLVMHostedWorldZoneSlotView"
@@ -7278,11 +7278,19 @@ for term in \
     require_term "src/codegen/llvm_domain_struct_register.c" "$term"
 done
 for term in \
-    "LLVMHostedZoneRefreshView zone_refresh_view" \
+    "LLVMHostedZoneRefreshView refresh_view" \
     "llvm_hosted_zone_refresh_view_missing_mir_metadata" \
     "llvm_domain_slot_view_is_projection_slot_in_zone_refresh_view"; do
     require_term "src/codegen/llvm_expr_constructor_calls.c" "$term"
 done
+if grep -Fq "ast_relation_refreshes(relation_decl, &refresh_count)" \
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"; then
+    fail "LLVM relation constructor projection-dirty initialization must consume MIR refresh metadata"
+fi
+if grep -Fq "ast_effect_refreshes(effect_decl, &refresh_count)" \
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"; then
+    fail "LLVM effect constructor projection-dirty initialization must consume MIR refresh metadata"
+fi
 if grep -Fq "ast_zone_refreshes(zone_decl, &refresh_count)" \
     "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"; then
     fail "LLVM zone constructor projection-dirty initialization must consume MIR zone refresh metadata"

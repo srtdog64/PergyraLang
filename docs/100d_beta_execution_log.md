@@ -3,6 +3,14 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-19 LLVM Relation/Effect Constructor Refresh Cutover
+
+- LLVM relation/effect/zone constructor projection-dirty initialization now
+  consumes one `LLVMHostedZoneRefreshView` path. Relation/effect constructors no
+  longer reopen `ast_relation_refreshes(...)` / `ast_effect_refreshes(...)`.
+- `mir-declaration-inventory-test-smoke` now rejects relation/effect constructor
+  refresh inventory reads in `llvm_expr_constructor_calls.c`.
+
 ## Progress Log - 2026-06-19 Relation/Effect Refresh Metadata Capture
 
 - `mir_decl_header_set_refreshes` now captures refresh rows for relation,
