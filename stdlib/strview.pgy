@@ -1,0 +1,66 @@
+// strview.pgy -- a non-owning string view, Pergyra's counterpart of Rust's &str.
+//
+// A StrView is (source, start, length): it borrows the source String's buffer
+// instead of copying it, so taking a view is allocation-free. The view
+// operations forward to the allocation-free fused builtins (SubIndexOf,
+// SubEquals, ...), so scanning a string through views does not pay the per-call
+// heap copy that Substring forces. Safe in the current memory model: Strings are
+// not freed during execution, so a view cannot dangle. Materialize back to an
+// owned String with ViewToString (which allocates) only when one is needed.
+
+class StrView
+{
+    let source: String;
+    let start: Int;
+    let length: Int;
+}
+
+// Borrow s[start .. start+len) as a view. No allocation.
+func SubView(s: String, start: Int, len: Int) -> StrView
+{
+    return StrView(s, start, len);
+}
+
+// View over the whole string.
+func ViewOf(s: String) -> StrView
+{
+    return StrView(s, 0, StringLength(s));
+}
+
+func ViewLength(v: StrView) -> Int
+{
+    return v.length;
+}
+
+// Index of needle within the view (relative to its start), or -1.
+func ViewIndexOf(v: StrView, needle: String) -> Int
+{
+    return SubIndexOf(v.source, v.start, v.length, needle);
+}
+
+func ViewEquals(v: StrView, other: String) -> Bool
+{
+    return SubEquals(v.source, v.start, v.length, other);
+}
+
+func ViewContains(v: StrView, needle: String) -> Bool
+{
+    return SubContains(v.source, v.start, v.length, needle);
+}
+
+func ViewStartsWith(v: StrView, prefix: String) -> Bool
+{
+    return SubStartsWith(v.source, v.start, prefix);
+}
+
+// A sub-view of a view (still no allocation): v[from .. from+len).
+func ViewSlice(v: StrView, from: Int, len: Int) -> StrView
+{
+    return StrView(v.source, v.start + from, len);
+}
+
+// Materialize the view into an owned String. Allocates.
+func ViewToString(v: StrView) -> String
+{
+    return Substring(v.source, v.start, v.length);
+}
