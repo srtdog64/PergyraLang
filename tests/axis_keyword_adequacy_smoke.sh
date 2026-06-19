@@ -125,9 +125,47 @@ for row in "${COQ_MIRROR[@]}"; do
     printf '  ok   %-12s %-12s %s\n' "$kw" "$axis" "$ctor"
 done
 
+# --- check C: intent clause -> owner checker (StepBy / write-attribution) ----
+# docs/42 §2 says each intent clause's fact has one final owner. AxisOwnership.v
+# encodes those facts (FWho/FWhere/FRequires/FAuthorizedBy/FCauses) and the axis
+# that owns each (Owns). This check binds that ownership to the REAL compiler:
+# every clause must be parsed, modeled as a Coq Fact, owned by the matching axis
+# in Owns, and routed to the semantic checker for that owner subsystem. If the
+# compiler moved a clause to a different checker (silent re-attribution), or the
+# Coq Owns axis no longer matches, this fails.
+#
+#   "<clause> <coq fact> <axis> <owner checker file> <owner token>"
+declare -A AXNAME=( [Resource]=AxResource [Execution]=AxExecution [Domain]=AxDomain [TypeContract]=AxTypeContract )
+CLAUSE_MAP=(
+    "who        FWho          Domain       type_checker_intent_participants.c     participant"
+    "within     FWhere        Domain       type_checker_intent_binding_context.c  zone"
+    "requires   FRequires     TypeContract type_checker_intent_ability.c          ability"
+    "authorized FAuthorizedBy Domain       type_checker_intent_authority.c        authorit"
+    "causes     FCauses       Domain       type_checker_effect_decl.c             effect"
+)
+
+echo "== C. intent clause ⟷ Coq fact/axis ⟷ owner checker (write attribution) =="
+for row in "${CLAUSE_MAP[@]}"; do
+    read -r clause fact axis ofile otok <<<"$row"
+    checker="$ROOT_DIR/src/semantic/$ofile"
+    if ! grep -rqE "\"$clause\"" "$PARSER_DIR" 2>/dev/null; then
+        echo "  FAIL: intent clause '$clause' not recognized by the parser"; fail=1; continue
+    fi
+    if ! grep -qE "\b$fact\b" "$AXIS_COQ"; then
+        echo "  FAIL: clause '$clause' has no Coq fact '$fact' in AxisOwnership.v"; fail=1; continue
+    fi
+    if ! grep -qE "Owns ${AXNAME[$axis]}[[:space:]]+$fact\b" "$AXIS_COQ"; then
+        echo "  FAIL: Coq Owns does not put '$fact' on ${AXNAME[$axis]} (clause '$clause')"; fail=1; continue
+    fi
+    if [[ ! -e "$checker" ]] || ! grep -qiE "$otok" "$checker"; then
+        echo "  FAIL: clause '$clause' owner checker $ofile missing or lacks '$otok'"; fail=1; continue
+    fi
+    printf '  ok   %-11s %-14s %-12s %s\n' "$clause" "$fact" "$axis" "$ofile"
+done
+
 if [[ "$fail" -ne 0 ]]; then
     echo "axis keyword adequacy: FAILED"
     exit 1
 fi
 
-echo "axis keyword adequacy: ok (Coq §8 ⟷ docs/42 §0 ⟷ compiler keywords consistent)"
+echo "axis keyword adequacy: ok (Coq §8/§5 ⟷ docs/42 §0/§2 ⟷ compiler keywords + clause checkers)"

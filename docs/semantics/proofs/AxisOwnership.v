@@ -265,19 +265,89 @@ Proof.
 Qed.
 
 (* ========================================== *)
-(* 9. Remaining obligations (future sessions) *)
-(* ------------------------------------------ *)
-(* - Reading confluence: Theorem 3 covers updates whose written values are     *)
-(*   fixed per resolution (wr). The harder case is resolution that READS other *)
-(*   axes' facts; show the read-set is disjoint from the other axis' write-set *)
-(*   and recover commutation.                                                  *)
-(* - Binary adequacy: SS8 proves surface<->ownership consistency INSIDE Coq.   *)
-(*   The model<->actual-compiler link cannot be a Coq theorem. The keyword     *)
-(*   layer of it is now a differential test --                                 *)
-(*   tests/axis_keyword_adequacy_smoke.sh pins keyword_axis (here) against the *)
-(*   docs/42 SS0 table and the compiler's recognized keywords (lexer reserved  *)
-(*   + parser contextual), so drift in any layer fails the gate. STILL OPEN:   *)
-(*   binding StepBy to the verifier graph's actual write attribution.          *)
+(* 9. Reading confluence -- state-dependent resolution still commutes          *)
+(* Theorem 3 fixed each axis' written value (wr). Here each axis RESOLVES its  *)
+(* facts by reading the state, but reads only the facts it owns ("a-local").   *)
+(* Orthogonality of reads is enough for the two interleavings to agree: an     *)
+(* axis cannot observe another axis' pending write, so resolution order is     *)
+(* immaterial.                                                                 *)
+(* ========================================== *)
+
+(* res is a-local: its output depends only on the facts a owns. Changing any
+   fact a does not own cannot change what a resolves. *)
+Definition ALocal (a : Axis) (res : FactState -> Fact -> Value) : Prop :=
+  forall st st', (forall g, Owns a g -> st g = st' g) ->
+                 forall f, res st f = res st' f.
+
+(* A reading update by axis a: its owned facts take res's value computed from
+   the current state, every other fact is preserved. *)
+Definition ReadUpdate (a : Axis) (res : FactState -> Fact -> Value)
+                      (st st' : FactState) : Prop :=
+  forall f, (Owns a f -> st' f = res st f) /\ (~ Owns a f -> st' f = st f).
+
+(* A reading update by axis b preserves every fact owned by a different axis x. *)
+Lemma readupdate_preserves_foreign :
+  forall b res st st' x g,
+    ReadUpdate b res st st' -> b <> x -> Owns x g -> st' g = st g.
+Proof.
+  intros b res st st' x g Hupd Hbx Hxg.
+  destruct (Hupd g) as [_ Hpres]. apply Hpres.
+  intro Hbg. apply Hbx. apply (ownership_unique g); assumption.
+Qed.
+
+(* Theorem 4: reading updates by DISTINCT axes commute. Because each resolver
+   is a-local and the other axis only writes its own (disjoint) facts, neither
+   axis can read a value the other is about to change -- so a-then-b equals
+   b-then-a fact-by-fact. *)
+Theorem reading_updates_commute :
+  forall a b resa resb st sab sba s_a s_b,
+    a <> b ->
+    ALocal a resa -> ALocal b resb ->
+    ReadUpdate a resa st  s_a -> ReadUpdate b resb s_a sab ->
+    ReadUpdate b resb st  s_b -> ReadUpdate a resa s_b sba ->
+    forall f, sab f = sba f.
+Proof.
+  intros a b resa resb st sab sba s_a s_b Hab La Lb Ha1 Hb2 Hb1 Ha2 f.
+  assert (Hba : b <> a) by (intro H; apply Hab; symmetry; exact H).
+  destruct (owner_of f) as [o [Ho Huniq]].
+  (* a resolves the same on st and on s_b: s_b only changed b's facts. *)
+  assert (Ea : forall h, resa s_b h = resa st h).
+  { apply La. intros g Hag.
+    exact (readupdate_preserves_foreign b resb st s_b a g Hb1 Hba Hag). }
+  (* b resolves the same on st and on s_a: s_a only changed a's facts. *)
+  assert (Eb : forall h, resb s_a h = resb st h).
+  { apply Lb. intros g Hbg.
+    exact (readupdate_preserves_foreign a resa st s_a b g Ha1 Hab Hbg). }
+  destruct (Axis_eq_dec o a) as [Eoa | Noa].
+  - subst o.
+    assert (Hnb : ~ Owns b f) by (exact (not_owns_of_neq f a b Huniq Hab)).
+    destruct (Hb2 f) as [_ Hb2p]. destruct (Ha1 f) as [Ha1w _].
+    destruct (Ha2 f) as [Ha2w _].
+    rewrite (Hb2p Hnb). rewrite (Ha1w Ho). rewrite (Ha2w Ho). rewrite (Ea f).
+    reflexivity.
+  - destruct (Axis_eq_dec o b) as [Eob | Nob].
+    + subst o.
+      assert (Hna : ~ Owns a f) by (exact (not_owns_of_neq f b a Huniq Noa)).
+      destruct (Hb2 f) as [Hb2w _]. destruct (Ha2 f) as [_ Ha2p].
+      destruct (Hb1 f) as [Hb1w _].
+      rewrite (Hb2w Ho). rewrite (Eb f). rewrite (Ha2p Hna). rewrite (Hb1w Ho).
+      reflexivity.
+    + assert (Hna : ~ Owns a f) by (exact (not_owns_of_neq f o a Huniq Noa)).
+      assert (Hnb : ~ Owns b f) by (exact (not_owns_of_neq f o b Huniq Nob)).
+      destruct (Hb2 f) as [_ Hb2p]. destruct (Ha1 f) as [_ Ha1p].
+      destruct (Ha2 f) as [_ Ha2p]. destruct (Hb1 f) as [_ Hb1p].
+      rewrite (Hb2p Hnb). rewrite (Ha1p Hna).
+      rewrite (Ha2p Hna). rewrite (Hb1p Hnb). reflexivity.
+Qed.
+
+(* ========================================== *)
+(* 10. Remaining obligations (future sessions) *)
+(* ------------------------------------------- *)
+(* - Binary adequacy (StepBy layer): SS8 proves surface<->ownership inside     *)
+(*   Coq and tests/axis_keyword_adequacy_smoke.sh pins keyword_axis against    *)
+(*   docs/42 SS0 and the compiler's recognized keywords. STILL OPEN: binding   *)
+(*   StepBy / the fact-ownership of intent clauses (who/where/requires/        *)
+(*   authorized-by/causes) to the verifier graph's actual write attribution.   *)
 (* - Effect (FCauses) and projection (object/tobject) as read-only derived     *)
 (*   views, proving a view never owns a fact.                                  *)
 (* ========================================== *)
