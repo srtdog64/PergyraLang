@@ -10,8 +10,9 @@ Current judgement (2026-06-19): the hard-self-host substrate checklist is broad
 enough for staged compiler-pass substitution, but capability 5 remains ACTIVE
 until the remaining body source-payload expression/shape tail is retired. Raw
 source-statement re-dispatch is gone, source-local resource constructors consume
-MIR expected type facts, and assignment DEFs preserve side effects before SSA
-recording; not every body fact is MIR-owned yet. This is still not a full
+MIR expected type facts, assignment DEFs preserve side effects before SSA
+recording, and C resource mirroring uses MIR source-statement identity instead
+of source-payload pointer identity; not every body fact is MIR-owned yet. This is still not a full
 hard-self-host claim. Passing `self-host-preparation-test-smoke` proves the
 side-by-side method and the C/LLVM/Pergyra parity harness, not permission to
 replace the semantic checker, MIR lowering, codegen, compiler driver, or
@@ -69,11 +70,13 @@ source_ast/source_decl frontier, residual STMT source-payload emission, and
 source-local raw statement re-dispatch are closed. LLVM await DEF emission,
 C pending SSA-use materialization, and LLVM source DEF copy now consume MIR
 `expr0` / `expr1` and MIR local-decl/source-statement flags directly. The
-remaining capability-5 tail is match/select/resource shape plus selected
-diagnostics still backed by `mir_instruction_source_payload`; LLVM for-in and
-with-slot resource-claim diagnostics have already moved to MIR expression
-anchors. The remaining reads must become MIR facts or provenance-only reads
-before the body source-of-truth row is fully ready.
+resource mirroring path now compares MIR source-statement indexes, and the C
+resource hook uses MIR `expr1` type annotations instead of recovering local-decl
+payloads. The remaining capability-5 tail is match/select/resource shape plus
+selected diagnostics still backed by `mir_instruction_source_payload`; LLVM
+for-in and with-slot resource-claim diagnostics have already moved to MIR
+expression anchors. The remaining reads must become MIR facts or
+provenance-only reads before the body source-of-truth row is fully ready.
 
 - **Module/package resolver stability**: deterministic imports, manifest
   reading, path normalization, and cycle diagnostics.

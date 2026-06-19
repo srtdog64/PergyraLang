@@ -58,6 +58,9 @@ compatibility path.
   those paths no longer open `mir_instruction_source_payload`.
 - LLVM MIR for-in and with-slot resource-claim diagnostics use MIR expression
   anchors instead of opening source payload statements.
+- C resource mirroring compares MIR source-statement indexes instead of source
+  payload pointer identity, and the C resource hook consumes DEF `expr1` type
+  annotations instead of recovering local-decl payloads.
 - The remaining capability-5 body tail is the narrower source-payload
   expression/shape surface: match/select/resource shape consumers and selected
   diagnostics. Capability 5 should stay ACTIVE until those reads are replaced

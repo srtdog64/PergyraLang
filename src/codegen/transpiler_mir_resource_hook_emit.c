@@ -9,7 +9,6 @@
 #include <string.h>
 
 #include "../semantic/diag_codes.h"
-#include "../parser/ast_api.h"
 #include "../compiler/mir_type_helpers.h"
 #include "transpiler_context.h"
 #include "transpiler_inventory_view.h"
@@ -57,16 +56,9 @@ transpiler_mir_layout_from_type_annotation(TranspilerCtx *ctx,
 static ASTNode *
 transpiler_mir_def_type_annotation(const MIRInstruction *inst)
 {
-    ASTNode *source;
-
     if (inst == NULL || inst->kind != MIR_INST_DEF)
         return NULL;
-    if (inst->expr1 != NULL)
-        return inst->expr1;
-    source = mir_instruction_source_payload(inst);
-    if (mir_instruction_source_is_local_decl(inst) && source != NULL)
-        return ast_let_type(source);
-    return NULL;
+    return inst->expr1;
 }
 
 static const MIRTypeLayout *

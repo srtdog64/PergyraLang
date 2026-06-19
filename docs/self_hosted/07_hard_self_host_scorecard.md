@@ -43,7 +43,9 @@ and then records the SSA value, so field writes remain field writes while raw
 source-statement redispatch stays retired. LLVM await DEF emission, C pending
 SSA-use materialization, and LLVM source DEF copy now consume MIR `expr0` /
 `expr1` plus MIR local-decl/source-statement flags instead of reopening the
-source statement payload.
+source statement payload. C resource mirroring now compares MIR
+source-statement indexes, and C resource hook type annotation consumes the DEF
+`expr1` fact instead of recovering a local declaration from source payload.
 
 ## Compiler Maturity Bar
 
@@ -79,7 +81,7 @@ ACTIVE means it is on the critical path and still in progress.
 | 2 | Collections + iteration | READY | stdlib_surface_smoke, stage4_determinism_smoke | List/Set/HashMap have stable scalar key forms (String, Int, Long, Bool); MapKeys and SetValues order are locked; compiler-facing symbol/record/handle-like keys are normalized to canonical scalar IDs rather than raw aggregate keys |
 | 3 | String/path/Unicode policy | READY | unicode_policy_smoke, source_utf8_smoke, memory_string_safety_smoke, filesystem_directory_walk_smoke | stable comparison, normalization, and deterministic directory snapshot stance gated |
 | 4 | Arena/ownership ergonomics | READY | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke | `Allocator` is a single C/LLVM-backed value surface, `BoxArray` can consume a named allocator local, scratch/result/persistent lane constructors carry distinct runtime kinds, and `AllocatorDestroy(namedAllocator)` closes explicit pass-lane cleanup on C and LLVM |
-| 5 | CFG/MIR body as SoT | ACTIVE | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; source_ast and source_decl are ratcheted at codegen 0 / compiler 0; residual STMT source-payload emission and raw source-statement re-dispatch are retired; selected source-payload expression/shape reads remain |
+| 5 | CFG/MIR body as SoT | ACTIVE | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; source_ast and source_decl are ratcheted at codegen 0 / compiler 0; residual STMT source-payload emission and raw source-statement re-dispatch are retired; resource mirror identity is source-statement-index based; selected source-payload expression/shape reads remain |
 | 6 | AIR as verifier | READY | air_json_schema_smoke, air_drift_smoke, air_backend_nonimpact_smoke | pgy.air.graph.v1 evidence export gated; drift count enforced at 0 |
 | 7 | DAG type resolution SoT | READY | type_resolution_dag_smoke, type_resolution_resolver_inventory_smoke | recursive resolver compat path retired; metadata_dead_ends enforced at 0 |
 | 8 | Scoped unsafe/raw escape | READY | raw_escape_contract_smoke | unsafe is scoped and capability-bound; raw pointers gated out of domain code |
@@ -92,8 +94,9 @@ Capability 5 is closed for the measured source_ast/source_decl frontier, but it
 is still active for body-level source-payload compatibility emission. non_cfg
 body facts come from MIR and are locked at zero fallback, backend and compiler
 source_ast/source_decl readers are locked at zero, residual STMT source-payload
-emission and raw source-statement re-dispatch are retired, and the self-hosted
-checker proves the same manifest. The remaining source-payload expression/shape
+emission and raw source-statement re-dispatch are retired, resource mirror
+identity is MIR source-statement-index based, and the self-hosted checker proves
+the same manifest. The remaining source-payload expression/shape
 tail must be cut before this row can honestly return to READY. Capability 4 is
 closed for the current compiler-pass
 substrate: named allocator lanes can be constructed, consumed by
@@ -248,11 +251,12 @@ MIR expected type-name facts at the DEF owner for `Channel<T>` and slot-like
 resources. Assignment DEF emission preserves source assignment side effects
 while recording the SSA value. Await DEF emission, pending SSA-use
 materialization, and source DEF copy also consume MIR expression/type facts
-directly. The remaining ACTIVE tail is the narrower match/select/resource
-shape and selected diagnostics surface. LLVM for-in and with-slot
-resource-claim diagnostics already use MIR expression anchors; the rest of the
-body facts still need dedicated MIR records or explicit provenance-only
-handling.
+directly. C resource mirror identity now uses source-statement indexes, and the
+C resource hook DEF type annotation uses `expr1`. The remaining ACTIVE tail is
+the narrower match/select/resource shape and selected diagnostics surface. LLVM
+for-in and with-slot resource-claim diagnostics already use MIR expression
+anchors; the rest of the body facts still need dedicated MIR records or
+explicit provenance-only handling.
 
 Capability 2 (collections). Closed for the hard-self-host substrate: integer keys are implemented
 (pgy_runtime_map_int_key_inline.h covers i32 and i64), and `MapKeys` /

@@ -286,6 +286,15 @@ mir_instruction_source_statement_order_compare(const MIRInstruction *left,
 }
 
 bool
+mir_instructions_share_source_statement(const MIRInstruction *left,
+                                        const MIRInstruction *right)
+{
+    return mir_instruction_has_source_statement_order(left)
+        && mir_instruction_has_source_statement_order(right)
+        && left->source_statement_index == right->source_statement_index;
+}
+
+bool
 mir_instruction_branch_requires_source_emit(const MIRInstruction *inst)
 {
     return inst != NULL

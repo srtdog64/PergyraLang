@@ -6,10 +6,10 @@
 
 bool transpiler_mir_stmt_is_mirrored_resource(TranspilerCtx *ctx,
                                               const MIRBasicBlock *block,
-                                              ASTNode *stmt);
+                                              const MIRInstruction *stmt_inst);
 
 /* True when `resource_inst` has a paired MIR_INST_STMT with the same source
- * AST payload inside the same `block`. Used to gate concrete C emission of
+ * statement index inside the same `block`. Used to gate concrete C emission of
  * resource ops: when the paired stmt lives in a different block (e.g. the
  * SSA def-block carries a use-block's resource flow), the resource op must
  * stay observability-only so the actual runtime call fires exactly once,

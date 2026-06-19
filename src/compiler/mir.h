@@ -399,6 +399,9 @@ size_t      mir_instruction_source_statement_index_or(
 int         mir_instruction_source_statement_order_compare(
                 const MIRInstruction *left,
                 const MIRInstruction *right);
+bool        mir_instructions_share_source_statement(
+                const MIRInstruction *left,
+                const MIRInstruction *right);
 bool        mir_instruction_branch_requires_source_emit(
                 const MIRInstruction *inst);
 bool        mir_instruction_source_branch_payload_matches_shape(

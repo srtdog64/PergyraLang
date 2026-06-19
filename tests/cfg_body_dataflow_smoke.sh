@@ -304,6 +304,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_resource_op_is_write"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_resource_op_keeps_residual_statement_emit"
     require_literal "src/codegen/transpiler_mir_stmt_emit.c" "mir_instruction_resource_op_keeps_residual_statement_emit"
+    require_literal "src/codegen/transpiler_mir_stmt_emit.c" "mir_instructions_share_source_statement(resource_inst, stmt_inst)"
     require_literal "src/compiler/mir_fact_surface_validate.c" "mir_instruction_resource_op_is_write(inst)"
     require_literal "src/compiler/mir_stmt_population_resource_ops.c" "mir_instruction_resource_op_is_read(inst)"
     require_literal "src/compiler/mir_stmt_population_resource_ops.c" "mir_instruction_resource_op_is_claim(inst)"
@@ -313,6 +314,16 @@ run_literal_doc_contract_smoke() {
     if grep -nE 'strcmp\(resource_inst->name, "(IO|ChannelSend|ChannelRecv|ChannelSelect|Read)"\)' \
         "$ROOT_DIR/src/codegen/transpiler_mir_stmt_emit.c"; then
         echo "C backend must consume MIR residual resource-op policy, not classify resource op names directly" >&2
+        exit 1
+    fi
+    if grep -Fq -- "mir_instruction_source_payload" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_stmt_emit.c"; then
+        echo "C MIR resource mirroring must use source statement index facts, not source payload identity" >&2
+        exit 1
+    fi
+    if grep -Fq -- "mir_instruction_source_payload" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_resource_hook_emit.c"; then
+        echo "C MIR resource hook type annotation must use MIR expr/type facts, not source payload statements" >&2
         exit 1
     fi
     for rel in \
@@ -354,6 +365,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_is_first_source_statement"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_statement_index_or"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_statement_order_compare"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instructions_share_source_statement"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_line_matches_node"
     require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_uses_source_statement_emit(inst)"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_def_uses_source_local_decl_emit"
