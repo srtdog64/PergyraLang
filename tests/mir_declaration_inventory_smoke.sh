@@ -5316,6 +5316,38 @@ if awk '
 ' "$ROOT_DIR/src/codegen/transpiler_role_ability.c"; then
     fail "C party slot method dispatch must consume ability MIRDeclMethod rows in MIR-active paths"
 fi
+c_ability_decl_body="$(
+    awk '
+        /emit_ability_decl\(ASTNode \*node, TranspilerCtx \*ctx\)/ { in_body = 1 }
+        /emit_role_decl\(ASTNode \*node, TranspilerCtx \*ctx\)/ { in_body = 0 }
+        in_body { print }
+    ' "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c"
+)"
+for term in \
+    "TranspilerAbilityMethodView methods" \
+    "transpiler_ability_method_view_from_decl(ctx, name, node)" \
+    "transpiler_require_ability_method_view_rows(ctx, &methods, name)" \
+    "transpiler_ability_method_view_metadata(&methods, i)" \
+    "transpiler_ability_method_view_compat_method(&methods, i)" \
+    "transpiler_mir_decl_method_metadata_complete_for(ctx" \
+    "TRANSPILER_MIR_DECL_METHOD_REQUIRE_ALL_TYPE_NAMES" \
+    "transpiler_mir_decl_method_return_type_name(method_meta)" \
+    "transpiler_mir_decl_method_param_type_name(method_meta, j)" \
+    "transpiler_require_type_name_c_type_copy("; do
+    grep -Fq "$term" <<<"$c_ability_decl_body" ||
+        fail "C ability typedef emission must consume ability MIRDeclMethod metadata: missing $term"
+done
+if grep -Eq 'ast_ability_method_(count|method)\(' <<<"$c_ability_decl_body"; then
+    fail "C ability typedef emission must not reopen AST ability method arrays"
+fi
+require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+    "transpiler_active_decl_header_of_type("
+require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+    "ctx, AST_ABILITY_DECL, ability_name"
+require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+    "mir_decl_header_method_count(view.decl_header)"
+require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+    "mir_decl_header_generic_param_count(methods.decl_header)"
 require_term "src/codegen/llvm_domain_role_lookup.c" \
     "llvm_render_mir_ability_formal_fallback"
 require_term "src/codegen/llvm_domain_role_lookup.c" \

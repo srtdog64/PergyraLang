@@ -1177,6 +1177,13 @@ typedefs before ability vtables. The ABI source of truth remains the host
 self-cell classification policy; ability emission must not fall back to raw
 type strings that bypass that policy.
 
+Non-generic C ability typedef signatures now consume the ability declaration
+header's `MIRDeclMethod` rows when MIR is active. The AST ability method array
+is confined to the non-MIR compatibility view; MIR-active typedef field count,
+method names, return type-names, parameter type-names, and generic-param count
+come from declaration inventory and fail closed if the rows are absent or
+incomplete.
+
 LLVM ability vtable forward signatures consume the ability declaration header's
 `MIRDeclMethod` rows when MIR is active. The AST ability method array remains
 only as the explicit non-MIR compatibility payload; MIR-active vtable field
