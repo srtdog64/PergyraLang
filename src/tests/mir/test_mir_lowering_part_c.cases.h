@@ -502,17 +502,14 @@ test_mir_lowering_part_c(void)
 
     TEST("MIR residual STMT policy rejects local dataflow statements");
     {
-        ASTNode payload = {0};
         MIRInstruction inst = {0};
         bool rejects_let;
         bool rejects_destructure;
         bool rejects_assignment;
         bool keeps_effect_call;
 
-        payload.type = AST_CALL;
         inst.kind = MIR_INST_STMT;
         inst.name = "stmt";
-        inst.ast = &payload;
         inst.has_source_location = true;
         inst.has_source_statement_index = true;
         inst.source_statement_index = 0;

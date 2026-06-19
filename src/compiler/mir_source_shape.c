@@ -355,7 +355,8 @@ mir_instruction_uses_source_statement_emit(const MIRInstruction *inst)
     return inst != NULL
         && inst->kind == MIR_INST_DEF
         && inst->requires_source_statement_emit
-        && mir_instruction_source_payload(inst) != NULL;
+        && mir_instruction_has_source_location(inst)
+        && inst->expr0 != NULL;
 }
 
 bool
@@ -520,8 +521,8 @@ mir_instruction_source_stmt_fallback_is_allowed(const MIRInstruction *inst)
         return false;
     if (mir_instruction_is_intent_semantic_carrier(inst))
         return true;
-    if (mir_instruction_source_payload(inst) == NULL
-        || !inst->has_source_statement_index)
+    if (!mir_instruction_has_source_location(inst)
+        || !mir_instruction_has_source_statement_order(inst))
         return false;
     if (mir_instruction_source_is_cfg_owned_control(inst))
         return false;

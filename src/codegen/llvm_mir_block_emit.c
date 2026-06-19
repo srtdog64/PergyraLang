@@ -21,37 +21,27 @@
 #include "../parser/ast_api.h"
 
 static bool
-llvm_mir_instruction_has_source_payload(const MIRInstruction *inst)
-{
-    return mir_instruction_source_payload(inst) != NULL;
-}
-
-static bool
 llvm_mir_def_uses_source_statement_emit(const MIRInstruction *inst)
 {
-    return mir_instruction_uses_source_statement_emit(inst)
-        && llvm_mir_instruction_has_source_payload(inst);
+    return mir_instruction_uses_source_statement_emit(inst);
 }
 
 static bool
 llvm_mir_def_uses_source_local_decl_emit(const MIRInstruction *inst)
 {
-    return mir_instruction_uses_source_local_decl_emit(inst)
-        && llvm_mir_instruction_has_source_payload(inst);
+    return mir_instruction_uses_source_local_decl_emit(inst);
 }
 
 static bool
 llvm_mir_def_uses_channel_receive_statement_emit(const MIRInstruction *inst)
 {
-    return mir_instruction_uses_channel_receive_statement_emit(inst)
-        && llvm_mir_instruction_has_source_payload(inst);
+    return mir_instruction_uses_channel_receive_statement_emit(inst);
 }
 
 static bool
 llvm_mir_def_uses_select_receive_statement_emit(const MIRInstruction *inst)
 {
-    return mir_instruction_uses_select_receive_statement_emit(inst)
-        && llvm_mir_instruction_has_source_payload(inst);
+    return mir_instruction_uses_select_receive_statement_emit(inst);
 }
 
 static const char *

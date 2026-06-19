@@ -65,11 +65,13 @@ compatibility path.
   source-local type facts; its remaining payload reads are limited to
   destructure binding-name recovery.
 - MIR DCE and source-statement emit validation consume source-shape scalar
-  facts instead of payload presence for those decisions.
+  facts instead of payload presence for those decisions. Source-statement emit
+  predicates and LLVM DEF emit predicates now consume MIR emit facts instead of
+  treating source payload presence as a semantic condition.
 - The remaining capability-5 body tail is the narrower source-payload
-  expression/shape surface: match/select/resource shape consumers and selected
-  diagnostics. Capability 5 should stay ACTIVE until those reads are replaced
-  by dedicated MIR facts or reduced to provenance-only diagnostics.
+  expression/shape surface: match/select/resource/destructure shape consumers
+  and selected diagnostics. Capability 5 should stay ACTIVE until those reads
+  are replaced by dedicated MIR facts or reduced to provenance-only diagnostics.
 - C class/zone collection-specialization scans are MIR-routine based and no
   longer recover method body AST; routine_source_decl_codegen is ratcheted at 0.
 - C hosted method body emission binds the linked MIRRoutine body as current

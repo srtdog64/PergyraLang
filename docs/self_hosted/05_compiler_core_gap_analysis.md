@@ -68,15 +68,16 @@ Hard self-host cannot start until these are available and smoked. The current
 scorecard marks nine substrate forms READY and capability 5 ACTIVE: the
 source_ast/source_decl frontier, residual STMT source-payload emission, and
 source-local raw statement re-dispatch are closed. LLVM await DEF emission,
-C pending SSA-use materialization, and LLVM source DEF copy now consume MIR
-`expr0` / `expr1` and MIR local-decl/source-statement flags directly. The
-resource mirroring path now compares MIR source-statement indexes, and the C
-resource hook uses MIR `expr1` type annotations instead of recovering local-decl
-payloads. The remaining capability-5 tail is match/select/resource shape plus
-selected diagnostics still backed by `mir_instruction_source_payload`; LLVM
-for-in and with-slot resource-claim diagnostics have already moved to MIR
-expression anchors. The remaining reads must become MIR facts or
-provenance-only reads before the body source-of-truth row is fully ready.
+C pending SSA-use materialization, LLVM source DEF copy, source-statement emit
+predicates, and LLVM DEF emit predicates now consume MIR `expr0` / `expr1`,
+source-location, and emit flags directly. The resource mirroring path now
+compares MIR source-statement indexes, and the C resource hook uses MIR `expr1`
+type annotations instead of recovering local-decl payloads. The remaining
+capability-5 tail is match/select/resource/destructure shape plus selected
+diagnostics still backed by `mir_instruction_source_payload`; LLVM for-in and
+with-slot resource-claim diagnostics have already moved to MIR expression
+anchors. The remaining reads must become MIR facts or provenance-only reads
+before the body source-of-truth row is fully ready.
 
 - **Module/package resolver stability**: deterministic imports, manifest
   reading, path normalization, and cycle diagnostics.

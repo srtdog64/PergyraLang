@@ -229,6 +229,11 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_ssa_use_edges.c" "mir_def_instruction_source_expr"
     require_literal "src/compiler/mir_ssa_use_edges.c" "return inst->expr0"
     require_literal "src/compiler/mir_ssa_use_edges.c" "ASTNode *expr = inst->expr0 != NULL ? inst->expr0 : inst->expr1"
+    if grep -Fq -- "mir_instruction_source_payload" \
+        "$ROOT_DIR/src/compiler/mir_ssa_use_edges.c"; then
+        echo "MIR SSA use edges must consume MIR expr facts, not source payload fallback" >&2
+        exit 1
+    fi
     require_literal "src/compiler/mir_stmt_population.c" "#include \"mir_call_fact.h\""
     require_literal "src/compiler/mir_stmt_population_resource_ops.c" "mir_set_inst_source_statement_index(&new_insts[*new_count - 1]"
     require_literal "src/compiler/mir_non_cfg_stmt_population.c" "routine->hir_routine != NULL && routine->hir_routine->has_cfg"
@@ -271,6 +276,12 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_fact_surface_validate.c" "source-local-decl emit fact is invalid"
     require_literal "src/compiler/mir_fact_surface_validate.c" "source-statement LET emit is missing local-decl fact"
     require_literal "src/compiler/mir_fact_surface_validate.c" "STMT fallback is missing source statement inventory fact"
+    if grep -A8 -F "STMT fallback is missing source statement inventory fact" \
+        "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c" | \
+        grep -Fq "mir_instruction_source_payload"; then
+        echo "MIR residual STMT inventory validation must use source-location/order facts, not source payload" >&2
+        exit 1
+    fi
     require_literal "src/compiler/mir_fact_surface_validate.c" "STMT fallback is outside allowed residual statement policy"
     require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_source_stmt_fallback_is_allowed(inst)"
     require_literal "src/codegen/transpiler_mir_block_emit.c" "mir_instruction_source_stmt_fallback_is_allowed(inst)"
@@ -304,6 +315,12 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_is_cfg_owned_control"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_has_side_effect_hint"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_fallback_is_allowed"
+    if grep -A14 -F "mir_instruction_source_stmt_fallback_is_allowed" \
+        "$ROOT_DIR/src/compiler/mir_source_shape.c" | \
+        grep -Fq "mir_instruction_source_payload"; then
+        echo "MIR residual STMT fallback policy must use source inventory facts, not source payload" >&2
+        exit 1
+    fi
     require_literal "src/compiler/mir_source_shape.c" "AST_FAIL_STMT"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_resource_op_is_claim"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_resource_op_is_read"
@@ -378,10 +395,27 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_statement_order_compare"
     require_literal "src/compiler/mir_source_shape.c" "mir_instructions_share_source_statement"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_line_matches_node"
+    if grep -A8 -F "mir_instruction_uses_source_statement_emit" \
+        "$ROOT_DIR/src/compiler/mir_source_shape.c" | \
+        grep -Fq "mir_instruction_source_payload"; then
+        echo "MIR source-statement emit predicate must consume source-location/expression facts, not source payload" >&2
+        exit 1
+    fi
     require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_uses_source_statement_emit(inst)"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_def_uses_source_local_decl_emit"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_def_uses_channel_receive_statement_emit"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_def_uses_select_receive_statement_emit"
+    if grep -Fq -- "llvm_mir_instruction_has_source_payload" \
+        "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"; then
+        echo "LLVM MIR DEF emit predicates must consume MIR emit facts, not source payload presence" >&2
+        exit 1
+    fi
+    if grep -A28 -F "llvm_mir_def_uses_source_statement_emit" \
+        "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" | \
+        grep -Fq "mir_instruction_source_payload"; then
+        echo "LLVM MIR DEF emit predicates must consume MIR emit facts, not source payload presence" >&2
+        exit 1
+    fi
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_emit_channel_receive_def(inst, ctx"
     require_literal "src/codegen/llvm_mir_cfg_control.c" "llvm_mir_declare_recv_target(inst->arg0, inst->expr0, ctx)"
     require_literal "src/codegen/llvm_mir_cfg_control.c" "LLVM channel receive DEF requires registered runtime function"

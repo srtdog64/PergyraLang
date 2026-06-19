@@ -2298,6 +2298,7 @@ grep -Fq "sem.type_resolution_metadata_dead_ends = 2" "$AIR_TEST_INDEX"
     || grep -Fq "type_resolution_metadata_materializer_fallbacks" "$AIR_TEST_INDEX"; }
 grep -Fq "return inst->expr0" "$ROOT_DIR/src/compiler/mir_ssa_use_edges.c"
 grep -Fq "ASTNode *expr = inst->expr0 != NULL ? inst->expr0 : inst->expr1" "$ROOT_DIR/src/compiler/mir_ssa_use_edges.c"
+! grep -Fq "mir_instruction_source_payload" "$ROOT_DIR/src/compiler/mir_ssa_use_edges.c"
 ! grep -Fq "inst->ast->type" "$ROOT_DIR/src/compiler/mir_ssa_rename.c"
 ! grep -Fq "source_statement_inventory" "$ROOT_DIR/src/compiler/mir_ssa_rename.c"
 ! grep -Fq "source_statement_inventory.items[inst->source_statement_index]" "$ROOT_DIR/src/compiler/mir_ssa_use_edges.c"
@@ -2366,6 +2367,12 @@ grep -Fq "mir_instruction_source_matches_ast_type(inst, AST_MATCH_CASE)" "$ROOT_
 grep -Fq "mir_instruction_source_matches_ast_type(inst, AST_BLOCK)" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 grep -Fq "mir_instruction_source_stmt_has_side_effect_hint(inst)" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 grep -Fq "mir_instruction_source_payload(inst) != NULL" "$ROOT_DIR/src/compiler/mir_source_shape.c"
+if grep -A8 -F "mir_instruction_uses_source_statement_emit" \
+    "$ROOT_DIR/src/compiler/mir_source_shape.c" | \
+    grep -Fq "mir_instruction_source_payload"; then
+    echo "[perf-contract] MIR source-statement emit predicate must consume source-location/expression facts, not source payload" >&2
+    exit 1
+fi
 source_ast_eq_count="$(
     grep -F "source_node_type == expected_type" \
         "$ROOT_DIR/src/compiler/mir_source_shape.c" | wc -l
@@ -2388,7 +2395,7 @@ grep -Fq "missing MIR body expression fact" "$ROOT_DIR/src/compiler/mir_fact_sur
 ! grep -Fq "llvm_mir_stmt_is_cfg_container" "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
 ! grep -Fq "return llvm_mir_stmt_is_cfg_container(inst->ast)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "mir_instruction_source_is_cfg_container(inst)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
-grep -Fq "mir_instruction_source_payload(inst) != NULL" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+! grep -Fq "llvm_mir_instruction_has_source_payload" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "mir_instruction_has_required_branch_lowering_fact(inst)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 ! grep -Fq "llvm_mir_branch_requires_source_compatibility" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_mir_def_uses_source_statement_emit" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
@@ -2396,6 +2403,12 @@ grep -Fq "llvm_mir_def_uses_source_local_decl_emit" "$ROOT_DIR/src/codegen/llvm_
 grep -Fq "llvm_mir_def_uses_channel_receive_statement_emit" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_mir_def_uses_select_receive_statement_emit" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 ! grep -Fq "llvm_mir_def_uses_source_statement_compatibility" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+if grep -A28 -F "llvm_mir_def_uses_source_statement_emit" \
+    "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" | \
+    grep -Fq "mir_instruction_source_payload"; then
+    echo "[perf-contract] LLVM MIR DEF emit predicates must consume MIR emit facts, not source payload presence" >&2
+    exit 1
+fi
 grep -Fq "mir_instruction_uses_source_statement_emit(inst)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_mir_emit_channel_receive_def(inst, ctx" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_mir_declare_recv_target(inst->arg0, inst->expr0, ctx)" "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
@@ -2466,6 +2479,18 @@ grep -Fq "mir_instruction_source_stmt_has_side_effect_hint(inst)" "$ROOT_DIR/src
 ! grep -Fq "mir_source_node_stmt_has_side_effect_hint(" "$ROOT_DIR/src/compiler/mir_dce.c"
 ! grep -Fq "mir_instruction_source_payload" "$ROOT_DIR/src/compiler/mir_dce.c"
 grep -Fq "mir_source_node_type_stmt_has_side_effect_hint" "$ROOT_DIR/src/compiler/mir_source_shape.c"
+if grep -A14 -F "mir_instruction_source_stmt_fallback_is_allowed" \
+    "$ROOT_DIR/src/compiler/mir_source_shape.c" | \
+    grep -Fq "mir_instruction_source_payload"; then
+    echo "[perf-contract] residual STMT fallback policy must use MIR source inventory facts, not source payload" >&2
+    exit 1
+fi
+if grep -A8 -F "STMT fallback is missing source statement inventory fact" \
+    "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c" | \
+    grep -Fq "mir_instruction_source_payload"; then
+    echo "[perf-contract] residual STMT inventory validation must use source-location/order facts, not source payload" >&2
+    exit 1
+fi
 grep -Fq "AST_FAIL_STMT" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 ! grep -Fq "source_node_type" "$ROOT_DIR/src/compiler/mir_dce.c"
 grep -Fq "MIR DCE uses statement shape facts without AST payload" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_c.cases.h"

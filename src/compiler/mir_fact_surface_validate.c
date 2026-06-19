@@ -233,7 +233,7 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
         }
         if (inst->kind == MIR_INST_STMT
             && !mir_instruction_is_intent_semantic_carrier(inst)
-            && (mir_instruction_source_payload(inst) == NULL
+            && (!mir_instruction_has_source_location(inst)
                 || !mir_instruction_has_source_statement_order(inst))) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
