@@ -298,3 +298,61 @@ That closes the entire ~1.7x lexer gap and reaches parity with -- sometimes
 slightly below -- the C backend. Correctness is unchanged: `codegen_parity`
 (c + llvm, 48 fixtures) stays green and the self-hosted lexer/parser/semantic/
 codegen produce byte-identical output on both backends with the bitcode linked.
+
+## Versus Rust, and the one structural gap (string allocation)
+
+A four-way comparison -- hand-C (gcc -O2), Rust (rustc -O3), Pergyra C backend,
+Pergyra LLVM backend -- on identical-output micro-benchmarks (Windows, gcc/LLVM
+22, Rust 1.89, best-of-N).
+
+**Maturity caveat first.** These are *runtime-speed* numbers. They do NOT mean
+Pergyra's compiler/IR competes with Rust MIR or Swift SIL as engineering
+artifacts. MIR/SIL are IRs proven over years in production across ownership,
+lifetime, optimization, diagnostics, incremental builds, LLVM lowering, and ABI
+stability. Pergyra has the *shape* (layered HIR/RIR/MIR/AIR, dual C/LLVM parity
+gates, ABI-layout docs, MIR-level DCE) but those properties are still *closing*,
+not closed: SoT closure, C/LLVM parity, self-hosted substitution (just at
+rung-0b), layout/ABI spec, and golden-test coverage are in progress. "Pergyra
+runs at C/Rust speed on these benchmarks" is a statement about clean codegen
+riding gcc/LLVM, not about IR maturity.
+
+**Compute-bound** (arith `acc=acc*31+i`, fib): the C backend tracks hand-C
+(~1.03x); Rust and the LLVM backend ride LLVM and on counted loops the LLVM
+backend's ScalarEvolution closes the loop to a near-constant time, so its
+micro-numbers reflect loop elimination, not steady-state throughput -- the
+honest LLVM datapoint is the non-foldable self-hosted lexer above. Net: for
+pure compute, all three land in the same LLVM/gcc-native class.
+
+**The real gap is allocation.** On a tight `Substring`+`IndexOf` loop (40M
+iters), idiomatic Rust uses a zero-copy `&str` slice while Pergyra's `Substring`
+heap-allocates a copy per call:
+
+| variant | 40M iters | vs Rust slice |
+|---------|-----------|---------------|
+| Rust `&str` slice (no alloc)      | ~153 ms  | 1.0x |
+| Pergyra `Substring` (allocates)   | ~1587 ms | ~10.4x |
+| same loop via `PgyStrView` (borrow) | ~189 ms | ~1.24x |
+
+Apples-to-apples (Rust `.to_string()` per substring, C `malloc`+`memcpy` per
+substring) all land near the allocating Pergyra number, so the language overhead
+is small -- the 10x is purely *allocate-a-copy vs borrow-a-slice*, an API/idiom
+difference, not a codegen-quality defect.
+
+### Closing it: non-owning string views
+
+`src/runtime/pgy_runtime_strview_inline.h` adds `PgyStrView { const char *data;
+int32_t length; }` -- the string counterpart of the existing array `PgySlice_T
+{ data; length; }`, and of Rust's `&str`. `pgy_strview(s, start, len)` borrows a
+range with the same clamping as `Substring` but **zero allocation**;
+`pgy_strview_indexof` / `pgy_strview_len` operate on the range in place. The
+`benchmarks/perf_strview_baseline.c` proof shows it closes the gap from ~10.4x to
+~1.24x of Rust's slice (8.4x faster than the allocating `Substring` loop) with
+byte-identical output.
+
+This is the *runtime primitive*, proven standalone. The remaining work (next
+rung) is the language surface: a `StrView`/`&String` view type the type system
+tracks, view-returning builtins (`Substring` overload / `SubView`), and lowering
+through both backends with the borrow's lifetime tied to its source -- so .pgy
+code can opt into zero-allocation string scanning the way Rust code uses `&str`.
+Until then the primitive only proves the path; idiomatic Pergyra string code
+still allocates.
