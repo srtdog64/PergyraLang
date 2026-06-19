@@ -7225,6 +7225,14 @@ if grep -Fq "ast_zone_refreshes(decl, refresh_count_out)" \
     "$ROOT_DIR/src/codegen/transpiler_overlay_projection.c"; then
     fail "C overlay projection invalidation must consume MIR zone refresh metadata"
 fi
+if grep -Fq "ast_relation_refreshes(decl, &view.count)" \
+    "$ROOT_DIR/src/codegen/transpiler_overlay_projection.c"; then
+    fail "C overlay relation projection invalidation must consume MIR refresh metadata"
+fi
+if grep -Fq "ast_effect_refreshes(decl, &view.count)" \
+    "$ROOT_DIR/src/codegen/transpiler_overlay_projection.c"; then
+    fail "C overlay effect projection invalidation must consume MIR refresh metadata"
+fi
 for term in \
     "LLVMHostedZoneRefreshView" \
     "llvm_hosted_zone_refresh_view_from_decl" \

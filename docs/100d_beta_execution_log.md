@@ -3,6 +3,15 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-19 C Overlay Relation/Effect Refresh Cutover
+
+- C overlay/assignment projection invalidation now builds
+  `TranspilerHostedZoneRefreshView` for relation, effect, and zone declarations.
+  The direct `ast_relation_refreshes(...)` / `ast_effect_refreshes(...)` overlay
+  reads are removed; non-MIR compatibility is constrained to the view.
+- `mir-declaration-inventory-test-smoke` now rejects reopened relation/effect
+  refresh inventory in `transpiler_overlay_projection.c`.
+
 ## Progress Log - 2026-06-19 LLVM Relation/Effect Constructor Refresh Cutover
 
 - LLVM relation/effect/zone constructor projection-dirty initialization now

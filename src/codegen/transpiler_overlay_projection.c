@@ -21,10 +21,8 @@
 
 typedef struct CurrentOverlayRefreshView
 {
-    ASTNode **ast_refreshes;
     size_t count;
     TranspilerHostedZoneRefreshView zone_refresh_view;
-    bool use_zone_refresh_view;
 } CurrentOverlayRefreshView;
 
 static CurrentOverlayRefreshView
@@ -37,21 +35,19 @@ current_overlay_refresh_view(TranspilerCtx *ctx)
         return view;
 
     decl = transpiler_current_host_decl_local(ctx);
-    if (decl != NULL && decl->type == AST_RELATION_DECL) {
-        view.ast_refreshes = ast_relation_refreshes(decl, &view.count);
-    } else if (decl != NULL && decl->type == AST_EFFECT_DECL) {
-        view.ast_refreshes = ast_effect_refreshes(decl, &view.count);
-    } else if (decl != NULL && decl->type == AST_ZONE_DECL) {
+    if (decl != NULL
+        && (decl->type == AST_RELATION_DECL
+            || decl->type == AST_EFFECT_DECL
+            || decl->type == AST_ZONE_DECL)) {
         const char *decl_name = transpiler_decl_name_local(decl);
         view.zone_refresh_view =
             transpiler_hosted_zone_refresh_view_from_decl(ctx, decl_name, decl);
         view.count = view.zone_refresh_view.count;
-        view.use_zone_refresh_view = true;
         if (transpiler_hosted_zone_refresh_view_missing_mir_metadata(
                 &view.zone_refresh_view)) {
             transpiler_set_mir_inventory_missing(ctx,
-                "MIR-only C path missing overlay zone refresh metadata for '%s'",
-                decl_name != NULL ? decl_name : "(anonymous-zone)");
+                "MIR-only C path missing overlay domain refresh metadata for '%s'",
+                decl_name != NULL ? decl_name : "(anonymous-domain)");
             view.count = 0;
         }
     }
@@ -206,27 +202,18 @@ emit_current_overlay_projection_invalidation(TranspilerCtx *ctx,
         const char *target_name;
         const char *refresh_source_name;
 
-        if (refresh_view.use_zone_refresh_view) {
-            mir_refresh = transpiler_hosted_zone_refresh_view_metadata(
-                &refresh_view.zone_refresh_view, i);
-            if (mir_refresh == NULL
-                && refresh_view.zone_refresh_view.ast_compat_refreshes != NULL) {
-                refresh = refresh_view.zone_refresh_view.ast_compat_refreshes[i];
-            }
-            target_name =
-                transpiler_hosted_zone_refresh_view_object_slot_name(
-                    &refresh_view.zone_refresh_view, i);
-            refresh_source_name =
-                transpiler_hosted_zone_refresh_view_source_slot_name(
-                    &refresh_view.zone_refresh_view, i);
-        } else {
-            refresh = refresh_view.ast_refreshes != NULL
-                ? refresh_view.ast_refreshes[i] : NULL;
-            if (refresh == NULL)
-                continue;
-            target_name = ast_zone_refresh_object_slot_name(refresh);
-            refresh_source_name = ast_zone_refresh_source_slot_name(refresh);
+        mir_refresh = transpiler_hosted_zone_refresh_view_metadata(
+            &refresh_view.zone_refresh_view, i);
+        if (mir_refresh == NULL
+            && refresh_view.zone_refresh_view.ast_compat_refreshes != NULL) {
+            refresh = refresh_view.zone_refresh_view.ast_compat_refreshes[i];
         }
+        target_name =
+            transpiler_hosted_zone_refresh_view_object_slot_name(
+                &refresh_view.zone_refresh_view, i);
+        refresh_source_name =
+            transpiler_hosted_zone_refresh_view_source_slot_name(
+                &refresh_view.zone_refresh_view, i);
         if (target_name == NULL || refresh_source_name == NULL
             || strcmp(refresh_source_name, source_slot_name) != 0) {
             continue;
