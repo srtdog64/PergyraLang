@@ -234,9 +234,27 @@ for row in "${EVIDENCE_MAP[@]}"; do
     printf '  ok   %-35s %-14s %-12s %s\n' "$kind" "$fact" "$axis" "$vocab"
 done
 
+# --- check E: AIR append API forces attribution (Coq Append/WellAttributed) ---
+# AxisOwnership.v section 10 models an Append as carrying its provider axis
+# (ap_axis); append_is_stepby proves a well-attributed append is a single StepBy.
+# The real append API must match structurally: every entry point names a provider
+# AND a subject, so the C signature itself forbids the un-attributed write the
+# Coq model rules out (the runtime guard checked in D is the second half).
+echo "== E. AIR append API forces attribution (Coq Append model) =="
+for fn in air_append_evidence_node air_append_evidence_node_ex; do
+    sig="$(grep -A6 -E "^${fn}\(" "$AIR_EVIDENCE_C" 2>/dev/null || true)"
+    if [[ -z "$sig" ]]; then
+        echo "  FAIL: append entry point '$fn' not found in air_evidence_node.c"; fail=1; continue
+    fi
+    if ! printf '%s' "$sig" | grep -q 'provider_name' || ! printf '%s' "$sig" | grep -q 'subject_name'; then
+        echo "  FAIL: '$fn' no longer requires provider_name+subject_name (anonymous append possible)"; fail=1; continue
+    fi
+    printf '  ok   %-30s requires provider_name + subject_name\n' "$fn"
+done
+
 if [[ "$fail" -ne 0 ]]; then
     echo "axis keyword adequacy: FAILED"
     exit 1
 fi
 
-echo "axis keyword adequacy: ok (Coq 8/5 -> docs/42 0/2 -> compiler keywords + clause checkers + AIR runtime evidence)"
+echo "axis keyword adequacy: ok (Coq 8/5/10 -> docs/42 0/2 -> keywords + clause checkers + AIR evidence + append API)"

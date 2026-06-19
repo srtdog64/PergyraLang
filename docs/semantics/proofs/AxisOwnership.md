@@ -63,11 +63,25 @@ each other; drift in any one of them fails the gate.
 | B | Coq `keyword_axis` = docs/42 axis | the model and the design disagreeing |
 | C | intent clause -> owning semantic checker (`who`->participants, `requires`->ability, `authorized`->authority, `causes`->effect, `within`->zone) | a clause silently re-routed to a different checker |
 | D | AIR runtime evidence kind -> Coq fact/axis, plus the provider+subject guard | anonymous facts (guard dropped) or an evidence kind mis-attributed |
+| E | AIR append entry points (`air_append_evidence_node`/`_ex`) require `provider_name`+`subject_name` | the `Append` model's `ap_axis` losing its real counterpart -- an anonymous append becoming possible at the API level |
 
 Check D reaches the **runtime** write-attribution: the AIR evidence graph is the
 compiler's runtime fact store, and `air_evidence_node.c` refuses to append a
 fact without a non-empty provider+subject. That guard is the runtime form of the
 single-writer discipline; `append_is_stepby` (SS10) is its Coq counterpart.
+Check E pins the other half: the C append signature itself names a provider, so
+the un-attributed write the `Append` model rules out is structurally impossible.
+
+### Sibling track: slot capability calculus
+
+The same adequacy pattern covers the **slot** proofs. `SlotCalculus.v` mechanizes
+stale-handle rejection, token-gated access, and pin non-eviction;
+[`../../../tests/slot_calculus_adequacy_smoke.sh`](../../../tests/slot_calculus_adequacy_smoke.sh)
+binds each modeled operation and each proven invariant to its live counterpart in
+`src/runtime/slot_manager.h` (`HandleRead`->`SlotRead`, `pin_non_eviction`->
+`PergyraSlotPin`, the stale-handle lemmas->`generation`, the token lemmas->
+`TokenCapability`). Rename a runtime symbol the proof depends on and the gate
+fails. All three suites run under `make formal-semantics-test-smoke`.
 
 ## 5. How to verify
 
@@ -89,9 +103,11 @@ make the gate fail), so the gate is known to have teeth.
 
 ## 6. Remaining
 
-- Connect the abstract `Append` model (SS10) to the concrete C append API:
-  extract the provider/kind at each `air_evidence_node.c` call site and check it
-  is `WellAttributed`, so the refinement constrains the real code path.
+- Check E binds the append API *signature* (it forces a provider). The deeper
+  step is per-call-site: extract the provider/kind actually passed at each of the
+  ~dozen `air_evidence_*.c` call sites and check each is `WellAttributed`
+  (provider = the owning axis), so the refinement constrains every real write,
+  not just the entry-point shape.
 - A full operational semantics of the verifier graph (beyond single appends).
 - Effect-propagation lifecycle as a derived, non-owning view (SS11 covers
   projections; `effect` propagation is the next case).
