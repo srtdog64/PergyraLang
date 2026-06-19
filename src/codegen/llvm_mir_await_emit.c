@@ -54,7 +54,6 @@ llvm_mir_try_emit_await_local_def(const MIRInstruction *inst,
                                   bool *handled)
 {
     char base_name[128];
-    ASTNode *stmt;
     ASTNode *init;
     ASTNode *operand;
     const char *future_name;
@@ -71,16 +70,12 @@ llvm_mir_try_emit_await_local_def(const MIRInstruction *inst,
         *handled = false;
     if (inst == NULL || ctx == NULL || handled == NULL
         || !mir_instruction_uses_source_local_decl_emit(inst)
-        || mir_instruction_source_payload(inst) == NULL
         || !llvm_mir_base_name_from_versioned(inst->result_name, base_name,
             sizeof(base_name))) {
         return true;
     }
 
-    stmt = mir_instruction_source_payload(inst);
-    if (stmt == NULL || stmt->type != AST_LET_DECL)
-        return true;
-    init = ast_let_initializer(stmt);
+    init = inst->expr0;
     if (init == NULL || init->type != AST_AWAIT_EXPR)
         return true;
     operand = ast_await_expression(init);
@@ -176,7 +171,7 @@ llvm_mir_try_emit_await_local_def(const MIRInstruction *inst,
     LLVMBuildStore(ctx->builder, value, target->alloca);
     llvm_mir_bind_base_local_scope(ctx, base_name, target->alloca,
         target->type, inst->arg1);
-    type_ann = ast_let_type(stmt);
+    type_ann = inst->expr1;
     if (type_ann != NULL)
         llvm_register_typed_var_binding(ctx, base_name, target->alloca,
             type_ann);

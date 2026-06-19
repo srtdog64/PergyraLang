@@ -66,10 +66,13 @@ pass into awkward workarounds.
 Hard self-host cannot start until these are available and smoked. The current
 scorecard marks nine substrate forms READY and capability 5 ACTIVE: the
 source_ast/source_decl frontier, residual STMT source-payload emission, and
-source-local raw statement re-dispatch are closed, but selected body expression
-and shape consumers still depend on `requires_source_statement_emit` /
-`mir_instruction_source_payload`. Those must become MIR facts or provenance-only
-reads before the body source-of-truth row is fully ready.
+source-local raw statement re-dispatch are closed. LLVM await DEF emission,
+C pending SSA-use materialization, and LLVM source DEF copy now consume MIR
+`expr0` / `expr1` and MIR local-decl/source-statement flags directly. The
+remaining capability-5 tail is match/select/resource shape plus selected
+diagnostics still backed by `mir_instruction_source_payload`; those must become
+MIR facts or provenance-only reads before the body source-of-truth row is fully
+ready.
 
 - **Module/package resolver stability**: deterministic imports, manifest
   reading, path normalization, and cycle diagnostics.

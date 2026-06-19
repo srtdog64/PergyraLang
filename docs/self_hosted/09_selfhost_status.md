@@ -53,11 +53,13 @@ compatibility path.
   closed. Assignment DEF emission preserves the source assignment side effect
   before storing the resulting value into the SSA local, so host-field writes do
   not regress to local-only updates.
+- LLVM await DEF emission, C pending SSA-use materialization, and LLVM source
+  DEF copy consume MIR `expr0` / `expr1` plus local-decl/source-statement flags;
+  those paths no longer open `mir_instruction_source_payload`.
 - The remaining capability-5 body tail is the narrower source-payload
-  expression/shape surface (`requires_source_statement_emit` and selected
-  `mir_instruction_source_payload` consumers). Capability 5 should stay ACTIVE
-  until those reads are replaced by dedicated MIR facts or reduced to
-  provenance-only diagnostics.
+  expression/shape surface: match/select/resource shape consumers and selected
+  diagnostics. Capability 5 should stay ACTIVE until those reads are replaced
+  by dedicated MIR facts or reduced to provenance-only diagnostics.
 - C class/zone collection-specialization scans are MIR-routine based and no
   longer recover method body AST; routine_source_decl_codegen is ratcheted at 0.
 - C hosted method body emission binds the linked MIRRoutine body as current

@@ -281,6 +281,10 @@ grep -A16 -F "LLVMVerifyModule(ctx->module" \
 grep -Fq "llvm_scope_declare(ctx, name, NULL, target_cls->struct_type)" "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
 grep -Fq "llvm_register_projection_borrow(ctx, name, type_name, source_name)" "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
 grep -Fq "llvm_scope_lookup_snapshot(ctx, base_name, &source)" "$ROOT_DIR/src/codegen/llvm_mir_source_def_copy.c"
+grep -Fq "type_ann = mir_instruction_uses_source_local_decl_emit(inst)" "$ROOT_DIR/src/codegen/llvm_mir_source_def_copy.c"
+grep -Fq "ASTNode *init = inst->expr0" "$ROOT_DIR/src/codegen/llvm_mir_source_def_copy.c"
+grep -Fq "!mir_instruction_uses_source_local_decl_emit(inst)" "$ROOT_DIR/src/codegen/llvm_mir_source_def_copy.c"
+! grep -Fq "mir_instruction_source_payload" "$ROOT_DIR/src/codegen/llvm_mir_source_def_copy.c"
 grep -Fq "llvm_scope_lookup_snapshot(ctx, \"self\", &self_entry)" \
     "$ROOT_DIR/src/codegen/llvm_mir_emit.c"
 grep -Fq "llvm_scope_lookup_snapshot(ctx, inst->arg0, &target_var)" \
@@ -1810,9 +1814,10 @@ grep -Fq "token name synthesis is disabled" "$ROOT_DIR/src/codegen/transpiler_sy
 ! grep -Fq "fallback_token" "$CODEGEN_INDEX"
 ! grep -Fq "block->source_statements" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"
 grep -Fq "transpiler_find_block_binding_from_mir_insts" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"
-grep -Fq "transpiler_pending_binding_from_source_statement_emit" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"
+! grep -Fq "transpiler_pending_binding_from_source_statement_emit" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"
+! grep -Fq "mir_instruction_source_payload" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"
 ! grep -Fq "transpiler_pending_binding_from_source_compatibility" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"
-grep -Fq "!mir_instruction_uses_source_local_decl_emit(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"
+grep -Fq "mir_instruction_uses_source_local_decl_emit(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"
 ! grep -Fq "source_node_type == AST_LET_DECL" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"
 grep -Fq "out->initializer = inst->expr0" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"
 grep -Fq "out->type_annotation = inst->expr1" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"
@@ -4035,6 +4040,10 @@ grep -Fq "llvm_mir_async_fact_future_inner_from_source_local" \
     "$ROOT_DIR/src/codegen/llvm_expr.c"
 grep -Fq "llvm_mir_try_emit_await_local_def" \
     "$ROOT_DIR/src/codegen/llvm_mir_await_emit.c"
+grep -Fq "init = inst->expr0" \
+    "$ROOT_DIR/src/codegen/llvm_mir_await_emit.c"
+grep -Fq "type_ann = inst->expr1" \
+    "$ROOT_DIR/src/codegen/llvm_mir_await_emit.c"
 grep -Fq "operand->type == AST_SPAWN_EXPR" \
     "$ROOT_DIR/src/codegen/llvm_mir_await_emit.c"
 grep -Fq "inner = llvm_infer_spawn_future_inner(ctx, operand)" \
@@ -4042,6 +4051,8 @@ grep -Fq "inner = llvm_infer_spawn_future_inner(ctx, operand)" \
 grep -Fq "resource_name = operand->type == AST_SPAWN_EXPR ? \"spawn\" : future_name" \
     "$ROOT_DIR/src/codegen/llvm_mir_await_emit.c"
 grep -Fq "llvm_mir_find_await_resource_op(mir_block, resource_name)" \
+    "$ROOT_DIR/src/codegen/llvm_mir_await_emit.c"
+! grep -Fq "mir_instruction_source_payload" \
     "$ROOT_DIR/src/codegen/llvm_mir_await_emit.c"
 grep -Fq "mir_routine_source_local_type_name(routine, local_name)" \
     "$ROOT_DIR/src/codegen/llvm_mir_async_fact.c"

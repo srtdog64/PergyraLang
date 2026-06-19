@@ -40,7 +40,10 @@ facts for `Channel<T>` and slot-like resources (`Slot<T>`, `SecureSlot<T>`,
 `DeviceSlot<T>`) instead of falling through standalone constructor expression
 paths. Assignment DEF emission preserves the original assignment side effect
 and then records the SSA value, so field writes remain field writes while raw
-source-statement redispatch stays retired.
+source-statement redispatch stays retired. LLVM await DEF emission, C pending
+SSA-use materialization, and LLVM source DEF copy now consume MIR `expr0` /
+`expr1` plus MIR local-decl/source-statement flags instead of reopening the
+source statement payload.
 
 ## Compiler Maturity Bar
 
@@ -243,9 +246,11 @@ Source-local declarations and assignments no longer re-dispatch through raw
 source-statement emitters, and LLVM source-local resource constructors consume
 MIR expected type-name facts at the DEF owner for `Channel<T>` and slot-like
 resources. Assignment DEF emission preserves source assignment side effects
-while recording the SSA value. The remaining ACTIVE tail is the narrower
-`requires_source_statement_emit` / `mir_instruction_source_payload` expression
-and shape surface, where selected body facts still need dedicated MIR records.
+while recording the SSA value. Await DEF emission, pending SSA-use
+materialization, and source DEF copy also consume MIR expression/type facts
+directly. The remaining ACTIVE tail is the narrower match/select/resource
+shape and selected diagnostics surface, where selected body facts still need
+dedicated MIR records or explicit provenance-only handling.
 
 Capability 2 (collections). Closed for the hard-self-host substrate: integer keys are implemented
 (pgy_runtime_map_int_key_inline.h covers i32 and i64), and `MapKeys` /

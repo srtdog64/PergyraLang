@@ -379,7 +379,19 @@ run_literal_doc_contract_smoke() {
     require_literal "tests/llvm_smoke.sh" "select_fairness"
     require_literal "tests/llvm_smoke.sh" "case v = <-a:"
     require_literal "tests/llvm_smoke.sh" "case v = <-b:"
-    require_literal "src/codegen/transpiler_mir_pending_uses.c" "!mir_instruction_uses_source_local_decl_emit(inst)"
+    require_literal "src/codegen/transpiler_mir_pending_uses.c" "mir_instruction_uses_source_local_decl_emit(inst)"
+    require_literal "src/codegen/transpiler_mir_pending_uses.c" "out->initializer = inst->expr0"
+    require_literal "src/codegen/transpiler_mir_pending_uses.c" "out->type_annotation = inst->expr1"
+    if grep -Fq -- "mir_instruction_source_payload" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"; then
+        echo "C pending-use materialization must consume MIR expr/type facts, not source payload statements" >&2
+        exit 1
+    fi
+    if grep -Fq -- "mir_instruction_source_payload" \
+        "$ROOT_DIR/src/codegen/llvm_mir_source_def_copy.c"; then
+        echo "LLVM source DEF copy must consume MIR expr/type flags, not source payload statements" >&2
+        exit 1
+    fi
     require_literal "src/codegen/transpiler_mir_block_emit_helpers.c" "transpiler_mir_def_uses_source_statement_emit"
     require_literal "src/codegen/transpiler_mir_block_emit_helpers.c" "transpiler_mir_def_uses_source_local_decl_emit"
     require_literal "src/codegen/transpiler_mir_block_emit_helpers.c" "transpiler_mir_def_uses_channel_receive_statement_emit"

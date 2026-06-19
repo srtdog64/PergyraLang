@@ -23,7 +23,6 @@ llvm_mir_copy_source_def_to_versioned_local(const MIRInstruction *inst,
     bool has_source;
     LLVMMirVar *target;
     LLVMValueRef loaded;
-    ASTNode *source_payload;
     ASTNode *type_ann;
     LLVMValueRef active_alloca;
     const char *source_future_inner;
@@ -36,9 +35,8 @@ llvm_mir_copy_source_def_to_versioned_local(const MIRInstruction *inst,
             sizeof(base_name))) {
         return true;
     }
-    source_payload = mir_instruction_source_payload(inst);
-    type_ann = source_payload != NULL && source_payload->type == AST_LET_DECL
-        ? ast_let_type(source_payload) : NULL;
+    type_ann = mir_instruction_uses_source_local_decl_emit(inst)
+        ? inst->expr1 : NULL;
     if (llvm_mir_def_is_resource_view_alias(inst))
         return llvm_mir_bind_resource_view_def_alias(inst, mir_block, ctx, vars,
             var_count);
@@ -46,8 +44,8 @@ llvm_mir_copy_source_def_to_versioned_local(const MIRInstruction *inst,
     target = llvm_mir_get_var_entry(vars, var_count, inst->result_name);
     if (target == NULL || target->alloca == NULL)
         return true;
-    if (source_payload != NULL && source_payload->type == AST_LET_DECL) {
-        ASTNode *init = ast_let_initializer(source_payload);
+    if (mir_instruction_uses_source_local_decl_emit(inst)) {
+        ASTNode *init = inst->expr0;
         llvm_mir_bind_base_local_scope(ctx, base_name, target->alloca,
             target->type, inst->arg1);
         if (type_ann != NULL) {
@@ -109,7 +107,8 @@ llvm_mir_copy_source_def_to_versioned_local(const MIRInstruction *inst,
     if (source_future_inner != NULL)
         source_future_is_remote = llvm_lookup_future_is_remote(ctx, base_name);
     source_channel_inner = llvm_lookup_channel_inner(ctx, base_name);
-    if (source_payload != NULL && source_payload->type == AST_ASSIGNMENT) {
+    if (mir_instruction_uses_source_statement_emit(inst)
+        && !mir_instruction_uses_source_local_decl_emit(inst)) {
         llvm_mir_bind_base_local_scope(ctx, base_name, target->alloca,
             target->type, inst->arg1);
         if (inst->abi_type_name != NULL) {

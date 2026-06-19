@@ -23,35 +23,6 @@ typedef struct TranspilerMirPendingBinding {
 } TranspilerMirPendingBinding;
 
 static bool
-transpiler_pending_binding_from_source_statement_emit(
-    const MIRInstruction *inst,
-    const char *name,
-    TranspilerMirPendingBinding *out)
-{
-    ASTNode *stmt;
-
-    if (inst == NULL
-        || name == NULL
-        || !mir_instruction_uses_source_local_decl_emit(inst)) {
-        return false;
-    }
-
-    stmt = mir_instruction_source_payload(inst);
-    if (stmt == NULL
-        || stmt->type != AST_LET_DECL
-        || ast_let_name(stmt) == NULL
-        || strcmp(ast_let_name(stmt), name) != 0) {
-        return false;
-    }
-
-    if (out != NULL) {
-        out->initializer = ast_let_initializer(stmt);
-        out->type_annotation = ast_let_type(stmt);
-    }
-    return true;
-}
-
-static bool
 transpiler_find_block_binding_from_mir_insts(const MIRBasicBlock *block,
                                              const char *name,
                                              TranspilerMirPendingBinding *out)
@@ -77,9 +48,6 @@ transpiler_find_block_binding_from_mir_insts(const MIRBasicBlock *block,
             }
             return true;
         }
-
-        if (transpiler_pending_binding_from_source_statement_emit(inst, name, out))
-            return true;
     }
 
     return false;
