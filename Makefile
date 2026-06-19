@@ -155,6 +155,13 @@ CFLAGS  += -DPGY_PROJECT_ROOT=\"$(PROJECT_ROOT)\"
 CFLAGS  += -DPGY_SRC_DIR=\"$(PROJECT_ROOT)/src\"
 CFLAGS  += -DPGY_RUNTIME_DIR=\"$(PROJECT_ROOT)/src/runtime\"
 CFLAGS  += -DPGY_RUNTIME_LIB_C=\"$(PROJECT_ROOT)/src/runtime/pgy_runtime_lib.c\"
+# Permanent wiring for the LLVM runtime-bitcode inliner: point the backend at the
+# committed runtime bitcode so `--backend=llvm` folds runtime primitives
+# (Substring, ...) by default, closing the ~1.7x gap vs the C backend (measured
+# 1.67x -> 0.86x on the self-hosted lexer). A missing/stale .bc is a silent
+# no-op (back to external calls); PGY_RUNTIME_BC (env) overrides this path for a
+# relocated binary. Regenerate with scripts/build_runtime_bc.sh.
+CFLAGS  += -DPGY_RUNTIME_LIB_BC=\"$(PROJECT_ROOT)/src/runtime/pgy_runtime_lib.bc\"
 LLVM_MONOLITHIC_SONAME := $(firstword $(wildcard /usr/lib/llvm-*/lib/libLLVM.so.1 /usr/lib/llvm-*/lib/libLLVM.so.* /usr/lib/x86_64-linux-gnu/libLLVM.so.* /usr/lib/x86_64-linux-gnu/libLLVM-*.so /lib/x86_64-linux-gnu/libLLVM.so.* /lib/x86_64-linux-gnu/libLLVM-*.so))
 LLVM_MONOLITHIC_DIR := $(dir $(LLVM_MONOLITHIC_SONAME))
 LLVM_MONOLITHIC_NAME := $(notdir $(LLVM_MONOLITHIC_SONAME))
@@ -1457,6 +1464,14 @@ pgy: $(PGY) $(REPO_BIN_DIR)/pgy$(EXEEXT) $(REPO_BIN_DIR)/pgy.exe
 endif
 llvm:
 	$(MAKE) LLVM_ENABLED=1 all
+
+# Generate the LLVM runtime bitcode that the --backend=llvm runtime-inliner
+# consumes (see PGY_RUNTIME_LIB_BC). Requires clang matching the linked libLLVM;
+# the artifact is machine-local and gitignored (it bakes absolute paths), so
+# regenerate it after a runtime change. A missing .bc is a silent no-op, so this
+# target is optional -- it only unlocks the LLVM runtime-inlining speedup.
+runtime-bc:
+	"$(BASH)" scripts/build_runtime_bc.sh
 
 # -----------------------------------------------------------------
 # Build rules

@@ -9,6 +9,8 @@
 
 #include "llvm_internal.h"
 #include "../common/string_compat.h"
+#include <llvm-c/IRReader.h>
+#include <llvm-c/Linker.h>
 
 static void
 llvm_debug_stage(const char *stage)
@@ -201,25 +203,153 @@ llvm_fn_never_returns(const char *fn_name)
     return false;
 }
 
+/*
+ * Runtime helpers that touch no memory at all: pure scalar math over float
+ * arguments. Marking them readnone lets the optimizer constant-fold, CSE, and
+ * hoist calls out of loops. Random is excluded because it carries hidden
+ * generator state and is therefore not pure.
+ */
+static bool
+llvm_fn_is_readnone_runtime(const char *fn_name)
+{
+    static const char *const readnone_runtime[] = {
+        "Sqrt", "Pow", "Floor", "Ceil", "Round",
+        "Sin", "Cos", "Tan", "Asin", "Acos", "Atan", "Atan2",
+        "Exp", "MathLog", "Log10", "Log2",
+    };
+    size_t i;
+
+    if (fn_name == NULL)
+        return false;
+    for (i = 0; i < sizeof(readnone_runtime) / sizeof(readnone_runtime[0]); i++) {
+        if (strcmp(fn_name, readnone_runtime[i]) == 0)
+            return true;
+    }
+    return false;
+}
+
+/*
+ * Runtime helpers that only read memory reachable through their arguments and
+ * return a scalar without allocating. Marking them readonly lets the optimizer
+ * CSE repeated calls (StringIndexOf and pgy_string_equals dominate the
+ * self-hosted lexer hot path) and hoist loop-invariant ones. Allocating string
+ * builders such as Substring and StringConcat are intentionally excluded: their
+ * allocation is an observable effect that must not be removed or duplicated.
+ */
+static bool
+llvm_fn_is_readonly_runtime(const char *fn_name)
+{
+    static const char *const readonly_runtime[] = {
+        "StringContains", "StringIndexOf", "pgy_string_equals",
+        "ToInt", "ToFloat",
+    };
+    size_t i;
+
+    if (fn_name == NULL)
+        return false;
+    for (i = 0; i < sizeof(readonly_runtime) / sizeof(readonly_runtime[0]); i++) {
+        if (strcmp(fn_name, readonly_runtime[i]) == 0)
+            return true;
+    }
+    return false;
+}
+
+static void
+llvm_add_fn_attr(LLVMGenCtx *ctx, LLVMValueRef fn, unsigned kind)
+{
+    if (kind != 0)
+        LLVMAddAttributeAtIndex(fn, LLVMAttributeFunctionIndex,
+            LLVMCreateEnumAttribute(ctx->context, kind, 0));
+}
+
+/*
+ * Pull the runtime into the module as LLVM IR before optimization so the
+ * inliner can fold runtime primitives (Substring, StringConcat, ...) the way
+ * the C backend's static-inline runtime is folded by gcc. The bitcode path is
+ * taken from PGY_RUNTIME_BC or, failing that, the build-time PGY_RUNTIME_LIB_BC.
+ * Every failure path (no path configured, file absent, parse or link error) is
+ * a silent no-op that leaves the runtime as external calls, so a toolchain
+ * without the prebuilt bitcode keeps working exactly as before.
+ */
+static void
+llvm_link_runtime_bitcode(LLVMGenCtx *ctx)
+{
+    const char *bc_path;
+    LLVMMemoryBufferRef buffer = NULL;
+    LLVMModuleRef runtime_module = NULL;
+    const char *layout;
+    char *message = NULL;
+
+    if (ctx == NULL || ctx->module == NULL)
+        return;
+
+    bc_path = getenv("PGY_RUNTIME_BC");
+#ifdef PGY_RUNTIME_LIB_BC
+    if (bc_path == NULL || bc_path[0] == '\0')
+        bc_path = PGY_RUNTIME_LIB_BC;
+#endif
+    if (bc_path == NULL || bc_path[0] == '\0')
+        return;
+
+    if (LLVMCreateMemoryBufferWithContentsOfFile(bc_path, &buffer, &message)) {
+        if (message != NULL)
+            LLVMDisposeMessage(message);
+        return;
+    }
+
+    /* Parse takes ownership of the buffer on both success and failure. */
+    if (LLVMParseIRInContext(ctx->context, buffer, &runtime_module, &message)) {
+        if (message != NULL)
+            LLVMDisposeMessage(message);
+        return;
+    }
+
+    LLVMSetTarget(runtime_module, LLVMGetTarget(ctx->module));
+    layout = LLVMGetDataLayoutStr(ctx->module);
+    if (layout != NULL)
+        LLVMSetDataLayout(runtime_module, layout);
+
+    /* Link consumes runtime_module. The internalize pass below then gives the
+     * merged definitions internal linkage so the inliner can fold and the dead
+     * remainder is stripped. */
+    LLVMLinkModules2(ctx->module, runtime_module);
+}
+
 static void
 llvm_run_optimization(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
                       const char *triple, bool release_opt)
 {
     llvm_apply_target_machine(ctx, machine, triple);
+    llvm_link_runtime_bitcode(ctx);
 
     unsigned noreturn_kind = LLVMGetEnumAttributeKindForName("noreturn", 8);
     unsigned cold_kind = LLVMGetEnumAttributeKindForName("cold", 4);
+    unsigned nounwind_kind = LLVMGetEnumAttributeKindForName("nounwind", 8);
+    unsigned willreturn_kind = LLVMGetEnumAttributeKindForName("willreturn", 10);
+    unsigned readnone_kind = LLVMGetEnumAttributeKindForName("readnone", 8);
+    unsigned readonly_kind = LLVMGetEnumAttributeKindForName("readonly", 8);
     for (LLVMValueRef fn = LLVMGetFirstFunction(ctx->module);
          fn != NULL; fn = LLVMGetNextFunction(fn)) {
         const char *fn_name = LLVMGetValueName(fn);
-        if (noreturn_kind != 0 && llvm_fn_never_returns(fn_name))
-            LLVMAddAttributeAtIndex(fn, LLVMAttributeFunctionIndex,
-                LLVMCreateEnumAttribute(ctx->context, noreturn_kind, 0));
-        if (cold_kind != 0 && llvm_fn_is_panic(fn_name))
-            LLVMAddAttributeAtIndex(fn, LLVMAttributeFunctionIndex,
-                LLVMCreateEnumAttribute(ctx->context, cold_kind, 0));
-        if (LLVMIsDeclaration(fn))
+        if (llvm_fn_never_returns(fn_name))
+            llvm_add_fn_attr(ctx, fn, noreturn_kind);
+        if (llvm_fn_is_panic(fn_name))
+            llvm_add_fn_attr(ctx, fn, cold_kind);
+        /*
+         * Memory-effect attributes apply only to declarations (the external
+         * runtime), never to user definitions that might shadow a builtin name
+         * with a side-effecting body.
+         */
+        if (LLVMIsDeclaration(fn)) {
+            llvm_add_fn_attr(ctx, fn, nounwind_kind);
+            if (!llvm_fn_never_returns(fn_name))
+                llvm_add_fn_attr(ctx, fn, willreturn_kind);
+            if (llvm_fn_is_readnone_runtime(fn_name))
+                llvm_add_fn_attr(ctx, fn, readnone_kind);
+            else if (llvm_fn_is_readonly_runtime(fn_name))
+                llvm_add_fn_attr(ctx, fn, readonly_kind);
             continue;
+        }
         if (fn_name != NULL && strcmp(fn_name, "main") == 0)
             continue;
         LLVMSetLinkage(fn, LLVMInternalLinkage);

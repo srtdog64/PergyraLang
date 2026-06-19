@@ -135,3 +135,7 @@ tests/cases/**/main
 /*_llvm_fixed
 .codex
 .claude/
+
+# Generated LLVM runtime bitcode (machine-local; bakes absolute __FILE__/root
+# paths). Generate with scripts/build_runtime_bc.sh or `make runtime-bc`.
+/src/runtime/pgy_runtime_lib.bc

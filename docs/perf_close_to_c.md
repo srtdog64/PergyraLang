@@ -170,12 +170,131 @@ Measured (sandbox, best-of-3, ratios vs the column noted):
 |-----------|-----------------|--------------------|------|
 | arith (100M acc) | 0.98x | 0.03x | LLVM hoists/folds the counted loop |
 | fib(35) | 0.94x | 1.51x | recursion; inline-threshold bound |
-| array `xs[j]` 50M | ref | 2.85x (pre-inline) | inline-get targets this |
-| for-in 50M | ref | 2.99x (pre-inline) | aggregate-load hoisting |
-| generic 50M | ref | 0.25x | LLVM faster |
-| match 50M | ref | 0.52x | LLVM faster |
+| array `xs[j]` 50M | ref | 2.85x -> 1.42x | inline-get closed ~half the gap |
+| for-in 50M | ref | 3.01x | aggregate/length reload not yet hoisted |
+| generic 50M | ref | 0.27x | LLVM faster |
+| match 50M | ref | 0.51x | LLVM faster |
 
-The array/for-in rows are the pre-inline baseline; the inline-get and `inbounds`
-changes target exactly those. Backend output-equality is asserted by the gate on
-every construct, so a lowering regression fails the build rather than silently
-diverging.
+The array row is measured before and after the inline indexing change: the
+opaque `pgy_array_get_T` call (2.85x) became inline IR (1.42x), with identical
+output on both backends. `for-in` is unchanged because its cost is the
+per-iteration reload of the aggregate base and length, not the bounds check;
+hoisting that invariant out of the loop is the next probe. Backend
+output-equality is asserted by the gate on every construct, so a lowering
+regression fails the build rather than silently diverging.
+
+## Self-hosted workload (the real dogfood measure)
+
+The micro-benchmarks isolate one construct each. The self-hosted compiler stages
+(`src/self_hosted/*/main.pgy`) are the realistic mixed workload, so they are the
+honest answer to "how slow is the LLVM backend on actual Pergyra code." The
+self-hosted lexer was run on three real inputs, timed per-run over many
+iterations to drown out process startup, with backend output compared byte for
+byte:
+
+| input | lines | tokens | pgy-C | pgy-LLVM | ratio | output |
+|-------|-------|--------|-------|----------|-------|--------|
+| semantic/main.pgy | 1529 | 8,524  | 38 ms  | 65 ms  | 1.70x | identical |
+| parser/main.pgy   | 3356 | 21,226 | 234 ms | 418 ms | 1.78x | identical |
+| codegen/main.pgy  | 1927 | 7,939  | 78 ms  | 151 ms | 1.92x | identical |
+
+So on real code the LLVM backend trails the C backend by ~1.7-1.9x. A startup-only
+run (`examples/hello.pgy`, 16 tokens) shows ~1.0x, which is misleading: it
+measures process launch, not compute.
+
+The cause was pinned down by disassembling the optimized lexer binary on both
+backends and counting residual calls to each hot helper:
+
+| helper | C backend | LLVM backend |
+|--------|-----------|--------------|
+| `CharAt` (Pergyra func) | 14 calls | 0 (inlined) |
+| `IsAlpha` / `IsDigit` (Pergyra) | 0 (inlined) | 0 (inlined) |
+| `Substring` (runtime) | 0 (inlined) | 17 calls |
+
+The LLVM backend actually inlines the small Pergyra helper functions more
+aggressively than gcc does (`CharAt` disappears entirely). The gap is the
+runtime primitive `Substring`: in the C backend it is a `static inline` in a
+runtime header compiled alongside the generated code, so `gcc -O2` inlines it
+away; in the LLVM backend the runtime is linked as opaque external symbols, so
+every `Substring` site stays a real call plus its allocation. This is the same
+class as the `arr[i]` fix, one level deeper.
+
+Two attribute passes were added and verified (output identical on all three
+inputs, micro gate green): `readnone` on pure math runtime helpers, `readonly`
+on pure string reads (`StringIndexOf`, `StringContains`, `pgy_string_equals`,
+`ToInt`, `ToFloat`), and `nounwind`/`willreturn` broadly. These are correct and
+help redundant-pure-call and math-heavy code, but they do not move the lexer
+because its cost is the opaque allocating `Substring` call, which cannot be
+CSE'd or inlined as an external symbol.
+
+The real lever, therefore, is structural: compile the runtime to LLVM bitcode
+and link it into the module before the optimization pass, so the inliner can
+fold `Substring` and the other `static inline`-in-C runtime primitives the way
+gcc already does. That is the LLVM-side equivalent of the C backend's
+header-inlined runtime and is expected to close most of the remaining ~1.8x.
+
+### Runtime bitcode inlining (on by default)
+
+`llvm_link_runtime_bitcode` (in `src/codegen/llvm_api.c`) loads a runtime bitcode
+module and `LLVMLinkModules2` links it into the program module immediately before
+the O2 pass; the existing internalize step then gives the merged runtime
+definitions internal linkage, so the inliner folds the hot ones and dead-strips
+the rest. Every failure path (no path configured, file missing, parse or link
+error) is a silent no-op that leaves the runtime as external calls, so a
+toolchain without the bitcode is unaffected.
+
+The bitcode path comes from `PGY_RUNTIME_BC` (env, for a relocated binary) or the
+build-time `PGY_RUNTIME_LIB_BC` define. The Makefile bakes `PGY_RUNTIME_LIB_BC`
+to `$(CURDIR)/src/runtime/pgy_runtime_lib.bc`, so once that file exists
+`--backend=llvm` inlines the runtime **by default** -- no env var needed.
+
+The `.bc` is produced by clang (matching the linked libLLVM). clang is not a
+build dependency for pgy itself, and the artifact bakes absolute `__FILE__`/root
+paths, so it is **gitignored and generated locally** rather than committed:
+
+```
+make runtime-bc            # or: scripts/build_runtime_bc.sh
+```
+
+A missing `.bc` is a silent no-op (the runtime stays external calls and the build
+is correct, just without the speedup), so generating it is optional and a
+toolchain without clang is unaffected. Regenerate it after any runtime change so
+the inlined copy does not drift from the linked runtime object; `codegen_parity`
+(which exercises the LLVM backend) catches a drift as an output mismatch.
+
+#### Two failure modes that made this a silent no-op (both fixed)
+
+The mechanism was implemented but produced *zero* measured gain until two bugs
+were found:
+
+1. **Empty bitcode.** `pgy_runtime_lib.c` -- the file that defines the non-inline
+   runtime symbols -- is wrapped entirely in `#ifdef PGY_LLVM_ENABLED`. The build
+   script omitted that define, so clang compiled the file to an empty module: a
+   299 KB-worth of functions collapsed to a 2 KB bitcode with **0 definitions**,
+   and linking it did nothing. `build_runtime_bc.sh` now passes
+   `-DPGY_LLVM_ENABLED` and verifies the artifact is non-empty (`llvm-nm` must
+   find defined symbols) before "succeeding". On a mingw host it also targets
+   `x86_64-w64-mingw32` and adds the mingw system include so `<pthread.h>`
+   resolves and the ABI matches the gcc-built program.
+
+2. **Unopenable path.** `PGY_RUNTIME_BC` must be a path the compiler binary can
+   `fopen`. A git-bash `/e/PergyraLang/...` style path handed to a native Windows
+   `pgy.exe` fails to open -> silent no-op (the binary was byte-identical to the
+   no-bitcode build). Use a native path (`E:/PergyraLang/...`); the baked
+   `PGY_RUNTIME_LIB_BC` define already uses `$(CURDIR)`, which is native.
+
+#### Measured (Windows, mingw gcc / LLVM 22, self-hosted lexer on parser/main.pgy)
+
+Compute time = total minus the ~120 ms process-startup floor (best-of-5):
+
+| build | Substring call sites | compute vs C backend |
+|-------|----------------------|----------------------|
+| LLVM, no bitcode  | 17 | 1.67x |
+| LLVM, +bitcode    | 3  | ~0.9x (at/below C) |
+
+The inliner folds 14 of 17 `Substring` sites; the externally-linked allocating
+call becomes inline, allocation-visible IR that the optimizer can fold and CSE.
+That closes the entire ~1.7x lexer gap and reaches parity with -- sometimes
+slightly below -- the C backend. Correctness is unchanged: `codegen_parity`
+(c + llvm, 48 fixtures) stays green and the self-hosted lexer/parser/semantic/
+codegen produce byte-identical output on both backends with the bitcode linked.
