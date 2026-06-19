@@ -7234,6 +7234,28 @@ if grep -Fq "ast_effect_refreshes(decl, &view.count)" \
     fail "C overlay effect projection invalidation must consume MIR refresh metadata"
 fi
 for term in \
+    "TranspilerHostedZoneRefreshView effect_refresh_view" \
+    "transpiler_hosted_zone_refresh_view_missing_mir_metadata" \
+    "transpiler_hosted_zone_refresh_view_object_slot_name" \
+    "transpiler_hosted_zone_refresh_view_source_slot_name"; do
+    require_term "src/codegen/transpiler_overlay_zone_bind.c" "$term"
+done
+if grep -Fq "ast_effect_refreshes(effect_decl, &effect_refresh_count)" \
+    "$ROOT_DIR/src/codegen/transpiler_overlay_zone_bind.c"; then
+    fail "C zone effect bind invalidation must consume MIR refresh metadata"
+fi
+for term in \
+    "TranspilerHostedZoneRefreshView relation_refresh_view" \
+    "transpiler_hosted_zone_refresh_view_missing_mir_metadata" \
+    "transpiler_hosted_zone_refresh_view_object_slot_name" \
+    "transpiler_hosted_zone_refresh_view_source_slot_name"; do
+    require_term "src/codegen/transpiler_overlay_zone_relation_bind.c" "$term"
+done
+if grep -Fq "ast_relation_refreshes(relation_decl, &relation_refresh_count)" \
+    "$ROOT_DIR/src/codegen/transpiler_overlay_zone_relation_bind.c"; then
+    fail "C zone relation bind invalidation must consume MIR refresh metadata"
+fi
+for term in \
     "LLVMHostedZoneRefreshView" \
     "llvm_hosted_zone_refresh_view_from_decl" \
     "llvm_hosted_zone_refresh_view_metadata" \

@@ -3,6 +3,16 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-19 C Zone Bind Refresh Cutover
+
+- C zone relation/effect bind invalidation now consumes refresh metadata through
+  `TranspilerHostedZoneRefreshView`. The direct
+  `ast_relation_refreshes(...)` / `ast_effect_refreshes(...)` reads are removed
+  from the C bind owners; compatibility stays inside the hosted view.
+- `mir-declaration-inventory-test-smoke` now rejects reopened relation/effect
+  refresh inventory in `transpiler_overlay_zone_bind.c` and
+  `transpiler_overlay_zone_relation_bind.c`.
+
 ## Progress Log - 2026-06-19 C Overlay Relation/Effect Refresh Cutover
 
 - C overlay/assignment projection invalidation now builds

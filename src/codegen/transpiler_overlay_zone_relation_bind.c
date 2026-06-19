@@ -45,12 +45,19 @@ emit_zone_bind_relation_layer(CodeBuf *out,
     if (relation_name == NULL)
         return;
 
-    size_t relation_refresh_count = 0;
-    ASTNode **relation_refreshes =
-        ast_relation_refreshes(relation_decl, &relation_refresh_count);
+    TranspilerHostedZoneRefreshView relation_refresh_view =
+        transpiler_hosted_zone_refresh_view_from_decl(ctx, relation_name,
+                                                      relation_decl);
     TranspilerHostedDomainSlotView relation_slot_view =
         transpiler_hosted_domain_slot_view_from_decl(ctx, relation_name,
                                                      relation_decl);
+    if (transpiler_hosted_zone_refresh_view_missing_mir_metadata(
+            &relation_refresh_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing zone relation bind refresh metadata for '%s'",
+            relation_name);
+        return;
+    }
     if (transpiler_hosted_domain_slot_view_missing_mir_metadata(
             &relation_slot_view)) {
         transpiler_set_mir_inventory_missing(ctx,
@@ -72,15 +79,16 @@ emit_zone_bind_relation_layer(CodeBuf *out,
     write_indent(ctx);
     codebuf_write(out, "self->%s.%s = self->%s;\n",
         layer_slot_name, right_binding_name, right_slot_name);
-    for (size_t i = 0; i < relation_refresh_count; i++) {
-        ASTNode *refresh = relation_refreshes[i];
+    for (size_t i = 0; i < relation_refresh_view.count; i++) {
         const char *projection_name;
         const char *source_name;
 
-        if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
-            continue;
-        projection_name = ast_zone_refresh_object_slot_name(refresh);
-        source_name = ast_zone_refresh_source_slot_name(refresh);
+        projection_name =
+            transpiler_hosted_zone_refresh_view_object_slot_name(
+                &relation_refresh_view, i);
+        source_name =
+            transpiler_hosted_zone_refresh_view_source_slot_name(
+                &relation_refresh_view, i);
         if (projection_name == NULL || source_name == NULL)
             continue;
         if (strcmp(source_name, left_binding_name) != 0

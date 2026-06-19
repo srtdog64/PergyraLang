@@ -94,12 +94,19 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone,
     if (effect_name == NULL)
         return;
 
-    size_t effect_refresh_count = 0;
-    ASTNode **effect_refreshes =
-        ast_effect_refreshes(effect_decl, &effect_refresh_count);
+    TranspilerHostedZoneRefreshView effect_refresh_view =
+        transpiler_hosted_zone_refresh_view_from_decl(ctx, effect_name,
+                                                      effect_decl);
     TranspilerHostedDomainSlotView effect_slot_view =
         transpiler_hosted_domain_slot_view_from_decl(ctx, effect_name,
                                                      effect_decl);
+    if (transpiler_hosted_zone_refresh_view_missing_mir_metadata(
+            &effect_refresh_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing zone effect bind refresh metadata for '%s'",
+            effect_name);
+        return;
+    }
     if (transpiler_hosted_domain_slot_view_missing_mir_metadata(
             &effect_slot_view)) {
         transpiler_set_mir_inventory_missing(ctx,
@@ -126,15 +133,16 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone,
             layer_slot_name,
             target_binding_name,
             target_slot_name);
-        for (size_t i = 0; i < effect_refresh_count; i++) {
-            ASTNode *refresh = effect_refreshes[i];
+        for (size_t i = 0; i < effect_refresh_view.count; i++) {
             const char *projection_name;
             const char *source_name;
 
-            if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
-                continue;
-            projection_name = ast_zone_refresh_object_slot_name(refresh);
-            source_name = ast_zone_refresh_source_slot_name(refresh);
+            projection_name =
+                transpiler_hosted_zone_refresh_view_object_slot_name(
+                    &effect_refresh_view, i);
+            source_name =
+                transpiler_hosted_zone_refresh_view_source_slot_name(
+                    &effect_refresh_view, i);
             if (projection_name == NULL || source_name == NULL
                 || strcmp(source_name, target_binding_name) != 0) {
                 continue;
@@ -171,15 +179,16 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone,
         layer_slot_name,
         target_binding_name,
         target_slot_name);
-    for (size_t i = 0; i < effect_refresh_count; i++) {
-        ASTNode *refresh = effect_refreshes[i];
+    for (size_t i = 0; i < effect_refresh_view.count; i++) {
         const char *projection_name;
         const char *source_name;
 
-        if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
-            continue;
-        projection_name = ast_zone_refresh_object_slot_name(refresh);
-        source_name = ast_zone_refresh_source_slot_name(refresh);
+        projection_name =
+            transpiler_hosted_zone_refresh_view_object_slot_name(
+                &effect_refresh_view, i);
+        source_name =
+            transpiler_hosted_zone_refresh_view_source_slot_name(
+                &effect_refresh_view, i);
         if (projection_name == NULL || source_name == NULL
             || strcmp(source_name, target_binding_name) != 0) {
             continue;
