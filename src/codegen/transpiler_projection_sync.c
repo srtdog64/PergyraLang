@@ -207,12 +207,21 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
     buf = codebuf_create();
     size_t state_count = 0;
     ASTNode **states = ast_zone_states(zone_decl, &state_count);
-    size_t effect_refresh_count = 0;
-    ASTNode **effect_refreshes =
-        ast_effect_refreshes(effect_decl, &effect_refresh_count);
+    TranspilerHostedZoneRefreshView effect_refresh_view =
+        transpiler_hosted_zone_refresh_view_from_decl(ctx, effect_type_name,
+                                                      effect_decl);
     TranspilerHostedDomainSlotView effect_slot_view =
         transpiler_hosted_domain_slot_view_from_decl(ctx, effect_type_name,
                                                      effect_decl);
+    if (transpiler_hosted_zone_refresh_view_missing_mir_metadata(
+            &effect_refresh_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing world embedded effect refresh metadata for '%s'",
+            effect_type_name);
+        codebuf_destroy(buf);
+        return NULL;
+    }
     if (transpiler_hosted_domain_slot_view_missing_mir_metadata(
             &effect_slot_view)) {
         transpiler_set_mir_inventory_missing(
@@ -278,14 +287,15 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
                 effect_type_name,
                 tmp_id, target_slot_name,
                 zone_slot_name, source_slot_name);
-            for (size_t ri = 0; ri < effect_refresh_count; ri++) {
-                ASTNode *refresh = effect_refreshes[ri];
+            for (size_t ri = 0; ri < effect_refresh_view.count; ri++) {
                 const char *projection_name;
                 const char *refresh_source;
-                if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
-                    continue;
-                projection_name = ast_zone_refresh_object_slot_name(refresh);
-                refresh_source = ast_zone_refresh_source_slot_name(refresh);
+                projection_name =
+                    transpiler_hosted_zone_refresh_view_object_slot_name(
+                        &effect_refresh_view, ri);
+                refresh_source =
+                    transpiler_hosted_zone_refresh_view_source_slot_name(
+                        &effect_refresh_view, ri);
                 if (projection_name == NULL || refresh_source == NULL
                     || strcmp(refresh_source, target_slot_name) != 0) {
                     continue;
@@ -313,14 +323,15 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
             target_slot_name,
             zone_slot_name,
             source_slot_name);
-        for (size_t ri = 0; ri < effect_refresh_count; ri++) {
-            ASTNode *refresh = effect_refreshes[ri];
+        for (size_t ri = 0; ri < effect_refresh_view.count; ri++) {
             const char *projection_name;
             const char *refresh_source;
-            if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
-                continue;
-            projection_name = ast_zone_refresh_object_slot_name(refresh);
-            refresh_source = ast_zone_refresh_source_slot_name(refresh);
+            projection_name =
+                transpiler_hosted_zone_refresh_view_object_slot_name(
+                    &effect_refresh_view, ri);
+            refresh_source =
+                transpiler_hosted_zone_refresh_view_source_slot_name(
+                    &effect_refresh_view, ri);
             if (projection_name == NULL || refresh_source == NULL
                 || strcmp(refresh_source, target_slot_name) != 0) {
                 continue;

@@ -7256,6 +7256,17 @@ if grep -Fq "ast_relation_refreshes(relation_decl, &relation_refresh_count)" \
     fail "C zone relation bind invalidation must consume MIR refresh metadata"
 fi
 for term in \
+    "TranspilerHostedZoneRefreshView effect_refresh_view" \
+    "transpiler_hosted_zone_refresh_view_missing_mir_metadata" \
+    "transpiler_hosted_zone_refresh_view_object_slot_name" \
+    "transpiler_hosted_zone_refresh_view_source_slot_name"; do
+    require_term "src/codegen/transpiler_projection_sync.c" "$term"
+done
+if grep -Fq "ast_effect_refreshes(effect_decl, &effect_refresh_count)" \
+    "$ROOT_DIR/src/codegen/transpiler_projection_sync.c"; then
+    fail "C world embedded effect sync must consume MIR refresh metadata"
+fi
+for term in \
     "LLVMHostedZoneRefreshView" \
     "llvm_hosted_zone_refresh_view_from_decl" \
     "llvm_hosted_zone_refresh_view_metadata" \

@@ -3,6 +3,15 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-19 C World Embedded Effect Refresh Cutover
+
+- C world embedded effect sync now consumes relation/effect refresh object/source
+  metadata through `TranspilerHostedZoneRefreshView`; direct
+  `ast_effect_refreshes(...)` reads are removed from
+  `transpiler_projection_sync.c`.
+- `mir-declaration-inventory-test-smoke` now rejects reopened world embedded
+  effect refresh inventory in the C projection-sync owner.
+
 ## Progress Log - 2026-06-19 C Zone Bind Refresh Cutover
 
 - C zone relation/effect bind invalidation now consumes refresh metadata through
