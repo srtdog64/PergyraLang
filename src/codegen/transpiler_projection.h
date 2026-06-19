@@ -16,6 +16,10 @@ bool transpiler_domain_slot_view_is_projection_slot(
     size_t index,
     ASTNode **refreshes,
     size_t refresh_count);
+bool transpiler_domain_slot_view_is_projection_slot_in_zone_refresh_view(
+    const TranspilerHostedDomainSlotView *slot_view,
+    size_t index,
+    const TranspilerHostedZoneRefreshView *refresh_view);
 const char *transpiler_domain_slot_view_bindable_name(
     const TranspilerHostedDomainSlotView *slot_view,
     size_t nth);

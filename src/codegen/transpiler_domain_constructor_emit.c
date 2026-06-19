@@ -393,8 +393,9 @@ transpiler_emit_zone_constructor(ASTNode *call,
     TranspilerHostedSharedFieldView shared_view =
         transpiler_hosted_shared_field_view_from_decl(ctx, decl_name, zone_decl);
     size_t shared_count = shared_view.count;
-    size_t refresh_count = 0;
-    ASTNode **refreshes = ast_zone_refreshes(zone_decl, &refresh_count);
+    TranspilerHostedZoneRefreshView refresh_view =
+        transpiler_hosted_zone_refresh_view_from_decl(ctx, decl_name,
+            zone_decl);
     CodeBuf *fields = codebuf_create();
 
     if (transpiler_hosted_domain_slot_view_missing_mir_metadata(
@@ -408,6 +409,14 @@ transpiler_emit_zone_constructor(ASTNode *call,
     if (transpiler_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
         transpiler_set_mir_inventory_missing(ctx,
             "MIR-only C path missing shared-field declaration metadata for zone '%s'",
+            decl_name != NULL ? decl_name : "(anonymous-zone)");
+        codebuf_destroy(fields);
+        return NULL;
+    }
+    if (transpiler_hosted_zone_refresh_view_missing_mir_metadata(
+            &refresh_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing zone refresh constructor metadata for '%s'",
             decl_name != NULL ? decl_name : "(anonymous-zone)");
         codebuf_destroy(fields);
         return NULL;
@@ -475,8 +484,8 @@ transpiler_emit_zone_constructor(ASTNode *call,
         const char *slot_name =
             transpiler_hosted_domain_slot_view_name(&slot_view, i);
         bool projection_slot =
-            transpiler_domain_slot_view_is_projection_slot(
-                &slot_view, i, refreshes, refresh_count);
+            transpiler_domain_slot_view_is_projection_slot_in_zone_refresh_view(
+                &slot_view, i, &refresh_view);
         if (!projection_slot || slot_name == NULL)
             continue;
         if (fields->len > 0)

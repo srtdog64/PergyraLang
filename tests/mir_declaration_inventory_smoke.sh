@@ -7152,6 +7152,13 @@ for term in \
     require_term "src/codegen/transpiler_projection_emit.c" "$term"
 done
 for term in \
+    "transpiler_domain_slot_view_is_projection_slot_in_zone_refresh_view" \
+    "transpiler_hosted_zone_refresh_view_object_slot_name"; do
+    require_term "src/codegen/transpiler_projection.c" "$term"
+    require_term "src/codegen/transpiler_projection.h" \
+        "transpiler_domain_slot_view_is_projection_slot_in_zone_refresh_view"
+done
+for term in \
     "emit_zone_projection_sync_loop_from_mir_refresh_view" \
     "transpiler_hosted_zone_refresh_view_metadata" \
     "emit_projection_literal_by_zone_refresh_metadata"; do
@@ -7166,6 +7173,16 @@ done
 if grep -Fq "ast_zone_refreshes(node, &refresh_count)" \
     "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.c"; then
     fail "C zone declaration emission must consume MIR zone refresh metadata, not reopen AST_ZONE_REFRESH inventory"
+fi
+for term in \
+    "TranspilerHostedZoneRefreshView refresh_view" \
+    "transpiler_hosted_zone_refresh_view_missing_mir_metadata" \
+    "transpiler_domain_slot_view_is_projection_slot_in_zone_refresh_view"; do
+    require_term "src/codegen/transpiler_domain_constructor_emit.c" "$term"
+done
+if grep -Fq "ast_zone_refreshes(zone_decl, &refresh_count)" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"; then
+    fail "C zone constructor projection-dirty initialization must consume MIR zone refresh metadata"
 fi
 for term in \
     "LLVMHostedZoneRefreshView" \
@@ -7214,6 +7231,16 @@ for term in \
     "llvm_domain_slot_view_is_projection_slot_in_zone_refresh_view"; do
     require_term "src/codegen/llvm_domain_struct_register.c" "$term"
 done
+for term in \
+    "LLVMHostedZoneRefreshView zone_refresh_view" \
+    "llvm_hosted_zone_refresh_view_missing_mir_metadata" \
+    "llvm_domain_slot_view_is_projection_slot_in_zone_refresh_view"; do
+    require_term "src/codegen/llvm_expr_constructor_calls.c" "$term"
+done
+if grep -Fq "ast_zone_refreshes(zone_decl, &refresh_count)" \
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"; then
+    fail "LLVM zone constructor projection-dirty initialization must consume MIR zone refresh metadata"
+fi
 if grep -Fq "ast_zone_refreshes(stmt, refresh_count)" \
     "$ROOT_DIR/src/codegen/llvm_domain_decl_parts_helpers.c"; then
     fail "LLVM domain declaration parts must not reopen zone refresh inventory"

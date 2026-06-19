@@ -3,6 +3,23 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-19 Zone Refresh Constructor Dirty Cutover
+
+- C zone constructors now initialize `__projection_dirty_*` fields through
+  `TranspilerHostedZoneRefreshView` instead of reopening
+  `ast_zone_refreshes(zone_decl, &refresh_count)`. Relation/effect
+  constructors keep their compatibility refresh path until relation/effect
+  refresh metadata exists.
+- LLVM zone constructors now use `LLVMHostedZoneRefreshView` and
+  `llvm_domain_slot_view_is_projection_slot_in_zone_refresh_view(...)` for the
+  same projection-dirty decision. This keeps zone constructor layout and
+  initialization on the same MIR refresh rows consumed by zone projection sync.
+- `mir-declaration-inventory-test-smoke` now requires the C/LLVM constructor
+  consumers and rejects reopened zone refresh inventory in both constructor
+  files.
+- Gates used: `make test-transpile`, `make llvm-test-smoke`, and
+  `make mir-declaration-inventory-test-smoke`.
+
 ## Progress Log - 2026-06-19 Zone Refresh LLVM Consumer Cutover
 
 - LLVM zone projection sync lowering now builds an

@@ -299,9 +299,11 @@ llvm_emit_class_constructor_projection_dirty(LLVMGenCtx *ctx,
     const char *decl_name = NULL;
     ASTNode **refreshes = NULL;
     size_t refresh_count = 0;
+    LLVMHostedZoneRefreshView zone_refresh_view = {0};
+    bool use_zone_refresh_view = false;
 
-    if (object == NULL
-        || (relation_decl == NULL && effect_decl == NULL && zone_decl == NULL)) {
+    if (object == NULL || (relation_decl == NULL
+            && effect_decl == NULL && zone_decl == NULL)) {
         return;
     }
 
@@ -313,27 +315,35 @@ llvm_emit_class_constructor_projection_dirty(LLVMGenCtx *ctx,
         refreshes = ast_effect_refreshes(effect_decl, &refresh_count);
     } else if (zone_decl != NULL) {
         decl = zone_decl;
-        refreshes = ast_zone_refreshes(zone_decl, &refresh_count);
+        use_zone_refresh_view = true;
     }
 
     decl_name = llvm_decl_node_name(decl);
-    LLVMHostedDomainSlotView slot_view =
-        llvm_hosted_domain_slot_view_from_decl(ctx, decl_name, decl);
+    LLVMHostedDomainSlotView slot_view = llvm_hosted_domain_slot_view_from_decl(ctx, decl_name, decl);
     if (llvm_hosted_domain_slot_view_missing_mir_metadata(&slot_view)) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing domain-slot constructor metadata for '%s'",
             decl_name != NULL ? decl_name : "(anonymous-domain)");
         return;
     }
+    if (use_zone_refresh_view) {
+        zone_refresh_view =
+            llvm_hosted_zone_refresh_view_from_decl(ctx, decl_name, decl);
+        if (llvm_hosted_zone_refresh_view_missing_mir_metadata(&zone_refresh_view)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing zone refresh constructor metadata for '%s'",
+                decl_name != NULL ? decl_name : "(anonymous-zone)");
+            return;
+        }
+    }
 
     for (size_t i = 0; i < slot_view.count; i++) {
-        const char *slot_name =
-            llvm_hosted_domain_slot_view_name(&slot_view, i);
-        if (slot_name == NULL
-            || !llvm_domain_slot_view_is_projection_slot(&slot_view, i,
-                refreshes, refresh_count)) {
+        const char *slot_name = llvm_hosted_domain_slot_view_name(&slot_view, i);
+        bool projection_slot = use_zone_refresh_view
+            ? llvm_domain_slot_view_is_projection_slot_in_zone_refresh_view(&slot_view, i, &zone_refresh_view)
+            : llvm_domain_slot_view_is_projection_slot(&slot_view, i, refreshes, refresh_count);
+        if (slot_name == NULL || !projection_slot)
             continue;
-        }
         {
             char dirty_field[256];
             int dirty_idx;

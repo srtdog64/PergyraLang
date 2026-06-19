@@ -90,6 +90,44 @@ transpiler_domain_slot_view_is_projection_slot(
             refresh_count);
 }
 
+static bool
+transpiler_zone_refresh_view_has_projection_target(
+    const TranspilerHostedZoneRefreshView *refresh_view,
+    const char *slot_name)
+{
+    if (refresh_view == NULL || slot_name == NULL)
+        return false;
+
+    for (size_t i = 0; i < refresh_view->count; i++) {
+        const char *target_name =
+            transpiler_hosted_zone_refresh_view_object_slot_name(
+                refresh_view, i);
+        if (target_name != NULL && strcmp(target_name, slot_name) == 0)
+            return true;
+    }
+    return false;
+}
+
+bool
+transpiler_domain_slot_view_is_projection_slot_in_zone_refresh_view(
+    const TranspilerHostedDomainSlotView *slot_view,
+    size_t index,
+    const TranspilerHostedZoneRefreshView *refresh_view)
+{
+    const char *slot_name;
+
+    if (slot_view == NULL || index >= slot_view->count)
+        return false;
+
+    slot_name = transpiler_hosted_domain_slot_view_name(slot_view, index);
+    if (slot_name == NULL)
+        return false;
+
+    return transpiler_hosted_domain_slot_view_is_tobject_like(slot_view, index)
+        || transpiler_zone_refresh_view_has_projection_target(refresh_view,
+            slot_name);
+}
+
 const char *
 transpiler_domain_slot_view_bindable_name(
     const TranspilerHostedDomainSlotView *slot_view,
