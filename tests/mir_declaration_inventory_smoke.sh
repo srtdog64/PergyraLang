@@ -7386,7 +7386,7 @@ if grep -Fq "ast_zone_refreshes(host_decl, &refresh_count)" \
     fail "LLVM zone subject projection sync must consume MIR zone refresh metadata"
 fi
 for term in \
-    "LLVMHostedZoneRefreshView zone_refresh_view" \
+    "LLVMHostedZoneRefreshView refresh_view" \
     "LLVMHostedZoneRefreshView embedded_refresh_view" \
     "llvm_emit_projection_invalidations_for_zone_refresh_view" \
     "mir_decl_zone_refresh_mapped_source_field" \
@@ -7400,6 +7400,18 @@ fi
 if grep -Fq "ast_zone_refreshes(zone_decl, &zone_refresh_count)" \
     "$ROOT_DIR/src/codegen/llvm_expr_assignment_projection.c"; then
     fail "LLVM world-embedded zone assignment invalidation must consume MIR zone refresh metadata"
+fi
+if grep -Fq "ast_relation_refreshes(host_decl, &refresh_count)" \
+    "$ROOT_DIR/src/codegen/llvm_expr_assignment_projection.c"; then
+    fail "LLVM relation assignment projection invalidation must consume MIR refresh metadata"
+fi
+if grep -Fq "ast_effect_refreshes(host_decl, &refresh_count)" \
+    "$ROOT_DIR/src/codegen/llvm_expr_assignment_projection.c"; then
+    fail "LLVM effect assignment projection invalidation must consume MIR refresh metadata"
+fi
+if grep -Fq "llvm_emit_projection_invalidations_for_host" \
+    "$ROOT_DIR/src/codegen/llvm_expr_assignment_projection.c"; then
+    fail "LLVM assignment projection invalidation must not keep the AST-array host refresh helper"
 fi
 if grep -Fq "ast_zone_refreshes(stmt, refresh_count)" \
     "$ROOT_DIR/src/codegen/llvm_domain_decl_parts_helpers.c"; then

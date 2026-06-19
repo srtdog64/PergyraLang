@@ -3,6 +3,16 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-19 LLVM Relation/Effect Assignment Refresh Cutover
+
+- LLVM relation/effect assignment projection invalidation now shares the
+  `LLVMHostedZoneRefreshView` path with zone assignment invalidation. Direct
+  `ast_relation_refreshes(...)` / `ast_effect_refreshes(...)` reads and the
+  AST-array host invalidation helper are removed from
+  `llvm_expr_assignment_projection.c`.
+- `mir-declaration-inventory-test-smoke` now rejects reopened relation/effect
+  assignment refresh inventory and the retired AST-array helper.
+
 ## Progress Log - 2026-06-19 LLVM World Effect Sync Refresh Cutover
 
 - LLVM world embedded effect sync now consumes refresh metadata through
