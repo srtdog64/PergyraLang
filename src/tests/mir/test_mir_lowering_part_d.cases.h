@@ -108,6 +108,52 @@ test_mir_lowering_part_d(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR declaration headers preserve ability method metadata");
+    {
+        const char *src =
+            "ability Bufferable<T = Int> {\n"
+            "    func Put(self, value: T) -> Int;\n"
+            "    func Size(self) -> Int;\n"
+            "}\n"
+            "func Main() -> Void { }\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRDeclHeader *ability = NULL;
+        const MIRDeclMethod *put = NULL;
+        const MIRDeclMethod *size = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL)
+            ability = mir_find_decl_header_of_type(
+                mir, AST_ABILITY_DECL, "Bufferable");
+        if (ability != NULL) {
+            put = mir_decl_header_method(ability, 0);
+            size = mir_decl_header_method(ability, 1);
+        }
+        EXPECT(ok
+               && ability != NULL
+               && mir_decl_header_ast_type_or(ability, AST_PROGRAM)
+                    == AST_ABILITY_DECL
+               && mir_decl_header_method_count(ability) == 2
+               && put != NULL
+               && mir_decl_method_name(put) != NULL
+               && strcmp(mir_decl_method_name(put), "Put") == 0
+               && mir_decl_method_param_count(put) == 2
+               && mir_decl_method_param_type_name(put, 1) != NULL
+               && strcmp(mir_decl_method_param_type_name(put, 1), "T") == 0
+               && mir_decl_method_return_type_name(put) != NULL
+               && strcmp(mir_decl_method_return_type_name(put), "Int") == 0
+               && size != NULL
+               && mir_decl_method_name(size) != NULL
+               && strcmp(mir_decl_method_name(size), "Size") == 0
+               && mir_decl_method_return_type_name(size) != NULL
+               && strcmp(mir_decl_method_return_type_name(size), "Int") == 0
+               && mir_validate(mir, NULL));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR declaration headers preserve zone authority ability refs");
     {
         const char *src =

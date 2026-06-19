@@ -316,7 +316,10 @@ Current beta closure snapshot:
   `transpiler_party_slot_method_ability_tag(...)`, but they must not reopen
   party role-slot scans locally. MIR-active generic ability tags fill omitted
   actuals from `MIRDeclGenericParam` type-name metadata, not from AST generic
-  default/constraint nodes.
+  default/constraint nodes. Ability declarations also carry method rows in
+  `MIRDeclHeader`; MIR-active party-slot method dispatch must decide ability
+  method ownership from those `MIRDeclMethod` rows, not by reopening
+  `ast_ability_method_*` scans.
 - Party / role / roster compiler facts live in the normal parser, semantic,
   declaration-inventory, and C/LLVM hosted-method path. Standalone compiler-only
   FiberMap extraction/generation APIs are not a beta source of truth; the old

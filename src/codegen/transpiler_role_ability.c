@@ -6,6 +6,7 @@
 
 #include "../common/string_compat.h"
 #include "../compiler/mir_decl_headers.h"
+#include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_role_ability_helpers.h"
@@ -213,6 +214,47 @@ transpiler_render_mir_ability_formal_fallback(
     return transpiler_render_ability_actual_name(ctx, fallback);
 }
 
+static bool
+transpiler_ability_header_has_method(const MIRDeclHeader *ability_header,
+                                     const char *method_name)
+{
+    if (ability_header == NULL || method_name == NULL)
+        return false;
+
+    for (size_t i = 0; i < mir_decl_header_method_count(ability_header); i++) {
+        const MIRDeclMethod *method =
+            mir_decl_header_method(ability_header, i);
+        const char *candidate_name =
+            transpiler_mir_decl_method_name(method);
+        if (candidate_name != NULL && strcmp(candidate_name, method_name) == 0)
+            return true;
+    }
+
+    return false;
+}
+
+static bool
+transpiler_ast_ability_decl_has_method(ASTNode *ability_decl,
+                                       const char *method_name)
+{
+    if (ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL
+        || method_name == NULL) {
+        return false;
+    }
+
+    for (size_t mi = 0; mi < ast_ability_method_count(ability_decl); mi++) {
+        ASTNode *method = ast_ability_method(ability_decl, mi);
+        const char *candidate_name = ast_declaration_name(method);
+        if (method != NULL && method->type == AST_FUNC_DECL
+            && candidate_name != NULL
+            && strcmp(candidate_name, method_name) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static char *
 render_ability_ref_parts_vtable_tag_in_ctx(TranspilerCtx *ctx,
                                            const char *base_name,
@@ -404,7 +446,6 @@ transpiler_party_slot_method_ability_tag(TranspilerCtx *ctx,
                 &role_view, i);
 
         for (size_t j = 0; j < ability_count; j++) {
-            ASTNode *ability_decl;
             bool has_method = false;
             char *ability_tag;
             const MIRAbilityRef *ability_ref =
@@ -415,19 +456,22 @@ transpiler_party_slot_method_ability_tag(TranspilerCtx *ctx,
 
             if (ability_name == NULL)
                 continue;
-            ability_decl = find_ability_decl(ctx, ability_name);
-            if (ability_decl != NULL) {
-                for (size_t mi = 0;
-                     mi < ast_ability_method_count(ability_decl); mi++) {
-                    ASTNode *method = ast_ability_method(ability_decl, mi);
-                    const char *candidate_name = ast_declaration_name(method);
-                    if (method != NULL && method->type == AST_FUNC_DECL
-                        && candidate_name != NULL
-                        && strcmp(candidate_name, method_name) == 0) {
-                        has_method = true;
-                        break;
-                    }
+            if (transpiler_active_has_mir(ctx)) {
+                const MIRDeclHeader *ability_header =
+                    transpiler_active_decl_header_of_type(
+                        ctx, AST_ABILITY_DECL, ability_name);
+                if (ability_header == NULL) {
+                    free(fallback_tag);
+                    transpiler_set_mir_inventory_missing(ctx,
+                        "MIR-only C path missing ability declaration header for party slot method '%s'",
+                        method_name);
+                    return NULL;
                 }
+                has_method = transpiler_ability_header_has_method(
+                    ability_header, method_name);
+            } else {
+                has_method = transpiler_ast_ability_decl_has_method(
+                    find_ability_decl(ctx, ability_name), method_name);
             }
 
             ability_tag = render_mir_ability_ref_vtable_tag_in_ctx(

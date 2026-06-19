@@ -5263,6 +5263,10 @@ require_term "src/compiler/mir_decl_header_fields.c" \
     "mir_ability_ref_capture"
 require_term "src/compiler/mir_decl_headers.h" \
     "mir_decl_field_required_ability_ref"
+require_term "src/compiler/mir_decl_headers.c" \
+    "methods = ast_ability_methods(decl, &method_count)"
+require_term "src/tests/mir/test_mir_lowering_part_d.cases.h" \
+    "MIR declaration headers preserve ability method metadata"
 require_term "src/codegen/transpiler_decl_lookup.h" \
     "TranspilerHostedRoleSlotView"
 require_term "src/codegen/transpiler_decl_lookup.h" \
@@ -5300,6 +5304,18 @@ require_term "src/codegen/transpiler_role_ability.c" \
     "mir_decl_header_generic_param_count(ability_header)"
 require_term "src/codegen/transpiler_role_ability.c" \
     "ability_decl = !mir_active"
+require_term "src/codegen/transpiler_role_ability.c" \
+    "transpiler_ability_header_has_method("
+require_term "src/codegen/transpiler_role_ability.c" \
+    "transpiler_active_decl_header_of_type("
+if awk '
+    /transpiler_party_slot_method_ability_tag\(TranspilerCtx \*ctx,/ { in_fn = 1 }
+    in_fn && /ast_ability_method_(count|method)\(/ { bad = 1 }
+    in_fn && /^}/ { in_fn = 0 }
+    END { exit bad ? 0 : 1 }
+' "$ROOT_DIR/src/codegen/transpiler_role_ability.c"; then
+    fail "C party slot method dispatch must consume ability MIRDeclMethod rows in MIR-active paths"
+fi
 require_term "src/codegen/llvm_domain_role_lookup.c" \
     "llvm_render_mir_ability_formal_fallback"
 require_term "src/codegen/llvm_domain_role_lookup.c" \

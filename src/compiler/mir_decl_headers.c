@@ -315,6 +315,7 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
         break;
     case AST_ABILITY_DECL:
         header.name = ast_ability_name(decl);
+        methods = ast_ability_methods(decl, &method_count);
         break;
     case AST_EVENT_DECL:
         header.name = ast_event_name(decl);

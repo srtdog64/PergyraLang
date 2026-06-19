@@ -184,7 +184,10 @@ C/LLVM class field-slot claim helper emission now consumes `MIRDeclFieldClaim`
 metadata instead of reopening class destructure AST in MIR-active paths.
 C/LLVM role-slot ability tag rendering now fills omitted generic actuals from
 `MIRDeclHeader` generic metadata instead of reopening ability source
-declarations in MIR-active paths.
+declarations in MIR-active paths. Ability declaration method rows are also
+captured on `MIRDeclHeader`, and C party-slot method dispatch consumes those
+`MIRDeclMethod` rows to pick the owning ability tag instead of reopening
+`ast_ability_method_*` in MIR-active paths.
 C/LLVM declaration existence checks that only need a yes/no result now consume
 header-backed existence seams in MIR-active paths, so class/enum/function/
 intent/callable/constructor presence no longer recovers origin AST declarations.

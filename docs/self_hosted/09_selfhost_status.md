@@ -66,6 +66,9 @@ source_ast/source_decl frontier.
 - C/LLVM role-slot ability tag rendering fills omitted generic actuals from
   `MIRDeclHeader` generic metadata instead of ability source declarations in
   MIR-active paths.
+- C party-slot method dispatch now uses ability `MIRDeclHeader` method rows to
+  choose the owning ability tag in MIR-active paths; `ast_ability_method_*`
+  remains only inside the explicit non-MIR compatibility helper.
 - C/LLVM declaration existence checks that only need a yes/no answer now use
   header-backed `*_decl_exists*` seams in MIR-active paths. They no longer
   recover origin AST declarations just to test class, enum, function, intent,
