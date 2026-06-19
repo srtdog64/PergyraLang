@@ -390,30 +390,6 @@ transpiler_mir_recv_expr_channel(ASTNode *node)
     return ast_channel_recv_channel(node);
 }
 
-static ASTNode *
-transpiler_mir_assignment_recv_channel(ASTNode *node)
-{
-    if (node == NULL || node->type != AST_ASSIGNMENT)
-        return NULL;
-    return transpiler_mir_recv_expr_channel(ast_assignment_value(node));
-}
-
-static ASTNode *
-transpiler_mir_select_case_channel(ASTNode *node)
-{
-    ASTNode *first;
-
-    if (node == NULL || node->type != AST_BLOCK
-        || ast_block_statement_count(node) == 0)
-        return NULL;
-    first = ast_block_statement(node, 0);
-    if (first == NULL)
-        return NULL;
-    if (first->type == AST_CHANNEL_RECV)
-        return ast_channel_recv_channel(first);
-    return transpiler_mir_assignment_recv_channel(first);
-}
-
 static char *
 transpiler_mir_render_channel_ready_condition(
     ASTNode *channel,
@@ -445,13 +421,13 @@ transpiler_mir_render_channel_ready_condition(
 
 static char *
 transpiler_mir_render_select_case_condition(
-    ASTNode *case_node,
+    const MIRInstruction *branch_inst,
     const MIRRoutine *routine,
     size_t target_block,
     TranspilerCtx *ctx,
     const TranspilerSSANameMap *ssa_map)
 {
-    ASTNode *channel = transpiler_mir_select_case_channel(case_node);
+    ASTNode *channel = branch_inst != NULL ? branch_inst->expr0 : NULL;
 
     if (channel != NULL)
         return transpiler_mir_render_channel_ready_condition(channel, ctx,
@@ -504,8 +480,7 @@ transpiler_mir_render_branch_condition(const MIRRoutine *routine,
             return NULL;
         }
         select_cond = transpiler_mir_render_select_case_condition(
-            mir_instruction_source_payload(inst), routine, target_block, ctx,
-            ssa_map);
+            inst, routine, target_block, ctx, ssa_map);
         return select_cond;
     }
     condition = inst->expr0;

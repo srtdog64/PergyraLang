@@ -321,7 +321,7 @@ bool          llvm_mir_emit_for_loop_body_binding(const MIRRoutine *routine,
 bool          llvm_mir_emit_loop_backedge_increment(const MIRRoutine *routine,
                                                     const MIRBasicBlock *mir_block,
                                                     LLVMGenCtx *ctx);
-LLVMValueRef  llvm_mir_emit_select_dispatch_condition(ASTNode *case_node,
+LLVMValueRef  llvm_mir_emit_select_dispatch_condition(const MIRInstruction *inst,
                                                        const MIRRoutine *routine,
                                                        size_t target_block,
                                                        LLVMGenCtx *ctx);

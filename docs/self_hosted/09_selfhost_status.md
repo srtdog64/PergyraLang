@@ -71,10 +71,12 @@ compatibility path.
   STMT emission branches consume MIR source-shape / `expr0` facts, and LLVM
   missing-return-value diagnostics use MIR topology diagnostics instead of
   source payload anchors.
+  Select dispatch branches carry their readiness channel as a MIR branch
+  `expr0` fact; C/LLVM condition emission no longer parses select case payloads.
 - The remaining capability-5 body tail is the narrower source-payload
-  expression/shape surface: match/select/resource/destructure shape consumers
-  and selected diagnostics. Capability 5 should stay ACTIVE until those reads
-  are replaced by dedicated MIR facts or reduced to provenance-only diagnostics.
+  expression/shape surface: match/resource/destructure shape consumers and
+  selected diagnostics. Capability 5 should stay ACTIVE until those reads are
+  replaced by dedicated MIR facts or reduced to provenance-only diagnostics.
 - C class/zone collection-specialization scans are MIR-routine based and no
   longer recover method body AST; routine_source_decl_codegen is ratcheted at 0.
 - C hosted method body emission binds the linked MIRRoutine body as current

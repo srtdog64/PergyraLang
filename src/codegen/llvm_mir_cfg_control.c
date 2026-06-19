@@ -18,35 +18,6 @@ llvm_mir_recv_expr_channel(ASTNode *node)
     return ast_channel_recv_channel(node);
 }
 
-static ASTNode *
-llvm_mir_assignment_recv_channel(ASTNode *node)
-{
-    if (node == NULL || node->type != AST_ASSIGNMENT)
-        return NULL;
-    if (ast_assignment_value(node) == NULL
-        || ast_assignment_value(node)->type != AST_CHANNEL_RECV) {
-        return NULL;
-    }
-    return llvm_mir_recv_expr_channel(ast_assignment_value(node));
-}
-
-static ASTNode *
-llvm_mir_select_case_channel(ASTNode *node)
-{
-    ASTNode *first;
-
-    if (node == NULL || node->type != AST_BLOCK
-        || ast_block_statement_count(node) == 0)
-        return NULL;
-
-    first = ast_block_statement(node, 0);
-    if (first == NULL)
-        return NULL;
-    if (first->type == AST_CHANNEL_RECV)
-        return ast_channel_recv_channel(first);
-    return llvm_mir_assignment_recv_channel(first);
-}
-
 static LLVMFuncEntry *
 llvm_mir_required_channel_ready_function(ASTNode *channel, LLVMGenCtx *ctx,
                                          const char *function_name)
@@ -119,12 +90,12 @@ llvm_mir_emit_select_case_condition(const MIRRoutine *routine,
 }
 
 LLVMValueRef
-llvm_mir_emit_select_dispatch_condition(ASTNode *case_node,
+llvm_mir_emit_select_dispatch_condition(const MIRInstruction *inst,
                                         const MIRRoutine *routine,
                                         size_t target_block,
                                         LLVMGenCtx *ctx)
 {
-    ASTNode *channel = llvm_mir_select_case_channel(case_node);
+    ASTNode *channel = inst != NULL ? inst->expr0 : NULL;
     if (channel != NULL)
         return llvm_mir_emit_channel_ready_condition(channel, ctx);
     return llvm_mir_emit_select_case_condition(routine, target_block, ctx);

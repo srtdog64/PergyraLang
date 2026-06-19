@@ -403,6 +403,79 @@ test_mir_lowering_part_h(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR select dispatch branch uses channel fact without payload");
+    {
+        const char *src =
+            "func SelectBranchFact() -> Void {\n"
+            "    let ch: Channel<Int> = Channel(2);\n"
+            "    select {\n"
+            "        case <- ch:\n"
+            "            Log(\"ready\");\n"
+            "        default:\n"
+            "            Log(\"default\");\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        MIRInstruction *branch_inst = NULL;
+        ASTNode *saved_ast = NULL;
+        ASTNode *saved_expr0 = NULL;
+        char *mir_error = NULL;
+        bool valid_without_payload = false;
+        bool rejected_missing_channel_fact = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "SelectBranchFact",
+                                           MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count && branch_inst == NULL; bi++) {
+                MIRBasicBlock *block = &routine->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    MIRInstruction *inst = &block->instructions[ii];
+                    if (inst->kind == MIR_INST_BRANCH
+                        && inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH) {
+                        branch_inst = inst;
+                        break;
+                    }
+                }
+            }
+        }
+        if (branch_inst != NULL) {
+            saved_ast = branch_inst->ast;
+            saved_expr0 = branch_inst->expr0;
+            branch_inst->ast = NULL;
+            valid_without_payload =
+                mir_instruction_has_required_source_branch_emit_fact(branch_inst)
+                && mir_validate(mir, &mir_error);
+            free(mir_error);
+            mir_error = NULL;
+
+            branch_inst->ast = saved_ast;
+            branch_inst->expr0 = NULL;
+            rejected_missing_channel_fact =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "source-branch emit fact is invalid") != NULL;
+            branch_inst->expr0 = saved_expr0;
+            free(mir_error);
+            mir_error = NULL;
+        }
+        EXPECT(ok
+               && routine != NULL
+               && branch_inst != NULL
+               && saved_ast != NULL
+               && saved_expr0 != NULL
+               && valid_without_payload
+               && rejected_missing_channel_fact
+               && mir_validate(mir, NULL));
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR validator rejects hosted method signature metadata drift");
     {
         const char *src =

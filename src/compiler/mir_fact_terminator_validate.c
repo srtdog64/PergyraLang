@@ -93,9 +93,8 @@ mir_validate_terminator_provenance(const MIRRoutine *routine,
         }
         if (inst->requires_source_branch_emit
             && (inst->kind != MIR_INST_BRANCH
-                || mir_instruction_source_payload(inst) == NULL
                 || !mir_instruction_branch_requires_source_emit(inst)
-                || !mir_instruction_source_branch_payload_matches_shape(inst))) {
+                || !mir_instruction_has_required_source_branch_emit_fact(inst))) {
             if (error_message != NULL) {
                 *error_message = mir_fact_strdup_fmt(
                     "MIR routine '%s' block[%zu] instruction[%zu] source-branch emit fact is invalid",
@@ -107,8 +106,7 @@ mir_validate_terminator_provenance(const MIRRoutine *routine,
         }
         if (inst->kind == MIR_INST_BRANCH
             && mir_instruction_branch_requires_source_emit(inst)
-            && (mir_instruction_source_payload(inst) == NULL
-                || !mir_instruction_source_branch_payload_matches_shape(inst))) {
+            && !mir_instruction_has_required_source_branch_emit_fact(inst)) {
             if (error_message != NULL) {
                 *error_message = mir_fact_strdup_fmt(
                     "MIR routine '%s' block[%zu] instruction[%zu] source-branch emit fact is invalid",

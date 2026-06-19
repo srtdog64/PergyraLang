@@ -305,6 +305,11 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_lifecycle.c" "source-local-decl-emit"
     require_literal "src/compiler/mir_lifecycle.c" "select-recv-stmt-emit"
     require_literal "src/compiler/mir_fact_terminator_validate.c" "source-branch emit fact is invalid"
+    if grep -Fq -- "mir_instruction_source_payload" \
+        "$ROOT_DIR/src/compiler/mir_fact_terminator_validate.c"; then
+        echo "MIR terminator validation must route branch source facts through MIR shape predicates, not payload checks" >&2
+        exit 1
+    fi
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_branch_requires_source_emit"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_has_source_payload"
     require_literal "src/compiler/mir_source_shape.c" "mir_source_node_type_name"
@@ -369,6 +374,8 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_has_required_source_branch_emit_fact"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_has_required_branch_lowering_fact"
     require_literal "src/compiler/mir_source_shape.c" "inst->branch_shape == MIR_BRANCH_MATCH_CASE"
+    require_literal "src/compiler/mir_source_shape.c" "inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH"
+    require_literal "src/compiler/mir_source_shape.c" "return inst->expr0 != NULL"
     require_literal "src/compiler/mir_source_shape.c" "&& inst->expr0 == NULL"
     require_literal "src/tests/mir/test_mir_lowering_part_h.cases.h" "rejected_predicate_without_subject_fact"
     require_literal "src/compiler/mir_fact_surface_validate.c" "source payload without source-location fact"
@@ -379,10 +386,29 @@ run_literal_doc_contract_smoke() {
         exit 1
     fi
     require_literal "src/tests/mir/test_mir_lowering_part_h.cases.h" "MIR validator rejects source-compatible branch without payload"
+    require_literal "src/tests/mir/test_mir_lowering_part_h.cases.h" "MIR select dispatch branch uses channel fact without payload"
     require_literal "src/compiler/mir_lifecycle.c" "source-branch-emit"
     require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_has_required_branch_lowering_fact(inst)"
     require_literal "src/codegen/transpiler_mir_cfg_control_emit.c" "mir_instruction_has_required_branch_condition_fact(inst)"
     require_literal "src/codegen/transpiler_mir_cfg_control_emit.c" "mir_instruction_has_required_source_branch_emit_fact(inst)"
+    if grep -Fq -- "mir_instruction_source_payload" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"; then
+        echo "C MIR select dispatch must consume branch expr facts, not source payload" >&2
+        exit 1
+    fi
+    require_literal "src/codegen/transpiler_mir_cfg_control_emit.c" "branch_inst->expr0"
+    if grep -Fq -- "llvm_mir_select_case_channel" \
+        "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"; then
+        echo "LLVM MIR select dispatch must consume branch expr facts, not source case payload" >&2
+        exit 1
+    fi
+    if grep -Fq -- "llvm_mir_emit_select_dispatch_condition(source_payload" \
+        "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"; then
+        echo "LLVM MIR select dispatch must pass the branch instruction, not source payload" >&2
+        exit 1
+    fi
+    require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_emit_select_dispatch_condition("
+    require_literal "src/codegen/llvm_mir_block_emit.c" "inst, routine, mir_block->succ_true, ctx"
     require_literal "src/codegen/transpiler_mir_emission_contract.c" "mir_instruction_has_required_branch_lowering_fact(inst)"
     require_literal "src/compiler/air_evidence_mir_facts.c" "mir_block_has_hir_source_mapping(block)"
     require_literal "src/codegen/transpiler_mir_ssa_map.c" "mir_block_source_hir_id(block)"
