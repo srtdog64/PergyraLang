@@ -135,3 +135,47 @@ baseline (currently the baselines are inline in the test script; move them to
 `benchmarks/baseline_<name>.c` if the set grows). Good next probes: array
 build+sum (allocation/bounds), pattern `match` dispatch, and a parallel block
 (to measure the threading runtime overhead vs serial C).
+
+## LLVM backend optimization work
+
+The LLVM backend's own optimization pipeline carries the gap between it and the
+C backend (which leans on `gcc -O2`). Three changes target that gap:
+
+1. Pass pipeline. `llvm_run_optimization` runs `default<O2>` (`default<O3>` for
+   release) plus internalization of non-`main`, non-declaration functions so the
+   inliner and global optimizers can fire. Before this it was a no-op stub, which
+   is why early LLVM numbers trailed the C backend by 2-3x on arithmetic loops.
+
+2. Never-returning attributes. Functions that cannot return get `noreturn`, and
+   the panic error family additionally gets `cold`, so out-of-bounds and invariant
+   traps sink out of the hot path. The never-return set is the panic family plus
+   an exact-name table (`pgy_exit`); matching is exact, not substring, so that
+   returning lookalikes such as `pgy_intent_exit_export` are never mismarked.
+
+3. Inline array indexing. `arr[i]` previously lowered to an opaque
+   `pgy_array_get_T` runtime call, which the LLVM optimizer cannot inline (the C
+   backend's equivalent is a `static inline` that `gcc` does inline). It now
+   lowers to inline IR: load the aggregate, take the data pointer and length, do
+   an unsigned bounds check that branches to a cold out-of-bounds panic, then an
+   `inbounds` GEP and load. This is wired at both indexing sites,
+   `llvm_emit_array_access_expr` (named arrays) and `llvm_emit_checked_collection_get`
+   (array values such as `getArray()[i]` and array-typed fields), via the shared
+   helper `llvm_emit_inline_array_get`. `for-in` already emits a direct
+   `inbounds` GEP. Slice indexing still uses the runtime call pending a verified
+   slice-layout match.
+
+Measured (sandbox, best-of-3, ratios vs the column noted):
+
+| benchmark | pgy-C vs hand-C | pgy-LLVM vs hand-C | note |
+|-----------|-----------------|--------------------|------|
+| arith (100M acc) | 0.98x | 0.03x | LLVM hoists/folds the counted loop |
+| fib(35) | 0.94x | 1.51x | recursion; inline-threshold bound |
+| array `xs[j]` 50M | ref | 2.85x (pre-inline) | inline-get targets this |
+| for-in 50M | ref | 2.99x (pre-inline) | aggregate-load hoisting |
+| generic 50M | ref | 0.25x | LLVM faster |
+| match 50M | ref | 0.52x | LLVM faster |
+
+The array/for-in rows are the pre-inline baseline; the inline-get and `inbounds`
+changes target exactly those. Backend output-equality is asserted by the gate on
+every construct, so a lowering regression fails the build rather than silently
+diverging.

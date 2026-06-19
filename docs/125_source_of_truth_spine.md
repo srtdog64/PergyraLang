@@ -220,6 +220,13 @@ Current beta closure snapshot:
   `LLVMAppendBasicBlockInContext(ctx->context, ...)`; the deprecated
   global-context `LLVMAppendBasicBlock(...)` form is not allowed in production
   LLVM emitters.
+- LLVM array-index fast paths are semantics-preserving consumers of runtime
+  panic and MIR/loop facts. `llvm_emit_inline_array_get(...)` may bypass the
+  opaque `pgy_array_get_T` runtime helper only after it has an active insertion
+  block, emits an unsigned index-vs-length bounds check, and calls
+  `pgy_runtime_panic_out_of_bounds_export` on failure. LLVM MIR for-in element
+  loads may use `LLVMBuildInBoundsGEP2(...)` only where the MIR loop condition
+  has already established `idx` is within `[0, length)`.
 - C backend projection/action codegen may consume active inventory and
   program-view seams for zone/effect/relation declaration recovery, but it must
   not reopen direct domain declaration lookup at each projection, bind, intent,

@@ -543,7 +543,13 @@ for path, tokens in unwrap_lowering_paths.items():
 array_lowering_paths = {
     root / "src" / "codegen" / "transpiler_expr_stdlib_builtin.c": ["pgy_array_set_"],
     root / "src" / "codegen" / "transpiler_expr_array_access_emit.c": ["pgy_array_get_", "pgy_slice_get_"],
-    root / "src" / "codegen" / "llvm_expr_aggregate.c": ["pgy_array_get_", "pgy_slice_get_", "llvm_emit_checked_collection_get"],
+    root / "src" / "codegen" / "llvm_expr_aggregate.c": ["pgy_array_get_", "pgy_slice_get_", "llvm_emit_checked_collection_get", "llvm_emit_inline_array_get"],
+    root / "src" / "codegen" / "llvm_expr_helpers.c": [
+        "llvm_emit_inline_array_get",
+        "pgy_runtime_panic_out_of_bounds_export",
+        "LLVMBuildICmp(ctx->builder, LLVMIntUGE",
+        "LLVMBuildUnreachable(ctx->builder)",
+    ],
     root / "src" / "codegen" / "llvm_expr_call_methods_domain_slice.c": [
         "pgy_runtime_panic_out_of_bounds_export",
         "LLVMIntUGT",

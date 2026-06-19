@@ -328,6 +328,17 @@ llvm_emit_array_access_expr(ASTNode *node, LLVMGenCtx *ctx)
             const char *suffix = llvm_type_to_suffix(ctx, entry->elem_type);
             if (suffix != NULL && strcmp(suffix, "Unknown") != 0) {
                 const char *struct_name = LLVMGetStructName(arr_var.type);
+                if (struct_name != NULL
+                    && strncmp(struct_name, "PgyArray_", 9) == 0) {
+                    LLVMValueRef aggregate = LLVMBuildLoad2(ctx->builder,
+                        arr_var.type, arr_var.alloca, llvm_tmp_name(ctx));
+                    LLVMValueRef inlined = llvm_emit_inline_array_get(ctx,
+                        aggregate, entry->elem_type, idx, struct_name);
+                    if (inlined != NULL)
+                        return inlined;
+                    if (ctx->has_error)
+                        return NULL;
+                }
                 const char *fn_prefix = "pgy_array_get_";
                 char fn_name[64];
                 if (struct_name != NULL

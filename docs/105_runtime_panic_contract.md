@@ -50,8 +50,11 @@ the C and LLVM paths.
   shared `divide-by-zero` class when the divisor is zero.
 - Generated C and LLVM array/slice indexing (`arr[index]`, `slice[index]`,
   and temporary `Words()[index]` / `Words().Slice(...)[index]`) and `ArraySet`
-  lower through checked runtime helpers instead of direct `.data[index]`
-  access for the stable `Array<T>` / `Slice<T>` surface.
+  must lower through a checked path instead of direct `.data[index]` access for
+  the stable `Array<T>` / `Slice<T>` surface. LLVM may inline `Array<T>` element
+  loads only when it emits the same unsigned bounds check and calls the shared
+  `out-of-bounds` panic export on failure; otherwise it must fall back to the
+  checked runtime helper.
 - Generated C and LLVM `Slice<T>.Slice(start, len)` use the same subtract-form
   bounds check and the shared `out-of-bounds` panic class. Empty slice results
   are null-backed instead of deriving a pointer from the backing storage.

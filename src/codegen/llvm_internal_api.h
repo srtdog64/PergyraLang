@@ -516,6 +516,11 @@ LLVMValueRef llvm_emit_checked_collection_get(LLVMGenCtx *ctx,
                                               LLVMTypeRef aggregate_type,
                                               LLVMValueRef index,
                                               const char *struct_name);
+LLVMValueRef llvm_emit_inline_array_get(LLVMGenCtx *ctx,
+                                        LLVMValueRef aggregate,
+                                        LLVMTypeRef elem_type,
+                                        LLVMValueRef index,
+                                        const char *struct_name);
 
 /* =================================================================
  * Emitters -- statements (llvm_stmt.c)

@@ -458,8 +458,14 @@ llvm_mir_emit_for_in_binding_for_inst(const MIRInstruction *branch_inst,
         LLVMValueRef data_ptr = llvm_array_data_ptr(ctx, aggregate);
         LLVMValueRef idx64 = LLVMBuildSExt(ctx->builder, idx, ctx->type_i64,
                                            llvm_tmp_name(ctx));
-        LLVMValueRef elem_ptr = LLVMBuildGEP2(ctx->builder, elem_ty, data_ptr,
-            &idx64, 1, llvm_tmp_name(ctx));
+        /*
+         * The for-in loop condition guarantees idx is in [0, length), so the
+         * element address lies within the array buffer. Emit an inbounds GEP
+         * (matching the higher-order map path) so the optimizer can reason
+         * about the access and hoist the invariant base out of the loop.
+         */
+        LLVMValueRef elem_ptr = LLVMBuildInBoundsGEP2(ctx->builder, elem_ty,
+            data_ptr, &idx64, 1, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder,
             LLVMBuildLoad2(ctx->builder, elem_ty, elem_ptr, llvm_tmp_name(ctx)),
             loop_alloca);

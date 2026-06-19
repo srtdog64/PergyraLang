@@ -165,6 +165,42 @@ llvm_apply_target_machine(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
     LLVMDisposeTargetData(layout);
 }
 
+/*
+ * Runtime panics are the cold error family: any function whose name carries
+ * the "panic" marker traps and never returns.
+ */
+static bool
+llvm_fn_is_panic(const char *fn_name)
+{
+    return fn_name != NULL && strstr(fn_name, "panic") != NULL;
+}
+
+/*
+ * Functions that provably never return to their caller. The panic family
+ * qualifies, plus an exact-name table of terminal runtime entrypoints.
+ * Matching is exact (not substring) so that returning lookalikes such as
+ * pgy_intent_exit_export, which exits an intent scope and returns, are never
+ * mismarked noreturn.
+ */
+static bool
+llvm_fn_never_returns(const char *fn_name)
+{
+    static const char *const exact_never_return[] = {
+        "pgy_exit",
+    };
+    size_t i;
+
+    if (fn_name == NULL)
+        return false;
+    if (llvm_fn_is_panic(fn_name))
+        return true;
+    for (i = 0; i < sizeof(exact_never_return) / sizeof(exact_never_return[0]); i++) {
+        if (strcmp(fn_name, exact_never_return[i]) == 0)
+            return true;
+    }
+    return false;
+}
+
 static void
 llvm_run_optimization(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
                       const char *triple, bool release_opt)
@@ -176,14 +212,12 @@ llvm_run_optimization(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
     for (LLVMValueRef fn = LLVMGetFirstFunction(ctx->module);
          fn != NULL; fn = LLVMGetNextFunction(fn)) {
         const char *fn_name = LLVMGetValueName(fn);
-        if (fn_name != NULL && strstr(fn_name, "panic") != NULL) {
-            if (noreturn_kind != 0)
-                LLVMAddAttributeAtIndex(fn, LLVMAttributeFunctionIndex,
-                    LLVMCreateEnumAttribute(ctx->context, noreturn_kind, 0));
-            if (cold_kind != 0)
-                LLVMAddAttributeAtIndex(fn, LLVMAttributeFunctionIndex,
-                    LLVMCreateEnumAttribute(ctx->context, cold_kind, 0));
-        }
+        if (noreturn_kind != 0 && llvm_fn_never_returns(fn_name))
+            LLVMAddAttributeAtIndex(fn, LLVMAttributeFunctionIndex,
+                LLVMCreateEnumAttribute(ctx->context, noreturn_kind, 0));
+        if (cold_kind != 0 && llvm_fn_is_panic(fn_name))
+            LLVMAddAttributeAtIndex(fn, LLVMAttributeFunctionIndex,
+                LLVMCreateEnumAttribute(ctx->context, cold_kind, 0));
         if (LLVMIsDeclaration(fn))
             continue;
         if (fn_name != NULL && strcmp(fn_name, "main") == 0)
