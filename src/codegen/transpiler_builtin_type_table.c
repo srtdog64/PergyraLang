@@ -48,6 +48,7 @@ pgy_builtin_entries(size_t *count)
         { "ChannelLength", "Int", PGY_BUILTIN_FLAG_NONE },
         { "ChannelReady", "Bool", PGY_BUILTIN_FLAG_NONE },
         { "ChannelSpace", "Int", PGY_BUILTIN_FLAG_NONE },
+        { "CharAtN", "String", PGY_BUILTIN_FLAG_NONE },
         { "ClaimQubit", "QubitSlot", PGY_BUILTIN_FLAG_NONE },
         { "Concat", "String", PGY_BUILTIN_FLAG_NONE },
         { "Contains", "Bool", PGY_BUILTIN_FLAG_NONE },

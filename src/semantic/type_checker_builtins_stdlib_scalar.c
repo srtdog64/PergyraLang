@@ -340,6 +340,7 @@ static const StdlibScalarSpec stdlib_scalar_specs[] = {
     { "Atan", stdlib_scalar_check_math_unary_float },
     { "Atan2", stdlib_scalar_check_atan2 },
     { "Ceil", stdlib_scalar_check_math_unary_float },
+    { "CharAtN", stdlib_scalar_check_string_substring },
     { "Clamp", stdlib_scalar_check_clamp },
     { "Concat", stdlib_scalar_check_string_concat },
     { "Contains", stdlib_scalar_check_string_contains },

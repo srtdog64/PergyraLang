@@ -407,6 +407,21 @@ bool SubStartsWith(const char *s, int32_t start, const char *prefix)
     return pgy_strview_starts_with(s, start, prefix);
 }
 
+/* O(1) 1-char access with a caller-supplied length (no strlen). Out-of-range
+ * yields "". See the inline header for the rationale. */
+char *CharAtN(const char *s, int32_t len, int32_t i)
+{
+    char *r;
+    if (s == NULL || i < 0 || i >= len)
+        return pgy_runtime_lib_strdup("");
+    r = (char *)malloc(2);
+    if (r == NULL)
+        return pgy_runtime_lib_strdup("");
+    r[0] = s[i];
+    r[1] = '\0';
+    return r;
+}
+
 char *StringReplace(const char *s, const char *old_str, const char *new_str)
 {
     if (s == NULL || old_str == NULL || new_str == NULL)

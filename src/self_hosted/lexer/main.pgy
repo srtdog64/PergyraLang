@@ -301,7 +301,7 @@ func Main() -> Void {
     let token_count: Int = 0;
 
     while i < n {
-        let c: String = CharAt(content, i);
+        let c: String = CharAtN(content, n, i);
 
         if c == " " {
             i = i + 1;
@@ -324,8 +324,8 @@ func Main() -> Void {
             continue;
         }
 
-        if c == "/" && CharAt(content, i + 1) == "/" {
-            while i < n && CharAt(content, i) != "\n" {
+        if c == "/" && CharAtN(content, n, i + 1) == "/" {
+            while i < n && CharAtN(content, n, i) != "\n" {
                 i = i + 1;
                 col = col + 1;
             }
@@ -333,12 +333,12 @@ func Main() -> Void {
         }
 
         // /* ... */ block comment (may span multiple lines)
-        if c == "/" && CharAt(content, i + 1) == "*" {
+        if c == "/" && CharAtN(content, n, i + 1) == "*" {
             i = i + 2;
             col = col + 2;
             while i < n {
-                let cc: String = CharAt(content, i);
-                if cc == "*" && CharAt(content, i + 1) == "/" {
+                let cc: String = CharAtN(content, n, i);
+                if cc == "*" && CharAtN(content, n, i + 1) == "/" {
                     i = i + 2;
                     col = col + 2;
                     break;
@@ -358,7 +358,7 @@ func Main() -> Void {
         if IsAlpha(c) {
             let start: Int = i;
             let start_col: Int = col;
-            while IsAlphaNum(CharAt(content, i)) {
+            while IsAlphaNum(CharAtN(content, n, i)) {
                 i = i + 1;
                 col = col + 1;
             }
@@ -372,22 +372,22 @@ func Main() -> Void {
         if IsDigit(c) {
             let start: Int = i;
             let start_col: Int = col;
-            while IsDigit(CharAt(content, i)) {
+            while IsDigit(CharAtN(content, n, i)) {
                 i = i + 1;
                 col = col + 1;
             }
             // Float literal: digits . digits. We must NOT consume `..` here
             // (that's the range operator), only a single `.` followed by a digit.
-            if CharAt(content, i) == "." && IsDigit(CharAt(content, i + 1)) {
+            if CharAtN(content, n, i) == "." && IsDigit(CharAtN(content, n, i + 1)) {
                 i = i + 1;
                 col = col + 1;
-                while IsDigit(CharAt(content, i)) {
+                while IsDigit(CharAtN(content, n, i)) {
                     i = i + 1;
                     col = col + 1;
                 }
             }
             // Long literal suffix: `L` appended to digits.
-            if CharAt(content, i) == "L" {
+            if CharAtN(content, n, i) == "L" {
                 i = i + 1;
                 col = col + 1;
             }
@@ -402,7 +402,7 @@ func Main() -> Void {
             let start_col: Int = col;
             i = i + 1;
             col = col + 1;
-            while i < n && CharAt(content, i) != "\"" {
+            while i < n && CharAtN(content, n, i) != "\"" {
                 i = i + 1;
                 col = col + 1;
             }
@@ -416,7 +416,7 @@ func Main() -> Void {
             continue;
         }
 
-        let n2: String = CharAt(content, i + 1);
+        let n2: String = CharAtN(content, n, i + 1);
         if c == "-" && n2 == ">" {
             token_count = token_count + 1;
             ArrayPush(output_lines, TokenLine(token_count, "->", "->", line, col));

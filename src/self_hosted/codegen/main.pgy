@@ -286,6 +286,9 @@ func ExprKind(expr: String, env: String) -> String {
     if StartsWith(e, "Substring(") {
         return "String";
     }
+    if StartsWith(e, "CharAtN(") {
+        return "String";
+    }
     if StartsWith(e, "StringTrim(") {
         return "String";
     }
@@ -761,7 +764,8 @@ func RewriteTokens(e: String, env: String) -> String {
     let h0: String = ReplaceAllOutsideStrings(gp, "ReadFile(", "pgy_readfile(");
     let h: String = ReplaceAllOutsideStrings(h0, "DirWalk(", "pgy_dirwalk(");
     let k: String = ReplaceAllOutsideStrings(h, "Args(", "pgy_args(");
-    let m: String = ReplaceAllOutsideStrings(k, "Substring(", "pgy_substr(");
+    let m0: String = ReplaceAllOutsideStrings(k, "CharAtN(", "pgy_charatn(");
+    let m: String = ReplaceAllOutsideStrings(m0, "Substring(", "pgy_substr(");
     let jn: String = ReplaceAllOutsideStrings(m, "StringJoin(", "pgy_strjoin(");
     let p: String = ReplaceAllOutsideStrings(jn, "ToString(", "pgy_tostr(");
     // `Concat(a, b)` -> `pgy_concat(a, b)` is a pure name rewrite (same args),
@@ -1798,6 +1802,9 @@ func GenerateC(ast: String) -> String {
         header = Concat(header, "    return r;\n}\n\n");
         header = Concat(header, "static long long pgy_strlen(const char *s)\n{\n");
         header = Concat(header, "    return (long long)strlen(s);\n}\n\n");
+        header = Concat(header, "static char *pgy_charatn(const char *s, long long len, long long i)\n{\n");
+        header = Concat(header, "    if (s == NULL || i < 0 || i >= len) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
+        header = Concat(header, "    char *r = (char *)malloc(2);\n    r[0] = s[i];\n    r[1] = '\\0';\n    return r;\n}\n\n");
         header = Concat(header, "static char *pgy_substr(const char *s, long long start, long long len)\n{\n");
         header = Concat(header, "    char *r = (char *)malloc((size_t)len + 1);\n");
         header = Concat(header, "    memcpy(r, s + start, (size_t)len);\n    r[len] = '\\0';\n");

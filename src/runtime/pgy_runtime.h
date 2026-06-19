@@ -12,5 +12,6 @@
 #include "pgy_runtime_inline_core.h"
 #include "pgy_runtime_channel_inline.h"
 #include "pgy_runtime_io_qubit_inline.h"
+#include "pgy_runtime_string_window_inline.h"
 
 #endif /* PGY_RUNTIME_H */

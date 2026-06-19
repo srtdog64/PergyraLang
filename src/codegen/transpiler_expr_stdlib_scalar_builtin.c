@@ -85,6 +85,7 @@ typedef enum {
     TRANSPILER_SCALAR_OP_SUB_EQUALS,
     TRANSPILER_SCALAR_OP_SUB_CONTAINS,
     TRANSPILER_SCALAR_OP_SUB_STARTS_WITH,
+    TRANSPILER_SCALAR_OP_CHAR_AT_N,
     TRANSPILER_SCALAR_OP_TO_FLOAT,
     TRANSPILER_SCALAR_OP_TO_INT,
     TRANSPILER_SCALAR_OP_UPPER,
@@ -99,6 +100,7 @@ typedef struct {
 static const TranspilerScalarSpec kTranspilerScalarSpecs[] = {
     {"Abs", 1, TRANSPILER_SCALAR_OP_ABS},
     {"Atan2", 2, TRANSPILER_SCALAR_OP_ATAN2},
+    {"CharAtN", 3, TRANSPILER_SCALAR_OP_CHAR_AT_N},
     {"Clamp", 3, TRANSPILER_SCALAR_OP_CLAMP},
     {"Concat", 2, TRANSPILER_SCALAR_OP_CONCAT},
     {"Contains", 2, TRANSPILER_SCALAR_OP_STRING_CONTAINS},
@@ -309,6 +311,24 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         }
         char *result = strdup_fmt("Substring(%s, %s, %s)", s, start, len);
         free(s); free(start); free(len);
+        return result;
+    }
+    if (op == TRANSPILER_SCALAR_OP_CHAR_AT_N) {
+        char *s = transpiler_scalar_emit_arg(ctx, a0, fn, "source");
+        char *slen = s != NULL
+            ? transpiler_scalar_emit_arg(ctx, a1, fn, "length")
+            : NULL;
+        char *idx = slen != NULL
+            ? transpiler_scalar_emit_arg(ctx, a2, fn, "index")
+            : NULL;
+        if (s == NULL || slen == NULL || idx == NULL) {
+            free(s);
+            free(slen);
+            free(idx);
+            return NULL;
+        }
+        char *result = strdup_fmt("CharAtN(%s, %s, %s)", s, slen, idx);
+        free(s); free(slen); free(idx);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_SUB_INDEX_OF) {
