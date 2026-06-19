@@ -1,0 +1,1 @@
+[ERROR] 4:20 - Token 'right_token' is not paired with slot 'left'

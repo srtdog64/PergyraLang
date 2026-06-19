@@ -1,0 +1,30 @@
+func Main() -> Void {
+    let s: Slot<Int> = ClaimSlot();
+    Write(s, 10);
+    pin s as r: ReadView<Int> {
+        Log(Read(r));
+    }
+    pin s as w: WriteView<Int> {
+        Write(w, 15);
+    }
+    Log(Read(s));
+    for i in 0..3 {
+        pin s as loopView: WriteView<Int> {
+            if i == 1 {
+                continue;
+            }
+            Write(loopView, i);
+        }
+    }
+    Log(Read(s));
+    for j in 0..3 {
+        pin s as breakView: WriteView<Int> {
+            if j == 1 {
+                break;
+            }
+            Write(breakView, j + 10);
+        }
+    }
+    Log(Read(s));
+    Release(s);
+}

@@ -301,6 +301,15 @@ llvm_stmt_infer_call_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
     if (callee_node != NULL && callee_node->type == AST_MEMBER_ACCESS
         && ast_member_name(callee_node) != NULL
         && ast_member_object(callee_node) != NULL) {
+        ASTNode *owner = ast_member_object(callee_node);
+        if (owner->type == AST_IDENTIFIER
+            && ast_identifier_name(owner) != NULL) {
+            LLVMTypeRef qualified_ret =
+                llvm_stmt_lookup_qualified_call_return_type(ctx,
+                    ast_identifier_name(owner), ast_member_name(callee_node));
+            if (qualified_ret != NULL || ctx->has_error)
+                return qualified_ret;
+        }
         LLVMTypeRef member_type = llvm_stmt_infer_member_call_type(ctx, expr);
         if (member_type != NULL || ctx->has_error)
             return member_type;
@@ -387,7 +396,7 @@ llvm_stmt_infer_call_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         }
         {
             LLVMTypeRef builtin_type =
-                llvm_stmt_infer_scalar_builtin_type(ctx, callee);
+                llvm_stmt_infer_builtin_return_type(ctx, callee);
             if (builtin_type != NULL)
                 return builtin_type;
         }

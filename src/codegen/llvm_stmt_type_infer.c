@@ -292,6 +292,19 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             return ctx->type_i1;
         if (op == TOKEN_MINUS)
             return llvm_stmt_infer_expr_type(ctx, ast_unary_operand(expr));
+        if (op == TOKEN_QUESTION) {
+            LLVMTypeRef operand_type =
+                llvm_stmt_infer_expr_type(ctx, ast_unary_operand(expr));
+            if (operand_type != NULL
+                && LLVMGetTypeKind(operand_type) == LLVMStructTypeKind
+                && LLVMCountStructElementTypes(operand_type) >= 2) {
+                LLVMTypeRef fields[8];
+                LLVMGetStructElementTypes(operand_type, fields);
+                return fields[1];
+            }
+            return llvm_stmt_unknown_expr_type(ctx, expr,
+                "try operator requires Result-like aggregate metadata");
+        }
         return llvm_stmt_unknown_expr_type(ctx, expr,
             "unsupported unary operator has no inferred LLVM type");
     }

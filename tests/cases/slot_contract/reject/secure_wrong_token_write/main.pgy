@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let left: SecureSlot<Int> = ClaimSecureSlot();
+    let right: SecureSlot<Int> = ClaimSecureSlot();
+    Write(left, 1, right_token);
+}

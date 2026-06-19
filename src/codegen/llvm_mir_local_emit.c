@@ -11,6 +11,7 @@
 
 #include "llvm_internal_api.h"
 #include "llvm_mir_async_fact.h"
+#include "llvm_mir_local_expected_type.h"
 #include "llvm_mir_local_element_type.h"
 #include "llvm_mir_slice_fact.h"
 #include "llvm_mir_type_helpers.h"
@@ -411,7 +412,8 @@ llvm_mir_local_type_from_instruction_fact(const MIRRoutine *routine,
 
     if (inst->expr0 != NULL) {
         ASTNode *value_expr = llvm_mir_local_initializer_expr(inst->expr0);
-        type = llvm_stmt_infer_expr_type(ctx, value_expr);
+        type = llvm_mir_local_infer_expr_type(routine, ctx, inst, NULL,
+            value_expr);
         if (ctx->has_error || type != NULL)
             return type;
     }
@@ -491,8 +493,11 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                         if (ctx->has_error)
                             return;
                     }
-                    if (alloca_type == NULL)
-                        alloca_type = llvm_stmt_infer_expr_type(ctx, value_expr);
+                    if (alloca_type == NULL) {
+                        alloca_type = llvm_mir_local_infer_expr_type(routine,
+                            ctx, inst, has_base_name ? base_name : NULL,
+                            value_expr);
+                    }
                     if (ctx->has_error || alloca_type == NULL)
                         return;
                 } else if (has_base_name) {
@@ -524,6 +529,17 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                             ? inst->result_name
                             : "(anonymous-local)");
                     return;
+                }
+                {
+                    const char *expected_type_name =
+                        llvm_mir_local_expected_type_name(routine, inst,
+                            has_base_name ? base_name : NULL);
+                    if (expected_type_name != NULL
+                        && pgy_classify_type(expected_type_name)
+                            == PGY_TK_CHANNEL) {
+                        alloca_type = LLVMArrayType(
+                            LLVMInt8TypeInContext(ctx->context), 256);
+                    }
                 }
                 if (var_count >= var_capacity) {
                     size_t new_capacity = var_capacity > 0 ? var_capacity * 2 : 64;
@@ -573,7 +589,8 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     llvm_register_typed_var_abi_binding(ctx, base_name,
                         vars[var_count].alloca,
                         inst->abi_type_name);
-                } else if (has_base_name) {
+                } else if (has_base_name
+                           && mir_instruction_uses_source_local_decl_emit(inst)) {
                     llvm_mir_bind_source_local_base(routine, ctx, inst,
                         base_name, vars[var_count].alloca,
                         vars[var_count].type);

@@ -95,6 +95,46 @@ transpiler_mir_assignment_target_is_local(const ASTNode *func_decl,
     return transpiler_has_explicit_local_binding(func_decl, target_name);
 }
 
+bool
+transpiler_emit_mir_assignment_expr_stmt(CodeBuf *buf,
+                                         const MIRBasicBlock *block,
+                                         const MIRInstruction *inst,
+                                         ASTNode *stmt,
+                                         TranspilerCtx *ctx,
+                                         TranspilerSSANameMap *ssa_map_out,
+                                         char *reason,
+                                         size_t reason_cap)
+{
+    char *expr = NULL;
+
+    if (buf == NULL || block == NULL || inst == NULL || stmt == NULL
+        || ctx == NULL || ssa_map_out == NULL
+        || inst->kind != MIR_INST_ASSIGN
+        || stmt->type != AST_ASSIGNMENT) {
+        if (reason != NULL && reason_cap > 0) {
+            transpiler_mir_reasonf(reason, reason_cap,
+                "MIR block %llu emission failed: ASSIGN instruction missing assignment payload",
+                block != NULL ? (unsigned long long) block->id : 0ULL);
+        }
+        return false;
+    }
+
+    expr = emit_expression_with_ssa_map(stmt, ctx, ssa_map_out);
+    if (expr == NULL) {
+        if (reason != NULL && reason_cap > 0) {
+            transpiler_mir_reasonf(reason, reason_cap,
+                "MIR block %llu emission failed: unable to render MIR assignment expression",
+                (unsigned long long) block->id);
+        }
+        return false;
+    }
+
+    write_indent_to(buf, ctx->indent);
+    codebuf_write(buf, "%s;\n", expr);
+    free(expr);
+    return true;
+}
+
 TranspilerMIRAssignmentEmitResult
 transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
                                         const ASTNode *func_decl,
@@ -260,11 +300,23 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
     }
 
     if (!is_local_binding) {
-        emit_statement(stmt, ctx);
+        MIRInstruction assign_inst = *inst;
+        assign_inst.kind = MIR_INST_ASSIGN;
+        if (!transpiler_emit_mir_assignment_expr_stmt(
+                buf, block, &assign_inst, stmt, ctx, ssa_map_out,
+                reason, reason_cap)) {
+            return TRANSPILE_MIR_ASSIGNMENT_FAILED;
+        }
         return TRANSPILE_MIR_ASSIGNMENT_HANDLED;
     }
     if (transpiler_type_name_is_slot_like(lookup_typed_var(ctx, target_name))) {
-        emit_statement(stmt, ctx);
+        MIRInstruction assign_inst = *inst;
+        assign_inst.kind = MIR_INST_ASSIGN;
+        if (!transpiler_emit_mir_assignment_expr_stmt(
+                buf, block, &assign_inst, stmt, ctx, ssa_map_out,
+                reason, reason_cap)) {
+            return TRANSPILE_MIR_ASSIGNMENT_FAILED;
+        }
         return TRANSPILE_MIR_ASSIGNMENT_HANDLED;
     }
 

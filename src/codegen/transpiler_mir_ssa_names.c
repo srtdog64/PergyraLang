@@ -177,8 +177,15 @@ transpiler_resolve_active_ssa_name(const TranspilerCtx *ctx,
      * zone method shares its name with a zone field, the SSA local
      * must win so the right-hand `heated` resolves to
      * `_pgy_ssa_heated_N` rather than `self->heated`. */
-    if (is_slot_var((TranspilerCtx *)ctx, base_name))
-        return NULL;
+    if (is_slot_var((TranspilerCtx *)ctx, base_name)) {
+        TypedVarEntry *entry = lookup_typed_entry((TranspilerCtx *)ctx,
+                                                  base_name);
+        if (entry == NULL
+            || (!entry->is_view && !entry->is_move_token)
+            || entry->source_slot[0] == '\0') {
+            return NULL;
+        }
+    }
     resolved = transpiler_resolve_ssa_name(
         (const TranspilerSSANameMap *)ctx->active_ssa_map,
         base_name);

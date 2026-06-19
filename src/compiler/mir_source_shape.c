@@ -314,9 +314,30 @@ mir_instruction_has_required_branch_condition_fact(const MIRInstruction *inst)
         && inst->expr0 == NULL)
         return false;
     if (mir_instruction_branch_requires_source_emit(inst))
-        return mir_instruction_source_payload(inst) != NULL
-            && mir_instruction_source_branch_payload_matches_shape(inst);
+        return inst->branch_shape != MIR_BRANCH_SELECT_DISPATCH;
     return inst->expr0 != NULL;
+}
+
+bool
+mir_instruction_has_required_source_branch_emit_fact(const MIRInstruction *inst)
+{
+    if (inst == NULL || inst->kind != MIR_INST_BRANCH)
+        return false;
+    if (!mir_instruction_branch_requires_source_emit(inst))
+        return true;
+    return mir_instruction_source_payload(inst) != NULL
+        && mir_instruction_source_branch_payload_matches_shape(inst);
+}
+
+bool
+mir_instruction_has_required_branch_lowering_fact(const MIRInstruction *inst)
+{
+    if (inst == NULL || inst->kind != MIR_INST_BRANCH)
+        return false;
+    if (inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH)
+        return mir_instruction_has_required_source_branch_emit_fact(inst);
+    return mir_instruction_has_required_branch_condition_fact(inst)
+        && mir_instruction_has_required_source_branch_emit_fact(inst);
 }
 
 bool

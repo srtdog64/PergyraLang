@@ -1,0 +1,1 @@
+[ERROR] 4:11 - Cannot write to released slot 's'

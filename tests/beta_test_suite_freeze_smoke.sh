@@ -51,6 +51,7 @@ mandatory_targets=(
     "runtime-panic-contract-test-smoke"
     "runtime-panic-abi-test-smoke"
     "runtime-panic-codegen-test-smoke"
+    "slot-contract-test-smoke"
     "projection-diagnostic-contract-test-smoke"
     "abi-ownership-shape-test-smoke"
     "diagnostics-json-test-smoke"

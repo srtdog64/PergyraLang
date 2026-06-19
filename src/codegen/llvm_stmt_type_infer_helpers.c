@@ -111,7 +111,26 @@ llvm_stmt_lookup_visible_function(LLVMGenCtx *ctx, const char *callee)
 }
 
 LLVMTypeRef
-llvm_stmt_infer_scalar_builtin_type(LLVMGenCtx *ctx, const char *callee)
+llvm_stmt_lookup_qualified_call_return_type(LLVMGenCtx *ctx,
+                                            const char *owner,
+                                            const char *member)
+{
+    char full_name[256];
+    LLVMFuncEntry *fn;
+
+    if (ctx == NULL || owner == NULL || member == NULL)
+        return NULL;
+    if (!llvm_stmt_format_host_method_name(ctx, full_name, sizeof(full_name),
+            owner, member))
+        return NULL;
+    fn = llvm_lookup_function(ctx, full_name);
+    if (fn != NULL)
+        return fn->ret_type;
+    return llvm_stmt_lookup_declared_call_return_type(ctx, full_name);
+}
+
+LLVMTypeRef
+llvm_stmt_infer_builtin_return_type(LLVMGenCtx *ctx, const char *callee)
 {
     const char *type_name;
 
@@ -121,8 +140,10 @@ llvm_stmt_infer_scalar_builtin_type(LLVMGenCtx *ctx, const char *callee)
     type_name = pgy_builtin_simple_return_type(callee);
     if (type_name == NULL)
         return NULL;
-    if (!llvm_stmt_type_name_is_simple_builtin_return(type_name))
+    if (!llvm_stmt_type_name_is_simple_builtin_return(type_name)
+        && strcmp(type_name, "Array<String>") != 0) {
         return NULL;
+    }
     return pergyra_type_to_llvm(ctx, type_name);
 }
 

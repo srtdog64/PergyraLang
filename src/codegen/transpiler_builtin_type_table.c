@@ -33,6 +33,7 @@ pgy_builtin_entries(size_t *count)
         { "AllocatorSystem", "Allocator", PGY_BUILTIN_FLAG_NONE },
         { "AllocatorTracing", "Allocator", PGY_BUILTIN_FLAG_NONE },
         { "Args", "Array<String>", PGY_BUILTIN_FLAG_NONE },
+        { "ArrayLength", "Int", PGY_BUILTIN_FLAG_NONE },
         { "ArrayPop", "Void", PGY_BUILTIN_FLAG_NONE },
         { "ArrayPush", "Void", PGY_BUILTIN_FLAG_NONE },
         { "ArraySet", "Void", PGY_BUILTIN_FLAG_NONE },

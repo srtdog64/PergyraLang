@@ -316,7 +316,12 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 ok = false;
                 break;
             }
-            emit_statement(stmt, ctx);
+            if (!transpiler_emit_mir_assignment_expr_stmt(
+                    buf, block, inst, stmt, ctx, ssa_map_out,
+                    reason, reason_cap)) {
+                ok = false;
+                break;
+            }
             continue;
         }
 
@@ -350,8 +355,9 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             && transpiler_mir_inst_is_cfg_container(inst, stmt)) {
             continue;
         }
-        if (stmt->type == AST_CALL) {
-            if (!transpiler_emit_mir_call_statement(buf, block, stmt, ctx,
+        if (mir_instruction_source_matches_ast_type(inst, AST_CALL)
+            && inst->expr0 != NULL) {
+            if (!transpiler_emit_mir_call_statement(buf, block, inst->expr0, ctx,
                                                     ssa_map_out,
                                                     reason, reason_cap)) {
                 ok = false;
@@ -359,7 +365,25 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             }
             continue;
         }
-        emit_statement(stmt, ctx);
+        if (inst->expr0 != NULL
+            && (mir_instruction_source_matches_ast_type(inst, AST_SPAWN_EXPR)
+                || mir_instruction_source_matches_ast_type(inst, AST_AWAIT_EXPR)
+                || mir_instruction_source_matches_ast_type(inst, AST_CHANNEL_SEND)
+                || mir_instruction_source_matches_ast_type(inst, AST_CHANNEL_RECV)
+                || mir_instruction_source_matches_ast_type(inst, AST_PARALLEL_BLOCK)
+                || mir_instruction_source_matches_ast_type(inst, AST_ASYNC_BLOCK)
+                || mir_instruction_source_matches_ast_type(inst, AST_UNSAFE_BLOCK)
+                || mir_instruction_source_matches_ast_type(inst, AST_TRANSACTION_BLOCK))) {
+            emit_statement(inst->expr0, ctx);
+            continue;
+        }
+        if (reason != NULL && reason_cap > 0) {
+            transpiler_mir_reasonf(reason, reason_cap,
+                "MIR block %llu emission failed: STMT source-payload emission is retired; lower this statement to MIR facts",
+                (unsigned long long) block->id);
+        }
+        ok = false;
+        break;
     }
     ctx->active_ssa_map = saved_active_ssa_map;
     return ok;

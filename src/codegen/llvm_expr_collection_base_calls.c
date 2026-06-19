@@ -30,6 +30,8 @@ llvm_collection_base_error_out(LLVMGenCtx *ctx, ASTNode *node,
 typedef enum {
     LLVM_COLLECTION_BASE_OP_NONE = 0,
     LLVM_COLLECTION_BASE_OP_LIST_NEW,
+    LLVM_COLLECTION_BASE_OP_MAP_NEW,
+    LLVM_COLLECTION_BASE_OP_QUEUE_NEW,
     LLVM_COLLECTION_BASE_OP_SET_ADD,
     LLVM_COLLECTION_BASE_OP_SET_HAS,
     LLVM_COLLECTION_BASE_OP_SET_NEW,
@@ -46,6 +48,8 @@ typedef struct {
 
 static const LLVMCollectionBaseSpec kLLVMCollectionBaseSpecs[] = {
     {"ListNew", 0, LLVM_COLLECTION_BASE_OP_LIST_NEW},
+    {"MapNew", 0, LLVM_COLLECTION_BASE_OP_MAP_NEW},
+    {"QueueNew", 0, LLVM_COLLECTION_BASE_OP_QUEUE_NEW},
     {"SetAdd", 2, LLVM_COLLECTION_BASE_OP_SET_ADD},
     {"SetHas", 2, LLVM_COLLECTION_BASE_OP_SET_HAS},
     {"SetNew", 0, LLVM_COLLECTION_BASE_OP_SET_NEW},
@@ -164,6 +168,126 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
         *out = LLVMBuildLoad2(ctx->builder, list_ty, tmp, llvm_tmp_name(ctx));
+        return true;
+    }
+
+    if (op == LLVM_COLLECTION_BASE_OP_QUEUE_NEW) {
+        LLVMTypeRef queue_ty;
+        LLVMTypeRef elem_ty;
+        const char *inner_name = NULL;
+        char inner_name_buf[256];
+        LLVMValueRef tmp;
+        LLVMFuncEntry *fn;
+        if (ctx->current_ret_type == NULL
+            || LLVMGetTypeKind(ctx->current_ret_type) != LLVMStructTypeKind) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM QueueNew() requires contextual Queue<T>; implicit i32 fallback is disabled");
+            *out = NULL;
+            return true;
+        }
+        if (ctx->expected_type_name != NULL
+            && strncmp(ctx->expected_type_name, "Queue<", 6) == 0) {
+            if (llvm_constructed_arg_name_copy(ctx->expected_type_name, 0,
+                    inner_name_buf, sizeof(inner_name_buf))) {
+                inner_name = inner_name_buf;
+            }
+        }
+        if (inner_name == NULL || inner_name[0] == '\0'
+            || strcmp(inner_name, "Unknown") == 0) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM QueueNew() requires concrete Queue<T> type metadata");
+            *out = NULL;
+            return true;
+        }
+        queue_ty = ctx->current_ret_type;
+        elem_ty = pergyra_type_to_llvm(ctx, inner_name);
+        if (elem_ty == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                "LLVM QueueNew() requires concrete element LLVM type metadata");
+        fn = llvm_required_collection_function(ctx, node, callee_name,
+            "pgy_queue_new_raw_export");
+        if (fn == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                "LLVM QueueNew() requires registered runtime function");
+        tmp = llvm_create_entry_alloca(ctx, queue_ty, llvm_tmp_name(ctx));
+        if (tmp == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                "LLVM QueueNew() could not allocate queue temporary");
+        LLVMBuildStore(ctx->builder, LLVMConstNull(queue_ty), tmp);
+        LLVMValueRef args[] = {
+            LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr,
+                llvm_tmp_name(ctx)),
+            llvm_sizeof_type_i64(ctx, elem_ty)
+        };
+        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+        *out = LLVMBuildLoad2(ctx->builder, queue_ty, tmp,
+            llvm_tmp_name(ctx));
+        return true;
+    }
+
+    if (op == LLVM_COLLECTION_BASE_OP_MAP_NEW) {
+        LLVMTypeRef map_ty;
+        LLVMTypeRef value_ty;
+        const char *value_name = NULL;
+        char value_name_buf[256];
+        LLVMValueRef tmp;
+        LLVMFuncEntry *fn;
+        if (ctx->current_ret_type == NULL
+            || LLVMGetTypeKind(ctx->current_ret_type) != LLVMStructTypeKind) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM MapNew() requires contextual HashMap<K,V>; implicit i32 fallback is disabled");
+            *out = NULL;
+            return true;
+        }
+        if (ctx->expected_type_name != NULL
+            && strncmp(ctx->expected_type_name, "HashMap<", 8) == 0) {
+            if (llvm_constructed_arg_name_copy(ctx->expected_type_name, 1,
+                    value_name_buf, sizeof(value_name_buf))) {
+                value_name = value_name_buf;
+            }
+        }
+        if (value_name == NULL || value_name[0] == '\0'
+            || strcmp(value_name, "Unknown") == 0) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM MapNew() requires concrete HashMap<K,V> value metadata");
+            *out = NULL;
+            return true;
+        }
+        map_ty = ctx->current_ret_type;
+        value_ty = pergyra_type_to_llvm(ctx, value_name);
+        if (value_ty == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                "LLVM MapNew() requires concrete value LLVM type metadata");
+        fn = llvm_required_collection_function(ctx, node, callee_name,
+            "pgy_map_new_raw_export");
+        if (fn == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                "LLVM MapNew() requires registered runtime function");
+        tmp = llvm_create_entry_alloca(ctx, map_ty, llvm_tmp_name(ctx));
+        if (tmp == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                "LLVM MapNew() could not allocate map temporary");
+        LLVMBuildStore(ctx->builder, LLVMConstNull(map_ty), tmp);
+        LLVMValueRef args[] = {
+            LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr,
+                llvm_tmp_name(ctx)),
+            llvm_sizeof_type_i64(ctx, value_ty)
+        };
+        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+        *out = LLVMBuildLoad2(ctx->builder, map_ty, tmp,
+            llvm_tmp_name(ctx));
         return true;
     }
 

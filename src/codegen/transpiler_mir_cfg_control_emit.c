@@ -488,20 +488,19 @@ transpiler_mir_render_branch_condition(const MIRRoutine *routine,
         return transpiler_mir_render_for_loop_condition_inst(inst, ctx, ssa_map);
     if (inst->branch_shape == MIR_BRANCH_MATCH_CASE) {
         if (!mir_instruction_has_required_branch_condition_fact(inst))
-            return pergyra_strdup("true");
-        condition = mir_instruction_source_payload(inst);
-        if (condition == NULL)
-            return pergyra_strdup("true");
+            return NULL;
+        if (!mir_instruction_has_required_source_branch_emit_fact(inst))
+            return NULL;
         return transpiler_mir_render_match_case_condition(inst, ctx, ssa_map);
     }
     if (inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH) {
         char *select_cond;
-        if (!mir_instruction_has_required_branch_condition_fact(inst)) {
+        if (!mir_instruction_has_required_source_branch_emit_fact(inst)) {
             transpiler_set_backend_error_with_hints(ctx,
                 PGY_CODE_C_TYPE_UNSUPPORTED,
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,
                 PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
-                "C MIR select branch requires branch condition fact");
+                "C MIR select branch requires source branch emit fact");
             return NULL;
         }
         select_cond = transpiler_mir_render_select_case_condition(
@@ -511,6 +510,6 @@ transpiler_mir_render_branch_condition(const MIRRoutine *routine,
     }
     condition = inst->expr0;
     if (condition == NULL)
-        return pergyra_strdup("true");
+        return NULL;
     return emit_expression_with_ssa_map(condition, ctx, ssa_map);
 }

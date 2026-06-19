@@ -1,0 +1,10 @@
+func Main() -> Void {
+    let guarded: SecureSlot<Int> = ClaimSecureSlot();
+    Write(guarded, 5, guarded_token);
+    Log(Read(guarded, guarded_token));
+    pin guarded as view: WriteView<Int> {
+        Write(view, 8);
+    }
+    Log(Read(guarded, guarded_token));
+    Release(guarded, guarded_token);
+}

@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let s: Slot<Int> = ClaimSlot();
+    Release(s);
+    Write(s, 2);
+}

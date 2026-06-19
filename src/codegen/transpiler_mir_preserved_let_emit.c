@@ -11,6 +11,8 @@
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_let_box_emit.h"
+#include "transpiler_let_channel_emit.h"
+#include "transpiler_let_slot_emit.h"
 #include "transpiler_mir_block_emit_helpers.h"
 #include "transpiler_mir_effective_type.h"
 #include "transpiler_mir_local_type_lookup.h"
@@ -112,13 +114,31 @@ transpiler_emit_mir_preserved_let_stmt(CodeBuf *buf,
                 transpiler_find_local_type_name(ctx, func_decl, let_name);
             if (transpiler_type_name_is_view_like(binding_type_name)
                 || transpiler_type_name_is_view_like(value_type)) {
-                emit_statement(stmt, ctx);
+                char *ann_type_name = rendered_type != NULL
+                    ? pergyra_strdup(rendered_type)
+                    : (value_type != NULL ? pergyra_strdup(value_type) : NULL);
+                if (transpiler_try_emit_let_slot_view_or_move(
+                        ctx, let_name, let_init, let_type, &ann_type_name)) {
+                    free(lhs);
+                    free(rhs);
+                    free(rendered_type);
+                    free(ann_type_name);
+                    if (handled_out != NULL)
+                        *handled_out = ctx->backend_error == NULL;
+                    return ctx->backend_error == NULL;
+                }
+                free(ann_type_name);
                 free(lhs);
                 free(rhs);
                 free(rendered_type);
+                if (reason != NULL && reason_cap > 0) {
+                    transpiler_mir_reasonf(reason, reason_cap,
+                        "MIR block %zu emission failed: source-local view let '%s' requires MIR-owned preserved-let emit facts",
+                        block->id, let_name != NULL ? let_name : "<binding>");
+                }
                 if (handled_out != NULL)
-                    *handled_out = true;
-                return true;
+                    *handled_out = false;
+                return false;
             }
             if (is_slot_var(ctx, let_name)
                 || (binding_type_name != NULL
@@ -240,11 +260,49 @@ transpiler_emit_mir_source_local_let_def_inst(
     }
     if (transpiler_type_name_is_slot_like(local_type_name_owned)) {
         if (transpiler_type_name_is_view_like(local_type_name_owned)) {
-            emit_statement(stmt, ctx);
+            char *ann_type_name = local_type_name_owned;
+            local_type_name_owned = NULL;
+            if (block->is_pin_region
+                && block->pin_view_name != NULL
+                && block->pin_source_name != NULL
+                && strcmp(block->pin_view_name, let_name) == 0) {
+                if (!transpiler_ssa_name_map_set(ssa_map_out, let_name,
+                                                 block->pin_source_name)) {
+                    ctx->active_type_hint = saved_type_hint;
+                    free(rendered_type_hint);
+                    free(ann_type_name);
+                    return TRANSPILE_MIR_LOCAL_LET_FAILED;
+                }
+                register_view_like_var(
+                    ctx, let_name, ann_type_name, block->pin_source_name,
+                    lookup_slot_is_secure(ctx, block->pin_source_name), false);
+                ctx->active_type_hint = saved_type_hint;
+                free(rendered_type_hint);
+                free(ann_type_name);
+                return ctx->backend_error != NULL
+                    ? TRANSPILE_MIR_LOCAL_LET_FAILED
+                    : TRANSPILE_MIR_LOCAL_LET_HANDLED;
+            }
+            if (transpiler_try_emit_let_slot_view_or_move(
+                    ctx, let_name, let_init, let_type, &ann_type_name)) {
+                ctx->active_type_hint = saved_type_hint;
+                free(rendered_type_hint);
+                free(ann_type_name);
+                return ctx->backend_error != NULL
+                    ? TRANSPILE_MIR_LOCAL_LET_FAILED
+                    : TRANSPILE_MIR_LOCAL_LET_HANDLED;
+            }
+            local_type_name_owned = ann_type_name;
             ctx->active_type_hint = saved_type_hint;
             free(rendered_type_hint);
             free(local_type_name_owned);
-            return TRANSPILE_MIR_LOCAL_LET_HANDLED;
+            if (reason != NULL && reason_cap > 0) {
+                transpiler_mir_reasonf(reason, reason_cap,
+                    "MIR block %llu emission failed: source-local view let '%s' requires MIR-owned local-decl emit facts",
+                    (unsigned long long) block->id,
+                    let_name != NULL ? let_name : "<binding>");
+            }
+            return TRANSPILE_MIR_LOCAL_LET_FAILED;
         }
         if (transpiler_block_has_claim_for_slot_local(block, let_name)) {
             ctx->active_type_hint = saved_type_hint;
@@ -252,19 +310,57 @@ transpiler_emit_mir_source_local_let_def_inst(
             free(local_type_name_owned);
             return TRANSPILE_MIR_LOCAL_LET_HANDLED;
         }
-        emit_statement(stmt, ctx);
-        ctx->active_type_hint = saved_type_hint;
-        free(rendered_type_hint);
-        free(local_type_name_owned);
-        return TRANSPILE_MIR_LOCAL_LET_HANDLED;
+        {
+            char *ann_type_name = local_type_name_owned;
+            local_type_name_owned = NULL;
+            if (transpiler_try_emit_let_slot_claim(
+                    stmt, ctx, let_name, let_init, let_type, &ann_type_name)
+                || transpiler_try_emit_let_slot_sugar(
+                    ctx, let_name, let_init, let_type, &ann_type_name)) {
+                ctx->active_type_hint = saved_type_hint;
+                free(rendered_type_hint);
+                free(ann_type_name);
+                return ctx->backend_error != NULL
+                    ? TRANSPILE_MIR_LOCAL_LET_FAILED
+                    : TRANSPILE_MIR_LOCAL_LET_HANDLED;
+            }
+            local_type_name_owned = ann_type_name;
+            ctx->active_type_hint = saved_type_hint;
+            free(rendered_type_hint);
+            free(local_type_name_owned);
+            if (reason != NULL && reason_cap > 0) {
+                transpiler_mir_reasonf(reason, reason_cap,
+                    "MIR block %llu emission failed: source-local slot let '%s' requires MIR-owned local-decl emit facts",
+                    (unsigned long long) block->id,
+                    let_name != NULL ? let_name : "<binding>");
+            }
+        }
+        return TRANSPILE_MIR_LOCAL_LET_FAILED;
     }
     if (local_type_name_owned != NULL
         && transpiler_type_name_is_channel(local_type_name_owned)) {
-        emit_statement(stmt, ctx);
+        char *ann_type_name = local_type_name_owned;
+        local_type_name_owned = NULL;
+        if (transpiler_try_emit_channel_let(
+                ctx, let_name, let_init, &ann_type_name)) {
+            ctx->active_type_hint = saved_type_hint;
+            free(rendered_type_hint);
+            free(ann_type_name);
+            return ctx->backend_error != NULL
+                ? TRANSPILE_MIR_LOCAL_LET_FAILED
+                : TRANSPILE_MIR_LOCAL_LET_HANDLED;
+        }
+        local_type_name_owned = ann_type_name;
         ctx->active_type_hint = saved_type_hint;
         free(rendered_type_hint);
         free(local_type_name_owned);
-        return TRANSPILE_MIR_LOCAL_LET_HANDLED;
+        if (reason != NULL && reason_cap > 0) {
+            transpiler_mir_reasonf(reason, reason_cap,
+                "MIR block %llu emission failed: source-local channel let '%s' requires MIR-owned local-decl emit facts",
+                (unsigned long long) block->id,
+                let_name != NULL ? let_name : "<binding>");
+        }
+        return TRANSPILE_MIR_LOCAL_LET_FAILED;
     }
 
     if (let_type != NULL) {

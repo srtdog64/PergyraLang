@@ -405,6 +405,10 @@ bool        mir_instruction_source_branch_payload_matches_shape(
                 const MIRInstruction *inst);
 bool        mir_instruction_has_required_branch_condition_fact(
                 const MIRInstruction *inst);
+bool        mir_instruction_has_required_source_branch_emit_fact(
+                const MIRInstruction *inst);
+bool        mir_instruction_has_required_branch_lowering_fact(
+                const MIRInstruction *inst);
 bool        mir_instruction_uses_source_statement_emit(
                 const MIRInstruction *inst);
 bool        mir_instruction_uses_source_local_decl_emit(

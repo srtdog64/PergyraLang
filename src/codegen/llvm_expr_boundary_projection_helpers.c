@@ -240,7 +240,17 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
                     "LLVM boundary slot argument could not be lowered");
             if (is_secure) {
                 LLVMVarEntry token_var;
-                if (llvm_lookup_secure_token_var(ctx, source_name, &token_var)) {
+                char source_base_name[128];
+                bool has_token_var =
+                    llvm_lookup_secure_token_var(ctx, source_name,
+                        &token_var);
+                if (!has_token_var
+                    && llvm_mir_base_name_from_versioned(source_name,
+                        source_base_name, sizeof(source_base_name))) {
+                    has_token_var = llvm_lookup_secure_token_var(ctx,
+                        source_base_name, &token_var);
+                }
+                if (has_token_var) {
                     LLVMTypeRef token_ty = token_var.type;
                     args[emitted_idx++] = LLVMBuildLoad2(ctx->builder, token_ty,
                         token_var.alloca, llvm_tmp_name(ctx));

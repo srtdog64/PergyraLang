@@ -219,10 +219,10 @@ transpiler_validate_mir_emission_block_shape(const MIRBasicBlock *block,
             }
             has_branch = true;
             branch_count++;
-            if (!mir_instruction_has_required_branch_condition_fact(inst)
+            if (!mir_instruction_has_required_branch_lowering_fact(inst)
                 && (reason != NULL && reason_cap > 0)) {
                 transpiler_mir_reasonf(reason, reason_cap,
-                         "MIR contract invalid for %s: block %llu branch instruction misses required condition fact",
+                         "MIR contract invalid for %s: block %llu branch instruction misses required lowering fact",
                          routine_name, (unsigned long long) block->id);
                 return false;
             }

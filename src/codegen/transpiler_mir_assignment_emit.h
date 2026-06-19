@@ -22,4 +22,13 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
                                         char *reason,
                                         size_t reason_cap);
 
+bool transpiler_emit_mir_assignment_expr_stmt(CodeBuf *buf,
+                                             const MIRBasicBlock *block,
+                                             const MIRInstruction *inst,
+                                             ASTNode *stmt,
+                                             TranspilerCtx *ctx,
+                                             TranspilerSSANameMap *ssa_map_out,
+                                             char *reason,
+                                             size_t reason_cap);
+
 #endif /* PGY_SRC_CODEGEN_TRANSPILER_MIR_ASSIGNMENT_EMIT_H */

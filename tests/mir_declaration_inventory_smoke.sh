@@ -6497,7 +6497,7 @@ require_each_following_term "src/codegen/llvm_stmt_type_infer_call.c" \
     "llvm_active_has_mir(ctx)" \
     4
 require_each_following_term "src/codegen/llvm_stmt_type_infer_call.c" \
-    "llvm_stmt_infer_scalar_builtin_type(ctx, callee)" \
+    "llvm_stmt_infer_builtin_return_type(ctx, callee)" \
     "llvm_current_host_class_name(ctx)" \
     24
 if grep -Fq "llvm_decl_current_nominal_name" \

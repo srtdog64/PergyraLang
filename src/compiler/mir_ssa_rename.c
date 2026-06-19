@@ -125,6 +125,52 @@ mir_collect_expr_identifier_uses(ASTNode *node,
                                                 uses,
                                                 use_count,
                                                 use_capacity);
+    case AST_ARRAY_LITERAL:
+        for (size_t i = 0; i < ast_array_literal_count(node); i++) {
+            if (!mir_collect_expr_identifier_uses(
+                    ast_array_literal_element(node, i),
+                    uses,
+                    use_count,
+                    use_capacity))
+                return false;
+        }
+        return true;
+    case AST_TUPLE_LITERAL:
+        for (size_t i = 0; i < ast_tuple_literal_count(node); i++) {
+            if (!mir_collect_expr_identifier_uses(
+                    ast_tuple_literal_element(node, i),
+                    uses,
+                    use_count,
+                    use_capacity))
+                return false;
+        }
+        return true;
+    case AST_MAP_LITERAL:
+        for (size_t i = 0; i < ast_map_literal_count(node); i++) {
+            if (!mir_collect_expr_identifier_uses(
+                    ast_map_literal_key(node, i),
+                    uses,
+                    use_count,
+                    use_capacity)
+                || !mir_collect_expr_identifier_uses(
+                    ast_map_literal_value(node, i),
+                    uses,
+                    use_count,
+                    use_capacity)) {
+                return false;
+            }
+        }
+        return true;
+    case AST_CAST:
+        return mir_collect_expr_identifier_uses(ast_cast_operand(node),
+                                                uses,
+                                                use_count,
+                                                use_capacity);
+    case AST_TYPE_TEST:
+        return mir_collect_expr_identifier_uses(ast_type_test_operand(node),
+                                                uses,
+                                                use_count,
+                                                use_capacity);
     case AST_ASSIGNMENT:
         return mir_collect_expr_identifier_uses(ast_assignment_target(node),
                                                 uses,

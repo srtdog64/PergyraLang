@@ -22,11 +22,32 @@ mir_attach_statement_call_fact(MIRInstruction *inst, const ASTNode *stmt)
         if (target != NULL
             && target->type == AST_IDENTIFIER)
             inst->arg0 = ast_identifier_name(target);
-        inst->expr0 = ast_assignment_value(stmt);
+        if (inst->kind != MIR_INST_ASSIGN)
+            inst->expr0 = ast_assignment_value(stmt);
         return;
     }
     if (stmt->type != AST_CALL)
+    {
+        switch (stmt->type) {
+        case AST_SPAWN_EXPR:
+        case AST_AWAIT_EXPR:
+        case AST_CHANNEL_SEND:
+        case AST_CHANNEL_RECV:
+        case AST_EVENT_SUBSCRIBE:
+        case AST_EVENT_UNSUBSCRIBE:
+        case AST_EVENT_INVOKE:
+        case AST_PARALLEL_BLOCK:
+        case AST_ASYNC_BLOCK:
+        case AST_UNSAFE_BLOCK:
+        case AST_TRANSACTION_BLOCK:
+            inst->expr0 = (ASTNode *)stmt;
+            break;
+        default:
+            break;
+        }
         return;
+    }
+    inst->expr0 = (ASTNode *)stmt;
     if (ast_call_callee(stmt) == NULL
         || ast_call_callee(stmt)->type != AST_IDENTIFIER) {
         return;

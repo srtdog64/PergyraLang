@@ -1,0 +1,8 @@
+async func Main() -> Void {
+    let dev: DeviceSlot<Int> = ClaimDeviceSlot();
+    DeviceWrite(dev, 11);
+    let pending: RemoteFuture<Int> = SubmitDeviceRead(dev);
+    let value: Int = (await pending)?;
+    Log(value);
+    ReleaseDeviceSlot(dev);
+}

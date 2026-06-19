@@ -327,6 +327,8 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_dce.c" "mir_instruction_source_stmt_has_side_effect_hint(inst)"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_branch_payload_matches_shape"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_has_required_branch_condition_fact"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_has_required_source_branch_emit_fact"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_has_required_branch_lowering_fact"
     require_literal "src/compiler/mir_source_shape.c" "inst->branch_shape == MIR_BRANCH_MATCH_CASE"
     require_literal "src/compiler/mir_source_shape.c" "&& inst->expr0 == NULL"
     require_literal "src/tests/mir/test_mir_lowering_part_h.cases.h" "rejected_predicate_without_subject_fact"
@@ -339,9 +341,10 @@ run_literal_doc_contract_smoke() {
     fi
     require_literal "src/tests/mir/test_mir_lowering_part_h.cases.h" "MIR validator rejects source-compatible branch without payload"
     require_literal "src/compiler/mir_lifecycle.c" "source-branch-emit"
-    require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_has_required_branch_condition_fact(inst)"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_has_required_branch_lowering_fact(inst)"
     require_literal "src/codegen/transpiler_mir_cfg_control_emit.c" "mir_instruction_has_required_branch_condition_fact(inst)"
-    require_literal "src/codegen/transpiler_mir_emission_contract.c" "mir_instruction_has_required_branch_condition_fact(inst)"
+    require_literal "src/codegen/transpiler_mir_cfg_control_emit.c" "mir_instruction_has_required_source_branch_emit_fact(inst)"
+    require_literal "src/codegen/transpiler_mir_emission_contract.c" "mir_instruction_has_required_branch_lowering_fact(inst)"
     require_literal "src/compiler/air_evidence_mir_facts.c" "mir_block_has_hir_source_mapping(block)"
     require_literal "src/codegen/transpiler_mir_ssa_map.c" "mir_block_source_hir_id(block)"
     require_literal "src/codegen/transpiler_mir_ssa_map.c" "mir_block_source_line(block)"
@@ -367,7 +370,11 @@ run_literal_doc_contract_smoke() {
     require_literal "Makefile" '$(CODEGEN_DIR)/llvm_mir_resource_claim.c'
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_emit_borrow_view_alias(inst, ctx)"
     require_literal "Makefile" '$(CODEGEN_DIR)/llvm_mir_resource_view.c'
-    require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_emit_statement(source_payload, ctx)"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "LLVM MIR STMT source-payload emission is retired"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_emit_statement(inst->expr0, ctx)"
+    require_literal "src/codegen/transpiler_mir_block_emit.c" "STMT source-payload emission is retired"
+    require_literal "src/compiler/mir_call_fact.c" "case AST_PARALLEL_BLOCK"
+    require_literal "src/compiler/mir_call_fact.c" "inst->expr0 = (ASTNode *)stmt"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_emit_with_claim_only(inst, ctx)"
     require_literal "tests/llvm_smoke.sh" "select_fairness"
     require_literal "tests/llvm_smoke.sh" "case v = <-a:"
@@ -383,6 +390,10 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_stmt_population.c" "mir_instruction_has_source_statement_order(&old_insts[r])"
     require_literal "src/compiler/mir_stmt_population.c" "mir_stmt_population_append"
     require_literal "src/codegen/transpiler_mir_assignment_emit.c" "transpiler_mir_def_uses_source_statement_emit("
+    require_literal "src/codegen/transpiler_mir_assignment_emit.c" "transpiler_emit_mir_assignment_expr_stmt"
+    require_literal "src/codegen/transpiler_mir_preserved_let_emit.c" "source-local slot let"
+    require_literal "src/codegen/transpiler_mir_preserved_let_emit.c" "source-local channel let"
+    require_literal "src/codegen/transpiler_mir_ssa_names.c" "entry->is_view"
     require_literal "src/codegen/transpiler_mir_assignment_emit.c" "missing receive emit fact"
     require_literal "src/codegen/transpiler_mir_assignment_emit.c" "missing select receive emit fact"
     if grep -Fq "transpiler_find_let_decl_by_name(func_decl, inst->arg0)" \
@@ -409,6 +420,11 @@ run_literal_doc_contract_smoke() {
     if grep -RIn -- 'inst->ast\|resource_inst->ast' "$ROOT_DIR/src/codegen" >/dev/null; then
         echo "Backend MIR emission reopened raw instruction AST payload; use mir_instruction_source_payload(...)" >&2
         grep -RIn -- 'inst->ast\|resource_inst->ast' "$ROOT_DIR/src/codegen" >&2
+        exit 1
+    fi
+    if grep -RInE -- 'emit_statement\(stmt, ctx\)|llvm_emit_statement\(source_payload, ctx\)' "$ROOT_DIR/src/codegen" >/dev/null; then
+        echo "Backend MIR emission reopened raw source-statement redispatch" >&2
+        grep -RInE -- 'emit_statement\(stmt, ctx\)|llvm_emit_statement\(source_payload, ctx\)' "$ROOT_DIR/src/codegen" >&2
         exit 1
     fi
     if grep -RIn -- 'has_source_statement_index\|source_statement_index' \

@@ -6,12 +6,16 @@ for soft and partial self-hosting.
 
 ## Current Reality
 
-Current judgement (2026-06-16): the hard-self-host substrate checklist is READY
-in `07_hard_self_host_scorecard.md`, and staged compiler-pass substitution has
-started. This is still not a full hard-self-host claim. Passing
-`self-host-preparation-test-smoke` proves the side-by-side method and the
-C/LLVM/Pergyra parity harness, not permission to replace the semantic checker,
-MIR lowering, codegen, compiler driver, or runtime in one jump.
+Current judgement (2026-06-19): the hard-self-host substrate checklist is broad
+enough for staged compiler-pass substitution, but capability 5 remains ACTIVE
+until the remaining body source-payload expression/shape tail is retired. Raw
+source-statement re-dispatch is gone, source-local resource constructors consume
+MIR expected type facts, and assignment DEFs preserve side effects before SSA
+recording; not every body fact is MIR-owned yet. This is still not a full
+hard-self-host claim. Passing `self-host-preparation-test-smoke` proves the
+side-by-side method and the C/LLVM/Pergyra parity harness, not permission to
+replace the semantic checker, MIR lowering, codegen, compiler driver, or
+runtime in one jump.
 
 The beta stable subset is intentionally narrow. It is designed to freeze the
 core language contract, not to rewrite a large compiler immediately.
@@ -60,8 +64,12 @@ pass into awkward workarounds.
 ## Non-Negotiable Pre-Hard-Self-Host Capabilities
 
 Hard self-host cannot start until these are available and smoked. The current
-scorecard marks the substrate forms of all ten READY, so the remaining work is
-pass substitution breadth rather than substrate availability:
+scorecard marks nine substrate forms READY and capability 5 ACTIVE: the
+source_ast/source_decl frontier, residual STMT source-payload emission, and
+source-local raw statement re-dispatch are closed, but selected body expression
+and shape consumers still depend on `requires_source_statement_emit` /
+`mir_instruction_source_payload`. Those must become MIR facts or provenance-only
+reads before the body source-of-truth row is fully ready.
 
 - **Module/package resolver stability**: deterministic imports, manifest
   reading, path normalization, and cycle diagnostics.

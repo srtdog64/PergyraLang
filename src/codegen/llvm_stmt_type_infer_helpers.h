@@ -4,10 +4,13 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 
-LLVMTypeRef llvm_stmt_infer_scalar_builtin_type(LLVMGenCtx *ctx,
+LLVMTypeRef llvm_stmt_infer_builtin_return_type(LLVMGenCtx *ctx,
                                                 const char *callee);
 LLVMFuncEntry *llvm_stmt_lookup_visible_function(LLVMGenCtx *ctx,
                                                  const char *callee);
+LLVMTypeRef llvm_stmt_lookup_qualified_call_return_type(LLVMGenCtx *ctx,
+                                                        const char *owner,
+                                                        const char *member);
 LLVMTypeRef llvm_stmt_lookup_declared_call_return_type(LLVMGenCtx *ctx,
                                                        const char *callee);
 LLVMTypeRef llvm_stmt_promote_numeric_type(LLVMGenCtx *ctx,

@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let dev: DeviceSlot<Int> = ClaimDeviceSlot();
+    DeviceWrite(dev, 1);
+    ReleaseDeviceSlot(dev);
+    Log(DeviceRead(dev));
+}

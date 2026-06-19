@@ -2,7 +2,7 @@
 
 Branch main. This snapshot records what is verified to self-host right now,
 measured by building pgy and running
-`make self-host-preparation-test-smoke` on 2026-06-16. The parser/lexer
+`make self-host-preparation-test-smoke` on 2026-06-19. The parser/lexer
 front-end figures below were refreshed on 2026-06-18 with
 `make self-host-lexer-parity-test-smoke self-host-parser-parity-test-smoke`
 and `src/self_hosted/parity/parser_scale_probe.sh --failing`. The gate runs the
@@ -34,11 +34,30 @@ Front-end self-hosts on both backends in LLVM-enabled builds.
   the language compiles its own pass to the same result on both backends.
 
 Single source of truth (capability 5) is closed for the measured
-source_ast/source_decl frontier.
+source_ast/source_decl frontier, but not for every body source-payload
+compatibility path.
 
 - Codegen source_ast frontier is at 0, all 127 original reads retired.
 - Compiler-side source_ast is at 0. `MIRDeclHeader.source_ast` and
   `mir_decl_header_source_decl` are removed, and the ratchet is locked at 0.
+- Residual `MIR_INST_STMT` source-payload emission is retired in C and LLVM:
+  side-effect statements now flow through explicit `MIR_STMT.expr0`
+  executable facts and backend emitters fail closed instead of redispatching
+  the source payload as a statement.
+- Source-local declaration and assignment paths no longer call raw
+  source-statement emitters. View-like pin aliases are preserved through MIR
+  pin facts and SSA map ownership instead of materializing a second slot.
+- LLVM source-local resource constructors for `Channel<T>`, `Slot<T>`,
+  `SecureSlot<T>`, and `DeviceSlot<T>` now consume MIR expected type-name facts
+  at the DEF owner. Standalone resource constructor expressions still fail
+  closed. Assignment DEF emission preserves the source assignment side effect
+  before storing the resulting value into the SSA local, so host-field writes do
+  not regress to local-only updates.
+- The remaining capability-5 body tail is the narrower source-payload
+  expression/shape surface (`requires_source_statement_emit` and selected
+  `mir_instruction_source_payload` consumers). Capability 5 should stay ACTIVE
+  until those reads are replaced by dedicated MIR facts or reduced to
+  provenance-only diagnostics.
 - C class/zone collection-specialization scans are MIR-routine based and no
   longer recover method body AST; routine_source_decl_codegen is ratcheted at 0.
 - C hosted method body emission binds the linked MIRRoutine body as current
@@ -98,6 +117,10 @@ Substrate progress.
   validator, AIR graph consumer checkers, stable subset checker, stdlib
   dispatch inventory checker, and runtime boundary checker all pass their
   current self-host preparation parity gates.
+- `make self-host-preparation-test-smoke` is green on the current LLVM-enabled
+  Windows build: lexer, parser, semantic, codegen parity, codegen bootstrap,
+  backend tri-compare, MIR JSON lowering, production size/header checkers, and
+  the self-hosted audit tools all pass their C/LLVM legs.
 - Every one of the 22 self-host tool parity gates now exercises both backends
   when the compiler build includes LLVM.
   Previously 12 of them built and ran their Pergyra tool only with the default

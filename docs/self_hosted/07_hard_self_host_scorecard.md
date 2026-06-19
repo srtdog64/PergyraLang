@@ -10,24 +10,37 @@ each tier and the work that remains.
 
 Hard self-hosting has started as staged compiler-pass substitution, not as a
 single full compiler rewrite. The infrastructure is mature: every one of the
-ten capabilities has a gate, and the tree carries a broad smoke gate set. All ten
-substrate capabilities are READY. The process-argument tooling gap is closed by
-`Args() -> Array<String>`, and allocator pass lanes now have explicit
-`AllocatorDestroy(namedAllocator)` cleanup that works through C and LLVM.
-The first post-substrate slice is the semantic typed `let` / return verdict
-parity rung.
+ten capabilities has a gate, and the tree carries a broad smoke gate set. The
+process-argument tooling gap is closed by `Args() -> Array<String>`, and
+allocator pass lanes now have explicit `AllocatorDestroy(namedAllocator)`
+cleanup that works through C and LLVM. The first post-substrate slice is the
+semantic typed `let` / return verdict parity rung.
 
 As a planning estimate, hard self-host substrate readiness is effectively
-complete for the first pass-rewrite stage: ten capabilities are READY and no
-ACTIVE capability remains on the SoT critical path. The critical-path codegen
-SoT burn-down is closed:
-the codegen frontier went from 127 original source_ast reads to 0. The
+complete for the first pass-rewrite stage, but capability 5 is not a blanket
+"no AST payload anywhere" claim. The declaration-level codegen SoT burn-down is
+closed: the codegen frontier went from 127 original source_ast reads to 0. The
 compiler-side source_ast tail is now 0; `MIRDeclHeader.source_ast` and
 `mir_decl_header_source_decl` are removed. Source-type/location scalar
 provenance has been split to source_node names, method and field declaration
 back-pointers are removed, and MIR validation no longer compares generic, enum,
 method, or field metadata against original AST nodes. Source_decl is ratcheted
 at codegen 0 / compiler 0, and routine_source_decl_codegen is ratcheted at 0.
+
+The remaining body-level SoT tail is narrower and now explicitly named:
+residual `MIR_INST_STMT` source-payload emission is retired in C and LLVM, and
+side-effect statements are carried through `MIR_STMT.expr0` executable facts.
+Source-local declaration and assignment paths no longer re-dispatch through
+raw source-statement emitters. The next cut target is the remaining
+`requires_source_statement_emit` / `mir_instruction_source_payload` expression
+and shape tail: selected body facts are still read from AST payloads rather than
+dedicated MIR records.
+LLVM source-local resource constructor DEFs now consume MIR expected type-name
+facts for `Channel<T>` and slot-like resources (`Slot<T>`, `SecureSlot<T>`,
+`DeviceSlot<T>`) instead of falling through standalone constructor expression
+paths. Assignment DEF emission preserves the original assignment side effect
+and then records the SSA value, so field writes remain field writes while raw
+source-statement redispatch stays retired.
 
 ## Compiler Maturity Bar
 
@@ -63,7 +76,7 @@ ACTIVE means it is on the critical path and still in progress.
 | 2 | Collections + iteration | READY | stdlib_surface_smoke, stage4_determinism_smoke | List/Set/HashMap have stable scalar key forms (String, Int, Long, Bool); MapKeys and SetValues order are locked; compiler-facing symbol/record/handle-like keys are normalized to canonical scalar IDs rather than raw aggregate keys |
 | 3 | String/path/Unicode policy | READY | unicode_policy_smoke, source_utf8_smoke, memory_string_safety_smoke, filesystem_directory_walk_smoke | stable comparison, normalization, and deterministic directory snapshot stance gated |
 | 4 | Arena/ownership ergonomics | READY | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke | `Allocator` is a single C/LLVM-backed value surface, `BoxArray` can consume a named allocator local, scratch/result/persistent lane constructors carry distinct runtime kinds, and `AllocatorDestroy(namedAllocator)` closes explicit pass-lane cleanup on C and LLVM |
-| 5 | CFG/MIR body as SoT | READY | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; source_ast and source_decl are ratcheted at codegen 0 / compiler 0, and routine_source_decl_codegen is ratcheted at 0 |
+| 5 | CFG/MIR body as SoT | ACTIVE | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; source_ast and source_decl are ratcheted at codegen 0 / compiler 0; residual STMT source-payload emission and raw source-statement re-dispatch are retired; selected source-payload expression/shape reads remain |
 | 6 | AIR as verifier | READY | air_json_schema_smoke, air_drift_smoke, air_backend_nonimpact_smoke | pgy.air.graph.v1 evidence export gated; drift count enforced at 0 |
 | 7 | DAG type resolution SoT | READY | type_resolution_dag_smoke, type_resolution_resolver_inventory_smoke | recursive resolver compat path retired; metadata_dead_ends enforced at 0 |
 | 8 | Scoped unsafe/raw escape | READY | raw_escape_contract_smoke | unsafe is scoped and capability-bound; raw pointers gated out of domain code |
@@ -72,11 +85,15 @@ ACTIVE means it is on the critical path and still in progress.
 
 ## Critical path
 
-Capability 5 is closed for the measured source_ast/source_decl frontier:
-non_cfg body facts come from MIR and are locked at zero fallback, backend and
-compiler source_ast/source_decl readers are locked at zero, and the self-hosted
-checker proves the same manifest. Capability 4 is also closed for the current
-compiler-pass substrate: named allocator lanes can be constructed, consumed by
+Capability 5 is closed for the measured source_ast/source_decl frontier, but it
+is still active for body-level source-payload compatibility emission. non_cfg
+body facts come from MIR and are locked at zero fallback, backend and compiler
+source_ast/source_decl readers are locked at zero, residual STMT source-payload
+emission and raw source-statement re-dispatch are retired, and the self-hosted
+checker proves the same manifest. The remaining source-payload expression/shape
+tail must be cut before this row can honestly return to READY. Capability 4 is
+closed for the current compiler-pass
+substrate: named allocator lanes can be constructed, consumed by
 allocation-aware owners, and explicitly destroyed through the same C/LLVM value
 surface.
 
@@ -116,12 +133,12 @@ domain-oriented surface the language is already strong on.
 
 ## Sequencing
 
-The order that keeps each step verifiable is: with capability 5 closed,
-broaden capabilities 2 and 4; expand the self-hosted tool set from validators
-toward the MIR dump diff and resolver helpers named in 05; then, and only then,
-rewrite the first real compiler pass, starting with the lexer, against the C
-compiler as oracle. Starting with a parser, type checker, or backend rewrite is
-explicitly out of order.
+The order that keeps each step verifiable is: finish capability 5's remaining
+source-payload expression/shape tail, keep capabilities 2 and 4 green, expand
+the self-hosted tool set from validators toward the MIR dump diff and resolver
+helpers named in 05, then rewrite compiler passes against the C compiler as
+oracle. Starting broad parser/type-checker/backend rewrites while capability 5
+remains ACTIVE is explicitly out of order.
 
 ## Measured gaps (blocker burn-down)
 
@@ -129,7 +146,7 @@ The non-READY capability was measured against the tree to make it actionable.
 Every remaining step needs the build loop, which is the reason none can be
 closed from a static pass alone.
 
-Capability 5 (CFG/MIR SoT, task 74). Closed for the measured frontier: non_cfg
+Capability 5 (CFG/MIR SoT, task 74). ACTIVE, with the measured frontier closed: non_cfg
 body facts are MIR-owned and locked at zero fallback, the source_ast ratchet is
 now codegen 0 / compiler 0, source_decl is ratcheted at codegen 0 / compiler 0,
 routine_source_decl_codegen is ratcheted at 0, and the shared ratchet spec is
@@ -220,6 +237,15 @@ the old header-shape AST recomputation arm is gone. Build-gated.
 C/LLVM zone refresh compatibility arrays are also confined to the hosted refresh
 view owners; projection sync/value and invalidation consumers use view-owned
 mapped-source/source-field APIs instead of indexing compatibility arrays.
+Residual `MIR_INST_STMT` source-payload emission is now retired in C and LLVM;
+side-effect statements are carried as `MIR_STMT.expr0` executable facts.
+Source-local declarations and assignments no longer re-dispatch through raw
+source-statement emitters, and LLVM source-local resource constructors consume
+MIR expected type-name facts at the DEF owner for `Channel<T>` and slot-like
+resources. Assignment DEF emission preserves source assignment side effects
+while recording the SSA value. The remaining ACTIVE tail is the narrower
+`requires_source_statement_emit` / `mir_instruction_source_payload` expression
+and shape surface, where selected body facts still need dedicated MIR records.
 
 Capability 2 (collections). Closed for the hard-self-host substrate: integer keys are implemented
 (pgy_runtime_map_int_key_inline.h covers i32 and i64), and `MapKeys` /
@@ -238,7 +264,9 @@ distinct runtime kinds, `BoxArray(capacity, allocator)` consumes named allocator
 locals, and `AllocatorDestroy(namedAllocator)` gives pass authors an explicit
 cleanup operation. Build-gated.
 
-The honest summary is that the SoT blocker and deterministic collection
-substrate are closed for hard-self-host planning. The remaining critical path is
-actual staged compiler-pass substitution: semantic breadth first, then MIR/HIR
-and codegen parity slices against the C compiler oracle.
+The honest summary is that deterministic collection and allocator substrate are
+closed for hard-self-host planning, while CFG/MIR body SoT still has one named
+source-payload expression/shape tail. The remaining critical path is to cut
+that tail, then continue actual staged compiler-pass substitution: semantic
+breadth first, then MIR/HIR and codegen parity slices against the C compiler
+oracle.

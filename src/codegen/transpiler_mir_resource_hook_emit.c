@@ -311,12 +311,12 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
                 transpiler_mir_resource_has_mirroring_stmt_in_block(
                     owning_block, inst);
             if (is_claim_op
-                || redirected_view_resource
                 || (has_local_mirror_stmt
-                    && (op == TRANS_MIR_RESOURCE_OP_WRITE
-                        || op == TRANS_MIR_RESOURCE_OP_RELEASE
-                        || op == TRANS_MIR_RESOURCE_OP_MOVE)
-                    && !slot_is_secure)) {
+                    && (redirected_view_resource
+                        || ((op == TRANS_MIR_RESOURCE_OP_WRITE
+                             || op == TRANS_MIR_RESOURCE_OP_RELEASE
+                             || op == TRANS_MIR_RESOURCE_OP_MOVE)
+                            && !slot_is_secure)))) {
                 needs_concrete_emit = true;
             }
         }

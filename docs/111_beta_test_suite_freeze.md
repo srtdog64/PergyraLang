@@ -29,6 +29,7 @@ The beta release candidate must keep these gates green:
 - `make runtime-panic-contract-test-smoke`
 - `make runtime-panic-abi-test-smoke`
 - `make runtime-panic-codegen-test-smoke`
+- `make slot-contract-test-smoke`
 - `make projection-diagnostic-contract-test-smoke`
 - `make abi-ownership-shape-test-smoke`
 - `make diagnostics-json-test-smoke`

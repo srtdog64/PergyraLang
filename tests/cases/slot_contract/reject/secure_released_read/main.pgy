@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let s: SecureSlot<Int> = ClaimSecureSlot();
+    Write(s, 1, s_token);
+    Release(s, s_token);
+    Log(Read(s, s_token));
+}
