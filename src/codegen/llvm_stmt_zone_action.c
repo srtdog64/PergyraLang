@@ -166,9 +166,8 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
     LLVMVarEntry self_var;
     LLVMValueRef self_ptr;
     LLVMHostedZoneLayerSlotView layer_view;
+    LLVMHostedZoneRefreshView refresh_view;
     const char *subject_slot_name = NULL;
-    size_t refresh_count = 0;
-    ASTNode **refreshes = NULL;
     const char *method_name;
     const char *receiver_slot_name = NULL;
     const char *receiver_type_name = NULL;
@@ -254,7 +253,14 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
         effect_decl);
     if (subject_slot_name == NULL)
         return;
-    refreshes = ast_effect_refreshes(effect_decl, &refresh_count);
+    refresh_view = llvm_hosted_zone_refresh_view_from_decl(ctx, effect_name,
+        effect_decl);
+    if (llvm_hosted_zone_refresh_view_missing_mir_metadata(&refresh_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone action effect refresh metadata for '%s'",
+            effect_name != NULL ? effect_name : "(anonymous-effect)");
+        return;
+    }
 
     for (size_t i = 0; i < layer_view.count; i++) {
         const char *layer_name;
@@ -313,8 +319,7 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
                 layer_ptr, (unsigned)subject_idx, llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder, target_value, subject_ptr);
         }
-        for (size_t ri = 0; ri < refresh_count; ri++) {
-            ASTNode *refresh = refreshes[ri];
+        for (size_t ri = 0; ri < refresh_view.count; ri++) {
             const char *projection_name;
             const char *source_name;
             char dirty_field[256];
@@ -322,10 +327,12 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
             int dirty_idx;
             int ready_idx;
 
-            if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
-                continue;
-            projection_name = ast_zone_refresh_object_slot_name(refresh);
-            source_name = ast_zone_refresh_source_slot_name(refresh);
+            projection_name =
+                llvm_hosted_zone_refresh_view_object_slot_name(
+                    &refresh_view, ri);
+            source_name =
+                llvm_hosted_zone_refresh_view_source_slot_name(
+                    &refresh_view, ri);
             if (projection_name == NULL || source_name == NULL
                 || strcmp(source_name, subject_slot_name) != 0) {
                 continue;
