@@ -17,7 +17,7 @@
 #               src/parser/**)
 #
 # Checks:
-#   A. every docs/42 axis keyword is recognized by the compiler        (2 ⊆ 3)
+#   A. every docs/42 axis keyword is recognized by the compiler        (2 subset 3)
 #   B. every Coq-mirrored keyword sits on the same axis in docs/42     (1 = 2)
 #
 # This is a pure source-consistency test (no coqc); it complements the Coq
@@ -73,7 +73,7 @@ done
 echo "docs/42 axis keywords parsed: ${#AXIS_OF[@]}"
 
 # --- check A: every docs/42 axis keyword is recognized by the compiler -------
-echo "== A. design (docs/42) keywords ⊆ compiler recognition =="
+echo "== A. design (docs/42) keywords subset compiler recognition =="
 for kw in $(printf '%s\n' "${!AXIS_OF[@]}" | sort); do
     if reserved_has "$kw"; then
         kind="reserved"
@@ -103,7 +103,7 @@ COQ_MIRROR=(
     "KwParallel parallel Execution"
 )
 
-echo "== B. Coq keyword_axis (AxisOwnership.v §8) = docs/42 axis =="
+echo "== B. Coq keyword_axis (AxisOwnership.v section 8) = docs/42 axis =="
 for row in "${COQ_MIRROR[@]}"; do
     read -r ctor kw axis <<<"$row"
     if ! grep -qE "\b$ctor\b" "$AXIS_COQ"; then
@@ -126,7 +126,7 @@ for row in "${COQ_MIRROR[@]}"; do
 done
 
 # --- check C: intent clause -> owner checker (StepBy / write-attribution) ----
-# docs/42 §2 says each intent clause's fact has one final owner. AxisOwnership.v
+# docs/42 section 2 says each intent clause's fact has one final owner. AxisOwnership.v
 # encodes those facts (FWho/FWhere/FRequires/FAuthorizedBy/FCauses) and the axis
 # that owns each (Owns). This check binds that ownership to the REAL compiler:
 # every clause must be parsed, modeled as a Coq Fact, owned by the matching axis
@@ -144,7 +144,7 @@ CLAUSE_MAP=(
     "causes     FCauses       Domain       type_checker_effect_decl.c             effect"
 )
 
-echo "== C. intent clause ⟷ Coq fact/axis ⟷ owner checker (write attribution) =="
+echo "== C. intent clause -> Coq fact/axis -> owner checker (write attribution) =="
 for row in "${CLAUSE_MAP[@]}"; do
     read -r clause fact axis ofile otok <<<"$row"
     checker="$ROOT_DIR/src/semantic/$ofile"
@@ -168,4 +168,4 @@ if [[ "$fail" -ne 0 ]]; then
     exit 1
 fi
 
-echo "axis keyword adequacy: ok (Coq §8/§5 ⟷ docs/42 §0/§2 ⟷ compiler keywords + clause checkers)"
+echo "axis keyword adequacy: ok (Coq sections 8/5 -> docs/42 sections 0/2 -> compiler keywords + clause checkers)"
