@@ -1811,18 +1811,13 @@ if grep -Fq "pgy_host_shared_fields_compat_view_from_decl" \
     "$ROOT_DIR/src/codegen/transpiler_mir_ssa_names.c"; then
     fail "C MIR SSA implicit zone shared-field recovery must consume TranspilerHostedSharedFieldView"
 fi
-require_term "src/codegen/llvm_domain_decl_parts_helpers.c" \
-    "llvm_domain_decl_refreshes(ASTNode *stmt"
-require_term "src/codegen/llvm_domain_decl_parts_helpers.c" \
-    "*decl_name = llvm_decl_node_name(stmt)"
-if grep -Fq "pgy_host_shared_fields_compat_view_from_decl" \
-    "$ROOT_DIR/src/codegen/llvm_domain_decl_parts_helpers.c"; then
-    fail "LLVM domain decl parts must not reopen shared-field compatibility views"
+if [[ -e "$ROOT_DIR/src/codegen/llvm_domain_decl_parts_helpers.c" ||
+      -e "$ROOT_DIR/src/codegen/llvm_domain_decl_parts_helpers.h" ]]; then
+    fail "LLVM domain decl parts AST-array helper must stay retired"
 fi
-if grep -Eq 'ast_(relation|effect|zone)_slots\(' \
-    "$ROOT_DIR/src/codegen/llvm_domain_decl_parts_helpers.c" \
-    "$ROOT_DIR/src/codegen/llvm_domain_decl_parts_helpers.h"; then
-    fail "LLVM domain decl refresh helper must not expose raw domain slot arrays"
+if [[ -e "$ROOT_DIR/src/codegen/llvm_domain_projection_target.c" ||
+      -e "$ROOT_DIR/src/codegen/llvm_domain_projection_target_helpers.h" ]]; then
+    fail "LLVM domain projection-target AST-array helper must stay retired"
 fi
 for rel in \
     "src/codegen/llvm_domain_struct_register.c" \
@@ -2473,8 +2468,8 @@ if grep -Eq 'ast_effect_slots|ast_domain_slot_(name|is_subject)\(|ast_zone_layer
     fail "LLVM world effect sync must consume hosted domain/zone metadata views"
 fi
 for term in \
-    "llvm_domain_slot_view_is_projection_slot" \
-    "llvm_count_domain_projection_slots_in_view"; do
+    "llvm_domain_slot_view_is_projection_slot_in_zone_refresh_view" \
+    "llvm_count_domain_projection_slots_in_zone_refresh_view"; do
     require_term "src/codegen/llvm_domain_projection_count_helpers.h" "$term"
     require_term "src/codegen/llvm_domain_projection_count.c" "$term"
 done
@@ -2530,13 +2525,13 @@ require_term "src/compiler/mir_decl_header_access.c" \
 require_term "src/compiler/mir_decl_header_fields.c" \
     "meta->is_binding_like = ast_domain_slot_is_binding(slot)"
 require_term "src/codegen/llvm_domain_struct_register.c" \
-    "llvm_count_domain_projection_slots_in_view("
+    "llvm_count_domain_projection_slots_in_zone_refresh_view("
 require_term "src/codegen/llvm_domain_struct_register.c" \
-    "llvm_domain_decl_refreshes(stmt, &decl_name, &refreshes,"
+    "llvm_hosted_zone_refresh_view_from_decl("
 require_term "src/codegen/llvm_domain_struct_register.c" \
-    "llvm_domain_slot_view_is_projection_slot("
+    "llvm_domain_slot_view_is_projection_slot_in_zone_refresh_view("
 require_term "src/codegen/llvm_domain_struct_register_fields.c" \
-    "llvm_domain_add_projection_state_fields(ctx, entry, ftypes"
+    "llvm_domain_add_projection_state_fields_from_zone_refresh_view("
 require_term "src/codegen/llvm_domain_struct_fields.c" \
     "llvm_hosted_domain_slot_view_name(slot_view, j)"
 projection_view_consumer_hits="$(
@@ -2713,7 +2708,6 @@ $zone_layer_slot_hits"
 fi
 for rel in \
     "src/codegen/llvm_channel_target.c" \
-    "src/codegen/llvm_domain_decl_parts_helpers.c" \
     "src/codegen/llvm_domain_lookup.c" \
     "src/codegen/llvm_domain_projection_value_helpers.c" \
     "src/codegen/llvm_expr_constructor_calls.c" \
@@ -2759,7 +2753,6 @@ for rel in \
     fi
 done
 for rel in \
-    "src/codegen/llvm_domain_decl_parts_helpers.c" \
     "src/codegen/transpiler_mir_local_type_lookup.c" \
     "src/codegen/transpiler_overlay_host_fields.c"; do
     if grep -Eq 'ast_(class|enum|party|role|roster|relation|effect|zone|world)_name\((stmt|host_decl)\)' \
@@ -6949,8 +6942,7 @@ llvm_method_raw_hits="$(
         [[ -e "$path" ]] || continue
         rel="${path#$ROOT_DIR/}"
         if [[ "$rel" == "src/codegen/llvm_inventory_host_methods.c" ||
-              "$rel" == "src/codegen/llvm_inventory_host_methods.h" ||
-              "$rel" == "src/codegen/llvm_domain_decl_parts_helpers.h" ]]; then
+              "$rel" == "src/codegen/llvm_inventory_host_methods.h" ]]; then
             continue
         fi
         llvm_method_files+=("$path")
@@ -7295,7 +7287,7 @@ done
 require_term "src/codegen/llvm_domain_projection_value_helpers.h" \
     "llvm_build_domain_projection_value_from_zone_refresh_metadata"
 for term in \
-    "LLVMHostedZoneRefreshView zone_refresh_view" \
+    "LLVMHostedZoneRefreshView refresh_view" \
     "llvm_hosted_zone_refresh_view_missing_mir_metadata" \
     "llvm_build_domain_projection_value_from_zone_refresh_metadata"; do
     require_term "src/codegen/llvm_domain_projection_sync_body_helpers.c" "$term"
@@ -7412,10 +7404,6 @@ fi
 if grep -Fq "llvm_emit_projection_invalidations_for_host" \
     "$ROOT_DIR/src/codegen/llvm_expr_assignment_projection.c"; then
     fail "LLVM assignment projection invalidation must not keep the AST-array host refresh helper"
-fi
-if grep -Fq "ast_zone_refreshes(stmt, refresh_count)" \
-    "$ROOT_DIR/src/codegen/llvm_domain_decl_parts_helpers.c"; then
-    fail "LLVM domain declaration parts must not reopen zone refresh inventory"
 fi
 if grep -Fq "ast_zone_refreshes(stmt, &refresh_count)" \
     "$ROOT_DIR/src/codegen/llvm_domain_struct_register_fields.c"; then

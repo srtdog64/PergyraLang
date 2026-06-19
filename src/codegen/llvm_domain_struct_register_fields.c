@@ -421,8 +421,7 @@ llvm_domain_struct_register_default_fields(LLVMGenCtx *ctx,
                                            ASTNode *stmt,
                                            LLVMClassTypeEntry *entry,
                                            LLVMTypeRef *ftypes,
-                                           ASTNode **refreshes,
-                                           size_t refresh_count)
+                                           const LLVMHostedZoneRefreshView *refresh_view)
 {
     const char *decl_name = llvm_decl_node_name(stmt);
     LLVMHostedSharedFieldView shared_view =
@@ -475,8 +474,8 @@ llvm_domain_struct_register_default_fields(LLVMGenCtx *ctx,
         field_index++;
     }
     if (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL) {
-        if (!llvm_domain_add_projection_state_fields(ctx, entry, ftypes,
-                &field_index, &slot_view, refreshes, refresh_count)) {
+        if (!llvm_domain_add_projection_state_fields_from_zone_refresh_view(
+                ctx, entry, ftypes, &field_index, &slot_view, refresh_view)) {
             return false;
         }
     }
@@ -488,8 +487,7 @@ llvm_domain_struct_register_fields(LLVMGenCtx *ctx,
                                    ASTNode *stmt,
                                    LLVMClassTypeEntry *entry,
                                    LLVMTypeRef *ftypes,
-                                   ASTNode **refreshes,
-                                   size_t refresh_count)
+                                   const LLVMHostedZoneRefreshView *refresh_view)
 {
     if (ctx == NULL || stmt == NULL || entry == NULL || ftypes == NULL)
         return false;
@@ -502,7 +500,7 @@ llvm_domain_struct_register_fields(LLVMGenCtx *ctx,
     if (stmt->type == AST_WORLD_DECL)
         return llvm_domain_struct_register_world_fields(ctx, stmt, entry, ftypes);
     return llvm_domain_struct_register_default_fields(ctx, stmt, entry, ftypes,
-        refreshes, refresh_count);
+        refresh_view);
 }
 
 #endif /* PGY_LLVM_ENABLED */

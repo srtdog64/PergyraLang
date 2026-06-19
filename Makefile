@@ -1091,11 +1091,9 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_domain_event.c \
                         $(CODEGEN_DIR)/llvm_domain_lookup.c \
                         $(CODEGEN_DIR)/llvm_domain_projection_count.c \
-                        $(CODEGEN_DIR)/llvm_domain_decl_parts_helpers.c \
                         $(CODEGEN_DIR)/llvm_domain_projection_value_helpers.c \
                         $(CODEGEN_DIR)/llvm_domain_projection_sync_helpers.c \
                         $(CODEGEN_DIR)/llvm_domain_projection_sync_body_helpers.c \
-                        $(CODEGEN_DIR)/llvm_domain_projection_target.c \
                         $(CODEGEN_DIR)/llvm_domain_role_lookup.c \
                         $(CODEGEN_DIR)/llvm_domain_role_emit.c \
                         $(CODEGEN_DIR)/llvm_domain_sync_frontier.c \

@@ -11,7 +11,6 @@
 
 #include "../parser/ast_api.h"
 #include "host_decl_compat.h"
-#include "llvm_domain_decl_parts_helpers.h"
 #include "llvm_domain_forward.h"
 #include "llvm_domain_method_emit.h"
 #include "llvm_domain_projection_count_helpers.h"
@@ -33,13 +32,19 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                 continue;
 
             const char *decl_name = llvm_decl_node_name(stmt);
-            ASTNode **refreshes = NULL;
-            size_t refresh_count = 0;
+            LLVMHostedZoneRefreshView refresh_view = {0};
 
             if (stmt->type == AST_RELATION_DECL
                 || stmt->type == AST_EFFECT_DECL) {
-                llvm_domain_decl_refreshes(stmt, &decl_name, &refreshes,
-                    &refresh_count);
+                refresh_view = llvm_hosted_zone_refresh_view_from_decl(
+                    ctx, decl_name, stmt);
+                if (llvm_hosted_zone_refresh_view_missing_mir_metadata(
+                        &refresh_view)) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing domain refresh struct metadata for '%s'",
+                        decl_name != NULL ? decl_name : "(anonymous-domain)");
+                    return;
+                }
             }
             if (decl_name == NULL)
                 continue;
@@ -76,9 +81,8 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                 LLVMHostedZoneLayerSlotView layer_view =
                     llvm_hosted_zone_layer_slot_view_from_decl(
                         ctx, decl_name, stmt);
-                LLVMHostedZoneRefreshView refresh_view =
-                    llvm_hosted_zone_refresh_view_from_decl(
-                        ctx, decl_name, stmt);
+                refresh_view = llvm_hosted_zone_refresh_view_from_decl(
+                    ctx, decl_name, stmt);
                 size_t state_count = 0;
                 (void) ast_zone_states(stmt, &state_count);
                 size_t projection_count =
@@ -300,8 +304,8 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
             } else {
                 size_t projection_count =
                     (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL)
-                    ? llvm_count_domain_projection_slots_in_view(
-                        &domain_slot_view, refreshes, refresh_count)
+                    ? llvm_count_domain_projection_slots_in_zone_refresh_view(
+                        &domain_slot_view, &refresh_view)
                     : 0;
                 if ((stmt->type == AST_RELATION_DECL
                         || stmt->type == AST_EFFECT_DECL)
@@ -344,9 +348,8 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                     ftypes[idx] = ctx->type_i8ptr;
                 if (projection_count > 0) {
                     for (size_t j = 0; j < domain_slot_count; j++) {
-                        if (!llvm_domain_slot_view_is_projection_slot(
-                                &domain_slot_view, j, refreshes,
-                                refresh_count)) {
+                        if (!llvm_domain_slot_view_is_projection_slot_in_zone_refresh_view(
+                                &domain_slot_view, j, &refresh_view)) {
                             continue;
                         }
                         ftypes[idx++] = ctx->type_i1;
@@ -364,7 +367,9 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                 decl_name, struct_ty, false, true);
             if (entry != NULL
                 && !llvm_domain_struct_register_fields(ctx, stmt, entry, ftypes,
-                    refreshes, refresh_count)) {
+                    (stmt->type == AST_RELATION_DECL
+                        || stmt->type == AST_EFFECT_DECL)
+                        ? &refresh_view : NULL)) {
                 return;
             }
 

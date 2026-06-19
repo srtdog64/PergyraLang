@@ -3,6 +3,16 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-19 LLVM Refresh Helper Retirement
+
+- LLVM projection sync body and relation/effect struct registration now consume
+  refresh inventory through `LLVMHostedZoneRefreshView`; the old AST-array
+  declaration-parts/projection-target helper owners are removed from the source
+  inventory.
+- `mir-declaration-inventory-test-smoke` now rejects those helper files if they
+  reappear. The remaining `ast_*_refreshes(...)` calls are confined to hosted
+  view compatibility owners.
+
 ## Progress Log - 2026-06-19 LLVM Relation/Effect Assignment Refresh Cutover
 
 - LLVM relation/effect assignment projection invalidation now shares the

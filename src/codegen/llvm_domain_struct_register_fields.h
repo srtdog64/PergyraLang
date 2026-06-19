@@ -8,7 +8,6 @@ bool llvm_domain_struct_register_fields(LLVMGenCtx *ctx,
                                         ASTNode *stmt,
                                         LLVMClassTypeEntry *entry,
                                         LLVMTypeRef *ftypes,
-                                        ASTNode **refreshes,
-                                        size_t refresh_count);
+                                        const LLVMHostedZoneRefreshView *refresh_view);
 
 #endif /* PGY_LLVM_DOMAIN_STRUCT_REGISTER_FIELDS_H */

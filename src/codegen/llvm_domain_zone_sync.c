@@ -1,6 +1,5 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
-#include "llvm_domain_decl_parts_helpers.h"
 #include "domain_frontier_policy.h"
 #include "domain_frontier_graph.h"
 #include "llvm_domain_zone_bind_lowering.h"
