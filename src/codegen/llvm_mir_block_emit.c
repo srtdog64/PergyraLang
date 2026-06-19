@@ -521,11 +521,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                 if (function_ret_type == ctx->type_void) {
                     LLVMBuildRetVoid(ctx->builder);
                 } else {
-                    llvm_set_error_at_with_hints(ctx,
-                        mir_instruction_source_payload(inst),
-                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                        PGY_FIX_ADD_RETURN_ON_ALL_PATHS,
+                    llvm_set_mir_topology_invalid(ctx,
                         "LLVM MIR non-Void return requires a value expression");
                     LLVMBuildUnreachable(ctx->builder);
                 }
@@ -568,7 +564,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
             if (mir_instruction_source_is_defer_stmt(inst)) {
                 if (inst->expr0 != NULL)
                     llvm_register_defer(inst->expr0, ctx);
-            } else if (source_payload != NULL) {
+            } else if (mir_instruction_has_source_statement_order(inst)) {
                 if (llvm_mir_stmt_instruction_is_cfg_container(inst))
                     break;
                 if (mir_instruction_source_matches_ast_type(inst, AST_CALL)
@@ -598,17 +594,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                         return;
                     break;
                 }
-                llvm_set_error_at_with_hints(
-                    ctx,
-                    source_payload,
-                    PGY_CODE_MIR_TOPOLOGY_INVALID,
-                    PGY_CAUSE_MIR_TOPOLOGY_INVALID,
-                    PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING,
-                    "LLVM MIR STMT source-payload emission is retired; lower this statement to MIR facts");
-                return;
-            } else if (mir_instruction_has_source_statement_order(inst)) {
                 llvm_set_mir_topology_invalid(ctx,
-                    "LLVM MIR STMT instruction has source statement order but no source payload");
+                    "LLVM MIR STMT source-payload emission is retired; lower this statement to MIR facts");
                 return;
             }
             break;

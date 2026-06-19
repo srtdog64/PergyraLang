@@ -67,7 +67,10 @@ compatibility path.
 - MIR DCE and source-statement emit validation consume source-shape scalar
   facts instead of payload presence for those decisions. Source-statement emit
   predicates and LLVM DEF emit predicates now consume MIR emit facts instead of
-  treating source payload presence as a semantic condition.
+  treating source payload presence as a semantic condition. C and LLVM residual
+  STMT emission branches consume MIR source-shape / `expr0` facts, and LLVM
+  missing-return-value diagnostics use MIR topology diagnostics instead of
+  source payload anchors.
 - The remaining capability-5 body tail is the narrower source-payload
   expression/shape surface: match/select/resource/destructure shape consumers
   and selected diagnostics. Capability 5 should stay ACTIVE until those reads

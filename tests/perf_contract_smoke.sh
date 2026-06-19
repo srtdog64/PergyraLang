@@ -2414,8 +2414,20 @@ grep -Fq "llvm_mir_emit_channel_receive_def(inst, ctx" "$ROOT_DIR/src/codegen/ll
 grep -Fq "llvm_mir_declare_recv_target(inst->arg0, inst->expr0, ctx)" "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
 grep -Fq "LLVM channel receive DEF requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
 grep -Fq "LLVM MIR STMT source-payload emission is retired" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+if grep -A44 -F "case MIR_INST_STMT:" \
+    "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" | \
+    grep -Fq "source_payload"; then
+    echo "[perf-contract] LLVM MIR STMT emission must consume MIR expr/source-shape facts, not source payload" >&2
+    exit 1
+fi
 grep -Fq "llvm_emit_statement(inst->expr0, ctx)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "STMT source-payload emission is retired" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c"
+if grep -A72 -F "if (inst->kind != MIR_INST_STMT)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c" | \
+    grep -Eq "stmt (==|!=)|stmt->|transpiler_mir_find_stmt_for_inst|source_payload"; then
+    echo "[perf-contract] C MIR STMT emission must consume MIR expr/source-shape facts, not source payload" >&2
+    exit 1
+fi
 ! grep -Fq "llvm_emit_statement(inst->ast" "$CODEGEN_INDEX"
 grep -Fq "llvm_emit_option_coalesce" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
 grep -Fq "coalesce.fallback" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
@@ -4861,6 +4873,12 @@ grep -Fq "LLVM MIR branch cannot consume a Void expression as condition" "$ROOT_
 grep -Fq "LLVM MIR return cannot consume a Void expression value" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "LLVM MIR return could not lower value expression" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "LLVM MIR non-Void return requires a value expression" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+if grep -B4 -F "LLVM MIR non-Void return requires a value expression" \
+    "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" | \
+    grep -Fq "llvm_set_error_at_with_hints"; then
+    echo "[perf-contract] LLVM MIR non-Void return topology diagnostic must not reopen source payload anchors" >&2
+    exit 1
+fi
 grep -Fq "llvm_stmt_infer_expr_type(ctx, arg)" "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
 grep -Fq "LLVM enum variant constructor '%s' cannot consume a Void expression as payload %zu" "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
 grep -Fq "LLVM call helper cannot pass a Void expression as argument %zu" "$ROOT_DIR/src/codegen/llvm_expr_call_args.c"

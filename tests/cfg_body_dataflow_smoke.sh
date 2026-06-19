@@ -438,8 +438,26 @@ run_literal_doc_contract_smoke() {
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_emit_borrow_view_alias(inst, ctx)"
     require_literal "Makefile" '$(CODEGEN_DIR)/llvm_mir_resource_view.c'
     require_literal "src/codegen/llvm_mir_block_emit.c" "LLVM MIR STMT source-payload emission is retired"
+    if grep -A44 -F "case MIR_INST_STMT:" \
+        "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" | \
+        grep -Fq "source_payload"; then
+        echo "LLVM MIR STMT emission must consume MIR expr/source-shape facts, not source payload" >&2
+        exit 1
+    fi
+    if grep -B4 -F "LLVM MIR non-Void return requires a value expression" \
+        "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" | \
+        grep -Fq "llvm_set_error_at_with_hints"; then
+        echo "LLVM MIR non-Void return topology diagnostic must not reopen source payload anchors" >&2
+        exit 1
+    fi
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_emit_statement(inst->expr0, ctx)"
     require_literal "src/codegen/transpiler_mir_block_emit.c" "STMT source-payload emission is retired"
+    if grep -A72 -F "if (inst->kind != MIR_INST_STMT)" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c" | \
+        grep -Eq "stmt (==|!=)|stmt->|transpiler_mir_find_stmt_for_inst|source_payload"; then
+        echo "C MIR STMT emission must consume MIR expr/source-shape facts, not source payload" >&2
+        exit 1
+    fi
     require_literal "src/compiler/mir_call_fact.c" "case AST_PARALLEL_BLOCK"
     require_literal "src/compiler/mir_call_fact.c" "inst->expr0 = (ASTNode *)stmt"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_emit_with_claim_only(inst, ctx)"

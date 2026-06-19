@@ -33,9 +33,12 @@ side-effect statements are carried through `MIR_STMT.expr0` executable facts.
 Source-local declaration and assignment paths no longer re-dispatch through
 raw source-statement emitters. Source-statement emit predicates and LLVM DEF
 emit predicates now consume MIR source-location/expression facts instead of
-payload presence. The next cut target is the remaining expression/shape tail:
-selected match, select, resource, destructure, and diagnostic body facts are
-still read from source payloads rather than dedicated MIR records.
+payload presence. C and LLVM residual STMT branches now consume MIR
+source-shape / `expr0` facts, and LLVM missing-return-value diagnostics use MIR
+topology diagnostics instead of reopening source payload anchors. The next cut
+target is the remaining expression/shape tail: selected match, select,
+resource, destructure, and diagnostic body facts are still read from source
+payloads rather than dedicated MIR records.
 LLVM source-local resource constructor DEFs now consume MIR expected type-name
 facts for `Channel<T>` and slot-like resources (`Slot<T>`, `SecureSlot<T>`,
 `DeviceSlot<T>`) instead of falling through standalone constructor expression
@@ -53,6 +56,8 @@ destructure binding names until those names have dedicated MIR facts. MIR DCE
 and source-statement emit validation now consume source-shape scalar facts
 instead of payload presence for those decisions, and source-statement / LLVM DEF
 emit predicates are keyed by MIR emit facts rather than source payload presence.
+C and LLVM residual STMT emission paths are also ratcheted to MIR
+source-shape/`expr0` facts.
 
 ## Compiler Maturity Bar
 
@@ -102,9 +107,10 @@ is still active for body-level source-payload expression/shape consumers.
 non_cfg body facts come from MIR and are locked at zero fallback, backend and
 compiler source_ast/source_decl readers are locked at zero, residual STMT
 source-payload emission and raw source-statement re-dispatch are retired,
-source-statement / LLVM DEF emit predicates consume MIR facts, resource mirror
-identity is MIR source-statement-index based, and the self-hosted checker proves
-the same manifest. The remaining match/select/resource/destructure/diagnostic
+source-statement / LLVM DEF emit predicates consume MIR facts, C/LLVM residual
+STMT branches consume MIR source-shape/`expr0` facts, resource mirror identity
+is MIR source-statement-index based, and the self-hosted checker proves the
+same manifest. The remaining match/select/resource/destructure/diagnostic
 payload tail must be cut before this row can honestly return to READY.
 Capability 4 is
 closed for the current compiler-pass
@@ -265,11 +271,13 @@ C resource hook DEF type annotation uses `expr1`. C SSA local type/view facts
 consume DEF expression/type facts except for destructure binding names. MIR DCE
 and source-statement emit validation use source-shape scalar facts for their
 decisions, and source-statement / LLVM DEF emit predicates use MIR emit facts
-instead of payload presence. The remaining ACTIVE tail is the narrower
-match/select/resource/destructure shape and selected diagnostics surface. LLVM
-for-in and with-slot resource-claim diagnostics already use MIR expression
-anchors; the rest of the body facts still need dedicated MIR records or
-explicit provenance-only handling.
+instead of payload presence. C/LLVM residual STMT branches consume MIR
+source-shape/`expr0` facts, and LLVM missing-return-value diagnostics use MIR
+topology errors rather than payload anchors. The remaining ACTIVE tail is the
+narrower match/select/resource/destructure shape and selected diagnostics
+surface. LLVM for-in and with-slot resource-claim diagnostics already use MIR
+expression anchors; the rest of the body facts still need dedicated MIR records
+or explicit provenance-only handling.
 
 Capability 2 (collections). Closed for the hard-self-host substrate: integer keys are implemented
 (pgy_runtime_map_int_key_inline.h covers i32 and i64), and `MapKeys` /

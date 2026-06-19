@@ -327,11 +327,15 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
 
         if (inst->kind != MIR_INST_STMT)
             continue;
-        if (stmt != NULL && stmt->type == AST_DEFER_STMT)
+        if (mir_instruction_source_is_defer_stmt(inst)) {
             transpiler_register_defer(inst->expr0, ctx);
-        if (stmt == NULL || stmt->type == AST_BLOCK || stmt->type == AST_RETURN
-            || stmt->type == AST_DEFER_STMT
-            || stmt->type == AST_LET_DESTRUCTURE) {
+            continue;
+        }
+        if (!mir_instruction_has_source_statement_order(inst)
+            || mir_instruction_source_matches_ast_type(inst, AST_BLOCK)
+            || mir_instruction_source_matches_ast_type(inst, AST_RETURN)
+            || mir_instruction_source_matches_ast_type(inst,
+                                                       AST_LET_DESTRUCTURE)) {
             /* Closure #82: AST_LET_DESTRUCTURE is already lowered by
              * MIR_INST_DESTRUCTURE above (transpiler_emit_mir_let_destructure_stmt).
              * Falling through to emit_statement here re-runs the non-MIR
@@ -352,7 +356,6 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         if (transpiler_mir_stmt_is_mirrored_resource(ctx, block, inst))
             continue;
         if (transpiler_mir_routine_has_explicit_cfg(mir_routine)
-            && stmt != NULL
             && transpiler_mir_inst_is_cfg_container(inst)) {
             continue;
         }
