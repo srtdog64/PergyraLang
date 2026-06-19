@@ -163,9 +163,47 @@ for row in "${CLAUSE_MAP[@]}"; do
     printf '  ok   %-11s %-14s %-12s %s\n' "$clause" "$fact" "$axis" "$ofile"
 done
 
+# --- check D: AIR runtime evidence kind -> axis (StepBy / runtime write attr) -
+# The AIR evidence graph IS the compiler's runtime write-attribution structure:
+# every evidence node (a runtime fact) must carry a non-empty provider+subject
+# (air_evidence_node.c refuses anonymous appends) -- the runtime form of the Coq
+# single-writer discipline (no_silent_override: a fact is never written without
+# an attributed owner). This check binds the axis-bearing evidence kinds to the
+# Coq fact/axis they realize, and asserts the provider-required guard survives.
+#
+#   "<AIR evidence kind> <coq fact> <axis> <air vocabulary name>"
+AIR_H="$ROOT_DIR/src/compiler/air.h"
+AIR_EVIDENCE_C="$ROOT_DIR/src/compiler/air_evidence_node.c"
+AIR_VOCAB="$ROOT_DIR/src/compiler/air_vocabulary.c"
+EVIDENCE_MAP=(
+    "AIR_EVIDENCE_RIR_AUTHORITY          FAuthorizedBy Domain       rir_authority"
+    "AIR_EVIDENCE_RIR_EFFECT_PROPAGATION FCauses       Domain       rir_effect_propagation"
+    "AIR_EVIDENCE_DAG_ABILITY            FRequires     TypeContract dag_ability"
+)
+
+echo "== D. AIR evidence kind -> Coq fact/axis (runtime write attribution) =="
+if ! grep -qF "requires non-empty provider and subject provenance" "$AIR_EVIDENCE_C"; then
+    echo "  FAIL: AIR dropped the provider-required guard (anonymous evidence now possible)"; fail=1
+else
+    echo "  ok   runtime guard: evidence append requires provider+subject provenance"
+fi
+for row in "${EVIDENCE_MAP[@]}"; do
+    read -r kind fact axis vocab <<<"$row"
+    if ! grep -qE "\b$kind\b" "$AIR_H"; then
+        echo "  FAIL: AIR evidence kind '$kind' not declared in air.h"; fail=1; continue
+    fi
+    if ! grep -qE "Owns ${AXNAME[$axis]}[[:space:]]+$fact\b" "$AXIS_COQ"; then
+        echo "  FAIL: Coq Owns does not put '$fact' on ${AXNAME[$axis]} (kind '$kind')"; fail=1; continue
+    fi
+    if ! grep -qF -- "\"$vocab\"" "$AIR_VOCAB"; then
+        echo "  FAIL: AIR vocabulary name '$vocab' missing for '$kind'"; fail=1; continue
+    fi
+    printf '  ok   %-35s %-14s %-12s %s\n' "$kind" "$fact" "$axis" "$vocab"
+done
+
 if [[ "$fail" -ne 0 ]]; then
     echo "axis keyword adequacy: FAILED"
     exit 1
 fi
 
-echo "axis keyword adequacy: ok (Coq sections 8/5 -> docs/42 sections 0/2 -> compiler keywords + clause checkers)"
+echo "axis keyword adequacy: ok (Coq 8/5 -> docs/42 0/2 -> compiler keywords + clause checkers + AIR runtime evidence)"
