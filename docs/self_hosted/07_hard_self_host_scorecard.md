@@ -48,7 +48,9 @@ source-statement indexes, and C resource hook type annotation consumes the DEF
 `expr1` fact instead of recovering a local declaration from source payload.
 C SSA local type/view registration now consumes DEF `expr0` / `expr1` and
 routine source-local type facts; its remaining payload reads are confined to
-destructure binding names until those names have dedicated MIR facts.
+destructure binding names until those names have dedicated MIR facts. MIR DCE
+and source-statement emit validation now consume source-shape scalar facts
+instead of payload presence for those decisions.
 
 ## Compiler Maturity Bar
 
@@ -256,11 +258,13 @@ while recording the SSA value. Await DEF emission, pending SSA-use
 materialization, and source DEF copy also consume MIR expression/type facts
 directly. C resource mirror identity now uses source-statement indexes, and the
 C resource hook DEF type annotation uses `expr1`. C SSA local type/view facts
-consume DEF expression/type facts except for destructure binding names. The
-remaining ACTIVE tail is the narrower match/select/resource shape and selected
-diagnostics surface. LLVM for-in and with-slot resource-claim diagnostics
-already use MIR expression anchors; the rest of the body facts still need
-dedicated MIR records or explicit provenance-only handling.
+consume DEF expression/type facts except for destructure binding names. MIR DCE
+and source-statement emit validation use source-shape scalar facts for their
+decisions. The remaining ACTIVE tail is the narrower match/select/resource
+shape and selected diagnostics surface. LLVM for-in and with-slot
+resource-claim diagnostics already use MIR expression anchors; the rest of the
+body facts still need dedicated MIR records or explicit provenance-only
+handling.
 
 Capability 2 (collections). Closed for the hard-self-host substrate: integer keys are implemented
 (pgy_runtime_map_int_key_inline.h covers i32 and i64), and `MapKeys` /

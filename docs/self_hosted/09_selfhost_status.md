@@ -64,6 +64,8 @@ compatibility path.
 - C SSA local type/view registration consumes DEF `expr0` / `expr1` and routine
   source-local type facts; its remaining payload reads are limited to
   destructure binding-name recovery.
+- MIR DCE and source-statement emit validation consume source-shape scalar
+  facts instead of payload presence for those decisions.
 - The remaining capability-5 body tail is the narrower source-payload
   expression/shape surface: match/select/resource shape consumers and selected
   diagnostics. Capability 5 should stay ACTIVE until those reads are replaced

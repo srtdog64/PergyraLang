@@ -260,6 +260,12 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_fact_surface_validate.c" "select receive DEF is missing select receive emit fact"
     require_literal "src/compiler/mir_fact_terminator_validate.c" "branch is missing source-branch emit fact"
     require_literal "src/compiler/mir_fact_surface_validate.c" "source-statement emit fact is invalid"
+    if grep -A8 -F "if (inst->requires_source_statement_emit" \
+        "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c" | \
+        grep -Fq "mir_instruction_source_payload"; then
+        echo "MIR source-statement emit validation must consume scalar/expression facts, not source payload" >&2
+        exit 1
+    fi
     require_literal "src/compiler/mir_fact_surface_validate.c" "source-statement receive emit fact is invalid"
     require_literal "src/compiler/mir_fact_surface_validate.c" "select receive emit fact is invalid"
     require_literal "src/compiler/mir_fact_surface_validate.c" "source-local-decl emit fact is invalid"
@@ -336,6 +342,11 @@ run_literal_doc_contract_smoke() {
     done
     require_literal "src/compiler/mir_cfg_contract_validate.c" "mir_instruction_source_is_cfg_owned_control(inst)"
     require_literal "src/compiler/mir_dce.c" "mir_instruction_source_stmt_has_side_effect_hint(inst)"
+    if grep -Fq -- "mir_instruction_source_payload" \
+        "$ROOT_DIR/src/compiler/mir_dce.c"; then
+        echo "MIR DCE must consume source-shape scalar facts, not source payload pointers" >&2
+        exit 1
+    fi
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_branch_payload_matches_shape"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_has_required_branch_condition_fact"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_has_required_source_branch_emit_fact"

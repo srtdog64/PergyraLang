@@ -303,8 +303,8 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
         }
         if (inst->requires_source_statement_emit
             && (inst->kind != MIR_INST_DEF
-                || mir_instruction_source_payload(inst) == NULL
                 || !mir_instruction_has_source_location(inst)
+                || inst->expr0 == NULL
                 || (!mir_instruction_source_is_local_decl(inst)
                     && !mir_instruction_source_is_assignment(inst)))) {
             if (error_message != NULL) {

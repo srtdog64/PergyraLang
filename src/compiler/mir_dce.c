@@ -106,11 +106,11 @@ mir_instruction_is_dead_value(const MIRRoutine *routine, const MIRInstruction *i
     if (idx < 0)
         return false;
     summary = &routine->value_summaries[idx];
-    /* AST-backed PHIs remain conservatively preserved. Value-summary
+    /* Source-backed PHIs remain conservatively preserved. Value-summary
      * provenance is now richer, but loop-carried seed values still are not
      * distinguished well enough to reopen dead local removal without changing
      * runtime behavior. */
-    if (mir_instruction_source_payload(inst) != NULL)
+    if (mir_instruction_has_source_location(inst))
         return false;
     return summary->use_count == 0
            && summary->live_in_block_count == 0

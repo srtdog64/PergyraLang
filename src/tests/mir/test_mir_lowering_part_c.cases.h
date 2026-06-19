@@ -448,7 +448,7 @@ test_mir_lowering_part_c(void)
         MIRProgram *mir = NULL;
         MIRRoutine *routine = NULL;
         MIRInstruction *def_inst = NULL;
-        ASTNode *saved_ast = NULL;
+        ASTNodeType saved_source_type = AST_PROGRAM;
         char *mir_error = NULL;
         bool rejected_missing_fact = false;
         bool rejected_invalid_fact = false;
@@ -479,18 +479,18 @@ test_mir_lowering_part_c(void)
             mir_error = NULL;
             def_inst->requires_source_statement_emit = true;
 
-            saved_ast = def_inst->ast;
-            def_inst->ast = NULL;
+            saved_source_type = def_inst->source_node_type;
+            def_inst->source_node_type = AST_CALL;
             rejected_invalid_fact =
                 !mir_validate(mir, &mir_error)
                 && mir_error != NULL
                 && strstr(mir_error, "source-statement emit fact is invalid") != NULL;
-            def_inst->ast = saved_ast;
+            def_inst->source_node_type = saved_source_type;
         }
         EXPECT(ok
                && routine != NULL
                && def_inst != NULL
-               && saved_ast != NULL
+               && saved_source_type == AST_LET_DECL
                && rejected_missing_fact
                && rejected_invalid_fact
                && mir_validate(mir, NULL));

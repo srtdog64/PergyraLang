@@ -2328,6 +2328,12 @@ grep -Fq "channel receive DEF is missing source-statement receive emit fact" "$R
 grep -Fq "select receive DEF is missing select receive emit fact" "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
 grep -Fq "branch is missing source-branch emit fact" "$ROOT_DIR/src/compiler/mir_fact_terminator_validate.c"
 grep -Fq "source-statement emit fact is invalid" "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
+if grep -A8 -F "if (inst->requires_source_statement_emit" \
+    "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c" | \
+    grep -Fq "mir_instruction_source_payload"; then
+    echo "[perf-contract] source-statement emit validation must consume MIR scalar/expression facts, not source payload" >&2
+    exit 1
+fi
 grep -Fq "source-statement receive emit fact is invalid" "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
 grep -Fq "select receive emit fact is invalid" "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
 grep -Fq "source-local-decl emit fact is invalid" "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
@@ -2458,6 +2464,7 @@ grep -Fq "return inventory_uses_surface" "$ROOT_DIR/src/codegen/intent_observabi
 grep -Fq "mir_program_recorded_inventory_uses_thread_pool_surface(mir)" "$ROOT_DIR/src/codegen/thread_pool_usage.c"
 grep -Fq "mir_instruction_source_stmt_has_side_effect_hint(inst)" "$ROOT_DIR/src/compiler/mir_dce.c"
 ! grep -Fq "mir_source_node_stmt_has_side_effect_hint(" "$ROOT_DIR/src/compiler/mir_dce.c"
+! grep -Fq "mir_instruction_source_payload" "$ROOT_DIR/src/compiler/mir_dce.c"
 grep -Fq "mir_source_node_type_stmt_has_side_effect_hint" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 grep -Fq "AST_FAIL_STMT" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 ! grep -Fq "source_node_type" "$ROOT_DIR/src/compiler/mir_dce.c"
