@@ -439,6 +439,34 @@ SubEquals(const char *s, int32_t start, int32_t len, const char *other)
     return memcmp(s + start, other, other_len) == 0;
 }
 
+/* SubContains(s, start, len, needle): true iff `needle` occurs within the
+ * window s[start .. start+len). Allocation-free. */
+static inline bool
+SubContains(const char *s, int32_t start, int32_t len, const char *needle)
+{
+    return SubIndexOf(s, start, len, needle) >= 0;
+}
+
+/* SubStartsWith(s, start, prefix): true iff the suffix s[start..] begins with
+ * `prefix` -- allocation-free keyword matching when the length is not known up
+ * front. Empty prefix matches; start may equal strlen(s) (end position). */
+static inline bool
+SubStartsWith(const char *s, int32_t start, const char *prefix)
+{
+    size_t raw_len, prefix_len;
+    int32_t slen;
+
+    if (s == NULL || prefix == NULL) return false;
+    raw_len = strlen(s);
+    if (raw_len > (size_t)INT32_MAX) return false;
+    slen = (int32_t)raw_len;
+    if (start < 0 || start > slen) return false;
+    prefix_len = strlen(prefix);
+    if (prefix_len == 0) return true;
+    if ((size_t)(slen - start) < prefix_len) return false;
+    return memcmp(s + start, prefix, prefix_len) == 0;
+}
+
 static inline char *
 StringReplace(const char *s, const char *old_str, const char *new_str)
 {
