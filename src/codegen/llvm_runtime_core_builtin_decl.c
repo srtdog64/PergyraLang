@@ -52,6 +52,8 @@ llvm_declare_runtime_core_builtins(LLVMGenCtx *ctx)
               { ctx->type_i8ptr, ctx->type_i32, ctx->type_i32 }, 3 },
             { "SubIndexOf", ctx->type_i32,
               { ctx->type_i8ptr, ctx->type_i32, ctx->type_i32, ctx->type_i8ptr }, 4 },
+            { "SubEquals", ctx->type_i1,
+              { ctx->type_i8ptr, ctx->type_i32, ctx->type_i32, ctx->type_i8ptr }, 4 },
             { "StringTrim", ctx->type_i8ptr,
               { ctx->type_i8ptr }, 1 },
             { "ToUpper", ctx->type_i8ptr,

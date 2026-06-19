@@ -82,6 +82,7 @@ typedef enum {
     TRANSPILER_SCALAR_OP_STRING_TRIM,
     TRANSPILER_SCALAR_OP_SUBSTRING,
     TRANSPILER_SCALAR_OP_SUB_INDEX_OF,
+    TRANSPILER_SCALAR_OP_SUB_EQUALS,
     TRANSPILER_SCALAR_OP_TO_FLOAT,
     TRANSPILER_SCALAR_OP_TO_INT,
     TRANSPILER_SCALAR_OP_UPPER,
@@ -120,6 +121,7 @@ static const TranspilerScalarSpec kTranspilerScalarSpecs[] = {
     {"StringReplace", 3, TRANSPILER_SCALAR_OP_REPLACE},
     {"StringSplit", 2, TRANSPILER_SCALAR_OP_SPLIT},
     {"StringTrim", 1, TRANSPILER_SCALAR_OP_STRING_TRIM},
+    {"SubEquals", 4, TRANSPILER_SCALAR_OP_SUB_EQUALS},
     {"SubIndexOf", 4, TRANSPILER_SCALAR_OP_SUB_INDEX_OF},
     {"Substring", 3, TRANSPILER_SCALAR_OP_SUBSTRING},
     {"ToFloat", 1, TRANSPILER_SCALAR_OP_TO_FLOAT},
@@ -326,6 +328,29 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         }
         char *result = strdup_fmt("SubIndexOf(%s, %s, %s, %s)", s, start, len, needle);
         free(s); free(start); free(len); free(needle);
+        return result;
+    }
+    if (op == TRANSPILER_SCALAR_OP_SUB_EQUALS) {
+        ASTNode *a3 = ast_call_argument(call, 3);
+        char *s = transpiler_scalar_emit_arg(ctx, a0, fn, "source");
+        char *start = s != NULL
+            ? transpiler_scalar_emit_arg(ctx, a1, fn, "start")
+            : NULL;
+        char *len = start != NULL
+            ? transpiler_scalar_emit_arg(ctx, a2, fn, "length")
+            : NULL;
+        char *other = len != NULL
+            ? transpiler_scalar_emit_arg(ctx, a3, fn, "other")
+            : NULL;
+        if (s == NULL || start == NULL || len == NULL || other == NULL) {
+            free(s);
+            free(start);
+            free(len);
+            free(other);
+            return NULL;
+        }
+        char *result = strdup_fmt("SubEquals(%s, %s, %s, %s)", s, start, len, other);
+        free(s); free(start); free(len); free(other);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_STRING_TRIM) {

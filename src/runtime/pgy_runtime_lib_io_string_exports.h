@@ -411,6 +411,28 @@ int32_t SubIndexOf(const char *s, int32_t start, int32_t len, const char *needle
     return -1;
 }
 
+/* Allocation-free Substring(s, start, len) == other. */
+bool SubEquals(const char *s, int32_t start, int32_t len, const char *other)
+{
+    size_t raw_len, other_len;
+    int32_t slen;
+
+    if (s == NULL || other == NULL)
+        return false;
+    raw_len = strlen(s);
+    if (raw_len > (size_t)INT32_MAX)
+        return false;
+    slen = (int32_t)raw_len;
+    if (start < 0 || start >= slen || len <= 0)
+        return other[0] == '\0';
+    if (len > slen - start)
+        len = slen - start;
+    other_len = strlen(other);
+    if ((size_t)len != other_len)
+        return false;
+    return memcmp(s + start, other, other_len) == 0;
+}
+
 char *StringReplace(const char *s, const char *old_str, const char *new_str)
 {
     if (s == NULL || old_str == NULL || new_str == NULL)

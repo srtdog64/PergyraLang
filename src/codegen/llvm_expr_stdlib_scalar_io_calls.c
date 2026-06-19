@@ -146,6 +146,7 @@ llvm_stdlib_string_file_runtime_call_lookup(const char *callee_name)
         { "StringReplace", "stdlib string", "StringReplace", 3 },
         { "StringSplit", "stdlib string", "StringSplit", 2 },
         { "StringTrim", "stdlib string", "StringTrim", 1 },
+        { "SubEquals", "stdlib string", "SubEquals", 4 },
         { "SubIndexOf", "stdlib string", "SubIndexOf", 4 },
         { "Substring", "stdlib string", "Substring", 3 },
         { "Tan", "stdlib scalar", "Tan", 1 },
