@@ -202,6 +202,7 @@ llvm_emit_current_zone_subject_projection_sync(LLVMGenCtx *ctx, ASTNode *receive
     const char *host_name;
     LLVMClassTypeEntry *host_cls;
     LLVMValueRef self_ptr;
+    LLVMHostedZoneRefreshView refresh_view;
     bool emitted = false;
 
     if (ctx == NULL || receiver == NULL || receiver->type != AST_IDENTIFIER)
@@ -224,10 +225,16 @@ llvm_emit_current_zone_subject_projection_sync(LLVMGenCtx *ctx, ASTNode *receive
     if (self_ptr == NULL)
         return;
 
-    size_t refresh_count = 0;
-    ASTNode **refreshes = ast_zone_refreshes(host_decl, &refresh_count);
-    for (size_t i = 0; i < refresh_count; i++) {
-        ASTNode *refresh = refreshes[i];
+    refresh_view = llvm_hosted_zone_refresh_view_from_decl(ctx, host_name,
+        host_decl);
+    if (llvm_hosted_zone_refresh_view_missing_mir_metadata(&refresh_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone subject projection sync refresh metadata for '%s'",
+            host_name != NULL ? host_name : "(anonymous-zone)");
+        return;
+    }
+
+    for (size_t i = 0; i < refresh_view.count; i++) {
         const char *target_name;
         const char *refresh_source;
         char dirty_field[256];
@@ -235,11 +242,10 @@ llvm_emit_current_zone_subject_projection_sync(LLVMGenCtx *ctx, ASTNode *receive
         int dirty_idx;
         int ready_idx;
 
-        if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
-            continue;
-
-        target_name = ast_zone_refresh_object_slot_name(refresh);
-        refresh_source = ast_zone_refresh_source_slot_name(refresh);
+        target_name =
+            llvm_hosted_zone_refresh_view_object_slot_name(&refresh_view, i);
+        refresh_source =
+            llvm_hosted_zone_refresh_view_source_slot_name(&refresh_view, i);
         if (target_name == NULL || refresh_source == NULL
             || strcmp(refresh_source, source_slot_name) != 0) {
             continue;

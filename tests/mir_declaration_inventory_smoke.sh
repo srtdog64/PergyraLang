@@ -7254,6 +7254,17 @@ if grep -Fq "ast_zone_refreshes(zone_decl, &refresh_count)" \
     fail "LLVM zone constructor projection-dirty initialization must consume MIR zone refresh metadata"
 fi
 for term in \
+    "LLVMHostedZoneRefreshView refresh_view" \
+    "llvm_hosted_zone_refresh_view_missing_mir_metadata" \
+    "llvm_hosted_zone_refresh_view_object_slot_name" \
+    "llvm_hosted_zone_refresh_view_source_slot_name"; do
+    require_term "src/codegen/llvm_expr_call_projection_sync.c" "$term"
+done
+if grep -Fq "ast_zone_refreshes(host_decl, &refresh_count)" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_projection_sync.c"; then
+    fail "LLVM zone subject projection sync must consume MIR zone refresh metadata"
+fi
+for term in \
     "LLVMHostedZoneRefreshView zone_refresh_view" \
     "LLVMHostedZoneRefreshView embedded_refresh_view" \
     "llvm_emit_projection_invalidations_for_zone_refresh_view" \

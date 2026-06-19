@@ -3,6 +3,17 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-19 Zone Refresh LLVM Subject Sync Cutover
+
+- LLVM current-zone subject projection sync now consumes
+  `LLVMHostedZoneRefreshView` instead of reopening
+  `ast_zone_refreshes(host_decl, &refresh_count)`.
+- The MIR-only path fail-closes if zone refresh rows are missing or drift from
+  the declaration inventory, matching the other zone refresh consumers.
+- `mir-declaration-inventory-test-smoke` now requires this consumer and rejects
+  the old direct AST refresh inventory read in
+  `llvm_expr_call_projection_sync.c`.
+
 ## Progress Log - 2026-06-19 Zone Refresh C Overlay Invalidation Cutover
 
 - C overlay/assignment projection invalidation now builds a
