@@ -61,6 +61,9 @@ compatibility path.
 - C resource mirroring compares MIR source-statement indexes instead of source
   payload pointer identity, and the C resource hook consumes DEF `expr1` type
   annotations instead of recovering local-decl payloads.
+- C SSA local type/view registration consumes DEF `expr0` / `expr1` and routine
+  source-local type facts; its remaining payload reads are limited to
+  destructure binding-name recovery.
 - The remaining capability-5 body tail is the narrower source-payload
   expression/shape surface: match/select/resource shape consumers and selected
   diagnostics. Capability 5 should stay ACTIVE until those reads are replaced

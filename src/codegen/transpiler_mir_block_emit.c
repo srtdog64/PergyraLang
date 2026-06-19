@@ -352,7 +352,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         if (transpiler_mir_stmt_is_mirrored_resource(ctx, block, inst))
             continue;
         if (transpiler_mir_routine_has_explicit_cfg(mir_routine)
-            && transpiler_mir_inst_is_cfg_container(inst, stmt)) {
+            && stmt != NULL
+            && transpiler_mir_inst_is_cfg_container(inst)) {
             continue;
         }
         if (mir_instruction_source_matches_ast_type(inst, AST_CALL)

@@ -45,11 +45,9 @@ transpiler_mir_receive_expr_from_def(const MIRInstruction *inst)
 
     if (inst == NULL)
         return NULL;
-    stmt = transpiler_mir_find_stmt_for_inst(inst);
+    stmt = inst->expr0;
     if (stmt == NULL)
-        stmt = inst->expr0 != NULL
-            ? inst->expr0
-            : mir_instruction_source_payload(inst);
+        stmt = transpiler_mir_find_stmt_for_inst(inst);
     if (stmt == NULL)
         return NULL;
     if (stmt->type == AST_CHANNEL_RECV)
@@ -274,27 +272,20 @@ transpiler_mir_ssa_local_find_versioned_type_name(
             if (inst->kind == MIR_INST_DEF
                 && inst->result_name != NULL
                 && strcmp(inst->result_name, versioned_name) == 0) {
-                ASTNode *source = mir_instruction_source_payload(inst);
-                if (source != NULL && source->type == AST_LET_DECL) {
-                    ASTNode *let_type = ast_let_type(source);
-                    ASTNode *init = ast_let_initializer(source);
-                    const char *inferred;
-
-                    if (let_type != NULL)
-                        return transpiler_render_effective_local_type_name(
-                            ctx, let_type);
-                    inferred = transpiler_infer_local_type_name_from_expr(
-                        ctx, func_decl, init);
+                if (inst->expr1 != NULL
+                    && inst->expr1->type == AST_TYPE) {
+                    return transpiler_render_effective_local_type_name(
+                        ctx, inst->expr1);
+                }
+                if (inst->expr0 != NULL) {
+                    const char *inferred =
+                        transpiler_infer_local_type_name_from_expr(
+                            ctx, func_decl, inst->expr0);
                     if (inferred != NULL
                         && inferred[0] != '\0'
                         && strcmp(inferred, "Unknown") != 0) {
                         return pergyra_strdup(inferred);
                     }
-                }
-                if (inst->expr1 != NULL
-                    && inst->expr1->type == AST_TYPE) {
-                    return transpiler_render_effective_local_type_name(
-                        ctx, inst->expr1);
                 }
                 if (inst->arg1 != NULL
                     && inst->arg1[0] != '\0'
@@ -468,7 +459,7 @@ transpiler_mir_register_base_local_view_fact(TranspilerCtx *ctx,
                 continue;
             }
             call = transpiler_mir_view_constructor_call_from_source(
-                mir_instruction_source_payload(inst));
+                inst->expr0);
             if (call == NULL || call->type != AST_CALL)
                 return false;
             callee_node = ast_call_callee(call);

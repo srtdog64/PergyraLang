@@ -6,8 +6,7 @@
 bool transpiler_mir_seed_block_phi_names(const MIRBasicBlock *block,
                                          TranspilerSSANameMap *ssa_map_out);
 ASTNode *transpiler_mir_find_stmt_for_inst(const MIRInstruction *inst);
-bool transpiler_mir_inst_is_cfg_container(const MIRInstruction *inst,
-                                          const ASTNode *stmt);
+bool transpiler_mir_inst_is_cfg_container(const MIRInstruction *inst);
 bool transpiler_mir_def_uses_source_statement_emit(const MIRInstruction *inst,
                                                    const ASTNode *stmt,
                                                    ASTNodeType expected_type);

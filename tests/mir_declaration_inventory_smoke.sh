@@ -3567,6 +3567,11 @@ for term in \
     "block->source_local_defs[i]"; do
     require_term "src/codegen/transpiler_mir_ssa_local_facts.c" "$term"
 done
+ssa_local_payload_reads="$(grep -F "mir_instruction_source_payload(" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_ssa_local_facts.c" | wc -l | tr -d ' ')"
+if [ "$ssa_local_payload_reads" != "2" ]; then
+    fail "C MIR SSA local facts must keep source-payload reads confined to destructure binding facts (expected 2, got $ssa_local_payload_reads)"
+fi
 if ! grep -B2 -F "transpiler_find_local_event_handler_type_ast(" \
         "$ROOT_DIR/src/codegen/transpiler_mir_func_ssa_locals_emit.c" |
         grep -Fq "if (type_name == NULL)"; then

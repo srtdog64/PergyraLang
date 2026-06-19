@@ -35,12 +35,9 @@ transpiler_mir_find_stmt_for_inst(const MIRInstruction *inst)
 }
 
 bool
-transpiler_mir_inst_is_cfg_container(const MIRInstruction *inst,
-                                     const ASTNode *stmt)
+transpiler_mir_inst_is_cfg_container(const MIRInstruction *inst)
 {
     return inst != NULL
-        && stmt != NULL
-        && mir_instruction_source_payload(inst) == stmt
         && mir_instruction_source_is_cfg_container(inst);
 }
 
