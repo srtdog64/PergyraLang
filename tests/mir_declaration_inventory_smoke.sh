@@ -1757,7 +1757,7 @@ fi
 require_term "src/codegen/transpiler_projection.c" \
     "transpiler_domain_slot_view_is_projection_slot"
 require_term "src/codegen/transpiler_domain_constructor_emit.c" \
-    "transpiler_domain_slot_view_is_projection_slot("
+    "transpiler_domain_slot_view_is_projection_slot_in_zone_refresh_view("
 if grep -Fq "ast_domain_slot_is_tobject" \
     "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"; then
     fail "C domain constructor dirty initialization must consume TranspilerHostedDomainSlotView"
@@ -1905,7 +1905,7 @@ require_term "src/codegen/transpiler_domain_constructor_emit.c" \
 require_term "src/codegen/transpiler_domain_constructor_emit.c" \
     "transpiler_hosted_domain_slot_view_from_decl("
 require_term "src/codegen/transpiler_domain_constructor_emit.c" \
-    "transpiler_domain_slot_view_is_projection_slot("
+    "transpiler_domain_slot_view_is_projection_slot_in_zone_refresh_view("
 require_term "src/codegen/llvm_inventory_decl_lookup.h" \
     "LLVMHostedDomainSlotView"
 require_term "src/codegen/llvm_inventory_decl_lookup.h" \
@@ -7124,6 +7124,8 @@ for term in \
 done
 for term in \
     "mir_decl_header_set_refreshes" \
+    "ast_relation_refreshes(decl, &refresh_count)" \
+    "ast_effect_refreshes(decl, &refresh_count)" \
     "ast_zone_refreshes(decl, &refresh_count)" \
     "ast_zone_refresh_mapped_target_field" \
     "ast_zone_refresh_mapped_source_field"; do
@@ -7143,6 +7145,11 @@ for term in \
     "transpiler_hosted_zone_refresh_view_object_slot_name" \
     "transpiler_hosted_zone_refresh_view_source_slot_name"; do
     require_term "src/codegen/transpiler_decl_lookup.h" "$term"
+    require_term "src/codegen/transpiler_decl_slot_view.c" "$term"
+done
+for term in \
+    "ast_relation_refreshes(decl, &compat_count)" \
+    "ast_effect_refreshes(decl, &compat_count)"; do
     require_term "src/codegen/transpiler_decl_slot_view.c" "$term"
 done
 for term in \
@@ -7180,9 +7187,31 @@ for term in \
     "transpiler_domain_slot_view_is_projection_slot_in_zone_refresh_view"; do
     require_term "src/codegen/transpiler_domain_constructor_emit.c" "$term"
 done
+if grep -Fq "ast_relation_refreshes(decl, &refresh_count)" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"; then
+    fail "C relation constructor projection-dirty initialization must consume MIR refresh metadata"
+fi
+if grep -Fq "ast_effect_refreshes(decl, &refresh_count)" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"; then
+    fail "C effect constructor projection-dirty initialization must consume MIR refresh metadata"
+fi
 if grep -Fq "ast_zone_refreshes(zone_decl, &refresh_count)" \
     "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"; then
     fail "C zone constructor projection-dirty initialization must consume MIR zone refresh metadata"
+fi
+for term in \
+    "TranspilerHostedZoneRefreshView refresh_view" \
+    "transpiler_hosted_zone_refresh_view_missing_mir_metadata" \
+    "emit_zone_projection_sync_loop_from_mir_refresh_view(ctx"; do
+    require_term "src/codegen/transpiler_relation_effect_emit.c" "$term"
+done
+if grep -Fq "ast_relation_refreshes(node, &refresh_count)" \
+    "$ROOT_DIR/src/codegen/transpiler_relation_effect_emit.c"; then
+    fail "C relation declaration sync must consume MIR refresh metadata"
+fi
+if grep -Fq "ast_effect_refreshes(node, &refresh_count)" \
+    "$ROOT_DIR/src/codegen/transpiler_relation_effect_emit.c"; then
+    fail "C effect declaration sync must consume MIR refresh metadata"
 fi
 for term in \
     "CurrentOverlayRefreshView" \
@@ -7203,6 +7232,11 @@ for term in \
     "llvm_hosted_zone_refresh_view_object_slot_name" \
     "llvm_hosted_zone_refresh_view_source_slot_name"; do
     require_term "src/codegen/llvm_inventory_decl_lookup.h" "$term"
+    require_term "src/codegen/llvm_inventory_zone_refresh_view.c" "$term"
+done
+for term in \
+    "ast_relation_refreshes(decl, &compat_count)" \
+    "ast_effect_refreshes(decl, &compat_count)"; do
     require_term "src/codegen/llvm_inventory_zone_refresh_view.c" "$term"
 done
 for term in \
@@ -7290,11 +7324,14 @@ if grep -Fq "ast_zone_refreshes(stmt, &refresh_count)" \
 fi
 for term in \
     "zone refresh metadata count" \
+    "domain refresh metadata on a non-domain declaration" \
     "zone refresh[%zu] field-map[%zu] has incomplete metadata"; do
     require_term "src/compiler/mir_decl_header_validate.c" "$term"
 done
 require_term "src/tests/mir/test_mir_lowering_part_d.cases.h" \
     "MIR declaration headers preserve zone refresh field maps"
+require_term "src/tests/mir/test_mir_lowering_part_d.cases.h" \
+    "MIR declaration headers preserve relation and effect refresh metadata"
 require_term "src/tests/mir/test_mir_lowering_part_h.cases.h" \
     "MIR validator rejects zone refresh metadata drift"
 

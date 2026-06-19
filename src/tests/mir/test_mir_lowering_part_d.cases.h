@@ -219,6 +219,70 @@ test_mir_lowering_part_d(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR declaration headers preserve relation and effect refresh metadata");
+    {
+        const char *src =
+            "subject Player { let hp: Int; let name: String; }\n"
+            "object PlayerView { let hp: Int; }\n"
+            "relation TradeLink for source: Player, target: Player {\n"
+            "    object slot snapshot: PlayerView\n"
+            "    refresh snapshot from source\n"
+            "}\n"
+            "effect Taxed for bearer: Player {\n"
+            "    object slot view: PlayerView\n"
+            "    refresh view from bearer\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRDeclHeader *relation = NULL;
+        const MIRDeclHeader *effect = NULL;
+        const MIRDeclZoneRefresh *relation_refresh = NULL;
+        const MIRDeclZoneRefresh *effect_refresh = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL) {
+            relation = mir_find_decl_header(mir, "TradeLink");
+            effect = mir_find_decl_header(mir, "Taxed");
+        }
+        if (relation != NULL)
+            relation_refresh = mir_decl_header_zone_refresh(relation, 0);
+        if (effect != NULL)
+            effect_refresh = mir_decl_header_zone_refresh(effect, 0);
+        EXPECT(ok
+               && relation != NULL
+               && effect != NULL
+               && mir_decl_header_zone_refresh_count(relation) == 1
+               && mir_decl_header_zone_refresh_count(effect) == 1
+               && relation_refresh != NULL
+               && effect_refresh != NULL
+               && mir_decl_zone_refresh_owner_name(relation_refresh) != NULL
+               && strcmp(mir_decl_zone_refresh_owner_name(relation_refresh),
+                         "TradeLink") == 0
+               && mir_decl_zone_refresh_object_slot_name(
+                      relation_refresh) != NULL
+               && strcmp(mir_decl_zone_refresh_object_slot_name(
+                             relation_refresh),
+                         "snapshot") == 0
+               && mir_decl_zone_refresh_source_slot_name(
+                      relation_refresh) != NULL
+               && strcmp(mir_decl_zone_refresh_source_slot_name(
+                             relation_refresh),
+                         "source") == 0
+               && mir_decl_zone_refresh_owner_name(effect_refresh) != NULL
+               && strcmp(mir_decl_zone_refresh_owner_name(effect_refresh),
+                         "Taxed") == 0
+               && mir_decl_zone_refresh_object_slot_name(effect_refresh) != NULL
+               && strcmp(mir_decl_zone_refresh_object_slot_name(effect_refresh),
+                         "view") == 0
+               && mir_decl_zone_refresh_source_slot_name(effect_refresh) != NULL
+               && strcmp(mir_decl_zone_refresh_source_slot_name(effect_refresh),
+                         "bearer") == 0
+               && mir_validate(mir, NULL));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR declaration headers preserve domain slot classification metadata");
     {
         const char *src =

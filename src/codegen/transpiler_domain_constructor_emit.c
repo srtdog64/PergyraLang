@@ -276,10 +276,8 @@ transpiler_emit_relation_effect_constructor(ASTNode *call,
     TranspilerHostedSharedFieldView shared_view =
         transpiler_hosted_shared_field_view_from_decl(ctx, decl_name, decl);
     size_t shared_count = shared_view.count;
-    size_t refresh_count = 0;
-    ASTNode **refreshes = decl->type == AST_RELATION_DECL
-        ? ast_relation_refreshes(decl, &refresh_count)
-        : ast_effect_refreshes(decl, &refresh_count);
+    TranspilerHostedZoneRefreshView refresh_view =
+        transpiler_hosted_zone_refresh_view_from_decl(ctx, decl_name, decl);
     CodeBuf *fields = codebuf_create();
 
     if (transpiler_hosted_domain_slot_view_missing_mir_metadata(
@@ -293,6 +291,14 @@ transpiler_emit_relation_effect_constructor(ASTNode *call,
     if (transpiler_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
         transpiler_set_mir_inventory_missing(ctx,
             "MIR-only C path missing shared-field declaration metadata for domain '%s'",
+            decl_name != NULL ? decl_name : "(anonymous-domain)");
+        codebuf_destroy(fields);
+        return NULL;
+    }
+    if (transpiler_hosted_zone_refresh_view_missing_mir_metadata(
+            &refresh_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing domain refresh constructor metadata for '%s'",
             decl_name != NULL ? decl_name : "(anonymous-domain)");
         codebuf_destroy(fields);
         return NULL;
@@ -360,8 +366,8 @@ transpiler_emit_relation_effect_constructor(ASTNode *call,
         const char *slot_name =
             transpiler_hosted_domain_slot_view_name(&slot_view, i);
         bool projection_slot =
-            transpiler_domain_slot_view_is_projection_slot(
-                &slot_view, i, refreshes, refresh_count);
+            transpiler_domain_slot_view_is_projection_slot_in_zone_refresh_view(
+                &slot_view, i, &refresh_view);
         if (!projection_slot || slot_name == NULL)
             continue;
         if (fields->len > 0)

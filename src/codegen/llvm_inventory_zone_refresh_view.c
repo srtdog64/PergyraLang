@@ -19,7 +19,11 @@ llvm_hosted_zone_refresh_view_from_decl(const LLVMGenCtx *ctx,
     size_t compat_count = 0;
     const MIRDeclHeader *header = NULL;
 
-    if (decl != NULL && decl->type == AST_ZONE_DECL)
+    if (decl != NULL && decl->type == AST_RELATION_DECL)
+        compat_refreshes = ast_relation_refreshes(decl, &compat_count);
+    else if (decl != NULL && decl->type == AST_EFFECT_DECL)
+        compat_refreshes = ast_effect_refreshes(decl, &compat_count);
+    else if (decl != NULL && decl->type == AST_ZONE_DECL)
         compat_refreshes = ast_zone_refreshes(decl, &compat_count);
 
     view.decl_header = NULL;
@@ -31,9 +35,14 @@ llvm_hosted_zone_refresh_view_from_decl(const LLVMGenCtx *ctx,
         && compat_count > 0;
 
     header = llvm_find_host_decl_header_in_context(ctx, host_name);
-    if (header != NULL
-        && mir_decl_header_ast_type_or(header, AST_PROGRAM)
-            == AST_ZONE_DECL) {
+    if (header != NULL) {
+        ASTNodeType header_type =
+            mir_decl_header_ast_type_or(header, AST_PROGRAM);
+        if (header_type != AST_RELATION_DECL
+            && header_type != AST_EFFECT_DECL
+            && header_type != AST_ZONE_DECL) {
+            return view;
+        }
         view.decl_header = header;
         view.count = mir_decl_header_zone_refresh_count(header);
         view.uses_mir_metadata = true;

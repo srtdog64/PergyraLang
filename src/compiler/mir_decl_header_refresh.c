@@ -88,10 +88,22 @@ mir_decl_header_set_refreshes(MIRDeclHeader *header, ASTNode *decl)
     header->zone_refresh_metadata = NULL;
     header->zone_refresh_metadata_count = 0;
 
-    if (decl == NULL || decl->type != AST_ZONE_DECL)
+    if (decl == NULL)
         return true;
 
-    refreshes = ast_zone_refreshes(decl, &refresh_count);
+    switch (decl->type) {
+    case AST_RELATION_DECL:
+        refreshes = ast_relation_refreshes(decl, &refresh_count);
+        break;
+    case AST_EFFECT_DECL:
+        refreshes = ast_effect_refreshes(decl, &refresh_count);
+        break;
+    case AST_ZONE_DECL:
+        refreshes = ast_zone_refreshes(decl, &refresh_count);
+        break;
+    default:
+        return true;
+    }
     header->zone_refresh_count = refresh_count;
     if (refresh_count == 0)
         return true;

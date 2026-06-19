@@ -439,11 +439,13 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
         return false;
     }
 
-    if (header->ast_type != AST_ZONE_DECL
+    if (header->ast_type != AST_RELATION_DECL
+        && header->ast_type != AST_EFFECT_DECL
+        && header->ast_type != AST_ZONE_DECL
         && header->zone_refresh_metadata_count != 0) {
         if (error_message != NULL) {
             *error_message = mir_strdup_fmt(
-                "MIR declaration header[%zu] '%s' has zone refresh metadata on a non-zone declaration",
+                "MIR declaration header[%zu] '%s' has domain refresh metadata on a non-domain declaration",
                 header_index,
                 header->name != NULL ? header->name : "(anonymous)");
         }

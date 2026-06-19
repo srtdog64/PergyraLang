@@ -3,6 +3,19 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-19 Relation/Effect Refresh Metadata Capture
+
+- `mir_decl_header_set_refreshes` now captures refresh rows for relation,
+  effect, and zone declarations. The validator permits refresh metadata only on
+  those domain declarations and keeps count drift fail-closed.
+- C relation/effect declaration sync and relation/effect constructor
+  projection-dirty initialization now consume `TranspilerHostedZoneRefreshView`
+  instead of reopening `ast_relation_refreshes(...)` /
+  `ast_effect_refreshes(...)` directly.
+- MIR tests now preserve relation and effect refresh metadata, and
+  `mir-declaration-inventory-test-smoke` ratchets the new capture/view/consumer
+  boundary.
+
 ## Progress Log - 2026-06-19 Zone Refresh LLVM Subject Sync Cutover
 
 - LLVM current-zone subject projection sync now consumes

@@ -91,6 +91,16 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
             name != NULL ? name : "(anonymous-relation)");
         return;
     }
+    TranspilerHostedZoneRefreshView refresh_view =
+        transpiler_hosted_zone_refresh_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_zone_refresh_view_missing_mir_metadata(
+            &refresh_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing refresh metadata for relation '%s'",
+            name != NULL ? name : "(anonymous-relation)");
+        return;
+    }
 
     codebuf_write(ctx->out, "\n/* Relation: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
@@ -168,12 +178,9 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "\nstatic inline void\n%s_sync(%s *self)\n{\n",
                   name, name);
     ctx->indent++;
-    size_t refresh_count = 0;
-    ASTNode **refreshes = ast_relation_refreshes(node, &refresh_count);
-    emit_domain_projection_sync_loop_from_view(ctx,
+    emit_zone_projection_sync_loop_from_mir_refresh_view(ctx,
         &slot_view,
-        refreshes,
-        refresh_count,
+        &refresh_view,
         "relation_projection",
         true);
     ctx->indent--;
@@ -244,6 +251,16 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         transpiler_set_mir_inventory_missing(
             ctx,
             "MIR-only C path missing domain-slot metadata for effect '%s'",
+            name != NULL ? name : "(anonymous-effect)");
+        return;
+    }
+    TranspilerHostedZoneRefreshView refresh_view =
+        transpiler_hosted_zone_refresh_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_zone_refresh_view_missing_mir_metadata(
+            &refresh_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing refresh metadata for effect '%s'",
             name != NULL ? name : "(anonymous-effect)");
         return;
     }
@@ -324,12 +341,9 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "\nstatic inline void\n%s_sync(%s *self)\n{\n",
                   name, name);
     ctx->indent++;
-    size_t refresh_count = 0;
-    ASTNode **refreshes = ast_effect_refreshes(node, &refresh_count);
-    emit_domain_projection_sync_loop_from_view(ctx,
+    emit_zone_projection_sync_loop_from_mir_refresh_view(ctx,
         &slot_view,
-        refreshes,
-        refresh_count,
+        &refresh_view,
         "effect_projection",
         true);
     ctx->indent--;
