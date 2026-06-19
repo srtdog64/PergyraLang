@@ -3,6 +3,15 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-19 LLVM Zone Bind Refresh Cutover
+
+- LLVM zone relation/effect bind invalidation now consumes refresh metadata
+  through `LLVMHostedZoneRefreshView`. Direct `ast_relation_refreshes(...)` and
+  `ast_effect_refreshes(...)` reads are removed from
+  `llvm_domain_zone_bind_lowering.c`.
+- `mir-declaration-inventory-test-smoke` now rejects reopened relation/effect
+  refresh inventory in the LLVM zone bind owner.
+
 ## Progress Log - 2026-06-19 C World Embedded Effect Refresh Cutover
 
 - C world embedded effect sync now consumes relation/effect refresh object/source

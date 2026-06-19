@@ -7337,6 +7337,22 @@ if grep -Fq "ast_zone_refreshes(zone_decl, &refresh_count)" \
     fail "LLVM zone constructor projection-dirty initialization must consume MIR zone refresh metadata"
 fi
 for term in \
+    "LLVMHostedZoneRefreshView effect_refresh_view" \
+    "LLVMHostedZoneRefreshView relation_refresh_view" \
+    "llvm_hosted_zone_refresh_view_missing_mir_metadata" \
+    "llvm_hosted_zone_refresh_view_object_slot_name" \
+    "llvm_hosted_zone_refresh_view_source_slot_name"; do
+    require_term "src/codegen/llvm_domain_zone_bind_lowering.c" "$term"
+done
+if grep -Fq "ast_effect_refreshes(effect_decl, &effect_refresh_count)" \
+    "$ROOT_DIR/src/codegen/llvm_domain_zone_bind_lowering.c"; then
+    fail "LLVM zone effect bind invalidation must consume MIR refresh metadata"
+fi
+if grep -Fq "ast_relation_refreshes(relation_decl, &relation_refresh_count)" \
+    "$ROOT_DIR/src/codegen/llvm_domain_zone_bind_lowering.c"; then
+    fail "LLVM zone relation bind invalidation must consume MIR refresh metadata"
+fi
+for term in \
     "LLVMHostedZoneRefreshView refresh_view" \
     "llvm_hosted_zone_refresh_view_missing_mir_metadata" \
     "llvm_hosted_zone_refresh_view_object_slot_name" \

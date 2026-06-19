@@ -145,12 +145,19 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
         effect_type_name);
     if (effect_decl == NULL)
         return;
-    size_t effect_refresh_count = 0;
-    ASTNode **effect_refreshes =
-        ast_effect_refreshes(effect_decl, &effect_refresh_count);
     effect_name = llvm_decl_node_name(effect_decl);
+    LLVMHostedZoneRefreshView effect_refresh_view =
+        llvm_hosted_zone_refresh_view_from_decl(ctx, effect_name,
+                                                effect_decl);
     LLVMHostedDomainSlotView effect_slot_view =
         llvm_hosted_domain_slot_view_from_decl(ctx, effect_name, effect_decl);
+    if (llvm_hosted_zone_refresh_view_missing_mir_metadata(
+            &effect_refresh_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone effect bind refresh metadata for '%s'",
+            effect_name != NULL ? effect_name : "(anonymous-effect)");
+        return;
+    }
     if (llvm_hosted_domain_slot_view_missing_mir_metadata(
             &effect_slot_view)) {
         llvm_set_mir_inventory_missing(ctx,
@@ -293,8 +300,7 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
             llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, target_value, subject_ptr);
     }
-    for (size_t i = 0; i < effect_refresh_count; i++) {
-        ASTNode *refresh = effect_refreshes[i];
+    for (size_t i = 0; i < effect_refresh_view.count; i++) {
         const char *projection_name;
         const char *source_name;
         char dirty_field[256];
@@ -302,10 +308,12 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
         int dirty_idx;
         int ready_idx;
 
-        if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
-            continue;
-        projection_name = ast_zone_refresh_object_slot_name(refresh);
-        source_name = ast_zone_refresh_source_slot_name(refresh);
+        projection_name =
+            llvm_hosted_zone_refresh_view_object_slot_name(
+                &effect_refresh_view, i);
+        source_name =
+            llvm_hosted_zone_refresh_view_source_slot_name(
+                &effect_refresh_view, i);
         if (projection_name == NULL || source_name == NULL
             || strcmp(source_name, target_binding_name) != 0) {
             continue;
@@ -389,13 +397,20 @@ llvm_zone_bind_relation_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
         relation_type_name);
     if (relation_decl == NULL)
         return;
-    size_t relation_refresh_count = 0;
-    ASTNode **relation_refreshes =
-        ast_relation_refreshes(relation_decl, &relation_refresh_count);
     relation_name = llvm_decl_node_name(relation_decl);
+    LLVMHostedZoneRefreshView relation_refresh_view =
+        llvm_hosted_zone_refresh_view_from_decl(ctx, relation_name,
+                                                relation_decl);
     LLVMHostedDomainSlotView relation_slot_view =
         llvm_hosted_domain_slot_view_from_decl(ctx, relation_name,
                                                relation_decl);
+    if (llvm_hosted_zone_refresh_view_missing_mir_metadata(
+            &relation_refresh_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone relation bind refresh metadata for '%s'",
+            relation_name != NULL ? relation_name : "(anonymous-relation)");
+        return;
+    }
     if (llvm_hosted_domain_slot_view_missing_mir_metadata(
             &relation_slot_view)) {
         llvm_set_mir_inventory_missing(ctx,
@@ -450,8 +465,7 @@ llvm_zone_bind_relation_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
             llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, right_value, subject_ptr);
     }
-    for (size_t i = 0; i < relation_refresh_count; i++) {
-        ASTNode *refresh = relation_refreshes[i];
+    for (size_t i = 0; i < relation_refresh_view.count; i++) {
         const char *projection_name;
         const char *source_name;
         char dirty_field[256];
@@ -459,10 +473,12 @@ llvm_zone_bind_relation_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
         int dirty_idx;
         int ready_idx;
 
-        if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
-            continue;
-        projection_name = ast_zone_refresh_object_slot_name(refresh);
-        source_name = ast_zone_refresh_source_slot_name(refresh);
+        projection_name =
+            llvm_hosted_zone_refresh_view_object_slot_name(
+                &relation_refresh_view, i);
+        source_name =
+            llvm_hosted_zone_refresh_view_source_slot_name(
+                &relation_refresh_view, i);
         if (projection_name == NULL || source_name == NULL)
             continue;
         if (strcmp(source_name, left_binding_name) != 0
