@@ -613,6 +613,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_decl_host_lookup.c \
                    $(CODEGEN_DIR)/transpiler_destructure_emit.c \
                    $(CODEGEN_DIR)/transpiler_domain_constructor_emit.c \
+                   $(CODEGEN_DIR)/transpiler_domain_ability_emit.c \
                    $(CODEGEN_DIR)/transpiler_domain_nominal_emit.c \
                    $(CODEGEN_DIR)/transpiler_domain_provenance_emit.c \
                    $(CODEGEN_DIR)/transpiler_enum_constructor_emit.c \

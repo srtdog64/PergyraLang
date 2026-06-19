@@ -15,6 +15,7 @@ pgy_runtime_lib_strdup(const char *src)
 
 #include "pgy_runtime_io_status.h"
 #include "pgy_runtime_process_exit.h"
+#include "pgy_runtime_strview_inline.h"
 
 /* =================================================================
  * File I/O and string helpers needed by LLVM backend
@@ -385,80 +386,25 @@ char *Substring(const char *s, int32_t start, int32_t len)
  * `needle` within s[start .. start+len) relative to `start`, or -1. */
 int32_t SubIndexOf(const char *s, int32_t start, int32_t len, const char *needle)
 {
-    size_t raw_len, needle_len;
-    int32_t slen, limit, i;
-
-    if (s == NULL || needle == NULL)
-        return -1;
-    raw_len = strlen(s);
-    if (raw_len > (size_t)INT32_MAX)
-        return -1;
-    slen = (int32_t)raw_len;
-    if (start < 0 || start >= slen || len <= 0)
-        return -1;
-    if (len > slen - start)
-        len = slen - start;
-    needle_len = strlen(needle);
-    if (needle_len == 0)
-        return 0;
-    if ((size_t)len < needle_len)
-        return -1;
-    limit = len - (int32_t)needle_len;
-    for (i = 0; i <= limit; i++) {
-        if (memcmp(s + start + i, needle, needle_len) == 0)
-            return i;
-    }
-    return -1;
+    return pgy_strview_indexof(pgy_strview(s, start, len), needle);
 }
 
 /* Allocation-free Substring(s, start, len) == other. */
 bool SubEquals(const char *s, int32_t start, int32_t len, const char *other)
 {
-    size_t raw_len, other_len;
-    int32_t slen;
-
-    if (s == NULL || other == NULL)
-        return false;
-    raw_len = strlen(s);
-    if (raw_len > (size_t)INT32_MAX)
-        return false;
-    slen = (int32_t)raw_len;
-    if (start < 0 || start >= slen || len <= 0)
-        return other[0] == '\0';
-    if (len > slen - start)
-        len = slen - start;
-    other_len = strlen(other);
-    if ((size_t)len != other_len)
-        return false;
-    return memcmp(s + start, other, other_len) == 0;
+    return pgy_strview_equals(pgy_strview(s, start, len), other);
 }
 
 /* Allocation-free: `needle` occurs within s[start .. start+len). */
 bool SubContains(const char *s, int32_t start, int32_t len, const char *needle)
 {
-    return SubIndexOf(s, start, len, needle) >= 0;
+    return pgy_strview_indexof(pgy_strview(s, start, len), needle) >= 0;
 }
 
 /* Allocation-free: the suffix s[start..] begins with `prefix`. */
 bool SubStartsWith(const char *s, int32_t start, const char *prefix)
 {
-    size_t raw_len, prefix_len;
-    int32_t slen;
-
-    if (s == NULL || prefix == NULL)
-        return false;
-    raw_len = strlen(s);
-    if (raw_len > (size_t)INT32_MAX)
-        return false;
-    slen = (int32_t)raw_len;
-    if (start < 0 || start > slen)
-        return false;
-    prefix_len = strlen(prefix);
-    if (prefix_len == 0)
-        return true;
-    if ((size_t)(slen - start) < prefix_len)
-        return false;
-    return memcmp(s + start, prefix, prefix_len) == 0;
+    return pgy_strview_starts_with(s, start, prefix);
 }
 
 char *StringReplace(const char *s, const char *old_str, const char *new_str)

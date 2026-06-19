@@ -12,7 +12,6 @@ bool transpiler_domain_nominal_surface_desc(char *out,
 void transpiler_domain_nominal_surface_desc_too_long(
     TranspilerCtx *ctx,
     const char *surface_kind);
-void emit_ability_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_role_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_party_decl(ASTNode *node, TranspilerCtx *ctx);
 

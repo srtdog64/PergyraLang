@@ -76,6 +76,41 @@ pgy_strview_indexof(PgyStrView v, const char *needle)
     return -1;
 }
 
+static inline bool
+pgy_strview_equals(PgyStrView v, const char *other)
+{
+    size_t n;
+
+    if (other == NULL)
+        return false;
+    n = strlen(other);
+    if (v.length < 0 || (size_t)v.length != n)
+        return false;
+    return memcmp(v.data, other, n) == 0;
+}
+
+static inline bool
+pgy_strview_starts_with(const char *s, int32_t start, const char *prefix)
+{
+    size_t raw_len, prefix_len;
+    int32_t slen;
+
+    if (s == NULL || prefix == NULL)
+        return false;
+    raw_len = strlen(s);
+    if (raw_len > (size_t)INT32_MAX)
+        return false;
+    slen = (int32_t)raw_len;
+    if (start < 0 || start > slen)
+        return false;
+    prefix_len = strlen(prefix);
+    if (prefix_len == 0)
+        return true;
+    if ((size_t)(slen - start) < prefix_len)
+        return false;
+    return memcmp(s + start, prefix, prefix_len) == 0;
+}
+
 /* Materialize a view into an owned NUL-terminated string when one is genuinely
  * needed (escape hatch back to the `char *` String world). Allocates. */
 static inline char *

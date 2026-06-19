@@ -1,19 +1,21 @@
 # Stdlib Dispatch Inventory Checker -- Intent / Contract
 
 **Status:** *rung-2 minimal* (2026-05-27). Reads two C-side dispatch tables
-that must agree on stdlib scalar-IO entry counts, emits the validator
-schema.
+that must stay inside the documented stdlib scalar-IO inventory drift
+tolerance, emits the validator schema.
 
 ## Intent
 
-Adding a new stdlib scalar/IO builtin requires updates in *both* the
-C-backend transpiler dispatch (`transpiler_expr_stdlib_scalar_builtin.c`)
-and the LLVM-backend stdlib registry (`llvm_expr_stdlib_scalar_io_calls.c`).
+Adding a new stdlib scalar/IO builtin should update *both* the C-backend
+transpiler dispatch (`transpiler_expr_stdlib_scalar_builtin.c`) and the
+LLVM-backend stdlib registry (`llvm_expr_stdlib_scalar_io_calls.c`).
 When the two drift (e.g. `StringJoin` was once C-only and crashed the LLVM
 backend until the LLVM entry was added during the 2026-05-26 self-host
 dogfood pass), backend-compare fixtures silently catch the regression but
 without telling the developer *which* surface drifted. This tool surfaces
-the drift directly at inventory time.
+the drift directly at inventory time. The current contract allows a small
+known offset between the C split-table anchors and the single LLVM table;
+the long-term ratchet is `drift_tolerance = 0`.
 
 ## Input Contract
 
@@ -40,15 +42,16 @@ JSON document on stdout, conforming to schema
     "llvm_dispatch_owner": "src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
   },
   "counts": {
-    "c_entries": 46,
-    "llvm_entries": 51,
+    "c_entries": 50,
+    "llvm_entries": 55,
     "drift": 0
   },
   "findings": []
 }
 ```
 
-- `ok = (counts.drift == 0)`.
+- `ok = (counts.drift == 0)`, where `drift` is set only when the raw
+  C/LLVM count difference exceeds the checker tolerance.
 - `findings[]` carries:
   - `{ "kind": "count_drift", "c_entries": <int>, "llvm_entries": <int>,
        "location": "..." }` when counts differ.

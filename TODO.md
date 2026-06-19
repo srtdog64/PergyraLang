@@ -9288,8 +9288,11 @@ under `src/self_hosted/tools/`. Reads the two C-source dispatch tables that
 *must agree* in entry count when a builtin lands:
 `src/codegen/transpiler_expr_stdlib_scalar_builtin.c` (C backend dispatch)
 and `src/codegen/llvm_expr_stdlib_scalar_io_calls.c` (LLVM backend
-registry). Counts `, TRANSPILER_SCALAR_OP_` (33) and `"stdlib ` (33)
-respectively via `CountOccurrences`, asserts equality. Emits
+registry). Counts the C split dispatch anchors (`c_entries=50`) and LLVM
+registry anchors (`llvm_entries=55`) via `CountOccurrences`, and currently
+asserts the known raw-count offset remains inside the documented tolerance
+(`drift=0`). The long-term ratchet is to align the inventories and lower
+that tolerance to zero. Emits
 `pgy.selfhost.stdlib-dispatch-inventory.v1`. Parity rung 2 asserts:
 clean exit, JSON byte-equal vs `expected/clean.json`, count parity vs
 shell `grep -c`, and a synthetic drift fixture (strip one
@@ -9337,7 +9340,7 @@ committed file list; the current contract is DirWalk-owned. The tool calls
 `tests/production_header_size_smoke.sh`, `ReadFile`s each header, counts
 newlines through `TextScan.CountLines`, and asserts each header is `<= 600`
 LOC. It emits `pgy.selfhost.production-header-size.v1` with
-`headers=543 violations=0 max_lines=599` on the clean repo. Parity rung 2
+`headers=548 violations=0 max_lines=600` on the clean repo. Parity rung 2
 asserts: clean exit, JSON byte-equal vs `expected/clean.json`,
 `headers/violations/max_lines` parity vs shell `find + wc -l` ground truth, and
 a synthetic 701-line `.h` under `src/runtime` yields `rc=1` with a
@@ -9348,7 +9351,7 @@ a synthetic 701-line `.h` under `src/runtime` yields `rc=1` with a
 but covering production `.c` translation units against the 699-LOC hard cap.
 The current contract is DirWalk-owned: it calls `DirWalk("src")`, filters the
 same production `.c` scope as `tests/test_inc_size_smoke.sh`, and emits
-`pgy.selfhost.production-c-size.v1` with `c_files=864 violations=0
+`pgy.selfhost.production-c-size.v1` with `c_files=869 violations=0
 max_lines=699` on the clean repo. Parity rung 2 asserts: clean exit,
 JSON byte-equal, `c_files/violations/max_lines` parity vs shell `find + wc -l`,
 and a synthetic 1001-line `.c` under `src/runtime` yields `rc=1` with a

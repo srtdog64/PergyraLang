@@ -262,6 +262,24 @@ llvm_add_fn_attr(LLVMGenCtx *ctx, LLVMValueRef fn, unsigned kind)
             LLVMCreateEnumAttribute(ctx->context, kind, 0));
 }
 
+static bool
+llvm_module_has_runtime_call_use(LLVMGenCtx *ctx, const char *fn_name)
+{
+    LLVMValueRef fn;
+    LLVMUseRef use;
+
+    if (ctx == NULL || ctx->module == NULL || fn_name == NULL)
+        return false;
+    fn = LLVMGetNamedFunction(ctx->module, fn_name);
+    if (fn == NULL)
+        return false;
+    for (use = LLVMGetFirstUse(fn); use != NULL; use = LLVMGetNextUse(use)) {
+        if (LLVMGetUser(use) != NULL)
+            return true;
+    }
+    return false;
+}
+
 /*
  * Pull the runtime into the module as LLVM IR before optimization so the
  * inliner can fold runtime primitives (Substring, StringConcat, ...) the way
@@ -281,6 +299,8 @@ llvm_link_runtime_bitcode(LLVMGenCtx *ctx)
     char *message = NULL;
 
     if (ctx == NULL || ctx->module == NULL)
+        return;
+    if (llvm_module_has_runtime_call_use(ctx, "pgy_exit"))
         return;
 
     bc_path = getenv("PGY_RUNTIME_BC");

@@ -10,6 +10,7 @@
 #include "transpiler_defer_emit.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_destructure_emit.h"
+#include "transpiler_domain_ability_emit.h"
 #include "transpiler_enum_decl_emit.h"
 #include "transpiler_event_emit.h"
 #include "transpiler_match_emit.h"

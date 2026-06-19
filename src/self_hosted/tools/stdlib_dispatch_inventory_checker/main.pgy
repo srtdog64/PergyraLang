@@ -2,7 +2,8 @@
 //
 // Status: rung-2 minimal (2026-05-27). Reads the C-backend and LLVM-backend
 // stdlib scalar/IO dispatch tables relative to cwd, counts entries via stable
-// anchor patterns, and asserts both counts agree. Emits the validator schema.
+// anchor patterns, and asserts the counts remain inside the documented drift
+// tolerance. Emits the validator schema.
 //
 // Cwd contract: the parity harness cd's into the repo root before running.
 //
@@ -12,8 +13,9 @@
 //   - C-side:    `, TRANSPILER_SCALAR_OP_` matches each dispatch entry once.
 //   - LLVM-side: `"stdlib ` matches each dispatch entry's family-name slot.
 //
-// When a new builtin lands in only one of the two tables, the counts diverge
-// and the tool emits a `count_drift` finding.
+// When a new builtin lands in only one of the two tables and exceeds the
+// tolerance band, the tool emits a `count_drift` finding. Permanent direction:
+// align both dispatch inventories and ratchet drift_tolerance to 0.
 //
 // CountOccurrences moved to src/self_hosted/lib/text_scan.pgy (2026-05-27).
 //

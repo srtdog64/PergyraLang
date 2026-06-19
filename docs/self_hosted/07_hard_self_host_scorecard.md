@@ -29,6 +29,28 @@ back-pointers are removed, and MIR validation no longer compares generic, enum,
 method, or field metadata against original AST nodes. Source_decl is ratcheted
 at codegen 0 / compiler 0, and routine_source_decl_codegen is ratcheted at 0.
 
+## Compiler Maturity Bar
+
+Hard self-hosting is not measured by rewriting more compiler code in Pergyra
+while the C and LLVM backends still carry compatibility escape paths. The short
+path to maturity is a narrow, verified core:
+
+- Every IR layer needs a verifier that owns its contract: AIR evidence,
+  HIR/DAG type resolution, MIR CFG/body/ownership facts, ABI layout facts, and
+  backend fact consumption.
+- Compatibility fallback is counted as debt, not as support surface. Semantic
+  fallback must ratchet to zero; provenance fallback is allowed only under an
+  explicit source/provenance name.
+- C, LLVM, and self-hosted tools form a three-way oracle. Execution output is
+  not enough; ABI shape, diagnostics, AIR/MIR JSON, authority/effect evidence,
+  layout facts, and deterministic ordering are golden-test material.
+- Canonicalization comes before optimization: the same meaning should produce
+  the same MIR, the same ABI facts, stable declaration/generic/ability order,
+  and stable emitted-code diffs.
+- Pergyra's competitive axis is preserving intent/effect/authority and
+  coordination evidence as first-class AOT IR facts through backend emission,
+  not merely matching Swift SIL or Rust MIR feature-for-feature.
+
 ## Tiers
 
 READY means the capability is gated and its Phase 1 mechanism is complete.

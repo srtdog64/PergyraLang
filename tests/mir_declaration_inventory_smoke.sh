@@ -5319,9 +5319,8 @@ fi
 c_ability_decl_body="$(
     awk '
         /emit_ability_decl\(ASTNode \*node, TranspilerCtx \*ctx\)/ { in_body = 1 }
-        /emit_role_decl\(ASTNode \*node, TranspilerCtx \*ctx\)/ { in_body = 0 }
         in_body { print }
-    ' "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c"
+    ' "$ROOT_DIR/src/codegen/transpiler_domain_ability_emit.c"
 )"
 for term in \
     "TranspilerAbilityMethodView methods" \
@@ -5340,13 +5339,13 @@ done
 if grep -Eq 'ast_ability_method_(count|method)\(' <<<"$c_ability_decl_body"; then
     fail "C ability typedef emission must not reopen AST ability method arrays"
 fi
-require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+require_term "src/codegen/transpiler_domain_ability_emit.c" \
     "transpiler_active_decl_header_of_type("
-require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+require_term "src/codegen/transpiler_domain_ability_emit.c" \
     "ctx, AST_ABILITY_DECL, ability_name"
-require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+require_term "src/codegen/transpiler_domain_ability_emit.c" \
     "mir_decl_header_method_count(view.decl_header)"
-require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+require_term "src/codegen/transpiler_domain_ability_emit.c" \
     "mir_decl_header_generic_param_count(methods.decl_header)"
 require_term "src/codegen/llvm_domain_role_lookup.c" \
     "llvm_render_mir_ability_formal_fallback"
@@ -6910,6 +6909,7 @@ if grep -R "data\.role_decl\.\(for_type\|includes\|include_count\|impl_abilities
 fi
 if grep -R "data\.ability_decl\.\(methods\|method_count\)" \
     "$ROOT_DIR/src/codegen/llvm_domain_forward.c" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_ability_emit.c" \
     "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c" \
     "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_emit.c" >/dev/null; then
     fail "C/LLVM ability method inventory paths must use AST ability accessors"
