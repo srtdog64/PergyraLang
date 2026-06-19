@@ -1,0 +1,11 @@
+// bench_forloop.pgy - for-in iteration over an array, repeated in a tight loop.
+func Main() -> Void {
+    let xs: Array<Int> = [1, 2, 3, 4, 5];
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < 10000000 {
+        for n in xs { total = total + n; }
+        i = i + 1;
+    }
+    Log("for=" + ToString(total));
+}

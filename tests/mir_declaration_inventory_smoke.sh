@@ -2696,6 +2696,22 @@ if [[ -n "$shared_field_source_accessor_hits" ]]; then
     fail "shared-field source AST accessors must stay retired:
 $shared_field_source_accessor_hits"
 fi
+for rel in \
+    "src/codegen/llvm_inventory_zone_refresh_view.c" \
+    "src/codegen/transpiler_decl_zone_refresh_view.c"; do
+    require_term "$rel" "zone_refresh_view_mapped_source_field"
+    require_term "$rel" "zone_refresh_view_mentions_source_field"
+done
+zone_refresh_compat_hits="$(
+    grep -RIn "ast_compat_refreshes" \
+        "$ROOT_DIR/src/codegen" \
+        --include='*.c' --include='*.h' |
+        grep -Ev 'src/codegen/(llvm_inventory_decl_lookup\.h|llvm_inventory_zone_refresh_view\.c|transpiler_decl_lookup\.h|transpiler_decl_zone_refresh_view\.c):' || true
+)"
+if [[ -n "$zone_refresh_compat_hits" ]]; then
+    fail "zone refresh compatibility arrays must stay behind declaration refresh view owners:
+$zone_refresh_compat_hits"
+fi
 zone_layer_slot_hits="$(
     grep -RIn "ast_zone_layer_slots" \
         "$ROOT_DIR/src/codegen" \
@@ -4816,9 +4832,9 @@ if grep -Eq 'llvm_(boundary_slot_param|expr_projection_path_helpers)\.h' \
     fail "LLVM boundary projection helper header must not re-export unrelated owner headers"
 fi
 require_term "src/codegen/llvm_domain_projection_sync_body_helpers.c" \
-    "llvm_build_domain_projection_value(ctx, target_cls"
+    "llvm_build_domain_projection_value_from_zone_refresh_view("
 require_term "src/codegen/llvm_domain_projection_sync_body_helpers.c" \
-    "source_cls, source_type_name, refresh, source_ptr)"
+    "&refresh_view, i, source_ptr)"
 require_term "src/codegen/llvm_domain_projection_sync_body_helpers.c" \
     "LLVMHostedDomainSlotView slot_view"
 require_term "src/codegen/llvm_domain_projection_sync_body_helpers.c" \
@@ -7137,12 +7153,12 @@ for term in \
     "transpiler_hosted_zone_refresh_view_object_slot_name" \
     "transpiler_hosted_zone_refresh_view_source_slot_name"; do
     require_term "src/codegen/transpiler_decl_lookup.h" "$term"
-    require_term "src/codegen/transpiler_decl_slot_view.c" "$term"
+    require_term "src/codegen/transpiler_decl_zone_refresh_view.c" "$term"
 done
 for term in \
     "ast_relation_refreshes(decl, &compat_count)" \
     "ast_effect_refreshes(decl, &compat_count)"; do
-    require_term "src/codegen/transpiler_decl_slot_view.c" "$term"
+    require_term "src/codegen/transpiler_decl_zone_refresh_view.c" "$term"
 done
 for term in \
     "emit_projection_literal_by_zone_refresh_metadata" \
@@ -7209,8 +7225,7 @@ for term in \
     "CurrentOverlayRefreshView" \
     "TranspilerHostedZoneRefreshView zone_refresh_view" \
     "transpiler_hosted_zone_refresh_view_missing_mir_metadata" \
-    "transpiler_hosted_zone_refresh_view_metadata" \
-    "mir_decl_zone_refresh_mapped_source_field"; do
+    "transpiler_hosted_zone_refresh_view_mapped_source_field"; do
     require_term "src/codegen/transpiler_overlay_projection.c" "$term"
 done
 if grep -Fq "ast_zone_refreshes(decl, refresh_count_out)" \
@@ -7289,7 +7304,7 @@ require_term "src/codegen/llvm_domain_projection_value_helpers.h" \
 for term in \
     "LLVMHostedZoneRefreshView refresh_view" \
     "llvm_hosted_zone_refresh_view_missing_mir_metadata" \
-    "llvm_build_domain_projection_value_from_zone_refresh_metadata"; do
+    "llvm_build_domain_projection_value_from_zone_refresh_view"; do
     require_term "src/codegen/llvm_domain_projection_sync_body_helpers.c" "$term"
 done
 for term in \
@@ -7381,7 +7396,7 @@ for term in \
     "LLVMHostedZoneRefreshView refresh_view" \
     "LLVMHostedZoneRefreshView embedded_refresh_view" \
     "llvm_emit_projection_invalidations_for_zone_refresh_view" \
-    "mir_decl_zone_refresh_mapped_source_field" \
+    "llvm_hosted_zone_refresh_view_mentions_source_field" \
     "llvm_hosted_zone_refresh_view_missing_mir_metadata"; do
     require_term "src/codegen/llvm_expr_assignment_projection.c" "$term"
 done

@@ -91,46 +91,6 @@ llvm_host_projection_source_from_assignment(LLVMGenCtx *ctx,
     return false;
 }
 
-static bool
-llvm_refresh_mentions_source_field(ASTNode *refresh, const char *source_field)
-{
-    if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
-        return false;
-    if (source_field == NULL)
-        return true;
-    if (ast_zone_refresh_field_map_count(refresh) == 0)
-        return true;
-
-    for (size_t i = 0; i < ast_zone_refresh_field_map_count(refresh); i++) {
-        const char *mapped_source =
-            ast_zone_refresh_mapped_source_field(refresh, i);
-        if (mapped_source != NULL && strcmp(mapped_source, source_field) == 0)
-            return true;
-    }
-    return false;
-}
-
-static bool
-llvm_zone_refresh_metadata_mentions_source_field(
-    const MIRDeclZoneRefresh *refresh,
-    const char *source_field)
-{
-    if (refresh == NULL)
-        return false;
-    if (source_field == NULL)
-        return true;
-    if (mir_decl_zone_refresh_field_map_count(refresh) == 0)
-        return true;
-
-    for (size_t i = 0; i < mir_decl_zone_refresh_field_map_count(refresh); i++) {
-        const char *mapped_source =
-            mir_decl_zone_refresh_mapped_source_field(refresh, i);
-        if (mapped_source != NULL && strcmp(mapped_source, source_field) == 0)
-            return true;
-    }
-    return false;
-}
-
 static void
 llvm_emit_projection_invalidations_for_zone_refresh_view(
     LLVMGenCtx *ctx,
@@ -146,19 +106,13 @@ llvm_emit_projection_invalidations_for_zone_refresh_view(
     }
 
     for (size_t i = 0; i < refresh_view->count; i++) {
-        const MIRDeclZoneRefresh *refresh =
-            llvm_hosted_zone_refresh_view_metadata(refresh_view, i);
         const char *target_slot =
             llvm_hosted_zone_refresh_view_object_slot_name(refresh_view, i);
         const char *refresh_source =
             llvm_hosted_zone_refresh_view_source_slot_name(refresh_view, i);
-        bool mentions_source_field = refresh != NULL
-            ? llvm_zone_refresh_metadata_mentions_source_field(refresh,
-                source_field)
-            : llvm_refresh_mentions_source_field(
-                refresh_view->ast_compat_refreshes != NULL
-                    ? refresh_view->ast_compat_refreshes[i] : NULL,
-                source_field);
+        bool mentions_source_field =
+            llvm_hosted_zone_refresh_view_mentions_source_field(
+                refresh_view, i, source_field);
         char field_name[256];
         int field_idx;
 

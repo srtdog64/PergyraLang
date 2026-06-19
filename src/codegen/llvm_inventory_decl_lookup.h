@@ -201,6 +201,14 @@ const char *llvm_hosted_zone_refresh_view_object_slot_name(
 const char *llvm_hosted_zone_refresh_view_source_slot_name(
     const LLVMHostedZoneRefreshView *view,
     size_t index);
+const char *llvm_hosted_zone_refresh_view_mapped_source_field(
+    const LLVMHostedZoneRefreshView *view,
+    size_t index,
+    const char *target_field_name);
+bool llvm_hosted_zone_refresh_view_mentions_source_field(
+    const LLVMHostedZoneRefreshView *view,
+    size_t index,
+    const char *source_field_name);
 LLVMHostedDomainSlotView llvm_hosted_domain_slot_view_from_decl(
     const LLVMGenCtx *ctx,
     const char *host_name,

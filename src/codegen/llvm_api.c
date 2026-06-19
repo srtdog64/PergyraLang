@@ -170,7 +170,38 @@ llvm_run_optimization(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
                       const char *triple, bool release_opt)
 {
     llvm_apply_target_machine(ctx, machine, triple);
-    (void)release_opt;
+
+    unsigned noreturn_kind = LLVMGetEnumAttributeKindForName("noreturn", 8);
+    unsigned cold_kind = LLVMGetEnumAttributeKindForName("cold", 4);
+    for (LLVMValueRef fn = LLVMGetFirstFunction(ctx->module);
+         fn != NULL; fn = LLVMGetNextFunction(fn)) {
+        const char *fn_name = LLVMGetValueName(fn);
+        if (fn_name != NULL && strstr(fn_name, "panic") != NULL) {
+            if (noreturn_kind != 0)
+                LLVMAddAttributeAtIndex(fn, LLVMAttributeFunctionIndex,
+                    LLVMCreateEnumAttribute(ctx->context, noreturn_kind, 0));
+            if (cold_kind != 0)
+                LLVMAddAttributeAtIndex(fn, LLVMAttributeFunctionIndex,
+                    LLVMCreateEnumAttribute(ctx->context, cold_kind, 0));
+        }
+        if (LLVMIsDeclaration(fn))
+            continue;
+        if (fn_name != NULL && strcmp(fn_name, "main") == 0)
+            continue;
+        LLVMSetLinkage(fn, LLVMInternalLinkage);
+    }
+
+    LLVMPassBuilderOptionsRef options = LLVMCreatePassBuilderOptions();
+    if (options == NULL)
+        return;
+    const char *pipeline = release_opt ? "default<O3>" : "default<O2>";
+    LLVMErrorRef err = LLVMRunPasses(ctx->module, pipeline, machine, options);
+    if (err != NULL) {
+        char *msg = LLVMGetErrorMessage(err);
+        if (msg != NULL)
+            LLVMDisposeErrorMessage(msg);
+    }
+    LLVMDisposePassBuilderOptions(options);
 }
 
 static LLVMGenResult *

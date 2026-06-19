@@ -600,6 +600,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_decl_lookup.c \
                    $(CODEGEN_DIR)/transpiler_decl_field_view.c \
                    $(CODEGEN_DIR)/transpiler_decl_slot_view.c \
+                   $(CODEGEN_DIR)/transpiler_decl_zone_refresh_view.c \
                    $(CODEGEN_DIR)/transpiler_decl_role_roster_slot_view.c \
                    $(CODEGEN_DIR)/transpiler_decl_method_view.c \
                    $(CODEGEN_DIR)/transpiler_decl_host_lookup.c \

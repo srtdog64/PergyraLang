@@ -1,23 +1,20 @@
 /*
  * Copyright (c) 2026 Pergyra Language Project
- * LLVM hosted zone refresh metadata view.
+ * Hosted declaration zone refresh metadata view lowering.
  */
-
-#ifdef PGY_LLVM_ENABLED
-
-#include "llvm_internal.h"
-
-#include <string.h>
 
 #include "../compiler/mir_decl_headers.h"
 #include "../parser/ast_api.h"
+#include "transpiler_decl_lookup.h"
 
-LLVMHostedZoneRefreshView
-llvm_hosted_zone_refresh_view_from_decl(const LLVMGenCtx *ctx,
-                                        const char *host_name,
-                                        ASTNode *decl)
+#include <string.h>
+
+TranspilerHostedZoneRefreshView
+transpiler_hosted_zone_refresh_view_from_decl(const TranspilerCtx *ctx,
+                                              const char *host_name,
+                                              ASTNode *decl)
 {
-    LLVMHostedZoneRefreshView view;
+    TranspilerHostedZoneRefreshView view;
     ASTNode **compat_refreshes = NULL;
     size_t compat_count = 0;
     const MIRDeclHeader *header = NULL;
@@ -34,10 +31,10 @@ llvm_hosted_zone_refresh_view_from_decl(const LLVMGenCtx *ctx,
     view.ast_compat_count = compat_count;
     view.count = compat_count;
     view.uses_mir_metadata = false;
-    view.requires_mir_metadata = llvm_active_has_mir(ctx)
-        && compat_count > 0;
+    view.requires_mir_metadata =
+        transpiler_active_has_mir(ctx) && compat_count > 0;
 
-    header = llvm_find_host_decl_header_in_context(ctx, host_name);
+    header = transpiler_active_host_decl_header(ctx, host_name);
     if (header != NULL) {
         ASTNodeType header_type =
             mir_decl_header_ast_type_or(header, AST_PROGRAM);
@@ -55,8 +52,8 @@ llvm_hosted_zone_refresh_view_from_decl(const LLVMGenCtx *ctx,
 }
 
 bool
-llvm_hosted_zone_refresh_view_missing_mir_metadata(
-    const LLVMHostedZoneRefreshView *view)
+transpiler_hosted_zone_refresh_view_missing_mir_metadata(
+    const TranspilerHostedZoneRefreshView *view)
 {
     return view != NULL
         && view->requires_mir_metadata
@@ -66,8 +63,9 @@ llvm_hosted_zone_refresh_view_missing_mir_metadata(
 }
 
 const MIRDeclZoneRefresh *
-llvm_hosted_zone_refresh_view_metadata(const LLVMHostedZoneRefreshView *view,
-                                       size_t index)
+transpiler_hosted_zone_refresh_view_metadata(
+    const TranspilerHostedZoneRefreshView *view,
+    size_t index)
 {
     if (view == NULL || !view->uses_mir_metadata
         || view->decl_header == NULL || index >= view->count) {
@@ -77,12 +75,12 @@ llvm_hosted_zone_refresh_view_metadata(const LLVMHostedZoneRefreshView *view,
 }
 
 const char *
-llvm_hosted_zone_refresh_view_object_slot_name(
-    const LLVMHostedZoneRefreshView *view,
+transpiler_hosted_zone_refresh_view_object_slot_name(
+    const TranspilerHostedZoneRefreshView *view,
     size_t index)
 {
     const MIRDeclZoneRefresh *refresh =
-        llvm_hosted_zone_refresh_view_metadata(view, index);
+        transpiler_hosted_zone_refresh_view_metadata(view, index);
 
     if (view == NULL || index >= view->count)
         return NULL;
@@ -97,12 +95,12 @@ llvm_hosted_zone_refresh_view_object_slot_name(
 }
 
 const char *
-llvm_hosted_zone_refresh_view_source_slot_name(
-    const LLVMHostedZoneRefreshView *view,
+transpiler_hosted_zone_refresh_view_source_slot_name(
+    const TranspilerHostedZoneRefreshView *view,
     size_t index)
 {
     const MIRDeclZoneRefresh *refresh =
-        llvm_hosted_zone_refresh_view_metadata(view, index);
+        transpiler_hosted_zone_refresh_view_metadata(view, index);
 
     if (view == NULL || index >= view->count)
         return NULL;
@@ -117,13 +115,13 @@ llvm_hosted_zone_refresh_view_source_slot_name(
 }
 
 const char *
-llvm_hosted_zone_refresh_view_mapped_source_field(
-    const LLVMHostedZoneRefreshView *view,
+transpiler_hosted_zone_refresh_view_mapped_source_field(
+    const TranspilerHostedZoneRefreshView *view,
     size_t index,
     const char *target_field_name)
 {
     const MIRDeclZoneRefresh *refresh =
-        llvm_hosted_zone_refresh_view_metadata(view, index);
+        transpiler_hosted_zone_refresh_view_metadata(view, index);
 
     if (view == NULL || index >= view->count || target_field_name == NULL)
         return NULL;
@@ -162,13 +160,13 @@ llvm_hosted_zone_refresh_view_mapped_source_field(
 }
 
 bool
-llvm_hosted_zone_refresh_view_mentions_source_field(
-    const LLVMHostedZoneRefreshView *view,
+transpiler_hosted_zone_refresh_view_mentions_source_field(
+    const TranspilerHostedZoneRefreshView *view,
     size_t index,
     const char *source_field_name)
 {
     const MIRDeclZoneRefresh *refresh =
-        llvm_hosted_zone_refresh_view_metadata(view, index);
+        transpiler_hosted_zone_refresh_view_metadata(view, index);
 
     if (view == NULL || index >= view->count)
         return false;
@@ -207,5 +205,3 @@ llvm_hosted_zone_refresh_view_mentions_source_field(
     }
     return false;
 }
-
-#endif

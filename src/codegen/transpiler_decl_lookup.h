@@ -273,6 +273,14 @@ const char *transpiler_hosted_zone_refresh_view_object_slot_name(
 const char *transpiler_hosted_zone_refresh_view_source_slot_name(
     const TranspilerHostedZoneRefreshView *view,
     size_t index);
+const char *transpiler_hosted_zone_refresh_view_mapped_source_field(
+    const TranspilerHostedZoneRefreshView *view,
+    size_t index,
+    const char *target_field_name);
+bool transpiler_hosted_zone_refresh_view_mentions_source_field(
+    const TranspilerHostedZoneRefreshView *view,
+    size_t index,
+    const char *source_field_name);
 TranspilerHostedDomainSlotView
 transpiler_hosted_domain_slot_view_from_decl(const TranspilerCtx *ctx,
                                              const char *host_name,

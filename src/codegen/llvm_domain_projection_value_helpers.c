@@ -385,6 +385,8 @@ llvm_build_domain_projection_value_internal(
     const char *source_type_name,
     ASTNode *ast_refresh,
     const MIRDeclZoneRefresh *mir_refresh,
+    const LLVMHostedZoneRefreshView *refresh_view,
+    size_t refresh_index,
     LLVMValueRef source_ptr)
 {
     LLVMValueRef projected;
@@ -409,6 +411,11 @@ llvm_build_domain_projection_value_internal(
         source_field_name =
             llvm_domain_projection_mir_refresh_mapped_source(mir_refresh,
                 target_field_name);
+        if (source_field_name == NULL && refresh_view != NULL) {
+            source_field_name =
+                llvm_hosted_zone_refresh_view_mapped_source_field(
+                    refresh_view, refresh_index, target_field_name);
+        }
         if (source_field_name == NULL) {
             source_field_name =
                 llvm_domain_projection_ast_refresh_mapped_source(ast_refresh,
@@ -442,6 +449,8 @@ llvm_build_domain_projection_value(LLVMGenCtx *ctx,
         source_type_name,
         refresh,
         NULL,
+        NULL,
+        0,
         source_ptr);
 }
 
@@ -460,6 +469,29 @@ llvm_build_domain_projection_value_from_zone_refresh_metadata(
         source_type_name,
         NULL,
         refresh,
+        NULL,
+        0,
+        source_ptr);
+}
+
+LLVMValueRef
+llvm_build_domain_projection_value_from_zone_refresh_view(
+    LLVMGenCtx *ctx,
+    LLVMClassTypeEntry *target_cls,
+    LLVMClassTypeEntry *source_cls,
+    const char *source_type_name,
+    const LLVMHostedZoneRefreshView *refresh_view,
+    size_t refresh_index,
+    LLVMValueRef source_ptr)
+{
+    return llvm_build_domain_projection_value_internal(ctx,
+        target_cls,
+        source_cls,
+        source_type_name,
+        NULL,
+        llvm_hosted_zone_refresh_view_metadata(refresh_view, refresh_index),
+        refresh_view,
+        refresh_index,
         source_ptr);
 }
 

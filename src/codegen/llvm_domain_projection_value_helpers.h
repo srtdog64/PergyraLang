@@ -3,6 +3,8 @@
 
 #include "llvm_internal.h"
 
+typedef struct LLVMHostedZoneRefreshView LLVMHostedZoneRefreshView;
+
 LLVMValueRef llvm_load_domain_projection_path_value_by_name(
     LLVMGenCtx *ctx,
     const char *source_type_name,
@@ -22,6 +24,14 @@ LLVMValueRef llvm_build_domain_projection_value_from_zone_refresh_metadata(
     LLVMClassTypeEntry *source_cls,
     const char *source_type_name,
     const MIRDeclZoneRefresh *refresh,
+    LLVMValueRef source_ptr);
+LLVMValueRef llvm_build_domain_projection_value_from_zone_refresh_view(
+    LLVMGenCtx *ctx,
+    LLVMClassTypeEntry *target_cls,
+    LLVMClassTypeEntry *source_cls,
+    const char *source_type_name,
+    const LLVMHostedZoneRefreshView *refresh_view,
+    size_t refresh_index,
     LLVMValueRef source_ptr);
 
 #endif

@@ -1,0 +1,8 @@
+// bench_generic.pgy - monomorphized generic function call in a tight loop.
+func Echo<T>(x: T) -> T { return x; }
+func Main() -> Void {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < 50000000 { total = total + Echo<Int>(i); i = i + 1; }
+    Log("gen=" + ToString(total));
+}

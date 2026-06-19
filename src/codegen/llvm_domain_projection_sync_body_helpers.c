@@ -160,8 +160,6 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
             pass_addr);
 
         for (size_t i = 0; i < refresh_view.count; i++) {
-            ASTNode *refresh = NULL;
-            const MIRDeclZoneRefresh *zone_refresh = NULL;
             LLVMClassTypeEntry *target_cls;
             LLVMClassTypeEntry *source_cls;
             int target_index;
@@ -174,12 +172,6 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
             const char *target_type_name;
             const char *source_type_name;
 
-            zone_refresh = llvm_hosted_zone_refresh_view_metadata(
-                &refresh_view, i);
-            if (zone_refresh == NULL
-                && refresh_view.ast_compat_refreshes != NULL) {
-                refresh = refresh_view.ast_compat_refreshes[i];
-            }
             target_slot_name =
                 llvm_hosted_zone_refresh_view_object_slot_name(
                     &refresh_view, i);
@@ -247,12 +239,10 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
                             ready_ptr);
                     }
 
-                    projected = zone_refresh != NULL
-                        ? llvm_build_domain_projection_value_from_zone_refresh_metadata(
+                    projected =
+                        llvm_build_domain_projection_value_from_zone_refresh_view(
                             ctx, target_cls, source_cls, source_type_name,
-                            zone_refresh, source_ptr)
-                        : llvm_build_domain_projection_value(ctx, target_cls,
-                            source_cls, source_type_name, refresh, source_ptr);
+                            &refresh_view, i, source_ptr);
                     if (projected == NULL || ctx->has_error)
                         return;
                     LLVMBuildStore(ctx->builder, projected, target_ptr);

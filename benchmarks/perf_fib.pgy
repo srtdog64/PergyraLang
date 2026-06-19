@@ -1,0 +1,9 @@
+// perf_fib.pgy - recursive fibonacci, a call-overhead + recursion benchmark
+// that the optimizer cannot fold away.
+func Fib(n: Int) -> Int {
+    if n < 2 { return n; }
+    return Fib(n - 1) + Fib(n - 2);
+}
+func Main() -> Void {
+    Log("fib=" + ToString(Fib(35)));
+}

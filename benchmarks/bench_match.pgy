@@ -1,0 +1,21 @@
+// bench_match.pgy - `match` dispatch over a small key space in a tight loop.
+func Classify(n: Int) -> Int {
+    match n {
+        case 0: return 1;
+        case 1: return 3;
+        case 2: return 5;
+        default: return 0;
+    }
+}
+func Main() -> Void {
+    let total: Int = 0;
+    let i: Int = 0;
+    let j: Int = 0;
+    while i < 50000000 {
+        total = total + Classify(j);
+        j = j + 1;
+        if j >= 4 { j = 0; }
+        i = i + 1;
+    }
+    Log("match=" + ToString(total));
+}

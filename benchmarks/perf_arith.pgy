@@ -1,0 +1,12 @@
+// perf_arith.pgy - tight integer loop (data-dependent body resists
+// closed-form elimination, so both pgy and gcc -O2 run the real loop).
+// Baseline equivalent: benchmarks generated baseline in perf_close_to_c_smoke.sh.
+func Main() -> Void {
+    let acc: Int = 1;
+    let i: Int = 0;
+    while i < 100000000 {
+        acc = acc * 31 + i;
+        i = i + 1;
+    }
+    Log("acc=" + ToString(acc));
+}
