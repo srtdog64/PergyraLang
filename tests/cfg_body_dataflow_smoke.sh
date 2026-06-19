@@ -367,6 +367,16 @@ run_literal_doc_contract_smoke() {
     require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_is_with_slot_claim(inst)"
     require_literal "src/codegen/transpiler_mir_resource_op_emit.c" "mir_instruction_is_with_slot_claim(inst)"
     require_literal "src/codegen/llvm_mir_resource_claim.c" "inst->abi_type_name"
+    if grep -Fq -- "mir_instruction_source_payload" \
+        "$ROOT_DIR/src/codegen/llvm_mir_resource_claim.c"; then
+        echo "LLVM MIR resource claim diagnostics must use MIR expr/provenance facts, not source payload statements" >&2
+        exit 1
+    fi
+    if grep -Fq -- "mir_instruction_source_payload" \
+        "$ROOT_DIR/src/codegen/llvm_mir_for_in_control.c"; then
+        echo "LLVM MIR for-in diagnostics must use MIR expr/provenance facts, not source payload statements" >&2
+        exit 1
+    fi
     require_literal "Makefile" '$(CODEGEN_DIR)/llvm_mir_resource_claim.c'
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_emit_borrow_view_alias(inst, ctx)"
     require_literal "Makefile" '$(CODEGEN_DIR)/llvm_mir_resource_view.c'

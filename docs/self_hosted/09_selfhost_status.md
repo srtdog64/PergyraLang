@@ -56,6 +56,8 @@ compatibility path.
 - LLVM await DEF emission, C pending SSA-use materialization, and LLVM source
   DEF copy consume MIR `expr0` / `expr1` plus local-decl/source-statement flags;
   those paths no longer open `mir_instruction_source_payload`.
+- LLVM MIR for-in and with-slot resource-claim diagnostics use MIR expression
+  anchors instead of opening source payload statements.
 - The remaining capability-5 body tail is the narrower source-payload
   expression/shape surface: match/select/resource shape consumers and selected
   diagnostics. Capability 5 should stay ACTIVE until those reads are replaced

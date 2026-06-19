@@ -249,8 +249,10 @@ resources. Assignment DEF emission preserves source assignment side effects
 while recording the SSA value. Await DEF emission, pending SSA-use
 materialization, and source DEF copy also consume MIR expression/type facts
 directly. The remaining ACTIVE tail is the narrower match/select/resource
-shape and selected diagnostics surface, where selected body facts still need
-dedicated MIR records or explicit provenance-only handling.
+shape and selected diagnostics surface. LLVM for-in and with-slot
+resource-claim diagnostics already use MIR expression anchors; the rest of the
+body facts still need dedicated MIR records or explicit provenance-only
+handling.
 
 Capability 2 (collections). Closed for the hard-self-host substrate: integer keys are implemented
 (pgy_runtime_map_int_key_inline.h covers i32 and i64), and `MapKeys` /

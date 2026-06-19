@@ -65,7 +65,8 @@ llvm_mir_for_in_required_runtime(LLVMGenCtx *ctx,
         : NULL;
 
     if (fn == NULL && ctx != NULL && !ctx->has_error) {
-        llvm_set_error_at_with_hints(ctx, mir_instruction_source_payload(inst),
+        llvm_set_error_at_with_hints(ctx,
+            inst != NULL ? inst->expr0 : NULL,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
             PGY_FIX_INSPECT_MIR_INVENTORY,
@@ -81,7 +82,8 @@ llvm_mir_for_in_set_error(LLVMGenCtx *ctx,
                           const char *message)
 {
     if (ctx != NULL && !ctx->has_error) {
-        llvm_set_error_at_with_hints(ctx, mir_instruction_source_payload(inst),
+        llvm_set_error_at_with_hints(ctx,
+            inst != NULL ? inst->expr0 : NULL,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
             PGY_FIX_INSPECT_MIR_INVENTORY,

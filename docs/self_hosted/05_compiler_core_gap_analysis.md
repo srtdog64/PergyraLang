@@ -70,9 +70,10 @@ source-local raw statement re-dispatch are closed. LLVM await DEF emission,
 C pending SSA-use materialization, and LLVM source DEF copy now consume MIR
 `expr0` / `expr1` and MIR local-decl/source-statement flags directly. The
 remaining capability-5 tail is match/select/resource shape plus selected
-diagnostics still backed by `mir_instruction_source_payload`; those must become
-MIR facts or provenance-only reads before the body source-of-truth row is fully
-ready.
+diagnostics still backed by `mir_instruction_source_payload`; LLVM for-in and
+with-slot resource-claim diagnostics have already moved to MIR expression
+anchors. The remaining reads must become MIR facts or provenance-only reads
+before the body source-of-truth row is fully ready.
 
 - **Module/package resolver stability**: deterministic imports, manifest
   reading, path normalization, and cycle diagnostics.
