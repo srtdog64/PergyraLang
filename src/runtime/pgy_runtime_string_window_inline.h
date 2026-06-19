@@ -34,4 +34,15 @@ CharAtN(const char *s, int32_t len, int32_t i)
     return r;
 }
 
+/* The byte at s[i] as an int (0..255) in O(1) with a caller-supplied length;
+ * -1 when out of range. The allocation-free counterpart of CharAtN for hot
+ * char-by-char scanning (a lexer): no per-character heap string. */
+static inline int32_t
+CharCode(const char *s, int32_t len, int32_t i)
+{
+    if (s == NULL || i < 0 || i >= len)
+        return -1;
+    return (int32_t)(unsigned char)s[i];
+}
+
 #endif /* PGY_RUNTIME_STRING_WINDOW_INLINE_H */

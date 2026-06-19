@@ -25,24 +25,30 @@ func CharAt(s: String, i: Int) -> String {
     return Substring(s, i, 1);
 }
 
-func IsAlpha(c: String) -> Bool {
-    if StringLength(c) != 1 {
-        return false;
-    }
-    let chars: String = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
-    return StringIndexOf(chars, c) >= 0;
+// Code of the first byte of a 1-char string literal, in O(1) and no allocation.
+// Lets char comparisons stay readable (cc == Ord("x")) without magic numbers.
+func Ord(ch: String) -> Int {
+    return CharCode(ch, StringLength(ch), 0);
 }
 
-func IsDigit(c: String) -> Bool {
-    if StringLength(c) != 1 {
-        return false;
+// Char-code classification (the allocation-free counterpart of IsAlpha/IsDigit,
+// which took a 1-char String). Operates on a byte code from CharCode.
+func IsAlphaCode(cc: Int) -> Bool {
+    if cc >= Ord("a") && cc <= Ord("z") {
+        return true;
     }
-    let chars: String = "0123456789";
-    return StringIndexOf(chars, c) >= 0;
+    if cc >= Ord("A") && cc <= Ord("Z") {
+        return true;
+    }
+    return cc == Ord("_");
 }
 
-func IsAlphaNum(c: String) -> Bool {
-    return IsAlpha(c) || IsDigit(c);
+func IsDigitCode(cc: Int) -> Bool {
+    return cc >= Ord("0") && cc <= Ord("9");
+}
+
+func IsAlphaNumCode(cc: Int) -> Bool {
+    return IsAlphaCode(cc) || IsDigitCode(cc);
 }
 
 func KeywordType(text: String) -> String {
@@ -301,31 +307,31 @@ func Main() -> Void {
     let token_count: Int = 0;
 
     while i < n {
-        let c: String = CharAtN(content, n, i);
+        let c: Int = CharCode(content, n, i);
 
-        if c == " " {
+        if c == Ord(" ") {
             i = i + 1;
             col = col + 1;
             continue;
         }
-        if c == "\t" {
+        if c == Ord("\t") {
             i = i + 1;
             col = col + 1;
             continue;
         }
-        if c == "\n" {
+        if c == Ord("\n") {
             i = i + 1;
             line = line + 1;
             col = 1;
             continue;
         }
-        if c == "\r" {
+        if c == Ord("\r") {
             i = i + 1;
             continue;
         }
 
-        if c == "/" && CharAtN(content, n, i + 1) == "/" {
-            while i < n && CharAtN(content, n, i) != "\n" {
+        if c == Ord("/") && CharCode(content, n, i + 1) == Ord("/") {
+            while i < n && CharCode(content, n, i) != Ord("\n") {
                 i = i + 1;
                 col = col + 1;
             }
@@ -333,17 +339,17 @@ func Main() -> Void {
         }
 
         // /* ... */ block comment (may span multiple lines)
-        if c == "/" && CharAtN(content, n, i + 1) == "*" {
+        if c == Ord("/") && CharCode(content, n, i + 1) == Ord("*") {
             i = i + 2;
             col = col + 2;
             while i < n {
-                let cc: String = CharAtN(content, n, i);
-                if cc == "*" && CharAtN(content, n, i + 1) == "/" {
+                let cc: Int = CharCode(content, n, i);
+                if cc == Ord("*") && CharCode(content, n, i + 1) == Ord("/") {
                     i = i + 2;
                     col = col + 2;
                     break;
                 }
-                if cc == "\n" {
+                if cc == Ord("\n") {
                     i = i + 1;
                     line = line + 1;
                     col = 1;
@@ -355,10 +361,10 @@ func Main() -> Void {
             continue;
         }
 
-        if IsAlpha(c) {
+        if IsAlphaCode(c) {
             let start: Int = i;
             let start_col: Int = col;
-            while IsAlphaNum(CharAtN(content, n, i)) {
+            while IsAlphaNumCode(CharCode(content, n, i)) {
                 i = i + 1;
                 col = col + 1;
             }
@@ -369,25 +375,25 @@ func Main() -> Void {
             continue;
         }
 
-        if IsDigit(c) {
+        if IsDigitCode(c) {
             let start: Int = i;
             let start_col: Int = col;
-            while IsDigit(CharAtN(content, n, i)) {
+            while IsDigitCode(CharCode(content, n, i)) {
                 i = i + 1;
                 col = col + 1;
             }
             // Float literal: digits . digits. We must NOT consume `..` here
             // (that's the range operator), only a single `.` followed by a digit.
-            if CharAtN(content, n, i) == "." && IsDigit(CharAtN(content, n, i + 1)) {
+            if CharCode(content, n, i) == Ord(".") && IsDigitCode(CharCode(content, n, i + 1)) {
                 i = i + 1;
                 col = col + 1;
-                while IsDigit(CharAtN(content, n, i)) {
+                while IsDigitCode(CharCode(content, n, i)) {
                     i = i + 1;
                     col = col + 1;
                 }
             }
             // Long literal suffix: `L` appended to digits.
-            if CharAtN(content, n, i) == "L" {
+            if CharCode(content, n, i) == Ord("L") {
                 i = i + 1;
                 col = col + 1;
             }
@@ -397,12 +403,12 @@ func Main() -> Void {
             continue;
         }
 
-        if c == "\"" {
+        if c == Ord("\"") {
             let start: Int = i;
             let start_col: Int = col;
             i = i + 1;
             col = col + 1;
-            while i < n && CharAtN(content, n, i) != "\"" {
+            while i < n && CharCode(content, n, i) != Ord("\"") {
                 i = i + 1;
                 col = col + 1;
             }
@@ -416,15 +422,15 @@ func Main() -> Void {
             continue;
         }
 
-        let n2: String = CharAtN(content, n, i + 1);
-        if c == "-" && n2 == ">" {
+        let n2: Int = CharCode(content, n, i + 1);
+        if c == Ord("-") && n2 == Ord(">") {
             token_count = token_count + 1;
             ArrayPush(output_lines, TokenLine(token_count, "->", "->", line, col));
             i = i + 2;
             col = col + 2;
             continue;
         }
-        if c == "<" && n2 == "-" {
+        if c == Ord("<") && n2 == Ord("-") {
             token_count = token_count + 1;
             ArrayPush(output_lines, TokenLine(token_count, "<-", "<-", line, col));
             i = i + 2;
@@ -432,28 +438,28 @@ func Main() -> Void {
             continue;
         }
         // Compound assignment operators
-        if c == "+" && n2 == "=" {
+        if c == Ord("+") && n2 == Ord("=") {
             token_count = token_count + 1;
             ArrayPush(output_lines, TokenLine(token_count, "+=", "+=", line, col));
             i = i + 2;
             col = col + 2;
             continue;
         }
-        if c == "-" && n2 == "=" {
+        if c == Ord("-") && n2 == Ord("=") {
             token_count = token_count + 1;
             ArrayPush(output_lines, TokenLine(token_count, "-=", "-=", line, col));
             i = i + 2;
             col = col + 2;
             continue;
         }
-        if c == "*" && n2 == "=" {
+        if c == Ord("*") && n2 == Ord("=") {
             token_count = token_count + 1;
             ArrayPush(output_lines, TokenLine(token_count, "*=", "*=", line, col));
             i = i + 2;
             col = col + 2;
             continue;
         }
-        if c == "/" && n2 == "=" {
+        if c == Ord("/") && n2 == Ord("=") {
             token_count = token_count + 1;
             ArrayPush(output_lines, TokenLine(token_count, "/=", "/=", line, col));
             i = i + 2;
@@ -461,7 +467,7 @@ func Main() -> Void {
             continue;
         }
         // :: scope resolution
-        if c == ":" && n2 == ":" {
+        if c == Ord(":") && n2 == Ord(":") {
             token_count = token_count + 1;
             ArrayPush(output_lines, TokenLine(token_count, "::", "::", line, col));
             i = i + 2;
@@ -469,7 +475,7 @@ func Main() -> Void {
             continue;
         }
         // => lambda arrow
-        if c == "=" && n2 == ">" {
+        if c == Ord("=") && n2 == Ord(">") {
             token_count = token_count + 1;
             ArrayPush(output_lines, TokenLine(token_count, "=>", "=>", line, col));
             i = i + 2;
@@ -477,7 +483,7 @@ func Main() -> Void {
             continue;
         }
         // |> pipe
-        if c == "|" && n2 == ">" {
+        if c == Ord("|") && n2 == Ord(">") {
             token_count = token_count + 1;
             ArrayPush(output_lines, TokenLine(token_count, "|>", "|>", line, col));
             i = i + 2;
@@ -485,7 +491,7 @@ func Main() -> Void {
             continue;
         }
         // := walrus
-        if c == ":" && n2 == "=" {
+        if c == Ord(":") && n2 == Ord("=") {
             token_count = token_count + 1;
             ArrayPush(output_lines, TokenLine(token_count, ":=", ":=", line, col));
             i = i + 2;
@@ -493,56 +499,56 @@ func Main() -> Void {
             continue;
         }
         // ?? null-coalesce
-        if c == "?" && n2 == "?" {
+        if c == Ord("?") && n2 == Ord("?") {
             token_count = token_count + 1;
             ArrayPush(output_lines, TokenLine(token_count, "??", "??", line, col));
             i = i + 2;
             col = col + 2;
             continue;
         }
-        if c == "=" && n2 == "=" {
+        if c == Ord("=") && n2 == Ord("=") {
             token_count = token_count + 1;
             ArrayPush(output_lines, TokenLine(token_count, "==", "==", line, col));
             i = i + 2;
             col = col + 2;
             continue;
         }
-        if c == "!" && n2 == "=" {
+        if c == Ord("!") && n2 == Ord("=") {
             token_count = token_count + 1;
             ArrayPush(output_lines, TokenLine(token_count, "!=", "!=", line, col));
             i = i + 2;
             col = col + 2;
             continue;
         }
-        if c == "<" && n2 == "=" {
+        if c == Ord("<") && n2 == Ord("=") {
             token_count = token_count + 1;
             ArrayPush(output_lines, TokenLine(token_count, "<=", "<=", line, col));
             i = i + 2;
             col = col + 2;
             continue;
         }
-        if c == ">" && n2 == "=" {
+        if c == Ord(">") && n2 == Ord("=") {
             token_count = token_count + 1;
             ArrayPush(output_lines, TokenLine(token_count, ">=", ">=", line, col));
             i = i + 2;
             col = col + 2;
             continue;
         }
-        if c == "&" && n2 == "&" {
+        if c == Ord("&") && n2 == Ord("&") {
             token_count = token_count + 1;
             ArrayPush(output_lines, TokenLine(token_count, "&&", "&&", line, col));
             i = i + 2;
             col = col + 2;
             continue;
         }
-        if c == "|" && n2 == "|" {
+        if c == Ord("|") && n2 == Ord("|") {
             token_count = token_count + 1;
             ArrayPush(output_lines, TokenLine(token_count, "||", "||", line, col));
             i = i + 2;
             col = col + 2;
             continue;
         }
-        if c == "." && n2 == "." {
+        if c == Ord(".") && n2 == Ord(".") {
             // C lexer reports the range operator with type="." (single dot)
             // and text=".." (two dots). Verified against pgy --tokens on
             // examples/break_continue.pgy's `for i in 0..100` loop.
@@ -554,9 +560,12 @@ func Main() -> Void {
         }
 
         let punct: String = "(){}[];,:.=+-*/!<>%&|?@";
-        if StringIndexOf(punct, c) >= 0 {
+        // Punctuation is rare relative to whitespace/identifiers, so materialize
+        // the single-char token text here (the only remaining per-token alloc).
+        let ch: String = CharAtN(content, n, i);
+        if StringIndexOf(punct, ch) >= 0 {
             token_count = token_count + 1;
-            ArrayPush(output_lines, TokenLine(token_count, c, c, line, col));
+            ArrayPush(output_lines, TokenLine(token_count, ch, ch, line, col));
             i = i + 1;
             col = col + 1;
             continue;

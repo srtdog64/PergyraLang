@@ -162,6 +162,21 @@ stdlib_scalar_check_string_sub_equals(ASTNode *expr, const char *name,
     return TYPE_BOOL;
 }
 
+/* CharCode(s: String, len: Int, i: Int) -> Int -- O(1) byte at index i. */
+static Type *
+stdlib_scalar_check_string_char_code(ASTNode *expr, const char *name,
+                                     SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 3, name, ctx))
+        return TYPE_UNKNOWN;
+    stdlib_scalar_require_string_arg(expr, 0, ctx);
+    require_assignable(type_check_expression(ast_call_argument(expr, 1), ctx),
+        TYPE_INT, ast_call_argument(expr, 1), ctx);
+    require_assignable(type_check_expression(ast_call_argument(expr, 2), ctx),
+        TYPE_INT, ast_call_argument(expr, 2), ctx);
+    return TYPE_INT;
+}
+
 /* SubStartsWith(s: String, start: Int, prefix: String) -> Bool --
  * allocation-free "s[start..] begins with prefix". */
 static Type *
@@ -341,6 +356,7 @@ static const StdlibScalarSpec stdlib_scalar_specs[] = {
     { "Atan2", stdlib_scalar_check_atan2 },
     { "Ceil", stdlib_scalar_check_math_unary_float },
     { "CharAtN", stdlib_scalar_check_string_substring },
+    { "CharCode", stdlib_scalar_check_string_char_code },
     { "Clamp", stdlib_scalar_check_clamp },
     { "Concat", stdlib_scalar_check_string_concat },
     { "Contains", stdlib_scalar_check_string_contains },

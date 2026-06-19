@@ -21,7 +21,11 @@ func Main() -> Void {
         // CharAtN == CharAt-equivalent (Substring(s,i,1), bounded)
         if i < n {
             if CharAtN(s, n, i) != Substring(s, i, 1) { fails = fails + 1; }
+            // CharCode(s,n,i) is the byte of that same 1-char window
+            if CharCode(s, n, i) != CharCode(CharAtN(s, n, i), 1, 0) { fails = fails + 1; }
         }
+        // CharCode out-of-range is -1
+        if CharCode(s, n, 0 - 1) != (0 - 1) { fails = fails + 1; }
         // StrView ops mirror the windowed builtins
         let v: StrView = SubView(s, i, 8);
         if ViewIndexOf(v, "o") != SubIndexOf(s, i, 8, "o") { fails = fails + 1; }

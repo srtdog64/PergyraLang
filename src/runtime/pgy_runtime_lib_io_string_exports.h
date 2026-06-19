@@ -422,6 +422,14 @@ char *CharAtN(const char *s, int32_t len, int32_t i)
     return r;
 }
 
+/* O(1) byte-at-index as an int (0..255), -1 out of range. No allocation. */
+int32_t CharCode(const char *s, int32_t len, int32_t i)
+{
+    if (s == NULL || i < 0 || i >= len)
+        return -1;
+    return (int32_t)(unsigned char)s[i];
+}
+
 char *StringReplace(const char *s, const char *old_str, const char *new_str)
 {
     if (s == NULL || old_str == NULL || new_str == NULL)

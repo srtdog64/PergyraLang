@@ -120,6 +120,7 @@ llvm_stdlib_string_file_runtime_call_lookup(const char *callee_name)
         { "Atan2", "stdlib scalar", "Atan2", 2 },
         { "Ceil", "stdlib scalar", "Ceil", 1 },
         { "CharAtN", "stdlib string", "CharAtN", 3 },
+        { "CharCode", "stdlib string", "CharCode", 3 },
         { "Concat", "stdlib string", "StringConcat", 2 },
         { "Contains", "stdlib string", "StringContains", 2 },
         { "Cos", "stdlib scalar", "Cos", 1 },
