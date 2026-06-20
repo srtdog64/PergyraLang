@@ -15,24 +15,16 @@ transpiler_hosted_zone_refresh_view_from_decl(const TranspilerCtx *ctx,
                                               ASTNode *decl)
 {
     TranspilerHostedZoneRefreshView view;
-    ASTNode **compat_refreshes = NULL;
-    size_t compat_count = 0;
     const MIRDeclHeader *header = NULL;
 
-    if (decl != NULL && decl->type == AST_RELATION_DECL)
-        compat_refreshes = ast_relation_refreshes(decl, &compat_count);
-    else if (decl != NULL && decl->type == AST_EFFECT_DECL)
-        compat_refreshes = ast_effect_refreshes(decl, &compat_count);
-    else if (decl != NULL && decl->type == AST_ZONE_DECL)
-        compat_refreshes = ast_zone_refreshes(decl, &compat_count);
-
     view.decl_header = NULL;
-    view.ast_compat_refreshes = compat_refreshes;
-    view.ast_compat_count = compat_count;
-    view.count = compat_count;
+    view.count = 0;
     view.uses_mir_metadata = false;
-    view.requires_mir_metadata =
-        transpiler_active_has_mir(ctx) && compat_count > 0;
+    view.requires_mir_metadata = transpiler_active_has_mir(ctx)
+        && decl != NULL
+        && (decl->type == AST_RELATION_DECL
+            || decl->type == AST_EFFECT_DECL
+            || decl->type == AST_ZONE_DECL);
 
     header = transpiler_active_host_decl_header(ctx, host_name);
     if (header != NULL) {
@@ -57,9 +49,7 @@ transpiler_hosted_zone_refresh_view_missing_mir_metadata(
 {
     return view != NULL
         && view->requires_mir_metadata
-        && (!view->uses_mir_metadata
-            || view->count != view->ast_compat_count)
-        && view->ast_compat_count > 0;
+        && !view->uses_mir_metadata;
 }
 
 const MIRDeclZoneRefresh *
@@ -86,11 +76,6 @@ transpiler_hosted_zone_refresh_view_object_slot_name(
         return NULL;
     if (refresh != NULL)
         return mir_decl_zone_refresh_object_slot_name(refresh);
-    if (view->requires_mir_metadata)
-        return NULL;
-    if (view->ast_compat_refreshes != NULL)
-        return ast_zone_refresh_object_slot_name(
-            view->ast_compat_refreshes[index]);
     return NULL;
 }
 
@@ -106,11 +91,6 @@ transpiler_hosted_zone_refresh_view_source_slot_name(
         return NULL;
     if (refresh != NULL)
         return mir_decl_zone_refresh_source_slot_name(refresh);
-    if (view->requires_mir_metadata)
-        return NULL;
-    if (view->ast_compat_refreshes != NULL)
-        return ast_zone_refresh_source_slot_name(
-            view->ast_compat_refreshes[index]);
     return NULL;
 }
 
@@ -138,23 +118,6 @@ transpiler_hosted_zone_refresh_view_mapped_source_field(
             }
         }
         return NULL;
-    }
-    if (view->requires_mir_metadata)
-        return NULL;
-    if (view->ast_compat_refreshes != NULL
-        && view->ast_compat_refreshes[index] != NULL) {
-        ASTNode *compat_refresh = view->ast_compat_refreshes[index];
-        for (size_t i = 0; i < ast_zone_refresh_field_map_count(compat_refresh);
-             i++) {
-            const char *mapped_target =
-                ast_zone_refresh_mapped_target_field(compat_refresh, i);
-            const char *mapped_source =
-                ast_zone_refresh_mapped_source_field(compat_refresh, i);
-            if (mapped_target != NULL && mapped_source != NULL
-                && strcmp(mapped_target, target_field_name) == 0) {
-                return mapped_source;
-            }
-        }
     }
     return NULL;
 }
@@ -185,23 +148,6 @@ transpiler_hosted_zone_refresh_view_mentions_source_field(
             }
         }
         return false;
-    }
-    if (view->requires_mir_metadata)
-        return false;
-    if (view->ast_compat_refreshes != NULL
-        && view->ast_compat_refreshes[index] != NULL) {
-        ASTNode *compat_refresh = view->ast_compat_refreshes[index];
-        if (ast_zone_refresh_field_map_count(compat_refresh) == 0)
-            return true;
-        for (size_t i = 0; i < ast_zone_refresh_field_map_count(compat_refresh);
-             i++) {
-            const char *mapped_source =
-                ast_zone_refresh_mapped_source_field(compat_refresh, i);
-            if (mapped_source != NULL
-                && strcmp(mapped_source, source_field_name) == 0) {
-                return true;
-            }
-        }
     }
     return false;
 }

@@ -2757,11 +2757,10 @@ done
 zone_refresh_compat_hits="$(
     grep -RIn "ast_compat_refreshes" \
         "$ROOT_DIR/src/codegen" \
-        --include='*.c' --include='*.h' |
-        grep -Ev 'src/codegen/(llvm_inventory_decl_lookup\.h|llvm_inventory_zone_refresh_view\.c|transpiler_decl_lookup\.h|transpiler_decl_zone_refresh_view\.c):' || true
+        --include='*.c' --include='*.h' || true
 )"
 if [[ -n "$zone_refresh_compat_hits" ]]; then
-    fail "zone refresh compatibility arrays must stay behind declaration refresh view owners:
+    fail "zone refresh compatibility arrays must stay retired from codegen:
 $zone_refresh_compat_hits"
 fi
 zone_layer_slot_hits="$(
@@ -7524,9 +7523,17 @@ for term in \
     require_term "src/codegen/transpiler_decl_zone_refresh_view.c" "$term"
 done
 for term in \
-    "ast_relation_refreshes(decl, &compat_count)" \
-    "ast_effect_refreshes(decl, &compat_count)"; do
-    require_term "src/codegen/transpiler_decl_zone_refresh_view.c" "$term"
+    "ast_relation_refreshes(" \
+    "ast_effect_refreshes(" \
+    "ast_zone_refreshes(" \
+    "ast_zone_refresh_object_slot_name" \
+    "ast_zone_refresh_source_slot_name" \
+    "ast_zone_refresh_field_map_count" \
+    "ast_zone_refresh_mapped_target_field" \
+    "ast_zone_refresh_mapped_source_field"; do
+    if grep -Fq "$term" "$ROOT_DIR/src/codegen/transpiler_decl_zone_refresh_view.c"; then
+        fail "C hosted zone refresh view must consume MIRDeclZoneRefresh rows, not AST refresh compatibility term '$term'"
+    fi
 done
 for term in \
     "emit_projection_literal_by_zone_refresh_metadata" \
@@ -7651,9 +7658,17 @@ for term in \
     require_term "src/codegen/llvm_inventory_zone_refresh_view.c" "$term"
 done
 for term in \
-    "ast_relation_refreshes(decl, &compat_count)" \
-    "ast_effect_refreshes(decl, &compat_count)"; do
-    require_term "src/codegen/llvm_inventory_zone_refresh_view.c" "$term"
+    "ast_relation_refreshes(" \
+    "ast_effect_refreshes(" \
+    "ast_zone_refreshes(" \
+    "ast_zone_refresh_object_slot_name" \
+    "ast_zone_refresh_source_slot_name" \
+    "ast_zone_refresh_field_map_count" \
+    "ast_zone_refresh_mapped_target_field" \
+    "ast_zone_refresh_mapped_source_field"; do
+    if grep -Fq "$term" "$ROOT_DIR/src/codegen/llvm_inventory_zone_refresh_view.c"; then
+        fail "LLVM hosted zone refresh view must consume MIRDeclZoneRefresh rows, not AST refresh compatibility term '$term'"
+    fi
 done
 for term in \
     "llvm_count_domain_projection_slots_in_zone_refresh_view" \
