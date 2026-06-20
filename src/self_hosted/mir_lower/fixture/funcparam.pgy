@@ -1,0 +1,2 @@
+func Add(a: Int, b: Int) -> Int { return a + b; }
+func Main() -> Void { Log(ToString(Add(2, 5))); }

@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let x: Int = 3;
+    if x > 0 { Log("pos"); } else { Log("neg"); }
+}

@@ -1,0 +1,3 @@
+func Main() -> Void {
+    for i in 0..3 { Log(ToString(i)); }
+}

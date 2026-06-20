@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let i: Int = 0;
+    while i < 3 { Log(ToString(i)); i = i + 1; }
+}

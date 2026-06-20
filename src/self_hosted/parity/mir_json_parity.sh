@@ -2,7 +2,8 @@
 # MIR-JSON lowering parity gate (self-host path (a), rung-0b, 2026-06-18).
 #
 # Proves that the Pergyra-origin MIR -> C lowering is run-equivalent to the C
-# backend on the supported (tiny, linear) subset:
+# backend on the supported subset -- linear code, function signatures, and
+# CFG-structured control flow (if/else, nested if, while, for):
 #
 #   pgy --mir-json fixture.pgy            (MIR JSON plus transitional payload)
 #     | mir_lower   (Pergyra: MIR-JSON -> reconstructed --ast tree)
@@ -57,6 +58,11 @@ FIXTURES=(
     multilet
     arith
     strlog
+    funcparam
+    ifelse
+    nestedif
+    whileloop
+    forloop
 )
 
 pass=0
