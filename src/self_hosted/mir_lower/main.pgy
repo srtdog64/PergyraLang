@@ -162,22 +162,33 @@ func Main() -> Void {
         out = Concat(out, "    Body:\n");
         out = Concat(out, "      Block:\n");
 
-        // Walk this routine's instruction `ast` fields (in [nend, span_end)).
-        let k: Int = FindFrom(json, "\"ast\":", nend[0]);
-        while k >= 0 && k < span_end {
-            let vstart: Int = k + 6;
-            let vc: String = CharAt(json, vstart);
-            if vc == "n" {
-                k = FindFrom(json, "\"ast\":", vstart + 4);
-            } else if vc == "\"" {
-                let send: Array<Int> = [0];
-                let stmt: String = ReadJsonString(json, vstart, send);
-                out = Concat(out, Concat("        ", Concat(StmtToTreeLine(stmt), "\n")));
-                total = total + 1;
-                k = FindFrom(json, "\"ast\":", send[0]);
-            } else {
-                Die(Concat("unexpected ast value at offset: ", ToString(vstart)));
+        // Walk this routine's instructions (in [nend, span_end)). Each carries a
+        // `"kind"` and an `"ast"`; a `return` instruction becomes a `Return:`
+        // line, any other becomes a plain statement line. (The routine's own
+        // `"kind":"function"` precedes `"blocks":`, so the walk starts there.)
+        let bp: Int = FindFrom(json, "\"blocks\":", nend[0]);
+        let kp: Int = FindFrom(json, "\"kind\":", bp);
+        while kp >= 0 && kp < span_end {
+            let kq: Int = FindFrom(json, "\"", kp + 7);
+            let ke: Array<Int> = [0];
+            let ikind: String = ReadJsonString(json, kq, ke);
+            let next_kp: Int = FindFrom(json, "\"kind\":", ke[0]);
+            let ap: Int = FindFrom(json, "\"ast\":", ke[0]);
+            if ap >= 0 && ap < span_end && (next_kp < 0 || ap < next_kp) {
+                let vstart: Int = ap + 6;
+                let vc: String = CharAt(json, vstart);
+                if vc == "\"" {
+                    let send: Array<Int> = [0];
+                    let stmt: String = ReadJsonString(json, vstart, send);
+                    if ikind == "return" {
+                        out = Concat(out, Concat("        Return: ", Concat(stmt, "\n")));
+                    } else {
+                        out = Concat(out, Concat("        ", Concat(StmtToTreeLine(stmt), "\n")));
+                    }
+                    total = total + 1;
+                }
             }
+            kp = next_kp;
         }
 
         rpos = next_rpos;
