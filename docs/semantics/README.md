@@ -43,6 +43,14 @@ Mechanized artifacts:
   `unissued_token_pin_impossible`, and `pin_non_eviction` invariants. This is
   not beta-closure evidence unless a CI gate type-checks it with Coq, and it
   does not prove the whole language.
+- [proofs/AxisOwnership.v](proofs/AxisOwnership.v): Coq proof sketch for axis
+  fact-ownership, no-silent-override, independent axis commutation, and
+  projection non-writing invariants. The companion adequacy smoke binds the
+  model to named compiler/source symbols, not to a full extracted verifier.
+- [proofs/IRMinimality.v](proofs/IRMinimality.v): Coq proof sketch for the
+  HIR/RIR/MIR codegen-layer lower bound under the live reads-from dependency
+  model. `ir_minimality_adequacy_smoke.sh` binds that model to the current
+  driver, RIR flow, MIR lowering, AIR, and backend dependency shape.
 
 ## Beta Proof Boundary
 

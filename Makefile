@@ -2033,6 +2033,7 @@ formal-semantics-test-smoke:
 	"$(BASH)" tests/formal_semantics_smoke.sh
 	"$(BASH)" tests/axis_keyword_adequacy_smoke.sh
 	"$(BASH)" tests/slot_calculus_adequacy_smoke.sh
+	"$(BASH)" tests/ir_minimality_adequacy_smoke.sh
 	"$(BASH)" tests/judgment_diagnostic_adequacy_smoke.sh
 	"$(BASH)" tests/loss_contract_adequacy_smoke.sh
 

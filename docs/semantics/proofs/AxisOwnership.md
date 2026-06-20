@@ -158,10 +158,15 @@ are.
    the type checker constructs and consumes directly; the next step is
    per-call-site well-attribution checking of the real AIR evidence writers.
 
-4. **Loss contracts are prose, not an enforced manifest.**
-   `09_abstraction_loss_contracts.md` defines per-pass semantic-loss rules as
-   developer-facing prose. There is **no** machine-readable loss manifest that a
-   linter/verifier reads and enforces. The loss contracts are not gated.
+4. **Loss contracts are indexed, but not fully enforced.**
+   `09_abstraction_loss_contracts.md` defines per-pass semantic-loss rules, and
+   `loss_contract_manifest.md` now gives the canonical boundaries a
+   machine-readable stage/gate index. `loss_contract_adequacy_smoke.sh` verifies
+   that each stage artifact exists and that every `enforced` row names a live
+   gate. This closes the older "no manifest" gap, but it is still not a full
+   executable loss calculus: the current manifest is 3/5 gate-enforced and 2/5
+   documentation-only, and the gate checks stage/gate adequacy rather than every
+   forbidden read in the prose contract.
 
 5. **Relaxed mode is not a verified mode.** `PGY_AIR_STRICT_EVIDENCE=0` disables
    strict evidence checking so a backend build can be smoke-tested. A binary
@@ -171,5 +176,5 @@ are.
 
 In short: this track is *targeted machine-checked invariants on small models,
 drift-gated against named compiler symbols by source-consistency tests*. It is
-not whole-language soundness, a typed evidence calculus, an enforced loss
-manifest, or a guarantee about relaxed-mode builds.
+not whole-language soundness, a typed evidence calculus, a fully enforced loss
+calculus, or a guarantee about relaxed-mode builds.

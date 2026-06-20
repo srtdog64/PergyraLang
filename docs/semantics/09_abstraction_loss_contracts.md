@@ -202,8 +202,16 @@ Every stable abstraction boundary must expose its accepted loss budget.
 - Evidence: `abstraction-loss-contract-test-smoke` checks that this document,
   the proof-pack index, AIR architecture, compiler contracts, and source-of-
   truth spine all name the same loss-contract vocabulary.
+  `loss_contract_adequacy_smoke.sh` also checks
+  `loss_contract_manifest.md`, a machine-readable boundary index that binds
+  each canonical boundary to a live compiler stage and, where applicable, a
+  live enforcement gate. Current manifest coverage is 3/5 gate-enforced
+  (`mir_to_air`, `mir_to_backends`, `selfhost_to_oracle`) and 2/5
+  documentation-only (`parser_to_ast`, `ast_to_mir`).
 - Remaining obligation: attach explicit contract blocks to each major compiler
-  pass as the self-hosted substitution surface grows.
+  pass as the self-hosted substitution surface grows, and move
+  `parser_to_ast` / `ast_to_mir` from documentation-only to enforced manifest
+  rows.
 
 ## Theorem: Preservation Carry
 
@@ -213,9 +221,10 @@ must carry that fact without rereading the older source artifact.
 - Reason: rereading the older source reopens the source-of-truth seam and makes
   the abstraction boundary non-binding.
 - Evidence: current MIR/AIR/DAG source-of-truth smokes ratchet AST/source
-  rediscovery paths to zero for the measured frontiers.
-- Remaining obligation: extend this theorem from doc-level vocabulary to a
-  machine-readable pass manifest.
+  rediscovery paths to zero for the measured frontiers. The loss-contract
+  manifest gives those boundaries a machine-readable stage/gate index.
+- Remaining obligation: extend the manifest from stage/gate adequacy to
+  per-boundary forbidden-read checks for every listed loss clause.
 
 ## Theorem: Bounded Approximation Soundness
 
@@ -227,8 +236,8 @@ be visible to diagnostics, trace, or runtime validation.
 - Evidence: AIR evidence diagnostics already expose provider/provenance for
   missing boundary evidence, and runtime frontier/Slot contracts expose runtime
   validation failures instead of treating them as static proof.
-- Remaining obligation: standardize loss-budget names in diagnostic JSON once a
-  stable machine-readable loss manifest exists.
+- Remaining obligation: standardize loss-budget names in diagnostic JSON and
+  bind them back to the manifest rows.
 
 ## Syntax Position
 

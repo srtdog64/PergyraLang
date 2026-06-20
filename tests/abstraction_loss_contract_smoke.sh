@@ -21,6 +21,7 @@ require_text() {
 
 for rel in \
     "docs/semantics/09_abstraction_loss_contracts.md" \
+    "docs/semantics/loss_contract_manifest.md" \
     "docs/semantics/README.md" \
     "docs/102_formal_semantics_and_proof_obligations.md" \
     "docs/104_air_compiler_architecture.md" \
@@ -44,8 +45,17 @@ require_text "docs/semantics/09_abstraction_loss_contracts.md" "## Theorem: Pres
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "## Theorem: Bounded Approximation Soundness"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "That syntax is a design sketch only."
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "documentation does not call the boundary lossless unless the budget is"
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "Current manifest coverage is 3/5 gate-enforced"
+
+require_text "docs/semantics/loss_contract_manifest.md" "5 canonical boundaries, **3 gate-enforced**"
+require_text "docs/semantics/loss_contract_manifest.md" "parser_to_ast"
+require_text "docs/semantics/loss_contract_manifest.md" "ast_to_mir"
+require_text "docs/semantics/loss_contract_manifest.md" "mir_to_air"
+require_text "docs/semantics/loss_contract_manifest.md" "mir_to_backends"
+require_text "docs/semantics/loss_contract_manifest.md" "selfhost_to_oracle"
 
 require_text "docs/semantics/README.md" "09_abstraction_loss_contracts.md"
+require_text "docs/semantics/README.md" "proofs/IRMinimality.v"
 require_text "docs/102_formal_semantics_and_proof_obligations.md" "docs/semantics/09_abstraction_loss_contracts.md"
 require_text "docs/104_air_compiler_architecture.md" "The general version of this rule is the abstraction loss contract"
 require_text "docs/37_compiler_contracts.md" "### Loss Contracts"
