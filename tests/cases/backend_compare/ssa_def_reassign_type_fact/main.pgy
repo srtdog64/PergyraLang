@@ -1,0 +1,7 @@
+func Main() -> Void {
+    let x: Int = 0;
+    if true {
+        x = 1;
+    }
+    Log(x);
+}

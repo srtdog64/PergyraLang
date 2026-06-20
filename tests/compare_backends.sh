@@ -572,6 +572,7 @@ main() {
         "tests/cases/backend_compare/break_continue"
         "tests/cases/backend_compare/else_if_chain"
         "tests/cases/backend_compare/if_else_chain"
+        "tests/cases/backend_compare/ssa_def_reassign_type_fact"
         "tests/cases/backend_compare/while_loop"
         "tests/cases/backend_compare/while_condition_basic"
         "tests/cases/backend_compare/array_index_loop_sum"
