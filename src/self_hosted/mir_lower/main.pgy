@@ -157,8 +157,35 @@ func Main() -> Void {
         }
 
         out = Concat(out, Concat("  Function: ", Concat(routine, "\n")));
+
+        // Parameters + return type from the routine signature fields, scoped to
+        // [nend, blk) where blk is this routine's "blocks": key (instruction
+        // "name" entries sit past it).
+        let blk: Int = FindFrom(json, "\"blocks\":", nend[0]);
         out = Concat(out, "    Parameters:\n");
-        out = Concat(out, "    Returns: Void\n");
+        let pp: Int = FindFrom(json, "\"params\":[", nend[0]);
+        if pp >= 0 && (blk < 0 || pp < blk) {
+            let pk: Int = FindFrom(json, "\"name\":", pp);
+            while pk >= 0 && (blk < 0 || pk < blk) {
+                let pnq: Int = FindFrom(json, "\"", pk + 7);
+                let pne: Array<Int> = [0];
+                let pname: String = ReadJsonString(json, pnq, pne);
+                let tk: Int = FindFrom(json, "\"type\":", pne[0]);
+                let tnq: Int = FindFrom(json, "\"", tk + 7);
+                let tne: Array<Int> = [0];
+                let ptype: String = ReadJsonString(json, tnq, tne);
+                out = Concat(out, Concat("      ", Concat(pname, Concat(": ", Concat(ptype, "\n")))));
+                pk = FindFrom(json, "\"name\":", tne[0]);
+            }
+        }
+        let rtype: String = "Void";
+        let rk: Int = FindFrom(json, "\"return\":", nend[0]);
+        if rk >= 0 && (blk < 0 || rk < blk) {
+            let rnq: Int = FindFrom(json, "\"", rk + 9);
+            let rne: Array<Int> = [0];
+            rtype = ReadJsonString(json, rnq, rne);
+        }
+        out = Concat(out, Concat("    Returns: ", Concat(rtype, "\n")));
         out = Concat(out, "    Body:\n");
         out = Concat(out, "      Block:\n");
 

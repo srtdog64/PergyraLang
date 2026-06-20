@@ -463,6 +463,23 @@ mir_dump_json(const MIRProgram *mir, FILE *out)
             mir_json_emit_str_or_null(out, routine->name);
             fputs(",\"kind\":", out);
             mir_json_emit_str(out, mir_scope_kind_name(routine->kind));
+            if (mir_routine_has_signature(routine)) {
+                fputs(",\"params\":[", out);
+                for (size_t p = 0; p < mir_routine_param_count(routine); p++) {
+                    FuncParam *fp = mir_routine_param(routine, p);
+                    if (p > 0)
+                        fputc(',', out);
+                    fputs("{\"name\":", out);
+                    mir_json_emit_str_or_null(out, fp != NULL ? fp->name : NULL);
+                    fputs(",\"type\":", out);
+                    mir_json_emit_str_or_null(out,
+                        mir_routine_param_type_name(routine, p));
+                    fputc('}', out);
+                }
+                fputs("],\"return\":", out);
+                mir_json_emit_str_or_null(out,
+                    mir_routine_return_type_name(routine));
+            }
             fputs(",\"blocks\":[", out);
             for (size_t j = 0; j < routine->block_count && routine->blocks != NULL; j++) {
                 const MIRBasicBlock *block = &routine->blocks[j];
