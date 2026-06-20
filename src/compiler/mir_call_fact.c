@@ -68,6 +68,7 @@ mir_attach_def_initializer_call_fact(MIRInstruction *inst, const ASTNode *stmt)
         inst->requires_source_statement_emit = true;
         inst->requires_source_local_decl_emit = true;
     } else if (stmt->type == AST_ASSIGNMENT) {
+        inst->expr1 = ast_assignment_target(stmt);
         expr = ast_assignment_value(stmt);
         inst->requires_source_statement_emit = true;
     }

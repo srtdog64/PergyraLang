@@ -2321,6 +2321,7 @@ grep -Fq "missing MIR initializer expression fact" "$ROOT_DIR/src/compiler/mir_f
 grep -Fq "mir_def_source_requires_initializer_fact" "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
 grep -Fq "mir_instruction_has_surface_payload_or_shape" "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
 grep -Fq "requires_source_statement_emit" "$ROOT_DIR/src/compiler/mir.h"
+grep -Fq "inst->expr1 = ast_assignment_target(stmt)" "$ROOT_DIR/src/compiler/mir_call_fact.c"
 grep -Fq "requires_source_local_decl_emit" "$ROOT_DIR/src/compiler/mir.h"
 grep -Fq "requires_channel_receive_statement_emit" "$ROOT_DIR/src/compiler/mir.h"
 grep -Fq "requires_select_receive_statement_emit" "$ROOT_DIR/src/compiler/mir.h"
@@ -2427,6 +2428,8 @@ grep -Fq "llvm_mir_declare_recv_target(inst->arg0, inst->expr0, ctx)" "$ROOT_DIR
 grep -Fq "LLVM channel receive DEF requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
 grep -Fq "llvm_emit_mir_destructure_inst" "$ROOT_DIR/src/codegen/llvm_internal_api.h"
 grep -Fq "llvm_emit_mir_destructure_inst(inst, ctx)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "llvm_emit_assignment_parts" "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.h"
+grep -Fq "llvm_emit_assignment_parts(inst->expr0" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 if awk '
     /case MIR_INST_DESTRUCTURE:/ { in_case=1; next }
     in_case && /case MIR_INST_ASSIGN:/ { in_case=0 }
@@ -2434,6 +2437,15 @@ if awk '
     END { exit bad ? 0 : 1 }
     ' "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"; then
     echo "[perf-contract] LLVM MIR destructure emission must consume MIR destructure facts, not source payload" >&2
+    exit 1
+fi
+if awk '
+    /case MIR_INST_ASSIGN:/ { in_case=1; next }
+    in_case && /case MIR_INST_STMT:/ { in_case=0 }
+    in_case && /source_payload/ { bad=1 }
+    END { exit bad ? 0 : 1 }
+    ' "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"; then
+    echo "[perf-contract] LLVM MIR assignment emission must consume MIR assignment facts, not source payload" >&2
     exit 1
 fi
 grep -Fq "LLVM MIR STMT source-payload emission is retired" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
@@ -2474,8 +2486,11 @@ grep -Fq "transpiler_mir_def_uses_select_receive_statement_emit" "$ROOT_DIR/src/
 grep -Fq "mir_instruction_uses_source_statement_emit(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.c"
 ! grep -Fq "static bool" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
 grep -Fq "transpiler_mir_seed_block_phi_names" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
-grep -Fq "transpiler_mir_def_uses_source_statement_emit(" "$ROOT_DIR/src/codegen/transpiler_mir_assignment_emit.c"
 grep -Fq "transpiler_emit_mir_assignment_expr_stmt" "$ROOT_DIR/src/codegen/transpiler_mir_assignment_emit.c"
+grep -Fq "transpiler_emit_assignment_expression_parts" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.h"
+grep -Fq "transpiler_mir_def_is_source_assignment_emit" "$ROOT_DIR/src/codegen/transpiler_mir_assignment_emit.c"
+grep -Fq "source-statement assignment emit is missing target fact" "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
+grep -Fq "ASSIGN is missing MIR assignment expression facts" "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
 grep -Fq "source-local slot let" "$ROOT_DIR/src/codegen/transpiler_mir_preserved_let_emit.c"
 grep -Fq "source-local channel let" "$ROOT_DIR/src/codegen/transpiler_mir_preserved_let_emit.c"
 grep -Fq "entry->is_view" "$ROOT_DIR/src/codegen/transpiler_mir_ssa_names.c"
@@ -2489,6 +2504,15 @@ grep -Fq "missing receive emit fact" "$ROOT_DIR/src/codegen/transpiler_mir_assig
 grep -Fq "missing select receive emit fact" "$ROOT_DIR/src/codegen/transpiler_mir_assignment_emit.c"
 grep -Fq "transpiler_emit_mir_assignment_def_inst" "$ROOT_DIR/src/codegen/transpiler_mir_assignment_emit.h"
 ! grep -Fq "static TranspilerMIRAssignmentEmitResult" "$ROOT_DIR/src/codegen/transpiler_mir_assignment_emit.h"
+if awk '
+    /if \(inst->kind == MIR_INST_ASSIGN\)/ { in_block=1; next }
+    in_block && /continue;/ { in_block=0 }
+    in_block && /stmt ==|stmt->|source_payload|transpiler_mir_find_stmt_for_inst/ { bad=1 }
+    END { exit bad ? 0 : 1 }
+    ' "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c"; then
+    echo "[perf-contract] C MIR assignment emission must consume MIR assignment facts, not source payload statements" >&2
+    exit 1
+fi
 grep -Fq "!mir_instruction_uses_source_statement_emit(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c"
 grep -Fq "mir_instruction_source_is_defer_stmt(inst)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "mir_instruction_source_is_defer_stmt" "$ROOT_DIR/src/compiler/mir_source_shape.c"

@@ -208,7 +208,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         {
             TranspilerMIRAssignmentEmitResult assignment_result =
                 transpiler_emit_mir_assignment_def_inst(
-                    buf, func_decl, mir_routine, block, inst, inst_index, stmt, ctx,
+                    buf, func_decl, mir_routine, block, inst, inst_index, ctx,
                     ssa_map_out, reason, reason_cap);
             if (assignment_result == TRANSPILE_MIR_ASSIGNMENT_FAILED) {
                 ok = false;
@@ -308,17 +308,17 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         }
 
         if (inst->kind == MIR_INST_ASSIGN) {
-            if (stmt == NULL || stmt->type != AST_ASSIGNMENT) {
+            if (inst->expr0 == NULL || inst->expr1 == NULL) {
                 if (reason != NULL && reason_cap > 0) {
                     transpiler_mir_reasonf(reason, reason_cap,
-                        "MIR block %llu emission failed: ASSIGN instruction missing assignment payload",
+                        "MIR block %llu emission failed: ASSIGN instruction missing MIR assignment facts",
                         (unsigned long long) block->id);
                 }
                 ok = false;
                 break;
             }
             if (!transpiler_emit_mir_assignment_expr_stmt(
-                    buf, block, inst, stmt, ctx, ssa_map_out,
+                    buf, block, inst, ctx, ssa_map_out,
                     reason, reason_cap)) {
                 ok = false;
                 break;

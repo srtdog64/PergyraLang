@@ -85,12 +85,16 @@ facts instead of reopening destructure statement payloads, and C MIR
 destructure emission consumes `inst->expr0` plus those binding facts instead of
 the source destructure statement. LLVM MIR destructure emission now consumes the
 same initializer and binding facts through `llvm_emit_mir_destructure_inst`.
-The remaining capability-5 tail is selected assignment, validation, and
-diagnostic reads still backed by
-`mir_instruction_source_payload`; LLVM for-in and with-slot resource-claim
-diagnostics have already moved to MIR expression anchors. The remaining reads
-must become MIR facts or provenance-only reads before the body source-of-truth
-row is fully ready.
+C and LLVM assignment emission now consume MIR target/value facts:
+`MIR_INST_ASSIGN` requires `expr0`/`expr1`, assignment DEFs carry their target
+in `expr1`, and backend assignment-parts emitters preserve slot, array, field,
+and projection assignment semantics without reopening the source statement
+payload. The remaining capability-5 tail is selected validation/public-surface
+reads, LLVM source-local resource constructor LET emission, and the C residual
+source-statement helper still backed by `mir_instruction_source_payload`; LLVM
+for-in and with-slot resource-claim diagnostics have already moved to MIR
+expression anchors. The remaining reads must become MIR facts or
+provenance-only reads before the body source-of-truth row is fully ready.
 
 - **Module/package resolver stability**: deterministic imports, manifest
   reading, path normalization, and cycle diagnostics.

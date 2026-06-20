@@ -134,4 +134,71 @@ test_mir_lowering_part_i(void)
         rir_destroy(rir);
         hir_destroy(hir);
     }
+
+    TEST("MIR assignment instruction carries expression facts without payload");
+    {
+        const char *src =
+            "func AssignmentFact() -> Int {\n"
+            "    let x: Int = 1;\n"
+            "    x = x + 2;\n"
+            "    return x;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        MIRInstruction *assign_inst = NULL;
+        ASTNode *saved_ast = NULL;
+        ASTNode *saved_target = NULL;
+        char *mir_error = NULL;
+        bool rejected_missing_expr_fact = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "AssignmentFact",
+                                           MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count
+                 && assign_inst == NULL; bi++) {
+                MIRBasicBlock *block = &routine->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    MIRInstruction *inst = &block->instructions[ii];
+                    if (inst->kind == MIR_INST_ASSIGN
+                        && mir_instruction_source_is_assignment(inst)) {
+                        assign_inst = inst;
+                        break;
+                    }
+                }
+            }
+        }
+        if (assign_inst != NULL) {
+            saved_ast = assign_inst->ast;
+            saved_target = assign_inst->expr0;
+            assign_inst->ast = NULL;
+            assign_inst->expr0 = NULL;
+            rejected_missing_expr_fact =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error,
+                          "ASSIGN is missing MIR assignment expression facts") != NULL;
+            assign_inst->expr0 = saved_target;
+        }
+        EXPECT(ok
+               && routine != NULL
+               && assign_inst != NULL
+               && saved_ast != NULL
+               && saved_target != NULL
+               && assign_inst->expr0 != NULL
+               && assign_inst->expr1 != NULL
+               && assign_inst->expr0->type == AST_IDENTIFIER
+               && assign_inst->arg0 != NULL
+               && strcmp(assign_inst->arg0, "x") == 0
+               && rejected_missing_expr_fact
+               && mir_validate(mir, NULL));
+        if (assign_inst != NULL)
+            assign_inst->ast = saved_ast;
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
 }

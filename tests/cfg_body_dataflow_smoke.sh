@@ -242,6 +242,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_call_fact.h" "mir_attach_def_initializer_call_fact"
     require_literal "src/compiler/mir_call_fact.c" "inst->arg1 = ast_identifier_name(ast_call_callee(expr))"
     require_literal "src/compiler/mir_call_fact.c" "inst->requires_source_statement_emit = true"
+    require_literal "src/compiler/mir_call_fact.c" "inst->expr1 = ast_assignment_target(stmt)"
     require_literal "src/compiler/mir_call_fact.c" "inst->requires_source_local_decl_emit = true"
     require_literal "src/compiler/mir_call_fact.c" "inst->requires_channel_receive_statement_emit = true"
     require_literal "src/compiler/mir.h" "requires_source_local_decl_emit"
@@ -273,6 +274,8 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_fact_surface_validate.c" "select receive DEF is missing select receive emit fact"
     require_literal "src/compiler/mir_fact_terminator_validate.c" "branch is missing source-branch emit fact"
     require_literal "src/compiler/mir_fact_surface_validate.c" "source-statement emit fact is invalid"
+    require_literal "src/compiler/mir_fact_surface_validate.c" "source-statement assignment emit is missing target fact"
+    require_literal "src/compiler/mir_fact_surface_validate.c" "ASSIGN is missing MIR assignment expression facts"
     if grep -A8 -F "if (inst->requires_source_statement_emit" \
         "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c" | \
         grep -Fq "mir_instruction_source_payload"; then
@@ -434,6 +437,17 @@ run_literal_doc_contract_smoke() {
         echo "LLVM MIR destructure emission must consume MIR destructure facts, not source payload" >&2
         exit 1
     fi
+    if awk '
+        /case MIR_INST_ASSIGN:/ { in_case=1; next }
+        in_case && /case MIR_INST_STMT:/ { in_case=0 }
+        in_case && /source_payload/ { bad=1 }
+        END { exit bad ? 0 : 1 }
+    ' "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"; then
+        echo "LLVM MIR assignment emission must consume MIR assignment facts, not source payload" >&2
+        exit 1
+    fi
+    require_literal "src/codegen/llvm_expr_assignment_member_projection.h" "llvm_emit_assignment_parts"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_emit_assignment_parts(inst->expr0"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_emit_select_dispatch_condition("
     require_literal "src/codegen/llvm_mir_block_emit.c" "inst, routine, mir_block->succ_true, ctx"
     if awk '
@@ -570,8 +584,9 @@ run_literal_doc_contract_smoke() {
     fi
     require_literal "src/compiler/mir_stmt_population.c" "mir_instruction_has_source_statement_order(&old_insts[r])"
     require_literal "src/compiler/mir_stmt_population.c" "mir_stmt_population_append"
-    require_literal "src/codegen/transpiler_mir_assignment_emit.c" "transpiler_mir_def_uses_source_statement_emit("
     require_literal "src/codegen/transpiler_mir_assignment_emit.c" "transpiler_emit_mir_assignment_expr_stmt"
+    require_literal "src/codegen/transpiler_expr_dispatch_emit.h" "transpiler_emit_assignment_expression_parts"
+    require_literal "src/codegen/transpiler_mir_assignment_emit.c" "transpiler_mir_def_is_source_assignment_emit"
     require_literal "src/codegen/transpiler_mir_preserved_let_emit.c" "source-local slot let"
     require_literal "src/codegen/transpiler_mir_preserved_let_emit.c" "source-local channel let"
     require_literal "src/codegen/transpiler_mir_ssa_names.c" "entry->is_view"
@@ -596,6 +611,15 @@ run_literal_doc_contract_smoke() {
     if grep -Fq "transpiler_find_local_type_name(ctx" \
             "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c"; then
         echo "C MIR destructure emitter reintroduced local type lookup; use typed registry or MIR metadata" >&2
+        exit 1
+    fi
+    if awk '
+        /if \(inst->kind == MIR_INST_ASSIGN\)/ { in_block=1; next }
+        in_block && /continue;/ { in_block=0 }
+        in_block && /stmt ==|stmt->|source_payload|transpiler_mir_find_stmt_for_inst/ { bad=1 }
+        END { exit bad ? 0 : 1 }
+    ' "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c"; then
+        echo "C MIR assignment emission must consume MIR assignment facts, not source payload statements" >&2
         exit 1
     fi
     if grep -Fq "ast_let_destructure" \

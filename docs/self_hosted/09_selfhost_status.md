@@ -71,6 +71,11 @@ compatibility path.
 - LLVM MIR destructure emission consumes the same MIR initializer and binding
   facts through `llvm_emit_mir_destructure_inst`; the non-MIR statement emitter
   remains AST-backed for the legacy statement path.
+- C and LLVM assignment emission consume MIR assignment facts. `MIR_INST_ASSIGN`
+  is validated to carry target/value `expr0` / `expr1`, assignment DEFs carry
+  their target in `expr1`, and C/LLVM assignment-parts emitters preserve slot,
+  array, field, and projection semantics without reopening the source statement
+  payload.
 - MIR DCE and source-statement emit validation consume source-shape scalar
   facts instead of payload presence for those decisions. Source-statement emit
   predicates and LLVM DEF emit predicates now consume MIR emit facts instead of
@@ -84,9 +89,10 @@ compatibility path.
   condition, body-binding, and remap emission consume those facts instead of
   parsing the match-case source payload.
 - The remaining capability-5 body tail is the narrower source-payload
-  expression/shape surface: residual assignment consumers plus selected
-  validation/diagnostics. Capability 5 should stay ACTIVE until those reads are
-  replaced by dedicated MIR facts or reduced to provenance-only diagnostics.
+  expression/shape surface: selected validation/public-surface reads, LLVM
+  source-local resource constructor LET emission, and the C residual
+  source-statement helper. Capability 5 should stay ACTIVE until those reads
+  are replaced by dedicated MIR facts or reduced to provenance-only diagnostics.
 - C class/zone collection-specialization scans are MIR-routine based and no
   longer recover method body AST; routine_source_decl_codegen is ratcheted at 0.
 - C hosted method body emission binds the linked MIRRoutine body as current

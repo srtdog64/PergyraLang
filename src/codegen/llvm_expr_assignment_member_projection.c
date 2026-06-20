@@ -28,6 +28,7 @@ static LLVMValueRef
 llvm_emit_current_host_field_assignment(ASTNode *node,
                                         LLVMGenCtx *ctx,
                                         const char *name,
+                                        ASTNode *target,
                                         ASTNode *value)
 {
     const char *host_name;
@@ -95,16 +96,18 @@ llvm_emit_current_host_field_assignment(ASTNode *node,
             LLVMBuildStore(ctx->builder, val, local_alias.alloca);
         }
     }
-    llvm_emit_host_projection_invalidations(ctx, ast_assignment_target(node));
-    llvm_emit_world_embedded_assignment_sync(ctx, ast_assignment_target(node));
+    llvm_emit_host_projection_invalidations(ctx, target);
+    llvm_emit_world_embedded_assignment_sync(ctx, target);
     return val;
 }
 
 LLVMValueRef
-llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
+llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
+                           ASTNode *target,
+                           ASTNode *value,
+                           LLVMGenCtx *ctx)
 {
-    ASTNode *target = ast_assignment_target(node);
-    ASTNode *value = ast_assignment_value(node);
+    ASTNode *node = diagnostic_anchor != NULL ? diagnostic_anchor : target;
 
     if (target == NULL)
         return llvm_assignment_error(ctx, node,
@@ -224,7 +227,8 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
 
     {
         LLVMValueRef host_field_value =
-            llvm_emit_current_host_field_assignment(node, ctx, name, value);
+            llvm_emit_current_host_field_assignment(node, ctx, name, target,
+                value);
         if (host_field_value != NULL || ctx->has_error)
             return host_field_value;
     }
@@ -285,6 +289,15 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
         LLVMBuildStore(ctx->builder, val, var.alloca);
         return val;
     }
+}
+
+LLVMValueRef
+llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
+{
+    return llvm_emit_assignment_parts(node,
+        ast_assignment_target(node),
+        ast_assignment_value(node),
+        ctx);
 }
 
 #endif

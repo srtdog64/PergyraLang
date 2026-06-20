@@ -186,6 +186,19 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
             }
             return false;
         }
+        if (inst->kind == MIR_INST_ASSIGN
+            && (!mir_instruction_source_is_assignment(inst)
+                || inst->expr0 == NULL
+                || inst->expr1 == NULL)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] ASSIGN is missing MIR assignment expression facts",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
         if (mir_instruction_resource_op_is_write(inst)
             && mir_instruction_source_matches_ast_type(inst, AST_CALL)
             && inst->expr0 == NULL) {
@@ -310,6 +323,18 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
                     "MIR routine '%s' block[%zu] instruction[%zu] source-statement emit fact is invalid",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
+        if (inst->requires_source_statement_emit
+            && mir_instruction_source_is_assignment(inst)
+            && (inst->expr1 == NULL || inst->arg0 == NULL)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] source-statement assignment emit is missing target fact",
                     routine->name != NULL ? routine->name : "(anonymous)",
                     block_index,
                     i);

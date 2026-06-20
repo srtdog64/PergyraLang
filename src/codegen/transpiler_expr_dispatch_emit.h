@@ -3,4 +3,8 @@
 
 #include "transpiler.h"
 
+char *transpiler_emit_assignment_expression_parts(TranspilerCtx *ctx,
+                                                  ASTNode *target_node,
+                                                  ASTNode *value_node);
+
 #endif /* PGY_TRANSPILER_EXPR_DISPATCH_EMIT_H */

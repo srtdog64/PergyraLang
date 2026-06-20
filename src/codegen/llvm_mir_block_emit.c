@@ -18,6 +18,7 @@
 
 #include "llvm_internal_api.h"
 #include "llvm_mir_resource_view.h"
+#include "llvm_expr_assignment_member_projection.h"
 #include "../parser/ast_api.h"
 
 static bool
@@ -233,7 +234,6 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
 
     for (size_t i = 0; i < mir_block->instruction_count; i++) {
         const MIRInstruction *inst = &mir_block->instructions[i];
-        ASTNode *source_payload = mir_instruction_source_payload(inst);
         llvm_debug_set_line(ctx, mir_instruction_source_line(inst));
         if (llvm_debug_detail_enabled()) {
             fprintf(stderr,
@@ -295,9 +295,13 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                     }
                     {
                         bool resource_let_handled = false;
+                        ASTNode *source_payload = NULL;
                         const char *expected_type_name =
                             llvm_mir_instruction_expected_type_name(
                                 routine, inst);
+                        if (mir_instruction_source_is_local_decl(inst))
+                            source_payload =
+                                mir_instruction_source_payload(inst);
                         if (!llvm_mir_try_emit_source_resource_let(inst,
                                 source_payload, alloca, ctx,
                                 expected_type_name,
@@ -318,10 +322,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                         LLVMMirVar *target_entry =
                             llvm_mir_get_var_entry(vars, var_count,
                                 inst->result_name);
-                        ASTNode *emit_expr = source_payload != NULL
-                            && source_payload->type == AST_ASSIGNMENT
-                                ? source_payload
-                                : inst->expr0;
+                        ASTNode *emit_expr = inst->expr0;
                         if (expected_type_name != NULL
                             && expected_type_name[0] != '\0') {
                             ctx->expected_type_name = expected_type_name;
@@ -330,13 +331,38 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                             && target_entry->type != NULL) {
                             ctx->current_ret_type = target_entry->type;
                         }
-                        if (!llvm_stmt_require_non_void_value(ctx, emit_expr,
-                                "LLVM MIR source-statement DEF cannot consume a Void expression value")) {
-                            ctx->current_ret_type = saved_current_ret_type;
-                            ctx->expected_type_name = saved_expected_type_name;
-                            return;
+                        if (mir_instruction_source_is_assignment(inst)) {
+                            if (inst->expr1 == NULL) {
+                                llvm_set_mir_topology_invalid(ctx,
+                                    "LLVM MIR source-statement assignment DEF is missing target fact");
+                                ctx->current_ret_type = saved_current_ret_type;
+                                ctx->expected_type_name =
+                                    saved_expected_type_name;
+                                return;
+                            }
+                            if (!llvm_stmt_require_non_void_value(ctx,
+                                    inst->expr0,
+                                    "LLVM MIR source-statement assignment DEF cannot consume a Void expression value")) {
+                                ctx->current_ret_type =
+                                    saved_current_ret_type;
+                                ctx->expected_type_name =
+                                    saved_expected_type_name;
+                                return;
+                            }
+                            val = llvm_emit_assignment_parts(inst->expr1,
+                                inst->expr1, inst->expr0, ctx);
+                        } else {
+                            if (!llvm_stmt_require_non_void_value(ctx,
+                                    emit_expr,
+                                    "LLVM MIR source-statement DEF cannot consume a Void expression value")) {
+                                ctx->current_ret_type =
+                                    saved_current_ret_type;
+                                ctx->expected_type_name =
+                                    saved_expected_type_name;
+                                return;
+                            }
+                            val = llvm_emit_expression(emit_expr, ctx);
                         }
-                        val = llvm_emit_expression(emit_expr, ctx);
                         if (val != NULL
                             && emit_expr != NULL
                             && emit_expr->type == AST_CALL) {
@@ -538,13 +564,14 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
             llvm_emit_mir_destructure_inst(inst, ctx);
             break;
         case MIR_INST_ASSIGN:
-            if (source_payload == NULL || source_payload->type != AST_ASSIGNMENT) {
+            if (inst->expr0 == NULL || inst->expr1 == NULL) {
                 llvm_set_mir_topology_invalid(ctx,
-                    "LLVM MIR ASSIGN instruction missing assignment payload");
+                    "LLVM MIR ASSIGN instruction missing MIR assignment facts");
                 return;
             }
             {
-                LLVMValueRef assigned = llvm_emit_expression(source_payload, ctx);
+                LLVMValueRef assigned = llvm_emit_assignment_parts(inst->expr0,
+                    inst->expr0, inst->expr1, ctx);
                 if (assigned == NULL) {
                     if (!ctx->has_error) {
                         llvm_set_mir_topology_invalid(ctx,

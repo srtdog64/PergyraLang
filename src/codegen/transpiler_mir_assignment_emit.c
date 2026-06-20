@@ -13,6 +13,7 @@
 #include "../parser/ast_api.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_expr_dispatch_emit.h"
 #include "transpiler_mir_block_emit_helpers.h"
 #include "transpiler_mir_expr_ssa.h"
 #include "transpiler_mir_local_binding.h"
@@ -23,6 +24,34 @@
 #include "transpiler_overlay_host_fields.h"
 #include "transpiler_projection.h"
 #include "transpiler_symbols.h"
+
+static bool
+transpiler_mir_def_is_source_assignment_emit(const MIRInstruction *inst)
+{
+    return inst != NULL
+        && inst->kind == MIR_INST_DEF
+        && mir_instruction_uses_source_statement_emit(inst)
+        && mir_instruction_source_is_assignment(inst);
+}
+
+static char *
+transpiler_mir_emit_assignment_parts_with_ssa_map(
+    ASTNode *target,
+    ASTNode *value,
+    TranspilerCtx *ctx,
+    const TranspilerSSANameMap *ssa_map)
+{
+    const void *saved_active_ssa_map;
+    char *result;
+
+    if (ctx == NULL)
+        return NULL;
+    saved_active_ssa_map = ctx->active_ssa_map;
+    ctx->active_ssa_map = ssa_map;
+    result = transpiler_emit_assignment_expression_parts(ctx, target, value);
+    ctx->active_ssa_map = saved_active_ssa_map;
+    return result;
+}
 
 static bool
 transpiler_mir_assignment_target_is_field(TranspilerCtx *ctx,
@@ -99,7 +128,6 @@ bool
 transpiler_emit_mir_assignment_expr_stmt(CodeBuf *buf,
                                          const MIRBasicBlock *block,
                                          const MIRInstruction *inst,
-                                         ASTNode *stmt,
                                          TranspilerCtx *ctx,
                                          TranspilerSSANameMap *ssa_map_out,
                                          char *reason,
@@ -107,19 +135,21 @@ transpiler_emit_mir_assignment_expr_stmt(CodeBuf *buf,
 {
     char *expr = NULL;
 
-    if (buf == NULL || block == NULL || inst == NULL || stmt == NULL
+    if (buf == NULL || block == NULL || inst == NULL
         || ctx == NULL || ssa_map_out == NULL
         || inst->kind != MIR_INST_ASSIGN
-        || stmt->type != AST_ASSIGNMENT) {
+        || inst->expr0 == NULL
+        || inst->expr1 == NULL) {
         if (reason != NULL && reason_cap > 0) {
             transpiler_mir_reasonf(reason, reason_cap,
-                "MIR block %llu emission failed: ASSIGN instruction missing assignment payload",
+                "MIR block %llu emission failed: ASSIGN instruction missing MIR assignment facts",
                 block != NULL ? (unsigned long long) block->id : 0ULL);
         }
         return false;
     }
 
-    expr = emit_expression_with_ssa_map(stmt, ctx, ssa_map_out);
+    expr = transpiler_mir_emit_assignment_parts_with_ssa_map(
+        inst->expr0, inst->expr1, ctx, ssa_map_out);
     if (expr == NULL) {
         if (reason != NULL && reason_cap > 0) {
             transpiler_mir_reasonf(reason, reason_cap,
@@ -142,14 +172,13 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
                                         const MIRBasicBlock *block,
                                         const MIRInstruction *inst,
                                         size_t inst_index,
-                                        ASTNode *stmt,
                                         TranspilerCtx *ctx,
                                         TranspilerSSANameMap *ssa_map_out,
                                         char *reason,
                                         size_t reason_cap)
 {
-    ASTNode *target = ast_assignment_target(stmt);
-    ASTNode *value = ast_assignment_value(stmt);
+    ASTNode *target = inst != NULL ? inst->expr1 : NULL;
+    ASTNode *value = inst != NULL ? inst->expr0 : NULL;
     const char *target_name;
     char *lhs = NULL;
     char *rhs = NULL;
@@ -158,9 +187,9 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
     bool is_channel_receive_assignment = false;
     bool is_select_receive_assignment = false;
 
-    if (!transpiler_mir_def_uses_source_statement_emit(
-            inst, stmt, AST_ASSIGNMENT)
-        || target == NULL
+    if (!transpiler_mir_def_is_source_assignment_emit(inst))
+        return TRANSPILE_MIR_ASSIGNMENT_NOT_HANDLED;
+    if (target == NULL
         || target->type != AST_IDENTIFIER
         || inst->arg0 == NULL
         || inst->result_name == NULL) {
@@ -175,11 +204,9 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
         value != NULL && value->type == AST_CHANNEL_RECV;
     is_select_receive_assignment =
         is_channel_receive_assignment
-        && transpiler_mir_def_uses_select_receive_statement_emit(
-            inst, stmt, AST_ASSIGNMENT);
+        && mir_instruction_uses_select_receive_statement_emit(inst);
     if (is_channel_receive_assignment
-        && !transpiler_mir_def_uses_channel_receive_statement_emit(
-            inst, stmt, AST_ASSIGNMENT)) {
+        && !mir_instruction_uses_channel_receive_statement_emit(inst)) {
         if (reason != NULL && reason_cap > 0) {
             transpiler_mir_reasonf(reason, reason_cap,
                      "MIR block %llu emission failed: channel receive assignment '%s' is missing receive emit fact",
@@ -302,8 +329,10 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
     if (!is_local_binding) {
         MIRInstruction assign_inst = *inst;
         assign_inst.kind = MIR_INST_ASSIGN;
+        assign_inst.expr0 = target;
+        assign_inst.expr1 = value;
         if (!transpiler_emit_mir_assignment_expr_stmt(
-                buf, block, &assign_inst, stmt, ctx, ssa_map_out,
+                buf, block, &assign_inst, ctx, ssa_map_out,
                 reason, reason_cap)) {
             return TRANSPILE_MIR_ASSIGNMENT_FAILED;
         }
@@ -312,8 +341,10 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
     if (transpiler_type_name_is_slot_like(lookup_typed_var(ctx, target_name))) {
         MIRInstruction assign_inst = *inst;
         assign_inst.kind = MIR_INST_ASSIGN;
+        assign_inst.expr0 = target;
+        assign_inst.expr1 = value;
         if (!transpiler_emit_mir_assignment_expr_stmt(
-                buf, block, &assign_inst, stmt, ctx, ssa_map_out,
+                buf, block, &assign_inst, ctx, ssa_map_out,
                 reason, reason_cap)) {
             return TRANSPILE_MIR_ASSIGNMENT_FAILED;
         }
