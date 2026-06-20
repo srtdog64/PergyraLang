@@ -112,6 +112,7 @@ tests/cases/backend_compare/**/main.c
 *.vos
 *.glob
 .*.aux
+.lia.cache
 
 # Editor / OS
 *.backup
