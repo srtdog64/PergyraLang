@@ -370,6 +370,23 @@ ast_map_literal_value(const ASTNode* node, size_t index)
     return node->data.map_literal.values[index];
 }
 
+size_t
+ast_set_literal_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_SET_LITERAL)
+        return 0;
+    return node->data.set_literal.count;
+}
+
+ASTNode*
+ast_set_literal_element(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_SET_LITERAL
+        || index >= node->data.set_literal.count)
+        return NULL;
+    return node->data.set_literal.elements[index];
+}
+
 ASTNode*
 ast_cast_operand(const ASTNode* node)
 {

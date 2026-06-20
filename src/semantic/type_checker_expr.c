@@ -267,6 +267,9 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
     case AST_MAP_LITERAL:
         return type_check_map_literal(expr, ctx);
 
+    case AST_SET_LITERAL:
+        return type_check_set_literal(expr, ctx);
+
     case AST_CAST: {
         const char *target = ast_cast_target_type(expr);
         Type *source = expr_normalize_type(

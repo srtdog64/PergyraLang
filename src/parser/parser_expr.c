@@ -423,40 +423,115 @@ parser_append_map_entry(Parser* parser, ASTNode* map, size_t* capacity,
     return true;
 }
 
-/* Bare brace map literal `{ key: value, ... }` in expression position.
- * Object initializers `Type { field: value }` are handled in the postfix
- * path, so an opening brace reaching primary is unambiguously a map. */
+/* Bare brace literal in expression position: a map `{ k: v, ... }`, a set
+ * `{ a, b, ... }`, or an empty form. The colon is the map marker: `{:}` is an
+ * empty map, `{}` is an empty set; for a non-empty brace we parse the first
+ * element and peek -- a following ':' means map, otherwise set. (Object
+ * initializers `Type { field: value }` are handled in the postfix path, so an
+ * opening brace reaching primary is a map/set literal.) */
 static ASTNode*
 parse_map_literal_expression(Parser* parser)
 {
-    ASTNode* map = calloc(1, sizeof(ASTNode));
-    size_t capacity = 0;
+    int line = parser->current_token.line;
+    int col = parser->current_token.column;
+    parser_consume(parser, TOKEN_LBRACE, "Expected '{' to begin map or set literal");
 
-    if (map == NULL) {
-        parser_error(parser, "Out of memory while parsing map literal");
+    /* Empty forms: `{}` = empty set, `{:}` = empty map. */
+    if (parser_check(parser, TOKEN_RBRACE)) {
+        ASTNode* set = calloc(1, sizeof(ASTNode));
+        if (set == NULL) {
+            parser_error(parser, "Out of memory while parsing set literal");
+            return NULL;
+        }
+        set->type = AST_SET_LITERAL;
+        set->line = line;
+        set->column = col;
+        parser_advance(parser); /* consume '}' */
+        return set;
+    }
+    if (parser_check(parser, TOKEN_COLON)) {
+        ASTNode* map = calloc(1, sizeof(ASTNode));
+        if (map == NULL) {
+            parser_error(parser, "Out of memory while parsing map literal");
+            return NULL;
+        }
+        map->type = AST_MAP_LITERAL;
+        map->line = line;
+        map->column = col;
+        parser_advance(parser); /* consume ':' */
+        parser_consume(parser, TOKEN_RBRACE,
+            "Expected '}' after empty map literal '{:}'");
+        return map;
+    }
+
+    /* Non-empty: parse the first element, then choose map vs set by the peek. */
+    ASTNode* first = parser_parse_expression(parser);
+
+    if (parser_check(parser, TOKEN_COLON)) {
+        ASTNode* map = calloc(1, sizeof(ASTNode));
+        size_t capacity = 0;
+        ASTNode* value;
+        if (map == NULL) {
+            parser_error(parser, "Out of memory while parsing map literal");
+            ast_destroy(first);
+            return NULL;
+        }
+        map->type = AST_MAP_LITERAL;
+        map->line = line;
+        map->column = col;
+        parser_advance(parser); /* consume ':' */
+        value = parser_parse_expression(parser);
+        if (!parser_append_map_entry(parser, map, &capacity, first, value)) {
+            ast_destroy(first);
+            ast_destroy(value);
+        } else if (parser_match(parser, TOKEN_COMMA)) {
+            while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+                ASTNode* key = parser_parse_expression(parser);
+                ASTNode* val;
+                parser_consume(parser, TOKEN_COLON, "Expected ':' after map literal key");
+                val = parser_parse_expression(parser);
+                if (!parser_append_map_entry(parser, map, &capacity, key, val)) {
+                    ast_destroy(key);
+                    ast_destroy(val);
+                    break;
+                }
+                if (!parser_match(parser, TOKEN_COMMA))
+                    break;
+            }
+        }
+        parser_consume(parser, TOKEN_RBRACE, "Expected '}' after map literal");
+        return map;
+    }
+
+    ASTNode* set = calloc(1, sizeof(ASTNode));
+    size_t capacity = 0;
+    if (set == NULL) {
+        parser_error(parser, "Out of memory while parsing set literal");
+        ast_destroy(first);
         return NULL;
     }
-    map->type = AST_MAP_LITERAL;
-    map->line = parser->current_token.line;
-    map->column = parser->current_token.column;
-    parser_consume(parser, TOKEN_LBRACE, "Expected '{' to begin map literal");
-
-    while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
-        ASTNode* key = parser_parse_expression(parser);
-        ASTNode* value;
-        parser_consume(parser, TOKEN_COLON, "Expected ':' after map literal key");
-        value = parser_parse_expression(parser);
-        if (!parser_append_map_entry(parser, map, &capacity, key, value)) {
-            ast_destroy(key);
-            ast_destroy(value);
-            break;
+    set->type = AST_SET_LITERAL;
+    set->line = line;
+    set->column = col;
+    if (!parser_append_expr_node_with_capacity(parser,
+            &set->data.set_literal.elements, &set->data.set_literal.count,
+            &capacity, first)) {
+        ast_destroy(first);
+    } else if (parser_match(parser, TOKEN_COMMA)) {
+        while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+            ASTNode* elem = parser_parse_expression(parser);
+            if (!parser_append_expr_node_with_capacity(parser,
+                    &set->data.set_literal.elements, &set->data.set_literal.count,
+                    &capacity, elem)) {
+                ast_destroy(elem);
+                break;
+            }
+            if (!parser_match(parser, TOKEN_COMMA))
+                break;
         }
-        if (!parser_match(parser, TOKEN_COMMA))
-            break;
     }
-
-    parser_consume(parser, TOKEN_RBRACE, "Expected '}' after map literal");
-    return map;
+    parser_consume(parser, TOKEN_RBRACE, "Expected '}' after set literal");
+    return set;
 }
 
 ASTNode* parser_parse_primary(Parser* parser) {

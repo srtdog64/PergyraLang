@@ -377,6 +377,10 @@ ast_print_compact(ASTNode* node)
             break;
 
         case AST_MAP_LITERAL:
+            if (node->data.map_literal.count == 0) {
+                printf("{:}");
+                break;
+            }
             printf("{");
             for (size_t i = 0; i < node->data.map_literal.count; i++) {
                 if (i > 0)
@@ -384,6 +388,16 @@ ast_print_compact(ASTNode* node)
                 ast_print_compact(node->data.map_literal.keys[i]);
                 printf(": ");
                 ast_print_compact(node->data.map_literal.values[i]);
+            }
+            printf("}");
+            break;
+
+        case AST_SET_LITERAL:
+            printf("{");
+            for (size_t i = 0; i < node->data.set_literal.count; i++) {
+                if (i > 0)
+                    printf(", ");
+                ast_print_compact(node->data.set_literal.elements[i]);
             }
             printf("}");
             break;

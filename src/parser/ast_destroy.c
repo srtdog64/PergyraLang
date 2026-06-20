@@ -295,6 +295,12 @@ void ast_destroy(ASTNode* node) {
             free(node->data.map_literal.values);
             break;
 
+        case AST_SET_LITERAL:
+            for (size_t i = 0; i < node->data.set_literal.count; i++)
+                ast_destroy(node->data.set_literal.elements[i]);
+            free(node->data.set_literal.elements);
+            break;
+
         case AST_CAST:
             ast_destroy(node->data.cast.operand);
             free(node->data.cast.target_type);

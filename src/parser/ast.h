@@ -235,6 +235,12 @@ struct ASTNode
             size_t    count;
         } map_literal;
 
+        /* Set literal { a, b, c } / {} */
+        struct {
+            ASTNode** elements;
+            size_t    count;
+        } set_literal;
+
         /* Cast expr as Type */
         struct {
             ASTNode* operand;

@@ -413,6 +413,43 @@ type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
     return wrap_constructed(TYPE_ARRAY, elem_type);
 }
 
+Type *
+type_check_set_literal(ASTNode *expr, SemanticContext *ctx)
+{
+    if (ast_set_literal_count(expr) == 0)
+        return wrap_constructed(TYPE_SET, TYPE_UNKNOWN);
+
+    Type *elem_type = type_check_expression(ast_set_literal_element(expr, 0), ctx);
+    if (elem_type == NULL)
+        elem_type = TYPE_UNKNOWN;
+    if (type_equals(elem_type, TYPE_VOID)) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_ARRAY_LITERAL_ELEMENT_TYPE_MISMATCH,
+            PGY_FIX_ALIGN_ARRAY_ELEMENT_TYPES,
+            ast_set_literal_element(expr, 0),
+            "Void expression cannot be stored as a set literal element; split the side effect before constructing the set");
+        elem_type = TYPE_UNKNOWN;
+    }
+
+    for (size_t i = 1; i < ast_set_literal_count(expr); i++) {
+        Type *next = type_check_expression(ast_set_literal_element(expr, i), ctx);
+        if (next == NULL)
+            next = TYPE_UNKNOWN;
+        if (!type_is_assignable(next, elem_type) && !type_is_assignable(elem_type, next)) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                PGY_CAUSE_ARRAY_LITERAL_ELEMENT_TYPE_MISMATCH,
+                PGY_FIX_ALIGN_ARRAY_ELEMENT_TYPES,
+                ast_set_literal_element(expr, i),
+                "Set literal element type mismatch: expected '%s', got '%s'",
+                type_name_or_unknown(elem_type),
+                type_name_or_unknown(next));
+            elem_type = TYPE_UNKNOWN;
+        }
+    }
+
+    return wrap_constructed(TYPE_SET, elem_type);
+}
+
 static void
 map_literal_unify_entry(SemanticContext *ctx, ASTNode *expr, size_t i,
                         Type **key_type, Type **value_type,

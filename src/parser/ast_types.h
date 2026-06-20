@@ -125,6 +125,7 @@ typedef enum
     AST_ARRAY_LITERAL,
     AST_TUPLE_LITERAL,     /* (a, b, c) — tuple construction */
     AST_MAP_LITERAL,       /* { key: value, ... } — map construction */
+    AST_SET_LITERAL,       /* { a, b, c } / {} — set construction */
     AST_CAST,              /* expr as Type — scalar conversion */
     AST_TYPE_TEST,         /* expr is Type — scalar type predicate */
     AST_ASSIGNMENT,

@@ -162,6 +162,8 @@ ASTNode* ast_tuple_literal_element(const ASTNode* node, size_t index);
 size_t ast_map_literal_count(const ASTNode* node);
 ASTNode* ast_map_literal_key(const ASTNode* node, size_t index);
 ASTNode* ast_map_literal_value(const ASTNode* node, size_t index);
+size_t ast_set_literal_count(const ASTNode* node);
+ASTNode* ast_set_literal_element(const ASTNode* node, size_t index);
 ASTNode* ast_cast_operand(const ASTNode* node);
 const char* ast_cast_target_type(const ASTNode* node);
 ASTNode* ast_type_test_operand(const ASTNode* node);
