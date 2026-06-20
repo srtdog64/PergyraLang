@@ -6,28 +6,31 @@
 #include "transpiler_zone_frontier_emit.h"
 
 #include "domain_frontier_policy.h"
-#include "parser/ast_api.h"
 #include "transpiler_context.h"
 
 void
 transpiler_emit_zone_frontier_change_checks(TranspilerCtx *ctx,
-                                            ASTNode **states,
-                                            size_t state_count,
+                                            const TranspilerHostedZoneStateView *state_view,
                                             const TranspilerHostedZoneLayerSlotView *layer_view)
 {
-    for (size_t i = 0; i < state_count; i++) {
-        ASTNode *state = states[i];
-        write_indent(ctx);
-        codebuf_write(ctx->out,
-            "if (self->__state_%s != _pgy_prev_state_%s) {\n",
-            ast_zone_state_name(state),
-            ast_zone_state_name(state));
-        ctx->indent++;
-        write_indent(ctx);
-        codebuf_write(ctx->out, "_pgy_zone_frontier_continue = true;\n");
-        ctx->indent--;
-        write_indent(ctx);
-        codebuf_write(ctx->out, "}\n");
+    if (state_view != NULL) {
+        for (size_t i = 0; i < state_view->count; i++) {
+            const char *state_name =
+                transpiler_hosted_zone_state_view_name(state_view, i);
+            if (state_name == NULL)
+                continue;
+            write_indent(ctx);
+            codebuf_write(ctx->out,
+                "if (self->__state_%s != _pgy_prev_state_%s) {\n",
+                state_name,
+                state_name);
+            ctx->indent++;
+            write_indent(ctx);
+            codebuf_write(ctx->out, "_pgy_zone_frontier_continue = true;\n");
+            ctx->indent--;
+            write_indent(ctx);
+            codebuf_write(ctx->out, "}\n");
+        }
     }
     if (layer_view == NULL)
         return;

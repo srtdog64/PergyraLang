@@ -187,6 +187,10 @@ English anchor for tooling/doc gates:
   address-like lvalue before a dedicated partial-width write owner exists. The
   diagnostic must say the missing owner is layout/effect evidence, not emit a C
   bitfield or backend-local mask/shift fallback.
+  Gate names to add when this slice starts:
+  `layout-bitpack-mutability-reject-test-smoke` for the negative surface
+  fixture, and `layout-fact-abi-golden-test-smoke` for C/LLVM agreement on
+  storage unit, byte offset, bit offset, width, mask, shift, and RMW facts.
   Source spelling policy: do not add a user-facing packed-field or bit-slice
   spelling as a permissive parser-only feature. The first accepted spelling
   must be behind a semantic reject gate until `LayoutFact` exists; otherwise

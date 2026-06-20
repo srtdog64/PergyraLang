@@ -52,10 +52,11 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         transpiler_hosted_domain_slot_view_from_decl(ctx, name, node);
     TranspilerHostedZoneLayerSlotView layer_view =
         transpiler_hosted_zone_layer_slot_view_from_decl(ctx, name, node);
+    TranspilerHostedZoneStateView state_view =
+        transpiler_hosted_zone_state_view_from_decl(ctx, name, node);
     TranspilerHostedZoneRefreshView refresh_view =
         transpiler_hosted_zone_refresh_view_from_decl(ctx, name, node);
-    size_t state_count = 0;
-    ASTNode **states = ast_zone_states(node, &state_count);
+    size_t state_count = state_view.count;
     size_t apply_count = 0;
     ASTNode **applies = ast_zone_applies(node, &apply_count);
     size_t link_count = 0;
@@ -97,6 +98,35 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             "MIR-only C path missing zone layer-slot declaration metadata for '%s'",
             name != NULL ? name : "(anonymous-zone)");
         return;
+    }
+    if (transpiler_hosted_zone_state_view_missing_mir_metadata(
+            &state_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing zone state declaration metadata for '%s'",
+            name != NULL ? name : "(anonymous-zone)");
+        return;
+    }
+    for (size_t i = 0; i < state_count; i++) {
+        const char *state_name =
+            transpiler_hosted_zone_state_view_name(&state_view, i);
+        const char *state_layer =
+            transpiler_hosted_zone_state_view_layer_slot_name(&state_view, i);
+        const char *state_target =
+            transpiler_hosted_zone_state_view_left_or_target_slot_name(
+                &state_view, i);
+        const char *state_right =
+            transpiler_hosted_zone_state_view_right_slot_name(&state_view, i);
+        if (state_name == NULL || state_layer == NULL
+            || state_target == NULL
+            || (transpiler_hosted_zone_state_view_is_relation(&state_view, i)
+                && state_right == NULL)) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path has incomplete zone state metadata for '%s'",
+                name != NULL ? name : "(anonymous-zone)");
+            return;
+        }
     }
     if (transpiler_hosted_zone_refresh_view_missing_mir_metadata(
             &refresh_view)) {
@@ -155,11 +185,14 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "_pgy_zone_frontier_pass++;\n");
 
     for (size_t i = 0; i < state_count; i++) {
-        ASTNode *state = states[i];
+        const char *state_name =
+            transpiler_hosted_zone_state_view_name(&state_view, i);
+        if (state_name == NULL)
+            continue;
         write_indent(ctx);
         codebuf_write(ctx->out, "bool _pgy_prev_state_%s = self->__state_%s;\n",
-            ast_zone_state_name(state),
-            ast_zone_state_name(state));
+            state_name,
+            state_name);
     }
     for (size_t i = 0; i < layer_view.count; i++) {
         const char *layer_name =
@@ -173,10 +206,13 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
     }
 
     for (size_t i = 0; i < state_count; i++) {
-        ASTNode *state = states[i];
+        const char *state_name =
+            transpiler_hosted_zone_state_view_name(&state_view, i);
+        if (state_name == NULL)
+            continue;
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__state_%s = false;\n",
-            ast_zone_state_name(state));
+            state_name);
     }
     for (size_t i = 0; i < layer_view.count; i++) {
         const char *layer_name =
@@ -215,17 +251,20 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__layer_active_%s = true;\n", layer_name);
         for (size_t j = 0; j < state_count; j++) {
-            ASTNode *state = states[j];
-            if (state == NULL || state->type != AST_ZONE_STATE
-                || ast_zone_state_is_relation(state)
-                || ast_zone_state_layer_slot_name(state) == NULL
-                || ast_zone_state_name(state) == NULL
-                || strcmp(ast_zone_state_layer_slot_name(state), layer_name) != 0) {
+            const char *state_name =
+                transpiler_hosted_zone_state_view_name(&state_view, j);
+            const char *state_layer =
+                transpiler_hosted_zone_state_view_layer_slot_name(
+                    &state_view, j);
+            if (transpiler_hosted_zone_state_view_is_relation(&state_view, j)
+                || state_layer == NULL
+                || state_name == NULL
+                || strcmp(state_layer, layer_name) != 0) {
                 continue;
             }
             write_indent(ctx);
             codebuf_write(ctx->out, "self->__state_%s = true;\n",
-                ast_zone_state_name(state));
+                state_name);
         }
         ctx->indent--;
         write_indent(ctx);
@@ -241,19 +280,30 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             emit_hidden_provenance_stamp(ctx, "self", "state",
                 ast_zone_directive_state_name(apply), PGY_PROP_CAUSE_APPLY);
             for (size_t j = 0; j < state_count; j++) {
-                ASTNode *state = states[j];
-                if (!ast_zone_state_is_relation(state)
-                    && strcmp(ast_zone_state_name(state),
+                const char *state_name =
+                    transpiler_hosted_zone_state_view_name(&state_view, j);
+                const char *state_layer =
+                    transpiler_hosted_zone_state_view_layer_slot_name(
+                        &state_view, j);
+                const char *state_target =
+                    transpiler_hosted_zone_state_view_left_or_target_slot_name(
+                        &state_view, j);
+                if (!transpiler_hosted_zone_state_view_is_relation(
+                        &state_view, j)
+                    && state_name != NULL
+                    && state_layer != NULL
+                    && state_target != NULL
+                    && strcmp(state_name,
                               ast_zone_directive_state_name(apply)) == 0) {
                     write_indent(ctx);
                     codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
-                        ast_zone_state_layer_slot_name(state));
+                        state_layer);
                     emit_hidden_provenance_stamp(ctx, "self", "layer",
-                        ast_zone_state_layer_slot_name(state),
+                        state_layer,
                         PGY_PROP_CAUSE_APPLY);
                     emit_zone_bind_effect_layer(ctx->out, node,
-                        ast_zone_state_layer_slot_name(state),
-                        ast_zone_state_left_or_target_slot_name(state), ctx);
+                        state_layer,
+                        state_target, ctx);
                 }
             }
             continue;
@@ -267,17 +317,26 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             ast_zone_effect_slot_name(apply),
             ast_zone_effect_target_slot_name(apply), ctx);
         for (size_t j = 0; j < state_count; j++) {
-            ASTNode *state = states[j];
-            if (!ast_zone_state_is_relation(state)
-                && strcmp(ast_zone_state_layer_slot_name(state),
-                          ast_zone_effect_slot_name(apply)) == 0
-                && strcmp(ast_zone_state_left_or_target_slot_name(state),
+            const char *state_name =
+                transpiler_hosted_zone_state_view_name(&state_view, j);
+            const char *state_layer =
+                transpiler_hosted_zone_state_view_layer_slot_name(
+                    &state_view, j);
+            const char *state_target =
+                transpiler_hosted_zone_state_view_left_or_target_slot_name(
+                    &state_view, j);
+            if (!transpiler_hosted_zone_state_view_is_relation(&state_view, j)
+                && state_name != NULL
+                && state_layer != NULL
+                && state_target != NULL
+                && strcmp(state_layer, ast_zone_effect_slot_name(apply)) == 0
+                && strcmp(state_target,
                           ast_zone_effect_target_slot_name(apply)) == 0) {
                 write_indent(ctx);
                 codebuf_write(ctx->out, "self->__state_%s = true;\n",
-                    ast_zone_state_name(state));
+                    state_name);
                 emit_hidden_provenance_stamp(ctx, "self", "state",
-                    ast_zone_state_name(state), PGY_PROP_CAUSE_APPLY);
+                    state_name, PGY_PROP_CAUSE_APPLY);
             }
         }
     }
@@ -294,17 +353,27 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             ast_zone_effect_slot_name(maintain),
             ast_zone_effect_target_slot_name(maintain), ctx);
         for (size_t j = 0; j < state_count; j++) {
-            ASTNode *state = states[j];
-            if (!ast_zone_state_is_relation(state)
-                && strcmp(ast_zone_state_layer_slot_name(state),
+            const char *state_name =
+                transpiler_hosted_zone_state_view_name(&state_view, j);
+            const char *state_layer =
+                transpiler_hosted_zone_state_view_layer_slot_name(
+                    &state_view, j);
+            const char *state_target =
+                transpiler_hosted_zone_state_view_left_or_target_slot_name(
+                    &state_view, j);
+            if (!transpiler_hosted_zone_state_view_is_relation(&state_view, j)
+                && state_name != NULL
+                && state_layer != NULL
+                && state_target != NULL
+                && strcmp(state_layer,
                           ast_zone_effect_slot_name(maintain)) == 0
-                && strcmp(ast_zone_state_left_or_target_slot_name(state),
+                && strcmp(state_target,
                           ast_zone_effect_target_slot_name(maintain)) == 0) {
                 write_indent(ctx);
                 codebuf_write(ctx->out, "self->__state_%s = true;\n",
-                    ast_zone_state_name(state));
+                    state_name);
                 emit_hidden_provenance_stamp(ctx, "self", "state",
-                    ast_zone_state_name(state),
+                    state_name,
                     PGY_PROP_CAUSE_MAINTAIN);
             }
         }
@@ -319,24 +388,38 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             ast_zone_directive_state_name(maintain),
             PGY_PROP_CAUSE_MAINTAIN);
         for (size_t j = 0; j < state_count; j++) {
-            ASTNode *state = states[j];
-            if (strcmp(ast_zone_state_name(state),
-                       ast_zone_directive_state_name(maintain)) == 0) {
+            const char *state_name =
+                transpiler_hosted_zone_state_view_name(&state_view, j);
+            const char *state_layer =
+                transpiler_hosted_zone_state_view_layer_slot_name(
+                    &state_view, j);
+            const char *state_target =
+                transpiler_hosted_zone_state_view_left_or_target_slot_name(
+                    &state_view, j);
+            const char *state_right =
+                transpiler_hosted_zone_state_view_right_slot_name(
+                    &state_view, j);
+            if (state_name != NULL
+                && state_layer != NULL
+                && state_target != NULL
+                && strcmp(state_name,
+                          ast_zone_directive_state_name(maintain)) == 0) {
                 write_indent(ctx);
                 codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
-                    ast_zone_state_layer_slot_name(state));
+                    state_layer);
                 emit_hidden_provenance_stamp(ctx, "self", "layer",
-                    ast_zone_state_layer_slot_name(state),
+                    state_layer,
                     PGY_PROP_CAUSE_MAINTAIN);
-                if (!ast_zone_state_is_relation(state)) {
+                if (!transpiler_hosted_zone_state_view_is_relation(
+                        &state_view, j)) {
                     emit_zone_bind_effect_layer(ctx->out, node,
-                        ast_zone_state_layer_slot_name(state),
-                        ast_zone_state_left_or_target_slot_name(state), ctx);
-                } else {
+                        state_layer,
+                        state_target, ctx);
+                } else if (state_right != NULL) {
                     emit_zone_bind_relation_layer(ctx->out, node,
-                        ast_zone_state_layer_slot_name(state),
-                        ast_zone_state_left_or_target_slot_name(state),
-                        ast_zone_state_right_slot_name(state), ctx);
+                        state_layer,
+                        state_target,
+                        state_right, ctx);
                 }
             }
         }
@@ -351,15 +434,22 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             emit_hidden_provenance_stamp(ctx, "self", "state",
                 ast_zone_directive_state_name(detach), PGY_PROP_CAUSE_DETACH);
             for (size_t j = 0; j < state_count; j++) {
-                ASTNode *state = states[j];
-                if (!ast_zone_state_is_relation(state)
-                    && strcmp(ast_zone_state_name(state),
+                const char *state_name =
+                    transpiler_hosted_zone_state_view_name(&state_view, j);
+                const char *state_layer =
+                    transpiler_hosted_zone_state_view_layer_slot_name(
+                        &state_view, j);
+                if (!transpiler_hosted_zone_state_view_is_relation(
+                        &state_view, j)
+                    && state_name != NULL
+                    && state_layer != NULL
+                    && strcmp(state_name,
                               ast_zone_directive_state_name(detach)) == 0) {
                     write_indent(ctx);
                     codebuf_write(ctx->out, "self->__layer_active_%s = false;\n",
-                        ast_zone_state_layer_slot_name(state));
+                        state_layer);
                     emit_hidden_provenance_stamp(ctx, "self", "layer",
-                        ast_zone_state_layer_slot_name(state),
+                        state_layer,
                         PGY_PROP_CAUSE_DETACH);
                 }
             }
@@ -371,17 +461,26 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         emit_hidden_provenance_stamp(ctx, "self", "layer",
             ast_zone_effect_slot_name(detach), PGY_PROP_CAUSE_DETACH);
         for (size_t j = 0; j < state_count; j++) {
-            ASTNode *state = states[j];
-            if (!ast_zone_state_is_relation(state)
-                && strcmp(ast_zone_state_layer_slot_name(state),
-                          ast_zone_effect_slot_name(detach)) == 0
-                && strcmp(ast_zone_state_left_or_target_slot_name(state),
+            const char *state_name =
+                transpiler_hosted_zone_state_view_name(&state_view, j);
+            const char *state_layer =
+                transpiler_hosted_zone_state_view_layer_slot_name(
+                    &state_view, j);
+            const char *state_target =
+                transpiler_hosted_zone_state_view_left_or_target_slot_name(
+                    &state_view, j);
+            if (!transpiler_hosted_zone_state_view_is_relation(&state_view, j)
+                && state_name != NULL
+                && state_layer != NULL
+                && state_target != NULL
+                && strcmp(state_layer, ast_zone_effect_slot_name(detach)) == 0
+                && strcmp(state_target,
                           ast_zone_effect_target_slot_name(detach)) == 0) {
                 write_indent(ctx);
                 codebuf_write(ctx->out, "self->__state_%s = false;\n",
-                    ast_zone_state_name(state));
+                    state_name);
                 emit_hidden_provenance_stamp(ctx, "self", "state",
-                    ast_zone_state_name(state),
+                    state_name,
                     PGY_PROP_CAUSE_DETACH);
             }
         }
@@ -396,20 +495,35 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             emit_hidden_provenance_stamp(ctx, "self", "state",
                 ast_zone_directive_state_name(link), PGY_PROP_CAUSE_LINK);
             for (size_t j = 0; j < state_count; j++) {
-                ASTNode *state = states[j];
-                if (ast_zone_state_is_relation(state)
-                    && strcmp(ast_zone_state_name(state),
+                const char *state_name =
+                    transpiler_hosted_zone_state_view_name(&state_view, j);
+                const char *state_layer =
+                    transpiler_hosted_zone_state_view_layer_slot_name(
+                        &state_view, j);
+                const char *state_left =
+                    transpiler_hosted_zone_state_view_left_or_target_slot_name(
+                        &state_view, j);
+                const char *state_right =
+                    transpiler_hosted_zone_state_view_right_slot_name(
+                        &state_view, j);
+                if (transpiler_hosted_zone_state_view_is_relation(
+                        &state_view, j)
+                    && state_name != NULL
+                    && state_layer != NULL
+                    && state_left != NULL
+                    && state_right != NULL
+                    && strcmp(state_name,
                               ast_zone_directive_state_name(link)) == 0) {
                     write_indent(ctx);
                     codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
-                        ast_zone_state_layer_slot_name(state));
+                        state_layer);
                     emit_hidden_provenance_stamp(ctx, "self", "layer",
-                        ast_zone_state_layer_slot_name(state),
+                        state_layer,
                         PGY_PROP_CAUSE_LINK);
                     emit_zone_bind_relation_layer(ctx->out, node,
-                        ast_zone_state_layer_slot_name(state),
-                        ast_zone_state_left_or_target_slot_name(state),
-                        ast_zone_state_right_slot_name(state), ctx);
+                        state_layer,
+                        state_left,
+                        state_right, ctx);
                 }
             }
             continue;
@@ -424,19 +538,30 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             ast_zone_relation_left_slot_name(link),
             ast_zone_relation_right_slot_name(link), ctx);
         for (size_t j = 0; j < state_count; j++) {
-            ASTNode *state = states[j];
-            if (ast_zone_state_is_relation(state)
-                && strcmp(ast_zone_state_layer_slot_name(state),
-                          ast_zone_relation_slot_name(link)) == 0
-                && strcmp(ast_zone_state_left_or_target_slot_name(state),
-                          ast_zone_relation_left_slot_name(link)) == 0
-                && strcmp(ast_zone_state_right_slot_name(state),
-                          ast_zone_relation_right_slot_name(link)) == 0) {
+            const char *state_name =
+                transpiler_hosted_zone_state_view_name(&state_view, j);
+            const char *state_layer =
+                transpiler_hosted_zone_state_view_layer_slot_name(
+                    &state_view, j);
+            const char *state_left =
+                transpiler_hosted_zone_state_view_left_or_target_slot_name(
+                    &state_view, j);
+            const char *state_right =
+                transpiler_hosted_zone_state_view_right_slot_name(
+                    &state_view, j);
+            if (transpiler_hosted_zone_state_view_is_relation(&state_view, j)
+                && state_name != NULL
+                && state_layer != NULL
+                && state_left != NULL
+                && state_right != NULL
+                && strcmp(state_layer, ast_zone_relation_slot_name(link)) == 0
+                && strcmp(state_left, ast_zone_relation_left_slot_name(link)) == 0
+                && strcmp(state_right, ast_zone_relation_right_slot_name(link)) == 0) {
                 write_indent(ctx);
                 codebuf_write(ctx->out, "self->__state_%s = true;\n",
-                    ast_zone_state_name(state));
+                    state_name);
                 emit_hidden_provenance_stamp(ctx, "self", "state",
-                    ast_zone_state_name(state), PGY_PROP_CAUSE_LINK);
+                    state_name, PGY_PROP_CAUSE_LINK);
             }
         }
     }
@@ -454,19 +579,33 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             ast_zone_relation_left_slot_name(maintain),
             ast_zone_relation_right_slot_name(maintain), ctx);
         for (size_t j = 0; j < state_count; j++) {
-            ASTNode *state = states[j];
-            if (ast_zone_state_is_relation(state)
-                && strcmp(ast_zone_state_layer_slot_name(state),
+            const char *state_name =
+                transpiler_hosted_zone_state_view_name(&state_view, j);
+            const char *state_layer =
+                transpiler_hosted_zone_state_view_layer_slot_name(
+                    &state_view, j);
+            const char *state_left =
+                transpiler_hosted_zone_state_view_left_or_target_slot_name(
+                    &state_view, j);
+            const char *state_right =
+                transpiler_hosted_zone_state_view_right_slot_name(
+                    &state_view, j);
+            if (transpiler_hosted_zone_state_view_is_relation(&state_view, j)
+                && state_name != NULL
+                && state_layer != NULL
+                && state_left != NULL
+                && state_right != NULL
+                && strcmp(state_layer,
                           ast_zone_relation_slot_name(maintain)) == 0
-                && strcmp(ast_zone_state_left_or_target_slot_name(state),
+                && strcmp(state_left,
                           ast_zone_relation_left_slot_name(maintain)) == 0
-                && strcmp(ast_zone_state_right_slot_name(state),
+                && strcmp(state_right,
                           ast_zone_relation_right_slot_name(maintain)) == 0) {
                 write_indent(ctx);
                 codebuf_write(ctx->out, "self->__state_%s = true;\n",
-                    ast_zone_state_name(state));
+                    state_name);
                 emit_hidden_provenance_stamp(ctx, "self", "state",
-                    ast_zone_state_name(state),
+                    state_name,
                     PGY_PROP_CAUSE_MAINTAIN);
             }
         }
@@ -481,15 +620,22 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             emit_hidden_provenance_stamp(ctx, "self", "state",
                 ast_zone_directive_state_name(unlink), PGY_PROP_CAUSE_UNLINK);
             for (size_t j = 0; j < state_count; j++) {
-                ASTNode *state = states[j];
-                if (ast_zone_state_is_relation(state)
-                    && strcmp(ast_zone_state_name(state),
+                const char *state_name =
+                    transpiler_hosted_zone_state_view_name(&state_view, j);
+                const char *state_layer =
+                    transpiler_hosted_zone_state_view_layer_slot_name(
+                        &state_view, j);
+                if (transpiler_hosted_zone_state_view_is_relation(
+                        &state_view, j)
+                    && state_name != NULL
+                    && state_layer != NULL
+                    && strcmp(state_name,
                               ast_zone_directive_state_name(unlink)) == 0) {
                     write_indent(ctx);
                     codebuf_write(ctx->out, "self->__layer_active_%s = false;\n",
-                        ast_zone_state_layer_slot_name(state));
+                        state_layer);
                     emit_hidden_provenance_stamp(ctx, "self", "layer",
-                        ast_zone_state_layer_slot_name(state),
+                        state_layer,
                         PGY_PROP_CAUSE_UNLINK);
                 }
             }
@@ -501,26 +647,37 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         emit_hidden_provenance_stamp(ctx, "self", "layer",
             ast_zone_relation_slot_name(unlink), PGY_PROP_CAUSE_UNLINK);
         for (size_t j = 0; j < state_count; j++) {
-            ASTNode *state = states[j];
-            if (ast_zone_state_is_relation(state)
-                && strcmp(ast_zone_state_layer_slot_name(state),
-                          ast_zone_relation_slot_name(unlink)) == 0
-                && strcmp(ast_zone_state_left_or_target_slot_name(state),
-                          ast_zone_relation_left_slot_name(unlink)) == 0
-                && strcmp(ast_zone_state_right_slot_name(state),
-                          ast_zone_relation_right_slot_name(unlink)) == 0) {
+            const char *state_name =
+                transpiler_hosted_zone_state_view_name(&state_view, j);
+            const char *state_layer =
+                transpiler_hosted_zone_state_view_layer_slot_name(
+                    &state_view, j);
+            const char *state_left =
+                transpiler_hosted_zone_state_view_left_or_target_slot_name(
+                    &state_view, j);
+            const char *state_right =
+                transpiler_hosted_zone_state_view_right_slot_name(
+                    &state_view, j);
+            if (transpiler_hosted_zone_state_view_is_relation(&state_view, j)
+                && state_name != NULL
+                && state_layer != NULL
+                && state_left != NULL
+                && state_right != NULL
+                && strcmp(state_layer, ast_zone_relation_slot_name(unlink)) == 0
+                && strcmp(state_left, ast_zone_relation_left_slot_name(unlink)) == 0
+                && strcmp(state_right, ast_zone_relation_right_slot_name(unlink)) == 0) {
                 write_indent(ctx);
                 codebuf_write(ctx->out, "self->__state_%s = false;\n",
-                    ast_zone_state_name(state));
+                    state_name);
                 emit_hidden_provenance_stamp(ctx, "self", "state",
-                    ast_zone_state_name(state),
+                    state_name,
                     PGY_PROP_CAUSE_UNLINK);
             }
         }
     }
 
     transpiler_emit_zone_frontier_change_checks(ctx,
-        states, state_count, &layer_view);
+        &state_view, &layer_view);
 
     ctx->indent--;
     write_indent(ctx);

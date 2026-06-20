@@ -8,13 +8,11 @@
 
 #include <stddef.h>
 
-#include "../parser/ast.h"
 #include "transpiler.h"
 #include "transpiler_decl_lookup.h"
 
 void transpiler_emit_zone_frontier_change_checks(TranspilerCtx *ctx,
-                                                 ASTNode **states,
-                                                 size_t state_count,
+                                                 const TranspilerHostedZoneStateView *state_view,
                                                  const TranspilerHostedZoneLayerSlotView *layer_view);
 void transpiler_emit_zone_frontier_overflow_guard(TranspilerCtx *ctx);
 

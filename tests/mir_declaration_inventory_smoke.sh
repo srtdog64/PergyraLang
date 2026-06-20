@@ -7335,6 +7335,33 @@ if grep -Fq "ast_zone_states(node, &state_count)" \
     fail "C zone struct emission must consume MIR zone state metadata, not reopen AST_ZONE_STATE inventory"
 fi
 for term in \
+    "TranspilerHostedZoneStateView state_view" \
+    "transpiler_hosted_zone_state_view_from_decl(ctx, name, node)" \
+    "transpiler_hosted_zone_state_view_missing_mir_metadata" \
+    "transpiler_hosted_zone_state_view_name(&state_view" \
+    "transpiler_hosted_zone_state_view_layer_slot_name(&state_view" \
+    "transpiler_hosted_zone_state_view_left_or_target_slot_name" \
+    "transpiler_hosted_zone_state_view_right_slot_name" \
+    "transpiler_emit_zone_frontier_change_checks(ctx," \
+    "&state_view, &layer_view"; do
+    require_term "src/codegen/transpiler_zone_decl_emit.c" "$term"
+done
+if grep -Fq "ast_zone_states(node, &state_count)" \
+    "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.c"; then
+    fail "C zone sync/frontier emission must consume MIR zone state metadata, not reopen AST_ZONE_STATE inventory"
+fi
+for term in \
+    "const TranspilerHostedZoneStateView *state_view" \
+    "transpiler_hosted_zone_state_view_name(state_view, i)"; do
+    require_term "src/codegen/transpiler_zone_frontier_emit.c" "$term"
+    require_term "src/codegen/transpiler_zone_frontier_emit.h" \
+        "const TranspilerHostedZoneStateView *state_view"
+done
+if grep -Fq "ast_zone_state_name(" \
+    "$ROOT_DIR/src/codegen/transpiler_zone_frontier_emit.c"; then
+    fail "C zone frontier guard emission must consume MIR zone state metadata, not AST zone-state accessors"
+fi
+for term in \
     "LLVMHostedZoneStateView" \
     "llvm_hosted_zone_state_view_from_decl" \
     "llvm_hosted_zone_state_view_metadata" \
