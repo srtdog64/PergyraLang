@@ -7365,7 +7365,11 @@ for term in \
     "LLVMHostedZoneStateView" \
     "llvm_hosted_zone_state_view_from_decl" \
     "llvm_hosted_zone_state_view_metadata" \
-    "llvm_hosted_zone_state_view_name"; do
+    "llvm_hosted_zone_state_view_name" \
+    "llvm_hosted_zone_state_view_rows_complete" \
+    "llvm_hosted_zone_state_view_find_name" \
+    "llvm_hosted_zone_state_view_find_effect_state" \
+    "llvm_hosted_zone_state_view_find_relation_state"; do
     require_term "src/codegen/llvm_inventory_decl_lookup.h" "$term"
     require_term "src/codegen/llvm_inventory_zone_state_view.c" "$term"
 done
@@ -7404,6 +7408,41 @@ if grep -Fq "ast_zone_state_name(" \
     "$ROOT_DIR/src/codegen/llvm_domain_zone_frontier_state.c"; then
     fail "LLVM zone frontier previous/reset/change tracking must consume LLVMHostedZoneStateView, not AST zone-state accessors"
 fi
+for term in \
+    "LLVMHostedZoneStateView state_view" \
+    "llvm_hosted_zone_state_view_from_decl(ctx, decl_name, stmt)" \
+    "llvm_hosted_zone_state_view_rows_complete" \
+    "llvm_hosted_zone_state_view_find_effect_state" \
+    "llvm_hosted_zone_state_view_find_name"; do
+    require_term "src/codegen/llvm_domain_zone_sync.c" "$term"
+done
+for term in \
+    "LLVMHostedZoneStateView state_view" \
+    "llvm_hosted_zone_state_view_from_decl(ctx, zone_name, stmt)" \
+    "llvm_hosted_zone_state_view_rows_complete" \
+    "llvm_hosted_zone_state_view_find_effect_state" \
+    "llvm_hosted_zone_state_view_find_name"; do
+    require_term "src/codegen/llvm_domain_zone_sync_clauses.c" "$term"
+done
+for term in \
+    "LLVMHostedZoneStateView state_view" \
+    "llvm_hosted_zone_state_view_from_decl(ctx, zone_name, stmt)" \
+    "llvm_hosted_zone_state_view_rows_complete" \
+    "llvm_hosted_zone_state_view_find_relation_state" \
+    "llvm_hosted_zone_state_view_find_name"; do
+    require_term "src/codegen/llvm_domain_zone_sync_relations.c" "$term"
+done
+for file in \
+    "src/codegen/llvm_domain_zone_sync.c" \
+    "src/codegen/llvm_domain_zone_sync_clauses.c" \
+    "src/codegen/llvm_domain_zone_sync_relations.c"; do
+    if grep -Fq "ast_zone_states(stmt, &state_count)" "$ROOT_DIR/$file"; then
+        fail "$file must consume MIR zone state metadata, not reopen AST_ZONE_STATE inventory"
+    fi
+    if grep -Fq "ast_zone_state_" "$ROOT_DIR/$file"; then
+        fail "$file must consume LLVMHostedZoneStateView, not AST zone-state accessors"
+    fi
+done
 for term in \
     "TranspilerHostedZoneRefreshView" \
     "transpiler_hosted_zone_refresh_view_from_decl" \

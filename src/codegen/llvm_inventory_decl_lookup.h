@@ -220,6 +220,23 @@ const char *llvm_hosted_zone_state_view_right_slot_name(
 bool llvm_hosted_zone_state_view_is_relation(
     const LLVMHostedZoneStateView *view,
     size_t index);
+bool llvm_hosted_zone_state_view_rows_complete(
+    const LLVMHostedZoneStateView *view);
+bool llvm_hosted_zone_state_view_find_name(
+    const LLVMHostedZoneStateView *view,
+    const char *state_name,
+    size_t *index_out);
+bool llvm_hosted_zone_state_view_find_effect_state(
+    const LLVMHostedZoneStateView *view,
+    const char *layer_name,
+    const char *target_name,
+    size_t *index_out);
+bool llvm_hosted_zone_state_view_find_relation_state(
+    const LLVMHostedZoneStateView *view,
+    const char *layer_name,
+    const char *left_name,
+    const char *right_name,
+    size_t *index_out);
 LLVMHostedZoneRefreshView llvm_hosted_zone_refresh_view_from_decl(
     const LLVMGenCtx *ctx,
     const char *host_name,

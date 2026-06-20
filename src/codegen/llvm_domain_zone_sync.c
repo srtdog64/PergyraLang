@@ -25,6 +25,21 @@ llvm_zone_sync_field_name(char *out,
     return written >= 0 && (size_t)written < out_size;
 }
 
+static bool
+llvm_zone_sync_require_state_view(LLVMGenCtx *ctx,
+                                  const LLVMHostedZoneStateView *view,
+                                  const char *zone_name)
+{
+    if (llvm_hosted_zone_state_view_missing_mir_metadata(view)
+        || !llvm_hosted_zone_state_view_rows_complete(view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone sync state metadata for '%s'",
+            zone_name != NULL ? zone_name : "<anonymous>");
+        return false;
+    }
+    return true;
+}
+
 void
 llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                     LLVMClassTypeEntry *decl_cls, LLVMValueRef sync_fn,
@@ -40,7 +55,7 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
     LLVMLexicalRegistrySnapshot lexical_snapshot;
     LLVMBasicBlockRef bb;
     size_t state_count = 0;
-    ASTNode **states = NULL;
+    LLVMHostedZoneStateView state_view;
     LLVMHostedZoneLayerSlotView layer_view;
 
     if (stmt == NULL || stmt->type != AST_ZONE_DECL || decl_name == NULL
@@ -71,8 +86,19 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
         llvm_scope_declare(ctx, "self", sa, self_ptr_t);
         llvm_register_var_class(ctx, "self", decl_name);
     }
-    states = ast_zone_states(stmt, &state_count);
+    state_view = llvm_hosted_zone_state_view_from_decl(ctx, decl_name, stmt);
+    state_count = state_view.count;
     layer_view = llvm_hosted_zone_layer_slot_view_from_decl(ctx, decl_name, stmt);
+    if (!llvm_zone_sync_require_state_view(ctx, &state_view, decl_name)) {
+        LLVMBuildRetVoid(ctx->builder);
+        llvm_scope_pop(ctx);
+        llvm_lexical_registry_restore(ctx, lexical_snapshot);
+        llvm_finish_domain_sync_emit(ctx, saved_fn, saved_ret,
+            saved_function_ret, saved_return_type_name,
+            saved_return_callable_type,
+            saved_host_decl, saved_bb);
+        return;
+    }
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing zone frontier layer-slot metadata for '%s'",
@@ -152,21 +178,15 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
         ASTNode *apply = applies[i];
         const char *state_name = apply != NULL ? ast_zone_directive_state_name(apply) : NULL;
         if (state_name == NULL && apply != NULL) {
-            for (size_t j = 0; j < state_count; j++) {
-                ASTNode *state = states[j];
-                if (state != NULL && state->type == AST_ZONE_STATE
-                    && !ast_zone_state_is_relation(state)
-                    && ast_zone_state_layer_slot_name(state) != NULL
-                    && ast_zone_state_left_or_target_slot_name(state) != NULL
-                    && ast_zone_effect_slot_name(apply) != NULL
-                    && ast_zone_effect_target_slot_name(apply) != NULL
-                    && strcmp(ast_zone_state_layer_slot_name(state),
-                              ast_zone_effect_slot_name(apply)) == 0
-                    && strcmp(ast_zone_state_left_or_target_slot_name(state),
-                              ast_zone_effect_target_slot_name(apply)) == 0) {
-                    state_name = ast_zone_state_name(state);
-                    break;
-                }
+            size_t state_index;
+            if (llvm_hosted_zone_state_view_find_effect_state(
+                    &state_view,
+                    ast_zone_effect_slot_name(apply),
+                    ast_zone_effect_target_slot_name(apply),
+                    &state_index)) {
+                state_name =
+                    llvm_hosted_zone_state_view_name(
+                        &state_view, state_index);
             }
         }
         if (state_name != NULL) {
@@ -189,17 +209,17 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                 state_name, PGY_PROP_CAUSE_APPLY);
             if (apply != NULL) {
                 const char *layer_name = ast_zone_effect_slot_name(apply);
+                size_t state_index = 0;
+                bool found_state =
+                    llvm_hosted_zone_state_view_find_name(
+                        &state_view, state_name, &state_index)
+                    && !llvm_hosted_zone_state_view_is_relation(
+                        &state_view, state_index);
                 if (layer_name == NULL) {
-                    for (size_t j = 0; j < state_count; j++) {
-                        ASTNode *state = states[j];
-                        if (state != NULL && state->type == AST_ZONE_STATE
-                            && !ast_zone_state_is_relation(state)
-                            && ast_zone_state_name(state) != NULL
-                            && strcmp(ast_zone_state_name(state), state_name) == 0) {
-                            layer_name = ast_zone_state_layer_slot_name(state);
-                            break;
-                        }
-                    }
+                    if (found_state)
+                        layer_name =
+                            llvm_hosted_zone_state_view_layer_slot_name(
+                                &state_view, state_index);
                 }
                 if (layer_name != NULL) {
                     char layer_field[256];
@@ -220,20 +240,11 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                     if (ast_zone_effect_target_slot_name(apply) != NULL) {
                         llvm_zone_bind_effect_layer(stmt, decl_cls, sync_fn, ctx,
                             layer_name, ast_zone_effect_target_slot_name(apply));
-                    } else {
-                        for (size_t j = 0; j < state_count; j++) {
-                            ASTNode *state = states[j];
-                            if (state != NULL && state->type == AST_ZONE_STATE
-                                && !ast_zone_state_is_relation(state)
-                                && ast_zone_state_name(state) != NULL
-                                && strcmp(ast_zone_state_name(state), state_name) == 0
-                                && ast_zone_state_left_or_target_slot_name(state) != NULL) {
-                                llvm_zone_bind_effect_layer(stmt, decl_cls, sync_fn, ctx,
-                                    layer_name,
-                                    ast_zone_state_left_or_target_slot_name(state));
-                                break;
-                            }
-                        }
+                    } else if (found_state) {
+                        llvm_zone_bind_effect_layer(stmt, decl_cls, sync_fn, ctx,
+                            layer_name,
+                            llvm_hosted_zone_state_view_left_or_target_slot_name(
+                                &state_view, state_index));
                     }
                 }
             }
@@ -303,24 +314,22 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
         llvm_zone_bind_effect_layer(stmt, decl_cls, sync_fn, ctx,
             ast_zone_effect_slot_name(maintain),
             ast_zone_effect_target_slot_name(maintain));
-        for (size_t j = 0; j < state_count; j++) {
-            ASTNode *state = states[j];
+        {
+            size_t state_index;
             const char *state_name;
             char field_name[256];
             int field_idx;
             LLVMValueRef self_ptr;
             LLVMValueRef state_ptr;
-            if (state == NULL || state->type != AST_ZONE_STATE
-                || ast_zone_state_is_relation(state)
-                || ast_zone_state_layer_slot_name(state) == NULL
-                || ast_zone_state_left_or_target_slot_name(state) == NULL
-                || strcmp(ast_zone_state_layer_slot_name(state),
-                          ast_zone_effect_slot_name(maintain)) != 0
-                || strcmp(ast_zone_state_left_or_target_slot_name(state),
-                          ast_zone_effect_target_slot_name(maintain)) != 0) {
+            if (!llvm_hosted_zone_state_view_find_effect_state(
+                    &state_view,
+                    ast_zone_effect_slot_name(maintain),
+                    ast_zone_effect_target_slot_name(maintain),
+                    &state_index)) {
                 continue;
             }
-            state_name = ast_zone_state_name(state);
+            state_name =
+                llvm_hosted_zone_state_view_name(&state_view, state_index);
             if (!llvm_zone_sync_field_name(field_name, sizeof(field_name),
                     "state", state_name))
                 continue;
@@ -361,18 +370,21 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
             llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "state",
                 ast_zone_directive_state_name(maintain),
                 PGY_PROP_CAUSE_MAINTAIN);
-            for (size_t j = 0; j < state_count; j++) {
-                ASTNode *state = states[j];
-                if (state != NULL && state->type == AST_ZONE_STATE
-                    && ast_zone_state_name(state) != NULL
-                    && strcmp(ast_zone_state_name(state),
-                              ast_zone_directive_state_name(maintain)) == 0) {
+            {
+                size_t state_index;
+                if (llvm_hosted_zone_state_view_find_name(
+                        &state_view,
+                        ast_zone_directive_state_name(maintain),
+                        &state_index)) {
+                    const char *state_layer =
+                        llvm_hosted_zone_state_view_layer_slot_name(
+                            &state_view, state_index);
                     char layer_field[256];
                     int layer_idx;
                     LLVMValueRef layer_ptr;
                     if (!llvm_zone_sync_field_name(layer_field,
                             sizeof(layer_field), "layer_active",
-                            ast_zone_state_layer_slot_name(state)))
+                            state_layer))
                         continue;
                     layer_idx = llvm_class_field_index(decl_cls, layer_field);
                     if (layer_idx >= 0) {
@@ -381,20 +393,23 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                         LLVMBuildStore(ctx->builder,
                             LLVMConstInt(ctx->type_i1, 1, 0), layer_ptr);
                         llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr,
-                            "layer", ast_zone_state_layer_slot_name(state),
+                            "layer", state_layer,
                             PGY_PROP_CAUSE_MAINTAIN);
                     }
-                    if (!ast_zone_state_is_relation(state)) {
+                    if (!llvm_hosted_zone_state_view_is_relation(
+                            &state_view, state_index)) {
                         llvm_zone_bind_effect_layer(stmt, decl_cls, sync_fn, ctx,
-                            ast_zone_state_layer_slot_name(state),
-                            ast_zone_state_left_or_target_slot_name(state));
-                    } else if (ast_zone_state_right_slot_name(state) != NULL) {
+                            state_layer,
+                            llvm_hosted_zone_state_view_left_or_target_slot_name(
+                                &state_view, state_index));
+                    } else {
                         llvm_zone_bind_relation_layer(stmt, decl_cls, sync_fn, ctx,
-                            ast_zone_state_layer_slot_name(state),
-                            ast_zone_state_left_or_target_slot_name(state),
-                            ast_zone_state_right_slot_name(state));
+                            state_layer,
+                            llvm_hosted_zone_state_view_left_or_target_slot_name(
+                                &state_view, state_index),
+                            llvm_hosted_zone_state_view_right_slot_name(
+                                &state_view, state_index));
                     }
-                    break;
                 }
             }
         }

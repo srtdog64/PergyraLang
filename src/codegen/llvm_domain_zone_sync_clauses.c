@@ -18,6 +18,23 @@ llvm_zone_sync_clause_field_name(char *out,
     return written >= 0 && (size_t)written < out_size;
 }
 
+static bool
+llvm_zone_sync_clause_require_state_view(LLVMGenCtx *ctx,
+                                         const LLVMHostedZoneStateView *view,
+                                         const char *reason,
+                                         const char *zone_name)
+{
+    if (llvm_hosted_zone_state_view_missing_mir_metadata(view)
+        || !llvm_hosted_zone_state_view_rows_complete(view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "%s for '%s'",
+            reason,
+            zone_name != NULL ? zone_name : "<anonymous>");
+        return false;
+    }
+    return true;
+}
+
 void
 llvm_zone_sync_emit_action_causes(ASTNode *stmt,
                                   LLVMClassTypeEntry *decl_cls,
@@ -30,13 +47,20 @@ llvm_zone_sync_emit_action_causes(ASTNode *stmt,
     const char *zone_name = llvm_decl_node_name(stmt);
     LLVMHostedZoneLayerSlotView layer_view =
         llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, stmt);
-    size_t state_count = 0;
-    ASTNode **states = ast_zone_states(stmt, &state_count);
+    LLVMHostedZoneStateView state_view =
+        llvm_hosted_zone_state_view_from_decl(ctx, zone_name, stmt);
 
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing zone action-cause layer-slot metadata for '%s'",
             zone_name != NULL ? zone_name : "<anonymous>");
+        return;
+    }
+    if (!llvm_zone_sync_clause_require_state_view(
+            ctx,
+            &state_view,
+            "MIR-only LLVM path missing zone action-cause state metadata",
+            zone_name)) {
         return;
     }
 
@@ -90,20 +114,23 @@ llvm_zone_sync_emit_action_causes(ASTNode *stmt,
                 llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), active_ptr);
         }
-        for (size_t j = 0; j < state_count; j++) {
-            ASTNode *state = states[j];
+        for (size_t j = 0; j < state_view.count; j++) {
+            const char *state_name;
+            const char *state_layer;
             char state_field[256];
             int state_idx;
             LLVMValueRef state_ptr;
-            if (state == NULL || state->type != AST_ZONE_STATE
-                || ast_zone_state_is_relation(state)
-                || ast_zone_state_name(state) == NULL
-                || ast_zone_state_layer_slot_name(state) == NULL
-                || strcmp(ast_zone_state_layer_slot_name(state), layer_name) != 0) {
+            if (llvm_hosted_zone_state_view_is_relation(&state_view, j))
+                continue;
+            state_name = llvm_hosted_zone_state_view_name(&state_view, j);
+            state_layer =
+                llvm_hosted_zone_state_view_layer_slot_name(&state_view, j);
+            if (state_name == NULL || state_layer == NULL
+                || strcmp(state_layer, layer_name) != 0) {
                 continue;
             }
             if (!llvm_zone_sync_clause_field_name(state_field, sizeof(state_field),
-                    "state", ast_zone_state_name(state)))
+                    "state", state_name))
                 continue;
             state_idx = llvm_class_field_index(decl_cls, state_field);
             if (state_idx < 0)
@@ -128,28 +155,31 @@ llvm_zone_sync_emit_detach_clauses(ASTNode *stmt,
 
     size_t detach_count = 0;
     ASTNode **detaches = ast_zone_detaches(stmt, &detach_count);
-    size_t state_count = 0;
-    ASTNode **states = ast_zone_states(stmt, &state_count);
+    const char *zone_name = llvm_decl_node_name(stmt);
+    LLVMHostedZoneStateView state_view =
+        llvm_hosted_zone_state_view_from_decl(ctx, zone_name, stmt);
+
+    if (!llvm_zone_sync_clause_require_state_view(
+            ctx,
+            &state_view,
+            "MIR-only LLVM path missing zone detach state metadata",
+            zone_name)) {
+        return;
+    }
 
     for (size_t i = 0; i < detach_count; i++) {
         ASTNode *detach = detaches[i];
         const char *state_name = detach != NULL ? ast_zone_directive_state_name(detach) : NULL;
         if (state_name == NULL && detach != NULL) {
-            for (size_t j = 0; j < state_count; j++) {
-                ASTNode *state = states[j];
-                if (state != NULL && state->type == AST_ZONE_STATE
-                    && !ast_zone_state_is_relation(state)
-                    && ast_zone_state_layer_slot_name(state) != NULL
-                    && ast_zone_state_left_or_target_slot_name(state) != NULL
-                    && ast_zone_effect_slot_name(detach) != NULL
-                    && ast_zone_effect_target_slot_name(detach) != NULL
-                    && strcmp(ast_zone_state_layer_slot_name(state),
-                              ast_zone_effect_slot_name(detach)) == 0
-                    && strcmp(ast_zone_state_left_or_target_slot_name(state),
-                              ast_zone_effect_target_slot_name(detach)) == 0) {
-                    state_name = ast_zone_state_name(state);
-                    break;
-                }
+            size_t state_index;
+            if (llvm_hosted_zone_state_view_find_effect_state(
+                    &state_view,
+                    ast_zone_effect_slot_name(detach),
+                    ast_zone_effect_target_slot_name(detach),
+                    &state_index)) {
+                state_name =
+                    llvm_hosted_zone_state_view_name(
+                        &state_view, state_index);
             }
         }
         if (state_name != NULL) {
@@ -173,15 +203,14 @@ llvm_zone_sync_emit_detach_clauses(ASTNode *stmt,
             if (detach != NULL) {
                 const char *layer_name = ast_zone_effect_slot_name(detach);
                 if (layer_name == NULL) {
-                    for (size_t j = 0; j < state_count; j++) {
-                        ASTNode *state = states[j];
-                        if (state != NULL && state->type == AST_ZONE_STATE
-                            && !ast_zone_state_is_relation(state)
-                            && ast_zone_state_name(state) != NULL
-                            && strcmp(ast_zone_state_name(state), state_name) == 0) {
-                            layer_name = ast_zone_state_layer_slot_name(state);
-                            break;
-                        }
+                    size_t state_index;
+                    if (llvm_hosted_zone_state_view_find_name(
+                            &state_view, state_name, &state_index)
+                        && !llvm_hosted_zone_state_view_is_relation(
+                            &state_view, state_index)) {
+                        layer_name =
+                            llvm_hosted_zone_state_view_layer_slot_name(
+                                &state_view, state_index);
                     }
                 }
                 if (layer_name != NULL) {

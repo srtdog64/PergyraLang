@@ -7,6 +7,8 @@
 
 #include "llvm_internal.h"
 
+#include <string.h>
+
 #include "../compiler/mir_decl_headers.h"
 #include "../parser/ast_api.h"
 
@@ -164,6 +166,115 @@ llvm_hosted_zone_state_view_is_relation(const LLVMHostedZoneStateView *view,
         return false;
     return view->ast_compat_states != NULL
         && ast_zone_state_is_relation(view->ast_compat_states[index]);
+}
+
+bool
+llvm_hosted_zone_state_view_rows_complete(
+    const LLVMHostedZoneStateView *view)
+{
+    if (view == NULL || !view->uses_mir_metadata)
+        return true;
+    for (size_t i = 0; i < view->count; i++) {
+        const char *state_name =
+            llvm_hosted_zone_state_view_name(view, i);
+        const char *state_layer =
+            llvm_hosted_zone_state_view_layer_slot_name(view, i);
+        const char *state_target =
+            llvm_hosted_zone_state_view_left_or_target_slot_name(view, i);
+        const char *state_right =
+            llvm_hosted_zone_state_view_right_slot_name(view, i);
+        if (state_name == NULL || state_layer == NULL
+            || state_target == NULL
+            || (llvm_hosted_zone_state_view_is_relation(view, i)
+                && state_right == NULL)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool
+llvm_hosted_zone_state_view_find_name(
+    const LLVMHostedZoneStateView *view,
+    const char *state_name,
+    size_t *index_out)
+{
+    if (view == NULL || state_name == NULL)
+        return false;
+    for (size_t i = 0; i < view->count; i++) {
+        const char *candidate =
+            llvm_hosted_zone_state_view_name(view, i);
+        if (candidate != NULL && strcmp(candidate, state_name) == 0) {
+            if (index_out != NULL)
+                *index_out = i;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool
+llvm_hosted_zone_state_view_find_effect_state(
+    const LLVMHostedZoneStateView *view,
+    const char *layer_name,
+    const char *target_name,
+    size_t *index_out)
+{
+    if (view == NULL || layer_name == NULL || target_name == NULL)
+        return false;
+    for (size_t i = 0; i < view->count; i++) {
+        const char *state_layer;
+        const char *state_target;
+
+        if (llvm_hosted_zone_state_view_is_relation(view, i))
+            continue;
+        state_layer = llvm_hosted_zone_state_view_layer_slot_name(view, i);
+        state_target =
+            llvm_hosted_zone_state_view_left_or_target_slot_name(view, i);
+        if (state_layer != NULL && state_target != NULL
+            && strcmp(state_layer, layer_name) == 0
+            && strcmp(state_target, target_name) == 0) {
+            if (index_out != NULL)
+                *index_out = i;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool
+llvm_hosted_zone_state_view_find_relation_state(
+    const LLVMHostedZoneStateView *view,
+    const char *layer_name,
+    const char *left_name,
+    const char *right_name,
+    size_t *index_out)
+{
+    if (view == NULL || layer_name == NULL
+        || left_name == NULL || right_name == NULL) {
+        return false;
+    }
+    for (size_t i = 0; i < view->count; i++) {
+        const char *state_layer;
+        const char *state_left;
+        const char *state_right;
+
+        if (!llvm_hosted_zone_state_view_is_relation(view, i))
+            continue;
+        state_layer = llvm_hosted_zone_state_view_layer_slot_name(view, i);
+        state_left =
+            llvm_hosted_zone_state_view_left_or_target_slot_name(view, i);
+        state_right = llvm_hosted_zone_state_view_right_slot_name(view, i);
+        if (state_layer != NULL && state_left != NULL && state_right != NULL
+            && strcmp(state_layer, layer_name) == 0
+            && strcmp(state_left, left_name) == 0
+            && strcmp(state_right, right_name) == 0) {
+            if (index_out != NULL)
+                *index_out = i;
+            return true;
+        }
+    }
+    return false;
 }
 
 #endif
