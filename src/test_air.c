@@ -149,6 +149,9 @@ main(void)
     TEST("AIR verify rejects authority name/flag drift");
     EXPECT(test_air_verify_rejects_authority_name_flag_drift());
 
+    TEST("AIR verify rejects source provenance shape drift");
+    EXPECT(test_air_verify_rejects_source_provenance_shape_drift());
+
     TEST("AIR verify rejects missing inventory arrays");
     EXPECT(test_air_verify_rejects_missing_inventory_arrays());
 

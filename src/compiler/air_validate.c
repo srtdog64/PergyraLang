@@ -202,6 +202,21 @@ air_validate(const AIRProgram *air, char **error_message)
                                     i);
             return false;
         }
+        if (boundary->source_from_action
+            && boundary->kind != AIR_BOUNDARY_ZONE) {
+            air_set_invariant_error(error_message,
+                                    "AIR boundary node %zu has action-inherited source provenance on non-zone boundary",
+                                    i);
+            return false;
+        }
+        if (boundary->source_from_transfer
+            && boundary->kind != AIR_BOUNDARY_ZONE
+            && boundary->kind != AIR_BOUNDARY_WORLD) {
+            air_set_invariant_error(error_message,
+                                    "AIR boundary node %zu has transfer source provenance on non-zone/world boundary",
+                                    i);
+            return false;
+        }
         if (!air_boundary_authority_storage_valid(boundary)) {
             air_set_invariant_error(error_message,
                                     "AIR boundary node %zu has authority count without names",

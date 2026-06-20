@@ -63,6 +63,9 @@ where `has_rir_authority_evidence` names a participant that the boundary did
 not declare. `authority_required` and `authority_names` are one AIR fact: a
 boundary with authority names must require authority, and action-inherited
 authority provenance is invalid unless the boundary is authority-required.
+Source provenance is boundary-kind-sensitive as well: action-inherited source
+provenance is valid only on zone boundaries, while transfer source provenance is
+valid only on zone/world boundaries.
 
 World-handoff evidence is operation-sensitive. If an AIR `World` boundary is
 derived from `transfer: from -> to`, matching the enclosing RIR intent/world

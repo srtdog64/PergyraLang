@@ -244,6 +244,68 @@ test_air_verify_rejects_authority_name_flag_drift(void)
 }
 
 static bool
+test_air_verify_rejects_source_provenance_shape_drift(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "ShipOrder",
+            .step_name = "reserve",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_ASYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRBoundaryNode action_on_parallel[] = {
+        {
+            .kind = AIR_BOUNDARY_PARALLEL,
+            .owner_name = "ShipOrder",
+            .source_name = "spawn",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_ASYNC,
+            .source_from_action = true,
+        },
+    };
+    AIRBoundaryNode transfer_on_io[] = {
+        {
+            .kind = AIR_BOUNDARY_IO,
+            .owner_name = "ShipOrder",
+            .source_name = "ReadFile",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_EITHER,
+            .source_from_transfer = true,
+        },
+    };
+    AIRProgram action_drift = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = action_on_parallel,
+        .boundary_count = 1,
+    };
+    AIRProgram transfer_drift = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = transfer_on_io,
+        .boundary_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_verify(&action_drift, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "action-inherited source provenance on non-zone boundary") != NULL;
+    free(error);
+    error = NULL;
+    ok = ok
+        && !air_verify(&transfer_drift, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "transfer source provenance on non-zone/world boundary") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
 test_air_verify_rejects_missing_inventory_arrays(void)
 {
     AIRProgram missing_intents = {

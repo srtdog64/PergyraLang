@@ -2356,6 +2356,11 @@ English anchor for tooling/doc gates:
   invalid unless the boundary is authority-required. Gate:
   `test-air` fixture `AIR verify rejects authority name/flag drift` plus
   `air-drift-test-smoke`.
+- AIR source provenance shape is now boundary-kind-checked instead of being a
+  loose bool set: action-inherited source provenance is zone-only, and transfer
+  source provenance is zone/world-only. Gate: `test-air` fixture
+  `AIR verify rejects source provenance shape drift` plus
+  `air-drift-test-smoke`.
 - AIR evidence-kind metadata is now fail-closed. `kEvidenceKindMeta` carries an
   explicit `present` bit, and `air_evidence_kind_is_known(...)` rejects enum
   values whose table entry was not intentionally initialized. This prevents a
