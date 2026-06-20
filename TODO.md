@@ -120,10 +120,11 @@ English anchor for tooling/doc gates:
   the same `LayoutFact` rows, and packed mutable fields require an explicit
   read-modify-write mask/shift owner plus alias/atomic rules. `let mut` and
   `inout` must not make bit-packed fields look like ordinary addressable
-  mutable lvalues; partial-width writes need a dedicated layout/effect owner
-  before they are accepted in source. Slot, SecureSlot, DeviceSlot, Pin, and
-  capability handles are not packable until a dedicated layout owner proves
-  their ABI, lifetime, and security invariants.
+  mutable lvalues; `let mut` is local-storage mutability, not permission to
+  take an address of a bit slice. Partial-width writes need a dedicated
+  layout/effect owner before they are accepted in source. Slot, SecureSlot,
+  DeviceSlot, Pin, and capability handles are not packable until a dedicated
+  layout owner proves their ABI, lifetime, and security invariants.
   Concrete open slice: write the layout/niche specification before
   implementation, add negative fixtures that reject `let mut` / `inout` access
   to partial-width packed fields, reject address-like treatment of bit slices,
