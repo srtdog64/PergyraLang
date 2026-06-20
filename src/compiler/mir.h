@@ -514,9 +514,9 @@ const char *mir_routine_param_type_name(const MIRRoutine *routine,
 ASTNode    *mir_routine_return_type(const MIRRoutine *routine);
 const char *mir_routine_return_type_name(const MIRRoutine *routine);
 /* P0 #4: source local type-name lookup. MIR lowering materializes
- * `let local_name: TypeName = ...` annotations into
- * MIRRoutine::source_local_types so backends do not rescan the
- * function body to answer source-local class questions. */
+ * source-local binding type facts (`let`, `with` aliases, and loop
+ * variables) into MIRRoutine::source_local_types so backends do not
+ * rescan the function body to answer source-local class questions. */
 const char *mir_routine_source_local_type_name(
     const MIRRoutine *routine, const char *local_name);
 size_t      mir_routine_source_local_type_count(const MIRRoutine *routine);

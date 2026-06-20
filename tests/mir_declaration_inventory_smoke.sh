@@ -3459,9 +3459,13 @@ for term in \
     "transpiler_mir_routine_param_type_name(mir_routine" \
     "transpiler_mir_routine_return_type(mir_routine)" \
     "transpiler_mir_routine_return_type_name(mir_routine)" \
-    "transpiler_register_ast_compat_local_bindings_in_block(ctx, node"; do
+    "transpiler_register_mir_source_local_bindings(ctx, mir_routine)"; do
     require_term "src/codegen/transpiler_mir_func_emit.c" "$term"
 done
+require_each_following_term "src/codegen/transpiler_mir_func_emit.c" \
+    "if (transpiler_active_has_mir(ctx))" \
+    "transpiler_register_mir_source_local_bindings(ctx, mir_routine)" \
+    4
 for term in \
     "MIR-only C path missing class-field slot registration metadata" \
     "transpiler_hosted_field_view_missing_mir_metadata(&fields_view)" \
@@ -3752,25 +3756,27 @@ if grep -Fq "mir_source_local_type_name_in_ast" \
 fi
 require_term "src/compiler/mir_source_local_types.h" \
     "mir_source_local_type_name_in_ast"
+require_term "Makefile" \
+    "\$(COMPILER_DIR)/mir_source_local_expr_types.c"
 require_term "src/compiler/mir_source_local_types.c" \
     "mir_source_local_type_capture_node"
-require_term "src/compiler/mir_source_local_types.c" \
+require_term "src/compiler/mir_source_local_expr_types.c" \
     "mir_source_local_builtin_call_type_name"
-require_term "src/compiler/mir_source_local_types.c" \
+require_term "src/compiler/mir_source_local_expr_types.c" \
     "mir_source_local_read_call_type_name"
-require_term "src/compiler/mir_source_local_types.c" \
+require_term "src/compiler/mir_source_local_expr_types.c" \
     "mir_source_local_view_call_type_name"
-require_term "src/compiler/mir_source_local_types.c" \
+require_term "src/compiler/mir_source_local_expr_types.c" \
     "mir_source_local_routine_owner_name"
-require_term "src/compiler/mir_source_local_types.c" \
+require_term "src/compiler/mir_source_local_expr_types.c" \
     "routine->hir_routine->owner_name"
-require_term "src/compiler/mir_source_local_types.c" \
+require_term "src/compiler/mir_source_local_expr_types.c" \
     "mir_source_local_owner_method_return_type_name"
-require_each_following_term "src/compiler/mir_source_local_types.c" \
+require_each_following_term "src/compiler/mir_source_local_expr_types.c" \
     "mir_source_local_owner_method_return_type_name(program," \
     "routine, callee_name" \
     5
-require_term "src/compiler/mir_source_local_types.c" \
+require_term "src/compiler/mir_source_local_expr_types.c" \
     "mir_source_local_builtin_returns_first_arg_type"
 for term in \
     "strcmp(callee_name, \"Clamp\") == 0" \
@@ -3780,12 +3786,24 @@ for term in \
     "strcmp(callee_name, \"Read\") == 0" \
     "strcmp(callee_name, \"ViewRead\") == 0" \
     "strcmp(callee_name, \"ViewWrite\") == 0"; do
-    require_term "src/compiler/mir_source_local_types.c" "$term"
+    require_term "src/compiler/mir_source_local_expr_types.c" "$term"
 done
 require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR captures builtin call return types for source locals"
 require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
+    "MIR captures for-loop variable source-local types"
+require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
+    "MIR captures slice source-local types"
+require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR captures owner method call return types for source locals"
+require_term "src/compiler/mir_source_local_expr_types.c" \
+    "mir_source_local_for_loop_variable_type_name"
+require_term "src/compiler/mir_source_local_expr_types.c" \
+    "mir_source_local_top_level_routine_return_type_name"
+require_term "src/compiler/mir_source_local_expr_types.c" \
+    "strcmp(member_name, \"Slice\") == 0"
+require_term "src/compiler/mir_source_local_expr_types.c" \
+    "strcmp(callee_name, \"SliceCopy\") == 0"
 require_term "src/compiler/mir_source_local_types.c" \
     "mir_source_local_type_name_in_ast(ASTNode *body"
 require_term "src/compiler/mir.c" \

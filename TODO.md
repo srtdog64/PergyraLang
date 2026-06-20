@@ -135,6 +135,10 @@ English anchor for tooling/doc gates:
   address-like lvalue before a dedicated partial-width write owner exists. The
   diagnostic must say the missing owner is layout/effect evidence, not emit a C
   bitfield or backend-local mask/shift fallback.
+  Owner and exit criteria: `LayoutFact` is the only source of truth for packed
+  storage, and the feature is not source-visible until semantic/DAG proof,
+  MIR ABI rows, and C/LLVM golden output all agree on the same mask/shift/RMW
+  fact.
   Current answer to `let mut` plus bitpacking: the language can support this
   long term, but not by treating bit slices as ordinary mutable fields. `let
   mut` only says the local binding may be reassigned or locally mutated; it

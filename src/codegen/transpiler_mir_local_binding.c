@@ -219,6 +219,35 @@ transpiler_register_with_alias_bindings_in_block(TranspilerSSANameMap *ssa_map,
 }
 
 void
+transpiler_register_mir_source_local_bindings(TranspilerCtx *ctx,
+                                              const MIRRoutine *routine)
+{
+    if (ctx == NULL || routine == NULL)
+        return;
+    for (size_t i = 0;
+         i < transpiler_mir_routine_source_local_type_count(routine);
+         i++) {
+        const char *name =
+            transpiler_mir_routine_source_local_name_at(routine, i);
+        const char *type_name =
+            transpiler_mir_routine_source_local_type_name_at(routine, i);
+        if (name == NULL || type_name == NULL || type_name[0] == '\0')
+            continue;
+        register_typed_var(ctx, name, type_name);
+        if (transpiler_type_name_is_slot_like(type_name)) {
+            char slot_inner_buf[128];
+            const char *slot_inner = NULL;
+            if (slot_inner_type_name_copy(type_name, slot_inner_buf,
+                    sizeof(slot_inner_buf))) {
+                slot_inner = slot_inner_buf;
+            }
+            register_slot_var(ctx, name, slot_inner,
+                pgy_codegen_type_name_is_secure_slot(type_name), false);
+        }
+    }
+}
+
+void
 transpiler_register_ast_compat_local_bindings_in_block(
     TranspilerCtx *ctx,
     const ASTNode *func_decl,

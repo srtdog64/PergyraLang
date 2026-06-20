@@ -109,10 +109,14 @@ compatibility path.
   the same canonical source-local type fact for alias-backed collection
   contexts; `type_alias_array_context` proves empty `Array<T>` alias literals
   compile and run on both backends.
-- MIR source-local type facts are source-name keyed. LLVM MIR alloca/type
-  consumers normalize SSA-versioned names such as `push_fn.1` back to
-  `push_fn` before consuming the fact, so branch/phi locals do not reopen AST
-  body scans on the self-hosted codegen LLVM leg.
+- MIR source-local type facts are source-name keyed. C MIR-backed function
+  prologue setup materializes local bindings from `MIRRoutine::source_local_types`
+  instead of rescanning the AST body, and LLVM MIR alloca/type consumers
+  normalize SSA-versioned names such as `push_fn.1` back to `push_fn` before
+  consuming the fact. For-loop element bindings, `Array<T>.Slice(...) ->
+  Slice<T>`, and `SliceCopy(Slice<T>) -> Array<T>` are captured as MIR
+  source-local type facts, so branch/phi locals and collection view locals do
+  not reopen AST body scans on C or LLVM self-hosted codegen legs.
 - Intent retry counts are MIR declaration-header facts. `with retry(n)` is
   parsed, printed, and captured as `MIRDeclHeader.intent_retry_count`; semantic
   checking rejects non-zero retry until C and LLVM retry lowering share the same

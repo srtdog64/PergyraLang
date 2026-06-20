@@ -3,6 +3,28 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-21 C MIR Source-Local Binding SoT Closure
+
+- C MIR-backed function emission no longer rescans the source AST block to
+  register local binding/type compatibility facts. When MIR inventory is active,
+  it materializes C local binding metadata from `MIRRoutine::source_local_types`
+  through `transpiler_register_mir_source_local_bindings(...)`; the old AST
+  compatibility scan remains only for non-MIR emission.
+- MIR source-local capture now records for-loop element bindings, plus
+  `Array<T>.Slice(...) -> Slice<T>` and `SliceCopy(Slice<T>) -> Array<T>` local
+  type facts, so source-local prologue setup consumes MIR-owned facts rather
+  than expression payload guesses.
+- Source-local expression typing now lives in
+  `mir_source_local_expr_types.c`, leaving `mir_source_local_types.c` as the
+  capture/storage owner and keeping both files below the production owner cap.
+- `mir_declaration_inventory_smoke.sh` now gates the MIR-active materializer
+  and the new source-local fact cases, while `backend_fail_closed_smoke.sh`
+  points call-inference fail-closed strings at the split
+  `transpiler_expr_call_type_infer.c` owner.
+- Verified locally with the `test-mir`, `mir-declaration-inventory-test-smoke`,
+  `test-transpile`, `cfg-body-dataflow-test-smoke`, `perf-contract-test-smoke`,
+  and `backend-fail-closed-test-smoke` make targets.
+
 ## Progress Log - 2026-06-21 AIR DAG Fallback Evidence Closure
 
 - AIR evidence append now rejects non-zero fallback facts at the API boundary.

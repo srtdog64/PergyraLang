@@ -335,6 +335,79 @@ test_mir_lowering_part_c(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR captures for-loop variable source-local types");
+    {
+        const char *src =
+            "func ForLocalFacts(values: List<Int>, names: Array<String>) -> Int {\n"
+            "    let total: Int = 0;\n"
+            "    for value in values {\n"
+            "        total = total + value;\n"
+            "    }\n"
+            "    for name in names {\n"
+            "        let size = StringLength(name);\n"
+            "        total = total + size;\n"
+            "    }\n"
+            "    return total;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *routine = NULL;
+        const char *value_type = NULL;
+        const char *name_type = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine(mir, "ForLocalFacts",
+                                       MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            value_type = mir_routine_source_local_type_name(routine, "value");
+            name_type = mir_routine_source_local_type_name(routine, "name");
+        }
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && routine != NULL
+               && value_type != NULL && strcmp(value_type, "Int") == 0
+               && name_type != NULL && strcmp(name_type, "String") == 0);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR captures slice source-local types");
+    {
+        const char *src =
+            "func Words() -> Array<Int> {\n"
+            "    return [10, 20, 30];\n"
+            "}\n"
+            "func SliceLocalFacts() -> Int {\n"
+            "    let view = Words().Slice(1, 2);\n"
+            "    let owned = SliceCopy(view);\n"
+            "    return ArrayLength(owned);\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *routine = NULL;
+        const char *view_type = NULL;
+        const char *owned_type = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine(mir, "SliceLocalFacts",
+                                       MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            view_type = mir_routine_source_local_type_name(routine, "view");
+            owned_type = mir_routine_source_local_type_name(routine, "owned");
+        }
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && routine != NULL
+               && view_type != NULL && strcmp(view_type, "Slice<Int>") == 0
+               && owned_type != NULL && strcmp(owned_type, "Array<Int>") == 0);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR captures inferred function return type names");
     {
         const char *src =

@@ -16,6 +16,9 @@ bool transpiler_has_explicit_body_local_binding(const ASTNode *func_decl,
 void transpiler_register_with_alias_bindings_in_block(
     TranspilerSSANameMap *ssa_map,
     ASTNode *body);
+void transpiler_register_mir_source_local_bindings(
+    TranspilerCtx *ctx,
+    const MIRRoutine *routine);
 void transpiler_register_ast_compat_local_bindings_in_block(
     TranspilerCtx *ctx,
     const ASTNode *func_decl,

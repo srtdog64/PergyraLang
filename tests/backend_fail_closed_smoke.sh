@@ -519,17 +519,17 @@ grep -Fq "MIR-only C path missing member-call return type-name metadata" \
 grep -Fq "MIR-only C path missing user-call parameter type-name metadata" \
     "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"
 grep -Fq "MIR-only C path missing member-call inference return type-name metadata" \
-    "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_type_infer.c"
 grep -Fq "MIR-only C path missing function inference routine" \
-    "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_type_infer.c"
 grep -Fq "MIR-only C path missing function inference signature metadata" \
-    "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_type_infer.c"
 grep -Fq "MIR-only C path missing function inference return type-name metadata" \
-    "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_type_infer.c"
 grep -Fq "MIR-only C path missing hosted self-call inference return type-name metadata" \
-    "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_type_infer.c"
 grep -Fq "MIR-only C path missing hosted self-call inference method metadata" \
-    "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_type_infer.c"
 grep -Fq "MIR-only C path missing callable let return routine" \
     "$ROOT_DIR/src/codegen/transpiler_let_emit.c"
 grep -Fq "MIR-only C path missing callable let return signature metadata" \
@@ -673,7 +673,7 @@ grep -Fq "transpiler_decl_is_extern_function(ctx, decl)" \
 grep -Fq "transpiler_decl_is_extern_function(ctx, decl)" \
     "$ROOT_DIR/src/codegen/transpiler_let_emit.c"
 grep -Fq "transpiler_decl_is_extern_function(ctx, decl)" \
-    "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_type_infer.c"
 grep -Fq "transpiler_decl_is_extern_function(ctx, decl)" \
     "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"
 grep -Fq "transpiler_decl_is_extern_function(ctx, callee_decl)" \
