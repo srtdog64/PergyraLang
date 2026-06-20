@@ -39,7 +39,8 @@ llvm_world_frontier_zone_member_count(void *ctx, const char *zone_name)
 {
     LLVMGenCtx *llvm_ctx = (LLVMGenCtx *)ctx;
     ASTNode *zone_decl;
-    size_t state_count = 0;
+    size_t state_count;
+    LLVMHostedZoneStateView state_view;
     LLVMHostedZoneLayerSlotView layer_view;
 
     if (llvm_ctx == NULL || zone_name == NULL)
@@ -50,7 +51,16 @@ llvm_world_frontier_zone_member_count(void *ctx, const char *zone_name)
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
         return 0;
 
-    (void)ast_zone_states(zone_decl, &state_count);
+    state_view = llvm_hosted_zone_state_view_from_decl(
+        llvm_ctx, zone_name, zone_decl);
+    if (llvm_hosted_zone_state_view_missing_mir_metadata(&state_view)
+        || !llvm_hosted_zone_state_view_rows_complete(&state_view)) {
+        llvm_set_mir_inventory_missing(llvm_ctx,
+            "MIR-only LLVM path missing embedded zone state metadata for world frontier '%s'",
+            zone_name);
+        return 0;
+    }
+    state_count = state_view.count;
     layer_view = llvm_hosted_zone_layer_slot_view_from_decl(
         llvm_ctx, zone_name, zone_decl);
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {

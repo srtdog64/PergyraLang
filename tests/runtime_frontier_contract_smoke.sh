@@ -219,6 +219,7 @@ require_terms "C world frontier emitter" "$ROOT_DIR/src/codegen/transpiler_world
     "transpiler_frontier_zone_member_count" \
     "transpiler_frontier_world_zone_type_name" \
     "pgy_domain_world_embedded_frontier_count_from_zone_types" \
+    "transpiler_hosted_zone_state_view_from_decl" \
     "transpiler_hosted_zone_layer_slot_view_from_decl" \
     "embedded_frontier_count" \
     "pgy_domain_world_transitive_frontier_pass_limit_from_counts" \
@@ -244,6 +245,7 @@ require_terms "LLVM world/zone frontier emitter" "$llvm_domain_contract" \
     "llvm_world_frontier_zone_member_count" \
     "llvm_world_frontier_zone_type_name" \
     "pgy_domain_world_embedded_frontier_count_from_zone_types" \
+    "llvm_hosted_zone_state_view_from_decl" \
     "llvm_hosted_zone_layer_slot_view_from_decl" \
     "pgy_domain_zone_frontier_pass_limit_from_counts" \
     "pgy_domain_world_transitive_frontier_pass_limit_from_counts" \

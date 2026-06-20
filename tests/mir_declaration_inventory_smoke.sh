@@ -2143,6 +2143,16 @@ require_term "src/codegen/transpiler_world_select_event_emit.c" \
     "TranspilerHostedWorldZoneSlotView zone_view"
 require_term "src/codegen/transpiler_world_select_event_emit.c" \
     "transpiler_hosted_world_zone_slot_view_type_name(&zone_view, i)"
+require_term "src/codegen/transpiler_world_select_event_emit.c" \
+    "TranspilerHostedZoneStateView state_view"
+require_term "src/codegen/transpiler_world_select_event_emit.c" \
+    "transpiler_hosted_zone_state_view_from_decl("
+require_term "src/codegen/transpiler_world_select_event_emit.c" \
+    "transpiler_hosted_zone_state_view_missing_mir_metadata("
+if grep -Fq "ast_zone_states(zone_decl, &state_count)" \
+    "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.c"; then
+    fail "C embedded world frontier member counting must consume MIR zone-state metadata, not reopen AST_ZONE_STATE inventory"
+fi
 require_term "src/codegen/transpiler_projection.c" \
     "TranspilerHostedWorldRosterSlotView roster_view"
 require_term "src/codegen/transpiler_projection.c" \
@@ -2170,7 +2180,17 @@ require_term "src/codegen/llvm_domain_world_frontier.c" \
 require_term "src/codegen/llvm_domain_world_frontier.c" \
     "llvm_hosted_world_zone_slot_view_from_decl(ctx,"
 require_term "src/codegen/llvm_domain_world_frontier.c" \
+    "LLVMHostedZoneStateView state_view"
+require_term "src/codegen/llvm_domain_world_frontier.c" \
+    "llvm_hosted_zone_state_view_from_decl("
+require_term "src/codegen/llvm_domain_world_frontier.c" \
+    "llvm_hosted_zone_state_view_rows_complete("
+require_term "src/codegen/llvm_domain_world_frontier.c" \
     "pgy_domain_world_embedded_frontier_count_from_zone_types("
+if grep -Fq "ast_zone_states(zone_decl, &state_count)" \
+    "$ROOT_DIR/src/codegen/llvm_domain_world_frontier.c"; then
+    fail "LLVM embedded world frontier member counting must consume MIR zone-state metadata, not reopen AST_ZONE_STATE inventory"
+fi
 if grep -Fq "pgy_domain_world_embedded_frontier_count(" \
     "$ROOT_DIR/src/codegen/llvm_domain_world_frontier.c"; then
     fail "LLVM world frontier pass-limit selection must consume zone-slot metadata, not the AST world-zone wrapper"

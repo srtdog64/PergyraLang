@@ -20,7 +20,8 @@ transpiler_frontier_zone_member_count(void *ctx, const char *zone_name)
 {
     TranspilerCtx *transpiler_ctx = (TranspilerCtx *)ctx;
     ASTNode *zone_decl;
-    size_t state_count = 0;
+    size_t state_count;
+    TranspilerHostedZoneStateView state_view;
     TranspilerHostedZoneLayerSlotView layer_view;
 
     if (transpiler_ctx == NULL || zone_name == NULL)
@@ -31,7 +32,16 @@ transpiler_frontier_zone_member_count(void *ctx, const char *zone_name)
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
         return 0;
 
-    (void)ast_zone_states(zone_decl, &state_count);
+    state_view = transpiler_hosted_zone_state_view_from_decl(
+        transpiler_ctx, zone_name, zone_decl);
+    if (transpiler_hosted_zone_state_view_missing_mir_metadata(
+            &state_view)) {
+        transpiler_set_mir_inventory_missing(transpiler_ctx,
+            "MIR-only C path missing embedded zone state metadata for world frontier '%s'",
+            zone_name);
+        return 0;
+    }
+    state_count = state_view.count;
     layer_view = transpiler_hosted_zone_layer_slot_view_from_decl(
         transpiler_ctx, zone_name, zone_decl);
     if (transpiler_hosted_zone_layer_slot_view_missing_mir_metadata(
