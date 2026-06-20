@@ -143,6 +143,13 @@ English anchor for tooling/doc gates:
   address-like lvalue before a dedicated partial-width write owner exists. The
   diagnostic must say the missing owner is layout/effect evidence, not emit a C
   bitfield or backend-local mask/shift fallback.
+  Because `let mut` is now real surface syntax, keep the first implementation
+  step negative: a mutable binding may hold an aggregate that later has packed
+  fields, but it must not make a partial-width field itself addressable,
+  borrowable, passable as `inout`, or writable through implicit bitfield
+  lowering. The future semantic check should reject this before MIR lowering
+  unless a `LayoutFact` row exists for storage unit, byte offset, bit offset,
+  bit width, read mask, write mask, shift, and read-modify-write effect.
   Owner and exit criteria: `LayoutFact` is the only source of truth for packed
   storage, and the feature is not source-visible until semantic/DAG proof,
   MIR ABI rows, and C/LLVM golden output all agree on the same mask/shift/RMW
@@ -8886,7 +8893,7 @@ Progress log, 2026-05-04:
 - Lifted MIR resource `Write`, DEF initializer/type, statement binding/defer payloads, loop iterable/range, and CFG terminator expression provenance into instruction payloads: `mir_add_resource_instruction(...)` now records the write value expression in `MIRInstruction.expr0`, C MIR resource emission consumes that payload instead of reopening `inst->ast->data.call`, DEF instructions carry initializer/value `expr0` plus let type annotation `expr1`, statement let/assignment bindings carry `arg0`, for-in LLVM lowering consumes `expr0` for the iterable, defer statements carry body `expr0`, expression branch/retun terminators carry `expr0`, C and LLVM MIR terminator/local/block emission use those payloads where possible, and the MIR validator rejects missing value/initializer/defer-body/terminator expression facts. Codegen now smoke-rejects `inst->ast->data` reopening so AST payload remains source/provenance instead of lowering inventory. Gates: `test-mir` (`44/0`), `test-transpile` (`717/0`), `cfg-body-dataflow-test-smoke`, `llvm-test-smoke`, and `perf-contract-test-smoke`.
 - Removed the remaining LLVM range-loop lowering dependency on `inst->ast` for loop init/condition shape checks. The loop-control emitter now uses MIR branch shape plus `arg0`/`expr0`/`expr1` facts for variable/start/end lowering, and the perf contract smoke rejects reintroducing the local `node = inst->ast` probe in `llvm_mir_loop_control.c`. Gates: `llvm-test-smoke` and `perf-contract-test-smoke`.
 - Removed the LLVM local alloca type-inference fallback that treated the whole source statement AST as a DEF value expression when `expr0` was absent. `llvm_mir_local_emit.c` now consumes `expr0` for initializer/value and `expr1` for explicit type annotation, while `source_ast_type` remains only a shape discriminator. Gates: `llvm-test-smoke` and `perf-contract-test-smoke`.
-- Tightened LLVM MIR block DEF/branch/retun lowering so ordinary expression stores, expression branches, and retun values consume `expr0` directly instead of falling back to the source AST. Let/assignment preserved-statement emission, match-case dispatch, select dispatch, and with-claim compatibility remain explicit source/provenance seams. Gates: `llvm-test-smoke` and `perf-contract-test-smoke`.
+- Tightened LLVM MIR block DEF/branch/retun lowering so ordinary expression stores, expression branches, and retun values consume `expr0` directly instead of falling back to the source AST. Match-case dispatch, select dispatch, and with-claim compatibility remain explicit source/provenance seams. C source-local let DEF emission now consumes MIR `arg0`/`expr0`/`expr1` and routine source-local type facts through `transpiler_emit_mir_source_local_let_def_inst`. Gates: `llvm-test-smoke` and `perf-contract-test-smoke`.
 - Split LLVM MIR branch condition payload checks by branch shape: expression/range/for-in branches require MIR expression payload, while only match/select compatibility branches are allowed to require the source AST. The perf contract now rejects the broad `inst->ast || inst->expr0` condition gate. Gates: `llvm-test-smoke` and `perf-contract-test-smoke`.
 - Matched the C backend branch-condition policy to the LLVM path: range/for-in branches consume MIR loop facts, match-case remains the explicit source compatibility seam, and ordinary expression branches consume `expr0` without falling back to `inst->ast`. Gates: `test-transpile` (`717/0`) and `perf-contract-test-smoke`.
 - Lifted intent check/eval expression payloads into MIR `expr0`: `IntentCheck` and `IntentEval` facts now carry their expression payload explicitly, the MIR intent fact validator rejects missing payloads, and C/LLVM intent collectors consume `expr0` instead of treating `inst->ast` as the expression inventory. Step headers and step-scoped metadata still keep the source AST as the explicit provenance seam. Gates: `test-mir` (`44/0`), `test-transpile` (`717/0`), `cfg-body-dataflow-test-smoke`, `llvm-test-smoke`, and `perf-contract-test-smoke`.
@@ -15691,10 +15698,13 @@ Local verification for this debt refresh:
   of reaching `type_create_function(...)` as `NULL`.
 - C backend MIR block lookup now prefers exact `source_statement_index`
   metadata over block-AST name search for preserved let statements.
-- C backend preserved-let emission is now named as preserved source-order
-  emission (`transpiler_mir_preserved_let_emit.h`) rather than a fallback path,
-  and `perf-contract-test-smoke` rejects reintroducing the old fallback-let
-  owner/function names.
+- C backend source-local let emission no longer keeps the preserved source-order
+  compatibility function. The live path is
+  `transpiler_emit_mir_source_local_let_def_inst(...)`, which consumes MIR
+  `arg0`/`expr0`/`expr1` plus routine source-local type facts, and
+  `perf-contract-test-smoke` now rejects reintroducing
+  `transpiler_emit_mir_preserved_let_stmt(...)` or the older fallback-let owner
+  names.
 - LLVM intent success predicate emission now fails closed with
   `PGY_LLVM_TYPE_UNSUPPORTED` instead of silently lowering unsupported success
   expressions to `true`; `perf-contract-test-smoke` rejects the old lossy

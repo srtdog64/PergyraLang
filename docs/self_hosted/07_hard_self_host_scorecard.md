@@ -321,12 +321,13 @@ remap also consume MIR branch pattern/guard facts rather than match-case source
 payloads, and resource-op source-statement matching no longer uses payload
 pointer identity. C/LLVM assignment emission, LLVM source-local resource LET
 emission, MIR surface validation, and public-surface scalar provenance seeding
-now consume MIR/source-shape facts, and lifecycle MIR JSON source-text emission
-also consumes a captured source-shape fact. The remaining ACTIVE tail is the
-self-hosted `mir_lower` dependency on transitional `"ast"` text plus the C
-preserved-statement helper surface. LLVM for-in and with-slot resource-claim
-diagnostics already use MIR expression anchors; the rest of the body facts
-still need dedicated MIR records or explicit provenance-only handling.
+now consume MIR/source-shape facts, lifecycle MIR JSON source-text emission
+also consumes a captured source-shape fact, and the C preserved-statement
+helper surface has been retired. The remaining ACTIVE tail is the self-hosted
+`mir_lower` dependency on transitional `"ast"` text. LLVM for-in and with-slot
+resource-claim diagnostics already use MIR expression anchors; the rest of the
+body facts still need dedicated MIR records or explicit provenance-only
+handling.
 
 Capability 2 (collections). Closed for the hard-self-host substrate: integer keys are implemented
 (pgy_runtime_map_int_key_inline.h covers i32 and i64), and `MapKeys` /
@@ -348,7 +349,6 @@ cleanup operation. Build-gated.
 The honest summary is that deterministic collection and allocator substrate are
 closed for hard-self-host planning, while CFG/MIR body SoT still has a named
 self-hosted MIR-lowering `"ast"` text compatibility tail. The remaining
-critical path is to replace that text lane with explicit MIR facts, plus cut the
-C preserved-statement helper tail, then continue
+critical path is to replace that text lane with explicit MIR facts, then continue
 actual staged compiler-pass substitution: semantic breadth first, then MIR/HIR
 and codegen parity slices against the C compiler oracle.

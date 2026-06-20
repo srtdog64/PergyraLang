@@ -9,18 +9,6 @@ typedef enum TranspilerMIRLocalLetEmitResult {
     TRANSPILE_MIR_LOCAL_LET_FAILED
 } TranspilerMIRLocalLetEmitResult;
 
-bool transpiler_emit_mir_preserved_let_stmt(
-    CodeBuf *buf,
-    const ASTNode *func_decl,
-    const MIRRoutine *mir_routine,
-    const MIRBasicBlock *block,
-    ASTNode *stmt,
-    TranspilerCtx *ctx,
-    TranspilerSSANameMap *ssa_map_out,
-    bool *handled_out,
-    char *reason,
-    size_t reason_cap);
-
 TranspilerMIRLocalLetEmitResult
 transpiler_emit_mir_source_local_let_def_inst(
     CodeBuf *buf,

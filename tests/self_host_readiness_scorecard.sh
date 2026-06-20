@@ -47,7 +47,7 @@ check_gates READY  "10 runtime profile selection"  runtime_none_contract_smoke.s
 
 echo
 echo "[scorecard] critical path: CFG/MIR body SoT remains ACTIVE until self-hosted MIR lowering replaces transitional ast text with explicit MIR facts"
-echo "[scorecard] CFG/MIR SoT is closed for source_ast/source_decl, residual STMT payload emit, raw source-statement re-dispatch, public-surface provenance, and lifecycle dump source-text emission"
+echo "[scorecard] CFG/MIR SoT is closed for source_ast/source_decl, residual STMT payload emit, raw source-statement re-dispatch, public-surface provenance, lifecycle dump source-text emission, and C preserved-statement helper surface"
 if [ "$missing" -ne 0 ]; then
     echo "[scorecard] FAIL: one or more capability gates are missing" >&2
     exit 1
