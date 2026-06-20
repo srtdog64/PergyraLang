@@ -100,3 +100,14 @@ rewrite history.
   structured-AST parser rewrite (the real substitution step) vs. a verifier /
   golden-probe track. Lexer (121/121) was load-bearing and done; parser text
   coverage is the explicitly-cautioned area.
+- **Empirical confirmation that grinding is the wrong track right now**: a tiny
+  attempt (default empty return type to `Returns: Void`) did NOT fix the target
+  (walrus_test routes through a different emission path) and would have broken a
+  committed C-leg fixture (some forms emit no Returns line) -- reverted. And the
+  parser parity gate's **LLVM leg currently fails to compile the parser tool**
+  (`LLVM AST type mapping requires AST_TYPE ...; silent i32 fallback is not
+  allowed`, line 14:9) -- a fail-closed error from the in-flight LLVM codegen
+  work, so parser changes cannot even be validated on LLVM at the moment. The
+  C leg is green (188 byte-equal). Conclusion: do not grind the parser
+  text-mirror now; it is throwaway-bound, fragile, and LLVM-blocked. Resume the
+  parser only as the structured-AST rewrite, after the LLVM codegen work settles.
