@@ -62,6 +62,38 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-20 -- control-flow reconstruction complete: MIR->C subset 9/9
+
+Picked up the control-flow track that the prior entry scoped as a separate
+increment (the BDFL said to split it so it would not become half-finished debt).
+Done in two verified increments rather than one risky push:
+
+- **CFG edges + if/else** (`69790209`): the `--mir-json` emitter now carries each
+  block's `succ_true`/`succ_false` (additive; from MIRBasicBlock). `mir_lower`
+  gained a string-based CFG structurer -- follow the succ edges from the entry
+  block, detect the branch, compute the merge (post-dominator) by a region-exit
+  walk, emit `If:/Then:/Else:` recursively, continue from the merge. `def`
+  reassignments render `Assign:`; `phi` is skipped. Probe 3 -> 7 PASS.
+- **while/for loops** (`d9cd034d`): the structurer detects a loop header (a `phi`
+  block -> while; a branch whose condition begins `for ` -> for), emits
+  `While:`/`For:` + `Block:`, recurses into the body bounded by the header (the
+  back-edge returns there), and continues at the loop exit (succ_false). The
+  IsLoopRoutine flat-walk split is gone; every routine structures, with the flat
+  walk kept only as an empty-region fallback. Probe 7 -> **9/9 PASS**.
+- **Regression lock** (`8c5094f4`): promoted the new constructs to the parity
+  gate as fixtures (funcparam, ifelse, nestedif, whileloop, forloop), 4 -> 9
+  gated. The 9/9 is now CI-protected, not just probe-measured.
+
+Reconstructed ASTs byte-match the `pgy --ast` oracle for every case. The
+self-host MIR->C lowering subset (multi-routine, signatures, return, if/else,
+nested if, boolean conditions, reassignment, while, for) is covered end to end.
+
+- **Next track (separate increment):** the structurer models single-entry/
+  single-exit reducible if/loop shapes. Not yet modeled: a loop nested inside an
+  `if` then/else region (RegionExit would walk into the loop and hit its guard),
+  `break`/`continue` (early exits out of a loop), and `switch`/`match` lowering.
+  Each is its own fixture-backed increment on the same machinery.
+
 ### 2026-06-20 -- mir_lower MIR->C SOT: filled multi-routine + return + signatures
 
 The self-host MIR->C lowering path (`pgy --mir-json | mir_lower | codegen | gcc`
