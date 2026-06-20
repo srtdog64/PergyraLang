@@ -193,7 +193,7 @@ test_air_rejects_dag_hits_without_metadata_inventory(void)
 }
 
 static bool
-test_air_reports_dag_dead_end_drift(void)
+test_air_rejects_dag_dead_end_before_evidence_append(void)
 {
     AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
     SemanticResult sem;
@@ -208,11 +208,10 @@ test_air_reports_dag_dead_end_drift(void)
     sem.type_resolution_dag_ability_consumer_evidence_count = 1;
     sem.type_resolution_metadata_dead_ends = 2;
 
-    ok = air_collect_dag_evidence(air, &sem, &error)
-        && !air_verify(air, &error)
+    ok = !air_collect_dag_evidence(air, &sem, &error)
         && error != NULL
-        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
-        && strstr(error, "DAG evidence node 0 has unresolved metadata dead-end facts") != NULL;
+        && strstr(error, "AIR DAG evidence contains unresolved metadata dead-end facts") != NULL
+        && air->evidence_count == 0;
     free(error);
     air_destroy(air);
     return ok;

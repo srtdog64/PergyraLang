@@ -233,7 +233,7 @@ test_air_append_rejects_boundary_evidence_duplicate_fallback(void)
                                         1,
                                         &error)
         && error != NULL
-        && strstr(error, "AIR boundary evidence duplicate has invalid counts") != NULL
+        && strstr(error, "AIR evidence append does not accept fallback facts") != NULL
         && air->evidence_count == 1
         && air->evidence_nodes != NULL
         && air->evidence_nodes[0].has_boundary_shape

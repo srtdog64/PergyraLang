@@ -165,7 +165,8 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_evidence_node.c" "AIR boundary evidence append requires boundary evidence kind to carry a boundary index"
     require_literal "src/compiler/air_evidence_node.c" "AIR global evidence append must not carry a boundary index"
     require_literal "src/compiler/air_evidence_node.c" "AIR evidence append requires non-empty provider and subject provenance"
-    require_literal "src/compiler/air_evidence_node.c" "AIR evidence append requires at least one fact or fallback fact"
+    require_literal "src/compiler/air_evidence_node.c" "AIR evidence append requires at least one concrete fact"
+    require_literal "src/compiler/air_evidence_node.c" "AIR evidence append does not accept fallback facts"
     require_literal "src/compiler/air_evidence_node.c" "air_next_capacity(&new_capacity"
     require_literal "src/compiler/air_evidence_node.c" "node->fact_count += fact_count"
     require_literal "src/compiler/air_evidence_node.c" "air_evidence_node_kind"
@@ -1265,7 +1266,8 @@ required_test_terms = [
     "AIR collects DAG generic ability evidence",
     "AIR collects RIR effect relation propagation evidence",
     "AIR rejects RIR evidence without scope provider",
-    "AIR reports DAG dead-end drift",
+    "AIR append rejects fallback evidence counts",
+    "AIR rejects DAG dead-end before evidence append",
     "AIR strict evidence rejects DAG counter only",
     "AIR RIR evidence requires scope name or owner provenance",
     "test_air_rejects_rir_evidence_without_scope_provider",

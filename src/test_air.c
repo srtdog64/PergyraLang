@@ -188,6 +188,9 @@ main(void)
     TEST("AIR append rejects empty evidence counts");
     EXPECT(test_air_append_rejects_empty_evidence_counts());
 
+    TEST("AIR append rejects fallback evidence counts");
+    EXPECT(test_air_append_rejects_fallback_evidence_counts());
+
     TEST("AIR append rejects boundary evidence without boundary index");
     EXPECT(test_air_append_rejects_boundary_evidence_without_boundary_index());
 
@@ -359,8 +362,8 @@ main(void)
     TEST("AIR rejects DAG metadata hits without inventory");
     EXPECT(test_air_rejects_dag_hits_without_metadata_inventory());
 
-    TEST("AIR reports DAG dead-end drift");
-    EXPECT(test_air_reports_dag_dead_end_drift());
+    TEST("AIR rejects DAG dead-end before evidence append");
+    EXPECT(test_air_rejects_dag_dead_end_before_evidence_append());
 
     TEST("AIR strict evidence rejects DAG counter only");
     EXPECT(test_air_strict_evidence_rejects_dag_counter_only());

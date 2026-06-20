@@ -284,21 +284,24 @@ air_evidence_node_merge_counts(AIREvidenceNode *node,
                       "AIR evidence duplicate has typed evidence mismatch");
         return false;
     }
+    if (node->fallback_count != 0 || fallback_count != 0) {
+        air_set_error(error_message,
+                      "AIR evidence append does not accept fallback facts");
+        return false;
+    }
     if (air_evidence_kind_is_boundary_scoped(kind)) {
-        if (fact_count != 1 || fallback_count != 0) {
+        if (fact_count != 1) {
             air_set_error(error_message,
                           "AIR boundary evidence duplicate has invalid counts");
             return false;
         }
         return true;
     }
-    if (fact_count > SIZE_MAX - node->fact_count
-        || fallback_count > SIZE_MAX - node->fallback_count) {
+    if (fact_count > SIZE_MAX - node->fact_count) {
         air_set_error(error_message, "AIR evidence node count overflow");
         return false;
     }
     node->fact_count += fact_count;
-    node->fallback_count += fallback_count;
     return true;
 }
 
@@ -356,9 +359,14 @@ air_append_evidence_node_ex(AIRProgram *air,
                       "AIR evidence append requires non-empty provider and subject provenance");
         return false;
     }
-    if (fact_count == 0 && fallback_count == 0) {
+    if (fallback_count != 0) {
         air_set_error(error_message,
-                      "AIR evidence append requires at least one fact or fallback fact");
+                      "AIR evidence append does not accept fallback facts");
+        return false;
+    }
+    if (fact_count == 0) {
+        air_set_error(error_message,
+                      "AIR evidence append requires at least one concrete fact");
         return false;
     }
     if (boundary_index != SIZE_MAX) {
@@ -429,7 +437,7 @@ air_append_evidence_node_ex(AIRProgram *air,
     node->subject_kind = air_evidence_kind_subject_kind(kind);
     node->boundary_index = boundary_index;
     node->fact_count = fact_count;
-    node->fallback_count = fallback_count;
+    node->fallback_count = 0;
     node->provider_name = owned_provider_name;
     node->subject_name = owned_subject_name;
     if (boundary_shape != NULL) {

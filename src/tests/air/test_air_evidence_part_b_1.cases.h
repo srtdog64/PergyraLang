@@ -60,7 +60,27 @@ test_air_append_rejects_empty_evidence_counts(void)
                                            0,
                                            &error)
         && error != NULL
-        && strstr(error, "at least one fact or fallback fact") != NULL
+        && strstr(error, "at least one concrete fact") != NULL
+        && air.evidence_count == 0;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_append_rejects_fallback_evidence_counts(void)
+{
+    AIRProgram air = { 0 };
+    char *error = NULL;
+    bool ok = !air_append_evidence_node_ex(&air,
+                                           AIR_EVIDENCE_DAG_METADATA,
+                                           SIZE_MAX,
+                                           "type-resolution-dag",
+                                           "metadata-inventory",
+                                           1,
+                                           1,
+                                           &error)
+        && error != NULL
+        && strstr(error, "does not accept fallback facts") != NULL
         && air.evidence_count == 0;
     free(error);
     return ok;

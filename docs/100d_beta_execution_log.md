@@ -3,6 +3,19 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-21 AIR DAG Fallback Evidence Closure
+
+- AIR evidence append now rejects non-zero fallback facts at the API boundary.
+  `fallback_count` remains in the evidence schema and validator surface for
+  compatibility with dumps and hand-crafted invalid inventories, but concrete
+  appended evidence must carry `fallback_count == 0`.
+- DAG type-resolution dead-end telemetry no longer becomes an AIR evidence
+  row. `air_collect_dag_evidence(...)` fails closed before append when semantic
+  metadata reports unresolved dead-end facts, so strict AIR cannot publish a
+  fallback-shaped proof and rely on a later verifier pass to catch it.
+- `test_air` and `air_drift_smoke` now gate both paths: append rejects fallback
+  counts directly, and DAG dead-ends are rejected before evidence append.
+
 ## Progress Log - 2026-06-20 Parser And C Inference Owner Cap Closure
 
 - Parser map/set literal parsing now lives in `parser_expr_map_literal.c`,

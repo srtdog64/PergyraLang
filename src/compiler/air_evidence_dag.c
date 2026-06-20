@@ -7,7 +7,6 @@ air_publish_dag_evidence(AIRProgram *air,
                          AIREvidenceKind kind,
                          const char *subject_name,
                          size_t fact_count,
-                         size_t dead_end_count,
                          const char *counter_error,
                          char **error_message)
 {
@@ -17,7 +16,7 @@ air_publish_dag_evidence(AIRProgram *air,
                                      "type-resolution-dag",
                                      subject_name,
                                      fact_count,
-                                     dead_end_count,
+                                     0,
                                      error_message)) {
         return false;
     }
@@ -51,31 +50,36 @@ air_collect_dag_evidence(AIRProgram *air, const SemanticResult *sem,
                       "AIR DAG evidence saw metadata hits without metadata inventory");
         return false;
     }
+    if (dead_end_count > 0) {
+        air_set_error(error_message,
+                      "AIR DAG evidence contains unresolved metadata dead-end facts");
+        return false;
+    }
 
-    if (metadata_fact_count > 0 || dead_end_count > 0) {
+    if (metadata_fact_count > 0) {
         if (!air_publish_dag_evidence(
                 air, AIR_EVIDENCE_DAG_METADATA,
-                "metadata-inventory", metadata_fact_count, dead_end_count,
+                "metadata-inventory", metadata_fact_count,
                 "AIR DAG metadata evidence counter overflow",
                 error_message)) {
             return false;
         }
     }
 
-    if (generic_fact_count > 0 || dead_end_count > 0) {
+    if (generic_fact_count > 0) {
         if (!air_publish_dag_evidence(
                 air, AIR_EVIDENCE_DAG_GENERIC,
-                "generic-contracts", generic_fact_count, dead_end_count,
+                "generic-contracts", generic_fact_count,
                 "AIR DAG generic evidence counter overflow",
                 error_message)) {
             return false;
         }
     }
 
-    if (ability_fact_count > 0 || dead_end_count > 0) {
+    if (ability_fact_count > 0) {
         if (!air_publish_dag_evidence(
                 air, AIR_EVIDENCE_DAG_ABILITY,
-                "ability-consumers", ability_fact_count, dead_end_count,
+                "ability-consumers", ability_fact_count,
                 "AIR DAG ability evidence counter overflow",
                 error_message)) {
             return false;
