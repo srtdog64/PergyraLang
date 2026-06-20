@@ -7328,6 +7328,11 @@ for term in \
     require_term "src/codegen/transpiler_decl_lookup.h" "$term"
     require_term "src/codegen/transpiler_decl_slot_view.c" "$term"
 done
+for term in "ast_zone_states" "ast_zone_state_" "ast_compat_states"; do
+    if grep -Fq "$term" "$ROOT_DIR/src/codegen/transpiler_decl_slot_view.c"; then
+        fail "C hosted zone-state view must be MIR-only and not keep AST zone-state compatibility payloads"
+    fi
+done
 for term in \
     "transpiler_zone_has_state(" \
     "TranspilerHostedZoneStateView state_view" \
@@ -7415,6 +7420,11 @@ for term in \
     "llvm_hosted_zone_state_view_find_relation_state"; do
     require_term "src/codegen/llvm_inventory_decl_lookup.h" "$term"
     require_term "src/codegen/llvm_inventory_zone_state_view.c" "$term"
+done
+for term in "ast_zone_states" "ast_zone_state_" "ast_compat_states"; do
+    if grep -Fq "$term" "$ROOT_DIR/src/codegen/llvm_inventory_zone_state_view.c"; then
+        fail "LLVM hosted zone-state view must be MIR-only and not keep AST zone-state compatibility payloads"
+    fi
 done
 for term in \
     "llvm_zone_has_state(" \

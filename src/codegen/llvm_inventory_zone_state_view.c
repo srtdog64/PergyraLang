@@ -18,20 +18,14 @@ llvm_hosted_zone_state_view_from_decl(const LLVMGenCtx *ctx,
                                       ASTNode *decl)
 {
     LLVMHostedZoneStateView view;
-    ASTNode **compat_states = NULL;
-    size_t compat_count = 0;
     const MIRDeclHeader *header = NULL;
 
-    if (decl != NULL && decl->type == AST_ZONE_DECL)
-        compat_states = ast_zone_states(decl, &compat_count);
-
     view.decl_header = NULL;
-    view.ast_compat_states = compat_states;
-    view.ast_compat_count = compat_count;
-    view.count = compat_count;
+    view.count = 0;
     view.uses_mir_metadata = false;
     view.requires_mir_metadata = llvm_active_has_mir(ctx)
-        && compat_count > 0;
+        && decl != NULL
+        && decl->type == AST_ZONE_DECL;
 
     header = llvm_find_host_decl_header_in_context(ctx, host_name);
     if (header != NULL
@@ -51,9 +45,7 @@ llvm_hosted_zone_state_view_missing_mir_metadata(
 {
     return view != NULL
         && view->requires_mir_metadata
-        && (!view->uses_mir_metadata
-            || view->count != view->ast_compat_count)
-        && view->ast_compat_count > 0;
+        && !view->uses_mir_metadata;
 }
 
 const MIRDeclZoneState *
@@ -78,12 +70,6 @@ llvm_hosted_zone_state_view_name(const LLVMHostedZoneStateView *view,
         return NULL;
     if (state != NULL)
         return mir_decl_zone_state_name(state);
-    if (view->requires_mir_metadata)
-        return NULL;
-    if (view->ast_compat_states != NULL
-        && view->ast_compat_states[index] != NULL) {
-        return ast_zone_state_name(view->ast_compat_states[index]);
-    }
     return NULL;
 }
 
@@ -99,12 +85,6 @@ llvm_hosted_zone_state_view_layer_slot_name(
         return NULL;
     if (state != NULL)
         return mir_decl_zone_state_layer_slot_name(state);
-    if (view->requires_mir_metadata)
-        return NULL;
-    if (view->ast_compat_states != NULL
-        && view->ast_compat_states[index] != NULL) {
-        return ast_zone_state_layer_slot_name(view->ast_compat_states[index]);
-    }
     return NULL;
 }
 
@@ -120,13 +100,6 @@ llvm_hosted_zone_state_view_left_or_target_slot_name(
         return NULL;
     if (state != NULL)
         return mir_decl_zone_state_left_or_target_slot_name(state);
-    if (view->requires_mir_metadata)
-        return NULL;
-    if (view->ast_compat_states != NULL
-        && view->ast_compat_states[index] != NULL) {
-        return ast_zone_state_left_or_target_slot_name(
-            view->ast_compat_states[index]);
-    }
     return NULL;
 }
 
@@ -142,12 +115,6 @@ llvm_hosted_zone_state_view_right_slot_name(
         return NULL;
     if (state != NULL)
         return mir_decl_zone_state_right_slot_name(state);
-    if (view->requires_mir_metadata)
-        return NULL;
-    if (view->ast_compat_states != NULL
-        && view->ast_compat_states[index] != NULL) {
-        return ast_zone_state_right_slot_name(view->ast_compat_states[index]);
-    }
     return NULL;
 }
 
@@ -162,10 +129,7 @@ llvm_hosted_zone_state_view_is_relation(const LLVMHostedZoneStateView *view,
         return false;
     if (state != NULL)
         return mir_decl_zone_state_is_relation(state);
-    if (view->requires_mir_metadata)
-        return false;
-    return view->ast_compat_states != NULL
-        && ast_zone_state_is_relation(view->ast_compat_states[index]);
+    return false;
 }
 
 bool
