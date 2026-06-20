@@ -117,6 +117,224 @@ func FindRoutine(json: String, from: Int) -> Int {
     return -1;
 }
 
+// ---------------------------------------------------------------------------
+// Control-flow reconstruction (CFG -> structured AST).
+//
+// The MIR-JSON carries per-block `succ_true`/`succ_false` edges. For non-loop
+// routines we follow those edges to rebuild `If: / Then: / Else:` structure
+// instead of flattening. Loop routines (while/for) still take the flat walk
+// (detected below) -- they need back-edge handling, a separate increment.
+// Block ids are sequential digit strings ("0".."n"); we key on them as text.
+// ---------------------------------------------------------------------------
+
+func IsDigit(c: String) -> Bool {
+    return c == "0" || c == "1" || c == "2" || c == "3" || c == "4"
+        || c == "5" || c == "6" || c == "7" || c == "8" || c == "9";
+}
+
+// Read the run of digits starting at `p`; "" if none.
+func ReadDigits(s: String, p: Int) -> String {
+    let r: String = "";
+    let i: Int = p;
+    let n: Int = StringLength(s);
+    while i < n {
+        let c: String = CharAt(s, i);
+        if IsDigit(c) {
+            r = Concat(r, c);
+            i = i + 1;
+        } else {
+            i = n;
+        }
+    }
+    return r;
+}
+
+// Successor id (digit string) for `kw` (e.g. "\"succ_true\":") within [bs,be);
+// "" when the key is absent (no such edge).
+func ReadSucc(json: String, bs: Int, be: Int, kw: String) -> String {
+    let p: Int = FindFrom(json, kw, bs);
+    if p < 0 || p >= be {
+        return "";
+    }
+    return ReadDigits(json, p + StringLength(kw));
+}
+
+// Resolve block `id` to its JSON span [o[0], o[1]); false if not found. The span
+// runs from this block's `"id":<id>,"reachable"` to the next block's marker.
+func BlockBounds(json: String, bp: Int, span_end: Int, id: String, o: Array<Int>) -> Bool {
+    let key: String = Concat("\"id\":", Concat(id, ",\"reachable\""));
+    let p: Int = FindFrom(json, key, bp);
+    if p < 0 || p >= span_end {
+        return false;
+    }
+    let nb: Int = FindFrom(json, ",\"reachable\"", p + StringLength(key));
+    if nb < 0 || nb > span_end {
+        nb = span_end;
+    }
+    o[0] = p;
+    o[1] = nb;
+    return true;
+}
+
+// Branch condition (the branch instruction's `ast`) within [bs,be); "" if the
+// block does not end in a branch.
+func BlockCond(json: String, bs: Int, be: Int) -> String {
+    let kp: Int = FindFrom(json, "\"kind\":\"branch\"", bs);
+    if kp < 0 || kp >= be {
+        return "";
+    }
+    let ap: Int = FindFrom(json, "\"ast\":", kp);
+    if ap < 0 || ap >= be {
+        return "";
+    }
+    let vstart: Int = ap + 6;
+    if CharAt(json, vstart) != "\"" {
+        return "";
+    }
+    let e: Array<Int> = [0];
+    return ReadJsonString(json, vstart, e);
+}
+
+// Render one instruction (by kind + ast) as its tree line. `def` carrying a
+// `let ` is a declaration (`Let:`); any other `def` is a reassignment
+// (`Assign:`); `return` is `Return:`; everything else passes through.
+func RenderStmt(kind: String, ast: String) -> String {
+    if kind == "return" {
+        return Concat("Return: ", ast);
+    }
+    if kind == "def" {
+        if StringLength(ast) >= 4 && Substring(ast, 0, 4) == "let " {
+            return StmtToTreeLine(ast);
+        }
+        return Concat("Assign: ", ast);
+    }
+    return StmtToTreeLine(ast);
+}
+
+// Emit the non-branch statement lines of block [bs,be) at `indent`. `phi`
+// instructions carry `"ast":null` and are skipped by the string-value guard.
+func EmitBlockStmts(json: String, bs: Int, be: Int, indent: String) -> String {
+    let out: String = "";
+    let kp: Int = FindFrom(json, "\"kind\":", bs);
+    while kp >= 0 && kp < be {
+        let kq: Int = FindFrom(json, "\"", kp + 7);
+        let ke: Array<Int> = [0];
+        let ikind: String = ReadJsonString(json, kq, ke);
+        let next_kp: Int = FindFrom(json, "\"kind\":", ke[0]);
+        if ikind != "branch" {
+            let ap: Int = FindFrom(json, "\"ast\":", ke[0]);
+            if ap >= 0 && ap < be && (next_kp < 0 || ap < next_kp) {
+                let vstart: Int = ap + 6;
+                if CharAt(json, vstart) == "\"" {
+                    let send: Array<Int> = [0];
+                    let stmt: String = ReadJsonString(json, vstart, send);
+                    out = Concat(out, Concat(indent, Concat(RenderStmt(ikind, stmt), "\n")));
+                }
+            }
+        }
+        kp = next_kp;
+    }
+    return out;
+}
+
+// A routine is a loop if it has a `for` loop-init or a `while` header (a block
+// holding both a `phi` and a `branch`). Loops take the flat walk for now.
+func IsLoopRoutine(json: String, bp: Int, span_end: Int) -> Bool {
+    let li: Int = FindFrom(json, "\"kind\":\"loop-init\"", bp);
+    if li >= 0 && li < span_end {
+        return true;
+    }
+    let bs: Int = FindFrom(json, "\"reachable\":", bp);
+    while bs >= 0 && bs < span_end {
+        let be: Int = FindFrom(json, "\"reachable\":", bs + 12);
+        if be < 0 || be > span_end {
+            be = span_end;
+        }
+        let hp: Int = FindFrom(json, "\"kind\":\"phi\"", bs);
+        let hb: Int = FindFrom(json, "\"kind\":\"branch\"", bs);
+        if hp >= 0 && hp < be && hb >= 0 && hb < be {
+            return true;
+        }
+        bs = FindFrom(json, "\"reachable\":", bs + 12);
+    }
+    return false;
+}
+
+// The block at which the single-entry region starting at `start` rejoins its
+// parent (the if's merge / post-dominator). Plain blocks fall through to their
+// successor; branch blocks recurse to skip past their own if. "" = no exit.
+func RegionExit(json: String, bp: Int, span_end: Int, start: String) -> String {
+    let cur: String = start;
+    let guard: Int = 0;
+    while StringLength(cur) > 0 && guard < 100000 {
+        guard = guard + 1;
+        let o: Array<Int> = [0, 0];
+        if !BlockBounds(json, bp, span_end, cur, o) {
+            return "";
+        }
+        let cond: String = BlockCond(json, o[0], o[1]);
+        if StringLength(cond) == 0 {
+            return ReadSucc(json, o[0], o[1], "\"succ_true\":");
+        }
+        let t: String = ReadSucc(json, o[0], o[1], "\"succ_true\":");
+        let f: String = ReadSucc(json, o[0], o[1], "\"succ_false\":");
+        let te: String = RegionExit(json, bp, span_end, t);
+        if te == f {
+            cur = f;
+        } else {
+            cur = te;
+        }
+    }
+    return "";
+}
+
+// Emit the structured tree for blocks from `start` until reaching `stop`
+// (exclusive). Straight-line blocks emit their statements; a branch block emits
+// `If:/Then:/Else:` and recurses into the then/else regions, then continues from
+// the merge. `indent` is the leading whitespace for statements at this level.
+func EmitRegion(json: String, bp: Int, span_end: Int, start: String, stop: String, indent: String) -> String {
+    let out: String = "";
+    let cur: String = start;
+    let guard: Int = 0;
+    while StringLength(cur) > 0 && cur != stop && guard < 100000 {
+        guard = guard + 1;
+        let o: Array<Int> = [0, 0];
+        if !BlockBounds(json, bp, span_end, cur, o) {
+            return out;
+        }
+        let bs: Int = o[0];
+        let be: Int = o[1];
+        out = Concat(out, EmitBlockStmts(json, bs, be, indent));
+        let cond: String = BlockCond(json, bs, be);
+        if StringLength(cond) == 0 {
+            cur = ReadSucc(json, bs, be, "\"succ_true\":");
+        } else {
+            let t: String = ReadSucc(json, bs, be, "\"succ_true\":");
+            let f: String = ReadSucc(json, bs, be, "\"succ_false\":");
+            let te: String = RegionExit(json, bp, span_end, t);
+            let merge: String = "";
+            let hasElse: Bool = false;
+            if te == f {
+                merge = f;
+            } else {
+                merge = te;
+                hasElse = true;
+            }
+            out = Concat(out, Concat(indent, Concat("If: ", Concat(cond, "\n"))));
+            out = Concat(out, Concat(indent, "  Then:\n"));
+            out = Concat(out, Concat(indent, "    Block:\n"));
+            out = Concat(out, EmitRegion(json, bp, span_end, t, merge, Concat(indent, "      ")));
+            if hasElse {
+                out = Concat(out, Concat(indent, "  Else:\n"));
+                out = Concat(out, Concat(indent, "    Block:\n"));
+                out = Concat(out, EmitRegion(json, bp, span_end, f, merge, Concat(indent, "      ")));
+            }
+            cur = merge;
+        }
+    }
+    return out;
+}
+
 func Main() -> Void {
     let args: Array<String> = Args();
     if ArrayLength(args) < 1 {
@@ -189,33 +407,42 @@ func Main() -> Void {
         out = Concat(out, "    Body:\n");
         out = Concat(out, "      Block:\n");
 
-        // Walk this routine's instructions (in [nend, span_end)). Each carries a
-        // `"kind"` and an `"ast"`; a `return` instruction becomes a `Return:`
-        // line, any other becomes a plain statement line. (The routine's own
-        // `"kind":"function"` precedes `"blocks":`, so the walk starts there.)
+        // The routine's own `"kind":"function"` precedes `"blocks":`, so block
+        // scanning starts there. Non-loop routines get CFG-structured `If:`
+        // reconstruction (EmitRegion, from the entry block "0"); loop routines
+        // (while/for) still take the flat instruction walk -- structuring their
+        // back-edges into `While:`/`For:` is a separate increment.
         let bp: Int = FindFrom(json, "\"blocks\":", nend[0]);
-        let kp: Int = FindFrom(json, "\"kind\":", bp);
-        while kp >= 0 && kp < span_end {
-            let kq: Int = FindFrom(json, "\"", kp + 7);
-            let ke: Array<Int> = [0];
-            let ikind: String = ReadJsonString(json, kq, ke);
-            let next_kp: Int = FindFrom(json, "\"kind\":", ke[0]);
-            let ap: Int = FindFrom(json, "\"ast\":", ke[0]);
-            if ap >= 0 && ap < span_end && (next_kp < 0 || ap < next_kp) {
-                let vstart: Int = ap + 6;
-                let vc: String = CharAt(json, vstart);
-                if vc == "\"" {
-                    let send: Array<Int> = [0];
-                    let stmt: String = ReadJsonString(json, vstart, send);
-                    if ikind == "return" {
-                        out = Concat(out, Concat("        Return: ", Concat(stmt, "\n")));
-                    } else {
-                        out = Concat(out, Concat("        ", Concat(StmtToTreeLine(stmt), "\n")));
+        if IsLoopRoutine(json, bp, span_end) {
+            let kp: Int = FindFrom(json, "\"kind\":", bp);
+            while kp >= 0 && kp < span_end {
+                let kq: Int = FindFrom(json, "\"", kp + 7);
+                let ke: Array<Int> = [0];
+                let ikind: String = ReadJsonString(json, kq, ke);
+                let next_kp: Int = FindFrom(json, "\"kind\":", ke[0]);
+                let ap: Int = FindFrom(json, "\"ast\":", ke[0]);
+                if ap >= 0 && ap < span_end && (next_kp < 0 || ap < next_kp) {
+                    let vstart: Int = ap + 6;
+                    let vc: String = CharAt(json, vstart);
+                    if vc == "\"" {
+                        let send: Array<Int> = [0];
+                        let stmt: String = ReadJsonString(json, vstart, send);
+                        if ikind == "return" {
+                            out = Concat(out, Concat("        Return: ", Concat(stmt, "\n")));
+                        } else {
+                            out = Concat(out, Concat("        ", Concat(StmtToTreeLine(stmt), "\n")));
+                        }
+                        total = total + 1;
                     }
-                    total = total + 1;
                 }
+                kp = next_kp;
             }
-            kp = next_kp;
+        } else {
+            let region: String = EmitRegion(json, bp, span_end, "0", "", "        ");
+            out = Concat(out, region);
+            if StringLength(region) > 0 {
+                total = total + 1;
+            }
         }
 
         rpos = next_rpos;

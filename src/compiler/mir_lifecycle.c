@@ -519,7 +519,12 @@ mir_dump_json(const MIRProgram *mir, FILE *out)
                     }
                     fputc('}', out);
                 }
-                fputs("]}", out);
+                fputs("]", out);
+                if (block->has_succ_true)
+                    fprintf(out, ",\"succ_true\":%zu", block->succ_true);
+                if (block->has_succ_false)
+                    fprintf(out, ",\"succ_false\":%zu", block->succ_false);
+                fputc('}', out);
             }
             fputs("]}", out);
         }
