@@ -11,12 +11,13 @@ not a claim that the entire runtime has been mechanically verified.
 
 The accompanying Coq file in `docs/semantics/proofs/SlotCalculus.v` is a
 minimal mechanized sketch for selected Slot capability invariants: stale handle
-read/write/release rejection, mode-specific issued-token requirements for
-read/write/pin/release, unissued-token read/write/pin/release rejection,
-pinned-handle release rejection, and pin non-eviction. It is beta evidence only
-when a CI gate type-checks the artifact with Coq. The beta contract must still
-describe it as a proof sketch, not completed mechanized proof for the whole
-language.
+read/write/release rejection, released-slot read/write/pin/release rejection,
+mode-specific issued-token requirements for read/write/pin/release,
+unissued-token read/write/pin/release rejection, pinned-handle release
+rejection, and pin non-eviction. CI type-checks the artifact with Coq under
+`formal-semantics-test-smoke`, so it is mechanized evidence for those modeled
+invariants only. The beta contract must still describe it as a proof sketch,
+not completed mechanized proof for the whole language.
 
 ## Positive Claim: Slot Is A Modular Resource Boundary
 
@@ -276,7 +277,11 @@ Current evidence:
   `stale_handle_read_impossible`, `stale_handle_write_impossible`,
   `stale_handle_release_impossible`, `zero_slot_id_claim_impossible`,
   `max_slot_id_claim_impossible`, `tampered_view_unpin_impossible`, and
-  `double_unpin_impossible` lemmas for generation/id/view mismatch.
+  `double_unpin_impossible` lemmas for generation/id/view mismatch. It also
+  sketches `released_slot_read_impossible`,
+  `released_slot_write_impossible`, `released_slot_pin_impossible`, and
+  `released_slot_release_impossible` for the runtime `None`/released-entry
+  state.
 
 Remaining obligation:
 

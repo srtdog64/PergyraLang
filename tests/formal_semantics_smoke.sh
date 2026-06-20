@@ -108,7 +108,7 @@ Slot alone is not advertised as a borrow checker.
 08_slot_capability_calculus.md
 09_abstraction_loss_contracts.md
 proofs/SlotCalculus.v
-not beta-closure evidence unless a CI
+mechanized evidence for those modeled invariants only
 Generic contracts
 Ownership: anchored slot-handle boundary subset only.
 Runtime observability
@@ -285,7 +285,7 @@ the ownership/CFG/AIR layers prove which boundary transitions are accepted
 NoEscape(view, region)
 NoSuspend(view, region)
 WriteExclusive(slot, region)
-proof sketch, not completed
+not completed mechanized proof
 Source-level `pin slot as view: ReadView<T>|WriteView<T> { ... }` now reaches
 HIR and MIR as explicit pin-region metadata
 pin-unpin-cleanup-edge
@@ -338,6 +338,10 @@ Lemma zero_slot_id_claim_impossible
 Lemma max_slot_id_claim_impossible
 Lemma tampered_view_unpin_impossible
 Lemma double_unpin_impossible
+Lemma released_slot_read_impossible
+Lemma released_slot_write_impossible
+Lemma released_slot_pin_impossible
+Lemma released_slot_release_impossible
 Lemma pin_non_eviction
 Qed.
 TERMS
@@ -348,6 +352,7 @@ Theorem ownership_unique
 Lemma owner_of
 Definition AxisUpdate
 Theorem axis_updates_commute
+Theorem axis_update_idempotent
 Definition keyword_axis
 Definition keyword_fact
 Theorem keyword_axis_sound

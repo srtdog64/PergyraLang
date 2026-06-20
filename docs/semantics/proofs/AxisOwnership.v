@@ -218,6 +218,99 @@ Proof.
       rewrite (Ha2p Hna). rewrite (Hb1p Hnb). reflexivity.
 Qed.
 
+(* Redundant updates by the same axis are idempotent. Updating the same axis
+   twice with the same specification results in the same state as the first
+   update, ensuring that verifier re-runs on stable axes do not drift. *)
+Theorem axis_update_idempotent :
+  forall a wr st st1 st2,
+    AxisUpdate a wr st st1 ->
+    AxisUpdate a wr st1 st2 ->
+    forall f, st2 f = st1 f.
+Proof.
+  intros a wr st st1 st2 H1 H2 f.
+  destruct f.
+  - (* FWho *)
+    destruct (H2 FWho) as [H2w_who H2p_who].
+    destruct (H1 FWho) as [H1w_who H1p_who].
+    destruct (Axis_eq_dec a AxDomain) as [Ea | Na].
+    + subst a.
+      assert (Ho : Owns AxDomain FWho) by constructor.
+      rewrite (H2w_who Ho). rewrite (H1w_who Ho). reflexivity.
+    + assert (Hn : ~ Owns a FWho).
+      { intro H. apply Na. inversion H; reflexivity. }
+      rewrite (H2p_who Hn). reflexivity.
+  - (* FWhere *)
+    destruct (H2 FWhere) as [H2w_where H2p_where].
+    destruct (H1 FWhere) as [H1w_where H1p_where].
+    destruct (Axis_eq_dec a AxDomain) as [Ea | Na].
+    + subst a.
+      assert (Ho : Owns AxDomain FWhere) by constructor.
+      rewrite (H2w_where Ho). rewrite (H1w_where Ho). reflexivity.
+    + assert (Hn : ~ Owns a FWhere).
+      { intro H. apply Na. inversion H; reflexivity. }
+      rewrite (H2p_where Hn). reflexivity.
+  - (* FRequires *)
+    destruct (H2 FRequires) as [H2w_req H2p_req].
+    destruct (H1 FRequires) as [H1w_req H1p_req].
+    destruct (Axis_eq_dec a AxTypeContract) as [Ea | Na].
+    + subst a.
+      assert (Ho : Owns AxTypeContract FRequires) by constructor.
+      rewrite (H2w_req Ho). rewrite (H1w_req Ho). reflexivity.
+    + assert (Hn : ~ Owns a FRequires).
+      { intro H. apply Na. inversion H; reflexivity. }
+      rewrite (H2p_req Hn). reflexivity.
+  - (* FAuthorizedBy *)
+    destruct (H2 FAuthorizedBy) as [H2w_auth H2p_auth].
+    destruct (H1 FAuthorizedBy) as [H1w_auth H1p_auth].
+    destruct (Axis_eq_dec a AxDomain) as [Ea | Na].
+    + subst a.
+      assert (Ho : Owns AxDomain FAuthorizedBy) by constructor.
+      rewrite (H2w_auth Ho). rewrite (H1w_auth Ho). reflexivity.
+    + assert (Hn : ~ Owns a FAuthorizedBy).
+      { intro H. apply Na. inversion H; reflexivity. }
+      rewrite (H2p_auth Hn). reflexivity.
+  - (* FCauses *)
+    destruct (H2 FCauses) as [H2w_causes H2p_causes].
+    destruct (H1 FCauses) as [H1w_causes H1p_causes].
+    destruct (Axis_eq_dec a AxDomain) as [Ea | Na].
+    + subst a.
+      assert (Ho : Owns AxDomain FCauses) by constructor.
+      rewrite (H2w_causes Ho). rewrite (H1w_causes Ho). reflexivity.
+    + assert (Hn : ~ Owns a FCauses).
+      { intro H. apply Na. inversion H; reflexivity. }
+      rewrite (H2p_causes Hn). reflexivity.
+  - (* FResourceHeld *)
+    destruct (H2 FResourceHeld) as [H2w_res H2p_res].
+    destruct (H1 FResourceHeld) as [H1w_res H1p_res].
+    destruct (Axis_eq_dec a AxResource) as [Ea | Na].
+    + subst a.
+      assert (Ho : Owns AxResource FResourceHeld) by constructor.
+      rewrite (H2w_res Ho). rewrite (H1w_res Ho). reflexivity.
+    + assert (Hn : ~ Owns a FResourceHeld).
+      { intro H. apply Na. inversion H; reflexivity. }
+      rewrite (H2p_res Hn). reflexivity.
+  - (* FExecutionPlan *)
+    destruct (H2 FExecutionPlan) as [H2w_exec H2p_exec].
+    destruct (H1 FExecutionPlan) as [H1w_exec H1p_exec].
+    destruct (Axis_eq_dec a AxExecution) as [Ea | Na].
+    + subst a.
+      assert (Ho : Owns AxExecution FExecutionPlan) by constructor.
+      rewrite (H2w_exec Ho). rewrite (H1w_exec Ho). reflexivity.
+    + assert (Hn : ~ Owns a FExecutionPlan).
+      { intro H. apply Na. inversion H; reflexivity. }
+      rewrite (H2p_exec Hn). reflexivity.
+  - (* FShape *)
+    destruct (H2 FShape) as [H2w_shape H2p_shape].
+    destruct (H1 FShape) as [H1w_shape H1p_shape].
+    destruct (Axis_eq_dec a AxTypeContract) as [Ea | Na].
+    + subst a.
+      assert (Ho : Owns AxTypeContract FShape) by constructor.
+      rewrite (H2w_shape Ho). rewrite (H1w_shape Ho). reflexivity.
+    + assert (Hn : ~ Owns a FShape).
+      { intro H. apply Na. inversion H; reflexivity. }
+      rewrite (H2p_shape Hn). reflexivity.
+Qed.
+
 (* ========================================== *)
 (* 8. Adequacy (surface) -- the docs/42 SS1 keyword table is consistent       *)
 (* with the SS2 fact-ownership table: a keyword can never sit on an axis that  *)

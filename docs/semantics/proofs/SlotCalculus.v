@@ -385,6 +385,55 @@ Proof.
 Qed.
 
 (*
+  Lemma: Released Slot Read/Write/Pin/Release Impossible
+  Proof Obligation: a handle pointing to an unallocated or evicted slot (None)
+  cannot be read, written, pinned, or released.
+*)
+Lemma released_slot_read_impossible : forall h caps handle tok,
+  h (h_slot handle) = None ->
+  ~ HandleRead h caps handle tok.
+Proof.
+  intros h caps handle tok H_none H_read.
+  unfold HandleRead in H_read.
+  destruct H_read as [s [H_some _]].
+  rewrite H_none in H_some.
+  discriminate.
+Qed.
+
+Lemma released_slot_write_impossible : forall h caps handle tok,
+  h (h_slot handle) = None ->
+  ~ HandleWrite h caps handle tok.
+Proof.
+  intros h caps handle tok H_none H_write.
+  unfold HandleWrite in H_write.
+  destruct H_write as [s [H_some _]].
+  rewrite H_none in H_some.
+  discriminate.
+Qed.
+
+Lemma released_slot_pin_impossible : forall h caps handle tok,
+  h (h_slot handle) = None ->
+  ~ HandlePin h caps handle tok.
+Proof.
+  intros h caps handle tok H_none H_pin.
+  unfold HandlePin in H_pin.
+  destruct H_pin as [s [H_some _]].
+  rewrite H_none in H_some.
+  discriminate.
+Qed.
+
+Lemma released_slot_release_impossible : forall h caps handle tok,
+  h (h_slot handle) = None ->
+  ~ HandleRelease h caps handle tok.
+Proof.
+  intros h caps handle tok H_none H_release.
+  unfold HandleRelease in H_release.
+  destruct H_release as [s [H_some _]].
+  rewrite H_none in H_some.
+  discriminate.
+Qed.
+
+(*
   Lemma: Pin Non-Eviction
   Proof Obligation: "A Pinned slot cannot be released or evicted by any Step rule."
 *)

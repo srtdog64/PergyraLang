@@ -4,11 +4,12 @@
 # (docs/semantics/proofs/SlotCalculus.v).
 #
 # SlotCalculus.v proves, inside Coq, the slot safety invariants (stale-handle
-# rejection, token-gated access, pin non-eviction). Those theorems constrain the
-# *model*. This differential test binds the model to the *real runtime* so the
-# two cannot drift: every modeled operation and every proven invariant must have
-# a live counterpart in src/runtime/slot_manager.h. Rename or delete a runtime
-# symbol the proof relies on and this gate fails.
+# rejection, released-slot rejection, token-gated access, pin non-eviction).
+# Those theorems constrain the *model*. This differential test binds the model
+# to the *real runtime* so the two cannot drift: every modeled operation and
+# every proven invariant must have a live counterpart in
+# src/runtime/slot_manager.h. Rename or delete a runtime symbol the proof relies
+# on and this gate fails.
 #
 # Pure source-consistency (no coqc); complements SlotCalculus.v.
 
@@ -40,6 +41,10 @@ OP_MAP=(
 # B. proven invariant   -> runtime mechanism that realizes it
 INV_MAP=(
     "stale_handle_read_impossible        generation      stale-handle-rejection"
+    "released_slot_read_impossible       SLOT_ERROR_SLOT_NOT_FOUND released-slot-read-rejection"
+    "released_slot_write_impossible      SLOT_ERROR_SLOT_NOT_FOUND released-slot-write-rejection"
+    "released_slot_pin_impossible        SLOT_ERROR_SLOT_NOT_FOUND released-slot-pin-rejection"
+    "released_slot_release_impossible    SLOT_ERROR_SLOT_NOT_FOUND released-slot-release-rejection"
     "handle_read_requires_issued_token   TokenCapability token-gated-access"
     "pin_non_eviction                    PergyraSlotPin  pin-non-eviction"
 )

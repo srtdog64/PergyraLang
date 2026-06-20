@@ -38,15 +38,17 @@ Required shape for each proof document:
 Mechanized artifacts:
 
 - [proofs/SlotCalculus.v](proofs/SlotCalculus.v): Coq proof sketch for the
-  `stale_handle_read_impossible`, `handle_read_requires_issued_token`,
-  `unissued_token_read_impossible`, `handle_pin_requires_issued_token`,
-  `unissued_token_pin_impossible`, and `pin_non_eviction` invariants. This is
-  not beta-closure evidence unless a CI gate type-checks it with Coq, and it
-  does not prove the whole language.
+  `stale_handle_*_impossible`, `released_slot_*_impossible`,
+  `handle_*_requires_issued_token`, `unissued_token_*_impossible`,
+  `pinned_handle_release_impossible`, and `pin_non_eviction` invariants. CI
+  type-checks this artifact under `formal-semantics-test-smoke`, so it is
+  mechanized evidence for those modeled invariants only; it does not prove the
+  whole language.
 - [proofs/AxisOwnership.v](proofs/AxisOwnership.v): Coq proof sketch for axis
-  fact-ownership, no-silent-override, independent axis commutation, and
-  projection non-writing invariants. The companion adequacy smoke binds the
-  model to named compiler/source symbols, not to a full extracted verifier.
+  fact-ownership, no-silent-override, independent axis commutation,
+  idempotent same-axis update, and projection non-writing invariants. The
+  companion adequacy smoke binds the model to named compiler/source symbols,
+  not to a full extracted verifier.
 - [proofs/IRMinimality.v](proofs/IRMinimality.v): Coq proof sketch for the
   HIR/RIR/MIR codegen-layer lower bound under the live reads-from dependency
   model. `ir_minimality_adequacy_smoke.sh` binds that model to the current

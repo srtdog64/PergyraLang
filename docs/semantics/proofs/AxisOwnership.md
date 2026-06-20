@@ -48,6 +48,7 @@ composition law, and they can be proved rather than asserted.
 | 5 | `no_silent_override` | A transition by axis `a` leaves every fact owned by a different axis unchanged. The axis-level form of "no hidden control flow". |
 | 5 | `no_silent_override_2step` | That preservation composes across a trace. |
 | 7 | `axis_updates_commute` | Updates by distinct axes commute (verifier resolution is order-independent). |
+| 7 | `axis_update_idempotent` | Re-running the same axis update over an already-updated state is stable; verifier reruns do not drift. |
 | 9 | `reading_updates_commute` | Even **state-dependent** resolution commutes, provided each axis reads only the facts it owns (`ALocal`). |
 | 8 | `keyword_axis_sound` | The docs/42 SS1 keyword table is consistent with `Owns` (surface adequacy, inside Coq). |
 | 10 | `append_is_stepby` | A write attributed to the axis that **owns** the fact is exactly a `StepBy` step -- the attribution discipline *forces* single-writer. |
