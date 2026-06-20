@@ -6,8 +6,8 @@
 //
 // rung-0 scope: a single routine `Main`, a single linear block, and the
 // statement forms the codegen already supports (Int `let`, `Log(...)`). Each
-// instruction's `ast` field is a transitional compatibility source-payload
-// field emitted through the MIR source-shape owner. Out-of-scope input is an
+// instruction's `ast` field is transitional compatibility source text captured
+// by the MIR source-shape owner. Out-of-scope input is an
 // observable MIR-LOWER ERROR (no silent fallback, per the no-hidden-flow rule).
 
 func Die(msg: String) -> Void {

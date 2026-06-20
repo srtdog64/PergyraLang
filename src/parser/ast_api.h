@@ -267,7 +267,8 @@ void ast_destroy(ASTNode* node);
 void ast_destroy_structured_comment(StructuredComment* comment);
 void ast_print(ASTNode* node, int indent);
 /* Capture an inline/compact rendering of `node` into a malloc'd string (caller
- * frees). Used by the MIR JSON serializer to embed lossless expression text. */
+ * frees). Used by the MIR source-shape owner to preserve transitional MIR JSON
+ * expression text without reopening AST payloads during serialization. */
 char* ast_capture_inline(ASTNode* node);
 const char* token_type_to_string(PgyTokenType type);
 

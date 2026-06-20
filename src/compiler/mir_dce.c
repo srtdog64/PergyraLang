@@ -28,6 +28,8 @@ mir_free_instruction_payload(MIRInstruction *inst)
     free((void *)inst->destructure_binding_names);
     inst->destructure_binding_names = NULL;
     inst->destructure_binding_count = 0;
+    free(inst->source_inline_text);
+    inst->source_inline_text = NULL;
     return true;
 }
 

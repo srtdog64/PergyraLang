@@ -3,6 +3,25 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-21 MIR Lifecycle Source-Text Fact Closure
+
+- MIR JSON still emits the transitional `"ast"` text field for the current
+  self-hosted `mir_lower` rung, but `mir_lifecycle.c` no longer reopens
+  `mir_instruction_source_payload(...)` or calls `ast_capture_inline(...)`
+  during serialization. The dump consumes
+  `mir_instruction_source_inline_text(inst)`.
+- `mir_instruction_capture_source_provenance(...)` now captures that inline
+  source text at the source-shape boundary, beside line, column, stable-id, and
+  source-node-type facts. The remaining payload accessor allowance is confined
+  to `mir_source_shape.c` plus the public declaration in `mir.h`.
+- `ast-to-mir-loss-contract-test-smoke` removes `mir_lifecycle.c` from the
+  payload allowlist, and `perf-contract-test-smoke` rejects lifecycle payload
+  reopening. Verified locally with `test-mir`, `cfg-body-dataflow-test-smoke`,
+  `ast-to-mir-loss-contract-test-smoke`, `perf-contract-test-smoke`,
+  `self-host-preparation-test-smoke`, `production-c-size-test-smoke`,
+  `test-inc-size-test-smoke`, `documentation-quality-test-smoke`,
+  `tests/self_host_readiness_scorecard.sh`, and `git diff --check`.
+
 ## Progress Log - 2026-06-21 MIR Public-Surface Provenance Capture Closure
 
 - `mir_public_surface.c` no longer opens `mir_instruction_source_payload(...)`
@@ -17,9 +36,9 @@
 - `cfg-body-dataflow-test-smoke`, `ast-to-mir-loss-contract-test-smoke`, and
   `perf-contract-test-smoke` now reject reintroducing source-payload reads in
   `mir_public_surface.c` and require the capture-time provenance owner.
-- The remaining source-payload allowance is narrowed to the MIR lifecycle/dump
-  provenance surface. That path still needs a later explicit provenance-only
-  contract before capability 5 can honestly return to READY.
+- The remaining source-payload allowance after this slice was the MIR
+  lifecycle/dump provenance surface; the later lifecycle source-text fact
+  closure above retires that dump-time payload read.
 
 ## Progress Log - 2026-06-21 C MIR Source-Local Binding SoT Closure
 

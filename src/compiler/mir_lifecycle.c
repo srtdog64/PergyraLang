@@ -11,8 +11,6 @@
 #include <stdlib.h>
 
 #include "../common/arena.h"
-#include "../parser/ast_api.h"
-
 void
 mir_destroy(MIRProgram *mir)
 {
@@ -45,6 +43,8 @@ mir_destroy(MIRProgram *mir)
                             free(routine->blocks[j].instructions[k].phi_incomings);
                             free((void *)routine->blocks[j].instructions[k]
                                      .destructure_binding_names);
+                            free(routine->blocks[j].instructions[k]
+                                     .source_inline_text);
                         }
                     }
                     for (size_t k = 0; k < routine->blocks[j].renamed_local_count; k++)
@@ -508,15 +508,8 @@ mir_dump_json(const MIRProgram *mir, FILE *out)
                         mir_json_emit_str(out, inst->uses[m]);
                     }
                     fputs("],\"ast\":", out);
-                    ASTNode *source_payload =
-                        mir_instruction_source_payload(inst);
-                    if (source_payload != NULL) {
-                        char *expr = ast_capture_inline(source_payload);
-                        mir_json_emit_str_or_null(out, expr);
-                        free(expr);
-                    } else {
-                        fputs("null", out);
-                    }
+                    mir_json_emit_str_or_null(out,
+                        mir_instruction_source_inline_text(inst));
                     fputc('}', out);
                 }
                 fputs("]", out);

@@ -128,6 +128,7 @@ typedef struct
     uint32_t         source_column;
     uint32_t         source_stable_id;
     ASTNodeType      source_node_type;
+    char            *source_inline_text;
     HIRBlockTerminatorKind source_terminator_kind;
     bool             has_source_terminator_kind;
     bool             source_terminator_has_value;
@@ -391,6 +392,7 @@ bool        mir_instruction_source_line_matches_node(
 uint32_t    mir_instruction_source_line(const MIRInstruction *inst);
 uint32_t    mir_instruction_source_column(const MIRInstruction *inst);
 uint32_t    mir_instruction_source_stable_id(const MIRInstruction *inst);
+const char *mir_instruction_source_inline_text(const MIRInstruction *inst);
 bool        mir_instruction_has_source_terminator_kind(
                 const MIRInstruction *inst);
 bool        mir_instruction_source_terminator_matches(

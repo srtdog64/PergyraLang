@@ -2,6 +2,8 @@
 
 #include "mir_cfg_contract_control.h"
 
+#include "../parser/ast_api.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -67,6 +69,9 @@ mir_instruction_capture_source_provenance(MIRInstruction *inst,
 {
     if (inst == NULL || source == NULL)
         return;
+    char *inline_text = ast_capture_inline((ASTNode *)source);
+    free(inst->source_inline_text);
+    inst->source_inline_text = inline_text;
     inst->has_source_location = true;
     inst->source_line = source->line;
     inst->source_column = source->column;
@@ -235,6 +240,12 @@ mir_instruction_source_stable_id(const MIRInstruction *inst)
     return mir_instruction_has_source_location(inst)
         ? inst->source_stable_id
         : 0;
+}
+
+const char *
+mir_instruction_source_inline_text(const MIRInstruction *inst)
+{
+    return inst != NULL ? inst->source_inline_text : NULL;
 }
 
 bool

@@ -71,8 +71,7 @@ while IFS= read -r line; do
     [[ -z "$line" ]] && continue
     case "$line" in
         src/compiler/mir.h:*|\
-        src/compiler/mir_source_shape.c:*|\
-        src/compiler/mir_lifecycle.c:*)
+        src/compiler/mir_source_shape.c:*)
             ;;
         *)
             payload_bad+="$line"$'\n'

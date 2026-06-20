@@ -2,7 +2,7 @@
 
 Branch main. This snapshot records what is verified to self-host right now,
 measured by building pgy and running
-`make self-host-preparation-test-smoke` on 2026-06-19. The parser/lexer
+`make self-host-preparation-test-smoke` on 2026-06-21. The parser/lexer
 front-end figures below were refreshed on 2026-06-18 with
 `make self-host-lexer-parity-test-smoke self-host-parser-parity-test-smoke`
 and `src/self_hosted/parity/parser_scale_probe.sh --failing`. The gate runs the
@@ -95,12 +95,13 @@ compatibility path.
   Match-case branches carry MIR-captured pattern/guard facts, and C/LLVM match
   condition, body-binding, and remap emission consume those facts instead of
   parsing the match-case source payload.
-- Source line/column/stable-id/type seeding is now capture-time scalar
-  provenance owned by `mir_instruction_capture_source_provenance(...)`;
-  `mir_public_surface.c` no longer opens source payloads. Capability 5 remains
-  ACTIVE for the narrower MIR lifecycle/dump provenance payload tail until that
-  read is locked as provenance-only diagnostics or replaced by scalar dump
-  facts.
+- Source line/column/stable-id/type seeding and transitional MIR JSON source
+  text are now capture-time facts owned by
+  `mir_instruction_capture_source_provenance(...)`. `mir_public_surface.c` and
+  `mir_lifecycle.c` no longer open source payloads; lifecycle dump emission
+  consumes `mir_instruction_source_inline_text(inst)`. Capability 5 remains
+  ACTIVE for the next rung only because self-hosted `mir_lower` still consumes
+  the transitional `"ast"` text field instead of explicit MIR statement facts.
 - C class/zone collection-specialization scans are MIR-routine based and no
   longer recover method body AST; routine_source_decl_codegen is ratcheted at 0.
 - C hosted method body emission binds the linked MIRRoutine body as current

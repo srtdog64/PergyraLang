@@ -8,17 +8,17 @@ for soft and partial self-hosting.
 
 Current judgement (2026-06-21): the hard-self-host substrate checklist is broad
 enough for staged compiler-pass substitution, but capability 5 remains ACTIVE
-until the remaining MIR lifecycle/dump provenance payload tail is retired or
-locked as provenance-only. Raw source-statement re-dispatch is gone,
-source-local resource constructors consume MIR expected type facts, assignment
-DEFs preserve side effects before SSA recording, C resource mirroring uses MIR
-source-statement identity instead of source-payload pointer identity, and
-public-surface source line/column/stable-id/type seeding is capture-time scalar
-provenance; not every body fact is MIR-owned yet. This is still not a full
-hard-self-host claim. Passing `self-host-preparation-test-smoke` proves the
-side-by-side method and the C/LLVM/Pergyra parity harness, not permission to
-replace the semantic checker, MIR lowering, codegen, compiler driver, or
-runtime in one jump.
+until self-hosted MIR lowering stops consuming the transitional `"ast"` text
+compatibility field and uses explicit MIR statement facts instead. Raw
+source-statement re-dispatch is gone, source-local resource constructors
+consume MIR expected type facts, assignment DEFs preserve side effects before
+SSA recording, C resource mirroring uses MIR source-statement identity instead
+of source-payload pointer identity, and public-surface plus lifecycle MIR JSON
+source provenance is capture-time scalar/text fact data; not every body fact is
+MIR-owned yet. This is still not a full hard-self-host claim. Passing
+`self-host-preparation-test-smoke` proves the side-by-side method and the
+C/LLVM/Pergyra parity harness, not permission to replace the semantic checker,
+MIR lowering, codegen, compiler driver, or runtime in one jump.
 
 The beta stable subset is intentionally narrow. It is designed to freeze the
 core language contract, not to rewrite a large compiler immediately.
@@ -99,13 +99,15 @@ receive-payload type inference now consume instruction `arg0` / `expr0` /
 `mir_instruction_source_payload`. MIR surface validation now checks payload
 presence through source-shape predicates and validates surface-usage facts from
 MIR expression facts rather than reopening payloads. Public-surface source
-line/column/stable-id/type seeding now consumes capture-time scalar provenance
-from `mir_instruction_capture_source_provenance(...)`. The remaining
-capability-5 tail is the MIR lifecycle/dump provenance payload surface; LLVM
-for-in and with-slot resource-claim diagnostics have already moved to MIR
-expression anchors. The remaining reads must be reduced to provenance-only
-diagnostics or replaced by scalar dump facts before the body source-of-truth
-row is fully ready.
+line/column/stable-id/type seeding and lifecycle MIR JSON source-text emission
+now consume capture-time facts from
+`mir_instruction_capture_source_provenance(...)`; lifecycle dumps consume
+`mir_instruction_source_inline_text(inst)` instead of reopening source
+payloads. LLVM for-in and with-slot resource-claim diagnostics have already
+moved to MIR expression anchors. The remaining capability-5 tail is the
+self-hosted `mir_lower` dependency on transitional `"ast"` text, which must be
+replaced by explicit MIR statement facts before the body source-of-truth row is
+fully ready.
 
 - **Module/package resolver stability**: deterministic imports, manifest
   reading, path normalization, and cycle diagnostics.

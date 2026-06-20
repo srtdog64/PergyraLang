@@ -75,6 +75,14 @@ English anchor for tooling/doc gates:
   It no longer reopens defining let type annotations, AST generic args, source
   payloads, or spawn initializer AST to recover those type facts. `perf-contract`
   locks the owner.
+- MIR lifecycle/dump source-text source-of-truth: `mir_lifecycle.c` no longer
+  opens `mir_instruction_source_payload(...)` or calls `ast_capture_inline(...)`
+  while serializing MIR JSON. The transitional `"ast"` text field is captured
+  once by `mir_instruction_capture_source_provenance(...)` and emitted through
+  `mir_instruction_source_inline_text(inst)`. Remaining TODO: replace the
+  self-hosted `mir_lower` dependency on that `"ast"` text with explicit MIR
+  statement facts so capability 5 can move from ACTIVE to READY without a
+  source-text compatibility lane.
 - Honest weakness ledger: beta messaging and work selection must keep five
   real costs visible instead of hiding them behind safety language. (1) Runtime
   Slot/authority validation can trade memory corruption for availability loss;

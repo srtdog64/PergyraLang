@@ -29,17 +29,17 @@ The rest of codegen, runtime, compiler driver, and LSP substitution are still
 
 **MIR-lowering substitution started (2026-06-18, path (a) rung-0b):** the C
 compiler now emits MIR JSON (`pgy --mir-json`, schema `pgy.mir.v1`) with the CFG
-skeleton plus a transitional `ast` compatibility payload routed through the MIR
+skeleton plus a transitional `ast` source-text fact captured by the MIR
 source-shape owner. A new Pergyra tool `src/self_hosted/mir_lower/` consumes that
 JSON and reconstructs the `--ast` tree, which the existing codegen lowers to C.
 The whole MIR -> C path is now Pergyra and run-equivalent to the C backend on the
 tiny linear subset (single `Main`, one block, Int `let`/`Log`/arithmetic), gated
 by `parity/mir_json_parity.sh` (`make self-host-mir-json-parity-test-smoke`, 4
 fixtures). This is the first verified slice of the actual compiler-core (~96% of
-the LOC), not the codegen subset. It is not yet a payload-free MIR fact
-lowering; next (rung-0c): lower CFG control flow (BRANCH instructions,
-`succ_true`/`succ_false`) and continue replacing the compatibility payload with
-explicit MIR facts.
+the LOC), not the codegen subset. It is not yet a text-free MIR fact lowering;
+next (rung-0c): lower CFG control flow (BRANCH instructions,
+`succ_true`/`succ_false`) and continue replacing the compatibility `ast` text
+with explicit MIR facts.
 
 **Hard migration opened (2026-06-17):** the codegen rung is the first *hard
 compiler-core* substitute, landed after the BDFL decision lifted the

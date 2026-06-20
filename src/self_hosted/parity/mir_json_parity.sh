@@ -5,7 +5,7 @@
 # backend on the supported subset -- linear code, function signatures, and
 # CFG-structured control flow (if/else, nested if, while, for):
 #
-#   pgy --mir-json fixture.pgy            (MIR JSON plus transitional payload)
+#   pgy --mir-json fixture.pgy            (MIR JSON plus transitional source text)
 #     | mir_lower   (Pergyra: MIR-JSON -> reconstructed --ast tree)
 #     | codegen     (Pergyra: --ast tree -> standalone C)
 #     -> gcc -> run-stdout
