@@ -3,6 +3,21 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-20 AIR RIR Authority Evidence Counter SoT
+
+- RIR authority summary counting no longer scans raw `RIR_FACT_AUTHORITY` or
+  `RIR_OP_AUTHORIZE` rows before boundary matching. The counter is incremented
+  only when AIR accepts an `AIR_EVIDENCE_RIR_AUTHORITY` node for a concrete
+  boundary participant.
+- AIR summary validation now checks RIR boundary and authority counters against
+  boundary-scoped evidence-node counts when real RIR input is present. Counter
+  drift is an invariant error instead of compatibility telemetry silently
+  disagreeing with the proof inventory.
+- The AIR tests now include an explicit RIR boundary/authority counter-mismatch
+  negative case, and the drift smoke rejects reintroducing the raw RIR
+  authority counting helper.
+- Verified locally with `test-air` and `air-drift-test-smoke`.
+
 ## Progress Log - 2026-06-20 LLVM SSA DEF Type-Fact Gate And ABI Fixture Alignment
 
 - `ssa_def_reassign_type_fact` now covers `Int`, `String`, and a user class

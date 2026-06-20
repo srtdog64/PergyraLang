@@ -70,6 +70,13 @@ air_append_rir_authority_evidence(AIRProgram *air,
         return false;
     }
     air_boundary_mark_summary_flag(boundary, AIR_EVIDENCE_RIR_AUTHORITY);
+    if (!air_increment_evidence_summary_count(
+            air,
+            AIR_EVIDENCE_RIR_AUTHORITY)) {
+        air_set_error(error_message,
+                      "AIR RIR authority evidence counter overflow");
+        return false;
+    }
     return true;
 }
 

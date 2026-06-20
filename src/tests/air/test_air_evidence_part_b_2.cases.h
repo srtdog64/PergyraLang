@@ -88,7 +88,7 @@ test_air_collects_hir_and_rir_evidence(void)
         && air->hir_routine_evidence_count == 1
         && air->hir_cfg_evidence_count == 1
         && air->rir_boundary_evidence_count == 1
-        && air->rir_authority_evidence_count == 2
+        && air->rir_authority_evidence_count == 1
         && air->boundaries[0].has_hir_routine_evidence
         && air->boundaries[0].has_hir_cfg_evidence
         && air->boundaries[0].has_rir_boundary_evidence
@@ -344,6 +344,8 @@ test_air_requires_all_authority_participant_evidence(void)
         .evidence_count = 2,
         .strict_evidence = true,
         .has_rir_input = true,
+        .rir_boundary_evidence_count = 1,
+        .rir_authority_evidence_count = 1,
     };
     char *error = NULL;
     bool verified = air_verify(&air, &error);

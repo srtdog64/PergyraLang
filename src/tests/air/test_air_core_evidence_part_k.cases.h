@@ -391,3 +391,91 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
     free(error);
     return ok;
 }
+
+static bool
+test_air_rejects_rir_boundary_authority_counter_mismatch(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "ShipOrder",
+            .step_name = "reserve",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    const char *authority_names[] = { "shipper" };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_ZONE,
+            .owner_name = "ShipOrder",
+            .source_name = "WarehouseZone",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .authority_required = true,
+            .authority_names = authority_names,
+            .authority_name_count = 1,
+            .has_rir_boundary_evidence = true,
+            .has_rir_authority_evidence = true,
+            .rir_boundary_evidence_scope = "WarehouseZone",
+            .rir_authority_evidence_name = "shipper",
+        },
+    };
+    AIREvidenceNode nodes[] = {
+        {
+            .kind = AIR_EVIDENCE_RIR_BOUNDARY,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_BOUNDARY,
+            .boundary_index = 0,
+            .provider_name = "WarehouseZone",
+            .subject_name = "WarehouseZone",
+            .fact_count = 1,
+        },
+        {
+            .kind = AIR_EVIDENCE_RIR_AUTHORITY,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_AUTHORITY,
+            .boundary_index = 0,
+            .provider_name = "WarehouseZone",
+            .subject_name = "shipper",
+            .fact_count = 1,
+        },
+    };
+    AIRProgram bad_boundary_counter = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .evidence_nodes = nodes,
+        .evidence_count = 2,
+        .has_rir_input = true,
+        .rir_boundary_evidence_count = 2,
+        .rir_authority_evidence_count = 1,
+    };
+    AIRProgram bad_authority_counter = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .evidence_nodes = nodes,
+        .evidence_count = 2,
+        .has_rir_input = true,
+        .rir_boundary_evidence_count = 1,
+        .rir_authority_evidence_count = 2,
+    };
+    char *error = NULL;
+    bool ok = !air_validate(&bad_boundary_counter, &error)
+        && error != NULL
+        && strstr(error,
+                  "RIR boundary evidence counter does not match evidence nodes") != NULL;
+    free(error);
+    error = NULL;
+    ok = ok
+        && !air_validate(&bad_authority_counter, &error)
+        && error != NULL
+        && strstr(error,
+                  "RIR authority evidence counter does not match evidence nodes") != NULL;
+    free(error);
+    return ok;
+}

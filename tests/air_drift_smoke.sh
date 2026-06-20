@@ -136,6 +136,15 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_verify_global.c" "strict AIR treats MIR summary counters as observability only"
     require_literal "src/compiler/air_verify.c" "strict AIR requires pin boundaries to prove all exits run unpin cleanup"
     require_literal "src/compiler/air_validate_summary_counters.c" "AIR MIR %s evidence counter does not match evidence nodes"
+    require_literal "src/compiler/air_validate_summary_counters.c" "air_validate_rir_boundary_summary_counter"
+    require_literal "src/compiler/air_validate_summary_counters.c" "AIR RIR %s evidence counter does not match evidence nodes"
+    require_literal "src/compiler/air_evidence_rir_boundary.c" "AIR RIR authority evidence counter overflow"
+    require_literal "src/test_air.c" "AIR rejects RIR boundary/authority counter mismatch"
+    require_literal "src/tests/air/test_air_core_evidence_part_k.cases.h" "test_air_rejects_rir_boundary_authority_counter_mismatch"
+    if grep -Fq -- "air_count_rir_authority_summaries" "$ROOT_DIR/src/compiler/air_evidence_rir.c"; then
+        echo "AIR RIR authority summary must be derived from accepted evidence nodes, not raw RIR facts/ops" >&2
+        exit 1
+    fi
     require_literal "src/compiler/air_verify_global.c" "strict AIR requires observability ABI schema evidence"
     require_literal "src/compiler/air_verify_global.c" "strict AIR requires runtime frontier policy evidence"
     require_literal "src/compiler/air_boundary_walk.c" "case AST_LAMBDA_EXPR:"
@@ -210,10 +219,8 @@ run_literal_air_drift_smoke() {
     require_literal "docs/72_diagnostic_codes.md" "PGY_SEM_INTENT_BOUNDARY_DRIFT"
     require_literal "src/test_air.c" "AIR strict evidence requires MIR pin cleanup"
     require_literal "src/test_air.c" "AIR who inference does not imply authority"
-    require_literal "src/tests/air\test_air_core_part_a_1.cases.h"
-        "src/tests/air\test_air_core_part_a_2.cases.h" "test_air_who_inference_does_not_imply_authority"
-    require_literal "src/tests/air\test_air_core_part_a_1.cases.h"
-        "src/tests/air\test_air_core_part_a_2.cases.h" "!air->boundaries[0].authority_required"
+    require_literal "src/tests/air/test_air_core_part_a_1.cases.h" "test_air_who_inference_does_not_imply_authority"
+    require_literal "src/tests/air/test_air_core_part_a_1.cases.h" "!air->boundaries[0].authority_required"
     require_literal "src/test_air.c" "AIR strict evidence rejects observability counter only"
     require_literal "src/test_air.c" "AIR strict evidence rejects frontier counter only"
     require_literal "src/test_air.c" "AIR ignores orphan MIR cleanup root evidence"
@@ -237,8 +244,7 @@ run_literal_air_drift_smoke() {
     require_literal "src/tests/air/test_air_mir_terminator_part_h.cases.h" "AIR MIR evidence has invalid routine inventory row[0]"
     require_literal "src/tests/air/test_air_mir_terminator_part_h.cases.h" "AIR MIR input has no CFG terminator evidence"
     require_literal "src/test_air.c" "AIR parsed transfer emits zone and world boundaries"
-    require_literal "src/tests/rir\test_rir_lowering_1.cases.h"
-        "src/tests/rir\test_rir_lowering_2.cases.h" "RIR_OP_SPAWN"
+    require_literal "src/tests/rir/test_rir_lowering_1.cases.h" "RIR_OP_SPAWN"
     require_literal "docs/72_diagnostic_codes.md" "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING"
     require_literal "tests/air_backend_nonimpact_smoke.sh" "PGY_AIR_STRICT_EVIDENCE=0"
     require_literal "docs/semantics/07_air_abstraction_safety.md" "## Theorem: AIR Synthesis Read-Only"
@@ -938,6 +944,19 @@ if "air_evidence_required_count(const AIRProgram *air" not in air_validate_summa
     raise SystemExit("AIR summary-counter owner must expose required evidence counting")
 if "air_increment_evidence_required_count(AIRProgram *air" not in air_validate_summary_counters_text:
     raise SystemExit("AIR summary-counter owner must expose required evidence mutation")
+if "air_validate_rir_boundary_summary_counter" not in air_validate_summary_counters_text:
+    raise SystemExit("AIR RIR boundary/authority counters must be evidence-node validated")
+if "AIR RIR %s evidence counter does not match evidence nodes" not in air_validate_summary_counters_text:
+    raise SystemExit("AIR RIR boundary/authority counter mismatch diagnostic must stay explicit")
+air_evidence_rir_text = air_evidence_rir_path.read_text(encoding="utf-8", errors="ignore")
+if "air_count_rir_authority_summaries" in air_evidence_rir_text:
+    raise SystemExit("AIR RIR authority summaries must not count raw RIR facts/ops")
+air_evidence_rir_boundary_text = air_evidence_rir_boundary_path.read_text(
+    encoding="utf-8",
+    errors="ignore",
+)
+if "AIR RIR authority evidence counter overflow" not in air_evidence_rir_boundary_text:
+    raise SystemExit("AIR RIR authority counter must be incremented at evidence append")
 for path in (root / "src" / "compiler").glob("air*.c"):
     if path.name == "air.c":
         continue
@@ -1332,6 +1351,8 @@ required_test_terms = [
     "AIR parsed transfer emits zone and world boundaries",
     "AIR parsed transfer reports world missing transfer evidence",
     "AIR parsed transfer reports zone missing authority evidence",
+    "AIR rejects RIR boundary/authority counter mismatch",
+    "test_air_rejects_rir_boundary_authority_counter_mismatch",
     "found_zone_evidence",
     "found_world_evidence",
     "found_world_drift",

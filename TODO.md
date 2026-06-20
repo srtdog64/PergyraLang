@@ -130,6 +130,11 @@ English anchor for tooling/doc gates:
   to partial-width packed fields, reject address-like treatment of bit slices,
   and add C/LLVM ABI golden fixtures proving both backends consume identical
   `LayoutFact` mask/shift rows before any source-level bitpacking is enabled.
+  Near-term TODO: add a compile-reject fixture for any source spelling that
+  tries to mutate or borrow a packed bit slice through `let mut`, `inout`, or an
+  address-like lvalue before a dedicated partial-width write owner exists. The
+  diagnostic must say the missing owner is layout/effect evidence, not emit a C
+  bitfield or backend-local mask/shift fallback.
   (3) Swift SIL / Rust MIR pass maturity means each lowering and optimization
   pass declares required facts, preserved facts, invalidated facts, and stable
   diagnostics. `docs/semantics/pass_contract_manifest.md` now pins the major

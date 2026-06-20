@@ -197,6 +197,9 @@ main(void)
     TEST("AIR verify rejects evidence boundary shape mismatch");
     EXPECT(test_air_verify_rejects_evidence_boundary_shape_mismatch());
 
+    TEST("AIR rejects RIR boundary/authority counter mismatch");
+    EXPECT(test_air_rejects_rir_boundary_authority_counter_mismatch());
+
     TEST("AIR verify rejects empty boundary evidence");
     EXPECT(test_air_verify_rejects_empty_boundary_evidence());
 

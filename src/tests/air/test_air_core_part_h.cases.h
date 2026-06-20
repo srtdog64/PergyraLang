@@ -148,6 +148,7 @@ test_air_append_idempotent_boundary_evidence_nodes(void)
     air->boundary_count = 1;
     air->strict_evidence = true;
     air->has_rir_input = true;
+    air->rir_boundary_evidence_count = 1;
 
     ok = air_append_evidence_node(air,
                                   AIR_EVIDENCE_RIR_BOUNDARY,

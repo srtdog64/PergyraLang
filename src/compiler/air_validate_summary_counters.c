@@ -194,6 +194,28 @@ air_validate_mir_boundary_summary_counter(const AIRProgram *air,
 }
 
 static bool
+air_validate_rir_boundary_summary_counter(const AIRProgram *air,
+                                          AIREvidenceKind kind,
+                                          size_t summary_count,
+                                          const char *label,
+                                          char **error_message)
+{
+    size_t node_count;
+
+    if (air == NULL || !air_has_rir_input(air))
+        return true;
+    node_count = air_boundary_evidence_node_count(air, kind);
+    if (node_count == 0 || summary_count == node_count)
+        return true;
+    air_set_invariant_error(error_message,
+                            "AIR RIR %s evidence counter does not match evidence nodes; summary=%zu nodes=%zu",
+                            label,
+                            summary_count,
+                            node_count);
+    return false;
+}
+
+static bool
 air_validate_rir_propagation_summary_counter(const AIRProgram *air,
                                              AIREvidenceKind kind,
                                              size_t summary_count,
@@ -244,7 +266,19 @@ air_validate_global_node_summary_counter(const AIRProgram *air,
 bool
 air_validate_summary_counters(const AIRProgram *air, char **error_message)
 {
-    return air_validate_mir_summary_counter(
+    return air_validate_rir_boundary_summary_counter(
+               air,
+               AIR_EVIDENCE_RIR_BOUNDARY,
+               air_evidence_summary_count(air, AIR_EVIDENCE_RIR_BOUNDARY),
+               "boundary",
+               error_message)
+        && air_validate_rir_boundary_summary_counter(
+               air,
+               AIR_EVIDENCE_RIR_AUTHORITY,
+               air_evidence_summary_count(air, AIR_EVIDENCE_RIR_AUTHORITY),
+               "authority",
+               error_message)
+        && air_validate_mir_summary_counter(
                air,
                AIR_EVIDENCE_MIR_CLEANUP,
                air_evidence_summary_count(air, AIR_EVIDENCE_MIR_CLEANUP),
