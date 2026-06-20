@@ -246,6 +246,9 @@ AIR Phase 1 is beta-complete only when all of these are true:
 - RIR authority evidence is accepted only when the same boundary already has RIR
   boundary evidence and is authority-required. Boolean-only authority evidence
   on an unrelated boundary is rejected as invalid AIR inventory.
+- Global evidence is accepted only as global evidence. It must not carry a
+  boundary index or a typed boundary-shape snapshot; boundary kind, owner, and
+  source snapshots are valid only on boundary-scoped evidence nodes.
 - Invalid AIR inventory is diagnosed with `PGY_AIR_INVARIANT_INVALID`, not with
   semantic intent drift codes. This keeps compiler IR contract failures separate
   from user-correctable abstraction mismatch.

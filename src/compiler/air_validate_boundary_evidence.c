@@ -126,6 +126,12 @@ air_validate_global_evidence_shape(const AIREvidenceNode *evidence,
                                 boundary_index);
         return false;
     }
+    if (air_evidence_node_has_boundary_shape(evidence)) {
+        air_set_invariant_error(error_message,
+                                "AIR global evidence node %zu carries boundary shape",
+                                evidence_index);
+        return false;
+    }
     return air_validate_global_evidence_node(evidence,
                                              evidence_index,
                                              error_message);

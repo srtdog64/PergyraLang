@@ -157,6 +157,21 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
             .fact_count = 1,
         },
     };
+    AIREvidenceNode global_with_boundary_shape[] = {
+        {
+            .kind = AIR_EVIDENCE_DAG_GENERIC,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_DAG,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_GENERIC,
+            .boundary_index = SIZE_MAX,
+            .provider_name = "type-resolution-dag",
+            .subject_name = "generic-contracts",
+            .has_boundary_shape = true,
+            .boundary_kind = AIR_BOUNDARY_ZONE,
+            .boundary_owner_name = "ShipOrder",
+            .boundary_source_name = "WarehouseZone",
+            .fact_count = 1,
+        },
+    };
     AIREvidenceNode cfg_without_routine[] = {
         {
             .kind = AIR_EVIDENCE_HIR_CFG,
@@ -265,6 +280,14 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
         .evidence_nodes = global_attached_to_boundary,
         .evidence_count = 1,
     };
+    AIRProgram bad_global_shape = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .evidence_nodes = global_with_boundary_shape,
+        .evidence_count = 1,
+    };
     AIRProgram bad_cfg = {
         .intents = intents,
         .intent_count = 1,
@@ -339,6 +362,13 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
         && error != NULL
         && strstr(error, "global evidence node") != NULL
         && strstr(error, "attached to boundary") != NULL;
+    free(error);
+    error = NULL;
+    ok = ok
+        && !air_verify(&bad_global_shape, &error)
+        && error != NULL
+        && strstr(error, "global evidence node") != NULL
+        && strstr(error, "carries boundary shape") != NULL;
     free(error);
     error = NULL;
     ok = ok

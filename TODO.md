@@ -2368,6 +2368,11 @@ English anchor for tooling/doc gates:
   source provenance is zone/world-only. Gate: `test-air` fixture
   `AIR verify rejects source provenance shape drift` plus
   `air-drift-test-smoke`.
+- AIR global evidence can no longer smuggle boundary-scoped facts through a
+  typed boundary-shape snapshot. `air_validate_boundary_evidence.c` rejects
+  global evidence with either a boundary index or `has_boundary_shape`, and
+  `test-air` / `air-drift-test-smoke` pin the negative case. Boundary kind /
+  owner / source snapshots are boundary-evidence facts only.
 - AIR evidence-kind metadata is now fail-closed. `kEvidenceKindMeta` carries an
   explicit `present` bit, and `air_evidence_kind_is_known(...)` rejects enum
   values whose table entry was not intentionally initialized. This prevents a
