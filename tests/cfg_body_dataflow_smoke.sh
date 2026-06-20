@@ -519,6 +519,18 @@ run_literal_doc_contract_smoke() {
         echo "LLVM MIR DEF expected-type resolution must consume MIR arg0/source-local facts, not AST assignment target names" >&2
         exit 1
     fi
+    if ! grep -A40 -F "if (mir_instruction_source_is_assignment(inst))" \
+        "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" | \
+        grep -Fq "llvm_emit_assignment_parts(inst->expr0,"; then
+        echo "LLVM MIR source-statement assignment DEF must use the assignment expression fact as diagnostic anchor" >&2
+        exit 1
+    fi
+    if ! grep -A40 -F "if (mir_instruction_source_is_assignment(inst))" \
+        "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" | \
+        grep -Fq "inst->expr1, inst->expr0, ctx)"; then
+        echo "LLVM MIR source-statement assignment DEF must consume MIR target/value facts in order" >&2
+        exit 1
+    fi
     require_literal "src/codegen/llvm_mir_local_emit.c" "local_type = llvm_mir_local_type_from_source_fact(routine, ctx, name);"
     require_literal "tests/llvm_smoke.sh" "ssa_def_reassign_type_fact"
     require_literal "src/codegen/llvm_mir_source_resource_defs.c" "mir_instruction_uses_source_local_decl_emit(inst)"

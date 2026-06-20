@@ -75,6 +75,13 @@ English anchor for tooling/doc gates:
   It no longer reopens defining let type annotations, AST generic args, source
   payloads, or spawn initializer AST to recover those type facts. `perf-contract`
   locks the owner.
+- LLVM MIR assignment DEF source-of-truth: source-statement reassignment DEFs now
+  pass the full assignment expression fact as the diagnostic anchor while
+  consuming the MIR target/value facts (`expr1` / `expr0`) in order. The expected
+  value type still comes from `llvm_mir_local_expected_type_name(...)`, which
+  reads MIR source-local type facts before lowering the value. `cfg-body-dataflow`
+  now gates this exact call shape so assignment DEF lowering cannot drift back
+  to target-only diagnostics or AST target-name type recovery.
 - MIR lifecycle/dump source-text source-of-truth: `mir_lifecycle.c` no longer
   opens `mir_instruction_source_payload(...)` or calls `ast_capture_inline(...)`
   while serializing MIR JSON. The transitional `"ast"` text field is captured

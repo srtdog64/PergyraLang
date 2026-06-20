@@ -54,7 +54,11 @@ Current beta closure snapshot:
   SSA-versioned names such as `local.1`, but the consumption owner must
   normalize those names to the source-local base before reading
   `MIRRoutine::source_local_types`. The MIR fact remains the source of truth;
-  backends must not recover the local type by rescanning the AST body.
+  backends must not recover the local type by rescanning the AST body. LLVM
+  source-statement reassignment DEF lowering uses the full assignment expression
+  fact only as its diagnostic/source anchor; the target and value are consumed
+  from MIR `expr1` / `expr0`, and the expected value type comes from the same
+  MIR source-local type fact path.
 - LLVM verifier diagnostics live at the LLVM C API boundary in
   `src/codegen/llvm_api.c`. `LLVMVerifyModule(...)` may leave the diagnostic
   message pointer null on success; backend code must only call

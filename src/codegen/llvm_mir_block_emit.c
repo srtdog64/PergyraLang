@@ -326,7 +326,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                                     saved_expected_type_name;
                                 return;
                             }
-                            val = llvm_emit_assignment_parts(inst->expr1,
+                            val = llvm_emit_assignment_parts(inst->expr0,
                                 inst->expr1, inst->expr0, ctx);
                         } else {
                             if (!llvm_stmt_require_non_void_value(ctx,
