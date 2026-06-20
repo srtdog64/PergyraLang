@@ -1068,6 +1068,18 @@ grep -q 'type_function_param_mode(callable_type, i)' \
     src/semantic/type_checker_helpers_effects.c \
     || fail "callable summary propagation must consume checked function signature param modes"
 
+grep -q 'type_function_has_body_summary(callable_type)' \
+    src/semantic/type_checker_helpers_effects.c \
+    || fail "callable summary propagation must consume checked body-summary facts before source contracts"
+
+grep -q 'callable_summary & (BODY_SUMMARY_EFFECTS' \
+    src/semantic/type_checker_helpers_effects.c \
+    || fail "callable summary propagation must derive effect/zone bits from body-summary facts"
+
+grep -q 'if (ast_func_within_zone(node) != NULL)' \
+    src/semantic/type_checker_func_decl.c \
+    || fail "function body-summary owner must record within-zone requirements for all callable headers"
+
 if grep -q 'ast_func_param(stmt, arg_index)->mode' \
     src/semantic/type_checker_call_contract_helpers.c; then
     fail "call contract lookup must not reopen FuncParam mode after signature mode facts exist"

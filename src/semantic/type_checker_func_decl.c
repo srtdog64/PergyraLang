@@ -219,7 +219,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 
     if (declared_effects != EFFECT_NONE)
         semantic_record_body_summary(ctx, BODY_SUMMARY_EFFECTS);
-    if (is_action && ast_func_within_zone(node) != NULL)
+    if (ast_func_within_zone(node) != NULL)
         semantic_record_body_summary(ctx, BODY_SUMMARY_REQUIRES_ZONE);
 
     /* Register parameters */

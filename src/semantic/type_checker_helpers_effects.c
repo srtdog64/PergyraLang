@@ -229,16 +229,31 @@ semantic_record_callable_decl_summary(SemanticContext *ctx,
                                       uint32_t declared_effects)
 {
     size_t param_count;
+    bool has_callable_summary;
+    uint32_t callable_summary;
 
     if (ctx == NULL || callable_decl == NULL
         || callable_decl->type != AST_FUNC_DECL) {
         return;
     }
 
-    if (declared_effects != EFFECT_NONE)
-        semantic_record_body_summary(ctx, BODY_SUMMARY_EFFECTS);
-    if (ast_func_within_zone(callable_decl) != NULL)
-        semantic_record_body_summary(ctx, BODY_SUMMARY_REQUIRES_ZONE);
+    has_callable_summary = callable_type != NULL
+        && callable_type->kind == TYPE_KIND_FUNCTION
+        && type_function_has_body_summary(callable_type);
+    callable_summary = has_callable_summary
+        ? type_function_body_summary(callable_type)
+        : BODY_SUMMARY_NONE;
+
+    if (has_callable_summary) {
+        semantic_record_body_summary(ctx,
+            callable_summary & (BODY_SUMMARY_EFFECTS
+                                | BODY_SUMMARY_REQUIRES_ZONE));
+    } else {
+        if (declared_effects != EFFECT_NONE)
+            semantic_record_body_summary(ctx, BODY_SUMMARY_EFFECTS);
+        if (ast_func_within_zone(callable_decl) != NULL)
+            semantic_record_body_summary(ctx, BODY_SUMMARY_REQUIRES_ZONE);
+    }
 
     param_count = callable_type != NULL
         && callable_type->kind == TYPE_KIND_FUNCTION

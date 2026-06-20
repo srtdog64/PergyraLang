@@ -101,7 +101,12 @@ English anchor for tooling/doc gates:
   declarations as body-summary provenance only. Callable summary propagation
   also reads callee `own`/`ref` mode bits from the checked function type when
   that signature fact exists, leaving AST param-mode reads as explicit
-  non-checked compatibility fallback only.
+  non-checked compatibility fallback only. Effect/zone summary propagation now
+  consumes checked body-summary bits first; source `effects` / `within zone`
+  contracts are compatibility fallback only when no checked body summary exists.
+  The function body-summary owner records `within zone` requirements for all
+  callable headers, not only `action`, so method calls do not need to reopen
+  source contracts to recover zone facts.
   Gate: `semantic-core-shape-test-smoke` plus the type-system fixture
   `function type carries parameter modes`.
 - MIR lifecycle/dump source-text source-of-truth: `mir_lifecycle.c` no longer

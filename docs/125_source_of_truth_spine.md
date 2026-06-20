@@ -112,8 +112,12 @@ Current beta closure snapshot:
   declaration is allowed only as body-summary/provenance input.
 - Callable summary propagation in `src/semantic/type_checker_helpers_effects.c`
   records callee `own`/`ref` summary bits from the checked function type when
-  the type fact exists; AST param modes remain an explicit compatibility
-  fallback for non-checked declaration paths.
+  the type fact exists and derives effect/zone summary bits from checked
+  body-summary facts first; AST param modes and source `effects` / `within
+  zone` contracts remain explicit compatibility fallback for non-checked
+  declaration paths. The body-summary owner records `within zone` for all
+  callable headers, so method calls do not need a source-contract reread to
+  recover zone requirements.
 - MIR lowering lives in `src/compiler/mir.c`, next to the owner-local lowering
   helpers it consumes. Public MIR query/pass wrappers live in
   `src/compiler/mir_public_surface.c`. MIR lowering is a consumer of HIR/RIR

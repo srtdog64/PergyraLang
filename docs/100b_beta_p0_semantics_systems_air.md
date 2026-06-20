@@ -332,7 +332,11 @@ Closed now:
   the function declaration for body-summary provenance, but the parameter mode
   itself comes from the checked function type. Callable summary propagation
   now uses the checked callee function type for `own`/`ref` mode bits whenever
-  that type fact is available.
+  that type fact is available, and it derives effect/zone summary bits from
+  checked body-summary facts before falling back to source contracts. The
+  function body-summary owner records `within zone` for every callable header,
+  not only `action`, so method calls do not need an AST contract reread to
+  recover zone requirements.
 - Function types now carry first-stage interprocedural body summaries through
   `body_summary_mask`. The current seam records `may_return`, `may_escape_ref`,
   `moves_param`, `borrows_param`, `drops_resource`, `effects`,
