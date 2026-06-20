@@ -191,6 +191,11 @@ English anchor for tooling/doc gates:
   `layout-bitpack-mutability-reject-test-smoke` for the negative surface
   fixture, and `layout-fact-abi-golden-test-smoke` for C/LLVM agreement on
   storage unit, byte offset, bit offset, width, mask, shift, and RMW facts.
+  Tracking rule: the first implementation slice is the reject gate, not a
+  positive packing feature. Do not accept any source-level packed-field spelling
+  until the gate proves `let mut`, `inout`, and address-like access fail without
+  `LayoutFact` evidence, and do not add a backend-local C bitfield or LLVM
+  mask/shift shortcut while this gate is absent.
   Source spelling policy: do not add a user-facing packed-field or bit-slice
   spelling as a permissive parser-only feature. The first accepted spelling
   must be behind a semantic reject gate until `LayoutFact` exists; otherwise

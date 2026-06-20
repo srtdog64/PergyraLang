@@ -96,9 +96,8 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
     LLVMValueRef world_ptr;
     LLVMValueRef zone_ptr;
     LLVMHostedZoneLayerSlotView layer_view;
+    LLVMHostedZoneStateView state_view;
     LLVMHostedZoneRefreshView refresh_view;
-    size_t state_count = 0;
-    ASTNode **states = NULL;
     const char *effect_name;
     const char *method_within_zone;
     const char *world_name;
@@ -176,7 +175,14 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
             "MIR-only LLVM path missing zone layer-slot metadata for world effect sync");
         return;
     }
-    states = ast_zone_states(zone_decl, &state_count);
+    state_view = llvm_hosted_zone_state_view_from_decl(ctx, zone_name,
+        zone_decl);
+    if (llvm_hosted_zone_state_view_missing_mir_metadata(&state_view)
+        || !llvm_hosted_zone_state_view_rows_complete(&state_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone state metadata for world effect sync");
+        return;
+    }
     refresh_view = llvm_hosted_zone_refresh_view_from_decl(ctx, effect_name,
         effect_decl);
     if (llvm_hosted_zone_refresh_view_missing_mir_metadata(&refresh_view)) {
@@ -263,28 +269,30 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
                 LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 11, 0), cause_ptr);
             }
         }
-        for (size_t si = 0; si < state_count; si++) {
-            ASTNode *state = states[si];
+        for (size_t si = 0; si < state_view.count; si++) {
+            const char *state_name;
+            const char *state_layer_name;
             char state_epoch_field[256];
             char state_cause_field[256];
             int state_epoch_idx;
             int state_cause_idx;
-            if (state == NULL || state->type != AST_ZONE_STATE
-                || ast_zone_state_is_relation(state)
-                || ast_zone_state_name(state) == NULL
-                || ast_zone_state_layer_slot_name(state) == NULL
-                || strcmp(ast_zone_state_layer_slot_name(state), layer_name) != 0) {
+
+            state_name = llvm_hosted_zone_state_view_name(&state_view, si);
+            state_layer_name =
+                llvm_hosted_zone_state_view_layer_slot_name(&state_view, si);
+            if (llvm_hosted_zone_state_view_is_relation(&state_view, si)
+                || state_name == NULL
+                || state_layer_name == NULL
+                || strcmp(state_layer_name, layer_name) != 0) {
                 continue;
             }
             if (!llvm_world_effect_sync_field_name(state_epoch_field,
-                    sizeof(state_epoch_field), "state_epoch",
-                    ast_zone_state_name(state))) {
+                    sizeof(state_epoch_field), "state_epoch", state_name)) {
                 llvm_set_error(ctx, "state epoch field name is too long");
                 return;
             }
             if (!llvm_world_effect_sync_field_name(state_cause_field,
-                    sizeof(state_cause_field), "state_cause",
-                    ast_zone_state_name(state))) {
+                    sizeof(state_cause_field), "state_cause", state_name)) {
                 llvm_set_error(ctx, "state cause field name is too long");
                 return;
             }

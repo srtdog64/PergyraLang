@@ -48,8 +48,7 @@ llvm_emit_intent_step_mark_caused_effect(LLVMGenCtx *ctx,
     bool has_zone_var;
     LLVMValueRef zone_ptr;
     LLVMHostedZoneLayerSlotView layer_view;
-    size_t state_count = 0;
-    ASTNode **states = NULL;
+    LLVMHostedZoneStateView state_view;
 
     if (ctx == NULL || zone_type_name == NULL || zone_alias == NULL
         || causes_effect == NULL) {
@@ -75,7 +74,14 @@ llvm_emit_intent_step_mark_caused_effect(LLVMGenCtx *ctx,
             "MIR-only LLVM path missing zone layer-slot metadata for intent effect emission");
         return;
     }
-    states = ast_zone_states(zone_decl, &state_count);
+    state_view = llvm_hosted_zone_state_view_from_decl(ctx, zone_name,
+        zone_decl);
+    if (llvm_hosted_zone_state_view_missing_mir_metadata(&state_view)
+        || !llvm_hosted_zone_state_view_rows_complete(&state_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone state metadata for intent effect emission");
+        return;
+    }
 
     for (size_t i = 0; i < layer_view.count; i++) {
         const char *layer_name;
@@ -124,29 +130,31 @@ llvm_emit_intent_step_mark_caused_effect(LLVMGenCtx *ctx,
             LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 11, 0), cause_ptr);
         }
 
-        for (size_t j = 0; j < state_count; j++) {
-            ASTNode *state = states[j];
+        for (size_t j = 0; j < state_view.count; j++) {
+            const char *state_name;
+            const char *state_layer_name;
             char state_epoch_field[256];
             char state_cause_field[256];
             int state_epoch_idx;
             int state_cause_idx;
-            if (state == NULL || state->type != AST_ZONE_STATE
-                || ast_zone_state_is_relation(state)
-                || ast_zone_state_name(state) == NULL
-                || ast_zone_state_layer_slot_name(state) == NULL
-                || strcmp(ast_zone_state_layer_slot_name(state), layer_name) != 0) {
+
+            state_name = llvm_hosted_zone_state_view_name(&state_view, j);
+            state_layer_name =
+                llvm_hosted_zone_state_view_layer_slot_name(&state_view, j);
+            if (llvm_hosted_zone_state_view_is_relation(&state_view, j)
+                || state_name == NULL
+                || state_layer_name == NULL
+                || strcmp(state_layer_name, layer_name) != 0) {
                 continue;
             }
             if (!llvm_intent_effect_field_name(state_epoch_field,
-                    sizeof(state_epoch_field), "state_epoch",
-                    ast_zone_state_name(state))) {
+                    sizeof(state_epoch_field), "state_epoch", state_name)) {
                 llvm_set_error(ctx,
                     "intent effect state epoch field name is too long");
                 return;
             }
             if (!llvm_intent_effect_field_name(state_cause_field,
-                    sizeof(state_cause_field), "state_cause",
-                    ast_zone_state_name(state))) {
+                    sizeof(state_cause_field), "state_cause", state_name)) {
                 llvm_set_error(ctx,
                     "intent effect state cause field name is too long");
                 return;

@@ -7463,6 +7463,24 @@ for file in \
         fail "$file must consume LLVMHostedZoneStateView, not AST zone-state accessors"
     fi
 done
+for file in \
+    "src/codegen/llvm_intent_effect.c" \
+    "src/codegen/llvm_expr_call_methods_world_effect_sync.c"; do
+    for term in \
+        "LLVMHostedZoneStateView state_view" \
+        "llvm_hosted_zone_state_view_from_decl" \
+        "llvm_hosted_zone_state_view_rows_complete" \
+        "llvm_hosted_zone_state_view_name(&state_view" \
+        "llvm_hosted_zone_state_view_layer_slot_name(&state_view"; do
+        require_term "$file" "$term"
+    done
+    if grep -Fq "ast_zone_states(zone_decl, &state_count)" "$ROOT_DIR/$file"; then
+        fail "$file must consume MIR zone state metadata, not reopen AST_ZONE_STATE inventory"
+    fi
+    if grep -Fq "ast_zone_state_" "$ROOT_DIR/$file"; then
+        fail "$file must consume LLVMHostedZoneStateView, not AST zone-state accessors"
+    fi
+done
 for term in \
     "TranspilerHostedZoneRefreshView" \
     "transpiler_hosted_zone_refresh_view_from_decl" \
