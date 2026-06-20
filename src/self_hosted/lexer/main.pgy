@@ -330,6 +330,31 @@ func Main() -> Void {
             continue;
         }
 
+        // /// doc comment -> DOC_COMMENT token. Mirrors the C oracle: skip the
+        // three slashes, skip leading spaces/tabs, then the rest of the line is
+        // the text; col points at the first slash.
+        if c == Ord("/") && CharCode(content, n, i + 1) == Ord("/")
+            && CharCode(content, n, i + 2) == Ord("/") {
+            i = i + 3;
+            col = col + 3;
+            while i < n && (CharCode(content, n, i) == Ord(" ") || CharCode(content, n, i) == Ord("\t")) {
+                i = i + 1;
+                col = col + 1;
+            }
+            // col points at the text start (after `///` and leading whitespace),
+            // matching the C oracle's DOC_COMMENT column.
+            let dc_col: Int = col;
+            let dc_start: Int = i;
+            while i < n && CharCode(content, n, i) != Ord("\n") {
+                i = i + 1;
+                col = col + 1;
+            }
+            let dc_text: String = Substring(content, dc_start, i - dc_start);
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, "DOC_COMMENT", dc_text, line, dc_col));
+            continue;
+        }
+
         if c == Ord("/") && CharCode(content, n, i + 1) == Ord("/") {
             while i < n && CharCode(content, n, i) != Ord("\n") {
                 i = i + 1;
