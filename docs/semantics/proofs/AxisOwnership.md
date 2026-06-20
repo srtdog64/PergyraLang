@@ -1,12 +1,18 @@
 # Axis Fact-Ownership: Mechanization and Compiler Binding
 
-This documents the formal track that turns the **docs/42 keyword-orthogonality**
-design from prose assertions into machine-checked theorems, and then binds those
-theorems to the *actual compiler* so the model cannot silently drift from the
-implementation.
+This documents the formal track that turns a **subset** of the docs/42
+keyword-orthogonality design from prose assertions into machine-checked
+theorems, plus source-consistency tests that catch common drift between those
+theorems and the compiler.
 
-- Proof: [`AxisOwnership.v`](AxisOwnership.v) (Coq/Rocq, 18 theorems, `coqc`-checked)
+**Read [§7 "Scope and limitations"](#7-scope-and-limitations-what-this-is-not)
+first.** This is a small, targeted proof track, not a whole-language soundness
+result. Do not cite it as "the language is mechanically verified."
+
+- Proof: [`AxisOwnership.v`](AxisOwnership.v) (Coq/Rocq, 18 theorems over a small
+  model; `coqc`-checked). Proof-sketch scope, not language soundness.
 - Differential test: [`../../../tests/axis_keyword_adequacy_smoke.sh`](../../../tests/axis_keyword_adequacy_smoke.sh)
+  (grep-level source consistency, not a verified extraction)
 - Design source of truth: [`../../42_keyword_orthogonality.md`](../../42_keyword_orthogonality.md)
 
 ## 1. Why
@@ -54,8 +60,10 @@ All are checked with `Qed` (no `Admitted`).
 
 A Coq theorem constrains the *model*. It cannot, alone, know whether the model
 still matches the *real compiler*. The differential test
-`axis_keyword_adequacy_smoke.sh` closes that gap by pinning the layers against
-each other; drift in any one of them fails the gate.
+`axis_keyword_adequacy_smoke.sh` **narrows** that gap -- it is grep-level
+source consistency, not a verified extraction, so it catches the *named* drifts
+below (renamed symbols, mis-attributed facts), not arbitrary divergence. Within
+that scope, drift in any pinned layer fails the gate.
 
 | Check | Binds | Catches |
 | --- | --- | --- |
@@ -96,10 +104,12 @@ bash tests/axis_keyword_adequacy_smoke.sh         # prints "... ok"
 make formal-semantics-test-smoke
 ```
 
-`formal-semantics-test-smoke` is invoked by CI on linux and macos, so both the
-proofs and the four binding checks are gated automatically. Negative cases are
-exercised manually (a dropped guard, a mis-axied fact, a re-routed clause each
-make the gate fail), so the gate is known to have teeth.
+`formal-semantics-test-smoke` is invoked by CI on linux and macos, so the
+proofs, the binding checks (A-E), and the slot adequacy suite are gated
+automatically. Negative cases are exercised manually (a dropped guard, a
+mis-axied fact, a re-routed clause each make the gate fail), so the gate is
+known to catch the drifts it names. It does not certify anything beyond them
+(see §7).
 
 ## 6. Remaining
 
@@ -111,3 +121,45 @@ make the gate fail), so the gate is known to have teeth.
 - A full operational semantics of the verifier graph (beyond single appends).
 - Effect-propagation lifecycle as a derived, non-owning view (SS11 covers
   projections; `effect` propagation is the next case).
+
+## 7. Scope and limitations (what this is NOT)
+
+State these plainly; do not let the proof artifacts be cited as more than they
+are.
+
+1. **Fragment proofs, not whole-language soundness.** Both `AxisOwnership.v` and
+   `SlotCalculus.v` are *proof sketches* over small models of targeted
+   invariants (axis fact-ownership; stale-handle / token / pin safety). Neither
+   proves type soundness (progress + preservation) of the language, nor any
+   whole-language metatheory. "Pergyra is mechanically verified" is **false** as
+   stated; "Pergyra has machine-checked proofs of specific invariants" is true.
+
+2. **Judgment rules are not consolidated.** Formal judgments exist as prose in
+   `docs/semantics/00_proof_contract.md`, `01_intent_world_zone.md`, etc., and
+   are scattered across the verifier code. A compact rule table whose rules map
+   1:1 to compiler diagnostic codes (e.g. `IntentStep |- Effect(e) requires
+   Authority(a)` <-> a specific diagnostic) is **not finalized**. The
+   differential test pins *symbols*, not derivations.
+
+3. **Evidence is string+counter, not typed proof records.** `AIREvidenceNode`
+   carries `provider_name` / `subject_name` strings plus fact/fallback counters.
+   Checks A-E and Check D match symbol/string presence; they do **not** treat
+   evidence as a typed proof object. A formal-calculus-grade evidence layer
+   (typed proof records the type checker constructs and consumes) is not
+   implemented; the current evidence layer is shallower than that.
+
+4. **Loss contracts are prose, not an enforced manifest.**
+   `09_abstraction_loss_contracts.md` defines per-pass semantic-loss rules as
+   developer-facing prose. There is **no** machine-readable loss manifest that a
+   linter/verifier reads and enforces. The loss contracts are not gated.
+
+5. **Relaxed mode is not a verified mode.** `PGY_AIR_STRICT_EVIDENCE=0` disables
+   strict evidence checking so a backend build can be smoke-tested. A binary
+   produced under relaxed mode is **not** domain-safety-checked and must never be
+   treated as "verified". Only the strict, gated path carries the evidence
+   guarantees; the relaxed path carries none. Do not conflate the two.
+
+In short: this track is *targeted machine-checked invariants on small models,
+drift-gated against named compiler symbols by source-consistency tests*. It is
+not whole-language soundness, a typed evidence calculus, an enforced loss
+manifest, or a guarantee about relaxed-mode builds.
