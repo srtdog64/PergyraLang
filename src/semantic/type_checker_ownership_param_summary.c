@@ -13,6 +13,7 @@ void
 semantic_check_param_summary_escapes(ASTNode *node,
                                      size_t param_count,
                                      Type **param_types,
+                                     Type *function_type,
                                      SemanticContext *ctx)
 {
     if (node == NULL || ctx == NULL || param_types == NULL
@@ -36,6 +37,9 @@ semantic_check_param_summary_escapes(ASTNode *node,
 
         summary_mask = semantic_callable_param_escape_summary(
             node, i, ctx);
+        type_function_set_param_escape_summary(function_type, i,
+            summary_mask);
+
         if (semantic_param_summary_has_any_escape(summary_mask)) {
             semantic_record_body_summary(ctx, BODY_SUMMARY_MAY_ESCAPE_REF);
         }
@@ -65,4 +69,6 @@ semantic_check_param_summary_escapes(ASTNode *node,
                           : "value")));
         }
     }
+
+    type_function_finish_param_escape_summaries(function_type);
 }

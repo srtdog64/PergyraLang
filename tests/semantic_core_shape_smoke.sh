@@ -1064,6 +1064,18 @@ grep -q 'type_function_param_mode(function_type, arg_index)' \
     src/semantic/type_checker_call_contract_helpers.c \
     || fail "call contract lookup must consume checked function signature param modes"
 
+grep -q 'type_function_has_param_escape_summary(function_type, arg_index)' \
+    src/semantic/type_checker_call_contract_helpers.c \
+    || fail "call contract lookup must consume checked per-param escape summaries before AST compatibility"
+
+grep -q 'type_function_set_param_escape_summary(function_type, i' \
+    src/semantic/type_checker_ownership_param_summary.c \
+    || fail "param escape analysis must publish checked per-param escape summaries onto function types"
+
+grep -q 'type_function_finish_param_escape_summaries(function_type)' \
+    src/semantic/type_checker_ownership_param_summary.c \
+    || fail "param escape analysis must mark function param escape summaries complete"
+
 grep -q 'type_function_param_mode(callable_type, i)' \
     src/semantic/type_checker_helpers_effects.c \
     || fail "callable summary propagation must consume checked function signature param modes"

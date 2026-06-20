@@ -106,9 +106,12 @@ English anchor for tooling/doc gates:
   contracts are compatibility fallback only when no checked body summary exists.
   The function body-summary owner records `within zone` requirements for all
   callable headers, not only `action`, so method calls do not need to reopen
-  source contracts to recover zone facts.
+  source contracts to recover zone facts. Per-parameter ref escape summaries
+  are now published onto checked function types and consumed by call-contract
+  lookup before the legacy AST analyzer is allowed as compatibility fallback.
   Gate: `semantic-core-shape-test-smoke` plus the type-system fixture
-  `function type carries parameter modes`.
+  `function type carries parameter modes` and `function type carries parameter
+  escape summaries`.
 - MIR lifecycle/dump source-text source-of-truth: `mir_lifecycle.c` no longer
   opens `mir_instruction_source_payload(...)` or calls `ast_capture_inline(...)`
   while serializing MIR JSON. The transitional `"ast"` text field is captured

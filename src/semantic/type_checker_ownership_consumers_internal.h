@@ -46,6 +46,7 @@ void
 semantic_check_param_summary_escapes(ASTNode *node,
                                      size_t param_count,
                                      Type **param_types,
+                                     Type *function_type,
                                      SemanticContext *ctx);
 
 #endif

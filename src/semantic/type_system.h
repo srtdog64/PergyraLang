@@ -112,11 +112,13 @@ struct Type
         {
             Type** param_types;
             ParamMode* param_modes;
+            uint32_t* param_escape_summary_masks;
             size_t param_count;
             Type* return_type;
             uint32_t effect_mask;
             uint32_t body_summary_mask;
             bool has_body_summary_facts;
+            bool has_param_escape_summary_facts;
         } function;
         
         /* Slot type */
@@ -193,6 +195,10 @@ size_t type_function_param_count(const Type* type);
 Type* type_function_param_type(const Type* type, size_t index);
 ParamMode type_function_param_mode(const Type* type, size_t index);
 void type_function_set_param_mode(Type* type, size_t index, ParamMode mode);
+uint32_t type_function_param_escape_summary(const Type* type, size_t index);
+bool type_function_has_param_escape_summary(const Type* type, size_t index);
+void type_function_set_param_escape_summary(Type* type, size_t index, uint32_t summary);
+void type_function_finish_param_escape_summaries(Type* type);
 void type_function_set_effects(Type* type, uint32_t effect_mask);
 void type_function_set_body_summary(Type* type, uint32_t body_summary_mask);
 uint32_t type_function_effects(const Type* type);

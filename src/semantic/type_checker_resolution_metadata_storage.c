@@ -13,6 +13,7 @@ semantic_type_resolution_free_owned_type(Type *type)
     if (type->kind == TYPE_KIND_FUNCTION) {
         free(type->data.function.param_types);
         free(type->data.function.param_modes);
+        free(type->data.function.param_escape_summary_masks);
     }
     if (type->kind == TYPE_KIND_TUPLE)
         free(type->data.tuple.elements);

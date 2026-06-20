@@ -22,6 +22,7 @@
 #include "semantic/type_checker_internal.h"
 #include "semantic/diag_codes.h"
 #include "semantic/semantic.h"
+#include "semantic/slot_summary.h"
 
 /* -----------------------------------------------------------------
  * Minimal AST node builder helpers (no full parser needed)

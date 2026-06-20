@@ -117,7 +117,9 @@ Current beta closure snapshot:
   zone` contracts remain explicit compatibility fallback for non-checked
   declaration paths. The body-summary owner records `within zone` for all
   callable headers, so method calls do not need a source-contract reread to
-  recover zone requirements.
+  recover zone requirements. Per-parameter ref escape summaries are recorded on
+  checked function types and consumed by call-contract lookup before the legacy
+  AST analyzer fallback is allowed.
 - MIR lowering lives in `src/compiler/mir.c`, next to the owner-local lowering
   helpers it consumes. Public MIR query/pass wrappers live in
   `src/compiler/mir_public_surface.c`. MIR lowering is a consumer of HIR/RIR

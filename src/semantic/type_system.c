@@ -378,6 +378,7 @@ type_create_function(Type **params, size_t param_count, Type *return_type)
     t->data.function.effect_mask  = EFFECT_NONE;
     t->data.function.body_summary_mask = BODY_SUMMARY_NONE;
     t->data.function.has_body_summary_facts = false;
+    t->data.function.has_param_escape_summary_facts = false;
     t->data.function.param_types  = (param_count > 0)
         ? calloc(param_count, sizeof(Type *))
         : NULL;
@@ -390,6 +391,17 @@ type_create_function(Type **params, size_t param_count, Type *return_type)
         ? calloc(param_count, sizeof(ParamMode))
         : NULL;
     if (param_count > 0 && t->data.function.param_modes == NULL) {
+        free(t->data.function.param_types);
+        free(t->name);
+        free(t);
+        return NULL;
+    }
+    t->data.function.param_escape_summary_masks = (param_count > 0)
+        ? calloc(param_count, sizeof(uint32_t))
+        : NULL;
+    if (param_count > 0
+        && t->data.function.param_escape_summary_masks == NULL) {
+        free(t->data.function.param_modes);
         free(t->data.function.param_types);
         free(t->name);
         free(t);
@@ -458,6 +470,52 @@ type_function_set_param_mode(Type *type, size_t index, ParamMode mode)
     if (type->data.function.param_modes == NULL)
         return;
     type->data.function.param_modes[index] = mode;
+}
+
+uint32_t
+type_function_param_escape_summary(const Type *type, size_t index)
+{
+    if (type == NULL || type->kind != TYPE_KIND_FUNCTION)
+        return 0;
+    if (index >= type->data.function.param_count)
+        return 0;
+    if (type->data.function.param_escape_summary_masks == NULL)
+        return 0;
+    return type->data.function.param_escape_summary_masks[index];
+}
+
+bool
+type_function_has_param_escape_summary(const Type *type, size_t index)
+{
+    return type != NULL
+        && type->kind == TYPE_KIND_FUNCTION
+        && type->data.function.has_param_escape_summary_facts
+        && index < type->data.function.param_count
+        && type->data.function.param_escape_summary_masks != NULL;
+}
+
+void
+type_function_set_param_escape_summary(Type *type, size_t index,
+                                       uint32_t summary)
+{
+    if (type == NULL || type->kind != TYPE_KIND_FUNCTION)
+        return;
+    if (index >= type->data.function.param_count)
+        return;
+    if (type->data.function.param_escape_summary_masks == NULL)
+        return;
+    type->data.function.param_escape_summary_masks[index] = summary;
+}
+
+void
+type_function_finish_param_escape_summaries(Type *type)
+{
+    if (type == NULL || type->kind != TYPE_KIND_FUNCTION)
+        return;
+    if (type->data.function.param_count > 0
+        && type->data.function.param_escape_summary_masks == NULL)
+        return;
+    type->data.function.has_param_escape_summary_facts = true;
 }
 
 void

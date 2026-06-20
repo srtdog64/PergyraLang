@@ -239,6 +239,16 @@
         boundary->data.func_decl.params[1]->mode = PARAM_MODE_REF;
         ast_add_statement(program, boundary);
         type_check_func_decl(boundary, ctx);
+        {
+            Symbol *boundary_sym = scope_lookup(ctx->scope, "Boundary");
+            Type *boundary_type = boundary_sym != NULL ? boundary_sym->type : NULL;
+            EXPECT(type_function_has_param_escape_summary(boundary_type, 0));
+            EXPECT(type_function_param_escape_summary(boundary_type, 0)
+                   == SLOT_PARAM_SUMMARY_NONE);
+            EXPECT(type_function_has_param_escape_summary(boundary_type, 1));
+            EXPECT(type_function_param_escape_summary(boundary_type, 1)
+                   == SLOT_PARAM_SUMMARY_NONE);
+        }
 
         func->data.func_decl.return_type = ast_create_type("Void");
         func->data.func_decl.body = ast_create_block();

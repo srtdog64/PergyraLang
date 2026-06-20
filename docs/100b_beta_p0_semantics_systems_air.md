@@ -336,7 +336,9 @@ Closed now:
   checked body-summary facts before falling back to source contracts. The
   function body-summary owner records `within zone` for every callable header,
   not only `action`, so method calls do not need an AST contract reread to
-  recover zone requirements.
+  recover zone requirements. Per-parameter ref escape summaries are also
+  published onto checked function types, so call-contract lookup consumes those
+  facts before falling back to the legacy AST analyzer.
 - Function types now carry first-stage interprocedural body summaries through
   `body_summary_mask`. The current seam records `may_return`, `may_escape_ref`,
   `moves_param`, `borrows_param`, `drops_resource`, `effects`,

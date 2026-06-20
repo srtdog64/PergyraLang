@@ -156,12 +156,17 @@ semantic_callable_param_escape_summary(ASTNode *callee_decl,
                                        size_t arg_index,
                                        SemanticContext *ctx)
 {
+    Type *function_type = semantic_callable_decl_function_type(ctx, callee_decl);
+
     if (callee_decl == NULL
         || callee_decl->type != AST_FUNC_DECL
         || ast_func_body(callee_decl) == NULL
         || arg_index >= ast_func_param_count(callee_decl)) {
         return 0u;
     }
+
+    if (type_function_has_param_escape_summary(function_type, arg_index))
+        return type_function_param_escape_summary(function_type, arg_index);
 
     if (semantic_callable_summary_proves_no_ref_escape(ctx, callee_decl))
         return 0u;

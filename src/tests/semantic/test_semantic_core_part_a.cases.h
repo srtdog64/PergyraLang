@@ -44,6 +44,23 @@ test_type_system(void)
         EXPECT(!type_equals(fn_ref, fn_default));
     }
 
+    TEST("function type carries parameter escape summaries");
+    {
+        Type *params[2] = { TYPE_INT, TYPE_STRING };
+        Type *fn = type_create_function(params, 2, TYPE_BOOL);
+
+        type_function_set_param_escape_summary(
+            fn, 1, SLOT_PARAM_SUMMARY_RETURN_ESCAPE);
+        type_function_finish_param_escape_summaries(fn);
+
+        EXPECT(type_function_has_param_escape_summary(fn, 0));
+        EXPECT(type_function_param_escape_summary(fn, 0)
+               == SLOT_PARAM_SUMMARY_NONE);
+        EXPECT(type_function_has_param_escape_summary(fn, 1));
+        EXPECT(type_function_param_escape_summary(fn, 1)
+               == SLOT_PARAM_SUMMARY_RETURN_ESCAPE);
+    }
+
     TEST("type_infer_expression: identifier lookup returns bound type");
     {
         TypeEnv *env = type_env_create(NULL);

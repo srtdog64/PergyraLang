@@ -300,7 +300,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
-    semantic_check_param_summary_escapes(node, param_count, param_types, ctx);
+    semantic_check_param_summary_escapes(node, param_count, param_types,
+        func_type, ctx);
 
     {
         uint32_t derived_effects = type_effect_mask_closure(ctx->current_function_effects);
