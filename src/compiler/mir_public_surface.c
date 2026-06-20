@@ -36,12 +36,10 @@ mir_instruction_record_surface_usage(MIRInstruction *inst)
     }
     inst->has_surface_usage_facts = true;
     inst->uses_thread_pool_surface =
-        ast_uses_thread_pool_surface(source_payload)
-        || ast_uses_thread_pool_surface(inst->expr0)
+        ast_uses_thread_pool_surface(inst->expr0)
         || ast_uses_thread_pool_surface(inst->expr1);
     inst->uses_intent_observability_surface =
-        ast_uses_intent_observability_surface(source_payload)
-        || ast_uses_intent_observability_surface(inst->expr0)
+        ast_uses_intent_observability_surface(inst->expr0)
         || ast_uses_intent_observability_surface(inst->expr1);
 }
 

@@ -2404,6 +2404,11 @@ grep -Fq "mir_instruction_source_terminator_matches(" "$ROOT_DIR/src/compiler/mi
 grep -Fq "mir_instruction_source_terminator_matches(" "$ROOT_DIR/src/compiler/air_evidence_mir_facts.c"
 grep -Fq "missing MIR body expression fact" "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
 ! grep -Fq "&& inst->ast != NULL" "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
+! grep -Fq "mir_instruction_source_payload" "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
+! grep -Fq "ast_uses_thread_pool_surface(source_payload)" "$ROOT_DIR/src/compiler/mir_public_surface.c"
+! grep -Fq "ast_uses_intent_observability_surface(source_payload)" "$ROOT_DIR/src/compiler/mir_public_surface.c"
+grep -Fq "ast_uses_thread_pool_surface(inst->expr0)" "$ROOT_DIR/src/compiler/mir_public_surface.c"
+grep -Fq "ast_uses_intent_observability_surface(inst->expr0)" "$ROOT_DIR/src/compiler/mir_public_surface.c"
 ! grep -Fq "llvm_mir_ast_type_is_cfg_container" "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
 ! grep -Fq "llvm_mir_stmt_is_cfg_container" "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
 ! grep -Fq "return llvm_mir_stmt_is_cfg_container(inst->ast)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
@@ -2721,11 +2726,16 @@ if grep -Fq "ASTNode *value_expr = inst->expr0" "$ROOT_DIR/src/codegen/llvm_mir_
     echo "[perf-contract] LLVM MIR local emit bypassed initializer unwrap fact" >&2
     exit 1
 fi
+grep -Fq "assignment_target_name = ast_identifier_name(inst->expr1)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "llvm_mir_local_expected_type_name(routine, inst" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "local_type = llvm_mir_local_type_from_source_fact(routine, ctx, name);" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 grep -Fq "LLVM let binding '%s' requires concrete Array<T>/Slice<T> element metadata" \
     "$ROOT_DIR/src/codegen/llvm_stmt_let_with.c"
 grep -Fq "LLVM let binding '%s' Slice() initializer requires concrete element type metadata" \
     "$ROOT_DIR/src/codegen/llvm_stmt_let_with.c"
-grep -Fq "ASTNode *type_expr = inst->expr1" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
+grep -Fq "ASTNode *type_expr = inst->requires_source_local_decl_emit" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
+grep -Fq "inst->requires_source_local_decl_emit && inst->expr1 != NULL" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
+! grep -Fq "ASTNode *type_expr = inst->expr1" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 grep -Fq "type_expr != NULL" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 grep -Fq "value_expr != NULL" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 ! grep -Fq "source_node_type == AST_LET_DECL" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"

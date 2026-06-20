@@ -42,7 +42,7 @@ driver_print_usage(void)
         "  pgy --air    <source.pgy>     dump AIR verification summary\n"
         "  pgy --air-json <source.pgy>   dump stable AIR graph JSON after MIR evidence\n"
         "  pgy --mir    <source.pgy>     dump lowered MIR summary\n"
-        "  pgy --mir-json <source.pgy>   dump lossless MIR JSON (pgy.mir.v1)\n"
+        "  pgy --mir-json <source.pgy>   dump MIR fact JSON (pgy.mir.v1)\n"
         "  pgy --hir     <source.pgy>     dump lowered HIR summary\n"
         "  pgy --hir-cfg <source.pgy>     dump HIR CFG view\n"
         "  pgy --hir-dom <source.pgy>     dump HIR dominance view\n"

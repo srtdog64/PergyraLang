@@ -28,18 +28,18 @@ The rest of codegen, runtime, compiler driver, and LSP substitution are still
 0%; the MIR-lowering substitution has now *started* (see below).
 
 **MIR-lowering substitution started (2026-06-18, path (a) rung-0b):** the C
-compiler now emits a lossless JSON serialization of the production MIR
-(`pgy --mir-json`, schema `pgy.mir.v1`) -- CFG skeleton plus each instruction's
-source AST expression captured inline (via an fd-level stdout redirect that
-leaves the AST printer, and thus the 188-source parser parity, untouched). A new
-Pergyra tool `src/self_hosted/mir_lower/` consumes that JSON and reconstructs the
-`--ast` tree, which the existing codegen lowers to C. The whole MIR -> C path is
-now Pergyra and run-equivalent to the C backend on the tiny linear subset (single
-`Main`, one block, Int `let`/`Log`/arithmetic), gated by
-`parity/mir_json_parity.sh` (`make self-host-mir-json-parity-test-smoke`, 4
+compiler now emits MIR JSON (`pgy --mir-json`, schema `pgy.mir.v1`) with the CFG
+skeleton plus a transitional `ast` compatibility payload routed through the MIR
+source-shape owner. A new Pergyra tool `src/self_hosted/mir_lower/` consumes that
+JSON and reconstructs the `--ast` tree, which the existing codegen lowers to C.
+The whole MIR -> C path is now Pergyra and run-equivalent to the C backend on the
+tiny linear subset (single `Main`, one block, Int `let`/`Log`/arithmetic), gated
+by `parity/mir_json_parity.sh` (`make self-host-mir-json-parity-test-smoke`, 4
 fixtures). This is the first verified slice of the actual compiler-core (~96% of
-the LOC), not the codegen subset. Next (rung-0c): lower CFG control flow (BRANCH
-instructions, `succ_true`/`succ_false`) instead of assuming one block.
+the LOC), not the codegen subset. It is not yet a payload-free MIR fact
+lowering; next (rung-0c): lower CFG control flow (BRANCH instructions,
+`succ_true`/`succ_false`) and continue replacing the compatibility payload with
+explicit MIR facts.
 
 **Hard migration opened (2026-06-17):** the codegen rung is the first *hard
 compiler-core* substitute, landed after the BDFL decision lifted the

@@ -553,9 +553,10 @@ bool        mir_validate_emission_contract(const MIRRoutine *routine,
                                           char **error_message);
 void        mir_destroy(MIRProgram *mir);
 void        mir_dump(const MIRProgram *mir, FILE *out);
-/* Lossless JSON serialization of the MIR (schema pgy.mir.v1): CFG skeleton plus
- * each instruction's source AST expression captured inline. Consumed by the
- * Pergyra-origin MIR->C lowering (self-host path (a)). */
+/* JSON serialization of MIR facts (schema pgy.mir.v1). The rung-0 self-host
+ * lowering path still carries a compatibility source-payload field through the
+ * MIR source-shape owner; later consumers must not reopen raw instruction AST
+ * payloads directly. */
 void        mir_dump_json(const MIRProgram *mir, FILE *out);
 
 const char *mir_scope_kind_name(MIRScopeKind kind);

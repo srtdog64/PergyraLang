@@ -16,6 +16,19 @@
   `mir_instruction_source_payload` read under `src/codegen`, so backend
   semantic emission cannot regress through the compatibility payload seam.
 
+## Progress Log - 2026-06-20 MIR Surface Validation Payload Closure
+
+- `mir_fact_surface_validate.c` no longer calls
+  `mir_instruction_source_payload`. Payload presence is checked through the MIR
+  source-shape predicate, and thread-pool / intent-observability usage is
+  validated from `expr0` / `expr1` expression facts.
+- `mir_public_surface.c` no longer derives surface-usage facts by rescanning
+  the source payload. The remaining public-surface payload read seeds only
+  provenance scalars: source line, column, stable id, and source node type.
+- `cfg-body-dataflow-test-smoke` and `perf-contract-test-smoke` now reject
+  reintroducing payload reads in MIR surface validation and reject source
+  payload rescans for public-surface usage facts.
+
 ## Progress Log - 2026-06-19 MIR CFG-Owned Source-Shape Fact Closure
 
 - `mir_instruction_source_is_cfg_owned_control(...)` now consumes only the

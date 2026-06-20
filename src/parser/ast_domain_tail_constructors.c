@@ -232,6 +232,10 @@ ASTNode* ast_create_event_subscribe(ASTNode* event, ASTNode* handler) {
     ASTNode* node = ast_create_node(AST_EVENT_SUBSCRIBE);
     node->data.event_op.event = event;
     node->data.event_op.handler = handler;
+    if (event != NULL) {
+        node->line = event->line;
+        node->column = event->column;
+    }
     return node;
 }
 
@@ -240,6 +244,10 @@ ASTNode* ast_create_event_unsubscribe(ASTNode* event, ASTNode* handler) {
     ASTNode* node = ast_create_node(AST_EVENT_UNSUBSCRIBE);
     node->data.event_op.event = event;
     node->data.event_op.handler = handler;
+    if (event != NULL) {
+        node->line = event->line;
+        node->column = event->column;
+    }
     return node;
 }
 

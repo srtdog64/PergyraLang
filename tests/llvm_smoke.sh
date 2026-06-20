@@ -160,6 +160,17 @@ func Main() -> Void {
 EOF
 run_ir_contains_case "true_phi_lowering" "$TMPDIR/phi_lowering.pgy" " phi i32 "
 
+cat > "$TMPDIR/ssa_def_reassign_type_fact.pgy" <<'EOF'
+func Main() -> Void {
+    let x: Int = 0;
+    if true {
+        x = 1;
+    }
+    Log(x);
+}
+EOF
+run_case "ssa_def_reassign_type_fact" "$TMPDIR/ssa_def_reassign_type_fact.pgy" "1"
+
 cat > "$TMPDIR/loop_break_continue.pgy" <<'EOF'
 func Main() -> Void {
     let sum: Int = 0;

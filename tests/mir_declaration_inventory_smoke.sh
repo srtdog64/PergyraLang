@@ -1247,6 +1247,12 @@ require_term "src/codegen/llvm_mir_local_emit.c" \
     "llvm_mir_local_type_from_source_fact("
 require_term "src/codegen/llvm_mir_local_emit.c" \
     "strcmp(base_name, name) != 0"
+require_term "src/codegen/llvm_mir_local_emit.c" \
+    "local_type = llvm_mir_local_type_from_source_fact(routine, ctx, name);"
+require_term "src/codegen/llvm_mir_block_emit.c" \
+    "assignment_target_name = ast_identifier_name(inst->expr1)"
+require_term "src/codegen/llvm_mir_block_emit.c" \
+    "llvm_mir_local_expected_type_name(routine, inst"
 require_each_following_term "src/codegen/llvm_mir_local_emit.c" \
     "inst->arg0 != NULL" \
     "llvm_mir_local_type_from_source_fact(" \

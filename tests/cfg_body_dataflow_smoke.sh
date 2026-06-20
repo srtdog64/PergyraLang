@@ -321,6 +321,16 @@ run_literal_doc_contract_smoke() {
         echo "MIR terminator validation must route branch source facts through MIR shape predicates, not payload checks" >&2
         exit 1
     fi
+    if grep -Fq -- "mir_instruction_source_payload" \
+        "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"; then
+        echo "MIR surface validation must consume source-shape and expression facts, not source payload" >&2
+        exit 1
+    fi
+    if grep -Eq 'ast_uses_(thread_pool|intent_observability)_surface\(source_payload\)' \
+        "$ROOT_DIR/src/compiler/mir_public_surface.c"; then
+        echo "MIR public surface usage facts must be recorded from MIR expression facts, not source payload rescans" >&2
+        exit 1
+    fi
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_branch_requires_source_emit"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_has_source_payload"
     require_literal "src/compiler/mir_source_shape.c" "mir_source_node_type_name"
@@ -497,6 +507,10 @@ run_literal_doc_contract_smoke() {
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_def_uses_source_local_decl_emit"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_def_uses_channel_receive_statement_emit"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_def_uses_select_receive_statement_emit"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "assignment_target_name = ast_identifier_name(inst->expr1)"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_local_expected_type_name(routine, inst"
+    require_literal "src/codegen/llvm_mir_local_emit.c" "local_type = llvm_mir_local_type_from_source_fact(routine, ctx, name);"
+    require_literal "tests/llvm_smoke.sh" "ssa_def_reassign_type_fact"
     require_literal "src/codegen/llvm_mir_source_resource_defs.c" "mir_instruction_uses_source_local_decl_emit(inst)"
     if grep -Fq -- "source_payload" \
         "$ROOT_DIR/src/codegen/llvm_mir_source_resource_defs.c"; then
@@ -721,14 +735,10 @@ run_literal_doc_contract_smoke() {
     require_literal "src/semantic/type_checker_async_channel.c" "semantic_validate_spawn_storage_boundary"
     require_literal "src/semantic/type_checker_async_channel.c" "type_is_detached_worker_boundary_unsafe_storage"
     require_literal "src/semantic/type_checker_builtins_query_channel.c" "type_is_detached_worker_boundary_unsafe_storage"
-    require_literal "src/tests/semantic\test_semantic_misc_a_part_a_1.cases.h"
-        "src/tests/semantic\test_semantic_misc_a_part_a_2.cases.h" "CFG body flow accepts while-true all-path return"
-    require_literal "src/tests/semantic\test_semantic_misc_a_part_a_1.cases.h"
-        "src/tests/semantic\test_semantic_misc_a_part_a_2.cases.h" "CFG body flow accepts static single-iteration for all-path return"
-    require_literal "src/tests/semantic\test_semantic_misc_a_part_a_1.cases.h"
-        "src/tests/semantic\test_semantic_misc_a_part_a_2.cases.h" "CFG body flow keeps zero-iteration for as fallthrough"
-    require_literal "src/tests/semantic\test_semantic_misc_a_part_a_1.cases.h"
-        "src/tests/semantic\test_semantic_misc_a_part_a_2.cases.h" "CFG static false while does not merge unreachable resource state"
+    require_literal "src/tests/semantic/test_semantic_misc_a_part_a_1.cases.h" "CFG body flow accepts while-true all-path return"
+    require_literal "src/tests/semantic/test_semantic_misc_a_part_a_1.cases.h" "CFG body flow accepts static single-iteration for all-path return"
+    require_literal "src/tests/semantic/test_semantic_misc_a_part_a_1.cases.h" "CFG body flow keeps zero-iteration for as fallthrough"
+    require_literal "src/tests/semantic/test_semantic_misc_a_part_a_2.cases.h" "CFG static false while does not merge unreachable resource state"
     require_literal "src/codegen/transpiler_mir_emission_contract.c" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
     require_literal "src/codegen/transpiler_mir_emission_contract.c" "mir_block_has_pin_cleanup_edge(block)"
     require_literal "src/codegen/transpiler_mir_emission_contract.c" "pin block %llu has no cleanup successor"

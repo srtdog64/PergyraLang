@@ -6,9 +6,9 @@ for soft and partial self-hosting.
 
 ## Current Reality
 
-Current judgement (2026-06-19): the hard-self-host substrate checklist is broad
+Current judgement (2026-06-20): the hard-self-host substrate checklist is broad
 enough for staged compiler-pass substitution, but capability 5 remains ACTIVE
-until the remaining body source-payload expression/shape tail is retired. Raw
+until the remaining body public-surface provenance payload tail is retired. Raw
 source-statement re-dispatch is gone, source-local resource constructors consume
 MIR expected type facts, assignment DEFs preserve side effects before SSA
 recording, and C resource mirroring uses MIR source-statement identity instead
@@ -94,11 +94,14 @@ initializer/type facts instead of reopening the source local declaration
 payload. C source-local LET DEF emission, generic DEF expression emission, and
 receive-payload type inference now consume instruction `arg0` / `expr0` /
 `expr1` facts directly, so C codegen no longer calls
-`mir_instruction_source_payload`. The remaining capability-5 tail is selected
-validation/public-surface reads; LLVM for-in and with-slot resource-claim
+`mir_instruction_source_payload`. MIR surface validation now checks payload
+presence through source-shape predicates and validates surface-usage facts from
+MIR expression facts rather than reopening payloads. The remaining
+capability-5 tail is the public-surface provenance payload used to seed source
+line/column/stable-id/type fields; LLVM for-in and with-slot resource-claim
 diagnostics have already moved to MIR expression anchors. The remaining reads
-must become MIR facts or provenance-only reads before the body source-of-truth
-row is fully ready.
+must be reduced to provenance-only diagnostics or replaced by capture-time
+scalar facts before the body source-of-truth row is fully ready.
 
 - **Module/package resolver stability**: deterministic imports, manifest
   reading, path normalization, and cycle diagnostics.

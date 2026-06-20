@@ -80,6 +80,9 @@ compatibility path.
   their target in `expr1`, and C/LLVM assignment-parts emitters preserve slot,
   array, field, and projection semantics without reopening the source statement
   payload.
+- MIR surface validation no longer reopens source payloads. Payload presence is
+  checked through source-shape predicates, and thread-pool / intent
+  observability surface-usage validation consumes MIR `expr0` / `expr1` facts.
 - MIR DCE and source-statement emit validation consume source-shape scalar
   facts instead of payload presence for those decisions. Source-statement emit
   predicates and LLVM DEF emit predicates now consume MIR emit facts instead of
@@ -92,10 +95,10 @@ compatibility path.
   Match-case branches carry MIR-captured pattern/guard facts, and C/LLVM match
   condition, body-binding, and remap emission consume those facts instead of
   parsing the match-case source payload.
-- The remaining capability-5 body tail is the narrower source-payload
-  expression/shape surface: selected validation/public-surface reads.
-  Capability 5 should stay ACTIVE until those reads are replaced by dedicated
-  MIR facts or reduced to provenance-only diagnostics.
+- The remaining capability-5 body tail is the narrower public-surface
+  provenance payload used to seed source line/column/stable-id/type facts.
+  Capability 5 should stay ACTIVE until that read is replaced by capture-time
+  scalar facts or locked as provenance-only diagnostics.
 - C class/zone collection-specialization scans are MIR-routine based and no
   longer recover method body AST; routine_source_decl_codegen is ratcheted at 0.
 - C hosted method body emission binds the linked MIRRoutine body as current

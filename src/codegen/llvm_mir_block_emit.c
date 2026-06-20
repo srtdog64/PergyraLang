@@ -9,6 +9,7 @@
 #include "llvm_mir_await_emit.h"
 #include "llvm_mir_host_field.h"
 #include "llvm_mir_local_emit.h"
+#include "llvm_mir_local_expected_type.h"
 #include "llvm_mir_scope_bind.h"
 #include "llvm_mir_source_def_copy.h"
 #include "llvm_mir_source_resource_defs.h"
@@ -49,28 +50,17 @@ static const char *
 llvm_mir_instruction_expected_type_name(const MIRRoutine *routine,
                                         const MIRInstruction *inst)
 {
-    const char *type_name;
-    char base_name[128];
+    const char *assignment_target_name = NULL;
 
     if (inst == NULL)
         return NULL;
-    if (inst->abi_type_name != NULL && inst->abi_type_name[0] != '\0')
-        return inst->abi_type_name;
-    if (routine == NULL)
-        return NULL;
-    if (inst->arg0 != NULL) {
-        type_name = mir_routine_source_local_type_name(routine, inst->arg0);
-        if (type_name != NULL && type_name[0] != '\0')
-            return type_name;
+    if (mir_instruction_source_is_assignment(inst)
+        && inst->expr1 != NULL
+        && inst->expr1->type == AST_IDENTIFIER) {
+        assignment_target_name = ast_identifier_name(inst->expr1);
     }
-    if (inst->result_name != NULL
-        && llvm_mir_base_name_from_versioned(inst->result_name, base_name,
-            sizeof(base_name))) {
-        type_name = mir_routine_source_local_type_name(routine, base_name);
-        if (type_name != NULL && type_name[0] != '\0')
-            return type_name;
-    }
-    return NULL;
+    return llvm_mir_local_expected_type_name(routine, inst,
+        assignment_target_name);
 }
 
 static ASTNode *
@@ -583,6 +573,11 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
             } else if (mir_instruction_has_source_statement_order(inst)) {
                 if (llvm_mir_stmt_instruction_is_cfg_container(inst))
                     break;
+                if (!mir_instruction_source_stmt_fallback_is_allowed(inst)) {
+                    llvm_set_mir_topology_invalid(ctx,
+                        "LLVM MIR STMT fallback outside allowed residual statement policy");
+                    return;
+                }
                 if (mir_instruction_source_matches_ast_type(inst, AST_CALL)
                     && inst->expr0 != NULL) {
                     LLVMValueRef ignored = llvm_emit_expression(inst->expr0, ctx);

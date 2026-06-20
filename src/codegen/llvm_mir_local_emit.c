@@ -131,6 +131,10 @@ llvm_mir_local_type_from_assignment_target(const MIRRoutine *routine,
     if (local_type != NULL)
         return local_type;
 
+    local_type = llvm_mir_local_type_from_source_fact(routine, ctx, name);
+    if (ctx->has_error || local_type != NULL)
+        return local_type;
+
     const char *host_name = llvm_current_host_class_name(ctx);
     if (host_name == NULL)
         host_name = mir_routine_owner_name(routine);
@@ -356,7 +360,7 @@ llvm_mir_local_type_from_instruction_fact(const MIRRoutine *routine,
     if (type != NULL)
         return type;
 
-    if (inst->expr1 != NULL) {
+    if (inst->requires_source_local_decl_emit && inst->expr1 != NULL) {
         type = llvm_mir_type_from_ast(ctx, inst->expr1);
         if (ctx->has_error || type != NULL)
             return type;
@@ -445,7 +449,9 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     ctx, inst->type_layout);
                 ASTNode *value_expr =
                     llvm_mir_local_initializer_expr(inst->expr0);
-                ASTNode *type_expr = inst->expr1;
+                ASTNode *type_expr = inst->requires_source_local_decl_emit
+                    ? inst->expr1
+                    : NULL;
                 char base_name[128];
                 bool has_base_name = llvm_mir_base_name_from_versioned(
                     inst->result_name, base_name, sizeof(base_name));

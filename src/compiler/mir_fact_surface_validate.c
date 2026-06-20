@@ -125,10 +125,27 @@ static bool
 mir_instruction_has_surface_payload_or_shape(const MIRInstruction *inst)
 {
     return inst != NULL
-        && (mir_instruction_source_payload(inst) != NULL
+        && (mir_instruction_has_source_payload(inst)
             || inst->expr0 != NULL
             || inst->expr1 != NULL
             || mir_instruction_has_source_location(inst));
+}
+
+static bool
+mir_instruction_exprs_use_thread_pool_surface(const MIRInstruction *inst)
+{
+    return inst != NULL
+        && (ast_uses_thread_pool_surface(inst->expr0)
+            || ast_uses_thread_pool_surface(inst->expr1));
+}
+
+static bool
+mir_instruction_exprs_use_intent_observability_surface(
+    const MIRInstruction *inst)
+{
+    return inst != NULL
+        && (ast_uses_intent_observability_surface(inst->expr0)
+            || ast_uses_intent_observability_surface(inst->expr1));
 }
 
 bool
@@ -151,7 +168,7 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
         const MIRInstruction *inst = &block->instructions[i];
         if (!mir_instruction_has_surface_payload_or_shape(inst))
             continue;
-        if (mir_instruction_source_payload(inst) != NULL
+        if (mir_instruction_has_source_payload(inst)
             && !mir_instruction_has_source_location(inst)) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
@@ -423,10 +440,19 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
             }
             return false;
         }
-        if (inst->uses_thread_pool_surface !=
-            (ast_uses_thread_pool_surface(mir_instruction_source_payload(inst))
-             || ast_uses_thread_pool_surface(inst->expr0)
-             || ast_uses_thread_pool_surface(inst->expr1))) {
+        if (mir_instruction_exprs_use_thread_pool_surface(inst)
+            && !inst->uses_thread_pool_surface) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] is missing thread-pool surface usage fact",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
+        if (!mir_instruction_exprs_use_thread_pool_surface(inst)
+            && inst->uses_thread_pool_surface) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
                     "MIR routine '%s' block[%zu] instruction[%zu] has stale thread-pool surface usage fact",
@@ -436,11 +462,19 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
             }
             return false;
         }
-        if (inst->uses_intent_observability_surface !=
-            (ast_uses_intent_observability_surface(
-                 mir_instruction_source_payload(inst))
-             || ast_uses_intent_observability_surface(inst->expr0)
-             || ast_uses_intent_observability_surface(inst->expr1))) {
+        if (mir_instruction_exprs_use_intent_observability_surface(inst)
+            && !inst->uses_intent_observability_surface) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] is missing intent observability surface usage fact",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
+        if (!mir_instruction_exprs_use_intent_observability_surface(inst)
+            && inst->uses_intent_observability_surface) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
                     "MIR routine '%s' block[%zu] instruction[%zu] has stale intent observability surface usage fact",

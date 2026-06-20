@@ -693,9 +693,7 @@ test_mir_lowering_part_h(void)
         mir.decl_header_count = 1;
         mir.routines = &routine;
         mir.routine_count = 1;
-
         mir_link_decl_method_routines(&mir);
         EXPECT(!method.has_routine);
     }
-
 }

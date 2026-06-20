@@ -1,14 +1,14 @@
 // mir_lower -- Pergyra-origin MIR-JSON -> AST-tree reconstructor (self-host
-// path (a), rung-0b-part2). Consumes the lossless `pgy --mir-json` output
-// (schema pgy.mir.v1) and reconstructs the `pgy --ast` tree text, which the
-// existing self-host codegen then lowers to C. Together they form a Pergyra
-// MIR -> C lowering: the C backend's MIR consumption is substituted.
+// path (a), rung-0b-part2). Consumes `pgy --mir-json` output (schema pgy.mir.v1)
+// and reconstructs the `pgy --ast` tree text, which the existing self-host
+// codegen then lowers to C. Together they form a Pergyra MIR -> C lowering:
+// the C backend's MIR consumption is substituted.
 //
 // rung-0 scope: a single routine `Main`, a single linear block, and the
 // statement forms the codegen already supports (Int `let`, `Log(...)`). Each
-// instruction's `ast` field carries the lossless source expression captured by
-// the C compiler's ast_capture_inline. Out-of-scope input is an observable
-// MIR-LOWER ERROR (no silent fallback, per the no-hidden-flow rule).
+// instruction's `ast` field is a transitional compatibility source-payload
+// field emitted through the MIR source-shape owner. Out-of-scope input is an
+// observable MIR-LOWER ERROR (no silent fallback, per the no-hidden-flow rule).
 
 func Die(msg: String) -> Void {
     Log(Concat("MIR-LOWER ERROR: ", msg));

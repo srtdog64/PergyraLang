@@ -4,7 +4,7 @@
 # Proves that the Pergyra-origin MIR -> C lowering is run-equivalent to the C
 # backend on the supported (tiny, linear) subset:
 #
-#   pgy --mir-json fixture.pgy            (lossless MIR serialization, pgy.mir.v1)
+#   pgy --mir-json fixture.pgy            (MIR JSON plus transitional payload)
 #     | mir_lower   (Pergyra: MIR-JSON -> reconstructed --ast tree)
 #     | codegen     (Pergyra: --ast tree -> standalone C)
 #     -> gcc -> run-stdout

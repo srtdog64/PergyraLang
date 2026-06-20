@@ -1283,7 +1283,7 @@ production .inc under src/codegen  = 0
 production .inc under src/compiler = 0
 production .inc under src/semantic = 0
 test .inc under src/tests          = 0
-test case includes under src/tests = 88 .cases.h files
+test case includes under src/tests = 134 .cases.h files
 ```
 
 Empty include sentinels are rejected:
@@ -1294,7 +1294,7 @@ make inc-sentinel-test-smoke
 
 This gate rejects any `.inc` file under `src`, rejects `.cases.h` fragments
 outside `src/tests`, rejects empty test case include fragments, and caps the
-test fragment inventory at the current 90 files unless
+test fragment inventory at the current 134 files unless
 `PGY_MAX_TEST_CASE_INCLUDES` is deliberately raised with this ledger. There is
 also a usage check: `.cases.h` can only be included by the dedicated test
 harnesses, every include must resolve under `src/tests`, and every `.cases.h`
@@ -1305,8 +1305,7 @@ default.
 Owner-size policy is separate from the `.inc` gate:
 
 ```text
-600 LOC  = split-review threshold for production .c and private owner .h
-1000 LOC = hard cap for new owner headers and active risk line for owner TUs
+600 LOC  = hard cap for production owner headers and active owner TUs
 ```
 
 The current large-owner snapshot was last refreshed on 2026-04-28. The leading

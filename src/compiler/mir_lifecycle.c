@@ -491,8 +491,10 @@ mir_dump_json(const MIRProgram *mir, FILE *out)
                         mir_json_emit_str(out, inst->uses[m]);
                     }
                     fputs("],\"ast\":", out);
-                    if (inst->ast != NULL) {
-                        char *expr = ast_capture_inline(inst->ast);
+                    ASTNode *source_payload =
+                        mir_instruction_source_payload(inst);
+                    if (source_payload != NULL) {
+                        char *expr = ast_capture_inline(source_payload);
                         mir_json_emit_str_or_null(out, expr);
                         free(expr);
                     } else {

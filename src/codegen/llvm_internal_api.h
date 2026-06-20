@@ -40,7 +40,6 @@ void          llvm_defer_scope_push(LLVMGenCtx *ctx);
 void          llvm_defer_scope_pop(LLVMGenCtx *ctx);
 void          llvm_register_defer(ASTNode *body, LLVMGenCtx *ctx);
 void          llvm_emit_defers_from(LLVMGenCtx *ctx, int from_depth);
-
 void llvm_register_list_var(LLVMGenCtx *ctx, const char *var_name,
                             const char *inner_type);
 void llvm_register_list_var_binding(LLVMGenCtx *ctx, const char *var_name,
@@ -85,7 +84,6 @@ void llvm_register_typed_var_abi_binding(LLVMGenCtx *ctx,
                                          const char *var_name,
                                          LLVMValueRef binding,
                                          const char *abi_type_name);
-
 /* =================================================================
  * Function registry (llvm_backend.c)
  * ================================================================= */
