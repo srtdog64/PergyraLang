@@ -16,6 +16,18 @@
 - `test_air` and `air_drift_smoke` now gate both paths: append rejects fallback
   counts directly, and DAG dead-ends are rejected before evidence append.
 
+## Progress Log - 2026-06-21 C Option Contextual Type Inference Closure
+
+- C backend `None` type inference no longer synthesizes `Option<Unknown>` when
+  no contextual `Option<T>` fact exists. Both identifier and call-shaped `None`
+  inference consume `transpiler_contextual_option_inner_type_copy(...)` and
+  otherwise return `Unknown` so emit/semantic layers fail closed.
+- The transpile unit tests now pin context-free `None()` inference to
+  `Unknown` and contextual `None()` inference to the exact `Option<T>` fact.
+  `perf_contract_smoke` was moved to the call-inference owner after the recent
+  `transpiler_expr_call_type_infer.c` split, so the slot-operation name policy
+  is gated at its real owner instead of the old monolithic expression owner.
+
 ## Progress Log - 2026-06-20 Parser And C Inference Owner Cap Closure
 
 - Parser map/set literal parsing now lives in `parser_expr_map_literal.c`,

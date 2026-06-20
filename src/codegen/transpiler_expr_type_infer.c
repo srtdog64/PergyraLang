@@ -26,17 +26,13 @@
 #include "transpiler_mir_signature.h"
 #include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_nominal.h"
+#include "transpiler_option_context.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
 
 #include "codegen_slot_type_policy.h"
 #include "../parser/ast_api.h"
-
-const char *transpiler_contextual_option_type_name(TranspilerCtx *ctx);
-bool transpiler_contextual_option_inner_type_copy(TranspilerCtx *ctx,
-                                                  char *out,
-                                                  size_t out_size);
 
 const char *
 transpiler_infer_arena_copy_type_name(TranspilerCtx *ctx,
@@ -196,8 +192,13 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             return "Unknown";
         if (pgy_codegen_match_variant_lookup(identifier_name)
                 == PGY_MATCH_VARIANT_NONE_CTOR) {
-            const char *context_type = transpiler_contextual_option_type_name(ctx);
-            return context_type != NULL ? context_type : "Option<Unknown>";
+            char inner_buf[128];
+            if (transpiler_contextual_option_inner_type_copy(ctx,
+                    inner_buf, sizeof(inner_buf))) {
+                return transpiler_infer_arena_format_type_name(ctx, "Option",
+                                                               inner_buf);
+            }
+            return "Unknown";
         }
         ASTNode *alias_expr = lookup_alias_expr(ctx, identifier_name);
         if (alias_expr != NULL)

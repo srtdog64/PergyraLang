@@ -274,9 +274,13 @@ transpiler_expr_infer_call_type_name(TranspilerCtx *ctx, ASTNode *expr)
                                                            inner);
         }
         if (op == TRANS_INFER_CALL_NONE_CTOR) {
-            const char *context_type =
-                transpiler_contextual_option_type_name(ctx);
-            return context_type != NULL ? context_type : "Option<Unknown>";
+            char inner_buf[128];
+            if (transpiler_contextual_option_inner_type_copy(ctx,
+                    inner_buf, sizeof(inner_buf))) {
+                return transpiler_infer_arena_format_type_name(ctx, "Option",
+                                                               inner_buf);
+            }
+            return "Unknown";
         }
         if ((op == TRANS_INFER_CALL_IS_SOME
              || op == TRANS_INFER_CALL_IS_NONE)
@@ -382,8 +386,7 @@ transpiler_expr_infer_call_type_name(TranspilerCtx *ctx, ASTNode *expr)
                             name != NULL ? name : "(anonymous-call)");
                         return "Unknown";
                     }
-                    if (!transpiler_mir_routine_signature_metadata_complete_for(
-                            ctx,
+                    if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
                             routine,
                             decl,
                             TRANSPILER_MIR_SIGNATURE_REQUIRE_RETURN_TYPE_NAME,

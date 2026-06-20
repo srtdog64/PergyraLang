@@ -14,6 +14,7 @@
 
 #include "common/string_compat.h"
 #include "codegen/transpiler.h"
+#include "codegen/transpiler_expr_type_infer.h"
 #include "codegen/transpiler_let_type_register_emit.h"
 #include "codegen/transpiler_symbols.h"
 #include "codegen/transpiler_type_declarator.h"

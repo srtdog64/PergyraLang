@@ -320,6 +320,24 @@ test_type_mapping(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    TEST("None type inference consumes contextual Option fact");
+    {
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ASTNode *none_call = make_call("None", NULL, 0, 1);
+        const char *without_context;
+        const char *with_context;
+
+        without_context = transpiler_expr_infer_type_name(ctx, none_call);
+        ctx->expected_type = "Option<Int>";
+        with_context = transpiler_expr_infer_type_name(ctx, none_call);
+
+        EXPECT(strcmp(without_context, "Unknown") == 0);
+        EXPECT(strcmp(with_context, "Option<Int>") == 0);
+
+        ast_destroy(none_call);
+        transpiler_ctx_destroy(ctx);
+    }
+
     TEST("let type registry keeps user types containing Unknown as a prefix");
     {
         TranspilerCtx *ctx = transpiler_ctx_create();

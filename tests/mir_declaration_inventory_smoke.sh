@@ -3411,7 +3411,7 @@ for term in \
     "TRANSPILER_MIR_SIGNATURE_REQUIRE_RETURN_TYPE_NAME" \
     "transpiler_mir_or_ast_function_is_generic(routine" \
     "MIR-only C path missing function inference signature metadata"; do
-    require_term "src/codegen/transpiler_expr_type_infer.c" "$term"
+    require_term "src/codegen/transpiler_expr_call_type_infer.c" "$term"
 done
 for term in \
     "transpiler_mir_routine_signature_metadata_complete_for(ctx" \
@@ -3429,7 +3429,7 @@ done
 require_term "src/codegen/transpiler_nominal.c" \
     "transpiler_mir_or_ast_function_is_generic(routine"
 for rel in \
-    "src/codegen/transpiler_expr_type_infer.c" \
+    "src/codegen/transpiler_expr_call_type_infer.c" \
     "src/codegen/transpiler_future_type_query.c" \
     "src/codegen/transpiler_let_emit.c" \
     "src/codegen/transpiler_nominal.c"; do
@@ -3441,7 +3441,7 @@ done
 for rel in \
     "src/codegen/transpiler_expr_call_user_emit.c" \
     "src/codegen/transpiler_spawn_channel_emit.c" \
-    "src/codegen/transpiler_expr_type_infer.c" \
+    "src/codegen/transpiler_expr_call_type_infer.c" \
     "src/codegen/transpiler_future_type_query.c" \
     "src/codegen/transpiler_let_emit.c"; do
     if grep -Fq "if (!transpiler_mir_routine_has_signature" \
@@ -4823,10 +4823,10 @@ if grep -Eq 'llvm_find_(function|intent)_decl\(ctx, callee_name\)' \
         "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"; then
     fail "LLVM call dispatch must consume llvm_find_callable_decl instead of reopening callable lookup"
 fi
-require_term "src/codegen/transpiler_expr_type_infer.c" \
+require_term "src/codegen/transpiler_expr_call_type_infer.c" \
     "ASTNode *decl = find_callable_decl(ctx, name)"
 if grep -Eq 'find_(intent|function)_decl\(ctx, name\)' \
-        "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"; then
+        "$ROOT_DIR/src/codegen/transpiler_expr_call_type_infer.c"; then
     fail "C call type inference must consume find_callable_decl instead of reopening callable lookup"
 fi
 require_term "src/codegen/transpiler_expr_call_user_emit.c" \
@@ -5078,10 +5078,10 @@ if [[ -n "$c_domain_lookup_hits" ]]; then
     fail "C backend domain declaration recovery must consume active inventory seams outside decl_lookup owner:
 $c_domain_lookup_hits"
 fi
-require_term "src/codegen/transpiler_expr_type_infer.c" \
+require_term "src/codegen/transpiler_expr_call_type_infer.c" \
     "transpiler_has_known_nominal_type(ctx, name)"
 if grep -Fq "find_subject_host_decl(ctx, name)" \
-    "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"; then
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_type_infer.c"; then
     fail "C expression type inference must consume known-nominal policy instead of repeating host chains"
 fi
 require_term "src/codegen/transpiler_projection.c" \
@@ -6426,7 +6426,7 @@ require_each_following_term "src/codegen/transpiler_expr_call_member_emit.c" \
     "!transpiler_active_has_mir(ctx)" \
     4
 for rel in \
-    "src/codegen/transpiler_expr_type_infer.c" \
+    "src/codegen/transpiler_expr_call_type_infer.c" \
     "src/codegen/transpiler_mir_local_type_lookup.c" \
     "src/codegen/transpiler_nominal.c"; do
     require_term "$rel" "transpiler_find_host_method_metadata_in_context("
@@ -6437,7 +6437,7 @@ for rel in \
     require_term "$rel" "transpiler_mir_decl_method_return_type_name("
 done
 for rel in \
-    "src/codegen/transpiler_expr_type_infer.c" \
+    "src/codegen/transpiler_expr_call_type_infer.c" \
     "src/codegen/transpiler_mir_local_type_lookup.c"; do
     require_term "$rel" "method_return_type == NULL && method_meta == NULL"
     require_term "$rel" "!transpiler_active_has_mir(ctx)"
@@ -6446,11 +6446,11 @@ for rel in \
         "!transpiler_active_has_mir(ctx)" \
         2
 done
-require_term "src/codegen/transpiler_expr_type_infer.c" \
+require_term "src/codegen/transpiler_expr_call_type_infer.c" \
     "MIR-only C path missing hosted self-call inference method metadata"
-require_term "src/codegen/transpiler_expr_type_infer.c" \
+require_term "src/codegen/transpiler_expr_call_type_infer.c" \
     "current_host_method_decl(ctx, name)"
-require_each_following_term "src/codegen/transpiler_expr_type_infer.c" \
+require_each_following_term "src/codegen/transpiler_expr_call_type_infer.c" \
     "host_method_meta == NULL" \
     "transpiler_active_has_mir(ctx)" \
     6
