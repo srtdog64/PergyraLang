@@ -8,7 +8,7 @@
 
 bool transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
                                               const MIRBasicBlock *block,
-                                              const ASTNode *stmt,
+                                              const MIRInstruction *inst,
                                               TranspilerCtx *ctx,
                                               TranspilerSSANameMap *ssa_map_out,
                                               char *reason,

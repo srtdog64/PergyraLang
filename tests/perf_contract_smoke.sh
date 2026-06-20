@@ -2268,6 +2268,9 @@ grep -Fq "transpiler_require_type_name_c_type_copy(ctx, elem_inner" "$ROOT_DIR/s
 grep -Fq "transpiler_require_type_name_c_type_copy(ctx, inner_type_buf" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"
 grep -Fq "transpiler_require_type_name_c_type_copy(ctx, init_type" "$ROOT_DIR/src/codegen/transpiler_destructure_emit.c"
 grep -Fq "transpiler_require_type_name_c_type_copy(ctx, init_type_name" "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c"
+grep -Fq "const MIRInstruction *inst" "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.h"
+grep -Fq "mir_instruction_destructure_binding_count(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c"
+! grep -Fq "ast_let_destructure" "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c"
 grep -Fq "char inner_name_buf[128]" "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
 grep -Fq "slot_inner_type_name_copy(effective_layout->abi_type_name" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"

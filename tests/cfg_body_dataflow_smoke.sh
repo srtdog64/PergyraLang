@@ -253,6 +253,8 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_stmt_population_source.c" "inst.kind = MIR_INST_DESTRUCTURE"
     require_literal "src/compiler/mir_stmt_population_source.c" "inst.destructure_binding_names"
     require_literal "src/compiler/mir_stmt_population_source.c" "inst.kind = MIR_INST_ASSIGN"
+    require_literal "src/codegen/transpiler_mir_destructure_emit.h" "const MIRInstruction *inst"
+    require_literal "src/codegen/transpiler_mir_block_emit.c" "DESTRUCTURE instruction missing MIR destructure facts"
     require_literal "src/compiler/mir_stmt_population.c" "mir_make_destructure_instruction"
     require_literal "src/compiler/mir_stmt_population.c" "mir_make_assignment_instruction"
     require_literal "src/compiler/mir_non_cfg_stmt_population.c" "mir_make_destructure_instruction(NULL"
@@ -582,6 +584,11 @@ run_literal_doc_contract_smoke() {
     if grep -Fq "transpiler_find_local_type_name(ctx" \
             "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c"; then
         echo "C MIR destructure emitter reintroduced local type lookup; use typed registry or MIR metadata" >&2
+        exit 1
+    fi
+    if grep -Fq "ast_let_destructure" \
+            "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c"; then
+        echo "C MIR destructure emitter reopened source destructure payload; use MIR destructure facts" >&2
         exit 1
     fi
     if grep -Fq "mir_instruction_source_payload" \

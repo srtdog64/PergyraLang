@@ -288,17 +288,18 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         }
 
         if (inst->kind == MIR_INST_DESTRUCTURE) {
-            if (stmt == NULL || stmt->type != AST_LET_DESTRUCTURE) {
+            if (inst->expr0 == NULL
+                || mir_instruction_destructure_binding_count(inst) == 0) {
                 if (reason != NULL && reason_cap > 0) {
                     transpiler_mir_reasonf(reason, reason_cap,
-                        "MIR block %llu emission failed: DESTRUCTURE instruction missing destructure payload",
+                        "MIR block %llu emission failed: DESTRUCTURE instruction missing MIR destructure facts",
                         (unsigned long long) block->id);
                 }
                 ok = false;
                 break;
             }
             if (!transpiler_emit_mir_let_destructure_stmt(
-                    buf, block, stmt, ctx, ssa_map_out,
+                    buf, block, inst, ctx, ssa_map_out,
                     reason, reason_cap)) {
                 ok = false;
                 break;

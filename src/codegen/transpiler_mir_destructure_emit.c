@@ -49,13 +49,14 @@ transpiler_mir_destructure_ssa_local(char *out, size_t out_size,
 bool
 transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
                                          const MIRBasicBlock *block,
-                                         const ASTNode *stmt,
+                                         const MIRInstruction *inst,
                                          TranspilerCtx *ctx,
                                          TranspilerSSANameMap *ssa_map_out,
                                          char *reason,
                                          size_t reason_cap)
 {
     ASTNode *init;
+    size_t binding_count;
     const char *init_type_name;
     char c_init_type_buf[128];
     const char *c_init_type = NULL;
@@ -64,17 +65,21 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
     char elem_inner_buf[128];
     char elem_c_type_buf[128];
 
-    if (buf == NULL || block == NULL || stmt == NULL || ctx == NULL
-        || ssa_map_out == NULL || stmt->type != AST_LET_DESTRUCTURE) {
+    if (buf == NULL || block == NULL || inst == NULL || ctx == NULL
+        || ssa_map_out == NULL || inst->kind != MIR_INST_DESTRUCTURE) {
         return false;
     }
 
-    init = ast_let_destructure_initializer(stmt);
+    binding_count = mir_instruction_destructure_binding_count(inst);
+    if (binding_count == 0)
+        return false;
+
+    init = inst->expr0;
     if (init != NULL && init->type == AST_CALL
         && ast_call_callee(init) != NULL
         && ast_call_callee(init)->type == AST_IDENTIFIER
         && ast_identifier_name(ast_call_callee(init)) != NULL
-        && ast_let_destructure_name_count(stmt) == 2) {
+        && binding_count == 2) {
         const char *cname = ast_identifier_name(ast_call_callee(init));
         if (pgy_codegen_call_name_is_claim_secure_slot(cname)) {
             const char *inner = NULL;
@@ -98,8 +103,10 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
                     "C backend: ClaimSecureSlot destructuring requires concrete SecureSlot<T> metadata");
                 return false;
             }
-            slot_name = ast_let_destructure_name(stmt, 0);
-            token_name = ast_let_destructure_name(stmt, 1);
+            slot_name =
+                mir_instruction_destructure_binding_name_at(inst, 0);
+            token_name =
+                mir_instruction_destructure_binding_name_at(inst, 1);
             write_indent_to(buf, ctx->indent);
             codebuf_write(buf, "PgyToken_%s %s;\n", inner, token_name);
             write_indent_to(buf, ctx->indent);
@@ -133,7 +140,7 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
         && ast_call_callee(init) != NULL
         && ast_call_callee(init)->type == AST_IDENTIFIER
         && ast_identifier_name(ast_call_callee(init)) != NULL
-        && ast_let_destructure_name_count(stmt) == 1
+        && binding_count == 1
         && pgy_codegen_call_name_is_claim_slot(
                ast_identifier_name(ast_call_callee(init)))) {
         const char *inner = NULL;
@@ -155,7 +162,7 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
                 "C backend: ClaimSlot destructuring requires concrete Slot<T> metadata");
             return false;
         }
-        slot_name = ast_let_destructure_name(stmt, 0);
+        slot_name = mir_instruction_destructure_binding_name_at(inst, 0);
         write_indent_to(buf, ctx->indent);
         codebuf_write(buf, "PgySlot_%s %s = pgy_claim_%s();\n",
                       inner, slot_name, inner);
@@ -230,11 +237,11 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
                     ti++;
             }
         }
-        if (arity != ast_let_destructure_name_count(stmt)) {
+        if (arity != binding_count) {
             transpiler_set_mir_topology_invalid(
                 ctx,
                 "tuple destructuring arity mismatch: binding %llu, tuple arity %llu",
-                (unsigned long long) ast_let_destructure_name_count(stmt),
+                (unsigned long long) binding_count,
                 (unsigned long long) arity);
             return false;
         }
@@ -246,8 +253,9 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
         codebuf_write(buf, "%s _pgy_destr_%d = %s;\n",
                       c_init_type, tmp_id, rhs_t);
         free(rhs_t);
-        for (size_t dn = 0; dn < ast_let_destructure_name_count(stmt); dn++) {
-            const char *bname = ast_let_destructure_name(stmt, dn);
+        for (size_t dn = 0; dn < binding_count; dn++) {
+            const char *bname =
+                mir_instruction_destructure_binding_name_at(inst, dn);
             char ssa_versioned_tmp[192];
             char *ssa_versioned;
             char *ssa_lhs;
@@ -317,8 +325,9 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
         codebuf_write(buf, "%s _pgy_destr_%d = %s;\n",
                       c_init_type, tmp_id, rhs);
         free(rhs);
-        for (size_t dn = 0; dn < ast_let_destructure_name_count(stmt); dn++) {
-            const char *bname = ast_let_destructure_name(stmt, dn);
+        for (size_t dn = 0; dn < binding_count; dn++) {
+            const char *bname =
+                mir_instruction_destructure_binding_name_at(inst, dn);
             char ssa_versioned_tmp[192];
             char *ssa_versioned;
             char *ssa_lhs;
