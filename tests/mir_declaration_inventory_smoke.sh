@@ -2763,6 +2763,15 @@ if [[ -n "$zone_refresh_compat_hits" ]]; then
     fail "zone refresh compatibility arrays must stay retired from codegen:
 $zone_refresh_compat_hits"
 fi
+zone_refresh_ast_hits="$(
+    grep -RInE "ast_(relation|effect|zone)_refreshes\(|ast_zone_refresh_" \
+        "$ROOT_DIR/src/codegen" \
+        --include='*.c' --include='*.h' || true
+)"
+if [[ -n "$zone_refresh_ast_hits" ]]; then
+    fail "zone refresh AST inventory/accessors must stay retired from codegen:
+$zone_refresh_ast_hits"
+fi
 zone_layer_slot_hits="$(
     grep -RIn "ast_zone_layer_slots" \
         "$ROOT_DIR/src/codegen" \
@@ -5708,14 +5717,13 @@ if grep -Eq 'ast_zone_slots|ast_domain_slot_(name|type|is_subject)\(' \
     fail "C intent zone-slot resolution must consume TranspilerHostedDomainSlotView"
 fi
 require_term "src/codegen/transpiler_domain_provenance_emit.c" \
-    "emit_projection_literal_by_name("
+    "emit_projection_literal_by_zone_refresh_metadata("
 if grep -Fq "target_decl = transpiler_find_projection_nominal_decl_local(" \
         "$ROOT_DIR/src/codegen/transpiler_domain_provenance_emit.c"; then
     fail "C domain provenance projection refresh must consume projection type/header facts instead of recovering target source declarations"
 fi
 for rel in \
-    "src/codegen/transpiler_expr_dispatch_emit.c" \
-    "src/codegen/transpiler_domain_provenance_emit.c"; do
+    "src/codegen/transpiler_expr_dispatch_emit.c"; do
     require_term "$rel" "emit_projection_literal_by_name("
 done
 for rel in \

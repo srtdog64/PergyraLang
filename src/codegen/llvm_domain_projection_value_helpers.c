@@ -334,29 +334,6 @@ llvm_load_domain_projection_path_value_by_name(LLVMGenCtx *ctx,
 }
 
 static const char *
-llvm_domain_projection_ast_refresh_mapped_source(
-    ASTNode *refresh,
-    const char *target_field_name)
-{
-    if (refresh == NULL || refresh->type != AST_ZONE_REFRESH
-        || target_field_name == NULL) {
-        return NULL;
-    }
-
-    for (size_t j = 0; j < ast_zone_refresh_field_map_count(refresh); j++) {
-        const char *mapped_target =
-            ast_zone_refresh_mapped_target_field(refresh, j);
-        const char *mapped_source =
-            ast_zone_refresh_mapped_source_field(refresh, j);
-        if (mapped_target != NULL && mapped_source != NULL
-            && strcmp(mapped_target, target_field_name) == 0) {
-            return mapped_source;
-        }
-    }
-    return NULL;
-}
-
-static const char *
 llvm_domain_projection_mir_refresh_mapped_source(
     const MIRDeclZoneRefresh *refresh,
     const char *target_field_name)
@@ -383,7 +360,6 @@ llvm_build_domain_projection_value_internal(
     LLVMClassTypeEntry *target_cls,
     LLVMClassTypeEntry *source_cls,
     const char *source_type_name,
-    ASTNode *ast_refresh,
     const MIRDeclZoneRefresh *mir_refresh,
     const LLVMHostedZoneRefreshView *refresh_view,
     size_t refresh_index,
@@ -416,11 +392,6 @@ llvm_build_domain_projection_value_internal(
                 llvm_hosted_zone_refresh_view_mapped_source_field(
                     refresh_view, refresh_index, target_field_name);
         }
-        if (source_field_name == NULL) {
-            source_field_name =
-                llvm_domain_projection_ast_refresh_mapped_source(ast_refresh,
-                    target_field_name);
-        }
         if (source_field_name == NULL)
             source_field_name = target_field_name;
 
@@ -436,25 +407,6 @@ llvm_build_domain_projection_value_internal(
 }
 
 LLVMValueRef
-llvm_build_domain_projection_value(LLVMGenCtx *ctx,
-                                   LLVMClassTypeEntry *target_cls,
-                                   LLVMClassTypeEntry *source_cls,
-                                   const char *source_type_name,
-                                   ASTNode *refresh,
-                                   LLVMValueRef source_ptr)
-{
-    return llvm_build_domain_projection_value_internal(ctx,
-        target_cls,
-        source_cls,
-        source_type_name,
-        refresh,
-        NULL,
-        NULL,
-        0,
-        source_ptr);
-}
-
-LLVMValueRef
 llvm_build_domain_projection_value_from_zone_refresh_metadata(
     LLVMGenCtx *ctx,
     LLVMClassTypeEntry *target_cls,
@@ -467,7 +419,6 @@ llvm_build_domain_projection_value_from_zone_refresh_metadata(
         target_cls,
         source_cls,
         source_type_name,
-        NULL,
         refresh,
         NULL,
         0,
@@ -488,7 +439,6 @@ llvm_build_domain_projection_value_from_zone_refresh_view(
         target_cls,
         source_cls,
         source_type_name,
-        NULL,
         llvm_hosted_zone_refresh_view_metadata(refresh_view, refresh_index),
         refresh_view,
         refresh_index,

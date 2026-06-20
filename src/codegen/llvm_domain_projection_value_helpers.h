@@ -12,12 +12,6 @@ LLVMValueRef llvm_load_domain_projection_path_value_by_name(
     LLVMValueRef source_ptr,
     const char *field_name);
 
-LLVMValueRef llvm_build_domain_projection_value(LLVMGenCtx *ctx,
-                                                LLVMClassTypeEntry *target_cls,
-                                                LLVMClassTypeEntry *source_cls,
-                                                const char *source_type_name,
-                                                ASTNode *refresh,
-                                                LLVMValueRef source_ptr);
 LLVMValueRef llvm_build_domain_projection_value_from_zone_refresh_metadata(
     LLVMGenCtx *ctx,
     LLVMClassTypeEntry *target_cls,

@@ -11,11 +11,6 @@
 #include "transpiler.h"
 #include "transpiler_decl_lookup.h"
 
-bool transpiler_domain_slot_view_is_projection_slot(
-    const TranspilerHostedDomainSlotView *slot_view,
-    size_t index,
-    ASTNode **refreshes,
-    size_t refresh_count);
 bool transpiler_domain_slot_view_is_projection_slot_in_zone_refresh_view(
     const TranspilerHostedDomainSlotView *slot_view,
     size_t index,
@@ -56,7 +51,6 @@ int resolve_projection_source_path_by_name(TranspilerCtx *ctx,
 char *emit_projection_literal_by_name(TranspilerCtx *ctx,
                                       const char *target_type_name,
                                       const char *source_type_name,
-                                      ASTNode *refresh,
                                       const char *source_expr);
 char *emit_projection_literal_by_zone_refresh_metadata(
     TranspilerCtx *ctx,

@@ -232,28 +232,6 @@ resolve_projection_source_path_by_name(TranspilerCtx *ctx,
 }
 
 static const char *
-projection_ast_refresh_mapped_source(ASTNode *refresh,
-                                     const char *target_field_name)
-{
-    if (refresh == NULL || refresh->type != AST_ZONE_REFRESH
-        || target_field_name == NULL) {
-        return NULL;
-    }
-
-    for (size_t j = 0; j < ast_zone_refresh_field_map_count(refresh); j++) {
-        const char *mapped_target =
-            ast_zone_refresh_mapped_target_field(refresh, j);
-        const char *mapped_source =
-            ast_zone_refresh_mapped_source_field(refresh, j);
-        if (mapped_target != NULL && mapped_source != NULL
-            && strcmp(mapped_target, target_field_name) == 0) {
-            return mapped_source;
-        }
-    }
-    return NULL;
-}
-
-static const char *
 projection_mir_refresh_mapped_source(const MIRDeclZoneRefresh *refresh,
                                      const char *target_field_name)
 {
@@ -277,7 +255,6 @@ static char *
 emit_projection_literal_by_name_internal(TranspilerCtx *ctx,
                                          const char *target_type_name,
                                          const char *source_type_name,
-                                         ASTNode *ast_refresh,
                                          const MIRDeclZoneRefresh *mir_refresh,
                                          const char *source_expr)
 {
@@ -308,11 +285,6 @@ emit_projection_literal_by_name_internal(TranspilerCtx *ctx,
         source_field_name =
             projection_mir_refresh_mapped_source(mir_refresh,
                 target_field_name);
-        if (source_field_name == NULL) {
-            source_field_name =
-                projection_ast_refresh_mapped_source(ast_refresh,
-                    target_field_name);
-        }
         if (source_field_name == NULL)
             source_field_name = target_field_name;
 
@@ -340,13 +312,11 @@ char *
 emit_projection_literal_by_name(TranspilerCtx *ctx,
                                 const char *target_type_name,
                                 const char *source_type_name,
-                                ASTNode *refresh,
                                 const char *source_expr)
 {
     return emit_projection_literal_by_name_internal(ctx,
         target_type_name,
         source_type_name,
-        refresh,
         NULL,
         source_expr);
 }
@@ -362,7 +332,6 @@ emit_projection_literal_by_zone_refresh_metadata(
     return emit_projection_literal_by_name_internal(ctx,
         target_type_name,
         source_type_name,
-        NULL,
         refresh,
         source_expr);
 }

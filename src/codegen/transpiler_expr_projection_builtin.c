@@ -65,7 +65,7 @@ emit_builtin_to_dto(ASTNode *call, TranspilerCtx *ctx)
 
     source_expr = emit_expression(source_arg, ctx);
     result = emit_projection_literal_by_name(
-        ctx, target_name, source_type_name, NULL, source_expr);
+        ctx, target_name, source_type_name, source_expr);
     free(source_expr);
     return result;
 }

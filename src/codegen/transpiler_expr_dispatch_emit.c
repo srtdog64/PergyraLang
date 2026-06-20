@@ -371,7 +371,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                     ctx, projection_entry->type_name)
                 && is_nominal_host_type_name(ctx, source_type)) {
                 return emit_projection_literal_by_name(
-                    ctx, projection_entry->type_name, source_type, NULL,
+                    ctx, projection_entry->type_name, source_type,
                     projection_entry->source_slot);
             }
         }

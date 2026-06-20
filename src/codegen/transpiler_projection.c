@@ -48,49 +48,6 @@ transpiler_domain_slot_type_name_in_decl(TranspilerCtx *ctx,
 }
 
 static bool
-transpiler_domain_slot_is_projection_target(const char *slot_name,
-                                            ASTNode **refreshes,
-                                            size_t refresh_count)
-{
-    if (slot_name == NULL)
-        return false;
-
-    for (size_t i = 0; i < refresh_count; i++) {
-        ASTNode *refresh = refreshes[i];
-        if (refresh == NULL || refresh->type != AST_ZONE_REFRESH
-            || ast_zone_refresh_object_slot_name(refresh) == NULL) {
-            continue;
-        }
-        if (strcmp(slot_name, ast_zone_refresh_object_slot_name(refresh)) == 0) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-bool
-transpiler_domain_slot_view_is_projection_slot(
-    const TranspilerHostedDomainSlotView *slot_view,
-    size_t index,
-    ASTNode **refreshes,
-    size_t refresh_count)
-{
-    const char *slot_name;
-
-    if (slot_view == NULL || index >= slot_view->count)
-        return false;
-
-    slot_name = transpiler_hosted_domain_slot_view_name(slot_view, index);
-    if (slot_name == NULL)
-        return false;
-
-    return transpiler_hosted_domain_slot_view_is_tobject_like(slot_view, index)
-        || transpiler_domain_slot_is_projection_target(slot_name, refreshes,
-            refresh_count);
-}
-
-static bool
 transpiler_zone_refresh_view_has_projection_target(
     const TranspilerHostedZoneRefreshView *refresh_view,
     const char *slot_name)
