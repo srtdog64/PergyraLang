@@ -496,6 +496,7 @@ find_value_summary_with_slot(const MIRRoutine *routine, const char *prefix, cons
 #include "tests/mir/test_mir_lowering_part_e.cases.h"
 #include "tests/mir/test_mir_lowering_part_g.cases.h"
 #include "tests/mir/test_mir_lowering_part_h.cases.h"
+#include "tests/mir/test_mir_lowering_part_i.cases.h"
 
 static void
 test_mir_lowering(void)
@@ -507,6 +508,7 @@ test_mir_lowering(void)
     test_mir_lowering_part_e();
     test_mir_lowering_part_g();
     test_mir_lowering_part_h();
+    test_mir_lowering_part_i();
 }
 
 int

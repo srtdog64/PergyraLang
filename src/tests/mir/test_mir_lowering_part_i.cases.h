@@ -1,0 +1,71 @@
+static void
+test_mir_lowering_part_i(void)
+{
+    TEST("MIR match branch requires captured pattern fact");
+    {
+        const char *src =
+            "func MatchPatternFact(value: Int) -> Int {\n"
+            "    match value {\n"
+            "        case 0:\n"
+            "            return 1;\n"
+            "        default:\n"
+            "            return 0;\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        MIRInstruction *branch_inst = NULL;
+        ASTNode *saved_pattern = NULL;
+        ASTNode **saved_patterns = NULL;
+        size_t saved_pattern_count = 0;
+        char *mir_error = NULL;
+        bool rejected_missing_pattern_fact = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "MatchPatternFact",
+                                           MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count && branch_inst == NULL; bi++) {
+                MIRBasicBlock *block = &routine->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    MIRInstruction *inst = &block->instructions[ii];
+                    if (inst->kind == MIR_INST_BRANCH
+                        && inst->branch_shape == MIR_BRANCH_MATCH_CASE) {
+                        branch_inst = inst;
+                        break;
+                    }
+                }
+            }
+        }
+        if (branch_inst != NULL) {
+            saved_pattern = branch_inst->match_case_pattern;
+            saved_patterns = branch_inst->match_case_patterns;
+            saved_pattern_count = branch_inst->match_case_pattern_count;
+            branch_inst->match_case_pattern = NULL;
+            branch_inst->match_case_patterns = NULL;
+            branch_inst->match_case_pattern_count = 0;
+            rejected_missing_pattern_fact =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error,
+                          "source-branch emit fact is invalid") != NULL;
+            branch_inst->match_case_pattern = saved_pattern;
+            branch_inst->match_case_patterns = saved_patterns;
+            branch_inst->match_case_pattern_count = saved_pattern_count;
+        }
+        EXPECT(ok
+               && routine != NULL
+               && branch_inst != NULL
+               && branch_inst->expr0 != NULL
+               && mir_instruction_match_pattern_count(branch_inst) > 0
+               && mir_instruction_match_pattern_at(branch_inst, 0) != NULL
+               && rejected_missing_pattern_fact
+               && mir_validate(mir, NULL));
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+}

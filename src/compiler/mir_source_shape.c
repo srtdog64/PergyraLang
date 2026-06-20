@@ -339,6 +339,9 @@ mir_instruction_has_required_source_branch_emit_fact(const MIRInstruction *inst)
     if (inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH)
         return inst->expr0 != NULL
             && mir_instruction_source_branch_payload_matches_shape(inst);
+    if (inst->branch_shape == MIR_BRANCH_MATCH_CASE
+        && mir_instruction_match_pattern_count(inst) == 0)
+        return false;
     return mir_instruction_source_payload(inst) != NULL
         && mir_instruction_source_branch_payload_matches_shape(inst);
 }
@@ -352,6 +355,36 @@ mir_instruction_has_required_branch_lowering_fact(const MIRInstruction *inst)
         return mir_instruction_has_required_source_branch_emit_fact(inst);
     return mir_instruction_has_required_branch_condition_fact(inst)
         && mir_instruction_has_required_source_branch_emit_fact(inst);
+}
+
+size_t
+mir_instruction_match_pattern_count(const MIRInstruction *inst)
+{
+    if (inst == NULL || inst->branch_shape != MIR_BRANCH_MATCH_CASE)
+        return 0;
+    if (inst->match_case_pattern_count > 0)
+        return inst->match_case_pattern_count;
+    return inst->match_case_pattern != NULL ? 1 : 0;
+}
+
+ASTNode *
+mir_instruction_match_pattern_at(const MIRInstruction *inst, size_t index)
+{
+    if (inst == NULL || index >= mir_instruction_match_pattern_count(inst))
+        return NULL;
+    if (inst->match_case_pattern_count > 0)
+        return inst->match_case_patterns != NULL
+            ? inst->match_case_patterns[index]
+            : NULL;
+    return index == 0 ? inst->match_case_pattern : NULL;
+}
+
+ASTNode *
+mir_instruction_match_guard(const MIRInstruction *inst)
+{
+    return inst != NULL && inst->branch_shape == MIR_BRANCH_MATCH_CASE
+        ? inst->match_case_guard
+        : NULL;
 }
 
 bool

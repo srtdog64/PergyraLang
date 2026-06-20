@@ -840,6 +840,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/hir_routine_cfg.c \
                    $(COMPILER_DIR)/hir_callgraph.c \
                    $(COMPILER_DIR)/mir.c \
+                   $(COMPILER_DIR)/mir_branch_source_facts.c \
                    $(COMPILER_DIR)/mir_signature_metadata.c \
                    $(COMPILER_DIR)/mir_source_shape.c \
                    $(COMPILER_DIR)/mir_source_local_types.c \
@@ -1339,6 +1340,7 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/air_verify.o \
                    $(BUILD_DIR)/compiler/air_verify_provenance.o
 MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
+                   $(BUILD_DIR)/compiler/mir_branch_source_facts.o \
                    $(BUILD_DIR)/compiler/mir_signature_metadata.o \
                    $(BUILD_DIR)/compiler/mir_source_shape.o \
                    $(BUILD_DIR)/compiler/mir_source_local_types.o \

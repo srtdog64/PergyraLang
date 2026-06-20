@@ -142,6 +142,10 @@ typedef struct
     bool             requires_select_receive_statement_emit;
     bool             requires_source_branch_emit;
     MIRBranchShape   branch_shape;
+    ASTNode         *match_case_pattern;
+    ASTNode        **match_case_patterns;
+    size_t           match_case_pattern_count;
+    ASTNode         *match_case_guard;
     /* Canonical ABI type name and layout: backends read these instead of
      * inventing layouts. abi_type_name remains populated for dynamic nominal
      * layouts such as Slot<Vec2> even when the static layout table has no
@@ -412,6 +416,10 @@ bool        mir_instruction_has_required_source_branch_emit_fact(
                 const MIRInstruction *inst);
 bool        mir_instruction_has_required_branch_lowering_fact(
                 const MIRInstruction *inst);
+size_t      mir_instruction_match_pattern_count(const MIRInstruction *inst);
+ASTNode    *mir_instruction_match_pattern_at(const MIRInstruction *inst,
+                                             size_t index);
+ASTNode    *mir_instruction_match_guard(const MIRInstruction *inst);
 bool        mir_instruction_uses_source_statement_emit(
                 const MIRInstruction *inst);
 bool        mir_instruction_uses_source_local_decl_emit(

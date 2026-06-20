@@ -74,11 +74,13 @@ source-location, and emit flags directly. C and LLVM residual STMT emission
 branches consume MIR source-shape / `expr0` facts, and LLVM missing-return-value
 diagnostics use MIR topology errors instead of source payload anchors. Select
 dispatch branches carry their readiness channel as a MIR branch `expr0` fact,
-so C/LLVM condition emission no longer parses select case payloads. The resource
-mirroring path now compares MIR source-statement indexes, and the C resource
-hook uses MIR `expr1` type annotations instead of recovering local-decl
-payloads. The remaining
-capability-5 tail is match/resource/destructure shape plus selected
+so C/LLVM condition emission no longer parses select case payloads. Match-case
+condition emission consumes MIR-captured branch pattern/guard facts instead of
+the match-case source payload. The resource mirroring path now compares MIR
+source-statement indexes, and the C resource hook uses MIR `expr1` type
+annotations instead of recovering local-decl payloads. The remaining
+capability-5 tail is match payload/body binding and remap,
+resource/destructure shape, plus selected
 diagnostics still backed by `mir_instruction_source_payload`; LLVM for-in and
 with-slot resource-claim diagnostics have already moved to MIR expression
 anchors. The remaining reads must become MIR facts or provenance-only reads

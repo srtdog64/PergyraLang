@@ -273,24 +273,26 @@ transpiler_mir_render_match_case_condition(const MIRInstruction *inst,
                                            TranspilerCtx *ctx,
                                            TranspilerSSANameMap *ssa_map)
 {
-    ASTNode *case_node;
     ASTNode *subject_node;
+    ASTNode *guard_node;
     char *subject;
     char *cond = NULL;
     char *guard = NULL;
     char *guard_payload_assign = NULL;
     bool has_guard;
     uint32_t case_stable_id;
+    size_t pattern_count;
 
     if (inst == NULL || ctx == NULL) {
         return NULL;
     }
-    case_node = mir_instruction_source_payload(inst);
     case_stable_id = mir_instruction_source_stable_id(inst);
-    if (case_node == NULL || case_node->type != AST_MATCH_CASE) {
+    pattern_count = mir_instruction_match_pattern_count(inst);
+    if (pattern_count == 0) {
         return NULL;
     }
-    has_guard = ast_match_case_guard(case_node) != NULL;
+    guard_node = mir_instruction_match_guard(inst);
+    has_guard = guard_node != NULL;
 
     subject_node = pgy_codegen_match_subject_for_branch(inst);
     if (subject_node == NULL)
@@ -300,11 +302,10 @@ transpiler_mir_render_match_case_condition(const MIRInstruction *inst,
     if (subject == NULL)
         return NULL;
 
-    if (ast_match_case_patterns(case_node, NULL) != NULL
-        && ast_match_case_pattern_count(case_node) > 1) {
-        for (size_t i = 0; i < ast_match_case_pattern_count(case_node); i++) {
+    if (pattern_count > 1) {
+        for (size_t i = 0; i < pattern_count; i++) {
             char *pat = emit_expression_with_ssa_map(
-                ast_match_case_pattern_at(case_node, i), ctx, ssa_map);
+                mir_instruction_match_pattern_at(inst, i), ctx, ssa_map);
             char *next = NULL;
             if (pat == NULL)
                 continue;
@@ -315,10 +316,10 @@ transpiler_mir_render_match_case_condition(const MIRInstruction *inst,
             free(pat);
             cond = next;
         }
-    } else if (ast_match_case_pattern(case_node) != NULL) {
+    } else {
         const char *kind = NULL;
         const char *binding = NULL;
-        ASTNode *pattern_node = ast_match_case_pattern(case_node);
+        ASTNode *pattern_node = mir_instruction_match_pattern_at(inst, 0);
         if (transpiler_mir_is_option_destructor(
                 pattern_node, &kind, &binding)) {
             const char *tag = pgy_codegen_match_variant_c_option_tag(
@@ -457,9 +458,8 @@ transpiler_mir_render_match_case_condition(const MIRInstruction *inst,
         }
     }
 
-    if (ast_match_case_guard(case_node) != NULL) {
-        guard = emit_expression_with_ssa_map(ast_match_case_guard(case_node),
-                                             ctx, ssa_map);
+    if (guard_node != NULL) {
+        guard = emit_expression_with_ssa_map(guard_node, ctx, ssa_map);
         if (guard != NULL && cond != NULL) {
             char *with_guard = guard_payload_assign != NULL
                 ? strdup_fmt("(%s) && ((%s), (%s))",

@@ -38,9 +38,13 @@ source-shape / `expr0` facts, and LLVM missing-return-value diagnostics use MIR
 topology diagnostics instead of reopening source payload anchors. Select
 dispatch branches carry their readiness channel as a MIR branch `expr0` fact,
 so C/LLVM no longer parse the select case source payload for dispatch
-conditions. The next cut target is the remaining expression/shape tail:
-selected match, resource, destructure, and diagnostic body facts are still read
-from source payloads rather than dedicated MIR records.
+conditions. Match-case condition emission now consumes MIR-captured branch
+pattern/guard facts (`match_case_pattern*` and `match_case_guard`) through
+`mir_instruction_match_pattern_*` / `mir_instruction_match_guard`, and C/LLVM
+condition emitters are ratcheted against reopening `mir_instruction_source_payload`.
+The next cut target is the remaining expression/shape tail: match payload/body
+binding and remapping, resource, destructure, and diagnostic body facts are
+still read from source payloads rather than dedicated MIR records.
 LLVM source-local resource constructor DEFs now consume MIR expected type-name
 facts for `Channel<T>` and slot-like resources (`Slot<T>`, `SecureSlot<T>`,
 `DeviceSlot<T>`) instead of falling through standalone constructor expression
@@ -96,7 +100,7 @@ ACTIVE means it is on the critical path and still in progress.
 | 2 | Collections + iteration | READY | stdlib_surface_smoke, stage4_determinism_smoke | List/Set/HashMap have stable scalar key forms (String, Int, Long, Bool); MapKeys and SetValues order are locked; compiler-facing symbol/record/handle-like keys are normalized to canonical scalar IDs rather than raw aggregate keys |
 | 3 | String/path/Unicode policy | READY | unicode_policy_smoke, source_utf8_smoke, memory_string_safety_smoke, filesystem_directory_walk_smoke | stable comparison, normalization, and deterministic directory snapshot stance gated |
 | 4 | Arena/ownership ergonomics | READY | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke | `Allocator` is a single C/LLVM-backed value surface, `BoxArray` can consume a named allocator local, scratch/result/persistent lane constructors carry distinct runtime kinds, and `AllocatorDestroy(namedAllocator)` closes explicit pass-lane cleanup on C and LLVM |
-| 5 | CFG/MIR body as SoT | ACTIVE | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; source_ast and source_decl are ratcheted at codegen 0 / compiler 0; residual STMT source-payload emission and raw source-statement re-dispatch are retired; resource mirror identity is source-statement-index based; selected source-payload expression/shape reads remain |
+| 5 | CFG/MIR body as SoT | ACTIVE | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; source_ast and source_decl are ratcheted at codegen 0 / compiler 0; residual STMT source-payload emission and raw source-statement re-dispatch are retired; select and match condition emission consume MIR branch facts; resource mirror identity is source-statement-index based; selected source-payload expression/shape reads remain |
 | 6 | AIR as verifier | READY | air_json_schema_smoke, air_drift_smoke, air_backend_nonimpact_smoke | pgy.air.graph.v1 evidence export gated; drift count enforced at 0 |
 | 7 | DAG type resolution SoT | READY | type_resolution_dag_smoke, type_resolution_resolver_inventory_smoke | recursive resolver compat path retired; metadata_dead_ends enforced at 0 |
 | 8 | Scoped unsafe/raw escape | READY | raw_escape_contract_smoke | unsafe is scoped and capability-bound; raw pointers gated out of domain code |
@@ -113,8 +117,9 @@ source-payload emission and raw source-statement re-dispatch are retired,
 source-statement / LLVM DEF emit predicates consume MIR facts, C/LLVM residual
 STMT branches consume MIR source-shape/`expr0` facts, resource mirror identity
 is MIR source-statement-index based, select dispatch consumes MIR branch
-`expr0` channel facts, and the self-hosted checker proves the same manifest.
-The remaining match/resource/destructure/diagnostic
+`expr0` channel facts, match condition emission consumes MIR branch
+pattern/guard facts, and the self-hosted checker proves the same manifest.
+The remaining match payload/body binding, resource, destructure, and diagnostic
 payload tail must be cut before this row can honestly return to READY.
 Capability 4 is
 closed for the current compiler-pass

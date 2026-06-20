@@ -375,6 +375,11 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_has_required_branch_lowering_fact"
     require_literal "src/compiler/mir_source_shape.c" "inst->branch_shape == MIR_BRANCH_MATCH_CASE"
     require_literal "src/compiler/mir_source_shape.c" "inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH"
+    require_literal "src/compiler/mir_branch_source_facts.h" "mir_capture_match_case_facts"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_match_pattern_count(inst) == 0"
+    require_literal "src/codegen/llvm_mir_match_condition.c" "mir_instruction_match_pattern_count(inst)"
+    require_literal "src/codegen/transpiler_mir_match_condition_emit.c" "mir_instruction_match_pattern_count(inst)"
+    require_literal "src/tests/mir/test_mir_lowering_part_i.cases.h" "MIR match branch requires captured pattern fact"
     require_literal "src/compiler/mir_source_shape.c" "return inst->expr0 != NULL"
     require_literal "src/compiler/mir_source_shape.c" "&& inst->expr0 == NULL"
     require_literal "src/tests/mir/test_mir_lowering_part_h.cases.h" "rejected_predicate_without_subject_fact"
@@ -409,6 +414,23 @@ run_literal_doc_contract_smoke() {
     fi
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_emit_select_dispatch_condition("
     require_literal "src/codegen/llvm_mir_block_emit.c" "inst, routine, mir_block->succ_true, ctx"
+    if awk '
+        /^llvm_mir_emit_match_case_condition\(const MIRInstruction \*inst,/ { in_func=1 }
+        in_func && /^llvm_mir_remap_payload_binding\(LLVMGenCtx \*ctx,/ { in_func=0 }
+        in_func && /mir_instruction_source_payload/ { bad=1 }
+        END { exit bad ? 0 : 1 }
+    ' "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c"; then
+        echo "LLVM MIR match condition must consume captured pattern/guard facts, not source payload" >&2
+        exit 1
+    fi
+    if awk '
+        /^transpiler_mir_render_match_case_condition\(const MIRInstruction \*inst,/ { in_func=1 }
+        in_func && /mir_instruction_source_payload/ { bad=1 }
+        END { exit bad ? 0 : 1 }
+    ' "$ROOT_DIR/src/codegen/transpiler_mir_match_condition_emit.c"; then
+        echo "C MIR match condition must consume captured pattern/guard facts, not source payload" >&2
+        exit 1
+    fi
     require_literal "src/codegen/transpiler_mir_emission_contract.c" "mir_instruction_has_required_branch_lowering_fact(inst)"
     require_literal "src/compiler/air_evidence_mir_facts.c" "mir_block_has_hir_source_mapping(block)"
     require_literal "src/codegen/transpiler_mir_ssa_map.c" "mir_block_source_hir_id(block)"

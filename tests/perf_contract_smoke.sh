@@ -2360,6 +2360,11 @@ grep -Fq "mir_instruction_has_required_source_branch_emit_fact" "$ROOT_DIR/src/c
 grep -Fq "mir_instruction_has_required_branch_lowering_fact" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 grep -Fq "inst->branch_shape == MIR_BRANCH_MATCH_CASE" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 grep -Fq "inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH" "$ROOT_DIR/src/compiler/mir_source_shape.c"
+grep -Fq "mir_capture_match_case_facts" "$ROOT_DIR/src/compiler/mir_branch_source_facts.h"
+grep -Fq "mir_instruction_match_pattern_count(inst) == 0" "$ROOT_DIR/src/compiler/mir_source_shape.c"
+grep -Fq "mir_instruction_match_pattern_count(inst)" "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c"
+grep -Fq "mir_instruction_match_pattern_count(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_match_condition_emit.c"
+grep -Fq "MIR match branch requires captured pattern fact" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_i.cases.h"
 grep -Fq "return inst->expr0 != NULL" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 grep -Fq "&& inst->expr0 == NULL" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 grep -Fq "rejected_predicate_without_subject_fact" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_h.cases.h"
@@ -2616,6 +2621,23 @@ grep -Fq "branch_inst->expr0" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_
 ! grep -Fq "llvm_mir_emit_select_dispatch_condition(source_payload" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_mir_emit_select_dispatch_condition(" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "inst, routine, mir_block->succ_true, ctx" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+if awk '
+    /^llvm_mir_emit_match_case_condition\(const MIRInstruction \*inst,/ { in_func=1 }
+    in_func && /^llvm_mir_remap_payload_binding\(LLVMGenCtx \*ctx,/ { in_func=0 }
+    in_func && /mir_instruction_source_payload/ { bad=1 }
+    END { exit bad ? 0 : 1 }
+' "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c"; then
+    echo "[perf-contract] LLVM MIR match condition must consume captured pattern/guard facts, not source payload" >&2
+    exit 1
+fi
+if awk '
+    /^transpiler_mir_render_match_case_condition\(const MIRInstruction \*inst,/ { in_func=1 }
+    in_func && /mir_instruction_source_payload/ { bad=1 }
+    END { exit bad ? 0 : 1 }
+' "$ROOT_DIR/src/codegen/transpiler_mir_match_condition_emit.c"; then
+    echo "[perf-contract] C MIR match condition must consume captured pattern/guard facts, not source payload" >&2
+    exit 1
+fi
 grep -Fq "transpiler_mir_render_select_case_condition" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"
 grep -Fq "emit_expression_with_ssa_map(channel, ctx, NULL)" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"
 ! grep -Fq "return pergyra_strdup(\"0\")" "$ROOT_DIR/src/codegen/transpiler_mir_expr_ssa.c"

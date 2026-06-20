@@ -10,37 +10,11 @@
 #include "../common/arena.h"
 #include "../runtime/pgy_abi_spec.h"
 #include "../parser/ast_api.h"
+#include "mir_branch_source_facts.h"
 #include "mir_lower_population.h"
 #include "mir_public_surface.h"
 #include "mir_signature_metadata.h"
 #include "mir_source_local_types.h"
-
-static MIRBranchShape
-mir_branch_shape_from_ast(const ASTNode *node)
-{
-    if (node == NULL)
-        return MIR_BRANCH_EXPR;
-    if (node->type == AST_FOR_LOOP)
-        return ast_for_iterable(node) != NULL ? MIR_BRANCH_FOR_IN
-                                              : MIR_BRANCH_FOR_RANGE;
-    if (node->type == AST_MATCH_CASE)
-        return MIR_BRANCH_MATCH_CASE;
-    if (node->type == AST_BLOCK)
-        return MIR_BRANCH_SELECT_DISPATCH;
-    return MIR_BRANCH_EXPR;
-}
-
-static ASTNode *
-mir_select_case_channel(ASTNode *node)
-{
-    ASTNode *first = node != NULL && node->type == AST_BLOCK && ast_block_statement_count(node) > 0
-            ? ast_block_statement(node, 0)
-            : NULL;
-    ASTNode *value = first != NULL && first->type == AST_ASSIGNMENT
-        ? ast_assignment_value(first) : first;
-    return value != NULL && value->type == AST_CHANNEL_RECV
-        ? ast_channel_recv_channel(value) : NULL;
-}
 
 #include "mir_base_helpers.h"
 #include "mir_cleanup.h"
@@ -103,7 +77,8 @@ mir_add_terminator_instruction(MIRRoutine *routine,
         inst.expr0 = terminator_condition;
     else if (inst.kind == MIR_INST_BRANCH
         && inst.branch_shape == MIR_BRANCH_MATCH_CASE)
-        inst.expr0 = terminator_value;
+        mir_capture_match_case_facts(&inst, terminator_condition,
+                                     terminator_value);
     else if (inst.kind == MIR_INST_BRANCH
         && inst.branch_shape == MIR_BRANCH_SELECT_DISPATCH)
         inst.expr0 = mir_select_case_channel(terminator_condition);
