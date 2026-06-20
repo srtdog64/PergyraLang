@@ -763,8 +763,10 @@ topology-plus-fact contract by calling the lower-level validators separately.
 
 Reachable pin-region emission is part of that shared contract: both C and LLVM
 must reject a pin block without a cleanup successor or without the matching
-pin-unpin cleanup fact. Backend contracts may format the diagnostic locally,
-but the decision must come from MIR cleanup fact helpers.
+pin-unpin cleanup fact. That decision belongs to
+`mir_validate_emission_contract(...)`; backend contracts may attach target
+diagnostic context, but they must not re-read cleanup fact helpers to rebuild a
+second topology-plus-fact validator.
 
 Pin-region source locals remain SSA definitions. A local such as
 `let value = Read(view)` inside a pin block may carry a source-local declaration

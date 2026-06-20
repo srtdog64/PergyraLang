@@ -205,10 +205,14 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_cfg_contract_edges.c" "predecessor count without predecessor inventory"
     require_literal "src/compiler/mir_cfg_contract_edges.c" "predecessor count above predecessor capacity"
     require_literal "src/compiler/mir_lifecycle.c" "instructions != NULL"
-    require_literal "src/codegen/transpiler_mir_emission_contract.c" "instruction count without instruction inventory"
     require_literal "src/codegen/llvm_mir_block_emit.c" "instruction count without instruction inventory"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_set_mir_topology_invalid(ctx"
-    require_literal "src/codegen/llvm_mir_contract.c" "instruction count without instruction inventory"
+    if grep -Fq "instruction count without instruction inventory" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_emission_contract.c" \
+        "$ROOT_DIR/src/codegen/llvm_mir_contract.c"; then
+        echo "backend MIR contract wrappers must consume compiler instruction-inventory validation" >&2
+        exit 1
+    fi
     require_literal "src/compiler/mir_cfg_contract_validate_cleanup.c" "rollback successor"
     require_literal "src/compiler/mir_cfg_contract_validate_cleanup.c" "invalidation successor"
     require_literal "src/compiler/mir_cleanup.c" "#include \"mir_base_helpers.h\""
@@ -771,23 +775,28 @@ run_literal_doc_contract_smoke() {
     require_literal "src/tests/semantic/test_semantic_misc_a_part_a_1.cases.h" "CFG body flow accepts static single-iteration for all-path return"
     require_literal "src/tests/semantic/test_semantic_misc_a_part_a_1.cases.h" "CFG body flow keeps zero-iteration for as fallthrough"
     require_literal "src/tests/semantic/test_semantic_misc_a_part_a_2.cases.h" "CFG static false while does not merge unreachable resource state"
-    require_literal "src/codegen/transpiler_mir_emission_contract.c" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
-    require_literal "src/codegen/transpiler_mir_emission_contract.c" "mir_block_has_pin_cleanup_edge(block)"
-    require_literal "src/codegen/transpiler_mir_emission_contract.c" "pin block %llu has no cleanup successor"
     require_literal "src/compiler/mir_fact_validate.c" "mir_validate_routine_emission_facts"
     require_literal "src/compiler/mir_public_surface.c" "mir_validate_emission_contract"
     require_literal "src/compiler/mir_public_surface.c" "mir_validate_emission_topology(routine"
     require_literal "src/compiler/mir_public_surface.c" "mir_validate_routine_emission_facts(routine"
+    require_literal "src/compiler/mir_cfg_contract_validate_cleanup.c" "mir_block_has_expected_cleanup_edge_fact(routine, block_index)"
+    require_literal "src/compiler/mir_cfg_contract_validate_cleanup.c" "mir_block_has_pin_cleanup_edge(block)"
+    require_literal "src/compiler/mir_cfg_contract_validate_cleanup.c" "pin-region block[%zu] missing pin-unpin cleanup fact"
     require_literal "src/codegen/transpiler_mir_emission_contract.c" "mir_validate_emission_contract(routine"
     require_literal "src/codegen/llvm_mir_contract.c" "llvm_mir_validate_cleanup_contract"
     require_literal "src/codegen/llvm_mir_contract.c" "mir_validate_emission_contract(routine"
     require_literal "src/compiler/mir_program_validate.c" "mir_validate_cfg_contract_state(routine"
-    require_literal "src/codegen/llvm_mir_contract.c" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
-    require_literal "src/codegen/llvm_mir_contract.c" "mir_block_has_pin_cleanup_edge(block)"
     if grep -RIn -- 'mir_validate_emission_topology(routine\|mir_validate_routine_emission_facts(routine' \
         "$ROOT_DIR/src/codegen" >/dev/null; then
         echo "backend emission contracts must consume mir_validate_emission_contract(...), not rebuild topology-plus-fact validation" >&2
         grep -RIn -- 'mir_validate_emission_topology(routine\|mir_validate_routine_emission_facts(routine' \
+            "$ROOT_DIR/src/codegen" >&2
+        exit 1
+    fi
+    if grep -RIn -- 'mir_block_has_expected_cleanup_edge_fact\|mir_block_has_pin_cleanup_edge\|mir_cleanup_edge_fact_name_for_block' \
+        "$ROOT_DIR/src/codegen" >/dev/null; then
+        echo "backend emission contracts must not re-read cleanup fact helpers; consume mir_validate_emission_contract(...)" >&2
+        grep -RIn -- 'mir_block_has_expected_cleanup_edge_fact\|mir_block_has_pin_cleanup_edge\|mir_cleanup_edge_fact_name_for_block' \
             "$ROOT_DIR/src/codegen" >&2
         exit 1
     fi

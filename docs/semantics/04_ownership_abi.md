@@ -1,6 +1,6 @@
 # 04. Ownership / ABI Proof Obligations
 
-Last updated: 2026-04-27
+Last updated: 2026-06-21
 
 Status: `IN PROGRESS / BLOCKER`
 
@@ -280,6 +280,54 @@ Remaining proof obligation:
   owner/provenance contract exists. Invalid slice transport is intentionally
   rejected before AIR graph synthesis, so AIR is not the evidence owner for the
   current rejected-source surface.
+
+## Theorem Boundary: Packed Layout Is Not Ordinary Mutability
+
+Source-level bit packing, explicit field offsets, union overlap, and
+niche-optimized `Option<T>` are not beta-stable language surfaces. Runtime ABI
+structs may have frozen C layouts through `pgy_abi_spec.h`, but that is not the
+same claim as giving users unchecked layout control for ordinary Pergyra
+structs.
+
+Required invariants before any source-level packed layout is accepted:
+
+- A packed field must have a `LayoutFact` row that names storage unit, byte
+  offset, bit offset, bit width, read mask, write mask, shift, extension
+  policy, and read-modify-write effect.
+- C and LLVM must consume the same `LayoutFact` row. A backend must not invent
+  C bitfields, local mask/shift lowering, or target-specific packing as a
+  compatibility fallback.
+- `let mut` is local-storage mutability. It does not by itself prove that a
+  partial-width field is addressable, borrowable, passable as `inout`, atomic,
+  or safe to update through an implicit read-modify-write.
+- `inout` / value-result mutation cannot be applied to a bit slice unless the
+  layout/effect owner proves the whole writeback policy. A bit slice is not an
+  ordinary mutable lvalue.
+- Slot, SecureSlot, DeviceSlot, Pin, authority tokens, and capability handles
+  are not packable until a dedicated layout owner proves their ABI, lifetime,
+  and security invariants.
+
+Future niche optimization follows the same rule. `NonZero<T>`, `NonNull<T>`,
+`NonEmpty<T>`, or similar proof types must be established by semantic/DAG
+analysis, carried as MIR ABI facts, and only then used to encode `None` in an
+otherwise invalid bit pattern. A backend-local `Option<T>` size shortcut is a
+miscompile risk, not an optimization.
+
+Current evidence:
+
+- `docs/semantics/pass_contract_manifest.md` marks backend-local layout guesses,
+  backend-local option niches, packed-field addressability, and slot handle
+  packing as forbidden reads/invalidated facts for the ABI layout row.
+- `TODO.md` records the first implementation unit as a negative gate: reject
+  any source spelling that tries to mutate, borrow, or `inout` a packed bit
+  slice before the required layout/effect evidence exists.
+
+Remaining proof obligation:
+
+- Add the layout/niche specification, then add negative fixtures for
+  `let mut` / `inout` / address-like packed-field access and C/LLVM ABI golden
+  fixtures proving both backends consume identical `LayoutFact` rows before
+  enabling source-level packed fields.
 
 ## Theorem: ABI Ownership Parity
 

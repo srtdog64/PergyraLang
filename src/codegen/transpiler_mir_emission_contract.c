@@ -2,9 +2,6 @@
 
 #include <stdlib.h>
 
-#include "../compiler/mir_cfg_contract_cleanup_fact.h"
-#include "../compiler/mir_cfg_contract_pin.h"
-#include "../compiler/mir_cleanup_fact_names.h"
 #include "../parser/ast_api.h"
 #include "transpiler.h"
 #include "transpiler_context.h"
@@ -90,82 +87,12 @@ transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
         if (block == NULL)
             return false;
 
-        if (block->instruction_count > 0 && block->instructions == NULL) {
-            if (reason != NULL && reason_cap > 0)
-                transpiler_mir_reasonf(reason, reason_cap,
-                         "MIR contract invalid for %s: block %llu has instruction count without instruction inventory",
-                         routine_name, (unsigned long long) block->id);
-            return false;
-        }
-
         if (!transpiler_validate_mir_emission_block_shape(block,
                                                           routine_name,
                                                           require_cleanup,
                                                           reason,
                                                           reason_cap)) {
             return false;
-        }
-
-        if (block->has_succ_true && block->succ_true >= routine->block_count) {
-            if (reason != NULL && reason_cap > 0)
-                transpiler_mir_reasonf(reason, reason_cap, "MIR contract invalid for %s: block %llu bad true successor",
-                         routine_name, (unsigned long long) block->id);
-            return false;
-        }
-        if (block->has_succ_false && block->succ_false >= routine->block_count) {
-            if (reason != NULL && reason_cap > 0)
-                transpiler_mir_reasonf(reason, reason_cap, "MIR contract invalid for %s: block %llu bad false successor",
-                         routine_name, (unsigned long long) block->id);
-            return false;
-        }
-        if (block->has_cleanup_succ && block->cleanup_succ >= routine->block_count) {
-            if (reason != NULL && reason_cap > 0)
-                transpiler_mir_reasonf(reason, reason_cap, "MIR contract invalid for %s: block %llu bad cleanup successor",
-                         routine_name, (unsigned long long) block->id);
-            return false;
-        }
-        if (block->has_rollback_succ && block->rollback_succ >= routine->block_count) {
-            if (reason != NULL && reason_cap > 0)
-                transpiler_mir_reasonf(reason, reason_cap, "MIR contract invalid for %s: block %llu bad rollback successor",
-                         routine_name, (unsigned long long) block->id);
-            return false;
-        }
-        if (block->has_invalidation_succ && block->invalidation_succ >= routine->block_count) {
-            if (reason != NULL && reason_cap > 0)
-                transpiler_mir_reasonf(reason, reason_cap, "MIR contract invalid for %s: block %llu bad invalidation successor",
-                         routine_name, (unsigned long long) block->id);
-            return false;
-        }
-        if (!block->has_cleanup_succ) {
-            if (block->is_reachable && block->is_pin_region) {
-                if (reason != NULL && reason_cap > 0)
-                    transpiler_mir_reasonf(reason, reason_cap,
-                             "MIR contract invalid for %s: pin block %llu has no cleanup successor",
-                             routine_name,
-                             (unsigned long long) block->id);
-                return false;
-            }
-        }
-        if (block->has_cleanup_succ) {
-            const char *cleanup_fact =
-                mir_cleanup_edge_fact_name_for_block(routine, i);
-            if (!mir_block_has_expected_cleanup_edge_fact(routine, i)) {
-                if (reason != NULL && reason_cap > 0)
-                    transpiler_mir_reasonf(reason, reason_cap,
-                             "MIR contract invalid for %s: block %llu missing %s fact",
-                             routine_name,
-                             (unsigned long long) block->id,
-                             cleanup_fact);
-                return false;
-            }
-            if (block->is_pin_region && !mir_block_has_pin_cleanup_edge(block)) {
-                if (reason != NULL && reason_cap > 0)
-                    transpiler_mir_reasonf(reason, reason_cap,
-                             "MIR contract invalid for %s: pin block %llu missing pin cleanup fact",
-                             routine_name,
-                             (unsigned long long) block->id);
-                return false;
-            }
         }
 
         for (size_t j = 0; j < block->instruction_count; j++) {

@@ -140,7 +140,9 @@ Remaining bridge work:
   and read/write mode, and MIR now materializes `pin-unpin-cleanup-edge`
   metadata. The MIR validator now rejects reachable pin-region blocks that
   lack the matching unpin cleanup fact, so backend/runtime consumers no longer
-  have to rediscover pin regions from desugared statements;
+  have to rediscover pin regions from desugared statements. C and LLVM enter
+  this decision through `mir_validate_emission_contract(...)`; direct backend
+  cleanup fact helper reads are a source-of-truth regression;
 - `DropOnce` and `ReleaseAfterUnpin` over the final block-scoped pin surface;
 - wider no-escape/no-suspend proof for closure/lambda captures and general
   async task lifetimes.
