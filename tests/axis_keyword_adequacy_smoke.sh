@@ -252,9 +252,26 @@ for fn in air_append_evidence_node air_append_evidence_node_ex; do
     printf '  ok   %-30s requires provider_name + subject_name\n' "$fn"
 done
 
+# --- check F: strict evidence is the DEFAULT (relaxed mode is opt-in) ---------
+# PGY_AIR_STRICT_EVIDENCE=0 relaxes evidence checking for build smoke-tests; a
+# relaxed binary is NOT domain-safety-checked (see AxisOwnership.md §7.5). This
+# guards the safety-critical default: air_strict_evidence_enabled() must return
+# true when the env var is unset/empty, so nobody can silently flip the default
+# to relaxed without this gate failing.
+AIR_C="$ROOT_DIR/src/compiler/air.c"
+echo "== F. strict-evidence default (relaxed is opt-in, not the default) =="
+body="$(awk '/air_strict_evidence_enabled\(void\)/{f=1} f{print} /^}/{if(f)exit}' "$AIR_C" 2>/dev/null || true)"
+if [[ -z "$body" ]]; then
+    echo "  FAIL: air_strict_evidence_enabled() not found in air.c"; fail=1
+elif ! printf '%s' "$body" | grep -q 'value == NULL' || ! printf '%s' "$body" | grep -q 'return true'; then
+    echo "  FAIL: strict evidence is no longer the default (unset env must return true)"; fail=1
+else
+    echo "  ok   air_strict_evidence_enabled() defaults to true when env unset"
+fi
+
 if [[ "$fail" -ne 0 ]]; then
     echo "axis keyword adequacy: FAILED"
     exit 1
 fi
 
-echo "axis keyword adequacy: ok (Coq 8/5/10 -> docs/42 0/2 -> keywords + clause checkers + AIR evidence + append API)"
+echo "axis keyword adequacy: ok (Coq 8/5/10 -> docs/42 0/2 -> keywords + clauses + AIR evidence + append API + strict-default)"
