@@ -100,14 +100,32 @@ rewrite history.
   structured-AST parser rewrite (the real substitution step) vs. a verifier /
   golden-probe track. Lexer (121/121) was load-bearing and done; parser text
   coverage is the explicitly-cautioned area.
-- **Empirical confirmation that grinding is the wrong track right now**: a tiny
-  attempt (default empty return type to `Returns: Void`) did NOT fix the target
-  (walrus_test routes through a different emission path) and would have broken a
-  committed C-leg fixture (some forms emit no Returns line) -- reverted. And the
-  parser parity gate's **LLVM leg currently fails to compile the parser tool**
-  (`LLVM AST type mapping requires AST_TYPE ...; silent i32 fallback is not
-  allowed`, line 14:9) -- a fail-closed error from the in-flight LLVM codegen
-  work, so parser changes cannot even be validated on LLVM at the moment. The
-  C leg is green (188 byte-equal). Conclusion: do not grind the parser
-  text-mirror now; it is throwaway-bound, fragile, and LLVM-blocked. Resume the
-  parser only as the structured-AST rewrite, after the LLVM codegen work settles.
+- **Empirical confirmation that grinding text coverage is the wrong track**: a
+  tiny attempt (default empty return type to `Returns: Void`) did NOT fix the
+  target (walrus_test routes through a different emission path) and would have
+  broken a committed C-leg fixture (some forms emit no Returns line) -- reverted.
+  This is throwaway-bound, fragile feature work; resume the parser only as the
+  structured-AST rewrite. (The earlier "LLVM-blocked" note here is now stale --
+  see the correction below.)
+
+### 2026-06-20 -- CORRECTION: the parser LLVM-leg blockage was a real bug, now fixed
+
+- The earlier "LLVM leg fails to compile the parser tool
+  (`silent i32 fallback is not allowed`, line 14:9)" was NOT just an in-flight
+  artifact -- it was a genuine codegen bug, now diagnosed and fixed (by the
+  BDFL, in the in-flight LLVM codegen work).
+- **Root cause**: a reassignment inside a control-flow block (`if`/`while`/`for`)
+  is lowered to an SSA `def` (e.g. `result=x.2 ast=AST_ASSIGNMENT`), unlike a
+  flat reassignment which is a plain `assign`. The SSA-DEF LLVM emission derived
+  the target type from the nameless AST node instead of the source-local-type
+  fact (which already holds `x->Int`), so it hit the fail-closed
+  `ast_type_to_llvm`. C silently fell back to i32 (correct only by luck for Int;
+  would have miscompiled a String/struct local).
+- **Fix verified (no regression)**: reassignment in if/while/for/nested/else and
+  the String case all compile on both backends; all four self-host tools compile
+  on LLVM; **parser parity is now green on BOTH legs (188 byte-equal, c+llvm)**;
+  lexer (6) and codegen (rung 0-15, 48 fixtures) parity unchanged.
+- **Consequence**: the parser self-hosts on both backends again -- the LLVM leg
+  is no longer blocked. The "don't grind text coverage" conclusion still holds
+  (that is BDFL direction, independent of the bug); but parser work *can* now be
+  validated on LLVM.
