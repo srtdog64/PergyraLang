@@ -30,7 +30,7 @@ Columns: `boundary  stage-artifact  enforcement-gate  status`.
 <!-- BEGIN loss-contract-manifest -->
 ```
 parser_to_ast       src/parser/ast.c             documented                                     documented
-ast_to_mir          src/compiler/mir.c           documented                                     documented
+ast_to_mir          src/compiler/mir.c           tests/ast_to_mir_loss_contract_smoke.sh        enforced
 mir_to_air          src/compiler/air.c           tests/air_drift_smoke.sh                       enforced
 mir_to_backends     src/codegen/llvm_backend.c   tests/backend_compare_llvm_coverage_smoke.sh   enforced
 selfhost_to_oracle  src/self_hosted              tests/self_hosted_component_contract_smoke.sh  enforced
@@ -39,10 +39,10 @@ selfhost_to_oracle  src/self_hosted              tests/self_hosted_component_con
 
 ## Coverage (honest)
 
-5 canonical boundaries, **3 gate-enforced** (MIR->AIR by the AIR drift gate;
-MIR->C/LLVM by the backend-compare gate; self-hosted->C oracle by the component
-contract gate) and **2 documentation-only** (`parser_to_ast` and `ast_to_mir`
-are internal lowering steps with no dedicated loss gate yet). So the loss
-contracts are **3/5 enforced**. The two early-lowering boundaries are the
-concrete remaining work to make every loss contract machine-enforced rather than
-prose.
+5 canonical boundaries, **4 gate-enforced** (AST->MIR by the AST-to-MIR loss
+contract gate, MIR->AIR by the AIR drift gate, MIR->C/LLVM by the
+backend-compare gate, and self-hosted->C oracle by the component contract gate)
+and **1 documentation-only** (`parser_to_ast`, whose accepted loss is still
+prose-only). So the loss contracts are **4/5 enforced**. The parser boundary is
+the concrete remaining work to make every loss contract machine-enforced rather
+than prose.

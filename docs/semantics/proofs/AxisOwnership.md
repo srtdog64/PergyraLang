@@ -165,7 +165,7 @@ are.
    machine-readable stage/gate index. `loss_contract_adequacy_smoke.sh` verifies
    that each stage artifact exists and that every `enforced` row names a live
    gate. This closes the older "no manifest" gap, but it is still not a full
-   executable loss calculus: the current manifest is 3/5 gate-enforced and 2/5
+   executable loss calculus: the current manifest is 4/5 gate-enforced and 1/5
    documentation-only, and the gate checks stage/gate adequacy rather than every
    forbidden read in the prose contract.
 

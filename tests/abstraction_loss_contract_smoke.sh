@@ -46,10 +46,11 @@ require_text "docs/semantics/09_abstraction_loss_contracts.md" "## Theorem: Pres
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "## Theorem: Bounded Approximation Soundness"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "That syntax is a design sketch only."
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "documentation does not call the boundary lossless unless the budget is"
-require_text "docs/semantics/09_abstraction_loss_contracts.md" "Current manifest coverage is 3/5 gate-enforced"
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "Current manifest coverage is 4/5 gate-enforced"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "pass_contract_manifest.md"
 
-require_text "docs/semantics/loss_contract_manifest.md" "5 canonical boundaries, **3 gate-enforced**"
+require_text "docs/semantics/loss_contract_manifest.md" "5 canonical boundaries, **4 gate-enforced**"
+require_text "docs/semantics/loss_contract_manifest.md" "tests/ast_to_mir_loss_contract_smoke.sh"
 require_text "docs/semantics/loss_contract_manifest.md" "parser_to_ast"
 require_text "docs/semantics/loss_contract_manifest.md" "ast_to_mir"
 require_text "docs/semantics/loss_contract_manifest.md" "mir_to_air"

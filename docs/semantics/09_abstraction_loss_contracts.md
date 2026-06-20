@@ -205,13 +205,12 @@ Every stable abstraction boundary must expose its accepted loss budget.
   `loss_contract_adequacy_smoke.sh` also checks
   `loss_contract_manifest.md`, a machine-readable boundary index that binds
   each canonical boundary to a live compiler stage and, where applicable, a
-  live enforcement gate. Current manifest coverage is 3/5 gate-enforced
-  (`mir_to_air`, `mir_to_backends`, `selfhost_to_oracle`) and 2/5
-  documentation-only (`parser_to_ast`, `ast_to_mir`).
+  live enforcement gate. Current manifest coverage is 4/5 gate-enforced
+  (`ast_to_mir`, `mir_to_air`, `mir_to_backends`, `selfhost_to_oracle`) and
+  1/5 documentation-only (`parser_to_ast`).
 - Remaining obligation: attach explicit contract blocks to each major compiler
-  pass as the self-hosted substitution surface grows, and move
-  `parser_to_ast` / `ast_to_mir` from documentation-only to enforced manifest
-  rows.
+  pass as the self-hosted substitution surface grows, and move `parser_to_ast`
+  from documentation-only to an enforced manifest row.
 
 ## Theorem: Preservation Carry
 
