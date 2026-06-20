@@ -81,10 +81,11 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                 LLVMHostedZoneLayerSlotView layer_view =
                     llvm_hosted_zone_layer_slot_view_from_decl(
                         ctx, decl_name, stmt);
+                LLVMHostedZoneStateView state_view =
+                    llvm_hosted_zone_state_view_from_decl(
+                        ctx, decl_name, stmt);
                 refresh_view = llvm_hosted_zone_refresh_view_from_decl(
                     ctx, decl_name, stmt);
-                size_t state_count = 0;
-                (void) ast_zone_states(stmt, &state_count);
                 size_t projection_count =
                     llvm_count_domain_projection_slots_in_zone_refresh_view(
                         &domain_slot_view,
@@ -103,6 +104,13 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                         decl_name);
                     return;
                 }
+                if (llvm_hosted_zone_state_view_missing_mir_metadata(
+                        &state_view)) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing zone state metadata for '%s'",
+                        decl_name);
+                    return;
+                }
                 if (llvm_hosted_zone_refresh_view_missing_mir_metadata(
                         &refresh_view)) {
                     llvm_set_mir_inventory_missing(ctx,
@@ -115,8 +123,8 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                     + layer_view.count
                     + layer_view.count
                     + (layer_view.count * 2)
-                    + state_count
-                    + (state_count * 2)
+                    + state_view.count
+                    + (state_view.count * 2)
                     + (projection_count * 4)
                     + 1;
                 ftypes = pgy_arena_calloc(&ctx->scratch,
@@ -166,9 +174,9 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                     ftypes[idx] = ctx->type_i1;
                 for (size_t j = 0; j < layer_view.count * 2; j++, idx++)
                     ftypes[idx] = ctx->type_i32;
-                for (size_t j = 0; j < state_count; j++, idx++)
+                for (size_t j = 0; j < state_view.count; j++, idx++)
                     ftypes[idx] = ctx->type_i1;
-                for (size_t j = 0; j < state_count * 2; j++, idx++)
+                for (size_t j = 0; j < state_view.count * 2; j++, idx++)
                     ftypes[idx] = ctx->type_i32;
                 for (size_t j = 0; j < domain_slot_count; j++) {
                     if (!llvm_domain_slot_view_is_projection_slot_in_zone_refresh_view(

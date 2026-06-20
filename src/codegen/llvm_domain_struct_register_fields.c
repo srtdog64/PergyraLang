@@ -130,10 +130,10 @@ llvm_domain_struct_register_zone_fields(LLVMGenCtx *ctx,
         llvm_hosted_shared_field_view_from_decl(ctx, decl_name, stmt);
     LLVMHostedZoneLayerSlotView layer_view =
         llvm_hosted_zone_layer_slot_view_from_decl(ctx, decl_name, stmt);
+    LLVMHostedZoneStateView state_view =
+        llvm_hosted_zone_state_view_from_decl(ctx, decl_name, stmt);
     LLVMHostedZoneRefreshView refresh_view =
         llvm_hosted_zone_refresh_view_from_decl(ctx, decl_name, stmt);
-    size_t state_count = 0;
-    ASTNode **states = ast_zone_states(stmt, &state_count);
 
     entry->domain_kind = LLVM_DOMAIN_ZONE;
     if (llvm_hosted_domain_slot_view_missing_mir_metadata(&slot_view)) {
@@ -151,6 +151,12 @@ llvm_domain_struct_register_zone_fields(LLVMGenCtx *ctx,
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing zone layer-slot metadata for '%s'",
+            decl_name != NULL ? decl_name : "<anonymous>");
+        return false;
+    }
+    if (llvm_hosted_zone_state_view_missing_mir_metadata(&state_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone state metadata for '%s'",
             decl_name != NULL ? decl_name : "<anonymous>");
         return false;
     }
@@ -229,25 +235,49 @@ llvm_domain_struct_register_zone_fields(LLVMGenCtx *ctx,
                 slot_name))
             return false;
     }
-    for (size_t j = 0; j < state_count; j++, field_index++) {
-        ASTNode *state = states[j];
+    for (size_t j = 0; j < state_view.count; j++, field_index++) {
+        const char *state_name =
+            llvm_hosted_zone_state_view_name(&state_view, j);
+        if (state_name == NULL) {
+            llvm_set_error(ctx,
+                "LLVM zone '%s' state field[%zu] missing MIR state name",
+                decl_name != NULL ? decl_name : "<anonymous>",
+                j);
+            return false;
+        }
         if (!llvm_domain_struct_add_generated_field(ctx, entry,
                 ftypes[field_index], field_index, "state",
-                ast_zone_state_name(state)))
+                state_name))
             return false;
     }
-    for (size_t j = 0; j < state_count; j++, field_index++) {
-        ASTNode *state = states[j];
+    for (size_t j = 0; j < state_view.count; j++, field_index++) {
+        const char *state_name =
+            llvm_hosted_zone_state_view_name(&state_view, j);
+        if (state_name == NULL) {
+            llvm_set_error(ctx,
+                "LLVM zone '%s' state epoch field[%zu] missing MIR state name",
+                decl_name != NULL ? decl_name : "<anonymous>",
+                j);
+            return false;
+        }
         if (!llvm_domain_struct_add_generated_field(ctx, entry,
                 ftypes[field_index], field_index, "state_epoch",
-                ast_zone_state_name(state)))
+                state_name))
             return false;
     }
-    for (size_t j = 0; j < state_count; j++, field_index++) {
-        ASTNode *state = states[j];
+    for (size_t j = 0; j < state_view.count; j++, field_index++) {
+        const char *state_name =
+            llvm_hosted_zone_state_view_name(&state_view, j);
+        if (state_name == NULL) {
+            llvm_set_error(ctx,
+                "LLVM zone '%s' state cause field[%zu] missing MIR state name",
+                decl_name != NULL ? decl_name : "<anonymous>",
+                j);
+            return false;
+        }
         if (!llvm_domain_struct_add_generated_field(ctx, entry,
                 ftypes[field_index], field_index, "state_cause",
-                ast_zone_state_name(state)))
+                state_name))
             return false;
     }
     if (!llvm_domain_add_projection_state_fields_from_zone_refresh_view(ctx,

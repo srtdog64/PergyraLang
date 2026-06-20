@@ -1989,9 +1989,15 @@ fi
 require_term "src/codegen/llvm_domain_struct_register.c" \
     "LLVMHostedZoneLayerSlotView layer_view"
 require_term "src/codegen/llvm_domain_struct_register.c" \
+    "LLVMHostedZoneStateView state_view"
+require_term "src/codegen/llvm_domain_struct_register.c" \
     "llvm_hosted_zone_layer_slot_view_from_decl("
 require_term "src/codegen/llvm_domain_struct_register.c" \
+    "llvm_hosted_zone_state_view_from_decl("
+require_term "src/codegen/llvm_domain_struct_register.c" \
     "llvm_hosted_zone_layer_slot_view_missing_mir_metadata("
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "llvm_hosted_zone_state_view_missing_mir_metadata("
 require_term "src/codegen/llvm_domain_struct_register.c" \
     "llvm_hosted_zone_layer_slot_view_is_pool("
 require_term "src/codegen/llvm_domain_struct_register.c" \
@@ -2002,17 +2008,33 @@ if grep -Fq "ast_zone_layer_slots" \
     "$ROOT_DIR/src/codegen/llvm_domain_struct_register.c"; then
     fail "LLVM zone struct type registration must consume LLVMHostedZoneLayerSlotView"
 fi
+if grep -Fq "ast_zone_states" \
+    "$ROOT_DIR/src/codegen/llvm_domain_struct_register.c"; then
+    fail "LLVM zone struct type registration must consume LLVMHostedZoneStateView"
+fi
 require_term "src/codegen/llvm_domain_struct_register_fields.c" \
     "LLVMHostedZoneLayerSlotView layer_view"
 require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "LLVMHostedZoneStateView state_view"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
     "llvm_hosted_zone_layer_slot_view_from_decl(ctx, decl_name, stmt)"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_zone_state_view_from_decl(ctx, decl_name, stmt)"
 require_term "src/codegen/llvm_domain_struct_register_fields.c" \
     "llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)"
 require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_zone_state_view_missing_mir_metadata(&state_view)"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
     "llvm_hosted_zone_layer_slot_view_name(&layer_view, j)"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_zone_state_view_name(&state_view, j)"
 if grep -Fq "ast_zone_layer_slots" \
     "$ROOT_DIR/src/codegen/llvm_domain_struct_register_fields.c"; then
     fail "LLVM zone struct field registration must consume LLVMHostedZoneLayerSlotView"
+fi
+if grep -Fq "ast_zone_states" \
+    "$ROOT_DIR/src/codegen/llvm_domain_struct_register_fields.c"; then
+    fail "LLVM zone struct field registration must consume LLVMHostedZoneStateView"
 fi
 require_term "src/codegen/llvm_inventory_decl_lookup.h" \
     "LLVMHostedWorldZoneSlotView"
