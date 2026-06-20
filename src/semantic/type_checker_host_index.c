@@ -171,3 +171,27 @@ semantic_host_index_find_top_level_decl_by_label(SemanticContext *ctx,
     }
     return NULL;
 }
+
+ASTNode *
+semantic_host_index_find_next_decl_of_type(SemanticContext *ctx,
+                                           ASTNodeType decl_type,
+                                           const ASTNode *after)
+{
+    bool past_after = after == NULL;
+
+    if (ctx == NULL || ctx->host_decl_index.count == 0)
+        return NULL;
+
+    for (size_t i = 0; i < ctx->host_decl_index.count; i++) {
+        ASTNode *decl = ctx->host_decl_index.decls[i];
+        if (ctx->host_decl_index.types[i] != decl_type)
+            continue;
+        if (!past_after) {
+            if (decl == after)
+                past_after = true;
+            continue;
+        }
+        return decl;
+    }
+    return NULL;
+}

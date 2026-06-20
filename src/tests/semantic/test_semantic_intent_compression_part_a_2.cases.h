@@ -2,7 +2,7 @@
     {
         const char *source =
             "subject Hero {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action Protect(self, healer: Healer) -> Void\n"
             "        within BattleZone\n"
             "        authorized by healer\n"
@@ -64,7 +64,7 @@
     {
         const char *source =
             "subject Hero {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action Protect(self, healer: Healer) -> Void\n"
             "        within BattleZone\n"
             "        authorized by healer\n"
@@ -125,7 +125,7 @@
     {
         const char *source =
             "subject Player {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action Guard(self) -> Void within Arena authorized by self {\n"
             "        return;\n"
             "    }\n"
@@ -187,7 +187,7 @@
     {
         const char *source =
             "subject Player {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action Guard(self) -> Void within Arena authorized by self {\n"
             "        return;\n"
             "    }\n"
@@ -240,7 +240,7 @@
     {
         const char *source =
             "subject Driver {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action Ignite(self) -> Void {\n"
             "        self.hp = self.hp + 1;\n"
             "    }\n"
@@ -300,7 +300,7 @@
     {
         const char *source =
             "subject Driver {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action Ignite(self) -> Void {\n"
             "        self.hp = self.hp + 1;\n"
             "    }\n"

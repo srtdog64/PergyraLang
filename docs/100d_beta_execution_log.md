@@ -3,6 +3,37 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-20 Parser And C Inference Owner Cap Closure
+
+- Parser map/set literal parsing now lives in `parser_expr_map_literal.c`,
+  leaving `parser_expr.c` responsible for expression precedence and primary
+  dispatch rather than brace-literal storage growth.
+- C backend call expression type inference now lives in
+  `transpiler_expr_call_type_infer.c`, leaving
+  `transpiler_expr_type_infer.c` responsible for non-call expression type
+  inference and shared inference arena/type-name utilities.
+- This closes the active production-owner size gate without adding generic
+  helper buckets: `parser_expr.c` is 616 LOC and
+  `transpiler_expr_type_infer.c` is 331 LOC after the split.
+- Verified locally with `test-parser`, `test-transpile`,
+  `semantic-core-shape-test-smoke`, and `test-inc-size-test-smoke`.
+
+## Progress Log - 2026-06-20 Role Lookup Host-Index SoT
+
+- Role declaration iteration now consumes the semantic host declaration index
+  before the legacy program-root compatibility path. The new host-index API
+  owns typed declaration iteration, so role lookup no longer rescans the
+  program root when the semantic graph inventory is present.
+- The type-resolution resolver inventory smoke now gates that role lookup uses
+  `semantic_host_index_find_next_decl_of_type(...)` and that the iteration is
+  explicitly `AST_ROLE_DECL`-typed.
+- Semantic positive fixtures that intentionally mutate fields were updated to
+  spell those fields `let mut`, matching the current language surface instead
+  of weakening immutable-field diagnostics.
+- Verified locally with `test-semantic`,
+  `type-resolution-resolver-inventory-test-smoke`, and
+  `type-resolution-dag-test-smoke`.
+
 ## Progress Log - 2026-06-20 AIR RIR Authority Evidence Counter SoT
 
 - RIR authority summary counting no longer scans raw `RIR_FACT_AUTHORITY` or

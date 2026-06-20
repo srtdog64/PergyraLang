@@ -101,6 +101,24 @@ if grep -RIn 'ability_ref_matches(' src/semantic \
   exit 1
 fi
 
+grep -q 'semantic_host_index_find_next_decl_of_type' \
+  src/semantic/type_checker_host_index.c || {
+  echo "[type-resolution-resolver-inventory] host declaration index must own typed declaration iteration" >&2
+  exit 1
+}
+
+grep -q 'semantic_host_index_find_next_decl_of_type' \
+  src/semantic/type_checker_domain_role_lookup.c || {
+  echo "[type-resolution-resolver-inventory] role lookup must consume host-index declaration iteration before program-root compatibility" >&2
+  exit 1
+}
+
+grep -q 'AST_ROLE_DECL' \
+  src/semantic/type_checker_domain_role_lookup.c || {
+  echo "[type-resolution-resolver-inventory] role lookup host-index iteration must be role-typed" >&2
+  exit 1
+}
+
 if grep -RIn 'resolve_projection_source_field_path(ASTNode' src/semantic >"$bad_direct"; then
   echo "[type-resolution-resolver-inventory] projection path resolver re-exposed a program-root API:" >&2
   cat "$bad_direct" >&2

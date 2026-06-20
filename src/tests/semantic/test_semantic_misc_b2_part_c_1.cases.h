@@ -129,7 +129,7 @@
     {
         const char *source =
             "subject Driver {\n"
-            "    let started: Bool;\n"
+            "    let mut started: Bool;\n"
             "    action Ignite(self) -> Void {\n"
             "        self.started = true;\n"
             "    }\n"
@@ -350,7 +350,7 @@
     TEST("zone projection diagnostic includes reason and fix");
     {
         const char *source =
-            "subject Player { let hp: Int; }\n"
+            "subject Player { let mut hp: Int; }\n"
             "object PlayerView { hp: Int; }\n"
             "zone BattleZone {\n"
             "    subject slot player: Player\n"
@@ -390,7 +390,7 @@
     TEST("zone publish projection diagnostic includes source provenance reason and fix");
     {
         const char *source =
-            "subject Player { let hp: Int; }\n"
+            "subject Player { let mut hp: Int; }\n"
             "object PlayerView { hp: Int; }\n"
             "zone BattleZone {\n"
             "    subject slot player: Player\n"

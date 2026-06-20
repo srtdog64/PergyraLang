@@ -2,7 +2,7 @@
     {
         const char *source =
             "class Vec2 {\n"
-            "    let x: Int;\n"
+            "    let mut x: Int;\n"
             "}\n"
             "func Main() -> Void {\n"
             "    let a: Vec2 = Vec2();\n"

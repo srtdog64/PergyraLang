@@ -207,6 +207,9 @@ ASTNode *semantic_host_index_find_top_level_decl_by_label(
     SemanticContext *ctx,
     const char *label,
     TypeResolutionNodeKind kind);
+ASTNode *semantic_host_index_find_next_decl_of_type(SemanticContext *ctx,
+                                                    ASTNodeType decl_type,
+                                                    const ASTNode *after);
 ASTNode *semantic_find_type_alias_decl_by_name(SemanticContext *ctx,
                                                const char *name);
 ASTNode *semantic_find_zone_decl_by_name(SemanticContext *ctx,

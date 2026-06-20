@@ -79,8 +79,8 @@
     TEST("zone effect contract mismatch includes provenance reason and fix");
     {
         const char *source =
-            "subject Hero { let hp: Int; }\n"
-            "subject Monster { let hp: Int; }\n"
+            "subject Hero { let mut hp: Int; }\n"
+            "subject Monster { let mut hp: Int; }\n"
             "effect Poison {\n"
             "    subject slot target: Hero\n"
             "}\n"
@@ -126,8 +126,8 @@
     TEST("zone relation contract mismatch includes provenance reason and fix");
     {
         const char *source =
-            "subject Hero { let hp: Int; }\n"
-            "subject Villain { let hp: Int; }\n"
+            "subject Hero { let mut hp: Int; }\n"
+            "subject Villain { let mut hp: Int; }\n"
             "relation Rivalry {\n"
             "    subject slot left: Hero\n"
             "    subject slot right: Hero\n"
@@ -178,7 +178,7 @@
             "/// @effects secure\n"
             "func Gate() -> Bool { return true; }\n"
             "subject Driver {\n"
-            "    let started: Bool;\n"
+            "    let mut started: Bool;\n"
             "    action Ignite(self) -> Void { self.started = true; }\n"
             "}\n"
             "zone CockpitZone {\n"
@@ -232,7 +232,7 @@
     {
         const char *source =
             "subject Driver {\n"
-            "    let started: Bool;\n"
+            "    let mut started: Bool;\n"
             "    action Ignite(self) -> Void within CockpitZone causes Started {\n"
             "        self.started = true;\n"
             "    }\n"
@@ -292,7 +292,7 @@
     {
         const char *source =
             "subject Driver {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action Ignite(self) -> Void { hp = hp + 1; }\n"
             "}\n"
             "zone CockpitZone {\n"
@@ -330,7 +330,7 @@
     {
         const char *source =
             "subject Driver {\n"
-            "    let started: Bool;\n"
+            "    let mut started: Bool;\n"
             "    action Ignite(self) -> Void { self.started = true; }\n"
             "    action RollbackIgnite(self) -> Void { self.started = false; }\n"
             "}\n"
@@ -409,7 +409,7 @@
     {
         const char *source =
             "subject Buyer {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action Promote(self) -> Void { hp = hp + 1; }\n"
             "}\n"
             "zone CartZone {\n"

@@ -6,7 +6,7 @@ test_intent_compression_semantics(void)
     TEST("intent step derives who from single subject participant");
     {
         const char *source =
-            "subject Player { let hp: Int; }\n"
+            "subject Player { let mut hp: Int; }\n"
             "effect Marked for bearer: Player {\n"
             "    subject slot bearer: Player\n"
             "}\n"
@@ -61,7 +61,7 @@ test_intent_compression_semantics(void)
     TEST("intent step keeps who explicit when subject participant is ambiguous");
     {
         const char *source =
-            "subject Player { let hp: Int; }\n"
+            "subject Player { let mut hp: Int; }\n"
             "effect Marked for bearer: Player {\n"
             "    subject slot bearer: Player\n"
             "}\n"
@@ -113,7 +113,7 @@ test_intent_compression_semantics(void)
     {
         const char *source =
             "subject Player {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action Guard(self) -> Void within Arena authorized by self {\n"
             "        return;\n"
             "    }\n"
@@ -170,7 +170,7 @@ test_intent_compression_semantics(void)
     {
         const char *source =
             "subject Player {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action Guard(self) -> Void within Arena authorized by self {\n"
             "        return;\n"
             "    }\n"
@@ -232,7 +232,7 @@ test_intent_compression_semantics(void)
             "    func Ready() -> Bool;\n"
             "}\n"
             "subject Hero {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action Guard(self) -> Void\n"
             "        requires Prepared\n"
             "        within BattleZone\n"
@@ -307,7 +307,7 @@ test_intent_compression_semantics(void)
     {
         const char *source =
             "subject Hero {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action Protect(self, healer: Healer) -> Void\n"
             "        within BattleZone\n"
             "        authorized by healer\n"

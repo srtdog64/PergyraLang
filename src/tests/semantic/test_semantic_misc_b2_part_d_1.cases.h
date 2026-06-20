@@ -2,7 +2,7 @@
     {
         const char *source =
             "subject Buyer {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action Promote(self) -> Void { hp = hp + 1; }\n"
             "}\n"
             "zone CartZone {\n"
@@ -37,7 +37,7 @@
     {
         const char *source =
             "subject Buyer {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action Promote(self) -> Void { hp = hp + 1; }\n"
             "}\n"
             "zone CartZone {\n"
@@ -73,7 +73,7 @@
         const char *source =
             "ability DriverCap { func Ping() -> Void; }\n"
             "subject Driver {\n"
-            "    let started: Bool;\n"
+            "    let mut started: Bool;\n"
             "    action Ignite(self) -> Void\n"
             "        requires DriverCap\n"
             "        within CockpitZone\n"
@@ -139,7 +139,7 @@
             "    func Ready() -> Bool;\n"
             "}\n"
             "subject Hero {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action Guard(self) -> Void\n"
             "        requires Prepared\n"
             "        within BattleZone\n"
@@ -222,7 +222,7 @@
     {
         const char *source =
             "subject Hero {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action Guard(self) -> Void\n"
             "        within BattleZone\n"
             "        authorized by self {\n"
@@ -280,7 +280,7 @@
     {
         const char *source =
             "subject Hero {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action Guard(self) -> Void {\n"
             "        self.hp = self.hp + 1;\n"
             "    }\n"
@@ -333,7 +333,7 @@
     {
         const char *source =
             "subject Hero {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action Guard(self) -> Void {\n"
             "        self.hp = self.hp + 1;\n"
             "    }\n"
@@ -397,7 +397,7 @@
     {
         const char *source =
             "subject Hero {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "}\n"
             "zone BattleZone {\n"
             "    subject slot hero: Hero\n"
@@ -431,7 +431,7 @@
     {
         const char *source =
             "subject Buyer {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action Promote(self) -> Void { hp = hp + 1; }\n"
             "}\n"
             "zone CartZone {\n"

@@ -2,7 +2,7 @@
     {
         const char *source =
             "subject Player {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action pay(self) -> Void { return; }\n"
             "}\n"
             "zone PaymentZone {\n"
@@ -36,7 +36,7 @@
     {
         const char *source =
             "subject Player {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action Fight(self) -> Void { return; }\n"
             "}\n"
             "subject Merchant {\n"
@@ -79,7 +79,7 @@
     {
         const char *source =
             "subject Driver {\n"
-            "    let started: Bool;\n"
+            "    let mut started: Bool;\n"
             "    action Ignite(self) -> Void { self.started = true; }\n"
             "}\n"
             "zone CockpitZone {\n"
@@ -121,7 +121,7 @@
     {
         const char *source =
             "subject Buyer {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action Pay(self) -> Void { return; }\n"
             "}\n"
             "struct PriceQuote {\n"
@@ -163,7 +163,7 @@
         const char *source =
             "ability Payable { func Pay() -> Void; }\n"
             "subject Player {\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    action Pay(self) -> Void\n"
             "        requires Payable\n"
             "        within PaymentZone\n"
@@ -212,7 +212,7 @@
             "/// @effects secure\n"
             "func Gate() -> Bool { return true; }\n"
             "subject Driver {\n"
-            "    let started: Bool;\n"
+            "    let mut started: Bool;\n"
             "    action Ignite(self) -> Void\n"
             "        within CockpitZone {\n"
             "        self.started = true;\n"
@@ -253,7 +253,7 @@
     {
         const char *source =
             "subject Driver {\n"
-            "    let started: Bool;\n"
+            "    let mut started: Bool;\n"
             "}\n"
             "zone CockpitZone {\n"
             "    subject slot driver: Driver\n"
@@ -312,7 +312,7 @@
     {
         const char *source =
             "subject Driver {\n"
-            "    let started: Bool;\n"
+            "    let mut started: Bool;\n"
             "    action CanStart(self) -> Bool within CockpitZone authorized by self {\n"
             "        return true;\n"
             "    }\n"
@@ -355,7 +355,7 @@
     {
         const char *source =
             "subject Driver {\n"
-            "    let started: Bool;\n"
+            "    let mut started: Bool;\n"
             "}\n"
             "subject Passenger {\n"
             "    let seated: Bool;\n"

@@ -16,7 +16,7 @@ test_subject_class_ownership(void)
             "subject Player {\n"
             "    let name: String;\n"
             "    let weapon: Item;\n"
-            "    let hp: Int;\n"
+            "    let mut hp: Int;\n"
             "    func ShowWeapon(self) -> String {\n"
             "        return name + \" holds \" + weapon.Info();\n"
             "    }\n"

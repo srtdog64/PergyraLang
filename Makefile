@@ -316,6 +316,7 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/parser_expr.c \
                    $(PARSER_DIR)/parser_expr_call_args.c \
                    $(PARSER_DIR)/parser_expr_lambda.c \
+                   $(PARSER_DIR)/parser_expr_map_literal.c \
                    $(PARSER_DIR)/parser_expr_postfix.c \
                    $(PARSER_DIR)/parser_expr_string.c \
                    $(PARSER_DIR)/parser_expr_util.c \
@@ -636,6 +637,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_call_member_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_call_spawn_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_core_emit.c \
+                   $(CODEGEN_DIR)/transpiler_expr_call_type_infer.c \
                    $(CODEGEN_DIR)/transpiler_expr_composite_literal_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_dispatch_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_dispatch_operand.c \

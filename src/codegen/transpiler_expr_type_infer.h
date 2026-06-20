@@ -5,6 +5,13 @@
 
 const char *transpiler_expr_infer_type_name(TranspilerCtx *ctx,
                                             ASTNode *expr);
+const char *transpiler_infer_arena_copy_type_name(TranspilerCtx *ctx,
+                                                  const char *type_name);
+const char *transpiler_infer_arena_format_type_name(TranspilerCtx *ctx,
+                                                    const char *prefix,
+                                                    const char *inner);
+const char *transpiler_infer_slot_inner_type_name(TranspilerCtx *ctx,
+                                                  const char *type_name);
 
 /*
  * Compatibility name for the remaining implementation-header consumers.

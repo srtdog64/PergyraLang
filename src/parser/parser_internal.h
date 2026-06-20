@@ -72,6 +72,7 @@ bool     parser_is_lambda_start(Parser *parser);
 ASTNode *parse_lambda_expression(Parser *parser);
 ASTNode *parse_pipe_lambda_expression(Parser *parser);
 bool parser_generic_call_args_ahead(Parser *parser);
+ASTNode *parse_map_literal_expression(Parser *parser);
 bool     parser_append_expr_node_with_capacity(Parser *parser,
                                                ASTNode ***items,
                                                size_t *count,
