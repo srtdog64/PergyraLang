@@ -57,6 +57,29 @@
 - self-host 툴 무회귀.
 - `{}`→Set 전환 시 코퍼스 빈-맵 사용 재확인 (현재 0).
 
+## 구현 상태
+
+- **증분 1a — Set 리터럴 front-end: 완료** (커밋 `3c973c60`). `AST_SET_LITERAL`
+  노드 + 파서 disambiguation(`{}`=Set, `{:}`=Map, 콜론 peek) + `type_check_set_
+  literal`(Set<T>) + printer. `pgy --ast`로 검증, 기존 map 무회귀(빈 `{}` 마이그
+  레이션 0). 의미분석 통과, codegen만 미지원(node type 28).
+- **증분 1b — Set 리터럴 codegen: 미구현 (다음 focused 세션).** findings:
+  - Set 런타임 **이미 존재**: `pgy_set_new_*` / `pgy_set_add_<suffix>`
+    (요소 타입별; `pgy_set_add_string`/`_raw`, `PgySetRaw`).
+  - 따라서 codegen = `SetNew()`+`SetAdd()` 빌트인이 lower하는 것과 **같은 경로**.
+    map 리터럴 방출(`transpiler_expr_composite_literal_emit.c`
+    `emit_map_literal_expression`)을 mirror: `({ T s = pgy_set_new_*();
+    pgy_set_add_<suffix>(&s, e); ...; s; })`. suffix 해석은 SetAdd 빌트인
+    (`transpiler_expr_stdlib_collection_builtin.c`)의 set-inner 해석 재사용.
+  - 손댈 파일(전부 현재 clean, 당신 active set 무충돌 — 단 LLVM 쪽은 작업 전
+    재확인): C = `transpiler_expr_composite_literal_emit.c`(+dispatch
+    `transpiler_expr_dispatch_emit.c`, type-infer `transpiler_expr_type_infer.c`);
+    LLVM = `llvm_expr.c` dispatch+emit, `llvm_stmt_type_infer.c`
+    (`Set<` expected-type, map의 `HashMap<` 케이스 mirror).
+  - **C==LLVM parity 게이트 필수** (abstraction portability). fixture로 set 리터럴
+    추가.
+- **증분 2 — 다형 시퀀스 `[...]`→List/Queue: 미구현.** (위 설계 §2단 규칙.)
+
 ## 미결 (구현 중 결정)
 
 - List vs Queue의 런타임 표현이 충분히 구분되는가 (둘 다 시퀀스). 다형 시퀀스가
