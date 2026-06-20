@@ -535,13 +535,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                 return;
             break;
         case MIR_INST_DESTRUCTURE:
-            if (source_payload == NULL
-                || source_payload->type != AST_LET_DESTRUCTURE) {
-                llvm_set_mir_topology_invalid(ctx,
-                    "LLVM MIR DESTRUCTURE instruction missing destructure payload");
-                return;
-            }
-            llvm_emit_let_destructure_stmt(source_payload, ctx);
+            llvm_emit_mir_destructure_inst(inst, ctx);
             break;
         case MIR_INST_ASSIGN:
             if (source_payload == NULL || source_payload->type != AST_ASSIGNMENT) {

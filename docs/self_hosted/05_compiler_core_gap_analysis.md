@@ -83,8 +83,9 @@ MIR `expr1` type annotations instead of recovering local-decl payloads. C SSA
 local type/view registration now consumes MIR destructure binding-name/index
 facts instead of reopening destructure statement payloads, and C MIR
 destructure emission consumes `inst->expr0` plus those binding facts instead of
-the source destructure statement. The remaining capability-5 tail is LLVM
-destructure emission shape/initializer handling plus selected validation and
+the source destructure statement. LLVM MIR destructure emission now consumes the
+same initializer and binding facts through `llvm_emit_mir_destructure_inst`.
+The remaining capability-5 tail is selected assignment, validation, and
 diagnostic reads still backed by
 `mir_instruction_source_payload`; LLVM for-in and with-slot resource-claim
 diagnostics have already moved to MIR expression anchors. The remaining reads

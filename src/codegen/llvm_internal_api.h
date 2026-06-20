@@ -346,6 +346,8 @@ bool          llvm_stmt_require_non_void_value(LLVMGenCtx *ctx,
 LLVMTypeRef   llvm_stmt_resolve_array_elem_type(LLVMGenCtx *ctx, ASTNode *expr,
                                                 LLVMValueRef data_ptr);
 void          llvm_emit_let_destructure_stmt(ASTNode *node, LLVMGenCtx *ctx);
+void          llvm_emit_mir_destructure_inst(const MIRInstruction *inst,
+                                             LLVMGenCtx *ctx);
 LLVMClassTypeEntry *llvm_stmt_lookup_class_by_type(LLVMGenCtx *ctx,
                                                    LLVMTypeRef type);
 const char   *llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx,

@@ -255,6 +255,9 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_stmt_population_source.c" "inst.kind = MIR_INST_ASSIGN"
     require_literal "src/codegen/transpiler_mir_destructure_emit.h" "const MIRInstruction *inst"
     require_literal "src/codegen/transpiler_mir_block_emit.c" "DESTRUCTURE instruction missing MIR destructure facts"
+    require_literal "src/codegen/llvm_internal_api.h" "llvm_emit_mir_destructure_inst"
+    require_literal "src/codegen/llvm_stmt_destructure.c" "llvm_emit_mir_destructure_inst"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_emit_mir_destructure_inst(inst, ctx)"
     require_literal "src/compiler/mir_stmt_population.c" "mir_make_destructure_instruction"
     require_literal "src/compiler/mir_stmt_population.c" "mir_make_assignment_instruction"
     require_literal "src/compiler/mir_non_cfg_stmt_population.c" "mir_make_destructure_instruction(NULL"
@@ -420,6 +423,15 @@ run_literal_doc_contract_smoke() {
     if grep -Fq -- "llvm_mir_emit_select_dispatch_condition(source_payload" \
         "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"; then
         echo "LLVM MIR select dispatch must pass the branch instruction, not source payload" >&2
+        exit 1
+    fi
+    if awk '
+        /case MIR_INST_DESTRUCTURE:/ { in_case=1; next }
+        in_case && /case MIR_INST_ASSIGN:/ { in_case=0 }
+        in_case && /source_payload/ { bad=1 }
+        END { exit bad ? 0 : 1 }
+    ' "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"; then
+        echo "LLVM MIR destructure emission must consume MIR destructure facts, not source payload" >&2
         exit 1
     fi
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_emit_select_dispatch_condition("

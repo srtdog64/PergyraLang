@@ -2425,6 +2425,17 @@ grep -Fq "mir_instruction_uses_source_statement_emit(inst)" "$ROOT_DIR/src/codeg
 grep -Fq "llvm_mir_emit_channel_receive_def(inst, ctx" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_mir_declare_recv_target(inst->arg0, inst->expr0, ctx)" "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
 grep -Fq "LLVM channel receive DEF requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
+grep -Fq "llvm_emit_mir_destructure_inst" "$ROOT_DIR/src/codegen/llvm_internal_api.h"
+grep -Fq "llvm_emit_mir_destructure_inst(inst, ctx)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+if awk '
+    /case MIR_INST_DESTRUCTURE:/ { in_case=1; next }
+    in_case && /case MIR_INST_ASSIGN:/ { in_case=0 }
+    in_case && /source_payload/ { bad=1 }
+    END { exit bad ? 0 : 1 }
+    ' "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"; then
+    echo "[perf-contract] LLVM MIR destructure emission must consume MIR destructure facts, not source payload" >&2
+    exit 1
+fi
 grep -Fq "LLVM MIR STMT source-payload emission is retired" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 if grep -A44 -F "case MIR_INST_STMT:" \
     "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" | \

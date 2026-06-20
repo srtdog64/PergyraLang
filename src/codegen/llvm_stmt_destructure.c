@@ -1,14 +1,28 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 
-void
-llvm_emit_let_destructure_stmt(ASTNode *node, LLVMGenCtx *ctx)
+static const char *
+llvm_destructure_binding_name(const MIRInstruction *inst,
+                              ASTNode *node,
+                              size_t index)
+{
+    if (inst != NULL)
+        return mir_instruction_destructure_binding_name_at(inst, index);
+    return ast_let_destructure_name(node, index);
+}
+
+static void
+llvm_emit_destructure_parts(ASTNode *init,
+                            ASTNode *diagnostic_node,
+                            const MIRInstruction *inst,
+                            ASTNode *node,
+                            size_t binding_count,
+                            LLVMGenCtx *ctx)
 {
     /* let (a, b, c) = expr;
      * Two shapes supported:
      *   1) Tuple: struct { T0, T1, ... } -> ExtractValue per field.
      *   2) Array-like: struct { T* data, i64 size, i64 cap } -> GEP + load. */
-    ASTNode *init = ast_let_destructure_initializer(node);
     if (init == NULL)
         return;
     LLVMValueRef rhs_val = llvm_emit_expression(init, ctx);
@@ -33,17 +47,18 @@ llvm_emit_let_destructure_stmt(ASTNode *node, LLVMGenCtx *ctx)
      * the first field for `data`). */
     unsigned field_count = LLVMCountStructElementTypes(rhs_ty);
     bool is_tuple = false;
-    if (field_count == (unsigned)ast_let_destructure_name_count(node)) {
+    if (field_count == (unsigned)binding_count) {
         LLVMTypeRef f0 = LLVMStructGetTypeAtIndex(rhs_ty, 0);
         if (f0 != NULL && LLVMGetTypeKind(f0) != LLVMPointerTypeKind)
             is_tuple = true;
     }
 
     if (is_tuple) {
-        for (size_t i = 0; i < ast_let_destructure_name_count(node); i++) {
-            const char *bname = ast_let_destructure_name(node, i);
+        for (size_t i = 0; i < binding_count; i++) {
+            const char *bname =
+                llvm_destructure_binding_name(inst, node, i);
             if (bname == NULL) {
-                llvm_set_error_at_with_hints(ctx, node,
+                llvm_set_error_at_with_hints(ctx, diagnostic_node,
                     PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                     PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                     PGY_FIX_INSPECT_MIR_INVENTORY,
@@ -67,10 +82,10 @@ llvm_emit_let_destructure_stmt(ASTNode *node, LLVMGenCtx *ctx)
         ctx, init, data_ptr);
     if (elem_type == NULL)
         return;
-    for (size_t i = 0; i < ast_let_destructure_name_count(node); i++) {
-        const char *bname = ast_let_destructure_name(node, i);
+    for (size_t i = 0; i < binding_count; i++) {
+        const char *bname = llvm_destructure_binding_name(inst, node, i);
         if (bname == NULL) {
-            llvm_set_error_at_with_hints(ctx, node,
+            llvm_set_error_at_with_hints(ctx, diagnostic_node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_INSPECT_MIR_INVENTORY,
@@ -88,5 +103,40 @@ llvm_emit_let_destructure_stmt(ASTNode *node, LLVMGenCtx *ctx)
         LLVMBuildStore(ctx->builder, val, alloca);
         llvm_scope_declare(ctx, pergyra_strdup(bname), alloca, elem_type);
     }
+}
+
+void
+llvm_emit_let_destructure_stmt(ASTNode *node, LLVMGenCtx *ctx)
+{
+    if (node == NULL || node->type != AST_LET_DESTRUCTURE)
+        return;
+    llvm_emit_destructure_parts(ast_let_destructure_initializer(node),
+                                node,
+                                NULL,
+                                node,
+                                ast_let_destructure_name_count(node),
+                                ctx);
+}
+
+void
+llvm_emit_mir_destructure_inst(const MIRInstruction *inst, LLVMGenCtx *ctx)
+{
+    if (inst == NULL || inst->kind != MIR_INST_DESTRUCTURE) {
+        llvm_set_mir_topology_invalid(ctx,
+            "LLVM MIR DESTRUCTURE instruction missing MIR destructure facts");
+        return;
+    }
+    if (inst->expr0 == NULL
+        || mir_instruction_destructure_binding_count(inst) == 0) {
+        llvm_set_mir_topology_invalid(ctx,
+            "LLVM MIR DESTRUCTURE instruction missing MIR destructure facts");
+        return;
+    }
+    llvm_emit_destructure_parts(inst->expr0,
+                                inst->expr0,
+                                inst,
+                                NULL,
+                                mir_instruction_destructure_binding_count(inst),
+                                ctx);
 }
 #endif /* PGY_LLVM_ENABLED */
