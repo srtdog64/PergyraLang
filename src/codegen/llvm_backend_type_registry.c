@@ -83,14 +83,13 @@ llvm_registry_type_kind(const char *type_name)
         return LLVM_REGISTRY_TYPE_ARRAY;
     if (pgy_kind == PGY_TK_SLICE)
         return LLVM_REGISTRY_TYPE_SLICE;
-
-    if (strncmp(type_name, "HashMap<", 8) == 0)
+    if (pgy_kind == PGY_TK_HASHMAP)
         return LLVM_REGISTRY_TYPE_HASHMAP;
-    if (strncmp(type_name, "List<", 5) == 0)
+    if (pgy_kind == PGY_TK_LIST)
         return LLVM_REGISTRY_TYPE_LIST;
-    if (strncmp(type_name, "Queue<", 6) == 0)
+    if (pgy_kind == PGY_TK_QUEUE)
         return LLVM_REGISTRY_TYPE_QUEUE;
-    if (strncmp(type_name, "Set<", 4) == 0)
+    if (pgy_kind == PGY_TK_SET)
         return LLVM_REGISTRY_TYPE_SET;
 
     spec = (const LLVMRegistryTypeSpec *)bsearch(&type_name,

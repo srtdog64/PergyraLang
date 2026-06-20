@@ -31,7 +31,10 @@ pgy_classify_type(const char *type_name)
 
     switch (type_name[0]) {
     case 'I': if (strcmp(type_name, "Int") == 0)        return PGY_TK_INT;        break;
-    case 'L': if (strcmp(type_name, "Long") == 0)       return PGY_TK_LONG;       break;
+    case 'L':
+        if (strcmp(type_name, "Long") == 0)             return PGY_TK_LONG;
+        if (strncmp(type_name, "List<", 5) == 0)        return PGY_TK_LIST;
+        break;
     case 'F':
         if (strcmp(type_name, "Float") == 0)            return PGY_TK_FLOAT;
         if (strcmp(type_name, "Future") == 0)           return PGY_TK_FUTURE;
@@ -51,9 +54,16 @@ pgy_classify_type(const char *type_name)
         if (strcmp(type_name, "Slot") == 0)             return PGY_TK_SLOT;
         if (strncmp(type_name, "SecureSlot<", 11) == 0) return PGY_TK_SECURE_SLOT;
         if (strncmp(type_name, "Slice<", 6) == 0)       return PGY_TK_SLICE;
+        if (strncmp(type_name, "Set<", 4) == 0)         return PGY_TK_SET;
         break;
     case 'V': if (strcmp(type_name, "Void") == 0)       return PGY_TK_VOID;       break;
-    case 'Q': if (strcmp(type_name, "QubitSlot") == 0)  return PGY_TK_QUBIT_SLOT; break;
+    case 'H':
+        if (strncmp(type_name, "HashMap<", 8) == 0)     return PGY_TK_HASHMAP;
+        break;
+    case 'Q':
+        if (strcmp(type_name, "QubitSlot") == 0)        return PGY_TK_QUBIT_SLOT;
+        if (strncmp(type_name, "Queue<", 6) == 0)       return PGY_TK_QUEUE;
+        break;
     case 'R':
         if (pgy_codegen_type_name_is_read_view(type_name)) return PGY_TK_SLOT;
         if (strcmp(type_name, "RemoteFuture") == 0) return PGY_TK_REMOTE_FUTURE;

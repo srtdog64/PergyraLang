@@ -614,6 +614,7 @@ main() {
         "tests/cases/backend_compare/generic_identity_multi"
         "tests/cases/backend_compare/generic_class_method"
         "tests/cases/backend_compare/set_string_ops"
+        "tests/cases/backend_compare/sequence_literal_list_queue"
         "tests/cases/backend_compare/class_method_self_access"
         "tests/cases/backend_compare/class_chain_methods"
         "tests/cases/backend_compare/class_method_enum_classify"

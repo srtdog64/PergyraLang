@@ -1250,7 +1250,11 @@ require_term "src/codegen/llvm_mir_local_emit.c" \
 require_term "src/codegen/llvm_mir_local_emit.c" \
     "local_type = llvm_mir_local_type_from_source_fact(routine, ctx, name);"
 require_term "src/codegen/llvm_mir_block_emit.c" \
-    "assignment_target_name = ast_identifier_name(inst->expr1)"
+    "llvm_mir_local_expected_type_name(routine, inst, NULL)"
+if grep -Fq "ast_identifier_name(inst->expr1)" \
+    "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"; then
+    fail "LLVM MIR expected-type resolution must not reopen AST assignment target names"
+fi
 require_term "src/codegen/llvm_mir_block_emit.c" \
     "llvm_mir_local_expected_type_name(routine, inst"
 require_each_following_term "src/codegen/llvm_mir_local_emit.c" \

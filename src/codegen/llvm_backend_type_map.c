@@ -397,39 +397,6 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
     if (strcmp(type_name, "PgyError") == 0)
         return ctx->type_i8ptr;
 
-    if (strncmp(type_name, "List<", 5) == 0) {
-        char inner_buf[256];
-        if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 0,
-                "List<T>", inner_buf, sizeof(inner_buf))) {
-            return NULL;
-        }
-        return llvm_list_struct_type(ctx, inner_buf);
-    }
-    if (strncmp(type_name, "Set<", 4) == 0) {
-        char inner_buf[256];
-        if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 0,
-                "Set<T>", inner_buf, sizeof(inner_buf))) {
-            return NULL;
-        }
-        return llvm_set_struct_type(ctx, inner_buf);
-    }
-    if (strncmp(type_name, "Queue<", 6) == 0) {
-        char inner_buf[256];
-        if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 0,
-                "Queue<T>", inner_buf, sizeof(inner_buf))) {
-            return NULL;
-        }
-        return llvm_queue_struct_type(ctx, inner_buf);
-    }
-    if (strncmp(type_name, "HashMap<", 8) == 0) {
-        char value_buf[256];
-        if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 1,
-                "HashMap<K, V>", value_buf, sizeof(value_buf))) {
-            return NULL;
-        }
-        return llvm_hashmap_struct_type(ctx, value_buf);
-    }
-
     /* Check active type substitution (monomorphization) first */
     for (int i = 0; i < ctx->type_subst_count; i++) {
         if (strcmp(type_name, ctx->type_subst[i].param_name) == 0)
@@ -575,6 +542,38 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
             return NULL;
         }
         return llvm_slice_struct_type(ctx, inner_buf);
+    }
+    case PGY_TK_LIST: {
+        char inner_buf[256];
+        if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 0,
+                "List<T>", inner_buf, sizeof(inner_buf))) {
+            return NULL;
+        }
+        return llvm_list_struct_type(ctx, inner_buf);
+    }
+    case PGY_TK_SET: {
+        char inner_buf[256];
+        if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 0,
+                "Set<T>", inner_buf, sizeof(inner_buf))) {
+            return NULL;
+        }
+        return llvm_set_struct_type(ctx, inner_buf);
+    }
+    case PGY_TK_QUEUE: {
+        char inner_buf[256];
+        if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 0,
+                "Queue<T>", inner_buf, sizeof(inner_buf))) {
+            return NULL;
+        }
+        return llvm_queue_struct_type(ctx, inner_buf);
+    }
+    case PGY_TK_HASHMAP: {
+        char value_buf[256];
+        if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 1,
+                "HashMap<K, V>", value_buf, sizeof(value_buf))) {
+            return NULL;
+        }
+        return llvm_hashmap_struct_type(ctx, value_buf);
     }
     case PGY_TK_CHANNEL: {
         char inner_buf[256];

@@ -46,17 +46,9 @@ static const char *
 llvm_mir_instruction_expected_type_name(const MIRRoutine *routine,
                                         const MIRInstruction *inst)
 {
-    const char *assignment_target_name = NULL;
-
     if (inst == NULL)
         return NULL;
-    if (mir_instruction_source_is_assignment(inst)
-        && inst->expr1 != NULL
-        && inst->expr1->type == AST_IDENTIFIER) {
-        assignment_target_name = ast_identifier_name(inst->expr1);
-    }
-    return llvm_mir_local_expected_type_name(routine, inst,
-        assignment_target_name);
+    return llvm_mir_local_expected_type_name(routine, inst, NULL);
 }
 
 static ASTNode *

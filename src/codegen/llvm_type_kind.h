@@ -31,6 +31,10 @@ typedef enum
     PGY_TK_WEAK,
     PGY_TK_ARRAY,
     PGY_TK_SLICE,
+    PGY_TK_HASHMAP,
+    PGY_TK_LIST,
+    PGY_TK_QUEUE,
+    PGY_TK_SET,
     PGY_TK_CLASS,
     PGY_TK_UNKNOWN
 } PgyTypeKind;

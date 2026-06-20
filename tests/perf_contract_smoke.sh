@@ -293,7 +293,7 @@ grep -Fq "llvm_scope_contains(ctx, target_name)" \
     "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
 grep -Fq "llvm_scope_lookup_snapshot(ctx, vname, &var)" \
     "$ROOT_DIR/src/codegen/llvm_stmt.c"
-grep -Fq "llvm_scope_lookup_snapshot(ctx, party_var, &pvar)" \
+grep -Fq "llvm_scope_lookup_snapshot(ctx, party_var, &party_entry)" \
     "$ROOT_DIR/src/codegen/llvm_stmt.c"
 grep -Fq "llvm_scope_lookup_snapshot(ctx, source_name," \
     "$ROOT_DIR/src/codegen/llvm_expr_host_spawn_literal_helpers.c"
@@ -2419,7 +2419,7 @@ grep -Fq "mir_instruction_has_required_branch_lowering_fact(inst)" "$ROOT_DIR/sr
 grep -Fq "llvm_mir_def_uses_source_statement_emit" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_mir_def_uses_source_local_decl_emit" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_mir_def_uses_channel_receive_statement_emit" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
-grep -Fq "llvm_mir_def_uses_select_receive_statement_emit" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "mir_instruction_uses_select_receive_statement_emit(inst)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "mir_instruction_uses_source_local_decl_emit(inst)" "$ROOT_DIR/src/codegen/llvm_mir_source_resource_defs.c"
 ! grep -Fq "source_payload" "$ROOT_DIR/src/codegen/llvm_mir_source_resource_defs.c"
 ! grep -Fq "mir_instruction_source_payload" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
@@ -2726,8 +2726,11 @@ if grep -Fq "ASTNode *value_expr = inst->expr0" "$ROOT_DIR/src/codegen/llvm_mir_
     echo "[perf-contract] LLVM MIR local emit bypassed initializer unwrap fact" >&2
     exit 1
 fi
-grep -Fq "assignment_target_name = ast_identifier_name(inst->expr1)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
-grep -Fq "llvm_mir_local_expected_type_name(routine, inst" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "llvm_mir_local_expected_type_name(routine, inst, NULL)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+if grep -Fq "ast_identifier_name(inst->expr1)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"; then
+    echo "[perf-contract] LLVM MIR expected-type resolution reopened AST assignment target names" >&2
+    exit 1
+fi
 grep -Fq "local_type = llvm_mir_local_type_from_source_fact(routine, ctx, name);" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 grep -Fq "LLVM let binding '%s' requires concrete Array<T>/Slice<T> element metadata" \
     "$ROOT_DIR/src/codegen/llvm_stmt_let_with.c"
@@ -2798,8 +2801,9 @@ grep -Fq "transpiler_array_access_emit_operand" "$ROOT_DIR/src/codegen/transpile
 grep -Fq "C backend: array access could not lower %s expression" "$ROOT_DIR/src/codegen/transpiler_expr_array_access_emit.c"
 ! grep -Fq "return pergyra_strdup(\"0\")" "$ROOT_DIR/src/codegen/transpiler_expr_array_access_emit.c"
 grep -Fq "C tuple literal requires concrete tuple layout metadata" "$ROOT_DIR/src/codegen/transpiler_expr_composite_literal_emit.c"
-grep -Fq "C array literal requires concrete Array<T> element metadata" "$ROOT_DIR/src/codegen/transpiler_expr_composite_literal_emit.c"
+grep -Fq "C sequence literal requires concrete Array/List/Queue<T> element metadata" "$ROOT_DIR/src/codegen/transpiler_expr_composite_literal_emit.c"
 grep -Fq "C tuple literal could not lower element %zu" "$ROOT_DIR/src/codegen/transpiler_expr_composite_literal_emit.c"
+grep -Fq "tests/cases/backend_compare/sequence_literal_list_queue" "$ROOT_DIR/tests/compare_backends.sh"
 grep -Fq "C array literal could not lower element %zu" "$ROOT_DIR/src/codegen/transpiler_expr_composite_literal_emit.c"
 ! grep -Fq "return pergyra_strdup(\"0\")" "$ROOT_DIR/src/codegen/transpiler_expr_composite_literal_emit.c"
 grep -Fq "C slot SSA auto-read requires concrete Slot<T> payload metadata" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"
@@ -3071,10 +3075,22 @@ grep -Fq "llvm_constructed_arg_name_write" "$ROOT_DIR/src/codegen/llvm_backend_t
 grep -A40 -F "len = (size_t)(p - start);" "$ROOT_DIR/src/codegen/llvm_backend_type_render.c" | grep -Fq "return false;"
 grep -Fq "char ok_name_buf[256]" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
 grep -Fq "char err_name_buf[256]" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
-! grep -A8 -F 'strncmp(type_name, "List<", 5)' "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" | grep -Fq "return ctx->type_i32"
-! grep -A8 -F 'strncmp(type_name, "Set<", 4)' "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" | grep -Fq "return ctx->type_i32"
-! grep -A8 -F 'strncmp(type_name, "Queue<", 6)' "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" | grep -Fq "return ctx->type_i32"
-! grep -A8 -F 'strncmp(type_name, "HashMap<", 8)' "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" | grep -Fq "return ctx->type_i32"
+grep -Fq "case PGY_TK_LIST:" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
+grep -Fq "case PGY_TK_SET:" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
+grep -Fq "case PGY_TK_QUEUE:" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
+grep -Fq "case PGY_TK_HASHMAP:" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
+! grep -Fq 'strncmp(type_name, "List<", 5)' "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
+! grep -Fq 'strncmp(type_name, "Set<", 4)' "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
+! grep -Fq 'strncmp(type_name, "Queue<", 6)' "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
+! grep -Fq 'strncmp(type_name, "HashMap<", 8)' "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
+! grep -Fq 'strncmp(ctx->expected_type_name, "List<", 5)' "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
+! grep -Fq 'strncmp(ctx->expected_type_name, "Queue<", 6)' "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
+! grep -Fq 'strncmp(map_type, "HashMap<", 8)' "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
+! grep -Fq 'strncmp(set_type, "Set<", 4)' "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
+! grep -Fq 'strncmp(exp, "List<", 5)' "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+! grep -Fq 'strncmp(exp, "Queue<", 6)' "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+! grep -Fq 'strncmp(ctx->expected_type_name, "HashMap<", 8)' "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+! grep -Fq 'strncmp(ctx->expected_type_name, "Set<", 4)' "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
 ! grep -A16 -F "llvm_resolve_inner_type(LLVMGenCtx *ctx" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" | grep -Fq "return ctx->type_i32"
 ! grep -A8 -F "PGY_TK_OPTION" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" | grep -Fq "return ctx->type_i32"
 grep -Fq "if (ctx->has_error || inner == NULL)" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"

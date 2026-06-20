@@ -1,0 +1,18 @@
+func Main() -> Void {
+    let nums: List<Int> = [3, 4, 5];
+    Log(ListSize(nums));
+    Log(ListGet(nums, 0));
+    Log(ListGet(nums, 2));
+
+    let names: List<String> = ["alpha", "beta"];
+    Log(ListSize(names));
+    Log(ListGet(names, 1));
+
+    let q: Queue<Int> = [7, 8];
+    Log(QueueSize(q));
+    Log(QueuePop(q));
+    Log(QueuePop(q));
+
+    let empty: Queue<String> = [];
+    Log(QueueSize(empty));
+}
