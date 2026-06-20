@@ -459,7 +459,8 @@ if command -v coqc >/dev/null 2>&1; then
     coq_timeout="${PGY_COQ_SMOKE_TIMEOUT_SECONDS:-60}"
     for coq_proof in \
         docs/semantics/proofs/SlotCalculus.v \
-        docs/semantics/proofs/AxisOwnership.v; do
+        docs/semantics/proofs/AxisOwnership.v \
+        docs/semantics/proofs/IntentStepSoundness.v; do
         if command -v timeout >/dev/null 2>&1; then
             (cd "$ROOT_DIR" && timeout "$coq_timeout" coqc "$coq_proof")
         else
