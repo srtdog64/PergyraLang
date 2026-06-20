@@ -69,3 +69,34 @@ rewrite history.
   self-host lexer + a new probe.
 - **Next session**: apply the same oracle-diff method to the parser examples
   drifts (107/119), or add a golden probe for a new oracle dimension.
+
+### 2026-06-20 -- parser examples baseline + strategic finding
+
+- Ran `parser_scale_probe.sh`: **88/121 byte-equal, 23 byte-drift, 9 parser
+  crashes, 1 C-skip**.
+- Categorized the 32 failures (oracle-diff):
+  - **Crashes (9) = missing parser features**, not small drifts:
+    `transaction { ... compensate ... fail }` block (transaction_saga),
+    `parallel`/`spawn` (parallel, structured_comments), `$"`/`f"` interpolated
+    strings (party_system_demo, world_roster_city), `ability`/`role`/`vessel`
+    domain constructs (role_ability_demo, six_item_alignment_demo,
+    vessel_action_design), and a type-inference return (infer_return).
+  - **Byte-drifts (23) = small AST-emission deltas** (e.g. walrus_test: the
+    parser omits a `Returns: Void` line + a blank line).
+- **Key finding**: the self-host parser (`src/self_hosted/parser/main.pgy`, 3356
+  lines) has its OWN tokenizer and does NOT share the self-host lexer, so the
+  lexer's DOC_COMMENT / keyword / interpolated-string fixes do NOT propagate to
+  it. Closing the parser crashes means re-adding those + the block constructs in
+  the parser's own front matter.
+- **Strategic note (read before grinding this)**: per
+  `project_self_host_pause_backend_first`, this text-mirror parser is *throwaway*
+  in the substitution pivot (it is slated to be rewritten to emit *structured
+  AST*, not text). Pushing its byte-exact coverage toward 100% polishes
+  rewrite-bound code. It does still extend the live C/LLVM parity surface, so it
+  is not worthless -- but it is diminishing-returns feature work, and the higher
+  value completion step is the structured-AST rewrite, not more text coverage.
+- **Decision deferred to BDFL** (surfaced, not pre-empted): grind parser text
+  coverage (cheap parity-surface gains, e.g. the 23 small drifts) vs. begin the
+  structured-AST parser rewrite (the real substitution step) vs. a verifier /
+  golden-probe track. Lexer (121/121) was load-bearing and done; parser text
+  coverage is the explicitly-cautioned area.
