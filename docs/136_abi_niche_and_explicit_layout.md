@@ -119,6 +119,21 @@ before the feature is source-visible. In particular, a packed mutable field may
 not be lowered while another live reference can observe or mutate the same
 storage unit unless a later atomic/borrow rule proves that access pattern.
 
+`let mut` and `inout` do not weaken this rule. A partial-width packed field is
+not an addressable lvalue, so it cannot be passed as `inout`, borrowed by
+reference, or treated as a pointer-like bit slice until a dedicated layout
+effect owner proves the read-modify-write sequence. The future negative fixture
+class is explicit: reject `let mut` / `inout` access to partial-width packed
+fields, reject address-like treatment of bit slices, and require the diagnostic
+to name the missing `LayoutFact` owner rather than silently lowering through C
+bitfields.
+
+The future ABI golden class must compare C and LLVM against the same
+`LayoutFact` rows: storage unit type, byte offset, bit offset, bit width, read
+mask, write mask, and shift. Backend output equality alone is not enough; both
+backends must consume the same fact row before source-level bitpacking can be
+enabled.
+
 Slot, SecureSlot, DeviceSlot, Pin, and capability/evidence handles are excluded
 from packing by default. They may become packable only through a dedicated
 layout owner that proves their ABI shape, lifetime behavior, and security
