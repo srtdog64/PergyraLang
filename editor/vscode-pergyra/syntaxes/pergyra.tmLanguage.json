@@ -29,11 +29,19 @@
       "patterns": [
         {
           "name": "keyword.control.pergyra",
-          "match": "\\b(if|else|while|for|in|return|break|continue|match|spawn|await)\\b"
+          "match": "\\b(if|else|while|for|in|return|break|continue|match|case|default|spawn|await|select|parallel|defer|with|as|fail|compensate|collapse|transaction)\\b"
         },
         {
           "name": "keyword.declaration.pergyra",
-          "match": "\\b(let|func|action|use|import)\\b"
+          "match": "\\b(let|func|action|use|import|include|type|enum|namespace|impl|extends|extern|export)\\b"
+        },
+        {
+          "name": "storage.modifier.pergyra",
+          "match": "\\b(mut|ref|dyn|own|unsafe|secure|innate|override|public|private|local|async|remote|nondeterministic|reflect)\\b"
+        },
+        {
+          "name": "constant.language.pergyra",
+          "match": "\\b(true|false)\\b"
         },
         {
           "name": "storage.type.pergyra",

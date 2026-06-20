@@ -10062,6 +10062,30 @@ memory: `project_killer_usecase_dungeon_crawler.md` 와 1:1 일치.
 - `docs/122_managing_intent_drift.md` §4 — falsification 프로토콜 적용
 - memory: `project_killer_usecase_dungeon_crawler.md` — 핵심 동기
 
+## 0b2. Forward Plan — JIT / Hot-Reload (post-beta, 게임 라이브 편집)
+
+**입안일:** 2026-06-20. **상태:** 아이디어 (증분 빌드 논의에서 분리).
+
+**핵심 구분 (혼동 차단):** "증분 빌드(빠른 재빌드)"와 JIT는 *직교*한다. 빠른
+재빌드는 **AOT 증분으로 충분** — content-hash 의존성 그래프(salsa/red-green,
+"git diff식") + 모듈 경계 + 아티팩트 캐시. JIT 불필요. JIT/hot-patch가
+*genuinely 이기는* 자리는 따로 있다: **돌아가는 프로그램의 라이브 편집**.
+
+### 동기 — 킬러 유즈케이스 직결
+웹 던전 크롤러: 값 하나 바꾸면 *재시작 없이* 게임에 즉시 반영, REPL/스크립팅,
+런타임 특화. AOT-증분으로도 한계가 있는 inner loop.
+(memory: `project_killer_usecase_dungeon_crawler`)
+
+### 범위 / 비범위
+- **범위:** 함수 단위 hot-patch, 런타임 재컴파일, 라이브 상태 보존 reload.
+- **비범위:** "빠른 재빌드"는 이 항목 아님 — 별도 *AOT 증분 컴파일* 작업
+  (모듈 경계 + content-hash 아티팩트 캐시; MIR-JSON 직렬화·층상 IR이 이미 유리).
+- LLVM ORC JIT 가 후보 경로 (이미 LLVM C API 사용 중이라 진입 비용 낮음).
+
+### 전제
+- 안정 ABI / 상태 직렬화 경계 (reload 시 살아있는 게임 상태 보존).
+- self-host / beta 이후. 지금은 설계 여지만 유지, 직접 작업 금지.
+
 ## 0c. Forward Plan — Intent-Compress (post-beta priority 0, self-host 직전)
 
 **입안일:** 2026-05-02. **상태:** 계획 (★ Core Goal step 3에 박힘).

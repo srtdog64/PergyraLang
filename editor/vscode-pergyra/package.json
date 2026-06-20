@@ -2,7 +2,7 @@
   "name": "pergyra-lang",
   "displayName": "Pergyra Language",
   "description": "Language support for Pergyra (.pgy)",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "publisher": "pergyra",
   "icon": "icons/pergyra-logo.png",
   "engines": {
