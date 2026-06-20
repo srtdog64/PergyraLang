@@ -2349,7 +2349,7 @@ grep -Fq "MIR validator rejects invalid source-local-decl emit fact" "$ROOT_DIR/
 grep -Fq "source-local-decl-emit" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
 grep -Fq "select-recv-stmt-emit" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
 grep -Fq "source-branch emit fact is invalid" "$ROOT_DIR/src/compiler/mir_fact_terminator_validate.c"
-grep -Fq "MIR validator rejects source-compatible branch without payload" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_h.cases.h"
+grep -Fq "MIR match branch uses captured pattern fact without payload" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_h.cases.h"
 grep -Fq "MIR select dispatch branch uses channel fact without payload" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_h.cases.h"
 ! grep -Fq "mir_instruction_source_payload" "$ROOT_DIR/src/compiler/mir_fact_terminator_validate.c"
 grep -Fq "mir_instruction_branch_requires_source_emit" "$ROOT_DIR/src/compiler/mir_source_shape.c"
@@ -2375,7 +2375,7 @@ grep -Fq "mir_instruction_source_terminator_matches" "$ROOT_DIR/src/compiler/mir
 grep -Fq "mir_instruction_source_matches_ast_type(inst, AST_MATCH_CASE)" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 grep -Fq "mir_instruction_source_matches_ast_type(inst, AST_BLOCK)" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 grep -Fq "mir_instruction_source_stmt_has_side_effect_hint(inst)" "$ROOT_DIR/src/compiler/mir_source_shape.c"
-grep -Fq "mir_instruction_source_payload(inst) != NULL" "$ROOT_DIR/src/compiler/mir_source_shape.c"
+grep -Fq "mir_source_node_type_stmt_has_side_effect_hint" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 if grep -A8 -F "mir_instruction_uses_source_statement_emit" \
     "$ROOT_DIR/src/compiler/mir_source_shape.c" | \
     grep -Fq "mir_instruction_source_payload"; then

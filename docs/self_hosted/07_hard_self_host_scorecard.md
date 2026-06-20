@@ -41,10 +41,10 @@ so C/LLVM no longer parse the select case source payload for dispatch
 conditions. Match-case condition emission now consumes MIR-captured branch
 pattern/guard facts (`match_case_pattern*` and `match_case_guard`) through
 `mir_instruction_match_pattern_*` / `mir_instruction_match_guard`, and C/LLVM
-condition emitters are ratcheted against reopening `mir_instruction_source_payload`.
-The next cut target is the remaining expression/shape tail: match payload/body
-binding and remapping, resource, destructure, and diagnostic body facts are
-still read from source payloads rather than dedicated MIR records.
+condition, body-binding, and remap emitters are ratcheted against reopening
+`mir_instruction_source_payload`. The next cut target is the remaining
+expression/shape tail: destructure and selected validation/diagnostic body
+facts are still read from source payloads rather than dedicated MIR records.
 LLVM source-local resource constructor DEFs now consume MIR expected type-name
 facts for `Channel<T>` and slot-like resources (`Slot<T>`, `SecureSlot<T>`,
 `DeviceSlot<T>`) instead of falling through standalone constructor expression
@@ -100,7 +100,7 @@ ACTIVE means it is on the critical path and still in progress.
 | 2 | Collections + iteration | READY | stdlib_surface_smoke, stage4_determinism_smoke | List/Set/HashMap have stable scalar key forms (String, Int, Long, Bool); MapKeys and SetValues order are locked; compiler-facing symbol/record/handle-like keys are normalized to canonical scalar IDs rather than raw aggregate keys |
 | 3 | String/path/Unicode policy | READY | unicode_policy_smoke, source_utf8_smoke, memory_string_safety_smoke, filesystem_directory_walk_smoke | stable comparison, normalization, and deterministic directory snapshot stance gated |
 | 4 | Arena/ownership ergonomics | READY | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke | `Allocator` is a single C/LLVM-backed value surface, `BoxArray` can consume a named allocator local, scratch/result/persistent lane constructors carry distinct runtime kinds, and `AllocatorDestroy(namedAllocator)` closes explicit pass-lane cleanup on C and LLVM |
-| 5 | CFG/MIR body as SoT | ACTIVE | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; source_ast and source_decl are ratcheted at codegen 0 / compiler 0; residual STMT source-payload emission and raw source-statement re-dispatch are retired; select and match condition emission consume MIR branch facts; resource mirror identity is source-statement-index based; selected source-payload expression/shape reads remain |
+| 5 | CFG/MIR body as SoT | ACTIVE | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; source_ast and source_decl are ratcheted at codegen 0 / compiler 0; residual STMT source-payload emission and raw source-statement re-dispatch are retired; select and match condition/body-binding/remap emission consume MIR branch facts; resource matching uses source-index/location/anchor facts; selected source-payload expression/shape reads remain |
 | 6 | AIR as verifier | READY | air_json_schema_smoke, air_drift_smoke, air_backend_nonimpact_smoke | pgy.air.graph.v1 evidence export gated; drift count enforced at 0 |
 | 7 | DAG type resolution SoT | READY | type_resolution_dag_smoke, type_resolution_resolver_inventory_smoke | recursive resolver compat path retired; metadata_dead_ends enforced at 0 |
 | 8 | Scoped unsafe/raw escape | READY | raw_escape_contract_smoke | unsafe is scoped and capability-bound; raw pointers gated out of domain code |
@@ -115,12 +115,14 @@ non_cfg body facts come from MIR and are locked at zero fallback, backend and
 compiler source_ast/source_decl readers are locked at zero, residual STMT
 source-payload emission and raw source-statement re-dispatch are retired,
 source-statement / LLVM DEF emit predicates consume MIR facts, C/LLVM residual
-STMT branches consume MIR source-shape/`expr0` facts, resource mirror identity
-is MIR source-statement-index based, select dispatch consumes MIR branch
-`expr0` channel facts, match condition emission consumes MIR branch
-pattern/guard facts, and the self-hosted checker proves the same manifest.
-The remaining match payload/body binding, resource, destructure, and diagnostic
-payload tail must be cut before this row can honestly return to READY.
+STMT branches consume MIR source-shape/`expr0` facts, resource matching is MIR
+source-statement-index/location/anchor based, select dispatch consumes MIR branch
+`expr0` channel facts, match condition/body-binding/remap emission consumes MIR
+branch pattern/guard facts, and resource-op source-statement matching uses
+source-location, source-index, and anchor facts rather than payload pointer
+identity. The self-hosted checker proves the same manifest. The remaining
+destructure and selected validation/diagnostic payload tail must be cut before
+this row can honestly return to READY.
 Capability 4 is
 closed for the current compiler-pass
 substrate: named allocator lanes can be constructed, consumed by
@@ -275,19 +277,23 @@ MIR expected type-name facts at the DEF owner for `Channel<T>` and slot-like
 resources. Assignment DEF emission preserves source assignment side effects
 while recording the SSA value. Await DEF emission, pending SSA-use
 materialization, and source DEF copy also consume MIR expression/type facts
-directly. C resource mirror identity now uses source-statement indexes, and the
-C resource hook DEF type annotation uses `expr1`. C SSA local type/view facts
+directly. C resource matching now uses source-statement indexes plus
+source-location/anchor facts, and the C resource hook DEF type annotation uses
+`expr1`. C SSA local type/view facts
 consume DEF expression/type facts except for destructure binding names. MIR DCE
 and source-statement emit validation use source-shape scalar facts for their
 decisions, and source-statement / LLVM DEF emit predicates use MIR emit facts
 instead of payload presence. C/LLVM residual STMT branches consume MIR
 source-shape/`expr0` facts, and LLVM missing-return-value diagnostics use MIR
 topology errors rather than payload anchors. Select dispatch uses MIR branch
-`expr0` channel facts instead of source case payloads. The remaining ACTIVE
-tail is the narrower match/resource/destructure shape and selected diagnostics
-surface. LLVM for-in and with-slot resource-claim diagnostics already use MIR
-expression anchors; the rest of the body facts still need dedicated MIR records
-or explicit provenance-only handling.
+`expr0` channel facts instead of source case payloads. Match body binding and
+remap also consume MIR branch pattern/guard facts rather than match-case source
+payloads, and resource-op source-statement matching no longer uses payload
+pointer identity. The remaining ACTIVE tail is the narrower destructure shape
+and selected validation/diagnostic surface. LLVM for-in and with-slot
+resource-claim diagnostics already use MIR expression anchors; the rest of the
+body facts still need dedicated MIR records or explicit provenance-only
+handling.
 
 Capability 2 (collections). Closed for the hard-self-host substrate: integer keys are implemented
 (pgy_runtime_map_int_key_inline.h covers i32 and i64), and `MapKeys` /

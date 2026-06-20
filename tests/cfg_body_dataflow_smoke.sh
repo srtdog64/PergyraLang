@@ -336,7 +336,12 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_fact_surface_validate.c" "mir_instruction_resource_op_is_write(inst)"
     require_literal "src/compiler/mir_stmt_population_resource_ops.c" "mir_instruction_resource_op_is_read(inst)"
     require_literal "src/compiler/mir_stmt_population_resource_ops.c" "mir_instruction_resource_op_is_claim(inst)"
-    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_payload(inst) != NULL"
+    if grep -Fq -- "mir_instruction_source_payload" \
+        "$ROOT_DIR/src/compiler/mir_stmt_population_resource_ops.c"; then
+        echo "MIR resource-op source-statement matching must consume source-location/source-index/anchor facts, not source payload identity" >&2
+        exit 1
+    fi
+    require_literal "src/compiler/mir_source_shape.c" "mir_source_node_type_stmt_has_side_effect_hint"
     require_literal "src/compiler/mir_source_shape.c" "k_pure_query_builtins"
     require_literal "src/compiler/mir_source_shape.c" "bsearch(&callee"
     if grep -nE 'strcmp\(resource_inst->name, "(IO|ChannelSend|ChannelRecv|ChannelSelect|Read)"\)' \
@@ -390,7 +395,7 @@ run_literal_doc_contract_smoke() {
         echo "MIR CFG-owned control source-shape predicate must consume source_node_type facts, not AST payload fallback" >&2
         exit 1
     fi
-    require_literal "src/tests/mir/test_mir_lowering_part_h.cases.h" "MIR validator rejects source-compatible branch without payload"
+    require_literal "src/tests/mir/test_mir_lowering_part_h.cases.h" "MIR match branch uses captured pattern fact without payload"
     require_literal "src/tests/mir/test_mir_lowering_part_h.cases.h" "MIR select dispatch branch uses channel fact without payload"
     require_literal "src/compiler/mir_lifecycle.c" "source-branch-emit"
     require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_has_required_branch_lowering_fact(inst)"
@@ -431,6 +436,14 @@ run_literal_doc_contract_smoke() {
         echo "C MIR match condition must consume captured pattern/guard facts, not source payload" >&2
         exit 1
     fi
+    for rel in \
+        src/codegen/llvm_mir_match_condition.c \
+        src/codegen/transpiler_mir_match_condition_emit.c; do
+        if grep -Fq -- "mir_instruction_source_payload" "$ROOT_DIR/$rel"; then
+            echo "MIR match binding/remap must consume captured pattern/guard facts, not source payload" >&2
+            exit 1
+        fi
+    done
     require_literal "src/codegen/transpiler_mir_emission_contract.c" "mir_instruction_has_required_branch_lowering_fact(inst)"
     require_literal "src/compiler/air_evidence_mir_facts.c" "mir_block_has_hir_source_mapping(block)"
     require_literal "src/codegen/transpiler_mir_ssa_map.c" "mir_block_source_hir_id(block)"
@@ -538,7 +551,6 @@ run_literal_doc_contract_smoke() {
         echo "C MIR CFG-container checks must use MIR source-shape facts, not source payload identity" >&2
         exit 1
     fi
-    require_literal "src/compiler/mir_stmt_population_resource_ops.c" "mir_instruction_source_payload(inst) == stmt"
     require_literal "src/compiler/mir_stmt_population.c" "mir_instruction_has_source_statement_order(&old_insts[r])"
     require_literal "src/compiler/mir_stmt_population.c" "mir_stmt_population_append"
     require_literal "src/codegen/transpiler_mir_assignment_emit.c" "transpiler_mir_def_uses_source_statement_emit("

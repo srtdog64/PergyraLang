@@ -10,8 +10,6 @@ mir_resource_op_matches_source_stmt(const MIRInstruction *inst,
 
     if (inst == NULL || stmt == NULL || inst->kind != MIR_INST_RESOURCE_OP)
         return false;
-    if (mir_instruction_source_payload(inst) == stmt)
-        return true;
     if (mir_instruction_source_location_matches_node(inst, stmt))
         return true;
     if (stmt->type == AST_CALL

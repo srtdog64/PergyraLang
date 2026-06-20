@@ -61,7 +61,6 @@ transpiler_mir_remap_case_bindings(TranspilerCtx *ctx,
                                    TranspilerSSANameMap *ssa_map,
                                    const MIRInstruction *inst)
 {
-    ASTNode *case_node;
     ASTNode *pattern_node;
     const char *kind = NULL;
     const char *binding = NULL;
@@ -69,11 +68,10 @@ transpiler_mir_remap_case_bindings(TranspilerCtx *ctx,
 
     if (ctx == NULL || inst == NULL)
         return true;
-    case_node = mir_instruction_source_payload(inst);
     case_stable_id = mir_instruction_source_stable_id(inst);
-    if (case_node == NULL || case_node->type != AST_MATCH_CASE)
+    if (mir_instruction_match_pattern_count(inst) == 0)
         return true;
-    pattern_node = ast_match_case_pattern(case_node);
+    pattern_node = mir_instruction_match_pattern_at(inst, 0);
     if (pattern_node == NULL)
         return true;
     if (transpiler_mir_is_option_destructor(pattern_node, &kind, &binding)
@@ -121,7 +119,6 @@ transpiler_mir_emit_match_case_body_binding(CodeBuf *buf,
                                             TranspilerSSANameMap *ssa_map)
 {
     const MIRInstruction *branch_inst;
-    ASTNode *case_node;
     ASTNode *pattern_node;
     ASTNode *subject_node;
     char *subject;
@@ -135,11 +132,10 @@ transpiler_mir_emit_match_case_body_binding(CodeBuf *buf,
     branch_inst = transpiler_mir_find_incoming_match_branch(routine, block);
     if (branch_inst == NULL)
         return true;
-    case_node = mir_instruction_source_payload(branch_inst);
     case_stable_id = mir_instruction_source_stable_id(branch_inst);
-    if (case_node == NULL || case_node->type != AST_MATCH_CASE)
+    if (mir_instruction_match_pattern_count(branch_inst) == 0)
         return true;
-    pattern_node = ast_match_case_pattern(case_node);
+    pattern_node = mir_instruction_match_pattern_at(branch_inst, 0);
     if (pattern_node == NULL)
         return true;
     subject_node = pgy_codegen_match_subject_for_branch(branch_inst);
@@ -156,7 +152,7 @@ transpiler_mir_emit_match_case_body_binding(CodeBuf *buf,
             transpiler_mir_match_binding_name(case_stable_id, binding,
                                               emitted_name,
                                               sizeof(emitted_name));
-            if (ast_match_case_guard(case_node) != NULL) {
+            if (mir_instruction_match_guard(branch_inst) != NULL) {
                 if (!transpiler_mir_set_payload_binding_name(
                         ctx, ssa_map, binding, emitted_name)) {
                     free(subject);

@@ -342,8 +342,7 @@ mir_instruction_has_required_source_branch_emit_fact(const MIRInstruction *inst)
     if (inst->branch_shape == MIR_BRANCH_MATCH_CASE
         && mir_instruction_match_pattern_count(inst) == 0)
         return false;
-    return mir_instruction_source_payload(inst) != NULL
-        && mir_instruction_source_branch_payload_matches_shape(inst);
+    return mir_instruction_source_branch_payload_matches_shape(inst);
 }
 
 bool

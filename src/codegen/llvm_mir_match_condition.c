@@ -237,7 +237,6 @@ llvm_mir_case_payload_type(LLVMGenCtx *ctx,
                            const MIRInstruction *inst,
                            const char *kind)
 {
-    ASTNode *case_node;
     ASTNode *subject_node;
     LLVMTypeRef subject_ty;
     unsigned payload_index;
@@ -251,8 +250,7 @@ llvm_mir_case_payload_type(LLVMGenCtx *ctx,
 
     if (ctx == NULL || inst == NULL || kind == NULL)
         return NULL;
-    case_node = mir_instruction_source_payload(inst);
-    if (case_node == NULL || case_node->type != AST_MATCH_CASE)
+    if (mir_instruction_match_pattern_count(inst) == 0)
         return NULL;
     subject_node = pgy_codegen_match_subject_for_branch(inst);
     if (subject_node == NULL)
@@ -339,7 +337,6 @@ static bool
 llvm_mir_remap_case_bindings(LLVMGenCtx *ctx,
                              const MIRInstruction *inst)
 {
-    ASTNode *case_node;
     ASTNode *pattern_node;
     const char *kind = NULL;
     const char *binding = NULL;
@@ -347,11 +344,10 @@ llvm_mir_remap_case_bindings(LLVMGenCtx *ctx,
 
     if (ctx == NULL || inst == NULL)
         return true;
-    case_node = mir_instruction_source_payload(inst);
     case_stable_id = mir_instruction_source_stable_id(inst);
-    if (case_node == NULL || case_node->type != AST_MATCH_CASE)
+    if (mir_instruction_match_pattern_count(inst) == 0)
         return true;
-    pattern_node = ast_match_case_pattern(case_node);
+    pattern_node = mir_instruction_match_pattern_at(inst, 0);
     if (pattern_node == NULL)
         return true;
     if (llvm_mir_is_option_destructor(pattern_node, &kind, &binding)
@@ -523,7 +519,6 @@ llvm_mir_emit_match_case_body_binding(const MIRRoutine *routine,
                                       LLVMGenCtx *ctx)
 {
     const MIRInstruction *branch_inst;
-    ASTNode *case_node;
     ASTNode *subject_node;
     ASTNode *pattern_node;
     LLVMValueRef subject;
@@ -537,11 +532,10 @@ llvm_mir_emit_match_case_body_binding(const MIRRoutine *routine,
     branch_inst = llvm_mir_find_incoming_match_branch(routine, block);
     if (branch_inst == NULL)
         return true;
-    case_node = mir_instruction_source_payload(branch_inst);
     case_stable_id = mir_instruction_source_stable_id(branch_inst);
-    if (case_node == NULL || case_node->type != AST_MATCH_CASE)
+    if (mir_instruction_match_pattern_count(branch_inst) == 0)
         return true;
-    pattern_node = ast_match_case_pattern(case_node);
+    pattern_node = mir_instruction_match_pattern_at(branch_inst, 0);
     if (pattern_node == NULL)
         return true;
     subject_node = pgy_codegen_match_subject_for_branch(branch_inst);
@@ -556,7 +550,7 @@ llvm_mir_emit_match_case_body_binding(const MIRRoutine *routine,
 
     if (llvm_mir_is_option_destructor(pattern_node, &option_kind, &binding)) {
         if (binding != NULL) {
-            if (ast_match_case_guard(case_node) != NULL)
+            if (mir_instruction_match_guard(branch_inst) != NULL)
                 return true;
             LLVMValueRef payload = LLVMBuildExtractValue(ctx->builder,
                 subject, 1, llvm_tmp_name(ctx));
@@ -571,7 +565,7 @@ llvm_mir_emit_match_case_body_binding(const MIRRoutine *routine,
             unsigned payload_index =
                 pgy_codegen_match_variant_result_payload_index(
                     pgy_codegen_match_variant_lookup(result_kind));
-            if (ast_match_case_guard(case_node) != NULL)
+            if (mir_instruction_match_guard(branch_inst) != NULL)
                 return true;
             LLVMValueRef payload = LLVMBuildExtractValue(ctx->builder,
                 subject, payload_index, llvm_tmp_name(ctx));

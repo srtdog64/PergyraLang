@@ -299,14 +299,16 @@ test_mir_lowering_part_h(void)
         hir_destroy(hir);
     }
 
-    TEST("MIR validator rejects source-compatible branch without payload");
+    TEST("MIR match branch uses captured pattern fact without payload");
     {
         const char *src =
             "func BranchSourcePayload(x: Int) -> Int {\n"
-            "    if x > 0 {\n"
-            "        return 1;\n"
+            "    match x {\n"
+            "        case 0:\n"
+            "            return 1;\n"
+            "        default:\n"
+            "            return 0;\n"
             "    }\n"
-            "    return 0;\n"
             "}\n";
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
@@ -317,11 +319,12 @@ test_mir_lowering_part_h(void)
         ASTNode *saved_expr0 = NULL;
         ASTNodeType saved_source_node_type = 0;
         bool saved_has_source_location = false;
+        bool saved_requires_source_branch_emit = false;
         char *mir_error = NULL;
         bool rejected_missing_match_subject_fact = false;
         bool rejected_missing_fact = false;
         bool rejected_mismatched_source_type = false;
-        bool rejected_missing_payload = false;
+        bool valid_without_payload = false;
         bool rejected_predicate_without_subject_fact = false;
         bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
         if (ok)
@@ -332,7 +335,8 @@ test_mir_lowering_part_h(void)
                 MIRBasicBlock *block = &routine->blocks[bi];
                 for (size_t ii = 0; ii < block->instruction_count; ii++) {
                     MIRInstruction *inst = &block->instructions[ii];
-                    if (inst->kind == MIR_INST_BRANCH) {
+                    if (inst->kind == MIR_INST_BRANCH
+                        && inst->branch_shape == MIR_BRANCH_MATCH_CASE) {
                         branch_inst = inst;
                         break;
                     }
@@ -344,7 +348,8 @@ test_mir_lowering_part_h(void)
             saved_expr0 = branch_inst->expr0;
             saved_source_node_type = branch_inst->source_node_type;
             saved_has_source_location = branch_inst->has_source_location;
-            branch_inst->branch_shape = MIR_BRANCH_MATCH_CASE;
+            saved_requires_source_branch_emit =
+                branch_inst->requires_source_branch_emit;
             branch_inst->expr0 = NULL;
             rejected_predicate_without_subject_fact =
                 !mir_instruction_has_required_branch_condition_fact(branch_inst);
@@ -376,26 +381,31 @@ test_mir_lowering_part_h(void)
             mir_error = NULL;
 
             branch_inst->ast = NULL;
-            rejected_missing_payload =
-                !mir_validate(mir, &mir_error)
-                && mir_error != NULL
-                && strstr(mir_error, "source-branch emit fact is invalid") != NULL;
+            branch_inst->source_node_type = saved_source_node_type;
+            branch_inst->has_source_location = saved_has_source_location;
+            valid_without_payload =
+                mir_instruction_has_required_source_branch_emit_fact(branch_inst)
+                && mir_validate(mir, &mir_error);
+            free(mir_error);
+            mir_error = NULL;
             branch_inst->ast = saved_ast;
             branch_inst->expr0 = saved_expr0;
             branch_inst->source_node_type = saved_source_node_type;
             branch_inst->has_source_location = saved_has_source_location;
-            branch_inst->branch_shape = MIR_BRANCH_EXPR;
-            branch_inst->requires_source_branch_emit = false;
+            branch_inst->requires_source_branch_emit =
+                saved_requires_source_branch_emit;
         }
         EXPECT(ok
                && routine != NULL
                && branch_inst != NULL
                && saved_ast != NULL
+               && saved_expr0 != NULL
+               && mir_instruction_match_pattern_count(branch_inst) > 0
                && rejected_predicate_without_subject_fact
                && rejected_missing_match_subject_fact
                && rejected_missing_fact
                && rejected_mismatched_source_type
-               && rejected_missing_payload
+               && valid_without_payload
                && mir_validate(mir, NULL));
         free(mir_error);
         mir_destroy(mir);
