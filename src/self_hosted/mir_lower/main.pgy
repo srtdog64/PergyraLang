@@ -221,7 +221,7 @@ func EmitBlockStmts(json: String, bs: Int, be: Int, indent: String) -> String {
         let ke: Array<Int> = [0];
         let ikind: String = ReadJsonString(json, kq, ke);
         let next_kp: Int = FindFrom(json, "\"kind\":", ke[0]);
-        if ikind != "branch" {
+        if ikind != "branch" && ikind != "loop-init" {
             let ap: Int = FindFrom(json, "\"ast\":", ke[0]);
             if ap >= 0 && ap < be && (next_kp < 0 || ap < next_kp) {
                 let vstart: Int = ap + 6;
@@ -237,27 +237,20 @@ func EmitBlockStmts(json: String, bs: Int, be: Int, indent: String) -> String {
     return out;
 }
 
-// A routine is a loop if it has a `for` loop-init or a `while` header (a block
-// holding both a `phi` and a `branch`). Loops take the flat walk for now.
-func IsLoopRoutine(json: String, bp: Int, span_end: Int) -> Bool {
-    let li: Int = FindFrom(json, "\"kind\":\"loop-init\"", bp);
-    if li >= 0 && li < span_end {
-        return true;
+// True if block [bs,be) carries a `phi` -- the marker of a loop header (a
+// `while` header is a block holding both a phi and a branch).
+func BlockHasPhi(json: String, bs: Int, be: Int) -> Bool {
+    let p: Int = FindFrom(json, "\"kind\":\"phi\"", bs);
+    return p >= 0 && p < be;
+}
+
+// Render a loop header. A `for` branch carries `for <binding>` as its condition
+// (`For: i in 0..3`); anything else is a `while` (`While: (i < 3)`).
+func LoopHeaderLine(cond: String) -> String {
+    if StringLength(cond) >= 4 && Substring(cond, 0, 4) == "for " {
+        return Concat("For: ", Substring(cond, 4, StringLength(cond) - 4));
     }
-    let bs: Int = FindFrom(json, "\"reachable\":", bp);
-    while bs >= 0 && bs < span_end {
-        let be: Int = FindFrom(json, "\"reachable\":", bs + 12);
-        if be < 0 || be > span_end {
-            be = span_end;
-        }
-        let hp: Int = FindFrom(json, "\"kind\":\"phi\"", bs);
-        let hb: Int = FindFrom(json, "\"kind\":\"branch\"", bs);
-        if hp >= 0 && hp < be && hb >= 0 && hb < be {
-            return true;
-        }
-        bs = FindFrom(json, "\"reachable\":", bs + 12);
-    }
-    return false;
+    return Concat("While: ", cond);
 }
 
 // The block at which the single-entry region starting at `start` rejoins its
@@ -311,25 +304,35 @@ func EmitRegion(json: String, bp: Int, span_end: Int, start: String, stop: Strin
         } else {
             let t: String = ReadSucc(json, bs, be, "\"succ_true\":");
             let f: String = ReadSucc(json, bs, be, "\"succ_false\":");
-            let te: String = RegionExit(json, bp, span_end, t);
-            let merge: String = "";
-            let hasElse: Bool = false;
-            if te == f {
-                merge = f;
+            let isFor: Bool = StringLength(cond) >= 4 && Substring(cond, 0, 4) == "for ";
+            if BlockHasPhi(json, bs, be) || isFor {
+                // Loop header: the body region (succ_true) flows back here, so we
+                // bound it by `cur` (this header); the loop exit is succ_false.
+                out = Concat(out, Concat(indent, Concat(LoopHeaderLine(cond), "\n")));
+                out = Concat(out, Concat(indent, "  Block:\n"));
+                out = Concat(out, EmitRegion(json, bp, span_end, t, cur, Concat(indent, "    ")));
+                cur = f;
             } else {
-                merge = te;
-                hasElse = true;
-            }
-            out = Concat(out, Concat(indent, Concat("If: ", Concat(cond, "\n"))));
-            out = Concat(out, Concat(indent, "  Then:\n"));
-            out = Concat(out, Concat(indent, "    Block:\n"));
-            out = Concat(out, EmitRegion(json, bp, span_end, t, merge, Concat(indent, "      ")));
-            if hasElse {
-                out = Concat(out, Concat(indent, "  Else:\n"));
+                let te: String = RegionExit(json, bp, span_end, t);
+                let merge: String = "";
+                let hasElse: Bool = false;
+                if te == f {
+                    merge = f;
+                } else {
+                    merge = te;
+                    hasElse = true;
+                }
+                out = Concat(out, Concat(indent, Concat("If: ", Concat(cond, "\n"))));
+                out = Concat(out, Concat(indent, "  Then:\n"));
                 out = Concat(out, Concat(indent, "    Block:\n"));
-                out = Concat(out, EmitRegion(json, bp, span_end, f, merge, Concat(indent, "      ")));
+                out = Concat(out, EmitRegion(json, bp, span_end, t, merge, Concat(indent, "      ")));
+                if hasElse {
+                    out = Concat(out, Concat(indent, "  Else:\n"));
+                    out = Concat(out, Concat(indent, "    Block:\n"));
+                    out = Concat(out, EmitRegion(json, bp, span_end, f, merge, Concat(indent, "      ")));
+                }
+                cur = merge;
             }
-            cur = merge;
         }
     }
     return out;
@@ -408,12 +411,17 @@ func Main() -> Void {
         out = Concat(out, "      Block:\n");
 
         // The routine's own `"kind":"function"` precedes `"blocks":`, so block
-        // scanning starts there. Non-loop routines get CFG-structured `If:`
-        // reconstruction (EmitRegion, from the entry block "0"); loop routines
-        // (while/for) still take the flat instruction walk -- structuring their
-        // back-edges into `While:`/`For:` is a separate increment.
+        // scanning starts there. CFG-structured reconstruction (EmitRegion, from
+        // the entry block "0") rebuilds `If:`/`While:`/`For:` by following the
+        // succ edges. If the structurer yields nothing (an unstructured shape we
+        // do not model yet), fall back to the flat instruction walk so no source
+        // statement is silently dropped.
         let bp: Int = FindFrom(json, "\"blocks\":", nend[0]);
-        if IsLoopRoutine(json, bp, span_end) {
+        let region: String = EmitRegion(json, bp, span_end, "0", "", "        ");
+        if StringLength(region) > 0 {
+            out = Concat(out, region);
+            total = total + 1;
+        } else {
             let kp: Int = FindFrom(json, "\"kind\":", bp);
             while kp >= 0 && kp < span_end {
                 let kq: Int = FindFrom(json, "\"", kp + 7);
@@ -436,12 +444,6 @@ func Main() -> Void {
                     }
                 }
                 kp = next_kp;
-            }
-        } else {
-            let region: String = EmitRegion(json, bp, span_end, "0", "", "        ");
-            out = Concat(out, region);
-            if StringLength(region) > 0 {
-                total = total + 1;
             }
         }
 
