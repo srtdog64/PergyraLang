@@ -146,6 +146,8 @@ typedef struct
     ASTNode        **match_case_patterns;
     size_t           match_case_pattern_count;
     ASTNode         *match_case_guard;
+    const char     **destructure_binding_names;
+    size_t           destructure_binding_count;
     /* Canonical ABI type name and layout: backends read these instead of
      * inventing layouts. abi_type_name remains populated for dynamic nominal
      * layouts such as Slot<Vec2> even when the static layout table has no
@@ -420,6 +422,15 @@ size_t      mir_instruction_match_pattern_count(const MIRInstruction *inst);
 ASTNode    *mir_instruction_match_pattern_at(const MIRInstruction *inst,
                                              size_t index);
 ASTNode    *mir_instruction_match_guard(const MIRInstruction *inst);
+size_t      mir_instruction_destructure_binding_count(
+                const MIRInstruction *inst);
+const char *mir_instruction_destructure_binding_name_at(
+                const MIRInstruction *inst,
+                size_t index);
+bool        mir_instruction_destructure_binding_index(
+                const MIRInstruction *inst,
+                const char *base_name,
+                size_t *index_out);
 bool        mir_instruction_uses_source_statement_emit(
                 const MIRInstruction *inst);
 bool        mir_instruction_uses_source_local_decl_emit(

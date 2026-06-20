@@ -68,4 +68,70 @@ test_mir_lowering_part_i(void)
         rir_destroy(rir);
         hir_destroy(hir);
     }
+
+    TEST("MIR destructure instruction carries binding facts without payload");
+    {
+        const char *src =
+            "func Pair() -> (Int, String) {\n"
+            "    return (42, \"hello\");\n"
+            "}\n"
+            "\n"
+            "func DestructureBindingFact() -> Void {\n"
+            "    let (n, s) = Pair();\n"
+            "    Log(ToString(n));\n"
+            "    Log(s);\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        MIRInstruction *destructure_inst = NULL;
+        ASTNode *saved_ast = NULL;
+        size_t n_index = 99;
+        size_t s_index = 99;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "DestructureBindingFact",
+                                           MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count
+                 && destructure_inst == NULL; bi++) {
+                MIRBasicBlock *block = &routine->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    MIRInstruction *inst = &block->instructions[ii];
+                    if (inst->kind == MIR_INST_DESTRUCTURE) {
+                        destructure_inst = inst;
+                        break;
+                    }
+                }
+            }
+        }
+        if (destructure_inst != NULL) {
+            saved_ast = destructure_inst->ast;
+            destructure_inst->ast = NULL;
+        }
+        EXPECT(ok
+               && routine != NULL
+               && destructure_inst != NULL
+               && saved_ast != NULL
+               && mir_instruction_destructure_binding_count(destructure_inst) == 2
+               && strcmp(mir_instruction_destructure_binding_name_at(
+                             destructure_inst, 0),
+                         "n") == 0
+               && strcmp(mir_instruction_destructure_binding_name_at(
+                             destructure_inst, 1),
+                         "s") == 0
+               && mir_instruction_destructure_binding_index(
+                      destructure_inst, "n", &n_index)
+               && n_index == 0
+               && mir_instruction_destructure_binding_index(
+                      destructure_inst, "s", &s_index)
+               && s_index == 1
+               && mir_validate(mir, NULL));
+        if (destructure_inst != NULL)
+            destructure_inst->ast = saved_ast;
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
 }

@@ -1,5 +1,6 @@
 #include "mir_stmt_population_internal.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "mir_call_fact.h"
@@ -125,8 +126,21 @@ mir_make_destructure_instruction(MIRRoutine *routine,
     inst.kind = MIR_INST_DESTRUCTURE;
     inst.name = "destructure";
     inst.ast = stmt;
-    if (stmt != NULL && stmt->type == AST_LET_DESTRUCTURE)
+    if (stmt != NULL && stmt->type == AST_LET_DESTRUCTURE) {
+        size_t name_count = ast_let_destructure_name_count(stmt);
         inst.expr0 = ast_let_destructure_initializer(stmt);
+        if (name_count > 0) {
+            inst.destructure_binding_names =
+                calloc(name_count, sizeof(const char *));
+            if (inst.destructure_binding_names != NULL) {
+                for (size_t i = 0; i < name_count; i++) {
+                    inst.destructure_binding_names[i] =
+                        ast_let_destructure_name(stmt, i);
+                }
+                inst.destructure_binding_count = name_count;
+            }
+        }
+    }
     mir_attach_statement_call_fact(&inst, stmt);
     mir_set_inst_source_statement_index(&inst, source_statement_index);
     return inst;

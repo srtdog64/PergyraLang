@@ -43,6 +43,8 @@ mir_destroy(MIRProgram *mir)
                                     free((void *)routine->blocks[j].instructions[k].phi_incomings[m].value_name);
                             }
                             free(routine->blocks[j].instructions[k].phi_incomings);
+                            free((void *)routine->blocks[j].instructions[k]
+                                     .destructure_binding_names);
                         }
                     }
                     for (size_t k = 0; k < routine->blocks[j].renamed_local_count; k++)

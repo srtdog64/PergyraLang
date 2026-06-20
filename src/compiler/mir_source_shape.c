@@ -386,6 +386,47 @@ mir_instruction_match_guard(const MIRInstruction *inst)
         : NULL;
 }
 
+size_t
+mir_instruction_destructure_binding_count(const MIRInstruction *inst)
+{
+    return inst != NULL && inst->kind == MIR_INST_DESTRUCTURE
+        ? inst->destructure_binding_count
+        : 0;
+}
+
+const char *
+mir_instruction_destructure_binding_name_at(const MIRInstruction *inst,
+                                            size_t index)
+{
+    if (inst == NULL
+        || inst->kind != MIR_INST_DESTRUCTURE
+        || index >= inst->destructure_binding_count
+        || inst->destructure_binding_names == NULL) {
+        return NULL;
+    }
+    return inst->destructure_binding_names[index];
+}
+
+bool
+mir_instruction_destructure_binding_index(const MIRInstruction *inst,
+                                          const char *base_name,
+                                          size_t *index_out)
+{
+    if (inst == NULL || inst->kind != MIR_INST_DESTRUCTURE
+        || base_name == NULL || index_out == NULL) {
+        return false;
+    }
+    for (size_t i = 0; i < inst->destructure_binding_count; i++) {
+        const char *name =
+            mir_instruction_destructure_binding_name_at(inst, i);
+        if (name != NULL && strcmp(name, base_name) == 0) {
+            *index_out = i;
+            return true;
+        }
+    }
+    return false;
+}
+
 bool
 mir_instruction_uses_source_statement_emit(const MIRInstruction *inst)
 {

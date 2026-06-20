@@ -247,8 +247,11 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir.h" "requires_source_local_decl_emit"
     require_literal "src/compiler/mir.h" "requires_select_receive_statement_emit"
     require_literal "src/compiler/mir.h" "MIR_INST_DESTRUCTURE"
+    require_literal "src/compiler/mir.h" "destructure_binding_names"
+    require_literal "src/compiler/mir.h" "mir_instruction_destructure_binding_index"
     require_literal "src/compiler/mir.h" "MIR_INST_ASSIGN"
     require_literal "src/compiler/mir_stmt_population_source.c" "inst.kind = MIR_INST_DESTRUCTURE"
+    require_literal "src/compiler/mir_stmt_population_source.c" "inst.destructure_binding_names"
     require_literal "src/compiler/mir_stmt_population_source.c" "inst.kind = MIR_INST_ASSIGN"
     require_literal "src/compiler/mir_stmt_population.c" "mir_make_destructure_instruction"
     require_literal "src/compiler/mir_stmt_population.c" "mir_make_assignment_instruction"
@@ -579,6 +582,11 @@ run_literal_doc_contract_smoke() {
     if grep -Fq "transpiler_find_local_type_name(ctx" \
             "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c"; then
         echo "C MIR destructure emitter reintroduced local type lookup; use typed registry or MIR metadata" >&2
+        exit 1
+    fi
+    if grep -Fq "mir_instruction_source_payload" \
+            "$ROOT_DIR/src/codegen/transpiler_mir_ssa_local_facts.c"; then
+        echo "C MIR SSA local facts reopened source payload; use MIR destructure binding facts" >&2
         exit 1
     fi
     if grep -RIn -- 'inst->ast\|resource_inst->ast' "$ROOT_DIR/src/codegen" >/dev/null; then

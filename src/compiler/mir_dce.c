@@ -25,6 +25,9 @@ mir_free_instruction_payload(MIRInstruction *inst)
     free(inst->phi_incomings);
     inst->phi_incomings = NULL;
     inst->phi_incoming_count = 0;
+    free((void *)inst->destructure_binding_names);
+    inst->destructure_binding_names = NULL;
+    inst->destructure_binding_count = 0;
     return true;
 }
 

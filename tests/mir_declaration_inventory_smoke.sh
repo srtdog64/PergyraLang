@@ -3554,8 +3554,8 @@ for term in \
     "transpiler_mir_routine_param_count(routine)" \
     "transpiler_mir_routine_param(routine" \
     "transpiler_mir_destructure_binding_type_name" \
-    "mir_instruction_source_payload(inst)" \
-    "source->type != AST_LET_DESTRUCTURE" \
+    "mir_instruction_destructure_binding_index(inst" \
+    "inst->kind != MIR_INST_DESTRUCTURE" \
     "transpiler_mir_ssa_local_entry_has_source_def" \
     "transpiler_mir_ssa_local_routine_has_source_def" \
     "transpiler_mir_ssa_local_routine_has_param_name" \
@@ -3567,10 +3567,10 @@ for term in \
     "block->source_local_defs[i]"; do
     require_term "src/codegen/transpiler_mir_ssa_local_facts.c" "$term"
 done
-ssa_local_payload_reads="$(grep -F "mir_instruction_source_payload(" \
-    "$ROOT_DIR/src/codegen/transpiler_mir_ssa_local_facts.c" | wc -l | tr -d ' ')"
-if [ "$ssa_local_payload_reads" != "2" ]; then
-    fail "C MIR SSA local facts must keep source-payload reads confined to destructure binding facts (expected 2, got $ssa_local_payload_reads)"
+ssa_local_payload_reads="$({ grep -F "mir_instruction_source_payload(" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_ssa_local_facts.c" || true; } | wc -l | tr -d ' ')"
+if [ "$ssa_local_payload_reads" != "0" ]; then
+    fail "C MIR SSA local facts must consume MIR destructure binding facts, not source payload (expected 0, got $ssa_local_payload_reads)"
 fi
 if ! grep -B2 -F "transpiler_find_local_event_handler_type_ast(" \
         "$ROOT_DIR/src/codegen/transpiler_mir_func_ssa_locals_emit.c" |

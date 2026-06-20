@@ -79,12 +79,15 @@ condition, body-binding, and remap emission consume MIR-captured branch
 pattern/guard facts instead of the match-case source payload. The resource
 mirroring path now compares MIR source-statement indexes and source-location /
 anchor facts instead of payload pointer identity, and the C resource hook uses
-MIR `expr1` type annotations instead of recovering local-decl payloads. The
-remaining capability-5 tail is destructure shape plus selected validation and
-diagnostic reads still backed by `mir_instruction_source_payload`; LLVM for-in
-and with-slot resource-claim diagnostics have already moved to MIR expression
-anchors. The remaining reads must become MIR facts or provenance-only reads
-before the body source-of-truth row is fully ready.
+MIR `expr1` type annotations instead of recovering local-decl payloads. C SSA
+local type/view registration now consumes MIR destructure binding-name/index
+facts instead of reopening destructure statement payloads. The remaining
+capability-5 tail is destructure emission shape/initializer handling plus
+selected validation and diagnostic reads still backed by
+`mir_instruction_source_payload`; LLVM for-in and with-slot resource-claim
+diagnostics have already moved to MIR expression anchors. The remaining reads
+must become MIR facts or provenance-only reads before the body source-of-truth
+row is fully ready.
 
 - **Module/package resolver stability**: deterministic imports, manifest
   reading, path normalization, and cycle diagnostics.

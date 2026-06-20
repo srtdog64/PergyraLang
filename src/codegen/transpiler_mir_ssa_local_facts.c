@@ -180,40 +180,21 @@ transpiler_mir_tuple_element_type_name(const char *tuple_type, size_t index)
     return NULL;
 }
 
-static bool
-transpiler_mir_destructure_binding_index(const ASTNode *stmt,
-                                         const char *base_name,
-                                         size_t *index_out)
-{
-    if (stmt == NULL || stmt->type != AST_LET_DESTRUCTURE
-        || base_name == NULL || index_out == NULL) {
-        return false;
-    }
-    for (size_t i = 0; i < ast_let_destructure_name_count(stmt); i++) {
-        const char *name = ast_let_destructure_name(stmt, i);
-        if (name != NULL && strcmp(name, base_name) == 0) {
-            *index_out = i;
-            return true;
-        }
-    }
-    return false;
-}
-
 static char *
 transpiler_mir_destructure_binding_type_name(TranspilerCtx *ctx,
                                              const ASTNode *func_decl,
-                                             const ASTNode *stmt,
+                                             const MIRInstruction *inst,
                                              const char *base_name)
 {
     ASTNode *init;
     size_t binding_index = 0;
     const char *init_type;
 
-    if (!transpiler_mir_destructure_binding_index(stmt, base_name,
+    if (!mir_instruction_destructure_binding_index(inst, base_name,
             &binding_index)) {
         return NULL;
     }
-    init = ast_let_destructure_initializer(stmt);
+    init = inst->expr0;
     if (init != NULL && init->type == AST_CALL
         && ast_call_callee(init) != NULL
         && ast_call_callee(init)->type == AST_IDENTIFIER
@@ -310,13 +291,12 @@ transpiler_mir_ssa_local_find_versioned_type_name(
             continue;
         for (size_t j = 0; j < block->instruction_count; j++) {
             const MIRInstruction *inst = &block->instructions[j];
-            ASTNode *source = mir_instruction_source_payload(inst);
             char *type_name;
 
-            if (source == NULL || source->type != AST_LET_DESTRUCTURE)
+            if (inst->kind != MIR_INST_DESTRUCTURE)
                 continue;
             type_name = transpiler_mir_destructure_binding_type_name(
-                ctx, func_decl, source, base_name);
+                ctx, func_decl, inst, base_name);
             if (type_name != NULL)
                 return type_name;
         }
@@ -395,13 +375,11 @@ transpiler_mir_ssa_local_routine_has_destructure_binding(
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
-            ASTNode *source;
             size_t binding_index = 0;
 
             if (inst->kind != MIR_INST_DESTRUCTURE)
                 continue;
-            source = mir_instruction_source_payload(inst);
-            if (transpiler_mir_destructure_binding_index(source, base_name,
+            if (mir_instruction_destructure_binding_index(inst, base_name,
                     &binding_index)) {
                 return true;
             }
