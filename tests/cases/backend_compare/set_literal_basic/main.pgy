@@ -1,0 +1,13 @@
+func Main() -> Void {
+    let seen: Set<Int> = {1, 2, 2, 3};
+    Log(SetSize(seen));
+    Log(SetHas(seen, 2));
+    Log(SetHas(seen, 9));
+
+    let empty: Set<String> = {};
+    Log(SetSize(empty));
+
+    let tags: Set<String> = {"alpha", "beta", "alpha"};
+    Log(SetSize(tags));
+    Log(SetHas(tags, "beta"));
+}

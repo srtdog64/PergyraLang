@@ -95,6 +95,45 @@ test_arrays_and_enums(void)
         ast_destroy(decl);
     }
 
+    TEST("empty set let without annotation reports inference diagnostic");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *set = calloc(1, sizeof(ASTNode));
+        set->type = AST_SET_LITERAL;
+        set->line = 1;
+        set->data.set_literal.count = 0;
+        set->data.set_literal.elements = NULL;
+
+        ASTNode *decl = ast_create_let_declaration("values");
+        decl->data.let_decl.initializer = set;
+        type_check_let_decl(decl, ctx);
+        EXPECT(ctx->has_error
+               && ctx_has_diagnostic_substring(ctx,
+                   "Cannot infer Set<T> from an empty set literal"));
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+    }
+
+    TEST("empty set let with annotation is concrete");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *set = calloc(1, sizeof(ASTNode));
+        set->type = AST_SET_LITERAL;
+        set->line = 1;
+        set->data.set_literal.count = 0;
+        set->data.set_literal.elements = NULL;
+
+        ASTNode *decl = ast_create_let_declaration("values");
+        decl->data.let_decl.type = make_generic_type("Set", "String");
+        decl->data.let_decl.initializer = set;
+        type_check_let_decl(decl, ctx);
+        Symbol *sym = scope_lookup(ctx->scope, "values");
+        EXPECT(!ctx->has_error && sym != NULL && sym->type != NULL
+               && strcmp(sym->type->name, "Set<String>") == 0);
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+    }
+
     TEST("enum variants are visible as enum-typed identifiers");
     {
         SemanticContext *ctx = semantic_context_create();

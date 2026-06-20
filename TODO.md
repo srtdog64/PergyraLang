@@ -118,9 +118,12 @@ English anchor for tooling/doc gates:
   Pergyra structs must not silently become unchecked memory overlays. Do not
   implement packed fields by delegating to C bitfields; C and LLVM must consume
   the same `LayoutFact` rows, and packed mutable fields require an explicit
-  read-modify-write mask/shift owner plus alias/atomic rules. Slot,
-  SecureSlot, DeviceSlot, Pin, and capability handles are not packable until a
-  dedicated layout owner proves their ABI, lifetime, and security invariants.
+  read-modify-write mask/shift owner plus alias/atomic rules. `let mut` and
+  `inout` must not make bit-packed fields look like ordinary addressable
+  mutable lvalues; partial-width writes need a dedicated layout/effect owner
+  before they are accepted in source. Slot, SecureSlot, DeviceSlot, Pin, and
+  capability handles are not packable until a dedicated layout owner proves
+  their ABI, lifetime, and security invariants.
   (3) Swift SIL / Rust MIR pass maturity means each lowering and optimization
   pass declares required facts, preserved facts, invalidated facts, and stable
   diagnostics. Add a pass-contract manifest and a smoke that rejects unowned

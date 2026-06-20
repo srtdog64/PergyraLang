@@ -26,7 +26,6 @@ expr_report_unknown_member(SemanticContext *ctx, ASTNode *site,
 {
     const char *type_name = type_name_or_unknown(object_type);
     const char *member_name = field_name != NULL ? field_name : "<member>";
-
     semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL,
         PGY_CAUSE_SYMBOL_UNDEFINED, PGY_FIX_IMPORT_OR_DECLARE_SYMBOL, site,
         "Unknown member '%s.%s'.\n"
@@ -47,7 +46,6 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
 {
     if (expr == NULL)
         return TYPE_VOID;
-
     switch (expr->type) {
     case AST_NUMBER:
         if (ast_number_is_long(expr))

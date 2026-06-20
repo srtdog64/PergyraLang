@@ -139,6 +139,10 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
                        && ast_array_literal_count(init) == 0
                        && type_is_constructed_named(decl_type, "Array")) {
                 init_type = decl_type;
+            } else if (init->type == AST_SET_LITERAL
+                       && ast_set_literal_count(init) == 0
+                       && type_is_constructed_named(decl_type, "Set")) {
+                init_type = decl_type;
             } else if (init->type == AST_CALL
                        && init_callee_name != NULL
                        && strcmp(init_callee_name,
@@ -182,6 +186,25 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
                 "- defaulting [] to Array<Int> would make backend output depend on a local fallback\n"
                 "Fix:\n"
                 "- write 'let %s: Array<T> = []' with a concrete T\n"
+                "- or initialize with at least one element when T should be inferred",
+                name != NULL ? name : "value");
+            decl_type = TYPE_UNKNOWN;
+        }
+
+        if ((init->type == AST_SET_LITERAL
+             && ast_set_literal_count(init) == 0)
+            || ownership_let_is_unresolved_empty_set(init_type)) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_INFER_COLLECTION,
+                PGY_CAUSE_INFER_COLLECTION_NEEDS_ANNOTATION,
+                PGY_FIX_ANNOTATE_COLLECTION_ELEMENT_TYPE,
+                init,
+                "Cannot infer Set<T> from an empty set literal without an explicit annotation.\n"
+                "Reason:\n"
+                "- {} has no element value from which T can be inferred\n"
+                "- defaulting {} to Set<Int> would make backend output depend on a local fallback\n"
+                "Fix:\n"
+                "- write 'let %s: Set<T> = {}' with a concrete T\n"
                 "- or initialize with at least one element when T should be inferred",
                 name != NULL ? name : "value");
             decl_type = TYPE_UNKNOWN;

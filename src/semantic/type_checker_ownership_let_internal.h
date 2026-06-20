@@ -29,6 +29,7 @@ bool  ownership_let_try_declare_view_binding(ASTNode *node,
                                              bool *handled);
 bool  ownership_let_is_unresolved_none_option(const Type *type);
 bool  ownership_let_is_unresolved_empty_array(const Type *type);
+bool  ownership_let_is_unresolved_empty_set(const Type *type);
 bool  ownership_let_is_unresolved_device_slot(const Type *type);
 
 #endif

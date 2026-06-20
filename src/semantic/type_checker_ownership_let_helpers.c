@@ -125,27 +125,65 @@ ownership_let_find_conflicting_view(Scope *scope,
     return false;
 }
 
+static bool
+ownership_let_type_arg_is_unknown(const Type *type)
+{
+    return type == TYPE_UNKNOWN
+        || (type != NULL
+            && type->name != NULL
+            && (strcmp(type->name, "<unknown>") == 0
+                || strcmp(type->name, "Unknown") == 0));
+}
+
+static bool
+ownership_let_type_name_is_unresolved_unary(const Type *type,
+                                            const char *family)
+{
+    size_t family_len;
+
+    if (type == NULL || type->name == NULL || family == NULL)
+        return false;
+    family_len = strlen(family);
+    if (strncmp(type->name, family, family_len) != 0
+        || type->name[family_len] != '<')
+        return false;
+    return strstr(type->name + family_len + 1, "Unknown") != NULL
+        || strstr(type->name + family_len + 1, "<unknown>") != NULL;
+}
+
 bool
 ownership_let_is_unresolved_none_option(const Type *type)
 {
-    return type != NULL
-        && type_constructed_constructor(type) == TYPE_OPTION
-        && type_constructed_arg_count(type) == 1
-        && type_constructed_arg(type, 0) == TYPE_UNKNOWN;
+    return (type != NULL
+            && type_constructed_constructor(type) == TYPE_OPTION
+            && type_constructed_arg_count(type) == 1
+            && ownership_let_type_arg_is_unknown(type_constructed_arg(type, 0)))
+        || ownership_let_type_name_is_unresolved_unary(type, "Option");
 }
 
 bool
 ownership_let_is_unresolved_empty_array(const Type *type)
 {
-    return type_is_constructed_named(type, "Array")
-        && type_constructed_arg_count(type) == 1
-        && type_constructed_arg(type, 0) == TYPE_UNKNOWN;
+    return (type_is_constructed_named(type, "Array")
+            && type_constructed_arg_count(type) == 1
+            && ownership_let_type_arg_is_unknown(type_constructed_arg(type, 0)))
+        || ownership_let_type_name_is_unresolved_unary(type, "Array");
+}
+
+bool
+ownership_let_is_unresolved_empty_set(const Type *type)
+{
+    return (type_is_constructed_named(type, "Set")
+            && type_constructed_arg_count(type) == 1
+            && ownership_let_type_arg_is_unknown(type_constructed_arg(type, 0)))
+        || ownership_let_type_name_is_unresolved_unary(type, "Set");
 }
 
 bool
 ownership_let_is_unresolved_device_slot(const Type *type)
 {
-    return type_is_constructed_named(type, "DeviceSlot")
-        && type_constructed_arg_count(type) == 1
-        && type_constructed_arg(type, 0) == TYPE_UNKNOWN;
+    return (type_is_constructed_named(type, "DeviceSlot")
+            && type_constructed_arg_count(type) == 1
+            && ownership_let_type_arg_is_unknown(type_constructed_arg(type, 0)))
+        || ownership_let_type_name_is_unresolved_unary(type, "DeviceSlot");
 }
