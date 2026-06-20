@@ -33,6 +33,9 @@ Required shape for each proof document:
 - [07_air_abstraction_safety.md](07_air_abstraction_safety.md): AIR verification-only synthesis IR, intent/boundary coverage, and abstraction drift proof obligations.
 - [08_slot_capability_calculus.md](08_slot_capability_calculus.md): Slot capability calculus, token invariants, generation checks, and Pin/Lease proof obligations. This document also records the negative claim that Slot is not a borrow checker by itself; borrow-checker-equivalent safety requires the ownership classifier plus CFG/body-dataflow bridge facts.
 - [09_abstraction_loss_contracts.md](09_abstraction_loss_contracts.md): loss-contract rules for compiler and tooling abstraction boundaries: what may be lost, what must be preserved, who owns the original truth, which downstream reads are forbidden, and which evidence proves the loss budget.
+- [pass_contract_manifest.md](pass_contract_manifest.md): pass-level fact
+  contract manifest for CFG/MIR, AIR, DAG/type-resolution, MIR/LLVM declaration
+  parity, and ABI/Slot/Pin layout closure.
 - [10_behavior_contract_closure_gaps.md](10_behavior_contract_closure_gaps.md): anti-overclaim closure register for the remaining gap between compiler-enforced behavior evidence and a closed behavior-contract calculus.
 
 Mechanized artifacts:

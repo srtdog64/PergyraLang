@@ -52,6 +52,7 @@ and follow-up debt over older design notes.
 | [`102_formal_semantics_and_proof_obligations.md`](102_formal_semantics_and_proof_obligations.md) | Formal proof entry point |
 | [`semantics/`](semantics/) | Split formal semantics and proof notes |
 | [`semantics/09_abstraction_loss_contracts.md`](semantics/09_abstraction_loss_contracts.md) | Abstraction loss contract rules for compiler and tooling boundaries |
+| [`semantics/pass_contract_manifest.md`](semantics/pass_contract_manifest.md) | Pass-level fact contract manifest for CFG/MIR, AIR, DAG/type-resolution, MIR/LLVM declaration parity, and ABI/Slot/Pin closure |
 | [`semantics/10_behavior_contract_closure_gaps.md`](semantics/10_behavior_contract_closure_gaps.md) | Remaining proof gaps before calling behavior contracts a closed calculus |
 | [`103_cfg_body_dataflow_need.md`](103_cfg_body_dataflow_need.md) | Why CFG/body dataflow is required for beta-grade ownership and cleanup |
 | [`104_air_compiler_architecture.md`](104_air_compiler_architecture.md) | AIR architecture and abstraction drift model |

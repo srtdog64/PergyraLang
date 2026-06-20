@@ -131,9 +131,12 @@ English anchor for tooling/doc gates:
   `LayoutFact` mask/shift rows before any source-level bitpacking is enabled.
   (3) Swift SIL / Rust MIR pass maturity means each lowering and optimization
   pass declares required facts, preserved facts, invalidated facts, and stable
-  diagnostics. Add a pass-contract manifest and a smoke that rejects unowned
-  AST rescans, backend-local layout guesses, and optimization passes that do
-  not state their evidence inputs.
+  diagnostics. `docs/semantics/pass_contract_manifest.md` now pins the major
+  beta-closure pass choke points to live owner artifacts and smoke gates, and
+  `abstraction-loss-contract-test-smoke` rejects loss of the manifest,
+  forbidden-read vocabulary, or listed gate artifacts. Remaining work: split
+  this coarse manifest into per-pass optimizer/layout manifests as those passes
+  become real implementation owners.
   (4) Rust/Swift-level ABI maturity requires a golden corpus for layout,
   calling convention, ownership transfer, panic/failure ABI, generics,
   enum/option/result payloads, and FFI/raw boundaries across C and LLVM.

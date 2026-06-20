@@ -22,6 +22,7 @@ require_text() {
 for rel in \
     "docs/semantics/09_abstraction_loss_contracts.md" \
     "docs/semantics/loss_contract_manifest.md" \
+    "docs/semantics/pass_contract_manifest.md" \
     "docs/semantics/README.md" \
     "docs/102_formal_semantics_and_proof_obligations.md" \
     "docs/104_air_compiler_architecture.md" \
@@ -46,6 +47,7 @@ require_text "docs/semantics/09_abstraction_loss_contracts.md" "## Theorem: Boun
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "That syntax is a design sketch only."
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "documentation does not call the boundary lossless unless the budget is"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "Current manifest coverage is 3/5 gate-enforced"
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "pass_contract_manifest.md"
 
 require_text "docs/semantics/loss_contract_manifest.md" "5 canonical boundaries, **3 gate-enforced**"
 require_text "docs/semantics/loss_contract_manifest.md" "parser_to_ast"
@@ -54,7 +56,40 @@ require_text "docs/semantics/loss_contract_manifest.md" "mir_to_air"
 require_text "docs/semantics/loss_contract_manifest.md" "mir_to_backends"
 require_text "docs/semantics/loss_contract_manifest.md" "selfhost_to_oracle"
 
+require_text "docs/semantics/pass_contract_manifest.md" 'Status: `beta-proof-obligation`'
+require_text "docs/semantics/pass_contract_manifest.md" "<!-- BEGIN pass-contract-manifest -->"
+require_text "docs/semantics/pass_contract_manifest.md" "<!-- END pass-contract-manifest -->"
+require_text "docs/semantics/pass_contract_manifest.md" "mir_cfg_body_safety | src/compiler/mir_fact_surface_validate.c | tests/cfg_body_dataflow_smoke.sh | gate-backed"
+require_text "docs/semantics/pass_contract_manifest.md" "air_boundary_evidence | src/compiler/air_validate_global_evidence.c | tests/air_drift_smoke.sh | gate-backed"
+require_text "docs/semantics/pass_contract_manifest.md" "dag_type_resolution | src/semantic/type_checker_resolution_metadata.c | tests/type_resolution_resolver_inventory_smoke.sh | gate-backed"
+require_text "docs/semantics/pass_contract_manifest.md" "mir_decl_bootstrap_parity | src/codegen/llvm_decl.c | tests/mir_declaration_inventory_smoke.sh | gate-backed"
+require_text "docs/semantics/pass_contract_manifest.md" "abi_slot_pin_layout | src/compiler/mir_abi_layout.c | tests/abi_ownership_shape_smoke.sh | gate-backed"
+require_text "docs/semantics/pass_contract_manifest.md" "required_facts"
+require_text "docs/semantics/pass_contract_manifest.md" "preserved_facts"
+require_text "docs/semantics/pass_contract_manifest.md" "invalidated_facts"
+require_text "docs/semantics/pass_contract_manifest.md" "stable_diagnostics"
+require_text "docs/semantics/pass_contract_manifest.md" "forbidden_reads"
+require_text "docs/semantics/pass_contract_manifest.md" "unowned_ast_rescan"
+require_text "docs/semantics/pass_contract_manifest.md" "backend_ast_semantic_read"
+require_text "docs/semantics/pass_contract_manifest.md" "backend_local_layout_guess"
+require_text "docs/semantics/pass_contract_manifest.md" "compat_success_without_fact"
+
+for rel in \
+    "src/compiler/mir_fact_surface_validate.c" \
+    "src/compiler/air_validate_global_evidence.c" \
+    "src/semantic/type_checker_resolution_metadata.c" \
+    "src/codegen/llvm_decl.c" \
+    "src/compiler/mir_abi_layout.c" \
+    "tests/cfg_body_dataflow_smoke.sh" \
+    "tests/air_drift_smoke.sh" \
+    "tests/type_resolution_resolver_inventory_smoke.sh" \
+    "tests/mir_declaration_inventory_smoke.sh" \
+    "tests/abi_ownership_shape_smoke.sh"; do
+    require_file "$rel"
+done
+
 require_text "docs/semantics/README.md" "09_abstraction_loss_contracts.md"
+require_text "docs/semantics/README.md" "pass_contract_manifest.md"
 require_text "docs/semantics/README.md" "proofs/IRMinimality.v"
 require_text "docs/102_formal_semantics_and_proof_obligations.md" "docs/semantics/09_abstraction_loss_contracts.md"
 require_text "docs/104_air_compiler_architecture.md" "The general version of this rule is the abstraction loss contract"

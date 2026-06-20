@@ -222,7 +222,10 @@ must carry that fact without rereading the older source artifact.
   the abstraction boundary non-binding.
 - Evidence: current MIR/AIR/DAG source-of-truth smokes ratchet AST/source
   rediscovery paths to zero for the measured frontiers. The loss-contract
-  manifest gives those boundaries a machine-readable stage/gate index.
+  manifest gives those boundaries a machine-readable stage/gate index, and
+  `pass_contract_manifest.md` pins the major compiler passes to their required
+  facts, preserved facts, invalidated facts, stable diagnostics, and forbidden
+  reads.
 - Remaining obligation: extend the manifest from stage/gate adequacy to
   per-boundary forbidden-read checks for every listed loss clause.
 
