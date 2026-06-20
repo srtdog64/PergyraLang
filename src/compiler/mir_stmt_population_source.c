@@ -108,6 +108,12 @@ mir_make_source_stmt_instruction(MIRRoutine *routine,
     inst.kind = MIR_INST_STMT;
     inst.name = "stmt";
     inst.ast = stmt;
+    if (stmt != NULL && stmt->type == AST_BIND_STMT) {
+        inst.name = "bind";
+        inst.arg0 = ast_bind_statement_party_var(stmt);
+        inst.slot_anchor = ast_bind_statement_slot_name(stmt);
+        inst.arg1 = ast_bind_statement_role_name(stmt);
+    }
     mir_attach_statement_call_fact(&inst, stmt);
     mir_set_inst_source_statement_index(&inst, source_statement_index);
     return inst;

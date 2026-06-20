@@ -3,9 +3,9 @@ subject Courier
     let name: String;
     let badge: String;
     vessel cargo: CargoState;
-    let prepared: Int;
-    let delivered: Int;
-    let lastPhase: String;
+    let mut prepared: Int;
+    let mut delivered: Int;
+    let mut lastPhase: String;
 
     action Prepare(self, qty: Int) -> Int
     {
@@ -55,7 +55,7 @@ subject Dispatcher
     let name: String;
     vessel ledger: DispatchLedger;
     let lane: String;
-    let lastPhase: String;
+    let mut lastPhase: String;
 
     action ApproveDispatch(self, qty: Int) -> Int
     {

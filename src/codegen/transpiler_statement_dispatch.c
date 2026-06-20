@@ -22,6 +22,78 @@
 #include "transpiler_type_alias.h"
 #include "transpiler_zone_decl_emit.h"
 
+bool
+transpiler_emit_bind_statement_parts(TranspilerCtx *ctx,
+                                     const char *pvar,
+                                     const char *slot_name,
+                                     const char *role_name)
+{
+    const char *party_type;
+    const char *pvar_ssa;
+    char *pvar_c_owned;
+    const char *pvar_c;
+    const char *ability_name = NULL;
+    char *ability_tag = NULL;
+    ASTNode *party_decl;
+
+    if (ctx == NULL)
+        return false;
+    party_type = lookup_typed_var(ctx, pvar);
+    pvar_ssa = transpiler_resolve_active_ssa_name(ctx, pvar);
+    pvar_c_owned = pvar_ssa != NULL
+        ? transpiler_make_c_ssa_name(ctx, pvar_ssa)
+        : NULL;
+    pvar_c = pvar_c_owned != NULL ? pvar_c_owned : pvar;
+    if (pvar_c == NULL)
+        pvar_c = pvar;
+    if (party_type == NULL) {
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "cannot resolve party type for bind statement '%s.%s = %s'",
+            pvar != NULL ? pvar : "<party>",
+            slot_name != NULL ? slot_name : "<slot>",
+            role_name != NULL ? role_name : "<role>");
+        free(pvar_c_owned);
+        return false;
+    }
+
+    party_decl = find_party_decl(ctx, party_type);
+    if (party_decl == NULL) {
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "cannot resolve party declaration '%s' while emitting bind statement '%s.%s = %s'",
+            party_type,
+            pvar != NULL ? pvar : "<party>",
+            slot_name != NULL ? slot_name : "<slot>",
+            role_name != NULL ? role_name : "<role>");
+        free(pvar_c_owned);
+        return false;
+    }
+    ability_tag = transpiler_party_slot_first_ability_tag(ctx, party_decl,
+                                                          slot_name);
+    ability_name = ability_tag;
+    if (ability_name == NULL) {
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "cannot resolve required ability tag for party slot '%s.%s' while emitting bind statement",
+            party_type,
+            slot_name != NULL ? slot_name : "<slot>");
+        free(ability_tag);
+        free(pvar_c_owned);
+        return false;
+    }
+    write_indent(ctx);
+    codebuf_write(ctx->out,
+        "%s_bind_%s(&%s, NULL, &%s_%s_vtable_instance);\n",
+        party_type, slot_name, pvar_c, role_name, ability_name);
+    free(ability_tag);
+    free(pvar_c_owned);
+    return true;
+}
+
 void
 emit_statement(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -140,65 +212,10 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         break;
     }
     case AST_BIND_STMT: {
-        /* bind party.slot = Role;
-         * look up party's typed_var to get PartyType,
-         *   then emit PartyType_bind_slot(&party, NULL, &Role_Ability_vtable_instance)
-         * For now: use the typed_var mapping to find the party type. */
-        const char *pvar = ast_bind_statement_party_var(node);
-        const char *slot = ast_bind_statement_slot_name(node);
-        const char *role = ast_bind_statement_role_name(node);
-        const char *party_type = lookup_typed_var(ctx, pvar);
-        const char *pvar_ssa = transpiler_resolve_active_ssa_name(ctx, pvar);
-        char *pvar_c_owned = pvar_ssa != NULL
-            ? transpiler_make_c_ssa_name(ctx, pvar_ssa)
-            : NULL;
-        const char *pvar_c = pvar_c_owned != NULL ? pvar_c_owned : pvar;
-        if (pvar_c == NULL)
-            pvar_c = pvar;
-        if (party_type == NULL) {
-            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot resolve party type for bind statement '%s.%s = %s'",
-                pvar != NULL ? pvar : "<party>",
-                slot != NULL ? slot : "<slot>",
-                role != NULL ? role : "<role>");
-            free(pvar_c_owned);
-            break;
-        }
-
-        /* Find the ability name by scanning the current program view for the
-         * party declaration. In MIR-backed emission this view is synthesized
-         * from MIRProgram inventory, not from the original HIR. The dyn role
-         * slot records the required ability. */
-        const char *ability_name = NULL;
-        char *ability_tag = NULL;
-        {
-            ASTNode *it = find_party_decl(ctx, party_type);
-            if (it == NULL) {
-                transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot resolve party declaration '%s' while emitting bind statement '%s.%s = %s'",
-                    party_type,
-                    pvar != NULL ? pvar : "<party>",
-                    slot != NULL ? slot : "<slot>",
-                    role != NULL ? role : "<role>");
-                free(pvar_c_owned);
-                break;
-            }
-            ability_tag = transpiler_party_slot_first_ability_tag(ctx, it, slot);
-            ability_name = ability_tag;
-        }
-        if (ability_name == NULL) {
-            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot resolve required ability tag for party slot '%s.%s' while emitting bind statement",
-                party_type,
-                slot != NULL ? slot : "<slot>");
-            free(ability_tag);
-            free(pvar_c_owned);
-            break;
-        }
-        write_indent(ctx);
-        codebuf_write(ctx->out,
-            "%s_bind_%s(&%s, NULL, &%s_%s_vtable_instance);\n",
-            party_type, slot, pvar_c,
-            role, ability_name);
-        free(ability_tag);
-        free(pvar_c_owned);
+        (void)transpiler_emit_bind_statement_parts(ctx,
+            ast_bind_statement_party_var(node),
+            ast_bind_statement_slot_name(node),
+            ast_bind_statement_role_name(node));
         break;
     }
     case AST_ABILITY_DECL:

@@ -28,6 +28,7 @@
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_mir_ssa_utils.h"
 #include "transpiler_mir_stmt_emit.h"
+#include "transpiler_statement_dispatch.h"
 #include "transpiler_symbols.h"
 
 /* Emit a C preprocessor `#line N "path"` directive at column 0 so the C
@@ -358,6 +359,21 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             continue;
         if (transpiler_mir_routine_has_explicit_cfg(mir_routine)
             && transpiler_mir_inst_is_cfg_container(inst)) {
+            continue;
+        }
+        if (inst->name != NULL && strcmp(inst->name, "bind") == 0) {
+            if (inst->arg0 == NULL || inst->slot_anchor == NULL
+                || inst->arg1 == NULL
+                || !transpiler_emit_bind_statement_parts(
+                    ctx, inst->arg0, inst->slot_anchor, inst->arg1)) {
+                if (reason != NULL && reason_cap > 0) {
+                    transpiler_mir_reasonf(reason, reason_cap,
+                        "MIR block %llu emission failed: bind statement missing MIR bind facts",
+                        (unsigned long long) block->id);
+                }
+                ok = false;
+                break;
+            }
             continue;
         }
         if (mir_instruction_source_matches_ast_type(inst, AST_CALL)

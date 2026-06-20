@@ -128,6 +128,7 @@ llvm_mir_bind_resource_view_def_alias(const MIRInstruction *inst,
     const char *inner;
     bool is_secure;
     LLVMMirVar *source_var;
+    LLVMMirVar *target_var;
     LLVMVarEntry source_entry;
     bool has_source_entry;
     LLVMValueRef source_alloca;
@@ -165,6 +166,7 @@ llvm_mir_bind_resource_view_def_alias(const MIRInstruction *inst,
     }
 
     source_var = llvm_mir_get_var_entry(vars, var_count, source_name);
+    target_var = llvm_mir_get_var_entry(vars, var_count, inst->result_name);
     has_source_entry =
         llvm_scope_lookup_snapshot(ctx, source_base, &source_entry);
     source_alloca = has_source_entry && source_entry.alloca != NULL
@@ -188,6 +190,16 @@ llvm_mir_bind_resource_view_def_alias(const MIRInstruction *inst,
     if (!llvm_mir_bind_resource_view_name(ctx, inst->result_name,
             source_alloca, source_type, inner, is_secure))
         return false;
+    llvm_register_view_var_binding(ctx, alias_base, source_alloca,
+        source_base, inner, false);
+    llvm_register_view_var_binding(ctx, inst->result_name, source_alloca,
+        source_base, inner, false);
+    if (target_var != NULL && target_var->alloca != NULL) {
+        llvm_register_view_var_binding(ctx, alias_base, target_var->alloca,
+            source_base, inner, false);
+        llvm_register_view_var_binding(ctx, inst->result_name,
+            target_var->alloca, source_base, inner, false);
+    }
     if (is_secure) {
         if (!llvm_mir_bind_resource_view_token_alias(ctx, source_base,
                 alias_base))

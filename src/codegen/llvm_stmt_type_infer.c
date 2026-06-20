@@ -125,6 +125,16 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         }
         return ctx->type_f64;
     }
+    case AST_CAST: {
+        const char *target = ast_cast_target_type(expr);
+        LLVMTypeRef target_type = target != NULL
+            ? pergyra_type_to_llvm(ctx, target)
+            : NULL;
+        if (target_type != NULL)
+            return target_type;
+        return llvm_stmt_unknown_expr_type(ctx, expr,
+            "cast expression requires a concrete target type");
+    }
     case AST_ARRAY_LITERAL: {
         LLVMTypeRef elem_type = NULL;
         const char *suffix = NULL;
@@ -156,6 +166,16 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         suffix = suffix_buf;
         return llvm_array_struct_type(ctx, suffix);
     }
+    case AST_MAP_LITERAL:
+        if (ctx->expected_type_name != NULL
+            && strncmp(ctx->expected_type_name, "HashMap<", 8) == 0) {
+            LLVMTypeRef expected = pergyra_type_to_llvm(
+                ctx, ctx->expected_type_name);
+            if (expected != NULL)
+                return expected;
+        }
+        return llvm_stmt_unknown_expr_type(ctx, expr,
+            "map literal requires an explicit HashMap<K,V> context");
     case AST_TUPLE_LITERAL: {
         size_t count = ast_tuple_literal_count(expr);
         LLVMTypeRef *fields;

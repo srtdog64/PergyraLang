@@ -1,6 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 #include "llvm_domain_role_helpers.h"
+#include "llvm_stmt_bind.h"
 #include "llvm_stmt_emit_support.h"
 
 /* =================================================================
@@ -274,6 +275,100 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
     llvm_defer_scope_pop(ctx);
 }
 
+bool
+llvm_emit_bind_statement_parts(LLVMGenCtx *ctx, const char *party_var,
+                               const char *slot_name, const char *role_name,
+                               ASTNode *diagnostic_node)
+{
+    LLVMVarEntry party_entry;
+    const char *party_class_name;
+    LLVMClassTypeEntry *cls;
+    char vt_field[256];
+    int field_idx;
+    const char *ability_tag;
+    LLVMValueRef vt_global;
+    LLVMValueRef field_ptr;
+    LLVMValueRef vt_ptr;
+
+    if (ctx == NULL)
+        return false;
+    if (party_var == NULL || slot_name == NULL || role_name == NULL) {
+        llvm_set_error_at_with_hints(ctx, diagnostic_node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY,
+            "LLVM bind emission requires party variable, slot name, and role name");
+        return false;
+    }
+
+    if (!llvm_scope_lookup_snapshot(ctx, party_var, &party_entry)) {
+        llvm_set_error_at_with_hints(ctx, diagnostic_node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY,
+            "LLVM bind emission cannot resolve party variable '%s'",
+            party_var);
+        return false;
+    }
+
+    party_class_name = llvm_lookup_var_class(ctx, party_var);
+    cls = party_class_name ? llvm_lookup_class(ctx, party_class_name) : NULL;
+    if (cls == NULL) {
+        llvm_set_error_at_with_hints(ctx, diagnostic_node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY,
+            "LLVM bind emission cannot resolve party type for '%s'",
+            party_var);
+        return false;
+    }
+
+    if (!llvm_stmt_format_bind_name(ctx, diagnostic_node, vt_field,
+            sizeof(vt_field), slot_name, "_vtable", "vtable field")) {
+        return false;
+    }
+    field_idx = llvm_class_field_index(cls, vt_field);
+    if (field_idx < 0) {
+        llvm_set_error_at_with_hints(ctx, diagnostic_node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY,
+            "LLVM bind emission cannot resolve vtable field '%s'",
+            vt_field);
+        return false;
+    }
+
+    ability_tag = llvm_party_slot_first_ability_tag(ctx, party_class_name,
+                                                    slot_name);
+    if (ability_tag == NULL) {
+        llvm_set_error_at_with_hints(ctx, diagnostic_node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY,
+            "LLVM bind emission cannot resolve required ability for party slot '%s.%s'",
+            party_class_name, slot_name);
+        return false;
+    }
+
+    vt_global = llvm_lookup_role_vtable_global(ctx, role_name, ability_tag);
+    if (vt_global == NULL) {
+        llvm_set_error_at_with_hints(ctx, diagnostic_node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY,
+            "LLVM bind emission cannot resolve role vtable global for '%s.%s'",
+            role_name, ability_tag);
+        return false;
+    }
+
+    field_ptr = LLVMBuildStructGEP2(ctx->builder, cls->struct_type,
+        party_entry.alloca, (unsigned)field_idx, llvm_tmp_name(ctx));
+    vt_ptr = LLVMBuildBitCast(ctx->builder, vt_global, ctx->type_i8ptr,
+                              llvm_tmp_name(ctx));
+    LLVMBuildStore(ctx->builder, vt_ptr, field_ptr);
+    return true;
+}
+
 /* Parallel / async / select statement owners live in llvm_stmt_parallel_async.c. */
 
 void
@@ -485,93 +580,11 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
         break;
 
     case AST_BIND_STMT: {
-        /* bind party.slot = Role;
-         * party_var.slot_vtable = &Role_Ability_vtable_instance */
-        const char *party_var = ast_bind_statement_party_var(node);
-        const char *slot_name = ast_bind_statement_slot_name(node);
-        const char *role_name = ast_bind_statement_role_name(node);
-
-        if (party_var == NULL || slot_name == NULL || role_name == NULL) {
-            llvm_set_error_at_with_hints(ctx, node,
-                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY,
-                "LLVM bind emission requires party variable, slot name, and role name");
-            break;
-        }
-
-        /* Look up the party variable */
-        LLVMVarEntry pvar;
-        if (!llvm_scope_lookup_snapshot(ctx, party_var, &pvar)) {
-            llvm_set_error_at_with_hints(ctx, node,
-                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY,
-                "LLVM bind emission cannot resolve party variable '%s'",
-                party_var);
-            break;
-        }
-
-        const char *party_class_name = llvm_lookup_var_class(ctx, party_var);
-        LLVMClassTypeEntry *cls = party_class_name
-            ? llvm_lookup_class(ctx, party_class_name) : NULL;
-        if (cls == NULL) {
-            llvm_set_error_at_with_hints(ctx, node,
-                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY,
-                "LLVM bind emission cannot resolve party type for '%s'",
-                party_var);
-            break;
-        }
-
-        char vt_field[256];
-        if (!llvm_stmt_format_bind_name(ctx, node, vt_field,
-                sizeof(vt_field), slot_name, "_vtable", "vtable field"))
-            break;
-        int field_idx = llvm_class_field_index(cls, vt_field);
-        if (field_idx < 0) {
-            llvm_set_error_at_with_hints(ctx, node,
-                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY,
-                "LLVM bind emission cannot resolve vtable field '%s'",
-                vt_field);
-            break;
-        }
-
-        const char *ability_tag = llvm_party_slot_first_ability_tag(
-            ctx, party_class_name, slot_name);
-        if (ability_tag == NULL) {
-            llvm_set_error_at_with_hints(ctx, node,
-                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY,
-                "LLVM bind emission cannot resolve required ability for party slot '%s.%s'",
-                party_class_name, slot_name);
-            break;
-        }
-
-        LLVMValueRef vt_global = llvm_lookup_role_vtable_global(
-            ctx, role_name, ability_tag);
-        if (vt_global == NULL) {
-            llvm_set_error_at_with_hints(ctx, node,
-                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY,
-                "LLVM bind emission cannot resolve role vtable global for '%s.%s'",
-                role_name, ability_tag);
-            break;
-        }
-
-        /* GEP to vtable pointer field + store */
-        LLVMValueRef party_alloca = pvar.alloca;
-        LLVMValueRef field_ptr = LLVMBuildStructGEP2(ctx->builder,
-            cls->struct_type, party_alloca, (unsigned)field_idx,
-            llvm_tmp_name(ctx));
-        LLVMValueRef vt_ptr = LLVMBuildBitCast(ctx->builder,
-            vt_global, ctx->type_i8ptr, llvm_tmp_name(ctx));
-        LLVMBuildStore(ctx->builder, vt_ptr, field_ptr);
+        (void)llvm_emit_bind_statement_parts(ctx,
+            ast_bind_statement_party_var(node),
+            ast_bind_statement_slot_name(node),
+            ast_bind_statement_role_name(node),
+            node);
         break;
     }
 

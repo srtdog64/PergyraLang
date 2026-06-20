@@ -1,8 +1,8 @@
 vessel CargoState
 {
-    let claimed: Int;
-    let delivered: Int;
-    let lane: String;
+    let mut claimed: Int;
+    let mut delivered: Int;
+    let mut lane: String;
 
     func Claim(self, qty: Int, laneName: String) -> Int
     {
@@ -28,9 +28,9 @@ vessel CargoState
 
 vessel DispatchLedger
 {
-    let approved: Int;
-    let shipped: Int;
-    let rolledBack: Int;
+    let mut approved: Int;
+    let mut shipped: Int;
+    let mut rolledBack: Int;
 
     func Approve(self, qty: Int) -> Int
     {

@@ -49,17 +49,24 @@ llvm_mir_local_infer_expr_type(const MIRRoutine *routine,
                                ASTNode *expr)
 {
     const char *saved_expected_type_name;
+    ASTNode *saved_expected_callable_type;
     const char *expected_type_name;
     LLVMTypeRef type;
 
     if (ctx == NULL || expr == NULL)
         return NULL;
     saved_expected_type_name = ctx->expected_type_name;
+    saved_expected_callable_type = ctx->expected_callable_type;
     expected_type_name = llvm_mir_local_expected_type_name(routine, inst,
         base_name);
     if (expected_type_name != NULL && expected_type_name[0] != '\0')
         ctx->expected_type_name = expected_type_name;
+    if (inst != NULL && inst->expr1 != NULL
+        && inst->expr1->type == AST_EVENT_HANDLER_TYPE) {
+        ctx->expected_callable_type = inst->expr1;
+    }
     type = llvm_stmt_infer_expr_type(ctx, expr);
+    ctx->expected_callable_type = saved_expected_callable_type;
     ctx->expected_type_name = saved_expected_type_name;
     return type;
 }

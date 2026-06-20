@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "codegen_slot_type_policy.h"
 #include "llvm_internal_api.h"
 #include "llvm_mir_scope_bind.h"
 #include "../parser/ast_api.h"
@@ -284,11 +285,11 @@ llvm_mir_try_emit_source_claim_let(const MIRInstruction *inst,
 }
 
 static bool
-llvm_mir_try_emit_source_secure_slot_sugar_let(const MIRInstruction *inst,
-                                               LLVMValueRef alloca,
-                                               LLVMGenCtx *ctx,
-                                               const char *expected_type_name,
-                                               bool *handled)
+llvm_mir_try_emit_source_slot_sugar_let(const MIRInstruction *inst,
+                                        LLVMValueRef alloca,
+                                        LLVMGenCtx *ctx,
+                                        const char *expected_type_name,
+                                        bool *handled)
 {
     ASTNode *init = inst != NULL ? inst->expr0 : NULL;
     char inner[128];
@@ -298,6 +299,10 @@ llvm_mir_try_emit_source_secure_slot_sugar_let(const MIRInstruction *inst,
     LLVMValueRef value_ptr;
     LLVMValueRef occupied_ptr;
 
+    PgyTypeKind kind;
+    bool is_plain_slot;
+    bool is_secure;
+
     if (handled != NULL)
         *handled = false;
     if (inst == NULL || alloca == NULL
@@ -306,14 +311,17 @@ llvm_mir_try_emit_source_secure_slot_sugar_let(const MIRInstruction *inst,
     }
     if (!mir_instruction_uses_source_local_decl_emit(inst))
         return true;
-    if (pgy_classify_type(expected_type_name) != PGY_TK_SECURE_SLOT)
+    is_plain_slot = pgy_codegen_type_name_is_slot(expected_type_name);
+    is_secure = pgy_codegen_type_name_is_secure_slot(expected_type_name);
+    if (!is_plain_slot && !is_secure)
         return true;
+    kind = is_secure ? PGY_TK_SECURE_SLOT : PGY_TK_SLOT;
     if (!llvm_constructed_arg_name_copy(expected_type_name, 0, inner,
             sizeof(inner))
         || inner[0] == '\0'
         || strcmp(inner, "Unknown") == 0) {
         llvm_set_mir_inventory_missing(ctx,
-            "LLVM MIR source-local SecureSlot sugar let '%s' requires concrete slot metadata",
+            "LLVM MIR source-local slot sugar let '%s' requires concrete Slot<T>/SecureSlot<T> metadata",
             inst->result_name != NULL ? inst->result_name : "(anonymous)");
         return false;
     }
@@ -321,8 +329,12 @@ llvm_mir_try_emit_source_secure_slot_sugar_let(const MIRInstruction *inst,
         && init->type == AST_CALL
         && ast_call_callee(init) != NULL
         && ast_call_callee(init)->type == AST_IDENTIFIER
-        && strcmp(ast_identifier_name(ast_call_callee(init)),
-                  "ClaimSecureSlot") == 0) {
+        && ((kind == PGY_TK_SLOT
+             && strcmp(ast_identifier_name(ast_call_callee(init)),
+                       "ClaimSlot") == 0)
+            || (kind == PGY_TK_SECURE_SLOT
+                && strcmp(ast_identifier_name(ast_call_callee(init)),
+                          "ClaimSecureSlot") == 0))) {
         return true;
     }
 
@@ -341,11 +353,13 @@ llvm_mir_try_emit_source_secure_slot_sugar_let(const MIRInstruction *inst,
         expected_type_name);
     llvm_register_typed_var_abi_binding(ctx, base_name, alloca,
         expected_type_name);
-    llvm_register_slot_var_binding(ctx, base_name, alloca, inner, true);
-    llvm_mir_emit_secure_claim_token_for_local(ctx, base_name, inner,
-        slot_ty, alloca);
-    if (ctx->has_error)
-        return false;
+    llvm_register_slot_var_binding(ctx, base_name, alloca, inner, is_secure);
+    if (is_secure) {
+        llvm_mir_emit_secure_claim_token_for_local(ctx, base_name, inner,
+            slot_ty, alloca);
+        if (ctx->has_error)
+            return false;
+    }
 
     if (init != NULL) {
         value = llvm_emit_expression(init, ctx);
@@ -392,7 +406,7 @@ llvm_mir_try_emit_source_resource_let(const MIRInstruction *inst,
             *handled = true;
         return true;
     }
-    if (!llvm_mir_try_emit_source_secure_slot_sugar_let(inst, alloca, ctx,
+    if (!llvm_mir_try_emit_source_slot_sugar_let(inst, alloca, ctx,
             expected_type_name, &local_handled)) {
         return false;
     }

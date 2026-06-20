@@ -7,12 +7,14 @@
 
 #include "llvm_mir_block_emit.h"
 #include "llvm_mir_await_emit.h"
+#include "llvm_mir_bind_emit.h"
 #include "llvm_mir_host_field.h"
 #include "llvm_mir_local_emit.h"
 #include "llvm_mir_local_expected_type.h"
 #include "llvm_mir_scope_bind.h"
 #include "llvm_mir_source_def_copy.h"
 #include "llvm_mir_source_resource_defs.h"
+#include "llvm_mir_store_coercion.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -38,12 +40,6 @@ static bool
 llvm_mir_def_uses_channel_receive_statement_emit(const MIRInstruction *inst)
 {
     return mir_instruction_uses_channel_receive_statement_emit(inst);
-}
-
-static bool
-llvm_mir_def_uses_select_receive_statement_emit(const MIRInstruction *inst)
-{
-    return mir_instruction_uses_select_receive_statement_emit(inst);
 }
 
 static const char *
@@ -74,12 +70,6 @@ llvm_mir_return_callable_type(LLVMGenCtx *ctx, const MIRRoutine *routine)
         return NULL;
     }
     return llvm_stmt_current_return_callable_type(ctx);
-}
-
-static bool
-llvm_mir_stmt_instruction_is_cfg_container(const MIRInstruction *inst)
-{
-    return mir_instruction_source_is_cfg_container(inst);
 }
 
 static void
@@ -246,7 +236,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                     LLVMValueRef mir_alloca =
                         llvm_mir_get_var(vars, var_count, inst->result_name);
                     if (llvm_debug_detail_enabled()
-                        && llvm_mir_def_uses_select_receive_statement_emit(inst)) {
+                        && mir_instruction_uses_select_receive_statement_emit(inst)) {
                         fprintf(stderr, "[llvm inst] emit_select_receive_def\n");
                     }
                     if (!llvm_mir_emit_channel_receive_def(inst, ctx,
@@ -299,6 +289,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                     {
                         const char *saved_expected_type_name =
                             ctx->expected_type_name;
+                        ASTNode *saved_expected_callable_type =
+                            ctx->expected_callable_type;
                         LLVMTypeRef saved_current_ret_type =
                             ctx->current_ret_type;
                         const char *expected_type_name =
@@ -312,6 +304,10 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                             && expected_type_name[0] != '\0') {
                             ctx->expected_type_name = expected_type_name;
                         }
+                        if (inst->expr1 != NULL
+                            && inst->expr1->type == AST_EVENT_HANDLER_TYPE) {
+                            ctx->expected_callable_type = inst->expr1;
+                        }
                         if (target_entry != NULL
                             && target_entry->type != NULL) {
                             ctx->current_ret_type = target_entry->type;
@@ -321,6 +317,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                                 llvm_set_mir_topology_invalid(ctx,
                                     "LLVM MIR source-statement assignment DEF is missing target fact");
                                 ctx->current_ret_type = saved_current_ret_type;
+                                ctx->expected_callable_type =
+                                    saved_expected_callable_type;
                                 ctx->expected_type_name =
                                     saved_expected_type_name;
                                 return;
@@ -330,6 +328,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                                     "LLVM MIR source-statement assignment DEF cannot consume a Void expression value")) {
                                 ctx->current_ret_type =
                                     saved_current_ret_type;
+                                ctx->expected_callable_type =
+                                    saved_expected_callable_type;
                                 ctx->expected_type_name =
                                     saved_expected_type_name;
                                 return;
@@ -342,6 +342,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                                     "LLVM MIR source-statement DEF cannot consume a Void expression value")) {
                                 ctx->current_ret_type =
                                     saved_current_ret_type;
+                                ctx->expected_callable_type =
+                                    saved_expected_callable_type;
                                 ctx->expected_type_name =
                                     saved_expected_type_name;
                                 return;
@@ -355,6 +357,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                                 emit_expr, ctx);
                         }
                         ctx->current_ret_type = saved_current_ret_type;
+                        ctx->expected_callable_type =
+                            saved_expected_callable_type;
                         ctx->expected_type_name = saved_expected_type_name;
                     }
                     if (val == NULL) {
@@ -363,6 +367,16 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                                 "LLVM MIR source-statement DEF expression could not be lowered");
                         }
                         return;
+                    }
+                    {
+                        LLVMMirVar *target_entry =
+                            llvm_mir_get_var_entry(vars, var_count,
+                                inst->result_name);
+                        if (target_entry != NULL
+                            && target_entry->type != NULL) {
+                            val = llvm_mir_coerce_value_for_store(ctx, val,
+                                target_entry->type);
+                        }
                     }
                     LLVMBuildStore(ctx->builder, val, alloca);
                     if (!llvm_mir_copy_source_def_to_versioned_local(
@@ -404,6 +418,14 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                         ctx->expected_type_name = saved_expected_type_name;
                     }
                     if (val != NULL && alloca != NULL) {
+                        LLVMMirVar *target_entry =
+                            llvm_mir_get_var_entry(vars, var_count,
+                                inst->result_name);
+                        if (target_entry != NULL
+                            && target_entry->type != NULL) {
+                            val = llvm_mir_coerce_value_for_store(ctx, val,
+                                target_entry->type);
+                        }
                         LLVMBuildStore(ctx->builder, val, alloca);
                     }
                 }
@@ -571,12 +593,17 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                 if (inst->expr0 != NULL)
                     llvm_register_defer(inst->expr0, ctx);
             } else if (mir_instruction_has_source_statement_order(inst)) {
-                if (llvm_mir_stmt_instruction_is_cfg_container(inst))
+                if (mir_instruction_source_is_cfg_container(inst))
                     break;
                 if (!mir_instruction_source_stmt_fallback_is_allowed(inst)) {
                     llvm_set_mir_topology_invalid(ctx,
                         "LLVM MIR STMT fallback outside allowed residual statement policy");
                     return;
+                }
+                if (inst->name != NULL && strcmp(inst->name, "bind") == 0) {
+                    if (!llvm_mir_emit_bind_statement(inst, ctx))
+                        return;
+                    break;
                 }
                 if (mir_instruction_source_matches_ast_type(inst, AST_CALL)
                     && inst->expr0 != NULL) {
