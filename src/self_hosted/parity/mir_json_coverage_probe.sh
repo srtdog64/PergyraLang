@@ -141,5 +141,10 @@ func Main() -> Void {
     Log(Concat(a, b));
 }
 EOF
+probe multi_func_void <<'EOF'
+func Greet() -> Void { Log("hi"); }
+func Bye() -> Void { Log("bye"); }
+func Main() -> Void { Greet(); Bye(); }
+EOF
 
 echo "[coverage] done. PASS = covered; *-gap = the empty parts (stage attributed)."

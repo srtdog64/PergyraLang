@@ -97,6 +97,26 @@ func StmtToTreeLine(stmt: String) -> String {
     return s;
 }
 
+// Find the next routine declaration: a `"name":` whose object is a function
+// (`,"kind":"function"` follows the value). Instruction `"name":"stmt"` entries
+// are skipped. Returns the position of the routine's `"name":` key, or -1.
+func FindRoutine(json: String, from: Int) -> Int {
+    let p: Int = FindFrom(json, "\"name\":", from);
+    while p >= 0 {
+        let q: Int = FindFrom(json, "\"", p + 7);
+        if q < 0 {
+            return -1;
+        }
+        let e: Array<Int> = [0];
+        let v: String = ReadJsonString(json, q, e);
+        if StringLength(v) >= 0 && Substring(json, e[0], 18) == ",\"kind\":\"function\"" {
+            return p;
+        }
+        p = FindFrom(json, "\"name\":", e[0]);
+    }
+    return -1;
+}
+
 func Main() -> Void {
     let args: Array<String> = Args();
     if ArrayLength(args) < 1 {
@@ -111,46 +131,59 @@ func Main() -> Void {
         Die("input is not a pgy.mir.v1 MIR-JSON document");
     }
 
-    // Routine name (rung-0: exactly one routine, expected to be Main).
-    let name_key: Int = StringIndexOf(json, "\"name\":");
-    if name_key < 0 {
+    // Iterate every routine in document order (rung-0b: each routine is one
+    // linear block; control flow and parameters/returns are not yet
+    // reconstructed and remain an observable MIR-LOWER ERROR). The `ast` fields
+    // of a routine are bounded by the next routine's `"name":` key.
+    let out: String = "Program:\n";
+    let total: Int = 0;
+    let rpos: Int = FindRoutine(json, 0);
+    if rpos < 0 {
         Die("no routine name in MIR-JSON");
     }
-    let nq: Int = FindFrom(json, "\"", name_key + 7);
-    if nq < 0 {
-        Die("malformed routine name");
-    }
-    let nend: Array<Int> = [0];
-    let routine: String = ReadJsonString(json, nq, nend);
-
-    let out: String = "Program:\n";
-    out = Concat(out, Concat("  Function: ", Concat(routine, "\n")));
-    out = Concat(out, "    Parameters:\n");
-    out = Concat(out, "    Returns: Void\n");
-    out = Concat(out, "    Body:\n");
-    out = Concat(out, "      Block:\n");
-
-    // Walk every instruction `ast` field in document order. Non-null values are
-    // emitted as statement lines at the Block's 8-space indentation.
-    let count: Int = 0;
-    let k: Int = FindFrom(json, "\"ast\":", 0);
-    while k >= 0 {
-        let vstart: Int = k + 6;
-        let vc: String = CharAt(json, vstart);
-        if vc == "n" {
-            k = FindFrom(json, "\"ast\":", vstart + 4);
-        } else if vc == "\"" {
-            let send: Array<Int> = [0];
-            let stmt: String = ReadJsonString(json, vstart, send);
-            out = Concat(out, Concat("        ", Concat(StmtToTreeLine(stmt), "\n")));
-            count = count + 1;
-            k = FindFrom(json, "\"ast\":", send[0]);
-        } else {
-            Die(Concat("unexpected ast value at offset: ", ToString(vstart)));
+    while rpos >= 0 {
+        let nq: Int = FindFrom(json, "\"", rpos + 7);
+        if nq < 0 {
+            Die("malformed routine name");
         }
+        let nend: Array<Int> = [0];
+        let routine: String = ReadJsonString(json, nq, nend);
+
+        // Bound this routine's instructions by the next routine declaration.
+        let next_rpos: Int = FindRoutine(json, nend[0]);
+        let span_end: Int = next_rpos;
+        if span_end < 0 {
+            span_end = StringLength(json);
+        }
+
+        out = Concat(out, Concat("  Function: ", Concat(routine, "\n")));
+        out = Concat(out, "    Parameters:\n");
+        out = Concat(out, "    Returns: Void\n");
+        out = Concat(out, "    Body:\n");
+        out = Concat(out, "      Block:\n");
+
+        // Walk this routine's instruction `ast` fields (in [nend, span_end)).
+        let k: Int = FindFrom(json, "\"ast\":", nend[0]);
+        while k >= 0 && k < span_end {
+            let vstart: Int = k + 6;
+            let vc: String = CharAt(json, vstart);
+            if vc == "n" {
+                k = FindFrom(json, "\"ast\":", vstart + 4);
+            } else if vc == "\"" {
+                let send: Array<Int> = [0];
+                let stmt: String = ReadJsonString(json, vstart, send);
+                out = Concat(out, Concat("        ", Concat(StmtToTreeLine(stmt), "\n")));
+                total = total + 1;
+                k = FindFrom(json, "\"ast\":", send[0]);
+            } else {
+                Die(Concat("unexpected ast value at offset: ", ToString(vstart)));
+            }
+        }
+
+        rpos = next_rpos;
     }
 
-    if count == 0 {
+    if total == 0 {
         Die("no source statements found in MIR-JSON routine");
     }
     Print(out);
