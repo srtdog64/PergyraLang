@@ -136,13 +136,12 @@ emit_builtin_has_state(ASTNode *call, TranspilerCtx *ctx)
         ? host_decl
         : NULL;
     const char *state_name = domain_query_name_arg(arg0);
-    ASTNode *state_decl = zone_decl != NULL
-        ? transpiler_find_zone_state_decl(zone_decl, state_name)
-        : NULL;
+    bool has_state = zone_decl != NULL
+        && transpiler_zone_has_state(ctx, zone_decl, state_name);
 
     if (zone_decl != NULL
         && ast_call_arg_count(call) >= 1
-        && state_decl != NULL
+        && has_state
         && state_name != NULL) {
         return domain_query_heap_fmt(ctx, "self->__state_%s", state_name);
     }
@@ -252,7 +251,7 @@ emit_builtin_has_zone_state(ASTNode *call, TranspilerCtx *ctx)
         && ast_call_arg_count(call) == 2
         && zone_decl != NULL
         && state_name != NULL
-        && transpiler_find_zone_state_decl(zone_decl, state_name) != NULL) {
+        && transpiler_zone_has_state(ctx, zone_decl, state_name)) {
         return domain_query_heap_fmt(ctx, "self->%s.__state_%s",
             zone_name, state_name);
     }

@@ -204,7 +204,6 @@ llvm_emit_has_state_query(ASTNode *node, LLVMGenCtx *ctx, LLVMValueRef *out)
         ? host_decl : NULL;
     LLVMClassTypeEntry *cls = host_name != NULL ? llvm_lookup_class(ctx, host_name) : NULL;
     const char *state_name = llvm_call_name_or_string_arg(node, 0);
-    ASTNode *state_decl;
     int field_idx;
 
     if (out == NULL)
@@ -214,8 +213,7 @@ llvm_emit_has_state_query(ASTNode *node, LLVMGenCtx *ctx, LLVMValueRef *out)
         return true;
     }
 
-    state_decl = llvm_find_zone_state_decl(ctx, zone_decl, state_name);
-    if (state_decl == NULL) {
+    if (!llvm_zone_has_state(ctx, zone_decl, state_name)) {
         *out = llvm_domain_query_false(ctx);
         return true;
     }
@@ -376,7 +374,7 @@ llvm_emit_has_zone_detail_query(ASTNode *node, LLVMGenCtx *ctx,
             field_idx = llvm_class_field_index(zone_cls, field_name);
         }
     } else if (op == LLVM_DOMAIN_QUERY_OP_HAS_ZONE_STATE) {
-        if (llvm_find_zone_state_decl(ctx, zone_decl, detail_name) != NULL) {
+        if (llvm_zone_has_state(ctx, zone_decl, detail_name)) {
             char field_name[256];
             if (!llvm_domain_query_field_name(ctx, field_name, sizeof(field_name),
                     "__state_", detail_name, "zone state query field name")) {

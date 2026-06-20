@@ -199,26 +199,34 @@ llvm_find_nominal_host_method_decl(LLVMGenCtx *ctx, const char *host_type_name,
                                                 method_name);
 }
 
-ASTNode *
-llvm_find_zone_state_decl(LLVMGenCtx *ctx, ASTNode *zone_decl,
-                          const char *state_name)
+bool
+llvm_zone_has_state(LLVMGenCtx *ctx, ASTNode *zone_decl,
+                    const char *state_name)
 {
-    size_t state_count = 0;
-    ASTNode **states;
+    const char *zone_name;
+    LLVMHostedZoneStateView state_view;
 
-    (void)ctx;
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL
         || state_name == NULL)
-        return NULL;
-    states = ast_zone_states(zone_decl, &state_count);
-    for (size_t i = 0; i < state_count; i++) {
-        ASTNode *state = states[i];
-        if (state != NULL && state->type == AST_ZONE_STATE
-            && ast_zone_state_name(state) != NULL
-            && strcmp(ast_zone_state_name(state), state_name) == 0)
-            return state;
+        return false;
+
+    zone_name = llvm_decl_node_name(zone_decl);
+    state_view =
+        llvm_hosted_zone_state_view_from_decl(ctx, zone_name, zone_decl);
+    if (llvm_hosted_zone_state_view_missing_mir_metadata(&state_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone state lookup metadata for '%s'",
+            zone_name != NULL ? zone_name : "<anonymous>");
+        return false;
     }
-    return NULL;
+
+    for (size_t i = 0; i < state_view.count; i++) {
+        const char *candidate =
+            llvm_hosted_zone_state_view_name(&state_view, i);
+        if (candidate != NULL && strcmp(candidate, state_name) == 0)
+            return true;
+    }
+    return false;
 }
 
 ASTNode *

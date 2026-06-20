@@ -1010,6 +1010,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_inventory_field_view.c \
                         $(CODEGEN_DIR)/llvm_inventory_slot_view.c \
                         $(CODEGEN_DIR)/llvm_inventory_zone_refresh_view.c \
+                        $(CODEGEN_DIR)/llvm_inventory_zone_state_view.c \
                         $(CODEGEN_DIR)/llvm_inventory_role_roster_slot_view.c \
                         $(CODEGEN_DIR)/llvm_inventory_host_methods.c \
                         $(CODEGEN_DIR)/llvm_expr.c \

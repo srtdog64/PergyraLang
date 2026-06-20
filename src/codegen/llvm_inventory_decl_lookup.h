@@ -84,6 +84,16 @@ typedef struct
     bool               requires_mir_metadata;
 } LLVMHostedZoneLayerSlotView;
 
+typedef struct
+{
+    const MIRDeclHeader *decl_header;
+    ASTNode           **ast_compat_states;
+    size_t             ast_compat_count;
+    size_t             count;
+    bool               uses_mir_metadata;
+    bool               requires_mir_metadata;
+} LLVMHostedZoneStateView;
+
 typedef struct LLVMHostedZoneRefreshView
 {
     const MIRDeclHeader *decl_header;
@@ -185,6 +195,30 @@ bool llvm_hosted_zone_layer_slot_view_is_pool(
     size_t index);
 int llvm_hosted_zone_layer_slot_view_pool_capacity(
     const LLVMHostedZoneLayerSlotView *view,
+    size_t index);
+LLVMHostedZoneStateView llvm_hosted_zone_state_view_from_decl(
+    const LLVMGenCtx *ctx,
+    const char *host_name,
+    ASTNode *decl);
+bool llvm_hosted_zone_state_view_missing_mir_metadata(
+    const LLVMHostedZoneStateView *view);
+const MIRDeclZoneState *llvm_hosted_zone_state_view_metadata(
+    const LLVMHostedZoneStateView *view,
+    size_t index);
+const char *llvm_hosted_zone_state_view_name(
+    const LLVMHostedZoneStateView *view,
+    size_t index);
+const char *llvm_hosted_zone_state_view_layer_slot_name(
+    const LLVMHostedZoneStateView *view,
+    size_t index);
+const char *llvm_hosted_zone_state_view_left_or_target_slot_name(
+    const LLVMHostedZoneStateView *view,
+    size_t index);
+const char *llvm_hosted_zone_state_view_right_slot_name(
+    const LLVMHostedZoneStateView *view,
+    size_t index);
+bool llvm_hosted_zone_state_view_is_relation(
+    const LLVMHostedZoneStateView *view,
     size_t index);
 LLVMHostedZoneRefreshView llvm_hosted_zone_refresh_view_from_decl(
     const LLVMGenCtx *ctx,

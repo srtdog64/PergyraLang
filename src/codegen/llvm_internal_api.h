@@ -490,8 +490,8 @@ ASTNode *llvm_find_nominal_host_method_decl(LLVMGenCtx *ctx,
 bool llvm_emit_specialized_method_ondemand(LLVMGenCtx *ctx,
                                            const char *class_name,
                                            const char *method_name);
-ASTNode *llvm_find_zone_state_decl(LLVMGenCtx *ctx, ASTNode *zone_decl,
-                                   const char *state_name);
+bool llvm_zone_has_state(LLVMGenCtx *ctx, ASTNode *zone_decl,
+                         const char *state_name);
 ASTNode *llvm_find_world_state_decl(LLVMGenCtx *ctx, ASTNode *world_decl,
                                     const char *state_name);
 ASTNode *llvm_resolve_world_zone_decl(LLVMGenCtx *ctx, ASTNode *world_decl,

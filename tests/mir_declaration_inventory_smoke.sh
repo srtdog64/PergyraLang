@@ -7287,6 +7287,22 @@ for term in \
     require_term "src/codegen/transpiler_decl_slot_view.c" "$term"
 done
 for term in \
+    "transpiler_zone_has_state(" \
+    "TranspilerHostedZoneStateView state_view" \
+    "transpiler_hosted_zone_state_view_missing_mir_metadata" \
+    "transpiler_hosted_zone_state_view_name"; do
+    require_term "src/codegen/transpiler_projection.c" "$term"
+done
+require_term "src/codegen/transpiler_projection.h" \
+    "bool transpiler_zone_has_state"
+for term in \
+    "transpiler_zone_has_state(ctx, zone_decl, state_name)"; do
+    require_term "src/codegen/transpiler_expr_domain_query_builtin.c" "$term"
+done
+if grep -R "transpiler_find_zone_state_decl" "$ROOT_DIR/src/codegen" >/dev/null; then
+    fail "C zone-state query lookup must not return AST_ZONE_STATE payloads"
+fi
+for term in \
     "TranspilerHostedZoneStateView state_view" \
     "transpiler_hosted_zone_state_view_missing_mir_metadata" \
     "transpiler_hosted_zone_state_view_name"; do
@@ -7295,6 +7311,31 @@ done
 if grep -Fq "ast_zone_states(node, &state_count)" \
     "$ROOT_DIR/src/codegen/transpiler_zone_struct_emit.c"; then
     fail "C zone struct emission must consume MIR zone state metadata, not reopen AST_ZONE_STATE inventory"
+fi
+for term in \
+    "LLVMHostedZoneStateView" \
+    "llvm_hosted_zone_state_view_from_decl" \
+    "llvm_hosted_zone_state_view_metadata" \
+    "llvm_hosted_zone_state_view_name"; do
+    require_term "src/codegen/llvm_inventory_decl_lookup.h" "$term"
+    require_term "src/codegen/llvm_inventory_zone_state_view.c" "$term"
+done
+for term in \
+    "llvm_zone_has_state(" \
+    "LLVMHostedZoneStateView state_view" \
+    "llvm_hosted_zone_state_view_missing_mir_metadata" \
+    "llvm_hosted_zone_state_view_name"; do
+    require_term "src/codegen/llvm_domain_lookup.c" "$term"
+done
+require_term "src/codegen/llvm_internal_api.h" \
+    "bool llvm_zone_has_state"
+for term in \
+    "llvm_zone_has_state(ctx, zone_decl, state_name)" \
+    "llvm_zone_has_state(ctx, zone_decl, detail_name)"; do
+    require_term "src/codegen/llvm_expr_domain_query_calls.c" "$term"
+done
+if grep -R "llvm_find_zone_state_decl" "$ROOT_DIR/src/codegen" >/dev/null; then
+    fail "LLVM zone-state query lookup must not return AST_ZONE_STATE payloads"
 fi
 for term in \
     "TranspilerHostedZoneRefreshView" \

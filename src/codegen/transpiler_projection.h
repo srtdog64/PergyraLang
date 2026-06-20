@@ -34,8 +34,9 @@ bool transpiler_zone_domain_slot_is_projection(TranspilerCtx *ctx,
                                                const char *slot_name);
 bool transpiler_current_world_has_field(TranspilerCtx *ctx,
                                         const char *field_name);
-ASTNode *transpiler_find_zone_state_decl(ASTNode *zone_decl,
-                                         const char *state_name);
+bool transpiler_zone_has_state(TranspilerCtx *ctx,
+                               ASTNode *zone_decl,
+                               const char *state_name);
 ASTNode *transpiler_find_world_state_decl(ASTNode *world_decl,
                                           const char *state_name);
 bool transpiler_zone_has_layer_slot(TranspilerCtx *ctx,

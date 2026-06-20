@@ -312,23 +312,38 @@ transpiler_current_world_has_field(TranspilerCtx *ctx, const char *field_name)
     return false;
 }
 
-ASTNode *
-transpiler_find_zone_state_decl(ASTNode *zone_decl, const char *state_name)
+bool
+transpiler_zone_has_state(TranspilerCtx *ctx,
+                          ASTNode *zone_decl,
+                          const char *state_name)
 {
-    if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL || state_name == NULL)
-        return NULL;
+    const char *zone_name;
+    TranspilerHostedZoneStateView state_view;
 
-    size_t state_count = 0;
-    ASTNode **states = ast_zone_states(zone_decl, &state_count);
-    for (size_t i = 0; i < state_count; i++) {
-        ASTNode *state = states[i];
-        if (state != NULL && state->type == AST_ZONE_STATE
-            && ast_zone_state_name(state) != NULL
-            && strcmp(ast_zone_state_name(state), state_name) == 0) {
-            return state;
+    if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL
+        || state_name == NULL) {
+        return false;
+    }
+
+    zone_name = transpiler_decl_name_local(zone_decl);
+    state_view =
+        transpiler_hosted_zone_state_view_from_decl(ctx, zone_name, zone_decl);
+    if (transpiler_hosted_zone_state_view_missing_mir_metadata(
+            &state_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing zone state lookup metadata for '%s'",
+            zone_name != NULL ? zone_name : "(anonymous-zone)");
+        return false;
+    }
+
+    for (size_t i = 0; i < state_view.count; i++) {
+        const char *candidate =
+            transpiler_hosted_zone_state_view_name(&state_view, i);
+        if (candidate != NULL && strcmp(candidate, state_name) == 0) {
+            return true;
         }
     }
-    return NULL;
+    return false;
 }
 
 ASTNode *
