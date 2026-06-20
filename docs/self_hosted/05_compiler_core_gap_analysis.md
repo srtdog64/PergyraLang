@@ -91,9 +91,11 @@ in `expr1`, and backend assignment-parts emitters preserve slot, array, field,
 and projection assignment semantics without reopening the source statement
 payload. LLVM source-local resource constructor LET emission also consumes MIR
 initializer/type facts instead of reopening the source local declaration
-payload. The remaining capability-5 tail is selected validation/public-surface
-reads and the C residual source-statement helper still backed by
-`mir_instruction_source_payload`; LLVM for-in and with-slot resource-claim
+payload. C source-local LET DEF emission, generic DEF expression emission, and
+receive-payload type inference now consume instruction `arg0` / `expr0` /
+`expr1` facts directly, so C codegen no longer calls
+`mir_instruction_source_payload`. The remaining capability-5 tail is selected
+validation/public-surface reads; LLVM for-in and with-slot resource-claim
 diagnostics have already moved to MIR expression anchors. The remaining reads
 must become MIR facts or provenance-only reads before the body source-of-truth
 row is fully ready.

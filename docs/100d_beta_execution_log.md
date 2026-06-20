@@ -3,6 +3,19 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-20 C Backend Source-Payload DEF Closure
+
+- C MIR block emission no longer calls a source-payload helper for DEF/LET
+  paths. Source-local LET DEFs consume `arg0` / `expr0` / `expr1` from the
+  instruction, generic DEF expression emission consumes `expr0`, and receive
+  payload type inference consumes the channel receive expression fact directly.
+- The C backend helper owner now keeps only source-shape CFG-container and SSA
+  seeding responsibilities. The retired source-payload accessor and DEF
+  payload predicates are removed instead of kept as aliases.
+- `cfg-body-dataflow-test-smoke` and `perf-contract-test-smoke` now reject any
+  `mir_instruction_source_payload` read under `src/codegen`, so backend
+  semantic emission cannot regress through the compatibility payload seam.
+
 ## Progress Log - 2026-06-19 MIR CFG-Owned Source-Shape Fact Closure
 
 - `mir_instruction_source_is_cfg_owned_control(...)` now consumes only the

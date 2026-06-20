@@ -195,7 +195,6 @@ transpiler_emit_mir_source_local_let_def_inst(
     const MIRRoutine *mir_routine,
     const MIRBasicBlock *block,
     const MIRInstruction *inst,
-    ASTNode *stmt,
     TranspilerCtx *ctx,
     TranspilerSSANameMap *ssa_map_out,
     char *reason,
@@ -210,18 +209,17 @@ transpiler_emit_mir_source_local_let_def_inst(
     char *lhs = NULL;
     char *rhs = NULL;
 
-    if (!transpiler_mir_def_uses_source_local_decl_emit(inst, stmt)
-        || ast_let_name(stmt) == NULL
+    if (!mir_instruction_uses_source_local_decl_emit(inst)
         || inst->arg0 == NULL
         || inst->result_name == NULL
-        || strcmp(inst->arg0, ast_let_name(stmt)) != 0) {
+        || inst->expr0 == NULL) {
         return TRANSPILE_MIR_LOCAL_LET_NOT_HANDLED;
     }
 
     saved_type_hint = ctx->active_type_hint;
-    let_name = ast_let_name(stmt);
-    let_type = ast_let_type(stmt);
-    let_init = ast_let_initializer(stmt);
+    let_name = inst->arg0;
+    let_type = inst->expr1;
+    let_init = inst->expr0;
 
     if (mir_routine != NULL
         && let_type != NULL
@@ -314,7 +312,7 @@ transpiler_emit_mir_source_local_let_def_inst(
             char *ann_type_name = local_type_name_owned;
             local_type_name_owned = NULL;
             if (transpiler_try_emit_let_slot_claim(
-                    stmt, ctx, let_name, let_init, let_type, &ann_type_name)
+                    NULL, ctx, let_name, let_init, let_type, &ann_type_name)
                 || transpiler_try_emit_let_slot_sugar(
                     ctx, let_name, let_init, let_type, &ann_type_name)) {
                 ctx->active_type_hint = saved_type_hint;

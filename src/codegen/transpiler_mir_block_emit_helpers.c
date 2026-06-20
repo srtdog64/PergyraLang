@@ -28,63 +28,11 @@ transpiler_mir_seed_block_phi_names(const MIRBasicBlock *block,
     return true;
 }
 
-ASTNode *
-transpiler_mir_find_stmt_for_inst(const MIRInstruction *inst)
-{
-    return mir_instruction_source_payload(inst);
-}
-
 bool
 transpiler_mir_inst_is_cfg_container(const MIRInstruction *inst)
 {
     return inst != NULL
         && mir_instruction_source_is_cfg_container(inst);
-}
-
-bool
-transpiler_mir_def_uses_source_statement_emit(const MIRInstruction *inst,
-                                              const ASTNode *stmt,
-                                              ASTNodeType expected_type)
-{
-    return mir_instruction_uses_source_statement_emit(inst)
-        && mir_instruction_source_matches_ast_type(inst, expected_type)
-        && stmt != NULL
-        && stmt->type == expected_type;
-}
-
-bool
-transpiler_mir_def_uses_source_local_decl_emit(const MIRInstruction *inst,
-                                               const ASTNode *stmt)
-{
-    return mir_instruction_uses_source_local_decl_emit(inst)
-        && transpiler_mir_def_uses_source_statement_emit(inst,
-                                                        stmt,
-                                                        AST_LET_DECL);
-}
-
-bool
-transpiler_mir_def_uses_channel_receive_statement_emit(
-    const MIRInstruction *inst,
-    const ASTNode *stmt,
-    ASTNodeType expected_type)
-{
-    return mir_instruction_uses_channel_receive_statement_emit(inst)
-        && transpiler_mir_def_uses_source_statement_emit(inst,
-                                                        stmt,
-                                                        expected_type);
-}
-
-bool
-transpiler_mir_def_uses_select_receive_statement_emit(
-    const MIRInstruction *inst,
-    const ASTNode *stmt,
-    ASTNodeType expected_type)
-{
-    return mir_instruction_uses_select_receive_statement_emit(inst)
-        && transpiler_mir_def_uses_channel_receive_statement_emit(
-            inst,
-            stmt,
-            expected_type);
 }
 
 bool

@@ -27,7 +27,6 @@ transpiler_emit_mir_source_local_let_def_inst(
     const MIRRoutine *mir_routine,
     const MIRBasicBlock *block,
     const MIRInstruction *inst,
-    ASTNode *stmt,
     TranspilerCtx *ctx,
     TranspilerSSANameMap *ssa_map_out,
     char *reason,

@@ -2478,15 +2478,15 @@ if grep -A95 -F "llvm_emit_option_coalesce" \
 fi
 grep -Fq "has two successors without a branch condition terminator" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 ! grep -Fq "LLVMConstInt(LLVMInt1TypeInContext(" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
-grep -Fq "transpiler_mir_def_uses_source_statement_emit" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.c"
 grep -Fq "transpiler_mir_inst_is_cfg_container" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.c"
 grep -Fq "bool transpiler_mir_inst_is_cfg_container(const MIRInstruction *inst)" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
 grep -Fq "mir_instruction_source_is_cfg_container(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.c"
+if grep -RIn -- "mir_instruction_source_payload" "$ROOT_DIR/src/codegen" >/dev/null; then
+    echo "[perf-contract] Backend MIR emission reopened source payload; consume MIR facts or route provenance through source-shape owners" >&2
+    grep -RIn -- "mir_instruction_source_payload" "$ROOT_DIR/src/codegen" >&2
+    exit 1
+fi
 ! grep -Fq "mir_instruction_source_payload(inst) == stmt" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.c"
-grep -Fq "transpiler_mir_def_uses_source_local_decl_emit" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.c"
-grep -Fq "transpiler_mir_def_uses_channel_receive_statement_emit" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.c"
-grep -Fq "transpiler_mir_def_uses_select_receive_statement_emit" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.c"
-grep -Fq "mir_instruction_uses_source_statement_emit(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.c"
 ! grep -Fq "static bool" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
 grep -Fq "transpiler_mir_seed_block_phi_names" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
 grep -Fq "transpiler_emit_mir_assignment_expr_stmt" "$ROOT_DIR/src/codegen/transpiler_mir_assignment_emit.c"
@@ -2499,7 +2499,6 @@ grep -Fq "source-local channel let" "$ROOT_DIR/src/codegen/transpiler_mir_preser
 grep -Fq "entry->is_view" "$ROOT_DIR/src/codegen/transpiler_mir_ssa_names.c"
 ! grep -Fq "emit_statement(stmt, ctx)" "$CODEGEN_INDEX"
 ! grep -Fq "llvm_emit_statement(source_payload, ctx)" "$CODEGEN_INDEX"
-grep -Fq "mir_instruction_source_matches_ast_type(inst, expected_type)" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.c"
 grep -Fq "mir_instructions_share_source_statement(resource_inst, stmt_inst)" "$ROOT_DIR/src/codegen/transpiler_mir_stmt_emit.c"
 ! grep -Fq "mir_instruction_source_payload" "$ROOT_DIR/src/codegen/transpiler_mir_stmt_emit.c"
 ! grep -Fq "mir_instruction_source_matches_ast_node" "$SRC_INDEX"

@@ -796,10 +796,11 @@ for new consumers.
 
 Source-statement fallback is also owned here. Residual `MIR_INST_STMT`
 compatibility should call `mir_instruction_source_stmt_has_side_effect_hint(...)`
-and source-statement emit should call `mir_instruction_source_payload(...)`
-rather than recombining raw payload and source-location fields. This keeps
-"may emit source" and "may retain fallback statement" on the same source-shape
-seam.
+and backend emitters should consume `MIR_STMT.expr0` plus source-shape
+predicates rather than reopening raw payload and source-location fields. The
+source-payload accessor is a source-shape / public-surface provenance boundary,
+not a backend semantic input. This keeps "may emit source" and "may retain
+fallback statement" on the same source-shape seam.
 
 Whole-program surface-usage facts follow the same rule. Public MIR surface
 recording must seed source locations and usage booleans through

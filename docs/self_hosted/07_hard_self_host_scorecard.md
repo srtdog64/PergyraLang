@@ -55,9 +55,12 @@ carry their target in `expr1`, and backend assignment-parts emitters preserve
 slot, array, field, and projection assignment semantics without reopening the
 source statement payload. LLVM source-local resource constructor LET emission
 also consumes MIR initializer/type facts instead of reopening the source local
-declaration payload. The next cut target is the remaining expression/shape tail:
-selected validation/public-surface reads and the C residual source-statement
-helper still read source payloads rather than dedicated MIR records.
+declaration payload. C source-local LET DEF emission, generic DEF expression
+emission, and receive-payload type inference now consume instruction `arg0` /
+`expr0` / `expr1` facts directly, so C codegen no longer calls
+`mir_instruction_source_payload`. The next cut target is the remaining
+expression/shape tail: selected validation/public-surface reads still read
+source payloads rather than dedicated MIR records.
 LLVM source-local resource constructor DEFs now consume MIR expected type-name
 facts for `Channel<T>` and slot-like resources (`Slot<T>`, `SecureSlot<T>`,
 `DeviceSlot<T>`) instead of falling through standalone constructor expression
@@ -113,7 +116,7 @@ ACTIVE means it is on the critical path and still in progress.
 | 2 | Collections + iteration | READY | stdlib_surface_smoke, stage4_determinism_smoke | List/Set/HashMap have stable scalar key forms (String, Int, Long, Bool); MapKeys and SetValues order are locked; compiler-facing symbol/record/handle-like keys are normalized to canonical scalar IDs rather than raw aggregate keys |
 | 3 | String/path/Unicode policy | READY | unicode_policy_smoke, source_utf8_smoke, memory_string_safety_smoke, filesystem_directory_walk_smoke | stable comparison, normalization, and deterministic directory snapshot stance gated |
 | 4 | Arena/ownership ergonomics | READY | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke | `Allocator` is a single C/LLVM-backed value surface, `BoxArray` can consume a named allocator local, scratch/result/persistent lane constructors carry distinct runtime kinds, and `AllocatorDestroy(namedAllocator)` closes explicit pass-lane cleanup on C and LLVM |
-| 5 | CFG/MIR body as SoT | ACTIVE | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; source_ast and source_decl are ratcheted at codegen 0 / compiler 0; residual STMT source-payload emission and raw source-statement re-dispatch are retired; select and match condition/body-binding/remap emission consume MIR branch facts; resource matching uses source-index/location/anchor facts; C/LLVM destructure binding/initializer emission, C/LLVM assignment emission, and LLVM source-local resource LET emission consume MIR facts; selected validation/public-surface and C preserved-statement helper payload reads remain |
+| 5 | CFG/MIR body as SoT | ACTIVE | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; source_ast and source_decl are ratcheted at codegen 0 / compiler 0; residual STMT source-payload emission and raw source-statement re-dispatch are retired; select and match condition/body-binding/remap emission consume MIR branch facts; resource matching uses source-index/location/anchor facts; C/LLVM destructure binding/initializer emission, C/LLVM assignment emission, LLVM source-local resource LET emission, and C source-local LET/DEF/receive paths consume MIR facts; selected validation/public-surface payload reads remain |
 | 6 | AIR as verifier | READY | air_json_schema_smoke, air_drift_smoke, air_backend_nonimpact_smoke | pgy.air.graph.v1 evidence export gated; drift count enforced at 0 |
 | 7 | DAG type resolution SoT | READY | type_resolution_dag_smoke, type_resolution_resolver_inventory_smoke | recursive resolver compat path retired; metadata_dead_ends enforced at 0 |
 | 8 | Scoped unsafe/raw escape | READY | raw_escape_contract_smoke | unsafe is scoped and capability-bound; raw pointers gated out of domain code |
@@ -135,9 +138,11 @@ branch pattern/guard facts, and resource-op source-statement matching uses
 source-location, source-index, and anchor facts rather than payload pointer
 identity. Destructure binding-name/index recovery, C/LLVM destructure emission,
 and C/LLVM assignment emission are MIR-owned for SSA local type/view and
-backend emission facts. The self-hosted checker proves the same manifest. The
-remaining selected validation/public-surface and C preserved-statement helper
-payload tail must be cut before this row can honestly return to READY.
+backend emission facts. C source-local LET DEF emission, generic DEF expression
+emission, and receive-payload type inference are also MIR-owned. The
+self-hosted checker proves the same manifest. The remaining selected
+validation/public-surface payload tail must be cut before this row can
+honestly return to READY.
 Capability 4 is
 closed for the current compiler-pass
 substrate: named allocator lanes can be constructed, consumed by

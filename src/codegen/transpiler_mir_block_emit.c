@@ -161,7 +161,6 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
     for (size_t i = 0; i < block->instruction_count; i++) {
         size_t inst_index = source_order_mode ? inst_order[i] : i;
         const MIRInstruction *inst = &block->instructions[inst_index];
-        ASTNode *stmt = transpiler_mir_find_stmt_for_inst(inst);
 
         if (debug_source_path != NULL) {
             uint32_t debug_line = mir_instruction_source_line(inst);
@@ -195,7 +194,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         {
             TranspilerMIRLocalLetEmitResult let_result =
                 transpiler_emit_mir_source_local_let_def_inst(
-                    buf, mir_routine, block, inst, stmt, ctx, ssa_map_out,
+                    buf, mir_routine, block, inst, ctx, ssa_map_out,
                     reason, reason_cap);
             if (let_result == TRANSPILE_MIR_LOCAL_LET_FAILED) {
                 ok = false;
@@ -219,9 +218,10 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         }
 
         if (inst->kind == MIR_INST_DEF
-            && stmt != NULL
+            && inst->expr0 != NULL
             && !mir_instruction_uses_source_statement_emit(inst)
             && inst->result_name != NULL) {
+            ASTNode *def_expr = inst->expr0;
             char *lhs = NULL;
             char *rhs = NULL;
             const char *binding_name = inst->arg0;
@@ -230,13 +230,13 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             if (binding_name != NULL)
                 value_type = lookup_typed_var(ctx, binding_name);
             if (value_type == NULL || strcmp(value_type, "Unknown") == 0)
-                value_type = infer_expression_type_name(ctx, stmt);
+                value_type = infer_expression_type_name(ctx, def_expr);
 
             lhs = transpiler_render_ssa_name(ctx, inst->result_name);
             {
                 const char *saved_expected_type = ctx->expected_type;
                 ctx->expected_type = value_type;
-                rhs = emit_expression_with_ssa_map(stmt, ctx, ssa_map_out);
+                rhs = emit_expression_with_ssa_map(def_expr, ctx, ssa_map_out);
                 ctx->expected_type = saved_expected_type;
             }
             if (lhs == NULL || rhs == NULL) {

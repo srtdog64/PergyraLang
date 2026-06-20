@@ -580,14 +580,13 @@ run_literal_doc_contract_smoke() {
         echo "LLVM source DEF copy must consume MIR expr/type flags, not source payload statements" >&2
         exit 1
     fi
-    require_literal "src/codegen/transpiler_mir_block_emit_helpers.c" "transpiler_mir_def_uses_source_statement_emit"
-    require_literal "src/codegen/transpiler_mir_block_emit_helpers.c" "transpiler_mir_def_uses_source_local_decl_emit"
-    require_literal "src/codegen/transpiler_mir_block_emit_helpers.c" "transpiler_mir_def_uses_channel_receive_statement_emit"
-    require_literal "src/codegen/transpiler_mir_block_emit_helpers.c" "transpiler_mir_def_uses_select_receive_statement_emit"
-    require_literal "src/codegen/transpiler_mir_block_emit_helpers.c" "transpiler_mir_find_stmt_for_inst(const MIRInstruction *inst)"
-    require_literal "src/codegen/transpiler_mir_block_emit_helpers.c" "return mir_instruction_source_payload(inst)"
     require_literal "src/codegen/transpiler_mir_block_emit_helpers.h" "bool transpiler_mir_inst_is_cfg_container(const MIRInstruction *inst)"
     require_literal "src/codegen/transpiler_mir_block_emit_helpers.c" "mir_instruction_source_is_cfg_container(inst)"
+    if grep -RIn -- "mir_instruction_source_payload" "$ROOT_DIR/src/codegen" >/dev/null; then
+        echo "Backend MIR emission reopened source payload; consume MIR facts or route provenance through source-shape owners" >&2
+        grep -RIn -- "mir_instruction_source_payload" "$ROOT_DIR/src/codegen" >&2
+        exit 1
+    fi
     if grep -Fq -- "mir_instruction_source_payload(inst) == stmt" \
         "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.c"; then
         echo "C MIR CFG-container checks must use MIR source-shape facts, not source payload identity" >&2

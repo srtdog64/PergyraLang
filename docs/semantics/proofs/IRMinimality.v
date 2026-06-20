@@ -114,7 +114,17 @@ Proof. intros a b HR. destruct HR; simpl; lia. Qed.
    RIR's resource analysis genuinely flow-sensitive (must read HIR's CFG -> 3
    layers, current), or can that flow-sensitivity be deferred into MIR's
    fusion (-> 2 layers)? Every other boundary is forced. That single, precise
-   question is where "could it be smaller?" lives -- nowhere else. *)
+   question is where "could it be smaller?" lives -- nowhere else.
+
+   RESOLVED (see IRMinimality.md SS5): the RIR<-HIR edge is NOT a convenience.
+   rir_enrich_scope_with_hir_flow runs an RPO-fixpoint dataflow over the HIR CFG
+   and rir_validation.c merges resource states across control flow to detect
+   conflicts, with rir_validate running BEFORE mir_lower. So the edge encodes a
+   named invariant: *flow-sensitive resource checking happens at the resource
+   layer*. Hence min=3 is the true minimum for that invariant; collapsing to 2
+   relocates resource checking into MIR (a named trade, not a free win). No
+   incidental layer remains -- the one removable boundary is the price of
+   resource-checking-at-the-resource-layer. *)
 
 (* ========================================== *)
 (* 4. Out of scope (honest)                    *)

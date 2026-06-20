@@ -11,9 +11,9 @@
 #include "transpiler_context.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_let_slot_emit.h"
-#include "transpiler_mir_block_emit_helpers.h"
 #include "transpiler_mir_effective_type.h"
 #include "transpiler_mir_local_type_lookup.h"
+#include "transpiler_mir_ssa_map.h"
 #include "transpiler_mir_ssa_utils.h"
 #include "transpiler_projection.h"
 #include "transpiler_symbols.h"
@@ -40,22 +40,11 @@ transpiler_mir_ssa_local_trim_type_annotation_suffix(char *type_name)
 static ASTNode *
 transpiler_mir_receive_expr_from_def(const MIRInstruction *inst)
 {
-    ASTNode *stmt;
-    ASTNode *value;
-
     if (inst == NULL)
         return NULL;
-    stmt = inst->expr0;
-    if (stmt == NULL)
-        stmt = transpiler_mir_find_stmt_for_inst(inst);
-    if (stmt == NULL)
-        return NULL;
-    if (stmt->type == AST_CHANNEL_RECV)
-        return stmt;
-    if (stmt->type != AST_ASSIGNMENT)
-        return NULL;
-    value = ast_assignment_value(stmt);
-    return value != NULL && value->type == AST_CHANNEL_RECV ? value : NULL;
+    return inst->expr0 != NULL && inst->expr0->type == AST_CHANNEL_RECV
+        ? inst->expr0
+        : NULL;
 }
 
 const char *
