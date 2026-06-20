@@ -89,6 +89,51 @@ emit_tuple_literal_expression(ASTNode *node, TranspilerCtx *ctx)
     return result;
 }
 
+/* List/Queue sequence literal: `[...]` whose binding type is List<T>/Queue<T>.
+ * Unlike Array (runtime fns key on the inner type name, `pgy_array_new_Int`),
+ * List/Queue key on the lowercase runtime suffix (`pgy_list_new_int`) and their
+ * `_new` takes no count. */
+static char *
+emit_sequence_list_queue_literal(ASTNode *node, TranspilerCtx *ctx,
+                                 const char *seq_type, const char *inner,
+                                 const char *kind, const char *kind_cap)
+{
+    char ctype_buf[256];
+    char suffix_buf[128];
+    int tmp_id;
+    CodeBuf *buf;
+    char *result;
+
+    transpiler_collection_ensure_specialization(ctx, kind_cap, inner);
+    if (!transpiler_require_type_name_c_type_copy(ctx, seq_type,
+            "sequence literal layout", ctype_buf, sizeof(ctype_buf)))
+        return NULL;
+    collection_runtime_suffix_copy(inner, suffix_buf, sizeof(suffix_buf));
+
+    tmp_id = ++ctx->tmp_counter;
+    buf = codebuf_create();
+    codebuf_write(buf, "({ %s _pgy_seq_%d = pgy_%s_new_%s(); ",
+        ctype_buf, tmp_id, kind, suffix_buf);
+    for (size_t i = 0; i < ast_array_literal_count(node); i++) {
+        char *elem = emit_expression(ast_array_literal_element(node, i), ctx);
+        if (elem == NULL) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C sequence literal could not lower element %zu", i);
+            codebuf_destroy(buf);
+            return NULL;
+        }
+        codebuf_write(buf, "pgy_%s_push_%s(&_pgy_seq_%d, %s); ",
+            kind, suffix_buf, tmp_id, elem);
+        free(elem);
+    }
+    codebuf_write(buf, "_pgy_seq_%d; })", tmp_id);
+    result = pergyra_strdup(buf->data);
+    codebuf_destroy(buf);
+    return result;
+}
+
 static char *
 emit_array_literal_expression(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -97,16 +142,24 @@ emit_array_literal_expression(ASTNode *node, TranspilerCtx *ctx)
     const char *inner = NULL;
     if (slot_inner_type_name_copy(array_type, inner_buf, sizeof(inner_buf)))
         inner = inner_buf;
-    if (!transpiler_type_name_is_array(array_type)
+    if ((!transpiler_type_name_is_array(array_type)
+            && !transpiler_type_name_is_list(array_type)
+            && !transpiler_type_name_is_queue(array_type))
         || inner == NULL || inner[0] == '\0'
         || strcmp(inner, "Unknown") == 0) {
         transpiler_set_backend_error_with_hints(ctx,
             PGY_CODE_C_TYPE_UNSUPPORTED,
             PGY_CAUSE_C_TYPE_UNSUPPORTED,
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-            "C array literal requires concrete Array<T> element metadata");
+            "C sequence literal requires concrete Array/List/Queue<T> element metadata");
         return NULL;
     }
+    if (transpiler_type_name_is_list(array_type))
+        return emit_sequence_list_queue_literal(node, ctx, array_type, inner,
+            "list", "List");
+    if (transpiler_type_name_is_queue(array_type))
+        return emit_sequence_list_queue_literal(node, ctx, array_type, inner,
+            "queue", "Queue");
     int tmp_id = ++ctx->tmp_counter;
     CodeBuf *buf = codebuf_create();
     codebuf_write(buf, "({ PgyArray_%s _pgy_arr_%d = pgy_array_new_%s(%zu); ",

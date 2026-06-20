@@ -367,8 +367,27 @@ type_check_unary(ASTNode *expr, SemanticContext *ctx)
 Type *
 type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
 {
-    if (ast_array_literal_count(expr) == 0)
-        return wrap_constructed(TYPE_ARRAY, TYPE_UNKNOWN);
+    /* A `[...]` literal is a sequence: its concrete constructor comes from the
+     * binding annotation (Array by default, List/Queue when so declared). */
+    Type *seq_ctor = TYPE_ARRAY;
+    Type *expected_seq = ctx != NULL ? ctx->expected_collection_type : NULL;
+    if (expected_seq != NULL) {
+        if (type_is_constructed_named(expected_seq, "List"))
+            seq_ctor = TYPE_LIST;
+        else if (type_is_constructed_named(expected_seq, "Queue"))
+            seq_ctor = TYPE_QUEUE;
+    }
+
+    if (ast_array_literal_count(expr) == 0) {
+        /* An empty `[]` carries no element type; take the annotation directly
+         * when it is a sequence, else a sequence of Unknown. */
+        if (expected_seq != NULL
+            && (type_is_constructed_named(expected_seq, "Array")
+                || type_is_constructed_named(expected_seq, "List")
+                || type_is_constructed_named(expected_seq, "Queue")))
+            return expected_seq;
+        return wrap_constructed(seq_ctor, TYPE_UNKNOWN);
+    }
 
     Type *elem_type = type_check_expression(ast_array_literal_element(expr, 0), ctx);
     reject_borrowed_array_literal_store(
@@ -410,7 +429,7 @@ type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
         }
     }
 
-    return wrap_constructed(TYPE_ARRAY, elem_type);
+    return wrap_constructed(seq_ctor, elem_type);
 }
 
 Type *

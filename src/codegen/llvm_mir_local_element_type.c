@@ -24,7 +24,12 @@ llvm_mir_local_elem_type_from_type_name(LLVMGenCtx *ctx,
     case PGY_TK_SLICE:
         break;
     default:
-        return NULL;
+        /* List/Queue are sequence locals too; they have no classify token, so
+         * match by name. Their element type is the first constructed arg. */
+        if (strncmp(type_name, "List<", 5) != 0
+            && strncmp(type_name, "Queue<", 6) != 0)
+            return NULL;
+        break;
     }
     if (!llvm_constructed_arg_name_copy(type_name, 0,
             inner_name, sizeof(inner_name))) {
@@ -59,8 +64,12 @@ llvm_mir_local_elem_type_from_type_ast(LLVMGenCtx *ctx, ASTNode *type_node)
         return NULL;
     if (strcmp(type_name, "Array") != 0
         && strcmp(type_name, "Slice") != 0
+        && strcmp(type_name, "List") != 0
+        && strcmp(type_name, "Queue") != 0
         && strncmp(type_name, "Array<", 6) != 0
-        && strncmp(type_name, "Slice<", 6) != 0) {
+        && strncmp(type_name, "Slice<", 6) != 0
+        && strncmp(type_name, "List<", 5) != 0
+        && strncmp(type_name, "Queue<", 6) != 0) {
         return NULL;
     }
     args = ast_type_generic_args(type_node);

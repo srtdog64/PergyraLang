@@ -49,11 +49,126 @@ llvm_emit_tuple_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
     return agg;
 }
 
+/* A `[...]` literal whose binding type is List<T>/Queue<T>. Mirrors the set
+ * literal: the raw list/queue runtime (pgy_<kind>_new_raw_export +
+ * pgy_<kind>_push[_string]_raw_export), keyed off the contextual element type. */
+static LLVMValueRef
+llvm_emit_seq_list_queue_literal(ASTNode *node, LLVMGenCtx *ctx,
+                                 const char *kind)
+{
+    size_t count = ast_array_literal_count(node);
+    bool is_list = strcmp(kind, "list") == 0;
+    PgyTypeKind expected_kind = pgy_classify_type(ctx->expected_type_name);
+    char elem_buf[128];
+    char new_name[64];
+    char push_name[64];
+    char push_str_name[64];
+    LLVMTypeRef seq_ty;
+    LLVMTypeRef elem_ty;
+    LLVMValueRef tmp;
+    LLVMFuncEntry *new_fn;
+    bool is_string;
+
+    if (ctx->expected_type_name == NULL
+        || expected_kind != (is_list ? PGY_TK_LIST : PGY_TK_QUEUE)
+        || !llvm_constructed_arg_name_copy(ctx->expected_type_name, 0, elem_buf,
+                sizeof(elem_buf))) {
+        llvm_expr_set_missing_type_error(ctx, node, "sequence literal expression");
+        return NULL;
+    }
+    seq_ty = is_list ? llvm_list_struct_type(ctx, elem_buf)
+                     : llvm_queue_struct_type(ctx, elem_buf);
+    elem_ty = pergyra_type_to_llvm(ctx, elem_buf);
+    if (ctx->has_error || seq_ty == NULL || elem_ty == NULL)
+        return llvm_expression_error(ctx, node,
+            "LLVM sequence literal could not lower List/Queue<T> type");
+    tmp = llvm_create_entry_alloca(ctx, seq_ty, llvm_tmp_name(ctx));
+    if (tmp == NULL)
+        return llvm_expression_error(ctx, node,
+            "LLVM sequence literal could not allocate temporary");
+    LLVMBuildStore(ctx->builder, LLVMConstNull(seq_ty), tmp);
+    snprintf(new_name, sizeof(new_name), "pgy_%s_new_raw_export", kind);
+    snprintf(push_name, sizeof(push_name), "pgy_%s_push_raw_export", kind);
+    snprintf(push_str_name, sizeof(push_str_name),
+        "pgy_%s_push_string_raw_export", kind);
+    new_fn = llvm_lookup_function(ctx, new_name);
+    if (new_fn == NULL)
+        return llvm_expression_error(ctx, node,
+            "LLVM sequence literal requires a registered runtime new function");
+    {
+        LLVMValueRef args[] = {
+            LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr,
+                llvm_tmp_name(ctx)),
+            llvm_sizeof_type_i64(ctx, elem_ty)
+        };
+        LLVMBuildCall2(ctx->builder, new_fn->fn_type, new_fn->fn, args, 2, "");
+    }
+    is_string = strcmp(elem_buf, "String") == 0;
+    for (size_t i = 0; i < count; i++) {
+        LLVMValueRef value = llvm_emit_expression(
+            ast_array_literal_element(node, i), ctx);
+        if (value == NULL)
+            return llvm_expression_error(ctx, node,
+                "LLVM sequence literal could not lower an element");
+        if (LLVMTypeOf(value) != elem_ty) {
+            if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
+                && (LLVMTypeOf(value) == ctx->type_f32
+                    || LLVMTypeOf(value) == ctx->type_f64))
+                value = LLVMBuildFPToSI(ctx->builder, value, elem_ty,
+                    llvm_tmp_name(ctx));
+            else if ((elem_ty == ctx->type_f32 || elem_ty == ctx->type_f64)
+                && (LLVMTypeOf(value) == ctx->type_i32
+                    || LLVMTypeOf(value) == ctx->type_i64))
+                value = LLVMBuildSIToFP(ctx->builder, value, elem_ty,
+                    llvm_tmp_name(ctx));
+        }
+        if (is_string) {
+            LLVMFuncEntry *add_fn = llvm_lookup_function(ctx, push_str_name);
+            LLVMValueRef args[2];
+            if (add_fn == NULL)
+                return llvm_expression_error(ctx, node,
+                    "LLVM sequence literal requires the string push runtime function");
+            args[0] = LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr,
+                llvm_tmp_name(ctx));
+            args[1] = value;
+            LLVMBuildCall2(ctx->builder, add_fn->fn_type, add_fn->fn, args, 2, "");
+        } else {
+            LLVMValueRef etmp = llvm_create_entry_alloca(ctx, elem_ty,
+                llvm_tmp_name(ctx));
+            LLVMFuncEntry *add_fn;
+            LLVMValueRef args[3];
+            if (etmp == NULL)
+                return llvm_expression_error(ctx, node,
+                    "LLVM sequence literal could not allocate element temporary");
+            LLVMBuildStore(ctx->builder, value, etmp);
+            add_fn = llvm_lookup_function(ctx, push_name);
+            if (add_fn == NULL)
+                return llvm_expression_error(ctx, node,
+                    "LLVM sequence literal requires the push runtime function");
+            args[0] = LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr,
+                llvm_tmp_name(ctx));
+            args[1] = LLVMBuildBitCast(ctx->builder, etmp, ctx->type_i8ptr,
+                llvm_tmp_name(ctx));
+            args[2] = llvm_sizeof_type_i64(ctx, elem_ty);
+            LLVMBuildCall2(ctx->builder, add_fn->fn_type, add_fn->fn, args, 3, "");
+        }
+    }
+    return LLVMBuildLoad2(ctx->builder, seq_ty, tmp, llvm_tmp_name(ctx));
+}
+
 LLVMValueRef
 llvm_emit_array_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
 {
     size_t count = ast_array_literal_count(node);
     const char *inner_name = NULL;
+    /* A `[...]` bound to List<T>/Queue<T> lowers as a list/queue, not array. */
+    if (ctx->expected_type_name != NULL) {
+        PgyTypeKind expected_kind = pgy_classify_type(ctx->expected_type_name);
+        if (expected_kind == PGY_TK_LIST)
+            return llvm_emit_seq_list_queue_literal(node, ctx, "list");
+        if (expected_kind == PGY_TK_QUEUE)
+            return llvm_emit_seq_list_queue_literal(node, ctx, "queue");
+    }
     char inner_name_buf[256];
     LLVMTypeRef elem_type = NULL;
     LLVMValueRef first_value = NULL;
@@ -190,7 +305,7 @@ llvm_emit_map_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef tmp;
     LLVMFuncEntry *new_fn;
 
-    if (map_type == NULL || strncmp(map_type, "HashMap<", 8) != 0
+    if (map_type == NULL || pgy_classify_type(map_type) != PGY_TK_HASHMAP
         || !llvm_constructed_arg_name_copy(map_type, 0, key_buf, sizeof(key_buf))
         || !llvm_constructed_arg_name_copy(map_type, 1, value_buf,
                 sizeof(value_buf))) {
@@ -238,7 +353,7 @@ llvm_emit_set_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
     LLVMFuncEntry *new_fn;
     bool is_string;
 
-    if (set_type == NULL || strncmp(set_type, "Set<", 4) != 0
+    if (set_type == NULL || pgy_classify_type(set_type) != PGY_TK_SET
         || !llvm_constructed_arg_name_copy(set_type, 0, elem_buf,
                 sizeof(elem_buf))) {
         llvm_expr_set_missing_type_error(ctx, node, "set literal expression");

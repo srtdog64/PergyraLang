@@ -93,6 +93,9 @@ struct SemanticContext
     Type*        inferred_return;         /* unified return type, NULL = none */
     bool         inferred_return_conflict;/* returns disagree -> loud error  */
     Type*        expected_lambda_type; /* Contextual func type for lambda */
+    Type*        expected_collection_type; /* Contextual collection type for a
+                                            * literal initializer: drives the
+                                            * sequence ctor (Array/List/Queue). */
     uint32_t     current_function_effects; /* Inferred effect mask    */
     uint32_t     current_function_body_summary; /* Interprocedural body facts */
     bool         tracking_function_effects; /* Only inside function body */

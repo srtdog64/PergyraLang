@@ -73,6 +73,18 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
             init_type = ownership_let_normalize_type(
                 type_check_expression(init, ctx));
         }
+    } else if (init != NULL && ann != NULL
+               && (init->type == AST_ARRAY_LITERAL
+                   || init->type == AST_SET_LITERAL
+                   || init->type == AST_MAP_LITERAL)) {
+        /* A collection literal takes its concrete constructor from the binding
+         * annotation: `[...]` becomes Array/List/Queue per the declared type
+         * (mirrors the lambda contextual-type threading above). */
+        Type *saved_expected_collection = ctx->expected_collection_type;
+        ctx->expected_collection_type = ownership_let_resolve_type_ref(ann, ctx);
+        init_type = ownership_let_normalize_type(
+            type_check_expression(init, ctx));
+        ctx->expected_collection_type = saved_expected_collection;
     } else {
         init_type = (init != NULL)
             ? ownership_let_normalize_type(type_check_expression(init, ctx))

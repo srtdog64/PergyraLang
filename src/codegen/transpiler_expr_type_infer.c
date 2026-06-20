@@ -116,17 +116,29 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         return "Bool";
     case AST_ARRAY_LITERAL: {
         const char *inner = NULL;
+        /* A `[...]` literal is a sequence; its concrete constructor comes from
+         * the binding's expected type (Array by default, List/Queue when so
+         * declared). */
+        const char *ctor = "Array";
+        if (ctx != NULL && ctx->expected_type != NULL) {
+            if (transpiler_type_name_is_list(ctx->expected_type))
+                ctor = "List";
+            else if (transpiler_type_name_is_queue(ctx->expected_type))
+                ctor = "Queue";
+        }
         if (ast_array_literal_count(expr) > 0) {
             inner = infer_expression_type_name(ctx, ast_array_literal_element(expr, 0));
         } else if (ctx != NULL
                    && ctx->expected_type != NULL
-                   && transpiler_type_name_is_array(ctx->expected_type)) {
+                   && (transpiler_type_name_is_array(ctx->expected_type)
+                       || transpiler_type_name_is_list(ctx->expected_type)
+                       || transpiler_type_name_is_queue(ctx->expected_type))) {
             inner = transpiler_infer_slot_inner_type_name(ctx,
                 ctx->expected_type);
         }
         if (inner == NULL || inner[0] == '\0')
             inner = "Unknown";
-        return transpiler_infer_arena_format_type_name(ctx, "Array", inner);
+        return transpiler_infer_arena_format_type_name(ctx, ctor, inner);
     }
     case AST_CAST: {
         const char *target = ast_cast_target_type(expr);
@@ -160,7 +172,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         if (ast_set_literal_count(expr) > 0) {
             e = infer_expression_type_name(ctx, ast_set_literal_element(expr, 0));
         } else if (ctx != NULL && ctx->expected_type != NULL
-                   && strncmp(ctx->expected_type, "Set<", 4) == 0) {
+                   && transpiler_type_name_is_set(ctx->expected_type)) {
             char *kept = pgy_arena_fmt(&ctx->arena, "%s", ctx->expected_type);
             return kept != NULL ? kept : "Unknown";
         }

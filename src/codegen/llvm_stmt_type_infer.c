@@ -139,6 +139,12 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         LLVMTypeRef elem_type = NULL;
         const char *suffix = NULL;
         char suffix_buf[256];
+        /* A `[...]` is a sequence: its concrete kind comes from the binding's
+         * expected type (Array by default, List/Queue when so declared). */
+        const char *exp = ctx->expected_type_name;
+        PgyTypeKind expected_kind = pgy_classify_type(exp);
+        bool want_list = expected_kind == PGY_TK_LIST;
+        bool want_queue = expected_kind == PGY_TK_QUEUE;
         if (ast_array_literal_count(expr) > 0
             && ast_array_literal_element(expr, 0) != NULL) {
             elem_type = llvm_stmt_infer_expr_type(ctx,
@@ -147,28 +153,32 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             if (suffix == NULL || strcmp(suffix, "Unknown") == 0)
                 return llvm_stmt_unknown_expr_type(ctx, expr,
                     "array literal element type is unresolved");
-        } else if (ctx->expected_type_name != NULL
-                   && pgy_classify_type(ctx->expected_type_name)
-                        == PGY_TK_ARRAY) {
-            if (llvm_constructed_arg_name_copy(ctx->expected_type_name, 0,
-                    suffix_buf, sizeof(suffix_buf))) {
+        } else if (exp != NULL
+                   && (expected_kind == PGY_TK_ARRAY
+                       || want_list || want_queue)) {
+            if (llvm_constructed_arg_name_copy(exp,
+                    0, suffix_buf, sizeof(suffix_buf))) {
                 suffix = suffix_buf;
             }
         }
         if (suffix == NULL || suffix[0] == '\0'
             || strcmp(suffix, "Unknown") == 0)
             return llvm_stmt_unknown_expr_type(ctx, expr,
-                "empty array literal requires an explicit Array<T> context");
+                "empty sequence literal requires an explicit Array/List/Queue<T> context");
         if (strlen(suffix) >= sizeof(suffix_buf))
             return llvm_stmt_unknown_expr_type(ctx, expr,
                 "array literal element type name is too long");
         memcpy(suffix_buf, suffix, strlen(suffix) + 1);
         suffix = suffix_buf;
+        if (want_list)
+            return llvm_list_struct_type(ctx, suffix);
+        if (want_queue)
+            return llvm_queue_struct_type(ctx, suffix);
         return llvm_array_struct_type(ctx, suffix);
     }
     case AST_MAP_LITERAL:
         if (ctx->expected_type_name != NULL
-            && strncmp(ctx->expected_type_name, "HashMap<", 8) == 0) {
+            && pgy_classify_type(ctx->expected_type_name) == PGY_TK_HASHMAP) {
             LLVMTypeRef expected = pergyra_type_to_llvm(
                 ctx, ctx->expected_type_name);
             if (expected != NULL)
@@ -178,7 +188,7 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             "map literal requires an explicit HashMap<K,V> context");
     case AST_SET_LITERAL:
         if (ctx->expected_type_name != NULL
-            && strncmp(ctx->expected_type_name, "Set<", 4) == 0) {
+            && pgy_classify_type(ctx->expected_type_name) == PGY_TK_SET) {
             LLVMTypeRef expected = pergyra_type_to_llvm(
                 ctx, ctx->expected_type_name);
             if (expected != NULL)
