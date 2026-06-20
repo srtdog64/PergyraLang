@@ -209,6 +209,22 @@ mir_decl_header_zone_refresh(const MIRDeclHeader *header, size_t index)
 }
 
 size_t
+mir_decl_header_zone_state_count(const MIRDeclHeader *header)
+{
+    return header != NULL ? header->zone_state_metadata_count : 0;
+}
+
+const MIRDeclZoneState *
+mir_decl_header_zone_state(const MIRDeclHeader *header, size_t index)
+{
+    if (header == NULL || header->zone_state_metadata == NULL
+        || index >= header->zone_state_metadata_count) {
+        return NULL;
+    }
+    return &header->zone_state_metadata[index];
+}
+
+size_t
 mir_decl_header_enum_variant_count(const MIRDeclHeader *header)
 {
     return header != NULL ? header->variant_metadata_count : 0;
@@ -592,6 +608,42 @@ mir_decl_zone_refresh_mapped_source_field(const MIRDeclZoneRefresh *refresh,
         return NULL;
     }
     return refresh->field_maps[index].source_field_name;
+}
+
+const char *
+mir_decl_zone_state_owner_name(const MIRDeclZoneState *state)
+{
+    return state != NULL ? state->owner_name : NULL;
+}
+
+const char *
+mir_decl_zone_state_name(const MIRDeclZoneState *state)
+{
+    return state != NULL ? state->name : NULL;
+}
+
+const char *
+mir_decl_zone_state_layer_slot_name(const MIRDeclZoneState *state)
+{
+    return state != NULL ? state->layer_slot_name : NULL;
+}
+
+const char *
+mir_decl_zone_state_left_or_target_slot_name(const MIRDeclZoneState *state)
+{
+    return state != NULL ? state->left_or_target_slot_name : NULL;
+}
+
+const char *
+mir_decl_zone_state_right_slot_name(const MIRDeclZoneState *state)
+{
+    return state != NULL ? state->right_slot_name : NULL;
+}
+
+bool
+mir_decl_zone_state_is_relation(const MIRDeclZoneState *state)
+{
+    return state != NULL && state->is_relation;
 }
 
 const char *

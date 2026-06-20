@@ -62,6 +62,16 @@ typedef struct
 typedef struct
 {
     const MIRDeclHeader *decl_header;
+    ASTNode           **ast_compat_states;
+    size_t             ast_compat_count;
+    size_t             count;
+    bool               uses_mir_metadata;
+    bool               requires_mir_metadata;
+} TranspilerHostedZoneStateView;
+
+typedef struct
+{
+    const MIRDeclHeader *decl_header;
     ASTNode           **ast_compat_refreshes;
     size_t             ast_compat_count;
     size_t             count;
@@ -257,6 +267,30 @@ bool transpiler_hosted_zone_layer_slot_view_is_pool(
     size_t index);
 int transpiler_hosted_zone_layer_slot_view_pool_capacity(
     const TranspilerHostedZoneLayerSlotView *view,
+    size_t index);
+TranspilerHostedZoneStateView
+transpiler_hosted_zone_state_view_from_decl(const TranspilerCtx *ctx,
+                                            const char *host_name,
+                                            ASTNode *decl);
+bool transpiler_hosted_zone_state_view_missing_mir_metadata(
+    const TranspilerHostedZoneStateView *view);
+const MIRDeclZoneState *transpiler_hosted_zone_state_view_metadata(
+    const TranspilerHostedZoneStateView *view,
+    size_t index);
+const char *transpiler_hosted_zone_state_view_name(
+    const TranspilerHostedZoneStateView *view,
+    size_t index);
+const char *transpiler_hosted_zone_state_view_layer_slot_name(
+    const TranspilerHostedZoneStateView *view,
+    size_t index);
+const char *transpiler_hosted_zone_state_view_left_or_target_slot_name(
+    const TranspilerHostedZoneStateView *view,
+    size_t index);
+const char *transpiler_hosted_zone_state_view_right_slot_name(
+    const TranspilerHostedZoneStateView *view,
+    size_t index);
+bool transpiler_hosted_zone_state_view_is_relation(
+    const TranspilerHostedZoneStateView *view,
     size_t index);
 TranspilerHostedZoneRefreshView
 transpiler_hosted_zone_refresh_view_from_decl(const TranspilerCtx *ctx,

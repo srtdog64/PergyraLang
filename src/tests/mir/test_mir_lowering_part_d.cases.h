@@ -329,6 +329,70 @@ test_mir_lowering_part_d(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR declaration headers preserve zone state metadata");
+    {
+        const char *src =
+            "subject Player { let hp: Int; }\n"
+            "effect Poisoned for bearer: Player { }\n"
+            "relation Alliance for source: Player, dest: Player { }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    subject slot ally: Player\n"
+            "    effect slot poison: Poisoned\n"
+            "    relation slot trust: Alliance\n"
+            "    state poisoned: effect poison on player\n"
+            "    state allied: relation trust between player, ally\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRDeclHeader *zone = NULL;
+        const MIRDeclZoneState *poisoned = NULL;
+        const MIRDeclZoneState *allied = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL)
+            zone = mir_find_decl_header(mir, "BattleZone");
+        if (zone != NULL) {
+            poisoned = mir_decl_header_zone_state(zone, 0);
+            allied = mir_decl_header_zone_state(zone, 1);
+        }
+        EXPECT(ok
+               && zone != NULL
+               && mir_decl_header_zone_state_count(zone) == 2
+               && poisoned != NULL
+               && mir_decl_zone_state_owner_name(poisoned) != NULL
+               && strcmp(mir_decl_zone_state_owner_name(poisoned),
+                         "BattleZone") == 0
+               && mir_decl_zone_state_name(poisoned) != NULL
+               && strcmp(mir_decl_zone_state_name(poisoned),
+                         "poisoned") == 0
+               && !mir_decl_zone_state_is_relation(poisoned)
+               && mir_decl_zone_state_layer_slot_name(poisoned) != NULL
+               && strcmp(mir_decl_zone_state_layer_slot_name(poisoned),
+                         "poison") == 0
+               && mir_decl_zone_state_left_or_target_slot_name(poisoned) != NULL
+               && strcmp(mir_decl_zone_state_left_or_target_slot_name(poisoned),
+                         "player") == 0
+               && mir_decl_zone_state_right_slot_name(poisoned) == NULL
+               && allied != NULL
+               && mir_decl_zone_state_name(allied) != NULL
+               && strcmp(mir_decl_zone_state_name(allied), "allied") == 0
+               && mir_decl_zone_state_is_relation(allied)
+               && mir_decl_zone_state_layer_slot_name(allied) != NULL
+               && strcmp(mir_decl_zone_state_layer_slot_name(allied),
+                         "trust") == 0
+               && mir_decl_zone_state_left_or_target_slot_name(allied) != NULL
+               && strcmp(mir_decl_zone_state_left_or_target_slot_name(allied),
+                         "player") == 0
+               && mir_decl_zone_state_right_slot_name(allied) != NULL
+               && strcmp(mir_decl_zone_state_right_slot_name(allied),
+                         "ally") == 0
+               && mir_validate(mir, NULL));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR declaration headers preserve domain slot classification metadata");
     {
         const char *src =

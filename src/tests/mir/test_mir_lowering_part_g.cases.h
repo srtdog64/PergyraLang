@@ -130,4 +130,53 @@ test_mir_lowering_part_g(void)
         rir_destroy(rir);
         hir_destroy(hir);
     }
+
+    TEST("MIR validator rejects zone state metadata drift");
+    {
+        const char *src =
+            "subject Player { let hp: Int; }\n"
+            "effect Poisoned for bearer: Player { }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    effect slot poison: Poisoned\n"
+            "    state poisoned: effect poison on player\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRDeclHeader *zone = NULL;
+        size_t saved_state_metadata_count = 0;
+        char *mir_error = NULL;
+        bool mutated = false;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL) {
+            for (size_t i = 0; i < mir->decl_header_count; i++) {
+                MIRDeclHeader *header = &mir->decl_headers[i];
+                if (header->name != NULL
+                    && strcmp(header->name, "BattleZone") == 0) {
+                    zone = header;
+                    saved_state_metadata_count =
+                        header->zone_state_metadata_count;
+                    header->zone_state_metadata_count = 0;
+                    mutated = true;
+                    break;
+                }
+            }
+        }
+        rejected = ok
+                   && mutated
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error,
+                             "zone state metadata count") != NULL;
+        if (zone != NULL)
+            zone->zone_state_metadata_count =
+                saved_state_metadata_count;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
 }

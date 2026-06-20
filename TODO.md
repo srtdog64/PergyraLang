@@ -187,6 +187,12 @@ English anchor for tooling/doc gates:
   address-like lvalue before a dedicated partial-width write owner exists. The
   diagnostic must say the missing owner is layout/effect evidence, not emit a C
   bitfield or backend-local mask/shift fallback.
+  Source spelling policy: do not add a user-facing packed-field or bit-slice
+  spelling as a permissive parser-only feature. The first accepted spelling
+  must be behind a semantic reject gate until `LayoutFact` exists; otherwise
+  `let mut` would appear to support ordinary mutation of partial-width storage
+  before addressability, aliasing, atomicity, and read-modify-write semantics
+  have a single owner.
   Because `let mut` is now real surface syntax, keep the first implementation
   step negative: a mutable binding may hold an aggregate that later has packed
   fields, but it must not make a partial-width field itself addressable,

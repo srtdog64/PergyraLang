@@ -1,4 +1,5 @@
 #include "mir_fact_validate.h"
+#include "mir_decl_header_zone_state_validate.h"
 #include "mir_decl_headers.h"
 #include "mir_type_helpers.h"
 
@@ -500,6 +501,11 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
                 return false;
             }
         }
+    }
+
+    if (!mir_decl_header_validate_zone_states(
+            header, header_index, error_message)) {
+        return false;
     }
 
     mir_routine_inventory_from_program(mir, &inventory);

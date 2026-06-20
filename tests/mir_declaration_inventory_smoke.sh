@@ -7236,6 +7236,12 @@ for term in \
     require_term "src/compiler/mir_decl.h" "$term"
 done
 for term in \
+    "MIRDeclZoneState" \
+    "zone_state_metadata" \
+    "zone_state_metadata_count"; do
+    require_term "src/compiler/mir_decl.h" "$term"
+done
+for term in \
     "mir_decl_header_set_refreshes" \
     "ast_relation_refreshes(decl, &refresh_count)" \
     "ast_effect_refreshes(decl, &refresh_count)" \
@@ -7251,6 +7257,45 @@ for term in \
     require_term "src/compiler/mir_decl_header_access.c" "$term"
     require_term "src/compiler/mir_decl_headers.h" "$term"
 done
+for term in \
+    "mir_decl_header_set_zone_states" \
+    "ast_zone_states(decl, &state_count)" \
+    "ast_zone_state_layer_slot_name" \
+    "ast_zone_state_left_or_target_slot_name" \
+    "ast_zone_state_right_slot_name"; do
+    require_term "src/compiler/mir_decl_header_zone_state.c" "$term"
+done
+for term in \
+    "mir_decl_header_zone_state_count" \
+    "mir_decl_zone_state_layer_slot_name" \
+    "mir_decl_zone_state_left_or_target_slot_name" \
+    "mir_decl_zone_state_right_slot_name"; do
+    require_term "src/compiler/mir_decl_header_access.c" "$term"
+    require_term "src/compiler/mir_decl_headers.h" "$term"
+done
+for term in \
+    "zone state metadata count" \
+    "zone state[%zu] has incomplete state metadata"; do
+    require_term "src/compiler/mir_decl_header_zone_state_validate.c" "$term"
+done
+for term in \
+    "TranspilerHostedZoneStateView" \
+    "transpiler_hosted_zone_state_view_from_decl" \
+    "transpiler_hosted_zone_state_view_metadata" \
+    "transpiler_hosted_zone_state_view_name"; do
+    require_term "src/codegen/transpiler_decl_lookup.h" "$term"
+    require_term "src/codegen/transpiler_decl_slot_view.c" "$term"
+done
+for term in \
+    "TranspilerHostedZoneStateView state_view" \
+    "transpiler_hosted_zone_state_view_missing_mir_metadata" \
+    "transpiler_hosted_zone_state_view_name"; do
+    require_term "src/codegen/transpiler_zone_struct_emit.c" "$term"
+done
+if grep -Fq "ast_zone_states(node, &state_count)" \
+    "$ROOT_DIR/src/codegen/transpiler_zone_struct_emit.c"; then
+    fail "C zone struct emission must consume MIR zone state metadata, not reopen AST_ZONE_STATE inventory"
+fi
 for term in \
     "TranspilerHostedZoneRefreshView" \
     "transpiler_hosted_zone_refresh_view_from_decl" \

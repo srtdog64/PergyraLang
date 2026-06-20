@@ -115,6 +115,16 @@ typedef struct
 
 typedef struct
 {
+    const char *owner_name;
+    const char *name;
+    const char *layer_slot_name;
+    const char *left_or_target_slot_name;
+    const char *right_slot_name;
+    bool        is_relation;
+} MIRDeclZoneState;
+
+typedef struct
+{
     const char   *name;
     char         *bound_type_name;
     char         *default_arg_type_name;
@@ -152,6 +162,9 @@ typedef struct
     size_t       zone_refresh_count;
     MIRDeclZoneRefresh *zone_refresh_metadata;
     size_t       zone_refresh_metadata_count;
+    size_t       zone_state_count;
+    MIRDeclZoneState *zone_state_metadata;
+    size_t       zone_state_metadata_count;
     size_t       variant_count;
     MIRDeclEnumVariant *variant_metadata;
     size_t       variant_metadata_count;

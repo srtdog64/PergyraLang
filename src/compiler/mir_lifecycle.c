@@ -2,6 +2,7 @@
 #include "mir_base_helpers.h"
 #include "mir_decl_header_authority.h"
 #include "mir_decl_header_refresh.h"
+#include "mir_decl_header_zone_state.h"
 #include "mir_decl_method_projection.h"
 #include "mir_signature_metadata.h"
 #include "mir_source_local_types.h"
@@ -148,6 +149,7 @@ mir_destroy(MIRProgram *mir)
             free(mir->decl_headers[i].field_claim_metadata);
             mir_decl_header_free_authorities(&mir->decl_headers[i]);
             mir_decl_header_free_refreshes(&mir->decl_headers[i]);
+            mir_decl_header_free_zone_states(&mir->decl_headers[i]);
             for (size_t v = 0;
                  v < mir->decl_headers[i].variant_metadata_count; v++) {
                 const MIRDeclEnumVariant *variant =

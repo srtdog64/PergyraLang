@@ -48,6 +48,10 @@ size_t mir_decl_header_zone_refresh_count(const MIRDeclHeader *header);
 const MIRDeclZoneRefresh *mir_decl_header_zone_refresh(
     const MIRDeclHeader *header,
     size_t index);
+size_t mir_decl_header_zone_state_count(const MIRDeclHeader *header);
+const MIRDeclZoneState *mir_decl_header_zone_state(
+    const MIRDeclHeader *header,
+    size_t index);
 size_t mir_decl_header_enum_variant_count(const MIRDeclHeader *header);
 const MIRDeclEnumVariant *mir_decl_header_enum_variant(
     const MIRDeclHeader *header,
@@ -126,6 +130,15 @@ const char *mir_decl_zone_refresh_mapped_target_field(
     const MIRDeclZoneRefresh *refresh, size_t index);
 const char *mir_decl_zone_refresh_mapped_source_field(
     const MIRDeclZoneRefresh *refresh, size_t index);
+const char *mir_decl_zone_state_owner_name(const MIRDeclZoneState *state);
+const char *mir_decl_zone_state_name(const MIRDeclZoneState *state);
+const char *mir_decl_zone_state_layer_slot_name(
+    const MIRDeclZoneState *state);
+const char *mir_decl_zone_state_left_or_target_slot_name(
+    const MIRDeclZoneState *state);
+const char *mir_decl_zone_state_right_slot_name(
+    const MIRDeclZoneState *state);
+bool mir_decl_zone_state_is_relation(const MIRDeclZoneState *state);
 const char *mir_ability_ref_base_name(const MIRAbilityRef *ref);
 size_t mir_ability_ref_actual_arg_count(const MIRAbilityRef *ref);
 const char *mir_ability_ref_actual_arg_type_name(

@@ -53,6 +53,8 @@ transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node,
         transpiler_hosted_shared_field_view_from_decl(ctx, name, node);
     TranspilerHostedZoneLayerSlotView layer_view =
         transpiler_hosted_zone_layer_slot_view_from_decl(ctx, name, node);
+    TranspilerHostedZoneStateView state_view =
+        transpiler_hosted_zone_state_view_from_decl(ctx, name, node);
     if (transpiler_hosted_domain_slot_view_missing_mir_metadata(
             &slot_view)) {
         transpiler_set_mir_inventory_missing(
@@ -76,8 +78,14 @@ transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node,
             name != NULL ? name : "(anonymous-zone)");
         return false;
     }
-    size_t state_count = 0;
-    ASTNode **states = ast_zone_states(node, &state_count);
+    if (transpiler_hosted_zone_state_view_missing_mir_metadata(
+            &state_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing zone state metadata for zone '%s'",
+            name != NULL ? name : "(anonymous-zone)");
+        return false;
+    }
 
     codebuf_write(ctx->out, "\n/* Zone: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
@@ -185,12 +193,20 @@ transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node,
         codebuf_write(ctx->out, "    %s %s;\n", ft, shared_name);
     }
 
-    for (size_t i = 0; i < state_count; i++) {
-        ASTNode *state = states[i];
+    for (size_t i = 0; i < state_view.count; i++) {
+        const char *state_name =
+            transpiler_hosted_zone_state_view_name(&state_view, i);
+        if (state_name == NULL) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "C backend: zone '%s' state[%zu] is missing declaration metadata",
+                name != NULL ? name : "(anonymous-zone)",
+                i);
+            return false;
+        }
         codebuf_write(ctx->out, "    bool __state_%s;\n",
-            ast_zone_state_name(state));
-        emit_hidden_provenance_fields(ctx, "state",
-            ast_zone_state_name(state));
+            state_name);
+        emit_hidden_provenance_fields(ctx, "state", state_name);
     }
 
     codebuf_write(ctx->out, "    PGY_ZONE_LOCK_FIELD\n");
