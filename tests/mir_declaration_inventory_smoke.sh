@@ -7387,6 +7387,24 @@ if grep -R "llvm_find_zone_state_decl" "$ROOT_DIR/src/codegen" >/dev/null; then
     fail "LLVM zone-state query lookup must not return AST_ZONE_STATE payloads"
 fi
 for term in \
+    "LLVMHostedZoneStateView state_view" \
+    "llvm_hosted_zone_state_view_from_decl(ctx, zone_name, stmt)" \
+    "llvm_hosted_zone_state_view_missing_mir_metadata" \
+    "llvm_hosted_zone_state_view_name(&state_view" \
+    "llvm_hosted_zone_state_view_layer_slot_name(state_view" \
+    "llvm_hosted_zone_state_view_left_or_target_slot_name" \
+    "llvm_hosted_zone_state_view_right_slot_name"; do
+    require_term "src/codegen/llvm_domain_zone_frontier_state.c" "$term"
+done
+if grep -Fq "ast_zone_states(stmt, &state_count)" \
+    "$ROOT_DIR/src/codegen/llvm_domain_zone_frontier_state.c"; then
+    fail "LLVM zone frontier previous/reset/change tracking must consume MIR zone state metadata, not reopen AST_ZONE_STATE inventory"
+fi
+if grep -Fq "ast_zone_state_name(" \
+    "$ROOT_DIR/src/codegen/llvm_domain_zone_frontier_state.c"; then
+    fail "LLVM zone frontier previous/reset/change tracking must consume LLVMHostedZoneStateView, not AST zone-state accessors"
+fi
+for term in \
     "TranspilerHostedZoneRefreshView" \
     "transpiler_hosted_zone_refresh_view_from_decl" \
     "transpiler_hosted_zone_refresh_view_metadata" \

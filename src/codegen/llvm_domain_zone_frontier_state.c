@@ -5,7 +5,6 @@
 #include <stdio.h>
 
 #include "llvm_inventory_decl_lookup.h"
-#include "parser/ast_api.h"
 
 static bool
 llvm_zone_frontier_prev_name(char *out,
@@ -35,16 +34,49 @@ llvm_zone_frontier_field_name(char *out,
     return written >= 0 && (size_t)written < out_size;
 }
 
+static bool
+llvm_zone_frontier_require_state_view(LLVMGenCtx *ctx,
+                                      const LLVMHostedZoneStateView *state_view,
+                                      const char *reason)
+{
+    if (llvm_hosted_zone_state_view_missing_mir_metadata(state_view)) {
+        llvm_set_mir_inventory_missing(ctx, "%s", reason);
+        return false;
+    }
+    if (state_view == NULL || !state_view->uses_mir_metadata)
+        return true;
+    for (size_t i = 0; i < state_view->count; i++) {
+        const char *state_name =
+            llvm_hosted_zone_state_view_name(state_view, i);
+        const char *state_layer =
+            llvm_hosted_zone_state_view_layer_slot_name(state_view, i);
+        const char *state_target =
+            llvm_hosted_zone_state_view_left_or_target_slot_name(
+                state_view, i);
+        const char *state_right =
+            llvm_hosted_zone_state_view_right_slot_name(state_view, i);
+        if (state_name == NULL || state_layer == NULL
+            || state_target == NULL
+            || (llvm_hosted_zone_state_view_is_relation(state_view, i)
+                && state_right == NULL)) {
+            llvm_set_mir_inventory_missing(ctx, "%s", reason);
+            return false;
+        }
+    }
+    return true;
+}
+
 void
 llvm_zone_sync_alloc_previous_state(ASTNode *stmt, LLVMGenCtx *ctx,
                                     LLVMValueRef **prev_state_addrs_out,
                                     LLVMValueRef **prev_layer_addrs_out)
 {
-    size_t state_count = 0;
-    ASTNode **states = ast_zone_states(stmt, &state_count);
     const char *zone_name = llvm_decl_node_name(stmt);
+    LLVMHostedZoneStateView state_view =
+        llvm_hosted_zone_state_view_from_decl(ctx, zone_name, stmt);
     LLVMHostedZoneLayerSlotView layer_view =
         llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, stmt);
+    size_t state_count = state_view.count;
     LLVMValueRef *prev_state_addrs = pgy_arena_calloc(&ctx->scratch,
         (state_count > 0 ? state_count : 1) * sizeof(LLVMValueRef));
     LLVMValueRef *prev_layer_addrs = pgy_arena_calloc(&ctx->scratch,
@@ -59,6 +91,16 @@ llvm_zone_sync_alloc_previous_state(ASTNode *stmt, LLVMGenCtx *ctx,
             *prev_layer_addrs_out = NULL;
         return;
     }
+    if (!llvm_zone_frontier_require_state_view(
+            ctx,
+            &state_view,
+            "MIR-only LLVM path missing zone state metadata for zone frontier previous-state")) {
+        if (prev_state_addrs_out != NULL)
+            *prev_state_addrs_out = prev_state_addrs;
+        if (prev_layer_addrs_out != NULL)
+            *prev_layer_addrs_out = prev_layer_addrs;
+        return;
+    }
 
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
         llvm_set_mir_inventory_missing(ctx,
@@ -71,13 +113,13 @@ llvm_zone_sync_alloc_previous_state(ASTNode *stmt, LLVMGenCtx *ctx,
     }
 
     for (size_t i = 0; i < state_count; i++) {
-        ASTNode *state = states[i];
+        const char *state_name =
+            llvm_hosted_zone_state_view_name(&state_view, i);
         char prev_name[256];
-        if (state == NULL || state->type != AST_ZONE_STATE
-            || ast_zone_state_name(state) == NULL)
+        if (state_name == NULL)
             continue;
         if (!llvm_zone_frontier_prev_name(prev_name, sizeof(prev_name),
-                "state", ast_zone_state_name(state)))
+                "state", state_name))
             continue;
         prev_state_addrs[i] = llvm_create_entry_alloca(ctx, ctx->type_i1, prev_name);
     }
@@ -109,12 +151,19 @@ llvm_zone_sync_snapshot_previous_state(ASTNode *stmt,
     if (ctx == NULL || ctx->has_error)
         return;
 
-    size_t state_count = 0;
-    ASTNode **states = ast_zone_states(stmt, &state_count);
     const char *zone_name = llvm_decl_node_name(stmt);
+    LLVMHostedZoneStateView state_view =
+        llvm_hosted_zone_state_view_from_decl(ctx, zone_name, stmt);
     LLVMHostedZoneLayerSlotView layer_view =
         llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, stmt);
+    size_t state_count = state_view.count;
 
+    if (!llvm_zone_frontier_require_state_view(
+            ctx,
+            &state_view,
+            "MIR-only LLVM path missing zone state metadata for zone frontier snapshot")) {
+        return;
+    }
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing zone layer-slot metadata for zone frontier snapshot");
@@ -122,16 +171,16 @@ llvm_zone_sync_snapshot_previous_state(ASTNode *stmt,
     }
 
     for (size_t i = 0; i < state_count; i++) {
-        ASTNode *state = states[i];
         const char *state_name;
         int field_idx;
         LLVMValueRef self_ptr;
         LLVMValueRef state_ptr;
         LLVMValueRef state_val;
-        if (prev_state_addrs[i] == NULL || state == NULL || state->type != AST_ZONE_STATE
-            || ast_zone_state_name(state) == NULL)
+        if (prev_state_addrs[i] == NULL)
             continue;
-        state_name = ast_zone_state_name(state);
+        state_name = llvm_hosted_zone_state_view_name(&state_view, i);
+        if (state_name == NULL)
+            continue;
         {
             char field_name[256];
             if (!llvm_zone_frontier_field_name(field_name, sizeof(field_name),
@@ -182,12 +231,19 @@ llvm_zone_sync_reset_state_and_layers(ASTNode *stmt,
     if (ctx == NULL || ctx->has_error)
         return;
 
-    size_t state_count = 0;
-    ASTNode **states = ast_zone_states(stmt, &state_count);
     const char *zone_name = llvm_decl_node_name(stmt);
+    LLVMHostedZoneStateView state_view =
+        llvm_hosted_zone_state_view_from_decl(ctx, zone_name, stmt);
     LLVMHostedZoneLayerSlotView layer_view =
         llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, stmt);
+    size_t state_count = state_view.count;
 
+    if (!llvm_zone_frontier_require_state_view(
+            ctx,
+            &state_view,
+            "MIR-only LLVM path missing zone state metadata for zone frontier reset")) {
+        return;
+    }
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing zone layer-slot metadata for zone frontier reset");
@@ -195,15 +251,13 @@ llvm_zone_sync_reset_state_and_layers(ASTNode *stmt,
     }
 
     for (size_t i = 0; i < state_count; i++) {
-        ASTNode *state = states[i];
         const char *state_name;
         int field_idx;
         LLVMValueRef self_ptr;
         LLVMValueRef state_ptr;
-        if (state == NULL || state->type != AST_ZONE_STATE
-            || ast_zone_state_name(state) == NULL)
+        state_name = llvm_hosted_zone_state_view_name(&state_view, i);
+        if (state_name == NULL)
             continue;
-        state_name = ast_zone_state_name(state);
         {
             char field_name[256];
             if (!llvm_zone_frontier_field_name(field_name, sizeof(field_name),
@@ -303,12 +357,19 @@ llvm_zone_sync_update_frontier_continue(ASTNode *stmt,
     if (ctx == NULL || ctx->has_error)
         return;
 
-    size_t state_count = 0;
-    ASTNode **states = ast_zone_states(stmt, &state_count);
     const char *zone_name = llvm_decl_node_name(stmt);
+    LLVMHostedZoneStateView state_view =
+        llvm_hosted_zone_state_view_from_decl(ctx, zone_name, stmt);
     LLVMHostedZoneLayerSlotView layer_view =
         llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, stmt);
+    size_t state_count = state_view.count;
 
+    if (!llvm_zone_frontier_require_state_view(
+            ctx,
+            &state_view,
+            "MIR-only LLVM path missing zone state metadata for zone frontier continuation")) {
+        return;
+    }
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing zone layer-slot metadata for zone frontier continuation");
@@ -316,7 +377,6 @@ llvm_zone_sync_update_frontier_continue(ASTNode *stmt,
     }
 
     for (size_t i = 0; i < state_count; i++) {
-        ASTNode *state = states[i];
         const char *state_name;
         int field_idx;
         LLVMValueRef self_ptr;
@@ -325,10 +385,11 @@ llvm_zone_sync_update_frontier_continue(ASTNode *stmt,
         LLVMValueRef prev_val;
         LLVMValueRef changed_val;
         LLVMValueRef pending_val;
-        if (prev_state_addrs[i] == NULL || state == NULL || state->type != AST_ZONE_STATE
-            || ast_zone_state_name(state) == NULL)
+        if (prev_state_addrs[i] == NULL)
             continue;
-        state_name = ast_zone_state_name(state);
+        state_name = llvm_hosted_zone_state_view_name(&state_view, i);
+        if (state_name == NULL)
+            continue;
         {
             char field_name[256];
             if (!llvm_zone_frontier_field_name(field_name, sizeof(field_name),
