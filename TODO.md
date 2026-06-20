@@ -90,6 +90,13 @@ English anchor for tooling/doc gates:
   proves a reachable spawn or channel-send boundary. Gate:
   `semantic-core-shape-test-smoke` plus `test-semantic` fixture
   `intent declaration rejects callee body spawn via body summary`.
+- Spawn boundary signature source-of-truth: storage, authority-token, and ref
+  spawn-boundary validators now resolve the direct callee once and consume
+  `type_function_param_type(...)` from the checked function signature for
+  parameter type facts. The ref-boundary validator still consumes the source
+  `FuncParam` mode because parameter modes are not yet stored on function
+  `Type`; that is the remaining smaller seam. Gate:
+  `semantic-core-shape-test-smoke`.
 - MIR lifecycle/dump source-text source-of-truth: `mir_lifecycle.c` no longer
   opens `mir_instruction_source_payload(...)` or calls `ast_capture_inline(...)`
   while serializing MIR JSON. The transitional `"ast"` text field is captured

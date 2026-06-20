@@ -323,6 +323,11 @@ Closed now:
 - Direct named `spawn` boundaries now also reject authority-bearing `Token<T>`
   parameters. This closes the stable beta token-transport rule across channel
   send/receive helpers, cancellation payloads, channel close, and spawn.
+- Spawn boundary validators now read callee parameter type facts from the
+  checked function signature (`type_function_param_type(...)`) instead of
+  re-resolving source `FuncParam` type annotations. The remaining signature
+  seam is parameter mode: ref-boundary validation still reads `FuncParam::mode`
+  until mode facts are carried by the function type.
 - Function types now carry first-stage interprocedural body summaries through
   `body_summary_mask`. The current seam records `may_return`, `may_escape_ref`,
   `moves_param`, `borrows_param`, `drops_resource`, `effects`,

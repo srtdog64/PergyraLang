@@ -18,6 +18,36 @@ spawn_direct_callee_name(ASTNode *spawned)
     return ast_identifier_name(callee);
 }
 
+static Type *
+spawn_direct_callee_function_type(ASTNode *spawned,
+                                  SemanticContext *ctx,
+                                  const char **callee_name_out,
+                                  ASTNode **decl_out)
+{
+    const char *callee_name = spawn_direct_callee_name(spawned);
+    ASTNode *decl;
+    Symbol *sym;
+
+    if (callee_name_out != NULL)
+        *callee_name_out = callee_name;
+    if (decl_out != NULL)
+        *decl_out = NULL;
+    if (ctx == NULL || callee_name == NULL)
+        return NULL;
+
+    decl = semantic_find_callable_decl_by_name(ctx, callee_name);
+    if (decl == NULL || decl->type != AST_FUNC_DECL)
+        return NULL;
+    sym = scope_lookup(ctx->scope, callee_name);
+    if (sym == NULL || sym->type == NULL
+        || sym->type->kind != TYPE_KIND_FUNCTION) {
+        return NULL;
+    }
+    if (decl_out != NULL)
+        *decl_out = decl;
+    return sym->type;
+}
+
 static bool
 semantic_channel_type_is_token(const Type *type);
 
@@ -25,20 +55,6 @@ static Type *
 async_channel_normalize_type(Type *type)
 {
     return type != NULL ? type : TYPE_UNKNOWN;
-}
-
-static bool
-semantic_type_ref_names_token(ASTNode *type_ref)
-{
-    if (type_ref == NULL)
-        return false;
-    if (type_ref->type == AST_TYPE)
-        return ast_type_name(type_ref) != NULL
-            && strcmp(ast_type_name(type_ref), "Token") == 0;
-    if (type_ref->type == AST_IDENTIFIER)
-        return ast_identifier_name(type_ref) != NULL
-            && strcmp(ast_identifier_name(type_ref), "Token") == 0;
-    return false;
 }
 
 static bool
@@ -77,34 +93,32 @@ static bool
 semantic_validate_spawn_storage_boundary(ASTNode *expr, SemanticContext *ctx)
 {
     ASTNode *spawned;
-    const char *callee_name;
-    ASTNode *decl;
+    Type *callee_type;
+    size_t param_count;
     bool rejected = false;
 
     if (expr == NULL || ctx == NULL)
         return false;
 
     spawned = ast_spawn_function(expr);
-    callee_name = spawn_direct_callee_name(spawned);
-    if (callee_name == NULL)
+    callee_type = spawn_direct_callee_function_type(
+        spawned, ctx, NULL, NULL);
+    if (callee_type == NULL)
         return false;
+    param_count = type_function_param_count(callee_type);
 
-    decl = semantic_find_callable_decl_by_name(ctx, callee_name);
-    if (decl == NULL || decl->type != AST_FUNC_DECL)
-        return false;
-
-    for (size_t i = 0; i < ast_call_arg_count(spawned); i++) {
+    for (size_t i = 0; i < ast_call_arg_count(spawned)
+                       && i < param_count; i++) {
         ASTNode *arg = ast_call_argument(spawned, i);
-        FuncParam *param = ast_func_param(decl, i);
         Type *param_type;
         const char *arg_label = "<argument>";
 
-        if (arg == NULL || param == NULL)
+        if (arg == NULL)
             continue;
         if (arg->type == AST_IDENTIFIER && ast_identifier_name(arg) != NULL)
             arg_label = ast_identifier_name(arg);
 
-        param_type = type_check_func_resolve_param_type(param, ctx);
+        param_type = type_function_param_type(callee_type, i);
         if (semantic_report_worker_storage_boundary(
                 arg, ctx, param_type, "Spawn argument", arg_label)) {
             rejected = true;
@@ -118,35 +132,31 @@ semantic_validate_spawn_token_boundary(ASTNode *expr, SemanticContext *ctx)
 {
     ASTNode *spawned;
     const char *callee_name;
-    ASTNode *decl;
+    Type *callee_type;
+    size_t param_count;
     bool rejected = false;
 
     if (expr == NULL || ctx == NULL)
         return false;
 
     spawned = ast_spawn_function(expr);
-    callee_name = spawn_direct_callee_name(spawned);
-    if (callee_name == NULL)
+    callee_type = spawn_direct_callee_function_type(
+        spawned, ctx, &callee_name, NULL);
+    if (callee_type == NULL)
         return false;
+    param_count = type_function_param_count(callee_type);
 
-    decl = semantic_find_callable_decl_by_name(ctx, callee_name);
-    if (decl == NULL || decl->type != AST_FUNC_DECL)
-        return false;
-
-    for (size_t i = 0; i < ast_call_arg_count(spawned); i++) {
+    for (size_t i = 0; i < ast_call_arg_count(spawned)
+                       && i < param_count; i++) {
         ASTNode *arg = ast_call_argument(spawned, i);
-        FuncParam *param = ast_func_param(decl, i);
-        Type *param_type = NULL;
+        Type *param_type;
         bool param_is_token;
 
-        if (arg == NULL || param == NULL)
+        if (arg == NULL)
             continue;
 
-        param_is_token = semantic_type_ref_names_token(param->type);
-        if (!param_is_token) {
-            param_type = type_check_func_resolve_param_type(param, ctx);
-            param_is_token = semantic_channel_type_is_token(param_type);
-        }
+        param_type = type_function_param_type(callee_type, i);
+        param_is_token = semantic_channel_type_is_token(param_type);
         if (!param_is_token)
             continue;
 
@@ -177,21 +187,22 @@ semantic_validate_spawn_ref_boundary(ASTNode *expr,
     ASTNode *spawned;
     const char *callee_name;
     ASTNode *decl;
+    Type *callee_type;
+    size_t param_count;
 
     (void)inner;
     if (expr == NULL || ctx == NULL)
         return;
 
     spawned = ast_spawn_function(expr);
-    callee_name = spawn_direct_callee_name(spawned);
-    if (callee_name == NULL)
+    callee_type = spawn_direct_callee_function_type(
+        spawned, ctx, &callee_name, &decl);
+    if (callee_type == NULL)
         return;
+    param_count = type_function_param_count(callee_type);
 
-    decl = semantic_find_callable_decl_by_name(ctx, callee_name);
-    if (decl == NULL || decl->type != AST_FUNC_DECL)
-        return;
-
-    for (size_t i = 0; i < ast_call_arg_count(spawned); i++) {
+    for (size_t i = 0; i < ast_call_arg_count(spawned)
+                       && i < param_count; i++) {
         ASTNode *arg = ast_call_argument(spawned, i);
         FuncParam *param = ast_func_param(decl, i);
         Type *param_type;
@@ -204,7 +215,7 @@ semantic_validate_spawn_ref_boundary(ASTNode *expr,
         if (arg == NULL || param == NULL || param->mode != PARAM_MODE_REF)
             continue;
 
-        param_type = type_check_func_resolve_param_type(param, ctx);
+        param_type = type_function_param_type(callee_type, i);
         ownership_class = semantic_classify_ownership_type(param_type, ctx);
         if (ownership_class == OWNERSHIP_TYPE_COPY_ONLY)
             continue;

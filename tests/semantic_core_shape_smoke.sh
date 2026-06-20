@@ -945,6 +945,19 @@ grep -q 'semantic_find_callable_decl_by_name(ctx, callee_name)' \
     src/semantic/type_checker_async_channel.c \
     || fail "spawn boundary validation must consume context-bearing callable lookup seam"
 
+grep -q 'spawn_direct_callee_function_type' \
+    src/semantic/type_checker_async_channel.c \
+    || fail "spawn boundary validation must centralize direct callee signature lookup"
+
+grep -q 'type_function_param_type(callee_type, i)' \
+    src/semantic/type_checker_async_channel.c \
+    || fail "spawn boundary validation must consume function signature param types"
+
+if grep -q 'type_check_func_resolve_param_type(param, ctx)' \
+    src/semantic/type_checker_async_channel.c; then
+    fail "spawn boundary validation must not re-resolve param types from FuncParam AST"
+fi
+
 if grep -q 'spawn_find_callable_decl' \
     src/semantic/type_checker_async_channel.c; then
     fail "spawn boundary validation must not carry a local callable lookup"
