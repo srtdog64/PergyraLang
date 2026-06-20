@@ -106,6 +106,18 @@ There is no incidental layer; the single removable boundary is the price of
 resource-checking-at-the-resource-layer. That is as "proven minimal" as an
 architecture gets.
 
+**Decision (2026-06-20, BDFL): keep RIR as a separate layer — 3 codegen IRs.**
+Rationale: *extensibility*. The language's growth axis is resource/domain richness
+(new primitives, new resource kinds, new ownership/authority/effect semantics). A
+separate flow-sensitive RIR means a new resource semantic is added as a new state
+lattice *at RIR*, validated there, without touching MIR's fusion. Collapsing to 2
+would couple every future resource-model extension to MIR surgery. So keeping RIR
+is exactly the design that passes the live overfit test (§7) — new primitives slot
+into RIR rather than requiring surgery. The accepted cost is that this third layer
+carries the SoT/parity discipline (the source-payload-retirement work); it is paid
+knowingly, in exchange for extension without fusion-layer surgery. The pivot is
+therefore *settled*, not open.
+
 ## 6. The D comparison
 
 D is flat because D is *conventional* — expression/type/control-flow map onto
@@ -122,11 +134,11 @@ proof above shows the codegen layers are necessary up to the one named trade.
   dependencies**. It does not quantify over all conceivable IR designs; a
   different fact factoring could in principle have a shorter chain. What it rules
   out: carrying *these* facts in fewer layers, and any *unexplained* boundary.
-- Two risks remain, both **beyond** "is the architecture right" (which is now
+- The pivot trade is **settled** (§5): keep RIR (3 layers), for extensibility.
+  It is no longer an open question — recorded as a decision, not a risk.
+- One risk remains, **beyond** "is the architecture right" (which is now
   answered):
-  1. **The pivot trade** — whether to keep resource-checking at RIR (3 layers) or
-     relocate it to MIR (2 layers). A real refactor decision, now explicit.
-  2. **AIR's product value** — AIR is correctly placed (off-codegen verification),
+  1. **AIR's product value** — AIR is correctly placed (off-codegen verification),
      so its cost buys *verification of domain-meaning preservation*. Whether that
      is worth verifying is a **product** question (does anyone need
      meaning-preserving compilation?), not an architecture one. This is the bet to
