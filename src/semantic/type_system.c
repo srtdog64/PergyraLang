@@ -386,6 +386,15 @@ type_create_function(Type **params, size_t param_count, Type *return_type)
         free(t);
         return NULL;
     }
+    t->data.function.param_modes  = (param_count > 0)
+        ? calloc(param_count, sizeof(ParamMode))
+        : NULL;
+    if (param_count > 0 && t->data.function.param_modes == NULL) {
+        free(t->data.function.param_types);
+        free(t->name);
+        free(t);
+        return NULL;
+    }
     if (param_count > 0 && params != NULL) {
         memcpy(t->data.function.param_types, params,
                param_count * sizeof(Type *));
@@ -425,6 +434,30 @@ type_function_param_type(const Type *type, size_t index)
     if (index >= type->data.function.param_count)
         return NULL;
     return type->data.function.param_types[index];
+}
+
+ParamMode
+type_function_param_mode(const Type *type, size_t index)
+{
+    if (type == NULL || type->kind != TYPE_KIND_FUNCTION)
+        return PARAM_MODE_DEFAULT;
+    if (index >= type->data.function.param_count)
+        return PARAM_MODE_DEFAULT;
+    if (type->data.function.param_modes == NULL)
+        return PARAM_MODE_DEFAULT;
+    return type->data.function.param_modes[index];
+}
+
+void
+type_function_set_param_mode(Type *type, size_t index, ParamMode mode)
+{
+    if (type == NULL || type->kind != TYPE_KIND_FUNCTION)
+        return;
+    if (index >= type->data.function.param_count)
+        return;
+    if (type->data.function.param_modes == NULL)
+        return;
+    type->data.function.param_modes[index] = mode;
 }
 
 void

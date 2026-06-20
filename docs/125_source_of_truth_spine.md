@@ -103,10 +103,9 @@ Current beta closure snapshot:
   body-summary reader.
 - Spawn boundary validators in `src/semantic/type_checker_async_channel.c`
   consume the direct callee's checked function signature for parameter type
-  facts via `type_function_param_type(...)`. They may still consume source
-  `FuncParam` mode for the `ref` boundary until parameter modes become part of
-  the function type fact, but they must not re-resolve parameter types from the
-  declaration AST.
+  facts via `type_function_param_type(...)` and parameter mode facts via
+  `type_function_param_mode(...)`. They must not re-resolve parameter types
+  from the declaration AST or reopen source `FuncParam::mode`.
 - MIR lowering lives in `src/compiler/mir.c`, next to the owner-local lowering
   helpers it consumes. Public MIR query/pass wrappers live in
   `src/compiler/mir_public_surface.c`. MIR lowering is a consumer of HIR/RIR

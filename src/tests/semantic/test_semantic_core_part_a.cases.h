@@ -31,6 +31,19 @@ test_type_system(void)
     Type *slot_str = type_create_slot(TYPE_STRING, false);
     EXPECT(!type_equals(slot_int, slot_str));
 
+    TEST("function type carries parameter modes");
+    {
+        Type *params[2] = { TYPE_INT, TYPE_STRING };
+        Type *fn_ref = type_create_function(params, 2, TYPE_BOOL);
+        Type *fn_default = type_create_function(params, 2, TYPE_BOOL);
+
+        type_function_set_param_mode(fn_ref, 0, PARAM_MODE_REF);
+
+        EXPECT(type_function_param_mode(fn_ref, 0) == PARAM_MODE_REF);
+        EXPECT(type_function_param_mode(fn_ref, 1) == PARAM_MODE_DEFAULT);
+        EXPECT(!type_equals(fn_ref, fn_default));
+    }
+
     TEST("type_infer_expression: identifier lookup returns bound type");
     {
         TypeEnv *env = type_env_create(NULL);

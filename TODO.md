@@ -93,10 +93,11 @@ English anchor for tooling/doc gates:
 - Spawn boundary signature source-of-truth: storage, authority-token, and ref
   spawn-boundary validators now resolve the direct callee once and consume
   `type_function_param_type(...)` from the checked function signature for
-  parameter type facts. The ref-boundary validator still consumes the source
-  `FuncParam` mode because parameter modes are not yet stored on function
-  `Type`; that is the remaining smaller seam. Gate:
-  `semantic-core-shape-test-smoke`.
+  parameter type facts. Function `Type` now also carries parameter-mode facts,
+  and the spawn ref-boundary validator consumes
+  `type_function_param_mode(...)` instead of reopening `FuncParam::mode`.
+  Gate: `semantic-core-shape-test-smoke` plus the type-system fixture
+  `function type carries parameter modes`.
 - MIR lifecycle/dump source-text source-of-truth: `mir_lifecycle.c` no longer
   opens `mir_instruction_source_payload(...)` or calls `ast_capture_inline(...)`
   while serializing MIR JSON. The transitional `"ast"` text field is captured

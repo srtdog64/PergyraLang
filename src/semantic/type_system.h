@@ -111,6 +111,7 @@ struct Type
         struct
         {
             Type** param_types;
+            ParamMode* param_modes;
             size_t param_count;
             Type* return_type;
             uint32_t effect_mask;
@@ -190,6 +191,8 @@ Type* type_function_return_type(const Type* type);
 void type_function_set_return_type(Type* type, Type* return_type);
 size_t type_function_param_count(const Type* type);
 Type* type_function_param_type(const Type* type, size_t index);
+ParamMode type_function_param_mode(const Type* type, size_t index);
+void type_function_set_param_mode(Type* type, size_t index, ParamMode mode);
 void type_function_set_effects(Type* type, uint32_t effect_mask);
 void type_function_set_body_summary(Type* type, uint32_t body_summary_mask);
 uint32_t type_function_effects(const Type* type);

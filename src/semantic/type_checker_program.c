@@ -161,6 +161,18 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     return program_report_resolution_oom(ctx, stmt,
                         "function placeholder type");
                 }
+                size_t mode_index = 0;
+                for (size_t j = 0; j < fpc && mode_index < real_pc; j++) {
+                    FuncParam *p = ast_func_param(stmt, j);
+                    if (p == NULL)
+                        continue;
+                    if (p->type == NULL && p->name != NULL
+                        && strcmp(p->name, "self") == 0)
+                        continue;
+                    type_function_set_param_mode(placeholder, mode_index,
+                        p->mode);
+                    mode_index++;
+                }
                 if (placeholder != NULL)
                     type_function_set_effects(placeholder,
                         declared_effects_from_function_node(stmt, ctx, NULL));

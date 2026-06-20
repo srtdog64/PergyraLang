@@ -140,6 +140,11 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 
     Type *func_type = type_create_function(param_types, param_count,
                                             return_type);
+    for (size_t i = 0; i < param_count; i++) {
+        FuncParam *param = ast_func_param(node, i);
+        if (param != NULL)
+            type_function_set_param_mode(func_type, i, param->mode);
+    }
 
     Symbol *func_sym = symbol_create_function(name, func_type,
                                                node->line, node->column);

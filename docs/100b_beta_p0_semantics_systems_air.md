@@ -325,9 +325,9 @@ Closed now:
   send/receive helpers, cancellation payloads, channel close, and spawn.
 - Spawn boundary validators now read callee parameter type facts from the
   checked function signature (`type_function_param_type(...)`) instead of
-  re-resolving source `FuncParam` type annotations. The remaining signature
-  seam is parameter mode: ref-boundary validation still reads `FuncParam::mode`
-  until mode facts are carried by the function type.
+  re-resolving source `FuncParam` type annotations. Function types also carry
+  parameter-mode facts now, so ref-boundary validation reads
+  `type_function_param_mode(...)` instead of source `FuncParam::mode`.
 - Function types now carry first-stage interprocedural body summaries through
   `body_summary_mask`. The current seam records `may_return`, `may_escape_ref`,
   `moves_param`, `borrows_param`, `drops_resource`, `effects`,

@@ -10,8 +10,10 @@ semantic_type_resolution_free_owned_type(Type *type)
     free(type->name);
     if (type->kind == TYPE_KIND_CONSTRUCTED)
         free(type->data.constructed.args);
-    if (type->kind == TYPE_KIND_FUNCTION)
+    if (type->kind == TYPE_KIND_FUNCTION) {
         free(type->data.function.param_types);
+        free(type->data.function.param_modes);
+    }
     if (type->kind == TYPE_KIND_TUPLE)
         free(type->data.tuple.elements);
     free(type);

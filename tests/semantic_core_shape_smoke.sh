@@ -953,9 +953,17 @@ grep -q 'type_function_param_type(callee_type, i)' \
     src/semantic/type_checker_async_channel.c \
     || fail "spawn boundary validation must consume function signature param types"
 
+grep -q 'type_function_param_mode(callee_type, i)' \
+    src/semantic/type_checker_async_channel.c \
+    || fail "spawn ref-boundary validation must consume function signature param modes"
+
 if grep -q 'type_check_func_resolve_param_type(param, ctx)' \
     src/semantic/type_checker_async_channel.c; then
     fail "spawn boundary validation must not re-resolve param types from FuncParam AST"
+fi
+
+if grep -q 'param->mode' src/semantic/type_checker_async_channel.c; then
+    fail "spawn boundary validation must not reopen FuncParam mode after signature mode facts exist"
 fi
 
 if grep -q 'spawn_find_callable_decl' \

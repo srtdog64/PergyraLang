@@ -62,6 +62,9 @@ type_equals(const Type *a, const Type *b)
             if (!type_equals(a->data.function.param_types[i],
                              b->data.function.param_types[i]))
                 return false;
+            if (type_function_param_mode(a, i)
+                != type_function_param_mode(b, i))
+                return false;
         }
         return true;
     }

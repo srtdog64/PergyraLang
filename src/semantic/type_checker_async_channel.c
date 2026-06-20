@@ -21,8 +21,7 @@ spawn_direct_callee_name(ASTNode *spawned)
 static Type *
 spawn_direct_callee_function_type(ASTNode *spawned,
                                   SemanticContext *ctx,
-                                  const char **callee_name_out,
-                                  ASTNode **decl_out)
+                                  const char **callee_name_out)
 {
     const char *callee_name = spawn_direct_callee_name(spawned);
     ASTNode *decl;
@@ -30,8 +29,6 @@ spawn_direct_callee_function_type(ASTNode *spawned,
 
     if (callee_name_out != NULL)
         *callee_name_out = callee_name;
-    if (decl_out != NULL)
-        *decl_out = NULL;
     if (ctx == NULL || callee_name == NULL)
         return NULL;
 
@@ -43,8 +40,6 @@ spawn_direct_callee_function_type(ASTNode *spawned,
         || sym->type->kind != TYPE_KIND_FUNCTION) {
         return NULL;
     }
-    if (decl_out != NULL)
-        *decl_out = decl;
     return sym->type;
 }
 
@@ -102,7 +97,7 @@ semantic_validate_spawn_storage_boundary(ASTNode *expr, SemanticContext *ctx)
 
     spawned = ast_spawn_function(expr);
     callee_type = spawn_direct_callee_function_type(
-        spawned, ctx, NULL, NULL);
+        spawned, ctx, NULL);
     if (callee_type == NULL)
         return false;
     param_count = type_function_param_count(callee_type);
@@ -141,7 +136,7 @@ semantic_validate_spawn_token_boundary(ASTNode *expr, SemanticContext *ctx)
 
     spawned = ast_spawn_function(expr);
     callee_type = spawn_direct_callee_function_type(
-        spawned, ctx, &callee_name, NULL);
+        spawned, ctx, &callee_name);
     if (callee_type == NULL)
         return false;
     param_count = type_function_param_count(callee_type);
@@ -186,7 +181,6 @@ semantic_validate_spawn_ref_boundary(ASTNode *expr,
 {
     ASTNode *spawned;
     const char *callee_name;
-    ASTNode *decl;
     Type *callee_type;
     size_t param_count;
 
@@ -196,7 +190,7 @@ semantic_validate_spawn_ref_boundary(ASTNode *expr,
 
     spawned = ast_spawn_function(expr);
     callee_type = spawn_direct_callee_function_type(
-        spawned, ctx, &callee_name, &decl);
+        spawned, ctx, &callee_name);
     if (callee_type == NULL)
         return;
     param_count = type_function_param_count(callee_type);
@@ -204,7 +198,7 @@ semantic_validate_spawn_ref_boundary(ASTNode *expr,
     for (size_t i = 0; i < ast_call_arg_count(spawned)
                        && i < param_count; i++) {
         ASTNode *arg = ast_call_argument(spawned, i);
-        FuncParam *param = ast_func_param(decl, i);
+        ParamMode param_mode = type_function_param_mode(callee_type, i);
         Type *param_type;
         OwnershipTypeClass ownership_class;
         const char *arg_label;
@@ -212,7 +206,7 @@ semantic_validate_spawn_ref_boundary(ASTNode *expr,
         const char *provenance_label;
         const char *snapshot_label;
 
-        if (arg == NULL || param == NULL || param->mode != PARAM_MODE_REF)
+        if (arg == NULL || param_mode != PARAM_MODE_REF)
             continue;
 
         param_type = type_function_param_type(callee_type, i);
