@@ -318,6 +318,8 @@ test_air_requires_all_authority_participant_evidence(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_RIR_BOUNDARY,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_BOUNDARY,
             .boundary_index = 0,
             .provider_name = "WarehouseZone",
             .subject_name = "WarehouseZone",
@@ -325,6 +327,8 @@ test_air_requires_all_authority_participant_evidence(void)
         },
         {
             .kind = AIR_EVIDENCE_RIR_AUTHORITY,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_AUTHORITY,
             .boundary_index = 0,
             .provider_name = "WarehouseZone",
             .subject_name = "shipper",
@@ -393,6 +397,8 @@ test_air_dump_prints_evidence_provenance(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_HIR_ROUTINE,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_HIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_ROUTINE,
             .boundary_index = 0,
             .provider_name = "reserve",
             .subject_name = "WarehouseZone",
@@ -400,6 +406,8 @@ test_air_dump_prints_evidence_provenance(void)
         },
         {
             .kind = AIR_EVIDENCE_HIR_CFG,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_HIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_CFG,
             .boundary_index = 0,
             .provider_name = "reserve",
             .subject_name = "WarehouseZone",
@@ -407,6 +415,8 @@ test_air_dump_prints_evidence_provenance(void)
         },
         {
             .kind = AIR_EVIDENCE_RIR_BOUNDARY,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_BOUNDARY,
             .boundary_index = 0,
             .provider_name = "WarehouseZone",
             .subject_name = "WarehouseZone",
@@ -414,6 +424,8 @@ test_air_dump_prints_evidence_provenance(void)
         },
         {
             .kind = AIR_EVIDENCE_RIR_AUTHORITY,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_AUTHORITY,
             .boundary_index = 0,
             .provider_name = "WarehouseZone",
             .subject_name = "shipper",
@@ -431,7 +443,7 @@ test_air_dump_prints_evidence_provenance(void)
         .has_hir_input = true,
         .has_rir_input = true,
     };
-    char buffer[2048];
+    char buffer[4096];
     FILE *out = tmpfile();
     size_t bytes;
     bool ok;
@@ -449,9 +461,17 @@ test_air_dump_prints_evidence_provenance(void)
         && strstr(buffer, "evidence hir=yes(reserve) hir_cfg=yes") != NULL
         && strstr(buffer, "rir_boundary=yes(WarehouseZone)") != NULL
         && strstr(buffer, "rir_authority=yes(shipper)") != NULL
-        && strstr(buffer, "evidence_node[0] kind=hir_routine") != NULL
-        && strstr(buffer, "provider=reserve subject=WarehouseZone facts=1 fallbacks=0") != NULL
-        && strstr(buffer, "evidence_node[3] kind=rir_authority") != NULL
-        && strstr(buffer, "provider=WarehouseZone subject=shipper facts=1 fallbacks=0") != NULL;
+        && strstr(buffer,
+                  "evidence_node[0] kind=hir_routine provider_kind=hir subject_kind=routine")
+            != NULL
+        && strstr(buffer,
+                  "provider=reserve subject=WarehouseZone boundary_shape=unknown/<none>/<none> facts=1 fallbacks=0")
+            != NULL
+        && strstr(buffer,
+                  "evidence_node[3] kind=rir_authority provider_kind=rir subject_kind=authority")
+            != NULL
+        && strstr(buffer,
+                  "provider=WarehouseZone subject=shipper boundary_shape=unknown/<none>/<none> facts=1 fallbacks=0")
+            != NULL;
     return ok;
 }

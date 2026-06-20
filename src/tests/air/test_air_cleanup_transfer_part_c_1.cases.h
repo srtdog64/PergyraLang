@@ -111,6 +111,8 @@ test_air_rejects_pin_cleanup_evidence_without_slot_subject(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_MIR_PIN_CLEANUP,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_MIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_PIN_CLEANUP,
             .boundary_index = 0,
             .provider_name = "pin_scores",
             .subject_name = "pin",
@@ -160,6 +162,8 @@ test_air_rejects_pin_cleanup_evidence_without_source_provenance(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_MIR_CLEANUP,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_MIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_CLEANUP,
             .boundary_index = SIZE_MAX,
             .provider_name = "pin_scores",
             .subject_name = "cleanup-block",
@@ -168,6 +172,8 @@ test_air_rejects_pin_cleanup_evidence_without_source_provenance(void)
         },
         {
             .kind = AIR_EVIDENCE_MIR_PIN_CLEANUP,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_MIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_PIN_CLEANUP,
             .boundary_index = 0,
             .provider_name = "pin_scores",
             .subject_name = "scores",
@@ -273,6 +279,8 @@ test_air_rejects_pin_cleanup_evidence_fact_count_mismatch(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_MIR_PIN_CLEANUP,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_MIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_PIN_CLEANUP,
             .boundary_index = 0,
             .provider_name = "pin_scores",
             .subject_name = "scores",
@@ -322,6 +330,8 @@ test_air_rejects_pin_cleanup_without_global_cleanup_evidence(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_MIR_PIN_CLEANUP,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_MIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_PIN_CLEANUP,
             .boundary_index = 0,
             .provider_name = "pin_scores",
             .subject_name = "scores",

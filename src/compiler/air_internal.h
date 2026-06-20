@@ -174,11 +174,21 @@ bool        air_evidence_kind_is_boundary_scoped(AIREvidenceKind kind);
 AIREvidenceKindScope air_evidence_kind_scope(AIREvidenceKind kind);
 bool        air_evidence_kind_is_global(AIREvidenceKind kind);
 bool        air_evidence_kind_has_global_validator(AIREvidenceKind kind);
+AIREvidenceProviderKind air_evidence_kind_provider_kind(
+                AIREvidenceKind kind);
+AIREvidenceSubjectKind air_evidence_kind_subject_kind(
+                AIREvidenceKind kind);
 bool        air_evidence_inventory_storage_valid(const AIRProgram *air);
 size_t      air_evidence_node_count(const AIRProgram *air);
 const AIREvidenceNode *air_evidence_node_at(const AIRProgram *air,
                                             size_t index);
 AIREvidenceKind air_evidence_node_kind(const AIREvidenceNode *evidence);
+AIREvidenceProviderKind air_evidence_node_provider_kind(
+                const AIREvidenceNode *evidence);
+AIREvidenceSubjectKind air_evidence_node_subject_kind(
+                const AIREvidenceNode *evidence);
+bool        air_evidence_node_has_declared_kind_facts(
+                const AIREvidenceNode *evidence);
 size_t      air_evidence_node_boundary_index_or(
                 const AIREvidenceNode *evidence,
                 size_t fallback);
@@ -186,6 +196,17 @@ const char *air_evidence_node_provider_name_or(
                 const AIREvidenceNode *evidence,
                 const char *fallback);
 const char *air_evidence_node_subject_name_or(
+                const AIREvidenceNode *evidence,
+                const char *fallback);
+bool        air_evidence_node_has_boundary_shape(
+                const AIREvidenceNode *evidence);
+AIRBoundaryKind air_evidence_node_boundary_kind_or(
+                const AIREvidenceNode *evidence,
+                AIRBoundaryKind fallback);
+const char *air_evidence_node_boundary_owner_name_or(
+                const AIREvidenceNode *evidence,
+                const char *fallback);
+const char *air_evidence_node_boundary_source_name_or(
                 const AIREvidenceNode *evidence,
                 const char *fallback);
 size_t      air_evidence_node_fact_count(const AIREvidenceNode *evidence);

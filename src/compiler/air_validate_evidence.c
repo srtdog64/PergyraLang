@@ -65,6 +65,7 @@ air_evidence_node_matches_scope(const AIREvidenceNode *evidence,
 {
     return evidence != NULL
         && air_evidence_node_kind(evidence) == kind
+        && air_evidence_node_has_declared_kind_facts(evidence)
         && air_evidence_node_boundary_index_or(evidence, SIZE_MAX)
             == boundary_index;
 }
@@ -408,6 +409,18 @@ air_validate_evidence_inventory(const AIRProgram *air, char **error_message)
             air_evidence_node_boundary_index_or(evidence, SIZE_MAX);
         if (!air_evidence_kind_is_known(kind)) {
             air_set_invariant_error(error_message, "AIR evidence node %zu has invalid kind", i);
+            return false;
+        }
+        if (!air_evidence_node_has_declared_kind_facts(evidence)) {
+            air_set_invariant_error(
+                error_message,
+                "AIR evidence node %zu has typed evidence mismatch; kind=%s provider_kind=%s subject_kind=%s",
+                i,
+                air_evidence_kind_name(kind),
+                air_evidence_provider_kind_name(
+                    air_evidence_node_provider_kind(evidence)),
+                air_evidence_subject_kind_name(
+                    air_evidence_node_subject_kind(evidence)));
             return false;
         }
         if (boundary_index >= air_boundary_node_count(air)

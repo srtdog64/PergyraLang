@@ -355,6 +355,14 @@ air_dump_json_evidence(const AIRProgram *air, FILE *out)
         fprintf(out, "{\"id\":%zu,\"kind\":", i);
         air_json_string(out,
                         air_evidence_kind_name(air_evidence_node_kind(evidence)));
+        fputs(",\"provider_kind\":", out);
+        air_json_string(out,
+                        air_evidence_provider_kind_name(
+                            air_evidence_node_provider_kind(evidence)));
+        fputs(",\"subject_kind\":", out);
+        air_json_string(out,
+                        air_evidence_subject_kind_name(
+                            air_evidence_node_subject_kind(evidence)));
         if (boundary_index == SIZE_MAX)
             fputs(",\"boundary\":null,\"provider\":", out);
         else
@@ -365,13 +373,25 @@ air_dump_json_evidence(const AIRProgram *air, FILE *out)
         air_json_string(out,
                         air_evidence_node_subject_name_or(evidence, NULL));
         fputs(",\"boundary_kind\":", out);
-        air_json_string(out, boundary != NULL
-                             ? air_boundary_kind_name(boundary->kind)
-                             : NULL);
+        air_json_string(out,
+                        air_evidence_node_has_boundary_shape(evidence)
+                            ? air_boundary_kind_name(
+                                air_evidence_node_boundary_kind_or(
+                                    evidence,
+                                    AIR_BOUNDARY_UNKNOWN))
+                            : (boundary != NULL
+                                ? air_boundary_kind_name(boundary->kind)
+                                : NULL));
         fputs(",\"boundary_owner\":", out);
-        air_json_string(out, boundary != NULL ? boundary->owner_name : NULL);
+        air_json_string(out,
+                        air_evidence_node_boundary_owner_name_or(
+                            evidence,
+                            boundary != NULL ? boundary->owner_name : NULL));
         fputs(",\"boundary_source\":", out);
-        air_json_string(out, boundary != NULL ? boundary->source_name : NULL);
+        air_json_string(out,
+                        air_evidence_node_boundary_source_name_or(
+                            evidence,
+                            boundary != NULL ? boundary->source_name : NULL));
         fprintf(out,
                 ",\"fact_count\":%zu,\"fallback_count\":%zu",
                 air_evidence_node_fact_count(evidence),

@@ -122,6 +122,8 @@ for required in \
     '"kind":"hir_cfg"' \
     '"kind":"mir_cleanup"' \
     '"kind":"mir_terminator"' \
+    '"provider_kind":' \
+    '"subject_kind":' \
     '"provider":' \
     '"subject":' \
     '"boundary_kind":' \
@@ -196,7 +198,11 @@ assert all("authority_from_action" in boundary for boundary in data["boundaries"
 assert any(b["kind"] == "zone" and b["evidence_flags"]["rir_boundary"] for b in data["boundaries"])
 assert any(e["kind"] == "rir_boundary" for e in data["evidence"])
 assert any(e["kind"] == "hir_cfg" for e in data["evidence"])
+assert all("provider_kind" in e and "subject_kind" in e for e in data["evidence"])
 assert all("provider" in e and "subject" in e for e in data["evidence"])
+assert any(e["provider_kind"] == "rir" and e["subject_kind"] == "boundary" for e in data["evidence"])
+assert any(e["provider_kind"] == "hir" and e["subject_kind"] == "cfg" for e in data["evidence"])
+assert any(e["provider_kind"] == "mir" and e["subject_kind"] == "cleanup" for e in data["evidence"])
 assert all("boundary_kind" in e for e in data["evidence"])
 assert all("boundary_owner" in e for e in data["evidence"])
 assert all("boundary_source" in e for e in data["evidence"])
@@ -233,6 +239,8 @@ assert select_summary["mir_select_receive_evidence_count"] >= 1
 assert select_summary["mir_select_receive_evidence_count"] == count_kind(select_data, "mir_select_receive")
 assert any(
     e["kind"] == "mir_select_receive"
+    and e["provider_kind"] == "mir"
+    and e["subject_kind"] == "select_receive"
     and e["subject"] == "select-receive"
     and e["fact_count"] >= 1
     and e["fallback_count"] == 0
@@ -260,6 +268,8 @@ else
         fi
     }
     require_select_text '"kind":"mir_select_receive"'
+    require_select_text '"provider_kind":"mir"'
+    require_select_text '"subject_kind":"select_receive"'
     require_select_text '"subject":"select-receive"'
     echo "[air-json-schema] python not found; grep contract ok"
 fi

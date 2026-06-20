@@ -81,3 +81,43 @@ air_evidence_kind_name(AIREvidenceKind kind)
     }
     return "invalid";
 }
+
+const char *
+air_evidence_provider_kind_name(AIREvidenceProviderKind kind)
+{
+    switch (kind) {
+    case AIR_EVIDENCE_PROVIDER_UNKNOWN: return "unknown";
+    case AIR_EVIDENCE_PROVIDER_HIR: return "hir";
+    case AIR_EVIDENCE_PROVIDER_RIR: return "rir";
+    case AIR_EVIDENCE_PROVIDER_MIR: return "mir";
+    case AIR_EVIDENCE_PROVIDER_DAG: return "dag";
+    case AIR_EVIDENCE_PROVIDER_RUNTIME: return "runtime";
+    case AIR_EVIDENCE_PROVIDER_COUNT: break;
+    }
+    return "invalid";
+}
+
+const char *
+air_evidence_subject_kind_name(AIREvidenceSubjectKind kind)
+{
+    switch (kind) {
+    case AIR_EVIDENCE_SUBJECT_UNKNOWN: return "unknown";
+    case AIR_EVIDENCE_SUBJECT_ROUTINE: return "routine";
+    case AIR_EVIDENCE_SUBJECT_CFG: return "cfg";
+    case AIR_EVIDENCE_SUBJECT_BOUNDARY: return "boundary";
+    case AIR_EVIDENCE_SUBJECT_AUTHORITY: return "authority";
+    case AIR_EVIDENCE_SUBJECT_CLEANUP: return "cleanup";
+    case AIR_EVIDENCE_SUBJECT_PIN_CLEANUP: return "pin_cleanup";
+    case AIR_EVIDENCE_SUBJECT_TERMINATOR: return "terminator";
+    case AIR_EVIDENCE_SUBJECT_SELECT_RECEIVE: return "select_receive";
+    case AIR_EVIDENCE_SUBJECT_METADATA: return "metadata";
+    case AIR_EVIDENCE_SUBJECT_GENERIC: return "generic";
+    case AIR_EVIDENCE_SUBJECT_ABILITY: return "ability";
+    case AIR_EVIDENCE_SUBJECT_EFFECT_PROPAGATION: return "effect_propagation";
+    case AIR_EVIDENCE_SUBJECT_RELATION_PROPAGATION: return "relation_propagation";
+    case AIR_EVIDENCE_SUBJECT_OBSERVABILITY_SCHEMA: return "observability_schema";
+    case AIR_EVIDENCE_SUBJECT_FRONTIER_POLICY: return "frontier_policy";
+    case AIR_EVIDENCE_SUBJECT_COUNT: break;
+    }
+    return "invalid";
+}

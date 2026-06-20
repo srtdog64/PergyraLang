@@ -146,6 +146,8 @@ test_air_rejects_hir_cfg_evidence_without_source_provenance(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_HIR_ROUTINE,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_HIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_ROUTINE,
             .boundary_index = 0,
             .provider_name = "dispatch",
             .subject_name = "spawn",
@@ -153,6 +155,8 @@ test_air_rejects_hir_cfg_evidence_without_source_provenance(void)
         },
         {
             .kind = AIR_EVIDENCE_HIR_CFG,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_HIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_CFG,
             .boundary_index = 0,
             .provider_name = "dispatch",
             .subject_name = "spawn",

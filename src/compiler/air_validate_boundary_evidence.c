@@ -58,6 +58,32 @@ air_validate_boundary_evidence_base(const AIRProgram *air,
     *boundary_out = air_boundary_node_at(air, boundary_index);
     if (*boundary_out == NULL)
         return false;
+    if (air_evidence_node_has_boundary_shape(evidence)) {
+        if (air_evidence_node_boundary_kind_or(evidence,
+                                               AIR_BOUNDARY_UNKNOWN)
+            != (*boundary_out)->kind) {
+            air_set_invariant_error(error_message,
+                                    "AIR boundary evidence node %zu has boundary kind drift",
+                                    evidence_index);
+            return false;
+        }
+        if (!air_name_matches(
+                air_evidence_node_boundary_owner_name_or(evidence, NULL),
+                (*boundary_out)->owner_name)) {
+            air_set_invariant_error(error_message,
+                                    "AIR boundary evidence node %zu has boundary owner drift",
+                                    evidence_index);
+            return false;
+        }
+        if (!air_name_matches(
+                air_evidence_node_boundary_source_name_or(evidence, NULL),
+                (*boundary_out)->source_name)) {
+            air_set_invariant_error(error_message,
+                                    "AIR boundary evidence node %zu has boundary source drift",
+                                    evidence_index);
+            return false;
+        }
+    }
     if (air_program_requires_summary_flag_for_evidence(air, kind)
         && !air_boundary_has_summary_flag(*boundary_out, kind)) {
         air_set_invariant_error(error_message,

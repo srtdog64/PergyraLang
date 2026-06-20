@@ -99,12 +99,22 @@ air_dump(const AIRProgram *air, FILE *out)
         if (evidence == NULL)
             continue;
         fprintf(out,
-                "  evidence_node[%zu] kind=%s boundary=%zu provider=%s subject=%s facts=%zu fallbacks=%zu\n",
+                "  evidence_node[%zu] kind=%s provider_kind=%s subject_kind=%s boundary=%zu provider=%s subject=%s boundary_shape=%s/%s/%s facts=%zu fallbacks=%zu\n",
                 i,
                 air_evidence_kind_name(air_evidence_node_kind(evidence)),
+                air_evidence_provider_kind_name(
+                    air_evidence_node_provider_kind(evidence)),
+                air_evidence_subject_kind_name(
+                    air_evidence_node_subject_kind(evidence)),
                 air_evidence_node_boundary_index_or(evidence, SIZE_MAX),
                 air_evidence_node_provider_name_or(evidence, "<none>"),
                 air_evidence_node_subject_name_or(evidence, "<none>"),
+                air_boundary_kind_name(
+                    air_evidence_node_boundary_kind_or(
+                        evidence,
+                        AIR_BOUNDARY_UNKNOWN)),
+                air_evidence_node_boundary_owner_name_or(evidence, "<none>"),
+                air_evidence_node_boundary_source_name_or(evidence, "<none>"),
                 air_evidence_node_fact_count(evidence),
                 air_evidence_node_fallback_count(evidence));
     }

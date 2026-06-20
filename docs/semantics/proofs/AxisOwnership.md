@@ -147,12 +147,16 @@ are.
    Authority(a)` <-> a specific diagnostic) is **not finalized**. The
    differential test pins *symbols*, not derivations.
 
-3. **Evidence is string+counter, not typed proof records.** `AIREvidenceNode`
-   carries `provider_name` / `subject_name` strings plus fact/fallback counters.
-   Checks A-E and Check D match symbol/string presence; they do **not** treat
-   evidence as a typed proof object. A formal-calculus-grade evidence layer
-   (typed proof records the type checker constructs and consumes) is not
-   implemented; the current evidence layer is shallower than that.
+3. **Evidence is typed at the AIR record boundary, not yet a full proof
+   calculus.** `AIREvidenceNode` now carries typed
+   `provider_kind` / `subject_kind` fields in addition to
+   `provider_name` / `subject_name` provenance strings and fact/fallback
+   counters. AIR append constructs those typed fields from the evidence-kind
+   owner table, and validation rejects nodes whose typed evidence class drifts
+   from the declared evidence kind. This closes the older string-only runtime
+   evidence shape. It still is **not** a formal-calculus-grade proof object that
+   the type checker constructs and consumes directly; the next step is
+   per-call-site well-attribution checking of the real AIR evidence writers.
 
 4. **Loss contracts are prose, not an enforced manifest.**
    `09_abstraction_loss_contracts.md` defines per-pass semantic-loss rules as

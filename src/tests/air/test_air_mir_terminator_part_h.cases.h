@@ -60,6 +60,8 @@ test_air_rejects_empty_mir_terminator_evidence(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_MIR_TERMINATOR,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_MIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_TERMINATOR,
             .boundary_index = SIZE_MAX,
             .provider_name = "cfg_owner",
             .subject_name = "cfg-terminator",
@@ -186,6 +188,7 @@ test_air_collects_mir_select_receive_evidence(void)
     MIRBasicBlock block;
     MIRInstruction inst;
     ASTNode source_ast;
+    ASTNode recv_ast;
     char *error = NULL;
     bool ok;
 
@@ -194,18 +197,24 @@ test_air_collects_mir_select_receive_evidence(void)
 
     memset(&source_ast, 0, sizeof(source_ast));
     source_ast.type = AST_SELECT_STMT;
+    memset(&recv_ast, 0, sizeof(recv_ast));
+    recv_ast.type = AST_CHANNEL_RECV;
 
     memset(&inst, 0, sizeof(inst));
     inst.kind = MIR_INST_DEF;
     inst.ast = &source_ast;
+    inst.expr0 = &recv_ast;
     inst.has_source_location = true;
     inst.source_node_type = source_ast.type;
+    inst.has_source_statement_index = true;
+    inst.source_statement_index = 0;
     inst.requires_source_statement_emit = true;
     inst.requires_channel_receive_statement_emit = true;
     inst.requires_select_receive_statement_emit = true;
 
     memset(&block, 0, sizeof(block));
     block.is_reachable = true;
+    block.is_select_case_body = true;
     block.instructions = &inst;
     block.instruction_count = 1;
 
@@ -224,6 +233,8 @@ test_air_collects_mir_select_receive_evidence(void)
         && air->mir_select_receive_evidence_count == 1
         && air->evidence_count == 1
         && air->evidence_nodes[0].kind == AIR_EVIDENCE_MIR_SELECT_RECEIVE
+        && air->evidence_nodes[0].provider_kind == AIR_EVIDENCE_PROVIDER_MIR
+        && air->evidence_nodes[0].subject_kind == AIR_EVIDENCE_SUBJECT_SELECT_RECEIVE
         && air->evidence_nodes[0].boundary_index == SIZE_MAX
         && air->evidence_nodes[0].fact_count == 1
         && air->evidence_nodes[0].fallback_count == 0
@@ -240,6 +251,8 @@ test_air_rejects_empty_mir_select_receive_evidence(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_MIR_SELECT_RECEIVE,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_MIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_SELECT_RECEIVE,
             .boundary_index = SIZE_MAX,
             .provider_name = "select_owner",
             .subject_name = "select-receive",
@@ -266,6 +279,8 @@ test_air_rejects_mir_evidence_counter_mismatch(void)
     AIREvidenceNode cleanup_nodes[] = {
         {
             .kind = AIR_EVIDENCE_MIR_CLEANUP,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_MIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_CLEANUP,
             .boundary_index = SIZE_MAX,
             .provider_name = "cleanup_owner",
             .subject_name = "cleanup-block",
@@ -274,6 +289,8 @@ test_air_rejects_mir_evidence_counter_mismatch(void)
         },
         {
             .kind = AIR_EVIDENCE_MIR_CLEANUP,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_MIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_CLEANUP,
             .boundary_index = SIZE_MAX,
             .provider_name = "cleanup_owner_2",
             .subject_name = "cleanup-block",
@@ -284,6 +301,8 @@ test_air_rejects_mir_evidence_counter_mismatch(void)
     AIREvidenceNode terminator_nodes[] = {
         {
             .kind = AIR_EVIDENCE_MIR_TERMINATOR,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_MIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_TERMINATOR,
             .boundary_index = SIZE_MAX,
             .provider_name = "cfg_owner",
             .subject_name = "cfg-terminator",
@@ -292,6 +311,8 @@ test_air_rejects_mir_evidence_counter_mismatch(void)
         },
         {
             .kind = AIR_EVIDENCE_MIR_TERMINATOR,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_MIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_TERMINATOR,
             .boundary_index = SIZE_MAX,
             .provider_name = "cfg_owner_2",
             .subject_name = "cfg-terminator",
@@ -302,6 +323,8 @@ test_air_rejects_mir_evidence_counter_mismatch(void)
     AIREvidenceNode select_nodes[] = {
         {
             .kind = AIR_EVIDENCE_MIR_SELECT_RECEIVE,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_MIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_SELECT_RECEIVE,
             .boundary_index = SIZE_MAX,
             .provider_name = "select_owner",
             .subject_name = "select-receive",
@@ -310,6 +333,8 @@ test_air_rejects_mir_evidence_counter_mismatch(void)
         },
         {
             .kind = AIR_EVIDENCE_MIR_SELECT_RECEIVE,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_MIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_SELECT_RECEIVE,
             .boundary_index = SIZE_MAX,
             .provider_name = "select_owner_2",
             .subject_name = "select-receive",

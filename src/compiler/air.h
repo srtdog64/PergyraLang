@@ -70,6 +70,38 @@ typedef enum
     AIR_EVIDENCE_KIND_COUNT
 } AIREvidenceKind;
 
+typedef enum
+{
+    AIR_EVIDENCE_PROVIDER_UNKNOWN,
+    AIR_EVIDENCE_PROVIDER_HIR,
+    AIR_EVIDENCE_PROVIDER_RIR,
+    AIR_EVIDENCE_PROVIDER_MIR,
+    AIR_EVIDENCE_PROVIDER_DAG,
+    AIR_EVIDENCE_PROVIDER_RUNTIME,
+    AIR_EVIDENCE_PROVIDER_COUNT
+} AIREvidenceProviderKind;
+
+typedef enum
+{
+    AIR_EVIDENCE_SUBJECT_UNKNOWN,
+    AIR_EVIDENCE_SUBJECT_ROUTINE,
+    AIR_EVIDENCE_SUBJECT_CFG,
+    AIR_EVIDENCE_SUBJECT_BOUNDARY,
+    AIR_EVIDENCE_SUBJECT_AUTHORITY,
+    AIR_EVIDENCE_SUBJECT_CLEANUP,
+    AIR_EVIDENCE_SUBJECT_PIN_CLEANUP,
+    AIR_EVIDENCE_SUBJECT_TERMINATOR,
+    AIR_EVIDENCE_SUBJECT_SELECT_RECEIVE,
+    AIR_EVIDENCE_SUBJECT_METADATA,
+    AIR_EVIDENCE_SUBJECT_GENERIC,
+    AIR_EVIDENCE_SUBJECT_ABILITY,
+    AIR_EVIDENCE_SUBJECT_EFFECT_PROPAGATION,
+    AIR_EVIDENCE_SUBJECT_RELATION_PROPAGATION,
+    AIR_EVIDENCE_SUBJECT_OBSERVABILITY_SCHEMA,
+    AIR_EVIDENCE_SUBJECT_FRONTIER_POLICY,
+    AIR_EVIDENCE_SUBJECT_COUNT
+} AIREvidenceSubjectKind;
+
 typedef struct
 {
     const char      *intent_owner;
@@ -124,12 +156,18 @@ typedef struct
 
 typedef struct
 {
-    AIREvidenceKind kind;
-    size_t          boundary_index;
-    const char     *provider_name;
-    const char     *subject_name;
-    size_t          fact_count;
-    size_t          fallback_count;
+    AIREvidenceKind         kind;
+    AIREvidenceProviderKind provider_kind;
+    AIREvidenceSubjectKind  subject_kind;
+    size_t                  boundary_index;
+    const char             *provider_name;
+    const char             *subject_name;
+    bool                    has_boundary_shape;
+    AIRBoundaryKind         boundary_kind;
+    const char             *boundary_owner_name;
+    const char             *boundary_source_name;
+    size_t                  fact_count;
+    size_t                  fallback_count;
 } AIREvidenceNode;
 
 typedef struct AIRProgram
@@ -211,6 +249,8 @@ const char *air_failure_class_name(AIRFailureClass failure_class);
 const char *air_boundary_kind_name(AIRBoundaryKind kind);
 const char *air_drift_kind_name(AIRDriftKind kind);
 const char *air_evidence_kind_name(AIREvidenceKind kind);
+const char *air_evidence_provider_kind_name(AIREvidenceProviderKind kind);
+const char *air_evidence_subject_kind_name(AIREvidenceSubjectKind kind);
 size_t      air_intent_node_count(const AIRProgram *air);
 const AIRIntentNode *air_intent_node_at(const AIRProgram *air, size_t index);
 size_t      air_boundary_node_count(const AIRProgram *air);

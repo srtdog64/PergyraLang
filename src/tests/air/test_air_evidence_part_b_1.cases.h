@@ -129,6 +129,8 @@ test_air_verify_rejects_empty_boundary_evidence(void)
     AIREvidenceNode empty_hir_routine[] = {
         {
             .kind = AIR_EVIDENCE_HIR_ROUTINE,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_HIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_ROUTINE,
             .boundary_index = 0,
             .provider_name = "reserve",
             .subject_name = "WarehouseZone",

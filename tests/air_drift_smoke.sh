@@ -160,26 +160,35 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_evidence_node.c" "air_next_capacity(&new_capacity"
     require_literal "src/compiler/air_evidence_node.c" "node->fact_count += fact_count"
     require_literal "src/compiler/air_evidence_node.c" "air_evidence_node_kind"
+    require_literal "src/compiler/air_evidence_node.c" "air_evidence_node_provider_kind"
+    require_literal "src/compiler/air_evidence_node.c" "air_evidence_node_subject_kind"
+    require_literal "src/compiler/air_evidence_node.c" "air_evidence_node_has_declared_kind_facts"
     require_literal "src/compiler/air_evidence_node.c" "air_evidence_node_boundary_index_or"
     require_literal "src/compiler/air_evidence_node.c" "air_evidence_node_provider_name_or"
     require_literal "src/compiler/air_evidence_node.c" "air_evidence_node_subject_name_or"
+    require_literal "src/compiler/air_evidence_node.c" "air_evidence_node_has_boundary_shape"
+    require_literal "src/compiler/air_evidence_node.c" "air_evidence_node_boundary_kind_or"
+    require_literal "src/compiler/air_evidence_node.c" "air_evidence_node_boundary_owner_name_or"
+    require_literal "src/compiler/air_evidence_node.c" "air_evidence_node_boundary_source_name_or"
     require_literal "src/compiler/air_evidence_node.c" "air_evidence_node_fact_count"
     require_literal "src/compiler/air_evidence_node.c" "air_evidence_node_fallback_count"
+    require_literal "src/compiler/air_validate_evidence.c" "typed evidence mismatch"
+    require_literal "src/compiler/air_validate_boundary_evidence.c" "boundary kind drift"
     for rel in src/compiler/air_dump.c src/compiler/air_dump_json.c; do
-        for field in kind boundary_index provider_name subject_name fact_count fallback_count; do
+        for field in kind provider_kind subject_kind boundary_index provider_name subject_name has_boundary_shape boundary_kind boundary_owner_name boundary_source_name fact_count fallback_count; do
             if grep -Fq -- "evidence->$field" "$ROOT_DIR/$rel"; then
                 echo "AIR dumps must consume evidence node fields through the evidence-node owner: $rel evidence->$field" >&2
                 exit 1
             fi
         done
     done
-    for field in kind provider_name subject_name fact_count fallback_count; do
+    for field in kind provider_kind subject_kind provider_name subject_name has_boundary_shape boundary_kind boundary_owner_name boundary_source_name fact_count fallback_count; do
         if grep -Fq -- "evidence->$field" "$ROOT_DIR/src/compiler/air_validate_global_evidence.c"; then
             echo "AIR global evidence validator must consume evidence node fields through the evidence-node owner: evidence->$field" >&2
             exit 1
         fi
     done
-    for field in kind boundary_index provider_name subject_name fact_count fallback_count; do
+    for field in kind provider_kind subject_kind boundary_index provider_name subject_name has_boundary_shape boundary_kind boundary_owner_name boundary_source_name fact_count fallback_count; do
         if grep -Fq -- "evidence->$field" "$ROOT_DIR/src/compiler/air_validate_boundary_evidence.c"; then
             echo "AIR boundary evidence validator must consume evidence node fields through the evidence-node owner: evidence->$field" >&2
             exit 1
@@ -187,7 +196,7 @@ run_literal_air_drift_smoke() {
     done
     raw_evidence_hits="$(
         grep -RInE --include='air*.c' --include='air*.h' -- \
-            'evidence->(kind|boundary_index|provider_name|subject_name|fact_count|fallback_count)' "$ROOT_DIR/src/compiler" \
+            'evidence->(kind|provider_kind|subject_kind|boundary_index|provider_name|subject_name|has_boundary_shape|boundary_kind|boundary_owner_name|boundary_source_name|fact_count|fallback_count)' "$ROOT_DIR/src/compiler" \
             | grep -v 'src/compiler/air_evidence_node.c:' \
             || true
     )"
@@ -816,6 +825,10 @@ required_evidence_shape_terms = [
     (air_impl, "bool present", "AIR evidence kind explicit presence bit"),
     (air_impl, "if (!kEvidenceKindMeta[kind].present)", "AIR evidence kind missing-meta rejection"),
     (air_impl, "AIR evidence append requires a known evidence kind", "AIR unknown evidence append rejection"),
+    (air_impl, "air_evidence_node_has_declared_kind_facts", "AIR typed evidence fact validator"),
+    (air_impl, "typed evidence mismatch", "AIR typed evidence mismatch rejection"),
+    (air_impl, "air_evidence_node_has_boundary_shape", "AIR typed boundary shape snapshot"),
+    (air_impl, "boundary kind drift", "AIR typed boundary shape drift rejection"),
 ]
 missing_evidence_shape_terms = [label for text, needle, label in required_evidence_shape_terms if needle not in text]
 if missing_evidence_shape_terms:
@@ -1001,9 +1014,15 @@ for path in [air_dump_path, air_dump_json_path]:
             )
     for raw_field in [
         "evidence->kind",
+        "evidence->provider_kind",
+        "evidence->subject_kind",
         "evidence->boundary_index",
         "evidence->provider_name",
         "evidence->subject_name",
+        "evidence->has_boundary_shape",
+        "evidence->boundary_kind",
+        "evidence->boundary_owner_name",
+        "evidence->boundary_source_name",
         "evidence->fact_count",
         "evidence->fallback_count",
     ]:
@@ -1014,9 +1033,16 @@ for path in [air_dump_path, air_dump_json_path]:
             )
 for accessor in [
     "air_evidence_node_kind",
+    "air_evidence_node_provider_kind",
+    "air_evidence_node_subject_kind",
+    "air_evidence_node_has_declared_kind_facts",
     "air_evidence_node_boundary_index_or",
     "air_evidence_node_provider_name_or",
     "air_evidence_node_subject_name_or",
+    "air_evidence_node_has_boundary_shape",
+    "air_evidence_node_boundary_kind_or",
+    "air_evidence_node_boundary_owner_name_or",
+    "air_evidence_node_boundary_source_name_or",
     "air_evidence_node_fact_count",
     "air_evidence_node_fallback_count",
 ]:
@@ -1025,8 +1051,14 @@ for accessor in [
 air_validate_global_evidence_text = air_validate_global_evidence_path.read_text(encoding="utf-8")
 for raw_field in [
     "evidence->kind",
+    "evidence->provider_kind",
+    "evidence->subject_kind",
     "evidence->provider_name",
     "evidence->subject_name",
+    "evidence->has_boundary_shape",
+    "evidence->boundary_kind",
+    "evidence->boundary_owner_name",
+    "evidence->boundary_source_name",
     "evidence->fact_count",
     "evidence->fallback_count",
 ]:
@@ -1038,9 +1070,15 @@ for raw_field in [
 air_validate_boundary_evidence_text = air_validate_boundary_evidence_path.read_text(encoding="utf-8")
 for raw_field in [
     "evidence->kind",
+    "evidence->provider_kind",
+    "evidence->subject_kind",
     "evidence->boundary_index",
     "evidence->provider_name",
     "evidence->subject_name",
+    "evidence->has_boundary_shape",
+    "evidence->boundary_kind",
+    "evidence->boundary_owner_name",
+    "evidence->boundary_source_name",
     "evidence->fact_count",
     "evidence->fallback_count",
 ]:
@@ -1058,9 +1096,15 @@ for path in (root / "src" / "compiler").glob("air*.[ch]"):
     text = path.read_text(encoding="utf-8", errors="ignore")
     for raw_field in [
         "evidence->kind",
+        "evidence->provider_kind",
+        "evidence->subject_kind",
         "evidence->boundary_index",
         "evidence->provider_name",
         "evidence->subject_name",
+        "evidence->has_boundary_shape",
+        "evidence->boundary_kind",
+        "evidence->boundary_owner_name",
+        "evidence->boundary_source_name",
         "evidence->fact_count",
         "evidence->fallback_count",
     ]:

@@ -24,6 +24,8 @@ test_air_dump_json_prints_stable_graph_schema(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_MIR_CLEANUP,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_MIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_CLEANUP,
             .boundary_index = SIZE_MAX,
             .provider_name = "reserve",
             .subject_name = "cleanup-block",
@@ -31,6 +33,8 @@ test_air_dump_json_prints_stable_graph_schema(void)
         },
         {
             .kind = AIR_EVIDENCE_MIR_PIN_CLEANUP,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_MIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_PIN_CLEANUP,
             .boundary_index = 0,
             .provider_name = "reserve",
             .subject_name = "scores",
@@ -164,6 +168,8 @@ test_air_rejects_conflicting_singleton_global_evidence(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RUNTIME,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_FRONTIER_POLICY,
             .boundary_index = SIZE_MAX,
             .provider_name = PGY_FRONTIER_POLICY_SCHEMA,
             .subject_name = PGY_FRONTIER_POLICY_SUBJECT,
@@ -192,6 +198,8 @@ test_air_rejects_invalid_observability_schema_provider(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_OBSERVABILITY_SCHEMA,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RUNTIME,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_OBSERVABILITY_SCHEMA,
             .boundary_index = SIZE_MAX,
             .provider_name = "wrong-schema-provider",
             .subject_name = PGY_OBSERVABILITY_ABI_SCHEMA,
@@ -219,6 +227,8 @@ test_air_rejects_empty_observability_schema_evidence(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_OBSERVABILITY_SCHEMA,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RUNTIME,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_OBSERVABILITY_SCHEMA,
             .boundary_index = SIZE_MAX,
             .provider_name = "runtime-observability-schema",
             .subject_name = PGY_OBSERVABILITY_ABI_SCHEMA,
@@ -267,6 +277,8 @@ test_air_rejects_pin_cleanup_counter_mismatch(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_MIR_CLEANUP,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_MIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_CLEANUP,
             .boundary_index = SIZE_MAX,
             .provider_name = "pin_scores",
             .subject_name = "cleanup-block",
@@ -275,6 +287,8 @@ test_air_rejects_pin_cleanup_counter_mismatch(void)
         },
         {
             .kind = AIR_EVIDENCE_MIR_PIN_CLEANUP,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_MIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_PIN_CLEANUP,
             .boundary_index = 0,
             .provider_name = "pin_scores",
             .subject_name = "scores",
@@ -335,6 +349,8 @@ test_air_strict_evidence_requires_observability_schema(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RUNTIME,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_FRONTIER_POLICY,
             .boundary_index = SIZE_MAX,
             .provider_name = PGY_FRONTIER_POLICY_SCHEMA,
             .subject_name = PGY_FRONTIER_POLICY_SUBJECT,
@@ -401,6 +417,8 @@ test_air_rejects_invalid_runtime_frontier_policy_provider(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RUNTIME,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_FRONTIER_POLICY,
             .boundary_index = SIZE_MAX,
             .provider_name = "wrong-frontier-policy",
             .subject_name = PGY_FRONTIER_POLICY_SUBJECT,
@@ -428,6 +446,8 @@ test_air_rejects_empty_runtime_frontier_policy_evidence(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RUNTIME,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_FRONTIER_POLICY,
             .boundary_index = SIZE_MAX,
             .provider_name = PGY_FRONTIER_POLICY_SCHEMA,
             .subject_name = PGY_FRONTIER_POLICY_SUBJECT,
@@ -456,6 +476,8 @@ test_air_strict_evidence_requires_runtime_frontier_policy(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_OBSERVABILITY_SCHEMA,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RUNTIME,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_OBSERVABILITY_SCHEMA,
             .boundary_index = SIZE_MAX,
             .provider_name = "runtime-observability-schema",
             .subject_name = PGY_OBSERVABILITY_ABI_SCHEMA,

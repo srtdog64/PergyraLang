@@ -110,6 +110,8 @@ test_air_rejects_empty_mir_cleanup_evidence(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_MIR_CLEANUP,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_MIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_CLEANUP,
             .boundary_index = SIZE_MAX,
             .provider_name = "cleanup_owner",
             .subject_name = "cleanup-block",
@@ -222,6 +224,8 @@ test_air_rejects_invalid_dag_evidence_provider(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_DAG_GENERIC,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_DAG,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_GENERIC,
             .boundary_index = SIZE_MAX,
             .provider_name = "legacy-resolver",
             .subject_name = "generic-contracts",
@@ -248,6 +252,8 @@ test_air_rejects_empty_dag_evidence(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_DAG_GENERIC,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_DAG,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_GENERIC,
             .boundary_index = SIZE_MAX,
             .provider_name = "type-resolution-dag",
             .subject_name = "generic-contracts",
@@ -274,6 +280,8 @@ test_air_rejects_dag_dead_end_evidence(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_DAG_METADATA,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_DAG,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_METADATA,
             .boundary_index = SIZE_MAX,
             .provider_name = "type-resolution-dag",
             .subject_name = "metadata-inventory",
@@ -300,6 +308,8 @@ test_air_rejects_invalid_dag_evidence_subject(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_DAG_ABILITY,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_DAG,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_ABILITY,
             .boundary_index = SIZE_MAX,
             .provider_name = "type-resolution-dag",
             .subject_name = "generic-contracts",

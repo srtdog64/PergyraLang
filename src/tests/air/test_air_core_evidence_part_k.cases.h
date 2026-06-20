@@ -23,6 +23,8 @@ test_air_verify_rejects_invalid_evidence_inventory(void)
     AIREvidenceNode missing_boundary[] = {
         {
             .kind = AIR_EVIDENCE_RIR_BOUNDARY,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_BOUNDARY,
             .boundary_index = 7,
             .provider_name = "WarehouseZone",
             .subject_name = "WarehouseZone",
@@ -32,6 +34,8 @@ test_air_verify_rejects_invalid_evidence_inventory(void)
     AIREvidenceNode empty_provider[] = {
         {
             .kind = AIR_EVIDENCE_HIR_CFG,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_HIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_CFG,
             .boundary_index = 0,
             .provider_name = "",
             .subject_name = "WarehouseZone",
@@ -99,6 +103,8 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
     AIREvidenceNode wrong_authority_subject[] = {
         {
             .kind = AIR_EVIDENCE_RIR_BOUNDARY,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_BOUNDARY,
             .boundary_index = 0,
             .provider_name = "WarehouseZone",
             .subject_name = "WarehouseZone",
@@ -106,15 +112,45 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
         },
         {
             .kind = AIR_EVIDENCE_RIR_AUTHORITY,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_AUTHORITY,
             .boundary_index = 0,
             .provider_name = "WarehouseZone",
             .subject_name = "observer",
             .fact_count = 1,
         },
     };
+    AIREvidenceNode typed_boundary_kind_drift[] = {
+        {
+            .kind = AIR_EVIDENCE_RIR_BOUNDARY,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_BOUNDARY,
+            .boundary_index = 0,
+            .provider_name = "WarehouseZone",
+            .subject_name = "WarehouseZone",
+            .has_boundary_shape = true,
+            .boundary_kind = AIR_BOUNDARY_WORLD,
+            .boundary_owner_name = "ShipOrder",
+            .boundary_source_name = "WarehouseZone",
+            .fact_count = 1,
+        },
+    };
+    AIREvidenceNode typed_kind_mismatch[] = {
+        {
+            .kind = AIR_EVIDENCE_RIR_BOUNDARY,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_HIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_BOUNDARY,
+            .boundary_index = 0,
+            .provider_name = "WarehouseZone",
+            .subject_name = "WarehouseZone",
+            .fact_count = 1,
+        },
+    };
     AIREvidenceNode global_attached_to_boundary[] = {
         {
             .kind = AIR_EVIDENCE_DAG_GENERIC,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_DAG,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_GENERIC,
             .boundary_index = 0,
             .provider_name = "type-resolution-dag",
             .subject_name = "generic-contracts",
@@ -124,6 +160,8 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
     AIREvidenceNode cfg_without_routine[] = {
         {
             .kind = AIR_EVIDENCE_HIR_CFG,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_HIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_CFG,
             .boundary_index = 0,
             .provider_name = "reserve",
             .subject_name = "WarehouseZone",
@@ -133,6 +171,8 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
     AIREvidenceNode hir_subject_mismatch[] = {
         {
             .kind = AIR_EVIDENCE_HIR_ROUTINE,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_HIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_ROUTINE,
             .boundary_index = 0,
             .provider_name = "reserve",
             .subject_name = "OtherZone",
@@ -142,6 +182,8 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
     AIREvidenceNode rir_subject_mismatch[] = {
         {
             .kind = AIR_EVIDENCE_RIR_BOUNDARY,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_BOUNDARY,
             .boundary_index = 0,
             .provider_name = "WarehouseZone",
             .subject_name = "OtherZone",
@@ -151,6 +193,8 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
     AIREvidenceNode cfg_provider_mismatch[] = {
         {
             .kind = AIR_EVIDENCE_HIR_ROUTINE,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_HIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_ROUTINE,
             .boundary_index = 0,
             .provider_name = "reserve",
             .subject_name = "WarehouseZone",
@@ -158,6 +202,8 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
         },
         {
             .kind = AIR_EVIDENCE_HIR_CFG,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_HIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_CFG,
             .boundary_index = 0,
             .provider_name = "otherRoutine",
             .subject_name = "WarehouseZone",
@@ -167,6 +213,8 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
     AIREvidenceNode authority_provider_mismatch[] = {
         {
             .kind = AIR_EVIDENCE_RIR_BOUNDARY,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_BOUNDARY,
             .boundary_index = 0,
             .provider_name = "WarehouseZone",
             .subject_name = "WarehouseZone",
@@ -174,6 +222,8 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
         },
         {
             .kind = AIR_EVIDENCE_RIR_AUTHORITY,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_AUTHORITY,
             .boundary_index = 0,
             .provider_name = "OtherScope",
             .subject_name = "shipper",
@@ -183,6 +233,8 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
     AIREvidenceNode real_input_missing_summary[] = {
         {
             .kind = AIR_EVIDENCE_HIR_ROUTINE,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_HIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_ROUTINE,
             .boundary_index = 0,
             .provider_name = "reserve",
             .subject_name = "WarehouseZone",
@@ -196,6 +248,14 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
         .boundary_count = 1,
         .evidence_nodes = wrong_authority_subject,
         .evidence_count = 2,
+    };
+    AIRProgram bad_typed_boundary_shape = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .evidence_nodes = typed_boundary_kind_drift,
+        .evidence_count = 1,
     };
     AIRProgram bad_global = {
         .intents = intents,
@@ -254,10 +314,24 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
         .evidence_count = 1,
         .has_hir_input = true,
     };
+    AIRProgram bad_typed_kind = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .evidence_nodes = typed_kind_mismatch,
+        .evidence_count = 1,
+    };
     char *error = NULL;
     bool ok = !air_verify(&bad_authority_subject, &error)
         && error != NULL
         && strstr(error, "undeclared authority subject") != NULL;
+    free(error);
+    error = NULL;
+    ok = ok
+        && !air_verify(&bad_typed_boundary_shape, &error)
+        && error != NULL
+        && strstr(error, "boundary kind drift") != NULL;
     free(error);
     error = NULL;
     ok = ok
@@ -307,6 +381,13 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
         && error != NULL
         && strstr(error, "boundary evidence node 0") != NULL
         && strstr(error, "no matching boundary summary flag") != NULL;
+    free(error);
+    error = NULL;
+    ok = ok
+        && !air_verify(&bad_typed_kind, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "typed evidence mismatch") != NULL;
     free(error);
     return ok;
 }

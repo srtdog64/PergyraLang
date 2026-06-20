@@ -339,6 +339,8 @@ test_air_strict_evidence_prefers_inventory_over_summary_flags(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_HIR_ROUTINE,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_HIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_ROUTINE,
             .boundary_index = 0,
             .provider_name = "dispatch",
             .subject_name = "spawn",
@@ -346,6 +348,8 @@ test_air_strict_evidence_prefers_inventory_over_summary_flags(void)
         },
         {
             .kind = AIR_EVIDENCE_RIR_BOUNDARY,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_BOUNDARY,
             .boundary_index = 0,
             .provider_name = "spawn",
             .subject_name = "spawn",

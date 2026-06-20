@@ -132,6 +132,8 @@ test_air_rejects_empty_rir_propagation_evidence(void)
     AIREvidenceNode evidence_nodes[] = {
         {
             .kind = AIR_EVIDENCE_RIR_EFFECT_PROPAGATION,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_EFFECT_PROPAGATION,
             .boundary_index = SIZE_MAX,
             .provider_name = "PaymentZone",
             .subject_name = "fx",
@@ -158,6 +160,8 @@ test_air_rejects_rir_propagation_counter_mismatch(void)
     AIREvidenceNode effect_nodes[] = {
         {
             .kind = AIR_EVIDENCE_RIR_EFFECT_PROPAGATION,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_EFFECT_PROPAGATION,
             .boundary_index = SIZE_MAX,
             .provider_name = "PaymentZone",
             .subject_name = "fx",
@@ -168,6 +172,8 @@ test_air_rejects_rir_propagation_counter_mismatch(void)
     AIREvidenceNode relation_nodes[] = {
         {
             .kind = AIR_EVIDENCE_RIR_RELATION_PROPAGATION,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_RELATION_PROPAGATION,
             .boundary_index = SIZE_MAX,
             .provider_name = "PaymentZone",
             .subject_name = "cart",
