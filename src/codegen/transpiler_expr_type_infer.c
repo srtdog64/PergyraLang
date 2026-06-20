@@ -155,6 +155,22 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             return formatted != NULL ? formatted : "Unknown";
         }
     }
+    case AST_SET_LITERAL: {
+        const char *e = "Unknown";
+        if (ast_set_literal_count(expr) > 0) {
+            e = infer_expression_type_name(ctx, ast_set_literal_element(expr, 0));
+        } else if (ctx != NULL && ctx->expected_type != NULL
+                   && strncmp(ctx->expected_type, "Set<", 4) == 0) {
+            char *kept = pgy_arena_fmt(&ctx->arena, "%s", ctx->expected_type);
+            return kept != NULL ? kept : "Unknown";
+        }
+        if (e == NULL || e[0] == '\0')
+            e = "Unknown";
+        {
+            char *formatted = pgy_arena_fmt(&ctx->arena, "Set<%s>", e);
+            return formatted != NULL ? formatted : "Unknown";
+        }
+    }
     case AST_ARRAY_ACCESS: {
         const char *array_type = infer_expression_type_name(ctx, ast_array_access_array(expr));
         if (transpiler_type_name_is_array_or_slice(array_type))

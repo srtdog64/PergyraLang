@@ -416,8 +416,11 @@ type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
 Type *
 type_check_set_literal(ASTNode *expr, SemanticContext *ctx)
 {
+    /* An empty `{}` carries no element type; defer to the binding annotation
+     * by reporting Unknown, which is assignable to any Set<T> (mirrors the
+     * empty-map rule). */
     if (ast_set_literal_count(expr) == 0)
-        return wrap_constructed(TYPE_SET, TYPE_UNKNOWN);
+        return TYPE_UNKNOWN;
 
     Type *elem_type = type_check_expression(ast_set_literal_element(expr, 0), ctx);
     if (elem_type == NULL)

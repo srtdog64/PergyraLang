@@ -8,11 +8,11 @@
 #include "parser/ast_api.h"
 #include "transpiler_context.h"
 #include "transpiler_expr_type_infer.h"
+#include "transpiler_expr_stdlib_collection_support.h"
 #include "transpiler_format.h"
 #include "transpiler_type_mapping.h"
-#include "transpiler_type_require.h"
-#include "transpiler_expr_stdlib_collection_support.h"
 #include "transpiler_collection_runtime_suffix.h"
+#include "transpiler_type_require.h"
 #include "codegen_hashmap_key_policy.h"
 
 static char *
@@ -207,6 +207,51 @@ emit_map_literal_expression(ASTNode *node, TranspilerCtx *ctx)
     return result;
 }
 
+static char *
+emit_set_literal_expression(ASTNode *node, TranspilerCtx *ctx)
+{
+    const char *set_type = infer_expression_type_name(ctx, node);
+    char inner_buf[64];
+    const char *set_inner = NULL;
+    char suffix_buf[128];
+    char ctype_buf[256];
+    int tmp_id;
+    CodeBuf *buf;
+    char *result;
+
+    if (!transpiler_require_unary_collection_type(ctx, set_type,
+            "Set", "set literal", inner_buf, sizeof(inner_buf), &set_inner))
+        return NULL;
+    transpiler_collection_ensure_specialization(ctx, "Set", set_inner);
+    collection_runtime_suffix_copy(set_inner, suffix_buf, sizeof(suffix_buf));
+    if (!transpiler_require_type_name_c_type_copy(ctx, set_type,
+            "set literal layout", ctype_buf, sizeof(ctype_buf)))
+        return NULL;
+
+    tmp_id = ++ctx->tmp_counter;
+    buf = codebuf_create();
+    codebuf_write(buf, "({ %s _pgy_set_%d = pgy_set_new_%s(); ",
+        ctype_buf, tmp_id, suffix_buf);
+    for (size_t i = 0; i < ast_set_literal_count(node); i++) {
+        char *e = emit_expression(ast_set_literal_element(node, i), ctx);
+        if (e == NULL) {
+            codebuf_destroy(buf);
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C set literal could not lower element %zu", i);
+            return NULL;
+        }
+        codebuf_write(buf, "pgy_set_add_%s(&_pgy_set_%d, %s); ",
+            suffix_buf, tmp_id, e);
+        free(e);
+    }
+    codebuf_write(buf, "_pgy_set_%d; })", tmp_id);
+    result = pergyra_strdup(buf->data);
+    codebuf_destroy(buf);
+    return result;
+}
+
 char *
 emit_composite_literal_expression(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -218,5 +263,7 @@ emit_composite_literal_expression(ASTNode *node, TranspilerCtx *ctx)
         return emit_array_literal_expression(node, ctx);
     if (node->type == AST_MAP_LITERAL)
         return emit_map_literal_expression(node, ctx);
+    if (node->type == AST_SET_LITERAL)
+        return emit_set_literal_expression(node, ctx);
     return NULL;
 }

@@ -227,6 +227,100 @@ llvm_emit_map_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
 }
 
 LLVMValueRef
+llvm_emit_set_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
+{
+    size_t count = ast_set_literal_count(node);
+    const char *set_type = ctx->expected_type_name;
+    char elem_buf[128];
+    LLVMTypeRef set_ty;
+    LLVMTypeRef elem_ty;
+    LLVMValueRef tmp;
+    LLVMFuncEntry *new_fn;
+    bool is_string;
+
+    if (set_type == NULL || strncmp(set_type, "Set<", 4) != 0
+        || !llvm_constructed_arg_name_copy(set_type, 0, elem_buf,
+                sizeof(elem_buf))) {
+        llvm_expr_set_missing_type_error(ctx, node, "set literal expression");
+        return NULL;
+    }
+    set_ty = llvm_set_struct_type(ctx, elem_buf);
+    elem_ty = pergyra_type_to_llvm(ctx, elem_buf);
+    if (ctx->has_error || set_ty == NULL || elem_ty == NULL)
+        return llvm_expression_error(ctx, node,
+            "LLVM set literal could not lower Set<T> type");
+    tmp = llvm_create_entry_alloca(ctx, set_ty, llvm_tmp_name(ctx));
+    if (tmp == NULL)
+        return llvm_expression_error(ctx, node,
+            "LLVM set literal could not allocate set temporary");
+    LLVMBuildStore(ctx->builder, LLVMConstNull(set_ty), tmp);
+    new_fn = llvm_lookup_function(ctx, "pgy_set_new_raw_export");
+    if (new_fn == NULL)
+        return llvm_expression_error(ctx, node,
+            "LLVM set literal requires registered runtime function 'pgy_set_new_raw_export'");
+    {
+        LLVMValueRef args[] = {
+            LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr,
+                llvm_tmp_name(ctx)),
+            llvm_sizeof_type_i64(ctx, elem_ty)
+        };
+        LLVMBuildCall2(ctx->builder, new_fn->fn_type, new_fn->fn, args, 2, "");
+    }
+    is_string = strcmp(elem_buf, "String") == 0;
+    for (size_t i = 0; i < count; i++) {
+        LLVMValueRef value = llvm_emit_expression(
+            ast_set_literal_element(node, i), ctx);
+        if (value == NULL)
+            return llvm_expression_error(ctx, node,
+                "LLVM set literal could not lower an element");
+        if (LLVMTypeOf(value) != elem_ty) {
+            if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
+                && (LLVMTypeOf(value) == ctx->type_f32
+                    || LLVMTypeOf(value) == ctx->type_f64))
+                value = LLVMBuildFPToSI(ctx->builder, value, elem_ty,
+                    llvm_tmp_name(ctx));
+            else if ((elem_ty == ctx->type_f32 || elem_ty == ctx->type_f64)
+                && (LLVMTypeOf(value) == ctx->type_i32
+                    || LLVMTypeOf(value) == ctx->type_i64))
+                value = LLVMBuildSIToFP(ctx->builder, value, elem_ty,
+                    llvm_tmp_name(ctx));
+        }
+        if (is_string) {
+            LLVMFuncEntry *add_fn = llvm_lookup_function(ctx,
+                "pgy_set_add_string_raw_export");
+            LLVMValueRef args[2];
+            if (add_fn == NULL)
+                return llvm_expression_error(ctx, node,
+                    "LLVM set literal requires 'pgy_set_add_string_raw_export'");
+            args[0] = LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr,
+                llvm_tmp_name(ctx));
+            args[1] = value;
+            LLVMBuildCall2(ctx->builder, add_fn->fn_type, add_fn->fn, args, 2, "");
+        } else {
+            LLVMValueRef etmp = llvm_create_entry_alloca(ctx, elem_ty,
+                llvm_tmp_name(ctx));
+            LLVMFuncEntry *add_fn;
+            LLVMValueRef args[3];
+            if (etmp == NULL)
+                return llvm_expression_error(ctx, node,
+                    "LLVM set literal could not allocate element temporary");
+            LLVMBuildStore(ctx->builder, value, etmp);
+            add_fn = llvm_lookup_function(ctx, "pgy_set_add_raw_export");
+            if (add_fn == NULL)
+                return llvm_expression_error(ctx, node,
+                    "LLVM set literal requires 'pgy_set_add_raw_export'");
+            args[0] = LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr,
+                llvm_tmp_name(ctx));
+            args[1] = LLVMBuildBitCast(ctx->builder, etmp, ctx->type_i8ptr,
+                llvm_tmp_name(ctx));
+            args[2] = llvm_sizeof_type_i64(ctx, elem_ty);
+            LLVMBuildCall2(ctx->builder, add_fn->fn_type, add_fn->fn, args, 3, "");
+        }
+    }
+    return LLVMBuildLoad2(ctx->builder, set_ty, tmp, llvm_tmp_name(ctx));
+}
+
+LLVMValueRef
 llvm_emit_cast_expr(ASTNode *node, LLVMGenCtx *ctx)
 {
     const char *target = ast_cast_target_type(node);

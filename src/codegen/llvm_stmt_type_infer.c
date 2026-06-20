@@ -176,6 +176,16 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         }
         return llvm_stmt_unknown_expr_type(ctx, expr,
             "map literal requires an explicit HashMap<K,V> context");
+    case AST_SET_LITERAL:
+        if (ctx->expected_type_name != NULL
+            && strncmp(ctx->expected_type_name, "Set<", 4) == 0) {
+            LLVMTypeRef expected = pergyra_type_to_llvm(
+                ctx, ctx->expected_type_name);
+            if (expected != NULL)
+                return expected;
+        }
+        return llvm_stmt_unknown_expr_type(ctx, expr,
+            "set literal requires an explicit Set<T> context");
     case AST_TUPLE_LITERAL: {
         size_t count = ast_tuple_literal_count(expr);
         LLVMTypeRef *fields;

@@ -460,6 +460,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
     case AST_TUPLE_LITERAL:
     case AST_ARRAY_LITERAL:
     case AST_MAP_LITERAL:
+    case AST_SET_LITERAL:
         return emit_composite_literal_expression(node, ctx);
 
     case AST_CAST: {
