@@ -295,16 +295,11 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                     }
                     {
                         bool resource_let_handled = false;
-                        ASTNode *source_payload = NULL;
                         const char *expected_type_name =
                             llvm_mir_instruction_expected_type_name(
                                 routine, inst);
-                        if (mir_instruction_source_is_local_decl(inst))
-                            source_payload =
-                                mir_instruction_source_payload(inst);
                         if (!llvm_mir_try_emit_source_resource_let(inst,
-                                source_payload, alloca, ctx,
-                                expected_type_name,
+                                alloca, ctx, expected_type_name,
                                 &resource_let_handled)) {
                             return;
                         }

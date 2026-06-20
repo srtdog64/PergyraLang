@@ -49,10 +49,10 @@ compatibility path.
   pin facts and SSA map ownership instead of materializing a second slot.
 - LLVM source-local resource constructors for `Channel<T>`, `Slot<T>`,
   `SecureSlot<T>`, and `DeviceSlot<T>` now consume MIR expected type-name facts
-  at the DEF owner. Standalone resource constructor expressions still fail
-  closed. Assignment DEF emission preserves the source assignment side effect
-  before storing the resulting value into the SSA local, so host-field writes do
-  not regress to local-only updates.
+  plus initializer facts at the DEF owner. Standalone resource constructor
+  expressions still fail closed. Assignment DEF emission preserves the source
+  assignment side effect before storing the resulting value into the SSA local,
+  so host-field writes do not regress to local-only updates.
 - LLVM await DEF emission, C pending SSA-use materialization, and LLVM source
   DEF copy consume MIR `expr0` / `expr1` plus local-decl/source-statement flags;
   those paths no longer open `mir_instruction_source_payload`.
@@ -89,10 +89,10 @@ compatibility path.
   condition, body-binding, and remap emission consume those facts instead of
   parsing the match-case source payload.
 - The remaining capability-5 body tail is the narrower source-payload
-  expression/shape surface: selected validation/public-surface reads, LLVM
-  source-local resource constructor LET emission, and the C residual
-  source-statement helper. Capability 5 should stay ACTIVE until those reads
-  are replaced by dedicated MIR facts or reduced to provenance-only diagnostics.
+  expression/shape surface: selected validation/public-surface reads and the C
+  residual source-statement helper. Capability 5 should stay ACTIVE until those
+  reads are replaced by dedicated MIR facts or reduced to provenance-only
+  diagnostics.
 - C class/zone collection-specialization scans are MIR-routine based and no
   longer recover method body AST; routine_source_decl_codegen is ratcheted at 0.
 - C hosted method body emission binds the linked MIRRoutine body as current

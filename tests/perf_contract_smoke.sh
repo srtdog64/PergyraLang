@@ -2415,6 +2415,9 @@ grep -Fq "llvm_mir_def_uses_source_statement_emit" "$ROOT_DIR/src/codegen/llvm_m
 grep -Fq "llvm_mir_def_uses_source_local_decl_emit" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_mir_def_uses_channel_receive_statement_emit" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_mir_def_uses_select_receive_statement_emit" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "mir_instruction_uses_source_local_decl_emit(inst)" "$ROOT_DIR/src/codegen/llvm_mir_source_resource_defs.c"
+! grep -Fq "source_payload" "$ROOT_DIR/src/codegen/llvm_mir_source_resource_defs.c"
+! grep -Fq "mir_instruction_source_payload" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 ! grep -Fq "llvm_mir_def_uses_source_statement_compatibility" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 if grep -A28 -F "llvm_mir_def_uses_source_statement_emit" \
     "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" | \

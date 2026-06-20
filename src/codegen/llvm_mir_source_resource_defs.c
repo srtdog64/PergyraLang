@@ -10,14 +10,10 @@
 #include "../parser/ast_api.h"
 
 static bool
-llvm_mir_source_payload_is_channel_let(ASTNode *source_payload)
+llvm_mir_initializer_is_channel_call(ASTNode *init)
 {
-    ASTNode *init;
     ASTNode *callee;
 
-    if (source_payload == NULL || source_payload->type != AST_LET_DECL)
-        return false;
-    init = ast_let_initializer(source_payload);
     if (init == NULL || init->type != AST_CALL)
         return false;
     callee = ast_call_callee(init);
@@ -29,13 +25,12 @@ llvm_mir_source_payload_is_channel_let(ASTNode *source_payload)
 
 static bool
 llvm_mir_try_emit_source_channel_let(const MIRInstruction *inst,
-                                     ASTNode *source_payload,
                                      LLVMValueRef alloca,
                                      LLVMGenCtx *ctx,
                                      const char *expected_type_name,
                                      bool *handled)
 {
-    ASTNode *init;
+    ASTNode *init = inst != NULL ? inst->expr0 : NULL;
     char inner[128];
     char init_fn_name[160];
     char base_name[128];
@@ -47,13 +42,12 @@ llvm_mir_try_emit_source_channel_let(const MIRInstruction *inst,
 
     if (handled != NULL)
         *handled = false;
-    if (inst == NULL || source_payload == NULL || alloca == NULL
+    if (inst == NULL || alloca == NULL
         || ctx == NULL || handled == NULL)
         return true;
-    if (!llvm_mir_source_payload_is_channel_let(source_payload))
+    if (!llvm_mir_initializer_is_channel_call(init))
         return true;
 
-    init = ast_let_initializer(source_payload);
     if (expected_type_name == NULL
         || pgy_classify_type(expected_type_name) != PGY_TK_CHANNEL
         || !llvm_constructed_arg_name_copy(expected_type_name, 0, inner,
@@ -107,18 +101,13 @@ llvm_mir_try_emit_source_channel_let(const MIRInstruction *inst,
 }
 
 static bool
-llvm_mir_source_payload_is_claim_let(ASTNode *source_payload,
-                                     const char **callee_out)
+llvm_mir_initializer_is_claim_call(ASTNode *init, const char **callee_out)
 {
-    ASTNode *init;
     ASTNode *callee;
     const char *callee_name;
 
     if (callee_out != NULL)
         *callee_out = NULL;
-    if (source_payload == NULL || source_payload->type != AST_LET_DECL)
-        return false;
-    init = ast_let_initializer(source_payload);
     if (init == NULL || init->type != AST_CALL)
         return false;
     callee = ast_call_callee(init);
@@ -217,12 +206,12 @@ llvm_mir_emit_secure_claim_token_for_local(LLVMGenCtx *ctx,
 
 static bool
 llvm_mir_try_emit_source_claim_let(const MIRInstruction *inst,
-                                   ASTNode *source_payload,
                                    LLVMValueRef alloca,
                                    LLVMGenCtx *ctx,
                                    const char *expected_type_name,
                                    bool *handled)
 {
+    ASTNode *init = inst != NULL ? inst->expr0 : NULL;
     const char *callee_name;
     PgyTypeKind kind;
     char inner[128];
@@ -234,11 +223,11 @@ llvm_mir_try_emit_source_claim_let(const MIRInstruction *inst,
 
     if (handled != NULL)
         *handled = false;
-    if (inst == NULL || source_payload == NULL || alloca == NULL
+    if (inst == NULL || alloca == NULL
         || ctx == NULL || handled == NULL) {
         return true;
     }
-    if (!llvm_mir_source_payload_is_claim_let(source_payload, &callee_name))
+    if (!llvm_mir_initializer_is_claim_call(init, &callee_name))
         return true;
 
     kind = pgy_classify_type(expected_type_name);
@@ -296,13 +285,12 @@ llvm_mir_try_emit_source_claim_let(const MIRInstruction *inst,
 
 static bool
 llvm_mir_try_emit_source_secure_slot_sugar_let(const MIRInstruction *inst,
-                                               ASTNode *source_payload,
                                                LLVMValueRef alloca,
                                                LLVMGenCtx *ctx,
                                                const char *expected_type_name,
                                                bool *handled)
 {
-    ASTNode *init;
+    ASTNode *init = inst != NULL ? inst->expr0 : NULL;
     char inner[128];
     char base_name[128];
     LLVMTypeRef slot_ty;
@@ -312,11 +300,11 @@ llvm_mir_try_emit_source_secure_slot_sugar_let(const MIRInstruction *inst,
 
     if (handled != NULL)
         *handled = false;
-    if (inst == NULL || source_payload == NULL || alloca == NULL
+    if (inst == NULL || alloca == NULL
         || ctx == NULL || handled == NULL) {
         return true;
     }
-    if (source_payload->type != AST_LET_DECL)
+    if (!mir_instruction_uses_source_local_decl_emit(inst))
         return true;
     if (pgy_classify_type(expected_type_name) != PGY_TK_SECURE_SLOT)
         return true;
@@ -329,7 +317,6 @@ llvm_mir_try_emit_source_secure_slot_sugar_let(const MIRInstruction *inst,
             inst->result_name != NULL ? inst->result_name : "(anonymous)");
         return false;
     }
-    init = ast_let_initializer(source_payload);
     if (init != NULL
         && init->type == AST_CALL
         && ast_call_callee(init) != NULL
@@ -385,7 +372,6 @@ llvm_mir_try_emit_source_secure_slot_sugar_let(const MIRInstruction *inst,
 
 bool
 llvm_mir_try_emit_source_resource_let(const MIRInstruction *inst,
-                                      ASTNode *source_payload,
                                       LLVMValueRef alloca,
                                       LLVMGenCtx *ctx,
                                       const char *expected_type_name,
@@ -395,7 +381,9 @@ llvm_mir_try_emit_source_resource_let(const MIRInstruction *inst,
 
     if (handled != NULL)
         *handled = false;
-    if (!llvm_mir_try_emit_source_claim_let(inst, source_payload, alloca, ctx,
+    if (!mir_instruction_uses_source_local_decl_emit(inst))
+        return true;
+    if (!llvm_mir_try_emit_source_claim_let(inst, alloca, ctx,
             expected_type_name, &local_handled)) {
         return false;
     }
@@ -404,8 +392,8 @@ llvm_mir_try_emit_source_resource_let(const MIRInstruction *inst,
             *handled = true;
         return true;
     }
-    if (!llvm_mir_try_emit_source_secure_slot_sugar_let(inst, source_payload,
-            alloca, ctx, expected_type_name, &local_handled)) {
+    if (!llvm_mir_try_emit_source_secure_slot_sugar_let(inst, alloca, ctx,
+            expected_type_name, &local_handled)) {
         return false;
     }
     if (local_handled) {
@@ -413,7 +401,7 @@ llvm_mir_try_emit_source_resource_let(const MIRInstruction *inst,
             *handled = true;
         return true;
     }
-    if (!llvm_mir_try_emit_source_channel_let(inst, source_payload, alloca, ctx,
+    if (!llvm_mir_try_emit_source_channel_let(inst, alloca, ctx,
             expected_type_name, &local_handled)) {
         return false;
     }

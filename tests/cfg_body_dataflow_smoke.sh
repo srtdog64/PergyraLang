@@ -497,6 +497,17 @@ run_literal_doc_contract_smoke() {
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_def_uses_source_local_decl_emit"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_def_uses_channel_receive_statement_emit"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_def_uses_select_receive_statement_emit"
+    require_literal "src/codegen/llvm_mir_source_resource_defs.c" "mir_instruction_uses_source_local_decl_emit(inst)"
+    if grep -Fq -- "source_payload" \
+        "$ROOT_DIR/src/codegen/llvm_mir_source_resource_defs.c"; then
+        echo "LLVM source-local resource LET emission must consume MIR initializer/type facts, not source payload" >&2
+        exit 1
+    fi
+    if grep -Fq -- "mir_instruction_source_payload" \
+        "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"; then
+        echo "LLVM MIR block emission must not reopen source payload; route residual reads through named owners" >&2
+        exit 1
+    fi
     if grep -Fq -- "llvm_mir_instruction_has_source_payload" \
         "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"; then
         echo "LLVM MIR DEF emit predicates must consume MIR emit facts, not source payload presence" >&2

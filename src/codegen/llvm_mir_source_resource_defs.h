@@ -7,10 +7,8 @@
 
 #include "llvm_internal.h"
 #include "../compiler/mir.h"
-#include "../parser/ast.h"
 
 bool llvm_mir_try_emit_source_resource_let(const MIRInstruction *inst,
-                                           ASTNode *source_payload,
                                            LLVMValueRef alloca,
                                            LLVMGenCtx *ctx,
                                            const char *expected_type_name,
