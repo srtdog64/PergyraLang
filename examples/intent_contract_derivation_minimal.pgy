@@ -4,7 +4,7 @@
 // 1. transfer target -> using/where derivation
 
 subject Buyer {
-    let hp: Int;
+    let mut hp: Int;
 
     action Promote(self) -> Void {
         self.hp = self.hp + 1;

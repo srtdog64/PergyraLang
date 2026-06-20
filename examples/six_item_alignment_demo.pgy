@@ -14,7 +14,7 @@ ability Payable {
 within PaymentZone {
     subject Buyer {
         let displayName: String;
-        let total: Int;
+        let mut total: Int;
 
         action Promote(self) -> Void
             requires Payable

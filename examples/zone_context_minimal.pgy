@@ -6,7 +6,7 @@
 
 within BattleZone {
     subject Hero {
-        let hp: Int;
+        let mut hp: Int;
 
         action Guard(self) authorized by self {
             self.hp = self.hp + 1;

@@ -3,6 +3,8 @@
 #include "type_checker_ownership_consumers_internal.h"
 #include "diag_codes.h"
 
+#include <string.h>
+
 Type *
 type_check_assignment(ASTNode *expr, SemanticContext *ctx)
 {
@@ -125,6 +127,37 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
                             "- update the source subject/value and publish a new tobject\n"
                             "- or construct a new transfer snapshot",
                             var_name);
+                    } else {
+                        /* struct / subject / class: per-field mutability. A
+                         * field declared `let` (is_mutable == false) is an
+                         * immutable binding; `let mut` and bare/vessel fields
+                         * are assignable. */
+                        const char *field_name = ast_member_name(target);
+                        if (field_name != NULL) {
+                            size_t fc = 0;
+                            ClassField **fields = ast_class_fields(decl, &fc);
+                            for (size_t fi = 0; fi < fc; fi++) {
+                                if (fields[fi] != NULL
+                                    && fields[fi]->name != NULL
+                                    && strcmp(fields[fi]->name, field_name) == 0) {
+                                    if (!fields[fi]->is_mutable) {
+                                        semantic_error_with_hints(ctx,
+                                            PGY_CODE_SEM_IMMUTABLE_FIELD_WRITE,
+                                            PGY_CAUSE_IMMUTABLE_FIELD_WRITE,
+                                            PGY_FIX_RECONSTRUCT_OR_CHANGE_HOST_KIND,
+                                            expr,
+                                            "field '%s.%s' is immutable.\n"
+                                            "Reason:\n"
+                                            "- it is declared with `let` (an immutable field binding)\n"
+                                            "Fix:\n"
+                                            "- declare it `let mut %s: ...` to allow assignment\n"
+                                            "- or set it only at construction",
+                                            var_name, field_name, field_name);
+                                    }
+                                    break;
+                                }
+                            }
+                        }
                     }
                 }
             }

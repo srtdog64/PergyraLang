@@ -500,6 +500,17 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
             }
 
             // 필드
+            /* Optional mutability modifier: `let mut name` (mirrors the local
+             * `let mut x` grammar). A bare `let name` field is immutable; a
+             * `let mut name`, a bare struct field, and a vessel field are
+             * mutable. */
+            bool field_is_mutable = !has_let;
+            if (has_let && parser->current_token.text != NULL
+                && strcmp(parser->current_token.text, "mut") == 0
+                && parser_peek_next(parser).type == TOKEN_IDENTIFIER) {
+                parser_advance(parser); /* consume 'mut' */
+                field_is_mutable = true;
+            }
             Token field_name = consume_binding_name_token(parser, "Expected field name");
             parser_consume(parser, TOKEN_COLON, "Expected ':' after field name");
             ASTNode* field_type = parse_type(parser);
@@ -509,6 +520,7 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
             field->type = field_type;
             field->access = access;
             field->has_explicit_access = explicit_access;
+            field->is_mutable = field_is_mutable;
             field->is_vessel_field = is_vessel_field;
 
             /* Optional field default: `name: Type = expr`. */

@@ -18,7 +18,7 @@ ability CalendarOwnerCap {
 }
 
 subject CalendarOwner {
-    let revision: Int;
+    let mut revision: Int;
 
     action CreateEvent(self) -> Void
         requires CalendarOwnerCap

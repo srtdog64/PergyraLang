@@ -7,7 +7,7 @@
 
 subject Fighter {
     let name: String;
-    let hp: Int;
+    let mut hp: Int;
     let hp_max: Int;
     let power: Int;
     let defense: Int;

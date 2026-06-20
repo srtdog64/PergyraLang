@@ -5,7 +5,7 @@
 // - target zone type가 intent에서 유일하면 해당 binding alias로 정규화
 
 subject Buyer {
-    let hp: Int;
+    let mut hp: Int;
 
     action Promote(self) -> Void {
         self.hp = self.hp + 1;

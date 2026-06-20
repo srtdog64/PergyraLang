@@ -13,7 +13,7 @@ ability Payable {
 
 within PaymentZone {
     subject Buyer {
-        let hp: Int;
+        let mut hp: Int;
 
         action Promote(self) -> Void
             requires Payable

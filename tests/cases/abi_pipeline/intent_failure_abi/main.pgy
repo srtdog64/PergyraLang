@@ -1,5 +1,5 @@
 subject Driver {
-    let started: Bool;
+    let mut started: Bool;
     action Ignite(self) -> Void { self.started = true; }
     action RollbackIgnite(self) -> Void { self.started = false; }
 }

@@ -11,7 +11,7 @@ ability BatchReady<T> {
 }
 
 subject Courier {
-    let staged: Int;
+    let mut staged: Int;
 
     action Stage(self, qty: Int) -> Void
         requires BatchReady<Int>
