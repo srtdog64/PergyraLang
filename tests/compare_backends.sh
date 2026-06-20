@@ -561,6 +561,7 @@ main() {
         "tests/cases/backend_compare/secure_field_slot"
         "tests/cases/backend_compare/enum_tagged_union"
         "tests/cases/backend_compare/map_literal"
+        "tests/cases/backend_compare/set_literal_basic"
         "tests/cases/backend_compare/cast_numeric"
         "tests/cases/backend_compare/type_test"
         "tests/cases/backend_compare/unsafe_scoped"

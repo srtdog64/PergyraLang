@@ -219,7 +219,7 @@
         "1\n";
     static const char *intent_failure_source =
         "subject Driver {\n"
-        "    let started: Bool;\n"
+        "    let mut started: Bool;\n"
         "    action Ignite(self) -> Void { self.started = true; }\n"
         "    action RollbackIgnite(self) -> Void { self.started = false; }\n"
         "}\n"
@@ -346,7 +346,7 @@
         "true\n";
     static const char *projection_chain_source =
         "subject Player {\n"
-        "    let hp: Int;\n"
+        "    let mut hp: Int;\n"
         "}\n"
         "object PlayerView {\n"
         "    hp: Int;\n"

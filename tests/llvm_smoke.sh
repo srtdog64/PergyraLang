@@ -161,15 +161,35 @@ EOF
 run_ir_contains_case "true_phi_lowering" "$TMPDIR/phi_lowering.pgy" " phi i32 "
 
 cat > "$TMPDIR/ssa_def_reassign_type_fact.pgy" <<'EOF'
+class Cell {
+    let value: Int;
+
+    func Score(self) -> Int {
+        return value * 10;
+    }
+}
+
 func Main() -> Void {
     let x: Int = 0;
     if true {
         x = 1;
     }
     Log(x);
+
+    let label: String = "cold";
+    if true {
+        label = "hot";
+    }
+    Log(label);
+
+    let cell: Cell = Cell(2);
+    if true {
+        cell = Cell(7);
+    }
+    Log(cell.Score());
 }
 EOF
-run_case "ssa_def_reassign_type_fact" "$TMPDIR/ssa_def_reassign_type_fact.pgy" "1"
+run_case "ssa_def_reassign_type_fact" "$TMPDIR/ssa_def_reassign_type_fact.pgy" "1" "hot" "70"
 
 cat > "$TMPDIR/loop_break_continue.pgy" <<'EOF'
 func Main() -> Void {

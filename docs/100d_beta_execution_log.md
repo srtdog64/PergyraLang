@@ -3,6 +3,22 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-20 LLVM SSA DEF Type-Fact Gate And ABI Fixture Alignment
+
+- `ssa_def_reassign_type_fact` now covers `Int`, `String`, and a user class
+  value reassigned inside an `if` body. This keeps the LLVM SSA-DEF path pinned
+  to MIR source-local type facts instead of allowing an `i32`-shaped fallback
+  to pass accidentally.
+- The ABI pipeline embedded sources that mutate `self.started` or `player.hp`
+  now spell those fields `let mut`, matching the beta language surface after
+  immutable field assignment became a structured semantic error.
+- The backend-compare default inventory now registers `set_literal_basic`, so
+  the inventory gate no longer fails before targeted C/LLVM parity runs.
+- Verified locally with `llvm-test-smoke`, `test-abi`,
+  `backend-compare-inventory-test-smoke`, `cfg-body-dataflow-test-smoke`, and
+  targeted `llvm-test-backend-compare` for `ssa_def_reassign_type_fact` and
+  `set_literal_basic`.
+
 ## Progress Log - 2026-06-20 C Backend Source-Payload DEF Closure
 
 - C MIR block emission no longer calls a source-payload helper for DEF/LET
