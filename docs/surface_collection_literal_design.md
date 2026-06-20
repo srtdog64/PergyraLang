@@ -63,22 +63,17 @@
   노드 + 파서 disambiguation(`{}`=Set, `{:}`=Map, 콜론 peek) + `type_check_set_
   literal`(Set<T>) + printer. `pgy --ast`로 검증, 기존 map 무회귀(빈 `{}` 마이그
   레이션 0). 의미분석 통과, codegen만 미지원(node type 28).
-- **증분 1b — Set 리터럴 codegen: 미구현 (다음 focused 세션).** findings:
-  - Set 런타임 **이미 존재**: `pgy_set_new_*` / `pgy_set_add_<suffix>`
-    (요소 타입별; `pgy_set_add_string`/`_raw`, `PgySetRaw`).
-  - 따라서 codegen = `SetNew()`+`SetAdd()` 빌트인이 lower하는 것과 **같은 경로**.
-    map 리터럴 방출(`transpiler_expr_composite_literal_emit.c`
-    `emit_map_literal_expression`)을 mirror: `({ T s = pgy_set_new_*();
-    pgy_set_add_<suffix>(&s, e); ...; s; })`. suffix 해석은 SetAdd 빌트인
-    (`transpiler_expr_stdlib_collection_builtin.c`)의 set-inner 해석 재사용.
-  - 손댈 파일(전부 현재 clean, 당신 active set 무충돌 — 단 LLVM 쪽은 작업 전
-    재확인): C = `transpiler_expr_composite_literal_emit.c`(+dispatch
-    `transpiler_expr_dispatch_emit.c`, type-infer `transpiler_expr_type_infer.c`);
-    LLVM = `llvm_expr.c` dispatch+emit, `llvm_stmt_type_infer.c`
-    (`Set<` expected-type, map의 `HashMap<` 케이스 mirror).
-  - **C==LLVM parity 게이트 필수** (abstraction portability). fixture로 set 리터럴
-    추가.
-- **증분 2 — 다형 시퀀스 `[...]`→List/Queue: 미구현.** (위 설계 §2단 규칙.)
+- **증분 1b — Set 리터럴 codegen: 완료** (커밋 `19956c25`). C(transpiler
+  `emit_set_literal_expression`) + LLVM(`llvm_emit_set_literal_expr`, raw set
+  런타임 `pgy_set_new_raw_export`/`pgy_set_add_raw_export`/`_string`)로 lower.
+  빈 `{}`는 `type_check_set_literal`이 `TYPE_UNKNOWN` 반환→annotation에 defer
+  (빈-map 규칙 mirror, `Set<unknown>→Set<Int>` mismatch 수정). **C==LLVM parity
+  검증**: Set<Int>/Set<String>/dedup/empty + backend-compare fixture
+  `set_literal_basic`(BDFL 병행 작성, `3/true/false/0/2/true` 양 leg 일치).
+  무회귀: map/array 리터럴 불변, self-host parity 전 게이트 green
+  (ast-read-surface/lexer/parser 188/codegen 48/mir-json 9).
+- **증분 2 — 다형 시퀀스 `[...]`→List/Queue: 미구현 (별도 세션).** array 리터럴
+  타이핑이 load-bearing이라 안정화 후 신중히. (위 설계 §2단 규칙.)
 
 ## 미결 (구현 중 결정)
 
