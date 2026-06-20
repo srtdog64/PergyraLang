@@ -7345,6 +7345,11 @@ if grep -R "transpiler_find_zone_state_decl" "$ROOT_DIR/src/codegen" >/dev/null;
     fail "C zone-state query lookup must not return AST_ZONE_STATE payloads"
 fi
 for term in \
+    "transpiler_hosted_zone_state_view_rows_complete"; do
+    require_term "src/codegen/transpiler_decl_lookup.h" "$term"
+    require_term "src/codegen/transpiler_decl_slot_view.c" "$term"
+done
+for term in \
     "TranspilerHostedZoneStateView state_view" \
     "transpiler_hosted_zone_state_view_missing_mir_metadata" \
     "transpiler_hosted_zone_state_view_name"; do
@@ -7381,6 +7386,24 @@ if grep -Fq "ast_zone_state_name(" \
     "$ROOT_DIR/src/codegen/transpiler_zone_frontier_emit.c"; then
     fail "C zone frontier guard emission must consume MIR zone state metadata, not AST zone-state accessors"
 fi
+for file in \
+    "src/codegen/transpiler_block_intent_helpers.c" \
+    "src/codegen/transpiler_projection_sync.c"; do
+    for term in \
+        "TranspilerHostedZoneStateView state_view" \
+        "transpiler_hosted_zone_state_view_from_decl" \
+        "transpiler_hosted_zone_state_view_rows_complete" \
+        "transpiler_hosted_zone_state_view_name(&state_view" \
+        "transpiler_hosted_zone_state_view_layer_slot_name"; do
+        require_term "$file" "$term"
+    done
+    if grep -Fq "ast_zone_states(zone_decl, &state_count)" "$ROOT_DIR/$file"; then
+        fail "$file must consume MIR zone state metadata, not reopen AST_ZONE_STATE inventory"
+    fi
+    if grep -Fq "ast_zone_state_" "$ROOT_DIR/$file"; then
+        fail "$file must consume TranspilerHostedZoneStateView, not AST zone-state accessors"
+    fi
+done
 for term in \
     "LLVMHostedZoneStateView" \
     "llvm_hosted_zone_state_view_from_decl" \

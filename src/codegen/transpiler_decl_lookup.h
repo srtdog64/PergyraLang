@@ -292,6 +292,8 @@ const char *transpiler_hosted_zone_state_view_right_slot_name(
 bool transpiler_hosted_zone_state_view_is_relation(
     const TranspilerHostedZoneStateView *view,
     size_t index);
+bool transpiler_hosted_zone_state_view_rows_complete(
+    const TranspilerHostedZoneStateView *view);
 TranspilerHostedZoneRefreshView
 transpiler_hosted_zone_refresh_view_from_decl(const TranspilerCtx *ctx,
                                               const char *host_name,

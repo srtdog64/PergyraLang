@@ -210,8 +210,17 @@ emit_intent_step_mark_caused_effect(CodeBuf *out, TranspilerCtx *ctx,
             zone_type != NULL ? zone_type : "(anonymous-zone)");
         return;
     }
-    size_t state_count = 0;
-    ASTNode **states = ast_zone_states(zone_decl, &state_count);
+    TranspilerHostedZoneStateView state_view =
+        transpiler_hosted_zone_state_view_from_decl(ctx, zone_type,
+                                                    zone_decl);
+    if (transpiler_hosted_zone_state_view_missing_mir_metadata(&state_view)
+        || !transpiler_hosted_zone_state_view_rows_complete(&state_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing intent step caused-effect state metadata for '%s'",
+            zone_type != NULL ? zone_type : "(anonymous-zone)");
+        return;
+    }
 
     for (size_t i = 0; i < layer_view.count; i++) {
         const char *layer_name;
@@ -235,21 +244,25 @@ emit_intent_step_mark_caused_effect(CodeBuf *out, TranspilerCtx *ctx,
         write_indent(ctx);
         codebuf_write(out, "%s->__layer_cause_%s = 11;\n", zone_alias, layer_name);
 
-        for (size_t j = 0; j < state_count; j++) {
-            ASTNode *state = states[j];
-            if (state == NULL || state->type != AST_ZONE_STATE
-                || ast_zone_state_is_relation(state)
-                || ast_zone_state_name(state) == NULL
-                || ast_zone_state_layer_slot_name(state) == NULL
-                || strcmp(ast_zone_state_layer_slot_name(state), layer_name) != 0) {
+        for (size_t j = 0; j < state_view.count; j++) {
+            const char *state_name =
+                transpiler_hosted_zone_state_view_name(&state_view, j);
+            const char *state_layer_name =
+                transpiler_hosted_zone_state_view_layer_slot_name(
+                    &state_view, j);
+
+            if (transpiler_hosted_zone_state_view_is_relation(&state_view, j)
+                || state_name == NULL
+                || state_layer_name == NULL
+                || strcmp(state_layer_name, layer_name) != 0) {
                 continue;
             }
             write_indent(ctx);
             codebuf_write(out, "%s->__state_epoch_%s++;\n",
-                zone_alias, ast_zone_state_name(state));
+                zone_alias, state_name);
             write_indent(ctx);
             codebuf_write(out, "%s->__state_cause_%s = 11;\n",
-                zone_alias, ast_zone_state_name(state));
+                zone_alias, state_name);
         }
     }
 }

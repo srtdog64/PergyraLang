@@ -396,6 +396,33 @@ transpiler_hosted_zone_state_view_is_relation(
         && ast_zone_state_is_relation(view->ast_compat_states[index]);
 }
 
+bool
+transpiler_hosted_zone_state_view_rows_complete(
+    const TranspilerHostedZoneStateView *view)
+{
+    if (view == NULL || !view->uses_mir_metadata)
+        return true;
+    for (size_t i = 0; i < view->count; i++) {
+        const char *state_name =
+            transpiler_hosted_zone_state_view_name(view, i);
+        const char *state_layer =
+            transpiler_hosted_zone_state_view_layer_slot_name(view, i);
+        const char *state_target =
+            transpiler_hosted_zone_state_view_left_or_target_slot_name(
+                view, i);
+        const char *state_right =
+            transpiler_hosted_zone_state_view_right_slot_name(view, i);
+
+        if (state_name == NULL || state_layer == NULL
+            || state_target == NULL
+            || (transpiler_hosted_zone_state_view_is_relation(view, i)
+                && state_right == NULL)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 TranspilerHostedDomainSlotView
 transpiler_hosted_domain_slot_view_from_decl(const TranspilerCtx *ctx,
                                              const char *host_name,

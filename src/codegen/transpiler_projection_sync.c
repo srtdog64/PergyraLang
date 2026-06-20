@@ -205,8 +205,18 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
         return NULL;
     }
     buf = codebuf_create();
-    size_t state_count = 0;
-    ASTNode **states = ast_zone_states(zone_decl, &state_count);
+    TranspilerHostedZoneStateView state_view =
+        transpiler_hosted_zone_state_view_from_decl(ctx, zone_type_name,
+                                                    zone_decl);
+    if (transpiler_hosted_zone_state_view_missing_mir_metadata(&state_view)
+        || !transpiler_hosted_zone_state_view_rows_complete(&state_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing world embedded effect state metadata for '%s'",
+            zone_type_name != NULL ? zone_type_name : "(anonymous-zone)");
+        codebuf_destroy(buf);
+        return NULL;
+    }
     TranspilerHostedZoneRefreshView effect_refresh_view =
         transpiler_hosted_zone_refresh_view_from_decl(ctx, effect_type_name,
                                                       effect_decl);
@@ -262,20 +272,24 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
             "self->%s.__layer_cause_%s = 11; ",
             zone_slot_name, layer_name,
             zone_slot_name, layer_name);
-        for (size_t si = 0; si < state_count; si++) {
-            ASTNode *state = states[si];
-            if (state == NULL || state->type != AST_ZONE_STATE
-                || ast_zone_state_is_relation(state)
-                || ast_zone_state_name(state) == NULL
-                || ast_zone_state_layer_slot_name(state) == NULL
-                || strcmp(ast_zone_state_layer_slot_name(state), layer_name) != 0) {
+        for (size_t si = 0; si < state_view.count; si++) {
+            const char *state_name =
+                transpiler_hosted_zone_state_view_name(&state_view, si);
+            const char *state_layer_name =
+                transpiler_hosted_zone_state_view_layer_slot_name(
+                    &state_view, si);
+
+            if (transpiler_hosted_zone_state_view_is_relation(&state_view, si)
+                || state_name == NULL
+                || state_layer_name == NULL
+                || strcmp(state_layer_name, layer_name) != 0) {
                 continue;
             }
             codebuf_write(buf,
                 "self->%s.__state_epoch_%s++; "
                 "self->%s.__state_cause_%s = 11; ",
-                zone_slot_name, ast_zone_state_name(state),
-                zone_slot_name, ast_zone_state_name(state));
+                zone_slot_name, state_name,
+                zone_slot_name, state_name);
         }
 
         if (transpiler_hosted_zone_layer_slot_view_is_pool(&layer_view, i)) {
