@@ -173,6 +173,18 @@ func KeywordType(text: String) -> String {
     if text == "defer" {
         return "DEFER";
     }
+    if text == "transaction" {
+        return "TRANSACTION";
+    }
+    if text == "compensate" {
+        return "COMPENSATE";
+    }
+    if text == "fail" {
+        return "FAIL";
+    }
+    if text == "extends" {
+        return "EXTENDS";
+    }
     if text == "unsafe" {
         return "UNSAFE";
     }
@@ -383,6 +395,40 @@ func Main() -> Void {
                     col = col + 1;
                 }
             }
+            continue;
+        }
+
+        // Interpolated string with a `$"..."` or `f"..."` prefix. Mirrors the C
+        // oracle: the prefix char is consumed, the token text and column start at
+        // the opening quote, and backslash escapes do not terminate the string.
+        // Checked before the identifier branch so `f"` is not lexed as `f`.
+        if (c == Ord("$") || c == Ord("f")) && CharCode(content, n, i + 1) == Ord("\"") {
+            i = i + 1;
+            col = col + 1;
+            let istart: Int = i;
+            let istart_col: Int = col;
+            i = i + 1;
+            col = col + 1;
+            while i < n && CharCode(content, n, i) != Ord("\"") {
+                if CharCode(content, n, i) == Ord("\\") {
+                    i = i + 1;
+                    col = col + 1;
+                    if i < n {
+                        i = i + 1;
+                        col = col + 1;
+                    }
+                } else {
+                    i = i + 1;
+                    col = col + 1;
+                }
+            }
+            if i < n {
+                i = i + 1;
+                col = col + 1;
+            }
+            let itext: String = Substring(content, istart, i - istart);
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, "INTERPOLATED_STRING", itext, line, istart_col));
             continue;
         }
 
