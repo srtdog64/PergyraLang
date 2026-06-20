@@ -72,8 +72,22 @@
   `set_literal_basic`(BDFL 병행 작성, `3/true/false/0/2/true` 양 leg 일치).
   무회귀: map/array 리터럴 불변, self-host parity 전 게이트 green
   (ast-read-surface/lexer/parser 188/codegen 48/mir-json 9).
-- **증분 2 — 다형 시퀀스 `[...]`→List/Queue: 미구현 (별도 세션).** array 리터럴
-  타이핑이 load-bearing이라 안정화 후 신중히. (위 설계 §2단 규칙.)
+- **증분 2 — 다형 시퀀스 `[...]`→Array/List/Queue: 완료** (커밋 `f9a96a16`).
+  type-directed: 바인딩 어노테이션이 concrete 생성자 결정. semantic은
+  `SemanticContext.expected_collection_type`(let checker가 lambda 패턴처럼 전파)
+  → `type_check_array_literal`이 ctor(Array/List/Queue) 선택, 빈 `[]`는
+  어노테이션 직접 반환. codegen C(`emit_array_literal_expression`→list/queue
+  emitter; array는 inner-name 키, list/queue는 소문자 suffix 키) + LLVM
+  (`llvm_emit_seq_list_queue_literal`, raw list/queue 런타임; let/MIR-local
+  타입추론이 List/Queue element 해석 → 빈 `[]:List<Int>`도 lower). **C==LLVM
+  parity**: Array/List/Queue × {Int,String,empty}. 무회귀: map/set/array 불변,
+  self-host 게이트 green(ast-read-surface/codegen 48/mir-json 9).
+
+## 결론: item ① (컬렉션 리터럴 전면 확대) 전체 완성
+
+2단 규칙 전부 구현·검증: 시퀀스 `[...]`→Array/List/Queue(다형), Map `{k:v}`/`{:}`,
+Set `{e}`/`{}`. 모든 컬렉션 = 리터럴 + `TNew()`. C==LLVM parity, self-host 표면
+안정. Array/List 중복은 다형 `[...]`로 literal 레벨에서 흡수됨.
 
 ## 미결 (구현 중 결정)
 
