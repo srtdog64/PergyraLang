@@ -2350,6 +2350,12 @@ English anchor for tooling/doc gates:
   `authority_required` or synthesize authority participants. The AIR suite has
   a no-authority zone boundary case, and `air-drift-test-smoke` pins the
   regression terms. Gates: `test-air` and `air-drift-test-smoke`.
+- AIR authority requirement is now a single invariant instead of a loose bool
+  plus list pair: `authority_required` must be true whenever
+  `authority_names` is non-empty, and action-inherited authority provenance is
+  invalid unless the boundary is authority-required. Gate:
+  `test-air` fixture `AIR verify rejects authority name/flag drift` plus
+  `air-drift-test-smoke`.
 - AIR evidence-kind metadata is now fail-closed. `kEvidenceKindMeta` carries an
   explicit `present` bit, and `air_evidence_kind_is_known(...)` rejects enum
   values whose table entry was not intentionally initialized. This prevents a

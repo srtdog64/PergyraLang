@@ -228,9 +228,22 @@ air_validate(const AIRProgram *air, char **error_message)
                                     i);
             return false;
         }
+        if (!boundary->authority_required
+            && air_boundary_authority_name_count(boundary) > 0) {
+            air_set_invariant_error(error_message,
+                                    "AIR boundary node %zu has authority participants but does not require authority",
+                                    i);
+            return false;
+        }
         if (boundary->authority_from_zone && !boundary->authority_required) {
             air_set_invariant_error(error_message,
                                     "AIR boundary node %zu has legacy zone-authority field without authority",
+                                    i);
+            return false;
+        }
+        if (boundary->authority_from_action && !boundary->authority_required) {
+            air_set_invariant_error(error_message,
+                                    "AIR boundary node %zu has action-inherited authority without authority",
                                     i);
             return false;
         }

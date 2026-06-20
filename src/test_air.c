@@ -146,6 +146,9 @@ main(void)
     TEST("AIR verify rejects invalid boundary inventory");
     EXPECT(test_air_verify_rejects_invalid_boundary_inventory());
 
+    TEST("AIR verify rejects authority name/flag drift");
+    EXPECT(test_air_verify_rejects_authority_name_flag_drift());
+
     TEST("AIR verify rejects missing inventory arrays");
     EXPECT(test_air_verify_rejects_missing_inventory_arrays());
 

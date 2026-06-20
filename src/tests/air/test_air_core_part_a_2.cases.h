@@ -180,6 +180,70 @@ test_air_verify_rejects_invalid_boundary_inventory(void)
 }
 
 static bool
+test_air_verify_rejects_authority_name_flag_drift(void)
+{
+    const char *authority_names[] = { "shipper" };
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "ShipOrder",
+            .step_name = "reserve",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRBoundaryNode names_without_required[] = {
+        {
+            .kind = AIR_BOUNDARY_ZONE,
+            .owner_name = "ShipOrder",
+            .source_name = "WarehouseZone",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .authority_names = authority_names,
+            .authority_name_count = 1,
+        },
+    };
+    AIRBoundaryNode action_without_required[] = {
+        {
+            .kind = AIR_BOUNDARY_ZONE,
+            .owner_name = "ShipOrder",
+            .source_name = "WarehouseZone",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .authority_from_action = true,
+        },
+    };
+    AIRProgram names_drift = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = names_without_required,
+        .boundary_count = 1,
+    };
+    AIRProgram action_drift = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = action_without_required,
+        .boundary_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_verify(&names_drift, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "authority participants but does not require authority") != NULL;
+    free(error);
+    error = NULL;
+    ok = ok
+        && !air_verify(&action_drift, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "action-inherited authority without authority") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
 test_air_verify_rejects_missing_inventory_arrays(void)
 {
     AIRProgram missing_intents = {

@@ -102,6 +102,8 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_verify_provenance.c" "who_provenance="
     require_literal "src/compiler/air_verify_provenance.c" "intent-default+transfer"
     require_literal "src/compiler/air_boundary.c" "air_boundary_declares_authority_name"
+    require_literal "src/compiler/air_validate.c" "authority participants but does not require authority"
+    require_literal "src/compiler/air_validate.c" "action-inherited authority without authority"
     require_literal "src/compiler/air_verify_global.c" "strict AIR requires graph-backed type evidence"
     require_literal "src/compiler/air_verify_global.c" "missing DAG evidence node"
     require_literal "src/compiler/air_verify_global.c" "AIRStrictCounterRequirement"
@@ -225,6 +227,7 @@ run_literal_air_drift_smoke() {
     require_literal "src/test_air.c" "AIR strict evidence rejects observability counter only"
     require_literal "src/test_air.c" "AIR strict evidence rejects frontier counter only"
     require_literal "src/test_air.c" "AIR ignores orphan MIR cleanup root evidence"
+    require_literal "src/test_air.c" "AIR verify rejects authority name/flag drift"
     require_literal "src/test_air.c" "AIR verify rejects invalid drift inventory"
     require_literal "src/test_air.c" "AIR verify rejects duplicate evidence nodes"
     require_literal "src/test_air.c" "AIR append merges duplicate evidence nodes"
@@ -1205,6 +1208,7 @@ required_test_terms = [
     "test_air_has_evidence_ignores_summary_flags_with_real_input",
     "AIR task group boundary requires RIR and HIR evidence",
     "AIR verify rejects invalid boundary inventory",
+    "AIR verify rejects authority name/flag drift",
     "AIR verify rejects missing inventory arrays",
     "AIR verify rejects boundary step mismatch",
     "AIR verify rejects boundary owner mismatch",
