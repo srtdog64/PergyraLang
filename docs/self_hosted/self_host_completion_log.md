@@ -62,7 +62,40 @@ rewrite history.
 
 ## Session log
 
-### 2026-06-20 -- lexer corpus coverage to 121/121
+### 2026-06-20 -- mir_lower MIR->C SOT: filled multi-routine + return + signatures
+
+The self-host MIR->C lowering path (`pgy --mir-json | mir_lower | codegen | gcc`
+== C oracle) had a set of empty parts mapped by the coverage probe
+(`src/self_hosted/parity/mir_json_coverage_probe.sh`). This session filled three,
+each a *read-a-fact-already-present* fill (not decompilation):
+
+- **multi-routine** (`df370923`): `mir_lower` walked only one routine and merged
+  the rest; added `FindRoutine` + a per-routine span walk. `multi_func_void` PASS.
+- **return statement** (`81c09e7a`): reconstruct `Return: <expr>` from a
+  `kind="return"` instruction instead of dropping it.
+- **params / return-type** (`b7a68d3e`): the schema carried no signatures, so
+  `mir_lower` hardcoded empty `Parameters:` / `Returns: Void`. Extended the
+  `--mir-json` emitter (`mir_lifecycle.c`, additive: `"params":[{"name","type"}]`,
+  `"return"`) and taught `mir_lower` to parse them. `func_param` PASS.
+
+Probe went from **1 PASS to 3 PASS** (`string_concat`, `multi_func_void`,
+`func_param`). 4-fixture mir_json parity gate green throughout; all changes
+non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
+`mir_lower` edits were mine; the BDFL's `mir_lower` header edit was left intact).
+
+- **Next track (deliberately a SEPARATE session -- do not inline it):** the last
+  empty part is **control-flow** (`if`/`while`/`for`, 6 probe cases, all
+  `MIR-LOWER-flatten`). Unlike the three fills above, this is **CFG -> structured
+  AST decompilation**, qualitatively harder: (1) schema -- emit each block's
+  `succ_true`/`succ_false` (the MIR already holds them: `mir.h` MIRBasicBlock
+  `succ_true`/`succ_false`/`has_succ_true`/`has_succ_false`); (2) `mir_lower` --
+  a structuring algorithm that detects the branch block, identifies then/else/
+  merge blocks, emits `If: cond Then {..} Else {..}` and continues from the merge
+  (then loop back-edges for `while`, range for `for`, then nesting). Reaching
+  byte/run-parity here is multi-step with real edge cases, so it is split off to
+  avoid leaving a half-finished structurer as debt. Start with the single
+  `if`/`else` case (closes `if_else`, then `nested_if`/`bool_ops`/
+  `reassign_block`); `while`, `for`, nesting follow as their own increments.
 
 - Committed `src/self_hosted/parity/lexer_scale_probe.sh` (`c7adbb1a`) -- fills
   the noted "no committed lexer-scale probe" gap; mirrors the parser probe.
