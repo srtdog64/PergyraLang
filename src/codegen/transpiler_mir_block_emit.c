@@ -172,8 +172,9 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             }
         }
 
-        if (!transpiler_materialize_pending_inst_uses(buf, ctx, func_decl, block,
-                                                      inst, ssa_map_out, ctx->indent,
+        if (!transpiler_materialize_pending_inst_uses(buf, ctx, func_decl,
+                                                      mir_routine, block, inst,
+                                                      ssa_map_out, ctx->indent,
                                                       true, reason, reason_cap)) {
             ok = false;
             break;

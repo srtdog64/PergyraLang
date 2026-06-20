@@ -7,6 +7,7 @@
 #include "../parser/ast_api.h"
 #include "transpiler_context.h"
 #include "transpiler_expr_type_infer.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_mir_effective_type.h"
 #include "transpiler_mir_expr_ssa.h"
 #include "transpiler_mir_local_type_lookup.h"
@@ -57,6 +58,7 @@ bool
 transpiler_materialize_pending_inst_uses(CodeBuf *buf,
                                          TranspilerCtx *ctx,
                                          const ASTNode *func_decl,
+                                         const MIRRoutine *mir_routine,
                                          const MIRBasicBlock *block,
                                          const MIRInstruction *inst,
                                          TranspilerSSANameMap *ssa_map_out,
@@ -69,6 +71,7 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
         return true;
 
     for (size_t i = 0; i < inst->use_count; i++) {
+        const bool allow_ast_compat = mir_routine == NULL;
         const char *versioned_use = inst->uses[i];
         const char *exit_versioned;
         TranspilerMirPendingBinding binding;
@@ -99,8 +102,13 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
                 || transpiler_type_name_is_channel(existing_type))) {
             continue;
         }
-        binding_type_name = transpiler_find_local_type_name(
-            ctx, func_decl, base);
+        binding_type_name = mir_routine != NULL
+            ? transpiler_mir_routine_source_local_type_name(mir_routine, base)
+            : NULL;
+        if (binding_type_name == NULL && allow_ast_compat) {
+            binding_type_name = transpiler_find_local_type_name(
+                ctx, func_decl, base);
+        }
         if (binding_type_name != NULL
             && (transpiler_type_name_is_slot_like(binding_type_name)
                 || transpiler_type_name_is_claim_shape(binding_type_name)
@@ -150,11 +158,14 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
         if (!transpiler_ssa_name_map_set(ssa_map_out, base, exit_versioned))
             return false;
 
-        if (binding.type_annotation != NULL) {
+        value_type = mir_routine != NULL
+            ? transpiler_mir_routine_source_local_type_name(mir_routine, base)
+            : NULL;
+        if (value_type == NULL && binding.type_annotation != NULL) {
             rendered_type = transpiler_render_effective_local_type_name(
                 ctx, binding.type_annotation);
             value_type = rendered_type;
-        } else {
+        } else if (value_type == NULL) {
             value_type = transpiler_expr_infer_type_name(ctx, initializer);
         }
         if (value_type != NULL
