@@ -65,6 +65,7 @@ mir_append_intent_stmt(MIRRoutine *routine,
     inst.arg0 = arg0;
     inst.arg1 = arg1;
     inst.ast = ast;
+    mir_instruction_capture_source_provenance(&inst, ast);
     if (name != NULL
         && (strcmp(name, "IntentCheck") == 0
             || strcmp(name, "IntentEval") == 0)) {
@@ -137,6 +138,7 @@ mir_append_intent_invalidation_markers(MIRRoutine *routine, MIRBasicBlock *block
             inst.arg0 = src->arg0;
             inst.arg1 = src->arg1;
             inst.ast = src->ast;
+            mir_instruction_capture_source_provenance(&inst, src->ast);
             if (!mir_intent_commit_instruction(routine, block, &inst))
                 return false;
             routine->cleanup_instruction_count++;

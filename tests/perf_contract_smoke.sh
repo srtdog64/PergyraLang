@@ -2406,6 +2406,8 @@ grep -Fq "mir_instruction_source_terminator_matches(" "$ROOT_DIR/src/compiler/ai
 grep -Fq "missing MIR body expression fact" "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
 ! grep -Fq "&& inst->ast != NULL" "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
 ! grep -Fq "mir_instruction_source_payload" "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
+! grep -Fq "mir_instruction_source_payload" "$ROOT_DIR/src/compiler/mir_public_surface.c"
+grep -Fq "mir_instruction_capture_source_provenance" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 ! grep -Fq "ast_uses_thread_pool_surface(source_payload)" "$ROOT_DIR/src/compiler/mir_public_surface.c"
 ! grep -Fq "ast_uses_intent_observability_surface(source_payload)" "$ROOT_DIR/src/compiler/mir_public_surface.c"
 grep -Fq "ast_uses_thread_pool_surface(inst->expr0)" "$ROOT_DIR/src/compiler/mir_public_surface.c"

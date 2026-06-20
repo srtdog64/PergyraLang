@@ -61,6 +61,19 @@ mir_instruction_source_payload(const MIRInstruction *inst)
     return mir_instruction_has_source_payload(inst) ? inst->ast : NULL;
 }
 
+void
+mir_instruction_capture_source_provenance(MIRInstruction *inst,
+                                          const ASTNode *source)
+{
+    if (inst == NULL || source == NULL)
+        return;
+    inst->has_source_location = true;
+    inst->source_line = source->line;
+    inst->source_column = source->column;
+    inst->source_stable_id = ast_node_stable_id(source);
+    inst->source_node_type = source->type;
+}
+
 bool
 mir_instruction_has_source_location(const MIRInstruction *inst)
 {

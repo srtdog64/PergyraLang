@@ -3,6 +3,24 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-21 MIR Public-Surface Provenance Capture Closure
+
+- `mir_public_surface.c` no longer opens `mir_instruction_source_payload(...)`
+  to seed source line, column, stable-id, or source-node-type facts. Public
+  surface recording now consumes already captured scalar provenance and
+  expression facts only.
+- `mir_source_shape.c` owns
+  `mir_instruction_capture_source_provenance(...)`; MIR construction and
+  population owners call it at the point they attach a source AST payload to an
+  instruction. This keeps provenance capture at the source-shape boundary
+  instead of re-deriving it during public-surface consumption.
+- `cfg-body-dataflow-test-smoke`, `ast-to-mir-loss-contract-test-smoke`, and
+  `perf-contract-test-smoke` now reject reintroducing source-payload reads in
+  `mir_public_surface.c` and require the capture-time provenance owner.
+- The remaining source-payload allowance is narrowed to the MIR lifecycle/dump
+  provenance surface. That path still needs a later explicit provenance-only
+  contract before capability 5 can honestly return to READY.
+
 ## Progress Log - 2026-06-21 C MIR Source-Local Binding SoT Closure
 
 - C MIR-backed function emission no longer rescans the source AST block to
@@ -132,8 +150,10 @@
   source-shape predicate, and thread-pool / intent-observability usage is
   validated from `expr0` / `expr1` expression facts.
 - `mir_public_surface.c` no longer derives surface-usage facts by rescanning
-  the source payload. The remaining public-surface payload read seeds only
-  provenance scalars: source line, column, stable id, and source node type.
+  the source payload. At the time, the remaining public-surface payload read
+  seeded only provenance scalars: source line, column, stable id, and source
+  node type. That tail is superseded by the 2026-06-21 capture-time
+  provenance closure above.
 - `cfg-body-dataflow-test-smoke` and `perf-contract-test-smoke` now reject
   reintroducing payload reads in MIR surface validation and reject source
   payload rescans for public-surface usage facts.

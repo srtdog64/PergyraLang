@@ -43,6 +43,7 @@ mir_append_non_cfg_source_statement(MIRRoutine *routine,
         .has_source_statement_index = true,
     };
 
+    mir_instruction_capture_source_provenance(&inst, stmt);
     mir_attach_statement_call_fact(&inst, stmt);
     if (!mir_commit_non_cfg_instruction(routine, block, &inst))
         return false;
@@ -132,8 +133,10 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
                     || strcmp(stmt_name, def_name) != 0) {
                     continue;
                 }
-                if (inst->ast == NULL)
+                if (inst->ast == NULL) {
                     inst->ast = stmt;
+                    mir_instruction_capture_source_provenance(inst, stmt);
+                }
                 mir_attach_def_initializer_call_fact(inst, stmt);
                 mir_set_inst_source_statement_index(inst, i);
                 mir_mark_select_receive_statement_emit(entry, inst);

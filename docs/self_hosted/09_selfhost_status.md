@@ -95,10 +95,12 @@ compatibility path.
   Match-case branches carry MIR-captured pattern/guard facts, and C/LLVM match
   condition, body-binding, and remap emission consume those facts instead of
   parsing the match-case source payload.
-- The remaining capability-5 body tail is the narrower public-surface
-  provenance payload used to seed source line/column/stable-id/type facts.
-  Capability 5 should stay ACTIVE until that read is replaced by capture-time
-  scalar facts or locked as provenance-only diagnostics.
+- Source line/column/stable-id/type seeding is now capture-time scalar
+  provenance owned by `mir_instruction_capture_source_provenance(...)`;
+  `mir_public_surface.c` no longer opens source payloads. Capability 5 remains
+  ACTIVE for the narrower MIR lifecycle/dump provenance payload tail until that
+  read is locked as provenance-only diagnostics or replaced by scalar dump
+  facts.
 - C class/zone collection-specialization scans are MIR-routine based and no
   longer recover method body AST; routine_source_decl_codegen is ratcheted at 0.
 - C hosted method body emission binds the linked MIRRoutine body as current

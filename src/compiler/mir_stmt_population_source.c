@@ -108,6 +108,7 @@ mir_make_source_stmt_instruction(MIRRoutine *routine,
     inst.kind = MIR_INST_STMT;
     inst.name = "stmt";
     inst.ast = stmt;
+    mir_instruction_capture_source_provenance(&inst, stmt);
     if (stmt != NULL && stmt->type == AST_BIND_STMT) {
         inst.name = "bind";
         inst.arg0 = ast_bind_statement_party_var(stmt);
@@ -132,6 +133,7 @@ mir_make_destructure_instruction(MIRRoutine *routine,
     inst.kind = MIR_INST_DESTRUCTURE;
     inst.name = "destructure";
     inst.ast = stmt;
+    mir_instruction_capture_source_provenance(&inst, stmt);
     if (stmt != NULL && stmt->type == AST_LET_DESTRUCTURE) {
         size_t name_count = ast_let_destructure_name_count(stmt);
         inst.expr0 = ast_let_destructure_initializer(stmt);
@@ -165,6 +167,7 @@ mir_make_assignment_instruction(MIRRoutine *routine,
     inst.kind = MIR_INST_ASSIGN;
     inst.name = "assign";
     inst.ast = stmt;
+    mir_instruction_capture_source_provenance(&inst, stmt);
     if (stmt != NULL && stmt->type == AST_ASSIGNMENT) {
         inst.expr0 = ast_assignment_target(stmt);
         inst.expr1 = ast_assignment_value(stmt);
@@ -187,6 +190,7 @@ mir_make_loop_init_instruction(MIRRoutine *routine,
     inst.kind = MIR_INST_LOOP_INIT;
     inst.name = "loop-init";
     inst.ast = stmt;
+    mir_instruction_capture_source_provenance(&inst, stmt);
     inst.arg0 = ast_for_variable(stmt);
     inst.branch_shape = ast_for_iterable(stmt) != NULL
         ? MIR_BRANCH_FOR_IN

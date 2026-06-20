@@ -66,6 +66,7 @@ mir_add_terminator_instruction(MIRRoutine *routine,
     inst.ast = (terminator_kind == HIR_BLOCK_BRANCH)
                    ? terminator_condition
                    : terminator_value;
+    mir_instruction_capture_source_provenance(&inst, inst.ast);
     if (inst.kind == MIR_INST_BRANCH) {
         inst.branch_shape = mir_branch_shape_from_ast(inst.ast);
         inst.requires_source_branch_emit =

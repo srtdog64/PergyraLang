@@ -116,6 +116,7 @@ mir_add_cleanup_instruction(MIRRoutine *routine, MIRBasicBlock *block, const RIR
     inst.arg1 = op->arg0;
     inst.rir_op = op;
     inst.ast = op->ast;
+    mir_instruction_capture_source_provenance(&inst, op->ast);
     return mir_cleanup_commit_instruction(routine, block, &inst);
 }
 
@@ -320,6 +321,7 @@ mir_materialize_pin_cleanup_edges(MIRRoutine *routine, MIRBasicBlock *block)
         ? MIR_PIN_CLEANUP_ACCESS_WRITE
         : MIR_PIN_CLEANUP_ACCESS_READ;
     inst.ast = block->pin_block_ast;
+    mir_instruction_capture_source_provenance(&inst, block->pin_block_ast);
     return mir_cleanup_commit_instruction(routine, block, &inst);
 }
 

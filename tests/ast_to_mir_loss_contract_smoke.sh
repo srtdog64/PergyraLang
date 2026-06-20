@@ -72,7 +72,6 @@ while IFS= read -r line; do
     case "$line" in
         src/compiler/mir.h:*|\
         src/compiler/mir_source_shape.c:*|\
-        src/compiler/mir_public_surface.c:*|\
         src/compiler/mir_lifecycle.c:*)
             ;;
         *)

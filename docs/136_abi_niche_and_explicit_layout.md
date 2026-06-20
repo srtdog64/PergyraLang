@@ -3,6 +3,12 @@
 Status: beta ABI contract. Niche optimization and user-directed explicit layout
 are intentionally not implemented as general source features.
 
+Current implementation status: Pergyra does not currently expose source-level
+bitpacking, packed fields, explicit field offsets, union overlap, or niche
+optimized `Option<T>` layout. Runtime-internal ABI structs are frozen through
+the ABI spec, but user-visible layout control is still a future raw/extern
+capability surface.
+
 Pergyra currently uses an explicit tagged representation for `Option<T>`:
 `{ tag: int32_t, value: T }` plus target padding. The source of truth is
 `src/runtime/pgy_abi_spec.h`, and `src/runtime/pgy_abi_spec_asserts.h` freezes

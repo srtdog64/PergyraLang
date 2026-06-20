@@ -60,9 +60,10 @@ emission, and receive-payload type inference now consume instruction `arg0` /
 `expr0` / `expr1` facts directly, so C codegen no longer calls
 `mir_instruction_source_payload`. MIR surface validation no longer reopens
 source payloads for payload-presence or surface-usage checks; it consumes
-source-shape predicates and MIR expression facts. The next cut target is the
-remaining public-surface provenance tail: source payloads are still opened to
-seed source line/column/stable-id/type fields before becoming MIR scalar facts.
+source-shape predicates and MIR expression facts. Public-surface source
+line/column/stable-id/type seeding is now capture-time scalar provenance owned
+by `mir_instruction_capture_source_provenance(...)`. The next cut target is
+the remaining MIR lifecycle/dump provenance payload tail.
 LLVM source-local resource constructor DEFs now consume MIR expected type-name
 facts for `Channel<T>` and slot-like resources (`Slot<T>`, `SecureSlot<T>`,
 `DeviceSlot<T>`) instead of falling through standalone constructor expression
@@ -118,7 +119,7 @@ ACTIVE means it is on the critical path and still in progress.
 | 2 | Collections + iteration | READY | stdlib_surface_smoke, stage4_determinism_smoke | List/Set/HashMap have stable scalar key forms (String, Int, Long, Bool); MapKeys and SetValues order are locked; compiler-facing symbol/record/handle-like keys are normalized to canonical scalar IDs rather than raw aggregate keys |
 | 3 | String/path/Unicode policy | READY | unicode_policy_smoke, source_utf8_smoke, memory_string_safety_smoke, filesystem_directory_walk_smoke | stable comparison, normalization, and deterministic directory snapshot stance gated |
 | 4 | Arena/ownership ergonomics | READY | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke | `Allocator` is a single C/LLVM-backed value surface, `BoxArray` can consume a named allocator local, scratch/result/persistent lane constructors carry distinct runtime kinds, and `AllocatorDestroy(namedAllocator)` closes explicit pass-lane cleanup on C and LLVM |
-| 5 | CFG/MIR body as SoT | ACTIVE | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; source_ast and source_decl are ratcheted at codegen 0 / compiler 0; residual STMT source-payload emission and raw source-statement re-dispatch are retired; select and match condition/body-binding/remap emission consume MIR branch facts; resource matching uses source-index/location/anchor facts; C/LLVM destructure binding/initializer emission, C/LLVM assignment emission, LLVM source-local resource LET emission, C source-local LET/DEF/receive paths, and MIR surface validation consume MIR facts; public-surface provenance payload seeding remains |
+| 5 | CFG/MIR body as SoT | ACTIVE | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; source_ast and source_decl are ratcheted at codegen 0 / compiler 0; residual STMT source-payload emission and raw source-statement re-dispatch are retired; select and match condition/body-binding/remap emission consume MIR branch facts; resource matching uses source-index/location/anchor facts; C/LLVM destructure binding/initializer emission, C/LLVM assignment emission, LLVM source-local resource LET emission, C source-local LET/DEF/receive paths, MIR surface validation, and public-surface scalar provenance seeding consume MIR/source-shape facts; MIR lifecycle/dump provenance payload tail remains |
 | 6 | AIR as verifier | READY | air_json_schema_smoke, air_drift_smoke, air_backend_nonimpact_smoke | pgy.air.graph.v1 evidence export gated; drift count enforced at 0 |
 | 7 | DAG type resolution SoT | READY | type_resolution_dag_smoke, type_resolution_resolver_inventory_smoke | recursive resolver compat path retired; metadata_dead_ends enforced at 0 |
 | 8 | Scoped unsafe/raw escape | READY | raw_escape_contract_smoke | unsafe is scoped and capability-bound; raw pointers gated out of domain code |
@@ -128,7 +129,7 @@ ACTIVE means it is on the critical path and still in progress.
 ## Critical path
 
 Capability 5 is closed for the measured source_ast/source_decl frontier, but it
-is still active for the body-level public-surface provenance payload tail.
+is still active for the body-level MIR lifecycle/dump provenance payload tail.
 non_cfg body facts come from MIR and are locked at zero fallback, backend and
 compiler source_ast/source_decl readers are locked at zero, residual STMT
 source-payload emission and raw source-statement re-dispatch are retired,
@@ -141,10 +142,11 @@ source-location, source-index, and anchor facts rather than payload pointer
 identity. Destructure binding-name/index recovery, C/LLVM destructure emission,
 and C/LLVM assignment emission are MIR-owned for SSA local type/view and
 backend emission facts. C source-local LET DEF emission, generic DEF expression
-emission, receive-payload type inference, and MIR surface validation are also
-MIR-owned. The self-hosted checker proves the same manifest. The remaining
-public-surface provenance payload tail must be cut before this row can
-honestly return to READY.
+emission, receive-payload type inference, MIR surface validation, and
+public-surface scalar provenance seeding are also MIR/source-shape owned. The
+self-hosted checker proves the same manifest. The remaining MIR lifecycle/dump
+provenance payload tail must be locked as provenance-only or replaced by scalar
+dump facts before this row can honestly return to READY.
 Capability 4 is
 closed for the current compiler-pass
 substrate: named allocator lanes can be constructed, consumed by
@@ -188,7 +190,7 @@ domain-oriented surface the language is already strong on.
 ## Sequencing
 
 The order that keeps each step verifiable is: finish capability 5's remaining
-public-surface provenance payload tail, keep capabilities 2 and 4 green, expand
+MIR lifecycle/dump provenance payload tail, keep capabilities 2 and 4 green, expand
 the self-hosted tool set from validators toward the MIR dump diff and resolver
 helpers named in 05, then rewrite compiler passes against the C compiler as
 oracle. Starting broad parser/type-checker/backend rewrites while capability 5
@@ -313,9 +315,10 @@ topology errors rather than payload anchors. Select dispatch uses MIR branch
 `expr0` channel facts instead of source case payloads. Match body binding and
 remap also consume MIR branch pattern/guard facts rather than match-case source
 payloads, and resource-op source-statement matching no longer uses payload
-pointer identity. C/LLVM assignment emission and LLVM source-local resource LET
-emission and MIR surface validation now consume MIR facts. The remaining ACTIVE
-tail is the narrower public-surface provenance and C preserved-statement helper
+pointer identity. C/LLVM assignment emission, LLVM source-local resource LET
+emission, MIR surface validation, and public-surface scalar provenance seeding
+now consume MIR/source-shape facts. The remaining ACTIVE tail is the narrower
+MIR lifecycle/dump provenance payload surface and C preserved-statement helper
 surface. LLVM for-in and with-slot resource-claim diagnostics already use MIR
 expression anchors; the rest of the body facts still need dedicated MIR records
 or explicit provenance-only handling.
@@ -338,8 +341,9 @@ locals, and `AllocatorDestroy(namedAllocator)` gives pass authors an explicit
 cleanup operation. Build-gated.
 
 The honest summary is that deterministic collection and allocator substrate are
-closed for hard-self-host planning, while CFG/MIR body SoT still has one named
-public-surface provenance payload tail. The remaining critical path is to cut
-that plus the C preserved-statement helper tail, then continue
+closed for hard-self-host planning, while CFG/MIR body SoT still has a named
+MIR lifecycle/dump provenance payload tail. The remaining critical path is to
+lock that as provenance-only or replace it with scalar dump facts, plus cut the
+C preserved-statement helper tail, then continue
 actual staged compiler-pass substitution: semantic breadth first, then MIR/HIR
 and codegen parity slices against the C compiler oracle.

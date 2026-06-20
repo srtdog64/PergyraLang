@@ -68,8 +68,10 @@ mir_append_matching_def_for_stmt(MIRInstruction *new_insts,
             continue;
 
         def_inst = old_insts[i];
-        if (def_inst.ast == NULL)
+        if (def_inst.ast == NULL) {
             def_inst.ast = stmt;
+            mir_instruction_capture_source_provenance(&def_inst, stmt);
+        }
         mir_attach_def_initializer_call_fact(&def_inst, stmt);
         mir_set_inst_source_statement_index(&def_inst,
                                             source_statement_index);
@@ -312,8 +314,11 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                     MIRInstruction def_inst = old_insts[def_cursor];
                     /* Attach the full statement AST so LLVM emitter can
                      * extract both the type annotation and the initializer. */
-                    if (def_inst.ast == NULL)
+                    if (def_inst.ast == NULL) {
                         def_inst.ast = stmt;
+                        mir_instruction_capture_source_provenance(&def_inst,
+                                                                  stmt);
+                    }
                     mir_attach_def_initializer_call_fact(&def_inst, stmt);
                     mir_set_inst_source_statement_index(&def_inst, s);
                     mir_mark_select_receive_statement_emit(block, &def_inst);

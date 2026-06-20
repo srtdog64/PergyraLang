@@ -326,11 +326,17 @@ run_literal_doc_contract_smoke() {
         echo "MIR surface validation must consume source-shape and expression facts, not source payload" >&2
         exit 1
     fi
+    if grep -Fq -- "mir_instruction_source_payload" \
+        "$ROOT_DIR/src/compiler/mir_public_surface.c"; then
+        echo "MIR public surface must consume captured scalar provenance, not source payload" >&2
+        exit 1
+    fi
     if grep -Eq 'ast_uses_(thread_pool|intent_observability)_surface\(source_payload\)' \
         "$ROOT_DIR/src/compiler/mir_public_surface.c"; then
         echo "MIR public surface usage facts must be recorded from MIR expression facts, not source payload rescans" >&2
         exit 1
     fi
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_capture_source_provenance"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_branch_requires_source_emit"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_has_source_payload"
     require_literal "src/compiler/mir_source_shape.c" "mir_source_node_type_name"
@@ -700,7 +706,6 @@ run_literal_doc_contract_smoke() {
         grep -RInE -- '(inst|block)->(source_node_type|source_line|source_column|has_source_location)\b' \
             "$ROOT_DIR/src/compiler" "$ROOT_DIR/src/codegen" \
         | grep -v 'src/compiler/mir.c:' \
-        | grep -v 'src/compiler/mir_public_surface.c:' \
         | grep -v 'src/compiler/mir_source_shape.c:' \
         || true
     )"

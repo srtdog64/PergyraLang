@@ -257,6 +257,7 @@ mir_add_resource_instruction(MIRRoutine *routine,
     inst.arg1 = op->arg0;
     inst.rir_op = op;
     inst.ast = op->ast;
+    mir_instruction_capture_source_provenance(&inst, op->ast);
     if (op->kind == RIR_OP_WRITE)
         inst.expr0 = mir_resource_write_value_expr_from_call(op->ast);
     if (op->kind == RIR_OP_CLAIM)
@@ -418,6 +419,7 @@ mir_populate_instructions(MIRRoutine *routine)
             inst.arg0 = fact->name;
             inst.arg1 = rir_resource_kind_name(fact->resource_kind);
             inst.ast = fact->ast;
+            mir_instruction_capture_source_provenance(&inst, fact->ast);
             if (!mir_commit_instruction(routine, invalidation, &inst))
                 return false;
             routine->cleanup_instruction_count++;

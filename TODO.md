@@ -139,17 +139,21 @@ English anchor for tooling/doc gates:
   storage, and the feature is not source-visible until semantic/DAG proof,
   MIR ABI rows, and C/LLVM golden output all agree on the same mask/shift/RMW
   fact.
-  Current answer to `let mut` plus bitpacking: the language can support this
-  long term, but not by treating bit slices as ordinary mutable fields. `let
-  mut` only says the local binding may be reassigned or locally mutated; it
-  does not prove addressability, alias safety, atomicity, or a partial-width
-  write policy. The next implementation unit is therefore a reject gate, not a
-  packing optimization: any future packed-field spelling must fail until the
-  compiler has a real `LayoutFact` owner for storage unit, byte offset, bit
-  offset, width, read mask, write mask, shift, sign/extension policy, and
-  read-modify-write effect evidence. After that, add C/LLVM ABI golden fixtures
-  proving both backends consume the same row before enabling source-level
-  packed fields.
+  Current implementation status: source-level bitpacking, packed fields,
+  explicit field offsets, union overlap, and niche-optimized `Option<T>` are
+  not implemented. Runtime-internal ABI structs are frozen through
+  `pgy_abi_spec.h`, but user-visible layout control is still a future
+  raw/extern capability surface. Current answer to `let mut` plus bitpacking:
+  the language can support this long term, but not by treating bit slices as
+  ordinary mutable fields. `let mut` only says the local binding may be
+  reassigned or locally mutated; it does not prove addressability, alias
+  safety, atomicity, or a partial-width write policy. The next implementation
+  unit is therefore a reject gate, not a packing optimization: any future
+  packed-field spelling must fail until the compiler has a real `LayoutFact`
+  owner for storage unit, byte offset, bit offset, width, read mask, write
+  mask, shift, sign/extension policy, and read-modify-write effect evidence.
+  After that, add C/LLVM ABI golden fixtures proving both backends consume the
+  same row before enabling source-level packed fields.
   (3) Swift SIL / Rust MIR pass maturity means each lowering and optimization
   pass declares required facts, preserved facts, invalidated facts, and stable
   diagnostics. `docs/semantics/pass_contract_manifest.md` now pins the major

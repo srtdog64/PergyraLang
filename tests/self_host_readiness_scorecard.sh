@@ -46,8 +46,8 @@ check_gates READY  "9 debug info Phase 1"          debug_hygiene_smoke.sh
 check_gates READY  "10 runtime profile selection"  runtime_none_contract_smoke.sh
 
 echo
-echo "[scorecard] critical path: CFG/MIR body SoT remains ACTIVE until source-payload expression/shape reads are retired"
-echo "[scorecard] CFG/MIR SoT is closed for source_ast/source_decl, residual STMT payload emit, and raw source-statement re-dispatch"
+echo "[scorecard] critical path: CFG/MIR body SoT remains ACTIVE until the MIR lifecycle/dump provenance payload tail is retired"
+echo "[scorecard] CFG/MIR SoT is closed for source_ast/source_decl, residual STMT payload emit, raw source-statement re-dispatch, and public-surface scalar provenance seeding"
 if [ "$missing" -ne 0 ]; then
     echo "[scorecard] FAIL: one or more capability gates are missing" >&2
     exit 1
