@@ -512,10 +512,22 @@ required_todo_terms = [
     "make air-drift-test-smoke",
     "make air-json-schema-test-smoke",
     "air-backend-nonimpact-test-smoke",
+    "AIR transfer/world source negative",
+    "AIR world boundary rejects mismatched transfer AST evidence",
+    "AIR parsed transfer reports zone missing authority evidence",
+    "remaining blocker",
+    "Windows native evidence",
+    "parser-specific code split / multi-error accumulation",
 ]
 missing_todo = [term for term in required_todo_terms if term not in todo]
 if missing_todo:
     raise SystemExit("TODO missing AIR beta gate term(s): " + ", ".join(missing_todo))
+for stale_todo in [
+    "remaining blocker is AIR transfer/world source negative expansion",
+    "남은 blocker는 AIR transfer/world source negative 확장",
+]:
+    if stale_todo in todo:
+        raise SystemExit("TODO reintroduced stale AIR transfer/world negative blocker wording")
 
 for term in [
     "TEST_AIR_SRC",
