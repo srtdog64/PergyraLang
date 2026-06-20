@@ -579,7 +579,12 @@ test_mir_lowering_part_c(void)
         bool rejects_let;
         bool rejects_destructure;
         bool rejects_assignment;
+        bool keeps_fail;
+        bool rejects_with;
+        bool rejects_pure_call;
         bool keeps_effect_call;
+        bool keeps_defer;
+        bool keeps_intent_step;
 
         inst.kind = MIR_INST_STMT;
         inst.name = "stmt";
@@ -595,15 +600,37 @@ test_mir_lowering_part_c(void)
         inst.source_node_type = AST_ASSIGNMENT;
         rejects_assignment =
             !mir_instruction_source_stmt_fallback_is_allowed(&inst);
+        inst.source_node_type = AST_FAIL_STMT;
+        keeps_fail =
+            mir_instruction_source_stmt_fallback_is_allowed(&inst);
+        inst.source_node_type = AST_WITH_STMT;
+        rejects_with =
+            !mir_instruction_source_stmt_fallback_is_allowed(&inst);
+        inst.source_node_type = AST_CALL;
+        inst.arg0 = "HasZone";
+        rejects_pure_call =
+            !mir_instruction_source_stmt_fallback_is_allowed(&inst);
         inst.source_node_type = AST_CALL;
         inst.arg0 = "Log";
         keeps_effect_call =
+            mir_instruction_source_stmt_fallback_is_allowed(&inst);
+        inst.source_node_type = AST_DEFER_STMT;
+        inst.arg0 = NULL;
+        keeps_defer =
+            mir_instruction_source_stmt_fallback_is_allowed(&inst);
+        inst.source_node_type = AST_INTENT_STEP;
+        keeps_intent_step =
             mir_instruction_source_stmt_fallback_is_allowed(&inst);
 
         EXPECT(rejects_let
                && rejects_destructure
                && rejects_assignment
-               && keeps_effect_call);
+               && keeps_fail
+               && rejects_with
+               && rejects_pure_call
+               && keeps_effect_call
+               && keeps_defer
+               && keeps_intent_step);
     }
 
     TEST("MIR validator rejects residual STMT without source inventory fact");

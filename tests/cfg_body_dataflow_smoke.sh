@@ -347,10 +347,18 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_is_cfg_owned_control"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_has_side_effect_hint"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_fallback_is_allowed"
+    require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "keeps_fail"
+    require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "rejects_pure_call"
     if grep -A14 -F "mir_instruction_source_stmt_fallback_is_allowed" \
         "$ROOT_DIR/src/compiler/mir_source_shape.c" | \
         grep -Fq "mir_instruction_source_payload"; then
         echo "MIR residual STMT fallback policy must use source inventory facts, not source payload" >&2
+        exit 1
+    fi
+    if grep -A32 -F "mir_instruction_source_stmt_fallback_is_allowed" \
+        "$ROOT_DIR/src/compiler/mir_source_shape.c" | \
+        grep -Fq "mir_instruction_source_stmt_has_side_effect_hint(inst)"; then
+        echo "MIR residual STMT fallback policy must not reuse broad side-effect hints" >&2
         exit 1
     fi
     require_literal "src/compiler/mir_source_shape.c" "AST_FAIL_STMT"

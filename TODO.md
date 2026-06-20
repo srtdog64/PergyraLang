@@ -120,6 +120,13 @@ English anchor for tooling/doc gates:
   self-hosted `mir_lower` dependency on that `"ast"` text with explicit MIR
   statement facts so capability 5 can move from ACTIVE to READY without a
   source-text compatibility lane.
+- MIR residual STMT fallback source-of-truth: emission fallback policy no
+  longer reuses the broad DCE side-effect hint. `MIR_INST_STMT` fallback is now
+  a closed source-shape allowlist for the residual statement kinds C/LLVM can
+  actually emit, while local dataflow, pure calls, with/CFG wrappers, and
+  unknown side-effect shapes fail during MIR validation instead of falling
+  through to backend source-payload emission. Gate:
+  `cfg-body-dataflow-test-smoke` plus `test-mir` residual STMT policy fixture.
 - Honest weakness ledger: beta messaging and work selection must keep five
   real costs visible instead of hiding them behind safety language. (1) Runtime
   Slot/authority validation can trade memory corruption for availability loss;

@@ -546,28 +546,16 @@ static bool
 mir_source_call_is_pure_query(const char *callee)
 {
     static const char *const k_pure_query_builtins[] = {
-        "ChannelCapacity",
-        "ChannelClosed",
-        "ChannelFull",
-        "ChannelLength",
-        "ChannelSpace",
-        "HasLayer",
-        "HasProjection",
-        "HasState",
-        "HasZone",
-        "HasZoneLayer",
-        "HasZoneProjection",
-        "HasZoneState",
+        "ChannelCapacity", "ChannelClosed", "ChannelFull", "ChannelLength",
+        "ChannelSpace", "HasLayer", "HasProjection", "HasState", "HasZone",
+        "HasZoneLayer", "HasZoneProjection", "HasZoneState",
     };
 
     if (callee == NULL)
         return false;
-    return bsearch(&callee,
-                   k_pure_query_builtins,
-                   sizeof(k_pure_query_builtins)
-                       / sizeof(k_pure_query_builtins[0]),
-                   sizeof(k_pure_query_builtins[0]),
-                   mir_string_pointer_compare) != NULL;
+    return bsearch(&callee, k_pure_query_builtins,
+                   sizeof(k_pure_query_builtins) / sizeof(k_pure_query_builtins[0]),
+                   sizeof(k_pure_query_builtins[0]), mir_string_pointer_compare) != NULL;
 }
 
 bool
@@ -630,11 +618,19 @@ mir_instruction_source_stmt_fallback_is_allowed(const MIRInstruction *inst)
     if (mir_instruction_source_is_cfg_owned_control(inst))
         return false;
     source_type = mir_instruction_source_node_type_or(inst, -1);
-    if (source_type == AST_LET_DECL
-        || source_type == AST_LET_DESTRUCTURE
+    if (source_type == AST_LET_DECL || source_type == AST_LET_DESTRUCTURE
         || source_type == AST_ASSIGNMENT)
         return false;
-    return mir_instruction_source_stmt_has_side_effect_hint(inst);
+    if (source_type == AST_CALL)
+        return !mir_source_call_is_pure_query(inst->arg0);
+    return source_type == AST_FAIL_STMT || source_type == AST_INTENT_STEP
+        || source_type == AST_BIND_STMT || source_type == AST_DEFER_STMT
+        || source_type == AST_PARALLEL_BLOCK || source_type == AST_ASYNC_BLOCK
+        || source_type == AST_SPAWN_EXPR || source_type == AST_AWAIT_EXPR
+        || source_type == AST_CHANNEL_SEND || source_type == AST_CHANNEL_RECV
+        || source_type == AST_EVENT_SUBSCRIBE
+        || source_type == AST_EVENT_UNSUBSCRIBE
+        || source_type == AST_EVENT_INVOKE;
 }
 
 bool
