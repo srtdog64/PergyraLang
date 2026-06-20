@@ -115,7 +115,12 @@ English anchor for tooling/doc gates:
   (2) C# / C++ explicit layout, packed structs, unions, and field offsets must
   stay behind `extern` / raw / ABI-boundary declarations until ownership,
   alignment, aliasing, and slot/capability effects are specified; general
-  Pergyra structs must not silently become unchecked memory overlays.
+  Pergyra structs must not silently become unchecked memory overlays. Do not
+  implement packed fields by delegating to C bitfields; C and LLVM must consume
+  the same `LayoutFact` rows, and packed mutable fields require an explicit
+  read-modify-write mask/shift owner plus alias/atomic rules. Slot,
+  SecureSlot, DeviceSlot, Pin, and capability handles are not packable until a
+  dedicated layout owner proves their ABI, lifetime, and security invariants.
   (3) Swift SIL / Rust MIR pass maturity means each lowering and optimization
   pass declares required facts, preserved facts, invalidated facts, and stable
   diagnostics. Add a pass-contract manifest and a smoke that rejects unowned

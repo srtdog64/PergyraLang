@@ -94,6 +94,37 @@ The promotion ladder is deliberately ordered:
 4. lower C and LLVM from that fact;
 5. only then change the ABI table and golden tests.
 
+## Packed Field Gate
+
+Packed fields and bit-level layout are a LayoutFact problem, not a C backend
+syntax shortcut. Pergyra must not delegate user-visible bit packing to C
+bitfields because bitfield order, padding, signedness, and addressability are
+target/compiler policy. The C backend and LLVM backend must instead consume the
+same ABI layout fact rows and emit equivalent mask/shift operations.
+
+The minimum fact shape for a future packed field is:
+
+- storage unit type and width;
+- byte offset of the storage unit;
+- bit offset and bit width inside that unit;
+- signedness and extension policy;
+- read/write mask policy;
+- whether the field may be addressed, borrowed, atomically updated, or exposed
+  through an extern/raw ABI boundary.
+
+Mutable packed fields are not ordinary field stores. `x.f = value` becomes a
+read-modify-write operation over the containing storage unit. That means the
+layout verifier must reject or explicitly own aliasing and concurrency cases
+before the feature is source-visible. In particular, a packed mutable field may
+not be lowered while another live reference can observe or mutate the same
+storage unit unless a later atomic/borrow rule proves that access pattern.
+
+Slot, SecureSlot, DeviceSlot, Pin, and capability/evidence handles are excluded
+from packing by default. They may become packable only through a dedicated
+layout owner that proves their ABI shape, lifetime behavior, and security
+invariants. General-purpose packing must not silently overlap or truncate
+capability-bearing state.
+
 ## Explicit Layout Gate
 
 User-directed explicit layout, field offsets, packed structs, and union-style

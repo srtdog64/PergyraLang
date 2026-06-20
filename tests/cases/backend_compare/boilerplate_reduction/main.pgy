@@ -11,7 +11,7 @@ ability Climber {
 
 subject Adventurer {
     let name: String;
-    let hp: Int;
+    let mut hp: Int;
 
     action Climb(self) -> Void
         requires Climber
