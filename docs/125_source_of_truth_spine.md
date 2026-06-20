@@ -106,6 +106,10 @@ Current beta closure snapshot:
   facts via `type_function_param_type(...)` and parameter mode facts via
   `type_function_param_mode(...)`. They must not re-resolve parameter types
   from the declaration AST or reopen source `FuncParam::mode`.
+- General ownership call-contract lookup in
+  `src/semantic/type_checker_call_contract_helpers.c` also consumes parameter
+  mode facts from the checked function signature. Returning the source function
+  declaration is allowed only as body-summary/provenance input.
 - MIR lowering lives in `src/compiler/mir.c`, next to the owner-local lowering
   helpers it consumes. Public MIR query/pass wrappers live in
   `src/compiler/mir_public_surface.c`. MIR lowering is a consumer of HIR/RIR

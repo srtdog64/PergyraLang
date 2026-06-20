@@ -96,6 +96,9 @@ English anchor for tooling/doc gates:
   parameter type facts. Function `Type` now also carries parameter-mode facts,
   and the spawn ref-boundary validator consumes
   `type_function_param_mode(...)` instead of reopening `FuncParam::mode`.
+  General ownership call-contract lookup uses the same signature mode fact
+  through `semantic_lookup_function_param_contract(...)`, keeping AST
+  declarations as body-summary provenance only.
   Gate: `semantic-core-shape-test-smoke` plus the type-system fixture
   `function type carries parameter modes`.
 - MIR lifecycle/dump source-text source-of-truth: `mir_lifecycle.c` no longer

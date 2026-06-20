@@ -328,6 +328,9 @@ Closed now:
   re-resolving source `FuncParam` type annotations. Function types also carry
   parameter-mode facts now, so ref-boundary validation reads
   `type_function_param_mode(...)` instead of source `FuncParam::mode`.
+  General ownership call-contract lookup follows the same rule: it may return
+  the function declaration for body-summary provenance, but the parameter mode
+  itself comes from the checked function type.
 - Function types now carry first-stage interprocedural body summaries through
   `body_summary_mask`. The current seam records `may_return`, `may_escape_ref`,
   `moves_param`, `borrows_param`, `drops_resource`, `effects`,

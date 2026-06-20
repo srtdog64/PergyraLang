@@ -1060,6 +1060,15 @@ grep -q 'type_function_has_body_summary' \
     src/semantic/type_checker_call_contract_helpers.c \
     || fail "call contract summary owner must distinguish absent summary facts from checked empty summaries"
 
+grep -q 'type_function_param_mode(function_type, arg_index)' \
+    src/semantic/type_checker_call_contract_helpers.c \
+    || fail "call contract lookup must consume checked function signature param modes"
+
+if grep -q 'ast_func_param(stmt, arg_index)->mode' \
+    src/semantic/type_checker_call_contract_helpers.c; then
+    fail "call contract lookup must not reopen FuncParam mode after signature mode facts exist"
+fi
+
 grep -q 'BODY_SUMMARY_MAY_ESCAPE_REF' \
     src/semantic/type_checker_call_contract_helpers.c \
     || fail "call contract summary owner must preserve the ref-escape body-summary bit"

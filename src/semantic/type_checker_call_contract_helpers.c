@@ -141,11 +141,13 @@ semantic_lookup_function_param_contract(SemanticContext *ctx,
         return NULL;
 
     ASTNode *stmt = semantic_find_function_decl_by_name(ctx, display_name);
-    if (stmt == NULL || arg_index >= ast_func_param_count(stmt))
+    Type *function_type = semantic_callable_decl_function_type(ctx, stmt);
+    if (stmt == NULL || function_type == NULL
+        || arg_index >= type_function_param_count(function_type))
         return NULL;
 
-    if (mode_out != NULL && ast_func_param(stmt, arg_index) != NULL)
-        *mode_out = ast_func_param(stmt, arg_index)->mode;
+    if (mode_out != NULL)
+        *mode_out = type_function_param_mode(function_type, arg_index);
     return stmt;
 }
 
