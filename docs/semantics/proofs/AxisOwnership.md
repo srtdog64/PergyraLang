@@ -127,12 +127,18 @@ known to catch the drifts it names. It does not certify anything beyond them
 State these plainly; do not let the proof artifacts be cited as more than they
 are.
 
-1. **Fragment proofs, not whole-language soundness.** Both `AxisOwnership.v` and
-   `SlotCalculus.v` are *proof sketches* over small models of targeted
-   invariants (axis fact-ownership; stale-handle / token / pin safety). Neither
-   proves type soundness (progress + preservation) of the language, nor any
-   whole-language metatheory. "Pergyra is mechanically verified" is **false** as
-   stated; "Pergyra has machine-checked proofs of specific invariants" is true.
+1. **Fragment proofs, not whole-language soundness.** `AxisOwnership.v`,
+   `SlotCalculus.v`, and `IntentStepSoundness.v` are *proof sketches* over small
+   models of targeted invariants (axis fact-ownership; stale-handle / token /
+   pin safety; intent-step progress + preservation under authority).
+   `IntentStepSoundness.v` does prove the canonical soundness shape (progress +
+   preservation) -- but only for one fragment (authority-guarded linear
+   intents), so it broadens the proof surface without reaching whole-language
+   metatheory. There is still no type soundness for the language as a whole (no
+   coverage of types, generics, world/zone nesting, effects, relations, slots,
+   async, modules together). "Pergyra is mechanically verified" is **false** as
+   stated; "Pergyra has machine-checked proofs of specific invariants, including
+   progress + preservation for an intent fragment" is true.
 
 2. **Judgment rules are not consolidated.** Formal judgments exist as prose in
    `docs/semantics/00_proof_contract.md`, `01_intent_world_zone.md`, etc., and
