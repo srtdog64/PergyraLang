@@ -52,6 +52,13 @@ rewrite history.
 4. **IR-layer verifiers**: each layer (AIR evidence, HIR/DAG type resolution,
    MIR CFG/body/ownership, ABI layout, backend fact consumption) gets a verifier
    that owns its contract.
+5. **Post-self-host: the validation milestone**
+   ([`../post_selfhost_validation_milestone.md`](../post_selfhost_validation_milestone.md)).
+   The broad stdlib is written in self-hosted Pergyra (the usability bulk +
+   dogfood), and the dungeon crawler is built, against falsifiable criteria for
+   whether domain-meaning preservation actually pays off (differential safety,
+   evidence-as-audit, legibility, ergonomics convergence). A negative result is
+   allowed -- that is what makes a positive one mean something.
 
 ## Session log
 
