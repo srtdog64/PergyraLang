@@ -98,7 +98,10 @@ English anchor for tooling/doc gates:
   `type_function_param_mode(...)` instead of reopening `FuncParam::mode`.
   General ownership call-contract lookup uses the same signature mode fact
   through `semantic_lookup_function_param_contract(...)`, keeping AST
-  declarations as body-summary provenance only.
+  declarations as body-summary provenance only. Callable summary propagation
+  also reads callee `own`/`ref` mode bits from the checked function type when
+  that signature fact exists, leaving AST param-mode reads as explicit
+  non-checked compatibility fallback only.
   Gate: `semantic-core-shape-test-smoke` plus the type-system fixture
   `function type carries parameter modes`.
 - MIR lifecycle/dump source-text source-of-truth: `mir_lifecycle.c` no longer

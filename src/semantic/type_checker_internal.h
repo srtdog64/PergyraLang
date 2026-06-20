@@ -94,6 +94,7 @@ void semantic_record_callee_body_summary(SemanticContext *ctx,
                                          const Type *callee_type);
 void semantic_record_callable_decl_summary(SemanticContext *ctx,
                                            ASTNode *callable_decl,
+                                           const Type *callable_type,
                                            uint32_t declared_effects);
 bool semantic_format_secure_token_name(char *out,
                                        size_t out_size,

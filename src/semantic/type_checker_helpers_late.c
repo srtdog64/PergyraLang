@@ -87,6 +87,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     semantic_record_effect(ctx, type_function_effects(sym->type));
     semantic_record_callee_body_summary(ctx, sym->type);
     semantic_record_callable_decl_summary(ctx, callable_decl,
+        sym->type,
         type_function_effects(sym->type));
     if (ctx->in_parallel
         && type_effect_mask_has(type_function_effects(sym->type), EFFECT_SECURE)) {

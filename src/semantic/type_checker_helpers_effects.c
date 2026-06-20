@@ -225,8 +225,11 @@ semantic_record_callee_body_summary(SemanticContext *ctx,
 void
 semantic_record_callable_decl_summary(SemanticContext *ctx,
                                       ASTNode *callable_decl,
+                                      const Type *callable_type,
                                       uint32_t declared_effects)
 {
+    size_t param_count;
+
     if (ctx == NULL || callable_decl == NULL
         || callable_decl->type != AST_FUNC_DECL) {
         return;
@@ -237,13 +240,22 @@ semantic_record_callable_decl_summary(SemanticContext *ctx,
     if (ast_func_within_zone(callable_decl) != NULL)
         semantic_record_body_summary(ctx, BODY_SUMMARY_REQUIRES_ZONE);
 
-    for (size_t i = 0; i < ast_func_param_count(callable_decl); i++) {
-        FuncParam *param = ast_func_param(callable_decl, i);
-        if (param == NULL)
-            continue;
-        if (param->mode == PARAM_MODE_OWN)
+    param_count = callable_type != NULL
+        && callable_type->kind == TYPE_KIND_FUNCTION
+        ? type_function_param_count(callable_type)
+        : ast_func_param_count(callable_decl);
+    for (size_t i = 0; i < param_count; i++) {
+        ParamMode mode = callable_type != NULL
+            && callable_type->kind == TYPE_KIND_FUNCTION
+            ? type_function_param_mode(callable_type, i)
+            : PARAM_MODE_DEFAULT;
+        if (callable_type == NULL || callable_type->kind != TYPE_KIND_FUNCTION) {
+            FuncParam *param = ast_func_param(callable_decl, i);
+            mode = param != NULL ? param->mode : PARAM_MODE_DEFAULT;
+        }
+        if (mode == PARAM_MODE_OWN)
             semantic_record_body_summary(ctx, BODY_SUMMARY_MOVES_PARAM);
-        else if (param->mode == PARAM_MODE_REF)
+        else if (mode == PARAM_MODE_REF)
             semantic_record_body_summary(ctx, BODY_SUMMARY_BORROWS_PARAM);
     }
 }

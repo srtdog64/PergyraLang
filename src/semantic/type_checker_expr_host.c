@@ -279,7 +279,8 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
         : declared_effects;
     semantic_record_effect(ctx, method_effects);
     semantic_record_callee_body_summary(ctx, method_func_type);
-    semantic_record_callable_decl_summary(ctx, method, method_effects);
+    semantic_record_callable_decl_summary(ctx, method, method_func_type,
+        method_effects);
     if (ctx->in_parallel && type_effect_mask_has(method_effects, EFFECT_SECURE)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PARALLEL_SECURE_FORBIDDEN,
             PGY_CAUSE_PARALLEL_SECURE_IN_TASK,

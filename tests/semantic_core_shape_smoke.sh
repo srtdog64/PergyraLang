@@ -1064,6 +1064,10 @@ grep -q 'type_function_param_mode(function_type, arg_index)' \
     src/semantic/type_checker_call_contract_helpers.c \
     || fail "call contract lookup must consume checked function signature param modes"
 
+grep -q 'type_function_param_mode(callable_type, i)' \
+    src/semantic/type_checker_helpers_effects.c \
+    || fail "callable summary propagation must consume checked function signature param modes"
+
 if grep -q 'ast_func_param(stmt, arg_index)->mode' \
     src/semantic/type_checker_call_contract_helpers.c; then
     fail "call contract lookup must not reopen FuncParam mode after signature mode facts exist"
