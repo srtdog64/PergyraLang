@@ -60,6 +60,22 @@ classify() {
     if grep -q '^MIR-LOWER ERROR' "$reast"; then
         printf '  %-18s MIR-LOWER-gap   %s\n' "$name" "$(grep -m1 '^MIR-LOWER ERROR' "$reast" | cut -c1-60)"; return
     fi
+    # mir_lower can reconstruct a *flat* AST that drops control-flow structure
+    # (the if/while/for becomes a bare condition + flattened bodies). codegen
+    # supports `If:`/`While:`/`For:` (confirmed), so a downstream codegen error
+    # here is really mir_lower's missing CFG -> structured-AST reconstruction.
+    if grep -qE '^[[:space:]]*(if|while|for)[[:space:]]' "$src_file" \
+        && ! grep -qE 'If:|While:|For: ' "$reast"; then
+        printf '  %-18s MIR-LOWER-flatten  (codegen ready; mir_lower dropped control-flow structure)\n' "$name"; return
+    fi
+    # Multiple source functions but fewer reconstructed Function: nodes -> mir_lower
+    # merged/dropped functions (codegen supports multiple functions).
+    local src_funcs reast_funcs
+    src_funcs=$(grep -cE '^func ' "$src_file")
+    reast_funcs=$(grep -cE '^  Function: ' "$reast")
+    if [[ "$src_funcs" -gt 1 && "$reast_funcs" -lt "$src_funcs" ]]; then
+        printf '  %-18s MIR-LOWER-merge    (codegen ready; mir_lower merged/dropped functions)\n' "$name"; return
+    fi
     "$B/codegen.exe" "${reast#$ROOT_DIR/}" 2>/dev/null | tr -d '\r' > "$via_c" || true
     if grep -q '^CODEGEN ERROR' "$via_c"; then
         printf '  %-18s CODEGEN-gap     %s\n' "$name" "$(grep -m1 '^CODEGEN ERROR' "$via_c" | cut -c1-60)"; return
