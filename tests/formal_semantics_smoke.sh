@@ -460,7 +460,8 @@ if command -v coqc >/dev/null 2>&1; then
     for coq_proof in \
         docs/semantics/proofs/SlotCalculus.v \
         docs/semantics/proofs/AxisOwnership.v \
-        docs/semantics/proofs/IntentStepSoundness.v; do
+        docs/semantics/proofs/IntentStepSoundness.v \
+        docs/semantics/proofs/IRMinimality.v; do
         if command -v timeout >/dev/null 2>&1; then
             (cd "$ROOT_DIR" && timeout "$coq_timeout" coqc "$coq_proof")
         else
