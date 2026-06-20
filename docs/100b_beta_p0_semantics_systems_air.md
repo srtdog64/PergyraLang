@@ -426,16 +426,23 @@ Remaining:
   read seam for consumers: each returns true when the callee's recorded
   `body_summary_mask` positively proves the bit absent and false when the
   inventory is missing, so a consumer that has no fast-path falls back to
-  its existing AST walk. The first consumer migration applies the
-  channel-send seam: `semantic_callable_param_escape_summary` strips the
-  legacy AST analyzer's `SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE` bit when
-  `proves_no_send_channel` succeeds. `semantic-core-shape-test-smoke`
-  gates the prove helpers as the canonical body-summary read seam on
+  its existing AST walk. Positive readers
+  (`semantic_callable_summary_has_spawn_task`,
+  `semantic_callable_summary_has_send_channel`) also live in the same
+  call-contract owner for policy sites that must reject a reachable boundary
+  only when the checked summary proves it present. The first consumer
+  migration applies the channel-send seam:
+  `semantic_callable_param_escape_summary` strips the legacy AST analyzer's
+  `SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE` bit when
+  `proves_no_send_channel` succeeds. The second consumer is intent control:
+  named calls inside intent clauses now reject callee bodies whose checked
+  summary proves a reachable spawn or channel-send boundary, without reopening
+  the callee body AST. `semantic-core-shape-test-smoke`
+  gates the prove/positive helpers as the canonical body-summary read seam on
   `src/semantic/type_checker_call_contract_helpers.c` and its declaration
   in `type_checker_internal.h`. Remaining work is migrating additional
-  zone/effect/runtime/codegen consumers (e.g. zone authority spawn
-  detection, intent control async/channel detection) onto the same prove
-  helpers instead of repeated AST walks.
+  zone/effect/runtime/codegen consumers (e.g. zone authority spawn detection)
+  onto the same body-summary readers instead of repeated AST walks.
 - Diagnostics must report path provenance with branch/join edge, previous state, `Reason`, and `Fix`.
 - C and LLVM must lower the frozen subset from the same CFG/dataflow facts and be covered by backend compare.
 - Option C ownership lift now has the block-scoped

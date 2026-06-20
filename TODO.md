@@ -82,6 +82,14 @@ English anchor for tooling/doc gates:
   reads MIR source-local type facts before lowering the value. `cfg-body-dataflow`
   now gates this exact call shape so assignment DEF lowering cannot drift back
   to target-only diagnostics or AST target-name type recovery.
+- Intent control body-summary source-of-truth: call-contract helpers now expose
+  positive body-summary readers for spawn and channel-send boundaries. Intent
+  clauses still inspect their own source expression for directly written
+  control constructs, but named callee bodies are no longer reopened; intent
+  control rejects a named call only when the callee's checked function summary
+  proves a reachable spawn or channel-send boundary. Gate:
+  `semantic-core-shape-test-smoke` plus `test-semantic` fixture
+  `intent declaration rejects callee body spawn via body summary`.
 - MIR lifecycle/dump source-text source-of-truth: `mir_lifecycle.c` no longer
   opens `mir_instruction_source_payload(...)` or calls `ast_capture_inline(...)`
   while serializing MIR JSON. The transitional `"ast"` text field is captured

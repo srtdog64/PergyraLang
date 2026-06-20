@@ -1065,6 +1065,16 @@ for body_bit in \
     grep -q "$body_bit" src/semantic/type_checker_call_contract_helpers.c \
         || fail "call contract owner must preserve the '$body_bit' body-summary bit through its prove helper"
 done
+for has_summary in \
+    semantic_callable_summary_has_spawn_task \
+    semantic_callable_summary_has_send_channel; do
+    grep -q "$has_summary" src/semantic/type_checker_call_contract_helpers.c \
+        || fail "body-summary positive reader '$has_summary' must live in the call contract owner"
+    grep -q "$has_summary" src/semantic/type_checker_internal.h \
+        || fail "body-summary positive reader '$has_summary' must be declared in the semantic internal header"
+    grep -q "$has_summary" src/semantic/type_checker_intent_control.c \
+        || fail "intent control must consume body-summary positive reader '$has_summary'"
+done
 
 if grep -RIn 'semantic_legacy_ast_callable_param_escape_summary' src/semantic >/dev/null; then
     fail "call contract escape summary must not reintroduce the legacy AST public seam name"

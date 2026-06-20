@@ -93,6 +93,14 @@ Current beta closure snapshot:
   `semantic_run_legacy_slot_resource_analysis(...)` at the semantic entry point.
   It is a compatibility seam for conservative escape/leak provenance only;
   CFG/MIR remains the body-safety source of truth.
+- Interprocedural callable body-summary reads live in
+  `src/semantic/type_checker_call_contract_helpers.c`. Consumers that need to
+  prove absence or presence of callee body facts must use
+  `semantic_callable_summary_proves_no_*` or
+  `semantic_callable_summary_has_*` rather than reopening a callee body. Intent
+  control may scan its own clause expression for directly written control
+  constructs, but named callee spawn/channel decisions consume the checked
+  body-summary reader.
 - MIR lowering lives in `src/compiler/mir.c`, next to the owner-local lowering
   helpers it consumes. Public MIR query/pass wrappers live in
   `src/compiler/mir_public_surface.c`. MIR lowering is a consumer of HIR/RIR

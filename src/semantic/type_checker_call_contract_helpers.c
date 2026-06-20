@@ -106,6 +106,28 @@ semantic_callable_summary_proves_no_zone_requirement(SemanticContext *ctx,
         && (summary & BODY_SUMMARY_REQUIRES_ZONE) == 0;
 }
 
+bool
+semantic_callable_summary_has_spawn_task(SemanticContext *ctx,
+                                         ASTNode *callee_decl)
+{
+    Type *function_type = semantic_callable_decl_function_type(ctx, callee_decl);
+    uint32_t summary = type_function_body_summary(function_type);
+
+    return type_function_has_body_summary(function_type)
+        && (summary & BODY_SUMMARY_SPAWNS_TASK) != 0;
+}
+
+bool
+semantic_callable_summary_has_send_channel(SemanticContext *ctx,
+                                           ASTNode *callee_decl)
+{
+    Type *function_type = semantic_callable_decl_function_type(ctx, callee_decl);
+    uint32_t summary = type_function_body_summary(function_type);
+
+    return type_function_has_body_summary(function_type)
+        && (summary & BODY_SUMMARY_SENDS_CHANNEL) != 0;
+}
+
 ASTNode *
 semantic_lookup_function_param_contract(SemanticContext *ctx,
                                         const char *display_name,

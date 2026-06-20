@@ -68,7 +68,7 @@ intent_clause_invokes_authority_sensitive_call(ASTNode *expr, SemanticContext *c
 }
 
 static const char *
-intent_forbidden_control_construct(ASTNode *node)
+intent_forbidden_control_construct(ASTNode *node, SemanticContext *ctx)
 {
     const char *nested = NULL;
 
@@ -95,87 +95,104 @@ intent_forbidden_control_construct(ASTNode *node)
         case AST_LAMBDA_EXPR:
             if (ast_lambda_is_async(node))
                 return "async lambda";
-            return intent_forbidden_control_construct(ast_lambda_body(node));
+            return intent_forbidden_control_construct(ast_lambda_body(node), ctx);
         case AST_BINARY:
-            nested = intent_forbidden_control_construct(ast_binary_left(node));
+            nested = intent_forbidden_control_construct(ast_binary_left(node), ctx);
             if (nested != NULL)
                 return nested;
-            return intent_forbidden_control_construct(ast_binary_right(node));
+            return intent_forbidden_control_construct(ast_binary_right(node), ctx);
         case AST_UNARY:
-            return intent_forbidden_control_construct(ast_unary_operand(node));
+            return intent_forbidden_control_construct(ast_unary_operand(node), ctx);
         case AST_CALL:
-            nested = intent_forbidden_control_construct(ast_call_callee(node));
+            nested = intent_forbidden_control_construct(ast_call_callee(node), ctx);
             if (nested != NULL)
                 return nested;
             for (size_t i = 0; i < ast_call_arg_count(node); i++) {
                 nested = intent_forbidden_control_construct(
-                    ast_call_argument(node, i));
+                    ast_call_argument(node, i), ctx);
                 if (nested != NULL)
                     return nested;
             }
+            if (ctx != NULL
+                && ast_call_callee(node) != NULL
+                && ast_call_callee(node)->type == AST_IDENTIFIER) {
+                const char *callee_name =
+                    ast_identifier_name(ast_call_callee(node));
+                ASTNode *callee_decl =
+                    semantic_find_callable_decl_by_name(ctx, callee_name);
+                if (semantic_callable_summary_has_spawn_task(ctx, callee_decl))
+                    return "spawn";
+                if (semantic_callable_summary_has_send_channel(ctx, callee_decl))
+                    return "channel send";
+            }
             return NULL;
         case AST_MEMBER_ACCESS:
-            return intent_forbidden_control_construct(ast_member_object(node));
+            return intent_forbidden_control_construct(ast_member_object(node), ctx);
         case AST_ARRAY_ACCESS:
             nested = intent_forbidden_control_construct(
-                ast_array_access_array(node));
+                ast_array_access_array(node), ctx);
             if (nested != NULL)
                 return nested;
             return intent_forbidden_control_construct(
-                ast_array_access_index(node));
+                ast_array_access_index(node), ctx);
         case AST_ARRAY_LITERAL:
             for (size_t i = 0; i < ast_array_literal_count(node); i++) {
                 nested = intent_forbidden_control_construct(
-                    ast_array_literal_element(node, i));
+                    ast_array_literal_element(node, i), ctx);
                 if (nested != NULL)
                     return nested;
             }
             return NULL;
         case AST_ASSIGNMENT:
-            nested = intent_forbidden_control_construct(ast_assignment_target(node));
+            nested = intent_forbidden_control_construct(
+                ast_assignment_target(node), ctx);
             if (nested != NULL)
                 return nested;
-            return intent_forbidden_control_construct(ast_assignment_value(node));
+            return intent_forbidden_control_construct(
+                ast_assignment_value(node), ctx);
         case AST_MATCH_STMT:
-            nested = intent_forbidden_control_construct(ast_match_subject(node));
+            nested = intent_forbidden_control_construct(ast_match_subject(node), ctx);
             if (nested != NULL)
                 return nested;
             for (size_t i = 0; i < ast_match_case_count(node); i++) {
                 nested = intent_forbidden_control_construct(
-                    ast_match_case_at(node, i));
+                    ast_match_case_at(node, i), ctx);
                 if (nested != NULL)
                     return nested;
             }
             return intent_forbidden_control_construct(
-                ast_match_default_body(node));
+                ast_match_default_body(node), ctx);
         case AST_MATCH_CASE:
-            nested = intent_forbidden_control_construct(ast_match_case_pattern(node));
+            nested = intent_forbidden_control_construct(
+                ast_match_case_pattern(node), ctx);
             if (nested != NULL)
                 return nested;
-            nested = intent_forbidden_control_construct(ast_match_case_guard(node));
+            nested = intent_forbidden_control_construct(
+                ast_match_case_guard(node), ctx);
             if (nested != NULL)
                 return nested;
-            return intent_forbidden_control_construct(ast_match_case_body(node));
+            return intent_forbidden_control_construct(
+                ast_match_case_body(node), ctx);
         case AST_IF_STMT:
-            nested = intent_forbidden_control_construct(ast_if_condition(node));
+            nested = intent_forbidden_control_construct(ast_if_condition(node), ctx);
             if (nested != NULL)
                 return nested;
-            nested = intent_forbidden_control_construct(ast_if_then_branch(node));
+            nested = intent_forbidden_control_construct(ast_if_then_branch(node), ctx);
             if (nested != NULL)
                 return nested;
-            return intent_forbidden_control_construct(ast_if_else_branch(node));
+            return intent_forbidden_control_construct(ast_if_else_branch(node), ctx);
         case AST_BLOCK:
             for (size_t i = 0; i < ast_block_statement_count(node); i++) {
                 nested = intent_forbidden_control_construct(
-                    ast_block_statement(node, i));
+                    ast_block_statement(node, i), ctx);
                 if (nested != NULL)
                     return nested;
             }
             return NULL;
         case AST_RETURN:
-            return intent_forbidden_control_construct(ast_return_value(node));
+            return intent_forbidden_control_construct(ast_return_value(node), ctx);
         case AST_DEFER_STMT:
-            return intent_forbidden_control_construct(ast_defer_body(node));
+            return intent_forbidden_control_construct(ast_defer_body(node), ctx);
         default:
             return NULL;
     }
@@ -187,7 +204,7 @@ intent_clause_rejects_control_transfer(ASTNode *expr,
                                        const char *step_name,
                                        const char *label)
 {
-    const char *construct = intent_forbidden_control_construct(expr);
+    const char *construct = intent_forbidden_control_construct(expr, ctx);
 
     if (construct == NULL)
         return true;
