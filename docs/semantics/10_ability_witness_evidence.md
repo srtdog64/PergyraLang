@@ -72,11 +72,20 @@ reify하고, ability/evidence/contract 체크가 witness를 생산·소비하게
 
 ## 4. 두 위험 — 결정적 규칙으로 닫아야 (락인 전 필수)
 
-### 4.1 Coherence — role-scoped 구현의 ambiguity (가장 위험)
-한 subject가 여러 role에서 같은 ability를 *다르게* 구현하면 "이 문맥에서 어느 witness가
-이기나?"가 모호 — Haskell이 *전역 유일성*으로 닫고 Scala implicit이 안 닫아 악명 높아진
-지점. **규칙(결정적이어야):** role-scoped witness 해소는 *가장 가까운 활성 role*이 이긴다
-(lexical/dynamic 중 택1, 명시). 모호하면 **fail-closed (컴파일 거부)**, 절대 임의 선택 안 함.
+### 4.1 Coherence — role-scoped ambiguity → **설계로 우회됨 (audit 2026-06-20)**
+*우려*: 한 subject가 여러 role에서 같은 ability를 다르게 구현하면 "어느 witness가 이기나?"
+모호 — Haskell이 전역 유일성으로 닫고 Scala implicit이 안 닫아 악명 높은 지점.
+
+*audit 결과*: Pergyra는 **이미 구조적으로 닫혀 있다.** ability는 전역 dispatch되지 않는다 —
+`party`/`zone`의 **`dyn role slot: Ability`** 에 **명시적 `bind slot = Role`** 을 통해서만
+호출된다(`tests/cases/backend_compare/party_role_bind_dispatch`). **bare subject 직접
+호출(`p.Hello()`)은 fail-closed**(`Unknown method`, 진단 확인, C/LLVM 동일). 따라서 전역
+instance가 없어 *coherence ambiguity가 발생할 수 없다* — "어느 witness가 이기나" = "명시적으로
+bind된 그것". 동적 rebind는 `llvm_dyn_role_vtable_swap`이 게이트. → **결정적 규칙 불필요;
+explicit-named-binding이 그 자체로 규칙.** (Scala가 못 닫은 걸 named-slot으로 닫은 셈.)
+
+*잔여 확인*: slot 하나에 두 role을 bind 시도하거나, 한 role이 ability를 중복 impl할 때도
+fail-closed인지 — BDFL이 role 활성 모델 소유자라 확인 위임.
 
 ### 4.2 Dispatch — static vs dynamic
 witness IR은 둘 다 표현해야:
