@@ -114,9 +114,12 @@ IR 노드가 static/dynamic을 *명시 carry*. 기본은 static.
 
 ## 7. Refinement audit — boundary 타이핑 → WitnessDataRace step 모양 (2026-06-20)
 
-`WitnessDataRace.v`는 *모든 경계 crossing이 move / drop / acquire-fresh(=write-cap을
-duplicate 안 함) 중 하나면* data-race-free임을 기계증명했다. 이 audit는 Pergyra 실제 경계
-타이핑이 그 모양에만 부합하는지(refinement 의무)를 좁힌다.
+`WitnessDataRace.v`는 **aliasing-xor-mutability**(slot은 *단일 writer 배타* 또는 *다중 reader
+공존*) 불변식이 성립하면 data-race-free임을 기계증명했다 — **write-write *와* read-write 둘 다**
+(`xor_mut_no_data_race`). 모델 step = `acquire-write`(배타) / `acquire-read`(공존) /
+`release`, 셋 다 불변식 보존(`xor_mut_preserved`), 다중 reader 공존도 확인(`readers_share_ok`,
+over-restriction 아님). 이 audit는 Pergyra 실제 경계 타이핑이 이 불변식을 강제하는지(refinement
+의무)를 좁힌다.
 
 | 경계 | 메커니즘 | step 대응 | 증거 |
 |---|---|---|---|
