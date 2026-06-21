@@ -267,7 +267,7 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
                 || !mir_instruction_has_source_statement_order(inst))) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
-                    "MIR routine '%s' block[%zu] instruction[%zu] STMT fallback is missing source statement inventory fact",
+                    "MIR routine '%s' block[%zu] instruction[%zu] residual STMT emit is missing source statement inventory fact",
                     routine->name != NULL ? routine->name : "(anonymous)",
                     block_index,
                     i);
@@ -275,10 +275,10 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
             return false;
         }
         if (inst->kind == MIR_INST_STMT
-            && !mir_instruction_source_stmt_fallback_is_allowed(inst)) {
+            && !mir_instruction_source_stmt_residual_emit_is_allowed(inst)) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
-                    "MIR routine '%s' block[%zu] instruction[%zu] STMT fallback is outside allowed residual statement policy (%s)",
+                    "MIR routine '%s' block[%zu] instruction[%zu] residual STMT emit is outside allowed residual statement policy (%s)",
                     routine->name != NULL ? routine->name : "(anonymous)",
                     block_index,
                     i,

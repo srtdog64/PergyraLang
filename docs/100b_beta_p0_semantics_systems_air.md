@@ -252,8 +252,8 @@ Closed now:
 - MIR validation now also rejects cleanup blocks that carry normal CFG
   successors or pin-region state. Cleanup/rollback/invalidation blocks must stay
   on the exceptional cleanup chain rather than becoming normal body-flow blocks.
-- MIR validation now also gates residual `MIR_INST_STMT` fallback through
-  `mir_instruction_source_stmt_fallback_is_allowed(...)`. Non-intent semantic
+- MIR validation now also gates residual `MIR_INST_STMT` emission through
+  `mir_instruction_source_stmt_residual_emit_is_allowed(...)`. Non-intent semantic
   carriers must carry a source payload and `source_statement_index`, so
   residual statement emission cannot silently reopen raw source-array fallback.
   C and LLVM MIR block emitters consume the same helper before emitting

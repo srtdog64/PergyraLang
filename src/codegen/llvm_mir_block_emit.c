@@ -591,9 +591,9 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
             } else if (mir_instruction_has_source_statement_order(inst)) {
                 if (mir_instruction_source_is_cfg_container(inst))
                     break;
-                if (!mir_instruction_source_stmt_fallback_is_allowed(inst)) {
+                if (!mir_instruction_source_stmt_residual_emit_is_allowed(inst)) {
                     llvm_set_mir_topology_invalid(ctx,
-                        "LLVM MIR STMT fallback outside allowed residual statement policy");
+                        "LLVM MIR residual STMT emit outside allowed residual statement policy");
                     return;
                 }
                 if (inst->name != NULL && strcmp(inst->name, "bind") == 0) {

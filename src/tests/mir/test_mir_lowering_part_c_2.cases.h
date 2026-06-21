@@ -27,34 +27,35 @@ test_mir_lowering_part_c_2(void)
         inst.source_statement_index = 0;
 
         inst.source_node_type = AST_LET_DECL;
-        rejects_let = !mir_instruction_source_stmt_fallback_is_allowed(&inst);
+        rejects_let =
+            !mir_instruction_source_stmt_residual_emit_is_allowed(&inst);
         inst.source_node_type = AST_LET_DESTRUCTURE;
         rejects_destructure =
-            !mir_instruction_source_stmt_fallback_is_allowed(&inst);
+            !mir_instruction_source_stmt_residual_emit_is_allowed(&inst);
         inst.source_node_type = AST_ASSIGNMENT;
         rejects_assignment =
-            !mir_instruction_source_stmt_fallback_is_allowed(&inst);
+            !mir_instruction_source_stmt_residual_emit_is_allowed(&inst);
         inst.source_node_type = AST_FAIL_STMT;
         keeps_fail =
-            mir_instruction_source_stmt_fallback_is_allowed(&inst);
+            mir_instruction_source_stmt_residual_emit_is_allowed(&inst);
         inst.source_node_type = AST_WITH_STMT;
         rejects_with =
-            !mir_instruction_source_stmt_fallback_is_allowed(&inst);
+            !mir_instruction_source_stmt_residual_emit_is_allowed(&inst);
         inst.source_node_type = AST_CALL;
         inst.arg0 = "HasZone";
         rejects_pure_call =
-            !mir_instruction_source_stmt_fallback_is_allowed(&inst);
+            !mir_instruction_source_stmt_residual_emit_is_allowed(&inst);
         inst.source_node_type = AST_CALL;
         inst.arg0 = "Log";
         keeps_effect_call =
-            mir_instruction_source_stmt_fallback_is_allowed(&inst);
+            mir_instruction_source_stmt_residual_emit_is_allowed(&inst);
         inst.source_node_type = AST_DEFER_STMT;
         inst.arg0 = NULL;
         keeps_defer =
-            mir_instruction_source_stmt_fallback_is_allowed(&inst);
+            mir_instruction_source_stmt_residual_emit_is_allowed(&inst);
         inst.source_node_type = AST_INTENT_STEP;
         keeps_intent_step =
-            mir_instruction_source_stmt_fallback_is_allowed(&inst);
+            mir_instruction_source_stmt_residual_emit_is_allowed(&inst);
         inst.source_node_type = AST_BLOCK;
         inst.has_source_statement_index = false;
         redundant_unordered =
@@ -129,7 +130,7 @@ test_mir_lowering_part_c_2(void)
                 !mir_validate(mir, &mir_error)
                 && mir_error != NULL
                 && strstr(mir_error,
-                          "STMT fallback is missing source statement inventory fact") != NULL;
+                          "residual STMT emit is missing source statement inventory fact") != NULL;
             stmt_inst->has_source_statement_index = true;
         }
         EXPECT(ok

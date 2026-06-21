@@ -2594,13 +2594,13 @@ grep -Fq "mir_instruction_source_stmt_has_side_effect_hint(inst)" "$ROOT_DIR/src
 ! grep -Fq "mir_source_node_stmt_has_side_effect_hint(" "$ROOT_DIR/src/compiler/mir_dce.c"
 ! grep -Fq "mir_instruction_source_payload" "$ROOT_DIR/src/compiler/mir_dce.c"
 grep -Fq "mir_source_node_type_stmt_has_side_effect_hint" "$ROOT_DIR/src/compiler/mir_source_shape.c"
-if grep -A14 -F "mir_instruction_source_stmt_fallback_is_allowed" \
+if grep -A14 -F "mir_instruction_source_stmt_residual_emit_is_allowed" \
     "$ROOT_DIR/src/compiler/mir_source_shape.c" | \
     grep -Fq "mir_instruction_source_payload"; then
-    echo "[perf-contract] residual STMT fallback policy must use MIR source inventory facts, not source payload" >&2
+    echo "[perf-contract] residual STMT emit policy must use MIR source inventory facts, not source payload" >&2
     exit 1
 fi
-if grep -A8 -F "STMT fallback is missing source statement inventory fact" \
+if grep -A8 -F "residual STMT emit is missing source statement inventory fact" \
     "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c" | \
     grep -Fq "mir_instruction_source_payload"; then
     echo "[perf-contract] residual STMT inventory validation must use source-location/order facts, not source payload" >&2

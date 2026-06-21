@@ -861,7 +861,7 @@ also pass through `mir_instruction_source_matches_ast_type(...)`; raw
 `source_node_type == ...` comparisons are a construction detail, not a pattern
 for new consumers.
 
-Source-statement fallback is also owned here. Residual `MIR_INST_STMT`
+Residual source-statement emission is also owned here. `MIR_INST_STMT`
 compatibility should call `mir_instruction_source_stmt_has_side_effect_hint(...)`
 and backend emitters should consume `MIR_STMT.expr0` plus source-shape
 predicates rather than reopening raw payload and source-location fields. The
@@ -873,7 +873,7 @@ call-statement emission live in
 `mir_instruction_source_stmt_call_emit_is_allowed(...)`, not in C/LLVM
 `AST_CALL`, `AST_BLOCK`, or `AST_RETURN` checks. The source-payload accessor is
 a source-shape / public-surface provenance boundary, not a backend semantic
-input. This keeps "may emit source" and "may retain fallback statement" on the
+input. This keeps "may emit source" and "may retain residual statement" on the
 same source-shape seam.
 
 Whole-program surface-usage facts follow the same rule. Public MIR surface

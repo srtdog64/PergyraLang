@@ -290,16 +290,16 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_fact_surface_validate.c" "select receive emit fact is invalid"
     require_literal "src/compiler/mir_fact_surface_validate.c" "source-local-decl emit fact is invalid"
     require_literal "src/compiler/mir_fact_surface_validate.c" "source-statement LET emit is missing local-decl fact"
-    require_literal "src/compiler/mir_fact_surface_validate.c" "STMT fallback is missing source statement inventory fact"
-    if grep -A8 -F "STMT fallback is missing source statement inventory fact" \
+    require_literal "src/compiler/mir_fact_surface_validate.c" "residual STMT emit is missing source statement inventory fact"
+    if grep -A8 -F "residual STMT emit is missing source statement inventory fact" \
         "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c" | \
         grep -Fq "mir_instruction_source_payload"; then
         echo "MIR residual STMT inventory validation must use source-location/order facts, not source payload" >&2
         exit 1
     fi
-    require_literal "src/compiler/mir_fact_surface_validate.c" "STMT fallback is outside allowed residual statement policy"
-    require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_source_stmt_fallback_is_allowed(inst)"
-    require_literal "src/codegen/transpiler_mir_block_emit.c" "mir_instruction_source_stmt_fallback_is_allowed(inst)"
+    require_literal "src/compiler/mir_fact_surface_validate.c" "residual STMT emit is outside allowed residual statement policy"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_source_stmt_residual_emit_is_allowed(inst)"
+    require_literal "src/codegen/transpiler_mir_block_emit.c" "mir_instruction_source_stmt_residual_emit_is_allowed(inst)"
     require_literal "src/compiler/mir.h" "mir_instruction_source_stmt_reemit_is_redundant"
     require_literal "src/compiler/mir.h" "mir_instruction_source_stmt_call_emit_is_allowed"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_reemit_is_redundant"
@@ -371,19 +371,19 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_is_intent_step"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_is_cfg_owned_control"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_has_side_effect_hint"
-    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_fallback_is_allowed"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_residual_emit_is_allowed"
     require_literal "src/tests/mir/test_mir_lowering_part_c_2.cases.h" "keeps_fail"
     require_literal "src/tests/mir/test_mir_lowering_part_c_2.cases.h" "rejects_pure_call"
-    if grep -A14 -F "mir_instruction_source_stmt_fallback_is_allowed" \
+    if grep -A14 -F "mir_instruction_source_stmt_residual_emit_is_allowed" \
         "$ROOT_DIR/src/compiler/mir_source_shape.c" | \
         grep -Fq "mir_instruction_source_payload"; then
-        echo "MIR residual STMT fallback policy must use source inventory facts, not source payload" >&2
+        echo "MIR residual STMT emit policy must use source inventory facts, not source payload" >&2
         exit 1
     fi
-    if grep -A32 -F "mir_instruction_source_stmt_fallback_is_allowed" \
+    if grep -A32 -F "mir_instruction_source_stmt_residual_emit_is_allowed" \
         "$ROOT_DIR/src/compiler/mir_source_shape.c" | \
         grep -Fq "mir_instruction_source_stmt_has_side_effect_hint(inst)"; then
-        echo "MIR residual STMT fallback policy must not reuse broad side-effect hints" >&2
+        echo "MIR residual STMT emit policy must not reuse broad side-effect hints" >&2
         exit 1
     fi
     require_literal "src/compiler/mir_source_shape.c" "AST_FAIL_STMT"

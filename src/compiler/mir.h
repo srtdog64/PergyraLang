@@ -458,7 +458,7 @@ bool        mir_instruction_source_is_cfg_owned_control(
                 const MIRInstruction *inst);
 bool        mir_instruction_source_stmt_has_side_effect_hint(
                 const MIRInstruction *inst);
-bool        mir_instruction_source_stmt_fallback_is_allowed(
+bool        mir_instruction_source_stmt_residual_emit_is_allowed(
                 const MIRInstruction *inst);
 bool        mir_instruction_source_stmt_reemit_is_redundant(
                 const MIRInstruction *inst);

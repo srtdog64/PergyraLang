@@ -368,10 +368,10 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
              * destructure_array, destructure_tuple_return, tuple_literal_local. */
             continue;
         }
-        if (!mir_instruction_source_stmt_fallback_is_allowed(inst)) {
+        if (!mir_instruction_source_stmt_residual_emit_is_allowed(inst)) {
             if (reason != NULL && reason_cap > 0) {
                 transpiler_mir_reasonf(reason, reason_cap,
-                    "MIR block %llu emission failed: STMT fallback outside allowed residual statement policy",
+                    "MIR block %llu emission failed: residual STMT emit outside allowed residual statement policy",
                     (unsigned long long) block->id);
             }
             ok = false;
