@@ -194,6 +194,25 @@ semantic_record_effect(SemanticContext *ctx, uint32_t effect_mask)
         semantic_record_body_summary(ctx, BODY_SUMMARY_EFFECTS);
 }
 
+/*
+ * Record a fine-grained capability (PGY_CAP_* bit) the current code exercises.
+ * Capabilities are a pure-union refinement of effects: `program_capabilities`
+ * always accumulates (top-level statements included) so the program manifest is
+ * complete; `current_function_capabilities` accumulates only inside a function
+ * body so the per-function `declared >= used` check (with caps) has a precise,
+ * interprocedurally-propagated used set. Unlike effects there is no closure or
+ * conflict lattice -- a capability is simply used or not.
+ */
+void
+semantic_record_capability(SemanticContext *ctx, uint32_t capability_mask)
+{
+    if (ctx == NULL || capability_mask == 0u)
+        return;
+    ctx->program_capabilities |= capability_mask;
+    if (ctx->tracking_function_effects)
+        ctx->current_function_capabilities |= capability_mask;
+}
+
 void
 semantic_record_body_summary(SemanticContext *ctx, uint32_t summary_mask)
 {

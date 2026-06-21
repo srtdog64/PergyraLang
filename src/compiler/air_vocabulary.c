@@ -79,6 +79,8 @@ air_drift_kind_name(AIRDriftKind kind)
     case AIR_DRIFT_EFFECT_PROPAGATION_MISSING: return "effect_propagation_missing";
     case AIR_DRIFT_RELATION_PROPAGATION_MISSING: return "relation_propagation_missing";
     case AIR_DRIFT_DAG_DEAD_END_PRESENT: return "dag_dead_end_present";
+    case AIR_DRIFT_COMPRESSION_RESIDUE_MISMATCH:
+        return "compression_residue_mismatch";
     }
     return "invalid";
 }

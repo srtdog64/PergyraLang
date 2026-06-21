@@ -7,6 +7,39 @@
 #include "diag_codes.h"
 #include "type_checker_module_contract_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
+#include "runtime/pgy_runtime_capability.h"
+
+/* Render a PGY_CAP_* mask as a human-readable list for diagnostics. */
+static void
+caps_mask_to_string(uint32_t mask, char *buf, size_t buf_size)
+{
+    static const struct { uint32_t bit; const char *name; } k_caps[] = {
+        { PGY_CAP_IO_READ,  "io_read" },
+        { PGY_CAP_IO_WRITE, "io_write" },
+        { PGY_CAP_NETWORK,  "network" },
+        { PGY_CAP_CLOCK,    "clock" },
+        { PGY_CAP_RANDOM,   "random" },
+        { PGY_CAP_ENV,      "env" },
+        { PGY_CAP_RENDER,   "render" },
+        { PGY_CAP_AUDIO,    "audio" },
+        { PGY_CAP_INPUT,    "input" },
+    };
+    size_t off = 0;
+
+    if (buf == NULL || buf_size == 0)
+        return;
+    buf[0] = '\0';
+    if (mask == 0u) {
+        snprintf(buf, buf_size, "none");
+        return;
+    }
+    for (size_t i = 0; i < sizeof(k_caps) / sizeof(k_caps[0]); i++) {
+        if ((mask & k_caps[i].bit) == 0)
+            continue;
+        off = pergyra_str_appendf(buf, buf_size, "%s%s",
+                                  off > 0 ? ", " : "", k_caps[i].name);
+    }
+}
 
 bool
 type_check_func_decl(ASTNode *node, SemanticContext *ctx)
@@ -16,6 +49,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     ASTNode *enclosing_nominal = ctx->current_nominal_decl;
     ASTNode *prev_function_decl = ctx->current_function_decl;
     uint32_t prev_effects = ctx->current_function_effects;
+    uint32_t prev_capabilities = ctx->current_function_capabilities;
     uint32_t prev_body_summary = ctx->current_function_body_summary;
     bool prev_tracking = ctx->tracking_function_effects;
     bool prev_async = ctx->in_async_func;
@@ -213,6 +247,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     ctx->inferred_return = NULL;
     ctx->inferred_return_conflict = false;
     ctx->current_function_effects = EFFECT_NONE;
+    ctx->current_function_capabilities = 0u;
     ctx->current_function_body_summary = BODY_SUMMARY_NONE;
     ctx->tracking_function_effects = true;
     ctx->in_async_func = prev_async || node->is_async_decl;
@@ -325,6 +360,38 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 
         type_function_set_effects(func_type,
             type_effect_mask_join(declared_effects, derived_effects));
+
+        /* Capability declared >= used (the `with caps` contract). Capabilities
+         * are inferred bottom-up and propagated through calls exactly like
+         * effects, so `current_function_capabilities` is the interprocedural
+         * used set. A function that declares caps must cover every capability
+         * its body (transitively) exercises -- a precise, fail-closed refinement
+         * of the coarse effect families. */
+        {
+            uint32_t declared_caps = ast_func_declared_capabilities(node);
+            uint32_t used_caps = ctx->current_function_capabilities;
+            uint32_t missing_caps = used_caps & ~declared_caps;
+
+            if (ast_func_has_caps_clause(node) && missing_caps != 0u) {
+                char used_buf[160];
+                char missing_buf[160];
+                char declared_buf[160];
+                caps_mask_to_string(used_caps, used_buf, sizeof(used_buf));
+                caps_mask_to_string(missing_caps, missing_buf, sizeof(missing_buf));
+                caps_mask_to_string(declared_caps, declared_buf, sizeof(declared_buf));
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_EFFECT_CONFLICT,
+                    PGY_CAUSE_EFFECT_INCOMPATIBLE_COMBO, PGY_FIX_SPLIT_EFFECT_FAMILIES, node,
+                    "Function '%s' is missing declared capabilities: %s (declared: %s, used by body: %s)",
+                    name != NULL ? name : "<anonymous>",
+                    missing_buf, declared_buf, used_buf);
+            }
+        }
+
+        /* Capability surface: declared (with caps) unioned with the body's
+         * inferred capabilities, so callers propagate the full set. */
+        type_function_set_capabilities(func_type,
+            ast_func_declared_capabilities(node)
+            | ctx->current_function_capabilities);
 
         {
             const char *within_zone = ast_func_within_zone(node);
@@ -466,6 +533,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     ctx->current_return = prev_return;
     ctx->current_function_decl = prev_function_decl;
     ctx->current_function_effects = prev_effects;
+    ctx->current_function_capabilities = prev_capabilities;
     ctx->current_function_body_summary = prev_body_summary;
     ctx->tracking_function_effects = prev_tracking;
     ctx->in_async_func = prev_async;

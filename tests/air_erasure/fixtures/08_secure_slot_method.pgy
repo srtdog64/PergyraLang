@@ -1,0 +1,18 @@
+// Secure-slot authority across a method boundary: the token is a private field
+// read inside Get()/Init(), so the optimizer cannot fold the token check the way
+// it does for a straight-line local token (03). Tests whether bucket B (the
+// secure authority check) physically survives when its provenance is not inline.
+class SecureCounter {
+    private let (_slot, _token) = ClaimSecureSlot<Int>(SECURITY_LEVEL_HARDWARE)
+    public func Init() -> Void {
+        Write(_slot, 100, _token);
+    }
+    public func Get() -> Int {
+        return Read(_slot, _token);
+    }
+}
+func Main() -> Void {
+    let c: SecureCounter = SecureCounter();
+    c.Init();
+    Log(c.Get());
+}

@@ -26,6 +26,7 @@ if [[ ! -x "$PGY" ]]; then
     echo "[self-host-parity:parser] missing compiler binary: $PGY" >&2
     exit 1
 fi
+PGY_EXEC="$(pgy_path_for_bash_tool "$PGY")"
 
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/parser/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/parser}"
@@ -260,7 +261,7 @@ check_live_fixture_drift() {
         local live_out
         local live_rc
         set +e
-        live_out="$(cd "$ROOT_DIR" && "$PGY" --ast "$src" 2>/dev/null)"
+            live_out="$(cd "$ROOT_DIR" && "$PGY_EXEC" --ast "$src" 2>/dev/null)"
         live_rc=$?
         set -e
         if [[ "$live_rc" -eq 0 && -n "$live_out" ]]; then
@@ -283,7 +284,7 @@ compile_parser_backend() {
     local tool_bin="$2"
 
     echo "[self-host-parity:parser] compiling parser backend=$backend..."
-    (cd "$ROOT_DIR" && "$PGY" \
+    (cd "$ROOT_DIR" && "$PGY_EXEC" \
         "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")" \
         --backend="$backend" \
         -o "$(pgy_path_for_compiler "$PGY" "$tool_bin")" >/dev/null)

@@ -1,0 +1,7 @@
+// Capability under-declaration: GetTimestamp declares `with caps io_read` but
+// its body uses Now(), which exercises the CLOCK capability. The type checker's
+// declared >= used check must flag the missing CLOCK capability.
+func GetTimestamp() -> Int
+    with caps io_read {
+    return Now();
+}

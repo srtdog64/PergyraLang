@@ -1,0 +1,6 @@
+// Manifest fixture: top-level gated-builtin uses, no effects clauses.
+// Expected used capabilities: IO_WRITE, CLOCK, RANDOM. No violations.
+let t = Now();
+let r = Random(10);
+WriteFile("tests/capability/out.txt", "hi");
+Log("done");

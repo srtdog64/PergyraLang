@@ -114,6 +114,8 @@ bool     parser_decl_parse_next_function_clause(Parser *parser, ASTNode *func,
                                                 bool *matched_out);
 void     parse_optional_effect_clause(Parser *parser, bool *has_clause_out,
                                       uint32_t *mask_out);
+void     parse_optional_caps_clause(Parser *parser, bool *has_clause_out,
+                                    uint32_t *mask_out);
 ASTNode *parse_class_declaration(Parser *parser);
 ASTNode *parse_subject_declaration(Parser *parser);
 ASTNode *parse_lifecycle_declaration(Parser *parser);

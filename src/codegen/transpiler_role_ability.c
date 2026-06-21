@@ -430,7 +430,6 @@ transpiler_party_slot_method_ability_tag(TranspilerCtx *ctx,
                                          const char *slot_name,
                                          const char *method_name)
 {
-    char *fallback_tag = NULL;
     const char *party_name;
     TranspilerHostedRoleSlotView role_view;
 
@@ -473,7 +472,6 @@ transpiler_party_slot_method_ability_tag(TranspilerCtx *ctx,
                     transpiler_active_decl_header_of_type(
                         ctx, AST_ABILITY_DECL, ability_name);
                 if (ability_header == NULL) {
-                    free(fallback_tag);
                     transpiler_set_mir_inventory_missing(ctx,
                         "MIR-only C path missing ability declaration header for party slot method '%s'",
                         method_name);
@@ -489,17 +487,17 @@ transpiler_party_slot_method_ability_tag(TranspilerCtx *ctx,
             ability_tag = render_mir_ability_ref_vtable_tag_in_ctx(
                 ctx, ability_ref);
             if (has_method) {
-                free(fallback_tag);
                 return ability_tag;
             }
-            if (fallback_tag == NULL) {
-                fallback_tag = ability_tag;
-            } else {
-                free(ability_tag);
-            }
+            free(ability_tag);
         }
+        transpiler_set_backend_error(ctx,
+            "party slot '%s.%s' has no required ability that provides method '%s'",
+            party_name != NULL ? party_name : "<party>",
+            slot_name,
+            method_name);
         break;
     }
 
-    return fallback_tag;
+    return NULL;
 }

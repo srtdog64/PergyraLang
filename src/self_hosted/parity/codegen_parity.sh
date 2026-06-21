@@ -37,6 +37,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/src/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
+PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix_from_current_path)"
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
@@ -84,32 +85,33 @@ run_native_capture() {
     local bin="$4"
     shift 4
 
-    local use_windows_bridge=0
-    case "$(uname -s 2>/dev/null || echo unknown)" in
-        MINGW*|MSYS*|CYGWIN*)
-            if pgy_binary_expects_windows_paths "$bin" \
-                && command -v powershell.exe >/dev/null 2>&1; then
-                use_windows_bridge=1
-            fi
-            ;;
-    esac
-
-    if [[ "$use_windows_bridge" -eq 0 ]] && pgy_binary_is_runnable_here "$bin"; then
+    if pgy_binary_is_runnable_here "$bin"; then
         (cd "$cwd" && "$bin" "$@" >"$out" 2>"$err")
-        return $?
+        local direct_rc=$?
+        case "$direct_rc" in
+            126|127)
+                case "$(uname -s 2>/dev/null || echo unknown)" in
+                    MINGW*|MSYS*|CYGWIN*) ;;
+                    *) return "$direct_rc" ;;
+                esac
+                ;;
+            *)
+                return "$direct_rc"
+                ;;
+        esac
     fi
 
     case "$(uname -s 2>/dev/null || echo unknown)" in
         MINGW*|MSYS*|CYGWIN*) ;;
         *) return 127 ;;
     esac
-    command -v cmd.exe >/dev/null 2>&1 || return 127
+    command -v powershell.exe >/dev/null 2>&1 || return 127
 
     local cwd_native
     local bin_native
     local out_native
     local err_native
-    local args_cmd=""
+    local args_native=""
     local arg
 
     cwd_native="$(pgy_path_for_windows_tool "$cwd")"
@@ -118,10 +120,11 @@ run_native_capture() {
     err_native="$(pgy_path_for_windows_tool "$err")"
     for arg in "$@"; do
         local escaped_arg="${arg//\"/\\\"}"
-        args_cmd="${args_cmd} \"${escaped_arg}\""
+        args_native="${args_native} \"${escaped_arg}\""
     done
 
-    cmd.exe //d //c "cd /d \"${cwd_native}\" && \"${bin_native}\"${args_cmd} > \"${out_native}\" 2> \"${err_native}\""
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
+        "\$env:PATH='${PGY_WINDOWS_PS_PATH_PREFIX}' + \$env:PATH; \$enc = New-Object System.Text.UTF8Encoding \$false; \$psi = New-Object System.Diagnostics.ProcessStartInfo; \$psi.FileName = $(pgy_powershell_quote "$bin_native"); \$psi.WorkingDirectory = $(pgy_powershell_quote "$cwd_native"); \$psi.UseShellExecute = \$false; \$psi.RedirectStandardOutput = \$true; \$psi.RedirectStandardError = \$true; \$psi.Arguments = $(pgy_powershell_quote "$args_native"); \$p = [System.Diagnostics.Process]::Start(\$psi); if (\$p -eq \$null) { exit 127 }; \$stdout = \$p.StandardOutput.ReadToEnd(); \$stderr = \$p.StandardError.ReadToEnd(); \$p.WaitForExit(); [System.IO.File]::WriteAllText($(pgy_powershell_quote "$out_native"), \$stdout, \$enc); [System.IO.File]::WriteAllText($(pgy_powershell_quote "$err_native"), \$stderr, \$enc); exit \$p.ExitCode"
 }
 
 # Fixture base names; each resolves to fixture/<base>.pgy and

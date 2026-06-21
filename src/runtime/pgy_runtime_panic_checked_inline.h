@@ -1,5 +1,7 @@
 /* Runtime panic helpers and checked arithmetic exports. */
 
+#include "pgy_runtime_capability.h"
+
 static inline struct timespec
 pgy_timespec_after_ns(uint64_t timeout_ns)
 {
@@ -139,6 +141,61 @@ pgy_runtime_lifecycle_guard_export(const void *inst, int32_t valid_mask,
     }
     if (e != NULL && to_state >= 0)
         e->state = to_state;
+}
+
+/* =================================================================
+ * Content capability gate (the runtime-enforced effect boundary).
+ *
+ * Process-wide granted set; gated ambient-authority operations panic
+ * fail-closed (class capability-denied) when used outside the grant. Default is
+ * PGY_CAP_ALL so trusted programs are unaffected; a loader imposes a restricted
+ * manifest before running untrusted content. See pgy_runtime_capability.h.
+ *
+ * As with the lifecycle helpers, the granted set must be a single process-wide
+ * value, so the C build keeps it in a function-local static (one per single-TU
+ * C output) and the LLVM build resolves to the one external twin in the runtime
+ * object (these are excluded from inlined bitcode, llvm_fn_is_capability_runtime).
+ * ================================================================= */
+
+static inline uint32_t *
+pgy_cap_granted_slot(void)
+{
+    static uint32_t granted = PGY_CAP_ALL;
+    return &granted;
+}
+
+static inline void
+pgy_cap_set_manifest_export(uint32_t mask)
+{
+    *pgy_cap_granted_slot() = mask;
+}
+
+static inline void
+pgy_cap_grant_all_export(void)
+{
+    *pgy_cap_granted_slot() = PGY_CAP_ALL;
+}
+
+static inline uint32_t
+pgy_cap_granted_export(void)
+{
+    return *pgy_cap_granted_slot();
+}
+
+/* Fail-closed gate: every bit in `cap` must be granted, else panic with a
+ * traceable record naming the operation and the required/granted masks. */
+static inline void
+pgy_cap_require_export(uint32_t cap, const char *op)
+{
+    uint32_t granted = *pgy_cap_granted_slot();
+
+    if ((granted & cap) != cap) {
+        fprintf(stderr, "%s capability op=%s required=0x%x granted=0x%x\n",
+                PGY_RUNTIME_PANIC_PREFIX, op != NULL ? op : "<op>",
+                (unsigned)cap, (unsigned)granted);
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_CAPABILITY_DENIED,
+                          PGY_RUNTIME_PANIC_REASON_CAPABILITY_DENIED);
+    }
 }
 
 static inline int32_t

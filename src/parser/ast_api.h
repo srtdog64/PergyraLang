@@ -44,6 +44,8 @@ AccessModifier ast_func_access(const ASTNode* node);
 bool ast_func_has_explicit_access(const ASTNode* node);
 bool ast_func_has_effects_clause(const ASTNode* node);
 uint32_t ast_func_declared_effects(const ASTNode* node);
+bool ast_func_has_caps_clause(const ASTNode* node);
+uint32_t ast_func_declared_capabilities(const ASTNode* node);
 StructuredComment* ast_func_doc_comment(const ASTNode* node);
 size_t ast_func_required_ability_count(const ASTNode* node);
 ASTNode** ast_func_required_abilities(const ASTNode* node, size_t* count_out);

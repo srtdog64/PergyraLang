@@ -47,6 +47,7 @@ done
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
+PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
 
 # Mirror the shared lib subtree alongside the build dir so the tool's
 # `import "../../lib/..."` resolves from the copied source. The tool source
@@ -60,7 +61,7 @@ mkdir -p "$LIB_BUILD_DIR"
 cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
 
 set +e
-PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL" --run 2>/dev/null)"
+PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>/dev/null)"
 P_RC=$?
 set -e
 
@@ -121,7 +122,7 @@ sed 's/"modules":/"NOTMODULES":/' "$ROOT_DIR/$MANIFEST_PATH" \
     > "$NEG_ROOT/$MANIFEST_PATH"
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL" --run 2>&1)"
+NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>&1)"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then
@@ -135,5 +136,5 @@ if ! grep -Fq '"kind":"missing_modules_key"' <<<"$NEG_OUT"; then
     exit 1
 fi
 
-assert_llvm_leg "self-host-parity:module-manifest-resolver" "$PERGYRA_TOOL" "$PERGYRA_TOOL_BUILD_DIR"
+assert_llvm_leg "self-host-parity:module-manifest-resolver" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR"
 echo "[self-host-parity:module-manifest-resolver] rung-2 parity ok (modules=$SHELL_MODULES blockers=$SHELL_BLOCKERS stable=$SHELL_STABLE; missing-modules-key rc=1)"

@@ -45,47 +45,32 @@ ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_string) >= 16,
  * STATIC ASSERTIONS — SecureSlot<T>
  * ================================================================= */
 
-ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_int_dbg, value) == 0,
-                  secure_slot_int_dbg_value_at_0);
-ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_int_dbg, token) > 4,
-                  secure_slot_int_dbg_token_after_value);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_secure_slot_int_dbg) > sizeof(pgy_abi_slot_int),
-                  secure_slot_int_dbg_larger_than_slot);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_secure_slot_int_dbg) >= 16,
-                  secure_slot_int_dbg_min_size_16);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_secure_slot_int_rel) == sizeof(pgy_abi_secure_slot_int_dbg),
-                  secure_slot_int_rel_same_size_as_dbg);
-ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_int_rel, token) == offsetof(pgy_abi_secure_slot_int_dbg, token),
-                  secure_slot_int_rel_same_token_offset_as_dbg);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_secure_slot_long_rel) == sizeof(pgy_abi_secure_slot_long_dbg),
-                  secure_slot_long_rel_same_size_as_dbg);
-ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_long_rel, token) == offsetof(pgy_abi_secure_slot_long_dbg, token),
-                  secure_slot_long_rel_same_token_offset_as_dbg);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_secure_slot_float_rel) == sizeof(pgy_abi_secure_slot_float_dbg),
-                  secure_slot_float_rel_same_size_as_dbg);
-ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_float_rel, token) == offsetof(pgy_abi_secure_slot_float_dbg, token),
-                  secure_slot_float_rel_same_token_offset_as_dbg);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_secure_slot_double_rel) == sizeof(pgy_abi_secure_slot_double_dbg),
-                  secure_slot_double_rel_same_size_as_dbg);
-ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_double_rel, token) == offsetof(pgy_abi_secure_slot_double_dbg, token),
-                  secure_slot_double_rel_same_token_offset_as_dbg);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_secure_slot_bool_rel) == sizeof(pgy_abi_secure_slot_bool_dbg),
-                  secure_slot_bool_rel_same_size_as_dbg);
-ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_bool_rel, token) == offsetof(pgy_abi_secure_slot_bool_dbg, token),
-                  secure_slot_bool_rel_same_token_offset_as_dbg);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_secure_slot_string_rel) == sizeof(pgy_abi_secure_slot_string_dbg),
-                  secure_slot_string_rel_same_size_as_dbg);
-ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_string_rel, token) == offsetof(pgy_abi_secure_slot_string_dbg, token),
-                  secure_slot_string_rel_same_token_offset_as_dbg);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_int, value) == 0,
+                  secure_slot_int_value_at_0);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_int, token) > 4,
+                  secure_slot_int_token_after_value);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_secure_slot_int) > sizeof(pgy_abi_slot_int),
+                  secure_slot_int_larger_than_slot);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_secure_slot_int) >= 16,
+                  secure_slot_int_min_size_16);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_long, token) > 8,
+                  secure_slot_long_token_after_value);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_float, token) > 4,
+                  secure_slot_float_token_after_value);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_double, token) > 8,
+                  secure_slot_double_token_after_value);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_bool, token) > 1,
+                  secure_slot_bool_token_after_value);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_string, token) > sizeof(void *),
+                  secure_slot_string_token_after_value);
 
-ABI_STATIC_ASSERT(sizeof(pgy_abi_token_int_dbg) >= 16,
-                  token_int_dbg_min_size_16);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_token_int_rel) == sizeof(pgy_abi_token_int_dbg),
-                  token_int_rel_same_size_as_dbg);
-ABI_STATIC_ASSERT(offsetof(pgy_abi_token_int_rel, can_write) == offsetof(pgy_abi_token_int_dbg, can_write),
-                  token_int_rel_can_write_same_offset_as_dbg);
-ABI_STATIC_ASSERT(offsetof(pgy_abi_token_int_rel, can_read) == offsetof(pgy_abi_token_int_dbg, can_read),
-                  token_int_rel_can_read_same_offset_as_dbg);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_token_int) >= 16,
+                  token_int_min_size_16);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_token_int, can_write) > 0,
+                  token_int_can_write_after_id);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_token_int, can_read)
+                      > offsetof(pgy_abi_token_int, can_write),
+                  token_int_can_read_after_can_write);
 
 ABI_STATIC_ASSERT(offsetof(pgy_abi_pinned_slot_view_int, slot) == 0,
                   pinned_slot_view_int_slot_at_0);

@@ -175,7 +175,9 @@ void pgy_file_close(int32_t fd)
 
 PgyRuntimeIoStringResult pgy_try_read_file_result(const char *path)
 {
-    char *resolved = pgy_runtime_resolve_file_path(path, false);
+    char *resolved;
+    pgy_cap_require_export(PGY_CAP_IO_READ, "read-file");
+    resolved = pgy_runtime_resolve_file_path(path, false);
     if (resolved == NULL)
         return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_RESOLVE_FAILED, "io-boundary", "read-file"));
@@ -267,7 +269,9 @@ bool pgy_file_exists(const char *path)
 PgyRuntimeIoVoidResult pgy_try_write_file_result(const char *path,
                                                  const char *data)
 {
-    char *resolved = pgy_runtime_resolve_file_path(path, true);
+    char *resolved;
+    pgy_cap_require_export(PGY_CAP_IO_WRITE, "write-file");
+    resolved = pgy_runtime_resolve_file_path(path, true);
     if (resolved == NULL)
         return pgy_runtime_io_void_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_RESOLVE_FAILED, "io-boundary", "write-file"));
@@ -327,7 +331,9 @@ PgyRuntimeIoStringResult pgy_try_input_result(const char *prompt)
 
 char *pgy_input(const char *prompt)
 {
-    PgyRuntimeIoStringResult result = pgy_try_input_result(prompt);
+    PgyRuntimeIoStringResult result;
+    pgy_cap_require_export(PGY_CAP_IO_READ, "input");
+    result = pgy_try_input_result(prompt);
     return result.tag == PGY_RUNTIME_IO_RESULT_OK
         ? result.ok
         : pgy_runtime_lib_strdup("");

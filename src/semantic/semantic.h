@@ -33,6 +33,10 @@ typedef struct SemanticResult
     size_t       type_resolution_dag_generic_contract_evidence_count;
     size_t       type_resolution_dag_ability_consumer_evidence_count;
     PgyBoundaryWitnessSummary boundary_witness_summary;
+    /* Sound, interprocedurally-inferred capability manifest: the union of every
+     * PGY_CAP_* the program can exercise (the `--capability-manifest` artifact).
+     * Best-effort lower bound w.r.t. dynamic dispatch; the runtime gate backstops. */
+    uint32_t     program_capabilities;
 } SemanticResult;
 
 /* -----------------------------------------------------------------

@@ -70,9 +70,11 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         Type *return_type = TYPE_VOID;
         Type *expected_lambda_type = ctx->expected_lambda_type;
         uint32_t saved_effects = ctx->current_function_effects;
+        uint32_t saved_capabilities = ctx->current_function_capabilities;
         uint32_t saved_body_summary = ctx->current_function_body_summary;
         bool saved_tracking = ctx->tracking_function_effects;
         uint32_t lambda_effects = EFFECT_NONE;
+        uint32_t lambda_capabilities = 0u;
         uint32_t lambda_body_summary = BODY_SUMMARY_NONE;
         Type *result;
 
@@ -115,12 +117,14 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
 
         ctx->tracking_function_effects = true;
         ctx->current_function_effects = EFFECT_NONE;
+        ctx->current_function_capabilities = 0u;
         ctx->current_function_body_summary = BODY_SUMMARY_NONE;
 
         if (semantic_reject_lambda_unsupported_captures(
                 lambda_body, ctx)) {
             scope_exit(&ctx->scope);
             ctx->current_function_effects = saved_effects;
+            ctx->current_function_capabilities = saved_capabilities;
             ctx->current_function_body_summary = saved_body_summary;
             ctx->tracking_function_effects = saved_tracking;
             free(param_types);
@@ -153,15 +157,18 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
             ctx->in_async_func = saved_in_async;
         }
         lambda_effects = ctx->current_function_effects;
+        lambda_capabilities = ctx->current_function_capabilities;
         lambda_body_summary = ctx->current_function_body_summary;
 
         scope_exit(&ctx->scope);
         result = type_create_function(param_types, param_count, return_type);
         if (result != NULL) {
             type_function_set_effects(result, type_effect_mask_closure(lambda_effects));
+            type_function_set_capabilities(result, lambda_capabilities);
             type_function_set_body_summary(result, lambda_body_summary);
         }
         ctx->current_function_effects = saved_effects;
+        ctx->current_function_capabilities = saved_capabilities;
         ctx->current_function_body_summary = saved_body_summary;
         ctx->tracking_function_effects = saved_tracking;
         free(param_types);

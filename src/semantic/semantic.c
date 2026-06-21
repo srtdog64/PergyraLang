@@ -223,6 +223,7 @@ semantic_analyze(ASTNode *ast)
     result->type_resolution_dag_ability_consumer_evidence_count =
         ctx->type_resolution_dag_ability_consumer_evidence_count;
     result->boundary_witness_summary = ctx->boundary_witness_summary;
+    result->program_capabilities = ctx->program_capabilities;
     for (size_t i = 0; i < ctx->diagnostic_count; i++) {
         if (ctx->diagnostics[i]->level == DIAG_ERROR)
             result->error_count++;

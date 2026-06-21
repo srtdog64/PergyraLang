@@ -177,6 +177,12 @@ Preserved facts:
 - evidence provider;
 - source/provenance name;
 - compression budget for intent/boundary evidence;
+- compression `retain_cause` (inherent/policy/unproven — the A/B/C reason a retain
+  was unavoidable), so the analyzer's "could not prove" verdict is preserved, not
+  flattened into an undifferentiated retain;
+- the lifecycle `CHECK`-guard count (`unproven_retain_count`, bucket C) and the
+  parallel/channel concurrency count (`inherent_concurrency_count`, bucket A) —
+  program-level retain facts that no boundary node carries;
 - cleanup, pin, terminator, select-receive, DAG, runtime, and observability
   evidence when those facts discharge an abstraction proof.
 
@@ -231,6 +237,16 @@ This is the DOP/Zone rule: Zone is a semantic boundary. Physical memory layout,
 padding, SoA/AoS shape, barriers, and ABI structs are decided only by the
 ABI/Layout owner. A backend must not make a Zone physically heavier unless a
 runtime, MIR, or ABI fact requires that cost.
+
+Each `retain`/`summarize` additionally carries a `retain_cause` — `inherent`
+(bucket A, irreducible runtime), `policy` (bucket B, kept by traceability/opt-out
+policy), or `unproven` (bucket C, retained only because the analysis could not
+discharge it). Only bucket C is improvable debt; it must trend downward. The
+budget says *whether* a carrier remains, the cause says *why it had to*. This
+separation is what lets the erasure dashboard (`docs/semantics/14`,
+`tests/air_erasure`) attribute every physically-surviving primitive to a bucket
+and gate that bucket C only ever shrinks — the honest claim is bounded, measured,
+attributed loss, not zero loss.
 
 ### Self-Hosted Tool To C Oracle
 

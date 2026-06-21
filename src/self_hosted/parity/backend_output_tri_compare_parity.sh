@@ -132,6 +132,38 @@ run_windows_fallback() {
         "\$env:PATH='${PGY_WINDOWS_PS_PATH_PREFIX}' + \$env:PATH; Set-Location -LiteralPath $(pgy_quote_ps "$cwd_native"); \$p = Start-Process -FilePath $(pgy_quote_ps "$bin_native") -NoNewWindow -PassThru -RedirectStandardOutput $(pgy_quote_ps "$out_native") -RedirectStandardError $(pgy_quote_ps "$err_native"); if (\$p -eq \$null) { exit 127 }; if (-not \$p.WaitForExit(${timeout_ms})) { Stop-Process -Id \$p.Id -Force; exit 124 }; exit \$p.ExitCode"
 }
 
+run_pgy_windows_capture() {
+    local cwd="$1"
+    local out="$2"
+    local err="$3"
+    shift 3
+
+    local bin_native
+    local out_native
+    local err_native
+    local cwd_native
+    local ps_args=""
+    local arg
+
+    case "$(uname -s 2>/dev/null || echo unknown)" in
+        MINGW*|MSYS*|CYGWIN*) ;;
+        *) return 127 ;;
+    esac
+    command -v powershell.exe >/dev/null 2>&1 || return 127
+
+    bin_native="$(pgy_path_for_windows_tool "$PGY")"
+    out_native="$(pgy_path_for_windows_tool "$out")"
+    err_native="$(pgy_path_for_windows_tool "$err")"
+    cwd_native="$(pgy_path_for_windows_tool "$cwd")"
+
+    for arg in "$@"; do
+        ps_args="${ps_args} $(pgy_quote_ps "$arg")"
+    done
+
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
+        "\$env:PATH='${PGY_WINDOWS_PS_PATH_PREFIX}' + \$env:PATH; Set-Location -LiteralPath $(pgy_quote_ps "$cwd_native"); & $(pgy_quote_ps "$bin_native")${ps_args} > $(pgy_quote_ps "$out_native") 2> $(pgy_quote_ps "$err_native"); exit \$LASTEXITCODE"
+}
+
 run_native_bin() {
     local bin="$1"
     local out="$2"
@@ -162,6 +194,8 @@ run_pergyra_output_compare() {
     local tri_fixture
     local tri_tool_arg
     local tri_out
+    local tri_stdout
+    local tri_stderr
     local tri_rc
 
     tri_fixture="$tri_root/src/self_hosted/tools/backend_output_comparator/fixture"
@@ -171,10 +205,17 @@ run_pergyra_output_compare() {
     cp "$actual" "$tri_fixture/actual.txt"
 
     tri_tool_arg="$(pgy_path_for_compiler "$PGY" "$tri_tool")"
+    tri_stdout="$tri_root/.tmp/${stream_label}.tri.stdout"
+    tri_stderr="$tri_root/.tmp/${stream_label}.tri.stderr"
     set +e
-    tri_out="$(cd "$tri_root" && "$PGY" "$tri_tool_arg" --run 2>&1)"
+    (cd "$tri_root" && "$PGY" "$tri_tool_arg" --run >"$tri_stdout" 2>"$tri_stderr")
     tri_rc=$?
+    if [[ "$tri_rc" -eq 126 || "$tri_rc" -eq 127 ]]; then
+        run_pgy_windows_capture "$tri_root" "$tri_stdout" "$tri_stderr" "$tri_tool_arg" "--run"
+        tri_rc=$?
+    fi
     set -e
+    tri_out="$(cat "$tri_stdout" "$tri_stderr")"
     if [[ "$tri_rc" -ne 0 ]]; then
         echo "[self-host-parity:backend-tri-compare] self-host comparator rejected matching C/LLVM ${stream_label} for $source_rel" >&2
         printf '%s\n' "$tri_out" >&2

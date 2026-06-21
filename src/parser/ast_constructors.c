@@ -150,6 +150,8 @@ ASTNode* ast_create_function(const char* name) {
     node->data.func_decl.where_clause = NULL;
     node->data.func_decl.has_effects_clause = false;
     node->data.func_decl.declared_effects = 0;
+    node->data.func_decl.has_caps_clause = false;
+    node->data.func_decl.declared_capabilities = 0;
     node->data.func_decl.access = ACCESS_PUBLIC;
     node->data.func_decl.has_explicit_access = false;
     node->data.func_decl.is_action = false;

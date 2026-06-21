@@ -130,48 +130,48 @@ int main(void) {
     /* ================================================================
      * 2. SecureSlot<T>
      * ================================================================ */
-    printf("\n[SecureSlot<T> — Debug Mode]\n");
+    printf("\n[SecureSlot<T> canonical checked ABI]\n");
 
-    PRINT_LAYOUT(pgy_abi_secure_slot_int_dbg);
-    PRINT_LAYOUT(pgy_abi_secure_slot_string_dbg);
+    PRINT_LAYOUT(pgy_abi_secure_slot_int);
+    PRINT_LAYOUT(pgy_abi_secure_slot_string);
     printf("\n");
 
-    ABI_TEST("SecureSlot<Int> dbg: larger than Slot<Int>",
-             sizeof(pgy_abi_secure_slot_int_dbg) > sizeof(pgy_abi_slot_int));
-    ABI_TEST("SecureSlot<Int> dbg: token offset > 4",
-             offsetof(pgy_abi_secure_slot_int_dbg, token) > 4);
-    ABI_TEST("SecureSlot<Int> dbg: size >= 16",
-             sizeof(pgy_abi_secure_slot_int_dbg) >= 16);
+    ABI_TEST("SecureSlot<Int>: larger than Slot<Int>",
+             sizeof(pgy_abi_secure_slot_int) > sizeof(pgy_abi_slot_int));
+    ABI_TEST("SecureSlot<Int>: token offset > 4",
+             offsetof(pgy_abi_secure_slot_int, token) > 4);
+    ABI_TEST("SecureSlot<Int>: size >= 16",
+             sizeof(pgy_abi_secure_slot_int) >= 16);
     ABI_TEST("SecureSlot<Int>: runtime size matches ABI spec",
-             sizeof(PgySecureSlot_Int) == sizeof(pgy_abi_secure_slot_int_dbg));
+             sizeof(PgySecureSlot_Int) == sizeof(pgy_abi_secure_slot_int));
     ABI_TEST("SecureSlot<Int>: runtime token offset matches",
-             offsetof(PgySecureSlot_Int, token) == offsetof(pgy_abi_secure_slot_int_dbg, token));
+             offsetof(PgySecureSlot_Int, token) == offsetof(pgy_abi_secure_slot_int, token));
     ABI_TEST("SecureSlot<Long>: runtime size matches ABI spec",
-             sizeof(PgySecureSlot_Long) == sizeof(pgy_abi_secure_slot_long_dbg));
+             sizeof(PgySecureSlot_Long) == sizeof(pgy_abi_secure_slot_long));
     ABI_TEST("SecureSlot<Long>: runtime token offset matches",
-             offsetof(PgySecureSlot_Long, token) == offsetof(pgy_abi_secure_slot_long_dbg, token));
+             offsetof(PgySecureSlot_Long, token) == offsetof(pgy_abi_secure_slot_long, token));
     ABI_TEST("SecureSlot<Float>: runtime size matches ABI spec",
-             sizeof(PgySecureSlot_Float) == sizeof(pgy_abi_secure_slot_float_dbg));
+             sizeof(PgySecureSlot_Float) == sizeof(pgy_abi_secure_slot_float));
     ABI_TEST("SecureSlot<Float>: runtime token offset matches",
-             offsetof(PgySecureSlot_Float, token) == offsetof(pgy_abi_secure_slot_float_dbg, token));
+             offsetof(PgySecureSlot_Float, token) == offsetof(pgy_abi_secure_slot_float, token));
     ABI_TEST("SecureSlot<Double>: runtime size matches ABI spec",
-             sizeof(PgySecureSlot_Double) == sizeof(pgy_abi_secure_slot_double_dbg));
+             sizeof(PgySecureSlot_Double) == sizeof(pgy_abi_secure_slot_double));
     ABI_TEST("SecureSlot<Double>: runtime token offset matches",
-             offsetof(PgySecureSlot_Double, token) == offsetof(pgy_abi_secure_slot_double_dbg, token));
+             offsetof(PgySecureSlot_Double, token) == offsetof(pgy_abi_secure_slot_double, token));
     ABI_TEST("SecureSlot<Bool>: runtime size matches ABI spec",
-             sizeof(PgySecureSlot_Bool) == sizeof(pgy_abi_secure_slot_bool_dbg));
+             sizeof(PgySecureSlot_Bool) == sizeof(pgy_abi_secure_slot_bool));
     ABI_TEST("SecureSlot<Bool>: runtime token offset matches",
-             offsetof(PgySecureSlot_Bool, token) == offsetof(pgy_abi_secure_slot_bool_dbg, token));
+             offsetof(PgySecureSlot_Bool, token) == offsetof(pgy_abi_secure_slot_bool, token));
     ABI_TEST("SecureSlot<String>: runtime size matches ABI spec",
-             sizeof(PgySecureSlot_String) == sizeof(pgy_abi_secure_slot_string_dbg));
+             sizeof(PgySecureSlot_String) == sizeof(pgy_abi_secure_slot_string));
     ABI_TEST("SecureSlot<String>: runtime token offset matches",
-             offsetof(PgySecureSlot_String, token) == offsetof(pgy_abi_secure_slot_string_dbg, token));
+             offsetof(PgySecureSlot_String, token) == offsetof(pgy_abi_secure_slot_string, token));
     ABI_TEST("Token<Int>: runtime size matches stable ABI spec",
-             sizeof(PgyToken_Int) == sizeof(pgy_abi_token_int_dbg));
+             sizeof(PgyToken_Int) == sizeof(pgy_abi_token_int));
     ABI_TEST("Token<Int>: can_write offset matches",
-             offsetof(PgyToken_Int, can_write) == offsetof(pgy_abi_token_int_dbg, can_write));
+             offsetof(PgyToken_Int, can_write) == offsetof(pgy_abi_token_int, can_write));
     ABI_TEST("Token<Int>: can_read offset matches",
-             offsetof(PgyToken_Int, can_read) == offsetof(pgy_abi_token_int_dbg, can_read));
+             offsetof(PgyToken_Int, can_read) == offsetof(pgy_abi_token_int, can_read));
 
     printf("\n[Pin Views]\n");
 

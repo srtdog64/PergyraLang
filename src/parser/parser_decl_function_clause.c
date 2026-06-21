@@ -1,5 +1,6 @@
 #include "parser_internal.h"
 #include <stdint.h>
+#include <string.h>
 
 typedef bool (*FunctionClauseParser)(Parser *parser, ASTNode *func,
                                      bool is_action);
@@ -142,6 +143,35 @@ parse_function_clause_where(Parser *parser, ASTNode *func, bool is_action)
     return true;
 }
 
+/* Both `with effects` and `with caps` open with TOKEN_WITH; the keyword that
+ * follows disambiguates. peek-next lets each handler claim only its own form. */
+static bool
+parse_function_clause_with_is_caps(Parser *parser)
+{
+    Token after = parser_peek_next(parser);
+    return after.text != NULL && strcmp(after.text, "caps") == 0;
+}
+
+static bool
+parse_function_clause_caps(Parser *parser, ASTNode *func, bool is_action)
+{
+    bool has_clause = false;
+    uint32_t mask = 0;
+    (void)is_action;
+    if (parser == NULL || func == NULL || !parser_check(parser, TOKEN_WITH))
+        return false;
+    if (!parse_function_clause_with_is_caps(parser))
+        return false; /* `with effects` -> let the effects handler take it */
+    if (func->data.func_decl.has_caps_clause)
+        parser_error(parser, "Duplicate 'with caps' clause");
+    parse_optional_caps_clause(parser, &has_clause, &mask);
+    if (!func->data.func_decl.has_caps_clause && has_clause) {
+        func->data.func_decl.has_caps_clause = true;
+        func->data.func_decl.declared_capabilities = mask;
+    }
+    return true;
+}
+
 static bool
 parse_function_clause_effects(Parser *parser, ASTNode *func, bool is_action)
 {
@@ -150,6 +180,8 @@ parse_function_clause_effects(Parser *parser, ASTNode *func, bool is_action)
     (void)is_action;
     if (parser == NULL || func == NULL || !parser_check(parser, TOKEN_WITH))
         return false;
+    if (parse_function_clause_with_is_caps(parser))
+        return false; /* `with caps` -> handled by the caps clause */
     if (func->data.func_decl.has_effects_clause)
         parser_error(parser, "Duplicate 'with effects' clause");
     parse_optional_effect_clause(parser, &has_clause, &mask);
@@ -267,6 +299,7 @@ parser_decl_parse_next_function_clause(Parser *parser, ASTNode *func,
 {
     static const FunctionClauseParser clause_parsers[] = {
         parse_function_clause_where,
+        parse_function_clause_caps,
         parse_function_clause_effects,
         parse_function_clause_requires,
         parse_function_clause_within,

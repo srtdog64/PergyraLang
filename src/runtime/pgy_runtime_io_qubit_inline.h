@@ -1,11 +1,8 @@
 #include "pgy_runtime_process_exit.h"
 #include "pgy_runtime_strview_inline.h"
-
 #define PGY_MAX_OPEN_FILES 256
-
 static FILE *_pgy_ftable[PGY_MAX_OPEN_FILES];
 static pthread_mutex_t _pgy_ftable_mutex = PTHREAD_MUTEX_INITIALIZER;
-
 static inline void
 _pgy_io_init_locked(void)
 {
@@ -13,7 +10,6 @@ _pgy_io_init_locked(void)
     _pgy_ftable[1] = stdout;
     _pgy_ftable[2] = stderr;
 }
-
 static inline PgyRuntimeIoIntResult
 pgy_try_file_open_result(const char *path, const char *mode)
 {
@@ -61,14 +57,12 @@ pgy_try_file_open_result(const char *path, const char *mode)
     pthread_mutex_unlock(&_pgy_ftable_mutex);
     return pgy_runtime_io_int_ok((int32_t)fd);
 }
-
 static inline int32_t
 pgy_file_open(const char *path, const char *mode)
 {
     PgyRuntimeIoIntResult result = pgy_try_file_open_result(path, mode);
     return result.tag == PGY_RUNTIME_IO_RESULT_OK ? result.ok : -1;
 }
-
 static inline PgyRuntimeIoStringResult
 pgy_try_file_read_result(int32_t fd)
 {
@@ -96,7 +90,6 @@ pgy_try_file_read_result(int32_t fd)
             PGY_RUNTIME_IO_STATUS_ALLOC_FAILED, "io-boundary", "file-read"));
     return pgy_runtime_io_string_ok(copy);
 }
-
 static inline char *
 pgy_file_read(int32_t fd)
 {
@@ -105,7 +98,6 @@ pgy_file_read(int32_t fd)
         ? result.ok
         : pgy_runtime_strdup("");
 }
-
 static inline PgyRuntimeIoVoidResult
 pgy_try_file_write_result(int32_t fd, const char *data)
 {
@@ -132,7 +124,6 @@ pgy_try_file_write_result(int32_t fd, const char *data)
             "io-boundary", "file-write"));
     return pgy_runtime_io_void_ok();
 }
-
 static inline void
 pgy_file_write(int32_t fd, const char *data)
 {
@@ -154,11 +145,12 @@ pgy_file_close(int32_t fd)
         return;
     fclose(fp);
 }
-
 static inline PgyRuntimeIoStringResult
 pgy_try_read_file_result(const char *path)
 {
-    char *resolved = pgy_runtime_resolve_file_path(path, false);
+    char *resolved;
+    pgy_cap_require_export(PGY_CAP_IO_READ, "read-file");
+    resolved = pgy_runtime_resolve_file_path(path, false);
     if (resolved == NULL)
         return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_RESOLVE_FAILED, "io-boundary", "read-file"));
@@ -209,7 +201,6 @@ pgy_try_read_file_result(const char *path)
     free(resolved);
     return pgy_runtime_io_string_ok(buf);
 }
-
 static inline char *
 pgy_read_file(const char *path)
 {
@@ -218,7 +209,6 @@ pgy_read_file(const char *path)
         ? result.ok
         : pgy_runtime_strdup("");
 }
-
 static inline PgyRuntimeIoIntResult
 pgy_try_file_exists_result(const char *path)
 {
@@ -238,18 +228,18 @@ pgy_try_file_exists_result(const char *path)
     free(resolved);
     return pgy_runtime_io_int_ok(1);
 }
-
 static inline bool
 pgy_file_exists(const char *path)
 {
     PgyRuntimeIoIntResult result = pgy_try_file_exists_result(path);
     return result.tag == PGY_RUNTIME_IO_RESULT_OK && result.ok != 0;
 }
-
 static inline PgyRuntimeIoVoidResult
 pgy_try_write_file_result(const char *path, const char *data)
 {
-    char *resolved = pgy_runtime_resolve_file_path(path, true);
+    char *resolved;
+    pgy_cap_require_export(PGY_CAP_IO_WRITE, "write-file");
+    resolved = pgy_runtime_resolve_file_path(path, true);
     if (resolved == NULL)
         return pgy_runtime_io_void_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_RESOLVE_FAILED, "io-boundary", "write-file"));
@@ -274,13 +264,11 @@ pgy_try_write_file_result(const char *path, const char *data)
     free(resolved);
     return pgy_runtime_io_void_ok();
 }
-
 static inline void
 pgy_write_file(const char *path, const char *data)
 {
     (void)pgy_try_write_file_result(path, data);
 }
-
 static inline PgyRuntimeIoStringResult
 pgy_try_input_result(const char *prompt)
 {
@@ -307,7 +295,9 @@ pgy_try_input_result(const char *prompt)
 static inline char *
 pgy_input(const char *prompt)
 {
-    PgyRuntimeIoStringResult result = pgy_try_input_result(prompt);
+    PgyRuntimeIoStringResult result;
+    pgy_cap_require_export(PGY_CAP_IO_READ, "input");
+    result = pgy_try_input_result(prompt);
     return result.tag == PGY_RUNTIME_IO_RESULT_OK
         ? result.ok
         : pgy_runtime_strdup("");
@@ -323,6 +313,7 @@ pgy_print(const char *msg)
 static inline int32_t
 pgy_now_ms(void)
 {
+    pgy_cap_require_export(PGY_CAP_CLOCK, "now-ms");
 #ifdef _WIN32
     return (int32_t)GetTickCount64();
 #else

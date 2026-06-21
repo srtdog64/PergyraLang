@@ -221,6 +221,26 @@ ast_func_declared_effects(const ASTNode *node)
     return node->data.func_decl.declared_effects;
 }
 
+bool
+ast_func_has_caps_clause(const ASTNode *node)
+{
+    if (node == NULL || node->type != AST_FUNC_DECL)
+        return false;
+    if (node->is_async_decl)
+        return node->data.async_func_decl.has_caps_clause;
+    return node->data.func_decl.has_caps_clause;
+}
+
+uint32_t
+ast_func_declared_capabilities(const ASTNode *node)
+{
+    if (node == NULL || node->type != AST_FUNC_DECL)
+        return 0;
+    if (node->is_async_decl)
+        return node->data.async_func_decl.declared_capabilities;
+    return node->data.func_decl.declared_capabilities;
+}
+
 StructuredComment *
 ast_func_doc_comment(const ASTNode *node)
 {

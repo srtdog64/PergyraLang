@@ -102,9 +102,11 @@ Current evidence:
   legacy release-mode SecureSlot macro has been removed. Plain `Slot<T>` is
   checked by default as well; zero-overhead raw slots are a non-canonical
   `PGY_RAW_SLOTS` systems-tier build mode.
-- The ABI spec carries matching debug/release SecureSlot layout rows for every
-  stable primitive payload (`Int`, `Long`, `Float`, `Double`, `Bool`, `String`),
-  and `make test-abi` checks runtime size and token offsets against that spec.
+- The ABI spec carries one canonical checked SecureSlot layout row for every
+  stable primitive payload (`Int`, `Long`, `Float`, `Double`, `Bool`, `String`).
+  Historical debug/release names are typedef aliases only and must not become
+  second layout owners; `make test-abi` checks runtime size and token offsets
+  against the canonical spec.
 - Runtime authority failure surface exposes reason/code state for missing-zone,
   missing-participant, and authority-token-mismatch without exposing secret
   token material.

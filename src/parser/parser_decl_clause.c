@@ -1,5 +1,6 @@
 #include "parser_internal.h"
 #include "../semantic/type_system.h"
+#include "../runtime/pgy_runtime_capability.h"
 
 bool
 parser_decl_match_contextual_keyword(Parser *parser, const char *keyword)
@@ -138,6 +139,79 @@ parse_optional_effect_clause(Parser *parser, bool *has_clause_out,
         }
 
         mask |= effect;
+        if (!parser_match(parser, TOKEN_COMMA))
+            break;
+    }
+
+    *mask_out = mask;
+}
+
+static bool
+parser_cap_mask_from_name(const char *name, uint32_t *mask_out)
+{
+    static const struct { const char *name; uint32_t bit; } k_cap_names[] = {
+        { "io_read",  PGY_CAP_IO_READ },
+        { "io_write", PGY_CAP_IO_WRITE },
+        { "network",  PGY_CAP_NETWORK },
+        { "clock",    PGY_CAP_CLOCK },
+        { "random",   PGY_CAP_RANDOM },
+        { "env",      PGY_CAP_ENV },
+        { "render",   PGY_CAP_RENDER },
+        { "audio",    PGY_CAP_AUDIO },
+        { "input",    PGY_CAP_INPUT },
+    };
+
+    if (name == NULL || mask_out == NULL)
+        return false;
+    for (size_t i = 0; i < sizeof(k_cap_names) / sizeof(k_cap_names[0]); i++) {
+        if (strcmp(name, k_cap_names[i].name) == 0) {
+            *mask_out = k_cap_names[i].bit;
+            return true;
+        }
+    }
+    return false;
+}
+
+void
+parse_optional_caps_clause(Parser *parser, bool *has_clause_out,
+                           uint32_t *mask_out)
+{
+    uint32_t mask = 0;
+
+    if (has_clause_out == NULL || mask_out == NULL
+        || !parser_match(parser, TOKEN_WITH))
+        return;
+
+    *has_clause_out = true;
+
+    if (!parser_check(parser, TOKEN_IDENTIFIER)
+        || parser->current_token.text == NULL
+        || strcmp(parser->current_token.text, "caps") != 0) {
+        parser_error(parser,
+                     "Expected 'caps' after 'with' in function/action clause; use 'with caps ...'");
+        return;
+    }
+    parser_advance(parser);
+
+    while (!parser_is_at_end(parser)) {
+        uint32_t cap = 0;
+        Token tok;
+
+        if (!parser_check(parser, TOKEN_IDENTIFIER)) {
+            parser_error(parser,
+                         "Expected capability name after 'with caps' in function/action clause");
+            return;
+        }
+        tok = parser_advance(parser);
+
+        if (!parser_cap_mask_from_name(tok.text, &cap)) {
+            parser_error(parser, "Unknown capability '%s' in 'with caps' clause "
+                                 "(io_read, io_write, network, clock, random, env, render, audio, input)",
+                         tok.text != NULL ? tok.text : "<token>");
+            return;
+        }
+
+        mask |= cap;
         if (!parser_match(parser, TOKEN_COMMA))
             break;
     }

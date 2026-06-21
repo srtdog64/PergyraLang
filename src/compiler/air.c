@@ -152,6 +152,12 @@ air_unproven_retain_count(const AIRProgram *air)
     return air != NULL ? air->unproven_retain_count : 0;
 }
 
+size_t
+air_inherent_concurrency_count(const AIRProgram *air)
+{
+    return air != NULL ? air->inherent_concurrency_count : 0;
+}
+
 bool
 air_requires_strict_evidence(const AIRProgram *air)
 {

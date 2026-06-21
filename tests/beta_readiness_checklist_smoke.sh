@@ -486,11 +486,12 @@ EOF
 require_terms "src/runtime/pgy_abi_spec.h" <<'EOF'
 Current runtime ABI note:
 SecureSlot<T> keeps the same token layout and hard-fail checks across
-typedef struct { uint64_t id; bool can_write; bool can_read; } pgy_abi_token_int_rel;
-typedef struct { int64_t value; bool occupied; uint64_t token; } pgy_abi_secure_slot_long_rel;
-typedef struct { float   value; bool occupied; uint64_t token; } pgy_abi_secure_slot_float_rel;
-typedef struct { double  value; bool occupied; uint64_t token; } pgy_abi_secure_slot_double_rel;
-typedef struct { bool    value; bool occupied; uint64_t token; } pgy_abi_secure_slot_bool_rel;
+typedef struct { uint64_t id; bool can_write; bool can_read; } pgy_abi_token_int;
+typedef struct { int64_t value; bool occupied; uint64_t token; } pgy_abi_secure_slot_long;
+typedef struct { float   value; bool occupied; uint64_t token; } pgy_abi_secure_slot_float;
+typedef struct { double  value; bool occupied; uint64_t token; } pgy_abi_secure_slot_double;
+typedef struct { bool    value; bool occupied; uint64_t token; } pgy_abi_secure_slot_bool;
+typedef pgy_abi_secure_slot_int pgy_abi_secure_slot_int_rel;
 uint32 strong/weak counts plus an alive bit
 beta-stable shared ownership subset
 uint32_t strong_count;
@@ -502,10 +503,10 @@ ZoneChannel/WorldChannel ABI target
 EOF
 
 require_terms "src/runtime/pgy_abi_spec_asserts.h" <<'EOF'
-secure_slot_string_rel_same_token_offset_as_dbg
-token_int_rel_same_size_as_dbg
-token_int_rel_can_write_same_offset_as_dbg
-token_int_rel_can_read_same_offset_as_dbg
+secure_slot_string_token_after_value
+token_int_min_size_16
+token_int_can_write_after_id
+token_int_can_read_after_can_write
 rc_ctrl_int_alive_at_8
 EOF
 

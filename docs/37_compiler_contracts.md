@@ -41,7 +41,13 @@ resource facts belong here.
 
 MIR owns backend-executable control and cleanup facts. It carries CFG blocks,
 instructions, cleanup roots, rollback/invalidation roots, pin cleanup facts,
-direct-call facts, and terminator provenance.
+direct-call facts, and terminator provenance. It also carries domain-lifecycle
+guard facts (`MIR_LIFECYCLE_GUARD_SET` / `CHECK` with valid-mask, to-state, op,
+and subject): the semantic lifecycle analyzer records the verdict, MIR carries
+it, and both the C and LLVM backends consume the same MIR fact, so the
+fail-closed runtime guard (`pgy_runtime_lifecycle_guard_export`, panic class
+`invalid-lifecycle-state`) is emitted uniformly without either backend
+rediscovering the verdict from source AST. See `docs/semantics/12`.
 
 ### AIR
 
@@ -64,7 +70,15 @@ artifacts. AIR may classify an intent or boundary as `retain`, `summarize`, or
 `erase`, but C/LLVM must not turn a source-level axis into a physical carrier,
 padding, barrier, or runtime authority check unless AIR/MIR/ABI evidence owns
 that cost. The beta-visible vocabulary is `compression_budget` plus
-`compression_reason` in `pgy.air.graph.v1`.
+`compression_reason` in `pgy.air.graph.v1`, refined by a machine-readable
+`retain_cause` (inherent / policy / unproven = bucket A / B / C) plus the
+program-level `unproven_retain_count` (bucket C, lifecycle CHECK guards) and
+`inherent_concurrency_count` (bucket A, parallel/channel). The loss claim is
+**bounded, measured, attributed** — not zero: AIR *declares* the A/B/C
+decomposition and the out-of-band erasure dashboard (`tests/air_erasure`,
+`docs/semantics/14`) *measures* the physical residue and joins them, with a
+declared-vs-measured `AIR_DRIFT_COMPRESSION_RESIDUE_MISMATCH` and a CI gate that
+keeps bucket C monotonically shrinking.
 
 ## 2. Compiler-Facing Orthogonality Rule
 
@@ -126,6 +140,17 @@ The beta rule is not "LLVM is fully refactored." The beta rule is:
 
 > frozen subset parity is locked, and declaration/top-level inventory seams are
 > narrowed until backend truth drift is no longer observable.
+
+Correctness-critical fail-closed runtime helpers — checked arithmetic, the panic
+family, and the domain-lifecycle guard/set exports — are stripped from the
+inlined runtime bitcode (`llvm_exclude_critical_runtime_from_bitcode`,
+`llvm_fn_is_lifecycle_runtime`) so they resolve to the one separately compiled
+runtime object that both backends link. Two reasons: an inlined abort path
+mis-lowers under the LLVM pipeline, and the lifecycle helpers share a single
+process-wide state side-map that inlined per-TU copies would split. Backend
+parity is verified behaviorally (`tests/air_erasure/parity.ps1`: same outcome on
+both backends, including `panic:invalid-lifecycle-state`); a faithful LLVM
+physical-residue pass is tooling-gated where `opt`/`llc` are absent.
 
 ## 6. Diagnostics Contract
 

@@ -187,8 +187,16 @@ for name in $TOOLS; do
     fi
     (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$tsrc")" --backend=c \
         -o "$(pgy_path_for_compiler "$PGY" "$B/tool_${name}_oracle.exe")" >/dev/null 2>&1)
+    set +e
     via="$(cd "$ROOT_DIR" && "$B/tool_${name}_self.exe" 2>/dev/null | tr -d '\r')"
+    via_rc=$?
     orc="$(cd "$ROOT_DIR" && "$B/tool_${name}_oracle.exe" 2>/dev/null | tr -d '\r')"
+    orc_rc=$?
+    set -e
+    if [[ "$via_rc" -ne "$orc_rc" ]]; then
+        echo "[self-host-bootstrap] tool $name: codegen-built exit differs from oracle-built (self=$via_rc oracle=$orc_rc)" >&2
+        exit 1
+    fi
     if [[ "$via" != "$orc" ]]; then
         echo "[self-host-bootstrap] tool $name: codegen-built output differs from oracle-built" >&2
         exit 1

@@ -58,10 +58,11 @@ Closed now:
   capability bits. The old release-mode SecureSlot macro has been removed, and
   `runtime-panic-abi-test-smoke` covers no-`PGY_SAFE_SLOTS` invalid-token and
   released-slot hard-fail paths.
-- `pgy_abi_spec.h` now carries matching debug/release SecureSlot layout rows for
-  all stable primitive payloads (`Int`, `Long`, `Float`, `Double`, `Bool`,
-  `String`), and `make test-abi` checks runtime size/token offsets against the
-  ABI spec.
+- `pgy_abi_spec.h` now carries one canonical checked SecureSlot layout row for
+  each stable primitive payload (`Int`, `Long`, `Float`, `Double`, `Bool`,
+  `String`). Historical `_dbg` / `_rel` names are typedef aliases only, not
+  second layout owners, and `make test-abi` checks runtime size/token offsets
+  against the canonical ABI spec.
 - Non-pin handle expiration is a layered contract, not a pin-only story. The
   beta contract is: arena lane checks, CFG/body dataflow, zone/world
   channel-only crossing, token transport rejection, and generation/token

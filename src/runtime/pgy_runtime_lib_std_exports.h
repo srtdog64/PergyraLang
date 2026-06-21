@@ -72,6 +72,7 @@ float Log2(float x)  { return log2f(x); }
 
 int32_t Random(int32_t max)
 {
+    pgy_cap_require_export(PGY_CAP_RANDOM, "random");
     if (max <= 0) return 0;
     pthread_mutex_lock(&pgy_runtime_lib_rng_mutex);
     int32_t value = (int32_t)(rand() % max);
@@ -81,6 +82,7 @@ int32_t Random(int32_t max)
 
 void SeedRandom(int32_t seed)
 {
+    pgy_cap_require_export(PGY_CAP_RANDOM, "seed-random");
     pthread_mutex_lock(&pgy_runtime_lib_rng_mutex);
     srand((unsigned int)seed);
     pthread_mutex_unlock(&pgy_runtime_lib_rng_mutex);

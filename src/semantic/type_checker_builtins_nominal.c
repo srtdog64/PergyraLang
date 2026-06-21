@@ -3,6 +3,7 @@
 #include "diag_codes.h"
 #include "type_checker_internal.h"
 #include "type_checker_builtins_internal.h"
+#include "runtime/pgy_runtime_capability.h"
 
 Type *
 type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
@@ -116,6 +117,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
             Type *args[1] = { TYPE_STRING };
             semantic_record_effect(ctx, EFFECT_IO);
             semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
+            semantic_record_capability(ctx, PGY_CAP_IO_READ);
             return type_create_constructed(TYPE_ARRAY, args, 1);
         }
     case BUILTIN_FILE_EXISTS:
@@ -163,6 +165,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
                 TYPE_STRING, ast_call_argument(call, 0), ctx);
         }
         semantic_record_effect(ctx, EFFECT_IO);
+        semantic_record_capability(ctx, PGY_CAP_IO_READ);
         return TYPE_STRING;
     case BUILTIN_WRITE_FILE:
         if (check_call_arity(call, 2, "WriteFile", ctx)) {
@@ -172,9 +175,11 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
                 TYPE_STRING, ast_call_argument(call, 1), ctx);
         }
         semantic_record_effect(ctx, EFFECT_IO);
+        semantic_record_capability(ctx, PGY_CAP_IO_WRITE);
         return TYPE_VOID;
     case BUILTIN_INPUT:
         semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
+        semantic_record_capability(ctx, PGY_CAP_IO_READ);
         if (ast_call_arg_count(call) > 1) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call,
                 "'Input' expects at most 1 argument, got %llu",

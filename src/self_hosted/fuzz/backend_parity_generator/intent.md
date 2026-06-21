@@ -18,7 +18,9 @@ compiler remains the C implementation during beta closure.
 - The generator may use `Random` only while constructing source text after an
   explicit `SeedRandom(seed)`.
 - The generated subset intentionally covers local reassignment, `let mut`,
-  `if`, `while`, `for`, helper calls, boolean logic, arrays, and string output.
+  `if`, `while`, `for`, helper calls, boolean logic, arrays, array
+  parameter/return flow, structs, plain slots, substring windows, and string
+  output.
 - Failure is observable through a non-zero exit and a diagnostic line.
 
 ## Exclusions

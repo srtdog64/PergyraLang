@@ -148,13 +148,97 @@ exist"* but *"a program that does not need it does not link or pay for it."*
   the per-program contract of §5 enforced as a regression, and the A/B/C counts
   tracked over time so bucket C only ever shrinks.
 
-## 7. Further work (the gauge becomes a gate)
+## 7. AIR-native integration (implemented)
 
-- Promote §5 to an automated check in CI: provable-value-Slot fixtures must hold
-  `Axis = 0, Abort = 0`; a regression that introduces a surviving axis call is a
-  build failure.
-- Add the runtime-authority fixtures (§6) so buckets A/B have non-zero measured
-  baselines, not just the dischargeable cases.
+The A/B/C decomposition is **not a new vocabulary** — it is the `reason` taxonomy
+on AIR's existing `retain`/`summarize`/`erase`/`forbid` disposition, now made
+machine-readable. AIR already distinguished "runtime-visible coordination"
+(inherent) from "semantic provenance only" (erased); the addition names the
+cause and surfaces the one bucket AIR previously could not express — *unproven*.
+
+**Declared side (in AIR, `--air-json`):**
+
+- `AIRRetainCause { none, inherent, policy, unproven }` (`air.h`). Each boundary
+  emits `retain_cause`: a `retain` budget → `inherent` (A), a `summarize` budget
+  → `policy` (B). Derived from the budget, no new decision logic.
+- `unproven_retain_count` (program-level): the count of lifecycle CHECK guards —
+  retains the static analyzer *could not erase* (bucket C). Collected in
+  `air_collect_mir_evidence` from the MIR lifecycle guard facts
+  (`mir_instruction_lifecycle_guard_kind == CHECK`), so the "I could not prove
+  it" verdict now reaches AIR instead of being invisible to it.
+
+**Measured side (out-of-band, `tests/air_erasure`):** the harness holds the
+physical `nm` facts AIR cannot see at compile time and **joins** them to the
+declared A/B/C per fixture (`measure.ps1` → `results.csv`).
+
+**The seam (`AIR_DRIFT_COMPRESSION_RESIDUE_MISMATCH`):** when AIR declares a
+program fully compressed (A+B+C = 0) yet physical residue survives, that is a
+drift in AIR's existing drift vocabulary — populated by the harness, because the
+ground truth is post-codegen. The independence is deliberate: a compiler grading
+its own erasure is not evidence.
+
+**Measured join (the proof it works):**
+
+| Fixture | AIR: A_inh | AIR: C_unprov | phys Sync | phys Abort | reading |
+|---|---:|---:|---:|---:|---|
+| `lifecycle_branch` | 0 | **1** | 0 | **1** | declared C=1 **matches** measured abort=1 |
+| `zone_intent` | **2** | 0 | 2 | 1 | 2 inherent boundaries ↔ 2 sync |
+| `channel_parallel` | **0** | 0 | **11** | 1 | **drift**: 0 declared, 11 sync survive |
+
+The `lifecycle_branch` row is the load-bearing result: AIR *declares* exactly one
+unproven retain and exactly one abort path *physically survives*. The `channel`
+row is a real, recorded `compression_residue_mismatch`: a bare `parallel{}` is
+not yet an AIR boundary node, so AIR under-covers concurrency — the next modeling
+gap to close.
+
+**The gate (`tests/air_erasure/gate.ps1` + `baseline.json`):**
+
+1. **Erasure contract (hard):** every provable fixture must hold
+   `phys_Axis = 0, phys_Abort = 0`. A regression is a build failure.
+2. **Bucket-C monotonicity (hard):** total `unproven_retain` must not exceed the
+   committed baseline. C may only shrink — growth means the analysis weakened.
+3. **Drift (reported):** `compression_residue_mismatch` rows are surfaced, not
+   failed (a modeling gap, not a correctness break).
+
+## 8. Gaps closed
+
+The three gaps §6/§7 recorded are now filled:
+
+- **Concurrency declared (bucket A).** `air_collect_mir_evidence` counts
+  parallel/async/spawn blocks and channel send/recv as inherent concurrency
+  retains (`inherent_concurrency_count`, `air_mir_routine_inherent_concurrency_fact_count`),
+  so a bare `parallel{}`/`channel` — not an intent-step boundary — still declares
+  its irreducible residue. `04_channel_parallel` now reports `A_inh = 4`, and the
+  `compression_residue_mismatch` drift it used to raise is gone.
+- **Runtime-authority fixture (bucket B physically survives).**
+  `08_secure_slot_method` reads a secure-slot token across a method boundary; the
+  authority check cannot be folded and **survives `-O2`** (`phys_Abort = 1`),
+  unlike the straight-line `03` where the token folds. It exposed a real coverage
+  edge — AIR does not yet model slot-capability checks as retains, so `08` is a
+  recorded `expected_drift` (the next AIR coverage step: slot-capability → AIR).
+  Findings: a slot whose release is behind a runtime branch is **statically
+  rejected** (fail-closed at compile time), not deferred to runtime — so the
+  always-on slot check rarely survives `-O2` in compilable code.
+- **C == LLVM behavioral parity (`parity.ps1`).** Faithful LLVM *physical*
+  residue (runtime-linked, `opt -O2`, `llc`) is **tooling-gated**: this LLVM
+  install ships only libLLVM + `clang` (no `opt`/`llc`/`llvm-link`). Since both
+  backends share an ABI-identical runtime (`pgy_runtime_lib.bc` is built from the
+  same source as the C static-inline runtime, `scripts/build_runtime_bc.sh`),
+  residue parity follows from behavioral parity, which `parity.ps1` checks: every
+  fixture must yield the same outcome on both backends. 8/9 match (incl.
+  `06_lifecycle_branch` → both `panic:invalid-lifecycle-state`); the parity check
+  also **found a real divergence** — `03_secure_slot`'s tuple-destructure
+  `ClaimSecureSlot` is rejected by the LLVM backend (`requires an explicitly typed
+  binding`) though C accepts it. Recorded in `baseline.json` `llvm_unsupported`.
+
+## 9. Remaining work
+
+- Model slot-capability (secure/device token) checks as AIR retains so `08`'s
+  residue is *declared* (closing its expected-drift), not just measured.
+- Fix the LLVM backend to accept tuple-destructure `ClaimSecureSlot` (the `03`
+  divergence) — a real surface-coverage gap between the backends.
+- When `opt`/`llc` are available, add the faithful LLVM *physical* `nm` pass and
+  check residue-count parity, not just behavioral parity.
 - Cross-check against `docs/semantics/proofs/IRMinimality.v`: that proof bounds
   the *codegen IR layering* (HIR→RIR→MIR is minimal, not over-decomposed); it does
   **not** by itself bound machine-code residue. This dashboard is the empirical

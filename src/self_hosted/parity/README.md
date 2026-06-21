@@ -36,7 +36,8 @@ The parity set currently covers:
   generator; `make self-host-fuzz-backend-generator-parity-test-smoke` checks
   generator C/LLVM byte-identical corpus output, while
   `make fuzz-backend-parity-test-smoke` additionally runs the generated corpus
-  through C/LLVM)
+  through C/LLVM; `make fuzz-backend-parity-matrix-test-smoke` repeats that
+  oracle over a bounded seed matrix)
 - `lexer` (rung-1 compiler-internal lexer substitution)
 - `parser` (rung-1 compiler-internal parser substitution)
 - `semantic` (rung-2 compiler-internal semantic verdict substitution)
@@ -68,6 +69,7 @@ rung with its own intent contract and C/LLVM/Pergyra parity gate.
 
 Fuzz harnesses are intentionally separate from long-running fuzz campaigns.
 The parity contract here is deterministic: fixed seed, fixed count, stable
-manifest/source output, and optional generated-case C/LLVM execution equality.
-Crash minimization, corpus reduction, and property-pack mapping remain outside
-the beta parity set until those policies are frozen.
+manifest/source output, no executable-output extension ambiguity, and optional
+generated-case C/LLVM execution equality. Crash minimization, corpus reduction,
+and property-pack mapping remain outside the beta parity set until those
+policies are frozen.

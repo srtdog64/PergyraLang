@@ -71,6 +71,7 @@ static inline int32_t Clamp(int32_t v, int32_t lo, int32_t hi) {
 static inline int32_t
 Random(int32_t max)
 {
+    pgy_cap_require_export(PGY_CAP_RANDOM, "random");
     if (max <= 0)
         return 0;
     pthread_mutex_lock(&pgy_runtime_rng_mutex);
@@ -82,6 +83,7 @@ Random(int32_t max)
 static inline void
 SeedRandom(int32_t seed)
 {
+    pgy_cap_require_export(PGY_CAP_RANDOM, "seed-random");
     pthread_mutex_lock(&pgy_runtime_rng_mutex);
     srand((unsigned int)seed);
     pthread_mutex_unlock(&pgy_runtime_rng_mutex);

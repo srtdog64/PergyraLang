@@ -191,10 +191,12 @@ pgy_dir_walk_collect(PgyArray_String *out,
 PGY_RUNTIME_DIR_WALK_PUBLIC PgyArray_String
 pgy_dir_walk(const char *root)
 {
-    PgyArray_String out = pgy_array_new_String(8);
+    PgyArray_String out;
     char *resolved;
     char *display_root;
 
+    pgy_cap_require_export(PGY_CAP_IO_READ, "dir-walk");
+    out = pgy_array_new_String(8);
     display_root = pgy_dir_walk_display_root_dup(root);
     resolved = pgy_runtime_resolve_file_path(root, false);
     if (display_root == NULL || resolved == NULL) {

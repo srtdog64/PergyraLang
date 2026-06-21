@@ -92,6 +92,7 @@ void reject_if_embedded_world_zone_mutation(SemanticContext *ctx,
                                             ASTNode *target,
                                             const char *op_name);
 void semantic_record_effect(SemanticContext *ctx, uint32_t effect_mask);
+void semantic_record_capability(SemanticContext *ctx, uint32_t capability_mask);
 void semantic_record_body_summary(SemanticContext *ctx, uint32_t summary_mask);
 void semantic_record_callee_body_summary(SemanticContext *ctx,
                                          const Type *callee_type);

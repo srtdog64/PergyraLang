@@ -180,6 +180,44 @@ air_mir_routine_unproven_retain_fact_count(const MIRRoutine *routine)
     return count;
 }
 
+/*
+ * Count the "inherent concurrency retain" sites in a routine: parallel/async/
+ * spawn blocks and channel send/receive operations. Concurrency is a runtime
+ * coordination fact that no analysis can erase (it bottoms out in pthread
+ * mutex/cond), so each site is an INHERENT / bucket-A retain. Counting these
+ * lets AIR *declare* the concurrency residue program-wide even when a bare
+ * `parallel{}`/`channel` is not an intent-step boundary node, closing the
+ * declared-vs-measured gap the erasure dashboard records for such programs.
+ */
+size_t
+air_mir_routine_inherent_concurrency_fact_count(const MIRRoutine *routine)
+{
+    size_t count = 0;
+
+    if (routine == NULL)
+        return 0;
+    if (routine->block_count > 0 && routine->blocks == NULL)
+        return 0;
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *block = &routine->blocks[i];
+        if (block->instruction_count > 0 && block->instructions == NULL)
+            continue;
+        for (size_t j = 0; j < block->instruction_count; j++) {
+            const MIRInstruction *inst = &block->instructions[j];
+            if (mir_instruction_source_matches_ast_type(inst, AST_PARALLEL_BLOCK)
+                || mir_instruction_source_matches_ast_type(inst, AST_ASYNC_BLOCK)
+                || mir_instruction_source_matches_ast_type(inst, AST_SPAWN_EXPR)
+                || mir_instruction_source_matches_ast_type(inst, AST_CHANNEL_SEND)
+                || mir_instruction_source_matches_ast_type(inst, AST_CHANNEL_RECV)
+                || mir_instruction_uses_channel_receive_statement_emit(inst)
+                || mir_instruction_uses_select_receive_statement_emit(inst)) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
 AIREvidenceKind
 air_mir_cleanup_evidence_kind(void)
 {

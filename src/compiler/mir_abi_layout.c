@@ -56,13 +56,13 @@ static const MIRTypeLayout k_abi_type_table[] = {
 
     /* SecureSlot<T> */
     ABI_TYPE("SecureSlot<Int>", 16, 8, "pgy_claim_secure_Int", "int32_t", 3,
-             ABI_FIELD_STRUCT("value", pgy_abi_secure_slot_int_dbg, value),
-             ABI_FIELD_STRUCT("occupied", pgy_abi_secure_slot_int_dbg, occupied),
-             ABI_FIELD_STRUCT("token", pgy_abi_secure_slot_int_dbg, token)),
+             ABI_FIELD_STRUCT("value", pgy_abi_secure_slot_int, value),
+             ABI_FIELD_STRUCT("occupied", pgy_abi_secure_slot_int, occupied),
+             ABI_FIELD_STRUCT("token", pgy_abi_secure_slot_int, token)),
     ABI_TYPE("SecureSlot<String>", 24, 8, "pgy_claim_secure_String", "char*", 3,
-             ABI_FIELD_STRUCT("value", pgy_abi_secure_slot_string_dbg, value),
-             ABI_FIELD_STRUCT("occupied", pgy_abi_secure_slot_string_dbg, occupied),
-             ABI_FIELD_STRUCT("token", pgy_abi_secure_slot_string_dbg, token)),
+             ABI_FIELD_STRUCT("value", pgy_abi_secure_slot_string, value),
+             ABI_FIELD_STRUCT("occupied", pgy_abi_secure_slot_string, occupied),
+             ABI_FIELD_STRUCT("token", pgy_abi_secure_slot_string, token)),
 
     /* Pin/lease views */
     ABI_TYPE("PinnedSlotView<Int>",

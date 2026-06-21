@@ -1,0 +1,17 @@
+{
+  "_comment": "Baselines for the AIR erasure gate. total_unproven_retain = bucket-C ceiling (C must never grow). provable_fixtures_must_be_clean = programs that must compile to zero surviving axis calls / abort paths. expected_drifts = fixtures whose declared-vs-measured mismatch is a KNOWN, documented modeling gap (AIR does not yet declare that residue); a drift OUTSIDE this list is a regression to investigate.",
+  "total_unproven_retain": 1,
+  "provable_fixtures_must_be_clean": [
+    "00_pure_value",
+    "01_slot_provable_with",
+    "02_slot_provable_claim",
+    "03_secure_slot",
+    "07_lifecycle_linear"
+  ],
+  "expected_drifts": {
+    "08_secure_slot_method": "secure-slot capability/token checks are not yet modeled as AIR retains (slot-capability calculus -> AIR is the next coverage step); the check genuinely survives -O2 across the method boundary, so physical>0 while declared=0."
+  },
+  "llvm_unsupported": {
+    "03_secure_slot": "LLVM backend rejects tuple-destructure `let (slot, token) = ClaimSecureSlot()` ('requires an explicitly typed binding'); the C backend accepts it. A real C/LLVM surface-coverage divergence found by parity.ps1. The class-field secure-slot form (08) compiles on both backends."
+  }
+}

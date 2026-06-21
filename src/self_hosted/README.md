@@ -128,7 +128,8 @@ src/self_hosted/
   compiles the generator through C/LLVM, checks byte-identical generated
   corpora, and optionally runs the generated cases through both backends.
   Focused gates: `make self-host-fuzz-backend-generator-parity-test-smoke` and
-  `make fuzz-backend-parity-test-smoke`.
+  `make fuzz-backend-parity-test-smoke`; `make fuzz-backend-parity-matrix-test-smoke`
+  runs a bounded multi-seed variant of the generated C/LLVM oracle.
 
 ## Non-Negotiable Rules
 

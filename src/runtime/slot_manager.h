@@ -151,6 +151,7 @@ typedef struct
     TokenCapability token;
     TypeTag typeTag;
     bool isValid;
+    struct SecureSlotScope *scope;
 } PergyraSecureSlot;
 
 typedef struct

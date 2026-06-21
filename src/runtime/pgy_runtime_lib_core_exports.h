@@ -33,6 +33,7 @@ pgy_log_banner(const char *v)
 int32_t
 pgy_now_ms(void)
 {
+    pgy_cap_require_export(PGY_CAP_CLOCK, "now-ms");
 #ifdef _WIN32
     return (int32_t)GetTickCount64();
 #else

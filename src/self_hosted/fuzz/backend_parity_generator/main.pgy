@@ -145,6 +145,106 @@ func RenderBranchCase(index: Int, base: Int, twist: Int) -> String {
     return Concat(StringJoin(lines, "\n"), "\n");
 }
 
+func RenderStructCase(index: Int, base: Int, twist: Int) -> String {
+    let lines: Array<String> = [];
+    ArrayPush(lines, "struct FuzzPair {");
+    ArrayPush(lines, "    let a: Int;");
+    ArrayPush(lines, "    let b: Int;");
+    ArrayPush(lines, "}");
+    ArrayPush(lines, "");
+    ArrayPush(lines, "func FuzzPairScore(p: FuzzPair, delta: Int) -> Int {");
+    ArrayPush(lines, "    return p.a * 2 + p.b + delta;");
+    ArrayPush(lines, "}");
+    ArrayPush(lines, "");
+    ArrayPush(lines, "func Main() -> Void {");
+    ArrayPush(lines, Concat("    let base: Int = ", Concat(ToString(base), ";")));
+    ArrayPush(lines, Concat("    let twist: Int = ", Concat(ToString(twist), ";")));
+    ArrayPush(lines, "    let left: FuzzPair = FuzzPair(base, twist);");
+    ArrayPush(lines, "    let right: FuzzPair = FuzzPair(base + 1, twist + 2);");
+    ArrayPush(lines, "    let score: Int = FuzzPairScore(left, 3) + FuzzPairScore(right, 4);");
+    ArrayPush(lines, "    Log(Concat(\"struct:\", ToString(score)));");
+    ArrayPush(lines, "}");
+    return Concat(StringJoin(lines, "\n"), "\n");
+}
+
+func RenderSlotCase(index: Int, base: Int, twist: Int) -> String {
+    let lines: Array<String> = [];
+    ArrayPush(lines, "func Main() -> Void {");
+    ArrayPush(lines, Concat("    let base: Int = ", Concat(ToString(base), ";")));
+    ArrayPush(lines, Concat("    let twist: Int = ", Concat(ToString(twist), ";")));
+    ArrayPush(lines, "    let s: Slot<Int> = ClaimSlot();");
+    ArrayPush(lines, "    Write(s, base);");
+    ArrayPush(lines, "    let first: Int = Read(s);");
+    ArrayPush(lines, "    Write(s, first + twist);");
+    ArrayPush(lines, "    let second: Int = Read(s);");
+    ArrayPush(lines, "    Log(Concat(\"slot:\", ToString(first + second)));");
+    ArrayPush(lines, "    Release(s);");
+    ArrayPush(lines, "}");
+    return Concat(StringJoin(lines, "\n"), "\n");
+}
+
+func RenderStringWindowCase(index: Int, base: Int, twist: Int) -> String {
+    let lines: Array<String> = [];
+    ArrayPush(lines, "func FuzzRun(s: String) -> Int {");
+    ArrayPush(lines, "    let n: Int = StringLength(s);");
+    ArrayPush(lines, "    if n == 0 {");
+    ArrayPush(lines, "        return 0;");
+    ArrayPush(lines, "    }");
+    ArrayPush(lines, "    let mut best: Int = 1;");
+    ArrayPush(lines, "    let mut cur: Int = 1;");
+    ArrayPush(lines, "    let mut i: Int = 1;");
+    ArrayPush(lines, "    while i < n {");
+    ArrayPush(lines, "        if Substring(s, i, i + 1) == Substring(s, i - 1, i) {");
+    ArrayPush(lines, "            cur = cur + 1;");
+    ArrayPush(lines, "            if cur > best {");
+    ArrayPush(lines, "                best = cur;");
+    ArrayPush(lines, "            }");
+    ArrayPush(lines, "        } else {");
+    ArrayPush(lines, "            cur = 1;");
+    ArrayPush(lines, "        }");
+    ArrayPush(lines, "        i = i + 1;");
+    ArrayPush(lines, "    }");
+    ArrayPush(lines, "    return best;");
+    ArrayPush(lines, "}");
+    ArrayPush(lines, "");
+    ArrayPush(lines, "func Main() -> Void {");
+    ArrayPush(lines, "    Log(Concat(\"window:\", ToString(FuzzRun(\"aaabbcccc\"))));");
+    ArrayPush(lines, "    Log(Concat(\"window:\", ToString(FuzzRun(\"abcdef\"))));");
+    ArrayPush(lines, "}");
+    return Concat(StringJoin(lines, "\n"), "\n");
+}
+
+func RenderArrayParamCase(index: Int, base: Int, twist: Int) -> String {
+    let lines: Array<String> = [];
+    ArrayPush(lines, "func FuzzSum(xs: Array<Int>) -> Int {");
+    ArrayPush(lines, "    let mut total: Int = 0;");
+    ArrayPush(lines, "    let mut i: Int = 0;");
+    ArrayPush(lines, "    while i < ArrayLength(xs) {");
+    ArrayPush(lines, "        total = total + xs[i];");
+    ArrayPush(lines, "        i = i + 1;");
+    ArrayPush(lines, "    }");
+    ArrayPush(lines, "    return total;");
+    ArrayPush(lines, "}");
+    ArrayPush(lines, "");
+    ArrayPush(lines, "func FuzzBuild(base: Int, n: Int) -> Array<Int> {");
+    ArrayPush(lines, "    let xs: Array<Int> = [];");
+    ArrayPush(lines, "    let mut i: Int = 0;");
+    ArrayPush(lines, "    while i < n {");
+    ArrayPush(lines, "        ArrayPush(xs, base + i * 2);");
+    ArrayPush(lines, "        i = i + 1;");
+    ArrayPush(lines, "    }");
+    ArrayPush(lines, "    return xs;");
+    ArrayPush(lines, "}");
+    ArrayPush(lines, "");
+    ArrayPush(lines, "func Main() -> Void {");
+    ArrayPush(lines, Concat("    let base: Int = ", Concat(ToString(base), ";")));
+    ArrayPush(lines, Concat("    let n: Int = ", Concat(ToString(3 + twist % 4), ";")));
+    ArrayPush(lines, "    let xs: Array<Int> = FuzzBuild(base, n);");
+    ArrayPush(lines, "    Log(Concat(\"array-param:\", ToString(FuzzSum(xs) + ArrayLength(xs))));");
+    ArrayPush(lines, "}");
+    return Concat(StringJoin(lines, "\n"), "\n");
+}
+
 func RenderProgram(index: Int, variant: Int) -> String {
     let base: Int = 1 + Random(17);
     let twist: Int = 1 + Random(9);
@@ -157,7 +257,19 @@ func RenderProgram(index: Int, variant: Int) -> String {
     if variant == 2 {
         return RenderStringCase(index, base, twist);
     }
-    return RenderBranchCase(index, base, twist);
+    if variant == 3 {
+        return RenderBranchCase(index, base, twist);
+    }
+    if variant == 4 {
+        return RenderStructCase(index, base, twist);
+    }
+    if variant == 5 {
+        return RenderSlotCase(index, base, twist);
+    }
+    if variant == 6 {
+        return RenderStringWindowCase(index, base, twist);
+    }
+    return RenderArrayParamCase(index, base, twist);
 }
 
 func Main() -> Void {
@@ -180,7 +292,7 @@ func Main() -> Void {
 
     let mut i: Int = 0;
     while i < count {
-        let variant: Int = Random(4);
+        let variant: Int = Random(8);
         let name: String = Concat("f", Concat(ToString(i), ".pgy"));
         let source: String = RenderProgram(i, variant);
         WriteFile(JoinPath(out_dir, name), source);

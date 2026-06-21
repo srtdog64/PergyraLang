@@ -5470,6 +5470,16 @@ if awk '
 ' "$ROOT_DIR/src/codegen/transpiler_role_ability.c"; then
     fail "C party slot method dispatch must consume ability MIRDeclMethod rows in MIR-active paths"
 fi
+if awk '
+    /transpiler_party_slot_method_ability_tag\(TranspilerCtx \*ctx,/ { in_fn = 1 }
+    in_fn && /fallback_tag/ { bad = 1 }
+    in_fn && /^}/ { in_fn = 0 }
+    END { exit bad ? 0 : 1 }
+' "$ROOT_DIR/src/codegen/transpiler_role_ability.c"; then
+    fail "C party slot method dispatch must fail closed instead of falling back to the first ability tag"
+fi
+require_term "src/codegen/transpiler_role_ability.c" \
+    "has no required ability that provides method"
 c_ability_decl_body="$(
     awk '
         /emit_ability_decl\(ASTNode \*node, TranspilerCtx \*ctx\)/ { in_body = 1 }

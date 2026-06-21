@@ -8,7 +8,7 @@ echo Started: %date% %time% >> %LOGFILE%
 
 set CC=gcc
 set CFLAGS=-Wall -Wextra -std=c11 -O2 -g -Isrc -DPGY_PROJECT_ROOT=\"E:/PergyraLang\" -DPGY_SRC_DIR=\"E:/PergyraLang/src\" -DPGY_RUNTIME_DIR=\"E:/PergyraLang/src/runtime\" -DPGY_RUNTIME_LIB_C=\"E:/PergyraLang/src/runtime/pgy_runtime_lib.c\" -DPGY_LLVM_ENABLED -Ithird_party
-set LDFLAGS=-L"C:/Program Files/LLVM/lib" -lLLVM-C -lwinpthread -lm -liphlpapi -ladvapi32
+set LDFLAGS=-L"C:/Program Files/LLVM/lib" -lLLVM-C -lwinpthread -lm -liphlpapi -ladvapi32 -lbcrypt
 
 :: Create build directories
 if not exist build\common mkdir build\common
@@ -28,7 +28,10 @@ for %%D in (common lexer parser semantic codegen compiler runtime) do (
     for /f "delims=" %%F in ('dir /b /s src\%%D\*.c') do (
         set "SRC=%%F"
         set "REL=!SRC:%CD%\=!"
-        set "SOURCES=!SOURCES! !REL!"
+        set "FILENAME=%%~nxF"
+        if "!FILENAME:~0,5!" NEQ "test_" (
+            set "SOURCES=!SOURCES! !REL!"
+        )
     )
 )
 set SOURCES=!SOURCES! src\pgy_driver.c
@@ -41,7 +44,10 @@ for %%D in (common lexer parser semantic codegen compiler runtime) do (
     for /f "delims=" %%F in ('dir /b /s src\%%D\*.c') do (
         set "SRC=%%F"
         set "REL=!SRC:%CD%\=!"
-        echo !REL!>> "%SOURCES_LIST%"
+        set "FILENAME=%%~nxF"
+        if "!FILENAME:~0,5!" NEQ "test_" (
+            echo !REL!>> "%SOURCES_LIST%"
+        )
     )
 )
 echo src\pgy_driver.c>> "%SOURCES_LIST%"
@@ -78,6 +84,7 @@ if !FAIL!==1 (
 
 :: Link
 echo [LD] bin\pgy.exe
+powershell -Command "if (Test-Path build\objects.txt) { (Get-Content build\objects.txt) -join [char]10 | Set-Content build\objects.txt -NoNewline -Encoding Ascii }"
 %CC% %CFLAGS% -o bin\pgy.exe @%OBJECTS_LIST% %LDFLAGS%
 if errorlevel 1 (
     echo === Link failed ===
@@ -103,6 +110,7 @@ for /f "usebackq delims=" %%O in ("%OBJECTS_LIST%") do (
     )
 )
 
+powershell -Command "if (Test-Path build\test_objects.txt) { (Get-Content build\test_objects.txt) -join [char]10 | Set-Content build\test_objects.txt -NoNewline -Encoding Ascii }"
 %CC% %CFLAGS% -o bin\test_semantic.exe build\test_semantic.o @%TEST_OBJECTS_LIST% %LDFLAGS%
 if errorlevel 1 (
     echo test_semantic link failed

@@ -132,7 +132,7 @@ cleanup_live_air() {
 trap cleanup_live_air EXIT
 LIVE_AIR_JSON="$LIVE_AIR_JSON_DIR/live.json"
 set +e
-(cd "$ROOT_DIR" && "$PGY" --air-json "$AIR_SOURCE" 2>/dev/null \
+(cd "$ROOT_DIR" && "$PGY" --air-json "$(pgy_path_for_compiler "$PGY" "$AIR_SOURCE")" 2>/dev/null \
     | grep '^{' | head -n 1 > "$LIVE_AIR_JSON")
 LIVE_RC=$?
 set -e

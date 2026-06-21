@@ -85,6 +85,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     }
     sym->is_used = true;
     semantic_record_effect(ctx, type_function_effects(sym->type));
+    semantic_record_capability(ctx, type_function_capabilities(sym->type));
     semantic_record_callee_body_summary(ctx, sym->type);
     semantic_record_callable_decl_summary(ctx, callable_decl,
         sym->type,

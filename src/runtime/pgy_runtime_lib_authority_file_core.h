@@ -35,6 +35,7 @@ extern char *realpath(const char *path, char *resolved_path);
 #include "runtime/pgy_parallel.h"
 #include "runtime/pgy_runtime_authority_contract.h"
 #include "runtime/pgy_runtime_panic_contract.h"
+#include "runtime/pgy_runtime_capability.h"
 
 static char *pgy_runtime_lib_strdup(const char *src);
 static pthread_mutex_t pgy_runtime_lib_rng_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -300,6 +301,42 @@ pgy_runtime_lifecycle_guard_export(const void *inst, int32_t valid_mask,
     }
     if (e != NULL && to_state >= 0)
         e->state = to_state;
+}
+
+/* Content capability gate -- external (non-inline) twins of the static-inline
+ * definitions in pgy_runtime_panic_checked_inline.h, for the LLVM-linked runtime
+ * object. One process-wide granted set; gated ops panic fail-closed outside it.
+ * See pgy_runtime_capability.h and docs/semantics/15. */
+static uint32_t g_pgy_cap_granted = PGY_CAP_ALL;
+
+void
+pgy_cap_set_manifest_export(uint32_t mask)
+{
+    g_pgy_cap_granted = mask;
+}
+
+void
+pgy_cap_grant_all_export(void)
+{
+    g_pgy_cap_granted = PGY_CAP_ALL;
+}
+
+uint32_t
+pgy_cap_granted_export(void)
+{
+    return g_pgy_cap_granted;
+}
+
+void
+pgy_cap_require_export(uint32_t cap, const char *op)
+{
+    if ((g_pgy_cap_granted & cap) != cap) {
+        fprintf(stderr, "%s capability op=%s required=0x%x granted=0x%x\n",
+                PGY_RUNTIME_PANIC_PREFIX, op != NULL ? op : "<op>",
+                (unsigned)cap, (unsigned)g_pgy_cap_granted);
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_CAPABILITY_DENIED,
+                          PGY_RUNTIME_PANIC_REASON_CAPABILITY_DENIED);
+    }
 }
 
 int64_t

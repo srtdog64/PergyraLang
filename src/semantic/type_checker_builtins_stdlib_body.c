@@ -15,6 +15,7 @@
 #include "../common/string_compat.h"
 #include "type_checker_internal.h"
 #include "type_checker_builtins_internal.h"
+#include "runtime/pgy_runtime_capability.h"
 #include "diag_codes.h"
 
 static Type *
@@ -220,6 +221,7 @@ type_check_resolved_stdlib_call(ASTNode *expr, const char *name,
         if (!check_call_arity(expr, 0, name, ctx))
             return TYPE_UNKNOWN;
         semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
+        semantic_record_capability(ctx, PGY_CAP_CLOCK);
         return TYPE_INT;
     case BUILTIN_SLEEP:
         return type_check_builtin_sleep(expr, ctx);

@@ -117,6 +117,7 @@ struct Type
             size_t param_count;
             Type* return_type;
             uint32_t effect_mask;
+            uint32_t capability_mask; /* Inferred PGY_CAP_* the body exercises */
             uint32_t body_summary_mask;
             bool has_body_summary_facts;
             bool has_param_escape_summary_facts;
@@ -201,8 +202,10 @@ bool type_function_has_param_escape_summary(const Type* type, size_t index);
 void type_function_set_param_escape_summary(Type* type, size_t index, uint32_t summary);
 void type_function_finish_param_escape_summaries(Type* type);
 void type_function_set_effects(Type* type, uint32_t effect_mask);
+void type_function_set_capabilities(Type* type, uint32_t capability_mask);
 void type_function_set_body_summary(Type* type, uint32_t body_summary_mask);
 uint32_t type_function_effects(const Type* type);
+uint32_t type_function_capabilities(const Type* type);
 uint32_t type_function_body_summary(const Type* type);
 bool type_function_has_body_summary(const Type* type);
 uint32_t type_effect_mask_closure(uint32_t mask);

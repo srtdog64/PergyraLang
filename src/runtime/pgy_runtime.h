@@ -13,5 +13,6 @@
 #include "pgy_runtime_channel_inline.h"
 #include "pgy_runtime_io_qubit_inline.h"
 #include "pgy_runtime_string_window_inline.h"
+#include "pgy_runtime_media_stub.h"
 
 #endif /* PGY_RUNTIME_H */

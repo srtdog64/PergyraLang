@@ -72,13 +72,15 @@ The beta release candidate must keep these gates green:
 
 ## Explicitly Not Claimed Yet
 
-- Long-running fuzz campaigns are out-of-beta until a seed corpus and crash
-  minimization policy exist. A bounded deterministic Pergyra-origin generator
+- Fuzz testing is out-of-beta until a seed corpus and crash minimization policy
+  exist. A bounded deterministic Pergyra-origin generator
   exists as an opt-in regression gate:
   `make self-host-fuzz-backend-generator-parity-test-smoke` proves the
   generator emits byte-identical C/LLVM corpora, and
   `make fuzz-backend-parity-test-smoke` additionally checks the generated cases
-  against C/LLVM observable-output parity.
+  against C/LLVM observable-output parity. A bounded multi-seed variant exists
+  as `make fuzz-backend-parity-matrix-test-smoke`, but it is not a substitute
+  for crash minimization or a persisted fuzz corpus.
 - Property-based testing is out-of-beta until semantic properties are tied to
   the proof pack in `docs/semantics/`.
 - Coverage percentage is not yet a beta acceptance metric. The beta gate is

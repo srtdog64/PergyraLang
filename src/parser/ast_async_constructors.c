@@ -37,6 +37,8 @@ ASTNode* ast_create_async_function(const char* name, bool is_async) {
     node->data.async_func_decl.where_clause = NULL;
     node->data.async_func_decl.has_effects_clause = false;
     node->data.async_func_decl.declared_effects = 0;
+    node->data.async_func_decl.has_caps_clause = false;
+    node->data.async_func_decl.declared_capabilities = 0;
     node->data.async_func_decl.access = ACCESS_PUBLIC;
     node->data.async_func_decl.is_async = is_async;
     node->data.async_func_decl.doc_comment = NULL;

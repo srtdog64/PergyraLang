@@ -214,6 +214,24 @@ llvm_fn_is_lifecycle_runtime(const char *fn_name)
 }
 
 /*
+ * Content capability gate helpers. Like the lifecycle helpers they must NOT be
+ * folded from bitcode: pgy_cap_require_export takes a fail-closed abort path
+ * whose inlined copy mis-lowers, and all four share one process-wide granted
+ * mask that lives in the separately compiled runtime object - inlined per-call
+ * copies would split it. Stripping keeps them external so every call resolves to
+ * that one object.
+ */
+static bool
+llvm_fn_is_capability_runtime(const char *fn_name)
+{
+    return fn_name != NULL
+        && (strcmp(fn_name, "pgy_cap_require_export") == 0
+            || strcmp(fn_name, "pgy_cap_set_manifest_export") == 0
+            || strcmp(fn_name, "pgy_cap_grant_all_export") == 0
+            || strcmp(fn_name, "pgy_cap_granted_export") == 0);
+}
+
+/*
  * Functions that provably never return to their caller. The panic family
  * qualifies, plus an exact-name table of terminal runtime entrypoints.
  * Matching is exact (not substring) so that returning lookalikes such as
@@ -363,6 +381,7 @@ llvm_exclude_critical_runtime_from_bitcode(LLVMModuleRef runtime_module)
         if (!LLVMIsDeclaration(fn)
             && (llvm_fn_is_checked_arith(name)
                 || llvm_fn_is_lifecycle_runtime(name)
+                || llvm_fn_is_capability_runtime(name)
                 || strip_noreturn))
             llvm_strip_function_body(fn);
     }

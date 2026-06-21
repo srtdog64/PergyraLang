@@ -16,6 +16,7 @@
 
 #include "../lexer/lexer.h"
 #include "../semantic/semantic.h"
+#include "../semantic/capability_analyze.h"
 #include "air.h"
 #include "dir.h"
 #include "rir.h"
@@ -177,6 +178,16 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     if (flags == NULL || flags->diag_format != DIAG_FORMAT_JSON) {
         semantic_result_print(sem);
     }
+
+    if (flags->dump_capability_manifest) {
+        /* Sound, interprocedurally-inferred capability manifest. Per-function
+         * `with caps` violations (declared >= used) are ordinary semantic
+         * errors, already printed above; the exit code reflects them. */
+        capability_manifest_print(sem->program_capabilities, stdout);
+        exit_code = sem->success ? 0 : 1;
+        goto cleanup;
+    }
+
     if (!sem->success) {
         if (flags != NULL && flags->diag_format == DIAG_FORMAT_JSON) {
             semantic_result_print_json(sem);  /* terminal: error array */

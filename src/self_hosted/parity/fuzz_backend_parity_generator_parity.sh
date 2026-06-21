@@ -21,6 +21,7 @@ source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
+PGY="$(pgy_path_for_bash_tool "$PGY")"
 if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
     PGY="${PGY}.exe"
 fi
@@ -215,8 +216,8 @@ run_backend_case() {
     local index="$1"
     local source="$2"
     local case_base="$WORK_DIR/case_${index}"
-    local c_bin="$case_base.c"
-    local llvm_bin="$case_base.llvm"
+    local c_bin="${case_base}_c_bin"
+    local llvm_bin="${case_base}_llvm_bin"
     local c_stdout="$case_base.c.stdout"
     local llvm_stdout="$case_base.llvm.stdout"
     local c_stderr="$case_base.c.stderr"

@@ -38,6 +38,7 @@ static const DriverOptionSpec k_driver_options[] = {
     { "--air-json", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_air_json), true },
     { "--ast", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_ast), true },
     { "--backend=c", DRIVER_OPTION_BACKEND, 0, BACKEND_C },
+    { "--capability-manifest", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_capability_manifest), true },
     { "--backend=llvm", DRIVER_OPTION_BACKEND, 0, BACKEND_LLVM },
     { "--compile", DRIVER_OPTION_NOOP, 0, 0 },
     { "--debug-lines", DRIVER_OPTION_BOOL, offsetof(DriverFlags, emit_debug_lines), true },

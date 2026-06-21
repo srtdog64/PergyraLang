@@ -102,25 +102,32 @@ typedef struct { char    *value; bool occupied; } pgy_abi_slot_string;
  * Wrong token causes PGY_PANIC.
  * ================================================================ */
 
-/* --- SecureSlot<T> Debug --- */
-typedef struct { int32_t value; bool occupied; uint64_t token; } pgy_abi_secure_slot_int_dbg;
-typedef struct { int64_t value; bool occupied; uint64_t token; } pgy_abi_secure_slot_long_dbg;
-typedef struct { float   value; bool occupied; uint64_t token; } pgy_abi_secure_slot_float_dbg;
-typedef struct { double  value; bool occupied; uint64_t token; } pgy_abi_secure_slot_double_dbg;
-typedef struct { bool    value; bool occupied; uint64_t token; } pgy_abi_secure_slot_bool_dbg;
-typedef struct { char   *value; bool occupied; uint64_t token; } pgy_abi_secure_slot_string_dbg;
+/* --- SecureSlot<T> canonical checked ABI --- */
+typedef struct { int32_t value; bool occupied; uint64_t token; } pgy_abi_secure_slot_int;
+typedef struct { int64_t value; bool occupied; uint64_t token; } pgy_abi_secure_slot_long;
+typedef struct { float   value; bool occupied; uint64_t token; } pgy_abi_secure_slot_float;
+typedef struct { double  value; bool occupied; uint64_t token; } pgy_abi_secure_slot_double;
+typedef struct { bool    value; bool occupied; uint64_t token; } pgy_abi_secure_slot_bool;
+typedef struct { char   *value; bool occupied; uint64_t token; } pgy_abi_secure_slot_string;
 
-/* --- SecureSlot<T> Release --- */
-typedef struct { int32_t value; bool occupied; uint64_t token; } pgy_abi_secure_slot_int_rel;
-typedef struct { int64_t value; bool occupied; uint64_t token; } pgy_abi_secure_slot_long_rel;
-typedef struct { float   value; bool occupied; uint64_t token; } pgy_abi_secure_slot_float_rel;
-typedef struct { double  value; bool occupied; uint64_t token; } pgy_abi_secure_slot_double_rel;
-typedef struct { bool    value; bool occupied; uint64_t token; } pgy_abi_secure_slot_bool_rel;
-typedef struct { char   *value; bool occupied; uint64_t token; } pgy_abi_secure_slot_string_rel;
+/* Legacy ABI names are compatibility aliases, not second layout owners. */
+typedef pgy_abi_secure_slot_int pgy_abi_secure_slot_int_dbg;
+typedef pgy_abi_secure_slot_long pgy_abi_secure_slot_long_dbg;
+typedef pgy_abi_secure_slot_float pgy_abi_secure_slot_float_dbg;
+typedef pgy_abi_secure_slot_double pgy_abi_secure_slot_double_dbg;
+typedef pgy_abi_secure_slot_bool pgy_abi_secure_slot_bool_dbg;
+typedef pgy_abi_secure_slot_string pgy_abi_secure_slot_string_dbg;
+typedef pgy_abi_secure_slot_int pgy_abi_secure_slot_int_rel;
+typedef pgy_abi_secure_slot_long pgy_abi_secure_slot_long_rel;
+typedef pgy_abi_secure_slot_float pgy_abi_secure_slot_float_rel;
+typedef pgy_abi_secure_slot_double pgy_abi_secure_slot_double_rel;
+typedef pgy_abi_secure_slot_bool pgy_abi_secure_slot_bool_rel;
+typedef pgy_abi_secure_slot_string pgy_abi_secure_slot_string_rel;
 
-/* --- Capability Token (stable in every build mode) --- */
-typedef struct { uint64_t id; bool can_write; bool can_read; } pgy_abi_token_int_dbg;
-typedef struct { uint64_t id; bool can_write; bool can_read; } pgy_abi_token_int_rel;
+/* --- Capability Token canonical ABI --- */
+typedef struct { uint64_t id; bool can_write; bool can_read; } pgy_abi_token_int;
+typedef pgy_abi_token_int pgy_abi_token_int_dbg;
+typedef pgy_abi_token_int pgy_abi_token_int_rel;
 
 /* --- Pin/lease view handles (block-scoped runtime views) --- */
 typedef struct {
@@ -130,8 +137,8 @@ typedef struct {
 } pgy_abi_pinned_slot_view_int;
 
 typedef struct {
-    pgy_abi_secure_slot_int_dbg *slot;
-    const pgy_abi_token_int_dbg *token;
+    pgy_abi_secure_slot_int *slot;
+    const pgy_abi_token_int *token;
     bool active;
     bool can_write;
 } pgy_abi_pinned_secure_slot_view_int;

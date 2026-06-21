@@ -98,6 +98,8 @@ struct SemanticContext
                                             * literal initializer: drives the
                                             * sequence ctor (Array/List/Queue). */
     uint32_t     current_function_effects; /* Inferred effect mask    */
+    uint32_t     current_function_capabilities; /* Inferred PGY_CAP_* mask */
+    uint32_t     program_capabilities; /* Union of every used capability   */
     uint32_t     current_function_body_summary; /* Interprocedural body facts */
     bool         tracking_function_effects; /* Only inside function body */
     bool         in_async_func;  /* Inside async func              */

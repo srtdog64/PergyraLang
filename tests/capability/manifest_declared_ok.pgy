@@ -1,0 +1,9 @@
+// Correct declaration: GetTimestamp uses Now() (CLOCK) and declares `with caps
+// clock`. declared >= used holds, so this compiles clean (no capability error).
+func GetTimestamp() -> Int
+    with caps clock {
+    return Now();
+}
+
+let t = GetTimestamp();
+Log("ok");

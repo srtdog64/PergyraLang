@@ -1,0 +1,12 @@
+// Interprocedural under-declaration: `entry` declares `with caps io_read` but
+// calls `helper`, whose body uses Now() (CLOCK). Capabilities propagate through
+// the call graph exactly like effects, so `entry`'s used set includes CLOCK and
+// the declared >= used check must flag it -- even though entry never names Now.
+func helper() -> Int {
+    return Now();
+}
+
+func entry() -> Int
+    with caps io_read {
+    return helper();
+}

@@ -77,7 +77,14 @@ typedef enum
     AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
     AIR_DRIFT_EFFECT_PROPAGATION_MISSING,
     AIR_DRIFT_RELATION_PROPAGATION_MISSING,
-    AIR_DRIFT_DAG_DEAD_END_PRESENT
+    AIR_DRIFT_DAG_DEAD_END_PRESENT,
+    /* AIR's declared compression (erase/retain + A/B/C cause) disagrees with the
+       measured physical residue: e.g. the program declares nothing retained yet
+       an axis runtime call / sync primitive survives the optimized object, or a
+       declared erase still emits a call. Populated by the out-of-band erasure
+       harness (tests/air_erasure), which holds both the AIR JSON and the `nm`
+       facts AIR itself cannot see at compile time. */
+    AIR_DRIFT_COMPRESSION_RESIDUE_MISMATCH
 } AIRDriftKind;
 
 typedef enum
@@ -236,6 +243,11 @@ typedef struct AIRProgram
     /* Bucket C: runtime retains the static analysis could not erase
        (lifecycle CHECK guards at ambiguous joins). The improvable residue. */
     size_t           unproven_retain_count;
+    /* Bucket A: inherent concurrency retains (parallel/async/spawn/channel) -
+       runtime coordination no analysis can erase. Declared program-wide so a
+       bare parallel/channel (not an intent-step boundary) still reports its
+       irreducible residue instead of leaving a declared-vs-measured gap. */
+    size_t           inherent_concurrency_count;
     char           **owned_names;
     size_t           owned_name_count;
     size_t           owned_name_capacity;
@@ -295,6 +307,7 @@ const char *air_boundary_compression_reason(const AIRBoundaryNode *boundary);
 const char *air_retain_cause_name(AIRRetainCause cause);
 AIRRetainCause air_boundary_retain_cause(const AIRBoundaryNode *boundary);
 size_t      air_unproven_retain_count(const AIRProgram *air);
+size_t      air_inherent_concurrency_count(const AIRProgram *air);
 size_t      air_intent_node_count(const AIRProgram *air);
 const AIRIntentNode *air_intent_node_at(const AIRProgram *air, size_t index);
 size_t      air_boundary_node_count(const AIRProgram *air);

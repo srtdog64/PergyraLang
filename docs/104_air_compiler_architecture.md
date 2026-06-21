@@ -265,6 +265,13 @@ Phase 1 에서 구현하는 단 하나의 pass. `air_check_drift(...)`는 오래
 출력: drift 진단 (`PGY_SEM_INTENT_BOUNDARY_DRIFT`,
 `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`)
 
+`AIRDriftKind` 는 위 in-pass 검사 외에 `AIR_DRIFT_COMPRESSION_RESIDUE_MISMATCH`
+한 종류를 더 가진다. 이건 AIR 패스가 자기 안에서 채우지 않는다 — AIR 가 *선언*한
+compression(A/B/C)과 백엔드 객체에서 *실측*한 물리 잔여물이 어긋날 때, AIR 가
+보지 못하는 post-codegen `nm` 사실을 가진 out-of-band 계기판(`tests/air_erasure`)이
+채운다. drift vocabulary 는 공유하되 ground truth 는 컴파일 바깥에 있다. 자세한 건
+위 "Retain Cause and the Erasure Dashboard" 와 `docs/semantics/14`.
+
 ## 5. AIR 가 아닌 것 — 명시적 negative space
 
 AIR philosophy 가 부풀려져서 6 번째 codegen IR 이 되는 것을 막기 위해 다음을 명시한다:
@@ -580,6 +587,63 @@ authority-free static zone contracts summarize, and pure intent orchestration
 can erase to the call sequence. Backends must not invent zone/world/intent
 carriers, padding, barriers, or runtime authority checks from source syntax
 alone; physical layout still belongs to MIR/ABI layout facts.
+
+### Retain Cause (A/B/C) and the Erasure Dashboard
+
+The disposition verb (`retain`/`summarize`/`erase`/`forbid`) says *what* AIR does;
+it does not say *why a retain was unavoidable*. That "why" is the only thing that
+distinguishes irreducible runtime from improvable static-analysis debt, so AIR
+makes it machine-readable as a `retain_cause` on each node (the `reason` taxonomy,
+structured — **not** a new disposition):
+
+- `inherent` (**bucket A**): the boundary is a runtime fact — concurrency,
+  transfer, authority — that no analysis can erase. Derived from a `retain`
+  budget.
+- `policy` (**bucket B**): kept by deliberate policy/traceability (a `summarize`
+  digest, an always-on fail-closed tag). Removable by opt-out.
+- `unproven` (**bucket C**): retained only because the static analysis could not
+  discharge it; a stronger analysis could erase it. The **sole improvable
+  bucket**; it must trend downward.
+
+Two program-level counts in `pgy.air.graph.v1` source the buckets the per-node
+`retain_cause` cannot (they are not intent-step boundaries):
+
+- `unproven_retain_count` (bucket C) — lifecycle `CHECK` guards at ambiguous
+  control-flow joins, collected from MIR lifecycle-guard facts. This is how the
+  analyzer's "I could not prove it" verdict reaches AIR instead of staying
+  invisible to it.
+- `inherent_concurrency_count` (bucket A) — `parallel`/`async`/`spawn` blocks and
+  channel send/receive, so a bare `parallel{}`/`channel` declares its irreducible
+  concurrency residue even though it never becomes a boundary node.
+
+The honest thesis this encodes is **not** "loss = 0"; it is **bounded, measured,
+attributed loss**. AIR *declares* the A/B/C decomposition; an out-of-band
+instrument (`tests/air_erasure`, see `docs/semantics/14`) *measures* the physical
+residue that survives `-O2` and **joins** the two. AIR is off-path and pre-codegen
+— it cannot see `nm` facts — so a compiler self-grading its own erasure is not
+evidence; the independence of the two instruments is the point.
+
+Where the declaration and the measurement disagree —
+AIR declares a program fully compressed yet physical residue survives, or vice
+versa — that is `AIR_DRIFT_COMPRESSION_RESIDUE_MISMATCH`, a kind in the existing
+drift vocabulary, populated by the out-of-band instrument (the ground truth is
+post-codegen). The CI gate fails the build if bucket C grows past its baseline or
+a provable fixture stops erasing; a *new* residue mismatch is a hard failure while
+*documented* ones are recorded, not hidden.
+
+**Newly-found, honestly recorded (surfaced by the drift/parity checks, in
+`tests/air_erasure/baseline.json`):**
+
+- Slot-capability (secure/device token) checks are not yet modeled as AIR
+  retains — the secure check genuinely survives `-O2` across a method boundary
+  (`08_secure_slot_method`), so it shows as an `expected_drift` until
+  slot-capability → AIR is wired. The next coverage step.
+- The LLVM backend rejects tuple-destructure `let (slot, token) = ClaimSecureSlot()`
+  (the C backend accepts it) — a real surface-coverage divergence the C == LLVM
+  parity check found, recorded as `llvm_unsupported`.
+- A faithful LLVM *physical* residue pass (runtime-linked, `opt`/`llc`) is
+  tooling-gated where those LLVM tools are absent; residue parity currently rests
+  on shared-runtime + verified behavioral parity.
 
 ### Phase 2 (post-beta, toward 1.0)
 

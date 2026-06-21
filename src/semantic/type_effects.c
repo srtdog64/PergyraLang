@@ -16,6 +16,14 @@ type_function_effects(const Type *type)
 }
 
 uint32_t
+type_function_capabilities(const Type *type)
+{
+    if (type == NULL || type->kind != TYPE_KIND_FUNCTION)
+        return 0u; /* PGY_CAP_NONE */
+    return type->data.function.capability_mask;
+}
+
+uint32_t
 type_function_body_summary(const Type *type)
 {
     if (type == NULL || type->kind != TYPE_KIND_FUNCTION)

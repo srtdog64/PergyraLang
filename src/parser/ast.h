@@ -48,6 +48,8 @@ struct ASTNode
             WhereClause*   where_clause;
             bool           has_effects_clause;
             uint32_t       declared_effects;
+            bool           has_caps_clause;       /* `with caps ...` present */
+            uint32_t       declared_capabilities; /* PGY_CAP_* bits declared */
             AccessModifier access;
             bool           has_explicit_access;
             bool           is_action;
@@ -315,6 +317,8 @@ struct ASTNode
             WhereClause*   where_clause;
             bool           has_effects_clause;
             uint32_t       declared_effects;
+            bool           has_caps_clause;       /* `with caps ...` present */
+            uint32_t       declared_capabilities; /* PGY_CAP_* bits declared */
             AccessModifier access;
             bool           is_async;
             StructuredComment* doc_comment;

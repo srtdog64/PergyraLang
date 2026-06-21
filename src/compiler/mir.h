@@ -5,22 +5,11 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
-
 #include "hir.h"
 #include "rir.h"
-
 typedef struct MIRProgram MIRProgram;
-
-/* =================================================================
- * ABI Type Layout: explicit memory layout for MIR instructions
- *
- * This is the bridge between the Pergyra type system and the
- * C/LLVM backends. Instead of backends inventing their own struct
- * layouts, they read the layout from here.
- *
- * Source: src/runtime/pgy_abi_spec.h
- * ================================================================= */
-
+/* ABI type layouts are MIR-owned; C/LLVM backends consume these facts instead
+ * of inventing layout locally. Source: src/runtime/pgy_abi_spec.h. */
 #define MIR_MAX_TYPE_FIELDS 8
 
 typedef struct
@@ -553,10 +542,8 @@ const char *mir_routine_param_type_name(const MIRRoutine *routine,
                                         size_t index);
 ASTNode    *mir_routine_return_type(const MIRRoutine *routine);
 const char *mir_routine_return_type_name(const MIRRoutine *routine);
-/* P0 #4: source local type-name lookup. MIR lowering materializes
- * source-local binding type facts (`let`, `with` aliases, and loop
- * variables) into MIRRoutine::source_local_types so backends do not
- * rescan the function body to answer source-local class questions. */
+/* Source-local binding type facts are materialized during MIR lowering so
+ * backends do not rescan function bodies. */
 const char *mir_routine_source_local_type_name(
     const MIRRoutine *routine, const char *local_name);
 const MIRSourceLocalType *mir_routine_source_local_type_fact(

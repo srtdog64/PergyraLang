@@ -527,6 +527,14 @@ type_function_set_effects(Type *type, uint32_t effect_mask)
 }
 
 void
+type_function_set_capabilities(Type *type, uint32_t capability_mask)
+{
+    if (type == NULL || type->kind != TYPE_KIND_FUNCTION)
+        return;
+    type->data.function.capability_mask = capability_mask;
+}
+
+void
 type_function_set_body_summary(Type *type, uint32_t body_summary_mask)
 {
     if (type == NULL || type->kind != TYPE_KIND_FUNCTION)
