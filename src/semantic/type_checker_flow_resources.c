@@ -201,6 +201,15 @@ resource_snapshot_entry_reads(const ResourceConsumeSnapshot *snap,
 }
 
 static bool
+resource_snapshot_entry_releases(const ResourceConsumeSnapshot *snap,
+                                 size_t index)
+{
+    return snap != NULL
+        && index < snap->count
+        && (snap->access_masks[index] & PGY_SLOT_FLOW_ACCESS_RELEASE) != 0;
+}
+
+static bool
 resource_snapshot_entry_unavailable(const ResourceConsumeSnapshot *snap,
                                     size_t index)
 {
@@ -233,6 +242,127 @@ resource_snapshot_find_symbol(const ResourceConsumeSnapshot *snap,
         }
     }
     return false;
+}
+
+static bool
+resource_snapshot_entry_writer_like(const ResourceConsumeSnapshot *snap,
+                                    size_t index)
+{
+    return resource_snapshot_entry_writes(snap, index)
+        || resource_snapshot_entry_unavailable(snap, index);
+}
+
+static bool
+resource_snapshot_entry_reader_delta(const ResourceConsumeSnapshot *base,
+                                     const ResourceConsumeSnapshot *snap,
+                                     Symbol *sym,
+                                     size_t snap_index)
+{
+    size_t base_index = 0;
+    bool base_reads = false;
+
+    if (!resource_snapshot_entry_reads(snap, snap_index))
+        return false;
+    if (resource_snapshot_find_symbol(base, sym, &base_index))
+        base_reads = resource_snapshot_entry_reads(base, base_index);
+    return !base_reads;
+}
+
+static bool
+resource_snapshot_entry_writer_delta(const ResourceConsumeSnapshot *base,
+                                     const ResourceConsumeSnapshot *snap,
+                                     Symbol *sym,
+                                     size_t snap_index)
+{
+    size_t base_index = 0;
+    bool base_writes = false;
+
+    if (!resource_snapshot_entry_writer_like(snap, snap_index))
+        return false;
+    if (resource_snapshot_find_symbol(base, sym, &base_index))
+        base_writes = resource_snapshot_entry_writer_like(base, base_index);
+    return !base_writes;
+}
+
+static bool
+resource_snapshot_current_reader_delta(const ResourceConsumeSnapshot *base,
+                                       const ResourceConsumeSnapshot *current,
+                                       Symbol *sym)
+{
+    size_t current_index = 0;
+
+    if (current == NULL || !current->valid)
+        return false;
+    if (!resource_snapshot_find_symbol(current, sym, &current_index))
+        return false;
+    return resource_snapshot_entry_reader_delta(base, current, sym,
+                                                current_index);
+}
+
+static bool
+resource_snapshot_current_writer_delta(const ResourceConsumeSnapshot *base,
+                                       const ResourceConsumeSnapshot *current,
+                                       Symbol *sym)
+{
+    size_t current_index = 0;
+
+    if (current == NULL || !current->valid)
+        return false;
+    if (!resource_snapshot_find_symbol(current, sym, &current_index))
+        return false;
+    return resource_snapshot_entry_writer_delta(base, current, sym,
+                                                current_index);
+}
+
+void
+resource_snapshot_record_parallel_boundary_witness(
+    const ResourceConsumeSnapshot *base,
+    const ResourceConsumeSnapshot *joined,
+    const ResourceConsumeSnapshot *task,
+    SemanticContext *ctx)
+{
+    if (base == NULL || task == NULL || ctx == NULL)
+        return;
+    if (!base->valid || !task->valid)
+        return;
+
+    for (size_t i = 0; i < task->count; i++) {
+        Symbol *sym = task->symbols[i];
+        bool task_reads;
+        bool task_writes;
+        bool current_reads;
+        bool current_writes;
+        bool accepted;
+
+        if (sym == NULL)
+            continue;
+
+        task_reads = resource_snapshot_entry_reader_delta(base, task, sym, i);
+        task_writes = resource_snapshot_entry_writer_delta(base, task, sym, i);
+        if (!task_reads && !task_writes)
+            continue;
+
+        current_reads =
+            resource_snapshot_current_reader_delta(base, joined, sym);
+        current_writes =
+            resource_snapshot_current_writer_delta(base, joined, sym);
+
+        if (task_writes) {
+            accepted = pgy_boundary_witness_guard_accepts(
+                current_reads ? 1u : 0u,
+                current_writes,
+                PGY_BOUNDARY_WITNESS_OP_ACQ_WRITE);
+            semantic_boundary_witness_record_acq_write(ctx, accepted);
+            if (accepted && resource_snapshot_entry_releases(task, i))
+                semantic_boundary_witness_record_release(ctx);
+        } else {
+            accepted = pgy_boundary_witness_guard_accepts(
+                current_reads ? 1u : 0u,
+                current_writes,
+                PGY_BOUNDARY_WITNESS_OP_ACQ_READ);
+            semantic_boundary_witness_record_acq_read(ctx, accepted);
+        }
+    }
 }
 
 bool

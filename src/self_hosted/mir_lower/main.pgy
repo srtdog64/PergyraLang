@@ -79,9 +79,62 @@ func ReadJsonString(json: String, open: Int, end: Array<Int>) -> String {
     return "";
 }
 
-// Convert one MIR instruction `ast` statement (compact form) to its AST-tree
-// line. `Log(...)` and bare calls pass through unchanged; `let NAME: T = V`
-// becomes `Let: NAME : T = V`.
+// Read a string-valued JSON field inside [start,end). Missing, null, or
+// non-string fields return "" so callers can fall back to older compatibility
+// facts without silently accepting malformed required facts.
+func JsonFieldString(json: String, start: Int, end: Int, key: String) -> String {
+    let p: Int = FindFrom(json, key, start);
+    if p < 0 || p >= end {
+        return "";
+    }
+    let vstart: Int = p + StringLength(key);
+    if vstart >= end {
+        return "";
+    }
+    if CharAt(json, vstart) != "\"" {
+        return "";
+    }
+    let e: Array<Int> = [0];
+    return ReadJsonString(json, vstart, e);
+}
+
+// Find a MIR source-local type fact in the current routine span. This is the
+// self-hosted mirror of MIRRoutine::source_local_types; `mir_lower` uses it
+// before the transitional statement text when reconstructing `Let:` lines.
+func SourceLocalType(json: String, start: Int, end: Int, name: String) -> String {
+    let sp: Int = FindFrom(json, "\"source_locals\":[", start);
+    if sp < 0 || sp >= end {
+        return "";
+    }
+    let pk: Int = FindFrom(json, "\"name\":", sp);
+    while pk >= 0 && pk < end {
+        let nq: Int = FindFrom(json, "\"", pk + 7);
+        if nq < 0 || nq >= end {
+            return "";
+        }
+        let ne: Array<Int> = [0];
+        let n: String = ReadJsonString(json, nq, ne);
+        let tk: Int = FindFrom(json, "\"type\":", ne[0]);
+        if tk < 0 || tk >= end {
+            return "";
+        }
+        let tq: Int = FindFrom(json, "\"", tk + 7);
+        if tq < 0 || tq >= end {
+            return "";
+        }
+        let te: Array<Int> = [0];
+        let t: String = ReadJsonString(json, tq, te);
+        if n == name {
+            return t;
+        }
+        pk = FindFrom(json, "\"name\":", te[0]);
+    }
+    return "";
+}
+
+// Convert one compatibility statement text to its AST-tree line. `Log(...)`
+// and bare calls pass through unchanged; `let NAME: T = V` becomes
+// `Let: NAME : T = V`.
 func StmtToTreeLine(stmt: String) -> String {
     let s: String = StringTrim(stmt);
     if StringLength(s) >= 4 && Substring(s, 0, 4) == "let " {
@@ -95,6 +148,34 @@ func StmtToTreeLine(stmt: String) -> String {
         return Concat("Let: ", Concat(name, Concat(" : ", after)));
     }
     return s;
+}
+
+func RenderStmtFromFacts(kind: String, source_type: String, ast: String,
+                         arg0: String, expr0: String, expr1: String,
+                         local_type: String) -> String {
+    let value: String = expr0;
+    if StringLength(value) == 0 {
+        value = ast;
+    }
+    if kind == "return" {
+        return Concat("Return: ", value);
+    }
+    if kind == "def" {
+        if source_type == "AST_LET_DECL"
+            && StringLength(arg0) > 0
+            && StringLength(local_type) > 0
+            && StringLength(expr0) > 0 {
+            return Concat("Let: ", Concat(arg0, Concat(" : ", Concat(local_type, Concat(" = ", expr0)))));
+        }
+        if StringLength(ast) >= 4 && Substring(ast, 0, 4) == "let " {
+            return StmtToTreeLine(ast);
+        }
+        if StringLength(expr1) > 0 && StringLength(expr0) > 0 {
+            return Concat("Assign: ", Concat(expr1, Concat(" = ", expr0)));
+        }
+        return Concat("Assign: ", value);
+    }
+    return StmtToTreeLine(value);
 }
 
 // Find the next routine declaration: a `"name":` whose object is a function
@@ -176,44 +257,31 @@ func BlockBounds(json: String, bp: Int, span_end: Int, id: String, o: Array<Int>
     return true;
 }
 
-// Branch condition (the branch instruction's `ast`) within [bs,be); "" if the
-// block does not end in a branch.
+// Branch condition within [bs,be); "" if the block does not end in a branch.
+// `expr0` is the MIR branch condition fact; `ast` is only the older
+// compatibility source text.
 func BlockCond(json: String, bs: Int, be: Int) -> String {
     let kp: Int = FindFrom(json, "\"kind\":\"branch\"", bs);
     if kp < 0 || kp >= be {
         return "";
     }
-    let ap: Int = FindFrom(json, "\"ast\":", kp);
-    if ap < 0 || ap >= be {
-        return "";
+    let next_kp: Int = FindFrom(json, "\"kind\":", kp + 8);
+    let inst_end: Int = be;
+    if next_kp >= 0 && next_kp < be {
+        inst_end = next_kp;
     }
-    let vstart: Int = ap + 6;
-    if CharAt(json, vstart) != "\"" {
-        return "";
+    let cond: String = JsonFieldString(json, kp, inst_end, "\"expr0\":");
+    if StringLength(cond) > 0 {
+        return cond;
     }
-    let e: Array<Int> = [0];
-    return ReadJsonString(json, vstart, e);
-}
-
-// Render one instruction (by kind + ast) as its tree line. `def` carrying a
-// `let ` is a declaration (`Let:`); any other `def` is a reassignment
-// (`Assign:`); `return` is `Return:`; everything else passes through.
-func RenderStmt(kind: String, ast: String) -> String {
-    if kind == "return" {
-        return Concat("Return: ", ast);
-    }
-    if kind == "def" {
-        if StringLength(ast) >= 4 && Substring(ast, 0, 4) == "let " {
-            return StmtToTreeLine(ast);
-        }
-        return Concat("Assign: ", ast);
-    }
-    return StmtToTreeLine(ast);
+    return JsonFieldString(json, kp, inst_end, "\"ast\":");
 }
 
 // Emit the non-branch statement lines of block [bs,be) at `indent`. `phi`
-// instructions carry `"ast":null` and are skipped by the string-value guard.
-func EmitBlockStmts(json: String, bs: Int, be: Int, indent: String) -> String {
+// instructions carry no statement fact and are skipped by the string-value
+// guard.
+func EmitBlockStmts(json: String, routine_start: Int, routine_end: Int,
+                    bs: Int, be: Int, indent: String) -> String {
     let out: String = "";
     let kp: Int = FindFrom(json, "\"kind\":", bs);
     while kp >= 0 && kp < be {
@@ -222,14 +290,18 @@ func EmitBlockStmts(json: String, bs: Int, be: Int, indent: String) -> String {
         let ikind: String = ReadJsonString(json, kq, ke);
         let next_kp: Int = FindFrom(json, "\"kind\":", ke[0]);
         if ikind != "branch" && ikind != "loop-init" {
-            let ap: Int = FindFrom(json, "\"ast\":", ke[0]);
-            if ap >= 0 && ap < be && (next_kp < 0 || ap < next_kp) {
-                let vstart: Int = ap + 6;
-                if CharAt(json, vstart) == "\"" {
-                    let send: Array<Int> = [0];
-                    let stmt: String = ReadJsonString(json, vstart, send);
-                    out = Concat(out, Concat(indent, Concat(RenderStmt(ikind, stmt), "\n")));
-                }
+            let inst_end: Int = be;
+            if next_kp >= 0 && next_kp < be {
+                inst_end = next_kp;
+            }
+            let ast: String = JsonFieldString(json, kp, inst_end, "\"ast\":");
+            let expr0: String = JsonFieldString(json, kp, inst_end, "\"expr0\":");
+            let expr1: String = JsonFieldString(json, kp, inst_end, "\"expr1\":");
+            let arg0: String = JsonFieldString(json, kp, inst_end, "\"arg0\":");
+            let source_type: String = JsonFieldString(json, kp, inst_end, "\"source_type\":");
+            let local_type: String = SourceLocalType(json, routine_start, routine_end, arg0);
+            if StringLength(ast) > 0 || StringLength(expr0) > 0 {
+                out = Concat(out, Concat(indent, Concat(RenderStmtFromFacts(ikind, source_type, ast, arg0, expr0, expr1, local_type), "\n")));
             }
         }
         kp = next_kp;
@@ -285,7 +357,8 @@ func RegionExit(json: String, bp: Int, span_end: Int, start: String) -> String {
 // (exclusive). Straight-line blocks emit their statements; a branch block emits
 // `If:/Then:/Else:` and recurses into the then/else regions, then continues from
 // the merge. `indent` is the leading whitespace for statements at this level.
-func EmitRegion(json: String, bp: Int, span_end: Int, start: String, stop: String, indent: String) -> String {
+func EmitRegion(json: String, routine_start: Int, bp: Int, span_end: Int,
+                start: String, stop: String, indent: String) -> String {
     let out: String = "";
     let cur: String = start;
     let guard: Int = 0;
@@ -297,7 +370,7 @@ func EmitRegion(json: String, bp: Int, span_end: Int, start: String, stop: Strin
         }
         let bs: Int = o[0];
         let be: Int = o[1];
-        out = Concat(out, EmitBlockStmts(json, bs, be, indent));
+        out = Concat(out, EmitBlockStmts(json, routine_start, span_end, bs, be, indent));
         let cond: String = BlockCond(json, bs, be);
         if StringLength(cond) == 0 {
             cur = ReadSucc(json, bs, be, "\"succ_true\":");
@@ -310,7 +383,7 @@ func EmitRegion(json: String, bp: Int, span_end: Int, start: String, stop: Strin
                 // bound it by `cur` (this header); the loop exit is succ_false.
                 out = Concat(out, Concat(indent, Concat(LoopHeaderLine(cond), "\n")));
                 out = Concat(out, Concat(indent, "  Block:\n"));
-                out = Concat(out, EmitRegion(json, bp, span_end, t, cur, Concat(indent, "    ")));
+                out = Concat(out, EmitRegion(json, routine_start, bp, span_end, t, cur, Concat(indent, "    ")));
                 cur = f;
             } else {
                 let te: String = RegionExit(json, bp, span_end, t);
@@ -325,11 +398,11 @@ func EmitRegion(json: String, bp: Int, span_end: Int, start: String, stop: Strin
                 out = Concat(out, Concat(indent, Concat("If: ", Concat(cond, "\n"))));
                 out = Concat(out, Concat(indent, "  Then:\n"));
                 out = Concat(out, Concat(indent, "    Block:\n"));
-                out = Concat(out, EmitRegion(json, bp, span_end, t, merge, Concat(indent, "      ")));
+                out = Concat(out, EmitRegion(json, routine_start, bp, span_end, t, merge, Concat(indent, "      ")));
                 if hasElse {
                     out = Concat(out, Concat(indent, "  Else:\n"));
                     out = Concat(out, Concat(indent, "    Block:\n"));
-                    out = Concat(out, EmitRegion(json, bp, span_end, f, merge, Concat(indent, "      ")));
+                    out = Concat(out, EmitRegion(json, routine_start, bp, span_end, f, merge, Concat(indent, "      ")));
                 }
                 cur = merge;
             }
@@ -417,7 +490,7 @@ func Main() -> Void {
         // do not model yet), fall back to the flat instruction walk so no source
         // statement is silently dropped.
         let bp: Int = FindFrom(json, "\"blocks\":", nend[0]);
-        let region: String = EmitRegion(json, bp, span_end, "0", "", "        ");
+        let region: String = EmitRegion(json, nend[0], bp, span_end, "0", "", "        ");
         if StringLength(region) > 0 {
             out = Concat(out, region);
             total = total + 1;
@@ -428,20 +501,19 @@ func Main() -> Void {
                 let ke: Array<Int> = [0];
                 let ikind: String = ReadJsonString(json, kq, ke);
                 let next_kp: Int = FindFrom(json, "\"kind\":", ke[0]);
-                let ap: Int = FindFrom(json, "\"ast\":", ke[0]);
-                if ap >= 0 && ap < span_end && (next_kp < 0 || ap < next_kp) {
-                    let vstart: Int = ap + 6;
-                    let vc: String = CharAt(json, vstart);
-                    if vc == "\"" {
-                        let send: Array<Int> = [0];
-                        let stmt: String = ReadJsonString(json, vstart, send);
-                        if ikind == "return" {
-                            out = Concat(out, Concat("        Return: ", Concat(stmt, "\n")));
-                        } else {
-                            out = Concat(out, Concat("        ", Concat(StmtToTreeLine(stmt), "\n")));
-                        }
-                        total = total + 1;
-                    }
+                let inst_end: Int = span_end;
+                if next_kp >= 0 && next_kp < span_end {
+                    inst_end = next_kp;
+                }
+                let ast: String = JsonFieldString(json, kp, inst_end, "\"ast\":");
+                let expr0: String = JsonFieldString(json, kp, inst_end, "\"expr0\":");
+                let expr1: String = JsonFieldString(json, kp, inst_end, "\"expr1\":");
+                let arg0: String = JsonFieldString(json, kp, inst_end, "\"arg0\":");
+                let source_type: String = JsonFieldString(json, kp, inst_end, "\"source_type\":");
+                let local_type: String = SourceLocalType(json, nend[0], span_end, arg0);
+                if StringLength(ast) > 0 || StringLength(expr0) > 0 {
+                    out = Concat(out, Concat("        ", Concat(RenderStmtFromFacts(ikind, source_type, ast, arg0, expr0, expr1, local_type), "\n")));
+                    total = total + 1;
                 }
                 kp = next_kp;
             }

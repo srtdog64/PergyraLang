@@ -64,7 +64,12 @@ Current beta closure snapshot:
   the initializer AST expression. C MIR SSA local declarations also consume
   the source-local type fact before initializer expression inference, so
   annotated locals and reassignment/PHI DEF storage cannot be retagged by an
-  initializer-derived guess.
+  initializer-derived guess. LLVM MIR local alloca typing follows the same
+  rule for annotated source-local declarations: `type_layout` and `type_expr`
+  cannot mask a missing `MIRRoutine::source_local_types` row. Callable locals
+  use the same source-local fact owner through callable return/parameter
+  type-name rows, so function-pointer locals do not need to re-register the
+  annotation AST in LLVM MIR emission.
 - LLVM verifier diagnostics live at the LLVM C API boundary in
   `src/codegen/llvm_api.c`. `LLVMVerifyModule(...)` may leave the diagnostic
   message pointer null on success; backend code must only call

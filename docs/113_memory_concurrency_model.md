@@ -40,6 +40,9 @@ Executable gate: `make memory-concurrency-model-test-smoke`.
 - Shared `ref`/`ref` reads of the same ownership-bearing value across parallel
   tasks are accepted.
 - `ref`/`own` and `own`/`own` task-boundary conflicts are rejected.
+- Slot read/write and write/write overlaps across sibling `parallel` tasks are
+  rejected by the boundary-witness `op_guard` refinement. Shared read/read
+  overlap remains accepted. In short: read/write overlap is a semantic error.
 - `WriteView<T>` and pinned view conflicts are rejected across parallel tasks.
 - No data-race freedom is promised for `unsafe` or out-of-beta surfaces.
 
@@ -80,6 +83,14 @@ worker boundaries by raw pointer. Semantic analysis, C lowering, and LLVM
 lowering consume that shared policy instead of rebuilding local lists.
 `make worker-boundary-ub-test-smoke` pins the owner and requires semantic
 regressions for Array, Slice, HashMap, and Channel worker-boundary rejection.
+
+Implementation checkpoint: `src/semantic/boundary_witness.{h,c}` records the
+C semantic checker's `OpAcqR`/`OpAcqW`/`OpRel` decisions in
+`PgyBoundaryWitnessSummary`, using the same shape as
+`docs/semantics/proofs/WitnessDataRace.v`. `type_checker_flow_parallel.c`
+feeds it from `ResourceConsumeSnapshot` deltas, and read/write overlap is a
+semantic error, not a warning. `test_semantic_parallel_context.cases.h` pins
+the op_guard oracle and the generated C-checker witness counters.
 
 Implementation checkpoint: `src/runtime/party_runtime_stats.c` treats the
 process-global fiber stats table as a shared registry. `UpdateFiberStats`,

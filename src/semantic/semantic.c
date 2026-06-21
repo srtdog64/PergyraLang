@@ -214,6 +214,7 @@ semantic_analyze(ASTNode *ast)
         ctx->type_resolution_dag_generic_contract_evidence_count;
     result->type_resolution_dag_ability_consumer_evidence_count =
         ctx->type_resolution_dag_ability_consumer_evidence_count;
+    result->boundary_witness_summary = ctx->boundary_witness_summary;
     for (size_t i = 0; i < ctx->diagnostic_count; i++) {
         if (ctx->diagnostics[i]->level == DIAG_ERROR)
             result->error_count++;

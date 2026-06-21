@@ -207,10 +207,20 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
     }
 
     for (size_t i = 0; i < field_view.count; i++) {
-        ASTNode *field_type =
-            transpiler_hosted_field_view_type(&field_view, i);
-        if (field_type != NULL)
-            ensure_type_specializations_from_ast_to(ctx, ctx->out, field_type);
+        const MIRDeclField *field =
+            transpiler_hosted_field_view_metadata(&field_view, i);
+        const char *field_type_name =
+            transpiler_mir_decl_field_type_name(field);
+        if (field_type_name != NULL) {
+            ensure_type_specializations_from_type_name_to(
+                ctx, ctx->out, field_type_name);
+        } else {
+            ASTNode *field_type =
+                transpiler_hosted_field_view_type(&field_view, i);
+            if (field_type != NULL)
+                ensure_type_specializations_from_ast_to(
+                    ctx, ctx->out, field_type);
+        }
     }
 
     codebuf_write(ctx->out, "\ntypedef struct %s\n{\n", name);
@@ -218,8 +228,10 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
     for (size_t i = 0; i < field_view.count; i++) {
         const char *field_name =
             transpiler_hosted_field_view_name(&field_view, i);
-        ASTNode *field_type =
-            transpiler_hosted_field_view_type(&field_view, i);
+        const MIRDeclField *field =
+            transpiler_hosted_field_view_metadata(&field_view, i);
+        const char *field_type_name =
+            transpiler_mir_decl_field_type_name(field);
         char ft[256];
         char surface_desc[256];
         if (field_name == NULL) {
@@ -239,12 +251,31 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
             transpiler_class_format_too_long(ctx, "class field diagnostic surface");
             return;
         }
-        if (!transpiler_require_ast_c_type_copy(ctx,
-                field_type,
-                surface_desc,
-                ft,
-                sizeof(ft))) {
-            return;
+        if (field_type_name != NULL) {
+            if (!transpiler_require_type_name_c_type_copy(ctx,
+                    field_type_name,
+                    surface_desc,
+                    ft,
+                    sizeof(ft))) {
+                return;
+            }
+        } else {
+            ASTNode *field_type =
+                transpiler_hosted_field_view_type(&field_view, i);
+            if (field_view.requires_mir_metadata) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    "MIR-only C path missing class field type-name metadata for '%s.%s'",
+                    name != NULL ? name : "(anonymous-class)",
+                    field_name);
+                return;
+            }
+            if (!transpiler_require_ast_c_type_copy(ctx,
+                    field_type,
+                    surface_desc,
+                    ft,
+                    sizeof(ft))) {
+                return;
+            }
         }
         codebuf_write(ctx->out, "    %s %s;\n", ft, field_name);
     }

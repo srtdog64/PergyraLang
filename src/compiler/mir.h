@@ -247,6 +247,10 @@ typedef struct
 {
     char *name;
     char *type_name;
+    bool  is_callable;
+    char *callable_return_type_name;
+    char **callable_param_type_names;
+    size_t callable_param_count;
 } MIRSourceLocalType;
 
 typedef struct
@@ -529,6 +533,8 @@ const char *mir_routine_return_type_name(const MIRRoutine *routine);
  * variables) into MIRRoutine::source_local_types so backends do not
  * rescan the function body to answer source-local class questions. */
 const char *mir_routine_source_local_type_name(
+    const MIRRoutine *routine, const char *local_name);
+const MIRSourceLocalType *mir_routine_source_local_type_fact(
     const MIRRoutine *routine, const char *local_name);
 size_t      mir_routine_source_local_type_count(const MIRRoutine *routine);
 const char *mir_routine_source_local_name_at(const MIRRoutine *routine,

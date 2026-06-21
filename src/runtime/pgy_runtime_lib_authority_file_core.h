@@ -233,6 +233,9 @@ pgy_checked_div_i32_export(int32_t lhs, int32_t rhs)
     if (rhs == 0)
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DIVIDE_BY_ZERO,
                           PGY_RUNTIME_PANIC_REASON_DIVIDE_BY_ZERO);
+    if (lhs == INT32_MIN && rhs == -1)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_ARITHMETIC_OVERFLOW,
+                          PGY_RUNTIME_PANIC_REASON_DIVISION_OVERFLOW);
     return lhs / rhs;
 }
 
@@ -242,6 +245,9 @@ pgy_checked_div_i64_export(int64_t lhs, int64_t rhs)
     if (rhs == 0)
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DIVIDE_BY_ZERO,
                           PGY_RUNTIME_PANIC_REASON_DIVIDE_BY_ZERO);
+    if (lhs == INT64_MIN && rhs == -1)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_ARITHMETIC_OVERFLOW,
+                          PGY_RUNTIME_PANIC_REASON_DIVISION_OVERFLOW);
     return lhs / rhs;
 }
 
@@ -251,6 +257,9 @@ pgy_checked_mod_i32_export(int32_t lhs, int32_t rhs)
     if (rhs == 0)
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DIVIDE_BY_ZERO,
                           PGY_RUNTIME_PANIC_REASON_DIVIDE_BY_ZERO);
+    /* INT_MIN % -1 is UB in C though the true remainder is 0; return it. */
+    if (lhs == INT32_MIN && rhs == -1)
+        return 0;
     return lhs % rhs;
 }
 
@@ -260,6 +269,9 @@ pgy_checked_mod_i64_export(int64_t lhs, int64_t rhs)
     if (rhs == 0)
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DIVIDE_BY_ZERO,
                           PGY_RUNTIME_PANIC_REASON_DIVIDE_BY_ZERO);
+    /* INT_MIN % -1 is UB in C though the true remainder is 0; return it. */
+    if (lhs == INT64_MIN && rhs == -1)
+        return 0;
     return lhs % rhs;
 }
 

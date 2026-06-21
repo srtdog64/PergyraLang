@@ -117,9 +117,13 @@ llvm_function_signature_from_callable_entry(LLVMGenCtx *ctx,
     if (entry->type_node != NULL)
         return llvm_function_signature_from_event_type(ctx, entry->type_node);
 
-    ret_type = entry->return_type != NULL
-        ? ast_type_to_llvm(ctx, entry->return_type)
-        : ctx->type_void;
+    if (entry->return_type_name != NULL) {
+        ret_type = pergyra_type_to_llvm(ctx, entry->return_type_name);
+    } else {
+        ret_type = entry->return_type != NULL
+            ? ast_type_to_llvm(ctx, entry->return_type)
+            : ctx->type_void;
+    }
     if (ctx->has_error || ret_type == NULL)
         return NULL;
     if (entry->param_count > 0) {
@@ -134,7 +138,9 @@ llvm_function_signature_from_callable_entry(LLVMGenCtx *ctx,
             return NULL;
         }
         for (size_t i = 0; i < entry->param_count; i++) {
-            param_types[i] = ast_type_to_llvm(ctx, entry->param_types[i]);
+            param_types[i] = entry->param_type_names != NULL
+                ? pergyra_type_to_llvm(ctx, entry->param_type_names[i])
+                : ast_type_to_llvm(ctx, entry->param_types[i]);
             if (ctx->has_error || param_types[i] == NULL)
                 return NULL;
         }
@@ -466,10 +472,10 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
     if (!is_float && (op_type == TOKEN_SLASH
         || op_type == TOKEN_PERCENT)) {
         bool use_i64 = left_type == ctx->type_i64 || right_type == ctx->type_i64;
-        bool rhs_is_nonzero_literal = !use_i64
-            && pgy_codegen_ast_number_is_nonzero_i32_literal(
+        bool rhs_is_safe_divisor_literal = !use_i64
+            && pgy_codegen_ast_number_is_safe_divisor_i32_literal(
                 right_expr);
-        if (!rhs_is_nonzero_literal) {
+        if (!rhs_is_safe_divisor_literal) {
             const char *helper = op_type == TOKEN_SLASH
                 ? (use_i64 ? "pgy_checked_div_i64_export"
                            : "pgy_checked_div_i32_export")

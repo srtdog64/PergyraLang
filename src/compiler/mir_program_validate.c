@@ -122,6 +122,34 @@ mir_validate_program_inventory_shape(const MIRProgram *mir,
                 }
                 return false;
             }
+            if (fact->is_callable) {
+                if (fact->callable_return_type_name == NULL
+                    || (fact->callable_param_count > 0
+                        && fact->callable_param_type_names == NULL)) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR routine '%s' source-local callable type fact[%zu] is incomplete",
+                            routine->name != NULL
+                                ? routine->name
+                                : "(anonymous)",
+                            j);
+                    }
+                    return false;
+                }
+                for (size_t k = 0; k < fact->callable_param_count; k++) {
+                    if (fact->callable_param_type_names[k] == NULL) {
+                        if (error_message != NULL) {
+                            *error_message = mir_strdup_fmt(
+                                "MIR routine '%s' source-local callable type fact[%zu] has missing parameter metadata",
+                                routine->name != NULL
+                                    ? routine->name
+                                    : "(anonymous)",
+                                j);
+                        }
+                        return false;
+                    }
+                }
+            }
         }
     }
     return true;

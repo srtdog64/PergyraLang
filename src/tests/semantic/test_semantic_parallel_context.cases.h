@@ -3,6 +3,24 @@ test_parallel_context_semantics(void)
 {
     printf("\n[parallel_context_semantics]\n");
 
+    TEST("boundary-witness oracle matches op_guard");
+    {
+        EXPECT(pgy_boundary_witness_guard_accepts(
+            0, false, PGY_BOUNDARY_WITNESS_OP_ACQ_READ));
+        EXPECT(pgy_boundary_witness_guard_accepts(
+            1, false, PGY_BOUNDARY_WITNESS_OP_ACQ_READ));
+        EXPECT(!pgy_boundary_witness_guard_accepts(
+            0, true, PGY_BOUNDARY_WITNESS_OP_ACQ_READ));
+        EXPECT(pgy_boundary_witness_guard_accepts(
+            0, false, PGY_BOUNDARY_WITNESS_OP_ACQ_WRITE));
+        EXPECT(!pgy_boundary_witness_guard_accepts(
+            1, false, PGY_BOUNDARY_WITNESS_OP_ACQ_WRITE));
+        EXPECT(!pgy_boundary_witness_guard_accepts(
+            0, true, PGY_BOUNDARY_WITNESS_OP_ACQ_WRITE));
+        EXPECT(pgy_boundary_witness_guard_accepts(
+            1, true, PGY_BOUNDARY_WITNESS_OP_RELEASE));
+    }
+
     TEST("parallel-rejected: write-write slot conflict");
     {
         const char *source =
@@ -21,6 +39,13 @@ test_parallel_context_semantics(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(result != NULL
+            && result->boundary_witness_summary.acq_write_count >= 2);
+        EXPECT(result != NULL
+            && result->boundary_witness_summary.rejected_count >= 1);
+        EXPECT(result != NULL
+            && pgy_boundary_witness_summary_is_guard_consistent(
+                &result->boundary_witness_summary));
 
         bool found = false;
         if (result != NULL) {
@@ -40,7 +65,39 @@ test_parallel_context_semantics(void)
         lexer_destroy(lexer);
     }
 
-    TEST("parallel-safe: read-write slot race warns");
+    TEST("parallel-safe: shared slot reads satisfy boundary witness");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    with slot<Int> as s {\n"
+            "        parallel {\n"
+            "            let a = Read(s);\n"
+            "            let b = Read(s);\n"
+            "        }\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL
+            && result->boundary_witness_summary.acq_read_count >= 2);
+        EXPECT(result != NULL
+            && result->boundary_witness_summary.rejected_count == 0);
+        EXPECT(result != NULL
+            && pgy_boundary_witness_summary_is_guard_consistent(
+                &result->boundary_witness_summary));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("parallel-rejected: read-write slot race fails op_guard");
     {
         const char *source =
             "func Main() -> Void {\n"
@@ -57,7 +114,62 @@ test_parallel_context_semantics(void)
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(result != NULL
+            && result->boundary_witness_summary.acq_read_count >= 1);
+        EXPECT(result != NULL
+            && result->boundary_witness_summary.acq_write_count >= 1);
+        EXPECT(result != NULL
+            && result->boundary_witness_summary.rejected_count >= 1);
+        EXPECT(result != NULL
+            && pgy_boundary_witness_summary_is_guard_consistent(
+                &result->boundary_witness_summary));
+
+        bool found = false;
+        if (result != NULL) {
+            for (size_t i = 0; i < result->diagnostic_count; i++) {
+                if (strstr(result->diagnostics[i]->message,
+                           "Parallel context race risk") != NULL) {
+                    found = true;
+                    break;
+                }
+            }
+        }
+        EXPECT(found);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("parallel-rejected: write-read slot race fails op_guard");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    with slot<Int> as s {\n"
+            "        parallel {\n"
+            "            Write(s, 2);\n"
+            "            let a = Read(s);\n"
+            "        }\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(result != NULL
+            && result->boundary_witness_summary.acq_read_count >= 1);
+        EXPECT(result != NULL
+            && result->boundary_witness_summary.acq_write_count >= 1);
+        EXPECT(result != NULL
+            && result->boundary_witness_summary.rejected_count >= 1);
+        EXPECT(result != NULL
+            && pgy_boundary_witness_summary_is_guard_consistent(
+                &result->boundary_witness_summary));
 
         bool found = false;
         if (result != NULL) {

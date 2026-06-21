@@ -149,3 +149,25 @@ shared + cannot-cross fail-closed. refinement 의무가 *"미지"→"맵핑됨 +
   바로 그 갭. *원리적으로 Coq로 C-impl을 증명할 수 없음* → §6 게이트(backend_compare, 경계
   fail-closed 테스트)로 경험적으로 지키는 것이 실용 종착.
 - **익명 spawn 캡처**: fail-closed 제한(named async 강제), 완전 캡처-lifetime 분석은 미래(구멍 아님).
+
+## 8. Boundary Witness Refinement Gate (2026-06-21)
+
+`WitnessDataRace.v`의 `op_guard` 증명은 모델 증명이고, C 구현 전체를
+증명한 것은 아니다. 그래서 구현 쪽 refinement는 실행 가능한 witness와
+fixture로 방어한다.
+
+- `src/semantic/boundary_witness.{h,c}`가 `PgyBoundaryWitnessSummary`를
+  소유한다.
+- `src/semantic/type_checker_flow_resources.c`는 AST 재스캔이 아니라
+  `ResourceConsumeSnapshot` delta에서 `OpAcqR` / `OpAcqW` / `OpRel`
+  witness를 기록한다.
+- `src/semantic/type_checker_flow_parallel.c`는 sibling task 사이 slot
+  read/write overlap을 warning이 아니라 `PGY_SEM_PARALLEL_SLOT_RACE_RISK`
+  error로 닫는다. shared read/read만 허용된다.
+- `src/tests/semantic/test_semantic_parallel_context.cases.h`가 작은
+  op_guard oracle과 실제 C checker witness counter를 같이 확인한다.
+
+이로써 beta parallel slot boundary의 실용 refinement gate는
+`model soundness = Coq`, `implementation conformance = boundary witness +
+semantic fixture`로 나뉜다. 이것은 whole-C-program proof가 아니라,
+남은 RustBelt-vs-rustc 갭을 정직하게 좁히는 실행 게이트다.

@@ -73,6 +73,11 @@ void llvm_register_callable_signature(LLVMGenCtx *ctx, const char *var_name,
                                       size_t param_count,
                                       ASTNode *const *param_types,
                                       ASTNode *return_type);
+void llvm_register_callable_signature_names(LLVMGenCtx *ctx,
+                                            const char *var_name,
+                                            size_t param_count,
+                                            const char *const *param_type_names,
+                                            const char *return_type_name);
 LLVMCallableVarEntry *llvm_lookup_callable_entry(LLVMGenCtx *ctx,
                                                  const char *var_name);
 void llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
@@ -522,35 +527,7 @@ LLVMValueRef llvm_emit_inline_array_get(LLVMGenCtx *ctx,
                                         LLVMValueRef index,
                                         const char *struct_name);
 
-/* =================================================================
- * Emitters -- statements (llvm_stmt.c)
- * ================================================================= */
-void llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx);
-void llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx);
-void llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx);
-bool llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx);
-bool llvm_stmt_emit_claim_slot_let(ASTNode *node, LLVMGenCtx *ctx);
-bool llvm_stmt_emit_view_or_move_let(ASTNode *node, LLVMGenCtx *ctx);
-bool llvm_stmt_emit_slot_sugar_let(ASTNode *node, LLVMGenCtx *ctx);
-bool llvm_stmt_register_callable_let_binding(ASTNode *node, LLVMGenCtx *ctx);
-void llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx);
-const char *llvm_stmt_render_type_annotation_copy(LLVMGenCtx *ctx,
-                                                  ASTNode *type_ann);
-ASTNode *llvm_stmt_current_return_callable_type(LLVMGenCtx *ctx);
-LLVMTypeRef llvm_stmt_lambda_return_type(LLVMGenCtx *ctx, ASTNode *expr);
-LLVMTypeRef llvm_stmt_lambda_param_type(LLVMGenCtx *ctx, ASTNode *lambda,
-                                        ASTNode *param, size_t param_index);
-LLVMTypeRef llvm_stmt_lambda_signature_type(LLVMGenCtx *ctx, ASTNode *expr);
-const char *llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr);
-LLVMValueRef llvm_stmt_create_slot_alloca(LLVMGenCtx *ctx, LLVMTypeRef type,
-                                          const char *name);
-void llvm_emit_while_loop(ASTNode *node, LLVMGenCtx *ctx);
-void llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx);
-void llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx);
-void llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx);
-void llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx);
-void llvm_emit_select_stmt(ASTNode *node, LLVMGenCtx *ctx);
-void llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx);
+#include "llvm_stmt_internal.h"
 
 /* =================================================================
  * Emitters -- declarations (llvm_decl.c)

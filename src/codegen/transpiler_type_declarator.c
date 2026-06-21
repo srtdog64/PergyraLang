@@ -13,6 +13,7 @@
 
 #include "transpiler_type_declarator.h"
 #include "transpiler_context.h"
+#include "transpiler_type_require.h"
 #include "transpiler_type_render.h"
 #include "../common/string_compat.h"
 #include "../semantic/diag_codes.h"
@@ -228,6 +229,62 @@ pergyra_func_pointer_declarator_from_decl(ASTNode *func_decl, const char *name)
 {
     return pergyra_func_pointer_declarator_from_decl_in_ctx(
         NULL, func_decl, name);
+}
+
+char *
+pergyra_func_pointer_declarator_from_type_names_in_ctx(
+    TranspilerCtx *ctx,
+    const char *return_type_name,
+    size_t param_count,
+    char *const *param_type_names,
+    const char *name)
+{
+    CodeBuf *params = NULL;
+    char ret_type_buf[256];
+    const char *ret_type = NULL;
+    char *result = NULL;
+
+    if (!transpiler_require_type_name_c_type_copy(ctx, return_type_name,
+            "function pointer return type", ret_type_buf,
+            sizeof(ret_type_buf))) {
+        return NULL;
+    }
+    ret_type = ret_type_buf;
+
+    params = codebuf_create();
+    if (params == NULL) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend declarator parameter buffer allocation failed");
+        return NULL;
+    }
+
+    if (param_count == 0) {
+        codebuf_write(params, "void");
+    } else {
+        for (size_t i = 0; i < param_count; i++) {
+            char param_buf[256];
+            if (i > 0)
+                codebuf_write(params, ", ");
+            if (param_type_names == NULL
+                || param_type_names[i] == NULL
+                || !transpiler_require_type_name_c_type_copy(ctx,
+                    param_type_names[i],
+                    "function pointer parameter type",
+                    param_buf, sizeof(param_buf))) {
+                codebuf_destroy(params);
+                return NULL;
+            }
+            codebuf_write(params, "%s", param_buf);
+        }
+    }
+
+    result = declarator_heap_fmt(ctx, "%s (*%s)(%s)", ret_type,
+        name != NULL ? name : "value", params->data);
+    codebuf_destroy(params);
+    return result;
 }
 
 char *

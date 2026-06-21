@@ -183,6 +183,10 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     compile_runtime_argv[compile_runtime_argc++] = "-Wno-format-truncation";
     compile_runtime_argv[compile_runtime_argc++] = PGY_CFLAGS_THREAD_FLAG;
     compile_runtime_argv[compile_runtime_argc++] = opt_flag;
+    /* Match the emitted-C driver: defined signed wrap + no TBAA miscompiles
+     * so the linked runtime's checked arithmetic stays UB-free under -O3. */
+    compile_runtime_argv[compile_runtime_argc++] = "-fwrapv";
+    compile_runtime_argv[compile_runtime_argc++] = "-fno-strict-aliasing";
     compile_runtime_argv[compile_runtime_argc++] = intent_observability_flag;
     compile_runtime_argv[compile_runtime_argc++] = "-DPGY_LLVM_ENABLED";
     compile_runtime_argv[compile_runtime_argc++] = "-I";
@@ -193,7 +197,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     compile_runtime_argv[compile_runtime_argc++] = runtime_obj_path;
     compile_runtime_argv[compile_runtime_argc] = NULL;
 #else
-    const char *compile_runtime_argv[20];
+    const char *compile_runtime_argv[22];
     int compile_runtime_argc = 0;
     compile_runtime_argv[compile_runtime_argc++] = cc;
     if (cc_target != NULL)
@@ -208,6 +212,10 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     compile_runtime_argv[compile_runtime_argc++] = "-D_XOPEN_SOURCE=700";
 #endif
     compile_runtime_argv[compile_runtime_argc++] = opt_flag;
+    /* Match the emitted-C driver: defined signed wrap + no TBAA miscompiles
+     * so the linked runtime's checked arithmetic stays UB-free under -O3. */
+    compile_runtime_argv[compile_runtime_argc++] = "-fwrapv";
+    compile_runtime_argv[compile_runtime_argc++] = "-fno-strict-aliasing";
 #ifndef __APPLE__
     compile_runtime_argv[compile_runtime_argc++] = "-fopenmp";
 #endif

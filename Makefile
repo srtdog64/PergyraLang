@@ -377,6 +377,7 @@ ASYNC_SOURCES    = $(ASYNC_DIR)/concurrent_queue.c \
 RUNTIME_SOURCES  += $(ASYNC_SOURCES)
 RUNTIME_ASM_SOURCES = $(RUNTIME_DIR)/slot_asm.s
 SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
+                   $(SEMANTIC_DIR)/boundary_witness.c \
                    $(SEMANTIC_DIR)/type_system_slot.c \
                    $(SEMANTIC_DIR)/type_system_tuple.c \
                    $(SEMANTIC_DIR)/type_system_compat.c \
@@ -846,6 +847,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_branch_source_facts.c \
                    $(COMPILER_DIR)/mir_signature_metadata.c \
                    $(COMPILER_DIR)/mir_source_shape.c \
+                   $(COMPILER_DIR)/mir_source_node_name.c \
                    $(COMPILER_DIR)/mir_source_local_types.c \
                    $(COMPILER_DIR)/mir_source_local_expr_types.c \
                    $(COMPILER_DIR)/mir_names.c \
@@ -964,6 +966,7 @@ ifneq ($(LLVM_ENABLED),0)
                          $(CODEGEN_DIR)/llvm_error.c \
                           $(CODEGEN_DIR)/llvm_register.c \
                           $(CODEGEN_DIR)/llvm_runtime.c \
+                          $(CODEGEN_DIR)/llvm_runtime_bitcode_freshness.c \
                           $(CODEGEN_DIR)/llvm_runtime_core_builtin_decl.c \
                           $(CODEGEN_DIR)/llvm_runtime_require.c \
                           $(CODEGEN_DIR)/llvm_runtime_raw_collections.c \
@@ -988,6 +991,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_mir_local_emit.c \
                         $(CODEGEN_DIR)/llvm_mir_local_expected_type.c \
                         $(CODEGEN_DIR)/llvm_mir_local_element_type.c \
+                        $(CODEGEN_DIR)/llvm_mir_local_type_lookup.c \
                         $(CODEGEN_DIR)/llvm_mir_scope_bind.c \
                         $(CODEGEN_DIR)/llvm_mir_slice_fact.c \
                         $(CODEGEN_DIR)/llvm_mir_param_emit.c \
@@ -1326,6 +1330,7 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/mir_program_inventory.o \
                    $(BUILD_DIR)/compiler/mir_signature_metadata.o \
                    $(BUILD_DIR)/compiler/mir_source_shape.o \
+                   $(BUILD_DIR)/compiler/mir_source_node_name.o \
                    $(BUILD_DIR)/compiler/mir_source_local_types.o \
                    $(BUILD_DIR)/compiler/mir_source_local_expr_types.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_access.o \
@@ -1354,6 +1359,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_branch_source_facts.o \
                    $(BUILD_DIR)/compiler/mir_signature_metadata.o \
                    $(BUILD_DIR)/compiler/mir_source_shape.o \
+                   $(BUILD_DIR)/compiler/mir_source_node_name.o \
                    $(BUILD_DIR)/compiler/mir_source_local_types.o \
                    $(BUILD_DIR)/compiler/mir_source_local_expr_types.o \
                    $(BUILD_DIR)/compiler/mir_names.o \

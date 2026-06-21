@@ -55,6 +55,7 @@ run_literal_contract_smoke() {
         "src/codegen/transpiler_expr_core_emit.c"
         "src/codegen/llvm_expr_scalar_core.h"
         "src/codegen/llvm_expr_scalar_core.c"
+        "src/codegen/llvm_api.c"
         "src/codegen/llvm_runtime.c"
         "src/codegen/llvm_runtime_core_builtin_decl.c"
         "docs/100_beta_readiness_checklist.md"
@@ -95,6 +96,7 @@ run_literal_contract_smoke() {
         require_literal "src/runtime/pgy_runtime_panic_contract.h" "$token"
     done
     require_literal "src/runtime/pgy_runtime_panic_contract.h" "PGY_RUNTIME_PANIC("
+    require_literal "src/runtime/pgy_runtime_panic_contract.h" "PGY_RUNTIME_PANIC_AT"
     require_literal "src/runtime/pgy_runtime_panic_contract.h" "pgy_runtime_panic_emit"
     require_literal "src/runtime/pgy_runtime_platform_io_core.h" "pgy_runtime_panic_contract.h"
     require_literal "src/runtime/pgy_runtime_lib_authority_file_core.h" "pgy_runtime_panic_contract.h"
@@ -109,6 +111,8 @@ run_literal_contract_smoke() {
     require_literal "src/runtime/pgy_runtime_lib_secure_slot_exports.h" "PGY_RUNTIME_PANIC_REASON_INVALID_SECURE_TOKEN_WRITE"
     require_literal "src/runtime/pgy_runtime_result_option_inline.h" "PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR"
     require_literal "src/runtime/pgy_runtime_result_option_inline.h" "PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE"
+    require_literal "src/runtime/pgy_runtime_zone_result_option_inline.h" "PGY_RUNTIME_PANIC_AT"
+    forbid_literal "src/runtime/pgy_runtime_zone_result_option_inline.h" "pgy_runtime_panic_emit("
     require_literal "src/runtime/pgy_runtime_panic_checked_inline.h" "PGY_RUNTIME_PANIC_CLASS_DIVIDE_BY_ZERO"
     require_literal "src/runtime/pgy_parallel.h" "pgy_runtime_panic_contract.h"
     require_literal "src/runtime/pgy_parallel_run.h" "parallel task array is null"
@@ -130,6 +134,8 @@ run_literal_contract_smoke() {
     forbid_literal "src/runtime/pgy_runtime_lib_io_string_exports.h" "exit((int)code)"
     require_literal "src/codegen/transpiler_expr_core_emit.c" "pgy_checked_div_i32_export"
     require_literal "src/codegen/llvm_expr_scalar_core.c" "pgy_checked_mod_i32_export"
+    require_literal "src/codegen/llvm_api.c" 'strcmp(name, "pgy_runtime_panic_emit") == 0'
+    require_literal "src/codegen/llvm_api.c" "not an external ABI symbol"
     require_literal "src/codegen/llvm_runtime_core_builtin_decl.c" "pgy_runtime_panic_internal_invariant_export"
     require_literal "src/codegen/llvm_runtime_core_builtin_decl.c" "pgy_runtime_panic_out_of_bounds_export"
     require_literal "docs/100_beta_readiness_checklist.md" "Runtime Panic Parity"
@@ -170,6 +176,7 @@ parallel_h = root / "src" / "runtime" / "pgy_parallel.h"
 parallel_run_h = root / "src" / "runtime" / "pgy_parallel_run.h"
 parallel_coroutine_h = root / "src" / "runtime" / "pgy_parallel_coroutine.h"
 fiber_c = root / "src" / "runtime" / "async" / "fiber.c"
+llvm_api_c = root / "src" / "codegen" / "llvm_api.c"
 lib_top = root / "src" / "runtime" / "pgy_runtime_lib_authority_file_core.h"
 slot_c = root / "src" / "runtime" / "pgy_runtime_lib_intent_slot_core_exports.h"
 slot_macros = root / "src" / "runtime" / "pgy_runtime_slot_macros.h"
@@ -503,6 +510,17 @@ for path in [
     for token in ["pgy_checked_div_i32_export", "pgy_checked_mod_i32_export"]:
         if token not in text:
             raise SystemExit(f"{path.relative_to(root)} missing checked arithmetic lowering {token}")
+
+llvm_api_text = llvm_api_c.read_text(encoding="utf-8")
+for token in [
+    'strcmp(name, "pgy_runtime_panic_emit") == 0',
+    "not an external ABI symbol",
+]:
+    if token not in llvm_api_text:
+        raise SystemExit(
+            "LLVM runtime bitcode strip policy can no longer prove that "
+            f"static-inline panic emit is preserved: {token}"
+        )
 
 unwrap_lowering_paths = {
     result_option_inline: [

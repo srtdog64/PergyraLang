@@ -204,10 +204,10 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
                 && (strcmp(rt, "Float") == 0 || strcmp(rt, "Double") == 0));
         bool is_long_div = (lt != NULL && strcmp(lt, "Long") == 0)
             || (rt != NULL && strcmp(rt, "Long") == 0);
-        bool rhs_is_nonzero_literal =
+        bool rhs_is_safe_divisor_literal =
             !is_long_div
-            && pgy_codegen_ast_number_is_nonzero_i32_literal(right_expr);
-        if (!is_float_div && !rhs_is_nonzero_literal) {
+            && pgy_codegen_ast_number_is_safe_divisor_i32_literal(right_expr);
+        if (!is_float_div && !rhs_is_safe_divisor_literal) {
             const char *helper = op_type == TOKEN_SLASH
                 ? (is_long_div ? "pgy_checked_div_i64_export"
                                : "pgy_checked_div_i32_export")

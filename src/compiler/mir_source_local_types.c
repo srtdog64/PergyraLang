@@ -19,6 +19,17 @@ mir_routine_source_local_type_names_clear(MIRRoutine *routine)
         for (size_t i = 0; i < routine->source_local_type_count; i++) {
             free(routine->source_local_types[i].name);
             free(routine->source_local_types[i].type_name);
+            free(routine->source_local_types[i].callable_return_type_name);
+            if (routine->source_local_types[i].callable_param_type_names != NULL) {
+                for (size_t j = 0;
+                     j < routine->source_local_types[i].callable_param_count;
+                     j++) {
+                    free(routine->source_local_types[i]
+                        .callable_param_type_names[j]);
+                }
+                free(routine->source_local_types[i]
+                    .callable_param_type_names);
+            }
         }
     }
     free(routine->source_local_types);
@@ -81,8 +92,140 @@ mir_source_local_type_append_name(const MIRProgram *program,
         name_copy;
     routine->source_local_types[routine->source_local_type_count].type_name =
         type_name_copy;
+    routine->source_local_types[routine->source_local_type_count].is_callable =
+        false;
+    routine->source_local_types[routine->source_local_type_count]
+        .callable_return_type_name = NULL;
+    routine->source_local_types[routine->source_local_type_count]
+        .callable_param_type_names = NULL;
+    routine->source_local_types[routine->source_local_type_count]
+        .callable_param_count = 0;
     routine->source_local_type_count++;
     return true;
+}
+
+static bool
+mir_source_local_type_append_callable(const MIRProgram *program,
+                                      MIRRoutine *routine,
+                                      const char *name,
+                                      ASTNode *type_node)
+{
+    char **param_type_names = NULL;
+    char *return_type_name = NULL;
+    char *surface_type_name = NULL;
+    size_t before_count;
+    size_t param_count;
+
+    if (routine == NULL || name == NULL || type_node == NULL
+        || type_node->type != AST_EVENT_HANDLER_TYPE) {
+        return true;
+    }
+
+    param_count = ast_event_handler_param_count(type_node);
+    if (param_count > 0) {
+        param_type_names = calloc(param_count, sizeof(char *));
+        if (param_type_names == NULL)
+            return false;
+        for (size_t i = 0; i < param_count; i++) {
+            char *rendered = mir_capture_type_name(
+                ast_event_handler_param_type(type_node, i), NULL);
+            const char *effective = rendered;
+            if (rendered == NULL)
+                goto fail;
+            if (program != NULL) {
+                const char *alias_target =
+                    mir_decl_header_resolve_type_alias_target_type_name(
+                        program, rendered);
+                if (alias_target != NULL)
+                    effective = alias_target;
+            }
+            param_type_names[i] = mir_capture_type_name(NULL, effective);
+            free(rendered);
+            if (param_type_names[i] == NULL)
+                goto fail;
+        }
+    }
+
+    {
+        ASTNode *return_type = ast_event_handler_return_type(type_node);
+        if (return_type != NULL) {
+            char *rendered = mir_capture_type_name(return_type, NULL);
+            const char *effective = rendered;
+            if (rendered == NULL)
+                goto fail;
+            if (program != NULL) {
+                const char *alias_target =
+                    mir_decl_header_resolve_type_alias_target_type_name(
+                        program, rendered);
+                if (alias_target != NULL)
+                    effective = alias_target;
+            }
+            return_type_name = mir_capture_type_name(NULL, effective);
+            free(rendered);
+            if (return_type_name == NULL)
+                goto fail;
+        } else {
+            return_type_name = pergyra_strdup("Void");
+            if (return_type_name == NULL)
+                goto fail;
+        }
+    }
+
+    {
+        size_t size = 6; /* "func(" + NUL */
+        for (size_t i = 0; i < param_count; i++)
+            size += strlen(param_type_names[i]) + (i > 0 ? 1 : 0);
+        size += 3 + strlen(return_type_name);
+        surface_type_name = malloc(size);
+        if (surface_type_name == NULL)
+            goto fail;
+        strcpy(surface_type_name, "func(");
+        for (size_t i = 0; i < param_count; i++) {
+            if (i > 0)
+                strcat(surface_type_name, ",");
+            strcat(surface_type_name, param_type_names[i]);
+        }
+        strcat(surface_type_name, ")->");
+        strcat(surface_type_name, return_type_name);
+    }
+
+    before_count = routine->source_local_type_count;
+    if (!mir_source_local_type_append_name(program, routine, name,
+            surface_type_name)) {
+        goto fail;
+    }
+    if (routine->source_local_type_count == before_count) {
+        free(surface_type_name);
+        free(return_type_name);
+        if (param_type_names != NULL) {
+            for (size_t i = 0; i < param_count; i++)
+                free(param_type_names[i]);
+            free(param_type_names);
+        }
+        return true;
+    }
+    {
+        MIRSourceLocalType *entry =
+            &routine->source_local_types[routine->source_local_type_count - 1];
+        entry->is_callable = true;
+        entry->callable_return_type_name = return_type_name;
+        entry->callable_param_type_names = param_type_names;
+        entry->callable_param_count = param_count;
+        return_type_name = NULL;
+        param_type_names = NULL;
+    }
+    free(surface_type_name);
+    return true;
+
+fail:
+    free(surface_type_name);
+    free(return_type_name);
+    if (param_type_names != NULL) {
+        for (size_t i = 0; i < param_count; i++)
+            free(param_type_names[i]);
+        free(param_type_names);
+    }
+    return false;
 }
 
 static bool
@@ -94,10 +237,14 @@ mir_source_local_type_append(const MIRProgram *program,
     char *rendered;
     bool ok;
 
-    if (routine == NULL || name == NULL || type_node == NULL
-        || type_node->type != AST_TYPE) {
+    if (routine == NULL || name == NULL || type_node == NULL) {
         return true;
     }
+    if (type_node->type == AST_EVENT_HANDLER_TYPE)
+        return mir_source_local_type_append_callable(program, routine, name,
+            type_node);
+    if (type_node->type != AST_TYPE)
+        return true;
 
     rendered = mir_capture_type_name(type_node, NULL);
     if (rendered == NULL)

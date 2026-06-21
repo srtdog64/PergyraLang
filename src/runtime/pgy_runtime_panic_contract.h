@@ -8,6 +8,7 @@
 
 #define PGY_RUNTIME_PANIC_CLASS_OOM "oom"
 #define PGY_RUNTIME_PANIC_CLASS_DIVIDE_BY_ZERO "divide-by-zero"
+#define PGY_RUNTIME_PANIC_CLASS_ARITHMETIC_OVERFLOW "arithmetic-overflow"
 #define PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS "out-of-bounds"
 #define PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT "released-slot"
 #define PGY_RUNTIME_PANIC_CLASS_DOUBLE_RELEASE "double-release"
@@ -57,6 +58,8 @@
     "pool allocator out of memory"
 #define PGY_RUNTIME_PANIC_REASON_DIVIDE_BY_ZERO \
     "integer division or modulo by zero"
+#define PGY_RUNTIME_PANIC_REASON_DIVISION_OVERFLOW \
+    "signed division overflow (INT_MIN / -1 has no representable result)"
 #define PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR \
     "Result unwrap on Err value"
 #define PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE \
@@ -84,7 +87,19 @@ pgy_runtime_panic_emit(const char *panic_class, const char *reason,
     abort();
 }
 
+#define PGY_RUNTIME_PANIC_AT(panic_class, reason, file, line) \
+    do { \
+        fprintf(stderr, "%s %s:%d class=%s reason=%s\n", \
+                PGY_RUNTIME_PANIC_PREFIX, \
+                (file) != NULL ? (file) : "<runtime>", \
+                (line), \
+                (panic_class) != NULL ? (panic_class) \
+                    : PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                (reason) != NULL ? (reason) : "runtime invariant failed"); \
+        abort(); \
+    } while (0)
+
 #define PGY_RUNTIME_PANIC(panic_class, reason) \
-    pgy_runtime_panic_emit((panic_class), (reason), __FILE__, __LINE__)
+    PGY_RUNTIME_PANIC_AT((panic_class), (reason), __FILE__, __LINE__)
 
 #endif /* PGY_RUNTIME_PANIC_CONTRACT_H */

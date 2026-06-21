@@ -333,8 +333,8 @@ run_literal_doc_contract_smoke() {
     require_literal "src/tests/mir/test_mir_lowering_part_h.cases.h" "MIR validator rejects invalid select receive emit fact"
     require_literal "src/tests/mir/test_mir_lowering_part_h.cases.h" "MIR validator rejects invalid with-slot claim ABI fact"
     require_literal "src/tests/mir/test_mir_lowering_part_h.cases.h" "MIR validator rejects invalid source-local-decl emit fact"
-    require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects residual STMT without source inventory fact"
-    require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR residual STMT policy rejects local dataflow statements"
+    require_literal "src/tests/mir/test_mir_lowering_part_c_2.cases.h" "MIR validator rejects residual STMT without source inventory fact"
+    require_literal "src/tests/mir/test_mir_lowering_part_c_2.cases.h" "MIR residual STMT policy rejects local dataflow statements"
     require_literal "src/compiler/mir_source_shape.c" "source_type == AST_LET_DECL"
     require_literal "src/compiler/mir_source_shape.c" "source_type == AST_LET_DESTRUCTURE"
     require_literal "src/compiler/mir_source_shape.c" "source_type == AST_ASSIGNMENT"
@@ -364,7 +364,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_capture_source_provenance"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_branch_requires_source_emit"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_has_source_payload"
-    require_literal "src/compiler/mir_source_shape.c" "mir_source_node_type_name"
+    require_literal "src/compiler/mir_source_node_name.c" "mir_source_node_type_name"
     require_literal "src/compiler/mir_source_shape.c" "AST_BIND_STMT"
     require_literal "src/compiler/mir_source_shape.c" "mir_block_has_hir_source_mapping"
     require_literal "src/compiler/mir_source_shape.c" "mir_block_has_source_location"
@@ -947,6 +947,7 @@ mir_test_case_paths = [
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_b_1.cases.h",
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_b_2.cases.h",
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_c.cases.h",
+    root / "src" / "tests" / "mir" / "test_mir_lowering_part_c_2.cases.h",
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_d.cases.h",
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_e.cases.h",
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_g.cases.h",
@@ -1835,6 +1836,8 @@ for term in [
     "CFG parallel task return does not terminate outer path",
     "CFG parallel task move consumes resource after join",
     "CFG parallel task own subject move consumes boundary after join",
+    "boundary-witness oracle matches op_guard",
+    "parallel-rejected: write-read slot race fails op_guard",
     "CFG parallel tasks reject double resource consume",
     "CFG parallel tasks reject double own subject consume",
     "CFG parallel tasks reject ref and own subject boundary conflict",

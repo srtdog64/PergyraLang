@@ -431,9 +431,9 @@ static inline void* pgy_ptr_new_impl(size_t size, const char *file, int line)
 {
     void *p = malloc(size);
     if (p == NULL && size > 0) {
-        pgy_runtime_panic_emit(PGY_RUNTIME_PANIC_CLASS_OOM,
-                               PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED,
-                               file, line);
+        PGY_RUNTIME_PANIC_AT(PGY_RUNTIME_PANIC_CLASS_OOM,
+                             PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED,
+                             file, line);
     }
     return p;
 }
@@ -442,9 +442,9 @@ static inline void*
 pgy_ptr_new_array_impl(size_t elem_size, size_t count, const char *file, int line)
 {
     if (elem_size != 0 && count > ((size_t)-1) / elem_size) {
-        pgy_runtime_panic_emit(PGY_RUNTIME_PANIC_CLASS_OOM,
-                               PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED,
-                               file, line);
+        PGY_RUNTIME_PANIC_AT(PGY_RUNTIME_PANIC_CLASS_OOM,
+                             PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED,
+                             file, line);
     }
     return pgy_ptr_new_impl(elem_size * count, file, line);
 }

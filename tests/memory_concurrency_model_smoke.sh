@@ -29,6 +29,11 @@ for required in \
     "joins before control continues" \
     "Shared " \
     "task-boundary conflicts are rejected" \
+    "Slot read/write and write/write overlaps across sibling" \
+    "boundary-witness \`op_guard\` refinement" \
+    "src/semantic/boundary_witness.{h,c}" \
+    "PgyBoundaryWitnessSummary" \
+    "read/write overlap is a semantic error" \
     "Undefined-Behavior Hygiene Contract" \
     "Non-atomic shared counters are forbidden across worker threads" \
     "insert/rehash invalidates concurrent readers" \
@@ -49,6 +54,24 @@ for required in \
     "make memory-concurrency-model-test-smoke"; do
     if ! grep -Fq "$required" "$MODEL_DOC"; then
         echo "[memory-concurrency] model doc missing: $required" >&2
+        exit 1
+    fi
+done
+
+for required_boundary_witness_guard in \
+    "PgyBoundaryWitnessSummary" \
+    "pgy_boundary_witness_guard_accepts" \
+    "resource_snapshot_record_parallel_boundary_witness" \
+    "boundary-witness oracle matches op_guard" \
+    "parallel-rejected: read-write slot race fails op_guard" \
+    "parallel-rejected: write-read slot race fails op_guard"; do
+    if ! grep -Fq "$required_boundary_witness_guard" \
+        "$ROOT_DIR/src/semantic/boundary_witness.h" \
+        "$ROOT_DIR/src/semantic/boundary_witness.c" \
+        "$ROOT_DIR/src/semantic/type_checker_flow_resources.c" \
+        "$ROOT_DIR/src/semantic/type_checker_flow_parallel.c" \
+        "$ROOT_DIR/src/tests/semantic/test_semantic_parallel_context.cases.h"; then
+        echo "[memory-concurrency] boundary witness refinement missing: $required_boundary_witness_guard" >&2
         exit 1
     fi
 done

@@ -217,6 +217,11 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
         }
         restore_resource_states(&base);
         scope_exit(&ctx->scope);
+        resource_snapshot_record_parallel_boundary_witness(
+            &base,
+            has_joined ? &joined : NULL,
+            &task_snap,
+            ctx);
         if (has_joined) {
             const Symbol *conflict = NULL;
             if (resource_snapshot_has_parallel_conflict(&base, &joined,
@@ -239,10 +244,19 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
                         : "<resource>");
             } else if (resource_snapshot_has_parallel_race_risk(&base,
                     &joined, &task_snap, &conflict)) {
-                semantic_warning_code(ctx,
+                semantic_error_with_hints(ctx,
                     PGY_CODE_SEM_PARALLEL_SLOT_RACE_RISK,
+                    PGY_CAUSE_PARALLEL_RESOURCE_CONFLICT,
+                    PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL,
                     task,
-                    "Parallel context race risk on '%s': one task reads while another mutates or releases the same slot",
+                    "Parallel context race risk on '%s': one task reads while another mutates or releases the same slot.\n"
+                    "Reason:\n"
+                    "- boundary witness op_guard requires no current writer for reads\n"
+                    "- writes/releases require no current access at all\n"
+                    "- accepting this task pair would violate the data-race-free witness discipline\n"
+                    "Fix:\n"
+                    "- move the read before or after the parallel block\n"
+                    "- or split the slot so each task owns a disjoint boundary",
                     conflict != NULL && conflict->name != NULL
                         ? conflict->name
                         : "<resource>");

@@ -8,6 +8,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include "llvm_runtime_bitcode_freshness.h"
 #include "../common/string_compat.h"
 #include <llvm-c/IRReader.h>
 #include <llvm-c/Linker.h>
@@ -178,6 +179,23 @@ llvm_fn_is_panic(const char *fn_name)
 }
 
 /*
+ * Checked integer division/modulo carry fail-closed guards (divide-by-zero and
+ * INT_MIN / -1 overflow). When the runtime bitcode is linked and inlined, a -O3
+ * pass would constant-fold a literal INT_MIN / -1 (instcombine rewrites
+ * `sdiv x, -1` to a negation) and discard the guard, so the surface program
+ * silently produces a wrong value instead of panicking. Mark these functions
+ * noinline + optnone so the guard always executes at runtime, matching the C
+ * backend whose separately compiled runtime is never folded into the caller.
+ */
+static bool
+llvm_fn_is_checked_arith(const char *fn_name)
+{
+    return fn_name != NULL
+        && (strstr(fn_name, "pgy_checked_div_") != NULL
+            || strstr(fn_name, "pgy_checked_mod_") != NULL);
+}
+
+/*
  * Functions that provably never return to their caller. The panic family
  * qualifies, plus an exact-name table of terminal runtime entrypoints.
  * Matching is exact (not substring) so that returning lookalikes such as
@@ -289,6 +307,47 @@ llvm_module_has_runtime_call_use(LLVMGenCtx *ctx, const char *fn_name)
  * a silent no-op that leaves the runtime as external calls, so a toolchain
  * without the prebuilt bitcode keeps working exactly as before.
  */
+/* Turn a function definition into an external declaration by deleting its
+ * body. Used to keep correctness-critical runtime out of the inlined bitcode
+ * so calls resolve to the separately compiled runtime object instead. */
+static void
+llvm_strip_function_body(LLVMValueRef fn)
+{
+    LLVMBasicBlockRef bb;
+    while ((bb = LLVMGetFirstBasicBlock(fn)) != NULL)
+        LLVMDeleteBasicBlock(bb);
+}
+
+/*
+ * The runtime bitcode is inlined for speed, but two families MUST NOT be folded
+ * into the caller: fail-closed checked arithmetic (whose divide-by-zero and
+ * INT_MIN/-1 guards -O3 would constant-fold away on literal operands) and the
+ * exported panic entrypoints (whose inlined copies mis-lower stderr/abort and
+ * crash with an access violation instead of printing and aborting). Stripping
+ * their bodies before linking leaves external declarations, so they resolve to
+ * the gcc-built runtime object, identical to the C backend, which never folds
+ * its separately compiled runtime. Hot primitives such as Substring and
+ * StringConcat are untouched and still inline.
+ *
+ * Static-inline pgy_runtime_panic_emit is excluded from that strip policy. It
+ * is not an external ABI symbol, so its body must stay in bitcode when stale
+ * local bitcode still references it.
+ */
+static void
+llvm_exclude_critical_runtime_from_bitcode(LLVMModuleRef runtime_module)
+{
+    for (LLVMValueRef fn = LLVMGetFirstFunction(runtime_module);
+         fn != NULL; fn = LLVMGetNextFunction(fn)) {
+        const char *name = LLVMGetValueName(fn);
+        bool strip_noreturn = llvm_fn_never_returns(name);
+        if (name != NULL && strcmp(name, "pgy_runtime_panic_emit") == 0)
+            strip_noreturn = false;
+        if (!LLVMIsDeclaration(fn)
+            && (llvm_fn_is_checked_arith(name) || strip_noreturn))
+            llvm_strip_function_body(fn);
+    }
+}
+
 static void
 llvm_link_runtime_bitcode(LLVMGenCtx *ctx)
 {
@@ -310,6 +369,8 @@ llvm_link_runtime_bitcode(LLVMGenCtx *ctx)
 #endif
     if (bc_path == NULL || bc_path[0] == '\0')
         return;
+    if (!llvm_runtime_bitcode_is_fresh(bc_path))
+        return;
 
     if (LLVMCreateMemoryBufferWithContentsOfFile(bc_path, &buffer, &message)) {
         if (message != NULL)
@@ -328,6 +389,8 @@ llvm_link_runtime_bitcode(LLVMGenCtx *ctx)
     layout = LLVMGetDataLayoutStr(ctx->module);
     if (layout != NULL)
         LLVMSetDataLayout(runtime_module, layout);
+
+    llvm_exclude_critical_runtime_from_bitcode(runtime_module);
 
     /* Link consumes runtime_module. The internalize pass below then gives the
      * merged definitions internal linkage so the inliner can fold and the dead
@@ -348,6 +411,8 @@ llvm_run_optimization(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
     unsigned willreturn_kind = LLVMGetEnumAttributeKindForName("willreturn", 10);
     unsigned readnone_kind = LLVMGetEnumAttributeKindForName("readnone", 8);
     unsigned readonly_kind = LLVMGetEnumAttributeKindForName("readonly", 8);
+    unsigned noinline_kind = LLVMGetEnumAttributeKindForName("noinline", 8);
+    unsigned optnone_kind = LLVMGetEnumAttributeKindForName("optnone", 7);
     for (LLVMValueRef fn = LLVMGetFirstFunction(ctx->module);
          fn != NULL; fn = LLVMGetNextFunction(fn)) {
         const char *fn_name = LLVMGetValueName(fn);
@@ -355,6 +420,13 @@ llvm_run_optimization(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
             llvm_add_fn_attr(ctx, fn, noreturn_kind);
         if (llvm_fn_is_panic(fn_name))
             llvm_add_fn_attr(ctx, fn, cold_kind);
+        /* Keep fail-closed checked arithmetic out of the inliner/folder so its
+         * overflow and divide-by-zero guards survive optimization. optnone
+         * implies (and requires) noinline and excludes the body from IPA. */
+        if (!LLVMIsDeclaration(fn) && llvm_fn_is_checked_arith(fn_name)) {
+            llvm_add_fn_attr(ctx, fn, noinline_kind);
+            llvm_add_fn_attr(ctx, fn, optnone_kind);
+        }
         /*
          * Memory-effect attributes apply only to declarations (the external
          * runtime), never to user definitions that might shadow a builtin name

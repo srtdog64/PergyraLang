@@ -67,6 +67,10 @@ CI_PATH="$ROOT_DIR/.github/workflows/ci.yml"
 README_PATH="$ROOT_DIR/README.md"
 SLOT_COQ="$PROOF_DIR/proofs/SlotCalculus.v"
 AXIS_COQ="$PROOF_DIR/proofs/AxisOwnership.v"
+WITNESS_COQ="$PROOF_DIR/proofs/WitnessDataRace.v"
+WITNESS_DOC="$PROOF_DIR/10_ability_witness_evidence.md"
+BOUNDARY_WITNESS_HEADER="$ROOT_DIR/src/semantic/boundary_witness.h"
+BOUNDARY_WITNESS_SOURCE="$ROOT_DIR/src/semantic/boundary_witness.c"
 LOSS_CONTRACT_PATH="$PROOF_DIR/09_abstraction_loss_contracts.md"
 EFFECT_SOURCE_PATH="$ROOT_DIR/src/semantic/type_effects.c"
 EFFECT_FLOW_PATH="$ROOT_DIR/src/semantic/type_checker_flow_effects.c"
@@ -88,6 +92,10 @@ require_file "$CI_PATH" ".github/workflows/ci.yml"
 require_file "$README_PATH" "README.md"
 require_file "$SLOT_COQ" "docs/semantics/proofs/SlotCalculus.v"
 require_file "$AXIS_COQ" "docs/semantics/proofs/AxisOwnership.v"
+require_file "$WITNESS_COQ" "docs/semantics/proofs/WitnessDataRace.v"
+require_file "$WITNESS_DOC" "docs/semantics/10_ability_witness_evidence.md"
+require_file "$BOUNDARY_WITNESS_HEADER" "src/semantic/boundary_witness.h"
+require_file "$BOUNDARY_WITNESS_SOURCE" "src/semantic/boundary_witness.c"
 require_file "$LOSS_CONTRACT_PATH" "docs/semantics/09_abstraction_loss_contracts.md"
 require_file "$EFFECT_SOURCE_PATH" "src/semantic/type_effects.c"
 require_file "$EFFECT_FLOW_PATH" "src/semantic/type_checker_flow_effects.c"
@@ -247,6 +255,30 @@ require_terms "$PROOF_DIR/05_parallel_execution.md" "docs/semantics/05_parallel_
 Keywords: `parallel`
 ## Theorem: Parallel Conflict Soundness
 ## Theorem: Execution Backend Parity
+TERMS
+
+require_terms "$WITNESS_COQ" "docs/semantics/proofs/WitnessDataRace.v" <<'TERMS'
+Definition op_guard
+OpAcqW
+OpAcqR
+well_typed_data_race_free
+read-write
+TERMS
+
+require_terms "$WITNESS_DOC" "docs/semantics/10_ability_witness_evidence.md" <<'TERMS'
+Boundary Witness Refinement Gate
+src/semantic/boundary_witness.{h,c}
+PgyBoundaryWitnessSummary
+ResourceConsumeSnapshot
+read/write overlap
+whole-C-program proof
+TERMS
+
+require_terms "$BOUNDARY_WITNESS_HEADER" "src/semantic/boundary_witness.h" <<'TERMS'
+PgyBoundaryWitnessSummary
+pgy_boundary_witness_guard_accepts
+semantic_boundary_witness_record_acq_read
+semantic_boundary_witness_record_acq_write
 TERMS
 
 require_terms "$PROOF_DIR/06_backend_parity.md" "docs/semantics/06_backend_parity.md" <<'TERMS'
@@ -467,7 +499,8 @@ if command -v coqc >/dev/null 2>&1; then
         docs/semantics/proofs/AxisOwnership.v \
         docs/semantics/proofs/IntentStepSoundness.v \
         docs/semantics/proofs/IRMinimality.v \
-        docs/semantics/proofs/WitnessDataRace.v; do
+        docs/semantics/proofs/WitnessDataRace.v \
+        docs/semantics/proofs/CheckedArith.v; do
         if command -v timeout >/dev/null 2>&1; then
             (cd "$ROOT_DIR" && timeout "$coq_timeout" coqc "$coq_proof")
         else

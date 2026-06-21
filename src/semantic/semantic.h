@@ -14,6 +14,7 @@
 #include <stddef.h>
 #include "../parser/ast.h"
 #include "diagnostic_types.h"
+#include "boundary_witness.h"
 
 /*
  * Result of semantic analysis
@@ -31,6 +32,7 @@ typedef struct SemanticResult
     size_t       type_resolution_metadata_dead_ends;
     size_t       type_resolution_dag_generic_contract_evidence_count;
     size_t       type_resolution_dag_ability_consumer_evidence_count;
+    PgyBoundaryWitnessSummary boundary_witness_summary;
 } SemanticResult;
 
 /* -----------------------------------------------------------------

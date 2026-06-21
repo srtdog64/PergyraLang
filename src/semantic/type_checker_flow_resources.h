@@ -34,6 +34,11 @@ bool resource_snapshot_has_parallel_race_risk(const ResourceConsumeSnapshot *bas
                                               const ResourceConsumeSnapshot *joined,
                                               const ResourceConsumeSnapshot *task,
                                               const Symbol **symbol_out);
+void resource_snapshot_record_parallel_boundary_witness(
+    const ResourceConsumeSnapshot *base,
+    const ResourceConsumeSnapshot *joined,
+    const ResourceConsumeSnapshot *task,
+    SemanticContext *ctx);
 void destroy_resource_snapshot(ResourceConsumeSnapshot *snap);
 
 #endif /* PERGYRA_TYPE_CHECKER_FLOW_RESOURCES_H */

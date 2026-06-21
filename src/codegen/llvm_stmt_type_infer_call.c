@@ -88,6 +88,8 @@ llvm_stmt_callable_entry_return_type(LLVMGenCtx *ctx,
         && entry->type_node->type == AST_EVENT_HANDLER_TYPE) {
         return_type = ast_event_handler_return_type(entry->type_node);
     } else {
+        if (entry->return_type_name != NULL)
+            return pergyra_type_to_llvm(ctx, entry->return_type_name);
         return_type = entry->return_type;
     }
     if (return_type == NULL)

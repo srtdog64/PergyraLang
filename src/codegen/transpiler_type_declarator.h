@@ -12,6 +12,12 @@ char *pergyra_func_pointer_declarator_from_decl_in_ctx(TranspilerCtx *ctx,
                                                        const char *name);
 char *pergyra_func_pointer_declarator_from_decl(ASTNode *func_decl,
                                                 const char *name);
+char *pergyra_func_pointer_declarator_from_type_names_in_ctx(
+    TranspilerCtx *ctx,
+    const char *return_type_name,
+    size_t param_count,
+    char *const *param_type_names,
+    const char *name);
 char *pergyra_func_signature_declarator_in_ctx(TranspilerCtx *ctx,
                                                ASTNode *return_type,
                                                const char *name,

@@ -93,6 +93,13 @@ English anchor for tooling/doc gates:
   inference. This keeps annotated locals, reassignment DEFs, and PHI storage
   typed by the MIR fact owner instead of by an initializer-derived AST guess.
   Gate: `mir-declaration-inventory-test-smoke`.
+- LLVM MIR local alloca source-of-truth: annotated source-local declarations
+  now require the `MIRRoutine::source_local_types` row before using
+  `type_layout` or initializer inference. `type_expr` remains a source anchor,
+  not the alloca type owner. Callable locals now carry return/parameter
+  type-name rows in the same MIR source-local fact and register LLVM callable
+  variables from those rows instead of the annotation AST. Gate:
+  `mir-declaration-inventory-test-smoke`.
 - Intent control body-summary source-of-truth: call-contract helpers now expose
   positive body-summary readers for spawn and channel-send boundaries. Intent
   clauses still inspect their own source expression for directly written
@@ -185,87 +192,33 @@ English anchor for tooling/doc gates:
 - Imported compiler-maturity obligations ledger: do not copy Rust, Swift, C++,
   or C# surface features as decoration. Import the proof obligations that made
   their compilers production-grade, and gate each one before claiming parity.
-  Current bitpacking answer: Pergyra is not source-level bitpacking-ready yet.
-  Runtime-internal ABI layout is frozen and checked, but user-visible packed
-  fields, explicit offsets, union overlap, and niche-optimized `Option<T>` need
-  a real `LayoutFact` owner first. `let mut` is mutable local storage only; it
-  is not addressability, alias, atomicity, or partial-width write evidence.
-  (1) Rust-style niche/layout optimization must start from semantic proof
-  types such as `NonZero<T>`, `NonNull<T>`, and `NonEmpty<T>`, flow through DAG
-  and MIR ABI facts, and lower `Option<T>` only when the unused bit-pattern is
-  proven by the type/layout owner. No ad-hoc backend-only niche packing.
-  (2) C# / C++ explicit layout, packed structs, unions, and field offsets must
-  stay behind `extern` / raw / ABI-boundary declarations until ownership,
-  alignment, aliasing, and slot/capability effects are specified; general
-  Pergyra structs must not silently become unchecked memory overlays. Do not
-  implement packed fields by delegating to C bitfields; C and LLVM must consume
-  the same `LayoutFact` rows, and packed mutable fields require an explicit
-  read-modify-write mask/shift owner plus alias/atomic rules. `let mut` and
-  `inout` must not make bit-packed fields look like ordinary addressable
-  mutable lvalues; `let mut` is local-storage mutability, not permission to
-  take an address of a bit slice. Partial-width writes need a dedicated
-  layout/effect owner before they are accepted in source. Slot, SecureSlot,
-  DeviceSlot, Pin, and capability handles are not packable until a dedicated
-  layout owner proves their ABI, lifetime, and security invariants.
-  Concrete open slice: write the layout/niche specification before
-  implementation, add negative fixtures that reject `let mut` / `inout` access
-  to partial-width packed fields, reject address-like treatment of bit slices,
-  and add C/LLVM ABI golden fixtures proving both backends consume identical
-  `LayoutFact` mask/shift rows before any source-level bitpacking is enabled.
-  Near-term TODO: add a compile-reject fixture for any source spelling that
-  tries to mutate or borrow a packed bit slice through `let mut`, `inout`, or an
-  address-like lvalue before a dedicated partial-width write owner exists. The
-  diagnostic must say the missing owner is layout/effect evidence, not emit a C
-  bitfield or backend-local mask/shift fallback.
-  Gate names to add when this slice starts:
-  `layout-bitpack-mutability-reject-test-smoke` for the negative surface
-  fixture, and `layout-fact-abi-golden-test-smoke` for C/LLVM agreement on
-  storage unit, byte offset, bit offset, width, mask, shift, and RMW facts.
-  Tracking rule: the first implementation slice is the reject gate, not a
-  positive packing feature. Do not accept any source-level packed-field spelling
-  until the gate proves `let mut`, `inout`, and address-like access fail without
-  `LayoutFact` evidence, and do not add a backend-local C bitfield or LLVM
-  mask/shift shortcut while this gate is absent.
-  Source spelling policy: do not add a user-facing packed-field or bit-slice
-  spelling as a permissive parser-only feature. The first accepted spelling
-  must be behind a semantic reject gate until `LayoutFact` exists; otherwise
-  `let mut` would appear to support ordinary mutation of partial-width storage
-  before addressability, aliasing, atomicity, and read-modify-write semantics
-  have a single owner.
-  Because `let mut` is now real surface syntax, keep the first implementation
-  step negative: a mutable binding may hold an aggregate that later has packed
-  fields, but it must not make a partial-width field itself addressable,
-  borrowable, passable as `inout`, or writable through implicit bitfield
-  lowering. The future semantic check should reject this before MIR lowering
-  unless a `LayoutFact` row exists for storage unit, byte offset, bit offset,
-  bit width, read mask, write mask, shift, and read-modify-write effect.
-  Owner and exit criteria: `LayoutFact` is the only source of truth for packed
-  storage, and the feature is not source-visible until semantic/DAG proof,
-  MIR ABI rows, and C/LLVM golden output all agree on the same mask/shift/RMW
-  fact.
-  Current implementation status: source-level bitpacking, packed fields,
-  explicit field offsets, union overlap, and niche-optimized `Option<T>` are
-  not implemented. Runtime-internal ABI structs are frozen through
-  `pgy_abi_spec.h`, but user-visible layout control is still a future
-  raw/extern capability surface. Current answer to `let mut` plus bitpacking:
-  the language can support this long term, but not by treating bit slices as
-  ordinary mutable fields. `let mut` only says the local binding may be
-  reassigned or locally mutated; it does not prove addressability, alias
-  safety, atomicity, or a partial-width write policy. The next implementation
-  unit is therefore a reject gate, not a packing optimization: any future
-  packed-field spelling must fail until the compiler has a real `LayoutFact`
-  owner for storage unit, byte offset, bit offset, width, read mask, write
-  mask, shift, sign/extension policy, and read-modify-write effect evidence.
-  After that, add C/LLVM ABI golden fixtures proving both backends consume the
-  same row before enabling source-level packed fields.
-  Documentation anchor: `docs/semantics/04_ownership_abi.md` now records this
-  as the `Packed Layout Is Not Ordinary Mutability` theorem boundary, so future
-  implementation work must update the proof obligation and the TODO together.
-  Keep `docs/136_abi_niche_and_explicit_layout.md` as the ABI-facing anchor for
-  the same decision: `let mut` is real syntax, but not layout capability
-  evidence. Any future parser acceptance of packed-field or bit-slice syntax
-  must land with the negative semantic fixture first, then the shared
-  `LayoutFact` ABI golden only after the fact owner exists.
+  Layout/niche TODO: source-level bitpacking, packed fields, explicit field
+  offsets, union overlap, and niche-optimized `Option<T>` are not implemented.
+  Runtime-internal ABI structs are frozen through `pgy_abi_spec.h`, but
+  user-visible layout control remains a future raw/extern capability surface.
+  `let mut` is local-storage mutability only; it is not addressability, alias
+  safety, atomicity, or partial-width write evidence.
+  Niche axis: Rust-style niche optimization must start from semantic proof
+  types such as `NonZero<T>`, `NonNull<T>`, and `NonEmpty<T>`, flow through
+  DAG/MIR ABI facts, and lower `Option<T>` only when the unused bit pattern is
+  proven by the layout owner. No backend-local niche packing.
+  Explicit-layout axis: C# / C++ style explicit layout, packed structs, unions,
+  and field offsets must stay behind `extern` / raw / ABI-boundary declarations
+  until ownership, alignment, aliasing, and slot/capability effects are
+  specified. General Pergyra structs must not silently become unchecked memory
+  overlays.
+  Reject-gate axis: the next implementation unit is not a positive packing
+  feature. Add `layout-bitpack-mutability-reject-test-smoke` for `let mut`,
+  `inout`, and address-like access to partial-width fields before `LayoutFact`
+  exists. The diagnostic must name missing layout/effect evidence.
+  Golden-gate axis: only after that, add `layout-fact-abi-golden-test-smoke`
+  proving C and LLVM consume the same `LayoutFact` rows for storage unit, byte
+  offset, bit offset, width, read/write masks, shift, sign/extension, and
+  read-modify-write effect. Do not delegate source-level packing to C bitfields
+  or LLVM-local mask/shift shortcuts.
+  Documentation anchors: `docs/semantics/04_ownership_abi.md` records the
+  `Packed Layout Is Not Ordinary Mutability` theorem boundary, and
+  `docs/136_abi_niche_and_explicit_layout.md` owns the ABI-facing policy.
   (3) Swift SIL / Rust MIR pass maturity means each lowering and optimization
   pass declares required facts, preserved facts, invalidated facts, and stable
   diagnostics. `docs/semantics/pass_contract_manifest.md` now pins the major

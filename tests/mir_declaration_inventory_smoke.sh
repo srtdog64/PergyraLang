@@ -1243,12 +1243,50 @@ require_term "src/codegen/transpiler_intent_zone_binding_emit.c" \
     "MIR-only C path missing intent routine for early forward eligibility"
 require_term "src/codegen/llvm_mir_local_emit.c" \
     "MIR-only LLVM path missing local type metadata"
+require_term "src/compiler/mir.h" \
+    "callable_param_type_names"
+require_term "src/compiler/mir_source_local_types.c" \
+    "mir_source_local_type_append_callable"
+require_term "src/compiler/mir_program_inventory.c" \
+    "mir_routine_source_local_type_fact"
+require_term "src/codegen/llvm_mir_local_emit.c" \
+    "llvm_mir_local_source_fact("
 require_term "src/codegen/llvm_mir_local_emit.c" \
     "llvm_mir_local_type_from_source_fact("
+require_term "src/codegen/llvm_registry_aux.c" \
+    "llvm_register_callable_signature_names"
+require_term "src/codegen/llvm_expr_scalar_core.c" \
+    "entry->param_type_names"
+require_term "src/codegen/transpiler_type_declarator.c" \
+    "pergyra_func_pointer_declarator_from_type_names_in_ctx"
+require_term "src/codegen/transpiler_mir_func_ssa_locals_emit.c" \
+    "source_local_fact->is_callable"
+require_term "src/codegen/transpiler_mir_func_ssa_locals_emit.c" \
+    "pergyra_func_pointer_declarator_from_type_names_in_ctx("
 require_term "src/codegen/llvm_mir_local_emit.c" \
     "strcmp(base_name, name) != 0"
 require_term "src/codegen/llvm_mir_local_emit.c" \
     "local_type = llvm_mir_local_type_from_source_fact(routine, ctx, name);"
+if grep -Fq "llvm_mir_type_from_ast(ctx, type_expr)" \
+    "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"; then
+    fail "LLVM MIR source-local alloca typing must consume MIR source-local facts, not type_expr AST"
+fi
+if grep -Fq "llvm_register_typed_var_binding(ctx, owned_base" \
+    "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"; then
+    fail "LLVM MIR source-local scope binding must not re-register type_expr AST bindings"
+fi
+if ! awk '
+    /llvm_mir_local_type_from_instruction_fact\(/ { in_fn = 1 }
+    in_fn && /inst->requires_source_local_decl_emit && inst->expr1 != NULL/ { source = NR }
+    in_fn && /llvm_mir_type_from_abi_layout\(ctx, inst->type_layout\)/ { layout = NR }
+    in_fn && /^}/ {
+        if (source > 0 && layout > 0 && source < layout) ok = 1
+        in_fn = 0
+    }
+    END { exit ok ? 0 : 1 }
+' "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"; then
+    fail "LLVM MIR source-local instruction facts must require source-local type metadata before ABI layout fallback"
+fi
 require_term "src/codegen/llvm_mir_block_emit.c" \
     "llvm_mir_local_expected_type_name(routine, inst, NULL)"
 if grep -Fq "ast_identifier_name(inst->expr1)" \
@@ -1443,6 +1481,14 @@ require_term "src/codegen/transpiler_class_decl_emit.c" \
     "emit_one_field_slot_claim_meta"
 require_term "src/codegen/transpiler_class_decl_emit.c" \
     "mir_decl_header_field_claim_count(header)"
+require_term "src/codegen/transpiler_class_decl_emit.c" \
+    "transpiler_mir_decl_field_type_name(field)"
+require_term "src/codegen/transpiler_class_decl_emit.c" \
+    "ensure_type_specializations_from_type_name_to("
+require_term "src/codegen/transpiler_class_decl_emit.c" \
+    "transpiler_require_type_name_c_type_copy(ctx"
+require_term "src/codegen/transpiler_class_decl_emit.c" \
+    "MIR-only C path missing class field type-name metadata"
 require_term "src/codegen/transpiler_class_constructor_emit.c" \
     "mir_decl_header_field_claim_count("
 require_term "src/codegen/llvm_expr_constructor_calls.c" \

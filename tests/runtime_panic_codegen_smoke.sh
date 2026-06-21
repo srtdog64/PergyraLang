@@ -41,6 +41,14 @@ func Main() -> Void {
 }
 PGY
 
+cat > "$WORK_DIR/div_overflow.pgy" <<'PGY'
+func Main() -> Void {
+    let lhs: Int = -2147483648;
+    let rhs: Int = -1;
+    Log(lhs / rhs);
+}
+PGY
+
 cat > "$WORK_DIR/array_index_oob.pgy" <<'PGY'
 func Main() -> Void {
     let values: Array<Int> = [];
@@ -210,6 +218,7 @@ expect_codegen_panic_backends() {
 
 expect_codegen_panic_backends "div_zero" "$WORK_DIR/div_zero.pgy" "divide-by-zero"
 expect_codegen_panic_backends "mod_zero" "$WORK_DIR/mod_zero.pgy" "divide-by-zero"
+expect_codegen_panic_backends "div_overflow" "$WORK_DIR/div_overflow.pgy" "arithmetic-overflow"
 expect_codegen_panic_backends "array_index_oob" "$WORK_DIR/array_index_oob.pgy" "out-of-bounds"
 expect_codegen_panic_backends "array_set_oob" "$WORK_DIR/array_set_oob.pgy" "out-of-bounds"
 expect_codegen_panic_backends "array_inline_index_oob" "$WORK_DIR/array_inline_index_oob.pgy" "out-of-bounds"

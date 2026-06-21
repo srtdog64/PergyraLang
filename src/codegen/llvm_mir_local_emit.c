@@ -13,38 +13,68 @@
 #include "llvm_mir_async_fact.h"
 #include "llvm_mir_local_expected_type.h"
 #include "llvm_mir_local_element_type.h"
+#include "llvm_mir_local_type_lookup.h"
 #include "llvm_mir_slice_fact.h"
 #include "llvm_mir_type_helpers.h"
 #include "codegen_slot_type_policy.h"
 #include "parser/ast_api.h"
 #include "../common/string_compat.h"
 
-static LLVMTypeRef
-llvm_mir_local_type_from_vars(LLVMMirVar *vars, size_t var_count,
-                              const char *name)
+static const MIRSourceLocalType *
+llvm_mir_local_source_fact(const MIRRoutine *routine, const char *name)
 {
-    LLVMMirVar *entry;
+    const MIRSourceLocalType *fact;
     char base_name[128];
 
-    if (vars == NULL || name == NULL)
+    if (routine == NULL || name == NULL)
         return NULL;
-
-    entry = llvm_mir_get_var_entry(vars, var_count, name);
-    if (entry != NULL)
-        return entry->type;
-
-    for (size_t i = var_count; i > 0; i--) {
-        const char *mir_name = vars[i - 1].mir_name;
-        if (mir_name == NULL)
-            continue;
-        if (!llvm_mir_base_name_from_versioned(mir_name, base_name,
-                sizeof(base_name)))
-            continue;
-        if (strcmp(base_name, name) == 0)
-            return vars[i - 1].type;
+    fact = mir_routine_source_local_type_fact(routine, name);
+    if (fact == NULL
+        && llvm_mir_base_name_from_versioned(name, base_name,
+            sizeof(base_name))
+        && strcmp(base_name, name) != 0) {
+        fact = mir_routine_source_local_type_fact(routine, base_name);
     }
+    return fact;
+}
 
-    return NULL;
+static LLVMTypeRef
+llvm_mir_local_type_from_source_fact_entry(LLVMGenCtx *ctx,
+                                           const MIRSourceLocalType *fact)
+{
+    LLVMTypeRef *param_types = NULL;
+    LLVMTypeRef ret_type;
+
+    if (ctx == NULL || fact == NULL)
+        return NULL;
+    if (!fact->is_callable)
+        return fact->type_name != NULL
+            ? pergyra_type_to_llvm(ctx, fact->type_name)
+            : NULL;
+    ret_type = fact->callable_return_type_name != NULL
+        ? pergyra_type_to_llvm(ctx, fact->callable_return_type_name)
+        : ctx->type_void;
+    if (ctx->has_error || ret_type == NULL)
+        return NULL;
+    if (fact->callable_param_count > 0) {
+        param_types = pgy_arena_calloc(&ctx->scratch,
+            fact->callable_param_count * sizeof(LLVMTypeRef));
+        if (param_types == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "LLVM MIR callable source-local type parameter allocation failed");
+            return NULL;
+        }
+        for (size_t i = 0; i < fact->callable_param_count; i++) {
+            param_types[i] = pergyra_type_to_llvm(ctx,
+                fact->callable_param_type_names[i]);
+            if (ctx->has_error || param_types[i] == NULL)
+                return NULL;
+        }
+    }
+    return LLVMPointerType(
+        LLVMFunctionType(ret_type, param_types,
+            (unsigned)fact->callable_param_count, 0),
+        0);
 }
 
 static LLVMTypeRef
@@ -52,19 +82,12 @@ llvm_mir_local_type_from_source_fact(const MIRRoutine *routine,
                                      LLVMGenCtx *ctx,
                                      const char *name)
 {
-    const char *type_name;
-    char base_name[128];
+    const MIRSourceLocalType *fact;
 
     if (routine == NULL || ctx == NULL || name == NULL)
         return NULL;
-    type_name = mir_routine_source_local_type_name(routine, name);
-    if (type_name == NULL
-        && llvm_mir_base_name_from_versioned(name, base_name,
-            sizeof(base_name))
-        && strcmp(base_name, name) != 0) {
-        type_name = mir_routine_source_local_type_name(routine, base_name);
-    }
-    return type_name != NULL ? pergyra_type_to_llvm(ctx, type_name) : NULL;
+    fact = llvm_mir_local_source_fact(routine, name);
+    return llvm_mir_local_type_from_source_fact_entry(ctx, fact);
 }
 
 static void
@@ -143,73 +166,6 @@ llvm_mir_local_type_from_assignment_target(const MIRRoutine *routine,
     if (field_idx < 0)
         return NULL;
     return llvm_class_field_type_at_index(host_cls, field_idx);
-}
-
-static ASTNode *llvm_mir_local_initializer_expr(ASTNode *expr);
-
-static bool
-llvm_mir_value_expr_is_method_call(ASTNode *expr)
-{
-    ASTNode *callee;
-
-    if (expr == NULL)
-        return false;
-    if (expr->type == AST_ARRAY_ACCESS)
-        return true;
-    if (expr->type != AST_CALL)
-        return false;
-    callee = ast_call_callee(expr);
-    if (callee == NULL)
-        return false;
-    return callee->type == AST_MEMBER_ACCESS
-        || callee->type == AST_IDENTIFIER;
-}
-
-static LLVMTypeRef
-llvm_mir_local_type_from_value_fact(const MIRInstruction *inst,
-                                    LLVMMirVar *vars,
-                                    size_t var_count)
-{
-    ASTNode *value_expr;
-
-    if (inst == NULL)
-        return NULL;
-    value_expr = llvm_mir_local_initializer_expr(inst->expr0);
-    if (llvm_mir_value_expr_is_method_call(value_expr))
-        return NULL;
-    if (inst->use_count > 0 && inst->uses != NULL) {
-        bool value_is_binary = value_expr != NULL
-            && value_expr->type == AST_BINARY;
-        bool walk_all_uses = value_expr != NULL
-            && (value_expr->type == AST_IDENTIFIER
-                || value_expr->type == AST_ASSIGNMENT
-                || value_is_binary);
-        size_t walk_limit = walk_all_uses ? inst->use_count : 1;
-        for (size_t ui = 0; ui < walk_limit; ui++) {
-            LLVMTypeRef use_type =
-                llvm_mir_local_type_from_vars(vars, var_count,
-                    inst->uses[ui]);
-            if (use_type == NULL)
-                continue;
-            /* For binary ops, the result type must come from a scalar
-             * operand; struct receivers like `strategy.aggression` show up
-             * as struct-typed uses and would mis-type the result. */
-            if (value_is_binary
-                && LLVMGetTypeKind(use_type) == LLVMStructTypeKind)
-                continue;
-            return use_type;
-        }
-    }
-
-    if (value_expr != NULL
-        && value_expr->type == AST_IDENTIFIER) {
-        const char *value_name = ast_identifier_name(value_expr);
-        if (value_name != NULL) {
-            return llvm_mir_local_type_from_vars(vars, var_count, value_name);
-        }
-    }
-
-    return NULL;
 }
 
 static const MIRInstruction *
@@ -335,14 +291,6 @@ llvm_mir_local_type_from_slot_read_fact(const MIRRoutine *routine,
     return pergyra_type_to_llvm(ctx, inner_name);
 }
 
-static ASTNode *
-llvm_mir_local_initializer_expr(ASTNode *expr)
-{
-    if (expr != NULL && expr->type == AST_LET_DECL)
-        return ast_let_initializer(expr);
-    return expr;
-}
-
 static LLVMTypeRef
 llvm_mir_local_type_from_instruction_fact(const MIRRoutine *routine,
                                           LLVMGenCtx *ctx,
@@ -356,15 +304,22 @@ llvm_mir_local_type_from_instruction_fact(const MIRRoutine *routine,
     if (inst == NULL || ctx == NULL || depth > 16)
         return NULL;
 
+    if (inst->requires_source_local_decl_emit && inst->expr1 != NULL) {
+        type = llvm_mir_local_type_from_source_fact(routine, ctx,
+            inst->result_name);
+        if (ctx->has_error || type != NULL)
+            return type;
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing source-local type metadata for '%s'",
+            inst->result_name != NULL
+                ? inst->result_name
+                : "(anonymous-local)");
+        return NULL;
+    }
+
     type = llvm_mir_type_from_abi_layout(ctx, inst->type_layout);
     if (type != NULL)
         return type;
-
-    if (inst->requires_source_local_decl_emit && inst->expr1 != NULL) {
-        type = llvm_mir_type_from_ast(ctx, inst->expr1);
-        if (ctx->has_error || type != NULL)
-            return type;
-    }
 
     type = llvm_mir_local_type_from_assignment_target(routine, ctx,
         inst->expr0, vars, var_count);
@@ -452,19 +407,40 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                 ASTNode *type_expr = inst->requires_source_local_decl_emit
                     ? inst->expr1
                     : NULL;
+                const MIRSourceLocalType *source_local_fact = NULL;
+                const char *source_local_type_name = NULL;
                 char base_name[128];
                 bool has_base_name = llvm_mir_base_name_from_versioned(
                     inst->result_name, base_name, sizeof(base_name));
 
+                if (inst->requires_source_local_decl_emit && type_expr != NULL) {
+                    source_local_fact = llvm_mir_local_source_fact(
+                        routine, has_base_name ? base_name : inst->result_name);
+                    source_local_type_name = source_local_fact != NULL
+                        ? source_local_fact->type_name
+                        : NULL;
+                    if (source_local_fact == NULL) {
+                        llvm_set_mir_inventory_missing(ctx,
+                            "MIR-only LLVM path missing source-local type metadata for '%s'",
+                            inst->result_name != NULL
+                                ? inst->result_name
+                                : "(anonymous-local)");
+                        return;
+                    }
+                }
+
                 if (layout_type != NULL) {
                     alloca_type = layout_type;
                 } else if (type_expr != NULL) {
-                    alloca_type = llvm_mir_type_from_ast(ctx, type_expr);
-                    if (ctx->has_error || alloca_type == NULL)
+                    alloca_type = llvm_mir_local_type_from_source_fact_entry(
+                        ctx, source_local_fact);
+                    if (ctx->has_error || alloca_type == NULL) {
+                        llvm_set_mir_inventory_missing(ctx,
+                            "MIR-only LLVM path cannot lower source-local type metadata for '%s'",
+                            inst->result_name != NULL
+                                ? inst->result_name
+                                : "(anonymous-local)");
                         return;
-                    if (has_base_name) {
-                        llvm_mir_register_nominal_class(ctx, base_name,
-                                                        type_expr);
                     }
                 } else if (value_expr != NULL) {
                     if (inst->arg0 != NULL) {
@@ -576,7 +552,7 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                             base_name, &vars[var_count]);
                     }
                 }
-                if (has_base_name && type_expr != NULL) {
+                if (has_base_name && source_local_type_name != NULL) {
                     char *owned_base =
                         pgy_arena_strdup(&ctx->persistent, base_name);
                     if (owned_base == NULL) {
@@ -588,8 +564,21 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                         vars[var_count].alloca, vars[var_count].type);
                     if (ctx->has_error)
                         return;
-                    llvm_register_typed_var_binding(ctx, owned_base,
-                        vars[var_count].alloca, type_expr);
+                    if (source_local_fact != NULL
+                        && source_local_fact->is_callable) {
+                        llvm_register_callable_signature_names(ctx, owned_base,
+                            source_local_fact->callable_param_count,
+                            (const char *const *)
+                                source_local_fact->callable_param_type_names,
+                            source_local_fact->callable_return_type_name);
+                    } else {
+                        llvm_register_typed_var_abi_binding(ctx, owned_base,
+                            vars[var_count].alloca, source_local_type_name);
+                    }
+                    if (source_local_type_name != NULL
+                        && llvm_lookup_class(ctx, source_local_type_name) != NULL)
+                        llvm_register_var_class(ctx, owned_base,
+                            source_local_type_name);
                 } else if (has_base_name
                            && inst->abi_type_name != NULL) {
                     llvm_register_typed_var_abi_binding(ctx, base_name,

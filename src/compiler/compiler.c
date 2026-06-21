@@ -171,6 +171,9 @@ compiler_build_native(const CompilerIRBundle *bundle,
          * the optimizer assume overflow cannot happen. Without this the two
          * backends diverge on overflowing integer arithmetic. */
         compile_argv[ci++] = "-fwrapv";
+        /* Do not let type-based alias analysis miscompile slot/witness
+         * pointer punning; keep parity with the LLVM runtime build. */
+        compile_argv[ci++] = "-fno-strict-aliasing";
 #if !defined(_WIN32) && !defined(__APPLE__)
         compile_argv[ci++] = "-fopenmp";
 #endif

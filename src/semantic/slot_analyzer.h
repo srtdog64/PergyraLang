@@ -86,7 +86,7 @@ bool slot_analyze_if_stmt(ASTNode* ifstmt, SlotAnalyzer* sa);
  * the same slot in conflicting positions.
  * Write-write conflict → error.
  * Read-read is fine.
- * Write-read conflict → warning (race risk).
+ * Write-read conflict: error (op_guard no-current-access violation).
  */
 bool slot_analyze_parallel_block(ASTNode* parallel, SlotAnalyzer* sa);
 

@@ -220,6 +220,8 @@ typedef struct
     ASTNode   **param_types;
     size_t      param_count;
     ASTNode    *return_type;
+    const char **param_type_names;
+    const char  *return_type_name;
 } LLVMCallableVarEntry;
 
 typedef struct

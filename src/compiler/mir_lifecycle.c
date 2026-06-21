@@ -12,6 +12,7 @@
 #include <stdlib.h>
 
 #include "../common/arena.h"
+#include "../parser/ast_api.h"
 void
 mir_destroy(MIRProgram *mir)
 {
@@ -450,6 +451,20 @@ mir_json_emit_str_or_null(FILE *out, const char *s)
         mir_json_emit_str(out, s);
 }
 
+static void
+mir_json_emit_expr_or_null(FILE *out, ASTNode *expr)
+{
+    char *text;
+
+    if (expr == NULL) {
+        fputs("null", out);
+        return;
+    }
+    text = ast_capture_inline(expr);
+    mir_json_emit_str_or_null(out, text);
+    free(text);
+}
+
 void
 mir_dump_json(const MIRProgram *mir, FILE *out)
 {
@@ -503,6 +518,15 @@ mir_dump_json(const MIRProgram *mir, FILE *out)
                     mir_json_emit_str_or_null(out, inst->arg0);
                     fputs(",\"arg1\":", out);
                     mir_json_emit_str_or_null(out, inst->arg1);
+                    fputs(",\"expr0\":", out);
+                    mir_json_emit_expr_or_null(out, inst->expr0);
+                    fputs(",\"expr1\":", out);
+                    mir_json_emit_expr_or_null(out, inst->expr1);
+                    fputs(",\"source_type\":", out);
+                    mir_json_emit_str_or_null(out,
+                        mir_instruction_source_inline_text(inst) != NULL
+                            ? mir_source_node_type_name(inst->source_node_type)
+                            : NULL);
                     fputs(",\"uses\":[", out);
                     for (size_t m = 0; m < inst->use_count; m++) {
                         if (m > 0)
@@ -519,6 +543,19 @@ mir_dump_json(const MIRProgram *mir, FILE *out)
                     fprintf(out, ",\"succ_true\":%zu", block->succ_true);
                 if (block->has_succ_false)
                     fprintf(out, ",\"succ_false\":%zu", block->succ_false);
+                fputc('}', out);
+            }
+            fputs("],\"source_locals\":[", out);
+            for (size_t s = 0; s < mir_routine_source_local_type_count(routine);
+                 s++) {
+                if (s > 0)
+                    fputc(',', out);
+                fputs("{\"name\":", out);
+                mir_json_emit_str_or_null(out,
+                    mir_routine_source_local_name_at(routine, s));
+                fputs(",\"type\":", out);
+                mir_json_emit_str_or_null(out,
+                    mir_routine_source_local_type_name_at(routine, s));
                 fputc('}', out);
             }
             fputs("]}", out);

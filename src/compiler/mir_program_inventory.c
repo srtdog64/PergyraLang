@@ -169,13 +169,22 @@ const char *
 mir_routine_source_local_type_name(const MIRRoutine *routine,
                                    const char *local_name)
 {
+    const MIRSourceLocalType *fact =
+        mir_routine_source_local_type_fact(routine, local_name);
+    return fact != NULL ? fact->type_name : NULL;
+}
+
+const MIRSourceLocalType *
+mir_routine_source_local_type_fact(const MIRRoutine *routine,
+                                   const char *local_name)
+{
     if (routine == NULL || local_name == NULL)
         return NULL;
     for (size_t i = 0; i < routine->source_local_type_count; i++) {
         const MIRSourceLocalType *entry = &routine->source_local_types[i];
         if (entry->name != NULL && entry->type_name != NULL
             && strcmp(entry->name, local_name) == 0) {
-            return entry->type_name;
+            return entry;
         }
     }
     return NULL;

@@ -157,7 +157,7 @@ require(compare.count("parallel_channel") >= 2, "backend compare must keep multi
 require_text(
     "src/codegen/transpiler_mir_stmt_emit.c",
     [
-        "stmt->type == AST_PARALLEL_BLOCK",
+        "mir_instruction_source_matches_ast_type(stmt_inst, AST_PARALLEL_BLOCK)",
         "resource ops are observability hooks, not semantic",
         "The residual statement must still lower the",
         "mir_instruction_resource_op_keeps_residual_statement_emit",
@@ -252,8 +252,11 @@ require_text(
 require_text(
     "src/tests/semantic/test_semantic_parallel_context.cases.h",
     [
+        "boundary-witness oracle matches op_guard",
         "parallel-rejected: write-write slot conflict",
-        "parallel-safe: read-write slot race warns",
+        "parallel-safe: shared slot reads satisfy boundary witness",
+        "parallel-rejected: read-write slot race fails op_guard",
+        "parallel-rejected: write-read slot race fails op_guard",
         "parallel-rejected: SecureSlot access is capability-serialized",
         "parallel-rejected: DeviceSlot operations stay serialized",
         "parallel-rejected: derived secure-effect helper calls stay serialized",

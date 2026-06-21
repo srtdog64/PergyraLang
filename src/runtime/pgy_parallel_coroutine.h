@@ -156,8 +156,16 @@ pgy_coro_entry_win(void *raw_task)
 static void
 pgy_coro_entry(uint32_t raw_task_hi, uint32_t raw_task_lo)
 {
+    /* Mirror the guarded packing in pgy_coro_init_task_posix: on targets
+     * where uintptr_t is 32-bit, shifting by 32 is UB, and the high word is
+     * always zero there anyway. */
+#if UINTPTR_MAX > UINT32_MAX
     uintptr_t raw_task = (((uintptr_t)raw_task_hi) << 32)
                        | (uintptr_t)raw_task_lo;
+#else
+    (void)raw_task_hi;
+    uintptr_t raw_task = (uintptr_t)raw_task_lo;
+#endif
     PgyCoroTask *task = (PgyCoroTask *)raw_task;
     g_pgy_coro.current = task;
     task->result = task->fn != NULL ? task->fn(task->arg) : NULL;

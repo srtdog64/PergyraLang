@@ -144,6 +144,7 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
         bool has_param_fact = false;
         bool has_source_local_fact = false;
         bool is_destructure_binding = false;
+        const MIRSourceLocalType *source_local_fact = NULL;
 
         if (versioned_name == NULL
             || !transpiler_parse_versioned_name(versioned_name,
@@ -184,6 +185,39 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
             }
         }
         if (transpiler_type_name_is_claim_shape(type_name)) {
+            free(owned_type_name);
+            continue;
+        }
+        source_local_fact = mir_routine_source_local_type_fact(
+            mir_routine, base);
+        if (source_local_fact != NULL && source_local_fact->is_callable) {
+            c_name = transpiler_render_ssa_name(ctx, versioned_name);
+            decl = pergyra_func_pointer_declarator_from_type_names_in_ctx(
+                ctx,
+                source_local_fact->callable_return_type_name,
+                source_local_fact->callable_param_count,
+                source_local_fact->callable_param_type_names,
+                c_name);
+            if (decl == NULL) {
+                free(c_name);
+                free(owned_type_name);
+                return false;
+            }
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s = 0;\n", decl);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "(void)%s;\n", c_name);
+            register_typed_var(ctx, versioned_name,
+                source_local_fact->type_name != NULL
+                    ? source_local_fact->type_name
+                    : type_name);
+            if (version == 0 && source_local_fact->type_name != NULL) {
+                transpiler_mir_ssa_local_register_base_type_fact(
+                    ctx, mir_routine, versioned_name, base,
+                    source_local_fact->type_name);
+            }
+            free(decl);
+            free(c_name);
             free(owned_type_name);
             continue;
         }
