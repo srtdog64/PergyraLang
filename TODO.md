@@ -126,8 +126,12 @@ English anchor for tooling/doc gates:
   a closed source-shape allowlist for the residual statement kinds C/LLVM can
   actually emit, while local dataflow, pure calls, with/CFG wrappers, and
   unknown side-effect shapes fail during MIR validation instead of falling
-  through to backend source-payload emission. Gate:
-  `cfg-body-dataflow-test-smoke` plus `test-mir` residual STMT policy fixture.
+  through to backend source-payload emission. The remaining runtime-boundary
+  source-payload emission list is also centralized in
+  `mir_instruction_source_stmt_runtime_boundary_emit_is_allowed(...)`; C/LLVM
+  emitters must not carry backend-local `AST_CHANNEL_SEND` / `AST_ASYNC_BLOCK`
+  style allowlists. Gate: `cfg-body-dataflow-test-smoke`,
+  `perf-contract-test-smoke`, plus `test-mir` residual STMT policy fixture.
 - Honest weakness ledger: beta messaging and work selection must keep five
   real costs visible instead of hiding them behind safety language. (1) Runtime
   Slot/authority validation can trade memory corruption for availability loss;
@@ -161,6 +165,11 @@ English anchor for tooling/doc gates:
 - Imported compiler-maturity obligations ledger: do not copy Rust, Swift, C++,
   or C# surface features as decoration. Import the proof obligations that made
   their compilers production-grade, and gate each one before claiming parity.
+  Current bitpacking answer: Pergyra is not source-level bitpacking-ready yet.
+  Runtime-internal ABI layout is frozen and checked, but user-visible packed
+  fields, explicit offsets, union overlap, and niche-optimized `Option<T>` need
+  a real `LayoutFact` owner first. `let mut` is mutable local storage only; it
+  is not addressability, alias, atomicity, or partial-width write evidence.
   (1) Rust-style niche/layout optimization must start from semantic proof
   types such as `NonZero<T>`, `NonNull<T>`, and `NonEmpty<T>`, flow through DAG
   and MIR ABI facts, and lower `Option<T>` only when the unused bit-pattern is

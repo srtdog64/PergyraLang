@@ -2471,18 +2471,32 @@ if awk '
     exit 1
 fi
 grep -Fq "LLVM MIR STMT source-payload emission is retired" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "mir_instruction_source_stmt_runtime_boundary_emit_is_allowed(inst)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 if grep -A44 -F "case MIR_INST_STMT:" \
     "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" | \
     grep -Fq "source_payload"; then
     echo "[perf-contract] LLVM MIR STMT emission must consume MIR expr/source-shape facts, not source payload" >&2
     exit 1
 fi
+if grep -B16 -F "llvm_emit_statement(inst->expr0, ctx)" \
+    "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" | \
+    grep -Eq "AST_(SPAWN_EXPR|AWAIT_EXPR|CHANNEL_SEND|CHANNEL_RECV|EVENT_SUBSCRIBE|EVENT_UNSUBSCRIBE|EVENT_INVOKE|PARALLEL_BLOCK|ASYNC_BLOCK|UNSAFE_BLOCK|TRANSACTION_BLOCK)"; then
+    echo "[perf-contract] LLVM MIR STMT runtime-boundary emission must consume the MIR source-shape owner, not a backend-local AST list" >&2
+    exit 1
+fi
 grep -Fq "llvm_emit_statement(inst->expr0, ctx)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "STMT source-payload emission is retired" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c"
+grep -Fq "mir_instruction_source_stmt_runtime_boundary_emit_is_allowed(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c"
 if grep -A72 -F "if (inst->kind != MIR_INST_STMT)" \
     "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c" | \
     grep -Eq "stmt (==|!=)|stmt->|transpiler_mir_find_stmt_for_inst|source_payload"; then
     echo "[perf-contract] C MIR STMT emission must consume MIR expr/source-shape facts, not source payload" >&2
+    exit 1
+fi
+if grep -B16 -F "emit_statement(inst->expr0, ctx)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c" | \
+    grep -Eq "AST_(SPAWN_EXPR|AWAIT_EXPR|CHANNEL_SEND|CHANNEL_RECV|EVENT_SUBSCRIBE|EVENT_UNSUBSCRIBE|EVENT_INVOKE|PARALLEL_BLOCK|ASYNC_BLOCK|UNSAFE_BLOCK|TRANSACTION_BLOCK)"; then
+    echo "[perf-contract] C MIR STMT runtime-boundary emission must consume the MIR source-shape owner, not a backend-local AST list" >&2
     exit 1
 fi
 ! grep -Fq "llvm_emit_statement(inst->ast" "$CODEGEN_INDEX"
@@ -2537,6 +2551,7 @@ fi
 grep -Fq "!mir_instruction_uses_source_statement_emit(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c"
 grep -Fq "mir_instruction_source_is_defer_stmt(inst)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "mir_instruction_source_is_defer_stmt" "$ROOT_DIR/src/compiler/mir_source_shape.c"
+grep -Fq "mir_instruction_source_stmt_runtime_boundary_emit_is_allowed" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 grep -Fq "inst->expr1 = ast_let_type(stmt)" "$ROOT_DIR/src/compiler/mir_call_fact.c"
 grep -Fq "inst->expr0 = ast_defer_body(stmt)" "$ROOT_DIR/src/compiler/mir_call_fact.c"
 grep -Fq "inst->arg0 = ast_let_name(stmt)" "$ROOT_DIR/src/compiler/mir_call_fact.c"

@@ -257,8 +257,11 @@ Closed now:
   residual statement emission cannot silently reopen raw source-array fallback.
   C and LLVM MIR block emitters consume the same helper before emitting
   residual source statements, keeping backend parity tied to the validator
-  policy while CFG/body safety is being promoted to source-of-truth. `test-mir`
-  includes `MIR validator rejects residual STMT without source inventory fact`;
+  policy while CFG/body safety is being promoted to source-of-truth. Runtime
+  boundary source-payload emission is likewise gated by
+  `mir_instruction_source_stmt_runtime_boundary_emit_is_allowed(...)` so C/LLVM
+  cannot drift into separate AST-kind allowlists. `test-mir` includes
+  `MIR validator rejects residual STMT without source inventory fact`;
   `cfg-body-dataflow-test-smoke` gates the policy owner, backend consumers, and
   regression string.
 - Non-`Void` functions now consume the CFG body flow summary for all-path

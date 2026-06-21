@@ -9,6 +9,14 @@ optimized `Option<T>` layout. Runtime-internal ABI structs are frozen through
 the ABI spec, but user-visible layout control is still a future raw/extern
 capability surface.
 
+Short answer for `let mut` plus bitpacking: the current compiler can preserve
+and check runtime ABI layout, but it cannot safely expose source-level
+bitpacked fields yet. `let mut` only proves that a local binding may be
+mutated. It does not prove that a partial-width field is addressable,
+borrowable, atomic, or safe to update by read-modify-write. Source-level
+bitpacking must wait for `LayoutFact` evidence and matching C/LLVM ABI golden
+fixtures.
+
 Pergyra currently uses an explicit tagged representation for `Option<T>`:
 `{ tag: int32_t, value: T }` plus target padding. The source of truth is
 `src/runtime/pgy_abi_spec.h`, and `src/runtime/pgy_abi_spec_asserts.h` freezes

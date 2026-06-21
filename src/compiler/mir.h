@@ -454,6 +454,8 @@ bool        mir_instruction_source_stmt_has_side_effect_hint(
                 const MIRInstruction *inst);
 bool        mir_instruction_source_stmt_fallback_is_allowed(
                 const MIRInstruction *inst);
+bool        mir_instruction_source_stmt_runtime_boundary_emit_is_allowed(
+                const MIRInstruction *inst);
 bool        mir_instruction_resource_op_keeps_residual_statement_emit(
                 const MIRInstruction *inst);
 bool        mir_source_node_type_stmt_has_side_effect_hint(

@@ -607,18 +607,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                             inst->expr0, ctx);
                     break;
                 }
-                if (inst->expr0 != NULL
-                    && (mir_instruction_source_matches_ast_type(inst, AST_SPAWN_EXPR)
-                        || mir_instruction_source_matches_ast_type(inst, AST_AWAIT_EXPR)
-                        || mir_instruction_source_matches_ast_type(inst, AST_CHANNEL_SEND)
-                        || mir_instruction_source_matches_ast_type(inst, AST_CHANNEL_RECV)
-                        || mir_instruction_source_matches_ast_type(inst, AST_EVENT_SUBSCRIBE)
-                        || mir_instruction_source_matches_ast_type(inst, AST_EVENT_UNSUBSCRIBE)
-                        || mir_instruction_source_matches_ast_type(inst, AST_EVENT_INVOKE)
-                        || mir_instruction_source_matches_ast_type(inst, AST_PARALLEL_BLOCK)
-                        || mir_instruction_source_matches_ast_type(inst, AST_ASYNC_BLOCK)
-                        || mir_instruction_source_matches_ast_type(inst, AST_UNSAFE_BLOCK)
-                        || mir_instruction_source_matches_ast_type(inst, AST_TRANSACTION_BLOCK))) {
+                if (mir_instruction_source_stmt_runtime_boundary_emit_is_allowed(inst)) {
                     llvm_emit_statement(inst->expr0, ctx);
                     if (ctx->has_error)
                         return;

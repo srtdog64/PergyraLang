@@ -634,6 +634,26 @@ mir_instruction_source_stmt_fallback_is_allowed(const MIRInstruction *inst)
 }
 
 bool
+mir_instruction_source_stmt_runtime_boundary_emit_is_allowed(
+        const MIRInstruction *inst)
+{
+    int source_type;
+
+    if (inst == NULL || inst->kind != MIR_INST_STMT || inst->expr0 == NULL)
+        return false;
+    source_type = mir_instruction_source_node_type_or(inst, -1);
+    return source_type == AST_SPAWN_EXPR || source_type == AST_AWAIT_EXPR
+        || source_type == AST_CHANNEL_SEND || source_type == AST_CHANNEL_RECV
+        || source_type == AST_EVENT_SUBSCRIBE
+        || source_type == AST_EVENT_UNSUBSCRIBE
+        || source_type == AST_EVENT_INVOKE
+        || source_type == AST_PARALLEL_BLOCK
+        || source_type == AST_ASYNC_BLOCK
+        || source_type == AST_UNSAFE_BLOCK
+        || source_type == AST_TRANSACTION_BLOCK;
+}
+
+bool
 mir_instruction_resource_op_keeps_residual_statement_emit(
         const MIRInstruction *inst)
 {

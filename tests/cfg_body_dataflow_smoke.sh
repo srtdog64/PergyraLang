@@ -515,6 +515,8 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_statement_order_compare"
     require_literal "src/compiler/mir_source_shape.c" "mir_instructions_share_source_statement"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_line_matches_node"
+    require_literal "src/compiler/mir.h" "mir_instruction_source_stmt_runtime_boundary_emit_is_allowed"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_runtime_boundary_emit_is_allowed"
     if grep -A8 -F "mir_instruction_uses_source_statement_emit" \
         "$ROOT_DIR/src/compiler/mir_source_shape.c" | \
         grep -Fq "mir_instruction_source_payload"; then
@@ -589,10 +591,17 @@ run_literal_doc_contract_smoke() {
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_emit_borrow_view_alias(inst, ctx)"
     require_literal "Makefile" '$(CODEGEN_DIR)/llvm_mir_resource_view.c'
     require_literal "src/codegen/llvm_mir_block_emit.c" "LLVM MIR STMT source-payload emission is retired"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_source_stmt_runtime_boundary_emit_is_allowed(inst)"
     if grep -A44 -F "case MIR_INST_STMT:" \
         "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" | \
         grep -Fq "source_payload"; then
         echo "LLVM MIR STMT emission must consume MIR expr/source-shape facts, not source payload" >&2
+        exit 1
+    fi
+    if grep -B16 -F "llvm_emit_statement(inst->expr0, ctx)" \
+        "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" | \
+        grep -Eq "AST_(SPAWN_EXPR|AWAIT_EXPR|CHANNEL_SEND|CHANNEL_RECV|EVENT_SUBSCRIBE|EVENT_UNSUBSCRIBE|EVENT_INVOKE|PARALLEL_BLOCK|ASYNC_BLOCK|UNSAFE_BLOCK|TRANSACTION_BLOCK)"; then
+        echo "LLVM MIR STMT runtime-boundary emission must consume the MIR source-shape owner, not a backend-local AST list" >&2
         exit 1
     fi
     if grep -B4 -F "LLVM MIR non-Void return requires a value expression" \
@@ -603,10 +612,17 @@ run_literal_doc_contract_smoke() {
     fi
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_emit_statement(inst->expr0, ctx)"
     require_literal "src/codegen/transpiler_mir_block_emit.c" "STMT source-payload emission is retired"
+    require_literal "src/codegen/transpiler_mir_block_emit.c" "mir_instruction_source_stmt_runtime_boundary_emit_is_allowed(inst)"
     if grep -A72 -F "if (inst->kind != MIR_INST_STMT)" \
         "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c" | \
         grep -Eq "stmt (==|!=)|stmt->|transpiler_mir_find_stmt_for_inst|source_payload"; then
         echo "C MIR STMT emission must consume MIR expr/source-shape facts, not source payload" >&2
+        exit 1
+    fi
+    if grep -B16 -F "emit_statement(inst->expr0, ctx)" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c" | \
+        grep -Eq "AST_(SPAWN_EXPR|AWAIT_EXPR|CHANNEL_SEND|CHANNEL_RECV|EVENT_SUBSCRIBE|EVENT_UNSUBSCRIBE|EVENT_INVOKE|PARALLEL_BLOCK|ASYNC_BLOCK|UNSAFE_BLOCK|TRANSACTION_BLOCK)"; then
+        echo "C MIR STMT runtime-boundary emission must consume the MIR source-shape owner, not a backend-local AST list" >&2
         exit 1
     fi
     require_literal "src/compiler/mir_call_fact.c" "case AST_PARALLEL_BLOCK"
