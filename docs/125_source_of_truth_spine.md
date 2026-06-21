@@ -99,8 +99,8 @@ Current beta closure snapshot:
   `semantic_callable_summary_proves_no_*` or
   `semantic_callable_summary_has_*` rather than reopening a callee body. Intent
   control may scan its own clause expression for directly written control
-  constructs, but named callee spawn/channel decisions consume the checked
-  body-summary reader.
+  constructs, but named callee and hosted member-callee spawn/channel decisions
+  consume the checked body-summary reader.
 - Spawn boundary validators in `src/semantic/type_checker_async_channel.c`
   consume the direct callee's checked function signature for parameter type
   facts via `type_function_param_type(...)` and parameter mode facts via
