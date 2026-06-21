@@ -11,6 +11,9 @@
 #include "../runtime/pgy_frontier_policy.h"
 #include "../runtime/pgy_runtime_observability_schema.h"
 
+static const char kAirJsonFieldCompressionBudget[] = "compression_budget";
+static const char kAirJsonFieldCompressionReason[] = "compression_reason";
+
 static void
 air_json_string(FILE *out, const char *text)
 {
@@ -261,10 +264,14 @@ air_dump_json_intents(const AIRProgram *air, FILE *out)
         air_json_string(out, air_sync_class_name(intent->sync_class));
         fputs(",\"failure\":", out);
         air_json_string(out, air_failure_class_name(intent->failure_class));
-        fputs(",\"compression_budget\":", out);
+        fputs(",\"", out);
+        fputs(kAirJsonFieldCompressionBudget, out);
+        fputs("\":", out);
         air_json_string(out, air_compression_budget_name(
             air_intent_compression_budget(air, i)));
-        fputs(",\"compression_reason\":", out);
+        fputs(",\"", out);
+        fputs(kAirJsonFieldCompressionReason, out);
+        fputs("\":", out);
         air_json_string(out, air_intent_compression_reason(air, i));
         fputs(",\"who_from_intent_default\":", out);
         air_json_bool(out, intent->who_from_intent_default);
@@ -305,10 +312,14 @@ air_dump_json_boundaries(const AIRProgram *air, FILE *out)
                 boundary->intent_index,
                 boundary->step_index);
         air_json_string(out, air_sync_class_name(boundary->sync_class));
-        fputs(",\"compression_budget\":", out);
+        fputs(",\"", out);
+        fputs(kAirJsonFieldCompressionBudget, out);
+        fputs("\":", out);
         air_json_string(out, air_compression_budget_name(
             air_boundary_compression_budget(boundary)));
-        fputs(",\"compression_reason\":", out);
+        fputs(",\"", out);
+        fputs(kAirJsonFieldCompressionReason, out);
+        fputs("\":", out);
         air_json_string(out, air_boundary_compression_reason(boundary));
         fputs(",\"retain_cause\":", out);
         air_json_string(out, air_retain_cause_name(
