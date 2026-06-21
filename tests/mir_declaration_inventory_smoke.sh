@@ -7444,8 +7444,12 @@ for term in \
     "routine link metadata drift"; do
     require_term "src/compiler/mir_decl_header_validate.c" "$term"
 done
-if grep -Fq "header->ast_type != AST_ROLE_DECL" \
-    "$ROOT_DIR/src/compiler/mir_decl_header_validate.c"; then
+if awk '
+    /header->method_metadata_count != header->method_count/ { in_method_count = 1 }
+    in_method_count && /AST_ROLE_DECL/ { found = 1 }
+    in_method_count && /return false;/ { in_method_count = 0 }
+    END { exit found ? 0 : 1 }
+' "$ROOT_DIR/src/compiler/mir_decl_header_validate.c"; then
     fail "MIR declaration header validation must not keep role method-count exceptions"
 fi
 require_term "src/compiler/mir_program_validate.c" \
