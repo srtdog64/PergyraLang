@@ -1532,6 +1532,12 @@ required_mir_owner_terms = {
         "non_cfg_body_fallback_count",
         "mir_attach_statement_call_fact",
         "mir_attach_def_initializer_call_fact",
+        "mir_block_source_inventory_items(entry)",
+        "if (statement_count == 0)",
+    ],
+    "src/compiler/mir.c": [
+        "mir_seed_non_cfg_block_source_inventory",
+        "mir_copy_ast_nodes(&block->source_statement_inventory.items",
     ],
     "src/compiler/mir_program_validate.c": [
         "mir_validate_non_cfg_fallback_state",
@@ -1554,6 +1560,15 @@ required_mir_owner_terms = {
         "AST_CONTINUE",
     ],
 }
+
+if "ast_block_statements(body" in mir_non_cfg_stmt_population:
+    raise SystemExit(
+        "non-CFG MIR population must consume block source inventory, not rescan AST body"
+    )
+if "ast_func_body(func_decl)" in mir_non_cfg_stmt_population:
+    raise SystemExit(
+        "non-CFG MIR population must not rediscover function body AST after block source inventory seeding"
+    )
 mir_owner_text = {
     "src/compiler/mir.c": mir,
     "src/compiler/mir_ssa_rename.h": mir_ssa_rename,

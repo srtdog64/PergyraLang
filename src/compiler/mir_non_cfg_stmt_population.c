@@ -55,7 +55,6 @@ bool
 mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
 {
     ASTNode *func_decl;
-    ASTNode *body;
     ASTNode **statements = NULL;
     size_t statement_count = 0;
 
@@ -65,25 +64,16 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
         return false;
 
     func_decl = routine->ast;
-    if (func_decl->type != AST_FUNC_DECL
-        || ast_func_body(func_decl) == NULL) {
+    if (func_decl->type != AST_FUNC_DECL) {
         return true;
     }
 
-    body = ast_func_body(func_decl);
-    if (body->type != AST_BLOCK) {
-        if (!mir_append_non_cfg_source_statement(routine, entry, body, 0))
-            return false;
+    statements = mir_block_source_inventory_items(entry);
+    statement_count = mir_block_source_inventory_count(entry);
+    if (statement_count > 0 && statements == NULL)
+        return false;
+    if (statement_count == 0)
         return true;
-    }
-
-    if (mir_block_source_inventory_items(entry) != NULL
-        && mir_block_source_inventory_count(entry) > 0) {
-        statements = mir_block_source_inventory_items(entry);
-        statement_count = mir_block_source_inventory_count(entry);
-    } else {
-        statements = ast_block_statements(body, &statement_count);
-    }
 
     for (size_t i = 0; i < statement_count; i++) {
         ASTNode *stmt = statements[i];

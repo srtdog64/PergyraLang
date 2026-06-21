@@ -175,6 +175,41 @@ mir_block_record_source_location(MIRBasicBlock *block, const ASTNode *source_nod
     block->source_column = source_node != NULL ? source_node->column : 0;
 }
 
+static bool
+mir_seed_non_cfg_block_source_inventory(MIRBasicBlock *block,
+                                        ASTNode *func_decl)
+{
+    ASTNode *body;
+
+    if (block == NULL || func_decl == NULL
+        || func_decl->type != AST_FUNC_DECL) {
+        return true;
+    }
+    body = ast_func_body(func_decl);
+    if (body == NULL)
+        return true;
+    if (body->type == AST_BLOCK) {
+        size_t statement_count = 0;
+        ASTNode **statements = ast_block_statements(body, &statement_count);
+        const ASTNode *source_node = statement_count > 0
+            ? statements[0]
+            : body;
+        mir_block_record_source_location(block, source_node);
+        return mir_copy_ast_nodes(&block->source_statement_inventory.items,
+                                  &block->source_statement_inventory.count,
+                                  statements,
+                                  statement_count);
+    }
+    {
+        ASTNode *single_statement = body;
+        mir_block_record_source_location(block, body);
+        return mir_copy_ast_nodes(&block->source_statement_inventory.items,
+                                  &block->source_statement_inventory.count,
+                                  &single_statement,
+                                  1);
+    }
+}
+
 #include "mir_ssa_rename.h"
 
 #include "mir_liveness_dce.h"
@@ -196,8 +231,16 @@ mir_build_blocks_from_hir(MIRRoutine *routine, const HIRRoutine *hir_routine)
         block.is_reachable = true;
         block.source_hir_block_id = SIZE_MAX;
         mir_block_record_source_location(&block, NULL);
+        if (!mir_seed_non_cfg_block_source_inventory(&block, routine->ast)) {
+            free(block.source_statement_inventory.items);
+            return false;
+        }
         routine->entry_block = 0;
-        return append_block(routine, block);
+        if (!append_block(routine, block)) {
+            free(block.source_statement_inventory.items);
+            return false;
+        }
+        return true;
     }
 
     routine->entry_block = hir_routine->cfg.entry_block;

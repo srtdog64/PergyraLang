@@ -1535,7 +1535,10 @@ The beta closure order is:
    `MIRProgram.non_cfg_body_fallback_total`, and
    `MIRProgram.non_cfg_body_fallback_routine_count` aggregate residual
    non-CFG body fallback usage. Consumers may inspect this aggregate; they must
-   not rescan AST bodies to rediscover the fallback path.
+   not rescan AST bodies to rediscover the fallback path. Non-CFG MIR block
+   construction seeds `source_statement_inventory`; residual non-CFG population
+   consumes that block inventory and fails closed on malformed inventory rather
+   than calling `ast_func_body(...)` or `ast_block_statements(...)` again.
 2. AIR abstraction-boundary verifier coverage.
 3. Type-resolution DAG source-of-truth closure.
 4. Runtime frontier/failure policy generated-path verification.
