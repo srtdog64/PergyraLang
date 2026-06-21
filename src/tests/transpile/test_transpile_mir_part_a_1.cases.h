@@ -237,6 +237,51 @@ test_mir_vertical_slice_emit(void)
         ast_destroy(program);
     }
 
+    TEST("MIR assignment prefers source-local binding over same-named host field");
+    {
+        const char *source =
+            "class Counter {\n"
+            "    let value: Int;\n"
+            "    func Score(self) -> Int {\n"
+            "        let value: Int = 1;\n"
+            "        value = value + 2;\n"
+            "        return value;\n"
+            "    }\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        char path_buf[512];
+        make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_local_shadows_field.c");
+        const char *path = path_buf;
+        char *output = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        if (ok) {
+            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            ok = (res != NULL && res->success);
+            transpile_result_destroy(res);
+        }
+        if (ok)
+            output = read_file_text(path);
+
+        EXPECT(ok && output != NULL);
+        if (ok && output != NULL) {
+            EXPECT_STR_CONTAINS(output, "/* emitted-from-mir */");
+            EXPECT_STR_CONTAINS(output, "_pgy_ssa_value_");
+            EXPECT_STR_CONTAINS(output, " = (_pgy_ssa_value_");
+            EXPECT_STR_NOT_CONTAINS(output, "self->value =");
+            EXPECT_STR_NOT_CONTAINS(output, "self.value =");
+        }
+
+        free(output);
+        remove(path);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
+
     TEST("non-SSA statements in CFG blocks still emit from MIR");
     {
         const char *source =

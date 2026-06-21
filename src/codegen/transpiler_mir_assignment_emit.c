@@ -69,23 +69,6 @@ transpiler_mir_assignment_target_is_field(TranspilerCtx *ctx,
 }
 
 static bool
-transpiler_mir_routine_has_source_local_name(const MIRRoutine *routine,
-                                             const char *base_name)
-{
-    if (routine == NULL || base_name == NULL)
-        return false;
-    for (size_t i = 0; i < routine->block_count; i++) {
-        const MIRBasicBlock *block = &routine->blocks[i];
-        for (size_t j = 0; j < block->source_local_def_count; j++) {
-            const char *name = block->source_local_defs[j];
-            if (name != NULL && strcmp(name, base_name) == 0)
-                return true;
-        }
-    }
-    return false;
-}
-
-static bool
 transpiler_mir_routine_has_param_name(const MIRRoutine *routine,
                                       const char *base_name)
 {
@@ -112,12 +95,13 @@ transpiler_mir_assignment_target_is_local(const ASTNode *func_decl,
 {
     if (target_name == NULL)
         return false;
+    if (transpiler_mir_routine_has_param_name(routine, target_name)
+        || transpiler_mir_routine_has_source_local_binding(
+            routine, target_name)) {
+        return true;
+    }
     if (transpiler_mir_assignment_target_is_field(ctx, target_name)) {
         return false;
-    }
-    if (transpiler_mir_routine_has_param_name(routine, target_name)
-        || transpiler_mir_routine_has_source_local_name(routine, target_name)) {
-        return true;
     }
     if (routine != NULL)
         return false;

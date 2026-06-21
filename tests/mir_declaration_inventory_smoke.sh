@@ -3968,12 +3968,15 @@ if grep -Fq "callee_return_type->type != AST_EVENT_HANDLER_TYPE" \
 fi
 for term in \
     "transpiler_mir_assignment_target_is_local" \
-    "transpiler_mir_routine_has_source_local_name" \
-    "block->source_local_defs[j]" \
+    "transpiler_mir_routine_has_source_local_binding(" \
     "mir_routine_param_count(routine)" \
     "transpiler_emit_mir_assignment_def_inst("; do
     require_term "src/codegen/transpiler_mir_assignment_emit.c" "$term"
 done
+if grep -Fq "block->source_local_defs" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_assignment_emit.c"; then
+    fail "C MIR assignment target classification must consume MIR source-local type facts, not block source-local def arrays"
+fi
 require_term "src/codegen/transpiler_mir_block_emit.c" \
     "buf, func_decl, mir_routine, block"
 if ! grep -B3 -F "return transpiler_has_explicit_local_binding(func_decl, target_name);" \
