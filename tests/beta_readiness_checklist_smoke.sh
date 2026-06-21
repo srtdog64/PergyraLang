@@ -491,7 +491,7 @@ typedef struct { int64_t value; bool occupied; uint64_t token; } pgy_abi_secure_
 typedef struct { float   value; bool occupied; uint64_t token; } pgy_abi_secure_slot_float;
 typedef struct { double  value; bool occupied; uint64_t token; } pgy_abi_secure_slot_double;
 typedef struct { bool    value; bool occupied; uint64_t token; } pgy_abi_secure_slot_bool;
-typedef pgy_abi_secure_slot_int pgy_abi_secure_slot_int_rel;
+Debug/release mode is a build policy, not an ABI type-name dimension.
 uint32 strong/weak counts plus an alive bit
 beta-stable shared ownership subset
 uint32_t strong_count;

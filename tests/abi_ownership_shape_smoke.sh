@@ -75,13 +75,15 @@ for rel in \
 done
 
 require_term "src/runtime/pgy_abi_spec.h" "typedef struct { uint64_t id; bool can_write; bool can_read; } pgy_abi_token_int;"
-require_term "src/runtime/pgy_abi_spec.h" "typedef pgy_abi_token_int pgy_abi_token_int_rel;"
+require_term "src/runtime/pgy_abi_spec.h" "Debug/release mode is a build policy, not an ABI type-name dimension."
+reject_term "src/runtime/pgy_abi_spec.h" "pgy_abi_token_int_rel"
+reject_term "src/runtime/pgy_abi_spec.h" "pgy_abi_token_int_dbg"
 require_term "src/runtime/pgy_abi_spec.h" "typedef struct { int32_t  value; bool occupied; } pgy_abi_slot_int;"
 reject_term "src/runtime/pgy_abi_spec.h" "pgy_abi_slot_int_rel"
 reject_term "src/runtime/pgy_abi_spec.h" "pgy_abi_slot_int_dbg"
 require_term "src/runtime/pgy_abi_spec.h" "typedef struct { int32_t value; bool occupied; uint64_t token; } pgy_abi_secure_slot_int;"
-require_term "src/runtime/pgy_abi_spec.h" "typedef pgy_abi_secure_slot_int pgy_abi_secure_slot_int_rel;"
-reject_term "src/runtime/pgy_abi_spec.h" "typedef struct { int32_t value; bool occupied; uint64_t token; } pgy_abi_secure_slot_int_rel;"
+reject_term "src/runtime/pgy_abi_spec.h" "pgy_abi_secure_slot_int_rel"
+reject_term "src/runtime/pgy_abi_spec.h" "pgy_abi_secure_slot_int_dbg"
 require_term "src/runtime/pgy_runtime_panic_checked_inline.h" "PGY_RAW_SLOTS only as a whole-program raw/unsafe build mode"
 require_term "src/runtime/pgy_runtime_plain_slot_inline.h" "PGY_SLOT_DEFINE_CHECKED"
 require_term "src/runtime/pgy_runtime_plain_slot_inline.h" "PGY_SLOT_DEFINE_RAW"

@@ -396,6 +396,10 @@ Current beta closure snapshot:
   assertions in `src/runtime/pgy_abi_spec_asserts.h` and MIR consumer facts in
   `src/compiler/mir_abi_layout.c`. `Option<T>` is currently an explicit tagged
   layout (`MIR_ABI_REPR_EXPLICIT_TAG`) with `niche_none_pattern == NULL`.
+  Debug/release is a build policy, not a second ABI type-name dimension:
+  canonical runtime ABI names must not grow `_dbg` or `_rel` typedef aliases.
+  Checked/raw mode differences are represented by policy macros and MIR ABI
+  facts, not by parallel type names.
   Rust-style niche encoding may only appear after semantic/DAG proof types
   such as `NonZero<T>`, `NonNull<T>`, or `NonEmpty<T>` authorize a reserved
   bit pattern and MIR records it as an ABI fact. C and LLVM backends must not

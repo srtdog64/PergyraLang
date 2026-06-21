@@ -110,24 +110,10 @@ typedef struct { double  value; bool occupied; uint64_t token; } pgy_abi_secure_
 typedef struct { bool    value; bool occupied; uint64_t token; } pgy_abi_secure_slot_bool;
 typedef struct { char   *value; bool occupied; uint64_t token; } pgy_abi_secure_slot_string;
 
-/* Legacy ABI names are compatibility aliases, not second layout owners. */
-typedef pgy_abi_secure_slot_int pgy_abi_secure_slot_int_dbg;
-typedef pgy_abi_secure_slot_long pgy_abi_secure_slot_long_dbg;
-typedef pgy_abi_secure_slot_float pgy_abi_secure_slot_float_dbg;
-typedef pgy_abi_secure_slot_double pgy_abi_secure_slot_double_dbg;
-typedef pgy_abi_secure_slot_bool pgy_abi_secure_slot_bool_dbg;
-typedef pgy_abi_secure_slot_string pgy_abi_secure_slot_string_dbg;
-typedef pgy_abi_secure_slot_int pgy_abi_secure_slot_int_rel;
-typedef pgy_abi_secure_slot_long pgy_abi_secure_slot_long_rel;
-typedef pgy_abi_secure_slot_float pgy_abi_secure_slot_float_rel;
-typedef pgy_abi_secure_slot_double pgy_abi_secure_slot_double_rel;
-typedef pgy_abi_secure_slot_bool pgy_abi_secure_slot_bool_rel;
-typedef pgy_abi_secure_slot_string pgy_abi_secure_slot_string_rel;
+/* Debug/release mode is a build policy, not an ABI type-name dimension. */
 
 /* --- Capability Token canonical ABI --- */
 typedef struct { uint64_t id; bool can_write; bool can_read; } pgy_abi_token_int;
-typedef pgy_abi_token_int pgy_abi_token_int_dbg;
-typedef pgy_abi_token_int pgy_abi_token_int_rel;
 
 /* --- Pin/lease view handles (block-scoped runtime views) --- */
 typedef struct {
