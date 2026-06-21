@@ -22,222 +22,327 @@ air_global_evidence_kind_has_validator(AIREvidenceKind kind)
     return air_evidence_kind_has_global_validator(kind);
 }
 
-static bool
-air_validate_mir_global_evidence(const AIREvidenceNode *evidence,
-                                 size_t evidence_index,
-                                 char **error_message)
+typedef enum
 {
-    AIREvidenceKind kind = air_evidence_node_kind(evidence);
-    const char *expected_subject = NULL;
-    const char *subject_name =
-        air_evidence_node_subject_name_or(evidence, NULL);
-    const char *label = NULL;
+    AIR_GLOBAL_SHAPE_MIR,
+    AIR_GLOBAL_SHAPE_RIR_PROPAGATION,
+    AIR_GLOBAL_SHAPE_DAG,
+    AIR_GLOBAL_SHAPE_OBSERVABILITY_SCHEMA,
+    AIR_GLOBAL_SHAPE_RUNTIME_FRONTIER_POLICY
+} AIRGlobalEvidenceShapeClass;
 
-    if (kind == AIR_EVIDENCE_MIR_CLEANUP) {
-        expected_subject = "cleanup-block";
-        label = "cleanup";
-    } else if (kind == AIR_EVIDENCE_MIR_TERMINATOR) {
-        expected_subject = "cfg-terminator";
-        label = "terminator";
-    } else if (kind == AIR_EVIDENCE_MIR_SELECT_RECEIVE) {
-        expected_subject = "select-receive";
-        label = "select receive";
-    } else {
+typedef struct
+{
+    AIREvidenceKind kind;
+    AIRGlobalEvidenceShapeClass shape_class;
+    const char *label;
+    const char *expected_provider;
+    const char *expected_subject;
+    size_t exact_fact_count;
+    bool exact_fact_count_required;
+} AIRGlobalEvidencePolicy;
+
+static const AIRGlobalEvidencePolicy kGlobalEvidencePolicies[] = {
+    {
+        AIR_EVIDENCE_MIR_CLEANUP,
+        AIR_GLOBAL_SHAPE_MIR,
+        "cleanup",
+        NULL,
+        "cleanup-block",
+        0,
+        false,
+    },
+    {
+        AIR_EVIDENCE_MIR_TERMINATOR,
+        AIR_GLOBAL_SHAPE_MIR,
+        "terminator",
+        NULL,
+        "cfg-terminator",
+        0,
+        false,
+    },
+    {
+        AIR_EVIDENCE_MIR_SELECT_RECEIVE,
+        AIR_GLOBAL_SHAPE_MIR,
+        "select receive",
+        NULL,
+        "select-receive",
+        0,
+        false,
+    },
+    {
+        AIR_EVIDENCE_RIR_EFFECT_PROPAGATION,
+        AIR_GLOBAL_SHAPE_RIR_PROPAGATION,
+        "propagation",
+        NULL,
+        NULL,
+        0,
+        false,
+    },
+    {
+        AIR_EVIDENCE_RIR_RELATION_PROPAGATION,
+        AIR_GLOBAL_SHAPE_RIR_PROPAGATION,
+        "propagation",
+        NULL,
+        NULL,
+        0,
+        false,
+    },
+    {
+        AIR_EVIDENCE_DAG_METADATA,
+        AIR_GLOBAL_SHAPE_DAG,
+        "DAG",
+        "type-resolution-dag",
+        "metadata-inventory",
+        0,
+        false,
+    },
+    {
+        AIR_EVIDENCE_DAG_GENERIC,
+        AIR_GLOBAL_SHAPE_DAG,
+        "DAG",
+        "type-resolution-dag",
+        "generic-contracts",
+        0,
+        false,
+    },
+    {
+        AIR_EVIDENCE_DAG_ABILITY,
+        AIR_GLOBAL_SHAPE_DAG,
+        "DAG",
+        "type-resolution-dag",
+        "ability-consumers",
+        0,
+        false,
+    },
+    {
+        AIR_EVIDENCE_OBSERVABILITY_SCHEMA,
+        AIR_GLOBAL_SHAPE_OBSERVABILITY_SCHEMA,
+        "schema",
+        "runtime-observability-schema",
+        PGY_OBSERVABILITY_ABI_SCHEMA,
+        0,
+        false,
+    },
+    {
+        AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY,
+        AIR_GLOBAL_SHAPE_RUNTIME_FRONTIER_POLICY,
+        "policy",
+        PGY_FRONTIER_POLICY_SCHEMA,
+        PGY_FRONTIER_POLICY_SUBJECT,
+        PGY_FRONTIER_POLICY_FACT_COUNT,
+        true,
+    },
+};
+
+static const AIRGlobalEvidencePolicy *
+air_global_evidence_policy_for_kind(AIREvidenceKind kind)
+{
+    for (size_t i = 0; i < sizeof(kGlobalEvidencePolicies)
+             / sizeof(kGlobalEvidencePolicies[0]); i++) {
+        if (kGlobalEvidencePolicies[i].kind == kind)
+            return &kGlobalEvidencePolicies[i];
+    }
+    return NULL;
+}
+
+static bool
+air_validate_global_evidence_fact_shape(
+    const AIRGlobalEvidencePolicy *policy,
+    const AIREvidenceNode *evidence,
+    size_t evidence_index,
+    char **error_message)
+{
+    size_t fact_count = air_evidence_node_fact_count(evidence);
+
+    if (policy->exact_fact_count_required) {
+        if (fact_count != policy->exact_fact_count) {
+            air_set_invariant_error(
+                error_message,
+                "AIR runtime frontier policy evidence node %zu has invalid policy fact count; expected=%zu actual=%zu",
+                evidence_index,
+                policy->exact_fact_count,
+                fact_count);
+            return false;
+        }
         return true;
     }
 
-    if (air_evidence_node_fact_count(evidence) == 0) {
+    if (fact_count > 0)
+        return true;
+
+    switch (policy->shape_class) {
+    case AIR_GLOBAL_SHAPE_MIR:
         air_set_invariant_error(error_message,
                                 "AIR MIR %s evidence node %zu has no %s facts",
-                                label,
+                                policy->label,
                                 evidence_index,
-                                label);
+                                policy->label);
         return false;
-    }
-    if (air_evidence_node_fallback_count(evidence) != 0) {
-        air_set_invariant_error(error_message,
-                                "AIR MIR %s evidence node %zu has fallback %s facts",
-                                label,
-                                evidence_index,
-                                label);
+    case AIR_GLOBAL_SHAPE_RIR_PROPAGATION:
+        air_set_invariant_error(
+            error_message,
+            "AIR RIR propagation evidence node %zu has no propagation facts",
+            evidence_index);
         return false;
-    }
-    if (!air_name_matches(subject_name, expected_subject)) {
-        air_set_invariant_error(error_message,
-                                "AIR MIR %s evidence node %zu has invalid %s subject '%s'",
-                                label,
-                                evidence_index,
-                                label,
-                                subject_name != NULL ? subject_name : "<null>");
-        return false;
-    }
-    return true;
-}
-
-static bool
-air_validate_rir_propagation_evidence(const AIREvidenceNode *evidence,
-                                      size_t evidence_index,
-                                      char **error_message)
-{
-    AIREvidenceKind kind = air_evidence_node_kind(evidence);
-
-    if (kind != AIR_EVIDENCE_RIR_EFFECT_PROPAGATION
-        && kind != AIR_EVIDENCE_RIR_RELATION_PROPAGATION) {
-        return true;
-    }
-    if (air_evidence_node_fact_count(evidence) == 0) {
-        air_set_invariant_error(error_message,
-                                "AIR RIR propagation evidence node %zu has no propagation facts",
-                                evidence_index);
-        return false;
-    }
-    if (air_evidence_node_fallback_count(evidence) != 0) {
-        air_set_invariant_error(error_message,
-                                "AIR RIR propagation evidence node %zu has fallback propagation facts",
-                                evidence_index);
-        return false;
-    }
-    return true;
-}
-
-static bool
-air_validate_dag_global_evidence(const AIREvidenceNode *evidence,
-                                 size_t evidence_index,
-                                 char **error_message)
-{
-    AIREvidenceKind kind = air_evidence_node_kind(evidence);
-    const char *expected_subject = "metadata-inventory";
-    const char *provider_name =
-        air_evidence_node_provider_name_or(evidence, NULL);
-    const char *subject_name =
-        air_evidence_node_subject_name_or(evidence, NULL);
-
-    if (kind != AIR_EVIDENCE_DAG_METADATA
-        && kind != AIR_EVIDENCE_DAG_GENERIC
-        && kind != AIR_EVIDENCE_DAG_ABILITY) {
-        return true;
-    }
-    if (kind == AIR_EVIDENCE_DAG_GENERIC)
-        expected_subject = "generic-contracts";
-    else if (kind == AIR_EVIDENCE_DAG_ABILITY)
-        expected_subject = "ability-consumers";
-    if (air_evidence_node_fact_count(evidence) == 0
-        && air_evidence_node_fallback_count(evidence) == 0) {
+    case AIR_GLOBAL_SHAPE_DAG:
         air_set_invariant_error(error_message,
                                 "AIR DAG evidence node %zu has no DAG facts",
                                 evidence_index);
         return false;
-    }
-    if (air_evidence_node_fallback_count(evidence) != 0) {
-        air_set_invariant_error(error_message,
-                                "AIR DAG evidence node %zu has unresolved metadata dead-end facts",
-                                evidence_index);
+    case AIR_GLOBAL_SHAPE_OBSERVABILITY_SCHEMA:
+        air_set_invariant_error(
+            error_message,
+            "AIR observability schema evidence node %zu has no schema facts",
+            evidence_index);
         return false;
+    case AIR_GLOBAL_SHAPE_RUNTIME_FRONTIER_POLICY:
+        break;
     }
-    if (!air_name_matches(provider_name, "type-resolution-dag")) {
-        air_set_invariant_error(error_message,
-                                "AIR DAG evidence node %zu has invalid provider '%s'",
-                                evidence_index,
-                                provider_name != NULL ? provider_name : "<null>");
+    return true;
+}
+
+static bool
+air_validate_global_evidence_fallback_shape(
+    const AIRGlobalEvidencePolicy *policy,
+    const AIREvidenceNode *evidence,
+    size_t evidence_index,
+    char **error_message)
+{
+    if (air_evidence_node_fallback_count(evidence) == 0)
+        return true;
+
+    switch (policy->shape_class) {
+    case AIR_GLOBAL_SHAPE_MIR:
+        air_set_invariant_error(
+            error_message,
+            "AIR MIR %s evidence node %zu has fallback %s facts",
+            policy->label,
+            evidence_index,
+            policy->label);
         return false;
-    }
-    if (!air_name_matches(subject_name, expected_subject)) {
-        air_set_invariant_error(error_message,
-                                "AIR DAG evidence node %zu has invalid subject '%s'",
-                                evidence_index,
-                                subject_name != NULL ? subject_name : "<null>");
+    case AIR_GLOBAL_SHAPE_RIR_PROPAGATION:
+        air_set_invariant_error(
+            error_message,
+            "AIR RIR propagation evidence node %zu has fallback propagation facts",
+            evidence_index);
+        return false;
+    case AIR_GLOBAL_SHAPE_DAG:
+        air_set_invariant_error(
+            error_message,
+            "AIR DAG evidence node %zu has unresolved metadata dead-end facts",
+            evidence_index);
+        return false;
+    case AIR_GLOBAL_SHAPE_OBSERVABILITY_SCHEMA:
+        air_set_invariant_error(
+            error_message,
+            "AIR observability schema evidence node %zu has fallback schema facts",
+            evidence_index);
+        return false;
+    case AIR_GLOBAL_SHAPE_RUNTIME_FRONTIER_POLICY:
+        air_set_invariant_error(
+            error_message,
+            "AIR runtime frontier policy evidence node %zu has fallback policy facts",
+            evidence_index);
         return false;
     }
     return true;
 }
 
 static bool
-air_validate_observability_schema_evidence(const AIREvidenceNode *evidence,
-                                           size_t evidence_index,
-                                           char **error_message)
+air_validate_global_evidence_name_shape(
+    const AIRGlobalEvidencePolicy *policy,
+    const AIREvidenceNode *evidence,
+    size_t evidence_index,
+    char **error_message)
 {
     const char *provider_name =
         air_evidence_node_provider_name_or(evidence, NULL);
     const char *subject_name =
         air_evidence_node_subject_name_or(evidence, NULL);
 
-    if (air_evidence_node_kind(evidence) != AIR_EVIDENCE_OBSERVABILITY_SCHEMA)
-        return true;
-    if (air_evidence_node_fact_count(evidence) == 0) {
-        air_set_invariant_error(error_message,
-                                "AIR observability schema evidence node %zu has no schema facts",
-                                evidence_index);
+    if (policy->expected_provider != NULL
+        && !air_name_matches(provider_name, policy->expected_provider)) {
+        if (policy->shape_class == AIR_GLOBAL_SHAPE_DAG) {
+            air_set_invariant_error(
+                error_message,
+                "AIR DAG evidence node %zu has invalid provider '%s'",
+                evidence_index,
+                provider_name != NULL ? provider_name : "<null>");
+        } else if (policy->shape_class
+                   == AIR_GLOBAL_SHAPE_OBSERVABILITY_SCHEMA) {
+            air_set_invariant_error(
+                error_message,
+                "AIR observability schema evidence node %zu has invalid provider '%s'",
+                evidence_index,
+                provider_name != NULL ? provider_name : "<null>");
+        } else {
+            air_set_invariant_error(
+                error_message,
+                "AIR runtime frontier policy evidence node %zu has invalid provider '%s'",
+                evidence_index,
+                provider_name != NULL ? provider_name : "<null>");
+        }
         return false;
     }
-    if (air_evidence_node_fallback_count(evidence) != 0) {
-        air_set_invariant_error(error_message,
-                                "AIR observability schema evidence node %zu has fallback schema facts",
-                                evidence_index);
-        return false;
-    }
-    if (!air_name_matches(provider_name,
-                          "runtime-observability-schema")) {
-        air_set_invariant_error(error_message,
-                                "AIR observability schema evidence node %zu has invalid provider '%s'",
-                                evidence_index,
-                                provider_name != NULL ? provider_name : "<null>");
-        return false;
-    }
-    if (!air_name_matches(subject_name,
-                          PGY_OBSERVABILITY_ABI_SCHEMA)) {
-        air_set_invariant_error(error_message,
-                                "AIR observability schema evidence node %zu has invalid subject '%s'",
-                                evidence_index,
-                                subject_name != NULL ? subject_name : "<null>");
+
+    if (policy->expected_subject != NULL
+        && !air_name_matches(subject_name, policy->expected_subject)) {
+        if (policy->shape_class == AIR_GLOBAL_SHAPE_MIR) {
+            air_set_invariant_error(
+                error_message,
+                "AIR MIR %s evidence node %zu has invalid %s subject '%s'",
+                policy->label,
+                evidence_index,
+                policy->label,
+                subject_name != NULL ? subject_name : "<null>");
+        } else if (policy->shape_class == AIR_GLOBAL_SHAPE_DAG) {
+            air_set_invariant_error(
+                error_message,
+                "AIR DAG evidence node %zu has invalid subject '%s'",
+                evidence_index,
+                subject_name != NULL ? subject_name : "<null>");
+        } else if (policy->shape_class
+                   == AIR_GLOBAL_SHAPE_OBSERVABILITY_SCHEMA) {
+            air_set_invariant_error(
+                error_message,
+                "AIR observability schema evidence node %zu has invalid subject '%s'",
+                evidence_index,
+                subject_name != NULL ? subject_name : "<null>");
+        } else {
+            air_set_invariant_error(
+                error_message,
+                "AIR runtime frontier policy evidence node %zu has invalid subject '%s'",
+                evidence_index,
+                subject_name != NULL ? subject_name : "<null>");
+        }
         return false;
     }
     return true;
 }
 
 static bool
-air_validate_runtime_frontier_policy_evidence(const AIREvidenceNode *evidence,
-                                              size_t evidence_index,
-                                              char **error_message)
+air_validate_global_evidence_against_policy(const AIREvidenceNode *evidence,
+                                            size_t evidence_index,
+                                            char **error_message)
 {
-    const char *provider_name =
-        air_evidence_node_provider_name_or(evidence, NULL);
-    const char *subject_name =
-        air_evidence_node_subject_name_or(evidence, NULL);
-    size_t fact_count = air_evidence_node_fact_count(evidence);
+    const AIRGlobalEvidencePolicy *policy =
+        air_global_evidence_policy_for_kind(air_evidence_node_kind(evidence));
 
-    if (air_evidence_node_kind(evidence) != AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY)
+    if (policy == NULL)
         return true;
-    if (fact_count != PGY_FRONTIER_POLICY_FACT_COUNT) {
-        air_set_invariant_error(error_message,
-                                "AIR runtime frontier policy evidence node %zu has invalid policy fact count; expected=%zu actual=%zu",
-                                evidence_index,
-                                (size_t)PGY_FRONTIER_POLICY_FACT_COUNT,
-                                fact_count);
-        return false;
-    }
-    if (air_evidence_node_fallback_count(evidence) != 0) {
-        air_set_invariant_error(error_message,
-                                "AIR runtime frontier policy evidence node %zu has fallback policy facts",
-                                evidence_index);
-        return false;
-    }
-    if (!air_name_matches(provider_name,
-                          PGY_FRONTIER_POLICY_SCHEMA)) {
-        air_set_invariant_error(error_message,
-                                "AIR runtime frontier policy evidence node %zu has invalid provider '%s'",
-                                evidence_index,
-                                provider_name != NULL ? provider_name : "<null>");
-        return false;
-    }
-    if (!air_name_matches(subject_name,
-                          PGY_FRONTIER_POLICY_SUBJECT)) {
-        air_set_invariant_error(error_message,
-                                "AIR runtime frontier policy evidence node %zu has invalid subject '%s'",
-                                evidence_index,
-                                subject_name != NULL ? subject_name : "<null>");
-        return false;
-    }
-    return true;
+    return air_validate_global_evidence_fact_shape(policy,
+                                                   evidence,
+                                                   evidence_index,
+                                                   error_message)
+        && air_validate_global_evidence_fallback_shape(policy,
+                                                       evidence,
+                                                       evidence_index,
+                                                       error_message)
+        && air_validate_global_evidence_name_shape(policy,
+                                                   evidence,
+                                                   evidence_index,
+                                                   error_message);
 }
 
 bool
@@ -265,13 +370,7 @@ air_validate_global_evidence_node(const AIREvidenceNode *evidence,
                                 air_evidence_kind_name(kind));
         return false;
     }
-    return air_validate_mir_global_evidence(evidence, evidence_index, error_message)
-        && air_validate_rir_propagation_evidence(evidence, evidence_index, error_message)
-        && air_validate_dag_global_evidence(evidence, evidence_index, error_message)
-        && air_validate_observability_schema_evidence(evidence,
-                                                      evidence_index,
-                                                      error_message)
-        && air_validate_runtime_frontier_policy_evidence(evidence,
-                                                      evidence_index,
-                                                      error_message);
+    return air_validate_global_evidence_against_policy(evidence,
+                                                       evidence_index,
+                                                       error_message);
 }

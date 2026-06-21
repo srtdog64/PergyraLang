@@ -109,11 +109,17 @@ Current state:
 - AIR validation rejects malformed authority evidence, authority evidence on
   non-authority boundaries, and authority evidence without matching boundary
   evidence.
+- Global AIR evidence validation consumes `kGlobalEvidencePolicies` as the
+  shape table for MIR cleanup/terminator/select, RIR propagation, DAG
+  metadata/generic/ability, observability schema, and runtime frontier-policy
+  facts. The table owns fixed provider/subject names where the evidence class
+  has a single schema owner and exact fact counts where the runtime schema has
+  one stable count.
 
 Remaining closure:
 
-- Treat evidence as typed proof records, not only counters plus strings.
-- For each evidence kind, define:
+- Extend the same typed-table approach to every evidence class, not only global
+  evidence. For each evidence kind, define:
   - provider layer;
   - subject kind;
   - boundary classes it may discharge;
