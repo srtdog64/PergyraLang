@@ -6206,7 +6206,7 @@ require_term "src/codegen/transpiler_zone_methods_emit.c" \
     "method_meta == NULL"
 require_term "src/codegen/transpiler_zone_methods_emit.c" \
     "MIR-only C path has invalid method declaration metadata row for zone"
-require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
+require_term "src/codegen/transpiler_operator.c" \
     "MIR-only C path missing role operator method metadata for role"
 require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
     "mir_decl_header_role_impl_method("
@@ -7256,8 +7256,12 @@ if grep -Eq 'role_decl\.for_type' \
 fi
 require_term "src/codegen/transpiler_operator.c" \
     "find_role_operator_method_metadata"
+require_term "src/codegen/transpiler_operator.c" \
+    "transpiler_hosted_method_view_missing_mir_metadata(&view)"
 require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
     "find_role_operator_method_metadata(ctx, role, op, 0)"
+require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
+    "method_meta == NULL && !transpiler_active_has_mir(ctx)"
 require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
     "transpiler_mir_decl_method_metadata_complete_for(ctx"
 require_term "src/codegen/transpiler_domain_role_methods_emit.c" \

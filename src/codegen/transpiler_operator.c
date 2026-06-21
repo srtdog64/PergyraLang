@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_operator.h"
 
@@ -132,6 +133,13 @@ find_role_operator_method_metadata(TranspilerCtx *ctx,
 
     role_name = transpiler_decl_name_local(role);
     view = transpiler_hosted_method_view_from_decl(ctx, role_name, role);
+    if (transpiler_hosted_method_view_missing_mir_metadata(&view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing role operator method metadata for role '%s'",
+            role_name != NULL ? role_name : "(anonymous-role)");
+        return NULL;
+    }
     for (size_t i = 0; i < view.count; i++) {
         const MIRDeclMethod *method =
             transpiler_hosted_method_view_metadata(&view, i);

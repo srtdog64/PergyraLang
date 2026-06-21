@@ -217,7 +217,7 @@ grep -Fq "MIR-only C path missing method body metadata row for" \
 grep -Fq "MIR-only C path missing method name metadata for" \
     "$ROOT_DIR/src/codegen/transpiler_hosted_method_body_emit.c"
 grep -Fq "MIR-only C path missing role operator method metadata for role" \
-    "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
+    "$ROOT_DIR/src/codegen/transpiler_operator.c"
 grep -Fq "MIR-only LLVM path missing role operator method metadata for role" \
     "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c"
 grep -Fq "MIR-only C path missing function body return type-name metadata" \
