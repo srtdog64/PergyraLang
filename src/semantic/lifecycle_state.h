@@ -82,4 +82,48 @@ LcState lc_merge(LcState a, LcState b);
 /* Human-readable state name for diagnostics ("<uninit>" / "<ambiguous>"). */
 const char *lc_state_name(const LcMachine *m, LcState s);
 
+/* ----------------------------------------------------------------
+ * Lifecycle declaration registry.
+ *
+ * Populated by the parser when it sees a `lifecycle <Subject> { ... }` form,
+ * read by the analysis pass. Neutral storage: no AST / no semantic deps, so the
+ * parser can register without a layering inversion. Fixed-capacity (no malloc);
+ * one process compiles one program, reset at the start of analysis.
+ * ---------------------------------------------------------------- */
+
+#define LC_MAX_SPECS   64
+#define LC_NAME_LEN    64
+#define LC_MAX_STATES  32
+#define LC_MAX_OPS     32
+#define LC_MAX_TRANS   64
+
+typedef struct {
+    char         subject[LC_NAME_LEN];
+    char         state_buf[LC_MAX_STATES][LC_NAME_LEN];
+    const char  *state_names[LC_MAX_STATES];
+    int          state_count;
+    char         op_buf[LC_MAX_OPS][LC_NAME_LEN];
+    const char  *op_names[LC_MAX_OPS];
+    int          op_count;
+    LcTransition transitions[LC_MAX_TRANS];
+    int          transition_count;
+} LcSpec;
+
+void           lc_registry_reset(void);
+/* Begin a spec for `subject`; returns spec id, or -1 on overflow/duplicate. */
+int            lc_registry_begin(const char *subject);
+/* Add `op: from -> to` to spec `sid`, resolving/creating state+op indices.
+ * Returns false on overflow. */
+bool           lc_registry_add_transition(int sid, const char *op,
+                                          const char *from, const char *to);
+int            lc_registry_count(void);
+const LcSpec  *lc_registry_at(int i);
+const LcSpec  *lc_registry_find(const char *subject);
+
+/* View an LcSpec as an LcMachine (points into the spec's arrays). */
+LcMachine      lc_spec_machine(const LcSpec *s);
+/* Resolve a state/op name to its index within a spec, or -1. */
+int            lc_spec_state_index(const LcSpec *s, const char *name);
+int            lc_spec_op_index(const LcSpec *s, const char *name);
+
 #endif /* PERGYRA_LIFECYCLE_STATE_H */

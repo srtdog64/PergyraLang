@@ -50,6 +50,14 @@ check(const char *label, LcResult got, LcResult want,
     }
 }
 
+static void
+check_bool(const char *label, bool ok)
+{
+    printf("  [%s] %s\n", ok ? "PASS" : "FAIL", label);
+    if (!ok)
+        failures++;
+}
+
 int
 main(void)
 {
@@ -89,6 +97,33 @@ main(void)
           lc_merge(S_Authorized, S_Authorized), S_Authorized);
     check("merge(<uninit>,Pending)", LC_OK, LC_OK,
           lc_merge(LC_UNINIT, S_Pending), LC_AMBIGUOUS);
+
+    /* 6. Registry path: declaration storage is the SoT for future parser input. */
+    lc_registry_reset();
+    int sid = lc_registry_begin("Payment");
+    check_bool("registry begin Payment", sid >= 0);
+    check_bool("registry duplicate subject rejected",
+               lc_registry_begin("Payment") < 0);
+    check_bool("registry Create transition",
+               lc_registry_add_transition(sid, "Create", "<uninit>", "Pending"));
+    check_bool("registry Authorize transition",
+               lc_registry_add_transition(sid, "Authorize", "Pending", "Authorized"));
+    check_bool("registry Capture transition",
+               lc_registry_add_transition(sid, "Capture", "Authorized", "Captured"));
+    check_bool("registry rejects conflicting transition",
+               !lc_registry_add_transition(sid, "Capture", "Authorized", "Pending"));
+    check_bool("registry count is one", lc_registry_count() == 1);
+
+    const LcSpec *spec = lc_registry_find("Payment");
+    check_bool("registry find Payment", spec != NULL);
+    check_bool("registry state index", lc_spec_state_index(spec, "Authorized") >= 0);
+    check_bool("registry op index", lc_spec_op_index(spec, "Capture") >= 0);
+    LcMachine registered = lc_spec_machine(spec);
+    int pending = lc_spec_state_index(spec, "Pending");
+    int authorize = lc_spec_op_index(spec, "Authorize");
+    int authorized = lc_spec_state_index(spec, "Authorized");
+    r = lc_apply_op(&registered, pending, authorize, &s);
+    check("registered Authorize on Pending", r, LC_OK, s, authorized);
 
     printf("%s (%d failure%s)\n", failures == 0 ? "ALL PASS" : "FAILED",
            failures, failures == 1 ? "" : "s");

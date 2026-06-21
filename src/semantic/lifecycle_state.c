@@ -8,6 +8,99 @@
 
 #include "lifecycle_state.h"
 
+#include <string.h>
+
+static LcSpec g_lc_specs[LC_MAX_SPECS];
+static int    g_lc_spec_count = 0;
+
+static bool
+lc_copy_name(char dest[LC_NAME_LEN], const char *src)
+{
+    size_t len;
+
+    if (dest == NULL || src == NULL || src[0] == '\0')
+        return false;
+    len = strlen(src);
+    if (len >= LC_NAME_LEN)
+        return false;
+    memcpy(dest, src, len + 1);
+    return true;
+}
+
+static int
+lc_spec_find_state_index(const LcSpec *s, const char *name)
+{
+    if (s == NULL || name == NULL)
+        return -1;
+    for (int i = 0; i < s->state_count; i++) {
+        if (s->state_names[i] != NULL && strcmp(s->state_names[i], name) == 0)
+            return i;
+    }
+    return -1;
+}
+
+static int
+lc_spec_find_op_index(const LcSpec *s, const char *name)
+{
+    if (s == NULL || name == NULL)
+        return -1;
+    for (int i = 0; i < s->op_count; i++) {
+        if (s->op_names[i] != NULL && strcmp(s->op_names[i], name) == 0)
+            return i;
+    }
+    return -1;
+}
+
+static int
+lc_spec_intern_state(LcSpec *s, const char *name)
+{
+    int existing;
+
+    if (s == NULL || name == NULL)
+        return -1;
+    existing = lc_spec_find_state_index(s, name);
+    if (existing >= 0)
+        return existing;
+    if (s->state_count >= LC_MAX_STATES)
+        return -1;
+    if (!lc_copy_name(s->state_buf[s->state_count], name))
+        return -1;
+    s->state_names[s->state_count] = s->state_buf[s->state_count];
+    return s->state_count++;
+}
+
+static int
+lc_spec_intern_op(LcSpec *s, const char *name)
+{
+    int existing;
+
+    if (s == NULL || name == NULL)
+        return -1;
+    existing = lc_spec_find_op_index(s, name);
+    if (existing >= 0)
+        return existing;
+    if (s->op_count >= LC_MAX_OPS)
+        return -1;
+    if (!lc_copy_name(s->op_buf[s->op_count], name))
+        return -1;
+    s->op_names[s->op_count] = s->op_buf[s->op_count];
+    return s->op_count++;
+}
+
+static bool
+lc_transition_from_name(LcSpec *s, const char *name, int *out)
+{
+    if (out == NULL)
+        return false;
+    if (name != NULL
+        && (strcmp(name, "<uninit>") == 0 || strcmp(name, "UNINIT") == 0)) {
+        *out = LC_UNINIT;
+        return true;
+    }
+    *out = lc_spec_intern_state(s, name);
+    return *out >= 0;
+}
+
 static const LcTransition *
 lc_find_transition(const LcMachine *m, int from, int op)
 {
@@ -116,4 +209,114 @@ lc_state_name(const LcMachine *m, LcState s)
     if (m == NULL || s < 0 || s >= m->state_count)
         return "<invalid>";
     return m->state_names[s];
+}
+
+void
+lc_registry_reset(void)
+{
+    memset(g_lc_specs, 0, sizeof(g_lc_specs));
+    g_lc_spec_count = 0;
+}
+
+int
+lc_registry_begin(const char *subject)
+{
+    LcSpec *spec;
+
+    if (subject == NULL || subject[0] == '\0')
+        return -1;
+    if (lc_registry_find(subject) != NULL)
+        return -1;
+    if (g_lc_spec_count >= LC_MAX_SPECS)
+        return -1;
+    spec = &g_lc_specs[g_lc_spec_count];
+    memset(spec, 0, sizeof(*spec));
+    if (!lc_copy_name(spec->subject, subject))
+        return -1;
+    return g_lc_spec_count++;
+}
+
+bool
+lc_registry_add_transition(int sid, const char *op, const char *from,
+                           const char *to)
+{
+    LcSpec *spec;
+    int from_index;
+    int op_index;
+    int to_index;
+
+    if (sid < 0 || sid >= g_lc_spec_count)
+        return false;
+    spec = &g_lc_specs[sid];
+    if (!lc_transition_from_name(spec, from, &from_index))
+        return false;
+    op_index = lc_spec_intern_op(spec, op);
+    to_index = lc_spec_intern_state(spec, to);
+    if (op_index < 0 || to_index < 0)
+        return false;
+
+    for (int i = 0; i < spec->transition_count; i++) {
+        LcTransition *existing = &spec->transitions[i];
+        if (existing->from == from_index && existing->op == op_index)
+            return existing->to == to_index;
+    }
+
+    if (spec->transition_count >= LC_MAX_TRANS)
+        return false;
+    spec->transitions[spec->transition_count++] =
+        (LcTransition){ from_index, op_index, to_index };
+    return true;
+}
+
+int
+lc_registry_count(void)
+{
+    return g_lc_spec_count;
+}
+
+const LcSpec *
+lc_registry_at(int i)
+{
+    if (i < 0 || i >= g_lc_spec_count)
+        return NULL;
+    return &g_lc_specs[i];
+}
+
+const LcSpec *
+lc_registry_find(const char *subject)
+{
+    if (subject == NULL)
+        return NULL;
+    for (int i = 0; i < g_lc_spec_count; i++) {
+        if (strcmp(g_lc_specs[i].subject, subject) == 0)
+            return &g_lc_specs[i];
+    }
+    return NULL;
+}
+
+LcMachine
+lc_spec_machine(const LcSpec *s)
+{
+    LcMachine m = { 0 };
+    if (s == NULL)
+        return m;
+    m.state_names = s->state_names;
+    m.state_count = s->state_count;
+    m.op_names = s->op_names;
+    m.op_count = s->op_count;
+    m.transitions = s->transitions;
+    m.transition_count = s->transition_count;
+    return m;
+}
+
+int
+lc_spec_state_index(const LcSpec *s, const char *name)
+{
+    return lc_spec_find_state_index(s, name);
+}
+
+int
+lc_spec_op_index(const LcSpec *s, const char *name)
+{
+    return lc_spec_find_op_index(s, name);
 }
