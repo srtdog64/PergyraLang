@@ -32,6 +32,15 @@ extern char *realpath(const char *path, char *resolved_path);
 #ifdef _WIN32
 #include <windows.h>
 #endif
+/* The spawn primitives in pgy_parallel.h charge the resource budget (SPAWN_COUNT).
+ * Pull the budget vocabulary in first (for PgyBudgetKind), and declare the extern
+ * budget twin -- defined further down in this same TU -- so the charge resolves
+ * in the .bc/runtime object. LLVM-chain only: this is the extern-twin TU, so the
+ * declaration matches the (non-static) definitions below, with no static-inline
+ * conflict (the C side uses the inline twin via platform_io_core.h instead). */
+#include "runtime/pgy_runtime_budget.h"
+extern int pgy_budget_is_imposed_export(void);
+extern void pgy_budget_charge_export(int kind, uint64_t amount, const char *op);
 #include "runtime/pgy_parallel.h"
 #include "runtime/pgy_runtime_authority_contract.h"
 #include "runtime/pgy_runtime_panic_contract.h"
@@ -307,8 +316,39 @@ pgy_runtime_lifecycle_guard_export(const void *inst, int32_t valid_mask,
 /* Content capability gate -- external (non-inline) twins of the static-inline
  * definitions in pgy_runtime_panic_checked_inline.h, for the LLVM-linked runtime
  * object. One process-wide granted set; gated ops panic fail-closed outside it.
- * See pgy_runtime_capability.h and docs/semantics/15. */
-static uint32_t g_pgy_cap_granted = PGY_CAP_ALL;
+ * See pgy_runtime_capability.h and docs/semantics/15.
+ *
+ * pgy_runtime_lib.c is compiled twice -- once to the .bc (clang, runtime module
+ * llvm-linked + inlined into the program) and once to the native cache object
+ * (linked). If both defined this state it would split across instances (one
+ * inlined into the program from the .bc, one in the cache object), so an LLVM
+ * program's gate would read one copy and mutate another. To keep ONE instance,
+ * only the native object defines it; the .bc build (PGY_RUNTIME_BC_BUILD)
+ * declares it extern so every reference resolves to that single definition. */
+#ifdef PGY_RUNTIME_BC_BUILD
+extern uint32_t g_pgy_cap_granted;
+#else
+uint32_t g_pgy_cap_granted = PGY_CAP_ALL;
+#endif
+
+/* Apply the host PGY_CAP_GRANT restriction exactly once, before the first gated
+ * op observes the granted set (mirror of the inline twin's env latch in
+ * pgy_runtime_panic_checked_inline.h). pgy_cap_require_export -- the critical
+ * path every gated ambient op goes through -- is bitcode-stripped to this one
+ * runtime object, so this latch runs on the single shared g_pgy_cap_granted. */
+static int g_pgy_cap_env_applied = 0;
+
+static void
+pgy_cap_apply_env_once(void)
+{
+    unsigned env_mask;
+
+    if (g_pgy_cap_env_applied)
+        return;
+    g_pgy_cap_env_applied = 1;
+    if (pgy_cap_env_grant(&env_mask))
+        g_pgy_cap_granted = env_mask;
+}
 
 void
 pgy_cap_set_manifest_export(uint32_t mask)
@@ -325,12 +365,14 @@ pgy_cap_grant_all_export(void)
 uint32_t
 pgy_cap_granted_export(void)
 {
+    pgy_cap_apply_env_once();
     return g_pgy_cap_granted;
 }
 
 void
 pgy_cap_require_export(uint32_t cap, const char *op)
 {
+    pgy_cap_apply_env_once();
     if ((g_pgy_cap_granted & cap) != cap) {
         fprintf(stderr, "%s capability op=%s required=0x%x granted=0x%x\n",
                 PGY_RUNTIME_PANIC_PREFIX, op != NULL ? op : "<op>",
@@ -343,48 +385,89 @@ pgy_cap_require_export(uint32_t cap, const char *op)
 /* Resource budget gate -- external twins of the static-inline definitions in
  * pgy_runtime_panic_checked_inline.h. One process-wide per-kind budget; metered
  * ops panic fail-closed on overrun. See pgy_runtime_budget.h and docs/15. */
-static PgyBudgetState g_pgy_budget;
+/* Single instance across the .bc and the native cache object (see the
+ * g_pgy_cap_granted note above for why) -- the .bc build only declares it. */
+#ifdef PGY_RUNTIME_BC_BUILD
+extern PgyBudgetState g_pgy_budget;
+#else
+PgyBudgetState g_pgy_budget;
+#endif
 
-void
+/* noinline so the optimizer cannot inline these into their callers (e.g. the
+ * collection alloc paths) inside the .bc/runtime object. Inlined copies would
+ * each reference this TU's g_pgy_budget, and since the LLVM bitcode-strip only
+ * removes the standalone function bodies, the inlined copies (and their
+ * g_pgy_budget references) would survive -- splitting the budget across several
+ * instances so is_imposed reads one and charge accumulates into another. Kept
+ * non-inline, every call resolves to this one shared state. */
+#if defined(__GNUC__) || defined(__clang__)
+#  define PGY_BUDGET_NOINLINE __attribute__((noinline))
+#else
+#  define PGY_BUDGET_NOINLINE
+#endif
+
+PGY_BUDGET_NOINLINE void
 pgy_budget_reset_export(void)
 {
     pgy_budget_state_init(&g_pgy_budget);
 }
 
-void
+PGY_BUDGET_NOINLINE void
 pgy_budget_set_limit_export(int kind, uint64_t limit)
 {
     if (!g_pgy_budget.initialized)
         pgy_budget_state_init(&g_pgy_budget);
-    if (pgy_budget_kind_valid(kind))
+    if (pgy_budget_kind_valid(kind)) {
         g_pgy_budget.limit[kind] = limit;
+        if (limit != PGY_BUDGET_UNLIMITED)
+            g_pgy_budget.imposed = 1;
+    }
 }
 
-uint64_t
+PGY_BUDGET_NOINLINE uint64_t
 pgy_budget_used_export(int kind)
 {
     if (!g_pgy_budget.initialized)
         pgy_budget_state_init(&g_pgy_budget);
-    return pgy_budget_kind_valid(kind) ? g_pgy_budget.used[kind] : 0;
+    return pgy_budget_kind_valid(kind)
+        ? atomic_load_explicit(&g_pgy_budget.used[kind], memory_order_relaxed)
+        : 0;
 }
 
-void
+PGY_BUDGET_NOINLINE int
+pgy_budget_is_imposed_export(void)
+{
+    if (!g_pgy_budget.initialized)
+        pgy_budget_state_init(&g_pgy_budget);
+    return g_pgy_budget.imposed;
+}
+
+PGY_BUDGET_NOINLINE void
 pgy_budget_charge_export(int kind, uint64_t amount, const char *op)
 {
+    uint64_t used;
+
     if (!g_pgy_budget.initialized)
         pgy_budget_state_init(&g_pgy_budget);
     if (!pgy_budget_kind_valid(kind))
         return;
-    g_pgy_budget.used[kind] =
-        pgy_budget_saturating_add(g_pgy_budget.used[kind], amount);
-    if (g_pgy_budget.used[kind] > g_pgy_budget.limit[kind]) {
+    used = pgy_budget_charge_into(&g_pgy_budget, kind, amount);
+    if (used > g_pgy_budget.limit[kind]) {
         fprintf(stderr, "%s budget op=%s kind=%d used=%llu limit=%llu\n",
                 PGY_RUNTIME_PANIC_PREFIX, op != NULL ? op : "<op>", kind,
-                (unsigned long long)g_pgy_budget.used[kind],
+                (unsigned long long)used,
                 (unsigned long long)g_pgy_budget.limit[kind]);
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_BUDGET_EXCEEDED,
                           PGY_RUNTIME_PANIC_REASON_BUDGET_EXCEEDED);
     }
+}
+
+/* Arm the wall-clock deadline watchdog (see pgy_runtime_budget.h). Emitted once
+ * at main entry by the LLVM backend; a no-op unless PGY_BUDGET_WALL_MS is set. */
+PGY_BUDGET_NOINLINE void
+pgy_budget_wall_arm_export(void)
+{
+    pgy_budget_wall_arm_impl();
 }
 
 int64_t

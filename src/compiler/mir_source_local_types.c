@@ -173,20 +173,45 @@ mir_source_local_type_append_callable(const MIRProgram *program,
 
     {
         size_t size = 6; /* "func(" + NUL */
+        size_t used;
         for (size_t i = 0; i < param_count; i++)
             size += strlen(param_type_names[i]) + (i > 0 ? 1 : 0);
         size += 3 + strlen(return_type_name);
         surface_type_name = malloc(size);
         if (surface_type_name == NULL)
             goto fail;
-        strcpy(surface_type_name, "func(");
+        used = pergyra_str_copy(surface_type_name, size, "func(");
+        if (used != strlen("func("))
+            goto fail;
         for (size_t i = 0; i < param_count; i++) {
-            if (i > 0)
-                strcat(surface_type_name, ",");
-            strcat(surface_type_name, param_type_names[i]);
+            if (i > 0) {
+                size_t next = pergyra_str_append(surface_type_name, size, ",");
+                if (next != used + 1)
+                    goto fail;
+                used = next;
+            }
+            {
+                size_t param_len = strlen(param_type_names[i]);
+                size_t next = pergyra_str_append(
+                    surface_type_name, size, param_type_names[i]);
+                if (next != used + param_len)
+                    goto fail;
+                used = next;
+            }
         }
-        strcat(surface_type_name, ")->");
-        strcat(surface_type_name, return_type_name);
+        {
+            size_t next = pergyra_str_append(surface_type_name, size, ")->");
+            if (next != used + 3)
+                goto fail;
+            used = next;
+        }
+        {
+            size_t return_len = strlen(return_type_name);
+            size_t next = pergyra_str_append(
+                surface_type_name, size, return_type_name);
+            if (next != used + return_len)
+                goto fail;
+        }
     }
 
     before_count = routine->source_local_type_count;

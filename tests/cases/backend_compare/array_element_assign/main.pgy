@@ -1,4 +1,4 @@
-func DoubleEach(arr: Array<Int>, n: Int) -> Int {
+func DoubleEach(inout arr: Array<Int>, n: Int) -> Int {
     let i: Int = 0;
     while i < n {
         arr[i] = arr[i] * 2;

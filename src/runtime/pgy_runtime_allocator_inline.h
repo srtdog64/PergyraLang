@@ -146,9 +146,30 @@ pgy_allocator_destroy(PgyAllocator *alloc)
     }
 }
 
+/*
+ * Single charged choke point for the resource budget. Every runtime heap
+ * allocation primitive -- pgy_alloc, but also the collection calloc/realloc
+ * paths that bypass pgy_alloc -- routes its byte count through here BEFORE
+ * allocating, so an over-budget request is denied fail-closed before it
+ * consumes anything. The fast-path skips when no budget is imposed, so trusted
+ * programs pay nothing. This is the backend-uniform fix: both C and LLVM call
+ * the same runtime primitives, which all funnel through this one charge, so a
+ * memory-exhaustion bound holds identically across backends regardless of how
+ * each backend lowers the allocation. Resolves to the inline budget twin in C
+ * output, the extern twin in the linked .bc -- one atomic counter per context. */
+static inline void
+pgy_budget_charge_alloc(size_t bytes)
+{
+    if (pgy_budget_is_imposed_export()) {
+        pgy_budget_charge_export(PGY_BUDGET_ALLOC_COUNT, 1, "alloc");
+        pgy_budget_charge_export(PGY_BUDGET_ALLOC_BYTES, (uint64_t)bytes, "alloc");
+    }
+}
+
 static inline void *
 pgy_alloc(PgyAllocator *alloc, size_t size, size_t align)
 {
+    pgy_budget_charge_alloc(size);
     if (alloc != NULL && alloc->pool != NULL) {
         size_t align_mask;
         size_t offset;

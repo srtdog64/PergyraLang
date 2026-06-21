@@ -1,0 +1,12 @@
+// Escaping allocation: the array is indexed by a runtime value and the result
+// drives observable output, so the optimizer cannot scalar-replace/eliminate
+// the allocation (unlike a summed-and-discarded array). This forces a real heap
+// allocation on BOTH backends -- the true test of budget parity.
+let r: Int = Random(100);
+let xs: Array<Int> = [r, 20, 30, 40, 50, 60, 70, 80];
+let i: Int = Random(8);
+if xs[i] > 50 {
+    Log("big");
+} else {
+    Log("small");
+}

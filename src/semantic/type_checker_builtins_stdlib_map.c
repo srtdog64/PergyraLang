@@ -164,6 +164,9 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
             return TYPE_UNKNOWN;
         map_type = stdlib_map_normalize_type(
             type_check_expression(stdlib_map_arg(expr, 0), ctx));
+        if (reject_default_param_collection_mutator_receiver(
+                stdlib_map_arg(expr, 0), map_type, "MapSet", "map", ctx))
+            return TYPE_UNKNOWN;
         key_type = stdlib_map_normalize_type(
             type_check_expression(stdlib_map_arg(expr, 1), ctx));
         value_type = stdlib_map_normalize_type(
@@ -192,6 +195,10 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
             return TYPE_UNKNOWN;
         map_type = stdlib_map_normalize_type(
             type_check_expression(stdlib_map_arg(expr, 0), ctx));
+        if (kind == STDLIB_MAP_BUILTIN_REMOVE
+            && reject_default_param_collection_mutator_receiver(
+                stdlib_map_arg(expr, 0), map_type, "MapRemove", "map", ctx))
+            return TYPE_UNKNOWN;
         key_type = stdlib_map_normalize_type(
             type_check_expression(stdlib_map_arg(expr, 1), ctx));
         if (type_is_constructed_named(map_type, "HashMap")

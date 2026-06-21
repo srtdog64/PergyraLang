@@ -8,6 +8,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include "llvm_runtime_attrs.h"
 #include "llvm_runtime_bitcode_freshness.h"
 #include "../common/string_compat.h"
 #include <llvm-c/IRReader.h>
@@ -168,146 +169,6 @@ llvm_apply_target_machine(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
     LLVMDisposeTargetData(layout);
 }
 
-/*
- * Runtime panics are the cold error family: any function whose name carries
- * the "panic" marker traps and never returns.
- */
-static bool
-llvm_fn_is_panic(const char *fn_name)
-{
-    return fn_name != NULL && strstr(fn_name, "panic") != NULL;
-}
-
-/*
- * Checked integer division/modulo carry fail-closed guards (divide-by-zero and
- * INT_MIN / -1 overflow). When the runtime bitcode is linked and inlined, a -O3
- * pass would constant-fold a literal INT_MIN / -1 (instcombine rewrites
- * `sdiv x, -1` to a negation) and discard the guard, so the surface program
- * silently produces a wrong value instead of panicking. Mark these functions
- * noinline + optnone so the guard always executes at runtime, matching the C
- * backend whose separately compiled runtime is never folded into the caller.
- */
-static bool
-llvm_fn_is_checked_arith(const char *fn_name)
-{
-    return fn_name != NULL
-        && (strstr(fn_name, "pgy_checked_div_") != NULL
-            || strstr(fn_name, "pgy_checked_mod_") != NULL);
-}
-
-/*
- * Domain-lifecycle runtime tag helpers. They must NOT be folded into the caller
- * from bitcode, for two reasons: (1) pgy_runtime_lifecycle_guard_export takes a
- * fail-closed abort path whose inlined copy mis-lowers (the same hazard as the
- * panic family), and (2) both helpers share a single process-wide state side-map
- * that lives in the separately compiled runtime object -- inlined copies would
- * each carry their own static map and lose all cross-op state. Stripping their
- * bodies keeps them external so every call resolves to that one runtime object.
- * They return normally, so they are deliberately excluded from the noreturn set.
- */
-static bool
-llvm_fn_is_lifecycle_runtime(const char *fn_name)
-{
-    return fn_name != NULL
-        && (strcmp(fn_name, "pgy_runtime_lifecycle_guard_export") == 0
-            || strcmp(fn_name, "pgy_runtime_lifecycle_set_export") == 0);
-}
-
-/*
- * Content capability gate helpers. Like the lifecycle helpers they must NOT be
- * folded from bitcode: pgy_cap_require_export takes a fail-closed abort path
- * whose inlined copy mis-lowers, and all four share one process-wide granted
- * mask that lives in the separately compiled runtime object - inlined per-call
- * copies would split it. Stripping keeps them external so every call resolves to
- * that one object.
- */
-static bool
-llvm_fn_is_capability_runtime(const char *fn_name)
-{
-    return fn_name != NULL
-        && (strcmp(fn_name, "pgy_cap_require_export") == 0
-            || strcmp(fn_name, "pgy_cap_set_manifest_export") == 0
-            || strcmp(fn_name, "pgy_cap_grant_all_export") == 0
-            || strcmp(fn_name, "pgy_cap_granted_export") == 0);
-}
-
-/*
- * Functions that provably never return to their caller. The panic family
- * qualifies, plus an exact-name table of terminal runtime entrypoints.
- * Matching is exact (not substring) so that returning lookalikes such as
- * pgy_intent_exit_export, which exits an intent scope and returns, are never
- * mismarked noreturn.
- */
-static bool
-llvm_fn_never_returns(const char *fn_name)
-{
-    static const char *const exact_never_return[] = {
-        "pgy_exit",
-    };
-    size_t i;
-
-    if (fn_name == NULL)
-        return false;
-    if (llvm_fn_is_panic(fn_name))
-        return true;
-    for (i = 0; i < sizeof(exact_never_return) / sizeof(exact_never_return[0]); i++) {
-        if (strcmp(fn_name, exact_never_return[i]) == 0)
-            return true;
-    }
-    return false;
-}
-
-/*
- * Runtime helpers that touch no memory at all: pure scalar math over float
- * arguments. Marking them readnone lets the optimizer constant-fold, CSE, and
- * hoist calls out of loops. Random is excluded because it carries hidden
- * generator state and is therefore not pure.
- */
-static bool
-llvm_fn_is_readnone_runtime(const char *fn_name)
-{
-    static const char *const readnone_runtime[] = {
-        "Sqrt", "Pow", "Floor", "Ceil", "Round",
-        "Sin", "Cos", "Tan", "Asin", "Acos", "Atan", "Atan2",
-        "Exp", "MathLog", "Log10", "Log2",
-    };
-    size_t i;
-
-    if (fn_name == NULL)
-        return false;
-    for (i = 0; i < sizeof(readnone_runtime) / sizeof(readnone_runtime[0]); i++) {
-        if (strcmp(fn_name, readnone_runtime[i]) == 0)
-            return true;
-    }
-    return false;
-}
-
-/*
- * Runtime helpers that only read memory reachable through their arguments and
- * return a scalar without allocating. Marking them readonly lets the optimizer
- * CSE repeated calls (StringIndexOf and pgy_string_equals dominate the
- * self-hosted lexer hot path) and hoist loop-invariant ones. Allocating string
- * builders such as Substring and StringConcat are intentionally excluded: their
- * allocation is an observable effect that must not be removed or duplicated.
- */
-static bool
-llvm_fn_is_readonly_runtime(const char *fn_name)
-{
-    static const char *const readonly_runtime[] = {
-        "StringContains", "StringIndexOf", "pgy_string_equals",
-        "ToInt", "ToFloat",
-    };
-    size_t i;
-
-    if (fn_name == NULL)
-        return false;
-    for (i = 0; i < sizeof(readonly_runtime) / sizeof(readonly_runtime[0]); i++) {
-        if (strcmp(fn_name, readonly_runtime[i]) == 0)
-            return true;
-    }
-    return false;
-}
-
 static void
 llvm_add_fn_attr(LLVMGenCtx *ctx, LLVMValueRef fn, unsigned kind)
 {
@@ -382,6 +243,7 @@ llvm_exclude_critical_runtime_from_bitcode(LLVMModuleRef runtime_module)
             && (llvm_fn_is_checked_arith(name)
                 || llvm_fn_is_lifecycle_runtime(name)
                 || llvm_fn_is_capability_runtime(name)
+                || llvm_fn_is_budget_runtime(name)
                 || strip_noreturn))
             llvm_strip_function_body(fn);
     }

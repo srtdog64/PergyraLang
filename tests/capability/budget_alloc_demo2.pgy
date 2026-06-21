@@ -1,0 +1,11 @@
+// Non-foldable allocation: the array depends on a runtime value (Random), so
+// neither backend can constant-fold it into static data -- it MUST allocate at
+// runtime. This isolates whether the LLVM budget actually enforces (vs the
+// foldable [10..80] literal in budget_alloc_demo.pgy that LLVM may optimize away).
+let r: Int = Random(100);
+let xs: Array<Int> = [r, 20, 30, 40, 50, 60, 70, 80];
+let total = 0;
+for x in xs {
+    total = total + x;
+}
+Log("sum done");

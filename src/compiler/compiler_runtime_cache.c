@@ -133,6 +133,16 @@ compiler_runtime_cache_is_fresh(const char *cache_obj_path)
         PGY_RUNTIME_DIR "/pgy_runtime_channel_string_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_channel_string_result_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_io_qubit_inline.h",
+        /* Inline headers pulled in transitively (e.g. via memory_array_slot ->
+         * allocator) but not otherwise tracked. Their edits change the runtime
+         * object, so they must invalidate the cache -- omitting them silently
+         * links a stale runtime on the LLVM path (a C/LLVM divergence). */
+        PGY_RUNTIME_DIR "/pgy_runtime_allocator_inline.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_budget.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_capability.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_media_stub.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_list_generic_inline.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_lib_list_raw_exports.h",
         NULL
     };
 

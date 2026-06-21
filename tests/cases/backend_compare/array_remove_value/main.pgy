@@ -1,4 +1,4 @@
-func RemoveAll(arr: Array<Int>, n: Int, val: Int) -> Int {
+func RemoveAll(inout arr: Array<Int>, n: Int, val: Int) -> Int {
     let write: Int = 0;
     let i: Int = 0;
     while i < n {

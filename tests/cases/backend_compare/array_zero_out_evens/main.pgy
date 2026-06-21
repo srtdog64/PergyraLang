@@ -1,4 +1,4 @@
-func ZeroOutEvens(arr: Array<Int>, n: Int) -> Int {
+func ZeroOutEvens(inout arr: Array<Int>, n: Int) -> Int {
     let count: Int = 0;
     let i: Int = 0;
     while i < n {

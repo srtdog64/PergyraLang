@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+fail() {
+    echo "[language-contract-golden] $*" >&2
+    exit 1
+}
+
+require_file() {
+    local rel="$1"
+    [[ -e "$ROOT_DIR/$rel" ]] || fail "missing file: $rel"
+}
+
+require_text() {
+    local rel="$1"
+    local text="$2"
+    grep -Fq -- "$text" "$ROOT_DIR/$rel" ||
+        fail "$rel missing text: $text"
+}
+
+for rel in \
+    docs/semantics/16_language_contract_golden_spine.md \
+    docs/semantics/README.md \
+    docs/semantics/proofs/IRMinimality.v \
+    docs/semantics/proofs/WitnessDataRace.v \
+    docs/semantics/proofs/SlotCalculus.v \
+    tests/formal_semantics_smoke.sh \
+    tests/slot_calculus_adequacy_smoke.sh \
+    tests/axis_keyword_adequacy_smoke.sh \
+    tests/ir_minimality_adequacy_smoke.sh \
+    tests/backend_fail_closed_smoke.sh \
+    tests/mir_declaration_inventory_smoke.sh \
+    tests/intent_compression_contract_smoke.sh \
+    tests/air_erasure/baseline.json \
+    tests/air_erasure/gate.ps1 \
+    tests/raw_escape_contract_smoke.sh \
+    tests/abi_ownership_shape_smoke.sh \
+    src/self_hosted/parity/semantic_parity.sh \
+    src/self_hosted/parity/diagnostic_catalog_checker_parity.sh \
+    src/self_hosted/parity/fuzz_backend_parity_generator_parity.sh \
+    src/self_hosted/semantic/expected/bad_logical_int.diag \
+    src/self_hosted/semantic/expected/bad_logical_right.diag \
+    src/self_hosted/semantic/fixture/bad_value_param_arraypush.pgy \
+    src/self_hosted/semantic/expected/bad_value_param_arraypush.diag \
+    tests/cases/backend_compare/inout_caller_mutation/main.pgy \
+    src/parser/parser_decl.c \
+    src/parser/parser_async.c \
+    src/parser/parser_type.c \
+    src/semantic/type_checker_collection_mutation_contract.c \
+    src/semantic/type_checker_helpers_late.c \
+    docs/136_abi_niche_and_explicit_layout.md \
+    Makefile; do
+    require_file "$rel"
+done
+
+require_text "docs/semantics/README.md" "16_language_contract_golden_spine.md"
+require_text "docs/semantics/16_language_contract_golden_spine.md" "language-contract-golden-test-smoke"
+require_text "docs/semantics/16_language_contract_golden_spine.md" "semantic fallback is not a compatibility feature"
+require_text "docs/semantics/16_language_contract_golden_spine.md" "authority evidence discharges an effect-derived obligation"
+require_text "docs/semantics/16_language_contract_golden_spine.md" '`inout` is value-result mutation'
+require_text "docs/semantics/16_language_contract_golden_spine.md" "logical operators produce Bool"
+require_text "docs/semantics/16_language_contract_golden_spine.md" "proof-gated erasure"
+require_text "docs/semantics/16_language_contract_golden_spine.md" "raw/FFI/explicit layout stays boundary-scoped"
+require_text "docs/semantics/16_language_contract_golden_spine.md" "self-hosted work starts with verifier/tool parity"
+
+# Proof/refinement anchors: Coq must type-check when available, and adequacy
+# smokes must bind the small models back to live compiler/runtime symbols.
+require_text "tests/formal_semantics_smoke.sh" 'coqc "$coq_proof"'
+require_text "tests/slot_calculus_adequacy_smoke.sh" "SlotCalculus.v model <-> slot_manager.h runtime consistent"
+require_text "tests/axis_keyword_adequacy_smoke.sh" "Coq keyword_axis (AxisOwnership.v section 8) = docs/42 axis"
+require_text "tests/ir_minimality_adequacy_smoke.sh" "Coq reads-from model is bound to live compiler dependency shape"
+require_text "docs/semantics/proofs/IRMinimality.v" "Theorem air_is_minimal_witness_set"
+require_text "docs/semantics/proofs/IRMinimality.v" "Theorem functor_hkt_not_adequate"
+require_text "docs/semantics/proofs/WitnessDataRace.v" "Theorem well_typed_data_race_free"
+require_text "docs/semantics/proofs/WitnessDataRace.v" "remaining refinement obligation"
+require_text "docs/semantics/proofs/SlotCalculus.v" "Negative scope: this file does not prove Rust-style borrow checking"
+
+# Fallback and SoT anchors.
+require_text "tests/backend_fail_closed_smoke.sh" "C backend reintroduced silent numeric fallback"
+require_text "tests/backend_fail_closed_smoke.sh" "LLVM return lowering reintroduced AST return-type fallback"
+require_text "tests/mir_declaration_inventory_smoke.sh" "source_ast"
+require_text "tests/mir_declaration_inventory_smoke.sh" "fallback"
+
+# Authority/effect/intent compression anchors.
+require_text "tests/intent_compression_contract_smoke.sh" "AIR_EVIDENCE_RIR_AUTHORITY"
+require_text "tests/intent_compression_contract_smoke.sh" "AIR_EVIDENCE_RIR_EFFECT_PROPAGATION"
+require_text "tests/intent_compression_contract_smoke.sh" "zone-authority approval provenance must not be inferred from who"
+
+# Mutability surface anchors: &mut must remain rejected and value-result
+# mutation must stay spelled inout with a caller-visible golden.
+require_text "src/parser/parser_decl.c" "mutation is spelled 'inout', never '&mut'"
+require_text "src/parser/parser_async.c" "mutation is spelled 'inout', never '&mut'"
+require_text "src/parser/parser_type.c" 'caller-visible mutation is value-result and spelled with the `inout`'
+require_text "src/semantic/type_checker_helpers_late.c" "lost update"
+require_text "tests/cases/backend_compare/inout_caller_mutation/main.pgy" "func Grow(inout xs: Array<Int>) -> Void"
+require_text "tests/cases/backend_compare/inout_caller_mutation/main.pgy" "ArrayPush(xs, 9)"
+require_text "src/semantic/symbol_table.h" "is_parameter"
+require_text "src/semantic/symbol_table.h" "param_mode"
+require_text "src/semantic/type_checker_func_decl.c" "p->is_parameter = true"
+require_text "src/semantic/type_checker_builtins_internal.h" "reject_default_param_collection_mutator_receiver"
+require_text "src/semantic/type_checker_collection_mutation_contract.c" "Collection mutator"
+require_text "src/semantic/type_checker_collection_mutation_contract.c" "default collection parameters are not a mutation contract"
+require_text "src/semantic/type_checker_builtins_stdlib_map.c" "MapSet"
+require_text "src/semantic/type_checker_assignment.c" "array index assignment"
+
+# Logical Bool anchors: self-hosted semantic parity has exact diagnostics for
+# the same contract the C compiler rejects.
+require_text "src/self_hosted/parity/semantic_parity.sh" "valid_logical_bool:ok"
+require_text "src/self_hosted/parity/semantic_parity.sh" "bad_logical_int:error"
+require_text "src/self_hosted/parity/semantic_parity.sh" "bad_logical_right:error"
+require_text "src/self_hosted/parity/semantic_parity.sh" "bad_value_param_arraypush:error"
+require_text "src/self_hosted/semantic/expected/bad_logical_int.diag" "Code: logical_operand_not_bool"
+require_text "src/self_hosted/semantic/expected/bad_logical_right.diag" "Reason: logical operators require Bool operands"
+require_text "src/self_hosted/semantic/fixture/bad_value_param_arraypush.pgy" "func Grow(xs: Array<Int>) -> Void"
+require_text "src/self_hosted/semantic/fixture/bad_value_param_arraypush.pgy" "ArrayPush(xs, 9)"
+require_text "src/self_hosted/semantic/expected/bad_value_param_arraypush.diag" "Code: value_param_collection_mutation"
+require_text "src/self_hosted/semantic/expected/bad_value_param_arraypush.diag" "Fix: spell the parameter as inout"
+
+# Proof-gated erasure and raw/layout anchors.
+require_text "tests/air_erasure/gate.ps1" "provable fixture must compile to ZERO"
+require_text "tests/air_erasure/baseline.json" "provable_fixtures_must_be_clean"
+require_text "tests/raw_escape_contract_smoke.sh" "scoped unsafe(raw) capability"
+require_text "tests/abi_ownership_shape_smoke.sh" "MIR_ABI_REPR_NICHE_RESERVED"
+require_text "docs/136_abi_niche_and_explicit_layout.md" "MIR ABI fact must be the only backend input"
+require_text "docs/136_abi_niche_and_explicit_layout.md" "unsafe(ffi, layout)"
+
+# Self-hosting starts with verifier/tool parity, not a second compiler claim.
+require_text "src/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "clean JSON parity"
+require_text "src/self_hosted/parity/semantic_parity.sh" "verdict drift"
+require_text "src/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" "PGY_FUZZ_BACKEND_RUN_ORACLE"
+
+require_text "Makefile" "language-contract-golden-test-smoke:"
+
+echo "[language-contract-golden] golden spine ok"

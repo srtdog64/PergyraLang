@@ -42,11 +42,9 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         return llvm_call_error_recovery(ctx, node,
             "LLVM call expression requires a callee");
 
-    /* Method call: obj.method(args) */
     if (callee_node->type == AST_MEMBER_ACCESS)
         return llvm_emit_member_call(node, ctx);
 
-    /* Get callee name */
     const char *callee_name = NULL;
     if (callee_node->type == AST_IDENTIFIER)
         callee_name = ast_identifier_name(callee_node);

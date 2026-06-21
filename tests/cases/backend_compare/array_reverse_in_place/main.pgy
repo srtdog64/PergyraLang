@@ -1,4 +1,4 @@
-func ReverseInPlace(arr: Array<Int>, n: Int) -> Int {
+func ReverseInPlace(inout arr: Array<Int>, n: Int) -> Int {
     let lo: Int = 0;
     let hi: Int = n - 1;
     while lo < hi {

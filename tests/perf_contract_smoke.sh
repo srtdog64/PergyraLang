@@ -3630,7 +3630,7 @@ grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(method)" "
 grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(method)" "$ROOT_DIR/src/codegen/transpiler_enum_decl_emit.c"
 grep -Fq "transpiler_require_type_name_c_type_copy(" "$ROOT_DIR/src/codegen/transpiler_domain_ability_emit.c"
 grep -Fq "return_type_name, \"ability method return\"" "$ROOT_DIR/src/codegen/transpiler_domain_ability_emit.c"
-grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, return_type" "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c"
+grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, return_type" "$ROOT_DIR/src/codegen/transpiler_domain_role_include_emit.c"
 grep -Fq "transpiler_mir_decl_method_return_type_name(method_meta)" "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
 grep -Fq "transpiler_mir_decl_method_return_type(method_meta)" "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
 grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx," "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
@@ -3977,13 +3977,14 @@ grep -Fq "pgy_runtime_panic_out_of_bounds_export" "$ROOT_DIR/src/codegen/llvm_ex
 grep -Fq "LLVMBuildUnreachable(ctx->builder)" "$ROOT_DIR/src/codegen/llvm_expr_helpers.c"
 grep -Fq "llvm_emit_inline_array_get(ctx," "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
 grep -Fq "llvm_fn_never_returns" "$ROOT_DIR/src/codegen/llvm_api.c"
-grep -Fq "exact_never_return" "$ROOT_DIR/src/codegen/llvm_api.c"
-grep -Fq '"pgy_exit"' "$ROOT_DIR/src/codegen/llvm_api.c"
-grep -Fq "strcmp(fn_name, exact_never_return[i])" "$ROOT_DIR/src/codegen/llvm_api.c"
+grep -Fq "llvm_fn_never_returns" "$ROOT_DIR/src/codegen/llvm_runtime_attrs.c"
+grep -Fq "exact_never_return" "$ROOT_DIR/src/codegen/llvm_runtime_attrs.c"
+grep -Fq '"pgy_exit"' "$ROOT_DIR/src/codegen/llvm_runtime_attrs.c"
+grep -Fq "strcmp(fn_name, exact_never_return[i])" "$ROOT_DIR/src/codegen/llvm_runtime_attrs.c"
 grep -Fq "llvm_module_has_runtime_call_use(ctx, \"pgy_exit\")" "$ROOT_DIR/src/codegen/llvm_api.c"
 grep -A2 -F "llvm_module_has_runtime_call_use(ctx, \"pgy_exit\")" \
     "$ROOT_DIR/src/codegen/llvm_api.c" | grep -Fq "return;"
-! grep -Fq 'strstr(fn_name, "exit")' "$ROOT_DIR/src/codegen/llvm_api.c"
+! grep -Fq 'strstr(fn_name, "exit")' "$ROOT_DIR/src/codegen/llvm_runtime_attrs.c"
 grep -Fq "llvm_array_format_runtime_name" "$ROOT_DIR/src/codegen/llvm_expr_array_calls.c"
 grep -Fq "\"pgy_array_pop\"" "$ROOT_DIR/src/codegen/llvm_expr_array_calls.c"
 grep -Fq "pgy_array_pop_##Suffix" "$ROOT_DIR/src/runtime/pgy_runtime_lib_array_map_exports.h"
@@ -5658,7 +5659,7 @@ if grep -Fq "pgy_mir_resource_op_export" \
     exit 1
 fi
 grep -Fq "char ret_type_storage[128]" \
-    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c" || {
+    "$ROOT_DIR/src/codegen/transpiler_domain_role_include_emit.c" || {
     echo "[perf-contract] included-role wrapper stopped freezing return C type" >&2
     exit 1
 }

@@ -1,4 +1,4 @@
-func MovePositiveFirst(arr: Array<Int>, n: Int) -> Int {
+func MovePositiveFirst(inout arr: Array<Int>, n: Int) -> Int {
     let write: Int = 0;
     let i: Int = 0;
     while i < n {

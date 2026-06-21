@@ -1,4 +1,4 @@
-func SwapInArr(arr: Array<Int>, i: Int, j: Int) -> Void {
+func SwapInArr(inout arr: Array<Int>, i: Int, j: Int) -> Void {
     let tmp: Int = arr[i];
     let other: Int = arr[j];
     arr[i] = other;

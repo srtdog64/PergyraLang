@@ -44,6 +44,12 @@ void pgy_channel_init_Int(PgyChannel_Int_RT *ch, size_t cap)
         pgy_runtime_warn_invalid_channel("init_Int", "null channel");
         return;
     }
+    /* CHANNEL_COUNT budget charge (R6) -- this is the LLVM/.bc path's channel
+     * init (the C path charges in the pgy_channel_init_<T> inline macro). Keep
+     * the two in lockstep so a CHANNEL_COUNT ceiling fail-closes identically on
+     * both backends. Deny-before-allocate, behind the imposed fast-path. */
+    if (pgy_budget_is_imposed_export())
+        pgy_budget_charge_export(PGY_BUDGET_CHANNEL_COUNT, 1, "channel");
     cap = pgy_runtime_channel_capacity_or_default("init_Int", cap);
     if (cap > SIZE_MAX / sizeof(int32_t)) {
         pgy_runtime_warn_invalid_channel("init_Int", "capacity overflows buffer size");

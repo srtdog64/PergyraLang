@@ -25,6 +25,12 @@ run 'make module-taxonomy-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" package-module-resolver-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" unicode-policy-test-smoke'
 run 'make beta-test-suite-freeze-test-smoke'
+run 'make language-contract-golden-test-smoke'
+# Content-sandbox gate family (external red-team R6): capability + resource
+# budget, the qualitative + quantitative sandbox axes. Linux runs pgy natively
+# with LLVM enabled, so the dynamic gate's C/LLVM runtime fail-close parity is
+# load-bearing here (it self-skips on platforms that cannot launch pgy).
+run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" test-sandbox-gates'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" observability-schema-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" memory-concurrency-model-test-smoke'
 run 'make documentation-quality-test-smoke'

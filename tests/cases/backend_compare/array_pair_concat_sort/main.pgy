@@ -1,4 +1,4 @@
-func MergeSorted(a: Array<Int>, na: Int, b: Array<Int>, nb: Int, out: Array<Int>) -> Int {
+func MergeSorted(a: Array<Int>, na: Int, b: Array<Int>, nb: Int, inout out: Array<Int>) -> Int {
     let i: Int = 0;
     let j: Int = 0;
     let k: Int = 0;

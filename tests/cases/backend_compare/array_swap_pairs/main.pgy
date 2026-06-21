@@ -1,4 +1,4 @@
-func SwapPairs(arr: Array<Int>, n: Int) -> Int {
+func SwapPairs(inout arr: Array<Int>, n: Int) -> Int {
     let i: Int = 0;
     while i + 1 < n {
         let tmp: Int = arr[i];

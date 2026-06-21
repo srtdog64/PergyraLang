@@ -1,0 +1,9 @@
+// End-to-end budget demo: this program allocates (an array), so a host that
+// imposes a tiny PGY_BUDGET_ALLOC_BYTES makes it fail-closed (budget-exceeded),
+// while with no budget it runs normally. The host's channel is the environment.
+let xs = [10, 20, 30, 40, 50, 60, 70, 80];
+let total = 0;
+for x in xs {
+    total = total + x;
+}
+Log("sum done");

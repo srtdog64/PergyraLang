@@ -1,4 +1,4 @@
-func Increment(counts: HashMap<String, Int>, key: String) -> Void {
+func Increment(inout counts: HashMap<String, Int>, key: String) -> Void {
     let current: Int = MapGet(counts, key);
     MapSet(counts, key, current + 1);
 }

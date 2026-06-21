@@ -35,6 +35,9 @@ fi
 DEFS=(
     -DPGY_LLVM_ENABLED
     -DPGY_ZONE_THREADSAFE
+    # This is the .bc build: declare the shared gate state extern so it is not
+    # duplicated against the native cache object (see authority_file_core.h).
+    -DPGY_RUNTIME_BC_BUILD
     -DPGY_PROJECT_ROOT="\"$ROOT\""
     -DPGY_SRC_DIR="\"$ROOT/src\""
     -DPGY_RUNTIME_DIR="\"$ROOT/src/runtime\""

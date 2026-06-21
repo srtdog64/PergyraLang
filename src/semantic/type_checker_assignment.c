@@ -1,5 +1,6 @@
 #include "type_checker_internal.h"
 #include "type_checker_assignment.h"
+#include "type_checker_builtins_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "diag_codes.h"
 
@@ -65,6 +66,22 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
     target_type = type_check_expression(target, ctx);
     if (target_type == NULL)
         target_type = TYPE_UNKNOWN;
+
+    if (target != NULL && target->type == AST_ARRAY_ACCESS) {
+        ASTNode *array_node = ast_array_access_array(target);
+        if (array_node != NULL && array_node->type == AST_IDENTIFIER) {
+            const char *array_name = ast_identifier_name(array_node);
+            Symbol *array_sym = array_name != NULL
+                ? scope_lookup(ctx->scope, array_name)
+                : NULL;
+            if (array_sym != NULL
+                && reject_default_param_collection_mutator_receiver(
+                    array_node, array_sym->type, "array index assignment",
+                    "array", ctx)) {
+                return target_type;
+            }
+        }
+    }
 
     if (type_is_slot_handle(target_type)
         && type_slot_inner_type(target_type) != NULL

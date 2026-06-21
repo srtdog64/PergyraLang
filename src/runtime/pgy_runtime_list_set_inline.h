@@ -68,6 +68,7 @@ static inline PgyList_Int pgy_list_new_int(void)
         pgy_runtime_warn_invalid_collection("list_new_int", "allocation size overflow");
         return l;
     }
+    pgy_budget_charge_alloc(l.capacity * sizeof(int32_t));
     l.data = (int32_t *)calloc(l.capacity, sizeof(int32_t));
     if (l.data == NULL) {
         l.capacity = 0;
@@ -98,6 +99,7 @@ static inline void pgy_list_push_int(PgyList_Int *l, int32_t val)
             pgy_runtime_warn_invalid_collection("list_push_int", "allocation size overflow");
             return;
         }
+        pgy_budget_charge_alloc((new_capacity - l->capacity) * sizeof(int32_t));
         grown = (int32_t *)realloc(l->data, new_capacity * sizeof(int32_t));
         if (grown == NULL) {
             pgy_runtime_warn_invalid_collection("list_push_int", "realloc failed");

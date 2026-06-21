@@ -25,6 +25,7 @@ static inline PgyList_##SuffixName pgy_list_new_##SuffixName(void) \
         pgy_runtime_warn_invalid_collection("list_new_" #SuffixName, "allocation size overflow"); \
         return l; \
     } \
+    pgy_budget_charge_alloc(l.capacity * sizeof(CType)); \
     l.data = (CType *)calloc(l.capacity, sizeof(CType)); \
     if (l.data == NULL) { \
         l.capacity = 0; \
@@ -55,6 +56,7 @@ static inline void pgy_list_push_##SuffixName(PgyList_##SuffixName *l, CType val
             pgy_runtime_warn_invalid_collection("list_push_" #SuffixName, "allocation size overflow"); \
             return; \
         } \
+        pgy_budget_charge_alloc((new_capacity - l->capacity) * sizeof(CType)); \
         grown = (CType *)realloc(l->data, new_capacity * sizeof(CType)); \
         if (grown == NULL) { \
             pgy_runtime_warn_invalid_collection("list_push_" #SuffixName, "realloc failed"); \

@@ -1,4 +1,4 @@
-func InsertionSort(xs: Array<Int>) -> Void {
+func InsertionSort(inout xs: Array<Int>) -> Void {
     let n: Int = ArrayLength(xs);
     let i: Int = 1;
     while i < n {

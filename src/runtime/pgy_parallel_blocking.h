@@ -161,6 +161,11 @@ pgy_spawn_blocking(void *(*fn)(void *), void *arg)
         return handle;
     }
 
+    /* Same SPAWN_COUNT budget charge as pgy_spawn -- blocking tasks count toward
+     * the same fork-bomb ceiling (see pgy_parallel.h). */
+    if (pgy_budget_is_imposed_export())
+        pgy_budget_charge_export(PGY_BUDGET_SPAWN_COUNT, 1, "spawn");
+
     /* Lazy-init blocking pool on first use */
     if (!atomic_load_explicit(&g_pgy_blocking_pool_active,
                               memory_order_acquire))

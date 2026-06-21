@@ -1,6 +1,6 @@
 enum Cmd { Set, Sum, Multiply }
 
-func DoSet(arr: Array<Int>, n: Int, idx: Int, val: Int) -> Int {
+func DoSet(inout arr: Array<Int>, n: Int, idx: Int, val: Int) -> Int {
     if idx < 0 || idx >= n { return -1; }
     arr[idx] = val;
     return 0;
@@ -16,7 +16,7 @@ func DoSum(arr: Array<Int>, n: Int) -> Int {
     return s;
 }
 
-func DoMultiply(arr: Array<Int>, n: Int, factor: Int) -> Int {
+func DoMultiply(inout arr: Array<Int>, n: Int, factor: Int) -> Int {
     let i: Int = 0;
     while i < n {
         arr[i] = arr[i] * factor;

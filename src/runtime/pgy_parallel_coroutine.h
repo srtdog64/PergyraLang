@@ -210,6 +210,14 @@ static inline PgyTaskHandle
 pgy_async_spawn(void *(*fn)(void *), void *arg)
 {
     PgyTaskHandle handle = {0};
+
+    /* SPAWN_COUNT budget charge (R6): async/spawn tasks use this coroutine model
+     * which does NOT route through pgy_spawn, so it carries its own charge to the
+     * same fork-bomb ceiling. Deny-before-allocate, behind the imposed fast-path.
+     * Both backends reach here via pgy_async_spawn_export. */
+    if (pgy_budget_is_imposed_export())
+        pgy_budget_charge_export(PGY_BUDGET_SPAWN_COUNT, 1, "spawn");
+
     PgyCoroTask *task = (PgyCoroTask *)calloc(1, sizeof(PgyCoroTask));
     if (task == NULL)
         return handle;

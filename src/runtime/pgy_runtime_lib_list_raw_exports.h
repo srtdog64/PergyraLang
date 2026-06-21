@@ -58,6 +58,13 @@ pgy_list_new_raw_export(void *list_ptr, int64_t elem_size)
         return;
     }
     list->count = 0;
+    /* Resource budget: this is the LLVM-backend list allocation path (the C
+     * backend uses the inline pgy_list_*_int twins). Charge it through the same
+     * gate so the memory bound holds on both backends. Extern budget fns are in
+     * scope via the authority core header included before this one. */
+    if (pgy_budget_is_imposed_export())
+        pgy_budget_charge_export(PGY_BUDGET_ALLOC_BYTES,
+            (uint64_t)((size_t)list->capacity * (size_t)elem_size), "list-alloc");
     list->data = calloc((size_t)list->capacity, (size_t)elem_size);
     if (list->data == NULL) {
         list->capacity = 0;
@@ -102,6 +109,10 @@ pgy_list_push_raw_export(void *list_ptr, void *value_ptr, int64_t elem_size)
             pgy_runtime_warn_invalid_collection("list_push", "allocation size overflow");
             return;
         }
+        if (pgy_budget_is_imposed_export())
+            pgy_budget_charge_export(PGY_BUDGET_ALLOC_BYTES,
+                (uint64_t)((new_capacity - (size_t)list->capacity) * (size_t)elem_size),
+                "list-alloc");
         grown = realloc(list->data, new_capacity * (size_t)elem_size);
         if (grown == NULL) {
             pgy_runtime_warn_invalid_collection("list_push", "realloc failed");

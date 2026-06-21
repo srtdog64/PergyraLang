@@ -1,4 +1,4 @@
-func DedupSorted(arr: Array<Int>, n: Int) -> Int {
+func DedupSorted(inout arr: Array<Int>, n: Int) -> Int {
     if n <= 1 { return n; }
     let write: Int = 1;
     let i: Int = 1;

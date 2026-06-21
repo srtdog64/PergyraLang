@@ -62,6 +62,27 @@ llvm_main_emit_thread_pool_init(LLVMGenCtx *ctx, bool needs_thread_pool)
     return true;
 }
 
+/* Arm the resource-budget wall-clock deadline at main entry (parity with the C
+ * backend in transpiler.c). Unconditional -- the runtime call is a no-op unless
+ * the host set PGY_BUDGET_WALL_MS. */
+static bool
+llvm_main_emit_budget_wall_arm(LLVMGenCtx *ctx)
+{
+    LLVMFuncEntry *arm_fn = llvm_lookup_function(ctx,
+                                "pgy_budget_wall_arm_export");
+    if (arm_fn == NULL) {
+        llvm_set_error_at_with_hints(ctx, NULL,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM main entry requires registered runtime function '%s'",
+            "pgy_budget_wall_arm_export");
+        return false;
+    }
+    LLVMBuildCall2(ctx->builder, arm_fn->fn_type, arm_fn->fn, NULL, 0, "");
+    return true;
+}
+
 static bool
 llvm_main_emit_event_initializers(LLVMGenCtx *ctx)
 {
@@ -238,6 +259,9 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
     LLVMValueRef argv_value = LLVMGetParam(main_fn, 1);
     LLVMSetValueName(argc_value, "argc");
     LLVMSetValueName(argv_value, "argv");
+
+    if (!llvm_main_emit_budget_wall_arm(ctx))
+        goto restore_state;
 
     if (!llvm_main_emit_args_init(ctx, argc_value, argv_value))
         goto restore_state;

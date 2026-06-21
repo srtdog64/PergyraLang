@@ -1,4 +1,4 @@
-func BubbleSort(arr: Array<Int>, n: Int) -> Int {
+func BubbleSort(inout arr: Array<Int>, n: Int) -> Int {
     let i: Int = 0;
     while i < n {
         let j: Int = 0;

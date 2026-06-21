@@ -1,4 +1,4 @@
-func RotateLeftOnce(arr: Array<Int>, n: Int) -> Int {
+func RotateLeftOnce(inout arr: Array<Int>, n: Int) -> Int {
     if n <= 1 { return 0; }
     let first: Int = arr[0];
     let i: Int = 0;

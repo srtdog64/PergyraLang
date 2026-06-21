@@ -1,4 +1,4 @@
-func SelectionSort(arr: Array<Int>, n: Int) -> Int {
+func SelectionSort(inout arr: Array<Int>, n: Int) -> Int {
     let i: Int = 0;
     while i < n - 1 {
         let mi: Int = i;

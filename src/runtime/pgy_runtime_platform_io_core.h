@@ -24,6 +24,15 @@ extern char *realpath(const char *path, char *resolved_path);
 #ifdef _WIN32
 #include <windows.h>
 #endif
+/* The spawn primitives in pgy_parallel.h charge the resource budget (SPAWN_COUNT),
+ * so the inline budget twin must be visible before pgy_parallel.h is processed.
+ * C-chain only: this header is included solely by pgy_runtime.h (the C self-
+ * contained output); the LLVM runtime never includes it, so this brings in the
+ * inline twin only on the C side (the extern twin serves the .bc via
+ * authority_file_core.h). Both headers are include-guarded; inline_core.h pulls
+ * panic_checked again later as a no-op. */
+#include "pgy_runtime_panic_contract.h"
+#include "pgy_runtime_panic_checked_inline.h"
 #include "pgy_parallel.h"
 #include "pgy_runtime_authority_contract.h"
 #include "pgy_runtime_panic_contract.h"

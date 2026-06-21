@@ -41,7 +41,7 @@ func FindFrom(hay: String, needle: String, start: Int) -> Int {
 // Read a JSON string literal whose opening quote is at index `open`. Returns the
 // decoded value and sets end[0] to the index just past the closing quote.
 // Handles \" \\ \n \r \t escapes.
-func ReadJsonString(json: String, open: Int, end: Array<Int>) -> String {
+func ReadJsonString(json: String, open: Int, inout end: Array<Int>) -> String {
     let n: Int = StringLength(json);
     let i: Int = open + 1;
     let out: String = "";
@@ -236,7 +236,7 @@ func ReadSucc(json: String, bs: Int, be: Int, kw: String) -> String {
 
 // Resolve block `id` to its JSON span [o[0], o[1]); false if not found. The span
 // runs from this block's `"id":<id>,"reachable"` to the next block's marker.
-func BlockBounds(json: String, bp: Int, span_end: Int, id: String, o: Array<Int>) -> Bool {
+func BlockBounds(json: String, bp: Int, span_end: Int, id: String, inout o: Array<Int>) -> Bool {
     let key: String = Concat("\"id\":", Concat(id, ",\"reachable\""));
     let p: Int = FindFrom(json, key, bp);
     if p < 0 || p >= span_end {

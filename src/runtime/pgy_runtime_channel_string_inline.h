@@ -61,6 +61,11 @@ pgy_channel_init_String(PgyChannel_String *ch, size_t capacity)
         pgy_runtime_warn_invalid_channel("init_String", "null channel");
         return;
     }
+    /* CHANNEL_COUNT budget charge (R6) -- C path String channel (see
+     * pgy_runtime_channel_inline.h for the rationale; LLVM charges the export
+     * twin in pgy_runtime_lib_channel_string_exports.h). */
+    if (pgy_budget_is_imposed_export())
+        pgy_budget_charge_export(PGY_BUDGET_CHANNEL_COUNT, 1, "channel");
     capacity = pgy_runtime_channel_capacity_or_default("init_String", capacity);
     if (capacity > SIZE_MAX / sizeof(char *)) {
         pgy_runtime_warn_invalid_channel("init_String", "capacity overflows buffer size");

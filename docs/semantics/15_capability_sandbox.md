@@ -115,11 +115,23 @@ The earlier coarse effect→capability cross-check is retired.
 
 ## 2. Not yet (the honest roadmap)
 
-- **Self-imposing manifest at load.** The manifest is computed and inspectable;
-  the remaining step for a real loader is to call `pgy_cap_set_manifest_export`
-  with a host-chosen subset at content startup. The runtime API exists; the
-  policy (who decides the grant, signed manifest format) is the product surface
-  below.
+- **Host grant channel — built (parity-verified).** A host now restricts the
+  granted set out-of-band via `PGY_CAP_GRANT` (e.g. `PGY_CAP_GRANT="io_read,clock"`),
+  the symmetric mirror of the budget's `PGY_BUDGET_*` channel. A shared parser
+  (`pgy_cap_env_grant` in `pgy_runtime_capability.h`) and a once-latch in both
+  the inline and extern twins apply it before the first gated op; unset leaves
+  the default `PGY_CAP_ALL` so trusted programs are unaffected. This is what made
+  the previously-dormant runtime gate actually enforce on real programs and on
+  *both* backends (it depends on the single-instance `g_pgy_cap_granted` fix
+  above — before it, LLVM read a grant-all copy and never denied). Verified:
+  `cap_random_demo.pgy` (`Random` gates `PGY_CAP_RANDOM`) runs under
+  unset/`random`, fail-closes `capability-denied` under `clock`/`none`,
+  identically on C and LLVM.
+- **Self-imposing manifest at load.** The env channel is the host-out-of-band
+  path; the remaining step for an *in-content* loader is to call
+  `pgy_cap_set_manifest_export` with a host-chosen subset at content startup.
+  The runtime API exists; the policy (who decides the grant, signed manifest
+  format) is the product surface below.
 - **Real media runtime.** RENDER/AUDIO/INPUT are gated but headless (call-count
   stubs). The canvas/WebGL/WebAudio/input backend behind them lands with the
   browser/WASM target; only then does the API do anything visible.
@@ -146,13 +158,91 @@ The earlier coarse effect→capability cross-check is retired.
     unaffected (opt-in by host). Saturating add so a near-overflow charge cannot
     wrap past the ceiling. Verified: `make test-budget` (granted-path + deny-alloc
     + deny-spawn fail-closed).
-  - **Not yet (slice 2+).** Charge points are not wired: the allocator must
-    charge ALLOC_*, spawn must charge SPAWN_COUNT, Channel ctor CHANNEL_COUNT —
-    with the thread-safety decision (atomic vs per-fiber counter) made there.
-    CPU/wall-time budget needs sampling/interruption and is deferred. Codegen/
-    LLVM decls + bitcode-strip land with the wiring. Until the charge points are
-    wired, the gate is enforceable only when called explicitly. So "safe new
-    Flash" stays a vision label until at least alloc + spawn are metered.
+  - **Built (slice 2) — the allocator is metered.** The arena allocator's
+    existing per-allocation accounting hook (`pgy_allocator_record_alloc`)
+    charges ALLOC_COUNT + ALLOC_BYTES behind an `imposed` fast-path (trusted
+    programs that set no budget pay nothing). `pgy_allocator_record_alloc` lives
+    in `allocator_inline.h`, which both twin chains include
+    (pgy_runtime.h → inline_core → memory_array_slot for C output/tests; and
+    `lib_allocator_exports` → the `.bc` for LLVM), so the charge resolves to the
+    inline twin in C output and the extern twin in the linked runtime — one
+    counter per backend context, exactly like the capability gated ops. Verified:
+    a real `pgy_alloc` over the imposed ceiling panics `budget-exceeded`; with no
+    budget the fast-path skips (used=0); both backends run unchanged on ordinary
+    programs (regression-clean). `.bc` regenerated.
+  - **Built (slice 2.5) — C/LLVM parity + the host env channel.** The host
+    imposes a budget out-of-band via `PGY_BUDGET_ALLOC_BYTES` (and the
+    ALLOC_COUNT / SPAWN_COUNT / CHANNEL_COUNT siblings); when set, the metered
+    allocator fail-closes on overrun. This was the slice that exposed a real
+    backend-divergence bug: the gate state lived in a `static PgyBudgetState
+    g_pgy_budget` in a header compiled into *three* objects on the LLVM path
+    (the inlined `.bc` copy, the native runtime cache object, and the program
+    after llvm-link) — `objdump` showed three `g_pgy_budget` symbols. `is_imposed`
+    read the env-imposed copy while `charge` accumulated into a default-unlimited
+    copy, so **LLVM never fail-closed** even though C did. Fix: a
+    `PGY_RUNTIME_BC_BUILD` guard so only the native cache object *defines*
+    `g_pgy_budget` (and `g_pgy_cap_granted`); the `.bc` build declares them
+    `extern`, collapsing to one instance. The capability gated ops are
+    bitcode-stripped to that one object (`llvm_fn_is_budget_runtime`,
+    `llvm_fn_is_capability_runtime`) and kept `noinline` so no inlined copy can
+    re-split the state. Verified: `objdump` now shows a single `g_pgy_budget`;
+    a `while`-pushed `List` (`budget_alloc_demo4`) fail-closes identically on C
+    and LLVM under `PGY_BUDGET_ALLOC_BYTES=64` (used=128). A small fixed `Array`
+    (`budget_alloc_demo3`) legitimately stack-promotes (SROA) on LLVM so it has
+    no heap charge — a real lowering divergence, not a gate defect; the
+    forced-heap List case is the parity test.
+  - **Built (slice 3) — SPAWN_COUNT (the fork-bomb bound).** Every spawn funnels
+    through one of two runtime chokepoints that *both* backends share — `pgy_spawn`
+    (pool tasks / `parallel {}`) and `pgy_async_spawn` (the coroutine model behind
+    `spawn expr` / `async`; it does its own fiber creation and does **not** route
+    through `pgy_spawn`, so it carries its own charge). Each charges SPAWN_COUNT
+    once behind the imposed fast-path, deny-before-allocate, so a fork-bomb
+    fail-closes on the spawn that crosses the host's ceiling. Unlike the allocator,
+    spawn was *not* the IR-reimplementation problem: LLVM emits
+    `pgy_async_spawn_export`/`pgy_spawn_blocking_export` which call the shared
+    runtime functions, so a single runtime charge covers both backends — the
+    capability-gated-op pattern. The one wiring cost was include order: the spawn
+    headers (`pgy_parallel.h`) are pulled in before the budget twin in both chains,
+    so the inline twin is now pulled into the C-only `platform_io_core.h` ahead of
+    them, and the extern twin is forward-declared in `authority_file_core.h` (the
+    extern-twin TU) ahead of them. `panic_checked_inline.h` gained the include
+    guard it was missing. Verified: `budget_spawn_demo` (4 spawns) runs free with
+    no budget and fail-closes on the 4th under `PGY_BUDGET_SPAWN_COUNT=3`,
+    identically on C and LLVM. Charge counter is atomic (sound under concurrent
+    spawn). Gated by `make test-capability-runtime`.
+  - **Built (slice 3 cont.) — CHANNEL_COUNT.** Channel creation turned out to be
+    a clean chokepoint after all (the initial guess that it was the collection
+    IR-reimplementation case was wrong): both backends call the shared runtime
+    `pgy_channel_init_<T>` — LLVM emits a call to it
+    (`llvm_mir_source_resource_defs.c`), it does not reimplement channel init in
+    IR. The only wrinkle is that init has a dual definition like the gate twins:
+    a `static inline` macro instantiation (`pgy_channel_inline.h`, C path) and a
+    non-inline export (`pgy_runtime_lib_channel_*_exports.h`, LLVM/.bc path), so
+    the charge lives in both (Int and String types). Each charges CHANNEL_COUNT
+    once, deny-before-allocate, behind the imposed fast-path. Verified:
+    `budget_channel_demo` (4 channels) runs free with no budget and fail-closes
+    on the 4th under `PGY_BUDGET_CHANNEL_COUNT=3`, identically on C and LLVM.
+    Gated by `make test-capability-runtime`.
+  - **Built (slice 4) — wall-clock deadline (the time axis).** A real DoS bound
+    for runaway time, including a tight `while(true){}` that never allocates,
+    spawns, or opens a channel — the case the per-operation counters cannot see.
+    No instruction sampling: a detached watchdog thread sleeps `PGY_BUDGET_WALL_MS`
+    then fail-closes the whole process (`budget-exceeded`, op=wall-time); abort
+    terminates from any thread, so the bound holds regardless of what the main
+    thread is doing. Armed once at main entry via codegen
+    (`pgy_budget_wall_arm_export`, emitted by transpiler.c for C and
+    llvm_main_wrapper.c for LLVM) — not a constructor, which would duplicate
+    across the twin/multi-TU landscape (the same trap as the gate state). It is a
+    wall-clock deadline, not a CPU-time budget (a sleeping program counts against
+    it) — labelled as such. Verified: `budget_wall_demo` (an infinite toggle
+    loop) is bounded at the deadline identically on C and LLVM; normal programs
+    are unaffected (the arm is a no-op when the env is unset — 60/60 fuzz parity
+    with the arm emitted in every `main`).
+  - **Not yet (slice 4+).** In-content loader self-imposition (vs the host env
+    channel, which is built) remains. So "safe new Flash" stays a vision label
+    until the product surface (below) lands — but all five budget axes now meter
+    with C/LLVM parity: ALLOC_BYTES, ALLOC_COUNT, SPAWN_COUNT, CHANNEL_COUNT
+    (discrete counters) and the wall-clock deadline (time).
 - **Deterministic asset/runtime boundary + WASM/native equivalence.** Trust also
   requires that the same content under the same manifest behaves the same across
   the native and WASM backends (the C/LLVM/wasm parity story, docs/134 R2),

@@ -876,7 +876,7 @@ func WrapCond(cond: String, env: String) -> String {
 
 // `Let: <name> : Int|String = <expr>`. Registers the variable's type into the
 // environment box and emits a typed C declaration.
-func EmitLet(line: String, env_box: Array<String>) -> String {
+func EmitLet(line: String, inout env_box: Array<String>) -> String {
     let rest: String = Substring(line, 5, StringLength(line) - 5);
     let ci: Int = StringIndexOf(rest, " : ");
     if ci < 0 {
@@ -1092,7 +1092,7 @@ func IndentOf(raw: String) -> Int {
 }
 
 // Consume the line at cur[0], asserting its trimmed text equals `expected`.
-func ExpectText(texts: Array<String>, count: Int, cur: Array<Int>, expected: String) -> Void {
+func ExpectText(texts: Array<String>, count: Int, inout cur: Array<Int>, expected: String) -> Void {
     if cur[0] >= count {
         Die(Concat("expected `", Concat(expected, "` but reached end of AST")));
     }
@@ -1107,8 +1107,8 @@ func ExpectText(texts: Array<String>, count: Int, cur: Array<Int>, expected: Str
 // the mutable variable type environment; `cur_fn_ret` is the enclosing
 // function's return type. Recurses for `while` / `if` bodies. Advances cur[0].
 func EmitStmtList(indents: Array<Int>, texts: Array<String>, count: Int,
-                  stmt_indent: Int, cur: Array<Int>, pad: String,
-                  env_box: Array<String>, cur_fn_ret: String) -> String {
+                  stmt_indent: Int, inout cur: Array<Int>, pad: String,
+                  inout env_box: Array<String>, cur_fn_ret: String) -> String {
     let result: String = "";
     let inner_pad: String = Concat(pad, "    ");
     while cur[0] < count {
@@ -1384,10 +1384,9 @@ func CRetType(type_name: String, struct_env: String) -> String {
 }
 
 // Emit one function definition starting at the `Function: <Name>` line at
-// cur[0]. Pushes the C prototype for non-Main functions into `protos`.
-// `base_env` carries the global function return-type bindings.
+// cur[0]. `base_env` carries the global function return-type bindings.
 func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
-                  cur: Array<Int>, f_indent: Int, protos: Array<String>,
+                  inout cur: Array<Int>, f_indent: Int,
                   base_env: String, uses_args: Bool) -> String {
     let head: String = texts[cur[0]];
     let name: String = Substring(head, 10, StringLength(head) - 10);
@@ -1461,7 +1460,6 @@ func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
             param_list = "void";
         }
         signature = Concat(CRetType(ret_type, base_env), Concat(" ", Concat(name, Concat("(", Concat(param_list, ")")))));
-        ArrayPush(protos, Concat(signature, ";"));
     }
 
     let tail: String = "}\n";
@@ -1498,7 +1496,7 @@ func BuildFunctionEnv(indents: Array<Int>, texts: Array<String>, count: Int) -> 
 
 // Scan top-level `Struct: Name` declarations into C typedefs, and append a
 // `Name=s:struct|` entry to env_box[0] for each. rung-14 supports `Int` fields.
-func CollectStructs(indents: Array<Int>, texts: Array<String>, count: Int, env_box: Array<String>) -> String {
+func CollectStructs(indents: Array<Int>, texts: Array<String>, count: Int, inout env_box: Array<String>) -> String {
     let typedefs: String = "";
     let i: Int = 0;
     while i < count {
@@ -1645,30 +1643,19 @@ func GenerateC(ast: String) -> String {
     let base_env: String = env_acc[0];
     let uses_args: Bool = StringIndexOf(ast, "Args(") >= 0;
 
-    let protos: Array<String> = [];
     let defs: String = "";
     let cur: Array<Int> = [first_fn];
     while cur[0] < count {
         if StartsWith(texts[cur[0]], "Function:") && indents[cur[0]] == f_indent {
-            let def: String = EmitFunction(indents, texts, count, cur, f_indent, protos, base_env, uses_args);
+            let def: String = EmitFunction(indents, texts, count, cur, f_indent, base_env, uses_args);
             defs = Concat(defs, Concat(def, "\n"));
         } else {
             ArraySet(cur, 0, cur[0] + 1);
         }
     }
 
-    // Forward declarations come from a GenerateC-scope pre-pass (see
-    // CollectProtos); the per-EmitFunction `protos` push does not persist.
+    // Forward declarations come from a GenerateC-scope pre-pass.
     let proto_block: String = CollectProtos(indents, texts, count, base_env);
-    let pn: Int = 0;
-    let pi: Int = 0;
-    while pi < pn {
-        proto_block = Concat(proto_block, Concat(protos[pi], "\n"));
-        pi = pi + 1;
-    }
-    if pn > 0 {
-        proto_block = Concat(proto_block, "\n");
-    }
 
     // String programs need the runtime string helpers; bool programs need
     // <stdbool.h>; array programs need the growable-array structs + stdlib;

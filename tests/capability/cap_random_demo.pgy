@@ -1,0 +1,7 @@
+// Runtime capability enforcement fixture: Random() is a gated ambient op
+// (PGY_CAP_RANDOM). With the default grant (PGY_CAP_ALL) it runs; under a host
+// PGY_CAP_GRANT that omits "random" the runtime gate fail-closes
+// (class=capability-denied) on BOTH backends, exercising the single shared
+// g_pgy_cap_granted instance the multi-instance fix established.
+let r: Int = Random(100);
+Log("random ok");

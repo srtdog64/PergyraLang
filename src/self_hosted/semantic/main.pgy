@@ -88,7 +88,7 @@ func MatchKeyword(content: String, start: Int, kw: String) -> Bool {
     return !IsAlphaNum(next);
 }
 
-func ReadIdent(content: String, start: Int, cursor_out: Array<Int>) -> String {
+func ReadIdent(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
     let i: Int = SkipWhitespaceAndComments(content, start);
     let n: Int = StringLength(content);
     if !IsAlpha(CharAt(content, i)) {
@@ -142,6 +142,9 @@ func SemanticReason(code: String) -> String {
     if code == "call_arg_type_mismatch" {
         return "call argument type does not match the callee parameter type";
     }
+    if code == "value_param_collection_mutation" {
+        return "caller-visible collection mutation requires an explicit inout boundary";
+    }
     if code == "undefined_function" {
         return "called function is not declared in the checked subset";
     }
@@ -184,6 +187,9 @@ func SemanticFix(code: String) -> String {
     }
     if code == "call_arg_type_mismatch" {
         return "change the argument expression or the callee parameter type";
+    }
+    if code == "value_param_collection_mutation" {
+        return "spell the parameter as inout or mutate a local collection and return it";
     }
     if code == "undefined_function" {
         return "declare the function before calling it";
@@ -237,7 +243,7 @@ func SemanticError3(code: String, k1: String, v1: String, k2: String, v2: String
     return SemanticErrorWithFacts(code, SelfHostDiagnostic_Fact3(k1, v1, k2, v2, k3, v3));
 }
 
-func ReadTypeName(content: String, start: Int, cursor_out: Array<Int>) -> String {
+func ReadTypeName(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
     let i: Int = SkipWhitespaceAndComments(content, start);
     let n: Int = StringLength(content);
     let depth: Int = 0;
@@ -344,6 +350,17 @@ func EnvContainsName(names: Array<String>, name: String) -> Bool {
         i = i - 1;
     }
     return false;
+}
+
+func EnvMode(names: Array<String>, modes: Array<String>, name: String) -> String {
+    let i: Int = ArrayLength(names) - 1;
+    while i >= 0 {
+        if names[i] == name {
+            return modes[i];
+        }
+        i = i - 1;
+    }
+    return "unknown";
 }
 
 func IsIdentText(text: String) -> Bool {
@@ -1011,7 +1028,85 @@ func ArgCount(args_src: String) -> Int {
     return count;
 }
 
-func CheckCall(text: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>, func_params: Array<String>) -> String {
+func FirstArg(args_src: String) -> String {
+    let n: Int = StringLength(args_src);
+    let i: Int = 0;
+    let depth: Int = 0;
+    while i < n {
+        let c: String = CharAt(args_src, i);
+        if c == "\"" {
+            i = i + 1;
+            while i < n && CharAt(args_src, i) != "\"" {
+                if CharAt(args_src, i) == "\\" {
+                    i = i + 1;
+                }
+                i = i + 1;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "<" || c == "(" || c == "[" {
+            depth = depth + 1;
+            i = i + 1;
+            continue;
+        }
+        if c == ">" || c == ")" || c == "]" {
+            if depth > 0 {
+                depth = depth - 1;
+            }
+            i = i + 1;
+            continue;
+        }
+        if depth == 0 && c == "," {
+            return Trim(Substring(args_src, 0, i));
+        }
+        i = i + 1;
+    }
+    return Trim(args_src);
+}
+
+func IsCollectionMutator(callee: String) -> Bool {
+    return callee == "ArrayPush"
+        || callee == "ArraySet"
+        || callee == "ArrayPop"
+        || callee == "ListPush"
+        || callee == "ListSet"
+        || callee == "ListRemove"
+        || callee == "SetAdd"
+        || callee == "SetRemove"
+        || callee == "QueuePush"
+        || callee == "QueuePop"
+        || callee == "MapSet"
+        || callee == "MapRemove";
+}
+
+func IsCollectionTypeName(type_name: String) -> Bool {
+    return StringContains(type_name, "Array<")
+        || StringContains(type_name, "List<")
+        || StringContains(type_name, "Set<")
+        || StringContains(type_name, "Queue<")
+        || StringContains(type_name, "HashMap<");
+}
+
+func CheckCollectionMutatorReceiver(callee: String, args_src: String, names: Array<String>, types: Array<String>, modes: Array<String>) -> String {
+    if !IsCollectionMutator(callee) {
+        return "";
+    }
+    let receiver: String = FirstArg(args_src);
+    if !IsIdentText(receiver) {
+        return "";
+    }
+    if EnvMode(names, modes, receiver) != "default_param" {
+        return "";
+    }
+    let receiver_type: String = EnvLookup(names, types, receiver);
+    if !IsCollectionTypeName(receiver_type) {
+        return "";
+    }
+    return SemanticError3("value_param_collection_mutation", "func", callee, "param", receiver, "mode", "default");
+}
+
+func CheckCall(text: String, names: Array<String>, types: Array<String>, modes: Array<String>, func_names: Array<String>, func_rets: Array<String>, func_params: Array<String>) -> String {
     let trimmed: String = Trim(text);
     let tn: Int = StringLength(trimmed);
     if tn == 0 {
@@ -1044,6 +1139,10 @@ func CheckCall(text: String, names: Array<String>, types: Array<String>, func_na
     }
     let sig: String = func_params[found];
     let args_src: String = Substring(trimmed, paren + 1, tn - paren - 2);
+    let receiver_error: String = CheckCollectionMutatorReceiver(callee, args_src, names, types, modes);
+    if StringLength(receiver_error) > 0 {
+        return receiver_error;
+    }
     let expected_count: Int = ParamCount(sig);
     let actual_count: Int = ArgCount(args_src);
     if expected_count != actual_count {
@@ -1055,16 +1154,19 @@ func CheckCall(text: String, names: Array<String>, types: Array<String>, func_na
     return CompareCallArgs(callee, args_src, sig, names, types, func_names, func_rets);
 }
 
-func RestoreEnv(names: Array<String>, types: Array<String>, size: Int) -> Void {
+func RestoreEnv(inout names: Array<String>, inout types: Array<String>, inout modes: Array<String>, size: Int) -> Void {
     while ArrayLength(names) > size {
         ArrayPop(names);
     }
     while ArrayLength(types) > size {
         ArrayPop(types);
     }
+    while ArrayLength(modes) > size {
+        ArrayPop(modes);
+    }
 }
 
-func CheckBody(content: String, start: Int, end: Int, return_type: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>, func_params: Array<String>) -> String {
+func CheckBody(content: String, start: Int, end: Int, return_type: String, inout names: Array<String>, inout types: Array<String>, inout modes: Array<String>, func_names: Array<String>, func_rets: Array<String>, func_params: Array<String>) -> String {
     let i: Int = start;
     let cursor: Array<Int> = [0];
     while i < end {
@@ -1088,7 +1190,7 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, names
                 continue;
             }
             let semi: Int = FindStatementEnd(content, i, end);
-            let let_call_error: String = CheckCall(Substring(content, i, semi - i), names, types, func_names, func_rets, func_params);
+            let let_call_error: String = CheckCall(Substring(content, i, semi - i), names, types, modes, func_names, func_rets, func_params);
             if StringLength(let_call_error) > 0 {
                 return let_call_error;
             }
@@ -1114,6 +1216,7 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, names
                 }
             }
             ArrayPush(names, name);
+            ArrayPush(modes, "local");
             if declared_type != "Unknown" {
                 ArrayPush(types, declared_type);
             } else {
@@ -1125,7 +1228,7 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, names
         if MatchKeyword(content, i, "return") {
             i = i + 6;
             let return_semi: Int = FindStatementEnd(content, i, end);
-            let return_call_error: String = CheckCall(Substring(content, i, return_semi - i), names, types, func_names, func_rets, func_params);
+            let return_call_error: String = CheckCall(Substring(content, i, return_semi - i), names, types, modes, func_names, func_rets, func_params);
             if StringLength(return_call_error) > 0 {
                 return return_call_error;
             }
@@ -1183,8 +1286,8 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, names
             if block_open < end && CharAt(content, block_open) == "{" {
                 let block_close: Int = FindMatchingBrace(content, block_open);
                 let env_size: Int = ArrayLength(names);
-                let block_error: String = CheckBody(content, block_open + 1, block_close, return_type, names, types, func_names, func_rets, func_params);
-                RestoreEnv(names, types, env_size);
+                let block_error: String = CheckBody(content, block_open + 1, block_close, return_type, names, types, modes, func_names, func_rets, func_params);
+                RestoreEnv(names, types, modes, env_size);
                 if StringLength(block_error) > 0 {
                     return block_error;
                 }
@@ -1199,8 +1302,8 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, names
                     if else_open < end && CharAt(content, else_open) == "{" {
                         let else_close: Int = FindMatchingBrace(content, else_open);
                         let else_env_size: Int = ArrayLength(names);
-                        let else_error: String = CheckBody(content, else_open + 1, else_close, return_type, names, types, func_names, func_rets, func_params);
-                        RestoreEnv(names, types, else_env_size);
+                        let else_error: String = CheckBody(content, else_open + 1, else_close, return_type, names, types, modes, func_names, func_rets, func_params);
+                        RestoreEnv(names, types, modes, else_env_size);
                         if StringLength(else_error) > 0 {
                             return else_error;
                         }
@@ -1232,9 +1335,10 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, names
                 if StringLength(loop_var) > 0 {
                     ArrayPush(names, loop_var);
                     ArrayPush(types, "Unknown");
+                    ArrayPush(modes, "local");
                 }
-                let for_error: String = CheckBody(content, for_open + 1, for_close, return_type, names, types, func_names, func_rets, func_params);
-                RestoreEnv(names, types, for_env_size);
+                let for_error: String = CheckBody(content, for_open + 1, for_close, return_type, names, types, modes, func_names, func_rets, func_params);
+                RestoreEnv(names, types, modes, for_env_size);
                 if StringLength(for_error) > 0 {
                     return for_error;
                 }
@@ -1277,7 +1381,7 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, names
             }
         }
         let stmt_end: Int = FindStatementEnd(content, i, end);
-        let stmt_call_error: String = CheckCall(Substring(content, i, stmt_end - i), names, types, func_names, func_rets, func_params);
+        let stmt_call_error: String = CheckCall(Substring(content, i, stmt_end - i), names, types, modes, func_names, func_rets, func_params);
         if StringLength(stmt_call_error) > 0 {
             return stmt_call_error;
         }
@@ -1290,10 +1394,11 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, names
     return "";
 }
 
-func CheckFunction(content: String, func_pos: Int, cursor_out: Array<Int>, func_names: Array<String>, func_rets: Array<String>, func_params: Array<String>) -> String {
+func CheckFunction(content: String, func_pos: Int, inout cursor_out: Array<Int>, func_names: Array<String>, func_rets: Array<String>, func_params: Array<String>) -> String {
     let cursor: Array<Int> = [0];
     let names: Array<String> = [];
     let types: Array<String> = [];
+    let modes: Array<String> = [];
     let i: Int = func_pos + 4;
     let fn_name: String = ReadIdent(content, i, cursor);
     i = cursor[0];
@@ -1308,8 +1413,15 @@ func CheckFunction(content: String, func_pos: Int, cursor_out: Array<Int>, func_
             i = i + 1;
             break;
         }
-        let param_name: String = ReadIdent(content, i, cursor);
+        let first_name: String = ReadIdent(content, i, cursor);
         i = cursor[0];
+        let param_name: String = first_name;
+        let param_mode: String = "default_param";
+        if first_name == "inout" || first_name == "ref" || first_name == "own" {
+            param_mode = Concat(first_name, "_param");
+            param_name = ReadIdent(content, i, cursor);
+            i = cursor[0];
+        }
         i = ExpectLiteral(content, i, ":");
         if i < 0 {
             ArraySet(cursor_out, 0, func_pos + 1);
@@ -1319,6 +1431,7 @@ func CheckFunction(content: String, func_pos: Int, cursor_out: Array<Int>, func_
         i = cursor[0];
         ArrayPush(names, param_name);
         ArrayPush(types, param_type);
+        ArrayPush(modes, param_mode);
         i = SkipWhitespaceAndComments(content, i);
         if CharAt(content, i) == "," {
             i = i + 1;
@@ -1341,7 +1454,7 @@ func CheckFunction(content: String, func_pos: Int, cursor_out: Array<Int>, func_
         return "";
     }
     let close: Int = FindMatchingBrace(content, i);
-    let body_error: String = CheckBody(content, i + 1, close, return_type, names, types, func_names, func_rets, func_params);
+    let body_error: String = CheckBody(content, i + 1, close, return_type, names, types, modes, func_names, func_rets, func_params);
     ArraySet(cursor_out, 0, close + 1);
     return body_error;
 }

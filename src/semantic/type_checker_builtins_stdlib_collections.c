@@ -45,8 +45,7 @@ static int
 stdlib_collection_builtin_compare(const void *key, const void *entry)
 {
     const char *name = *(const char * const *)key;
-    const StdlibCollectionBuiltinSpec *spec =
-        (const StdlibCollectionBuiltinSpec *)entry;
+    const StdlibCollectionBuiltinSpec *spec = (const StdlibCollectionBuiltinSpec *)entry;
 
     return strcmp(name, spec->name);
 }
@@ -57,8 +56,7 @@ stdlib_collection_normalize_type(Type *type)
     return type != NULL ? type : TYPE_UNKNOWN;
 }
 
-static StdlibCollectionBuiltinKind
-stdlib_collection_builtin_kind(const char *name)
+static StdlibCollectionBuiltinKind stdlib_collection_builtin_kind(const char *name)
 {
     static const StdlibCollectionBuiltinSpec specs[] = {
         { "ArrayFilter", STDLIB_COLLECTION_ARRAY_FILTER },
@@ -92,14 +90,13 @@ stdlib_collection_builtin_kind(const char *name)
 
     if (name == NULL)
         return STDLIB_COLLECTION_UNKNOWN;
-    match = (const StdlibCollectionBuiltinSpec *)bsearch(
-        &name, specs, sizeof(specs) / sizeof(specs[0]), sizeof(specs[0]),
+    match = (const StdlibCollectionBuiltinSpec *)bsearch(&name, specs,
+        sizeof(specs) / sizeof(specs[0]), sizeof(specs[0]),
         stdlib_collection_builtin_compare);
     return match != NULL ? match->kind : STDLIB_COLLECTION_UNKNOWN;
 }
 
-static bool
-stdlib_collection_builtin_mutates_storage(StdlibCollectionBuiltinKind kind)
+static bool stdlib_collection_builtin_mutates_storage(StdlibCollectionBuiltinKind kind)
 {
     return kind == STDLIB_COLLECTION_LIST_PUSH
         || kind == STDLIB_COLLECTION_LIST_SET
@@ -113,30 +110,6 @@ stdlib_collection_builtin_mutates_storage(StdlibCollectionBuiltinKind kind)
         || kind == STDLIB_COLLECTION_ARRAY_POP
         || kind == STDLIB_COLLECTION_ARRAY_SORT
         || kind == STDLIB_COLLECTION_ARRAY_REVERSE;
-}
-
-static bool
-stdlib_collection_reject_parallel_mutation(ASTNode *expr,
-                                           const char *name,
-                                           SemanticContext *ctx,
-                                           StdlibCollectionBuiltinKind kind)
-{
-    if (ctx == NULL || !ctx->in_parallel)
-        return false;
-    if (!stdlib_collection_builtin_mutates_storage(kind))
-        return false;
-    semantic_error_with_hints(ctx, PGY_CODE_SEM_PARALLEL_SLOT_CONFLICT,
-        PGY_CAUSE_PARALLEL_RESOURCE_CONFLICT,
-        PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL, expr,
-        "Parallel context does not permit collection mutator '%s'.\n"
-        "Reason:\n"
-        "- growable collection storage may reallocate, rehash, or alias while another task observes it\n"
-        "- generated C/LLVM workers cannot safely share mutable collection storage by raw pointer\n"
-        "Fix:\n"
-        "- mutate the collection before or after parallel\n"
-        "- or send immutable values through a channel/result boundary",
-        name != NULL ? name : "<collection builtin>");
-    return true;
 }
 
 Type *
@@ -156,7 +129,8 @@ type_check_stdlib_collection_call(ASTNode *expr,
     if (handled_out != NULL)
         *handled_out = true;
 
-    if (stdlib_collection_reject_parallel_mutation(expr, name, ctx, kind))
+    if (reject_parallel_collection_mutator(
+            expr, name, stdlib_collection_builtin_mutates_storage(kind), ctx))
         return TYPE_UNKNOWN;
 
     ASTNode *arg0 = ast_call_argument(expr, 0);
@@ -175,6 +149,9 @@ type_check_stdlib_collection_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         list_type = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
+        if (reject_default_param_collection_mutator_receiver(
+                arg0, list_type, "ListPush", "list", ctx))
+            return TYPE_UNKNOWN;
         value_type = stdlib_collection_normalize_type(
             type_check_expression(arg1, ctx));
         reject_borrowed_boundary_container_store(
@@ -200,6 +177,9 @@ type_check_stdlib_collection_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         list_type = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
+        if (reject_default_param_collection_mutator_receiver(
+                arg0, list_type, "ListSet", "list", ctx))
+            return TYPE_UNKNOWN;
         index_type = stdlib_collection_normalize_type(
             type_check_expression(arg1, ctx));
         require_assignable(index_type, TYPE_INT, arg1, ctx);
@@ -225,6 +205,9 @@ type_check_stdlib_collection_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         list_type = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
+        if (reject_default_param_collection_mutator_receiver(
+                arg0, list_type, "ListRemove", "list", ctx))
+            return TYPE_UNKNOWN;
         index_type = stdlib_collection_normalize_type(
             type_check_expression(arg1, ctx));
         value_type = stdlib_collection_normalize_type(
@@ -295,6 +278,9 @@ type_check_stdlib_collection_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         set_type = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
+        if (reject_default_param_collection_mutator_receiver(
+                arg0, set_type, name, "set", ctx))
+            return TYPE_UNKNOWN;
         value_type = stdlib_collection_normalize_type(
             type_check_expression(arg1, ctx));
         if (kind == STDLIB_COLLECTION_SET_ADD) {
@@ -397,6 +383,9 @@ type_check_stdlib_collection_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         queue_type = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
+        if (reject_default_param_collection_mutator_receiver(
+                arg0, queue_type, "QueuePush", "queue", ctx))
+            return TYPE_UNKNOWN;
         value_type = stdlib_collection_normalize_type(
             type_check_expression(arg1, ctx));
         reject_borrowed_boundary_container_store(
@@ -421,6 +410,9 @@ type_check_stdlib_collection_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         queue_type = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
+        if (reject_default_param_collection_mutator_receiver(
+                arg0, queue_type, "QueuePop", "queue", ctx))
+            return TYPE_UNKNOWN;
         if (type_is_constructed_named(queue_type, "Queue")
             && type_constructed_arg_count(queue_type) == 1) {
             return stdlib_collection_normalize_type(
@@ -476,6 +468,9 @@ type_check_stdlib_collection_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         arr = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
+        if (reject_default_param_collection_mutator_receiver(
+                arg0, arr, "ArrayPush", "array", ctx))
+            return TYPE_UNKNOWN;
         val = stdlib_collection_normalize_type(
             type_check_expression(arg1, ctx));
         reject_borrowed_boundary_container_store(
@@ -500,6 +495,9 @@ type_check_stdlib_collection_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         arr = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
+        if (reject_default_param_collection_mutator_receiver(
+                arg0, arr, "ArraySet", "array", ctx))
+            return TYPE_UNKNOWN;
         require_assignable(
             type_check_expression(arg1, ctx),
             TYPE_INT, arg1, ctx);
@@ -526,6 +524,9 @@ type_check_stdlib_collection_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         arr = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
+        if (reject_default_param_collection_mutator_receiver(
+                arg0, arr, "ArrayPop", "array", ctx))
+            return TYPE_UNKNOWN;
         if (!type_is_constructed_named(arr, "Array"))
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
                 PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
@@ -541,6 +542,9 @@ type_check_stdlib_collection_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         arr = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
+        if (reject_default_param_collection_mutator_receiver(
+                arg0, arr, name, "array", ctx))
+            return TYPE_UNKNOWN;
         if (!type_is_constructed_named(arr, "Array"))
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
                 PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,

@@ -1,0 +1,8 @@
+// Second capability type verified end-to-end (cap_random_demo covers RANDOM).
+// Now() is a gated ambient op on PGY_CAP_CLOCK, a DISTINCT bit and a DISTINCT
+// runtime require site (op="now-ms") from Random -- so this catches op-specific
+// gate-wiring bugs the RANDOM test cannot. With the default grant it runs; under
+// a host PGY_CAP_GRANT that omits "clock" the runtime gate fail-closes
+// (class=capability-denied), identically on C and LLVM.
+let t: Int = Now();
+Log("clock ok");

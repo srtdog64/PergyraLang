@@ -1,0 +1,20 @@
+// R6 budget slice 3: SPAWN_COUNT metering. Each `spawn` funnels through the
+// runtime pgy_spawn chokepoint (both backends), which charges SPAWN_COUNT behind
+// the imposed fast-path. With no budget this spawns freely; under a host
+// PGY_BUDGET_SPAWN_COUNT=3 the 4th spawn fail-closes (class=budget-exceeded),
+// bounding a fork-bomb of tasks. Identical on C and LLVM.
+async func Work(x: Int) -> Int {
+    return x + 1;
+}
+
+async func Main() -> Void {
+    let a: Future<Int> = spawn Work(1);
+    let b: Future<Int> = spawn Work(2);
+    let c: Future<Int> = spawn Work(3);
+    let d: Future<Int> = spawn Work(4);
+    let va: Int = await a;
+    let vb: Int = await b;
+    let vc: Int = await c;
+    let vd: Int = await d;
+    Log("spawned all");
+}

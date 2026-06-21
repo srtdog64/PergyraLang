@@ -31,4 +31,79 @@
 #define PGY_CAP_INPUT      (1u << 8)   /* reserved: pointer/key input */
 #define PGY_CAP_ALL        (0xFFFFFFFFu)
 
+#include <stdlib.h>
+#include <string.h>
+
+/*
+ * Host-imposed grant channel (the symmetric mirror of the budget's
+ * PGY_BUDGET_* env limits): if PGY_CAP_GRANT is set in the environment, the
+ * runtime restricts the process-wide granted set to exactly the named
+ * capabilities before the first gated op. A loader runs untrusted content with,
+ * e.g., PGY_CAP_GRANT="io_read,clock" and every ungranted ambient op then
+ * fail-closes. Tokens are case-insensitive cap names separated by any of
+ * ", ;|+". Unknown tokens are ignored (they cannot widen the grant). "all"
+ * grants everything, "none"/empty grants nothing. When PGY_CAP_GRANT is unset
+ * the default PGY_CAP_ALL stands, so trusted programs are unaffected.
+ */
+
+/* One token -> its bit, or PGY_CAP_NONE for an unknown name. */
+static inline unsigned
+pgy_cap_token_bit(const char *tok, size_t len)
+{
+    struct { const char *name; unsigned bit; } table[] = {
+        { "io_read",  PGY_CAP_IO_READ },  { "io_write", PGY_CAP_IO_WRITE },
+        { "network",  PGY_CAP_NETWORK },  { "clock",    PGY_CAP_CLOCK },
+        { "random",   PGY_CAP_RANDOM },   { "env",      PGY_CAP_ENV },
+        { "render",   PGY_CAP_RENDER },   { "audio",    PGY_CAP_AUDIO },
+        { "input",    PGY_CAP_INPUT },    { "all",      PGY_CAP_ALL },
+        { "none",     PGY_CAP_NONE },
+    };
+    size_t i;
+
+    for (i = 0; i < sizeof(table) / sizeof(table[0]); i++) {
+        if (strlen(table[i].name) == len &&
+            strncmp(tok, table[i].name, len) == 0)
+            return table[i].bit;
+    }
+    return PGY_CAP_NONE;
+}
+
+/* Parse PGY_CAP_GRANT into *mask_out. Returns 1 if the var was present (the
+ * mask is then authoritative, even when it resolves to PGY_CAP_NONE), else 0. */
+static inline int
+pgy_cap_env_grant(unsigned *mask_out)
+{
+    const char *s = getenv("PGY_CAP_GRANT");
+    unsigned mask = PGY_CAP_NONE;
+    const char *p;
+    size_t i;
+    char buf[16];
+
+    if (s == NULL)
+        return 0;
+    p = s;
+    while (*p != '\0') {
+        size_t len = 0;
+
+        while (*p == ',' || *p == ' ' || *p == ';' || *p == '|' || *p == '+')
+            p++;
+        while (p[len] != '\0' && p[len] != ',' && p[len] != ' ' &&
+               p[len] != ';' && p[len] != '|' && p[len] != '+')
+            len++;
+        if (len == 0)
+            break;
+        /* lowercase into a small fixed buffer; over-long tokens are unknown */
+        if (len < sizeof(buf)) {
+            for (i = 0; i < len; i++) {
+                char c = p[i];
+                buf[i] = (c >= 'A' && c <= 'Z') ? (char)(c - 'A' + 'a') : c;
+            }
+            mask |= pgy_cap_token_bit(buf, len);
+        }
+        p += len;
+    }
+    *mask_out = mask;
+    return 1;
+}
+
 #endif /* PGY_RUNTIME_CAPABILITY_H */

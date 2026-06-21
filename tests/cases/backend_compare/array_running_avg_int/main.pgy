@@ -1,4 +1,4 @@
-func RunningAvgFloor(arr: Array<Int>, n: Int, out: Array<Int>) -> Int {
+func RunningAvgFloor(arr: Array<Int>, n: Int, inout out: Array<Int>) -> Int {
     let sum: Int = 0;
     let i: Int = 0;
     while i < n {

@@ -5400,10 +5400,15 @@ for term in \
     "transpiler_hosted_method_view_from_decl(ctx, name, node)" \
     "transpiler_hosted_method_view_metadata(&method_view, i)" \
     "transpiler_mir_decl_method_routine(ctx, method_meta)" \
-    "transpiler_mir_decl_method_metadata_complete_for(ctx" \
-    "TRANSPILER_MIR_DECL_METHOD_REQUIRE_ALL_TYPE_NAMES" \
     "emit_role_method_impl(name, method_meta, mir_method, NULL, ctx)"; do
     require_term "src/codegen/transpiler_domain_nominal_emit.c" "$term"
+done
+for term in \
+    "transpiler_mir_decl_method_metadata_complete_for(ctx" \
+    "TRANSPILER_MIR_DECL_METHOD_REQUIRE_ALL_TYPE_NAMES" \
+    "MIR-only C path missing included role method return type-name metadata" \
+    "MIR-only C path missing included role method parameter type-name metadata"; do
+    require_term "src/codegen/transpiler_domain_role_include_emit.c" "$term"
 done
 for term in \
     "const MIRDeclMethod *method_meta" \
@@ -7114,15 +7119,15 @@ if awk '
 fi
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "MIR-only LLVM path missing vtable function for role method"
-require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+require_term "src/codegen/transpiler_domain_role_include_emit.c" \
     "ctx != NULL && ctx->backend_error != NULL"
-require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+require_term "src/codegen/transpiler_domain_role_include_emit.c" \
     "mir_decl_header_role_include_count(owner_role_header)"
 require_term "src/codegen/transpiler_operator.c" \
     "find_role_operator_method_metadata_in_header"
 require_term "src/codegen/llvm_domain_role_lookup.c" \
     "llvm_find_role_operator_method_metadata_in_header"
-require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+require_term "src/codegen/transpiler_domain_role_include_emit.c" \
     "mir_decl_role_include_name(include_meta)"
 require_term "src/codegen/transpiler_operator.c" \
     "mir_decl_header_role_include_count(role_header)"
@@ -7154,9 +7159,9 @@ require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
     "mir_decl_role_impl_method_count(role_impl_meta)"
 require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
     "mir_decl_header_role_impl_method("
-require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+require_term "src/codegen/transpiler_domain_role_include_emit.c" \
     "mir_decl_header_role_impl("
-require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+require_term "src/codegen/transpiler_domain_role_include_emit.c" \
     "emit_role_vtable_instance(owner_role_name,"
 require_term "src/compiler/mir_decl.h" \
     "MIRDeclRoleImpl"
@@ -7176,13 +7181,13 @@ require_term "src/compiler/mir_decl_headers.c" \
     "mir_decl_header_set_role_impls"
 require_term "src/compiler/mir_decl_headers.c" \
     "mir_decl_header_set_role_includes"
-require_term "src/compiler/mir_decl_header_validate.c" \
+require_term "src/compiler/mir_decl_header_role_validate.c" \
     "mir_validate_decl_role_impl_metadata"
-require_term "src/compiler/mir_decl_header_validate.c" \
+require_term "src/compiler/mir_decl_header_role_validate.c" \
     "mir_validate_decl_role_include_metadata"
-require_term "src/compiler/mir_decl_header_validate.c" \
+require_term "src/compiler/mir_decl_header_role_validate.c" \
     "method span metadata drift"
-require_term "src/compiler/mir_decl_header_validate.c" \
+require_term "src/compiler/mir_decl_header_role_validate.c" \
     "role include metadata count"
 require_term "src/tests/mir/test_mir_lowering_part_d.cases.h" \
     "MIR declaration headers preserve role include metadata"
@@ -7615,7 +7620,7 @@ for term in \
     "mir_decl_header_zone_refresh_count" \
     "mir_decl_zone_refresh_mapped_target_field" \
     "mir_decl_zone_refresh_mapped_source_field"; do
-    require_term "src/compiler/mir_decl_header_access.c" "$term"
+    require_term "src/compiler/mir_decl_header_zone_access.c" "$term"
     require_term "src/compiler/mir_decl_headers.h" "$term"
 done
 for term in \
@@ -7631,7 +7636,7 @@ for term in \
     "mir_decl_zone_state_layer_slot_name" \
     "mir_decl_zone_state_left_or_target_slot_name" \
     "mir_decl_zone_state_right_slot_name"; do
-    require_term "src/compiler/mir_decl_header_access.c" "$term"
+    require_term "src/compiler/mir_decl_header_zone_access.c" "$term"
     require_term "src/compiler/mir_decl_headers.h" "$term"
 done
 for term in \

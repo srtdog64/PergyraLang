@@ -1,4 +1,4 @@
-func FilterEven(src: Array<Int>, n: Int, dst: Array<Int>) -> Int {
+func FilterEven(src: Array<Int>, n: Int, inout dst: Array<Int>) -> Int {
     let write: Int = 0;
     let i: Int = 0;
     while i < n {

@@ -1,6 +1,6 @@
 enum Op { Inc, Double, Reset }
 
-func ApplyOp(arr: Array<Int>, n: Int, op: Op) -> Int {
+func ApplyOp(inout arr: Array<Int>, n: Int, op: Op) -> Int {
     match op {
         case Inc:
             let i: Int = 0;

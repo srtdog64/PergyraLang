@@ -44,6 +44,20 @@ main(int argc, char **argv)
         return 1;
     }
 
+    if (argc > 1 && strcmp(argv[1], "deny-alloc-real") == 0) {
+        /* The WIRED path: a real pgy_alloc charges the budget via the allocator
+         * accounting hook, not a direct charge call. */
+        PgyAllocator a = pgy_allocator_pool(4096);
+        pgy_budget_reset_export();
+        pgy_budget_set_limit_export(PGY_BUDGET_ALLOC_BYTES, 100);
+        printf("allocating 200 bytes via pgy_alloc under a 100-byte budget"
+               " (expect budget-exceeded)\n");
+        fflush(stdout);
+        (void)pgy_alloc(&a, 200, 8);   /* charges 200 > 100 -> panic */
+        printf("ERROR: pgy_alloc returned without a budget panic\n");
+        return 1;
+    }
+
     printf("=== Resource Budget Gate Test ===\n");
 
     /* Default: every kind unlimited, so charges never panic. */
@@ -67,6 +81,35 @@ main(int argc, char **argv)
     if (pgy_budget_used_export(PGY_BUDGET_SPAWN_COUNT) == 7)
         printf("  [PASS] budgets are per-kind (spawn used=7 under unlimited)\n");
     else { printf("  [FAIL] per-kind independence\n"); fail++; }
+
+    /* Wired allocator path: under an imposed budget, a real pgy_alloc charges
+     * the running total -- proves the gate is wired into the allocator, not
+     * just directly callable. */
+    {
+        PgyAllocator a = pgy_allocator_pool(4096);
+        pgy_budget_reset_export();
+        pgy_budget_set_limit_export(PGY_BUDGET_ALLOC_BYTES, 100000);
+        (void)pgy_alloc(&a, 512, 8);
+        if (pgy_budget_used_export(PGY_BUDGET_ALLOC_BYTES) >= 512)
+            printf("  [PASS] wired allocator charges budget (used>=512 after pgy_alloc)\n");
+        else {
+            printf("  [FAIL] allocator not wired (used=%llu)\n",
+                   (unsigned long long)pgy_budget_used_export(PGY_BUDGET_ALLOC_BYTES));
+            fail++;
+        }
+        pgy_allocator_destroy(&a);
+    }
+
+    /* Trusted default: no budget imposed -> allocator charges nothing. */
+    {
+        PgyAllocator a = pgy_allocator_pool(4096);
+        pgy_budget_reset_export();
+        (void)pgy_alloc(&a, 512, 8);
+        if (pgy_budget_used_export(PGY_BUDGET_ALLOC_BYTES) == 0)
+            printf("  [PASS] no budget imposed -> allocator fast-path skips (used=0)\n");
+        else { printf("  [FAIL] fast-path charged without a budget\n"); fail++; }
+        pgy_allocator_destroy(&a);
+    }
 
     pgy_budget_reset_export();
 

@@ -499,13 +499,13 @@ grep -Fq "MIR-only C path missing role vtable method metadata" \
 grep -Fq "MIR-only C path missing role vtable ability-ref metadata" \
     "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
 grep -Fq "MIR-only C path missing included role method metadata" \
-    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c"
+    "$ROOT_DIR/src/codegen/transpiler_domain_role_include_emit.c"
 grep -Fq "MIR-only C path missing included role method name metadata" \
-    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c"
+    "$ROOT_DIR/src/codegen/transpiler_domain_role_include_emit.c"
 grep -Fq "MIR-only C path missing included role method return type-name metadata" \
-    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c"
+    "$ROOT_DIR/src/codegen/transpiler_domain_role_include_emit.c"
 grep -Fq "MIR-only C path missing included role method parameter type-name metadata" \
-    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c"
+    "$ROOT_DIR/src/codegen/transpiler_domain_role_include_emit.c"
 grep -Fq "MIR-only C path missing role operator method name metadata" \
     "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
 grep -Fq "MIR-only C path missing role operator return type-name metadata" \

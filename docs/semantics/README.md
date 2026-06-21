@@ -37,6 +37,7 @@ Required shape for each proof document:
   contract manifest for CFG/MIR, AIR, DAG/type-resolution, MIR/LLVM declaration
   parity, and ABI/Slot/Pin layout closure.
 - [10_behavior_contract_closure_gaps.md](10_behavior_contract_closure_gaps.md): anti-overclaim closure register for the remaining gap between compiler-enforced behavior evidence and a closed behavior-contract calculus.
+- [16_language_contract_golden_spine.md](16_language_contract_golden_spine.md): golden-spine map for the language-design cleanup contracts: proof/refinement, semantic fallback, authority/effect, `inout`, logical Bool, value-collection mutation, proof-gated erasure, raw/FFI/layout, IR verifiers, and self-hosted verifier/tool parity.
 
 Mechanized artifacts:
 

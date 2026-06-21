@@ -287,6 +287,12 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             slot_sym = symbol_create_slot(param_name, pt,
                 type_slot_is_secure(pt), paired_token,
                 node->line, node->column);
+            if (slot_sym != NULL) {
+                slot_sym->is_parameter = true;
+                slot_sym->param_mode = param != NULL
+                    ? param->mode
+                    : PARAM_MODE_DEFAULT;
+            }
             scope_declare(ctx->scope, slot_sym);
             scope_register_slot(ctx->scope, slot_sym);
 
@@ -305,6 +311,10 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         Symbol *p = symbol_create_variable(
             param_name, pt,
             node->line, node->column);
+        if (p != NULL) {
+            p->is_parameter = true;
+            p->param_mode = param != NULL ? param->mode : PARAM_MODE_DEFAULT;
+        }
         scope_declare(ctx->scope, p);
     }
 

@@ -39,6 +39,12 @@ pgy_channel_init_##SuffixName(PgyChannel_##SuffixName *ch, size_t capacity) \
         pgy_runtime_warn_invalid_channel("init_" #SuffixName, "null channel"); \
         return; \
     } \
+    /* CHANNEL_COUNT budget charge (R6): each channel created counts toward the \
+     * host's ceiling; deny-before-allocate, behind the imposed fast-path. Both \
+     * backends call pgy_channel_init_<T> (LLVM emits the same shared runtime fn, \
+     * see llvm_mir_source_resource_defs.c), so this one charge covers both. */ \
+    if (pgy_budget_is_imposed_export()) \
+        pgy_budget_charge_export(PGY_BUDGET_CHANNEL_COUNT, 1, "channel"); \
     capacity = pgy_runtime_channel_capacity_or_default("init_" #SuffixName, capacity); \
     if (capacity > SIZE_MAX / sizeof(CType)) { \
         pgy_runtime_warn_invalid_channel("init_" #SuffixName, "capacity overflows buffer size"); \

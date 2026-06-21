@@ -1,0 +1,13 @@
+// R6 budget: wall-clock deadline. A tight loop that never allocates, spawns, or
+// opens a channel -- the per-kind counters cannot see it, but the watchdog
+// thread can. With no budget it would run forever; under PGY_BUDGET_WALL_MS the
+// detached watchdog fail-closes the whole process (class=budget-exceeded,
+// op=wall-time) after the deadline. The toggle keeps the loop side-effecting and
+// non-overflowing so it is a genuine unbounded spin on both backends.
+func Main() -> Void {
+    let x: Int = 0;
+    while x < 2 {
+        x = 1 - x;
+    }
+    Log("unreachable");
+}

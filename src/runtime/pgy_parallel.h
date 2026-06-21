@@ -383,6 +383,14 @@ pgy_spawn(void *(*fn)(void *), void *arg)
         return handle;
     }
 
+    /* Quantitative sandbox gate (R6): charge SPAWN_COUNT before spawning so a
+     * fork-bomb of tasks fail-closes on the charge that crosses the host's
+     * ceiling. Behind the imposed fast-path so trusted programs pay nothing.
+     * Both backends funnel here (C emits pgy_spawn; LLVM's *_spawn_export call
+     * it), so this one charge covers the spawn DoS surface on both. */
+    if (pgy_budget_is_imposed_export())
+        pgy_budget_charge_export(PGY_BUDGET_SPAWN_COUNT, 1, "spawn");
+
     pthread_mutex_lock(&g_pgy_pool_lifecycle_mutex);
     if (atomic_load_explicit(&g_pgy_pool_shutting_down,
                              memory_order_acquire)) {

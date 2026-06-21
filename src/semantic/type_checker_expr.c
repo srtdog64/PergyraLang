@@ -70,8 +70,7 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         uint32_t lambda_body_summary = BODY_SUMMARY_NONE;
         Type *result;
 
-        if (param_types == NULL)
-            return TYPE_UNKNOWN;
+        if (param_types == NULL) return TYPE_UNKNOWN;
 
         scope_enter(&ctx->scope, SCOPE_FUNCTION);
         for (size_t i = 0; i < param_count; i++) {
@@ -101,8 +100,10 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
             if (param_name != NULL) {
                 Symbol *param_sym = symbol_create_variable(
                     param_name, param_type, expr->line, expr->column);
-                if (param_sym != NULL)
+                if (param_sym != NULL) {
+                    param_sym->is_parameter = true; param_sym->param_mode = PARAM_MODE_DEFAULT;
                     scope_declare(ctx->scope, param_sym);
+                }
             }
             param_types[i] = param_type;
         }

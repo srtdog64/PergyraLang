@@ -98,6 +98,8 @@ llvm_declare_runtime_core_builtins(LLVMGenCtx *ctx)
               { 0 }, 0 },
             { "pgy_cap_granted_export", ctx->type_i32,
               { 0 }, 0 },
+            { "pgy_budget_wall_arm_export", ctx->type_void,
+              { 0 }, 0 },
             { "pgy_checked_div_i32_export", ctx->type_i32,
               { ctx->type_i32, ctx->type_i32 }, 2 },
             { "pgy_checked_div_i64_export", ctx->type_i64,

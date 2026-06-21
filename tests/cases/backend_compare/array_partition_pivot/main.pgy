@@ -1,4 +1,4 @@
-func PartitionAround(arr: Array<Int>, n: Int, pivot: Int) -> Int {
+func PartitionAround(inout arr: Array<Int>, n: Int, pivot: Int) -> Int {
     let lo: Int = 0;
     let hi: Int = n - 1;
     while lo <= hi {

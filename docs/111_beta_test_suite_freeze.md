@@ -59,6 +59,7 @@ The beta release candidate must keep these gates green:
 - `make tooling-conformance-test-smoke`
 - `make perf-contract-test-smoke`
 - `make backend-fail-closed-test-smoke`
+- `make language-contract-golden-test-smoke`
 - `make beta-readiness-checklist-test-smoke`
 - `make beta-test-suite-freeze-test-smoke`
 

@@ -1,0 +1,12 @@
+// Forced heap allocation: a List grown to a runtime-determined size cannot be
+// stack-allocated or SROA'd away by the optimizer -- it is a genuine heap
+// allocation on BOTH backends. This is the true DoS-vector test for budget
+// parity (small fixed local arrays may legitimately live on the stack).
+let n: Int = Random(50) + 200;
+let xs: List<Int> = ListNew();
+let i: Int = 0;
+while i < n {
+    ListPush(xs, i);
+    i = i + 1;
+}
+Log("pushed");

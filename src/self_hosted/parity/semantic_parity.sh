@@ -85,6 +85,7 @@ SOURCE_PAIRS=(
     "bad_binop_condition:error"
     "bad_not_operand:error"
     "valid_array_builtins:ok"
+    "bad_value_param_arraypush:error"
     "valid_for_loop:ok"
     "bad_for_undefined_iter:error"
     "bad_for_body:error"

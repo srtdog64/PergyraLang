@@ -426,6 +426,11 @@ emit_program(TranspilerCtx *ctx)
         codebuf_write(ctx->out, "\nint\nmain(int argc, char **argv)\n{\n");
         ctx->indent++;
 
+        /* Arm the resource-budget wall-clock deadline first, so the host's
+         * PGY_BUDGET_WALL_MS bounds the whole run (no-op unless set). */
+        write_indent(ctx);
+        codebuf_write(ctx->out, "pgy_budget_wall_arm_export();\n");
+
         /* Initialize runtime */
         write_indent(ctx);
         codebuf_write(ctx->out, "pgy_args_init(argc, argv);\n");

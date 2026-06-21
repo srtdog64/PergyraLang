@@ -1,0 +1,17 @@
+// R6 budget slice 3: CHANNEL_COUNT metering. Each Channel(n) calls the shared
+// runtime pgy_channel_init_<T> (both backends -- LLVM emits the same runtime fn,
+// not an IR reimplementation), which charges CHANNEL_COUNT behind the imposed
+// fast-path. With no budget all channels are created; under a host
+// PGY_BUDGET_CHANNEL_COUNT=3 creating the 4th channel fail-closes
+// (class=budget-exceeded). Identical on C and LLVM.
+func Main() -> Void {
+    let a: Channel<Int> = Channel(2);
+    let b: Channel<Int> = Channel(2);
+    let c: Channel<Int> = Channel(2);
+    let d: Channel<Int> = Channel(2);
+    a <- 1;
+    b <- 2;
+    c <- 3;
+    d <- 4;
+    Log("channels made");
+}

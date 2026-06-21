@@ -1,5 +1,8 @@
 /* Runtime panic helpers and checked arithmetic exports. */
 
+#ifndef PGY_RUNTIME_PANIC_CHECKED_INLINE_H
+#define PGY_RUNTIME_PANIC_CHECKED_INLINE_H
+
 #include "pgy_runtime_capability.h"
 #include "pgy_runtime_budget.h"
 
@@ -162,6 +165,15 @@ static inline uint32_t *
 pgy_cap_granted_slot(void)
 {
     static uint32_t granted = PGY_CAP_ALL;
+    static int env_applied = 0;
+
+    if (!env_applied) {
+        unsigned env_mask;
+
+        env_applied = 1;
+        if (pgy_cap_env_grant(&env_mask))
+            granted = env_mask;   /* host PGY_CAP_GRANT restricts the grant */
+    }
     return &granted;
 }
 
@@ -219,37 +231,59 @@ pgy_budget_reset_export(void)
 static inline void
 pgy_budget_set_limit_export(int kind, uint64_t limit)
 {
-    if (pgy_budget_kind_valid(kind))
-        pgy_budget_state_slot()->limit[kind] = limit;
+    if (pgy_budget_kind_valid(kind)) {
+        PgyBudgetState *st = pgy_budget_state_slot();
+        st->limit[kind] = limit;
+        if (limit != PGY_BUDGET_UNLIMITED)
+            st->imposed = 1;
+    }
 }
 
 static inline uint64_t
 pgy_budget_used_export(int kind)
 {
     return pgy_budget_kind_valid(kind)
-        ? pgy_budget_state_slot()->used[kind] : 0;
+        ? atomic_load_explicit(&pgy_budget_state_slot()->used[kind],
+                               memory_order_relaxed)
+        : 0;
 }
 
-/* Fail-closed gate: add `amount` to a kind's running total; the first charge
- * that pushes the total past its ceiling panics with a traceable record. */
+static inline int
+pgy_budget_is_imposed_export(void)
+{
+    return pgy_budget_state_slot()->imposed;
+}
+
+/* Fail-closed gate: atomically add `amount` to a kind's running total; the
+ * charge that pushes the total past its ceiling panics with a traceable
+ * record. */
 static inline void
 pgy_budget_charge_export(int kind, uint64_t amount, const char *op)
 {
     PgyBudgetState *st;
+    uint64_t used;
 
     if (!pgy_budget_kind_valid(kind))
         return;
     st = pgy_budget_state_slot();
-    st->used[kind] = pgy_budget_saturating_add(st->used[kind], amount);
-    if (st->used[kind] > st->limit[kind]) {
+    used = pgy_budget_charge_into(st, kind, amount);
+    if (used > st->limit[kind]) {
         fprintf(stderr,
                 "%s budget op=%s kind=%d used=%llu limit=%llu\n",
                 PGY_RUNTIME_PANIC_PREFIX, op != NULL ? op : "<op>", kind,
-                (unsigned long long)st->used[kind],
+                (unsigned long long)used,
                 (unsigned long long)st->limit[kind]);
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_BUDGET_EXCEEDED,
                           PGY_RUNTIME_PANIC_REASON_BUDGET_EXCEEDED);
     }
+}
+
+/* Arm the wall-clock deadline watchdog (see pgy_runtime_budget.h). Emitted once
+ * at main entry; a no-op unless the host set PGY_BUDGET_WALL_MS. */
+static inline void
+pgy_budget_wall_arm_export(void)
+{
+    pgy_budget_wall_arm_impl();
 }
 
 static inline int32_t
@@ -299,3 +333,5 @@ pgy_checked_mod_i64_export(int64_t lhs, int64_t rhs)
         return 0;
     return lhs % rhs;
 }
+
+#endif /* PGY_RUNTIME_PANIC_CHECKED_INLINE_H */
