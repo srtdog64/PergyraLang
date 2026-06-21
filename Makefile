@@ -620,6 +620,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_domain_provenance_emit.c \
                    $(CODEGEN_DIR)/transpiler_enum_constructor_emit.c \
                    $(CODEGEN_DIR)/transpiler_domain_role_ability_emit.c \
+                   $(CODEGEN_DIR)/transpiler_domain_role_ability_mir_emit.c \
                    $(CODEGEN_DIR)/transpiler_domain_role_methods_emit.c \
                    $(CODEGEN_DIR)/transpiler_domain_role_ability_names.c \
                    $(CODEGEN_DIR)/transpiler_roster_decl_emit.c \

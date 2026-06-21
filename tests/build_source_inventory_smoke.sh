@@ -1388,13 +1388,13 @@ if grep -Fq "ast_domain_slot_is_subject" \
     missing=1
 fi
 
-grep -Fq "transpiler_domain_slot_is_projection_target" \
+grep -Fq "transpiler_zone_domain_slot_is_projection" \
     "$ROOT_DIR/src/codegen/transpiler_projection.c" || {
     echo "[build-source-inventory] projection-target query must be owned by transpiler_projection.c" >&2
     missing=1
 }
 
-grep -Fq "transpiler_domain_slot_view_is_projection_slot" \
+grep -Fq "transpiler_domain_slot_view_is_projection_slot_in_zone_refresh_view" \
     "$ROOT_DIR/src/codegen/transpiler_projection.c" || {
     echo "[build-source-inventory] projection slot-view predicate must be owned by transpiler_projection.c" >&2
     missing=1
@@ -1406,7 +1406,7 @@ grep -Fq "transpiler_domain_slot_view_is_projection_slot_in_zone_refresh_view(" 
     missing=1
 }
 
-grep -Fq "emit_domain_projection_sync_loop_from_view" \
+grep -Fq "emit_zone_projection_sync_loop_from_mir_refresh_view" \
     "$ROOT_DIR/src/codegen/transpiler_domain_provenance_emit.c" || {
     echo "[build-source-inventory] C projection sync must expose a domain slot-view consumer" >&2
     missing=1

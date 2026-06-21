@@ -1218,6 +1218,11 @@ header's `MIRDeclMethod` rows unconditionally. The AST ability method array is
 not kept as a C typedef compatibility payload; typedef field count, method
 names, return type-names, parameter type-names, and generic-param count come
 from declaration inventory and fail closed if the rows are absent or incomplete.
+Generic C ability vtable specializations use the same owner:
+`transpiler_domain_role_ability_mir_emit.c` emits the concrete vtable typedef
+from `MIRDeclMethod` rows plus `MIRAbilityRef` actual/default generic facts.
+The MIR-active specialization path does not reopen the ability declaration's
+AST method array to recover method names, return types, or parameter types.
 
 LLVM ability vtable forward signatures consume the ability declaration header's
 `MIRDeclMethod` rows unconditionally. The AST ability method array is not kept

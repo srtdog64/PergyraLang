@@ -6,13 +6,17 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../compiler/mir_ability_ref.h"
+#include "../compiler/mir_decl_headers.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_domain_role_ability_names.h"
+#include "transpiler_domain_role_ability_mir_emit.h"
 #include "transpiler_format.h"
 #include "transpiler_generic_binding_query.h"
 #include "transpiler_host_self_policy.h"
+#include "transpiler_role_ability_helpers.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_require.h"
 #include "transpiler_type_render.h"
@@ -117,6 +121,17 @@ render_effective_ability_ref_vtable_tag(ASTNode *ability_decl,
     if (ability_ref == NULL)
         return NULL;
 
+    if (ctx != NULL && transpiler_active_has_mir(ctx)) {
+        MIRAbilityRef mir_ref;
+        char *tag = NULL;
+        memset(&mir_ref, 0, sizeof(mir_ref));
+        if (mir_ability_ref_capture(&mir_ref, ability_ref))
+            tag = render_mir_ability_ref_vtable_tag_in_ctx(ctx, &mir_ref);
+        mir_ability_ref_clear(&mir_ref);
+        if (tag != NULL)
+            return tag;
+    }
+
     if (ability_decl != NULL && ability_decl->type == AST_ABILITY_DECL
         && ability_generics != NULL
         && ast_generic_param_count(ability_generics) > 0) {
@@ -171,8 +186,10 @@ ability_ref_vtable_typedef_name(ASTNode *ability_ref,
     if (buf == NULL || buf_size == 0)
         return false;
 
-    if (ctx != NULL && ability_ref != NULL && ability_ref->type == AST_TYPE)
+    if (ctx != NULL && !transpiler_active_has_mir(ctx)
+        && ability_ref != NULL && ability_ref->type == AST_TYPE) {
         ability_decl = find_ability_decl(ctx, ast_type_name(ability_ref));
+    }
     tag = render_effective_ability_ref_vtable_tag(ability_decl, ability_ref, ctx);
     if (tag == NULL) {
         transpiler_set_backend_error_with_hints(ctx,
@@ -198,13 +215,18 @@ ability_ref_vtable_typedef_name(ASTNode *ability_ref,
 void
 ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
 {
-    ASTNode *ability_decl;
+    ASTNode *ability_decl = NULL;
     const char *ability_name;
+    const MIRDeclHeader *ability_header = NULL;
+    MIRAbilityRef mir_ref;
     char typedef_name[128];
     char *tag = NULL;
     bool already_emitted = false;
     CodeBuf *target;
     GenericParams *ability_generics = NULL;
+    size_t generic_count = 0;
+    bool mir_active;
+    bool mir_ref_captured = false;
 
     if (ctx == NULL || ability_ref == NULL
         || ability_ref->type != AST_TYPE || ast_type_name(ability_ref) == NULL) {
@@ -215,15 +237,40 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
         return;
 
     ability_name = ast_type_name(ability_ref);
-    ability_decl = find_ability_decl(ctx, ability_name);
-    if (ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL)
-        return;
+    mir_active = transpiler_active_has_mir(ctx);
+    memset(&mir_ref, 0, sizeof(mir_ref));
+    if (mir_active) {
+        ability_header = transpiler_active_decl_header_of_type(
+            ctx, AST_ABILITY_DECL, ability_name);
+        if (ability_header == NULL) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing ability declaration header for '%s'",
+                ability_name != NULL ? ability_name : "(anonymous-ability)");
+            return;
+        }
+        if (!mir_ability_ref_capture(&mir_ref, ability_ref)) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing ability reference metadata for '%s'",
+                ability_name != NULL ? ability_name : "(anonymous-ability)");
+            return;
+        }
+        mir_ref_captured = true;
+        generic_count = mir_decl_header_generic_param_count(ability_header);
+    } else {
+        ability_decl = find_ability_decl(ctx, ability_name);
+        if (ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL)
+            return;
+        ability_generics = ast_declaration_generic_params(ability_decl);
+        generic_count = ast_generic_param_count(ability_generics);
+    }
 
-    ability_generics = ast_declaration_generic_params(ability_decl);
-    if (ast_generic_param_count(ability_generics) == 0)
+    if (generic_count == 0) {
+        if (mir_ref_captured)
+            mir_ability_ref_clear(&mir_ref);
         return;
+    }
 
-    tag = render_effective_ability_ref_vtable_tag(ability_decl, ability_ref, ctx);
+    tag = render_effective_ability_ref_vtable_tag(NULL, ability_ref, ctx);
     if (tag == NULL) {
         transpiler_set_backend_error_with_hints(ctx,
             PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -231,6 +278,8 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
             PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
             "cannot render ability vtable tag for ability '%s'",
             ability_name != NULL ? ability_name : "<ability>");
+        if (mir_ref_captured)
+            mir_ability_ref_clear(&mir_ref);
         return;
     }
     for (int i = 0; i < ctx->ability_vtable_spec_count; i++) {
@@ -241,6 +290,8 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
     }
     if (already_emitted) {
         free(tag);
+        if (mir_ref_captured)
+            mir_ability_ref_clear(&mir_ref);
         return;
     }
 
@@ -252,6 +303,8 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
             "C backend ability vtable specialization registry exceeded MAX_ABILITY_VTABLE_SPECIALIZATIONS while lowering ability '%s'",
             ability_name != NULL ? ability_name : "<ability>");
         free(tag);
+        if (mir_ref_captured)
+            mir_ability_ref_clear(&mir_ref);
         return;
     }
     if (!transpiler_role_ability_copy_name(
@@ -263,6 +316,8 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
             PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
             "C backend: ability vtable specialization name is too long");
         free(tag);
+        if (mir_ref_captured)
+            mir_ability_ref_clear(&mir_ref);
         return;
     }
     ctx->ability_vtable_spec_count++;
@@ -270,8 +325,23 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
     if (!ability_ref_vtable_typedef_name(ability_ref, typedef_name,
             sizeof(typedef_name), ctx)) {
         free(tag);
+        if (mir_ref_captured)
+            mir_ability_ref_clear(&mir_ref);
         return;
     }
+
+    if (mir_active) {
+        if (!transpiler_emit_mir_ability_ref_vtable_decl(target, ctx,
+                ability_header, &mir_ref, ability_name, typedef_name)) {
+            free(tag);
+            mir_ability_ref_clear(&mir_ref);
+            return;
+        }
+        free(tag);
+        mir_ability_ref_clear(&mir_ref);
+        return;
+    }
+
     codebuf_write(target, "\ntypedef struct\n{\n");
 
     for (size_t i = 0; i < ast_ability_method_count(ability_decl); i++) {

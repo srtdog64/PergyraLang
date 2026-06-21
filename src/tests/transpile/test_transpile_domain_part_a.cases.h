@@ -124,10 +124,15 @@ test_ability_role_emit(void)
         ASTNode *abilities[1] = { &ability_node };
         ASTNode *roles[1] = { &role_node };
         char *impl_param_type_names[1] = { "Int" };
+        char *ability_param_type_names[1] = { "T" };
         MIRProgram mir; memset(&mir, 0, sizeof(mir));
         MIRRoutine routine; memset(&routine, 0, sizeof(routine));
-        MIRDeclHeader role_header; memset(&role_header, 0, sizeof(role_header));
+        MIRDeclHeader decl_headers[2]; memset(decl_headers, 0, sizeof(decl_headers));
+        MIRDeclHeader *role_header = &decl_headers[0];
+        MIRDeclHeader *ability_header = &decl_headers[1];
         MIRDeclMethod role_method; memset(&role_method, 0, sizeof(role_method));
+        MIRDeclMethod ability_method_meta; memset(&ability_method_meta, 0, sizeof(ability_method_meta));
+        MIRDeclGenericParam ability_generic; memset(&ability_generic, 0, sizeof(ability_generic));
         mir.abilities = abilities;
         mir.ability_count = 1;
         mir.roles = roles;
@@ -154,13 +159,28 @@ test_ability_role_emit(void)
         role_method.return_type_name = "String";
         role_method.has_routine = true;
         role_method.routine_index = 0;
-        role_header.name = "CourierRoute";
-        role_header.ast_type = AST_ROLE_DECL;
-        role_header.method_metadata = &role_method;
-        role_header.method_metadata_count = 1;
-        role_header.uses_pointer_self = true;
-        mir.decl_headers = &role_header;
-        mir.decl_header_count = 1;
+        ability_method_meta.name = "BatchMark";
+        ability_method_meta.owner_name = "BatchReady";
+        ability_method_meta.params = ability_params;
+        ability_method_meta.param_type_names = ability_param_type_names;
+        ability_method_meta.param_count = 1;
+        ability_method_meta.return_type = ability_method.data.func_decl.return_type;
+        ability_method_meta.return_type_name = "String";
+        ability_generic.name = "T";
+        ability_generic.bound_type_name = pergyra_strdup("T");
+        role_header->name = "CourierRoute";
+        role_header->ast_type = AST_ROLE_DECL;
+        role_header->method_metadata = &role_method;
+        role_header->method_metadata_count = 1;
+        role_header->uses_pointer_self = true;
+        ability_header->name = "BatchReady";
+        ability_header->ast_type = AST_ABILITY_DECL;
+        ability_header->generic_metadata = &ability_generic;
+        ability_header->generic_metadata_count = 1;
+        ability_header->method_metadata = &ability_method_meta;
+        ability_header->method_metadata_count = 1;
+        mir.decl_headers = decl_headers;
+        mir.decl_header_count = 2;
 
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = &mir;
@@ -171,6 +191,7 @@ test_ability_role_emit(void)
         EXPECT_STR_NOT_CONTAINS(ctx->out->data, "BatchReady_Int__vtable");
 
         transpiler_ctx_destroy(ctx);
+        free(ability_generic.bound_type_name);
     }
 
     TEST("role include forwards inherited impls through derived wrappers");

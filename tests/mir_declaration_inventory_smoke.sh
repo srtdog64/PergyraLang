@@ -5435,6 +5435,24 @@ require_term "src/codegen/transpiler_domain_ability_emit.c" \
     "mir_decl_header_method_count(view.decl_header)"
 require_term "src/codegen/transpiler_domain_ability_emit.c" \
     "mir_decl_header_generic_param_count(methods.decl_header)"
+require_term "src/codegen/transpiler_domain_role_ability_emit.c" \
+    "ctx != NULL && !transpiler_active_has_mir(ctx)"
+for term in \
+    "transpiler_emit_mir_ability_ref_vtable_decl(" \
+    "mir_decl_header_method_count(ability_header)" \
+    "mir_decl_header_method(ability_header, i)" \
+    "transpiler_mir_decl_method_metadata_complete_for(ctx" \
+    "TRANSPILER_MIR_DECL_METHOD_REQUIRE_ALL_TYPE_NAMES" \
+    "transpiler_mir_decl_method_return_type_name(method_meta)" \
+    "transpiler_mir_decl_method_param_type_name(method_meta, j)" \
+    "mir_decl_generic_param_default_type_name(formal)" \
+    "mir_decl_generic_param_constraint_type_name(formal)"; do
+    require_term "src/codegen/transpiler_domain_role_ability_mir_emit.c" "$term"
+done
+if grep -Eq 'ast_ability_method_(count|method)\(|ast_func_param_count\(|ast_func_param\(|ast_func_return_type\(' \
+    "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_mir_emit.c"; then
+    fail "C generic ability vtable specialization must consume MIRDeclMethod metadata, not AST ability method arrays"
+fi
 require_term "src/codegen/llvm_domain_role_lookup.c" \
     "llvm_render_mir_ability_formal_fallback"
 require_term "src/codegen/llvm_domain_role_lookup.c" \
@@ -7009,7 +7027,8 @@ if grep -R "data\.ability_decl\.\(methods\|method_count\)" \
     "$ROOT_DIR/src/codegen/llvm_domain_forward.c" \
     "$ROOT_DIR/src/codegen/transpiler_domain_ability_emit.c" \
     "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c" \
-    "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_emit.c" >/dev/null; then
+    "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_emit.c" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_mir_emit.c" >/dev/null; then
     fail "C/LLVM ability method inventory paths must use AST ability accessors"
 fi
 if grep -R "data\.impl_ability" \
