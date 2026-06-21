@@ -3818,6 +3818,18 @@ require_term "src/compiler/mir_source_local_expr_types.c" \
     "mir_source_local_view_call_type_name"
 require_term "src/compiler/mir_source_local_expr_types.c" \
     "mir_source_local_routine_owner_name"
+if ! awk '
+    /transpiler_mir_ssa_local_find_versioned_type_name\(/ { in_fn = 1 }
+    in_fn && /transpiler_mir_routine_source_local_type_name\(routine, base_name\)/ && source == 0 { source = NR }
+    in_fn && /transpiler_infer_local_type_name_from_expr\(/ && infer == 0 { infer = NR }
+    in_fn && /^}/ {
+        if (source > 0 && infer > 0 && source < infer) ok = 1
+        in_fn = 0
+    }
+    END { exit ok ? 0 : 1 }
+' "$ROOT_DIR/src/codegen/transpiler_mir_ssa_local_facts.c"; then
+    fail "C MIR SSA local declarations must consume MIR source-local type facts before initializer AST inference"
+fi
 require_term "src/compiler/mir_source_local_expr_types.c" \
     "routine->hir_routine->owner_name"
 require_term "src/compiler/mir_source_local_expr_types.c" \
@@ -3862,10 +3874,6 @@ require_term "src/codegen/transpiler_mir_ssa_local_facts.c" \
     "transpiler_mir_routine_source_local_type_name(routine, base_name)"
 require_term "src/codegen/transpiler_mir_ssa_local_facts.c" \
     "transpiler_infer_local_type_name_from_expr("
-require_each_following_term "src/codegen/transpiler_mir_ssa_local_facts.c" \
-    "strcmp(inst->result_name, versioned_name) == 0" \
-    "transpiler_mir_routine_source_local_type_name(routine, base_name)" \
-    45
 require_term "src/codegen/llvm_internal.h" \
     "const MIRRoutine *current_mir_routine"
 require_term "src/codegen/llvm_mir_emit.c" \

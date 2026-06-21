@@ -61,7 +61,10 @@ Current beta closure snapshot:
   MIR source-local type fact path. C MIR pending-use materialization follows
   the same rule: once a `MIRRoutine` is present, missing source-local type
   metadata is a MIR inventory failure, not permission to infer the type from
-  the initializer AST expression.
+  the initializer AST expression. C MIR SSA local declarations also consume
+  the source-local type fact before initializer expression inference, so
+  annotated locals and reassignment/PHI DEF storage cannot be retagged by an
+  initializer-derived guess.
 - LLVM verifier diagnostics live at the LLVM C API boundary in
   `src/codegen/llvm_api.c`. `LLVMVerifyModule(...)` may leave the diagnostic
   message pointer null on success; backend code must only call

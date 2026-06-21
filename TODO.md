@@ -88,6 +88,11 @@ English anchor for tooling/doc gates:
   fact before registering the materialized local. Missing type metadata is a
   MIR inventory failure instead of falling through to initializer expression
   inference. Gate: `perf-contract-smoke`.
+- C MIR SSA local declaration source-of-truth: versioned SSA local declarations
+  now consume `MIRRoutine::source_local_types` before initializer expression
+  inference. This keeps annotated locals, reassignment DEFs, and PHI storage
+  typed by the MIR fact owner instead of by an initializer-derived AST guess.
+  Gate: `mir-declaration-inventory-test-smoke`.
 - Intent control body-summary source-of-truth: call-contract helpers now expose
   positive body-summary readers for spawn and channel-send boundaries. Intent
   clauses still inspect their own source expression for directly written

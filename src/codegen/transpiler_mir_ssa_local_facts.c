@@ -233,6 +233,16 @@ transpiler_mir_ssa_local_find_versioned_type_name(
     }
     (void)version;
 
+    {
+        const char *source_type =
+            transpiler_mir_routine_source_local_type_name(routine, base_name);
+        if (source_type != NULL
+            && source_type[0] != '\0'
+            && strcmp(source_type, "Unknown") != 0) {
+            return pergyra_strdup(source_type);
+        }
+    }
+
     for (size_t i = 0; i < routine->block_count; i++) {
         const MIRBasicBlock *block = &routine->blocks[i];
         if (block == NULL || !block->is_reachable || block->is_cleanup)
@@ -263,15 +273,6 @@ transpiler_mir_ssa_local_find_versioned_type_name(
                     return pergyra_strdup(inst->arg1);
                 }
             }
-        }
-    }
-    {
-        const char *source_type =
-            transpiler_mir_routine_source_local_type_name(routine, base_name);
-        if (source_type != NULL
-            && source_type[0] != '\0'
-            && strcmp(source_type, "Unknown") != 0) {
-            return pergyra_strdup(source_type);
         }
     }
     for (size_t i = 0; i < routine->block_count; i++) {
