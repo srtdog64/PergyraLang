@@ -64,6 +64,7 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
     const char *elem_c_type = NULL;
     char elem_inner_buf[128];
     char elem_c_type_buf[128];
+    const char *claim_abi_type_name = NULL;
 
     if (buf == NULL || block == NULL || inst == NULL || ctx == NULL
         || ssa_map_out == NULL || inst->kind != MIR_INST_DESTRUCTURE) {
@@ -75,82 +76,74 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
         return false;
 
     init = inst->expr0;
-    if (init != NULL && init->type == AST_CALL
-        && ast_call_callee(init) != NULL
-        && ast_call_callee(init)->type == AST_IDENTIFIER
-        && ast_identifier_name(ast_call_callee(init)) != NULL
-        && binding_count == 2) {
-        const char *cname = ast_identifier_name(ast_call_callee(init));
-        if (pgy_codegen_call_name_is_claim_secure_slot(cname)) {
-            const char *inner = NULL;
-            const char *slot_name;
-            const char *token_name;
-            char typed_tok[64];
-            char typed_slot[64];
+    claim_abi_type_name = inst->abi_type_name != NULL
+        ? inst->abi_type_name
+        : (inst->type_layout != NULL ? inst->type_layout->abi_type_name : NULL);
+    if (binding_count == 2
+        && pgy_codegen_type_name_is_secure_slot(claim_abi_type_name)) {
+        char claim_inner_buf[128];
+        const char *inner = claim_inner_buf;
+        const char *slot_name;
+        const char *token_name;
+        char typed_tok[64];
+        char typed_slot[64];
 
-            if (ast_call_generic_arg(init, 0) != NULL) {
-                inner = transpiler_let_slot_inner_from_call_type_arg(ctx, init);
+        if (!slot_inner_type_name_copy(claim_abi_type_name,
+                claim_inner_buf, sizeof(claim_inner_buf))
+            || claim_inner_buf[0] == '\0'
+            || strcmp(claim_inner_buf, "Unknown") == 0) {
+            if (reason != NULL && reason_cap > 0) {
+                transpiler_mir_reasonf(reason, reason_cap,
+                    "ClaimSecureSlot destructuring requires concrete generic type");
             }
-            if (inner == NULL || inner[0] == '\0') {
-                if (reason != NULL && reason_cap > 0) {
-                    transpiler_mir_reasonf(reason, reason_cap,
-                        "ClaimSecureSlot destructuring requires concrete generic type");
-                }
-                transpiler_set_backend_error_with_hints(ctx,
-                    PGY_CODE_C_TYPE_UNSUPPORTED,
-                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                    "C backend: ClaimSecureSlot destructuring requires concrete SecureSlot<T> metadata");
-                return false;
-            }
-            slot_name =
-                mir_instruction_destructure_binding_name_at(inst, 0);
-            token_name =
-                mir_instruction_destructure_binding_name_at(inst, 1);
-            write_indent_to(buf, ctx->indent);
-            codebuf_write(buf, "PgyToken_%s %s;\n", inner, token_name);
-            write_indent_to(buf, ctx->indent);
-            codebuf_write(buf,
-                "PgySecureSlot_%s %s = pgy_claim_secure_%s(&%s);\n",
-                inner, slot_name, inner, token_name);
-            write_indent_to(buf, ctx->indent);
-            codebuf_write(buf, "(void)%s;\n", slot_name);
-            register_slot_var(ctx, slot_name, inner, true, false);
-            set_slot_token_name(ctx, slot_name, token_name);
-            if (!transpiler_mir_destructure_format_type(
-                    typed_tok, sizeof(typed_tok), "Token", inner)
-                || !transpiler_mir_destructure_format_type(
-                    typed_slot, sizeof(typed_slot), "SecureSlot", inner)) {
-                transpiler_set_backend_error_with_hints(ctx,
-                    PGY_CODE_C_TYPE_UNSUPPORTED,
-                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                    "C backend: ClaimSecureSlot destructuring type name is too long");
-                return false;
-            }
-            register_typed_var(ctx, token_name, typed_tok);
-            register_typed_var(ctx, slot_name, typed_slot);
-            transpiler_ssa_name_map_set(ssa_map_out, slot_name, slot_name);
-            transpiler_ssa_name_map_set(ssa_map_out, token_name, token_name);
-            return true;
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "C backend: ClaimSecureSlot destructuring requires concrete SecureSlot<T> metadata");
+            return false;
         }
+        slot_name = mir_instruction_destructure_binding_name_at(inst, 0);
+        token_name = mir_instruction_destructure_binding_name_at(inst, 1);
+        write_indent_to(buf, ctx->indent);
+        codebuf_write(buf, "PgyToken_%s %s;\n", inner, token_name);
+        write_indent_to(buf, ctx->indent);
+        codebuf_write(buf,
+            "PgySecureSlot_%s %s = pgy_claim_secure_%s(&%s);\n",
+            inner, slot_name, inner, token_name);
+        write_indent_to(buf, ctx->indent);
+        codebuf_write(buf, "(void)%s;\n", slot_name);
+        register_slot_var(ctx, slot_name, inner, true, false);
+        set_slot_token_name(ctx, slot_name, token_name);
+        if (!transpiler_mir_destructure_format_type(
+                typed_tok, sizeof(typed_tok), "Token", inner)
+            || !transpiler_mir_destructure_format_type(
+                typed_slot, sizeof(typed_slot), "SecureSlot", inner)) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "C backend: ClaimSecureSlot destructuring type name is too long");
+            return false;
+        }
+        register_typed_var(ctx, token_name, typed_tok);
+        register_typed_var(ctx, slot_name, typed_slot);
+        transpiler_ssa_name_map_set(ssa_map_out, slot_name, slot_name);
+        transpiler_ssa_name_map_set(ssa_map_out, token_name, token_name);
+        return true;
     }
 
-    if (init != NULL && init->type == AST_CALL
-        && ast_call_callee(init) != NULL
-        && ast_call_callee(init)->type == AST_IDENTIFIER
-        && ast_identifier_name(ast_call_callee(init)) != NULL
-        && binding_count == 1
-        && pgy_codegen_call_name_is_claim_slot(
-               ast_identifier_name(ast_call_callee(init)))) {
-        const char *inner = NULL;
+    if (binding_count == 1
+        && pgy_codegen_type_name_is_slot(claim_abi_type_name)) {
+        char claim_inner_buf[128];
+        const char *inner = claim_inner_buf;
         const char *slot_name;
         char typed_slot[64];
 
-        if (ast_call_generic_arg(init, 0) != NULL) {
-            inner = transpiler_let_slot_inner_from_call_type_arg(ctx, init);
-        }
-        if (inner == NULL || inner[0] == '\0') {
+        if (!slot_inner_type_name_copy(claim_abi_type_name,
+                claim_inner_buf, sizeof(claim_inner_buf))
+            || claim_inner_buf[0] == '\0'
+            || strcmp(claim_inner_buf, "Unknown") == 0) {
             if (reason != NULL && reason_cap > 0) {
                 transpiler_mir_reasonf(reason, reason_cap,
                     "ClaimSlot destructuring requires concrete generic type");

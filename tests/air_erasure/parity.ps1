@@ -17,15 +17,23 @@ reg add "HKCU\Software\Microsoft\Windows\Windows Error Reporting" /v DontShowUI 
 function Outcome($exe) {
   if (-not (Test-Path $exe)) { return "compile-fail" }
   $err = "$exe.err"
-  $p = Start-Process -FilePath $exe -PassThru -NoNewWindow -RedirectStandardError $err -RedirectStandardOutput "$exe.out"
+  $outPath = "$exe.out"
+  $psi = [System.Diagnostics.ProcessStartInfo]::new()
+  $psi.FileName = (Resolve-Path $exe).Path
+  $psi.UseShellExecute = $false
+  $psi.RedirectStandardOutput = $true
+  $psi.RedirectStandardError = $true
+  $p = [System.Diagnostics.Process]::Start($psi)
   if (-not $p.WaitForExit(8000)) { $p.Kill(); return "HANG" }
+  [System.IO.File]::WriteAllText($outPath, $p.StandardOutput.ReadToEnd())
+  [System.IO.File]::WriteAllText($err, $p.StandardError.ReadToEnd())
   $panic = ''
   if (Test-Path $err) {
     $m = Select-String -Path $err -Pattern 'class=([a-z-]+)' | Select-Object -First 1
     if ($m) { $panic = $m.Matches.Groups[1].Value }
   }
   if ($panic) { return "panic:$panic" }
-  $out = if (Test-Path "$exe.out") { [string](Get-Content "$exe.out" -Raw) } else { '' }
+  $out = if (Test-Path $outPath) { [string](Get-Content $outPath -Raw) } else { '' }
   return "clean:" + (($out -replace '\s+', ' ').Trim())
 }
 

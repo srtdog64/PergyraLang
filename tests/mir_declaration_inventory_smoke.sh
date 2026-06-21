@@ -7960,6 +7960,20 @@ require_term "src/tests/mir/test_mir_lowering_part_h.cases.h" \
     "MIR validator rejects zone refresh metadata drift"
 
 require_term "TODO.md" "declaration-side MIR-only debt"
+require_term "src/compiler/mir_stmt_population_source.c" \
+    "inst.abi_type_name ="
+require_term "src/codegen/llvm_stmt_destructure.c" \
+    "llvm_destructure_claim_abi_name"
+require_term "src/codegen/transpiler_mir_destructure_emit.c" \
+    "claim_abi_type_name = inst->abi_type_name"
+if grep -Fq "transpiler_let_slot_inner_from_call_type_arg(ctx, init)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c"; then
+    fail "C MIR destructure claim emission must consume MIR ABI facts, not AST generic args"
+fi
+if grep -Fq "ast_call_generic_arg(init, 0)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c"; then
+    fail "C MIR destructure claim emission must not re-read claim generic args from AST"
+fi
 
 domain_arrays=(
     functions intents abilities roles parties rosters worlds relations effects

@@ -642,9 +642,10 @@ a provable fixture stops erasing; a *new* residue mismatch is a hard failure whi
   retains via `slot_capability_retain_count`; the secure check that genuinely
   survives `-O2` across a method boundary (`08_secure_slot_method`) is now
   declared instead of listed as `expected_drift`.
-- The LLVM backend rejects tuple-destructure `let (slot, token) = ClaimSecureSlot()`
-  (the C backend accepts it) — a real surface-coverage divergence the C == LLVM
-  parity check found, recorded as `llvm_unsupported`.
+- The LLVM backend accepts tuple-destructure `let (slot, token) = ClaimSecureSlot()`
+  through MIR-owned destructure ABI facts, matching the C backend. The
+  `llvm_unsupported` ledger is empty and exists only to make any future backend
+  divergence explicit.
 - A faithful LLVM *physical* residue pass (runtime-linked, `opt`/`llc`) is
   tooling-gated where those LLVM tools are absent; residue parity currently rests
   on shared-runtime + verified behavioral parity.

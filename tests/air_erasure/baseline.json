@@ -9,7 +9,5 @@
     "07_lifecycle_linear"
   ],
   "expected_drifts": {},
-  "llvm_unsupported": {
-    "03_secure_slot": "LLVM backend rejects tuple-destructure `let (slot, token) = ClaimSecureSlot()` ('requires an explicitly typed binding'); the C backend accepts it. A real C/LLVM surface-coverage divergence found by parity.ps1. The class-field secure-slot form (08) compiles on both backends."
-  }
+  "llvm_unsupported": {}
 }

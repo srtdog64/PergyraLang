@@ -5,6 +5,7 @@
 
 #include "mir_call_fact.h"
 #include "mir_cfg_contract_control.h"
+#include "mir_type_helpers.h"
 #include "../parser/ast_api.h"
 
 bool
@@ -137,6 +138,16 @@ mir_make_destructure_instruction(MIRRoutine *routine,
     if (stmt != NULL && stmt->type == AST_LET_DESTRUCTURE) {
         size_t name_count = ast_let_destructure_name_count(stmt);
         inst.expr0 = ast_let_destructure_initializer(stmt);
+        if (routine != NULL) {
+            char *claim_type_name = mir_claim_abi_type_name_from_ast(inst.expr0);
+            if (claim_type_name != NULL) {
+                inst.abi_type_name =
+                    pgy_arena_strdup(&routine->scratch, claim_type_name);
+                if (inst.abi_type_name != NULL)
+                    inst.type_layout = mir_abi_lookup(inst.abi_type_name);
+                free(claim_type_name);
+            }
+        }
         if (name_count > 0) {
             inst.destructure_binding_names =
                 calloc(name_count, sizeof(const char *));

@@ -230,16 +230,13 @@ The three gaps §6/§7 recorded are now filled:
   backends share an ABI-identical runtime (`pgy_runtime_lib.bc` is built from the
   same source as the C static-inline runtime, `scripts/build_runtime_bc.sh`),
   residue parity follows from behavioral parity, which `parity.ps1` checks: every
-  fixture must yield the same outcome on both backends. 8/9 match (incl.
-  `06_lifecycle_branch` → both `panic:invalid-lifecycle-state`); the parity check
-  also **found a real divergence** — `03_secure_slot`'s tuple-destructure
-  `ClaimSecureSlot` is rejected by the LLVM backend (`requires an explicitly typed
-  binding`) though C accepts it. Recorded in `baseline.json` `llvm_unsupported`.
+  fixture must yield the same outcome on both backends. 9/9 match, including
+  `03_secure_slot` tuple-destructure `ClaimSecureSlot` and
+  `06_lifecycle_branch` (both `panic:invalid-lifecycle-state`). New LLVM
+  unsupported fixture entries must be explicit regressions, not hidden defaults.
 
 ## 9. Remaining work
 
-- Fix the LLVM backend to accept tuple-destructure `ClaimSecureSlot` (the `03`
-  divergence) — a real surface-coverage gap between the backends.
 - When `opt`/`llc` are available, add the faithful LLVM *physical* `nm` pass and
   check residue-count parity, not just behavioral parity.
 - Cross-check against `docs/semantics/proofs/IRMinimality.v`: that proof bounds
