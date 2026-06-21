@@ -63,6 +63,7 @@ typedef struct
 {
     const char    *owner_name;
     MIRAbilityRef  ability_ref;
+    size_t         method_start_index;
     size_t         method_count;
 } MIRDeclRoleImpl;
 

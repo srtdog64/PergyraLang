@@ -39,7 +39,12 @@ const MIRDeclRoleImpl *mir_decl_header_role_impl(
     size_t index);
 const MIRAbilityRef *mir_decl_role_impl_ability_ref(
     const MIRDeclRoleImpl *impl);
+size_t mir_decl_role_impl_method_start_index(const MIRDeclRoleImpl *impl);
 size_t mir_decl_role_impl_method_count(const MIRDeclRoleImpl *impl);
+const MIRDeclMethod *mir_decl_header_role_impl_method(
+    const MIRDeclHeader *header,
+    const MIRDeclRoleImpl *impl,
+    size_t index);
 size_t mir_decl_header_field_count(const MIRDeclHeader *header);
 const MIRDeclField *mir_decl_header_field(const MIRDeclHeader *header,
                                           size_t index);

@@ -154,6 +154,72 @@ test_mir_lowering_part_d(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR declaration headers preserve role impl method spans");
+    {
+        const char *src =
+            "subject Runner {}\n"
+            "ability Tickable { func Tick(self) -> Int; }\n"
+            "ability Movable {\n"
+            "    func Move(self, amount: Int) -> Int;\n"
+            "    func Stop(self) -> Int;\n"
+            "}\n"
+            "role Route for Runner {\n"
+            "    impl ability Tickable {\n"
+            "        func Tick(self) -> Int { return 1; }\n"
+            "    }\n"
+            "    impl ability Movable {\n"
+            "        func Move(self, amount: Int) -> Int { return amount; }\n"
+            "        func Stop(self) -> Int { return 0; }\n"
+            "    }\n"
+            "}\n"
+            "func Main() -> Void { }\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRDeclHeader *role = NULL;
+        const MIRDeclRoleImpl *tick_impl = NULL;
+        const MIRDeclRoleImpl *move_impl = NULL;
+        const MIRDeclMethod *tick_method = NULL;
+        const MIRDeclMethod *move_method = NULL;
+        const MIRDeclMethod *stop_method = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL)
+            role = mir_find_decl_header_of_type(mir, AST_ROLE_DECL, "Route");
+        if (role != NULL) {
+            tick_impl = mir_decl_header_role_impl(role, 0);
+            move_impl = mir_decl_header_role_impl(role, 1);
+        }
+        if (tick_impl != NULL)
+            tick_method = mir_decl_header_role_impl_method(role, tick_impl, 0);
+        if (move_impl != NULL) {
+            move_method = mir_decl_header_role_impl_method(role, move_impl, 0);
+            stop_method = mir_decl_header_role_impl_method(role, move_impl, 1);
+        }
+        EXPECT(ok
+               && role != NULL
+               && mir_decl_header_role_impl_count(role) == 2
+               && mir_decl_header_method_count(role) == 3
+               && tick_impl != NULL
+               && mir_decl_role_impl_method_start_index(tick_impl) == 0
+               && mir_decl_role_impl_method_count(tick_impl) == 1
+               && move_impl != NULL
+               && mir_decl_role_impl_method_start_index(move_impl) == 1
+               && mir_decl_role_impl_method_count(move_impl) == 2
+               && tick_method != NULL
+               && mir_decl_method_name(tick_method) != NULL
+               && strcmp(mir_decl_method_name(tick_method), "Tick") == 0
+               && move_method != NULL
+               && mir_decl_method_name(move_method) != NULL
+               && strcmp(mir_decl_method_name(move_method), "Move") == 0
+               && stop_method != NULL
+               && mir_decl_method_name(stop_method) != NULL
+               && strcmp(mir_decl_method_name(stop_method), "Stop") == 0
+               && mir_validate(mir, NULL));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR declaration headers preserve zone authority ability refs");
     {
         const char *src =

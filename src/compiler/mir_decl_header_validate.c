@@ -139,6 +139,7 @@ mir_validate_decl_role_impl_metadata(const MIRDeclHeader *header,
                                      char **error_message)
 {
     size_t impl_method_total = 0;
+    size_t expected_method_index = 0;
 
     if (header == NULL)
         return false;
@@ -192,6 +193,24 @@ mir_validate_decl_role_impl_metadata(const MIRDeclHeader *header,
             }
             return false;
         }
+        if (impl->method_start_index != expected_method_index) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] role impl[%zu] method span metadata drift",
+                    header_index, i);
+            }
+            return false;
+        }
+        if (impl->method_start_index > header->method_metadata_count
+            || impl->method_count
+                > header->method_metadata_count - impl->method_start_index) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] role impl[%zu] method span exceeds method metadata",
+                    header_index, i);
+            }
+            return false;
+        }
         if (ref->base_name == NULL
             || (ref->actual_arg_count > 0
                 && ref->actual_arg_type_names == NULL)) {
@@ -213,6 +232,7 @@ mir_validate_decl_role_impl_metadata(const MIRDeclHeader *header,
             }
         }
         impl_method_total += impl->method_count;
+        expected_method_index += impl->method_count;
     }
 
     if (header->ast_type == AST_ROLE_DECL

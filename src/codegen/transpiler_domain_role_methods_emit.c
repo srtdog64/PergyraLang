@@ -103,22 +103,28 @@ void
 emit_role_vtable_instance(const char *role_name,
                           const char *metadata_role_name,
                           ASTNode *impl,
-                          const MIRAbilityRef *ability_ref_meta,
+                          const MIRDeclHeader *role_header_meta,
+                          const MIRDeclRoleImpl *role_impl_meta,
                           TranspilerCtx *ctx)
 {
     ASTNode *ability_ref = NULL;
+    const MIRAbilityRef *ability_ref_meta = NULL;
     const char *ability_name = NULL;
     char typedef_name[128];
     char *vtable_tag = NULL;
     bool mir_active = transpiler_active_has_mir(ctx);
+    size_t method_count = 0;
 
     if (ctx != NULL && ctx->backend_error != NULL)
         return;
     if (mir_active) {
+        ability_ref_meta = mir_decl_role_impl_ability_ref(role_impl_meta);
         ability_name = mir_ability_ref_base_name(ability_ref_meta);
+        method_count = mir_decl_role_impl_method_count(role_impl_meta);
     } else {
         ability_ref = ast_impl_ability_ref(impl);
         ability_name = ast_impl_ability_name(impl);
+        method_count = ast_impl_ability_method_count(impl);
     }
     if (ability_name == NULL) {
         if (mir_active) {
@@ -129,7 +135,7 @@ emit_role_vtable_instance(const char *role_name,
         }
         return;
     }
-    if (ast_impl_ability_method_count(impl) == 0)
+    if (method_count == 0)
         return;
 
     if (mir_active)
@@ -175,17 +181,15 @@ emit_role_vtable_instance(const char *role_name,
         "\nstatic const %s %s_%s_vtable_instance __attribute__((unused)) = {\n",
         typedef_name, role_name, vtable_tag);
 
-    for (size_t j = 0; j < ast_impl_ability_method_count(impl); j++) {
-        ASTNode *method = ast_impl_ability_method(impl, j);
+    for (size_t j = 0; j < method_count; j++) {
+        ASTNode *method = mir_active ? NULL : ast_impl_ability_method(impl, j);
         const MIRDeclMethod *method_meta = NULL;
         const char *method_name;
-        if (transpiler_active_has_mir(ctx)) {
-            const char *ast_method_name = method != NULL
-                ? ast_declaration_name(method) : NULL;
+        if (mir_active) {
             const char *lookup_role_name = metadata_role_name != NULL
                 ? metadata_role_name : role_name;
-            method_meta = transpiler_find_host_method_metadata_in_context(
-                ctx, lookup_role_name, ast_method_name);
+            method_meta = mir_decl_header_role_impl_method(
+                role_header_meta, role_impl_meta, j);
             if (method_meta == NULL) {
                 transpiler_set_mir_inventory_missing(
                     ctx,

@@ -104,13 +104,13 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                 continue;
 
             ASTNode *ability_ref = NULL;
+            const MIRDeclRoleImpl *impl_meta = NULL;
             const char *ab_name = NULL;
             const char *ab_tag = NULL;
 
             if (llvm_active_has_mir(ctx)) {
-                const MIRDeclRoleImpl *impl_meta =
-                    mir_decl_header_role_impl(
-                        method_view.decl_header, role_impl_index);
+                impl_meta = mir_decl_header_role_impl(
+                    method_view.decl_header, role_impl_index);
                 const MIRAbilityRef *mir_ref =
                     mir_decl_role_impl_ability_ref(impl_meta);
                 role_impl_index++;
@@ -275,7 +275,9 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                 vt_cls = llvm_lookup_class(ctx, base_vt_type_name);
             }
             if (vt_cls != NULL) {
-                size_t mc = ast_impl_ability_method_count(impl);
+                size_t mc = llvm_active_has_mir(ctx)
+                    ? mir_decl_role_impl_method_count(impl_meta)
+                    : ast_impl_ability_method_count(impl);
                 /*
                  * Vtable method value array is consumed by
                  * LLVMConstNamedStruct (copies) for the global initializer.
@@ -290,14 +292,13 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                     return false;
                 }
                 for (size_t j = 0; j < mc; j++) {
-                    ASTNode *method = ast_impl_ability_method(impl, j);
+                    ASTNode *method = llvm_active_has_mir(ctx)
+                        ? NULL : ast_impl_ability_method(impl, j);
                     const MIRDeclMethod *method_meta = NULL;
                     const char *method_name;
                     if (llvm_active_has_mir(ctx)) {
-                        const char *ast_method_name =
-                            llvm_role_method_name_from_ast(method);
-                        method_meta = llvm_find_host_method_metadata_in_context(
-                            ctx, role_name, ast_method_name);
+                        method_meta = mir_decl_header_role_impl_method(
+                            method_view.decl_header, impl_meta, j);
                         if (method_meta == NULL) {
                             llvm_set_mir_inventory_missing(ctx,
                                 "MIR-only LLVM path missing role vtable method metadata for role '%s'",

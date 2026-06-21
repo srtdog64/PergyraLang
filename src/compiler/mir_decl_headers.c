@@ -239,6 +239,7 @@ mir_decl_header_set_role_impls(MIRDeclHeader *header, ASTNode *role_decl)
 {
     size_t count;
     size_t out = 0;
+    size_t method_index = 0;
 
     if (header == NULL || role_decl == NULL || role_decl->type != AST_ROLE_DECL)
         return false;
@@ -264,6 +265,7 @@ mir_decl_header_set_role_impls(MIRDeclHeader *header, ASTNode *role_decl)
             continue;
         meta = &header->role_impl_metadata[out];
         meta->owner_name = header->name;
+        meta->method_start_index = method_index;
         meta->method_count = ast_impl_ability_method_count(impl);
         if (!mir_ability_ref_capture(
                 &meta->ability_ref, ast_impl_ability_ref(impl))) {
@@ -271,6 +273,7 @@ mir_decl_header_set_role_impls(MIRDeclHeader *header, ASTNode *role_decl)
             mir_decl_header_free_role_impls(header);
             return false;
         }
+        method_index += meta->method_count;
         out++;
     }
     header->role_impl_metadata_count = out;

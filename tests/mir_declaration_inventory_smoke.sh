@@ -6209,7 +6209,7 @@ require_term "src/codegen/transpiler_zone_methods_emit.c" \
 require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
     "MIR-only C path missing role operator method metadata for role"
 require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
-    "transpiler_find_host_method_metadata_in_context("
+    "mir_decl_header_role_impl_method("
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "MIR-only LLVM path missing role operator method metadata for role"
 require_term "src/codegen/llvm_domain_role_emit.c" \
@@ -7053,21 +7053,43 @@ require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
     "ensure_mir_ability_ref_vtable_decl(ability_ref_meta, ctx)"
 require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
     "render_mir_ability_ref_vtable_tag_in_ctx("
+require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
+    "mir_decl_role_impl_method_count(role_impl_meta)"
+require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
+    "mir_decl_header_role_impl_method("
 require_term "src/codegen/transpiler_domain_nominal_emit.c" \
     "mir_decl_header_role_impl("
 require_term "src/codegen/transpiler_domain_nominal_emit.c" \
-    "mir_decl_role_impl_ability_ref(impl_meta)"
+    "emit_role_vtable_instance(owner_role_name,"
 require_term "src/compiler/mir_decl.h" \
     "MIRDeclRoleImpl"
+require_term "src/compiler/mir_decl.h" \
+    "method_start_index"
+require_term "src/compiler/mir_decl_header_access.c" \
+    "mir_decl_header_role_impl_method"
 require_term "src/compiler/mir_decl_headers.c" \
     "mir_decl_header_set_role_impls"
 require_term "src/compiler/mir_decl_header_validate.c" \
     "mir_validate_decl_role_impl_metadata"
+require_term "src/compiler/mir_decl_header_validate.c" \
+    "method span metadata drift"
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "ast_impl_ability_method(impl, j)"
+require_term "src/codegen/llvm_domain_role_emit.c" \
+    "mir_decl_role_impl_method_count(impl_meta)"
+require_term "src/codegen/llvm_domain_role_emit.c" \
+    "mir_decl_header_role_impl_method("
 if grep -Fq "mir_ability_ref_capture(&mir_ref, ability_ref)" \
     "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c"; then
     fail "LLVM role impl vtable emission must consume MIR role-impl ability-ref metadata, not recapture AST ability refs"
+fi
+if grep -Fq "transpiler_find_host_method_metadata_in_context(" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"; then
+    fail "C role impl vtable emission must consume MIR role-impl method spans, not name-lookup AST method rows"
+fi
+if grep -Fq "llvm_find_host_method_metadata_in_context(" \
+    "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c"; then
+    fail "LLVM role impl vtable emission must consume MIR role-impl method spans, not name-lookup AST method rows"
 fi
 require_term "src/codegen/llvm_domain_role_helpers.h" \
     "llvm_party_slot_first_ability_tag"

@@ -132,6 +132,7 @@ test_ability_role_emit(void)
         MIRDeclHeader *ability_header = &decl_headers[1];
         MIRDeclMethod role_method; memset(&role_method, 0, sizeof(role_method));
         MIRDeclMethod ability_method_meta; memset(&ability_method_meta, 0, sizeof(ability_method_meta));
+        MIRDeclRoleImpl role_impl_meta; memset(&role_impl_meta, 0, sizeof(role_impl_meta));
         MIRDeclGenericParam ability_generic; memset(&ability_generic, 0, sizeof(ability_generic));
         mir.abilities = abilities;
         mir.ability_count = 1;
@@ -159,6 +160,13 @@ test_ability_role_emit(void)
         role_method.return_type_name = "String";
         role_method.has_routine = true;
         role_method.routine_index = 0;
+        role_impl_meta.owner_name = "CourierRoute";
+        role_impl_meta.ability_ref.base_name = pergyra_strdup("BatchReady");
+        role_impl_meta.ability_ref.actual_arg_count = 1;
+        role_impl_meta.ability_ref.actual_arg_type_names = calloc(1, sizeof(char *));
+        role_impl_meta.ability_ref.actual_arg_type_names[0] = pergyra_strdup("Int");
+        role_impl_meta.method_start_index = 0;
+        role_impl_meta.method_count = 1;
         ability_method_meta.name = "BatchMark";
         ability_method_meta.owner_name = "BatchReady";
         ability_method_meta.params = ability_params;
@@ -170,13 +178,19 @@ test_ability_role_emit(void)
         ability_generic.bound_type_name = pergyra_strdup("T");
         role_header->name = "CourierRoute";
         role_header->ast_type = AST_ROLE_DECL;
+        role_header->method_count = 1;
         role_header->method_metadata = &role_method;
         role_header->method_metadata_count = 1;
+        role_header->role_impl_count = 1;
+        role_header->role_impl_metadata = &role_impl_meta;
+        role_header->role_impl_metadata_count = 1;
         role_header->uses_pointer_self = true;
         ability_header->name = "BatchReady";
         ability_header->ast_type = AST_ABILITY_DECL;
+        ability_header->generic_param_count = 1;
         ability_header->generic_metadata = &ability_generic;
         ability_header->generic_metadata_count = 1;
+        ability_header->method_count = 1;
         ability_header->method_metadata = &ability_method_meta;
         ability_header->method_metadata_count = 1;
         mir.decl_headers = decl_headers;
@@ -191,6 +205,7 @@ test_ability_role_emit(void)
         EXPECT_STR_NOT_CONTAINS(ctx->out->data, "BatchReady_Int__vtable");
 
         transpiler_ctx_destroy(ctx);
+        mir_ability_ref_clear(&role_impl_meta.ability_ref);
         free(ability_generic.bound_type_name);
     }
 

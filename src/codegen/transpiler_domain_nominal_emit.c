@@ -254,15 +254,13 @@ emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
 
         for (size_t j = 0; j < ast_role_impl_count(included_role); j++) {
             ASTNode *impl = ast_role_impl(included_role, j);
-            const MIRAbilityRef *ability_ref_meta = NULL;
+            const MIRDeclRoleImpl *impl_meta = NULL;
             if (impl == NULL || impl->type != AST_IMPL_ABILITY)
                 continue;
 
             if (transpiler_active_has_mir(ctx)) {
-                const MIRDeclRoleImpl *impl_meta =
-                    mir_decl_header_role_impl(
-                        included_role_header, role_impl_index);
-                ability_ref_meta = mir_decl_role_impl_ability_ref(impl_meta);
+                impl_meta = mir_decl_header_role_impl(
+                    included_role_header, role_impl_index);
             }
             role_impl_index++;
 
@@ -304,7 +302,7 @@ emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
 
             emit_role_vtable_instance(owner_role_name,
                 transpiler_decl_name_local(included_role), impl,
-                ability_ref_meta, ctx);
+                included_role_header, impl_meta, ctx);
             if (ctx != NULL && ctx->backend_error != NULL)
                 return;
         }
@@ -357,17 +355,14 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
                 continue;
 
             if (impl->type == AST_IMPL_ABILITY) {
-                const MIRAbilityRef *ability_ref_meta = NULL;
+                const MIRDeclRoleImpl *impl_meta = NULL;
                 if (transpiler_active_has_mir(ctx)) {
-                    const MIRDeclRoleImpl *impl_meta =
-                        mir_decl_header_role_impl(
-                            method_view.decl_header, role_impl_index);
-                    ability_ref_meta =
-                        mir_decl_role_impl_ability_ref(impl_meta);
+                    impl_meta = mir_decl_header_role_impl(
+                        method_view.decl_header, role_impl_index);
                 }
                 role_impl_index++;
                 emit_role_vtable_instance(
-                    name, name, impl, ability_ref_meta, ctx);
+                    name, name, impl, method_view.decl_header, impl_meta, ctx);
                 if (ctx != NULL && ctx->backend_error != NULL)
                     return;
 
