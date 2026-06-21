@@ -11,6 +11,7 @@
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_inventory_host_methods.h"
 #include "llvm_inventory_internal.h"
+#include "../compiler/mir_ability_ref.h"
 
 static const char *
 llvm_role_method_name_from_ast(ASTNode *method)
@@ -103,8 +104,23 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
 
             ASTNode *ability_ref = ast_impl_ability_ref(impl);
             const char *ab_name = ast_impl_ability_name(impl);
-            const char *ab_tag =
-                llvm_render_ast_ability_ref_vtable_tag(ctx, ability_ref);
+            const char *ab_tag = NULL;
+
+            if (llvm_active_has_mir(ctx)) {
+                MIRAbilityRef mir_ref = {0};
+                if (!mir_ability_ref_capture(&mir_ref, ability_ref)) {
+                    mir_ability_ref_clear(&mir_ref);
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing role vtable ability-ref metadata for role '%s'",
+                        role_name != NULL ? role_name : "(anonymous-role)");
+                    return false;
+                }
+                ab_tag = llvm_render_mir_ability_ref_vtable_tag(ctx, &mir_ref);
+                mir_ability_ref_clear(&mir_ref);
+            } else {
+                ab_tag =
+                    llvm_render_ast_ability_ref_vtable_tag(ctx, ability_ref);
+            }
 
             {
                 PgyTokenType ops[] = {

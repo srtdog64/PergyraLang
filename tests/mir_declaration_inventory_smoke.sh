@@ -6948,7 +6948,11 @@ require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "ast_impl_ability_name(impl)"
 require_term "src/codegen/llvm_domain_role_emit.c" \
-    "llvm_render_ast_ability_ref_vtable_tag(ctx, ability_ref)"
+    "mir_ability_ref_capture(&mir_ref, ability_ref)"
+require_term "src/codegen/llvm_domain_role_emit.c" \
+    "llvm_render_mir_ability_ref_vtable_tag(ctx, &mir_ref)"
+require_term "src/codegen/llvm_domain_role_emit.c" \
+    "mir_ability_ref_clear(&mir_ref)"
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "ast_impl_ability_method(impl, j)"
 require_term "src/codegen/llvm_domain_role_helpers.h" \
