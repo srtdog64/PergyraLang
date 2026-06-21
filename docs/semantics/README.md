@@ -80,9 +80,9 @@ Stable proof scope:
 - Execution: `parallel` conflict/failure baseline.
 - Backends: MIR-equivalent C and LLVM behavior for the frozen subset.
 - AIR abstraction safety: verification-only synthesis IR for stable intent/boundary drift checks.
-- Abstraction loss/compression contracts: stable compiler and tooling
-  boundaries must name accepted loss, preserved facts, forbidden downstream
-  reads, evidence, and proof-gated erasure budget.
+- Abstraction loss contracts: stable compiler and tooling boundaries must name
+  accepted loss, preserved facts, forbidden downstream reads, compression
+  evidence, and proof-gated erasure budget.
 - Behavior-contract closure: stable behavior claims must not be described as a
   closed calculus until their judgment rules, typed evidence facts, strict
   proof path, pass/loss manifest, backend oracle class, and mechanized-proof
