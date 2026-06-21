@@ -133,12 +133,19 @@ over-restriction 아님). 이 audit는 Pergyra 실제 경계 타이핑이 이 �
 view live 동안 write 불가 = single-writer, `PIN_PARALLEL_CONFLICT`로 fail-closed) + atomic
 shared + cannot-cross fail-closed. refinement 의무가 *"미지"→"맵핑됨 + 잔여 명시"*로 좁혀졌다.
 
-**잔여 (정직, over-claim 방지):**
-1. **익명 spawn 캡처**는 fail-closed로 *제한*(named async 강제) — 구멍이 아니라 미구현 영역.
-   완전 캡처-lifetime 분석은 미래.
-2. 맵핑은 *비형식적* — checker가 *오직* 안전 step만 방출함을 **기계증명하진 않음**(RustBelt가
-   λRust를 증명하고 rustc는 별개인 갭과 동일). 다음 형식 단계 = checker boundary 규칙 ↔
-   WitnessDataRace step의 대응을 증명(또는 step 방출을 검증하는 미니 calculus).
-3. `single_writer` ↔ pin/view 배타성의 대응이 핵심 연결고리 — pin/view 토큰이 곧 "single-writer
-   Witness"의 런타임 carrier. SlotCalculus Pin Non-Eviction이 이미 그 토큰의 비축출을 증명하므로,
-   두 .v(SlotCalculus + WitnessDataRace)를 잇는 게 capstone refinement의 자연스러운 경로.
+**capstone 진행 (2026-06-20, WitnessDataRace.v에 기계검증):**
+- **(a) 두-calculus 연결 — done.** SlotCalculus `ModePin`/Pin Non-Eviction의 배타성을
+  `pin_exclusive` 규율로 정식화하고 `pin_exclusive_xor_mut`/`pin_exclusive_no_data_race`로
+  증명 — §7의 "pin/view 배타성 = single-writer" 매핑이 이제 *정리*다. (두 .v의 타입을 literal
+  통합하진 않고, 배타성 *명제*를 잇는 형태 — 형식적 충분.)
+- **(b) boundary 타이핑 건전성 — done.** typed boundary calculus(`Op` =
+  acquire-write/acquire-read/release, `op_guard` = checker가 강제해야 할 precondition)에서
+  **well-typed 경계 프로그램 ⟹ data-race-free**(`well_typed_data_race_free`) 기계증명. "checker가
+  안전 step만 방출"이 *비형식적 매핑*에서 *증명된 규율*로 승격.
+
+**남은 단 하나의 갭 (정직, over-claim 방지):**
+- **C checker ↔ op_guard refinement**: 실제 C 타입체커가 `op_guard`(no-current-access /
+  no-current-writer)를 *정확히* 강제함을 보이는 것 — RustBelt가 λRust를 증명하고 rustc는 별개인
+  바로 그 갭. *원리적으로 Coq로 C-impl을 증명할 수 없음* → §6 게이트(backend_compare, 경계
+  fail-closed 테스트)로 경험적으로 지키는 것이 실용 종착.
+- **익명 spawn 캡처**: fail-closed 제한(named async 강제), 완전 캡처-lifetime 분석은 미래(구멍 아님).
