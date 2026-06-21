@@ -68,9 +68,10 @@ llvm_find_let_init_in_node(ASTNode *node, const char *name)
 }
 
 ASTNode *
-llvm_stmt_source_local_let_init(LLVMGenCtx *ctx, const char *name)
+llvm_stmt_non_mir_source_local_let_init(LLVMGenCtx *ctx, const char *name)
 {
     if (ctx == NULL || name == NULL
+        || llvm_active_has_mir(ctx)
         || ctx->current_func_decl == NULL
         || ctx->current_func_decl->type != AST_FUNC_DECL)
         return NULL;

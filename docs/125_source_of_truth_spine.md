@@ -68,7 +68,11 @@ Current beta closure snapshot:
   cannot be retagged by an initializer-derived guess. LLVM MIR local alloca
   typing follows the same rule for annotated source-local declarations:
   `type_layout` and `type_expr` cannot mask a missing
-  `MIRRoutine::source_local_types` row. Callable locals
+  `MIRRoutine::source_local_types` row. LLVM identifier type inference also
+  keeps initializer recovery behind
+  `llvm_stmt_non_mir_source_local_let_init(...)`, which returns no initializer
+  when MIR is active; missing MIR source-local facts therefore fail closed
+  instead of reopening the AST initializer path. Callable locals
   use the same source-local fact owner through callable return/parameter
   type-name rows, so function-pointer locals do not need to re-register the
   annotation AST in LLVM MIR emission. C MIR SSA local declarations and

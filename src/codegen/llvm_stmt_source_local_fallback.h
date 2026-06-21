@@ -8,7 +8,8 @@
 #include "llvm_internal.h"
 LLVMClassTypeEntry *llvm_stmt_source_local_class(LLVMGenCtx *ctx, ASTNode *recv);
 LLVMTypeRef llvm_stmt_source_local_type(LLVMGenCtx *ctx, const char *name);
-ASTNode *llvm_stmt_source_local_let_init(LLVMGenCtx *ctx, const char *name);
+ASTNode *llvm_stmt_non_mir_source_local_let_init(LLVMGenCtx *ctx,
+                                                const char *name);
 ASTNode *llvm_stmt_host_method_ast_decl(LLVMGenCtx *ctx,
                                         const char *host_type_name,
                                         const char *method_name);

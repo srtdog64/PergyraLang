@@ -286,11 +286,13 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             if (source_local_ty != NULL || ctx->has_error)
                 return source_local_ty;
         }
-        /* Unannotated local (`let x = <call>`) with no scope alloca yet in the
-         * pre-pass: recover its type by inferring the let initializer. */
+        /* Non-MIR compatibility: an unannotated local (`let x = <call>`) with
+         * no scope alloca yet can recover its type from the initializer. MIR
+         * active callers must consume source-local type facts instead. */
         {
             static int s_local_init_depth;
-            ASTNode *local_init = llvm_stmt_source_local_let_init(ctx, name);
+            ASTNode *local_init =
+                llvm_stmt_non_mir_source_local_let_init(ctx, name);
             if (local_init != NULL && s_local_init_depth < 8) {
                 bool prev_err = ctx->has_error;
                 LLVMTypeRef ty;
@@ -393,7 +395,7 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             ctx, obj_node);
         LLVMClassTypeEntry *base_cls = base_name != NULL
             ? llvm_lookup_class(ctx, base_name) : NULL;
-        /* P0 #4 fallback split into llvm_stmt_source_local_fallback.c. */
+        /* P0 #4 source-local fact lookup split into the source-local owner. */
         if (base_cls == NULL) {
             base_cls = llvm_stmt_source_local_class(ctx, obj_node);
             if (base_cls != NULL)

@@ -3825,10 +3825,20 @@ require_term "src/codegen/llvm_stmt_source_local_fallback.c" \
     "llvm_stmt_source_local_type(LLVMGenCtx *ctx, const char *name)"
 require_term "src/codegen/llvm_stmt_type_infer.c" \
     "llvm_stmt_source_local_type(ctx, name)"
-if ! grep -A12 -F "llvm_stmt_source_local_type(ctx, name)" \
+require_term "src/codegen/llvm_stmt_source_local_fallback.c" \
+    "llvm_stmt_non_mir_source_local_let_init(LLVMGenCtx *ctx, const char *name)"
+if ! grep -A8 -F "llvm_stmt_non_mir_source_local_let_init(LLVMGenCtx *ctx, const char *name)" \
+        "$ROOT_DIR/src/codegen/llvm_stmt_source_local_fallback.c" |
+        grep -Fq "llvm_active_has_mir(ctx)"; then
+    fail "LLVM initializer source-local recovery must be non-MIR only"
+fi
+if ! grep -A14 -F "llvm_stmt_source_local_type(ctx, name)" \
         "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" |
-        grep -Fq "llvm_stmt_source_local_let_init(ctx, name)"; then
-    fail "LLVM identifier type inference must consult MIR source-local type facts before initializer fallback"
+        grep -Fq "llvm_stmt_non_mir_source_local_let_init(ctx, name)"; then
+    fail "LLVM identifier type inference must consult MIR source-local type facts before non-MIR initializer recovery"
+fi
+if rg -n "llvm_stmt_source_local_let_init" "$ROOT_DIR/src/codegen" >/dev/null; then
+    fail "LLVM source-local initializer recovery reintroduced the old MIR-ambiguous name"
 fi
 require_term "src/codegen/llvm_stmt_source_local_fallback.c" \
     "legacy non-MIR callers fall back"
