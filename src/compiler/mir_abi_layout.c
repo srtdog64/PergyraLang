@@ -34,57 +34,25 @@
       MIR_ABI_REPR_EXPLICIT_TAG, (tag_field), (primary_tag), (secondary_tag), NULL }
 
 static const MIRTypeLayout k_abi_type_table[] = {
-    /* Slot<T>: debug mode. */
+    /* Slot<T>: canonical checked ABI. */
     ABI_TYPE("Slot<Int>", 8, 4, "pgy_claim_Int", "int32_t", 2,
-             ABI_FIELD_STRUCT("value", pgy_abi_slot_int_dbg, value),
-             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_int_dbg, occupied)),
+             ABI_FIELD_STRUCT("value", pgy_abi_slot_int, value),
+             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_int, occupied)),
     ABI_TYPE("Slot<Long>", 16, 8, "pgy_claim_Long", "int64_t", 2,
-             ABI_FIELD_STRUCT("value", pgy_abi_slot_long_dbg, value),
-             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_long_dbg, occupied)),
+             ABI_FIELD_STRUCT("value", pgy_abi_slot_long, value),
+             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_long, occupied)),
     ABI_TYPE("Slot<Float>", 8, 4, "pgy_claim_Float", "float", 2,
-             ABI_FIELD_STRUCT("value", pgy_abi_slot_float_dbg, value),
-             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_float_dbg, occupied)),
+             ABI_FIELD_STRUCT("value", pgy_abi_slot_float, value),
+             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_float, occupied)),
     ABI_TYPE("Slot<Double>", 16, 8, "pgy_claim_Double", "double", 2,
-             ABI_FIELD_STRUCT("value", pgy_abi_slot_double_dbg, value),
-             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_double_dbg, occupied)),
+             ABI_FIELD_STRUCT("value", pgy_abi_slot_double, value),
+             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_double, occupied)),
     ABI_TYPE("Slot<Bool>", 2, 1, "pgy_claim_Bool", "bool", 2,
-             ABI_FIELD_STRUCT("value", pgy_abi_slot_bool_dbg, value),
-             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_bool_dbg, occupied)),
+             ABI_FIELD_STRUCT("value", pgy_abi_slot_bool, value),
+             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_bool, occupied)),
     ABI_TYPE("Slot<String>", 16, 8, "pgy_claim_String", "char*", 2,
-             ABI_FIELD_STRUCT("value", pgy_abi_slot_string_dbg, value),
-             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_string_dbg, occupied)),
-
-    /* Slot<T>: checked release mode. */
-    ABI_TYPE("Slot<Int>_rel",
-             sizeof(pgy_abi_slot_int_rel), _Alignof(pgy_abi_slot_int_rel),
-             "pgy_claim_Int", "int32_t", 2,
-             ABI_FIELD_STRUCT("value", pgy_abi_slot_int_rel, value),
-             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_int_rel, occupied)),
-    ABI_TYPE("Slot<Long>_rel",
-             sizeof(pgy_abi_slot_long_rel), _Alignof(pgy_abi_slot_long_rel),
-             "pgy_claim_Long", "int64_t", 2,
-             ABI_FIELD_STRUCT("value", pgy_abi_slot_long_rel, value),
-             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_long_rel, occupied)),
-    ABI_TYPE("Slot<Float>_rel",
-             sizeof(pgy_abi_slot_float_rel), _Alignof(pgy_abi_slot_float_rel),
-             "pgy_claim_Float", "float", 2,
-             ABI_FIELD_STRUCT("value", pgy_abi_slot_float_rel, value),
-             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_float_rel, occupied)),
-    ABI_TYPE("Slot<Double>_rel",
-             sizeof(pgy_abi_slot_double_rel), _Alignof(pgy_abi_slot_double_rel),
-             "pgy_claim_Double", "double", 2,
-             ABI_FIELD_STRUCT("value", pgy_abi_slot_double_rel, value),
-             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_double_rel, occupied)),
-    ABI_TYPE("Slot<Bool>_rel",
-             sizeof(pgy_abi_slot_bool_rel), _Alignof(pgy_abi_slot_bool_rel),
-             "pgy_claim_Bool", "bool", 2,
-             ABI_FIELD_STRUCT("value", pgy_abi_slot_bool_rel, value),
-             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_bool_rel, occupied)),
-    ABI_TYPE("Slot<String>_rel",
-             sizeof(pgy_abi_slot_string_rel), _Alignof(pgy_abi_slot_string_rel),
-             "pgy_claim_String", "char*", 2,
-             ABI_FIELD_STRUCT("value", pgy_abi_slot_string_rel, value),
-             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_string_rel, occupied)),
+             ABI_FIELD_STRUCT("value", pgy_abi_slot_string, value),
+             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_string, occupied)),
 
     /* SecureSlot<T> */
     ABI_TYPE("SecureSlot<Int>", 16, 8, "pgy_claim_secure_Int", "int32_t", 3,
@@ -315,7 +283,7 @@ mir_extract_inner_type_suffix_owned(const char *pergyra_type_name)
         return NULL;
     lt = strchr(pergyra_type_name, '<');
     gt = strrchr(pergyra_type_name, '>');
-    if (lt == NULL || gt == NULL || gt <= lt)
+    if (lt == NULL || gt == NULL || gt <= lt || gt[1] != '\0')
         return NULL;
     len = (size_t)(gt - lt - 1);
     if (len == (size_t)-1)
@@ -332,12 +300,11 @@ mir_extract_inner_type_suffix_owned(const char *pergyra_type_name)
 /* Lookup ABI type by Pergyra type name.
  *
  * Mode selection:
- *   1. Exact match for the given name (covers debug-mode names like "Slot<Int>"
+ *   1. Exact match for the given name (covers canonical names like "Slot<Int>"
  *      and non-generic types like "Future", "Qubit", etc.)
- *   2. If not found and the name looks like a Slot/Option/Result generic type,
- *      try the _rel suffix variant (release mode).
- *   3. Fall back to runtime function name pattern matching for any generic type.
- *   4. Fall back to exact match for non-generic auxiliary types.
+ *   2. Fall back to runtime function name pattern matching for canonical
+ *      generic types.
+ *   3. Fall back to exact match for non-generic auxiliary types.
  */
 const MIRTypeLayout *
 mir_abi_lookup(const char *pergyra_type_name)
@@ -345,19 +312,10 @@ mir_abi_lookup(const char *pergyra_type_name)
     if (pergyra_type_name == NULL)
         return NULL;
 
-    /* Step 1: Exact match (debug mode names and non-generic types) */
+    /* Step 1: Exact match (canonical names and non-generic types) */
     const MIRTypeLayout *t = abi_type_lookup_by_name(pergyra_type_name);
     if (t != NULL)
         return t;
-
-    /* Step 2: Try release mode variant for Slot/Option/Result generics */
-    char *rel_name = mir_abi_format_owned("%s_rel", pergyra_type_name);
-    if (rel_name != NULL) {
-        t = abi_type_lookup_by_name(rel_name);
-        free(rel_name);
-        if (t != NULL)
-            return t;
-    }
 
     /* Try to find by runtime function name pattern */
     /* e.g. "Slot<Int>" -> look for any type with "pgy_claim_Int" */

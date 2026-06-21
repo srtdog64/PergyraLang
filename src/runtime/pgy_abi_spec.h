@@ -82,21 +82,13 @@
  * must not be mixed with checked runtime bitcode/objects.
  * ================================================================ */
 
-/* --- Slot<T> checked/debug ABI --- */
-typedef struct { int32_t  value; bool occupied; } pgy_abi_slot_int_dbg;
-typedef struct { int64_t  value; bool occupied; } pgy_abi_slot_long_dbg;
-typedef struct { float    value; bool occupied; } pgy_abi_slot_float_dbg;
-typedef struct { double   value; bool occupied; } pgy_abi_slot_double_dbg;
-typedef struct { bool     value; bool occupied; } pgy_abi_slot_bool_dbg;
-typedef struct { char    *value; bool occupied; } pgy_abi_slot_string_dbg;
-
-/* --- Slot<T> checked release ABI (same shape as checked/debug) --- */
-typedef struct { int32_t  value; bool occupied; } pgy_abi_slot_int_rel;
-typedef struct { int64_t  value; bool occupied; } pgy_abi_slot_long_rel;
-typedef struct { float    value; bool occupied; } pgy_abi_slot_float_rel;
-typedef struct { double   value; bool occupied; } pgy_abi_slot_double_rel;
-typedef struct { bool     value; bool occupied; } pgy_abi_slot_bool_rel;
-typedef struct { char    *value; bool occupied; } pgy_abi_slot_string_rel;
+/* --- Slot<T> canonical checked ABI --- */
+typedef struct { int32_t  value; bool occupied; } pgy_abi_slot_int;
+typedef struct { int64_t  value; bool occupied; } pgy_abi_slot_long;
+typedef struct { float    value; bool occupied; } pgy_abi_slot_float;
+typedef struct { double   value; bool occupied; } pgy_abi_slot_double;
+typedef struct { bool     value; bool occupied; } pgy_abi_slot_bool;
+typedef struct { char    *value; bool occupied; } pgy_abi_slot_string;
 
 /* ================================================================
  * 2. SecureSlot<T> — Token-Based Access Control
@@ -132,7 +124,7 @@ typedef struct { uint64_t id; bool can_write; bool can_read; } pgy_abi_token_int
 
 /* --- Pin/lease view handles (block-scoped runtime views) --- */
 typedef struct {
-    pgy_abi_slot_int_rel *slot;
+    pgy_abi_slot_int *slot;
     bool active;
     bool can_write;
 } pgy_abi_pinned_slot_view_int;

@@ -23,7 +23,7 @@ ABI를 통일한다는 것은, `Slot<T>`, `Option<T>`, `Result<T, E>`, `Channel<
 `src/runtime/pgy_runtime.h`에서 다음과 같은 매크로를 정의한다:
 
 ```c
-#define PGY_SLOT_DEFINE_DEBUG(SuffixName, CType) \
+#define PGY_SLOT_DEFINE_CHECKED(SuffixName, CType) \
 typedef struct { \
     CType   value; \
     bool    occupied; \

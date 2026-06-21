@@ -75,27 +75,19 @@ AI에게 "컴파일러 로직을 짜라"고만 시키면 ABI 물리 사실을 �
 /* ----------------------------------------------------------------
  * 1. Slot<T> ABI
  * ----------------------------------------------------------------
- * Debug 모드:   { value: CType, occupied: bool } + padding
- * Raw opt-out: { value: CType } only under whole-program PGY_RAW_SLOTS
+ * Canonical checked ABI: { value: CType, occupied: bool } + padding
+ * Raw opt-out:           { value: CType } only under whole-program PGY_RAW_SLOTS
  *
  * Pergyra MIR가 레이아웃을 결정. C 컴파일러는 이를 따른다.
  */
 
-/* --- Debug Mode --- */
-typedef struct { int32_t  value; bool occupied; } ABI_Slot_Int_Debug;
-typedef struct { int64_t  value; bool occupied; } ABI_Slot_Long_Debug;
-typedef struct { float    value; bool occupied; } ABI_Slot_Float_Debug;
-typedef struct { double   value; bool occupied; } ABI_Slot_Double_Debug;
-typedef struct { bool     value; bool occupied; } ABI_Slot_Bool_Debug;
-typedef struct { char*    value; bool occupied; } ABI_Slot_String_Debug;
-
-/* --- Release Mode --- */
-typedef struct { int32_t  value; } ABI_Slot_Int_Release;
-typedef struct { int64_t  value; } ABI_Slot_Long_Release;
-typedef struct { float    value; } ABI_Slot_Float_Release;
-typedef struct { double   value; } ABI_Slot_Double_Release;
-typedef struct { bool     value; } ABI_Slot_Bool_Release;
-typedef struct { char*    value; } ABI_Slot_String_Release;
+/* --- Canonical checked ABI --- */
+typedef struct { int32_t  value; bool occupied; } ABI_Slot_Int;
+typedef struct { int64_t  value; bool occupied; } ABI_Slot_Long;
+typedef struct { float    value; bool occupied; } ABI_Slot_Float;
+typedef struct { double   value; bool occupied; } ABI_Slot_Double;
+typedef struct { bool     value; bool occupied; } ABI_Slot_Bool;
+typedef struct { char*    value; bool occupied; } ABI_Slot_String;
 
 /* ----------------------------------------------------------------
  * 2. SecureSlot<T> ABI
@@ -169,15 +161,10 @@ typedef struct {
     #define ABI_STATIC_ASSERT(cond, msg) typedef char static_assert_##msg[(cond) ? 1 : -1]
 #endif
 
-/* Slot<Int> Debug: value@0, occupied@4+, size >= 8 */
-ABI_STATIC_ASSERT(offsetof(ABI_Slot_Int_Debug, value) == 0, slot_int_value_offset);
-ABI_STATIC_ASSERT(offsetof(ABI_Slot_Int_Debug, occupied) >= 4, slot_int_occupied_offset);
-ABI_STATIC_ASSERT(sizeof(ABI_Slot_Int_Debug) >= 8, slot_int_min_size);
-
-/* Slot<Int> Release: value@0, size == 4 */
-ABI_STATIC_ASSERT(offsetof(ABI_Slot_Int_Release, value) == 0, slot_int_rel_value_offset);
-ABI_STATIC_ASSERT(sizeof(ABI_Slot_Int_Release) == sizeof(ABI_Slot_Int_Debug),
-                  slot_int_rel_checked_size);
+/* Slot<Int> canonical checked: value@0, occupied@4+, size >= 8 */
+ABI_STATIC_ASSERT(offsetof(ABI_Slot_Int, value) == 0, slot_int_value_offset);
+ABI_STATIC_ASSERT(offsetof(ABI_Slot_Int, occupied) >= 4, slot_int_occupied_offset);
+ABI_STATIC_ASSERT(sizeof(ABI_Slot_Int) >= 8, slot_int_min_size);
 
 /* Option<Int>: tag@0, value@4, size == 8 */
 ABI_STATIC_ASSERT(offsetof(ABI_Option_Int, tag) == 0, option_int_tag_offset);
@@ -226,21 +213,16 @@ static int g_pass = 0, g_fail = 0;
 int main(void) {
     printf("=== Pergyra ABI Spec Validation ===\n\n");
 
-    printf("[Slot<Int> Debug]\n");
+    printf("[Slot<Int> canonical checked]\n");
     printf("  sizeof = %zu, align = %zu\n",
-           sizeof(ABI_Slot_Int_Debug), alignof(ABI_Slot_Int_Debug));
+           sizeof(ABI_Slot_Int), alignof(ABI_Slot_Int));
     printf("  value @ %zu, occupied @ %zu\n\n",
-           offsetof(ABI_Slot_Int_Debug, value),
-           offsetof(ABI_Slot_Int_Debug, occupied));
+           offsetof(ABI_Slot_Int, value),
+           offsetof(ABI_Slot_Int, occupied));
 
-    ABI_TEST("value at offset 0", offsetof(ABI_Slot_Int_Debug, value) == 0);
-    ABI_TEST("occupied >= 4", offsetof(ABI_Slot_Int_Debug, occupied) >= 4);
-    ABI_TEST("size >= 8", sizeof(ABI_Slot_Int_Debug) >= 8);
-
-    printf("[Slot<Int> Release]\n");
-    printf("  sizeof = %zu, align = %zu\n",
-           sizeof(ABI_Slot_Int_Release), alignof(ABI_Slot_Int_Release));
-    ABI_TEST("size == 4", sizeof(ABI_Slot_Int_Release) == 4);
+    ABI_TEST("value at offset 0", offsetof(ABI_Slot_Int, value) == 0);
+    ABI_TEST("occupied >= 4", offsetof(ABI_Slot_Int, occupied) >= 4);
+    ABI_TEST("size >= 8", sizeof(ABI_Slot_Int) >= 8);
 
     printf("[Option<Int>]\n");
     printf("  sizeof = %zu, align = %zu\n",
@@ -480,7 +462,7 @@ MIR 입력:
     arg0: "Slot<Int>",
     result_name: "%slot_s_1"
   }
-  + ABI Spec: Slot<Int> Debug → { int32_t value; bool occupied; } (size=8)
+  + ABI Spec: Slot<Int> canonical checked -> { int32_t value; bool occupied; } (size=8)
 
 C 출력:
   PgySlot_Int s = pgy_claim_Int();
@@ -698,7 +680,7 @@ Step 10: C 매크로 제거 및 명시적 런타임 라이브러리 전환 [최�
 | 위험 | 영향 | 대응 |
 |------|------|------|
 | pthread_mutex_t 크기 플랫폼 의존 | Channel ABI 불안정 | Channel은 MIR에서 "불투명 포인터"로 취급, 스택 할당 금지 |
-| bool 패딩이 컴파일러마다 다름 | Slot<size> 변동 | Debug 모드에서만 occupied 사용, Release 모도는 value만 |
+| bool padding differs by compiler | Slot size drift | canonical checked Slot keeps `occupied`; raw value-only slots require explicit `PGY_RAW_SLOTS` |
 | Union 패딩이 C 컴파일러마다 다름 | Result ABI 변동 | MIR가 union 레이아웃을 명시적으로 계산, static_assert로 검증 |
 | 기존 매크로 의존 코드가 많음 | 마이그레이션 비용 | 점진적 전환: 새 코드는 ABI spec, 기존 코드는 매크로 유지 |
 | AI가 규칙을 잘못 해석 | 잘못된 MIR 생성 | human 리뷰 필수, 테스트 기반 검증 |

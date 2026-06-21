@@ -116,7 +116,7 @@
               "result_name": "%slot_s_1",
               "rir_op_ref": "scope[0].ops[0]",
               "type_layout": {
-                "abi_type": "pgy_abi_slot_int_dbg",
+                "abi_type": "pgy_abi_slot_int",
                 "size": 8,
                 "align": 4,
                 "fields": [
@@ -156,7 +156,7 @@
     result_name: "%slot_<subject>_1",
     rir_op: <op 포인터>,
     // ABI Lookup:
-    type_layout: abi_lookup(fact.arg0),    // pgy_abi_slot_int_dbg → size=8, align=4
+    type_layout: abi_lookup(fact.arg0),    // pgy_abi_slot_int -> size=8, align=4
     runtime_fn: "pgy_claim_<T>"            // "pgy_claim_Int"
   }
 
@@ -549,12 +549,12 @@ MIR가 사용하는 타입 이름 → pgy_abi_spec.h 매핑:
 
 | Pergyra 타입 | ABI 타입 | size | align | runtime_fn prefix |
 |-------------|---------|------|-------|-------------------|
-| Slot\<Int> | pgy_abi_slot_int_dbg | 8 | 4 | pgy_claim_Int |
-| Slot\<Long> | pgy_abi_slot_long_dbg | 16 | 8 | pgy_claim_Long |
-| Slot\<Float> | pgy_abi_slot_float_dbg | 8 | 4 | pgy_claim_Float |
-| Slot\<Double> | pgy_abi_slot_double_dbg | 16 | 8 | pgy_claim_Double |
-| Slot\<Bool> | pgy_abi_slot_bool_dbg | 2 | 1 | pgy_claim_Bool |
-| Slot\<String> | pgy_abi_slot_string_dbg | 16 | 8 | pgy_claim_String |
+| Slot\<Int> | pgy_abi_slot_int | 8 | 4 | pgy_claim_Int |
+| Slot\<Long> | pgy_abi_slot_long | 16 | 8 | pgy_claim_Long |
+| Slot\<Float> | pgy_abi_slot_float | 8 | 4 | pgy_claim_Float |
+| Slot\<Double> | pgy_abi_slot_double | 16 | 8 | pgy_claim_Double |
+| Slot\<Bool> | pgy_abi_slot_bool | 2 | 1 | pgy_claim_Bool |
+| Slot\<String> | pgy_abi_slot_string | 16 | 8 | pgy_claim_String |
 | SecureSlot\<Int> | pgy_abi_secure_slot_int_dbg | 16 | 8 | pgy_claim_secure_Int |
 | DeviceSlot\<Int> | pgy_abi_device_slot_int | 8 | 4 | pgy_claim_device_Int |
 | Option\<Int> | pgy_abi_option_int | 8 | 4 | pgy_option_some_Int |

@@ -575,6 +575,8 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/slot_analyzer_access.c \
                    $(SEMANTIC_DIR)/slot_analyzer_escape.c \
                    $(SEMANTIC_DIR)/slot_analyzer_summary.c \
+                   $(SEMANTIC_DIR)/lifecycle_state.c \
+                   $(SEMANTIC_DIR)/lifecycle_analyze.c \
                    $(SEMANTIC_DIR)/semantic.c
 CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_async_parallel_emit.c \
@@ -1702,6 +1704,14 @@ test-transpile: $(TRANSPILE_TEST)
 test-memory: $(MEMORY_TEST)
 	@echo "=== Memory Layout Test ==="
 	$(call pgy_run_native,$(MEMORY_TEST))
+
+test-lifecycle:
+	@echo "=== Domain-Lifecycle Engine Unit Test ==="
+	$(CC) -std=c11 -Wall -Wextra \
+	    $(SEMANTIC_DIR)/lifecycle_state.c \
+	    $(SEMANTIC_DIR)/test_lifecycle_state.c \
+	    -o $(BUILD_DIR)/test_lifecycle$(EXEEXT)
+	$(call pgy_run_native,$(BUILD_DIR)/test_lifecycle$(EXEEXT))
 
 test-abi: $(ABI_TEST) $(PGY)
 	@echo "=== ABI Spec Validation ==="

@@ -9,7 +9,7 @@
  * ================================================================= */
 
 /* Checked slot with safety checks. */
-#define PGY_SLOT_DEFINE_DEBUG(SuffixName, CType) \
+#define PGY_SLOT_DEFINE_CHECKED(SuffixName, CType) \
 \
 typedef struct { \
     CType   value; \
@@ -182,7 +182,7 @@ pgy_unpin_cleanup_##SuffixName(PgyPinnedSlotView_##SuffixName* view) \
 }
 
 /* Raw slot opt-out: zero overhead, not the canonical beta ABI. */
-#define PGY_SLOT_DEFINE_RELEASE(SuffixName, CType) \
+#define PGY_SLOT_DEFINE_RAW(SuffixName, CType) \
 \
 typedef struct { \
     CType   value; \
@@ -217,7 +217,7 @@ static inline void \
 __attribute__((unused)) \
 pgy_release_##SuffixName(PgySlot_##SuffixName* s) \
 { \
-    (void)s; /* no-op in release mode */ \
+    (void)s; /* no-op in raw slot mode */ \
 } \
 \
 static inline PgyRuntimeSlotStatus \
@@ -314,10 +314,10 @@ pgy_unpin_cleanup_##SuffixName(PgyPinnedSlotView_##SuffixName* view) \
 /* Conditional definition based on slot safety mode. */
 #if PGY_WITH_SLOT_CHECKS
 #  define PGY_SLOT_DEFINE(SuffixName, CType) \
-       PGY_SLOT_DEFINE_DEBUG(SuffixName, CType)
+       PGY_SLOT_DEFINE_CHECKED(SuffixName, CType)
 #else
 #  define PGY_SLOT_DEFINE(SuffixName, CType) \
-       PGY_SLOT_DEFINE_RELEASE(SuffixName, CType)
+       PGY_SLOT_DEFINE_RAW(SuffixName, CType)
 #endif
 
 #endif /* PGY_RUNTIME_PLAIN_SLOT_INLINE_H */

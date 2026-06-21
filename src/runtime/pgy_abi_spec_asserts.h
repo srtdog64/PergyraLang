@@ -2,73 +2,44 @@
 #define PERGYRA_ABI_SPEC_ASSERTS_H
 
 /* =================================================================
- * STATIC ASSERTIONS — Slot<T> Debug
+ * STATIC ASSERTIONS - Slot<T> Canonical Checked ABI
  * ================================================================= */
 
-/* Slot<Int> Debug: value@0, occupied after value, size >= 8 */
-ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_int_dbg, value) == 0,
-                  slot_int_dbg_value_at_0);
-ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_int_dbg, occupied) >= 4,
-                  slot_int_dbg_occupied_after_value);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_int_dbg) >= 8,
-                  slot_int_dbg_min_size_8);
+/* Slot<Int> canonical checked: value@0, occupied after value, size >= 8 */
+ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_int, value) == 0,
+                  slot_int_value_at_0);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_int, occupied) >= 4,
+                  slot_int_occupied_after_value);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_int) >= 8,
+                  slot_int_min_size_8);
 
-/* Slot<Long> Debug: value@0, size >= 16 (8 + 1 + 7 padding) */
-ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_long_dbg, value) == 0,
-                  slot_long_dbg_value_at_0);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_long_dbg) >= 16,
-                  slot_long_dbg_min_size_16);
+/* Slot<Long> canonical checked: value@0, size >= 16 (8 + 1 + 7 padding) */
+ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_long, value) == 0,
+                  slot_long_value_at_0);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_long) >= 16,
+                  slot_long_min_size_16);
 
-/* Slot<Float> Debug: value@0, size >= 8 */
-ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_float_dbg, value) == 0,
-                  slot_float_dbg_value_at_0);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_float_dbg) >= 8,
-                  slot_float_dbg_min_size_8);
+/* Slot<Float> canonical checked: value@0, size >= 8 */
+ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_float, value) == 0,
+                  slot_float_value_at_0);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_float) >= 8,
+                  slot_float_min_size_8);
 
-/* Slot<Double> Debug: value@0, size >= 16 */
-ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_double_dbg, value) == 0,
-                  slot_double_dbg_value_at_0);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_double_dbg) >= 16,
-                  slot_double_dbg_min_size_16);
+/* Slot<Double> canonical checked: value@0, size >= 16 */
+ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_double, value) == 0,
+                  slot_double_value_at_0);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_double) >= 16,
+                  slot_double_min_size_16);
 
-/* Slot<Bool> Debug: size >= 2 */
-ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_bool_dbg) >= 2,
-                  slot_bool_dbg_min_size_2);
+/* Slot<Bool> canonical checked: size >= 2 */
+ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_bool) >= 2,
+                  slot_bool_min_size_2);
 
-/* Slot<String> Debug: value@0, size >= 16 (8 + 1 + 7 padding on LP64) */
-ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_string_dbg, value) == 0,
-                  slot_string_dbg_value_at_0);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_string_dbg) >= 16,
-                  slot_string_dbg_min_size_16);
-
-/* =================================================================
- * STATIC ASSERTIONS - Slot<T> Checked Release
- * ================================================================= */
-
-ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_int_rel) == sizeof(pgy_abi_slot_int_dbg),
-                  slot_int_rel_same_size_as_dbg);
-ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_int_rel, occupied) == offsetof(pgy_abi_slot_int_dbg, occupied),
-                  slot_int_rel_same_occupied_offset_as_dbg);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_long_rel) == sizeof(pgy_abi_slot_long_dbg),
-                  slot_long_rel_same_size_as_dbg);
-ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_long_rel, occupied) == offsetof(pgy_abi_slot_long_dbg, occupied),
-                  slot_long_rel_same_occupied_offset_as_dbg);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_float_rel) == sizeof(pgy_abi_slot_float_dbg),
-                  slot_float_rel_same_size_as_dbg);
-ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_float_rel, occupied) == offsetof(pgy_abi_slot_float_dbg, occupied),
-                  slot_float_rel_same_occupied_offset_as_dbg);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_double_rel) == sizeof(pgy_abi_slot_double_dbg),
-                  slot_double_rel_same_size_as_dbg);
-ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_double_rel, occupied) == offsetof(pgy_abi_slot_double_dbg, occupied),
-                  slot_double_rel_same_occupied_offset_as_dbg);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_bool_rel) == sizeof(pgy_abi_slot_bool_dbg),
-                  slot_bool_rel_same_size_as_dbg);
-ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_bool_rel, occupied) == offsetof(pgy_abi_slot_bool_dbg, occupied),
-                  slot_bool_rel_same_occupied_offset_as_dbg);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_string_rel) == sizeof(pgy_abi_slot_string_dbg),
-                  slot_string_rel_same_size_as_dbg);
-ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_string_rel, occupied) == offsetof(pgy_abi_slot_string_dbg, occupied),
-                  slot_string_rel_same_occupied_offset_as_dbg);
+/* Slot<String> canonical checked: value@0, size >= 16 (8 + 1 + 7 padding on LP64) */
+ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_string, value) == 0,
+                  slot_string_value_at_0);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_string) >= 16,
+                  slot_string_min_size_16);
 
 /* =================================================================
  * STATIC ASSERTIONS — SecureSlot<T>
@@ -78,7 +49,7 @@ ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_int_dbg, value) == 0,
                   secure_slot_int_dbg_value_at_0);
 ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_int_dbg, token) > 4,
                   secure_slot_int_dbg_token_after_value);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_secure_slot_int_dbg) > sizeof(pgy_abi_slot_int_dbg),
+ABI_STATIC_ASSERT(sizeof(pgy_abi_secure_slot_int_dbg) > sizeof(pgy_abi_slot_int),
                   secure_slot_int_dbg_larger_than_slot);
 ABI_STATIC_ASSERT(sizeof(pgy_abi_secure_slot_int_dbg) >= 16,
                   secure_slot_int_dbg_min_size_16);

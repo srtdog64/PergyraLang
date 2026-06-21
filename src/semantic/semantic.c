@@ -14,6 +14,7 @@
 #include "diag_payload.h"
 #include "type_checker.h"
 #include "slot_analyzer.h"
+#include "lifecycle_analyze.h"
 #include "../compiler/import_resolver.h"
 
 static bool
@@ -157,6 +158,13 @@ semantic_run_legacy_slot_resource_analysis(ASTNode *ast, SemanticContext *ctx)
     SlotAnalyzer *sa;
 
     if (ctx == NULL || ctx->has_error)
+        return;
+
+    /*
+     * Domain-lifecycle analysis (N-state engine). No-op until the lifecycle
+     * declaration surface lands; never rejects a lifecycle-free program.
+     */
+    if (!lifecycle_analyze_program(ast, ctx))
         return;
 
     /*
