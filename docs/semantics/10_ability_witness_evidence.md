@@ -111,3 +111,31 @@ IR 노드가 static/dynamic을 *명시 carry*. 기본은 static.
 
 각 단계는 독립 게이트로 박는다 — 325k는 게이트로 운영
 ([[project_complexity_management_gates]]).
+
+## 7. Refinement audit — boundary 타이핑 → WitnessDataRace step 모양 (2026-06-20)
+
+`WitnessDataRace.v`는 *모든 경계 crossing이 move / drop / acquire-fresh(=write-cap을
+duplicate 안 함) 중 하나면* data-race-free임을 기계증명했다. 이 audit는 Pergyra 실제 경계
+타이핑이 그 모양에만 부합하는지(refinement 의무)를 좁힌다.
+
+| 경계 | 메커니즘 | step 대응 | 증거 |
+|---|---|---|---|
+| spawn / async | body+capture **move/consume** | `step_move` | `type_checker_async_channel.c` (move/consume 다수); *익명 spawn 캡처는 fail-closed 제한* ("move the body into a named async function") |
+| channel send | ownership **transfer** | `step_move` | `slot_analyzer.c` (transfer own / channel send) |
+| parallel / slot-view / world | **cannot-cross** fail-closed | (forbid) | `type_checker_flow_parallel.c:156`, `type_checker_slot_view_boundary.c:49`, `world_roster.h` Borrowed-handle |
+| borrowed handle (pin/view) | **배타적: 원본은 view/pin live 동안 write 불가** | single-writer 강제 | `type_checker_builtins_slotops.c:111` `"Cannot write slot while ... is live"` (`PGY_CAUSE_PIN_PARALLEL_CONFLICT`); `SlotCalculus.v` Pin Non-Eviction |
+| `shared` 필드 | **atomic**(동기화) | 메모리모델상 race-free | `docs/113:51` "atomic shared" |
+
+**결론**: 경계 규율이 step 모양에 *맵핑된다* — move/consume(transfer) + **pin/view 배타성**(원본은
+view live 동안 write 불가 = single-writer, `PIN_PARALLEL_CONFLICT`로 fail-closed) + atomic
+shared + cannot-cross fail-closed. refinement 의무가 *"미지"→"맵핑됨 + 잔여 명시"*로 좁혀졌다.
+
+**잔여 (정직, over-claim 방지):**
+1. **익명 spawn 캡처**는 fail-closed로 *제한*(named async 강제) — 구멍이 아니라 미구현 영역.
+   완전 캡처-lifetime 분석은 미래.
+2. 맵핑은 *비형식적* — checker가 *오직* 안전 step만 방출함을 **기계증명하진 않음**(RustBelt가
+   λRust를 증명하고 rustc는 별개인 갭과 동일). 다음 형식 단계 = checker boundary 규칙 ↔
+   WitnessDataRace step의 대응을 증명(또는 step 방출을 검증하는 미니 calculus).
+3. `single_writer` ↔ pin/view 배타성의 대응이 핵심 연결고리 — pin/view 토큰이 곧 "single-writer
+   Witness"의 런타임 carrier. SlotCalculus Pin Non-Eviction이 이미 그 토큰의 비축출을 증명하므로,
+   두 .v(SlotCalculus + WitnessDataRace)를 잇는 게 capstone refinement의 자연스러운 경로.
