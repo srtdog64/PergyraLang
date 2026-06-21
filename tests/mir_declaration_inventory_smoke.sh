@@ -1346,6 +1346,18 @@ fi
 if grep -Fq "poison i32" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"; then
     fail "LLVM expression type inference must not keep silent poison i32 fallbacks"
 fi
+if ! awk '
+    /llvm_stmt_infer_scalar_math_return_type\(/ { in_fn = 1 }
+    in_fn && /active_mir && \(ty0 == NULL \|\| ty1 == NULL\)/ { guard = NR }
+    in_fn && /return ctx->type_i32;/ { fallback = NR }
+    in_fn && /^}/ {
+        if (guard > 0 && fallback > 0 && guard < fallback) ok = 1
+        in_fn = 0
+    }
+    END { exit ok ? 0 : 1 }
+' "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"; then
+    fail "LLVM MIR Min/Max type inference must fail closed before non-MIR i32 compatibility default"
+fi
 if grep -Fq "ctx->class_type_count" \
     "$ROOT_DIR/src/codegen/llvm_expr_call_methods_vtable_dispatch.c"; then
     fail "LLVM vtable dispatch must consume registry vtable lookup"

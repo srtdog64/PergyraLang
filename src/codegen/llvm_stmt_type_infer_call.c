@@ -177,6 +177,10 @@ llvm_stmt_infer_scalar_math_return_type(LLVMGenCtx *ctx, ASTNode *call,
             ctx->has_error = false;
             ty1 = NULL;
         }
+        if (active_mir && (ty0 == NULL || ty1 == NULL)) {
+            return llvm_stmt_unknown_expr_type(ctx, call,
+                "Min/Max call requires typed operands in MIR-backed inference");
+        }
         if (ty0 != NULL && ty1 != NULL)
             return llvm_stmt_promote_numeric_type(ctx, ty0, ty1);
         if (ty0 != NULL)

@@ -72,7 +72,10 @@ Current beta closure snapshot:
   keeps initializer recovery behind
   `llvm_stmt_non_mir_source_local_let_init(...)`, which returns no initializer
   when MIR is active; missing MIR source-local facts therefore fail closed
-  instead of reopening the AST initializer path. Callable locals
+  instead of reopening the AST initializer path. LLVM scalar helper inference
+  follows the same split: `Min` / `Max` may keep the old `i32` compatibility
+  default only after MIR-backed operand inference has either produced concrete
+  operand types or failed closed. Callable locals
   use the same source-local fact owner through callable return/parameter
   type-name rows, so function-pointer locals do not need to re-register the
   annotation AST in LLVM MIR emission. C MIR SSA local declarations and
