@@ -1048,7 +1048,10 @@ between a borrowed view and an owned snapshot. Semantic ownership keeps
 `Slice<T>` as `BORROW_TRACKED`; invalid async/spawn/channel transport is
 rejected before AIR graph synthesis. Backends may lower valid `SliceCopy` calls
 only through `pgy_slice_copy_<T>` so String payload duplication and array result
-ownership stay centralized in the runtime helper.
+ownership stay centralized in the runtime helper. LLVM type inference consumes
+the same slice fact owner, `llvm_mir_slice_fact_array_type_from_slice_type(...)`,
+for the `Slice<T>` to `Array<T>` ABI map instead of repeating a local
+`ctx->slice_type_*` / `ctx->array_type_*` chain.
 
 LLVM backend constructed-type argument parsing has the same rule. A helper that
 returns a static scratch pointer is a parser convenience only; recursive type

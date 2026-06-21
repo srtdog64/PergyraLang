@@ -1323,6 +1323,16 @@ require_term "src/codegen/llvm_stmt_type_infer.c" \
     "channel receive requires registered Channel<T> metadata"
 require_term "src/codegen/llvm_stmt_type_infer_call.c" \
     "call result requires registered function or expected type metadata"
+require_term "src/codegen/llvm_stmt_type_infer_call.c" \
+    "llvm_mir_slice_fact_array_type_from_slice_type(ctx, slice_ty)"
+if awk '
+    /strcmp\(callee, "SliceCopy"\)/ { in_slice = 1 }
+    in_slice && /ctx->slice_type_/ { bad = 1 }
+    in_slice && /SliceCopy requires concrete Slice<T> operand/ { in_slice = 0 }
+    END { exit bad ? 0 : 1 }
+' "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"; then
+    fail "LLVM SliceCopy type inference must consume the slice fact owner instead of repeating slice->array ABI mapping"
+fi
 require_term "src/codegen/llvm_stmt_type_infer.c" \
     "identifier requires registered LLVM local metadata"
 require_term "src/codegen/llvm_stmt_type_infer.c" \

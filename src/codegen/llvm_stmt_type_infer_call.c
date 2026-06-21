@@ -3,6 +3,7 @@
 #include "llvm_domain_lookup.h"
 #include "llvm_internal_api.h"
 #include "llvm_inventory_host_methods.h"
+#include "llvm_mir_slice_fact.h"
 #include "llvm_stmt_source_local_fallback.h"
 #include "llvm_stmt_type_infer_helpers.h"
 #include "codegen_match_variant_policy.h"
@@ -351,18 +352,10 @@ llvm_stmt_infer_call_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         if (strcmp(callee, "SliceCopy") == 0 && ast_call_arg_count(expr) == 1) {
             LLVMTypeRef slice_ty =
                 llvm_stmt_infer_expr_type(ctx, ast_call_argument(expr, 0));
-            if (slice_ty == ctx->slice_type_Int)
-                return ctx->array_type_Int;
-            if (slice_ty == ctx->slice_type_Long)
-                return ctx->array_type_Long;
-            if (slice_ty == ctx->slice_type_Float)
-                return ctx->array_type_Float;
-            if (slice_ty == ctx->slice_type_Double)
-                return ctx->array_type_Double;
-            if (slice_ty == ctx->slice_type_Bool)
-                return ctx->array_type_Bool;
-            if (slice_ty == ctx->slice_type_String)
-                return ctx->array_type_String;
+            LLVMTypeRef array_ty =
+                llvm_mir_slice_fact_array_type_from_slice_type(ctx, slice_ty);
+            if (array_ty != NULL)
+                return array_ty;
             return llvm_stmt_unknown_expr_type(ctx, expr,
                 "SliceCopy requires concrete Slice<T> operand");
         }
