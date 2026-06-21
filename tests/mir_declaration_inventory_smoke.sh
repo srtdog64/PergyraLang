@@ -5390,9 +5390,24 @@ require_term "src/codegen/transpiler_role_ability.c" \
 require_term "src/codegen/transpiler_role_ability.c" \
     "ability_decl = !mir_active"
 require_term "src/codegen/transpiler_role_ability.c" \
+    "MIR-only C path missing ability declaration header for ability tag"
+require_term "src/codegen/transpiler_role_ability.c" \
+    "MIR-only C path missing generic ability argument metadata"
+require_term "src/codegen/transpiler_role_ability.c" \
     "transpiler_ability_header_has_method("
 require_term "src/codegen/transpiler_role_ability.c" \
     "transpiler_active_decl_header_of_type("
+if awk '
+    /render_ability_ref_parts_vtable_tag_in_ctx\(TranspilerCtx \*ctx,/ { in_fn = 1 }
+    in_fn && /if \(rendered == NULL\)/ { in_missing = 1 }
+    in_missing && /return render_ability_type_name_vtable_tag\(base_name\);/ { bad = 1 }
+    in_missing && /if \(mir_active\)/ { protected = 1 }
+    in_missing && protected && /return NULL;/ { in_missing = 0; protected = 0 }
+    in_fn && /^}/ { in_fn = 0; in_missing = 0; protected = 0 }
+    END { exit bad ? 0 : 1 }
+' "$ROOT_DIR/src/codegen/transpiler_role_ability.c"; then
+    fail "C MIR-active ability tag rendering must fail closed on missing generic/default metadata instead of base-name fallback"
+fi
 if awk '
     /transpiler_party_slot_method_ability_tag\(TranspilerCtx \*ctx,/ { in_fn = 1 }
     in_fn && /ast_ability_method_(count|method)\(/ { bad = 1 }
@@ -5467,6 +5482,21 @@ require_term "src/codegen/llvm_domain_role_lookup.c" \
     "mir_decl_header_generic_param_count(ability_header)"
 require_term "src/codegen/llvm_domain_role_lookup.c" \
     "ability_decl = !mir_active"
+require_term "src/codegen/llvm_domain_role_lookup.c" \
+    "MIR-only LLVM path missing ability declaration header for ability tag"
+require_term "src/codegen/llvm_domain_role_lookup.c" \
+    "MIR-only LLVM path missing generic ability argument metadata"
+if awk '
+    /llvm_render_mir_ability_ref_vtable_tag\(LLVMGenCtx \*ctx,/ { in_fn = 1 }
+    in_fn && /if \(arg == NULL\)/ { in_missing = 1 }
+    in_missing && /return llvm_keep_ability_tag\(ctx, base_name\);/ { bad = 1 }
+    in_missing && /if \(mir_active\)/ { protected = 1 }
+    in_missing && protected && /return NULL;/ { in_missing = 0; protected = 0 }
+    in_fn && /^}/ { in_fn = 0; in_missing = 0; protected = 0 }
+    END { exit bad ? 0 : 1 }
+' "$ROOT_DIR/src/codegen/llvm_domain_role_lookup.c"; then
+    fail "LLVM MIR-active ability tag rendering must fail closed on missing generic/default metadata instead of base-name fallback"
+fi
 if grep -RIn "transpiler_hosted_role_slot_view_required_ability_type_name(" \
     "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c" \
     "$ROOT_DIR/src/codegen/transpiler_role_ability.c" >/dev/null; then

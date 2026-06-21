@@ -279,6 +279,12 @@ render_ability_ref_parts_vtable_tag_in_ctx(TranspilerCtx *ctx,
         ability_header =
             transpiler_active_decl_header_of_type(
                 ctx, AST_ABILITY_DECL, base_name);
+        if (ability_header == NULL) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing ability declaration header for ability tag '%s'",
+                base_name);
+            return NULL;
+        }
     }
     ability_decl = !mir_active && ctx != NULL
         ? find_ability_decl(ctx, base_name)
@@ -314,6 +320,12 @@ render_ability_ref_parts_vtable_tag_in_ctx(TranspilerCtx *ctx,
         }
         if (rendered == NULL) {
             codebuf_destroy(buf);
+            if (mir_active) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    "MIR-only C path missing generic ability argument metadata for '%s' at index %llu",
+                    base_name, (unsigned long long)i);
+                return NULL;
+            }
             return render_ability_type_name_vtable_tag(base_name);
         }
         if (i > 0)

@@ -251,6 +251,12 @@ llvm_render_mir_ability_ref_vtable_tag(LLVMGenCtx *ctx,
     if (mir_active) {
         ability_header = llvm_find_decl_header_in_context_of_type(
             ctx, AST_ABILITY_DECL, base_name);
+        if (ability_header == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing ability declaration header for ability tag '%s'",
+                base_name);
+            return NULL;
+        }
     }
     ability_decl = !mir_active
         ? llvm_find_decl_in_active_inventory(ctx, AST_ABILITY_DECL, base_name)
@@ -286,8 +292,15 @@ llvm_render_mir_ability_ref_vtable_tag(LLVMGenCtx *ctx,
                 : llvm_render_ability_formal_fallback(
                     ctx, ast_generic_param_at(generics, i));
         }
-        if (arg == NULL)
+        if (arg == NULL) {
+            if (mir_active) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing generic ability argument metadata for '%s' at index %llu",
+                    base_name, (unsigned long long)i);
+                return NULL;
+            }
             return llvm_keep_ability_tag(ctx, base_name);
+        }
         written = snprintf(rendered + offset, sizeof(rendered) - offset,
             "%s%s", i > 0 ? ", " : "", arg);
         if (written < 0 || (size_t)written >= sizeof(rendered) - offset)

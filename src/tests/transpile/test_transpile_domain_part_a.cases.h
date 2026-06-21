@@ -239,6 +239,10 @@ test_party_emit(void)
 
     TEST("party emits struct with role slot and shared field");
     {
+        ASTNode ability_node; memset(&ability_node, 0, sizeof(ability_node));
+        ability_node.type = AST_ABILITY_DECL;
+        ability_node.data.ability_decl.name = "Damageable";
+
         ASTNode party_node; memset(&party_node, 0, sizeof(party_node));
         party_node.type = AST_PARTY_DECL;
         party_node.data.party_decl.name = "DungeonTeam";
@@ -271,7 +275,13 @@ test_party_emit(void)
         party_node.data.party_decl.methods = NULL;
         party_node.data.party_decl.method_count = 0;
 
-        MIRProgram *mir = mir_program_from_decl_for_test(&party_node);
+        ASTNode program; memset(&program, 0, sizeof(program));
+        ASTNode *stmts[2] = { &ability_node, &party_node };
+        program.type = AST_PROGRAM;
+        program.data.program.statements = stmts;
+        program.data.program.count = 2;
+
+        MIRProgram *mir = mir_program_from_ast(&program);
         g_last_mir = mir;
         TranspilerCtx *ctx = transpiler_ctx_create();
         emit_party_decl(&party_node, ctx);

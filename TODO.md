@@ -136,6 +136,11 @@ English anchor for tooling/doc gates:
   `mir_instruction_source_stmt_call_emit_is_allowed(...)`. Gate:
   `cfg-body-dataflow-test-smoke`, `perf-contract-test-smoke`, plus `test-mir`
   residual STMT policy fixture.
+- MIR ability-ref tag SoT: C and LLVM MIR-active ability tag renderers now
+  require the ability declaration header and any omitted actual/default/
+  constraint generic metadata from `MIRDeclHeader` / `MIRDeclGenericParam`.
+  Missing metadata is a structured MIR-inventory failure, not a base-name
+  vtable tag fallback. Gate: `mir-declaration-inventory-test-smoke`.
 - Honest weakness ledger: beta messaging and work selection must keep five
   real costs visible instead of hiding them behind safety language. (1) Runtime
   Slot/authority validation can trade memory corruption for availability loss;
