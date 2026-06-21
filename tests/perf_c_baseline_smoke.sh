@@ -54,11 +54,11 @@ PGY_C_OUT_ARG="$(pgy_path_for_compiler "$PGY_BIN" "$PGY_C_OUT")"
 
 "$PGY_BIN" "$PGY_SOURCE_ARG" --backend=c --emit-c -o "$PGY_C_OUT_ARG" >/dev/null
 if grep -Fq "pgy_checked_mod_i32_export" "$PGY_C_OUT"; then
-  echo "[perf-c-baseline] constant nonzero modulo regressed to checked helper" >&2
+  echo "[perf-c-baseline] constant safe divisor modulo regressed to checked helper" >&2
   exit 1
 fi
 if grep -Fq "pgy_checked_div_i32_export" "$PGY_C_OUT"; then
-  echo "[perf-c-baseline] constant nonzero division regressed to checked helper" >&2
+  echo "[perf-c-baseline] constant safe divisor division regressed to checked helper" >&2
   exit 1
 fi
 "$PGY_BIN" "$PGY_SOURCE_ARG" --backend=c --opt=release -o "$PGY_EXE_ARG" >/dev/null
