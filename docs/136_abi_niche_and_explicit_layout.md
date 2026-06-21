@@ -133,6 +133,13 @@ effect owner proves the read-modify-write sequence.
 Rule: `let mut` is local-storage mutability, not permission to take an address
 of a bit slice or to bypass the layout/effect owner.
 
+Implementation note: `let mut` is already valid Pergyra syntax for mutable
+locals and fields. That existing syntax is not a layout capability. If a future
+packed-field or bit-slice spelling reaches the parser, the first compiler
+behavior must still be a structured semantic reject until a `LayoutFact` owner
+proves storage unit, offsets, masks, shift, aliasing, and read-modify-write
+policy.
+
 Future negative fixtures must reject `let mut` / `inout` access to partial-width packed
 fields, reject address-like treatment of bit slices, and require the
 diagnostic to name the missing `LayoutFact` owner rather than silently lowering

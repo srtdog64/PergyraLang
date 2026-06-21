@@ -1146,6 +1146,14 @@ done
 grep -q 'expr_host_method_function_type(ctx, host_decl, method_name)' \
     src/semantic/type_checker_intent_control.c \
     || fail "intent member-control checks must consume hosted method function-type summary facts"
+method_type_lookup_line="$(grep -n 'method_type = expr_host_method_function_type(' src/semantic/type_checker_intent_control.c | head -1 | cut -d: -f1)"
+method_array_lookup_line="$(grep -n 'semantic_host_decl_methods(host_decl' src/semantic/type_checker_intent_control.c | head -1 | cut -d: -f1)"
+if [ -z "$method_type_lookup_line" ] || [ -z "$method_array_lookup_line" ] ||
+   [ "$method_type_lookup_line" -ge "$method_array_lookup_line" ]; then
+    fail "intent authority-sensitive member calls must consume checked method type before AST method-array fallback"
+fi
+grep -q 'type_effect_mask_requires_authority(' src/semantic/type_checker_intent_control.c \
+    || fail "intent authority-sensitive member calls must test authority effects from checked method type"
 
 if grep -RIn 'semantic_legacy_ast_callable_param_escape_summary' src/semantic >/dev/null; then
     fail "call contract escape summary must not reintroduce the legacy AST public seam name"

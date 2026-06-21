@@ -231,6 +231,11 @@ English anchor for tooling/doc gates:
   Documentation anchor: `docs/semantics/04_ownership_abi.md` now records this
   as the `Packed Layout Is Not Ordinary Mutability` theorem boundary, so future
   implementation work must update the proof obligation and the TODO together.
+  Keep `docs/136_abi_niche_and_explicit_layout.md` as the ABI-facing anchor for
+  the same decision: `let mut` is real syntax, but not layout capability
+  evidence. Any future parser acceptance of packed-field or bit-slice syntax
+  must land with the negative semantic fixture first, then the shared
+  `LayoutFact` ABI golden only after the fact owner exists.
   (3) Swift SIL / Rust MIR pass maturity means each lowering and optimization
   pass declares required facts, preserved facts, invalidated facts, and stable
   diagnostics. `docs/semantics/pass_contract_manifest.md` now pins the major
@@ -17262,6 +17267,11 @@ Local verification for this debt refresh:
   `semantic_host_decl_methods(...)` instead of reopening class-only
   `find_type_decl_by_name(...)`. This keeps subject/party/zone/world hosted
   methods on the same semantic host seam as the rest of the beta surface.
+  Follow-up: effect-based authority-sensitive detection now consumes the
+  checked hosted method function type through
+  `expr_host_method_function_type(...)` before touching the AST method array;
+  the array scan remains only for header-only action `within` / `causes`
+  fallback until those declaration contract bits have a typed metadata owner.
   Local verification: `test-semantic` (`2558/0`) and
   `type-resolution-resolver-inventory-test-smoke`.
 - Reduced domain slot declaration rediscovery: vessel slot validation now
