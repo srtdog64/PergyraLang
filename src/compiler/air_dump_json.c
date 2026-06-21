@@ -207,7 +207,8 @@ air_dump_json_summary(const AIRProgram *air, FILE *out)
             "\"observability_schema_evidence_count\":%zu,"
             "\"runtime_frontier_policy_evidence_count\":%zu,"
             "\"unproven_retain_count\":%zu,"
-            "\"inherent_concurrency_count\":%zu}",
+            "\"inherent_concurrency_count\":%zu,"
+            "\"slot_capability_retain_count\":%zu}",
             air_evidence_summary_count(air, AIR_EVIDENCE_HIR_ROUTINE),
             air_evidence_summary_count(air, AIR_EVIDENCE_HIR_CFG),
             air_evidence_summary_count(air, AIR_EVIDENCE_RIR_BOUNDARY),
@@ -227,7 +228,8 @@ air_dump_json_summary(const AIRProgram *air, FILE *out)
             air_evidence_summary_count(air,
                                        AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY),
             air_unproven_retain_count(air),
-            air_inherent_concurrency_count(air));
+            air_inherent_concurrency_count(air),
+            air_slot_capability_retain_count(air));
 }
 
 static void

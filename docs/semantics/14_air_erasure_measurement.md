@@ -166,6 +166,10 @@ cause and surfaces the one bucket AIR previously could not express — *unproven
   `air_collect_mir_evidence` from the MIR lifecycle guard facts
   (`mir_instruction_lifecycle_guard_kind == CHECK`), so the "I could not prove
   it" verdict now reaches AIR instead of being invisible to it.
+- `slot_capability_retain_count` (program-level): the count of
+  SecureSlot/DeviceSlot resource operations declared from MIR type-layout facts
+  (bucket B). These checks may survive across method or ABI boundaries even
+  when there is no intent-step boundary node.
 
 **Measured side (out-of-band, `tests/air_erasure`):** the harness holds the
 physical `nm` facts AIR cannot see at compile time and **joins** them to the
@@ -179,17 +183,18 @@ its own erasure is not evidence.
 
 **Measured join (the proof it works):**
 
-| Fixture | AIR: A_inh | AIR: C_unprov | phys Sync | phys Abort | reading |
-|---|---:|---:|---:|---:|---|
-| `lifecycle_branch` | 0 | **1** | 0 | **1** | declared C=1 **matches** measured abort=1 |
-| `zone_intent` | **2** | 0 | 2 | 1 | 2 inherent boundaries ↔ 2 sync |
-| `channel_parallel` | **0** | 0 | **11** | 1 | **drift**: 0 declared, 11 sync survive |
+| Fixture | AIR: A_inh | AIR: B_pol | AIR: C_unprov | phys Sync | phys Abort | reading |
+|---|---:|---:|---:|---:|---:|---|
+| `lifecycle_branch` | 0 | 0 | **1** | 0 | **1** | declared C=1 **matches** measured abort=1 |
+| `zone_intent` | **2** | 0 | 0 | 2 | 1 | inherent boundaries declare runtime sync residue |
+| `channel_parallel` | **4** | 0 | 0 | **11** | 1 | bare concurrency is declared program-wide |
+| `secure_slot_method` | 0 | **2** | 0 | 0 | **1** | secure/device capability residue is declared as policy |
 
-The `lifecycle_branch` row is the load-bearing result: AIR *declares* exactly one
-unproven retain and exactly one abort path *physically survives*. The `channel`
-row is a real, recorded `compression_residue_mismatch`: a bare `parallel{}` is
-not yet an AIR boundary node, so AIR under-covers concurrency — the next modeling
-gap to close.
+The `lifecycle_branch` row is the load-bearing bucket-C result: AIR *declares*
+exactly one unproven retain and exactly one abort path *physically survives*.
+The `channel_parallel` and `secure_slot_method` rows are the bucket-A/B closure
+points: residue can remain physical, but it is now declared by AIR instead of
+appearing as an undeclared compression mismatch.
 
 **The gate (`tests/air_erasure/gate.ps1` + `baseline.json`):**
 
@@ -213,9 +218,9 @@ The three gaps §6/§7 recorded are now filled:
 - **Runtime-authority fixture (bucket B physically survives).**
   `08_secure_slot_method` reads a secure-slot token across a method boundary; the
   authority check cannot be folded and **survives `-O2`** (`phys_Abort = 1`),
-  unlike the straight-line `03` where the token folds. It exposed a real coverage
-  edge — AIR does not yet model slot-capability checks as retains, so `08` is a
-  recorded `expected_drift` (the next AIR coverage step: slot-capability → AIR).
+  unlike the straight-line `03` where the token folds. AIR now declares this via
+  `slot_capability_retain_count`, computed from MIR resource-op type-layout facts;
+  `08` is no longer an `expected_drift`.
   Findings: a slot whose release is behind a runtime branch is **statically
   rejected** (fail-closed at compile time), not deferred to runtime — so the
   always-on slot check rarely survives `-O2` in compilable code.
@@ -233,8 +238,6 @@ The three gaps §6/§7 recorded are now filled:
 
 ## 9. Remaining work
 
-- Model slot-capability (secure/device token) checks as AIR retains so `08`'s
-  residue is *declared* (closing its expected-drift), not just measured.
 - Fix the LLVM backend to accept tuple-destructure `ClaimSecureSlot` (the `03`
   divergence) — a real surface-coverage gap between the backends.
 - When `opt`/`llc` are available, add the faithful LLVM *physical* `nm` pass and

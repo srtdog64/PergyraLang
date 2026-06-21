@@ -154,6 +154,9 @@ for required in \
     '"rir_relation_propagation_evidence_count"' \
     '"observability_schema_evidence_count"' \
     '"runtime_frontier_policy_evidence_count"' \
+    '"unproven_retain_count"' \
+    '"inherent_concurrency_count"' \
+    '"slot_capability_retain_count"' \
     '"kind":"observability_schema"' \
     '"kind":"runtime_frontier_policy"' \
     '"provider":"runtime-observability-schema"' \
@@ -306,6 +309,9 @@ assert any(e["kind"] == "observability_schema" and e["provider"] == "runtime-obs
 assert summary["runtime_frontier_policy_evidence_count"] == 1
 assert summary["runtime_frontier_policy_evidence_count"] == count_kind(data, "runtime_frontier_policy")
 assert any(e["kind"] == "runtime_frontier_policy" and e["provider"] == "pgy.runtime.frontier-policy.v1" for e in data["evidence"])
+assert summary["unproven_retain_count"] >= 0
+assert summary["inherent_concurrency_count"] >= 0
+assert summary["slot_capability_retain_count"] >= 0
 assert all("location" in b and b["location"]["line"] > 0 for b in data["boundaries"])
 print("[air-json-schema] parsed schema ok")
 PY

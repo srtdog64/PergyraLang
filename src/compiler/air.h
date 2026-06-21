@@ -248,6 +248,10 @@ typedef struct AIRProgram
        bare parallel/channel (not an intent-step boundary) still reports its
        irreducible residue instead of leaving a declared-vs-measured gap. */
     size_t           inherent_concurrency_count;
+    /* Bucket B: policy retains for capability-bearing slot operations. These
+       are declared from MIR type-layout facts because SecureSlot/DeviceSlot
+       token checks may survive even when no intent-step boundary exists. */
+    size_t           slot_capability_retain_count;
     char           **owned_names;
     size_t           owned_name_count;
     size_t           owned_name_capacity;
@@ -308,6 +312,7 @@ const char *air_retain_cause_name(AIRRetainCause cause);
 AIRRetainCause air_boundary_retain_cause(const AIRBoundaryNode *boundary);
 size_t      air_unproven_retain_count(const AIRProgram *air);
 size_t      air_inherent_concurrency_count(const AIRProgram *air);
+size_t      air_slot_capability_retain_count(const AIRProgram *air);
 size_t      air_intent_node_count(const AIRProgram *air);
 const AIRIntentNode *air_intent_node_at(const AIRProgram *air, size_t index);
 size_t      air_boundary_node_count(const AIRProgram *air);

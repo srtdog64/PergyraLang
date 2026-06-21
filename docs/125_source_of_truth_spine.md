@@ -1428,15 +1428,17 @@ is owned with the budget: `air_boundary.c::air_boundary_retain_cause` derives it
 per boundary, while the program-level bucket sources are owned by the MIR
 evidence collector — `air_evidence_mir_facts.c` computes
 `air_mir_routine_unproven_retain_fact_count` (bucket C, lifecycle CHECK guards)
-and `air_mir_routine_inherent_concurrency_fact_count` (bucket A, parallel/channel),
+`air_mir_routine_inherent_concurrency_fact_count` (bucket A, parallel/channel),
+and `air_mir_routine_slot_capability_retain_fact_count` (bucket B,
+SecureSlot/DeviceSlot resource operations from MIR type-layout facts),
 accumulated by `air_evidence_mir.c` into `unproven_retain_count` /
-`inherent_concurrency_count` in `pgy.air.graph.v1`. AIR declares; it does not
+`inherent_concurrency_count` / `slot_capability_retain_count` in
+`pgy.air.graph.v1`. AIR declares; it does not
 measure. The *physical* residue is owned out-of-band by the erasure dashboard
 (`tests/air_erasure`, `docs/semantics/14`), which holds the post-codegen `nm`
 facts AIR cannot see and populates `AIR_DRIFT_COMPRESSION_RESIDUE_MISMATCH` when
 declaration and measurement disagree. The honest claim is bounded, measured,
-attributed loss; the CI gate keeps bucket C monotonically shrinking. Slot-capability
-(secure/device token) modeling into AIR remains the recorded next coverage step.
+attributed loss; the CI gate keeps bucket C monotonically shrinking.
 
 Canonical rule: World/Zone/Intent/Slot are source-level semantic axes, not
 backend-level physical artifacts. The full source chain

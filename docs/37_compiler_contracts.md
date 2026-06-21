@@ -73,7 +73,9 @@ that cost. The beta-visible vocabulary is `compression_budget` plus
 `compression_reason` in `pgy.air.graph.v1`, refined by a machine-readable
 `retain_cause` (inherent / policy / unproven = bucket A / B / C) plus the
 program-level `unproven_retain_count` (bucket C, lifecycle CHECK guards) and
-`inherent_concurrency_count` (bucket A, parallel/channel). The loss claim is
+`inherent_concurrency_count` (bucket A, parallel/channel) plus
+`slot_capability_retain_count` (bucket B, SecureSlot/DeviceSlot capability
+checks declared from MIR type-layout facts). The loss claim is
 **bounded, measured, attributed** — not zero: AIR *declares* the A/B/C
 decomposition and the out-of-band erasure dashboard (`tests/air_erasure`,
 `docs/semantics/14`) *measures* the physical residue and joins them, with a

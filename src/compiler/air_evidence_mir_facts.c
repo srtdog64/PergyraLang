@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <string.h>
 
 #include "air_internal.h"
 #include "mir_cfg_contract_cleanup_fact.h"
@@ -211,6 +212,56 @@ air_mir_routine_inherent_concurrency_fact_count(const MIRRoutine *routine)
                 || mir_instruction_source_matches_ast_type(inst, AST_CHANNEL_RECV)
                 || mir_instruction_uses_channel_receive_statement_emit(inst)
                 || mir_instruction_uses_select_receive_statement_emit(inst)) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+static bool
+air_mir_abi_type_is_capability_slot(const char *abi_type_name)
+{
+    return abi_type_name != NULL
+        && (strncmp(abi_type_name, "SecureSlot<", 11) == 0
+            || strncmp(abi_type_name, "DeviceSlot<", 11) == 0);
+}
+
+static bool
+air_mir_instruction_is_slot_capability_retain(const MIRInstruction *inst)
+{
+    const char *abi_type_name = inst != NULL && inst->type_layout != NULL
+        ? inst->type_layout->abi_type_name
+        : NULL;
+
+    return inst != NULL
+        && inst->kind == MIR_INST_RESOURCE_OP
+        && air_mir_abi_type_is_capability_slot(abi_type_name);
+}
+
+/*
+ * Count bucket-B slot capability retains. These are policy-visible
+ * SecureSlot/DeviceSlot operations declared from MIR's canonical ABI layout
+ * fact. The C/LLVM backends may optimize a local token check away, but when a
+ * method or boundary forces it to survive, AIR must already have declared that
+ * residue instead of learning about it from the physical nm pass.
+ */
+size_t
+air_mir_routine_slot_capability_retain_fact_count(const MIRRoutine *routine)
+{
+    size_t count = 0;
+
+    if (routine == NULL)
+        return 0;
+    if (routine->block_count > 0 && routine->blocks == NULL)
+        return 0;
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *block = &routine->blocks[i];
+        if (block->instruction_count > 0 && block->instructions == NULL)
+            continue;
+        for (size_t j = 0; j < block->instruction_count; j++) {
+            if (air_mir_instruction_is_slot_capability_retain(
+                    &block->instructions[j])) {
                 count++;
             }
         }

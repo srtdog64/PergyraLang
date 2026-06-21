@@ -85,6 +85,7 @@ run_literal_air_drift_smoke() {
     require_literal "Makefile" "air-drift-test-smoke"
     require_literal "src/compiler/air.h" "AIREvidenceNode"
     require_literal "src/compiler/air.h" "AIRCompressionBudget"
+    require_literal "src/compiler/air.h" "slot_capability_retain_count"
     require_literal "src/compiler/air.h" "air_intent_compression_budget"
     require_literal "src/compiler/air.h" "air_boundary_compression_budget"
     require_literal "src/compiler/air_boundary.c" "air_boundary_compression_budget"
@@ -92,11 +93,14 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_validate.c" "unknown compression budget"
     require_literal "src/compiler/air_dump_json.c" "\"compression_budget\""
     require_literal "src/compiler/air_dump_json.c" "\"compression_reason\""
+    require_literal "src/compiler/air_dump_json.c" "slot_capability_retain_count"
     require_literal "src/compiler/air_vocabulary.c" "air_compression_budget_name"
     require_literal "src/compiler/air_evidence_mir_pin.c" "AIR_EVIDENCE_MIR_PIN_CLEANUP"
     require_literal "src/compiler/air_evidence_mir_facts.c" "air_mir_cleanup_evidence_kind"
     require_literal "src/compiler/air_evidence_mir_facts.c" "AIR_EVIDENCE_MIR_TERMINATOR"
     require_literal "src/compiler/air_evidence_mir_facts.c" "mir_instruction_uses_select_receive_statement_emit"
+    require_literal "src/compiler/air_evidence_mir_facts.c" "air_mir_routine_slot_capability_retain_fact_count"
+    require_literal "src/compiler/air_evidence_mir.c" "air_mir_routine_slot_capability_retain_fact_count"
     require_literal "src/semantic/semantic.c" "semantic_result_type_resolution_metadata_entries"
     require_literal "src/compiler/air_evidence_dag.c" "semantic_result_type_resolution_metadata_entries"
     require_literal "src/compiler/air_evidence_mir_facts.c" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
@@ -1062,6 +1066,7 @@ for path in [air_dump_path, air_dump_json_path]:
         "air->rir_relation_propagation_required_count",
         "air->observability_schema_evidence_count",
         "air->runtime_frontier_policy_evidence_count",
+        "air->slot_capability_retain_count",
     ]:
         if raw_counter in dump_text:
             raise SystemExit(

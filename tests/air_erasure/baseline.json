@@ -8,9 +8,7 @@
     "03_secure_slot",
     "07_lifecycle_linear"
   ],
-  "expected_drifts": {
-    "08_secure_slot_method": "secure-slot capability/token checks are not yet modeled as AIR retains (slot-capability calculus -> AIR is the next coverage step); the check genuinely survives -O2 across the method boundary, so physical>0 while declared=0."
-  },
+  "expected_drifts": {},
   "llvm_unsupported": {
     "03_secure_slot": "LLVM backend rejects tuple-destructure `let (slot, token) = ClaimSecureSlot()` ('requires an explicitly typed binding'); the C backend accepts it. A real C/LLVM surface-coverage divergence found by parity.ps1. The class-field secure-slot form (08) compiles on both backends."
   }

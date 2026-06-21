@@ -15,7 +15,9 @@ pwsh tests/air_erasure/parity.ps1    # C == LLVM behavioral parity on every fixt
 
 Requires the committed `bin/pgy.exe`, mingw `gcc`/`nm` and LLVM `bin` (clang) on
 PATH. `A_inh` includes both `retain_cause:inherent` boundaries and the
-program-wide `inherent_concurrency_count` (parallel/channel retains).
+program-wide `inherent_concurrency_count` (parallel/channel retains). `B_pol`
+includes both `retain_cause:policy` boundaries and the program-wide
+`slot_capability_retain_count` (SecureSlot/DeviceSlot capability retains).
 
 ## What it measures (the join)
 
@@ -23,7 +25,8 @@ Per fixture, two *independent* instruments, joined:
 
 - **AIR declared (`--air-json`):** the compiler's own A/B/C decomposition —
   `A_inh` = boundaries with `retain_cause:inherent` (runtime fact, bucket A),
-  `B_pol` = `retain_cause:policy` (kept-by-policy, B), `C_unprov` =
+  `B_pol` = `retain_cause:policy` plus `slot_capability_retain_count`
+  (kept-by-policy, B), `C_unprov` =
   `unproven_retain_count` (lifecycle CHECK guards the analysis could not erase, C).
 - **Physical measured (`gcc -O2` + `nm -u`):** what actually survives —
   `phys_Axis` (out-of-line axis call), `phys_Sync` (pthread), `phys_Abort`
@@ -60,7 +63,7 @@ channel, an `abort` path for a fail-closed guard, nothing for a provable slot).
 | `05_zone_intent.pgy` | Zone+Intent | authority folds; intent-trace residue (B) |
 | `06_lifecycle_branch.pgy` | Lifecycle | 1 attributed abort at the ambiguity (C) |
 | `07_lifecycle_linear.pgy` | Lifecycle | provable → all zeros (taint) |
-| `08_secure_slot_method.pgy` | Slot+authority | token check survives across a method boundary (B physical=1); expected-drift until slot-capability is modeled in AIR |
+| `08_secure_slot_method.pgy` | Slot+authority | token check survives across a method boundary (B physical=1) and is declared by `slot_capability_retain_count` |
 
 ## Per-program erasure contract (the falsifiable claim)
 

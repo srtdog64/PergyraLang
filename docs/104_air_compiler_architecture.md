@@ -605,7 +605,7 @@ structured — **not** a new disposition):
   discharge it; a stronger analysis could erase it. The **sole improvable
   bucket**; it must trend downward.
 
-Two program-level counts in `pgy.air.graph.v1` source the buckets the per-node
+Three program-level counts in `pgy.air.graph.v1` source the buckets the per-node
 `retain_cause` cannot (they are not intent-step boundaries):
 
 - `unproven_retain_count` (bucket C) — lifecycle `CHECK` guards at ambiguous
@@ -615,6 +615,10 @@ Two program-level counts in `pgy.air.graph.v1` source the buckets the per-node
 - `inherent_concurrency_count` (bucket A) — `parallel`/`async`/`spawn` blocks and
   channel send/receive, so a bare `parallel{}`/`channel` declares its irreducible
   concurrency residue even though it never becomes a boundary node.
+- `slot_capability_retain_count` (bucket B) — SecureSlot/DeviceSlot resource
+  operations declared from MIR type-layout facts, so token/capability checks
+  that survive across method or ABI boundaries are declared instead of becoming
+  an undeclared residue mismatch.
 
 The honest thesis this encodes is **not** "loss = 0"; it is **bounded, measured,
 attributed loss**. AIR *declares* the A/B/C decomposition; an out-of-band
@@ -634,10 +638,10 @@ a provable fixture stops erasing; a *new* residue mismatch is a hard failure whi
 **Newly-found, honestly recorded (surfaced by the drift/parity checks, in
 `tests/air_erasure/baseline.json`):**
 
-- Slot-capability (secure/device token) checks are not yet modeled as AIR
-  retains — the secure check genuinely survives `-O2` across a method boundary
-  (`08_secure_slot_method`), so it shows as an `expected_drift` until
-  slot-capability → AIR is wired. The next coverage step.
+- Slot-capability (secure/device token) checks are modeled as AIR bucket-B
+  retains via `slot_capability_retain_count`; the secure check that genuinely
+  survives `-O2` across a method boundary (`08_secure_slot_method`) is now
+  declared instead of listed as `expected_drift`.
 - The LLVM backend rejects tuple-destructure `let (slot, token) = ClaimSecureSlot()`
   (the C backend accepts it) — a real surface-coverage divergence the C == LLVM
   parity check found, recorded as `llvm_unsupported`.

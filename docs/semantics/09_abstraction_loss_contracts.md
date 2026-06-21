@@ -180,9 +180,11 @@ Preserved facts:
 - compression `retain_cause` (inherent/policy/unproven — the A/B/C reason a retain
   was unavoidable), so the analyzer's "could not prove" verdict is preserved, not
   flattened into an undifferentiated retain;
-- the lifecycle `CHECK`-guard count (`unproven_retain_count`, bucket C) and the
-  parallel/channel concurrency count (`inherent_concurrency_count`, bucket A) —
-  program-level retain facts that no boundary node carries;
+- the lifecycle `CHECK`-guard count (`unproven_retain_count`, bucket C), the
+  parallel/channel concurrency count (`inherent_concurrency_count`, bucket A),
+  and the SecureSlot/DeviceSlot capability count
+  (`slot_capability_retain_count`, bucket B) — program-level retain facts that
+  no boundary node carries;
 - cleanup, pin, terminator, select-receive, DAG, runtime, and observability
   evidence when those facts discharge an abstraction proof.
 

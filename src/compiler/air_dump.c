@@ -47,6 +47,11 @@ air_dump(const AIRProgram *air, FILE *out)
             air_evidence_summary_count(air, AIR_EVIDENCE_OBSERVABILITY_SCHEMA),
             air_evidence_summary_count(air,
                                        AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY));
+    fprintf(out,
+            "  compression_residue inherent_concurrency=%zu slot_capability=%zu unproven=%zu\n",
+            air_inherent_concurrency_count(air),
+            air_slot_capability_retain_count(air),
+            air_unproven_retain_count(air));
     for (size_t i = 0; i < air_intent_node_count(air); i++) {
         const AIRIntentNode *intent = air_intent_node_at(air, i);
         if (intent == NULL)

@@ -5,7 +5,8 @@
 #   - AIR (declared): the compiler's own A/B/C decomposition of each retain,
 #     read from `--air-json`:
 #       A_inh    = boundaries with retain_cause "inherent" (runtime fact, bucket A)
-#       B_pol    = boundaries with retain_cause "policy"   (kept-by-policy, B)
+#       B_pol    = boundaries with retain_cause "policy" plus program-wide
+#                  slot_capability_retain_count (kept-by-policy, B)
 #       C_unprov = unproven_retain_count (lifecycle CHECK guards the static
 #                  analysis could not erase — the improvable bucket C)
 #   - Physical (measured): what survives `gcc -O2` of the emitted C, via `nm -u`:
@@ -47,7 +48,10 @@ foreach ($f in $fix) {
   $mConc = [regex]::Match($air, 'inherent_concurrency_count":(\d+)')
   $Aconc = if ($mConc.Success) { [int]$mConc.Groups[1].Value } else { 0 }
   $A = $Abnd + $Aconc
-  $B = ([regex]::Matches($air, 'retain_cause":"policy"')).Count
+  $Bbnd = ([regex]::Matches($air, 'retain_cause":"policy"')).Count
+  $mSlotCap = [regex]::Match($air, 'slot_capability_retain_count":(\d+)')
+  $Bslot = if ($mSlotCap.Success) { [int]$mSlotCap.Groups[1].Value } else { 0 }
+  $B = $Bbnd + $Bslot
   $mC = [regex]::Match($air, 'unproven_retain_count":(\d+)')
   $C = if ($mC.Success) { [int]$mC.Groups[1].Value } else { 0 }
   # --- physical measured ---

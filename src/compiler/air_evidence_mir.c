@@ -60,6 +60,9 @@ air_collect_mir_evidence(AIRProgram *air,
         /* Bucket A: accumulate inherent concurrency retains (parallel/channel). */
         air->inherent_concurrency_count +=
             air_mir_routine_inherent_concurrency_fact_count(routine);
+        /* Bucket B: capability-bearing slot operations retained by policy. */
+        air->slot_capability_retain_count +=
+            air_mir_routine_slot_capability_retain_fact_count(routine);
         size_t cleanup_fact_count = air_mir_routine_cleanup_fact_count(routine);
         size_t terminator_fact_count =
             air_mir_routine_terminator_fact_count(routine);
