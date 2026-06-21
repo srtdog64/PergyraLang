@@ -212,6 +212,7 @@ semantic_record_callee_body_summary(SemanticContext *ctx,
         | BODY_SUMMARY_DROPS_RESOURCE
         | BODY_SUMMARY_EFFECTS
         | BODY_SUMMARY_REQUIRES_ZONE
+        | BODY_SUMMARY_CAUSES_EFFECT
         | BODY_SUMMARY_SPAWNS_TASK
         | BODY_SUMMARY_SENDS_CHANNEL;
 
@@ -247,12 +248,15 @@ semantic_record_callable_decl_summary(SemanticContext *ctx,
     if (has_callable_summary) {
         semantic_record_body_summary(ctx,
             callable_summary & (BODY_SUMMARY_EFFECTS
-                                | BODY_SUMMARY_REQUIRES_ZONE));
+                                | BODY_SUMMARY_REQUIRES_ZONE
+                                | BODY_SUMMARY_CAUSES_EFFECT));
     } else {
         if (declared_effects != EFFECT_NONE)
             semantic_record_body_summary(ctx, BODY_SUMMARY_EFFECTS);
         if (ast_func_within_zone(callable_decl) != NULL)
             semantic_record_body_summary(ctx, BODY_SUMMARY_REQUIRES_ZONE);
+        if (ast_func_causes_effect(callable_decl) != NULL)
+            semantic_record_body_summary(ctx, BODY_SUMMARY_CAUSES_EFFECT);
     }
 
     param_count = callable_type != NULL

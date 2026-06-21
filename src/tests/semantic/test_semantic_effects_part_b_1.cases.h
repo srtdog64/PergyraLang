@@ -283,6 +283,7 @@
         method->data.func_decl.has_effects_clause = true;
         method->data.func_decl.declared_effects = EFFECT_REMOTE;
         method->data.func_decl.within_zone = pergyra_strdup("VaultZone");
+        method->data.func_decl.causes_effect = pergyra_strdup("VaultEffect");
         method->data.func_decl.param_count = 1;
         method->data.func_decl.params = calloc(1, sizeof(FuncParam *));
         method->data.func_decl.params[0] =
@@ -321,6 +322,7 @@
         EXPECT(!ctx->has_error
             && (body_summary & BODY_SUMMARY_EFFECTS) != 0
             && (body_summary & BODY_SUMMARY_REQUIRES_ZONE) != 0
+            && (body_summary & BODY_SUMMARY_CAUSES_EFFECT) != 0
             && (body_summary & BODY_SUMMARY_BORROWS_PARAM) != 0
             && (body_summary & BODY_SUMMARY_SPAWNS_TASK) != 0);
 

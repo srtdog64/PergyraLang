@@ -63,7 +63,8 @@ typedef enum
     BODY_SUMMARY_EFFECTS        = 1u << 5,
     BODY_SUMMARY_REQUIRES_ZONE  = 1u << 6,
     BODY_SUMMARY_SPAWNS_TASK    = 1u << 7,
-    BODY_SUMMARY_SENDS_CHANNEL  = 1u << 8
+    BODY_SUMMARY_SENDS_CHANNEL  = 1u << 8,
+    BODY_SUMMARY_CAUSES_EFFECT  = 1u << 9
 } BodySummaryMask;
 
 typedef enum

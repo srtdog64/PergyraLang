@@ -96,11 +96,13 @@ Current beta closure snapshot:
 - Interprocedural callable body-summary reads live in
   `src/semantic/type_checker_call_contract_helpers.c`. Consumers that need to
   prove absence or presence of callee body facts must use
-  `semantic_callable_summary_proves_no_*` or
-  `semantic_callable_summary_has_*` rather than reopening a callee body. Intent
-  control may scan its own clause expression for directly written control
-  constructs, but named callee and hosted member-callee spawn/channel decisions
-  consume the checked body-summary reader.
+  `semantic_callable_summary_proves_no_*`,
+  `semantic_callable_summary_has_*`, or
+  `semantic_callable_type_requires_intent_authority(...)` rather than reopening
+  a callee body. Intent control may scan its own clause expression for directly
+  written control constructs, but named callee and hosted member-callee
+  spawn/channel/authority-contract decisions consume the checked body-summary
+  reader.
 - Spawn boundary validators in `src/semantic/type_checker_async_channel.c`
   consume the direct callee's checked function signature for parameter type
   facts via `type_function_param_type(...)` and parameter mode facts via
@@ -112,12 +114,13 @@ Current beta closure snapshot:
   declaration is allowed only as body-summary/provenance input.
 - Callable summary propagation in `src/semantic/type_checker_helpers_effects.c`
   records callee `own`/`ref` summary bits from the checked function type when
-  the type fact exists and derives effect/zone summary bits from checked
-  body-summary facts first; AST param modes and source `effects` / `within
-  zone` contracts remain explicit compatibility fallback for non-checked
-  declaration paths. The body-summary owner records `within zone` for all
-  callable headers, so method calls do not need a source-contract reread to
-  recover zone requirements. Per-parameter ref escape summaries are recorded on
+  the type fact exists and derives effect/zone/causes summary bits from checked
+  body-summary facts first; AST param modes and source `effects`, `within
+  zone`, and `causes effect` contracts remain explicit compatibility fallback
+  for non-checked declaration paths. The body-summary owner records
+  `within zone` and `causes effect` for all callable headers, so method calls
+  do not need a source-contract reread to recover authority-sensitive contract
+  facts. Per-parameter ref escape summaries are recorded on
   checked function types and consumed by call-contract lookup before the legacy
   AST analyzer fallback is allowed.
 - MIR lowering lives in `src/compiler/mir.c`, next to the owner-local lowering
@@ -530,7 +533,7 @@ keep the source-level business vocabulary clean.
 | Type/declaration dependency | Type-resolution DAG metadata | Semantic owners, AIR DAG evidence | Recursive resolver fallback on frozen paths |
 | Generic/ability contract evidence | Type-resolution DAG + `semantic_role_decl_has_ability(...)` | Semantic contract checks, role/party bind checks, AIR | Program-root based ability match helpers or compatibility counters as semantic truth |
 | Semantic host declaration lookup | `semantic_find_*_decl_by_name(...)` in `type_checker_host_helpers.c` | Constructor lookup, callable lookup, class/ability/enum/function lookup, ownership consumers | Public raw `find_type_decl_by_name`, `find_ability_decl_by_name`, `find_callable_decl_by_name`, or `find_type_alias_decl` program-root helpers |
-| Hosted method body summary | The checked `Host_Method` function symbol type, reached through `expr_host_method_function_type(...)` | Current-host method calls, instance method calls, intent authority-sensitive call detection, effect/body-summary propagation, parallel secure-call checks | Recomputing hosted method effects from AST-only declarations, checking AST method arrays before checked method-type effects, dropping `semantic_record_callee_body_summary(...)` for instance calls, or treating AST method arrays as the body-summary source of truth |
+| Hosted method body summary | The checked `Host_Method` function symbol type, reached through `expr_host_method_function_type(...)`; authority-contract facts are read through `semantic_callable_type_requires_intent_authority(...)` | Current-host method calls, instance method calls, intent authority-sensitive call detection, effect/body-summary propagation, parallel secure-call checks | Recomputing hosted method effects from AST-only declarations, checking AST method arrays before checked method-type effects/body-summary completion, dropping `semantic_record_callee_body_summary(...)` for instance calls, or treating AST method arrays as the body-summary source of truth |
 | Semantic domain declaration lookup | `semantic_find_*_decl_by_name(...)` in `type_checker_host_helpers.c` | Action contracts, intent where/using/causes, world embedding, zone authority | Public raw `find_domain_decl_by_name(...)` or any new semantic `ASTNode *program` lookup declaration |
 | Role declaration lookup | `semantic_find_role_decl_by_name(...)` / `semantic_find_next_role_decl_for_type_name(...)` | Ability matching, bind validation, operator overload lookup, role declaration validation | Public raw `semantic_find_role_decl(ASTNode *program, ...)` |
 | Projection source field path | `semantic_resolve_projection_source_field_path(...)` | Projection diagnostics, zone graph metadata, DAG projection materialization | Re-exposing `resolve_projection_source_field_path(ASTNode *program_root, ...)` or local class lookup |

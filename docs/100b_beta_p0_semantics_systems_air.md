@@ -332,18 +332,20 @@ Closed now:
   the function declaration for body-summary provenance, but the parameter mode
   itself comes from the checked function type. Callable summary propagation
   now uses the checked callee function type for `own`/`ref` mode bits whenever
-  that type fact is available, and it derives effect/zone summary bits from
-  checked body-summary facts before falling back to source contracts. The
-  function body-summary owner records `within zone` for every callable header,
-  not only `action`, so method calls do not need an AST contract reread to
-  recover zone requirements. Per-parameter ref escape summaries are also
+  that type fact is available, and it derives effect/zone/causes summary bits
+  from checked body-summary facts before falling back to source contracts. The
+  function body-summary owner records `within zone` and `causes effect` for
+  every callable header, not only `action`, so method calls do not need an AST
+  contract reread to recover authority-sensitive contract requirements.
+  Per-parameter ref escape summaries are also
   published onto checked function types, so call-contract lookup consumes those
   facts before falling back to the legacy AST analyzer.
 - Function types now carry first-stage interprocedural body summaries through
   `body_summary_mask`. The current seam records `may_return`, `may_escape_ref`,
   `moves_param`, `borrows_param`, `drops_resource`, `effects`,
-  `requires_zone`, `spawns_task`, and `sends_channel`, giving later CFG/runtime
-  propagation and backend parity work one stable fact surface instead of
+  `requires_zone`, `causes_effect`, `spawns_task`, and `sends_channel`, giving
+  later CFG/runtime propagation and backend parity work one stable fact surface
+  instead of
   repeatedly rediscovering those facts from AST-shaped helpers. Direct function
   calls now consume callee summaries and propagate transitive caller-relevant
   facts while keeping callee-local `may_return` local to the callee.
@@ -455,7 +457,10 @@ Remaining:
   bodies whose checked summary proves a reachable spawn or channel-send
   boundary, without reopening the callee body AST. Hosted member calls consume
   the checked method function type through `expr_host_method_function_type(...)`
-  and Type-based positive readers in the call-contract owner.
+  and Type-based positive readers in the call-contract owner. Authority-sensitive
+  intent calls now consume `semantic_callable_type_requires_intent_authority(...)`,
+  which folds checked effect bits plus `BODY_SUMMARY_REQUIRES_ZONE` /
+  `BODY_SUMMARY_CAUSES_EFFECT` before any AST method-array compatibility path.
   `semantic-core-shape-test-smoke`
   gates the prove/positive helpers as the canonical body-summary read seam on
   `src/semantic/type_checker_call_contract_helpers.c` and its declaration

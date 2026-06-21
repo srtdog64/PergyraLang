@@ -221,6 +221,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         semantic_record_body_summary(ctx, BODY_SUMMARY_EFFECTS);
     if (ast_func_within_zone(node) != NULL)
         semantic_record_body_summary(ctx, BODY_SUMMARY_REQUIRES_ZONE);
+    if (ast_func_causes_effect(node) != NULL)
+        semantic_record_body_summary(ctx, BODY_SUMMARY_CAUSES_EFFECT);
 
     /* Register parameters */
     for (size_t i = 0; i < param_count; i++) {

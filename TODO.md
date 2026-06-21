@@ -87,7 +87,7 @@ English anchor for tooling/doc gates:
   clauses still inspect their own source expression for directly written
   control constructs, but named callee bodies are no longer reopened; intent
   control rejects a named call only when the callee's checked function summary
-  proves a reachable spawn or channel-send boundary. Gate:
+  proves a reachable spawn/channel-send boundary or authority contract. Gate:
   `semantic-core-shape-test-smoke` plus `test-semantic` fixture
   `intent declaration rejects callee body spawn via body summary`.
 - Spawn boundary signature source-of-truth: storage, authority-token, and ref
@@ -101,12 +101,13 @@ English anchor for tooling/doc gates:
   declarations as body-summary provenance only. Callable summary propagation
   also reads callee `own`/`ref` mode bits from the checked function type when
   that signature fact exists, leaving AST param-mode reads as explicit
-  non-checked compatibility fallback only. Effect/zone summary propagation now
-  consumes checked body-summary bits first; source `effects` / `within zone`
-  contracts are compatibility fallback only when no checked body summary exists.
-  The function body-summary owner records `within zone` requirements for all
-  callable headers, not only `action`, so method calls do not need to reopen
-  source contracts to recover zone facts. Per-parameter ref escape summaries
+  non-checked compatibility fallback only. Effect/zone/causes summary
+  propagation now consumes checked body-summary bits first; source `effects`,
+  `within zone`, and `causes effect` contracts are compatibility fallback only
+  when no checked body summary exists. The function body-summary owner records
+  `within zone` and `causes effect` requirements for all callable headers, not
+  only `action`, so method calls do not need to reopen source contracts to
+  recover authority-sensitive contract facts. Per-parameter ref escape summaries
   are now published onto checked function types and consumed by call-contract
   lookup before the legacy AST analyzer is allowed as compatibility fallback.
   Gate: `semantic-core-shape-test-smoke` plus the type-system fixture
@@ -13696,7 +13697,7 @@ Checklist source of truth:
 - [~] owned resource drop/cleanup insertion point를 normal retun, early retun, break/continue, intent cancel/rollback/invalidation edge에서 같은 규칙으로 계산한다. `defer` cleanup terminator와 resource-state snapshot/restore 격리, direct `type_check_statement()` fallback convergence, anchored slot branch/join state tracking은 닫혔다. MIR validator now also rejects reachable pin-region blocks that lack the matching `pin-unpin-cleanup-edge` fact, so pin unpin cleanup is no longer just a generated convention. C/LLVM backend cleanup contracts now consume `mir_validate_emission_contract(...)` and `cfg-body-dataflow-test-smoke` rejects direct backend cleanup fact helper reads, so cleanup topology/fact truth is no longer duplicated in codegen. 남은 것은 full drop insertion/validation과 exceptional/cancellation all-exit proof expansion이다.
 - [ ] zone/effect/relation transition facts를 path-sensitive summary로 올려 branch/join/handoff에서 stale state와 conflict를 같은 vocabulary로 진단한다.
 - [~] `parallel`/channel/task boundary에서 moved value, borrowed reference, authority-bearing token, cancellation cleanup fact를 CFG summary로 검증한다. parallel task-local terminator isolation, moved/released resource/boundary join, duplicate resource/boundary consume diagnostic, `ref`+`own` boundary conflict, blocking channel-send resource consume/join, direct named-call `spawn ref` ownership-boundary rejection, direct named-call `spawn Token<T>` authority-boundary rejection, anonymous async spawn explicit reject, `SendTimeout`/`TrySendStatus`/`SendTimeoutStatus` transport rejection, `TryRecv`/`RecvTimeout` movable receive explicit reject, authority `Token<T>` channel helper rejection, copy-only cancellation payload reject, copy-only channel close는 닫혔고, broader channel receive/backpressure summary, closure/lambda/general borrowed-reference task lifetime, cancellation cleanup fact는 남아 있다.
-- [~] Interprocedural body summary를 고정한다: `may_return`, `may_escape_ref`, `moves_param`, `borrows_param`, `drops_resource`, `effects`, `requires_zone`, `spawns_task`, `sends_channel`. 1차 구조로 function type의 `body_summary_mask`와 semantic recorder는 들어갔다. direct function call은 callee summary 중 caller-relevant transitive facts를 소비하고 declaration-known `own/ref` parameter boundary facts도 기록한다. method/host call도 같은 declaration-known summary facts를 기록한다. lambda body summary는 lambda function type에 격리되어 outer routine으로 새지 않고, function-typed lambda binding 호출은 같은 callee-summary path로 전파된다. 2026-06-10 진전 (PR1+PR2): consumer가 callee body를 다시 walk하는 대신 `body_summary_mask` 비트를 직접 읽을 수 있는 prove-helper family가 노출됐다 — `semantic_callable_summary_proves_no_ref_escape`, `_no_drop_resource`, `_no_spawn_task`, `_no_send_channel`, `_no_zone_requirement`. 각 helper는 callee의 inventory가 명시적으로 해당 비트가 absent임을 증명할 때만 true를 반환하고 (inventory 미존재 시 false로 falling back), `semantic-core-shape-test-smoke`가 helper들의 공동 소유와 internal header export를 강제한다. 첫 consumer migration: `semantic_callable_param_escape_summary`가 `proves_no_send_channel`로 legacy AST 분석기의 `SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE` over-approximation을 제거한다. Intent control은 named callee뿐 아니라 hosted member-call callee도 checked method function type과 Type 기반 positive body-summary reader로 spawn/channel boundary를 거부한다. 남은 것은 zone authority spawn 감지, 나머지 helper/control async-channel 감지, C/LLVM lowering이 같은 비트를 직접 소비하게 만드는 일이다.
+- [~] Interprocedural body summary를 고정한다: `may_return`, `may_escape_ref`, `moves_param`, `borrows_param`, `drops_resource`, `effects`, `requires_zone`, `causes_effect`, `spawns_task`, `sends_channel`. 1차 구조로 function type의 `body_summary_mask`와 semantic recorder는 들어갔다. direct function call은 callee summary 중 caller-relevant transitive facts를 소비하고 declaration-known `own/ref` parameter boundary facts도 기록한다. method/host call도 같은 declaration-known summary facts를 기록한다. lambda body summary는 lambda function type에 격리되어 outer routine으로 새지 않고, function-typed lambda binding 호출은 같은 callee-summary path로 전파된다. 2026-06-10 진전 (PR1+PR2): consumer가 callee body를 다시 walk하는 대신 `body_summary_mask` 비트를 직접 읽을 수 있는 prove-helper family가 노출됐다 — `semantic_callable_summary_proves_no_ref_escape`, `_no_drop_resource`, `_no_spawn_task`, `_no_send_channel`, `_no_zone_requirement`. 각 helper는 callee의 inventory가 명시적으로 해당 비트가 absent임을 증명할 때만 true를 반환하고 (inventory 미존재 시 false로 falling back), `semantic-core-shape-test-smoke`가 helper들의 공동 소유와 internal header export를 강제한다. 첫 consumer migration: `semantic_callable_param_escape_summary`가 `proves_no_send_channel`로 legacy AST 분석기의 `SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE` over-approximation을 제거한다. Intent control은 named callee뿐 아니라 hosted member-call callee도 checked function/method type과 `semantic_callable_type_requires_intent_authority(...)`로 authority-sensitive `effects`/`within`/`causes` facts를 소비하고, checked summaries가 complete면 AST method-array contract fallback으로 가지 않는다. 남은 것은 zone authority spawn 감지, 나머지 helper/control async-channel 감지, C/LLVM lowering이 같은 비트를 직접 소비하게 만드는 일이다.
 - [ ] 진단은 block/path provenance를 포함한다: source path, branch/join edge, previous state, Reason, Fix.
 - [ ] MIR/C/LLVM lowering은 같은 CFG/dataflow facts를 소비하고, frozen subset parity regression으로 묶는다.
 
@@ -17270,8 +17271,10 @@ Local verification for this debt refresh:
   Follow-up: effect-based authority-sensitive detection now consumes the
   checked hosted method function type through
   `expr_host_method_function_type(...)` before touching the AST method array;
-  the array scan remains only for header-only action `within` / `causes`
-  fallback until those declaration contract bits have a typed metadata owner.
+  `within` / `causes` authority contracts now flow through checked
+  `BODY_SUMMARY_REQUIRES_ZONE` / `BODY_SUMMARY_CAUSES_EFFECT` facts via
+  `semantic_callable_type_requires_intent_authority(...)`. The array scan
+  remains only when a method lacks complete checked body-summary facts.
   Local verification: `test-semantic` (`2558/0`) and
   `type-resolution-resolver-inventory-test-smoke`.
 - Reduced domain slot declaration rediscovery: vessel slot validation now

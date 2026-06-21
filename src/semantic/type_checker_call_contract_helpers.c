@@ -142,6 +142,24 @@ semantic_callable_type_summary_has_send_channel(const Type *function_type)
         && (summary & BODY_SUMMARY_SENDS_CHANNEL) != 0;
 }
 
+bool
+semantic_callable_type_requires_intent_authority(const Type *function_type)
+{
+    uint32_t summary;
+
+    if (function_type == NULL || function_type->kind != TYPE_KIND_FUNCTION)
+        return false;
+    if (type_effect_mask_requires_authority(
+            type_function_effects(function_type))) {
+        return true;
+    }
+    if (!type_function_has_body_summary(function_type))
+        return false;
+    summary = type_function_body_summary(function_type);
+    return (summary & (BODY_SUMMARY_REQUIRES_ZONE
+                       | BODY_SUMMARY_CAUSES_EFFECT)) != 0;
+}
+
 ASTNode *
 semantic_lookup_function_param_contract(SemanticContext *ctx,
                                         const char *display_name,

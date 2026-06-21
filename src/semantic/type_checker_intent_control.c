@@ -20,7 +20,7 @@ intent_clause_invokes_authority_sensitive_call(ASTNode *expr, SemanticContext *c
         return sym != NULL
             && sym->type != NULL
             && sym->type->kind == TYPE_KIND_FUNCTION
-            && type_effect_mask_requires_authority(type_function_effects(sym->type));
+            && semantic_callable_type_requires_intent_authority(sym->type);
     }
 
     if (callee->type == AST_MEMBER_ACCESS
@@ -39,10 +39,11 @@ intent_clause_invokes_authority_sensitive_call(ASTNode *expr, SemanticContext *c
 
         method_type = expr_host_method_function_type(
             ctx, host_decl, ast_member_name(callee));
-        if (type_effect_mask_requires_authority(
-                type_function_effects(method_type))) {
+        if (semantic_callable_type_requires_intent_authority(method_type)) {
             return true;
         }
+        if (type_function_has_body_summary(method_type))
+            return false;
 
         size_t method_count = 0;
         ASTNode **methods = semantic_host_decl_methods(host_decl, &method_count);
