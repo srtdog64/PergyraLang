@@ -7042,13 +7042,33 @@ require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "ast_impl_ability_name(impl)"
 require_term "src/codegen/llvm_domain_role_emit.c" \
-    "mir_ability_ref_capture(&mir_ref, ability_ref)"
+    "mir_decl_header_role_impl("
 require_term "src/codegen/llvm_domain_role_emit.c" \
-    "llvm_render_mir_ability_ref_vtable_tag(ctx, &mir_ref)"
+    "mir_decl_role_impl_ability_ref(impl_meta)"
 require_term "src/codegen/llvm_domain_role_emit.c" \
-    "mir_ability_ref_clear(&mir_ref)"
+    "llvm_render_mir_ability_ref_vtable_tag(ctx, mir_ref)"
+require_term "src/codegen/llvm_domain_role_emit.c" \
+    "MIR-only LLVM path missing role vtable ability-ref metadata"
+require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
+    "ensure_mir_ability_ref_vtable_decl(ability_ref_meta, ctx)"
+require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
+    "render_mir_ability_ref_vtable_tag_in_ctx("
+require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+    "mir_decl_header_role_impl("
+require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+    "mir_decl_role_impl_ability_ref(impl_meta)"
+require_term "src/compiler/mir_decl.h" \
+    "MIRDeclRoleImpl"
+require_term "src/compiler/mir_decl_headers.c" \
+    "mir_decl_header_set_role_impls"
+require_term "src/compiler/mir_decl_header_validate.c" \
+    "mir_validate_decl_role_impl_metadata"
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "ast_impl_ability_method(impl, j)"
+if grep -Fq "mir_ability_ref_capture(&mir_ref, ability_ref)" \
+    "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c"; then
+    fail "LLVM role impl vtable emission must consume MIR role-impl ability-ref metadata, not recapture AST ability refs"
+fi
 require_term "src/codegen/llvm_domain_role_helpers.h" \
     "llvm_party_slot_first_ability_tag"
 require_term "src/codegen/llvm_domain_role_helpers.h" \

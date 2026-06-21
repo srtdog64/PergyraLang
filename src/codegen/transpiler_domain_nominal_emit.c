@@ -220,6 +220,8 @@ emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
         ASTNode *include_stmt = ast_role_include(role, i);
         const char *role_name = ast_include_role_name(include_stmt);
         ASTNode *included_role;
+        const MIRDeclHeader *included_role_header = NULL;
+        size_t role_impl_index = 0;
 
         if (role_name == NULL)
             continue;
@@ -236,11 +238,33 @@ emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
                 owner_role_name != NULL ? owner_role_name : "<role>");
             return;
         }
+        if (transpiler_active_has_mir(ctx)) {
+            included_role_header = transpiler_active_decl_header_of_type(
+                ctx, AST_ROLE_DECL, transpiler_decl_name_local(included_role));
+            if (included_role_header == NULL) {
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-only C path missing role impl metadata header for included role '%s'",
+                    transpiler_decl_name_local(included_role) != NULL
+                        ? transpiler_decl_name_local(included_role)
+                        : "(anonymous-role)");
+                return;
+            }
+        }
 
         for (size_t j = 0; j < ast_role_impl_count(included_role); j++) {
             ASTNode *impl = ast_role_impl(included_role, j);
+            const MIRAbilityRef *ability_ref_meta = NULL;
             if (impl == NULL || impl->type != AST_IMPL_ABILITY)
                 continue;
+
+            if (transpiler_active_has_mir(ctx)) {
+                const MIRDeclRoleImpl *impl_meta =
+                    mir_decl_header_role_impl(
+                        included_role_header, role_impl_index);
+                ability_ref_meta = mir_decl_role_impl_ability_ref(impl_meta);
+            }
+            role_impl_index++;
 
             if (role_has_ability(role, ast_impl_ability_name(impl)))
                 continue;
@@ -279,7 +303,8 @@ emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
             }
 
             emit_role_vtable_instance(owner_role_name,
-                transpiler_decl_name_local(included_role), impl, ctx);
+                transpiler_decl_name_local(included_role), impl,
+                ability_ref_meta, ctx);
             if (ctx != NULL && ctx->backend_error != NULL)
                 return;
         }
@@ -323,67 +348,81 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
             return;
     }
 
-    for (size_t i = 0; i < ast_role_impl_count(node); i++) {
-        ASTNode *impl = ast_role_impl(node, i);
+    {
+        size_t role_impl_index = 0;
+        for (size_t i = 0; i < ast_role_impl_count(node); i++) {
+            ASTNode *impl = ast_role_impl(node, i);
 
-        if (impl == NULL)
-            continue;
-
-        if (impl->type == AST_IMPL_ABILITY) {
-            emit_role_vtable_instance(name, name, impl, ctx);
-            if (ctx != NULL && ctx->backend_error != NULL)
-                return;
-
-        } else if (impl->type == AST_OVERRIDE_FUNC) {
-            ASTNode *func = ast_override_func_decl(impl);
-            if (func == NULL || func->type != AST_FUNC_DECL)
+            if (impl == NULL)
                 continue;
 
-            const char *method_name = ast_declaration_name(func);
-            char ret_type_buf[256];
-            const char *ret_type = "void";
-            if (ast_func_return_type(func) != NULL
-                && pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(func),
-                    ret_type_buf, sizeof(ret_type_buf))) {
-                ret_type = ret_type_buf;
-            }
-
-            codebuf_write(ctx->out, "\nstatic %s\n%s_%s(void *self",
-                          ret_type, name, method_name);
-
-            for (size_t k = 0; k < ast_func_param_count(func); k++) {
-                FuncParam *p = ast_func_param(func, k);
-                char pt[256];
-                char surface_desc[256];
-                if (p == NULL || p->name == NULL)
-                    continue;
-                if (strcmp(p->name, "self") == 0 && p->type == NULL)
-                    continue;
-                if (!transpiler_domain_nominal_surface_desc(surface_desc,
-                        sizeof(surface_desc), "role override parameter",
-                        name, method_name,
-                        p != NULL ? p->name : NULL)) {
-                    transpiler_domain_nominal_surface_desc_too_long(
-                        ctx, "role override parameter");
-                    return;
+            if (impl->type == AST_IMPL_ABILITY) {
+                const MIRAbilityRef *ability_ref_meta = NULL;
+                if (transpiler_active_has_mir(ctx)) {
+                    const MIRDeclRoleImpl *impl_meta =
+                        mir_decl_header_role_impl(
+                            method_view.decl_header, role_impl_index);
+                    ability_ref_meta =
+                        mir_decl_role_impl_ability_ref(impl_meta);
                 }
-                if (!transpiler_require_ast_c_type_copy(ctx,
-                        p != NULL ? p->type : NULL,
-                        surface_desc,
-                        pt,
-                        sizeof(pt))) {
+                role_impl_index++;
+                emit_role_vtable_instance(
+                    name, name, impl, ability_ref_meta, ctx);
+                if (ctx != NULL && ctx->backend_error != NULL)
                     return;
+
+            } else if (impl->type == AST_OVERRIDE_FUNC) {
+                ASTNode *func = ast_override_func_decl(impl);
+                if (func == NULL || func->type != AST_FUNC_DECL)
+                    continue;
+
+                const char *method_name = ast_declaration_name(func);
+                char ret_type_buf[256];
+                const char *ret_type = "void";
+                if (ast_func_return_type(func) != NULL
+                    && pergyra_ast_type_to_c_copy_in_ctx(ctx,
+                        ast_func_return_type(func), ret_type_buf,
+                        sizeof(ret_type_buf))) {
+                    ret_type = ret_type_buf;
                 }
-                codebuf_write(ctx->out, ", %s %s", pt, p->name);
+
+                codebuf_write(ctx->out, "\nstatic %s\n%s_%s(void *self",
+                              ret_type, name, method_name);
+
+                for (size_t k = 0; k < ast_func_param_count(func); k++) {
+                    FuncParam *p = ast_func_param(func, k);
+                    char pt[256];
+                    char surface_desc[256];
+                    if (p == NULL || p->name == NULL)
+                        continue;
+                    if (strcmp(p->name, "self") == 0 && p->type == NULL)
+                        continue;
+                    if (!transpiler_domain_nominal_surface_desc(surface_desc,
+                            sizeof(surface_desc), "role override parameter",
+                            name, method_name,
+                            p != NULL ? p->name : NULL)) {
+                        transpiler_domain_nominal_surface_desc_too_long(
+                            ctx, "role override parameter");
+                        return;
+                    }
+                    if (!transpiler_require_ast_c_type_copy(ctx,
+                            p != NULL ? p->type : NULL,
+                            surface_desc,
+                            pt,
+                            sizeof(pt))) {
+                        return;
+                    }
+                    codebuf_write(ctx->out, ", %s %s", pt, p->name);
+                }
+                codebuf_write(ctx->out, ")\n{\n");
+
+                ctx->indent++;
+                if (ast_func_body(func) != NULL)
+                    emit_block(ast_func_body(func), ctx);
+                ctx->indent--;
+
+                codebuf_write(ctx->out, "}\n");
             }
-            codebuf_write(ctx->out, ")\n{\n");
-
-            ctx->indent++;
-            if (ast_func_body(func) != NULL)
-                emit_block(ast_func_body(func), ctx);
-            ctx->indent--;
-
-            codebuf_write(ctx->out, "}\n");
         }
     }
 

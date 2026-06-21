@@ -6,6 +6,7 @@
 
 #include "../common/string_compat.h"
 #include "../compiler/mir.h"
+#include "../compiler/mir_decl_headers.h"
 #include "../lexer/lexer.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
@@ -17,6 +18,7 @@
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_func_emit.h"
 #include "transpiler_operator.h"
+#include "transpiler_role_ability_helpers.h"
 #include "transpiler_type_require.h"
 #include "transpiler_type_render.h"
 #if defined(__GNUC__)
@@ -101,19 +103,28 @@ void
 emit_role_vtable_instance(const char *role_name,
                           const char *metadata_role_name,
                           ASTNode *impl,
+                          const MIRAbilityRef *ability_ref_meta,
                           TranspilerCtx *ctx)
 {
-    ASTNode *ability_ref = ast_impl_ability_ref(impl);
-    const char *ability_name = ast_impl_ability_name(impl);
+    ASTNode *ability_ref = NULL;
+    const char *ability_name = NULL;
     char typedef_name[128];
     char *vtable_tag = NULL;
+    bool mir_active = transpiler_active_has_mir(ctx);
+
     if (ctx != NULL && ctx->backend_error != NULL)
         return;
+    if (mir_active) {
+        ability_name = mir_ability_ref_base_name(ability_ref_meta);
+    } else {
+        ability_ref = ast_impl_ability_ref(impl);
+        ability_name = ast_impl_ability_name(impl);
+    }
     if (ability_name == NULL) {
-        if (transpiler_active_has_mir(ctx)) {
+        if (mir_active) {
             transpiler_set_mir_inventory_missing(
                 ctx,
-                "MIR-only C path missing role vtable ability name metadata for role '%s'",
+                "MIR-only C path missing role vtable ability-ref metadata for role '%s'",
                 role_name != NULL ? role_name : "(anonymous-role)");
         }
         return;
@@ -121,16 +132,35 @@ emit_role_vtable_instance(const char *role_name,
     if (ast_impl_ability_method_count(impl) == 0)
         return;
 
-    ensure_ability_ref_vtable_decl(ability_ref, ctx);
+    if (mir_active)
+        ensure_mir_ability_ref_vtable_decl(ability_ref_meta, ctx);
+    else
+        ensure_ability_ref_vtable_decl(ability_ref, ctx);
     if (ctx != NULL && ctx->backend_error != NULL)
         return;
-    if (!ability_ref_vtable_typedef_name(
-            ability_ref, typedef_name, sizeof(typedef_name), ctx))
-        return;
-    vtable_tag = render_effective_ability_ref_vtable_tag(
-        find_ability_decl(ctx, ability_name),
-        ability_ref,
-        ctx);
+    if (mir_active) {
+        vtable_tag = render_mir_ability_ref_vtable_tag_in_ctx(
+            ctx, ability_ref_meta);
+        if (vtable_tag != NULL
+            && !transpiler_role_ability_vtable_typedef_name(
+                typedef_name, sizeof(typedef_name), vtable_tag)) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C backend: ability vtable typedef name is too long");
+            free(vtable_tag);
+            return;
+        }
+    } else {
+        if (!ability_ref_vtable_typedef_name(
+                ability_ref, typedef_name, sizeof(typedef_name), ctx))
+            return;
+        vtable_tag = render_effective_ability_ref_vtable_tag(
+            find_ability_decl(ctx, ability_name),
+            ability_ref,
+            ctx);
+    }
     if (vtable_tag == NULL) {
         transpiler_set_backend_error_with_hints(ctx,
             PGY_CODE_C_TYPE_UNSUPPORTED,

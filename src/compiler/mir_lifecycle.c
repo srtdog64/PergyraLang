@@ -3,6 +3,7 @@
 #include "mir_decl_header_authority.h"
 #include "mir_decl_header_refresh.h"
 #include "mir_decl_header_zone_state.h"
+#include "mir_ability_ref.h"
 #include "mir_decl_method_projection.h"
 #include "mir_signature_metadata.h"
 #include "mir_source_local_types.h"
@@ -115,6 +116,17 @@ mir_destroy(MIRProgram *mir)
             }
             free(mir->decl_headers[i].generic_metadata);
             free(mir->decl_headers[i].method_metadata);
+            if (mir->decl_headers[i].role_impl_metadata != NULL) {
+                for (size_t j = 0;
+                     j < mir->decl_headers[i].role_impl_metadata_count;
+                     j++) {
+                    mir_ability_ref_clear(
+                        &mir->decl_headers[i]
+                             .role_impl_metadata[j]
+                             .ability_ref);
+                }
+            }
+            free(mir->decl_headers[i].role_impl_metadata);
             if (mir->decl_headers[i].field_metadata != NULL) {
                 for (size_t j = 0;
                      j < mir->decl_headers[i].field_metadata_count;

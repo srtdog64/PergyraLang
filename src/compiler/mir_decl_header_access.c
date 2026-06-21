@@ -145,6 +145,34 @@ mir_decl_header_method(const MIRDeclHeader *header, size_t index)
 }
 
 size_t
+mir_decl_header_role_impl_count(const MIRDeclHeader *header)
+{
+    return header != NULL ? header->role_impl_metadata_count : 0;
+}
+
+const MIRDeclRoleImpl *
+mir_decl_header_role_impl(const MIRDeclHeader *header, size_t index)
+{
+    if (header == NULL || header->role_impl_metadata == NULL
+        || index >= header->role_impl_metadata_count) {
+        return NULL;
+    }
+    return &header->role_impl_metadata[index];
+}
+
+const MIRAbilityRef *
+mir_decl_role_impl_ability_ref(const MIRDeclRoleImpl *impl)
+{
+    return impl != NULL ? &impl->ability_ref : NULL;
+}
+
+size_t
+mir_decl_role_impl_method_count(const MIRDeclRoleImpl *impl)
+{
+    return impl != NULL ? impl->method_count : 0;
+}
+
+size_t
 mir_decl_header_field_count(const MIRDeclHeader *header)
 {
     return header != NULL ? header->field_metadata_count : 0;

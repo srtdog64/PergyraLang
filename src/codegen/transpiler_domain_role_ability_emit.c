@@ -213,6 +213,105 @@ ability_ref_vtable_typedef_name(ASTNode *ability_ref,
 }
 
 void
+ensure_mir_ability_ref_vtable_decl(const MIRAbilityRef *ability_ref,
+                                   TranspilerCtx *ctx)
+{
+    const char *ability_name;
+    const MIRDeclHeader *ability_header;
+    char typedef_name[128];
+    char *tag = NULL;
+    CodeBuf *target;
+    size_t generic_count;
+    bool already_emitted = false;
+
+    if (ctx == NULL || ability_ref == NULL)
+        return;
+    target = ctx->out != NULL ? ctx->out : ctx->decls;
+    if (target == NULL)
+        return;
+
+    ability_name = mir_ability_ref_base_name(ability_ref);
+    if (ability_name == NULL) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing ability reference base metadata");
+        return;
+    }
+    ability_header = transpiler_active_decl_header_of_type(
+        ctx, AST_ABILITY_DECL, ability_name);
+    if (ability_header == NULL) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing ability declaration header for '%s'",
+            ability_name);
+        return;
+    }
+
+    generic_count = mir_decl_header_generic_param_count(ability_header);
+    if (generic_count == 0)
+        return;
+
+    tag = render_mir_ability_ref_vtable_tag_in_ctx(ctx, ability_ref);
+    if (tag == NULL) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "cannot render ability vtable tag for ability '%s'",
+            ability_name);
+        return;
+    }
+    for (int i = 0; i < ctx->ability_vtable_spec_count; i++) {
+        if (strcmp(ctx->ability_vtable_specs[i].name, tag) == 0) {
+            already_emitted = true;
+            break;
+        }
+    }
+    if (already_emitted) {
+        free(tag);
+        return;
+    }
+
+    if (ctx->ability_vtable_spec_count >= MAX_ABILITY_VTABLE_SPECIALIZATIONS) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend ability vtable specialization registry exceeded MAX_ABILITY_VTABLE_SPECIALIZATIONS while lowering ability '%s'",
+            ability_name);
+        free(tag);
+        return;
+    }
+    if (!transpiler_role_ability_copy_name(
+            ctx->ability_vtable_specs[ctx->ability_vtable_spec_count].name,
+            sizeof(ctx->ability_vtable_specs[0].name), tag)) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend: ability vtable specialization name is too long");
+        free(tag);
+        return;
+    }
+    ctx->ability_vtable_spec_count++;
+
+    if (!transpiler_role_ability_vtable_typedef_name(
+            typedef_name, sizeof(typedef_name), tag)) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend: ability vtable typedef name is too long");
+        free(tag);
+        return;
+    }
+    if (!transpiler_emit_mir_ability_ref_vtable_decl(target, ctx,
+            ability_header, ability_ref, ability_name, typedef_name)) {
+        free(tag);
+        return;
+    }
+    free(tag);
+}
+
+void
 ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
 {
     ASTNode *ability_decl = NULL;

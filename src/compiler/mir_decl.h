@@ -61,6 +61,13 @@ typedef struct
 
 typedef struct
 {
+    const char    *owner_name;
+    MIRAbilityRef  ability_ref;
+    size_t         method_count;
+} MIRDeclRoleImpl;
+
+typedef struct
+{
     const char      *owner_name;
     const char      *name;
     ASTNode         *type;
@@ -150,6 +157,9 @@ typedef struct
     size_t       method_count;
     MIRDeclMethod *method_metadata;
     size_t       method_metadata_count;
+    size_t       role_impl_count;
+    MIRDeclRoleImpl *role_impl_metadata;
+    size_t       role_impl_metadata_count;
     size_t       field_count;
     MIRDeclField *field_metadata;
     size_t       field_metadata_count;

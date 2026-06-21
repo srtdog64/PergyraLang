@@ -13,6 +13,7 @@ void emit_role_method_impl(const char *role_name,
 void emit_role_vtable_instance(const char *role_name,
                                const char *metadata_role_name,
                                ASTNode *impl,
+                               const MIRAbilityRef *ability_ref_meta,
                                TranspilerCtx *ctx);
 void emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx);
 

@@ -14,5 +14,8 @@ bool ability_ref_vtable_typedef_name(ASTNode *ability_ref,
                                      size_t buf_size,
                                      TranspilerCtx *ctx);
 void ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx);
+void ensure_mir_ability_ref_vtable_decl(
+    const MIRAbilityRef *ability_ref,
+    TranspilerCtx *ctx);
 
 #endif /* PGY_TRANSPILER_DOMAIN_ROLE_ABILITY_EMIT_H */

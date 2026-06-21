@@ -5,6 +5,7 @@
 #include "mir_decl_header_shape.h"
 #include "mir_decl_header_variants.h"
 #include "mir_decl_header_zone_state.h"
+#include "mir_ability_ref.h"
 #include "mir_decl_method_projection.h"
 #include "mir_type_helpers.h"
 
@@ -199,6 +200,84 @@ mir_decl_method_metadata_init(MIRDeclMethod *meta,
 }
 
 static bool
+mir_decl_header_count_role_impls(ASTNode *role_decl, size_t *count_out)
+{
+    size_t count = 0;
+
+    if (count_out == NULL)
+        return false;
+    *count_out = 0;
+    if (role_decl == NULL || role_decl->type != AST_ROLE_DECL)
+        return false;
+
+    for (size_t i = 0; i < ast_role_impl_count(role_decl); i++) {
+        ASTNode *impl = ast_role_impl(role_decl, i);
+        if (impl != NULL && impl->type == AST_IMPL_ABILITY)
+            count++;
+    }
+    *count_out = count;
+    return true;
+}
+
+static void
+mir_decl_header_free_role_impls(MIRDeclHeader *header)
+{
+    if (header == NULL)
+        return;
+    if (header->role_impl_metadata != NULL) {
+        for (size_t i = 0; i < header->role_impl_metadata_count; i++)
+            mir_ability_ref_clear(&header->role_impl_metadata[i].ability_ref);
+    }
+    free(header->role_impl_metadata);
+    header->role_impl_metadata = NULL;
+    header->role_impl_metadata_count = 0;
+    header->role_impl_count = 0;
+}
+
+static bool
+mir_decl_header_set_role_impls(MIRDeclHeader *header, ASTNode *role_decl)
+{
+    size_t count;
+    size_t out = 0;
+
+    if (header == NULL || role_decl == NULL || role_decl->type != AST_ROLE_DECL)
+        return false;
+    if (!mir_decl_header_count_role_impls(role_decl, &count))
+        return false;
+    header->role_impl_count = count;
+    header->role_impl_metadata = NULL;
+    header->role_impl_metadata_count = 0;
+    if (count == 0)
+        return true;
+    if (count > SIZE_MAX / sizeof(MIRDeclRoleImpl))
+        return false;
+
+    header->role_impl_metadata = calloc(count, sizeof(MIRDeclRoleImpl));
+    if (header->role_impl_metadata == NULL)
+        return false;
+
+    for (size_t i = 0; i < ast_role_impl_count(role_decl); i++) {
+        ASTNode *impl = ast_role_impl(role_decl, i);
+        MIRDeclRoleImpl *meta;
+
+        if (impl == NULL || impl->type != AST_IMPL_ABILITY)
+            continue;
+        meta = &header->role_impl_metadata[out];
+        meta->owner_name = header->name;
+        meta->method_count = ast_impl_ability_method_count(impl);
+        if (!mir_ability_ref_capture(
+                &meta->ability_ref, ast_impl_ability_ref(impl))) {
+            header->role_impl_metadata_count = out + 1;
+            mir_decl_header_free_role_impls(header);
+            return false;
+        }
+        out++;
+    }
+    header->role_impl_metadata_count = out;
+    return out == count;
+}
+
+static bool
 mir_decl_header_set_methods(MIRDeclHeader *header,
                             ASTNode **methods,
                             size_t method_count)
@@ -363,10 +442,16 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
             mir_decl_header_free_fields(&header);
             return false;
         }
+        if (!mir_decl_header_set_role_impls(&header, decl)) {
+            mir_decl_header_free_fields(&header);
+            mir_decl_header_free_generics(&header);
+            return false;
+        }
         if (!mir_decl_header_set_role_impl_methods(&header, decl)) {
             for (size_t i = 0; i < header.method_metadata_count; i++)
                 mir_decl_method_metadata_clear(&header.method_metadata[i]);
             free(header.method_metadata);
+            mir_decl_header_free_role_impls(&header);
             mir_decl_header_free_fields(&header);
             mir_decl_header_free_generics(&header);
             return false;
@@ -375,6 +460,7 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
             for (size_t i = 0; i < header.method_metadata_count; i++)
                 mir_decl_method_metadata_clear(&header.method_metadata[i]);
             free(header.method_metadata);
+            mir_decl_header_free_role_impls(&header);
             mir_decl_header_free_fields(&header);
             mir_decl_header_free_generics(&header);
             return false;

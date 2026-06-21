@@ -11,7 +11,7 @@
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_inventory_host_methods.h"
 #include "llvm_inventory_internal.h"
-#include "../compiler/mir_ability_ref.h"
+#include "../compiler/mir_decl_headers.h"
 
 static const char *
 llvm_role_method_name_from_ast(ASTNode *method)
@@ -97,27 +97,34 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
             return false;
         }
 
+        size_t role_impl_index = 0;
         for (size_t ii = 0; ii < ast_role_impl_count(stmt); ii++) {
             ASTNode *impl = ast_role_impl(stmt, ii);
             if (impl == NULL || impl->type != AST_IMPL_ABILITY)
                 continue;
 
-            ASTNode *ability_ref = ast_impl_ability_ref(impl);
-            const char *ab_name = ast_impl_ability_name(impl);
+            ASTNode *ability_ref = NULL;
+            const char *ab_name = NULL;
             const char *ab_tag = NULL;
 
             if (llvm_active_has_mir(ctx)) {
-                MIRAbilityRef mir_ref = {0};
-                if (!mir_ability_ref_capture(&mir_ref, ability_ref)) {
-                    mir_ability_ref_clear(&mir_ref);
+                const MIRDeclRoleImpl *impl_meta =
+                    mir_decl_header_role_impl(
+                        method_view.decl_header, role_impl_index);
+                const MIRAbilityRef *mir_ref =
+                    mir_decl_role_impl_ability_ref(impl_meta);
+                role_impl_index++;
+                if (mir_ref == NULL || mir_ability_ref_base_name(mir_ref) == NULL) {
                     llvm_set_mir_inventory_missing(ctx,
                         "MIR-only LLVM path missing role vtable ability-ref metadata for role '%s'",
                         role_name != NULL ? role_name : "(anonymous-role)");
                     return false;
                 }
-                ab_tag = llvm_render_mir_ability_ref_vtable_tag(ctx, &mir_ref);
-                mir_ability_ref_clear(&mir_ref);
+                ab_name = mir_ability_ref_base_name(mir_ref);
+                ab_tag = llvm_render_mir_ability_ref_vtable_tag(ctx, mir_ref);
             } else {
+                ability_ref = ast_impl_ability_ref(impl);
+                ab_name = ast_impl_ability_name(impl);
                 ab_tag =
                     llvm_render_ast_ability_ref_vtable_tag(ctx, ability_ref);
             }
@@ -246,7 +253,7 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
             /* Create vtable global constant. */
             if (ab_name == NULL || ab_tag == NULL) {
                 llvm_set_mir_inventory_missing(ctx,
-                    "MIR-only LLVM path missing role vtable ability name metadata for role '%s'",
+                    "MIR-only LLVM path missing role vtable ability-ref metadata for role '%s'",
                     role_name);
                 return false;
             }

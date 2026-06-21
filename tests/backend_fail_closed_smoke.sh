@@ -398,7 +398,7 @@ grep -Fq "MIR-only LLVM path missing role vtable method source metadata" \
     "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c"
 grep -Fq "MIR-only LLVM path missing role vtable method metadata" \
     "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c"
-grep -Fq "MIR-only LLVM path missing role vtable ability name metadata" \
+grep -Fq "MIR-only LLVM path missing role vtable ability-ref metadata" \
     "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c"
 grep -Fq "MIR-only LLVM path missing method forward name metadata for role" \
     "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"
@@ -496,7 +496,7 @@ grep -Fq "MIR-only C path missing role vtable method source metadata" \
     "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
 grep -Fq "MIR-only C path missing role vtable method metadata" \
     "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
-grep -Fq "MIR-only C path missing role vtable ability name metadata" \
+grep -Fq "MIR-only C path missing role vtable ability-ref metadata" \
     "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
 grep -Fq "MIR-only C path missing included role method metadata" \
     "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c"

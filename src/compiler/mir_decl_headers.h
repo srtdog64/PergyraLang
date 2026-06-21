@@ -33,6 +33,13 @@ const char *mir_decl_generic_param_default_type_name(
 size_t mir_decl_header_method_count(const MIRDeclHeader *header);
 const MIRDeclMethod *mir_decl_header_method(const MIRDeclHeader *header,
                                             size_t index);
+size_t mir_decl_header_role_impl_count(const MIRDeclHeader *header);
+const MIRDeclRoleImpl *mir_decl_header_role_impl(
+    const MIRDeclHeader *header,
+    size_t index);
+const MIRAbilityRef *mir_decl_role_impl_ability_ref(
+    const MIRDeclRoleImpl *impl);
+size_t mir_decl_role_impl_method_count(const MIRDeclRoleImpl *impl);
 size_t mir_decl_header_field_count(const MIRDeclHeader *header);
 const MIRDeclField *mir_decl_header_field(const MIRDeclHeader *header,
                                           size_t index);
