@@ -141,6 +141,47 @@
         lexer_destroy(lexer);
     }
 
+    TEST("intent declaration rejects member callee body spawn via body summary");
+    {
+        const char *source =
+            "func Touch() -> Void {\n"
+            "}\n"
+            "subject Buyer {\n"
+            "    let hp: Int;\n"
+            "    func Hidden(self) -> Void {\n"
+            "        let pending: Future<Void> = spawn Touch();\n"
+            "    }\n"
+            "}\n"
+            "zone CheckoutZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "}\n"
+            "intent Checkout(checkout: CheckoutZone, buyer: Buyer) {\n"
+            "    step pay {\n"
+            "        where: CheckoutZone;\n"
+            "        using: checkout;\n"
+            "        who: buyer;\n"
+            "        on: buyer.Hidden();\n"
+            "        expect: true;\n"
+            "    }\n"
+            "    success: true;\n"
+            "    failure: false;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "on clause cannot contain 'spawn'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("Now and Sleep builtins type-check");
     {
         const char *source =

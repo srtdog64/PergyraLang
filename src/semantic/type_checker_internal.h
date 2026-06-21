@@ -55,6 +55,8 @@ bool semantic_callable_summary_has_spawn_task(SemanticContext *ctx,
                                               ASTNode *callee_decl);
 bool semantic_callable_summary_has_send_channel(SemanticContext *ctx,
                                                 ASTNode *callee_decl);
+bool semantic_callable_type_summary_has_spawn_task(const Type *function_type);
+bool semantic_callable_type_summary_has_send_channel(const Type *function_type);
 bool semantic_param_summary_has_any_escape(unsigned summary_mask);
 bool semantic_param_summary_has_return_escape(unsigned summary_mask);
 bool semantic_param_summary_has_channel_escape(unsigned summary_mask);

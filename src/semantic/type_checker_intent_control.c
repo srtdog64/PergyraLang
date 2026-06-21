@@ -125,6 +125,26 @@ intent_forbidden_control_construct(ASTNode *node, SemanticContext *ctx)
                 if (semantic_callable_summary_has_send_channel(ctx, callee_decl))
                     return "channel send";
             }
+            if (ctx != NULL
+                && ast_call_callee(node) != NULL
+                && ast_call_callee(node)->type == AST_MEMBER_ACCESS) {
+                ASTNode *member = ast_call_callee(node);
+                ASTNode *object = ast_member_object(member);
+                const char *method_name = ast_member_name(member);
+                Type *object_type = object != NULL
+                    ? type_check_expression(object, ctx)
+                    : NULL;
+                ASTNode *host_decl = object_type != NULL
+                    ? semantic_host_decl_for_type(ctx, object_type)
+                    : NULL;
+                Type *method_type = host_decl != NULL
+                    ? expr_host_method_function_type(ctx, host_decl, method_name)
+                    : NULL;
+                if (semantic_callable_type_summary_has_spawn_task(method_type))
+                    return "spawn";
+                if (semantic_callable_type_summary_has_send_channel(method_type))
+                    return "channel send";
+            }
             return NULL;
         case AST_MEMBER_ACCESS:
             return intent_forbidden_control_construct(ast_member_object(node), ctx);

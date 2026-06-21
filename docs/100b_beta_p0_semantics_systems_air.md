@@ -451,9 +451,12 @@ Remaining:
   `semantic_callable_param_escape_summary` strips the legacy AST analyzer's
   `SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE` bit when
   `proves_no_send_channel` succeeds. The second consumer is intent control:
-  named calls inside intent clauses now reject callee bodies whose checked
-  summary proves a reachable spawn or channel-send boundary, without reopening
-  the callee body AST. `semantic-core-shape-test-smoke`
+  named calls and hosted member calls inside intent clauses now reject callee
+  bodies whose checked summary proves a reachable spawn or channel-send
+  boundary, without reopening the callee body AST. Hosted member calls consume
+  the checked method function type through `expr_host_method_function_type(...)`
+  and Type-based positive readers in the call-contract owner.
+  `semantic-core-shape-test-smoke`
   gates the prove/positive helpers as the canonical body-summary read seam on
   `src/semantic/type_checker_call_contract_helpers.c` and its declaration
   in `type_checker_internal.h`. Remaining work is migrating additional

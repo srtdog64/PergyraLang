@@ -1133,6 +1133,19 @@ for has_summary in \
     grep -q "$has_summary" src/semantic/type_checker_intent_control.c \
         || fail "intent control must consume body-summary positive reader '$has_summary'"
 done
+for has_summary_type in \
+    semantic_callable_type_summary_has_spawn_task \
+    semantic_callable_type_summary_has_send_channel; do
+    grep -q "$has_summary_type" src/semantic/type_checker_call_contract_helpers.c \
+        || fail "body-summary type positive reader '$has_summary_type' must live in the call contract owner"
+    grep -q "$has_summary_type" src/semantic/type_checker_internal.h \
+        || fail "body-summary type positive reader '$has_summary_type' must be declared in the semantic internal header"
+    grep -q "$has_summary_type" src/semantic/type_checker_intent_control.c \
+        || fail "intent member-control checks must consume body-summary type reader '$has_summary_type'"
+done
+grep -q 'expr_host_method_function_type(ctx, host_decl, method_name)' \
+    src/semantic/type_checker_intent_control.c \
+    || fail "intent member-control checks must consume hosted method function-type summary facts"
 
 if grep -RIn 'semantic_legacy_ast_callable_param_escape_summary' src/semantic >/dev/null; then
     fail "call contract escape summary must not reintroduce the legacy AST public seam name"

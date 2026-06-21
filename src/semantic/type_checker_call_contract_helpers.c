@@ -111,6 +111,13 @@ semantic_callable_summary_has_spawn_task(SemanticContext *ctx,
                                          ASTNode *callee_decl)
 {
     Type *function_type = semantic_callable_decl_function_type(ctx, callee_decl);
+
+    return semantic_callable_type_summary_has_spawn_task(function_type);
+}
+
+bool
+semantic_callable_type_summary_has_spawn_task(const Type *function_type)
+{
     uint32_t summary = type_function_body_summary(function_type);
 
     return type_function_has_body_summary(function_type)
@@ -122,6 +129,13 @@ semantic_callable_summary_has_send_channel(SemanticContext *ctx,
                                            ASTNode *callee_decl)
 {
     Type *function_type = semantic_callable_decl_function_type(ctx, callee_decl);
+
+    return semantic_callable_type_summary_has_send_channel(function_type);
+}
+
+bool
+semantic_callable_type_summary_has_send_channel(const Type *function_type)
+{
     uint32_t summary = type_function_body_summary(function_type);
 
     return type_function_has_body_summary(function_type)
