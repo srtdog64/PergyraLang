@@ -69,7 +69,9 @@ Current beta closure snapshot:
   cannot mask a missing `MIRRoutine::source_local_types` row. Callable locals
   use the same source-local fact owner through callable return/parameter
   type-name rows, so function-pointer locals do not need to re-register the
-  annotation AST in LLVM MIR emission.
+  annotation AST in LLVM MIR emission. C MIR SSA local declarations follow the
+  same rule: callable declarations are rendered from source-local callable
+  facts, not by reopening EventHandler annotation AST.
 - Domain lifecycle declarations are parsed as syntax only. The semantic
   lifecycle pass owns the registry and transition verdict, and MIR lowering is
   the only layer that may consume `lc_guard_find(...)` to copy that verdict into

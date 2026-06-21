@@ -14,7 +14,6 @@
 #include "transpiler_let_slot_emit.h"
 #include "transpiler_mir_block_emit_helpers.h"
 #include "transpiler_mir_effective_type.h"
-#include "transpiler_mir_local_type_ast_lookup.h"
 #include "transpiler_mir_local_type_lookup.h"
 #include "transpiler_mir_signature.h"
 #include "transpiler_mir_ssa_local_facts.h"
@@ -137,7 +136,6 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
         char normalized_type_buf[128];
         char c_type_buf[256];
         const char *c_type = NULL;
-        ASTNode *type_ast = NULL;
         char *c_name = NULL;
         char *initial_expr = NULL;
         char *decl = NULL;
@@ -216,27 +214,6 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
                     ctx, mir_routine, versioned_name, base,
                     source_local_fact->type_name);
             }
-            free(decl);
-            free(c_name);
-            free(owned_type_name);
-            continue;
-        }
-        type_ast = NULL;
-        if (type_name == NULL)
-            type_ast = transpiler_find_local_event_handler_type_ast(
-                ctx, node, base);
-        if (type_ast != NULL) {
-            c_name = transpiler_render_ssa_name(ctx, versioned_name);
-            decl = pergyra_ast_typed_declarator_in_ctx(ctx, type_ast, c_name);
-            if (decl == NULL) {
-                free(c_name);
-                free(owned_type_name);
-                return false;
-            }
-            write_indent(ctx);
-            codebuf_write(ctx->out, "%s = 0;\n", decl);
-            write_indent(ctx);
-            codebuf_write(ctx->out, "(void)%s;\n", c_name);
             free(decl);
             free(c_name);
             free(owned_type_name);

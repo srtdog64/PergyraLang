@@ -1247,6 +1247,8 @@ require_term "src/compiler/mir.h" \
     "callable_param_type_names"
 require_term "src/compiler/mir_source_local_types.c" \
     "mir_source_local_type_append_callable"
+require_term "src/compiler/mir_source_local_types.c" \
+    "mir_source_local_callable_type_from_initializer"
 require_term "src/compiler/mir_program_inventory.c" \
     "mir_routine_source_local_type_fact"
 require_term "src/codegen/llvm_mir_local_emit.c" \
@@ -3692,11 +3694,14 @@ ssa_local_payload_reads="$({ grep -F "mir_instruction_source_payload(" \
 if [ "$ssa_local_payload_reads" != "0" ]; then
     fail "C MIR SSA local facts must consume MIR destructure binding facts, not source payload (expected 0, got $ssa_local_payload_reads)"
 fi
-if ! grep -B2 -F "transpiler_find_local_event_handler_type_ast(" \
-        "$ROOT_DIR/src/codegen/transpiler_mir_func_ssa_locals_emit.c" |
-        grep -Fq "if (type_name == NULL)"; then
-    fail "C MIR SSA local EventHandler AST lookup must stay behind missing type-name guard"
+if grep -Fq "transpiler_find_local_event_handler_type_ast(" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_func_ssa_locals_emit.c"; then
+    fail "C MIR SSA local declarations must consume MIR callable source-local facts, not EventHandler AST fallback"
 fi
+require_term "src/codegen/transpiler_mir_func_ssa_locals_emit.c" \
+    "source_local_fact != NULL && source_local_fact->is_callable"
+require_term "src/codegen/transpiler_mir_func_ssa_locals_emit.c" \
+    "pergyra_func_pointer_declarator_from_type_names_in_ctx"
 if grep -Fq "if (!transpiler_mir_routine_has_signature" \
         "$ROOT_DIR/src/codegen/transpiler_mir_func_ssa_locals_emit.c"; then
     fail "C MIR SSA local declarations must use transpiler_mir_signature for missing-signature diagnostics"
@@ -3914,6 +3919,8 @@ require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR captures slice source-local types"
 require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR captures owner method call return types for source locals"
+require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
+    "MIR captures callable return source-local facts"
 require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR captures select receive source-local types"
 require_term "src/compiler/mir_source_local_types.c" \

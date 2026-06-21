@@ -254,6 +254,48 @@ mir_source_local_type_append(const MIRProgram *program,
     return ok;
 }
 
+static ASTNode *
+mir_source_local_top_level_callable_return_type(const MIRProgram *program,
+                                                const char *callee_name)
+{
+    if (program == NULL || callee_name == NULL)
+        return NULL;
+    for (size_t i = 0; i < program->routine_count; i++) {
+        const MIRRoutine *candidate = &program->routines[i];
+        if (candidate->name == NULL
+            || strcmp(candidate->name, callee_name) != 0
+            || candidate->kind != MIR_SCOPE_FUNCTION
+            || !candidate->has_signature
+            || candidate->return_type == NULL
+            || candidate->return_type->type != AST_EVENT_HANDLER_TYPE) {
+            continue;
+        }
+        return candidate->return_type;
+    }
+    return NULL;
+}
+
+static ASTNode *
+mir_source_local_callable_type_from_initializer(const MIRProgram *program,
+                                                ASTNode *initializer)
+{
+    ASTNode *callee;
+
+    if (initializer == NULL)
+        return NULL;
+    if (initializer->type == AST_IDENTIFIER) {
+        return mir_source_local_top_level_callable_return_type(program,
+            ast_identifier_name(initializer));
+    }
+    if (initializer->type != AST_CALL)
+        return NULL;
+    callee = ast_call_callee(initializer);
+    if (callee == NULL || callee->type != AST_IDENTIFIER)
+        return NULL;
+    return mir_source_local_top_level_callable_return_type(program,
+        ast_identifier_name(callee));
+}
+
 static bool
 mir_source_local_type_capture_node(const MIRProgram *program,
                                    MIRRoutine *routine,
@@ -264,10 +306,17 @@ mir_source_local_type_capture_node(const MIRProgram *program,
     switch (node->type) {
     case AST_LET_DECL: {
         ASTNode *type_node = ast_let_type(node);
+        ASTNode *callable_type = NULL;
         MIRSourceLocalTypeScratch scratch = { 0 };
         if (type_node != NULL)
             return mir_source_local_type_append(program, routine,
                 ast_let_name(node), type_node);
+        callable_type = mir_source_local_callable_type_from_initializer(
+            program, ast_let_initializer(node));
+        if (callable_type != NULL) {
+            return mir_source_local_type_append_callable(program, routine,
+                ast_let_name(node), callable_type);
+        }
         return mir_source_local_type_append_name(program, routine,
             ast_let_name(node),
             mir_source_local_expr_type_name(program, routine, &scratch,

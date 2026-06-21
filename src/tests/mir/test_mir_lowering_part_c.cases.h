@@ -445,6 +445,47 @@ test_mir_lowering_part_c(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR captures callable return source-local facts");
+    {
+        const char *src =
+            "func AddOne(x: Int) -> Int {\n"
+            "    return x + 1;\n"
+            "}\n"
+            "func Pick() -> func(Int) -> Int {\n"
+            "    return AddOne;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let f = Pick();\n"
+            "    Log(f(4));\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *routine = NULL;
+        const MIRSourceLocalType *fact = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine(mir, "Main", MIR_SCOPE_FUNCTION);
+        if (routine != NULL)
+            fact = mir_routine_source_local_type_fact(routine, "f");
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && routine != NULL
+               && fact != NULL
+               && fact->is_callable
+               && fact->type_name != NULL
+               && strcmp(fact->type_name, "func(Int)->Int") == 0
+               && fact->callable_return_type_name != NULL
+               && strcmp(fact->callable_return_type_name, "Int") == 0
+               && fact->callable_param_count == 1
+               && fact->callable_param_type_names != NULL
+               && fact->callable_param_type_names[0] != NULL
+               && strcmp(fact->callable_param_type_names[0], "Int") == 0);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR captures owner method call return types for source locals");
     {
         const char *src =
