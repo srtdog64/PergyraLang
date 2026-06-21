@@ -3028,12 +3028,13 @@ for term in \
     if ! grep -Fq "$term" src/codegen/transpiler_mir_stmt_emit.c; then
         fail "C MIR lifecycle guard emission must consume MIR lifecycle guard facts: $term"
     fi
-    if ! grep -Fq "$term" src/codegen/llvm_mir_block_emit.c; then
+    if ! grep -Fq "$term" src/codegen/llvm_mir_lifecycle_emit.c; then
         fail "LLVM MIR lifecycle guard emission must consume MIR lifecycle guard facts: $term"
     fi
 done
 
 if grep -R "lc_guard_find" src/codegen/llvm_mir_block_emit.c \
+        src/codegen/llvm_mir_lifecycle_emit.c \
         src/codegen/transpiler_mir_stmt_emit.c >/dev/null 2>&1; then
     fail "MIR-active lifecycle guard emission must not reread semantic AST-node side tables"
 fi

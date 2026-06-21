@@ -1,11 +1,9 @@
 #include <stdlib.h>
 #include <string.h>
-
 #include "type_checker_internal.h"
 #include "type_checker_visibility.h"
 #include "diag_codes.h"
 #include "../common/match_variant_policy.h"
-
 static Type *
 expr_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
@@ -13,13 +11,11 @@ expr_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
         semantic_type_resolution_lookup_metadata_type_ref(ctx, type_ref);
     return resolved != NULL ? resolved : TYPE_UNKNOWN;
 }
-
 static Type *
 expr_normalize_type(Type *type)
 {
     return type != NULL ? type : TYPE_UNKNOWN;
 }
-
 static void
 expr_report_unknown_member(SemanticContext *ctx, ASTNode *site,
                            const Type *object_type, const char *field_name)
@@ -40,7 +36,6 @@ expr_report_unknown_member(SemanticContext *ctx, ASTNode *site,
         member_name,
         type_name);
 }
-
 Type *
 type_check_expression(ASTNode *expr, SemanticContext *ctx)
 {
@@ -55,13 +50,10 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         return ast_number_value(expr) == (int64_t)ast_number_value(expr)
             ? TYPE_INT
             : TYPE_FLOAT;
-
     case AST_STRING:
         return TYPE_STRING;
-
     case AST_BOOLEAN:
         return TYPE_BOOL;
-
     case AST_LAMBDA_EXPR: {
         size_t param_count = ast_lambda_param_count(expr);
         ASTNode *lambda_body = ast_lambda_body(expr);
