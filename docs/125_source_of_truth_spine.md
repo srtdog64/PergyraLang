@@ -61,12 +61,14 @@ Current beta closure snapshot:
   MIR source-local type fact path. C MIR pending-use materialization follows
   the same rule: once a `MIRRoutine` is present, missing source-local type
   metadata is a MIR inventory failure, not permission to infer the type from
-  the initializer AST expression. C MIR SSA local declarations also consume
-  the source-local type fact before initializer expression inference, so
-  annotated locals and reassignment/PHI DEF storage cannot be retagged by an
-  initializer-derived guess. LLVM MIR local alloca typing follows the same
-  rule for annotated source-local declarations: `type_layout` and `type_expr`
-  cannot mask a missing `MIRRoutine::source_local_types` row. Callable locals
+  the initializer AST expression. C MIR generic DEF emission follows that
+  rule for source-local bindings before expression inference, and C MIR SSA
+  local declarations also consume the source-local type fact before initializer
+  expression inference, so annotated locals and reassignment/PHI DEF storage
+  cannot be retagged by an initializer-derived guess. LLVM MIR local alloca
+  typing follows the same rule for annotated source-local declarations:
+  `type_layout` and `type_expr` cannot mask a missing
+  `MIRRoutine::source_local_types` row. Callable locals
   use the same source-local fact owner through callable return/parameter
   type-name rows, so function-pointer locals do not need to re-register the
   annotation AST in LLVM MIR emission. C MIR SSA local declarations and

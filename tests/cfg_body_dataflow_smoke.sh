@@ -657,6 +657,9 @@ run_literal_doc_contract_smoke() {
     require_literal "src/codegen/transpiler_mir_pending_uses.c" "out->type_annotation = inst->expr1"
     require_literal "src/codegen/transpiler_mir_pending_uses.c" "transpiler_mir_routine_source_local_type_name(mir_routine, base)"
     require_literal "src/codegen/transpiler_mir_pending_uses.c" "const bool allow_ast_compat = mir_routine == NULL"
+    require_literal "src/codegen/transpiler_mir_block_emit.c" "transpiler_mir_routine_has_source_local_binding("
+    require_literal "src/codegen/transpiler_mir_block_emit.c" "transpiler_mir_routine_source_local_type_name("
+    require_literal "src/codegen/transpiler_mir_block_emit.c" "DEF '%s' is missing source-local type metadata"
     require_literal "src/codegen/transpiler_mir_block_emit.c" "mir_routine, block, inst"
     if grep -Fq -- "mir_instruction_source_payload" \
         "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"; then

@@ -16,6 +16,7 @@
 #include "transpiler_mir_destructure_emit.h"
 #include "transpiler_mir_expr_ssa.h"
 #include "transpiler_mir_match_condition_emit.h"
+#include "transpiler_mir_local_binding.h"
 #include "transpiler_mir_pending_uses.h"
 #include "transpiler_mir_pin_emit.h"
 #include "transpiler_mir_preserved_let_emit.h"
@@ -231,6 +232,30 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
 
             if (binding_name != NULL)
                 value_type = lookup_typed_var(ctx, binding_name);
+            if ((value_type == NULL || strcmp(value_type, "Unknown") == 0)
+                && mir_routine != NULL
+                && binding_name != NULL
+                && transpiler_mir_routine_has_source_local_binding(
+                    mir_routine, binding_name)) {
+                value_type = transpiler_mir_routine_source_local_type_name(
+                    mir_routine, binding_name);
+                if (value_type == NULL
+                    || value_type[0] == '\0'
+                    || strcmp(value_type, "Unknown") == 0) {
+                    if (reason != NULL && reason_cap > 0) {
+                        transpiler_mir_reasonf(reason, reason_cap,
+                            "MIR block %llu emission failed: DEF '%s' is missing source-local type metadata",
+                            (unsigned long long) block->id,
+                            binding_name);
+                    }
+                    transpiler_set_mir_inventory_missing(ctx,
+                        "MIR block %llu emission failed: DEF '%s' is missing source-local type metadata",
+                        (unsigned long long) block->id,
+                        binding_name);
+                    ok = false;
+                    break;
+                }
+            }
             if (value_type == NULL || strcmp(value_type, "Unknown") == 0)
                 value_type = infer_expression_type_name(ctx, def_expr);
 
