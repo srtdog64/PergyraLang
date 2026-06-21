@@ -16,6 +16,7 @@
 #define PGY_RUNTIME_PANIC_CLASS_AUTHORITY_MISMATCH "authority-mismatch"
 #define PGY_RUNTIME_PANIC_CLASS_INVALID_LIFECYCLE_STATE "invalid-lifecycle-state"
 #define PGY_RUNTIME_PANIC_CLASS_CAPABILITY_DENIED "capability-denied"
+#define PGY_RUNTIME_PANIC_CLASS_BUDGET_EXCEEDED "budget-exceeded"
 #define PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT "internal-invariant"
 
 #define PGY_RUNTIME_PANIC_REASON_RELEASED_SLOT_WRITE \
@@ -70,6 +71,8 @@
     "lifecycle operation applied in a state that forbids it"
 #define PGY_RUNTIME_PANIC_REASON_CAPABILITY_DENIED \
     "operation requires a capability the content manifest did not grant"
+#define PGY_RUNTIME_PANIC_REASON_BUDGET_EXCEEDED \
+    "operation would exceed the resource budget the content manifest imposed"
 
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
 #  define PGY_RUNTIME_NORETURN _Noreturn

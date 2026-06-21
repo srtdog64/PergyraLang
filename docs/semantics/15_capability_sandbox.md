@@ -128,6 +128,35 @@ The earlier coarse effect→capability cross-check is retired.
   from the manifest table until their runtime paths carry a gate (listing them
   would be a manifest the runtime does not back). NETWORK/ENV bits exist for when
   those paths are gated.
+- **Resource budget / DoS model — the missing quantitative axis (external
+  red-team R6, docs/134).** The capability model is *qualitative*: it answers
+  "can this content do X at all?" (yes/no per capability). A sandbox for
+  untrusted content also needs the *quantitative* answer — "how much?". A
+  granted capability says nothing about an infinite loop, memory exhaustion, a
+  fork-bomb of spawns, or unbounded allocation: capability `RENDER` granted does
+  not bound how many frames or how much memory. Slot/authority/capability do not
+  touch *how much*.
+  - **Built (slice 1) — the runtime gate.** `pgy_runtime_budget.h` is the
+    quantitative twin of the capability gate: a per-kind budget
+    (ALLOC_BYTES / ALLOC_COUNT / SPAWN_COUNT / CHANNEL_COUNT) the loader imposes
+    (`pgy_budget_set_limit_export`), with `pgy_budget_charge_export(kind, n, op)`
+    panicking fail-closed (class `budget-exceeded`) the first time a kind's
+    running total passes its ceiling. Same dual-twin/bitcode pattern as the
+    capability gate; default per-kind limit is unlimited so trusted programs are
+    unaffected (opt-in by host). Saturating add so a near-overflow charge cannot
+    wrap past the ceiling. Verified: `make test-budget` (granted-path + deny-alloc
+    + deny-spawn fail-closed).
+  - **Not yet (slice 2+).** Charge points are not wired: the allocator must
+    charge ALLOC_*, spawn must charge SPAWN_COUNT, Channel ctor CHANNEL_COUNT —
+    with the thread-safety decision (atomic vs per-fiber counter) made there.
+    CPU/wall-time budget needs sampling/interruption and is deferred. Codegen/
+    LLVM decls + bitcode-strip land with the wiring. Until the charge points are
+    wired, the gate is enforceable only when called explicitly. So "safe new
+    Flash" stays a vision label until at least alloc + spawn are metered.
+- **Deterministic asset/runtime boundary + WASM/native equivalence.** Trust also
+  requires that the same content under the same manifest behaves the same across
+  the native and WASM backends (the C/LLVM/wasm parity story, docs/134 R2),
+  and that asset/runtime boundaries are deterministic. Neither is proven yet.
 - **Distribution + trust format.** A WASM-in-browser bundle + a signed,
   user-visible manifest + a loader is the actual product surface; none of it is
   built. The browser provides the memory sandbox; this capability boundary is the

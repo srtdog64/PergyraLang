@@ -10,8 +10,23 @@
 
 #include <string.h>
 
-static LcSpec g_lc_specs[LC_MAX_SPECS];
-static int    g_lc_spec_count = 0;
+/*
+ * Sole owner of the lifecycle spec registry storage. Holding the array + count
+ * behind one accessor (a function-local static) makes this an explicit
+ * single-owner source of truth, not an ambient file-global registry that any
+ * in-file site could mutate independently. (build-source-inventory SoT gate.)
+ */
+typedef struct {
+    LcSpec specs[LC_MAX_SPECS];
+    int    count;
+} LcSpecRegistry;
+
+static LcSpecRegistry *
+lc_spec_registry_owner(void)
+{
+    static LcSpecRegistry reg;
+    return &reg;
+}
 
 static bool
 lc_copy_name(char dest[LC_NAME_LEN], const char *src)
@@ -230,40 +245,43 @@ lc_state_name(const LcMachine *m, LcState s)
 void
 lc_registry_reset(void)
 {
-    memset(g_lc_specs, 0, sizeof(g_lc_specs));
-    g_lc_spec_count = 0;
+    LcSpecRegistry *R = lc_spec_registry_owner();
+    memset(R->specs, 0, sizeof(R->specs));
+    R->count = 0;
 }
 
 int
 lc_registry_begin(const char *subject)
 {
+    LcSpecRegistry *R = lc_spec_registry_owner();
     LcSpec *spec;
 
     if (subject == NULL || subject[0] == '\0')
         return -1;
     if (lc_registry_find(subject) != NULL)
         return -1;
-    if (g_lc_spec_count >= LC_MAX_SPECS)
+    if (R->count >= LC_MAX_SPECS)
         return -1;
-    spec = &g_lc_specs[g_lc_spec_count];
+    spec = &R->specs[R->count];
     memset(spec, 0, sizeof(*spec));
     if (!lc_copy_name(spec->subject, subject))
         return -1;
-    return g_lc_spec_count++;
+    return R->count++;
 }
 
 bool
 lc_registry_add_transition(int sid, const char *op, const char *from,
                            const char *to)
 {
+    LcSpecRegistry *R = lc_spec_registry_owner();
     LcSpec *spec;
     int from_index;
     int op_index;
     int to_index;
 
-    if (sid < 0 || sid >= g_lc_spec_count)
+    if (sid < 0 || sid >= R->count)
         return false;
-    spec = &g_lc_specs[sid];
+    spec = &R->specs[sid];
     if (!lc_transition_from_name(spec, from, &from_index))
         return false;
     op_index = lc_spec_intern_op(spec, op);
@@ -287,25 +305,27 @@ lc_registry_add_transition(int sid, const char *op, const char *from,
 int
 lc_registry_count(void)
 {
-    return g_lc_spec_count;
+    return lc_spec_registry_owner()->count;
 }
 
 const LcSpec *
 lc_registry_at(int i)
 {
-    if (i < 0 || i >= g_lc_spec_count)
+    LcSpecRegistry *R = lc_spec_registry_owner();
+    if (i < 0 || i >= R->count)
         return NULL;
-    return &g_lc_specs[i];
+    return &R->specs[i];
 }
 
 const LcSpec *
 lc_registry_find(const char *subject)
 {
+    LcSpecRegistry *R = lc_spec_registry_owner();
     if (subject == NULL)
         return NULL;
-    for (int i = 0; i < g_lc_spec_count; i++) {
-        if (strcmp(g_lc_specs[i].subject, subject) == 0)
-            return &g_lc_specs[i];
+    for (int i = 0; i < R->count; i++) {
+        if (strcmp(R->specs[i].subject, subject) == 0)
+            return &R->specs[i];
     }
     return NULL;
 }
@@ -327,33 +347,45 @@ lc_spec_machine(const LcSpec *s)
 
 /* ---- runtime-guard side-table ---- */
 
-static LcGuardSite g_lc_guards[LC_MAX_GUARDS];
-static int         g_lc_guard_count = 0;
+/* Sole owner of the runtime-guard side-table (same single-owner rationale as
+ * the spec registry above). */
+typedef struct {
+    LcGuardSite guards[LC_MAX_GUARDS];
+    int         count;
+} LcGuardRegistry;
+
+static LcGuardRegistry *
+lc_guard_registry_owner(void)
+{
+    static LcGuardRegistry reg;
+    return &reg;
+}
 
 void
 lc_guard_reset(void)
 {
-    g_lc_guard_count = 0;
+    lc_guard_registry_owner()->count = 0;
 }
 
 bool
 lc_guard_add(const void *node, LcGuardKind kind, uint32_t valid_mask,
              int to_state, const char *op, const char *subject)
 {
+    LcGuardRegistry *R = lc_guard_registry_owner();
     LcGuardSite *site = NULL;
 
     if (node == NULL)
         return false;
-    for (int i = 0; i < g_lc_guard_count; i++) {
-        if (g_lc_guards[i].node == node) {
-            site = &g_lc_guards[i];
+    for (int i = 0; i < R->count; i++) {
+        if (R->guards[i].node == node) {
+            site = &R->guards[i];
             break;
         }
     }
     if (site == NULL) {
-        if (g_lc_guard_count >= LC_MAX_GUARDS)
+        if (R->count >= LC_MAX_GUARDS)
             return false;
-        site = &g_lc_guards[g_lc_guard_count++];
+        site = &R->guards[R->count++];
     }
     site->node = node;
     site->kind = kind;
@@ -371,11 +403,12 @@ lc_guard_add(const void *node, LcGuardKind kind, uint32_t valid_mask,
 const LcGuardSite *
 lc_guard_find(const void *node)
 {
+    LcGuardRegistry *R = lc_guard_registry_owner();
     if (node == NULL)
         return NULL;
-    for (int i = 0; i < g_lc_guard_count; i++) {
-        if (g_lc_guards[i].node == node)
-            return &g_lc_guards[i];
+    for (int i = 0; i < R->count; i++) {
+        if (R->guards[i].node == node)
+            return &R->guards[i];
     }
     return NULL;
 }
@@ -383,7 +416,7 @@ lc_guard_find(const void *node)
 int
 lc_guard_count(void)
 {
-    return g_lc_guard_count;
+    return lc_guard_registry_owner()->count;
 }
 
 int

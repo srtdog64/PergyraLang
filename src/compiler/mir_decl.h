@@ -69,6 +69,12 @@ typedef struct
 
 typedef struct
 {
+    const char *owner_name;
+    const char *role_name;
+} MIRDeclRoleInclude;
+
+typedef struct
+{
     const char      *owner_name;
     const char      *name;
     ASTNode         *type;
@@ -161,6 +167,9 @@ typedef struct
     size_t       role_impl_count;
     MIRDeclRoleImpl *role_impl_metadata;
     size_t       role_impl_metadata_count;
+    size_t       role_include_count;
+    MIRDeclRoleInclude *role_include_metadata;
+    size_t       role_include_metadata_count;
     size_t       field_count;
     MIRDeclField *field_metadata;
     size_t       field_metadata_count;

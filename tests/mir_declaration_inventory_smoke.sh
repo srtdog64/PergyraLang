@@ -7026,11 +7026,17 @@ require_term "src/codegen/llvm_domain_role_emit.c" \
 require_term "src/codegen/transpiler_domain_nominal_emit.c" \
     "ctx != NULL && ctx->backend_error != NULL"
 require_term "src/codegen/transpiler_domain_nominal_emit.c" \
-    "ast_include_role_name(include_stmt)"
+    "mir_decl_header_role_include_count(owner_role_header)"
 require_term "src/codegen/transpiler_operator.c" \
-    "ast_include_role_name(include_stmt)"
+    "find_role_operator_method_metadata_in_header"
 require_term "src/codegen/llvm_domain_role_lookup.c" \
-    "ast_include_role_name(inc)"
+    "llvm_find_role_operator_method_metadata_in_header"
+require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+    "mir_decl_role_include_name(include_meta)"
+require_term "src/codegen/transpiler_operator.c" \
+    "mir_decl_header_role_include_count(role_header)"
+require_term "src/codegen/llvm_domain_role_lookup.c" \
+    "mir_decl_header_role_include_count(role_header)"
 require_term "src/codegen/transpiler_operator.c" \
     "ast_impl_ability_method(impl, j)"
 require_term "src/codegen/llvm_domain_role_lookup.c" \
@@ -7064,15 +7070,33 @@ require_term "src/codegen/transpiler_domain_nominal_emit.c" \
 require_term "src/compiler/mir_decl.h" \
     "MIRDeclRoleImpl"
 require_term "src/compiler/mir_decl.h" \
+    "MIRDeclRoleInclude"
+require_term "src/compiler/mir_decl.h" \
+    "role_include_metadata"
+require_term "src/compiler/mir_decl.h" \
     "method_start_index"
 require_term "src/compiler/mir_decl_header_access.c" \
     "mir_decl_header_role_impl_method"
+require_term "src/compiler/mir_decl_header_access.c" \
+    "mir_decl_header_role_include_count"
+require_term "src/compiler/mir_decl_header_access.c" \
+    "mir_decl_role_include_name"
 require_term "src/compiler/mir_decl_headers.c" \
     "mir_decl_header_set_role_impls"
+require_term "src/compiler/mir_decl_headers.c" \
+    "mir_decl_header_set_role_includes"
 require_term "src/compiler/mir_decl_header_validate.c" \
     "mir_validate_decl_role_impl_metadata"
 require_term "src/compiler/mir_decl_header_validate.c" \
+    "mir_validate_decl_role_include_metadata"
+require_term "src/compiler/mir_decl_header_validate.c" \
     "method span metadata drift"
+require_term "src/compiler/mir_decl_header_validate.c" \
+    "role include metadata count"
+require_term "src/tests/mir/test_mir_lowering_part_d.cases.h" \
+    "MIR declaration headers preserve role include metadata"
+require_term "src/tests/mir/test_mir_lowering_part_d.cases.h" \
+    "MIR validator rejects role include metadata drift"
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "ast_impl_ability_method(impl, j)"
 require_term "src/codegen/llvm_domain_role_emit.c" \
@@ -7090,6 +7114,22 @@ fi
 if grep -Fq "llvm_find_host_method_metadata_in_context(" \
     "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c"; then
     fail "LLVM role impl vtable emission must consume MIR role-impl method spans, not name-lookup AST method rows"
+fi
+if awk '
+    /find_role_operator_method_metadata_in_header/ { in_fn = 1 }
+    in_fn && /^const MIRDeclMethod \*/ { exit }
+    in_fn { print }
+' "$ROOT_DIR/src/codegen/transpiler_operator.c" |
+    grep -Eq 'ast_role_include_count|ast_role_include\(|ast_include_role_name'; then
+    fail "C role operator metadata recursion must consume MIR role include metadata"
+fi
+if awk '
+    /llvm_find_role_operator_method_metadata_in_header/ { in_fn = 1 }
+    in_fn && /^const MIRDeclMethod \*/ { exit }
+    in_fn { print }
+' "$ROOT_DIR/src/codegen/llvm_domain_role_lookup.c" |
+    grep -Eq 'ast_role_include_count|ast_role_include\(|ast_include_role_name'; then
+    fail "LLVM role operator metadata recursion must consume MIR role include metadata"
 fi
 require_term "src/codegen/llvm_domain_role_helpers.h" \
     "llvm_party_slot_first_ability_tag"

@@ -1735,6 +1735,17 @@ test-capability: $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS)
 	    $(if $(filter .exe,$(EXEEXT)),$(THREAD_LINK_LIB) -lbcrypt -ladvapi32 -liphlpapi,$(THREAD_LINK_LIB) -lssl -lcrypto)
 	$(call pgy_run_native,$(BUILD_DIR)/test_capability$(EXEEXT))
 
+# Resource budget gate (the quantitative sandbox axis): a per-kind budget the
+# loader imposes; metered ops charge their kind and panic fail-closed on overrun.
+test-budget: $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS)
+	@echo "=== Resource Budget Gate Test ==="
+	$(CC) -std=c11 -Wall -I$(SRC_DIR) -I$(RUNTIME_DIR) \
+	    $(RUNTIME_DIR)/test_budget_gate.c \
+	    $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) \
+	    -o $(BUILD_DIR)/test_budget$(EXEEXT) \
+	    $(if $(filter .exe,$(EXEEXT)),$(THREAD_LINK_LIB) -lbcrypt -ladvapi32 -liphlpapi,$(THREAD_LINK_LIB) -lssl -lcrypto)
+	$(call pgy_run_native,$(BUILD_DIR)/test_budget$(EXEEXT))
+
 # Static capability manifest gate (items 1 + 2): the program's used-capability
 # set is computed and emitted (--capability-manifest), and any function that
 # uses a capability whose effect family it did not declare fails the gate.

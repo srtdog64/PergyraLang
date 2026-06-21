@@ -252,6 +252,75 @@ mir_validate_decl_role_impl_metadata(const MIRDeclHeader *header,
 }
 
 static bool
+mir_validate_decl_role_include_metadata(const MIRDeclHeader *header,
+                                        size_t header_index,
+                                        char **error_message)
+{
+    if (header == NULL)
+        return false;
+
+    if (header->role_include_metadata_count > 0
+        && header->role_include_metadata == NULL) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' has %zu role include metadata row(s) but no storage",
+                header_index,
+                header->name != NULL ? header->name : "(anonymous)",
+                header->role_include_metadata_count);
+        }
+        return false;
+    }
+
+    if (header->role_include_metadata_count != 0
+        && header->ast_type != AST_ROLE_DECL) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' has role include metadata on a non-role declaration",
+                header_index,
+                header->name != NULL ? header->name : "(anonymous)");
+        }
+        return false;
+    }
+
+    if (header->role_include_metadata_count != header->role_include_count) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' role include metadata count %zu does not match declaration include count %zu",
+                header_index,
+                header->name != NULL ? header->name : "(anonymous)",
+                header->role_include_metadata_count,
+                header->role_include_count);
+        }
+        return false;
+    }
+
+    for (size_t i = 0; i < header->role_include_metadata_count; i++) {
+        const MIRDeclRoleInclude *include =
+            &header->role_include_metadata[i];
+        if (include->owner_name == NULL
+            || header->name == NULL
+            || strcmp(include->owner_name, header->name) != 0) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] role include[%zu] has owner metadata drift",
+                    header_index, i);
+            }
+            return false;
+        }
+        if (include->role_name == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] role include[%zu] has no role name metadata",
+                    header_index, i);
+            }
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static bool
 mir_validate_decl_method_metadata(const MIRProgram *mir,
                                   const MIRDeclHeader *header,
                                   size_t header_index,
@@ -627,6 +696,10 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
     }
 
     if (!mir_validate_decl_role_impl_metadata(
+            header, header_index, error_message)) {
+        return false;
+    }
+    if (!mir_validate_decl_role_include_metadata(
             header, header_index, error_message)) {
         return false;
     }

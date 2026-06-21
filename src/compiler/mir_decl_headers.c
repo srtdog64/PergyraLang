@@ -280,6 +280,53 @@ mir_decl_header_set_role_impls(MIRDeclHeader *header, ASTNode *role_decl)
     return out == count;
 }
 
+static void
+mir_decl_header_free_role_includes(MIRDeclHeader *header)
+{
+    if (header == NULL)
+        return;
+    free(header->role_include_metadata);
+    header->role_include_metadata = NULL;
+    header->role_include_metadata_count = 0;
+    header->role_include_count = 0;
+}
+
+static bool
+mir_decl_header_set_role_includes(MIRDeclHeader *header, ASTNode *role_decl)
+{
+    size_t count;
+
+    if (header == NULL || role_decl == NULL || role_decl->type != AST_ROLE_DECL)
+        return false;
+
+    count = ast_role_include_count(role_decl);
+    header->role_include_count = count;
+    header->role_include_metadata = NULL;
+    header->role_include_metadata_count = 0;
+    if (count == 0)
+        return true;
+    if (count > SIZE_MAX / sizeof(MIRDeclRoleInclude))
+        return false;
+
+    header->role_include_metadata =
+        calloc(count, sizeof(MIRDeclRoleInclude));
+    if (header->role_include_metadata == NULL)
+        return false;
+
+    for (size_t i = 0; i < count; i++) {
+        ASTNode *include_stmt = ast_role_include(role_decl, i);
+        MIRDeclRoleInclude *meta = &header->role_include_metadata[i];
+        meta->owner_name = header->name;
+        meta->role_name = ast_include_role_name(include_stmt);
+        if (meta->role_name == NULL) {
+            mir_decl_header_free_role_includes(header);
+            return false;
+        }
+        header->role_include_metadata_count = i + 1;
+    }
+    return true;
+}
+
 static bool
 mir_decl_header_set_methods(MIRDeclHeader *header,
                             ASTNode **methods,
@@ -450,10 +497,17 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
             mir_decl_header_free_generics(&header);
             return false;
         }
+        if (!mir_decl_header_set_role_includes(&header, decl)) {
+            mir_decl_header_free_role_impls(&header);
+            mir_decl_header_free_fields(&header);
+            mir_decl_header_free_generics(&header);
+            return false;
+        }
         if (!mir_decl_header_set_role_impl_methods(&header, decl)) {
             for (size_t i = 0; i < header.method_metadata_count; i++)
                 mir_decl_method_metadata_clear(&header.method_metadata[i]);
             free(header.method_metadata);
+            mir_decl_header_free_role_includes(&header);
             mir_decl_header_free_role_impls(&header);
             mir_decl_header_free_fields(&header);
             mir_decl_header_free_generics(&header);
@@ -463,6 +517,7 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
             for (size_t i = 0; i < header.method_metadata_count; i++)
                 mir_decl_method_metadata_clear(&header.method_metadata[i]);
             free(header.method_metadata);
+            mir_decl_header_free_role_includes(&header);
             mir_decl_header_free_role_impls(&header);
             mir_decl_header_free_fields(&header);
             mir_decl_header_free_generics(&header);

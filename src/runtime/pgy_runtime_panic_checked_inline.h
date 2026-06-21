@@ -1,6 +1,7 @@
 /* Runtime panic helpers and checked arithmetic exports. */
 
 #include "pgy_runtime_capability.h"
+#include "pgy_runtime_budget.h"
 
 static inline struct timespec
 pgy_timespec_after_ns(uint64_t timeout_ns)
@@ -195,6 +196,59 @@ pgy_cap_require_export(uint32_t cap, const char *op)
                 (unsigned)cap, (unsigned)granted);
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_CAPABILITY_DENIED,
                           PGY_RUNTIME_PANIC_REASON_CAPABILITY_DENIED);
+    }
+}
+
+/* ---- resource budget (quantitative sandbox gate) ---- */
+
+static inline PgyBudgetState *
+pgy_budget_state_slot(void)
+{
+    static PgyBudgetState st;
+    if (!st.initialized)
+        pgy_budget_state_init(&st);
+    return &st;
+}
+
+static inline void
+pgy_budget_reset_export(void)
+{
+    pgy_budget_state_init(pgy_budget_state_slot());
+}
+
+static inline void
+pgy_budget_set_limit_export(int kind, uint64_t limit)
+{
+    if (pgy_budget_kind_valid(kind))
+        pgy_budget_state_slot()->limit[kind] = limit;
+}
+
+static inline uint64_t
+pgy_budget_used_export(int kind)
+{
+    return pgy_budget_kind_valid(kind)
+        ? pgy_budget_state_slot()->used[kind] : 0;
+}
+
+/* Fail-closed gate: add `amount` to a kind's running total; the first charge
+ * that pushes the total past its ceiling panics with a traceable record. */
+static inline void
+pgy_budget_charge_export(int kind, uint64_t amount, const char *op)
+{
+    PgyBudgetState *st;
+
+    if (!pgy_budget_kind_valid(kind))
+        return;
+    st = pgy_budget_state_slot();
+    st->used[kind] = pgy_budget_saturating_add(st->used[kind], amount);
+    if (st->used[kind] > st->limit[kind]) {
+        fprintf(stderr,
+                "%s budget op=%s kind=%d used=%llu limit=%llu\n",
+                PGY_RUNTIME_PANIC_PREFIX, op != NULL ? op : "<op>", kind,
+                (unsigned long long)st->used[kind],
+                (unsigned long long)st->limit[kind]);
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_BUDGET_EXCEEDED,
+                          PGY_RUNTIME_PANIC_REASON_BUDGET_EXCEEDED);
     }
 }
 

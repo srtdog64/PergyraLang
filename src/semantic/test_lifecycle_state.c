@@ -33,7 +33,14 @@ static const LcMachine PAYMENT = {
     .transitions = TRANS, .transition_count = 5,
 };
 
-static int failures = 0;
+/* Failure counter behind a single owner accessor (no top-level mutable static;
+ * matches the build-source-inventory SoT discipline). */
+static int *
+test_failures(void)
+{
+    static int failures;
+    return &failures;
+}
 
 static void
 check(const char *label, LcResult got, LcResult want,
@@ -46,7 +53,7 @@ check(const char *label, LcResult got, LcResult want,
     if (!ok) {
         printf("        expected result=%d next=%s\n",
                (int)want, lc_state_name(&PAYMENT, want_next));
-        failures++;
+        (*test_failures())++;
     }
 }
 
@@ -55,7 +62,7 @@ check_bool(const char *label, bool ok)
 {
     printf("  [%s] %s\n", ok ? "PASS" : "FAIL", label);
     if (!ok)
-        failures++;
+        (*test_failures())++;
 }
 
 int
@@ -125,7 +132,10 @@ main(void)
     r = lc_apply_op(&registered, pending, authorize, &s);
     check("registered Authorize on Pending", r, LC_OK, s, authorized);
 
-    printf("%s (%d failure%s)\n", failures == 0 ? "ALL PASS" : "FAILED",
-           failures, failures == 1 ? "" : "s");
-    return failures == 0 ? 0 : 1;
+    {
+        int failures = *test_failures();
+        printf("%s (%d failure%s)\n", failures == 0 ? "ALL PASS" : "FAILED",
+               failures, failures == 1 ? "" : "s");
+        return failures == 0 ? 0 : 1;
+    }
 }

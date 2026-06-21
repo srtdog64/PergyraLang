@@ -45,6 +45,13 @@ const MIRDeclMethod *mir_decl_header_role_impl_method(
     const MIRDeclHeader *header,
     const MIRDeclRoleImpl *impl,
     size_t index);
+size_t mir_decl_header_role_include_count(const MIRDeclHeader *header);
+const MIRDeclRoleInclude *mir_decl_header_role_include(
+    const MIRDeclHeader *header,
+    size_t index);
+const char *mir_decl_role_include_owner_name(
+    const MIRDeclRoleInclude *include);
+const char *mir_decl_role_include_name(const MIRDeclRoleInclude *include);
 size_t mir_decl_header_field_count(const MIRDeclHeader *header);
 const MIRDeclField *mir_decl_header_field(const MIRDeclHeader *header,
                                           size_t index);

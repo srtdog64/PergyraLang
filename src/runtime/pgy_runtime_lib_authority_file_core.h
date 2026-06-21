@@ -36,6 +36,7 @@ extern char *realpath(const char *path, char *resolved_path);
 #include "runtime/pgy_runtime_authority_contract.h"
 #include "runtime/pgy_runtime_panic_contract.h"
 #include "runtime/pgy_runtime_capability.h"
+#include "runtime/pgy_runtime_budget.h"
 
 static char *pgy_runtime_lib_strdup(const char *src);
 static pthread_mutex_t pgy_runtime_lib_rng_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -336,6 +337,53 @@ pgy_cap_require_export(uint32_t cap, const char *op)
                 (unsigned)cap, (unsigned)g_pgy_cap_granted);
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_CAPABILITY_DENIED,
                           PGY_RUNTIME_PANIC_REASON_CAPABILITY_DENIED);
+    }
+}
+
+/* Resource budget gate -- external twins of the static-inline definitions in
+ * pgy_runtime_panic_checked_inline.h. One process-wide per-kind budget; metered
+ * ops panic fail-closed on overrun. See pgy_runtime_budget.h and docs/15. */
+static PgyBudgetState g_pgy_budget;
+
+void
+pgy_budget_reset_export(void)
+{
+    pgy_budget_state_init(&g_pgy_budget);
+}
+
+void
+pgy_budget_set_limit_export(int kind, uint64_t limit)
+{
+    if (!g_pgy_budget.initialized)
+        pgy_budget_state_init(&g_pgy_budget);
+    if (pgy_budget_kind_valid(kind))
+        g_pgy_budget.limit[kind] = limit;
+}
+
+uint64_t
+pgy_budget_used_export(int kind)
+{
+    if (!g_pgy_budget.initialized)
+        pgy_budget_state_init(&g_pgy_budget);
+    return pgy_budget_kind_valid(kind) ? g_pgy_budget.used[kind] : 0;
+}
+
+void
+pgy_budget_charge_export(int kind, uint64_t amount, const char *op)
+{
+    if (!g_pgy_budget.initialized)
+        pgy_budget_state_init(&g_pgy_budget);
+    if (!pgy_budget_kind_valid(kind))
+        return;
+    g_pgy_budget.used[kind] =
+        pgy_budget_saturating_add(g_pgy_budget.used[kind], amount);
+    if (g_pgy_budget.used[kind] > g_pgy_budget.limit[kind]) {
+        fprintf(stderr, "%s budget op=%s kind=%d used=%llu limit=%llu\n",
+                PGY_RUNTIME_PANIC_PREFIX, op != NULL ? op : "<op>", kind,
+                (unsigned long long)g_pgy_budget.used[kind],
+                (unsigned long long)g_pgy_budget.limit[kind]);
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_BUDGET_EXCEEDED,
+                          PGY_RUNTIME_PANIC_REASON_BUDGET_EXCEEDED);
     }
 }
 

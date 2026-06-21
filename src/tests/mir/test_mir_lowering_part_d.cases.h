@@ -220,6 +220,90 @@ test_mir_lowering_part_d(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR declaration headers preserve role include metadata");
+    {
+        const char *src =
+            "subject Runner {}\n"
+            "ability Stepper { func Step(self) -> Int; }\n"
+            "role BaseRole for Runner {\n"
+            "    impl ability Stepper {\n"
+            "        func Step(self) -> Int { return 1; }\n"
+            "    }\n"
+            "}\n"
+            "role DerivedRole for Runner {\n"
+            "    include BaseRole;\n"
+            "}\n"
+            "func Main() -> Void { }\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRDeclHeader *role = NULL;
+        const MIRDeclRoleInclude *include = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL)
+            role = mir_find_decl_header_of_type(
+                mir, AST_ROLE_DECL, "DerivedRole");
+        if (role != NULL)
+            include = mir_decl_header_role_include(role, 0);
+        EXPECT(ok
+               && role != NULL
+               && mir_decl_header_role_include_count(role) == 1
+               && include != NULL
+               && mir_decl_role_include_owner_name(include) != NULL
+               && strcmp(mir_decl_role_include_owner_name(include),
+                         "DerivedRole") == 0
+               && mir_decl_role_include_name(include) != NULL
+               && strcmp(mir_decl_role_include_name(include),
+                         "BaseRole") == 0
+               && mir_validate(mir, NULL));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects role include metadata drift");
+    {
+        const char *src =
+            "subject Runner {}\n"
+            "role BaseRole for Runner { }\n"
+            "role DerivedRole for Runner {\n"
+            "    include BaseRole;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRDeclHeader *role = NULL;
+        char *mir_error = NULL;
+        size_t saved_include_metadata_count = 0;
+        bool mutated = false;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL) {
+            role = (MIRDeclHeader *)mir_find_decl_header_of_type(
+                mir, AST_ROLE_DECL, "DerivedRole");
+            if (role != NULL && role->role_include_metadata_count == 1) {
+                saved_include_metadata_count =
+                    role->role_include_metadata_count;
+                role->role_include_metadata_count = 0;
+                mutated = true;
+            }
+        }
+        rejected = ok
+                   && mutated
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error,
+                             "role include metadata count") != NULL;
+        if (role != NULL)
+            role->role_include_metadata_count =
+                saved_include_metadata_count;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR declaration headers preserve zone authority ability refs");
     {
         const char *src =

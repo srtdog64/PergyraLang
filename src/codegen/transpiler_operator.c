@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../compiler/mir_decl_headers.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_operator.h"
@@ -117,6 +118,71 @@ find_role_operator_method_decl(TranspilerCtx *ctx, ASTNode *role,
     return NULL;
 }
 
+static const MIRDeclMethod *
+find_role_operator_method_metadata_in_header(TranspilerCtx *ctx,
+                                             const char *role_name,
+                                             const MIRDeclHeader *role_header,
+                                             PgyTokenType op,
+                                             int depth)
+{
+    if (ctx == NULL || depth > 16)
+        return NULL;
+    if (role_header == NULL) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing role operator method metadata for role '%s'",
+            role_name != NULL ? role_name : "(anonymous-role)");
+        return NULL;
+    }
+
+    for (size_t i = 0; i < mir_decl_header_method_count(role_header); i++) {
+        const MIRDeclMethod *method =
+            mir_decl_header_method(role_header, i);
+        const char *method_name = transpiler_mir_decl_method_name(method);
+
+        if (method_name != NULL
+            && operator_method_name_matches(op, method_name)) {
+            return method;
+        }
+    }
+
+    for (size_t i = 0;
+         i < mir_decl_header_role_include_count(role_header);
+         i++) {
+        const MIRDeclRoleInclude *include_meta =
+            mir_decl_header_role_include(role_header, i);
+        const char *included_name =
+            mir_decl_role_include_name(include_meta);
+        const MIRDeclHeader *included_header;
+        const MIRDeclMethod *method;
+
+        if (included_name == NULL) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing included role name metadata for role '%s'",
+                role_name != NULL ? role_name : "(anonymous-role)");
+            return NULL;
+        }
+        included_header = transpiler_active_decl_header_of_type(
+            ctx, AST_ROLE_DECL, included_name);
+        if (included_header == NULL) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing role include metadata header for included role '%s'",
+                included_name);
+            return NULL;
+        }
+        method = find_role_operator_method_metadata_in_header(
+            ctx, included_name, included_header, op, depth + 1);
+        if (method != NULL)
+            return method;
+        if (ctx != NULL && ctx->backend_error != NULL)
+            return NULL;
+    }
+
+    return NULL;
+}
+
 const MIRDeclMethod *
 find_role_operator_method_metadata(TranspilerCtx *ctx,
                                    ASTNode *role,
@@ -127,7 +193,7 @@ find_role_operator_method_metadata(TranspilerCtx *ctx,
     TranspilerHostedMethodView view;
 
     if (ctx == NULL || role == NULL || role->type != AST_ROLE_DECL
-        || depth > 16) {
+        || depth > 16 || !transpiler_active_has_mir(ctx)) {
         return NULL;
     }
 
@@ -140,33 +206,8 @@ find_role_operator_method_metadata(TranspilerCtx *ctx,
             role_name != NULL ? role_name : "(anonymous-role)");
         return NULL;
     }
-    for (size_t i = 0; i < view.count; i++) {
-        const MIRDeclMethod *method =
-            transpiler_hosted_method_view_metadata(&view, i);
-        const char *method_name = transpiler_mir_decl_method_name(method);
-
-        if (method_name != NULL
-            && operator_method_name_matches(op, method_name)) {
-            return method;
-        }
-    }
-
-    for (size_t i = 0; i < ast_role_include_count(role); i++) {
-        ASTNode *include_stmt = ast_role_include(role, i);
-        const char *role_name = ast_include_role_name(include_stmt);
-        ASTNode *included_role;
-        const MIRDeclMethod *method;
-
-        if (role_name == NULL)
-            continue;
-        included_role = find_role_decl(ctx, role_name);
-        method = find_role_operator_method_metadata(ctx, included_role,
-            op, depth + 1);
-        if (method != NULL)
-            return method;
-    }
-
-    return NULL;
+    return find_role_operator_method_metadata_in_header(
+        ctx, role_name, view.decl_header, op, depth);
 }
 
 ASTNode *

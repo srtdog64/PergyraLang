@@ -127,6 +127,7 @@ mir_destroy(MIRProgram *mir)
                 }
             }
             free(mir->decl_headers[i].role_impl_metadata);
+            free(mir->decl_headers[i].role_include_metadata);
             if (mir->decl_headers[i].field_metadata != NULL) {
                 for (size_t j = 0;
                      j < mir->decl_headers[i].field_metadata_count;

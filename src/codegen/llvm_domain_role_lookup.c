@@ -458,6 +458,68 @@ llvm_find_role_operator_method(LLVMGenCtx *ctx, ASTNode *role,
     return NULL;
 }
 
+static const MIRDeclMethod *
+llvm_find_role_operator_method_metadata_in_header(LLVMGenCtx *ctx,
+                                                 const char *role_name,
+                                                 const MIRDeclHeader *role_header,
+                                                 PgyTokenType op,
+                                                 int depth)
+{
+    if (ctx == NULL || depth > 16)
+        return NULL;
+    if (role_header == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing role operator method metadata for role '%s'",
+            role_name != NULL ? role_name : "(anonymous-role)");
+        return NULL;
+    }
+
+    for (size_t i = 0; i < mir_decl_header_method_count(role_header); i++) {
+        const MIRDeclMethod *method =
+            mir_decl_header_method(role_header, i);
+        const char *method_name = llvm_mir_decl_method_name(method);
+
+        if (method_name != NULL
+            && llvm_operator_method_name_matches(op, method_name)) {
+            return method;
+        }
+    }
+
+    for (size_t i = 0;
+         i < mir_decl_header_role_include_count(role_header);
+         i++) {
+        const MIRDeclRoleInclude *include_meta =
+            mir_decl_header_role_include(role_header, i);
+        const char *included_name =
+            mir_decl_role_include_name(include_meta);
+        const MIRDeclHeader *included_header;
+        const MIRDeclMethod *method;
+
+        if (included_name == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing included role name metadata for role '%s'",
+                role_name != NULL ? role_name : "(anonymous-role)");
+            return NULL;
+        }
+        included_header = llvm_find_decl_header_in_context_of_type(
+            ctx, AST_ROLE_DECL, included_name);
+        if (included_header == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing role include metadata header for included role '%s'",
+                included_name);
+            return NULL;
+        }
+        method = llvm_find_role_operator_method_metadata_in_header(
+            ctx, included_name, included_header, op, depth + 1);
+        if (method != NULL)
+            return method;
+        if (ctx != NULL && ctx->has_error)
+            return NULL;
+    }
+
+    return NULL;
+}
+
 const MIRDeclMethod *
 llvm_find_role_operator_method_metadata(LLVMGenCtx *ctx,
                                         ASTNode *role,
@@ -468,39 +530,20 @@ llvm_find_role_operator_method_metadata(LLVMGenCtx *ctx,
     LLVMHostedMethodView view;
 
     if (ctx == NULL || role == NULL || role->type != AST_ROLE_DECL
-        || depth > 16) {
+        || depth > 16 || !llvm_active_has_mir(ctx)) {
         return NULL;
     }
 
     role_name = llvm_decl_node_name(role);
     view = llvm_hosted_method_view_from_decl(ctx, role_name, role);
-    for (size_t i = 0; i < view.count; i++) {
-        const MIRDeclMethod *method =
-            llvm_hosted_method_view_metadata(&view, i);
-        const char *method_name = llvm_mir_decl_method_name(method);
-
-        if (method_name != NULL
-            && llvm_operator_method_name_matches(op, method_name)) {
-            return method;
-        }
+    if (llvm_hosted_method_view_missing_mir_metadata(&view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing role operator method metadata for role '%s'",
+            role_name != NULL ? role_name : "(anonymous-role)");
+        return NULL;
     }
-
-    for (size_t i = 0; i < ast_role_include_count(role); i++) {
-        ASTNode *inc = ast_role_include(role, i);
-        const char *included_name = ast_include_role_name(inc);
-        ASTNode *included;
-        const MIRDeclMethod *method;
-
-        if (included_name == NULL)
-            continue;
-        included = llvm_find_role_decl(ctx, included_name);
-        method = llvm_find_role_operator_method_metadata(
-            ctx, included, op, depth + 1);
-        if (method != NULL)
-            return method;
-    }
-
-    return NULL;
+    return llvm_find_role_operator_method_metadata_in_header(
+        ctx, role_name, view.decl_header, op, depth);
 }
 
 const char *

@@ -288,7 +288,7 @@ Fiber* AsyncScopeSpawnWithPriority(AsyncScope* scope, FiberStartRoutine work, vo
         async_scope_warn("spawn", "scope is cancelled", scope);
         return NULL;
     }
-    
+
     /* Create wrapper data */
     data = (ScopedFiberData*)malloc(sizeof(ScopedFiberData));
     if (data == NULL) {

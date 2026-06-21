@@ -194,6 +194,34 @@ mir_decl_header_role_impl_method(const MIRDeclHeader *header,
 }
 
 size_t
+mir_decl_header_role_include_count(const MIRDeclHeader *header)
+{
+    return header != NULL ? header->role_include_metadata_count : 0;
+}
+
+const MIRDeclRoleInclude *
+mir_decl_header_role_include(const MIRDeclHeader *header, size_t index)
+{
+    if (header == NULL || header->role_include_metadata == NULL
+        || index >= header->role_include_metadata_count) {
+        return NULL;
+    }
+    return &header->role_include_metadata[index];
+}
+
+const char *
+mir_decl_role_include_owner_name(const MIRDeclRoleInclude *include)
+{
+    return include != NULL ? include->owner_name : NULL;
+}
+
+const char *
+mir_decl_role_include_name(const MIRDeclRoleInclude *include)
+{
+    return include != NULL ? include->role_name : NULL;
+}
+
+size_t
 mir_decl_header_field_count(const MIRDeclHeader *header)
 {
     return header != NULL ? header->field_metadata_count : 0;
