@@ -143,6 +143,15 @@ transpiler_has_explicit_body_local_binding(const ASTNode *func_decl,
         base_name);
 }
 
+bool
+transpiler_mir_routine_has_source_local_binding(const MIRRoutine *routine,
+                                                const char *base_name)
+{
+    return base_name != NULL
+        && transpiler_mir_routine_source_local_type_name(routine, base_name)
+            != NULL;
+}
+
 void
 transpiler_register_with_alias_bindings_in_block(TranspilerSSANameMap *ssa_map,
                                                  ASTNode *body)

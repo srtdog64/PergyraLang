@@ -125,6 +125,33 @@ mir_source_local_unwrap_iterable_type(const char *type_name,
 }
 
 static bool
+mir_source_local_unwrap_channel_type(const char *type_name,
+                                     char *out,
+                                     size_t out_size)
+{
+    const char *prefix = "Channel<";
+    const char *open;
+    const char *close;
+    size_t len;
+
+    if (type_name == NULL || out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
+    if (strncmp(type_name, prefix, strlen(prefix)) != 0)
+        return false;
+    open = type_name + strlen(prefix);
+    close = strrchr(open, '>');
+    if (close == NULL || close <= open)
+        return false;
+    len = (size_t)(close - open);
+    if (len >= out_size)
+        return false;
+    memcpy(out, open, len);
+    out[len] = '\0';
+    return out[0] != '\0';
+}
+
+static bool
 mir_source_local_unwrap_array_or_slice_type(const char *type_name,
                                             char *out,
                                             size_t out_size)
@@ -415,6 +442,20 @@ mir_source_local_expr_type_name(const MIRProgram *program,
     case AST_IDENTIFIER:
         return mir_source_local_identifier_type_name(program, routine,
             ast_identifier_name(expr));
+    case AST_CHANNEL_RECV: {
+        const char *channel_type = mir_source_local_expr_type_name(program,
+            routine, scratch, ast_channel_recv_channel(expr));
+        char inner[MIR_SOURCE_LOCAL_TYPE_SCRATCH_SIZE];
+        if (mir_source_local_unwrap_channel_type(channel_type, inner,
+                sizeof(inner))) {
+            char *buffer = mir_source_local_type_scratch_next(scratch);
+            if (buffer == NULL)
+                return NULL;
+            memcpy(buffer, inner, strlen(inner) + 1);
+            return buffer;
+        }
+        return NULL;
+    }
     case AST_UNARY:
         if (ast_unary_operator(expr).type == TOKEN_NOT)
             return "Bool";

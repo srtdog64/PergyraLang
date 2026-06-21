@@ -1847,13 +1847,23 @@ for term in \
     "mir_routine_param_count(routine)" \
     "transpiler_mir_routine_kind(routine) == MIR_SCOPE_METHOD" \
     "transpiler_mir_routine_owner_name(routine)" \
-    "transpiler_has_explicit_body_local_binding(" \
+    "transpiler_mir_routine_has_source_local_binding(" \
     "allow_ast_compat = !transpiler_active_has_mir(ctx)"; do
     require_term "src/codegen/transpiler_mir_ssa_names.c" "$term"
 done
+require_term "src/codegen/transpiler_mir_local_binding.c" \
+    "transpiler_mir_routine_source_local_type_name(routine, base_name)"
 if grep -Fq "return transpiler_has_explicit_local_binding(ctx->current_func_decl" \
         "$ROOT_DIR/src/codegen/transpiler_mir_ssa_names.c"; then
     fail "C MIR SSA implicit-field local detection must split MIR parameter facts from AST body-local compatibility"
+fi
+if awk '
+    /transpiler_current_function_has_local_binding\(TranspilerCtx \*ctx,/ { in_fn = 1 }
+    in_fn && /transpiler_zone_shared_view_has_field\(TranspilerCtx \*ctx,/ { in_fn = 0 }
+    in_fn && /transpiler_has_explicit_body_local_binding\(/ { bad = 1 }
+    END { exit bad ? 0 : 1 }
+' "$ROOT_DIR/src/codegen/transpiler_mir_ssa_names.c"; then
+    fail "C MIR SSA implicit-field local detection must consume MIR source-local facts, not AST body-local scans"
 fi
 if grep -Fq "block->source_local_defs" \
         "$ROOT_DIR/src/codegen/transpiler_mir_ssa_names.c"; then
@@ -3904,6 +3914,14 @@ require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR captures slice source-local types"
 require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR captures owner method call return types for source locals"
+require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
+    "MIR captures select receive source-local types"
+require_term "src/compiler/mir_source_local_types.c" \
+    "case AST_SELECT_STMT:"
+require_term "src/compiler/mir_source_local_expr_types.c" \
+    "mir_source_local_unwrap_channel_type"
+require_term "src/compiler/mir_source_local_expr_types.c" \
+    "case AST_CHANNEL_RECV:"
 require_term "src/compiler/mir_source_local_expr_types.c" \
     "mir_source_local_for_loop_variable_type_name"
 require_term "src/compiler/mir_source_local_expr_types.c" \
@@ -5227,13 +5245,23 @@ require_term "src/codegen/transpiler_host_field_identifier.c" \
     "transpiler_emit_current_host_field_identifier"
 for term in \
     "transpiler_mir_routine_has_param_name" \
-    "transpiler_has_explicit_body_local_binding" \
+    "transpiler_mir_routine_has_source_local_binding" \
     "if (transpiler_active_has_mir(ctx))"; do
     require_term "src/codegen/transpiler_host_field_identifier.c" "$term"
 done
+require_term "src/codegen/transpiler_mir_local_binding.c" \
+    "transpiler_mir_routine_source_local_type_name(routine, base_name)"
 if grep -Fq "return transpiler_has_explicit_local_binding(ctx->current_func_decl" \
     "$ROOT_DIR/src/codegen/transpiler_host_field_identifier.c"; then
     fail "C host-field lexical shadowing must split MIR parameter facts from AST body-local compatibility"
+fi
+if awk '
+    /transpiler_identifier_is_current_true_local\(TranspilerCtx \*ctx,/ { in_fn = 1 }
+    in_fn && /transpiler_current_host_has_field\(TranspilerCtx \*ctx,/ { in_fn = 0 }
+    in_fn && /transpiler_has_explicit_body_local_binding\(/ { bad = 1 }
+    END { exit bad ? 0 : 1 }
+' "$ROOT_DIR/src/codegen/transpiler_host_field_identifier.c"; then
+    fail "C host-field lexical shadowing must consume MIR source-local facts, not AST body-local scans"
 fi
 require_each_following_term "src/codegen/transpiler_host_field_identifier.c" \
     "transpiler_emit_current_host_field_identifier(TranspilerCtx *ctx" \

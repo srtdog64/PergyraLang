@@ -313,6 +313,37 @@ mir_source_local_type_capture_node(const MIRProgram *program,
         return ok && mir_source_local_type_capture_node(program, routine,
             ast_with_body(node));
     }
+    case AST_SELECT_STMT: {
+        bool ok = true;
+        for (size_t i = 0; i < ast_select_case_count(node); i++) {
+            ASTNode *case_block = ast_select_case(node, i);
+            if (case_block != NULL
+                && case_block->type == AST_BLOCK
+                && ast_block_statement_count(case_block) > 0) {
+                ASTNode *first = ast_block_statement(case_block, 0);
+                if (first != NULL
+                    && first->type == AST_ASSIGNMENT
+                    && ast_assignment_target(first) != NULL
+                    && ast_assignment_target(first)->type == AST_IDENTIFIER
+                    && ast_assignment_value(first) != NULL
+                    && ast_assignment_value(first)->type == AST_CHANNEL_RECV) {
+                    MIRSourceLocalTypeScratch scratch = { 0 };
+                    ok = mir_source_local_type_append_name(program, routine,
+                        ast_identifier_name(ast_assignment_target(first)),
+                        mir_source_local_expr_type_name(program, routine,
+                            &scratch, ast_assignment_value(first)));
+                    if (!ok)
+                        return false;
+                }
+            }
+            if (!mir_source_local_type_capture_node(program, routine,
+                    case_block)) {
+                return false;
+            }
+        }
+        return mir_source_local_type_capture_node(program, routine,
+            ast_select_default_case(node));
+    }
     case AST_MATCH_STMT: {
         size_t n = ast_match_case_count(node);
         for (size_t i = 0; i < n; i++) {

@@ -122,12 +122,11 @@ transpiler_identifier_is_current_true_local(TranspilerCtx *ctx,
     const MIRRoutine *routine = transpiler_host_field_current_mir_routine(ctx);
     if (routine != NULL) {
         return transpiler_mir_routine_has_param_name(routine, id_name)
-            || transpiler_has_explicit_body_local_binding(
-                ctx != NULL ? ctx->current_func_decl : NULL, id_name);
+            || transpiler_mir_routine_has_source_local_binding(
+                routine, id_name);
     }
     if (transpiler_active_has_mir(ctx))
-        return transpiler_has_explicit_body_local_binding(
-            ctx != NULL ? ctx->current_func_decl : NULL, id_name);
+        return false;
     return transpiler_identifier_is_true_local(ctx,
         ctx != NULL ? ctx->current_func_decl : NULL,
         id_name);

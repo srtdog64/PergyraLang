@@ -476,6 +476,40 @@ test_mir_lowering_part_c(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR captures select receive source-local types");
+    {
+        const char *src =
+            "func SelectReceiveLocalFact(ch: Channel<Int>) -> Int {\n"
+            "    ch <- 7;\n"
+            "    select {\n"
+            "        case v = <-ch:\n"
+            "            return v;\n"
+            "        default:\n"
+            "            return 0;\n"
+            "    }\n"
+            "    return 0;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *routine = NULL;
+        const char *value_type = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine(mir, "SelectReceiveLocalFact",
+                                       MIR_SCOPE_FUNCTION);
+        if (routine != NULL)
+            value_type = mir_routine_source_local_type_name(routine, "v");
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && routine != NULL
+               && value_type != NULL
+               && strcmp(value_type, "Int") == 0);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR captures underscore source-local types in branch blocks");
     {
         const char *src =

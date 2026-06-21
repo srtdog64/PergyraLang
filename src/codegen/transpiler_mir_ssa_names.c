@@ -117,12 +117,11 @@ transpiler_current_function_has_local_binding(TranspilerCtx *ctx,
     routine = transpiler_find_current_mir_routine(ctx);
     if (routine != NULL) {
         return transpiler_mir_routine_has_param_name(routine, base_name)
-            || transpiler_has_explicit_body_local_binding(
-                ctx->current_func_decl, base_name);
+            || transpiler_mir_routine_has_source_local_binding(
+                routine, base_name);
     }
     if (transpiler_active_has_mir(ctx))
-        return transpiler_has_explicit_body_local_binding(
-            ctx->current_func_decl, base_name);
+        return false;
     allow_ast_compat = !transpiler_active_has_mir(ctx);
     return allow_ast_compat
         && transpiler_has_explicit_local_binding(ctx->current_func_decl,
