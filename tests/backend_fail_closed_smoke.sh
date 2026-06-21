@@ -636,9 +636,13 @@ grep -Fq "async block cannot capture Channel<T> local" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
 grep -Fq "async block cannot capture non-Channel local" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
-grep -Fq "capture_typed_type_asts" \
+grep -Fq "TranspilerParallelCallableCapture capture_typed_callables" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
-grep -Fq "transpiler_current_local_event_handler_type_ast" \
+grep -Fq "pergyra_func_pointer_declarator_from_type_names_in_ctx" \
+    "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
+grep -Fq "transpiler_current_local_callable_capture" \
+    "$ROOT_DIR/src/codegen/transpiler_parallel_capture.c"
+grep -Fq "MIR-only C path missing parallel capture callable source-local fact" \
     "$ROOT_DIR/src/codegen/transpiler_parallel_capture.c"
 if grep -R -n -F "transpiler_find_local_type_ast" \
         "$ROOT_DIR/src/codegen" \
@@ -646,10 +650,11 @@ if grep -R -n -F "transpiler_find_local_type_ast" \
     echo "[backend-fail-closed] C backend reintroduced generic local type-AST lookup; use type-name facts or EventHandler-specific owner" >&2
     exit 1
 fi
-grep -Fq "MIR-only C path missing local EventHandler routine metadata" \
-    "$ROOT_DIR/src/codegen/transpiler_mir_local_type_ast_lookup.c"
-grep -Fq "MIR-only C path missing local EventHandler signature metadata" \
-    "$ROOT_DIR/src/codegen/transpiler_mir_local_type_ast_lookup.c"
+if grep -Fq "transpiler_mir_local_type_ast_lookup.h" \
+        "$ROOT_DIR/src/codegen/transpiler_parallel_capture.c"; then
+    echo "[backend-fail-closed] C parallel capture reintroduced EventHandler AST lookup include" >&2
+    exit 1
+fi
 grep -Fq "codegen_worker_boundary_storage_kind_from_type_name(type_name, false)" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
 grep -Fq "codegen_worker_boundary_storage_kind_from_type_name(type_name, true)" \

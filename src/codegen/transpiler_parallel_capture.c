@@ -6,7 +6,7 @@
 #include "../common/string_compat.h"
 #include "../parser/ast_analysis.h"
 #include "../semantic/diag_codes.h"
-#include "transpiler_mir_local_type_ast_lookup.h"
+#include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_mir_local_type_lookup.h"
 #include "transpiler_symbols.h"
 
@@ -18,15 +18,65 @@ transpiler_current_local_type_name(TranspilerCtx *ctx, const char *name)
     return transpiler_find_local_type_name(ctx, ctx->current_func_decl, name);
 }
 
-static ASTNode *
-transpiler_current_local_event_handler_type_ast(TranspilerCtx *ctx,
-                                                const char *name)
+static bool
+transpiler_current_local_callable_capture(
+    TranspilerCtx *ctx,
+    const char *name,
+    const char *type_name,
+    TranspilerParallelCallableCapture *capture)
 {
-    if (ctx == NULL || name == NULL || ctx->current_func_decl == NULL)
-        return NULL;
+    const MIRRoutine *routine;
+    const MIRSourceLocalType *fact;
 
-    return transpiler_find_local_event_handler_type_ast(
-        ctx, ctx->current_func_decl, name);
+    if (capture != NULL) {
+        capture->is_callable = false;
+        capture->return_type_name = NULL;
+        capture->param_count = 0;
+        capture->param_type_names = NULL;
+    }
+    if (ctx == NULL || name == NULL || type_name == NULL
+        || strncmp(type_name, "func(", 5) != 0) {
+        return true;
+    }
+    if (ctx->current_func_decl == NULL)
+        return true;
+
+    routine = transpiler_find_mir_function(ctx, ctx->current_func_decl);
+    fact = routine != NULL
+        ? mir_routine_source_local_type_fact(routine, name)
+        : NULL;
+    if (fact == NULL || !fact->is_callable) {
+        if (transpiler_active_has_mir(ctx)) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing parallel capture callable source-local fact for '%s'",
+                name);
+            return false;
+        }
+        return true;
+    }
+    if (fact->callable_return_type_name == NULL
+        || (fact->callable_param_count > 0
+            && fact->callable_param_type_names == NULL)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing parallel capture callable signature metadata for '%s'",
+            name);
+        return false;
+    }
+    for (size_t i = 0; i < fact->callable_param_count; i++) {
+        if (fact->callable_param_type_names[i] == NULL) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing parallel capture callable parameter type-name metadata for '%s'",
+                name);
+            return false;
+        }
+    }
+    if (capture != NULL) {
+        capture->is_callable = true;
+        capture->return_type_name = fact->callable_return_type_name;
+        capture->param_count = fact->callable_param_count;
+        capture->param_type_names = fact->callable_param_type_names;
+    }
+    return true;
 }
 
 static bool
@@ -49,10 +99,11 @@ transpiler_parallel_add_capture_name(TranspilerCtx *ctx,
                                      char slot_names[MAX_SLOT_VARS][64],
                                      int *slot_count,
                                      char typed_names[MAX_SLOT_VARS][64],
-                                     ASTNode *typed_type_asts[MAX_SLOT_VARS],
-                                     bool typed_is_event_handler[MAX_SLOT_VARS],
+                                     TranspilerParallelCallableCapture typed_callables[MAX_SLOT_VARS],
                                      int *typed_count)
 {
+    TranspilerParallelCallableCapture callable_capture = { 0 };
+
     if (ctx == NULL || name == NULL || name[0] == '\0'
         || strcmp(name, "self") == 0) {
         return;
@@ -89,6 +140,10 @@ transpiler_parallel_add_capture_name(TranspilerCtx *ctx,
                 register_typed_var(ctx, name, type_name);
             }
         }
+        if (!transpiler_current_local_callable_capture(
+                ctx, name, type_name, &callable_capture)) {
+            return;
+        }
         if (!transpiler_parallel_capture_has_name(slot_names,
                 slot_count != NULL ? *slot_count : 0, name)
             && !transpiler_parallel_capture_has_name(typed_names,
@@ -105,15 +160,8 @@ transpiler_parallel_add_capture_name(TranspilerCtx *ctx,
             }
             pergyra_str_copy(typed_names[*typed_count],
                 sizeof(typed_names[*typed_count]), name);
-            if (typed_type_asts != NULL || typed_is_event_handler != NULL) {
-                ASTNode *type_node =
-                    transpiler_current_local_event_handler_type_ast(ctx, name);
-                if (typed_type_asts != NULL)
-                    typed_type_asts[*typed_count] = type_node;
-                if (typed_is_event_handler != NULL)
-                    typed_is_event_handler[*typed_count] =
-                        type_node != NULL;
-            }
+            if (typed_callables != NULL)
+                typed_callables[*typed_count] = callable_capture;
             (*typed_count)++;
         }
     } else {
@@ -135,17 +183,14 @@ transpiler_parallel_add_capture_name(TranspilerCtx *ctx,
                 return;
             }
             register_typed_var(ctx, name, type_name);
+            if (!transpiler_current_local_callable_capture(
+                    ctx, name, type_name, &callable_capture)) {
+                return;
+            }
             pergyra_str_copy(typed_names[*typed_count],
                 sizeof(typed_names[*typed_count]), name);
-            if (typed_type_asts != NULL || typed_is_event_handler != NULL) {
-                ASTNode *type_node =
-                    transpiler_current_local_event_handler_type_ast(ctx, name);
-                if (typed_type_asts != NULL)
-                    typed_type_asts[*typed_count] = type_node;
-                if (typed_is_event_handler != NULL)
-                    typed_is_event_handler[*typed_count] =
-                        type_node != NULL;
-            }
+            if (typed_callables != NULL)
+                typed_callables[*typed_count] = callable_capture;
             (*typed_count)++;
         }
     }
@@ -157,8 +202,7 @@ transpiler_parallel_collect_stmt_captures(ASTNode *node,
                                           char slot_names[MAX_SLOT_VARS][64],
                                           int *slot_count,
                                           char typed_names[MAX_SLOT_VARS][64],
-                                          ASTNode *typed_type_asts[MAX_SLOT_VARS],
-                                          bool typed_is_event_handler[MAX_SLOT_VARS],
+                                          TranspilerParallelCallableCapture typed_callables[MAX_SLOT_VARS],
                                           int *typed_count)
 {
     if (node == NULL || ctx == NULL)
@@ -168,8 +212,7 @@ transpiler_parallel_collect_stmt_captures(ASTNode *node,
         const char *name = ctx->slot_vars[i].name;
         if (ast_contains_free_identifier_ref(node, name)) {
             transpiler_parallel_add_capture_name(ctx, name, slot_names,
-                slot_count, typed_names, typed_type_asts,
-                typed_is_event_handler, typed_count);
+                slot_count, typed_names, typed_callables, typed_count);
         }
     }
 
@@ -177,8 +220,7 @@ transpiler_parallel_collect_stmt_captures(ASTNode *node,
         const char *name = ctx->typed_vars[i].name;
         if (ast_contains_free_identifier_ref(node, name)) {
             transpiler_parallel_add_capture_name(ctx, name, slot_names,
-                slot_count, typed_names, typed_type_asts,
-                typed_is_event_handler, typed_count);
+                slot_count, typed_names, typed_callables, typed_count);
         }
     }
 }

@@ -3630,7 +3630,7 @@ grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(method)" "
 grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(method)" "$ROOT_DIR/src/codegen/transpiler_enum_decl_emit.c"
 grep -Fq "transpiler_require_type_name_c_type_copy(" "$ROOT_DIR/src/codegen/transpiler_domain_ability_emit.c"
 grep -Fq "return_type_name, \"ability method return\"" "$ROOT_DIR/src/codegen/transpiler_domain_ability_emit.c"
-grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(func)" "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c"
+grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, return_type" "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c"
 grep -Fq "transpiler_mir_decl_method_return_type_name(method_meta)" "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
 grep -Fq "transpiler_mir_decl_method_return_type(method_meta)" "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
 grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx," "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
@@ -4486,9 +4486,13 @@ grep -Fq "transpiler_capture_reject_shared_collection" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
 grep -Fq "cannot share mutable collection" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
-grep -Fq "capture_typed_type_asts" \
+grep -Fq "TranspilerParallelCallableCapture capture_typed_callables" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
-grep -Fq "transpiler_current_local_event_handler_type_ast" \
+grep -Fq "pergyra_func_pointer_declarator_from_type_names_in_ctx" \
+    "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
+grep -Fq "transpiler_current_local_callable_capture" \
+    "$ROOT_DIR/src/codegen/transpiler_parallel_capture.c"
+grep -Fq "mir_routine_source_local_type_fact(routine, name)" \
     "$ROOT_DIR/src/codegen/transpiler_parallel_capture.c"
 if grep -R -n -F "transpiler_find_local_type_ast" \
         "$ROOT_DIR/src/codegen" \

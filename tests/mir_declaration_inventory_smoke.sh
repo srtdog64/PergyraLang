@@ -3698,22 +3698,25 @@ if grep -Fq "transpiler_find_local_event_handler_type_ast(" \
         "$ROOT_DIR/src/codegen/transpiler_mir_func_ssa_locals_emit.c"; then
     fail "C MIR SSA local declarations must consume MIR callable source-local facts, not EventHandler AST fallback"
 fi
+if grep -Fq "transpiler_find_local_event_handler_type_ast(" \
+        "$ROOT_DIR/src/codegen/transpiler_parallel_capture.c"; then
+    fail "C parallel capture declarations must consume MIR callable source-local facts, not EventHandler AST fallback"
+fi
 require_term "src/codegen/transpiler_mir_func_ssa_locals_emit.c" \
     "source_local_fact != NULL && source_local_fact->is_callable"
 require_term "src/codegen/transpiler_mir_func_ssa_locals_emit.c" \
     "pergyra_func_pointer_declarator_from_type_names_in_ctx"
+require_term "src/codegen/transpiler_parallel_capture.c" \
+    "transpiler_current_local_callable_capture"
+require_term "src/codegen/transpiler_parallel_capture.c" \
+    "mir_routine_source_local_type_fact(routine, name)"
+require_term "src/codegen/transpiler_async_parallel_emit.c" \
+    "TranspilerParallelCallableCapture capture_typed_callables"
+require_term "src/codegen/transpiler_async_parallel_emit.c" \
+    "pergyra_func_pointer_declarator_from_type_names_in_ctx"
 if grep -Fq "if (!transpiler_mir_routine_has_signature" \
         "$ROOT_DIR/src/codegen/transpiler_mir_func_ssa_locals_emit.c"; then
     fail "C MIR SSA local declarations must use transpiler_mir_signature for missing-signature diagnostics"
-fi
-for term in \
-    "transpiler_mir_routine_signature_metadata_complete_for(ctx" \
-    "MIR-only C path missing local EventHandler signature metadata"; do
-    require_term "src/codegen/transpiler_mir_local_type_ast_lookup.c" "$term"
-done
-if grep -Fq "if (!transpiler_mir_routine_has_signature" \
-        "$ROOT_DIR/src/codegen/transpiler_mir_local_type_ast_lookup.c"; then
-    fail "C MIR local EventHandler AST lookup must use transpiler_mir_signature for missing-signature diagnostics"
 fi
 require_term "src/codegen/transpiler_mir_local_binding.c" \
     "if (!transpiler_active_has_mir(ctx)"

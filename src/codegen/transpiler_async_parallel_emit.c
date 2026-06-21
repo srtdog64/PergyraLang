@@ -168,17 +168,14 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
      * --------------------------------------------------------------- */
     char capture_slot_names[MAX_SLOT_VARS][64] = {{0}};
     char capture_typed_names[MAX_SLOT_VARS][64] = {{0}};
-    ASTNode *capture_typed_type_asts[MAX_SLOT_VARS] = {0};
-    bool capture_typed_is_event_handler[MAX_SLOT_VARS] = {false};
+    TranspilerParallelCallableCapture capture_typed_callables[MAX_SLOT_VARS] = {{0}};
     int capture_slot_count = 0;
     int capture_typed_count = 0;
 
     for (size_t i = 0; i < count; i++) {
         transpiler_parallel_collect_stmt_captures(ast_parallel_task(node, i), ctx,
             capture_slot_names, &capture_slot_count,
-            capture_typed_names, capture_typed_type_asts,
-            capture_typed_is_event_handler,
-            &capture_typed_count);
+            capture_typed_names, capture_typed_callables, &capture_typed_count);
     }
 
     bool has_captures = (capture_slot_count > 0 || capture_typed_count > 0);
@@ -228,14 +225,18 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
             /* Function-typed locals need a pointer-to-function-pointer
              * declarator so `(*_pctx->name)` inside the wrapper yields the
              * function pointer (not a primitive deref). */
-            if (capture_typed_is_event_handler[i]) {
+            if (capture_typed_callables[i].is_callable) {
                 char ptr_name[sizeof(capture_typed_names[i]) + 1];
                 ptr_name[0] = '*';
                 memcpy(ptr_name + 1, capture_typed_names[i],
                        sizeof(capture_typed_names[i]));
                 ptr_name[sizeof(ptr_name) - 1] = '\0';
-                char *decl = pergyra_ast_typed_declarator_in_ctx(
-                    ctx, capture_typed_type_asts[i], ptr_name);
+                char *decl = pergyra_func_pointer_declarator_from_type_names_in_ctx(
+                    ctx,
+                    capture_typed_callables[i].return_type_name,
+                    capture_typed_callables[i].param_count,
+                    capture_typed_callables[i].param_type_names,
+                    ptr_name);
                 if (decl != NULL) {
                     codebuf_write(ctx->helpers, "    %s;\n", decl);
                     free(decl);
@@ -349,17 +350,14 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
     unsigned int pid = ctx->parallel_id++;
     char capture_slot_names[MAX_SLOT_VARS][64] = {{0}};
     char capture_typed_names[MAX_SLOT_VARS][64] = {{0}};
-    ASTNode *capture_typed_type_asts[MAX_SLOT_VARS] = {0};
-    bool capture_typed_is_event_handler[MAX_SLOT_VARS] = {false};
+    TranspilerParallelCallableCapture capture_typed_callables[MAX_SLOT_VARS] = {{0}};
     int capture_slot_count = 0;
     int capture_typed_count = 0;
 
     for (size_t i = 0; i < ast_async_block_statement_count(node); i++) {
         transpiler_parallel_collect_stmt_captures(ast_async_block_statement(node, i), ctx,
             capture_slot_names, &capture_slot_count,
-            capture_typed_names, capture_typed_type_asts,
-            capture_typed_is_event_handler,
-            &capture_typed_count);
+            capture_typed_names, capture_typed_callables, &capture_typed_count);
     }
 
     if (capture_slot_count > 0) {

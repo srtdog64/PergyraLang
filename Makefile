@@ -725,7 +725,6 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_local_binding.c \
                    $(CODEGEN_DIR)/transpiler_mir_local_type_lookup.c \
                    $(CODEGEN_DIR)/transpiler_mir_ssa_local_facts.c \
-                   $(CODEGEN_DIR)/transpiler_mir_local_type_ast_lookup.c \
                    $(CODEGEN_DIR)/transpiler_parallel_capture.c \
                    $(CODEGEN_DIR)/transpiler_mir_inventory_intent_alias_collect.c \
                    $(CODEGEN_DIR)/transpiler_mir_inventory_intent_collect.c \

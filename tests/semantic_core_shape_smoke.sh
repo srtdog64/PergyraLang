@@ -1484,7 +1484,6 @@ for path in \
     src/codegen/transpiler_mir_block_emit.c \
     src/codegen/transpiler_mir_destructure_emit.c \
     src/codegen/transpiler_mir_local_binding.c \
-    src/codegen/transpiler_mir_local_type_ast_lookup.c \
     src/codegen/transpiler_mir_local_type_lookup.c \
     src/codegen/transpiler_mir_match_condition_emit.c \
     src/codegen/transpiler_mir_pending_uses.c \
@@ -1847,7 +1846,6 @@ if grep -R "data\.func_decl\.\(param_count\|params\|return_type\|body\)" \
     src/codegen/transpiler_mir_func_emit.c \
     src/codegen/transpiler_mir_func_ssa_locals_emit.h \
     src/codegen/transpiler_mir_local_binding.c \
-    src/codegen/transpiler_mir_local_type_ast_lookup.c \
     src/codegen/transpiler_mir_local_type_lookup.c \
     src/codegen/transpiler_mir_match_condition_emit.c \
     src/codegen/transpiler_mir_signature.c \
@@ -2105,7 +2103,6 @@ if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
 fi
 
 if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
-    src/codegen/transpiler_mir_local_type_ast_lookup.c \
     src/codegen/transpiler_mir_pending_uses.c \
     src/codegen/transpiler_spawn_channel_emit.c >/dev/null; then
     fail "C backend MIR/spawn call owners must use AST call accessors"
