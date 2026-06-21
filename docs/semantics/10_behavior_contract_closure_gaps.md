@@ -115,11 +115,17 @@ Current state:
   facts. The table owns fixed provider/subject names where the evidence class
   has a single schema owner and exact fact counts where the runtime schema has
   one stable count.
+- Boundary-scoped AIR evidence validation consumes
+  `kBoundaryEvidenceValidationPolicies` for HIR routine/CFG, RIR boundary,
+  RIR authority, and MIR pin-cleanup discharge rules. The base validator still
+  owns the shared boundary-index, boundary-shape, summary-flag, fact-count, and
+  fallback-count checks.
 
 Remaining closure:
 
-- Extend the same typed-table approach to every evidence class, not only global
-  evidence. For each evidence kind, define:
+- Extend the same typed-table approach to evidence collection and public
+  proof-rule documentation, not only validation dispatch. For each evidence
+  kind, define:
   - provider layer;
   - subject kind;
   - boundary classes it may discharge;

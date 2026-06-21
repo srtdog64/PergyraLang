@@ -191,6 +191,8 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_validate_global_evidence.c" "typed evidence mismatch"
     require_literal "src/compiler/air_validate_boundary_evidence.c" "boundary kind drift"
     require_literal "src/compiler/air_validate_boundary_evidence.c" "carries boundary shape"
+    require_literal "src/compiler/air_validate_boundary_evidence.c" "kBoundaryEvidenceValidationPolicies"
+    require_literal "src/compiler/air_validate_boundary_evidence.c" "air_boundary_evidence_validation_policy_for_kind"
     require_literal "src/tests/air/test_air_core_evidence_part_k.cases.h" "global_with_boundary_shape"
     for rel in src/compiler/air_dump.c src/compiler/air_dump_json.c; do
         for field in kind provider_kind subject_kind boundary_index provider_name subject_name has_boundary_shape boundary_kind boundary_owner_name boundary_source_name fact_count fallback_count; do

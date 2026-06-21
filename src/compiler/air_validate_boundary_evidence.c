@@ -266,6 +266,97 @@ air_validate_boundary_mir_pin_cleanup_evidence(const AIRProgram *air,
     return true;
 }
 
+typedef bool (*AIRBoundaryEvidenceValidator)(
+    const AIRProgram *air,
+    const AIREvidenceNode *evidence,
+    const AIRBoundaryNode *boundary,
+    size_t evidence_index,
+    char **error_message);
+
+typedef struct
+{
+    AIREvidenceKind kind;
+    AIRBoundaryEvidenceValidator validate;
+} AIRBoundaryEvidenceValidationPolicy;
+
+static bool
+air_validate_boundary_hir_routine_evidence(const AIRProgram *air,
+                                           const AIREvidenceNode *evidence,
+                                           const AIRBoundaryNode *boundary,
+                                           size_t evidence_index,
+                                           char **error_message)
+{
+    size_t boundary_index = air_evidence_node_boundary_index_or(evidence,
+                                                                SIZE_MAX);
+    const char *subject_name =
+        air_evidence_node_subject_name_or(evidence, NULL);
+
+    (void)air;
+    if (!air_name_matches(subject_name, boundary->source_name)) {
+        air_set_invariant_error(error_message,
+                                "AIR HIR routine evidence node %zu has subject/source mismatch for boundary %zu",
+                                evidence_index,
+                                boundary_index);
+        return false;
+    }
+    return true;
+}
+
+static bool
+air_validate_boundary_rir_boundary_evidence(const AIRProgram *air,
+                                            const AIREvidenceNode *evidence,
+                                            const AIRBoundaryNode *boundary,
+                                            size_t evidence_index,
+                                            char **error_message)
+{
+    size_t boundary_index = air_evidence_node_boundary_index_or(evidence,
+                                                                SIZE_MAX);
+    const char *subject_name =
+        air_evidence_node_subject_name_or(evidence, NULL);
+
+    (void)air;
+    if (!air_boundary_requires_rir_evidence(boundary)) {
+        air_set_invariant_error(error_message,
+                                "AIR RIR boundary evidence node %zu is attached to non-RIR boundary %zu",
+                                evidence_index,
+                                boundary_index);
+        return false;
+    }
+    if (!air_name_matches(subject_name, boundary->source_name)) {
+        air_set_invariant_error(error_message,
+                                "AIR RIR boundary evidence node %zu has subject/source mismatch for boundary %zu",
+                                evidence_index,
+                                boundary_index);
+        return false;
+    }
+    return true;
+}
+
+static const AIRBoundaryEvidenceValidationPolicy
+kBoundaryEvidenceValidationPolicies[] = {
+    { AIR_EVIDENCE_HIR_ROUTINE,
+      air_validate_boundary_hir_routine_evidence },
+    { AIR_EVIDENCE_HIR_CFG,
+      air_validate_boundary_hir_cfg_evidence },
+    { AIR_EVIDENCE_RIR_BOUNDARY,
+      air_validate_boundary_rir_boundary_evidence },
+    { AIR_EVIDENCE_RIR_AUTHORITY,
+      air_validate_boundary_rir_authority_evidence },
+    { AIR_EVIDENCE_MIR_PIN_CLEANUP,
+      air_validate_boundary_mir_pin_cleanup_evidence },
+};
+
+static const AIRBoundaryEvidenceValidationPolicy *
+air_boundary_evidence_validation_policy_for_kind(AIREvidenceKind kind)
+{
+    for (size_t i = 0; i < sizeof(kBoundaryEvidenceValidationPolicies)
+             / sizeof(kBoundaryEvidenceValidationPolicies[0]); i++) {
+        if (kBoundaryEvidenceValidationPolicies[i].kind == kind)
+            return &kBoundaryEvidenceValidationPolicies[i];
+    }
+    return NULL;
+}
+
 bool
 air_evidence_node_matches_boundary_shape(const AIRProgram *air,
                                          size_t evidence_index,
@@ -274,8 +365,7 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
     const AIREvidenceNode *evidence;
     const AIRBoundaryNode *boundary;
     AIREvidenceKind kind;
-    size_t boundary_index;
-    const char *subject_name;
+    const AIRBoundaryEvidenceValidationPolicy *policy;
 
     if (air == NULL || evidence_index >= air_evidence_node_count(air))
         return false;
@@ -297,66 +387,11 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
         return false;
     }
 
-    boundary_index = air_evidence_node_boundary_index_or(evidence, SIZE_MAX);
-    subject_name = air_evidence_node_subject_name_or(evidence, NULL);
-    switch (kind) {
-    case AIR_EVIDENCE_HIR_ROUTINE:
-        if (!air_name_matches(subject_name, boundary->source_name)) {
-            air_set_invariant_error(error_message,
-                                    "AIR HIR routine evidence node %zu has subject/source mismatch for boundary %zu",
-                                    evidence_index,
-                                    boundary_index);
-            return false;
-        }
+    policy = air_boundary_evidence_validation_policy_for_kind(kind);
+    if (policy == NULL && air_evidence_kind_is_known(kind))
         return true;
-    case AIR_EVIDENCE_HIR_CFG:
-        return air_validate_boundary_hir_cfg_evidence(air,
-                                                      evidence,
-                                                      boundary,
-                                                      evidence_index,
-                                                      error_message);
-    case AIR_EVIDENCE_RIR_BOUNDARY:
-        if (!air_boundary_requires_rir_evidence(boundary)) {
-            air_set_invariant_error(error_message,
-                                    "AIR RIR boundary evidence node %zu is attached to non-RIR boundary %zu",
-                                    evidence_index,
-                                    boundary_index);
-            return false;
-        }
-        if (!air_name_matches(subject_name, boundary->source_name)) {
-            air_set_invariant_error(error_message,
-                                    "AIR RIR boundary evidence node %zu has subject/source mismatch for boundary %zu",
-                                    evidence_index,
-                                    boundary_index);
-            return false;
-        }
-        return true;
-    case AIR_EVIDENCE_RIR_AUTHORITY:
-        return air_validate_boundary_rir_authority_evidence(air,
-                                                            evidence,
-                                                            boundary,
-                                                            evidence_index,
-                                                            error_message);
-    case AIR_EVIDENCE_MIR_PIN_CLEANUP:
-        return air_validate_boundary_mir_pin_cleanup_evidence(air,
-                                                              evidence,
-                                                              boundary,
-                                                              evidence_index,
-                                                              error_message);
-    case AIR_EVIDENCE_DAG_GENERIC:
-    case AIR_EVIDENCE_DAG_METADATA:
-    case AIR_EVIDENCE_DAG_ABILITY:
-    case AIR_EVIDENCE_MIR_CLEANUP:
-    case AIR_EVIDENCE_MIR_TERMINATOR:
-    case AIR_EVIDENCE_MIR_SELECT_RECEIVE:
-    case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION:
-    case AIR_EVIDENCE_RIR_RELATION_PROPAGATION:
-    case AIR_EVIDENCE_OBSERVABILITY_SCHEMA:
-    case AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY:
-        return true;
-    case AIR_EVIDENCE_KIND_COUNT:
-        break;
-    }
-
-    return false;
+    if (policy == NULL)
+        return false;
+    return policy->validate(air, evidence, boundary, evidence_index,
+                            error_message);
 }
