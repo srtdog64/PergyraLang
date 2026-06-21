@@ -1213,6 +1213,18 @@ require_term "src/codegen/llvm_expr_call_dispatch.c" \
     "mir_only_intent = intent_routine != NULL"
 require_term "src/codegen/llvm_expr_call_dispatch.c" \
     "pergyra_type_to_llvm(ctx, type_name)"
+require_term "src/codegen/llvm_expr_call_intent_policy.h" \
+    "llvm_non_mir_intent_call_binding_at"
+require_term "src/codegen/llvm_expr_call_intent_policy.c" \
+    "llvm_non_mir_intent_call_binding_at"
+require_term "src/codegen/llvm_expr_call_dispatch.c" \
+    "llvm_non_mir_intent_call_binding_at"
+if grep -R -Fq "llvm_intent_call_binding_at(" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_intent_policy.h" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_intent_policy.c" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"; then
+    fail "LLVM AST intent binding compatibility helper must be explicitly non-MIR named"
+fi
 if grep -Fq "LLVMTypeRef pt = ctx->type_i8ptr" \
     "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"; then
     fail "LLVM intent call-target forward declaration must not seed missing binding metadata with i8ptr"

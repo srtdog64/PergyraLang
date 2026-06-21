@@ -5,8 +5,8 @@
 #include "../parser/ast_api.h"
 
 ASTNode *
-llvm_intent_call_binding_at(ASTNode *intent_decl, size_t index,
-                            size_t *binding_count_out)
+llvm_non_mir_intent_call_binding_at(ASTNode *intent_decl, size_t index,
+                                    size_t *binding_count_out)
 {
     size_t binding_count = 0;
     size_t involve_count = 0;

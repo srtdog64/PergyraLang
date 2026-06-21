@@ -8,8 +8,9 @@
 
 #include "../parser/ast.h"
 
-ASTNode *llvm_intent_call_binding_at(ASTNode *intent_decl, size_t index,
-                                     size_t *binding_count_out);
+ASTNode *llvm_non_mir_intent_call_binding_at(ASTNode *intent_decl,
+                                             size_t index,
+                                             size_t *binding_count_out);
 bool llvm_intent_call_arg_can_take_subject_address(ASTNode *arg_node);
 
 #endif /* PGY_LLVM_ENABLED */

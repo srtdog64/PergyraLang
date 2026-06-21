@@ -1109,6 +1109,12 @@ carrier row. Direct `is_subject_type_name(...)` /
 intent consumer seams. Intent call argument address policy follows this rule
 for `intent_param_type_name` facts.
 
+LLVM intent call binding recovery is an explicit non-MIR compatibility seam.
+Call-target and implicit forward-declaration paths may use
+`llvm_non_mir_intent_call_binding_at(...)` only after the MIR ordered
+`IntentBinding` rows have been ruled out; neutral AST binding helper names are
+smoke-gated out so MIR paths cannot look equivalent to compatibility recovery.
+
 Intent action dispatch follows the declaration-method metadata rule. C intent
 emitters must check action presence and only-self dispatch eligibility through
 `find_subject_action_metadata(...)` and

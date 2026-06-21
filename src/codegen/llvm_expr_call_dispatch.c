@@ -309,7 +309,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                             goto cleanup;
                         }
                     } else {
-                        binding = llvm_intent_call_binding_at(
+                        binding = llvm_non_mir_intent_call_binding_at(
                             intent_decl, i, &binding_count);
                     }
                     if (!mir_only_intent && i < binding_count) {
@@ -500,7 +500,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         if (mir_only_intent) {
             forward_param_count = mir_binding_count;
         } else {
-            (void)llvm_intent_call_binding_at(intent_decl, 0, &forward_param_count);
+            (void)llvm_non_mir_intent_call_binding_at(intent_decl, 0,
+                &forward_param_count);
         }
         if (forward_param_count > 0) {
             param_types = pgy_arena_calloc(&ctx->scratch,
@@ -514,7 +515,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMTypeRef pt = NULL;
                 ASTNode *binding = mir_only_intent
                     ? NULL
-                    : llvm_intent_call_binding_at(intent_decl, i, NULL);
+                    : llvm_non_mir_intent_call_binding_at(intent_decl, i,
+                        NULL);
                 const char *type_name = NULL;
                 ASTNode *binding_type = NULL;
 
