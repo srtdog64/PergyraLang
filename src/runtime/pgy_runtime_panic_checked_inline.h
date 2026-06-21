@@ -14,10 +14,18 @@ pgy_timespec_after_ns(uint64_t timeout_ns)
     return ts;
 }
 
-#if defined(PGY_DEBUG) || defined(PGY_SAFE_SLOTS)
-#  define PGY_WITH_SLOT_CHECKS 1
-#else
+/* Fail-closed by default: slot safety checks (generational use-after-release and
+ * double-release detection) are ON in every build -- debug and release alike --
+ * so a program's safety never silently depends on the build profile. This is a
+ * deliberate departure from "zero overhead in release": Pergyra is fail-closed /
+ * traceability-first, not zero-cost. Performance is bought back explicitly via
+ * PGY_RAW_SLOTS only as a whole-program raw/unsafe build mode for measured
+ * systems-tier code; it must not be mixed with checked runtime bitcode/objects.
+ * (PGY_DEBUG / PGY_SAFE_SLOTS are still honoured as legacy force-on.) */
+#if defined(PGY_RAW_SLOTS) && !defined(PGY_DEBUG) && !defined(PGY_SAFE_SLOTS)
 #  define PGY_WITH_SLOT_CHECKS 0
+#else
+#  define PGY_WITH_SLOT_CHECKS 1
 #endif
 
 /* =================================================================

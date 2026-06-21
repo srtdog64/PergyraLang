@@ -53,8 +53,11 @@ run_literal_contract_smoke() {
         "src/runtime/pgy_runtime_result_option_inline.h"
         "src/runtime/async/fiber.c"
         "src/codegen/transpiler_expr_core_emit.c"
+        "src/codegen/transpiler_func_class_flow_emit.c"
+        "src/codegen/transpiler_mir_terminator_emit.c"
         "src/codegen/llvm_expr_scalar_core.h"
         "src/codegen/llvm_expr_scalar_core.c"
+        "src/codegen/llvm_mir_block_emit.c"
         "src/codegen/llvm_api.c"
         "src/codegen/llvm_runtime.c"
         "src/codegen/llvm_runtime_core_builtin_decl.c"
@@ -133,7 +136,13 @@ run_literal_contract_smoke() {
     forbid_literal "src/runtime/pgy_runtime_io_qubit_inline.h" "exit((int)code)"
     forbid_literal "src/runtime/pgy_runtime_lib_io_string_exports.h" "exit((int)code)"
     require_literal "src/codegen/transpiler_expr_core_emit.c" "pgy_checked_div_i32_export"
+    require_literal "src/codegen/transpiler_func_class_flow_emit.c" 'PGY_PANIC(\"non-void function reached end without return\")'
+    require_literal "src/codegen/transpiler_mir_terminator_emit.c" 'PGY_PANIC(\"non-void function reached end without return\")'
     require_literal "src/codegen/llvm_expr_scalar_core.c" "pgy_checked_mod_i32_export"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "pgy_runtime_panic_internal_invariant_export"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "LLVM MIR non-void fallthrough panic requires registered runtime function"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "LLVMBuildCall2(ctx->builder, panic_fn->fn_type, panic_fn->fn"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "non-void function reached end without return"
     require_literal "src/codegen/llvm_api.c" 'strcmp(name, "pgy_runtime_panic_emit") == 0'
     require_literal "src/codegen/llvm_api.c" "not an external ABI symbol"
     require_literal "src/codegen/llvm_runtime_core_builtin_decl.c" "pgy_runtime_panic_internal_invariant_export"
@@ -177,6 +186,9 @@ parallel_run_h = root / "src" / "runtime" / "pgy_parallel_run.h"
 parallel_coroutine_h = root / "src" / "runtime" / "pgy_parallel_coroutine.h"
 fiber_c = root / "src" / "runtime" / "async" / "fiber.c"
 llvm_api_c = root / "src" / "codegen" / "llvm_api.c"
+llvm_mir_block_emit_c = root / "src" / "codegen" / "llvm_mir_block_emit.c"
+transpiler_func_class_flow_emit_c = root / "src" / "codegen" / "transpiler_func_class_flow_emit.c"
+transpiler_mir_terminator_emit_c = root / "src" / "codegen" / "transpiler_mir_terminator_emit.c"
 lib_top = root / "src" / "runtime" / "pgy_runtime_lib_authority_file_core.h"
 slot_c = root / "src" / "runtime" / "pgy_runtime_lib_intent_slot_core_exports.h"
 slot_macros = root / "src" / "runtime" / "pgy_runtime_slot_macros.h"
@@ -510,6 +522,29 @@ for path in [
     for token in ["pgy_checked_div_i32_export", "pgy_checked_mod_i32_export"]:
         if token not in text:
             raise SystemExit(f"{path.relative_to(root)} missing checked arithmetic lowering {token}")
+
+ast_direct_c_text = transpiler_func_class_flow_emit_c.read_text(encoding="utf-8")
+c_mir_terminator_text = transpiler_mir_terminator_emit_c.read_text(encoding="utf-8")
+for token in [
+    'PGY_PANIC(\\"non-void function reached end without return\\")',
+    "__builtin_unreachable();",
+]:
+    if token not in ast_direct_c_text:
+        raise SystemExit(f"AST-direct C non-void fallthrough panic contract missing {token}")
+    if token not in c_mir_terminator_text:
+        raise SystemExit(f"C MIR non-void fallthrough panic contract missing {token}")
+
+llvm_mir_block_text = llvm_mir_block_emit_c.read_text(encoding="utf-8")
+for token in [
+    "pgy_runtime_panic_internal_invariant_export",
+    "LLVM MIR non-void fallthrough panic requires registered runtime function",
+    "llvm_set_error_with_hints(ctx,",
+    "LLVMBuildCall2(ctx->builder, panic_fn->fn_type, panic_fn->fn",
+    "non-void function reached end without return",
+    "LLVMBuildUnreachable(ctx->builder)",
+]:
+    if token not in llvm_mir_block_text:
+        raise SystemExit(f"LLVM MIR non-void fallthrough panic contract missing {token}")
 
 llvm_api_text = llvm_api_c.read_text(encoding="utf-8")
 for token in [

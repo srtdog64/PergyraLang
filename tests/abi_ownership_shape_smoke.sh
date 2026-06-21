@@ -68,7 +68,12 @@ for rel in \
 done
 
 require_term "src/runtime/pgy_abi_spec.h" "typedef struct { uint64_t id; bool can_write; bool can_read; } pgy_abi_token_int_rel;"
+require_term "src/runtime/pgy_abi_spec.h" "typedef struct { int32_t  value; bool occupied; } pgy_abi_slot_int_rel;"
 require_term "src/runtime/pgy_abi_spec.h" "typedef struct { int32_t value; bool occupied; uint64_t token; } pgy_abi_secure_slot_int_rel;"
+require_term "src/runtime/pgy_runtime_panic_checked_inline.h" "PGY_RAW_SLOTS only as a whole-program raw/unsafe build mode"
+require_term "src/runtime/pgy_abi_spec_asserts.h" "slot_int_rel_same_size_as_dbg"
+require_term "src/compiler/mir_abi_layout.c" 'ABI_FIELD_STRUCT("occupied", pgy_abi_slot_int_rel, occupied)'
+require_term "src/test_abi_spec.c" "runtime size matches checked ABI"
 require_term "src/runtime/pgy_abi_spec.h" "Rust-style niche encoding"
 require_term "src/runtime/pgy_abi_spec.h" "MIR_ABI_REPR_EXPLICIT_TAG"
 require_term "src/runtime/pgy_abi_spec_asserts.h" "option_long_value_at_8"

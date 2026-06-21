@@ -2,13 +2,13 @@
 #define PGY_RUNTIME_PLAIN_SLOT_INLINE_H
 
 /* =================================================================
- * Slot Memory (Optional Safety Wrapper)
+ * Slot Memory (Checked By Default)
  *
- * Debug mode: Full safety checks (occupied flag, panic on invalid access)
- * Release mode: Zero-overhead passthrough (no occupied flag)
+ * Checked mode: Full safety checks (occupied flag, panic on invalid access)
+ * Raw mode: Whole-program PGY_RAW_SLOTS opt-out (no occupied flag)
  * ================================================================= */
 
-/* Debug mode slot — with safety checks */
+/* Checked slot with safety checks. */
 #define PGY_SLOT_DEFINE_DEBUG(SuffixName, CType) \
 \
 typedef struct { \
@@ -181,7 +181,7 @@ pgy_unpin_cleanup_##SuffixName(PgyPinnedSlotView_##SuffixName* view) \
         pgy_unpin_##SuffixName(view); \
 }
 
-/* Release mode slot — zero overhead (just a wrapper around the value) */
+/* Raw slot opt-out: zero overhead, not the canonical beta ABI. */
 #define PGY_SLOT_DEFINE_RELEASE(SuffixName, CType) \
 \
 typedef struct { \
@@ -311,7 +311,7 @@ pgy_unpin_cleanup_##SuffixName(PgyPinnedSlotView_##SuffixName* view) \
     pgy_unpin_##SuffixName(view); \
 }
 
-/* Conditional definition based on build mode */
+/* Conditional definition based on slot safety mode. */
 #if PGY_WITH_SLOT_CHECKS
 #  define PGY_SLOT_DEFINE(SuffixName, CType) \
        PGY_SLOT_DEFINE_DEBUG(SuffixName, CType)

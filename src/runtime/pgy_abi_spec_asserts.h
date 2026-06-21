@@ -42,21 +42,33 @@ ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_string_dbg) >= 16,
                   slot_string_dbg_min_size_16);
 
 /* =================================================================
- * STATIC ASSERTIONS — Slot<T> Release
+ * STATIC ASSERTIONS - Slot<T> Checked Release
  * ================================================================= */
 
-ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_int_rel) == 4,
-                  slot_int_rel_size_4);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_long_rel) == 8,
-                  slot_long_rel_size_8);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_float_rel) == 4,
-                  slot_float_rel_size_4);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_double_rel) == 8,
-                  slot_double_rel_size_8);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_bool_rel) == 1,
-                  slot_bool_rel_size_1);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_string_rel) == sizeof(char*),
-                  slot_string_rel_size_ptr);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_int_rel) == sizeof(pgy_abi_slot_int_dbg),
+                  slot_int_rel_same_size_as_dbg);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_int_rel, occupied) == offsetof(pgy_abi_slot_int_dbg, occupied),
+                  slot_int_rel_same_occupied_offset_as_dbg);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_long_rel) == sizeof(pgy_abi_slot_long_dbg),
+                  slot_long_rel_same_size_as_dbg);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_long_rel, occupied) == offsetof(pgy_abi_slot_long_dbg, occupied),
+                  slot_long_rel_same_occupied_offset_as_dbg);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_float_rel) == sizeof(pgy_abi_slot_float_dbg),
+                  slot_float_rel_same_size_as_dbg);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_float_rel, occupied) == offsetof(pgy_abi_slot_float_dbg, occupied),
+                  slot_float_rel_same_occupied_offset_as_dbg);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_double_rel) == sizeof(pgy_abi_slot_double_dbg),
+                  slot_double_rel_same_size_as_dbg);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_double_rel, occupied) == offsetof(pgy_abi_slot_double_dbg, occupied),
+                  slot_double_rel_same_occupied_offset_as_dbg);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_bool_rel) == sizeof(pgy_abi_slot_bool_dbg),
+                  slot_bool_rel_same_size_as_dbg);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_bool_rel, occupied) == offsetof(pgy_abi_slot_bool_dbg, occupied),
+                  slot_bool_rel_same_occupied_offset_as_dbg);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_slot_string_rel) == sizeof(pgy_abi_slot_string_dbg),
+                  slot_string_rel_same_size_as_dbg);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_slot_string_rel, occupied) == offsetof(pgy_abi_slot_string_dbg, occupied),
+                  slot_string_rel_same_occupied_offset_as_dbg);
 
 /* =================================================================
  * STATIC ASSERTIONS — SecureSlot<T>

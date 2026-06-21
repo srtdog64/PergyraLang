@@ -525,7 +525,9 @@ mir_dump_json(const MIRProgram *mir, FILE *out)
                     fputs(",\"source_type\":", out);
                     mir_json_emit_str_or_null(out,
                         mir_instruction_source_inline_text(inst) != NULL
-                            ? mir_source_node_type_name(inst->source_node_type)
+                            ? mir_source_node_type_name((ASTNodeType)
+                                  mir_instruction_source_node_type_or(
+                                      inst, AST_PROGRAM))
                             : NULL);
                     fputs(",\"uses\":[", out);
                     for (size_t m = 0; m < inst->use_count; m++) {

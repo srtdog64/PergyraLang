@@ -49,15 +49,15 @@ static int g_fail = 0;
 
 /* -----------------------------------------------------------------
  * Include the real runtime for cross-checking.
- * The runtime decides Debug vs Release based on PGY_DEBUG.
+ * The runtime decides checked vs raw Slot<T> shape through PGY_WITH_SLOT_CHECKS.
  * ----------------------------------------------------------------- */
 #include "runtime/pgy_runtime.h"
 
-/* Determine which slot mode the runtime is using */
-#if defined(PGY_DEBUG) || defined(PGY_SAFE_SLOTS)
-    #define PGY_RUNTIME_SLOT_MODE_DEBUG 1
+/* Determine which slot mode the runtime is using. */
+#if PGY_WITH_SLOT_CHECKS
+    #define PGY_RUNTIME_SLOT_MODE_CHECKED 1
 #else
-    #define PGY_RUNTIME_SLOT_MODE_DEBUG 0
+    #define PGY_RUNTIME_SLOT_MODE_CHECKED 0
 #endif
 
 int main(void) {
@@ -86,9 +86,9 @@ int main(void) {
     printf("\n");
 
     /* ================================================================
-     * 1. Slot<T> Debug
+     * 1. Slot<T> checked ABI
      * ================================================================ */
-    printf("[Slot<T> — Debug Mode]\n");
+    printf("[Slot<T> checked ABI]\n");
 
     PRINT_LAYOUT(pgy_abi_slot_int_dbg);
     PRINT_LAYOUT(pgy_abi_slot_long_dbg);
@@ -99,34 +99,38 @@ int main(void) {
     printf("\n");
 
     /* Cross-check against runtime types (PgySlot_* from pgy_runtime.h) */
-#if PGY_RUNTIME_SLOT_MODE_DEBUG
-    ABI_TEST("Slot<Int> dbg: runtime size matches ABI spec",
-             sizeof(PgySlot_Int) == sizeof(pgy_abi_slot_int_dbg));
-    ABI_TEST("Slot<Int> dbg: value offset matches",
-             offsetof(PgySlot_Int, value) == offsetof(pgy_abi_slot_int_dbg, value));
-    ABI_TEST("Slot<Int> dbg: occupied offset matches",
-             offsetof(PgySlot_Int, occupied) == offsetof(pgy_abi_slot_int_dbg, occupied));
-
-    ABI_TEST("Slot<Long> dbg: runtime size matches ABI spec",
-             sizeof(PgySlot_Long) == sizeof(pgy_abi_slot_long_dbg));
-    ABI_TEST("Slot<Long> dbg: value offset matches",
-             offsetof(PgySlot_Long, value) == offsetof(pgy_abi_slot_long_dbg, value));
-
-    ABI_TEST("Slot<String> dbg: runtime size matches ABI spec",
-             sizeof(PgySlot_String) == sizeof(pgy_abi_slot_string_dbg));
-#else
-    ABI_TEST("Slot<Int> rel: runtime size matches ABI spec",
+#if PGY_RUNTIME_SLOT_MODE_CHECKED
+    ABI_TEST("Slot<Int>: runtime size matches checked ABI",
              sizeof(PgySlot_Int) == sizeof(pgy_abi_slot_int_rel));
-    ABI_TEST("Slot<Long> rel: runtime size matches ABI spec",
+    ABI_TEST("Slot<Int>: value offset matches checked ABI",
+             offsetof(PgySlot_Int, value) == offsetof(pgy_abi_slot_int_rel, value));
+    ABI_TEST("Slot<Int>: occupied offset matches checked ABI",
+             offsetof(PgySlot_Int, occupied) == offsetof(pgy_abi_slot_int_rel, occupied));
+
+    ABI_TEST("Slot<Long>: runtime size matches checked ABI",
              sizeof(PgySlot_Long) == sizeof(pgy_abi_slot_long_rel));
-    ABI_TEST("Slot<String> rel: runtime size matches ABI spec",
+    ABI_TEST("Slot<Long>: value offset matches checked ABI",
+             offsetof(PgySlot_Long, value) == offsetof(pgy_abi_slot_long_rel, value));
+    ABI_TEST("Slot<Long>: occupied offset matches checked ABI",
+             offsetof(PgySlot_Long, occupied) == offsetof(pgy_abi_slot_long_rel, occupied));
+
+    ABI_TEST("Slot<String>: runtime size matches checked ABI",
              sizeof(PgySlot_String) == sizeof(pgy_abi_slot_string_rel));
+    ABI_TEST("Slot<String>: occupied offset matches checked ABI",
+             offsetof(PgySlot_String, occupied) == offsetof(pgy_abi_slot_string_rel, occupied));
+#else
+    ABI_TEST("Slot<Int>: raw slot mode is value-only opt-out",
+             sizeof(PgySlot_Int) == sizeof(int32_t));
+    ABI_TEST("Slot<Long>: raw slot mode is value-only opt-out",
+             sizeof(PgySlot_Long) == sizeof(int64_t));
+    ABI_TEST("Slot<String>: raw slot mode is value-only opt-out",
+             sizeof(PgySlot_String) == sizeof(char *));
 #endif
 
     /* ================================================================
-     * 2. Slot<T> Release
+     * 2. Slot<T> checked release ABI
      * ================================================================ */
-    printf("\n[Slot<T> — Release Mode]\n");
+    printf("\n[Slot<T> checked release ABI]\n");
 
     PRINT_LAYOUT(pgy_abi_slot_int_rel);
     PRINT_LAYOUT(pgy_abi_slot_long_rel);
@@ -136,16 +140,20 @@ int main(void) {
     PRINT_LAYOUT(pgy_abi_slot_string_rel);
     printf("\n");
 
-    ABI_TEST("Slot<Int> rel: size == 4",
-             sizeof(pgy_abi_slot_int_rel) == 4);
-    ABI_TEST("Slot<Long> rel: size == 8",
-             sizeof(pgy_abi_slot_long_rel) == 8);
-    ABI_TEST("Slot<Float> rel: size == 4",
-             sizeof(pgy_abi_slot_float_rel) == 4);
-    ABI_TEST("Slot<Double> rel: size == 8",
-             sizeof(pgy_abi_slot_double_rel) == 8);
-    ABI_TEST("Slot<Bool> rel: size == 1",
-             sizeof(pgy_abi_slot_bool_rel) == 1);
+    ABI_TEST("Slot<Int> rel: checked size matches debug",
+             sizeof(pgy_abi_slot_int_rel) == sizeof(pgy_abi_slot_int_dbg));
+    ABI_TEST("Slot<Int> rel: occupied offset matches debug",
+             offsetof(pgy_abi_slot_int_rel, occupied) == offsetof(pgy_abi_slot_int_dbg, occupied));
+    ABI_TEST("Slot<Long> rel: checked size matches debug",
+             sizeof(pgy_abi_slot_long_rel) == sizeof(pgy_abi_slot_long_dbg));
+    ABI_TEST("Slot<Float> rel: checked size matches debug",
+             sizeof(pgy_abi_slot_float_rel) == sizeof(pgy_abi_slot_float_dbg));
+    ABI_TEST("Slot<Double> rel: checked size matches debug",
+             sizeof(pgy_abi_slot_double_rel) == sizeof(pgy_abi_slot_double_dbg));
+    ABI_TEST("Slot<Bool> rel: checked size matches debug",
+             sizeof(pgy_abi_slot_bool_rel) == sizeof(pgy_abi_slot_bool_dbg));
+    ABI_TEST("Slot<String> rel: checked size matches debug",
+             sizeof(pgy_abi_slot_string_rel) == sizeof(pgy_abi_slot_string_dbg));
 
     /* ================================================================
      * 3. SecureSlot<T>

@@ -67,16 +67,22 @@
 #endif
 
 /* ================================================================
- * 1. Slot<T> — Debug Mode (PGY_WITH_SLOT_CHECKS or PGY_DEBUG)
+ * 1. Slot<T> - checked canonical ABI
  *
  * Layout: { value: CType, occupied: bool } + compiler padding
  *
  * The 'occupied' flag enables runtime safety checks (double-free,
- * use-after-release detection). In release mode this field is
- * eliminated for zero overhead.
+ * use-after-release detection). It is present in EVERY build by default
+ * (fail-closed: safety must not silently depend on the build profile). The
+ * primary use-after-release protection is the static own/ref boundary contract
+ * + interprocedural release tracking, which is always on; this runtime flag is
+ * the defense-in-depth backstop (FFI/corruption-supplied handles, static-analyzer
+ * gaps). Define PGY_RAW_SLOTS only as a whole-program raw/unsafe opt-out for
+ * measured systems-tier builds. It is not the beta-stable canonical ABI and
+ * must not be mixed with checked runtime bitcode/objects.
  * ================================================================ */
 
-/* --- Slot<T> Debug --- */
+/* --- Slot<T> checked/debug ABI --- */
 typedef struct { int32_t  value; bool occupied; } pgy_abi_slot_int_dbg;
 typedef struct { int64_t  value; bool occupied; } pgy_abi_slot_long_dbg;
 typedef struct { float    value; bool occupied; } pgy_abi_slot_float_dbg;
@@ -84,13 +90,13 @@ typedef struct { double   value; bool occupied; } pgy_abi_slot_double_dbg;
 typedef struct { bool     value; bool occupied; } pgy_abi_slot_bool_dbg;
 typedef struct { char    *value; bool occupied; } pgy_abi_slot_string_dbg;
 
-/* --- Slot<T> Release (zero-overhead) --- */
-typedef struct { int32_t  value; } pgy_abi_slot_int_rel;
-typedef struct { int64_t  value; } pgy_abi_slot_long_rel;
-typedef struct { float    value; } pgy_abi_slot_float_rel;
-typedef struct { double   value; } pgy_abi_slot_double_rel;
-typedef struct { bool     value; } pgy_abi_slot_bool_rel;
-typedef struct { char    *value; } pgy_abi_slot_string_rel;
+/* --- Slot<T> checked release ABI (same shape as checked/debug) --- */
+typedef struct { int32_t  value; bool occupied; } pgy_abi_slot_int_rel;
+typedef struct { int64_t  value; bool occupied; } pgy_abi_slot_long_rel;
+typedef struct { float    value; bool occupied; } pgy_abi_slot_float_rel;
+typedef struct { double   value; bool occupied; } pgy_abi_slot_double_rel;
+typedef struct { bool     value; bool occupied; } pgy_abi_slot_bool_rel;
+typedef struct { char    *value; bool occupied; } pgy_abi_slot_string_rel;
 
 /* ================================================================
  * 2. SecureSlot<T> — Token-Based Access Control
@@ -99,7 +105,8 @@ typedef struct { char    *value; } pgy_abi_slot_string_rel;
  *
  * The token is a capability that gates read/write/release operations.
  * SecureSlot<T> keeps the same token layout and hard-fail checks across
- * debug/release builds; only plain Slot<T> has a zero-overhead release layout.
+ * debug/release builds. Plain Slot<T> is checked by default too; raw
+ * zero-overhead slots are an explicit non-canonical PGY_RAW_SLOTS build mode.
  * Wrong token causes PGY_PANIC.
  * ================================================================ */
 

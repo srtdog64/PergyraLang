@@ -656,17 +656,32 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                 /* Closure #74: a non-void block with no successors and no
                  * return instruction is either (a) the dead post-merge of
                  * an exhaustive match where every case returned, or (b) a
-                 * genuinely missing return in user code. The two cases are
-                 * not distinguishable from this position alone because the
-                 * exhaustive-match merge has the same shape as the missing-
-                 * return case once MIR has lowered match dispatch into
-                 * BRANCH-shaped predecessors. We emit `unreachable` so the
-                 * exhaustive-match case compiles; for the missing-return
-                 * case the LLVM verifier may or may not complain depending
-                 * on how the path is reached. See the risk audit entry in
-                 * this doc for the trade-off and the planned MIR-side fix
-                 * (mark dead post-match blocks unreachable upstream so this
-                 * site can be strict again). */
+                 * genuinely missing return in user code. Both are unreachable
+                 * for well-typed values, so fail closed -- matching the C
+                 * backends (transpiler_func_class_flow_emit.c and
+                 * transpiler_mir_terminator_emit.c) -- rather than leaving UB
+                 * if an invalid discriminant from the unsafe/FFI boundary ever
+                 * reaches the no-arm-matched end of an exhaustive match. The
+                 * trailing `unreachable` keeps the IR well-formed after the
+                 * noreturn panic call. */
+                LLVMFuncEntry *panic_fn = llvm_lookup_function(ctx,
+                    "pgy_runtime_panic_internal_invariant_export");
+                if (panic_fn == NULL) {
+                    llvm_set_error_with_hints(ctx,
+                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_FIX_INSPECT_MIR_INVENTORY,
+                        "LLVM MIR non-void fallthrough panic requires registered runtime function '%s'",
+                        "pgy_runtime_panic_internal_invariant_export");
+                    LLVMBuildUnreachable(ctx->builder);
+                    return;
+                }
+                LLVMValueRef reason_arg = LLVMBuildGlobalStringPtr(
+                    ctx->builder,
+                    "non-void function reached end without return",
+                    llvm_tmp_name(ctx));
+                LLVMBuildCall2(ctx->builder, panic_fn->fn_type, panic_fn->fn,
+                    &reason_arg, 1, "");
                 LLVMBuildUnreachable(ctx->builder);
             }
         }

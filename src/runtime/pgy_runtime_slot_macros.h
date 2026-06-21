@@ -163,8 +163,9 @@ pgy_submit_device_read_##SuffixName(PgyDeviceSlot_##SuffixName *s) \
 /* =================================================================
  * Secure Slot (Token-based Access Control)
  *
- * Always includes checks because this is a security boundary, not a
- * zero-overhead Slot<T> wrapper.
+ * Always includes checks because this is a security boundary. Plain Slot<T>
+ * is also checked by default; zero-overhead raw slots are a separate
+ * non-canonical PGY_RAW_SLOTS build mode.
  * ================================================================= */
 
 #define PGY_SECURE_SLOT_DEFINE_DEBUG(SuffixName, CType) \

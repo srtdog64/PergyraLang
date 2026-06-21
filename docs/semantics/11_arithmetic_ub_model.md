@@ -113,31 +113,37 @@ machine-checked:
 A single total spec consumed by both backends is precisely what the C == LLVM
 parity gate observes at runtime.
 
-## 4. Type confusion / invalid discriminant
+## 4. Type confusion / invalid discriminant (closed)
 
 For **well-typed** code this is closed by construction: `check_match_exhaustiveness`
 rejects a match over a finite variant space (enum/Option/Result) that is neither
-fully covered nor has a default. So a valid in-language value always selects an
-arm, and the trailing "no arm matched" path is unreachable. The only way to reach
-it is an invalid tag arriving from the **unsafe/FFI boundary or memory
+fully covered nor has a default. A valid in-language value therefore always
+selects an arm; the trailing "no arm matched" path is unreachable. The only way
+to reach it is an invalid tag arriving from the **unsafe/FFI boundary or memory
 corruption** (§5).
 
-To fail closed on that residual rather than fall through silently (and, on a
-non-void function, return garbage), the trailing path of an exhaustive tagged
-match with no default calls `pgy_runtime_panic_invalid_discriminant_export()`
-(class `invalid-discriminant`). The flag is set by exhaustiveness checking
-(`ast_match_guards_invalid_discriminant`) so both backends share one
-determination.
+That residual is now **fail-closed uniformly**. The point where it surfaces is a
+non-void function reaching its end without returning (the no-arm-matched merge of
+an exhaustive match lowers to exactly this shape). All emitters now panic there
+with the same internal-invariant class and message ("non-void function reached
+end without return") instead of leaving UB:
 
-**Coverage status (partial):** the guard is wired on the **AST-direct** statement
-emitters (`transpiler_match_emit.c`, `llvm_stmt_match.c`), which lower
-AST-emitted functions (e.g. generics). The **MIR-based** path — the default for
-most functions — lowers a match to per-case `if` blocks via the MIR CFG and has
-no single "match exhausted" hook at emission; closing it requires injecting a
-trap block at MIR construction (the match CFG builder), which is left as a
-focused follow-up. Until then, a MIR-emitted exhaustive tagged match still falls
-through on an invalid (FFI/corruption-originated) tag. No well-typed program is
-affected either way.
+- AST-direct C (generic functions) — `transpiler_func_class_flow_emit.c` (was
+  already fail-closed; the reference behaviour).
+- MIR C (the default for non-generic functions) — `transpiler_mir_terminator_emit.c`.
+- MIR LLVM — `llvm_mir_block_emit.c` (Closure #74 site), calling
+  `pgy_runtime_panic_internal_invariant_export` before the trailing `unreachable`
+  that keeps the IR well-formed.
+
+A divergent guard (one path/backend panicking, another UB) would itself violate
+the C == LLVM evidence contract, so the rule is *all paths identical or none* —
+here, all identical. No well-typed program is affected; this only converts an
+FFI/corruption-supplied invalid tag from UB into a loud panic. The structural
+contract is gated by `runtime-panic-contract-test-smoke`: the emitted C owners
+must carry `PGY_PANIC(...)`, and the LLVM MIR owner must call the shared panic
+export before `unreachable`. The ordinary well-typed match corpus remains under
+backend-compare parity; the invalid-tag path is a hard-fail boundary, not a
+source-visible value result.
 
 ## 5. FFI / `extern` escape hatch
 
@@ -145,6 +151,8 @@ affected either way.
 boundary. Values crossing it (including tagged unions with out-of-range tags and
 the arithmetic operands above) are outside the safety guarantees by design — this
 is the acknowledged opt-out, syntactically marked, not a silent hole. The checked
-arithmetic helpers and the invalid-discriminant guard above turn an FFI-supplied
-bad value into a loud panic at the first in-language use rather than UB, but the
-boundary itself is the programmer's responsibility.
+arithmetic helpers (§2) turn an FFI-supplied bad operand into a loud panic at the
+first in-language arithmetic use, and the §4 guard does the same for an invalid
+match discriminant — both convert an FFI/corruption-supplied bad value into a
+fail-closed panic rather than UB, though the boundary itself remains the
+programmer's responsibility.

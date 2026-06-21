@@ -372,8 +372,8 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_is_cfg_owned_control"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_has_side_effect_hint"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_fallback_is_allowed"
-    require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "keeps_fail"
-    require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "rejects_pure_call"
+    require_literal "src/tests/mir/test_mir_lowering_part_c_2.cases.h" "keeps_fail"
+    require_literal "src/tests/mir/test_mir_lowering_part_c_2.cases.h" "rejects_pure_call"
     if grep -A14 -F "mir_instruction_source_stmt_fallback_is_allowed" \
         "$ROOT_DIR/src/compiler/mir_source_shape.c" | \
         grep -Fq "mir_instruction_source_payload"; then

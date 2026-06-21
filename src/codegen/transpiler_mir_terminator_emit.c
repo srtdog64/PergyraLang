@@ -253,6 +253,15 @@ transpiler_emit_mir_fallthrough_terminator(const MIRRoutine *mir_routine,
         if (strcmp(ctx->current_return_type, "Void") == 0) {
             codebuf_write(ctx->out, "return;\n");
         } else {
+            /* Non-void fall-through is unreachable for well-typed values, so
+             * fail closed -- matching the AST-direct emitter
+             * (transpiler_func_class_flow_emit.c) and the LLVM backend
+             * (llvm_mir_block_emit.c) -- rather than leaving UB if an invalid
+             * discriminant from the unsafe/FFI boundary reaches the
+             * no-arm-matched end of an exhaustive match. */
+            codebuf_write(ctx->out,
+                "PGY_PANIC(\"non-void function reached end without return\");\n");
+            write_indent(ctx);
             codebuf_write(ctx->out, "__builtin_unreachable();\n");
         }
     }

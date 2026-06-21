@@ -99,8 +99,9 @@ Current evidence:
   runtime, and LLVM-linkable runtime all use the same `PgyToken<T>` layout with
   `can_write` and `can_read` capability bits. Release-mode inline secure-slot
   reads/writes/releases keep hard-fail token and occupancy checks, and the
-  legacy release-mode SecureSlot macro has been removed; only plain `Slot<T>`
-  has a zero-overhead release layout.
+  legacy release-mode SecureSlot macro has been removed. Plain `Slot<T>` is
+  checked by default as well; zero-overhead raw slots are a non-canonical
+  `PGY_RAW_SLOTS` systems-tier build mode.
 - The ABI spec carries matching debug/release SecureSlot layout rows for every
   stable primitive payload (`Int`, `Long`, `Float`, `Double`, `Bool`, `String`),
   and `make test-abi` checks runtime size and token offsets against that spec.

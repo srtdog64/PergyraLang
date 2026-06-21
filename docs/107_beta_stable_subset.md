@@ -147,7 +147,9 @@ Stable:
 - `SecureSlot<T>` token ABI is beta-stable across build modes and backends:
   inline C, exported runtime, and LLVM-linkable runtime use the same
   `PgyToken<T>` layout with read/write capability bits and hard-fail token
-  checks. Only plain `Slot<T>` has a zero-overhead release layout.
+  checks. Plain `Slot<T>` is checked by default across debug/release too;
+  zero-overhead raw slots are a non-canonical `PGY_RAW_SLOTS` systems-tier
+  build mode, not the beta-stable ABI.
 - Generated inline pin wrappers are part of the ownership ABI: `PgyPinnedSlotView_*`,
   `PgyPinnedSecureSlotView_*`, `pgy_pin_read_*`, `pgy_pin_write_*`, and
   `pgy_unpin_*` preserve the existing `PgySlot_*` / `PgySecureSlot_*` layouts

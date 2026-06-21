@@ -71,6 +71,14 @@ the C and LLVM paths.
   and generated LLVM now emits explicit tag guards that call the shared
   `internal-invariant` panic export instead of extracting the value field or
   lowering the edge to a bare `unreachable`.
+- Non-void MIR fallthrough is also an `internal-invariant` hard-fail boundary.
+  For well-typed programs this path is unreachable; if an unsafe/FFI boundary
+  or memory corruption supplies an invalid discriminant and an exhaustive match
+  reaches its no-arm-matched merge, generated C emits `PGY_PANIC("non-void
+  function reached end without return")` and generated LLVM calls
+  `pgy_runtime_panic_internal_invariant_export` before the IR `unreachable`.
+  Missing LLVM panic-runtime registration is a structured backend error, not a
+  silent fallback to bare `unreachable`.
 - `runtime-panic-codegen-test-smoke` compiles and runs generated Pergyra
   programs through both C and LLVM to verify integer divide/modulo by zero and
   stable collection out-of-bounds plus unwrap/try invariant misuse reach the

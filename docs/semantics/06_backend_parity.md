@@ -110,6 +110,12 @@ Current evidence:
 - The same generated-code smoke verifies `Unwrap(Err)`, `Fail()?` in a `Void`
   function, and `UnwrapOption(None)` panic with the same
   `internal-invariant` class in C and LLVM.
+- `runtime-panic-contract-test-smoke` also pins the non-void MIR fallthrough
+  panic contract on both backend owners: C emits `PGY_PANIC("non-void function
+  reached end without return")`, and LLVM calls
+  `pgy_runtime_panic_internal_invariant_export` before `unreachable`. This
+  closes the invalid-discriminant residual that can only be reached from
+  unsafe/FFI or memory-corruption inputs.
 
 Remaining proof obligation:
 

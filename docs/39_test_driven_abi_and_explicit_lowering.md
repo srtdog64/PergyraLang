@@ -76,7 +76,7 @@ AI에게 "컴파일러 로직을 짜라"고만 시키면 ABI 물리 사실을 �
  * 1. Slot<T> ABI
  * ----------------------------------------------------------------
  * Debug 모드:   { value: CType, occupied: bool } + padding
- * Release 모드: { value: CType } (zero-overhead)
+ * Raw opt-out: { value: CType } only under whole-program PGY_RAW_SLOTS
  *
  * Pergyra MIR가 레이아웃을 결정. C 컴파일러는 이를 따른다.
  */
@@ -176,7 +176,8 @@ ABI_STATIC_ASSERT(sizeof(ABI_Slot_Int_Debug) >= 8, slot_int_min_size);
 
 /* Slot<Int> Release: value@0, size == 4 */
 ABI_STATIC_ASSERT(offsetof(ABI_Slot_Int_Release, value) == 0, slot_int_rel_value_offset);
-ABI_STATIC_ASSERT(sizeof(ABI_Slot_Int_Release) == 4, slot_int_rel_size);
+ABI_STATIC_ASSERT(sizeof(ABI_Slot_Int_Release) == sizeof(ABI_Slot_Int_Debug),
+                  slot_int_rel_checked_size);
 
 /* Option<Int>: tag@0, value@4, size == 8 */
 ABI_STATIC_ASSERT(offsetof(ABI_Option_Int, tag) == 0, option_int_tag_offset);
