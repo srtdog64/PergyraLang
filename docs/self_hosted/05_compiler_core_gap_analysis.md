@@ -8,9 +8,11 @@ for soft and partial self-hosting.
 
 Current judgement (2026-06-21): the hard-self-host substrate checklist is broad
 enough for staged compiler-pass substitution, but capability 5 remains ACTIVE
-until self-hosted MIR lowering stops consuming the transitional `"ast"` text
-compatibility field and uses explicit MIR statement facts instead. Raw
-source-statement re-dispatch is gone, source-local resource constructors
+until self-hosted MIR lowering deletes and ratchets the transitional `"ast"`
+text compatibility fallback. The supported MIR JSON parity subset now consumes
+explicit `expr0`/`expr1`/`source_type`/`source_locals` facts first for
+let/statement/return/branch/for reconstruction. Raw source-statement
+re-dispatch is gone, source-local resource constructors
 consume MIR expected type facts, assignment DEFs preserve side effects before
 SSA recording, C resource mirroring uses MIR source-statement identity instead
 of source-payload pointer identity, and public-surface plus lifecycle MIR JSON
@@ -105,8 +107,10 @@ now consume capture-time facts from
 `mir_instruction_source_inline_text(inst)` instead of reopening source
 payloads. LLVM for-in and with-slot resource-claim diagnostics have already
 moved to MIR expression anchors. The remaining capability-5 tail is the
-self-hosted `mir_lower` dependency on transitional `"ast"` text, which must be
-replaced by explicit MIR statement facts before the body source-of-truth row is
+self-hosted `mir_lower` compatibility fallback to transitional `"ast"` text;
+the supported parity subset already reconstructs from explicit MIR JSON facts,
+including `for` headers from `arg0` plus `expr0`/`expr1` range bounds. The
+fallback must be removed and ratcheted before the body source-of-truth row is
 fully ready.
 
 - **Module/package resolver stability**: deterministic imports, manifest

@@ -270,6 +270,15 @@ func BlockCond(json: String, bs: Int, be: Int) -> String {
     if next_kp >= 0 && next_kp < be {
         inst_end = next_kp;
     }
+    let source_type: String = JsonFieldString(json, kp, inst_end, "\"source_type\":");
+    if source_type == "AST_FOR_LOOP" {
+        let binding: String = JsonFieldString(json, kp, inst_end, "\"arg0\":");
+        let start: String = JsonFieldString(json, kp, inst_end, "\"expr0\":");
+        let stop: String = JsonFieldString(json, kp, inst_end, "\"expr1\":");
+        if StringLength(binding) > 0 && StringLength(start) > 0 && StringLength(stop) > 0 {
+            return Concat("for ", Concat(binding, Concat(" in ", Concat(start, Concat("..", stop)))));
+        }
+    }
     let cond: String = JsonFieldString(json, kp, inst_end, "\"expr0\":");
     if StringLength(cond) > 0 {
         return cond;

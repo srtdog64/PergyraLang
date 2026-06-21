@@ -5,8 +5,8 @@
 # backend on the supported subset -- linear code, function signatures, and
 # CFG-structured control flow (if/else, nested if, while, for):
 #
-#   pgy --mir-json fixture.pgy            (MIR JSON plus transitional source text)
-#     | mir_lower   (Pergyra: MIR-JSON -> reconstructed --ast tree)
+#   pgy --mir-json fixture.pgy            (MIR JSON facts plus compatibility text)
+#     | mir_lower   (Pergyra: MIR-JSON facts -> reconstructed --ast tree)
 #     | codegen     (Pergyra: --ast tree -> standalone C)
 #     -> gcc -> run-stdout
 #
@@ -83,11 +83,37 @@ for base in "${FIXTURES[@]}"; do
         echo "[self-host-parity:mir-json] $base: oracle --mir-json did not emit pgy.mir.v1" >&2
         exit 1
     fi
+    if ! grep -q '"expr0":' "$mj" || ! grep -q '"source_type":' "$mj" || ! grep -q '"source_locals":\[' "$mj"; then
+        echo "[self-host-parity:mir-json] $base: MIR JSON is missing explicit expression/source-local facts" >&2
+        exit 1
+    fi
+    if [[ "$base" == "forloop" ]]; then
+        for required in \
+            '"source_type":"AST_FOR_LOOP"' \
+            '"arg0":"i"' \
+            '"expr0":"0"' \
+            '"expr1":"3"'; do
+            if ! grep -q "$required" "$mj"; then
+                echo "[self-host-parity:mir-json] forloop: missing MIR for-loop fact: $required" >&2
+                exit 1
+            fi
+        done
+    fi
     "$B/mir_lower.exe" "${mj#$ROOT_DIR/}" 2>/dev/null | tr -d '\r' > "$reast" || true
     if grep -q '^MIR-LOWER ERROR' "$reast"; then
         echo "[self-host-parity:mir-json] $base: mir_lower rejected the MIR-JSON:" >&2
         grep '^MIR-LOWER ERROR' "$reast" | head -1 >&2
         exit 1
+    fi
+    if [[ "$base" == "forloop" ]]; then
+        if ! grep -q 'For: i in 0..3' "$reast"; then
+            echo "[self-host-parity:mir-json] forloop: mir_lower did not reconstruct the for-loop from MIR facts" >&2
+            exit 1
+        fi
+        if grep -q 'If: 0' "$reast"; then
+            echo "[self-host-parity:mir-json] forloop: mir_lower treated the for bound expr as a branch condition" >&2
+            exit 1
+        fi
     fi
     "$B/codegen.exe" "${reast#$ROOT_DIR/}" 2>/dev/null | tr -d '\r' > "$via_c" || true
     if grep -q '^CODEGEN ERROR' "$via_c"; then
