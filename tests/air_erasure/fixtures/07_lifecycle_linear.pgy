@@ -1,0 +1,15 @@
+// Domain-lifecycle axis, fully provable straight-line: taint must keep this
+// ZERO runtime calls (the provable-path erasure claim for the lifecycle axis).
+subject Payment {
+    func Authorize(self) -> Void { }
+    func Capture(self) -> Void { }
+}
+lifecycle Payment {
+    Authorize: Pending -> Authorized;
+    Capture: Authorized -> Captured;
+}
+func Main() -> Void {
+    let p: Payment = Payment();
+    p.Authorize();
+    p.Capture();
+}

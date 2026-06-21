@@ -100,6 +100,7 @@ for (size_t i = 0; i < zone->data.zone_decl.apply_count; i++) {
 **소속 AST 타입 (현재):**
 
 - 타입 선언: `AST_FUNC_DECL`, `AST_CLASS_DECL`, `AST_ABILITY_DECL`, `AST_ROLE_DECL`, `AST_PARTY_DECL`, `AST_ROSTER_DECL`, `AST_WORLD_DECL`, `AST_RELATION_DECL`, `AST_EFFECT_DECL`, `AST_ZONE_DECL`, `AST_EVENT_DECL`, `AST_ENUM_DECL`, `AST_INTENT_DECL`
+- 라이프사이클 선언: `AST_LIFECYCLE_DECL` (semantic lifecycle pass가 registry로 낮춤)
 - 모듈/import: `AST_IMPORT_DECL`, `AST_USE_DECL`, `AST_NAMESPACE_DECL`, `AST_INCLUDE_STMT`, `AST_EXTERN_BLOCK`
 - 별칭: `AST_TYPE_ALIAS`
 - Role 내부 impl block: `AST_IMPL_ABILITY` (role decl child 지만 top-level 유사 처리)

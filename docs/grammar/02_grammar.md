@@ -152,6 +152,7 @@ let n: String = p.name;            // "Account"
 ```pergyra
 // let 키워드 (기본)
 let x = 42;
+let mut count: Int = 0;
 let name: String = "Pergyra";
 let values: Array<Int> = [1, 2, 3];
 
@@ -166,6 +167,7 @@ values := [1, 2, 3];
 | 형태 | 타입 추론 | 타입 명시 | 용도 |
 |------|----------|----------|------|
 | `let x = 42;` | O | O (`let x: Int = 42;`) | 기본 선언 |
+| `let mut x = 42;` | O | O (`let mut x: Int = 42;`) | mutation intent가 있는 선언 |
 | `x := 42;` | O | X | 짧은 선언 |
 
 #### 왜 `let`인가
@@ -176,17 +178,27 @@ values := [1, 2, 3];
 
 #### 가변성
 
-`let`은 **가변(mutable)**이다. Rust/Swift의 `let` (불변)과 다르다.
+Pergyra의 mutability 표면은 `let` / `let mut`으로 분리된다.
+`let`은 binding introducer이고, `let mut`은 이후 mutation intent를
+명시한다. 이 분리는 약점이 아니라 강점이다. mutation이 필요한 저장소가
+source에 드러나고, `inout` value-result mutation이나 Slot/Pin 권한
+mutation과 섞이지 않는다.
 
 ```pergyra
 let x = 42;
-x = x + 1;    // OK — 재할당 가능
+let mut y = 42;
+y = y + 1;    // mutation intent가 명시됨
 
 x := 42;
-x = x + 1;    // OK — 동일
+let mut z: Int = x + 1;
 ```
 
-불변 바인딩이 필요해지면 향후 `let fixed x = 42;` 같은 수식어를 검토한다.
+현재 beta 구현에서 `let mut`은 parser surface와 nominal field assignment
+gate에 반영되어 있다. 특히 `let name: Type;` field는 immutable field
+binding이고, `let mut name: Type;` field만 assignment 가능하다. plain local
+reassignment compatibility는 별도 strict gate가 닫히기 전까지 남을 수
+있지만, 문서와 새 예제의 표준 spelling은 mutation intent가 있는 바인딩에
+`let mut`을 쓴다.
 
 - 일부 자원 타입은 `let` 초기화 규칙이 더 엄격하다.
   예: `QubitSlot`, `DeviceSlot`, `ReadView<T>`, `WriteView<T>`, `MoveToken<T>`

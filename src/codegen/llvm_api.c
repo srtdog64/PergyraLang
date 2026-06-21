@@ -196,6 +196,24 @@ llvm_fn_is_checked_arith(const char *fn_name)
 }
 
 /*
+ * Domain-lifecycle runtime tag helpers. They must NOT be folded into the caller
+ * from bitcode, for two reasons: (1) pgy_runtime_lifecycle_guard_export takes a
+ * fail-closed abort path whose inlined copy mis-lowers (the same hazard as the
+ * panic family), and (2) both helpers share a single process-wide state side-map
+ * that lives in the separately compiled runtime object -- inlined copies would
+ * each carry their own static map and lose all cross-op state. Stripping their
+ * bodies keeps them external so every call resolves to that one runtime object.
+ * They return normally, so they are deliberately excluded from the noreturn set.
+ */
+static bool
+llvm_fn_is_lifecycle_runtime(const char *fn_name)
+{
+    return fn_name != NULL
+        && (strcmp(fn_name, "pgy_runtime_lifecycle_guard_export") == 0
+            || strcmp(fn_name, "pgy_runtime_lifecycle_set_export") == 0);
+}
+
+/*
  * Functions that provably never return to their caller. The panic family
  * qualifies, plus an exact-name table of terminal runtime entrypoints.
  * Matching is exact (not substring) so that returning lookalikes such as
@@ -343,7 +361,9 @@ llvm_exclude_critical_runtime_from_bitcode(LLVMModuleRef runtime_module)
         if (name != NULL && strcmp(name, "pgy_runtime_panic_emit") == 0)
             strip_noreturn = false;
         if (!LLVMIsDeclaration(fn)
-            && (llvm_fn_is_checked_arith(name) || strip_noreturn))
+            && (llvm_fn_is_checked_arith(name)
+                || llvm_fn_is_lifecycle_runtime(name)
+                || strip_noreturn))
             llvm_strip_function_body(fn);
     }
 }

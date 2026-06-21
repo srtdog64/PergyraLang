@@ -187,6 +187,11 @@ ASTNode* parser_parse_statement(Parser* parser) {
         return parser_finalize_statement(parser, parse_type_alias_declaration(parser));
     }
 
+    // 도메인-라이프사이클 선언 (contextual keyword)
+    if (parser_decl_check_contextual_keyword(parser, "lifecycle")) {
+        return parser_finalize_statement(parser, parse_lifecycle_declaration(parser));
+    }
+
     // 클래스 / subject 선언
     if (parser_starts_named_declaration(parser, TOKEN_SUBJECT)) {
         parser_advance(parser);
@@ -498,4 +503,3 @@ ASTNode* parser_parse_statement(Parser* parser) {
     // 표현식 문장
     return parser_finalize_statement(parser, parser_parse_expression_statement(parser));
 }
-

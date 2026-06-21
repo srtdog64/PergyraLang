@@ -1,0 +1,193 @@
+// Deterministic backend-parity fuzz corpus generator.
+//
+// Usage after compiling this file:
+//   backend_parity_generator <seed> <count> <out_dir>
+//
+// The shell parity driver owns directory creation and backend execution. This
+// Pergyra program owns the generated source text and manifest shape.
+
+func Die(message: String) -> Void {
+    Log(Concat("FUZZ GENERATOR ERROR ", message));
+    Exit(1);
+}
+
+func JoinPath(dir: String, name: String) -> String {
+    return Concat(Concat(dir, "/"), name);
+}
+
+func JsonHeader(seed: Int, count: Int) -> String {
+    let out: Array<String> = [];
+    ArrayPush(out, "{\"schema\":\"pgy.selfhost.backend-parity-fuzz-generator.v1\",");
+    ArrayPush(out, "\"kind\":\"header\",");
+    ArrayPush(out, "\"seed\":");
+    ArrayPush(out, ToString(seed));
+    ArrayPush(out, ",\"count\":");
+    ArrayPush(out, ToString(count));
+    ArrayPush(out, "}");
+    return StringJoin(out, "");
+}
+
+func JsonCase(index: Int, file: String, variant: Int) -> String {
+    let out: Array<String> = [];
+    ArrayPush(out, "{\"kind\":\"case\",");
+    ArrayPush(out, "\"index\":");
+    ArrayPush(out, ToString(index));
+    ArrayPush(out, ",\"file\":\"");
+    ArrayPush(out, file);
+    ArrayPush(out, "\",\"variant\":");
+    ArrayPush(out, ToString(variant));
+    ArrayPush(out, "}");
+    return StringJoin(out, "");
+}
+
+func Summary(seed: Int, count: Int) -> String {
+    let out: Array<String> = [];
+    ArrayPush(out, "{\"schema\":\"pgy.selfhost.backend-parity-fuzz-generator.v1\",");
+    ArrayPush(out, "\"ok\":true,");
+    ArrayPush(out, "\"seed\":");
+    ArrayPush(out, ToString(seed));
+    ArrayPush(out, ",\"count\":");
+    ArrayPush(out, ToString(count));
+    ArrayPush(out, "}");
+    return StringJoin(out, "");
+}
+
+func RenderArithmeticCase(index: Int, base: Int, twist: Int) -> String {
+    let lines: Array<String> = [];
+    ArrayPush(lines, "func Mix(x: Int, y: Int) -> Int {");
+    ArrayPush(lines, "    let v: Int = x * 3 + y;");
+    ArrayPush(lines, "    if v % 2 == 0 {");
+    ArrayPush(lines, "        return v / 2;");
+    ArrayPush(lines, "    }");
+    ArrayPush(lines, "    return v + 5;");
+    ArrayPush(lines, "}");
+    ArrayPush(lines, "");
+    ArrayPush(lines, "func Main() -> Void {");
+    ArrayPush(lines, Concat("    let base: Int = ", Concat(ToString(base), ";")));
+    ArrayPush(lines, Concat("    let twist: Int = ", Concat(ToString(twist), ";")));
+    ArrayPush(lines, "    let mut acc: Int = 0;");
+    ArrayPush(lines, "    for i in 0..5 {");
+    ArrayPush(lines, "        acc = acc + Mix(base + i, twist);");
+    ArrayPush(lines, "    }");
+    ArrayPush(lines, "    if (acc > 10) && (twist >= 0) {");
+    ArrayPush(lines, "        Log(Concat(\"arith:\", ToString(acc)));");
+    ArrayPush(lines, "    } else {");
+    ArrayPush(lines, "        Log(\"arith:small\");");
+    ArrayPush(lines, "    }");
+    ArrayPush(lines, "}");
+    return Concat(StringJoin(lines, "\n"), "\n");
+}
+
+func RenderWhileArrayCase(index: Int, base: Int, twist: Int) -> String {
+    let lines: Array<String> = [];
+    ArrayPush(lines, "func Main() -> Void {");
+    ArrayPush(lines, Concat("    let base: Int = ", Concat(ToString(base), ";")));
+    ArrayPush(lines, Concat("    let limit: Int = ", Concat(ToString(4 + twist % 4), ";")));
+    ArrayPush(lines, "    let xs: Array<Int> = [];");
+    ArrayPush(lines, "    let mut i: Int = 0;");
+    ArrayPush(lines, "    while i < limit {");
+    ArrayPush(lines, "        ArrayPush(xs, base + i);");
+    ArrayPush(lines, "        i = i + 1;");
+    ArrayPush(lines, "    }");
+    ArrayPush(lines, "    let mut total: Int = 0;");
+    ArrayPush(lines, "    for j in 0..limit {");
+    ArrayPush(lines, "        total = total + xs[j];");
+    ArrayPush(lines, "    }");
+    ArrayPush(lines, "    Log(Concat(\"array:\", ToString(total + ArrayLength(xs))));");
+    ArrayPush(lines, "}");
+    return Concat(StringJoin(lines, "\n"), "\n");
+}
+
+func RenderStringCase(index: Int, base: Int, twist: Int) -> String {
+    let lines: Array<String> = [];
+    ArrayPush(lines, "func Tag(x: Int) -> String {");
+    ArrayPush(lines, "    if x < 10 {");
+    ArrayPush(lines, "        return Concat(\"lo\", ToString(x));");
+    ArrayPush(lines, "    }");
+    ArrayPush(lines, "    return Concat(\"hi\", ToString(x));");
+    ArrayPush(lines, "}");
+    ArrayPush(lines, "");
+    ArrayPush(lines, "func Main() -> Void {");
+    ArrayPush(lines, Concat("    let base: Int = ", Concat(ToString(base), ";")));
+    ArrayPush(lines, Concat("    let twist: Int = ", Concat(ToString(twist), ";")));
+    ArrayPush(lines, "    let parts: Array<String> = [];");
+    ArrayPush(lines, "    ArrayPush(parts, Tag(base));");
+    ArrayPush(lines, "    ArrayPush(parts, Tag(base + twist));");
+    ArrayPush(lines, "    ArrayPush(parts, ToString(StringLength(\"seed\")));");
+    ArrayPush(lines, "    Log(StringJoin(parts, \"|\"));");
+    ArrayPush(lines, "}");
+    return Concat(StringJoin(lines, "\n"), "\n");
+}
+
+func RenderBranchCase(index: Int, base: Int, twist: Int) -> String {
+    let lines: Array<String> = [];
+    ArrayPush(lines, "func FuzzClamp(x: Int) -> Int {");
+    ArrayPush(lines, "    if x < 0 {");
+    ArrayPush(lines, "        return 0;");
+    ArrayPush(lines, "    }");
+    ArrayPush(lines, "    if x > 40 {");
+    ArrayPush(lines, "        return 40;");
+    ArrayPush(lines, "    }");
+    ArrayPush(lines, "    return x;");
+    ArrayPush(lines, "}");
+    ArrayPush(lines, "");
+    ArrayPush(lines, "func Main() -> Void {");
+    ArrayPush(lines, Concat("    let base: Int = ", Concat(ToString(base), ";")));
+    ArrayPush(lines, Concat("    let twist: Int = ", Concat(ToString(twist), ";")));
+    ArrayPush(lines, "    let left: Int = FuzzClamp(base * 2 - twist);");
+    ArrayPush(lines, "    let right: Int = FuzzClamp(base + twist * 3);");
+    ArrayPush(lines, "    if (left == right) || (left < right) {");
+    ArrayPush(lines, "        Log(Concat(\"branch:\", ToString(right - left)));");
+    ArrayPush(lines, "    } else {");
+    ArrayPush(lines, "        Log(Concat(\"branch:\", ToString(left - right)));");
+    ArrayPush(lines, "    }");
+    ArrayPush(lines, "}");
+    return Concat(StringJoin(lines, "\n"), "\n");
+}
+
+func RenderProgram(index: Int, variant: Int) -> String {
+    let base: Int = 1 + Random(17);
+    let twist: Int = 1 + Random(9);
+    if variant == 0 {
+        return RenderArithmeticCase(index, base, twist);
+    }
+    if variant == 1 {
+        return RenderWhileArrayCase(index, base, twist);
+    }
+    if variant == 2 {
+        return RenderStringCase(index, base, twist);
+    }
+    return RenderBranchCase(index, base, twist);
+}
+
+func Main() -> Void {
+    let args: Array<String> = Args();
+    if ArrayLength(args) < 3 {
+        Die("usage: <seed> <count> <out_dir>");
+    }
+
+    let seed: Int = ToInt(args[0]);
+    let count: Int = ToInt(args[1]);
+    let out_dir: String = args[2];
+    if count <= 0 {
+        Die("count must be positive");
+    }
+
+    SeedRandom(seed);
+
+    let manifest: Array<String> = [];
+    ArrayPush(manifest, JsonHeader(seed, count));
+
+    let mut i: Int = 0;
+    while i < count {
+        let variant: Int = Random(4);
+        let name: String = Concat("f", Concat(ToString(i), ".pgy"));
+        let source: String = RenderProgram(i, variant);
+        WriteFile(JoinPath(out_dir, name), source);
+        ArrayPush(manifest, JsonCase(i, name, variant));
+        i = i + 1;
+    }
+
+    WriteFile(JoinPath(out_dir, "manifest.jsonl"), Concat(StringJoin(manifest, "\n"), "\n"));
+    Log(Summary(seed, count));
+}

@@ -36,7 +36,15 @@ require_text "docs/semantics/09_abstraction_loss_contracts.md" "Stable surface: 
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "Loss is not automatically a bug. Hidden loss is the bug."
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "An abstraction loss contract has seven fields:"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "Loss budget classes:"
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "Compression budget classes:"
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "proof-gated erasure contract"
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "Zone is a semantic boundary"
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "World/Zone/Intent/Slot are source-level semantic axes, not backend-level"
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "The chain World -> Zone -> Roster -> Role -> Intent -> Slot"
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "Missing evidence fails closed."
+require_text "docs/semantics/09_abstraction_loss_contracts.md" '`compression_budget` and'
 require_text "docs/semantics/09_abstraction_loss_contracts.md" '`consumer forbidden_to_recover fact from source`'
+require_text "docs/semantics/09_abstraction_loss_contracts.md" '`K compression budget fact`'
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "### AST To HIR/DIR/RIR/MIR"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "### MIR To AIR"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "### MIR To C And LLVM"
@@ -62,6 +70,7 @@ require_text "docs/semantics/pass_contract_manifest.md" "<!-- BEGIN pass-contrac
 require_text "docs/semantics/pass_contract_manifest.md" "<!-- END pass-contract-manifest -->"
 require_text "docs/semantics/pass_contract_manifest.md" "mir_cfg_body_safety | src/compiler/mir_fact_surface_validate.c | tests/cfg_body_dataflow_smoke.sh | gate-backed"
 require_text "docs/semantics/pass_contract_manifest.md" "air_boundary_evidence | src/compiler/air_validate_global_evidence.c | tests/air_drift_smoke.sh | gate-backed"
+require_text "docs/semantics/pass_contract_manifest.md" "air_abstraction_compression | src/compiler/air_boundary.c | tests/air_json_schema_smoke.sh | gate-backed"
 require_text "docs/semantics/pass_contract_manifest.md" "dag_type_resolution | src/semantic/type_checker_resolution_metadata.c | tests/type_resolution_resolver_inventory_smoke.sh | gate-backed"
 require_text "docs/semantics/pass_contract_manifest.md" "mir_decl_bootstrap_parity | src/codegen/llvm_decl.c | tests/mir_declaration_inventory_smoke.sh | gate-backed"
 require_text "docs/semantics/pass_contract_manifest.md" "abi_slot_pin_layout | src/compiler/mir_abi_layout.c | tests/abi_ownership_shape_smoke.sh | gate-backed"
@@ -74,15 +83,20 @@ require_text "docs/semantics/pass_contract_manifest.md" "unowned_ast_rescan"
 require_text "docs/semantics/pass_contract_manifest.md" "backend_ast_semantic_read"
 require_text "docs/semantics/pass_contract_manifest.md" "backend_local_layout_guess"
 require_text "docs/semantics/pass_contract_manifest.md" "compat_success_without_fact"
+require_text "docs/semantics/pass_contract_manifest.md" "backend_source_axis_physicalization"
+require_text "docs/semantics/pass_contract_manifest.md" "compression_budget"
+require_text "docs/semantics/pass_contract_manifest.md" "proof_gated_erasure_vocabulary"
 
 for rel in \
     "src/compiler/mir_fact_surface_validate.c" \
     "src/compiler/air_validate_global_evidence.c" \
+    "src/compiler/air_boundary.c" \
     "src/semantic/type_checker_resolution_metadata.c" \
     "src/codegen/llvm_decl.c" \
     "src/compiler/mir_abi_layout.c" \
     "tests/cfg_body_dataflow_smoke.sh" \
     "tests/air_drift_smoke.sh" \
+    "tests/air_json_schema_smoke.sh" \
     "tests/type_resolution_resolver_inventory_smoke.sh" \
     "tests/mir_declaration_inventory_smoke.sh" \
     "tests/abi_ownership_shape_smoke.sh"; do
@@ -95,8 +109,13 @@ require_text "docs/semantics/README.md" "proofs/IRMinimality.v"
 require_text "docs/102_formal_semantics_and_proof_obligations.md" "docs/semantics/09_abstraction_loss_contracts.md"
 require_text "docs/104_air_compiler_architecture.md" "The general version of this rule is the abstraction loss contract"
 require_text "docs/37_compiler_contracts.md" "### Loss Contracts"
+require_text "docs/37_compiler_contracts.md" "Compression uses the same owner discipline."
+require_text "docs/37_compiler_contracts.md" '`compression_budget` plus'
 require_text "docs/125_source_of_truth_spine.md" "## 9. Loss Contract Rule"
 require_text "docs/125_source_of_truth_spine.md" "what fact is intentionally lost"
 require_text "docs/125_source_of_truth_spine.md" "which later layer is forbidden from rereading the older source"
+require_text "docs/125_source_of_truth_spine.md" "compression_budget"
+require_text "docs/125_source_of_truth_spine.md" "optimizer guesswork"
+require_text "docs/125_source_of_truth_spine.md" "not a required runtime object graph"
 
 echo "[abstraction-loss-contract] contract vocabulary and proof-pack links ok"

@@ -176,3 +176,150 @@ air_boundary_declares_authority_name(const AIRBoundaryNode *boundary,
     }
     return false;
 }
+
+static bool
+air_boundary_has_authority_contract(const AIRBoundaryNode *boundary)
+{
+    return boundary != NULL
+        && (boundary->authority_required
+            || boundary->authority_from_zone
+            || boundary->authority_from_action
+            || air_boundary_authority_name_count(boundary) > 0);
+}
+
+AIRCompressionBudget
+air_boundary_compression_budget(const AIRBoundaryNode *boundary)
+{
+    if (boundary == NULL)
+        return AIR_COMPRESSION_UNKNOWN;
+    switch (boundary->kind) {
+    case AIR_BOUNDARY_ZONE:
+        return air_boundary_has_authority_contract(boundary)
+            ? AIR_COMPRESSION_RETAIN
+            : AIR_COMPRESSION_SUMMARIZE;
+    case AIR_BOUNDARY_WORLD:
+    case AIR_BOUNDARY_PARALLEL:
+    case AIR_BOUNDARY_IO:
+    case AIR_BOUNDARY_CHANNEL:
+    case AIR_BOUNDARY_EXECUTION:
+        return AIR_COMPRESSION_RETAIN;
+    case AIR_BOUNDARY_UNKNOWN:
+    default:
+        return AIR_COMPRESSION_UNKNOWN;
+    }
+}
+
+/*
+ * The A/B bucket of a boundary's retain. A RETAIN boundary is runtime-visible
+ * coordination/authority that no analysis can erase (INHERENT / bucket A); a
+ * SUMMARIZE boundary is kept as a policy digest for traceability (POLICY /
+ * bucket B). ERASE/FORBID/UNKNOWN retain nothing. The UNPROVEN (bucket C) cause
+ * does not originate at a boundary - it is the lifecycle CHECK-guard residue,
+ * counted program-wide via air_unproven_retain_count().
+ */
+AIRRetainCause
+air_boundary_retain_cause(const AIRBoundaryNode *boundary)
+{
+    switch (air_boundary_compression_budget(boundary)) {
+    case AIR_COMPRESSION_RETAIN:
+        return AIR_RETAIN_CAUSE_INHERENT;
+    case AIR_COMPRESSION_SUMMARIZE:
+        return AIR_RETAIN_CAUSE_POLICY;
+    case AIR_COMPRESSION_ERASE:
+    case AIR_COMPRESSION_FORBID:
+    case AIR_COMPRESSION_UNKNOWN:
+    default:
+        return AIR_RETAIN_CAUSE_NONE;
+    }
+}
+
+const char *
+air_boundary_compression_reason(const AIRBoundaryNode *boundary)
+{
+    if (boundary == NULL)
+        return "missing boundary cannot be compressed";
+    switch (boundary->kind) {
+    case AIR_BOUNDARY_ZONE:
+        return air_boundary_has_authority_contract(boundary)
+            ? "authority-bearing zone boundary is runtime-visible"
+            : "static zone contract is semantic provenance only";
+    case AIR_BOUNDARY_WORLD:
+        return "world/transfer boundary is runtime-visible coordination";
+    case AIR_BOUNDARY_PARALLEL:
+        return "parallel boundary is runtime-visible coordination";
+    case AIR_BOUNDARY_IO:
+        return "io boundary is runtime-visible";
+    case AIR_BOUNDARY_CHANNEL:
+        return "channel boundary is runtime-visible coordination";
+    case AIR_BOUNDARY_EXECUTION:
+        return "execution boundary is runtime-visible";
+    case AIR_BOUNDARY_UNKNOWN:
+    default:
+        return "unknown boundary kind cannot be compressed";
+    }
+}
+
+static bool
+air_intent_has_boundary_budget(const AIRProgram *air,
+                               size_t intent_index,
+                               AIRCompressionBudget budget)
+{
+    if (air == NULL)
+        return false;
+    for (size_t i = 0; i < air_boundary_node_count(air); i++) {
+        const AIRBoundaryNode *boundary = air_boundary_node_at(air, i);
+        if (boundary != NULL
+            && boundary->intent_index == intent_index
+            && air_boundary_compression_budget(boundary) == budget) {
+            return true;
+        }
+    }
+    return false;
+}
+
+AIRCompressionBudget
+air_intent_compression_budget(const AIRProgram *air, size_t intent_index)
+{
+    const AIRIntentNode *intent = air_intent_node_at(air, intent_index);
+    if (intent == NULL)
+        return AIR_COMPRESSION_UNKNOWN;
+    if (air_intent_has_boundary_budget(air, intent_index, AIR_COMPRESSION_RETAIN))
+        return AIR_COMPRESSION_RETAIN;
+    if (intent->failure_class == AIR_FAILURE_FATAL
+        || intent->failure_class == AIR_FAILURE_COMPENSABLE
+        || intent->sync_class == AIR_SYNC_ASYNC
+        || intent->sync_class == AIR_SYNC_EITHER) {
+        return AIR_COMPRESSION_RETAIN;
+    }
+    if (intent->requires_from_action
+        || intent->causes_from_action
+        || air_intent_has_boundary_budget(air,
+                                          intent_index,
+                                          AIR_COMPRESSION_SUMMARIZE)) {
+        return AIR_COMPRESSION_SUMMARIZE;
+    }
+    return AIR_COMPRESSION_ERASE;
+}
+
+const char *
+air_intent_compression_reason(const AIRProgram *air, size_t intent_index)
+{
+    const AIRIntentNode *intent = air_intent_node_at(air, intent_index);
+    if (intent == NULL)
+        return "missing intent cannot be compressed";
+    if (air_intent_has_boundary_budget(air, intent_index, AIR_COMPRESSION_RETAIN))
+        return "runtime-visible boundary keeps the intent step";
+    if (intent->failure_class == AIR_FAILURE_FATAL
+        || intent->failure_class == AIR_FAILURE_COMPENSABLE)
+        return "failure/effect policy keeps the intent step";
+    if (intent->sync_class == AIR_SYNC_ASYNC
+        || intent->sync_class == AIR_SYNC_EITHER)
+        return "async/either sync policy keeps the intent step";
+    if (intent->requires_from_action || intent->causes_from_action)
+        return "action contract evidence is retained as summary";
+    if (air_intent_has_boundary_budget(air,
+                                       intent_index,
+                                       AIR_COMPRESSION_SUMMARIZE))
+        return "static boundary evidence is retained as summary";
+    return "verified pure orchestration lowers to call sequence";
+}

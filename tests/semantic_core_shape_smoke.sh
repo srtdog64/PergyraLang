@@ -3000,6 +3000,49 @@ if grep -R "data\.zone_\(apply\|detach\|link\|unlink\|maintain_effect\|maintain_
     fail "semantic/compiler/codegen zone lifecycle directive consumers must use AST zone directive accessors"
 fi
 
+for term in \
+    "lc_walk_merge_existing_vars(w, &then_walk, &else_walk)" \
+    "semantic_type_resolution_lookup_metadata_type_ref(w->ctx," \
+    "LC_NEEDS_RUNTIME_CHECK" \
+    "lc_annotate_runtime_guards(&accum)" \
+    "lc_guard_add(O->node," \
+    "LC_GUARD_CHECK : LC_GUARD_SET"; do
+    if ! grep -Fq "$term" src/semantic/lifecycle_analyze.c; then
+        fail "domain lifecycle analyzer must consume the lifecycle engine verdict: $term"
+    fi
+done
+
+for term in \
+    "lc_guard_find(stmt)" \
+    "inst->has_lifecycle_guard_fact = true" \
+    "MIR_LIFECYCLE_GUARD_CHECK"; do
+    if ! grep -Fq "$term" src/compiler/mir_call_fact.c; then
+        fail "MIR lowering must copy semantic lifecycle verdicts into MIR instruction facts: $term"
+    fi
+done
+
+for term in \
+    "mir_instruction_has_lifecycle_guard(inst)" \
+    "mir_instruction_lifecycle_guard_kind(inst)" \
+    "mir_instruction_lifecycle_to_state(inst)"; do
+    if ! grep -Fq "$term" src/codegen/transpiler_mir_stmt_emit.c; then
+        fail "C MIR lifecycle guard emission must consume MIR lifecycle guard facts: $term"
+    fi
+    if ! grep -Fq "$term" src/codegen/llvm_mir_block_emit.c; then
+        fail "LLVM MIR lifecycle guard emission must consume MIR lifecycle guard facts: $term"
+    fi
+done
+
+if grep -R "lc_guard_find" src/codegen/llvm_mir_block_emit.c \
+        src/codegen/transpiler_mir_stmt_emit.c >/dev/null 2>&1; then
+    fail "MIR-active lifecycle guard emission must not reread semantic AST-node side tables"
+fi
+
+if grep -R "lc_registry_" src/parser >/dev/null 2>&1 ||
+   grep -R "lifecycle_state.h" src/parser >/dev/null 2>&1; then
+    fail "parser must not populate semantic lifecycle registry"
+fi
+
 if grep -R "data\.zone_refresh\." src/semantic src/compiler src/codegen >/dev/null; then
     fail "semantic/compiler/codegen zone refresh/projection consumers must use AST zone-refresh accessors"
 fi

@@ -559,6 +559,28 @@ action-inherited, and drift diagnostics report active provenance as
 `authority_provenance=action-inherited|explicit|none`; compatibility-only
 zone authority fields are labeled `legacy-zone-field`.
 
+### Compression Budget
+
+AIR also owns the first stable proof-gated erasure vocabulary. Source-level
+axes such as World, Zone, Intent, and Slot are semantic axes; they are not
+automatically backend-level physical artifacts. AIR therefore exposes a
+`compression_budget` and `compression_reason` on intent and boundary nodes in
+`pgy.air.graph.v1`:
+
+- `retain`: runtime-visible execution, authority, coordination, failure, IO,
+  channel, parallel, world transfer, or execution-boundary behavior remains.
+- `summarize`: the runtime carrier may disappear, but AIR keeps the
+  evidence/provenance fact.
+- `erase`: static evidence fully discharges the abstraction and ordinary
+  call/value lowering is enough.
+- `forbid`: erasure would change meaning until a stronger owner fact exists.
+
+The initial implementation is conservative: runtime-visible boundaries retain,
+authority-free static zone contracts summarize, and pure intent orchestration
+can erase to the call sequence. Backends must not invent zone/world/intent
+carriers, padding, barriers, or runtime authority checks from source syntax
+alone; physical layout still belongs to MIR/ABI layout facts.
+
 ### Phase 2 (post-beta, toward 1.0)
 
 - `EvidenceNode` is no longer a post-beta TODO. HIR/RIR/MIR/DAG provenance is

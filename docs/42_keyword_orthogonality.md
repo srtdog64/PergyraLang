@@ -1,12 +1,38 @@
 # Pergyra Keyword Orthogonality
 
-Last updated: 2026-05-20
+Last updated: 2026-06-21
 
 This document fixes the semantic question answered by each Pergyra keyword
 family. The goal is not to reduce the number of keywords mechanically. The
 goal is to keep different semantic axes from silently owning the same question.
 
-## 0. Four Top-Level Axes
+## 0. Game-Derived World Ontology
+
+The number of keywords is a real cost, but it is not automatically accidental
+feature growth. Pergyra's core vocabulary is best understood as a world-modeling
+ontology extracted from games, not as genre-specific game nouns.
+
+Games are one of the most compact and common human forms for modeling a world:
+they expose actors, places, resources, abilities, roles, relations, effects,
+rules, authority, goals, failure, recovery, and observable history. Business
+workflows, logistics, permissions, simulations, and agent orchestration keep
+recreating the same shape. Pergyra promotes a recurring coordinate into a core
+language primitive only when the compiler must understand that coordinate as a
+semantic fact with a proof obligation.
+
+That is the keyword adequacy rule:
+
+- a core keyword must name a distinct world-modeling coordinate;
+- it must have a compiler fact owner;
+- it must carry a proof, diagnostic, backend, runtime, or verifier obligation;
+- it must remain orthogonal to neighboring keywords;
+- domain-specific nouns such as `quest`, `item`, `inventory`, `npc`, `player`,
+  `buff`, or `scene` belong in libraries or kits, not core syntax.
+
+So the target is not fewer keywords by default. The target is one keyword per
+semantic axis, and no duplicate truth path for the same axis.
+
+## 1. Four Top-Level Axes
 
 | Axis | Question | Surface |
 | --- | --- | --- |
@@ -18,7 +44,7 @@ goal is to keep different semantic axes from silently owning the same question.
 These axes are not mutually isolated sublanguages. They meet in the verifier
 graph. Ownership is kept by the axis that owns the final fact.
 
-## 1. Core Definitions
+## 2. Core Definitions
 
 | Keyword | Orthogonal meaning |
 | --- | --- |
@@ -37,7 +63,7 @@ graph. Ownership is kept by the axis that owns the final fact.
 | `action` | Verifiable behavior with `requires`, `within`, `authorized by`, and `causes` contracts. |
 | `intent` | Orchestration spine that orders actions, compensation, rollback, and observability. |
 
-## 2. Intent Is Not A Universal Owner
+## 3. Intent Is Not A Universal Owner
 
 `intent` is the spine of code, but it is not the owner of every authority or
 resource fact. Intent combines facts from other axes and records provenance.
@@ -61,7 +87,7 @@ fail-closed and must be explicit or inherited from an explicit action contract.
 If this rule is broken, `intent` becomes a generic workflow VM and the meaning
 of `zone`, `authority`, and `effect` collapses.
 
-## 3. Current Pain Point: Fillable Intent Frames, Not Orthogonality
+## 4. Current Pain Point: Fillable Intent Frames, Not Orthogonality
 
 The current pain point is not that the axes are wrong. The pain point is that
 the authoring surface often asks humans or AI agents to repeat facts that are
@@ -105,7 +131,7 @@ In short: a human states or reviews the goal, AI may propose or fill the intent 
 and the compiler verifies the frame. The compiler may derive only facts that
 have declared language evidence, and every derived fact must be inspectable.
 
-## 4. Important Distinctions
+## 5. Important Distinctions
 
 ### ability/role vs authority
 
@@ -132,7 +158,7 @@ capability.
 model. Static safety comes from CFG/AIR boundary verification and MIR cleanup
 facts; runtime safety comes from generation, token, release, and pin checks.
 
-## 5. Orthogonality Audit Procedure
+## 6. Orthogonality Audit Procedure
 
 When adding or changing a keyword, clause, or diagnostic, answer these
 questions:
@@ -151,7 +177,7 @@ AIR is not the owner of domain semantics; it verifies boundary evidence.
 Rule 4 is the practical failure detector: if backend code walks AST again to
 rediscover a semantic fact, it is an orthogonality violation.
 
-## 6. Layered Diagnostics
+## 7. Layered Diagnostics
 
 User-facing diagnostics should expose the layer that owns the failure:
 

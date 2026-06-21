@@ -134,6 +134,12 @@ air_validate(const AIRProgram *air, char **error_message)
             air_set_invariant_error(error_message, "AIR intent node %zu has unknown failure class", i);
             return false;
         }
+        if (air_intent_compression_budget(air, i) == AIR_COMPRESSION_UNKNOWN) {
+            air_set_invariant_error(error_message,
+                                    "AIR intent node %zu has unknown compression budget",
+                                    i);
+            return false;
+        }
     }
     for (size_t i = 0; i < air_boundary_node_count(air); i++) {
         const AIRBoundaryNode *boundary = air_boundary_node_at(air, i);
@@ -193,6 +199,13 @@ air_validate(const AIRProgram *air, char **error_message)
                                     i,
                                     air_sync_class_name(boundary->sync_class),
                                     air_boundary_kind_name(boundary->kind));
+            return false;
+        }
+        if (air_boundary_compression_budget(boundary)
+            == AIR_COMPRESSION_UNKNOWN) {
+            air_set_invariant_error(error_message,
+                                    "AIR boundary node %zu has unknown compression budget",
+                                    i);
             return false;
         }
         if (boundary->kind == AIR_BOUNDARY_WORLD

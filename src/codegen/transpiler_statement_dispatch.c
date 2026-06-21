@@ -1,9 +1,11 @@
 #include "transpiler_statement_dispatch.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
+#include "../semantic/lifecycle_state.h"
 
 #include "transpiler_context.h"
 #include "transpiler_control_flow_emit.h"
@@ -94,11 +96,52 @@ transpiler_emit_bind_statement_parts(TranspilerCtx *ctx,
     return true;
 }
 
+/* Emit the domain-lifecycle runtime guard the semantic pass annotated onto this
+ * `v.Op()` call (doc/12 section 2.3). LC_GUARD_CHECK is the fail-closed guard for
+ * an ambiguous state; LC_GUARD_SET records a proven transition so a later
+ * ambiguous guard sees the right state. The receiver is re-emitted through
+ * emit_expression so it resolves to the same (SSA-mapped) lvalue the call uses,
+ * keeping the C and LLVM lowerings reading the identical AST-node annotation.
+ * Construction state defaults to the initial index (absent == state 0) in the
+ * runtime side-map, so no separate init is emitted here. */
+static void
+emit_lifecycle_guard_for_call(ASTNode *node, TranspilerCtx *ctx)
+{
+    const LcGuardSite *g = lc_guard_find(node);
+    ASTNode *callee;
+    ASTNode *obj;
+    char    *recv;
+
+    if (g == NULL || node->type != AST_CALL)
+        return;
+    callee = ast_call_callee(node);
+    obj = callee != NULL ? ast_member_object(callee) : NULL;
+    if (obj == NULL || obj->type != AST_IDENTIFIER)
+        return;
+    recv = emit_expression(obj, ctx);
+    if (recv == NULL || recv[0] == '\0') {
+        free(recv);
+        return;
+    }
+    write_indent(ctx);
+    if (g->kind == LC_GUARD_CHECK)
+        codebuf_write(ctx->out,
+            "pgy_runtime_lifecycle_guard_export(&(%s), %uu, %d, \"%s\", \"%s\");\n",
+            recv, (unsigned)g->valid_mask, g->to_state, g->op, g->subject);
+    else
+        codebuf_write(ctx->out,
+            "pgy_runtime_lifecycle_set_export(&(%s), %d);\n",
+            recv, g->to_state);
+    free(recv);
+}
+
 void
 emit_statement(ASTNode *node, TranspilerCtx *ctx)
 {
     if (node == NULL)
         return;
+
+    emit_lifecycle_guard_for_call(node, ctx);
 
     switch (node->type) {
     case AST_LET_DECL:
@@ -106,6 +149,9 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         break;
     case AST_TYPE_ALIAS:
         emit_type_alias_decl(node, ctx);
+        break;
+    case AST_LIFECYCLE_DECL:
+        /* Consumed by semantic lifecycle analysis; no C statement emission. */
         break;
     case AST_LET_DESTRUCTURE:
         emit_let_destructure_statement(node, ctx);

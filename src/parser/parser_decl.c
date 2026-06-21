@@ -1,4 +1,5 @@
 ﻿#include "parser_internal.h"
+#include <string.h>
 
 static bool
 parser_append_func_param(Parser *parser, ASTNode *func, FuncParam *param)
@@ -248,6 +249,79 @@ ASTNode* parse_class_declaration(Parser* parser) {
 
 ASTNode* parse_subject_declaration(Parser* parser) {
     return parse_type_declaration(parser, NOMINAL_DECL_SUBJECT);
+}
+
+/*
+ * Domain-lifecycle declaration (docs/semantics/12). Surface:
+ *   lifecycle <Subject> { <Op>: <FromState> -> <ToState>; ... }
+ * Parser owns syntax only. The semantic lifecycle pass consumes this AST node
+ * and populates the lifecycle registry.
+ */
+static char *
+parser_lifecycle_token_name_owned(Token t)
+{
+    if (t.text == NULL)
+        return pergyra_strdup("");
+    return pergyra_strndup(t.text, t.length);
+}
+
+ASTNode *parse_lifecycle_declaration(Parser* parser) {
+    ASTNode *decl;
+    char *subject;
+    Token name;
+
+    parser_advance(parser); /* consume the contextual 'lifecycle' keyword */
+    name = consume_name_token(parser, "Expected subject name after 'lifecycle'");
+    subject = parser_lifecycle_token_name_owned(name);
+    decl = ast_create_lifecycle_declaration(subject);
+    free(subject);
+    if (decl == NULL) {
+        parser_error(parser, "Out of memory while parsing lifecycle declaration");
+        return NULL;
+    }
+
+    if (!parser_match(parser, TOKEN_LBRACE)) {
+        parser_error(parser, "Expected '{' to open lifecycle '%s'",
+                     ast_lifecycle_subject(decl) != NULL
+                         ? ast_lifecycle_subject(decl)
+                         : "<unknown>");
+        return decl;
+    }
+    while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        char *op;
+        char *from;
+        char *to;
+        Token t;
+
+        t = consume_name_token(parser, "Expected operation name in lifecycle");
+        op = parser_lifecycle_token_name_owned(t);
+        if (!parser_match(parser, TOKEN_COLON)) {
+            parser_error(parser, "Expected ':' after lifecycle operation '%s'",
+                         op != NULL ? op : "<unknown>");
+            free(op);
+            break;
+        }
+        t = consume_name_token(parser, "Expected from-state in lifecycle transition");
+        from = parser_lifecycle_token_name_owned(t);
+        if (!parser_match(parser, TOKEN_ARROW)) {
+            parser_error(parser, "Expected '->' in lifecycle transition for '%s'",
+                         op != NULL ? op : "<unknown>");
+            free(op);
+            free(from);
+            break;
+        }
+        t = consume_name_token(parser, "Expected to-state in lifecycle transition");
+        to = parser_lifecycle_token_name_owned(t);
+        parser_match(parser, TOKEN_SEMICOLON); /* terminator, tolerated optional */
+
+        if (!ast_lifecycle_add_transition(decl, op, from, to))
+            parser_error(parser, "Out of memory while parsing lifecycle transition");
+        free(op);
+        free(from);
+        free(to);
+    }
+    parser_match(parser, TOKEN_RBRACE);
+    return decl;
 }
 
 ASTNode* parse_vessel_declaration(Parser* parser) {

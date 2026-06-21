@@ -52,13 +52,16 @@ air_dump(const AIRProgram *air, FILE *out)
         if (intent == NULL)
             continue;
         fprintf(out,
-                "  intent[%zu] owner=%s step=%s index=%zu sync=%s failure=%s who_from_intent_default=%s who_from_on_receiver=%s who_from_single_participant=%s requires_from_action=%s causes_from_action=%s\n",
+                "  intent[%zu] owner=%s step=%s index=%zu sync=%s failure=%s compression=%s compression_reason=%s who_from_intent_default=%s who_from_on_receiver=%s who_from_single_participant=%s requires_from_action=%s causes_from_action=%s\n",
                 i,
                 intent->intent_owner != NULL ? intent->intent_owner : "<anonymous>",
                 intent->step_name != NULL ? intent->step_name : "<unnamed>",
                 intent->step_index,
                 air_sync_class_name(intent->sync_class),
                 air_failure_class_name(intent->failure_class),
+                air_compression_budget_name(
+                    air_intent_compression_budget(air, i)),
+                air_intent_compression_reason(air, i),
                 intent->who_from_intent_default ? "yes" : "no",
                 intent->who_from_on_receiver ? "yes" : "no",
                 intent->who_from_single_participant ? "yes" : "no",
@@ -70,7 +73,7 @@ air_dump(const AIRProgram *air, FILE *out)
         if (boundary == NULL)
             continue;
         fprintf(out,
-                "  boundary[%zu] kind=%s owner=%s source=%s intent=%zu step=%zu sync=%s authority=%s source_from_intent_default=%s source_from_action=%s source_from_transfer=%s authority_from_zone=%s authority_from_action=%s\n",
+                "  boundary[%zu] kind=%s owner=%s source=%s intent=%zu step=%zu sync=%s compression=%s compression_reason=%s authority=%s source_from_intent_default=%s source_from_action=%s source_from_transfer=%s authority_from_zone=%s authority_from_action=%s\n",
                 i,
                 air_boundary_kind_name(boundary->kind),
                 boundary->owner_name != NULL ? boundary->owner_name : "<anonymous>",
@@ -78,6 +81,9 @@ air_dump(const AIRProgram *air, FILE *out)
                 boundary->intent_index,
                 boundary->step_index,
                 air_sync_class_name(boundary->sync_class),
+                air_compression_budget_name(
+                    air_boundary_compression_budget(boundary)),
+                air_boundary_compression_reason(boundary),
                 boundary->authority_required ? "yes" : "no",
                 boundary->source_from_intent_default ? "yes" : "no",
                 boundary->source_from_action ? "yes" : "no",

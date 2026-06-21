@@ -488,6 +488,14 @@ struct ASTNode
         ASTZoneAuthorityData zone_authority;
         ASTZoneStateData zone_state;
 
+        /* lifecycle Subject { Op: From -> To; } */
+        struct {
+            char* subject;
+            LifecycleTransitionDecl* transitions;
+            size_t transition_count;
+            size_t transition_capacity;
+        } lifecycle_decl;
+
         /* Event declaration */
         struct {
             char* name;

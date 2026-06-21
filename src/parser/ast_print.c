@@ -416,6 +416,22 @@ void ast_print(ASTNode* node, int indent) {
                 ast_print(node->data.enum_decl.methods[i], indent + 1);
             break;
 
+        case AST_LIFECYCLE_DECL:
+            printf("Lifecycle: %s\n",
+                   node->data.lifecycle_decl.subject != NULL
+                       ? node->data.lifecycle_decl.subject
+                       : "<unknown>");
+            for (size_t i = 0; i < node->data.lifecycle_decl.transition_count; i++) {
+                const LifecycleTransitionDecl *t =
+                    &node->data.lifecycle_decl.transitions[i];
+                ast_print_indent(indent + 1);
+                printf("%s: %s -> %s\n",
+                       t->op != NULL ? t->op : "<op>",
+                       t->from_state != NULL ? t->from_state : "<from>",
+                       t->to_state != NULL ? t->to_state : "<to>");
+            }
+            break;
+
         case AST_NAMESPACE_DECL:
             printf("Namespace: %s\n", node->data.namespace_decl.name);
             for (size_t i = 0; i < node->data.namespace_decl.count; i++) {

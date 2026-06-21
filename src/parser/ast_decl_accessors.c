@@ -25,6 +25,8 @@ ast_declaration_name_slot(ASTNode* node)
         return &node->data.let_decl.name;
     case AST_TYPE_ALIAS:
         return &node->data.type_alias.name;
+    case AST_LIFECYCLE_DECL:
+        return &node->data.lifecycle_decl.subject;
     case AST_ABILITY_DECL:
         return &node->data.ability_decl.name;
     case AST_ROLE_DECL:
@@ -293,6 +295,32 @@ ast_type_alias_target_type(const ASTNode* node)
     if (node == NULL || node->type != AST_TYPE_ALIAS)
         return NULL;
     return node->data.type_alias.target_type;
+}
+
+const char*
+ast_lifecycle_subject(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_LIFECYCLE_DECL)
+        return NULL;
+    return node->data.lifecycle_decl.subject;
+}
+
+size_t
+ast_lifecycle_transition_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_LIFECYCLE_DECL)
+        return 0;
+    return node->data.lifecycle_decl.transition_count;
+}
+
+const LifecycleTransitionDecl*
+ast_lifecycle_transition(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_LIFECYCLE_DECL
+        || index >= node->data.lifecycle_decl.transition_count) {
+        return NULL;
+    }
+    return &node->data.lifecycle_decl.transitions[index];
 }
 
 const char*

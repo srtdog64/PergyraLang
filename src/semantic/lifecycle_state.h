@@ -27,6 +27,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 /* A tracked value's lifecycle state during analysis. Non-negative values index
  * into LcMachine.state_names; the two negatives are analysis lattice points. */
@@ -82,13 +83,18 @@ LcState lc_merge(LcState a, LcState b);
 /* Human-readable state name for diagnostics ("<uninit>" / "<ambiguous>"). */
 const char *lc_state_name(const LcMachine *m, LcState s);
 
+/* Bitmask of the real (>= 0) states from which `op` has a transition, i.e. the
+ * states in which `op` is permitted. Lowered into the runtime guard's
+ * `valid_mask`. Constructor transitions (from == LC_UNINIT) are excluded since a
+ * live runtime state is always a real state index. */
+uint32_t lc_op_valid_from_mask(const LcMachine *m, int op);
+
 /* ----------------------------------------------------------------
  * Lifecycle declaration registry.
  *
- * Populated by the parser when it sees a `lifecycle <Subject> { ... }` form,
- * read by the analysis pass. Neutral storage: no AST / no semantic deps, so the
- * parser can register without a layering inversion. Fixed-capacity (no malloc);
- * one process compiles one program, reset at the start of analysis.
+ * Populated by the semantic lifecycle pass from AST_LIFECYCLE_DECL nodes.
+ * Neutral storage: no AST dependency in the engine itself. Fixed-capacity
+ * (no malloc); reset at the start of each lifecycle analysis run.
  * ---------------------------------------------------------------- */
 
 #define LC_MAX_SPECS   64
@@ -119,6 +125,42 @@ bool           lc_registry_add_transition(int sid, const char *op,
 int            lc_registry_count(void);
 const LcSpec  *lc_registry_at(int i);
 const LcSpec  *lc_registry_find(const char *subject);
+
+/* ----------------------------------------------------------------
+ * Lifecycle runtime-guard side-table.
+ *
+ * The semantic pass annotates AST nodes (a governed `let`, or a `v.Op()` call)
+ * that need runtime state-tag lowering. Keyed by the node pointer so both
+ * backends -- which both consume the same AST nodes at their member-call /
+ * let emit -- read the same annotation and emit the same runtime call, keeping
+ * the C and LLVM lowerings uniform by construction. Populated during semantic
+ * analysis, read during codegen; reset at the start of each analysis run.
+ * ---------------------------------------------------------------- */
+
+#define LC_MAX_GUARDS 1024
+
+typedef enum {
+    LC_GUARD_SET,   /* record state (construction / proven transition) */
+    LC_GUARD_CHECK  /* fail-closed check against valid_mask, then advance */
+} LcGuardKind;
+
+typedef struct {
+    const void *node;        /* AST node pointer (key) */
+    LcGuardKind kind;
+    uint32_t    valid_mask;  /* permitted-from set (LC_GUARD_CHECK) */
+    int         to_state;    /* state to record after the op (or init state) */
+    char        op[LC_NAME_LEN];
+    char        subject[LC_NAME_LEN];
+} LcGuardSite;
+
+void               lc_guard_reset(void);
+/* Register a guard site for `node`. A second add for the same node overwrites
+ * (idempotent re-annotation). Returns false only on capacity overflow. */
+bool               lc_guard_add(const void *node, LcGuardKind kind,
+                                uint32_t valid_mask, int to_state,
+                                const char *op, const char *subject);
+const LcGuardSite *lc_guard_find(const void *node);
+int                lc_guard_count(void);
 
 /* View an LcSpec as an LcMachine (points into the spec's arrays). */
 LcMachine      lc_spec_machine(const LcSpec *s);

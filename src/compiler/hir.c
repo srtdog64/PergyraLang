@@ -275,6 +275,11 @@ hir_classify_top_level(HIRProgram *hir, ASTNode *node, char **error_message)
         case AST_USE_DECL:
             /* Already resolved by driver; skip. */
             break;
+        case AST_LIFECYCLE_DECL:
+            /* Semantic-only domain annotation: consumed by the lifecycle
+             * analysis pass (static rejects + runtime-guard annotations);
+             * lowers to no code of its own. */
+            break;
         case AST_UNSAFE_BLOCK:
         case AST_TRANSACTION_BLOCK:
         case AST_DEFER_STMT:

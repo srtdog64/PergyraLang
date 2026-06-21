@@ -106,12 +106,10 @@ now consume capture-time facts from
 `mir_instruction_capture_source_provenance(...)`; lifecycle dumps consume
 `mir_instruction_source_inline_text(inst)` instead of reopening source
 payloads. LLVM for-in and with-slot resource-claim diagnostics have already
-moved to MIR expression anchors. The remaining capability-5 tail is the
-self-hosted `mir_lower` compatibility fallback to transitional `"ast"` text;
-the supported parity subset already reconstructs from explicit MIR JSON facts,
-including `for` headers from `arg0` plus `expr0`/`expr1` range bounds. The
-fallback must be removed and ratcheted before the body source-of-truth row is
-fully ready.
+moved to MIR expression anchors. The supported self-hosted `mir_lower` subset
+now reconstructs from explicit MIR JSON facts only, including `for` headers from
+`arg0` plus `expr0`/`expr1` range bounds, and its parity gate rejects
+transitional `"ast"` compatibility reads.
 
 - **Module/package resolver stability**: deterministic imports, manifest
   reading, path normalization, and cycle diagnostics.

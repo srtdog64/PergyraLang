@@ -52,6 +52,12 @@ fi
 SOURCE="$ROOT_DIR/tests/cases/backend_compare/intent_zone_binding/main.pgy"
 OUT="$WORK_DIR/air.json"
 ERR="$WORK_DIR/air.err"
+BOILERPLATE_SOURCE="$ROOT_DIR/tests/cases/backend_compare/boilerplate_reduction/main.pgy"
+BOILERPLATE_OUT="$WORK_DIR/air_boilerplate.json"
+BOILERPLATE_ERR="$WORK_DIR/air_boilerplate.err"
+WORLD_SOURCE="$ROOT_DIR/tests/cases/backend_compare/intent_cross_world_transfer/main.pgy"
+WORLD_OUT="$WORK_DIR/air_world_transfer.json"
+WORLD_ERR="$WORK_DIR/air_world_transfer.err"
 SELECT_SOURCE="$WORK_DIR/air_select_receive.pgy"
 SELECT_OUT="$WORK_DIR/air_select_receive.json"
 SELECT_ERR="$WORK_DIR/air_select_receive.err"
@@ -70,6 +76,8 @@ func SelectReceiveAir(ch: Channel<Int>) -> Int {
 EOF
 
 "$PGY" --air-json "$(to_native_path_for_pgy "$SOURCE")" --backend=c > "$OUT" 2> "$ERR"
+"$PGY" --air-json "$(to_native_path_for_pgy "$BOILERPLATE_SOURCE")" --backend=c > "$BOILERPLATE_OUT" 2> "$BOILERPLATE_ERR"
+"$PGY" --air-json "$(to_native_path_for_pgy "$WORLD_SOURCE")" --backend=c > "$WORLD_OUT" 2> "$WORLD_ERR"
 "$PGY" --air-json "$(to_native_path_for_pgy "$SELECT_SOURCE")" --backend=c > "$SELECT_OUT" 2> "$SELECT_ERR"
 
 require_text() {
@@ -102,6 +110,8 @@ for required in \
     '"overflow_reason_fact_count":5' \
     '"fact_count":15' \
     '"intents"' \
+    '"compression_budget"' \
+    '"compression_reason"' \
     '"who_from_intent_default"' \
     '"who_from_on_receiver"' \
     '"who_from_single_participant"' \
@@ -160,7 +170,7 @@ elif command -v python >/dev/null 2>&1; then
 fi
 
 if [[ -n "$PY_BIN" ]]; then
-    "$PY_BIN" - "$OUT" "$SELECT_OUT" <<'PY'
+    "$PY_BIN" - "$OUT" "$SELECT_OUT" "$BOILERPLATE_OUT" "$WORLD_OUT" <<'PY'
 import json
 import sys
 
@@ -168,6 +178,10 @@ with open(sys.argv[1], "r", encoding="utf-8") as fh:
     data = json.load(fh)
 with open(sys.argv[2], "r", encoding="utf-8") as fh:
     select_data = json.load(fh)
+with open(sys.argv[3], "r", encoding="utf-8") as fh:
+    boilerplate_data = json.load(fh)
+with open(sys.argv[4], "r", encoding="utf-8") as fh:
+    world_data = json.load(fh)
 
 assert data["schema"] == "pgy.air.graph.v1"
 summary = data["summary"]
@@ -190,11 +204,49 @@ assert all("who_from_on_receiver" in intent for intent in data["intents"])
 assert all("who_from_single_participant" in intent for intent in data["intents"])
 assert all("requires_from_action" in intent for intent in data["intents"])
 assert all("causes_from_action" in intent for intent in data["intents"])
+assert all("compression_budget" in intent for intent in data["intents"])
+assert all("compression_reason" in intent for intent in data["intents"])
+assert all(
+    intent["compression_budget"] in {"retain", "summarize", "erase", "forbid"}
+    for intent in data["intents"]
+)
 assert all("source_from_intent_default" in boundary for boundary in data["boundaries"])
 assert all("source_from_action" in boundary for boundary in data["boundaries"])
 assert all("source_from_transfer" in boundary for boundary in data["boundaries"])
 assert all("authority_from_zone" in boundary for boundary in data["boundaries"])
 assert all("authority_from_action" in boundary for boundary in data["boundaries"])
+assert all("compression_budget" in boundary for boundary in data["boundaries"])
+assert all("compression_reason" in boundary for boundary in data["boundaries"])
+assert all(
+    boundary["compression_budget"] in {"retain", "summarize", "erase", "forbid"}
+    for boundary in data["boundaries"]
+)
+assert any(
+    b["kind"] == "zone" and b["compression_budget"] in {"retain", "summarize"}
+    for b in data["boundaries"]
+)
+assert any(
+    b["kind"] == "zone" and b["compression_budget"] == "retain"
+    for b in data["boundaries"]
+)
+assert any(
+    b["kind"] == "zone" and b["compression_budget"] == "summarize"
+    for b in boilerplate_data["boundaries"]
+)
+assert any(
+    intent["compression_budget"] == "summarize"
+    for intent in boilerplate_data["intents"]
+)
+assert any(
+    b["kind"] == "world" and b["compression_budget"] == "retain"
+    for b in world_data["boundaries"]
+)
+assert any(
+    b["kind"] == "world"
+    and b["source_from_transfer"] is True
+    and "runtime-visible coordination" in b["compression_reason"]
+    for b in world_data["boundaries"]
+)
 assert any(b["kind"] == "zone" and b["evidence_flags"]["rir_boundary"] for b in data["boundaries"])
 assert any(e["kind"] == "rir_boundary" for e in data["evidence"])
 assert any(e["kind"] == "hir_cfg" for e in data["evidence"])

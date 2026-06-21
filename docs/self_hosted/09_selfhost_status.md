@@ -34,8 +34,8 @@ Front-end self-hosts on both backends in LLVM-enabled builds.
   the language compiles its own pass to the same result on both backends.
 
 Single source of truth (capability 5) is closed for the measured
-source_ast/source_decl frontier, but not for every body source-payload
-compatibility path.
+source_ast/source_decl frontier and the supported self-hosted MIR-lowering
+subset.
 
 - Codegen source_ast frontier is at 0, all 127 original reads retired.
 - Compiler-side source_ast is at 0. `MIRDeclHeader.source_ast` and
@@ -101,11 +101,10 @@ compatibility path.
   `mir_lifecycle.c` no longer open source payloads; lifecycle dump emission
   consumes `mir_instruction_source_inline_text(inst)`. Self-hosted `mir_lower`
   now consumes explicit MIR JSON `expr0`/`expr1`/`source_type`/`source_locals`
-  facts first for the supported let/statement/return/branch/for subset, and the
-  MIR JSON parity gate checks the `for` header is reconstructed from `arg0` plus
-  range bounds rather than treating the lower bound as a branch condition.
-  Capability 5 remains ACTIVE until the remaining transitional `"ast"` fallback
-  is deleted and ratcheted.
+  facts only for the supported let/statement/return/branch/for subset. The MIR
+  JSON parity gate checks the `for` header is reconstructed from `arg0` plus
+  range bounds rather than treating the lower bound as a branch condition, and
+  rejects reintroducing transitional `"ast"` reads.
 - C class/zone collection-specialization scans are MIR-routine based and no
   longer recover method body AST; routine_source_decl_codegen is ratcheted at 0.
 - C hosted method body emission binds the linked MIRRoutine body as current

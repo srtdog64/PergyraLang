@@ -40,6 +40,11 @@ if [[ -z "$PY_BIN" ]]; then
         echo "[ast-dispatch] LLVM domain safety-net missing explicit reject text" >&2
         exit 1
     }
+    if grep -R "lc_registry_" "$ROOT_DIR/src/parser" >/dev/null 2>&1 ||
+       grep -R "lifecycle_state.h" "$ROOT_DIR/src/parser" >/dev/null 2>&1; then
+        echo "[ast-dispatch] parser must not populate semantic lifecycle registry" >&2
+        exit 1
+    fi
     echo "[ast-dispatch] OK: source partition contract is gated (literal fallback)"
     exit 0
 fi
@@ -60,6 +65,10 @@ ast_h = "\n".join(
 llvm_expr = (root / "src/codegen/llvm_expr.c").read_text(encoding="utf-8")
 llvm_stmt = (root / "src/codegen/llvm_stmt.c").read_text(encoding="utf-8")
 doc = (root / "docs/95_ast_dispatch_partition.md").read_text(encoding="utf-8")
+parser_text = "\n".join(
+    path.read_text(encoding="utf-8")
+    for path in (root / "src/parser").glob("*.c")
+)
 
 ast_types = set(re.findall(r"\b(AST_[A-Z_]+)\b", ast_h))
 stmt_cases = set(re.findall(r"\bcase\s+(AST_[A-Z_]+)\s*:", llvm_stmt))
@@ -108,6 +117,7 @@ top_level_skip = {
     "AST_IMPORT_DECL",
     "AST_NAMESPACE_DECL",
     "AST_TYPE_ALIAS",
+    "AST_LIFECYCLE_DECL",
     "AST_USE_DECL",
     "AST_INCLUDE_STMT",
     "AST_IMPL_ABILITY",
@@ -189,6 +199,9 @@ if "warning: unhandled expression" in llvm_expr or "warning: unhandled statement
 
 if "not silent expression fallback" not in llvm_expr:
     errors.append("LLVM domain safety-net must explicitly reject silent expression fallback")
+
+if "lc_registry_" in parser_text or "lifecycle_state.h" in parser_text:
+    errors.append("parser must not populate semantic lifecycle registry")
 
 if errors:
     print("[ast-dispatch] FAIL", file=sys.stderr)

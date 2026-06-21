@@ -32,7 +32,7 @@ Required shape for each proof document:
 - [06_backend_parity.md](06_backend_parity.md): MIR, C, LLVM, declaration inventory, and observable backend parity.
 - [07_air_abstraction_safety.md](07_air_abstraction_safety.md): AIR verification-only synthesis IR, intent/boundary coverage, and abstraction drift proof obligations.
 - [08_slot_capability_calculus.md](08_slot_capability_calculus.md): Slot capability calculus, token invariants, generation checks, and Pin/Lease proof obligations. This document also records the negative claim that Slot is not a borrow checker by itself; borrow-checker-equivalent safety requires the ownership classifier plus CFG/body-dataflow bridge facts.
-- [09_abstraction_loss_contracts.md](09_abstraction_loss_contracts.md): loss-contract rules for compiler and tooling abstraction boundaries: what may be lost, what must be preserved, who owns the original truth, which downstream reads are forbidden, and which evidence proves the loss budget.
+- [09_abstraction_loss_contracts.md](09_abstraction_loss_contracts.md): loss/compression-contract rules for compiler and tooling abstraction boundaries: what may be lost, what must be preserved, who owns the original truth, which downstream reads are forbidden, which evidence proves the loss budget, and when a source-level domain axis may be retained, summarized, erased, or forbidden to erase.
 - [pass_contract_manifest.md](pass_contract_manifest.md): pass-level fact
   contract manifest for CFG/MIR, AIR, DAG/type-resolution, MIR/LLVM declaration
   parity, and ABI/Slot/Pin layout closure.
@@ -54,8 +54,13 @@ Mechanized artifacts:
   not to a full extracted verifier.
 - [proofs/IRMinimality.v](proofs/IRMinimality.v): Coq proof sketch for the
   HIR/RIR/MIR codegen-layer lower bound under the live reads-from dependency
-  model. `ir_minimality_adequacy_smoke.sh` binds that model to the current
-  driver, RIR flow, MIR lowering, AIR, and backend dependency shape.
+  model, plus the AIR witness minimality claim for
+  intent/effect/authority/coordination verification. The latter proves that
+  HKT/Functor evidence is not adequate for this axis because it does not witness
+  authority, effect, boundary, coordination, or provenance facts.
+  `ir_minimality_adequacy_smoke.sh` binds that model to the current driver, RIR
+  flow, MIR lowering, AIR, backend dependency shape, and HKT/Functor soft-no
+  documentation.
 
 ## Beta Proof Boundary
 
@@ -75,8 +80,9 @@ Stable proof scope:
 - Execution: `parallel` conflict/failure baseline.
 - Backends: MIR-equivalent C and LLVM behavior for the frozen subset.
 - AIR abstraction safety: verification-only synthesis IR for stable intent/boundary drift checks.
-- Abstraction loss contracts: stable compiler and tooling boundaries must name
-  accepted loss, preserved facts, forbidden downstream reads, and evidence.
+- Abstraction loss/compression contracts: stable compiler and tooling
+  boundaries must name accepted loss, preserved facts, forbidden downstream
+  reads, evidence, and proof-gated erasure budget.
 - Behavior-contract closure: stable behavior claims must not be described as a
   closed calculus until their judgment rules, typed evidence facts, strict
   proof path, pass/loss manifest, backend oracle class, and mechanized-proof

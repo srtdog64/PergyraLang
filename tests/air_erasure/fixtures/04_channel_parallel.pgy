@@ -1,0 +1,11 @@
+// World/concurrency axis: channel + parallel. Cross-thread = inherently runtime.
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(4);
+    let result: Slot<Int> = ClaimSlot<Int>();
+    parallel {
+        ch <- 77;
+        Write(result, <- ch);
+    }
+    Log(Read(result));
+    Release(result);
+}

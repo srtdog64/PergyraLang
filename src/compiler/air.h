@@ -42,6 +42,36 @@ typedef enum
 
 typedef enum
 {
+    AIR_COMPRESSION_UNKNOWN,
+    AIR_COMPRESSION_RETAIN,
+    AIR_COMPRESSION_SUMMARIZE,
+    AIR_COMPRESSION_ERASE,
+    AIR_COMPRESSION_FORBID
+} AIRCompressionBudget;
+
+/*
+ * Why a compression decision keeps runtime evidence instead of erasing it.
+ * Orthogonal to the budget verb: the budget says *what* (retain/summarize/...),
+ * the cause says *why a retain was unavoidable*. This is the measurable
+ * A/B/C decomposition of abstraction-loss residue (docs/semantics/14):
+ *   - INHERENT  (A): the boundary is a runtime fact (concurrency, transfer,
+ *                    authority) - no analysis can erase it.
+ *   - POLICY    (B): kept by deliberate policy/traceability (a summary digest,
+ *                    an always-on safety tag) - removable by opt-out.
+ *   - UNPROVEN  (C): retained only because the static analysis could not
+ *                    discharge it; a stronger analysis could erase it. This is
+ *                    the sole improvable bucket and must trend downward.
+ */
+typedef enum
+{
+    AIR_RETAIN_CAUSE_NONE,      /* erased / forbidden - nothing retained */
+    AIR_RETAIN_CAUSE_INHERENT,  /* bucket A */
+    AIR_RETAIN_CAUSE_POLICY,    /* bucket B */
+    AIR_RETAIN_CAUSE_UNPROVEN   /* bucket C */
+} AIRRetainCause;
+
+typedef enum
+{
     AIR_DRIFT_NONE,
     AIR_DRIFT_SYNC_ASYNC_CONFLICT,
     AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
@@ -203,6 +233,9 @@ typedef struct AIRProgram
     size_t           rir_relation_propagation_evidence_count;
     size_t           observability_schema_evidence_count;
     size_t           runtime_frontier_policy_evidence_count;
+    /* Bucket C: runtime retains the static analysis could not erase
+       (lifecycle CHECK guards at ambiguous joins). The improvable residue. */
+    size_t           unproven_retain_count;
     char           **owned_names;
     size_t           owned_name_count;
     size_t           owned_name_capacity;
@@ -247,10 +280,21 @@ void        air_dump_json(const AIRProgram *air, FILE *out);
 const char *air_sync_class_name(AIRSyncClass sync_class);
 const char *air_failure_class_name(AIRFailureClass failure_class);
 const char *air_boundary_kind_name(AIRBoundaryKind kind);
+const char *air_compression_budget_name(AIRCompressionBudget budget);
 const char *air_drift_kind_name(AIRDriftKind kind);
 const char *air_evidence_kind_name(AIREvidenceKind kind);
 const char *air_evidence_provider_kind_name(AIREvidenceProviderKind kind);
 const char *air_evidence_subject_kind_name(AIREvidenceSubjectKind kind);
+AIRCompressionBudget air_intent_compression_budget(const AIRProgram *air,
+                                                   size_t intent_index);
+const char *air_intent_compression_reason(const AIRProgram *air,
+                                          size_t intent_index);
+AIRCompressionBudget air_boundary_compression_budget(
+                const AIRBoundaryNode *boundary);
+const char *air_boundary_compression_reason(const AIRBoundaryNode *boundary);
+const char *air_retain_cause_name(AIRRetainCause cause);
+AIRRetainCause air_boundary_retain_cause(const AIRBoundaryNode *boundary);
+size_t      air_unproven_retain_count(const AIRProgram *air);
 size_t      air_intent_node_count(const AIRProgram *air);
 const AIRIntentNode *air_intent_node_at(const AIRProgram *air, size_t index);
 size_t      air_boundary_node_count(const AIRProgram *air);

@@ -239,6 +239,69 @@ pgy_checked_div_i32_export(int32_t lhs, int32_t rhs)
     return lhs / rhs;
 }
 
+/* Domain-lifecycle runtime state tag -- external (non-inline) twins of the
+ * static-inline definitions in pgy_runtime_panic_checked_inline.h. The C backend
+ * inlines those; the LLVM backend resolves these external symbols out of the
+ * separately compiled runtime object/bitcode. Keep both in lockstep. See
+ * docs/semantics/12_domain_lifecycle_evidence.md section 2.3. */
+#ifndef PGY_LIFECYCLE_MAP_CAP
+#define PGY_LIFECYCLE_MAP_CAP 256
+#endif
+
+typedef struct {
+    const void *key;
+    int32_t     state;
+} PgyLifecycleEntryExt;
+
+static PgyLifecycleEntryExt *
+pgy_runtime_lifecycle_slot_ext(const void *inst, int create)
+{
+    static PgyLifecycleEntryExt entries[PGY_LIFECYCLE_MAP_CAP];
+    static int count = 0;
+    int i;
+
+    if (inst == NULL)
+        return NULL;
+    for (i = 0; i < count; i++) {
+        if (entries[i].key == inst)
+            return &entries[i];
+    }
+    if (!create || count >= PGY_LIFECYCLE_MAP_CAP)
+        return NULL;
+    entries[count].key = inst;
+    entries[count].state = 0;
+    return &entries[count++];
+}
+
+void
+pgy_runtime_lifecycle_set_export(const void *inst, int32_t state)
+{
+    PgyLifecycleEntryExt *e = pgy_runtime_lifecycle_slot_ext(inst, 1);
+    if (e != NULL)
+        e->state = state;
+}
+
+void
+pgy_runtime_lifecycle_guard_export(const void *inst, int32_t valid_mask,
+                                   int32_t to_state, const char *op,
+                                   const char *subject)
+{
+    PgyLifecycleEntryExt *e = pgy_runtime_lifecycle_slot_ext(inst, 1);
+    int32_t state = (e != NULL) ? e->state : 0;
+
+    if (state < 0 || state >= 32 || ((valid_mask >> state) & 1) == 0) {
+        fprintf(stderr, "%s lifecycle op=%s subject=%s state=%d permitted_mask=0x%x\n",
+                PGY_RUNTIME_PANIC_PREFIX,
+                op != NULL ? op : "<op>",
+                subject != NULL ? subject : "<subject>",
+                (int)state, (unsigned)valid_mask);
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INVALID_LIFECYCLE_STATE,
+                          PGY_RUNTIME_PANIC_REASON_INVALID_LIFECYCLE_STATE);
+    }
+    if (e != NULL && to_state >= 0)
+        e->state = to_state;
+}
+
 int64_t
 pgy_checked_div_i64_export(int64_t lhs, int64_t rhs)
 {

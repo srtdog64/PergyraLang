@@ -53,6 +53,10 @@ air_collect_mir_evidence(AIRProgram *air,
             return false;
         }
         const char *routine_name = air_mir_routine_provider_name(routine);
+        /* Bucket C: accumulate this routine's unproven retains (lifecycle CHECK
+           guards at ambiguous joins) into the program total. */
+        air->unproven_retain_count +=
+            air_mir_routine_unproven_retain_fact_count(routine);
         size_t cleanup_fact_count = air_mir_routine_cleanup_fact_count(routine);
         size_t terminator_fact_count =
             air_mir_routine_terminator_fact_count(routine);

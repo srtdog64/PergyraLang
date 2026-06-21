@@ -1,6 +1,37 @@
 #include "mir_call_fact.h"
 
+#include <stdlib.h>
+
+#include "../common/string_compat.h"
 #include "../parser/ast_api.h"
+#include "../semantic/lifecycle_state.h"
+
+static void
+mir_attach_lifecycle_guard_fact(MIRInstruction *inst, const ASTNode *stmt)
+{
+    const LcGuardSite *guard;
+
+    if (inst == NULL || stmt == NULL)
+        return;
+    guard = lc_guard_find(stmt);
+    if (guard == NULL)
+        return;
+    inst->has_lifecycle_guard_fact = true;
+    inst->lifecycle_guard_kind =
+        guard->kind == LC_GUARD_CHECK
+            ? MIR_LIFECYCLE_GUARD_CHECK
+            : MIR_LIFECYCLE_GUARD_SET;
+    inst->lifecycle_valid_mask = guard->valid_mask;
+    inst->lifecycle_to_state = guard->to_state;
+    free(inst->lifecycle_op);
+    free(inst->lifecycle_subject);
+    inst->lifecycle_op = guard->op[0] != '\0'
+        ? pergyra_strdup(guard->op)
+        : NULL;
+    inst->lifecycle_subject = guard->subject[0] != '\0'
+        ? pergyra_strdup(guard->subject)
+        : NULL;
+}
 
 void
 mir_attach_statement_call_fact(MIRInstruction *inst, const ASTNode *stmt)
@@ -48,6 +79,7 @@ mir_attach_statement_call_fact(MIRInstruction *inst, const ASTNode *stmt)
         return;
     }
     inst->expr0 = (ASTNode *)stmt;
+    mir_attach_lifecycle_guard_fact(inst, stmt);
     if (ast_call_callee(stmt) == NULL
         || ast_call_callee(stmt)->type != AST_IDENTIFIER) {
         return;

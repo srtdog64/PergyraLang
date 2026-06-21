@@ -3,12 +3,66 @@
 #include <stdlib.h>
 
 #include "../compiler/mir.h"
+#include "../parser/ast_api.h"
 #include "transpiler_context.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_expr_ssa.h"
 #include "transpiler_mir_reason.h"
 #include "transpiler_projection_sync.h"
 #include "transpiler_symbols.h"
+
+/* Emit the domain-lifecycle runtime guard carried by this MIR call fact
+ * (doc/12 section 2.3). The receiver is rendered through the same SSA map the
+ * call uses, so &(recv) is the call's lvalue. Construction state defaults to
+ * the initial index (absent == state 0) in the runtime side-map, so no separate
+ * init line is emitted. */
+static void
+transpiler_emit_mir_lifecycle_guard(CodeBuf *buf,
+                                    const MIRInstruction *inst,
+                                    ASTNode *stmt,
+                                    TranspilerCtx *ctx,
+                                    TranspilerSSANameMap *ssa_map)
+{
+    ASTNode *callee;
+    ASTNode *obj;
+    char    *recv;
+
+    if (!mir_instruction_has_lifecycle_guard(inst)
+        || stmt == NULL
+        || stmt->type != AST_CALL) {
+        return;
+    }
+    callee = ast_call_callee(stmt);
+    obj = callee != NULL ? ast_member_object(callee) : NULL;
+    if (obj == NULL || obj->type != AST_IDENTIFIER)
+        return;
+    recv = emit_expression_with_ssa_map(obj, ctx, ssa_map);
+    if (recv == NULL || recv[0] == '\0') {
+        free(recv);
+        return;
+    }
+    write_indent_to(buf, ctx->indent);
+    if (mir_instruction_lifecycle_guard_kind(inst)
+            == MIR_LIFECYCLE_GUARD_CHECK) {
+        codebuf_write(buf,
+            "pgy_runtime_lifecycle_guard_export(&(%s), %uu, %d, \"%s\", \"%s\");\n",
+            recv,
+            (unsigned)mir_instruction_lifecycle_valid_mask(inst),
+            mir_instruction_lifecycle_to_state(inst),
+            mir_instruction_lifecycle_op(inst) != NULL
+                ? mir_instruction_lifecycle_op(inst)
+                : "",
+            mir_instruction_lifecycle_subject(inst) != NULL
+                ? mir_instruction_lifecycle_subject(inst)
+                : "");
+    } else {
+        codebuf_write(buf,
+            "pgy_runtime_lifecycle_set_export(&(%s), %d);\n",
+            recv,
+            mir_instruction_lifecycle_to_state(inst));
+    }
+    free(recv);
+}
 
 bool
 transpiler_mir_resource_has_mirroring_stmt_in_block(
@@ -84,6 +138,7 @@ transpiler_mir_stmt_is_mirrored_resource(TranspilerCtx *ctx,
 bool
 transpiler_emit_mir_call_statement(CodeBuf *buf,
                                    const MIRBasicBlock *block,
+                                   const MIRInstruction *inst,
                                    ASTNode *stmt,
                                    TranspilerCtx *ctx,
                                    TranspilerSSANameMap *ssa_map,
@@ -106,6 +161,7 @@ transpiler_emit_mir_call_statement(CodeBuf *buf,
         return false;
     }
 
+    transpiler_emit_mir_lifecycle_guard(buf, inst, stmt, ctx, ssa_map);
     write_indent_to(buf, ctx->indent);
     codebuf_write(buf, "%s;\n", expr);
     emit_zone_action_effect_runtime(buf, stmt, ctx);

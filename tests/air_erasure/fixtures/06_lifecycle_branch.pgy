@@ -1,0 +1,18 @@
+// Domain-lifecycle axis, branch-ambiguous: static analysis cannot prove the
+// state at the join -> exactly one runtime guard (bucket C, attributed).
+subject Payment {
+    func Authorize(self) -> Void { }
+    func Capture(self) -> Void { }
+}
+lifecycle Payment {
+    Authorize: Pending -> Authorized;
+    Capture: Authorized -> Captured;
+}
+func Flag() -> Bool { return false; }
+func Main() -> Void {
+    let p: Payment = Payment();
+    if Flag() {
+        p.Authorize();
+    }
+    p.Capture();
+}

@@ -96,6 +96,7 @@ bool        air_mir_cleanup_root_is_valid(const MIRRoutine *routine);
 size_t      air_mir_routine_cleanup_fact_count(const MIRRoutine *routine);
 size_t      air_mir_routine_terminator_fact_count(const MIRRoutine *routine);
 size_t      air_mir_routine_select_receive_fact_count(const MIRRoutine *routine);
+size_t      air_mir_routine_unproven_retain_fact_count(const MIRRoutine *routine);
 AIREvidenceKind air_mir_cleanup_evidence_kind(void);
 AIREvidenceKind air_mir_terminator_evidence_kind(void);
 AIREvidenceKind air_mir_select_receive_evidence_kind(void);

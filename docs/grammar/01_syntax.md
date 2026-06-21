@@ -74,18 +74,22 @@
 
 ```pergyra
 let x = 42;                        // let 키워드
+let mut count: Int = 0;             // 명시적 가변 바인딩
 let name: String = "Pergyra";      // 타입 명시
 x := 42;                           // := 단축 선언
 ```
 
 - `let name = expr;` — 기본 선언 (타입 추론)
+- `let mut name = expr;` — mutation intent를 명시하는 선언
 - `let name: Type = expr;` — 타입 명시
 - `name := expr;` — `let`의 축약 (타입 추론 전용)
-- `let`은 가변(mutable). 재할당 가능.
+- `let`과 `let mut`은 분리된 표면이다. `let mut`은 로컬 저장소나 필드가
+  이후 mutation 대상이라는 사실을 source에 남긴다.
 - `let`이 필요한 이유: 제네릭 `<>` 파서 모호성 해결 (`Array<Int> x` → 비교? 타입?)
-- nominal field에서는 `let`이 불변 표식이 아니다.
+- nominal field에서는 `let` / `let mut` 구분이 의미를 가진다.
   - `struct`의 canonical field surface는 `name: Type;`
-  - legacy 호환으로 `let name: Type;`도 받지만, 이는 declaration introducer일 뿐이다
+  - `let name: Type;` field는 immutable field binding이다
+  - `let mut name: Type;` field는 assignment 가능한 mutable field binding이다
   - 읽기 전용/불변 계약은 `object` / `tobject` projection surface에 별도로 적용된다
 
 구조 분해(destructuring):

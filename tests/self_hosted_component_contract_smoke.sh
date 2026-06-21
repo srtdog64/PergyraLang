@@ -103,8 +103,10 @@ contains_line "$codegen_items" "hello" ||
     fail "codegen no-argument golden fixture must stay listed: hello"
 require_text "src/self_hosted/codegen/README.md" "Golden/platform contract"
 require_text "src/self_hosted/codegen/README.md" "PGY_SELFHOST_CODEGEN_BACKENDS=c"
-require_text "src/self_hosted/parity/codegen_parity.sh" 'local run_cmd=("$oracle_exe")'
-require_text "src/self_hosted/parity/codegen_parity.sh" 'local run_cmd=("$self_exe")'
+require_text "src/self_hosted/parity/codegen_parity.sh" 'run_native_capture()'
+require_text "src/self_hosted/parity/codegen_parity.sh" 'pgy_binary_is_runnable_here "$bin"'
+require_text "src/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$oracle_raw" "$oracle_err" "$oracle_exe" "${run_args[@]}"'
+require_text "src/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$run_raw" "$run_err" "$self_exe" "${run_args[@]}"'
 
 while IFS= read -r fixture; do
     base="$(basename "$fixture" .pgy)"

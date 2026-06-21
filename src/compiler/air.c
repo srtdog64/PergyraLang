@@ -146,6 +146,12 @@ air_has_mir_input(const AIRProgram *air)
     return air != NULL && air->has_mir_input;
 }
 
+size_t
+air_unproven_retain_count(const AIRProgram *air)
+{
+    return air != NULL ? air->unproven_retain_count : 0;
+}
+
 bool
 air_requires_strict_evidence(const AIRProgram *air)
 {

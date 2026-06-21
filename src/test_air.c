@@ -113,6 +113,15 @@ main(void)
     TEST("AIR who inference does not imply authority");
     EXPECT(test_air_who_inference_does_not_imply_authority());
 
+    TEST("AIR compression erases pure sync intent facts");
+    EXPECT(test_air_compression_erases_pure_sync_intent());
+
+    TEST("AIR compression summarizes static zone and retains authority");
+    EXPECT(test_air_compression_summarizes_static_zone_and_retains_authority());
+
+    TEST("AIR compression retains world transfer boundary");
+    EXPECT(test_air_compression_retains_world_transfer_boundary());
+
     TEST("AIR drift checker reports sync/async mismatch");
     EXPECT(test_air_detects_sync_async_drift());
 

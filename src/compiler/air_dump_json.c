@@ -202,7 +202,8 @@ air_dump_json_summary(const AIRProgram *air, FILE *out)
             "\"rir_effect_propagation_required_count\":%zu,\"rir_effect_propagation_evidence_count\":%zu,"
             "\"rir_relation_propagation_required_count\":%zu,\"rir_relation_propagation_evidence_count\":%zu,"
             "\"observability_schema_evidence_count\":%zu,"
-            "\"runtime_frontier_policy_evidence_count\":%zu}",
+            "\"runtime_frontier_policy_evidence_count\":%zu,"
+            "\"unproven_retain_count\":%zu}",
             air_evidence_summary_count(air, AIR_EVIDENCE_HIR_ROUTINE),
             air_evidence_summary_count(air, AIR_EVIDENCE_HIR_CFG),
             air_evidence_summary_count(air, AIR_EVIDENCE_RIR_BOUNDARY),
@@ -220,7 +221,8 @@ air_dump_json_summary(const AIRProgram *air, FILE *out)
             air_evidence_summary_count(air, AIR_EVIDENCE_RIR_RELATION_PROPAGATION),
             air_evidence_summary_count(air, AIR_EVIDENCE_OBSERVABILITY_SCHEMA),
             air_evidence_summary_count(air,
-                                       AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY));
+                                       AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY),
+            air_unproven_retain_count(air));
 }
 
 static void
@@ -257,6 +259,11 @@ air_dump_json_intents(const AIRProgram *air, FILE *out)
         air_json_string(out, air_sync_class_name(intent->sync_class));
         fputs(",\"failure\":", out);
         air_json_string(out, air_failure_class_name(intent->failure_class));
+        fputs(",\"compression_budget\":", out);
+        air_json_string(out, air_compression_budget_name(
+            air_intent_compression_budget(air, i)));
+        fputs(",\"compression_reason\":", out);
+        air_json_string(out, air_intent_compression_reason(air, i));
         fputs(",\"who_from_intent_default\":", out);
         air_json_bool(out, intent->who_from_intent_default);
         fputs(",\"who_from_on_receiver\":", out);
@@ -296,6 +303,14 @@ air_dump_json_boundaries(const AIRProgram *air, FILE *out)
                 boundary->intent_index,
                 boundary->step_index);
         air_json_string(out, air_sync_class_name(boundary->sync_class));
+        fputs(",\"compression_budget\":", out);
+        air_json_string(out, air_compression_budget_name(
+            air_boundary_compression_budget(boundary)));
+        fputs(",\"compression_reason\":", out);
+        air_json_string(out, air_boundary_compression_reason(boundary));
+        fputs(",\"retain_cause\":", out);
+        air_json_string(out, air_retain_cause_name(
+            air_boundary_retain_cause(boundary)));
         fputs(",\"authority_required\":", out);
         air_json_bool(out, boundary->authority_required);
         fputs(",\"source_from_intent_default\":", out);

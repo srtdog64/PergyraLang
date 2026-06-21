@@ -20,6 +20,7 @@ bool transpiler_mir_resource_has_mirroring_stmt_in_block(
 
 bool transpiler_emit_mir_call_statement(CodeBuf *buf,
                                         const MIRBasicBlock *block,
+                                        const MIRInstruction *inst,
                                         ASTNode *stmt,
                                         TranspilerCtx *ctx,
                                         TranspilerSSANameMap *ssa_map,

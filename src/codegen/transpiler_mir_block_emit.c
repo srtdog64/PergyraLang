@@ -374,7 +374,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             continue;
         }
         if (mir_instruction_source_stmt_call_emit_is_allowed(inst)) {
-            if (!transpiler_emit_mir_call_statement(buf, block, inst->expr0, ctx,
+            if (!transpiler_emit_mir_call_statement(buf, block, inst,
+                                                    inst->expr0, ctx,
                                                     ssa_map_out,
                                                     reason, reason_cap)) {
                 ok = false;

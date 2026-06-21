@@ -14,6 +14,7 @@
 #define PGY_RUNTIME_PANIC_CLASS_DOUBLE_RELEASE "double-release"
 #define PGY_RUNTIME_PANIC_CLASS_INVALID_SECURE_TOKEN "invalid-secure-token"
 #define PGY_RUNTIME_PANIC_CLASS_AUTHORITY_MISMATCH "authority-mismatch"
+#define PGY_RUNTIME_PANIC_CLASS_INVALID_LIFECYCLE_STATE "invalid-lifecycle-state"
 #define PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT "internal-invariant"
 
 #define PGY_RUNTIME_PANIC_REASON_RELEASED_SLOT_WRITE \
@@ -64,6 +65,8 @@
     "Result unwrap on Err value"
 #define PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE \
     "Option unwrap on None value"
+#define PGY_RUNTIME_PANIC_REASON_INVALID_LIFECYCLE_STATE \
+    "lifecycle operation applied in a state that forbids it"
 
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
 #  define PGY_RUNTIME_NORETURN _Noreturn

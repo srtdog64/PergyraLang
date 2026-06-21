@@ -43,6 +43,7 @@ src/self_hosted/
   runtime/                        -- native runtime kernel stays C; portable policy can move
   lsp/                            -- mirrors C-side src/lsp/ (placeholder)
   lib/                            -- shared Pergyra helpers (e.g. text_scan)
+  fuzz/                           -- deterministic Pergyra-origin corpus generators
   tools/                          -- peripheral audit tools (NOT counted toward substitution)
     <tool_name>/
       intent.md                   -- input/output contract + oracle
@@ -120,6 +121,14 @@ src/self_hosted/
   It currently stands at rung-0..15 with 35 fixtures, including `StringTrim`,
   `FileExists` / `ReadFile` file I/O, `Args()` user-argument snapshots, and
   value-passed Int-field structs plus Array<Int> parameter/return flow.
+- **2026-06-21** -- `fuzz/backend_parity_generator/` adds the first
+  Pergyra-origin deterministic backend fuzz corpus generator. It is soft
+  self-host evidence, not compiler-core substitution: the Pergyra program owns
+  generated source text and manifest shape, while the shell parity driver only
+  compiles the generator through C/LLVM, checks byte-identical generated
+  corpora, and optionally runs the generated cases through both backends.
+  Focused gates: `make self-host-fuzz-backend-generator-parity-test-smoke` and
+  `make fuzz-backend-parity-test-smoke`.
 
 ## Non-Negotiable Rules
 
@@ -130,3 +139,7 @@ src/self_hosted/
 4. A tool ships only when its parity check passes the C oracle.
 5. Build artifacts belong under ignored scratch space such as `.tmp/`; do not
    leave compiler outputs beside `main.pgy` sources.
+6. Fuzz generators belong under `src/self_hosted/fuzz/`, not `tools/`, unless
+   they are audit tools with a C/shell oracle and the full tool scaffold
+   contract. Their stable contract is deterministic corpus generation plus a
+   parity driver that proves backend-equivalent generator output.

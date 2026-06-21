@@ -18,6 +18,7 @@ typedef struct WhereClause WhereClause;
 typedef struct TypeConstraint TypeConstraint;
 typedef struct FuncParam FuncParam;
 typedef struct ClassField ClassField;
+typedef struct LifecycleTransitionDecl LifecycleTransitionDecl;
 
 /* Access modifiers */
 typedef enum {
@@ -84,6 +85,12 @@ typedef struct StructuredComment {
     size_t tag_capacity;
     struct StructuredComment* next;  /* Linked list for multiple comment blocks */
 } StructuredComment;
+
+struct LifecycleTransitionDecl {
+    char* op;
+    char* from_state;
+    char* to_state;
+};
 
 /*
  * AST Node Types
@@ -194,6 +201,7 @@ typedef enum
     AST_ZONE_MAINTAIN_STATE,
     AST_ZONE_AUTHORITY,
     AST_ZONE_STATE,
+    AST_LIFECYCLE_DECL,
 
     /* Event system (C# style) */
     AST_EVENT_DECL,

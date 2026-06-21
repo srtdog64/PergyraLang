@@ -89,6 +89,7 @@ mir_source_node_type_name(ASTNodeType type)
     case AST_ZONE_MAINTAIN_STATE: return "AST_ZONE_MAINTAIN_STATE";
     case AST_ZONE_AUTHORITY: return "AST_ZONE_AUTHORITY";
     case AST_ZONE_STATE: return "AST_ZONE_STATE";
+    case AST_LIFECYCLE_DECL: return "AST_LIFECYCLE_DECL";
     case AST_EVENT_DECL: return "AST_EVENT_DECL";
     case AST_EVENT_SUBSCRIBE: return "AST_EVENT_SUBSCRIBE";
     case AST_EVENT_UNSUBSCRIBE: return "AST_EVENT_UNSUBSCRIBE";

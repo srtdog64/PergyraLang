@@ -1,6 +1,7 @@
 (*
   Pergyra Formal Semantics - Mechanized Sketch
-  Target: minimality of the codegen IR-layer decomposition.
+  Target: minimality of the codegen IR-layer decomposition and the AIR
+  verification witness surface.
   Status: proof-sketch; not beta-closure evidence unless checked by CI (coqc).
 
   Question (architectural): is the IR decomposition HIR/DIR/RIR/MIR over-
@@ -22,6 +23,14 @@
   you cannot quantify over all possible designs in this model. It proves the
   current fact-sets cannot be carried in fewer layers given their real reads-from
   edges, and it pinpoints the single collapsible boundary.
+
+  Second question: for intent composition, is a Functor/HKT abstraction the
+  smaller core, or is AIR the smaller proof surface? The model below treats
+  "smaller" as a witness-set question: any adequate verifier for Pergyra intent
+  composition must carry the domain facts that make side effects auditable.
+  Functor/HKT laws describe shape-preserving maps over type constructors; they
+  do not witness authority, effect, boundary, coordination, or provenance facts.
+  AIR is therefore the minimal verifier surface for this language axis.
 *)
 
 Require Import Coq.Init.Nat.
@@ -127,11 +136,75 @@ Proof. intros a b HR. destruct HR; simpl; lia. Qed.
    resource-checking-at-the-resource-layer. *)
 
 (* ========================================== *)
-(* 4. Out of scope (honest)                    *)
+(* 4. AIR witness minimality                   *)
+(* ========================================== *)
+
+(* Intent composition in Pergyra is not just map/identity/composition over a
+   type constructor. It must verify the domain facts that make the composition
+   auditable. These are the required observations for the beta AIR contract. *)
+Inductive VerificationRequirement : Type :=
+  | ReqIntentOrder
+  | ReqBoundary
+  | ReqAuthority
+  | ReqEffect
+  | ReqCoordination
+  | ReqProvenance.
+
+Definition EvidenceSurface := VerificationRequirement -> Prop.
+Definition AdequateEvidence (S : EvidenceSurface) : Prop :=
+  forall r, S r.
+
+(* AIR has exactly one witness class for each required verification axis. *)
+Inductive AIRWitness : VerificationRequirement -> Prop :=
+  | AIRIntentOrder : AIRWitness ReqIntentOrder
+  | AIRBoundary : AIRWitness ReqBoundary
+  | AIRAuthority : AIRWitness ReqAuthority
+  | AIREffect : AIRWitness ReqEffect
+  | AIRCoordination : AIRWitness ReqCoordination
+  | AIRProvenance : AIRWitness ReqProvenance.
+
+Theorem air_witness_adequate : AdequateEvidence AIRWitness.
+Proof.
+  intros r. destruct r; constructor.
+Qed.
+
+(* A Functor/HKT abstraction can describe composition shape, but this model gives
+   it no authority/effect/boundary/coordination/provenance witnesses. That is the
+   point: those facts are not type-constructor laws. *)
+Inductive FunctorHKTWitness : VerificationRequirement -> Prop :=
+  | FunctorIntentOrder : FunctorHKTWitness ReqIntentOrder.
+
+Theorem functor_hkt_not_adequate : ~ AdequateEvidence FunctorHKTWitness.
+Proof.
+  unfold AdequateEvidence. intro H.
+  specialize (H ReqAuthority). inversion H.
+Qed.
+
+(* Minimality: any adequate surface that claims to be a subset of AIR's witness
+   vocabulary is extensionally equal to AIR. Dropping any AIR witness drops a
+   required verification axis; adding HKT/Functor machinery does not make the
+   missing evidence appear. *)
+Theorem air_is_minimal_witness_set :
+  AdequateEvidence AIRWitness /\
+  forall S : EvidenceSurface,
+    (forall r, S r -> AIRWitness r) ->
+    AdequateEvidence S ->
+    forall r, S r <-> AIRWitness r.
+Proof.
+  split.
+  - apply air_witness_adequate.
+  - intros S Hsubset Hadequate r. split.
+    + apply Hsubset.
+    + intro Hair. apply Hadequate.
+Qed.
+
+(* ========================================== *)
+(* 5. Out of scope (honest)                    *)
 (* ------------------------------------------ *)
-(* - Verification track (DIR, AIR): off the codegen path; their own minimality   *)
-(*   (DIR feeds AIR, AIR reads all four) is a separate 2-vs-1 question, not       *)
-(*   codegen depth.                                                               *)
-(* - This does not rule out a different fact factoring with a shorter chain; it   *)
-(*   proves minimality for the current fact-sets and their real dependencies.     *)
+(* - This does not prove that AIR verifies all future language features. It proves
+      that, for the beta intent-composition evidence axes above, AIR is the
+      minimal adequate witness set and Functor/HKT is not adequate evidence.
+   - This does not rule out a different fact factoring with a shorter codegen
+      chain; it proves minimality for the current fact-sets and their real
+      dependencies.                                                              *)
 (* ========================================== *)

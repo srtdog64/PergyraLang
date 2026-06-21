@@ -4,6 +4,8 @@
 dump (`pgy.air.graph.v1`) from a fixture path relative to cwd, validates the
 schema field and required top-level keys, extracts summary counts, and emits
 the validator schema. No JSON parser; substring-anchored scan only.
+The required-key set includes `compression_budget` and `compression_reason`
+because proof-gated erasure is now part of the stable AIR graph contract.
 
 ## Intent
 
@@ -89,5 +91,5 @@ full JSON parser. If a future tool needs nested array iteration or
 - Full JSON parsing (quoted strings with escapes, nested objects, arrays of
   objects with mixed types).
 - Validating *contents* of `intents[]`, `boundaries[]`, `evidence[]` beyond
-  count.
+  count and required schema-key presence.
 - Schema migration (`pgy.air.graph.v2` etc.).

@@ -49,7 +49,9 @@ func RequiredKeys() -> Array<String> {
         "\"intents\":",
         "\"boundaries\":",
         "\"evidence\":",
-        "\"drifts\":"
+        "\"drifts\":",
+        "\"compression_budget\":",
+        "\"compression_reason\":"
     ];
     return keys;
 }

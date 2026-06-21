@@ -199,6 +199,22 @@ lc_merge(LcState a, LcState b)
     return LC_AMBIGUOUS;
 }
 
+uint32_t
+lc_op_valid_from_mask(const LcMachine *m, int op)
+{
+    uint32_t mask = 0;
+
+    if (m == NULL)
+        return 0;
+    for (int i = 0; i < m->transition_count; i++) {
+        if (m->transitions[i].op != op)
+            continue;
+        if (m->transitions[i].from >= 0 && m->transitions[i].from < 32)
+            mask |= (uint32_t)1u << m->transitions[i].from;
+    }
+    return mask;
+}
+
 const char *
 lc_state_name(const LcMachine *m, LcState s)
 {
@@ -307,6 +323,67 @@ lc_spec_machine(const LcSpec *s)
     m.transitions = s->transitions;
     m.transition_count = s->transition_count;
     return m;
+}
+
+/* ---- runtime-guard side-table ---- */
+
+static LcGuardSite g_lc_guards[LC_MAX_GUARDS];
+static int         g_lc_guard_count = 0;
+
+void
+lc_guard_reset(void)
+{
+    g_lc_guard_count = 0;
+}
+
+bool
+lc_guard_add(const void *node, LcGuardKind kind, uint32_t valid_mask,
+             int to_state, const char *op, const char *subject)
+{
+    LcGuardSite *site = NULL;
+
+    if (node == NULL)
+        return false;
+    for (int i = 0; i < g_lc_guard_count; i++) {
+        if (g_lc_guards[i].node == node) {
+            site = &g_lc_guards[i];
+            break;
+        }
+    }
+    if (site == NULL) {
+        if (g_lc_guard_count >= LC_MAX_GUARDS)
+            return false;
+        site = &g_lc_guards[g_lc_guard_count++];
+    }
+    site->node = node;
+    site->kind = kind;
+    site->valid_mask = valid_mask;
+    site->to_state = to_state;
+    site->op[0] = '\0';
+    site->subject[0] = '\0';
+    if (op != NULL)
+        lc_copy_name(site->op, op);
+    if (subject != NULL)
+        lc_copy_name(site->subject, subject);
+    return true;
+}
+
+const LcGuardSite *
+lc_guard_find(const void *node)
+{
+    if (node == NULL)
+        return NULL;
+    for (int i = 0; i < g_lc_guard_count; i++) {
+        if (g_lc_guards[i].node == node)
+            return &g_lc_guards[i];
+    }
+    return NULL;
+}
+
+int
+lc_guard_count(void)
+{
+    return g_lc_guard_count;
 }
 
 int

@@ -5,7 +5,7 @@
 # backend on the supported subset -- linear code, function signatures, and
 # CFG-structured control flow (if/else, nested if, while, for):
 #
-#   pgy --mir-json fixture.pgy            (MIR JSON facts plus compatibility text)
+#   pgy --mir-json fixture.pgy            (MIR JSON facts)
 #     | mir_lower   (Pergyra: MIR-JSON facts -> reconstructed --ast tree)
 #     | codegen     (Pergyra: --ast tree -> standalone C)
 #     -> gcc -> run-stdout
@@ -46,6 +46,12 @@ CODEGEN_SRC="$ROOT_DIR/src/self_hosted/codegen/main.pgy"
 FIXTURE_DIR="$ROOT_DIR/src/self_hosted/mir_lower/fixture"
 B="$ROOT_DIR/.tmp/self_hosted/mir_lower/parity"
 mkdir -p "$B"
+
+if grep -Fq 'JsonFieldString(json, kp, inst_end, "\"ast\":")' "$MIR_LOWER_SRC" \
+    || grep -Fq "StringLength(ast)" "$MIR_LOWER_SRC"; then
+    echo "[self-host-parity:mir-json] mir_lower must not read transitional ast compatibility text" >&2
+    exit 1
+fi
 
 # gen0: oracle-built mir_lower + codegen tools.
 (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$MIR_LOWER_SRC")" \

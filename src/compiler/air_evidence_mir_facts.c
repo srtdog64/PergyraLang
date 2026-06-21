@@ -146,6 +146,40 @@ air_mir_routine_select_receive_fact_count(const MIRRoutine *routine)
     return count;
 }
 
+/*
+ * Count the "unproven retain" sites in a routine: lifecycle guard CHECK
+ * instructions. A CHECK guard is emitted only where the static lifecycle
+ * analyzer could NOT discharge the precondition (an ambiguous control-flow
+ * join), so each one is retained runtime evidence the analysis *failed to
+ * erase* - bucket C (improvable), distinct from a boundary that is inherently
+ * runtime-visible (bucket A) or kept as a policy summary (bucket B). A SET guard
+ * records a proven transition and is not counted (it carries no unproven cost).
+ */
+size_t
+air_mir_routine_unproven_retain_fact_count(const MIRRoutine *routine)
+{
+    size_t count = 0;
+
+    if (routine == NULL)
+        return 0;
+    if (routine->block_count > 0 && routine->blocks == NULL)
+        return 0;
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *block = &routine->blocks[i];
+        if (block->instruction_count > 0 && block->instructions == NULL)
+            continue;
+        for (size_t j = 0; j < block->instruction_count; j++) {
+            const MIRInstruction *inst = &block->instructions[j];
+            if (mir_instruction_has_lifecycle_guard(inst)
+                && mir_instruction_lifecycle_guard_kind(inst)
+                       == MIR_LIFECYCLE_GUARD_CHECK) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
 AIREvidenceKind
 air_mir_cleanup_evidence_kind(void)
 {

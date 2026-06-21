@@ -27,7 +27,7 @@ back-pointers are removed, and MIR validation no longer compares generic, enum,
 method, or field metadata against original AST nodes. Source_decl is ratcheted
 at codegen 0 / compiler 0, and routine_source_decl_codegen is ratcheted at 0.
 
-The remaining body-level SoT tail is narrower and now explicitly named:
+The remaining body-level SoT tail is narrower and now explicitly measured:
 residual `MIR_INST_STMT` source-payload emission is retired in C and LLVM, and
 side-effect statements are carried through `MIR_STMT.expr0` executable facts.
 Source-local declaration and assignment paths no longer re-dispatch through
@@ -66,10 +66,9 @@ now capture-time provenance facts owned by
 `mir_instruction_capture_source_provenance(...)`; lifecycle dump emission
 consumes `mir_instruction_source_inline_text(inst)` instead of reopening the
 source payload. The self-hosted `mir_lower` now consumes MIR JSON
-`expr0`/`expr1`/`source_type`/`source_locals` facts first for supported
-let/statement/return/branch/for reconstruction; the remaining cut target is
-removing and ratcheting its compatibility fallback to the transitional `"ast"`
-text field.
+`expr0`/`expr1`/`source_type`/`source_locals` facts for supported
+let/statement/return/branch/for reconstruction and is ratcheted against reading
+the transitional `"ast"` text field.
 LLVM source-local resource constructor DEFs now consume MIR expected type-name
 facts for `Channel<T>` and slot-like resources (`Slot<T>`, `SecureSlot<T>`,
 `DeviceSlot<T>`) instead of falling through standalone constructor expression
@@ -125,7 +124,7 @@ ACTIVE means it is on the critical path and still in progress.
 | 2 | Collections + iteration | READY | stdlib_surface_smoke, stage4_determinism_smoke | List/Set/HashMap have stable scalar key forms (String, Int, Long, Bool); MapKeys and SetValues order are locked; compiler-facing symbol/record/handle-like keys are normalized to canonical scalar IDs rather than raw aggregate keys |
 | 3 | String/path/Unicode policy | READY | unicode_policy_smoke, source_utf8_smoke, memory_string_safety_smoke, filesystem_directory_walk_smoke | stable comparison, normalization, and deterministic directory snapshot stance gated |
 | 4 | Arena/ownership ergonomics | READY | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke | `Allocator` is a single C/LLVM-backed value surface, `BoxArray` can consume a named allocator local, scratch/result/persistent lane constructors carry distinct runtime kinds, and `AllocatorDestroy(namedAllocator)` closes explicit pass-lane cleanup on C and LLVM |
-| 5 | CFG/MIR body as SoT | ACTIVE | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; source_ast and source_decl are ratcheted at codegen 0 / compiler 0; residual STMT source-payload emission and raw source-statement re-dispatch are retired; select and match condition/body-binding/remap emission consume MIR branch facts; resource matching uses source-index/location/anchor facts; C/LLVM destructure binding/initializer emission, C/LLVM assignment emission, LLVM source-local resource LET emission, C source-local LET/DEF/receive paths, MIR surface validation, public-surface scalar provenance seeding, and lifecycle MIR JSON source-text emission consume MIR/source-shape facts; self-hosted `mir_lower` consumes explicit MIR JSON facts first for the supported CFG subset but still retains transitional `"ast"` compatibility fallback |
+| 5 | CFG/MIR body as SoT | READY | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity, self-host-mir-json-parity-test-smoke | non_cfg fallback locked at 0; source_ast and source_decl are ratcheted at codegen 0 / compiler 0; residual STMT source-payload emission and raw source-statement re-dispatch are retired; select and match condition/body-binding/remap emission consume MIR branch facts; resource matching uses source-index/location/anchor facts; C/LLVM destructure binding/initializer emission, C/LLVM assignment emission, LLVM source-local resource LET emission, C source-local LET/DEF/receive paths, MIR surface validation, public-surface scalar provenance seeding, and lifecycle MIR JSON source-text emission consume MIR/source-shape facts; self-hosted `mir_lower` consumes explicit MIR JSON facts for the supported CFG subset and is ratcheted against transitional `"ast"` compatibility reads |
 | 6 | AIR as verifier | READY | air_json_schema_smoke, air_drift_smoke, air_backend_nonimpact_smoke | pgy.air.graph.v1 evidence export gated; drift count enforced at 0 |
 | 7 | DAG type resolution SoT | READY | type_resolution_dag_smoke, type_resolution_resolver_inventory_smoke | recursive resolver compat path retired; metadata_dead_ends enforced at 0 |
 | 8 | Scoped unsafe/raw escape | READY | raw_escape_contract_smoke | unsafe is scoped and capability-bound; raw pointers gated out of domain code |
@@ -134,10 +133,9 @@ ACTIVE means it is on the critical path and still in progress.
 
 ## Critical path
 
-Capability 5 is closed for the measured source_ast/source_decl frontier, but it
-is still active for deleting the self-hosted MIR-lowering `"ast"` text
-compatibility fallback after the supported reconstruction surface is fully
-represented as explicit MIR JSON statement facts.
+Capability 5 is closed for the measured source_ast/source_decl frontier and for
+the supported self-hosted MIR-lowering subset's transitional `"ast"` text
+fallback.
 non_cfg body facts come from MIR and are locked at zero fallback, backend and
 compiler source_ast/source_decl readers are locked at zero, residual STMT
 source-payload emission and raw source-statement re-dispatch are retired,
@@ -154,9 +152,9 @@ emission, receive-payload type inference, MIR surface validation, and
 public-surface scalar provenance seeding and lifecycle MIR JSON source-text
 emission are also MIR/source-shape owned. The self-hosted checker proves the
 same manifest. `mir_lower` now reconstructs the supported parity subset from
-`expr0`/`expr1`/`source_type`/`source_locals` facts first, including `for`
-headers from `arg0` plus range bounds. Its compatibility fallback to `"ast"`
-must be removed and ratcheted before this row can honestly return to READY.
+`expr0`/`expr1`/`source_type`/`source_locals` facts only, including `for`
+headers from `arg0` plus range bounds; `self-host-mir-json-parity-test-smoke`
+rejects reintroducing transitional `"ast"` reads.
 Capability 4 is
 closed for the current compiler-pass
 substrate: named allocator lanes can be constructed, consumed by
@@ -199,12 +197,12 @@ domain-oriented surface the language is already strong on.
 
 ## Sequencing
 
-The order that keeps each step verifiable is: finish capability 5's remaining
-self-hosted MIR-lowering `"ast"` text compatibility, keep capabilities 2 and 4
-green, expand the self-hosted tool set from validators toward the MIR dump diff
+The order that keeps each step verifiable is: keep capability 5's fact-only
+self-hosted MIR-lowering gate green, keep capabilities 2 and 4 green, expand
+the self-hosted tool set from validators toward the MIR dump diff
 and resolver helpers named in 05, then rewrite compiler passes against the C
-compiler as oracle. Starting broad parser/type-checker/backend rewrites while
-capability 5 remains ACTIVE is explicitly out of order.
+compiler as oracle. Starting broad parser/type-checker/backend rewrites without
+this gate staying green is explicitly out of order.
 
 ## Measured gaps (blocker burn-down)
 

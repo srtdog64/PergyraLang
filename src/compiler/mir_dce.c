@@ -30,6 +30,10 @@ mir_free_instruction_payload(MIRInstruction *inst)
     inst->destructure_binding_count = 0;
     free(inst->source_inline_text);
     inst->source_inline_text = NULL;
+    free(inst->lifecycle_op);
+    inst->lifecycle_op = NULL;
+    free(inst->lifecycle_subject);
+    inst->lifecycle_subject = NULL;
     return true;
 }
 

@@ -479,6 +479,7 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
     case AST_IMPORT_DECL:
     case AST_NAMESPACE_DECL:
     case AST_TYPE_ALIAS:
+    case AST_LIFECYCLE_DECL:
     case AST_USE_DECL:
     case AST_INCLUDE_STMT:
     case AST_IMPL_ABILITY:

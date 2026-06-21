@@ -161,8 +161,8 @@ semantic_run_legacy_slot_resource_analysis(ASTNode *ast, SemanticContext *ctx)
         return;
 
     /*
-     * Domain-lifecycle analysis (N-state engine). No-op until the lifecycle
-     * declaration surface lands; never rejects a lifecycle-free program.
+     * Domain-lifecycle analysis (N-state engine). Consumes parser-owned
+     * AST_LIFECYCLE_DECL nodes; lifecycle-free programs remain a no-op.
      */
     if (!lifecycle_analyze_program(ast, ctx))
         return;

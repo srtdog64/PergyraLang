@@ -70,6 +70,12 @@ Current beta closure snapshot:
   use the same source-local fact owner through callable return/parameter
   type-name rows, so function-pointer locals do not need to re-register the
   annotation AST in LLVM MIR emission.
+- Domain lifecycle declarations are parsed as syntax only. The semantic
+  lifecycle pass owns the registry and transition verdict, and MIR lowering is
+  the only layer that may consume `lc_guard_find(...)` to copy that verdict into
+  `MIRInstruction` lifecycle guard facts. MIR-active C and LLVM backends consume
+  `mir_instruction_has_lifecycle_guard(...)` and the associated guard fields;
+  they must not recover lifecycle verdicts from AST-node side tables.
 - LLVM verifier diagnostics live at the LLVM C API boundary in
   `src/codegen/llvm_api.c`. `LLVMVerifyModule(...)` may leave the diagnostic
   message pointer null on success; backend code must only call
@@ -1394,7 +1400,9 @@ AIR answers:
 - whether declared intent/zone/world/effect boundaries drift from actual HIR,
   RIR, MIR, DAG, and runtime-policy evidence;
 - whether required boundary evidence exists;
-- whether evidence provenance is complete enough for diagnostics.
+- whether evidence provenance is complete enough for diagnostics;
+- whether a source-level intent/boundary axis is retained, summarized, erased,
+  or forbidden to erase through the `compression_budget` fact.
 
 AIR does not own:
 
@@ -1406,6 +1414,20 @@ AIR does not own:
 
 AIR may reject missing or inconsistent evidence. It must not synthesize lower
 layer facts to make evidence pass.
+
+AIR compression facts are also verification facts, not backend layout facts.
+`air_boundary.c` owns the initial `retain` / `summarize` / `erase` /
+`forbid` vocabulary for AIR intent and boundary nodes, and `pgy.air.graph.v1`
+exports `compression_budget` plus `compression_reason` for tools. Backends may
+consume these facts later, but they must not infer physical zone/world/intent
+carriers, padding, barriers, or runtime authority checks from source syntax
+alone. Physical layout remains owned by MIR/ABI layout facts.
+
+Canonical rule: World/Zone/Intent/Slot are source-level semantic axes, not
+backend-level physical artifacts. The full source chain
+`World -> Zone -> Roster -> Role -> Intent -> Slot` is a verification spine,
+not a required runtime object graph. Missing evidence fails closed. Sufficient
+AIR/MIR/ABI evidence may erase or compress the axis in C/LLVM.
 
 Global `AIREvidenceNode` inventory is the verification source of truth. Summary
 counters remain telemetry and compatibility surface: counter-only evidence may
@@ -1680,3 +1702,6 @@ The proof-pack owner is
 `docs/semantics/09_abstraction_loss_contracts.md`. This rule generalizes the AIR
 epsilon-loss isolation contract: AIR is one verifier of cross-layer loss, while
 CFG, DAG, RIR, MIR, ABI/runtime, and backend owners still keep their own facts.
+The same document now owns the compression rule: a source-level semantic axis
+may disappear from backend artifacts only through a named `compression_budget`,
+not through optimizer guesswork.

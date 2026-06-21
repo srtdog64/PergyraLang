@@ -27,6 +27,8 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
         return type_check_event_decl(node, ctx);
     case AST_TYPE_ALIAS:
         return type_check_type_alias_stmt(node, ctx);
+    case AST_LIFECYCLE_DECL:
+        return true;
     case AST_CLASS_DECL:
         return type_check_class_decl(node, ctx);
     case AST_EXTERN_BLOCK:

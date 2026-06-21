@@ -1,0 +1,8 @@
+// Slot axis, statically provable (straight-line `with` block, no branch).
+// THE erasure test: does a provable value-slot emit pgy_*slot* runtime calls?
+func Main() -> Void {
+    with slot<Int> as counter {
+        Write(counter, 100);
+        Log(Read(counter));
+    }
+}

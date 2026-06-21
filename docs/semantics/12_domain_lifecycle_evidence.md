@@ -1,7 +1,12 @@
 # 12. Domain-Lifecycle Evidence (the Rust-outside class)
 
-Status: **DESIGN / PROPOSED.** Some primitives exist (see section 4); the unified model
-below is the target, not yet a beta-stable contract.
+Status: **PARTIAL IMPLEMENTATION / RUNTIME GUARD SEED.** The parser accepts the
+`lifecycle <Subject> { Op: From -> To; }` surface, semantic analysis collects
+those declarations into one lifecycle registry, and the static analyzer rejects
+known invalid transitions. Ambiguous joins now produce lifecycle guard verdicts
+(`LC_GUARD_SET` / `LC_GUARD_CHECK`) instead of a semantic fallback; MIR lowering
+copies those verdicts into `MIRInstruction` lifecycle guard facts, and
+MIR-active C/LLVM lowering consumes those MIR facts uniformly.
 
 Companion to the slot model ([[project_slot_safety_consistency]],
 `08_slot_capability_calculus.md`) and the witness/evidence triad
@@ -97,14 +102,47 @@ domain-meaningful evidence, checked fail-closed.
   (`intent_step_inherited_requires`).
 - Lifecycle / state / vessel diagnostic codes - `diag_codes.h`.
 
-**Proposed (new work):**
+**Implemented seed:**
 
-- Surface to declare a subject/vessel's state set + per-op precondition contract.
-- The generalized static state-tracker (lift slot_analyzer's two-state model to
-  N domain states).
-- The runtime `state` tag on stateful subjects + the fail-closed check +
-  `invalid-lifecycle-state` panic class (uniform across C/LLVM, per the
-  C == LLVM evidence contract).
+- Surface declaration: `lifecycle <Subject> { <Op>: <FromState> -> <ToState>; }`
+  is parsed as `AST_LIFECYCLE_DECL`.
+- Semantic owner: `lifecycle_analyze.c` is the single consumer that lowers those
+  declarations into `lifecycle_state.c` registry entries. The parser does not
+  populate the registry.
+- Static tracker: function bodies track governed locals through straight-line
+  code and merge branch exits through `lc_merge`. Known invalid transitions are
+  semantic errors.
+- Runtime-evidence verdict: `lc_apply_op` may return `LC_NEEDS_RUNTIME_CHECK`
+  for ambiguous states. The analyzer records guard annotations keyed by the
+  construction/call AST nodes; fully static paths remain zero-cost, while
+  ambiguous variables get `LC_GUARD_SET` construction/proven-transition facts
+  and `LC_GUARD_CHECK` fail-closed check facts.
+- Type owner: governed local discovery consumes semantic type-resolution facts
+  before source spelling, so namespace/alias resolution stays behind the type
+  metadata owner instead of being reimplemented in lifecycle analysis.
+- Runtime state tag (layer 3, **implemented, C == LLVM**): the MIR guard facts
+  are lowered by both backends to runtime calls -
+  `pgy_runtime_lifecycle_set_export` (record a proven transition) and
+  `pgy_runtime_lifecycle_guard_export` (fail-closed check). State lives in a
+  process-wide side-map keyed by the governed local's storage address - keeping
+  the subject struct ABI untouched. The semantic side-table is an input to MIR
+  lowering only; MIR-active C and LLVM emission consume
+  `mir_instruction_has_lifecycle_guard(...)` and the associated guard fields,
+  so the two lowerings are uniform by construction and do not rediscover the
+  lifecycle verdict from source AST nodes. A violated precondition panics with class
+  `invalid-lifecycle-state` and a traceable `op=/subject=/state=/permitted_mask=`
+  record. The two runtime helpers are stripped from the inlined runtime bitcode
+  (kept external) so both calls resolve to the one runtime object that owns the
+  single side-map and the correctly-lowered abort - the same bitcode-exclusion
+  policy the checked-arithmetic and panic families use.
+- Taint scope: only variables that actually reach an ambiguous op are
+  instrumented; fully statically-proven variables stay zero-cost.
+
+**v1 limits (documented, not silent):** the side-map is fixed-capacity, single
+-threaded, and keyed by local storage address (no cross-alias / cross-frame
+identity). These bound only the runtime backstop for the ambiguous minority, not
+the always-on static layer. Taint-based elision and aliasing identity are the
+next refinements (see section 5).
 
 ## 5. Open questions
 

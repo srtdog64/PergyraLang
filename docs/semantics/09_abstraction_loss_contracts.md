@@ -55,6 +55,36 @@ Loss budget classes:
 | `diagnostic-only` | The fact may be kept only for source spans, messages, or traces. |
 | `forbidden` | The boundary may not lose this fact for the stable surface. |
 
+Compression budget classes:
+
+| Budget | Meaning |
+|---|---|
+| `retain` | The abstraction must remain runtime-visible because execution, authority, coordination, failure, or observability needs it. |
+| `summarize` | The abstraction may disappear as a runtime carrier, but its evidence/provenance fact remains in AIR/MIR tooling output. |
+| `erase` | The abstraction is fully discharged by static evidence and may lower to the ordinary call/value sequence. |
+| `forbid` | The abstraction may not be erased or summarized; trying to do so would change meaning. |
+
+Compression is not an optimizer guess. It is a proof-gated erasure contract:
+World, Zone, Intent, Slot, Role, Roster, and related domain axes are source-level
+semantic axes, not mandatory backend-level physical artifacts. A later backend
+may erase or compress one only when the owning AIR/MIR fact says the proof
+budget is `summarize` or `erase`.
+
+Canonical rule:
+
+```text
+World/Zone/Intent/Slot are source-level semantic axes, not backend-level
+physical artifacts.
+
+Missing evidence fails closed.
+If the evidence is sufficient, the axis may be erased or compressed by the
+backend.
+
+The chain World -> Zone -> Roster -> Role -> Intent -> Slot is therefore not a
+mandatory runtime object graph. It is a verification spine. C and LLVM may
+materialize only the parts whose AIR/MIR/ABI facts prove runtime necessity.
+```
+
 ## Core Judgments
 
 `A -[contract K]-> B`
@@ -80,6 +110,12 @@ contract.
 If a fact is lost or moved, a later layer must not reread the older source to
 recover it. The owner must carry the fact forward, reject the program, or mark
 the feature out of the stable surface.
+
+`K compression budget fact`
+
+The abstraction target must expose whether the source-level concept is retained
+as runtime structure, summarized as evidence/provenance, erased after proof, or
+forbidden to erase.
 
 ## Canonical Boundaries
 
@@ -140,6 +176,7 @@ Preserved facts:
 - boundary identity;
 - evidence provider;
 - source/provenance name;
+- compression budget for intent/boundary evidence;
 - cleanup, pin, terminator, select-receive, DAG, runtime, and observability
   evidence when those facts discharge an abstraction proof.
 
@@ -148,6 +185,8 @@ Forbidden:
 - AIR creating lower-layer facts to make verification pass;
 - AIR accepting summary counters as proof when first-class evidence inventory is
   required;
+- AIR or a backend treating a source-level domain axis as a physical layout
+  owner without a MIR/ABI layout fact;
 - AIR becoming the owner of CFG, DAG, RIR, MIR, runtime, or backend truth.
 
 ### MIR To C And LLVM
@@ -163,6 +202,7 @@ Preserved facts:
 
 - observable behavior for the frozen subset;
 - ABI ownership and lifetime shape;
+- compression budget consumed from AIR/MIR, not rediscovered from syntax;
 - panic/failure behavior;
 - cleanup, drop, pin, and resource release effects;
 - deterministic output where the gate requires stable text or stable behavior.
@@ -170,9 +210,27 @@ Preserved facts:
 Forbidden:
 
 - C and LLVM choosing different semantic owners;
+- a backend inserting a zone/world/intent/slot carrier, padding, barrier, or
+  runtime authority check from source syntax alone;
 - backend text succeeding after a required MIR/DIR/RIR/DAG fact is missing;
 - a backend accepting a source-level program that the shared semantic owner
   rejected.
+
+## Compression Examples
+
+The first stable compression vocabulary is intentionally conservative:
+
+| Source abstraction | Compression budget |
+|---|---|
+| Pure intent step with no runtime-visible boundary, authority, effect, async, or failure policy | `erase` to the ordinary call sequence |
+| Static zone contract with no runtime authority check | `summarize` as AIR provenance/evidence |
+| World transfer, parallel, channel, IO, execution, or authority-bearing zone boundary | `retain` |
+| Slot, Pin, or packed-layout carrier without ownership/layout proof | `forbid` until the owner fact exists |
+
+This is the DOP/Zone rule: Zone is a semantic boundary. Physical memory layout,
+padding, SoA/AoS shape, barriers, and ABI structs are decided only by the
+ABI/Layout owner. A backend must not make a Zone physically heavier unless a
+runtime, MIR, or ABI fact requires that cost.
 
 ### Self-Hosted Tool To C Oracle
 
@@ -208,6 +266,10 @@ Every stable abstraction boundary must expose its accepted loss budget.
   live enforcement gate. Current manifest coverage is 4/5 gate-enforced
   (`ast_to_mir`, `mir_to_air`, `mir_to_backends`, `selfhost_to_oracle`) and
   1/5 documentation-only (`parser_to_ast`).
+- Compression evidence: `pgy.air.graph.v1` exposes `compression_budget` and
+  `compression_reason` for AIR intent and boundary nodes. The AIR invariant
+  validator rejects unknown compression budgets, and the JSON schema smoke keeps
+  the fields present for self-hosted and external tools.
 - Remaining obligation: attach explicit contract blocks to each major compiler
   pass as the self-hosted substitution surface grows, and move `parser_to_ast`
   from documentation-only to an enforced manifest row.

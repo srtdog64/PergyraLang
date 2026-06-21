@@ -58,6 +58,14 @@ that must be preserved, the owner that keeps the original truth, and the
 downstream reads that become forbidden after the cutover. `docs/semantics/09_abstraction_loss_contracts.md`
 is the proof-pack owner for this rule.
 
+Compression uses the same owner discipline. World, Zone, Intent, Slot, Role,
+Roster, and related source-level axes are semantic axes, not automatic backend
+artifacts. AIR may classify an intent or boundary as `retain`, `summarize`, or
+`erase`, but C/LLVM must not turn a source-level axis into a physical carrier,
+padding, barrier, or runtime authority check unless AIR/MIR/ABI evidence owns
+that cost. The beta-visible vocabulary is `compression_budget` plus
+`compression_reason` in `pgy.air.graph.v1`.
+
 ## 2. Compiler-Facing Orthogonality Rule
 
 Compiler-facing orthogonality rule:

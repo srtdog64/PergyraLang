@@ -45,6 +45,31 @@ air_boundary_kind_name(AIRBoundaryKind kind)
 }
 
 const char *
+air_compression_budget_name(AIRCompressionBudget budget)
+{
+    switch (budget) {
+    case AIR_COMPRESSION_UNKNOWN: return "unknown";
+    case AIR_COMPRESSION_RETAIN: return "retain";
+    case AIR_COMPRESSION_SUMMARIZE: return "summarize";
+    case AIR_COMPRESSION_ERASE: return "erase";
+    case AIR_COMPRESSION_FORBID: return "forbid";
+    }
+    return "invalid";
+}
+
+const char *
+air_retain_cause_name(AIRRetainCause cause)
+{
+    switch (cause) {
+    case AIR_RETAIN_CAUSE_NONE: return "none";
+    case AIR_RETAIN_CAUSE_INHERENT: return "inherent";
+    case AIR_RETAIN_CAUSE_POLICY: return "policy";
+    case AIR_RETAIN_CAUSE_UNPROVEN: return "unproven";
+    }
+    return "invalid";
+}
+
+const char *
 air_drift_kind_name(AIRDriftKind kind)
 {
     switch (kind) {

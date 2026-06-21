@@ -127,6 +127,143 @@ test_air_who_inference_does_not_imply_authority(void)
 }
 
 static bool
+test_air_compression_erases_pure_sync_intent(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "PureFlow",
+            .step_name = "forward",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRProgram air = {
+        .intents = intents,
+        .intent_count = 1,
+    };
+    char *error = NULL;
+    bool ok = air_validate(&air, &error)
+        && error == NULL
+        && air_intent_compression_budget(&air, 0) == AIR_COMPRESSION_ERASE
+        && strcmp(air_compression_budget_name(
+                      air_intent_compression_budget(&air, 0)),
+                  "erase") == 0
+        && strstr(air_intent_compression_reason(&air, 0),
+                  "verified pure orchestration") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_compression_summarizes_static_zone_and_retains_authority(void)
+{
+    const char *authority_names[] = { "driver" };
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "Patrol",
+            .step_name = "walk",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+        {
+            .intent_owner = "Drive",
+            .step_name = "ignite",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_ZONE,
+            .owner_name = "Patrol",
+            .source_name = "CityZone",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+        },
+        {
+            .kind = AIR_BOUNDARY_ZONE,
+            .owner_name = "Drive",
+            .source_name = "CockpitZone",
+            .intent_index = 1,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .authority_required = true,
+            .authority_names = authority_names,
+            .authority_name_count = 1,
+        },
+    };
+    AIRProgram air = {
+        .intents = intents,
+        .intent_count = 2,
+        .boundaries = boundaries,
+        .boundary_count = 2,
+    };
+    char *error = NULL;
+    bool ok = air_validate(&air, &error)
+        && error == NULL
+        && air_boundary_compression_budget(&boundaries[0])
+            == AIR_COMPRESSION_SUMMARIZE
+        && air_intent_compression_budget(&air, 0)
+            == AIR_COMPRESSION_SUMMARIZE
+        && strstr(air_boundary_compression_reason(&boundaries[0]),
+                  "semantic provenance") != NULL
+        && air_boundary_compression_budget(&boundaries[1])
+            == AIR_COMPRESSION_RETAIN
+        && air_intent_compression_budget(&air, 1)
+            == AIR_COMPRESSION_RETAIN
+        && strstr(air_boundary_compression_reason(&boundaries[1]),
+                  "authority-bearing") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_compression_retains_world_transfer_boundary(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "Checkout",
+            .step_name = "promote",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_ASYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_WORLD,
+            .owner_name = "Checkout",
+            .source_name = "PaymentZone",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_ASYNC,
+            .source_from_transfer = true,
+        },
+    };
+    AIRProgram air = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+    };
+    char *error = NULL;
+    bool ok = air_validate(&air, &error)
+        && error == NULL
+        && air_boundary_compression_budget(&boundaries[0])
+            == AIR_COMPRESSION_RETAIN
+        && air_intent_compression_budget(&air, 0)
+            == AIR_COMPRESSION_RETAIN
+        && strstr(air_boundary_compression_reason(&boundaries[0]),
+                  "runtime-visible coordination") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
 test_air_detects_sync_async_drift(void)
 {
     AIRIntentNode intents[] = {

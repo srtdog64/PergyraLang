@@ -5,9 +5,9 @@
 // the C backend's MIR consumption is substituted.
 //
 // rung-0 scope: a single routine `Main`, a single linear block, and the
-// statement forms the codegen already supports (Int `let`, `Log(...)`). Each
-// instruction's `ast` field is transitional compatibility source text captured
-// by the MIR source-shape owner. Out-of-scope input is an
+// statement forms the codegen already supports (Int `let`, `Log(...)`). The
+// reconstructor consumes MIR JSON facts (`source_type`, `arg0`, `expr0`,
+// `expr1`, and `source_locals`) only; out-of-scope input is an
 // observable MIR-LOWER ERROR (no silent fallback, per the no-hidden-flow rule).
 
 func Die(msg: String) -> Void {
@@ -80,8 +80,8 @@ func ReadJsonString(json: String, open: Int, end: Array<Int>) -> String {
 }
 
 // Read a string-valued JSON field inside [start,end). Missing, null, or
-// non-string fields return "" so callers can fall back to older compatibility
-// facts without silently accepting malformed required facts.
+// non-string fields return "" so callers can fail closed or skip unsupported
+// non-statement facts without accepting malformed required facts.
 func JsonFieldString(json: String, start: Int, end: Int, key: String) -> String {
     let p: Int = FindFrom(json, key, start);
     if p < 0 || p >= end {
@@ -132,8 +132,8 @@ func SourceLocalType(json: String, start: Int, end: Int, name: String) -> String
     return "";
 }
 
-// Convert one compatibility statement text to its AST-tree line. `Log(...)`
-// and bare calls pass through unchanged; `let NAME: T = V` becomes
+// Convert one fact-rendered statement text to its AST-tree line. `Log(...)` and
+// bare calls pass through unchanged; `let NAME: T = V` becomes
 // `Let: NAME : T = V`.
 func StmtToTreeLine(stmt: String) -> String {
     let s: String = StringTrim(stmt);
@@ -150,13 +150,10 @@ func StmtToTreeLine(stmt: String) -> String {
     return s;
 }
 
-func RenderStmtFromFacts(kind: String, source_type: String, ast: String,
+func RenderStmtFromFacts(kind: String, source_type: String,
                          arg0: String, expr0: String, expr1: String,
                          local_type: String) -> String {
     let value: String = expr0;
-    if StringLength(value) == 0 {
-        value = ast;
-    }
     if kind == "return" {
         return Concat("Return: ", value);
     }
@@ -166,9 +163,6 @@ func RenderStmtFromFacts(kind: String, source_type: String, ast: String,
             && StringLength(local_type) > 0
             && StringLength(expr0) > 0 {
             return Concat("Let: ", Concat(arg0, Concat(" : ", Concat(local_type, Concat(" = ", expr0)))));
-        }
-        if StringLength(ast) >= 4 && Substring(ast, 0, 4) == "let " {
-            return StmtToTreeLine(ast);
         }
         if StringLength(expr1) > 0 && StringLength(expr0) > 0 {
             return Concat("Assign: ", Concat(expr1, Concat(" = ", expr0)));
@@ -257,9 +251,8 @@ func BlockBounds(json: String, bp: Int, span_end: Int, id: String, o: Array<Int>
     return true;
 }
 
-// Branch condition within [bs,be); "" if the block does not end in a branch.
-// `expr0` is the MIR branch condition fact; `ast` is only the older
-// compatibility source text.
+// Branch condition within [bs,be); "" if the block does not end in a branch or
+// the branch does not carry the required MIR fact.
 func BlockCond(json: String, bs: Int, be: Int) -> String {
     let kp: Int = FindFrom(json, "\"kind\":\"branch\"", bs);
     if kp < 0 || kp >= be {
@@ -283,7 +276,7 @@ func BlockCond(json: String, bs: Int, be: Int) -> String {
     if StringLength(cond) > 0 {
         return cond;
     }
-    return JsonFieldString(json, kp, inst_end, "\"ast\":");
+    return "";
 }
 
 // Emit the non-branch statement lines of block [bs,be) at `indent`. `phi`
@@ -303,14 +296,13 @@ func EmitBlockStmts(json: String, routine_start: Int, routine_end: Int,
             if next_kp >= 0 && next_kp < be {
                 inst_end = next_kp;
             }
-            let ast: String = JsonFieldString(json, kp, inst_end, "\"ast\":");
             let expr0: String = JsonFieldString(json, kp, inst_end, "\"expr0\":");
             let expr1: String = JsonFieldString(json, kp, inst_end, "\"expr1\":");
             let arg0: String = JsonFieldString(json, kp, inst_end, "\"arg0\":");
             let source_type: String = JsonFieldString(json, kp, inst_end, "\"source_type\":");
             let local_type: String = SourceLocalType(json, routine_start, routine_end, arg0);
-            if StringLength(ast) > 0 || StringLength(expr0) > 0 {
-                out = Concat(out, Concat(indent, Concat(RenderStmtFromFacts(ikind, source_type, ast, arg0, expr0, expr1, local_type), "\n")));
+            if StringLength(expr0) > 0 {
+                out = Concat(out, Concat(indent, Concat(RenderStmtFromFacts(ikind, source_type, arg0, expr0, expr1, local_type), "\n")));
             }
         }
         kp = next_kp;
@@ -434,10 +426,10 @@ func Main() -> Void {
         Die("input is not a pgy.mir.v1 MIR-JSON document");
     }
 
-    // Iterate every routine in document order (rung-0b: each routine is one
-    // linear block; control flow and parameters/returns are not yet
-    // reconstructed and remain an observable MIR-LOWER ERROR). The `ast` fields
-    // of a routine are bounded by the next routine's `"name":` key.
+    // Iterate every routine in document order. The current rung reconstructs
+    // signatures plus the supported CFG subset from explicit MIR JSON facts;
+    // unsupported shapes remain an observable MIR-LOWER ERROR. A routine span
+    // is bounded by the next routine's `"name":` key.
     let out: String = "Program:\n";
     let total: Int = 0;
     let rpos: Int = FindRoutine(json, 0);
@@ -514,14 +506,13 @@ func Main() -> Void {
                 if next_kp >= 0 && next_kp < span_end {
                     inst_end = next_kp;
                 }
-                let ast: String = JsonFieldString(json, kp, inst_end, "\"ast\":");
                 let expr0: String = JsonFieldString(json, kp, inst_end, "\"expr0\":");
                 let expr1: String = JsonFieldString(json, kp, inst_end, "\"expr1\":");
                 let arg0: String = JsonFieldString(json, kp, inst_end, "\"arg0\":");
                 let source_type: String = JsonFieldString(json, kp, inst_end, "\"source_type\":");
                 let local_type: String = SourceLocalType(json, nend[0], span_end, arg0);
-                if StringLength(ast) > 0 || StringLength(expr0) > 0 {
-                    out = Concat(out, Concat("        ", Concat(RenderStmtFromFacts(ikind, source_type, ast, arg0, expr0, expr1, local_type), "\n")));
+                if StringLength(expr0) > 0 {
+                    out = Concat(out, Concat("        ", Concat(RenderStmtFromFacts(ikind, source_type, arg0, expr0, expr1, local_type), "\n")));
                     total = total + 1;
                 }
                 kp = next_kp;

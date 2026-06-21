@@ -91,6 +91,13 @@ typedef enum
     MIR_BRANCH_SELECT_DISPATCH
 } MIRBranchShape;
 
+typedef enum
+{
+    MIR_LIFECYCLE_GUARD_NONE,
+    MIR_LIFECYCLE_GUARD_SET,
+    MIR_LIFECYCLE_GUARD_CHECK
+} MIRLifecycleGuardKind;
+
 typedef struct
 {
     size_t      predecessor_block;
@@ -149,6 +156,12 @@ typedef struct
     ASTNode         *match_case_guard;
     const char     **destructure_binding_names;
     size_t           destructure_binding_count;
+    bool             has_lifecycle_guard_fact;
+    MIRLifecycleGuardKind lifecycle_guard_kind;
+    uint32_t         lifecycle_valid_mask;
+    int              lifecycle_to_state;
+    char            *lifecycle_op;
+    char            *lifecycle_subject;
     /* Canonical ABI type name and layout: backends read these instead of
      * inventing layouts. abi_type_name remains populated for dynamic nominal
      * layouts such as Slot<Vec2> even when the static layout table has no
@@ -465,6 +478,18 @@ bool        mir_instruction_source_stmt_call_emit_is_allowed(
 bool        mir_instruction_source_stmt_runtime_boundary_emit_is_allowed(
                 const MIRInstruction *inst);
 bool        mir_instruction_resource_op_keeps_residual_statement_emit(
+                const MIRInstruction *inst);
+bool        mir_instruction_has_lifecycle_guard(
+                const MIRInstruction *inst);
+MIRLifecycleGuardKind mir_instruction_lifecycle_guard_kind(
+                const MIRInstruction *inst);
+uint32_t    mir_instruction_lifecycle_valid_mask(
+                const MIRInstruction *inst);
+int         mir_instruction_lifecycle_to_state(
+                const MIRInstruction *inst);
+const char *mir_instruction_lifecycle_op(
+                const MIRInstruction *inst);
+const char *mir_instruction_lifecycle_subject(
                 const MIRInstruction *inst);
 bool        mir_source_node_type_stmt_has_side_effect_hint(
                 ASTNodeType type,

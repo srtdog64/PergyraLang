@@ -1,0 +1,8 @@
+// Slot axis, explicit claim/write/read/release, straight-line (provable).
+func Main() -> Void {
+    let a: Slot<Int> = ClaimSlot<Int>();
+    Write(a, 10);
+    let v: Int = Read(a);
+    Log(v);
+    Release(a);
+}

@@ -47,6 +47,10 @@ mir_destroy(MIRProgram *mir)
                                      .destructure_binding_names);
                             free(routine->blocks[j].instructions[k]
                                      .source_inline_text);
+                            free(routine->blocks[j].instructions[k]
+                                     .lifecycle_op);
+                            free(routine->blocks[j].instructions[k]
+                                     .lifecycle_subject);
                         }
                     }
                     for (size_t k = 0; k < routine->blocks[j].renamed_local_count; k++)

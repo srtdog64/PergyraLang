@@ -12,11 +12,14 @@
  *
  * See docs/semantics/12_domain_lifecycle_evidence.md.
  *
- * STATUS: the engine + this pass are wired into the semantic pipeline and the
- * build. The user-facing surface that declares states/transitions, and the
- * value-tracking AST walk + runtime-tag codegen, are the remaining layers; until
- * a lifecycle declaration surface exists this pass collects zero machines and is
- * a clean no-op (no false positives on existing programs).
+ * STATUS: fully wired across all three layers. The engine + semantic pass
+ * consume parser-owned AST_LIFECYCLE_DECL nodes (layers 1-2: static reject where
+ * provable). Ambiguous control-flow joins are annotated onto the call/let AST
+ * nodes and lowered by BOTH backends to a fail-closed runtime state-tag guard
+ * (layer 3: pgy_runtime_lifecycle_guard_export, panic class
+ * "invalid-lifecycle-state"). Lifecycle-free programs remain a clean no-op and
+ * fully-provable variables stay zero-cost (taint keeps runtime instrumentation
+ * to variables that actually reach an ambiguous op).
  */
 
 #ifndef PERGYRA_LIFECYCLE_ANALYZE_H

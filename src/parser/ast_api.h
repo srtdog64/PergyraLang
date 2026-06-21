@@ -92,6 +92,14 @@ ASTNode* ast_let_destructure_initializer(const ASTNode* node);
 ASTNode* ast_create_type_alias(const char* name, ASTNode* target_type);
 const char* ast_type_alias_name(const ASTNode* node);
 ASTNode* ast_type_alias_target_type(const ASTNode* node);
+ASTNode* ast_create_lifecycle_declaration(const char* subject);
+bool ast_lifecycle_add_transition(ASTNode* node, const char* op,
+                                  const char* from_state,
+                                  const char* to_state);
+const char* ast_lifecycle_subject(const ASTNode* node);
+size_t ast_lifecycle_transition_count(const ASTNode* node);
+const LifecycleTransitionDecl* ast_lifecycle_transition(const ASTNode* node,
+                                                        size_t index);
 ASTNode* ast_create_with_statement(void);
 ASTNode* ast_create_parallel_block(void);
 ASTNode* ast_create_block(void);

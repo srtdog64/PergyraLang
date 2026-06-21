@@ -1,0 +1,9 @@
+// Baseline: no semantic axis. Pure arithmetic + Log. Expect ZERO axis residue.
+func Compute(n: Int) -> Int {
+    let a: Int = n * 2;
+    let b: Int = a + 7;
+    return b - n;
+}
+func Main() -> Void {
+    Log(Compute(10));
+}

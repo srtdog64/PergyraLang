@@ -256,6 +256,70 @@ ASTNode* ast_create_type_alias(const char* name, ASTNode* target_type) {
     return node;
 }
 
+ASTNode*
+ast_create_lifecycle_declaration(const char* subject)
+{
+    ASTNode* node = ast_create_node(AST_LIFECYCLE_DECL);
+    if (node == NULL)
+        return NULL;
+    node->data.lifecycle_decl.subject = pergyra_strdup(subject);
+    node->data.lifecycle_decl.transitions = NULL;
+    node->data.lifecycle_decl.transition_count = 0;
+    node->data.lifecycle_decl.transition_capacity = 0;
+    return node;
+}
+
+bool
+ast_lifecycle_add_transition(ASTNode* node, const char* op,
+                             const char* from_state, const char* to_state)
+{
+    LifecycleTransitionDecl *grown;
+    LifecycleTransitionDecl *slot;
+    char *op_copy;
+    char *from_copy;
+    char *to_copy;
+    size_t next_capacity;
+
+    if (node == NULL || node->type != AST_LIFECYCLE_DECL
+        || op == NULL || from_state == NULL || to_state == NULL) {
+        return false;
+    }
+
+    if (node->data.lifecycle_decl.transition_count
+        == node->data.lifecycle_decl.transition_capacity) {
+        next_capacity = node->data.lifecycle_decl.transition_capacity == 0
+            ? 4
+            : node->data.lifecycle_decl.transition_capacity * 2;
+        if (next_capacity < node->data.lifecycle_decl.transition_capacity
+            || next_capacity > SIZE_MAX / sizeof(LifecycleTransitionDecl)) {
+            return false;
+        }
+        grown = realloc(node->data.lifecycle_decl.transitions,
+                        next_capacity * sizeof(LifecycleTransitionDecl));
+        if (grown == NULL)
+            return false;
+        node->data.lifecycle_decl.transitions = grown;
+        node->data.lifecycle_decl.transition_capacity = next_capacity;
+    }
+
+    op_copy = pergyra_strdup(op);
+    from_copy = pergyra_strdup(from_state);
+    to_copy = pergyra_strdup(to_state);
+    if (op_copy == NULL || from_copy == NULL || to_copy == NULL) {
+        free(op_copy);
+        free(from_copy);
+        free(to_copy);
+        return false;
+    }
+
+    slot = &node->data.lifecycle_decl.transitions[
+        node->data.lifecycle_decl.transition_count++];
+    slot->op = op_copy;
+    slot->from_state = from_copy;
+    slot->to_state = to_copy;
+    return true;
+}
+
 // With statement
 ASTNode* ast_create_with_statement(void) {
     ASTNode* node = ast_create_node(AST_WITH_STMT);

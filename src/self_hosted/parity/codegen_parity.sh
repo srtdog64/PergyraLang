@@ -26,6 +26,13 @@
 
 set -euo pipefail
 
+if ! command -v dirname >/dev/null 2>&1 \
+    || ! command -v tr >/dev/null 2>&1 \
+    || ! command -v pwd >/dev/null 2>&1; then
+    PATH="/usr/bin:/bin:$PATH"
+    export PATH
+fi
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/src/self_hosted/parity/llvm_leg_helpers.sh"
@@ -69,6 +76,53 @@ if [[ ! -f "$TOOL_SOURCE" ]]; then
 fi
 
 mkdir -p "$ABS_BUILD"
+
+run_native_capture() {
+    local cwd="$1"
+    local out="$2"
+    local err="$3"
+    local bin="$4"
+    shift 4
+
+    local use_windows_bridge=0
+    case "$(uname -s 2>/dev/null || echo unknown)" in
+        MINGW*|MSYS*|CYGWIN*)
+            if pgy_binary_expects_windows_paths "$bin" \
+                && command -v powershell.exe >/dev/null 2>&1; then
+                use_windows_bridge=1
+            fi
+            ;;
+    esac
+
+    if [[ "$use_windows_bridge" -eq 0 ]] && pgy_binary_is_runnable_here "$bin"; then
+        (cd "$cwd" && "$bin" "$@" >"$out" 2>"$err")
+        return $?
+    fi
+
+    case "$(uname -s 2>/dev/null || echo unknown)" in
+        MINGW*|MSYS*|CYGWIN*) ;;
+        *) return 127 ;;
+    esac
+    command -v cmd.exe >/dev/null 2>&1 || return 127
+
+    local cwd_native
+    local bin_native
+    local out_native
+    local err_native
+    local args_cmd=""
+    local arg
+
+    cwd_native="$(pgy_path_for_windows_tool "$cwd")"
+    bin_native="$(pgy_path_for_windows_tool "$bin")"
+    out_native="$(pgy_path_for_windows_tool "$out")"
+    err_native="$(pgy_path_for_windows_tool "$err")"
+    for arg in "$@"; do
+        local escaped_arg="${arg//\"/\\\"}"
+        args_cmd="${args_cmd} \"${escaped_arg}\""
+    done
+
+    cmd.exe //d //c "cd /d \"${cwd_native}\" && \"${bin_native}\"${args_cmd} > \"${out_native}\" 2> \"${err_native}\""
+}
 
 # Fixture base names; each resolves to fixture/<base>.pgy and
 # expected/<base>_stdout.txt.
@@ -150,20 +204,33 @@ check_oracle_drift() {
         exit 1
     fi
 
-    (cd "$ROOT_DIR" && "$PGY" \
+    local oracle_compile_out="$ABS_BUILD/${base}_oracle_compile.out"
+    local oracle_compile_err="$ABS_BUILD/${base}_oracle_compile.err"
+    if ! run_native_capture "$ROOT_DIR" "$oracle_compile_out" "$oracle_compile_err" "$PGY" \
         "$(pgy_path_for_compiler "$PGY" "$src")" \
         --backend=c \
-        -o "$(pgy_path_for_compiler "$PGY" "$oracle_exe")" >/dev/null 2>&1)
+        -o "$(pgy_path_for_compiler "$PGY" "$oracle_exe")"; then
+        echo "[self-host-parity:codegen] $base: C-backend oracle failed to build" >&2
+        cat "$oracle_compile_out" "$oracle_compile_err" >&2
+        exit 1
+    fi
 
-    local run_cmd=("$oracle_exe")
+    local run_args=()
     while IFS= read -r arg; do
-        run_cmd+=("$arg")
+        run_args+=("$arg")
     done < <(fixture_run_args "$base")
 
     local oracle_out
+    local oracle_raw="$ABS_BUILD/${base}_oracle.out.raw"
+    local oracle_err="$ABS_BUILD/${base}_oracle.err"
     # Run from ROOT_DIR so file-reading fixtures (ReadFile/FileExists) resolve
     # repo-relative paths deterministically.
-    oracle_out="$(cd "$ROOT_DIR" && "${run_cmd[@]}" 2>/dev/null | tr -d '\r')"
+    if ! run_native_capture "$ROOT_DIR" "$oracle_raw" "$oracle_err" "$oracle_exe" "${run_args[@]}"; then
+        echo "[self-host-parity:codegen] $base: C-backend oracle exit failed" >&2
+        cat "$oracle_err" >&2
+        exit 1
+    fi
+    oracle_out="$(tr -d '\r' < "$oracle_raw")"
     local expected_norm
     expected_norm="$(tr -d '\r' < "$expected_file")"
     if [[ "$oracle_out" != "$expected_norm" ]]; then
@@ -178,12 +245,15 @@ compile_tool_backend() {
     local backend="$1"
     local tool_bin="$2"
     local compile_log="$ABS_BUILD/tool_${backend}.compile.log"
+    local compile_out="$ABS_BUILD/tool_${backend}.compile.out"
+    local compile_err="$ABS_BUILD/tool_${backend}.compile.err"
 
     echo "[self-host-parity:codegen] compiling codegen tool backend=$backend..."
-    if ! (cd "$ROOT_DIR" && "$PGY" \
+    if ! run_native_capture "$ROOT_DIR" "$compile_out" "$compile_err" "$PGY" \
         "$(pgy_path_for_compiler "$PGY" "$TOOL_SOURCE")" \
         --backend="$backend" \
-        -o "$(pgy_path_for_compiler "$PGY" "$tool_bin")" >"$compile_log" 2>&1); then
+        -o "$(pgy_path_for_compiler "$PGY" "$tool_bin")"; then
+        cat "$compile_out" "$compile_err" > "$compile_log"
         if [[ "$backend" == "llvm" ]] && pgy_selfhost_log_reports_no_llvm "$compile_log"; then
             echo "[self-host-parity:codegen] LLVM backend unavailable; skipping llvm-compiled codegen tool"
             return 2
@@ -192,6 +262,7 @@ compile_tool_backend() {
         cat "$compile_log" >&2
         exit 1
     fi
+    cat "$compile_out" "$compile_err" > "$compile_log"
     return 0
 }
 
@@ -204,15 +275,22 @@ run_tool_backend() {
         local expected_file="$EXPECTED_DIR/${base}_stdout.txt"
         local ast_rel="$REL_BUILD/${base}_${backend}_ast.txt"
         local ast_file="$ROOT_DIR/$ast_rel"
+        local ast_raw="$ast_file.raw"
+        local ast_err="$ast_file.err"
         local c_file="$ABS_BUILD/${base}_${backend}.c"
         local self_exe="$ABS_BUILD/${base}_${backend}_self.exe"
 
         # 1. AST text from the live compiler (written to a repo-relative path).
-        (cd "$ROOT_DIR" && "$PGY" --ast \
-            "$(pgy_path_for_compiler "$PGY" "$src")" 2>/dev/null \
-            | tr -d '\r' > "$ast_rel")
+        if ! run_native_capture "$ROOT_DIR" "$ast_raw" "$ast_err" "$PGY" \
+            --ast "$(pgy_path_for_compiler "$PGY" "$src")"; then
+            echo "[self-host-parity:codegen] backend=$backend $base: --ast failed" >&2
+            cat "$ast_err" >&2
+            exit 1
+        fi
+        tr -d '\r' < "$ast_raw" > "$ast_file"
         if [[ ! -s "$ast_file" ]]; then
             echo "[self-host-parity:codegen] backend=$backend $base: empty --ast output" >&2
+            cat "$ast_err" >&2
             exit 1
         fi
 
@@ -221,13 +299,13 @@ run_tool_backend() {
         #    Capture the tool's own exit (not a pipe's) before stripping CRs.
         local tool_rc
         set +e
-        (cd "$ROOT_DIR" && "$tool_bin" "$ast_rel" > "$c_file.raw" 2>/dev/null)
+        run_native_capture "$ROOT_DIR" "$c_file.raw" "$c_file.err" "$tool_bin" "$ast_rel"
         tool_rc="$?"
         set -e
         tr -d '\r' < "$c_file.raw" > "$c_file"
         if [[ "$tool_rc" -ne 0 ]]; then
             echo "[self-host-parity:codegen] backend=$backend $base: codegen tool exit=$tool_rc" >&2
-            cat "$c_file" >&2
+            cat "$c_file.err" "$c_file" >&2
             exit 1
         fi
 
@@ -239,13 +317,27 @@ run_tool_backend() {
             cat "$c_file" >&2
             exit 1
         fi
-        local run_cmd=("$self_exe")
+        local run_args=()
         while IFS= read -r arg; do
-            run_cmd+=("$arg")
+            run_args+=("$arg")
         done < <(fixture_run_args "$base")
 
+        local run_raw="$ABS_BUILD/${base}_${backend}_self.out.raw"
+        local run_err="$ABS_BUILD/${base}_${backend}_self.err"
+        local run_norm="$ABS_BUILD/${base}_${backend}_self.out"
+        local run_rc
+        set +e
+        run_native_capture "$ROOT_DIR" "$run_raw" "$run_err" "$self_exe" "${run_args[@]}"
+        run_rc="$?"
+        set -e
+        tr -d '\r' < "$run_raw" > "$run_norm"
+        if [[ "$run_rc" -ne 0 ]]; then
+            echo "[self-host-parity:codegen] backend=$backend $base: generated executable exit=$run_rc" >&2
+            cat "$run_err" >&2
+            exit 1
+        fi
         local self_out
-        self_out="$(cd "$ROOT_DIR" && "${run_cmd[@]}" 2>/dev/null | tr -d '\r')"
+        self_out="$(cat "$run_norm")"
 
         # 4. Compare against committed expected (== oracle, guarded above).
         local expected_norm

@@ -161,6 +161,16 @@ void ast_destroy(ASTNode* node) {
             ast_destroy(node->data.type_alias.target_type);
             break;
 
+        case AST_LIFECYCLE_DECL:
+            free(node->data.lifecycle_decl.subject);
+            for (size_t i = 0; i < node->data.lifecycle_decl.transition_count; i++) {
+                free(node->data.lifecycle_decl.transitions[i].op);
+                free(node->data.lifecycle_decl.transitions[i].from_state);
+                free(node->data.lifecycle_decl.transitions[i].to_state);
+            }
+            free(node->data.lifecycle_decl.transitions);
+            break;
+
         case AST_LET_DESTRUCTURE:
             for (size_t i = 0; i < node->data.let_destructure.name_count; i++)
                 free(node->data.let_destructure.names[i]);

@@ -1,8 +1,8 @@
 # Soft Self-Host Parity Harness
 
 Status: thirteen rung-2 peripheral harnesses, five rung-1 AIR graph consumer
-harnesses, plus lexer/parser rung-1, semantic rung-2, and codegen rung-0..15
-compiler-internal harnesses active.
+harnesses, one Pergyra-origin fuzz generator harness, plus lexer/parser rung-1,
+semantic rung-2, and codegen rung-0..15 compiler-internal harnesses active.
 
 This folder holds oracle comparisons for self-hosted tools and compiler-stage
 substitutes. The C compiler and existing shell/C smokes remain the source of
@@ -32,6 +32,11 @@ The parity set currently covers:
 - `production_c_size_checker`
 - `examples_inventory_checker`
 - `runtime_boundary_checker`
+- `fuzz_backend_parity_generator` (Pergyra-origin deterministic source corpus
+  generator; `make self-host-fuzz-backend-generator-parity-test-smoke` checks
+  generator C/LLVM byte-identical corpus output, while
+  `make fuzz-backend-parity-test-smoke` additionally runs the generated corpus
+  through C/LLVM)
 - `lexer` (rung-1 compiler-internal lexer substitution)
 - `parser` (rung-1 compiler-internal parser substitution)
 - `semantic` (rung-2 compiler-internal semantic verdict substitution)
@@ -60,3 +65,9 @@ Minimum parity contract for each tool:
 
 Compiler-core self-host migration from this folder is allowed only as a verified
 rung with its own intent contract and C/LLVM/Pergyra parity gate.
+
+Fuzz harnesses are intentionally separate from long-running fuzz campaigns.
+The parity contract here is deterministic: fixed seed, fixed count, stable
+manifest/source output, and optional generated-case C/LLVM execution equality.
+Crash minimization, corpus reduction, and property-pack mapping remain outside
+the beta parity set until those policies are frozen.

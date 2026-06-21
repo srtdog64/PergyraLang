@@ -39,11 +39,11 @@ subset (linear code, signatures/return, if/else, nested if, while, and
 `for i in a..b`), gated by `parity/mir_json_parity.sh`
 (`make self-host-mir-json-parity-test-smoke`, 9 fixtures). The gate now requires
 the MIR JSON fact surface and checks the `for` header is reconstructed from
-`arg0` plus `expr0`/`expr1` bounds, not from the compatibility `ast` text. This
-is the first verified slice of the actual compiler-core (~96% of the LOC), not
-the codegen subset. It is not yet a text-free MIR fact lowering; next: delete
-and ratchet the remaining compatibility `ast` fallback after the supported
-statement surface is fully represented as explicit MIR facts.
+`arg0` plus `expr0`/`expr1` bounds. The gate also rejects reintroducing reads of
+the transitional `ast` compatibility text. This is the first verified slice of
+the actual compiler-core (~96% of the LOC), not the codegen subset. It is now
+fact-only for the supported MIR JSON statement surface; next is broadening that
+surface rather than preserving text fallback.
 
 **Hard migration opened (2026-06-17):** the codegen rung is the first *hard
 compiler-core* substitute, landed after the BDFL decision lifted the

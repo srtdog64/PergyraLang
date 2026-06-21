@@ -10,6 +10,12 @@ The short answer: **the codegen pipeline is minimal (3 IRs), DIR and AIR are
 verification IRs off the codegen path, and the one collapsible boundary is tied
 to a named design invariant — not incidental complexity.**
 
+Additional answer: **AIR is the minimal verification witness surface for
+intent/effect/authority/coordination composition.** HKT/Functor is not the
+smaller core for this problem because it describes type-constructor composition,
+not authority, effect, boundary, deterministic coordination, or provenance
+evidence.
+
 ## 1. The question
 
 A latecomer language knows the failure cases of early ones, yet a multi-IR
@@ -42,6 +48,13 @@ So the "five layers" are really **three codegen IRs (HIR/RIR/MIR) plus a separat
 verification track (DIR/AIR)**. AIR is *not* a codegen IR competing with SIL/MIR
 (docs/104: "verification-only synthesis IR, not a codegen IR"); MIR is unchanged
 and AIR sits beside codegen. That alone dissolves half the "AIR gamble" framing.
+
+The other half is the HKT/Functor comparison. AIR is also not a substitute for a
+Functor hierarchy. HKT/Functor laws describe shape-preserving maps over type
+constructors. AIR proves the domain facts Pergyra composition must preserve:
+intent order, boundary, authority, effect, coordination, and provenance. Those
+are different questions. AIR, not HKT/Functor, is the minimal verification
+witness for this language axis.
 
 ## 3. Earns-its-place audit (each layer's unique fact)
 
@@ -118,6 +131,34 @@ carries the SoT/parity discipline (the source-payload-retirement work); it is pa
 knowingly, in exchange for extension without fusion-layer surgery. The pivot is
 therefore *settled*, not open.
 
+## 6a. AIR vs HKT/Functor: minimal verifier, not bigger abstraction
+
+The tempting objection is: if intent composition should be mathematically clean,
+why not make the minimum surface Functor/HKT and derive composition laws there?
+
+That is the wrong minimum for Pergyra. Functor/HKT can state shape laws over
+containers or type constructors. It does not say:
+
+- which authority discharged a step;
+- which effect boundary is crossed;
+- which zone/world/transfer boundary supplied provenance;
+- which coordination path is deterministic;
+- which failure or compensation path is preserved.
+
+Those are not library-level map laws. They are compiler-owned evidence axes.
+The Coq model now names this as `VerificationRequirement` and proves:
+
+- `air_witness_adequate`: AIR carries every required witness axis.
+- `functor_hkt_not_adequate`: a Functor/HKT witness model is not adequate,
+  because it lacks authority/effect/boundary/coordination/provenance evidence.
+- `air_is_minimal_witness_set`: any adequate surface that is a subset of AIR's
+  witness vocabulary is extensionally equal to AIR; removing an AIR witness
+  removes a required proof axis.
+
+So the claim is not "AIR is more expressive than HKT." The claim is sharper:
+for Pergyra's intent/effect/authority/coordination contract, **AIR is the
+minimum verifier surface**, while HKT/Functor is the wrong abstraction class.
+
 ## 6. The D comparison
 
 D is flat because D is *conventional* — expression/type/control-flow map onto
@@ -149,6 +190,6 @@ proof above shows the codegen layers are necessary up to the one named trade.
 ## 8. Verify
 
 ```sh
-coqc docs/semantics/proofs/IRMinimality.v   # exit 0 == all 6 theorems check
+coqc docs/semantics/proofs/IRMinimality.v   # exit 0 == all minimality theorems check
 make formal-semantics-test-smoke            # runs it in the CI coqc loop
 ```
