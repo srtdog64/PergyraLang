@@ -34,6 +34,12 @@ run 'make memory-string-safety-test-smoke'
 run 'make security-portability-contract-test-smoke'
 run 'make beta-readiness-checklist-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" dogfood-webgl-test-smoke'
+# wasm-backend parity (web / Android-browser coverage). zig is a single pip
+# package; the install is best-effort so the gate stays load-bearing where it
+# can and SKIPs cleanly where it cannot. wasm output is platform-independent,
+# so Linux-only coverage is sufficient.
+run 'pip install ziglang --quiet 2>/dev/null || python3 -m pip install ziglang --quiet 2>/dev/null || true'
+run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" wasm-backend-parity-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" runtime-none-contract-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" raw-escape-contract-test-smoke'
 run 'make formal-semantics-test-smoke'
