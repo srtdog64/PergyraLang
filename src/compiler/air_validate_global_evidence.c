@@ -250,6 +250,14 @@ air_validate_global_evidence_node(const AIREvidenceNode *evidence,
     if (evidence == NULL)
         return false;
     kind = air_evidence_node_kind(evidence);
+    if (!air_evidence_node_has_declared_kind_facts(evidence)) {
+        air_set_invariant_error(
+            error_message,
+            "AIR global evidence node %zu has typed evidence mismatch for kind '%s'",
+            evidence_index,
+            air_evidence_kind_name(kind));
+        return false;
+    }
     if (!air_global_evidence_kind_has_validator(kind)) {
         air_set_invariant_error(error_message,
                                 "AIR global evidence node %zu has no global validator for kind '%s'",

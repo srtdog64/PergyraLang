@@ -185,6 +185,7 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_evidence_node.c" "air_evidence_node_fact_count"
     require_literal "src/compiler/air_evidence_node.c" "air_evidence_node_fallback_count"
     require_literal "src/compiler/air_validate_evidence.c" "typed evidence mismatch"
+    require_literal "src/compiler/air_validate_global_evidence.c" "typed evidence mismatch"
     require_literal "src/compiler/air_validate_boundary_evidence.c" "boundary kind drift"
     require_literal "src/compiler/air_validate_boundary_evidence.c" "carries boundary shape"
     require_literal "src/tests/air/test_air_core_evidence_part_k.cases.h" "global_with_boundary_shape"
