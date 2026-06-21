@@ -1820,6 +1820,7 @@ grep -Fq "transpiler_find_block_binding_from_mir_insts" "$ROOT_DIR/src/codegen/t
 grep -Fq "const MIRRoutine *mir_routine" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.h"
 grep -Fq "const bool allow_ast_compat = mir_routine == NULL" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"
 grep -Fq "transpiler_mir_routine_source_local_type_name(mir_routine, base)" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"
+grep -Fq "pending value '%s' is missing source-local type metadata" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"
 grep -Fq "mir_routine, block, inst" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c"
 grep -Fq "mir_instruction_uses_source_local_decl_emit(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"
 ! grep -Fq "source_node_type == AST_LET_DECL" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"

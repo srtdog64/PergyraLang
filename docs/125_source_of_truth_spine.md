@@ -58,7 +58,10 @@ Current beta closure snapshot:
   source-statement reassignment DEF lowering uses the full assignment expression
   fact only as its diagnostic/source anchor; the target and value are consumed
   from MIR `expr1` / `expr0`, and the expected value type comes from the same
-  MIR source-local type fact path.
+  MIR source-local type fact path. C MIR pending-use materialization follows
+  the same rule: once a `MIRRoutine` is present, missing source-local type
+  metadata is a MIR inventory failure, not permission to infer the type from
+  the initializer AST expression.
 - LLVM verifier diagnostics live at the LLVM C API boundary in
   `src/codegen/llvm_api.c`. `LLVMVerifyModule(...)` may leave the diagnostic
   message pointer null on success; backend code must only call

@@ -161,7 +161,18 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
         value_type = mir_routine != NULL
             ? transpiler_mir_routine_source_local_type_name(mir_routine, base)
             : NULL;
-        if (value_type == NULL && binding.type_annotation != NULL) {
+        if (mir_routine != NULL && value_type == NULL) {
+            if (reason != NULL && reason_cap > 0) {
+                transpiler_mir_reasonf(reason, reason_cap,
+                         "MIR block %llu emission failed: pending value '%s' is missing source-local type metadata",
+                         (unsigned long long) block->id, base);
+            }
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR block %llu emission failed: pending value '%s' is missing source-local type metadata",
+                (unsigned long long) block->id, base);
+            free(rendered_type);
+            return false;
+        } else if (value_type == NULL && binding.type_annotation != NULL) {
             rendered_type = transpiler_render_effective_local_type_name(
                 ctx, binding.type_annotation);
             value_type = rendered_type;

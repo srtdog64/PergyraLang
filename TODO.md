@@ -82,6 +82,12 @@ English anchor for tooling/doc gates:
   reads MIR source-local type facts before lowering the value. `cfg-body-dataflow`
   now gates this exact call shape so assignment DEF lowering cannot drift back
   to target-only diagnostics or AST target-name type recovery.
+- C MIR pending-use source-of-truth: pending-use materialization still uses
+  DEF `expr0` / `expr1` as the source-local emit payload, but when a
+  `MIRRoutine` is present it now requires the routine source-local type-name
+  fact before registering the materialized local. Missing type metadata is a
+  MIR inventory failure instead of falling through to initializer expression
+  inference. Gate: `perf-contract-smoke`.
 - Intent control body-summary source-of-truth: call-contract helpers now expose
   positive body-summary readers for spawn and channel-send boundaries. Intent
   clauses still inspect their own source expression for directly written
