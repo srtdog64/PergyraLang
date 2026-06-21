@@ -5,36 +5,29 @@ test_ability_role_emit(void)
 
     TEST("ability emits vtable typedef");
     {
-        /* Build ability with one method manually (no ast_destroy -> manual free) */
-        ASTNode ability_node; memset(&ability_node, 0, sizeof(ability_node));
-        ability_node.type = AST_ABILITY_DECL;
-        ability_node.data.ability_decl.name = "Damageable";
-
-        FuncParam p; memset(&p, 0, sizeof(p));
-        p.name = "amount";
-        p.type = make_type_node("Int");
-        FuncParam *params[1] = { &p };
-
-        ASTNode method; memset(&method, 0, sizeof(method));
-        method.type = AST_FUNC_DECL;
-        method.data.func_decl.name = "TakeDamage";
-        method.data.func_decl.params = params;
-        method.data.func_decl.param_count = 1;
-        method.data.func_decl.return_type = make_type_node("Void");
-        method.data.func_decl.body = NULL;
-
-        ASTNode *methods[1] = { &method };
-        ability_node.data.ability_decl.methods = methods;
-        ability_node.data.ability_decl.method_count = 1;
-
+        const char *source =
+            "ability Damageable { func TakeDamage(amount: Int) -> Void; }\n"
+            "func Main() -> Void { return; }\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
         TranspilerCtx *ctx = transpiler_ctx_create();
-        emit_ability_decl(&ability_node, ctx);
+
+        EXPECT(ok);
+        ctx->mir = mir;
+        emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "Damageable_vtable");
         EXPECT_STR_CONTAINS(ctx->out->data, "(*TakeDamage)");
         EXPECT_STR_CONTAINS(ctx->out->data, "void *self");
 
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
     }
 
     TEST("role emits static method and vtable instance");

@@ -1214,17 +1214,16 @@ self-cell classification policy; ability emission must not fall back to raw
 type strings that bypass that policy.
 
 Non-generic C ability typedef signatures now consume the ability declaration
-header's `MIRDeclMethod` rows when MIR is active. The AST ability method array
-is confined to the non-MIR compatibility view; MIR-active typedef field count,
-method names, return type-names, parameter type-names, and generic-param count
-come from declaration inventory and fail closed if the rows are absent or
-incomplete.
+header's `MIRDeclMethod` rows unconditionally. The AST ability method array is
+not kept as a C typedef compatibility payload; typedef field count, method
+names, return type-names, parameter type-names, and generic-param count come
+from declaration inventory and fail closed if the rows are absent or incomplete.
 
 LLVM ability vtable forward signatures consume the ability declaration header's
-`MIRDeclMethod` rows when MIR is active. The AST ability method array remains
-only as the explicit non-MIR compatibility payload; MIR-active vtable field
-count, method names, return type-names, and parameter type-names fail closed
-through the declaration inventory if the method rows are absent or incomplete.
+`MIRDeclMethod` rows unconditionally. The AST ability method array is not kept
+as an LLVM vtable compatibility payload; vtable field count, method names,
+return type-names, and parameter type-names fail closed through the declaration
+inventory if the method rows are absent or incomplete.
 
 Role vtable binding is also a named owner seam. LLVM bind lowering must ask
 `llvm_party_slot_first_ability_name(...)` for the party-slot ability and

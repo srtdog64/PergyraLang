@@ -15,8 +15,6 @@
 typedef struct LLVMAbilityMethodView
 {
     const MIRDeclHeader *decl_header;
-    ASTNode            *ast_compat_ability;
-    size_t              ast_compat_count;
     size_t              count;
     bool                uses_mir_metadata;
     bool                requires_mir_metadata;
@@ -24,17 +22,14 @@ typedef struct LLVMAbilityMethodView
 
 static LLVMAbilityMethodView
 llvm_ability_method_view_from_decl(const LLVMGenCtx *ctx,
-                                   const char *ability_name,
-                                   ASTNode *ability_decl)
+                                   const char *ability_name)
 {
     LLVMAbilityMethodView view;
 
     view.decl_header = NULL;
-    view.ast_compat_ability = ability_decl;
-    view.ast_compat_count = 0;
     view.count = 0;
     view.uses_mir_metadata = false;
-    view.requires_mir_metadata = llvm_active_has_mir(ctx);
+    view.requires_mir_metadata = true;
 
     if (llvm_active_has_mir(ctx)) {
         view.decl_header = llvm_find_decl_header_in_context_of_type(
@@ -46,10 +41,6 @@ llvm_ability_method_view_from_decl(const LLVMGenCtx *ctx,
         return view;
     }
 
-    if (ability_decl != NULL && ability_decl->type == AST_ABILITY_DECL) {
-        view.ast_compat_count = ast_ability_method_count(ability_decl);
-        view.count = view.ast_compat_count;
-    }
     return view;
 }
 
@@ -71,19 +62,6 @@ llvm_ability_method_view_metadata(const LLVMAbilityMethodView *view,
         return NULL;
     }
     return mir_decl_header_method(view->decl_header, index);
-}
-
-static ASTNode *
-llvm_ability_method_view_compat_method(const LLVMAbilityMethodView *view,
-                                       size_t index)
-{
-    if (view == NULL || view->uses_mir_metadata
-        || view->ast_compat_ability == NULL
-        || view->ast_compat_ability->type != AST_ABILITY_DECL
-        || index >= view->ast_compat_count) {
-        return NULL;
-    }
-    return ast_ability_method(view->ast_compat_ability, index);
 }
 
 static bool
@@ -130,11 +108,10 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
             continue;
 
         ab_name = ast_ability_name(stmt);
-        methods = llvm_ability_method_view_from_decl(ctx, ab_name, stmt);
+        methods = llvm_ability_method_view_from_decl(ctx, ab_name);
         if (!llvm_require_ability_method_view_rows(ctx, &methods, ab_name))
             return;
-        if (methods.uses_mir_metadata
-            && mir_decl_header_name(methods.decl_header) != NULL) {
+        if (mir_decl_header_name(methods.decl_header) != NULL) {
             ab_name = mir_decl_header_name(methods.decl_header);
         }
         vt_fields = pgy_arena_calloc(&ctx->scratch,
@@ -148,8 +125,6 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
         for (size_t j = 0; j < methods.count; j++) {
             const MIRDeclMethod *method_meta =
                 llvm_ability_method_view_metadata(&methods, j);
-            ASTNode *method =
-                llvm_ability_method_view_compat_method(&methods, j);
             LLVMTypeRef ret;
             size_t pc;
             size_t user_pc = 0;
@@ -157,25 +132,22 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
             size_t pidx = 1;
             LLVMTypeRef fn_type;
 
-            if (method == NULL || method->type != AST_FUNC_DECL) {
-                if (method_meta == NULL) {
-                    vt_fields[j] = ctx->type_i8ptr;
-                    continue;
-                }
+            if (method_meta == NULL) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing ability vtable method metadata row for '%s'",
+                    ab_name != NULL ? ab_name : "(anonymous-ability)");
+                return;
             }
 
             {
                 const char *mname =
                     llvm_domain_method_name_metadata_first(
-                        method_meta, method, method_meta == NULL);
-                ASTNode *return_type =
-                    llvm_domain_method_return_type_metadata_first(
-                        method_meta, method, method_meta == NULL);
+                        method_meta, NULL, false);
                 const char *return_type_name =
                     llvm_domain_method_return_type_name_metadata_first(
-                        method_meta, method, method_meta == NULL);
+                        method_meta, NULL, false);
 
-                if (method_meta != NULL && mname == NULL) {
+                if (mname == NULL) {
                     llvm_set_mir_inventory_missing(ctx,
                         "MIR-only LLVM path missing ability vtable method name metadata for '%s'",
                         ab_name != NULL ? ab_name : "(anonymous-ability)");
@@ -195,18 +167,14 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
                     ret = pergyra_type_to_llvm(ctx, return_type_name);
                     if (ctx->has_error || ret == NULL)
                         return;
-                } else if (return_type != NULL) {
-                    ret = ast_type_to_llvm(ctx, return_type);
-                    if (ctx->has_error || ret == NULL)
-                        return;
                 }
 
                 pc = llvm_domain_method_param_count_metadata_first(
-                    method_meta, method, method_meta == NULL);
+                    method_meta, NULL, false);
                 for (size_t k = 0; k < pc; k++) {
                     FuncParam *p =
                         llvm_domain_method_param_metadata_first(
-                            method_meta, method, k, method_meta == NULL);
+                            method_meta, NULL, k, false);
                     if (!llvm_param_is_implicit_self_local(p))
                         user_pc++;
                 }
@@ -223,18 +191,15 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
                 for (size_t k = 0; k < pc; k++) {
                     FuncParam *p =
                         llvm_domain_method_param_metadata_first(
-                            method_meta, method, k, method_meta == NULL);
+                            method_meta, NULL, k, false);
                     const char *param_type_name =
                         llvm_domain_method_param_type_name_metadata_first(
-                            method_meta, method, k, method_meta == NULL);
+                            method_meta, NULL, k, false);
                     if (llvm_param_is_implicit_self_local(p))
                         continue;
                     LLVMTypeRef pt = NULL;
                     if (param_type_name != NULL) {
                         pt = pergyra_type_to_llvm(ctx, param_type_name);
-                    } else {
-                        pt = llvm_domain_forward_required_param_type(
-                            ctx, method, p, "ability method", mname);
                     }
                     if (ctx->has_error || pt == NULL)
                         return;
@@ -260,11 +225,9 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
             for (size_t j = 0; j < methods.count; j++) {
                 const MIRDeclMethod *method_meta =
                     llvm_ability_method_view_metadata(&methods, j);
-                ASTNode *method =
-                    llvm_ability_method_view_compat_method(&methods, j);
                 const char *mname =
                     llvm_domain_method_name_metadata_first(
-                        method_meta, method, method_meta == NULL);
+                        method_meta, NULL, false);
                 if (mname != NULL)
                     llvm_class_add_field(entry,
                         mname,

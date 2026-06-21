@@ -5409,10 +5409,9 @@ c_ability_decl_body="$(
 )"
 for term in \
     "TranspilerAbilityMethodView methods" \
-    "transpiler_ability_method_view_from_decl(ctx, name, node)" \
+    "transpiler_ability_method_view_from_decl(ctx, name)" \
     "transpiler_require_ability_method_view_rows(ctx, &methods, name)" \
     "transpiler_ability_method_view_metadata(&methods, i)" \
-    "transpiler_ability_method_view_compat_method(&methods, i)" \
     "transpiler_mir_decl_method_metadata_complete_for(ctx" \
     "TRANSPILER_MIR_DECL_METHOD_REQUIRE_ALL_TYPE_NAMES" \
     "transpiler_mir_decl_method_return_type_name(method_meta)" \
@@ -5423,6 +5422,10 @@ for term in \
 done
 if grep -Eq 'ast_ability_method_(count|method)\(' <<<"$c_ability_decl_body"; then
     fail "C ability typedef emission must not reopen AST ability method arrays"
+fi
+if grep -RInE 'ast_compat_ability|ast_compat_count|transpiler_ability_method_view_compat_method|ast_ability_method_(count|method)\(' \
+    "$ROOT_DIR/src/codegen/transpiler_domain_ability_emit.c" >/dev/null; then
+    fail "C ability typedef emission must not keep AST compatibility state"
 fi
 require_term "src/codegen/transpiler_domain_ability_emit.c" \
     "transpiler_active_decl_header_of_type("
@@ -6776,26 +6779,33 @@ if grep -Fq "llvm_mir_decl_method_source_ast(method_meta)" \
     <<<"$role_operator_body"; then
     fail "LLVM role operator forward declarations must consume MIRDeclMethod metadata without source AST back-pointers"
 fi
+for term in \
+    "llvm_domain_method_param_count_metadata_first" \
+    "llvm_domain_method_param_metadata_first" \
+    "llvm_domain_method_return_type_name_metadata_first"; do
+    grep -Fq "$term" <<<"$ability_vtable_body" ||
+        fail "LLVM ability_vtable_body must route method signature reads through MIR method accessors: missing $term"
+done
+for term in \
+    "llvm_domain_method_param_count_metadata_first" \
+    "llvm_domain_method_param_metadata_first" \
+    "llvm_domain_method_return_type_metadata_first"; do
+    grep -Fq "$term" <<<"$role_operator_body" ||
+        fail "LLVM role_operator_body must route method signature reads through the shared method accessors: missing $term"
+done
 for body_name in ability_vtable_body role_operator_body; do
     body="${!body_name}"
-    for term in \
-        "llvm_domain_method_param_count_metadata_first" \
-        "llvm_domain_method_param_metadata_first" \
-        "llvm_domain_method_return_type_metadata_first"; do
-        grep -Fq "$term" <<<"$body" ||
-            fail "LLVM ${body_name} must route method signature reads through the shared method accessors: missing $term"
-    done
     if grep -Eq 'method->data\.func_decl\.(param_count|return_type)' <<<"$body"; then
         fail "LLVM ${body_name} must not read AST method param_count/return_type directly"
     fi
 done
 for term in \
     "LLVMAbilityMethodView methods" \
-    "llvm_ability_method_view_from_decl(ctx, ab_name, stmt)" \
+    "llvm_ability_method_view_from_decl(ctx, ab_name)" \
     "llvm_require_ability_method_view_rows(ctx, &methods, ab_name)" \
     "llvm_ability_method_view_metadata(&methods, j)" \
-    "llvm_ability_method_view_compat_method(&methods, j)" \
-    "method_meta, method, method_meta == NULL" \
+    "method_meta, NULL, false" \
+    "method_meta, NULL, k, false" \
     "llvm_mir_decl_method_metadata_complete_for(ctx" \
     "LLVM_MIR_DECL_METHOD_REQUIRE_ALL_TYPE_NAMES" \
     "llvm_domain_method_param_type_name_metadata_first" \
@@ -6807,6 +6817,10 @@ for term in \
 done
 if grep -Eq 'ast_ability_method_(count|method)\(' <<<"$ability_vtable_body"; then
     fail "LLVM ability vtable emission must not reopen AST ability method arrays"
+fi
+if grep -RInE 'ast_compat_ability|ast_compat_count|llvm_ability_method_view_compat_method|ast_ability_method_(count|method)\(' \
+    "$ROOT_DIR/src/codegen/llvm_domain_forward_ability.c" >/dev/null; then
+    fail "LLVM ability vtable emission must not keep AST compatibility state"
 fi
 require_term "src/codegen/llvm_domain_forward_ability.c" \
     "llvm_find_decl_header_in_context_of_type("

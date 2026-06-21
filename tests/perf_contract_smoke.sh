@@ -1267,7 +1267,7 @@ if grep -Fq "transpiler_collection_infer_expression_type_name" \
     exit 1
 fi
 grep -Fq "transpiler_domain_provenance_emit.c" "$ROOT_DIR/Makefile"
-grep -Fq "void emit_domain_projection_sync_loop_from_view(" \
+grep -Fq "void emit_zone_projection_sync_loop_from_mir_refresh_view(" \
     "$ROOT_DIR/src/codegen/transpiler_domain_provenance_emit.h"
 grep -Fq "mir_method = llvm_mir_decl_method_routine(ctx, method_meta)" \
     "$ROOT_DIR/src/codegen/llvm_domain_method_emit.c"
@@ -1967,7 +1967,14 @@ grep -Fq "transpiler_contextual_option_inner_type_copy(ctx" "$ROOT_DIR/src/codeg
 ! grep -Fq "transpiler_contextual_option_inner_type_name" "$ROOT_DIR/src/codegen/transpiler_option_context.c"
 grep -Fq "lookup_future_inner_type_copy" "$ROOT_DIR/src/codegen/transpiler_future_type_query.h"
 ! grep -Fq "lookup_future_inner_type(" "$ROOT_DIR/src/codegen/transpiler_future_type_query.h"
-grep -Fq "type_check_func_resolve_param_type(param, ctx)" "$ROOT_DIR/src/semantic/type_checker_async_channel.c"
+grep -Fq "spawn_direct_callee_function_type" "$ROOT_DIR/src/semantic/type_checker_async_channel.c"
+grep -Fq "type_function_param_type(callee_type, i)" "$ROOT_DIR/src/semantic/type_checker_async_channel.c"
+grep -Fq "type_function_param_mode(callee_type, i)" "$ROOT_DIR/src/semantic/type_checker_async_channel.c"
+if grep -Fq "type_check_func_resolve_param_type(param, ctx)" \
+    "$ROOT_DIR/src/semantic/type_checker_async_channel.c"; then
+    echo "[perf-contract] async spawn boundary re-resolved param types from FuncParam AST" >&2
+    exit 1
+fi
 if grep -Fq "domain_resolve_type_ref(param->type, ctx)" \
     "$ROOT_DIR/src/semantic/type_checker_async_channel.c"; then
     echo "[perf-contract] async spawn boundary bypassed function signature type resolver" >&2
@@ -2383,7 +2390,7 @@ grep -Fq "rejected_source_location" "$ROOT_DIR/src/tests/mir/test_mir_lowering_p
 grep -Fq "mir_instruction_source_terminator_matches" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 grep -Fq "mir_instruction_source_matches_ast_type(inst, AST_MATCH_CASE)" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 grep -Fq "mir_instruction_source_matches_ast_type(inst, AST_BLOCK)" "$ROOT_DIR/src/compiler/mir_source_shape.c"
-grep -Fq "mir_instruction_source_stmt_has_side_effect_hint(inst)" "$ROOT_DIR/src/compiler/mir_source_shape.c"
+grep -Fq "mir_instruction_source_stmt_has_side_effect_hint" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 grep -Fq "mir_source_node_type_stmt_has_side_effect_hint" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 if grep -A8 -F "mir_instruction_uses_source_statement_emit" \
     "$ROOT_DIR/src/compiler/mir_source_shape.c" | \
@@ -3586,7 +3593,8 @@ grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, return_type" "$ROOT_DIR/src/cod
 grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
 grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(method)" "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c"
 grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(method)" "$ROOT_DIR/src/codegen/transpiler_enum_decl_emit.c"
-grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, return_type" "$ROOT_DIR/src/codegen/transpiler_domain_ability_emit.c"
+grep -Fq "transpiler_require_type_name_c_type_copy(" "$ROOT_DIR/src/codegen/transpiler_domain_ability_emit.c"
+grep -Fq "return_type_name, \"ability method return\"" "$ROOT_DIR/src/codegen/transpiler_domain_ability_emit.c"
 grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(func)" "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c"
 grep -Fq "transpiler_mir_decl_method_return_type_name(method_meta)" "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
 grep -Fq "transpiler_mir_decl_method_return_type(method_meta)" "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
