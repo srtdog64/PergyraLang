@@ -7,17 +7,16 @@ for soft and partial self-hosting.
 ## Current Reality
 
 Current judgement (2026-06-21): the hard-self-host substrate checklist is broad
-enough for staged compiler-pass substitution, but capability 5 remains ACTIVE
-until self-hosted MIR lowering deletes and ratchets the transitional `"ast"`
-text compatibility fallback. The supported MIR JSON parity subset now consumes
-explicit `expr0`/`expr1`/`source_type`/`source_locals` facts first for
-let/statement/return/branch/for reconstruction. Raw source-statement
-re-dispatch is gone, source-local resource constructors
-consume MIR expected type facts, assignment DEFs preserve side effects before
-SSA recording, C resource mirroring uses MIR source-statement identity instead
-of source-payload pointer identity, and public-surface plus lifecycle MIR JSON
-source provenance is capture-time scalar/text fact data; not every body fact is
-MIR-owned yet. This is still not a full hard-self-host claim. Passing
+enough for staged compiler-pass substitution, and capability 5 is READY for the
+measured CFG/MIR body source-of-truth frontier. The supported MIR JSON parity
+subset consumes explicit `expr0`/`expr1`/`source_type`/`source_locals` facts for
+let/statement/return/branch/for reconstruction and rejects transitional `"ast"`
+compatibility reads. Raw source-statement re-dispatch is gone, source-local
+resource constructors consume MIR expected type facts, assignment DEFs preserve
+side effects before SSA recording, C resource mirroring uses MIR
+source-statement identity instead of source-payload pointer identity, and
+public-surface plus lifecycle MIR JSON source provenance is capture-time
+scalar/text fact data. This is still not a full hard-self-host claim. Passing
 `self-host-preparation-test-smoke` proves the side-by-side method and the
 C/LLVM/Pergyra parity harness, not permission to replace the semantic checker,
 MIR lowering, codegen, compiler driver, or runtime in one jump.
@@ -69,9 +68,10 @@ pass into awkward workarounds.
 ## Non-Negotiable Pre-Hard-Self-Host Capabilities
 
 Hard self-host cannot start until these are available and smoked. The current
-scorecard marks nine substrate forms READY and capability 5 ACTIVE: the
-source_ast/source_decl frontier, residual STMT source-payload emission, and
-source-local raw statement re-dispatch are closed. LLVM await DEF emission,
+scorecard marks all ten substrate capabilities READY for staged
+compiler-pass substitution: the source_ast/source_decl frontier, residual STMT
+source-payload emission, and source-local raw statement re-dispatch are closed.
+LLVM await DEF emission,
 C pending SSA-use materialization, LLVM source DEF copy, source-statement emit
 predicates, and LLVM DEF emit predicates now consume MIR `expr0` / `expr1`,
 source-location, and emit flags directly. C and LLVM residual STMT emission

@@ -204,13 +204,14 @@ and resolver helpers named in 05, then rewrite compiler passes against the C
 compiler as oracle. Starting broad parser/type-checker/backend rewrites without
 this gate staying green is explicitly out of order.
 
-## Measured gaps (blocker burn-down)
+## Measured closures
 
-The non-READY capability was measured against the tree to make it actionable.
-Every remaining step needs the build loop, which is the reason none can be
-closed from a static pass alone.
+The formerly non-READY capability was measured against the tree and closed with
+build-backed ratchets. Future self-host expansion still needs the build loop;
+the status below is about substrate readiness, not a claim that every compiler
+pass has already been rewritten in Pergyra.
 
-Capability 5 (CFG/MIR SoT, task 74). ACTIVE, with the measured frontier closed: non_cfg
+Capability 5 (CFG/MIR SoT, task 74). READY for the measured frontier: non_cfg
 body facts are MIR-owned and locked at zero fallback, the source_ast ratchet is
 now codegen 0 / compiler 0, source_decl is ratcheted at codegen 0 / compiler 0,
 routine_source_decl_codegen is ratcheted at 0, and the shared ratchet spec is
@@ -327,11 +328,10 @@ pointer identity. C/LLVM assignment emission, LLVM source-local resource LET
 emission, MIR surface validation, and public-surface scalar provenance seeding
 now consume MIR/source-shape facts, lifecycle MIR JSON source-text emission
 also consumes a captured source-shape fact, and the C preserved-statement
-helper surface has been retired. The remaining ACTIVE tail is the self-hosted
-`mir_lower` dependency on transitional `"ast"` text. LLVM for-in and with-slot
-resource-claim diagnostics already use MIR expression anchors; the rest of the
-body facts still need dedicated MIR records or explicit provenance-only
-handling.
+helper surface has been retired. The self-hosted `mir_lower` parity rung now
+rejects transitional `"ast"` text reads and reconstructs the supported subset
+from explicit MIR JSON facts. LLVM for-in and with-slot resource-claim
+diagnostics use MIR expression anchors.
 
 Capability 2 (collections). Closed for the hard-self-host substrate: integer keys are implemented
 (pgy_runtime_map_int_key_inline.h covers i32 and i64), and `MapKeys` /
@@ -350,9 +350,8 @@ distinct runtime kinds, `BoxArray(capacity, allocator)` consumes named allocator
 locals, and `AllocatorDestroy(namedAllocator)` gives pass authors an explicit
 cleanup operation. Build-gated.
 
-The honest summary is that deterministic collection and allocator substrate are
-closed for hard-self-host planning, while CFG/MIR body SoT still has a named
-self-hosted MIR-lowering `"ast"` text compatibility tail. The remaining
-critical path is to replace that text lane with explicit MIR facts, then continue
-actual staged compiler-pass substitution: semantic breadth first, then MIR/HIR
-and codegen parity slices against the C compiler oracle.
+The honest summary is that deterministic collection, allocator substrate, and
+the measured CFG/MIR body SoT frontier are closed for hard-self-host planning.
+The remaining critical path is actual staged compiler-pass substitution:
+semantic breadth first, then MIR/HIR and codegen parity slices against the C
+compiler oracle.

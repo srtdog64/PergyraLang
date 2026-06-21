@@ -50,6 +50,26 @@ check_gates READY  "8 scoped unsafe/raw escape"    raw_escape_contract_smoke.sh
 check_gates READY  "9 debug info Phase 1"          debug_hygiene_smoke.sh
 check_gates READY  "10 runtime profile selection"  runtime_none_contract_smoke.sh
 
+forbid_current_doc_text() {
+    local rel="$1"
+    local term="$2"
+    if grep -Fq -- "$term" "$rel"; then
+        echo "[scorecard] stale current-status wording in ${rel}: ${term}" >&2
+        missing=1
+    fi
+}
+
+forbid_current_doc_text "docs/self_hosted/05_compiler_core_gap_analysis.md" \
+    "capability 5 remains ACTIVE"
+forbid_current_doc_text "docs/self_hosted/05_compiler_core_gap_analysis.md" \
+    "capability 5 ACTIVE"
+forbid_current_doc_text "docs/self_hosted/07_hard_self_host_scorecard.md" \
+    "Capability 5 (CFG/MIR SoT, task 74). ACTIVE"
+forbid_current_doc_text "docs/self_hosted/07_hard_self_host_scorecard.md" \
+    "remaining ACTIVE tail"
+forbid_current_doc_text "docs/self_hosted/08_domain_mobility_rationale.md" \
+    "finish the source_ast retirement"
+
 echo
 echo "[scorecard] critical path: CFG/MIR body SoT is READY for the measured frontier; keep the self-hosted MIR-lowering fact-only ratchet green while broadening the supported subset"
 echo "[scorecard] CFG/MIR SoT is closed for source_ast/source_decl, residual STMT payload emit, raw source-statement re-dispatch, public-surface provenance, lifecycle dump source-text emission, and C preserved-statement helper surface"

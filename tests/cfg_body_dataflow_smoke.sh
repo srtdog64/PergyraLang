@@ -774,6 +774,7 @@ run_literal_doc_contract_smoke() {
             "$ROOT_DIR/src/compiler" "$ROOT_DIR/src/codegen" \
         | grep -v 'src/compiler/mir.c:' \
         | grep -v 'src/compiler/mir_source_shape.c:' \
+        | grep -v 'src/compiler/mir_source_inventory_build.c:' \
         || true
     )"
     if [ -n "$raw_source_shape_hits" ]; then
@@ -1535,7 +1536,7 @@ required_mir_owner_terms = {
         "mir_block_source_inventory_items(entry)",
         "if (statement_count == 0)",
     ],
-    "src/compiler/mir.c": [
+    "src/compiler/mir_source_inventory_build.c": [
         "mir_seed_non_cfg_block_source_inventory",
         "mir_copy_ast_nodes(&block->source_statement_inventory.items",
     ],
@@ -1584,6 +1585,7 @@ mir_owner_text = {
     "src/compiler/mir_stmt_source.c": mir_stmt_source,
     "src/compiler/mir_non_cfg_stmt_population.h": mir_non_cfg_stmt_population,
     "src/compiler/mir_non_cfg_stmt_population.c": mir_non_cfg_stmt_population,
+    "src/compiler/mir_source_inventory_build.c": (root / "src" / "compiler" / "mir_source_inventory_build.c").read_text(encoding="utf-8"),
     "src/compiler/mir_program_validate.c": (root / "src" / "compiler" / "mir_program_validate.c").read_text(encoding="utf-8"),
     "src/compiler/mir_cfg_contract_control.h": mir_cfg_contract_control,
 }
@@ -2033,6 +2035,7 @@ raw_source_allowed = {
     pathlib.Path("src/compiler/mir.c"),
     pathlib.Path("src/compiler/mir_public_surface.c"),
     pathlib.Path("src/compiler/mir_source_shape.c"),
+    pathlib.Path("src/compiler/mir_source_inventory_build.c"),
 }
 raw_source_leaks = []
 for rel_root in ("src/compiler", "src/codegen", "src/semantic"):

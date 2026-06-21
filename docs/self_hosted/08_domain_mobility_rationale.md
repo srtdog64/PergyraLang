@@ -38,8 +38,8 @@ cleanly. A move would have to carry both representations, or the semantics would
 diverge in transit. Single source of truth means the domain holds exactly one
 canonical self-form. Before the domain can travel, it must tell one and only
 one truth about itself. That is why task 74 (retire the source_ast readers and
-make MIR the unconditional source of truth) is the first load-bearing step, not
-a cleanup chore.
+make MIR the measured CFG/body source of truth) was the first load-bearing
+step, not a cleanup chore.
 
 ## What to self-host first
 
@@ -65,7 +65,7 @@ verification that the domain migration preserved meaning.
 To move the domain:
 
 1. Give the domain one canonical self-form. Close task 74: retire the
-   source_ast readers, make MIR the unconditional source of truth.
+   source_ast readers and make MIR the measured CFG/body source of truth.
 2. Give the language a substrate that can carry its own definition.
    Deterministic collections with stable iteration order, and arena lanes
    exposed at the language level.
@@ -74,6 +74,8 @@ To move the domain:
 4. Remove the C scaffolding only where the self-describing compiler matches the
    C oracle bit-exact.
 
-The current work on task 74 is the first wall. The direction holds; the next
-steps are to finish the source_ast retirement, then build the deterministic and
-arena substrate, then move the domain-defining passes under parity.
+Task 74 is closed for the measured source_ast/source_decl and CFG/body frontier,
+and the deterministic collection plus arena substrate are READY for staged
+pass-rewrite work. The direction holds; the next steps are to move the
+domain-defining passes under parity and broaden the supported self-hosted
+compiler surface without reopening a second semantic truth.

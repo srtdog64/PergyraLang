@@ -852,6 +852,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_source_node_name.c \
                    $(COMPILER_DIR)/mir_source_local_types.c \
                    $(COMPILER_DIR)/mir_source_local_expr_types.c \
+                   $(COMPILER_DIR)/mir_source_inventory_build.c \
                    $(COMPILER_DIR)/mir_names.c \
                    $(COMPILER_DIR)/mir_lifecycle.c \
                    $(COMPILER_DIR)/mir_base_helpers.c \
@@ -1365,6 +1366,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_source_node_name.o \
                    $(BUILD_DIR)/compiler/mir_source_local_types.o \
                    $(BUILD_DIR)/compiler/mir_source_local_expr_types.o \
+                   $(BUILD_DIR)/compiler/mir_source_inventory_build.o \
                    $(BUILD_DIR)/compiler/mir_names.o \
                    $(BUILD_DIR)/compiler/mir_lifecycle.o \
                    $(BUILD_DIR)/compiler/mir_base_helpers.o \
