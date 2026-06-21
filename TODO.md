@@ -130,8 +130,12 @@ English anchor for tooling/doc gates:
   source-payload emission list is also centralized in
   `mir_instruction_source_stmt_runtime_boundary_emit_is_allowed(...)`; C/LLVM
   emitters must not carry backend-local `AST_CHANNEL_SEND` / `AST_ASYNC_BLOCK`
-  style allowlists. Gate: `cfg-body-dataflow-test-smoke`,
-  `perf-contract-test-smoke`, plus `test-mir` residual STMT policy fixture.
+  style allowlists. Redundant source re-emit suppression and residual call
+  statement emission are likewise named MIR source-shape predicates:
+  `mir_instruction_source_stmt_reemit_is_redundant(...)` and
+  `mir_instruction_source_stmt_call_emit_is_allowed(...)`. Gate:
+  `cfg-body-dataflow-test-smoke`, `perf-contract-test-smoke`, plus `test-mir`
+  residual STMT policy fixture.
 - Honest weakness ledger: beta messaging and work selection must keep five
   real costs visible instead of hiding them behind safety language. (1) Runtime
   Slot/authority validation can trade memory corruption for availability loss;

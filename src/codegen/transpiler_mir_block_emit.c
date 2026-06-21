@@ -334,11 +334,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             transpiler_register_defer(inst->expr0, ctx);
             continue;
         }
-        if (!mir_instruction_has_source_statement_order(inst)
-            || mir_instruction_source_matches_ast_type(inst, AST_BLOCK)
-            || mir_instruction_source_matches_ast_type(inst, AST_RETURN)
-            || mir_instruction_source_matches_ast_type(inst,
-                                                       AST_LET_DESTRUCTURE)) {
+        if (mir_instruction_source_stmt_reemit_is_redundant(inst)) {
             /* Closure #82: AST_LET_DESTRUCTURE is already lowered by
              * MIR_INST_DESTRUCTURE above (transpiler_emit_mir_let_destructure_stmt).
              * Falling through to emit_statement here re-runs the non-MIR
@@ -377,8 +373,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             }
             continue;
         }
-        if (mir_instruction_source_matches_ast_type(inst, AST_CALL)
-            && inst->expr0 != NULL) {
+        if (mir_instruction_source_stmt_call_emit_is_allowed(inst)) {
             if (!transpiler_emit_mir_call_statement(buf, block, inst->expr0, ctx,
                                                     ssa_map_out,
                                                     reason, reason_cap)) {

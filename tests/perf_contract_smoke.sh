@@ -2471,7 +2471,17 @@ if awk '
     exit 1
 fi
 grep -Fq "LLVM MIR STMT source-payload emission is retired" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "mir_instruction_source_stmt_reemit_is_redundant(inst)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "mir_instruction_source_stmt_call_emit_is_allowed(inst)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "mir_instruction_source_stmt_runtime_boundary_emit_is_allowed(inst)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "mir_instruction_source_stmt_reemit_is_redundant" "$ROOT_DIR/src/compiler/mir_source_shape.c"
+grep -Fq "mir_instruction_source_stmt_call_emit_is_allowed" "$ROOT_DIR/src/compiler/mir_source_shape.c"
+if grep -Fq "mir_instruction_source_matches_ast_type(inst, AST_CALL)" \
+    "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c"; then
+    echo "[perf-contract] MIR STMT call emission must consume the MIR source-shape owner, not backend-local AST_CALL checks" >&2
+    exit 1
+fi
 if grep -A44 -F "case MIR_INST_STMT:" \
     "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" | \
     grep -Fq "source_payload"; then
@@ -2486,7 +2496,16 @@ if grep -B16 -F "llvm_emit_statement(inst->expr0, ctx)" \
 fi
 grep -Fq "llvm_emit_statement(inst->expr0, ctx)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "STMT source-payload emission is retired" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c"
+grep -Fq "mir_instruction_source_stmt_reemit_is_redundant(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c"
+grep -Fq "mir_instruction_source_stmt_call_emit_is_allowed(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c"
 grep -Fq "mir_instruction_source_stmt_runtime_boundary_emit_is_allowed(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c"
+if grep -Fq "mir_instruction_source_matches_ast_type(inst, AST_BLOCK)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c" \
+    || grep -Fq "mir_instruction_source_matches_ast_type(inst, AST_RETURN)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c"; then
+    echo "[perf-contract] C MIR STMT redundant re-emit policy must consume the MIR source-shape owner, not backend-local AST block/return checks" >&2
+    exit 1
+fi
 if grep -A72 -F "if (inst->kind != MIR_INST_STMT)" \
     "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c" | \
     grep -Eq "stmt (==|!=)|stmt->|transpiler_mir_find_stmt_for_inst|source_payload"; then

@@ -584,6 +584,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
             if (mir_instruction_source_is_defer_stmt(inst)) {
                 if (inst->expr0 != NULL)
                     llvm_register_defer(inst->expr0, ctx);
+            } else if (mir_instruction_source_stmt_reemit_is_redundant(inst)) {
+                break;
             } else if (mir_instruction_has_source_statement_order(inst)) {
                 if (mir_instruction_source_is_cfg_container(inst))
                     break;
@@ -597,8 +599,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                         return;
                     break;
                 }
-                if (mir_instruction_source_matches_ast_type(inst, AST_CALL)
-                    && inst->expr0 != NULL) {
+                if (mir_instruction_source_stmt_call_emit_is_allowed(inst)) {
                     LLVMValueRef ignored = llvm_emit_expression(inst->expr0, ctx);
                     if (ignored == NULL && ctx->has_error)
                         return;

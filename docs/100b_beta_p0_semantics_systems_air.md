@@ -260,7 +260,10 @@ Closed now:
   policy while CFG/body safety is being promoted to source-of-truth. Runtime
   boundary source-payload emission is likewise gated by
   `mir_instruction_source_stmt_runtime_boundary_emit_is_allowed(...)` so C/LLVM
-  cannot drift into separate AST-kind allowlists. `test-mir` includes
+  cannot drift into separate AST-kind allowlists. C/LLVM also consume
+  `mir_instruction_source_stmt_reemit_is_redundant(...)` and
+  `mir_instruction_source_stmt_call_emit_is_allowed(...)` instead of local
+  `AST_CALL`, `AST_BLOCK`, or `AST_RETURN` checks. `test-mir` includes
   `MIR validator rejects residual STMT without source inventory fact`;
   `cfg-body-dataflow-test-smoke` gates the policy owner, backend consumers, and
   regression string.

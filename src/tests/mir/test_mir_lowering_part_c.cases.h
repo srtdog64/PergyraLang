@@ -585,6 +585,12 @@ test_mir_lowering_part_c(void)
         bool keeps_effect_call;
         bool keeps_defer;
         bool keeps_intent_step;
+        bool redundant_unordered;
+        bool redundant_return;
+        bool redundant_destructure;
+        bool effect_call_emit_allowed;
+        bool non_call_emit_rejected;
+        ASTNode call_expr = {0};
 
         inst.kind = MIR_INST_STMT;
         inst.name = "stmt";
@@ -621,6 +627,24 @@ test_mir_lowering_part_c(void)
         inst.source_node_type = AST_INTENT_STEP;
         keeps_intent_step =
             mir_instruction_source_stmt_fallback_is_allowed(&inst);
+        inst.source_node_type = AST_BLOCK;
+        inst.has_source_statement_index = false;
+        redundant_unordered =
+            mir_instruction_source_stmt_reemit_is_redundant(&inst);
+        inst.has_source_statement_index = true;
+        inst.source_node_type = AST_RETURN;
+        redundant_return =
+            mir_instruction_source_stmt_reemit_is_redundant(&inst);
+        inst.source_node_type = AST_LET_DESTRUCTURE;
+        redundant_destructure =
+            mir_instruction_source_stmt_reemit_is_redundant(&inst);
+        inst.source_node_type = AST_CALL;
+        inst.expr0 = &call_expr;
+        effect_call_emit_allowed =
+            mir_instruction_source_stmt_call_emit_is_allowed(&inst);
+        inst.source_node_type = AST_FAIL_STMT;
+        non_call_emit_rejected =
+            !mir_instruction_source_stmt_call_emit_is_allowed(&inst);
 
         EXPECT(rejects_let
                && rejects_destructure
@@ -630,7 +654,12 @@ test_mir_lowering_part_c(void)
                && rejects_pure_call
                && keeps_effect_call
                && keeps_defer
-               && keeps_intent_step);
+               && keeps_intent_step
+               && redundant_unordered
+               && redundant_return
+               && redundant_destructure
+               && effect_call_emit_allowed
+               && non_call_emit_rejected);
     }
 
     TEST("MIR validator rejects residual STMT without source inventory fact");

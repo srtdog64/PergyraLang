@@ -634,6 +634,29 @@ mir_instruction_source_stmt_fallback_is_allowed(const MIRInstruction *inst)
 }
 
 bool
+mir_instruction_source_stmt_reemit_is_redundant(const MIRInstruction *inst)
+{
+    int source_type;
+
+    if (inst == NULL || inst->kind != MIR_INST_STMT)
+        return false;
+    if (!mir_instruction_has_source_statement_order(inst))
+        return true;
+    source_type = mir_instruction_source_node_type_or(inst, -1);
+    return source_type == AST_BLOCK || source_type == AST_RETURN
+        || source_type == AST_LET_DESTRUCTURE;
+}
+
+bool
+mir_instruction_source_stmt_call_emit_is_allowed(const MIRInstruction *inst)
+{
+    return inst != NULL
+        && inst->kind == MIR_INST_STMT
+        && inst->expr0 != NULL
+        && mir_instruction_source_matches_ast_type(inst, AST_CALL);
+}
+
+bool
 mir_instruction_source_stmt_runtime_boundary_emit_is_allowed(
         const MIRInstruction *inst)
 {

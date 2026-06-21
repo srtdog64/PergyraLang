@@ -838,10 +838,14 @@ and backend emitters should consume `MIR_STMT.expr0` plus source-shape
 predicates rather than reopening raw payload and source-location fields. The
 runtime-boundary source-payload allowlist lives in
 `mir_instruction_source_stmt_runtime_boundary_emit_is_allowed(...)`, not in
-backend-local AST kind lists. The source-payload accessor is a source-shape /
-public-surface provenance boundary, not a backend semantic input. This keeps
-"may emit source" and "may retain fallback statement" on the same source-shape
-seam.
+backend-local AST kind lists. Redundant source re-emit suppression and residual
+call-statement emission live in
+`mir_instruction_source_stmt_reemit_is_redundant(...)` and
+`mir_instruction_source_stmt_call_emit_is_allowed(...)`, not in C/LLVM
+`AST_CALL`, `AST_BLOCK`, or `AST_RETURN` checks. The source-payload accessor is
+a source-shape / public-surface provenance boundary, not a backend semantic
+input. This keeps "may emit source" and "may retain fallback statement" on the
+same source-shape seam.
 
 Whole-program surface-usage facts follow the same rule. Public MIR surface
 recording must seed source locations and usage booleans through

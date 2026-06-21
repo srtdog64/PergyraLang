@@ -300,6 +300,27 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_fact_surface_validate.c" "STMT fallback is outside allowed residual statement policy"
     require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_source_stmt_fallback_is_allowed(inst)"
     require_literal "src/codegen/transpiler_mir_block_emit.c" "mir_instruction_source_stmt_fallback_is_allowed(inst)"
+    require_literal "src/compiler/mir.h" "mir_instruction_source_stmt_reemit_is_redundant"
+    require_literal "src/compiler/mir.h" "mir_instruction_source_stmt_call_emit_is_allowed"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_reemit_is_redundant"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_call_emit_is_allowed"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_source_stmt_reemit_is_redundant(inst)"
+    require_literal "src/codegen/transpiler_mir_block_emit.c" "mir_instruction_source_stmt_reemit_is_redundant(inst)"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_source_stmt_call_emit_is_allowed(inst)"
+    require_literal "src/codegen/transpiler_mir_block_emit.c" "mir_instruction_source_stmt_call_emit_is_allowed(inst)"
+    if grep -Fq "mir_instruction_source_matches_ast_type(inst, AST_CALL)" \
+        "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c"; then
+        echo "MIR STMT call emission must consume the MIR source-shape owner, not backend-local AST_CALL checks" >&2
+        exit 1
+    fi
+    if grep -Fq "mir_instruction_source_matches_ast_type(inst, AST_BLOCK)" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c" \
+        || grep -Fq "mir_instruction_source_matches_ast_type(inst, AST_RETURN)" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c"; then
+        echo "C MIR STMT redundant re-emit policy must consume the MIR source-shape owner, not backend-local AST block/return checks" >&2
+        exit 1
+    fi
     require_literal "src/compiler/mir_fact_surface_validate.c" "with-slot Claim resource op is missing MIR ABI type layout fact"
     require_literal "src/compiler/mir_fact_surface_validate.c" "with-slot Claim resource op has invalid MIR ABI type layout fact"
     require_literal "src/compiler/mir_fact_surface_validate.c" "mir_instruction_source_is_local_decl(inst)"
