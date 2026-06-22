@@ -125,18 +125,6 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 const MIRDeclMethod *method_meta =
                     transpiler_find_host_method_metadata_in_context(
                         ctx, owned_type_name, method);
-                if (method_meta == NULL) {
-                    ASTNode *spec_base =
-                        transpiler_generic_class_spec_base_decl(ctx,
-                            owned_type_name);
-                    const char *spec_base_name = spec_base != NULL
-                        ? transpiler_decl_name_local(spec_base)
-                        : NULL;
-                    if (spec_base_name != NULL)
-                        method_meta =
-                            transpiler_find_host_method_metadata_in_context(
-                                ctx, spec_base_name, method);
-                }
                 ASTNode *method_decl = NULL;
                 if (method_meta == NULL) {
                     if (transpiler_active_has_mir(ctx)) {

@@ -6220,6 +6220,16 @@ for term in \
     "transpiler_hosted_field_view_missing_mir_metadata("; do
     require_term "src/codegen/transpiler_decl_lookup.h" "$term"
 done
+for term in \
+    "transpiler_generic_class_spec_base_decl(" \
+    "transpiler_decl_name_local(base_decl)" \
+    "transpiler_active_host_decl_header(ctx, base_name)"; do
+    require_term "src/codegen/transpiler_decl_method_view.c" "$term"
+done
+if grep -Fq "transpiler_generic_class_spec_base_decl(ctx," \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"; then
+    fail "C member-call emitter must not manually peel generic specializations; consume transpiler_find_host_method_metadata_in_context"
+fi
 for rel in \
     "src/codegen/transpiler_class_decl_emit.c" \
     "src/codegen/transpiler_decl_host_lookup.c" \

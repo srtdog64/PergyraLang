@@ -12,6 +12,7 @@
 #include "host_decl_compat.h"
 #include "../compiler/mir_decl_headers.h"
 #include "transpiler_context.h"
+#include "transpiler_generic_class_specialization.h"
 #include "transpiler_inventory_view.h"
 
 TranspilerHostedMethodView
@@ -90,6 +91,13 @@ transpiler_find_host_method_metadata_in_context(
         return NULL;
 
     header = transpiler_active_host_decl_header(ctx, host_type_name);
+    if (header == NULL) {
+        ASTNode *base_decl = transpiler_generic_class_spec_base_decl(
+            ctx, host_type_name);
+        const char *base_name = transpiler_decl_name_local(base_decl);
+        if (base_name != NULL)
+            header = transpiler_active_host_decl_header(ctx, base_name);
+    }
     for (size_t i = 0; header != NULL
          && i < mir_decl_header_method_count(header); i++) {
         const MIRDeclMethod *method = mir_decl_header_method(header, i);
