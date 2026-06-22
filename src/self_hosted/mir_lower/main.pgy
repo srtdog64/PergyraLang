@@ -133,6 +133,66 @@ func SourceLocalType(json: String, start: Int, end: Int, name: String) -> String
     return "";
 }
 
+func EmitStructDecls(json: String) -> String {
+    let out: String = "";
+    let ds: Int = FindFrom(json, "\"decls\":[", 0);
+    if ds < 0 {
+        return out;
+    }
+    let de: Int = FindFrom(json, "],\"routines\":[", ds);
+    if de < 0 {
+        return out;
+    }
+    let p: Int = FindFrom(json, "\"kind\":\"struct\"", ds);
+    while p >= 0 && p < de {
+        let next_struct: Int = FindFrom(json, "\"kind\":\"struct\"", p + 15);
+        let decl_end: Int = de;
+        if next_struct >= 0 && next_struct < de {
+            decl_end = next_struct;
+        }
+        let nk: Int = FindFrom(json, "\"name\":", p);
+        if nk < 0 || nk >= decl_end {
+            Die("struct declaration is missing name fact");
+        }
+        let nq: Int = FindFrom(json, "\"", nk + 7);
+        if nq < 0 || nq >= decl_end {
+            Die("malformed struct declaration name fact");
+        }
+        let ne: Array<Int> = [0];
+        let sname: String = ReadJsonString(json, nq, ne);
+        out = Concat(out, Concat("  Struct: ", Concat(sname, "\n")));
+        out = Concat(out, "    Fields:\n");
+
+        let fk0: Int = FindFrom(json, "\"fields\":[", ne[0]);
+        if fk0 < 0 || fk0 >= decl_end {
+            Die(Concat("struct declaration is missing fields fact: ", sname));
+        }
+        let fk: Int = FindFrom(json, "\"name\":", fk0);
+        while fk >= 0 && fk < decl_end {
+            let fnq: Int = FindFrom(json, "\"", fk + 7);
+            if fnq < 0 || fnq >= decl_end {
+                Die(Concat("malformed struct field name fact: ", sname));
+            }
+            let fne: Array<Int> = [0];
+            let fname: String = ReadJsonString(json, fnq, fne);
+            let tk: Int = FindFrom(json, "\"type\":", fne[0]);
+            if tk < 0 || tk >= decl_end {
+                Die(Concat("struct field is missing type fact: ", fname));
+            }
+            let tq: Int = FindFrom(json, "\"", tk + 7);
+            if tq < 0 || tq >= decl_end {
+                Die(Concat("malformed struct field type fact: ", fname));
+            }
+            let te: Array<Int> = [0];
+            let ftype: String = ReadJsonString(json, tq, te);
+            out = Concat(out, Concat("      ", Concat(fname, Concat(": ", Concat(ftype, "\n")))));
+            fk = FindFrom(json, "\"name\":", te[0]);
+        }
+        p = next_struct;
+    }
+    return out;
+}
+
 // Convert one fact-rendered statement text to its AST-tree line. `Log(...)` and
 // bare calls pass through unchanged; `let NAME: T = V` becomes
 // `Let: NAME : T = V`.
@@ -157,6 +217,13 @@ func RenderStmtFromFacts(kind: String, source_type: String,
     let value: String = expr0;
     if kind == "return" {
         return Concat("Return: ", value);
+    }
+    if kind == "assign" {
+        if StringLength(expr0) > 0 && StringLength(expr1) > 0 {
+            return Concat("Assign: ", Concat(expr0, Concat(" = ", expr1)));
+        }
+        Die("assignment instruction is missing target/value MIR facts");
+        return "";
     }
     if kind == "def" {
         if source_type == "AST_LET_DECL"
@@ -254,7 +321,7 @@ func BlockBounds(json: String, bp: Int, span_end: Int, id: String, inout o: Arra
 
 // Branch condition within [bs,be); "" if the block does not end in a branch or
 // the branch does not carry the required MIR fact.
-func BlockCond(json: String, bs: Int, be: Int) -> String {
+func BlockCond(json: String, routine_start: Int, routine_end: Int, bs: Int, be: Int) -> String {
     let kp: Int = FindFrom(json, "\"kind\":\"branch\"", bs);
     if kp < 0 || kp >= be {
         return "";
@@ -270,6 +337,10 @@ func BlockCond(json: String, bs: Int, be: Int) -> String {
         let start: String = JsonFieldString(json, kp, inst_end, "\"expr0\":");
         let stop: String = JsonFieldString(json, kp, inst_end, "\"expr1\":");
         if StringLength(binding) > 0 && StringLength(start) > 0 && StringLength(stop) > 0 {
+            let iter_type: String = SourceLocalType(json, routine_start, routine_end, start);
+            if start == stop && StringLength(iter_type) >= 6 && Substring(iter_type, 0, 6) == "Array<" {
+                return Concat("for ", Concat(binding, Concat(" in ", start)));
+            }
             return Concat("for ", Concat(binding, Concat(" in ", Concat(start, Concat("..", stop)))));
         }
     }
@@ -330,7 +401,7 @@ func LoopHeaderLine(cond: String) -> String {
 // The block at which the single-entry region starting at `start` rejoins its
 // parent (the if's merge / post-dominator). Plain blocks fall through to their
 // successor; branch blocks recurse to skip past their own if. "" = no exit.
-func RegionExit(json: String, bp: Int, span_end: Int, start: String) -> String {
+func RegionExit(json: String, routine_start: Int, bp: Int, span_end: Int, start: String) -> String {
     let cur: String = start;
     let guard: Int = 0;
     while StringLength(cur) > 0 && guard < 100000 {
@@ -339,13 +410,13 @@ func RegionExit(json: String, bp: Int, span_end: Int, start: String) -> String {
         if !BlockBounds(json, bp, span_end, cur, o) {
             return "";
         }
-        let cond: String = BlockCond(json, o[0], o[1]);
+        let cond: String = BlockCond(json, routine_start, span_end, o[0], o[1]);
         if StringLength(cond) == 0 {
             return ReadSucc(json, o[0], o[1], "\"succ_true\":");
         }
         let t: String = ReadSucc(json, o[0], o[1], "\"succ_true\":");
         let f: String = ReadSucc(json, o[0], o[1], "\"succ_false\":");
-        let te: String = RegionExit(json, bp, span_end, t);
+        let te: String = RegionExit(json, routine_start, bp, span_end, t);
         if te == f {
             cur = f;
         } else {
@@ -389,7 +460,7 @@ func EmitRegion(json: String, routine_start: Int, bp: Int, span_end: Int,
         let stmts: String = EmitBlockStmts(json, routine_start, span_end, bs, be, indent);
         let had_stmts: Bool = StringLength(stmts) > 0;
         out = Concat(out, stmts);
-        let cond: String = BlockCond(json, bs, be);
+        let cond: String = BlockCond(json, routine_start, span_end, bs, be);
         if StringLength(cond) == 0 {
             let next: String = ReadSucc(json, bs, be, "\"succ_true\":");
             if !had_stmts && StringLength(loop_header) > 0 && next == loop_header {
@@ -413,7 +484,7 @@ func EmitRegion(json: String, routine_start: Int, bp: Int, span_end: Int,
                 out = Concat(out, EmitRegion(json, routine_start, bp, span_end, t, cur, Concat(indent, "    "), cur, f));
                 cur = f;
             } else {
-                let te: String = RegionExit(json, bp, span_end, t);
+                let te: String = RegionExit(json, routine_start, bp, span_end, t);
                 let merge: String = "";
                 let hasElse: Bool = false;
                 if IsLoopAbrupt(te, loop_header, loop_exit) {
@@ -458,7 +529,7 @@ func Main() -> Void {
     // signatures plus the supported CFG subset from explicit MIR JSON facts;
     // unsupported shapes remain an observable MIR-LOWER ERROR. A routine span
     // is bounded by the next routine's `"name":` key.
-    let out: String = "Program:\n";
+    let out: String = Concat("Program:\n", EmitStructDecls(json));
     let total: Int = 0;
     let rpos: Int = FindRoutine(json, 0);
     if rpos < 0 {

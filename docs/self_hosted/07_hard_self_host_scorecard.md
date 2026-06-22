@@ -151,15 +151,16 @@ backend emission facts. C source-local LET DEF emission, generic DEF expression
 emission, receive-payload type inference, MIR surface validation, and
 public-surface scalar provenance seeding and lifecycle MIR JSON source-text
 emission are also MIR/source-shape owned. The self-hosted checker proves the
-same manifest. `mir_lower` now reconstructs the supported 54-fixture parity
+same manifest. `mir_lower` now reconstructs the supported 59-fixture parity
 subset from `expr0`/`expr1`/`source_type`/`source_locals` facts only, including
 `for` headers from `arg0` plus range bounds and selected
 args/array/string/Bool/Float/file/recursion, straight-line call, integer
 arithmetic, directory-walk, exit-guard, Bool-literal branch reassignment,
 trailing-newline Log, nested string concat, string array concat, string
-case/index/trim builtins, two-log, and loop-control `continue`/`break`
-edge-block surfaces. The measured boundary is 54 PASS / 5 gap (`array_pop`,
-`for_each`, `str_reassign`, `struct_point`, `struct_param`);
+case/index/trim builtins, string reassignment, array pop, array for-each,
+Int-field struct declarations/value flow, two-log, and loop-control
+`continue`/`break` edge-block surfaces. The committed MIR-lower/codegen fixture
+inventory is now measured at 59 PASS / 0 gap through this path;
 `self-host-mir-json-parity-test-smoke` rejects reintroducing transitional
 `"ast"` reads.
 Capability 4 is

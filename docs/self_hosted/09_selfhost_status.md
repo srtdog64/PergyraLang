@@ -110,12 +110,12 @@ subset.
   the `for` header is reconstructed from
   `arg0` plus range bounds rather than treating the lower bound as a branch
   condition, and rejects reintroducing transitional `"ast"` reads. The hard
-  gate is now **54 fixtures** after promoting the already run-equivalent
+  gate is now **59 fixtures** after promoting the already run-equivalent
   trailing-newline Log, nested string concat, string array concat, string
-  case/index/trim builtin, two-log, while-break, and while-sum surfaces. The
-  coverage boundary is measured at 54 PASS / 5 gap: `array_pop` and `for_each`
-  currently fail at reconstructed-C compile time, while `str_reassign`,
-  `struct_point`, and `struct_param` are self-hosted codegen gaps.
+  case/index/trim builtin, string reassignment, two-log, while-break, and
+  while-sum surfaces, array pop and array for-each loops, and Int-field struct
+  declaration/value flow. The coverage boundary is now measured at **59 PASS /
+  0 gap** across the committed MIR-lower/codegen fixture inventory.
 - C class/zone collection-specialization scans are MIR-routine based and no
   longer recover method body AST; routine_source_decl_codegen is ratcheted at 0.
 - C hosted method body emission binds the linked MIRRoutine body as current

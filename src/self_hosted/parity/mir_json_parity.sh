@@ -80,6 +80,7 @@ CODEGEN_FIXTURES=(
     args_probe
     array_max
     array_param
+    array_pop
     array_push
     array_sum
     bool_logic
@@ -90,6 +91,7 @@ CODEGEN_FIXTURES=(
     exit_guard
     file_handle
     float_math
+    for_each
     for_continue
     for_sum
     func_call
@@ -113,7 +115,10 @@ CODEGEN_FIXTURES=(
     str_case_math
     str_greet
     str_indexof
+    str_reassign
     str_trim
+    struct_param
+    struct_point
     string_concat_op
     string_equality
     two_logs
@@ -160,6 +165,30 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
             fi
         done
     fi
+    if [[ "$base" == "struct_point" ]]; then
+        for required in \
+            '"decls":[{"kind":"struct"' \
+            '"name":"Point"' \
+            '"name":"x","type":"Int"' \
+            '"name":"y","type":"Int"'; do
+            if ! grep -Fq "$required" "$mj"; then
+                echo "[self-host-parity:mir-json] struct_point: missing MIR struct declaration fact: $required" >&2
+                exit 1
+            fi
+        done
+    fi
+    if [[ "$base" == "struct_param" ]]; then
+        for required in \
+            '"decls":[{"kind":"struct"' \
+            '"name":"Pair"' \
+            '"name":"a","type":"Int"' \
+            '"name":"b","type":"Int"'; do
+            if ! grep -Fq "$required" "$mj"; then
+                echo "[self-host-parity:mir-json] struct_param: missing MIR struct declaration fact: $required" >&2
+                exit 1
+            fi
+        done
+    fi
     "$B/mir_lower.exe" "${mj#$ROOT_DIR/}" 2>/dev/null | tr -d '\r' > "$reast" || true
     if grep -q '^MIR-LOWER ERROR' "$reast"; then
         echo "[self-host-parity:mir-json] $base: mir_lower rejected the MIR-JSON:" >&2
@@ -175,6 +204,14 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
             echo "[self-host-parity:mir-json] forloop: mir_lower treated the for bound expr as a branch condition" >&2
             exit 1
         fi
+    fi
+    if [[ "$base" == "struct_point" ]] && ! grep -q 'Struct: Point' "$reast"; then
+        echo "[self-host-parity:mir-json] struct_point: mir_lower did not reconstruct the struct declaration from MIR facts" >&2
+        exit 1
+    fi
+    if [[ "$base" == "struct_param" ]] && ! grep -q 'Struct: Pair' "$reast"; then
+        echo "[self-host-parity:mir-json] struct_param: mir_lower did not reconstruct the struct declaration from MIR facts" >&2
+        exit 1
     fi
     "$B/codegen.exe" "${reast#$ROOT_DIR/}" 2>/dev/null | tr -d '\r' > "$via_c" || true
     if grep -q '^CODEGEN ERROR' "$via_c"; then

@@ -67,6 +67,46 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Struct declaration facts close the committed MIR JSON fixture inventory
+
+- Closed the last two measured MIR JSON fixture gaps (`struct_point`,
+  `struct_param`). The C MIR JSON emitter now writes additive declaration facts
+  under `decls` for `NOMINAL_DECL_STRUCT` headers using `MIRDeclHeader` /
+  `MIRDeclField` metadata. The self-hosted `mir_lower` consumes those facts and
+  reconstructs `Struct:` / `Fields:` tree lines before routine bodies.
+- Promoted `struct_point` and `struct_param` into the hard MIR JSON manifest and
+  added gate checks that their struct names and Int fields are present in MIR
+  JSON and reconstructed by `mir_lower`.
+- The committed MIR-lower/codegen fixture inventory now measures **59 PASS / 0
+  gap** through `pgy --mir-json | mir_lower | codegen | gcc == C oracle`.
+
+### 2026-06-23 -- Array for-each facts promoted into MIR JSON lowering
+
+- Closed the `array_pop` and `for_each` reconstructed-C failures without opening
+  source text. For collection loops the MIR JSON branch facts carry
+  `expr0 == expr1 == collection`, and the routine `source_locals` fact owns the
+  collection type. `mir_lower` now renders `For: item in collection` when that
+  source-local type is `Array<...>`; range loops still render
+  `For: i in start..stop`.
+- Promoted `array_pop` and `for_each` into the hard MIR JSON manifest, moving
+  the hard rung from 55 to **57 fixtures**.
+- Remaining measured MIR JSON fixture boundary: **57 PASS / 2 gap**. Both
+  remaining gaps (`struct_point`, `struct_param`) are self-hosted codegen struct
+  support gaps.
+
+### 2026-06-23 -- Assignment facts promoted into MIR JSON lowering
+
+- Closed the `str_reassign` gap without adding a source-text fallback. The MIR
+  JSON already carried `kind:"assign"` plus target/value facts
+  (`expr0`/`expr1`); `mir_lower` now renders those facts as
+  `Assign: target = value` and fails closed if an assignment instruction lacks
+  either fact.
+- Promoted `str_reassign` into the hard MIR JSON manifest, moving the hard rung
+  from 54 to **55 fixtures**.
+- Remaining measured MIR JSON fixture boundary: **55 PASS / 4 gap**. `array_pop`
+  and `for_each` still fail at reconstructed-C compile time, while
+  `struct_point` and `struct_param` remain self-hosted codegen gaps.
+
 ### 2026-06-23 -- MIR JSON hard rung widened to 54 and coverage probe made fail-closed
 
 - Made `src/self_hosted/parity/mir_json_coverage_probe.sh` fail closed: it now
