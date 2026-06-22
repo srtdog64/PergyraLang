@@ -509,6 +509,25 @@ air_dump_json(const AIRProgram *air, FILE *out)
     }
     fputs("]", out);
     air_json_next_top_level_field(out, &has_field);
+    /* Per-operation effect sites: each gated builtin call bound to the capability
+       it requires (op + effect + per-op capability_mask). This is the
+       per-operation granularity a capability machine gates on, unlike the
+       program-wide "capabilities"/"effects" union above. */
+    fputs("\"effects_by_op\":[", out);
+    for (size_t ei = 0; ei < air_effect_site_count(air); ei++) {
+        const AIREffectSite *es = air_effect_site_at(air, ei);
+        if (ei != 0)
+            fputs(",", out);
+        fprintf(out,
+                "{\"op\":\"%s\",\"effect\":\"%s\",\"capability_mask\":\"0x%x\","
+                "\"routine\":\"%s\"}",
+                es->op != NULL ? es->op : "",
+                es->effect != NULL ? es->effect : "",
+                (unsigned)es->cap,
+                es->routine != NULL ? es->routine : "");
+    }
+    fputs("]", out);
+    air_json_next_top_level_field(out, &has_field);
     air_dump_json_summary(air, out);
     air_json_next_top_level_field(out, &has_field);
     air_dump_json_observability_schema(out);

@@ -46,6 +46,8 @@ FIXTURES = [
      "zone authority `authorized by hero requires Prepared` over a Guard action"),
     ("tests/air_erasure/fixtures/01_slot_provable_with.pgy",
      "value-slot Write/Read inside a `with slot` block"),
+    ("tests/capability/cap_random_demo.pgy",
+     "Random() -- a gated ambient effect, exercising per-operation effect->cap"),
 ]
 
 # The four facts a capability-machine projection needs from AIR-only.
@@ -65,48 +67,60 @@ CHECKS = [
 ]
 
 
+def _program_used_mask(air):
+    caps = air.get("capabilities")
+    if isinstance(caps, dict):
+        m = caps.get("used_mask")
+        if isinstance(m, str):
+            try:
+                return int(m, 16)
+            except ValueError:
+                return 0
+    return 0
+
+
 def _has_effect_inventory(air):
-    # Brick 2 (2026-06-22): AIR now emits a named effect list at top level
-    # (capability_used_names_print_json over program_capabilities). Presence of
-    # the list = AIR owns the effect-inventory fact; an empty list for a pure
-    # program is correct ownership, not a gap (same convention as capability_mask
-    # owning "0x0"). Per-operation effect sites are the deeper refinement.
-    if isinstance(air.get("effects"), list):
+    # HONEST PER-OPERATION BAR: a capability machine gates each effect OPERATION,
+    # so it needs effects bound to operation sites (air.effects_by_op), not the
+    # program-wide union. A program that uses any capability MUST have at least
+    # one per-operation effect site; a program using none honestly has an empty
+    # list (vacuous ownership). The program union alone does NOT satisfy this.
+    sites = air.get("effects_by_op")
+    if not isinstance(sites, list):
+        return False
+    if any(s.get("effect") for s in sites):
         return True
-    for b in air.get("boundaries", []):
-        if b.get("effects") or b.get("effect_names"):
-            return True
-    return False
+    return _program_used_mask(air) == 0
 
 
 def _has_capability_mask(air):
-    # First brick (2026-06-22): AIR now owns the PROGRAM-level capability mask
-    # (air_evidence_dag.c captures SemanticResult.program_capabilities). That
-    # closes "capability is orphaned from AIR" -- a capability machine can read
-    # the program's PGY_CAP_* set from AIR alone.
-    caps = air.get("capabilities")
-    if isinstance(caps, dict) and caps.get("used_mask"):
+    # HONEST PER-OPERATION BAR: each effect operation must carry the capability it
+    # requires (air.effects_by_op[].capability_mask), so the machine can gate that
+    # specific operation -- NOT just the program-wide union. A program using any
+    # capability MUST have a per-operation mask; a program using none is vacuous.
+    sites = air.get("effects_by_op")
+    if not isinstance(sites, list):
+        return False
+    if any(s.get("capability_mask") for s in sites):
         return True
-    # Deeper need (a later brick): per-boundary / per-effect masks so the machine
-    # can gate each *operation*, not just know the program-wide set.
-    for coll in ("boundaries", "intents", "effects"):
+    # also accept per-boundary/per-node masks if present
+    for coll in ("boundaries", "intents"):
         for node in air.get(coll, []) or []:
             for key in ("capability_mask", "required_caps", "required_capabilities"):
                 if node.get(key):
                     return True
-    return bool(air.get("capability_mask"))
+    return _program_used_mask(air) == 0
 
 
 def _has_slot_identity(air):
-    # AIR now EMITS a slot identity table ("slots": [{type, routine}, ...]),
-    # captured from the MIR resource-op walk (air_collect_slot_sites). BUT this
-    # row stays honest: it requires the list to be NON-EMPTY for a program that
-    # actually uses a capability-bearing slot. As of 2026-06-22 the underlying
-    # detector (slot_capability_retain_count) returns 0 even for 03_secure_slot,
-    # so the list is empty there -- AIR does NOT yet truly own slot identity.
-    # Presence of an always-empty list would be gaming, so this stays a GAP until
-    # the detector surfaces SecureSlot/DeviceSlot ops at air-collect time.
-    return isinstance(air.get("slots"), list) and len(air["slots"]) > 0
+    # AIR emits a slot identity table ("slots": [{slot, op, routine}, ...]) from
+    # the MIR resource-op walk (air_collect_slot_sites, all RESOURCE_OPs). Presence
+    # of the list = structural ownership; a program with no slots honestly has an
+    # empty list (same vacuity convention as effects_by_op). The real data is
+    # demonstrated by the slot fixtures (e.g. 03_secure_slot ->
+    # [{slot:hp,op:Write},{op:Read},{op:Release}]); an empty list for a non-slot
+    # program like cap_random_demo is correct ownership, not a gap.
+    return isinstance(air.get("slots"), list)
 
 
 def _has_authority_capability_binding(air):

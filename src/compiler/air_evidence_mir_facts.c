@@ -3,6 +3,8 @@
 #include <string.h>
 
 #include "air_internal.h"
+#include "../runtime/pgy_runtime_capability.h"   /* PGY_CAP_NONE */
+#include "../semantic/capability_analyze.h"       /* capability_for_builtin */
 #include "mir_cfg_contract_cleanup_fact.h"
 #include "mir_cfg_contract_cleanup_root_membership.h"
 
@@ -306,6 +308,66 @@ air_collect_slot_sites(AIRProgram *air, const MIRRoutine *routine,
             air->slot_sites[air->slot_site_count].op = inst->name;
             air->slot_sites[air->slot_site_count].routine = routine_name;
             air->slot_site_count++;
+        }
+    }
+    return true;
+}
+
+/*
+ * Collect per-operation effect sites: MIR instructions that reference a gated
+ * ambient builtin (Random, Now, ReadFile, ...) bound to the capability it
+ * requires. This is the per-operation granularity a capability machine needs to
+ * gate each effect call -- richer than the program-wide capability mask. The
+ * builtin appears as the instruction name or an argument operand (e.g. a
+ * `def ... arg1=Random`), keyed against capability_for_builtin.
+ */
+bool
+air_collect_effect_sites(AIRProgram *air, const MIRRoutine *routine,
+                         const char *routine_name)
+{
+    if (air == NULL || routine == NULL)
+        return true;
+    if (routine->block_count > 0 && routine->blocks == NULL)
+        return true;
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *block = &routine->blocks[i];
+        if (block->instruction_count > 0 && block->instructions == NULL)
+            continue;
+        for (size_t j = 0; j < block->instruction_count; j++) {
+            const MIRInstruction *inst = &block->instructions[j];
+            const char *fields[3];
+            const char *op_name = NULL;
+            uint32_t cap = PGY_CAP_NONE;
+
+            fields[0] = inst->name;
+            fields[1] = inst->arg0;
+            fields[2] = inst->arg1;
+            for (size_t f = 0; f < 3; f++) {
+                uint32_t got = capability_for_builtin(fields[f]);
+                if (got != PGY_CAP_NONE) {
+                    op_name = fields[f];
+                    cap = got;
+                    break;
+                }
+            }
+            if (cap == PGY_CAP_NONE)
+                continue;
+            if (air->effect_site_count >= air->effect_site_capacity) {
+                size_t newcap = air->effect_site_capacity
+                    ? air->effect_site_capacity * 2 : 4;
+                AIREffectSite *grown = (AIREffectSite *)realloc(
+                    air->effect_sites, newcap * sizeof(AIREffectSite));
+                if (grown == NULL)
+                    return false;
+                air->effect_sites = grown;
+                air->effect_site_capacity = newcap;
+            }
+            air->effect_sites[air->effect_site_count].op = op_name;
+            air->effect_sites[air->effect_site_count].effect =
+                capability_bit_name(cap);
+            air->effect_sites[air->effect_site_count].cap = cap;
+            air->effect_sites[air->effect_site_count].routine = routine_name;
+            air->effect_site_count++;
         }
     }
     return true;

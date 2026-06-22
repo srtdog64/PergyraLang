@@ -34,4 +34,11 @@ void capability_manifest_print(uint32_t used_mask, FILE *out);
    Reused by AIR JSON so the effect-inventory fact is owned in one place. */
 void capability_used_names_print_json(uint32_t used_mask, FILE *out);
 
+/* The capability a gated ambient builtin requires (PGY_CAP_NONE if not gated).
+   The single source of truth for per-operation effect->capability binding. */
+uint32_t capability_for_builtin(const char *name);
+
+/* The name of a single PGY_CAP_* bit, or NULL. */
+const char *capability_bit_name(uint32_t bit);
+
 #endif /* PERGYRA_CAPABILITY_ANALYZE_H */

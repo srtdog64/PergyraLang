@@ -231,6 +231,17 @@ typedef struct {
     const char *routine;    /* the routine the slot op lives in */
 } AIRSlotSite;
 
+/* A per-operation effect site: a gated ambient builtin call (e.g. Random) bound
+   to the capability it requires (RANDOM). This is what lets a capability machine
+   gate each effect operation -- the per-operation granularity the program-wide
+   capability mask lacks. See docs/semantics/18/19. */
+typedef struct {
+    const char *op;         /* the gated builtin, e.g. "Random" */
+    const char *effect;     /* the capability name, e.g. "RANDOM" */
+    uint32_t    cap;        /* the PGY_CAP_* bit */
+    const char *routine;    /* the routine the effect op lives in */
+} AIREffectSite;
+
 typedef struct AIRProgram
 {
     AIRIntentNode   *intents;
@@ -294,6 +305,11 @@ typedef struct AIRProgram
     AIRSlotSite     *slot_sites;
     size_t           slot_site_count;
     size_t           slot_site_capacity;
+    /* Per-operation effect sites (gated builtin calls bound to their cap),
+       populated in air_collect_mir_evidence. */
+    AIREffectSite   *effect_sites;
+    size_t           effect_site_count;
+    size_t           effect_site_capacity;
 } AIRProgram;
 
 AIRProgram *air_synthesize(const HIRProgram *hir,
@@ -362,6 +378,10 @@ size_t      air_slot_site_count(const AIRProgram *air);
 const AIRSlotSite *air_slot_site_at(const AIRProgram *air, size_t index);
 bool        air_collect_slot_sites(AIRProgram *air, const MIRRoutine *routine,
                                    const char *routine_name);
+size_t      air_effect_site_count(const AIRProgram *air);
+const AIREffectSite *air_effect_site_at(const AIRProgram *air, size_t index);
+bool        air_collect_effect_sites(AIRProgram *air, const MIRRoutine *routine,
+                                     const char *routine_name);
 size_t      air_intent_node_count(const AIRProgram *air);
 const AIRIntentNode *air_intent_node_at(const AIRProgram *air, size_t index);
 size_t      air_boundary_node_count(const AIRProgram *air);
