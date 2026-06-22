@@ -74,7 +74,7 @@ semantic_ability_ref_matches(SemanticContext *ctx, ASTNode *impl_ref,
 
     ability_decl = semantic_find_ability_decl_by_name(ctx, impl_name);
     if (ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL)
-        return ability_ref_type_arg_equal(impl_ref, required_ref);
+        return false;
 
     decl_params = ast_ability_generic_params(ability_decl);
     if (decl_params == NULL || ast_generic_param_count(decl_params) == 0)

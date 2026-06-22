@@ -624,6 +624,11 @@ if grep -q 'ability_match_program(ctx)\|ctx->program_root' \
     fail "ability match owner must consume SemanticContext lookup seams, not program-root scans"
 fi
 
+if grep -q 'return ability_ref_type_arg_equal(impl_ref, required_ref)' \
+    src/semantic/type_checker_ability_match.c; then
+    fail "ability matching must fail closed when ability declaration lookup misses"
+fi
+
 if grep -q 'ctx->program_root == NULL' src/semantic/type_checker_ability_where.c; then
     fail "ability where validation must rely on context-bearing semantic ability lookup"
 fi
