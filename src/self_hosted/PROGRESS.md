@@ -49,10 +49,10 @@ subset (linear code, signatures/return, if/else, nested if, while, and
 MIR facts (args, arrays, Bool/string/Float builtins, Bool-literal branch
 reassignment, straight-line calls, direct integer arithmetic, builtin-name
 string literals, directory walking, exit-guard branches, multiple Void routines
-with bare-call statements, string concat/equality, recursion, `continue`, and
-file read/write), gated by
+with bare-call statements, string concat/equality, recursion, loop-control
+`continue`/`break` edge blocks, and file read/write), gated by
 `parity/mir_json_parity.sh`
-(`make self-host-mir-json-parity-test-smoke`, 42 fixtures). The gate now
+(`make self-host-mir-json-parity-test-smoke`, 43 fixtures). The gate now
 requires the MIR JSON fact surface and checks the `for`
 header is reconstructed from `arg0` plus `expr0`/`expr1` bounds. The gate also
 rejects reintroducing reads of the transitional `ast` compatibility text. This

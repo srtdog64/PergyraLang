@@ -151,12 +151,12 @@ backend emission facts. C source-local LET DEF emission, generic DEF expression
 emission, receive-payload type inference, MIR surface validation, and
 public-surface scalar provenance seeding and lifecycle MIR JSON source-text
 emission are also MIR/source-shape owned. The self-hosted checker proves the
-same manifest. `mir_lower` now reconstructs the supported 42-fixture parity
+same manifest. `mir_lower` now reconstructs the supported 43-fixture parity
 subset from `expr0`/`expr1`/`source_type`/`source_locals` facts only, including
 `for` headers from `arg0` plus range bounds and selected
 args/array/string/Bool/Float/file/recursion, straight-line call, integer
-arithmetic, directory-walk, exit-guard, and Bool-literal branch reassignment
-surfaces;
+arithmetic, directory-walk, exit-guard, Bool-literal branch reassignment, and
+loop-control `continue`/`break` edge-block surfaces;
 `self-host-mir-json-parity-test-smoke` rejects reintroducing transitional
 `"ast"` reads.
 Capability 4 is

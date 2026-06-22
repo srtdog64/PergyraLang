@@ -4,11 +4,12 @@
 // codegen then lowers to C. Together they form a Pergyra MIR -> C lowering:
 // the C backend's MIR consumption is substituted.
 //
-// rung-0 scope: a single routine `Main`, a single linear block, and the
-// statement forms the codegen already supports (Int `let`, `Log(...)`). The
-// reconstructor consumes MIR JSON facts (`source_type`, `arg0`, `expr0`,
-// `expr1`, and `source_locals`) only; out-of-scope input is an
-// observable MIR-LOWER ERROR (no silent fallback, per the no-hidden-flow rule).
+// rung-0b scope: function signatures plus the supported CFG subset
+// (straight-line blocks, if/else, while, for, and loop continue/break edge
+// blocks). The reconstructor consumes MIR JSON facts (`source_type`, `arg0`,
+// `expr0`, `expr1`, `source_locals`, and successor edges) only; out-of-scope
+// input is an observable MIR-LOWER ERROR (no source-text fallback, per the
+// no-hidden-flow rule).
 
 func Die(msg: String) -> Void {
     Log(Concat("MIR-LOWER ERROR: ", msg));
@@ -354,12 +355,26 @@ func RegionExit(json: String, bp: Int, span_end: Int, start: String) -> String {
     return "";
 }
 
+func IsLoopAbrupt(id: String, loop_header: String, loop_exit: String) -> Bool {
+    if StringLength(id) == 0 {
+        return false;
+    }
+    if StringLength(loop_header) > 0 && id == loop_header {
+        return true;
+    }
+    if StringLength(loop_exit) > 0 && id == loop_exit {
+        return true;
+    }
+    return false;
+}
+
 // Emit the structured tree for blocks from `start` until reaching `stop`
 // (exclusive). Straight-line blocks emit their statements; a branch block emits
 // `If:/Then:/Else:` and recurses into the then/else regions, then continues from
 // the merge. `indent` is the leading whitespace for statements at this level.
 func EmitRegion(json: String, routine_start: Int, bp: Int, span_end: Int,
-                start: String, stop: String, indent: String) -> String {
+                start: String, stop: String, indent: String,
+                loop_header: String, loop_exit: String) -> String {
     let out: String = "";
     let cur: String = start;
     let guard: Int = 0;
@@ -371,10 +386,21 @@ func EmitRegion(json: String, routine_start: Int, bp: Int, span_end: Int,
         }
         let bs: Int = o[0];
         let be: Int = o[1];
-        out = Concat(out, EmitBlockStmts(json, routine_start, span_end, bs, be, indent));
+        let stmts: String = EmitBlockStmts(json, routine_start, span_end, bs, be, indent);
+        let had_stmts: Bool = StringLength(stmts) > 0;
+        out = Concat(out, stmts);
         let cond: String = BlockCond(json, bs, be);
         if StringLength(cond) == 0 {
-            cur = ReadSucc(json, bs, be, "\"succ_true\":");
+            let next: String = ReadSucc(json, bs, be, "\"succ_true\":");
+            if !had_stmts && StringLength(loop_header) > 0 && next == loop_header {
+                out = Concat(out, Concat(indent, "Continue\n"));
+                cur = stop;
+            } else if !had_stmts && StringLength(loop_exit) > 0 && next == loop_exit {
+                out = Concat(out, Concat(indent, "Break\n"));
+                cur = stop;
+            } else {
+                cur = next;
+            }
         } else {
             let t: String = ReadSucc(json, bs, be, "\"succ_true\":");
             let f: String = ReadSucc(json, bs, be, "\"succ_false\":");
@@ -384,13 +410,15 @@ func EmitRegion(json: String, routine_start: Int, bp: Int, span_end: Int,
                 // bound it by `cur` (this header); the loop exit is succ_false.
                 out = Concat(out, Concat(indent, Concat(LoopHeaderLine(cond), "\n")));
                 out = Concat(out, Concat(indent, "  Block:\n"));
-                out = Concat(out, EmitRegion(json, routine_start, bp, span_end, t, cur, Concat(indent, "    ")));
+                out = Concat(out, EmitRegion(json, routine_start, bp, span_end, t, cur, Concat(indent, "    "), cur, f));
                 cur = f;
             } else {
                 let te: String = RegionExit(json, bp, span_end, t);
                 let merge: String = "";
                 let hasElse: Bool = false;
-                if te == f {
+                if IsLoopAbrupt(te, loop_header, loop_exit) {
+                    merge = f;
+                } else if te == f {
                     merge = f;
                 } else {
                     merge = te;
@@ -399,11 +427,11 @@ func EmitRegion(json: String, routine_start: Int, bp: Int, span_end: Int,
                 out = Concat(out, Concat(indent, Concat("If: ", Concat(cond, "\n"))));
                 out = Concat(out, Concat(indent, "  Then:\n"));
                 out = Concat(out, Concat(indent, "    Block:\n"));
-                out = Concat(out, EmitRegion(json, routine_start, bp, span_end, t, merge, Concat(indent, "      ")));
+                out = Concat(out, EmitRegion(json, routine_start, bp, span_end, t, merge, Concat(indent, "      "), loop_header, loop_exit));
                 if hasElse {
                     out = Concat(out, Concat(indent, "  Else:\n"));
                     out = Concat(out, Concat(indent, "    Block:\n"));
-                    out = Concat(out, EmitRegion(json, routine_start, bp, span_end, f, merge, Concat(indent, "      ")));
+                    out = Concat(out, EmitRegion(json, routine_start, bp, span_end, f, merge, Concat(indent, "      "), loop_header, loop_exit));
                 }
                 cur = merge;
             }
@@ -486,44 +514,21 @@ func Main() -> Void {
 
         // The routine's own `"kind":"function"` precedes `"blocks":`, so block
         // scanning starts there. CFG-structured reconstruction (EmitRegion, from
-        // the entry block "0") rebuilds `If:`/`While:`/`For:` by following the
-        // succ edges. If the structurer yields nothing (an unstructured shape we
-        // do not model yet), fall back to the flat instruction walk so no source
-        // statement is silently dropped.
+        // the entry block "0") rebuilds `If:`/`While:`/`For:` plus loop
+        // `Continue`/`Break` edge blocks by following successor facts.
         let bp: Int = FindFrom(json, "\"blocks\":", nend[0]);
-        let region: String = EmitRegion(json, nend[0], bp, span_end, "0", "", "        ");
-        if StringLength(region) > 0 {
-            out = Concat(out, region);
-            total = total + 1;
-        } else {
-            let kp: Int = FindFrom(json, "\"kind\":", bp);
-            while kp >= 0 && kp < span_end {
-                let kq: Int = FindFrom(json, "\"", kp + 7);
-                let ke: Array<Int> = [0];
-                let ikind: String = ReadJsonString(json, kq, ke);
-                let next_kp: Int = FindFrom(json, "\"kind\":", ke[0]);
-                let inst_end: Int = span_end;
-                if next_kp >= 0 && next_kp < span_end {
-                    inst_end = next_kp;
-                }
-                let expr0: String = JsonFieldString(json, kp, inst_end, "\"expr0\":");
-                let expr1: String = JsonFieldString(json, kp, inst_end, "\"expr1\":");
-                let arg0: String = JsonFieldString(json, kp, inst_end, "\"arg0\":");
-                let source_type: String = JsonFieldString(json, kp, inst_end, "\"source_type\":");
-                let local_type: String = SourceLocalType(json, nend[0], span_end, arg0);
-                if StringLength(expr0) > 0 {
-                    out = Concat(out, Concat("        ", Concat(RenderStmtFromFacts(ikind, source_type, arg0, expr0, expr1, local_type), "\n")));
-                    total = total + 1;
-                }
-                kp = next_kp;
-            }
+        let region: String = EmitRegion(json, nend[0], bp, span_end, "0", "", "        ", "", "");
+        if StringLength(region) == 0 {
+            Die(Concat("unsupported or empty MIR CFG shape in routine: ", routine));
         }
+        out = Concat(out, region);
+        total = total + 1;
 
         rpos = next_rpos;
     }
 
     if total == 0 {
-        Die("no source statements found in MIR-JSON routine");
+        Die("no supported routines found in MIR-JSON document");
     }
     Print(out);
 }

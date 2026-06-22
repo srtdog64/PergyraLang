@@ -67,6 +67,20 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Loop-control edge blocks promoted into MIR JSON gate
+
+- Closed the `log_int_direct` gap called out below. The self-hosted
+  `mir_lower` now treats empty successor blocks that flow to the active loop
+  header or loop exit as MIR-owned `Continue` / `Break` facts instead of trying
+  to flatten the loop CFG or re-open source text.
+- Promoted `log_int_direct` into the hard MIR JSON parity manifest, taking the
+  gate from 42 to **43 fixtures**.
+- Removed the remaining fact-based flat-walk compatibility branch from
+  `mir_lower`; an unsupported or empty CFG now fails closed instead of
+  silently dropping back to instruction-order rendering.
+- `self-host-mir-json-parity-test-smoke`: proved **43/43 MIR JSON ->
+  self-hosted MIR-lower -> self-hosted codegen -> C oracle parity**.
+
 ### 2026-06-23 -- Ten more codegen surfaces promoted into MIR JSON gate
 
 - Promoted ten survey-proven PASS fixtures into the hard MIR JSON parity
