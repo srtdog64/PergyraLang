@@ -255,6 +255,132 @@ air_verify_rir_propagation_requirements(AIRProgram *air,
     return true;
 }
 
+static const char *
+air_rir_propagation_label(AIREvidenceKind kind)
+{
+    return kind == AIR_EVIDENCE_RIR_RELATION_PROPAGATION
+        ? "relation"
+        : "effect";
+}
+
+static AIRDriftKind
+air_rir_propagation_drift_kind(AIREvidenceKind kind)
+{
+    return kind == AIR_EVIDENCE_RIR_RELATION_PROPAGATION
+        ? AIR_DRIFT_RELATION_PROPAGATION_MISSING
+        : AIR_DRIFT_EFFECT_PROPAGATION_MISSING;
+}
+
+static bool
+air_rir_propagation_requirement_seen_before(const AIRProgram *air,
+                                            size_t requirement_index)
+{
+    const AIRPropagationRequirement *needle =
+        air_propagation_requirement_at(air, requirement_index);
+
+    if (needle == NULL)
+        return false;
+    for (size_t i = 0; i < requirement_index; i++) {
+        const AIRPropagationRequirement *prior =
+            air_propagation_requirement_at(air, i);
+        if (prior != NULL
+            && prior->kind == needle->kind
+            && air_name_matches(prior->provider_name, needle->provider_name)
+            && air_name_matches(prior->subject_name, needle->subject_name)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
+air_verify_rir_propagation_requirement_key(
+    AIRProgram *air,
+    const AIRPropagationRequirement *requirement,
+    char **error_message)
+{
+    const AIREvidenceNode *evidence;
+    size_t required_count;
+    size_t evidence_count;
+    const char *label;
+
+    if (air == NULL || requirement == NULL)
+        return true;
+    label = air_rir_propagation_label(requirement->kind);
+    required_count = air_propagation_requirement_key_count(
+        air,
+        requirement->kind,
+        requirement->provider_name,
+        requirement->subject_name);
+    evidence = air_global_evidence_node_provider_subject(
+        air,
+        requirement->kind,
+        requirement->provider_name,
+        requirement->subject_name);
+    evidence_count = air_evidence_node_fact_count(evidence);
+    if (evidence_count >= required_count)
+        return true;
+    return air_append_driftf(
+        air,
+        air_rir_propagation_drift_kind(requirement->kind),
+        SIZE_MAX,
+        SIZE_MAX,
+        error_message,
+        PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+        ": AIR %s propagation requirement has no matching RIR evidence key; provider=%s subject=%s required=%zu evidence=%zu. "
+        "Reason: strict AIR requires propagation evidence to match the required provider/subject key, not just the aggregate counter. "
+        "Fix: attach AIR_EVIDENCE_RIR_%s_PROPAGATION for this provider/subject or remove the stale requirement.",
+        label,
+        requirement->provider_name,
+        requirement->subject_name,
+        required_count,
+        evidence_count,
+        requirement->kind == AIR_EVIDENCE_RIR_RELATION_PROPAGATION
+            ? "RELATION"
+            : "EFFECT");
+}
+
+static bool
+air_verify_rir_propagation_requirement_keys(AIRProgram *air,
+                                            char **error_message)
+{
+    size_t requirement_count;
+
+    if (!air_requires_strict_evidence(air))
+        return true;
+    requirement_count = air_propagation_requirement_count(air);
+    if ((air_evidence_required_count(air, AIR_EVIDENCE_RIR_EFFECT_PROPAGATION)
+            > 0
+         || air_evidence_required_count(air, AIR_EVIDENCE_RIR_RELATION_PROPAGATION)
+            > 0)
+        && requirement_count == 0) {
+        if (!air_append_drift(
+                air,
+                AIR_DRIFT_EFFECT_PROPAGATION_MISSING,
+                SIZE_MAX,
+                SIZE_MAX,
+                PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+                ": AIR RIR propagation has required counters without provider/subject requirement keys. "
+                "Reason: strict AIR treats aggregate propagation counters as observability only. "
+                "Fix: preserve AIRPropagationRequirement keys from RIR propagation ops.",
+                error_message)) {
+            return false;
+        }
+    }
+    for (size_t i = 0; i < requirement_count; i++) {
+        const AIRPropagationRequirement *requirement =
+            air_propagation_requirement_at(air, i);
+        if (air_rir_propagation_requirement_seen_before(air, i))
+            continue;
+        if (!air_verify_rir_propagation_requirement_key(air,
+                                                        requirement,
+                                                        error_message)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 static bool
 air_verify_dag_global_requirements(AIRProgram *air, char **error_message)
 {
@@ -327,5 +453,6 @@ air_verify_global_evidence_requirements(AIRProgram *air,
     return air_verify_mir_global_requirements(air, error_message)
         && air_verify_runtime_global_requirements(air, error_message)
         && air_verify_rir_propagation_requirements(air, error_message)
+        && air_verify_rir_propagation_requirement_keys(air, error_message)
         && air_verify_dag_global_requirements(air, error_message);
 }

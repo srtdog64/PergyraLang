@@ -6,7 +6,6 @@
 
 bool transpiler_materialize_pending_inst_uses(CodeBuf *buf,
                                               TranspilerCtx *ctx,
-                                              const ASTNode *func_decl,
                                               const MIRRoutine *mir_routine,
                                               const MIRBasicBlock *block,
                                               const MIRInstruction *inst,

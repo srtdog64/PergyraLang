@@ -153,6 +153,20 @@ air_boundary_authority_name_at(const AIRBoundaryNode *boundary, size_t index)
     return boundary->authority_names[index];
 }
 
+size_t
+air_boundary_required_ability_count(const AIRBoundaryNode *boundary)
+{
+    return boundary != NULL ? boundary->required_ability_count : 0;
+}
+
+const char *
+air_boundary_required_ability_at(const AIRBoundaryNode *boundary, size_t index)
+{
+    if (boundary == NULL || index >= boundary->required_ability_count)
+        return NULL;
+    return boundary->required_abilities[index];
+}
+
 const char *
 air_boundary_first_authority_name_or(const AIRBoundaryNode *boundary,
                                      const char *fallback)

@@ -58,6 +58,8 @@ mandatory_targets=(
     "parser-lexer-diagnostic-test-smoke"
     "diagnostic-registry-test-smoke"
     "formal-semantics-test-smoke"
+    "proof-carrying-pipeline-test-smoke"
+    "proof-carrying-adequacy-test-smoke"
     "air-drift-test-smoke"
     "air-backend-nonimpact-full-test-smoke"
     "air-strict-backend-compare-test-smoke"

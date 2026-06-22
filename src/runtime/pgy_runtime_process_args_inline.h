@@ -20,7 +20,13 @@ pgy_args_init(int32_t argc, char **argv)
 static inline PgyArray_String
 pgy_args(void)
 {
-    int32_t count = (pgy_runtime_argc > 1 && pgy_runtime_argv != NULL)
+    int32_t count;
+
+    /* Gated on PGY_CAP_ENV: process arguments are an ambient fingerprinting
+     * surface. Twin of the gate in pgy_runtime_process_args_exports.h. Only the
+     * reader is gated; pgy_args_init (startup infra) is not. */
+    pgy_cap_require_export(PGY_CAP_ENV, "args");
+    count = (pgy_runtime_argc > 1 && pgy_runtime_argv != NULL)
         ? pgy_runtime_argc - 1
         : 0;
     PgyArray_String out = pgy_array_new_String((size_t)count);

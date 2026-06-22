@@ -1,0 +1,12 @@
+// Regression guard for bug #44: Args() returns Array<String> by value, a 0-arg
+// struct return that mis-lowered to a segfault on LLVM until the sret-slot fix
+// (the only 0-arg struct-returner; see project_llvm_struct_return_abi). Print
+// only the COUNT, which is identical across the C and LLVM binaries here -- both
+// are invoked with no extra args -- so the backend parity diff is stable even
+// though the argument values include each binary's differing path.
+let a: Array<String> = Args();
+let n: Int = 0;
+for s in a {
+    n = n + 1;
+}
+Log(ToString(n));

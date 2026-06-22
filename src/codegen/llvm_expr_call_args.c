@@ -76,6 +76,42 @@ llvm_emit_function_call_args(LLVMGenCtx *ctx, LLVMFuncEntry *func,
         }
     }
 
+    if (llvm_runtime_aggregate_return_is_sret_function(
+            LLVMGetValueName(func->fn))) {
+        llvm_set_error_with_hints(ctx,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM runtime aggregate-return call '%s' must be emitted through "
+            "the aggregate-return ABI owner, not the generic by-value call path",
+            LLVMGetValueName(func->fn));
+        return NULL;
+    }
+
+    /*
+     * Honest ABI guard: a 0-argument runtime function returning a struct/array
+     * BY VALUE mis-lowers on the by-value call path and crashes. clang compiles
+     * such a runtime fn with the sret ABI (void f(ptr sret)); the by-value-decl
+     * vs sret-def mismatch is bitcast-reconciled at llvm-link, but the 0-arg
+     * form does not survive it. Make the latent trap an explicit compile error
+     * here instead of a silent segfault, so any future 0-arg struct-returner is
+     * caught and routed through the runtime aggregate-return ABI owner.
+     */
+    if (argc == 0 && func->ret_type != NULL && func->ret_type != ctx->type_void) {
+        LLVMTypeKind rk = LLVMGetTypeKind(func->ret_type);
+        if (rk == LLVMStructTypeKind || rk == LLVMArrayTypeKind) {
+            llvm_set_error_with_hints(ctx,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM 0-arg struct-returning runtime call '%s' must use the sret "
+                "slot pattern (declare void(ptr sret), alloca a return slot, call, "
+                "load), not the by-value path which mis-lowers and crashes",
+                LLVMGetValueName(func->fn));
+            return NULL;
+        }
+    }
+
     if (func->ret_type == ctx->type_void) {
         LLVMBuildCall2(ctx->builder, func->fn_type, func->fn,
                        args, (unsigned)argc, "");

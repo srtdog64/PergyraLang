@@ -1,0 +1,8 @@
+// Third capability type end-to-end: Args() reads process arguments, an ambient
+// fingerprinting/exfiltration surface, now gated on PGY_CAP_ENV (op="args").
+// Distinct bit + distinct require site from RANDOM/CLOCK. With the default grant
+// it runs; under a host PGY_CAP_GRANT that omits "env" the runtime gate
+// fail-closes (class=capability-denied), identically on C and LLVM. This closes
+// the previously-dead PGY_CAP_ENV bit (the reader was ungated).
+let a: Array<String> = Args();
+Log("args ok");

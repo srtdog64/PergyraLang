@@ -401,6 +401,9 @@ main(void)
     TEST("AIR rejects RIR propagation evidence counter mismatch");
     EXPECT(test_air_rejects_rir_propagation_counter_mismatch());
 
+    TEST("AIR rejects RIR propagation evidence key mismatch");
+    EXPECT(test_air_rejects_rir_propagation_key_mismatch());
+
     TEST("AIR rejects MIR pin cleanup counter mismatch");
     EXPECT(test_air_rejects_pin_cleanup_counter_mismatch());
 

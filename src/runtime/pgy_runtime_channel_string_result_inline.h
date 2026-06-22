@@ -5,7 +5,7 @@
 #ifndef PGY_RUNTIME_CHANNEL_STRING_RESULT_INLINE_H
 #define PGY_RUNTIME_CHANNEL_STRING_RESULT_INLINE_H
 
-static inline PgyRuntimeChannelStringResult
+PGY_CH_STR_STORAGE PgyRuntimeChannelStringResult
 pgy_channel_recv_result_String(PgyChannel_String *ch)
 {
     PgyRuntimeChannelStringResult result;
@@ -34,7 +34,7 @@ pgy_channel_recv_result_String(PgyChannel_String *ch)
     return result;
 }
 
-static inline PgyRuntimeChannelStringResult
+PGY_CH_STR_STORAGE PgyRuntimeChannelStringResult
 pgy_channel_try_recv_result_String(PgyChannel_String *ch)
 {
     PgyRuntimeChannelStringResult result;
@@ -66,7 +66,7 @@ pgy_channel_try_recv_result_String(PgyChannel_String *ch)
     return result;
 }
 
-static inline PgyRuntimeChannelStringResult
+PGY_CH_STR_STORAGE PgyRuntimeChannelStringResult
 pgy_channel_recv_timeout_result_String(PgyChannel_String *ch,
                                        uint64_t timeout_ns)
 {
@@ -99,7 +99,7 @@ pgy_channel_recv_timeout_result_String(PgyChannel_String *ch,
     return result;
 }
 
-static inline char *
+PGY_CH_STR_STORAGE char *
 pgy_channel_recv_val_String(PgyChannel_String *ch)
 {
     PgyRuntimeChannelStringResult result = pgy_channel_recv_result_String(ch);

@@ -207,9 +207,7 @@ for channel_destroy_contract_file in \
 done
 for channel_init_contract_file in \
     "$ROOT_DIR/src/runtime/pgy_runtime_channel_inline.h" \
-    "$ROOT_DIR/src/runtime/pgy_runtime_channel_string_inline.h" \
-    "$ROOT_DIR/src/runtime/pgy_runtime_lib_channel_int_exports.h" \
-    "$ROOT_DIR/src/runtime/pgy_runtime_lib_channel_string_exports.h"; do
+    "$ROOT_DIR/src/runtime/pgy_runtime_channel_string_inline.h"; do
     for required_channel_init_guard in \
         "mutex initialization failed" \
         "not-full condition initialization failed" \
@@ -222,9 +220,7 @@ for channel_init_contract_file in \
 done
 for channel_wait_contract_file in \
     "$ROOT_DIR/src/runtime/pgy_runtime_channel_inline.h" \
-    "$ROOT_DIR/src/runtime/pgy_runtime_channel_string_inline.h" \
-    "$ROOT_DIR/src/runtime/pgy_runtime_lib_channel_int_exports.h" \
-    "$ROOT_DIR/src/runtime/pgy_runtime_lib_channel_string_exports.h"; do
+    "$ROOT_DIR/src/runtime/pgy_runtime_channel_string_inline.h"; do
     for required_channel_wait_guard in \
         "not-full condition wait failed" \
         "not-full condition timed wait failed" \
@@ -236,6 +232,16 @@ for channel_wait_contract_file in \
         fi
     done
 done
+if ! grep -Fq "PGY_CHANNEL_DEFINE(Int, int32_t, extern)" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_channel_int_exports.h"; then
+    echo "[memory-concurrency] Int channel export twin must reuse the shared fail-closed body" >&2
+    exit 1
+fi
+if ! grep -Fq "#define PGY_CH_STR_STORAGE extern" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_channel_string_exports.h"; then
+    echo "[memory-concurrency] String channel export twin must reuse the shared fail-closed body" >&2
+    exit 1
+fi
 if ! grep -Fq "Destroy is quiescent-only" \
     "$ROOT_DIR/src/runtime/async/concurrent_queue.h"; then
     echo "[memory-concurrency] concurrent queue destroy contract must stay explicit" >&2

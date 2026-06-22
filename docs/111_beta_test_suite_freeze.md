@@ -36,6 +36,8 @@ The beta release candidate must keep these gates green:
 - `make parser-lexer-diagnostic-test-smoke`
 - `make diagnostic-registry-test-smoke`
 - `make formal-semantics-test-smoke`
+- `make proof-carrying-pipeline-test-smoke`
+- `make proof-carrying-adequacy-test-smoke`
 - `make air-drift-test-smoke`
 - `make air-backend-nonimpact-full-test-smoke`
 - `make air-strict-backend-compare-test-smoke`

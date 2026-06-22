@@ -284,7 +284,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             }
         }
 
-        if (param != NULL && param->type != NULL
+        if (param != NULL && (param_type_name != NULL || param->type != NULL)
             && (param->mode == PARAM_MODE_OWN || param->mode == PARAM_MODE_REF)) {
             char *param_type_owned = NULL;
             const char *param_type = param_type_name;

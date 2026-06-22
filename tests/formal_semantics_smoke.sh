@@ -500,7 +500,15 @@ if command -v coqc >/dev/null 2>&1; then
         docs/semantics/proofs/IntentStepSoundness.v \
         docs/semantics/proofs/IRMinimality.v \
         docs/semantics/proofs/WitnessDataRace.v \
-        docs/semantics/proofs/CheckedArith.v; do
+        docs/semantics/proofs/CheckedArith.v \
+        docs/semantics/proofs/ProofCarryingIR.v \
+        docs/semantics/proofs/ZoneCrossingCore.v \
+        docs/semantics/proofs/EffectAuthorityCore.v \
+        docs/semantics/proofs/SlotLifecycleCore.v \
+        docs/semantics/proofs/AuthorityDelegationCore.v \
+        docs/semantics/proofs/UnifiedCore.v \
+        docs/semantics/proofs/CompensationCore.v \
+        docs/semantics/proofs/CoordinationCore.v; do
         if command -v timeout >/dev/null 2>&1; then
             (cd "$ROOT_DIR" && timeout "$coq_timeout" coqc "$coq_proof")
         else

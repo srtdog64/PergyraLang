@@ -305,7 +305,7 @@ llvm_mir_local_type_from_instruction_fact(const MIRRoutine *routine,
     if (inst == NULL || ctx == NULL || depth > 16)
         return NULL;
 
-    if (inst->requires_source_local_decl_emit) {
+    if (mir_instruction_uses_source_local_decl_emit(inst)) {
         type = llvm_mir_local_type_from_source_fact(routine, ctx,
             inst->result_name);
         if (ctx->has_error || type != NULL)
@@ -411,7 +411,7 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                 bool has_base_name = llvm_mir_base_name_from_versioned(
                     inst->result_name, base_name, sizeof(base_name));
 
-                if (inst->requires_source_local_decl_emit) {
+                if (mir_instruction_uses_source_local_decl_emit(inst)) {
                     source_local_fact = llvm_mir_local_source_fact(
                         routine, has_base_name ? base_name : inst->result_name);
                     if (source_local_fact != NULL)

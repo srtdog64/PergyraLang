@@ -85,6 +85,11 @@ for be in c llvm; do
     # catches op-specific gate-wiring bugs the RANDOM case alone cannot.
     expect "clock default"      "$be" tests/capability/cap_clock_demo.pgy run:"clock ok"
     expect "clock denied"       "$be" tests/capability/cap_clock_demo.pgy deny:capability-denied PGY_CAP_GRANT=random
+    # a third cap type (Args -> ENV, op="args"): the process-args fingerprinting
+    # surface; closes the previously-dead PGY_CAP_ENV bit. (Verifies on both
+    # backends now that the LLVM Args sret-call crash is fixed.)
+    expect "env default"        "$be" tests/capability/cap_env_demo.pgy run:"args ok"
+    expect "env denied"         "$be" tests/capability/cap_env_demo.pgy deny:capability-denied PGY_CAP_GRANT=random
     # budget: forced-heap List
     expect "budget no-limit"    "$be" tests/capability/budget_alloc_demo4.pgy run:"pushed"
     expect "budget limit=64"    "$be" tests/capability/budget_alloc_demo4.pgy deny:budget-exceeded PGY_BUDGET_ALLOC_BYTES=64

@@ -35,8 +35,11 @@ rewrite history.
   4 byte-drifts, 7 self-host exits, 1 C-oracle skip.
 - **Backend parity**: parser compiled by C and by LLVM produce byte-identical
   output -- the core self-host correctness signal.
-- **Compiler core**: capability-5 single-source-of-truth body tail in progress
-  by the BDFL (source-payload reads → dedicated MIR facts).
+- **Compiler core**: capability-5 single-source-of-truth is READY for the
+  measured source_ast/source_decl and supported MIR-lowering frontier.
+  Source-payload reads for the gated body surface have been replaced by
+  dedicated MIR/source-shape facts, and the self-hosted MIR-lowering path is
+  ratcheted against reading transitional `"ast"` text.
 
 ## Roadmap to completion
 
@@ -46,9 +49,10 @@ rewrite history.
 2. **Measurement/golden coverage** (assist-safe): committed scale probes per
    tool (lexer done); add golden probes for the other oracle dimensions the
    scorecard names (diagnostics, MIR/AIR JSON, deterministic ordering).
-3. **Capability-5 fallback → 0** (BDFL-owned): finish retiring source-payload
-   reads in MIR/codegen; assisting sessions only on explicitly non-overlapping
-   files.
+3. **Capability-5 breadth expansion**: keep the source_ast/source_decl and
+   supported MIR-lowering ratchets at zero while broadening explicit MIR facts
+   for more statement/expression surfaces. Do not reopen source-text or
+   source-payload compatibility lanes.
 4. **IR-layer verifiers**: each layer (AIR evidence, HIR/DAG type resolution,
    MIR CFG/body/ownership, ABI layout, backend fact consumption) gets a verifier
    that owns its contract.

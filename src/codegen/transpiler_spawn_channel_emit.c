@@ -194,7 +194,19 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
             } else if (allow_ast_compat) {
                 param = ast_func_param(decl, i);
             }
-            if (param != NULL && param->type != NULL) {
+            if (param_type_name != NULL) {
+                if (transpiler_spawn_reject_worker_storage(ctx,
+                        function_name, i, param_type_name)) {
+                    return NULL;
+                }
+                if (transpiler_require_type_name_c_type_copy(ctx,
+                        param_type_name,
+                        "spawn wrapper MIR argument",
+                        arg_type_buf,
+                        sizeof(arg_type_buf))) {
+                    arg_type = arg_type_buf;
+                }
+            } else if (param != NULL && param->type != NULL) {
                 if (binding_count > 0) {
                     char *bound_type =
                         transpiler_render_type_name_with_bindings(ctx,
@@ -236,33 +248,19 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                     free(bound_type);
                     continue;
                 }
-                if (param_type_name != NULL) {
-                    if (transpiler_spawn_reject_worker_storage(ctx,
-                            function_name, i, param_type_name)) {
-                        return NULL;
-                    }
-                    if (transpiler_require_type_name_c_type_copy(ctx,
-                            param_type_name,
-                            "spawn wrapper MIR argument",
-                            arg_type_buf,
-                            sizeof(arg_type_buf))) {
-                        arg_type = arg_type_buf;
-                    }
-                } else {
-                    char *rendered_param_type =
-                        render_type_name_in_ctx(ctx, param->type);
-                    if (transpiler_spawn_reject_worker_storage(ctx,
-                            function_name, i, rendered_param_type)) {
-                        free(rendered_param_type);
-                        return NULL;
-                    }
+                char *rendered_param_type =
+                    render_type_name_in_ctx(ctx, param->type);
+                if (transpiler_spawn_reject_worker_storage(ctx,
+                        function_name, i, rendered_param_type)) {
                     free(rendered_param_type);
-                    if (pergyra_ast_type_to_c_copy_in_ctx(ctx,
-                            param->type,
-                            arg_type_buf,
-                            sizeof(arg_type_buf))) {
-                        arg_type = arg_type_buf;
-                    }
+                    return NULL;
+                }
+                free(rendered_param_type);
+                if (pergyra_ast_type_to_c_copy_in_ctx(ctx,
+                        param->type,
+                        arg_type_buf,
+                        sizeof(arg_type_buf))) {
+                    arg_type = arg_type_buf;
                 }
             } else if (call != NULL) {
                 const char *inferred_arg_type = infer_expression_type_name(

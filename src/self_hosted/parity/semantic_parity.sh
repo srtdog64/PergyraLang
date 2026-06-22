@@ -5,6 +5,13 @@
 
 set -euo pipefail
 
+if ! command -v dirname >/dev/null 2>&1 \
+    || ! command -v tr >/dev/null 2>&1 \
+    || ! command -v pwd >/dev/null 2>&1; then
+    PATH="/usr/bin:/bin:$PATH"
+    export PATH
+fi
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths

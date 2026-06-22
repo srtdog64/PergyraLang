@@ -30,4 +30,8 @@
  */
 void capability_manifest_print(uint32_t used_mask, FILE *out);
 
+/* Emit the used-capability names as a bare JSON array: ["IO_READ", "RANDOM"].
+   Reused by AIR JSON so the effect-inventory fact is owned in one place. */
+void capability_used_names_print_json(uint32_t used_mask, FILE *out);
+
 #endif /* PERGYRA_CAPABILITY_ANALYZE_H */

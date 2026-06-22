@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #include "../parser/ast.h"
@@ -174,6 +175,12 @@ typedef struct
     bool            authority_from_action;
     const char    **authority_names;
     size_t          authority_name_count;
+    /* The abilities/contracts this boundary's authority participants must hold
+       (the `requires` clause). In Pergyra authority is contract-based, not
+       PGY_CAP_*; this is the per-boundary authority<->contract binding a
+       capability machine gates on. Strings are owned by the AIR name pool. */
+    const char    **required_abilities;
+    size_t          required_ability_count;
     bool            has_hir_routine_evidence;
     bool            has_hir_cfg_evidence;
     bool            has_rir_boundary_evidence;
@@ -207,6 +214,23 @@ typedef struct
     size_t                  fallback_count;
 } AIREvidenceNode;
 
+typedef struct
+{
+    AIREvidenceKind kind;
+    const char     *provider_name;
+    const char     *subject_name;
+} AIRPropagationRequirement;
+
+/* A capability-bearing slot operation site (SecureSlot/DeviceSlot), captured from
+   the MIR resource-op walk so AIR owns slot identity (type + owning routine), not
+   just the bucket-B retain count. Strings are borrowed from MIR, which outlives
+   the AIR dump. See docs/semantics/18 (machine-neutral) / 19 (slot facet). */
+typedef struct {
+    const char *slot;       /* the slot handle, e.g. "hp" (MIR slot_anchor) */
+    const char *op;         /* the operation, e.g. "Write"/"Read"/"Release" */
+    const char *routine;    /* the routine the slot op lives in */
+} AIRSlotSite;
+
 typedef struct AIRProgram
 {
     AIRIntentNode   *intents;
@@ -219,6 +243,9 @@ typedef struct AIRProgram
     AIREvidenceNode *evidence_nodes;
     size_t           evidence_count;
     size_t           evidence_capacity;
+    AIRPropagationRequirement *propagation_requirements;
+    size_t           propagation_requirement_count;
+    size_t           propagation_requirement_capacity;
     bool             strict_evidence;
     bool             has_hir_input;
     bool             has_rir_input;
@@ -255,6 +282,18 @@ typedef struct AIRProgram
     char           **owned_names;
     size_t           owned_name_count;
     size_t           owned_name_capacity;
+    /* Program-wide capability mask (SemanticResult.program_capabilities),
+       captured during dag-evidence collection so AIR -- not a separate manifest
+       pipeline -- owns the capability fact. Closes the machine-neutral gap
+       (docs/semantics/18: capability was orphaned from AIR) and is the first of
+       the calculus terms (docs/semantics/19) AIR must own. */
+    uint32_t         program_capabilities;
+    /* Slot identity table (SecureSlot/DeviceSlot operation sites), so AIR owns
+       which slots exist and where, not just a count. Populated in
+       air_collect_mir_evidence. */
+    AIRSlotSite     *slot_sites;
+    size_t           slot_site_count;
+    size_t           slot_site_capacity;
 } AIRProgram;
 
 AIRProgram *air_synthesize(const HIRProgram *hir,
@@ -269,6 +308,11 @@ bool        air_boundary_requires_rir_evidence(const AIRBoundaryNode *boundary);
 size_t      air_boundary_authority_name_count(
                 const AIRBoundaryNode *boundary);
 const char *air_boundary_authority_name_at(
+                const AIRBoundaryNode *boundary,
+                size_t index);
+size_t      air_boundary_required_ability_count(
+                const AIRBoundaryNode *boundary);
+const char *air_boundary_required_ability_at(
                 const AIRBoundaryNode *boundary,
                 size_t index);
 bool        air_boundary_has_evidence(const AIRProgram *air,
@@ -313,6 +357,11 @@ AIRRetainCause air_boundary_retain_cause(const AIRBoundaryNode *boundary);
 size_t      air_unproven_retain_count(const AIRProgram *air);
 size_t      air_inherent_concurrency_count(const AIRProgram *air);
 size_t      air_slot_capability_retain_count(const AIRProgram *air);
+uint32_t    air_program_capabilities(const AIRProgram *air);
+size_t      air_slot_site_count(const AIRProgram *air);
+const AIRSlotSite *air_slot_site_at(const AIRProgram *air, size_t index);
+bool        air_collect_slot_sites(AIRProgram *air, const MIRRoutine *routine,
+                                   const char *routine_name);
 size_t      air_intent_node_count(const AIRProgram *air);
 const AIRIntentNode *air_intent_node_at(const AIRProgram *air, size_t index);
 size_t      air_boundary_node_count(const AIRProgram *air);

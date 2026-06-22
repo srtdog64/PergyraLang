@@ -549,7 +549,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_def_uses_channel_receive_statement_emit"
     require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_uses_select_receive_statement_emit(inst)"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_local_expected_type_name(routine, inst, NULL)"
-    require_literal "src/codegen/llvm_mir_local_emit.c" "if (inst->requires_source_local_decl_emit)"
+    require_literal "src/codegen/llvm_mir_local_emit.c" "if (mir_instruction_uses_source_local_decl_emit(inst))"
     require_literal "src/codegen/llvm_mir_local_emit.c" "llvm_mir_local_type_from_source_fact(routine, ctx,"
     require_literal "src/codegen/llvm_mir_local_emit.c" "alloca_type = llvm_mir_local_type_from_source_fact_entry("
     if grep -Fq "llvm_mir_type_from_ast(ctx, inst->expr1)" \
@@ -721,9 +721,18 @@ run_literal_doc_contract_smoke() {
     require_literal "tests/llvm_smoke.sh" "case v = <-b:"
     require_literal "src/codegen/transpiler_mir_pending_uses.c" "mir_instruction_uses_source_local_decl_emit(inst)"
     require_literal "src/codegen/transpiler_mir_pending_uses.c" "out->initializer = inst->expr0"
-    require_literal "src/codegen/transpiler_mir_pending_uses.c" "out->type_annotation = inst->expr1"
     require_literal "src/codegen/transpiler_mir_pending_uses.c" "transpiler_mir_routine_source_local_type_name(mir_routine, base)"
-    require_literal "src/codegen/transpiler_mir_pending_uses.c" "const bool allow_ast_compat = mir_routine == NULL"
+    require_literal "src/codegen/transpiler_mir_pending_uses.c" "MIR pending-use materialization requires routine source-local facts"
+    if grep -Fq "allow_ast_compat = mir_routine == NULL" \
+            "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"; then
+        echo "C pending-use materialization must not keep AST compatibility when MIR routine facts are required" >&2
+        exit 1
+    fi
+    if grep -Fq "binding.type_annotation" \
+            "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"; then
+        echo "C pending-use materialization must consume source-local type facts, not type annotations" >&2
+        exit 1
+    fi
     require_literal "src/codegen/transpiler_mir_block_emit.c" "transpiler_mir_routine_has_source_local_binding("
     require_literal "src/codegen/transpiler_mir_block_emit.c" "transpiler_mir_routine_source_local_type_name("
     require_literal "src/codegen/transpiler_mir_block_emit.c" "DEF '%s' is missing source-local type metadata"

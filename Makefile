@@ -851,8 +851,10 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_branch_source_facts.c \
                    $(COMPILER_DIR)/mir_signature_metadata.c \
                    $(COMPILER_DIR)/mir_source_shape.c \
+                   $(COMPILER_DIR)/mir_source_lifecycle_shape.c \
                    $(COMPILER_DIR)/mir_source_node_name.c \
                    $(COMPILER_DIR)/mir_source_local_types.c \
+                   $(COMPILER_DIR)/mir_source_local_expr_call_facts.c \
                    $(COMPILER_DIR)/mir_source_local_expr_types.c \
                    $(COMPILER_DIR)/mir_source_inventory_build.c \
                    $(COMPILER_DIR)/mir_names.c \
@@ -975,6 +977,7 @@ ifneq ($(LLVM_ENABLED),0)
                           $(CODEGEN_DIR)/llvm_runtime.c \
                           $(CODEGEN_DIR)/llvm_runtime_attrs.c \
                           $(CODEGEN_DIR)/llvm_runtime_bitcode_freshness.c \
+                          $(CODEGEN_DIR)/llvm_runtime_aggregate_return.c \
                           $(CODEGEN_DIR)/llvm_runtime_core_builtin_decl.c \
                           $(CODEGEN_DIR)/llvm_runtime_require.c \
                           $(CODEGEN_DIR)/llvm_runtime_raw_collections.c \
@@ -1339,8 +1342,10 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/mir_program_inventory.o \
                    $(BUILD_DIR)/compiler/mir_signature_metadata.o \
                    $(BUILD_DIR)/compiler/mir_source_shape.o \
+                   $(BUILD_DIR)/compiler/mir_source_lifecycle_shape.o \
                    $(BUILD_DIR)/compiler/mir_source_node_name.o \
                    $(BUILD_DIR)/compiler/mir_source_local_types.o \
+                   $(BUILD_DIR)/compiler/mir_source_local_expr_call_facts.o \
                    $(BUILD_DIR)/compiler/mir_source_local_expr_types.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_access.o \
                    $(BUILD_DIR)/compiler/mir_type_helpers.o \
@@ -1368,8 +1373,10 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_branch_source_facts.o \
                    $(BUILD_DIR)/compiler/mir_signature_metadata.o \
                    $(BUILD_DIR)/compiler/mir_source_shape.o \
+                   $(BUILD_DIR)/compiler/mir_source_lifecycle_shape.o \
                    $(BUILD_DIR)/compiler/mir_source_node_name.o \
                    $(BUILD_DIR)/compiler/mir_source_local_types.o \
+                   $(BUILD_DIR)/compiler/mir_source_local_expr_call_facts.o \
                    $(BUILD_DIR)/compiler/mir_source_local_expr_types.o \
                    $(BUILD_DIR)/compiler/mir_source_inventory_build.o \
                    $(BUILD_DIR)/compiler/mir_names.o \
@@ -1771,6 +1778,19 @@ test-capability-runtime: $(PGY)
 	@echo "=== Sandbox Runtime-Enforcement Gate (C/LLVM parity) ==="
 	PGY_BIN="$(abspath $(PGY))" $(BASH) tests/capability/run_runtime_enforce.sh
 
+# Machine-neutral falsification marker (docs/semantics/18 Acceptance Rule, first
+# exercise). The capability-machine projection consumes AIR-only facts; it is RED
+# by design today (AIR is an intent-topology+proof+erasure IR, not an effect/
+# capability/slot layer). NOT in test-all -- it is a progress marker, not a
+# must-pass gate. Future work plumbs effect-inventory/capability-mask/slot-
+# identity/authority-capability into AIR, ticking each checklist row GREEN; when
+# it exits 0, the machine-neutral bet survived a falsification round and this can
+# be promoted into the must-pass set.
+machine-neutral-status: $(PGY)
+	@echo "=== Machine-Neutral Projection Status (expected RED until AIR owns the facts) ==="
+	@{ command -v python3 >/dev/null 2>&1 && py=python3 || py=python; } ; \
+	"$$py" tests/machine_neutral/capability_projection_gate.py --pgy "$(abspath $(PGY))" || true
+
 # Source-level SoT guard: the budget charge for a metered kind must appear in
 # BOTH the C-inline and LLVM-export twin of each allocation path, or the backends
 # diverge in enforcement (the silent C/LLVM gap class). Pure textual -- no
@@ -1779,13 +1799,22 @@ test-budget-twin-parity:
 	@echo "=== Budget-Charge Twin Parity (source SoT) ==="
 	$(BASH) tests/capability/run_budget_twin_parity.sh
 
+# Channel runtime twin op-set SoT guard (target #4 dual-backend unification):
+# every op the C-inline channel twin exposes must have a matching LLVM export, or
+# a program using that op compiles on C but diverges/fails on LLVM. Catches
+# op-set drift the behavioral compare_backends fixtures cannot reach. Pure
+# textual -- always load-bearing.
+test-channel-twin-parity:
+	@echo "=== Channel Twin Op-Set Parity (source SoT) ==="
+	$(BASH) tests/capability/run_channel_twin_op_parity.sh
+
 # Single entry point for the whole content-sandbox gate family (capability +
 # resource budget, the qualitative + quantitative sandbox axes, external
-# red-team R6). Runs the C unit gates, the source-level twin-parity SoT guard,
+# red-team R6). Runs the C unit gates, the source-level twin-parity SoT guards,
 # and both the static (declared>=used) and dynamic (runtime fail-close, C/LLVM
 # parity) enforcement gates. Wire this into CI to keep the sandbox enforcement
 # continuously protected.
-test-sandbox-gates: test-capability test-budget test-budget-twin-parity test-capability-manifest test-capability-runtime
+test-sandbox-gates: test-capability test-budget test-budget-twin-parity test-channel-twin-parity test-capability-manifest test-capability-runtime
 	@echo "=== Sandbox gate family (capability + budget) PASS ==="
 
 test-abi: $(ABI_TEST) $(PGY)
@@ -1935,6 +1964,10 @@ llvm-test-hir:
 llvm-test-smoke:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
 	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/llvm_smoke.sh
+
+llvm-runtime-aggregate-return-abi-test-smoke:
+	$(MAKE) LLVM_ENABLED=1 $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/llvm_runtime_aggregate_return_abi_smoke.sh
 
 llvm-test-abi-same-process: $(ABI_PIPELINE_TEST)
 	@echo "=== ABI Pipeline Same-Process LLVM Regression ==="
@@ -2156,6 +2189,7 @@ formal-semantics-test-smoke:
 	"$(BASH)" tests/axis_keyword_adequacy_smoke.sh
 	"$(BASH)" tests/slot_calculus_adequacy_smoke.sh
 	"$(BASH)" tests/ir_minimality_adequacy_smoke.sh
+	"$(BASH)" tests/proof_carrying_adequacy_smoke.sh
 	"$(BASH)" tests/judgment_diagnostic_adequacy_smoke.sh
 	"$(BASH)" tests/ast_to_mir_loss_contract_smoke.sh
 	"$(BASH)" tests/loss_contract_adequacy_smoke.sh
@@ -2173,6 +2207,13 @@ air-drift-test-smoke:
 air-json-schema-test-smoke:
 	$(MAKE) $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/air_json_schema_smoke.sh
+
+proof-carrying-pipeline-test-smoke:
+	$(MAKE) $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/proof_carrying_pipeline_smoke.sh
+
+proof-carrying-adequacy-test-smoke:
+	"$(BASH)" tests/proof_carrying_adequacy_smoke.sh
 
 air-backend-nonimpact-test-smoke:
 	$(MAKE) LLVM_ENABLED="$(LLVM_ENABLED)" $(PGY)
@@ -2536,7 +2577,7 @@ lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects rebuild debug release analyze format memcheck \
         test test-parser test-datastructures test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-air test-rir test-mir test-hir test-all \
-llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir backend-compare-inventory-test-smoke backend-compare-llvm-coverage-test-smoke llvm-test-backend-compare llvm-test-all llvm-test-smoke tooling-conformance-test-smoke stdlib-test-smoke stage4-determinism-test-smoke filesystem-directory-walk-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke build-source-inventory-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke documentation-quality-test-smoke backend-wasm-pointer-closure-test-smoke language-surface-hygiene-test-smoke language-contract-golden-test-smoke self-host-preparation-test-smoke self-host-runtime-boundary-parity-test-smoke self-host-air-graph-consumer-parity-test-smoke self-host-diagnostic-catalog-parity-test-smoke self-host-ast-read-surface-parity-test-smoke self-host-semantic-parity-test-smoke self-host-linter-parity-test-smoke self-host-backend-tri-compare-test-smoke self-host-backend-tri-compare-extended-test-smoke self-host-lexer-parity-test-smoke self-host-parser-parity-test-smoke self-host-codegen-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-mir-json-parity-test-smoke self-host-fuzz-backend-generator-parity-test-smoke fuzz-backend-parity-test-smoke fuzz-backend-parity-matrix-test-smoke self-host-component-contract-test-smoke self-host-substrate-contract-test-smoke self-host-lex-minimal-parity-test-smoke debug-hygiene-test-smoke memory-string-safety-test-smoke security-portability-contract-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke dogfood-webgl-test-smoke wasm-backend-parity-test-smoke formal-semantics-test-smoke abstraction-loss-contract-test-smoke ast-to-mir-loss-contract-test-smoke air-drift-test-smoke air-json-schema-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke production-c-size-test-smoke examples-inventory-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke transpile-strict-source-test-smoke source-test-harness-compile-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke layered-diagnostics-contract-test-smoke intent-compression-contract-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke slot-contract-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke abi-ownership-shape-test-smoke runtime-frontier-contract-test-smoke runtime-frontier-policy-test-smoke runtime-intent-observability-contract-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke backend-fail-closed-test-smoke worker-boundary-ub-test-smoke perf-c-baseline-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-build-tools check-security-toolchain check-linux-toolchain check-macos-toolchain check-windows-toolchain \
+llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir backend-compare-inventory-test-smoke backend-compare-llvm-coverage-test-smoke llvm-test-backend-compare llvm-test-all llvm-test-smoke llvm-runtime-aggregate-return-abi-test-smoke tooling-conformance-test-smoke stdlib-test-smoke stage4-determinism-test-smoke filesystem-directory-walk-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke build-source-inventory-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke documentation-quality-test-smoke backend-wasm-pointer-closure-test-smoke language-surface-hygiene-test-smoke language-contract-golden-test-smoke self-host-preparation-test-smoke self-host-runtime-boundary-parity-test-smoke self-host-air-graph-consumer-parity-test-smoke self-host-diagnostic-catalog-parity-test-smoke self-host-ast-read-surface-parity-test-smoke self-host-semantic-parity-test-smoke self-host-linter-parity-test-smoke self-host-backend-tri-compare-test-smoke self-host-backend-tri-compare-extended-test-smoke self-host-lexer-parity-test-smoke self-host-parser-parity-test-smoke self-host-codegen-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-mir-json-parity-test-smoke self-host-fuzz-backend-generator-parity-test-smoke fuzz-backend-parity-test-smoke fuzz-backend-parity-matrix-test-smoke self-host-component-contract-test-smoke self-host-substrate-contract-test-smoke self-host-lex-minimal-parity-test-smoke debug-hygiene-test-smoke memory-string-safety-test-smoke security-portability-contract-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke dogfood-webgl-test-smoke wasm-backend-parity-test-smoke formal-semantics-test-smoke proof-carrying-pipeline-test-smoke proof-carrying-adequacy-test-smoke abstraction-loss-contract-test-smoke ast-to-mir-loss-contract-test-smoke air-drift-test-smoke air-json-schema-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke production-c-size-test-smoke examples-inventory-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke transpile-strict-source-test-smoke source-test-harness-compile-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke layered-diagnostics-contract-test-smoke intent-compression-contract-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke slot-contract-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke abi-ownership-shape-test-smoke runtime-frontier-contract-test-smoke runtime-frontier-policy-test-smoke runtime-intent-observability-contract-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke backend-fail-closed-test-smoke worker-boundary-ub-test-smoke perf-c-baseline-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-build-tools check-security-toolchain check-linux-toolchain check-macos-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)

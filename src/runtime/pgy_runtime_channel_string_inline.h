@@ -15,6 +15,18 @@
 
 #include "pgy_runtime_channel_status.h"
 
+/* Storage class for the externally-visible String channel ops (main ops here +
+ * the Result adapters in pgy_runtime_channel_string_result_inline.h, included at
+ * the bottom). Defaults to inline for the self-contained C output; the
+ * LLVM-export twin (pgy_runtime_lib_channel_string_exports.h) defines it to
+ * extern and includes this header to reuse these SAME bodies as the linked
+ * runtime -- one body, two storage classes, no drift (target #4). The file-local
+ * dup/free_pending/is_initialized helpers stay static (internal linkage): as
+ * extern they would duplicate across the .bc and cache object and conflict. */
+#ifndef PGY_CH_STR_STORAGE
+#define PGY_CH_STR_STORAGE static inline
+#endif
+
 typedef struct
 {
     char           **buf;
@@ -54,7 +66,7 @@ pgy_channel_string_inline_free_pending(PgyChannel_String *ch)
     ch->count = 0;
 }
 
-static inline void
+PGY_CH_STR_STORAGE void
 pgy_channel_init_String(PgyChannel_String *ch, size_t capacity)
 {
     if (ch == NULL) {
@@ -110,7 +122,7 @@ pgy_channel_init_String(PgyChannel_String *ch, size_t capacity)
     }
 }
 
-static inline void
+PGY_CH_STR_STORAGE void
 pgy_channel_close_String(PgyChannel_String *ch)
 {
     if (!pgy_channel_string_inline_is_initialized(ch))
@@ -122,7 +134,7 @@ pgy_channel_close_String(PgyChannel_String *ch)
     pthread_mutex_unlock(&ch->mutex);
 }
 
-static inline void
+PGY_CH_STR_STORAGE void
 pgy_channel_destroy_String(PgyChannel_String *ch)
 {
     if (!pgy_channel_string_inline_is_initialized(ch))
@@ -142,7 +154,7 @@ pgy_channel_destroy_String(PgyChannel_String *ch)
     ch->closed = true;
 }
 
-static inline bool
+PGY_CH_STR_STORAGE bool
 pgy_channel_send_String(PgyChannel_String *ch, char *value)
 {
     if (!pgy_channel_string_inline_is_initialized(ch)) {
@@ -184,7 +196,7 @@ pgy_channel_send_String(PgyChannel_String *ch, char *value)
     return true;
 }
 
-static inline bool
+PGY_CH_STR_STORAGE bool
 pgy_channel_try_send_String(PgyChannel_String *ch, char *value)
 {
     if (!pgy_channel_string_inline_is_initialized(ch)) {
@@ -213,7 +225,7 @@ pgy_channel_try_send_String(PgyChannel_String *ch, char *value)
     return true;
 }
 
-static inline PgyOption_Bool
+PGY_CH_STR_STORAGE PgyOption_Bool
 pgy_channel_try_send_status_String(PgyChannel_String *ch, char *value)
 {
     if (!pgy_channel_string_inline_is_initialized(ch))
@@ -240,7 +252,7 @@ pgy_channel_try_send_status_String(PgyChannel_String *ch, char *value)
     return Some_Bool(true);
 }
 
-static inline bool
+PGY_CH_STR_STORAGE bool
 pgy_channel_send_timeout_String(PgyChannel_String *ch,
                                 char *value, uint64_t timeout_ns)
 {
@@ -286,7 +298,7 @@ pgy_channel_send_timeout_String(PgyChannel_String *ch,
     return true;
 }
 
-static inline PgyOption_Bool
+PGY_CH_STR_STORAGE PgyOption_Bool
 pgy_channel_send_timeout_status_String(PgyChannel_String *ch,
                                        char *value, uint64_t timeout_ns)
 {
@@ -325,7 +337,7 @@ pgy_channel_send_timeout_status_String(PgyChannel_String *ch,
     return Some_Bool(true);
 }
 
-static inline bool
+PGY_CH_STR_STORAGE bool
 pgy_channel_recv_String(PgyChannel_String *ch, char **out)
 {
     if (ch == NULL || out == NULL || ch->buf == NULL || ch->cap == 0) {
@@ -369,7 +381,7 @@ pgy_channel_recv_String(PgyChannel_String *ch, char **out)
     return true;
 }
 
-static inline bool
+PGY_CH_STR_STORAGE bool
 pgy_channel_recv_timeout_String(PgyChannel_String *ch,
                                 char **out, uint64_t timeout_ns)
 {
@@ -423,7 +435,7 @@ pgy_channel_recv_timeout_String(PgyChannel_String *ch,
     return true;
 }
 
-static inline bool
+PGY_CH_STR_STORAGE bool
 pgy_channel_try_recv_String(PgyChannel_String *ch, char **out)
 {
     if (ch == NULL || out == NULL || ch->buf == NULL || ch->cap == 0) {
@@ -449,7 +461,7 @@ pgy_channel_try_recv_String(PgyChannel_String *ch, char **out)
     return true;
 }
 
-static inline bool
+PGY_CH_STR_STORAGE bool
 pgy_channel_ready_String(PgyChannel_String *ch)
 {
     if (!pgy_channel_string_inline_is_initialized(ch))
@@ -462,7 +474,7 @@ pgy_channel_ready_String(PgyChannel_String *ch)
     return ready;
 }
 
-static inline int32_t
+PGY_CH_STR_STORAGE int32_t
 pgy_channel_length_String(PgyChannel_String *ch)
 {
     if (!pgy_channel_string_inline_is_initialized(ch))
@@ -473,7 +485,7 @@ pgy_channel_length_String(PgyChannel_String *ch)
     return len;
 }
 
-static inline int32_t
+PGY_CH_STR_STORAGE int32_t
 pgy_channel_capacity_String(PgyChannel_String *ch)
 {
     if (!pgy_channel_string_inline_is_initialized(ch))
@@ -484,7 +496,7 @@ pgy_channel_capacity_String(PgyChannel_String *ch)
     return cap;
 }
 
-static inline bool
+PGY_CH_STR_STORAGE bool
 pgy_channel_full_String(PgyChannel_String *ch)
 {
     if (!pgy_channel_string_inline_is_initialized(ch))
@@ -495,7 +507,7 @@ pgy_channel_full_String(PgyChannel_String *ch)
     return full;
 }
 
-static inline int32_t
+PGY_CH_STR_STORAGE int32_t
 pgy_channel_space_String(PgyChannel_String *ch)
 {
     if (!pgy_channel_string_inline_is_initialized(ch))
@@ -508,7 +520,7 @@ pgy_channel_space_String(PgyChannel_String *ch)
     return space;
 }
 
-static inline bool
+PGY_CH_STR_STORAGE bool
 pgy_channel_closed_String(PgyChannel_String *ch)
 {
     if (!pgy_channel_string_inline_is_initialized(ch))

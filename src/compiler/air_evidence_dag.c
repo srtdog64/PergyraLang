@@ -45,6 +45,10 @@ air_collect_dag_evidence(AIRProgram *air, const SemanticResult *sem,
     if (air == NULL || sem == NULL)
         return true;
 
+    /* Capture the program-wide capability mask so AIR owns the capability fact
+       (previously only the separate --capability-manifest pipeline had it). */
+    air->program_capabilities = sem->program_capabilities;
+
     if (metadata_hit_count > 0 && metadata_fact_count == 0) {
         air_set_error(error_message,
                       "AIR DAG evidence saw metadata hits without metadata inventory");

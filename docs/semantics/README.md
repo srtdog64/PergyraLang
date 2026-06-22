@@ -1,6 +1,6 @@
 # Pergyra Proof Pack
 
-Last updated: 2026-04-27
+Last updated: 2026-06-22
 
 Status: `beta-proof-obligation`
 
@@ -37,7 +37,10 @@ Required shape for each proof document:
   contract manifest for CFG/MIR, AIR, DAG/type-resolution, MIR/LLVM declaration
   parity, and ABI/Slot/Pin layout closure.
 - [10_behavior_contract_closure_gaps.md](10_behavior_contract_closure_gaps.md): anti-overclaim closure register for the remaining gap between compiler-enforced behavior evidence and a closed behavior-contract calculus.
-- [16_language_contract_golden_spine.md](16_language_contract_golden_spine.md): golden-spine map for the language-design cleanup contracts: proof/refinement, semantic fallback, authority/effect, `inout`, logical Bool, value-collection mutation, proof-gated erasure, raw/FFI/layout, IR verifiers, and self-hosted verifier/tool parity.
+- [16_language_contract_golden_spine.md](16_language_contract_golden_spine.md): golden-spine map for the language-design cleanup contracts: proof/refinement, semantic fallback, authority/effect, `inout`, logical Bool, value-collection mutation, proof-gated erasure, raw/FFI/layout, IR verifiers, machine-neutral compute, and self-hosted verifier/tool parity.
+- [17_proof_carrying_pipeline.md](17_proof_carrying_pipeline.md): proof-carrying IR pipeline contract. Stage 1 wraps live AIR/MIR payloads in a `pgy.proof-carrying-ir.v1` certificate envelope with digest checks, required evidence/fact lists, and a negative deletion check; Stage 2 is the mechanized checker-core proof boundary.
+- [18_machine_neutral_compute.md](18_machine_neutral_compute.md): machine-neutral compute contract. C and LLVM are the first validation projections, while AIR/MIR/ABI owner facts preserve `intent`, `effect`, `authority`, `coordination`, `slot`, `world`, and `zone` for future dataflow, actor, tensor, capability, reconfigurable, and event-driven substrates. (Includes the 2026-06-22 falsification: AIR does not yet own the effect/capability/slot facts a capability machine needs; `make machine-neutral-status` is the RED measuring gate.)
+- [19_theoretical_foundations.md](19_theoretical_foundations.md): theory-lineage bibliography + synthesis boundary. Maps each Pergyra axis to established theory while explicitly stating that a citation is a lineage anchor, not a whole-language proof. The open work is the Pergyra abstract machine/core calculus.
 
 Mechanized artifacts:
 
@@ -62,6 +65,62 @@ Mechanized artifacts:
   `ir_minimality_adequacy_smoke.sh` binds that model to the current driver, RIR
   flow, MIR lowering, AIR, backend dependency shape, and HKT/Functor soft-no
   documentation.
+- [proofs/ZoneCrossingCore.v](proofs/ZoneCrossingCore.v): Coq proof sketch for the
+  FIRST fragment of the Pergyra abstract machine / core calculus (docs/semantics/19):
+  the capability-gated boundary-transfer step (zone crossing, ambient-calculus
+  lineage). Mechanizes capability soundness (`crossing_capability_sound`),
+  progress/fail-closed (`fail_closed_crossing`), and no-ambient-authority
+  (`no_ambient_authority`, `reaches_authority_stable`) for the world/zone facet
+  only. The other Step forms (effect, slot lifecycle, authority delegation) and the
+  binding onto live AIR/MIR owner facts are the open synthesis.
+- [proofs/EffectAuthorityCore.v](proofs/EffectAuthorityCore.v): Coq proof sketch for
+  the SECOND core-calculus corner -- the capability-gated effect-emit step composed
+  with the zone-crossing step over one shared state (`held` authority + `here` zone +
+  `elog` effect log). Mechanizes effect isolation (`step_effect_authorized`),
+  crossing soundness, progress/fail-closed for emission (`fail_closed_emit`), and
+  no-ambient-authority under either step. Shows two capability disciplines compose on
+  one authority evidence; slot/typestate and authority-delegation steps remain open.
+- [proofs/SlotLifecycleCore.v](proofs/SlotLifecycleCore.v): Coq proof sketch for the
+  THIRD core-calculus corner -- the resource-operation step (slot lifecycle,
+  affine/typestate lineage). Typestate-gated acquire/use/release with precondition
+  soundness and the affine-safety theorem `no_op_after_release` (use-after-release
+  and double-release are not derivable). Complements the runtime-invariant
+  `SlotCalculus.v` by modeling the slot as a composing Step form.
+- [proofs/AuthorityDelegationCore.v](proofs/AuthorityDelegationCore.v): Coq proof
+  sketch for the FOURTH core-calculus corner -- the authority-check step
+  (delegation, authorization-logic/ocap lineage). `delegation_requires_holding`
+  (grant only what you hold) and `no_privilege_escalation` (delegation creates no
+  new capability). With the prior three corners, all four base axes of the
+  docs/19 abstract machine now have a mechanized soundness/fail-closed theorem;
+  compensation + AIR binding are the open synthesis.
+- [proofs/UnifiedCore.v](proofs/UnifiedCore.v): Coq proof sketch unifying the four
+  corners into ONE abstract machine (single `config` + a `step` relation with all
+  six Step forms: Cross/Emit/Acquire/Use/Release/Delegate). Proves the cross-cutting
+  capstone `authority_conservation` -- no Step form anywhere creates a capability
+  (delegation redistributes; the others do not touch holdings), the whole-machine
+  no-ambient-authority theorem. Shows the four disciplines coexist on one state
+  without interference. Compensation and a full preservation/progress over a typing
+  judgment are the remaining synthesis.
+- [proofs/CompensationCore.v](proofs/CompensationCore.v): Coq proof sketch for the
+  compensation / rollback Step form (the intent-specific facet, Saga lineage). The
+  effect->slot coupling `comp_target` makes rollback sound: `rollback_requires_log`
+  (fail-closed), `rollback_restores` (undo restores the coupled slot to Empty),
+  `rollback_pops_log`, and the saga round-trip `do_then_rollback_restores`. This is
+  the point where the effect facet and the slot/lifecycle facet are shown to agree.
+- [proofs/CoordinationCore.v](proofs/CoordinationCore.v): Coq proof sketch for the
+  coordination Step form (the step dependency graph; dataflow / Kahn Process Network
+  lineage). `run_requires_deps` (fail-closed: a step runs only when every dependency
+  is done) and `reachable_dep_closed` (any reachable schedule is dependency-closed --
+  a completed step always has all its dependencies completed). Replaces the
+  position-ordered "sequence" view of intent steps with an explicit readiness model.
+  With the prior six files this mechanizes the full `intent` decomposition; the
+  remaining work is preservation/progress over a typing judgment and binding the
+  model's graphs to live AIR/MIR owner facts.
+- [proofs/ProofCarryingIR.v](proofs/ProofCarryingIR.v): Coq proof sketch for
+  the Stage 2 checker-core rule behind `pgy.proof-carrying-ir.v1`: a valid
+  certificate permits downstream fact consumption, while missing AIR/MIR facts
+  or compatibility-success backend policy force fail-closed. The adequacy smoke
+  binds this model to the live Stage 1 certificate envelope gate.
 
 ## Beta Proof Boundary
 
@@ -84,6 +143,9 @@ Stable proof scope:
 - Abstraction loss contracts: stable compiler and tooling boundaries must name
   accepted loss, preserved facts, forbidden downstream reads, compression
   evidence, and proof-gated erasure budget.
+- Machine-neutral compute: stable source-level axes must be owned by AIR/MIR/ABI
+  facts rather than C/LLVM physical artifacts, so future backend projections can
+  consume the same evidence or fail closed.
 - Behavior-contract closure: stable behavior claims must not be described as a
   closed calculus until their judgment rules, typed evidence facts, strict
   proof path, pass/loss manifest, backend oracle class, and mechanized-proof

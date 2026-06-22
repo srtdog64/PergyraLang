@@ -11,6 +11,7 @@
 #include "transpiler_host_self_policy.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_signature.h"
+#include "transpiler_specialization_registry.h"
 #include "transpiler_type_declarator.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_require.h"
@@ -62,7 +63,14 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
         return_type_name = transpiler_mir_routine_return_type_name(mir_routine);
         param_count = transpiler_mir_routine_param_count(mir_routine);
     }
-    ensure_type_specializations_from_ast(ctx, return_type);
+    if (return_type_name != NULL) {
+        ensure_type_specializations_from_type_name_to(
+            ctx,
+            ctx != NULL ? ctx->decls : NULL,
+            return_type_name);
+    } else {
+        ensure_type_specializations_from_ast(ctx, return_type);
+    }
     for (size_t i = 0; i < param_count; i++) {
         FuncParam *p;
         const char *pt = NULL;
@@ -83,8 +91,14 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
         }
         if (p == NULL)
             continue;
-        if (p->type != NULL)
+        if (type_name != NULL) {
+            ensure_type_specializations_from_type_name_to(
+                ctx,
+                ctx != NULL ? ctx->decls : NULL,
+                type_name);
+        } else if (p->type != NULL) {
             ensure_type_specializations_from_ast(ctx, p->type);
+        }
         event_handler_param =
             p->type != NULL && p->type->type == AST_EVENT_HANDLER_TYPE;
         if (!event_handler_param && type_name != NULL) {

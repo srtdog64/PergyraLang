@@ -10,6 +10,7 @@
 
 #include "../runtime/pgy_frontier_policy.h"
 #include "../runtime/pgy_runtime_observability_schema.h"
+#include "../semantic/capability_analyze.h"
 
 static const char kAirJsonFieldCompressionBudget[] = "compression_budget";
 static const char kAirJsonFieldCompressionReason[] = "compression_reason";
@@ -347,6 +348,15 @@ air_dump_json_boundaries(const AIRProgram *air, FILE *out)
             air_json_string(out,
                             air_boundary_authority_name_at(boundary, j));
         }
+        fputs("],\"required_abilities\":[", out);
+        for (size_t j = 0;
+             j < air_boundary_required_ability_count(boundary);
+             j++) {
+            if (j > 0)
+                fputc(',', out);
+            air_json_string(out,
+                            air_boundary_required_ability_at(boundary, j));
+        }
         fputs("],\"evidence_flags\":{", out);
         fputs("\"hir_routine\":", out);
         air_json_bool(out, air_boundary_has_evidence(
@@ -474,6 +484,30 @@ air_dump_json(const AIRProgram *air, FILE *out)
     fputs("{", out);
     air_json_next_top_level_field(out, &has_field);
     fputs("\"schema\":\"pgy.air.graph.v1\"", out);
+    air_json_next_top_level_field(out, &has_field);
+    fprintf(out, "\"capabilities\":{\"used_mask\":\"0x%x\"}",
+            (unsigned)air_program_capabilities(air));
+    air_json_next_top_level_field(out, &has_field);
+    /* Named effect inventory -- the same capability fact in named form, so a
+       capability-machine projection can read the program's effect families from
+       AIR alone (empty list for a pure program is correct ownership). */
+    fputs("\"effects\":", out);
+    capability_used_names_print_json(air_program_capabilities(air), out);
+    air_json_next_top_level_field(out, &has_field);
+    /* Slot identity table: SecureSlot/DeviceSlot op sites (type + routine), so a
+       capability machine can read which slots exist and where from AIR alone.
+       Empty for a program with no capability-bearing slots is correct ownership. */
+    fputs("\"slots\":[", out);
+    for (size_t si = 0; si < air_slot_site_count(air); si++) {
+        const AIRSlotSite *site = air_slot_site_at(air, si);
+        if (si != 0)
+            fputs(",", out);
+        fprintf(out, "{\"slot\":\"%s\",\"op\":\"%s\",\"routine\":\"%s\"}",
+                site->slot != NULL ? site->slot : "",
+                site->op != NULL ? site->op : "",
+                site->routine != NULL ? site->routine : "");
+    }
+    fputs("]", out);
     air_json_next_top_level_field(out, &has_field);
     air_dump_json_summary(air, out);
     air_json_next_top_level_field(out, &has_field);

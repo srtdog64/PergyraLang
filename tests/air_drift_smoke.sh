@@ -168,6 +168,14 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_evidence_rir_boundary.c" "AIR RIR authority evidence counter overflow"
     require_literal "src/test_air.c" "AIR rejects RIR boundary/authority counter mismatch"
     require_literal "src/tests/air/test_air_core_evidence_part_k.cases.h" "test_air_rejects_rir_boundary_authority_counter_mismatch"
+    require_literal "src/compiler/air.h" "AIRPropagationRequirement"
+    require_literal "src/compiler/air_evidence_rir_propagation.c" "air_append_rir_propagation_requirement"
+    require_literal "src/compiler/air_verify_global.c" "not just the aggregate counter"
+    require_literal "docs/104_air_compiler_architecture.md" "AIRPropagationRequirement"
+    require_literal "docs/104_air_compiler_architecture.md" "Aggregate propagation"
+    require_literal "docs/104_air_compiler_architecture.md" "counters remain telemetry"
+    require_literal "src/test_air.c" "AIR rejects RIR propagation evidence key mismatch"
+    require_literal "src/tests/air/test_air_rir_propagation_part_j.cases.h" "test_air_rejects_rir_propagation_key_mismatch"
     if grep -Fq -- "air_count_rir_authority_summaries" "$ROOT_DIR/src/compiler/air_evidence_rir.c"; then
         echo "AIR RIR authority summary must be derived from accepted evidence nodes, not raw RIR facts/ops" >&2
         exit 1

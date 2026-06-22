@@ -4,9 +4,10 @@
 #include <string.h>
 
 #include "mir_decl_headers.h"
+#include "mir_source_local_expr_call_facts.h"
 #include "../parser/ast_api.h"
 
-static char *
+char *
 mir_source_local_type_scratch_next(MIRSourceLocalTypeScratch *scratch)
 {
     char *buffer;
@@ -48,6 +49,25 @@ mir_source_local_decl_header(const MIRProgram *program, const char *name)
             return header;
     }
     return NULL;
+}
+
+static bool
+mir_source_local_decl_header_is_constructor_type(const MIRDeclHeader *header)
+{
+    if (header == NULL)
+        return false;
+    switch (header->ast_type) {
+    case AST_CLASS_DECL:
+    case AST_ZONE_DECL:
+    case AST_WORLD_DECL:
+    case AST_RELATION_DECL:
+    case AST_EFFECT_DECL:
+    case AST_PARTY_DECL:
+    case AST_ROSTER_DECL:
+        return true;
+    default:
+        return false;
+    }
 }
 
 static bool
@@ -185,6 +205,44 @@ mir_source_local_unwrap_array_or_slice_type(const char *type_name,
     return false;
 }
 
+static bool
+mir_source_local_unwrap_future_type(const char *type_name,
+                                    char *out,
+                                    size_t out_size,
+                                    bool *is_remote_out)
+{
+    static const char *future_prefix = "Future<";
+    static const char *remote_prefix = "RemoteFuture<";
+    const char *open = NULL;
+    const char *close;
+    size_t len;
+
+    if (is_remote_out != NULL)
+        *is_remote_out = false;
+    if (type_name == NULL || out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
+    if (strncmp(type_name, future_prefix, strlen(future_prefix)) == 0) {
+        open = type_name + strlen(future_prefix);
+    } else if (strncmp(type_name, remote_prefix,
+                   strlen(remote_prefix)) == 0) {
+        open = type_name + strlen(remote_prefix);
+        if (is_remote_out != NULL)
+            *is_remote_out = true;
+    } else {
+        return false;
+    }
+    close = strrchr(open, '>');
+    if (close == NULL || close <= open)
+        return false;
+    len = (size_t)(close - open);
+    if (len >= out_size)
+        return false;
+    memcpy(out, open, len);
+    out[len] = '\0';
+    return out[0] != '\0';
+}
+
 static const MIRDeclHeader *
 mir_source_local_decl_header_for_value_type(const MIRProgram *program,
                                             const char *type_name)
@@ -253,24 +311,6 @@ mir_source_local_routine_owner_name(const MIRRoutine *routine)
         return routine->owner_name;
     return routine->hir_routine != NULL ? routine->hir_routine->owner_name
                                         : NULL;
-}
-
-static const char *
-mir_source_local_top_level_routine_return_type_name(const MIRProgram *program,
-                                                   const char *name)
-{
-    if (program == NULL || name == NULL)
-        return NULL;
-    for (size_t i = 0; i < program->routine_count; i++) {
-        const MIRRoutine *candidate = &program->routines[i];
-        if (candidate->name != NULL
-            && strcmp(candidate->name, name) == 0
-            && candidate->kind == MIR_SCOPE_FUNCTION
-            && candidate->has_signature) {
-            return candidate->return_type_name;
-        }
-    }
-    return NULL;
 }
 
 static const char *
@@ -439,6 +479,15 @@ mir_source_local_expr_type_name(const MIRProgram *program,
         return "String";
     case AST_BOOLEAN:
         return "Bool";
+    case AST_ARRAY_LITERAL:
+        if (ast_array_literal_count(expr) > 0
+            && ast_array_literal_element(expr, 0) != NULL) {
+            const char *inner = mir_source_local_expr_type_name(program,
+                routine, scratch, ast_array_literal_element(expr, 0));
+            return mir_source_local_type_scratch_format(scratch, "Array",
+                inner);
+        }
+        return NULL;
     case AST_IDENTIFIER:
         return mir_source_local_identifier_type_name(program, routine,
             ast_identifier_name(expr));
@@ -455,6 +504,31 @@ mir_source_local_expr_type_name(const MIRProgram *program,
             return buffer;
         }
         return NULL;
+    }
+    case AST_AWAIT_EXPR: {
+        const char *future_type = mir_source_local_expr_type_name(program,
+            routine, scratch, ast_await_expression(expr));
+        char inner[MIR_SOURCE_LOCAL_TYPE_SCRATCH_SIZE];
+        bool is_remote = false;
+        char *buffer;
+
+        if (!mir_source_local_unwrap_future_type(future_type, inner,
+                sizeof(inner), &is_remote)) {
+            return NULL;
+        }
+        if (is_remote)
+            return mir_source_local_type_scratch_format(scratch, "Result",
+                inner);
+        buffer = mir_source_local_type_scratch_next(scratch);
+        if (buffer == NULL)
+            return NULL;
+        memcpy(buffer, inner, strlen(inner) + 1);
+        return buffer;
+    }
+    case AST_SPAWN_EXPR: {
+        const char *inner = mir_source_local_expr_type_name(program,
+            routine, scratch, ast_spawn_function(expr));
+        return mir_source_local_type_scratch_format(scratch, "Future", inner);
     }
     case AST_UNARY:
         if (ast_unary_operator(expr).type == TOKEN_NOT)
@@ -507,17 +581,31 @@ mir_source_local_expr_type_name(const MIRProgram *program,
         }
         if (callee != NULL && callee->type == AST_IDENTIFIER) {
             const char *callee_name = ast_identifier_name(callee);
+            const MIRDeclHeader *callee_header =
+                mir_source_local_decl_header(program, callee_name);
+            if (mir_source_local_decl_header_is_constructor_type(callee_header))
+                return callee_header->name;
+            if (callee_header != NULL
+                && callee_header->ast_type == AST_INTENT_DECL) {
+                return "Bool";
+            }
             const MIRDeclMethod *fn = mir_source_local_header_method(
-                mir_source_local_decl_header(program, callee_name),
-                callee_name);
+                callee_header, callee_name);
             if (fn != NULL)
                 return fn->return_type_name;
             {
                 const char *top_return =
-                    mir_source_local_top_level_routine_return_type_name(
-                        program, callee_name);
+                    mir_source_local_call_return_type_name(
+                        program, routine, scratch, expr, callee_name);
                 if (top_return != NULL)
                     return top_return;
+            }
+            {
+                const char *extern_return =
+                    mir_source_local_extern_return_type_name(program,
+                        scratch, callee_name);
+                if (extern_return != NULL)
+                    return extern_return;
             }
             {
                 const char *owner_method_return =

@@ -48,6 +48,39 @@ air_assign_authority_names(AIRProgram *air,
     return true;
 }
 
+/* The `requires` contracts the boundary's authority must hold (Pergyra authority
+   is contract-based). Mirrors air_assign_authority_names; strings are pooled. */
+static bool
+air_assign_required_abilities(AIRProgram *air,
+                              AIRBoundaryNode *boundary,
+                              const char **names,
+                              size_t name_count)
+{
+    if (boundary == NULL)
+        return false;
+    boundary->required_abilities = NULL;
+    boundary->required_ability_count = 0;
+    if (name_count == 0)
+        return true;
+    if (name_count > SIZE_MAX / sizeof(char *))
+        return false;
+
+    boundary->required_abilities =
+        (const char **)calloc(name_count, sizeof(char *));
+    if (boundary->required_abilities == NULL)
+        return false;
+
+    for (size_t i = 0; i < name_count; i++) {
+        const char *copy = air_program_owned_name(air,
+            names != NULL ? names[i] : NULL);
+        if (copy == NULL)
+            return false;
+        boundary->required_abilities[i] = copy;
+    }
+    boundary->required_ability_count = name_count;
+    return true;
+}
+
 static const char *
 air_dir_node_name(const DIRProgram *dir, size_t node_id)
 {
@@ -162,6 +195,26 @@ size_t
 air_slot_capability_retain_count(const AIRProgram *air)
 {
     return air != NULL ? air->slot_capability_retain_count : 0;
+}
+
+uint32_t
+air_program_capabilities(const AIRProgram *air)
+{
+    return air != NULL ? air->program_capabilities : 0u;
+}
+
+size_t
+air_slot_site_count(const AIRProgram *air)
+{
+    return air != NULL ? air->slot_site_count : 0;
+}
+
+const AIRSlotSite *
+air_slot_site_at(const AIRProgram *air, size_t index)
+{
+    if (air == NULL || index >= air->slot_site_count)
+        return NULL;
+    return &air->slot_sites[index];
 }
 
 bool
@@ -370,7 +423,11 @@ air_synthesize(const HIRProgram *hir,
                     || !air_assign_authority_names(air,
                                                    &air->boundaries[boundary_index],
                                                    step->authorized_by,
-                                                   step->authorized_by_count)) {
+                                                   step->authorized_by_count)
+                    || !air_assign_required_abilities(air,
+                                                   &air->boundaries[boundary_index],
+                                                   step->required_abilities,
+                                                   step->required_ability_count)) {
                     air_destroy(air);
                     air_set_error(error_message, "AIR zone boundary allocation failed");
                     return NULL;
@@ -404,7 +461,11 @@ air_synthesize(const HIRProgram *hir,
                     || !air_assign_authority_names(air,
                                                    &air->boundaries[boundary_index],
                                                    step->authorized_by,
-                                                   step->authorized_by_count)) {
+                                                   step->authorized_by_count)
+                    || !air_assign_required_abilities(air,
+                                                   &air->boundaries[boundary_index],
+                                                   step->required_abilities,
+                                                   step->required_ability_count)) {
                     air_destroy(air);
                     air_set_error(error_message, "AIR world boundary allocation failed");
                     return NULL;
@@ -466,13 +527,17 @@ air_destroy(AIRProgram *air)
     if (air == NULL)
         return;
     air_clear_drifts(air);
-    for (size_t i = 0; i < air->boundary_count; i++)
+    for (size_t i = 0; i < air->boundary_count; i++) {
         free((void *)air->boundaries[i].authority_names);
+        free((void *)air->boundaries[i].required_abilities);
+    }
     for (size_t i = 0; i < air->owned_name_count; i++)
         free(air->owned_names[i]);
     free(air->owned_names);
+    free(air->slot_sites);
     free(air->intents);
     free(air->boundaries);
     free(air->evidence_nodes);
+    free(air->propagation_requirements);
     free(air);
 }

@@ -13,6 +13,8 @@ typedef struct MIRSourceLocalTypeScratch
     size_t next;
 } MIRSourceLocalTypeScratch;
 
+char *mir_source_local_type_scratch_next(MIRSourceLocalTypeScratch *scratch);
+
 const char *mir_source_local_expr_type_name(const MIRProgram *program,
                                             const MIRRoutine *routine,
                                             MIRSourceLocalTypeScratch *scratch,

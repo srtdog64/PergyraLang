@@ -18,7 +18,7 @@
 
 #include "pgy_runtime_channel_status.h"
 
-#define PGY_CHANNEL_DEFINE(SuffixName, CType) \
+#define PGY_CHANNEL_DEFINE(SuffixName, CType, PGY_CH_STORAGE) \
 typedef struct \
 { \
     CType           *buf; \
@@ -32,7 +32,7 @@ typedef struct \
     pthread_cond_t   cond_not_empty; \
 } PgyChannel_##SuffixName; \
 \
-static inline void \
+PGY_CH_STORAGE void \
 pgy_channel_init_##SuffixName(PgyChannel_##SuffixName *ch, size_t capacity) \
 { \
     if (ch == NULL) { \
@@ -89,7 +89,7 @@ pgy_channel_init_##SuffixName(PgyChannel_##SuffixName *ch, size_t capacity) \
     } \
 } \
 \
-static inline void \
+PGY_CH_STORAGE void \
 pgy_channel_close_##SuffixName(PgyChannel_##SuffixName *ch) \
 { \
     if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
@@ -101,7 +101,7 @@ pgy_channel_close_##SuffixName(PgyChannel_##SuffixName *ch) \
     pthread_mutex_unlock(&ch->mutex); \
 } \
 \
-static inline void \
+PGY_CH_STORAGE void \
 pgy_channel_destroy_##SuffixName(PgyChannel_##SuffixName *ch) \
 { \
     if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
@@ -119,7 +119,7 @@ pgy_channel_destroy_##SuffixName(PgyChannel_##SuffixName *ch) \
 } \
 \
 /* Blocking send. Returns false if channel closed. */ \
-static inline bool \
+PGY_CH_STORAGE bool \
 pgy_channel_send_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
 { \
     if (ch == NULL || ch->buf == NULL || ch->cap == 0) { \
@@ -156,7 +156,7 @@ pgy_channel_send_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
 } \
 \
 /* Non-blocking try_send. Returns false if full or closed. */ \
-static inline bool \
+PGY_CH_STORAGE bool \
 pgy_channel_try_send_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
 { \
     if (ch == NULL || ch->buf == NULL || ch->cap == 0) { \
@@ -180,7 +180,7 @@ pgy_channel_try_send_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
 } \
 \
 /* Non-blocking try_send with status. Some(true)=sent, Some(false)=closed, None=full. */ \
-static inline PgyOption_Bool \
+PGY_CH_STORAGE PgyOption_Bool \
 pgy_channel_try_send_status_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
 { \
     if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
@@ -203,7 +203,7 @@ pgy_channel_try_send_status_##SuffixName(PgyChannel_##SuffixName *ch, CType valu
 } \
 \
 /* Blocking send with timeout. Returns false on timeout or closed. */ \
-static inline bool \
+PGY_CH_STORAGE bool \
 pgy_channel_send_timeout_##SuffixName(PgyChannel_##SuffixName *ch, \
                                       CType value, uint64_t timeout_ns) \
 { \
@@ -244,7 +244,7 @@ pgy_channel_send_timeout_##SuffixName(PgyChannel_##SuffixName *ch, \
 } \
 \
 /* Timed send with status. Some(true)=sent, Some(false)=closed, None=timeout. */ \
-static inline PgyOption_Bool \
+PGY_CH_STORAGE PgyOption_Bool \
 pgy_channel_send_timeout_status_##SuffixName(PgyChannel_##SuffixName *ch, \
                                              CType value, uint64_t timeout_ns) \
 { \
@@ -279,7 +279,7 @@ pgy_channel_send_timeout_status_##SuffixName(PgyChannel_##SuffixName *ch, \
 } \
 \
 /* Blocking recv. Returns false if channel closed and empty. */ \
-static inline bool \
+PGY_CH_STORAGE bool \
 pgy_channel_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
 { \
     if (ch == NULL || out == NULL || ch->buf == NULL || ch->cap == 0) { \
@@ -322,7 +322,7 @@ pgy_channel_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
 } \
 \
 /* Blocking recv with timeout. Returns false on timeout or closed+empty. */ \
-static inline bool \
+PGY_CH_STORAGE bool \
 pgy_channel_recv_timeout_##SuffixName(PgyChannel_##SuffixName *ch, \
                                       CType *out, uint64_t timeout_ns) \
 { \
@@ -375,7 +375,7 @@ pgy_channel_recv_timeout_##SuffixName(PgyChannel_##SuffixName *ch, \
 } \
 \
 /* Non-blocking try_recv. Returns false if empty. */ \
-static inline bool \
+PGY_CH_STORAGE bool \
 pgy_channel_try_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
 { \
     if (ch == NULL || out == NULL || ch->buf == NULL || ch->cap == 0) { \
@@ -400,7 +400,7 @@ pgy_channel_try_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
 } \
 \
 /* Non-blocking readiness check */ \
-static inline bool \
+PGY_CH_STORAGE bool \
 pgy_channel_ready_##SuffixName(PgyChannel_##SuffixName *ch) \
 { \
     if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
@@ -414,7 +414,7 @@ pgy_channel_ready_##SuffixName(PgyChannel_##SuffixName *ch) \
 } \
 \
 /* Backpressure observation helpers. */ \
-static inline int32_t \
+PGY_CH_STORAGE int32_t \
 pgy_channel_length_##SuffixName(PgyChannel_##SuffixName *ch) \
 { \
     if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
@@ -425,7 +425,7 @@ pgy_channel_length_##SuffixName(PgyChannel_##SuffixName *ch) \
     return len; \
 } \
 \
-static inline int32_t \
+PGY_CH_STORAGE int32_t \
 pgy_channel_capacity_##SuffixName(PgyChannel_##SuffixName *ch) \
 { \
     if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
@@ -436,7 +436,7 @@ pgy_channel_capacity_##SuffixName(PgyChannel_##SuffixName *ch) \
     return cap; \
 } \
 \
-static inline bool \
+PGY_CH_STORAGE bool \
 pgy_channel_full_##SuffixName(PgyChannel_##SuffixName *ch) \
 { \
     if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
@@ -447,7 +447,7 @@ pgy_channel_full_##SuffixName(PgyChannel_##SuffixName *ch) \
     return full; \
 } \
 \
-static inline int32_t \
+PGY_CH_STORAGE int32_t \
 pgy_channel_space_##SuffixName(PgyChannel_##SuffixName *ch) \
 { \
     if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
@@ -460,7 +460,7 @@ pgy_channel_space_##SuffixName(PgyChannel_##SuffixName *ch) \
     return space; \
 } \
 \
-static inline bool \
+PGY_CH_STORAGE bool \
 pgy_channel_closed_##SuffixName(PgyChannel_##SuffixName *ch) \
 { \
     if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
@@ -471,7 +471,7 @@ pgy_channel_closed_##SuffixName(PgyChannel_##SuffixName *ch) \
     return closed; \
 } \
 \
-static inline PgyRuntimeChannel##SuffixName##Result \
+PGY_CH_STORAGE PgyRuntimeChannel##SuffixName##Result \
 pgy_channel_recv_result_##SuffixName(PgyChannel_##SuffixName *ch) \
 { \
     PgyRuntimeChannel##SuffixName##Result result; \
@@ -500,7 +500,7 @@ pgy_channel_recv_result_##SuffixName(PgyChannel_##SuffixName *ch) \
     return result; \
 } \
 \
-static inline PgyRuntimeChannel##SuffixName##Result \
+PGY_CH_STORAGE PgyRuntimeChannel##SuffixName##Result \
 pgy_channel_try_recv_result_##SuffixName(PgyChannel_##SuffixName *ch) \
 { \
     PgyRuntimeChannel##SuffixName##Result result; \
@@ -532,7 +532,7 @@ pgy_channel_try_recv_result_##SuffixName(PgyChannel_##SuffixName *ch) \
     return result; \
 } \
 \
-static inline PgyRuntimeChannel##SuffixName##Result \
+PGY_CH_STORAGE PgyRuntimeChannel##SuffixName##Result \
 pgy_channel_recv_timeout_result_##SuffixName(PgyChannel_##SuffixName *ch, \
                                              uint64_t timeout_ns) \
 { \
@@ -569,7 +569,7 @@ pgy_channel_recv_timeout_result_##SuffixName(PgyChannel_##SuffixName *ch, \
 \
 /* Blocking recv that returns the value (convenience wrapper). \
  * Returns zero-initialized value if channel closed and empty. */ \
-static inline CType \
+PGY_CH_STORAGE CType \
 pgy_channel_recv_val_##SuffixName(PgyChannel_##SuffixName *ch) \
 { \
     PgyRuntimeChannel##SuffixName##Result result = \
@@ -578,7 +578,15 @@ pgy_channel_recv_val_##SuffixName(PgyChannel_##SuffixName *ch) \
         ? result.ok : (CType)0; \
 }
 
-PGY_CHANNEL_DEFINE(Int, int32_t)
+/* The LLVM-export twin (pgy_runtime_lib_channel_int_exports.h) includes this
+ * header with PGY_CHANNEL_MACRO_ONLY defined to reuse the PGY_CHANNEL_DEFINE
+ * body above WITHOUT this file's own static-inline Int instantiation, then
+ * re-instantiates the same macro with `extern` storage. One macro body, two
+ * storage classes -- the C-inline twin and the linked-runtime twin can no
+ * longer drift (target #4, dual-backend unified consumption). */
+#ifndef PGY_CHANNEL_MACRO_ONLY
+PGY_CHANNEL_DEFINE(Int, int32_t, static inline)
 
 #include "pgy_runtime_channel_string_inline.h"
 #include "pgy_runtime_channel_spsc_inline.h"
+#endif

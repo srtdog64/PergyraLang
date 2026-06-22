@@ -20,7 +20,13 @@ pgy_args_init(int32_t argc, char **argv)
 PgyArray_String
 pgy_args(void)
 {
-    int32_t count =
+    int32_t count;
+
+    /* Process arguments are an ambient fingerprinting/exfiltration surface, so
+     * reading them is gated on PGY_CAP_ENV (same fail-closed discipline as
+     * read-file/now/random). pgy_args_init (startup infra) is not gated. */
+    pgy_cap_require_export(PGY_CAP_ENV, "args");
+    count =
         (pgy_runtime_export_argc > 1 && pgy_runtime_export_argv != NULL)
             ? pgy_runtime_export_argc - 1
             : 0;

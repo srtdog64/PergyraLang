@@ -107,6 +107,22 @@ LLVMFuncEntry *llvm_required_runtime_function(LLVMGenCtx *ctx,
                                                const char *family_name,
                                                const char *callee_name,
                                                const char *function_name);
+bool           llvm_runtime_aggregate_return_is_sret_function(
+                                               const char *runtime_name);
+bool           llvm_runtime_aggregate_return_apply_decl_shape(
+                                               LLVMGenCtx *ctx,
+                                               const char *runtime_name,
+                                               LLVMTypeRef *ret_type,
+                                               LLVMTypeRef params[],
+                                               unsigned *param_count,
+                                               unsigned param_capacity);
+LLVMValueRef   llvm_emit_runtime_aggregate_return_call(
+                                               ASTNode *node,
+                                               LLVMGenCtx *ctx,
+                                               const char *family_name,
+                                               const char *callee_name,
+                                               const char *runtime_name,
+                                               size_t source_arg_count);
 
 /* =================================================================
  * Slot tracking (llvm_backend.c)

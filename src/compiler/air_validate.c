@@ -112,6 +112,12 @@ air_validate(const AIRProgram *air, char **error_message)
         air_set_invariant_error(error_message, "AIR has evidence count without evidence array");
         return false;
     }
+    if (!air_propagation_requirement_storage_valid(air)) {
+        air_set_invariant_error(
+            error_message,
+            "AIR has propagation requirement count without requirement array");
+        return false;
+    }
     for (size_t i = 0; i < air_intent_node_count(air); i++) {
         const AIRIntentNode *intent = air_intent_node_at(air, i);
         if (intent == NULL) {
@@ -321,5 +327,31 @@ air_validate(const AIRProgram *air, char **error_message)
     }
     if (!air_validate_evidence_inventory(air, error_message))
         return false;
+    for (size_t i = 0; i < air_propagation_requirement_count(air); i++) {
+        const AIRPropagationRequirement *requirement =
+            air_propagation_requirement_at(air, i);
+        if (requirement == NULL) {
+            air_set_invariant_error(error_message,
+                                    "AIR propagation requirement %zu is missing",
+                                    i);
+            return false;
+        }
+        if (requirement->kind != AIR_EVIDENCE_RIR_EFFECT_PROPAGATION
+            && requirement->kind != AIR_EVIDENCE_RIR_RELATION_PROPAGATION) {
+            air_set_invariant_error(
+                error_message,
+                "AIR propagation requirement %zu has invalid evidence kind",
+                i);
+            return false;
+        }
+        if (air_name_is_empty(requirement->provider_name)
+            || air_name_is_empty(requirement->subject_name)) {
+            air_set_invariant_error(
+                error_message,
+                "AIR propagation requirement %zu has empty provenance",
+                i);
+            return false;
+        }
+    }
     return true;
 }

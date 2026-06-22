@@ -22,11 +22,17 @@ require_text() {
 
 for rel in \
     docs/semantics/16_language_contract_golden_spine.md \
+    docs/semantics/17_proof_carrying_pipeline.md \
+    docs/semantics/18_machine_neutral_compute.md \
+    docs/semantics/19_theoretical_foundations.md \
     docs/semantics/README.md \
     docs/semantics/proofs/IRMinimality.v \
     docs/semantics/proofs/WitnessDataRace.v \
     docs/semantics/proofs/SlotCalculus.v \
+    docs/semantics/proofs/ProofCarryingIR.v \
+    docs/semantics/proofs/ProofCarryingIR.md \
     tests/formal_semantics_smoke.sh \
+    tests/proof_carrying_adequacy_smoke.sh \
     tests/slot_calculus_adequacy_smoke.sh \
     tests/axis_keyword_adequacy_smoke.sh \
     tests/ir_minimality_adequacy_smoke.sh \
@@ -36,6 +42,7 @@ for rel in \
     tests/air_erasure/baseline.json \
     tests/air_erasure/gate.ps1 \
     tests/raw_escape_contract_smoke.sh \
+    tests/proof_carrying_pipeline_smoke.sh \
     tests/abi_ownership_shape_smoke.sh \
     src/self_hosted/parity/semantic_parity.sh \
     src/self_hosted/parity/diagnostic_catalog_checker_parity.sh \
@@ -56,6 +63,8 @@ for rel in \
 done
 
 require_text "docs/semantics/README.md" "16_language_contract_golden_spine.md"
+require_text "docs/semantics/README.md" "18_machine_neutral_compute.md"
+require_text "docs/semantics/README.md" "19_theoretical_foundations.md"
 require_text "docs/semantics/16_language_contract_golden_spine.md" "language-contract-golden-test-smoke"
 require_text "docs/semantics/16_language_contract_golden_spine.md" "semantic fallback is not a compatibility feature"
 require_text "docs/semantics/16_language_contract_golden_spine.md" "authority evidence discharges an effect-derived obligation"
@@ -63,7 +72,29 @@ require_text "docs/semantics/16_language_contract_golden_spine.md" '`inout` is v
 require_text "docs/semantics/16_language_contract_golden_spine.md" "logical operators produce Bool"
 require_text "docs/semantics/16_language_contract_golden_spine.md" "proof-gated erasure"
 require_text "docs/semantics/16_language_contract_golden_spine.md" "raw/FFI/explicit layout stays boundary-scoped"
+require_text "docs/semantics/16_language_contract_golden_spine.md" "Proof-carrying IR"
+require_text "docs/semantics/16_language_contract_golden_spine.md" "Machine-neutral compute"
+require_text "docs/semantics/16_language_contract_golden_spine.md" "Theoretical foundations"
 require_text "docs/semantics/16_language_contract_golden_spine.md" "self-hosted work starts with verifier/tool parity"
+require_text "docs/semantics/17_proof_carrying_pipeline.md" "pgy.proof-carrying-ir.v1"
+require_text "docs/semantics/17_proof_carrying_pipeline.md" "valid certificate + valid owner payloads"
+require_text "docs/semantics/18_machine_neutral_compute.md" "C and LLVM are the first validation projections"
+require_text "docs/semantics/18_machine_neutral_compute.md" "machine-neutral fact ownership"
+require_text "docs/semantics/18_machine_neutral_compute.md" "Dataflow architecture"
+require_text "docs/semantics/18_machine_neutral_compute.md" "Actor model"
+require_text "docs/semantics/18_machine_neutral_compute.md" "Capability machine"
+require_text "docs/semantics/18_machine_neutral_compute.md" "Neuromorphic / event-driven systems"
+require_text "docs/semantics/18_machine_neutral_compute.md" "it consumes AIR/MIR/ABI owner facts instead of rereading source/AST"
+require_text "docs/semantics/19_theoretical_foundations.md" "theory-lineage; not whole-language proof"
+require_text "docs/semantics/19_theoretical_foundations.md" "A citation is a lineage anchor, not an implementation theorem"
+require_text "docs/semantics/19_theoretical_foundations.md" "Channel<T> alone is not a session type"
+require_text "docs/semantics/19_theoretical_foundations.md" "Dataflow alone is too thin"
+require_text "docs/semantics/19_theoretical_foundations.md" "Pergyra Abstract Machine Obligation"
+require_text "docs/semantics/19_theoretical_foundations.md" "Backend simulation"
+require_text "docs/semantics/19_theoretical_foundations.md" "Effects as Sessions"
+require_text "docs/semantics/19_theoretical_foundations.md" "RustBelt"
+require_text "tests/proof_carrying_pipeline_smoke.sh" "delete-required-fact"
+require_text "tests/proof_carrying_pipeline_smoke.sh" "negative certificate deletion was accepted"
 
 # Proof/refinement anchors: Coq must type-check when available, and adequacy
 # smokes must bind the small models back to live compiler/runtime symbols.
@@ -76,6 +107,10 @@ require_text "docs/semantics/proofs/IRMinimality.v" "Theorem functor_hkt_not_ade
 require_text "docs/semantics/proofs/WitnessDataRace.v" "Theorem well_typed_data_race_free"
 require_text "docs/semantics/proofs/WitnessDataRace.v" "remaining refinement obligation"
 require_text "docs/semantics/proofs/SlotCalculus.v" "Negative scope: this file does not prove Rust-style borrow checking"
+require_text "docs/semantics/proofs/ProofCarryingIR.v" "Theorem valid_certificate_allows_backend_consumption"
+require_text "docs/semantics/proofs/ProofCarryingIR.v" "Theorem missing_air_authority_fails_closed"
+require_text "docs/semantics/proofs/ProofCarryingIR.v" "Theorem compat_success_policy_fails_closed"
+require_text "tests/proof_carrying_adequacy_smoke.sh" "checker-core model is bound to live certificate gate"
 
 # Fallback and SoT anchors.
 require_text "tests/backend_fail_closed_smoke.sh" "C backend reintroduced silent numeric fallback"
@@ -132,5 +167,7 @@ require_text "src/self_hosted/parity/semantic_parity.sh" "verdict drift"
 require_text "src/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" "PGY_FUZZ_BACKEND_RUN_ORACLE"
 
 require_text "Makefile" "language-contract-golden-test-smoke:"
+require_text "Makefile" "proof-carrying-pipeline-test-smoke:"
+require_text "Makefile" "proof-carrying-adequacy-test-smoke:"
 
 echo "[language-contract-golden] golden spine ok"

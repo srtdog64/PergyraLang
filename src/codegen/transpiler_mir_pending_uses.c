@@ -6,11 +6,7 @@
 #include "../compiler/mir.h"
 #include "../parser/ast_api.h"
 #include "transpiler_context.h"
-#include "transpiler_expr_type_infer.h"
-#include "transpiler_inventory_view.h"
-#include "transpiler_mir_effective_type.h"
 #include "transpiler_mir_expr_ssa.h"
-#include "transpiler_mir_local_type_lookup.h"
 #include "transpiler_mir_reason.h"
 #include "transpiler_mir_ssa_lookup.h"
 #include "transpiler_mir_ssa_names.h"
@@ -20,7 +16,6 @@
 
 typedef struct TranspilerMirPendingBinding {
     ASTNode *initializer;
-    ASTNode *type_annotation;
 } TranspilerMirPendingBinding;
 
 static bool
@@ -45,7 +40,6 @@ transpiler_find_block_binding_from_mir_insts(const MIRBasicBlock *block,
             && mir_instruction_uses_source_local_decl_emit(inst)) {
             if (out != NULL) {
                 out->initializer = inst->expr0;
-                out->type_annotation = inst->expr1;
             }
             return true;
         }
@@ -57,7 +51,6 @@ transpiler_find_block_binding_from_mir_insts(const MIRBasicBlock *block,
 bool
 transpiler_materialize_pending_inst_uses(CodeBuf *buf,
                                          TranspilerCtx *ctx,
-                                         const ASTNode *func_decl,
                                          const MIRRoutine *mir_routine,
                                          const MIRBasicBlock *block,
                                          const MIRInstruction *inst,
@@ -69,9 +62,17 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
 {
     if (ctx == NULL || block == NULL || inst == NULL || ssa_map_out == NULL)
         return true;
+    if (mir_routine == NULL) {
+        if (reason != NULL && reason_cap > 0) {
+            transpiler_mir_reasonf(reason, reason_cap,
+                     "MIR pending-use materialization requires routine source-local facts");
+        }
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR pending-use materialization requires routine source-local facts");
+        return false;
+    }
 
     for (size_t i = 0; i < inst->use_count; i++) {
-        const bool allow_ast_compat = mir_routine == NULL;
         const char *versioned_use = inst->uses[i];
         const char *exit_versioned;
         TranspilerMirPendingBinding binding;
@@ -83,7 +84,6 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
         char *lhs = NULL;
         char *rhs = NULL;
         const char *value_type = NULL;
-        char *rendered_type = NULL;
 
         if (versioned_use == NULL)
             continue;
@@ -102,13 +102,8 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
                 || transpiler_type_name_is_channel(existing_type))) {
             continue;
         }
-        binding_type_name = mir_routine != NULL
-            ? transpiler_mir_routine_source_local_type_name(mir_routine, base)
-            : NULL;
-        if (binding_type_name == NULL && allow_ast_compat) {
-            binding_type_name = transpiler_find_local_type_name(
-                ctx, func_decl, base);
-        }
+        binding_type_name =
+            transpiler_mir_routine_source_local_type_name(mir_routine, base);
         if (binding_type_name != NULL
             && (transpiler_type_name_is_slot_like(binding_type_name)
                 || transpiler_type_name_is_claim_shape(binding_type_name)
@@ -158,10 +153,9 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
         if (!transpiler_ssa_name_map_set(ssa_map_out, base, exit_versioned))
             return false;
 
-        value_type = mir_routine != NULL
-            ? transpiler_mir_routine_source_local_type_name(mir_routine, base)
-            : NULL;
-        if (mir_routine != NULL && value_type == NULL) {
+        value_type =
+            transpiler_mir_routine_source_local_type_name(mir_routine, base);
+        if (value_type == NULL) {
             if (reason != NULL && reason_cap > 0) {
                 transpiler_mir_reasonf(reason, reason_cap,
                          "MIR block %llu emission failed: pending value '%s' is missing source-local type metadata",
@@ -170,21 +164,13 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
             transpiler_set_mir_inventory_missing(ctx,
                 "MIR block %llu emission failed: pending value '%s' is missing source-local type metadata",
                 (unsigned long long) block->id, base);
-            free(rendered_type);
             return false;
-        } else if (value_type == NULL && binding.type_annotation != NULL) {
-            rendered_type = transpiler_render_effective_local_type_name(
-                ctx, binding.type_annotation);
-            value_type = rendered_type;
-        } else if (value_type == NULL) {
-            value_type = transpiler_expr_infer_type_name(ctx, initializer);
         }
         if (value_type != NULL
             && value_type[0] != '\0'
             && strcmp(value_type, "Void") != 0) {
             register_typed_var(ctx, base, value_type);
         }
-        free(rendered_type);
     }
 
     return true;

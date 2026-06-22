@@ -471,20 +471,7 @@ bool        mir_instruction_resource_op_keeps_residual_statement_emit(
                 const MIRInstruction *inst);
 bool        mir_instruction_has_inherent_concurrency_fact(
                 const MIRInstruction *inst);
-bool        mir_instruction_has_lifecycle_guard(
-                const MIRInstruction *inst);
-MIRLifecycleGuardKind mir_instruction_lifecycle_guard_kind(
-                const MIRInstruction *inst);
-uint32_t    mir_instruction_lifecycle_valid_mask(
-                const MIRInstruction *inst);
-int         mir_instruction_lifecycle_to_state(
-                const MIRInstruction *inst);
-const char *mir_instruction_lifecycle_op(
-                const MIRInstruction *inst);
-const char *mir_instruction_lifecycle_subject(
-                const MIRInstruction *inst);
-const char *mir_instruction_lifecycle_receiver_name(
-                const MIRInstruction *inst);
+#include "mir_source_lifecycle_shape.h"
 bool        mir_source_node_type_stmt_has_side_effect_hint(
                 ASTNodeType type,
                 const char *callee_name);

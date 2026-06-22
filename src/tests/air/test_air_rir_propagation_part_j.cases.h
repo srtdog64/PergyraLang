@@ -210,3 +210,55 @@ test_air_rejects_rir_propagation_counter_mismatch(void)
     free(error);
     return ok;
 }
+
+static bool
+test_air_rejects_rir_propagation_key_mismatch(void)
+{
+    AIREvidenceNode evidence_nodes[] = {
+        {
+            .kind = AIR_EVIDENCE_RIR_EFFECT_PROPAGATION,
+            .provider_kind = AIR_EVIDENCE_PROVIDER_RIR,
+            .subject_kind = AIR_EVIDENCE_SUBJECT_EFFECT_PROPAGATION,
+            .boundary_index = SIZE_MAX,
+            .provider_name = "PaymentZone",
+            .subject_name = "other_fx",
+            .fact_count = 1,
+            .fallback_count = 0,
+        },
+    };
+    AIRPropagationRequirement requirements[] = {
+        {
+            .kind = AIR_EVIDENCE_RIR_EFFECT_PROPAGATION,
+            .provider_name = "PaymentZone",
+            .subject_name = "fx",
+        },
+    };
+    AIRProgram air = {
+        .evidence_nodes = evidence_nodes,
+        .evidence_count = 1,
+        .propagation_requirements = requirements,
+        .propagation_requirement_count = 1,
+        .strict_evidence = true,
+        .has_rir_input = true,
+        .rir_effect_propagation_required_count = 1,
+        .rir_effect_propagation_evidence_count = 1,
+    };
+    char *error = NULL;
+    bool ok = air_verify(&air, &error);
+    bool found = false;
+
+    for (size_t i = 0; ok && i < air.drift_count; i++) {
+        if (air.drifts[i].kind == AIR_DRIFT_EFFECT_PROPAGATION_MISSING
+            && strstr(air.drifts[i].message,
+                      "provider=PaymentZone subject=fx") != NULL
+            && strstr(air.drifts[i].message,
+                      "not just the aggregate counter") != NULL) {
+            found = true;
+        }
+    }
+
+    ok = ok && found;
+    test_air_clear_stack_drifts(&air);
+    free(error);
+    return ok;
+}

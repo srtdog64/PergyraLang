@@ -124,6 +124,11 @@ is one consumer of that rule, not a special exception to it.
   runtime evidence collectors no longer mutate `air->*_evidence_count` or RIR
   propagation required counters directly, so counters cannot drift into a
   second evidence source of truth.
+- RIR effect/relation propagation also has key-level required evidence.
+  `AIRPropagationRequirement` records the required provider/subject pair for
+  each propagation op; strict verification then requires a matching global
+  `AIREvidenceNode` for that same provider/subject. Aggregate propagation
+  counters remain telemetry and cannot prove a different effect/relation key.
 - AIR boundary evidence provider checks also go through a shared EvidenceNode
   accessor (`air_boundary_has_evidence_kind_provider(...)`). HIR collection,
   MIR pin cleanup collection, and boundary-evidence validation must not carry

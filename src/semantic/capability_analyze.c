@@ -27,16 +27,17 @@ static const CapBitName k_cap_names[] = {
     {PGY_CAP_INPUT,    "INPUT"},
 };
 
+/* Emit the used-capability names as a bare JSON array: ["IO_READ", "RANDOM"].
+   These names are the program's external effect families; AIR reuses this so the
+   effect inventory and the capability mask are owned in one place. */
 void
-capability_manifest_print(uint32_t used_mask, FILE *out)
+capability_used_names_print_json(uint32_t used_mask, FILE *out)
 {
     int first = 1;
 
     if (out == NULL)
         return;
-
-    fputs("{\n  \"pgy.capability.manifest.v1\": {\n", out);
-    fputs("    \"used\": [", out);
+    fputs("[", out);
     for (size_t i = 0; i < sizeof(k_cap_names) / sizeof(k_cap_names[0]); i++) {
         if ((used_mask & k_cap_names[i].bit) == 0)
             continue;
@@ -45,6 +46,17 @@ capability_manifest_print(uint32_t used_mask, FILE *out)
         fprintf(out, "\"%s\"", k_cap_names[i].name);
         first = 0;
     }
-    fputs("],\n", out);
-    fprintf(out, "    \"used_mask\": \"0x%x\"\n  }\n}\n", used_mask);
+    fputs("]", out);
+}
+
+void
+capability_manifest_print(uint32_t used_mask, FILE *out)
+{
+    if (out == NULL)
+        return;
+
+    fputs("{\n  \"pgy.capability.manifest.v1\": {\n", out);
+    fputs("    \"used\": ", out);
+    capability_used_names_print_json(used_mask, out);
+    fprintf(out, ",\n    \"used_mask\": \"0x%x\"\n  }\n}\n", used_mask);
 }

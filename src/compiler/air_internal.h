@@ -234,6 +234,22 @@ size_t      air_evidence_required_count(const AIRProgram *air,
                                          AIREvidenceKind kind);
 bool        air_increment_evidence_required_count(AIRProgram *air,
                                                   AIREvidenceKind kind);
+bool        air_append_rir_propagation_requirement(AIRProgram *air,
+                                                   AIREvidenceKind kind,
+                                                   const char *provider_name,
+                                                   const char *subject_name,
+                                                   char **error_message);
+bool        air_propagation_requirement_storage_valid(
+                const AIRProgram *air);
+size_t      air_propagation_requirement_count(const AIRProgram *air);
+const AIRPropagationRequirement *air_propagation_requirement_at(
+                const AIRProgram *air,
+                size_t index);
+size_t      air_propagation_requirement_key_count(
+                const AIRProgram *air,
+                AIREvidenceKind kind,
+                const char *provider_name,
+                const char *subject_name);
 bool        air_boundary_has_summary_flag(const AIRBoundaryNode *boundary,
                                           AIREvidenceKind kind);
 bool        air_boundary_mark_summary_flag(AIRBoundaryNode *boundary,

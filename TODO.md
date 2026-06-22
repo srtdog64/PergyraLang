@@ -133,11 +133,12 @@ English anchor for tooling/doc gates:
   escape summaries`.
 - MIR lifecycle/dump source-text source-of-truth: `mir_lifecycle.c` no longer
   opens `mir_instruction_source_payload(...)` or calls `ast_capture_inline(...)`
-  while serializing MIR JSON. The transitional `"ast"` text field is captured
-  once by `mir_instruction_capture_source_provenance(...)` and emitted through
-  `mir_instruction_source_inline_text(inst)`. Remaining TODO: replace the
-  self-hosted `mir_lower` dependency on that `"ast"` text with explicit MIR
-  statement facts so capability 5 can move from ACTIVE to READY without a
+  while serializing MIR JSON. The transitional `"ast"` text field is capture-time
+  provenance only; the supported self-hosted `mir_lower` path consumes explicit
+  MIR JSON facts (`expr0`, `expr1`, `source_type`, `source_locals`, branch/loop
+  facts) and `mir_json_parity.sh` rejects reintroducing `"ast"` text reads.
+  Capability 5 is READY for the measured source_ast/source_decl and supported
+  MIR-lowering frontier; further work should broaden fact coverage, not reopen a
   source-text compatibility lane.
 - MIR residual STMT fallback source-of-truth: emission fallback policy no
   longer reuses the broad DCE side-effect hint. `MIR_INST_STMT` fallback is now

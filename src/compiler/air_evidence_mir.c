@@ -63,6 +63,8 @@ air_collect_mir_evidence(AIRProgram *air,
         /* Bucket B: capability-bearing slot operations retained by policy. */
         air->slot_capability_retain_count +=
             air_mir_routine_slot_capability_retain_fact_count(routine);
+        /* ...and capture their identity sites so AIR owns slot identity. */
+        (void)air_collect_slot_sites(air, routine, routine_name);
         size_t cleanup_fact_count = air_mir_routine_cleanup_fact_count(routine);
         size_t terminator_fact_count =
             air_mir_routine_terminator_fact_count(routine);

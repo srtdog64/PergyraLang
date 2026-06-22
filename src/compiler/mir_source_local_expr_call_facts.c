@@ -1,0 +1,137 @@
+#include "mir_source_local_expr_call_facts.h"
+
+#include <stdlib.h>
+#include <string.h>
+
+#include "mir_type_helpers.h"
+#include "../parser/ast_api.h"
+
+static const char *
+mir_source_local_capture_type_to_scratch(MIRSourceLocalTypeScratch *scratch,
+                                         ASTNode *type_node)
+{
+    char *owned;
+    char *buffer;
+    size_t len;
+
+    if (scratch == NULL || type_node == NULL)
+        return NULL;
+    owned = mir_capture_type_name(type_node, NULL);
+    if (owned == NULL || owned[0] == '\0') {
+        free(owned);
+        return NULL;
+    }
+    len = strlen(owned);
+    if (len >= MIR_SOURCE_LOCAL_TYPE_SCRATCH_SIZE) {
+        free(owned);
+        return NULL;
+    }
+    buffer = mir_source_local_type_scratch_next(scratch);
+    if (buffer == NULL) {
+        free(owned);
+        return NULL;
+    }
+    memcpy(buffer, owned, len + 1);
+    free(owned);
+    return buffer;
+}
+
+static const MIRRoutine *
+mir_source_local_top_level_routine(const MIRProgram *program, const char *name)
+{
+    if (program == NULL || name == NULL)
+        return NULL;
+    for (size_t i = 0; i < program->routine_count; i++) {
+        const MIRRoutine *candidate = &program->routines[i];
+        if (candidate->name != NULL
+            && strcmp(candidate->name, name) == 0
+            && candidate->kind == MIR_SCOPE_FUNCTION
+            && candidate->has_signature) {
+            return candidate;
+        }
+    }
+    return NULL;
+}
+
+static const char *
+mir_source_local_generic_actual_type_name(const MIRProgram *program,
+                                          const MIRRoutine *caller_routine,
+                                          MIRSourceLocalTypeScratch *scratch,
+                                          ASTNode *call,
+                                          const MIRRoutine *callee_routine,
+                                          const char *formal_type_name)
+{
+    if (callee_routine == NULL || call == NULL || formal_type_name == NULL
+        || formal_type_name[0] == '\0') {
+        return NULL;
+    }
+    for (size_t i = 0; i < callee_routine->param_count; i++) {
+        const char *param_type_name =
+            callee_routine->param_type_names != NULL
+                ? callee_routine->param_type_names[i]
+                : NULL;
+        if (param_type_name != NULL
+            && strcmp(param_type_name, formal_type_name) == 0
+            && i < ast_call_arg_count(call)) {
+            return mir_source_local_expr_type_name(program, caller_routine,
+                scratch, ast_call_argument(call, i));
+        }
+    }
+    return NULL;
+}
+
+const char *
+mir_source_local_call_return_type_name(const MIRProgram *program,
+                                       const MIRRoutine *caller_routine,
+                                       MIRSourceLocalTypeScratch *scratch,
+                                       ASTNode *call,
+                                       const char *name)
+{
+    const MIRRoutine *callee_routine =
+        mir_source_local_top_level_routine(program, name);
+    const char *return_type_name;
+    const char *actual_type_name;
+
+    if (callee_routine == NULL)
+        return NULL;
+    return_type_name = callee_routine->return_type_name;
+    actual_type_name = mir_source_local_generic_actual_type_name(program,
+        caller_routine, scratch, call, callee_routine, return_type_name);
+    return actual_type_name != NULL ? actual_type_name : return_type_name;
+}
+
+static ASTNode *
+mir_source_local_extern_function_decl(const MIRProgram *program,
+                                      const char *name)
+{
+    if (program == NULL || name == NULL)
+        return NULL;
+    for (size_t i = 0; i < program->extern_count; i++) {
+        ASTNode *block = program->externs != NULL ? program->externs[i] : NULL;
+        size_t count = 0;
+        if (block == NULL || block->type != AST_EXTERN_BLOCK)
+            continue;
+        (void)ast_extern_block_declarations(block, &count);
+        for (size_t j = 0; j < count; j++) {
+            ASTNode *decl = ast_extern_block_declaration(block, j);
+            const char *decl_name = decl != NULL && decl->type == AST_FUNC_DECL
+                ? ast_declaration_name(decl)
+                : NULL;
+            if (decl_name != NULL && strcmp(decl_name, name) == 0)
+                return decl;
+        }
+    }
+    return NULL;
+}
+
+const char *
+mir_source_local_extern_return_type_name(const MIRProgram *program,
+                                         MIRSourceLocalTypeScratch *scratch,
+                                         const char *name)
+{
+    ASTNode *decl = mir_source_local_extern_function_decl(program, name);
+    return decl != NULL
+        ? mir_source_local_capture_type_to_scratch(scratch,
+            ast_func_return_type(decl))
+        : NULL;
+}

@@ -337,11 +337,20 @@ llvm_declare_runtime_core_builtins(LLVMGenCtx *ctx)
         };
 
         for (size_t i = 0; i < sizeof(builtins) / sizeof(builtins[0]); i++) {
+            LLVMTypeRef ret = builtins[i].ret;
+            LLVMTypeRef params[6];
+            unsigned param_count = builtins[i].param_count;
+            for (unsigned j = 0; j < param_count; j++)
+                params[j] = builtins[i].params[j];
+            llvm_runtime_aggregate_return_apply_decl_shape(ctx,
+                builtins[i].name, &ret, params, &param_count,
+                sizeof(params) / sizeof(params[0]));
+            if (ctx->has_error)
+                return;
             LLVMTypeRef ft = LLVMFunctionType(
-                builtins[i].ret, builtins[i].params,
-                builtins[i].param_count, 0);
+                ret, params, param_count, 0);
             LLVMValueRef fn = LLVMAddFunction(ctx->module, builtins[i].name, ft);
-            llvm_register_function(ctx, builtins[i].name, fn, ft, builtins[i].ret);
+            llvm_register_function(ctx, builtins[i].name, fn, ft, ret);
         }
     }
 }

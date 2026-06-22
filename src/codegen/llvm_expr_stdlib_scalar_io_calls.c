@@ -340,6 +340,16 @@ llvm_emit_stdlib_string_file_call(ASTNode *node, LLVMGenCtx *ctx,
         const LLVMStdlibRuntimeCallSpec *spec =
             llvm_stdlib_string_file_runtime_call_lookup(callee_name);
         if (spec != NULL && ast_call_arg_count(node) == spec->arg_count) {
+            if (llvm_runtime_aggregate_return_is_sret_function(
+                    spec->runtime_name)) {
+                *out_result = llvm_emit_runtime_aggregate_return_call(node, ctx,
+                    spec->family, callee_name, spec->runtime_name,
+                    spec->arg_count);
+                if (*out_result == NULL)
+                    *out_result = llvm_stdlib_error_value(node, ctx,
+                        callee_name, "could not lower aggregate return call");
+                return true;
+            }
             return llvm_emit_required_runtime_call_result(node, ctx,
                 spec->family, callee_name, spec->runtime_name,
                 spec->arg_count, out_result);

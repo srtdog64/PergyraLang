@@ -1,0 +1,5 @@
+// Runtime aggregate-return ABI probe: DirWalk is a 1-arg runtime function that
+// returns Array<String> at the source/runtime boundary and must consume the same
+// LLVM aggregate-return owner as Args/StringSplit.
+let files: Array<String> = DirWalk(".");
+Log("dirwalk ok");

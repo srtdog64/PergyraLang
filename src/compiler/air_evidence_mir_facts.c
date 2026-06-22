@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "air_internal.h"
@@ -261,6 +262,53 @@ air_mir_routine_slot_capability_retain_fact_count(const MIRRoutine *routine)
         }
     }
     return count;
+}
+
+/*
+ * Collect slot-identity sites (the same SecureSlot/DeviceSlot ops the retain
+ * count above tallies), so AIR owns slot identity (type + owning routine), not
+ * just a count. Best-effort: on allocation failure it stops collecting; the
+ * authoritative slot_capability_retain_count is unaffected. Strings are borrowed
+ * from MIR, which outlives the AIR dump.
+ */
+bool
+air_collect_slot_sites(AIRProgram *air, const MIRRoutine *routine,
+                       const char *routine_name)
+{
+    if (air == NULL || routine == NULL)
+        return true;
+    if (routine->block_count > 0 && routine->blocks == NULL)
+        return true;
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *block = &routine->blocks[i];
+        if (block->instruction_count > 0 && block->instructions == NULL)
+            continue;
+        for (size_t j = 0; j < block->instruction_count; j++) {
+            const MIRInstruction *inst = &block->instructions[j];
+
+            /* Every resource op on a slot is a slot-identity site (slot handle +
+               op). This is broader than the bucket-B capability-retain count
+               (which only tallies ops whose runtime token check survives): slot
+               IDENTITY must list all slot operations, retained or not. */
+            if (inst->kind != MIR_INST_RESOURCE_OP || inst->slot_anchor == NULL)
+                continue;
+            if (air->slot_site_count >= air->slot_site_capacity) {
+                size_t newcap = air->slot_site_capacity
+                    ? air->slot_site_capacity * 2 : 4;
+                AIRSlotSite *grown = (AIRSlotSite *)realloc(
+                    air->slot_sites, newcap * sizeof(AIRSlotSite));
+                if (grown == NULL)
+                    return false;
+                air->slot_sites = grown;
+                air->slot_site_capacity = newcap;
+            }
+            air->slot_sites[air->slot_site_count].slot = inst->slot_anchor;
+            air->slot_sites[air->slot_site_count].op = inst->name;
+            air->slot_sites[air->slot_site_count].routine = routine_name;
+            air->slot_site_count++;
+        }
+    }
+    return true;
 }
 
 AIREvidenceKind

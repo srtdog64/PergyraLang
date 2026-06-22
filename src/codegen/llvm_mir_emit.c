@@ -209,11 +209,20 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         size_t func_param_count = llvm_mir_routine_param_count(routine);
         for (size_t i = 0; i < func_param_count; i++) {
             FuncParam *p = llvm_mir_routine_param(routine, i);
+            const char *param_type_name =
+                llvm_mir_routine_param_type_name(routine, i);
+            const char *slot_inner;
             if (is_method && llvm_param_is_implicit_self_local(p)) {
                 continue;
             }
             bool is_secure_slot = false;
-            if (llvm_mir_boundary_slot_inner_name(ctx, p, &is_secure_slot) != NULL)
+            slot_inner = param_type_name != NULL
+                ? llvm_boundary_slot_inner_name_from_type_name(ctx,
+                    p,
+                    param_type_name,
+                    &is_secure_slot)
+                : llvm_mir_boundary_slot_inner_name(ctx, p, &is_secure_slot);
+            if (slot_inner != NULL)
                 param_count += is_secure_slot ? 2 : 1;
             else
                 param_count++;

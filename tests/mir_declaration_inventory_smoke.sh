@@ -1295,7 +1295,7 @@ if grep -Fq "llvm_register_typed_var_binding(ctx, owned_base" \
 fi
 if ! awk '
     /llvm_mir_local_type_from_instruction_fact\(/ { in_fn = 1 }
-    in_fn && /inst->requires_source_local_decl_emit/ { source = NR }
+    in_fn && /mir_instruction_uses_source_local_decl_emit\(inst\)/ { source = NR }
     in_fn && /llvm_mir_type_from_abi_layout\(ctx, inst->type_layout\)/ { layout = NR }
     in_fn && /^}/ {
         if (source > 0 && layout > 0 && source < layout) ok = 1
@@ -3533,6 +3533,7 @@ for term in \
     "transpiler_mir_routine_signature_metadata_complete_for(ctx" \
     "TRANSPILER_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES" \
     "transpiler_mir_or_ast_function_is_generic(callee_routine" \
+    "param_type_name != NULL || param->type != NULL" \
     "MIR-only C path missing user-call signature metadata"; do
     require_term "src/codegen/transpiler_expr_call_user_emit.c" "$term"
 done
@@ -3540,12 +3541,20 @@ for term in \
     "transpiler_mir_routine_signature_metadata_complete_for(ctx" \
     "TRANSPILER_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES" \
     "transpiler_mir_or_ast_function_is_generic(callee_routine, decl)" \
+    "if (param_type_name != NULL)" \
+    "\"spawn wrapper MIR argument\"" \
     "allow_ast_compat = decl != NULL" \
     "|| callee_is_generic_func" \
     "|| callee_is_extern_func" \
     "MIR-only C path missing spawn signature metadata"; do
     require_term "src/codegen/transpiler_spawn_channel_emit.c" "$term"
 done
+require_term "src/codegen/llvm_expr_spawn_worker_boundary.c" \
+    "if (param_type_name == NULL)"
+if grep -Fq "ctx == NULL || param == NULL || param->type == NULL" \
+        "$ROOT_DIR/src/codegen/llvm_expr_spawn_worker_boundary.c"; then
+    fail "LLVM spawn worker-boundary must consume MIR param type names before AST param type compatibility"
+fi
 if grep -Fq "transpiler_func_has_generic_params(decl)" \
     "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c" \
     || grep -Fq "transpiler_func_has_generic_params(decl)" \
@@ -3687,7 +3696,9 @@ for term in \
     "transpiler_mir_routine_param_count(mir_routine)" \
     "transpiler_mir_routine_param(mir_routine" \
     "transpiler_mir_routine_param_type_name(mir_routine" \
-    "transpiler_mir_routine_return_type(mir_routine)"; do
+    "transpiler_mir_routine_return_type(mir_routine)" \
+    "return_type_name != NULL" \
+    "ensure_type_specializations_from_type_name_to("; do
     require_term "src/codegen/transpiler_func_forward_emit.c" "$term"
 done
 if grep -Fq "if (!transpiler_mir_routine_has_signature" \
@@ -3933,6 +3944,34 @@ require_term "src/compiler/mir_source_local_types.c" \
 require_term "src/compiler/mir_source_local_expr_types.c" \
     "mir_source_local_builtin_call_type_name"
 require_term "src/compiler/mir_source_local_expr_types.c" \
+    "case AST_ARRAY_LITERAL"
+require_term "src/compiler/mir_source_local_expr_types.c" \
+    "mir_source_local_type_scratch_format(scratch, \"Array\""
+require_term "src/compiler/mir_source_local_expr_types.c" \
+    "mir_source_local_decl_header_is_constructor_type"
+require_term "src/compiler/mir_source_local_expr_types.c" \
+    "case AST_ZONE_DECL"
+require_term "src/compiler/mir_source_local_expr_types.c" \
+    "mir_source_local_decl_header(program, callee_name)"
+require_term "src/compiler/mir_source_local_expr_types.c" \
+    "callee_header->ast_type == AST_INTENT_DECL"
+require_term "src/compiler/mir_source_local_expr_types.c" \
+    "return \"Bool\""
+require_term "src/compiler/mir_source_local_expr_types.c" \
+    "mir_source_local_call_return_type_name"
+require_term "src/compiler/mir_source_local_expr_call_facts.c" \
+    "mir_source_local_generic_actual_type_name"
+require_term "src/compiler/mir_source_local_expr_types.c" \
+    "case AST_SPAWN_EXPR"
+require_term "src/compiler/mir_source_local_expr_types.c" \
+    "case AST_AWAIT_EXPR"
+require_term "src/compiler/mir_source_local_expr_call_facts.c" \
+    "mir_source_local_extern_return_type_name"
+require_term "src/tests/mir/test_mir_lowering_part_c_3.cases.h" \
+    "MIR captures generic spawn and await source-local types"
+require_term "src/tests/mir/test_mir_lowering_part_c_3.cases.h" \
+    "MIR captures extern call source-local types"
+require_term "src/compiler/mir_source_local_expr_types.c" \
     "mir_source_local_read_call_type_name"
 require_term "src/compiler/mir_source_local_expr_types.c" \
     "mir_source_local_view_call_type_name"
@@ -3995,7 +4034,7 @@ require_term "src/compiler/mir_source_local_expr_types.c" \
 require_term "src/compiler/mir_source_local_expr_types.c" \
     "mir_source_local_for_loop_variable_type_name"
 require_term "src/compiler/mir_source_local_expr_types.c" \
-    "mir_source_local_top_level_routine_return_type_name"
+    "mir_source_local_call_return_type_name"
 require_term "src/compiler/mir_source_local_expr_types.c" \
     "strcmp(member_name, \"Slice\") == 0"
 require_term "src/compiler/mir_source_local_expr_types.c" \
@@ -4224,6 +4263,10 @@ require_term "src/codegen/llvm_boundary_slot_param.c" \
     "llvm_boundary_slot_inner_name_from_type_name"
 require_term "src/codegen/llvm_mir_emit.c" \
     "llvm_boundary_slot_inner_name_from_type_name(ctx"
+require_term "src/codegen/llvm_mir_emit.c" \
+    "llvm_mir_routine_param_type_name(routine, i)"
+require_term "src/codegen/llvm_mir_emit.c" \
+    "slot_inner = param_type_name != NULL"
 if grep -Fq "slot_inner != NULL && p != NULL && p->type != NULL" \
     "$ROOT_DIR/src/codegen/llvm_mir_emit.c"; then
     fail "LLVM MIR function type construction must not require AST param->type before routine slot type-name metadata"

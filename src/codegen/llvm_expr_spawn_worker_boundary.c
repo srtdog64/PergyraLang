@@ -46,11 +46,13 @@ llvm_spawn_reject_worker_storage_param(LLVMGenCtx *ctx, ASTNode *site,
     char *type_name;
     const char *kind;
 
-    if (ctx == NULL || param == NULL || param->type == NULL)
+    if (ctx == NULL)
         return false;
 
     type_name = NULL;
     if (param_type_name == NULL) {
+        if (param == NULL || param->type == NULL)
+            return false;
         type_name = llvm_render_type_name_scratch_in_ctx(ctx, param->type,
                                                          &ctx->scratch);
         param_type_name = type_name;
