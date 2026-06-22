@@ -91,7 +91,6 @@ CODEGEN_FIXTURES=(
     file_handle
     float_math
     for_continue
-    log_int_direct
     for_sum
     func_call
     func_recursive
@@ -101,13 +100,25 @@ CODEGEN_FIXTURES=(
     int_neg
     int_subdiv
     io_probe
+    log_int_direct
+    log_trailing_newline
     mixed_int_str
+    nested_concat
     nested_ctrl
     str_array
+    str_array_concat
     str_array_push
     str_builtins
+    str_builtins2
+    str_case_math
+    str_greet
+    str_indexof
+    str_trim
     string_concat_op
     string_equality
+    two_logs
+    while_break
+    while_sum
     write_file
 )
 

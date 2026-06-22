@@ -16,7 +16,7 @@
 # This is a coverage probe, not a gate. It is the "empty parts" map for the
 # self-hosted SOT lowering subset. Read-only; writes only under .tmp.
 
-set -uo pipefail
+set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
@@ -35,10 +35,15 @@ B="$ROOT_DIR/.tmp/self_hosted/mir_lower/coverage"
 mkdir -p "$B"
 
 echo "[coverage] building gen0 mir_lower + codegen..."
+rm -f "$B/mir_lower.exe" "$B/codegen.exe"
 (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$MIR_LOWER_SRC")" \
     --backend=c -o "$(pgy_path_for_compiler "$PGY" "$B/mir_lower.exe")" >/dev/null)
 (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$CODEGEN_SRC")" \
     --backend=c -o "$(pgy_path_for_compiler "$PGY" "$B/codegen.exe")" >/dev/null)
+[[ -x "$B/mir_lower.exe" && -x "$B/codegen.exe" ]] || {
+    echo "[coverage] failed to build gen0 self-host tools" >&2
+    exit 1
+}
 
 # One probe construct per call: classify(name, source).
 classify() {

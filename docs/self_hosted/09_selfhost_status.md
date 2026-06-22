@@ -106,10 +106,16 @@ subset.
   straight-line calls, direct integer arithmetic, builtin-name string literals,
   directory walking, exit-guard branches, multiple Void routines with bare-call
   statements, Bool-literal branch reassignment, and loop-control
-  `continue`/`break` edge blocks. The 43-fixture MIR JSON parity gate checks
+  `continue`/`break` edge blocks. The MIR JSON parity gate checks
   the `for` header is reconstructed from
   `arg0` plus range bounds rather than treating the lower bound as a branch
-  condition, and rejects reintroducing transitional `"ast"` reads.
+  condition, and rejects reintroducing transitional `"ast"` reads. The hard
+  gate is now **54 fixtures** after promoting the already run-equivalent
+  trailing-newline Log, nested string concat, string array concat, string
+  case/index/trim builtin, two-log, while-break, and while-sum surfaces. The
+  coverage boundary is measured at 54 PASS / 5 gap: `array_pop` and `for_each`
+  currently fail at reconstructed-C compile time, while `str_reassign`,
+  `struct_point`, and `struct_param` are self-hosted codegen gaps.
 - C class/zone collection-specialization scans are MIR-routine based and no
   longer recover method body AST; routine_source_decl_codegen is ratcheted at 0.
 - C hosted method body emission binds the linked MIRRoutine body as current

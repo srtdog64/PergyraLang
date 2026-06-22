@@ -67,6 +67,26 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- MIR JSON hard rung widened to 54 and coverage probe made fail-closed
+
+- Made `src/self_hosted/parity/mir_json_coverage_probe.sh` fail closed: it now
+  runs with `set -euo pipefail`, removes stale generated gen0
+  `mir_lower.exe` / `codegen.exe` before rebuilding, and asserts both tools are
+  executable before classifying coverage. This closes the measurement false
+  positive where a failed gen0 build could still report PASS using stale `.tmp`
+  tools.
+- Surveyed the full committed MIR-lower/codegen fixture inventory through the
+  same hard path (`pgy --mir-json | mir_lower | codegen | gcc`) against the C
+  oracle: **54 PASS / 5 gap**. Promoted the 11 newly verified PASS fixtures into
+  the hard manifest: `log_trailing_newline`, `nested_concat`,
+  `str_array_concat`, `str_builtins2`, `str_case_math`, `str_greet`,
+  `str_indexof`, `str_trim`, `two_logs`, `while_break`, and `while_sum`.
+- Left the five measured gaps out of the hard count: `array_pop` and `for_each`
+  fail at reconstructed-C compile time, while `str_reassign`, `struct_point`,
+  and `struct_param` are self-hosted codegen gaps.
+- `self-host-mir-json-parity-test-smoke`: proved **54/54 MIR JSON ->
+  self-hosted MIR-lower -> self-hosted codegen -> C oracle parity**.
+
 ### 2026-06-23 -- Loop-control edge blocks promoted into MIR JSON gate
 
 - Closed the `log_int_direct` gap called out below. The self-hosted
