@@ -49,6 +49,8 @@ mir_destroy(MIRProgram *mir)
                             free(routine->blocks[j].instructions[k]
                                      .source_inline_text);
                             free(routine->blocks[j].instructions[k]
+                                     .lifecycle_receiver_name);
+                            free(routine->blocks[j].instructions[k]
                                      .lifecycle_op);
                             free(routine->blocks[j].instructions[k]
                                      .lifecycle_subject);

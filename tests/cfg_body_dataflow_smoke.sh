@@ -723,6 +723,12 @@ run_literal_doc_contract_smoke() {
     require_literal "src/codegen/transpiler_mir_block_emit.c" "transpiler_mir_routine_source_local_type_name("
     require_literal "src/codegen/transpiler_mir_block_emit.c" "DEF '%s' is missing source-local type metadata"
     require_literal "src/codegen/transpiler_mir_block_emit.c" "mir_routine, block, inst"
+    require_literal "src/codegen/transpiler_mir_stmt_emit.c" "mir_instruction_has_inherent_concurrency_fact(stmt_inst)"
+    if grep -n "mir_instruction_source_matches_ast_type(stmt_inst, AST_" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_stmt_emit.c"; then
+        echo "C MIR mirrored-resource suppression must consume MIR concurrency facts, not backend-local AST term checks" >&2
+        exit 1
+    fi
     if grep -Fq -- "mir_instruction_source_payload" \
         "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"; then
         echo "C pending-use materialization must consume MIR expr/type facts, not source payload statements" >&2

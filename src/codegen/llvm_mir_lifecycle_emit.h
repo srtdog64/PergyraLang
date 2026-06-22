@@ -5,10 +5,8 @@
 
 #include "llvm_internal.h"
 #include "../compiler/mir.h"
-#include "../parser/ast.h"
 
 void llvm_mir_emit_lifecycle_guard(const MIRInstruction *inst,
-                                   ASTNode *stmt,
                                    LLVMGenCtx *ctx);
 
 #endif

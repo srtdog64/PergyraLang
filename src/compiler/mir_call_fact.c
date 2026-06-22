@@ -9,6 +9,8 @@
 static void
 mir_attach_lifecycle_guard_fact(MIRInstruction *inst, const ASTNode *stmt)
 {
+    ASTNode *callee;
+    ASTNode *receiver = NULL;
     const LcGuardSite *guard;
 
     if (inst == NULL || stmt == NULL)
@@ -23,8 +25,20 @@ mir_attach_lifecycle_guard_fact(MIRInstruction *inst, const ASTNode *stmt)
             : MIR_LIFECYCLE_GUARD_SET;
     inst->lifecycle_valid_mask = guard->valid_mask;
     inst->lifecycle_to_state = guard->to_state;
+    if (stmt->type == AST_CALL) {
+        callee = ast_call_callee(stmt);
+        receiver = callee != NULL && callee->type == AST_MEMBER_ACCESS
+            ? ast_member_object(callee)
+            : NULL;
+    }
+    free(inst->lifecycle_receiver_name);
     free(inst->lifecycle_op);
     free(inst->lifecycle_subject);
+    inst->lifecycle_receiver_name =
+        receiver != NULL && receiver->type == AST_IDENTIFIER
+            && ast_identifier_name(receiver) != NULL
+                ? pergyra_strdup(ast_identifier_name(receiver))
+                : NULL;
     inst->lifecycle_op = guard->op[0] != '\0'
         ? pergyra_strdup(guard->op)
         : NULL;

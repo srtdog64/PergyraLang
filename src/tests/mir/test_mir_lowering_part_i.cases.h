@@ -201,4 +201,71 @@ test_mir_lowering_part_i(void)
         rir_destroy(rir);
         hir_destroy(hir);
     }
+
+    TEST("MIR validator rejects lifecycle guard without receiver fact");
+    {
+        const char *src =
+            "subject Payment {\n"
+            "    func Authorize(self) -> Void { }\n"
+            "    func Capture(self) -> Void { }\n"
+            "}\n"
+            "lifecycle Payment {\n"
+            "    Authorize: Pending -> Authorized;\n"
+            "    Capture: Authorized -> Captured;\n"
+            "}\n"
+            "func Flag() -> Bool { return false; }\n"
+            "func LifecycleFact() -> Void {\n"
+            "    let p: Payment = Payment();\n"
+            "    if Flag() {\n"
+            "        p.Authorize();\n"
+            "    }\n"
+            "    p.Capture();\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        MIRInstruction *guard_inst = NULL;
+        char *saved_receiver = NULL;
+        char *mir_error = NULL;
+        bool rejected_missing_receiver_fact = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "LifecycleFact",
+                                           MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count
+                 && guard_inst == NULL; bi++) {
+                MIRBasicBlock *block = &routine->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    MIRInstruction *inst = &block->instructions[ii];
+                    if (mir_instruction_has_lifecycle_guard(inst)) {
+                        guard_inst = inst;
+                        break;
+                    }
+                }
+            }
+        }
+        if (guard_inst != NULL) {
+            saved_receiver = guard_inst->lifecycle_receiver_name;
+            guard_inst->lifecycle_receiver_name = NULL;
+            rejected_missing_receiver_fact =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error,
+                          "lifecycle guard is missing receiver fact") != NULL;
+            guard_inst->lifecycle_receiver_name = saved_receiver;
+        }
+        EXPECT(ok
+               && routine != NULL
+               && guard_inst != NULL
+               && saved_receiver != NULL
+               && strcmp(saved_receiver, "p") == 0
+               && rejected_missing_receiver_fact
+               && mir_validate(mir, NULL));
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
 }

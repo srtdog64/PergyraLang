@@ -8,6 +8,7 @@
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_expr_ssa.h"
 #include "transpiler_mir_reason.h"
+#include "transpiler_mir_ssa_names.h"
 #include "transpiler_projection_sync.h"
 #include "transpiler_symbols.h"
 
@@ -19,24 +20,22 @@
 static void
 transpiler_emit_mir_lifecycle_guard(CodeBuf *buf,
                                     const MIRInstruction *inst,
-                                    ASTNode *stmt,
                                     TranspilerCtx *ctx,
                                     TranspilerSSANameMap *ssa_map)
 {
-    ASTNode *callee;
-    ASTNode *obj;
-    char    *recv;
+    const char *receiver_name;
+    const char *versioned_receiver;
+    char       *recv;
 
-    if (!mir_instruction_has_lifecycle_guard(inst)
-        || stmt == NULL
-        || stmt->type != AST_CALL) {
+    if (!mir_instruction_has_lifecycle_guard(inst)) {
         return;
     }
-    callee = ast_call_callee(stmt);
-    obj = callee != NULL ? ast_member_object(callee) : NULL;
-    if (obj == NULL || obj->type != AST_IDENTIFIER)
+    receiver_name = mir_instruction_lifecycle_receiver_name(inst);
+    if (receiver_name == NULL || receiver_name[0] == '\0')
         return;
-    recv = emit_expression_with_ssa_map(obj, ctx, ssa_map);
+    versioned_receiver = transpiler_resolve_ssa_name(ssa_map, receiver_name);
+    recv = transpiler_render_ssa_name(
+        ctx, versioned_receiver != NULL ? versioned_receiver : receiver_name);
     if (recv == NULL || recv[0] == '\0') {
         free(recv);
         return;
@@ -105,14 +104,11 @@ transpiler_mir_stmt_is_mirrored_resource(TranspilerCtx *ctx,
             continue;
         if (!mir_instructions_share_source_statement(resource_inst, stmt_inst))
             continue;
-        if (mir_instruction_source_matches_ast_type(stmt_inst, AST_PARALLEL_BLOCK)
-            || mir_instruction_source_matches_ast_type(stmt_inst, AST_ASYNC_BLOCK)
-            || mir_instruction_source_matches_ast_type(stmt_inst, AST_SPAWN_EXPR)
-            || mir_instruction_source_matches_ast_type(stmt_inst, AST_AWAIT_EXPR)) {
+        if (mir_instruction_has_inherent_concurrency_fact(stmt_inst)) {
             /*
              * These resource ops are observability hooks, not semantic
              * replacements. The residual statement must still lower the
-             * runtime body (tasks, sends, awaits, etc.).
+             * runtime body (tasks, sends, awaits, channels, etc.).
              */
             continue;
         }
@@ -161,7 +157,7 @@ transpiler_emit_mir_call_statement(CodeBuf *buf,
         return false;
     }
 
-    transpiler_emit_mir_lifecycle_guard(buf, inst, stmt, ctx, ssa_map);
+    transpiler_emit_mir_lifecycle_guard(buf, inst, ctx, ssa_map);
     write_indent_to(buf, ctx->indent);
     codebuf_write(buf, "%s;\n", expr);
     emit_zone_action_effect_runtime(buf, stmt, ctx);

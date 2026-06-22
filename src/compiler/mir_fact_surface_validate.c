@@ -166,6 +166,18 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
 
     for (size_t i = 0; i < block->instruction_count; i++) {
         const MIRInstruction *inst = &block->instructions[i];
+        if (mir_instruction_has_lifecycle_guard(inst)
+            && (mir_instruction_lifecycle_receiver_name(inst) == NULL
+                || mir_instruction_lifecycle_receiver_name(inst)[0] == '\0')) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] lifecycle guard is missing receiver fact",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
         if (!mir_instruction_has_surface_payload_or_shape(inst))
             continue;
         if (mir_instruction_has_source_payload(inst)

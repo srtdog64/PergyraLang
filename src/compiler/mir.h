@@ -149,6 +149,7 @@ typedef struct
     MIRLifecycleGuardKind lifecycle_guard_kind;
     uint32_t         lifecycle_valid_mask;
     int              lifecycle_to_state;
+    char            *lifecycle_receiver_name;
     char            *lifecycle_op;
     char            *lifecycle_subject;
     /* Canonical ABI type name and layout: backends read these instead of
@@ -481,6 +482,8 @@ int         mir_instruction_lifecycle_to_state(
 const char *mir_instruction_lifecycle_op(
                 const MIRInstruction *inst);
 const char *mir_instruction_lifecycle_subject(
+                const MIRInstruction *inst);
+const char *mir_instruction_lifecycle_receiver_name(
                 const MIRInstruction *inst);
 bool        mir_source_node_type_stmt_has_side_effect_hint(
                 ASTNodeType type,

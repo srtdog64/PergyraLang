@@ -652,6 +652,14 @@ mir_instruction_lifecycle_subject(const MIRInstruction *inst)
         : NULL;
 }
 
+const char *
+mir_instruction_lifecycle_receiver_name(const MIRInstruction *inst)
+{
+    return mir_instruction_has_lifecycle_guard(inst)
+        ? inst->lifecycle_receiver_name
+        : NULL;
+}
+
 bool
 mir_instruction_uses_channel_receive_statement_emit(const MIRInstruction *inst)
 {

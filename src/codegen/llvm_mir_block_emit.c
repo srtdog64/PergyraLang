@@ -602,7 +602,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                     break;
                 }
                 if (mir_instruction_source_stmt_call_emit_is_allowed(inst)) {
-                    llvm_mir_emit_lifecycle_guard(inst, inst->expr0, ctx);
+                    llvm_mir_emit_lifecycle_guard(inst, ctx);
                     LLVMValueRef ignored = llvm_emit_expression(inst->expr0, ctx);
                     if (ignored == NULL && ctx->has_error)
                         return;

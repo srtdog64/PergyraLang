@@ -3012,14 +3012,20 @@ done
 for term in \
     "lc_guard_find(stmt)" \
     "inst->has_lifecycle_guard_fact = true" \
+    "inst->lifecycle_receiver_name" \
     "MIR_LIFECYCLE_GUARD_CHECK"; do
     if ! grep -Fq "$term" src/compiler/mir_call_fact.c; then
         fail "MIR lowering must copy semantic lifecycle verdicts into MIR instruction facts: $term"
     fi
 done
 
+if ! grep -Fq "lifecycle guard is missing receiver fact" src/compiler/mir_fact_surface_validate.c; then
+    fail "MIR validator must fail closed when lifecycle guard receiver facts are missing"
+fi
+
 for term in \
     "mir_instruction_has_lifecycle_guard(inst)" \
+    "mir_instruction_lifecycle_receiver_name(inst)" \
     "mir_instruction_lifecycle_guard_kind(inst)" \
     "mir_instruction_lifecycle_to_state(inst)"; do
     if ! grep -Fq "$term" src/codegen/transpiler_mir_stmt_emit.c; then
@@ -3034,6 +3040,12 @@ if grep -R "lc_guard_find" src/codegen/llvm_mir_block_emit.c \
         src/codegen/llvm_mir_lifecycle_emit.c \
         src/codegen/transpiler_mir_stmt_emit.c >/dev/null 2>&1; then
     fail "MIR-active lifecycle guard emission must not reread semantic AST-node side tables"
+fi
+
+if grep -R "ast_call_callee\|ast_member_object\|ast_identifier_name" \
+        src/codegen/llvm_mir_lifecycle_emit.c \
+        src/codegen/transpiler_mir_stmt_emit.c >/dev/null 2>&1; then
+    fail "MIR-active lifecycle guard emission must consume receiver facts, not AST call payloads"
 fi
 
 if grep -R "lc_registry_" src/parser >/dev/null 2>&1 ||

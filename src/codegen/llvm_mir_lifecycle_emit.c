@@ -8,7 +8,6 @@
 #include "llvm_mir_lifecycle_emit.h"
 
 #include "llvm_internal_api.h"
-#include "../parser/ast_api.h"
 
 /* Emit the domain-lifecycle runtime guard carried by this MIR call fact
  * (doc/12 section 2.3). LC_GUARD_CHECK is the fail-closed ambiguous-state
@@ -16,28 +15,23 @@
  * to the initial index (absent == state 0) in the runtime side-map. */
 void
 llvm_mir_emit_lifecycle_guard(const MIRInstruction *inst,
-                              ASTNode *stmt,
                               LLVMGenCtx *ctx)
 {
-    ASTNode      *callee;
-    ASTNode      *obj;
+    const char   *receiver_name;
     LLVMVarEntry  entry;
     LLVMValueRef  recv_ptr;
     LLVMFuncEntry *fn;
 
-    if (!mir_instruction_has_lifecycle_guard(inst)
-        || stmt == NULL
-        || stmt->type != AST_CALL) {
+    if (!mir_instruction_has_lifecycle_guard(inst)) {
         return;
     }
-    callee = ast_call_callee(stmt);
-    obj = callee != NULL ? ast_member_object(callee) : NULL;
-    if (obj == NULL || obj->type != AST_IDENTIFIER)
+    receiver_name = mir_instruction_lifecycle_receiver_name(inst);
+    if (receiver_name == NULL || receiver_name[0] == '\0')
         return;
     /* The receiver local's own alloca is the stable per-instance key (the same
      * storage both the SET and CHECK on this variable resolve to), matching the
      * C backend keying on &<ssa-local>. */
-    if (!llvm_scope_lookup_snapshot(ctx, ast_identifier_name(obj), &entry)
+    if (!llvm_scope_lookup_snapshot(ctx, receiver_name, &entry)
         || entry.alloca == NULL)
         return;
     recv_ptr = LLVMBuildBitCast(ctx->builder, entry.alloca, ctx->type_i8ptr,
