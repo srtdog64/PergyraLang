@@ -14,14 +14,15 @@ it needs, per program:
   1. EFFECT INVENTORY      -- the named external operations/effects (not a count).
   2. CAPABILITY MASK       -- which PGY_CAP_* each effect/boundary requires.
   3. SLOT IDENTITY         -- each slot handle's identity + the ops on it.
-  4. AUTHORITY<->CAPABILITY -- which capabilities each authority participant holds.
+  4. AUTHORITY<->CONTRACT   -- which ability/contract each authority participant must hold.
 
-Today (2026-06-22) AIR carries NONE of these (it is an intent-topology + proof +
-erasure-attribution IR). So this gate is RED. It goes GREEN one tick at a time as
-future work plumbs each fact into AIR. When it is GREEN, re-run the projection by
-hand to confirm the bet survived (revised).
+As of 2026-06-22, AIR carries these fact families for the canonical capability
+fixtures (`effects`, `effects_by_op`, `slots`, and boundary
+`required_abilities`). The gate stays outside `test-all` as a falsification
+marker: when Python is available it proves the projection remains AIR-only, and
+any future regression turns the checklist RED.
 
-  RED  (exit 1) = the bet is still falsified; the checklist shows what is missing.
+  RED  (exit 1) = the AIR-only projection is incomplete or regressed.
   GREEN(exit 0) = AIR owns the capability-machine facts; the bet survived a round.
 
 This gate consumes ONLY `pgy --air-json` output. If it ever needs the AST, the
@@ -61,9 +62,9 @@ CHECKS = [
     ("slot_identity",
      "per-slot handle identity + its operation sites",
      lambda air: _has_slot_identity(air)),
-    ("authority_capability_binding",
-     "which capabilities each authority participant holds",
-     lambda air: _has_authority_capability_binding(air)),
+    ("authority_contract_binding",
+     "which ability/contract each authority participant must hold",
+     lambda air: _has_authority_contract_binding(air)),
 ]
 
 
@@ -123,7 +124,7 @@ def _has_slot_identity(air):
     return isinstance(air.get("slots"), list)
 
 
-def _has_authority_capability_binding(air):
+def _has_authority_contract_binding(air):
     # In Pergyra authority is CONTRACT-based (`authority hero requires Prepared`),
     # not PGY_CAP_*-based. So the honest binding a capability machine gates on is
     # the per-boundary required ability/contract. AIR now emits

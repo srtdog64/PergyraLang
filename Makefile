@@ -1778,18 +1778,19 @@ test-capability-runtime: $(PGY)
 	@echo "=== Sandbox Runtime-Enforcement Gate (C/LLVM parity) ==="
 	PGY_BIN="$(abspath $(PGY))" $(BASH) tests/capability/run_runtime_enforce.sh
 
-# Machine-neutral falsification marker (docs/semantics/18 Acceptance Rule, first
-# exercise). The capability-machine projection consumes AIR-only facts; it is RED
-# by design today (AIR is an intent-topology+proof+erasure IR, not an effect/
-# capability/slot layer). NOT in test-all -- it is a progress marker, not a
-# must-pass gate. Future work plumbs effect-inventory/capability-mask/slot-
-# identity/authority-capability into AIR, ticking each checklist row GREEN; when
-# it exits 0, the machine-neutral bet survived a falsification round and this can
-# be promoted into the must-pass set.
+# Machine-neutral falsification marker (docs/semantics/18 Acceptance Rule,
+# first exercise). The capability-machine projection consumes AIR-only facts:
+# effect inventory, per-op capability masks, slot identity, and authority
+# contract requirements. NOT in test-all -- it remains a progress marker until
+# the projection is promoted, but local RED must still fail this target.
 machine-neutral-status: $(PGY)
-	@echo "=== Machine-Neutral Projection Status (expected RED until AIR owns the facts) ==="
+	@echo "=== Machine-Neutral Projection Status (AIR-only fact projection marker) ==="
 	@{ command -v python3 >/dev/null 2>&1 && py=python3 || py=python; } ; \
-	"$$py" tests/machine_neutral/capability_projection_gate.py --pgy "$(abspath $(PGY))" || true
+	if command -v "$$py" >/dev/null 2>&1; then \
+		"$$py" tests/machine_neutral/capability_projection_gate.py --pgy "$(abspath $(PGY))"; \
+	else \
+		PGY_BIN="$(abspath $(PGY))" $(BASH) tests/machine_neutral/capability_projection_shell_gate.sh; \
+	fi
 
 # Source-level SoT guard: the budget charge for a metered kind must appear in
 # BOTH the C-inline and LLVM-export twin of each allocation path, or the backends

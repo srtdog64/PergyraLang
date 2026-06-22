@@ -139,6 +139,14 @@ air_boundary_authority_storage_valid(const AIRBoundaryNode *boundary)
             || boundary->authority_names != NULL);
 }
 
+bool
+air_boundary_required_ability_storage_valid(const AIRBoundaryNode *boundary)
+{
+    return boundary != NULL
+        && (boundary->required_ability_count == 0
+            || boundary->required_abilities != NULL);
+}
+
 size_t
 air_boundary_authority_name_count(const AIRBoundaryNode *boundary)
 {

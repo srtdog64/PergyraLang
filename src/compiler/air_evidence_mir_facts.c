@@ -269,9 +269,9 @@ air_mir_routine_slot_capability_retain_fact_count(const MIRRoutine *routine)
 /*
  * Collect slot-identity sites (the same SecureSlot/DeviceSlot ops the retain
  * count above tallies), so AIR owns slot identity (type + owning routine), not
- * just a count. Best-effort: on allocation failure it stops collecting; the
- * authoritative slot_capability_retain_count is unaffected. Strings are borrowed
- * from MIR, which outlives the AIR dump.
+ * just a count. Allocation failure is reported to the MIR evidence collector:
+ * slot identity is an AIR fact, not an optional dump adornment. Strings are
+ * borrowed from MIR, which outlives the AIR dump.
  */
 bool
 air_collect_slot_sites(AIRProgram *air, const MIRRoutine *routine,

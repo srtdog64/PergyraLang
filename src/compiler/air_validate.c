@@ -6,6 +6,8 @@
 
 #include "air_internal.h"
 
+#include "../runtime/pgy_runtime_capability.h"
+#include "../semantic/capability_analyze.h"
 #include "../semantic/diag_codes.h"
 
 #include <stdarg.h>
@@ -89,6 +91,127 @@ air_drift_kind_is_global(AIRDriftKind kind)
         || kind == AIR_DRIFT_DAG_DEAD_END_PRESENT;
 }
 
+static bool
+air_validate_slot_site_inventory(const AIRProgram *air,
+                                 char **error_message)
+{
+    if (air->slot_site_count > 0 && air->slot_sites == NULL) {
+        air_set_invariant_error(error_message,
+                                "AIR has slot site count without slot site array");
+        return false;
+    }
+    for (size_t i = 0; i < air_slot_site_count(air); i++) {
+        const AIRSlotSite *site = air_slot_site_at(air, i);
+        if (site == NULL) {
+            air_set_invariant_error(error_message,
+                                    "AIR slot site %zu is missing",
+                                    i);
+            return false;
+        }
+        if (air_name_is_empty(site->slot)) {
+            air_set_invariant_error(error_message,
+                                    "AIR slot site %zu has empty slot",
+                                    i);
+            return false;
+        }
+        if (air_name_is_empty(site->op)) {
+            air_set_invariant_error(error_message,
+                                    "AIR slot site %zu has empty op",
+                                    i);
+            return false;
+        }
+        if (air_name_is_empty(site->routine)) {
+            air_set_invariant_error(error_message,
+                                    "AIR slot site %zu has empty routine",
+                                    i);
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool
+air_validate_effect_site_inventory(const AIRProgram *air,
+                                   char **error_message)
+{
+    const uint32_t program_capabilities = air_program_capabilities(air);
+
+    if (air->effect_site_count > 0 && air->effect_sites == NULL) {
+        air_set_invariant_error(error_message,
+                                "AIR has effect site count without effect site array");
+        return false;
+    }
+    for (size_t i = 0; i < air_effect_site_count(air); i++) {
+        const AIREffectSite *site = air_effect_site_at(air, i);
+        const char *capability_name;
+
+        if (site == NULL) {
+            air_set_invariant_error(error_message,
+                                    "AIR effect site %zu is missing",
+                                    i);
+            return false;
+        }
+        if (air_name_is_empty(site->op)) {
+            air_set_invariant_error(error_message,
+                                    "AIR effect site %zu has empty op",
+                                    i);
+            return false;
+        }
+        if (air_name_is_empty(site->effect)) {
+            air_set_invariant_error(error_message,
+                                    "AIR effect site %zu has empty effect",
+                                    i);
+            return false;
+        }
+        if (air_name_is_empty(site->routine)) {
+            air_set_invariant_error(error_message,
+                                    "AIR effect site %zu has empty routine",
+                                    i);
+            return false;
+        }
+        if (site->cap == PGY_CAP_NONE || (site->cap & (site->cap - 1u)) != 0) {
+            air_set_invariant_error(error_message,
+                                    "AIR effect site %zu has invalid capability mask 0x%x",
+                                    i,
+                                    (unsigned)site->cap);
+            return false;
+        }
+        capability_name = capability_bit_name(site->cap);
+        if (capability_name == NULL) {
+            air_set_invariant_error(error_message,
+                                    "AIR effect site %zu has unknown capability mask 0x%x",
+                                    i,
+                                    (unsigned)site->cap);
+            return false;
+        }
+        if (!air_name_matches(site->effect, capability_name)) {
+            air_set_invariant_error(error_message,
+                                    "AIR effect site %zu name %s does not match capability %s",
+                                    i,
+                                    site->effect,
+                                    capability_name);
+            return false;
+        }
+        if ((program_capabilities & site->cap) != site->cap) {
+            air_set_invariant_error(
+                error_message,
+                "AIR effect site %zu capability %s is missing from program capability mask",
+                i,
+                capability_name);
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool
+air_validate_capability_machine(const AIRProgram *air,
+                                char **error_message)
+{
+    return air_validate_slot_site_inventory(air, error_message)
+        && air_validate_effect_site_inventory(air, error_message);
+}
+
 bool
 air_validate(const AIRProgram *air, char **error_message)
 {
@@ -118,6 +241,8 @@ air_validate(const AIRProgram *air, char **error_message)
             "AIR has propagation requirement count without requirement array");
         return false;
     }
+    if (!air_validate_capability_machine(air, error_message))
+        return false;
     for (size_t i = 0; i < air_intent_node_count(air); i++) {
         const AIRIntentNode *intent = air_intent_node_at(air, i);
         if (intent == NULL) {
@@ -242,6 +367,13 @@ air_validate(const AIRProgram *air, char **error_message)
                                     i);
             return false;
         }
+        if (!air_boundary_required_ability_storage_valid(boundary)) {
+            air_set_invariant_error(
+                error_message,
+                "AIR boundary node %zu has required ability count without abilities",
+                i);
+            return false;
+        }
         for (size_t j = 0;
              j < air_boundary_authority_name_count(boundary);
              j++) {
@@ -252,6 +384,20 @@ air_validate(const AIRProgram *air, char **error_message)
                                         "AIR boundary node %zu has empty authority name %zu",
                                         i,
                                         j);
+                return false;
+            }
+        }
+        for (size_t j = 0;
+             j < air_boundary_required_ability_count(boundary);
+             j++) {
+            const char *required_ability =
+                air_boundary_required_ability_at(boundary, j);
+            if (air_name_is_empty(required_ability)) {
+                air_set_invariant_error(
+                    error_message,
+                    "AIR boundary node %zu has empty required ability %zu",
+                    i,
+                    j);
                 return false;
             }
         }

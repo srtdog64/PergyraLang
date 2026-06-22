@@ -46,6 +46,218 @@ test_air_verify_rejects_invalid_drift_inventory(void)
 }
 
 static bool
+test_air_rejects_missing_slot_site_inventory(void)
+{
+    AIRProgram air = {
+        .slot_site_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_validate(&air, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "slot site count without slot site array") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_rejects_empty_slot_site_fact(void)
+{
+    AIRSlotSite slot_sites[] = {
+        {
+            .slot = "scores",
+            .op = "",
+            .routine = "ScoreIntent.pin_scores",
+        },
+    };
+    AIRProgram air = {
+        .slot_sites = slot_sites,
+        .slot_site_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_validate(&air, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "slot site 0 has empty op") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_rejects_missing_required_ability_inventory(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "Patrol",
+            .step_name = "guard",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_ZONE,
+            .owner_name = "Patrol",
+            .source_name = "BattleZone",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .required_ability_count = 1,
+        },
+    };
+    AIRProgram air = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_validate(&air, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "required ability count without abilities") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_rejects_empty_required_ability_fact(void)
+{
+    const char *required_abilities[] = { "" };
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "Patrol",
+            .step_name = "guard",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_ZONE,
+            .owner_name = "Patrol",
+            .source_name = "BattleZone",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .required_abilities = required_abilities,
+            .required_ability_count = 1,
+        },
+    };
+    AIRProgram air = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_validate(&air, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "empty required ability 0") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_rejects_missing_effect_site_inventory(void)
+{
+    AIRProgram air = {
+        .effect_site_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_validate(&air, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "effect site count without effect site array") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_rejects_effect_site_name_mask_mismatch(void)
+{
+    AIREffectSite effect_sites[] = {
+        {
+            .op = "Random",
+            .effect = "CLOCK",
+            .cap = PGY_CAP_RANDOM,
+            .routine = "Main",
+        },
+    };
+    AIRProgram air = {
+        .program_capabilities = PGY_CAP_RANDOM,
+        .effect_sites = effect_sites,
+        .effect_site_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_validate(&air, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "effect site 0 name CLOCK does not match capability RANDOM") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_rejects_effect_site_outside_program_capability_mask(void)
+{
+    AIREffectSite effect_sites[] = {
+        {
+            .op = "Random",
+            .effect = "RANDOM",
+            .cap = PGY_CAP_RANDOM,
+            .routine = "Main",
+        },
+    };
+    AIRProgram air = {
+        .effect_sites = effect_sites,
+        .effect_site_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_validate(&air, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error,
+                  "effect site 0 capability RANDOM is missing from program capability mask") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_validates_capability_machine_slot_effect_facts(void)
+{
+    AIRSlotSite slot_sites[] = {
+        {
+            .slot = "scores",
+            .op = "Read",
+            .routine = "ScoreIntent.pin_scores",
+        },
+    };
+    AIREffectSite effect_sites[] = {
+        {
+            .op = "Random",
+            .effect = "RANDOM",
+            .cap = PGY_CAP_RANDOM,
+            .routine = "Main",
+        },
+    };
+    AIRProgram air = {
+        .program_capabilities = PGY_CAP_RANDOM,
+        .slot_sites = slot_sites,
+        .slot_site_count = 1,
+        .effect_sites = effect_sites,
+        .effect_site_count = 1,
+    };
+    char *error = NULL;
+    bool ok = air_validate(&air, &error) && error == NULL;
+    free(error);
+    return ok;
+}
+
+static bool
 test_air_verify_rejects_duplicate_evidence_nodes(void)
 {
     AIREvidenceNode evidence_nodes[] = {

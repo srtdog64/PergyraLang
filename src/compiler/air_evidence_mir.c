@@ -64,9 +64,17 @@ air_collect_mir_evidence(AIRProgram *air,
         air->slot_capability_retain_count +=
             air_mir_routine_slot_capability_retain_fact_count(routine);
         /* ...and capture their identity sites so AIR owns slot identity. */
-        (void)air_collect_slot_sites(air, routine, routine_name);
+        if (!air_collect_slot_sites(air, routine, routine_name)) {
+            air_set_error(error_message,
+                          "AIR MIR evidence failed to collect slot identity sites");
+            return false;
+        }
         /* ...and the per-operation effect sites (gated builtin -> capability). */
-        (void)air_collect_effect_sites(air, routine, routine_name);
+        if (!air_collect_effect_sites(air, routine, routine_name)) {
+            air_set_error(error_message,
+                          "AIR MIR evidence failed to collect effect sites");
+            return false;
+        }
         size_t cleanup_fact_count = air_mir_routine_cleanup_fact_count(routine);
         size_t terminator_fact_count =
             air_mir_routine_terminator_fact_count(routine);

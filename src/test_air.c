@@ -11,6 +11,7 @@
 #include "compiler/air_internal.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
+#include "runtime/pgy_runtime_capability.h"
 #include "runtime/pgy_frontier_policy.h"
 #include "runtime/pgy_runtime_observability_schema.h"
 #include "semantic/semantic.h"
@@ -163,6 +164,30 @@ main(void)
 
     TEST("AIR verify rejects missing inventory arrays");
     EXPECT(test_air_verify_rejects_missing_inventory_arrays());
+
+    TEST("AIR rejects missing slot site inventory");
+    EXPECT(test_air_rejects_missing_slot_site_inventory());
+
+    TEST("AIR rejects empty slot site fact");
+    EXPECT(test_air_rejects_empty_slot_site_fact());
+
+    TEST("AIR rejects missing required ability inventory");
+    EXPECT(test_air_rejects_missing_required_ability_inventory());
+
+    TEST("AIR rejects empty required ability fact");
+    EXPECT(test_air_rejects_empty_required_ability_fact());
+
+    TEST("AIR rejects missing effect site inventory");
+    EXPECT(test_air_rejects_missing_effect_site_inventory());
+
+    TEST("AIR rejects effect site name/mask mismatch");
+    EXPECT(test_air_rejects_effect_site_name_mask_mismatch());
+
+    TEST("AIR rejects effect site outside program capability mask");
+    EXPECT(test_air_rejects_effect_site_outside_program_capability_mask());
+
+    TEST("AIR validates capability machine slot/effect facts");
+    EXPECT(test_air_validates_capability_machine_slot_effect_facts());
 
     TEST("AIR verify rejects boundary step mismatch");
     EXPECT(test_air_verify_rejects_boundary_step_mismatch());

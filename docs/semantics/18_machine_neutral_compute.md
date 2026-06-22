@@ -104,34 +104,27 @@ The Core Claim above is the target. It is not yet the implemented reality, and
 this section records the gap honestly so a future reader does not mistake the
 contract for the state.
 
-A falsification experiment funded the strongest-correspondence substrate — the
+A falsification experiment funded the strongest-correspondence substrate - the
 capability machine (row 5: slot handles, authority evidence, capability-gated
-effects) — and tried to project it from **AIR-only facts**. The result:
+effects) - and tried to project it from **AIR-only facts**. The result:
 
-- AIR today is an **intent-topology + proof-obligation + erasure-attribution**
-  IR. It owns: intent steps (as a *sequence*, not a dependency graph), zone/world
-  boundary topology, authority *participant names*, evidence-provenance, and A/B/C
-  erasure attribution.
-- AIR does **not** own the facts a capability machine needs: a named **effect
-  inventory** (only `*_count` integers exist), a **capability mask** per
-  effect/boundary (the `PGY_CAP_*` bits live in the semantic layer's
-  `program_capabilities` and are emitted by a *separate* `--capability-manifest`
-  pipeline; `grep program_capabilities src/compiler/air*.c` is empty), **slot
-  identity** (only `slot_capability_retain_count`, a bare integer), or the
-  **authority↔capability binding** (authority is a name, not a capability set).
-- Measured on three capability-machine fixtures (`03_secure_slot`,
-  `05_zone_intent`, `01_slot_provable_with`), all four facts are absent. The
-  canonical capability-machine program (`03_secure_slot`: a handle + token gating
-  every access) produces an AIR graph with zero boundaries and a cfg-terminator +
-  cleanup-block as its only evidence.
+- AIR is an **intent-topology + proof-obligation + erasure-attribution** IR. It
+  owns intent steps (as a *sequence*, not a dependency graph), zone/world
+  boundary topology, authority participant names, evidence provenance, A/B/C
+  erasure attribution, and the capability-machine projection surface.
+- AIR owns the facts a capability-machine projection needs: named `effects`,
+  per-operation `effects_by_op[].capability_mask`, slot identity through `slots`
+  rows carrying slot/op/routine, and authority contract requirements through
+  boundary `required_abilities`.
+- Measured on the capability-machine fixtures (`03_secure_slot`,
+  `05_zone_intent`, `01_slot_provable_with`, and `cap_random_demo`), these AIR
+  facts are present in `--air-json` and validated by AIR graph invariants.
 
-So "machine-neutral **fact ownership**" is, as of this date, aspirational at the
-*fact-content* level, not merely the backend level: the facts a non-CPU backend
-needs exist in the compiler but are **scattered across the semantic, MIR, and
-runtime layers with no single backend-neutral owner**. The intent axis also
-carries a CPU-sequential assumption (steps are a position-ordered array; there is
-no surface syntax for a partial order between steps), so the dataflow row (1) is
-likewise unowned, not just unbuilt.
+So machine-neutral **fact ownership** has moved from aspirational to partially
+owned by AIR for the capability-machine row. It is still not a backend claim:
+the intent axis can still carry a CPU-sequential assumption (steps are a
+position-ordered array; there is no surface syntax for a partial order between
+steps), so the dataflow row (1) remains separate work.
 
 ### The inheritance: a falsification gate, not a narrative
 
@@ -139,21 +132,20 @@ likewise unowned, not just unbuilt.
 `make machine-neutral-status`) is the first executable exercise of the Acceptance
 Rule below. It consumes only `--air-json` and reports a four-row checklist:
 
-```
-[TODO] effect_inventory              0/3 fixtures own it
-[TODO] capability_mask               0/3 fixtures own it
-[TODO] slot_identity                 0/3 fixtures own it
-[TODO] authority_capability_binding  0/3 fixtures own it
+```text
+[OK] effect_inventory
+[OK] capability_mask
+[OK] slot_identity
+[OK] authority_contract_binding
 ```
 
-It is **RED by design today**. The machine-neutral bet survives a falsification
-round only when this gate goes GREEN — i.e. when AIR actually owns those four
-facts and the capability-machine projection becomes a function of AIR alone. The
-work is to plumb each fact into AIR (e.g. flow `program_capabilities` into a
-boundary/effect `capability_mask`, materialise a named effect inventory and slot
-table), tick one checklist row at a time, and re-run the projection by hand to
-confirm. Until the gate is GREEN, no claim that "the current work is already
-machine-neutral fact ownership" is supported by the code.
+The gate remains a falsification marker rather than a must-pass CI target until
+at least one real machine-neutral projection consumes the facts. It still fails
+when run manually: Python runs the structured checker when available, and the
+shell fallback checks the load-bearing AIR JSON fields when Python is absent.
+Until a backend exists, "AIR owns the capability-machine facts" means the facts
+are present, validator-backed, and projectable from `--air-json`; it does not
+mean a production capability-machine backend exists.
 
 ## Out Of Scope
 

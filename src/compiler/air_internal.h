@@ -158,6 +158,8 @@ bool        air_boundary_declares_authority_name(
                 const char *authority_name);
 bool        air_boundary_authority_storage_valid(
                 const AIRBoundaryNode *boundary);
+bool        air_boundary_required_ability_storage_valid(
+                const AIRBoundaryNode *boundary);
 size_t      air_boundary_authority_name_count(
                 const AIRBoundaryNode *boundary);
 const char *air_boundary_authority_name_at(
