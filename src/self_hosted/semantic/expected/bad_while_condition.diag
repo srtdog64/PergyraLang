@@ -1,0 +1,11 @@
+Diagnostic: pgy.selfhost.semantic.v1
+Status: error
+Stage: semantic
+Severity: error
+Code: condition_not_bool
+Reason: branch condition must be Bool
+Fix: use a Bool expression for the condition
+Span: none
+Facts:
+- expected: Bool
+- actual: Int

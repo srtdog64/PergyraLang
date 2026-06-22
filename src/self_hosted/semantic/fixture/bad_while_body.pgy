@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let x: Int = 0;
+    while x < 3 {
+        let b: Bool = 1;
+    }
+}
