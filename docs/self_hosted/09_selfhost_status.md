@@ -113,7 +113,9 @@ subset.
   reconstructs match-case integer branch conditions from `match_patterns`
   facts rather than parsing the source compatibility text, and keeps the
   self-hosted codegen file helpers aligned with the runtime absolute-path
-  policy. The hard gate is now **63 positive fixtures plus 2 clean-reject fixtures** after
+  policy. It also classifies phi-bearing loop headers from CFG backedges rather
+  than phi presence alone, so nested `if` branches inside loops remain `If:`
+  nodes. The hard gate is now **64 positive fixtures plus 2 clean-reject fixtures** after
   promoting the already run-equivalent
   trailing-newline Log, nested string concat, string array concat, string
   case/index/trim builtin, string reassignment, two-log, while-break, and
@@ -121,8 +123,10 @@ subset.
   declaration/value flow. It also reconstructs break edges after non-empty
   statement blocks from CFG successor facts and consumes the MIR-owned
   `Random()` Int source-local type fact, the match-case integer pattern
-  condition surface, and the default absolute-path I/O rejection policy. The
-  coverage boundary is now measured at **63 PASS /
+  condition surface, the default absolute-path I/O rejection policy, and the
+  nested-if-in-loop regression surface that closed the measured `heap`
+  self-host via-run timeout. The
+  coverage boundary is now measured at **64 PASS /
   0 gap plus 2 clean rejects** across the committed MIR-lower/codegen fixture
   inventory. Unsupported ability/role declaration facts and destructure
   instruction facts are rejected by `mir_lower`, so out-of-subset

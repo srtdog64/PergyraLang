@@ -162,8 +162,10 @@ Int-field struct declarations/value flow, two-log, loop-control
 `continue`/`break` edge-block surfaces, and break edges after non-empty
 statement blocks, inferred `Random()` Int source-local facts, and match-case
 integer pattern conditions from `match_patterns` facts, plus runtime-aligned
-absolute-path I/O rejection. The committed MIR-lower/codegen fixture inventory
-is now measured at 63 PASS / 0 gap plus 2
+absolute-path I/O rejection. Phi-bearing loop headers are now classified by
+CFG backedges rather than phi presence alone, so nested `if` branches inside
+loops are not materialized as loops. The committed MIR-lower/codegen fixture inventory
+is now measured at 64 PASS / 0 gap plus 2
 clean rejects through this path. Ability/role unsupported declaration facts and
 destructure instruction facts are emitted and rejected before the self-host path
 can silently erase operator-overload semantics or emit undeclared destructure

@@ -471,6 +471,28 @@ func IsLoopAbrupt(id: String, loop_header: String, loop_exit: String) -> Bool {
     return false;
 }
 
+func BlockHasIncomingBackedge(json: String, bp: Int, span_end: Int, want: String) -> Bool {
+    if StringLength(want) == 0 {
+        return false;
+    }
+    let i: Int = ToInt(want) + 1;
+    while i < 1000 {
+        let id: String = ToString(i);
+        let o: Array<Int> = [0, 0];
+        if !BlockBounds(json, bp, span_end, id, o) {
+            return false;
+        }
+        if ReadSucc(json, o[0], o[1], "\"succ_true\":") == want {
+            return true;
+        }
+        if ReadSucc(json, o[0], o[1], "\"succ_false\":") == want {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
 // Emit the structured tree for blocks from `start` until reaching `stop`
 // (exclusive). Straight-line blocks emit their statements; a branch block emits
 // `If:/Then:/Else:` and recurses into the then/else regions, then continues from
@@ -508,7 +530,9 @@ func EmitRegion(json: String, routine_start: Int, bp: Int, span_end: Int,
             let t: String = ReadSucc(json, bs, be, "\"succ_true\":");
             let f: String = ReadSucc(json, bs, be, "\"succ_false\":");
             let isFor: Bool = StringLength(cond) >= 4 && Substring(cond, 0, 4) == "for ";
-            if BlockHasPhi(json, bs, be) || isFor {
+            let isLoop: Bool = isFor || (BlockHasPhi(json, bs, be)
+                && BlockHasIncomingBackedge(json, bp, span_end, cur));
+            if isLoop {
                 // Loop header: the body region (succ_true) flows back here, so we
                 // bound it by `cur` (this header); the loop exit is succ_false.
                 out = Concat(out, Concat(indent, Concat(LoopHeaderLine(cond), "\n")));

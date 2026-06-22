@@ -67,6 +67,23 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Loop headers are classified by CFG backedges, not phi alone
+
+- Closed the `heap` via-run timeout class in the examples-scale MIR JSON path.
+  The self-host `mir_lower` previously treated any branch block with phi facts
+  as a loop header; inner `if` branches inside loops can also carry phi facts
+  when they join reassigned locals, so they were reconstructed as `While:`
+  nodes and could hang the via binary.
+- `mir_lower` now requires an incoming successor backedge to the current block
+  before a phi-bearing branch is classified as a loop. `nested_if_in_loop.pgy`
+  locks the regression case into the hard MIR JSON gate: the inner break guard
+  must remain an `If:`, and `right < size` / `largest == cur` must not be
+  rendered as loops.
+- The hard MIR JSON gate now proves **64 positive fixtures plus 2 clean
+  rejects**. A direct `examples/heap.pgy` oracle-vs-self-host MIR path check
+  also passes (`pgy --mir-json | mir_lower | codegen | gcc == C oracle`) without
+  timeout.
+
 ### 2026-06-23 -- Destructure lowering fails closed instead of broken C
 
 - Closed the remaining generated-C failure class in the examples-scale MIR JSON

@@ -72,6 +72,7 @@ MIR_FIXTURES=(
     break_after_stmt
     random_inferred_let
     match_case_int
+    nested_if_in_loop
     ifelse
     nestedif
     reassign_block
@@ -232,6 +233,16 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
     if [[ "$base" == "match_case_int" ]] && ! grep -q 'If: x == 3' "$reast"; then
         echo "[self-host-parity:mir-json] match_case_int: mir_lower did not reconstruct match case conditions from MIR facts" >&2
         exit 1
+    fi
+    if [[ "$base" == "nested_if_in_loop" ]]; then
+        if grep -q 'While: (right < size)' "$reast" || grep -q 'While: (largest == cur)' "$reast"; then
+            echo "[self-host-parity:mir-json] nested_if_in_loop: mir_lower misclassified inner if branches as loops" >&2
+            exit 1
+        fi
+        if ! grep -q 'If: (largest == cur)' "$reast"; then
+            echo "[self-host-parity:mir-json] nested_if_in_loop: mir_lower did not preserve the inner break guard as if" >&2
+            exit 1
+        fi
     fi
     "$B/codegen.exe" "${reast#$ROOT_DIR/}" 2>/dev/null | tr -d '\r' > "$via_c" || true
     if grep -q '^CODEGEN ERROR' "$via_c"; then
