@@ -6,6 +6,7 @@
 #include "driver_scaffold.h"
 #include "driver_scaffold_internal.h"
 
+#include <ctype.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -54,11 +55,48 @@ scaffold_base_name_dup(const char *path)
         return NULL;
 
     slash = strrchr(path, '/');
+    const char *bslash = strrchr(path, '\\');
+    if (bslash != NULL && (slash == NULL || bslash > slash))
+        slash = bslash;
     if (slash != NULL && slash[1] != '\0')
         base = slash + 1;
     dot = strrchr(base, '.');
     len = (dot != NULL && dot > base) ? (size_t)(dot - base) : strlen(base);
     return pergyra_strndup(base, len);
+}
+
+char *
+scaffold_identifier_name_dup(const char *path)
+{
+    char *base = scaffold_base_name_dup(path);
+    char *identifier;
+    size_t base_len;
+    size_t prefix_len;
+    size_t out = 0;
+
+    if (base == NULL)
+        return NULL;
+    base_len = strlen(base);
+    prefix_len = (base_len == 0
+        || !(isalpha((unsigned char)base[0]) || base[0] == '_')) ? 4u : 0u;
+    identifier = malloc(prefix_len + base_len + 1);
+    if (identifier == NULL) {
+        free(base);
+        return NULL;
+    }
+    if (prefix_len != 0) {
+        memcpy(identifier, "Pgy_", prefix_len);
+        out = prefix_len;
+    }
+    for (size_t i = 0; i < base_len; i++) {
+        unsigned char ch = (unsigned char)base[i];
+        identifier[out++] = (isalnum(ch) || ch == '_') ? (char)ch : '_';
+    }
+    if (out == 0)
+        identifier[out++] = '_';
+    identifier[out] = '\0';
+    free(base);
+    return identifier;
 }
 
 int
@@ -188,7 +226,7 @@ static int
 scaffold_subject_file(const char *target)
 {
     char *path = scaffold_file_path_dup(target);
-    char *name = scaffold_base_name_dup(target);
+    char *name = scaffold_identifier_name_dup(target);
     char content[2048];
     int rc;
 
@@ -227,7 +265,7 @@ static int
 scaffold_class_file(const char *target)
 {
     char *path = scaffold_file_path_dup(target);
-    char *name = scaffold_base_name_dup(target);
+    char *name = scaffold_identifier_name_dup(target);
     char content[2048];
     int rc;
 
@@ -262,7 +300,7 @@ static int
 scaffold_vessel_file(const char *target)
 {
     char *path = scaffold_file_path_dup(target);
-    char *name = scaffold_base_name_dup(target);
+    char *name = scaffold_identifier_name_dup(target);
     char content[2048];
     int rc;
 
@@ -296,7 +334,7 @@ static int
 scaffold_object_file(const char *target)
 {
     char *path = scaffold_file_path_dup(target);
-    char *name = scaffold_base_name_dup(target);
+    char *name = scaffold_identifier_name_dup(target);
     char content[2048];
     int rc;
 
@@ -331,7 +369,7 @@ static int
 scaffold_dto_file(const char *target)
 {
     char *path = scaffold_file_path_dup(target);
-    char *name = scaffold_base_name_dup(target);
+    char *name = scaffold_identifier_name_dup(target);
     char content[1024];
     int rc;
 
@@ -361,7 +399,7 @@ static int
 scaffold_zone_file(const char *target)
 {
     char *path = scaffold_file_path_dup(target);
-    char *name = scaffold_base_name_dup(target);
+    char *name = scaffold_identifier_name_dup(target);
     char content[2048];
     int rc;
 
@@ -396,7 +434,7 @@ static int
 scaffold_world_file(const char *target)
 {
     char *path = scaffold_file_path_dup(target);
-    char *name = scaffold_base_name_dup(target);
+    char *name = scaffold_identifier_name_dup(target);
     char content[2048];
     int rc;
 

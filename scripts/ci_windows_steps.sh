@@ -6,6 +6,7 @@
 run 'make check-build-tools CC="$CI_WINDOWS_CC" LLVM_ENABLED=0'
 run 'make check-windows-toolchain'
 run 'make build-source-inventory-test-smoke'
+run 'make grammar-cheatsheet-contract-test-smoke'
 run 'make source-utf8-test-smoke'
 run 'make backend-fail-closed-test-smoke'
 run 'make worker-boundary-ub-test-smoke'

@@ -49,6 +49,8 @@ FIXTURES = [
      "value-slot Write/Read inside a `with slot` block"),
     ("tests/capability/cap_random_demo.pgy",
      "Random() -- a gated ambient effect, exercising per-operation effect->cap"),
+    ("tests/capability/cap_env_demo.pgy",
+     "Args() -- process-args fingerprinting, exercising ENV effect->cap"),
 ]
 
 # The four facts a capability-machine projection needs from AIR-only.

@@ -416,6 +416,11 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
         goto cleanup;
     }
 
+    if (flags->check_only) {
+        exit_code = 0;
+        goto cleanup;
+    }
+
     /* Dispatch to backend runner */
     driver_debug_stage(flags->backend == BACKEND_LLVM && !flags->emit_c_only
                        ? "backend_llvm"

@@ -7,6 +7,7 @@
 #define PGY_DRIVER_SCAFFOLD_INTERNAL_H
 
 char *scaffold_base_name_dup(const char *path);
+char *scaffold_identifier_name_dup(const char *path);
 int scaffold_mkdir_p(const char *path);
 int scaffold_write_file(const char *path, const char *content);
 

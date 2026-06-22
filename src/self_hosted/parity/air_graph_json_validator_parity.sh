@@ -39,9 +39,11 @@ PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/air
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator/expected/clean.json"
 FIXTURE_FILE="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator/fixture/sample.json"
+CAP_FIXTURE_FILE="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator/fixture/cap_env.json"
 AIR_SOURCE="$ROOT_DIR/tests/cases/backend_compare/intent_zone_binding/main.pgy"
+AIR_CAP_SOURCE="$ROOT_DIR/tests/capability/cap_env_demo.pgy"
 
-for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$FIXTURE_FILE" "$AIR_SOURCE"; do
+for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$FIXTURE_FILE" "$CAP_FIXTURE_FILE" "$AIR_SOURCE" "$AIR_CAP_SOURCE"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:air-graph-json] missing input: $path" >&2
         exit 1
@@ -85,9 +87,15 @@ SHELL_INTENTS="$(extract_int intent_count)"
 SHELL_BOUNDARIES="$(extract_int boundary_count)"
 SHELL_EVIDENCE="$(extract_int evidence_count)"
 SHELL_DRIFTS="$(extract_int drift_count)"
+SHELL_EFFECT_SITES="$( (grep -ho '"capability_mask":"0x[0-9a-fA-F]*"' "$FIXTURE_FILE" "$CAP_FIXTURE_FILE" || true) | wc -l | tr -d '[:space:]')"
+SHELL_ENV_EFFECT_SITES="$( (grep -ho '"op":"Args","effect":"ENV","capability_mask":"0x20"' "$CAP_FIXTURE_FILE" || true) | wc -l | tr -d '[:space:]')"
 
 if [[ -z "$SHELL_INTENTS" || -z "$SHELL_BOUNDARIES" || -z "$SHELL_EVIDENCE" || -z "$SHELL_DRIFTS" ]]; then
     echo "[self-host-parity:air-graph-json] shell grep ground truth missing from fixture" >&2
+    exit 1
+fi
+if [[ "$SHELL_ENV_EFFECT_SITES" -le 0 ]]; then
+    echo "[self-host-parity:air-graph-json] shell grep ground truth missing Args/ENV effect site" >&2
     exit 1
 fi
 
@@ -106,6 +114,14 @@ if ! grep -Fq "\"evidence\":${SHELL_EVIDENCE}," <<<"$PERGYRA_OUT"; then
 fi
 if ! grep -Fq "\"drifts\":${SHELL_DRIFTS}," <<<"$PERGYRA_OUT"; then
     echo "[self-host-parity:air-graph-json] counts.drifts parity FAIL (shell=${SHELL_DRIFTS})" >&2
+    exit 1
+fi
+if ! grep -Fq "\"effect_sites\":${SHELL_EFFECT_SITES}," <<<"$PERGYRA_OUT"; then
+    echo "[self-host-parity:air-graph-json] counts.effect_sites parity FAIL (shell=${SHELL_EFFECT_SITES})" >&2
+    exit 1
+fi
+if ! grep -Fq "\"env_effect_sites\":${SHELL_ENV_EFFECT_SITES}," <<<"$PERGYRA_OUT"; then
+    echo "[self-host-parity:air-graph-json] counts.env_effect_sites parity FAIL (shell=${SHELL_ENV_EFFECT_SITES})" >&2
     exit 1
 fi
 
@@ -131,10 +147,14 @@ cleanup_live_air() {
 }
 trap cleanup_live_air EXIT
 LIVE_AIR_JSON="$LIVE_AIR_JSON_DIR/live.json"
+LIVE_CAP_AIR_JSON="$LIVE_AIR_JSON_DIR/live_cap_env.json"
 set +e
 (cd "$ROOT_DIR" && "$PGY" --air-json "$(pgy_path_for_compiler "$PGY" "$AIR_SOURCE")" 2>/dev/null \
     | grep '^{' | head -n 1 > "$LIVE_AIR_JSON")
 LIVE_RC=$?
+(cd "$ROOT_DIR" && "$PGY" --air-json "$(pgy_path_for_compiler "$PGY" "$AIR_CAP_SOURCE")" 2>/dev/null \
+    | grep '^{' | head -n 1 > "$LIVE_CAP_AIR_JSON")
+LIVE_CAP_RC=$?
 set -e
 DRIFT_GUARD="skipped"
 if [[ "$LIVE_RC" -eq 0 && -s "$LIVE_AIR_JSON" ]]; then
@@ -165,6 +185,23 @@ if [[ "$LIVE_RC" -eq 0 && -s "$LIVE_AIR_JSON" ]]; then
         DRIFT_GUARD="ok"
     fi
 fi
+if [[ "$LIVE_CAP_RC" -eq 0 && -s "$LIVE_CAP_AIR_JSON" ]]; then
+    LIVE_CAP_NORM="$LIVE_CAP_AIR_JSON.norm"
+    CAP_FIXTURE_NORM="$LIVE_AIR_JSON_DIR/cap_fixture.norm"
+    tr -d '\r\n' < "$LIVE_CAP_AIR_JSON" > "$LIVE_CAP_NORM"
+    tr -d '\r\n' < "$CAP_FIXTURE_FILE" > "$CAP_FIXTURE_NORM"
+    if ! diff -q "$LIVE_CAP_NORM" "$CAP_FIXTURE_NORM" >/dev/null 2>&1; then
+        if [[ "${PGY_AIR_GRAPH_JSON_SKIP_DRIFT:-0}" == "1" ]]; then
+            DRIFT_GUARD="skipped-by-env"
+        else
+            echo "[self-host-parity:air-graph-json] committed cap_env fixture drifted from live pgy --air-json output" >&2
+            echo "regenerate via: pgy --air-json $AIR_CAP_SOURCE > $CAP_FIXTURE_FILE" >&2
+            exit 1
+        fi
+    elif [[ "$DRIFT_GUARD" != "skipped-by-env" ]]; then
+        DRIFT_GUARD="ok"
+    fi
+fi
 
 # Negative fixture - synthetic missing-key (strip top-level "summary":{...}).
 NEG_ROOT="$(mktemp -d "$SELFHOST_TMP_ROOT/pgy-selfhost-air-neg.XXXXXX")"
@@ -178,6 +215,8 @@ mkdir -p "$NEG_ROOT/.tmp"
 # Strip the "summary":{...}, segment - simple sed that matches the live shape.
 sed -E 's/"summary":\{[^}]*\},//' "$FIXTURE_FILE" \
     > "$NEG_ROOT/src/self_hosted/tools/air_graph_json_validator/fixture/sample.json"
+cp "$CAP_FIXTURE_FILE" \
+    "$NEG_ROOT/src/self_hosted/tools/air_graph_json_validator/fixture/cap_env.json"
 
 set +e
 NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL" --run 2>&1)"
@@ -200,4 +239,4 @@ if ! grep -Fq '"missing_keys":1' <<<"$NEG_OUT"; then
 fi
 
 assert_llvm_leg "self-host-parity:air-graph-json" "$PERGYRA_TOOL" "$PERGYRA_TOOL_BUILD_DIR"
-echo "[self-host-parity:air-graph-json] rung-2 parity ok (intents=$SHELL_INTENTS boundaries=$SHELL_BOUNDARIES evidence=$SHELL_EVIDENCE drifts=$SHELL_DRIFTS; missing-key rc=1; live-drift=$DRIFT_GUARD)"
+echo "[self-host-parity:air-graph-json] rung-2 parity ok (intents=$SHELL_INTENTS boundaries=$SHELL_BOUNDARIES evidence=$SHELL_EVIDENCE drifts=$SHELL_DRIFTS effect_sites=$SHELL_EFFECT_SITES env_effect_sites=$SHELL_ENV_EFFECT_SITES; missing-key rc=1; live-drift=$DRIFT_GUARD)"

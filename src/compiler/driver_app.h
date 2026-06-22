@@ -66,6 +66,7 @@ typedef struct
     bool        dump_mir_json;
     bool        dump_hir;
     HIRDumpMode hir_dump_mode;
+    bool        check_only;   /* Package/tooling command: validate through MIR/AIR without backend output. */
     bool        verbose;
     bool        repl;
     bool        emit_debug_lines;  /* --debug-lines: #line directives in C */

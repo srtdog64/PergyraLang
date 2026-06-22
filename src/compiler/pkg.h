@@ -1,13 +1,13 @@
 #ifndef PGY_PKG_H
 #define PGY_PKG_H
 
-/* pgy init — create pgy.toml manifest
- * pgy install — install dependencies (future)
+/* Seashell package command owner.
  *
- * Usage:
- *   pgy init                  → create pgy.toml in current dir
- *   pgy init <project-name>   → create pgy.toml with name
+ * pgy.toml is the source-of-truth for package entry discovery and backend
+ * choice. Effect, authority, capability, registry, and dependency solving
+ * surfaces remain fail-closed until their verifier/resolver owners exist.
  */
 int driver_run_pkg_init(int argc, char *argv[]);
+int driver_run_pkg_command(const char *verb, int argc, char *argv[]);
 
 #endif

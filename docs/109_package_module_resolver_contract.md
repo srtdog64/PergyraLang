@@ -3,8 +3,9 @@
 Status: beta-freeze-source-of-truth.
 
 This document freezes the beta surface for package and module loading. The goal
-is honest ecosystem readiness: local file modules and compiler-known stdlib
-modules are stable; package registry behavior is not.
+is honest ecosystem readiness: local file modules, compiler-known stdlib
+modules, and local manifest-driven package commands are stable; dependency
+solving and package registry behavior are not.
 
 Executable gate: `make package-module-resolver-test-smoke`.
 
@@ -22,39 +23,124 @@ Executable gate: `make package-module-resolver-test-smoke`.
 - Compiler-known stdlib modules use `use <module>;` and are frozen separately in
   `docs/108_stdlib_beta_freeze.md`.
 
-## Stable Package Surface
+## Seashell Manifest Surface
 
-Only manifest scaffolding is beta-stable:
+The local package/build/authority system is named **Seashell**. The CLI remains
+`pgy`; Seashell is not a second executable. `pgy.toml` stays a TOML-shaped
+human-authored declaration surface, but the beta accepts only the documented
+Seashell TOML subset. Unsupported TOML constructs fail closed instead of being
+silently ignored.
+Plain anchor: pgy.toml stays TOML.
+
+The source-of-truth chain is:
+
+```text
+pgy.toml (Seashell TOML-subset declaration)
+  -> Seashell manifest graph
+  -> pgy.lock deterministic package graph
+  -> AIR/MIR effect, authority, capability, and ABI owner facts
+```
+
+TOML must not become a semantic shortcut. Backends consume owner facts, not raw manifest text.
+The Seashell schema marker makes this explicit:
 
 ```toml
+[seashell]
+schema = "pgy.seashell.v1"
+format = "toml-subset"
+```
+
+## Stable Package Surface
+
+The beta package owner is local and deterministic. `pgy.toml` is the
+source-of-truth for entry discovery and backend choice. Effect, authority, and
+capability sections are reserved verifier declarations; in beta they must be
+empty until their dedicated AIR/MIR checker owner consumes them:
+
+```toml
+[seashell]
+schema = "pgy.seashell.v1"
+format = "toml-subset"
+
 [package]
 name = "my-project"
 version = "0.1.0"
 pergyra = "1.0"
-entry = "main.pgy"
+edition = "2026"
+
+[targets.app]
+main = "main.pgy"
+
+[targets.test]
+main = "main.pgy"
 
 [dependencies]
+# Dependency version solving is out-of-beta; use file imports for now.
 
 [dev-dependencies]
+
+[effects]
+requires = []
+
+[authority]
+requires = []
+
+[capabilities]
+allow = []
+deny = []
+
+[build]
+backend = "c"
+deterministic = true
 ```
 
-`pgy init <name>` creates this manifest and a `main.pgy` entry file when absent.
+Supported Seashell v1 rules:
+
+- `[seashell].schema` must be exactly `pgy.seashell.v1`.
+- `[seashell].format` must be exactly `toml-subset`.
+- `[build].backend` is a scalar string (`"c"` or `"llvm"`), not an array.
+- Target paths must be forward-slash relative paths inside the package root.
+- Unknown sections, unknown keys, duplicate sections, and duplicate keys fail
+  closed.
+- Non-empty `[effects]`, `[authority]`, or `[capabilities]` declarations fail
+  closed until the verifier owner consumes those declarations as AIR/MIR facts.
+- If `pgy.lock` exists, package commands verify it against `pgy.toml`; drift is
+  rejected until `pgy package` refreshes the deterministic package graph.
+
+Stable local commands:
+
+- `pgy init <name>` creates `pgy.toml`, `pgy.lock`, and a `main.pgy` entry file
+  when absent.
+- `pgy new <project-dir>` creates a starter project plus `pgy.toml` and
+  `pgy.lock`.
+- `pgy check` validates the package through AIR/MIR without backend output.
+- `pgy build` compiles the package entry.
+- `pgy run` compiles and runs the package entry.
+- `pgy test` compiles and runs `[targets.test].main` when present, otherwise the
+  app entry.
+- `pgy fmt --check|--write` checks or formats the package entry.
+- `pgy lint` is the package verifier preflight: manifest load + AIR/MIR check.
+- `pgy prove` is an evidence preflight, not a theorem. It proves only that the
+  current package surface reaches the verifier boundary.
+- `pgy package` writes the deterministic local `pgy.lock` artifact.
 
 ## Explicitly Out Of Beta
 
 - `pgy install`.
 - Dependency version solving.
-- Lockfile format.
 - Registry publishing or download.
 - Package checksums, signatures, trust roots, and supply-chain integrity.
 - remote imports and remote module imports.
 - Logical `pgy.*` import syntax.
 - SemVer compatibility enforcement for dependencies.
+- Native Pergyra manifest DSL. Seashell uses TOML until the self-hosted parser
+  and manifest graph are strong enough to justify a Pergyra-native surface.
 
 ## Diagnostics Contract
 
 - Missing file imports fail in `module_load`.
 - Circular imports fail in `module_load` and mention `circular import detected`.
 - Source-level package installation fails before normal compile argument parsing
-  with `pgy install: package resolution and registry install are out-of-beta`.
+  with `pgy install: dependency version solving and registry install are out-of-beta`.
+- `pgy publish` fails before registry I/O and points to `pgy package`.
 - JSON diagnostics for module-load failures must remain parseable arrays.

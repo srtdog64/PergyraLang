@@ -123,7 +123,7 @@ and follow-up debt over older design notes.
 | [`language_module_manifest.json`](language_module_manifest.json) | Machine-readable module taxonomy |
 | [`language_module_cases.json`](language_module_cases.json) | Module-layer case manifest |
 | [`108_stdlib_beta_freeze.md`](108_stdlib_beta_freeze.md) | Stdlib beta freeze list |
-| [`109_package_module_resolver_contract.md`](109_package_module_resolver_contract.md) | Package/module resolver beta contract |
+| [`109_package_module_resolver_contract.md`](109_package_module_resolver_contract.md) | Seashell package/module resolver contract: `pgy.toml` remains a fail-closed TOML subset while `pgy.seashell.v1` owns local package/build declaration |
 | [`29_stdlib_design.md`](29_stdlib_design.md) | Stdlib design |
 | [`67_layered_stdlib_and_domain_kits.md`](67_layered_stdlib_and_domain_kits.md) | Layered stdlib and domain kit policy |
 

@@ -54,6 +54,7 @@ tmp_dir="$(mktemp -d "${tmp_base%/}/pgy-machine-neutral.XXXXXX")"
 trap 'rm -rf "$tmp_dir"' EXIT
 
 random_out="$tmp_dir/cap_random_demo.air"
+env_out="$tmp_dir/cap_env_demo.air"
 slot_out="$tmp_dir/secure_slot.air"
 authority_out="$tmp_dir/zone_intent.air"
 
@@ -63,6 +64,13 @@ require_air_term "tests/capability/cap_random_demo.pgy" \
 require_air_term "tests/capability/cap_random_demo.pgy" \
     '"effects_by_op":[{"op":"Random","effect":"RANDOM","capability_mask":"0x10","routine":"Main"}]' \
     "per-op capability mask" "$random_out"
+
+run_air "tests/capability/cap_env_demo.pgy" "$env_out"
+require_air_term "tests/capability/cap_env_demo.pgy" \
+    '"effects":["ENV"]' "ENV effect inventory" "$env_out"
+require_air_term "tests/capability/cap_env_demo.pgy" \
+    '"effects_by_op":[{"op":"Args","effect":"ENV","capability_mask":"0x20","routine":"Main"}]' \
+    "ENV per-op capability mask" "$env_out"
 
 run_air "tests/air_erasure/fixtures/03_secure_slot.pgy" "$slot_out"
 require_air_term "tests/air_erasure/fixtures/03_secure_slot.pgy" \

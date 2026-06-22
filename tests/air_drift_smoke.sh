@@ -107,6 +107,7 @@ run_literal_air_drift_smoke() {
     require_literal "Makefile" "capability_projection_shell_gate.sh"
     require_literal "tests/machine_neutral/capability_projection_shell_gate.sh" "[machine-neutral-shell] GREEN"
     require_literal "tests/machine_neutral/capability_projection_shell_gate.sh" '"effects_by_op":[{"op":"Random","effect":"RANDOM","capability_mask":"0x10","routine":"Main"}]'
+    require_literal "tests/machine_neutral/capability_projection_shell_gate.sh" '"effects_by_op":[{"op":"Args","effect":"ENV","capability_mask":"0x20","routine":"Main"}]'
     require_literal "tests/machine_neutral/capability_projection_shell_gate.sh" '"required_abilities":["Prepared"]'
     require_literal "src/compiler/air_evidence_mir_pin.c" "AIR_EVIDENCE_MIR_PIN_CLEANUP"
     require_literal "src/compiler/air_evidence_mir_facts.c" "air_mir_cleanup_evidence_kind"

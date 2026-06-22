@@ -62,6 +62,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         if (!check_call_arity(call, 0, "Args", ctx))
             return TYPE_UNKNOWN;
         semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
+        semantic_record_capability(ctx, PGY_CAP_ENV);
         return type_create_constructed(TYPE_ARRAY, args, 1);
     }
     case BUILTIN_LOG:

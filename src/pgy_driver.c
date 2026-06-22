@@ -180,16 +180,22 @@ int
 main(int argc, char *argv[])
 {
     if (argc >= 2) {
-        if (strcmp(argv[1], "fmt") == 0)
+        if (strcmp(argv[1], "fmt") == 0 && argc > 2 && argv[2][0] != '-')
             return driver_run_fmt_command(argc - 1, argv + 1);
+        if (strcmp(argv[1], "fmt") == 0)
+            return driver_run_pkg_command("fmt", argc - 2, argv + 2);
         if (strcmp(argv[1], "init") == 0)
             return driver_run_pkg_init(argc - 2, argv + 2);
-        if (strcmp(argv[1], "install") == 0) {
-            fprintf(stderr,
-                "pgy install: package resolution and registry install are out-of-beta. "
-                "Use file imports and compiler-known `use` modules for the beta surface.\n");
-            return 1;
-        }
+        if (strcmp(argv[1], "check") == 0
+            || strcmp(argv[1], "build") == 0
+            || strcmp(argv[1], "run") == 0
+            || strcmp(argv[1], "test") == 0
+            || strcmp(argv[1], "lint") == 0
+            || strcmp(argv[1], "prove") == 0
+            || strcmp(argv[1], "package") == 0
+            || strcmp(argv[1], "publish") == 0
+            || strcmp(argv[1], "install") == 0)
+            return driver_run_pkg_command(argv[1], argc - 2, argv + 2);
         if (strcmp(argv[1], "debug") == 0)
             return driver_run_debug_command(argc - 1, argv + 1);
         if (strcmp(argv[1], "scaffold") == 0)

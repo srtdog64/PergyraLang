@@ -42,9 +42,34 @@ func ExtractIntField(content: String, field: String) -> Int {
     return ToInt(num_str);
 }
 
+func CountSubstring(content: String, needle: String) -> Int {
+    let count: Int = 0;
+    let rest: String = content;
+    let needle_len: Int = StringLength(needle);
+    if needle_len <= 0 {
+        return 0;
+    }
+    while true {
+        let idx: Int = StringIndexOf(rest, needle);
+        if idx < 0 {
+            return count;
+        }
+        count = count + 1;
+        let next: Int = idx + needle_len;
+        let rest_len: Int = StringLength(rest);
+        if next >= rest_len {
+            return count;
+        }
+        rest = Substring(rest, next, rest_len - next);
+    }
+    return count;
+}
+
 func RequiredKeys() -> Array<String> {
     let keys: Array<String> = [
         "\"schema\":",
+        "\"capabilities\":",
+        "\"effects_by_op\":",
         "\"summary\":",
         "\"intents\":",
         "\"boundaries\":",
@@ -52,6 +77,18 @@ func RequiredKeys() -> Array<String> {
         "\"drifts\":",
         "\"compression_budget\":",
         "\"compression_reason\":"
+    ];
+    return keys;
+}
+
+func RequiredCapabilityTraceKeys() -> Array<String> {
+    let keys: Array<String> = [
+        "\"schema\":",
+        "\"capabilities\":",
+        "\"effects_by_op\":",
+        "\"summary\":",
+        "\"evidence\":",
+        "\"drifts\":"
     ];
     return keys;
 }
@@ -70,32 +107,56 @@ func CountMissingKeys(content: String, keys: Array<String>) -> Int {
     return missing;
 }
 
-func MissingKeyFinding(key: String) -> String {
+func MissingKeyFinding(key: String, location: String) -> String {
     let parts: Array<String> = [
         "{\"kind\":\"missing_key\",\"key\":\"",
         key,
-        "\",\"location\":\"src/self_hosted/tools/air_graph_json_validator/fixture/sample.json\"}"
+        "\",\"location\":\"",
+        location,
+        "\"}"
     ];
     return StringJoin(parts, "");
 }
 
-func SchemaMismatchFinding(actual: String) -> String {
+func SchemaMismatchFinding(actual: String, location: String) -> String {
     let parts: Array<String> = [
         "{\"kind\":\"schema_mismatch\",\"key\":\"",
         actual,
-        "\",\"location\":\"src/self_hosted/tools/air_graph_json_validator/fixture/sample.json\"}"
+        "\",\"location\":\"",
+        location,
+        "\"}"
     ];
     return StringJoin(parts, "");
 }
 
-func BuildMissingKeyFindings(content: String, keys: Array<String>) -> String {
+func EnvEffectFinding(location: String) -> String {
+    let parts: Array<String> = [
+        "{\"kind\":\"missing_effect_site\",\"key\":\"Args:ENV:0x20\",",
+        "\"location\":\"",
+        location,
+        "\"}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func AppendFinding(findings: String, entry: String) -> String {
+    if StringLength(entry) == 0 {
+        return findings;
+    }
+    if StringLength(findings) == 0 {
+        return entry;
+    }
+    return Concat(Concat(findings, ","), entry);
+}
+
+func BuildMissingKeyFindings(content: String, keys: Array<String>, location: String) -> String {
     let pieces: Array<String> = [];
     let i: Int = 0;
     let n: Int = ArrayLength(keys);
     while i < n {
         let key: String = keys[i];
         if !StringContains(content, key) {
-            ArrayPush(pieces, MissingKeyFinding(key));
+            ArrayPush(pieces, MissingKeyFinding(key, location));
         }
         i = i + 1;
     }
@@ -112,7 +173,8 @@ func InputErrorJson(path: String) -> String {
         "\"source\":{\"input_schema\":\"pgy.air.graph.v1\",\"fixture_owner\":\"",
         path,
         "\"},\"counts\":{\"intents\":0,\"boundaries\":0,\"evidence\":0,",
-        "\"drifts\":0,\"missing_keys\":0},",
+        "\"drifts\":0,\"effect_sites\":0,\"env_effect_sites\":0,",
+        "\"missing_keys\":0},",
         "\"findings\":[{\"kind\":\"input_error\",\"key\":\"",
         path,
         "\",\"location\":\"",
@@ -124,34 +186,54 @@ func InputErrorJson(path: String) -> String {
 
 func Main() -> Void {
     let fixture_path: String = "src/self_hosted/tools/air_graph_json_validator/fixture/sample.json";
+    let cap_fixture_path: String = "src/self_hosted/tools/air_graph_json_validator/fixture/cap_env.json";
     if !FileExists(fixture_path) {
         Log(InputErrorJson(fixture_path));
         Exit(1);
     }
+    if !FileExists(cap_fixture_path) {
+        Log(InputErrorJson(cap_fixture_path));
+        Exit(1);
+    }
 
     let content: String = ReadFile(fixture_path);
+    let cap_content: String = ReadFile(cap_fixture_path);
     let keys: Array<String> = RequiredKeys();
-    let missing_keys: Int = CountMissingKeys(content, keys);
-    let missing_findings: String = BuildMissingKeyFindings(content, keys);
+    let cap_keys: Array<String> = RequiredCapabilityTraceKeys();
+    let missing_keys: Int = CountMissingKeys(content, keys) + CountMissingKeys(cap_content, cap_keys);
+    let missing_findings: String = AppendFinding(
+        BuildMissingKeyFindings(content, keys, fixture_path),
+        BuildMissingKeyFindings(cap_content, cap_keys, cap_fixture_path));
 
     let schema_ok: Bool = HasExpectedSchema(content);
+    let cap_schema_ok: Bool = HasExpectedSchema(cap_content);
     let intents: Int = ExtractIntField(content, "intent_count");
     let boundaries: Int = ExtractIntField(content, "boundary_count");
     let evidence: Int = ExtractIntField(content, "evidence_count");
     let drifts: Int = ExtractIntField(content, "drift_count");
+    let effect_sites: Int = CountSubstring(content, "\"capability_mask\":\"0x")
+        + CountSubstring(cap_content, "\"capability_mask\":\"0x");
+    let env_effect_sites: Int = CountSubstring(
+        cap_content,
+        "\"op\":\"Args\",\"effect\":\"ENV\",\"capability_mask\":\"0x20\"");
 
     let findings: String = missing_findings;
     if !schema_ok {
-        let entry: String = SchemaMismatchFinding("schema-field-absent-or-wrong");
-        if StringLength(findings) == 0 {
-            findings = entry;
-        } else {
-            findings = Concat(Concat(findings, ","), entry);
-        }
+        findings = AppendFinding(
+            findings,
+            SchemaMismatchFinding("schema-field-absent-or-wrong", fixture_path));
+    }
+    if !cap_schema_ok {
+        findings = AppendFinding(
+            findings,
+            SchemaMismatchFinding("schema-field-absent-or-wrong", cap_fixture_path));
+    }
+    if env_effect_sites <= 0 {
+        findings = AppendFinding(findings, EnvEffectFinding(cap_fixture_path));
     }
 
     let ok_text: String = "true";
-    if missing_keys > 0 || !schema_ok {
+    if missing_keys > 0 || !schema_ok || !cap_schema_ok || env_effect_sites <= 0 {
         ok_text = "false";
     }
 
@@ -168,6 +250,10 @@ func Main() -> Void {
         ToString(evidence),
         ",\"drifts\":",
         ToString(drifts),
+        ",\"effect_sites\":",
+        ToString(effect_sites),
+        ",\"env_effect_sites\":",
+        ToString(env_effect_sites),
         ",\"missing_keys\":",
         ToString(missing_keys),
         "},\"findings\":[",
@@ -176,7 +262,7 @@ func Main() -> Void {
     ];
     Log(StringJoin(json_parts, ""));
 
-    if missing_keys > 0 || !schema_ok {
+    if missing_keys > 0 || !schema_ok || !cap_schema_ok || env_effect_sites <= 0 {
         Exit(1);
     }
 }

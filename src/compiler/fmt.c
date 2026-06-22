@@ -85,7 +85,10 @@ format_source_to_stream(const char *source, FILE *out)
             if (ctx.at_line_start) fmt_indent(&ctx);
             else if (fmt_token_needs_space(prev, tok))
                 fprintf(out, " ");
-            fprintf(out, "\"%s\"", tok.text ? tok.text : "");
+            if (tok.text != NULL && tok.text[0] == '"')
+                fprintf(out, "%s", tok.text);
+            else
+                fprintf(out, "\"%s\"", tok.text ? tok.text : "");
             break;
         case TOKEN_COMMA:
             fprintf(out, ",");
