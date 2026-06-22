@@ -124,7 +124,7 @@ ACTIVE means it is on the critical path and still in progress.
 | 2 | Collections + iteration | READY | stdlib_surface_smoke, stage4_determinism_smoke | List/Set/HashMap have stable scalar key forms (String, Int, Long, Bool); MapKeys and SetValues order are locked; compiler-facing symbol/record/handle-like keys are normalized to canonical scalar IDs rather than raw aggregate keys |
 | 3 | String/path/Unicode policy | READY | unicode_policy_smoke, source_utf8_smoke, memory_string_safety_smoke, filesystem_directory_walk_smoke | stable comparison, normalization, and deterministic directory snapshot stance gated |
 | 4 | Arena/ownership ergonomics | READY | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke | `Allocator` is a single C/LLVM-backed value surface, `BoxArray` can consume a named allocator local, scratch/result/persistent lane constructors carry distinct runtime kinds, and `AllocatorDestroy(namedAllocator)` closes explicit pass-lane cleanup on C and LLVM |
-| 5 | CFG/MIR body as SoT | READY | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity, self-host-mir-json-parity-test-smoke | non_cfg fallback locked at 0; source_ast and source_decl are ratcheted at codegen 0 / compiler 0; residual STMT source-payload emission and raw source-statement re-dispatch are retired; select and match condition/body-binding/remap emission consume MIR branch facts; resource matching uses source-index/location/anchor facts; C/LLVM destructure binding/initializer emission, C/LLVM assignment emission, LLVM source-local resource LET emission, C source-local LET/DEF/receive paths, MIR surface validation, public-surface scalar provenance seeding, and lifecycle MIR JSON source-text emission consume MIR/source-shape facts; self-hosted `mir_lower` consumes explicit MIR JSON facts for the supported CFG subset and is ratcheted against transitional `"ast"` compatibility reads |
+| 5 | CFG/MIR body as SoT | READY | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity, self-host-mir-json-parity-test-smoke | non_cfg fallback locked at 0; source_ast and source_decl are ratcheted at codegen 0 / compiler 0; residual STMT source-payload emission and raw source-statement re-dispatch are retired; select and match condition/body-binding/remap emission consume MIR branch facts; resource matching uses source-index/location/anchor facts; C/LLVM destructure binding/initializer emission, C/LLVM assignment emission, LLVM source-local resource LET emission, C source-local LET/DEF/receive paths, MIR surface validation, public-surface scalar provenance seeding, and lifecycle MIR JSON source-text emission consume MIR/source-shape facts; self-hosted `mir_lower` consumes explicit MIR JSON facts for the supported CFG plus selected codegen fixture subset and is ratcheted against transitional `"ast"` compatibility reads |
 | 6 | AIR as verifier | READY | air_json_schema_smoke, air_drift_smoke, air_backend_nonimpact_smoke | pgy.air.graph.v1 evidence export gated; drift count enforced at 0 |
 | 7 | DAG type resolution SoT | READY | type_resolution_dag_smoke, type_resolution_resolver_inventory_smoke | recursive resolver compat path retired; metadata_dead_ends enforced at 0 |
 | 8 | Scoped unsafe/raw escape | READY | raw_escape_contract_smoke | unsafe is scoped and capability-bound; raw pointers gated out of domain code |
@@ -151,10 +151,12 @@ backend emission facts. C source-local LET DEF emission, generic DEF expression
 emission, receive-payload type inference, MIR surface validation, and
 public-surface scalar provenance seeding and lifecycle MIR JSON source-text
 emission are also MIR/source-shape owned. The self-hosted checker proves the
-same manifest. `mir_lower` now reconstructs the supported parity subset from
-`expr0`/`expr1`/`source_type`/`source_locals` facts only, including `for`
-headers from `arg0` plus range bounds; `self-host-mir-json-parity-test-smoke`
-rejects reintroducing transitional `"ast"` reads.
+same manifest. `mir_lower` now reconstructs the supported 30-fixture parity
+subset from `expr0`/`expr1`/`source_type`/`source_locals` facts only, including
+`for` headers from `arg0` plus range bounds and selected
+args/array/string/Bool/Float/file/recursion surfaces;
+`self-host-mir-json-parity-test-smoke` rejects reintroducing transitional
+`"ast"` reads.
 Capability 4 is
 closed for the current compiler-pass
 substrate: named allocator lanes can be constructed, consumed by

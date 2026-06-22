@@ -67,6 +67,19 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-22 -- MIR JSON hard rung widened to 30 fixtures
+
+- Promoted already passing codegen fixture surfaces into the MIR JSON parity
+  gate without changing `mir_lower` semantics. This keeps the move honest: only
+  programs that already reconstruct from explicit MIR facts and run-equal to the
+  C oracle are counted.
+- The hard gate now covers 9 original `mir_lower` fixtures plus 21 selected
+  codegen fixtures: args, arrays, Bool/string/Float builtins, concat/equality,
+  recursion, `continue`, mixed int/string output, and file handle/read/write.
+- Verified with `PGY_BIN=/mnt/e/PergyraLang/bin-codex-hard-full/pgy.exe bash
+  src/self_hosted/parity/mir_json_parity.sh`: **30/30 MIR JSON -> self-hosted
+  lowering -> self-hosted codegen -> native run** equal to the C backend oracle.
+
 ### 2026-06-22 -- parser examples scale closed to oracle skip
 
 - Extended the self-host parser text-mirror coverage for domain syntax that was

@@ -3,7 +3,9 @@
 #
 # Proves that the Pergyra-origin MIR -> C lowering is run-equivalent to the C
 # backend on the supported subset -- linear code, function signatures, and
-# CFG-structured control flow (if/else, nested if, while, for):
+# CFG-structured control flow (if/else, nested if, while, for), plus selected
+# codegen fixture surfaces that already lower from MIR facts without reading
+# transitional AST text:
 #
 #   pgy --mir-json fixture.pgy            (MIR JSON facts)
 #     | mir_lower   (Pergyra: MIR-JSON facts -> reconstructed --ast tree)
@@ -44,6 +46,7 @@ fi
 MIR_LOWER_SRC="$ROOT_DIR/src/self_hosted/mir_lower/main.pgy"
 CODEGEN_SRC="$ROOT_DIR/src/self_hosted/codegen/main.pgy"
 FIXTURE_DIR="$ROOT_DIR/src/self_hosted/mir_lower/fixture"
+CODEGEN_FIXTURE_DIR="$ROOT_DIR/src/self_hosted/codegen/fixture"
 B="$ROOT_DIR/.tmp/self_hosted/mir_lower/parity"
 mkdir -p "$B"
 
@@ -59,7 +62,7 @@ fi
 (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$CODEGEN_SRC")" \
     --backend=c -o "$(pgy_path_for_compiler "$PGY" "$B/codegen.exe")" >/dev/null)
 
-FIXTURES=(
+MIR_FIXTURES=(
     let_log
     multilet
     arith
@@ -71,9 +74,37 @@ FIXTURES=(
     forloop
 )
 
+CODEGEN_FIXTURES=(
+    args_probe
+    array_max
+    array_param
+    array_push
+    array_sum
+    bool_logic
+    concat
+    else_if_chain
+    file_handle
+    float_math
+    for_continue
+    func_recursive
+    io_probe
+    mixed_int_str
+    nested_ctrl
+    str_array
+    str_array_push
+    str_builtins
+    string_concat_op
+    string_equality
+    write_file
+)
+
 pass=0
-for base in "${FIXTURES[@]}"; do
+for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
+    base="$fixture_entry"
     src="$FIXTURE_DIR/$base.pgy"
+    if [[ ! -f "$src" ]]; then
+        src="$CODEGEN_FIXTURE_DIR/$base.pgy"
+    fi
     if [[ ! -f "$src" ]]; then
         echo "[self-host-parity:mir-json] missing fixture: $src" >&2
         exit 1
