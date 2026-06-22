@@ -177,6 +177,7 @@ FIXTURES=(
     write_file
     log_trailing_newline
     file_handle
+    io_absolute_policy
     float_math
 )
 

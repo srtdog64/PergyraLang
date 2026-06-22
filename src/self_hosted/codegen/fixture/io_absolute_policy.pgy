@@ -1,0 +1,12 @@
+func Main() -> Void {
+    WriteFile("/tmp/pgy_selfhost_abs_policy.txt", "alpha");
+    Log(ReadFile("/tmp/pgy_selfhost_abs_policy.txt"));
+
+    let fd: Int = FileOpen("/tmp/pgy_selfhost_abs_handle.txt", "w");
+    FileWrite(fd, "beta\n");
+    FileClose(fd);
+
+    let rd: Int = FileOpen("/tmp/pgy_selfhost_abs_handle.txt", "r");
+    Log(FileRead(rd));
+    FileClose(rd);
+}

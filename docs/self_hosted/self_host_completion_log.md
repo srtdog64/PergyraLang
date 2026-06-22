@@ -67,6 +67,22 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Self-host codegen I/O path policy matches runtime default
+
+- Closed the last measured examples-scale STDOUT-diff (`io_test`). The C
+  runtime denies absolute file paths by default unless `PGY_IO_ALLOW_ABSOLUTE=1`;
+  the self-hosted codegen helpers previously used raw `fopen`, so they allowed
+  `/tmp/...` and produced different output.
+- Added `pgy_path_allowed(...)` to the self-hosted generated helper surface and
+  routed `FileOpen`, `FileExists`, `ReadFile`, and `WriteFile` through it.
+  Added `io_absolute_policy.pgy` to the codegen and MIR JSON gates. Codegen
+  parity is now **49 fixtures**; MIR JSON parity is now **63 positive fixtures
+  plus 1 clean reject**.
+- Refreshed the examples-scale survey: 48 PASS, 39 CODEGEN-gap, 19
+  MIR-LOWER-gap, 13 ORACLE-skip, 1 CC-fail (`string_utils`), and 1 via-run
+  timeout (`heap`). There are now **0 measured STDOUT-diff cases** in the
+  examples-scale MIR JSON self-host path.
+
 ### 2026-06-23 -- Match-case pattern facts promoted into MIR JSON lowering
 
 - Closed the `match_test` silent-output class for the self-host MIR JSON path.

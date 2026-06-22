@@ -93,6 +93,7 @@ CODEGEN_FIXTURES=(
     else_if_chain
     exit_guard
     file_handle
+    io_absolute_policy
     float_math
     for_each
     for_continue

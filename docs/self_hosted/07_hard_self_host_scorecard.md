@@ -161,8 +161,9 @@ case/index/trim builtins, string reassignment, array pop, array for-each,
 Int-field struct declarations/value flow, two-log, loop-control
 `continue`/`break` edge-block surfaces, and break edges after non-empty
 statement blocks, inferred `Random()` Int source-local facts, and match-case
-integer pattern conditions from `match_patterns` facts. The committed
-MIR-lower/codegen fixture inventory is now measured at 62 PASS / 0 gap plus 1
+integer pattern conditions from `match_patterns` facts, plus runtime-aligned
+absolute-path I/O rejection. The committed MIR-lower/codegen fixture inventory
+is now measured at 63 PASS / 0 gap plus 1
 clean reject through this path. Ability/role unsupported declaration facts are
 emitted and rejected before the self-host path can silently erase
 operator-overload semantics;

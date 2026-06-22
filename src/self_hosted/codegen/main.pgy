@@ -1783,12 +1783,25 @@ func GenerateC(ast: String) -> String {
         header = Concat(header, "static long long pgy_random(long long n)\n{\n");
         header = Concat(header, "    return n > 0 ? (long long)(rand() % n) : 0;\n}\n\n");
     }
+    if uses_io || uses_fhandle {
+        // Mirror the runtime path-policy default: absolute paths are denied
+        // unless PGY_IO_ALLOW_ABSOLUTE=1 is present.
+        header = Concat(header, "static int pgy_path_allowed(const char *path)\n{\n");
+        header = Concat(header, "    if (path == NULL || path[0] == '\\0') { return 0; }\n");
+        header = Concat(header, "    int drive = ((path[0] >= 'A' && path[0] <= 'Z') || (path[0] >= 'a' && path[0] <= 'z')) && path[1] == ':';\n");
+        header = Concat(header, "    int absolute = path[0] == '/' || path[0] == '\\\\' || drive;\n");
+        header = Concat(header, "    if (!absolute) { return 1; }\n");
+        header = Concat(header, "    const char *allow = getenv(\"PGY_IO_ALLOW_ABSOLUTE\");\n");
+        header = Concat(header, "    return allow != NULL && allow[0] == '1' && allow[1] == '\\0';\n");
+        header = Concat(header, "}\n\n");
+    }
     if uses_fhandle {
         // File-handle API: an int handle indexes a small static FILE* table.
         // FileOpen returns -1 on failure; FileRead returns one line (with its
         // trailing newline) or "" at EOF. Self-contained (no string.h).
         header = Concat(header, "static FILE *pgy_fh[256];\nstatic long long pgy_fh_n = 0;\n");
         header = Concat(header, "static long long pgy_fopen(const char *path, const char *mode)\n{\n");
+        header = Concat(header, "    if (!pgy_path_allowed(path)) { return -1; }\n");
         header = Concat(header, "    FILE *f = fopen(path, mode);\n    if (!f) { return -1; }\n");
         header = Concat(header, "    if (pgy_fh_n >= 256) { fclose(f); return -1; }\n");
         header = Concat(header, "    pgy_fh[pgy_fh_n] = f;\n    return pgy_fh_n++;\n}\n\n");
@@ -1920,9 +1933,11 @@ func GenerateC(ast: String) -> String {
     }
     if uses_io {
         header = Concat(header, "static int pgy_fexists(const char *path)\n{\n");
+        header = Concat(header, "    if (!pgy_path_allowed(path)) { return 0; }\n");
         header = Concat(header, "    FILE *f = fopen(path, \"rb\");\n");
         header = Concat(header, "    if (f) { fclose(f); return 1; }\n    return 0;\n}\n\n");
         header = Concat(header, "static char *pgy_readfile(const char *path)\n{\n");
+        header = Concat(header, "    if (!pgy_path_allowed(path)) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
         header = Concat(header, "    FILE *f = fopen(path, \"rb\");\n");
         header = Concat(header, "    if (!f) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
         header = Concat(header, "    fseek(f, 0, SEEK_END);\n    long sz = ftell(f);\n    fseek(f, 0, SEEK_SET);\n");
@@ -1931,6 +1946,7 @@ func GenerateC(ast: String) -> String {
         header = Concat(header, "    size_t rd = fread(buf, 1, (size_t)sz, f);\n");
         header = Concat(header, "    buf[rd] = '\\0';\n    fclose(f);\n    return buf;\n}\n\n");
         header = Concat(header, "static int pgy_writefile(const char *path, const char *content)\n{\n");
+        header = Concat(header, "    if (!pgy_path_allowed(path)) { return 0; }\n");
         header = Concat(header, "    FILE *f = fopen(path, \"wb\");\n");
         header = Concat(header, "    if (!f) { return 0; }\n");
         header = Concat(header, "    size_t n = strlen(content);\n");
