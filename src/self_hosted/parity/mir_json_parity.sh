@@ -70,6 +70,7 @@ MIR_FIXTURES=(
     funcparam
     ifelse
     nestedif
+    reassign_block
     whileloop
     forloop
 )

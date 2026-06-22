@@ -736,6 +736,55 @@ func RewriteQualifiedCalls(e: String) -> String {
     return out;
 }
 
+func RewriteBoolLiterals(e: String) -> String {
+    let n: Int = StringLength(e);
+    let out: String = "";
+    let i: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(e, i);
+        if in_str {
+            out = Concat(out, c);
+            if c == "\\" && i + 1 < n {
+                out = Concat(out, CharAt(e, i + 1));
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            out = Concat(out, c);
+            i = i + 1;
+            continue;
+        }
+        let prev_ok: Bool = i == 0 || !IsIdentChar(CharAt(e, i - 1));
+        if prev_ok && i + 4 <= n && Substring(e, i, 4) == "true" {
+            let next_true_ok: Bool = i + 4 == n || !IsIdentChar(CharAt(e, i + 4));
+            if next_true_ok {
+                out = Concat(out, "1");
+                i = i + 4;
+                continue;
+            }
+        }
+        if prev_ok && i + 5 <= n && Substring(e, i, 5) == "false" {
+            let next_false_ok: Bool = i + 5 == n || !IsIdentChar(CharAt(e, i + 5));
+            if next_false_ok {
+                out = Concat(out, "0");
+                i = i + 5;
+                continue;
+            }
+        }
+        out = Concat(out, c);
+        i = i + 1;
+    }
+    return out;
+}
+
 func RewriteTokens(e: String, env: String) -> String {
     let q: String = RewriteQualifiedCalls(e);
     let a: String = RewriteArrayLengthEnv(q, env);
@@ -774,7 +823,7 @@ func RewriteTokens(e: String, env: String) -> String {
     let p: String = ReplaceAllOutsideStrings(jn, "ToString(", "pgy_tostr(");
     // `Concat(a, b)` -> `pgy_concat(a, b)` is a pure name rewrite (same args),
     // so it lowers recursively and inside arbitrary call arguments.
-    return ReplaceAllOutsideStrings(p, "Concat(", "pgy_concat(");
+    return RewriteBoolLiterals(ReplaceAllOutsideStrings(p, "Concat(", "pgy_concat("));
 }
 
 // Emit a C integer-valued (or boolean) expression from the AST's parenthesized

@@ -67,6 +67,18 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-22 -- Bool literal canonicalization promoted into MIR JSON gate
+
+- Closed the next measured `mir_json_coverage_probe.sh` gap:
+  `reassign_block` reconstructed `If: true` from MIR facts, but the self-hosted
+  codegen emitted C `if (true)` without a `stdbool.h` contract. The codegen now
+  canonicalizes standalone `true`/`false` tokens outside strings/identifiers to
+  C truth values `1`/`0`.
+- Added `src/self_hosted/mir_lower/fixture/reassign_block.pgy` to the hard MIR
+  JSON parity gate, moving the gate from 30 to **31 fixtures**.
+- Verified the coverage probe now reports `reassign_block PASS`; the gated MIR
+  JSON parity path remains `pgy --mir-json | mir_lower | codegen == C oracle`.
+
 ### 2026-06-22 -- MIR JSON hard rung widened to 30 fixtures
 
 - Promoted already passing codegen fixture surfaces into the MIR JSON parity

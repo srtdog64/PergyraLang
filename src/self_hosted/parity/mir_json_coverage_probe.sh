@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # MIR-JSON self-host coverage probe (companion to mir_json_parity.sh).
 #
-# The parity gate proves the 4 committed fixtures pass the self-host lowering
+# The parity gate proves the committed fixture set passes the self-host lowering
 # path (pgy --mir-json | mir_lower | codegen | gcc == C oracle). This probe maps
 # the BOUNDARY of that path: it runs a spread of language constructs through the
 # same pipeline and reports, per construct, exactly where it stands --
