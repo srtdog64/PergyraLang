@@ -4,7 +4,7 @@
 # coverage probe — not a parity gate. Output is a count summary plus
 # lists of matching and failing files. Read-only beyond source.txt.
 
-set -uo pipefail
+set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
@@ -26,10 +26,15 @@ PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 SOURCE_OVERRIDE="$ROOT_DIR/src/self_hosted/parser/fixture/source.txt"
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
+rm -f "$PERGYRA_TOOL_BUILD_DIR/main.exe"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
 
 echo "[scale-probe] compiling parser..."
 (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")" -o "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_BUILD_DIR/main.exe")" >/dev/null)
+if [[ ! -x "$PERGYRA_TOOL_BUILD_DIR/main.exe" ]]; then
+    echo "[scale-probe] parser compile did not produce $PERGYRA_TOOL_BUILD_DIR/main.exe" >&2
+    exit 1
+fi
 
 cleanup() { rm -f "$SOURCE_OVERRIDE"; }
 trap cleanup EXIT
@@ -49,16 +54,20 @@ for src in "$ROOT_DIR"/examples/*.pgy; do
 
     printf '%s' "$rel" > "$SOURCE_OVERRIDE"
 
+    set +e
     LIVE="$(cd "$ROOT_DIR" && "$PGY" --ast "$rel" 2>/dev/null)"
     LIVE_RC=$?
+    set -e
     if [[ "$LIVE_RC" -ne 0 || -z "$LIVE" ]]; then
         C_SKIP=$((C_SKIP + 1))
         continue
     fi
 
+    set +e
     PERGYRA="$(cd "$ROOT_DIR" && "$PERGYRA_TOOL_BUILD_DIR/main.exe" 2>/dev/null \
         | tr -d '\r')"
     P_RC=$?
+    set -e
     if [[ "$P_RC" -ne 0 ]]; then
         P_FAIL=$((P_FAIL + 1))
         FAIL_LIST+=("$rel (pergyra exit $P_RC)")

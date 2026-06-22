@@ -1511,6 +1511,7 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
     let within_zone: String = within_zone_arg;
     let causes_effect: String = "";
     let auth_by: String = "";
+    let constraint_clause: String = "";
     
     while true {
         i = SkipWhitespaceAndComments(content, i);
@@ -1595,11 +1596,13 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
             }
         }
         if MatchKeyword(content, i, "where") {
+            let where_start: Int = i;
             i = i + 5;
             let n_content: Int = StringLength(content);
             while i < n_content && CharAt(content, i) != "{" && CharAt(content, i) != ";" {
                 i = i + 1;
             }
+            constraint_clause = StringTrim(Substring(content, where_start, i - where_start));
             continue;
         }
         break;
@@ -1628,6 +1631,9 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
     let block: String = Concat(header_prefix, Concat(label_text, Concat(name_prefix, fn_name)));
     if StringLength(generic_params) > 0 {
         block = AppendLine(block, Concat(IndentStr(base_indent + 2), Concat("Generic params: ", generic_params)));
+    }
+    if StringLength(constraint_clause) > 0 {
+        block = AppendLine(block, Concat(IndentStr(base_indent + 2), Concat("Constraints: ", constraint_clause)));
     }
     block = AppendLine(block, Concat(IndentStr(base_indent + 2), "Parameters:"));
     let p_len: Int = ArrayLength(param_lines);
@@ -2851,6 +2857,9 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
                         }
                     }
                     let step_header: String = Concat("    IntentStep: ", step_name);
+                    if StringLength(s_intent) > 0 {
+                        step_header = Concat(step_header, Concat(" intent ", s_intent));
+                    }
                     if StringLength(s_where) > 0 {
                         step_header = Concat(step_header, Concat(" where ", s_where));
                     }
@@ -2879,6 +2888,12 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
                     if StringLength(s_compensate) > 0 {
                         step_out = AppendLine(step_out, Concat("      Compensate: ", s_compensate));
                     }
+                    if StringLength(s_guard) > 0 {
+                        step_out = AppendLine(step_out, Concat("      Guard: ", s_guard));
+                    }
+                    if StringLength(s_post) > 0 {
+                        step_out = AppendLine(step_out, Concat("      Post: ", s_post));
+                    }
                     if StringLength(s_requires) > 0 {
                         step_out = AppendLine(step_out, Concat("      Requires: ", s_requires));
                     }
@@ -2887,12 +2902,6 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
                     }
                     if StringLength(s_causes) > 0 {
                         step_out = AppendLine(step_out, Concat("      Causes: ", s_causes));
-                    }
-                    if StringLength(s_guard) > 0 {
-                        step_out = AppendLine(step_out, Concat("      Guard: ", s_guard));
-                    }
-                    if StringLength(s_post) > 0 {
-                        step_out = AppendLine(step_out, Concat("      Post: ", s_post));
                     }
                     if StringLength(s_expect) > 0 {
                         step_out = AppendLine(step_out, Concat("      Expect: ", s_expect));

@@ -82,6 +82,12 @@ Peripheral tools under `src/self_hosted/tools/` remain useful dogfood, but they
 do not count as compiler-internal substitution unless they replace a compiler
 stage or pass.
 
+Coverage probes may be broader than the hard rung. A probe can be cited as
+progress only if it compiles its self-hosted tool from source, fails closed when
+that compile does not produce a runnable tool, and cannot reuse a stale generated
+binary. The parser scale probe is coverage evidence only; the hard parser rung
+remains the committed C/LLVM byte-parity fixture gate.
+
 ## Promotion Ladder
 
 Each candidate moves through this ladder:
