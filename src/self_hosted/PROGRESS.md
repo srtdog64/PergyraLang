@@ -5,9 +5,18 @@ The number that matters is *how much of the C/LLVM compiler has been
 substituted by Pergyra-written equivalents* -- not how many peripheral
 audit tools exist.
 
-Last updated: 2026-06-18
+Last updated: 2026-06-22
 
 ## Headline Number
+
+**Hard self-host contract (2026-06-22):** hard self-host is now gated as
+staged substitution rather than tracked as a separate cleanup project. The
+contract lives in `docs/self_hosted/10_hard_self_host_contract.md`, and
+`tests/self_host_hard_contract_smoke.sh` keeps the docs, Makefile wiring, active
+hard rungs, C oracle, LLVM oracle, bridge/fallback split, codegen bootstrap, and
+MIR JSON fact-only lowering aligned. The substitution percentage below is
+unchanged by that contract gate; future percentage increases require a Pergyra
+implementation to replace a real compiler stage/pass beside the C/LLVM oracle.
 
 **Compiler-internal substitution: ~4.04% LOC-scale** (10,299 Pergyra LOC vs 254,742
 C LOC across `src/lexer/`, `src/parser/`, `src/semantic/`, `src/codegen/`,

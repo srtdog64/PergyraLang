@@ -14,7 +14,8 @@ Exit criteria:
 - ABI ownership and Slot/Pin contracts are frozen.
 - Dogfood WebGL bridge is proven through C backend output, not core language surface.
 
-No self-host migration starts before this stage exits.
+No hard substitution rung is promoted before this stage exits and the matching
+oracle gate is green.
 
 ## Stage 1 - Soft Self-Host
 
@@ -60,11 +61,16 @@ Parser/type checker/backend migration is still not automatic at this stage.
 
 ## Stage 4 - Hard Self-Host
 
-Hard self-host is allowed only when:
+Hard self-host is active as staged substitution, not as a full compiler fork.
+A rung is allowed only when:
 
 - generated artifacts are deterministic,
 - tooling can debug Pergyra-written compiler code,
 - module/package resolver is stable,
 - FFI and scoped unsafe raw-escape contracts are stable; plain `unsafe { ... }`
   must not grant raw/system-tier escape,
-- C compiler parity remains available as a reference.
+- C compiler parity remains available as a reference,
+- LLVM parity remains available as the second oracle where enabled,
+- SoT closure is a pass condition: missing MIR/AIR/DAG/ABI facts are fixed at
+  the owner or rejected with structured diagnostics, not hidden behind a
+  compatibility fallback.

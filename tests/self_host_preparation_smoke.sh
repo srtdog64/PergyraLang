@@ -36,6 +36,7 @@ required_files=(
     "docs/self_hosted/03_tool_candidates.md"
     "docs/self_hosted/04_beta_exit_handoff.md"
     "docs/self_hosted/05_compiler_core_gap_analysis.md"
+    "docs/self_hosted/10_hard_self_host_contract.md"
     "docs/125_source_of_truth_spine.md"
     "docs/INDEX.md"
     "TODO.md"
@@ -101,7 +102,7 @@ done
 
 agent_terms=(
     "Do not start a full compiler rewrite before beta closure."
-    "Keep the C compiler as the oracle during soft and partial self-hosting."
+    "Keep the C compiler as the oracle during soft, partial, and hard substitution work."
     "Every self-hosted component must have an intent-verification pair"
     "The smallest acceptable unit is:"
     "one parity check against the C implementation."
@@ -115,6 +116,7 @@ roadmap_terms=(
     "Partial Self-Host"
     "Hard self-host"
     "metadata dead-end"
+    "SoT closure is a pass condition"
 )
 for term in "${roadmap_terms[@]}"; do
     require_text "docs/self_hosted/01_staged_roadmap.md" "$term"
@@ -136,14 +138,17 @@ for term in "${tool_terms[@]}"; do
 done
 
 require_text "docs/self_hosted/README.md" "05_compiler_core_gap_analysis.md"
+require_text "docs/self_hosted/README.md" "10_hard_self_host_contract.md"
 require_text "docs/self_hosted/README.md" "src/self_hosted/"
 require_text "docs/INDEX.md" "self_hosted/05_compiler_core_gap_analysis.md"
+require_text "docs/INDEX.md" "self_hosted/10_hard_self_host_contract.md"
 require_text "docs/125_source_of_truth_spine.md" "docs/self_hosted/05_compiler_core_gap_analysis.md"
 require_text "TODO.md" "Self-host preparation guard"
 
 require_text "src/self_hosted/README.md" "This directory is not the compiler core."
 require_text "src/self_hosted/README.md" "A tool that does not yet pass this contract is a *scaffold*"
 require_text "src/self_hosted/PROGRESS.md" "Compiler-internal substitution"
+require_text "src/self_hosted/PROGRESS.md" "Hard self-host contract"
 require_text "src/self_hosted/PROGRESS.md" "Peripheral Audit Tools (Not Counted In Coverage)"
 require_text "src/self_hosted/PROGRESS.md" "Do **not** add peripheral audit tools to the substitution percentage."
 require_text "src/self_hosted/PROGRESS.md" "not yet a self-hosted compiler AST model"

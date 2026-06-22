@@ -6,7 +6,7 @@ This document is for future agents working on self-hosting.
 
 1. Do not start a full compiler rewrite before beta closure.
 2. Do not claim Pergyra is self-hosted until a released compiler is built by Pergyra code.
-3. Keep the C compiler as the oracle during soft and partial self-hosting.
+3. Keep the C compiler as the oracle during soft, partial, and hard substitution work.
 4. Every self-hosted component must have an intent-verification pair: a named intent plus tests/contracts that verify it.
 5. Prefer stable file/IR inputs over direct compiler internals for first-stage
    tools. Use JSON when the owner format is JSON; use diagnostic blocks for
@@ -41,8 +41,10 @@ This document is for future agents working on self-hosting.
 
 ## Current Truth
 
-The implementation is C with C and LLVM backends. Pergyra can dogfood through
-small tools after beta, but the compiler core is not self-hosted.
+The implementation is still released as C with C and LLVM backends. Hard
+self-hosting is active only as staged substitution rungs under
+`src/self_hosted/`: Pergyra code may replace a bounded tool or pass only after
+its parity gate agrees with the C oracle and, when available, the LLVM oracle.
 
 ## Agent Work Unit
 
@@ -64,10 +66,18 @@ Do not migrate broad compiler subsystems as one task.
 - C/LLVM backend output comparator.
 - Module/package manifest resolver helper.
 
+## Active Hard Tasks
+
+- Broaden the self-hosted codegen rungs only through C/LLVM parity fixtures.
+- Broaden `mir_lower` only by adding explicit MIR JSON facts and verifier
+  checks; do not read transitional AST text to recover semantic meaning.
+- Broaden semantic substitution only through diagnostic-block parity against
+  the C accept/reject oracle.
+
 ## Forbidden First Tasks
 
-- Rewriting the parser.
-- Rewriting the type checker.
-- Rewriting C or LLVM backend emission.
+- Rewriting the full parser as a one-shot replacement.
+- Rewriting the full type checker as a one-shot replacement.
+- Rewriting C or LLVM backend emission as a one-shot replacement.
 - Adding new syntax only to make self-hosting easier.
 - Depending on native WASM, quantum, or Rust-style lifetime annotations.

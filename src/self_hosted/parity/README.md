@@ -1,4 +1,4 @@
-# Soft Self-Host Parity Harness
+# Self-Host Parity Harness
 
 Status: thirteen rung-2 peripheral harnesses, five rung-1 AIR graph consumer
 harnesses, one Pergyra-origin fuzz generator harness, plus lexer/parser rung-1,
@@ -9,6 +9,12 @@ substitutes. The C compiler and existing shell/C smokes remain the source of
 truth until a Pergyra-written component can run and produce deterministic output
 that agrees with the C oracle. JSON is used when the owned format is JSON;
 semantic verdicts use diagnostic blocks, and codegen rungs use run-stdout.
+
+Hard substitution rungs are parity gates promoted to pass conditions: failure
+means the Pergyra substitute, the C oracle surface, or the LLVM oracle leg has a
+real source-of-truth problem to close. Bridge scripts may compare artifacts, but
+the Pergyra code must not recover hidden semantic facts by parsing older source
+payloads.
 
 The parity set currently covers:
 

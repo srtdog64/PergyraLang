@@ -1,11 +1,12 @@
-# `src/self_hosted/` -- Soft Self-Host Track
+# `src/self_hosted/` -- Self-Hosted Substitution Track
 
 This directory holds **Pergyra-language implementations** of
-compiler-adjacent tools. It is the working surface for Stage 1 (soft
-self-host) and Stage 2 (partial self-host) of the staged roadmap.
+compiler-adjacent tools and staged compiler-pass substitutes. It is the working
+surface for soft self-host tools, partial self-host validators, and hard
+substitution rungs that have C/LLVM oracle parity.
 
 **This directory is not the compiler core.** The C implementation under
-`src/` remains the oracle for soft and partial self-host. See
+`src/` remains the oracle for soft, partial, and hard substitution. See
 [docs/self_hosted/01_staged_roadmap.md](../../docs/self_hosted/01_staged_roadmap.md).
 
 ## Entry Contract
@@ -134,7 +135,7 @@ src/self_hosted/
 ## Non-Negotiable Rules
 
 1. Do not start a full compiler rewrite from this directory.
-2. The C compiler remains the oracle during soft/partial self-host.
+2. The C compiler remains the oracle during soft, partial, and hard substitution.
 3. Prefer stable file/IR inputs over direct compiler internals. Use JSON when
    the owner format is JSON; use diagnostic blocks for diagnostic verdicts.
 4. A tool ships only when its parity check passes the C oracle.

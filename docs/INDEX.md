@@ -38,6 +38,7 @@ and follow-up debt over older design notes.
 | [`self_hosted/04_beta_exit_handoff.md`](self_hosted/04_beta_exit_handoff.md) | Exact beta-exit artifacts required before self-host migration starts |
 | [`self_hosted/05_compiler_core_gap_analysis.md`](self_hosted/05_compiler_core_gap_analysis.md) | Hard self-host gap analysis and substrate entry criteria |
 | [`self_hosted/06_self_host_groundwork_readiness.md`](self_hosted/06_self_host_groundwork_readiness.md) | Self-host substrate readiness and first AIR graph consumer slice |
+| [`self_hosted/10_hard_self_host_contract.md`](self_hosted/10_hard_self_host_contract.md) | Active hard self-host substitution contract and SoT pass condition |
 
 ## Historical Snapshots
 

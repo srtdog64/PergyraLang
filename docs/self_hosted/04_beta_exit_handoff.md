@@ -36,17 +36,18 @@ Self-host preparation may begin after all of these are true:
 - A dogfood path exists through emitted C and at least one compiler-adjacent
   tool candidate has a concrete input/output contract.
 
-## Current Handoff Judgement (2026-06-13)
+## Current Handoff Judgement (2026-06-22)
 
-Soft/partial self-host preparation may continue after the current smoke gates
-pass. The allowed scope is compiler-adjacent tooling, stable JSON or dump
-validators, lexer/parser parity expansion, and tri-compare evidence that keeps
-C and LLVM as the expected-value pair.
+Hard self-host has started as staged substitution after the substrate gates
+became ready. The allowed scope is still narrow: compiler-adjacent tooling,
+stable JSON or dump validators, lexer/parser parity expansion, semantic/codegen
+rungs, MIR JSON fact-only lowering, and tri-compare evidence that keeps C and
+LLVM as the expected-value pair.
 
-Hard compiler-core migration remains blocked. Do not rewrite the parser, type
-checker, MIR lowering, C backend, LLVM backend, or runtime until the stable
-subset has current beta-closure evidence and the C/LLVM oracle pair is green or
-explicitly unsupported for every frozen support-matrix row.
+Broad compiler-core migration remains blocked. Do not replace the full parser,
+type checker, MIR lowering, C backend, LLVM backend, or runtime in one jump.
+Every hard rung must stay beside the C compiler oracle and the LLVM oracle when
+enabled.
 
 ## First Work Package
 
@@ -80,7 +81,7 @@ Required shape:
 
 ## Forbidden At Handoff
 
-Do not start with:
+Do not start with a broad replacement of:
 
 - parser rewrite;
 - type checker rewrite;
@@ -90,13 +91,12 @@ Do not start with:
 - runtime replacement;
 - new syntax added only for self-host convenience.
 
-These tasks can only be considered after soft self-host tools are useful and
-partial self-host passes have run beside the C implementation.
+These tasks can only be considered as rung-by-rung substitutions after the
+previous rung has run beside the C implementation.
 
-Hard self-host is additionally blocked until C and LLVM agree on the stable
-backend-compare suite. A Pergyra-written compiler pass may be added as the
-third implementation only after the C/LLVM pair is trustworthy enough to serve
-as the expected-value source.
+Hard self-host remains blocked for any surface where C and LLVM do not agree on
+the stable backend-compare suite. A Pergyra-written compiler pass is the third
+implementation, not the decider between the two native oracles.
 
 ## Architecture Rule
 

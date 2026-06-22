@@ -4,7 +4,7 @@
 # This proves the codegen tool *self-hosts*: a Pergyra-built copy of the tool,
 # run on the tool's own source, reproduces its own source-compilation exactly.
 #
-#   gen0 = oracle-built tool        (pgy --backend=c main.pgy)
+#   gen0 = C oracle-built tool      (pgy --backend=c main.pgy)
 #   gen1 = gen0(main.pgy AST) -> C  -> gcc -> gen1.exe
 #   gen2 = gen1.exe(main.pgy AST) -> C  -> gcc -> gen2.exe   (a Pergyra-built tool)
 #   gen3 = gen2.exe(main.pgy AST) -> C

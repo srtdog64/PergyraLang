@@ -2,10 +2,10 @@
 
 This folder is the post-beta self-hosting entry point.
 
-Self-hosting is not a beta blocker. Hard self-hosting begins only after beta
-closure, final dogfood evidence, and a stable C/LLVM oracle pair. Until then,
-this folder records the contracts future agents must preserve while preparing
-the migration path.
+Self-hosting is not a beta blocker. Hard self-hosting now proceeds as staged
+substitution: each Pergyra-written compiler rung must pass beside the C/LLVM
+oracle pair before it can count. The released compiler is still not claimed as
+self-hosted.
 
 ## Position
 
@@ -13,7 +13,8 @@ Pergyra should not attempt a full compiler rewrite first. The practical path is:
 
 1. **Soft self-host**: compiler-adjacent tools written in Pergyra.
 2. **Partial self-host**: isolated analysis/validation passes that consume stable files or IR dumps.
-3. **Hard self-host**: frontend/backend migration only after the stable subset survives real dogfood.
+3. **Hard self-host**: staged compiler-pass substitution after the stable
+   subset survives real dogfood and the C/LLVM oracle pair is usable.
 
 The current compiler remains C + LLVM/C backend until this track explicitly
 graduates. C and LLVM must finish first because the self-hosted implementation
@@ -95,6 +96,14 @@ artifacts:
 If one of these is missing, future agents should return to beta closure instead
 of starting self-host migration.
 
+## Hard Contract
+
+The active contract is now
+[`10_hard_self_host_contract.md`](10_hard_self_host_contract.md): SoT closure is
+a self-hosted pass condition, the C compiler remains the primary oracle, LLVM is
+the second oracle when enabled, and bridge scripts are allowed while hidden
+fallbacks are not.
+
 ## First Self-Host Rule
 
 The first Pergyra-written programs must be tools around the compiler, not the
@@ -121,5 +130,8 @@ its own ecosystem.
 - `02_required_language_surface.md` - language features needed before self-hosting.
 - `03_tool_candidates.md` - first tools suitable for soft self-hosting.
 - `04_beta_exit_handoff.md` - beta exit artifacts required before migration.
-- `05_compiler_core_gap_analysis.md` - why hard self-host cannot start from the
-  compiler core yet, and what substrate gaps must close first.
+- `05_compiler_core_gap_analysis.md` - why hard self-host could not start as a
+  broad compiler-core rewrite, and what substrate gates opened staged
+  substitution.
+- `10_hard_self_host_contract.md` - active hard substitution contract, oracle
+  rule, bridge/fallback split, and CI owner.
