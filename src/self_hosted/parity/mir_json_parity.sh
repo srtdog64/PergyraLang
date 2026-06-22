@@ -83,12 +83,22 @@ CODEGEN_FIXTURES=(
     array_push
     array_sum
     bool_logic
+    builtin_name_literal
     concat
+    dir_walk
     else_if_chain
+    exit_guard
     file_handle
     float_math
     for_continue
+    for_sum
+    func_call
     func_recursive
+    hello
+    if_else
+    int_arith
+    int_neg
+    int_subdiv
     io_probe
     mixed_int_str
     nested_ctrl

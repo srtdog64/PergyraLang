@@ -67,6 +67,19 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Ten more codegen surfaces promoted into MIR JSON gate
+
+- Promoted ten survey-proven PASS fixtures into the hard MIR JSON parity
+  manifest: `hello`, `func_call`, `for_sum`, `if_else`, `int_arith`,
+  `int_neg`, `int_subdiv`, `builtin_name_literal`, `dir_walk`, and
+  `exit_guard`.
+- The promotion intentionally leaves `log_int_direct` / loop-control-heavy
+  fixture shapes out of the hard manifest: the survey showed a `for` CFG with
+  `continue`/`break` back-edges can still hang `mir_lower`, so that remains a
+  real self-hosted CFG reconstruction gap rather than a hidden fallback.
+- `self-host-mir-json-parity-test-smoke`: expected to prove **42/42 MIR JSON ->
+  self-hosted MIR-lower -> self-hosted codegen -> C oracle parity**.
+
 ### 2026-06-22 -- Multiple Void routines promoted into MIR JSON gate
 
 - Promoted `multi_func_void` from the coverage probe into the hard

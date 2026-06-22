@@ -103,9 +103,10 @@ subset.
   now consumes explicit MIR JSON `expr0`/`expr1`/`source_type`/`source_locals`
   facts only for the supported let/statement/return/branch/for subset plus
   selected args/array/string/Bool/Float/file/recursion fixture surfaces,
-  multiple Void routines with bare-call statements, and Bool-literal branch
-  reassignment. The
-  32-fixture MIR JSON parity gate checks the `for` header is reconstructed from
+  straight-line calls, direct integer arithmetic, builtin-name string literals,
+  directory walking, exit-guard branches, multiple Void routines with bare-call
+  statements, and Bool-literal branch reassignment. The
+  42-fixture MIR JSON parity gate checks the `for` header is reconstructed from
   `arg0` plus range bounds rather than treating the lower bound as a branch
   condition, and rejects reintroducing transitional `"ast"` reads.
 - C class/zone collection-specialization scans are MIR-routine based and no
