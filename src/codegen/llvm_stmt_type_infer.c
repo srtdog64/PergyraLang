@@ -194,6 +194,14 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             if (expected != NULL)
                 return expected;
         }
+        if (ast_set_literal_count(expr) == 0
+            && ctx->expected_type_name != NULL
+            && pgy_classify_type(ctx->expected_type_name) == PGY_TK_HASHMAP) {
+            LLVMTypeRef expected = pergyra_type_to_llvm(
+                ctx, ctx->expected_type_name);
+            if (expected != NULL)
+                return expected;
+        }
         return llvm_stmt_unknown_expr_type(ctx, expr,
             "set literal requires an explicit Set<T> context");
     case AST_TUPLE_LITERAL: {
@@ -285,6 +293,15 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 llvm_stmt_source_local_type(ctx, name);
             if (source_local_ty != NULL || ctx->has_error)
                 return source_local_ty;
+        }
+        {
+            LLVMFuncEntry *fn = llvm_stmt_lookup_visible_function(ctx, name);
+            if (ctx->has_error)
+                return NULL;
+            if (fn != NULL && fn->fn_type != NULL
+                && LLVMGetTypeKind(fn->fn_type) == LLVMFunctionTypeKind) {
+                return LLVMPointerType(fn->fn_type, 0);
+            }
         }
         /* Non-MIR compatibility: an unannotated local (`let x = <call>`) with
          * no scope alloca yet can recover its type from the initializer. MIR

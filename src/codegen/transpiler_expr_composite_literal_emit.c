@@ -316,6 +316,13 @@ emit_composite_literal_expression(ASTNode *node, TranspilerCtx *ctx)
         return emit_array_literal_expression(node, ctx);
     if (node->type == AST_MAP_LITERAL)
         return emit_map_literal_expression(node, ctx);
+    if (node->type == AST_SET_LITERAL
+        && ast_set_literal_count(node) == 0
+        && ctx != NULL
+        && ctx->expected_type != NULL
+        && transpiler_type_name_is_hashmap(ctx->expected_type)) {
+        return emit_map_literal_expression(node, ctx);
+    }
     if (node->type == AST_SET_LITERAL)
         return emit_set_literal_expression(node, ctx);
     return NULL;

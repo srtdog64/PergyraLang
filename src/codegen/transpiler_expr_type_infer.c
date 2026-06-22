@@ -169,6 +169,10 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         if (ast_set_literal_count(expr) > 0) {
             e = infer_expression_type_name(ctx, ast_set_literal_element(expr, 0));
         } else if (ctx != NULL && ctx->expected_type != NULL
+                   && transpiler_type_name_is_hashmap(ctx->expected_type)) {
+            char *kept = pgy_arena_fmt(&ctx->arena, "%s", ctx->expected_type);
+            return kept != NULL ? kept : "Unknown";
+        } else if (ctx != NULL && ctx->expected_type != NULL
                    && transpiler_type_name_is_set(ctx->expected_type)) {
             char *kept = pgy_arena_fmt(&ctx->arena, "%s", ctx->expected_type);
             return kept != NULL ? kept : "Unknown";

@@ -9,6 +9,7 @@
 
 #include <string.h>
 
+#include "llvm_backend_type_map_internal.h"
 #include "llvm_internal_api.h"
 #include "llvm_mir_async_fact.h"
 #include "llvm_mir_local_expected_type.h"
@@ -305,6 +306,11 @@ llvm_mir_local_type_from_instruction_fact(const MIRRoutine *routine,
         return NULL;
 
     if (inst->requires_source_local_decl_emit && inst->expr1 != NULL) {
+        if (inst->expr1->type == AST_TYPE) {
+            type = llvm_mir_type_from_ast(ctx, inst->expr1);
+            if (ctx->has_error || type != NULL)
+                return type;
+        }
         type = llvm_mir_local_type_from_source_fact(routine, ctx,
             inst->result_name);
         if (ctx->has_error || type != NULL)
@@ -407,6 +413,7 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                 ASTNode *type_expr = inst->requires_source_local_decl_emit
                     ? inst->expr1
                     : NULL;
+                char *declared_type_name = NULL;
                 const MIRSourceLocalType *source_local_fact = NULL;
                 const char *source_local_type_name = NULL;
                 char base_name[128];
@@ -416,10 +423,22 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                 if (inst->requires_source_local_decl_emit && type_expr != NULL) {
                     source_local_fact = llvm_mir_local_source_fact(
                         routine, has_base_name ? base_name : inst->result_name);
-                    source_local_type_name = source_local_fact != NULL
-                        ? source_local_fact->type_name
-                        : NULL;
-                    if (source_local_fact == NULL) {
+                    if (type_expr->type == AST_TYPE) {
+                        declared_type_name =
+                            llvm_render_type_name_scratch_in_ctx(ctx,
+                                type_expr, &ctx->scratch);
+                        if (declared_type_name != NULL
+                            && declared_type_name[0] != '\0'
+                            && strcmp(declared_type_name, "Unknown") != 0) {
+                            source_local_type_name = declared_type_name;
+                        }
+                    }
+                    if (source_local_type_name == NULL
+                        && source_local_fact != NULL) {
+                        source_local_type_name = source_local_fact->type_name;
+                    }
+                    if (source_local_type_name == NULL
+                        && source_local_fact == NULL) {
                         llvm_set_mir_inventory_missing(ctx,
                             "MIR-only LLVM path missing source-local type metadata for '%s'",
                             inst->result_name != NULL
@@ -432,8 +451,11 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                 if (layout_type != NULL) {
                     alloca_type = layout_type;
                 } else if (type_expr != NULL) {
-                    alloca_type = llvm_mir_local_type_from_source_fact_entry(
-                        ctx, source_local_fact);
+                    alloca_type = source_local_fact != NULL
+                        && source_local_fact->is_callable
+                        ? llvm_mir_local_type_from_source_fact_entry(
+                              ctx, source_local_fact)
+                        : llvm_mir_type_from_ast(ctx, type_expr);
                     if (ctx->has_error || alloca_type == NULL) {
                         llvm_set_mir_inventory_missing(ctx,
                             "MIR-only LLVM path cannot lower source-local type metadata for '%s'",

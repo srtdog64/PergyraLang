@@ -205,13 +205,7 @@ air_mir_routine_inherent_concurrency_fact_count(const MIRRoutine *routine)
             continue;
         for (size_t j = 0; j < block->instruction_count; j++) {
             const MIRInstruction *inst = &block->instructions[j];
-            if (mir_instruction_source_matches_ast_type(inst, AST_PARALLEL_BLOCK)
-                || mir_instruction_source_matches_ast_type(inst, AST_ASYNC_BLOCK)
-                || mir_instruction_source_matches_ast_type(inst, AST_SPAWN_EXPR)
-                || mir_instruction_source_matches_ast_type(inst, AST_CHANNEL_SEND)
-                || mir_instruction_source_matches_ast_type(inst, AST_CHANNEL_RECV)
-                || mir_instruction_uses_channel_receive_statement_emit(inst)
-                || mir_instruction_uses_select_receive_statement_emit(inst)) {
+            if (mir_instruction_has_inherent_concurrency_fact(inst)) {
                 count++;
             }
         }

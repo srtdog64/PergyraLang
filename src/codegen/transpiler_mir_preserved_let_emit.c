@@ -23,7 +23,6 @@
 #include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_require.h"
-#include "transpiler_type_result_mapping_helpers.h"
 
 TranspilerMIRLocalLetEmitResult
 transpiler_emit_mir_source_local_let_def_inst(
@@ -57,12 +56,7 @@ transpiler_emit_mir_source_local_let_def_inst(
     let_type = inst->expr1;
     let_init = inst->expr0;
 
-    if (mir_routine != NULL
-        && let_type != NULL
-        && let_type->type == AST_TYPE
-        && ast_type_name(let_type) != NULL
-        && transpiler_type_alias_target_type_name_from_headers(
-            ctx, ast_type_name(let_type)) != NULL) {
+    if (mir_routine != NULL) {
         const char *source_type =
             transpiler_mir_routine_source_local_type_name(
                 mir_routine, let_name);
@@ -75,15 +69,6 @@ transpiler_emit_mir_source_local_let_def_inst(
         rendered_type_hint =
             transpiler_render_effective_local_type_name(ctx, let_type);
         ctx->active_type_hint = rendered_type_hint;
-    }
-    if (rendered_type_hint == NULL && mir_routine != NULL) {
-        const char *source_type =
-            transpiler_mir_routine_source_local_type_name(
-                mir_routine, let_name);
-        if (source_type != NULL && source_type[0] != '\0') {
-            rendered_type_hint = pergyra_strdup(source_type);
-            ctx->active_type_hint = rendered_type_hint;
-        }
     }
     if (rendered_type_hint != NULL) {
         local_type_name_owned = pergyra_strdup(rendered_type_hint);
@@ -197,11 +182,11 @@ transpiler_emit_mir_source_local_let_def_inst(
         return TRANSPILE_MIR_LOCAL_LET_FAILED;
     }
 
-    if (let_type != NULL) {
+    if (local_type_name_owned != NULL) {
+        ensure_type_specializations_from_type_name_to(ctx, ctx->out,
+                                                      local_type_name_owned);
+    } else if (let_type != NULL) {
         ensure_type_specializations_from_ast_to(ctx, ctx->out, let_type);
-    } else if (local_type_name_owned != NULL) {
-        ensure_result_specialization_from_type_name_to(ctx, ctx->out,
-                                                       local_type_name_owned);
     }
 
     lhs = transpiler_render_ssa_name(ctx, inst->result_name);

@@ -158,8 +158,12 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         resolved_host_decl,
         node != NULL ? node : (mir_routine != NULL ? mir_routine->ast : NULL));
 
-    if (node != NULL)
+    if (mir_routine != NULL) {
+        ensure_collection_specializations_from_mir_routine_to(ctx, ctx->decls,
+            mir_routine);
+    } else if (node != NULL) {
         ensure_collection_specializations_from_stmt_to(ctx, ctx->decls, node);
+    }
 
     return_type = transpiler_mir_routine_return_type(mir_routine);
     const char *return_type_name =

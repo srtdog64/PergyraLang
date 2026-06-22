@@ -583,6 +583,27 @@ mir_instruction_resource_op_keeps_residual_statement_emit(
         || strcmp(inst->name, "ChannelSelect") == 0;
 }
 
+static bool
+mir_instruction_resource_op_is_channel_boundary(const MIRInstruction *inst)
+{
+    if (inst == NULL || inst->kind != MIR_INST_RESOURCE_OP
+        || inst->name == NULL)
+        return false;
+    return strcmp(inst->name, "ChannelSend") == 0
+        || strcmp(inst->name, "ChannelRecv") == 0
+        || strcmp(inst->name, "ChannelSelect") == 0;
+}
+
+bool
+mir_instruction_has_inherent_concurrency_fact(const MIRInstruction *inst)
+{
+    return inst != NULL
+        && ((inst->has_surface_usage_facts && inst->uses_thread_pool_surface)
+            || mir_instruction_resource_op_is_channel_boundary(inst)
+            || inst->requires_channel_receive_statement_emit
+            || inst->requires_select_receive_statement_emit);
+}
+
 bool
 mir_instruction_has_lifecycle_guard(const MIRInstruction *inst)
 {

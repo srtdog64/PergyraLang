@@ -549,6 +549,68 @@ run_literal_doc_contract_smoke() {
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_def_uses_channel_receive_statement_emit"
     require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_uses_select_receive_statement_emit(inst)"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_local_expected_type_name(routine, inst, NULL)"
+    require_literal "src/codegen/llvm_mir_local_emit.c" "inst->requires_source_local_decl_emit && inst->expr1 != NULL"
+    require_literal "src/codegen/llvm_mir_local_emit.c" "llvm_render_type_name_scratch_in_ctx(ctx,"
+    require_literal "src/codegen/llvm_mir_local_emit.c" "llvm_mir_type_from_ast(ctx, inst->expr1)"
+    require_literal "src/codegen/llvm_stmt_type_infer.c" "llvm_stmt_lookup_visible_function(ctx, name)"
+    require_literal "src/codegen/llvm_stmt_type_infer.c" "LLVMPointerType(fn->fn_type, 0)"
+    require_literal "src/codegen/transpiler_expr_type_infer.c" "transpiler_type_name_is_hashmap(ctx->expected_type)"
+    require_literal "src/codegen/transpiler_expr_composite_literal_emit.c" "ast_set_literal_count(node) == 0"
+    require_literal "src/codegen/transpiler_expr_composite_literal_emit.c" "return emit_map_literal_expression(node, ctx)"
+    require_literal "src/codegen/llvm_stmt_type_infer.c" "ast_set_literal_count(expr) == 0"
+    require_literal "src/codegen/llvm_expr.c" "return llvm_emit_map_literal_expr(node, ctx)"
+    if ! awk '
+        /emit_func_decl_from_mir_named\(/ { in_fn=1 }
+        in_fn && /ensure_collection_specializations_from_mir_routine_to\(ctx, ctx->decls,/ { mir_scan=NR }
+        in_fn && /ensure_collection_specializations_from_stmt_to\(ctx, ctx->decls, node\)/ { ast_scan=NR }
+        END { exit !(mir_scan > 0 && ast_scan > mir_scan) }
+    ' "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.c"; then
+        echo "C MIR function emission must scan collection specializations from MIR routine facts before AST body fallback" >&2
+        exit 1
+    fi
+    if grep -Fq "pergyra_type_to_llvm(ctx, inst->arg1)" \
+        "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"; then
+        echo "LLVM MIR local declarations must not treat arg1 op-name as a type; consume expr1 type fact" >&2
+        exit 1
+    fi
+    if ! awk '
+        /transpiler_mir_ssa_local_find_versioned_type_name\(/ { in_fn=1 }
+        in_fn && /strcmp\(inst->result_name, versioned_name\) == 0/ { exact=NR }
+        in_fn && /transpiler_mir_routine_source_local_type_name\(routine, base_name\)/ { source=NR }
+        END { exit !(exact > 0 && source > exact) }
+    ' "$ROOT_DIR/src/codegen/transpiler_mir_ssa_local_facts.c"; then
+        echo "C MIR SSA local declarations must consume exact versioned DEF type facts before source-local name facts" >&2
+        exit 1
+    fi
+    require_literal "src/codegen/transpiler_mir_ssa_local_facts.c" "transpiler_mir_ssa_local_source_def_count"
+    if ! awk '
+        /transpiler_mir_ssa_local_find_versioned_type_name\(/ { in_fn=1 }
+        in_fn && source == 0 && /transpiler_mir_routine_source_local_type_name\(/ { source=NR }
+        in_fn && count == 0 && /transpiler_mir_ssa_local_source_def_count\(/ { count=NR }
+        in_fn && ast == 0 && /transpiler_render_effective_local_type_name\(/ { ast=NR }
+        END { exit !(source > 0 && count > source && ast > count) }
+    ' "$ROOT_DIR/src/codegen/transpiler_mir_ssa_local_facts.c"; then
+        echo "C MIR SSA local declarations must prefer unique source-local type facts before AST annotation rendering" >&2
+        exit 1
+    fi
+    if ! awk '
+        /transpiler_emit_mir_source_local_let_def_inst\(/ { in_fn=1 }
+        in_fn && /transpiler_mir_routine_source_local_type_name\(/ { source=NR }
+        in_fn && /transpiler_render_effective_local_type_name\(ctx, let_type\)/ { rendered=NR }
+        END { exit !(source > 0 && rendered > source) }
+    ' "$ROOT_DIR/src/codegen/transpiler_mir_preserved_let_emit.c"; then
+        echo "C MIR preserved let emit must consume source-local type facts before AST type rendering" >&2
+        exit 1
+    fi
+    if ! awk '
+        /transpiler_emit_mir_source_local_let_def_inst\(/ { in_fn=1 }
+        in_fn && /ensure_type_specializations_from_type_name_to\(ctx, ctx->out,/ { mir_scan=NR }
+        in_fn && /ensure_type_specializations_from_ast_to\(ctx, ctx->out, let_type\)/ { ast_scan=NR }
+        END { exit !(mir_scan > 0 && ast_scan > mir_scan) }
+    ' "$ROOT_DIR/src/codegen/transpiler_mir_preserved_let_emit.c"; then
+        echo "C MIR preserved let specialization must consume source-local type names before AST type scans" >&2
+        exit 1
+    fi
     if grep -Fq "ast_identifier_name(inst->expr1)" \
         "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"; then
         echo "LLVM MIR DEF expected-type resolution must consume MIR arg0/source-local facts, not AST assignment target names" >&2

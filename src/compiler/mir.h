@@ -468,6 +468,8 @@ bool        mir_instruction_source_stmt_runtime_boundary_emit_is_allowed(
                 const MIRInstruction *inst);
 bool        mir_instruction_resource_op_keeps_residual_statement_emit(
                 const MIRInstruction *inst);
+bool        mir_instruction_has_inherent_concurrency_fact(
+                const MIRInstruction *inst);
 bool        mir_instruction_has_lifecycle_guard(
                 const MIRInstruction *inst);
 MIRLifecycleGuardKind mir_instruction_lifecycle_guard_kind(
