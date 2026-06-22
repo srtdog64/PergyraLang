@@ -110,13 +110,14 @@ subset.
   the `for` header is reconstructed from
   `arg0` plus range bounds rather than treating the lower bound as a branch
   condition, and rejects reintroducing transitional `"ast"` reads. The hard
-  gate is now **60 fixtures** after promoting the already run-equivalent
+  gate is now **61 fixtures** after promoting the already run-equivalent
   trailing-newline Log, nested string concat, string array concat, string
   case/index/trim builtin, string reassignment, two-log, while-break, and
   while-sum surfaces, array pop and array for-each loops, and Int-field struct
   declaration/value flow. It also reconstructs break edges after non-empty
-  statement blocks from CFG successor facts. The coverage boundary is now
-  measured at **60 PASS /
+  statement blocks from CFG successor facts and consumes the MIR-owned
+  `Random()` Int source-local type fact. The coverage boundary is now measured
+  at **61 PASS /
   0 gap** across the committed MIR-lower/codegen fixture inventory.
 - C class/zone collection-specialization scans are MIR-routine based and no
   longer recover method body AST; routine_source_decl_codegen is ratcheted at 0.

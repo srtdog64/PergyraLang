@@ -67,6 +67,21 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Random return facts promoted into MIR source-local typing
+
+- Closed the shared `bsd_test6` / `bsd_test9` / `bsd_test11` malformed
+  assignment gap. The source-local type owner knew unannotated literals such as
+  `let running = true`, but did not type `let event = Random(4)`, so MIR JSON
+  omitted `event -> Int` and `mir_lower` could not reconstruct a `Let:` line
+  from facts.
+- Added `Random() -> Int` to the MIR source-local builtin call type owner and
+  promoted `random_inferred_let.pgy` into the hard MIR JSON manifest. The hard
+  rung moves from 60 to **61 fixtures**.
+- Refreshed the examples-scale survey: 54 PASS, 47 CODEGEN-gap, 13 ORACLE-skip,
+  3 STDOUT-diff (`io_test`, `match_test`, `operator_overload`), 3 CC-fail
+  (`enum_test`, `event_minimal`, `string_utils`), and 1 via-run timeout
+  (`heap`).
+
 ### 2026-06-23 -- Non-empty loop break edges promoted into MIR JSON lowering
 
 - Ran an examples-scale MIR JSON survey after closing the committed fixture

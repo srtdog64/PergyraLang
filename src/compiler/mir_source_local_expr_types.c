@@ -437,6 +437,8 @@ mir_source_local_builtin_call_type_name(const MIRProgram *program,
         return mir_source_local_view_call_type_name(program, routine, scratch,
             expr, "WriteView");
     }
+    if (callee_name != NULL && strcmp(callee_name, "Random") == 0)
+        return "Int";
     if (callee_name != NULL && strcmp(callee_name, "SliceCopy") == 0
         && ast_call_arg_count(expr) >= 1) {
         const char *slice_type = mir_source_local_expr_type_name(program,

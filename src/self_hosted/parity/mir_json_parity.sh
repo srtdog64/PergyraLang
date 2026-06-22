@@ -70,6 +70,7 @@ MIR_FIXTURES=(
     funcparam
     multi_func_void
     break_after_stmt
+    random_inferred_let
     ifelse
     nestedif
     reassign_block

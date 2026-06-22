@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let event = Random(1);
+    Log(ToString(event));
+}
