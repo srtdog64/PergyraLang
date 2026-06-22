@@ -557,6 +557,14 @@ grep -Fq "MIR-only C path missing nominal function-call return type-name metadat
     "$ROOT_DIR/src/codegen/transpiler_nominal.c"
 grep -Fq "MIR-only C path missing projection invalidation method metadata" \
     "$ROOT_DIR/src/codegen/transpiler_projection_method_invalidation.c"
+grep -Fq "MIR-only C path missing zone action within-zone metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_projection_sync.c"
+grep -Fq "MIR-only C path missing world effect sync within-zone metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_projection_sync.c"
+grep -Fq "MIR-only LLVM path missing zone action within-zone metadata" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_zone_action.c"
+grep -Fq "MIR-only LLVM path missing world effect sync within-zone metadata" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_methods_world_effect_sync.c"
 grep -Fq "MIR-only LLVM path missing method forward name metadata for domain" \
     "$ROOT_DIR/src/codegen/llvm_domain_forward.c"
 grep -Fq "MIR-only LLVM path missing method forward metadata row for role" \

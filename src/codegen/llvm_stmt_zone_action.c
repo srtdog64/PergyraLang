@@ -222,6 +222,14 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
         effect_name = ast_func_causes_effect(method_decl);
         method_is_action = ast_func_is_action(method_decl);
     }
+    if (method_meta != NULL && llvm_active_has_mir(ctx)
+        && method_is_action && effect_name != NULL
+        && method_within_zone == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone action within-zone metadata for effect '%s'",
+            effect_name);
+        return;
+    }
     if ((method_meta == NULL
             && (method_decl == NULL || method_decl->type != AST_FUNC_DECL))
         || method_is_async

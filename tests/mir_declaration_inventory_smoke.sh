@@ -6648,6 +6648,7 @@ for term in \
     "llvm_mir_decl_method_is_action_like(method_meta)" \
     "llvm_active_has_mir(ctx)" \
     "MIR-only LLVM path missing zone action method metadata" \
+    "MIR-only LLVM path missing zone action within-zone metadata" \
     "if (method_meta == NULL)"; do
     require_term "src/codegen/llvm_stmt_zone_action.c" "$term"
 done
@@ -6665,6 +6666,7 @@ for term in \
     "llvm_mir_decl_method_is_action_like(method_meta)" \
     "llvm_active_has_mir(ctx)" \
     "MIR-only LLVM path missing world effect sync method metadata" \
+    "MIR-only LLVM path missing world effect sync within-zone metadata" \
     "if (method_meta == NULL)"; do
     require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" "$term"
 done
@@ -6720,6 +6722,8 @@ for term in \
     "transpiler_active_has_mir(ctx)" \
     "MIR-only C path missing zone action method metadata" \
     "MIR-only C path missing world effect sync method metadata" \
+    "MIR-only C path missing zone action within-zone metadata" \
+    "MIR-only C path missing world effect sync within-zone metadata" \
     "if (method_meta == NULL)"; do
     require_term "src/codegen/transpiler_projection_sync.c" "$term"
 done
