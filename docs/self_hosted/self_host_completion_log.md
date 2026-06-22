@@ -67,6 +67,22 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Non-struct class declarations fail closed in MIR JSON lowering
+
+- Closed another declaration-inventory SoT gap: non-struct `AST_CLASS_DECL`
+  declarations (`class`, `subject`, `object`, `tobject`, `vessel` surfaces)
+  are no longer omitted from MIR JSON `decls`. Plain `struct` declarations stay
+  supported; non-struct class declarations are emitted as explicit unsupported
+  facts until the self-host path owns their field/method/projection semantics.
+- Added `unsupported_class_decl.pgy` to the MIR JSON gate. The gate now proves
+  **65 positive fixtures plus 3 clean rejects**: unsupported ability/role,
+  unsupported non-struct class, and unsupported codegen builtin boundaries.
+- Refreshed the examples-scale survey after this stricter inventory rule: 40
+  PASS, 29 CODEGEN-gap, 39 MIR-LOWER-gap, 13 ORACLE-skip, and 0 measured
+  STDOUT-diff / generated-C compile failures / via-run timeouts. This is an
+  intentional honesty correction: several previous PASS cases had non-struct
+  class/domain declarations that the self-host path silently dropped.
+
 ### 2026-06-23 -- Array destructure binding facts promoted into MIR JSON lowering
 
 - Promoted array destructuring from a clean reject into the self-host MIR JSON

@@ -316,6 +316,31 @@ if ! grep -q '^MIR-LOWER ERROR: unsupported MIR declaration in self-host subset:
 fi
 rejects=$((rejects + 1))
 
+base="unsupported_class_decl"
+src="$FIXTURE_DIR/$base.pgy"
+mj="$B/$base.mirjson"
+reast="$B/$base.reast"
+(cd "$ROOT_DIR" && "$PGY" --mir-json "$(pgy_path_for_compiler "$PGY" "$src")" \
+    2>/dev/null | tr -d '\r' > "$mj")
+if ! grep -Fq '"kind":"unsupported","ast_type":"AST_CLASS_DECL","name":"Vec2"' "$mj"; then
+    echo "[self-host-parity:mir-json] $base: missing unsupported class declaration fact" >&2
+    exit 1
+fi
+set +e
+"$B/mir_lower.exe" "${mj#$ROOT_DIR/}" 2>/dev/null | tr -d '\r' > "$reast"
+reject_rc=${PIPESTATUS[0]}
+set -e
+if [[ "$reject_rc" -eq 0 ]]; then
+    echo "[self-host-parity:mir-json] $base: mir_lower must exit nonzero for unsupported class declaration facts" >&2
+    exit 1
+fi
+if ! grep -q '^MIR-LOWER ERROR: unsupported MIR declaration in self-host subset: AST_CLASS_DECL Vec2' "$reast"; then
+    echo "[self-host-parity:mir-json] $base: mir_lower must reject unsupported class declaration facts" >&2
+    sed -n '1,5p' "$reast" >&2
+    exit 1
+fi
+rejects=$((rejects + 1))
+
 base="unsupported_codegen_builtin"
 src="$FIXTURE_DIR/$base.pgy"
 mj="$B/$base.mirjson"

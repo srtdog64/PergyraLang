@@ -502,7 +502,8 @@ mir_dump_json(const MIRProgram *mir, FILE *out)
                        == NOMINAL_DECL_STRUCT;
             bool is_unsupported_decl =
                 ast_type == AST_ABILITY_DECL || ast_type == AST_ROLE_DECL
-                || ast_type == AST_ENUM_DECL || ast_type == AST_EVENT_DECL;
+                || ast_type == AST_ENUM_DECL || ast_type == AST_EVENT_DECL
+                || (ast_type == AST_CLASS_DECL && !is_struct_decl);
             if (ast_type == AST_FUNC_DECL || ast_type == AST_TYPE_ALIAS)
                 continue;
             if (!is_struct_decl && !is_unsupported_decl)

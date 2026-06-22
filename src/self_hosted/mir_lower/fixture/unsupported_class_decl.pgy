@@ -1,0 +1,9 @@
+class Vec2 {
+    let x: Int;
+    let y: Int;
+}
+
+func Main() -> Void {
+    let v: Vec2 = Vec2(3, 7);
+    Log(v.x);
+}

@@ -117,8 +117,10 @@ subset.
   than phi presence alone, so nested `if` branches inside loops remain `If:`
   nodes. Array destructuring now consumes MIR JSON `destructure_bindings`
   facts and source-local array type facts to reconstruct typed array-index
-  `Let:` bindings without parsing source text. The hard gate is now **65
-  positive fixtures plus 2 clean-reject fixtures** after
+  `Let:` bindings without parsing source text. Non-struct `AST_CLASS_DECL`
+  declarations are emitted as unsupported declaration facts instead of being
+  omitted from the declaration inventory. The hard gate is now **65
+  positive fixtures plus 3 clean-reject fixtures** after
   promoting the already run-equivalent
   trailing-newline Log, nested string concat, string array concat, string
   case/index/trim builtin, string reassignment, two-log, while-break, and
@@ -130,11 +132,12 @@ subset.
   nested-if-in-loop regression surface that closed the measured `heap`
   self-host via-run timeout, plus the array destructure binding surface. The
   coverage boundary is now measured at **65 PASS /
-  0 gap plus 2 clean rejects** across the committed MIR-lower/codegen fixture
-  inventory. Unsupported ability/role declaration facts are rejected by
-  `mir_lower`, and unsupported self-host codegen builtins are rejected before C
-  emission, so out-of-subset operator-overload semantics and unsupported
-  runtime helper surfaces cannot silently produce broken generated C.
+  0 gap plus 3 clean rejects** across the committed MIR-lower/codegen fixture
+  inventory. Unsupported ability/role and non-struct class declaration facts
+  are rejected by `mir_lower`, and unsupported self-host codegen builtins are
+  rejected before C emission, so out-of-subset operator-overload/domain nominal
+  semantics and unsupported runtime helper surfaces cannot silently produce
+  broken generated C.
 - C class/zone collection-specialization scans are MIR-routine based and no
   longer recover method body AST; routine_source_decl_codegen is ratcheted at 0.
 - C hosted method body emission binds the linked MIRRoutine body as current
