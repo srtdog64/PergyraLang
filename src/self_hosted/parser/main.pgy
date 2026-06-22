@@ -3,7 +3,7 @@
 // Status: rung-1 expanding (2026-06-18). Pergyra-origin parser substitute.
 // Emits the same compact text tree that `pgy --ast` produces, byte-equal, for
 // the committed parity fixture set. Current gate: 188 sources byte-equal on C
-// and LLVM parser binaries; scale probe: 99 of 121 examples byte-equal.
+// and LLVM parser binaries; scale probe: 112 of 121 examples byte-equal.
 //
 // Contract: see intent.md in the same directory.
 
@@ -1709,12 +1709,11 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
 // (e.g. `Math_` for `namespace Math { ... }`, `Outer_Inner_` for nested
 // namespaces). When `until_brace` is true, parsing stops at `}` (used
 // by the namespace branch); otherwise it stops at EOF.
-func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_prefix: String, until_brace: Bool, source_dir: String, force_export: Bool, within_zone: String) -> String {
+func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_prefix: String, until_brace: Bool, source_dir: String, force_export: Bool, within_zone: String, inout involve_types: Array<String>) -> String {
     let i: Int = start;
     let n: Int = StringLength(content);
     let out: String = "";
     let script_body: String = "";
-    let involve_types: Array<String> = [];
     let collect_script: Bool = !until_brace && !force_export && StringLength(name_prefix) == 0 && StringLength(within_zone) == 0;
     
     let is_imported: Bool = StringIndexOf(content, "__imported__") >= 0;
@@ -1789,7 +1788,7 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
                 imp_dir = Substring(imp_path, 0, imp_last_slash);
             }
             let imp_cursor: Array<Int> = [0];
-            let imp_inner: String = ParseDecls(imp_content, 0, imp_cursor, name_prefix, false, imp_dir, true, within_zone);
+            let imp_inner: String = ParseDecls(imp_content, 0, imp_cursor, name_prefix, false, imp_dir, true, within_zone, involve_types);
             if StringLength(imp_inner) > 0 {
                 out = AppendLine(out, imp_inner);
             }
@@ -1814,7 +1813,7 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
             }
             let new_prefix: String = Concat(name_prefix, Concat(ns_name, "_"));
             ArraySet(cursor_out, 0, i);
-            let inner: String = ParseDecls(content, i, cursor_out, new_prefix, true, source_dir, force_export, within_zone);
+            let inner: String = ParseDecls(content, i, cursor_out, new_prefix, true, source_dir, force_export, within_zone, involve_types);
             i = cursor_out[0];
             if StringLength(inner) > 0 {
                 out = AppendLine(out, inner);
@@ -1838,7 +1837,7 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
                 Exit(1);
             }
             ArraySet(cursor_out, 0, i);
-            let inner: String = ParseDecls(content, i, cursor_out, name_prefix, true, source_dir, force_export, wz_name);
+            let inner: String = ParseDecls(content, i, cursor_out, name_prefix, true, source_dir, force_export, wz_name, involve_types);
             i = cursor_out[0];
             if StringLength(inner) > 0 {
                 out = AppendLine(out, inner);
@@ -3104,6 +3103,10 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
                 if MatchKeyword(content, i, "let") {
                     i = i + 3;
                     i = SkipWhitespaceAndComments(content, i);
+                    if MatchKeyword(content, i, "mut") {
+                        i = i + 3;
+                        i = SkipWhitespaceAndComments(content, i);
+                    }
                 } else if MatchKeyword(content, i, "vessel") {
                     i = i + 6;
                     i = SkipWhitespaceAndComments(content, i);
@@ -3391,7 +3394,8 @@ func Main() -> Void {
     if last_slash >= 0 {
         src_dir = Substring(source_path, 0, last_slash);
     }
-    let decls: String = ParseDecls(content, i, cursor, "", false, src_dir, false, "");
+    let involve_types: Array<String> = [];
+    let decls: String = ParseDecls(content, i, cursor, "", false, src_dir, false, "", involve_types);
     if StringLength(decls) == 0 {
         Log("Program:");
     } else {
