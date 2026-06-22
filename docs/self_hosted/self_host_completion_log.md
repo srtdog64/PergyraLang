@@ -67,6 +67,22 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Destructure lowering fails closed instead of broken C
+
+- Closed the remaining generated-C failure class in the examples-scale MIR JSON
+  path. `string_utils`, `collection_ops`, and `word_count` contain destructuring
+  that the current self-host `mir_lower` cannot reconstruct from binding facts
+  yet; previously the `destructure` instruction fell through as a bare
+  expression, yielding undeclared C identifiers.
+- `mir_lower` now rejects `kind:"destructure"` with a visible `MIR-LOWER
+  ERROR`, and `unsupported_destructure.pgy` locks that behavior into the hard
+  MIR JSON gate. The gate now proves **63 positive fixtures plus 2 clean
+  rejects**.
+- Refreshed the examples-scale survey: 48 PASS, 37 CODEGEN-gap, 22
+  MIR-LOWER-gap, 13 ORACLE-skip, and 1 via-run timeout (`heap`). There are now
+  **0 measured STDOUT-diff cases and 0 generated-C compile failures** in this
+  examples-scale path.
+
 ### 2026-06-23 -- Self-host codegen I/O path policy matches runtime default
 
 - Closed the last measured examples-scale STDOUT-diff (`io_test`). The C
@@ -77,7 +93,7 @@ rewrite history.
   routed `FileOpen`, `FileExists`, `ReadFile`, and `WriteFile` through it.
   Added `io_absolute_policy.pgy` to the codegen and MIR JSON gates. Codegen
   parity is now **49 fixtures**; MIR JSON parity is now **63 positive fixtures
-  plus 1 clean reject**.
+  plus 1 clean reject** at this point in the log.
 - Refreshed the examples-scale survey: 48 PASS, 39 CODEGEN-gap, 19
   MIR-LOWER-gap, 13 ORACLE-skip, 1 CC-fail (`string_utils`), and 1 via-run
   timeout (`heap`). There are now **0 measured STDOUT-diff cases** in the

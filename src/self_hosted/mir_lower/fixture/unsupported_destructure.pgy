@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let csv: String = "100,Alice,true";
+    let (id_str, name, active_str) = Split(csv, ",");
+    Log(id_str);
+    Log(name);
+}

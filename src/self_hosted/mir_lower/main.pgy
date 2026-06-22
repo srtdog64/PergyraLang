@@ -392,6 +392,9 @@ func EmitBlockStmts(json: String, routine_start: Int, routine_end: Int,
         let ke: Array<Int> = [0];
         let ikind: String = ReadJsonString(json, kq, ke);
         let next_kp: Int = FindFrom(json, "\"kind\":", ke[0]);
+        if ikind == "destructure" {
+            Die("destructure instruction is outside the self-host MIR subset");
+        }
         if ikind != "branch" && ikind != "loop-init" {
             let inst_end: Int = be;
             if next_kp >= 0 && next_kp < be {

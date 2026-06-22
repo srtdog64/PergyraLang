@@ -113,7 +113,7 @@ subset.
   reconstructs match-case integer branch conditions from `match_patterns`
   facts rather than parsing the source compatibility text, and keeps the
   self-hosted codegen file helpers aligned with the runtime absolute-path
-  policy. The hard gate is now **63 positive fixtures plus 1 clean-reject fixture** after
+  policy. The hard gate is now **63 positive fixtures plus 2 clean-reject fixtures** after
   promoting the already run-equivalent
   trailing-newline Log, nested string concat, string array concat, string
   case/index/trim builtin, string reassignment, two-log, while-break, and
@@ -123,9 +123,10 @@ subset.
   `Random()` Int source-local type fact, the match-case integer pattern
   condition surface, and the default absolute-path I/O rejection policy. The
   coverage boundary is now measured at **63 PASS /
-  0 gap plus 1 clean reject** across the committed MIR-lower/codegen fixture
-  inventory. Unsupported ability/role declaration facts are rejected by
-  `mir_lower`, so out-of-subset operator-overload semantics cannot be silently
+  0 gap plus 2 clean rejects** across the committed MIR-lower/codegen fixture
+  inventory. Unsupported ability/role declaration facts and destructure
+  instruction facts are rejected by `mir_lower`, so out-of-subset
+  operator-overload semantics and destructure bindings cannot be silently
   dropped by the self-host path.
 - C class/zone collection-specialization scans are MIR-routine based and no
   longer recover method body AST; routine_source_decl_codegen is ratcheted at 0.

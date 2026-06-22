@@ -163,10 +163,11 @@ Int-field struct declarations/value flow, two-log, loop-control
 statement blocks, inferred `Random()` Int source-local facts, and match-case
 integer pattern conditions from `match_patterns` facts, plus runtime-aligned
 absolute-path I/O rejection. The committed MIR-lower/codegen fixture inventory
-is now measured at 63 PASS / 0 gap plus 1
-clean reject through this path. Ability/role unsupported declaration facts are
-emitted and rejected before the self-host path can silently erase
-operator-overload semantics;
+is now measured at 63 PASS / 0 gap plus 2
+clean rejects through this path. Ability/role unsupported declaration facts and
+destructure instruction facts are emitted and rejected before the self-host path
+can silently erase operator-overload semantics or emit undeclared destructure
+bindings;
 `self-host-mir-json-parity-test-smoke` rejects reintroducing transitional
 `"ast"` reads.
 Capability 4 is
