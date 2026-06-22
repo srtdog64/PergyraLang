@@ -463,10 +463,10 @@ func EmitRegion(json: String, routine_start: Int, bp: Int, span_end: Int,
         let cond: String = BlockCond(json, routine_start, span_end, bs, be);
         if StringLength(cond) == 0 {
             let next: String = ReadSucc(json, bs, be, "\"succ_true\":");
-            if !had_stmts && StringLength(loop_header) > 0 && next == loop_header {
+            if StringLength(loop_header) > 0 && next == loop_header {
                 out = Concat(out, Concat(indent, "Continue\n"));
                 cur = stop;
-            } else if !had_stmts && StringLength(loop_exit) > 0 && next == loop_exit {
+            } else if StringLength(loop_exit) > 0 && next == loop_exit {
                 out = Concat(out, Concat(indent, "Break\n"));
                 cur = stop;
             } else {

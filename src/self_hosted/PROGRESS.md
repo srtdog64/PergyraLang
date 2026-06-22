@@ -53,8 +53,9 @@ with bare-call statements, string concat/equality, recursion, loop-control
 `continue`/`break` edge blocks, trailing-newline Log normalization, nested
 string concatenation, string array concatenation, string case/index/trim
 builtins, array pop, array for-each, Int-field struct declarations/value flow,
-and file read/write), gated by `parity/mir_json_parity.sh`
-(`make self-host-mir-json-parity-test-smoke`, 59 fixtures). The gate now
+break edges after non-empty statement blocks, and file read/write), gated by
+`parity/mir_json_parity.sh`
+(`make self-host-mir-json-parity-test-smoke`, 60 fixtures). The gate now
 requires the MIR JSON fact surface and checks the `for`
 header is reconstructed from `arg0` plus `expr0`/`expr1` bounds, and checks
 struct declarations are reconstructed from MIR declaration facts. The gate also
@@ -62,7 +63,7 @@ rejects reintroducing reads of the transitional `ast` compatibility text. This
 is the first verified slice of the actual compiler-core (~96% of the LOC), not
 the codegen subset. It is now fact-only for the supported MIR JSON statement,
 expression, source-local, CFG, and Int-field struct declaration surfaces. The
-committed MIR-lower/codegen fixture inventory is currently **59 PASS / 0 gap**
+committed MIR-lower/codegen fixture inventory is currently **60 PASS / 0 gap**
 through this path; new fixtures must preserve that by adding owning facts rather
 than text fallback.
 

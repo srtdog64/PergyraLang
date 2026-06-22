@@ -1,0 +1,11 @@
+func Main() -> Void {
+    let i: Int = 0;
+    while i < 5 {
+        i = i + 1;
+        if i == 3 {
+            Log(ToString(i));
+            break;
+        }
+    }
+    Log(ToString(i));
+}

@@ -67,6 +67,24 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Non-empty loop break edges promoted into MIR JSON lowering
+
+- Ran an examples-scale MIR JSON survey after closing the committed fixture
+  inventory. Baseline over `examples/*.pgy`: 49 PASS, 50 CODEGEN-gap, 13
+  ORACLE-skip, 5 STDOUT-diff, 3 CC-fail, and 1 MIR-LOWER-timeout. The highest
+  priority class is silent wrong output, not out-of-subset rejection.
+- Closed the `binary_search` stdout divergence. The CFG already encoded
+  `break` as a successor edge from a block with statements to the loop exit, but
+  `mir_lower` only emitted `Break` / `Continue` for empty edge blocks. It now
+  consumes loop successor facts after non-empty statement blocks too.
+- Added `break_after_stmt.pgy` to the hard MIR JSON fixture set, moving the
+  hard rung from 59 to **60 fixtures** and preventing this edge fact from
+  regressing into silent duplicate execution.
+- Refreshed the examples-scale survey after the fix: 51 PASS, 50 CODEGEN-gap,
+  13 ORACLE-skip, 3 STDOUT-diff, 3 CC-fail, and 1 via-run timeout (`heap`).
+  Next priority remains the remaining silent-output / generated-C failures
+  before broad out-of-subset feature work.
+
 ### 2026-06-23 -- Struct declaration facts close the committed MIR JSON fixture inventory
 
 - Closed the last two measured MIR JSON fixture gaps (`struct_point`,
