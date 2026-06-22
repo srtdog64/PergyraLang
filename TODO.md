@@ -12977,6 +12977,12 @@ not marketing claims.
   a real owner in `src/codegen/transpiler_type_alias.c`; the old body was
   removed from `transpiler_emitters_base_b_part_c.inc`. Local gate used:
   `make pgy backend-inc-size-test-smoke inc-sentinel-test-smoke`.
+- SoT closure: LLVM type-alias lowering and type-name rendering now fail closed
+  when a MIR-active alias declaration header exists without
+  `type_alias_target_type_name`. Both consumers report structured LLVM
+  unsupported-type diagnostics instead of silently returning `NULL` or the
+  original alias name. Gate: `mir-declaration-inventory-test-smoke`,
+  `llvm-test-smoke`, and `backend-fail-closed-test-smoke`.
 - Lean debt-slice follow-up: C backend type-requirement checks now have a real
   owner in `src/codegen/transpiler_type_require.c`; the old
   `src/codegen/transpiler_emitters_type_require.inc` include body was deleted,

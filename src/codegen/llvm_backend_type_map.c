@@ -111,8 +111,17 @@ llvm_resolve_alias_type(LLVMGenCtx *ctx, const char *type_name)
         mir_decl_header_type_alias_target_type_name(alias_header);
     if (target_type_name != NULL)
         return pergyra_type_to_llvm(ctx, target_type_name);
-    if (llvm_active_has_mir(ctx))
+    if (llvm_active_has_mir(ctx)) {
+        if (alias_header != NULL) {
+            llvm_set_error_with_hints(ctx,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "MIR-only LLVM path missing type-alias target metadata for '%s'",
+                type_name);
+        }
         return NULL;
+    }
 
     {
         ASTNode *alias_decl = llvm_find_decl_in_active_inventory(

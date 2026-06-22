@@ -298,6 +298,8 @@ require_term "src/codegen/llvm_backend_type_map.c" \
     "mir_decl_header_type_alias_target_type_name(alias_header)"
 require_term "src/codegen/llvm_backend_type_map.c" \
     "llvm_active_has_mir(ctx)"
+require_term "src/codegen/llvm_backend_type_map.c" \
+    "MIR-only LLVM path missing type-alias target metadata"
 require_term "src/codegen/llvm_inventory_decl_lookup.h" \
     "llvm_hosted_field_view_type_name("
 require_term "src/codegen/llvm_inventory_field_view.c" \
@@ -316,6 +318,8 @@ require_term "src/codegen/llvm_backend_type_render.c" \
     "mir_decl_header_type_alias_target_type_name(alias_header)"
 require_term "src/codegen/llvm_backend_type_render.c" \
     "llvm_active_has_mir(ctx)"
+require_term "src/codegen/llvm_backend_type_render.c" \
+    "MIR-only LLVM type-name render missing type-alias target metadata"
 require_term "src/codegen/transpiler_type_alias.c" \
     "transpiler_type_alias_target_type_name_from_headers("
 require_term "src/codegen/transpiler_decl_lookup.h" \

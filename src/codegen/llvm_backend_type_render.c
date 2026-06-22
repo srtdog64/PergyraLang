@@ -6,6 +6,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_backend_type_map_internal.h"
+#include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_inventory_internal.h"
 #include "../common/string_compat.h"
@@ -123,8 +124,18 @@ llvm_render_alias_target_type_name_from_headers(LLVMGenCtx *ctx,
         const char *target_type_name =
             mir_decl_header_type_alias_target_type_name(alias_header);
 
-        if (target_type_name == NULL)
+        if (target_type_name == NULL) {
+            if (llvm_active_has_mir(ctx) && alias_header != NULL) {
+                llvm_set_error_with_hints(ctx,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "MIR-only LLVM type-name render missing type-alias target metadata for '%s'",
+                    current);
+                return NULL;
+            }
             return depth == 0 ? NULL : pgy_arena_strdup(arena, current);
+        }
         current = target_type_name;
         if (strchr(current, '<') != NULL || strchr(current, '(') != NULL)
             return pgy_arena_strdup(arena, current);
@@ -181,6 +192,8 @@ llvm_render_type_name_scratch_in_ctx(LLVMGenCtx *ctx, ASTNode *type_node,
         }
         if (alias_target_type_name != NULL)
             return alias_target_type_name;
+        if (ctx != NULL && ctx->has_error)
+            return NULL;
         if (ctx != NULL && llvm_active_has_mir(ctx))
             return pgy_arena_strdup(arena, ast_type_name(type_node));
         if (ctx != NULL) {
