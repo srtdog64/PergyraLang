@@ -3,7 +3,7 @@
 // Status: rung-1 expanding (2026-06-18). Pergyra-origin parser substitute.
 // Emits the same compact text tree that `pgy --ast` produces, byte-equal, for
 // the committed parity fixture set. Current gate: 188 sources byte-equal on C
-// and LLVM parser binaries; scale probe: 107 of 119 examples byte-equal.
+// and LLVM parser binaries; scale probe: 99 of 121 examples byte-equal.
 //
 // Contract: see intent.md in the same directory.
 
@@ -165,6 +165,35 @@ func Expect(content: String, start: Int, tok: String) -> Int {
         return -1;
     }
     return i + tlen;
+}
+
+func ConsumeStmtTerminator(content: String, start: Int) -> Int {
+    let n: Int = StringLength(content);
+    let i: Int = start;
+    while i < n {
+        let c: String = CharAt(content, i);
+        if c == " " || c == "\t" || c == "\r" {
+            i = i + 1;
+            continue;
+        }
+        if c == ";" {
+            return i + 1;
+        }
+        if c == "\n" {
+            return i + 1;
+        }
+        if c == "}" {
+            return i;
+        }
+        if c == "/" && CharAt(content, i + 1) == "/" {
+            while i < n && CharAt(content, i) != "\n" {
+                i = i + 1;
+            }
+            return i;
+        }
+        break;
+    }
+    return -1;
 }
 
 func DesugarStringInterpolation(s: String) -> String {
@@ -609,10 +638,11 @@ func ParseMul(content: String, start: Int, inout cursor_out: Array<Int>) -> Stri
     let left: String = ParseUnary(content, start, cursor_out);
     let i: Int = cursor_out[0];
     while true {
+        let before_ws: Int = i;
         i = SkipWhitespaceAndComments(content, i);
         let op: String = CharAt(content, i);
         if op != "*" && op != "/" && op != "%" {
-            ArraySet(cursor_out, 0, i);
+            ArraySet(cursor_out, 0, before_ws);
             return left;
         }
         i = i + 1;
@@ -628,10 +658,11 @@ func ParseAdditive(content: String, start: Int, inout cursor_out: Array<Int>) ->
     let left: String = ParseMul(content, start, cursor_out);
     let i: Int = cursor_out[0];
     while true {
+        let before_ws: Int = i;
         i = SkipWhitespaceAndComments(content, i);
         let op: String = CharAt(content, i);
         if op != "+" && op != "-" {
-            ArraySet(cursor_out, 0, i);
+            ArraySet(cursor_out, 0, before_ws);
             return left;
         }
         i = i + 1;
@@ -651,9 +682,10 @@ func ParsePipe(content: String, start: Int, inout cursor_out: Array<Int>) -> Str
     let left: String = ParseAdditive(content, start, cursor_out);
     let i: Int = cursor_out[0];
     while true {
+        let before_ws: Int = i;
         i = SkipWhitespaceAndComments(content, i);
         if CharAt(content, i) != "|" || CharAt(content, i + 1) != ">" {
-            ArraySet(cursor_out, 0, i);
+            ArraySet(cursor_out, 0, before_ws);
             return left;
         }
         i = i + 2;
@@ -710,6 +742,7 @@ func ParseComparison(content: String, start: Int, inout cursor_out: Array<Int>) 
     let left: String = ParsePipe(content, start, cursor_out);
     let i: Int = cursor_out[0];
     while true {
+        let before_ws: Int = i;
         i = SkipWhitespaceAndComments(content, i);
         let c0: String = CharAt(content, i);
         let c1: String = CharAt(content, i + 1);
@@ -728,7 +761,7 @@ func ParseComparison(content: String, start: Int, inout cursor_out: Array<Int>) 
             op = ">";
         }
         if StringLength(op) == 0 {
-            ArraySet(cursor_out, 0, i);
+            ArraySet(cursor_out, 0, before_ws);
             return left;
         }
         i = i + StringLength(op);
@@ -744,9 +777,10 @@ func ParseLogicalAnd(content: String, start: Int, inout cursor_out: Array<Int>) 
     let left: String = ParseComparison(content, start, cursor_out);
     let i: Int = cursor_out[0];
     while true {
+        let before_ws: Int = i;
         i = SkipWhitespaceAndComments(content, i);
         if CharAt(content, i) != "&" || CharAt(content, i + 1) != "&" {
-            ArraySet(cursor_out, 0, i);
+            ArraySet(cursor_out, 0, before_ws);
             return left;
         }
         i = i + 2;
@@ -762,9 +796,10 @@ func ParseLogicalOr(content: String, start: Int, inout cursor_out: Array<Int>) -
     let left: String = ParseLogicalAnd(content, start, cursor_out);
     let i: Int = cursor_out[0];
     while true {
+        let before_ws: Int = i;
         i = SkipWhitespaceAndComments(content, i);
         if CharAt(content, i) != "|" || CharAt(content, i + 1) != "|" {
-            ArraySet(cursor_out, 0, i);
+            ArraySet(cursor_out, 0, before_ws);
             return left;
         }
         i = i + 2;
@@ -834,7 +869,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
         ArraySet(cursor_out, 0, i);
         let bind_rhs: String = ParseExpr(content, i, cursor_out);
         i = cursor_out[0];
-        i = Expect(content, i, ";");
+        i = ConsumeStmtTerminator(content, i);
         if i < 0 {
             Exit(1);
         }
@@ -984,7 +1019,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
         if StringLength(body) > 0 {
             out = Concat(out, Concat("\n", body));
         }
-        i = Expect(content, i, ";");
+        i = ConsumeStmtTerminator(content, i);
         if i < 0 {
             Exit(1);
         }
@@ -993,7 +1028,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
     }
 
     if head == "break" {
-        i = Expect(content, i, ";");
+        i = ConsumeStmtTerminator(content, i);
         if i < 0 {
             Exit(1);
         }
@@ -1002,7 +1037,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
     }
 
     if head == "continue" {
-        i = Expect(content, i, ";");
+        i = ConsumeStmtTerminator(content, i);
         if i < 0 {
             Exit(1);
         }
@@ -1137,7 +1172,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
         ArraySet(cursor_out, 0, i);
         let val_text: String = ParseExpr(content, i, cursor_out);
         i = cursor_out[0];
-        i = Expect(content, i, ";");
+        i = ConsumeStmtTerminator(content, i);
         if i < 0 {
             Exit(1);
         }
@@ -1216,7 +1251,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
         ArraySet(cursor_out, 0, i);
         let val_text: String = ParseExpr(content, i, cursor_out);
         i = cursor_out[0];
-        i = Expect(content, i, ";");
+        i = ConsumeStmtTerminator(content, i);
         if i < 0 {
             Exit(1);
         }
@@ -1238,7 +1273,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
         ArraySet(cursor_out, 0, i);
         let walrus_rhs: String = ParseExpr(content, i, cursor_out);
         i = cursor_out[0];
-        i = Expect(content, i, ";");
+        i = ConsumeStmtTerminator(content, i);
         if i < 0 {
             Exit(1);
         }
@@ -1268,7 +1303,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
         ArraySet(cursor_out, 0, i);
         let rhs: String = ParseExpr(content, i, cursor_out);
         i = cursor_out[0];
-        i = Expect(content, i, ";");
+        i = ConsumeStmtTerminator(content, i);
         if i < 0 {
             Exit(1);
         }
@@ -1283,7 +1318,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
         ArraySet(cursor_out, 0, i);
         let unsub_rhs: String = ParseExpr(content, i, cursor_out);
         i = cursor_out[0];
-        i = Expect(content, i, ";");
+        i = ConsumeStmtTerminator(content, i);
         if i < 0 {
             Exit(1);
         }
@@ -1299,7 +1334,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
         ArraySet(cursor_out, 0, i);
         let send_rhs: String = ParseExpr(content, i, cursor_out);
         i = cursor_out[0];
-        i = Expect(content, i, ";");
+        i = ConsumeStmtTerminator(content, i);
         if i < 0 {
             Exit(1);
         }
@@ -1312,7 +1347,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
         ArraySet(cursor_out, 0, i);
         let rhs: String = ParseExpr(content, i, cursor_out);
         i = cursor_out[0];
-        i = Expect(content, i, ";");
+        i = ConsumeStmtTerminator(content, i);
         if i < 0 {
             Exit(1);
         }
@@ -1325,7 +1360,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
     ArraySet(cursor_out, 0, head_start);
     let expr_text: String = ParseExpr(content, head_start, cursor_out);
     i = cursor_out[0];
-    i = Expect(content, i, ";");
+    i = ConsumeStmtTerminator(content, i);
     if i < 0 {
         Fail("Semicolon missing in expression statement", content, cursor_out[0]);
     }
