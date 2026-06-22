@@ -494,28 +494,45 @@ mir_dump_json(const MIRProgram *mir, FILE *out)
         bool first_decl = true;
         for (size_t i = 0; i < mir->decl_header_count; i++) {
             const MIRDeclHeader *header = &mir->decl_headers[i];
-            if (mir_decl_header_ast_type_or(header, AST_PROGRAM) != AST_CLASS_DECL
-                || mir_decl_header_nominal_kind_or(header, NOMINAL_DECL_CLASS)
-                       != NOMINAL_DECL_STRUCT)
+            ASTNodeType ast_type = mir_decl_header_ast_type_or(header,
+                AST_PROGRAM);
+            bool is_struct_decl =
+                ast_type == AST_CLASS_DECL
+                && mir_decl_header_nominal_kind_or(header, NOMINAL_DECL_CLASS)
+                       == NOMINAL_DECL_STRUCT;
+            bool is_unsupported_decl =
+                ast_type == AST_ABILITY_DECL || ast_type == AST_ROLE_DECL
+                || ast_type == AST_ENUM_DECL || ast_type == AST_EVENT_DECL;
+            if (ast_type == AST_FUNC_DECL || ast_type == AST_TYPE_ALIAS)
+                continue;
+            if (!is_struct_decl && !is_unsupported_decl)
                 continue;
             if (!first_decl)
                 fputc(',', out);
             first_decl = false;
-            fputs("{\"kind\":\"struct\",\"name\":", out);
-            mir_json_emit_str_or_null(out, mir_decl_header_name(header));
-            fputs(",\"fields\":[", out);
-            for (size_t f = 0; f < mir_decl_header_field_count(header); f++) {
-                const MIRDeclField *field = mir_decl_header_field(header, f);
-                if (f > 0)
-                    fputc(',', out);
-                fputs("{\"name\":", out);
-                mir_json_emit_str_or_null(out, mir_decl_field_name(field));
-                fputs(",\"type\":", out);
-                mir_json_emit_str_or_null(out,
-                    mir_decl_field_type_name(field));
+            if (is_struct_decl) {
+                fputs("{\"kind\":\"struct\",\"name\":", out);
+                mir_json_emit_str_or_null(out, mir_decl_header_name(header));
+                fputs(",\"fields\":[", out);
+                for (size_t f = 0; f < mir_decl_header_field_count(header); f++) {
+                    const MIRDeclField *field = mir_decl_header_field(header, f);
+                    if (f > 0)
+                        fputc(',', out);
+                    fputs("{\"name\":", out);
+                    mir_json_emit_str_or_null(out, mir_decl_field_name(field));
+                    fputs(",\"type\":", out);
+                    mir_json_emit_str_or_null(out,
+                        mir_decl_field_type_name(field));
+                    fputc('}', out);
+                }
+                fputs("]}", out);
+            } else {
+                fputs("{\"kind\":\"unsupported\",\"ast_type\":", out);
+                mir_json_emit_str(out, mir_source_node_type_name(ast_type));
+                fputs(",\"name\":", out);
+                mir_json_emit_str_or_null(out, mir_decl_header_name(header));
                 fputc('}', out);
             }
-            fputs("]}", out);
         }
     }
     fputs("],\"routines\":[", out);

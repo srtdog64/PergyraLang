@@ -76,8 +76,9 @@ The active hard rungs are:
   C/LLVM run output;
 - `src/self_hosted/mir_lower/`: MIR JSON fact-only lowering for the supported
   CFG subset and selected args/array/string/Bool/Float/file/recursion/struct
-  fixture surfaces, chained through the self-hosted codegen and compared
-  against the C backend oracle.
+  fixture surfaces, plus clean rejection for unsupported declaration facts,
+  chained through the self-hosted codegen and compared against the C backend
+  oracle.
 
 Peripheral tools under `src/self_hosted/tools/` remain useful dogfood, but they
 do not count as compiler-internal substitution unless they replace a compiler

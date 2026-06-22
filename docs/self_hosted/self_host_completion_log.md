@@ -67,6 +67,23 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Unsupported declarations fail closed in MIR JSON lowering
+
+- Closed the `operator_overload` silent-output class for the self-host MIR JSON
+  path. `pgy --mir-json` now emits unsupported declaration facts for
+  out-of-subset ability/role/enum/event declarations instead of letting
+  `mir_lower` ignore the declaration inventory and generate a plausible but
+  semantically incomplete C program.
+- Added `unsupported_ability_decl.pgy` as a negative fixture. The hard MIR JSON
+  gate now proves **61 positive fixtures plus 1 clean reject**: ability and role
+  unsupported facts must be present in MIR JSON, and `mir_lower` must produce a
+  visible `MIR-LOWER ERROR` rather than silently continuing.
+- Refreshed the examples-scale survey after the clean-reject cutover: 46 PASS,
+  39 CODEGEN-gap, 19 MIR-LOWER-gap, 13 ORACLE-skip, 2 STDOUT-diff (`io_test`,
+  `match_test`), 1 CC-fail (`string_utils`), and 1 via-run timeout (`heap`).
+  This intentionally moves unsupported ability/enum/event examples out of the
+  silent-wrong-output bucket and into clean rejection.
+
 ### 2026-06-23 -- Random return facts promoted into MIR source-local typing
 
 - Closed the shared `bsd_test6` / `bsd_test9` / `bsd_test11` malformed

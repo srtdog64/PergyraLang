@@ -110,7 +110,8 @@ subset.
   the `for` header is reconstructed from
   `arg0` plus range bounds rather than treating the lower bound as a branch
   condition, and rejects reintroducing transitional `"ast"` reads. The hard
-  gate is now **61 fixtures** after promoting the already run-equivalent
+  gate is now **61 positive fixtures plus 1 clean-reject fixture** after
+  promoting the already run-equivalent
   trailing-newline Log, nested string concat, string array concat, string
   case/index/trim builtin, string reassignment, two-log, while-break, and
   while-sum surfaces, array pop and array for-each loops, and Int-field struct
@@ -118,7 +119,10 @@ subset.
   statement blocks from CFG successor facts and consumes the MIR-owned
   `Random()` Int source-local type fact. The coverage boundary is now measured
   at **61 PASS /
-  0 gap** across the committed MIR-lower/codegen fixture inventory.
+  0 gap plus 1 clean reject** across the committed MIR-lower/codegen fixture
+  inventory. Unsupported ability/role declaration facts are rejected by
+  `mir_lower`, so out-of-subset operator-overload semantics cannot be silently
+  dropped by the self-host path.
 - C class/zone collection-specialization scans are MIR-routine based and no
   longer recover method body AST; routine_source_decl_codegen is ratcheted at 0.
 - C hosted method body emission binds the linked MIRRoutine body as current

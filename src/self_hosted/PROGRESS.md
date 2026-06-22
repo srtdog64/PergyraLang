@@ -55,7 +55,8 @@ string concatenation, string array concatenation, string case/index/trim
 builtins, array pop, array for-each, Int-field struct declarations/value flow,
 break edges after non-empty statement blocks, inferred `Random()` Int locals,
 and file read/write), gated by `parity/mir_json_parity.sh`
-(`make self-host-mir-json-parity-test-smoke`, 61 fixtures). The gate now
+(`make self-host-mir-json-parity-test-smoke`, 61 fixtures plus 1 clean-reject
+fixture). The gate now
 requires the MIR JSON fact surface and checks the `for`
 header is reconstructed from `arg0` plus `expr0`/`expr1` bounds, and checks
 struct declarations are reconstructed from MIR declaration facts. The gate also
@@ -63,9 +64,11 @@ rejects reintroducing reads of the transitional `ast` compatibility text. This
 is the first verified slice of the actual compiler-core (~96% of the LOC), not
 the codegen subset. It is now fact-only for the supported MIR JSON statement,
 expression, source-local, CFG, and Int-field struct declaration surfaces. The
-committed MIR-lower/codegen fixture inventory is currently **61 PASS / 0 gap**
-through this path; new fixtures must preserve that by adding owning facts rather
-than text fallback.
+committed MIR-lower/codegen fixture inventory is currently **61 PASS / 0 gap
+plus 1 clean reject** through this path, and ability/role declarations are
+represented as unsupported MIR declaration facts so the self-host path fails
+closed instead of silently dropping operator-overload semantics. New fixtures
+must preserve that by adding owning facts rather than text fallback.
 
 **Hard migration opened (2026-06-17):** the codegen rung is the first *hard
 compiler-core* substitute, landed after the BDFL decision lifted the

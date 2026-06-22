@@ -143,6 +143,13 @@ func EmitStructDecls(json: String) -> String {
     if de < 0 {
         return out;
     }
+    let unsupported: Int = FindFrom(json, "\"kind\":\"unsupported\"", ds);
+    if unsupported >= 0 && unsupported < de {
+        let unsupported_end: Int = FindFrom(json, "}", unsupported);
+        let ast_type: String = JsonFieldString(json, unsupported, unsupported_end, "\"ast_type\":");
+        let name: String = JsonFieldString(json, unsupported, unsupported_end, "\"name\":");
+        Die(Concat("unsupported MIR declaration in self-host subset: ", Concat(ast_type, Concat(" ", name))));
+    }
     let p: Int = FindFrom(json, "\"kind\":\"struct\"", ds);
     while p >= 0 && p < de {
         let next_struct: Int = FindFrom(json, "\"kind\":\"struct\"", p + 15);
