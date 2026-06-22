@@ -55,14 +55,28 @@ air_collect_mir_evidence(AIRProgram *air,
         const char *routine_name = air_mir_routine_provider_name(routine);
         /* Bucket C: accumulate this routine's unproven retains (lifecycle CHECK
            guards at ambiguous joins) into the program total. */
-        air->unproven_retain_count +=
-            air_mir_routine_unproven_retain_fact_count(routine);
+        if (!air_add_unproven_retain_count(
+                air, air_mir_routine_unproven_retain_fact_count(routine))) {
+            air_set_error(error_message,
+                          "AIR MIR unproven retain counter overflow");
+            return false;
+        }
         /* Bucket A: accumulate inherent concurrency retains (parallel/channel). */
-        air->inherent_concurrency_count +=
-            air_mir_routine_inherent_concurrency_fact_count(routine);
+        if (!air_add_inherent_concurrency_retain_count(
+                air,
+                air_mir_routine_inherent_concurrency_fact_count(routine))) {
+            air_set_error(error_message,
+                          "AIR MIR inherent concurrency retain counter overflow");
+            return false;
+        }
         /* Bucket B: capability-bearing slot operations retained by policy. */
-        air->slot_capability_retain_count +=
-            air_mir_routine_slot_capability_retain_fact_count(routine);
+        if (!air_add_slot_capability_retain_count(
+                air,
+                air_mir_routine_slot_capability_retain_fact_count(routine))) {
+            air_set_error(error_message,
+                          "AIR MIR slot capability retain counter overflow");
+            return false;
+        }
         /* ...and capture their identity sites so AIR owns slot identity. */
         if (!air_collect_slot_sites(air, routine, routine_name)) {
             air_set_error(error_message,

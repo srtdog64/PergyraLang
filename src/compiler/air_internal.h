@@ -232,8 +232,13 @@ size_t      air_evidence_summary_count(const AIRProgram *air,
                                         AIREvidenceKind kind);
 bool        air_increment_evidence_summary_count(AIRProgram *air,
                                                  AIREvidenceKind kind);
+bool        air_add_unproven_retain_count(AIRProgram *air, size_t count);
+bool        air_add_inherent_concurrency_retain_count(AIRProgram *air,
+                                                      size_t count);
+bool        air_add_slot_capability_retain_count(AIRProgram *air,
+                                                 size_t count);
 size_t      air_evidence_required_count(const AIRProgram *air,
-                                         AIREvidenceKind kind);
+                                        AIREvidenceKind kind);
 bool        air_increment_evidence_required_count(AIRProgram *air,
                                                   AIREvidenceKind kind);
 bool        air_append_rir_propagation_requirement(AIRProgram *air,

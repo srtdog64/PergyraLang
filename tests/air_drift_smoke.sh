@@ -1020,6 +1020,16 @@ if "air_evidence_required_count(const AIRProgram *air" not in air_validate_summa
     raise SystemExit("AIR summary-counter owner must expose required evidence counting")
 if "air_increment_evidence_required_count(AIRProgram *air" not in air_validate_summary_counters_text:
     raise SystemExit("AIR summary-counter owner must expose required evidence mutation")
+for owner_fn in [
+    "air_add_unproven_retain_count(AIRProgram *air",
+    "air_add_inherent_concurrency_retain_count(AIRProgram *air",
+    "air_add_slot_capability_retain_count(AIRProgram *air",
+]:
+    if owner_fn not in air_validate_summary_counters_text:
+        raise SystemExit(
+            "AIR summary-counter owner must expose retain counter mutation: "
+            + owner_fn
+        )
 if "air_validate_rir_boundary_summary_counter" not in air_validate_summary_counters_text:
     raise SystemExit("AIR RIR boundary/authority counters must be evidence-node validated")
 if "AIR RIR %s evidence counter does not match evidence nodes" not in air_validate_summary_counters_text:
@@ -1060,6 +1070,26 @@ if "routine->block_count > 0 && routine->blocks == NULL" not in air_evidence_mir
     raise SystemExit("AIR MIR fact counters must be null-safe for missing block inventory")
 if "routine->blocks != NULL" not in air_evidence_mir_facts_text:
     raise SystemExit("AIR MIR cleanup-root validation must require block storage")
+for raw_retain_counter in [
+    "air->unproven_retain_count +=",
+    "air->inherent_concurrency_count +=",
+    "air->slot_capability_retain_count +=",
+]:
+    if raw_retain_counter in air_evidence_mir_text:
+        raise SystemExit(
+            "AIR MIR evidence must mutate retain counters through "
+            "the summary owner: " + raw_retain_counter
+        )
+for retain_owner_call in [
+    "air_add_unproven_retain_count(",
+    "air_add_inherent_concurrency_retain_count(",
+    "air_add_slot_capability_retain_count(",
+]:
+    if retain_owner_call not in air_evidence_mir_text:
+        raise SystemExit(
+            "AIR MIR evidence must consume retain counter owner: "
+            + retain_owner_call
+        )
 for path in [
     air_evidence_hir_path,
     air_evidence_path,

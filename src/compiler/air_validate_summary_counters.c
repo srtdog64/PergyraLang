@@ -111,6 +111,38 @@ air_increment_evidence_summary_count(AIRProgram *air, AIREvidenceKind kind)
     return true;
 }
 
+static bool
+air_add_counter(size_t *slot, size_t count)
+{
+    if (slot == NULL)
+        return false;
+    if (count > SIZE_MAX - *slot)
+        return false;
+    *slot += count;
+    return true;
+}
+
+bool
+air_add_unproven_retain_count(AIRProgram *air, size_t count)
+{
+    return air != NULL
+        && air_add_counter(&air->unproven_retain_count, count);
+}
+
+bool
+air_add_inherent_concurrency_retain_count(AIRProgram *air, size_t count)
+{
+    return air != NULL
+        && air_add_counter(&air->inherent_concurrency_count, count);
+}
+
+bool
+air_add_slot_capability_retain_count(AIRProgram *air, size_t count)
+{
+    return air != NULL
+        && air_add_counter(&air->slot_capability_retain_count, count);
+}
+
 size_t
 air_evidence_required_count(const AIRProgram *air, AIREvidenceKind kind)
 {

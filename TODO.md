@@ -2406,6 +2406,13 @@ English anchor for tooling/doc gates:
   The read-only graph accessors are now public `air.h` API, while mutating
   graph accessors and storage/input helpers remain internal. Gates: `test-air`,
   `perf-contract-test-smoke`, and `make .tmp/bin/pgy`.
+- AIR retain summary counters now mutate through the summary-counter owner.
+  `air_evidence_mir.c` no longer writes `unproven_retain_count`,
+  `inherent_concurrency_count`, or `slot_capability_retain_count` directly; it
+  consumes `air_add_*_retain_count(...)` and fails closed on overflow. This
+  keeps bucket A/B/C materialization telemetry behind the same owner as the
+  evidence summary counters. Gates: `test-air`, `air-drift-test-smoke`, and
+  `air-backend-nonimpact-test-smoke`.
 - AIR boundary evidence shape validation now has a dedicated owner:
   `src/compiler/air_validate_boundary_evidence.c` owns boundary-scoped
   HIR/RIR/MIR evidence shape checks, provider lookups, and same-boundary
