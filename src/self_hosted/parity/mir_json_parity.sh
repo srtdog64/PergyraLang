@@ -71,6 +71,8 @@ MIR_FIXTURES=(
     multi_func_void
     break_after_stmt
     random_inferred_let
+    class_decl
+    class_method
     match_case_int
     nested_if_in_loop
     array_destructure
@@ -195,6 +197,26 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
             fi
         done
     fi
+    if [[ "$base" == "class_decl" ]]; then
+        for required in \
+            '"decls":[{"kind":"class","nominal_kind":"class","name":"Vec2"' \
+            '"fields":[{"name":"x","type":"Int"},{"name":"y","type":"Int"}]'; do
+            if ! grep -Fq "$required" "$mj"; then
+                echo "[self-host-parity:mir-json] class_decl: missing MIR class declaration fact: $required" >&2
+                exit 1
+            fi
+        done
+    fi
+    if [[ "$base" == "class_method" ]]; then
+        for required in \
+            '"methods":[{"name":"Length","return":"Int"}]' \
+            '"name":"Length","kind":"method","owner":"Vec2"'; do
+            if ! grep -Fq "$required" "$mj"; then
+                echo "[self-host-parity:mir-json] class_method: missing MIR class method fact: $required" >&2
+                exit 1
+            fi
+        done
+    fi
     if [[ "$base" == "match_case_int" ]]; then
         for required in \
             '"source_type":"AST_MATCH_CASE"' \
@@ -230,6 +252,29 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
     if [[ "$base" == "struct_param" ]] && ! grep -q 'Struct: Pair' "$reast"; then
         echo "[self-host-parity:mir-json] struct_param: mir_lower did not reconstruct the struct declaration from MIR facts" >&2
         exit 1
+    fi
+    if [[ "$base" == "class_decl" ]]; then
+        for required in \
+            'Class: Vec2' \
+            'Let: v : Vec2 = Vec2(3, 7)' \
+            'Log(v.x)'; do
+            if ! grep -Fq "$required" "$reast"; then
+                echo "[self-host-parity:mir-json] class_decl: mir_lower did not reconstruct class fact: $required" >&2
+                exit 1
+            fi
+        done
+    fi
+    if [[ "$base" == "class_method" ]]; then
+        for required in \
+            'Class: Vec2' \
+            'Methods:' \
+            'Function: Length' \
+            'Log(v.Length())'; do
+            if ! grep -Fq "$required" "$reast"; then
+                echo "[self-host-parity:mir-json] class_method: mir_lower did not reconstruct class method fact: $required" >&2
+                exit 1
+            fi
+        done
     fi
     if [[ "$base" == "match_case_int" ]] && ! grep -q 'If: x == 3' "$reast"; then
         echo "[self-host-parity:mir-json] match_case_int: mir_lower did not reconstruct match case conditions from MIR facts" >&2
@@ -311,31 +356,6 @@ if [[ "$reject_rc" -eq 0 ]]; then
 fi
 if ! grep -q '^MIR-LOWER ERROR: unsupported MIR declaration in self-host subset:' "$reast"; then
     echo "[self-host-parity:mir-json] $base: mir_lower must reject unsupported declaration facts" >&2
-    sed -n '1,5p' "$reast" >&2
-    exit 1
-fi
-rejects=$((rejects + 1))
-
-base="unsupported_class_decl"
-src="$FIXTURE_DIR/$base.pgy"
-mj="$B/$base.mirjson"
-reast="$B/$base.reast"
-(cd "$ROOT_DIR" && "$PGY" --mir-json "$(pgy_path_for_compiler "$PGY" "$src")" \
-    2>/dev/null | tr -d '\r' > "$mj")
-if ! grep -Fq '"kind":"unsupported","ast_type":"AST_CLASS_DECL","name":"Vec2"' "$mj"; then
-    echo "[self-host-parity:mir-json] $base: missing unsupported class declaration fact" >&2
-    exit 1
-fi
-set +e
-"$B/mir_lower.exe" "${mj#$ROOT_DIR/}" 2>/dev/null | tr -d '\r' > "$reast"
-reject_rc=${PIPESTATUS[0]}
-set -e
-if [[ "$reject_rc" -eq 0 ]]; then
-    echo "[self-host-parity:mir-json] $base: mir_lower must exit nonzero for unsupported class declaration facts" >&2
-    exit 1
-fi
-if ! grep -q '^MIR-LOWER ERROR: unsupported MIR declaration in self-host subset: AST_CLASS_DECL Vec2' "$reast"; then
-    echo "[self-host-parity:mir-json] $base: mir_lower must reject unsupported class declaration facts" >&2
     sed -n '1,5p' "$reast" >&2
     exit 1
 fi

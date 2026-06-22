@@ -166,12 +166,14 @@ absolute-path I/O rejection. Phi-bearing loop headers are now classified by
 CFG backedges rather than phi presence alone, so nested `if` branches inside
 loops are not materialized as loops. Array destructure binding names are emitted
 as MIR JSON facts and consumed by `mir_lower` to reconstruct typed array-index
-`Let:` bindings without source-text parsing. The committed MIR-lower/codegen
-fixture inventory is now measured at 65 PASS / 0 gap plus 3
-clean rejects through this path. Ability/role and non-struct class unsupported
-declaration facts are emitted and rejected before the self-host path can
-silently erase operator-overload or domain nominal semantics, and unsupported
-self-host codegen builtins are rejected before they leak undefined C symbols;
+`Let:` bindings without source-text parsing. Plain class declarations and
+methods are reconstructed from MIR field/method/owner facts and lowered through
+the self-hosted value-nominal path. The committed MIR-lower/codegen fixture
+inventory is now measured at 67 PASS / 0 gap plus 2 clean rejects through this
+path. Ability/role and projection/identity nominal unsupported declaration
+facts are emitted and rejected before the self-host path can silently erase
+operator-overload or domain nominal semantics, and unsupported self-host codegen
+builtins are rejected before they leak undefined C symbols;
 `self-host-mir-json-parity-test-smoke` rejects reintroducing transitional
 `"ast"` reads.
 Capability 4 is

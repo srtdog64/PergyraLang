@@ -314,6 +314,24 @@ func LookupKindType(env: String, name: String, kind: String) -> String {
     return Substring(rest, 0, bar);
 }
 
+func CsvAt(csv: String, want: Int) -> String {
+    let i: Int = 0;
+    let idx: Int = 0;
+    let start: Int = 0;
+    let n: Int = StringLength(csv);
+    while i <= n {
+        if i == n || CharAt(csv, i) == "," {
+            if idx == want {
+                return Substring(csv, start, i - start);
+            }
+            idx = idx + 1;
+            start = i + 1;
+        }
+        i = i + 1;
+    }
+    return "";
+}
+
 // Classify an expression as "String" or "Int" using the environment.
 func ExprKind(expr: String, env: String) -> String {
     let e: String = StringTrim(expr);
@@ -735,6 +753,70 @@ func RewriteExpr(e: String, env: String) -> String {
     return RewriteBool(e, env);
 }
 
+func RewriteMemberCalls(e: String, env: String) -> String {
+    let n: Int = StringLength(e);
+    let out: String = "";
+    let i: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(e, i);
+        if in_str {
+            out = Concat(out, c);
+            if c == "\\" && i + 1 < n {
+                out = Concat(out, CharAt(e, i + 1));
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            out = Concat(out, c);
+            i = i + 1;
+            continue;
+        }
+        if c == "." {
+            let ol: Int = StringLength(out);
+            let end: Int = ol;
+            let start: Int = ol;
+            while start > 0 && IsIdentChar(CharAt(out, start - 1)) {
+                start = start - 1;
+            }
+            if start < end && i + 1 < n && IsIdentStart(CharAt(e, i + 1)) {
+                let j: Int = i + 1;
+                while j < n && IsIdentChar(CharAt(e, j)) {
+                    j = j + 1;
+                }
+                if j < n && CharAt(e, j) == "(" {
+                    let receiver: String = Substring(out, start, end - start);
+                    let recv_type: String = LookupKindType(env, receiver, "v");
+                    let method: String = Substring(e, i + 1, j - (i + 1));
+                    let c_name: String = Concat(recv_type, Concat("_", method));
+                    if StringLength(recv_type) > 0 && LookupKindType(env, c_name, "f") != "" {
+                        let close: Int = FindMatchingParen(e, j);
+                        let args: String = Substring(e, j + 1, close - j - 1);
+                        out = Substring(out, 0, start);
+                        out = Concat(out, Concat(c_name, Concat("(", receiver)));
+                        if StringLength(StringTrim(args)) > 0 {
+                            out = Concat(out, Concat(", ", args));
+                        }
+                        out = Concat(out, ")");
+                        i = close + 1;
+                        continue;
+                    }
+                }
+            }
+        }
+        out = Concat(out, c);
+        i = i + 1;
+    }
+    return out;
+}
+
 // Rewrite a namespace-qualified call `NS.Func(...)` to the flattened C name
 // `NS_Func(...)`. The parser flattens `namespace NS { func Func }` to a
 // top-level `NS_Func` definition but renders calls in dotted form. A `.` that
@@ -838,7 +920,8 @@ func RewriteBoolLiterals(e: String) -> String {
 }
 
 func RewriteTokens(e: String, env: String) -> String {
-    let q: String = RewriteQualifiedCalls(e);
+    let q0: String = RewriteMemberCalls(e, env);
+    let q: String = RewriteQualifiedCalls(q0);
     let a: String = RewriteArrayLengthEnv(q, env);
     let b: String = RewriteIndexing(a, env);
     let c: String = ReplaceAllOutsideStrings(b, "StringLength(", "pgy_strlen(");
@@ -1097,6 +1180,8 @@ func EmitStructLit(expr: String, env: String) -> String {
     let out: String = Concat("(", Concat(sname, "){ "));
     let rem: String = StringTrim(inner);
     let first: Bool = true;
+    let field_pos: Int = 0;
+    let field_names: String = LookupKindType(env, sname, "fields");
     while StringLength(rem) > 0 {
         let comma: Int = FindTopLevelComma(rem);
         let part: String = "";
@@ -1109,16 +1194,24 @@ func EmitStructLit(expr: String, env: String) -> String {
         }
         if StringLength(part) > 0 {
             let cp: Int = StringIndexOf(part, ": ");
-            if cp < 0 {
-                Die(Concat("struct field needs `name: value`: ", part));
+            let fld: String = "";
+            let val: String = "";
+            if cp >= 0 {
+                fld = Substring(part, 0, cp);
+                val = Substring(part, cp + 2, StringLength(part) - (cp + 2));
+            } else {
+                fld = CsvAt(field_names, field_pos);
+                val = part;
+                if StringLength(fld) == 0 {
+                    Die(Concat("struct positional initializer has no field fact: ", part));
+                }
             }
-            let fld: String = Substring(part, 0, cp);
-            let val: String = Substring(part, cp + 2, StringLength(part) - (cp + 2));
             if !first {
                 out = Concat(out, ", ");
             }
             out = Concat(out, Concat(".", Concat(fld, Concat(" = (", Concat(IntEval(val, env), ")")))));
             first = false;
+            field_pos = field_pos + 1;
         }
     }
     return Concat(out, " }");
@@ -1488,9 +1581,13 @@ func CRetType(type_name: String, struct_env: String) -> String {
 // cur[0]. `base_env` carries the global function return-type bindings.
 func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
                   inout cur: Array<Int>, f_indent: Int,
-                  base_env: String, uses_args: Bool) -> String {
+                  base_env: String, uses_args: Bool, owner_name: String) -> String {
     let head: String = texts[cur[0]];
     let name: String = Substring(head, 10, StringLength(head) - 10);
+    let c_name: String = name;
+    if StringLength(owner_name) > 0 {
+        c_name = Concat(owner_name, Concat("_", name));
+    }
     ArraySet(cur, 0, cur[0] + 1);
 
     ExpectText(texts, count, cur, "Parameters:");
@@ -1500,11 +1597,17 @@ func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
     while cur[0] < count && indents[cur[0]] == f_indent + 4 {
         let pline: String = texts[cur[0]];
         let pc: Int = StringIndexOf(pline, ": ");
-        if pc < 0 {
+        let p_name: String = "";
+        let p_type: String = "";
+        if pc < 0 && StringLength(owner_name) > 0 && pline == "self" {
+            p_name = "self";
+            p_type = owner_name;
+        } else if pc < 0 {
             Die(Concat("malformed parameter: ", pline));
+        } else {
+            p_name = Substring(pline, 0, pc);
+            p_type = Substring(pline, pc + 2, StringLength(pline) - (pc + 2));
         }
-        let p_name: String = Substring(pline, 0, pc);
-        let p_type: String = Substring(pline, pc + 2, StringLength(pline) - (pc + 2));
         let c_param: String = Concat(CParamType(p_type, base_env), Concat(" ", p_name));
         if param_n == 0 {
             params = c_param;
@@ -1560,7 +1663,7 @@ func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
         if param_n == 0 {
             param_list = "void";
         }
-        signature = Concat(CRetType(ret_type, base_env), Concat(" ", Concat(name, Concat("(", Concat(param_list, ")")))));
+        signature = Concat(CRetType(ret_type, base_env), Concat(" ", Concat(c_name, Concat("(", Concat(param_list, ")")))));
     }
 
     let tail: String = "}\n";
@@ -1575,9 +1678,23 @@ func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
 func BuildFunctionEnv(indents: Array<Int>, texts: Array<String>, count: Int) -> String {
     let env: String = "|";
     let i: Int = 0;
+    let owner: String = "";
+    let owner_indent: Int = -1;
     while i < count {
+        if StringLength(owner) > 0 && indents[i] <= owner_indent {
+            owner = "";
+            owner_indent = -1;
+        }
+        if StartsWith(texts[i], "Class: ") {
+            owner = Substring(texts[i], 7, StringLength(texts[i]) - 7);
+            owner_indent = indents[i];
+        }
         if StartsWith(texts[i], "Function:") {
             let fname: String = Substring(texts[i], 10, StringLength(texts[i]) - 10);
+            let cname: String = fname;
+            if StringLength(owner) > 0 && indents[i] > owner_indent {
+                cname = Concat(owner, Concat("_", fname));
+            }
             let j: Int = i + 1;
             let rtype: String = "Void";
             while j < count && !StartsWith(texts[j], "Function:") {
@@ -1588,27 +1705,32 @@ func BuildFunctionEnv(indents: Array<Int>, texts: Array<String>, count: Int) -> 
                     j = j + 1;
                 }
             }
-            env = Concat(env, Concat(fname, Concat("=f:", Concat(rtype, "|"))));
+            env = Concat(env, Concat(cname, Concat("=f:", Concat(rtype, "|"))));
         }
         i = i + 1;
     }
     return env;
 }
 
-// Scan top-level `Struct: Name` declarations into C typedefs, and append a
-// `Name=s:struct|` entry to env_box[0] for each. rung-14 supports `Int` fields.
+// Scan top-level `Struct: Name` / `Class: Name` declarations into C typedefs,
+// and append `Name=s:struct|Name=fields:a,b|` entries to env_box[0].
 func CollectStructs(indents: Array<Int>, texts: Array<String>, count: Int, inout env_box: Array<String>) -> String {
     let typedefs: String = "";
     let i: Int = 0;
     while i < count {
-        if StartsWith(texts[i], "Struct: ") {
-            let sname: String = Substring(texts[i], 8, StringLength(texts[i]) - 8);
+        if StartsWith(texts[i], "Struct: ") || StartsWith(texts[i], "Class: ") {
+            let prefix_len: Int = 8;
+            if StartsWith(texts[i], "Class: ") {
+                prefix_len = 7;
+            }
+            let sname: String = Substring(texts[i], prefix_len, StringLength(texts[i]) - prefix_len);
             let s_indent: Int = indents[i];
             let j: Int = i + 1;
             if j < count && texts[j] == "Fields:" {
                 j = j + 1;
             }
             let fields_c: String = "";
+            let field_names: String = "";
             while j < count && indents[j] == s_indent + 4 {
                 let fl: String = texts[j];
                 let cpos: Int = StringIndexOf(fl, ": ");
@@ -1617,14 +1739,23 @@ func CollectStructs(indents: Array<Int>, texts: Array<String>, count: Int, inout
                 }
                 let fname: String = Substring(fl, 0, cpos);
                 let ftype: String = Substring(fl, cpos + 2, StringLength(fl) - (cpos + 2));
-                if ftype != "Int" {
-                    Die(Concat("rung-14 struct fields must be Int, got: ", ftype));
+                let cfield_type: String = "long long";
+                if ftype == "String" {
+                    cfield_type = "const char *";
+                } else if ftype != "Int" {
+                    Die(Concat("struct/class fields must be Int/String, got: ", ftype));
                 }
-                fields_c = Concat(fields_c, Concat("    long long ", Concat(fname, ";\n")));
+                if StringLength(field_names) == 0 {
+                    field_names = fname;
+                } else {
+                    field_names = Concat(field_names, Concat(",", fname));
+                }
+                fields_c = Concat(fields_c, Concat("    ", Concat(cfield_type, Concat(" ", Concat(fname, ";\n")))));
                 j = j + 1;
             }
             typedefs = Concat(typedefs, Concat("typedef struct {\n", Concat(fields_c, Concat("} ", Concat(sname, ";\n\n")))));
             ArraySet(env_box, 0, Concat(env_box[0], Concat(sname, "=s:struct|")));
+            ArraySet(env_box, 0, Concat(env_box[0], Concat(sname, Concat("=fields:", Concat(field_names, "|")))));
         }
         i = i + 1;
     }
@@ -1639,10 +1770,24 @@ func CollectStructs(indents: Array<Int>, texts: Array<String>, count: Int, inout
 func CollectProtos(indents: Array<Int>, texts: Array<String>, count: Int, struct_env: String) -> String {
     let block: String = "";
     let i: Int = 0;
+    let owner: String = "";
+    let owner_indent: Int = -1;
     while i < count {
+        if StringLength(owner) > 0 && indents[i] <= owner_indent {
+            owner = "";
+            owner_indent = -1;
+        }
+        if StartsWith(texts[i], "Class: ") {
+            owner = Substring(texts[i], 7, StringLength(texts[i]) - 7);
+            owner_indent = indents[i];
+        }
         if StartsWith(texts[i], "Function:") {
             let name: String = Substring(texts[i], 10, StringLength(texts[i]) - 10);
-            if name != "Main" {
+            let c_name: String = name;
+            if StringLength(owner) > 0 && indents[i] > owner_indent {
+                c_name = Concat(owner, Concat("_", name));
+            }
+            if c_name != "Main" {
                 let f_indent: Int = indents[i];
                 let j: Int = i + 1;
                 if j < count && texts[j] == "Parameters:" {
@@ -1653,11 +1798,17 @@ func CollectProtos(indents: Array<Int>, texts: Array<String>, count: Int, struct
                 while j < count && indents[j] == f_indent + 4 {
                     let pl: String = texts[j];
                     let pc: Int = StringIndexOf(pl, ": ");
-                    if pc < 0 {
+                    let p_name: String = "";
+                    let p_type: String = "";
+                    if pc < 0 && StringLength(owner) > 0 && pl == "self" {
+                        p_name = "self";
+                        p_type = owner;
+                    } else if pc < 0 {
                         Die(Concat("malformed parameter: ", pl));
+                    } else {
+                        p_name = Substring(pl, 0, pc);
+                        p_type = Substring(pl, pc + 2, StringLength(pl) - (pc + 2));
                     }
-                    let p_name: String = Substring(pl, 0, pc);
-                    let p_type: String = Substring(pl, pc + 2, StringLength(pl) - (pc + 2));
                     let cp: String = Concat(CParamType(p_type, struct_env), Concat(" ", p_name));
                     if pn == 0 {
                         params = cp;
@@ -1675,7 +1826,7 @@ func CollectProtos(indents: Array<Int>, texts: Array<String>, count: Int, struct
                 if pn == 0 {
                     plist = "void";
                 }
-                let sig: String = Concat(CRetType(rtype, struct_env), Concat(" ", Concat(name, Concat("(", Concat(plist, ")")))));
+                let sig: String = Concat(CRetType(rtype, struct_env), Concat(" ", Concat(c_name, Concat("(", Concat(plist, ")")))));
                 block = Concat(block, Concat(sig, ";\n"));
             }
         }
@@ -1730,7 +1881,7 @@ func GenerateC(ast: String) -> String {
     let first_fn: Int = -1;
     let scan: Int = 0;
     while scan < count {
-        if StartsWith(texts[scan], "Function:") {
+        if texts[scan] == "Function: Main" {
             first_fn = scan;
             scan = count;
         } else {
@@ -1747,10 +1898,23 @@ func GenerateC(ast: String) -> String {
     let uses_args: Bool = StringIndexOf(ast, "Args(") >= 0;
 
     let defs: String = "";
-    let cur: Array<Int> = [first_fn];
+    let cur: Array<Int> = [0];
     while cur[0] < count {
-        if StartsWith(texts[cur[0]], "Function:") && indents[cur[0]] == f_indent {
-            let def: String = EmitFunction(indents, texts, count, cur, f_indent, base_env, uses_args);
+        if StartsWith(texts[cur[0]], "Class: ") {
+            let owner_name: String = Substring(texts[cur[0]], 7, StringLength(texts[cur[0]]) - 7);
+            let owner_indent: Int = indents[cur[0]];
+            ArraySet(cur, 0, cur[0] + 1);
+            while cur[0] < count && indents[cur[0]] > owner_indent {
+                if StartsWith(texts[cur[0]], "Function:") {
+                    let method_indent: Int = indents[cur[0]];
+                    let mdef: String = EmitFunction(indents, texts, count, cur, method_indent, base_env, uses_args, owner_name);
+                    defs = Concat(defs, Concat(mdef, "\n"));
+                } else {
+                    ArraySet(cur, 0, cur[0] + 1);
+                }
+            }
+        } else if StartsWith(texts[cur[0]], "Function:") && indents[cur[0]] == f_indent {
+            let def: String = EmitFunction(indents, texts, count, cur, f_indent, base_env, uses_args, "");
             defs = Concat(defs, Concat(def, "\n"));
         } else {
             ArraySet(cur, 0, cur[0] + 1);

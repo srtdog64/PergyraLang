@@ -1,0 +1,337 @@
+#include "mir.h"
+#include "mir_decl_headers.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "../parser/ast_api.h"
+
+/* --- Lossless MIR JSON serialization (schema pgy.mir.v1) ------------------- */
+
+static void
+mir_json_emit_str(FILE *out, const char *s)
+{
+    fputc('"', out);
+    if (s != NULL) {
+        for (const unsigned char *p = (const unsigned char *)s; *p != '\0'; p++) {
+            switch (*p) {
+            case '"':  fputs("\\\"", out); break;
+            case '\\': fputs("\\\\", out); break;
+            case '\n': fputs("\\n", out); break;
+            case '\r': fputs("\\r", out); break;
+            case '\t': fputs("\\t", out); break;
+            default:
+                if (*p < 0x20)
+                    fprintf(out, "\\u%04x", (unsigned)*p);
+                else
+                    fputc((int)*p, out);
+                break;
+            }
+        }
+    }
+    fputc('"', out);
+}
+
+static void
+mir_json_emit_str_or_null(FILE *out, const char *s)
+{
+    if (s == NULL)
+        fputs("null", out);
+    else
+        mir_json_emit_str(out, s);
+}
+
+static void
+mir_json_emit_expr_or_null(FILE *out, ASTNode *expr)
+{
+    char *text;
+
+    if (expr == NULL) {
+        fputs("null", out);
+        return;
+    }
+    text = ast_capture_inline(expr);
+    mir_json_emit_str_or_null(out, text);
+    free(text);
+}
+
+static const char *
+mir_json_nominal_kind_name(NominalDeclKind kind)
+{
+    switch (kind) {
+    case NOMINAL_DECL_SUBJECT: return "subject";
+    case NOMINAL_DECL_VESSEL:  return "vessel";
+    case NOMINAL_DECL_STRUCT:  return "struct";
+    case NOMINAL_DECL_OBJECT:  return "object";
+    case NOMINAL_DECL_TOBJECT: return "tobject";
+    case NOMINAL_DECL_CLASS:
+    default:                   return "class";
+    }
+}
+
+static void
+mir_json_emit_decl_fields(FILE *out, const MIRDeclHeader *header)
+{
+    fputs(",\"fields\":[", out);
+    for (size_t f = 0; f < mir_decl_header_field_count(header); f++) {
+        const MIRDeclField *field = mir_decl_header_field(header, f);
+        if (f > 0)
+            fputc(',', out);
+        fputs("{\"name\":", out);
+        mir_json_emit_str_or_null(out, mir_decl_field_name(field));
+        fputs(",\"type\":", out);
+        mir_json_emit_str_or_null(out, mir_decl_field_type_name(field));
+        fputc('}', out);
+    }
+    fputc(']', out);
+}
+
+static void
+mir_json_emit_decl_methods(FILE *out, const MIRDeclHeader *header)
+{
+    fputs(",\"methods\":[", out);
+    for (size_t m = 0; m < mir_decl_header_method_count(header); m++) {
+        const MIRDeclMethod *method = mir_decl_header_method(header, m);
+        if (m > 0)
+            fputc(',', out);
+        fputs("{\"name\":", out);
+        mir_json_emit_str_or_null(out, mir_decl_method_name(method));
+        fputs(",\"return\":", out);
+        mir_json_emit_str_or_null(out,
+            mir_decl_method_return_type_name(method));
+        fputc('}', out);
+    }
+    fputc(']', out);
+}
+
+static bool
+mir_json_decl_is_supported_nominal(ASTNodeType ast_type,
+                                   NominalDeclKind nominal_kind)
+{
+    return ast_type == AST_CLASS_DECL
+        && (nominal_kind == NOMINAL_DECL_STRUCT
+            || nominal_kind == NOMINAL_DECL_CLASS);
+}
+
+static bool
+mir_json_decl_is_unsupported_fact(ASTNodeType ast_type,
+                                  NominalDeclKind nominal_kind)
+{
+    if (ast_type == AST_ABILITY_DECL || ast_type == AST_ROLE_DECL
+        || ast_type == AST_ENUM_DECL || ast_type == AST_EVENT_DECL)
+        return true;
+    return ast_type == AST_CLASS_DECL
+        && !mir_json_decl_is_supported_nominal(ast_type, nominal_kind);
+}
+
+static void
+mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
+{
+    ASTNodeType ast_type = mir_decl_header_ast_type_or(header, AST_PROGRAM);
+    NominalDeclKind nominal_kind =
+        mir_decl_header_nominal_kind_or(header, NOMINAL_DECL_CLASS);
+
+    if (mir_json_decl_is_supported_nominal(ast_type, nominal_kind)) {
+        bool is_struct_decl = nominal_kind == NOMINAL_DECL_STRUCT;
+        fputs("{\"kind\":", out);
+        mir_json_emit_str(out, is_struct_decl ? "struct" : "class");
+        fputs(",\"nominal_kind\":", out);
+        mir_json_emit_str(out, mir_json_nominal_kind_name(nominal_kind));
+        fputs(",\"name\":", out);
+        mir_json_emit_str_or_null(out, mir_decl_header_name(header));
+        mir_json_emit_decl_fields(out, header);
+        if (!is_struct_decl)
+            mir_json_emit_decl_methods(out, header);
+        fputc('}', out);
+        return;
+    }
+
+    fputs("{\"kind\":\"unsupported\",\"ast_type\":", out);
+    mir_json_emit_str(out, mir_source_node_type_name(ast_type));
+    fputs(",\"name\":", out);
+    mir_json_emit_str_or_null(out, mir_decl_header_name(header));
+    fputc('}', out);
+}
+
+static void
+mir_json_emit_decls(FILE *out, const MIRProgram *mir)
+{
+    bool first_decl = true;
+
+    if (mir == NULL || mir->decl_headers == NULL)
+        return;
+    for (size_t i = 0; i < mir->decl_header_count; i++) {
+        const MIRDeclHeader *header = &mir->decl_headers[i];
+        ASTNodeType ast_type = mir_decl_header_ast_type_or(header, AST_PROGRAM);
+        NominalDeclKind nominal_kind =
+            mir_decl_header_nominal_kind_or(header, NOMINAL_DECL_CLASS);
+
+        if (ast_type == AST_FUNC_DECL || ast_type == AST_TYPE_ALIAS)
+            continue;
+        if (!mir_json_decl_is_supported_nominal(ast_type, nominal_kind)
+            && !mir_json_decl_is_unsupported_fact(ast_type, nominal_kind))
+            continue;
+        if (!first_decl)
+            fputc(',', out);
+        first_decl = false;
+        mir_json_emit_decl(out, header);
+    }
+}
+
+static void
+mir_json_emit_routine_signature(FILE *out, const MIRRoutine *routine)
+{
+    if (!mir_routine_has_signature(routine))
+        return;
+    fputs(",\"params\":[", out);
+    for (size_t p = 0; p < mir_routine_param_count(routine); p++) {
+        FuncParam *fp = mir_routine_param(routine, p);
+        if (p > 0)
+            fputc(',', out);
+        fputs("{\"name\":", out);
+        mir_json_emit_str_or_null(out, fp != NULL ? fp->name : NULL);
+        fputs(",\"type\":", out);
+        mir_json_emit_str_or_null(out,
+            mir_routine_param_type_name(routine, p));
+        fputc('}', out);
+    }
+    fputs("],\"return\":", out);
+    mir_json_emit_str_or_null(out, mir_routine_return_type_name(routine));
+}
+
+static void
+mir_json_emit_instruction(FILE *out, const MIRInstruction *inst)
+{
+    fprintf(out, "{\"id\":%zu,\"kind\":", inst->id);
+    mir_json_emit_str(out, mir_inst_kind_name(inst->kind));
+    fputs(",\"name\":", out);
+    mir_json_emit_str_or_null(out, inst->name);
+    fputs(",\"result\":", out);
+    mir_json_emit_str_or_null(out, inst->result_name);
+    fputs(",\"arg0\":", out);
+    mir_json_emit_str_or_null(out, inst->arg0);
+    fputs(",\"arg1\":", out);
+    mir_json_emit_str_or_null(out, inst->arg1);
+    fputs(",\"expr0\":", out);
+    mir_json_emit_expr_or_null(out, inst->expr0);
+    fputs(",\"expr1\":", out);
+    mir_json_emit_expr_or_null(out, inst->expr1);
+    fputs(",\"source_type\":", out);
+    mir_json_emit_str_or_null(out,
+        mir_instruction_source_inline_text(inst) != NULL
+            ? mir_source_node_type_name((ASTNodeType)
+                  mir_instruction_source_node_type_or(inst, AST_PROGRAM))
+            : NULL);
+    fputs(",\"match_patterns\":[", out);
+    for (size_t p = 0; p < mir_instruction_match_pattern_count(inst); p++) {
+        if (p > 0)
+            fputc(',', out);
+        mir_json_emit_expr_or_null(out,
+            mir_instruction_match_pattern_at(inst, p));
+    }
+    fputc(']', out);
+    fputs(",\"destructure_bindings\":[", out);
+    for (size_t d = 0; d < mir_instruction_destructure_binding_count(inst);
+         d++) {
+        if (d > 0)
+            fputc(',', out);
+        mir_json_emit_str_or_null(out,
+            mir_instruction_destructure_binding_name_at(inst, d));
+    }
+    fputc(']', out);
+    fputs(",\"uses\":[", out);
+    for (size_t m = 0; m < inst->use_count; m++) {
+        if (m > 0)
+            fputc(',', out);
+        mir_json_emit_str(out, inst->uses[m]);
+    }
+    fputs("],\"ast\":", out);
+    mir_json_emit_str_or_null(out, mir_instruction_source_inline_text(inst));
+    fputc('}', out);
+}
+
+static void
+mir_json_emit_block(FILE *out, const MIRBasicBlock *block, size_t index)
+{
+    fprintf(out, "{\"id\":%zu,\"reachable\":%s,\"instructions\":[",
+            index, block->is_reachable ? "true" : "false");
+    for (size_t k = 0;
+         k < block->instruction_count && block->instructions != NULL; k++) {
+        if (k > 0)
+            fputc(',', out);
+        mir_json_emit_instruction(out, &block->instructions[k]);
+    }
+    fputs("]", out);
+    if (block->has_succ_true)
+        fprintf(out, ",\"succ_true\":%zu", block->succ_true);
+    if (block->has_succ_false)
+        fprintf(out, ",\"succ_false\":%zu", block->succ_false);
+    fputc('}', out);
+}
+
+static void
+mir_json_emit_source_locals(FILE *out, const MIRRoutine *routine)
+{
+    fputs(",\"source_locals\":[", out);
+    for (size_t s = 0; s < mir_routine_source_local_type_count(routine);
+         s++) {
+        if (s > 0)
+            fputc(',', out);
+        fputs("{\"name\":", out);
+        mir_json_emit_str_or_null(out,
+            mir_routine_source_local_name_at(routine, s));
+        fputs(",\"type\":", out);
+        mir_json_emit_str_or_null(out,
+            mir_routine_source_local_type_name_at(routine, s));
+        fputc('}', out);
+    }
+    fputc(']', out);
+}
+
+static void
+mir_json_emit_routine(FILE *out, const MIRRoutine *routine)
+{
+    fputs("{\"name\":", out);
+    mir_json_emit_str_or_null(out, routine->name);
+    fputs(",\"kind\":", out);
+    mir_json_emit_str(out, mir_scope_kind_name(routine->kind));
+    if (routine->owner_name != NULL) {
+        fputs(",\"owner\":", out);
+        mir_json_emit_str(out, routine->owner_name);
+    }
+    mir_json_emit_routine_signature(out, routine);
+    fputs(",\"blocks\":[", out);
+    for (size_t j = 0;
+         j < routine->block_count && routine->blocks != NULL; j++) {
+        if (j > 0)
+            fputc(',', out);
+        mir_json_emit_block(out, &routine->blocks[j], j);
+    }
+    fputc(']', out);
+    mir_json_emit_source_locals(out, routine);
+    fputc('}', out);
+}
+
+static void
+mir_json_emit_routines(FILE *out, const MIRProgram *mir)
+{
+    if (mir == NULL || mir->routines == NULL)
+        return;
+    for (size_t i = 0; i < mir->routine_count; i++) {
+        if (i > 0)
+            fputc(',', out);
+        mir_json_emit_routine(out, &mir->routines[i]);
+    }
+}
+
+void
+mir_dump_json(const MIRProgram *mir, FILE *out)
+{
+    if (out == NULL)
+        out = stdout;
+    fputs("{\"schema\":\"pgy.mir.v1\",\"decls\":[", out);
+    mir_json_emit_decls(out, mir);
+    fputs("],\"routines\":[", out);
+    mir_json_emit_routines(out, mir);
+    fputs("]}\n", out);
+}

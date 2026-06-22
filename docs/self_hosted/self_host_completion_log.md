@@ -67,6 +67,26 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Plain class declarations and methods enter MIR JSON lowering
+
+- Promoted ordinary `class` declarations from the unsupported declaration
+  boundary into the self-host MIR JSON path. `mir_dump_json` now emits
+  `kind:"class"`, `nominal_kind:"class"`, field facts, method facts, and routine
+  `owner` facts; `mir_lower` reconstructs `Class:` / `Methods:` from those MIR
+  facts without reading transitional source text.
+- Extended the Pergyra self-hosted codegen to lower value classes through the
+  existing nominal struct ABI, including field-order-owned positional
+  constructors (`Vec2(3, 7)`) and owner-prefixed method calls
+  (`v.Length()` -> `Vec2_Length(v)`). Subject/object/tobject/vessel surfaces
+  remain clean rejects because their projection/identity semantics need their
+  own owner facts.
+- The hard MIR JSON gate now proves **67 positive fixtures plus 2 clean
+  rejects**. Refreshed examples-scale survey: 41 PASS, 30 CODEGEN-gap, 37
+  MIR-LOWER-gap, 13 ORACLE-skip, and 0 measured STDOUT-diff / generated-C
+  compile failures / via-run timeouts. `class_method_test` and `class_test`
+  moved to PASS; `generic_class` now reaches an explicit generic-field
+  CODEGEN-gap instead of failing at declaration inventory.
+
 ### 2026-06-23 -- Non-struct class declarations fail closed in MIR JSON lowering
 
 - Closed another declaration-inventory SoT gap: non-struct `AST_CLASS_DECL`

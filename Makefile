@@ -859,6 +859,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_source_inventory_build.c \
                    $(COMPILER_DIR)/mir_names.c \
                    $(COMPILER_DIR)/mir_lifecycle.c \
+                   $(COMPILER_DIR)/mir_json_dump.c \
                    $(COMPILER_DIR)/mir_base_helpers.c \
                    $(COMPILER_DIR)/mir_program_inventory.c \
                    $(COMPILER_DIR)/mir_public_surface.c \
@@ -1383,6 +1384,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_source_inventory_build.o \
                    $(BUILD_DIR)/compiler/mir_names.o \
                    $(BUILD_DIR)/compiler/mir_lifecycle.o \
+                   $(BUILD_DIR)/compiler/mir_json_dump.o \
                    $(BUILD_DIR)/compiler/mir_base_helpers.o \
                    $(BUILD_DIR)/compiler/mir_program_inventory.o \
                    $(BUILD_DIR)/compiler/mir_public_surface.o \
