@@ -31,8 +31,8 @@ rewrite history.
   committed parity fixtures (gated) and **121/121 of the examples corpus**
   (scale probe, as of session 2026-06-20). Zero self-host lexer crashes.
 - **Parser**: self-hosts on C+LLVM. Byte-identical against `pgy --ast` on 188
-  committed fixtures (gated); examples scale probe last recorded 107/119 with
-  4 byte-drifts, 7 self-host exits, 1 C-oracle skip.
+  committed fixtures (gated); examples scale probe last recorded 120/121 with
+  zero byte-drift, zero self-host exits, 1 C-oracle skip.
 - **Backend parity**: parser compiled by C and by LLVM produce byte-identical
   output -- the core self-host correctness signal.
 - **Compiler core**: capability-5 single-source-of-truth is READY for the
@@ -44,8 +44,9 @@ rewrite history.
 ## Roadmap to completion
 
 1. **Front-end coverage to 100%** (assist-safe): lexer corpus is at 121/121;
-   close the remaining parser examples drifts/exits (107/119 → higher) the same
-   way -- diagnose each against the oracle, fix the self-host front-end.
+   parser corpus is at 120/121 with only the C-oracle `secure_slots` skip
+   remaining. The next parser move is structured AST ownership rather than
+   polishing a text-mirror substitute.
 2. **Measurement/golden coverage** (assist-safe): committed scale probes per
    tool (lexer done); add golden probes for the other oracle dimensions the
    scorecard names (diagnostics, MIR/AIR JSON, deterministic ordering).
@@ -65,6 +66,20 @@ rewrite history.
    allowed -- that is what makes a positive one mean something.
 
 ## Session log
+
+### 2026-06-22 -- parser examples scale closed to oracle skip
+
+- Extended the self-host parser text-mirror coverage for domain syntax that was
+  still blocking the examples corpus: transaction/fail, party/roster/world
+  surfaces, ability/role forms, object initializer postfix, dollar string
+  interpolation, tuple/pattern erasure, `if let Some(...)`, loop/parallel
+  expression forms, and the small type-spelling sugars used by examples.
+- Verified with `parser_scale_probe.sh --failing`: **120/121 byte-equal**, zero
+  byte-drift, zero self-host parser exits, and one C-oracle skip
+  (`secure_slots`).
+- This closes the text parser scale rung as far as the live C oracle permits.
+  The hard self-hosting direction remains structured front-end ownership and
+  fact/verifier expansion, not turning the text mirror into the final parser IR.
 
 ### 2026-06-20 -- control-flow reconstruction complete: MIR->C subset 9/9
 

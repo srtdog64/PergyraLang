@@ -2,8 +2,8 @@
 
 Branch main. This snapshot records what is verified to self-host right now,
 measured by building pgy and running
-`make self-host-preparation-test-smoke` on 2026-06-21. The parser/lexer
-front-end figures below were refreshed on 2026-06-18 with
+`make self-host-preparation-test-smoke` on 2026-06-21. The parser scale
+figure below was refreshed on 2026-06-22 with
 `make self-host-lexer-parity-test-smoke self-host-parser-parity-test-smoke`
 and `src/self_hosted/parity/parser_scale_probe.sh --failing`. The gate runs the
 self-hosted tools on C and, when the current `pgy` build includes the LLVM
@@ -27,7 +27,7 @@ Front-end self-hosts on both backends in LLVM-enabled builds.
   steps, intent retry declaration metadata, with full expression precedence.
   The parity set includes a deep nested generic type fixture so LLVM
   depth/type-name handling is covered. The current examples scale probe is
-  107 of 119 byte-equal against live `pgy --ast`, with 4 byte-drifts, 7
+  120 of 121 byte-equal against live `pgy --ast`, with zero byte-drift, zero
   self-host parser exits, and 1 C-oracle skip (`secure_slots`).
 - Backend parity: the parser compiled by the C backend and by the LLVM backend
   produce byte-identical output. This is the core self-host correctness signal,

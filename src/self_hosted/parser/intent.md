@@ -21,18 +21,23 @@ parity and the examples scale probe.
   local fallback for older probes.
 - Current committed grammar surface:
   - top-level `[async]? [export]? func<T,U>`, `subject`, `class`, `vessel`,
-    `struct`, `object`, `tobject`, `enum`, `namespace`, `event`, `ability`,
-    `role`/`impl`, `zone`, and `intent ... with retry(n)` metadata.
+    `struct`, `object`, `tobject`, `type` aliases/record aliases, `enum`,
+    `namespace`, `event`, `ability`, `role`/`impl`, `party`, `roster`, `world`,
+    `zone`, and `intent ... with retry(n)` metadata.
   - imports with source-relative recursive parse, plus common declaration
-    methods/actions and nested generic type names.
+    methods/actions and nested generic type names, including simple `impl T`,
+    `any T`, intersection, unit, and function type spelling.
   - statements: typed/inferred `let`, destructure-like let shapes, assignment,
     `+=`, `-=`, `<-`, `return`, `if`/`else if`/`else`, `while`, `for`,
-    `break`, `continue`, `defer`, `match`, `parallel`, and
+    `loop`, `break`, `continue`, `defer`, `match`, `if let Some(...)`,
+    `parallel`, `parallel on`/`every`, `continuous`, `transaction`, `fail`, and
     `with slot<TYPE> as VAR { ... }`.
   - expressions: unary `!`, `-`, `<-`, `spawn`, `spawn blocking`, `await`;
     binary precedence through arithmetic, pipe, comparison, `&&`, `||`;
-    literals, identifiers, grouped/list primaries, lambdas, calls, indexing,
-    member access, postfix `?`, and turbofish.
+    literals, identifiers, grouped/list/object-init primaries, tuple erasure,
+    lambdas, calls, indexing, member access, postfix `?`, turbofish, `async {}`
+    / `parallel (...) join with all {}` expression blocks, dollar string
+    interpolation, and common duration suffixes.
 
 ## Output Contract
 
@@ -50,13 +55,14 @@ Current measured coverage:
 
 - `parser_parity.sh`: 188 committed sources byte-equal on both generated C and
   LLVM parser binaries.
-- `parser_scale_probe.sh --failing`: 107 of 119 `examples/*.pgy` byte-equal
-  against live `pgy --ast`; 4 byte-drift, 7 self-host parser exits, and 1
+- `parser_scale_probe.sh --failing`: 120 of 121 `examples/*.pgy` byte-equal
+  against live `pgy --ast`; zero byte-drift, zero self-host parser exits, and 1
   C-oracle skip (`secure_slots`).
 
 ## Not In Scope (yet)
 
-- The remaining example scale-probe drift and self-host parser exit list.
+- The remaining C-oracle skip (`secure_slots`) and full replacement of the
+  text-mirror parser with structured AST ownership.
 - Full parser recovery/error reporting parity.
 - Replacing the C parser. This remains a side-by-side substitute rung with
   `pgy --ast` as oracle.
