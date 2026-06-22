@@ -11,9 +11,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../parser/ast.h"
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_generic_class_specialization.h"
+#include "transpiler_generic_param_query.h"
 #include "transpiler_inventory_view.h"
 
 static char *
@@ -84,6 +87,138 @@ transpiler_specialization_type_name_arg_copy(const char *type_name,
     return NULL;
 }
 
+static char *
+transpiler_specialization_type_name_base_copy(const char *type_name)
+{
+    const char *open;
+
+    if (type_name == NULL)
+        return NULL;
+    open = strchr(type_name, '<');
+    if (open == NULL)
+        return transpiler_specialization_trim_copy(type_name,
+            strlen(type_name));
+    return transpiler_specialization_trim_copy(type_name,
+        (size_t)(open - type_name));
+}
+
+static ASTNode *
+transpiler_specialization_type_ast_from_type_name(const char *type_name)
+{
+    char *base_name = transpiler_specialization_type_name_base_copy(type_name);
+    ASTNode *node = NULL;
+    GenericParams *params = NULL;
+    GenericParam **slots = NULL;
+    size_t arg_count = 0;
+
+    if (base_name == NULL)
+        return NULL;
+    node = ast_create_type(base_name);
+    free(base_name);
+    if (node == NULL)
+        return NULL;
+
+    if (strchr(type_name, '<') == NULL)
+        return node;
+
+    for (;; arg_count++) {
+        char *arg = transpiler_specialization_type_name_arg_copy(
+            type_name, arg_count);
+        if (arg == NULL)
+            break;
+        free(arg);
+    }
+    if (arg_count == 0)
+        return node;
+
+    params = calloc(1, sizeof(GenericParams));
+    slots = calloc(arg_count, sizeof(GenericParam *));
+    if (params == NULL || slots == NULL)
+        goto fail;
+
+    for (size_t i = 0; i < arg_count; i++) {
+        char *arg_text = transpiler_specialization_type_name_arg_copy(
+            type_name, i);
+        ASTNode *arg_type = NULL;
+        GenericParam *param = NULL;
+
+        if (arg_text == NULL)
+            goto fail;
+        arg_type = transpiler_specialization_type_ast_from_type_name(
+            arg_text);
+        free(arg_text);
+        if (arg_type == NULL)
+            goto fail;
+
+        param = calloc(1, sizeof(GenericParam));
+        if (param == NULL) {
+            ast_destroy(arg_type);
+            goto fail;
+        }
+        if (arg_type->type == AST_TYPE && ast_type_name(arg_type) != NULL) {
+            param->name = pergyra_strdup(ast_type_name(arg_type));
+            if (param->name == NULL) {
+                ast_destroy(arg_type);
+                free(param);
+                goto fail;
+            }
+        }
+        param->constraint = arg_type;
+        slots[i] = param;
+    }
+
+    params->params = slots;
+    params->count = arg_count;
+    params->capacity = arg_count;
+    node->data.type.generic_args = params;
+    return node;
+
+fail:
+    if (slots != NULL) {
+        for (size_t i = 0; i < arg_count; i++) {
+            if (slots[i] == NULL)
+                continue;
+            free(slots[i]->name);
+            ast_destroy(slots[i]->constraint);
+            ast_destroy(slots[i]->default_type);
+            free(slots[i]);
+        }
+    }
+    free(slots);
+    free(params);
+    ast_destroy(node);
+    return NULL;
+}
+
+const char *
+transpiler_ensure_generic_class_specialization_from_type_name(
+    TranspilerCtx *ctx,
+    const char *type_name)
+{
+    char *base_name;
+    ASTNode *class_decl;
+    ASTNode *type_ast;
+
+    if (ctx == NULL || type_name == NULL || strchr(type_name, '<') == NULL)
+        return NULL;
+
+    base_name = transpiler_specialization_type_name_base_copy(type_name);
+    if (base_name == NULL)
+        return NULL;
+    class_decl = find_class_decl(ctx, base_name);
+    free(base_name);
+    if (class_decl == NULL || !transpiler_class_has_generic_params(class_decl))
+        return NULL;
+
+    type_ast = transpiler_specialization_type_ast_from_type_name(type_name);
+    if (type_ast == NULL)
+        return NULL;
+    const char *spec_name =
+        ensure_generic_class_specialization(ctx, class_decl, type_ast);
+    ast_destroy(type_ast);
+    return spec_name;
+}
+
 static void
 transpiler_specialization_scan_type_name_args(TranspilerCtx *ctx,
                                               CodeBuf *dst,
@@ -139,6 +274,10 @@ ensure_type_specializations_from_type_name_to(TranspilerCtx *ctx,
         return;
 
     transpiler_specialization_scan_type_name_args(ctx, dst, type_name);
+    if (transpiler_ensure_generic_class_specialization_from_type_name(
+            ctx, type_name) != NULL) {
+        return;
+    }
 
     if (transpiler_specialization_type_name_has_base(type_name, "List")) {
         char *inner = transpiler_specialization_type_name_arg_copy(type_name, 0);

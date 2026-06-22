@@ -3927,12 +3927,23 @@ require_term "src/codegen/transpiler_inventory_view.c" \
     "transpiler_mir_routine_source_local_type_name_at"
 for term in \
     "ensure_type_specializations_from_type_name_to" \
+    "transpiler_ensure_generic_class_specialization_from_type_name(" \
     "transpiler_mir_routine_return_type_name(routine)" \
     "transpiler_mir_routine_param_type_name(routine, i)" \
     "transpiler_mir_routine_source_local_type_name_at(routine, i)" \
     "ensure_collection_specializations_from_mir_routine_to"; do
     require_term "src/codegen/transpiler_specialization_type_name_scan.c" "$term"
 done
+require_term "src/codegen/transpiler_specialization_registry.h" \
+    "transpiler_ensure_generic_class_specialization_from_type_name("
+for rel in \
+    "src/codegen/transpiler_call_constructor_result_emit.c" \
+    "src/codegen/transpiler_expr_call_member_emit.c"; do
+    require_term "$rel" \
+        "transpiler_ensure_generic_class_specialization_from_type_name("
+done
+require_term "src/codegen/transpiler_decl_method_view.c" \
+    "generic_start = strchr(host_type_name, '<')"
 require_term "Makefile" \
     "\$(CODEGEN_DIR)/transpiler_specialization_type_name_scan.c"
 if grep -Fq "mir_source_local_type_name_in_ast" \

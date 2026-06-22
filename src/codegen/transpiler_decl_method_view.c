@@ -98,6 +98,18 @@ transpiler_find_host_method_metadata_in_context(
         if (base_name != NULL)
             header = transpiler_active_host_decl_header(ctx, base_name);
     }
+    if (header == NULL) {
+        const char *generic_start = strchr(host_type_name, '<');
+        if (generic_start != NULL) {
+            char base_name[128];
+            size_t base_len = (size_t)(generic_start - host_type_name);
+            if (base_len > 0 && base_len < sizeof(base_name)) {
+                memcpy(base_name, host_type_name, base_len);
+                base_name[base_len] = '\0';
+                header = transpiler_active_host_decl_header(ctx, base_name);
+            }
+        }
+    }
     for (size_t i = 0; header != NULL
          && i < mir_decl_header_method_count(header); i++) {
         const MIRDeclMethod *method = mir_decl_header_method(header, i);

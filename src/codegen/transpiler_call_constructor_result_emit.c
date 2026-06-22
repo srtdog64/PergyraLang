@@ -9,6 +9,7 @@
 #include "transpiler_enum.h"
 #include "transpiler_generic_class_specialization.h"
 #include "transpiler_generic_param_query.h"
+#include "transpiler_specialization_registry.h"
 
 char *
 emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
@@ -24,15 +25,22 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             const char *type_hint = ctx != NULL && ctx->expected_type != NULL
                 ? ctx->expected_type
                 : (ctx != NULL ? ctx->active_type_hint : NULL);
+            const char *hint_spec_name =
+                transpiler_ensure_generic_class_specialization_from_type_name(
+                    ctx, type_hint);
             ASTNode *hint_base = type_hint != NULL
                 ? transpiler_generic_class_spec_base_decl(ctx, type_hint)
                 : NULL;
+            if (hint_base == NULL && hint_spec_name != NULL) {
+                hint_base = transpiler_generic_class_spec_base_decl(
+                    ctx, hint_spec_name);
+            }
             const char *hint_base_name = hint_base != NULL
                 ? transpiler_decl_name_local(hint_base)
                 : NULL;
             if (hint_base_name != NULL && fn != NULL
                 && strcmp(hint_base_name, fn) == 0) {
-                ctor_type = type_hint;
+                ctor_type = hint_spec_name != NULL ? hint_spec_name : type_hint;
             } else {
                 ASTNode *synthetic_type = ast_create_type(fn);
                 if (synthetic_type != NULL) {

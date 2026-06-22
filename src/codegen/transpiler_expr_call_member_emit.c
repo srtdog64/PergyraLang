@@ -25,6 +25,7 @@
 #include "transpiler_projection_field_path.h"
 #include "transpiler_projection_method_invalidation.h"
 #include "transpiler_projection_sync.h"
+#include "transpiler_specialization_registry.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_role_ability_helpers.h"
 #include "transpiler_symbols.h"
@@ -114,6 +115,11 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 
         if (obj != NULL && method != NULL) {
             const char *type_name = transpiler_resolve_nominal_host_expr_type_name(ctx, obj);
+            const char *materialized_type_name =
+                transpiler_ensure_generic_class_specialization_from_type_name(
+                    ctx, type_name);
+            if (materialized_type_name != NULL)
+                type_name = materialized_type_name;
             if (type_name != NULL && is_nominal_host_type_name(ctx, type_name)) {
                 CodeBuf *args_buf = codebuf_create();
                 char stable_type_name[128];
