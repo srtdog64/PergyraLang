@@ -1,3 +1,7 @@
+subject Hero {
+    let hp: Int;
+}
+
 ability Arithmetic {
     func Add(self, rhs: Int) -> Int;
 }

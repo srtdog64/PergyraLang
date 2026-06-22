@@ -148,6 +148,10 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
 
     fputs("{\"kind\":\"unsupported\",\"ast_type\":", out);
     mir_json_emit_str(out, mir_source_node_type_name(ast_type));
+    if (ast_type == AST_CLASS_DECL) {
+        fputs(",\"nominal_kind\":", out);
+        mir_json_emit_str(out, mir_json_nominal_kind_name(nominal_kind));
+    }
     fputs(",\"name\":", out);
     mir_json_emit_str_or_null(out, mir_decl_header_name(header));
     fputc('}', out);

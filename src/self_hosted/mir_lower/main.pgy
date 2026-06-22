@@ -310,8 +310,13 @@ func EmitStructDecls(json: String) -> String {
         let kind: String = JsonFieldString(json, p, decl_end, "\"kind\":");
         if kind == "unsupported" {
             let ast_type: String = JsonFieldString(json, p, decl_end, "\"ast_type\":");
+            let nominal_kind: String = JsonFieldString(json, p, decl_end, "\"nominal_kind\":");
             let uname: String = JsonFieldString(json, p, decl_end, "\"name\":");
-            Die(Concat("unsupported MIR declaration in self-host subset: ", Concat(ast_type, Concat(" ", uname))));
+            let display_kind: String = ast_type;
+            if ast_type == "AST_CLASS_DECL" && StringLength(nominal_kind) > 0 {
+                display_kind = nominal_kind;
+            }
+            Die(Concat("unsupported MIR declaration in self-host subset: ", Concat(display_kind, Concat(" ", uname))));
         }
         let nk: Int = FindFrom(json, "\"name\":", p);
         if nk < 0 || nk >= decl_end {

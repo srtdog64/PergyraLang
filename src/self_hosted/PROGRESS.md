@@ -81,7 +81,10 @@ observable unsupported MIR facts, and unsupported codegen builtins remain
 observable codegen boundaries, so the self-host path fails closed instead of
 silently dropping operator-overload/domain nominal semantics or emitting
 undefined C symbols. New fixtures must preserve that by adding owning facts
-rather than text fallback.
+rather than text fallback. Unsupported `AST_CLASS_DECL` surfaces also carry
+their MIR-owned `nominal_kind`, so the self-host boundary reports
+`subject`/`object`/`tobject`/`vessel` instead of collapsing those concepts back
+to a generic class alias.
 
 **Hard migration opened (2026-06-17):** the codegen rung is the first *hard
 compiler-core* substitute, landed after the BDFL decision lifted the
