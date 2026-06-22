@@ -305,12 +305,7 @@ llvm_mir_local_type_from_instruction_fact(const MIRRoutine *routine,
     if (inst == NULL || ctx == NULL || depth > 16)
         return NULL;
 
-    if (inst->requires_source_local_decl_emit && inst->expr1 != NULL) {
-        if (inst->expr1->type == AST_TYPE) {
-            type = llvm_mir_type_from_ast(ctx, inst->expr1);
-            if (ctx->has_error || type != NULL)
-                return type;
-        }
+    if (inst->requires_source_local_decl_emit) {
         type = llvm_mir_local_type_from_source_fact(routine, ctx,
             inst->result_name);
         if (ctx->has_error || type != NULL)
@@ -410,35 +405,18 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     ctx, inst->type_layout);
                 ASTNode *value_expr =
                     llvm_mir_local_initializer_expr(inst->expr0);
-                ASTNode *type_expr = inst->requires_source_local_decl_emit
-                    ? inst->expr1
-                    : NULL;
-                char *declared_type_name = NULL;
                 const MIRSourceLocalType *source_local_fact = NULL;
                 const char *source_local_type_name = NULL;
                 char base_name[128];
                 bool has_base_name = llvm_mir_base_name_from_versioned(
                     inst->result_name, base_name, sizeof(base_name));
 
-                if (inst->requires_source_local_decl_emit && type_expr != NULL) {
+                if (inst->requires_source_local_decl_emit) {
                     source_local_fact = llvm_mir_local_source_fact(
                         routine, has_base_name ? base_name : inst->result_name);
-                    if (type_expr->type == AST_TYPE) {
-                        declared_type_name =
-                            llvm_render_type_name_scratch_in_ctx(ctx,
-                                type_expr, &ctx->scratch);
-                        if (declared_type_name != NULL
-                            && declared_type_name[0] != '\0'
-                            && strcmp(declared_type_name, "Unknown") != 0) {
-                            source_local_type_name = declared_type_name;
-                        }
-                    }
-                    if (source_local_type_name == NULL
-                        && source_local_fact != NULL) {
+                    if (source_local_fact != NULL)
                         source_local_type_name = source_local_fact->type_name;
-                    }
-                    if (source_local_type_name == NULL
-                        && source_local_fact == NULL) {
+                    if (source_local_fact == NULL) {
                         llvm_set_mir_inventory_missing(ctx,
                             "MIR-only LLVM path missing source-local type metadata for '%s'",
                             inst->result_name != NULL
@@ -448,14 +426,9 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     }
                 }
 
-                if (layout_type != NULL) {
-                    alloca_type = layout_type;
-                } else if (type_expr != NULL) {
-                    alloca_type = source_local_fact != NULL
-                        && source_local_fact->is_callable
-                        ? llvm_mir_local_type_from_source_fact_entry(
-                              ctx, source_local_fact)
-                        : llvm_mir_type_from_ast(ctx, type_expr);
+                if (source_local_fact != NULL) {
+                    alloca_type = llvm_mir_local_type_from_source_fact_entry(
+                        ctx, source_local_fact);
                     if (ctx->has_error || alloca_type == NULL) {
                         llvm_set_mir_inventory_missing(ctx,
                             "MIR-only LLVM path cannot lower source-local type metadata for '%s'",
@@ -464,6 +437,8 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                                 : "(anonymous-local)");
                         return;
                     }
+                } else if (layout_type != NULL) {
+                    alloca_type = layout_type;
                 } else if (value_expr != NULL) {
                     if (inst->arg0 != NULL) {
                         alloca_type = llvm_mir_local_type_from_source_fact(
@@ -574,7 +549,7 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                             base_name, &vars[var_count]);
                     }
                 }
-                if (has_base_name && source_local_type_name != NULL) {
+                if (has_base_name && source_local_fact != NULL) {
                     char *owned_base =
                         pgy_arena_strdup(&ctx->persistent, base_name);
                     if (owned_base == NULL) {
@@ -591,9 +566,9 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                         llvm_register_callable_signature_names(ctx, owned_base,
                             source_local_fact->callable_param_count,
                             (const char *const *)
-                                source_local_fact->callable_param_type_names,
+                            source_local_fact->callable_param_type_names,
                             source_local_fact->callable_return_type_name);
-                    } else {
+                    } else if (source_local_type_name != NULL) {
                         llvm_register_typed_var_abi_binding(ctx, owned_base,
                             vars[var_count].alloca, source_local_type_name);
                     }
@@ -631,10 +606,6 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                                 llvm_mir_local_elem_type_from_type_name(
                                     ctx, source_type_name);
                         }
-                        if (elem_type == NULL && type_expr != NULL) {
-                            elem_type = llvm_mir_local_elem_type_from_type_ast(
-                                ctx, type_expr);
-                        }
                         if (elem_type == NULL) {
                             elem_type = llvm_mir_local_elem_type_from_layout(
                                 ctx, inst->type_layout);
@@ -659,9 +630,6 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     LLVMTypeRef elem_type =
                         llvm_mir_slice_fact_elem_type_from_receiver(ctx,
                             receiver, vars, var_count);
-                    if (elem_type == NULL && type_expr != NULL)
-                        elem_type = llvm_mir_local_elem_type_from_type_ast(
-                            ctx, type_expr);
                     if (elem_type == NULL)
                         elem_type = llvm_mir_local_elem_type_from_layout(
                             ctx, inst->type_layout);

@@ -348,10 +348,14 @@ require_term "src/codegen/transpiler_type_alias.c" \
     "ensure_type_specializations_from_type_name_to("
 require_term "src/codegen/transpiler_type_alias.c" \
     "transpiler_active_has_mir(ctx)"
-require_each_following_term "src/codegen/transpiler_mir_preserved_let_emit.c" \
-    "transpiler_render_effective_local_type_name(ctx, let_type)" \
-    "transpiler_mir_routine_source_local_type_name(" \
-    8
+if ! awk '
+    /transpiler_emit_mir_source_local_let_def_inst\(/ { in_fn=1 }
+    in_fn && /transpiler_mir_routine_source_local_type_name\(/ { source=NR }
+    in_fn && /transpiler_render_effective_local_type_name\(ctx, let_type\)/ { rendered=NR }
+    END { exit !(source > 0 && rendered > source) }
+' "$ROOT_DIR/src/codegen/transpiler_mir_preserved_let_emit.c"; then
+    fail "C MIR preserved let emit must consume source-local type facts before AST type rendering"
+fi
 require_term "src/codegen/transpiler_projection.c" \
     "ctx->generic_class_specs[i].specialized_name"
 require_term "src/codegen/transpiler_projection.c" \
@@ -1291,7 +1295,7 @@ if grep -Fq "llvm_register_typed_var_binding(ctx, owned_base" \
 fi
 if ! awk '
     /llvm_mir_local_type_from_instruction_fact\(/ { in_fn = 1 }
-    in_fn && /inst->requires_source_local_decl_emit && inst->expr1 != NULL/ { source = NR }
+    in_fn && /inst->requires_source_local_decl_emit/ { source = NR }
     in_fn && /llvm_mir_type_from_abi_layout\(ctx, inst->type_layout\)/ { layout = NR }
     in_fn && /^}/ {
         if (source > 0 && layout > 0 && source < layout) ok = 1
@@ -3854,9 +3858,17 @@ if ! grep -A8 -F "llvm_stmt_non_mir_source_local_let_init(LLVMGenCtx *ctx, const
         grep -Fq "llvm_active_has_mir(ctx)"; then
     fail "LLVM initializer source-local recovery must be non-MIR only"
 fi
-if ! grep -A14 -F "llvm_stmt_source_local_type(ctx, name)" \
-        "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" |
-        grep -Fq "llvm_stmt_non_mir_source_local_let_init(ctx, name)"; then
+if ! awk '
+    /case AST_IDENTIFIER:/ { in_case = 1 }
+    in_case && /llvm_stmt_source_local_type\(ctx, name\)/ { source = NR }
+    in_case && /llvm_stmt_non_mir_source_local_let_init\(ctx, name\)/ { recovery = NR }
+    in_case && /case AST_ASSIGNMENT:/ {
+        if (source > 0 && recovery > source)
+            ok = 1
+        in_case = 0
+    }
+    END { exit ok ? 0 : 1 }
+' "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"; then
     fail "LLVM identifier type inference must consult MIR source-local type facts before non-MIR initializer recovery"
 fi
 if rg -n "llvm_stmt_source_local_let_init" "$ROOT_DIR/src/codegen" >/dev/null; then
@@ -3928,7 +3940,11 @@ require_term "src/compiler/mir_source_local_expr_types.c" \
     "mir_source_local_routine_owner_name"
 if ! awk '
     /transpiler_mir_ssa_local_find_versioned_type_name\(/ { in_fn = 1 }
-    in_fn && /transpiler_mir_routine_source_local_type_name\(routine, base_name\)/ && source == 0 { source = NR }
+    in_fn && /transpiler_mir_routine_source_local_type_name\(/ && source == 0 { source_call = NR }
+    in_fn && source_call > 0 && /routine, base_name\)/ && source == 0 {
+        source = source_call
+        source_call = 0
+    }
     in_fn && /transpiler_infer_local_type_name_from_expr\(/ && infer == 0 { infer = NR }
     in_fn && /^}/ {
         if (source > 0 && infer > 0 && source < infer) ok = 1
@@ -7565,7 +7581,8 @@ require_term "src/tests/mir/test_mir_lowering_part_g.cases.h" \
 require_term_any \
     "MIR validator rejects duplicate declaration header names" \
     "src/tests/mir/test_mir_lowering_part_c.cases.h" \
-    "src/tests/mir/test_mir_lowering_part_d.cases.h"
+    "src/tests/mir/test_mir_lowering_part_d.cases.h" \
+    "src/tests/mir/test_mir_lowering_part_d_2.cases.h"
 
 if awk '/decl = decl_header->source_ast;/{exit} {print}' \
     "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.c" |
@@ -8140,7 +8157,7 @@ for term in \
 done
 require_term "src/tests/mir/test_mir_lowering_part_d.cases.h" \
     "MIR declaration headers preserve zone refresh field maps"
-require_term "src/tests/mir/test_mir_lowering_part_d.cases.h" \
+require_term "src/tests/mir/test_mir_lowering_part_d_2.cases.h" \
     "MIR declaration headers preserve relation and effect refresh metadata"
 require_term "src/tests/mir/test_mir_lowering_part_h.cases.h" \
     "MIR validator rejects zone refresh metadata drift"

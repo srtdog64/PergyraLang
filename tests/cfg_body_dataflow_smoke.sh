@@ -549,9 +549,14 @@ run_literal_doc_contract_smoke() {
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_def_uses_channel_receive_statement_emit"
     require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_uses_select_receive_statement_emit(inst)"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_local_expected_type_name(routine, inst, NULL)"
-    require_literal "src/codegen/llvm_mir_local_emit.c" "inst->requires_source_local_decl_emit && inst->expr1 != NULL"
-    require_literal "src/codegen/llvm_mir_local_emit.c" "llvm_render_type_name_scratch_in_ctx(ctx,"
-    require_literal "src/codegen/llvm_mir_local_emit.c" "llvm_mir_type_from_ast(ctx, inst->expr1)"
+    require_literal "src/codegen/llvm_mir_local_emit.c" "if (inst->requires_source_local_decl_emit)"
+    require_literal "src/codegen/llvm_mir_local_emit.c" "llvm_mir_local_type_from_source_fact(routine, ctx,"
+    require_literal "src/codegen/llvm_mir_local_emit.c" "alloca_type = llvm_mir_local_type_from_source_fact_entry("
+    if grep -Fq "llvm_mir_type_from_ast(ctx, inst->expr1)" \
+        "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"; then
+        echo "LLVM MIR source-local typing must consume MIR source-local facts, not expr1 AST" >&2
+        exit 1
+    fi
     require_literal "src/codegen/llvm_stmt_type_infer.c" "llvm_stmt_lookup_visible_function(ctx, name)"
     require_literal "src/codegen/llvm_stmt_type_infer.c" "LLVMPointerType(fn->fn_type, 0)"
     require_literal "src/codegen/transpiler_expr_type_infer.c" "transpiler_type_name_is_hashmap(ctx->expected_type)"
