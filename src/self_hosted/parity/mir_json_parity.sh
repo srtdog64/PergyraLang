@@ -73,6 +73,7 @@ MIR_FIXTURES=(
     random_inferred_let
     class_decl
     class_method
+    enum_simple
     match_case_int
     nested_if_in_loop
     array_destructure
@@ -217,6 +218,16 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
             fi
         done
     fi
+    if [[ "$base" == "enum_simple" ]]; then
+        for required in \
+            '"decls":[{"kind":"enum","name":"Direction"' \
+            '"variants":[{"name":"North","param_count":0},{"name":"East","param_count":0},{"name":"South","param_count":0},{"name":"West","param_count":0}]'; do
+            if ! grep -Fq "$required" "$mj"; then
+                echo "[self-host-parity:mir-json] enum_simple: missing MIR enum declaration fact: $required" >&2
+                exit 1
+            fi
+        done
+    fi
     if [[ "$base" == "match_case_int" ]]; then
         for required in \
             '"source_type":"AST_MATCH_CASE"' \
@@ -275,6 +286,16 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
                 exit 1
             fi
         done
+    fi
+    if [[ "$base" == "enum_simple" ]]; then
+        if ! grep -Fq 'Enum: Direction { North, East, South, West }' "$reast"; then
+            echo "[self-host-parity:mir-json] enum_simple: mir_lower did not reconstruct enum facts" >&2
+            exit 1
+        fi
+        if ! grep -Fq 'Let: d : Int = Direction.South' "$reast"; then
+            echo "[self-host-parity:mir-json] enum_simple: mir_lower did not preserve enum reference expression" >&2
+            exit 1
+        fi
     fi
     if [[ "$base" == "match_case_int" ]] && ! grep -q 'If: x == 3' "$reast"; then
         echo "[self-host-parity:mir-json] match_case_int: mir_lower did not reconstruct match case conditions from MIR facts" >&2

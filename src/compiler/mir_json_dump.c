@@ -104,6 +104,24 @@ mir_json_emit_decl_methods(FILE *out, const MIRDeclHeader *header)
     fputc(']', out);
 }
 
+static void
+mir_json_emit_enum_variants(FILE *out, const MIRDeclHeader *header)
+{
+    fputs(",\"variants\":[", out);
+    for (size_t v = 0; v < mir_decl_header_enum_variant_count(header); v++) {
+        const MIRDeclEnumVariant *variant =
+            mir_decl_header_enum_variant(header, v);
+        if (v > 0)
+            fputc(',', out);
+        fputs("{\"name\":", out);
+        mir_json_emit_str_or_null(out, mir_decl_enum_variant_name(variant));
+        fprintf(out,
+                ",\"param_count\":%zu}",
+                mir_decl_enum_variant_param_count(variant));
+    }
+    fputc(']', out);
+}
+
 static bool
 mir_json_decl_is_supported_nominal(ASTNodeType ast_type,
                                    NominalDeclKind nominal_kind)
@@ -118,7 +136,7 @@ mir_json_decl_is_unsupported_fact(ASTNodeType ast_type,
                                   NominalDeclKind nominal_kind)
 {
     if (ast_type == AST_ABILITY_DECL || ast_type == AST_ROLE_DECL
-        || ast_type == AST_ENUM_DECL || ast_type == AST_EVENT_DECL)
+        || ast_type == AST_EVENT_DECL)
         return true;
     return ast_type == AST_CLASS_DECL
         && !mir_json_decl_is_supported_nominal(ast_type, nominal_kind);
@@ -142,6 +160,14 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
         mir_json_emit_decl_fields(out, header);
         if (!is_struct_decl)
             mir_json_emit_decl_methods(out, header);
+        fputc('}', out);
+        return;
+    }
+
+    if (ast_type == AST_ENUM_DECL) {
+        fputs("{\"kind\":\"enum\",\"name\":", out);
+        mir_json_emit_str_or_null(out, mir_decl_header_name(header));
+        mir_json_emit_enum_variants(out, header);
         fputc('}', out);
         return;
     }
@@ -172,7 +198,8 @@ mir_json_emit_decls(FILE *out, const MIRProgram *mir)
 
         if (ast_type == AST_FUNC_DECL || ast_type == AST_TYPE_ALIAS)
             continue;
-        if (!mir_json_decl_is_supported_nominal(ast_type, nominal_kind)
+        if (ast_type != AST_ENUM_DECL
+            && !mir_json_decl_is_supported_nominal(ast_type, nominal_kind)
             && !mir_json_decl_is_unsupported_fact(ast_type, nominal_kind))
             continue;
         if (!first_decl)

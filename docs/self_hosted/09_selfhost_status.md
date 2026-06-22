@@ -119,9 +119,11 @@ subset.
   facts and source-local array type facts to reconstruct typed array-index
   `Let:` bindings without parsing source text. Plain `class` declarations now
   flow through MIR-owned field/method/owner facts and reconstruct `Class:` /
-  `Methods:` in the self-hosted MIR-lowering path. Projection/identity nominal
-  class surfaces still fail closed as unsupported declaration facts instead of
-  being omitted from the declaration inventory. The hard gate is now **67
+  `Methods:` in the self-hosted MIR-lowering path. Payload-free enum
+  declarations flow through MIR-owned variant facts, while payload enum variants
+  fail closed from their `param_count` facts. Projection/identity nominal class
+  surfaces still fail closed as unsupported declaration facts instead of being
+  omitted from the declaration inventory. The hard gate is now **68
   positive fixtures plus 2 clean-reject fixtures** after
   promoting the already run-equivalent
   trailing-newline Log, nested string concat, string array concat, string
@@ -132,12 +134,13 @@ subset.
   `Random()` Int source-local type fact, the match-case integer pattern
   condition surface, the default absolute-path I/O rejection policy, and the
   nested-if-in-loop regression surface that closed the measured `heap`
-  self-host via-run timeout, the array destructure binding surface, and plain
-  class declaration/method lowering. The coverage boundary is now measured at
-  **67 PASS / 0 gap plus 2 clean rejects** across the committed
+  self-host via-run timeout, the array destructure binding surface, plain class
+  declaration/method lowering, and payload-free enum lowering. The coverage
+  boundary is now measured at **68 PASS / 0 gap plus 2 clean rejects** across the committed
   MIR-lower/codegen fixture inventory. Unsupported ability/role and
   projection/identity nominal declaration facts are rejected by `mir_lower`,
-  and unsupported self-host codegen builtins are
+  payload enum variants fail closed by MIR variant fact, and unsupported
+  self-host codegen builtins are
   rejected before C emission, so out-of-subset operator-overload/domain nominal
   semantics and unsupported runtime helper surfaces cannot silently produce
   broken generated C.

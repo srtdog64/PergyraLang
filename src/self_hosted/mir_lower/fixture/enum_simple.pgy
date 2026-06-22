@@ -1,0 +1,17 @@
+enum Direction {
+    North,
+    East,
+    South,
+    West
+}
+
+func Main() -> Void {
+    let d: Int = Direction.South;
+    Log(d);
+    match d {
+        case 2:
+            Log(300);
+        default:
+            Log(0);
+    }
+}

@@ -54,18 +54,19 @@ with bare-call statements, string concat/equality, recursion, loop-control
 string concatenation, string array concatenation, string case/index/trim
 builtins, array pop, array for-each, Int-field struct declarations/value flow,
 plain class declarations/methods through MIR-owned field/method/owner facts,
+payload-free enum declarations through MIR-owned variant facts,
 break edges after non-empty statement blocks, inferred `Random()` Int locals,
 match-case integer pattern conditions, runtime-aligned absolute-path I/O policy,
 file read/write, and phi-bearing loop headers classified by CFG backedges rather
 than phi presence alone, plus MIR-owned array destructure binding facts), gated by
 `parity/mir_json_parity.sh`
-(`make self-host-mir-json-parity-test-smoke`, 67 fixtures plus 2 clean-reject
+(`make self-host-mir-json-parity-test-smoke`, 68 fixtures plus 2 clean-reject
 fixture). The gate now
 requires the MIR JSON fact surface and checks the `for`
 header is reconstructed from `arg0` plus `expr0`/`expr1` bounds, and checks
-struct/class declarations, owner-qualified class methods, and match-case integer
-branch conditions are reconstructed from MIR declaration and `match_patterns`
-facts. It also checks nested `if`
+struct/class declarations, owner-qualified class methods, payload-free enum
+variants, and match-case integer branch conditions are reconstructed from MIR
+declaration and `match_patterns` facts. It also checks nested `if`
 branches inside loops are not misclassified as loops from phi facts alone. The
 gate checks destructure binding-name facts and rejects unsupported codegen
 builtins before generated C emission. It rejects
@@ -73,15 +74,16 @@ reintroducing reads of the transitional `ast` compatibility text. This is the
 first verified slice of the actual compiler-core (~96% of the LOC), not the
 codegen subset. It is now fact-only for the supported MIR JSON statement,
 expression, source-local, CFG, match-case, I/O policy, Int-field struct
-declaration, and plain class declaration/method surfaces. The committed
-MIR-lower/codegen fixture inventory is currently **67 PASS / 0 gap plus 2 clean
+declaration, plain class declaration/method, and payload-free enum surfaces. The
+committed MIR-lower/codegen fixture inventory is currently **68 PASS / 0 gap plus 2 clean
 rejects** through this path. Ability/role declarations and projection/identity
 nominal class surfaces (`subject`, `object`, `tobject`, `vessel`) remain
-observable unsupported MIR facts, and unsupported codegen builtins remain
-observable codegen boundaries, so the self-host path fails closed instead of
-silently dropping operator-overload/domain nominal semantics or emitting
-undefined C symbols. New fixtures must preserve that by adding owning facts
-rather than text fallback. Unsupported `AST_CLASS_DECL` surfaces also carry
+observable unsupported MIR facts, payload enum variants fail closed from their
+variant `param_count` facts, and unsupported codegen builtins remain observable
+codegen boundaries, so the self-host path fails closed instead of silently
+dropping operator-overload/domain nominal semantics or emitting undefined C
+symbols. New fixtures must preserve that by adding owning facts rather than
+text fallback. Unsupported `AST_CLASS_DECL` surfaces also carry
 their MIR-owned `nominal_kind`, so the self-host boundary reports
 `subject`/`object`/`tobject`/`vessel` instead of collapsing those concepts back
 to a generic class alias.

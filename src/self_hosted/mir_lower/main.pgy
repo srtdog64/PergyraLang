@@ -99,6 +99,33 @@ func JsonFieldString(json: String, start: Int, end: Int, key: String) -> String 
     return ReadJsonString(json, vstart, e);
 }
 
+func IsDigitChar(c: String) -> Bool {
+    return c == "0" || c == "1" || c == "2" || c == "3" || c == "4"
+        || c == "5" || c == "6" || c == "7" || c == "8" || c == "9";
+}
+
+func JsonFieldNumber(json: String, start: Int, end: Int, key: String) -> String {
+    let p: Int = FindFrom(json, key, start);
+    if p < 0 || p >= end {
+        return "";
+    }
+    let i: Int = p + StringLength(key);
+    let n: Int = StringLength(json);
+    let out: String = "";
+    while i < n && i < end {
+        let c: String = CharAt(json, i);
+        if !IsDigitChar(c) {
+            if StringLength(out) > 0 {
+                return out;
+            }
+            return "";
+        }
+        out = Concat(out, c);
+        i = i + 1;
+    }
+    return out;
+}
+
 // Find a MIR source-local type fact in the current routine span. This is the
 // self-hosted mirror of MIRRoutine::source_local_types; `mir_lower` uses it
 // before the transitional statement text when reconstructing `Let:` lines.
@@ -294,6 +321,46 @@ func EmitClassMethods(json: String, decl_start: Int, decl_end: Int, owner_name: 
     return "";
 }
 
+func VariantObjectEnd(json: String, p: Int, variants_end: Int) -> Int {
+    let next: Int = FindFrom(json, "},{\"name\":", p + 1);
+    if next >= 0 && next < variants_end {
+        return next;
+    }
+    return variants_end;
+}
+
+func EmitEnumDecl(json: String, decl_start: Int, decl_end: Int, enum_name: String) -> String {
+    let vk: Int = FindFrom(json, "\"variants\":[", decl_start);
+    if vk < 0 || vk >= decl_end {
+        Die(Concat("enum declaration is missing variants fact: ", enum_name));
+    }
+    let variants_end: Int = FindFrom(json, "]", vk);
+    if variants_end < 0 || variants_end >= decl_end {
+        Die(Concat("enum declaration has malformed variants fact: ", enum_name));
+    }
+    let out: String = "";
+    let vp: Int = FindFrom(json, "\"name\":", vk);
+    while vp >= 0 && vp < variants_end {
+        let vend: Int = VariantObjectEnd(json, vp, variants_end);
+        let nq: Int = FindFrom(json, "\"", vp + 7);
+        if nq < 0 || nq >= vend {
+            Die(Concat("malformed enum variant name fact: ", enum_name));
+        }
+        let ne: Array<Int> = [0];
+        let vname: String = ReadJsonString(json, nq, ne);
+        let pc: String = JsonFieldNumber(json, vp, vend, "\"param_count\":");
+        if pc != "0" {
+            Die(Concat("payload enum variants are not supported in self-host subset: ", Concat(enum_name, Concat(".", vname))));
+        }
+        if StringLength(out) > 0 {
+            out = Concat(out, ", ");
+        }
+        out = Concat(out, vname);
+        vp = FindFrom(json, "\"name\":", vend);
+    }
+    return Concat("  Enum: ", Concat(enum_name, Concat(" { ", Concat(out, " }\n"))));
+}
+
 func EmitStructDecls(json: String) -> String {
     let out: String = "";
     let ds: Int = FindFrom(json, "\"decls\":[", 0);
@@ -347,6 +414,8 @@ func EmitStructDecls(json: String) -> String {
                 out = Concat(out, cfields);
             }
             out = Concat(out, EmitClassMethods(json, p, decl_end, sname));
+        } else if kind == "enum" {
+            out = Concat(out, EmitEnumDecl(json, p, decl_end, sname));
         }
         p = FindFrom(json, "\"kind\":", decl_end);
     }

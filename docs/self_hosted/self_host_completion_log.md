@@ -80,12 +80,15 @@ rewrite history.
   (`v.Length()` -> `Vec2_Length(v)`). Subject/object/tobject/vessel surfaces
   remain clean rejects because their projection/identity semantics need their
   own owner facts.
-- The hard MIR JSON gate now proves **67 positive fixtures plus 2 clean
-  rejects**. Refreshed examples-scale survey: 41 PASS, 30 CODEGEN-gap, 37
+- The hard MIR JSON gate now proves **68 positive fixtures plus 2 clean
+  rejects**. Refreshed examples-scale survey: 42 PASS, 30 CODEGEN-gap, 36
   MIR-LOWER-gap, 13 ORACLE-skip, and 0 measured STDOUT-diff / generated-C
   compile failures / via-run timeouts. `class_method_test` and `class_test`
-  moved to PASS; `generic_class` now reaches an explicit generic-field
-  CODEGEN-gap instead of failing at declaration inventory.
+  moved to PASS; `enum_test` moved to PASS through MIR-owned variant facts;
+  `tagged_union` now reaches an explicit payload-enum MIR-LOWER gap instead of
+  failing at a generic enum declaration boundary; `generic_class` now reaches an
+  explicit generic-field CODEGEN-gap instead of failing at declaration
+  inventory.
 
 ### 2026-06-23 -- Non-struct class declarations fail closed in MIR JSON lowering
 

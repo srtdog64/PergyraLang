@@ -338,6 +338,9 @@ func ExprKind(expr: String, env: String) -> String {
     if StringLength(e) == 0 {
         return "Int";
     }
+    if LookupKindType(env, e, "e") != "" {
+        return "Int";
+    }
     if CharAt(e, 0) == "\"" {
         return "String";
     }
@@ -817,6 +820,62 @@ func RewriteMemberCalls(e: String, env: String) -> String {
     return out;
 }
 
+func RewriteEnumRefs(e: String, env: String) -> String {
+    let n: Int = StringLength(e);
+    let out: String = "";
+    let i: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(e, i);
+        if in_str {
+            out = Concat(out, c);
+            if c == "\\" && i + 1 < n {
+                out = Concat(out, CharAt(e, i + 1));
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            out = Concat(out, c);
+            i = i + 1;
+            continue;
+        }
+        if c == "." {
+            let ol: Int = StringLength(out);
+            let end: Int = ol;
+            let start: Int = ol;
+            while start > 0 && IsIdentChar(CharAt(out, start - 1)) {
+                start = start - 1;
+            }
+            if start < end && i + 1 < n && IsIdentStart(CharAt(e, i + 1)) {
+                let j: Int = i + 1;
+                while j < n && IsIdentChar(CharAt(e, j)) {
+                    j = j + 1;
+                }
+                let receiver: String = Substring(out, start, end - start);
+                let variant: String = Substring(e, i + 1, j - (i + 1));
+                let key: String = Concat(receiver, Concat(".", variant));
+                let value: String = LookupKindType(env, key, "e");
+                if StringLength(value) > 0 {
+                    out = Substring(out, 0, start);
+                    out = Concat(out, value);
+                    i = j;
+                    continue;
+                }
+            }
+        }
+        out = Concat(out, c);
+        i = i + 1;
+    }
+    return out;
+}
+
 // Rewrite a namespace-qualified call `NS.Func(...)` to the flattened C name
 // `NS_Func(...)`. The parser flattens `namespace NS { func Func }` to a
 // top-level `NS_Func` definition but renders calls in dotted form. A `.` that
@@ -920,7 +979,8 @@ func RewriteBoolLiterals(e: String) -> String {
 }
 
 func RewriteTokens(e: String, env: String) -> String {
-    let q0: String = RewriteMemberCalls(e, env);
+    let enumed: String = RewriteEnumRefs(e, env);
+    let q0: String = RewriteMemberCalls(enumed, env);
     let q: String = RewriteQualifiedCalls(q0);
     let a: String = RewriteArrayLengthEnv(q, env);
     let b: String = RewriteIndexing(a, env);
@@ -1762,6 +1822,47 @@ func CollectStructs(indents: Array<Int>, texts: Array<String>, count: Int, inout
     return typedefs;
 }
 
+func CollectEnums(indents: Array<Int>, texts: Array<String>, count: Int, inout env_box: Array<String>) -> String {
+    let block: String = "";
+    let i: Int = 0;
+    while i < count {
+        if StartsWith(texts[i], "Enum: ") {
+            let line: String = texts[i];
+            let brace: Int = StringIndexOf(line, " { ");
+            if brace < 0 || CharAt(line, StringLength(line) - 1) != "}" {
+                Die(Concat("malformed enum declaration: ", line));
+            }
+            let ename: String = Substring(line, 6, brace - 6);
+            let inner: String = StringTrim(Substring(line, brace + 3, StringLength(line) - (brace + 4)));
+            let value: Int = 0;
+            let rem: String = inner;
+            let enum_c: String = "enum {\n";
+            while StringLength(rem) > 0 {
+                let comma: Int = FindTopLevelComma(rem);
+                let part: String = "";
+                if comma < 0 {
+                    part = StringTrim(rem);
+                    rem = "";
+                } else {
+                    part = StringTrim(Substring(rem, 0, comma));
+                    rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
+                }
+                if StringIndexOf(part, "(") >= 0 {
+                    Die(Concat("payload enum variants are not supported in self-host codegen subset: ", part));
+                }
+                let cname: String = Concat(ename, Concat("_", part));
+                enum_c = Concat(enum_c, Concat("    ", Concat(cname, Concat(" = ", Concat(ToString(value), ",\n")))));
+                ArraySet(env_box, 0, Concat(env_box[0], Concat(ename, Concat(".", Concat(part, Concat("=e:", Concat(ToString(value), "|")))))));
+                value = value + 1;
+            }
+            enum_c = Concat(enum_c, "};\n\n");
+            block = Concat(block, enum_c);
+        }
+        i = i + 1;
+    }
+    return block;
+}
+
 // Build the C forward-declaration block for every non-Main function, in
 // GenerateC's own scope. (A pre-pass is required because Pergyra arrays pass by
 // value with a shared element buffer: `ArraySet` mutations persist across calls
@@ -1893,6 +1994,7 @@ func GenerateC(ast: String) -> String {
     }
     let f_indent: Int = indents[first_fn];
     let env_acc: Array<String> = [BuildFunctionEnv(indents, texts, count)];
+    let enum_block: String = CollectEnums(indents, texts, count, env_acc);
     let typedef_block: String = CollectStructs(indents, texts, count, env_acc);
     let base_env: String = env_acc[0];
     let uses_args: Bool = StringIndexOf(ast, "Args(") >= 0;
@@ -2192,7 +2294,7 @@ func GenerateC(ast: String) -> String {
         header = Concat(header, "    qsort(a.data, (size_t)a.len, sizeof(const char *), pgy_str_cmp);\n");
         header = Concat(header, "    return a;\n}\n\n");
     }
-    return Concat(header, Concat(typedef_block, Concat(proto_block, defs)));
+    return Concat(header, Concat(enum_block, Concat(typedef_block, Concat(proto_block, defs))));
 }
 
 func Main() -> Void {
