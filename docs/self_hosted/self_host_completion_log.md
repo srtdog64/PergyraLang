@@ -67,6 +67,29 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Array destructure binding facts promoted into MIR JSON lowering
+
+- Promoted array destructuring from a clean reject into the self-host MIR JSON
+  lowering subset. `mir_dump_json` now emits the MIR-owned
+  `destructure_bindings` list, and `mir_lower` reconstructs each binding as a
+  typed array-index `Let:` from the initializer and source-local array type
+  facts. Direct `Split(...)` destructures materialize a fact-owned temporary
+  array before indexing.
+- Renamed the old negative destructure fixture to `array_destructure.pgy` and
+  moved it into the positive manifest. The gate checks the binding facts,
+  reconstructed temporary, and first binding before running the full
+  `pgy --mir-json | mir_lower | codegen | gcc == C oracle` path.
+- Unsupported self-host codegen builtins (`ArraySort`, `ArrayMap`,
+  `ArrayFilter`, `Join`, `ToFloat`) now fail closed with `CODEGEN ERROR`
+  instead of leaking undefined C symbols. `unsupported_codegen_builtin.pgy`
+  locks that boundary into the same MIR JSON gate. The hard MIR JSON gate now
+  proves **65 positive fixtures plus 2 clean rejects**.
+- Refreshed the examples-scale survey: 50 PASS, 39 CODEGEN-gap, 19
+  MIR-LOWER-gap, 13 ORACLE-skip, and **0 measured STDOUT-diff, generated-C
+  compile failures, or via-run timeouts**. `word_count` moved to PASS; the
+  larger `collection_ops` / `string_utils` examples now stop at explicit
+  CODEGEN-gap boundaries for unsupported builtins.
+
 ### 2026-06-23 -- Loop headers are classified by CFG backedges, not phi alone
 
 - Closed the `heap` via-run timeout class in the examples-scale MIR JSON path.

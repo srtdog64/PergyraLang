@@ -56,27 +56,28 @@ builtins, array pop, array for-each, Int-field struct declarations/value flow,
 break edges after non-empty statement blocks, inferred `Random()` Int locals,
 match-case integer pattern conditions, runtime-aligned absolute-path I/O policy,
 file read/write, and phi-bearing loop headers classified by CFG backedges rather
-than phi presence alone), gated by
+than phi presence alone, plus MIR-owned array destructure binding facts), gated by
 `parity/mir_json_parity.sh`
-(`make self-host-mir-json-parity-test-smoke`, 64 fixtures plus 2 clean-reject
+(`make self-host-mir-json-parity-test-smoke`, 65 fixtures plus 2 clean-reject
 fixture). The gate now
 requires the MIR JSON fact surface and checks the `for`
 header is reconstructed from `arg0` plus `expr0`/`expr1` bounds, and checks
 struct declarations and match-case integer branch conditions are reconstructed
 from MIR declaration and `match_patterns` facts. It also checks nested `if`
 branches inside loops are not misclassified as loops from phi facts alone. The
-gate rejects
+gate checks destructure binding-name facts and rejects unsupported codegen
+builtins before generated C emission. It rejects
 reintroducing reads of the transitional `ast` compatibility text. This is the
 first verified slice of the actual compiler-core (~96% of the LOC), not the
 codegen subset. It is now fact-only for the supported MIR JSON statement,
 expression, source-local, CFG, match-case, I/O policy, and Int-field struct
 declaration surfaces. The committed MIR-lower/codegen fixture inventory is
-currently **64 PASS / 0 gap plus 2 clean rejects** through this path.
-Ability/role declarations and destructure instructions are represented as
-observable unsupported MIR facts so the self-host path fails closed instead of
-silently dropping operator-overload semantics or emitting undeclared destructure
-bindings. New fixtures must preserve that by adding owning facts rather than
-text fallback.
+currently **65 PASS / 0 gap plus 2 clean rejects** through this path.
+Ability/role declarations are represented as observable unsupported MIR facts,
+and unsupported codegen builtins are represented as observable codegen
+boundaries, so the self-host path fails closed instead of silently dropping
+operator-overload semantics or emitting undefined C symbols. New fixtures must
+preserve that by adding owning facts rather than text fallback.
 
 **Hard migration opened (2026-06-17):** the codegen rung is the first *hard
 compiler-core* substitute, landed after the BDFL decision lifted the

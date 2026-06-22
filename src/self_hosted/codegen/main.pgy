@@ -72,6 +72,58 @@ func Die(msg: String) -> Void {
     Exit(1);
 }
 
+func ContainsCallOutsideStrings(text: String, callee: String) -> Bool {
+    let n: Int = StringLength(text);
+    let needle: String = Concat(callee, "(");
+    let m: Int = StringLength(needle);
+    let i: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(text, i);
+        if in_str {
+            if c == "\\" {
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            i = i + 1;
+            continue;
+        }
+        if m > 0 && i + m <= n && Substring(text, i, m) == needle {
+            if i == 0 || !IsIdentChar(CharAt(text, i - 1)) {
+                return true;
+            }
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func RejectUnsupportedCodegenBuiltins(ast: String) -> Void {
+    if ContainsCallOutsideStrings(ast, "ArraySort") {
+        Die("unsupported builtin in self-host codegen subset: ArraySort");
+    }
+    if ContainsCallOutsideStrings(ast, "ArrayMap") {
+        Die("unsupported builtin in self-host codegen subset: ArrayMap");
+    }
+    if ContainsCallOutsideStrings(ast, "ArrayFilter") {
+        Die("unsupported builtin in self-host codegen subset: ArrayFilter");
+    }
+    if ContainsCallOutsideStrings(ast, "Join") {
+        Die("unsupported builtin in self-host codegen subset: Join");
+    }
+    if ContainsCallOutsideStrings(ast, "ToFloat") {
+        Die("unsupported builtin in self-host codegen subset: ToFloat");
+    }
+}
+
 func IsIdentChar(c: String) -> Bool {
     if StringLength(c) != 1 {
         return false;
@@ -1636,6 +1688,8 @@ func CollectProtos(indents: Array<Int>, texts: Array<String>, count: Int, struct
 }
 
 func GenerateC(ast: String) -> String {
+    RejectUnsupportedCodegenBuiltins(ast);
+
     let indents: Array<Int> = [];
     let texts: Array<String> = [];
     let total: Int = StringLength(ast);

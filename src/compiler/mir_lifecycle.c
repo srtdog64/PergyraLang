@@ -603,6 +603,17 @@ mir_dump_json(const MIRProgram *mir, FILE *out)
                             mir_instruction_match_pattern_at(inst, p));
                     }
                     fputc(']', out);
+                    fputs(",\"destructure_bindings\":[", out);
+                    for (size_t d = 0;
+                         d < mir_instruction_destructure_binding_count(inst);
+                         d++) {
+                        if (d > 0)
+                            fputc(',', out);
+                        mir_json_emit_str_or_null(out,
+                            mir_instruction_destructure_binding_name_at(
+                                inst, d));
+                    }
+                    fputc(']', out);
                     fputs(",\"uses\":[", out);
                     for (size_t m = 0; m < inst->use_count; m++) {
                         if (m > 0)

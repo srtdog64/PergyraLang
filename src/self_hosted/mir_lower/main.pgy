@@ -133,6 +133,94 @@ func SourceLocalType(json: String, start: Int, end: Int, name: String) -> String
     return "";
 }
 
+func TextStartsWith(text: String, prefix: String) -> Bool {
+    return StringLength(text) >= StringLength(prefix)
+        && Substring(text, 0, StringLength(prefix)) == prefix;
+}
+
+func ArrayElementTypeName(type_name: String) -> String {
+    if StringIndexOf(type_name, "String") >= 0 {
+        return "String";
+    }
+    if StringIndexOf(type_name, "Int") >= 0 {
+        return "Int";
+    }
+    if StringIndexOf(type_name, "Bool") >= 0 {
+        return "Bool";
+    }
+    if StringIndexOf(type_name, "Float") >= 0 {
+        return "Float";
+    }
+    return "";
+}
+
+func DestructureElementType(json: String, routine_start: Int, routine_end: Int,
+                            expr0: String) -> String {
+    let init: String = StringTrim(expr0);
+    if TextStartsWith(init, "Split(") {
+        return "String";
+    }
+    return ArrayElementTypeName(SourceLocalType(json, routine_start, routine_end, init));
+}
+
+func DestructureNeedsTemp(expr0: String) -> Bool {
+    let init: String = StringTrim(expr0);
+    return StringIndexOf(init, "(") >= 0 || StringIndexOf(init, "[") >= 0
+        || StringIndexOf(init, " ") >= 0 || StringIndexOf(init, ",") >= 0;
+}
+
+func RenderDestructureFromFacts(json: String, routine_start: Int, routine_end: Int,
+                                inst_start: Int, inst_end: Int, indent: String,
+                                expr0: String) -> String {
+    let init: String = StringTrim(expr0);
+    let elem_type: String = DestructureElementType(json, routine_start, routine_end, init);
+    if StringLength(init) == 0 {
+        Die("destructure instruction is missing initializer fact");
+    }
+    if StringLength(elem_type) == 0 {
+        Die(Concat("destructure initializer element type is unknown: ", init));
+    }
+    let bindings: Int = FindFrom(json, "\"destructure_bindings\":[", inst_start);
+    if bindings < 0 || bindings >= inst_end {
+        Die("destructure instruction is missing binding-name facts");
+    }
+    let open: Int = FindFrom(json, "[", bindings);
+    if open < 0 || open >= inst_end {
+        Die("malformed destructure binding-name facts");
+    }
+    let close: Int = FindFrom(json, "]", open);
+    if close < 0 || close >= inst_end {
+        Die("malformed destructure binding-name facts");
+    }
+
+    let out: String = "";
+    let source: String = init;
+    if DestructureNeedsTemp(init) {
+        source = Concat("_pgy_destructure_", ToString(inst_start));
+        out = Concat(out, Concat(indent, Concat("Let: ", Concat(source,
+            Concat(" : Array<", Concat(elem_type, Concat("> = ", Concat(init, "\n"))))))));
+    }
+
+    let pos: Int = open + 1;
+    let index: Int = 0;
+    let q: Int = FindFrom(json, "\"", pos);
+    while q >= 0 && q < close {
+        let end: Array<Int> = [0];
+        let name: String = ReadJsonString(json, q, end);
+        if StringLength(name) > 0 {
+            out = Concat(out, Concat(indent, Concat("Let: ", Concat(name,
+                Concat(" : ", Concat(elem_type, Concat(" = ", Concat(source,
+                    Concat("[", Concat(ToString(index), "]\n"))))))))));
+            index = index + 1;
+        }
+        q = FindFrom(json, "\"", end[0]);
+    }
+    if index == 0 {
+        Die("destructure instruction has no binding-name facts");
+    }
+    return out;
+}
+
 func EmitStructDecls(json: String) -> String {
     let out: String = "";
     let ds: Int = FindFrom(json, "\"decls\":[", 0);
@@ -392,20 +480,23 @@ func EmitBlockStmts(json: String, routine_start: Int, routine_end: Int,
         let ke: Array<Int> = [0];
         let ikind: String = ReadJsonString(json, kq, ke);
         let next_kp: Int = FindFrom(json, "\"kind\":", ke[0]);
+        let inst_end: Int = be;
+        if next_kp >= 0 && next_kp < be {
+            inst_end = next_kp;
+        }
         if ikind == "destructure" {
-            Die("destructure instruction is outside the self-host MIR subset");
+            let d_expr0: String = JsonFieldString(json, kp, inst_end, "\"expr0\":");
+            out = Concat(out, RenderDestructureFromFacts(
+                json, routine_start, routine_end, kp, inst_end, indent,
+                d_expr0));
         }
         if ikind != "branch" && ikind != "loop-init" {
-            let inst_end: Int = be;
-            if next_kp >= 0 && next_kp < be {
-                inst_end = next_kp;
-            }
             let expr0: String = JsonFieldString(json, kp, inst_end, "\"expr0\":");
             let expr1: String = JsonFieldString(json, kp, inst_end, "\"expr1\":");
             let arg0: String = JsonFieldString(json, kp, inst_end, "\"arg0\":");
             let source_type: String = JsonFieldString(json, kp, inst_end, "\"source_type\":");
             let local_type: String = SourceLocalType(json, routine_start, routine_end, arg0);
-            if StringLength(expr0) > 0 {
+            if ikind != "destructure" && StringLength(expr0) > 0 {
                 out = Concat(out, Concat(indent, Concat(RenderStmtFromFacts(ikind, source_type, arg0, expr0, expr1, local_type), "\n")));
             }
         }

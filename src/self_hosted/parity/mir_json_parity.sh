@@ -73,6 +73,7 @@ MIR_FIXTURES=(
     random_inferred_let
     match_case_int
     nested_if_in_loop
+    array_destructure
     ifelse
     nestedif
     reassign_block
@@ -244,6 +245,21 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
             exit 1
         fi
     fi
+    if [[ "$base" == "array_destructure" ]]; then
+        if ! grep -Fq '"destructure_bindings":["id_str","name","active_str"]' "$mj"; then
+            echo "[self-host-parity:mir-json] array_destructure: MIR JSON is missing destructure binding facts" >&2
+            exit 1
+        fi
+        if ! grep -q 'Let: _pgy_destructure_.* : Array<String> = Split(csv, ",")' "$reast"; then
+            echo "[self-host-parity:mir-json] array_destructure: mir_lower did not materialize a fact-owned array temp" >&2
+            exit 1
+        fi
+        if ! grep -Fq 'Let: id_str : String = _pgy_destructure_' "$reast" \
+            || ! grep -Fq '[0]' "$reast"; then
+            echo "[self-host-parity:mir-json] array_destructure: mir_lower did not reconstruct first binding from facts" >&2
+            exit 1
+        fi
+    fi
     "$B/codegen.exe" "${reast#$ROOT_DIR/}" 2>/dev/null | tr -d '\r' > "$via_c" || true
     if grep -q '^CODEGEN ERROR' "$via_c"; then
         echo "[self-host-parity:mir-json] $base: codegen rejected the reconstructed AST:" >&2
@@ -300,27 +316,25 @@ if ! grep -q '^MIR-LOWER ERROR: unsupported MIR declaration in self-host subset:
 fi
 rejects=$((rejects + 1))
 
-base="unsupported_destructure"
+base="unsupported_codegen_builtin"
 src="$FIXTURE_DIR/$base.pgy"
 mj="$B/$base.mirjson"
 reast="$B/$base.reast"
+via_c="$B/$base.c"
 (cd "$ROOT_DIR" && "$PGY" --mir-json "$(pgy_path_for_compiler "$PGY" "$src")" \
     2>/dev/null | tr -d '\r' > "$mj")
-if ! grep -Fq '"kind":"destructure"' "$mj"; then
-    echo "[self-host-parity:mir-json] $base: missing destructure MIR fact" >&2
-    exit 1
-fi
-set +e
 "$B/mir_lower.exe" "${mj#$ROOT_DIR/}" 2>/dev/null | tr -d '\r' > "$reast"
+set +e
+"$B/codegen.exe" "${reast#$ROOT_DIR/}" 2>/dev/null | tr -d '\r' > "$via_c"
 reject_rc=${PIPESTATUS[0]}
 set -e
 if [[ "$reject_rc" -eq 0 ]]; then
-    echo "[self-host-parity:mir-json] $base: mir_lower must exit nonzero for unsupported destructure facts" >&2
+    echo "[self-host-parity:mir-json] $base: codegen must exit nonzero for unsupported builtins" >&2
     exit 1
 fi
-if ! grep -q '^MIR-LOWER ERROR: destructure instruction is outside the self-host MIR subset' "$reast"; then
-    echo "[self-host-parity:mir-json] $base: mir_lower must reject unsupported destructure facts" >&2
-    sed -n '1,5p' "$reast" >&2
+if ! grep -q '^CODEGEN ERROR: unsupported builtin in self-host codegen subset: ArraySort' "$via_c"; then
+    echo "[self-host-parity:mir-json] $base: codegen must reject unsupported builtin facts before C emission" >&2
+    sed -n '1,5p' "$via_c" >&2
     exit 1
 fi
 rejects=$((rejects + 1))

@@ -115,7 +115,10 @@ subset.
   self-hosted codegen file helpers aligned with the runtime absolute-path
   policy. It also classifies phi-bearing loop headers from CFG backedges rather
   than phi presence alone, so nested `if` branches inside loops remain `If:`
-  nodes. The hard gate is now **64 positive fixtures plus 2 clean-reject fixtures** after
+  nodes. Array destructuring now consumes MIR JSON `destructure_bindings`
+  facts and source-local array type facts to reconstruct typed array-index
+  `Let:` bindings without parsing source text. The hard gate is now **65
+  positive fixtures plus 2 clean-reject fixtures** after
   promoting the already run-equivalent
   trailing-newline Log, nested string concat, string array concat, string
   case/index/trim builtin, string reassignment, two-log, while-break, and
@@ -125,13 +128,13 @@ subset.
   `Random()` Int source-local type fact, the match-case integer pattern
   condition surface, the default absolute-path I/O rejection policy, and the
   nested-if-in-loop regression surface that closed the measured `heap`
-  self-host via-run timeout. The
-  coverage boundary is now measured at **64 PASS /
+  self-host via-run timeout, plus the array destructure binding surface. The
+  coverage boundary is now measured at **65 PASS /
   0 gap plus 2 clean rejects** across the committed MIR-lower/codegen fixture
-  inventory. Unsupported ability/role declaration facts and destructure
-  instruction facts are rejected by `mir_lower`, so out-of-subset
-  operator-overload semantics and destructure bindings cannot be silently
-  dropped by the self-host path.
+  inventory. Unsupported ability/role declaration facts are rejected by
+  `mir_lower`, and unsupported self-host codegen builtins are rejected before C
+  emission, so out-of-subset operator-overload semantics and unsupported
+  runtime helper surfaces cannot silently produce broken generated C.
 - C class/zone collection-specialization scans are MIR-routine based and no
   longer recover method body AST; routine_source_decl_codegen is ratcheted at 0.
 - C hosted method body emission binds the linked MIRRoutine body as current
