@@ -1,0 +1,12 @@
+func Greet() -> Void {
+    Log("hi");
+}
+
+func Bye() -> Void {
+    Log("bye");
+}
+
+func Main() -> Void {
+    Greet();
+    Bye();
+}

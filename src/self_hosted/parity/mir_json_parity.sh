@@ -68,6 +68,7 @@ MIR_FIXTURES=(
     arith
     strlog
     funcparam
+    multi_func_void
     ifelse
     nestedif
     reassign_block

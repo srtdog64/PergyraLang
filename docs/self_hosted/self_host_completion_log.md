@@ -67,6 +67,15 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-22 -- Multiple Void routines promoted into MIR JSON gate
+
+- Promoted `multi_func_void` from the coverage probe into the hard
+  `mir_json_parity.sh` manifest. The self-hosted MIR lowering now proves that
+  multiple Void routine declarations plus bare-call statements reconstruct from
+  MIR JSON facts and run equal to the C oracle.
+- `make self-host-mir-json-parity-test-smoke`: **32/32 MIR JSON -> self-hosted
+  MIR-lower -> self-hosted codegen -> C oracle parity**.
+
 ### 2026-06-22 -- Bool literal canonicalization promoted into MIR JSON gate
 
 - Closed the next measured `mir_json_coverage_probe.sh` gap:

@@ -47,9 +47,10 @@ now Pergyra and run-equivalent to the C backend on the supported rung-0b CFG
 subset (linear code, signatures/return, if/else, nested if, while, and
 `for i in a..b`), plus selected codegen fixture surfaces that already lower from
 MIR facts (args, arrays, Bool/string/Float builtins, Bool-literal branch
-reassignment, string concat/equality, recursion, `continue`, and file
-read/write), gated by `parity/mir_json_parity.sh`
-(`make self-host-mir-json-parity-test-smoke`, 31 fixtures). The gate now
+reassignment, multiple Void routines with bare-call statements, string
+concat/equality, recursion, `continue`, and file read/write), gated by
+`parity/mir_json_parity.sh`
+(`make self-host-mir-json-parity-test-smoke`, 32 fixtures). The gate now
 requires the MIR JSON fact surface and checks the `for`
 header is reconstructed from `arg0` plus `expr0`/`expr1` bounds. The gate also
 rejects reintroducing reads of the transitional `ast` compatibility text. This
