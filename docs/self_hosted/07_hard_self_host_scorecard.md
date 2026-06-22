@@ -160,8 +160,9 @@ trailing-newline Log, nested string concat, string array concat, string
 case/index/trim builtins, string reassignment, array pop, array for-each,
 Int-field struct declarations/value flow, two-log, loop-control
 `continue`/`break` edge-block surfaces, and break edges after non-empty
-statement blocks, plus inferred `Random()` Int source-local facts. The committed
-MIR-lower/codegen fixture inventory is now measured at 61 PASS / 0 gap plus 1
+statement blocks, inferred `Random()` Int source-local facts, and match-case
+integer pattern conditions from `match_patterns` facts. The committed
+MIR-lower/codegen fixture inventory is now measured at 62 PASS / 0 gap plus 1
 clean reject through this path. Ability/role unsupported declaration facts are
 emitted and rejected before the self-host path can silently erase
 operator-overload semantics;

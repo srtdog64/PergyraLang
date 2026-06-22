@@ -71,6 +71,7 @@ MIR_FIXTURES=(
     multi_func_void
     break_after_stmt
     random_inferred_let
+    match_case_int
     ifelse
     nestedif
     reassign_block
@@ -191,6 +192,18 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
             fi
         done
     fi
+    if [[ "$base" == "match_case_int" ]]; then
+        for required in \
+            '"source_type":"AST_MATCH_CASE"' \
+            '"match_patterns":["1"]' \
+            '"match_patterns":["2"]' \
+            '"match_patterns":["3"]'; do
+            if ! grep -Fq "$required" "$mj"; then
+                echo "[self-host-parity:mir-json] match_case_int: missing MIR match pattern fact: $required" >&2
+                exit 1
+            fi
+        done
+    fi
     "$B/mir_lower.exe" "${mj#$ROOT_DIR/}" 2>/dev/null | tr -d '\r' > "$reast" || true
     if grep -q '^MIR-LOWER ERROR' "$reast"; then
         echo "[self-host-parity:mir-json] $base: mir_lower rejected the MIR-JSON:" >&2
@@ -213,6 +226,10 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
     fi
     if [[ "$base" == "struct_param" ]] && ! grep -q 'Struct: Pair' "$reast"; then
         echo "[self-host-parity:mir-json] struct_param: mir_lower did not reconstruct the struct declaration from MIR facts" >&2
+        exit 1
+    fi
+    if [[ "$base" == "match_case_int" ]] && ! grep -q 'If: x == 3' "$reast"; then
+        echo "[self-host-parity:mir-json] match_case_int: mir_lower did not reconstruct match case conditions from MIR facts" >&2
         exit 1
     fi
     "$B/codegen.exe" "${reast#$ROOT_DIR/}" 2>/dev/null | tr -d '\r' > "$via_c" || true

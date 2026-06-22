@@ -67,6 +67,21 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Match-case pattern facts promoted into MIR JSON lowering
+
+- Closed the `match_test` silent-output class for the self-host MIR JSON path.
+  `pgy --mir-json` now emits `match_patterns` for match-case branch
+  instructions, and `mir_lower` reconstructs integer case conditions as
+  `subject == pattern` from that fact instead of treating the match subject
+  itself as a Bool condition.
+- Added `match_case_int.pgy` to the hard MIR JSON manifest and gate checks for
+  `"match_patterns":["1"]`, `"2"`, and `"3"`, plus a reconstructed `If: x == 3`
+  line. The hard MIR JSON gate now proves **62 positive fixtures plus 1 clean
+  reject**.
+- Refreshed the examples-scale survey: 47 PASS, 39 CODEGEN-gap, 19
+  MIR-LOWER-gap, 13 ORACLE-skip, 1 STDOUT-diff (`io_test`), 1 CC-fail
+  (`string_utils`), and 1 via-run timeout (`heap`).
+
 ### 2026-06-23 -- Unsupported declarations fail closed in MIR JSON lowering
 
 - Closed the `operator_overload` silent-output class for the self-host MIR JSON

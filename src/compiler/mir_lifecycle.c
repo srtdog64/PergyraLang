@@ -594,6 +594,15 @@ mir_dump_json(const MIRProgram *mir, FILE *out)
                                   mir_instruction_source_node_type_or(
                                       inst, AST_PROGRAM))
                             : NULL);
+                    fputs(",\"match_patterns\":[", out);
+                    for (size_t p = 0;
+                         p < mir_instruction_match_pattern_count(inst); p++) {
+                        if (p > 0)
+                            fputc(',', out);
+                        mir_json_emit_expr_or_null(out,
+                            mir_instruction_match_pattern_at(inst, p));
+                    }
+                    fputc(']', out);
                     fputs(",\"uses\":[", out);
                     for (size_t m = 0; m < inst->use_count; m++) {
                         if (m > 0)

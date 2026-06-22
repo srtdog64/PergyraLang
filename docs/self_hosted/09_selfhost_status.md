@@ -109,16 +109,18 @@ subset.
   `continue`/`break` edge blocks. The MIR JSON parity gate checks
   the `for` header is reconstructed from
   `arg0` plus range bounds rather than treating the lower bound as a branch
-  condition, and rejects reintroducing transitional `"ast"` reads. The hard
-  gate is now **61 positive fixtures plus 1 clean-reject fixture** after
+  condition, and rejects reintroducing transitional `"ast"` reads. It also
+  reconstructs match-case integer branch conditions from `match_patterns`
+  facts rather than parsing the source compatibility text. The hard
+  gate is now **62 positive fixtures plus 1 clean-reject fixture** after
   promoting the already run-equivalent
   trailing-newline Log, nested string concat, string array concat, string
   case/index/trim builtin, string reassignment, two-log, while-break, and
   while-sum surfaces, array pop and array for-each loops, and Int-field struct
   declaration/value flow. It also reconstructs break edges after non-empty
   statement blocks from CFG successor facts and consumes the MIR-owned
-  `Random()` Int source-local type fact. The coverage boundary is now measured
-  at **61 PASS /
+  `Random()` Int source-local type fact and the match-case integer pattern
+  condition surface. The coverage boundary is now measured at **62 PASS /
   0 gap plus 1 clean reject** across the committed MIR-lower/codegen fixture
   inventory. Unsupported ability/role declaration facts are rejected by
   `mir_lower`, so out-of-subset operator-overload semantics cannot be silently

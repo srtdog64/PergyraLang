@@ -339,6 +339,28 @@ func BlockCond(json: String, routine_start: Int, routine_end: Int, bs: Int, be: 
         inst_end = next_kp;
     }
     let source_type: String = JsonFieldString(json, kp, inst_end, "\"source_type\":");
+    if source_type == "AST_MATCH_CASE" {
+        let match_subject: String = JsonFieldString(json, kp, inst_end, "\"expr0\":");
+        let pk: Int = FindFrom(json, "\"match_patterns\":[", kp);
+        if StringLength(match_subject) == 0 || pk < 0 || pk >= inst_end {
+            Die("match-case branch is missing MIR subject/pattern facts");
+        }
+        let pe: Int = FindFrom(json, "]", pk);
+        if pe < 0 || pe >= inst_end {
+            Die("match-case branch has malformed MIR pattern facts");
+        }
+        let pq: Int = FindFrom(json, "\"", pk + StringLength("\"match_patterns\":["));
+        if pq < 0 || pq >= pe {
+            Die("match-case branch has no MIR pattern fact");
+        }
+        let end: Array<Int> = [0];
+        let pattern: String = ReadJsonString(json, pq, end);
+        let next: Int = FindFrom(json, "\"", end[0]);
+        if next >= 0 && next < pe {
+            Die("multi-pattern match cases are outside the self-host MIR subset");
+        }
+        return Concat(match_subject, Concat(" == ", pattern));
+    }
     if source_type == "AST_FOR_LOOP" {
         let binding: String = JsonFieldString(json, kp, inst_end, "\"arg0\":");
         let start: String = JsonFieldString(json, kp, inst_end, "\"expr0\":");
