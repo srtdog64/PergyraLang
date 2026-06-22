@@ -23,7 +23,6 @@ emit_zone_action_effect_runtime(CodeBuf *out, ASTNode *call, TranspilerCtx *ctx)
     ASTNode *receiver;
     ASTNode *host_decl;
     ASTNode *zone_decl;
-    ASTNode *method_decl = NULL;
     const MIRDeclMethod *method_meta;
     const char *method_name;
     const char *receiver_slot_name = NULL;
@@ -72,12 +71,7 @@ emit_zone_action_effect_runtime(CodeBuf *out, ASTNode *call, TranspilerCtx *ctx)
                 "MIR-only C path missing zone action method metadata");
             return;
         }
-        method_decl = transpiler_find_subject_host_method_decl(ctx,
-            receiver_type_name, method_name);
-        method_is_async = method_decl != NULL && method_decl->is_async_decl;
-        method_is_action = ast_func_is_action(method_decl);
-        method_within_zone = ast_func_within_zone(method_decl);
-        effect_name = ast_func_causes_effect(method_decl);
+        return;
     }
     if (method_meta != NULL && transpiler_active_has_mir(ctx)
         && method_is_action && effect_name != NULL
@@ -137,8 +131,7 @@ emit_zone_action_effect_runtime(CodeBuf *out, ASTNode *call, TranspilerCtx *ctx)
 char *
 emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
                                        ASTNode *receiver,
-                                       const MIRDeclMethod *method_meta,
-                                       ASTNode *method_decl)
+                                       const MIRDeclMethod *method_meta)
 {
     ASTNode *world_decl;
     ASTNode *zone_decl;
@@ -167,10 +160,7 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
                 "MIR-only C path missing world effect sync method metadata");
             return NULL;
         }
-        method_is_async = method_decl != NULL && method_decl->is_async_decl;
-        method_is_action = ast_func_is_action(method_decl);
-        method_within_zone = ast_func_within_zone(method_decl);
-        effect_name = ast_func_causes_effect(method_decl);
+        return NULL;
     }
     if (method_meta != NULL && transpiler_active_has_mir(ctx)
         && method_is_action && effect_name != NULL

@@ -6656,8 +6656,10 @@ require_each_following_term "src/codegen/llvm_stmt_zone_action.c" \
     "if (method_meta == NULL) {" \
     "llvm_active_has_mir(ctx)" \
     6
-require_term "src/codegen/llvm_stmt_zone_action.c" \
-    "method_decl == NULL || method_decl->type != AST_FUNC_DECL"
+if grep -Eq 'ast_func_(within_zone|causes_effect|is_action)\(method_decl\)|llvm_find_host_method_decl_in_context\(ctx,' \
+        "$ROOT_DIR/src/codegen/llvm_stmt_zone_action.c"; then
+    fail "LLVM zone action effect sync must not recover method AST contracts"
+fi
 for term in \
     "const MIRDeclMethod *method_meta" \
     "llvm_mir_decl_method_is_async(method_meta)" \
@@ -6674,6 +6676,10 @@ require_each_following_term "src/codegen/llvm_expr_call_methods_world_effect_syn
     "if (method_meta == NULL) {" \
     "llvm_active_has_mir(ctx)" \
     6
+if grep -Eq 'ast_func_(within_zone|causes_effect|is_action)\(method_decl\)' \
+        "$ROOT_DIR/src/codegen/llvm_expr_call_methods_world_effect_sync.c"; then
+    fail "LLVM world effect sync must not recover method AST contracts"
+fi
 for term in \
     "llvm_find_host_method_metadata_in_context(ctx, host_name, callee_name)" \
     "llvm_mir_decl_method_param_count(method_meta)" \
@@ -6702,7 +6708,7 @@ require_each_following_term "src/codegen/llvm_expr_call_hosted.c" \
     "llvm_active_has_mir(ctx)" \
     6
 require_term "src/codegen/llvm_member_call_emit.c" \
-    "obj_node, method_meta, method_decl"
+    "obj_node, method_meta)"
 for term in \
     "llvm_active_has_mir(ctx)" \
     "llvm_set_mir_inventory_missing(ctx" \
@@ -6731,8 +6737,12 @@ require_each_following_term "src/codegen/transpiler_projection_sync.c" \
     "if (method_meta == NULL) {" \
     "transpiler_active_has_mir(ctx)" \
     6
+if grep -Eq 'ast_func_(within_zone|causes_effect|is_action)\(method_decl\)|transpiler_find_subject_host_method_decl\(ctx,' \
+        "$ROOT_DIR/src/codegen/transpiler_projection_sync.c"; then
+    fail "C zone/world effect sync must not recover method AST contracts"
+fi
 require_term "src/codegen/transpiler_expr_call_member_emit.c" \
-    "ctx, obj, method_meta, method_decl"
+    "ctx, obj, method_meta)"
 for term in \
     "transpiler_mir_decl_method_metadata_complete_for(ctx" \
     "TRANSPILER_MIR_DECL_METHOD_REQUIRE_PARAM_TYPE_NAMES" \

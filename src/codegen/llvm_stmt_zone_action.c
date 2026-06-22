@@ -158,7 +158,6 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
     ASTNode *callee;
     ASTNode *receiver;
     ASTNode *zone_decl;
-    ASTNode *method_decl = NULL;
     const MIRDeclMethod *method_meta;
     ASTNode *effect_decl;
     LLVMClassTypeEntry *zone_cls;
@@ -215,12 +214,7 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
                 "MIR-only LLVM path missing zone action method metadata");
             return;
         }
-        method_decl = llvm_find_host_method_decl_in_context(ctx,
-            receiver_type_name, method_name);
-        method_is_async = method_decl != NULL && method_decl->is_async_decl;
-        method_within_zone = ast_func_within_zone(method_decl);
-        effect_name = ast_func_causes_effect(method_decl);
-        method_is_action = ast_func_is_action(method_decl);
+        return;
     }
     if (method_meta != NULL && llvm_active_has_mir(ctx)
         && method_is_action && effect_name != NULL
@@ -230,9 +224,7 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
             effect_name);
         return;
     }
-    if ((method_meta == NULL
-            && (method_decl == NULL || method_decl->type != AST_FUNC_DECL))
-        || method_is_async
+    if (method_is_async
         || !method_is_action
         || method_within_zone == NULL
         || effect_name == NULL

@@ -80,8 +80,7 @@ llvm_call_find_first_effect_subject_slot_name(LLVMGenCtx *ctx,
 void
 llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
                                             ASTNode *receiver,
-                                            const MIRDeclMethod *method_meta,
-                                            ASTNode *method_decl)
+                                            const MIRDeclMethod *method_meta)
 {
     ASTNode *host_decl;
     const char *zone_slot_name = NULL;
@@ -118,10 +117,7 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
                 "MIR-only LLVM path missing world effect sync method metadata");
             return;
         }
-        method_is_async = method_decl != NULL && method_decl->is_async_decl;
-        method_is_action = ast_func_is_action(method_decl);
-        method_within_zone = ast_func_within_zone(method_decl);
-        effect_name = ast_func_causes_effect(method_decl);
+        return;
     }
     if (method_meta != NULL && llvm_active_has_mir(ctx)
         && method_is_action && effect_name != NULL

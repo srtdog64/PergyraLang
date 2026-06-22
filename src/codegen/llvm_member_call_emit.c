@@ -204,7 +204,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                             fn_value, args, (unsigned)(argc + 1), "");
                         llvm_emit_current_zone_subject_projection_sync(ctx, obj_node);
                         llvm_emit_world_embedded_action_effect_sync(ctx,
-                            obj_node, method_meta, method_decl);
+                            obj_node, method_meta);
                         llvm_emit_world_embedded_receiver_projection_sync(ctx, obj_node);
                         result = llvm_void_expression_placeholder(ctx, node,
                             "member-call");
@@ -214,7 +214,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                             (unsigned)(argc + 1), llvm_tmp_name(ctx));
                         llvm_emit_current_zone_subject_projection_sync(ctx, obj_node);
                         llvm_emit_world_embedded_action_effect_sync(ctx,
-                            obj_node, method_meta, method_decl);
+                            obj_node, method_meta);
                         llvm_emit_world_embedded_receiver_projection_sync(ctx, obj_node);
                     }
                     return result;
@@ -355,7 +355,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                     LLVMBuildCall2(ctx->builder, fn_type, fn_value,
                         args, (unsigned)(argc + 1), "");
                     llvm_emit_world_embedded_action_effect_sync(ctx,
-                        obj_node, method_meta, method_decl);
+                        obj_node, method_meta);
                     llvm_emit_world_embedded_receiver_projection_sync(ctx, obj_node);
                     return llvm_void_expression_placeholder(ctx, node,
                         "member-call");
@@ -366,7 +366,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                         fn_type, fn_value, args,
                         (unsigned)(argc + 1), llvm_tmp_name(ctx));
                     llvm_emit_world_embedded_action_effect_sync(ctx,
-                        obj_node, method_meta, method_decl);
+                        obj_node, method_meta);
                     llvm_emit_world_embedded_receiver_projection_sync(ctx, obj_node);
                     return result;
                 }
