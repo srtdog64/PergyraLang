@@ -62,26 +62,27 @@ test_parallel_execution_emit(void)
 
     TEST("subject emits struct typedef");
     {
-        ASTNode subject_node; memset(&subject_node, 0, sizeof(subject_node));
-        subject_node.type = AST_CLASS_DECL;
-        subject_node.data.class_decl.name = "Counter";
-        subject_node.data.class_decl.nominal_kind = NOMINAL_DECL_SUBJECT;
-
-        ClassField field; memset(&field, 0, sizeof(field));
-        field.name = "count";
-        ASTNode field_type; memset(&field_type, 0, sizeof(field_type));
-        field_type.type = AST_TYPE;
-        field_type.data.type.name = "Int";
-        field.type = &field_type;
-
-        ClassField *fields[1] = { &field };
-        subject_node.data.class_decl.fields = fields;
-        subject_node.data.class_decl.field_count = 1;
-        subject_node.data.class_decl.methods = NULL;
-        subject_node.data.class_decl.method_count = 0;
-
+        /* MIR-only: drive declaration codegen through the real
+         * parse -> lower -> emit pipeline (ctx->mir set) instead of a synthetic
+         * AST_CLASS_DECL with no MIR. The non-MIR AST-compat field fallback has
+         * been retired; declaration field shape is owned by MIR metadata. */
+        const char *source =
+            "subject Counter {\n"
+            "    let count: Int;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let c: Counter = Counter();\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
-        emit_class_decl(&subject_node, ctx);
+        ctx->mir = mir;
+
+        emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct Counter");
         EXPECT_STR_CONTAINS(ctx->out->data, "int32_t count");
@@ -91,6 +92,12 @@ test_parallel_execution_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "PGY_BOX_DEFINE(Counter, Counter)");
 
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 
     TEST("subject syntax lowers through subject codegen");

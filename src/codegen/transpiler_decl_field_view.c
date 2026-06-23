@@ -120,15 +120,6 @@ transpiler_hosted_field_view_name(const TranspilerHostedFieldView *view,
         return mir_decl_field_name(field);
     if (view->requires_mir_metadata)
         return NULL;
-    if (view->ast_compat_decl != NULL) {
-        PgyHostClassFieldsCompatView compat =
-            pgy_host_class_fields_compat_view_from_decl(
-                view->ast_compat_decl);
-        if (compat.fields != NULL && index < compat.count
-            && compat.fields[index] != NULL) {
-            return compat.fields[index]->name;
-        }
-    }
     return NULL;
 }
 
@@ -145,15 +136,6 @@ transpiler_hosted_field_view_type(const TranspilerHostedFieldView *view,
         return mir_decl_field_type(field);
     if (view->requires_mir_metadata)
         return NULL;
-    if (view->ast_compat_decl != NULL) {
-        PgyHostClassFieldsCompatView compat =
-            pgy_host_class_fields_compat_view_from_decl(
-                view->ast_compat_decl);
-        if (compat.fields != NULL && index < compat.count
-            && compat.fields[index] != NULL) {
-            return compat.fields[index]->type;
-        }
-    }
     return NULL;
 }
 
@@ -193,14 +175,6 @@ transpiler_hosted_field_view_is_subject_like(
         return transpiler_mir_decl_field_is_subject_like(field);
     if (view->requires_mir_metadata)
         return false;
-    if (view->ast_compat_decl != NULL) {
-        PgyHostClassFieldsCompatView compat =
-            pgy_host_class_fields_compat_view_from_decl(
-                view->ast_compat_decl);
-        return compat.fields != NULL && index < compat.count
-            && compat.fields[index] != NULL
-            && compat.fields[index]->is_vessel_field;
-    }
     return false;
 }
 
@@ -271,15 +245,6 @@ transpiler_hosted_shared_field_view_name(
         return mir_decl_field_name(field);
     if (view->requires_mir_metadata)
         return NULL;
-    if (view->ast_compat_decl != NULL) {
-        PgyHostSharedFieldsCompatView compat =
-            pgy_host_shared_fields_compat_view_from_decl(
-                view->ast_compat_decl);
-        if (compat.fields != NULL && index < compat.count
-            && compat.fields[index] != NULL) {
-            return ast_party_shared_name(compat.fields[index]);
-        }
-    }
     return NULL;
 }
 
@@ -297,15 +262,6 @@ transpiler_hosted_shared_field_view_type(
         return mir_decl_field_type(field);
     if (view->requires_mir_metadata)
         return NULL;
-    if (view->ast_compat_decl != NULL) {
-        PgyHostSharedFieldsCompatView compat =
-            pgy_host_shared_fields_compat_view_from_decl(
-                view->ast_compat_decl);
-        if (compat.fields != NULL && index < compat.count
-            && compat.fields[index] != NULL) {
-            return ast_party_shared_type(compat.fields[index]);
-        }
-    }
     return NULL;
 }
 
@@ -323,14 +279,5 @@ transpiler_hosted_shared_field_view_initializer(
         return mir_decl_field_initializer(field);
     if (view->requires_mir_metadata)
         return NULL;
-    if (view->ast_compat_decl != NULL) {
-        PgyHostSharedFieldsCompatView compat =
-            pgy_host_shared_fields_compat_view_from_decl(
-                view->ast_compat_decl);
-        if (compat.fields != NULL && index < compat.count
-            && compat.fields[index] != NULL) {
-            return ast_party_shared_initializer(compat.fields[index]);
-        }
-    }
     return NULL;
 }
