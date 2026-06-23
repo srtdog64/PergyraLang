@@ -397,6 +397,11 @@ void ast_destroy(ASTNode* node) {
             free(node->data.lambda_expr.params);
             ast_destroy(node->data.lambda_expr.body);
             ast_destroy(node->data.lambda_expr.return_type);
+            for (size_t i = 0; i < node->data.lambda_expr.capture_count; i++) {
+                free(node->data.lambda_expr.captures[i].name);
+                free(node->data.lambda_expr.captures[i].type_name);
+            }
+            free(node->data.lambda_expr.captures);
             break;
 
         case AST_IMPORT_DECL:

@@ -279,5 +279,8 @@ ASTNode* ast_create_lambda_expression(void) {
     node->data.lambda_expr.body = NULL;
     node->data.lambda_expr.return_type = NULL;
     node->data.lambda_expr.is_async = false;
+    node->data.lambda_expr.captures = NULL;
+    node->data.lambda_expr.capture_count = 0;
+    node->data.lambda_expr.capture_capacity = 0;
     return node;
 }

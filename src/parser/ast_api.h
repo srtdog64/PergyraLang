@@ -202,6 +202,10 @@ ASTNode* ast_create_type(const char* name);
 ASTNode* ast_create_generic_type(const char* name, ASTNode* inner_type);
 const char* ast_type_name(const ASTNode* node);
 GenericParams* ast_type_generic_args(const ASTNode* node);
+bool ast_type_append_generic_arg_owned(ASTNode* node,
+                                       const char* name,
+                                       ASTNode* constraint,
+                                       ASTNode* default_type);
 size_t ast_generic_param_count(const GenericParams* params);
 GenericParam* ast_generic_param_at(const GenericParams* params, size_t index);
 const char* ast_generic_param_name(const GenericParam* param);
@@ -311,6 +315,12 @@ ASTNode* ast_lambda_param(const ASTNode* node, size_t index);
 ASTNode* ast_lambda_body(const ASTNode* node);
 ASTNode* ast_lambda_return_type(const ASTNode* node);
 bool ast_lambda_is_async(const ASTNode* node);
+size_t ast_lambda_capture_count(const ASTNode* node);
+const char* ast_lambda_capture_name(const ASTNode* node, size_t index);
+const char* ast_lambda_capture_type_name(const ASTNode* node, size_t index);
+LambdaCaptureMode ast_lambda_capture_mode(const ASTNode* node, size_t index);
+bool ast_lambda_add_capture(ASTNode* node, const char* name,
+                            const char* type_name, LambdaCaptureMode mode);
 
 /* Module system AST creation */
 ASTNode* ast_create_import_declaration(const char* path);

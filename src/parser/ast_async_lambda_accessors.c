@@ -337,3 +337,88 @@ ast_lambda_is_async(const ASTNode* node)
     return node != NULL && node->type == AST_LAMBDA_EXPR
         && node->data.lambda_expr.is_async;
 }
+
+size_t
+ast_lambda_capture_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_LAMBDA_EXPR)
+        return 0;
+    return node->data.lambda_expr.capture_count;
+}
+
+const char*
+ast_lambda_capture_name(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_LAMBDA_EXPR)
+        return NULL;
+    if (index >= node->data.lambda_expr.capture_count)
+        return NULL;
+    return node->data.lambda_expr.captures[index].name;
+}
+
+const char*
+ast_lambda_capture_type_name(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_LAMBDA_EXPR)
+        return NULL;
+    if (index >= node->data.lambda_expr.capture_count)
+        return NULL;
+    return node->data.lambda_expr.captures[index].type_name;
+}
+
+LambdaCaptureMode
+ast_lambda_capture_mode(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_LAMBDA_EXPR
+        || index >= node->data.lambda_expr.capture_count)
+        return LAMBDA_CAPTURE_COPY;
+    return node->data.lambda_expr.captures[index].mode;
+}
+
+/* Record a capture on a lambda node. Returns false on allocation failure or
+ * if the name is already recorded (idempotent on name). Ownership: copies the
+ * provided strings. */
+bool
+ast_lambda_add_capture(ASTNode* node, const char* name,
+                       const char* type_name, LambdaCaptureMode mode)
+{
+    if (node == NULL || node->type != AST_LAMBDA_EXPR || name == NULL)
+        return false;
+
+    for (size_t i = 0; i < node->data.lambda_expr.capture_count; i++) {
+        if (node->data.lambda_expr.captures[i].name != NULL
+            && strcmp(node->data.lambda_expr.captures[i].name, name) == 0)
+            return true;
+    }
+
+    if (node->data.lambda_expr.capture_count
+        >= node->data.lambda_expr.capture_capacity) {
+        size_t new_cap = node->data.lambda_expr.capture_capacity == 0
+            ? 4 : node->data.lambda_expr.capture_capacity * 2;
+        LambdaCapture* grown = realloc(node->data.lambda_expr.captures,
+            new_cap * sizeof(LambdaCapture));
+        if (grown == NULL)
+            return false;
+        node->data.lambda_expr.captures = grown;
+        node->data.lambda_expr.capture_capacity = new_cap;
+    }
+
+    char* name_copy = pergyra_strdup(name);
+    if (name_copy == NULL)
+        return false;
+    char* type_copy = NULL;
+    if (type_name != NULL) {
+        type_copy = pergyra_strdup(type_name);
+        if (type_copy == NULL) {
+            free(name_copy);
+            return false;
+        }
+    }
+
+    LambdaCapture* slot =
+        &node->data.lambda_expr.captures[node->data.lambda_expr.capture_count++];
+    slot->name = name_copy;
+    slot->type_name = type_copy;
+    slot->mode = mode;
+    return true;
+}

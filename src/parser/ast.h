@@ -11,6 +11,7 @@
 #include "ast_types.h"
 #include "ast_domain_data.h"
 #include "../lexer/lexer.h"
+
 struct ASTNode
 {
     ASTNodeType type;
@@ -543,6 +544,9 @@ struct ASTNode
             ASTNode* body;             /* Expression or block */
             ASTNode* return_type;      /* Optional return type */
             bool is_async;             /* async lambda */
+            LambdaCapture* captures;   /* Closure captures (semantic-filled) */
+            size_t capture_count;
+            size_t capture_capacity;
         } lambda_expr;
 
         /* Import declaration */
