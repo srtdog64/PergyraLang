@@ -62,6 +62,21 @@ fi
 (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$CODEGEN_SRC")" \
     --backend=c -o "$(pgy_path_for_compiler "$PGY" "$B/codegen.exe")" >/dev/null)
 
+# Fail loud at the source if the self-host tool rebuild did not produce runnable
+# binaries (CLAUDE.md s1.1). `pgy --backend=c -o` shells out to gcc; in a shell
+# where gcc is unavailable it can return success yet leave the tool missing or
+# stale. Catch that here once, with the real cause, rather than N cryptic empty-
+# output failures downstream.
+for tool in mir_lower codegen; do
+    if [[ ! -s "$B/$tool.exe" ]]; then
+        echo "[self-host-parity:mir-json] self-host tool '$tool.exe' was not built." >&2
+        echo "  'pgy --backend=c -o $B/$tool.exe' produced no binary -- the gcc" >&2
+        echo "  subprocess it invokes is likely unavailable in this shell. Run the" >&2
+        echo "  gate where gcc works (the documented PowerShell->bash.exe path)." >&2
+        exit 1
+    fi
+done
+
 MIR_FIXTURES=(
     let_log
     multilet
@@ -261,6 +276,20 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
         grep '^MIR-LOWER ERROR' "$reast" | head -1 >&2
         exit 1
     fi
+    # Observable-failure guard (CLAUDE.md s1.1): the `|| true` above swallows the
+    # tool's exit code, so a mir_lower.exe that is missing, stale, or unrunnable in
+    # this environment yields an EMPTY $reast with no MIR-LOWER ERROR marker. Left
+    # unchecked, that silently flows into an empty reconstructed C and surfaces much
+    # later as a cryptic `undefined reference to WinMain` link error. Fail loud here
+    # with the real cause instead.
+    if [[ ! -s "$reast" ]]; then
+        echo "[self-host-parity:mir-json] $base: mir_lower produced EMPTY output." >&2
+        echo "  This is a self-host TOOL/BUILD issue, not a lowering gap: mir_lower.exe" >&2
+        echo "  ($B/mir_lower.exe) is missing, stale, or not runnable in this" >&2
+        echo "  environment (e.g. the 'pgy --backend=c' tool rebuild could not invoke" >&2
+        echo "  gcc). Rebuild the self-host tools in a shell where gcc works." >&2
+        exit 1
+    fi
     if [[ "$base" == "forloop" ]]; then
         if ! grep -q 'For: i in 0..3' "$reast"; then
             echo "[self-host-parity:mir-json] forloop: mir_lower did not reconstruct the for-loop from MIR facts" >&2
@@ -370,6 +399,17 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
     if grep -q '^CODEGEN ERROR' "$via_c"; then
         echo "[self-host-parity:mir-json] $base: codegen rejected the reconstructed AST:" >&2
         grep '^CODEGEN ERROR' "$via_c" | head -1 >&2
+        exit 1
+    fi
+    # Observable-failure guard (CLAUDE.md s1.1): same rationale as the $reast guard
+    # above. An empty $via_c (codegen.exe missing/stale/unrunnable) would otherwise
+    # be handed to gcc and fail as `undefined reference to WinMain` (no main), hiding
+    # the real cause. Report the tool/build issue directly.
+    if [[ ! -s "$via_c" ]]; then
+        echo "[self-host-parity:mir-json] $base: codegen produced EMPTY C output." >&2
+        echo "  This is a self-host TOOL/BUILD issue, not a codegen gap: codegen.exe" >&2
+        echo "  ($B/codegen.exe) is missing, stale, or not runnable in this environment." >&2
+        echo "  Rebuild the self-host tools in a shell where gcc works." >&2
         exit 1
     fi
     if ! "$CC" "$via_c" -o "$B/${base}_via_mir.exe" 2>"$B/${base}_cc.log"; then
