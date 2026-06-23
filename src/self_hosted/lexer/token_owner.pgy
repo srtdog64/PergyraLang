@@ -1,0 +1,240 @@
+// Self-host lexer token classification and output formatting owner.
+
+func KeywordType(text: String) -> String {
+    if text == "func" {
+        return "FUNC";
+    }
+    if text == "let" {
+        return "LET";
+    }
+    if text == "if" {
+        return "IF";
+    }
+    if text == "else" {
+        return "ELSE";
+    }
+    if text == "while" {
+        return "WHILE";
+    }
+    if text == "for" {
+        return "FOR";
+    }
+    if text == "in" {
+        return "IN";
+    }
+    if text == "return" {
+        return "RETURN";
+    }
+    if text == "break" {
+        return "BREAK";
+    }
+    if text == "continue" {
+        return "CONTINUE";
+    }
+    if text == "true" {
+        return "TRUE";
+    }
+    if text == "false" {
+        return "FALSE";
+    }
+    if text == "import" {
+        return "IMPORT";
+    }
+    if text == "export" {
+        return "EXPORT";
+    }
+    if text == "namespace" {
+        return "NAMESPACE";
+    }
+    if text == "ability" {
+        return "ABILITY";
+    }
+    if text == "async" {
+        return "ASYNC";
+    }
+    if text == "vessel" {
+        return "VESSEL";
+    }
+    if text == "subject" {
+        return "SUBJECT";
+    }
+    if text == "object" {
+        return "OBJECT";
+    }
+    if text == "tobject" {
+        return "TOBJECT";
+    }
+    if text == "event" {
+        return "EVENT";
+    }
+    if text == "parallel" {
+        return "PARALLEL";
+    }
+    if text == "class" {
+        return "CLASS";
+    }
+    if text == "struct" {
+        return "STRUCT";
+    }
+    if text == "enum" {
+        return "ENUM";
+    }
+    if text == "role" {
+        return "ROLE";
+    }
+    if text == "party" {
+        return "PARTY";
+    }
+    if text == "roster" {
+        return "ROSTER";
+    }
+    if text == "world" {
+        return "WORLD";
+    }
+    if text == "zone" {
+        return "ZONE";
+    }
+    if text == "relation" {
+        return "RELATION";
+    }
+    if text == "effect" {
+        return "EFFECT";
+    }
+    if text == "intent" {
+        return "INTENT";
+    }
+    // NOTE: `projection` is NOT a keyword -- C lexer emits IDENTIFIER
+    // (verified on handoff_world_state_frontier).
+    // NOTE: `authority` and `handoff` are NOT keywords -- C lexer emits
+    // IDENTIFIER for both (verified vs `pgy --tokens` on multiple files).
+    if text == "spawn" {
+        return "SPAWN";
+    }
+    if text == "await" {
+        return "AWAIT";
+    }
+    if text == "channel" {
+        return "CHANNEL";
+    }
+    if text == "select" {
+        return "SELECT";
+    }
+    if text == "defer" {
+        return "DEFER";
+    }
+    if text == "transaction" {
+        return "TRANSACTION";
+    }
+    if text == "compensate" {
+        return "COMPENSATE";
+    }
+    if text == "fail" {
+        return "FAIL";
+    }
+    if text == "extends" {
+        return "EXTENDS";
+    }
+    if text == "unsafe" {
+        return "UNSAFE";
+    }
+    if text == "use" {
+        return "USE";
+    }
+    if text == "slot" {
+        return "SLOT";
+    }
+    if text == "match" {
+        return "MATCH";
+    }
+    if text == "impl" {
+        // C lexer reports `impl` as UNKNOWN (reserved-but-not-yet-keyword
+        // identifier). Verified against pgy --tokens.
+        return "UNKNOWN";
+    }
+    if text == "dyn" {
+        return "DYN";
+    }
+    if text == "where" {
+        return "WHERE";
+    }
+    if text == "shared" {
+        return "SHARED";
+    }
+    if text == "case" {
+        return "CASE";
+    }
+    if text == "bind" {
+        return "BIND";
+    }
+    if text == "with" {
+        return "WITH";
+    }
+    if text == "default" {
+        return "DEFAULT";
+    }
+    if text == "type" {
+        return "UNKNOWN";
+    }
+    if text == "secure" {
+        return "SECURE";
+    }
+    if text == "as" {
+        return "AS";
+    }
+    if text == "private" {
+        return "PRIVATE";
+    }
+    if text == "public" {
+        return "PUBLIC";
+    }
+    if text == "remote" {
+        return "REMOTE";
+    }
+    if text == "extern" {
+        return "EXTERN";
+    }
+    if text == "include" {
+        return "INCLUDE";
+    }
+    if text == "ref" {
+        return "UNKNOWN";
+    }
+    if text == "own" {
+        return "UNKNOWN";
+    }
+    if text == "reflect" {
+        return "REFLECT";
+    }
+    return "IDENTIFIER";
+}
+
+func PadLeft(s: String, width: Int) -> String {
+    let n: Int = StringLength(s);
+    if n >= width {
+        return s;
+    }
+    let padding: Int = width - n;
+    let result: String = "";
+    let i: Int = 0;
+    while i < padding {
+        result = Concat(result, " ");
+        i = i + 1;
+    }
+    return Concat(result, s);
+}
+
+func TokenLine(idx: Int, ttype: String, text: String, line: Int, col: Int) -> String {
+    let parts: Array<String> = [
+        PadLeft(ToString(idx), 4),
+        "  Token{type: ",
+        ttype,
+        ", text: \"",
+        text,
+        "\", line: ",
+        ToString(line),
+        ", col: ",
+        ToString(col),
+        "}"
+    ];
+    return StringJoin(parts, "");
+}

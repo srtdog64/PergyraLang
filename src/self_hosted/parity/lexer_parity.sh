@@ -38,7 +38,7 @@ if [[ ! -f "$PERGYRA_TOOL_SOURCE" ]]; then
 fi
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
-cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
+cp "$ROOT_DIR/src/self_hosted/lexer/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"
 
 echo "[self-host-parity:lexer] compiling lexer..."
 C_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/main.compile.log"

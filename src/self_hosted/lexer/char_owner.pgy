@@ -1,0 +1,38 @@
+// Self-host lexer character/codepoint owner.
+
+func CharAt(s: String, i: Int) -> String {
+    let n: Int = StringLength(s);
+    if i < 0 {
+        return "";
+    }
+    if i >= n {
+        return "";
+    }
+    return Substring(s, i, 1);
+}
+
+// Code of the first byte of a 1-char string literal, in O(1) and no allocation.
+// Lets char comparisons stay readable (cc == Ord("x")) without magic numbers.
+func Ord(ch: String) -> Int {
+    return CharCode(ch, StringLength(ch), 0);
+}
+
+// Char-code classification (the allocation-free counterpart of IsAlpha/IsDigit,
+// which took a 1-char String). Operates on a byte code from CharCode.
+func IsAlphaCode(cc: Int) -> Bool {
+    if cc >= Ord("a") && cc <= Ord("z") {
+        return true;
+    }
+    if cc >= Ord("A") && cc <= Ord("Z") {
+        return true;
+    }
+    return cc == Ord("_");
+}
+
+func IsDigitCode(cc: Int) -> Bool {
+    return cc >= Ord("0") && cc <= Ord("9");
+}
+
+func IsAlphaNumCode(cc: Int) -> Bool {
+    return IsAlphaCode(cc) || IsDigitCode(cc);
+}

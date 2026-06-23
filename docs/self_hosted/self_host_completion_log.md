@@ -30,6 +30,9 @@ rewrite history.
 - **Lexer**: self-hosts on C+LLVM. Byte-identical to `pgy --tokens` across the 6
   committed parity fixtures (gated) and **121/121 of the examples corpus**
   (scale probe, as of session 2026-06-20). Zero self-host lexer crashes.
+  `main.pgy` is now only the entrypoint; character/codepoint handling,
+  token classification/output formatting, and scan-loop state are split into
+  source-of-truth owner modules.
 - **Parser**: self-hosts on C+LLVM. Byte-identical against `pgy --ast` on 188
   committed fixtures (gated); examples scale probe last recorded 120/121 with
   zero byte-drift, zero self-host exits, 1 C-oracle skip.

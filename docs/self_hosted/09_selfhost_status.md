@@ -15,11 +15,13 @@ failure. The C compiler remains the oracle.
 
 Front-end self-hosts on both backends in LLVM-enabled builds.
 
-- Lexer (src/self_hosted/lexer/main.pgy): compiles on C and LLVM. Token output
+- Lexer (src/self_hosted/lexer/): compiles on C and LLVM. `main.pgy` is only
+  the entrypoint; character/codepoint handling, token classification/output
+  formatting, and scan-loop state are owned by separate modules. Token output
   is byte-identical to `pgy --tokens` across the 6 committed source fixtures,
   and the live drift guard confirms those fixtures still match the current
-  oracle. The broader lexer scale measurement remains 191 of 195 historical
-  sources byte-equal; there is not yet a committed lexer-scale probe script.
+  oracle. The broader lexer scale probe remains 191 of 195 historical sources
+  byte-equal.
 - Parser (src/self_hosted/parser/main.pgy): compiles on C and LLVM and compares
   byte-identical against `pgy --ast` on 188 committed source fixtures. It parses
   the domain grammar, not just generic constructs: it dispatches on zone, world,

@@ -41,27 +41,45 @@ TOOL="$BUILD_DIR/main.pgy"
 TOOL_BIN="$BUILD_DIR/main_selfcheck.exe"
 
 mkdir -p "$BUILD_DIR"
-cp "$TOOL_SOURCE" "$TOOL"
+cp "$ROOT_DIR/src/self_hosted/semantic/"*.pgy "$BUILD_DIR/"
 LIB_BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/lib"
 mkdir -p "$LIB_BUILD_DIR"
 cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
 
-# Curated list of real self-host sources the checker is expected to accept.
-# Grow this as the bounded subset expands.
+# Curated list of standalone real self-host sources the checker is expected to
+# accept. Import-based entrypoints are checked through unit files below because
+# this bounded checker does not resolve imports yet.
 SELF_SOURCES=(
     "src/self_hosted/lib/text_scan.pgy"
     "src/self_hosted/lib/diagnostic.pgy"
-    # The checker dogfooding its own source: every call resolves once the
-    # imported SelfHostDiagnostic_* functions are seeded in the builtin table,
-    # and the source uses only the checked subset (no for/match/class/zone or
-    # method calls; its `for`/`match` text occurs only inside reason/fix strings).
-    "src/self_hosted/semantic/main.pgy"
-    # Front-end milestone: the lexer. No imports, no namespace dot-calls; its
-    # class/match/zone/etc. occurrences are keyword string literals in
-    # KeywordType, not statements. Uses for/if/while/let/return/assign + the
-    # seeded builtins (StringTrim seeded for it).
-    "src/self_hosted/lexer/main.pgy"
 )
+
+SEMANTIC_UNIT="$BUILD_DIR/semantic_selfcheck_unit.pgy"
+: > "$SEMANTIC_UNIT"
+for rel in \
+    "src/self_hosted/lib/diagnostic.pgy" \
+    "src/self_hosted/semantic/text_scan_owner.pgy" \
+    "src/self_hosted/semantic/diagnostic_owner.pgy" \
+    "src/self_hosted/semantic/env_owner.pgy" \
+    "src/self_hosted/semantic/expr_type_owner.pgy" \
+    "src/self_hosted/semantic/call_check_owner.pgy" \
+    "src/self_hosted/semantic/body_check_owner.pgy" \
+    "src/self_hosted/semantic/program_check_owner.pgy" \
+    "src/self_hosted/semantic/main.pgy"; do
+    grep -h -v '^import ' "$ROOT_DIR/$rel" >> "$SEMANTIC_UNIT"
+done
+
+LEXER_UNIT="$BUILD_DIR/lexer_selfcheck_unit.pgy"
+: > "$LEXER_UNIT"
+for rel in \
+    "src/self_hosted/lexer/char_owner.pgy" \
+    "src/self_hosted/lexer/token_owner.pgy" \
+    "src/self_hosted/lexer/scan_owner.pgy" \
+    "src/self_hosted/lexer/main.pgy"; do
+    grep -h -v '^import ' "$ROOT_DIR/$rel" >> "$LEXER_UNIT"
+done
+
+SELF_SOURCES+=("$SEMANTIC_UNIT" "$LEXER_UNIT")
 
 BACKENDS="${PGY_SELFHOST_SEMANTIC_BACKENDS:-c llvm}"
 for backend in $BACKENDS; do
