@@ -1,0 +1,12 @@
+// Self-host codegen run boundary owner.
+//
+// Owns CLI-to-output orchestration for the bounded codegen substitute. AST
+// path/file policy stays in ast_input_owner.pgy; C translation stays in
+// program_emit.pgy.
+
+func RunCodegenFromArgs(args: Array<String>) -> Void {
+    let ast_path: String = CodegenDefaultAstPath(args);
+    let ast: String = CodegenReadAst(ast_path);
+    let c_source: String = GenerateC(ast);
+    Log(c_source);
+}

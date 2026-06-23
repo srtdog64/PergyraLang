@@ -841,3 +841,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `LexContent(path, content)`.
 - Contract ratchet: `tests/self_hosted_component_contract_smoke.sh` now requires
   `source_input_owner.pgy` as part of the lexer owner surface.
+
+### 2026-06-23 -- codegen run boundary owner split
+
+- Moved codegen CLI-to-output orchestration into
+  `src/self_hosted/codegen/codegen_run_owner.pgy`.
+- `main.pgy` now stays entrypoint-only: it imports the codegen owners, reads
+  `Args()`, and calls `RunCodegenFromArgs(args)`. AST path/file policy remains
+  in `ast_input_owner.pgy`; C translation remains in `program_emit.pgy`.
+- Contract ratchet: `tests/self_hosted_component_contract_smoke.sh` now requires
+  `codegen_run_owner.pgy` as part of the codegen owner surface. Verified with
+  `bash tests/self_hosted_component_contract_smoke.sh`,
+  `make self-host-codegen-parity-test-smoke`,
+  `make test-inc-size-test-smoke`, and
+  `make self-host-preparation-test-smoke`.

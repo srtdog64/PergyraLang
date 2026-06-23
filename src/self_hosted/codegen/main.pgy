@@ -1,39 +1,4 @@
-// src/self_hosted/codegen/main.pgy
-//
-// Status: rung-0..16 (2026-06-23). First Pergyra-origin C codegen
-// substitute, and the first hard compiler-core substitution opened after the
-// 2026-06-17 BDFL freeze lift (see docs/self_hosted/README.md).
-//
-// Input:  a text file containing `pgy --ast <src>` output (path via Args()[0]).
-// Output: a self-contained C program on stdout whose run-stdout matches the
-//         C/LLVM oracle for the supported subset.
-//
-// Supported subset (anything else is an observable Exit(1), never a silent
-// fallback -- CLAUDE.md s1.1):
-//   - one or more `Int`/`Bool`/`String`/`Array<Int>`/`Array<String>`/
-//     `Option<Int>`/`Void`
-//     functions; exactly one is `Main`.
-//     Each emits a C function; non-Main get forward declarations (call order
-//     and recursion are free); `Main` lowers to `int main(void)`.
-//       * `Int`    param -> `long long`,    return -> `long long`
-//       * `String` param -> `const char*`,  return -> `char*`
-//   - body statements:
-//       * `Log(<strexpr>)`                       (rung-0/4)
-//       * `Log(ToString(<intexpr>))`             (rung-1)
-//       * `Let: <name> : Int|String = <expr>`    (rung-1/4)
-//       * `Assign: <name> = <expr>`              (rung-2/4, routed by var type)
-//       * `While: (<cond>) { ... }`              (rung-2)
-//       * `If: (<cond>) Then { ... } [Else { ... }]` (rung-2)
-//       * `Return: <expr>` / bare `Return:`      (rung-3/4, routed by ret type)
-//   - <intexpr>/<cond>: C-compatible parenthesized infix the AST printer emits
-//     (identifiers, integer literals, + - * / %, comparisons, && ||, and
-//     `Name(args)` calls). `Int` = C `long long`.
-//   - <strexpr>: string-literal | `Concat(<strexpr>, <strexpr>)` | string-typed
-//     identifier | string-returning call. `Concat`, string helpers, file I/O,
-//     arrays, Args(), and Int-field structs lower to small standalone C helpers.
-//     String/Int/array/struct routing for Assign/Log/Return uses a per-function
-//     variable type environment plus a global function return-type table. (No
-//     block scoping or string freeing yet -- run-stdout parity only.)
+// Self-host codegen entrypoint.
 
 import "text_owner.pgy";
 import "type_env.pgy";
@@ -43,11 +8,9 @@ import "stmt_emit.pgy";
 import "function_emit.pgy";
 import "program_emit.pgy";
 import "ast_input_owner.pgy";
+import "codegen_run_owner.pgy";
 
 func Main() -> Void {
     let run_args: Array<String> = Args();
-    let ast_path: String = CodegenDefaultAstPath(run_args);
-    let ast: String = CodegenReadAst(ast_path);
-    let c_source: String = GenerateC(ast);
-    Log(c_source);
+    RunCodegenFromArgs(run_args);
 }

@@ -15,10 +15,11 @@ must fail visibly instead of falling through to an unverified translation.
 
 The tool reads one AST text path from `Args()[0]`, with the no-argument
 `hello_ast.txt` fixture as the default probe. `ast_input_owner.pgy` owns path
-selection, the missing-file diagnostic, and the file-read boundary; `main.pgy`
-only orchestrates the owned input into `GenerateC`. That AST must come from the
-live compiler's `pgy --ast` output for committed codegen fixtures. The accepted
-subset is:
+selection, the missing-file diagnostic, and the file-read boundary.
+`codegen_run_owner.pgy` owns the CLI-to-output orchestration that feeds the
+owned input into `GenerateC`; `main.pgy` only calls that run owner. That AST
+must come from the live compiler's `pgy --ast` output for committed codegen
+fixtures. The accepted subset is:
 
 - one or more `func` declarations with exactly one `Main`;
 - `Int`, `Bool`, `String`, `Void`, growable `Array<Int>` / `Array<String>`
