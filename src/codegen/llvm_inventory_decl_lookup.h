@@ -33,7 +33,6 @@ const char *llvm_mir_decl_field_type_name(const MIRDeclField *field);
 typedef struct
 {
     const MIRDeclHeader *decl_header;
-    ASTNode            *ast_compat_decl;
     size_t             ast_compat_count;
     size_t             count;
     bool               uses_mir_metadata;
@@ -67,7 +66,6 @@ bool llvm_hosted_field_view_is_subject_like(
 typedef struct
 {
     const MIRDeclHeader *decl_header;
-    ASTNode            *ast_compat_decl;
     size_t             ast_compat_count;
     size_t             count;
     bool               uses_mir_metadata;
@@ -133,7 +131,6 @@ typedef struct
 typedef struct
 {
     const MIRDeclHeader *decl_header;
-    ASTNode            *ast_compat_decl;
     size_t              ast_compat_count;
     size_t              count;
     bool                uses_mir_metadata;
@@ -143,7 +140,6 @@ typedef struct
 typedef struct
 {
     const MIRDeclHeader *decl_header;
-    ASTNode            *ast_compat_decl;
     size_t              ast_compat_count;
     size_t              count;
     bool                uses_mir_metadata;

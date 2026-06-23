@@ -169,7 +169,6 @@ llvm_hosted_roster_slot_view_from_decl(const LLVMGenCtx *ctx,
         compat_count = ast_roster_party_count(decl);
 
     view.decl_header = NULL;
-    view.ast_compat_decl = decl;
     view.ast_compat_count = compat_count;
     view.count = compat_count;
     view.uses_mir_metadata = false;
@@ -254,7 +253,6 @@ llvm_hosted_role_slot_view_from_decl(const LLVMGenCtx *ctx,
         compat_count = ast_party_role_count(decl);
 
     view.decl_header = NULL;
-    view.ast_compat_decl = decl;
     view.ast_compat_count = compat_count;
     view.count = compat_count;
     view.uses_mir_metadata = false;

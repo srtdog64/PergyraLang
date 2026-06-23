@@ -67,7 +67,6 @@ llvm_hosted_class_field_view_from_decl(const LLVMGenCtx *ctx,
     const MIRDeclHeader *header = NULL;
 
     view.decl_header = NULL;
-    view.ast_compat_decl = decl;
     view.ast_compat_count = compat.count;
     view.count = compat.count;
     view.uses_mir_metadata = false;
@@ -203,7 +202,6 @@ llvm_hosted_shared_field_view_from_decl(const LLVMGenCtx *ctx,
     const MIRDeclHeader *header = NULL;
 
     view.decl_header = NULL;
-    view.ast_compat_decl = decl;
     view.ast_compat_count = compat.count;
     view.count = compat.count;
     view.uses_mir_metadata = false;
