@@ -50,6 +50,18 @@ func CheckProgram(content: String) -> String {
     ArrayPush(func_names, "StringContains");
     ArrayPush(func_rets, "Bool");
     ArrayPush(func_params, "Unknown|Unknown");
+    ArrayPush(func_names, "SubContainsWithLen");
+    ArrayPush(func_rets, "Bool");
+    ArrayPush(func_params, "String|Int|Int|Int|String");
+    ArrayPush(func_names, "SubEqualsWithLen");
+    ArrayPush(func_rets, "Bool");
+    ArrayPush(func_params, "String|Int|Int|Int|String");
+    ArrayPush(func_names, "SubIndexOfWithLen");
+    ArrayPush(func_rets, "Int");
+    ArrayPush(func_params, "String|Int|Int|Int|String");
+    ArrayPush(func_names, "SubStartsWithLen");
+    ArrayPush(func_rets, "Bool");
+    ArrayPush(func_params, "String|Int|Int|String");
     ArrayPush(func_names, "ArrayPush");
     ArrayPush(func_rets, "Unknown");
     ArrayPush(func_params, "Unknown|Unknown");

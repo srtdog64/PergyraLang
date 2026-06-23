@@ -1,149 +1,132 @@
 # Evidence-Driven Guard Amortization
 
-Status: `research / measurement-first`. Owner doc for a candidate
-Pergyra-leaning optimization family. Nothing here is a current capability claim
-until the measurement gates below are green (per `docs/120` anti-hype rule).
+Status: `first compiler slice active`. Owner doc for a Pergyra-specific
+optimization family. The active compiler claim is intentionally narrow: plain
+`Slot<T>` MIR pin regions with cleanup-edge evidence can lower to one preflight
+view in C and LLVM. Secure pin remains a runtime token/capability retain point.
 
 Related:
 
-- `docs/118_slot_model_rigor_audit.md` — slot/guard model.
-- `docs/14` + `tests/air_erasure` — erasure dashboard (loss = bounded·measured·attributed).
-- Memory: `project_slot_safety_consistency` (checks are always-on by design),
-  `project_string_alloc_perf_workstream` (the only *known* structural perf gap),
-  `project_machine_neutral_falsification` (backend consumes MIR, not AIR).
+- `docs/74_slot_pinning_caching.md` - Slot/Pin/Lease model.
+- `docs/semantics/14_air_erasure_measurement.md` - erasure/retain measurement.
+- `docs/perf_close_to_c.md` - native baseline and string-window measurements.
 
-## 0. The Intuition
+## 0. Intuition
 
-Rust/C++ chase **zero-cost**: safety checks compile away entirely (you pay with
-borrow-checker friction instead). Pergyra deliberately keeps **always-on**
-runtime checks (slot generation/token, lifecycle valid-from guard, capability
-gate) — consistency over zero-cost.
+Pergyra should not chase only zero-cost abstraction. Its stronger local edge is
+evidence-amortized abstraction:
 
-So zero-cost is not our game. The positioning this doc explores is the
-alternative: **amortized-cost safety**. We do not erase the check; we **pay it
-once at the boundary where the evidence is established, and not N times inside a
-hot path.**
+> Pay a guard once at the boundary where evidence is established, then consume a
+> compact evidence view inside the hot path.
 
-> Per-access guard × N (in loop)  →  one boundary check  +  backend assumptions
-> that let the per-iteration guards fold away.
+That shape fits `slot`, `pin`, `zone`, `intent`, and `with`: those boundaries
+are both safety scopes and optimization scopes. The safety evidence is already
+the optimization fact; the backend should not have to rediscover it from lowered
+C or LLVM IR.
 
-The evidence we already compute for *safety* (interprocedural `own`/`ref`,
-lifecycle state machine, capability mask, zone grants, slot generation) is also
-a source of *optimization facts* — facts the backend cannot reconstruct from
-lowered IR.
+## 1. What The Backend Can Use
 
-## 1. Why This Could Be a Pergyra Edge (and where it is not)
-
-LLVM already hoists loop-invariant checks **that it can see** (LICM, check
-elimination). The edge is **not a new pass**; it is feeding the backend
-high-level facts it cannot derive:
-
-| Evidence (already computed for safety) | Optimization fact | Note |
+| Evidence | Hot-path fact | Candidate lowering |
 | --- | --- | --- |
-| interprocedural `own` (unique) | `noalias`, no-reload | Rust already does `&mut`→noalias; our novelty is breadth, not this |
-| lifecycle state machine (valid-from mask) | "state constant in this block" → hoist guard + specialize body | typestate-flavored; Rust dropped typestate |
-| capability mask + `zone` grant | coalesce per-effect-site gates to one zone-entry check | zone is both safety *and* optimization boundary |
-| slot generation, no release in region | generation check is loop-invariant → hoist | |
+| unique owner / no alias in region | no per-access owner reload | view pointer + length snapshot |
+| generation unchanged in region | generation check is invariant | one preflight guard |
+| capability granted by zone/intent | effect-site checks coalesce | boundary bitset check |
+| no release/unpin in region | cleanup path is stable | direct load/store/GEP |
 
-The defensible claim is the **synthesis**: explicit boundaries (`zone`/`pin`/
-`intent`/`with`) that are simultaneously the safety scope and the optimization
-scope, fed by a richer evidence vocabulary than ownership alone, with a
-fail-closed residual. Not any single row above.
+The novelty is not any single row. The Pergyra-specific part is that
+`zone`/`intent`/`slot` evidence gives one place to prove, name, and retain the
+fact.
 
-## 2. The Make-or-Break Constraint (soundness)
+## 2. Soundness Constraint
 
-**Only *proven* evidence may be lowered to a hard backend assumption**
-(`llvm.assume`, `noalias`, range metadata). **Heuristic evidence must stay a
-runtime guard** (fail-closed).
+Only proven evidence may become a backend assumption. Heuristic evidence stays a
+runtime guard.
 
-Our verifier is incomplete (red-team R3). If the backend *assumes* a fact the
-verifier could not actually prove, a wrong fact becomes silent UB/miscompile —
-the worst outcome, trading safety for a fake zero-cost. Therefore:
+- proven invariant region: one preflight check plus evidence view;
+- unproven or transitioning region: keep per-access guard;
+- external boundary, shared mutable state, or cancellation edge: retain runtime
+  checks with an explicit retain reason.
 
-- **provable subset** (interproc-complete `own`/`ref`, runtime-tagged lifecycle
-  state, zone-granted capability) → may lower to assume;
-- **everything else** → stays the existing per-access guard (already fail-closed).
+This must flow through MIR facts, not AST re-scans or backend guesses.
 
-Facts flow to the backend through **MIR** (the backend consumes MIR, not AIR).
-The residual (where invariance can't be proven) must auto-fall-back to the
-per-access check — and that fall-back is a required parity test, not an
-afterthought.
+## 3. Experiment Tracks
 
-## 3. Two Experiment Tracks (measurement-first)
+### Track A: Safety-Guard Hoisting
 
-Each track is gated on *measuring a real win first*. "No measurable win" is a
-valid, publishable result — it tells us the guard wasn't hot.
+Hoist a per-access runtime guard out of a hot loop when evidence proves the
+guarded state is invariant over the loop region.
 
-### Track A — safety-guard hoisting
+Required proof shape:
 
-Hoist a per-access runtime guard out of a hot loop when the evidence proves it
-invariant over the loop region.
+1. Same result with per-access guard and preflight evidence view.
+2. A generation/state mutation rejects the evidence view.
+3. A future MIR pass must emit the optimized path only when it has the invariant
+   fact; otherwise it keeps the guard.
 
-1. Fixture: hot loop calling a guarded operation N times with no state change.
-2. Measure per-iteration guard cost (baseline) vs a hand-hoisted equivalent.
-3. If the delta is real: lower "region-invariant guard" to one boundary check +
-   `llvm.assume`; C backend emits the equivalent hoist.
-4. Parity: a loop that *does* mutate the guarded state must auto-fall-back to the
-   per-access guard. Verify C==LLVM both ways.
+### Track B: Domain-State Specialization
 
-### Track B — domain-state specialization
+Resolve a stable domain state at the boundary and specialize the loop body to
+that state. This remains deferred until there is a real dynamic-dispatch target
+worth specializing.
 
-Resolve a domain-state comparison (e.g. `Vessel` Empty/Filled, payment
-Pending/Authorized) at the boundary and specialize the loop body to the proven
-state, removing the per-iteration state dispatch.
+## 4. Reproducible Measurement
 
-1. Fixture: hot loop dispatching on a subject's lifecycle state that is constant
-   in the loop.
-2. Measure per-iteration dispatch cost (baseline) vs hand-specialized.
-3. If real: when the state is proven constant in the region, emit the
-   state-specialized body once + a single boundary check.
-4. Parity: a loop that transitions state must keep per-iteration dispatch.
+`benchmarks/perf_guard_amortization.c` is the first checked-in Track A fixture.
+It models the exact optimization shape:
 
-## 4. Honest Doubts (must survive measurement)
+- baseline: owner/generation/capability/state checks on every slot-style read;
+- optimized shape: one preflight check constructs an evidence view, then the
+  hot loop reads through the view;
+- fail-back: a generation change rejects the view (`invalid=-1`).
 
-- **Is the guard actually hot?** The only *known* structural gap today is string
-  allocation, not guard overhead. The guard-hoisting win is a hypothesis until a
-  workload shows guards in a hot loop with measurable cost.
-- **LLVM may already hoist some** after inlining. Only the *measured increment*
-  over what LLVM does on its own counts.
-- **Cost of the evidence path** (assume machinery, the invariance proof) is not
-  zero; the win must exceed it.
+Local gate run:
 
-## 4a. Measured Results (2026-06-24, first pass)
+```text
+$ make evidence-guard-amortization-test-smoke
+[guard-amortization] fixture=slot_read iterations=50000000
+[guard-amortization] per_access_guard_avg_s=0.081918
+[guard-amortization] preflight_view_avg_s=0.030247
+[guard-amortization] preflight_over_per_access_ratio=0.369
+```
 
-Faithful microbenchmarks (gcc -O3, replicating the real guard hot path and the
-state-dispatch shapes; `.tmp/perf/`). 2e9 iterations each.
+Direct script run produced the same shape:
 
-**Track A — lifecycle guard hoisting: WIN, real now.**
-- per-guard call = **2.66 ns**; on a hot loop with a trivial body the per-access
-  guard added **+183%** wall time (guarded 8.22s vs hoisted 2.90s).
-- The guard is a non-inlined export + a **linear-scan** side-map lookup, so the
-  cost also *grows with the number of tracked subjects* (separate runtime issue).
-- Scope reality: the guard is only emitted on **ambiguous** paths (provable
-  straight-line is already erased to zero calls, per `tests/air_erasure/.../
-  07_lifecycle_linear.pgy`). So the win applies when an ambiguous-state guard
-  lands in a hot, transition-free loop. Narrow but real, and the magnitude scales
-  with the body/guard ratio (183% is the trivial-body ceiling).
-- Soundness: taint already knows whether the loop transitions the state, so
-  "no transition in region → guard is loop-invariant → check once" is provable;
-  a transitioning loop falls back to per-access. Implementable on existing infra.
+```text
+[guard-amortization] per_access_guard_avg_s=0.084434
+[guard-amortization] preflight_view_avg_s=0.026920
+[guard-amortization] preflight_over_per_access_ratio=0.319
+```
 
-**Track B — domain-state specialization: win is conditional, mostly moot today.**
-- Invariant branch with an inlinable body: **no win** (−2.2%; predicted/cmov'd,
-  both versions vectorize).
-- Invariant **indirect call** (vtable-like dispatch): **4.20x** (1.25 ns/iter)
-  via devirtualization + inlining once state is proven constant.
-- But Pergyra is **static-dispatch only** in beta (`dyn ability` out-of-beta), so
-  there is almost nothing to specialize now. Track B is a **post-dynamic-dispatch**
-  optimization: revisit when role/effect/`dyn` dispatch lands.
+Verdict for Track A: worth pursuing. On this fixture, a one-time preflight view
+measured at roughly 0.32x-0.37x of the per-access guard path across local runs
+(about 2.7x-3.1x faster within this fixture). This is not yet a compiler
+capability claim; it is a falsification gate showing that the optimization
+family has a measurable target.
 
-**Verdict:** implement Track A (measured win, existing evidence). Defer Track B
-until dynamic dispatch exists; it has no current target.
+## 5. Compiler Slice: MIR Pin Region
 
-## 5. Definition of Done (per track)
+The first implemented slice is deliberately small:
 
-- A perf fixture + harness showing baseline vs optimized, with the delta and the
-  fail-back case both measured.
-- Soundness: only proven evidence lowered; heuristic residual stays a guard;
-  C==LLVM parity in both the optimized and the fall-back path.
-- Honest write-up of the measured number (including "no win" if so).
+- owner fact: `mir_block_has_pin_guard_amortization_region(...)`;
+- proof input: the block is a pin region with source slot, view name, and a
+  matching cleanup-edge fact;
+- C consumer: `transpiler_emit_mir_plain_pin_preflight_local(...)`;
+- LLVM consumer: plain MIR pin enter requires the same fact before inline
+  lowering;
+- retained runtime path: secure pin still calls the secure runtime ABI because
+  token validation is capability evidence, not a plain slot layout invariant.
+
+Generated C for a plain pin now emits a slot pointer local, one null guard, one
+occupied guard, and a `PgyPinnedSlotView_*` initializer. It does not call
+`pgy_pin_*` / `pgy_unpin_*` for this MIR slice. LLVM emits the corresponding
+inline null/occupied preflight and direct pinned-view field stores. If the MIR
+fact is absent, LLVM fails closed instead of guessing from source shape.
+
+## 6. Definition Of Done
+
+- A MIR fact names the invariant guard region. (`Slot<T>` pin slice: active)
+- C and LLVM consume the same MIR fact. (`Slot<T>` pin slice: active)
+- Optimized path has no per-access guard in the hot loop.
+- Fallback path remains guarded when the region mutates or evidence is missing.
+- The smoke gate records `preflight_over_per_access_ratio`.
+- Docs report measured fixture ratios, not generalized language-speed claims.

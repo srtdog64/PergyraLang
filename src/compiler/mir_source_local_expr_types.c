@@ -5,6 +5,7 @@
 
 #include "mir_decl_headers.h"
 #include "mir_source_local_expr_call_facts.h"
+#include "../common/pgy_builtin_type_table.h"
 #include "../parser/ast_api.h"
 
 char *
@@ -373,6 +374,19 @@ mir_source_local_builtin_returns_first_arg_type(const char *callee_name)
 }
 
 static const char *
+mir_source_local_builtin_fixed_return_type_name(const char *callee_name)
+{
+    const char *type_name;
+
+    if (callee_name == NULL)
+        return NULL;
+    type_name = pgy_builtin_simple_return_type(callee_name);
+    return type_name != NULL && strcmp(type_name, "Void") != 0
+        ? type_name
+        : NULL;
+}
+
+static const char *
 mir_source_local_read_call_type_name(const MIRProgram *program,
                                      const MIRRoutine *routine,
                                      MIRSourceLocalTypeScratch *scratch,
@@ -437,8 +451,6 @@ mir_source_local_builtin_call_type_name(const MIRProgram *program,
         return mir_source_local_view_call_type_name(program, routine, scratch,
             expr, "WriteView");
     }
-    if (callee_name != NULL && strcmp(callee_name, "Random") == 0)
-        return "Int";
     if (callee_name != NULL && strcmp(callee_name, "SliceCopy") == 0
         && ast_call_arg_count(expr) >= 1) {
         const char *slice_type = mir_source_local_expr_type_name(program,
@@ -452,6 +464,12 @@ mir_source_local_builtin_call_type_name(const MIRProgram *program,
                 inner);
         }
         return NULL;
+    }
+    {
+        const char *fixed_return =
+            mir_source_local_builtin_fixed_return_type_name(callee_name);
+        if (fixed_return != NULL)
+            return fixed_return;
     }
     if (!mir_source_local_builtin_returns_first_arg_type(callee_name))
         return NULL;

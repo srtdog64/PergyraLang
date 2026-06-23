@@ -3,29 +3,22 @@ pgy_runtime_lib_strdup(const char *src)
 {
     if (src == NULL)
         src = "";
-
     size_t len = strlen(src);
     char *copy = (char *)malloc(len + 1);
     if (copy == NULL)
         return NULL;
-
     memcpy(copy, src, len + 1);
     return copy;
 }
-
 #include "pgy_runtime_io_status.h"
 #include "pgy_runtime_process_exit.h"
 #include "pgy_runtime_strview_inline.h"
-
 /* =================================================================
  * File I/O and string helpers needed by LLVM backend
  * ================================================================= */
-
 #define PGY_MAX_OPEN_FILES 256
-
 static FILE *pgy_runtime_ftable[PGY_MAX_OPEN_FILES];
 static pthread_mutex_t pgy_runtime_ftable_mutex = PTHREAD_MUTEX_INITIALIZER;
-
 static void
 pgy_runtime_io_init_locked(void)
 {
@@ -33,14 +26,12 @@ pgy_runtime_io_init_locked(void)
     pgy_runtime_ftable[1] = stdout;
     pgy_runtime_ftable[2] = stderr;
 }
-
 PgyRuntimeIoIntResult pgy_try_file_open_result(const char *path,
                                                const char *mode)
 {
     char *resolved;
     bool for_write = false;
     int fd = -1;
-
     if (mode == NULL)
         return pgy_runtime_io_int_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_NULL_MODE, "io-boundary", "file-open"));
@@ -50,18 +41,15 @@ PgyRuntimeIoIntResult pgy_try_file_open_result(const char *path,
             break;
         }
     }
-
     resolved = pgy_runtime_resolve_file_path(path, for_write);
     if (resolved == NULL)
         return pgy_runtime_io_int_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_RESOLVE_FAILED, "io-boundary", "file-open"));
-
     FILE *fp = fopen(resolved, mode);
     free(resolved);
     if (fp == NULL)
         return pgy_runtime_io_int_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_OPEN_FAILED, "io-boundary", "file-open"));
-
     pthread_mutex_lock(&pgy_runtime_ftable_mutex);
     if (pgy_runtime_ftable[0] == NULL)
         pgy_runtime_io_init_locked();
@@ -78,22 +66,18 @@ PgyRuntimeIoIntResult pgy_try_file_open_result(const char *path,
             PGY_RUNTIME_IO_STATUS_NO_FREE_HANDLE,
             "io-boundary", "file-open"));
     }
-
     pgy_runtime_ftable[fd] = fp;
     pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
     return pgy_runtime_io_int_ok((int32_t)fd);
 }
-
 int32_t pgy_file_open(const char *path, const char *mode)
 {
     PgyRuntimeIoIntResult result = pgy_try_file_open_result(path, mode);
     return result.tag == PGY_RUNTIME_IO_RESULT_OK ? result.ok : -1;
 }
-
 PgyRuntimeIoStringResult pgy_try_file_read_result(int32_t fd)
 {
     char tmp[4096];
-
     tmp[0] = '\0';
     pthread_mutex_lock(&pgy_runtime_ftable_mutex);
     if (fd < 0 || fd >= PGY_MAX_OPEN_FILES || pgy_runtime_ftable[fd] == NULL) {
@@ -108,7 +92,6 @@ PgyRuntimeIoStringResult pgy_try_file_read_result(int32_t fd)
             PGY_RUNTIME_IO_STATUS_EOF, "io-boundary", "file-read"));
     }
     pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
-
     size_t len = strlen(tmp);
     if (len > 0 && tmp[len - 1] == '\n')
         tmp[len - 1] = '\0';
@@ -118,7 +101,6 @@ PgyRuntimeIoStringResult pgy_try_file_read_result(int32_t fd)
             PGY_RUNTIME_IO_STATUS_ALLOC_FAILED, "io-boundary", "file-read"));
     return pgy_runtime_io_string_ok(copy);
 }
-
 char *pgy_file_read(int32_t fd)
 {
     PgyRuntimeIoStringResult result = pgy_try_file_read_result(fd);
@@ -126,12 +108,10 @@ char *pgy_file_read(int32_t fd)
         ? result.ok
         : pgy_runtime_lib_strdup("");
 }
-
 PgyRuntimeIoVoidResult pgy_try_file_write_result(int32_t fd, const char *data)
 {
     size_t len;
     size_t written;
-
     pthread_mutex_lock(&pgy_runtime_ftable_mutex);
     if (fd < 0 || fd >= PGY_MAX_OPEN_FILES || pgy_runtime_ftable[fd] == NULL) {
         pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
@@ -152,16 +132,13 @@ PgyRuntimeIoVoidResult pgy_try_file_write_result(int32_t fd, const char *data)
             "io-boundary", "file-write"));
     return pgy_runtime_io_void_ok();
 }
-
 void pgy_file_write(int32_t fd, const char *data)
 {
     (void)pgy_try_file_write_result(fd, data);
 }
-
 void pgy_file_close(int32_t fd)
 {
     FILE *fp = NULL;
-
     pthread_mutex_lock(&pgy_runtime_ftable_mutex);
     if (fd >= 3 && fd < PGY_MAX_OPEN_FILES && pgy_runtime_ftable[fd] != NULL) {
         fp = pgy_runtime_ftable[fd];
@@ -172,7 +149,6 @@ void pgy_file_close(int32_t fd)
         return;
     fclose(fp);
 }
-
 PgyRuntimeIoStringResult pgy_try_read_file_result(const char *path)
 {
     char *resolved;
@@ -181,14 +157,12 @@ PgyRuntimeIoStringResult pgy_try_read_file_result(const char *path)
     if (resolved == NULL)
         return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_RESOLVE_FAILED, "io-boundary", "read-file"));
-
     FILE *fp = fopen(resolved, "rb");
     if (fp == NULL) {
         free(resolved);
         return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_OPEN_FAILED, "io-boundary", "read-file"));
     }
-
     if (fseek(fp, 0, SEEK_END) != 0) {
         fclose(fp);
         free(resolved);
@@ -210,7 +184,6 @@ PgyRuntimeIoStringResult pgy_try_read_file_result(const char *path)
         return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_SEEK_FAILED, "io-boundary", "read-file"));
     }
-
     char *buf = (char *)malloc((size_t)len + 1);
     if (buf == NULL) {
         fclose(fp);
@@ -218,7 +191,6 @@ PgyRuntimeIoStringResult pgy_try_read_file_result(const char *path)
         return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_ALLOC_FAILED, "io-boundary", "read-file"));
     }
-
     size_t read_len = fread(buf, 1, (size_t)len, fp);
     if (read_len != (size_t)len) {
         fclose(fp);
@@ -232,7 +204,6 @@ PgyRuntimeIoStringResult pgy_try_read_file_result(const char *path)
     free(resolved);
     return pgy_runtime_io_string_ok(buf);
 }
-
 char *pgy_read_file(const char *path)
 {
     PgyRuntimeIoStringResult result = pgy_try_read_file_result(path);
@@ -240,7 +211,6 @@ char *pgy_read_file(const char *path)
         ? result.ok
         : pgy_runtime_lib_strdup("");
 }
-
 PgyRuntimeIoIntResult pgy_try_file_exists_result(const char *path)
 {
     char *resolved = pgy_runtime_resolve_file_path(path, false);
@@ -248,24 +218,20 @@ PgyRuntimeIoIntResult pgy_try_file_exists_result(const char *path)
         return pgy_runtime_io_int_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_RESOLVE_FAILED,
             "io-boundary", "file-exists"));
-
     FILE *fp = fopen(resolved, "rb");
     if (fp == NULL) {
         free(resolved);
         return pgy_runtime_io_int_ok(0);
     }
-
     fclose(fp);
     free(resolved);
     return pgy_runtime_io_int_ok(1);
 }
-
 bool pgy_file_exists(const char *path)
 {
     PgyRuntimeIoIntResult result = pgy_try_file_exists_result(path);
     return result.tag == PGY_RUNTIME_IO_RESULT_OK && result.ok != 0;
 }
-
 PgyRuntimeIoVoidResult pgy_try_write_file_result(const char *path,
                                                  const char *data)
 {
@@ -296,30 +262,24 @@ PgyRuntimeIoVoidResult pgy_try_write_file_result(const char *path,
     free(resolved);
     return pgy_runtime_io_void_ok();
 }
-
 void pgy_write_file(const char *path, const char *data)
 {
     (void)pgy_try_write_file_result(path, data);
 }
-
 PgyRuntimeIoStringResult pgy_try_input_result(const char *prompt)
 {
     char tmp[4096];
     char *result;
-
     if (prompt != NULL && prompt[0] != '\0')
         printf("%s", prompt);
     fflush(stdout);
-
     tmp[0] = '\0';
     if (fgets(tmp, sizeof(tmp), stdin) == NULL)
         return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_EOF, "io-boundary", "input"));
-
     size_t len = strlen(tmp);
     if (len > 0 && tmp[len - 1] == '\n')
         tmp[len - 1] = '\0';
-
     len = strlen(tmp);
     result = (char *)malloc(len + 1);
     if (result == NULL)
@@ -328,7 +288,6 @@ PgyRuntimeIoStringResult pgy_try_input_result(const char *prompt)
     memcpy(result, tmp, len + 1);
     return pgy_runtime_io_string_ok(result);
 }
-
 char *pgy_input(const char *prompt)
 {
     PgyRuntimeIoStringResult result;
@@ -338,23 +297,19 @@ char *pgy_input(const char *prompt)
         ? result.ok
         : pgy_runtime_lib_strdup("");
 }
-
 void pgy_exit(int32_t code)
 {
     pgy_runtime_process_exit(code);
 }
-
 bool StringContains(const char *haystack, const char *needle)
 {
     if (haystack == NULL || needle == NULL)
         return false;
     return strstr(haystack, needle) != NULL;
 }
-
 int32_t StringIndexOf(const char *haystack, const char *needle)
 {
     const char *match;
-
     if (haystack == NULL || needle == NULL)
         return -1;
     match = strstr(haystack, needle);
@@ -362,15 +317,12 @@ int32_t StringIndexOf(const char *haystack, const char *needle)
         return -1;
     return (int32_t)(match - haystack);
 }
-
 char *Substring(const char *s, int32_t start, int32_t len)
 {
     size_t raw_len;
     int32_t slen;
-
     if (s == NULL)
         return pgy_runtime_lib_strdup("");
-
     raw_len = strlen(s);
     if (raw_len > (size_t)INT32_MAX)
         return pgy_runtime_lib_strdup("");
@@ -379,7 +331,6 @@ char *Substring(const char *s, int32_t start, int32_t len)
         return pgy_runtime_lib_strdup("");
     if (len > slen - start)
         len = slen - start;
-
     char *buf = (char *)malloc((size_t)len + 1);
     if (buf == NULL)
         return pgy_runtime_lib_strdup("");
@@ -387,32 +338,64 @@ char *Substring(const char *s, int32_t start, int32_t len)
     buf[len] = '\0';
     return buf;
 }
-
 /* Allocation-free StringIndexOf(Substring(s, start, len), needle): index of
  * `needle` within s[start .. start+len) relative to `start`, or -1. */
 int32_t SubIndexOf(const char *s, int32_t start, int32_t len, const char *needle)
 {
     return pgy_strview_indexof(pgy_strview(s, start, len), needle);
 }
-
+int32_t SubIndexOfWithLen(const char *s, int32_t source_len,
+                          int32_t start, int32_t len, const char *needle)
+{
+    return pgy_strview_indexof(
+        pgy_strview_with_len(s, source_len, start, len), needle);
+}
 /* Allocation-free Substring(s, start, len) == other. */
 bool SubEquals(const char *s, int32_t start, int32_t len, const char *other)
 {
     return pgy_strview_equals(pgy_strview(s, start, len), other);
 }
-
+bool SubEqualsWithLen(const char *s, int32_t source_len,
+                      int32_t start, int32_t len, const char *other)
+{
+    return pgy_strview_equals(
+        pgy_strview_with_len(s, source_len, start, len), other);
+}
 /* Allocation-free: `needle` occurs within s[start .. start+len). */
 bool SubContains(const char *s, int32_t start, int32_t len, const char *needle)
 {
     return pgy_strview_indexof(pgy_strview(s, start, len), needle) >= 0;
 }
-
+bool SubContainsWithLen(const char *s, int32_t source_len,
+                        int32_t start, int32_t len, const char *needle)
+{
+    return pgy_strview_indexof(
+        pgy_strview_with_len(s, source_len, start, len), needle) >= 0;
+}
 /* Allocation-free: the suffix s[start..] begins with `prefix`. */
 bool SubStartsWith(const char *s, int32_t start, const char *prefix)
 {
     return pgy_strview_starts_with(s, start, prefix);
 }
-
+bool SubStartsWithLen(const char *s, int32_t source_len,
+                      int32_t start, const char *prefix)
+{
+    size_t prefix_len;
+    if (s == NULL || prefix == NULL || source_len < 0)
+        return false;
+    if (start < 0 || start > source_len)
+        return false;
+    prefix_len = strlen(prefix);
+    if (prefix_len == 0)
+        return true;
+    if (prefix_len > (size_t)INT32_MAX)
+        return false;
+    if ((size_t)(source_len - start) < prefix_len)
+        return false;
+    return pgy_strview_equals(
+        pgy_strview_with_len(s, source_len, start, (int32_t)prefix_len),
+        prefix);
+}
 /* O(1) 1-char access with a caller-supplied length (no strlen). Out-of-range
  * yields "". See the inline header for the rationale. */
 char *CharAtN(const char *s, int32_t len, int32_t i)
@@ -427,7 +410,6 @@ char *CharAtN(const char *s, int32_t len, int32_t i)
     r[1] = '\0';
     return r;
 }
-
 /* O(1) byte-at-index as an int (0..255), -1 out of range. No allocation. */
 int32_t CharCode(const char *s, int32_t len, int32_t i)
 {
@@ -435,24 +417,20 @@ int32_t CharCode(const char *s, int32_t len, int32_t i)
         return -1;
     return (int32_t)(unsigned char)s[i];
 }
-
 char *StringReplace(const char *s, const char *old_str, const char *new_str)
 {
     if (s == NULL || old_str == NULL || new_str == NULL)
         return pgy_runtime_lib_strdup(s != NULL ? s : "");
-
     size_t old_len = strlen(old_str);
     size_t new_len = strlen(new_str);
     if (old_len == 0)
         return pgy_runtime_lib_strdup(s);
-
     size_t count = 0;
     const char *p = s;
     while ((p = strstr(p, old_str)) != NULL) {
         count++;
         p += old_len;
     }
-
     size_t source_len = strlen(s);
     size_t result_len;
     if (new_len > old_len) {
@@ -468,10 +446,8 @@ char *StringReplace(const char *s, const char *old_str, const char *new_str)
     }
     char *result = (char *)malloc(result_len + 1);
     char *dst = result;
-
     if (result == NULL)
         return pgy_runtime_lib_strdup("");
-
     p = s;
     while (*p) {
         if (strncmp(p, old_str, old_len) == 0) {
@@ -485,21 +461,17 @@ char *StringReplace(const char *s, const char *old_str, const char *new_str)
     *dst = '\0';
     return result;
 }
-
 char *StringTrim(const char *s)
 {
     if (s == NULL)
         return pgy_runtime_lib_strdup("");
-
     while (*s == ' ' || *s == '\t' || *s == '\n' || *s == '\r')
         s++;
-
     size_t len = strlen(s);
     while (len > 0
            && (s[len - 1] == ' ' || s[len - 1] == '\t'
                || s[len - 1] == '\n' || s[len - 1] == '\r'))
         len--;
-
     char *buf = (char *)malloc(len + 1);
     if (buf == NULL)
         return pgy_runtime_lib_strdup("");
@@ -507,12 +479,10 @@ char *StringTrim(const char *s)
     buf[len] = '\0';
     return buf;
 }
-
 char *ToUpper(const char *s)
 {
     if (s == NULL)
         return pgy_runtime_lib_strdup("");
-
     size_t len = strlen(s);
     char *buf = (char *)malloc(len + 1);
     if (buf == NULL)
@@ -521,12 +491,10 @@ char *ToUpper(const char *s)
         buf[i] = (s[i] >= 'a' && s[i] <= 'z') ? (char)(s[i] - 32) : s[i];
     return buf;
 }
-
 char *ToLower(const char *s)
 {
     if (s == NULL)
         return pgy_runtime_lib_strdup("");
-
     size_t len = strlen(s);
     char *buf = (char *)malloc(len + 1);
     if (buf == NULL)
@@ -535,14 +503,12 @@ char *ToLower(const char *s)
         buf[i] = (s[i] >= 'A' && s[i] <= 'Z') ? (char)(s[i] + 32) : s[i];
     return buf;
 }
-
 char *StringConcat(const char *a, const char *b)
 {
     if (a == NULL)
         a = "";
     if (b == NULL)
         b = "";
-
     size_t la = strlen(a);
     size_t lb = strlen(b);
     if (la > ((size_t)-1) - lb || la + lb > ((size_t)-1) - 1)
@@ -554,7 +520,6 @@ char *StringConcat(const char *a, const char *b)
     memcpy(buf + la, b, lb + 1);
     return buf;
 }
-
 bool pgy_string_equals(const char *a, const char *b)
 {
     if (a == NULL)
@@ -563,11 +528,9 @@ bool pgy_string_equals(const char *a, const char *b)
         b = "";
     return strcmp(a, b) == 0;
 }
-
 /* -----------------------------------------------------------------
  * StringSplit / StringJoin / ToInt / ToFloat / Math
  * ----------------------------------------------------------------- */
-
 /* StringSplit(str, delim) -> Array<String> (caller-allocated PgyArray_String) */
 PgyArray_String StringSplit(const char *s, const char *delim)
 {

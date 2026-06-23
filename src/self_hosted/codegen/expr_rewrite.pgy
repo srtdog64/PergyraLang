@@ -304,7 +304,11 @@ func RewriteTokens(e: String, env: String) -> String {
     let k: String = ReplaceAllOutsideStrings(h, "Args(", "pgy_args(");
     let mc: String = ReplaceAllOutsideStrings(k, "CharCode(", "pgy_charcode(");
     let m0: String = ReplaceAllOutsideStrings(mc, "CharAtN(", "pgy_charatn(");
-    let m: String = ReplaceAllOutsideStrings(m0, "Substring(", "pgy_substr(");
+    let sw0: String = ReplaceAllOutsideStrings(m0, "SubContainsWithLen(", "pgy_subcontains_with_len(");
+    let sw1: String = ReplaceAllOutsideStrings(sw0, "SubEqualsWithLen(", "pgy_subequals_with_len(");
+    let sw2: String = ReplaceAllOutsideStrings(sw1, "SubIndexOfWithLen(", "pgy_subindexof_with_len(");
+    let sw3: String = ReplaceAllOutsideStrings(sw2, "SubStartsWithLen(", "pgy_substartswith_with_len(");
+    let m: String = ReplaceAllOutsideStrings(sw3, "Substring(", "pgy_substr(");
     let jn0: String = ReplaceAllOutsideStrings(m, "StringJoin(", "pgy_strjoin(");
     let jn: String = ReplaceAllOutsideStrings(jn0, "Join(", "pgy_strjoin(");
     let asort: String = ReplaceAllOutsideStrings(jn, "ArraySort(", "pgy_ai_sort(");

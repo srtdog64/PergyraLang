@@ -85,6 +85,38 @@ mandatory runtime object graph. It is a verification spine. C and LLVM may
 materialize only the parts whose AIR/MIR/ABI facts prove runtime necessity.
 ```
 
+## Erasure Decision Point
+
+The canonical erasure decision point is AIR's intent/boundary compression
+classification after MIR/RIR/DAG evidence has been collected and before backend
+emission. The stable decision fields are:
+
+- `compression_budget`: `retain`, `summarize`, `erase`, or `forbid`;
+- `compression_reason`: the human-readable reason exported with the AIR node;
+- boundary `retain_cause`: `none`, `inherent`, `policy`, or `unproven`;
+- summary counters: `unproven_retain_count`, `inherent_concurrency_count`, and
+  `slot_capability_retain_count`.
+
+The owner artifact is `pgy.air.graph.v1`. C and LLVM may consume these facts,
+but they must not rediscover the decision from source syntax, AST payloads, or
+backend-local runtime symbol choices.
+
+These are not erasure decision points:
+
+- backend DCE/inlining: it may remove code, but it does not decide semantic
+  erasure;
+- runtime managers: they implement retained boundaries, but they do not decide
+  whether a boundary should have been retained;
+- source/AST readers: they provide provenance or parser facts, not physical
+  materialization policy;
+- `tests/air_erasure`: it is the independent physical-residue oracle that
+  checks AIR's declaration against emitted machine-code residue.
+
+If AIR declares `erase` and physical residue survives outside an expected drift
+entry, the program has a compression-residue mismatch. If AIR declares `retain`
+or `summarize`, the backend must be able to point back to the AIR/MIR/ABI fact
+that justifies the remaining artifact.
+
 ## Core Judgments
 
 `A -[contract K]-> B`

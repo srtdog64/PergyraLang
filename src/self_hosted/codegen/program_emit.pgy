@@ -101,6 +101,10 @@ func GenerateC(ast: String) -> String {
     let uses_str: Bool = StringIndexOf(ast, "String") >= 0
         || StringIndexOf(ast, "Concat(") >= 0
         || StringIndexOf(ast, "Substring(") >= 0
+        || StringIndexOf(ast, "SubIndexOfWithLen(") >= 0
+        || StringIndexOf(ast, "SubEqualsWithLen(") >= 0
+        || StringIndexOf(ast, "SubContainsWithLen(") >= 0
+        || StringIndexOf(ast, "SubStartsWithLen(") >= 0
         || StringIndexOf(ast, "ToUpper(") >= 0
         || StringIndexOf(ast, "ToLower(") >= 0;
     let uses_math: Bool = StringIndexOf(ast, "Abs(") >= 0
@@ -327,6 +331,24 @@ func GenerateC(ast: String) -> String {
         header = Concat(header, "    sprintf(r, \"%lld\", v);\n    return r;\n}\n\n");
         header = Concat(header, "static int pgy_strcontains(const char *h, const char *n)\n{\n");
         header = Concat(header, "    return strstr(h, n) != NULL ? 1 : 0;\n}\n\n");
+        header = Concat(header, "static long long pgy_subindexof_with_len(const char *s, long long source_len, long long start, long long len, const char *needle)\n{\n");
+        header = Concat(header, "    if (s == NULL || needle == NULL || source_len < 0 || start < 0 || start >= source_len || len <= 0) return -1;\n");
+        header = Concat(header, "    if (len > source_len - start) len = source_len - start;\n    size_t nl = strlen(needle);\n    if (nl == 0) return 0;\n    if ((size_t)len < nl) return -1;\n");
+        header = Concat(header, "    if (nl == 1) { const char *m = (const char *)memchr(s + start, needle[0], (size_t)len); return m ? (long long)(m - (s + start)) : -1; }\n");
+        header = Concat(header, "    long long limit = len - (long long)nl;\n    for (long long i = 0; i <= limit; i++) { if (memcmp(s + start + i, needle, nl) == 0) return i; }\n    return -1;\n}\n\n");
+        header = Concat(header, "static int pgy_subequals_with_len(const char *s, long long source_len, long long start, long long len, const char *other)\n{\n");
+        header = Concat(header, "    if (other == NULL) return 0;\n    if (s == NULL || source_len < 0 || start < 0 || start >= source_len || len <= 0) return strlen(other) == 0 ? 1 : 0;\n");
+        header = Concat(header, "    if (len > source_len - start) len = source_len - start;\n    size_t n = strlen(other);\n    if ((size_t)len != n) return 0;\n");
+        header = Concat(header, "    if (n == 0) return 1;\n    if (n == 1) return s[start] == other[0];\n    if (n == 2) return s[start] == other[0] && s[start + 1] == other[1];\n");
+        header = Concat(header, "    if (n == 3) return s[start] == other[0] && s[start + 1] == other[1] && s[start + 2] == other[2];\n");
+        header = Concat(header, "    if (n == 4) return s[start] == other[0] && s[start + 1] == other[1] && s[start + 2] == other[2] && s[start + 3] == other[3];\n");
+        header = Concat(header, "    return memcmp(s + start, other, n) == 0;\n}\n\n");
+        header = Concat(header, "static int pgy_subcontains_with_len(const char *s, long long source_len, long long start, long long len, const char *needle)\n{\n");
+        header = Concat(header, "    return pgy_subindexof_with_len(s, source_len, start, len, needle) >= 0;\n}\n\n");
+        header = Concat(header, "static int pgy_substartswith_with_len(const char *s, long long source_len, long long start, const char *prefix)\n{\n");
+        header = Concat(header, "    if (s == NULL || prefix == NULL || source_len < 0 || start < 0 || start > source_len) return 0;\n");
+        header = Concat(header, "    size_t n = strlen(prefix);\n    if (n == 0) return 1;\n    if ((size_t)(source_len - start) < n) return 0;\n");
+        header = Concat(header, "    return pgy_subequals_with_len(s, source_len, start, (long long)n, prefix);\n}\n\n");
         header = Concat(header, "static long long pgy_toint(const char *s)\n{\n    return atoll(s);\n}\n\n");
         header = Concat(header, "static char *pgy_toupper(const char *s)\n{\n");
         header = Concat(header, "    size_t n = strlen(s);\n    char *r = (char *)malloc(n + 1);\n");

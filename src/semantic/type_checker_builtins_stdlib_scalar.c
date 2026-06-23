@@ -163,6 +163,26 @@ stdlib_scalar_check_string_sub_equals(ASTNode *expr, const char *name,
     return TYPE_BOOL;
 }
 
+/* SubEqualsWithLen(s: String, sourceLen: Int, start: Int, len: Int,
+ * other: String) -> Bool -- same window equality, consuming an existing source
+ * length fact instead of re-scanning s. */
+static Type *
+stdlib_scalar_check_string_sub_equals_with_len(ASTNode *expr, const char *name,
+                                               SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 5, name, ctx))
+        return TYPE_UNKNOWN;
+    stdlib_scalar_require_string_arg(expr, 0, ctx);
+    require_assignable(type_check_expression(ast_call_argument(expr, 1), ctx),
+        TYPE_INT, ast_call_argument(expr, 1), ctx);
+    require_assignable(type_check_expression(ast_call_argument(expr, 2), ctx),
+        TYPE_INT, ast_call_argument(expr, 2), ctx);
+    require_assignable(type_check_expression(ast_call_argument(expr, 3), ctx),
+        TYPE_INT, ast_call_argument(expr, 3), ctx);
+    stdlib_scalar_require_string_arg(expr, 4, ctx);
+    return TYPE_BOOL;
+}
+
 /* CharCode(s: String, len: Int, i: Int) -> Int -- O(1) byte at index i. */
 static Type *
 stdlib_scalar_check_string_char_code(ASTNode *expr, const char *name,
@@ -193,6 +213,21 @@ stdlib_scalar_check_string_sub_starts_with(ASTNode *expr, const char *name,
     return TYPE_BOOL;
 }
 
+static Type *
+stdlib_scalar_check_string_sub_starts_with_len(ASTNode *expr, const char *name,
+                                               SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 4, name, ctx))
+        return TYPE_UNKNOWN;
+    stdlib_scalar_require_string_arg(expr, 0, ctx);
+    require_assignable(type_check_expression(ast_call_argument(expr, 1), ctx),
+        TYPE_INT, ast_call_argument(expr, 1), ctx);
+    require_assignable(type_check_expression(ast_call_argument(expr, 2), ctx),
+        TYPE_INT, ast_call_argument(expr, 2), ctx);
+    stdlib_scalar_require_string_arg(expr, 3, ctx);
+    return TYPE_BOOL;
+}
+
 /* SubIndexOf(s: String, start: Int, len: Int, needle: String) -> Int --
  * allocation-free StringIndexOf(Substring(s, start, len), needle). */
 static Type *
@@ -207,6 +242,23 @@ stdlib_scalar_check_string_sub_index_of(ASTNode *expr, const char *name,
     require_assignable(type_check_expression(ast_call_argument(expr, 2), ctx),
         TYPE_INT, ast_call_argument(expr, 2), ctx);
     stdlib_scalar_require_string_arg(expr, 3, ctx);
+    return TYPE_INT;
+}
+
+static Type *
+stdlib_scalar_check_string_sub_index_of_with_len(ASTNode *expr, const char *name,
+                                                 SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 5, name, ctx))
+        return TYPE_UNKNOWN;
+    stdlib_scalar_require_string_arg(expr, 0, ctx);
+    require_assignable(type_check_expression(ast_call_argument(expr, 1), ctx),
+        TYPE_INT, ast_call_argument(expr, 1), ctx);
+    require_assignable(type_check_expression(ast_call_argument(expr, 2), ctx),
+        TYPE_INT, ast_call_argument(expr, 2), ctx);
+    require_assignable(type_check_expression(ast_call_argument(expr, 3), ctx),
+        TYPE_INT, ast_call_argument(expr, 3), ctx);
+    stdlib_scalar_require_string_arg(expr, 4, ctx);
     return TYPE_INT;
 }
 
@@ -394,9 +446,13 @@ static const StdlibScalarSpec stdlib_scalar_specs[] = {
     { "StringSplit", stdlib_scalar_check_string_split },
     { "StringTrim", stdlib_scalar_check_string_unary },
     { "SubContains", stdlib_scalar_check_string_sub_equals },
+    { "SubContainsWithLen", stdlib_scalar_check_string_sub_equals_with_len },
     { "SubEquals", stdlib_scalar_check_string_sub_equals },
+    { "SubEqualsWithLen", stdlib_scalar_check_string_sub_equals_with_len },
     { "SubIndexOf", stdlib_scalar_check_string_sub_index_of },
+    { "SubIndexOfWithLen", stdlib_scalar_check_string_sub_index_of_with_len },
     { "SubStartsWith", stdlib_scalar_check_string_sub_starts_with },
+    { "SubStartsWithLen", stdlib_scalar_check_string_sub_starts_with_len },
     { "Substring", stdlib_scalar_check_string_substring },
     { "Tan", stdlib_scalar_check_math_unary_float },
     { "ToFloat", stdlib_scalar_check_to_float },

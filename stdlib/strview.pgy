@@ -11,6 +11,7 @@
 class StrView
 {
     let source: String;
+    let sourceLength: Int;
     let start: Int;
     let length: Int;
 }
@@ -18,13 +19,14 @@ class StrView
 // Borrow s[start .. start+len) as a view. No allocation.
 func SubView(s: String, start: Int, len: Int) -> StrView
 {
-    return StrView(s, start, len);
+    return StrView(s, StringLength(s), start, len);
 }
 
 // View over the whole string.
 func ViewOf(s: String) -> StrView
 {
-    return StrView(s, 0, StringLength(s));
+    let n: Int = StringLength(s);
+    return StrView(s, n, 0, n);
 }
 
 func ViewLength(v: StrView) -> Int
@@ -35,28 +37,28 @@ func ViewLength(v: StrView) -> Int
 // Index of needle within the view (relative to its start), or -1.
 func ViewIndexOf(v: StrView, needle: String) -> Int
 {
-    return SubIndexOf(v.source, v.start, v.length, needle);
+    return SubIndexOfWithLen(v.source, v.sourceLength, v.start, v.length, needle);
 }
 
 func ViewEquals(v: StrView, other: String) -> Bool
 {
-    return SubEquals(v.source, v.start, v.length, other);
+    return SubEqualsWithLen(v.source, v.sourceLength, v.start, v.length, other);
 }
 
 func ViewContains(v: StrView, needle: String) -> Bool
 {
-    return SubContains(v.source, v.start, v.length, needle);
+    return SubContainsWithLen(v.source, v.sourceLength, v.start, v.length, needle);
 }
 
 func ViewStartsWith(v: StrView, prefix: String) -> Bool
 {
-    return SubStartsWith(v.source, v.start, prefix);
+    return SubStartsWithLen(v.source, v.sourceLength, v.start, prefix);
 }
 
 // A sub-view of a view (still no allocation): v[from .. from+len).
 func ViewSlice(v: StrView, from: Int, len: Int) -> StrView
 {
-    return StrView(v.source, v.start + from, len);
+    return StrView(v.source, v.sourceLength, v.start + from, len);
 }
 
 // Materialize the view into an owned String. Allocates.

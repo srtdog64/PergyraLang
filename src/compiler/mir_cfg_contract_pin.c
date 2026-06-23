@@ -62,3 +62,34 @@ mir_block_pin_cleanup_missing_reason(const MIRBasicBlock *block)
         return "pin cleanup fact does not match source slot, view, and access mode";
     return NULL;
 }
+
+bool
+mir_block_has_pin_guard_amortization_region(const MIRBasicBlock *block)
+{
+    return block != NULL
+        && block->is_pin_region
+        && block->pin_source_name != NULL
+        && block->pin_source_name[0] != '\0'
+        && block->pin_view_name != NULL
+        && block->pin_view_name[0] != '\0'
+        && mir_block_has_pin_cleanup_edge(block);
+}
+
+const char *
+mir_block_pin_guard_amortization_missing_reason(const MIRBasicBlock *block)
+{
+    const char *cleanup_reason;
+
+    if (block == NULL)
+        return "pin guard-amortization region is missing";
+    if (!block->is_pin_region)
+        return "block is not a pin region";
+    if (block->pin_source_name == NULL || block->pin_source_name[0] == '\0')
+        return "pin source slot is missing";
+    if (block->pin_view_name == NULL || block->pin_view_name[0] == '\0')
+        return "pin view name is missing";
+    cleanup_reason = mir_block_pin_cleanup_missing_reason(block);
+    if (cleanup_reason != NULL)
+        return cleanup_reason;
+    return NULL;
+}

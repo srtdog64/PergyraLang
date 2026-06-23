@@ -10,14 +10,18 @@ func Main() -> Void {
     while i < 40 {
         // SubIndexOf == StringIndexOf(Substring(...))
         if SubIndexOf(s, i, 8, "o") != StringIndexOf(Substring(s, i, 8), "o") { fails = fails + 1; }
+        if SubIndexOfWithLen(s, n, i, 8, "o") != SubIndexOf(s, i, 8, "o") { fails = fails + 1; }
         // SubEquals == (Substring(...) == x)
         let se: Bool = SubEquals(s, i, 5, "quick");
         let seref: Bool = Substring(s, i, 5) == "quick";
         if se != seref { fails = fails + 1; }
+        if SubEqualsWithLen(s, n, i, 5, "quick") != se { fails = fails + 1; }
         // SubContains == (SubIndexOf >= 0)
         if SubContains(s, i, 10, "o") != (SubIndexOf(s, i, 10, "o") >= 0) { fails = fails + 1; }
+        if SubContainsWithLen(s, n, i, 10, "o") != SubContains(s, i, 10, "o") { fails = fails + 1; }
         // SubStartsWith == (Substring(s,i,len(p)) == p)
         if SubStartsWith(s, i, "fox") != (Substring(s, i, 3) == "fox") { fails = fails + 1; }
+        if SubStartsWithLen(s, n, i, "fox") != SubStartsWith(s, i, "fox") { fails = fails + 1; }
         // CharAtN == CharAt-equivalent (Substring(s,i,1), bounded)
         if i < n {
             if CharAtN(s, n, i) != Substring(s, i, 1) { fails = fails + 1; }
@@ -34,7 +38,10 @@ func Main() -> Void {
     }
     // edge cases
     if SubEquals(s, 1000, 4, "x") { fails = fails + 1; }
+    if SubEqualsWithLen(s, n, 1000, 4, "x") { fails = fails + 1; }
     if SubStartsWith(s, 0, "") != true { fails = fails + 1; }
+    if SubStartsWithLen(s, n, 0, "") != true { fails = fails + 1; }
+    if SubStartsWithLen(s, n, 1000, "") { fails = fails + 1; }
     if CharAtN(s, n, 0 - 1) != "" { fails = fails + 1; }
     if CharAtN(s, n, 9999) != "" { fails = fails + 1; }
     if ViewLength(SubView(s, 4, 5)) != 5 { fails = fails + 1; }

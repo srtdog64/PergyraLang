@@ -36,6 +36,32 @@ transpiler_specialization_copy_spec_name(char *dst, size_t dst_size,
     return true;
 }
 
+static bool
+transpiler_specialization_append_spec_text(char *dst, size_t dst_size,
+                                           size_t *len_io,
+                                           const char *value)
+{
+    size_t cur_len;
+    size_t value_len;
+
+    if (dst == NULL || dst_size == 0 || len_io == NULL || value == NULL)
+        return false;
+
+    cur_len = *len_io;
+    if (cur_len >= dst_size)
+        return false;
+
+    value_len = strlen(value);
+    if (value_len > dst_size - cur_len - 1)
+        return false;
+
+    memcpy(dst + cur_len, value, value_len);
+    cur_len += value_len;
+    dst[cur_len] = '\0';
+    *len_io = cur_len;
+    return true;
+}
+
 static void
 transpiler_specialization_spec_name_too_long(TranspilerCtx *ctx,
                                              const char *surface)
@@ -158,16 +184,18 @@ ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
 
     char combined[256];
     {
-        size_t ok_len = strlen(ok_suffix);
-        size_t err_len = strlen(err_suffix);
-        if (ok_len + 1 + err_len >= sizeof(combined)) {
+        size_t combined_len = 0;
+
+        combined[0] = '\0';
+        if (!transpiler_specialization_append_spec_text(combined,
+                sizeof(combined), &combined_len, ok_suffix)
+            || !transpiler_specialization_append_spec_text(combined,
+                sizeof(combined), &combined_len, "_")
+            || !transpiler_specialization_append_spec_text(combined,
+                sizeof(combined), &combined_len, err_suffix)) {
             transpiler_specialization_spec_name_too_long(ctx, ok_type);
             return;
         }
-        memcpy(combined, ok_suffix, ok_len);
-        combined[ok_len++] = '_';
-        memcpy(combined + ok_len, err_suffix, err_len);
-        combined[ok_len + err_len] = '\0';
     }
 
     for (int i = 0; i < ctx->result_spec_count; i++) {

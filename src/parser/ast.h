@@ -519,11 +519,7 @@ struct ASTNode
 
         /* Event invoke */
         struct {
-            ASTNode* event;            /* Event reference; internal carrier.
-                                        * Surface parser currently parses
-                                        * `OnEvent(x)` as a regular AST_CALL
-                                        * and this node is used by later
-                                        * normalization/lowering paths. */
+            ASTNode* event;            /* Internal carrier; surface OnEvent(x) parses as AST_CALL. */
             ASTNode** arguments;       /* Arguments to pass */
             size_t arg_count;
         } event_invoke;

@@ -29,6 +29,15 @@ English anchor for tooling/doc gates:
   CFG/body safety source-of-truth, AIR abstraction-boundary verification,
   DAG recursive compatibility seam removal, MIR/LLVM declaration bootstrap parity,
   and ABI/Slot/Pin ownership freeze.
+- Evidence-driven guard amortization first slice: plain `Slot<T>` MIR pin
+  regions now have an explicit owner fact,
+  `mir_block_has_pin_guard_amortization_region(...)`, requiring source slot,
+  view name, and matching cleanup-edge evidence. C MIR emission consumes the
+  same fact as LLVM and emits a preflight slot local plus
+  `PgyPinnedSlotView_*` initializer instead of plain `pgy_pin_*` /
+  `pgy_unpin_*` calls. Secure pins remain on the pointer/token runtime ABI.
+  Gate: `evidence-guard-amortization-test-smoke` plus the targeted pin
+  backend-compare slice.
 - Windows CI shell source-of-truth: `ci-windows` now prefers the active MSYS2
   bash runtime and fail-fasts if a Windows-hosted MinGW build is routed through
   Git Bash. `build-source-inventory-test-smoke` gates the MSYS2-first Makefile
@@ -4526,6 +4535,14 @@ English anchor for tooling/doc gates:
   statically impossible. The shared decision lives in
   `codegen_scalar_arithmetic_policy.c` so backend parity is not maintained by
   duplicated literal predicates.
+- Evidence-driven guard amortization now has a concrete Track A measurement
+  fixture. `benchmarks/perf_guard_amortization.c` compares per-access slot-style
+  owner/generation/capability/state checks with a one-time preflight evidence
+  view over the same data and same result. This is not yet a compiler pass or a
+  language capability claim; it is the falsification gate for whether the idea
+  is worth lifting into MIR. Gate: `evidence-guard-amortization-test-smoke`,
+  which records `preflight_over_per_access_ratio` and fails if the preflight
+  path is not measurably better on that fixture.
 - C backend MIR local type lookup no longer returns rendered local type names
   through shared `static char rendered*` scratch buffers. Recursive/nested local
   inference now copies rendered names into `TranspilerCtx.arena`, keeping the

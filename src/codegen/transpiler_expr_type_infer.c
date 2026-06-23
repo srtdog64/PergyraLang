@@ -113,25 +113,33 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         return "Bool";
     case AST_ARRAY_LITERAL: {
         const char *inner = NULL;
+        const char *expected_type = ctx != NULL ? ctx->expected_type : NULL;
         /* A `[...]` literal is a sequence; its concrete constructor comes from
          * the binding's expected type (Array by default, List/Queue when so
          * declared). */
         const char *ctor = "Array";
-        if (ctx != NULL && ctx->expected_type != NULL) {
-            if (transpiler_type_name_is_list(ctx->expected_type))
+        if (expected_type != NULL) {
+            const char *alias_target =
+                transpiler_type_alias_target_type_name_from_headers(
+                    ctx, expected_type);
+            if (alias_target != NULL)
+                expected_type = alias_target;
+        }
+        if (expected_type != NULL) {
+            if (transpiler_type_name_is_list(expected_type))
                 ctor = "List";
-            else if (transpiler_type_name_is_queue(ctx->expected_type))
+            else if (transpiler_type_name_is_queue(expected_type))
                 ctor = "Queue";
         }
         if (ast_array_literal_count(expr) > 0) {
             inner = infer_expression_type_name(ctx, ast_array_literal_element(expr, 0));
         } else if (ctx != NULL
-                   && ctx->expected_type != NULL
-                   && (transpiler_type_name_is_array(ctx->expected_type)
-                       || transpiler_type_name_is_list(ctx->expected_type)
-                       || transpiler_type_name_is_queue(ctx->expected_type))) {
+                   && expected_type != NULL
+                   && (transpiler_type_name_is_array(expected_type)
+                       || transpiler_type_name_is_list(expected_type)
+                       || transpiler_type_name_is_queue(expected_type))) {
             inner = transpiler_infer_slot_inner_type_name(ctx,
-                ctx->expected_type);
+                expected_type);
         }
         if (inner == NULL || inner[0] == '\0')
             inner = "Unknown";

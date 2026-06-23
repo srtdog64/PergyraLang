@@ -82,9 +82,13 @@ typedef enum {
     TRANSPILER_SCALAR_OP_STRING_TRIM,
     TRANSPILER_SCALAR_OP_SUBSTRING,
     TRANSPILER_SCALAR_OP_SUB_INDEX_OF,
+    TRANSPILER_SCALAR_OP_SUB_INDEX_OF_WITH_LEN,
     TRANSPILER_SCALAR_OP_SUB_EQUALS,
+    TRANSPILER_SCALAR_OP_SUB_EQUALS_WITH_LEN,
     TRANSPILER_SCALAR_OP_SUB_CONTAINS,
+    TRANSPILER_SCALAR_OP_SUB_CONTAINS_WITH_LEN,
     TRANSPILER_SCALAR_OP_SUB_STARTS_WITH,
+    TRANSPILER_SCALAR_OP_SUB_STARTS_WITH_LEN,
     TRANSPILER_SCALAR_OP_CHAR_AT_N,
     TRANSPILER_SCALAR_OP_CHAR_CODE,
     TRANSPILER_SCALAR_OP_TO_FLOAT,
@@ -128,9 +132,13 @@ static const TranspilerScalarSpec kTranspilerScalarSpecs[] = {
     {"StringSplit", 2, TRANSPILER_SCALAR_OP_SPLIT},
     {"StringTrim", 1, TRANSPILER_SCALAR_OP_STRING_TRIM},
     {"SubContains", 4, TRANSPILER_SCALAR_OP_SUB_CONTAINS},
+    {"SubContainsWithLen", 5, TRANSPILER_SCALAR_OP_SUB_CONTAINS_WITH_LEN},
     {"SubEquals", 4, TRANSPILER_SCALAR_OP_SUB_EQUALS},
+    {"SubEqualsWithLen", 5, TRANSPILER_SCALAR_OP_SUB_EQUALS_WITH_LEN},
     {"SubIndexOf", 4, TRANSPILER_SCALAR_OP_SUB_INDEX_OF},
+    {"SubIndexOfWithLen", 5, TRANSPILER_SCALAR_OP_SUB_INDEX_OF_WITH_LEN},
     {"SubStartsWith", 3, TRANSPILER_SCALAR_OP_SUB_STARTS_WITH},
+    {"SubStartsWithLen", 4, TRANSPILER_SCALAR_OP_SUB_STARTS_WITH_LEN},
     {"Substring", 3, TRANSPILER_SCALAR_OP_SUBSTRING},
     {"ToFloat", 1, TRANSPILER_SCALAR_OP_TO_FLOAT},
     {"ToInt", 1, TRANSPILER_SCALAR_OP_TO_INT},
@@ -188,6 +196,51 @@ transpiler_scalar_emit_arg(TranspilerCtx *ctx,
         builtin_name != NULL ? builtin_name : "(unknown)",
         role != NULL ? role : "operand");
     return NULL;
+}
+
+static char *
+transpiler_scalar_emit_sub_with_explicit_source_len(
+    TranspilerCtx *ctx,
+    ASTNode *call,
+    const char *builtin_name,
+    const char *runtime_name,
+    const char *tail_role,
+    bool has_window_len)
+{
+    ASTNode *a0 = ast_call_argument(call, 0);
+    ASTNode *a1 = ast_call_argument(call, 1);
+    ASTNode *a2 = ast_call_argument(call, 2);
+    ASTNode *tail_arg = ast_call_argument(call, has_window_len ? 4 : 3);
+    char *s = transpiler_scalar_emit_arg(ctx, a0, builtin_name, "source");
+    char *slen = s != NULL
+        ? transpiler_scalar_emit_arg(ctx, a1, builtin_name, "source length")
+        : NULL;
+    char *start = slen != NULL
+        ? transpiler_scalar_emit_arg(ctx, a2, builtin_name, "start")
+        : NULL;
+    char *len = has_window_len && start != NULL
+        ? transpiler_scalar_emit_arg(ctx, ast_call_argument(call, 3),
+            builtin_name, "length")
+        : NULL;
+    char *tail = (!has_window_len || len != NULL) && start != NULL
+        ? transpiler_scalar_emit_arg(ctx, tail_arg, builtin_name, tail_role)
+        : NULL;
+    char *result = NULL;
+
+    if (s == NULL || slen == NULL || start == NULL || tail == NULL
+        || (has_window_len && len == NULL)) {
+        free(s); free(slen); free(start); free(len); free(tail);
+        return NULL;
+    }
+    if (has_window_len) {
+        result = strdup_fmt("%s(%s, %s, %s, %s, %s)", runtime_name,
+            s, slen, start, len, tail);
+    } else {
+        result = strdup_fmt("%s(%s, %s, %s, %s)", runtime_name,
+            s, slen, start, tail);
+    }
+    free(s); free(slen); free(start); free(len); free(tail);
+    return result;
 }
 
 char *
@@ -374,6 +427,10 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         free(s); free(start); free(len); free(needle);
         return result;
     }
+    if (op == TRANSPILER_SCALAR_OP_SUB_INDEX_OF_WITH_LEN) {
+        return transpiler_scalar_emit_sub_with_explicit_source_len(ctx, call,
+            fn, "SubIndexOfWithLen", "needle", true);
+    }
     if (op == TRANSPILER_SCALAR_OP_SUB_EQUALS) {
         ASTNode *a3 = ast_call_argument(call, 3);
         char *s = transpiler_scalar_emit_arg(ctx, a0, fn, "source");
@@ -396,6 +453,10 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         char *result = strdup_fmt("SubEquals(%s, %s, %s, %s)", s, start, len, other);
         free(s); free(start); free(len); free(other);
         return result;
+    }
+    if (op == TRANSPILER_SCALAR_OP_SUB_EQUALS_WITH_LEN) {
+        return transpiler_scalar_emit_sub_with_explicit_source_len(ctx, call,
+            fn, "SubEqualsWithLen", "other", true);
     }
     if (op == TRANSPILER_SCALAR_OP_SUB_CONTAINS) {
         ASTNode *a3 = ast_call_argument(call, 3);
@@ -420,6 +481,10 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         free(s); free(start); free(len); free(needle);
         return result;
     }
+    if (op == TRANSPILER_SCALAR_OP_SUB_CONTAINS_WITH_LEN) {
+        return transpiler_scalar_emit_sub_with_explicit_source_len(ctx, call,
+            fn, "SubContainsWithLen", "needle", true);
+    }
     if (op == TRANSPILER_SCALAR_OP_SUB_STARTS_WITH) {
         char *s = transpiler_scalar_emit_arg(ctx, a0, fn, "source");
         char *start = s != NULL
@@ -437,6 +502,10 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         char *result = strdup_fmt("SubStartsWith(%s, %s, %s)", s, start, prefix);
         free(s); free(start); free(prefix);
         return result;
+    }
+    if (op == TRANSPILER_SCALAR_OP_SUB_STARTS_WITH_LEN) {
+        return transpiler_scalar_emit_sub_with_explicit_source_len(ctx, call,
+            fn, "SubStartsWithLen", "prefix", false);
     }
     if (op == TRANSPILER_SCALAR_OP_STRING_TRIM) {
         char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "value");

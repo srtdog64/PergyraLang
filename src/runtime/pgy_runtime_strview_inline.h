@@ -9,12 +9,13 @@
  * exactly like the array `PgySlice_T { data; length; }` convention. This is the
  * Pergyra counterpart of Rust's `&str`: substring/scan operations that consume
  * the result immediately can avoid the per-call allocation that is the one
- * structural gap measured against idiomatic Rust string code (~10x on a tight
- * Substring+IndexOf loop). The view never owns or frees the buffer.
+ * structural gap in tight Substring+IndexOf-style loops. The view never owns
+ * or frees the buffer.
  *
  * This header is self-contained (string.h only) so it can be unit-benchmarked
- * before the language surface (a `StrView` type + view-returning builtins) is
- * wired through the type system and both backends.
+ * and reused by the fused string-window builtins. The beta stdlib exposes the
+ * source-level `StrView` wrapper in stdlib/strview.pgy; this C primitive remains
+ * the backend/runtime owner for the no-allocation range operations.
  */
 #ifndef PGY_RUNTIME_STRVIEW_INLINE_H
 #define PGY_RUNTIME_STRVIEW_INLINE_H
@@ -50,6 +51,27 @@ pgy_strview(const char *s, int32_t start, int32_t len)
     return v;
 }
 
+/* Same contract as pgy_strview(), but consumes a caller-owned source-length
+ * fact. This is the hot-path form for StrView/CharAtN-style code where the
+ * length was already computed by the same owner and should not be re-scanned. */
+static inline PgyStrView
+pgy_strview_with_len(const char *s, int32_t source_len,
+                     int32_t start, int32_t len)
+{
+    PgyStrView v;
+    v.data = "";
+    v.length = 0;
+    if (s == NULL || source_len < 0)
+        return v;
+    if (start < 0 || start >= source_len || len <= 0)
+        return v;
+    if (len > source_len - start)
+        len = source_len - start;
+    v.data = s + start;
+    v.length = len;
+    return v;
+}
+
 static inline int32_t
 pgy_strview_len(PgyStrView v)
 {
@@ -68,6 +90,11 @@ pgy_strview_indexof(PgyStrView v, const char *needle)
         return 0;
     if (v.length < 0 || (size_t)v.length < nl)
         return -1;
+    if (nl == 1) {
+        const void *match = memchr(v.data, (unsigned char)needle[0],
+                                   (size_t)v.length);
+        return match != NULL ? (int32_t)((const char *)match - v.data) : -1;
+    }
     int32_t limit = v.length - (int32_t)nl;
     for (int32_t i = 0; i <= limit; i++) {
         if (memcmp(v.data + i, needle, nl) == 0)
@@ -86,6 +113,22 @@ pgy_strview_equals(PgyStrView v, const char *other)
     n = strlen(other);
     if (v.length < 0 || (size_t)v.length != n)
         return false;
+    switch (n) {
+    case 0:
+        return true;
+    case 1:
+        return v.data[0] == other[0];
+    case 2:
+        return v.data[0] == other[0] && v.data[1] == other[1];
+    case 3:
+        return v.data[0] == other[0] && v.data[1] == other[1]
+            && v.data[2] == other[2];
+    case 4:
+        return v.data[0] == other[0] && v.data[1] == other[1]
+            && v.data[2] == other[2] && v.data[3] == other[3];
+    default:
+        break;
+    }
     return memcmp(v.data, other, n) == 0;
 }
 

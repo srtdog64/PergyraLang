@@ -2,15 +2,17 @@
 //
 // SubIndexOf(s, start, len, needle) is the zero-allocation equivalent of
 // StringIndexOf(Substring(s, start, len), needle): it searches the window
-// s[start..start+len) in place instead of materializing a heap copy. On this
-// 40M-iter loop it runs ~177 ms vs ~1995 ms for the allocating form (11.3x),
-// reaching ~1.16x of Rust's zero-copy &str slice. Output: total=58400000.
+// s[start..start+len) in place instead of materializing a heap copy. Keep the
+// Rust/C/Pergyra timing ledger in docs/perf_close_to_c.md; this fixture is the
+// executable source for the Pergyra length-fact fused-builtin row. Output:
+// total=58400000.
 func Main() -> Void {
     let s: String = "the quick brown fox jumps over the lazy dog and runs away fast";
+    let n: Int = StringLength(s);
     let total: Int = 0;
     let i: Int = 0;
     while i < 40000000 {
-        total = total + SubIndexOf(s, i % 50, 8, "o");
+        total = total + SubIndexOfWithLen(s, n, i % 50, 8, "o");
         i = i + 1;
     }
     Log("total=" + ToString(total));

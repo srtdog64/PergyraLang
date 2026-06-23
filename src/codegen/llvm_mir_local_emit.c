@@ -1,12 +1,9 @@
-/*
- * LLVM MIR local and parameter alloca emission.
- */
+/* LLVM MIR local and parameter alloca emission. */
 
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_mir_local_emit.h"
 #include "llvm_mir_host_field.h"
-
 #include <string.h>
 
 #include "llvm_backend_type_map_internal.h"
@@ -48,9 +45,8 @@ llvm_mir_local_type_from_source_fact_entry(LLVMGenCtx *ctx,
 
     if (ctx == NULL || fact == NULL)
         return NULL;
-    /* Closure locals are typed by the let-storage path (the lambda signature
-     * lowers to the closure struct type); the fact's type_name is a C-side
-     * struct name with no LLVM registration (docs/135 Stage A). */
+    /* Closure locals are typed by let-storage; the fact's type_name is a
+     * C-side struct name with no LLVM registration (docs/135 Stage A). */
     if (fact->is_closure_local)
         return NULL;
     if (!fact->is_callable)

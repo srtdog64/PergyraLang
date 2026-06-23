@@ -95,6 +95,7 @@ and follow-up debt over older design notes.
 | [`132_unsafe_capability_scope.md`](132_unsafe_capability_scope.md) | Unsafe capability scope contract |
 | [`135_backend_wasm_pointer_closure.md`](135_backend_wasm_pointer_closure.md) | Backend/WASM/pointer wording guard: verified subset, named debt, and non-overclaiming lifetime status |
 | [`136_abi_niche_and_explicit_layout.md`](136_abi_niche_and_explicit_layout.md) | ABI niche optimization and explicit layout policy: current tagged Option ABI, future proof gates, and raw/extern-only layout scope |
+| [`136_evidence_driven_guard_amortization.md`](136_evidence_driven_guard_amortization.md) | Evidence-driven guard amortization: measured preflight-view gate for slot-style hot paths |
 | [`139_golden_adt_verification_methodology.md`](139_golden_adt_verification_methodology.md) | Golden, ADT, and verification methodology: evidence ladder, ADT owner rules, differential/property/model-check/proof roles, and hard self-host review checklist |
 
 ## Language Surface

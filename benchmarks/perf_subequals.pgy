@@ -2,15 +2,16 @@
 //
 // SubEquals(s, start, len, other) is the zero-allocation form of
 // Substring(s, start, len) == other -- the keyword-match pattern at the heart
-// of lexers/parsers. On a 30M-iter loop it runs ~126 ms vs ~1265 ms for the
-// allocating compare (10x), with no per-iteration heap allocation. Output:
-// hits=625000.
+// of lexers/parsers. Keep the Rust/C/Pergyra timing ledger in
+// docs/perf_close_to_c.md; this fixture is the executable source for the
+// Pergyra length-fact fused-builtin equality row. Output: hits=625000.
 func Main() -> Void {
     let s: String = "the quick brown fox jumps over the lazy dog and runs away";
+    let n: Int = StringLength(s);
     let hits: Int = 0;
     let i: Int = 0;
     while i < 30000000 {
-        if SubEquals(s, i % 48, 3, "fox") { hits = hits + 1; }
+        if SubEqualsWithLen(s, n, i % 48, 3, "fox") { hits = hits + 1; }
         i = i + 1;
     }
     Log("hits=" + ToString(hits));

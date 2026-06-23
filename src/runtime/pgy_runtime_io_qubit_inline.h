@@ -16,7 +16,6 @@ pgy_try_file_open_result(const char *path, const char *mode)
     char *resolved;
     bool for_write = false;
     int fd = -1;
-
     if (mode == NULL)
         return pgy_runtime_io_int_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_NULL_MODE, "io-boundary", "file-open"));
@@ -26,12 +25,10 @@ pgy_try_file_open_result(const char *path, const char *mode)
             break;
         }
     }
-
     resolved = pgy_runtime_resolve_file_path(path, for_write);
     if (resolved == NULL)
         return pgy_runtime_io_int_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_RESOLVE_FAILED, "io-boundary", "file-open"));
-
     FILE *fp = fopen(resolved, mode);
     free(resolved);
     if (fp == NULL)
@@ -103,7 +100,6 @@ pgy_try_file_write_result(int32_t fd, const char *data)
 {
     size_t len;
     size_t written;
-
     pthread_mutex_lock(&_pgy_ftable_mutex);
     if (fd < 0 || fd >= PGY_MAX_OPEN_FILES || _pgy_ftable[fd] == NULL) {
         pthread_mutex_unlock(&_pgy_ftable_mutex);
@@ -129,12 +125,10 @@ pgy_file_write(int32_t fd, const char *data)
 {
     (void)pgy_try_file_write_result(fd, data);
 }
-
 static inline void
 pgy_file_close(int32_t fd)
 {
     FILE *fp = NULL;
-
     pthread_mutex_lock(&_pgy_ftable_mutex);
     if (fd >= 3 && fd < PGY_MAX_OPEN_FILES && _pgy_ftable[fd] != NULL) {
         fp = _pgy_ftable[fd];
@@ -217,13 +211,11 @@ pgy_try_file_exists_result(const char *path)
         return pgy_runtime_io_int_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_RESOLVE_FAILED,
             "io-boundary", "file-exists"));
-
     FILE *fp = fopen(resolved, "rb");
     if (fp == NULL) {
         free(resolved);
         return pgy_runtime_io_int_ok(0);
     }
-
     fclose(fp);
     free(resolved);
     return pgy_runtime_io_int_ok(1);
@@ -274,7 +266,6 @@ pgy_try_input_result(const char *prompt)
 {
     char tmp[4096];
     char *copy;
-
     if (prompt != NULL && prompt[0] != '\0')
         printf("%s", prompt);
     fflush(stdout);
@@ -291,7 +282,6 @@ pgy_try_input_result(const char *prompt)
             PGY_RUNTIME_IO_STATUS_ALLOC_FAILED, "io-boundary", "input"));
     return pgy_runtime_io_string_ok(copy);
 }
-
 static inline char *
 pgy_input(const char *prompt)
 {
@@ -302,14 +292,12 @@ pgy_input(const char *prompt)
         ? result.ok
         : pgy_runtime_strdup("");
 }
-
 static inline void
 pgy_print(const char *msg)
 {
     if (msg != NULL) printf("%s", msg);
     fflush(stdout);
 }
-
 static inline int32_t
 pgy_now_ms(void)
 {
@@ -323,7 +311,6 @@ pgy_now_ms(void)
     return (int32_t)((ts.tv_sec * 1000LL) + (ts.tv_nsec / 1000000LL));
 #endif
 }
-
 static inline void
 pgy_sleep_ms(int32_t ms)
 {
@@ -339,25 +326,21 @@ pgy_sleep_ms(int32_t ms)
     }
 #endif
 }
-
 static inline void
 pgy_exit(int32_t code)
 {
     pgy_runtime_process_exit(code);
 }
-
 static inline bool
 StringContains(const char *haystack, const char *needle)
 {
     if (haystack == NULL || needle == NULL) return false;
     return strstr(haystack, needle) != NULL;
 }
-
 static inline int32_t
 StringIndexOf(const char *haystack, const char *needle)
 {
     const char *match;
-
     if (haystack == NULL || needle == NULL)
         return -1;
     match = strstr(haystack, needle);
@@ -365,13 +348,11 @@ StringIndexOf(const char *haystack, const char *needle)
         return -1;
     return (int32_t)(match - haystack);
 }
-
 static inline char *
 Substring(const char *s, int32_t start, int32_t len)
 {
     size_t raw_len;
     int32_t slen;
-
     if (s == NULL) return pgy_runtime_strdup("");
     raw_len = strlen(s);
     if (raw_len > (size_t)INT32_MAX)
@@ -385,31 +366,67 @@ Substring(const char *s, int32_t start, int32_t len)
     buf[len] = '\0';
     return buf;
 }
-
 static inline int32_t
 SubIndexOf(const char *s, int32_t start, int32_t len, const char *needle)
 {
     return pgy_strview_indexof(pgy_strview(s, start, len), needle);
 }
-
+static inline int32_t
+SubIndexOfWithLen(const char *s, int32_t source_len,
+                  int32_t start, int32_t len, const char *needle)
+{
+    return pgy_strview_indexof(
+        pgy_strview_with_len(s, source_len, start, len), needle);
+}
 static inline bool
 SubEquals(const char *s, int32_t start, int32_t len, const char *other)
 {
     return pgy_strview_equals(pgy_strview(s, start, len), other);
 }
-
+static inline bool
+SubEqualsWithLen(const char *s, int32_t source_len,
+                 int32_t start, int32_t len, const char *other)
+{
+    return pgy_strview_equals(
+        pgy_strview_with_len(s, source_len, start, len), other);
+}
 static inline bool
 SubContains(const char *s, int32_t start, int32_t len, const char *needle)
 {
     return pgy_strview_indexof(pgy_strview(s, start, len), needle) >= 0;
 }
-
+static inline bool
+SubContainsWithLen(const char *s, int32_t source_len,
+                   int32_t start, int32_t len, const char *needle)
+{
+    return pgy_strview_indexof(
+        pgy_strview_with_len(s, source_len, start, len), needle) >= 0;
+}
 static inline bool
 SubStartsWith(const char *s, int32_t start, const char *prefix)
 {
     return pgy_strview_starts_with(s, start, prefix);
 }
-
+static inline bool
+SubStartsWithLen(const char *s, int32_t source_len,
+                 int32_t start, const char *prefix)
+{
+    size_t prefix_len;
+    if (s == NULL || prefix == NULL || source_len < 0)
+        return false;
+    if (start < 0 || start > source_len)
+        return false;
+    prefix_len = strlen(prefix);
+    if (prefix_len == 0)
+        return true;
+    if (prefix_len > (size_t)INT32_MAX)
+        return false;
+    if ((size_t)(source_len - start) < prefix_len)
+        return false;
+    return pgy_strview_equals(
+        pgy_strview_with_len(s, source_len, start, (int32_t)prefix_len),
+        prefix);
+}
 static inline char *
 StringReplace(const char *s, const char *old_str, const char *new_str)
 {
@@ -417,11 +434,9 @@ StringReplace(const char *s, const char *old_str, const char *new_str)
     size_t old_len = strlen(old_str);
     size_t new_len = strlen(new_str);
     if (old_len == 0) return pgy_runtime_strdup(s);
-
     size_t count = 0;
     const char *p = s;
     while ((p = strstr(p, old_str)) != NULL) { count++; p += old_len; }
-
     size_t source_len = strlen(s);
     size_t result_len;
     if (new_len > old_len) {
@@ -451,7 +466,6 @@ StringReplace(const char *s, const char *old_str, const char *new_str)
     *dst = '\0';
     return result;
 }
-
 static inline char *
 StringTrim(const char *s)
 {
@@ -466,7 +480,6 @@ StringTrim(const char *s)
     buf[len] = '\0';
     return buf;
 }
-
 static inline char *
 ToUpper(const char *s)
 {
@@ -478,7 +491,6 @@ ToUpper(const char *s)
         buf[i] = (s[i] >= 'a' && s[i] <= 'z') ? (char)(s[i] - 32) : s[i];
     return buf;
 }
-
 static inline char *
 ToLower(const char *s)
 {
@@ -490,7 +502,6 @@ ToLower(const char *s)
         buf[i] = (s[i] >= 'A' && s[i] <= 'Z') ? (char)(s[i] + 32) : s[i];
     return buf;
 }
-
 static inline char *
 StringConcat(const char *a, const char *b)
 {
@@ -505,7 +516,6 @@ StringConcat(const char *a, const char *b)
     memcpy(buf + la, b, lb + 1);
     return buf;
 }
-
 static inline PgyArray_String
 StringSplit(const char *s, const char *delim)
 {
@@ -515,7 +525,6 @@ StringSplit(const char *s, const char *delim)
             pgy_array_push_String(&result, pgy_runtime_strdup(s));
         return result;
     }
-
     size_t dlen = strlen(delim);
     const char *p = s;
     for (;;) {
@@ -536,7 +545,6 @@ StringSplit(const char *s, const char *delim)
     }
     return result;
 }
-
 static inline char *
 StringJoin(PgyArray_String *arr, const char *sep)
 {
@@ -579,7 +587,6 @@ StringJoin(PgyArray_String *arr, const char *sep)
     result[pos] = '\0';
     return result;
 }
-
 static inline bool
 pgy_string_equals(const char *a, const char *b)
 {
@@ -587,5 +594,4 @@ pgy_string_equals(const char *a, const char *b)
     if (b == NULL) b = "";
     return strcmp(a, b) == 0;
 }
-
 #include "pgy_runtime_qubit_inline.h"

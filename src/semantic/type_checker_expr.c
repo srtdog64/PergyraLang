@@ -248,7 +248,6 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
 
     case AST_BINARY:
         return type_check_binary(expr, ctx);
-
     case AST_UNARY:
         return type_check_unary(expr, ctx);
 
@@ -428,7 +427,6 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     }
 }
-
 
 Type *
 type_check_member_access(ASTNode *expr, SemanticContext *ctx)

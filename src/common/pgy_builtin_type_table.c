@@ -1,11 +1,11 @@
 /*
  * Copyright (c) 2026 Pergyra Language Project
- * Small builtin registry for backend-facing facts.
+ * Compiler-wide builtin return-type facts.
  */
 
-#include "transpiler_builtin_type_table.h"
+#include "pgy_builtin_type_table.h"
 
-#include "../common/intent_observability_names.h"
+#include "intent_observability_names.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -174,9 +174,13 @@ pgy_builtin_entries(size_t *count)
         { "StringSplit", "Array<String>", PGY_BUILTIN_FLAG_NONE },
         { "StringTrim", "String", PGY_BUILTIN_FLAG_NONE },
         { "SubContains", "Bool", PGY_BUILTIN_FLAG_NONE },
+        { "SubContainsWithLen", "Bool", PGY_BUILTIN_FLAG_NONE },
         { "SubEquals", "Bool", PGY_BUILTIN_FLAG_NONE },
+        { "SubEqualsWithLen", "Bool", PGY_BUILTIN_FLAG_NONE },
         { "SubIndexOf", "Int", PGY_BUILTIN_FLAG_NONE },
+        { "SubIndexOfWithLen", "Int", PGY_BUILTIN_FLAG_NONE },
         { "SubStartsWith", "Bool", PGY_BUILTIN_FLAG_NONE },
+        { "SubStartsWithLen", "Bool", PGY_BUILTIN_FLAG_NONE },
         { "Substring", "String", PGY_BUILTIN_FLAG_NONE },
         { "Tan", "Float", PGY_BUILTIN_FLAG_NONE },
         { "TimerNew", "Timer", PGY_BUILTIN_FLAG_NONE },

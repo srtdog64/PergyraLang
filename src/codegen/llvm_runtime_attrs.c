@@ -152,6 +152,10 @@ llvm_fn_is_readonly_runtime(const char *fn_name)
 {
     static const char *const readonly_runtime[] = {
         "StringContains", "StringIndexOf", "pgy_string_equals",
+        "SubContains", "SubContainsWithLen",
+        "SubEquals", "SubEqualsWithLen",
+        "SubIndexOf", "SubIndexOfWithLen",
+        "SubStartsWith", "SubStartsWithLen",
         "ToInt", "ToFloat",
     };
     size_t i;

@@ -25,6 +25,27 @@
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_require.h"
 
+static size_t
+transpiler_mir_preserved_source_local_def_count(const MIRRoutine *routine,
+                                                const char *base_name)
+{
+    size_t count = 0;
+
+    if (routine == NULL || base_name == NULL)
+        return 0;
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block == NULL || !block->is_reachable || block->is_cleanup)
+            continue;
+        for (size_t i = 0; i < block->source_local_def_count; i++) {
+            const char *name = block->source_local_defs[i];
+            if (name != NULL && strcmp(name, base_name) == 0)
+                count++;
+        }
+    }
+    return count;
+}
+
 TranspilerMIRLocalLetEmitResult
 transpiler_emit_mir_source_local_let_def_inst(
     CodeBuf *buf,
@@ -58,8 +79,22 @@ transpiler_emit_mir_source_local_let_def_inst(
     let_init = inst->expr0;
 
     if (inst->abi_type_name != NULL && inst->abi_type_name[0] != '\0') {
-        rendered_type_hint = pergyra_strdup(inst->abi_type_name);
+        rendered_type_hint =
+            transpiler_canonical_effective_local_type_name(
+                ctx, inst->abi_type_name);
         ctx->active_type_hint = rendered_type_hint;
+    } else if (mir_routine != NULL
+               && transpiler_mir_preserved_source_local_def_count(
+                   mir_routine, let_name) == 1) {
+        const char *source_type =
+            transpiler_mir_routine_source_local_type_name(
+                mir_routine, let_name);
+        if (source_type != NULL && source_type[0] != '\0') {
+            rendered_type_hint =
+                transpiler_canonical_effective_local_type_name(
+                    ctx, source_type);
+            ctx->active_type_hint = rendered_type_hint;
+        }
     } else if (let_type != NULL && let_type->type == AST_TYPE) {
         rendered_type_hint =
             transpiler_render_effective_local_type_name(ctx, let_type);
@@ -69,7 +104,9 @@ transpiler_emit_mir_source_local_let_def_inst(
             transpiler_mir_routine_source_local_type_name(
                 mir_routine, let_name);
         if (source_type != NULL && source_type[0] != '\0') {
-            rendered_type_hint = pergyra_strdup(source_type);
+            rendered_type_hint =
+                transpiler_canonical_effective_local_type_name(
+                    ctx, source_type);
             ctx->active_type_hint = rendered_type_hint;
         }
     }
@@ -79,7 +116,9 @@ transpiler_emit_mir_source_local_let_def_inst(
         ctx->active_type_hint = rendered_type_hint;
     }
     if (rendered_type_hint != NULL) {
-        local_type_name_owned = pergyra_strdup(rendered_type_hint);
+        local_type_name_owned =
+            transpiler_canonical_effective_local_type_name(
+                ctx, rendered_type_hint);
     } else if (let_init != NULL) {
         const char *inferred = transpiler_expr_infer_type_name(ctx, let_init);
         if (inferred != NULL)

@@ -304,12 +304,14 @@
 
         EXPECT(ok && output != NULL);
         if (output != NULL) {
+            EXPECT_STR_CONTAINS(output, "PgySlot_Int *__pgy_mir_pin_slot_");
             EXPECT_STR_CONTAINS(output, "PgyPinnedSlotView_Int __pgy_mir_pin_");
-            EXPECT_STR_CONTAINS(output, "pgy_pin_read_Int(&scores)");
-            EXPECT_STR_CONTAINS(output, "pgy_unpin_Int(&__pgy_mir_pin_");
-            EXPECT(strstr(output, "pgy_unpin_Int(&__pgy_mir_pin_") != NULL
-                   && strstr(strstr(output, "pgy_unpin_Int(&__pgy_mir_pin_"),
-                             "goto _pgy_mir_bb_Score_") != NULL);
+            EXPECT_STR_CONTAINS(output, "PGY_RUNTIME_PANIC_REASON_RELEASED_SLOT_READ");
+            EXPECT_STR_CONTAINS(output, ".active = true, .can_write = false");
+            EXPECT_STR_CONTAINS(output, ".active = false;");
+            EXPECT(strstr(output, ".active = false;") != NULL
+                   && strstr(strstr(output, ".active = false;"),
+                              "goto _pgy_mir_bb_Score_") != NULL);
         }
 
         free(output);
@@ -349,7 +351,9 @@
 
         EXPECT(ok && output != NULL);
         if (output != NULL) {
-            EXPECT_STR_CONTAINS(output, "pgy_pin_write_Int(&scores)");
+            EXPECT_STR_CONTAINS(output, "PgySlot_Int *__pgy_mir_pin_slot_");
+            EXPECT_STR_CONTAINS(output, "PGY_RUNTIME_PANIC_REASON_RELEASED_SLOT_WRITE");
+            EXPECT_STR_CONTAINS(output, ".active = true, .can_write = true");
             EXPECT_STR_CONTAINS(output, "pgy_write_Int(&scores, 42)");
             EXPECT_STR_NOT_CONTAINS(output, "pgy_claim_Int(&scores");
         }

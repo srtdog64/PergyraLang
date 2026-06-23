@@ -50,9 +50,16 @@ Current beta status:
   while giving C and LLVM a shared call surface for source-level pin cleanup.
 - C source-block emission now lowers a recognized pin block to a typed wrapper
   local with a GCC cleanup hook (`pgy_unpin_cleanup_*` /
-  `pgy_secure_unpin_cleanup_*`). C MIR emission now also consumes pin-region
-  metadata through `src/codegen/transpiler_mir_pin_emit.h` and emits explicit
-  typed pin/unpin calls before successor and return exits.
+  `pgy_secure_unpin_cleanup_*`). C MIR emission consumes pin-region metadata
+  through `src/codegen/transpiler_mir_pin_emit.h`. For plain `Slot<T>` MIR pin
+  regions with cleanup-edge evidence, it emits a preflight local plus
+  `PgyPinnedSlotView_*` initializer directly; secure pin still emits typed
+  secure pin/unpin calls before successor and return exits.
+- LLVM MIR emission now lowers plain `Slot<T>` pin entry/exit as inline IR:
+  a null-slot guard, an `occupied` field load through canonical slot layout,
+  and direct `PgyPinnedSlotView_*` field stores. Secure pin still goes through
+  the secure runtime pin/unpin ABI because token validation is a capability
+  retain point, not a plain-slot layout operation.
 - `WriteView<T>` exclusive access is now enforced for the existing
   `ViewRead(...)` / `ViewWrite(...)` semantic surface: a new `WriteView<T>`
   conflicts with any active view of the same slot, and a new `ReadView<T>`
@@ -90,12 +97,16 @@ Current beta status:
 - The stable hot-path runtime lowering is still narrower than the design target:
   raw `PgyPinnedView` / `PergyraSlotPin` / `PergyraSlotUnpin` remains the
   table-backed hard non-eviction ABI, while generated inline slots use typed
-  wrapper views. Explicit cleanup-edge lowering is now implemented for C
-  source-blocks and for C/LLVM MIR successor/return slices over the frozen pin
-  backend-compare fixtures, including normal successor cleanup, direct return
-  from inside a pin block, conditional branch-to-return cleanup, and loop
-  `break`/`continue` cleanup. Secure boundary-slot parameters now use the same
-  pointer/token ABI in C and LLVM when pinned.
+  wrapper views. Plain C/LLVM MIR pin blocks with
+  `mir_block_has_pin_guard_amortization_region(...)` evidence no longer require
+  the plain `pgy_pin_*_init_*`, `pgy_pin_*`, or `pgy_unpin_*` runtime call path.
+  Source-block C cleanup still uses the typed cleanup-hook wrapper path, and
+  secure pins still retain the pointer/token runtime ABI in C and LLVM.
+  Explicit cleanup-edge lowering is implemented for C source-blocks and for
+  C/LLVM MIR successor/return slices over the frozen pin backend-compare
+  fixtures, including normal successor cleanup, direct return from inside a pin
+  block, conditional branch-to-return cleanup, and loop `break`/`continue`
+  cleanup.
 
 ## 2. Proposed Source Surface
 

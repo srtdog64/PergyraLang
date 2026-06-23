@@ -871,7 +871,8 @@ run_literal_doc_contract_smoke() {
     require_literal "src/semantic/type_checker_flow_loop_control.c" "loop_flow_record(loop_flow, is_break"
     require_literal "src/semantic/type_checker_lambda_capture.c" "PGY_CODE_SEM_BORROW_ESCAPE"
     require_literal "src/semantic/type_checker_lambda_capture.c" "capture_state_has_local"
-    require_literal "src/semantic/type_checker_lambda_capture.c" "beta lambdas lower to standalone callable bodies without a closure environment"
+    require_literal "src/semantic/type_checker_lambda_capture.c" "Stage A: a value-type local is captured by copy"
+    require_literal "src/semantic/type_checker_lambda_capture.c" "copy-capture wired only for callable-let init"
     require_literal "src/semantic/type_checker_flow_loops.c" "type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)"
     require_literal "src/semantic/type_checker_flow_loops.c" "type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)"
     require_literal "src/semantic/type_checker_flow.c" "flow_static_bool_value"
@@ -1992,7 +1993,7 @@ for term in [
     "method call records callable declaration body summary",
     "lambda body summary stays on lambda type",
     "lambda body summary does not leak to enclosing function",
-    "lambda local capture is rejected until closure environments exist",
+    "lambda value-type local is captured by copy (docs/135 Stage A)",
     "lambda block local shadow is not treated as capture",
     "lambda call propagates lambda body summary",
     "ReadView return escape uses pin escape diagnostic",

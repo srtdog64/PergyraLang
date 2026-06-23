@@ -42,6 +42,11 @@ require_text "docs/semantics/09_abstraction_loss_contracts.md" "Zone is a semant
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "World/Zone/Intent/Slot are source-level semantic axes, not backend-level"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "The chain World -> Zone -> Roster -> Role -> Intent -> Slot"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "Missing evidence fails closed."
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "## Erasure Decision Point"
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "The canonical erasure decision point is AIR's intent/boundary compression"
+require_text "docs/semantics/09_abstraction_loss_contracts.md" 'The owner artifact is `pgy.air.graph.v1`.'
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "These are not erasure decision points:"
+require_text "docs/semantics/09_abstraction_loss_contracts.md" '`tests/air_erasure`: it is the independent physical-residue oracle'
 require_text "docs/semantics/09_abstraction_loss_contracts.md" '`compression_budget` and'
 require_text "docs/semantics/09_abstraction_loss_contracts.md" '`consumer forbidden_to_recover fact from source`'
 require_text "docs/semantics/09_abstraction_loss_contracts.md" '`K compression budget fact`'
@@ -109,6 +114,9 @@ done
 require_text "docs/semantics/README.md" "09_abstraction_loss_contracts.md"
 require_text "docs/semantics/README.md" "pass_contract_manifest.md"
 require_text "docs/semantics/README.md" "proofs/IRMinimality.v"
+require_text "docs/semantics/14_air_erasure_measurement.md" "## 0a. Decision Point"
+require_text "docs/semantics/14_air_erasure_measurement.md" "The semantic erasure decision is made once: AIR classifies each intent and"
+require_text "docs/semantics/14_air_erasure_measurement.md" "The harness is an oracle for whether the AIR decision matched reality"
 require_text "docs/102_formal_semantics_and_proof_obligations.md" "docs/semantics/09_abstraction_loss_contracts.md"
 require_text "docs/104_air_compiler_architecture.md" "The general version of this rule is the abstraction loss contract"
 require_text "docs/37_compiler_contracts.md" "### Loss Contracts"

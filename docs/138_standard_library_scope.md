@@ -158,7 +158,7 @@ for such a search over stdlib kernels.)
 | module | ref | status | Pergyra seam | AI % | tier |
 | --- | --- | --- | --- | --- | --- |
 | core string ops | Rust `str`/`String` | builtin | UTF-8 owned vs borrowed | 70 | P0 |
-| string view (no-alloc) | `&str` | TODO ([[project_string_alloc_perf_workstream]]) | `StrView` borrow over owned buffer; lifetime via slot/zone | 30 | P0 |
+| string view (no-alloc) | `&str` | beta stdlib + fused builtins | `StrView` borrow over owned buffer; lifetime fact still to promote | 55 | P0 |
 | builder / rope | `String`+/rope | partial | fused no-alloc builders already 11x; rope is the next rung | 50 | P1 |
 | formatting | `format!` | partial (interpolation) | type-directed; effect-free | 70 | P1 |
 | parsing (num/bool) | `str::parse` | partial (int) | Result-returning, no throw | 85 | P1 |
