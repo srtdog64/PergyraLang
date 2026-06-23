@@ -30,9 +30,11 @@ Front-end self-hosts on both backends in LLVM-enabled builds.
   The parity set includes a deep nested generic type fixture so LLVM
   depth/type-name handling is covered. Parse failure rendering, source
   cursor/token reads, written type-name parsing, expression parsing,
-  statement/block parsing, function declaration/signature rendering, and compact
-  AST text formatting are owned by separate parser modules; broad declaration
-  parsing remains in the entry module. The current examples scale probe is
+  statement/block parsing, function declaration/signature rendering,
+  type/ability/event/enum declaration parsing, and compact AST text formatting
+  are owned by separate parser modules; recursive import/namespace and larger
+  domain declaration dispatch remain in the entry module. The current examples
+  scale probe is
   120 of 121 byte-equal against live `pgy --ast`, with zero byte-drift, zero
   self-host parser exits, and 1 C-oracle skip (`secure_slots`).
 - Backend parity: the parser compiled by the C backend and by the LLVM backend

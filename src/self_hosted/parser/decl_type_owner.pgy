@@ -1,0 +1,80 @@
+// Self-host parser type declaration owner.
+
+// `type NAME = { field: Type, ... }` is canonicalized by the C parser into a
+// nominal `Struct: NAME`; scalar aliases remain `TypeAlias` records.
+func ParseTypeDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String) -> String {
+    let i: Int = start + 4;
+    let n: Int = StringLength(content);
+    i = SkipWhitespaceAndComments(content, i);
+    ArraySet(cursor_out, 0, i);
+    let alias_name: String = ReadIdent(content, i, cursor_out);
+    i = cursor_out[0];
+    if StringLength(alias_name) == 0 {
+        Exit(1);
+    }
+    i = Expect(content, i, "=");
+    if i < 0 {
+        Exit(1);
+    }
+    i = SkipWhitespaceAndComments(content, i);
+    if CharAt(content, i) == "{" {
+        i = i + 1;
+        let alias_fields: String = "";
+        while true {
+            i = SkipWhitespaceAndComments(content, i);
+            if i >= n {
+                Exit(1);
+            }
+            if CharAt(content, i) == "}" {
+                i = i + 1;
+                break;
+            }
+            ArraySet(cursor_out, 0, i);
+            let af_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(af_name) == 0 {
+                Exit(1);
+            }
+            i = Expect(content, i, ":");
+            if i < 0 {
+                Exit(1);
+            }
+            ArraySet(cursor_out, 0, i);
+            let af_type: String = ReadType(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(af_type) == 0 {
+                Exit(1);
+            }
+            alias_fields = AppendLine(alias_fields, Concat("      ", Concat(af_name, Concat(": ", af_type))));
+            i = SkipWhitespaceAndComments(content, i);
+            if CharAt(content, i) == "," || CharAt(content, i) == ";" {
+                i = i + 1;
+            } else if CharAt(content, i) != "}" {
+                Exit(1);
+            }
+        }
+        let alias_out: String = Concat("  Struct: ", Concat(decl_prefix, alias_name));
+        if StringLength(alias_fields) > 0 {
+            alias_out = AppendLine(alias_out, "    Fields:");
+            alias_out = AppendLine(alias_out, alias_fields);
+        }
+        i = ConsumeStmtTerminator(content, i);
+        if i < 0 {
+            i = SkipWhitespaceAndComments(content, i);
+        }
+        ArraySet(cursor_out, 0, i);
+        return alias_out;
+    }
+    ArraySet(cursor_out, 0, i);
+    let alias_target: String = ReadType(content, i, cursor_out);
+    i = cursor_out[0];
+    if StringLength(alias_target) == 0 {
+        Exit(1);
+    }
+    i = ConsumeStmtTerminator(content, i);
+    if i < 0 {
+        Exit(1);
+    }
+    ArraySet(cursor_out, 0, i);
+    return Concat("  TypeAlias: ", Concat(decl_prefix, Concat(alias_name, Concat(" = ", alias_target))));
+}

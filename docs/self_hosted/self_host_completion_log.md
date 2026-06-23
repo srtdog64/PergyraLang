@@ -38,8 +38,8 @@ rewrite history.
   zero byte-drift, zero self-host exits, 1 C-oracle skip. Parser ownership is
   partially split: parse failure rendering, source cursor/token reads, written
   type-name parsing, expression parsing, statement/block parsing, function
-  declaration/signature rendering, and compact AST text formatting are separate
-  owner modules.
+  declaration/signature rendering, type/ability/event/enum declaration parsing,
+  and compact AST text formatting are separate owner modules.
 - **Backend parity**: parser compiled by C and by LLVM produce byte-identical
   output -- the core self-host correctness signal.
 - **Compiler core**: capability-5 single-source-of-truth is READY for the
@@ -654,3 +654,19 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   is no longer blocked. The "don't grind text coverage" conclusion still holds
   (that is BDFL direction, independent of the bug); but parser work *can* now be
   validated on LLVM.
+
+### 2026-06-23 -- parser declaration owner split
+
+- Continued the SoT-owner module split for `src/self_hosted/parser/`.
+  `main.pgy` remains the declaration orchestration loop, but the
+  self-contained `type`, first-class `ability`, `event`, and `enum` branches
+  now live in `decl_type_owner.pgy`, `decl_ability_owner.pgy`,
+  `decl_event_owner.pgy`, and `decl_enum_owner.pgy`.
+- This is deliberately not a feature expansion. It keeps the same text-tree
+  output while moving semantic branch ownership out of the monolithic entry
+  file. Recursive `import`/`namespace` and larger domain declarations stay in
+  `main.pgy` until their dependency direction can be split without re-opening
+  parser recursion.
+- The self-host preparation smoke now ratchets the new owner files, imports,
+  and entry functions so the branches cannot silently collapse back into
+  `main.pgy`.

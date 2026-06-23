@@ -20,6 +20,10 @@ import "stmt_parallel_owner.pgy";
 import "stmt_match_owner.pgy";
 import "stmt_owner.pgy";
 import "function_decl_owner.pgy";
+import "decl_type_owner.pgy";
+import "decl_ability_owner.pgy";
+import "decl_event_owner.pgy";
+import "decl_enum_owner.pgy";
 
 // Parse zero or more top-level declarations. `name_prefix` is prepended
 // to each emitted decl name and is non-empty inside `namespace` blocks
@@ -188,182 +192,17 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
             decl_prefix = Concat("__imp0_", name_prefix);
         }
 
-        // `type NAME = { field: Type, ... }` is canonicalized by the C parser
-        // into a nominal `Struct: NAME`. Preserve that single printed owner
-        // here instead of introducing a second alias-shaped tree.
         if MatchKeyword(content, i, "type") {
-            i = i + 4;
-            i = SkipWhitespaceAndComments(content, i);
-            ArraySet(cursor_out, 0, i);
-            let alias_name: String = ReadIdent(content, i, cursor_out);
+            let type_block: String = ParseTypeDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
-            if StringLength(alias_name) == 0 {
-                Exit(1);
-            }
-            i = Expect(content, i, "=");
-            if i < 0 {
-                Exit(1);
-            }
-            i = SkipWhitespaceAndComments(content, i);
-            if CharAt(content, i) == "{" {
-                i = i + 1;
-                let alias_fields: String = "";
-                while true {
-                    i = SkipWhitespaceAndComments(content, i);
-                    if i >= n {
-                        Exit(1);
-                    }
-                    if CharAt(content, i) == "}" {
-                        i = i + 1;
-                        break;
-                    }
-                    ArraySet(cursor_out, 0, i);
-                    let af_name: String = ReadIdent(content, i, cursor_out);
-                    i = cursor_out[0];
-                    if StringLength(af_name) == 0 {
-                        Exit(1);
-                    }
-                    i = Expect(content, i, ":");
-                    if i < 0 {
-                        Exit(1);
-                    }
-                    ArraySet(cursor_out, 0, i);
-                    let af_type: String = ReadType(content, i, cursor_out);
-                    i = cursor_out[0];
-                    if StringLength(af_type) == 0 {
-                        Exit(1);
-                    }
-                    alias_fields = AppendLine(alias_fields, Concat("      ", Concat(af_name, Concat(": ", af_type))));
-                    i = SkipWhitespaceAndComments(content, i);
-                    if CharAt(content, i) == "," || CharAt(content, i) == ";" {
-                        i = i + 1;
-                    } else if CharAt(content, i) != "}" {
-                        Exit(1);
-                    }
-                }
-                let alias_out: String = Concat("  Struct: ", Concat(decl_prefix, alias_name));
-                if StringLength(alias_fields) > 0 {
-                    alias_out = AppendLine(alias_out, "    Fields:");
-                    alias_out = AppendLine(alias_out, alias_fields);
-                }
-                out = AppendLine(out, alias_out);
-                i = ConsumeStmtTerminator(content, i);
-                if i < 0 {
-                    i = SkipWhitespaceAndComments(content, i);
-                }
-                continue;
-            }
-            ArraySet(cursor_out, 0, i);
-            let alias_target: String = ReadType(content, i, cursor_out);
-            i = cursor_out[0];
-            if StringLength(alias_target) == 0 {
-                Exit(1);
-            }
-            i = ConsumeStmtTerminator(content, i);
-            if i < 0 {
-                Exit(1);
-            }
-            out = AppendLine(out, Concat("  TypeAlias: ", Concat(decl_prefix, Concat(alias_name, Concat(" = ", alias_target)))));
+            out = AppendLine(out, type_block);
             continue;
         }
 
-        // `ability NAME { func SIG; ... }` — declares an interface-
-        // shaped collection of function signatures. AST emits as
-        // `  [export] Ability: NAME` (the `[export]` prefix is always
-        // present in the C printer regardless of source `export`),
-        // followed by each method's signature block at base_indent=4
-        // (one level shallower than subject/class methods).
         if MatchKeyword(content, i, "ability") {
-            i = i + 7;
-            i = SkipWhitespaceAndComments(content, i);
-            ArraySet(cursor_out, 0, i);
-            let ab_name: String = ReadIdent(content, i, cursor_out);
+            let ability_block: String = ParseAbilityDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
-            if StringLength(ab_name) == 0 {
-                Exit(1);
-            }
-            let after_ab_ws: Int = SkipWhitespaceAndComments(content, i);
-            if CharAt(content, after_ab_ws) == "<" {
-                i = after_ab_ws + 1;
-                let gp_list: String = "";
-                while true {
-                    i = SkipWhitespaceAndComments(content, i);
-                    ArraySet(cursor_out, 0, i);
-                    let gp: String = ReadIdent(content, i, cursor_out);
-                    i = cursor_out[0];
-                    if StringLength(gp) == 0 {
-                        Exit(1);
-                    }
-                    if StringLength(gp_list) == 0 {
-                        gp_list = gp;
-                    } else {
-                        gp_list = Concat(gp_list, Concat(", ", gp));
-                    }
-                    i = SkipWhitespaceAndComments(content, i);
-                    if CharAt(content, i) == "," {
-                        i = i + 1;
-                        continue;
-                    }
-                    break;
-                }
-                if CharAt(content, i) != ">" {
-                    Exit(1);
-                }
-                i = i + 1;
-                ab_name = Concat(ab_name, Concat("<", Concat(gp_list, ">")));
-            }
-            i = Expect(content, i, "{");
-            if i < 0 {
-                Exit(1);
-            }
-            let sig_blocks: String = "";
-            while true {
-                i = SkipWhitespaceAndComments(content, i);
-                if i >= n {
-                    Exit(1);
-                }
-                if CharAt(content, i) == "}" {
-                    i = i + 1;
-                    break;
-                }
-                if MatchKeyword(content, i, "fields") {
-                    i = i + 6;
-                    i = SkipWhitespaceAndComments(content, i);
-                    ArraySet(cursor_out, 0, i);
-                    let req_name: String = ReadIdent(content, i, cursor_out);
-                    i = cursor_out[0];
-                    if StringLength(req_name) == 0 {
-                        Exit(1);
-                    }
-                    i = Expect(content, i, ":");
-                    if i < 0 {
-                        Exit(1);
-                    }
-                    ArraySet(cursor_out, 0, i);
-                    let req_type: String = ReadType(content, i, cursor_out);
-                    i = cursor_out[0];
-                    if StringLength(req_type) == 0 {
-                        Exit(1);
-                    }
-                    i = ConsumeStmtTerminator(content, i);
-                    if i < 0 {
-                        Exit(1);
-                    }
-                    sig_blocks = AppendLine(sig_blocks, Concat("    Require: ", Concat(req_name, Concat(": ", req_type))));
-                    continue;
-                }
-                if !MatchKeyword(content, i, "func") {
-                    Exit(1);
-                }
-                ArraySet(cursor_out, 0, i);
-                let sig: String = ParseFunction(content, i, cursor_out, "", false, 4, "func", "Function: ", true, "");
-                i = cursor_out[0];
-                sig_blocks = AppendLine(sig_blocks, sig);
-            }
-            out = AppendLine(out, Concat("  [export] Ability: ", Concat(decl_prefix, ab_name)));
-            if StringLength(sig_blocks) > 0 {
-                out = AppendLine(out, sig_blocks);
-            }
+            out = AppendLine(out, ability_block);
             continue;
         }
 
@@ -1823,141 +1662,17 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
             continue;
         }
 
-        // `event NAME(PNAME: PTYPE, ...);` — top-level event signature.
-        // Each parameter is emitted in the C printer's quirky shape as
-        // `Let: PNAME : PTYPE = (null)`.
         if MatchKeyword(content, i, "event") {
-            i = i + 5;
-            i = SkipWhitespaceAndComments(content, i);
-            ArraySet(cursor_out, 0, i);
-            let ev_name: String = ReadIdent(content, i, cursor_out);
+            let event_block: String = ParseEventDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
-            if StringLength(ev_name) == 0 {
-                Exit(1);
-            }
-            i = SkipWhitespaceAndComments(content, i);
-            if CharAt(content, i) == ":" {
-                i = i + 1;
-            }
-            i = Expect(content, i, "(");
-            if i < 0 {
-                Exit(1);
-            }
-            let ev_params: Array<String> = [];
-            i = SkipWhitespaceAndComments(content, i);
-            if CharAt(content, i) != ")" {
-                while true {
-                    i = SkipWhitespaceAndComments(content, i);
-                    ArraySet(cursor_out, 0, i);
-                    let p_name: String = ReadIdent(content, i, cursor_out);
-                    i = cursor_out[0];
-                    if StringLength(p_name) == 0 {
-                        Exit(1);
-                    }
-                    i = Expect(content, i, ":");
-                    if i < 0 {
-                        Exit(1);
-                    }
-                    ArraySet(cursor_out, 0, i);
-                    let p_type: String = ReadType(content, i, cursor_out);
-                    i = cursor_out[0];
-                    if StringLength(p_type) == 0 {
-                        Exit(1);
-                    }
-                    ArrayPush(ev_params, Concat("      Let: ", Concat(p_name, Concat(" : ", Concat(p_type, " = (null)")))));
-                    i = SkipWhitespaceAndComments(content, i);
-                    if CharAt(content, i) == "," {
-                        i = i + 1;
-                        continue;
-                    }
-                    break;
-                }
-            }
-            i = Expect(content, i, ")");
-            if i < 0 {
-                Exit(1);
-            }
-            i = Expect(content, i, ";");
-            if i < 0 {
-                Exit(1);
-            }
-            out = AppendLine(out, Concat("  Event: ", Concat(decl_prefix, ev_name)));
-            let ev_len: Int = ArrayLength(ev_params);
-            if ev_len > 0 {
-                out = AppendLine(out, "    Parameters:");
-                let ei: Int = 0;
-                while ei < ev_len {
-                    out = AppendLine(out, ev_params[ei]);
-                    ei = ei + 1;
-                }
-            }
+            out = AppendLine(out, event_block);
             continue;
         }
 
-        // `enum NAME { V1, V2, V3 }` — single-line emission.
         if MatchKeyword(content, i, "enum") {
-            i = i + 4;
-            i = SkipWhitespaceAndComments(content, i);
-            ArraySet(cursor_out, 0, i);
-            let enum_name: String = ReadIdent(content, i, cursor_out);
+            let enum_block: String = ParseEnumDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
-            if StringLength(enum_name) == 0 {
-                Exit(1);
-            }
-            i = Expect(content, i, "{");
-            if i < 0 {
-                Exit(1);
-            }
-            let variants: String = "";
-            while true {
-                i = SkipWhitespaceAndComments(content, i);
-                if i >= n {
-                    Exit(1);
-                }
-                if CharAt(content, i) == "}" {
-                    i = i + 1;
-                    break;
-                }
-                ArraySet(cursor_out, 0, i);
-                let v_name: String = ReadIdent(content, i, cursor_out);
-                i = cursor_out[0];
-                if StringLength(v_name) == 0 {
-                    Exit(1);
-                }
-                // Optional variant data: `Circle(Int)`, `Rect(Int, Int)`.
-                // The C printer drops the data tuple from the AST and
-                // emits just the variant name. We skip past matching
-                // `(...)` if present.
-                i = SkipWhitespaceAndComments(content, i);
-                if CharAt(content, i) == "(" {
-                    let depth: Int = 1;
-                    i = i + 1;
-                    while i < n && depth > 0 {
-                        let ch: String = CharAt(content, i);
-                        if ch == "(" {
-                            depth = depth + 1;
-                        } else if ch == ")" {
-                            depth = depth - 1;
-                            if depth == 0 {
-                                i = i + 1;
-                                break;
-                            }
-                        }
-                        i = i + 1;
-                    }
-                }
-                if StringLength(variants) == 0 {
-                    variants = v_name;
-                } else {
-                    variants = Concat(variants, Concat(", ", v_name));
-                }
-                i = SkipWhitespaceAndComments(content, i);
-                if CharAt(content, i) == "," {
-                    i = i + 1;
-                    continue;
-                }
-            }
-            out = AppendLine(out, Concat("  Enum: ", Concat(decl_prefix, Concat(enum_name, Concat(" { ", Concat(variants, " }"))))));
+            out = AppendLine(out, enum_block);
             continue;
         }
 

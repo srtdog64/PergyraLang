@@ -1,0 +1,99 @@
+// Self-host parser ability declaration owner.
+
+// `ability NAME { func SIG; ... }` declares an interface-shaped collection of
+// function signatures. AST emits as `  [export] Ability: NAME`.
+func ParseAbilityDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String) -> String {
+    let i: Int = start + 7;
+    let n: Int = StringLength(content);
+    i = SkipWhitespaceAndComments(content, i);
+    ArraySet(cursor_out, 0, i);
+    let ab_name: String = ReadIdent(content, i, cursor_out);
+    i = cursor_out[0];
+    if StringLength(ab_name) == 0 {
+        Exit(1);
+    }
+    let after_ab_ws: Int = SkipWhitespaceAndComments(content, i);
+    if CharAt(content, after_ab_ws) == "<" {
+        i = after_ab_ws + 1;
+        let gp_list: String = "";
+        while true {
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let gp: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(gp) == 0 {
+                Exit(1);
+            }
+            if StringLength(gp_list) == 0 {
+                gp_list = gp;
+            } else {
+                gp_list = Concat(gp_list, Concat(", ", gp));
+            }
+            i = SkipWhitespaceAndComments(content, i);
+            if CharAt(content, i) == "," {
+                i = i + 1;
+                continue;
+            }
+            break;
+        }
+        if CharAt(content, i) != ">" {
+            Exit(1);
+        }
+        i = i + 1;
+        ab_name = Concat(ab_name, Concat("<", Concat(gp_list, ">")));
+    }
+    i = Expect(content, i, "{");
+    if i < 0 {
+        Exit(1);
+    }
+    let sig_blocks: String = "";
+    while true {
+        i = SkipWhitespaceAndComments(content, i);
+        if i >= n {
+            Exit(1);
+        }
+        if CharAt(content, i) == "}" {
+            i = i + 1;
+            break;
+        }
+        if MatchKeyword(content, i, "fields") {
+            i = i + 6;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let req_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(req_name) == 0 {
+                Exit(1);
+            }
+            i = Expect(content, i, ":");
+            if i < 0 {
+                Exit(1);
+            }
+            ArraySet(cursor_out, 0, i);
+            let req_type: String = ReadType(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(req_type) == 0 {
+                Exit(1);
+            }
+            i = ConsumeStmtTerminator(content, i);
+            if i < 0 {
+                Exit(1);
+            }
+            sig_blocks = AppendLine(sig_blocks, Concat("    Require: ", Concat(req_name, Concat(": ", req_type))));
+            continue;
+        }
+        if !MatchKeyword(content, i, "func") {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        let sig: String = ParseFunction(content, i, cursor_out, "", false, 4, "func", "Function: ", true, "");
+        i = cursor_out[0];
+        sig_blocks = AppendLine(sig_blocks, sig);
+    }
+    let ability_out: String = Concat("  [export] Ability: ", Concat(decl_prefix, ab_name));
+    if StringLength(sig_blocks) > 0 {
+        ability_out = AppendLine(ability_out, sig_blocks);
+    }
+    ArraySet(cursor_out, 0, i);
+    return ability_out;
+}

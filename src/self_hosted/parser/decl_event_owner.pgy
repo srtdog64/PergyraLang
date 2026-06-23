@@ -1,0 +1,71 @@
+// Self-host parser event declaration owner.
+
+// `event NAME(PNAME: PTYPE, ...);` top-level event signature.
+func ParseEventDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String) -> String {
+    let i: Int = start + 5;
+    i = SkipWhitespaceAndComments(content, i);
+    ArraySet(cursor_out, 0, i);
+    let ev_name: String = ReadIdent(content, i, cursor_out);
+    i = cursor_out[0];
+    if StringLength(ev_name) == 0 {
+        Exit(1);
+    }
+    i = SkipWhitespaceAndComments(content, i);
+    if CharAt(content, i) == ":" {
+        i = i + 1;
+    }
+    i = Expect(content, i, "(");
+    if i < 0 {
+        Exit(1);
+    }
+    let ev_params: Array<String> = [];
+    i = SkipWhitespaceAndComments(content, i);
+    if CharAt(content, i) != ")" {
+        while true {
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let p_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(p_name) == 0 {
+                Exit(1);
+            }
+            i = Expect(content, i, ":");
+            if i < 0 {
+                Exit(1);
+            }
+            ArraySet(cursor_out, 0, i);
+            let p_type: String = ReadType(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(p_type) == 0 {
+                Exit(1);
+            }
+            ArrayPush(ev_params, Concat("      Let: ", Concat(p_name, Concat(" : ", Concat(p_type, " = (null)")))));
+            i = SkipWhitespaceAndComments(content, i);
+            if CharAt(content, i) == "," {
+                i = i + 1;
+                continue;
+            }
+            break;
+        }
+    }
+    i = Expect(content, i, ")");
+    if i < 0 {
+        Exit(1);
+    }
+    i = Expect(content, i, ";");
+    if i < 0 {
+        Exit(1);
+    }
+    let event_out: String = Concat("  Event: ", Concat(decl_prefix, ev_name));
+    let ev_len: Int = ArrayLength(ev_params);
+    if ev_len > 0 {
+        event_out = AppendLine(event_out, "    Parameters:");
+        let ei: Int = 0;
+        while ei < ev_len {
+            event_out = AppendLine(event_out, ev_params[ei]);
+            ei = ei + 1;
+        }
+    }
+    ArraySet(cursor_out, 0, i);
+    return event_out;
+}
