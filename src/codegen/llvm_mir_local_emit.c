@@ -39,27 +39,6 @@ llvm_mir_local_source_fact(const MIRRoutine *routine, const char *name)
     return fact;
 }
 
-static size_t
-llvm_mir_source_local_def_count(const MIRRoutine *routine,
-                                const char *base_name)
-{
-    size_t count = 0;
-
-    if (routine == NULL || base_name == NULL)
-        return 0;
-    for (size_t bi = 0; bi < routine->block_count; bi++) {
-        const MIRBasicBlock *block = &routine->blocks[bi];
-        if (block == NULL || !block->is_reachable || block->is_cleanup)
-            continue;
-        for (size_t i = 0; i < block->source_local_def_count; i++) {
-            const char *name = block->source_local_defs[i];
-            if (name != NULL && strcmp(name, base_name) == 0)
-                count++;
-        }
-    }
-    return count;
-}
-
 static LLVMTypeRef
 llvm_mir_local_type_from_source_fact_entry(LLVMGenCtx *ctx,
                                            const MIRSourceLocalType *fact)
@@ -581,9 +560,6 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                 vars[var_count].type = alloca_type;
                 vars[var_count].alloca = llvm_create_entry_alloca(
                     ctx, alloca_type, inst->result_name);
-                /* Closure #70: pre-initialize host-field-aliased SSA locals
-                 * from the host field so branch reads do not observe uninit
-                 * stack before a prior SSA-DEF. */
                 if (has_base_name && vars[var_count].alloca != NULL
                     && llvm_current_host_class_name(ctx) != NULL
                     && llvm_scope_contains(ctx, "self")) {
@@ -686,9 +662,11 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                         vars[var_count].alloca, elem_type, -1);
                 }
                 if (has_base_name) {
-                    LLVMClassTypeEntry *value_cls = llvm_stmt_lookup_class_by_type(ctx, vars[var_count].type);
+                    LLVMClassTypeEntry *value_cls =
+                        llvm_stmt_lookup_class_by_type(ctx, vars[var_count].type);
                     if (value_cls != NULL) {
-                        llvm_register_var_class(ctx, base_name, value_cls->class_name);
+                        llvm_register_var_class(ctx, base_name,
+                            value_cls->class_name);
                     }
                 }
                 var_count++;

@@ -13,6 +13,7 @@
 #include "../semantic/diag_codes.h"
 #include "codegen_channel_runtime_abi.h"
 #include "transpiler_context.h"
+#include "transpiler_specialization_registry.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
 
@@ -154,6 +155,11 @@ transpiler_require_type_name_c_type_copy(TranspilerCtx *ctx,
 
     const char *resolved_type_name =
         transpiler_bound_type_name(ctx, eff_type_name);
+    const char *generic_class_type_name =
+        transpiler_ensure_generic_class_specialization_from_type_name(
+            ctx, resolved_type_name);
+    if (generic_class_type_name != NULL)
+        resolved_type_name = generic_class_type_name;
 
     if (resolved_type_name[0] >= 'A' && resolved_type_name[0] <= 'Z'
         && resolved_type_name[1] == '\0') {

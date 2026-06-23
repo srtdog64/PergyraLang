@@ -536,7 +536,11 @@ grep -Fq "MIR-only C path missing callable let return signature metadata" \
     "$ROOT_DIR/src/codegen/transpiler_let_emit.c"
 grep -Fq "transpiler_find_host_method_metadata_in_context" \
     "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"
-grep -Fq "host_method_meta == NULL && !transpiler_active_has_mir(ctx)" \
+grep -Fq "host_method_meta == NULL" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"
+grep -Fq "decl == NULL" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"
+grep -Fq "MIR-only C path missing hosted self-call method metadata" \
     "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"
 grep -Fq "MIR-only C path missing MIR local member-call return type-name metadata" \
     "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.c"

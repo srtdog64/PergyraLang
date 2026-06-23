@@ -676,6 +676,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_specialization_registry.c \
                    $(CODEGEN_DIR)/transpiler_specialization_scan.c \
                    $(CODEGEN_DIR)/transpiler_specialization_type_name_scan.c \
+                   $(CODEGEN_DIR)/transpiler_tuple_specialization_registry.c \
                    $(CODEGEN_DIR)/transpiler_type_result_mapping_helpers.c \
                    $(CODEGEN_DIR)/transpiler_func_forward_policy.c \
                    $(CODEGEN_DIR)/transpiler_func_forward_emit.c \

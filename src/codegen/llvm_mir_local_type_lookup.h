@@ -7,6 +7,8 @@
 LLVMTypeRef llvm_mir_local_type_from_vars(LLVMMirVar *vars,
                                           size_t var_count,
                                           const char *name);
+size_t llvm_mir_source_local_def_count(const MIRRoutine *routine,
+                                       const char *base_name);
 ASTNode *llvm_mir_local_initializer_expr(ASTNode *expr);
 LLVMTypeRef llvm_mir_local_type_from_value_fact(const MIRInstruction *inst,
                                                 LLVMMirVar *vars,

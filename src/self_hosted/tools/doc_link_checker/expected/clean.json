@@ -1,1 +1,1 @@
-{"schema":"pgy.selfhost.doc-link-checker.v1","ok":true,"source":{"index_owner":"docs/INDEX.md"},"counts":{"total_links":116,"md_links":113,"missing_links":0},"findings":[]}
+{"schema":"pgy.selfhost.doc-link-checker.v1","ok":true,"source":{"index_owner":"docs/INDEX.md"},"counts":{"total_links":117,"md_links":114,"missing_links":0},"findings":[]}

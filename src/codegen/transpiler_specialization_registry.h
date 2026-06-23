@@ -17,6 +17,9 @@ void ensure_collection_specialization_to(TranspilerCtx *ctx,
 void ensure_collection_specialization(TranspilerCtx *ctx,
                                       const char *kind,
                                       const char *inner_type);
+void ensure_tuple_specialization_from_ast_to(TranspilerCtx *ctx,
+                                             CodeBuf *dst,
+                                             ASTNode *tuple_type);
 void ensure_tuple_specialization_from_type_name_to(TranspilerCtx *ctx,
                                                    CodeBuf *dst,
                                                    const char *type_name);

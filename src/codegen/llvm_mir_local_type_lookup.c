@@ -39,6 +39,27 @@ llvm_mir_local_type_from_vars(LLVMMirVar *vars, size_t var_count,
     return NULL;
 }
 
+size_t
+llvm_mir_source_local_def_count(const MIRRoutine *routine,
+                                const char *base_name)
+{
+    size_t count = 0;
+
+    if (routine == NULL || base_name == NULL)
+        return 0;
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block == NULL || !block->is_reachable || block->is_cleanup)
+            continue;
+        for (size_t i = 0; i < block->source_local_def_count; i++) {
+            const char *name = block->source_local_defs[i];
+            if (name != NULL && strcmp(name, base_name) == 0)
+                count++;
+        }
+    }
+    return count;
+}
+
 ASTNode *
 llvm_mir_local_initializer_expr(ASTNode *expr)
 {
