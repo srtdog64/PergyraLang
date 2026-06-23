@@ -15,6 +15,7 @@ import "tree_text_owner.pgy";
 import "type_name_owner.pgy";
 import "expr_string_owner.pgy";
 import "expr_primary_owner.pgy";
+import "expr_postfix_owner.pgy";
 import "expr_precedence_owner.pgy";
 import "stmt_if_owner.pgy";
 import "stmt_loop_owner.pgy";

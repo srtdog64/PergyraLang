@@ -1,0 +1,154 @@
+// Self-host parser postfix expression owner.
+
+func ApplyPostfixExpr(content: String, base_start: String, after_base: Int, inout cursor_out: Array<Int>) -> String {
+    let base: String = base_start;
+    let i: Int = after_base;
+
+    // Postfix loop: call, indexing, try, member access, object init, and a
+    // leading turbofish that is consumed only when it belongs to a call.
+    while true {
+        let after_ws: Int = SkipWhitespaceAndComments(content, i);
+        let nc: String = CharAt(content, after_ws);
+        if nc == "<" {
+            // Tentatively skip a nested `<...>` type-argument list and only
+            // commit if the char after the matching `>` is `(`. Otherwise
+            // leave `<` for comparison parsing.
+            let tf: Int = after_ws + 1;
+            let tf_depth: Int = 1;
+            let tf_ok: Bool = false;
+            while tf < StringLength(content) && tf_depth > 0 {
+                if CharAt(content, tf) == "<" {
+                    tf_depth = tf_depth + 1;
+                } else if CharAt(content, tf) == ">" {
+                    tf_depth = tf_depth - 1;
+                }
+                tf = tf + 1;
+            }
+            if tf_depth == 0 {
+                let after_gt: Int = SkipWhitespaceAndComments(content, tf);
+                if CharAt(content, after_gt) == "(" {
+                    tf_ok = true;
+                    i = tf;
+                }
+            }
+            if tf_ok {
+                continue;
+            }
+            ArraySet(cursor_out, 0, i);
+            break;
+        }
+        if nc == "{" {
+            let field_probe: Int = SkipWhitespaceAndComments(content, after_ws + 1);
+            let probe: Int = field_probe;
+            while IsAlphaNum(CharAt(content, probe)) {
+                probe = probe + 1;
+            }
+            let after_field_probe: Int = SkipWhitespaceAndComments(content, probe);
+            if !IsAlpha(CharAt(content, field_probe)) || CharAt(content, after_field_probe) != ":" {
+                ArraySet(cursor_out, 0, i);
+                break;
+            }
+            i = after_ws + 1;
+            let init_args: String = "";
+            i = SkipWhitespaceAndComments(content, i);
+            if CharAt(content, i) != "}" {
+                while true {
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let init_name: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    if StringLength(init_name) == 0 {
+                        Exit(1);
+                    }
+                    i = Expect(content, i, ":");
+                    if i < 0 {
+                        Exit(1);
+                    }
+                    ArraySet(cursor_out, 0, i);
+                    let init_value: String = ParseExpr(content, i, cursor_out);
+                    i = cursor_out[0];
+                    let init_pair: String = Concat(init_name, Concat(": ", init_value));
+                    if StringLength(init_args) == 0 {
+                        init_args = init_pair;
+                    } else {
+                        init_args = Concat(init_args, Concat(", ", init_pair));
+                    }
+                    i = SkipWhitespaceAndComments(content, i);
+                    if CharAt(content, i) == "," {
+                        i = i + 1;
+                        continue;
+                    }
+                    break;
+                }
+            }
+            i = Expect(content, i, "}");
+            if i < 0 {
+                Exit(1);
+            }
+            base = Concat(base, Concat("(", Concat(init_args, ")")));
+            continue;
+        }
+        if nc == "(" {
+            i = after_ws + 1;
+            let arg_text: String = "";
+            i = SkipWhitespaceAndComments(content, i);
+            if CharAt(content, i) != ")" {
+                while true {
+                    ArraySet(cursor_out, 0, i);
+                    let a: String = ParseExpr(content, i, cursor_out);
+                    i = cursor_out[0];
+                    if StringLength(arg_text) == 0 {
+                        arg_text = a;
+                    } else {
+                        arg_text = Concat(arg_text, Concat(", ", a));
+                    }
+                    i = SkipWhitespaceAndComments(content, i);
+                    if CharAt(content, i) == "," {
+                        i = i + 1;
+                        continue;
+                    }
+                    break;
+                }
+            }
+            i = Expect(content, i, ")");
+            if i < 0 {
+                Exit(1);
+            }
+            base = Concat(base, Concat("(", Concat(arg_text, ")")));
+            continue;
+        }
+        if nc == "[" {
+            i = after_ws + 1;
+            ArraySet(cursor_out, 0, i);
+            let idx: String = ParseExpr(content, i, cursor_out);
+            i = cursor_out[0];
+            i = Expect(content, i, "]");
+            if i < 0 {
+                Exit(1);
+            }
+            base = Concat(base, Concat("[", Concat(idx, "]")));
+            continue;
+        }
+        if nc == "?" {
+            i = after_ws + 1;
+            base = Concat("(?", Concat(base, ")"));
+            continue;
+        }
+        if nc == "." && CharAt(content, after_ws + 1) != "." {
+            i = after_ws + 1;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let member: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(member) == 0 {
+                Exit(1);
+            }
+            base = Concat(base, Concat(".", member));
+            continue;
+        }
+        break;
+    }
+
+    ArraySet(cursor_out, 0, i);
+    return base;
+}

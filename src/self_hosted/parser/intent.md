@@ -28,6 +28,10 @@ parity and the examples scale probe.
   `stmt_loop_owner.pgy` owns `while`/`loop`/`for`, alongside the existing
   `stmt_if_owner.pgy`, `stmt_parallel_owner.pgy`, and `stmt_match_owner.pgy`
   branches.
+- **expression_owner**: `expr_primary_owner.pgy` owns primary expression roots;
+  `expr_postfix_owner.pgy` owns the postfix chain for calls, indexes, member
+  access, object-init syntax, postfix try, and call-only turbofish consumption;
+  `expr_precedence_owner.pgy` owns expression precedence.
 - Current committed grammar surface:
   - top-level `[async]? [export]? func<T,U>`, `subject`, `class`, `vessel`,
     `struct`, `object`, `tobject`, `type` aliases/record aliases, `enum`,
@@ -43,8 +47,9 @@ parity and the examples scale probe.
     `with slot<TYPE> as VAR { ... }`.
   - expressions: unary `!`, `-`, `<-`, `spawn`, `spawn blocking`, `await`;
     binary precedence through arithmetic, pipe, comparison, `&&`, `||`;
-    literals, identifiers, grouped/list/object-init primaries, tuple erasure,
-    lambdas, calls, indexing, member access, postfix `?`, turbofish, `async {}`
+    literals, identifiers, grouped/list primaries, tuple erasure, lambdas,
+    postfix object init, calls, indexing, member access, postfix `?`,
+    turbofish, `async {}`
     / `parallel (...) join with all {}` expression blocks, dollar string
     interpolation, and common duration suffixes.
 

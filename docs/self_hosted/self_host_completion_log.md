@@ -884,3 +884,19 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   function in `stmt_owner.pgy`. Verified with
   `bash tests/self_hosted_component_contract_smoke.sh` and
   `make self-host-parser-parity-test-smoke`.
+
+### 2026-06-23 -- parser postfix expression owner split
+
+- Moved postfix expression-chain parsing out of
+  `src/self_hosted/parser/expr_primary_owner.pgy` into
+  `src/self_hosted/parser/expr_postfix_owner.pgy`.
+- `expr_primary_owner.pgy` now owns primary expression roots only; postfix
+  calls, indexes, member access, postfix try, object-init syntax, and
+  call-only turbofish consumption are consumed through `ApplyPostfixExpr`.
+- Contract ratchet: `tests/self_hosted_component_contract_smoke.sh` now requires
+  `expr_postfix_owner.pgy`, requires `func ApplyPostfixExpr` there, and rejects
+  `Postfix loop:` from `expr_primary_owner.pgy`. Verified with
+  `bash tests/self_hosted_component_contract_smoke.sh` and
+  `make self-host-parser-parity-test-smoke`,
+  `make test-inc-size-test-smoke`, and
+  `make self-host-preparation-test-smoke`.

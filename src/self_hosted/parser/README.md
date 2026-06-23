@@ -14,6 +14,12 @@ inventing a second AST serialization format.
 - `source_path_owner.pgy` - parser input-path SoT. Owns the argv/default source
   path, source-dir extraction, import path resolution, and imported-source
   marker.
+- `expr_primary_owner.pgy` - primary expression root owner. Owns literals,
+  identifiers, lambdas, grouped expressions, array literals, and expression
+  block shims before postfix consumption.
+- `expr_postfix_owner.pgy` - postfix expression chain owner. Owns calls,
+  indexes, member access, postfix try, object-init syntax, and call-only
+  turbofish consumption.
 - `stmt_owner.pgy` - statement dispatch and block parsing owner. It delegates
   branch-specific statement syntax to statement owners instead of carrying every
   statement shape itself.

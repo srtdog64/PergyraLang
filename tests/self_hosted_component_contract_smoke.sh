@@ -123,9 +123,12 @@ require_owner_surface parser \
     "cursor_owner.pgy" \
     "source_path_owner.pgy" \
     "tree_text_owner.pgy" \
+    "expr_postfix_owner.pgy" \
     "stmt_loop_owner.pgy" \
     "decl_dispatch_owner.pgy" \
     "program_parse_owner.pgy"
+require_text "src/self_hosted/parser/expr_postfix_owner.pgy" "func ApplyPostfixExpr"
+reject_text "src/self_hosted/parser/expr_primary_owner.pgy" "Postfix loop:"
 require_text "src/self_hosted/parser/stmt_loop_owner.pgy" "func ParseForStmt"
 reject_text "src/self_hosted/parser/stmt_owner.pgy" "func ParseForStmt"
 require_owner_surface semantic \
