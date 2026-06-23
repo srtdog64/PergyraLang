@@ -1,0 +1,12 @@
+// Self-host parser error owner.
+
+func Fail(msg: String, content: String, i: Int) -> Void {
+    let n: Int = StringLength(content);
+    let len: Int = 40;
+    if i + len > n {
+        len = n - i;
+    }
+    let context: String = Substring(content, i, len);
+    Log(Concat("PARSE ERROR: ", Concat(msg, Concat(" at character ", Concat(ToString(i), Concat(" near: '", Concat(context, "'")))))));
+    Exit(1);
+}

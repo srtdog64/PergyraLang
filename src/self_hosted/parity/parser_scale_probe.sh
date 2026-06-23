@@ -27,7 +27,7 @@ SOURCE_OVERRIDE="$ROOT_DIR/src/self_hosted/parser/fixture/source.txt"
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 rm -f "$PERGYRA_TOOL_BUILD_DIR/main.exe"
-cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
+cp "$ROOT_DIR/src/self_hosted/parser/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"
 
 echo "[scale-probe] compiling parser..."
 (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")" -o "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_BUILD_DIR/main.exe")" >/dev/null)

@@ -22,13 +22,16 @@ Front-end self-hosts on both backends in LLVM-enabled builds.
   and the live drift guard confirms those fixtures still match the current
   oracle. The broader lexer scale probe remains 191 of 195 historical sources
   byte-equal.
-- Parser (src/self_hosted/parser/main.pgy): compiles on C and LLVM and compares
+- Parser (src/self_hosted/parser/): compiles on C and LLVM and compares
   byte-identical against `pgy --ast` on 188 committed source fixtures. It parses
   the domain grammar, not just generic constructs: it dispatches on zone, world,
   party, role, and intent keywords, plus bind, if, within-zone, and intent
   steps, intent retry declaration metadata, with full expression precedence.
   The parity set includes a deep nested generic type fixture so LLVM
-  depth/type-name handling is covered. The current examples scale probe is
+  depth/type-name handling is covered. Parse failure rendering and source
+  cursor/token reads are owned by separate parser modules; expression,
+  statement, and declaration parsing remain in the entry module. The current
+  examples scale probe is
   120 of 121 byte-equal against live `pgy --ast`, with zero byte-drift, zero
   self-host parser exits, and 1 C-oracle skip (`secure_slots`).
 - Backend parity: the parser compiled by the C backend and by the LLVM backend

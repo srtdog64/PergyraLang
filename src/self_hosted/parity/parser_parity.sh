@@ -44,7 +44,7 @@ if [[ ! -f "$EXPECTED_FILE" ]]; then
 fi
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
-cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
+cp "$ROOT_DIR/src/self_hosted/parser/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"
 
 # Sources: each pair is "<source.pgy path relative to repo root>:<fixture base>"
 # where fixture base resolves to fixture/<base>_ast.txt.
