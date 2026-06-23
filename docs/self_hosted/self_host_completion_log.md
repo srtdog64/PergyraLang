@@ -855,3 +855,18 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `make self-host-codegen-parity-test-smoke`,
   `make test-inc-size-test-smoke`, and
   `make self-host-preparation-test-smoke`.
+
+### 2026-06-23 -- codegen struct value owner split
+
+- Moved struct-valued expression lowering out of `stmt_emit.pgy` into
+  `src/self_hosted/codegen/struct_value_emit.pgy`.
+- `EmitLet`, `EmitAssign`, and `EmitReturn` still consume the same
+  `EmitStructValue` boundary; literal/pass-through policy is now owned by the
+  struct value owner.
+- Contract ratchet: `tests/self_hosted_component_contract_smoke.sh` now requires
+  `struct_value_emit.pgy`, requires `func EmitStructValue` there, and rejects
+  that function in `stmt_emit.pgy`. Verified with
+  `bash tests/self_hosted_component_contract_smoke.sh`,
+  `make self-host-codegen-parity-test-smoke`,
+  `make test-inc-size-test-smoke`, and
+  `make self-host-preparation-test-smoke`.

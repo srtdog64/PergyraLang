@@ -137,8 +137,11 @@ require_owner_surface codegen \
     "codegen_run_owner.pgy" \
     "text_owner.pgy" \
     "type_env.pgy" \
+    "struct_value_emit.pgy" \
     "stmt_emit.pgy" \
     "program_emit.pgy"
+require_text "src/self_hosted/codegen/struct_value_emit.pgy" "func EmitStructValue"
+reject_text "src/self_hosted/codegen/stmt_emit.pgy" "func EmitStructValue"
 require_owner_surface mir_lower \
     "error_owner.pgy" \
     "mir_json_input_owner.pgy" \

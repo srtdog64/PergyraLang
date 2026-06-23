@@ -4,6 +4,7 @@ import "text_owner.pgy";
 import "type_env.pgy";
 import "expr_scan.pgy";
 import "expr_rewrite.pgy";
+import "struct_value_emit.pgy";
 import "stmt_emit.pgy";
 import "function_emit.pgy";
 import "program_emit.pgy";

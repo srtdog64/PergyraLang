@@ -9,8 +9,8 @@ open" freeze. Before that date this folder was a reserved stub.
 
 `main.pgy` is the thin CLI entrypoint. It imports owner modules for AST input,
 the codegen run boundary, text scanning, type environment lookup, expression
-rewriting, statement emission, function/declaration scanning, and program
-assembly. Together they consume
+rewriting, struct-valued expression lowering, statement emission,
+function/declaration scanning, and program assembly. Together they consume
 `pgy --ast` text for an `Int` / `Bool` / `String` / `Array<Int>` /
 `Array<String>` / `Option<Int>` / `Void` function subset and emit a
 self-contained C program
@@ -110,6 +110,9 @@ explanatory.
 `hello_ast.txt` fixture), the missing-file diagnostic, and the `ReadFile`
 boundary. `codegen_run_owner.pgy` owns the CLI-to-output orchestration that
 wires that owned AST text into `GenerateC`; `main.pgy` only calls the run owner.
+`struct_value_emit.pgy` owns struct-valued expression lowering used by `let`,
+assignment, and return paths; `stmt_emit.pgy` consumes that boundary instead of
+owning struct literal policy directly.
 
 Parity gate: `src/self_hosted/parity/codegen_parity.sh` builds `main.pgy` through
 the requested backend set, runs it on each of the 55 committed fixtures'

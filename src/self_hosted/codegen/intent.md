@@ -17,9 +17,10 @@ The tool reads one AST text path from `Args()[0]`, with the no-argument
 `hello_ast.txt` fixture as the default probe. `ast_input_owner.pgy` owns path
 selection, the missing-file diagnostic, and the file-read boundary.
 `codegen_run_owner.pgy` owns the CLI-to-output orchestration that feeds the
-owned input into `GenerateC`; `main.pgy` only calls that run owner. That AST
-must come from the live compiler's `pgy --ast` output for committed codegen
-fixtures. The accepted subset is:
+owned input into `GenerateC`; `main.pgy` only calls that run owner.
+`struct_value_emit.pgy` owns struct-valued expression lowering for the statement
+paths that need it. That AST must come from the live compiler's `pgy --ast`
+output for committed codegen fixtures. The accepted subset is:
 
 - one or more `func` declarations with exactly one `Main`;
 - `Int`, `Bool`, `String`, `Void`, growable `Array<Int>` / `Array<String>`
