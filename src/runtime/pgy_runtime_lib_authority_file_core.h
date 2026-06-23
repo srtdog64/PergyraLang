@@ -268,20 +268,35 @@ static PgyLifecycleEntryExt *
 pgy_runtime_lifecycle_slot_ext(const void *inst, int create)
 {
     static PgyLifecycleEntryExt entries[PGY_LIFECYCLE_MAP_CAP];
-    static int count = 0;
-    int i;
+    size_t cap = (size_t)PGY_LIFECYCLE_MAP_CAP;
+    uintptr_t h;
+    size_t start;
+    size_t probe;
 
     if (inst == NULL)
         return NULL;
-    for (i = 0; i < count; i++) {
-        if (entries[i].key == inst)
-            return &entries[i];
+    /* O(1) open-addressing hash over the instance pointer, replacing the prior
+     * O(count) linear scan (which degraded ~17x at ~200 live subjects; docs/136).
+     * key == NULL marks an empty slot (inst is never NULL here). Width-safe mix
+     * (no shift >= pointer width). Twin of the inline pgy_runtime_lifecycle_slot. */
+    h = (uintptr_t)inst;
+    h ^= h >> 7;
+    h *= (uintptr_t)2654435761u;
+    h ^= h >> 11;
+    start = (size_t)h % cap;
+    for (probe = 0; probe < cap; probe++) {
+        size_t idx = (start + probe) % cap;
+        if (entries[idx].key == inst)
+            return &entries[idx];
+        if (entries[idx].key == NULL) {
+            if (!create)
+                return NULL;
+            entries[idx].key = inst;
+            entries[idx].state = 0;
+            return &entries[idx];
+        }
     }
-    if (!create || count >= PGY_LIFECYCLE_MAP_CAP)
-        return NULL;
-    entries[count].key = inst;
-    entries[count].state = 0;
-    return &entries[count++];
+    return NULL;
 }
 
 void
