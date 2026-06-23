@@ -65,8 +65,8 @@ func GenerateC(ast: String) -> String {
     let defs: String = "";
     let cur: Array<Int> = [0];
     while cur[0] < count {
-        if StartsWith(texts[cur[0]], "Class: ") {
-            let owner_name: String = Substring(texts[cur[0]], 7, StringLength(texts[cur[0]]) - 7);
+        if IsNominalDeclLine(texts[cur[0]]) {
+            let owner_name: String = NominalDeclName(texts[cur[0]]);
             let owner_indent: Int = indents[cur[0]];
             ArraySet(cur, 0, cur[0] + 1);
             while cur[0] < count && indents[cur[0]] > owner_indent {

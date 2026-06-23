@@ -197,7 +197,11 @@ mir_json_decl_is_supported_nominal(ASTNodeType ast_type,
 {
     return ast_type == AST_CLASS_DECL
         && (nominal_kind == NOMINAL_DECL_STRUCT
-            || nominal_kind == NOMINAL_DECL_CLASS);
+            || nominal_kind == NOMINAL_DECL_CLASS
+            || nominal_kind == NOMINAL_DECL_SUBJECT
+            || nominal_kind == NOMINAL_DECL_VESSEL
+            || nominal_kind == NOMINAL_DECL_OBJECT
+            || nominal_kind == NOMINAL_DECL_TOBJECT);
 }
 
 static bool

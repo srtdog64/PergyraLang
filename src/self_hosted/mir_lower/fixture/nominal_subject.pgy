@@ -1,0 +1,8 @@
+subject Hero {
+    let hp: Int;
+}
+
+func Main() -> Void {
+    let hero: Hero = Hero { hp: 7 };
+    Log(hero.hp);
+}

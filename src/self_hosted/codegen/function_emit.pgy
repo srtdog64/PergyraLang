@@ -72,6 +72,40 @@ func CRetType(type_name: String, struct_env: String) -> String {
     return "";
 }
 
+func NominalDeclPrefixLen(line: String) -> Int {
+    if StartsWith(line, "Struct: ") {
+        return 8;
+    }
+    if StartsWith(line, "Class: ") {
+        return 7;
+    }
+    if StartsWith(line, "Subject: ") {
+        return 9;
+    }
+    if StartsWith(line, "Vessel: ") {
+        return 8;
+    }
+    if StartsWith(line, "Object: ") {
+        return 8;
+    }
+    if StartsWith(line, "TObject: ") {
+        return 9;
+    }
+    return -1;
+}
+
+func IsNominalDeclLine(line: String) -> Bool {
+    return NominalDeclPrefixLen(line) >= 0;
+}
+
+func NominalDeclName(line: String) -> String {
+    let prefix_len: Int = NominalDeclPrefixLen(line);
+    if prefix_len < 0 {
+        Die(Concat("expected nominal declaration line: ", line));
+    }
+    return Substring(line, prefix_len, StringLength(line) - prefix_len);
+}
+
 // Emit one function definition starting at the `Function: <Name>` line at
 // cur[0]. `base_env` carries the global function return-type bindings.
 func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
@@ -180,8 +214,8 @@ func BuildFunctionEnv(indents: Array<Int>, texts: Array<String>, count: Int) -> 
             owner = "";
             owner_indent = -1;
         }
-        if StartsWith(texts[i], "Class: ") {
-            owner = Substring(texts[i], 7, StringLength(texts[i]) - 7);
+        if IsNominalDeclLine(texts[i]) {
+            owner = NominalDeclName(texts[i]);
             owner_indent = indents[i];
         }
         if StartsWith(texts[i], "Function:") {
@@ -207,18 +241,14 @@ func BuildFunctionEnv(indents: Array<Int>, texts: Array<String>, count: Int) -> 
     return env;
 }
 
-// Scan top-level `Struct: Name` / `Class: Name` declarations into C typedefs,
-// and append `Name=s:struct|Name=fields:a,b|` entries to env_box[0].
+// Scan top-level nominal declarations into C typedefs, and append
+// `Name=s:struct|Name=fields:a,b|` entries to env_box[0].
 func CollectStructs(indents: Array<Int>, texts: Array<String>, count: Int, inout env_box: Array<String>) -> String {
     let typedefs: String = "";
     let i: Int = 0;
     while i < count {
-        if StartsWith(texts[i], "Struct: ") || StartsWith(texts[i], "Class: ") {
-            let prefix_len: Int = 8;
-            if StartsWith(texts[i], "Class: ") {
-                prefix_len = 7;
-            }
-            let sname: String = Substring(texts[i], prefix_len, StringLength(texts[i]) - prefix_len);
+        if IsNominalDeclLine(texts[i]) {
+            let sname: String = NominalDeclName(texts[i]);
             let s_indent: Int = indents[i];
             let j: Int = i + 1;
             if j < count && texts[j] == "Fields:" {
@@ -313,8 +343,8 @@ func CollectProtos(indents: Array<Int>, texts: Array<String>, count: Int, struct
             owner = "";
             owner_indent = -1;
         }
-        if StartsWith(texts[i], "Class: ") {
-            owner = Substring(texts[i], 7, StringLength(texts[i]) - 7);
+        if IsNominalDeclLine(texts[i]) {
+            owner = NominalDeclName(texts[i]);
             owner_indent = indents[i];
         }
         if StartsWith(texts[i], "Function:") {

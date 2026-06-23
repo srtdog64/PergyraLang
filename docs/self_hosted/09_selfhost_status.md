@@ -135,9 +135,12 @@ subset.
   flow through MIR-owned field/method/owner facts and reconstruct `Class:` /
   `Methods:` in the self-hosted MIR-lowering path. Payload-free enum
   declarations flow through MIR-owned variant facts, while payload enum variants
-  fail closed from their `param_count` facts. Projection/identity nominal class
-  surfaces still fail closed as unsupported declaration facts instead of being
-  omitted from the declaration inventory. The hard gate is now **72
+  fail closed from their `param_count` facts. Subject nominal declarations now
+  flow through MIR-owned `nominal_kind` and field facts and reconstruct
+  `Subject:` in the self-hosted MIR-lowering path instead of being collapsed to
+  a generic class alias. The remaining projection/identity nominal surfaces
+  (`object`, `tobject`, `vessel`) still need explicit parity fixtures before
+  they can be claimed beyond the shared nominal owner path. The hard gate is now **73
   positive fixtures plus 2 clean-reject fixtures** after
   promoting the already run-equivalent
   trailing-newline Log, nested string concat, string array concat, string
@@ -151,10 +154,10 @@ subset.
   self-host via-run timeout, the array destructure binding surface, plain class
   declaration/method lowering, payload-free enum lowering, `Result<Int>` `?`
   early-return flow, and `Option<Int>` value/match lowering. The coverage
-  boundary is now measured at **72 PASS / 0 gap plus 2 clean rejects** across the committed
-  MIR-lower/codegen fixture inventory. Unsupported ability/role and
-  projection/identity nominal declaration facts are rejected by `mir_lower`,
-  payload enum variants fail closed by MIR variant fact, and unsupported
+  boundary is now measured at **73 PASS / 0 gap plus 2 clean rejects** across the committed
+  MIR-lower/codegen fixture inventory. Unsupported ability/role declaration
+  facts are rejected by `mir_lower`, payload enum variants fail closed by MIR
+  variant fact, and unsupported
   self-host codegen builtins are
   rejected before C emission, so out-of-subset operator-overload/domain nominal
   semantics and unsupported runtime helper surfaces cannot silently produce

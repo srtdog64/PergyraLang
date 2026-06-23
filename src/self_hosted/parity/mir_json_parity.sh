@@ -88,6 +88,7 @@ MIR_FIXTURES=(
     random_inferred_let
     class_decl
     class_method
+    nominal_subject
     enum_simple
     match_case_int
     nested_if_in_loop
@@ -237,6 +238,16 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
             fi
         done
     fi
+    if [[ "$base" == "nominal_subject" ]]; then
+        for required in \
+            '"decls":[{"kind":"class","nominal_kind":"subject","name":"Hero"' \
+            '"fields":[{"name":"hp","type":"Int"}]'; do
+            if ! grep -Fq "$required" "$mj"; then
+                echo "[self-host-parity:mir-json] nominal_subject: missing MIR nominal declaration fact: $required" >&2
+                exit 1
+            fi
+        done
+    fi
     if [[ "$base" == "enum_simple" ]]; then
         for required in \
             '"decls":[{"kind":"enum","name":"Direction"' \
@@ -327,6 +338,17 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
             'Log(v.Length())'; do
             if ! grep -Fq "$required" "$reast"; then
                 echo "[self-host-parity:mir-json] class_method: mir_lower did not reconstruct class method fact: $required" >&2
+                exit 1
+            fi
+        done
+    fi
+    if [[ "$base" == "nominal_subject" ]]; then
+        for required in \
+            'Subject: Hero' \
+            'Let: hero : Hero = Hero(hp: 7)' \
+            'Log(hero.hp)'; do
+            if ! grep -Fq "$required" "$reast"; then
+                echo "[self-host-parity:mir-json] nominal_subject: mir_lower did not reconstruct nominal fact: $required" >&2
                 exit 1
             fi
         done
@@ -440,7 +462,6 @@ reast="$B/$base.reast"
 (cd "$ROOT_DIR" && "$PGY" --mir-json "$(pgy_path_for_compiler "$PGY" "$src")" \
     2>/dev/null | tr -d '\r' > "$mj")
 for required in \
-    '"kind":"unsupported","ast_type":"AST_CLASS_DECL","nominal_kind":"subject","name":"Hero"' \
     '"kind":"unsupported","ast_type":"AST_ABILITY_DECL"' \
     '"kind":"unsupported","ast_type":"AST_ROLE_DECL"'; do
     if ! grep -Fq "$required" "$mj"; then
@@ -456,8 +477,8 @@ if [[ "$reject_rc" -eq 0 ]]; then
     echo "[self-host-parity:mir-json] $base: mir_lower must exit nonzero for unsupported declaration facts" >&2
     exit 1
 fi
-if ! grep -q '^MIR-LOWER ERROR: unsupported MIR declaration in self-host subset: subject Hero' "$reast"; then
-    echo "[self-host-parity:mir-json] $base: mir_lower must reject unsupported nominal facts by nominal kind" >&2
+if ! grep -q '^MIR-LOWER ERROR: unsupported MIR declaration in self-host subset: AST_ABILITY_DECL Arithmetic' "$reast"; then
+    echo "[self-host-parity:mir-json] $base: mir_lower must reject unsupported ability facts by AST kind" >&2
     sed -n '1,5p' "$reast" >&2
     exit 1
 fi

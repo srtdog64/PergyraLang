@@ -1,8 +1,9 @@
 // MIR declaration inventory -> AST-tree declaration reconstruction owner.
 //
 // This module owns the supported declaration fact surface for self-hosted
-// mir_lower: plain structs, plain classes, owner-qualified methods, and
-// payload-free enums. Unsupported declaration facts fail closed here.
+// mir_lower: structs, nominal class-family declarations, owner-qualified
+// methods, and payload-free enums. Unsupported declaration facts fail closed
+// here.
 
 func DeclObjectEnd(json: String, p: Int, decls_end: Int) -> Int {
     let next: Int = FindFrom(json, "},{\"kind\":", p + 1);
@@ -117,6 +118,22 @@ func EmitEnumDecl(json: String, decl_start: Int, decl_end: Int, enum_name: Strin
     return Concat("  Enum: ", Concat(enum_name, Concat(" { ", Concat(out, " }\n"))));
 }
 
+func NominalAstLabel(nominal_kind: String) -> String {
+    if nominal_kind == "subject" {
+        return "Subject";
+    }
+    if nominal_kind == "vessel" {
+        return "Vessel";
+    }
+    if nominal_kind == "object" {
+        return "Object";
+    }
+    if nominal_kind == "tobject" {
+        return "TObject";
+    }
+    return "Class";
+}
+
 func EmitStructDecls(json: String) -> String {
     let out: String = "";
     let ds: Int = FindFrom(json, "\"decls\":[", 0);
@@ -160,10 +177,7 @@ func EmitStructDecls(json: String) -> String {
             }
         } else if kind == "class" {
             let nominal_kind: String = JsonFieldString(json, p, decl_end, "\"nominal_kind\":");
-            if nominal_kind != "class" {
-                Die(Concat("unsupported nominal class kind in self-host subset: ", Concat(nominal_kind, Concat(" ", sname))));
-            }
-            out = Concat(out, Concat("  Class: ", Concat(sname, "\n")));
+            out = Concat(out, Concat("  ", Concat(NominalAstLabel(nominal_kind), Concat(": ", Concat(sname, "\n")))));
             let cfields: String = EmitDeclFields(json, p, decl_end, sname);
             if StringLength(cfields) > 0 {
                 out = Concat(out, "    Fields:\n");
