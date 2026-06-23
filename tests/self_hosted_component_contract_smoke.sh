@@ -153,9 +153,12 @@ require_owner_surface mir_lower \
     "mir_json_input_owner.pgy" \
     "json_fact_read.pgy" \
     "stmt_render.pgy" \
+    "routine_inventory_owner.pgy" \
     "routine_lower.pgy" \
     "decl_lower.pgy" \
     "program_lower.pgy"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func FindRoutine"
+reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "func FindRoutine"
 
 require_text "src/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/main.pgy"'
 require_text "src/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lexer/main.pgy"'

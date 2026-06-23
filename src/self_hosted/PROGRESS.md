@@ -103,10 +103,11 @@ owner rather than living as one monolithic `main.pgy`: `error_owner` owns the
 diagnostic boundary, `mir_json_input_owner` owns argv/file/schema input gating,
 `json_fact_read` owns bounded JSON/MIR fact access, `decl_lower` owns declaration
 inventory reconstruction, `program_lower` owns document-order Program assembly
-and supported routine selection, `routine_lower` owns routine and CFG
-reconstruction, and `stmt_render` owns instruction fact -> AST statement
-rendering. The entrypoint `main.pgy` is orchestration only, and each `mir_lower`
-source file is below the 600-line owner cap.
+and supported routine selection, `routine_inventory_owner` owns routine
+discovery and bounded routine header facts, `routine_lower` owns CFG/body
+reconstruction for a selected routine, and `stmt_render` owns instruction fact
+-> AST statement rendering. The entrypoint `main.pgy` is orchestration only, and
+each `mir_lower` source file is below the 600-line owner cap.
 
 **Hard migration opened (2026-06-17):** the codegen rung is the first *hard
 compiler-core* substitute, landed after the BDFL decision lifted the

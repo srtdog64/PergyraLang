@@ -15,6 +15,7 @@ import "error_owner.pgy";
 import "mir_json_input_owner.pgy";
 import "json_fact_read.pgy";
 import "stmt_render.pgy";
+import "routine_inventory_owner.pgy";
 import "routine_lower.pgy";
 import "decl_lower.pgy";
 import "program_lower.pgy";

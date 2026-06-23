@@ -14,7 +14,9 @@ by the sibling modules:
 - `decl_lower.pgy` owns declaration fact reconstruction.
 - `program_lower.pgy` owns document-order Program assembly and supported
   routine selection.
-- `routine_lower.pgy` owns routine and CFG traversal.
+- `routine_inventory_owner.pgy` owns routine discovery and bounded routine
+  header facts.
+- `routine_lower.pgy` owns CFG/body reconstruction for a selected routine.
 - `stmt_render.pgy` owns statement/expression rendering from MIR facts.
 - `error_owner.pgy` owns the fail-closed diagnostic boundary.
 

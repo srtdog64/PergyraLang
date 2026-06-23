@@ -1,75 +1,8 @@
-// MIR routine/CFG fact lowering owner for self-hosted mir_lower.
+// MIR routine CFG fact lowering owner for self-hosted mir_lower.
 //
-// This module owns routine discovery, CFG structured reconstruction, and
-// function AST-tree emission from MIR JSON facts.
-
-// Find the next routine declaration: a `"name":` whose object is a function or
-// method (`,"kind":"function|method"` follows the value). Instruction
-// `"name":"stmt"` entries are skipped. Returns the position of the routine's
-// `"name":` key, or -1.
-func FindRoutine(json: String, from: Int) -> Int {
-    let p: Int = FindFrom(json, "\"name\":", from);
-    while p >= 0 {
-        let q: Int = FindFrom(json, "\"", p + 7);
-        if q < 0 {
-            return -1;
-        }
-        let e: Array<Int> = [0];
-        let v: String = ReadJsonString(json, q, e);
-        if StringLength(v) >= 0 && Substring(json, e[0], 18) == ",\"kind\":\"function\"" {
-            return p;
-        }
-        if StringLength(v) >= 0 && Substring(json, e[0], 16) == ",\"kind\":\"method\"" {
-            return p;
-        }
-        p = FindFrom(json, "\"name\":", e[0]);
-    }
-    return -1;
-}
-
-func RoutineSpanEnd(json: String, routine_name_end: Int) -> Int {
-    let next_rpos: Int = FindRoutine(json, routine_name_end);
-    if next_rpos >= 0 {
-        return next_rpos;
-    }
-    return StringLength(json);
-}
-
-func RoutineHeaderEnd(json: String, routine_name_end: Int, span_end: Int) -> Int {
-    let blk: Int = FindFrom(json, "\"blocks\":", routine_name_end);
-    if blk >= 0 && blk < span_end {
-        return blk;
-    }
-    return span_end;
-}
-
-func RoutineKind(json: String, rpos: Int, routine_name_end: Int, span_end: Int) -> String {
-    return JsonFieldString(json, rpos, RoutineHeaderEnd(json, routine_name_end, span_end), "\"kind\":");
-}
-
-func RoutineOwner(json: String, rpos: Int, routine_name_end: Int, span_end: Int) -> String {
-    return JsonFieldString(json, rpos, RoutineHeaderEnd(json, routine_name_end, span_end), "\"owner\":");
-}
-
-func FindRoutineByOwnerName(json: String, owner: String, name: String) -> Int {
-    let rpos: Int = FindRoutine(json, 0);
-    while rpos >= 0 {
-        let nq: Int = FindFrom(json, "\"", rpos + 7);
-        if nq < 0 {
-            return -1;
-        }
-        let nend: Array<Int> = [0];
-        let routine: String = ReadJsonString(json, nq, nend);
-        let span_end: Int = RoutineSpanEnd(json, nend[0]);
-        let kind: String = RoutineKind(json, rpos, nend[0], span_end);
-        let ro: String = RoutineOwner(json, rpos, nend[0], span_end);
-        if kind == "method" && ro == owner && routine == name {
-            return rpos;
-        }
-        rpos = FindRoutine(json, nend[0]);
-    }
-    return -1;
-}
+// This module owns CFG structured reconstruction and function AST-tree
+// emission from MIR JSON facts. Routine inventory discovery belongs to
+// routine_inventory_owner.pgy.
 
 // ---------------------------------------------------------------------------
 // Control-flow reconstruction (CFG -> structured AST).

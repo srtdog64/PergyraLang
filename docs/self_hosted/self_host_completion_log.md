@@ -222,10 +222,11 @@ rewrite history.
 ### 2026-06-23 -- MIR lower split into SoT owner modules
 
 - Split `src/self_hosted/mir_lower/main.pgy` from a 1060-line monolith into a
-  66-line orchestration entrypoint plus source-of-truth owners:
-  `error_owner`, `json_fact_read`, `stmt_render`, `routine_lower`, and
+  thin orchestration entrypoint plus source-of-truth owners:
+  `error_owner`, `mir_json_input_owner`, `json_fact_read`, `stmt_render`,
+  `routine_inventory_owner`, `routine_lower`, `program_lower`, and
   `decl_lower`. Every `mir_lower` source file is now below the 600-line owner
-  cap; `routine_lower` is the largest at 498 lines.
+  cap; `routine_lower` is the largest at 431 lines.
 - Preserved the fact-only lowering boundary. JSON access, declaration
   inventory reconstruction, statement rendering, and routine/CFG lowering now
   have named owners instead of sharing a generic `main.pgy` bucket.
@@ -900,3 +901,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `make self-host-parser-parity-test-smoke`,
   `make test-inc-size-test-smoke`, and
   `make self-host-preparation-test-smoke`.
+
+### 2026-06-23 -- MIR lower routine inventory owner split
+
+- Moved routine discovery and bounded routine header facts out of
+  `src/self_hosted/mir_lower/routine_lower.pgy` into
+  `src/self_hosted/mir_lower/routine_inventory_owner.pgy`.
+- `routine_lower.pgy` now consumes the selected routine facts and owns CFG/body
+  reconstruction only; `program_lower.pgy` and `decl_lower.pgy` consume the
+  inventory owner instead of re-owning routine lookup.
+- Contract ratchet: `tests/self_hosted_component_contract_smoke.sh` now requires
+  `routine_inventory_owner.pgy`, requires `func FindRoutine` there, and rejects
+  that owner function in `routine_lower.pgy`. Verified with
+  `bash tests/self_hosted_component_contract_smoke.sh` and
+  `make self-host-mir-json-parity-test-smoke`.
