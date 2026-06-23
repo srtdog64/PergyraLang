@@ -104,20 +104,24 @@ transpiler_mir_stmt_is_mirrored_resource(TranspilerCtx *ctx,
             continue;
         if (!mir_instructions_share_source_statement(resource_inst, stmt_inst))
             continue;
-        if (mir_instruction_has_inherent_concurrency_fact(stmt_inst)) {
-            /*
-             * These resource ops are observability hooks, not semantic
-             * replacements. The residual statement must still lower the
-             * runtime body (tasks, sends, awaits, channels, etc.).
-             */
-            continue;
-        }
         if (mir_instruction_resource_op_keeps_residual_statement_emit(
                 resource_inst)) {
             /*
-             * AIR/RIR IO and channel ops are boundary evidence and
-             * observability hooks. They do not emit the concrete builtin or
-             * channel runtime call; the residual source statement owns that.
+             * AIR/RIR IO, read, spawn/await, and channel ops are boundary
+             * evidence and observability hooks. They do not emit the concrete
+             * builtin or channel runtime call; the residual source statement
+             * owns that.
+             */
+            continue;
+        }
+        if (mir_instruction_has_inherent_concurrency_fact(stmt_inst)
+            && !mir_instruction_resource_op_is_write(resource_inst)) {
+            /*
+             * Inherent concurrency normally belongs to residual statement
+             * emit. The residual statement must still lower the runtime body.
+             * A concrete Write resource op is the exception: it owns its full
+             * side effect even when the value expression awaits a Future<T>.
+             * Keeping that mirrored statement would take the same future twice.
              */
             continue;
         }

@@ -1035,6 +1035,7 @@ mir_test_case_paths = [
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_c.cases.h",
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_c_2.cases.h",
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_d.cases.h",
+    root / "src" / "tests" / "mir" / "test_mir_lowering_part_d_2.cases.h",
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_e.cases.h",
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_g.cases.h",
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_h.cases.h",

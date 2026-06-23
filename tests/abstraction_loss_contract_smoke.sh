@@ -68,6 +68,8 @@ require_text "docs/semantics/loss_contract_manifest.md" "selfhost_to_oracle"
 require_text "docs/semantics/pass_contract_manifest.md" 'Status: `beta-proof-obligation`'
 require_text "docs/semantics/pass_contract_manifest.md" "<!-- BEGIN pass-contract-manifest -->"
 require_text "docs/semantics/pass_contract_manifest.md" "<!-- END pass-contract-manifest -->"
+require_text "docs/semantics/pass_contract_manifest.md" "parser_to_ast_loss | src/parser/ast.c | tests/abstraction_loss_contract_smoke.sh | manifest-tracked-doc-only"
+require_text "docs/semantics/pass_contract_manifest.md" "parser_to_ast loss is still documentation-only"
 require_text "docs/semantics/pass_contract_manifest.md" "mir_cfg_body_safety | src/compiler/mir_fact_surface_validate.c | tests/cfg_body_dataflow_smoke.sh | gate-backed"
 require_text "docs/semantics/pass_contract_manifest.md" "air_boundary_evidence | src/compiler/air_validate_global_evidence.c | tests/air_drift_smoke.sh | gate-backed"
 require_text "docs/semantics/pass_contract_manifest.md" "air_abstraction_compression | src/compiler/air_boundary.c | tests/air_json_schema_smoke.sh | gate-backed"
@@ -88,6 +90,7 @@ require_text "docs/semantics/pass_contract_manifest.md" "compression_budget"
 require_text "docs/semantics/pass_contract_manifest.md" "proof_gated_erasure_vocabulary"
 
 for rel in \
+    "src/parser/ast.c" \
     "src/compiler/mir_fact_surface_validate.c" \
     "src/compiler/air_validate_global_evidence.c" \
     "src/compiler/air_boundary.c" \

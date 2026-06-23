@@ -4,6 +4,7 @@
 
 #include <string.h>
 
+#include "llvm_backend_type_map_internal.h"
 #include "llvm_expr_emit_support.h"
 #include "llvm_expr_call_collections_map_exports.h"
 #include "llvm_internal_api.h"
@@ -49,16 +50,35 @@ llvm_emit_tuple_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
     return agg;
 }
 
+static const char *
+llvm_sequence_expected_type_name(LLVMGenCtx *ctx)
+{
+    const char *expected_type_name;
+    char *alias_target_type_name;
+
+    if (ctx == NULL)
+        return NULL;
+    expected_type_name = ctx->expected_type_name;
+    if (expected_type_name == NULL)
+        return NULL;
+    alias_target_type_name = llvm_render_alias_target_type_name_scratch(
+        ctx, expected_type_name, &ctx->scratch);
+    if (alias_target_type_name != NULL)
+        return alias_target_type_name;
+    return expected_type_name;
+}
+
 /* A `[...]` literal whose binding type is List<T>/Queue<T>. Mirrors the set
  * literal: the raw list/queue runtime (pgy_<kind>_new_raw_export +
  * pgy_<kind>_push[_string]_raw_export), keyed off the contextual element type. */
 static LLVMValueRef
 llvm_emit_seq_list_queue_literal(ASTNode *node, LLVMGenCtx *ctx,
-                                 const char *kind)
+                                 const char *kind,
+                                 const char *expected_type_name)
 {
     size_t count = ast_array_literal_count(node);
     bool is_list = strcmp(kind, "list") == 0;
-    PgyTypeKind expected_kind = pgy_classify_type(ctx->expected_type_name);
+    PgyTypeKind expected_kind = pgy_classify_type(expected_type_name);
     char elem_buf[128];
     char new_name[64];
     char push_name[64];
@@ -69,9 +89,9 @@ llvm_emit_seq_list_queue_literal(ASTNode *node, LLVMGenCtx *ctx,
     LLVMFuncEntry *new_fn;
     bool is_string;
 
-    if (ctx->expected_type_name == NULL
+    if (expected_type_name == NULL
         || expected_kind != (is_list ? PGY_TK_LIST : PGY_TK_QUEUE)
-        || !llvm_constructed_arg_name_copy(ctx->expected_type_name, 0, elem_buf,
+        || !llvm_constructed_arg_name_copy(expected_type_name, 0, elem_buf,
                 sizeof(elem_buf))) {
         llvm_expr_set_missing_type_error(ctx, node, "sequence literal expression");
         return NULL;
@@ -162,12 +182,17 @@ llvm_emit_array_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
     size_t count = ast_array_literal_count(node);
     const char *inner_name = NULL;
     /* A `[...]` bound to List<T>/Queue<T> lowers as a list/queue, not array. */
-    if (ctx->expected_type_name != NULL) {
-        PgyTypeKind expected_kind = pgy_classify_type(ctx->expected_type_name);
+    const char *expected_type_name = llvm_sequence_expected_type_name(ctx);
+    if (ctx != NULL && ctx->has_error)
+        return NULL;
+    if (expected_type_name != NULL) {
+        PgyTypeKind expected_kind = pgy_classify_type(expected_type_name);
         if (expected_kind == PGY_TK_LIST)
-            return llvm_emit_seq_list_queue_literal(node, ctx, "list");
+            return llvm_emit_seq_list_queue_literal(
+                node, ctx, "list", expected_type_name);
         if (expected_kind == PGY_TK_QUEUE)
-            return llvm_emit_seq_list_queue_literal(node, ctx, "queue");
+            return llvm_emit_seq_list_queue_literal(
+                node, ctx, "queue", expected_type_name);
     }
     char inner_name_buf[256];
     LLVMTypeRef elem_type = NULL;
@@ -183,10 +208,10 @@ llvm_emit_array_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
         const char *suffix = llvm_type_to_suffix(ctx, elem_type);
         if (suffix != NULL && strcmp(suffix, "Unknown") != 0)
             inner_name = suffix;
-    } else if (ctx->expected_type_name != NULL
-               && pgy_classify_type(ctx->expected_type_name)
+    } else if (expected_type_name != NULL
+               && pgy_classify_type(expected_type_name)
                     == PGY_TK_ARRAY) {
-        if (llvm_constructed_arg_name_copy(ctx->expected_type_name, 0,
+        if (llvm_constructed_arg_name_copy(expected_type_name, 0,
                 inner_name_buf, sizeof(inner_name_buf))) {
             inner_name = inner_name_buf;
         }

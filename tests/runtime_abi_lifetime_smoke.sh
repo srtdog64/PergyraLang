@@ -584,22 +584,39 @@ grep -Fq "\"pgy_queue_pop_string_raw_export\"" \
     "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c" ||
     fail "LLVM Queue<String> pop must use string-owned raw queue export"
 for term in \
-    "pgy_channel_dup_String" \
-    "pgy_channel_free_pending_String" \
-    "pgy_channel_string_is_initialized" \
-    "pgy_channel_string_size_to_i32" \
-    "channel is not initialized" \
-    "ch->buffer[ch->head] = NULL"; do
+    "PGY_CH_STR_STORAGE extern" \
+    "#include \"pgy_runtime_channel_string_inline.h\"" \
+    "return pgy_runtime_lib_strdup(src);" \
+    "pgy_channel_try_send_status_code_String" \
+    "pgy_channel_send_timeout_status_code_String"; do
     grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_channel_string_exports.h" ||
-        fail "LLVM Channel<String> export missing owned-transfer term: $term"
+        fail "LLVM Channel<String> export must consume shared owned-transfer owner: $term"
 done
 for term in \
-    "pgy_channel_int_is_initialized" \
-    "pgy_channel_int_size_to_i32" \
-    "size_t used = ch->count <= ch->capacity ? ch->count : ch->capacity"; do
+    "pgy_channel_string_inline_dup" \
+    "pgy_channel_string_inline_free_pending" \
+    "pgy_channel_string_inline_is_initialized" \
+    "channel is not initialized" \
+    "ch->buf[ch->head] = NULL"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_channel_string_inline.h" ||
+        fail "shared Channel<String> owned-transfer owner missing: $term"
+done
+for term in \
+    "PGY_CHANNEL_DEFINE(Int, int32_t, extern)" \
+    "#include \"pgy_runtime_channel_inline.h\"" \
+    "PGY_CH_STR_STORAGE extern" \
+    "#include \"pgy_runtime_channel_string_inline.h\""; do
     grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_channel_int_exports.h" \
         "$ROOT_DIR/src/runtime/pgy_runtime_lib_channel_string_exports.h" ||
-        fail "exported Channel<Int/String> initialized/range guard missing: $term"
+        fail "exported Channel<Int/String> must consume shared implementation owner: $term"
+done
+for term in \
+    "ch == NULL || ch->buf == NULL || ch->cap == 0" \
+    "INT32_MAX" \
+    "size_t used = (ch->count <= ch->cap) ? ch->count : ch->cap"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_channel_inline.h" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_channel_string_inline.h" ||
+        fail "shared Channel<Int/String> initialized/range guard missing: $term"
 done
 for term in \
     "pgy_map_set_string_value_raw_export" \

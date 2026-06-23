@@ -5,6 +5,7 @@
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 #include "../semantic/lifecycle_state.h"
+#include "mir_type_helpers.h"
 
 static void
 mir_attach_lifecycle_guard_fact(MIRInstruction *inst, const ASTNode *stmt)
@@ -101,16 +102,41 @@ mir_attach_statement_call_fact(MIRInstruction *inst, const ASTNode *stmt)
     inst->arg0 = ast_identifier_name(ast_call_callee(stmt));
 }
 
+static void
+mir_attach_def_type_name_fact(MIRRoutine *routine,
+                              MIRInstruction *inst,
+                              ASTNode *type_node)
+{
+    char *rendered;
+
+    if (routine == NULL || inst == NULL || type_node == NULL
+        || type_node->type != AST_TYPE) {
+        return;
+    }
+
+    rendered = mir_capture_type_name(type_node, NULL);
+    if (rendered == NULL)
+        return;
+    inst->abi_type_name = pgy_arena_strdup(&routine->scratch, rendered);
+    if (inst->abi_type_name != NULL)
+        inst->type_layout = mir_abi_lookup(inst->abi_type_name);
+    free(rendered);
+}
+
 void
-mir_attach_def_initializer_call_fact(MIRInstruction *inst, const ASTNode *stmt)
+mir_attach_def_initializer_call_fact(MIRRoutine *routine,
+                                     MIRInstruction *inst,
+                                     const ASTNode *stmt)
 {
     ASTNode *expr = NULL;
 
     if (inst == NULL || inst->kind != MIR_INST_DEF || stmt == NULL)
         return;
     if (stmt->type == AST_LET_DECL) {
+        ASTNode *type_node = ast_let_type(stmt);
         expr = ast_let_initializer(stmt);
-        inst->expr1 = ast_let_type(stmt);
+        inst->expr1 = type_node;
+        mir_attach_def_type_name_fact(routine, inst, type_node);
         inst->requires_source_statement_emit = true;
         inst->requires_source_local_decl_emit = true;
     } else if (stmt->type == AST_ASSIGNMENT) {

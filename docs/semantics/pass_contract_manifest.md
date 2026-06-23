@@ -49,6 +49,7 @@ Columns:
 
 <!-- BEGIN pass-contract-manifest -->
 ```text
+parser_to_ast_loss | src/parser/ast.c | tests/abstraction_loss_contract_smoke.sh | manifest-tracked-doc-only | source_bytes, lexer_tokens, parser_recovery_policy | AST_node_kind, source_span, recovery_artifact | raw_token_stream_as_semantics, parser_recovery_guess | parser_to_ast loss is still documentation-only; missing accepted-loss row is invalid | unowned_ast_rescan, compat_success_without_fact
 mir_cfg_body_safety | src/compiler/mir_fact_surface_validate.c | tests/cfg_body_dataflow_smoke.sh | gate-backed | source_statement_inventory, source_local_type_names, routine_signature, resource_ops, cleanup_edges | cfg_edges, branch_join, loop_facts, cleanup_roots, pin_regions, channel_receive_facts, cancellation_facts | AST_body_order, source_payload_shape_as_semantics | missing MIR value expression fact; residual STMT emit is outside allowed residual statement policy | unowned_ast_rescan, backend_ast_semantic_read, compat_success_without_fact
 air_boundary_evidence | src/compiler/air_validate_global_evidence.c | tests/air_drift_smoke.sh | gate-backed | MIR_evidence_nodes, RIR_boundary_evidence, DAG_metadata_counts, runtime_evidence_nodes | provider_subject_identity, authority_evidence, effect_evidence, coordination_evidence, fallback_count_zero | summary_counter_as_proof, anonymous_boundary_evidence | missing boundary evidence; AIR global evidence fallback count must be zero | unowned_ast_rescan, compat_success_without_fact
 air_abstraction_compression | src/compiler/air_boundary.c | tests/air_json_schema_smoke.sh | gate-backed | AIRIntentNode, AIRBoundaryNode, authority_contract, sync_class, failure_class, evidence_provenance | compression_budget, compression_reason, proof_gated_erasure_vocabulary | backend_source_axis_physicalization, optimizer_guess_erasure | unknown compression budget is invalid; AIR JSON must expose compression_budget and compression_reason | backend_source_axis_physicalization, backend_local_layout_guess, compat_success_without_fact
@@ -78,5 +79,9 @@ This manifest is still coarse-grained. It should be split further when the
 implementation gains separately owned optimization passes, a direct wasm
 backend, source-level layout controls, backend consumption of AIR compression
 facts, or broader self-hosted compiler slices.
+The `parser_to_ast_loss` row is intentionally `manifest-tracked-doc-only`: it
+has moved into the machine-checked pass manifest, but the parser boundary still
+needs a dedicated enforcement gate before it can count as a closed loss
+contract.
 Until then, these rows are the beta-closure choke points for the five active
 compiler source-of-truth targets.

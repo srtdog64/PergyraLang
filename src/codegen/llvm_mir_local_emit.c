@@ -39,6 +39,27 @@ llvm_mir_local_source_fact(const MIRRoutine *routine, const char *name)
     return fact;
 }
 
+static size_t
+llvm_mir_source_local_def_count(const MIRRoutine *routine,
+                                const char *base_name)
+{
+    size_t count = 0;
+
+    if (routine == NULL || base_name == NULL)
+        return 0;
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block == NULL || !block->is_reachable || block->is_cleanup)
+            continue;
+        for (size_t i = 0; i < block->source_local_def_count; i++) {
+            const char *name = block->source_local_defs[i];
+            if (name != NULL && strcmp(name, base_name) == 0)
+                count++;
+        }
+    }
+    return count;
+}
+
 static LLVMTypeRef
 llvm_mir_local_type_from_source_fact_entry(LLVMGenCtx *ctx,
                                            const MIRSourceLocalType *fact)
@@ -410,13 +431,27 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                 char base_name[128];
                 bool has_base_name = llvm_mir_base_name_from_versioned(
                     inst->result_name, base_name, sizeof(base_name));
+                const char *instruction_type_name = inst->abi_type_name;
+                bool prefer_instruction_type_name = false;
 
                 if (mir_instruction_uses_source_local_decl_emit(inst)) {
+                    size_t source_def_count = has_base_name
+                        ? llvm_mir_source_local_def_count(routine, base_name)
+                        : 0;
                     source_local_fact = llvm_mir_local_source_fact(
                         routine, has_base_name ? base_name : inst->result_name);
                     if (source_local_fact != NULL)
                         source_local_type_name = source_local_fact->type_name;
-                    if (source_local_fact == NULL) {
+                    prefer_instruction_type_name =
+                        instruction_type_name != NULL
+                        && instruction_type_name[0] != '\0'
+                        && (source_local_fact == NULL
+                            || !source_local_fact->is_callable)
+                        && (!has_base_name || source_def_count != 1);
+                    if (prefer_instruction_type_name)
+                        source_local_type_name = instruction_type_name;
+                    if (source_local_fact == NULL
+                        && !prefer_instruction_type_name) {
                         llvm_set_mir_inventory_missing(ctx,
                             "MIR-only LLVM path missing source-local type metadata for '%s'",
                             inst->result_name != NULL
@@ -426,7 +461,18 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     }
                 }
 
-                if (source_local_fact != NULL) {
+                if (prefer_instruction_type_name) {
+                    alloca_type = pergyra_type_to_llvm(ctx,
+                        instruction_type_name);
+                    if (ctx->has_error || alloca_type == NULL) {
+                        llvm_set_mir_inventory_missing(ctx,
+                            "MIR-only LLVM path cannot lower source-local DEF type metadata for '%s'",
+                            inst->result_name != NULL
+                                ? inst->result_name
+                                : "(anonymous-local)");
+                        return;
+                    }
+                } else if (source_local_fact != NULL) {
                     alloca_type = llvm_mir_local_type_from_source_fact_entry(
                         ctx, source_local_fact);
                     if (ctx->has_error || alloca_type == NULL) {

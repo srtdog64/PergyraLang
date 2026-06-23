@@ -57,6 +57,11 @@ source-of-truth for entry discovery and backend choice. Effect, authority, and
 capability sections are reserved verifier declarations; in beta they must be
 empty until their dedicated AIR/MIR checker owner consumes them:
 
+Only manifest scaffolding is beta-stable for ecosystem/package distribution.
+The local manifest-driven package commands below are stable compiler entry
+points over local files; they are not dependency solving, registry, or remote
+package claims.
+
 ```toml
 [seashell]
 schema = "pgy.seashell.v1"

@@ -85,11 +85,31 @@ Therefore the correct posture is conservative:
 - do keep stable ABI pointer classes, arena ownership lanes, and runtime gates
   as the source of truth.
 
-## 5. Closure Checklist
+## 5. Platform Constraint
+
+Windows strict beta wording is C backend only. The CI Windows leg intentionally
+runs with `LLVM_ENABLED=0`, so Windows LLVM runner parity must not be cited as a
+stable platform claim.
+
+Allowed wording:
+
+- "Windows is covered by the C backend beta leg."
+- "Linux is the LLVM runner parity leg."
+- "Windows LLVM remains toolchain/parity debt until a dedicated runner gate is
+  green."
+
+Forbidden wording:
+
+- "Windows has a stable LLVM beta leg."
+- "Every platform has the same backend matrix."
+
+## 6. Closure Checklist
 
 Before beta-facing text cites these areas, it must satisfy all of these:
 
 - LLVM wording says verified subset plus named remaining debt.
+- Windows wording says C backend only unless a dedicated LLVM runner parity gate
+  is green.
 - WASM wording separates the verified C-backend route from LLVM-to-wasm and
   direct wasm.
 - Pointer wording cites `runtime-abi-lifetime-test-smoke` only for the stable

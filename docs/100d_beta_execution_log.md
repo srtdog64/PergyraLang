@@ -2219,12 +2219,13 @@ one before relying on the strict-mode contract elsewhere.
 
 ## Progress Log - 2026-04-29 C Declaration Lookup Owner Split
 
-- Host and method declaration lookup moved to
-  `transpiler_decl_host_lookup.c`.
+- Host declaration lookup moved to `transpiler_decl_host_lookup.c`; hosted
+  method lookup now consumes MIR metadata and the non-MIR AST host-method lookup
+  path is retired.
 - `transpiler_decl_lookup.c` is now 419 LOC and keeps named declaration,
   alias, inventory, and method-list lookup ownership focused.
-- `transpiler_decl_host_lookup.c` is 216 LOC and owns current-host,
-  owner-host, nominal-host, and nominal-method lookup cache paths.
+- `transpiler_decl_host_lookup.c` owns current-host, owner-host, and
+  nominal-host lookup cache paths.
 - Verified with `make pgy`, `make test-transpile`,
   `make production-header-size-test-smoke`,
   `make backend-inc-size-test-smoke`, and `make llvm-test-backend-compare`

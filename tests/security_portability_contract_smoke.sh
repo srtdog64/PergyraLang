@@ -232,7 +232,7 @@ require_term "src/runtime/pgy_runtime_lib_io_string_exports.h" "pgy_try_input_re
 require_term "src/runtime/pgy_runtime_channel_inline.h" "pgy_channel_recv_result_##SuffixName"
 require_term "src/runtime/pgy_runtime_channel_inline.h" "pgy_channel_try_recv_result_##SuffixName"
 require_term "src/runtime/pgy_runtime_channel_string_result_inline.h" "pgy_channel_recv_result_String"
-require_term "src/runtime/pgy_runtime_lib_channel_int_exports.h" "pgy_channel_recv_result_Int"
+require_term "src/runtime/pgy_runtime_lib_channel_int_exports.h" "PGY_CHANNEL_DEFINE(Int, int32_t, extern)"
 require_term "src/runtime/pgy_runtime_lib_channel_string_result_exports.h" "pgy_channel_recv_result_String"
 require_term "src/codegen/llvm_expr_await_task.c" "await.remote.err"
 require_term "src/codegen/llvm_expr_await_task.c" "remote operation failed"

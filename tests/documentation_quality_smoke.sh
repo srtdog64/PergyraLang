@@ -117,6 +117,11 @@ required_files=(
     "docs/131_ai_coding_atomic_units.md"
     "docs/134_language_surface_hygiene.md"
     "docs/135_backend_wasm_pointer_closure.md"
+    "docs/139_golden_adt_verification_methodology.md"
+    "docs/semantics/proofs/VerificationMethodology.md"
+    "docs/semantics/proofs/VerificationMethodology.v"
+    "docs/semantics/proofs/ProofSpine.md"
+    "docs/semantics/proofs/ProofSpine.v"
     "docs/37_compiler_contracts.md"
     "docs/42_keyword_orthogonality.md"
     "docs/self_hosted/05_compiler_core_gap_analysis.md"
@@ -189,9 +194,83 @@ index_terms=(
     "self_hosted/05_compiler_core_gap_analysis.md"
     "134_language_surface_hygiene.md"
     "135_backend_wasm_pointer_closure.md"
+    "139_golden_adt_verification_methodology.md"
 )
 for term in "${index_terms[@]}"; do
     require_text "docs/INDEX.md" "$term"
+done
+
+verification_method_terms=(
+    "Golden, ADT, And Verification Methodology"
+    "A fact is useful only when its owner, consumer, oracle, and regression gate are named."
+    "Evidence Ladder"
+    "Golden tests"
+    "Algebraic Data Types"
+    "Abstract Data Types"
+    "Operational semantics"
+    "Trace semantics"
+    "Typestate"
+    "Capability calculus"
+    "Differential testing"
+    "Property/metamorphic testing"
+    "Mechanized proof"
+    "Hard self-hosting must not mean"
+    "Runtime materialization is not automatically bad. Hidden materialization is bad."
+    "Golden layout tests come after the proof facts."
+    "tests/verification_methodology_smoke.sh"
+    "docs/semantics/proofs/VerificationMethodology.v"
+)
+for term in "${verification_method_terms[@]}"; do
+    require_text "docs/139_golden_adt_verification_methodology.md" "$term"
+done
+
+verification_method_proof_terms=(
+    "Pergyra Verification Methodology Core"
+    "Theorem golden_only_not_model_soundness"
+    "Theorem hard_self_host_requires_differential"
+    "Theorem layout_niche_requires_typestate"
+    "Theorem materialization_requires_trace_and_capability"
+    "Theorem verifier_with_owner_permits_fact_consumption"
+)
+for term in "${verification_method_proof_terms[@]}"; do
+    require_text "docs/semantics/proofs/VerificationMethodology.v" "$term"
+done
+
+proof_spine_terms=(
+    "Proof Spine"
+    "complete proof spine != whole-language verification"
+    "Remaining Obligations"
+    "ObligationPinExceptionalCleanup"
+    "DropOnce / ReleaseAfterUnpin"
+    "ObligationParserToAstManifest"
+    "ObligationBehaviorJudgmentDiagnosticMap"
+    "ObligationTransitiveFrontierScheduler"
+    "ObligationWindowsLlvmRunnerParity"
+    "runtime safety"
+    "axis ownership"
+    "intent core"
+    "unified machine"
+    "certificate pipeline"
+    "verification methodology"
+)
+for term in "${proof_spine_terms[@]}"; do
+    require_text "docs/semantics/proofs/ProofSpine.md" "$term"
+done
+
+proof_spine_coq_terms=(
+    "Pergyra Proof Spine"
+    "Inductive ProofNode"
+    "Inductive RemainingObligation"
+    "Definition ProofSpineComplete"
+    "Definition WholeLanguageVerificationReady"
+    "Theorem complete_spine_connects_runtime_safety"
+    "Theorem complete_spine_connects_unified_machine"
+    "Theorem complete_spine_connects_certificate_pipeline"
+    "Theorem complete_spine_is_not_whole_language_verification"
+    "Theorem open_obligation_blocks_whole_language_ready"
+)
+for term in "${proof_spine_coq_terms[@]}"; do
+    require_text "docs/semantics/proofs/ProofSpine.v" "$term"
 done
 
 language_surface_terms=(
@@ -225,6 +304,8 @@ backend_wasm_pointer_terms=(
     "static scratch pointers"
     "cross-arena references use index or stable handle"
     "not a universal pointer/lifetime proof"
+    "Windows strict beta wording is C backend only."
+    "Windows LLVM remains toolchain/parity debt"
 )
 for term in "${backend_wasm_pointer_terms[@]}"; do
     require_text "docs/135_backend_wasm_pointer_closure.md" "$term"

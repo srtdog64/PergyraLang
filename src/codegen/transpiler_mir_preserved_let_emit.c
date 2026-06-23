@@ -56,7 +56,14 @@ transpiler_emit_mir_source_local_let_def_inst(
     let_type = inst->expr1;
     let_init = inst->expr0;
 
-    if (mir_routine != NULL) {
+    if (inst->abi_type_name != NULL && inst->abi_type_name[0] != '\0') {
+        rendered_type_hint = pergyra_strdup(inst->abi_type_name);
+        ctx->active_type_hint = rendered_type_hint;
+    } else if (let_type != NULL && let_type->type == AST_TYPE) {
+        rendered_type_hint =
+            transpiler_render_effective_local_type_name(ctx, let_type);
+        ctx->active_type_hint = rendered_type_hint;
+    } else if (mir_routine != NULL) {
         const char *source_type =
             transpiler_mir_routine_source_local_type_name(
                 mir_routine, let_name);

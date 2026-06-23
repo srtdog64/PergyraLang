@@ -25,13 +25,20 @@ for rel in \
     docs/semantics/17_proof_carrying_pipeline.md \
     docs/semantics/18_machine_neutral_compute.md \
     docs/semantics/19_theoretical_foundations.md \
+    docs/139_golden_adt_verification_methodology.md \
     docs/semantics/README.md \
     docs/semantics/proofs/IRMinimality.v \
     docs/semantics/proofs/WitnessDataRace.v \
     docs/semantics/proofs/SlotCalculus.v \
     docs/semantics/proofs/ProofCarryingIR.v \
     docs/semantics/proofs/ProofCarryingIR.md \
+    docs/semantics/proofs/VerificationMethodology.v \
+    docs/semantics/proofs/VerificationMethodology.md \
+    docs/semantics/proofs/ProofSpine.v \
+    docs/semantics/proofs/ProofSpine.md \
     tests/formal_semantics_smoke.sh \
+    tests/verification_methodology_smoke.sh \
+    tests/proof_spine_smoke.sh \
     tests/proof_carrying_adequacy_smoke.sh \
     tests/slot_calculus_adequacy_smoke.sh \
     tests/axis_keyword_adequacy_smoke.sh \
@@ -73,6 +80,8 @@ require_text "docs/semantics/16_language_contract_golden_spine.md" "logical oper
 require_text "docs/semantics/16_language_contract_golden_spine.md" "proof-gated erasure"
 require_text "docs/semantics/16_language_contract_golden_spine.md" "raw/FFI/explicit layout stays boundary-scoped"
 require_text "docs/semantics/16_language_contract_golden_spine.md" "Proof-carrying IR"
+require_text "docs/semantics/16_language_contract_golden_spine.md" "Verification methodology"
+require_text "docs/semantics/16_language_contract_golden_spine.md" "Proof spine"
 require_text "docs/semantics/16_language_contract_golden_spine.md" "Machine-neutral compute"
 require_text "docs/semantics/16_language_contract_golden_spine.md" "Theoretical foundations"
 require_text "docs/semantics/16_language_contract_golden_spine.md" "self-hosted work starts with verifier/tool parity"
@@ -111,6 +120,18 @@ require_text "docs/semantics/proofs/ProofCarryingIR.v" "Theorem valid_certificat
 require_text "docs/semantics/proofs/ProofCarryingIR.v" "Theorem missing_air_authority_fails_closed"
 require_text "docs/semantics/proofs/ProofCarryingIR.v" "Theorem compat_success_policy_fails_closed"
 require_text "tests/proof_carrying_adequacy_smoke.sh" "checker-core model is bound to live certificate gate"
+require_text "docs/139_golden_adt_verification_methodology.md" "A fact is useful only when its owner, consumer, oracle, and regression gate are named."
+require_text "docs/139_golden_adt_verification_methodology.md" "Golden tests, differential tests, property tests, ADT owners, and mechanized"
+require_text "docs/139_golden_adt_verification_methodology.md" "Hard self-hosting must not mean"
+require_text "docs/semantics/proofs/VerificationMethodology.v" "Theorem golden_only_not_model_soundness"
+require_text "docs/semantics/proofs/VerificationMethodology.v" "Theorem hard_self_host_requires_differential"
+require_text "docs/semantics/proofs/VerificationMethodology.v" "Theorem materialization_requires_trace_and_capability"
+require_text "docs/semantics/proofs/VerificationMethodology.md" "This is not whole-compiler verification."
+require_text "tests/verification_methodology_smoke.sh" "verification-methodology"
+require_text "docs/semantics/proofs/ProofSpine.v" "Theorem complete_spine_connects_unified_machine"
+require_text "docs/semantics/proofs/ProofSpine.v" "Theorem complete_spine_is_not_whole_language_verification"
+require_text "docs/semantics/proofs/ProofSpine.md" "complete proof spine != whole-language verification"
+require_text "tests/proof_spine_smoke.sh" "proof-spine"
 
 # Fallback and SoT anchors.
 require_text "tests/backend_fail_closed_smoke.sh" "C backend reintroduced silent numeric fallback"
@@ -167,6 +188,8 @@ require_text "src/self_hosted/parity/semantic_parity.sh" "verdict drift"
 require_text "src/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" "PGY_FUZZ_BACKEND_RUN_ORACLE"
 
 require_text "Makefile" "language-contract-golden-test-smoke:"
+require_text "Makefile" "verification-methodology-test-smoke:"
+require_text "Makefile" "proof-spine-test-smoke:"
 require_text "Makefile" "proof-carrying-pipeline-test-smoke:"
 require_text "Makefile" "proof-carrying-adequacy-test-smoke:"
 

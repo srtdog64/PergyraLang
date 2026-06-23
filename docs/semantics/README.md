@@ -56,6 +56,12 @@ Mechanized artifacts:
   idempotent same-axis update, and projection non-writing invariants. The
   companion adequacy smoke binds the model to named compiler/source symbols,
   not to a full extracted verifier.
+- [proofs/IntentStepSoundness.v](proofs/IntentStepSoundness.v): Coq proof
+  sketch for the linear sequence of authority-guarded intent actions. Proves
+  the progress (`intent_step_progress`) and preservation
+  (`intent_step_preservation` / `intent_step_was_authorized`) theorems for the
+  intent-step execution fragment, demonstrating a well-authorized program does
+  not get stuck (`intent_no_stuck`).
 - [proofs/IRMinimality.v](proofs/IRMinimality.v): Coq proof sketch for the
   HIR/RIR/MIR codegen-layer lower bound under the live reads-from dependency
   model, plus the AIR witness minimality claim for
@@ -65,6 +71,17 @@ Mechanized artifacts:
   `ir_minimality_adequacy_smoke.sh` binds that model to the current driver, RIR
   flow, MIR lowering, AIR, backend dependency shape, and HKT/Functor soft-no
   documentation.
+- [proofs/WitnessDataRace.v](proofs/WitnessDataRace.v): Coq proof sketch for
+  the data-race-freedom invariant under the aliasing-xor-mutability (Witness)
+  model. Proves that the Witness invariant rules out write-write and read-write
+  data races by construction (`xor_mut_no_data_race`), that permitted boundary
+  transitions preserve the invariant (`xor_mut_preserved`), and that the
+  pin-exclusivity discipline entails data-race-free safety.
+- [proofs/CheckedArith.v](proofs/CheckedArith.v): Coq proof sketch for
+  fail-closed checked signed integer division and modulo (UB model). Proves
+  that the checked helpers return `None` (panic) on exactly the two C undefined
+  behavior inputs (`div_none_iff` for divide-by-zero/overflow), while returning
+  correct and representable results for all other inputs.
 - [proofs/ZoneCrossingCore.v](proofs/ZoneCrossingCore.v): Coq proof sketch for the
   FIRST fragment of the Pergyra abstract machine / core calculus (docs/semantics/19):
   the capability-gated boundary-transfer step (zone crossing, ambient-calculus
@@ -121,6 +138,17 @@ Mechanized artifacts:
   certificate permits downstream fact consumption, while missing AIR/MIR facts
   or compatibility-success backend policy force fail-closed. The adequacy smoke
   binds this model to the live Stage 1 certificate envelope gate.
+- [proofs/VerificationMethodology.v](proofs/VerificationMethodology.v): Coq
+  proof sketch for the evidence-ladder discipline behind
+  `docs/139_golden_adt_verification_methodology.md`: golden fixtures,
+  differential oracles, verifier gates, ADT owners, and mechanized models are
+  separate evidence forms and cannot be substituted for each other. The smoke
+  gate binds this model to the methodology document and the proof-pack index.
+- [proofs/ProofSpine.v](proofs/ProofSpine.v): top-level Coq proof spine that
+  names every mechanized artifact as a proof-pack node and connects the runtime
+  safety, axis ownership, intent core, unified machine, certificate pipeline,
+  and verification-methodology groups. Its negative theorem states that a
+  complete spine is still not whole-language verification.
 
 ## Beta Proof Boundary
 

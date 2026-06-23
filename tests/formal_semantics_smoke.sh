@@ -68,6 +68,8 @@ README_PATH="$ROOT_DIR/README.md"
 SLOT_COQ="$PROOF_DIR/proofs/SlotCalculus.v"
 AXIS_COQ="$PROOF_DIR/proofs/AxisOwnership.v"
 WITNESS_COQ="$PROOF_DIR/proofs/WitnessDataRace.v"
+METHODOLOGY_COQ="$PROOF_DIR/proofs/VerificationMethodology.v"
+PROOF_SPINE_COQ="$PROOF_DIR/proofs/ProofSpine.v"
 WITNESS_DOC="$PROOF_DIR/10_ability_witness_evidence.md"
 BOUNDARY_WITNESS_HEADER="$ROOT_DIR/src/semantic/boundary_witness.h"
 BOUNDARY_WITNESS_SOURCE="$ROOT_DIR/src/semantic/boundary_witness.c"
@@ -93,6 +95,8 @@ require_file "$README_PATH" "README.md"
 require_file "$SLOT_COQ" "docs/semantics/proofs/SlotCalculus.v"
 require_file "$AXIS_COQ" "docs/semantics/proofs/AxisOwnership.v"
 require_file "$WITNESS_COQ" "docs/semantics/proofs/WitnessDataRace.v"
+require_file "$METHODOLOGY_COQ" "docs/semantics/proofs/VerificationMethodology.v"
+require_file "$PROOF_SPINE_COQ" "docs/semantics/proofs/ProofSpine.v"
 require_file "$WITNESS_DOC" "docs/semantics/10_ability_witness_evidence.md"
 require_file "$BOUNDARY_WITNESS_HEADER" "src/semantic/boundary_witness.h"
 require_file "$BOUNDARY_WITNESS_SOURCE" "src/semantic/boundary_witness.c"
@@ -116,6 +120,8 @@ Slot alone is not advertised as a borrow checker.
 08_slot_capability_calculus.md
 09_abstraction_loss_contracts.md
 proofs/SlotCalculus.v
+proofs/VerificationMethodology.v
+proofs/ProofSpine.v
 mechanized evidence for those modeled invariants only
 Generic contracts
 Ownership: anchored slot-handle boundary subset only.
@@ -391,6 +397,44 @@ Theorem keyword_axis_sound
 Remaining obligations
 TERMS
 
+require_terms "$METHODOLOGY_COQ" "docs/semantics/proofs/VerificationMethodology.v" <<'TERMS'
+Pergyra Verification Methodology Core
+Inductive Method
+Inductive Claim
+Definition permits
+Theorem golden_only_not_model_soundness
+Theorem golden_only_not_hard_self_host_slice
+Theorem smoke_only_not_hard_self_host_slice
+Theorem mechanized_model_not_implementation_parity
+Theorem differential_not_model_soundness
+Theorem hard_self_host_requires_differential
+Theorem hard_self_host_requires_verifier
+Theorem layout_niche_requires_typestate
+Theorem materialization_requires_trace_and_capability
+Theorem verifier_with_owner_permits_fact_consumption
+TERMS
+
+require_terms "$PROOF_SPINE_COQ" "docs/semantics/proofs/ProofSpine.v" <<'TERMS'
+Pergyra Proof Spine
+Inductive ProofNode
+Inductive SpineClaim
+Definition ProofSpineComplete
+Definition PermitsClaim
+Theorem complete_spine_has_node
+Theorem complete_spine_connects_runtime_safety
+Theorem complete_spine_connects_unified_machine
+Theorem complete_spine_connects_certificate_pipeline
+Theorem complete_spine_connects_methodology
+Theorem complete_spine_is_not_whole_language_verification
+Inductive RemainingObligation
+Theorem whole_language_ready_requires_pin_exceptional_cleanup
+Theorem whole_language_ready_requires_parser_to_ast_manifest
+Theorem whole_language_ready_requires_behavior_judgment_map
+Theorem whole_language_ready_requires_transitive_frontier_scheduler
+Theorem whole_language_ready_requires_windows_llvm_runner_parity
+Theorem open_obligation_blocks_whole_language_ready
+TERMS
+
 for stale_doc in \
     "$PROOF_DIR/00_proof_contract.md" \
     "$PROOF_DIR/08_slot_capability_calculus.md" \
@@ -508,7 +552,9 @@ if command -v coqc >/dev/null 2>&1; then
         docs/semantics/proofs/AuthorityDelegationCore.v \
         docs/semantics/proofs/UnifiedCore.v \
         docs/semantics/proofs/CompensationCore.v \
-        docs/semantics/proofs/CoordinationCore.v; do
+        docs/semantics/proofs/CoordinationCore.v \
+        docs/semantics/proofs/VerificationMethodology.v \
+        docs/semantics/proofs/ProofSpine.v; do
         if command -v timeout >/dev/null 2>&1; then
             (cd "$ROOT_DIR" && timeout "$coq_timeout" coqc "$coq_proof")
         else

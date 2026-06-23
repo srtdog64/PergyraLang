@@ -107,9 +107,6 @@ transpiler_specialization_type_ast_from_type_name(const char *type_name)
 {
     char *base_name = transpiler_specialization_type_name_base_copy(type_name);
     ASTNode *node = NULL;
-    GenericParams *params = NULL;
-    GenericParam **slots = NULL;
-    size_t arg_count = 0;
 
     if (base_name == NULL)
         return NULL;
@@ -121,71 +118,29 @@ transpiler_specialization_type_ast_from_type_name(const char *type_name)
     if (strchr(type_name, '<') == NULL)
         return node;
 
-    for (;; arg_count++) {
+    for (size_t i = 0;; i++) {
         char *arg = transpiler_specialization_type_name_arg_copy(
-            type_name, arg_count);
-        if (arg == NULL)
-            break;
-        free(arg);
-    }
-    if (arg_count == 0)
-        return node;
-
-    params = calloc(1, sizeof(GenericParams));
-    slots = calloc(arg_count, sizeof(GenericParam *));
-    if (params == NULL || slots == NULL)
-        goto fail;
-
-    for (size_t i = 0; i < arg_count; i++) {
-        char *arg_text = transpiler_specialization_type_name_arg_copy(
             type_name, i);
         ASTNode *arg_type = NULL;
-        GenericParam *param = NULL;
+        const char *arg_name;
 
-        if (arg_text == NULL)
-            goto fail;
+        if (arg == NULL)
+            return node;
         arg_type = transpiler_specialization_type_ast_from_type_name(
-            arg_text);
-        free(arg_text);
+            arg);
+        free(arg);
         if (arg_type == NULL)
             goto fail;
 
-        param = calloc(1, sizeof(GenericParam));
-        if (param == NULL) {
+        arg_name = ast_type_name(arg_type);
+        if (!ast_type_append_generic_arg_owned(
+                node, arg_name, arg_type, NULL)) {
             ast_destroy(arg_type);
             goto fail;
         }
-        if (arg_type->type == AST_TYPE && ast_type_name(arg_type) != NULL) {
-            param->name = pergyra_strdup(ast_type_name(arg_type));
-            if (param->name == NULL) {
-                ast_destroy(arg_type);
-                free(param);
-                goto fail;
-            }
-        }
-        param->constraint = arg_type;
-        slots[i] = param;
     }
-
-    params->params = slots;
-    params->count = arg_count;
-    params->capacity = arg_count;
-    node->data.type.generic_args = params;
-    return node;
 
 fail:
-    if (slots != NULL) {
-        for (size_t i = 0; i < arg_count; i++) {
-            if (slots[i] == NULL)
-                continue;
-            free(slots[i]->name);
-            ast_destroy(slots[i]->constraint);
-            ast_destroy(slots[i]->default_type);
-            free(slots[i]);
-        }
-    }
-    free(slots);
-    free(params);
     ast_destroy(node);
     return NULL;
 }
@@ -199,7 +154,7 @@ transpiler_ensure_generic_class_specialization_from_type_name(
     ASTNode *class_decl;
     ASTNode *type_ast;
 
-    if (ctx == NULL || type_name == NULL || strchr(type_name, '<') == NULL)
+    if (ctx == NULL || type_name == NULL || type_name[0] == '\0')
         return NULL;
 
     base_name = transpiler_specialization_type_name_base_copy(type_name);
@@ -268,6 +223,10 @@ ensure_type_specializations_from_type_name_to(TranspilerCtx *ctx,
 {
     if (ctx == NULL || dst == NULL || type_name == NULL
         || type_name[0] == '\0') {
+        return;
+    }
+    if (type_name[0] == '(') {
+        ensure_tuple_specialization_from_type_name_to(ctx, dst, type_name);
         return;
     }
     if (transpiler_specialization_scan_type_alias(ctx, dst, type_name))

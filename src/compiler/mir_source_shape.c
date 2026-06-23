@@ -34,6 +34,25 @@ mir_instruction_resource_op_is_write(const MIRInstruction *inst)
         && strcmp(inst->name, "Write") == 0;
 }
 
+static bool
+mir_instruction_resource_op_is_spawn(const MIRInstruction *inst)
+{
+    return inst != NULL
+        && inst->kind == MIR_INST_RESOURCE_OP
+        && inst->name != NULL
+        && strcmp(inst->name, "Spawn") == 0;
+}
+
+static bool
+mir_instruction_resource_op_is_await(const MIRInstruction *inst)
+{
+    return inst != NULL
+        && inst->kind == MIR_INST_RESOURCE_OP
+        && inst->name != NULL
+        && (strcmp(inst->name, "AwaitLocal") == 0
+            || strcmp(inst->name, "AwaitRemote") == 0);
+}
+
 bool
 mir_instruction_source_matches_ast_type(const MIRInstruction *inst,
                                         ASTNodeType expected_type)
@@ -578,6 +597,8 @@ mir_instruction_resource_op_keeps_residual_statement_emit(
         return false;
     return mir_instruction_resource_op_is_read(inst)
         || strcmp(inst->name, "IO") == 0
+        || mir_instruction_resource_op_is_spawn(inst)
+        || mir_instruction_resource_op_is_await(inst)
         || strcmp(inst->name, "ChannelSend") == 0
         || strcmp(inst->name, "ChannelRecv") == 0
         || strcmp(inst->name, "ChannelSelect") == 0;

@@ -1,6 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 #include "llvm_internal_api.h"
+#include "llvm_backend_type_map_internal.h"
 #include "llvm_inventory_host_methods.h"
 #include "llvm_stmt_source_local_fallback.h"
 #include "llvm_stmt_type_infer_helpers.h"
@@ -142,6 +143,16 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         /* A `[...]` is a sequence: its concrete kind comes from the binding's
          * expected type (Array by default, List/Queue when so declared). */
         const char *exp = ctx->expected_type_name;
+        char *alias_target_type_name = NULL;
+        if (exp != NULL) {
+            alias_target_type_name =
+                llvm_render_alias_target_type_name_scratch(
+                    ctx, exp, &ctx->scratch);
+            if (alias_target_type_name != NULL)
+                exp = alias_target_type_name;
+            else if (ctx->has_error)
+                return NULL;
+        }
         PgyTypeKind expected_kind = pgy_classify_type(exp);
         bool want_list = expected_kind == PGY_TK_LIST;
         bool want_queue = expected_kind == PGY_TK_QUEUE;

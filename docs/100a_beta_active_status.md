@@ -1771,9 +1771,10 @@ Operational mode:
   ABI same-process, `64/64` backend compare).
 - 2026-04-29 C declaration lookup owner update:
   `transpiler_decl_lookup.c` is now below the 600 LOC review threshold.
-  Current-host, owner-host, nominal-host, and nominal-method lookup live in
-  `transpiler_decl_host_lookup.c`; the original owner keeps named declaration,
-  alias, inventory, and method-list lookup. Gates: `make pgy`,
+  Current-host, owner-host, and nominal-host declaration lookup live in
+  `transpiler_decl_host_lookup.c`; non-MIR host-method AST lookup is retired
+  and hosted methods consume MIR metadata. The original owner keeps named
+  declaration, alias, inventory, and method-list lookup. Gates: `make pgy`,
   `make test-transpile`, `make production-header-size-test-smoke`,
   `make backend-inc-size-test-smoke`, and `make llvm-test-backend-compare`
   (`196/0` ABI same-process, `65/65` backend compare).

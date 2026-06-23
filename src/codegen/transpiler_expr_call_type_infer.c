@@ -320,6 +320,16 @@ transpiler_expr_infer_call_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 const char *host_return_type_name =
                     transpiler_mir_decl_method_return_type_name(
                         host_method_meta);
+                if (host_decl != NULL
+                    && host_name != NULL
+                    && host_method_meta == NULL
+                    && decl == NULL) {
+                    transpiler_set_mir_inventory_missing(ctx,
+                        "MIR-only C path missing hosted self-call inference method metadata for '%s.%s'",
+                        host_name,
+                        name != NULL ? name : "(anonymous)");
+                    return "Unknown";
+                }
                 if (!transpiler_mir_decl_method_metadata_complete_for(ctx,
                         host_method_meta,
                         host_name,

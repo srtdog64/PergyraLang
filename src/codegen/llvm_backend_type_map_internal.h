@@ -19,6 +19,9 @@ char *llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena);
 char *llvm_render_type_name_in_ctx(LLVMGenCtx *ctx, ASTNode *type_node);
 char *llvm_render_type_name_scratch_in_ctx(LLVMGenCtx *ctx, ASTNode *type_node,
                                            PgyArena *arena);
+char *llvm_render_alias_target_type_name_scratch(LLVMGenCtx *ctx,
+                                                 const char *type_name,
+                                                 PgyArena *arena);
 
 #endif /* PGY_LLVM_ENABLED */
 

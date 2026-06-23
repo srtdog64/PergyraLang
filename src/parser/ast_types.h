@@ -59,6 +59,21 @@ typedef enum {
     INTENT_ROLLBACK_NONE
 } IntentRollbackPolicy;
 
+/* Closure capture descriptor (see docs/135_closure_capture_design.md).
+ * Computed during semantic analysis and stored on the lambda AST node;
+ * the list is empty until then. Capture lives on the Resource axis. */
+typedef enum {
+    LAMBDA_CAPTURE_COPY = 0, /* value-type snapshot (Stage A) */
+    LAMBDA_CAPTURE_REF  = 1, /* non-escaping borrow (Stage B) */
+    LAMBDA_CAPTURE_OWN  = 2  /* moved into env (Stage C/D) */
+} LambdaCaptureMode;
+
+typedef struct {
+    char*             name;      /* captured outer binding name */
+    char*             type_name; /* rendered Pergyra type name (semantic-filled) */
+    LambdaCaptureMode mode;
+} LambdaCapture;
+
 /* Structured comment tags */
 typedef enum {
     DOC_TAG_WHAT,

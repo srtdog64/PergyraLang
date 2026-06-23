@@ -17,6 +17,23 @@ HERE="$(cd "$(dirname "$0")/../.." && pwd)"
 RT="$HERE/src/runtime"
 fail=0
 
+file_consumes_charge() {
+    local token="$1" file="$2"
+    local include
+
+    if grep -q "$token" "$RT/$file"; then
+        return 0
+    fi
+
+    while IFS= read -r include; do
+        if [ -f "$RT/$include" ] && grep -q "$token" "$RT/$include"; then
+            return 0
+        fi
+    done < <(sed -n 's/^[[:space:]]*#[[:space:]]*include[[:space:]]*"\([^"]*\)".*/\1/p' "$RT/$file")
+
+    return 1
+}
+
 # require_charge <kind-token> <label> <file...> -- every file must contain the token
 require_charge() {
     local token="$1" label="$2"; shift 2
@@ -25,7 +42,7 @@ require_charge() {
         if [ ! -f "$RT/$f" ]; then
             echo "[FAIL] $label: twin file missing: $f"; fail=1; continue
         fi
-        if grep -q "$token" "$RT/$f"; then
+        if file_consumes_charge "$token" "$f"; then
             echo "[PASS] $label charge present in $f"
         else
             echo "[FAIL] $label charge ($token) absent in $f -- C/LLVM budget twin drift"; fail=1

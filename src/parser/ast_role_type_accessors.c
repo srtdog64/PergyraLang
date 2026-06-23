@@ -4,6 +4,7 @@
  */
 
 #include "ast_constructors_internal.h"
+#include "ast_destroy_internal.h"
 #include "../common/string_compat.h"
 
 #include <stdint.h>
@@ -450,6 +451,64 @@ ast_type_generic_args(const ASTNode* node)
     return node->data.type.generic_args;
 }
 
+bool
+ast_type_append_generic_arg_owned(ASTNode* node,
+                                  const char* name,
+                                  ASTNode* constraint,
+                                  ASTNode* default_type)
+{
+    GenericParams *args;
+    GenericParam **grown;
+    GenericParam *param;
+    bool created_args = false;
+
+    if (node == NULL || node->type != AST_TYPE)
+        return false;
+
+    args = node->data.type.generic_args;
+    if (args == NULL) {
+        args = calloc(1, sizeof(GenericParams));
+        if (args == NULL)
+            return false;
+        node->data.type.generic_args = args;
+        created_args = true;
+    }
+
+    if (args->count == args->capacity) {
+        size_t next_capacity = args->capacity == 0 ? 4 : args->capacity * 2;
+        if (next_capacity < args->capacity)
+            goto fail_created;
+        grown = realloc(args->params, next_capacity * sizeof(GenericParam *));
+        if (grown == NULL)
+            goto fail_created;
+        args->params = grown;
+        args->capacity = next_capacity;
+    }
+
+    param = calloc(1, sizeof(GenericParam));
+    if (param == NULL)
+        goto fail_created;
+    if (name != NULL) {
+        param->name = pergyra_strdup(name);
+        if (param->name == NULL) {
+            free(param);
+            goto fail_created;
+        }
+    }
+    param->constraint = constraint;
+    param->default_type = default_type;
+    args->params[args->count++] = param;
+    return true;
+
+fail_created:
+    if (created_args && args->count == 0) {
+        free(args->params);
+        free(args);
+        node->data.type.generic_args = NULL;
+    }
+    return false;
+}
+
 size_t
 ast_generic_param_count(const GenericParams* params)
 {
@@ -515,4 +574,3 @@ ast_replace_type_name_copy(ASTNode* node, const char* type_name)
     node->data.type.name = owned_type_name;
     return true;
 }
-

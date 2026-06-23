@@ -30,6 +30,8 @@ Date: 2026-04-24
 ## What Is Still Open
 
 - This is not yet the full zone/world transitive scheduler.
+- This is not yet the Transitive Frontier Scheduler as a single source of truth
+  across world, zone, projection, authority, failure, and handoff propagation.
 - The strict beta blocker that remains in this area is broader frontier scheduling across authority/failure handoff and the rest of the world-zone propagation family, not just the world-derived, zone-lifecycle, embedded projection, and handoff projection/layer/state slices.
 - In other words, the `world_fixpoint_abi` slice, the zone lifecycle frontier loop, the embedded zone projection read-after-mutate slice, and the v1 handoff projection/layer/state slices are closed, but the entire zone/world propagation surface is not yet at 100%.
 - `authority_failure_abi` is now green on both backends, so runtime authority rejection has a non-aborting queryable baseline in the same ABI smoke matrix.

@@ -35,7 +35,8 @@ mir_stmt_population_append(MIRInstruction *new_insts,
 }
 
 static bool
-mir_append_matching_def_for_stmt(MIRInstruction *new_insts,
+mir_append_matching_def_for_stmt(MIRRoutine *routine,
+                                 MIRInstruction *new_insts,
                                  size_t new_cap,
                                  size_t *new_count,
                                  MIRInstruction *old_insts,
@@ -50,7 +51,8 @@ mir_append_matching_def_for_stmt(MIRInstruction *new_insts,
 
     if (handled_out != NULL)
         *handled_out = false;
-    if (new_insts == NULL || new_count == NULL || old_insts == NULL
+    if (routine == NULL || new_insts == NULL || new_count == NULL
+        || old_insts == NULL
         || copied_flags == NULL || stmt_name == NULL) {
         return true;
     }
@@ -72,7 +74,7 @@ mir_append_matching_def_for_stmt(MIRInstruction *new_insts,
             def_inst.ast = stmt;
             mir_instruction_capture_source_provenance(&def_inst, stmt);
         }
-        mir_attach_def_initializer_call_fact(&def_inst, stmt);
+        mir_attach_def_initializer_call_fact(routine, &def_inst, stmt);
         mir_set_inst_source_statement_index(&def_inst,
                                             source_statement_index);
         mir_mark_select_receive_statement_emit(block, &def_inst);
@@ -319,7 +321,8 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                         mir_instruction_capture_source_provenance(&def_inst,
                                                                   stmt);
                     }
-                    mir_attach_def_initializer_call_fact(&def_inst, stmt);
+                    mir_attach_def_initializer_call_fact(routine, &def_inst,
+                                                         stmt);
                     mir_set_inst_source_statement_index(&def_inst, s);
                     mir_mark_select_receive_statement_emit(block, &def_inst);
                     if (!mir_stmt_population_append(new_insts,
@@ -343,7 +346,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                     if (mir_stmt_requires_source_local_preservation(stmt)) {
                         bool handled = false;
                         if (!mir_append_matching_def_for_stmt(
-                                new_insts, new_cap, &new_count,
+                                routine, new_insts, new_cap, &new_count,
                                 old_insts, old_count, copied_flags,
                                 block, stmt, s, &handled)) {
                             free(copied_flags);

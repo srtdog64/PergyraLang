@@ -19,7 +19,7 @@ bool transpiler_mir_routine_has_source_local_binding(
 void transpiler_register_with_alias_bindings_in_block(
     TranspilerSSANameMap *ssa_map,
     ASTNode *body);
-void transpiler_register_mir_source_local_bindings(
+bool transpiler_register_mir_source_local_bindings(
     TranspilerCtx *ctx,
     const MIRRoutine *routine);
 void transpiler_register_ast_compat_local_bindings_in_block(

@@ -483,11 +483,16 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     if (is_method && resolved_host_decl != NULL)
         transpiler_mir_register_class_field_slots(ctx, resolved_host_decl);
     transpiler_register_mir_with_slot_claim_facts(ctx, mir_routine);
-    if (transpiler_active_has_mir(ctx))
-        transpiler_register_mir_source_local_bindings(ctx, mir_routine);
-    else if (node != NULL)
+    if (transpiler_active_has_mir(ctx)) {
+        if (!transpiler_register_mir_source_local_bindings(ctx, mir_routine)) {
+            transpiler_restore_mir_emit_state_from_snapshot_local(ctx,
+                &saved_emit_state);
+            return;
+        }
+    } else if (node != NULL) {
         transpiler_register_ast_compat_local_bindings_in_block(ctx, node,
             ast_func_body(node));
+    }
 
     if (!transpiler_emit_mir_func_ssa_local_decls(ctx, node, mir_routine, name)) {
         transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);

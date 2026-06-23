@@ -157,17 +157,24 @@ require(compare.count("parallel_channel") >= 2, "backend compare must keep multi
 require_text(
     "src/codegen/transpiler_mir_stmt_emit.c",
     [
-        "mir_instruction_source_matches_ast_type(stmt_inst, AST_PARALLEL_BLOCK)",
-        "resource ops are observability hooks, not semantic",
+        "mir_instruction_has_inherent_concurrency_fact(stmt_inst)",
+        "mir_instruction_resource_op_is_write(resource_inst)",
+        "A concrete Write resource op is the exception",
+        "the value expression awaits a Future<T>",
+        "take the same future twice",
         "The residual statement must still lower the",
         "mir_instruction_resource_op_keeps_residual_statement_emit",
-        "They do not emit the concrete builtin or",
+        "spawn/await, and channel ops are boundary",
+        "They do not emit the concrete",
     ],
 )
 require_text(
     "src/compiler/mir_source_shape.c",
     [
         "strcmp(inst->name, \"IO\") == 0",
+        "strcmp(inst->name, \"Spawn\") == 0",
+        "strcmp(inst->name, \"AwaitLocal\") == 0",
+        "strcmp(inst->name, \"AwaitRemote\") == 0",
     ],
 )
 

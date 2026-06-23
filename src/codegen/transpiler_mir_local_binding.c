@@ -227,12 +227,12 @@ transpiler_register_with_alias_bindings_in_block(TranspilerSSANameMap *ssa_map,
     }
 }
 
-void
+bool
 transpiler_register_mir_source_local_bindings(TranspilerCtx *ctx,
                                               const MIRRoutine *routine)
 {
     if (ctx == NULL || routine == NULL)
-        return;
+        return true;
     for (size_t i = 0;
          i < transpiler_mir_routine_source_local_type_count(routine);
          i++) {
@@ -249,11 +249,18 @@ transpiler_register_mir_source_local_bindings(TranspilerCtx *ctx,
             if (slot_inner_type_name_copy(type_name, slot_inner_buf,
                     sizeof(slot_inner_buf))) {
                 slot_inner = slot_inner_buf;
+            } else {
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "C MIR local binding '%s' requires concrete slot type metadata",
+                    name != NULL ? name : "<local>");
+                return false;
             }
             register_slot_var(ctx, name, slot_inner,
                 pgy_codegen_type_name_is_secure_slot(type_name), false);
         }
     }
+    return true;
 }
 
 void

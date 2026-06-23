@@ -408,10 +408,14 @@ mir_dump(const MIRProgram *mir, FILE *out)
                 if (mir_instruction_has_source_location(inst)) {
                     ASTNodeType ast_type = (ASTNodeType)
                         mir_instruction_source_node_type_or(inst, AST_PROGRAM);
+                    const char *inline_text =
+                        mir_instruction_source_inline_text(inst);
                     fprintf(out, " ast=%s ast-type=%d line=%u",
                             mir_source_node_type_name(ast_type),
                             (int)ast_type,
                             mir_instruction_source_line(inst));
+                    if (inline_text != NULL && inline_text[0] != '\0')
+                        fprintf(out, " source=\"%s\"", inline_text);
                 }
                 if (inst->kind == MIR_INST_BRANCH)
                     fprintf(out, " branch-shape=%s",

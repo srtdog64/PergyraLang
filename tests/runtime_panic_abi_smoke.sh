@@ -732,7 +732,7 @@ exported_channel_result_bin="$(compile_case exported_channel_result '
 #include <string.h>
 #include "runtime/pgy_runtime_lib.c"
 int main(void) {
-    PgyChannel_String_RT ch;
+    PgyChannel_String ch;
     pgy_channel_init_String(&ch, 1);
     PgyRuntimeChannelStringResult empty =
         pgy_channel_try_recv_result_String(&ch);

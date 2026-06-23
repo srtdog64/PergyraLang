@@ -282,7 +282,7 @@ require_literal "src/codegen/transpiler_type_mapping.c" \
 require_literal "src/codegen/transpiler_type_mapping.c" \
     "return written >= 0 && (size_t)written < out_size"
 require_literal "src/codegen/transpiler_decl_host_lookup.c" \
-    "transpiler_cache_nominal_method_decl"
+    "transpiler_cache_nominal_host_decl"
 require_literal "src/codegen/transpiler_decl_host_lookup.c" \
     "len >= dst_size"
 require_literal "src/codegen/transpiler_mir_local_type_lookup.c" \
