@@ -13,7 +13,6 @@
 typedef struct
 {
     const MIRDeclHeader *decl_header;
-    ASTNode           **ast_compat_methods;
     size_t             ast_compat_count;
     size_t             count;
     bool               uses_mir_metadata;
@@ -124,7 +123,6 @@ typedef struct
 TranspilerHostedMethodView transpiler_hosted_method_view(
     const TranspilerCtx *ctx,
     const char *host_name,
-    ASTNode **ast_compat_methods,
     size_t ast_compat_count);
 bool transpiler_hosted_method_view_missing_mir_metadata(
     const TranspilerHostedMethodView *view);

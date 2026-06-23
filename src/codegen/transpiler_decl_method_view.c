@@ -18,14 +18,12 @@
 TranspilerHostedMethodView
 transpiler_hosted_method_view(const TranspilerCtx *ctx,
                               const char *host_name,
-                              ASTNode **ast_compat_methods,
                               size_t ast_compat_count)
 {
     TranspilerHostedMethodView view;
     const MIRDeclHeader *header = NULL;
 
     view.decl_header = NULL;
-    view.ast_compat_methods = ast_compat_methods;
     view.ast_compat_count = ast_compat_count;
     view.count = ast_compat_count;
     view.uses_mir_metadata = false;
@@ -71,12 +69,12 @@ transpiler_hosted_method_view_compat_method(
     const TranspilerHostedMethodView *view,
     size_t index)
 {
-    if (view == NULL || view->uses_mir_metadata
-        || view->ast_compat_methods == NULL
-        || index >= view->ast_compat_count) {
-        return NULL;
-    }
-    return view->ast_compat_methods[index];
+    /* MIR-only: the non-MIR AST method fallback is retired. Method shape is
+     * owned by MIR declaration metadata
+     * (transpiler_hosted_method_view_metadata). Fail closed. */
+    (void)view;
+    (void)index;
+    return NULL;
 }
 
 const MIRDeclMethod *
@@ -346,6 +344,5 @@ transpiler_hosted_method_view_from_decl(const TranspilerCtx *ctx,
     PgyHostMethodCompatView compat = pgy_host_method_compat_view_from_decl(
         decl, transpiler_active_has_mir(ctx));
 
-    return transpiler_hosted_method_view(ctx, host_name,
-        compat.methods, compat.count);
+    return transpiler_hosted_method_view(ctx, host_name, compat.count);
 }

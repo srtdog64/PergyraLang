@@ -3024,7 +3024,6 @@ if grep -RIn "llvm_mir_decl_method_body_decl" \
         "$ROOT_DIR/src/codegen"/llvm_*.h; then
     fail "LLVM method body AST compatibility accessor must stay retired"
 fi
-require_term "src/codegen/llvm_inventory_host_methods.h" "ast_compat_methods"
 require_term "src/codegen/llvm_inventory_host_methods.h" "ast_compat_count"
 require_term "src/codegen/llvm_inventory_host_methods.c" \
     "view->count != view->ast_compat_count"
@@ -6214,7 +6213,6 @@ fi
 for term in \
     "TranspilerHostedMethodView" \
     "TranspilerHostedFieldView" \
-    "ast_compat_methods" \
     "ast_compat_count" \
     "transpiler_hosted_method_view(" \
     "transpiler_hosted_method_view_metadata(" \
@@ -7695,7 +7693,7 @@ for term in \
     "transpiler_hosted_method_view_compat_method" \
     "llvm_hosted_method_view_compat_method" \
     "Dedicated declaration IR" \
-    "Open beta blocker row"; do
+    "Closing (MIR-only decision"; do
     require_term "docs/125_source_of_truth_spine.md" "$term"
 done
 for term in \

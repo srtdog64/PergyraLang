@@ -53,14 +53,12 @@ llvm_find_host_method_metadata_in_context(const LLVMGenCtx *ctx,
 LLVMHostedMethodView
 llvm_hosted_method_view(const LLVMGenCtx *ctx,
                         const char *host_type_name,
-                        ASTNode **ast_compat_methods,
                         size_t ast_compat_count)
 {
     LLVMHostedMethodView view;
     const MIRDeclHeader *decl_header = NULL;
 
     view.decl_header = NULL;
-    view.ast_compat_methods = ast_compat_methods;
     view.ast_compat_count = ast_compat_count;
     view.count = ast_compat_count;
     view.uses_mir_metadata = false;
@@ -96,8 +94,7 @@ llvm_hosted_method_view_from_decl(const LLVMGenCtx *ctx,
     PgyHostMethodCompatView compat =
         pgy_host_method_compat_view_from_decl(decl, llvm_active_has_mir(ctx));
 
-    return llvm_hosted_method_view(ctx, host_type_name,
-        compat.methods, compat.count);
+    return llvm_hosted_method_view(ctx, host_type_name, compat.count);
 }
 
 const MIRDeclMethod *
@@ -115,12 +112,12 @@ ASTNode *
 llvm_hosted_method_view_compat_method(const LLVMHostedMethodView *view,
                                       size_t index)
 {
-    if (view == NULL || view->uses_mir_metadata
-        || view->ast_compat_methods == NULL
-        || index >= view->ast_compat_count) {
-        return NULL;
-    }
-    return view->ast_compat_methods[index];
+    /* MIR-only: the non-MIR AST method fallback is retired. Method shape is
+     * owned by MIR declaration metadata (llvm_hosted_method_view_metadata).
+     * Fail closed. */
+    (void)view;
+    (void)index;
+    return NULL;
 }
 
 bool
