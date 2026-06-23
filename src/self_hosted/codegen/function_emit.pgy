@@ -23,6 +23,9 @@ func CParamType(type_name: String, struct_env: String) -> String {
     if StartsWith(type_name, "Result<") && StringIndexOf(type_name, "Int") >= 0 {
         return "pgy_result_int";
     }
+    if StartsWith(type_name, "Option<") && StringIndexOf(type_name, "Int") >= 0 {
+        return "pgy_option_int";
+    }
     if LookupKindType(struct_env, type_name, "s") == "struct" {
         return type_name;
     }
@@ -30,7 +33,7 @@ func CParamType(type_name: String, struct_env: String) -> String {
     // surface is locals + math builtins + Log only. Rejecting Float in
     // signatures keeps complex Float programs (Array<Float>, Float struct
     // fields) as a clean observable rejection rather than emitting broken C.
-    Die(Concat("unsupported parameter type (only Int/Bool/String/Array/struct): ", type_name));
+    Die(Concat("unsupported parameter type (only Int/Bool/String/Array/Option/struct): ", type_name));
     return "";
 }
 
@@ -59,10 +62,13 @@ func CRetType(type_name: String, struct_env: String) -> String {
     if StartsWith(type_name, "Result<") && StringIndexOf(type_name, "Int") >= 0 {
         return "pgy_result_int";
     }
+    if StartsWith(type_name, "Option<") && StringIndexOf(type_name, "Int") >= 0 {
+        return "pgy_option_int";
+    }
     if LookupKindType(struct_env, type_name, "s") == "struct" {
         return type_name;
     }
-    Die(Concat("unsupported return type (only Int/Bool/String/Void/Array/struct): ", type_name));
+    Die(Concat("unsupported return type (only Int/Bool/String/Void/Array/Option/struct): ", type_name));
     return "";
 }
 

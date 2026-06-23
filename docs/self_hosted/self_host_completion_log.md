@@ -67,6 +67,24 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Option<Int> match facts enter self-host MIR JSON lowering
+
+- Added explicit MIR JSON match facts for Option-like cases:
+  `match_variant` records `Some` / `None`, and `match_bindings` records
+  fact-owned payload names such as `v`. The self-hosted MIR lowerer now
+  reconstructs `Some(v)` as an `IsSome(subject)` branch plus
+  `Let: v : Int = UnwrapOption(subject)`, and reconstructs `None` as
+  `!IsSome(subject)`, without parsing transitional source text.
+- Promoted the `Option<Int>` value surface into self-hosted codegen:
+  `Some`, `None`, `IsSome`, and `UnwrapOption` lower through a local
+  value-passed `pgy_option_int` helper.
+- Added `option_int_core.pgy` to codegen parity and `option_match.pgy` to the
+  MIR JSON hard path. Verified codegen parity at **55 fixtures**, MIR JSON
+  lowering parity at **72 positive fixtures plus 2 clean rejects**, and
+  refreshed the examples-scale survey to 48 PASS, 24 CODEGEN-gap, 36
+  MIR-LOWER-gap, 13 ORACLE-skip. `option_test` now passes through the
+  self-host MIR JSON -> C path.
+
 ### 2026-06-23 -- Codegen owner split and Result<Int> try enter self-host codegen
 
 - Split `src/self_hosted/codegen/main.pgy` from a monolithic implementation into

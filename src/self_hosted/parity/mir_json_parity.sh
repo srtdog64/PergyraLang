@@ -76,6 +76,7 @@ MIR_FIXTURES=(
     enum_simple
     match_case_int
     nested_if_in_loop
+    option_match
     array_destructure
     ifelse
     nestedif
@@ -117,6 +118,7 @@ CODEGEN_FIXTURES=(
     mixed_int_str
     nested_concat
     nested_ctrl
+    option_int_core
     result_try
     str_array
     str_array_concat
@@ -242,6 +244,17 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
             fi
         done
     fi
+    if [[ "$base" == "option_match" ]]; then
+        for required in \
+            '"source_type":"AST_MATCH_CASE"' \
+            '"match_patterns":["Some(v)"],"match_variant":"Some","match_bindings":["v"]' \
+            '"match_patterns":["None"],"match_variant":"None","match_bindings":[]'; do
+            if ! grep -Fq "$required" "$mj"; then
+                echo "[self-host-parity:mir-json] option_match: missing MIR option match fact: $required" >&2
+                exit 1
+            fi
+        done
+    fi
     "$B/mir_lower.exe" "${mj#$ROOT_DIR/}" 2>/dev/null | tr -d '\r' > "$reast" || true
     if grep -q '^MIR-LOWER ERROR' "$reast"; then
         echo "[self-host-parity:mir-json] $base: mir_lower rejected the MIR-JSON:" >&2
@@ -302,6 +315,17 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
     if [[ "$base" == "match_case_int" ]] && ! grep -q 'If: x == 3' "$reast"; then
         echo "[self-host-parity:mir-json] match_case_int: mir_lower did not reconstruct match case conditions from MIR facts" >&2
         exit 1
+    fi
+    if [[ "$base" == "option_match" ]]; then
+        for required in \
+            'If: IsSome(val)' \
+            'Let: v : Int = UnwrapOption(val)' \
+            'If: !IsSome(val)'; do
+            if ! grep -Fq "$required" "$reast"; then
+                echo "[self-host-parity:mir-json] option_match: mir_lower did not reconstruct option match fact: $required" >&2
+                exit 1
+            fi
+        done
     fi
     if [[ "$base" == "nested_if_in_loop" ]]; then
         if grep -q 'While: (right < size)' "$reast" || grep -q 'While: (largest == cur)' "$reast"; then

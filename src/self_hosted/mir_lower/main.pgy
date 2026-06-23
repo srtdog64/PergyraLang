@@ -610,6 +610,41 @@ func ReadSucc(json: String, bs: Int, be: Int, kw: String) -> String {
     return ReadDigits(json, p + StringLength(kw));
 }
 
+func JsonFirstArrayString(json: String, start: Int, end: Int, key: String) -> String {
+    let p: Int = FindFrom(json, key, start);
+    if p < 0 || p >= end {
+        return "";
+    }
+    let open: Int = FindFrom(json, "[", p);
+    let close: Int = FindFrom(json, "]", open);
+    if open < 0 || close < 0 || close >= end {
+        return "";
+    }
+    let q: Int = FindFrom(json, "\"", open);
+    if q < 0 || q >= close {
+        return "";
+    }
+    let e: Array<Int> = [0];
+    return ReadJsonString(json, q, e);
+}
+
+func OptionInnerTypeName(type_name: String) -> String {
+    let lt: Int = StringIndexOf(type_name, "<");
+    if lt < 0 {
+        return "";
+    }
+    let gt: Int = StringIndexOf(type_name, ">");
+    if gt <= lt {
+        return "";
+    }
+    let inner: String = StringTrim(Substring(type_name, lt + 1, gt - lt - 1));
+    let colon: Int = StringIndexOf(inner, ":");
+    if colon >= 0 {
+        inner = StringTrim(Substring(inner, 0, colon));
+    }
+    return inner;
+}
+
 // Resolve block `id` to its JSON span [o[0], o[1]); false if not found. The span
 // runs from this block's `"id":<id>,"reachable"` to the next block's marker.
 func BlockBounds(json: String, bp: Int, span_end: Int, id: String, inout o: Array<Int>) -> Bool {
@@ -660,6 +695,13 @@ func BlockCond(json: String, routine_start: Int, routine_end: Int, bs: Int, be: 
         if next >= 0 && next < pe {
             Die("multi-pattern match cases are outside the self-host MIR subset");
         }
+        let variant: String = JsonFieldString(json, kp, inst_end, "\"match_variant\":");
+        if variant == "Some" {
+            return Concat("IsSome(", Concat(match_subject, ")"));
+        }
+        if variant == "None" {
+            return Concat("!IsSome(", Concat(match_subject, ")"));
+        }
         return Concat(match_subject, Concat(" == ", pattern));
     }
     if source_type == "AST_FOR_LOOP" {
@@ -679,6 +721,39 @@ func BlockCond(json: String, routine_start: Int, routine_end: Int, bs: Int, be: 
         return cond;
     }
     return "";
+}
+
+func BlockMatchBindingLine(json: String, routine_start: Int, routine_end: Int,
+                           bs: Int, be: Int, indent: String) -> String {
+    let kp: Int = FindFrom(json, "\"kind\":\"branch\"", bs);
+    if kp < 0 || kp >= be {
+        return "";
+    }
+    let next_kp: Int = FindFrom(json, "\"kind\":", kp + 8);
+    let inst_end: Int = be;
+    if next_kp >= 0 && next_kp < be {
+        inst_end = next_kp;
+    }
+    let source_type: String = JsonFieldString(json, kp, inst_end, "\"source_type\":");
+    if source_type != "AST_MATCH_CASE" {
+        return "";
+    }
+    let variant: String = JsonFieldString(json, kp, inst_end, "\"match_variant\":");
+    if variant != "Some" {
+        return "";
+    }
+    let match_subject2: String = JsonFieldString(json, kp, inst_end, "\"expr0\":");
+    let binding: String = JsonFirstArrayString(json, kp, inst_end, "\"match_bindings\":[");
+    if StringLength(match_subject2) == 0 || StringLength(binding) == 0 {
+        Die("Some match case is missing subject or binding MIR fact");
+    }
+    let subject_type: String = SourceLocalType(json, routine_start, routine_end, match_subject2);
+    let inner_type: String = OptionInnerTypeName(subject_type);
+    if StringLength(inner_type) == 0 {
+        Die(Concat("Some match case subject is not a known Option type: ", match_subject2));
+    }
+    return Concat(indent, Concat("Let: ", Concat(binding, Concat(" : ",
+        Concat(inner_type, Concat(" = UnwrapOption(", Concat(match_subject2, ")\n")))))));
 }
 
 // Emit the non-branch statement lines of block [bs,be) at `indent`. `phi`
@@ -860,6 +935,7 @@ func EmitRegion(json: String, routine_start: Int, bp: Int, span_end: Int,
                 out = Concat(out, Concat(indent, Concat("If: ", Concat(cond, "\n"))));
                 out = Concat(out, Concat(indent, "  Then:\n"));
                 out = Concat(out, Concat(indent, "    Block:\n"));
+                out = Concat(out, BlockMatchBindingLine(json, routine_start, span_end, bs, be, Concat(indent, "      ")));
                 out = Concat(out, EmitRegion(json, routine_start, bp, span_end, t, merge, Concat(indent, "      "), loop_header, loop_exit));
                 if hasElse {
                     out = Concat(out, Concat(indent, "  Else:\n"));

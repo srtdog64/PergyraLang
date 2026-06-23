@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../parser/ast_api.h"
 
@@ -65,6 +66,60 @@ mir_json_emit_defer_body(FILE *out, ASTNode *body)
         if (i > 0)
             fputc(',', out);
         mir_json_emit_expr_or_null(out, ast_block_statement(body, i));
+    }
+    fputc(']', out);
+}
+
+static const char *
+mir_json_identifier_name(ASTNode *node)
+{
+    if (node == NULL || node->type != AST_IDENTIFIER)
+        return NULL;
+    return ast_identifier_name(node);
+}
+
+static void
+mir_json_emit_match_variant_facts(FILE *out, const MIRInstruction *inst)
+{
+    ASTNode *pattern;
+    ASTNode *callee;
+    const char *variant = NULL;
+
+    fputs(",\"match_variant\":", out);
+    if (inst == NULL || mir_instruction_match_pattern_count(inst) != 1) {
+        fputs("null,\"match_bindings\":[]", out);
+        return;
+    }
+
+    pattern = mir_instruction_match_pattern_at(inst, 0);
+    if (pattern != NULL && pattern->type == AST_CALL) {
+        callee = ast_call_callee(pattern);
+        variant = mir_json_identifier_name(callee);
+    } else {
+        const char *name = mir_json_identifier_name(pattern);
+        if (name != NULL && strcmp(name, "None") == 0)
+            variant = name;
+    }
+
+    if (variant == NULL) {
+        fputs("null,\"match_bindings\":[]", out);
+        return;
+    }
+
+    mir_json_emit_str(out, variant);
+    fputs(",\"match_bindings\":[", out);
+    if (pattern != NULL && pattern->type == AST_CALL) {
+        size_t emitted = 0;
+        for (size_t i = 0; i < ast_call_arg_count(pattern); i++) {
+            const char *binding =
+                mir_json_identifier_name(ast_call_argument(pattern, i));
+            if (binding == NULL)
+                continue;
+            if (emitted > 0)
+                fputc(',', out);
+            mir_json_emit_str(out, binding);
+            emitted++;
+        }
     }
     fputc(']', out);
 }
@@ -277,6 +332,7 @@ mir_json_emit_instruction(FILE *out, const MIRInstruction *inst)
             mir_instruction_match_pattern_at(inst, p));
     }
     fputc(']', out);
+    mir_json_emit_match_variant_facts(out, inst);
     fputs(",\"destructure_bindings\":[", out);
     for (size_t d = 0; d < mir_instruction_destructure_binding_count(inst);
          d++) {

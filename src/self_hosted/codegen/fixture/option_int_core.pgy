@@ -1,0 +1,10 @@
+func Main() -> Void {
+    let a: Option<Int> = Some(7);
+    let b: Option<Int> = None;
+    if IsSome(a) {
+        Log(UnwrapOption(a));
+    }
+    if !IsSome(b) {
+        Log(0);
+    }
+}

@@ -1,6 +1,6 @@
 // src/self_hosted/codegen/main.pgy
 //
-// Status: rung-0..15 (2026-06-17). First Pergyra-origin C codegen
+// Status: rung-0..16 (2026-06-23). First Pergyra-origin C codegen
 // substitute, and the first hard compiler-core substitution opened after the
 // 2026-06-17 BDFL freeze lift (see docs/self_hosted/README.md).
 //
@@ -10,7 +10,8 @@
 //
 // Supported subset (anything else is an observable Exit(1), never a silent
 // fallback -- CLAUDE.md s1.1):
-//   - one or more `Int`/`Bool`/`String`/`Array<Int>`/`Array<String>`/`Void`
+//   - one or more `Int`/`Bool`/`String`/`Array<Int>`/`Array<String>`/
+//     `Option<Int>`/`Void`
 //     functions; exactly one is `Main`.
 //     Each emits a C function; non-Main get forward declarations (call order
 //     and recursion are free); `Main` lowers to `int main(void)`.

@@ -142,6 +142,7 @@ FIXTURES=(
     while_sum
     if_else
     nested_ctrl
+    option_int_core
     func_call
     func_recursive
     result_int_core
@@ -395,4 +396,4 @@ if [[ "${#SKIPPED_BACKENDS[@]}" -gt 0 ]]; then
     BACKENDS_LABEL="$BACKENDS_LABEL; ${SKIPPED_BACKENDS[*]} skipped"
 fi
 
-echo "[self-host-parity:codegen] rung-0..15 parity ok (${#FIXTURES[@]} fixtures; backends=$BACKENDS_LABEL)"
+echo "[self-host-parity:codegen] rung-0..16 parity ok (${#FIXTURES[@]} fixtures; backends=$BACKENDS_LABEL)"

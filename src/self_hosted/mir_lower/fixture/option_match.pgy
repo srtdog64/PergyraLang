@@ -1,0 +1,10 @@
+func Main() -> Void {
+    let val: Option<Int> = Some(42);
+    if IsSome(val) {
+        Log(UnwrapOption(val));
+    }
+    match val {
+        case Some(v): Log(v);
+        case None: Log(0);
+    }
+}

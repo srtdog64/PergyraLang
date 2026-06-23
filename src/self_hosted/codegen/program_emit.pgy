@@ -110,7 +110,12 @@ func GenerateC(ast: String) -> String {
         || StringIndexOf(ast, "IsErr(") >= 0
         || StringIndexOf(ast, "Unwrap(") >= 0
         || StringIndexOf(ast, "UnwrapOr(") >= 0;
-    let uses_bool: Bool = StringIndexOf(ast, "Bool") >= 0 || uses_array_filter || uses_result;
+    let uses_option: Bool = StringIndexOf(ast, "Option<") >= 0
+        || StringIndexOf(ast, "Some(") >= 0
+        || StringIndexOf(ast, "None") >= 0
+        || StringIndexOf(ast, "IsSome(") >= 0
+        || StringIndexOf(ast, "UnwrapOption(") >= 0;
+    let uses_bool: Bool = StringIndexOf(ast, "Bool") >= 0 || uses_array_filter || uses_result || uses_option;
     let uses_exit: Bool = StringIndexOf(ast, "Exit(") >= 0;
     let uses_array: Bool = StringIndexOf(ast, "Array<") >= 0
         || StringIndexOf(ast, "ArrayPush(") >= 0
@@ -146,7 +151,7 @@ func GenerateC(ast: String) -> String {
         || StringIndexOf(ast, "Ceil(") >= 0
         || StringIndexOf(ast, "ToFloat(") >= 0;
     let uses_random: Bool = StringIndexOf(ast, "Random(") >= 0;
-    let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_io || uses_fhandle || uses_random || uses_float || uses_result;
+    let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_io || uses_fhandle || uses_random || uses_float || uses_result || uses_option;
     let header: String = "#include <stdio.h>\n";
     if uses_bool {
         header = Concat(header, "#include <stdbool.h>\n");
@@ -154,7 +159,7 @@ func GenerateC(ast: String) -> String {
     if need_stdlib {
         header = Concat(header, "#include <stdlib.h>\n");
     }
-    if uses_str {
+    if uses_str || uses_io || uses_fhandle {
         header = Concat(header, "#include <string.h>\n");
     }
     if uses_float {
@@ -190,6 +195,13 @@ func GenerateC(ast: String) -> String {
         header = Concat(header, "static bool pgy_result_is_err(pgy_result_int r) { return !r.is_ok; }\n");
         header = Concat(header, "static long long pgy_result_unwrap(pgy_result_int r) { return r.value; }\n");
         header = Concat(header, "static long long pgy_result_unwrap_or(pgy_result_int r, long long fallback) { return r.is_ok ? r.value : fallback; }\n\n");
+    }
+    if uses_option {
+        header = Concat(header, "typedef struct { bool is_some; long long value; } pgy_option_int;\n");
+        header = Concat(header, "static pgy_option_int pgy_option_some(long long v) { pgy_option_int o; o.is_some = true; o.value = v; return o; }\n");
+        header = Concat(header, "static pgy_option_int pgy_option_none(void) { pgy_option_int o; o.is_some = false; o.value = 0; return o; }\n");
+        header = Concat(header, "static bool pgy_option_is_some(pgy_option_int o) { return o.is_some; }\n");
+        header = Concat(header, "static long long pgy_option_unwrap(pgy_option_int o) { return o.value; }\n\n");
     }
     if uses_io || uses_fhandle {
         // Mirror the runtime path-policy default: absolute paths are denied

@@ -32,13 +32,13 @@ src/self_hosted/
   README.md                       -- this file
   PROGRESS.md                     -- honest substitution percentage
   lexer/                          -- mirrors C-side src/lexer/
-    main.pgy + fixture/ + expected/ + intent.md
+    main.pgy (+ owner modules as split) + fixture/ + expected/ + intent.md
   parser/                         -- mirrors C-side src/parser/
-    main.pgy + fixture/ + expected/ + intent.md
+    main.pgy (+ owner modules as split) + fixture/ + expected/ + intent.md
   semantic/                       -- mirrors C-side src/semantic/
-    main.pgy + fixture/ + expected/ + intent.md
+    main.pgy (+ owner modules as split) + fixture/ + expected/ + intent.md
   codegen/                        -- mirrors C-side src/codegen/
-    main.pgy + fixture/ + expected/ + intent.md
+    main.pgy (+ owner modules as split) + fixture/ + expected/ + intent.md
   air/  hir/  mir/                -- IR-stage placeholders
   compiler/                       -- driver placeholder, mirrors src/compiler/
   runtime/                        -- native runtime kernel stays C; portable policy can move
@@ -54,6 +54,12 @@ src/self_hosted/
     README.md
     lexer_parity.sh + parser_parity.sh + <tool>_parity.sh
 ```
+
+The target shape is not "one folder, one monolithic `main.pgy`". `main.pgy`
+is the CLI/orchestration entrypoint; semantic decisions belong in named
+source-of-truth owner modules. `codegen/` already follows that shape. `lexer/`,
+`parser/`, `semantic/`, and `mir_lower/` are transition surfaces and should be
+split by owned fact/contract as each hard substitution seam is closed.
 
 ## Current Status
 
@@ -119,9 +125,13 @@ src/self_hosted/
   bounded `Int` / `Bool` / `String` / growable `Array<Int>` / `Array<String>`
   function subset. The parity gate builds the emitter through C and LLVM,
   compiles the emitted C, and compares run-stdout against the C-backend oracle.
-  It currently stands at rung-0..15 with 35 fixtures, including `StringTrim`,
-  `FileExists` / `ReadFile` file I/O, `Args()` user-argument snapshots, and
-  value-passed Int-field structs plus Array<Int> parameter/return flow.
+  `main.pgy` is only the CLI/orchestration entrypoint; source-of-truth
+  decisions live in named owner modules such as `type_env`, `expr_rewrite`,
+  `stmt_emit`, `function_emit`, and `program_emit`. It currently stands at
+  rung-0..16 with 55 fixtures, including `StringTrim`, `FileExists` /
+  `ReadFile` file I/O, `Args()` user-argument snapshots, value-passed
+  Int-field structs, Array<Int> parameter/return flow, `Result<Int>` `?`
+  early-return lowering, and `Option<Int>` value flow.
 - **2026-06-21** -- `fuzz/backend_parity_generator/` adds the first
   Pergyra-origin deterministic backend fuzz corpus generator. It is soft
   self-host evidence, not compiler-core substitution: the Pergyra program owns

@@ -89,6 +89,18 @@ func ExprKind(expr: String, env: String) -> String {
     if StartsWith(e, "ArrayFilter(") {
         return "ArrayInt";
     }
+    if StartsWith(e, "Some(") {
+        return "OptionInt";
+    }
+    if e == "None" {
+        return "OptionInt";
+    }
+    if StartsWith(e, "IsSome(") {
+        return "Bool";
+    }
+    if StartsWith(e, "UnwrapOption(") {
+        return "Int";
+    }
     if StartsWith(e, "Ok(") {
         return "ResultInt";
     }

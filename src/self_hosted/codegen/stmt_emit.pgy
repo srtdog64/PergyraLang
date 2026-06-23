@@ -92,13 +92,17 @@ func EmitLet(line: String, inout env_box: Array<String>) -> String {
         ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:ResultInt|")));
         return Concat("pgy_result_int ", Concat(name, Concat(" = ", Concat(RewriteExpr(expr, env_box[0]), ";"))));
     }
+    if StartsWith(type_name, "Option<") && StringIndexOf(type_name, "Int") >= 0 {
+        ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:OptionInt|")));
+        return Concat("pgy_option_int ", Concat(name, Concat(" = ", Concat(RewriteExpr(expr, env_box[0]), ";"))));
+    }
     if LookupKindType(env_box[0], type_name, "s") == "struct" {
         // rung-14: struct-typed local from a `Name(f: v, ...)` literal or a
         // struct-returning call.
         ArraySet(env_box, 0, Concat(env_box[0], Concat(name, Concat("=v:", Concat(type_name, "|")))));
         return Concat(type_name, Concat(" ", Concat(name, Concat(" = ", Concat(EmitStructValue(expr, type_name, env_box[0]), ";")))));
     }
-    Die(Concat("unsupported let type (only Int/Bool/String/Array/struct): ", type_name));
+    Die(Concat("unsupported let type (only Int/Bool/String/Array/Option/struct): ", type_name));
     return "";
 }
 

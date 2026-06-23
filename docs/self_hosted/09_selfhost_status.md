@@ -113,7 +113,11 @@ subset.
   reconstructs match-case integer branch conditions from `match_patterns`
   facts rather than parsing the source compatibility text, and keeps the
   self-hosted codegen file helpers aligned with the runtime absolute-path
-  policy. It also classifies phi-bearing loop headers from CFG backedges rather
+  policy. Option match cases now carry `match_variant` and `match_bindings`
+  facts; `Some(v)` lowers to an `IsSome(subject)` branch plus a fact-owned
+  `Let: v : Int = UnwrapOption(subject)` binding, while `None` lowers to
+  `!IsSome(subject)`, without parsing transitional source text. It also
+  classifies phi-bearing loop headers from CFG backedges rather
   than phi presence alone, so nested `if` branches inside loops remain `If:`
   nodes. Array destructuring now consumes MIR JSON `destructure_bindings`
   facts and source-local array type facts to reconstruct typed array-index
@@ -123,7 +127,7 @@ subset.
   declarations flow through MIR-owned variant facts, while payload enum variants
   fail closed from their `param_count` facts. Projection/identity nominal class
   surfaces still fail closed as unsupported declaration facts instead of being
-  omitted from the declaration inventory. The hard gate is now **68
+  omitted from the declaration inventory. The hard gate is now **72
   positive fixtures plus 2 clean-reject fixtures** after
   promoting the already run-equivalent
   trailing-newline Log, nested string concat, string array concat, string
@@ -135,8 +139,9 @@ subset.
   condition surface, the default absolute-path I/O rejection policy, and the
   nested-if-in-loop regression surface that closed the measured `heap`
   self-host via-run timeout, the array destructure binding surface, plain class
-  declaration/method lowering, and payload-free enum lowering. The coverage
-  boundary is now measured at **68 PASS / 0 gap plus 2 clean rejects** across the committed
+  declaration/method lowering, payload-free enum lowering, `Result<Int>` `?`
+  early-return flow, and `Option<Int>` value/match lowering. The coverage
+  boundary is now measured at **72 PASS / 0 gap plus 2 clean rejects** across the committed
   MIR-lower/codegen fixture inventory. Unsupported ability/role and
   projection/identity nominal declaration facts are rejected by `mir_lower`,
   payload enum variants fail closed by MIR variant fact, and unsupported
