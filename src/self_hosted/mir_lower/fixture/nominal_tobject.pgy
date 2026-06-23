@@ -1,0 +1,8 @@
+tobject PlayerDto {
+    let score: Int;
+}
+
+func Main() -> Void {
+    let dto: PlayerDto = PlayerDto { score: 12 };
+    Log(dto.score);
+}

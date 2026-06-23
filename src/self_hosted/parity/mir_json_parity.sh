@@ -89,6 +89,9 @@ MIR_FIXTURES=(
     class_decl
     class_method
     nominal_subject
+    nominal_object
+    nominal_tobject
+    nominal_vessel
     enum_simple
     match_case_int
     nested_if_in_loop
@@ -238,12 +241,37 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
             fi
         done
     fi
-    if [[ "$base" == "nominal_subject" ]]; then
+    if [[ "$base" == nominal_* ]]; then
+        nominal_kind=""
+        nominal_name=""
+        field_name=""
+        case "$base" in
+            nominal_subject)
+                nominal_kind="subject"
+                nominal_name="Hero"
+                field_name="hp"
+                ;;
+            nominal_object)
+                nominal_kind="object"
+                nominal_name="PlayerView"
+                field_name="score"
+                ;;
+            nominal_tobject)
+                nominal_kind="tobject"
+                nominal_name="PlayerDto"
+                field_name="score"
+                ;;
+            nominal_vessel)
+                nominal_kind="vessel"
+                nominal_name="HP"
+                field_name="value"
+                ;;
+        esac
         for required in \
-            '"decls":[{"kind":"class","nominal_kind":"subject","name":"Hero"' \
-            '"fields":[{"name":"hp","type":"Int"}]'; do
+            "\"decls\":[{\"kind\":\"class\",\"nominal_kind\":\"$nominal_kind\",\"name\":\"$nominal_name\"" \
+            "\"fields\":[{\"name\":\"$field_name\",\"type\":\"Int\"}]"; do
             if ! grep -Fq "$required" "$mj"; then
-                echo "[self-host-parity:mir-json] nominal_subject: missing MIR nominal declaration fact: $required" >&2
+                echo "[self-host-parity:mir-json] $base: missing MIR nominal declaration fact: $required" >&2
                 exit 1
             fi
         done
@@ -342,13 +370,48 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
             fi
         done
     fi
-    if [[ "$base" == "nominal_subject" ]]; then
+    if [[ "$base" == nominal_* ]]; then
+        ast_label=""
+        nominal_name=""
+        local_name=""
+        init_expr=""
+        log_expr=""
+        case "$base" in
+            nominal_subject)
+                ast_label="Subject"
+                nominal_name="Hero"
+                local_name="hero"
+                init_expr="Hero(hp: 7)"
+                log_expr="Log(hero.hp)"
+                ;;
+            nominal_object)
+                ast_label="Object"
+                nominal_name="PlayerView"
+                local_name="view"
+                init_expr="PlayerView(score: 11)"
+                log_expr="Log(view.score)"
+                ;;
+            nominal_tobject)
+                ast_label="TObject"
+                nominal_name="PlayerDto"
+                local_name="dto"
+                init_expr="PlayerDto(score: 12)"
+                log_expr="Log(dto.score)"
+                ;;
+            nominal_vessel)
+                ast_label="Vessel"
+                nominal_name="HP"
+                local_name="hp"
+                init_expr="HP(value: 13)"
+                log_expr="Log(hp.value)"
+                ;;
+        esac
         for required in \
-            'Subject: Hero' \
-            'Let: hero : Hero = Hero(hp: 7)' \
-            'Log(hero.hp)'; do
+            "$ast_label: $nominal_name" \
+            "Let: $local_name : $nominal_name = $init_expr" \
+            "$log_expr"; do
             if ! grep -Fq "$required" "$reast"; then
-                echo "[self-host-parity:mir-json] nominal_subject: mir_lower did not reconstruct nominal fact: $required" >&2
+                echo "[self-host-parity:mir-json] $base: mir_lower did not reconstruct nominal fact: $required" >&2
                 exit 1
             fi
         done

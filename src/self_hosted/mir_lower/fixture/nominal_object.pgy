@@ -1,0 +1,8 @@
+object PlayerView {
+    let score: Int;
+}
+
+func Main() -> Void {
+    let view: PlayerView = PlayerView { score: 11 };
+    Log(view.score);
+}

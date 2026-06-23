@@ -1,0 +1,8 @@
+vessel HP {
+    let value: Int;
+}
+
+func Main() -> Void {
+    let hp: HP = HP { value: 13 };
+    Log(hp.value);
+}

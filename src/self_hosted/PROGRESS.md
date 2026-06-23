@@ -58,7 +58,7 @@ early-return flow, recursion, loop-control
 `continue`/`break` edge blocks, trailing-newline Log normalization, nested
 string concatenation, string array concatenation, string case/index/trim
 builtins, array pop, array for-each, Int-field struct declarations/value flow,
-plain class/subject declarations and class methods through MIR-owned
+plain class/subject/object/tobject/vessel declarations and class methods through MIR-owned
 nominal-kind/field/method/owner facts,
 payload-free enum declarations through MIR-owned variant facts,
 break edges after non-empty statement blocks, inferred `Random()` Int locals,
@@ -66,11 +66,11 @@ match-case integer pattern conditions, runtime-aligned absolute-path I/O policy,
 file read/write, and phi-bearing loop headers classified by CFG backedges rather
 than phi presence alone, plus MIR-owned array destructure binding facts), gated by
 `parity/mir_json_parity.sh`
-(`make self-host-mir-json-parity-test-smoke`, 73 fixtures plus 2 clean-reject
+(`make self-host-mir-json-parity-test-smoke`, 76 fixtures plus 2 clean-reject
 fixture). The gate now
 requires the MIR JSON fact surface and checks the `for`
 header is reconstructed from `arg0` plus `expr0`/`expr1` bounds, and checks
-struct/class declarations, subject nominal declarations, owner-qualified class methods, payload-free enum
+struct/class declarations, nominal family declarations, owner-qualified class methods, payload-free enum
 variants, match-case integer branch conditions reconstructed from
 `match_patterns`, and `Option<Int>` `Some(v)`/`None` branches reconstructed from
 MIR-owned `match_variant` and `match_bindings` facts. It also checks nested `if`
@@ -81,17 +81,18 @@ reintroducing reads of the transitional `ast` compatibility text. This is the
 first verified slice of the actual compiler-core (~96% of the LOC), not the
 codegen subset. It is now fact-only for the supported MIR JSON statement,
 expression, source-local, CFG, match-case, I/O policy, Int-field struct
-declaration, plain class/subject declaration/method, and payload-free enum surfaces. The
-committed MIR-lower/codegen fixture inventory is currently **73 PASS / 0 gap plus 2 clean
-rejects** through this path. Subject nominal declarations now flow through
-MIR-owned `nominal_kind`/field facts and reconstruct `Subject:` instead of
-collapsing to a generic class alias. Ability/role declarations, the remaining
-projection/identity nominal surfaces that do not yet have explicit parity
-fixtures (`object`, `tobject`, `vessel`), payload enum variants, and unsupported
-codegen builtins remain observable boundaries, so the self-host path fails
-closed instead of silently dropping operator-overload/domain nominal semantics
-or emitting undefined C symbols. New fixtures must preserve that by adding
-owning facts rather than text fallback.
+declaration, field-only class/subject/object/tobject/vessel declaration/method,
+and payload-free enum surfaces. The committed MIR-lower/codegen fixture
+inventory is currently **76 PASS / 0 gap plus 2 clean rejects** through this
+path. The nominal family now flows through MIR-owned `nominal_kind`/field facts
+and reconstructs `Class:` / `Subject:` / `Object:` / `TObject:` / `Vessel:`
+instead of collapsing those labels to a generic class alias. Ability/role
+declarations, richer projection/identity semantics beyond field-only nominal
+declarations, payload enum variants, and unsupported codegen builtins remain
+observable boundaries, so the self-host path fails closed instead of silently
+dropping operator-overload/domain nominal semantics or emitting undefined C
+symbols. New fixtures must preserve that by adding owning facts rather than
+text fallback.
 
 The self-hosted `mir_lower/` implementation is now split by source-of-truth
 owner rather than living as one monolithic `main.pgy`: `error_owner` owns the

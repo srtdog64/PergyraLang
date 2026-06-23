@@ -168,17 +168,16 @@ loops are not materialized as loops. Array destructure binding names are emitted
 as MIR JSON facts and consumed by `mir_lower` to reconstruct typed array-index
 `Let:` bindings without source-text parsing. Plain class declarations and
 methods are reconstructed from MIR field/method/owner facts and lowered through
-the self-hosted value-nominal path, subject nominal declarations are
-reconstructed from MIR `nominal_kind`/field facts as `Subject:`, and
-payload-free enum declarations are reconstructed from MIR variant facts. The
-committed MIR-lower/codegen fixture inventory is now measured at 73 PASS / 0 gap
-plus 2 clean rejects through this path. Ability/role unsupported declaration
-facts are emitted and rejected before the self-host path can silently erase
-operator-overload semantics; remaining projection/identity nominal surfaces
-(`object`, `tobject`, `vessel`) still need explicit parity fixtures before they
-are claimed beyond the shared nominal owner path; payload enum variants reject
-from their variant facts; and unsupported self-host codegen builtins are
-rejected before they leak undefined C symbols;
+the self-hosted value-nominal path, field-only subject/object/tobject/vessel
+nominal declarations are reconstructed from MIR `nominal_kind`/field facts with
+their exact AST labels, and payload-free enum declarations are reconstructed
+from MIR variant facts. The committed MIR-lower/codegen fixture inventory is now
+measured at 76 PASS / 0 gap plus 2 clean rejects through this path. Ability/role
+unsupported declaration facts are emitted and rejected before the self-host path
+can silently erase operator-overload semantics; richer projection/identity
+semantics beyond field-only nominal declarations still require later facts and
+fixtures; payload enum variants reject from their variant facts; and unsupported
+self-host codegen builtins are rejected before they leak undefined C symbols;
 `self-host-mir-json-parity-test-smoke` rejects reintroducing transitional
 `"ast"` reads.
 Capability 4 is
