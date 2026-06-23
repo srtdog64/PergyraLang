@@ -153,10 +153,11 @@ subset.
   self-host via-run timeout, the array destructure binding surface, plain class
   declaration/method lowering, payload-free enum lowering, `Result<Int>` `?`
   early-return flow, and `Option<Int>` value/match lowering. The coverage
-  boundary is now measured at **76 PASS / 0 gap plus 2 clean rejects** across the committed
-  MIR-lower/codegen fixture inventory. Unsupported ability/role declaration
-  facts are rejected by `mir_lower`, payload enum variants fail closed by MIR
-  variant fact, and unsupported
+  boundary is now measured at **77 PASS / 0 gap plus 2 clean rejects** across the committed
+  MIR-lower/codegen fixture inventory. Ability declarations now consume MIR
+  method signature facts and lower as zero-artifact declaration hosts in the
+  self-hosted codegen pre-passes. Role declaration facts are still rejected by
+  `mir_lower`, payload enum variants fail closed by MIR variant fact, and unsupported
   self-host codegen builtins are
   rejected before C emission, so out-of-subset operator-overload/domain nominal
   semantics and unsupported runtime helper surfaces cannot silently produce

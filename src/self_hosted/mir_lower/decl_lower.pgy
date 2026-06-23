@@ -78,6 +78,83 @@ func EmitClassMethods(json: String, decl_start: Int, decl_end: Int, owner_name: 
     return "";
 }
 
+func EmitAbilityMethodParams(json: String, method_start: Int, method_end: Int, ability_name: String, method_name: String) -> String {
+    let pk: Int = FindFrom(json, "\"params\":[", method_start);
+    if pk < 0 || pk >= method_end {
+        Die(Concat("ability method is missing params fact: ", Concat(ability_name, Concat(".", method_name))));
+    }
+    let open: Int = FindFrom(json, "[", pk);
+    if open < 0 || open >= method_end {
+        Die(Concat("ability method has malformed params fact: ", Concat(ability_name, Concat(".", method_name))));
+    }
+    let params_end: Int = JsonArrayEnd(json, open, method_end);
+    if params_end < 0 || params_end >= method_end {
+        Die(Concat("ability method has unclosed params fact: ", Concat(ability_name, Concat(".", method_name))));
+    }
+    let out: String = "";
+    let pp: Int = FindFrom(json, "{\"name\":", open);
+    while pp >= 0 && pp < params_end {
+        let param_end: Int = JsonObjectEnd(json, pp, params_end);
+        if param_end < 0 || param_end > params_end {
+            Die(Concat("ability method has malformed param fact: ", Concat(ability_name, Concat(".", method_name))));
+        }
+        let pname: String = JsonFieldString(json, pp, param_end, "\"name\":");
+        if StringLength(pname) == 0 {
+            Die(Concat("ability method has unnamed param fact: ", Concat(ability_name, Concat(".", method_name))));
+        }
+        let ptype: String = JsonFieldString(json, pp, param_end, "\"type\":");
+        out = Concat(out, Concat("        ", pname));
+        if StringLength(ptype) > 0 {
+            out = Concat(out, Concat(": ", ptype));
+        }
+        out = Concat(out, "\n");
+        pp = FindFrom(json, "{\"name\":", param_end);
+    }
+    return out;
+}
+
+func EmitAbilityMethods(json: String, decl_start: Int, decl_end: Int, ability_name: String) -> String {
+    let mk: Int = FindFrom(json, "\"methods\":[", decl_start);
+    if mk < 0 || mk >= decl_end {
+        Die(Concat("ability declaration is missing methods fact: ", ability_name));
+    }
+    let open: Int = FindFrom(json, "[", mk);
+    if open < 0 || open >= decl_end {
+        Die(Concat("ability declaration has malformed methods fact: ", ability_name));
+    }
+    let methods_end: Int = JsonArrayEnd(json, open, decl_end);
+    if methods_end < 0 || methods_end >= decl_end {
+        Die(Concat("ability declaration has unclosed methods fact: ", ability_name));
+    }
+    let out: String = "";
+    let mp: Int = FindFrom(json, "{\"name\":", open);
+    while mp >= 0 && mp < methods_end {
+        let method_end: Int = JsonObjectEnd(json, mp, methods_end);
+        if method_end < 0 || method_end > methods_end {
+            Die(Concat("ability declaration has malformed method fact: ", ability_name));
+        }
+        let mname: String = JsonFieldString(json, mp, method_end, "\"name\":");
+        if StringLength(mname) == 0 {
+            Die(Concat("ability declaration has unnamed method fact: ", ability_name));
+        }
+        let ret: String = JsonFieldString(json, mp, method_end, "\"return\":");
+        if StringLength(ret) == 0 {
+            Die(Concat("ability method is missing return fact: ", Concat(ability_name, Concat(".", mname))));
+        }
+        out = Concat(out, Concat("    Function: ", Concat(mname, "\n")));
+        out = Concat(out, "      Parameters:\n");
+        out = Concat(out, EmitAbilityMethodParams(json, mp, method_end, ability_name, mname));
+        out = Concat(out, Concat("      Returns: ", Concat(ret, "\n")));
+        mp = FindFrom(json, "{\"name\":", method_end);
+    }
+    return out;
+}
+
+func EmitAbilityDecl(json: String, decl_start: Int, decl_end: Int, ability_name: String) -> String {
+    let out: String = Concat("  [export] Ability: ", Concat(ability_name, "\n"));
+    return Concat(out, EmitAbilityMethods(json, decl_start, decl_end, ability_name));
+}
+
 func VariantObjectEnd(json: String, p: Int, variants_end: Int) -> Int {
     let next: Int = FindFrom(json, "},{\"name\":", p + 1);
     if next >= 0 && next < variants_end {
@@ -186,6 +263,8 @@ func EmitStructDecls(json: String) -> String {
             out = Concat(out, EmitClassMethods(json, p, decl_end, sname));
         } else if kind == "enum" {
             out = Concat(out, EmitEnumDecl(json, p, decl_end, sname));
+        } else if kind == "ability" {
+            out = Concat(out, EmitAbilityDecl(json, p, decl_end, sname));
         }
         p = FindFrom(json, "\"kind\":", decl_end);
     }

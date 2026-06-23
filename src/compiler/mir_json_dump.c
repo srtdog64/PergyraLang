@@ -156,7 +156,27 @@ mir_json_emit_decl_fields(FILE *out, const MIRDeclHeader *header)
 }
 
 static void
-mir_json_emit_decl_methods(FILE *out, const MIRDeclHeader *header)
+mir_json_emit_decl_method_params(FILE *out, const MIRDeclMethod *method)
+{
+    fputs(",\"params\":[", out);
+    for (size_t p = 0; p < mir_decl_method_param_count(method); p++) {
+        FuncParam *param = mir_decl_method_param(method, p);
+        if (p > 0)
+            fputc(',', out);
+        fputs("{\"name\":", out);
+        mir_json_emit_str_or_null(out, param != NULL ? param->name : NULL);
+        fputs(",\"type\":", out);
+        mir_json_emit_str_or_null(out,
+            mir_decl_method_param_type_name(method, p));
+        fputc('}', out);
+    }
+    fputc(']', out);
+}
+
+static void
+mir_json_emit_decl_methods(FILE *out,
+                           const MIRDeclHeader *header,
+                           bool include_params)
 {
     fputs(",\"methods\":[", out);
     for (size_t m = 0; m < mir_decl_header_method_count(header); m++) {
@@ -168,6 +188,8 @@ mir_json_emit_decl_methods(FILE *out, const MIRDeclHeader *header)
         fputs(",\"return\":", out);
         mir_json_emit_str_or_null(out,
             mir_decl_method_return_type_name(method));
+        if (include_params)
+            mir_json_emit_decl_method_params(out, method);
         fputc('}', out);
     }
     fputc(']', out);
@@ -208,8 +230,7 @@ static bool
 mir_json_decl_is_unsupported_fact(ASTNodeType ast_type,
                                   NominalDeclKind nominal_kind)
 {
-    if (ast_type == AST_ABILITY_DECL || ast_type == AST_ROLE_DECL
-        || ast_type == AST_EVENT_DECL)
+    if (ast_type == AST_ROLE_DECL || ast_type == AST_EVENT_DECL)
         return true;
     return ast_type == AST_CLASS_DECL
         && !mir_json_decl_is_supported_nominal(ast_type, nominal_kind);
@@ -232,7 +253,15 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
         mir_json_emit_str_or_null(out, mir_decl_header_name(header));
         mir_json_emit_decl_fields(out, header);
         if (!is_struct_decl)
-            mir_json_emit_decl_methods(out, header);
+            mir_json_emit_decl_methods(out, header, false);
+        fputc('}', out);
+        return;
+    }
+
+    if (ast_type == AST_ABILITY_DECL) {
+        fputs("{\"kind\":\"ability\",\"name\":", out);
+        mir_json_emit_str_or_null(out, mir_decl_header_name(header));
+        mir_json_emit_decl_methods(out, header, true);
         fputc('}', out);
         return;
     }
@@ -271,7 +300,7 @@ mir_json_emit_decls(FILE *out, const MIRProgram *mir)
 
         if (ast_type == AST_FUNC_DECL || ast_type == AST_TYPE_ALIAS)
             continue;
-        if (ast_type != AST_ENUM_DECL
+        if (ast_type != AST_ENUM_DECL && ast_type != AST_ABILITY_DECL
             && !mir_json_decl_is_supported_nominal(ast_type, nominal_kind)
             && !mir_json_decl_is_unsupported_fact(ast_type, nominal_kind))
             continue;

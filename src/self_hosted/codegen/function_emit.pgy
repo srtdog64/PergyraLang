@@ -98,6 +98,10 @@ func IsNominalDeclLine(line: String) -> Bool {
     return NominalDeclPrefixLen(line) >= 0;
 }
 
+func IsZeroArtifactDeclLine(line: String) -> Bool {
+    return StartsWith(line, "Ability: ");
+}
+
 func NominalDeclName(line: String) -> String {
     let prefix_len: Int = NominalDeclPrefixLen(line);
     if prefix_len < 0 {
@@ -209,10 +213,23 @@ func BuildFunctionEnv(indents: Array<Int>, texts: Array<String>, count: Int) -> 
     let i: Int = 0;
     let owner: String = "";
     let owner_indent: Int = -1;
+    let skip_indent: Int = -1;
     while i < count {
+        if skip_indent >= 0 {
+            if indents[i] > skip_indent {
+                i = i + 1;
+                continue;
+            }
+            skip_indent = -1;
+        }
         if StringLength(owner) > 0 && indents[i] <= owner_indent {
             owner = "";
             owner_indent = -1;
+        }
+        if IsZeroArtifactDeclLine(texts[i]) {
+            skip_indent = indents[i];
+            i = i + 1;
+            continue;
         }
         if IsNominalDeclLine(texts[i]) {
             owner = NominalDeclName(texts[i]);
@@ -338,10 +355,23 @@ func CollectProtos(indents: Array<Int>, texts: Array<String>, count: Int, struct
     let i: Int = 0;
     let owner: String = "";
     let owner_indent: Int = -1;
+    let skip_indent: Int = -1;
     while i < count {
+        if skip_indent >= 0 {
+            if indents[i] > skip_indent {
+                i = i + 1;
+                continue;
+            }
+            skip_indent = -1;
+        }
         if StringLength(owner) > 0 && indents[i] <= owner_indent {
             owner = "";
             owner_indent = -1;
+        }
+        if IsZeroArtifactDeclLine(texts[i]) {
+            skip_indent = indents[i];
+            i = i + 1;
+            continue;
         }
         if IsNominalDeclLine(texts[i]) {
             owner = NominalDeclName(texts[i]);

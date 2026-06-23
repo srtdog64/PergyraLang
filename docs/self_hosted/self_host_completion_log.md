@@ -131,6 +131,22 @@ rewrite history.
   BIN_DIR=.tmp/pgy-bin-c self-host-semantic-parity-test-smoke`: **65 fixtures**
   still match the C oracle verdicts.
 
+### 2026-06-23 -- Ability declarations enter MIR JSON lowering
+
+- Promoted top-level ability declarations from the unsupported-declaration
+  boundary into the hard MIR JSON path. The C MIR JSON emitter now writes
+  `kind:"ability"` declaration facts with MIR-owned method parameter and return
+  type names; `mir_lower` reconstructs `[export] Ability:` from those facts.
+- Taught the self-host codegen pre-passes to treat `Ability:` as a
+  zero-artifact declaration host, so nested ability signatures do not leak into
+  function environments or forward declarations.
+- Added `ability_decl.pgy` to the MIR JSON manifest. Role declarations remain a
+  clean reject until role impl/body semantics have their own owner facts.
+  Verified `PGY_BIN=/tmp/pgy-PergyraLang-bin/pgy
+  src/self_hosted/parity/mir_json_parity.sh`: **77 positive fixtures plus 2
+  clean rejects** pass through
+  `pgy --mir-json | mir_lower | codegen == C oracle`.
+
 ### 2026-06-23 -- MIR lower split into SoT owner modules
 
 - Split `src/self_hosted/mir_lower/main.pgy` from a 1060-line monolith into a

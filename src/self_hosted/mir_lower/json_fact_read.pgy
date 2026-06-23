@@ -27,6 +27,68 @@ func FindFrom(hay: String, needle: String, start: Int) -> Int {
     return start + k;
 }
 
+func JsonArrayEnd(json: String, open: Int, limit: Int) -> Int {
+    let n: Int = StringLength(json);
+    let i: Int = open;
+    let depth: Int = 0;
+    let in_string: Bool = false;
+    let escape: Bool = false;
+    while i < n && i < limit {
+        let c: String = CharAt(json, i);
+        if in_string {
+            if escape {
+                escape = false;
+            } else if c == "\\" {
+                escape = true;
+            } else if c == "\"" {
+                in_string = false;
+            }
+        } else if c == "\"" {
+            in_string = true;
+        } else if c == "[" {
+            depth = depth + 1;
+        } else if c == "]" {
+            depth = depth - 1;
+            if depth == 0 {
+                return i;
+            }
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
+func JsonObjectEnd(json: String, open: Int, limit: Int) -> Int {
+    let n: Int = StringLength(json);
+    let i: Int = open;
+    let depth: Int = 0;
+    let in_string: Bool = false;
+    let escape: Bool = false;
+    while i < n && i < limit {
+        let c: String = CharAt(json, i);
+        if in_string {
+            if escape {
+                escape = false;
+            } else if c == "\\" {
+                escape = true;
+            } else if c == "\"" {
+                in_string = false;
+            }
+        } else if c == "\"" {
+            in_string = true;
+        } else if c == "{" {
+            depth = depth + 1;
+        } else if c == "}" {
+            depth = depth - 1;
+            if depth == 0 {
+                return i + 1;
+            }
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
 // Read a JSON string literal whose opening quote is at index `open`. Returns the
 // decoded value and sets end[0] to the index just past the closing quote.
 // Handles \" \\ \n \r \t escapes.

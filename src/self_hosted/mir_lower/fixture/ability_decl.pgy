@@ -1,0 +1,7 @@
+ability Arithmetic {
+    func Add(self, rhs: Int) -> Int;
+}
+
+func Main() -> Void {
+    Log(7);
+}

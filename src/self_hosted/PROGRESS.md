@@ -66,7 +66,7 @@ match-case integer pattern conditions, runtime-aligned absolute-path I/O policy,
 file read/write, and phi-bearing loop headers classified by CFG backedges rather
 than phi presence alone, plus MIR-owned array destructure binding facts), gated by
 `parity/mir_json_parity.sh`
-(`make self-host-mir-json-parity-test-smoke`, 76 fixtures plus 2 clean-reject
+(`make self-host-mir-json-parity-test-smoke`, 77 fixtures plus 2 clean-reject
 fixture). The gate now
 requires the MIR JSON fact surface and checks the `for`
 header is reconstructed from `arg0` plus `expr0`/`expr1` bounds, and checks
@@ -82,11 +82,14 @@ first verified slice of the actual compiler-core (~96% of the LOC), not the
 codegen subset. It is now fact-only for the supported MIR JSON statement,
 expression, source-local, CFG, match-case, I/O policy, Int-field struct
 declaration, field-only class/subject/object/tobject/vessel declaration/method,
-and payload-free enum surfaces. The committed MIR-lower/codegen fixture
-inventory is currently **76 PASS / 0 gap plus 2 clean rejects** through this
+ability signature declaration, and payload-free enum surfaces. The committed
+MIR-lower/codegen fixture inventory is currently **77 PASS / 0 gap plus 2 clean
+rejects** through this
 path. The nominal family now flows through MIR-owned `nominal_kind`/field facts
 and reconstructs `Class:` / `Subject:` / `Object:` / `TObject:` / `Vessel:`
-instead of collapsing those labels to a generic class alias. Ability/role
+instead of collapsing those labels to a generic class alias. Ability
+declarations now flow through MIR-owned method signature facts and are treated
+as zero-artifact declaration hosts by the self-host codegen pre-passes. Role
 declarations, richer projection/identity semantics beyond field-only nominal
 declarations, payload enum variants, and unsupported codegen builtins remain
 observable boundaries, so the self-host path fails closed instead of silently

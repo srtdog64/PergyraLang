@@ -58,6 +58,22 @@ extract_shell_array_items() {
     ' "$file"
 }
 
+require_owner_surface() {
+    local stage="$1"
+    shift
+    local stage_dir="$SELF_HOST_DIR/$stage"
+    local count
+    count="$(find "$stage_dir" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
+    [[ "$count" -gt 1 ]] ||
+        fail "$stage must not be a monolithic main.pgy-only compiler stage"
+
+    local owner
+    for owner in "$@"; do
+        require_file "src/self_hosted/$stage/$owner"
+        require_text "src/self_hosted/$stage/main.pgy" "import \"$owner\";"
+    done
+}
+
 for stage in lexer parser semantic codegen; do
     require_dir "src/self_hosted/$stage"
     require_file "src/self_hosted/$stage/main.pgy"
@@ -75,6 +91,45 @@ for stage in lexer parser semantic codegen; do
     require_text "Makefile" "self-host-${stage}-parity-test-smoke"
     require_text "Makefile" "src/self_hosted/parity/${stage}_parity.sh"
 done
+
+require_dir "src/self_hosted/mir_lower"
+require_file "src/self_hosted/mir_lower/main.pgy"
+require_file "src/self_hosted/mir_lower/README.md"
+require_file "src/self_hosted/mir_lower/intent.md"
+require_dir "src/self_hosted/mir_lower/fixture"
+require_file "src/self_hosted/parity/mir_json_parity.sh"
+for anchor in '## Intent' '## Input Contract' '## Output Contract' '## Oracle'; do
+    require_text "src/self_hosted/mir_lower/intent.md" "$anchor"
+done
+require_text "src/self_hosted/parity/mir_json_parity.sh" "set -euo pipefail"
+require_text "Makefile" "self-host-mir-json-parity-test-smoke"
+require_text "Makefile" "src/self_hosted/parity/mir_json_parity.sh"
+
+require_owner_surface lexer \
+    "char_owner.pgy" \
+    "token_owner.pgy" \
+    "scan_owner.pgy"
+require_owner_surface parser \
+    "error_owner.pgy" \
+    "cursor_owner.pgy" \
+    "tree_text_owner.pgy" \
+    "decl_dispatch_owner.pgy"
+require_owner_surface semantic \
+    "text_scan_owner.pgy" \
+    "diagnostic_owner.pgy" \
+    "env_owner.pgy" \
+    "program_check_owner.pgy"
+require_owner_surface codegen \
+    "text_owner.pgy" \
+    "type_env.pgy" \
+    "stmt_emit.pgy" \
+    "program_emit.pgy"
+require_owner_surface mir_lower \
+    "error_owner.pgy" \
+    "json_fact_read.pgy" \
+    "stmt_render.pgy" \
+    "routine_lower.pgy" \
+    "decl_lower.pgy"
 
 semantic_items="$(extract_shell_array_items "$PARITY_DIR/semantic_parity.sh" SOURCE_PAIRS | sed 's/:.*//')"
 [[ -n "$semantic_items" ]] || fail "semantic parity SOURCE_PAIRS is empty"

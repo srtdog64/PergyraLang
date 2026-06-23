@@ -92,6 +92,7 @@ MIR_FIXTURES=(
     nominal_object
     nominal_tobject
     nominal_vessel
+    ability_decl
     enum_simple
     match_case_int
     nested_if_in_loop
@@ -276,6 +277,16 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
             fi
         done
     fi
+    if [[ "$base" == "ability_decl" ]]; then
+        for required in \
+            '"decls":[{"kind":"ability","name":"Arithmetic"' \
+            '"methods":[{"name":"Add","return":"Int","params":[{"name":"self","type":null},{"name":"rhs","type":"Int"}]}]'; do
+            if ! grep -Fq "$required" "$mj"; then
+                echo "[self-host-parity:mir-json] ability_decl: missing MIR ability declaration fact: $required" >&2
+                exit 1
+            fi
+        done
+    fi
     if [[ "$base" == "enum_simple" ]]; then
         for required in \
             '"decls":[{"kind":"enum","name":"Direction"' \
@@ -416,6 +427,19 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
             fi
         done
     fi
+    if [[ "$base" == "ability_decl" ]]; then
+        for required in \
+            '[export] Ability: Arithmetic' \
+            'Function: Add' \
+            'rhs: Int' \
+            'Returns: Int' \
+            'Log(7)'; do
+            if ! grep -Fq "$required" "$reast"; then
+                echo "[self-host-parity:mir-json] ability_decl: mir_lower did not reconstruct ability fact: $required" >&2
+                exit 1
+            fi
+        done
+    fi
     if [[ "$base" == "enum_simple" ]]; then
         if ! grep -Fq 'Enum: Direction { North, East, South, West }' "$reast"; then
             echo "[self-host-parity:mir-json] enum_simple: mir_lower did not reconstruct enum facts" >&2
@@ -525,7 +549,6 @@ reast="$B/$base.reast"
 (cd "$ROOT_DIR" && "$PGY" --mir-json "$(pgy_path_for_compiler "$PGY" "$src")" \
     2>/dev/null | tr -d '\r' > "$mj")
 for required in \
-    '"kind":"unsupported","ast_type":"AST_ABILITY_DECL"' \
     '"kind":"unsupported","ast_type":"AST_ROLE_DECL"'; do
     if ! grep -Fq "$required" "$mj"; then
         echo "[self-host-parity:mir-json] $base: missing unsupported declaration fact: $required" >&2
@@ -540,8 +563,8 @@ if [[ "$reject_rc" -eq 0 ]]; then
     echo "[self-host-parity:mir-json] $base: mir_lower must exit nonzero for unsupported declaration facts" >&2
     exit 1
 fi
-if ! grep -q '^MIR-LOWER ERROR: unsupported MIR declaration in self-host subset: AST_ABILITY_DECL Arithmetic' "$reast"; then
-    echo "[self-host-parity:mir-json] $base: mir_lower must reject unsupported ability facts by AST kind" >&2
+if ! grep -q '^MIR-LOWER ERROR: unsupported MIR declaration in self-host subset: AST_ROLE_DECL IntMath' "$reast"; then
+    echo "[self-host-parity:mir-json] $base: mir_lower must reject unsupported role facts by AST kind" >&2
     sed -n '1,5p' "$reast" >&2
     exit 1
 fi
