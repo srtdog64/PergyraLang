@@ -1,0 +1,384 @@
+// Self-host parser intent declaration owner.
+
+func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String, inout involve_types: Array<String>) -> String {
+    let i: Int = start;
+    let n: Int = StringLength(content);
+    let out: String = "";
+    i = i + 6;
+    i = SkipWhitespaceAndComments(content, i);
+    ArraySet(cursor_out, 0, i);
+    let intent_name: String = ReadIdent(content, i, cursor_out);
+    i = cursor_out[0];
+    if StringLength(intent_name) == 0 {
+        Exit(1);
+    }
+    i = Expect(content, i, "(");
+    if i < 0 {
+        Exit(1);
+    }
+    // Parse params and split into Involves vs Value by type.
+    let involves_lines: Array<String> = [];
+    let value_lines: Array<String> = [];
+    i = SkipWhitespaceAndComments(content, i);
+    if CharAt(content, i) != ")" {
+        while true {
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let ip_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(ip_name) == 0 {
+                Exit(1);
+            }
+            i = Expect(content, i, ":");
+            if i < 0 {
+                Exit(1);
+            }
+            i = SkipWhitespaceAndComments(content, i);
+            // Snapshot the base type name before ReadType
+            // mangles it; primitive-ness is decided on the
+            // base, not on the full `Map<String: String, ...>`
+            // print form.
+            let probe_i: Int = i;
+            ArraySet(cursor_out, 0, probe_i);
+            let base_name: String = ReadIdent(content, probe_i, cursor_out);
+            ArraySet(cursor_out, 0, i);
+            let ip_type: String = ReadType(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(ip_type) == 0 {
+                Exit(1);
+            }
+            let row: String = Concat(ip_name, Concat(": ", ip_type));
+            let is_involve: Bool = false;
+            let k: Int = 0;
+            let n_inv: Int = ArrayLength(involve_types);
+            while k < n_inv {
+                if base_name == involve_types[k] {
+                    is_involve = true;
+                }
+                k = k + 1;
+            }
+            if is_involve {
+                ArrayPush(involves_lines, row);
+            } else {
+                ArrayPush(value_lines, row);
+            }
+            i = SkipWhitespaceAndComments(content, i);
+            if CharAt(content, i) == "," {
+                i = i + 1;
+                continue;
+            }
+            break;
+        }
+    }
+    i = Expect(content, i, ")");
+    if i < 0 {
+        Exit(1);
+    }
+    let intent_retry: String = "";
+    i = SkipWhitespaceAndComments(content, i);
+    if MatchKeyword(content, i, "with") {
+        i = i + 4;
+        i = SkipWhitespaceAndComments(content, i);
+        if !MatchKeyword(content, i, "retry") {
+            Exit(1);
+        }
+        i = i + 5;
+        i = Expect(content, i, "(");
+        if i < 0 {
+            Exit(1);
+        }
+        i = SkipWhitespaceAndComments(content, i);
+        ArraySet(cursor_out, 0, i);
+        intent_retry = ReadNumber(content, i, cursor_out);
+        i = cursor_out[0];
+        if StringLength(intent_retry) == 0 {
+            Exit(1);
+        }
+        i = Expect(content, i, ")");
+        if i < 0 {
+            Exit(1);
+        }
+    }
+    i = Expect(content, i, "{");
+    if i < 0 {
+        Exit(1);
+    }
+    // Walk the body collecting mode, steps, success, failure.
+    let intent_mode: String = "exclusive";
+    let step_blocks: String = "";
+    let success_text: String = "";
+    let failure_text: String = "";
+    while true {
+        i = SkipWhitespaceAndComments(content, i);
+        if i >= n {
+            Exit(1);
+        }
+        if CharAt(content, i) == "}" {
+            i = i + 1;
+            break;
+        }
+        if MatchKeyword(content, i, "exclusive") {
+            i = i + 9;
+            i = Expect(content, i, ";");
+            if i < 0 {
+                Exit(1);
+            }
+            intent_mode = "exclusive";
+            continue;
+        }
+        if MatchKeyword(content, i, "concurrent") {
+            i = i + 10;
+            i = Expect(content, i, ";");
+            if i < 0 {
+                Exit(1);
+            }
+            intent_mode = "concurrent";
+            continue;
+        }
+        if MatchKeyword(content, i, "success") {
+            i = i + 7;
+            i = Expect(content, i, ":");
+            if i < 0 {
+                Exit(1);
+            }
+            ArraySet(cursor_out, 0, i);
+            success_text = ParseExpr(content, i, cursor_out);
+            i = cursor_out[0];
+            i = Expect(content, i, ";");
+            if i < 0 {
+                Exit(1);
+            }
+            continue;
+        }
+        if MatchKeyword(content, i, "failure") {
+            i = i + 7;
+            i = Expect(content, i, ":");
+            if i < 0 {
+                Exit(1);
+            }
+            ArraySet(cursor_out, 0, i);
+            failure_text = ParseExpr(content, i, cursor_out);
+            i = cursor_out[0];
+            i = Expect(content, i, ";");
+            if i < 0 {
+                Exit(1);
+            }
+            continue;
+        }
+        if MatchKeyword(content, i, "step") {
+            i = i + 4;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let step_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(step_name) == 0 {
+                Exit(1);
+            }
+            i = Expect(content, i, "{");
+            if i < 0 {
+                Exit(1);
+            }
+            let s_where: String = "";
+            let s_using: String = "";
+            let s_who: String = "";
+            let s_on: String = "";
+            let s_guard: String = "";
+            let s_expect: String = "";
+            let s_requires: String = "";
+            let s_auth: String = "";
+            let s_causes: String = "";
+            let s_transfer: String = "";
+            let s_compensate: String = "";
+            let s_post: String = "";
+            let s_intent: String = "";
+            while true {
+                i = SkipWhitespaceAndComments(content, i);
+                if i >= n {
+                    Exit(1);
+                }
+                if CharAt(content, i) == "}" {
+                    i = i + 1;
+                    break;
+                }
+                ArraySet(cursor_out, 0, i);
+                let clause: String = ReadIdent(content, i, cursor_out);
+                i = cursor_out[0];
+                if StringLength(clause) == 0 {
+                    Exit(1);
+                }
+
+                let is_transfer: Bool = false;
+                if clause == "move" {
+                    is_transfer = true;
+                } else if clause == "transfer" {
+                    let peek_colon: Int = SkipWhitespaceAndComments(content, i);
+                    if CharAt(content, peek_colon) != ":" {
+                        is_transfer = true;
+                    }
+                }
+                if is_transfer {
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let t_from: String = ParseExpr(content, i, cursor_out);
+                    i = cursor_out[0];
+                    i = SkipWhitespaceAndComments(content, i);
+                    if !MatchKeyword(content, i, "to") {
+                        Exit(1);
+                    }
+                    i = i + 2;
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let t_to: String = ParseExpr(content, i, cursor_out);
+                    i = cursor_out[0];
+                    i = Expect(content, i, ";");
+                    if i < 0 {
+                        Exit(1);
+                    }
+                    s_transfer = Concat(t_from, Concat(" -> ", t_to));
+                    continue;
+                }
+
+                if clause == "authorized" {
+                    let peek_by: Int = SkipWhitespaceAndComments(content, i);
+                    if MatchKeyword(content, peek_by, "by") {
+                        i = peek_by + 2;
+                        clause = "authorized by";
+                    }
+                }
+                i = Expect(content, i, ":");
+                if i < 0 {
+                    Exit(1);
+                }
+                let val: String = "";
+                if clause == "transfer" {
+                    i = SkipWhitespaceAndComments(content, i);
+                    let t_start: Int = i;
+                    while i < n && CharAt(content, i) != ";" {
+                        i = i + 1;
+                    }
+                    val = Substring(content, t_start, i - t_start);
+                    val = StringTrim(val);
+                    ArraySet(cursor_out, 0, i);
+                } else {
+                    ArraySet(cursor_out, 0, i);
+                    val = ParseExpr(content, i, cursor_out);
+                    i = cursor_out[0];
+                }
+                i = Expect(content, i, ";");
+                if i < 0 {
+                    Exit(1);
+                }
+                if clause == "where" {
+                    s_where = val;
+                } else if clause == "using" {
+                    s_using = val;
+                } else if clause == "who" {
+                    s_who = val;
+                } else if clause == "on" {
+                    s_on = val;
+                } else if clause == "guard" {
+                    s_guard = val;
+                } else if clause == "expect" {
+                    s_expect = val;
+                } else if clause == "requires" {
+                    s_requires = val;
+                } else if clause == "authorized by" {
+                    s_auth = val;
+                } else if clause == "causes" {
+                    s_causes = val;
+                } else if clause == "compensate" {
+                    s_compensate = val;
+                } else if clause == "post" {
+                    s_post = val;
+                } else if clause == "intent" {
+                    s_intent = val;
+                } else if clause == "transfer" {
+                    s_transfer = val;
+                } else {
+                    Exit(1);
+                }
+            }
+            let step_header: String = Concat("    IntentStep: ", step_name);
+            if StringLength(s_intent) > 0 {
+                step_header = Concat(step_header, Concat(" intent ", s_intent));
+            }
+            if StringLength(s_where) > 0 {
+                step_header = Concat(step_header, Concat(" where ", s_where));
+            }
+            if StringLength(s_using) > 0 {
+                step_header = Concat(step_header, Concat(" using ", s_using));
+            }
+            if StringLength(s_transfer) > 0 {
+                step_header = Concat(step_header, Concat(" transfer ", s_transfer));
+            }
+            let step_out: String = step_header;
+            if StringLength(s_who) > 0 {
+                step_out = AppendLine(step_out, Concat("      Who: ", s_who));
+            }
+            if StringLength(s_using) > 0 {
+                step_out = AppendLine(step_out, Concat("      Using: ", s_using));
+            }
+            if StringLength(s_transfer) > 0 {
+                step_out = AppendLine(step_out, Concat("      Transfer: ", s_transfer));
+            }
+            if StringLength(s_intent) > 0 {
+                step_out = AppendLine(step_out, Concat("      Intent: ", s_intent));
+            }
+            if StringLength(s_on) > 0 {
+                step_out = AppendLine(step_out, Concat("      On: ", s_on));
+            }
+            if StringLength(s_compensate) > 0 {
+                step_out = AppendLine(step_out, Concat("      Compensate: ", s_compensate));
+            }
+            if StringLength(s_guard) > 0 {
+                step_out = AppendLine(step_out, Concat("      Guard: ", s_guard));
+            }
+            if StringLength(s_post) > 0 {
+                step_out = AppendLine(step_out, Concat("      Post: ", s_post));
+            }
+            if StringLength(s_requires) > 0 {
+                step_out = AppendLine(step_out, Concat("      Requires: ", s_requires));
+            }
+            if StringLength(s_auth) > 0 {
+                step_out = AppendLine(step_out, Concat("      AuthorizedBy: ", s_auth));
+            }
+            if StringLength(s_causes) > 0 {
+                step_out = AppendLine(step_out, Concat("      Causes: ", s_causes));
+            }
+            if StringLength(s_expect) > 0 {
+                step_out = AppendLine(step_out, Concat("      Expect: ", s_expect));
+            }
+            step_blocks = AppendLine(step_blocks, step_out);
+            continue;
+        }
+        Exit(1);
+    }
+    out = AppendLine(out, Concat("  Intent: ", Concat(decl_prefix, intent_name)));
+    out = AppendLine(out, Concat("    IntentMode: ", intent_mode));
+    out = AppendLine(out, "    IntentRollback: full");
+    if StringLength(intent_retry) > 0 {
+        out = AppendLine(out, Concat("    IntentRetry: ", intent_retry));
+    }
+    let inv_len: Int = ArrayLength(involves_lines);
+    let inv_i: Int = 0;
+    while inv_i < inv_len {
+        out = AppendLine(out, Concat("    IntentInvolves: ", involves_lines[inv_i]));
+        inv_i = inv_i + 1;
+    }
+    let val_len: Int = ArrayLength(value_lines);
+    let val_i: Int = 0;
+    while val_i < val_len {
+        out = AppendLine(out, Concat("    IntentValue: ", value_lines[val_i]));
+        val_i = val_i + 1;
+    }
+    if StringLength(step_blocks) > 0 {
+        out = AppendLine(out, step_blocks);
+    }
+    if StringLength(success_text) > 0 {
+        out = AppendLine(out, Concat("    IntentSuccess: ", success_text));
+    }
+    if StringLength(failure_text) > 0 {
+        out = AppendLine(out, Concat("    IntentFailure: ", failure_text));
+    }
+    ArraySet(cursor_out, 0, i); return out;
+}

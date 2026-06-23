@@ -38,8 +38,10 @@ rewrite history.
   zero byte-drift, zero self-host exits, 1 C-oracle skip. Parser ownership is
   partially split: parse failure rendering, source cursor/token reads, written
   type-name parsing, expression parsing, statement/block parsing, function
-  declaration/signature rendering, type/ability/event/enum declaration parsing,
-  and compact AST text formatting are separate owner modules.
+  declaration/signature rendering, recursive declaration dispatch,
+  type/ability/event/enum/zone/effect/relation/role/intent/nominal-domain
+  declaration parsing, and compact AST text formatting are separate owner
+  modules.
 - **Backend parity**: parser compiled by C and by LLVM produce byte-identical
   output -- the core self-host correctness signal.
 - **Compiler core**: capability-5 single-source-of-truth is READY for the
@@ -670,3 +672,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - The self-host preparation smoke now ratchets the new owner files, imports,
   and entry functions so the branches cannot silently collapse back into
   `main.pgy`.
+
+### 2026-06-23 -- parser entrypoint split to declaration dispatch owner
+
+- Moved `ParseDecls` out of `main.pgy` into `decl_dispatch_owner.pgy`, making
+  `main.pgy` parser-tool entrypoint orchestration only. Recursive `import`,
+  `namespace`, and `within` flow remains in the dispatch owner because those
+  branches genuinely call back into declaration dispatch.
+- Split the larger non-recursive declaration branches into owner modules:
+  `decl_zone_owner.pgy`, `decl_effect_relation_owner.pgy`, `decl_role_owner.pgy`,
+  `decl_intent_owner.pgy`, and `decl_nominal_owner.pgy`. All parser owner files
+  now sit below the 600-line cap; `decl_dispatch_owner.pgy` is 257 lines.
+- The self-host preparation smoke now requires the new imports/functions,
+  forbids `func ParseDecls` from reappearing in `main.pgy`, and enforces the
+  600-line parser owner cap.

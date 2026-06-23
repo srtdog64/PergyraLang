@@ -62,10 +62,10 @@ is the CLI/orchestration entrypoint; semantic decisions belong in named
 source-of-truth owner modules. `codegen/`, `mir_lower/`, `semantic/`, and
 `lexer/` follow that shape. `parser/` has started the same transition with
 error, cursor/token, type-name, expression, statement/block,
-function-declaration, type/ability/event/enum declaration, and compact-tree text
-owners; `main.pgy` remains an orchestration surface for recursive declaration
-dispatch until import/namespace and the larger domain declarations have their
-own owner contracts.
+function-declaration, top-level declaration dispatch, branch declaration
+owners (`type`/`ability`/`event`/`enum`/`zone`/`effect`/`relation`/`role`/
+`intent`/nominal-domain hosts), and compact-tree text owners. `main.pgy` is now
+entrypoint orchestration only for the parser tool.
 
 Until import de-duplication is a compiler fact, sibling owner modules do not
 import each other. The entrypoint assembles owner modules in dependency order so

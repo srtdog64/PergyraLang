@@ -73,6 +73,12 @@ required_files=(
     "src/self_hosted/parser/decl_ability_owner.pgy"
     "src/self_hosted/parser/decl_event_owner.pgy"
     "src/self_hosted/parser/decl_enum_owner.pgy"
+    "src/self_hosted/parser/decl_zone_owner.pgy"
+    "src/self_hosted/parser/decl_effect_relation_owner.pgy"
+    "src/self_hosted/parser/decl_role_owner.pgy"
+    "src/self_hosted/parser/decl_intent_owner.pgy"
+    "src/self_hosted/parser/decl_nominal_owner.pgy"
+    "src/self_hosted/parser/decl_dispatch_owner.pgy"
     "src/self_hosted/parity/parser_parity.sh"
     "src/self_hosted/semantic/intent.md"
     "src/self_hosted/semantic/main.pgy"
@@ -90,6 +96,12 @@ required_files=(
 for rel in "${required_files[@]}"; do
     require_file "$rel"
 done
+
+while IFS= read -r parser_owner; do
+    owner_lines="$(wc -l < "$parser_owner")"
+    [[ "$owner_lines" -le 600 ]] ||
+        fail "${parser_owner#$ROOT_DIR/} exceeds parser owner LOC cap: $owner_lines > 600"
+done < <(find "$ROOT_DIR/src/self_hosted/parser" -maxdepth 1 -name '*.pgy' -type f | sort)
 
 core_gap_terms=(
     "The beta stable subset is intentionally narrow."
@@ -250,6 +262,13 @@ require_text "src/self_hosted/parser/main.pgy" "import \"decl_type_owner.pgy\""
 require_text "src/self_hosted/parser/main.pgy" "import \"decl_ability_owner.pgy\""
 require_text "src/self_hosted/parser/main.pgy" "import \"decl_event_owner.pgy\""
 require_text "src/self_hosted/parser/main.pgy" "import \"decl_enum_owner.pgy\""
+require_text "src/self_hosted/parser/main.pgy" "import \"decl_zone_owner.pgy\""
+require_text "src/self_hosted/parser/main.pgy" "import \"decl_effect_relation_owner.pgy\""
+require_text "src/self_hosted/parser/main.pgy" "import \"decl_role_owner.pgy\""
+require_text "src/self_hosted/parser/main.pgy" "import \"decl_intent_owner.pgy\""
+require_text "src/self_hosted/parser/main.pgy" "import \"decl_nominal_owner.pgy\""
+require_text "src/self_hosted/parser/main.pgy" "import \"decl_dispatch_owner.pgy\""
+forbid_text "src/self_hosted/parser/main.pgy" "func ParseDecls"
 require_text "src/self_hosted/parser/error_owner.pgy" "func Fail"
 require_text "src/self_hosted/parser/cursor_owner.pgy" "func SkipWhitespaceAndComments"
 require_text "src/self_hosted/parser/cursor_owner.pgy" "func ReadIdent"
@@ -276,6 +295,13 @@ require_text "src/self_hosted/parser/decl_type_owner.pgy" "func ParseTypeDecl"
 require_text "src/self_hosted/parser/decl_ability_owner.pgy" "func ParseAbilityDecl"
 require_text "src/self_hosted/parser/decl_event_owner.pgy" "func ParseEventDecl"
 require_text "src/self_hosted/parser/decl_enum_owner.pgy" "func ParseEnumDecl"
+require_text "src/self_hosted/parser/decl_zone_owner.pgy" "func ParseZoneDecl"
+require_text "src/self_hosted/parser/decl_effect_relation_owner.pgy" "func ParseEffectDecl"
+require_text "src/self_hosted/parser/decl_effect_relation_owner.pgy" "func ParseRelationDecl"
+require_text "src/self_hosted/parser/decl_role_owner.pgy" "func ParseRoleDecl"
+require_text "src/self_hosted/parser/decl_intent_owner.pgy" "func ParseIntentDecl"
+require_text "src/self_hosted/parser/decl_nominal_owner.pgy" "func ParseNominalDecl"
+require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" "func ParseDecls"
 require_text "src/self_hosted/semantic/intent.md" "function return types"
 require_text "src/self_hosted/semantic/intent.md" "C compiler accept/reject oracle"
 require_text "src/self_hosted/lib/diagnostic.pgy" "namespace SelfHostDiagnostic"

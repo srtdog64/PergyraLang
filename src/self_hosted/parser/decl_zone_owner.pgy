@@ -1,0 +1,404 @@
+// Self-host parser zone declaration owner.
+
+func ParseZoneDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String, inout involve_types: Array<String>) -> String {
+    let i: Int = start;
+    let n: Int = StringLength(content);
+    let out: String = "";
+    i = i + 4;
+    i = SkipWhitespaceAndComments(content, i);
+    ArraySet(cursor_out, 0, i);
+    let zone_name: String = ReadIdent(content, i, cursor_out);
+    i = cursor_out[0];
+    if StringLength(zone_name) == 0 {
+        Exit(1);
+    }
+    if StringLength(zone_name) > 0 {
+        ArrayPush(involve_types, zone_name);
+    }
+    i = Expect(content, i, "{");
+    if i < 0 {
+        Exit(1);
+    }
+    let slot_accum: String = "";
+    let apply_accum: String = "";
+    let link_accum: String = "";
+    let auth_accum: String = "";
+    let state_accum: String = "";
+    let bind_accum: String = "";
+    while true {
+        i = SkipWhitespaceAndComments(content, i);
+        if i >= n {
+            Exit(1);
+        }
+        if CharAt(content, i) == "}" {
+            i = i + 1;
+            break;
+        }
+        // Zone body slot lines: `subject slot NAME: TYPE`,
+        // `object slot NAME: TYPE`, or `tobject slot NAME: TYPE`.
+        // Each emits `SubjectSlot:` / `ObjectSlot:` / `TObjectSlot:`
+        // with the same `NAME: TYPE` payload.
+        let slot_label: String = "";
+        let is_auth: Bool = false;
+        if MatchKeyword(content, i, "subject") {
+            slot_label = "SubjectSlot";
+            i = i + 7;
+        } else if MatchKeyword(content, i, "object") {
+            slot_label = "ObjectSlot";
+            i = i + 6;
+        } else if MatchKeyword(content, i, "tobject") {
+            slot_label = "TObjectSlot";
+            i = i + 7;
+        } else if MatchKeyword(content, i, "effect") {
+            slot_label = "EffectSlot";
+            i = i + 6;
+        } else if MatchKeyword(content, i, "relation") {
+            slot_label = "RelationSlot";
+            i = i + 8;
+        } else if MatchKeyword(content, i, "authority") {
+            is_auth = true;
+            i = i + 9;
+        } else if MatchKeyword(content, i, "apply") {
+            i = i + 5;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let a_eff: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            i = SkipWhitespaceAndComments(content, i);
+            if !MatchKeyword(content, i, "to") { Exit(1); }
+            i = i + 2;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+	                    let a_dest: String = ReadIdent(content, i, cursor_out);
+	                    i = cursor_out[0];
+	                    i = SkipWhitespaceAndComments(content, i);
+	                    let a_by: String = "";
+	                    if MatchKeyword(content, i, "by") {
+	                        i = i + 2;
+	                        i = SkipWhitespaceAndComments(content, i);
+	                        ArraySet(cursor_out, 0, i);
+	                        a_by = ReadIdent(content, i, cursor_out);
+	                        i = cursor_out[0];
+	                    }
+	                    i = Expect(content, i, ";");
+	                    if i < 0 { Exit(1); }
+	                    let apply_row: String = Concat("    Apply: ", Concat(a_eff, Concat(" -> ", a_dest)));
+	                    if StringLength(a_by) > 0 {
+	                        apply_row = Concat(apply_row, Concat(" by ", a_by));
+	                    }
+	                    apply_accum = AppendLine(apply_accum, apply_row);
+	                    continue;
+	                } else if MatchKeyword(content, i, "link") {
+            i = i + 4;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let l_rel: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            i = SkipWhitespaceAndComments(content, i);
+            if !MatchKeyword(content, i, "between") { Exit(1); }
+            i = i + 7;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let l_p1: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            i = Expect(content, i, ",");
+            if i < 0 { Exit(1); }
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+	                    let l_p2: String = ReadIdent(content, i, cursor_out);
+	                    i = cursor_out[0];
+	                    i = SkipWhitespaceAndComments(content, i);
+	                    let l_by: String = "";
+	                    if MatchKeyword(content, i, "by") {
+	                        i = i + 2;
+	                        i = SkipWhitespaceAndComments(content, i);
+	                        ArraySet(cursor_out, 0, i);
+	                        l_by = ReadIdent(content, i, cursor_out);
+	                        i = cursor_out[0];
+	                    }
+	                    i = Expect(content, i, ";");
+	                    if i < 0 { Exit(1); }
+	                    let link_row: String = Concat("    Link: ", Concat(l_rel, Concat(" between ", Concat(l_p1, Concat(", ", l_p2)))));
+	                    if StringLength(l_by) > 0 {
+	                        link_row = Concat(link_row, Concat(" by ", l_by));
+	                    }
+	                    link_accum = AppendLine(link_accum, link_row);
+	                    continue;
+        } else if MatchKeyword(content, i, "state") {
+            i = i + 5;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let st_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            i = Expect(content, i, ":");
+            if i < 0 { Exit(1); }
+            i = SkipWhitespaceAndComments(content, i);
+            let st_start: Int = i;
+            while i < n && CharAt(content, i) != ";" {
+                i = i + 1;
+            }
+            let st_val: String = Substring(content, st_start, i - st_start);
+            i = Expect(content, i, ";");
+            if i < 0 { Exit(1); }
+            state_accum = AppendLine(state_accum, Concat("    State: ", Concat(st_name, Concat(": ", st_val))));
+            continue;
+        } else if MatchKeyword(content, i, "bind") {
+            i = i + 4;
+            i = SkipWhitespaceAndComments(content, i);
+            let list_start: Int = i;
+            if CharAt(content, i) == "[" {
+                i = i + 1;
+                while true {
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let dummy: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    if StringLength(dummy) == 0 { Exit(1); }
+                    i = SkipWhitespaceAndComments(content, i);
+                    if CharAt(content, i) == "," {
+                        i = i + 1;
+                        continue;
+                    }
+                    break;
+                }
+                i = Expect(content, i, "]");
+                if i < 0 { Exit(1); }
+            } else {
+                ArraySet(cursor_out, 0, i);
+                let dummy: String = ReadIdent(content, i, cursor_out);
+                i = cursor_out[0];
+                if StringLength(dummy) == 0 { Exit(1); }
+            }
+            i = SkipWhitespaceAndComments(content, i);
+            if !MatchKeyword(content, i, "from") { Exit(1); }
+            i = i + 4;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let from_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            i = SkipWhitespaceAndComments(content, i);
+            if CharAt(content, i) == ";" {
+                i = i + 1;
+            }
+            ArraySet(cursor_out, 0, i);
+
+            let k: Int = list_start;
+            if CharAt(content, k) == "[" {
+                k = k + 1;
+                while true {
+                    k = SkipWhitespaceAndComments(content, k);
+                    ArraySet(cursor_out, 0, k);
+                    let t_name: String = ReadIdent(content, k, cursor_out);
+                    k = cursor_out[0];
+                    bind_accum = AppendLine(bind_accum, Concat("    Bind: ", Concat(t_name, Concat(" from ", from_name))));
+                    k = SkipWhitespaceAndComments(content, k);
+                    if CharAt(content, k) == "," {
+                        k = k + 1;
+                        continue;
+                    }
+                    break;
+                }
+            } else {
+                ArraySet(cursor_out, 0, k);
+                let t_name: String = ReadIdent(content, k, cursor_out);
+                bind_accum = AppendLine(bind_accum, Concat("    Bind: ", Concat(t_name, Concat(" from ", from_name))));
+            }
+            ArraySet(cursor_out, 0, i);
+            continue;
+        } else if MatchKeyword(content, i, "refresh") || MatchKeyword(content, i, "publish") {
+            let is_ref: Bool = MatchKeyword(content, i, "refresh");
+            let ref_pub_label: String = "Publish";
+            let ref_pub_kw_len: Int = 7;
+            if is_ref {
+                ref_pub_label = "Refresh";
+                ref_pub_kw_len = 7;
+            }
+            i = i + ref_pub_kw_len;
+            i = SkipWhitespaceAndComments(content, i);
+            let list_start: Int = i;
+            if CharAt(content, i) == "[" {
+                i = i + 1;
+                while true {
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let dummy: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    if StringLength(dummy) == 0 { Exit(1); }
+                    i = SkipWhitespaceAndComments(content, i);
+                    if CharAt(content, i) == "," {
+                        i = i + 1;
+                        continue;
+                    }
+                    break;
+                }
+                i = Expect(content, i, "]");
+                if i < 0 { Exit(1); }
+            } else {
+                ArraySet(cursor_out, 0, i);
+                let dummy: String = ReadIdent(content, i, cursor_out);
+                i = cursor_out[0];
+                if StringLength(dummy) == 0 { Exit(1); }
+            }
+            i = SkipWhitespaceAndComments(content, i);
+            if !MatchKeyword(content, i, "from") { Exit(1); }
+            i = i + 4;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let from_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            i = SkipWhitespaceAndComments(content, i);
+            if !MatchKeyword(content, i, "by") { Exit(1); }
+            i = i + 2;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let by_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            i = SkipWhitespaceAndComments(content, i);
+            if MatchKeyword(content, i, "map") {
+                i = i + 3;
+                i = SkipWhitespaceAndComments(content, i);
+                i = Expect(content, i, "{");
+                if i < 0 { Exit(1); }
+                while true {
+                    i = SkipWhitespaceAndComments(content, i);
+                    if CharAt(content, i) == "}" {
+                        i = i + 1;
+                        break;
+                    }
+                    while i < n && CharAt(content, i) != ";" && CharAt(content, i) != "}" {
+                        i = i + 1;
+                    }
+                    if CharAt(content, i) == ";" {
+                        i = i + 1;
+                    } else {
+                        Exit(1);
+                    }
+                }
+            } else {
+                i = SkipWhitespaceAndComments(content, i);
+                if CharAt(content, i) == ";" {
+                    i = i + 1;
+                }
+            }
+
+            let k: Int = list_start;
+            if CharAt(content, k) == "[" {
+                k = k + 1;
+                while true {
+                    k = SkipWhitespaceAndComments(content, k);
+                    ArraySet(cursor_out, 0, k);
+                    let t_name: String = ReadIdent(content, k, cursor_out);
+                    k = cursor_out[0];
+                    bind_accum = AppendLine(bind_accum, Concat("    ", Concat(ref_pub_label, Concat(": ", Concat(t_name, Concat(" from ", Concat(from_name, Concat(" by ", by_name))))))));
+                    k = SkipWhitespaceAndComments(content, k);
+                    if CharAt(content, k) == "," {
+                        k = k + 1;
+                        continue;
+                    }
+                    break;
+                }
+            } else {
+                ArraySet(cursor_out, 0, k);
+                let t_name: String = ReadIdent(content, k, cursor_out);
+                bind_accum = AppendLine(bind_accum, Concat("    ", Concat(ref_pub_label, Concat(": ", Concat(t_name, Concat(" from ", Concat(from_name, Concat(" by ", by_name))))))));
+            }
+            ArraySet(cursor_out, 0, i);
+            continue;
+        } else if MatchKeyword(content, i, "func") {
+            ArraySet(cursor_out, 0, i);
+            let m_block: String = ParseFunction(content, i, cursor_out, "", false, 4, "func", "Function: ", false, "");
+            i = cursor_out[0];
+            auth_accum = AppendLine(auth_accum, m_block);
+            continue;
+        } else {
+            Exit(1);
+        }
+        i = SkipWhitespaceAndComments(content, i);
+        if is_auth {
+            ArraySet(cursor_out, 0, i);
+            let auth_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            i = SkipWhitespaceAndComments(content, i);
+            let auth_req: String = "";
+            if MatchKeyword(content, i, "requires") {
+                i = i + 8;
+                i = SkipWhitespaceAndComments(content, i);
+                ArraySet(cursor_out, 0, i);
+                auth_req = ReadType(content, i, cursor_out);
+                i = cursor_out[0];
+                while true {
+                    i = SkipWhitespaceAndComments(content, i);
+                    if CharAt(content, i) == "," {
+                        i = i + 1;
+                        i = SkipWhitespaceAndComments(content, i);
+                        ArraySet(cursor_out, 0, i);
+                        let next_req: String = ReadType(content, i, cursor_out);
+                        i = cursor_out[0];
+                        auth_req = Concat(auth_req, Concat(", ", next_req));
+                        continue;
+                    }
+                    break;
+                }
+            }
+            i = SkipWhitespaceAndComments(content, i);
+            if CharAt(content, i) == ";" {
+                i = i + 1;
+            }
+            auth_accum = AppendLine(auth_accum, Concat("    Authority: ", auth_name));
+            if StringLength(auth_req) > 0 {
+                auth_accum = AppendLine(auth_accum, Concat("      Requires: ", auth_req));
+            }
+        } else {
+            if !MatchKeyword(content, i, "slot") {
+                Exit(1);
+            }
+            i = i + 4;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let s_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(s_name) == 0 {
+                Exit(1);
+            }
+            i = Expect(content, i, ":");
+            if i < 0 {
+                Exit(1);
+            }
+            ArraySet(cursor_out, 0, i);
+            let s_type: String = ReadType(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(s_type) == 0 {
+                Exit(1);
+            }
+            i = SkipWhitespaceAndComments(content, i);
+            if CharAt(content, i) == ";" {
+                i = i + 1;
+            }
+            slot_accum = AppendLine(slot_accum, Concat("    ", Concat(slot_label, Concat(": ", Concat(s_name, Concat(": ", s_type))))));
+        }
+    }
+    out = AppendLine(out, Concat("  Zone: ", Concat(decl_prefix, zone_name)));
+    let zone_body: String = "";
+    if StringLength(slot_accum) > 0 {
+        zone_body = AppendLine(zone_body, slot_accum);
+    }
+    if StringLength(bind_accum) > 0 {
+        zone_body = AppendLine(zone_body, bind_accum);
+    }
+    if StringLength(apply_accum) > 0 {
+        zone_body = AppendLine(zone_body, apply_accum);
+    }
+    if StringLength(link_accum) > 0 {
+        zone_body = AppendLine(zone_body, link_accum);
+    }
+    if StringLength(auth_accum) > 0 {
+        zone_body = AppendLine(zone_body, auth_accum);
+    }
+    if StringLength(state_accum) > 0 {
+        zone_body = AppendLine(zone_body, state_accum);
+    }
+    if StringLength(zone_body) > 0 {
+        out = AppendLine(out, zone_body);
+    }
+    ArraySet(cursor_out, 0, i); return out;
+}

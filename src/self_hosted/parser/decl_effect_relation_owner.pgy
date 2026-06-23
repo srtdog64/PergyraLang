@@ -1,0 +1,162 @@
+// Self-host parser effect/relation declaration owner.
+
+func ParseEffectDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String) -> String {
+    let i: Int = start;
+    let n: Int = StringLength(content);
+    let out: String = "";
+    i = i + 6;
+    i = SkipWhitespaceAndComments(content, i);
+    ArraySet(cursor_out, 0, i);
+    let eff_name: String = ReadIdent(content, i, cursor_out);
+    i = cursor_out[0];
+    i = SkipWhitespaceAndComments(content, i);
+    if !MatchKeyword(content, i, "for") {
+        Exit(1);
+    }
+    i = i + 3;
+    i = SkipWhitespaceAndComments(content, i);
+    ArraySet(cursor_out, 0, i);
+    let eff_param_name: String = ReadIdent(content, i, cursor_out);
+    i = cursor_out[0];
+    i = Expect(content, i, ":");
+    if i < 0 {
+        Exit(1);
+    }
+    ArraySet(cursor_out, 0, i);
+    let eff_param_type: String = ReadType(content, i, cursor_out);
+    i = cursor_out[0];
+    i = Expect(content, i, "{");
+    if i < 0 {
+        Exit(1);
+    }
+
+    let eff_fields: String = "";
+    while true {
+        i = SkipWhitespaceAndComments(content, i);
+        if i >= n { Exit(1); }
+        if CharAt(content, i) == "}" {
+            i = i + 1;
+            break;
+        }
+        let is_shared_eff: Bool = false;
+        if MatchKeyword(content, i, "let") {
+            i = i + 3;
+            i = SkipWhitespaceAndComments(content, i);
+        } else if MatchKeyword(content, i, "shared") {
+            i = i + 6;
+            i = SkipWhitespaceAndComments(content, i);
+            is_shared_eff = true;
+        }
+        ArraySet(cursor_out, 0, i);
+        let f_name: String = ReadIdent(content, i, cursor_out);
+        i = cursor_out[0];
+        if StringLength(f_name) == 0 { Exit(1); }
+        i = Expect(content, i, ":");
+        if i < 0 { Exit(1); }
+        ArraySet(cursor_out, 0, i);
+        let f_type: String = ReadType(content, i, cursor_out);
+        i = cursor_out[0];
+        i = Expect(content, i, ";");
+        if i < 0 { Exit(1); }
+
+        if is_shared_eff {
+            eff_fields = AppendLine(eff_fields, Concat("    Shared: ", Concat(f_name, Concat(": ", f_type))));
+        } else {
+            eff_fields = AppendLine(eff_fields, Concat("    ", Concat(f_name, Concat(": ", f_type))));
+        }
+    }
+    out = AppendLine(out, Concat("  Effect: ", Concat(decl_prefix, eff_name)));
+    out = AppendLine(out, Concat("    SubjectSlot: ", Concat(eff_param_name, Concat(": ", eff_param_type))));
+    if StringLength(eff_fields) > 0 {
+        out = AppendLine(out, eff_fields);
+    }
+    ArraySet(cursor_out, 0, i); return out;
+}
+
+func ParseRelationDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String) -> String {
+    let i: Int = start;
+    let n: Int = StringLength(content);
+    let out: String = "";
+    i = i + 8;
+    i = SkipWhitespaceAndComments(content, i);
+    ArraySet(cursor_out, 0, i);
+    let rel_name: String = ReadIdent(content, i, cursor_out);
+    i = cursor_out[0];
+    i = SkipWhitespaceAndComments(content, i);
+    if !MatchKeyword(content, i, "for") { Exit(1); }
+    i = i + 3;
+
+    // Param 1
+    i = SkipWhitespaceAndComments(content, i);
+    ArraySet(cursor_out, 0, i);
+    let p1_name: String = ReadIdent(content, i, cursor_out);
+    i = cursor_out[0];
+    i = Expect(content, i, ":");
+    if i < 0 { Exit(1); }
+    ArraySet(cursor_out, 0, i);
+    let p1_type: String = ReadType(content, i, cursor_out);
+    i = cursor_out[0];
+
+    // Comma
+    i = Expect(content, i, ",");
+    if i < 0 { Exit(1); }
+
+    // Param 2
+    i = SkipWhitespaceAndComments(content, i);
+    ArraySet(cursor_out, 0, i);
+    let p2_name: String = ReadIdent(content, i, cursor_out);
+    i = cursor_out[0];
+    i = Expect(content, i, ":");
+    if i < 0 { Exit(1); }
+    ArraySet(cursor_out, 0, i);
+    let p2_type: String = ReadType(content, i, cursor_out);
+    i = cursor_out[0];
+
+    i = Expect(content, i, "{");
+    if i < 0 { Exit(1); }
+
+    // Fields
+    let rel_fields: String = "";
+    while true {
+        i = SkipWhitespaceAndComments(content, i);
+        if i >= n { Exit(1); }
+        if CharAt(content, i) == "}" {
+            i = i + 1;
+            break;
+        }
+        let is_shared_rel: Bool = false;
+        if MatchKeyword(content, i, "let") {
+            i = i + 3;
+            i = SkipWhitespaceAndComments(content, i);
+        } else if MatchKeyword(content, i, "shared") {
+            i = i + 6;
+            i = SkipWhitespaceAndComments(content, i);
+            is_shared_rel = true;
+        }
+        ArraySet(cursor_out, 0, i);
+        let f_name: String = ReadIdent(content, i, cursor_out);
+        i = cursor_out[0];
+        if StringLength(f_name) == 0 { Exit(1); }
+        i = Expect(content, i, ":");
+        if i < 0 { Exit(1); }
+        ArraySet(cursor_out, 0, i);
+        let f_type: String = ReadType(content, i, cursor_out);
+        i = cursor_out[0];
+        i = Expect(content, i, ";");
+        if i < 0 { Exit(1); }
+
+        if is_shared_rel {
+            rel_fields = AppendLine(rel_fields, Concat("    Shared: ", Concat(f_name, Concat(": ", f_type))));
+        } else {
+            rel_fields = AppendLine(rel_fields, Concat("    ", Concat(f_name, Concat(": ", f_type))));
+        }
+    }
+
+    out = AppendLine(out, Concat("  Relation: ", Concat(decl_prefix, rel_name)));
+    out = AppendLine(out, Concat("    SubjectSlot: ", Concat(p1_name, Concat(": ", p1_type))));
+    out = AppendLine(out, Concat("    SubjectSlot: ", Concat(p2_name, Concat(": ", p2_type))));
+    if StringLength(rel_fields) > 0 {
+        out = AppendLine(out, rel_fields);
+    }
+    ArraySet(cursor_out, 0, i); return out;
+}

@@ -1,0 +1,122 @@
+// Self-host parser role declaration owner.
+
+func ParseRoleDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String, within_zone: String) -> String {
+    let i: Int = start;
+    let n: Int = StringLength(content);
+    let out: String = "";
+    i = i + 4;
+    i = SkipWhitespaceAndComments(content, i);
+    ArraySet(cursor_out, 0, i);
+    let role_name: String = ReadIdent(content, i, cursor_out);
+    i = cursor_out[0];
+    if StringLength(role_name) == 0 {
+        Exit(1);
+    }
+    i = SkipWhitespaceAndComments(content, i);
+    if !MatchKeyword(content, i, "for") {
+        Exit(1);
+    }
+    i = i + 3;
+    i = SkipWhitespaceAndComments(content, i);
+    ArraySet(cursor_out, 0, i);
+    let role_subj: String = ReadIdent(content, i, cursor_out);
+    i = cursor_out[0];
+    if StringLength(role_subj) == 0 {
+        Exit(1);
+    }
+    let compact_impl: String = "";
+    i = SkipWhitespaceAndComments(content, i);
+    if MatchKeyword(content, i, "impl") {
+        i = i + 4;
+        i = SkipWhitespaceAndComments(content, i);
+        if MatchKeyword(content, i, "ability") {
+            i = i + 7;
+            i = SkipWhitespaceAndComments(content, i);
+        }
+        ArraySet(cursor_out, 0, i);
+        compact_impl = ReadType(content, i, cursor_out);
+        i = cursor_out[0];
+        if StringLength(compact_impl) == 0 {
+            Exit(1);
+        }
+    }
+    i = Expect(content, i, "{");
+    if i < 0 {
+        Exit(1);
+    }
+    let impl_blocks: String = "";
+    if StringLength(compact_impl) > 0 {
+        impl_blocks = AppendLine(impl_blocks, Concat("    Impl ability: ", compact_impl));
+    }
+    while true {
+        i = SkipWhitespaceAndComments(content, i);
+        if i >= n {
+            Exit(1);
+        }
+        if CharAt(content, i) == "}" {
+            i = i + 1;
+            break;
+        }
+        if MatchKeyword(content, i, "parallel") {
+            ArraySet(cursor_out, 0, i);
+            let role_parallel: String = ParseOneStmt(content, i, cursor_out, 4);
+            i = cursor_out[0];
+            impl_blocks = AppendLine(impl_blocks, role_parallel);
+            continue;
+        }
+        if StringLength(compact_impl) > 0 && MatchKeyword(content, i, "func") {
+            ArraySet(cursor_out, 0, i);
+            let compact_m: String = ParseFunction(content, i, cursor_out, "", false, 6, "func", "Function: ", false, within_zone);
+            i = cursor_out[0];
+            impl_blocks = AppendLine(impl_blocks, "    Impl ability: (null)");
+            impl_blocks = AppendLine(impl_blocks, compact_m);
+            continue;
+        }
+        if !MatchKeyword(content, i, "impl") {
+            Exit(1);
+        }
+        i = i + 4;
+        i = SkipWhitespaceAndComments(content, i);
+        if MatchKeyword(content, i, "ability") {
+            i = i + 7;
+            i = SkipWhitespaceAndComments(content, i);
+        }
+        ArraySet(cursor_out, 0, i);
+        let ab_name_impl: String = ReadType(content, i, cursor_out);
+        i = cursor_out[0];
+        if StringLength(ab_name_impl) == 0 {
+            Exit(1);
+        }
+        i = Expect(content, i, "{");
+        if i < 0 {
+            Exit(1);
+        }
+        let impl_methods: String = "";
+        while true {
+            i = SkipWhitespaceAndComments(content, i);
+            if i >= n {
+                Exit(1);
+            }
+            if CharAt(content, i) == "}" {
+                i = i + 1;
+                break;
+            }
+            if !MatchKeyword(content, i, "func") {
+                Exit(1);
+            }
+            ArraySet(cursor_out, 0, i);
+            let m_block: String = ParseFunction(content, i, cursor_out, "", false, 6, "func", "Function: ", false, within_zone);
+            i = cursor_out[0];
+            impl_methods = AppendLine(impl_methods, m_block);
+        }
+        impl_blocks = AppendLine(impl_blocks, Concat("    Impl ability: ", ab_name_impl));
+        if StringLength(impl_methods) > 0 {
+            impl_blocks = AppendLine(impl_blocks, impl_methods);
+        }
+    }
+    out = AppendLine(out, Concat("  Role: ", Concat(decl_prefix, Concat(role_name, Concat(" for ", role_subj)))));
+    if StringLength(impl_blocks) > 0 {
+        out = AppendLine(out, impl_blocks);
+    }
+    ArraySet(cursor_out, 0, i); return out;
+}

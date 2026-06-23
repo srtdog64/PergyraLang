@@ -1,0 +1,283 @@
+// Self-host parser top-level declaration dispatch owner.
+
+// Parse zero or more top-level declarations. `name_prefix` is prepended
+// to each emitted decl name and is non-empty inside `namespace` blocks
+// (e.g. `Math_` for `namespace Math { ... }`, `Outer_Inner_` for nested
+// namespaces). When `until_brace` is true, parsing stops at `}` (used
+// by the namespace branch); otherwise it stops at EOF.
+func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_prefix: String, until_brace: Bool, source_dir: String, force_export: Bool, within_zone: String, inout involve_types: Array<String>) -> String {
+    let i: Int = start;
+    let n: Int = StringLength(content);
+    let out: String = "";
+    let script_body: String = "";
+    let active_within_zone: String = within_zone;
+    let collect_script: Bool = !until_brace && !force_export && StringLength(name_prefix) == 0 && StringLength(active_within_zone) == 0;
+
+    let is_imported: Bool = StringIndexOf(content, "__imported__") >= 0;
+    let has_exports: Bool = false;
+    if is_imported {
+        if (StringIndexOf(content, "export ") >= 0) || (StringIndexOf(content, "export\t") >= 0) || (StringIndexOf(content, "export\n") >= 0) {
+            has_exports = true;
+        }
+    }
+
+    while true {
+        i = SkipWhitespaceAndComments(content, i);
+        if until_brace {
+            if i >= n {
+                Exit(1);
+            }
+            if CharAt(content, i) == "}" {
+                i = i + 1;
+                ArraySet(cursor_out, 0, i);
+                return AppendImplicitMain(out, script_body);
+            }
+        } else {
+            if i >= n {
+                ArraySet(cursor_out, 0, i);
+                return AppendImplicitMain(out, script_body);
+            }
+        }
+
+        // `import "PATH.pgy";` — read the referenced file (relative to
+        // the source's directory), parse it as a sub-document, and
+        // inline its decls here. The C parser treats all top-level
+        // functions in an imported file as exported, so we pass
+        // `force_export=true` into the recursive call so each emitted
+        // function gets `[export] Function:`.
+        if MatchKeyword(content, i, "import") {
+            i = i + 6;
+            i = SkipWhitespaceAndComments(content, i);
+            if CharAt(content, i) != "\"" {
+                Exit(1);
+            }
+            ArraySet(cursor_out, 0, i);
+            let raw_path: String = ReadString(content, i, cursor_out);
+            i = cursor_out[0];
+            i = Expect(content, i, ";");
+            if i < 0 {
+                Exit(1);
+            }
+            // Strip the leading and trailing `"` from raw_path.
+            let rp_len: Int = StringLength(raw_path);
+            let imp_rel: String = Substring(raw_path, 1, rp_len - 2);
+            let imp_path: String = imp_rel;
+            if StringLength(source_dir) > 0 {
+                imp_path = Concat(source_dir, Concat("/", imp_rel));
+            }
+            if !FileExists(imp_path) {
+                Exit(1);
+            }
+            let imp_content: String = Concat(ReadFile(imp_path), "\n// __imported__\n");
+            // Compute the imported file's own source_dir so any nested
+            // imports resolve relative to it. Same dirname walk as Main.
+            let imp_dir: String = "";
+            let imp_last_slash: Int = -1;
+            let imp_path_len: Int = StringLength(imp_path);
+            let ipk: Int = 0;
+            while ipk < imp_path_len {
+                if CharAt(imp_path, ipk) == "/" {
+                    imp_last_slash = ipk;
+                }
+                ipk = ipk + 1;
+            }
+            if imp_last_slash >= 0 {
+                imp_dir = Substring(imp_path, 0, imp_last_slash);
+            }
+            let imp_cursor: Array<Int> = [0];
+            let imp_inner: String = ParseDecls(imp_content, 0, imp_cursor, name_prefix, false, imp_dir, true, active_within_zone, involve_types);
+            if StringLength(imp_inner) > 0 {
+                out = AppendLine(out, imp_inner);
+            }
+            continue;
+        }
+
+        // `namespace NAME { ... }` recurses with a deeper prefix and
+        // inlines the resulting decls; the namespace itself emits no
+        // wrapper AST node.
+        if MatchKeyword(content, i, "namespace") {
+            i = i + 9;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let ns_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(ns_name) == 0 {
+                Exit(1);
+            }
+            i = Expect(content, i, "{");
+            if i < 0 {
+                Exit(1);
+            }
+            let new_prefix: String = Concat(name_prefix, Concat(ns_name, "_"));
+            ArraySet(cursor_out, 0, i);
+            let inner: String = ParseDecls(content, i, cursor_out, new_prefix, true, source_dir, force_export, active_within_zone, involve_types);
+            i = cursor_out[0];
+            if StringLength(inner) > 0 {
+                out = AppendLine(out, inner);
+            }
+            continue;
+        }
+
+        // `within ZONE { ... }` parses the body recursively but binds
+        // the zone name as `within_zone` for all nested actions/functions.
+        if MatchKeyword(content, i, "within") {
+            i = i + 6;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let wz_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(wz_name) == 0 {
+                Exit(1);
+            }
+            i = Expect(content, i, "{");
+            if i < 0 {
+                Exit(1);
+            }
+            ArraySet(cursor_out, 0, i);
+            let inner: String = ParseDecls(content, i, cursor_out, name_prefix, true, source_dir, force_export, wz_name, involve_types);
+            i = cursor_out[0];
+            if StringLength(inner) > 0 {
+                out = AppendLine(out, inner);
+            }
+            continue;
+        }
+
+        // Optional `export` prefix on the next declaration.
+        let is_export: Bool = false;
+        if MatchKeyword(content, i, "export") {
+            i = i + 6;
+            i = SkipWhitespaceAndComments(content, i);
+            is_export = true;
+        }
+
+        let effective_export: Bool = is_export;
+        if force_export {
+            if is_imported {
+                if has_exports {
+                    effective_export = is_export;
+                } else {
+                    effective_export = true;
+                }
+            } else {
+                effective_export = true;
+            }
+        }
+
+        let decl_prefix: String = name_prefix;
+        if is_imported && has_exports && !is_export {
+            decl_prefix = Concat("__imp0_", name_prefix);
+        }
+
+        if MatchKeyword(content, i, "type") {
+            let type_block: String = ParseTypeDecl(content, i, cursor_out, decl_prefix);
+            i = cursor_out[0];
+            out = AppendLine(out, type_block);
+            continue;
+        }
+
+        if MatchKeyword(content, i, "ability") {
+            let ability_block: String = ParseAbilityDecl(content, i, cursor_out, decl_prefix);
+            i = cursor_out[0];
+            out = AppendLine(out, ability_block);
+            continue;
+        }
+
+        if MatchKeyword(content, i, "zone") {
+            let zone_block: String = ParseZoneDecl(content, i, cursor_out, decl_prefix, involve_types);
+            i = cursor_out[0];
+            out = AppendLine(out, zone_block);
+            continue;
+        }
+
+
+        if MatchKeyword(content, i, "effect") {
+            let effect_block: String = ParseEffectDecl(content, i, cursor_out, decl_prefix);
+            i = cursor_out[0];
+            out = AppendLine(out, effect_block);
+            continue;
+        }
+
+
+        if MatchKeyword(content, i, "relation") {
+            let relation_block: String = ParseRelationDecl(content, i, cursor_out, decl_prefix);
+            i = cursor_out[0];
+            out = AppendLine(out, relation_block);
+            continue;
+        }
+
+
+        if MatchKeyword(content, i, "role") {
+            let role_block: String = ParseRoleDecl(content, i, cursor_out, decl_prefix, active_within_zone);
+            i = cursor_out[0];
+            out = AppendLine(out, role_block);
+            continue;
+        }
+
+
+        if MatchKeyword(content, i, "intent") {
+            let intent_block: String = ParseIntentDecl(content, i, cursor_out, decl_prefix, involve_types);
+            i = cursor_out[0];
+            out = AppendLine(out, intent_block);
+            continue;
+        }
+
+
+        if MatchKeyword(content, i, "subject") || MatchKeyword(content, i, "class") || MatchKeyword(content, i, "vessel") || MatchKeyword(content, i, "struct") || MatchKeyword(content, i, "object") || MatchKeyword(content, i, "tobject") || MatchKeyword(content, i, "party") || MatchKeyword(content, i, "roster") || MatchKeyword(content, i, "world") {
+            let nominal_block: String = ParseNominalDecl(content, i, cursor_out, decl_prefix, active_within_zone, involve_types);
+            i = cursor_out[0];
+            out = AppendLine(out, nominal_block);
+            continue;
+        }
+
+
+        if MatchKeyword(content, i, "event") {
+            let event_block: String = ParseEventDecl(content, i, cursor_out, decl_prefix);
+            i = cursor_out[0];
+            out = AppendLine(out, event_block);
+            continue;
+        }
+
+        if MatchKeyword(content, i, "enum") {
+            let enum_block: String = ParseEnumDecl(content, i, cursor_out, decl_prefix);
+            i = cursor_out[0];
+            out = AppendLine(out, enum_block);
+            continue;
+        }
+
+        // Optional `async` modifier on the next `func` — the C printer
+        // drops it from the AST output, so we just consume and ignore.
+        if MatchKeyword(content, i, "async") {
+            i = i + 5;
+            i = SkipWhitespaceAndComments(content, i);
+        }
+
+        // `func NAME(params) -> Type { body }` at top level (base_indent=2).
+        if MatchKeyword(content, i, "func") {
+            ArraySet(cursor_out, 0, i);
+            let fn_block: String = ParseFunction(content, i, cursor_out, decl_prefix, effective_export, 2, "func", "Function: ", false, active_within_zone);
+            i = cursor_out[0];
+            out = AppendLine(out, fn_block);
+            continue;
+        }
+
+        // Top-level statement (let/if/while/for/break/continue/match,
+        // bare call, or assignment). Root script statements are collected
+        // under the implicit Main function to match the C parser oracle.
+        if is_export {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        let stmt_indent: Int = 2;
+        if collect_script {
+            stmt_indent = 8;
+        }
+        let stmt_block: String = ParseOneStmt(content, i, cursor_out, stmt_indent);
+        i = cursor_out[0];
+        if collect_script {
+            script_body = AppendLine(script_body, stmt_block);
+        } else {
+            out = AppendLine(out, stmt_block);
+        }
+    }
+    return out;
+}
