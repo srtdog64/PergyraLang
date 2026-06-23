@@ -1,0 +1,7 @@
+func Main() -> Void {
+    let words: Array<String> = ["hello", "world", "pergyra"];
+    let sentence: String = Join(words, " ");
+    Log(sentence);
+    let pi: Float = ToFloat("3.5");
+    Log(pi);
+}

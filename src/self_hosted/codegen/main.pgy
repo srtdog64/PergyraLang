@@ -116,12 +116,6 @@ func RejectUnsupportedCodegenBuiltins(ast: String) -> Void {
     if ContainsCallOutsideStrings(ast, "ArrayFilter") {
         Die("unsupported builtin in self-host codegen subset: ArrayFilter");
     }
-    if ContainsCallOutsideStrings(ast, "Join") {
-        Die("unsupported builtin in self-host codegen subset: Join");
-    }
-    if ContainsCallOutsideStrings(ast, "ToFloat") {
-        Die("unsupported builtin in self-host codegen subset: ToFloat");
-    }
 }
 
 func IsIdentChar(c: String) -> Bool {
@@ -371,6 +365,9 @@ func ExprKind(expr: String, env: String) -> String {
     if StartsWith(e, "StringJoin(") {
         return "String";
     }
+    if StartsWith(e, "Join(") {
+        return "String";
+    }
     if StartsWith(e, "Split(") {
         return "ArrayString";
     }
@@ -379,6 +376,9 @@ func ExprKind(expr: String, env: String) -> String {
     }
     if StartsWith(e, "ToInt(") {
         return "Int";
+    }
+    if StartsWith(e, "ToFloat(") {
+        return "Float";
     }
     if StartsWith(e, "ReadFile(") {
         return "String";
@@ -1014,8 +1014,10 @@ func RewriteTokens(e: String, env: String) -> String {
     let mc: String = ReplaceAllOutsideStrings(k, "CharCode(", "pgy_charcode(");
     let m0: String = ReplaceAllOutsideStrings(mc, "CharAtN(", "pgy_charatn(");
     let m: String = ReplaceAllOutsideStrings(m0, "Substring(", "pgy_substr(");
-    let jn: String = ReplaceAllOutsideStrings(m, "StringJoin(", "pgy_strjoin(");
-    let p: String = ReplaceAllOutsideStrings(jn, "ToString(", "pgy_tostr(");
+    let jn0: String = ReplaceAllOutsideStrings(m, "StringJoin(", "pgy_strjoin(");
+    let jn: String = ReplaceAllOutsideStrings(jn0, "Join(", "pgy_strjoin(");
+    let tf: String = ReplaceAllOutsideStrings(jn, "ToFloat(", "atof(");
+    let p: String = ReplaceAllOutsideStrings(tf, "ToString(", "pgy_tostr(");
     // `Concat(a, b)` -> `pgy_concat(a, b)` is a pure name rewrite (same args),
     // so it lowers recursively and inside arbitrary call arguments.
     return RewriteBoolLiterals(ReplaceAllOutsideStrings(p, "Concat(", "pgy_concat("));
@@ -2045,6 +2047,7 @@ func GenerateC(ast: String) -> String {
         || StringIndexOf(ast, "ArraySet(") >= 0
         || StringIndexOf(ast, "ArrayPop(") >= 0
         || StringIndexOf(ast, "StringJoin(") >= 0
+        || StringIndexOf(ast, "Join(") >= 0
         || StringIndexOf(ast, "Split(") >= 0
         || StringIndexOf(ast, "DirWalk(") >= 0
         || StringIndexOf(ast, "Args(") >= 0;
@@ -2052,7 +2055,8 @@ func GenerateC(ast: String) -> String {
     let uses_io: Bool = StringIndexOf(ast, "ReadFile(") >= 0
         || StringIndexOf(ast, "FileExists(") >= 0
         || StringIndexOf(ast, "WriteFile(") >= 0;
-    let uses_join: Bool = StringIndexOf(ast, "StringJoin(") >= 0;
+    let uses_join: Bool = StringIndexOf(ast, "StringJoin(") >= 0
+        || StringIndexOf(ast, "Join(") >= 0;
     let uses_split: Bool = StringIndexOf(ast, "Split(") >= 0;
     let uses_dirwalk: Bool = StringIndexOf(ast, "DirWalk(") >= 0;
     let uses_log: Bool = StringIndexOf(ast, "Log") >= 0;
@@ -2065,9 +2069,10 @@ func GenerateC(ast: String) -> String {
         || StringIndexOf(ast, "Sqrt(") >= 0
         || StringIndexOf(ast, "Pow(") >= 0
         || StringIndexOf(ast, "Floor(") >= 0
-        || StringIndexOf(ast, "Ceil(") >= 0;
+        || StringIndexOf(ast, "Ceil(") >= 0
+        || StringIndexOf(ast, "ToFloat(") >= 0;
     let uses_random: Bool = StringIndexOf(ast, "Random(") >= 0;
-    let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_io || uses_fhandle || uses_random;
+    let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_io || uses_fhandle || uses_random || uses_float;
     let header: String = "#include <stdio.h>\n";
     if uses_bool {
         header = Concat(header, "#include <stdbool.h>\n");

@@ -11,7 +11,8 @@ open" freeze. Before that date this folder was a reserved stub.
 `Array<Int>` / `Array<String>` / `Void` function subset and emits a
 self-contained C program whose **run-stdout** matches the C/LLVM oracle.
 String builtins: `Concat`, `ToString`, `StringLength`, `Substring`,
-`StringIndexOf`, `StringTrim`. Tool I/O: `FileExists`, `ReadFile`, `Args`.
+`StringIndexOf`, `StringTrim`, `StringJoin`, `Join`. Scalar conversion:
+`ToFloat`. Tool I/O: `FileExists`, `ReadFile`, `Args`.
 Arrays: growable `Array<Int>` / `Array<String>` locals plus `Array<Int>`
 parameters and returns.
 User structs: top-level `struct` declarations with `Int` fields, struct
@@ -55,10 +56,11 @@ calls). `Int` is C `long long`, with `/` and `%` matching the oracle including
 negatives. Conditions are re-parenthesized so bare predicates (`if flag`) emit
 valid C. `<strexpr>` is a string literal, `Concat(<strexpr>, <strexpr>)`, a
 string-typed identifier, or a string-returning call. The builtins
-`StringLength(x)`, `Substring(s, start, len)`, and `StringIndexOf(hay, needle)`, `StringTrim(s)`
-are rewritten to runtime helpers `pgy_strlen` / `pgy_substr` / `pgy_strindexof` / `pgy_strtrim`
+`StringLength(x)`, `Substring(s, start, len)`, `StringIndexOf(hay, needle)`, `StringTrim(s)`,
+and `StringJoin(xs, sep)` / `Join(xs, sep)` are rewritten to runtime helpers
+`pgy_strlen` / `pgy_substr` / `pgy_strindexof` / `pgy_strtrim` / `pgy_strjoin`
 (`pgy_concat` for `Concat`; `pgy_strindexof` is `strstr`-based, returns -1 when
-absent). `Exit(n)` lowers to `exit(n);`. `Args()` lowers to a stable user-argv
+absent). `ToFloat(s)` lowers to `atof(s)`. `Exit(n)` lowers to `exit(n);`. `Args()` lowers to a stable user-argv
 snapshot (`argv[1..]`) stored in the same growable string-array representation.
 
 **Type routing:** `Assign` / `Log` / `Return` need to know whether an operand is
@@ -72,7 +74,7 @@ fallback. The intent contract is pinned in `intent.md`; this README is
 explanatory.
 
 Parity gate: `src/self_hosted/parity/codegen_parity.sh` builds `main.pgy` through
-the requested backend set, runs it on each of the 48 committed fixtures'
+the requested backend set, runs it on each of the 50 committed fixtures'
 `pgy --ast` output, gcc-compiles the emitted C, runs it, and compares run-stdout
 against the committed expected output. A live-drift guard re-derives that
 expected output from the C-backend oracle executable. LLVM is mandatory when the

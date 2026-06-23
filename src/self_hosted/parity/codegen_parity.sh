@@ -169,6 +169,7 @@ FIXTURES=(
     builtin_name_literal
     string_equality
     str_builtins2
+    string_utils_core
     dir_walk
     for_each
     array_pop

@@ -67,6 +67,23 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- String utility builtin aliases enter self-host codegen
+
+- Closed the `string_utils` examples-scale CODEGEN gap for the standard string
+  utility spelling. `Join(xs, sep)` now lowers through the same self-hosted
+  runtime helper as `StringJoin(xs, sep)`, and `ToFloat(s)` lowers through the
+  same scalar-conversion path as the C oracle (`atof`) instead of remaining an
+  unsupported builtin boundary.
+- Added `string_utils_core.pgy` to the self-host codegen parity manifest. The
+  fixture proves `Join(Array<String>, String)` plus `ToFloat(String)` run-stdout
+  equivalence against the C oracle, moving codegen parity to **50 fixtures**.
+- Refreshed the examples-scale survey after rebuilding the MIR-lower parity
+  tools: 43 PASS, 29 CODEGEN-gap, 36 MIR-LOWER-gap, 13 ORACLE-skip, and 0
+  measured STDOUT-diff / generated-C compile failures / via-run timeouts.
+  `string_utils` now passes; remaining gaps stay fail-closed around domain
+  nominal declarations, events, generics, slots/channels/futures/results, and
+  collection higher-order helpers.
+
 ### 2026-06-23 -- Plain class declarations and methods enter MIR JSON lowering
 
 - Promoted ordinary `class` declarations from the unsupported declaration
