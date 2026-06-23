@@ -399,7 +399,7 @@ if [[ "$reject_rc" -eq 0 ]]; then
     echo "[self-host-parity:mir-json] $base: codegen must exit nonzero for unsupported builtins" >&2
     exit 1
 fi
-if ! grep -q '^CODEGEN ERROR: unsupported builtin in self-host codegen subset: ArraySort' "$via_c"; then
+if ! grep -q '^CODEGEN ERROR: unsupported builtin in self-host codegen subset: ArrayReverse' "$via_c"; then
     echo "[self-host-parity:mir-json] $base: codegen must reject unsupported builtin facts before C emission" >&2
     sed -n '1,5p' "$via_c" >&2
     exit 1

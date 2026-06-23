@@ -12,7 +12,9 @@ open" freeze. Before that date this folder was a reserved stub.
 self-contained C program whose **run-stdout** matches the C/LLVM oracle.
 String builtins: `Concat`, `ToString`, `StringLength`, `Substring`,
 `StringIndexOf`, `StringTrim`, `StringJoin`, `Join`. Scalar conversion:
-`ToFloat`. Tool I/O: `FileExists`, `ReadFile`, `Args`.
+`ToFloat`. Array combinators: `ArraySort`, `ArrayMap`, `ArrayFilter`
+for `Array<Int>` plus unary `Int -> Int` / `Int -> Bool` function references.
+Tool I/O: `FileExists`, `ReadFile`, `Args`.
 Arrays: growable `Array<Int>` / `Array<String>` locals plus `Array<Int>`
 parameters and returns.
 User structs: top-level `struct` declarations with `Int` fields, struct
@@ -43,7 +45,10 @@ recursion are free. `Main` lowers to `int main(void)`, or to
   (`pgy_ai` / `pgy_as`, a `{data,len,cap}`); the literal lowers to `new()` plus
   one `push` per element (`[]` is just `new()`). `ArrayPush(xs, v)`,
   `ArraySet(xs, i, v)`, `ArrayLength(xs)`, and index reads `xs[i]` lower to
-  `pgy_*_push/set/len/get`. Index reads are rewritten env-aware in arbitrary
+  `pgy_*_push/set/len/get`. `ArraySort(xs)` sorts the shared `Array<Int>`
+  buffer and returns the value, matching the oracle's value-with-shared-buffer
+  behavior; `ArrayMap(xs, F)` / `ArrayFilter(xs, P)` are supported for unary
+  `Int -> Int` / `Int -> Bool` functions. Index reads are rewritten env-aware in arbitrary
   expressions (`total + xs[j]` -> `total + pgy_ai_get(xs, j)`), with string
   literals copied verbatim so a `[` inside a string is never touched (rung-7/8/10).
 - `Let: <name> : StructName = StructName { field: value, ... }` -> an Int-field
@@ -74,7 +79,7 @@ fallback. The intent contract is pinned in `intent.md`; this README is
 explanatory.
 
 Parity gate: `src/self_hosted/parity/codegen_parity.sh` builds `main.pgy` through
-the requested backend set, runs it on each of the 50 committed fixtures'
+the requested backend set, runs it on each of the 51 committed fixtures'
 `pgy --ast` output, gcc-compiles the emitted C, runs it, and compares run-stdout
 against the committed expected output. A live-drift guard re-derives that
 expected output from the C-backend oracle executable. LLVM is mandatory when the

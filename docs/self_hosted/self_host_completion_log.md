@@ -67,6 +67,21 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Array<Int> combinators enter self-host codegen
+
+- Promoted the `Array<Int>` `ArraySort`, `ArrayMap`, and `ArrayFilter`
+  codegen surface out of the unsupported builtin boundary. The self-hosted
+  emitter now lowers them to owned C helpers for sorted shared-buffer array
+  values and unary `Int -> Int` / `Int -> Bool` function references.
+- Kept the clean-reject contract alive by moving the negative builtin fixture
+  to `ArrayReverse`, which remains unsupported and must fail before generated C
+  emission. The MIR JSON gate still proves **68 positive fixtures plus 2 clean
+  rejects**.
+- Added `array_combinators.pgy` to the codegen parity manifest, moving codegen
+  parity to **51 fixtures**. Refreshed examples-scale survey: 44 PASS, 28
+  CODEGEN-gap, 36 MIR-LOWER-gap, 13 ORACLE-skip, and 0 measured STDOUT-diff /
+  generated-C compile failures / via-run timeouts. `collection_ops` now passes.
+
 ### 2026-06-23 -- String utility builtin aliases enter self-host codegen
 
 - Closed the `string_utils` examples-scale CODEGEN gap for the standard string

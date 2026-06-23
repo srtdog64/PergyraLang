@@ -107,14 +107,8 @@ func ContainsCallOutsideStrings(text: String, callee: String) -> Bool {
 }
 
 func RejectUnsupportedCodegenBuiltins(ast: String) -> Void {
-    if ContainsCallOutsideStrings(ast, "ArraySort") {
-        Die("unsupported builtin in self-host codegen subset: ArraySort");
-    }
-    if ContainsCallOutsideStrings(ast, "ArrayMap") {
-        Die("unsupported builtin in self-host codegen subset: ArrayMap");
-    }
-    if ContainsCallOutsideStrings(ast, "ArrayFilter") {
-        Die("unsupported builtin in self-host codegen subset: ArrayFilter");
+    if ContainsCallOutsideStrings(ast, "ArrayReverse") {
+        Die("unsupported builtin in self-host codegen subset: ArrayReverse");
     }
 }
 
@@ -370,6 +364,15 @@ func ExprKind(expr: String, env: String) -> String {
     }
     if StartsWith(e, "Split(") {
         return "ArrayString";
+    }
+    if StartsWith(e, "ArraySort(") {
+        return "ArrayInt";
+    }
+    if StartsWith(e, "ArrayMap(") {
+        return "ArrayInt";
+    }
+    if StartsWith(e, "ArrayFilter(") {
+        return "ArrayInt";
     }
     if StartsWith(e, "StringContains(") {
         return "Int";
@@ -1016,7 +1019,10 @@ func RewriteTokens(e: String, env: String) -> String {
     let m: String = ReplaceAllOutsideStrings(m0, "Substring(", "pgy_substr(");
     let jn0: String = ReplaceAllOutsideStrings(m, "StringJoin(", "pgy_strjoin(");
     let jn: String = ReplaceAllOutsideStrings(jn0, "Join(", "pgy_strjoin(");
-    let tf: String = ReplaceAllOutsideStrings(jn, "ToFloat(", "atof(");
+    let asort: String = ReplaceAllOutsideStrings(jn, "ArraySort(", "pgy_ai_sort(");
+    let amap: String = ReplaceAllOutsideStrings(asort, "ArrayMap(", "pgy_ai_map(");
+    let afilter: String = ReplaceAllOutsideStrings(amap, "ArrayFilter(", "pgy_ai_filter(");
+    let tf: String = ReplaceAllOutsideStrings(afilter, "ToFloat(", "atof(");
     let p: String = ReplaceAllOutsideStrings(tf, "ToString(", "pgy_tostr(");
     // `Concat(a, b)` -> `pgy_concat(a, b)` is a pure name rewrite (same args),
     // so it lowers recursively and inside arbitrary call arguments.
@@ -2039,13 +2045,19 @@ func GenerateC(ast: String) -> String {
     let uses_math: Bool = StringIndexOf(ast, "Abs(") >= 0
         || StringIndexOf(ast, "Min(") >= 0
         || StringIndexOf(ast, "Max(") >= 0;
-    let uses_bool: Bool = StringIndexOf(ast, "Bool") >= 0;
+    let uses_array_sort: Bool = StringIndexOf(ast, "ArraySort(") >= 0;
+    let uses_array_map: Bool = StringIndexOf(ast, "ArrayMap(") >= 0;
+    let uses_array_filter: Bool = StringIndexOf(ast, "ArrayFilter(") >= 0;
+    let uses_bool: Bool = StringIndexOf(ast, "Bool") >= 0 || uses_array_filter;
     let uses_exit: Bool = StringIndexOf(ast, "Exit(") >= 0;
     let uses_array: Bool = StringIndexOf(ast, "Array<") >= 0
         || StringIndexOf(ast, "ArrayPush(") >= 0
         || StringIndexOf(ast, "ArrayLength(") >= 0
         || StringIndexOf(ast, "ArraySet(") >= 0
         || StringIndexOf(ast, "ArrayPop(") >= 0
+        || uses_array_sort
+        || uses_array_map
+        || uses_array_filter
         || StringIndexOf(ast, "StringJoin(") >= 0
         || StringIndexOf(ast, "Join(") >= 0
         || StringIndexOf(ast, "Split(") >= 0
@@ -2154,6 +2166,26 @@ func GenerateC(ast: String) -> String {
         header = Concat(header, "static void pgy_ai_set(pgy_ai *a, long long i, long long v) { a->data[i] = v; }\n");
         header = Concat(header, "static long long pgy_ai_len(pgy_ai a) { return a.len; }\n");
         header = Concat(header, "static long long pgy_ai_pop(pgy_ai *a) { return a->len > 0 ? a->data[--a->len] : 0; }\n\n");
+        if uses_array_sort {
+            header = Concat(header, "static int pgy_ai_cmp(const void *pa, const void *pb)\n{\n");
+            header = Concat(header, "    long long a = *(const long long *)pa;\n    long long b = *(const long long *)pb;\n");
+            header = Concat(header, "    return (a > b) - (a < b);\n}\n");
+            header = Concat(header, "static pgy_ai pgy_ai_sort(pgy_ai a)\n{\n");
+            header = Concat(header, "    if (a.len > 1) { qsort(a.data, (size_t)a.len, sizeof(long long), pgy_ai_cmp); }\n");
+            header = Concat(header, "    return a;\n}\n\n");
+        }
+        if uses_array_map {
+            header = Concat(header, "static pgy_ai pgy_ai_map(pgy_ai a, long long (*fn)(long long))\n{\n");
+            header = Concat(header, "    pgy_ai out = pgy_ai_new();\n");
+            header = Concat(header, "    for (long long i = 0; i < a.len; i++) { pgy_ai_push(&out, fn(a.data[i])); }\n");
+            header = Concat(header, "    return out;\n}\n\n");
+        }
+        if uses_array_filter {
+            header = Concat(header, "static pgy_ai pgy_ai_filter(pgy_ai a, bool (*pred)(long long))\n{\n");
+            header = Concat(header, "    pgy_ai out = pgy_ai_new();\n");
+            header = Concat(header, "    for (long long i = 0; i < a.len; i++) { if (pred(a.data[i])) { pgy_ai_push(&out, a.data[i]); } }\n");
+            header = Concat(header, "    return out;\n}\n\n");
+        }
         header = Concat(header, "static pgy_as pgy_as_new(void) { pgy_as a; a.data = NULL; a.len = 0; a.cap = 0; return a; }\n");
         header = Concat(header, "static void pgy_as_push(pgy_as *a, const char *v) {\n");
         header = Concat(header, "    if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (const char **)realloc(a->data, (size_t)a->cap * sizeof(const char *)); }\n");

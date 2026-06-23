@@ -152,6 +152,7 @@ FIXTURES=(
     str_builtins
     array_sum
     array_max
+    array_combinators
     str_array
     str_array_concat
     str_indexof

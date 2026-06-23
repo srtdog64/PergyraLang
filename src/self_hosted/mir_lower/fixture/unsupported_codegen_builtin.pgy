@@ -1,5 +1,5 @@
 func Main() -> Void {
     let nums: Array<Int> = [3, 1, 2];
-    let sorted: Array<Int> = ArraySort(nums);
-    Log(ArrayLength(sorted));
+    let reversed: Array<Int> = ArrayReverse(nums);
+    Log(ArrayLength(reversed));
 }
