@@ -286,7 +286,7 @@ require_term "src/parser/ast_intent_constructors.c" \
     "node->data.intent_decl.retry_count = 0"
 require_term "src/parser/ast_print_intent.c" \
     "IntentRetry: %d"
-require_term "src/self_hosted/parser/main.pgy" \
+require_term "src/self_hosted/parser/decl_intent_owner.pgy" \
     "IntentRetry: "
 require_term "src/semantic/type_checker_intent_decl.c" \
     "Intent retry(%d) is parsed and carried by MIR"
@@ -343,8 +343,6 @@ for rel in \
     "src/codegen/transpiler_let_emit.c"; do
     require_term "$rel" \
         "transpiler_type_alias_target_type_name_from_headers("
-    require_term "$rel" \
-        "transpiler_active_has_mir(ctx)"
 done
 require_term "src/compiler/mir_source_local_types.c" \
     "mir_decl_header_resolve_type_alias_target_type_name("
@@ -883,7 +881,7 @@ for term in \
     "LLVM_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES" \
     "llvm_mir_or_ast_function_is_generic(routine, decl)" \
     "allow_ast_compat = routine == NULL" \
-    "&& (!llvm_active_has_mir(ctx) || decl_is_generic || decl_is_extern)" \
+    "&& (decl_is_generic || decl_is_extern)" \
     "MIR-only LLVM path missing boundary call signature metadata"; do
     require_term "src/codegen/llvm_expr_boundary_projection_helpers.c" "$term"
 done
@@ -914,7 +912,7 @@ for term in \
     "LLVM_MIR_SIGNATURE_REQUIRE_RETURN_TYPE_NAME" \
     "LLVM_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES" \
     "llvm_mir_or_ast_function_is_generic(routine, decl)" \
-    "!llvm_active_has_mir(ctx) || generic_func || extern_func"; do
+    "generic_func || extern_func"; do
     require_term "src/codegen/llvm_stmt_let_helpers.c" "$term"
 done
 for term in \
@@ -929,7 +927,7 @@ for term in \
     "LLVM_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES" \
     "llvm_mir_or_ast_function_is_generic(callee_routine, callee_decl)" \
     "allow_ast_compat = callee_decl != NULL" \
-    "|| callee_is_generic_func" \
+    "callee_is_generic_func" \
     "|| callee_is_extern_func" \
     "MIR-only LLVM path missing spawn signature metadata"; do
     require_term "src/codegen/llvm_expr_spawn_call_helpers.c" "$term"
@@ -1506,10 +1504,6 @@ require_term "src/codegen/llvm_expr_constructor_calls.c" \
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
     "llvm_mir_decl_field_type_name(field_meta)"
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
-    "if (!llvm_active_has_mir(ctx))"
-require_term "src/codegen/llvm_expr_constructor_calls.c" \
-    "compat_decl = llvm_find_decl_in_active_inventory("
-require_term "src/codegen/llvm_expr_constructor_calls.c" \
     "const char *expected_type"
 require_term "src/compiler/mir_decl.h" \
     "MIRDeclFieldClaim"
@@ -1889,8 +1883,7 @@ for term in \
     "mir_routine_param_count(routine)" \
     "transpiler_mir_routine_kind(routine) == MIR_SCOPE_METHOD" \
     "transpiler_mir_routine_owner_name(routine)" \
-    "transpiler_mir_routine_has_source_local_binding(" \
-    "allow_ast_compat = !transpiler_active_has_mir(ctx)"; do
+    "transpiler_mir_routine_has_source_local_binding("; do
     require_term "src/codegen/transpiler_mir_ssa_names.c" "$term"
 done
 require_term "src/codegen/transpiler_mir_local_binding.c" \
@@ -3529,7 +3522,7 @@ for term in \
     "if (param_type_name != NULL)" \
     "\"spawn wrapper MIR argument\"" \
     "allow_ast_compat = decl != NULL" \
-    "|| callee_is_generic_func" \
+    "callee_is_generic_func" \
     "|| callee_is_extern_func" \
     "MIR-only C path missing spawn signature metadata"; do
     require_term "src/codegen/transpiler_spawn_channel_emit.c" "$term"
@@ -3686,7 +3679,7 @@ for term in \
     "transpiler_mir_routine_signature_metadata_complete_for(ctx" \
     "TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES" \
     "allow_ast_compat = mir_routine == NULL" \
-    "&& (!transpiler_active_has_mir(ctx) || generic_func || extern_func)" \
+    "&& (generic_func || extern_func)" \
     "MIR-only C path missing function forward routine" \
     "MIR-only C path missing function forward signature metadata" \
     "transpiler_mir_routine_param_count(mir_routine)" \
@@ -3763,10 +3756,6 @@ if grep -Fq "if (!transpiler_mir_routine_has_signature" \
         "$ROOT_DIR/src/codegen/transpiler_mir_func_ssa_locals_emit.c"; then
     fail "C MIR SSA local declarations must use transpiler_mir_signature for missing-signature diagnostics"
 fi
-require_term "src/codegen/transpiler_mir_local_binding.c" \
-    "if (!transpiler_active_has_mir(ctx)"
-require_term "src/codegen/transpiler_mir_local_binding.c" \
-    "&& transpiler_type_name_is_view_like(type_name)"
 for term in \
     "transpiler_mir_register_with_slot_claim_fact" \
     "transpiler_register_mir_with_slot_claim_facts" \
@@ -3779,10 +3768,6 @@ for term in \
 done
 require_term "src/codegen/transpiler_mir_func_emit.c" \
     "transpiler_register_mir_with_slot_claim_facts(ctx, mir_routine)"
-require_each_following_term "src/codegen/transpiler_mir_local_binding.c" \
-    "stmt->type == AST_WITH_STMT && ast_with_alias(stmt) != NULL" \
-    "if (!transpiler_active_has_mir(ctx))" \
-    4
 if grep -Eq 'ast_func_body\(node\)|ast_block_statement_count\(body\)' \
         "$ROOT_DIR/src/codegen/transpiler_mir_func_ssa_locals_emit.c"; then
     fail "C MIR SSA local declarations must consume MIR source-local facts instead of rescanning function body AST"
@@ -3808,7 +3793,6 @@ for term in \
     "MIR-only C path missing function call return type-name metadata" \
     "if (callee_decl != NULL && callee_decl->type == AST_FUNC_DECL" \
     "&& transpiler_active_has_mir(ctx)" \
-    "ast_func_param_count(func_decl)" \
     "ast_func_return_type(callee_decl)"; do
     require_term "src/codegen/transpiler_mir_local_type_lookup.c" "$term"
 done
@@ -3836,16 +3820,6 @@ require_term "src/codegen/llvm_mir_local_emit.c" \
     "mir_routine_source_local_type_name(routine,"
 require_term "src/codegen/llvm_stmt_let_collections.c" \
     "mir_routine_source_local_type_name(ctx->current_mir_routine, name)"
-if ! grep -B3 -F "transpiler_find_local_type_name_in_block(ctx, func_decl," \
-        "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.c" |
-        grep -Fq "Non-MIR compatibility fallback"; then
-    fail "C MIR local type AST body scan must remain behind non-MIR compatibility fallback"
-fi
-if grep -B12 -F "transpiler_find_local_type_name_in_block(ctx, func_decl," \
-        "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.c" |
-        grep -Fq "with MIR active"; then
-    fail "C MIR local type lookup must not document MIR-active AST body scan"
-fi
 require_term "src/codegen/llvm_stmt_source_local_fallback.c" \
     "const MIRRoutine *routine = ctx->current_mir_routine"
 require_term "src/codegen/llvm_stmt_source_local_fallback.c" \
@@ -3878,7 +3852,7 @@ if ! awk '
 ' "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"; then
     fail "LLVM identifier type inference must consult MIR source-local type facts before non-MIR initializer recovery"
 fi
-if rg -n "llvm_stmt_source_local_let_init" "$ROOT_DIR/src/codegen" >/dev/null; then
+if grep -RFn "llvm_stmt_source_local_let_init" "$ROOT_DIR/src/codegen" >/dev/null; then
     fail "LLVM source-local initializer recovery reintroduced the old MIR-ambiguous name"
 fi
 require_term "src/codegen/llvm_stmt_source_local_fallback.c" \
@@ -4278,7 +4252,7 @@ for term in \
     "llvm_forward_declare_func_from_mir" \
     "llvm_forward_declare_func_with_signature" \
     "allow_ast_compat = routine == NULL" \
-    "&& (!llvm_active_has_mir(ctx) || generic_func || extern_func)" \
+    "&& (generic_func || extern_func)" \
     "llvm_function_emitted_param_count(ctx, node, routine," \
     "llvm_mir_routine_signature_metadata_complete(" \
     "MIR-only LLVM path missing function forward routine" \
@@ -4467,7 +4441,6 @@ for term in \
     require_term "src/codegen/llvm_pipeline.c" "$term"
 done
 for term in \
-    "llvm_active_has_mir(ctx)" \
     "llvm_active_has_top_level_exec(ctx)" \
     "llvm_active_has_main_function(ctx)" \
     "llvm_active_main_function_name(ctx)" \
@@ -5674,8 +5647,6 @@ require_term "src/codegen/transpiler_domain_ability_emit.c" \
     "mir_decl_header_method_count(view.decl_header)"
 require_term "src/codegen/transpiler_domain_ability_emit.c" \
     "mir_decl_header_generic_param_count(methods.decl_header)"
-require_term "src/codegen/transpiler_domain_role_ability_emit.c" \
-    "ctx != NULL && !transpiler_active_has_mir(ctx)"
 for term in \
     "transpiler_emit_mir_ability_ref_vtable_decl(" \
     "mir_decl_header_method_count(ability_header)" \
@@ -6108,15 +6079,6 @@ require_each_following_term "src/codegen/transpiler_func_forward_metadata.c" \
     "if (method_meta == NULL) {" \
     "transpiler_active_has_mir(ctx)" \
     4
-for anchor in \
-    "return_type == NULL && method_meta == NULL" \
-    "param_count == 0 && method_meta == NULL" \
-    "p == NULL && method_meta == NULL"; do
-    require_each_following_term "src/codegen/transpiler_func_forward_metadata.c" \
-        "$anchor" \
-        "!transpiler_active_has_mir(ctx)" \
-        3
-done
 if grep -Fq "host_name == NULL || method == NULL || buf == NULL || ctx == NULL" \
         "$ROOT_DIR/src/codegen/transpiler_func_forward_metadata.c"; then
     fail "C hosted method forward declarations must not require source AST when MIRDeclMethod metadata exists"
@@ -6625,7 +6587,7 @@ for term in \
     "llvm_member_call_adjust_pointer_self_arg" \
     "llvm_mir_decl_method_param_count(method_meta)" \
     "llvm_mir_decl_method_param(method_meta, pk)" \
-    "bool allow_ast_compat = method_meta == NULL && !llvm_active_has_mir(ctx)" \
+    "bool allow_ast_compat = false" \
     "allow_ast_compat ? ast_func_param_count(method_decl) : 0" \
     "allow_ast_compat ? ast_func_param(method_decl, pk) : NULL"; do
     require_term "src/codegen/llvm_member_call_support.c" "$term"
@@ -6687,12 +6649,10 @@ for term in \
     "llvm_find_host_method_metadata_in_context(ctx, host_name, callee_name)" \
     "llvm_mir_decl_method_param_count(method_meta)" \
     "llvm_mir_decl_method_param(method_meta" \
-    "llvm_active_has_mir(ctx)" \
     "llvm_set_mir_inventory_missing(ctx" \
     "MIR-only LLVM path missing hosted self-call method metadata" \
     "llvm_callable_decl_exists(ctx, callee_name)" \
-    "llvm_hosted_self_logical_param(" \
-    "method_meta == NULL && !llvm_active_has_mir(ctx)"; do
+    "llvm_hosted_self_logical_param("; do
     require_term "src/codegen/llvm_expr_call_hosted.c" "$term"
 done
 if grep -Fq "llvm_find_callable_decl(ctx, callee_name)" \
@@ -7422,8 +7382,6 @@ require_term "src/codegen/transpiler_operator.c" \
     "transpiler_hosted_method_view_missing_mir_metadata(&view)"
 require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
     "find_role_operator_method_metadata(ctx, role, op, 0)"
-require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
-    "method_meta == NULL && !transpiler_active_has_mir(ctx)"
 require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
     "transpiler_mir_decl_method_metadata_complete_for(ctx"
 require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
