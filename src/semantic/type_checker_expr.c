@@ -114,7 +114,7 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         ctx->current_function_body_summary = BODY_SUMMARY_NONE;
 
         if (semantic_reject_lambda_unsupported_captures(
-                lambda_body, ctx)) {
+                expr, ctx)) {
             scope_exit(&ctx->scope);
             ctx->current_function_effects = saved_effects;
             ctx->current_function_capabilities = saved_capabilities;

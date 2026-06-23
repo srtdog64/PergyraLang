@@ -173,7 +173,7 @@ bool expr_type_is_nominal_host_type(const Type *type,
                                     SemanticContext *ctx);
 bool expr_member_is_static_access(const ASTNode *expr);
 Symbol *lookup_identifier_symbol(ASTNode *expr, SemanticContext *ctx);
-bool semantic_reject_lambda_unsupported_captures(ASTNode *body,
+bool semantic_reject_lambda_unsupported_captures(ASTNode *lambda,
                                                  SemanticContext *ctx);
 void mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx);
 bool expr_is_class_constructor_call(const ASTNode *expr, SemanticContext *ctx);

@@ -11,7 +11,22 @@ typedef struct CaptureLocal {
 typedef struct {
     Scope *lambda_scope;
     const CaptureLocal *locals;
+    ASTNode *lambda; /* lambda node receiving recorded captures */
 } CaptureState;
+
+/* Stage A: a value-type local is captured by copy (snapshot at closure
+ * creation). Primitives (Int/Long/Bool/Float/Double/String) have no aliasing
+ * or lifetime link, so the copy can never dangle. Anything else (slot, token,
+ * authority, constructed/aggregate types) is not yet capturable. */
+static bool
+capture_symbol_is_copy_value(const Symbol *sym)
+{
+    return sym != NULL
+        && sym->kind == SYMBOL_VARIABLE
+        && sym->type != NULL
+        && sym->type->kind == TYPE_KIND_PRIMITIVE
+        && sym->type->name != NULL;
+}
 
 static bool
 capture_state_has_local(const CaptureState *state, const char *name)
@@ -80,13 +95,23 @@ reject_identifier_capture(ASTNode *node, SemanticContext *ctx,
     if (symbol_is_capturable_global(outer, owner))
         return false;
 
+    /* Stage A (docs/135): value-type locals are capture-by-copy candidates.
+     * Record the capture on the lambda node so the closure environment ABI can
+     * consume it. The recording is dormant until both backends emit the
+     * environment: until then we still fail closed, because emitting a hoisted
+     * body that references an uncaptured local would generate broken C/LLVM (a
+     * silent codegen trap). The reject flips to allow once the env path lands. */
+    if (capture_symbol_is_copy_value(outer) && state->lambda != NULL)
+        (void)ast_lambda_add_capture(state->lambda, name, outer->type->name,
+            LAMBDA_CAPTURE_COPY);
+
     semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
         PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_MOVE_INTO_ASYNC_FUNCTION,
         node,
-        "Lambda capture of local value '%s' is reserved but not implemented.\n"
+        "Lambda capture of local '%s' is not yet enabled.\n"
         "Reason:\n"
-        "- beta lambdas lower to standalone callable bodies without a closure environment\n"
-        "- capturing local, slot, token, authority, or other boundary values would make lifetime and cleanup ownership implicit\n"
+        "- value-type locals (Int/Long/Bool/Float/Double/String) are capture-by-copy candidates but the closure environment ABI is not yet wired in both backends\n"
+        "- capturing slot, token, authority, or aggregate values would make lifetime and cleanup ownership implicit\n"
         "Fix:\n"
         "- pass '%s' as an explicit lambda parameter\n"
         "- or move the logic into a named function/action with an explicit contract",
@@ -321,11 +346,12 @@ reject_lambda_captures(ASTNode *node, SemanticContext *ctx,
 }
 
 bool
-semantic_reject_lambda_unsupported_captures(ASTNode *body, SemanticContext *ctx)
+semantic_reject_lambda_unsupported_captures(ASTNode *lambda, SemanticContext *ctx)
 {
     CaptureState state = {
         ctx != NULL ? ctx->scope : NULL,
         NULL,
+        lambda,
     };
-    return reject_lambda_captures(body, ctx, &state);
+    return reject_lambda_captures(ast_lambda_body(lambda), ctx, &state);
 }
