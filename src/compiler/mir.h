@@ -251,6 +251,8 @@ typedef struct
     char *name;
     char *type_name;
     bool  is_callable;
+    bool  is_closure_local; /* captured-lambda local: declared structurally,
+                             * skipped by the SSA-locals pre-declaration */
     char *callable_return_type_name;
     char **callable_param_type_names;
     size_t callable_param_count;

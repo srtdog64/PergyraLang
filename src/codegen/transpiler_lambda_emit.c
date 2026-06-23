@@ -8,6 +8,7 @@
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
 #include "transpiler_mir_emit_state.h"
+#include "transpiler_mir_ssa_names.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
@@ -185,6 +186,19 @@ transpiler_emit_lambda_signature(ASTNode *node, TranspilerCtx *ctx,
     return true;
 }
 
+/* Render a captured name the way the lambda body and the enclosing scope render
+ * it: resolve through the active SSA map to the versioned name, then to its C
+ * identifier. Returns a malloc'd string the caller frees, or NULL when the name
+ * is not SSA-versioned (use the source name verbatim). */
+static char *
+transpiler_capture_rendered_name(TranspilerCtx *ctx, const char *cap_name)
+{
+    const char *versioned = transpiler_resolve_active_ssa_name(ctx, cap_name);
+    if (versioned == NULL)
+        return NULL;
+    return transpiler_render_ssa_name(ctx, versioned);
+}
+
 /* Stage A closure environment ABI (docs/135). A lambda with recorded captures
  * lowers to: a per-lambda env struct, a closure struct {fn, env}, a hoisted
  * body that takes the env as a hidden leading parameter and reads each capture
@@ -254,12 +268,21 @@ transpiler_emit_captured_lambda(ASTNode *node, TranspilerCtx *ctx,
     for (size_t i = 0; i < cap_count; i++) {
         char cap_c_type[256];
         const char *cap_name = ast_lambda_capture_name(node, i);
+        /* The body renders the captured name through the enclosing SSA map, so
+         * the shadow local must use that rendered name (the env field keeps the
+         * source name). */
+        char *cap_rendered_owned = transpiler_capture_rendered_name(ctx, cap_name);
+        const char *cap_ref = cap_rendered_owned != NULL
+            ? cap_rendered_owned : cap_name;
         if (!transpiler_require_type_name_c_type_copy(ctx,
                 ast_lambda_capture_type_name(node, i), "lambda capture",
-                cap_c_type, sizeof(cap_c_type)))
+                cap_c_type, sizeof(cap_c_type))) {
+            free(cap_rendered_owned);
             goto done;
+        }
         codebuf_write(ctx->helpers, "    %s %s = __pgy_env->%s;\n",
-            cap_c_type, cap_name, cap_name);
+            cap_c_type, cap_ref, cap_name);
+        free(cap_rendered_owned);
     }
 
     body = ast_lambda_body(node);
@@ -292,9 +315,16 @@ transpiler_emit_captured_lambda(ASTNode *node, TranspilerCtx *ctx,
         goto done;
     codebuf_write(lit, "(%s){ %s, { ", clo_type, lambda_name);
     for (size_t i = 0; i < cap_count; i++) {
+        /* env init reads the capture in the enclosing scope, which renders
+         * through the same SSA map. */
+        const char *cap_name = ast_lambda_capture_name(node, i);
+        char *cap_rendered_owned = transpiler_capture_rendered_name(ctx, cap_name);
+        const char *cap_ref = cap_rendered_owned != NULL
+            ? cap_rendered_owned : cap_name;
         if (i > 0)
             codebuf_write(lit, ", ");
-        codebuf_write(lit, "%s", ast_lambda_capture_name(node, i));
+        codebuf_write(lit, "%s", cap_ref);
+        free(cap_rendered_owned);
     }
     codebuf_write(lit, " } }");
     result = pergyra_strdup(lit->data);

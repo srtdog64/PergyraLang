@@ -1,6 +1,7 @@
 #include "mir_source_local_types.h"
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -94,6 +95,8 @@ mir_source_local_type_append_name(const MIRProgram *program,
         type_name_copy;
     routine->source_local_types[routine->source_local_type_count].is_callable =
         false;
+    routine->source_local_types[routine->source_local_type_count]
+        .is_closure_local = false;
     routine->source_local_types[routine->source_local_type_count]
         .callable_return_type_name = NULL;
     routine->source_local_types[routine->source_local_type_count]
@@ -335,13 +338,27 @@ mir_source_local_type_capture_node(const MIRProgram *program,
         ASTNode *closure_init = ast_let_initializer(node);
         MIRSourceLocalTypeScratch scratch = { 0 };
         /* A captured-lambda local is a closure value, not a function-pointer
-         * source local. The backends declare and dispatch it structurally
-         * (docs/135 Stage A); recording a callable source-local fact here would
-         * make the SSA-locals pass pre-declare it as a bare function pointer.
-         * Skip the fact. (Dormant until semantic enables captures.) */
+         * source local. Record a fact flagged as a closure local so the C
+         * SSA-locals pass skips pre-declaring it; the binding site declares it
+         * with the closure struct type and the call dispatches structurally
+         * (docs/135 Stage A). The type_name carries the closure struct type
+         * (keyed off the lambda stable_id) for any consumer that needs it. */
         if (closure_init != NULL
             && closure_init->type == AST_LAMBDA_EXPR
             && ast_lambda_capture_count(closure_init) > 0) {
+            char clo_type[64];
+            size_t before = routine->source_local_type_count;
+            snprintf(clo_type, sizeof(clo_type), "pgy_lambda_clo_%u",
+                (unsigned) closure_init->stable_id);
+            if (!mir_source_local_type_append_name(program, routine,
+                    ast_let_name(node), clo_type)) {
+                return false;
+            }
+            if (routine->source_local_type_count > before) {
+                routine->source_local_types[
+                    routine->source_local_type_count - 1].is_closure_local =
+                    true;
+            }
             return true;
         }
         if (type_node != NULL)

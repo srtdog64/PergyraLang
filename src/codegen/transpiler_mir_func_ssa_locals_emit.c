@@ -188,6 +188,13 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
         }
         source_local_fact = mir_routine_source_local_type_fact(
             mir_routine, base);
+        if (source_local_fact != NULL
+            && source_local_fact->is_closure_local) {
+            /* Captured-lambda closure local: declared at its binding site with
+             * the closure struct type (docs/135 Stage A). Skip pre-declaration. */
+            free(owned_type_name);
+            continue;
+        }
         if (source_local_fact != NULL && source_local_fact->is_callable) {
             c_name = transpiler_render_ssa_name(ctx, versioned_name);
             decl = pergyra_func_pointer_declarator_from_type_names_in_ctx(
