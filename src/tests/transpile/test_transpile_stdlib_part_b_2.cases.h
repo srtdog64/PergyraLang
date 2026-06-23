@@ -17,6 +17,7 @@
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_list_new_Player()");
@@ -54,6 +55,7 @@
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_list_new_Event()");
@@ -91,6 +93,7 @@
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_queue_new_Weapon()");
@@ -124,6 +127,7 @@
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_now_ms()");
@@ -153,6 +157,7 @@
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_input(\"\"");
@@ -188,6 +193,7 @@
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_map_new_");
@@ -231,6 +237,7 @@
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT(strstr(ctx->out->data, "typedef int32_t UserId;") != NULL
@@ -268,6 +275,7 @@
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_list_new_string()");
@@ -307,6 +315,7 @@
         char *map_define_pos;
         char *build_decl_pos;
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->decls->data,
@@ -359,6 +368,7 @@
         RIRProgram *rir = NULL;
         MIRProgram *mir = lower_program_to_mir(prog, &hir, &rir);
         ctx = transpiler_ctx_create();
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "Color_Red");
@@ -405,6 +415,7 @@
         RIRProgram *rir = NULL;
         MIRProgram *mir = lower_program_to_mir(prog, &hir, &rir);
         ctx = transpiler_ctx_create();
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "operator_add_Vec2(");

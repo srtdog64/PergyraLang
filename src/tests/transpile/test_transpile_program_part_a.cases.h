@@ -11,6 +11,7 @@ test_program_emit_head(void)
         RIRProgram *rir = NULL;
         MIRProgram *mir = lower_program_to_mir(prog, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->mir = mir;
         emit_program(ctx);
         EXPECT_STR_CONTAINS(ctx->out->data, "#include \"pgy_runtime.h\"");
         transpiler_ctx_destroy(ctx);
@@ -42,6 +43,7 @@ test_program_emit_head(void)
         MIRProgram *mir = lower_program_to_mir(prog, &hir, &rir);
 
         TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "int32_t Add(int32_t a, int32_t b)");
@@ -87,6 +89,7 @@ test_program_emit_head(void)
         MIRProgram *mir = lower_program_to_mir(prog, &hir, &rir);
 
         TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "int32_t Identity_Int(int32_t x)");
@@ -134,6 +137,7 @@ test_program_emit_head(void)
         MIRProgram *mir = lower_program_to_mir(prog, &hir, &rir);
 
         TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "IdentityInt");
@@ -183,6 +187,7 @@ test_program_emit_head(void)
         MIRProgram *mir = lower_program_to_mir(prog, &hir, &rir);
 
         TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_spawn");
@@ -229,6 +234,7 @@ test_program_emit_head(void)
         MIRProgram *mir = lower_program_to_mir(prog, &hir, &rir);
 
         TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct Vec3");
@@ -265,6 +271,7 @@ test_program_emit_head(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "Vec2_Length(&");
@@ -302,6 +309,7 @@ test_program_emit_head(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "Vec2_Length(");
@@ -341,6 +349,7 @@ test_program_emit_head(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "PgyBox_Vec2 MakeVec(");
@@ -376,6 +385,7 @@ test_program_emit_head(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "self.count = (self.count + delta);");
@@ -408,6 +418,7 @@ test_program_emit_head(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "self->count = (self->count + delta);");
@@ -453,6 +464,7 @@ test_program_emit_head(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "Info");
@@ -484,6 +496,7 @@ test_program_emit_head(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT(ctx->backend_error != NULL);
@@ -519,6 +532,7 @@ test_program_emit_head(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT(ctx->backend_error != NULL);
@@ -556,6 +570,7 @@ test_program_emit_head(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "self->round = (self->round + 1);");
@@ -595,6 +610,7 @@ test_program_emit_head(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "self->storm = (self->storm + 1);");

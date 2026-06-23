@@ -56,6 +56,7 @@ test_statement_emit(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "__auto_type _pgy_coalesce = ");
@@ -124,6 +125,7 @@ test_statement_emit(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data,
@@ -157,6 +159,7 @@ test_statement_emit(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data,

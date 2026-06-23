@@ -101,6 +101,7 @@ test_stdlib_and_enum_emit(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_set_new_int()");
@@ -226,6 +227,7 @@ test_stdlib_and_enum_emit(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_string_equals(name, \"audit\")");
@@ -258,6 +260,7 @@ test_stdlib_and_enum_emit(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "StringConcat(");
@@ -291,6 +294,7 @@ test_stdlib_and_enum_emit(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "StringConcat(");
@@ -327,6 +331,7 @@ test_stdlib_and_enum_emit(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data,
@@ -401,6 +406,7 @@ test_stdlib_and_enum_emit(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->decls->data, "MakeAdder");

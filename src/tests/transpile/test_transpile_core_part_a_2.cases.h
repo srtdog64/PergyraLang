@@ -21,6 +21,7 @@
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "CreatureView");

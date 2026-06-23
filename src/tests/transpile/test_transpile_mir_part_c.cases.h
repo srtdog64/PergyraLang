@@ -202,6 +202,7 @@ test_intent_observability_emit(void)
         TranspilerCtx *ctx = NULL;
         ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_intent_current_handle_export(");

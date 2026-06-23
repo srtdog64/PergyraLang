@@ -29,6 +29,7 @@ test_parallel_family_emit(void)
         RIRProgram *rir = NULL;
         MIRProgram *mir = lower_program_to_mir(prog, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT(ctx->out->data != NULL);

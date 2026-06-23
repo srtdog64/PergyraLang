@@ -24,6 +24,7 @@ test_program_emit_tail(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "CombatLink_Total(CombatLink *self)");
@@ -55,6 +56,7 @@ test_program_emit_tail(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT(strstr(ctx->out->data, "HealthState_IsDead(HealthState *self)") != NULL
@@ -89,6 +91,7 @@ test_program_emit_tail(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "Vec2");
@@ -124,6 +127,7 @@ test_program_emit_tail(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "PGY_SLOT_DEFINE(Vec2, Vec2)");
@@ -161,6 +165,7 @@ test_program_emit_tail(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "PGY_SECURE_SLOT_DEFINE(Vec2, Vec2)");
@@ -197,6 +202,7 @@ test_program_emit_tail(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "PGY_SECURE_SLOT_DEFINE(Bot, Bot)");
@@ -237,6 +243,7 @@ test_program_emit_tail(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "void Touch(PgySlot_Vec2 *s)");
@@ -275,6 +282,7 @@ test_program_emit_tail(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "Consume(PgySecureSlot_Vec2");
@@ -313,6 +321,7 @@ test_program_emit_tail(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "void ConsumeOuter(PgySecureSlot_Vec2 *s, PgyToken_Vec2 s_token)");
@@ -352,6 +361,7 @@ test_program_emit_tail(void)
         MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "void ConsumeOuter(PgySecureSlot_Vec2 *s, PgyToken_Vec2 s_token)");
@@ -406,6 +416,7 @@ test_program_emit_tail(void)
         MIRProgram *mir = lower_program_to_mir(prog, &hir, &rir);
 
         TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "extern \"C\"");
@@ -442,6 +453,7 @@ test_program_emit_tail(void)
         EXPECT(program != NULL);
         mir = lower_program_to_mir_strict(program, &hir, &rir);
         ctx = transpiler_ctx_create();
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data,
@@ -496,6 +508,7 @@ test_program_emit_tail(void)
         rir = NULL;
         mir = lower_program_to_mir(prog, &hir, &rir);
         ctx = transpiler_ctx_create();
+        ctx->mir = mir;
         emit_program(ctx);
 
         event_pos = strstr(ctx->out->data, "typedef void (*OnHit_Handler)");
