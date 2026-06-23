@@ -18,6 +18,7 @@ import "source_bundle_owner.pgy";
 import "diagnostic_owner.pgy";
 import "env_owner.pgy";
 import "expr_type_owner.pgy";
+import "expr_validation_owner.pgy";
 import "call_check_owner.pgy";
 import "body_check_owner.pgy";
 import "program_check_owner.pgy";

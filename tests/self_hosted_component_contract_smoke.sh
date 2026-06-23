@@ -136,8 +136,14 @@ require_owner_surface semantic \
     "source_bundle_owner.pgy" \
     "diagnostic_owner.pgy" \
     "env_owner.pgy" \
+    "expr_type_owner.pgy" \
+    "expr_validation_owner.pgy" \
+    "call_check_owner.pgy" \
+    "body_check_owner.pgy" \
     "program_check_owner.pgy" \
     "semantic_run_owner.pgy"
+require_text "src/self_hosted/semantic/expr_validation_owner.pgy" "func CheckUndefinedIdentifiers"
+reject_text "src/self_hosted/semantic/expr_type_owner.pgy" "func CheckUndefinedIdentifiers"
 require_owner_surface codegen \
     "ast_input_owner.pgy" \
     "codegen_run_owner.pgy" \

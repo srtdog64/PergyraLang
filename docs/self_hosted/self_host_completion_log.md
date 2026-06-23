@@ -182,8 +182,9 @@ rewrite history.
   39-line orchestration entrypoint plus source-of-truth owners:
   `text_scan_owner`, `diagnostic_owner`, `env_owner`, `expr_type_owner`,
   `call_check_owner`, `body_check_owner`, and `program_check_owner`. Every
-  semantic source file is now below the 600-line owner cap; `expr_type_owner`
-  is the largest at 495 lines.
+  semantic source file was below the 600-line owner cap; later expression
+  diagnostic splitting made `body_check_owner` the largest semantic source at
+  304 lines.
 - Updated `semantic_parity.sh` to copy the full semantic source bundle into the
   scratch build directory instead of assuming a single-file tool.
 - Verified `make LLVM_ENABLED=0 BUILD_DIR=.tmp/pgy-build-c
@@ -915,3 +916,14 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   that owner function in `routine_lower.pgy`. Verified with
   `bash tests/self_hosted_component_contract_smoke.sh` and
   `make self-host-mir-json-parity-test-smoke`.
+
+### 2026-06-23 -- Semantic expression validation owner split
+
+- Moved `CheckUndefinedIdentifiers`, `CheckLogicalOperands`, and
+  `CheckBinaryOperands` out of `src/self_hosted/semantic/expr_type_owner.pgy`
+  into `src/self_hosted/semantic/expr_validation_owner.pgy`.
+- `expr_type_owner.pgy` now owns expression type queries only; expression
+  diagnostics consume `ExprType(...)` facts through the validation owner.
+- Contract ratchet: `tests/self_hosted_component_contract_smoke.sh` now requires
+  `expr_validation_owner.pgy`, requires `func CheckUndefinedIdentifiers` there,
+  and rejects that owner function in `expr_type_owner.pgy`.

@@ -21,6 +21,9 @@ assignment, and direct calls to known functions.
 `semantic_run_owner.pgy` owns the process boundary for this contract: missing
 input is reported as a structured `input_missing` diagnostic, then the selected
 root source bundle is checked by `program_check_owner.pgy`.
+Expression type answers are owned by `expr_type_owner.pgy`; expression
+diagnostics are owned by `expr_validation_owner.pgy` and must consume those type
+answers rather than re-owning the type rules.
 
 ## Output Contract
 
@@ -37,6 +40,8 @@ Only the first semantic mismatch is reported. Diagnostics carry `stage`,
 expressions are classified as `Unknown` and do not fail the subset checker,
 except for simple identifier tokens in expression position where the name is
 absent from the current local environment; those report `undefined_symbol`.
+Logical and arithmetic/comparison operand diagnostics are selected by
+`expr_validation_owner.pgy` after consuming `ExprType(...)` facts.
 
 The renderer lives in `src/self_hosted/lib/diagnostic.pgy`; the semantic checker
 only owns semantic codes, reasons, fixes, and facts. Do not rebuild the
