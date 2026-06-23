@@ -10,6 +10,7 @@
 
 import "error_owner.pgy";
 import "cursor_owner.pgy";
+import "source_path_owner.pgy";
 import "tree_text_owner.pgy";
 import "type_name_owner.pgy";
 import "expr_string_owner.pgy";
@@ -35,10 +36,7 @@ import "decl_dispatch_owner.pgy";
 func Main() -> Void with caps env, io_read {
     // Default source = examples/hello.pgy; parity harness passes argv[0].
     let run_args: Array<String> = Args();
-    let source_path: String = "examples/hello.pgy";
-    if ArrayLength(run_args) > 0 {
-        source_path = run_args[0];
-    }
+    let source_path: String = ParserDefaultSourcePath(run_args);
     if !FileExists(source_path) {
         Exit(1);
     }
@@ -47,21 +45,7 @@ func Main() -> Void with caps env, io_read {
     let cursor: Array<Int> = [0];
     let i: Int = SkipWhitespaceAndComments(content, 0);
     ArraySet(cursor, 0, i);
-    // Compute source_dir as everything before the last `/` in
-    // source_path so `import "X.pgy";` resolves relative to that.
-    let src_dir: String = "";
-    let last_slash: Int = -1;
-    let sp_len: Int = StringLength(source_path);
-    let sp_i: Int = 0;
-    while sp_i < sp_len {
-        if CharAt(source_path, sp_i) == "/" {
-            last_slash = sp_i;
-        }
-        sp_i = sp_i + 1;
-    }
-    if last_slash >= 0 {
-        src_dir = Substring(source_path, 0, last_slash);
-    }
+    let src_dir: String = ParserSourceDir(source_path);
     let involve_types: Array<String> = [];
     let decls: String = ParseDecls(content, i, cursor, "", false, src_dir, false, "", involve_types);
     if StringLength(decls) == 0 {

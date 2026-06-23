@@ -120,6 +120,7 @@ require_owner_surface lexer \
 require_owner_surface parser \
     "error_owner.pgy" \
     "cursor_owner.pgy" \
+    "source_path_owner.pgy" \
     "tree_text_owner.pgy" \
     "decl_dispatch_owner.pgy"
 require_owner_surface semantic \

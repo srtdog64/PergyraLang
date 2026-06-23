@@ -768,3 +768,19 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - The self-host preparation smoke now requires the new imports/functions,
   forbids `func ParseDecls` from reappearing in `main.pgy`, and enforces the
   600-line parser owner cap.
+
+### 2026-06-23 -- parser source-path owner split
+
+- Moved parser argv/default source selection, source-dir extraction,
+  source-relative import path resolution, and imported-source marker creation
+  into `src/self_hosted/parser/source_path_owner.pgy`.
+- `main.pgy` now only selects the owned source path, reads the root file, and
+  invokes declaration dispatch. `decl_dispatch_owner.pgy` consumes the same
+  source-path owner for recursive imports instead of recomputing dirname/import
+  policy locally.
+- Contract ratchet: `tests/self_hosted_component_contract_smoke.sh` now requires
+  `source_path_owner.pgy` as part of the parser owner surface. Verified with
+  `tests/self_hosted_component_contract_smoke.sh`,
+  `src/self_hosted/parity/parser_parity.sh`,
+  `make test-inc-size-test-smoke`, and
+  `make self-host-preparation-test-smoke`.

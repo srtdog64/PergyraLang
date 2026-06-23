@@ -64,7 +64,7 @@ source-of-truth owner modules. `semantic/` also owns its program-input fact in
 consumes the bundle, so the entrypoint does not define "program" by accident.
 `codegen/`, `mir_lower/`, `semantic/`, and `lexer/` follow that shape.
 `parser/` has started the same transition with
-error, cursor/token, type-name, expression, statement/block,
+error, cursor/token, source path/import input, type-name, expression, statement/block,
 function-declaration, top-level declaration dispatch, branch declaration
 owners (`type`/`ability`/`event`/`enum`/`zone`/`effect`/`relation`/`role`/
 `intent`/nominal-domain hosts), and compact-tree text owners. `main.pgy` is now

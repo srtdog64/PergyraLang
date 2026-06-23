@@ -61,29 +61,9 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
             // Strip the leading and trailing `"` from raw_path.
             let rp_len: Int = StringLength(raw_path);
             let imp_rel: String = Substring(raw_path, 1, rp_len - 2);
-            let imp_path: String = imp_rel;
-            if StringLength(source_dir) > 0 {
-                imp_path = Concat(source_dir, Concat("/", imp_rel));
-            }
-            if !FileExists(imp_path) {
-                Exit(1);
-            }
-            let imp_content: String = Concat(ReadFile(imp_path), "\n// __imported__\n");
-            // Compute the imported file's own source_dir so any nested
-            // imports resolve relative to it. Same dirname walk as Main.
-            let imp_dir: String = "";
-            let imp_last_slash: Int = -1;
-            let imp_path_len: Int = StringLength(imp_path);
-            let ipk: Int = 0;
-            while ipk < imp_path_len {
-                if CharAt(imp_path, ipk) == "/" {
-                    imp_last_slash = ipk;
-                }
-                ipk = ipk + 1;
-            }
-            if imp_last_slash >= 0 {
-                imp_dir = Substring(imp_path, 0, imp_last_slash);
-            }
+            let imp_path: String = ParserResolveImportPath(source_dir, imp_rel);
+            let imp_content: String = ParserReadImportedSource(imp_path);
+            let imp_dir: String = ParserSourceDir(imp_path);
             let imp_cursor: Array<Int> = [0];
             let imp_inner: String = ParseDecls(imp_content, 0, imp_cursor, name_prefix, false, imp_dir, true, active_within_zone, involve_types);
             if StringLength(imp_inner) > 0 {
