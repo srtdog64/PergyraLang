@@ -78,6 +78,20 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- MIR lower input and Program assembly leave the entrypoint
+
+- Split `src/self_hosted/mir_lower/mir_json_input_owner.pgy` and
+  `src/self_hosted/mir_lower/program_lower.pgy` out of `main.pgy`.
+  The input owner owns argv path selection, file reads, and MIR JSON schema
+  gating; the Program owner owns document-order assembly and supported routine
+  selection.
+- Tightened `tests/self_hosted_component_contract_smoke.sh` so `mir_lower`
+  must keep both owners imported by the entrypoint.
+- Verified `bash tests/self_hosted_component_contract_smoke.sh` and
+  `make self-host-mir-json-parity-test-smoke`; MIR JSON parity remains
+  **77 fixtures / 2 clean rejects** through
+  `pgy --mir-json | mir_lower | codegen == C oracle`.
+
 ### 2026-06-23 -- Codegen AST input leaves the entrypoint
 
 - Split `src/self_hosted/codegen/ast_input_owner.pgy` out of `main.pgy`.

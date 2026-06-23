@@ -1,0 +1,22 @@
+// MIR JSON input owner for self-hosted mir_lower.
+//
+// Owns CLI argument validation, file-read diagnostics, and schema gating for
+// the MIR JSON document consumed by the lowering owners.
+
+func MirJsonInputPath(args: Array<String>) -> String {
+    if ArrayLength(args) < 1 {
+        Die("usage: mir_lower <mir-json-file>");
+    }
+    return args[0];
+}
+
+func MirJsonReadInput(path: String) -> String {
+    let json: String = ReadFile(path);
+    if StringLength(json) == 0 {
+        Die(Concat("empty or unreadable MIR-JSON file: ", path));
+    }
+    if StringIndexOf(json, "\"schema\":\"pgy.mir.v1\"") < 0 {
+        Die("input is not a pgy.mir.v1 MIR-JSON document");
+    }
+    return json;
+}

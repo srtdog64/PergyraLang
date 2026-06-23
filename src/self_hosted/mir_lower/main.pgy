@@ -12,55 +12,17 @@
 // no-hidden-flow rule).
 
 import "error_owner.pgy";
+import "mir_json_input_owner.pgy";
 import "json_fact_read.pgy";
 import "stmt_render.pgy";
 import "routine_lower.pgy";
 import "decl_lower.pgy";
+import "program_lower.pgy";
 
 
 func Main() -> Void {
     let args: Array<String> = Args();
-    if ArrayLength(args) < 1 {
-        Die("usage: mir_lower <mir-json-file>");
-    }
-    let path: String = args[0];
-    let json: String = ReadFile(path);
-    if StringLength(json) == 0 {
-        Die(Concat("empty or unreadable MIR-JSON file: ", path));
-    }
-    if StringIndexOf(json, "\"schema\":\"pgy.mir.v1\"") < 0 {
-        Die("input is not a pgy.mir.v1 MIR-JSON document");
-    }
-
-    // Iterate every routine in document order. The current rung reconstructs
-    // signatures plus the supported CFG subset from explicit MIR JSON facts;
-    // unsupported shapes remain an observable MIR-LOWER ERROR. A routine span
-    // is bounded by the next routine's `"name":` key.
-    let out: String = Concat("Program:\n", EmitStructDecls(json));
-    let total: Int = 0;
-    let rpos: Int = FindRoutine(json, 0);
-    if rpos < 0 {
-        Die("no routine name in MIR-JSON");
-    }
-    while rpos >= 0 {
-        let nq: Int = FindFrom(json, "\"", rpos + 7);
-        if nq < 0 {
-            Die("malformed routine name");
-        }
-        let nend: Array<Int> = [0];
-        let unused_name: String = ReadJsonString(json, nq, nend);
-        let span_end: Int = RoutineSpanEnd(json, nend[0]);
-        let kind: String = RoutineKind(json, rpos, nend[0], span_end);
-        let owner: String = RoutineOwner(json, rpos, nend[0], span_end);
-        if kind == "function" || StringLength(owner) == 0 {
-            out = Concat(out, EmitRoutineTree(json, rpos, "  "));
-            total = total + 1;
-        }
-        rpos = FindRoutine(json, nend[0]);
-    }
-
-    if total == 0 {
-        Die("no supported routines found in MIR-JSON document");
-    }
-    Print(out);
+    let path: String = MirJsonInputPath(args);
+    let json: String = MirJsonReadInput(path);
+    Print(EmitMirProgramTree(json));
 }

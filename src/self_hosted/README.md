@@ -64,8 +64,9 @@ source-of-truth owner modules. `semantic/` also owns its program-input fact in
 consumes the bundle, so the entrypoint does not define "program" by accident.
 `lexer/` owns its argv/default source path and file-read boundary in
 `source_input_owner.pgy`; `codegen/` owns its AST path/read boundary in
-`ast_input_owner.pgy`; `mir_lower/` and `semantic/` follow the same
-entrypoint-plus-owner shape.
+`ast_input_owner.pgy`; `mir_lower/` owns its MIR JSON path/read/schema boundary
+in `mir_json_input_owner.pgy` and document-order Program assembly in
+`program_lower.pgy`; `semantic/` follows the same entrypoint-plus-owner shape.
 `parser/` has started the same transition with
 error, cursor/token, source path/import input, type-name, expression, statement/block,
 function-declaration, top-level declaration dispatch, branch declaration

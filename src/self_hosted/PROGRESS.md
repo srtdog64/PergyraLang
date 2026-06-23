@@ -99,11 +99,13 @@ text fallback.
 
 The self-hosted `mir_lower/` implementation is now split by source-of-truth
 owner rather than living as one monolithic `main.pgy`: `error_owner` owns the
-diagnostic boundary, `json_fact_read` owns JSON/MIR fact access, `stmt_render`
-owns instruction fact -> AST statement rendering, `routine_lower` owns routine
-discovery and CFG reconstruction, and `decl_lower` owns declaration inventory
-reconstruction. The entrypoint `main.pgy` is orchestration only, and each
-`mir_lower` source file is below the 600-line owner cap.
+diagnostic boundary, `mir_json_input_owner` owns argv/file/schema input gating,
+`json_fact_read` owns bounded JSON/MIR fact access, `decl_lower` owns declaration
+inventory reconstruction, `program_lower` owns document-order Program assembly
+and supported routine selection, `routine_lower` owns routine and CFG
+reconstruction, and `stmt_render` owns instruction fact -> AST statement
+rendering. The entrypoint `main.pgy` is orchestration only, and each `mir_lower`
+source file is below the 600-line owner cap.
 
 **Hard migration opened (2026-06-17):** the codegen rung is the first *hard
 compiler-core* substitute, landed after the BDFL decision lifted the

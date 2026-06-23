@@ -138,10 +138,12 @@ require_owner_surface codegen \
     "program_emit.pgy"
 require_owner_surface mir_lower \
     "error_owner.pgy" \
+    "mir_json_input_owner.pgy" \
     "json_fact_read.pgy" \
     "stmt_render.pgy" \
     "routine_lower.pgy" \
-    "decl_lower.pgy"
+    "decl_lower.pgy" \
+    "program_lower.pgy"
 
 require_text "src/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/main.pgy"'
 require_text "src/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lexer/main.pgy"'

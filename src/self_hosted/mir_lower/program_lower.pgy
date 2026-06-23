@@ -1,0 +1,34 @@
+// MIR document -> compact AST Program owner for self-hosted mir_lower.
+//
+// Owns document-order declaration/routine assembly. `main.pgy` supplies an
+// already validated MIR JSON document and prints this owner's result.
+
+func EmitMirProgramTree(json: String) -> String {
+    let out: String = Concat("Program:\n", EmitStructDecls(json));
+    let total: Int = 0;
+    let rpos: Int = FindRoutine(json, 0);
+    if rpos < 0 {
+        Die("no routine name in MIR-JSON");
+    }
+    while rpos >= 0 {
+        let nq: Int = FindFrom(json, "\"", rpos + 7);
+        if nq < 0 {
+            Die("malformed routine name");
+        }
+        let nend: Array<Int> = [0];
+        let unused_name: String = ReadJsonString(json, nq, nend);
+        let span_end: Int = RoutineSpanEnd(json, nend[0]);
+        let kind: String = RoutineKind(json, rpos, nend[0], span_end);
+        let owner: String = RoutineOwner(json, rpos, nend[0], span_end);
+        if kind == "function" || StringLength(owner) == 0 {
+            out = Concat(out, EmitRoutineTree(json, rpos, "  "));
+            total = total + 1;
+        }
+        rpos = FindRoutine(json, nend[0]);
+    }
+
+    if total == 0 {
+        Die("no supported routines found in MIR-JSON document");
+    }
+    return out;
+}

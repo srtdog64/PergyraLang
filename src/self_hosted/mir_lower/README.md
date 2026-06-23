@@ -8,8 +8,12 @@ not C-side AST accessors.
 `main.pgy` is only the CLI/orchestration boundary. Semantic decisions are owned
 by the sibling modules:
 
+- `mir_json_input_owner.pgy` owns argv path selection, file reads, and schema
+  gating for MIR JSON input.
 - `json_fact_read.pgy` owns bounded JSON fact access.
 - `decl_lower.pgy` owns declaration fact reconstruction.
+- `program_lower.pgy` owns document-order Program assembly and supported
+  routine selection.
 - `routine_lower.pgy` owns routine and CFG traversal.
 - `stmt_render.pgy` owns statement/expression rendering from MIR facts.
 - `error_owner.pgy` owns the fail-closed diagnostic boundary.
