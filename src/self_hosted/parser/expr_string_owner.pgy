@@ -1,0 +1,115 @@
+// Self-host parser expression string/interpolation owner.
+
+func DesugarStringInterpolation(s: String) -> String {
+    let n: Int = StringLength(s);
+    if StringIndexOf(s, "${") < 0 {
+        return s;
+    }
+    let i: Int = 1;
+    let segment_start: Int = 1;
+    let expr: String = "";
+    let content_end: Int = n - 1;
+    while i < content_end {
+        if CharAt(s, i) == "$" && CharAt(s, i + 1) == "{" {
+            if i > segment_start {
+                let part: String = Substring(s, segment_start, i - segment_start);
+                let part_lit: String = Concat("\"", Concat(part, "\""));
+                if StringLength(expr) == 0 {
+                    expr = part_lit;
+                } else {
+                    expr = Concat("(", Concat(expr, Concat(" + ", Concat(part_lit, ")"))));
+                }
+            }
+            i = i + 2;
+            let var_start: Int = i;
+            while i < content_end && CharAt(s, i) != "}" {
+                i = i + 1;
+            }
+            if i >= content_end {
+                return s;
+            }
+            let var_name: String = Substring(s, var_start, i - var_start);
+            let var_expr: String = Concat("ToString(", Concat(var_name, ")"));
+            if StringLength(expr) == 0 {
+                expr = var_expr;
+            } else {
+                expr = Concat("(", Concat(expr, Concat(" + ", Concat(var_expr, ")"))));
+            }
+            i = i + 1;
+            segment_start = i;
+            continue;
+        }
+        i = i + 1;
+    }
+    if segment_start < content_end {
+        let tail: String = Substring(s, segment_start, content_end - segment_start);
+        let tail_lit: String = Concat("\"", Concat(tail, "\""));
+        if StringLength(expr) == 0 {
+            expr = tail_lit;
+        } else {
+            expr = Concat("(", Concat(expr, Concat(" + ", Concat(tail_lit, ")"))));
+        }
+    }
+    if StringLength(expr) == 0 {
+        return "\"\"";
+    }
+    return expr;
+}
+
+func DesugarDollarStringInterpolation(s: String) -> String {
+    let n: Int = StringLength(s);
+    if StringIndexOf(s, "{") < 0 {
+        return s;
+    }
+    let i: Int = 1;
+    let segment_start: Int = 1;
+    let expr: String = "";
+    let content_end: Int = n - 1;
+    while i < content_end {
+        if CharAt(s, i) == "{" {
+            if i > segment_start {
+                let part: String = Substring(s, segment_start, i - segment_start);
+                let part_lit: String = Concat("\"", Concat(part, "\""));
+                if StringLength(expr) == 0 {
+                    expr = part_lit;
+                } else {
+                    expr = Concat("(", Concat(expr, Concat(" + ", Concat(part_lit, ")"))));
+                }
+            }
+            i = i + 1;
+            let var_start: Int = i;
+            while i < content_end && CharAt(s, i) != "}" {
+                i = i + 1;
+            }
+            if i >= content_end {
+                return s;
+            }
+            let var_src: String = Substring(s, var_start, i - var_start);
+            let expr_cursor: Array<Int> = [0];
+            let rendered: String = ParseExpr(var_src, 0, expr_cursor);
+            let var_expr: String = Concat("ToString(", Concat(rendered, ")"));
+            if StringLength(expr) == 0 {
+                expr = var_expr;
+            } else {
+                expr = Concat("(", Concat(expr, Concat(" + ", Concat(var_expr, ")"))));
+            }
+            i = i + 1;
+            segment_start = i;
+            continue;
+        }
+        i = i + 1;
+    }
+    if segment_start < content_end {
+        let tail: String = Substring(s, segment_start, content_end - segment_start);
+        let tail_lit: String = Concat("\"", Concat(tail, "\""));
+        if StringLength(expr) == 0 {
+            expr = tail_lit;
+        } else {
+            expr = Concat("(", Concat(expr, Concat(" + ", Concat(tail_lit, ")"))));
+        }
+    }
+    if StringLength(expr) == 0 {
+        return s;
+    }
+    return expr;
+}

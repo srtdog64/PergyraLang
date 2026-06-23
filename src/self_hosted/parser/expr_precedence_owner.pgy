@@ -1,0 +1,235 @@
+// Self-host parser expression precedence owner.
+
+// Unary level: `!` and `-`, right-associative; output wraps the whole
+// `OP EXPR` form in `(...)` to match `pgy --ast`. Unary `-` only fires
+// when `-` is in primary position (after whitespace) because binary
+// subtraction consumes its `-` token before recursing into ParseUnary
+// for the RHS.
+func ParseUnary(content: String, start: Int, cursor_out: Array<Int>) -> String {
+    let i: Int = SkipWhitespaceAndComments(content, start);
+    if CharAt(content, i) == "!" && CharAt(content, i + 1) != "=" {
+        i = i + 1;
+        let operand: String = ParseUnary(content, i, cursor_out);
+        return Concat("(!", Concat(operand, ")"));
+    }
+    if CharAt(content, i) == "-" {
+        i = i + 1;
+        let operand: String = ParseUnary(content, i, cursor_out);
+        return Concat("(-", Concat(operand, ")"));
+    }
+    if CharAt(content, i) == "&" && CharAt(content, i + 1) != "&" {
+        i = i + 1;
+        let operand: String = ParseUnary(content, i, cursor_out);
+        return Concat("(&", Concat(operand, ")"));
+    }
+    // Channel receive: `<-EXPR` is emitted bare as `<-OPERAND` (no
+    // space, no parens — different from `!` and `-`).
+    if CharAt(content, i) == "<" && CharAt(content, i + 1) == "-" {
+        i = i + 2;
+        let operand: String = ParseUnary(content, i, cursor_out);
+        return Concat("<-", operand);
+    }
+    // `spawn EXPR` and `await EXPR`: unary-precedence prefix forms,
+    // emitted verbatim with a single space (e.g. `spawn Add(1, 2)`,
+    // `await f`).
+    if MatchKeyword(content, i, "spawn") {
+        i = i + 5;
+        // Optional `blocking` modifier — `spawn blocking F(args)` is
+        // printed as `spawn F(args)`, the modifier dropped.
+        let after_spawn: Int = SkipWhitespaceAndComments(content, i);
+        if MatchKeyword(content, after_spawn, "blocking") {
+            i = after_spawn + 8;
+        }
+        let operand: String = ParseUnary(content, i, cursor_out);
+        return Concat("spawn ", operand);
+    }
+    if MatchKeyword(content, i, "await") {
+        i = i + 5;
+        let operand: String = ParseUnary(content, i, cursor_out);
+        return Concat("await ", operand);
+    }
+    return ParsePrimary(content, i, cursor_out);
+}
+
+// Multiplicative level: `*`, `/`, `%` left-associative, tighter than
+// `+ -`. RHS goes through ParseUnary so `1 * -2` becomes `(1 * (-2))`.
+func ParseMul(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
+    let left: String = ParseUnary(content, start, cursor_out);
+    let i: Int = cursor_out[0];
+    while true {
+        let before_ws: Int = i;
+        i = SkipWhitespaceAndComments(content, i);
+        let op: String = CharAt(content, i);
+        if op != "*" && op != "/" && op != "%" {
+            ArraySet(cursor_out, 0, before_ws);
+            return left;
+        }
+        i = i + 1;
+        let right: String = ParseUnary(content, i, cursor_out);
+        i = cursor_out[0];
+        left = Concat("(", Concat(left, Concat(" ", Concat(op, Concat(" ", Concat(right, ")"))))));
+    }
+    return left;
+}
+
+// Additive level: `+` and `-` left-associative.
+func ParseAdditive(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
+    let left: String = ParseMul(content, start, cursor_out);
+    let i: Int = cursor_out[0];
+    while true {
+        let before_ws: Int = i;
+        i = SkipWhitespaceAndComments(content, i);
+        let op: String = CharAt(content, i);
+        if op != "+" && op != "-" {
+            ArraySet(cursor_out, 0, before_ws);
+            return left;
+        }
+        i = i + 1;
+        let right: String = ParseMul(content, i, cursor_out);
+        i = cursor_out[0];
+        left = Concat("(", Concat(left, Concat(" ", Concat(op, Concat(" ", Concat(right, ")"))))));
+    }
+    return left;
+}
+
+// Pipe operator `|>` — left-associative, *looser* than `+ -` so
+// `1 + 2 |> D` becomes `D((1 + 2))`. The C printer rewrites
+// `EXPR |> FUNC` as `FUNC(EXPR)` and `EXPR |> FUNC(args)` as
+// `FUNC(EXPR, args)`. Chained pipes nest left: `a |> b |> c` →
+// `c(b(a))`.
+func ParsePipe(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
+    let left: String = ParseAdditive(content, start, cursor_out);
+    let i: Int = cursor_out[0];
+    while true {
+        let before_ws: Int = i;
+        i = SkipWhitespaceAndComments(content, i);
+        if CharAt(content, i) != "|" || CharAt(content, i + 1) != ">" {
+            ArraySet(cursor_out, 0, before_ws);
+            return left;
+        }
+        i = i + 2;
+        i = SkipWhitespaceAndComments(content, i);
+        ArraySet(cursor_out, 0, i);
+        let fn_name: String = ReadIdent(content, i, cursor_out);
+        i = cursor_out[0];
+        if StringLength(fn_name) == 0 {
+            Exit(1);
+        }
+        let after_fn: Int = SkipWhitespaceAndComments(content, i);
+        if CharAt(content, after_fn) == "(" {
+            i = after_fn + 1;
+            let extra_args: String = "";
+            i = SkipWhitespaceAndComments(content, i);
+            if CharAt(content, i) != ")" {
+                while true {
+                    ArraySet(cursor_out, 0, i);
+                    let a: String = ParseExpr(content, i, cursor_out);
+                    i = cursor_out[0];
+                    if StringLength(extra_args) == 0 {
+                        extra_args = a;
+                    } else {
+                        extra_args = Concat(extra_args, Concat(", ", a));
+                    }
+                    i = SkipWhitespaceAndComments(content, i);
+                    if CharAt(content, i) == "," {
+                        i = i + 1;
+                        continue;
+                    }
+                    break;
+                }
+            }
+            i = Expect(content, i, ")");
+            if i < 0 {
+                Exit(1);
+            }
+            let combined_args: String = left;
+            if StringLength(extra_args) > 0 {
+                combined_args = Concat(left, Concat(", ", extra_args));
+            }
+            left = Concat(fn_name, Concat("(", Concat(combined_args, ")")));
+        } else {
+            left = Concat(fn_name, Concat("(", Concat(left, ")")));
+        }
+    }
+    return left;
+}
+
+// Comparison level: `< > <= >= == !=` left-associative, *looser* than
+// the pipe `|>` layer (which is looser than additive). So
+// `1 + 2 < 5` is `((1 + 2) < 5)` and `1 |> f < 5` is `(f(1) < 5)`.
+func ParseComparison(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
+    let left: String = ParsePipe(content, start, cursor_out);
+    let i: Int = cursor_out[0];
+    while true {
+        let before_ws: Int = i;
+        i = SkipWhitespaceAndComments(content, i);
+        let c0: String = CharAt(content, i);
+        let c1: String = CharAt(content, i + 1);
+        let op: String = "";
+        if c0 == "=" && c1 == "=" {
+            op = "==";
+        } else if c0 == "!" && c1 == "=" {
+            op = "!=";
+        } else if c0 == "<" && c1 == "=" {
+            op = "<=";
+        } else if c0 == ">" && c1 == "=" {
+            op = ">=";
+        } else if c0 == "<" {
+            op = "<";
+        } else if c0 == ">" {
+            op = ">";
+        }
+        if StringLength(op) == 0 {
+            ArraySet(cursor_out, 0, before_ws);
+            return left;
+        }
+        i = i + StringLength(op);
+        let right: String = ParseAdditive(content, i, cursor_out);
+        i = cursor_out[0];
+        left = Concat("(", Concat(left, Concat(" ", Concat(op, Concat(" ", Concat(right, ")"))))));
+    }
+    return left;
+}
+
+// Logical AND: `&&` left-associative, looser than comparison.
+func ParseLogicalAnd(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
+    let left: String = ParseComparison(content, start, cursor_out);
+    let i: Int = cursor_out[0];
+    while true {
+        let before_ws: Int = i;
+        i = SkipWhitespaceAndComments(content, i);
+        if CharAt(content, i) != "&" || CharAt(content, i + 1) != "&" {
+            ArraySet(cursor_out, 0, before_ws);
+            return left;
+        }
+        i = i + 2;
+        let right: String = ParseComparison(content, i, cursor_out);
+        i = cursor_out[0];
+        left = Concat("(", Concat(left, Concat(" && ", Concat(right, ")"))));
+    }
+    return left;
+}
+
+// Logical OR: `||` left-associative, looser than `&&`.
+func ParseLogicalOr(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
+    let left: String = ParseLogicalAnd(content, start, cursor_out);
+    let i: Int = cursor_out[0];
+    while true {
+        let before_ws: Int = i;
+        i = SkipWhitespaceAndComments(content, i);
+        if CharAt(content, i) != "|" || CharAt(content, i + 1) != "|" {
+            ArraySet(cursor_out, 0, before_ws);
+            return left;
+        }
+        i = i + 2;
+        let right: String = ParseLogicalAnd(content, i, cursor_out);
+        i = cursor_out[0];
+        left = Concat("(", Concat(left, Concat(" || ", Concat(right, ")"))));
+    }
+    return left;
+}
+
+// Top-level expression entry. Used by let, return, if, while, for, call args.
+func ParseExpr(content: String, start: Int, cursor_out: Array<Int>) -> String {
+    return ParseLogicalOr(content, start, cursor_out);
+}
