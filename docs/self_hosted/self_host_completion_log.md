@@ -78,6 +78,17 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Parser root Program assembly leaves the entrypoint
+
+- Split `src/self_hosted/parser/program_parse_owner.pgy` out of `main.pgy`.
+  The new owner owns root source reads, root cursor initialization, top-level
+  declaration parse invocation, and final compact AST `Program:` assembly.
+- Tightened `tests/self_hosted_component_contract_smoke.sh` so parser must keep
+  the Program owner imported by the entrypoint.
+- Verified with `bash tests/self_hosted_component_contract_smoke.sh`,
+  `make self-host-parser-parity-test-smoke`, `make test-inc-size-test-smoke`,
+  and `make self-host-preparation-test-smoke`.
+
 ### 2026-06-23 -- MIR lower input and Program assembly leave the entrypoint
 
 - Split `src/self_hosted/mir_lower/mir_json_input_owner.pgy` and

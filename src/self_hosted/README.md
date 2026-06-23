@@ -68,7 +68,7 @@ consumes the bundle, so the entrypoint does not define "program" by accident.
 in `mir_json_input_owner.pgy` and document-order Program assembly in
 `program_lower.pgy`; `semantic/` follows the same entrypoint-plus-owner shape.
 `parser/` has started the same transition with
-error, cursor/token, source path/import input, type-name, expression, statement/block,
+error, cursor/token, source path/import input, root Program assembly, type-name, expression, statement/block,
 function-declaration, top-level declaration dispatch, branch declaration
 owners (`type`/`ability`/`event`/`enum`/`zone`/`effect`/`relation`/`role`/
 `intent`/nominal-domain hosts), and compact-tree text owners. `main.pgy` is now

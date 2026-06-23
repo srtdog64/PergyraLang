@@ -123,7 +123,8 @@ require_owner_surface parser \
     "cursor_owner.pgy" \
     "source_path_owner.pgy" \
     "tree_text_owner.pgy" \
-    "decl_dispatch_owner.pgy"
+    "decl_dispatch_owner.pgy" \
+    "program_parse_owner.pgy"
 require_owner_surface semantic \
     "text_scan_owner.pgy" \
     "source_bundle_owner.pgy" \

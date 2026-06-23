@@ -19,6 +19,10 @@ parity and the examples scale probe.
 - **source_owner**: `examples/hello.pgy` by default. The parity harness and
   scale probe pass the source path through `Args()[0]`; there is no side-channel
   source override.
+- **program_owner**: `program_parse_owner.pgy` owns the root source read, root
+  cursor initialization, top-level declaration parse invocation, and final
+  compact AST `Program:` assembly. `main.pgy` only wires the selected source
+  path into this owner.
 - Current committed grammar surface:
   - top-level `[async]? [export]? func<T,U>`, `subject`, `class`, `vessel`,
     `struct`, `object`, `tobject`, `type` aliases/record aliases, `enum`,

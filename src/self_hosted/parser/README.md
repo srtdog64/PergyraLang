@@ -8,6 +8,9 @@ inventing a second AST serialization format.
 - `main.pgy` - entry point orchestration only. It delegates source path/default
   selection and source-relative import path resolution to
   `source_path_owner.pgy`.
+- `program_parse_owner.pgy` - root Program SoT. Owns root source reads, root
+  cursor initialization, top-level declaration parse invocation, and final
+  compact AST `Program:` assembly.
 - `source_path_owner.pgy` - parser input-path SoT. Owns the argv/default source
   path, source-dir extraction, import path resolution, and imported-source
   marker.
