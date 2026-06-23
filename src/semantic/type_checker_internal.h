@@ -174,7 +174,8 @@ bool expr_type_is_nominal_host_type(const Type *type,
 bool expr_member_is_static_access(const ASTNode *expr);
 Symbol *lookup_identifier_symbol(ASTNode *expr, SemanticContext *ctx);
 bool semantic_reject_lambda_unsupported_captures(ASTNode *lambda,
-                                                 SemanticContext *ctx);
+                                                 SemanticContext *ctx,
+                                                 bool allow_copy_capture);
 void mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx);
 bool expr_is_class_constructor_call(const ASTNode *expr, SemanticContext *ctx);
 bool expr_is_qubit_claim(const ASTNode *expr);

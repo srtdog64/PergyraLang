@@ -32,6 +32,60 @@ llvm_emit_callable_variable_call(ASTNode *node,
         return NULL;
 
     callable_entry = llvm_lookup_callable_entry(ctx, callee_name);
+
+    /* A callable variable whose storage is a struct (not a bare function
+     * pointer) is a closure value { fn, env } (docs/135 Stage A). The
+     * is_closure registry flag is advisory; the variable type is authoritative
+     * across both the AST and MIR let-lowering paths. */
+    if (callable_entry != NULL
+        && LLVMGetTypeKind(callee_var.type) == LLVMStructTypeKind) {
+        /* Closure dispatch: load fn from field 0 and pass &env (field 1) as the
+         * hidden leading argument. */
+        LLVMTypeRef clo_ty = callee_var.type;
+        LLVMTypeRef base_fn_ty =
+            llvm_function_signature_from_callable_entry(ctx, callable_entry);
+        if (ctx->has_error || base_fn_ty == NULL
+            || LLVMGetTypeKind(clo_ty) != LLVMStructTypeKind)
+            return llvm_call_error_recovery(ctx, node,
+                "LLVM closure call could not lower the callee signature");
+
+        unsigned base_argc = LLVMCountParamTypes(base_fn_ty);
+        if (base_argc != emitted_argc || emitted_argc + 1u > 16u)
+            return llvm_call_error_recovery(ctx, node,
+                "LLVM closure call argument count mismatch");
+
+        LLVMTypeRef env_ty = LLVMStructGetTypeAtIndex(clo_ty, 1);
+        LLVMTypeRef fn_ptr_ty = LLVMStructGetTypeAtIndex(clo_ty, 0);
+        LLVMTypeRef base_params[16];
+        LLVMTypeRef call_params[17];
+        LLVMValueRef call_args[17];
+        LLVMGetParamTypes(base_fn_ty, base_params);
+        call_params[0] = LLVMPointerType(env_ty, 0);
+        for (unsigned i = 0; i < base_argc; i++)
+            call_params[i + 1] = base_params[i];
+        LLVMTypeRef call_fn_ty = LLVMFunctionType(
+            LLVMGetReturnType(base_fn_ty), call_params, base_argc + 1, 0);
+
+        LLVMValueRef fn_addr = LLVMBuildStructGEP2(ctx->builder, clo_ty,
+            callee_var.alloca, 0, llvm_tmp_name(ctx));
+        LLVMValueRef fn_ptr_val = LLVMBuildLoad2(ctx->builder, fn_ptr_ty,
+            fn_addr, llvm_tmp_name(ctx));
+        LLVMValueRef env_ptr = LLVMBuildStructGEP2(ctx->builder, clo_ty,
+            callee_var.alloca, 1, llvm_tmp_name(ctx));
+
+        call_args[0] = env_ptr;
+        for (unsigned i = 0; i < emitted_argc; i++)
+            call_args[i + 1] = args[i];
+
+        if (LLVMGetReturnType(base_fn_ty) == ctx->type_void) {
+            LLVMBuildCall2(ctx->builder, call_fn_ty, fn_ptr_val, call_args,
+                emitted_argc + 1, "");
+            return llvm_void_expression_placeholder(ctx, node, "closure-call");
+        }
+        return LLVMBuildCall2(ctx->builder, call_fn_ty, fn_ptr_val, call_args,
+            emitted_argc + 1, llvm_tmp_name(ctx));
+    }
+
     /* LLVM-15 opaque pointers: a function-typed variable is just `ptr`, so the
      * function type cannot be read back from it via LLVMGetElementType (that
      * dereferences a null pointee and crashes). Recover the signature from the

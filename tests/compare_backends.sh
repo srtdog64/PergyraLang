@@ -1041,6 +1041,7 @@ main() {
         "tests/cases/backend_compare/higher_order_compose"
         "tests/cases/backend_compare/lambda_expr"
         "tests/cases/backend_compare/lambda_block_return"
+        "tests/cases/backend_compare/closure_copy_capture"
         "tests/cases/backend_compare/event_named_handler"
         "tests/cases/backend_compare/event_unsubscribe"
         "tests/cases/backend_compare/event_system"

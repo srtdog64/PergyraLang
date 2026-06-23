@@ -222,6 +222,7 @@ typedef struct
     ASTNode    *return_type;
     const char **param_type_names;
     const char  *return_type_name;
+    bool        is_closure; /* var holds a closure value {fn,env} (docs/135) */
 } LLVMCallableVarEntry;
 
 typedef struct

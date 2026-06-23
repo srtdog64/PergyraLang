@@ -24,6 +24,13 @@ LLVMTypeRef llvm_stmt_lambda_return_type(LLVMGenCtx *ctx, ASTNode *expr);
 LLVMTypeRef llvm_stmt_lambda_param_type(LLVMGenCtx *ctx, ASTNode *lambda,
                                         ASTNode *param, size_t param_index);
 LLVMTypeRef llvm_stmt_lambda_signature_type(LLVMGenCtx *ctx, ASTNode *expr);
+/* Closure environment ABI (docs/135 Stage A): a captured lambda's value type is
+ * a struct { fn_ptr, env } where fn takes the env pointer as a hidden leading
+ * parameter. env_ty_out/fn_ty_out receive the env struct type and the function
+ * type when non-NULL. Returns the closure struct type, or NULL on error. */
+LLVMTypeRef llvm_closure_struct_type(LLVMGenCtx *ctx, ASTNode *expr,
+                                     LLVMTypeRef *env_ty_out,
+                                     LLVMTypeRef *fn_ty_out);
 const char *llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr);
 LLVMValueRef llvm_stmt_create_slot_alloca(LLVMGenCtx *ctx, LLVMTypeRef type,
                                           const char *name);

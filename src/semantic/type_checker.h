@@ -94,6 +94,9 @@ struct SemanticContext
     Type*        inferred_return;         /* unified return type, NULL = none */
     bool         inferred_return_conflict;/* returns disagree -> loud error  */
     Type*        expected_lambda_type; /* Contextual func type for lambda */
+    bool         capture_allowed_let_init; /* lambda is a callable-let initializer:
+                                            * Stage A copy-capture is wired only for
+                                            * this non-escaping position (docs/135) */
     Type*        expected_collection_type; /* Contextual collection type for a
                                             * literal initializer: drives the
                                             * sequence ctor (Array/List/Queue). */

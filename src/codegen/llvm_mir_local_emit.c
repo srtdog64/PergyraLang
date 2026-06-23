@@ -48,6 +48,11 @@ llvm_mir_local_type_from_source_fact_entry(LLVMGenCtx *ctx,
 
     if (ctx == NULL || fact == NULL)
         return NULL;
+    /* Closure locals are typed by the let-storage path (the lambda signature
+     * lowers to the closure struct type); the fact's type_name is a C-side
+     * struct name with no LLVM registration (docs/135 Stage A). */
+    if (fact->is_closure_local)
+        return NULL;
     if (!fact->is_callable)
         return fact->type_name != NULL
             ? pergyra_type_to_llvm(ctx, fact->type_name)
@@ -405,6 +410,10 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     ctx, inst->type_layout);
                 ASTNode *value_expr =
                     llvm_mir_local_initializer_expr(inst->expr0);
+                const bool is_closure_local_decl =
+                    value_expr != NULL
+                    && value_expr->type == AST_LAMBDA_EXPR
+                    && ast_lambda_capture_count(value_expr) > 0;
                 const MIRSourceLocalType *source_local_fact = NULL;
                 const char *source_local_type_name = NULL;
                 char base_name[128];
@@ -413,7 +422,8 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                 const char *instruction_type_name = inst->abi_type_name;
                 bool prefer_instruction_type_name = false;
 
-                if (mir_instruction_uses_source_local_decl_emit(inst)) {
+                if (!is_closure_local_decl
+                    && mir_instruction_uses_source_local_decl_emit(inst)) {
                     size_t source_def_count = has_base_name
                         ? llvm_mir_source_local_def_count(routine, base_name)
                         : 0;
@@ -440,7 +450,18 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     }
                 }
 
-                if (prefer_instruction_type_name) {
+                if (is_closure_local_decl) {
+                    alloca_type = llvm_closure_struct_type(ctx, value_expr,
+                        NULL, NULL);
+                    if (ctx->has_error || alloca_type == NULL) {
+                        llvm_set_mir_inventory_missing(ctx,
+                            "MIR-only LLVM path cannot lower closure local '%s'",
+                            inst->result_name != NULL
+                                ? inst->result_name
+                                : "(anonymous-local)");
+                        return;
+                    }
+                } else if (prefer_instruction_type_name) {
                     alloca_type = pergyra_type_to_llvm(ctx,
                         instruction_type_name);
                     if (ctx->has_error || alloca_type == NULL) {

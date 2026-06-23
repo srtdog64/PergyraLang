@@ -59,6 +59,12 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     if (handled_slot_claim)
         return true;
 
+    /* A lambda bound directly to a let is a non-escaping callable; Stage A
+     * copy-capture is wired for exactly this position (docs/135). */
+    bool saved_capture_allowed = ctx->capture_allowed_let_init;
+    ctx->capture_allowed_let_init =
+        (init != NULL && init->type == AST_LAMBDA_EXPR);
+
     /* Normal variable declaration with type inference */
     if (init != NULL && init->type == AST_LAMBDA_EXPR && ann != NULL) {
         lambda_expected_type = ownership_let_resolve_type_ref(ann, ctx);
@@ -90,6 +96,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
             ? ownership_let_normalize_type(type_check_expression(init, ctx))
             : TYPE_VOID;
     }
+    ctx->capture_allowed_let_init = saved_capture_allowed;
     if (init != NULL)
         mark_world_embedded_zone_arguments(init, ctx);
 

@@ -412,7 +412,7 @@
         ast_destroy(func);
     }
 
-    TEST("lambda local capture is rejected until closure environments exist");
+    TEST("lambda value-type local is captured by copy (docs/135 Stage A)");
     {
         SemanticContext *ctx = semantic_context_create();
         ASTNode *func = ast_create_function("CaptureLocal");
@@ -434,7 +434,10 @@
 
         type_check_func_decl(func, ctx);
 
-        EXPECT(ctx->has_error);
+        /* Int is a copy-value type, so the capture is accepted and recorded on
+         * the lambda node (the backends build the closure environment). */
+        EXPECT(!ctx->has_error);
+        EXPECT(ast_lambda_capture_count(lambda) == 1);
 
         semantic_context_destroy(ctx);
         ast_destroy(func);

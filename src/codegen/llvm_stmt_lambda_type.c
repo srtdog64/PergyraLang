@@ -215,6 +215,9 @@ llvm_stmt_lambda_signature_type(LLVMGenCtx *ctx, ASTNode *expr)
     if (ctx == NULL || expr == NULL || expr->type != AST_LAMBDA_EXPR)
         return NULL;
 
+    if (ast_lambda_capture_count(expr) > 0)
+        return llvm_closure_struct_type(ctx, expr, NULL, NULL);
+
     pc = (int)ast_lambda_param_count(expr);
     ret_type = llvm_stmt_lambda_return_type(ctx, expr);
     if (ctx->has_error || ret_type == NULL)
@@ -241,6 +244,72 @@ llvm_stmt_lambda_signature_type(LLVMGenCtx *ctx, ASTNode *expr)
 
     return LLVMPointerType(
         LLVMFunctionType(ret_type, params, (unsigned)pc, 0), 0);
+}
+
+LLVMTypeRef
+llvm_closure_struct_type(LLVMGenCtx *ctx, ASTNode *expr,
+                         LLVMTypeRef *env_ty_out, LLVMTypeRef *fn_ty_out)
+{
+    size_t cap_count;
+    int pc;
+    LLVMTypeRef ret_type;
+    LLVMTypeRef *env_fields;
+    LLVMTypeRef env_ty;
+    LLVMTypeRef fn_params[9];
+    LLVMTypeRef fn_ty;
+    LLVMTypeRef clo_fields[2];
+
+    if (env_ty_out != NULL)
+        *env_ty_out = NULL;
+    if (fn_ty_out != NULL)
+        *fn_ty_out = NULL;
+    if (ctx == NULL || expr == NULL || expr->type != AST_LAMBDA_EXPR)
+        return NULL;
+
+    cap_count = ast_lambda_capture_count(expr);
+    pc = (int)ast_lambda_param_count(expr);
+    if (pc > 8) {
+        llvm_set_error_at_with_hints(ctx, expr,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED, PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+            "LLVM closure supports at most 8 parameters");
+        return NULL;
+    }
+
+    ret_type = llvm_stmt_lambda_return_type(ctx, expr);
+    if (ctx->has_error || ret_type == NULL)
+        return NULL;
+
+    env_fields = pgy_arena_calloc(&ctx->scratch,
+        (cap_count == 0 ? 1 : cap_count) * sizeof(LLVMTypeRef));
+    if (env_fields == NULL)
+        return NULL;
+    for (size_t i = 0; i < cap_count; i++) {
+        env_fields[i] = pergyra_type_to_llvm(ctx,
+            ast_lambda_capture_type_name(expr, i));
+        if (ctx->has_error || env_fields[i] == NULL)
+            return NULL;
+    }
+    env_ty = LLVMStructTypeInContext(ctx->context, env_fields,
+        (unsigned)cap_count, 0);
+
+    fn_params[0] = LLVMPointerType(env_ty, 0);
+    for (int i = 0; i < pc; i++) {
+        ASTNode *p = ast_lambda_param(expr, (size_t)i);
+        fn_params[i + 1] = llvm_stmt_lambda_param_type(ctx, expr, p, (size_t)i);
+        if (ctx->has_error || fn_params[i + 1] == NULL)
+            return NULL;
+    }
+    fn_ty = LLVMFunctionType(ret_type, fn_params, (unsigned)(pc + 1), 0);
+
+    clo_fields[0] = LLVMPointerType(fn_ty, 0);
+    clo_fields[1] = env_ty;
+
+    if (env_ty_out != NULL)
+        *env_ty_out = env_ty;
+    if (fn_ty_out != NULL)
+        *fn_ty_out = fn_ty;
+    return LLVMStructTypeInContext(ctx->context, clo_fields, 2, 0);
 }
 
 #endif

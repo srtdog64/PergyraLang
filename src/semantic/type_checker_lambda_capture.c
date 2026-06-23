@@ -12,6 +12,7 @@ typedef struct {
     Scope *lambda_scope;
     const CaptureLocal *locals;
     ASTNode *lambda; /* lambda node receiving recorded captures */
+    bool allow_copy_capture; /* copy-capture wired only for callable-let init */
 } CaptureState;
 
 /* Stage A: a value-type local is captured by copy (snapshot at closure
@@ -95,27 +96,46 @@ reject_identifier_capture(ASTNode *node, SemanticContext *ctx,
     if (symbol_is_capturable_global(outer, owner))
         return false;
 
-    /* Stage A (docs/135): value-type locals are capture-by-copy candidates.
-     * Record the capture on the lambda node so the closure environment ABI can
-     * consume it. The recording is dormant until both backends emit the
-     * environment: until then we still fail closed, because emitting a hoisted
-     * body that references an uncaptured local would generate broken C/LLVM (a
-     * silent codegen trap). The reject flips to allow once the env path lands. */
-    if (capture_symbol_is_copy_value(outer) && state->lambda != NULL)
-        (void)ast_lambda_add_capture(state->lambda, name, outer->type->name,
-            LAMBDA_CAPTURE_COPY);
+    /* Stage A (docs/135): value-type locals are captured by copy (snapshot at
+     * closure creation), but only when the lambda is a callable-let initializer
+     * (a non-escaping position the closure ABI is wired for). Escaping lambdas
+     * (event handlers, arguments, returns, spawns) stay rejected until Stage C. */
+    if (state->allow_copy_capture && capture_symbol_is_copy_value(outer)
+        && state->lambda != NULL) {
+        if (ast_lambda_add_capture(state->lambda, name, outer->type->name,
+                LAMBDA_CAPTURE_COPY))
+            return false;
+    }
+
+    if (capture_symbol_is_copy_value(outer)) {
+        /* Value-type capture in an escaping position (event handler, argument,
+         * return, spawn). Copy-capture is wired only for a callable-let. */
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_MOVE_INTO_ASYNC_FUNCTION,
+            node,
+            "Lambda capture of local '%s' is only supported when the lambda is "
+            "bound directly to a let.\n"
+            "Reason:\n"
+            "- copy-capture is wired for non-escaping callable-let closures; this lambda escapes (event handler, argument, return, or spawn)\n"
+            "- an escaping closure would capture by reference and outlive '%s'\n"
+            "Fix:\n"
+            "- pass '%s' as an explicit lambda parameter\n"
+            "- or bind the lambda to a let and call it in place",
+            name, name, name);
+        return true;
+    }
 
     semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
         PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_MOVE_INTO_ASYNC_FUNCTION,
         node,
-        "Lambda capture of local '%s' is not yet enabled.\n"
+        "Lambda capture of local '%s' is not supported.\n"
         "Reason:\n"
-        "- value-type locals (Int/Long/Bool/Float/Double/String) are capture-by-copy candidates but the closure environment ABI is not yet wired in both backends\n"
-        "- capturing slot, token, authority, or aggregate values would make lifetime and cleanup ownership implicit\n"
+        "- closure environments capture value-type locals (Int/Long/Bool/Float/Double/String) by copy; '%s' is a slot, token, authority, or aggregate value\n"
+        "- capturing such boundary values would make lifetime and cleanup ownership implicit\n"
         "Fix:\n"
         "- pass '%s' as an explicit lambda parameter\n"
         "- or move the logic into a named function/action with an explicit contract",
-        name, name);
+        name, name, name);
     return true;
 }
 
@@ -346,12 +366,14 @@ reject_lambda_captures(ASTNode *node, SemanticContext *ctx,
 }
 
 bool
-semantic_reject_lambda_unsupported_captures(ASTNode *lambda, SemanticContext *ctx)
+semantic_reject_lambda_unsupported_captures(ASTNode *lambda,
+    SemanticContext *ctx, bool allow_copy_capture)
 {
     CaptureState state = {
         ctx != NULL ? ctx->scope : NULL,
         NULL,
         lambda,
+        allow_copy_capture,
     };
     return reject_lambda_captures(ast_lambda_body(lambda), ctx, &state);
 }

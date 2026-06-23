@@ -1,0 +1,11 @@
+func Main() -> Void {
+    let base: Int = 10;
+    let add: func(Int) -> Int = (x: Int) => x + base;
+    Log(add(5));
+    Log(add(20));
+
+    let scale: Int = 3;
+    let mul: func(Int) -> Int = (x: Int) => x * scale;
+    Log(mul(4));
+    Log(mul(7));
+}

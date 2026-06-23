@@ -113,8 +113,10 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         ctx->current_function_capabilities = 0u;
         ctx->current_function_body_summary = BODY_SUMMARY_NONE;
 
+        bool allow_copy_capture = ctx->capture_allowed_let_init;
+        ctx->capture_allowed_let_init = false; /* body lambdas are escaping */
         if (semantic_reject_lambda_unsupported_captures(
-                expr, ctx)) {
+                expr, ctx, allow_copy_capture)) {
             scope_exit(&ctx->scope);
             ctx->current_function_effects = saved_effects;
             ctx->current_function_capabilities = saved_capabilities;

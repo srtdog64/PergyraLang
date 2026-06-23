@@ -118,6 +118,11 @@ llvm_stmt_register_callable_let_binding(ASTNode *node, LLVMGenCtx *ctx)
             param_count,
             param_types,
             ast_lambda_return_type(init));
+        if (ast_lambda_capture_count(init) > 0) {
+            LLVMCallableVarEntry *entry = llvm_lookup_callable_entry(ctx, name);
+            if (entry != NULL)
+                entry->is_closure = true;
+        }
     } else if (init != NULL && init->type == AST_IDENTIFIER
                && ast_identifier_name(init) != NULL) {
         ASTNode *decl = llvm_stmt_find_function_decl_by_name(ctx,

@@ -28,6 +28,165 @@ LLVMValueRef llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx);
 #include "llvm_member_call_emit.h"
 #include "llvm_expr_call_owners.h"
 
+/* Closure environment ABI (docs/135 Stage A). Emit a captured lambda as a
+ * value of struct type { fn_ptr, env }: the hoisted function takes the env as a
+ * hidden leading pointer parameter and reads each capture through a shadow
+ * alloca; the closure value is materialized in the enclosing function with the
+ * captured values snapshotted into the env. */
+static LLVMValueRef
+llvm_emit_captured_lambda(ASTNode *node, LLVMGenCtx *ctx)
+{
+    int lid = ctx->lambda_counter++;
+    int pc = (int)ast_lambda_param_count(node);
+    size_t cap_count = ast_lambda_capture_count(node);
+    ASTNode *lambda_body = ast_lambda_body(node);
+    LLVMTypeRef env_ty = NULL;
+    LLVMTypeRef fn_ty = NULL;
+    LLVMTypeRef clo_ty = llvm_closure_struct_type(ctx, node, &env_ty, &fn_ty);
+    LLVMTypeRef ret_type;
+    char lname[128];
+    LLVMValueRef lfn;
+    LLVMValueRef env_param;
+    LLVMValueRef env_val;
+    LLVMValueRef clo_val;
+
+    if (ctx->has_error || clo_ty == NULL || env_ty == NULL || fn_ty == NULL)
+        return llvm_expression_error(ctx, node,
+            "LLVM closure could not lower its environment type");
+
+    ret_type = llvm_stmt_lambda_return_type(ctx, node);
+    if (ctx->has_error || ret_type == NULL)
+        return llvm_expression_error(ctx, node,
+            "LLVM closure could not lower return type");
+
+    if (!llvm_expr_lambda_name(ctx, node, lname, sizeof(lname), lid))
+        return NULL;
+    lfn = LLVMAddFunction(ctx->module, lname, fn_ty);
+    llvm_register_function(ctx, LLVMGetValueName(lfn), lfn, fn_ty, ret_type);
+
+    LLVMBasicBlockRef saved_bb = LLVMGetInsertBlock(ctx->builder);
+    LLVMValueRef saved_fn = ctx->current_function;
+    LLVMTypeRef saved_ret = ctx->current_ret_type;
+    LLVMTypeRef saved_function_ret = ctx->current_function_ret_type;
+    const char *saved_return_type_name = ctx->current_return_type_name;
+    ASTNode *saved_return_callable_type = ctx->current_return_callable_type;
+    LLVMLexicalRegistrySnapshot lexical_snapshot =
+        llvm_lexical_registry_snapshot(ctx);
+
+    ctx->current_function = lfn;
+    ctx->current_ret_type = ret_type;
+    ctx->current_function_ret_type = ret_type;
+    {
+        ASTNode *lambda_return_type = ast_lambda_return_type(node);
+        ctx->current_return_type_name = lambda_return_type != NULL
+            ? llvm_stmt_render_type_annotation_copy(ctx, lambda_return_type)
+            : NULL;
+        ctx->current_return_callable_type = lambda_return_type != NULL
+            && lambda_return_type->type == AST_EVENT_HANDLER_TYPE
+                ? lambda_return_type : NULL;
+    }
+
+    LLVMBasicBlockRef entry = LLVMAppendBasicBlockInContext(
+        ctx->context, lfn, "entry");
+    LLVMPositionBuilderAtEnd(ctx->builder, entry);
+    llvm_scope_push(ctx);
+
+    /* Shadow allocas for captures, read from the env pointer (param 0). */
+    env_param = LLVMGetParam(lfn, 0);
+    for (size_t i = 0; i < cap_count; i++) {
+        const char *cap_name = ast_lambda_capture_name(node, i);
+        LLVMTypeRef field_ty = LLVMStructGetTypeAtIndex(env_ty, (unsigned)i);
+        LLVMValueRef field_ptr = LLVMBuildStructGEP2(ctx->builder, env_ty,
+            env_param, (unsigned)i, cap_name);
+        LLVMValueRef cap_val = LLVMBuildLoad2(ctx->builder, field_ty,
+            field_ptr, cap_name);
+        LLVMValueRef cap_alloca = LLVMBuildAlloca(ctx->builder, field_ty,
+            cap_name);
+        LLVMBuildStore(ctx->builder, cap_val, cap_alloca);
+        llvm_scope_declare(ctx, cap_name, cap_alloca, field_ty);
+    }
+
+    /* Lambda parameters occupy LLVM params 1..pc (env is param 0). */
+    for (int j = 0; j < pc; j++) {
+        ASTNode *p = ast_lambda_param(node, (size_t)j);
+        const char *pname = NULL;
+        if (p != NULL && p->type == AST_IDENTIFIER)
+            pname = ast_identifier_name(p);
+        else if (p != NULL && p->type == AST_LET_DECL)
+            pname = ast_let_name(p);
+        if (pname == NULL || pname[0] == '\0') {
+            llvm_expression_error(ctx, node,
+                "LLVM closure requires named parameters");
+            break;
+        }
+        LLVMValueRef param_val = LLVMGetParam(lfn, (unsigned)(j + 1));
+        LLVMTypeRef pty = LLVMTypeOf(param_val);
+        LLVMValueRef param_alloca = LLVMBuildAlloca(ctx->builder, pty, pname);
+        LLVMBuildStore(ctx->builder, param_val, param_alloca);
+        llvm_scope_declare(ctx, pname, param_alloca, pty);
+    }
+
+    if (lambda_body != NULL) {
+        if (lambda_body->type == AST_BLOCK) {
+            llvm_emit_block(lambda_body, ctx);
+        } else {
+            LLVMValueRef val = llvm_emit_expression(lambda_body, ctx);
+            if (ret_type != ctx->type_void && val != NULL)
+                LLVMBuildRet(ctx->builder, val);
+            else if (ret_type == ctx->type_void)
+                LLVMBuildRetVoid(ctx->builder);
+            else {
+                llvm_expression_error(ctx, node,
+                    "LLVM closure could not lower body expression");
+                LLVMValueRef zero = llvm_zero_value_for_type(ctx, ret_type);
+                if (zero != NULL)
+                    LLVMBuildRet(ctx->builder, zero);
+            }
+        }
+    }
+    if (LLVMGetBasicBlockTerminator(
+            LLVMGetInsertBlock(ctx->builder)) == NULL) {
+        if (ret_type == ctx->type_void)
+            LLVMBuildRetVoid(ctx->builder);
+        else {
+            LLVMValueRef zero = llvm_zero_value_for_type(ctx, ret_type);
+            if (zero != NULL)
+                LLVMBuildRet(ctx->builder, zero);
+        }
+    }
+
+    llvm_scope_pop(ctx);
+    llvm_lexical_registry_restore(ctx, lexical_snapshot);
+    ctx->current_function = saved_fn;
+    ctx->current_ret_type = saved_ret;
+    ctx->current_function_ret_type = saved_function_ret;
+    ctx->current_return_type_name = saved_return_type_name;
+    ctx->current_return_callable_type = saved_return_callable_type;
+    if (saved_bb != NULL)
+        LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
+
+    /* Materialize the closure value: snapshot captures from the enclosing scope
+     * into the env, then build { fn, env }. */
+    env_val = LLVMGetUndef(env_ty);
+    for (size_t i = 0; i < cap_count; i++) {
+        const char *cap_name = ast_lambda_capture_name(node, i);
+        LLVMVarEntry entry;
+        if (!llvm_scope_lookup_snapshot(ctx, cap_name, &entry))
+            return llvm_expression_error(ctx, node,
+                "LLVM closure capture is not in the enclosing scope");
+        LLVMValueRef loaded = LLVMBuildLoad2(ctx->builder, entry.type,
+            entry.alloca, cap_name);
+        env_val = LLVMBuildInsertValue(ctx->builder, env_val, loaded,
+            (unsigned)i, llvm_tmp_name(ctx));
+    }
+    clo_val = LLVMGetUndef(clo_ty);
+    clo_val = LLVMBuildInsertValue(ctx->builder, clo_val, lfn, 0,
+        llvm_tmp_name(ctx));
+    clo_val = LLVMBuildInsertValue(ctx->builder, clo_val, env_val, 1,
+        llvm_tmp_name(ctx));
+    return clo_val;
+}
+
 LLVMValueRef
 llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -191,6 +350,8 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
             "LLVM await expression requires an operand expression");
 
     case AST_LAMBDA_EXPR: {
+        if (ast_lambda_capture_count(node) > 0)
+            return llvm_emit_captured_lambda(node, ctx);
         int lid = ctx->lambda_counter++;
         int pc = (int)ast_lambda_param_count(node);
         ASTNode *lambda_body = ast_lambda_body(node);

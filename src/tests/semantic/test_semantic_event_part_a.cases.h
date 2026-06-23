@@ -149,7 +149,7 @@ test_event_semantics(void)
         EXPECT(result != NULL
             && result->error_count > 0
             && ctx_has_diagnostic_substring_from_result(
-                result, "Lambda capture of local value 'bonus'"));
+                result, "Lambda capture of local 'bonus'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
