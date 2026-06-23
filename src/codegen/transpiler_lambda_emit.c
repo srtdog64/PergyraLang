@@ -185,6 +185,130 @@ transpiler_emit_lambda_signature(ASTNode *node, TranspilerCtx *ctx,
     return true;
 }
 
+/* Stage A closure environment ABI (docs/135). A lambda with recorded captures
+ * lowers to: a per-lambda env struct, a closure struct {fn, env}, a hoisted
+ * body that takes the env as a hidden leading parameter and reads each capture
+ * through a shadow local, and a closure-literal value. The let-binding declares
+ * the variable with the closure struct type and the call dispatches through
+ * `clo.fn(&clo.env, args)`. Copy-capture only (value types); no aliasing. */
+static char *
+transpiler_emit_captured_lambda(ASTNode *node, TranspilerCtx *ctx,
+                                int lambda_id, const char *return_type,
+                                const char *lambda_name)
+{
+    size_t cap_count = ast_lambda_capture_count(node);
+    char *env_type = strdup_fmt("pgy_lambda_env_%d", lambda_id);
+    char *clo_type = strdup_fmt("pgy_lambda_clo_%d", lambda_id);
+    CodeBuf *sig_params = codebuf_create();
+    CodeBuf *fnptr_params = codebuf_create();
+    CodeBuf *lit = NULL;
+    char *result = NULL;
+    ASTNode *body;
+
+    if (env_type == NULL || clo_type == NULL
+        || sig_params == NULL || fnptr_params == NULL)
+        goto done;
+
+    for (size_t i = 0; i < ast_lambda_param_count(node); i++) {
+        ASTNode *param = ast_lambda_param(node, i);
+        const char *param_name = NULL;
+        char param_type_buf[256];
+        if (!transpiler_lambda_param_c_type_copy(ctx, node, param, i,
+                param_type_buf, sizeof(param_type_buf), &param_name)) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "cannot determine captured lambda parameter type at argument %llu",
+                (unsigned long long) i);
+            goto done;
+        }
+        codebuf_write(sig_params, ", %s %s", param_type_buf, param_name);
+        codebuf_write(fnptr_params, ", %s", param_type_buf);
+    }
+
+    /* env struct + closure struct */
+    codebuf_write(ctx->decls, "\ntypedef struct %s {\n", env_type);
+    for (size_t i = 0; i < cap_count; i++) {
+        char cap_c_type[256];
+        if (!transpiler_require_type_name_c_type_copy(ctx,
+                ast_lambda_capture_type_name(node, i), "lambda capture",
+                cap_c_type, sizeof(cap_c_type)))
+            goto done;
+        codebuf_write(ctx->decls, "    %s %s;\n", cap_c_type,
+            ast_lambda_capture_name(node, i));
+    }
+    codebuf_write(ctx->decls, "} %s;\n", env_type);
+    codebuf_write(ctx->decls, "typedef struct %s {\n", clo_type);
+    codebuf_write(ctx->decls, "    %s (*fn)(%s*%s);\n", return_type, env_type,
+        fnptr_params->data);
+    codebuf_write(ctx->decls, "    %s env;\n", env_type);
+    codebuf_write(ctx->decls, "} %s;\n", clo_type);
+
+    /* hoisted body: declaration + definition with the env as leading param */
+    codebuf_write(ctx->decls, "static %s %s(%s* __pgy_env%s);\n",
+        return_type, lambda_name, env_type, sig_params->data);
+    codebuf_write(ctx->helpers, "\nstatic %s %s(%s* __pgy_env%s)\n{\n",
+        return_type, lambda_name, env_type, sig_params->data);
+    for (size_t i = 0; i < cap_count; i++) {
+        char cap_c_type[256];
+        const char *cap_name = ast_lambda_capture_name(node, i);
+        if (!transpiler_require_type_name_c_type_copy(ctx,
+                ast_lambda_capture_type_name(node, i), "lambda capture",
+                cap_c_type, sizeof(cap_c_type)))
+            goto done;
+        codebuf_write(ctx->helpers, "    %s %s = __pgy_env->%s;\n",
+            cap_c_type, cap_name, cap_name);
+    }
+
+    body = ast_lambda_body(node);
+    if (body != NULL && body->type == AST_BLOCK) {
+        CodeBuf *saved_out = ctx->out;
+        int saved_indent = ctx->indent;
+        ctx->out = ctx->helpers;
+        ctx->indent = 1;
+        emit_block(body, ctx);
+        ctx->indent = saved_indent;
+        ctx->out = saved_out;
+    } else if (body != NULL) {
+        char *expr = emit_expression(body, ctx);
+        if (expr == NULL) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "captured lambda expression could not lower body expression");
+            goto done;
+        }
+        write_indent_to(ctx->helpers, 1);
+        codebuf_write(ctx->helpers, "return %s;\n", expr);
+        free(expr);
+    }
+    codebuf_write(ctx->helpers, "}\n");
+
+    /* closure-literal value */
+    lit = codebuf_create();
+    if (lit == NULL)
+        goto done;
+    codebuf_write(lit, "(%s){ %s, { ", clo_type, lambda_name);
+    for (size_t i = 0; i < cap_count; i++) {
+        if (i > 0)
+            codebuf_write(lit, ", ");
+        codebuf_write(lit, "%s", ast_lambda_capture_name(node, i));
+    }
+    codebuf_write(lit, " } }");
+    result = pergyra_strdup(lit->data);
+
+done:
+    if (lit != NULL)
+        codebuf_destroy(lit);
+    if (sig_params != NULL)
+        codebuf_destroy(sig_params);
+    if (fnptr_params != NULL)
+        codebuf_destroy(fnptr_params);
+    free(env_type);
+    free(clo_type);
+    return result;
+}
+
 char *
 emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -282,6 +406,17 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
             ctx, saved_slot_var_count, saved_typed_var_count,
             saved_alias_var_count);
         return NULL;
+    }
+
+    if (ast_lambda_capture_count(node) > 0) {
+        char *closure_value = transpiler_emit_captured_lambda(
+            node, ctx, lambda_id, return_type, lambda_name);
+        free(lambda_name);
+        free(return_type_owned);
+        transpiler_restore_local_binding_counts_local(
+            ctx, saved_slot_var_count, saved_typed_var_count,
+            saved_alias_var_count);
+        return closure_value;
     }
 
     if (!transpiler_emit_lambda_signature(node, ctx, ctx->decls,
