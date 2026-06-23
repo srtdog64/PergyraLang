@@ -81,6 +81,24 @@ func ReadIdent(content: String, start: Int, inout cursor_out: Array<Int>) -> Str
     return Substring(content, start, i - start);
 }
 
+// True if the `len` chars at `i` exactly match `kw` and the byte right after
+// is not a word char, so `else` matches but `elsewhere` does not.
+func MatchKeyword(content: String, i: Int, kw: String) -> Bool {
+    let n: Int = StringLength(content);
+    let kl: Int = StringLength(kw);
+    if i + kl > n {
+        return false;
+    }
+    if Substring(content, i, kl) != kw {
+        return false;
+    }
+    if i + kl == n {
+        return true;
+    }
+    let next: String = CharAt(content, i + kl);
+    return !IsAlphaNum(next);
+}
+
 // Read a numeric literal (integer or float). Returns the text as the
 // C printer emits it: trailing zeros after the decimal point are
 // trimmed, and a bare trailing `.` is dropped - so `2.0` lexes to `2`,

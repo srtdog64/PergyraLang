@@ -11,6 +11,7 @@
 import "error_owner.pgy";
 import "cursor_owner.pgy";
 import "tree_text_owner.pgy";
+import "type_name_owner.pgy";
 
 func DesugarStringInterpolation(s: String) -> String {
     let n: Int = StringLength(s);
@@ -646,129 +647,6 @@ func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> 
     return base;
 }
 
-// True if `base_type` is a builtin/primitive type that the C printer
-// classifies as a value (`IntentValue:`) in intent declarations. User-
-// defined types fall outside this set and are emitted as
-// `IntentInvolves:`.
-//
-// A flat array + linear scan is used instead of one `if` per name: the
-// asymptotic cost is the same as a chained-`if` (O(N) with the same
-// short-circuit shape), but the table form keeps the primitive list
-// in one place and avoids the per-entry edit churn. With N≈18 and
-// this called only once per intent parameter, a HashSet would be
-// overkill and Pergyra's current stable surface doesn't expose one.
-func IsPrimitiveType(base_type: String) -> Bool {
-    let prims: Array<String> = [
-        "Int", "Long", "Float", "Double", "String", "Bool", "Char",
-        "Byte", "Array", "Map", "Set", "Vector", "Option", "Result",
-        "Channel", "Slot", "Future", "Void"
-    ];
-    let n: Int = ArrayLength(prims);
-    let i: Int = 0;
-    while i < n {
-        if base_type == prims[i] {
-            return true;
-        }
-        i = i + 1;
-    }
-    return false;
-}
-
-// Read a type annotation, supporting nested generic args like
-// `HashMap<String, List<Int>>`. The C parser's text-tree printer emits each
-// type argument as `Label: FullType` (e.g. `Array<Int: Int>`,
-// `HashMap<String: String, List: List<Int: Int>>`), so we mirror that quirk
-// exactly.
-func ReadType(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
-    let i: Int = SkipWhitespaceAndComments(content, start);
-    if CharAt(content, i) == "(" && CharAt(content, i + 1) == ")" {
-        ArraySet(cursor_out, 0, i + 2);
-        return "Void";
-    }
-    ArraySet(cursor_out, 0, i);
-    let base: String = ReadIdent(content, i, cursor_out);
-    i = cursor_out[0];
-    if StringLength(base) == 0 {
-        ArraySet(cursor_out, 0, i);
-        return base;
-    }
-    if base == "slot" {
-        base = "Slot";
-    }
-    if base == "impl" {
-        i = SkipWhitespaceAndComments(content, i);
-        ArraySet(cursor_out, 0, i);
-        return ReadType(content, i, cursor_out);
-    }
-    let type_text: String = base;
-    let after_ws: Int = SkipWhitespaceAndComments(content, i);
-    if CharAt(content, after_ws) == "<" {
-        i = after_ws + 1;
-        let args: String = "";
-        while true {
-            i = SkipWhitespaceAndComments(content, i);
-            if MatchKeyword(content, i, "any") {
-                i = i + 3;
-                i = SkipWhitespaceAndComments(content, i);
-            }
-            ArraySet(cursor_out, 0, i);
-            let arg: String = ReadType(content, i, cursor_out);
-            i = cursor_out[0];
-            if StringLength(arg) == 0 {
-                Exit(1);
-            }
-            let label: String = "";
-            let label_i: Int = 0;
-            while label_i < StringLength(arg) && CharAt(arg, label_i) != "<" {
-                label = Concat(label, CharAt(arg, label_i));
-                label_i = label_i + 1;
-            }
-            let printed: String = Concat(label, Concat(": ", arg));
-            if StringLength(args) == 0 {
-                args = printed;
-            } else {
-                args = Concat(args, Concat(", ", printed));
-            }
-            i = SkipWhitespaceAndComments(content, i);
-            if CharAt(content, i) == "," {
-                i = i + 1;
-                continue;
-            }
-            break;
-        }
-        if CharAt(content, i) != ">" {
-            Exit(1);
-        }
-        i = i + 1;
-        type_text = Concat(base, Concat("<", Concat(args, ">")));
-    }
-    let arrow_i: Int = SkipWhitespaceAndComments(content, i);
-    if CharAt(content, arrow_i) == "-" && CharAt(content, arrow_i + 1) == ">" {
-        i = arrow_i + 2;
-        ArraySet(cursor_out, 0, i);
-        let ret_type: String = ReadType(content, i, cursor_out);
-        i = cursor_out[0];
-        if StringLength(ret_type) == 0 {
-            Exit(1);
-        }
-        type_text = Concat("func(", Concat(type_text, Concat(") -> ", ret_type)));
-    }
-    let intersection_i: Int = SkipWhitespaceAndComments(content, i);
-    while CharAt(content, intersection_i) == "&" && CharAt(content, intersection_i + 1) != "&" {
-        i = intersection_i + 1;
-        ArraySet(cursor_out, 0, i);
-        let rhs_type: String = ReadType(content, i, cursor_out);
-        i = cursor_out[0];
-        if StringLength(rhs_type) == 0 {
-            Exit(1);
-        }
-        type_text = Concat(type_text, Concat(" & ", rhs_type));
-        intersection_i = SkipWhitespaceAndComments(content, i);
-    }
-    ArraySet(cursor_out, 0, i);
-    return type_text;
-}
-
 // Unary level: `!` and `-`, right-associative; output wraps the whole
 // `OP EXPR` form in `(...)` to match `pgy --ast`. Unary `-` only fires
 // when `-` is in primary position (after whitespace) because binary
@@ -1001,24 +879,6 @@ func ParseLogicalOr(content: String, start: Int, inout cursor_out: Array<Int>) -
 // Top-level expression entry. Used by let, return, if, while, for, call args.
 func ParseExpr(content: String, start: Int, cursor_out: Array<Int>) -> String {
     return ParseLogicalOr(content, start, cursor_out);
-}
-
-// True if the `len` chars at `i` exactly match `kw` and the byte right
-// after is not a word char (so `else` matches but `elsewhere` doesn't).
-func MatchKeyword(content: String, i: Int, kw: String) -> Bool {
-    let n: Int = StringLength(content);
-    let kl: Int = StringLength(kw);
-    if i + kl > n {
-        return false;
-    }
-    if Substring(content, i, kl) != kw {
-        return false;
-    }
-    if i + kl == n {
-        return true;
-    }
-    let next: String = CharAt(content, i + kl);
-    return !IsAlphaNum(next);
 }
 
 // Parse one statement. Returns its formatted AST lines joined by "\n";
