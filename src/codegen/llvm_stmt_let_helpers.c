@@ -167,7 +167,6 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
                     return "Void";
                 }
                 const char *receiver_type = NULL;
-                ASTNode *method_decl = NULL;
                 if (strcmp(name, "self") == 0) {
                     ASTNode *host_decl = llvm_current_host_decl(ctx);
                     receiver_type = llvm_decl_node_name(host_decl);
@@ -194,16 +193,11 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
                     if (method_return_type_name != NULL)
                         return method_return_type_name;
                     if (method_return_type == NULL && method_meta == NULL) {
-                        if (llvm_active_has_mir(ctx)) {
-                            llvm_set_mir_inventory_missing(ctx,
-                                "MIR-only LLVM path missing let method return metadata for '%s.%s'",
-                                receiver_type != NULL ? receiver_type : "(anonymous)",
-                                method_name != NULL ? method_name : "(anonymous)");
-                            return NULL;
-                        }
-                        method_decl = llvm_find_host_method_decl_in_context(
-                            ctx, receiver_type, method_name);
-                        method_return_type = ast_func_return_type(method_decl);
+                        llvm_set_mir_inventory_missing(ctx,
+                            "MIR-only LLVM path missing let method return metadata for '%s.%s'",
+                            receiver_type != NULL ? receiver_type : "(anonymous)",
+                            method_name != NULL ? method_name : "(anonymous)");
+                        return NULL;
                     }
                     if (method_return_type != NULL
                         && ast_type_name(method_return_type) != NULL) {

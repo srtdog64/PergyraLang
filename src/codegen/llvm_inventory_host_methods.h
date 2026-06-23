@@ -70,8 +70,5 @@ const char *llvm_mir_decl_method_within_zone(const MIRDeclMethod *method);
 const char *llvm_mir_decl_method_causes_effect(const MIRDeclMethod *method);
 const MIRRoutine *llvm_mir_decl_method_routine(const LLVMGenCtx *ctx,
                                                const MIRDeclMethod *method);
-ASTNode *llvm_find_host_method_decl_in_context(const LLVMGenCtx *ctx,
-                                               const char *host_type_name,
-                                               const char *method_name);
 
 #endif /* PGY_LLVM_INVENTORY_HOST_METHODS_H */

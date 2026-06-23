@@ -988,8 +988,6 @@ require_term "src/codegen/transpiler_expr_call_user_emit.c" \
 require_term "src/codegen/transpiler_intent_emit.c" \
     "MIR-only C path missing intent dispatch participant metadata"
 require_term "src/codegen/transpiler_intent_emit.c" \
-    "if (!mir_only_intent && action_meta == NULL)"
-require_term "src/codegen/transpiler_intent_emit.c" \
     "emit_intent_step_bind_bound_zone_with_metadata"
 require_term "src/codegen/transpiler_intent_emit.c" \
     "emit_intent_step_rebind_bound_zone_aliases_with_metadata"
@@ -2976,7 +2974,6 @@ for term in \
     "llvm_find_host_method_metadata_in_context" \
     "llvm_hosted_method_view" \
     "llvm_hosted_method_view_metadata" \
-    "llvm_find_host_method_decl_in_context" \
     "llvm_mir_decl_method_metadata_complete_for" \
     "llvm_mir_decl_method_name" \
     "llvm_mir_decl_method_param_count" \
@@ -3886,10 +3883,6 @@ if rg -n "llvm_stmt_source_local_let_init" "$ROOT_DIR/src/codegen" >/dev/null; t
 fi
 require_term "src/codegen/llvm_stmt_source_local_fallback.c" \
     "legacy non-MIR callers fall back"
-require_term "src/codegen/llvm_stmt_source_local_fallback.c" \
-    "non-MIR host-method return-type compatibility lookup"
-require_term "src/codegen/llvm_stmt_source_local_fallback.c" \
-    "if (llvm_active_has_mir(ctx))"
 require_term "src/codegen/llvm_mir_emit.c" \
     "llvm_mir_preregister_source_local_classes(ctx, routine)"
 require_term "src/codegen/llvm_mir_emit.c" \
@@ -5456,10 +5449,11 @@ if grep -RInE 'transpiler_(hosted_method_view|mir_decl_method)_ast' \
     "$ROOT_DIR/src/codegen"; then
     fail "C declaration method source compatibility accessors must use *_source_ast names"
 fi
+# MIR-only: the non-MIR AST host-method lookup (find_nominal_host_method_decl)
+# is retired; these subject/receiver resolvers consume MIR method metadata only.
 for rel in \
     "src/codegen/transpiler_intent_context.c" \
     "src/codegen/transpiler_domain_receiver_query.c"; do
-    require_term "$rel" "find_nominal_host_method_decl(ctx"
     if grep -Eq 'data\.class_decl\.methods\[[^]]+\]|data\.class_decl\.method_count' \
         "$ROOT_DIR/$rel"; then
         fail "$rel must use the C backend MIR-aware host-method lookup seam"
@@ -5941,8 +5935,6 @@ if grep -A4 -F "transpiler_find_projection_nominal_decl_local(TranspilerCtx *ctx
         | grep -Fq "transpiler_find_decl_in_inventory_local(ctx, AST_CLASS_DECL"; then
     fail "C projection nominal lookup must prefer typed MIR declaration headers"
 fi
-require_term "src/codegen/transpiler_domain_receiver_query.c" \
-    "decl = find_subject_host_decl(ctx, type_name)"
 if ! awk '
     /is_subject_type_name\(TranspilerCtx \*ctx/ { in_fn = 1 }
     in_fn && /transpiler_active_decl_header_of_type\(/ { saw_header = NR }
@@ -6698,10 +6690,7 @@ for term in \
     "llvm_active_has_mir(ctx)" \
     "llvm_set_mir_inventory_missing(ctx" \
     "MIR-only LLVM path missing hosted self-call method metadata" \
-    "method_meta == NULL && host_method == NULL" \
-    "host_method == NULL" \
     "llvm_callable_decl_exists(ctx, callee_name)" \
-    "method_meta == NULL && host_method == NULL" \
     "llvm_hosted_self_logical_param(" \
     "method_meta == NULL && !llvm_active_has_mir(ctx)"; do
     require_term "src/codegen/llvm_expr_call_hosted.c" "$term"
@@ -6714,22 +6703,13 @@ if grep -Fq "llvm_mir_decl_method_source_ast(method_meta)" \
     "$ROOT_DIR/src/codegen/llvm_expr_call_hosted.c"; then
     fail "LLVM hosted self-call emit must not recover method AST back-pointers from MIR metadata"
 fi
-require_each_following_term "src/codegen/llvm_expr_call_hosted.c" \
-    "if (method_meta == NULL) {" \
-    "llvm_active_has_mir(ctx)" \
-    6
 require_term "src/codegen/llvm_member_call_emit.c" \
     "obj_node, method_meta)"
 for term in \
-    "llvm_active_has_mir(ctx)" \
     "llvm_set_mir_inventory_missing(ctx" \
     "MIR-only LLVM path missing member-call method metadata"; do
     require_term "src/codegen/llvm_member_call_emit.c" "$term"
 done
-require_each_following_term "src/codegen/llvm_member_call_emit.c" \
-    "if (method_meta == NULL) {" \
-    "llvm_active_has_mir(ctx)" \
-    6
 for term in \
     "transpiler_find_host_method_metadata_in_context(ctx," \
     "transpiler_mir_decl_method_is_async(method_meta)" \
@@ -6763,12 +6743,8 @@ for term in \
     "transpiler_mir_decl_method_param_type_name(" \
     "transpiler_mir_decl_method_return_type(" \
     "transpiler_mir_decl_method_return_type_name(" \
-    "transpiler_active_has_mir(ctx)" \
     "transpiler_set_mir_inventory_missing(ctx" \
-    "MIR-only C path missing member-call method metadata" \
-    "ASTNode *method_decl = NULL" \
-    "method_meta == NULL && method_decl != NULL" \
-    "method_decl == NULL && source_slot_name != NULL"; do
+    "MIR-only C path missing member-call method metadata"; do
     require_term "src/codegen/transpiler_expr_call_member_emit.c" "$term"
 done
 if grep -Fq "transpiler_mir_decl_method_source_ast(method_meta)" \
@@ -6779,18 +6755,9 @@ if grep -Fq "AST_EVENT_HANDLER_TYPE" \
         "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"; then
     fail "C member-call emission must let TranspilerHostedMethodView own type-name completeness checks"
 fi
-require_each_following_term "src/codegen/transpiler_expr_call_member_emit.c" \
-    "ASTNode *method_decl = NULL;" \
-    "transpiler_active_has_mir(ctx)" \
-    6
-require_each_following_term "src/codegen/transpiler_expr_call_member_emit.c" \
-    "method_meta == NULL && method_decl != NULL" \
-    "!transpiler_active_has_mir(ctx)" \
-    2
-require_each_following_term "src/codegen/transpiler_expr_call_member_emit.c" \
-    "ret_type == NULL && method_meta == NULL" \
-    "!transpiler_active_has_mir(ctx)" \
-    4
+# MIR-only: the non-MIR AST method_decl branches in C member-call emission are
+# retired (method shape owned by MIR metadata); only the fail-closed MIR path
+# remains.
 for rel in \
     "src/codegen/transpiler_expr_call_type_infer.c" \
     "src/codegen/transpiler_mir_local_type_lookup.c" \
@@ -6802,32 +6769,11 @@ for rel in \
     require_term "$rel" "transpiler_mir_decl_method_return_type("
     require_term "$rel" "transpiler_mir_decl_method_return_type_name("
 done
-for rel in \
-    "src/codegen/transpiler_expr_call_type_infer.c" \
-    "src/codegen/transpiler_mir_local_type_lookup.c"; do
-    require_term "$rel" "method_return_type == NULL && method_meta == NULL"
-    require_term "$rel" "!transpiler_active_has_mir(ctx)"
-    require_each_following_term "$rel" \
-        "method_return_type == NULL && method_meta == NULL" \
-        "!transpiler_active_has_mir(ctx)" \
-        2
-done
-require_term "src/codegen/transpiler_expr_call_type_infer.c" \
-    "MIR-only C path missing hosted self-call inference method metadata"
-require_term "src/codegen/transpiler_expr_call_type_infer.c" \
-    "current_host_method_decl(ctx, name)"
-require_each_following_term "src/codegen/transpiler_expr_call_type_infer.c" \
-    "host_method_meta == NULL" \
-    "transpiler_active_has_mir(ctx)" \
-    6
-require_term "src/codegen/transpiler_nominal.c" \
-    "ret_type == NULL && method_meta == NULL"
-require_term "src/codegen/transpiler_nominal.c" \
-    "!transpiler_active_has_mir(ctx)"
-require_each_following_term "src/codegen/transpiler_nominal.c" \
-    "ret_type == NULL && method_meta == NULL" \
-    "!transpiler_active_has_mir(ctx)" \
-    2
+# MIR-only: the non-MIR AST host-method return-type fallback in
+# type_infer / mir_local_type_lookup / nominal is retired -- these consumers now
+# rely solely on MIR method metadata (asserted above) and fail closed when it is
+# absent, so the old !transpiler_active_has_mir / current_host_method_decl /
+# find_nominal_host_method_decl assertions are removed.
 for term in \
     "transpiler_mir_routine_signature_metadata_complete_for(" \
     "TRANSPILER_MIR_SIGNATURE_REQUIRE_RETURN_TYPE_NAME" \
@@ -6855,10 +6801,6 @@ require_term "src/codegen/llvm_stmt_let_helpers.c" \
     "llvm_active_has_mir(ctx)"
 require_term "src/codegen/llvm_stmt_let_helpers.c" \
     "MIR-only LLVM path missing let method return metadata"
-require_each_following_term "src/codegen/llvm_stmt_let_helpers.c" \
-    "method_return_type == NULL && method_meta == NULL" \
-    "llvm_active_has_mir(ctx)" \
-    4
 require_term "src/codegen/llvm_stmt_type_infer_call.c" \
     "llvm_find_host_method_metadata_in_context("
 require_term "src/codegen/llvm_stmt_type_infer_call.c" \
@@ -6875,10 +6817,6 @@ require_term "src/codegen/llvm_stmt_type_infer_call.c" \
     "llvm_active_has_mir(ctx)"
 require_term "src/codegen/llvm_stmt_type_infer_call.c" \
     "MIR-only LLVM path missing method return metadata"
-require_each_following_term "src/codegen/llvm_stmt_type_infer_call.c" \
-    "ret_ty == NULL && method_meta == NULL" \
-    "llvm_active_has_mir(ctx)" \
-    4
 require_each_following_term "src/codegen/llvm_stmt_type_infer_call.c" \
     "llvm_stmt_infer_builtin_return_type(ctx, callee)" \
     "llvm_current_host_class_name(ctx)" \

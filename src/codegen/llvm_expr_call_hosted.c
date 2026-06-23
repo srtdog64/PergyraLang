@@ -98,24 +98,17 @@ llvm_emit_hosted_self_call(ASTNode *node, LLVMGenCtx *ctx,
     method_meta =
         llvm_find_host_method_metadata_in_context(ctx, host_name, callee_name);
     if (method_meta == NULL) {
-        host_method = llvm_stmt_host_method_ast_decl(ctx, host_name,
-            callee_name);
-        if (llvm_active_has_mir(ctx)) {
-            if (host_method == NULL
-                && llvm_callable_decl_exists(ctx, callee_name)) {
-                return NULL;
-            }
-            llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path missing hosted self-call method metadata for '%s.%s'",
-                host_name != NULL ? host_name : "(anonymous)",
-                callee_name != NULL ? callee_name : "(anonymous)");
+        /* MIR-only: hosted self-call method shape is owned by MIR metadata; the
+         * non-MIR AST method lookup is retired, so a missing metadata row fails
+         * closed. */
+        if (llvm_callable_decl_exists(ctx, callee_name))
             return NULL;
-        }
-        if (host_method == NULL)
-            host_method = llvm_current_host_method_decl(ctx, callee_name);
-    }
-    if (method_meta == NULL && host_method == NULL)
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing hosted self-call method metadata for '%s.%s'",
+            host_name != NULL ? host_name : "(anonymous)",
+            callee_name != NULL ? callee_name : "(anonymous)");
         return NULL;
+    }
     if (!llvm_mir_decl_method_metadata_complete_for(ctx,
             method_meta,
             host_name,

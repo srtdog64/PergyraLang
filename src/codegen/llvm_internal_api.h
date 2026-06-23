@@ -455,8 +455,6 @@ LLVMValueRef llvm_current_self_base_ptr(LLVMGenCtx *ctx,
                                         LLVMClassTypeEntry *cls);
 LLVMValueRef llvm_identifier_base_ptr(LLVMGenCtx *ctx, const char *name,
                                       LLVMClassTypeEntry *cls);
-ASTNode *llvm_current_host_method_decl(LLVMGenCtx *ctx,
-                                       const char *method_name);
 LLVMValueRef llvm_current_self_call_arg(LLVMGenCtx *ctx);
 const char *llvm_operator_overload_suffix(PgyTokenType op);
 bool llvm_is_upper_ident(ASTNode *node);
@@ -505,9 +503,6 @@ ASTNode *llvm_find_intent_decl(LLVMGenCtx *ctx, const char *name);
 ASTNode *llvm_find_callable_decl(LLVMGenCtx *ctx, const char *name);
 ASTNode *llvm_find_projection_nominal_decl(LLVMGenCtx *ctx,
                                            const char *name);
-ASTNode *llvm_find_nominal_host_method_decl(LLVMGenCtx *ctx,
-                                            const char *host_type_name,
-                                            const char *method_name);
 bool llvm_emit_specialized_method_ondemand(LLVMGenCtx *ctx,
                                            const char *class_name,
                                            const char *method_name);

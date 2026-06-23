@@ -20,7 +20,6 @@ void emit_intent_step_restore_bound_zone_aliases_with_metadata(
     size_t who_alias_count,
     size_t step_index,
     const IntentBindingMetadataView *bindings);
-bool intent_action_has_only_self(ASTNode *action_decl);
 void emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx);
 bool transpiler_can_forward_declare_intent_early(TranspilerCtx *ctx,
                                                  ASTNode *intent);

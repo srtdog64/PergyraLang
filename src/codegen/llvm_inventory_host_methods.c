@@ -275,18 +275,4 @@ llvm_mir_decl_method_routine(const LLVMGenCtx *ctx,
     return llvm_routine_inventory_get(&inventory, routine_index);
 }
 
-ASTNode *
-llvm_find_host_method_decl_in_context(const LLVMGenCtx *ctx,
-                                      const char *host_type_name,
-                                      const char *method_name)
-{
-    /* MIR-only: hosted method declarations are resolved from MIR method
-     * metadata by callers. The non-MIR AST method lookup is retired; production
-     * codegen always has MIR, so this fails closed. */
-    (void)ctx;
-    (void)host_type_name;
-    (void)method_name;
-    return NULL;
-}
-
 #endif /* PGY_LLVM_ENABLED */

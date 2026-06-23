@@ -67,7 +67,6 @@ transpiler_expr_infer_call_type_name(TranspilerCtx *ctx, ASTNode *expr)
             }
         }
         {
-            ASTNode *method_decl = NULL;
             const MIRDeclMethod *method_meta = NULL;
             ASTNode *method_return_type = NULL;
             receiver_type =
@@ -92,12 +91,6 @@ transpiler_expr_infer_call_type_name(TranspilerCtx *ctx, ASTNode *expr)
                         ctx, method_return_type_name);
                 method_return_type =
                     transpiler_mir_decl_method_return_type(method_meta);
-                if (method_return_type == NULL && method_meta == NULL
-                    && !transpiler_active_has_mir(ctx)) {
-                    method_decl = find_nominal_host_method_decl(
-                        ctx, receiver_type, method_name);
-                    method_return_type = ast_func_return_type(method_decl);
-                }
             }
             if (method_return_type != NULL) {
                 char *resolved = render_type_name_in_ctx(ctx,
@@ -323,7 +316,6 @@ transpiler_expr_infer_call_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 const MIRDeclMethod *host_method_meta =
                     transpiler_find_host_method_metadata_in_context(
                         ctx, host_name, name);
-                ASTNode *host_method = NULL;
                 ASTNode *host_return_type = NULL;
                 const char *host_return_type_name =
                     transpiler_mir_decl_method_return_type_name(
@@ -343,18 +335,6 @@ transpiler_expr_infer_call_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 }
                 host_return_type =
                     transpiler_mir_decl_method_return_type(host_method_meta);
-                if (host_method_meta == NULL) {
-                    host_method = current_host_method_decl(ctx, name);
-                    if (host_method != NULL && transpiler_active_has_mir(ctx)) {
-                        transpiler_set_mir_inventory_missing(ctx,
-                            "MIR-only C path missing hosted self-call inference method metadata for '%s.%s'",
-                            host_name != NULL ? host_name : "(anonymous-host)",
-                            name != NULL ? name : "(anonymous)");
-                        return "Unknown";
-                    }
-                    if (host_method != NULL)
-                        host_return_type = ast_func_return_type(host_method);
-                }
                 if (host_return_type != NULL) {
                     char *resolved =
                         render_type_name_in_ctx(ctx, host_return_type);

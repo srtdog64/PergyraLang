@@ -191,13 +191,6 @@ llvm_callable_decl_exists(LLVMGenCtx *ctx, const char *name)
         || llvm_intent_decl_exists(ctx, name);
 }
 
-ASTNode *
-llvm_find_nominal_host_method_decl(LLVMGenCtx *ctx, const char *host_type_name,
-                                   const char *method_name)
-{
-    return llvm_find_host_method_decl_in_context(ctx, host_type_name,
-                                                method_name);
-}
 
 bool
 llvm_zone_has_state(LLVMGenCtx *ctx, ASTNode *zone_decl,

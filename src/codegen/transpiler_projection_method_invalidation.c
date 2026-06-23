@@ -189,24 +189,16 @@ append_overlay_method_projection_invalidations(CodeBuf *buf,
                 const MIRDeclMethod *method_meta =
                     transpiler_find_host_method_metadata_in_context(
                         ctx, field_type_name, method_name);
-                if (method_meta != NULL && transpiler_active_has_mir(ctx)) {
+                if (method_meta != NULL) {
                     append_overlay_method_projection_invalidations_from_metadata(
                         buf, ctx, source_slot_name,
                         field_type_name, method_meta, depth + 1);
-                } else if (transpiler_active_has_mir(ctx)) {
+                } else {
                     transpiler_set_mir_inventory_missing(ctx,
                         "MIR-only C path missing projection invalidation method metadata for '%s.%s'",
                         field_type_name != NULL ? field_type_name : "(anonymous)",
                         method_name != NULL ? method_name : "(anonymous)");
                     return;
-                } else {
-                    ASTNode *method_decl = find_nominal_host_method_decl(
-                        ctx, field_type_name, method_name);
-                    append_overlay_method_projection_invalidations(
-                        buf, ctx, source_slot_name,
-                        field_type_name,
-                        method_decl != NULL ? ast_func_body(method_decl) : NULL,
-                        depth + 1);
                 }
             }
         }

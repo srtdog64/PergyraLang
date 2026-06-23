@@ -5,9 +5,6 @@
 
 #include "transpiler.h"
 
-ASTNode *transpiler_find_subject_host_method_decl(TranspilerCtx *ctx,
-                                                  const char *type_name,
-                                                  const char *method_name);
 bool transpiler_resolve_zone_subject_receiver(TranspilerCtx *ctx,
                                               ASTNode *receiver,
                                               const char **slot_name_out,

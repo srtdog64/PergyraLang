@@ -55,19 +55,15 @@ llvm_stmt_host_method_return_type(LLVMGenCtx *ctx, const char *host_type_name,
     }
     ret_ty = llvm_mir_decl_method_return_type(method_meta);
     if (ret_ty == NULL && method_meta == NULL) {
-        ASTNode *m =
-            llvm_stmt_host_method_ast_decl(ctx, host_type_name, method_name);
-        if (llvm_active_has_mir(ctx)) {
-            if (m == NULL && llvm_callable_decl_exists(ctx, method_name))
-                return NULL;
-            llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path missing method return metadata for '%s.%s'",
-                host_type_name != NULL ? host_type_name : "(anonymous)",
-                method_name != NULL ? method_name : "(anonymous)");
+        /* MIR-only: method return shape is owned by MIR metadata; the non-MIR
+         * AST method lookup is retired, so a missing row fails closed. */
+        if (llvm_callable_decl_exists(ctx, method_name))
             return NULL;
-        }
-        if (m != NULL)
-            ret_ty = ast_func_return_type(m);
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing method return metadata for '%s.%s'",
+            host_type_name != NULL ? host_type_name : "(anonymous)",
+            method_name != NULL ? method_name : "(anonymous)");
+        return NULL;
     }
     if (ret_ty != NULL) {
         LLVMTypeRef llvm_ret = ast_type_to_llvm(ctx, ret_ty);

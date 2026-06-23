@@ -133,16 +133,12 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         ctx, owned_type_name, method);
                 ASTNode *method_decl = NULL;
                 if (method_meta == NULL) {
-                    if (transpiler_active_has_mir(ctx)) {
-                        transpiler_set_mir_inventory_missing(ctx,
-                            "MIR-only C path missing member-call method metadata for '%s.%s'",
-                            owned_type_name != NULL ? owned_type_name : "(anonymous)",
-                            method != NULL ? method : "(anonymous)");
-                        codebuf_destroy(args_buf);
-                        return NULL;
-                    }
-                    method_decl = find_nominal_host_method_decl(
-                        ctx, owned_type_name, method);
+                    transpiler_set_mir_inventory_missing(ctx,
+                        "MIR-only C path missing member-call method metadata for '%s.%s'",
+                        owned_type_name != NULL ? owned_type_name : "(anonymous)",
+                        method != NULL ? method : "(anonymous)");
+                    codebuf_destroy(args_buf);
+                    return NULL;
                 }
 
                 if (!pergyra_str_copy(stable_type_name,
@@ -233,24 +229,6 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                                 pass_by_ptr = true;
                             free(owned_ptn);
                         }
-                    } else if (method_meta == NULL && method_decl != NULL
-                        && !transpiler_active_has_mir(ctx)) {
-                        size_t param_index = i;
-                        if (ast_func_param_count(method_decl) > 0) {
-                            FuncParam *first = ast_func_param(method_decl, 0);
-                            if (first != NULL && first->name != NULL
-                                && strcmp(first->name, "self") == 0)
-                                param_index++;
-                        }
-                        if (param_index < ast_func_param_count(method_decl)) {
-                            FuncParam *param = ast_func_param(method_decl, param_index);
-                            char *ptn = (param != NULL && param->type != NULL)
-                                ? render_type_name_in_ctx(ctx, param->type)
-                                : NULL;
-                            if (ptn != NULL && is_pointer_self_host_type_name(ctx, ptn))
-                                pass_by_ptr = true;
-                            free(ptn);
-                        }
                     }
                     if (pass_by_ptr) {
                         bool already_pointer = false;
@@ -325,11 +303,6 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         }
                     }
 
-                    if (method_decl == NULL && source_slot_name != NULL
-                        && !transpiler_active_has_mir(ctx)) {
-                        method_decl = find_nominal_host_method_decl(
-                            ctx, owned_type_name, method);
-                    }
                     invalidation =
                         emit_current_overlay_method_projection_invalidation(
                             ctx, source_slot_name, owned_type_name,
@@ -375,10 +348,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                             if (ret_type_name_fact != NULL) {
                                 ret_type_name =
                                     pergyra_strdup(ret_type_name_fact);
-                            } else if (ret_type == NULL && method_meta == NULL
-                                && method_decl != NULL
-                                && !transpiler_active_has_mir(ctx))
-                                ret_type = ast_func_return_type(method_decl);
+                            }
                             if (ret_type_name == NULL && ret_type != NULL)
                                 ret_type_name =
                                     render_type_name_in_ctx(ctx, ret_type);

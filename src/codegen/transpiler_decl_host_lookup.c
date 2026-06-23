@@ -163,26 +163,7 @@ cache_and_return:
     return decl;
 }
 
-ASTNode *
-current_host_method_decl(TranspilerCtx *ctx, const char *method_name)
-{
-    /* MIR-only: hosted method declarations are resolved from MIR method
-     * metadata by callers (transpiler_hosted_method_view_metadata). The non-MIR
-     * AST method lookup is retired; production codegen always has MIR, so this
-     * fails closed. */
-    (void)ctx;
-    (void)method_name;
-    return NULL;
-}
-
-ASTNode *
-find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
-                              const char *method_name)
-{
-    /* MIR-only: see current_host_method_decl. The non-MIR AST method lookup
-     * (and its nominal-method decl cache) is retired; fail closed. */
-    (void)ctx;
-    (void)host_type_name;
-    (void)method_name;
-    return NULL;
-}
+/* MIR-only: current_host_method_decl / find_nominal_host_method_decl (the
+ * non-MIR AST host-method lookups) are retired -- hosted method shape is owned
+ * by MIR metadata and resolved through transpiler_hosted_method_view_metadata /
+ * transpiler_find_host_method_metadata_in_context. */

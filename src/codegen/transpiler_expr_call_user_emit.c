@@ -51,11 +51,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         const MIRDeclMethod *host_method_meta =
             transpiler_find_host_method_metadata_in_context(
                 ctx, host_name, callee_name);
-        ASTNode *host_method = NULL;
-        if (host_method_meta == NULL && !transpiler_active_has_mir(ctx))
-            host_method = current_host_method_decl(ctx, callee_name);
-        if ((host_method_meta != NULL || host_method != NULL)
-            && host_name != NULL) {
+        if (host_method_meta != NULL && host_name != NULL) {
             CodeBuf *args_buf = codebuf_create();
             codebuf_write(args_buf, "self");
             for (size_t i = 0; i < ast_call_arg_count(call); i++) {

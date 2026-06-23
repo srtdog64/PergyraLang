@@ -113,23 +113,6 @@ emit_intent_step_restore_bound_zone_aliases_with_metadata(CodeBuf *out,
     }
 }
 
-bool
-intent_action_has_only_self(ASTNode *action_decl)
-{
-    size_t real_pc = 0;
-    if (action_decl == NULL || action_decl->type != AST_FUNC_DECL)
-        return false;
-    for (size_t i = 0; i < ast_func_param_count(action_decl); i++) {
-        FuncParam *p = ast_func_param(action_decl, i);
-        if (p == NULL || p->name == NULL)
-            continue;
-        if (p->type == NULL && strcmp(p->name, "self") == 0)
-            continue;
-        real_pc++;
-    }
-    return real_pc == 0;
-}
-
 void
 emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
 {

@@ -126,15 +126,11 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                         class_name, method_name);
                 ASTNode *method_decl = NULL;
                 if (method_meta == NULL) {
-                    if (llvm_active_has_mir(ctx)) {
-                        llvm_set_mir_inventory_missing(ctx,
-                            "MIR-only LLVM path missing member-call method metadata for '%s.%s'",
-                            class_name != NULL ? class_name : "(anonymous)",
-                            method_name != NULL ? method_name : "(anonymous)");
-                        return NULL;
-                    }
-                    method_decl = llvm_find_nominal_host_method_decl(ctx,
-                        class_name, method_name);
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing member-call method metadata for '%s.%s'",
+                        class_name != NULL ? class_name : "(anonymous)",
+                        method_name != NULL ? method_name : "(anonymous)");
+                    return NULL;
                 }
                 if (fn_value != NULL && fn_type != NULL && ret_type != NULL) {
                     /* subject methods receive a self pointer; class methods a self value */
@@ -300,15 +296,11 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                 class_name, method_name);
             method_decl = NULL;
             if (method_meta == NULL) {
-                if (llvm_active_has_mir(ctx)) {
-                    llvm_set_mir_inventory_missing(ctx,
-                        "MIR-only LLVM path missing member-call method metadata for '%s.%s'",
-                        class_name != NULL ? class_name : "(anonymous)",
-                        method_name != NULL ? method_name : "(anonymous)");
-                    return NULL;
-                }
-                method_decl = llvm_find_nominal_host_method_decl(ctx,
-                    class_name, method_name);
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing member-call method metadata for '%s.%s'",
+                    class_name != NULL ? class_name : "(anonymous)",
+                    method_name != NULL ? method_name : "(anonymous)");
+                return NULL;
             }
             if (fn_value != NULL && fn_type != NULL && ret_type != NULL) {
                 size_t argc = ast_call_arg_count(node);
@@ -416,15 +408,11 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                         class_name, method_name);
                 ASTNode *method_decl = NULL;
                 if (method_meta == NULL) {
-                    if (llvm_active_has_mir(ctx)) {
-                        llvm_set_mir_inventory_missing(ctx,
-                            "MIR-only LLVM path missing member-call method metadata for '%s.%s'",
-                            class_name != NULL ? class_name : "(anonymous)",
-                            method_name != NULL ? method_name : "(anonymous)");
-                        return NULL;
-                    }
-                    method_decl = llvm_find_nominal_host_method_decl(ctx,
-                        class_name, method_name);
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing member-call method metadata for '%s.%s'",
+                        class_name != NULL ? class_name : "(anonymous)",
+                        method_name != NULL ? method_name : "(anonymous)");
+                    return NULL;
                 }
 
                 if (llvm_type_name_uses_pointer_self(ctx, class_name))

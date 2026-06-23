@@ -471,13 +471,6 @@ transpiler_resolve_nominal_host_expr_type_name(TranspilerCtx *ctx, ASTNode *expr
             }
             ASTNode *ret_type =
                 transpiler_mir_decl_method_return_type(method_meta);
-            if (ret_type == NULL && method_meta == NULL
-                && !transpiler_active_has_mir(ctx)) {
-                ASTNode *method_decl = find_nominal_host_method_decl(
-                    ctx, recv_type, method_name);
-                if (method_decl != NULL)
-                    ret_type = ast_func_return_type(method_decl);
-            }
             if (ret_type != NULL && ret_type->type == AST_TYPE) {
                 const char *ret_name = ast_type_name(ret_type);
                 if (ret_name != NULL

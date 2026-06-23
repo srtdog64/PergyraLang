@@ -76,19 +76,6 @@ llvm_identifier_base_ptr(LLVMGenCtx *ctx, const char *name, LLVMClassTypeEntry *
     return NULL;
 }
 
-ASTNode *
-llvm_current_host_method_decl(LLVMGenCtx *ctx, const char *method_name)
-{
-    const char *host_name;
-
-    host_name = llvm_current_host_class_name(ctx);
-
-    if (ctx == NULL || method_name == NULL || host_name == NULL)
-        return NULL;
-    return llvm_find_nominal_host_method_decl(ctx, host_name,
-                                              method_name);
-}
-
 LLVMValueRef
 llvm_current_self_call_arg(LLVMGenCtx *ctx)
 {

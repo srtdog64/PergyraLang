@@ -137,21 +137,15 @@ llvm_emit_specialized_method_ondemand(LLVMGenCtx *ctx, const char *class_name,
     mir_method = llvm_mir_decl_method_routine(ctx, method_meta);
     tmpl = NULL;
     method_decl = NULL;
-    if (llvm_active_has_mir(ctx)) {
-        if (generic_header == NULL || method_meta == NULL
-            || mir_method == NULL) {
-            llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path missing generic method routine metadata for '%s.%s'",
-                base,
-                method_name != NULL ? method_name : "(anonymous)");
-            return false;
-        }
-    } else {
-        tmpl = llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, base);
-        method_decl = llvm_find_nominal_host_method_decl(ctx, base,
-            method_name);
-        if (tmpl == NULL || method_decl == NULL)
-            return false;
+    /* MIR-only: generic method specialization is owned by MIR metadata; the
+     * non-MIR AST template/method lookup is retired and fails closed. */
+    if (generic_header == NULL || method_meta == NULL
+        || mir_method == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing generic method routine metadata for '%s.%s'",
+            base,
+            method_name != NULL ? method_name : "(anonymous)");
+        return false;
     }
     gp = generic_header == NULL ? ast_declaration_generic_params(tmpl) : NULL;
     gpc = generic_header != NULL

@@ -462,10 +462,5 @@ void transpiler_bind_current_host_decl_local(TranspilerCtx *ctx, ASTNode *decl);
 ASTNode *transpiler_current_host_decl_local(TranspilerCtx *ctx);
 ASTNode *transpiler_find_nominal_host_decl_local(TranspilerCtx *ctx,
                                                  const char *host_type_name);
-ASTNode *current_host_method_decl(TranspilerCtx *ctx,
-                                  const char *method_name);
-ASTNode *find_nominal_host_method_decl(TranspilerCtx *ctx,
-                                       const char *host_type_name,
-                                       const char *method_name);
 
 #endif /* PERGYRA_TRANSPILER_DECL_LOOKUP_H */

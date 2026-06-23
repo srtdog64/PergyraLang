@@ -130,7 +130,6 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
             const char *method_name = ast_member_name(ast_call_callee(expr));
             const char *receiver_type = transpiler_infer_local_type_name_from_expr(
                 ctx, func_decl, receiver);
-            ASTNode *method_decl = NULL;
             const MIRDeclMethod *method_meta = NULL;
             ASTNode *method_return_type = NULL;
             if (receiver_type != NULL
@@ -165,12 +164,6 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                         ctx, method_return_type_name);
                 method_return_type =
                     transpiler_mir_decl_method_return_type(method_meta);
-                if (method_return_type == NULL && method_meta == NULL
-                    && !transpiler_active_has_mir(ctx)) {
-                    method_decl = find_nominal_host_method_decl(
-                        ctx, receiver_type, method_name);
-                    method_return_type = ast_func_return_type(method_decl);
-                }
             }
             if (method_return_type != NULL) {
                 char *rendered = render_type_name_in_ctx(ctx,
@@ -207,23 +200,6 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                         if (method_return_type_name != NULL)
                             return transpiler_mir_arena_copy_type_name(
                                 ctx, method_return_type_name);
-                    }
-                    if (!transpiler_active_has_mir(ctx)) {
-                        ASTNode *method_decl =
-                            find_nominal_host_method_decl(
-                                ctx, host_name, callee_name);
-                        if (method_decl != NULL) {
-                            ASTNode *ret = ast_func_return_type(method_decl);
-                            if (ret != NULL) {
-                                char *rendered =
-                                    render_type_name_in_ctx(ctx, ret);
-                                const char *copied =
-                                    transpiler_mir_arena_copy_type_name(
-                                        ctx, rendered);
-                                free(rendered);
-                                return copied;
-                            }
-                        }
                     }
                 }
             }

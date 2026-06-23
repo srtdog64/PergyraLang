@@ -10,9 +10,6 @@
 #include "transpiler.h"
 
 ASTNode *find_intent_participant_local(ASTNode *intent, const char *alias);
-ASTNode *find_subject_action_decl(TranspilerCtx *ctx,
-                                  const char *subject_name,
-                                  const char *action_name);
 const MIRDeclMethod *find_subject_action_metadata(TranspilerCtx *ctx,
                                                   const char *subject_name,
                                                   const char *action_name);

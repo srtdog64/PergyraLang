@@ -130,32 +130,4 @@ llvm_stmt_source_local_class(LLVMGenCtx *ctx, ASTNode *recv)
     return llvm_lookup_class(ctx, ann);
 }
 
-/* P0 #4 follow-up: non-MIR host-method return-type compatibility lookup.
- *
- * MIR-active callers must consume MIRDeclMethod metadata and fail closed
- * when the inventory is incomplete. Non-MIR callers can still reach for the
- * AST FuncDecl directly. Returns the FuncDecl on hit, NULL when:
- *   - the name resolves to a global callable (the caller's function-
- *     metadata path picks up; not a host method)
- *   - no nominal host-method decl exists for this host/name pair.
- *
- * Lives in this TU rather than inline in llvm_stmt_type_infer.c so the
- * type-infer TU stays under the production-c-size 699-line cap. */
-ASTNode *
-llvm_stmt_host_method_ast_decl(LLVMGenCtx *ctx,
-                               const char *host_type_name,
-                               const char *method_name)
-{
-    if (ctx == NULL || host_type_name == NULL || method_name == NULL)
-        return NULL;
-    if (llvm_active_has_mir(ctx))
-        return NULL;
-    ASTNode *callable = llvm_find_callable_decl(ctx, method_name);
-    if (callable != NULL && callable->type == AST_FUNC_DECL)
-        return NULL;
-    ASTNode *m = llvm_find_nominal_host_method_decl(
-        ctx, host_type_name, method_name);
-    return (m != NULL && m->type == AST_FUNC_DECL) ? m : NULL;
-}
-
 #endif /* PGY_LLVM_ENABLED */

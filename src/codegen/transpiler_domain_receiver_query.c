@@ -51,27 +51,6 @@ transpiler_zone_subject_slot_type_name(TranspilerCtx *ctx,
     return NULL;
 }
 
-ASTNode *
-transpiler_find_subject_host_method_decl(TranspilerCtx *ctx,
-                                         const char *type_name,
-                                         const char *method_name)
-{
-    ASTNode *decl;
-    ASTNode *method;
-
-    if (ctx == NULL || type_name == NULL || method_name == NULL)
-        return NULL;
-
-    decl = find_subject_host_decl(ctx, type_name);
-    if (decl == NULL || decl->type != AST_CLASS_DECL)
-        return NULL;
-
-    method = find_nominal_host_method_decl(ctx, type_name, method_name);
-    if (method == NULL || method->type != AST_FUNC_DECL)
-        return NULL;
-    return method;
-}
-
 bool
 transpiler_resolve_zone_subject_receiver(TranspilerCtx *ctx,
                                          ASTNode *receiver,

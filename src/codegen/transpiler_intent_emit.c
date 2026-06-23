@@ -413,7 +413,6 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 const char *alias = dispatch_aliases[j];
                 const char *subject_name = NULL;
                 const MIRDeclMethod *action_meta = NULL;
-                ASTNode *action_decl = NULL;
                 if (mir_only_intent) {
                     subject_name = intent_zone_binding_type_name_with_bindings(
                         node, alias, &binding_metadata);
@@ -438,14 +437,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 }
                 action_meta = find_subject_action_metadata(ctx,
                     subject_name, step_name);
-                if (!mir_only_intent && action_meta == NULL)
-                    action_decl = find_subject_action_decl(ctx,
-                        subject_name, step_name);
-                if (subject_name != NULL
-                    && ((action_meta != NULL
-                         && intent_action_metadata_has_only_self(action_meta))
-                        || (action_meta == NULL && action_decl != NULL
-                            && intent_action_has_only_self(action_decl)))) {
+                if (subject_name != NULL && action_meta != NULL
+                    && intent_action_metadata_has_only_self(action_meta)) {
                     write_indent(ctx);
                     codebuf_write(ctx->out, "%s_%s(%s);\n",
                         subject_name, step_name, alias);

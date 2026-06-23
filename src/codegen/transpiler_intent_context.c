@@ -30,31 +30,6 @@ find_intent_participant_local(ASTNode *intent, const char *alias)
     return NULL;
 }
 
-ASTNode *
-find_subject_action_decl(TranspilerCtx *ctx,
-                         const char *subject_name,
-                         const char *action_name)
-{
-    ASTNode *decl;
-    ASTNode *method;
-
-    if (ctx == NULL || subject_name == NULL || action_name == NULL)
-        return NULL;
-
-    decl = find_subject_host_decl(ctx, subject_name);
-    if (decl == NULL || decl->type != AST_CLASS_DECL
-        || ast_class_nominal_kind(decl) != NOMINAL_DECL_SUBJECT) {
-        return NULL;
-    }
-
-    method = find_nominal_host_method_decl(ctx, subject_name, action_name);
-    if (method == NULL || method->type != AST_FUNC_DECL
-        || !ast_func_is_action(method)) {
-        return NULL;
-    }
-    return method;
-}
-
 const MIRDeclMethod *
 find_subject_action_metadata(TranspilerCtx *ctx,
                              const char *subject_name,
