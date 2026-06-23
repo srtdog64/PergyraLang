@@ -78,6 +78,18 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Lexer real-source selfcheck leaves the concat bridge
+
+- Replaced the remaining lexer `selfcheck_sources.sh` bridge with the real
+  `src/self_hosted/lexer/main.pgy` entrypoint. The semantic checker now sees
+  the lexer owner imports through `source_bundle_owner.pgy`; no temporary
+  import-stripped unit is generated.
+- Removed the obsolete `fixture/source.txt` input side channel from
+  `src/self_hosted/lexer/main.pgy`. Lexer input is now `Args()[0]` or the
+  no-arg `examples/hello.pgy` probe default.
+- Tightened `tests/self_hosted_component_contract_smoke.sh` so the retired
+  lexer concat bridge and source-file fallback cannot reappear silently.
+
 ### 2026-06-23 -- Parser input boundary unified on argv
 
 - Removed the legacy `fixture/source.txt` source override from

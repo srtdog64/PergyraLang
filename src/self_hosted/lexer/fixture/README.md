@@ -26,7 +26,7 @@ The lexer fixture directory does not carry `.pgy` sources of its own; all
 sources are external. Parser fixtures behave differently; see
 `src/self_hosted/parser/fixture/README.md`.
 
-## Legacy Fallback
+## Input Boundary
 
-`source.txt` is retained only as a local manual fallback. The normal parity and
-scale-probe paths pass the source through `Args()[0]`.
+This directory must not carry a `source.txt` side-channel. Parity, scale probes,
+and semantic selfcheck pass the source path through `Args()[0]`.

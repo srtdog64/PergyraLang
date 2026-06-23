@@ -296,9 +296,10 @@ Substrate progress.
   bodies without leaking block-local `let` bindings into the parent
   environment. The parity set now includes an import-backed fixture, and
   `src/self_hosted/parity/selfcheck_sources.sh` checks
-  `src/self_hosted/semantic/main.pgy` as a real imported source bundle rather
-  than generating a grep-concatenated semantic unit. Parser/codegen/linter
-  source breadth remains a later semantic-substitution rung.
+  `src/self_hosted/semantic/main.pgy` and `src/self_hosted/lexer/main.pgy` as
+  real imported source bundles rather than generating import-stripped temporary
+  units. Parser/codegen/linter source breadth remains a later
+  semantic-substitution rung.
 - Building the signature table reproduced the array value-semantics finding from
   the linter: a helper that `ArrayPush`es into an `Array<T>` parameter mutates a
   copy, so the table is built inline in the owning function until `inout Array<T>`

@@ -24,8 +24,8 @@ compared, rollback to C trivial".
   seven source fixtures, including an escaped-string backend-compare fixture.
   The broader scale probe covers `examples/*.pgy` and
   `tests/cases/backend_compare/**/main.pgy`.
-- The parity script passes the source path through `Args()[0]`;
-  `fixture/source.txt` is retained only as a local manual fallback.
+- The parity and selfcheck scripts pass the source path through `Args()[0]`.
+  No side-channel source file is part of the input contract.
 - The lexer subset handles the token families exercised by the measured
   examples + backend-compare surface: common keywords, identifiers, decimal
   integer/float/Long literals, double-quoted strings with backslash escapes,

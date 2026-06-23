@@ -122,6 +122,10 @@ one owner cannot accidentally materialize the same declarations twice.
   fixture, and `selfcheck_sources.sh` now checks `src/self_hosted/semantic/main.pgy`
   as a real imported source bundle instead of generating a grep-concatenated
   semantic unit.
+- **2026-06-23** -- the real-source semantic selfcheck now checks
+  `src/self_hosted/lexer/main.pgy` through the same source-bundle owner. The
+  retired lexer grep-concat unit and lexer `fixture/source.txt` input side
+  channel are contract-gated against reappearing.
 - **2026-06-16** -- `make self-host-preparation-test-smoke` is green again on
   main after refreshing the doc-link checker expected counts for the current
   `docs/INDEX.md`. The measured compiler-internal substitution is now 8,642

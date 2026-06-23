@@ -11,10 +11,10 @@
 #     make pgy
 #     src/self_hosted/parity/selfcheck_sources.sh
 #
-# Seed: import-aware semantic self-application now checks
-# src/self_hosted/semantic/main.pgy through the same source-bundle owner used by
-# the tool. Sources that use unsupported constructs stay out of the list until
-# the checker covers them.
+# Seed: import-aware semantic self-application now checks imported real
+# entrypoints through the same source-bundle owner used by the tool. Sources
+# that use unsupported constructs stay out of the list until the checker covers
+# them.
 
 set -euo pipefail
 
@@ -46,27 +46,15 @@ LIB_BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/lib"
 mkdir -p "$LIB_BUILD_DIR"
 cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
 
-# Curated list of standalone real self-host sources the checker is expected to
-# accept. Import-based entrypoints are checked through unit files below because
-# this bounded checker does not resolve imports yet.
+# Curated list of real self-host sources the checker is expected to accept.
+# Imported entrypoints must be checked through source_bundle_owner.pgy, not by
+# deleting import lines or concatenating temporary units.
 SELF_SOURCES=(
     "src/self_hosted/lib/text_scan.pgy"
     "src/self_hosted/lib/diagnostic.pgy"
     "src/self_hosted/semantic/main.pgy"
+    "src/self_hosted/lexer/main.pgy"
 )
-
-LEXER_UNIT_REL=".tmp/self_hosted/semantic/lexer_selfcheck_unit.pgy"
-LEXER_UNIT="$ROOT_DIR/$LEXER_UNIT_REL"
-: > "$LEXER_UNIT"
-for rel in \
-    "src/self_hosted/lexer/char_owner.pgy" \
-    "src/self_hosted/lexer/token_owner.pgy" \
-    "src/self_hosted/lexer/scan_owner.pgy" \
-    "src/self_hosted/lexer/main.pgy"; do
-    grep -h -v '^import ' "$ROOT_DIR/$rel" >> "$LEXER_UNIT"
-done
-
-SELF_SOURCES+=("$LEXER_UNIT_REL")
 
 BACKENDS="${PGY_SELFHOST_SEMANTIC_BACKENDS:-c llvm}"
 for backend in $BACKENDS; do

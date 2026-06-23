@@ -156,8 +156,10 @@ output and live `pgy --tokens` drift on 7 source fixtures:
 `binary_search`, plus backend-compare `string_escape_sequences`. `main.pgy` is
 now only the entrypoint; character/codepoint classification, token keyword/line
 rendering, and the scan loop live in `char_owner.pgy`, `token_owner.pgy`, and
-`scan_owner.pgy`. The broader lexer scale probe now measures **993 of 993**
-examples + backend_compare sources byte-equal to the C lexer oracle.
+`scan_owner.pgy`; lexer tool input is only `Args()[0]` or the no-arg
+`examples/hello.pgy` default. The broader lexer scale probe now measures
+**993 of 993** examples + backend_compare sources byte-equal to the C lexer
+oracle.
 
 **Parser at scale (2026-06-23):** the Pergyra-origin parser produces
 byte-equal output vs `pgy --ast` on **120 of 121** committed
@@ -319,8 +321,11 @@ The realistic incremental path toward genuine self-host:
    identifier use in Pergyra, then compares against the C compiler accept/reject
    oracle. Recursive import expansion is now owned by `source_bundle_owner.pgy`,
    and the import-backed call fixture proves signatures are consumed from the
-   source bundle instead of from a hidden single-file `main` assumption.
-   oracle on C and LLVM binaries across 65 fixtures. The implementation is split
+   source bundle instead of from a hidden single-file `main` assumption. The
+   real-source selfcheck now feeds both `src/self_hosted/semantic/main.pgy` and
+   `src/self_hosted/lexer/main.pgy` through that source-bundle owner rather than
+   a generated import-stripped unit. The oracle parity runs on C and LLVM
+   binaries across 66 fixtures. The implementation is split
    into source-of-truth owners (`text_scan_owner`, `diagnostic_owner`,
    `env_owner`, `expr_type_owner`, `call_check_owner`, `body_check_owner`, and
    `program_check_owner`) with a thin `main.pgy` entrypoint. Next expansion should add

@@ -8,9 +8,8 @@
 // Outputs the same text `pgy --tokens` does, byte-for-byte (with LF line
 // endings; the parity script normalizes CRLF on Windows).
 //
-// Each tool invocation lexes the first process argument when present. The
-// legacy `fixture/source.txt` override remains as a local fallback for probes
-// that have not moved to argv yet.
+// Each tool invocation lexes the first process argument when present. No-arg
+// runs default to examples/hello.pgy for manual probes.
 //
 // Contract: see intent.md in the same directory.
 
@@ -20,16 +19,9 @@ import "scan_owner.pgy";
 
 func Main() -> Void {
     let run_args: Array<String> = Args();
-    let override_path: String = "src/self_hosted/lexer/fixture/source.txt";
     let source_path: String = "examples/hello.pgy";
     if ArrayLength(run_args) > 0 {
         source_path = run_args[0];
-    } else if FileExists(override_path) {
-        let raw: String = ReadFile(override_path);
-        let trimmed: String = StringTrim(raw);
-        if StringLength(trimmed) > 0 {
-            source_path = trimmed;
-        }
     }
 
     if !FileExists(source_path) {

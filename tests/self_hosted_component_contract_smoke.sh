@@ -34,6 +34,14 @@ require_text() {
         fail "$rel missing term: $term"
 }
 
+reject_text() {
+    local rel="$1"
+    local term="$2"
+    if grep -Fq -- "$term" "$ROOT_DIR/$rel"; then
+        fail "$rel must not contain retired term: $term"
+    fi
+}
+
 contains_line() {
     local haystack="$1"
     local needle="$2"
@@ -131,6 +139,12 @@ require_owner_surface mir_lower \
     "stmt_render.pgy" \
     "routine_lower.pgy" \
     "decl_lower.pgy"
+
+require_text "src/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/main.pgy"'
+require_text "src/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lexer/main.pgy"'
+reject_text "src/self_hosted/parity/selfcheck_sources.sh" "lexer_selfcheck_unit"
+reject_text "src/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import '"
+reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 
 semantic_items="$(extract_shell_array_items "$PARITY_DIR/semantic_parity.sh" SOURCE_PAIRS | sed 's/:.*//')"
 [[ -n "$semantic_items" ]] || fail "semantic parity SOURCE_PAIRS is empty"
