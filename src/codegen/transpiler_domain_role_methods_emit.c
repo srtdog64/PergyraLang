@@ -70,9 +70,6 @@ emit_role_method_impl(const char *role_name,
             method_name != NULL ? method_name : "(anonymous)");
         return;
     }
-    if (!transpiler_active_has_mir(ctx)
-        && (method == NULL || method->type != AST_FUNC_DECL))
-        return;
     if (mir_method != NULL) {
         char emitted_name[256];
         if (!transpiler_role_ability_host_method_name(

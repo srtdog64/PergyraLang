@@ -50,10 +50,6 @@ llvm_class_constructor_field_type_name_at(LLVMGenCtx *ctx,
     if (ctx == NULL || callee_name == NULL)
         return NULL;
 
-    if (!llvm_active_has_mir(ctx)) {
-        compat_decl = llvm_find_decl_in_active_inventory(
-            ctx, AST_CLASS_DECL, callee_name);
-    }
     field_view = llvm_hosted_class_field_view_from_decl(
         ctx, callee_name, compat_decl);
     if (llvm_active_has_mir(ctx) && !field_view.uses_mir_metadata) {

@@ -180,11 +180,6 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
         LLVMSetValueName(user_lowercase->fn, "__pgy_user_main_lowercase");
     }
 
-    if (!llvm_active_has_mir(ctx)
-        && llvm_lookup_function(ctx, "Main") == NULL
-        && user_lowercase == NULL) {
-        return;
-    }
 
     bool has_top_level_exec = false;
     bool has_main_function = false;

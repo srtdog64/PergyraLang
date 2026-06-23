@@ -506,16 +506,6 @@ ensure_type_specializations_from_ast_to(TranspilerCtx *ctx, CodeBuf *dst,
                 ctx, dst, target_type_name);
             return;
         }
-        if (!transpiler_active_has_mir(ctx)) {
-            ASTNode *alias_decl = transpiler_find_type_alias_decl(
-                ctx, ast_type_name(type_node));
-            if (alias_decl != NULL
-                && ast_type_alias_target_type(alias_decl) != NULL) {
-                ensure_type_specializations_from_ast_to(ctx, dst,
-                    ast_type_alias_target_type(alias_decl));
-                return;
-            }
-        }
     }
 
     if (ast_type_generic_args(type_node) != NULL) {
