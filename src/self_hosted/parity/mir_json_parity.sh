@@ -117,6 +117,7 @@ CODEGEN_FIXTURES=(
     mixed_int_str
     nested_concat
     nested_ctrl
+    result_try
     str_array
     str_array_concat
     str_array_push

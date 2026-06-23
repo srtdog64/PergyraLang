@@ -67,6 +67,25 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Codegen owner split and Result<Int> try enter self-host codegen
+
+- Split `src/self_hosted/codegen/main.pgy` from a monolithic implementation into
+  a thin CLI entrypoint plus responsibility-owned modules:
+  `text_owner`, `type_env`, `expr_scan`, `expr_rewrite`, `stmt_emit`,
+  `function_emit`, and `program_emit`. Each codegen source file is now below
+  the 600-line design target while preserving the import-merged self-host
+  bootstrap path.
+- Promoted postfix `?` for the supported `Result<Int>` surface. `Let: x : Int =
+  Call(...)?` inside a `Result<Int>` function now lowers to a temporary
+  `pgy_result_int`, emits the active defer stack before propagating `Err`, and
+  binds the unwrapped payload on the success path. `ToString(String)` now routes
+  through the string path instead of printing a pointer-shaped integer.
+- Added `result_try.pgy` to codegen parity and the MIR JSON hard path. Verified
+  codegen parity at **54 fixtures**, MIR JSON lowering parity at **70 positive
+  fixtures plus 2 clean rejects**, and refreshed the examples-scale survey to
+  47 PASS, 25 CODEGEN-gap, 36 MIR-LOWER-gap, 13 ORACLE-skip. `pipe_and_try`
+  now passes through the self-host MIR JSON -> C path.
+
 ### 2026-06-23 -- Defer body facts enter self-host MIR JSON lowering
 
 - Added an explicit `defer_body` MIR JSON fact for `AST_DEFER_STMT` instructions.

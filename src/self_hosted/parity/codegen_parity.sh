@@ -145,6 +145,7 @@ FIXTURES=(
     func_call
     func_recursive
     result_int_core
+    result_try
     str_greet
     str_reassign
     for_sum

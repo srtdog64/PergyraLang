@@ -1,0 +1,305 @@
+// src/self_hosted/codegen/text_owner.pgy
+//
+// Text and delimiter scanning primitives owned by the self-host codegen front boundary.
+
+func CharAt(s: String, i: Int) -> String {
+    let n: Int = StringLength(s);
+    if i < 0 {
+        return "";
+    }
+    if i >= n {
+        return "";
+    }
+    return Substring(s, i, 1);
+}
+
+// Index of the next '\n' at or after `start`, or StringLength(s) if none.
+func NextNewline(s: String, start: Int) -> Int {
+    let n: Int = StringLength(s);
+    let i: Int = start;
+    while i < n {
+        if CharAt(s, i) == "\n" {
+            return i;
+        }
+        i = i + 1;
+    }
+    return n;
+}
+
+// True when `s` starts with `prefix`.
+func StartsWith(s: String, prefix: String) -> Bool {
+    let pn: Int = StringLength(prefix);
+    if StringLength(s) < pn {
+        return false;
+    }
+    return Substring(s, 0, pn) == prefix;
+}
+
+func Die(msg: String) -> Void {
+    Log(Concat("CODEGEN ERROR: ", msg));
+    Exit(1);
+}
+
+func ContainsCallOutsideStrings(text: String, callee: String) -> Bool {
+    let n: Int = StringLength(text);
+    let needle: String = Concat(callee, "(");
+    let m: Int = StringLength(needle);
+    let i: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(text, i);
+        if in_str {
+            if c == "\\" {
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            i = i + 1;
+            continue;
+        }
+        if m > 0 && i + m <= n && Substring(text, i, m) == needle {
+            if i == 0 || !IsIdentChar(CharAt(text, i - 1)) {
+                return true;
+            }
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func ContainsOutsideStrings(text: String, needle: String) -> Bool {
+    let n: Int = StringLength(text);
+    let m: Int = StringLength(needle);
+    let i: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(text, i);
+        if in_str {
+            if c == "\\" {
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            i = i + 1;
+            continue;
+        }
+        if m > 0 && i + m <= n && Substring(text, i, m) == needle {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func TrySurfaceAllowedLine(line: String) -> Bool {
+    let t: String = StringTrim(line);
+    if !StartsWith(t, "Let: ") {
+        return false;
+    }
+    return StringIndexOf(t, " : Int = (?") >= 0;
+}
+
+func RejectUnsupportedCodegenBuiltins(ast: String) -> Void {
+    let total: Int = StringLength(ast);
+    let pos: Int = 0;
+    while pos < total {
+        let nl: Int = NextNewline(ast, pos);
+        let line: String = Substring(ast, pos, nl - pos);
+        if ContainsOutsideStrings(line, "(?") && !TrySurfaceAllowedLine(line) {
+            Die("unsupported try expression in self-host codegen subset");
+        }
+        pos = nl + 1;
+    }
+    if ContainsCallOutsideStrings(ast, "ArrayReverse") {
+        Die("unsupported builtin in self-host codegen subset: ArrayReverse");
+    }
+}
+
+func IsIdentChar(c: String) -> Bool {
+    if StringLength(c) != 1 {
+        return false;
+    }
+    let chars: String = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
+    return StringIndexOf(chars, c) >= 0;
+}
+
+// True when `e` is a single bare identifier (alnum/underscore, first non-digit).
+func IsIdentifier(e: String) -> Bool {
+    let n: Int = StringLength(e);
+    if n == 0 {
+        return false;
+    }
+    let digits: String = "0123456789";
+    if StringIndexOf(digits, CharAt(e, 0)) >= 0 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < n {
+        if !IsIdentChar(CharAt(e, i)) {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func IsIdentStart(c: String) -> Bool {
+    if StringLength(c) != 1 {
+        return false;
+    }
+    let chars: String = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
+    return StringIndexOf(chars, c) >= 0;
+}
+
+// Given the index of a '[' in `s`, return the index of its matching ']',
+// respecting nesting and string literals. Returns -1 if unmatched.
+func FindMatchingBracket(s: String, open_idx: Int) -> Int {
+    let n: Int = StringLength(s);
+    let i: Int = open_idx;
+    let depth: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(s, i);
+        if in_str {
+            if c == "\\" {
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+        } else if c == "[" {
+            depth = depth + 1;
+        } else if c == "]" {
+            depth = depth - 1;
+            if depth == 0 {
+                return i;
+            }
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
+// Given the index of a '(' in `s`, return the index of its matching ')',
+// respecting nested parens and string literals. Returns -1 if unmatched.
+func FindMatchingParen(s: String, open_idx: Int) -> Int {
+    let n: Int = StringLength(s);
+    let i: Int = open_idx;
+    let depth: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(s, i);
+        if in_str {
+            if c == "\\" {
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+        } else if c == "(" {
+            depth = depth + 1;
+        } else if c == ")" {
+            depth = depth - 1;
+            if depth == 0 {
+                return i;
+            }
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
+// True when `e` is a single call `Name(args...)` whose closing paren is the
+// last character (so it is one call, not `f() + g()`).
+func IsSingleCall(e: String) -> Bool {
+    let n: Int = StringLength(e);
+    if n == 0 || CharAt(e, n - 1) != ")" {
+        return false;
+    }
+    let op: Int = StringIndexOf(e, "(");
+    if op <= 0 {
+        return false;
+    }
+    let prefix: String = Substring(e, 0, op);
+    if !IsIdentifier(prefix) {
+        return false;
+    }
+    return FindMatchingParen(e, op) == n - 1;
+}
+
+// Within `s`, find the index of the top-level comma (depth 0, not inside a
+// string literal). Returns -1 if none. `s` is the argument list interior of
+// a Concat(...) call, e.g. `"a", "b"` or `"a", Concat("b", "c")`.
+func FindTopLevelComma(s: String) -> Int {
+    let n: Int = StringLength(s);
+    let i: Int = 0;
+    let depth: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(s, i);
+        if in_str {
+            if c == "\\" {
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            i = i + 1;
+            continue;
+        }
+        if c == "(" {
+            depth = depth + 1;
+            i = i + 1;
+            continue;
+        }
+        if c == ")" {
+            depth = depth - 1;
+            i = i + 1;
+            continue;
+        }
+        if c == "," && depth == 0 {
+            return i;
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
+// ---- Type environment --------------------------------------------------
+// The environment is a string of `name=kind:Type|` entries with a leading
+// `|`, e.g. `|Greet=f:String|who=v:String|`. kind is `v` (variable) or `f`
+// (function return). Lookups search for `|name=kind:` and read to the next
+// `|`. Variables are flat per function (no block scoping); functions are
+// global. This is enough for run-stdout parity on the supported subset.

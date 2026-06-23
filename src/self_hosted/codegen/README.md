@@ -7,15 +7,19 @@ open" freeze. Before that date this folder was a reserved stub.
 
 ## Rung-0..15 (2026-06-17) - active
 
-`main.pgy` consumes `pgy --ast` text for an `Int` / `Bool` / `String` /
-`Array<Int>` / `Array<String>` / `Void` function subset and emits a
-self-contained C program whose **run-stdout** matches the C/LLVM oracle.
+`main.pgy` is the thin CLI entrypoint. It imports owner modules for text
+scanning, type environment lookup, expression rewriting, statement emission,
+function/declaration scanning, and program assembly. Together they consume
+`pgy --ast` text for an `Int` / `Bool` / `String` / `Array<Int>` /
+`Array<String>` / `Void` function subset and emit a self-contained C program
+whose **run-stdout** matches the C/LLVM oracle.
 String builtins: `Concat`, `ToString`, `StringLength`, `Substring`,
 `StringIndexOf`, `StringTrim`, `StringJoin`, `Join`. Scalar conversion:
 `ToFloat`. Array combinators: `ArraySort`, `ArrayMap`, `ArrayFilter`
 for `Array<Int>` plus unary `Int -> Int` / `Int -> Bool` function references.
-Result values: `Result<Int>` with `Ok`, `Err`, `IsOk`, `IsErr`, `Unwrap`, and
-`UnwrapOr`; postfix `?` remains an unsupported control-flow surface.
+Result values: `Result<Int>` with `Ok`, `Err`, `IsOk`, `IsErr`, `Unwrap`,
+`UnwrapOr`, and postfix `?` early-return lowering for `Int` payload lets inside
+`Result<Int>` functions.
 Defer: block-local `Defer: / Block:` scope-exit statements with LIFO ordering
 for the supported statement subset.
 Tool I/O: `FileExists`, `ReadFile`, `Args`.
@@ -61,8 +65,10 @@ recursion are free. `Main` lowers to `int main(void)`, or to
   member reads (`p.x`) pass through as C field access.
 - `Let: <name> : Result<Int> = Ok(v)|Err(s)|Call(...)` -> value-passed
   `pgy_result_int`; `IsOk` / `IsErr` branch conditions and `Unwrap` /
-  `UnwrapOr` integer expressions lower through local helpers. The postfix `?`
-  operator is rejected before C emission until early-return lowering is owned.
+  `UnwrapOr` integer expressions lower through local helpers. `Let: <name> :
+  Int = Call(...)?` inside a `Result<Int>` function lowers to a temporary
+  `pgy_result_int`, propagates `Err` with the active defer stack emitted before
+  return, and binds the unwrapped `Int` payload on the success path.
 - `Defer:` -> local block-exit emission in reverse registration order. Return
   paths emit the currently active defer stack before returning; broader
   resource/defer semantics remain owned by the native backend path.
@@ -91,7 +97,7 @@ fallback. The intent contract is pinned in `intent.md`; this README is
 explanatory.
 
 Parity gate: `src/self_hosted/parity/codegen_parity.sh` builds `main.pgy` through
-the requested backend set, runs it on each of the 53 committed fixtures'
+the requested backend set, runs it on each of the 54 committed fixtures'
 `pgy --ast` output, gcc-compiles the emitted C, runs it, and compares run-stdout
 against the committed expected output. A live-drift guard re-derives that
 expected output from the C-backend oracle executable. LLVM is mandatory when the

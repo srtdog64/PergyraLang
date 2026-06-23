@@ -1,0 +1,393 @@
+// src/self_hosted/codegen/expr_rewrite.pgy
+//
+// Expression lowering owner for self-host C emission.
+
+func RewriteExpr(e: String, env: String) -> String {
+    return RewriteBool(e, env);
+}
+
+func RewriteMemberCalls(e: String, env: String) -> String {
+    let n: Int = StringLength(e);
+    let out: String = "";
+    let i: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(e, i);
+        if in_str {
+            out = Concat(out, c);
+            if c == "\\" && i + 1 < n {
+                out = Concat(out, CharAt(e, i + 1));
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            out = Concat(out, c);
+            i = i + 1;
+            continue;
+        }
+        if c == "." {
+            let ol: Int = StringLength(out);
+            let end: Int = ol;
+            let start: Int = ol;
+            while start > 0 && IsIdentChar(CharAt(out, start - 1)) {
+                start = start - 1;
+            }
+            if start < end && i + 1 < n && IsIdentStart(CharAt(e, i + 1)) {
+                let j: Int = i + 1;
+                while j < n && IsIdentChar(CharAt(e, j)) {
+                    j = j + 1;
+                }
+                if j < n && CharAt(e, j) == "(" {
+                    let receiver: String = Substring(out, start, end - start);
+                    let recv_type: String = LookupKindType(env, receiver, "v");
+                    let method: String = Substring(e, i + 1, j - (i + 1));
+                    let c_name: String = Concat(recv_type, Concat("_", method));
+                    if StringLength(recv_type) > 0 && LookupKindType(env, c_name, "f") != "" {
+                        let close: Int = FindMatchingParen(e, j);
+                        let args: String = Substring(e, j + 1, close - j - 1);
+                        out = Substring(out, 0, start);
+                        out = Concat(out, Concat(c_name, Concat("(", receiver)));
+                        if StringLength(StringTrim(args)) > 0 {
+                            out = Concat(out, Concat(", ", args));
+                        }
+                        out = Concat(out, ")");
+                        i = close + 1;
+                        continue;
+                    }
+                }
+            }
+        }
+        out = Concat(out, c);
+        i = i + 1;
+    }
+    return out;
+}
+
+func RewriteEnumRefs(e: String, env: String) -> String {
+    let n: Int = StringLength(e);
+    let out: String = "";
+    let i: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(e, i);
+        if in_str {
+            out = Concat(out, c);
+            if c == "\\" && i + 1 < n {
+                out = Concat(out, CharAt(e, i + 1));
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            out = Concat(out, c);
+            i = i + 1;
+            continue;
+        }
+        if c == "." {
+            let ol: Int = StringLength(out);
+            let end: Int = ol;
+            let start: Int = ol;
+            while start > 0 && IsIdentChar(CharAt(out, start - 1)) {
+                start = start - 1;
+            }
+            if start < end && i + 1 < n && IsIdentStart(CharAt(e, i + 1)) {
+                let j: Int = i + 1;
+                while j < n && IsIdentChar(CharAt(e, j)) {
+                    j = j + 1;
+                }
+                let receiver: String = Substring(out, start, end - start);
+                let variant: String = Substring(e, i + 1, j - (i + 1));
+                let key: String = Concat(receiver, Concat(".", variant));
+                let value: String = LookupKindType(env, key, "e");
+                if StringLength(value) > 0 {
+                    out = Substring(out, 0, start);
+                    out = Concat(out, value);
+                    i = j;
+                    continue;
+                }
+            }
+        }
+        out = Concat(out, c);
+        i = i + 1;
+    }
+    return out;
+}
+
+// Rewrite a namespace-qualified call `NS.Func(...)` to the flattened C name
+// `NS_Func(...)`. The parser flattens `namespace NS { func Func }` to a
+// top-level `NS_Func` definition but renders calls in dotted form. A `.` that
+// joins two identifiers and is followed (after the second identifier) by `(`
+// is a qualified call; a `.` in `obj.field` (not followed by `(`) is left alone.
+func RewriteQualifiedCalls(e: String) -> String {
+    let n: Int = StringLength(e);
+    let out: String = "";
+    let i: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(e, i);
+        if in_str {
+            out = Concat(out, c);
+            if c == "\\" && i + 1 < n {
+                out = Concat(out, CharAt(e, i + 1));
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            out = Concat(out, c);
+            i = i + 1;
+            continue;
+        }
+        if c == "." {
+            let ol: Int = StringLength(out);
+            let prev_ok: Bool = ol > 0 && IsIdentChar(CharAt(out, ol - 1));
+            let next_ok: Bool = i + 1 < n && IsIdentStart(CharAt(e, i + 1));
+            if prev_ok && next_ok {
+                let j: Int = i + 1;
+                while j < n && IsIdentChar(CharAt(e, j)) {
+                    j = j + 1;
+                }
+                if j < n && CharAt(e, j) == "(" {
+                    out = Concat(out, "_");
+                    i = i + 1;
+                    continue;
+                }
+            }
+        }
+        out = Concat(out, c);
+        i = i + 1;
+    }
+    return out;
+}
+
+func RewriteBoolLiterals(e: String) -> String {
+    let n: Int = StringLength(e);
+    let out: String = "";
+    let i: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(e, i);
+        if in_str {
+            out = Concat(out, c);
+            if c == "\\" && i + 1 < n {
+                out = Concat(out, CharAt(e, i + 1));
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            out = Concat(out, c);
+            i = i + 1;
+            continue;
+        }
+        let prev_ok: Bool = i == 0 || !IsIdentChar(CharAt(e, i - 1));
+        if prev_ok && i + 4 <= n && Substring(e, i, 4) == "true" {
+            let next_true_ok: Bool = i + 4 == n || !IsIdentChar(CharAt(e, i + 4));
+            if next_true_ok {
+                out = Concat(out, "1");
+                i = i + 4;
+                continue;
+            }
+        }
+        if prev_ok && i + 5 <= n && Substring(e, i, 5) == "false" {
+            let next_false_ok: Bool = i + 5 == n || !IsIdentChar(CharAt(e, i + 5));
+            if next_false_ok {
+                out = Concat(out, "0");
+                i = i + 5;
+                continue;
+            }
+        }
+        out = Concat(out, c);
+        i = i + 1;
+    }
+    return out;
+}
+
+func RewriteTokens(e: String, env: String) -> String {
+    let enumed: String = RewriteEnumRefs(e, env);
+    let q0: String = RewriteMemberCalls(enumed, env);
+    let q: String = RewriteQualifiedCalls(q0);
+    let a: String = RewriteArrayLengthEnv(q, env);
+    let b: String = RewriteIndexing(a, env);
+    let c: String = ReplaceAllOutsideStrings(b, "StringLength(", "pgy_strlen(");
+    let d0: String = ReplaceAllOutsideStrings(c, "StringContains(", "pgy_strcontains(");
+    let d: String = ReplaceAllOutsideStrings(d0, "StringIndexOf(", "pgy_strindexof(");
+    let f0: String = ReplaceAllOutsideStrings(d, "Split(", "pgy_split(");
+    let f1: String = ReplaceAllOutsideStrings(f0, "ToInt(", "pgy_toint(");
+    let f: String = ReplaceAllOutsideStrings(f1, "StringTrim(", "pgy_strtrim(");
+    let f2: String = ReplaceAllOutsideStrings(f, "StringReplace(", "pgy_strreplace(");
+    let f3: String = ReplaceAllOutsideStrings(f2, "ToUpper(", "pgy_toupper(");
+    let f4: String = ReplaceAllOutsideStrings(f3, "ToLower(", "pgy_tolower(");
+    let f5: String = ReplaceAllOutsideStrings(f4, "Abs(", "pgy_abs(");
+    let f6: String = ReplaceAllOutsideStrings(f5, "Min(", "pgy_min(");
+    let f7a: String = ReplaceAllOutsideStrings(f6, "Max(", "pgy_max(");
+    let f7b: String = ReplaceAllOutsideStrings(f7a, "Sqrt(", "sqrt(");
+    let f7c: String = ReplaceAllOutsideStrings(f7b, "Pow(", "pow(");
+    let f7d: String = ReplaceAllOutsideStrings(f7c, "Floor(", "floor(");
+    let f7e: String = ReplaceAllOutsideStrings(f7d, "Ceil(", "ceil(");
+    let f7: String = ReplaceAllOutsideStrings(f7e, "Random(", "pgy_random(");
+    let g: String = ReplaceAllOutsideStrings(f7, "FileExists(", "pgy_fexists(");
+    let gw: String = ReplaceAllOutsideStrings(g, "WriteFile(", "pgy_writefile(");
+    let go: String = ReplaceAllOutsideStrings(gw, "FileOpen(", "pgy_fopen(");
+    let gwr: String = ReplaceAllOutsideStrings(go, "FileWrite(", "pgy_fwrite(");
+    let gc: String = ReplaceAllOutsideStrings(gwr, "FileClose(", "pgy_fclose(");
+    let gr: String = ReplaceAllOutsideStrings(gc, "FileRead(", "pgy_fread(");
+    let gp: String = ReplaceAllOutsideStrings(gr, "Print(", "pgy_print(");
+    let h0: String = ReplaceAllOutsideStrings(gp, "ReadFile(", "pgy_readfile(");
+    let h: String = ReplaceAllOutsideStrings(h0, "DirWalk(", "pgy_dirwalk(");
+    let k: String = ReplaceAllOutsideStrings(h, "Args(", "pgy_args(");
+    let mc: String = ReplaceAllOutsideStrings(k, "CharCode(", "pgy_charcode(");
+    let m0: String = ReplaceAllOutsideStrings(mc, "CharAtN(", "pgy_charatn(");
+    let m: String = ReplaceAllOutsideStrings(m0, "Substring(", "pgy_substr(");
+    let jn0: String = ReplaceAllOutsideStrings(m, "StringJoin(", "pgy_strjoin(");
+    let jn: String = ReplaceAllOutsideStrings(jn0, "Join(", "pgy_strjoin(");
+    let asort: String = ReplaceAllOutsideStrings(jn, "ArraySort(", "pgy_ai_sort(");
+    let amap: String = ReplaceAllOutsideStrings(asort, "ArrayMap(", "pgy_ai_map(");
+    let afilter: String = ReplaceAllOutsideStrings(amap, "ArrayFilter(", "pgy_ai_filter(");
+    let rok: String = ReplaceAllOutsideStrings(afilter, "Ok(", "pgy_result_ok(");
+    let rerr: String = ReplaceAllOutsideStrings(rok, "Err(", "pgy_result_err(");
+    let risok: String = ReplaceAllOutsideStrings(rerr, "IsOk(", "pgy_result_is_ok(");
+    let riserr: String = ReplaceAllOutsideStrings(risok, "IsErr(", "pgy_result_is_err(");
+    let runwrapor: String = ReplaceAllOutsideStrings(riserr, "UnwrapOr(", "pgy_result_unwrap_or(");
+    let runwrap: String = ReplaceAllOutsideStrings(runwrapor, "Unwrap(", "pgy_result_unwrap(");
+    let tf: String = ReplaceAllOutsideStrings(runwrap, "ToFloat(", "atof(");
+    let p: String = ReplaceAllOutsideStrings(tf, "ToString(", "pgy_tostr(");
+    // `Concat(a, b)` -> `pgy_concat(a, b)` is a pure name rewrite (same args),
+    // so it lowers recursively and inside arbitrary call arguments.
+    return RewriteBoolLiterals(ReplaceAllOutsideStrings(p, "Concat(", "pgy_concat("));
+}
+
+// Emit a C integer-valued (or boolean) expression from the AST's parenthesized
+// infix, with array/builtin rewrites applied.
+func IntEval(expr: String, env: String) -> String {
+    return RewriteExpr(expr, env);
+}
+
+// Emit a C string-valued (char*) expression for a <strexpr>. `Concat` lowers
+// to a runtime `pgy_concat`; `Substring` to `pgy_substr`; array element reads
+// to `pgy_as_get`; literals / identifiers / calls pass through.
+// String-valued expressions now lower through the same `RewriteExpr` token
+// pipeline as everything else -- `Concat` is a name rewrite (see RewriteExpr),
+// so nested and call-argument occurrences lower correctly without special
+// top-level parsing here.
+// Strip redundant parentheses that wrap an entire expression. The AST printer
+// fully parenthesizes infix (`(("a" + b) + "c")`), which would hide top-level
+// operators behind depth > 0. Removes one wrapping layer at a time.
+func StripOuterParens(e: String) -> String {
+    let s: String = StringTrim(e);
+    while StringLength(s) >= 2 && CharAt(s, 0) == "(" && FindMatchingParen(s, 0) == StringLength(s) - 1 {
+        s = StringTrim(Substring(s, 1, StringLength(s) - 2));
+    }
+    return s;
+}
+
+// Find the first top-level single-char `+` (string-concatenation operator) in a
+// string-valued expression: depth 0 (outside any (), []) and outside string
+// literals. Returns -1 if none.
+func FindTopLevelPlus(s: String) -> Int {
+    let n: Int = StringLength(s);
+    let i: Int = 0;
+    let depth: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(s, i);
+        if in_str {
+            if c == "\\" {
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            i = i + 1;
+            continue;
+        }
+        if c == "(" || c == "[" {
+            depth = depth + 1;
+            i = i + 1;
+            continue;
+        }
+        if c == ")" || c == "]" {
+            depth = depth - 1;
+            i = i + 1;
+            continue;
+        }
+        if depth == 0 && c == "+" {
+            return i;
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
+// Emit a C string-valued (char*) expression. In a confirmed string context a
+// top-level `+` is the concatenation operator (the operands are strings by
+// construction), so it lowers to nested `pgy_concat(...)`. Everything else
+// flows through the token pipeline.
+func StrEval(expr: String, env: String) -> String {
+    let e: String = StripOuterParens(expr);
+    let p: Int = FindTopLevelPlus(e);
+    if p >= 0 {
+        let lhs: String = StringTrim(Substring(e, 0, p));
+        let rhs: String = StringTrim(Substring(e, p + 1, StringLength(e) - (p + 1)));
+        return Concat("pgy_concat(", Concat(StrEval(lhs, env), Concat(", ", Concat(StrEval(rhs, env), ")"))));
+    }
+    if StartsWith(e, "ToString(") {
+        let n: Int = StringLength(e);
+        if CharAt(e, n - 1) != ")" {
+            Die(Concat("malformed ToString(...): ", e));
+        }
+        let arg: String = StringTrim(Substring(e, 9, n - 9 - 1));
+        if ExprKind(arg, env) == "String" {
+            return StrEval(arg, env);
+        }
+    }
+    return RewriteExpr(StringTrim(expr), env);
+}
+
+// Wrap a condition in C parens unless it is already a single parenthesized
+// group. `(a > b)` stays as-is; `flag` becomes `(flag)`; `(a) && (b)` is
+// wrapped to `((a) && (b))`.
+func WrapCond(cond: String, env: String) -> String {
+    let c: String = StringTrim(cond);
+    let n: Int = StringLength(c);
+    if n >= 2 && CharAt(c, 0) == "(" && CharAt(c, n - 1) == ")" && FindMatchingParen(c, 0) == n - 1 {
+        return RewriteExpr(c, env);
+    }
+    return Concat("(", Concat(RewriteExpr(c, env), ")"));
+}
+
+// ---- Statement emitters ------------------------------------------------
+
+// `Let: <name> : Int|String = <expr>`. Registers the variable's type into the
+// environment box and emits a typed C declaration.
