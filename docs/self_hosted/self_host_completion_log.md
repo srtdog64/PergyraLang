@@ -41,7 +41,9 @@ rewrite history.
   declaration/signature rendering, recursive declaration dispatch,
   type/ability/event/enum/zone/effect/relation/role/intent/nominal-domain
   declaration parsing, and compact AST text formatting are separate owner
-  modules.
+  modules. Parser tool input is single-sourced through `Args()[0]` with
+  `examples/hello.pgy` as the no-arg default; scale probing no longer writes a
+  `fixture/source.txt` override.
 - **Backend parity**: parser compiled by C and by LLVM produce byte-identical
   output -- the core self-host correctness signal.
 - **Compiler core**: capability-5 single-source-of-truth is READY for the
@@ -75,6 +77,28 @@ rewrite history.
    allowed -- that is what makes a positive one mean something.
 
 ## Session log
+
+### 2026-06-23 -- Parser input boundary unified on argv
+
+- Removed the legacy `fixture/source.txt` source override from
+  `src/self_hosted/parser/main.pgy`; no-arg runs still default to
+  `examples/hello.pgy`, while parity/scale runs use `Args()[0]`.
+- Rewrote `src/self_hosted/parity/parser_scale_probe.sh` to invoke the parser
+  through the same argv path as the hard parity gate and to compare AST outputs
+  through files with `cmp -s`, avoiding shell string interpretation as a hidden
+  comparison path.
+- This keeps parser substitution as an owner-shaped tool boundary: one source
+  input channel, one oracle comparison channel, and no probe-only side file.
+- The stricter file-based comparison exposed a real scale-only drift:
+  `if let Some(resource)` and similar payload bindings were emitted as
+  `Case: Some()` because the generated parser depended on branch-local
+  `String` reassignment. Moved that responsibility behind
+  `ParseIfLetPayload`, which returns the payload fact directly.
+- Verified `src/self_hosted/parity/parser_scale_probe.sh --failing` with
+  **120/121 byte-equal**, 0 drift, 0 self-host failures, 1 C skip
+  (`secure_slots`), and `make LLVM_ENABLED=0 BUILD_DIR=.tmp/pgy-build-c
+  BIN_DIR=.tmp/pgy-bin-c self-host-parser-parity-test-smoke` green at
+  **188 fixtures**.
 
 ### 2026-06-23 -- Lexer measured corpus closed and escape fixture gated
 

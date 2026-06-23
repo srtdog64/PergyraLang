@@ -34,18 +34,10 @@ import "decl_dispatch_owner.pgy";
 
 func Main() -> Void with caps env, io_read {
     // Default source = examples/hello.pgy; parity harness passes argv[0].
-    // fixture/source.txt remains as a local fallback for older probes.
     let run_args: Array<String> = Args();
-    let override_path: String = "src/self_hosted/parser/fixture/source.txt";
     let source_path: String = "examples/hello.pgy";
     if ArrayLength(run_args) > 0 {
         source_path = run_args[0];
-    } else if FileExists(override_path) {
-        let raw: String = ReadFile(override_path);
-        let trimmed: String = StringTrim(raw);
-        if StringLength(trimmed) > 0 {
-            source_path = trimmed;
-        }
     }
     if !FileExists(source_path) {
         Exit(1);

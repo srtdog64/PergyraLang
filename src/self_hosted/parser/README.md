@@ -5,8 +5,8 @@ produces, byte-for-byte. Mirrors C-side `src/parser/`. The goal is byte-equal
 AST output for a growing source subset, so parity can be checked without
 inventing a second AST serialization format.
 
-- `main.pgy` - entry point. Reads `Args()[0]` when present, falls back to
-  `fixture/source.txt` for older probes, then defaults to `examples/hello.pgy`.
+- `main.pgy` - entry point. Reads `Args()[0]` when present, then defaults to
+  `examples/hello.pgy`. The hard parity and scale probes use the argv path.
 - `fixture/` - committed `<base>.pgy` sources and `<base>_ast.txt` baselines
   used by the 188-source parity harness.
 - `expected/clean.txt` - expected stdout when run on the default source.

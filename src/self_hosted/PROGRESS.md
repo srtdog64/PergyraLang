@@ -156,7 +156,7 @@ rendering, and the scan loop live in `char_owner.pgy`, `token_owner.pgy`, and
 `scan_owner.pgy`. The broader lexer scale probe now measures **993 of 993**
 examples + backend_compare sources byte-equal to the C lexer oracle.
 
-**Parser at scale (2026-06-22):** the Pergyra-origin parser produces
+**Parser at scale (2026-06-23):** the Pergyra-origin parser produces
 byte-equal output vs `pgy --ast` on **120 of 121** committed
 `examples/*.pgy` files. There are now **zero byte-drift cases** in the
 scale probe: every example that both the live C oracle and the self-host
@@ -165,7 +165,12 @@ the one remaining non-match fails under `pgy --ast` itself and is a C-skip
 (`secure_slots`). The scale probe is a
 coverage probe, not a hard parity gate, but it now fails closed: it removes any
 stale generated parser binary before compile and exits if compile does not
-produce a runnable parser. Previous historical match counts:
+produce a runnable parser. The probe and parser entrypoint consume source paths
+only through `Args()[0]`; the old `fixture/source.txt` side channel is retired.
+The file-based probe exposed an `if let Some(resource)` payload loss in the
+self-host parser's generated C, now closed by `ParseIfLetPayload` returning the
+payload fact instead of relying on branch-local `String` reassignment.
+Previous historical match counts:
 105 -> 86 -> 83 -> 80 -> 79 -> 77 -> 72 -> 72 -> 63 -> 59 -> 58 -> 57 -> 53 -> 48 -> 46 -> 43 -> 37 -> 25 -> 11.
 Refresh:
 `bash src/self_hosted/parity/parser_scale_probe.sh --failing`.

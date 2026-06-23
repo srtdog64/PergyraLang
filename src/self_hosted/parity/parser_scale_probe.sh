@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Run the Pergyra-origin parser against every examples/*.pgy file and
-# count how many produce byte-equal output vs `pgy --ast`. This is a
-# coverage probe — not a parity gate. Output is a count summary plus
-# lists of matching and failing files. Read-only beyond source.txt.
+# Run the Pergyra-origin parser against every examples/*.pgy file and count how
+# many produce byte-equal output vs `pgy --ast`. This is a coverage probe, not a
+# parity gate. Output is a count summary plus lists of matching and failing
+# files. The parser tool is invoked through Args()[0], the same boundary used by
+# the hard parity harness.
 
 set -euo pipefail
 
@@ -23,7 +24,6 @@ fi
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/parser/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/parser_scale}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
-SOURCE_OVERRIDE="$ROOT_DIR/src/self_hosted/parser/fixture/source.txt"
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 rm -f "$PERGYRA_TOOL_BUILD_DIR/main.exe"
@@ -36,9 +36,6 @@ if [[ ! -x "$PERGYRA_TOOL_BUILD_DIR/main.exe" ]]; then
     exit 1
 fi
 
-cleanup() { rm -f "$SOURCE_OVERRIDE"; }
-trap cleanup EXIT
-
 shopt -s nullglob
 TOTAL=0
 MATCH=0
@@ -47,40 +44,45 @@ P_FAIL=0
 C_SKIP=0
 MATCH_LIST=()
 FAIL_LIST=()
+LIVE_FILE="$PERGYRA_TOOL_BUILD_DIR/live.ast"
+PERGYRA_FILE="$PERGYRA_TOOL_BUILD_DIR/pergyra.ast"
+
+normalize_ast_file() {
+    local path="$1"
+    sed -i '${/^$/d;}' "$path"
+}
 
 for src in "$ROOT_DIR"/examples/*.pgy; do
     rel="${src#$ROOT_DIR/}"
     TOTAL=$((TOTAL + 1))
 
-    printf '%s' "$rel" > "$SOURCE_OVERRIDE"
-
-    set +e
-    LIVE="$(cd "$ROOT_DIR" && "$PGY" --ast "$rel" 2>/dev/null)"
-    LIVE_RC=$?
-    set -e
-    if [[ "$LIVE_RC" -ne 0 || -z "$LIVE" ]]; then
+    if ! (cd "$ROOT_DIR" && "$PGY" --ast "$rel" 2>/dev/null | tr -d '\r' > "$LIVE_FILE"); then
+        C_SKIP=$((C_SKIP + 1))
+        continue
+    fi
+    normalize_ast_file "$LIVE_FILE"
+    if [[ ! -s "$LIVE_FILE" ]]; then
         C_SKIP=$((C_SKIP + 1))
         continue
     fi
 
-    set +e
-    PERGYRA="$(cd "$ROOT_DIR" && "$PERGYRA_TOOL_BUILD_DIR/main.exe" 2>/dev/null \
-        | tr -d '\r')"
-    P_RC=$?
-    set -e
-    if [[ "$P_RC" -ne 0 ]]; then
+    if ! (cd "$ROOT_DIR" && "$PERGYRA_TOOL_BUILD_DIR/main.exe" "$rel" 2>/dev/null \
+        | tr -d '\r' > "$PERGYRA_FILE"); then
         P_FAIL=$((P_FAIL + 1))
-        FAIL_LIST+=("$rel (pergyra exit $P_RC)")
+        FAIL_LIST+=("$rel (pergyra exit)")
         continue
     fi
+    normalize_ast_file "$PERGYRA_FILE"
 
-    LIVE_NORM="$(printf '%s' "$LIVE" | tr -d '\r')"
-    if [[ "$PERGYRA" == "$LIVE_NORM" ]]; then
+    if cmp -s "$PERGYRA_FILE" "$LIVE_FILE"; then
         MATCH=$((MATCH + 1))
         MATCH_LIST+=("$rel")
     else
         DIFFER=$((DIFFER + 1))
         FAIL_LIST+=("$rel (byte-drift)")
+        cp "$LIVE_FILE" "$PERGYRA_TOOL_BUILD_DIR/fail_live.ast"
+        cp "$PERGYRA_FILE" "$PERGYRA_TOOL_BUILD_DIR/fail_pergyra.ast"
+        printf '%s\n' "$rel" > "$PERGYRA_TOOL_BUILD_DIR/fail_source.txt"
     fi
 done
 

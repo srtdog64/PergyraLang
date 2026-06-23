@@ -16,9 +16,9 @@ parity and the examples scale probe.
 
 ## Input Contract
 
-- **source_owner**: `examples/hello.pgy` by default. The parity harness passes
-  the source path through `Args()[0]`; `fixture/source.txt` remains only as a
-  local fallback for older probes.
+- **source_owner**: `examples/hello.pgy` by default. The parity harness and
+  scale probe pass the source path through `Args()[0]`; there is no side-channel
+  source override.
 - Current committed grammar surface:
   - top-level `[async]? [export]? func<T,U>`, `subject`, `class`, `vessel`,
     `struct`, `object`, `tobject`, `type` aliases/record aliases, `enum`,
