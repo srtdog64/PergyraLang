@@ -67,6 +67,20 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Semantic checker split into SoT owner modules
+
+- Split `src/self_hosted/semantic/main.pgy` from a 1642-line checker into a
+  39-line orchestration entrypoint plus source-of-truth owners:
+  `text_scan_owner`, `diagnostic_owner`, `env_owner`, `expr_type_owner`,
+  `call_check_owner`, `body_check_owner`, and `program_check_owner`. Every
+  semantic source file is now below the 600-line owner cap; `expr_type_owner`
+  is the largest at 495 lines.
+- Updated `semantic_parity.sh` to copy the full semantic source bundle into the
+  scratch build directory instead of assuming a single-file tool.
+- Verified `make LLVM_ENABLED=0 BUILD_DIR=.tmp/pgy-build-c
+  BIN_DIR=.tmp/pgy-bin-c self-host-semantic-parity-test-smoke`: **65 fixtures**
+  still match the C oracle verdicts.
+
 ### 2026-06-23 -- MIR lower split into SoT owner modules
 
 - Split `src/self_hosted/mir_lower/main.pgy` from a 1060-line monolith into a

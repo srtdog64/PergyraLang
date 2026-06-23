@@ -236,8 +236,11 @@ Substrate progress.
   `src/self_hosted/air/`, but they prove deterministic graph traversal and
   invariant-checking substrate on both C and LLVM.
 - The semantic substitution rung has reached rung-2:
-  `src/self_hosted/semantic/main.pgy` checks a bounded function-body subset and
-  now types expressions through unary not, top-level binary operators
+  `src/self_hosted/semantic/` checks a bounded function-body subset and now
+  splits the checker into source-of-truth owner modules for source scanning,
+  diagnostic rendering, local environment lookup, expression typing, call
+  checking, body/function checking, and program checking. It types expressions
+  through unary not, top-level binary operators
   (arithmetic yields Int, comparison and logical yield Bool), and function calls
   resolved against a signature table seeded with built-ins and the program's own
   `func` return types. It also checks call-argument types positionally against
@@ -317,7 +320,7 @@ binary- and logical-operand-agreement typing (comparison and arithmetic operands
 must share a type; `&&`/`||` operands must be Bool) in let, return, condition,
 and assignment positions, and simple/compound undefined-identifier
 diagnostics are covered, and verdicts stay
-byte-equal beside the C type checker on 61 committed fixtures across both
+byte-equal beside the C type checker on 65 committed fixtures across both
 backends. The checker now covers the common statement forms (let, return,
 assignment, if/while body, if/while condition, bare call), and the fixture
 matrix exercises each diagnostic in every position where it can fire. The next

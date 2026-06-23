@@ -1,0 +1,168 @@
+// Self-host semantic program checking owner.
+
+func CheckProgram(content: String) -> String {
+    let cursor: Array<Int> = [0];
+    let func_names: Array<String> = [];
+    let func_rets: Array<String> = [];
+    let func_params: Array<String> = [];
+    ArrayPush(func_names, "StringLength");
+    ArrayPush(func_rets, "Int");
+    ArrayPush(func_params, "String");
+    ArrayPush(func_names, "StringIndexOf");
+    ArrayPush(func_rets, "Int");
+    ArrayPush(func_params, "String|String");
+    ArrayPush(func_names, "ArrayLength");
+    ArrayPush(func_rets, "Int");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "Substring");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "String|Int|Int");
+    ArrayPush(func_names, "Concat");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "String|String");
+    ArrayPush(func_names, "ReadFile");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "String");
+    ArrayPush(func_names, "ToInt");
+    ArrayPush(func_rets, "Int");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "FileExists");
+    ArrayPush(func_rets, "Bool");
+    ArrayPush(func_params, "String");
+    ArrayPush(func_names, "ToString");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "ToLower");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "ToUpper");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "Trim");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "Upper");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "StringReplace");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown|Unknown|Unknown");
+    ArrayPush(func_names, "StringContains");
+    ArrayPush(func_rets, "Bool");
+    ArrayPush(func_params, "Unknown|Unknown");
+    ArrayPush(func_names, "ArrayPush");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown|Unknown");
+    ArrayPush(func_names, "ArrayPop");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "ArraySet");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown|Unknown|Unknown");
+    ArrayPush(func_names, "ArrayGet");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown|Unknown");
+    ArrayPush(func_names, "Args");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "");
+    ArrayPush(func_names, "Log");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "Exit");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "SelfHostDiagnostic_RenderOk");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "SelfHostDiagnostic_RenderError");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown|Unknown|Unknown|Unknown|Unknown|Unknown|Unknown|Unknown");
+    ArrayPush(func_names, "SelfHostDiagnostic_Fact1");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown|Unknown");
+    ArrayPush(func_names, "SelfHostDiagnostic_Fact2");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown|Unknown|Unknown|Unknown");
+    ArrayPush(func_names, "SelfHostDiagnostic_Fact3");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown|Unknown|Unknown|Unknown|Unknown|Unknown");
+    ArrayPush(func_names, "StringJoin");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown|Unknown");
+    ArrayPush(func_names, "Split");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown|Unknown");
+    ArrayPush(func_names, "DirWalk");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "StringTrim");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown");
+    let n: Int = StringLength(content);
+    let scan: Int = 0;
+    while scan < n {
+        scan = SkipWhitespaceAndComments(content, scan);
+        if scan >= n {
+            break;
+        }
+        if !MatchKeyword(content, scan, "func") {
+            scan = scan + 1;
+            continue;
+        }
+        let name_pos: Int = scan + 4;
+        let fn_name: String = ReadIdent(content, name_pos, cursor);
+        let after_name: Int = cursor[0];
+        let open: Int = ExpectLiteral(content, after_name, "(");
+        if open < 0 || StringLength(fn_name) == 0 {
+            scan = scan + 4;
+            continue;
+        }
+        let depth: Int = 1;
+        let k: Int = open;
+        while k < n && depth > 0 {
+            let c: String = CharAt(content, k);
+            if c == "(" {
+                depth = depth + 1;
+            } else if c == ")" {
+                depth = depth - 1;
+            }
+            k = k + 1;
+        }
+        let param_src: String = Substring(content, open, k - 1 - open);
+        let ret: String = "Void";
+        k = SkipWhitespaceAndComments(content, k);
+        if CharAt(content, k) == "-" && CharAt(content, k + 1) == ">" {
+            ret = ReadTypeName(content, k + 2, cursor);
+            k = cursor[0];
+        }
+        ArrayPush(func_names, fn_name);
+        ArrayPush(func_rets, ret);
+        ArrayPush(func_params, ParamTypes(param_src));
+        scan = k;
+    }
+    let i: Int = 0;
+    while i < n {
+        i = SkipWhitespaceAndComments(content, i);
+        if i >= n {
+            break;
+        }
+        if MatchKeyword(content, i, "export") {
+            i = i + 6;
+            continue;
+        }
+        if MatchKeyword(content, i, "async") {
+            i = i + 5;
+            continue;
+        }
+        if MatchKeyword(content, i, "func") {
+            let fn_error: String = CheckFunction(content, i, cursor, func_names, func_rets, func_params);
+            if StringLength(fn_error) > 0 {
+                return fn_error;
+            }
+            i = cursor[0];
+            continue;
+        }
+        i = i + 1;
+    }
+    return "";
+}

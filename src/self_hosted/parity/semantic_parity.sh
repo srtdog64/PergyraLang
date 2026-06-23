@@ -107,7 +107,7 @@ SOURCE_PAIRS=(
 )
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
-cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
+cp "$ROOT_DIR/src/self_hosted/semantic/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"
 LIB_BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/lib"
 mkdir -p "$LIB_BUILD_DIR"
 cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"

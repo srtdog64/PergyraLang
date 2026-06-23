@@ -1,0 +1,304 @@
+// Self-host semantic body/function checking owner.
+
+func RestoreEnv(inout names: Array<String>, inout types: Array<String>, inout modes: Array<String>, size: Int) -> Void {
+    while ArrayLength(names) > size {
+        ArrayPop(names);
+    }
+    while ArrayLength(types) > size {
+        ArrayPop(types);
+    }
+    while ArrayLength(modes) > size {
+        ArrayPop(modes);
+    }
+}
+func CheckBody(content: String, start: Int, end: Int, return_type: String, inout names: Array<String>, inout types: Array<String>, inout modes: Array<String>, func_names: Array<String>, func_rets: Array<String>, func_params: Array<String>) -> String {
+    let i: Int = start;
+    let cursor: Array<Int> = [0];
+    while i < end {
+        i = SkipWhitespaceAndComments(content, i);
+        if i >= end {
+            break;
+        }
+        if MatchKeyword(content, i, "let") {
+            i = i + 3;
+            let name: String = ReadIdent(content, i, cursor);
+            i = cursor[0];
+            let declared_type: String = "Unknown";
+            i = SkipWhitespaceAndComments(content, i);
+            if CharAt(content, i) == ":" {
+                declared_type = ReadTypeName(content, i + 1, cursor);
+                i = cursor[0];
+            }
+            i = ExpectLiteral(content, i, "=");
+            if i < 0 {
+                i = FindStatementEnd(content, start, end) + 1;
+                continue;
+            }
+            let semi: Int = FindStatementEnd(content, i, end);
+            let let_call_error: String = CheckCall(Substring(content, i, semi - i), names, types, modes, func_names, func_rets, func_params);
+            if StringLength(let_call_error) > 0 {
+                return let_call_error;
+            }
+            let let_expr: String = Substring(content, i, semi - i);
+            let let_undefined_error: String = CheckUndefinedIdentifiers(let_expr, names);
+            if StringLength(let_undefined_error) > 0 {
+                return let_undefined_error;
+            }
+            let let_logical_error: String = CheckLogicalOperands(let_expr, names, types, func_names, func_rets);
+            if StringLength(let_logical_error) > 0 {
+                return let_logical_error;
+            }
+            let let_binop_error: String = CheckBinaryOperands(let_expr, names, types, func_names, func_rets);
+            if StringLength(let_binop_error) > 0 {
+                return let_binop_error;
+            }
+            let actual_type: String = ExprType(let_expr, names, types, func_names, func_rets);
+            if declared_type != "Unknown" {
+                if actual_type != "Unknown" {
+                    if declared_type != actual_type {
+                        return SemanticError2("let_type_mismatch", "expected", declared_type, "actual", actual_type);
+                    }
+                }
+            }
+            ArrayPush(names, name);
+            ArrayPush(modes, "local");
+            if declared_type != "Unknown" {
+                ArrayPush(types, declared_type);
+            } else {
+                ArrayPush(types, actual_type);
+            }
+            i = semi + 1;
+            continue;
+        }
+        if MatchKeyword(content, i, "return") {
+            i = i + 6;
+            let return_semi: Int = FindStatementEnd(content, i, end);
+            let return_call_error: String = CheckCall(Substring(content, i, return_semi - i), names, types, modes, func_names, func_rets, func_params);
+            if StringLength(return_call_error) > 0 {
+                return return_call_error;
+            }
+            let return_expr: String = Substring(content, i, return_semi - i);
+            let return_undefined_error: String = CheckUndefinedIdentifiers(return_expr, names);
+            if StringLength(return_undefined_error) > 0 {
+                return return_undefined_error;
+            }
+            let return_logical_error: String = CheckLogicalOperands(return_expr, names, types, func_names, func_rets);
+            if StringLength(return_logical_error) > 0 {
+                return return_logical_error;
+            }
+            let return_binop_error: String = CheckBinaryOperands(return_expr, names, types, func_names, func_rets);
+            if StringLength(return_binop_error) > 0 {
+                return return_binop_error;
+            }
+            let return_actual_type: String = ExprType(return_expr, names, types, func_names, func_rets);
+            if return_type != "Unknown" {
+                if return_actual_type != "Unknown" {
+                    if return_type != return_actual_type {
+                        return SemanticError2("return_type_mismatch", "expected", return_type, "actual", return_actual_type);
+                    }
+                }
+            }
+            i = return_semi + 1;
+            continue;
+        }
+        if MatchKeyword(content, i, "if") || MatchKeyword(content, i, "while") {
+            let cond_start: Int = i + 2;
+            if MatchKeyword(content, i, "while") {
+                cond_start = i + 5;
+            }
+            let block_open: Int = FindBlockOpen(content, cond_start, end);
+            let cond_text: String = Trim(Substring(content, cond_start, block_open - cond_start));
+            if StringLength(cond_text) > 0 {
+                let cond_undefined_error: String = CheckUndefinedIdentifiers(cond_text, names);
+                if StringLength(cond_undefined_error) > 0 {
+                    return cond_undefined_error;
+                }
+                let cond_logical_error: String = CheckLogicalOperands(cond_text, names, types, func_names, func_rets);
+                if StringLength(cond_logical_error) > 0 {
+                    return cond_logical_error;
+                }
+                let cond_binop_error: String = CheckBinaryOperands(cond_text, names, types, func_names, func_rets);
+                if StringLength(cond_binop_error) > 0 {
+                    return cond_binop_error;
+                }
+                let cond_type: String = ExprType(cond_text, names, types, func_names, func_rets);
+                if cond_type != "Unknown" {
+                    if cond_type != "Bool" {
+                        return SemanticError2("condition_not_bool", "expected", "Bool", "actual", cond_type);
+                    }
+                }
+            }
+            if block_open < end && CharAt(content, block_open) == "{" {
+                let block_close: Int = FindMatchingBrace(content, block_open);
+                let env_size: Int = ArrayLength(names);
+                let block_error: String = CheckBody(content, block_open + 1, block_close, return_type, names, types, modes, func_names, func_rets, func_params);
+                RestoreEnv(names, types, modes, env_size);
+                if StringLength(block_error) > 0 {
+                    return block_error;
+                }
+                i = block_close + 1;
+                if MatchKeyword(content, i, "else") {
+                    let else_start: Int = SkipWhitespaceAndComments(content, i) + 4;
+                    if MatchKeyword(content, else_start, "if") {
+                        i = else_start;
+                        continue;
+                    }
+                    let else_open: Int = FindBlockOpen(content, else_start, end);
+                    if else_open < end && CharAt(content, else_open) == "{" {
+                        let else_close: Int = FindMatchingBrace(content, else_open);
+                        let else_env_size: Int = ArrayLength(names);
+                        let else_error: String = CheckBody(content, else_open + 1, else_close, return_type, names, types, modes, func_names, func_rets, func_params);
+                        RestoreEnv(names, types, modes, else_env_size);
+                        if StringLength(else_error) > 0 {
+                            return else_error;
+                        }
+                        i = else_close + 1;
+                    }
+                }
+            } else {
+                i = block_open + 1;
+            }
+            continue;
+        }
+        if MatchKeyword(content, i, "for") {
+            let loop_var: String = ReadIdent(content, i + 3, cursor);
+            let after_var: Int = cursor[0];
+            let for_in: Int = ExpectLiteral(content, after_var, "in");
+            let for_open: Int = FindBlockOpen(content, after_var, end);
+            if for_in >= 0 && for_in < for_open {
+                let iter_text: String = Trim(Substring(content, for_in, for_open - for_in));
+                if StringLength(iter_text) > 0 {
+                    let iter_undefined: String = CheckUndefinedIdentifiers(iter_text, names);
+                    if StringLength(iter_undefined) > 0 {
+                        return iter_undefined;
+                    }
+                }
+            }
+            if for_open < end && CharAt(content, for_open) == "{" {
+                let for_close: Int = FindMatchingBrace(content, for_open);
+                let for_env_size: Int = ArrayLength(names);
+                if StringLength(loop_var) > 0 {
+                    ArrayPush(names, loop_var);
+                    ArrayPush(types, "Unknown");
+                    ArrayPush(modes, "local");
+                }
+                let for_error: String = CheckBody(content, for_open + 1, for_close, return_type, names, types, modes, func_names, func_rets, func_params);
+                RestoreEnv(names, types, modes, for_env_size);
+                if StringLength(for_error) > 0 {
+                    return for_error;
+                }
+                i = for_close + 1;
+            } else {
+                i = for_open + 1;
+            }
+            continue;
+        }
+        let asn_name: String = ReadIdent(content, i, cursor);
+        let asn_after: Int = SkipWhitespaceAndComments(content, cursor[0]);
+        if StringLength(asn_name) > 0 && CharAt(content, asn_after) == "=" && CharAt(content, asn_after + 1) != "=" {
+            if !EnvContainsName(names, asn_name) {
+                return SemanticError1("undefined_symbol", "name", asn_name);
+            }
+            let lhs_type: String = EnvLookup(names, types, asn_name);
+            if lhs_type != "Unknown" {
+                let asn_semi: Int = FindStatementEnd(content, asn_after + 1, end);
+                let rhs_expr: String = Substring(content, asn_after + 1, asn_semi - asn_after - 1);
+                let asn_undefined_error: String = CheckUndefinedIdentifiers(rhs_expr, names);
+                if StringLength(asn_undefined_error) > 0 {
+                    return asn_undefined_error;
+                }
+                let asn_logical_error: String = CheckLogicalOperands(rhs_expr, names, types, func_names, func_rets);
+                if StringLength(asn_logical_error) > 0 {
+                    return asn_logical_error;
+                }
+                let asn_binop_error: String = CheckBinaryOperands(rhs_expr, names, types, func_names, func_rets);
+                if StringLength(asn_binop_error) > 0 {
+                    return asn_binop_error;
+                }
+                let rhs_type: String = ExprType(rhs_expr, names, types, func_names, func_rets);
+                if rhs_type != "Unknown" {
+                    if lhs_type != rhs_type {
+                        return SemanticError2("assign_type_mismatch", "expected", lhs_type, "actual", rhs_type);
+                    }
+                }
+                i = asn_semi + 1;
+                continue;
+            }
+        }
+        let stmt_end: Int = FindStatementEnd(content, i, end);
+        let stmt_call_error: String = CheckCall(Substring(content, i, stmt_end - i), names, types, modes, func_names, func_rets, func_params);
+        if StringLength(stmt_call_error) > 0 {
+            return stmt_call_error;
+        }
+        if stmt_end <= i {
+            i = i + 1;
+        } else {
+            i = stmt_end + 1;
+        }
+    }
+    return "";
+}
+func CheckFunction(content: String, func_pos: Int, inout cursor_out: Array<Int>, func_names: Array<String>, func_rets: Array<String>, func_params: Array<String>) -> String {
+    let cursor: Array<Int> = [0];
+    let names: Array<String> = [];
+    let types: Array<String> = [];
+    let modes: Array<String> = [];
+    let i: Int = func_pos + 4;
+    let fn_name: String = ReadIdent(content, i, cursor);
+    i = cursor[0];
+    i = ExpectLiteral(content, i, "(");
+    if i < 0 || StringLength(fn_name) == 0 {
+        ArraySet(cursor_out, 0, func_pos + 1);
+        return "";
+    }
+    while true {
+        i = SkipWhitespaceAndComments(content, i);
+        if CharAt(content, i) == ")" {
+            i = i + 1;
+            break;
+        }
+        let first_name: String = ReadIdent(content, i, cursor);
+        i = cursor[0];
+        let param_name: String = first_name;
+        let param_mode: String = "default_param";
+        if first_name == "inout" || first_name == "ref" || first_name == "own" {
+            param_mode = Concat(first_name, "_param");
+            param_name = ReadIdent(content, i, cursor);
+            i = cursor[0];
+        }
+        i = ExpectLiteral(content, i, ":");
+        if i < 0 {
+            ArraySet(cursor_out, 0, func_pos + 1);
+            return "";
+        }
+        let param_type: String = ReadTypeName(content, i, cursor);
+        i = cursor[0];
+        ArrayPush(names, param_name);
+        ArrayPush(types, param_type);
+        ArrayPush(modes, param_mode);
+        i = SkipWhitespaceAndComments(content, i);
+        if CharAt(content, i) == "," {
+            i = i + 1;
+            continue;
+        }
+        if CharAt(content, i) == ")" {
+            i = i + 1;
+            break;
+        }
+    }
+    let return_type: String = "Void";
+    i = SkipWhitespaceAndComments(content, i);
+    if CharAt(content, i) == "-" && CharAt(content, i + 1) == ">" {
+        return_type = ReadTypeName(content, i + 2, cursor);
+        i = cursor[0];
+    }
+    i = SkipWhitespaceAndComments(content, i);
+    if CharAt(content, i) != "{" {
+        ArraySet(cursor_out, 0, i + 1);
+        return "";
+    }
+    let close: Int = FindMatchingBrace(content, i);
+    let body_error: String = CheckBody(content, i + 1, close, return_type, names, types, modes, func_names, func_rets, func_params);
+    ArraySet(cursor_out, 0, close + 1);
+    return body_error;
+}

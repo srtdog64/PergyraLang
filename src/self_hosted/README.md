@@ -59,9 +59,10 @@ src/self_hosted/
 
 The target shape is not "one folder, one monolithic `main.pgy`". `main.pgy`
 is the CLI/orchestration entrypoint; semantic decisions belong in named
-source-of-truth owner modules. `codegen/` and `mir_lower/` already follow that
-shape. `lexer/`, `parser/`, and `semantic/` are transition surfaces and should
-be split by owned fact/contract as each hard substitution seam is closed.
+source-of-truth owner modules. `codegen/`, `mir_lower/`, and `semantic/`
+already follow that shape. `lexer/` and `parser/` are transition surfaces and
+should be split by owned fact/contract as each hard substitution seam is
+closed.
 
 ## Current Status
 

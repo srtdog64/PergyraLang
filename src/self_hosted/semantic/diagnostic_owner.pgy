@@ -1,0 +1,115 @@
+// Self-host semantic diagnostic rendering owner.
+
+func SemanticReason(code: String) -> String {
+    if code == "undefined_symbol" {
+        return "identifier is used before a local binding is in scope";
+    }
+    if code == "logical_operand_not_bool" {
+        return "logical operators require Bool operands";
+    }
+    if code == "not_operand_not_bool" {
+        return "logical not requires a Bool operand";
+    }
+    if code == "compare_type_mismatch" {
+        return "comparison operands must have the same type";
+    }
+    if code == "binop_type_mismatch" {
+        return "arithmetic operands must have the same type";
+    }
+    if code == "call_arg_type_mismatch" {
+        return "call argument type does not match the callee parameter type";
+    }
+    if code == "value_param_collection_mutation" {
+        return "caller-visible collection mutation requires an explicit inout boundary";
+    }
+    if code == "undefined_function" {
+        return "called function is not declared in the checked subset";
+    }
+    if code == "call_arity_mismatch" {
+        return "call argument count does not match the callee parameter count";
+    }
+    if code == "let_type_mismatch" {
+        return "let initializer type does not match the declared local type";
+    }
+    if code == "return_type_mismatch" {
+        return "return expression type does not match the function return type";
+    }
+    if code == "condition_not_bool" {
+        return "branch condition must be Bool";
+    }
+    if code == "assign_type_mismatch" {
+        return "assigned expression type does not match the local type";
+    }
+    if code == "input_missing" {
+        return "semantic checker requires a source path argument";
+    }
+    return "semantic checker rejected the source";
+}
+func SemanticFix(code: String) -> String {
+    if code == "undefined_symbol" {
+        return "declare the local before use or pass it as a parameter";
+    }
+    if code == "logical_operand_not_bool" {
+        return "convert the operand to Bool or compare it explicitly before using && or ||";
+    }
+    if code == "not_operand_not_bool" {
+        return "apply ! only to a Bool expression";
+    }
+    if code == "compare_type_mismatch" {
+        return "compare values with matching types";
+    }
+    if code == "binop_type_mismatch" {
+        return "use operands with matching arithmetic types";
+    }
+    if code == "call_arg_type_mismatch" {
+        return "change the argument expression or the callee parameter type";
+    }
+    if code == "value_param_collection_mutation" {
+        return "spell the parameter as inout or mutate a local collection and return it";
+    }
+    if code == "undefined_function" {
+        return "declare the function before calling it";
+    }
+    if code == "call_arity_mismatch" {
+        return "pass the declared number of arguments";
+    }
+    if code == "let_type_mismatch" {
+        return "change the initializer or the declared local type";
+    }
+    if code == "return_type_mismatch" {
+        return "return the declared function result type";
+    }
+    if code == "condition_not_bool" {
+        return "use a Bool expression for the condition";
+    }
+    if code == "assign_type_mismatch" {
+        return "assign a value that matches the local type";
+    }
+    if code == "input_missing" {
+        return "pass the source path as Args()[0]";
+    }
+    return "fix the semantic mismatch reported by the diagnostic code";
+}
+func SemanticOk() -> String {
+    return SelfHostDiagnostic_RenderOk("pgy.selfhost.semantic.v1");
+}
+func SemanticErrorWithFacts(code: String, facts: String) -> String {
+    return SelfHostDiagnostic_RenderError(
+        "pgy.selfhost.semantic.v1",
+        "semantic",
+        "error",
+        code,
+        SemanticReason(code),
+        SemanticFix(code),
+        "none",
+        facts);
+}
+func SemanticError1(code: String, k1: String, v1: String) -> String {
+    return SemanticErrorWithFacts(code, SelfHostDiagnostic_Fact1(k1, v1));
+}
+func SemanticError2(code: String, k1: String, v1: String, k2: String, v2: String) -> String {
+    return SemanticErrorWithFacts(code, SelfHostDiagnostic_Fact2(k1, v1, k2, v2));
+}
+func SemanticError3(code: String, k1: String, v1: String, k2: String, v2: String, k3: String, v3: String) -> String {
+    return SemanticErrorWithFacts(code, SelfHostDiagnostic_Fact3(k1, v1, k2, v2, k3, v3));
+}
