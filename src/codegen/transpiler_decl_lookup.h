@@ -49,7 +49,6 @@ typedef struct
 typedef struct
 {
     const MIRDeclHeader *decl_header;
-    ASTNode           **ast_compat_slots;
     size_t             ast_compat_count;
     size_t             count;
     bool               uses_mir_metadata;
@@ -75,7 +74,6 @@ typedef struct
 typedef struct
 {
     const MIRDeclHeader *decl_header;
-    ASTNode           **ast_compat_slots;
     size_t             ast_compat_count;
     size_t             count;
     bool               uses_mir_metadata;
@@ -85,7 +83,6 @@ typedef struct
 typedef struct
 {
     const MIRDeclHeader *decl_header;
-    ASTNode           **ast_compat_slots;
     size_t             ast_compat_count;
     size_t             count;
     bool               uses_mir_metadata;
@@ -95,7 +92,6 @@ typedef struct
 typedef struct
 {
     const MIRDeclHeader *decl_header;
-    ASTNode           **ast_compat_slots;
     size_t             ast_compat_count;
     size_t             count;
     bool               uses_mir_metadata;

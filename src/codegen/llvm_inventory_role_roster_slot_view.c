@@ -62,15 +62,13 @@ llvm_hosted_world_roster_slot_view_from_decl(const LLVMGenCtx *ctx,
                                              ASTNode *decl)
 {
     LLVMHostedWorldRosterSlotView view;
-    ASTNode **compat_slots = NULL;
     size_t compat_count = 0;
     const MIRDeclHeader *header = NULL;
 
     if (decl != NULL && decl->type == AST_WORLD_DECL)
-        compat_slots = ast_world_rosters(decl, &compat_count);
+        (void)ast_world_rosters(decl, &compat_count);
 
     view.decl_header = NULL;
-    view.ast_compat_slots = compat_slots;
     view.ast_compat_count = compat_count;
     view.count = compat_count;
     view.uses_mir_metadata = false;
@@ -128,10 +126,6 @@ llvm_hosted_world_roster_slot_view_name(
         return mir_decl_field_name(field);
     if (view->requires_mir_metadata)
         return NULL;
-    if (view->ast_compat_slots != NULL
-        && view->ast_compat_slots[index] != NULL) {
-        return ast_world_roster_slot_name(view->ast_compat_slots[index]);
-    }
     return NULL;
 }
 
@@ -149,10 +143,6 @@ llvm_hosted_world_roster_slot_view_type_name(
         return mir_decl_field_type_name(field);
     if (view->requires_mir_metadata)
         return NULL;
-    if (view->ast_compat_slots != NULL
-        && view->ast_compat_slots[index] != NULL) {
-        return ast_world_roster_type_name(view->ast_compat_slots[index]);
-    }
     return NULL;
 }
 

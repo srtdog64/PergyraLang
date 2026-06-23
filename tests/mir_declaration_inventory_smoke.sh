@@ -3667,13 +3667,15 @@ if grep -RIn "ast_compat_fields" \
     fail "hosted field views must not expose AST compatibility field arrays; field shape is owned by MIR declaration metadata"
 fi
 # MIR-only closure lock (docs/125 'Dedicated declaration IR'): the non-MIR
-# AST-compat declaration fallback has been retired. ast_compat_decl must not
-# reappear -- declaration field shape is owned solely by MIR metadata, and
-# accessors fail closed when MIR metadata is absent instead of reading the AST.
-if grep -RIn "ast_compat_decl" \
+# AST-compat declaration fallbacks have been retired across all three families
+# (field/method/slot). ast_compat_decl / ast_compat_methods / ast_compat_slots
+# must not reappear -- declaration field/method/slot shape is owned solely by MIR
+# metadata, and accessors fail closed when MIR metadata is absent instead of
+# reading the AST.
+if grep -RInE "ast_compat_decl|ast_compat_methods|ast_compat_slots" \
         "$ROOT_DIR/src/codegen" \
         --include='*.c' --include='*.h'; then
-    fail "ast_compat_decl is retired; hosted declaration views must not reopen an AST compatibility fallback (MIR metadata is the single owner)"
+    fail "ast_compat_{decl,methods,slots} are retired; hosted declaration views must not reopen an AST compatibility fallback (MIR metadata is the single owner)"
 fi
 for rel in \
     "src/codegen/transpiler_mir_func_emit.c" \
@@ -7693,7 +7695,7 @@ for term in \
     "transpiler_hosted_method_view_compat_method" \
     "llvm_hosted_method_view_compat_method" \
     "Dedicated declaration IR" \
-    "Closing (MIR-only decision"; do
+    "Closed (MIR-only decision"; do
     require_term "docs/125_source_of_truth_spine.md" "$term"
 done
 for term in \
