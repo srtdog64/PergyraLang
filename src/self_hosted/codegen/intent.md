@@ -13,7 +13,10 @@ must fail visibly instead of falling through to an unverified translation.
 
 ## Input Contract
 
-The tool reads one AST text path from `Args()[0]`. That AST must come from the
+The tool reads one AST text path from `Args()[0]`, with the no-argument
+`hello_ast.txt` fixture as the default probe. `ast_input_owner.pgy` owns path
+selection, the missing-file diagnostic, and the file-read boundary; `main.pgy`
+only orchestrates the owned input into `GenerateC`. That AST must come from the
 live compiler's `pgy --ast` output for committed codegen fixtures. The accepted
 subset is:
 

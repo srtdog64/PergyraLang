@@ -63,8 +63,9 @@ source-of-truth owner modules. `semantic/` also owns its program-input fact in
 `source_bundle_owner.pgy`: imports are expanded there before `CheckProgram`
 consumes the bundle, so the entrypoint does not define "program" by accident.
 `lexer/` owns its argv/default source path and file-read boundary in
-`source_input_owner.pgy`; `codegen/`, `mir_lower/`, and `semantic/` follow the
-same entrypoint-plus-owner shape.
+`source_input_owner.pgy`; `codegen/` owns its AST path/read boundary in
+`ast_input_owner.pgy`; `mir_lower/` and `semantic/` follow the same
+entrypoint-plus-owner shape.
 `parser/` has started the same transition with
 error, cursor/token, source path/import input, type-name, expression, statement/block,
 function-declaration, top-level declaration dispatch, branch declaration
@@ -157,6 +158,10 @@ one owner cannot accidentally materialize the same declarations twice.
   `ReadFile` file I/O, `Args()` user-argument snapshots, value-passed
   Int-field structs, Array<Int> parameter/return flow, `Result<Int>` `?`
   early-return lowering, and `Option<Int>` value flow.
+- **2026-06-23** -- codegen AST input is no longer owned by `main.pgy`.
+  `ast_input_owner.pgy` owns `Args()[0]`/default fixture selection,
+  missing-file diagnostics, and AST file reads; `main.pgy` now only wires
+  owned AST text into `GenerateC`.
 - **2026-06-21** -- `fuzz/backend_parity_generator/` adds the first
   Pergyra-origin deterministic backend fuzz corpus generator. It is soft
   self-host evidence, not compiler-core substitution: the Pergyra program owns

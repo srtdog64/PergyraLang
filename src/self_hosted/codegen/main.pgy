@@ -42,18 +42,12 @@ import "expr_rewrite.pgy";
 import "stmt_emit.pgy";
 import "function_emit.pgy";
 import "program_emit.pgy";
+import "ast_input_owner.pgy";
 
 func Main() -> Void {
     let run_args: Array<String> = Args();
-    let ast_path: String = "src/self_hosted/codegen/fixture/hello_ast.txt";
-    if ArrayLength(run_args) > 0 {
-        ast_path = run_args[0];
-    }
-    if !FileExists(ast_path) {
-        Log(Concat("CODEGEN ERROR: AST file not found: ", ast_path));
-        Exit(1);
-    }
-    let ast: String = ReadFile(ast_path);
+    let ast_path: String = CodegenDefaultAstPath(run_args);
+    let ast: String = CodegenReadAst(ast_path);
     let c_source: String = GenerateC(ast);
     Log(c_source);
 }

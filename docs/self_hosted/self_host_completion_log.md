@@ -78,6 +78,17 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Codegen AST input leaves the entrypoint
+
+- Split `src/self_hosted/codegen/ast_input_owner.pgy` out of `main.pgy`.
+  It owns AST path selection, the no-argument `hello_ast.txt` probe default,
+  missing-file diagnostics, and the AST `ReadFile` boundary.
+- Tightened `tests/self_hosted_component_contract_smoke.sh` so codegen must keep
+  the AST-input owner imported by `main.pgy`.
+- Refreshed self-host LOC accounting to the current direct owner-file count:
+  lexer/parser/semantic/codegen now measure **9713 Pergyra LOC** against
+  254,742 C/header/inc LOC, about **3.81%**.
+
 ### 2026-06-23 -- Lexer real-source selfcheck leaves the concat bridge
 
 - Replaced the remaining lexer `selfcheck_sources.sh` bridge with the real

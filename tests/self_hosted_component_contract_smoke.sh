@@ -131,6 +131,7 @@ require_owner_surface semantic \
     "env_owner.pgy" \
     "program_check_owner.pgy"
 require_owner_surface codegen \
+    "ast_input_owner.pgy" \
     "text_owner.pgy" \
     "type_env.pgy" \
     "stmt_emit.pgy" \

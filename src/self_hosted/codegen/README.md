@@ -7,9 +7,9 @@ open" freeze. Before that date this folder was a reserved stub.
 
 ## Rung-0..16 (2026-06-23) - active
 
-`main.pgy` is the thin CLI entrypoint. It imports owner modules for text
-scanning, type environment lookup, expression rewriting, statement emission,
-function/declaration scanning, and program assembly. Together they consume
+`main.pgy` is the thin CLI entrypoint. It imports owner modules for AST input,
+text scanning, type environment lookup, expression rewriting, statement
+emission, function/declaration scanning, and program assembly. Together they consume
 `pgy --ast` text for an `Int` / `Bool` / `String` / `Array<Int>` /
 `Array<String>` / `Option<Int>` / `Void` function subset and emit a
 self-contained C program
@@ -104,6 +104,10 @@ string freeing yet; the guarantee is run-stdout parity, not memory correctness.
 Anything outside the subset is an observable `Exit(1)` failure; no silent
 fallback. The intent contract is pinned in `intent.md`; this README is
 explanatory.
+
+`ast_input_owner.pgy` owns the AST path policy (`Args()[0]` or the no-argument
+`hello_ast.txt` fixture), the missing-file diagnostic, and the `ReadFile`
+boundary. `main.pgy` only wires that owned AST text into `GenerateC`.
 
 Parity gate: `src/self_hosted/parity/codegen_parity.sh` builds `main.pgy` through
 the requested backend set, runs it on each of the 55 committed fixtures'
