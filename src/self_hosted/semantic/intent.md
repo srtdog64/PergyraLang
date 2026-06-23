@@ -18,6 +18,10 @@ subset is one or more `func` declarations with typed parameters, typed `let`
 declarations, `return` statements, scoped `if` / `while` bodies, simple local
 assignment, and direct calls to known functions.
 
+`semantic_run_owner.pgy` owns the process boundary for this contract: missing
+input is reported as a structured `input_missing` diagnostic, then the selected
+root source bundle is checked by `program_check_owner.pgy`.
+
 ## Output Contract
 
 The tool prints one deterministic diagnostic verdict:

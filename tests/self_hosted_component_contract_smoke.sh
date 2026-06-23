@@ -130,7 +130,8 @@ require_owner_surface semantic \
     "source_bundle_owner.pgy" \
     "diagnostic_owner.pgy" \
     "env_owner.pgy" \
-    "program_check_owner.pgy"
+    "program_check_owner.pgy" \
+    "semantic_run_owner.pgy"
 require_owner_surface codegen \
     "ast_input_owner.pgy" \
     "text_owner.pgy" \

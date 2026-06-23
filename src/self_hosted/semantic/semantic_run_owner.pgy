@@ -1,0 +1,20 @@
+// Self-host semantic run boundary owner.
+//
+// Owns CLI argument validation and deterministic diagnostic verdict emission.
+// Semantic facts stay in the source bundle and program checker owners.
+
+func RunSemanticFromArgs(args: Array<String>) -> Void {
+    if ArrayLength(args) < 1 {
+        Log(SemanticError2("input_missing", "expected", "source", "actual", "none"));
+        Exit(1);
+        return;
+    }
+
+    let content: String = LoadSemanticSourceBundle(args[0]);
+    let error: String = CheckProgram(content);
+    if StringLength(error) > 0 {
+        Log(error);
+        return;
+    }
+    Log(SemanticOk());
+}

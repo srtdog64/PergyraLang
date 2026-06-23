@@ -78,6 +78,17 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Semantic run boundary leaves the entrypoint
+
+- Split `src/self_hosted/semantic/semantic_run_owner.pgy` out of `main.pgy`.
+  The new owner owns missing-input diagnostics, source-bundle selection, program
+  checking, and final deterministic semantic verdict emission.
+- Tightened `tests/self_hosted_component_contract_smoke.sh` so semantic must
+  keep the run owner imported by the entrypoint.
+- Verified with: `bash tests/self_hosted_component_contract_smoke.sh`,
+  `make self-host-semantic-parity-test-smoke`, `make test-inc-size-test-smoke`,
+  and `make self-host-preparation-test-smoke`.
+
 ### 2026-06-23 -- Parser root Program assembly leaves the entrypoint
 
 - Split `src/self_hosted/parser/program_parse_owner.pgy` out of `main.pgy`.
