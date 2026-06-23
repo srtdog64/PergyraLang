@@ -9,6 +9,7 @@
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_expr_type_infer.h"
+#include "transpiler_format.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_let_box_emit.h"
 #include "transpiler_let_channel_emit.h"
@@ -318,6 +319,30 @@ transpiler_emit_mir_source_local_let_def_inst(
                 let_name != NULL ? let_name : "<binding>");
         }
         return TRANSPILE_MIR_LOCAL_LET_FAILED;
+    }
+
+    /* Captured-lambda local: the initializer lowered to a closure literal, so
+     * declare the variable with the closure struct type (keyed off the lambda's
+     * stable_id, matching transpiler_emit_captured_lambda) and register that
+     * type so the call site dispatches structurally (docs/135 Stage A). */
+    if (let_init != NULL && let_init->type == AST_LAMBDA_EXPR
+        && ast_lambda_capture_count(let_init) > 0) {
+        char *clo_type = strdup_fmt("pgy_lambda_clo_%u",
+            (unsigned) let_init->stable_id);
+        bool ok = clo_type != NULL
+            && transpiler_ssa_name_map_set(ssa_map_out, let_name,
+                   inst->result_name);
+        if (ok) {
+            write_indent_to(buf, ctx->indent);
+            codebuf_write(buf, "%s %s = %s;\n", clo_type, lhs, rhs);
+            register_typed_var(ctx, let_name, clo_type);
+        }
+        free(clo_type);
+        free(lhs);
+        free(rhs);
+        free(local_type_name_owned);
+        return ok ? TRANSPILE_MIR_LOCAL_LET_HANDLED
+                  : TRANSPILE_MIR_LOCAL_LET_FAILED;
     }
 
     write_indent_to(buf, ctx->indent);

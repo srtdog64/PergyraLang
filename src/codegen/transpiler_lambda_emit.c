@@ -197,8 +197,10 @@ transpiler_emit_captured_lambda(ASTNode *node, TranspilerCtx *ctx,
                                 const char *lambda_name)
 {
     size_t cap_count = ast_lambda_capture_count(node);
-    char *env_type = strdup_fmt("pgy_lambda_env_%d", lambda_id);
-    char *clo_type = strdup_fmt("pgy_lambda_clo_%d", lambda_id);
+    /* Type names are keyed off the lambda's stable_id so the let-binding site
+     * can recompute the closure struct type without threading codegen state. */
+    char *env_type = strdup_fmt("pgy_lambda_env_%u", (unsigned) node->stable_id);
+    char *clo_type = strdup_fmt("pgy_lambda_clo_%u", (unsigned) node->stable_id);
     CodeBuf *sig_params = codebuf_create();
     CodeBuf *fnptr_params = codebuf_create();
     CodeBuf *lit = NULL;

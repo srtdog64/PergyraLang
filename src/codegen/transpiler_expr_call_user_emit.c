@@ -419,7 +419,24 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         free(arg);
     }
 
-    char *result = strdup_fmt("%s(%s)", callee_str, args_buf->data);
+    /* Captured-closure dispatch: a local declared with the closure struct type
+     * is called as `clo.fn(&clo.env, args)` (docs/135 Stage A). The hidden env
+     * pointer is the leading argument. */
+    const char *callee_var_type = (callee->type == AST_IDENTIFIER)
+        ? lookup_typed_var(ctx, callee_name) : NULL;
+    bool callee_is_closure = callee_var_type != NULL
+        && strncmp(callee_var_type, "pgy_lambda_clo_", 15) == 0;
+
+    char *result;
+    if (callee_is_closure) {
+        if (args_buf->data != NULL && args_buf->data[0] != '\0')
+            result = strdup_fmt("%s.fn(&%s.env, %s)",
+                callee_str, callee_str, args_buf->data);
+        else
+            result = strdup_fmt("%s.fn(&%s.env)", callee_str, callee_str);
+    } else {
+        result = strdup_fmt("%s(%s)", callee_str, args_buf->data);
+    }
     free(callee_str);
     intent_binding_metadata_view_dispose(&binding_metadata);
     codebuf_destroy(args_buf);
