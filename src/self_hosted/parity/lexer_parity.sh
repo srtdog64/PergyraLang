@@ -76,6 +76,7 @@ SOURCE_PAIRS=(
     "examples/basic.pgy:basic_tokens.txt"
     "examples/heap.pgy:heap_tokens.txt"
     "examples/binary_search.pgy:binary_search_tokens.txt"
+    "tests/cases/backend_compare/string_escape_sequences/main.pgy:string_escape_sequences_tokens.txt"
 )
 
 ANY_DRIFT_GUARD_RAN="no"

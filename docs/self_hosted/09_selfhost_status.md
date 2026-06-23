@@ -2,10 +2,11 @@
 
 Branch main. This snapshot records what is verified to self-host right now,
 measured by building pgy and running
-`make self-host-preparation-test-smoke` on 2026-06-21. The parser scale
-figure below was refreshed on 2026-06-22 with
+`make self-host-preparation-test-smoke` on 2026-06-21. The lexer/parser scale
+figures below were refreshed on 2026-06-23 with
 `make self-host-lexer-parity-test-smoke self-host-parser-parity-test-smoke`
-and `src/self_hosted/parity/parser_scale_probe.sh --failing`. The gate runs the
+and `src/self_hosted/parity/lexer_scale_probe.sh --failing` /
+`src/self_hosted/parity/parser_scale_probe.sh --failing`. The gate runs the
 self-hosted tools on C and, when the current `pgy` build includes the LLVM
 backend, LLVM. `LLVM_ENABLED=0` jobs still prove the C leg and require an
 explicit LLVM-leg skip instead of treating the build configuration as a tool
@@ -18,10 +19,10 @@ Front-end self-hosts on both backends in LLVM-enabled builds.
 - Lexer (src/self_hosted/lexer/): compiles on C and LLVM. `main.pgy` is only
   the entrypoint; character/codepoint handling, token classification/output
   formatting, and scan-loop state are owned by separate modules. Token output
-  is byte-identical to `pgy --tokens` across the 6 committed source fixtures,
+  is byte-identical to `pgy --tokens` across the 7 committed source fixtures,
   and the live drift guard confirms those fixtures still match the current
-  oracle. The broader lexer scale probe remains 191 of 195 historical sources
-  byte-equal.
+  oracle. The broader lexer scale probe now measures 993 of 993 examples +
+  backend_compare sources byte-equal.
 - Parser (src/self_hosted/parser/): compiles on C and LLVM and compares
   byte-identical against `pgy --ast` on 188 committed source fixtures. It parses
   the domain grammar, not just generic constructs: it dispatches on zone, world,

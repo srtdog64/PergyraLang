@@ -1,0 +1,31 @@
+=== tokens: tests/cases/backend_compare/string_escape_sequences/main.pgy ===
+   1  Token{type: FUNC, text: "func", line: 1, col: 1}
+   2  Token{type: IDENTIFIER, text: "Main", line: 1, col: 6}
+   3  Token{type: (, text: "(", line: 1, col: 10}
+   4  Token{type: ), text: ")", line: 1, col: 11}
+   5  Token{type: ->, text: "->", line: 1, col: 13}
+   6  Token{type: IDENTIFIER, text: "Void", line: 1, col: 16}
+   7  Token{type: {, text: "{", line: 1, col: 21}
+   8  Token{type: IDENTIFIER, text: "Log", line: 2, col: 5}
+   9  Token{type: (, text: "(", line: 2, col: 8}
+  10  Token{type: STRING, text: ""tab:\there"", line: 2, col: 9}
+  11  Token{type: ), text: ")", line: 2, col: 21}
+  12  Token{type: ;, text: ";", line: 2, col: 22}
+  13  Token{type: IDENTIFIER, text: "Log", line: 3, col: 5}
+  14  Token{type: (, text: "(", line: 3, col: 8}
+  15  Token{type: STRING, text: ""nl:1\nnl:2"", line: 3, col: 9}
+  16  Token{type: ), text: ")", line: 3, col: 21}
+  17  Token{type: ;, text: ";", line: 3, col: 22}
+  18  Token{type: IDENTIFIER, text: "Log", line: 4, col: 5}
+  19  Token{type: (, text: "(", line: 4, col: 8}
+  20  Token{type: STRING, text: ""quote:\"here\""", line: 4, col: 9}
+  21  Token{type: ), text: ")", line: 4, col: 25}
+  22  Token{type: ;, text: ";", line: 4, col: 26}
+  23  Token{type: IDENTIFIER, text: "Log", line: 5, col: 5}
+  24  Token{type: (, text: "(", line: 5, col: 8}
+  25  Token{type: STRING, text: ""backslash:\\path"", line: 5, col: 9}
+  26  Token{type: ), text: ")", line: 5, col: 27}
+  27  Token{type: ;, text: ";", line: 5, col: 28}
+  28  Token{type: }, text: "}", line: 6, col: 1}
+  29  Token{type: EOF, text: "", line: 7, col: 1}
+  29 tokens total

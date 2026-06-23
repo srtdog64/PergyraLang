@@ -95,7 +95,7 @@ one owner cannot accidentally materialize the same declarations twice.
   the scaffold check. This is dogfood evidence only; the compiler core remains C.
 - **2026-05-28** -- first compiler-internal substitution candidates land as
   C-side-mirroring siblings: `lexer/` gates byte-equality against
-  `pgy --tokens` (6 fixtures), and `parser/` gates a growing text-tree
+  `pgy --tokens` (7 fixtures), and `parser/` gates a growing text-tree
   subset against `pgy --ast` (9 fixtures: hello, multi-statement,
   parameters, no-arg / ident-arg calls, let with mixed literals, multi-
   function, return). The earlier `compiler/lexer/lex_minimal/` and

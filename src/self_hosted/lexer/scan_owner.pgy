@@ -173,8 +173,17 @@ func LexContent(source_path: String, content: String) -> String {
             i = i + 1;
             col = col + 1;
             while i < n && CharCode(content, n, i) != Ord("\"") {
-                i = i + 1;
-                col = col + 1;
+                if CharCode(content, n, i) == Ord("\\") {
+                    i = i + 1;
+                    col = col + 1;
+                    if i < n {
+                        i = i + 1;
+                        col = col + 1;
+                    }
+                } else {
+                    i = i + 1;
+                    col = col + 1;
+                }
             }
             if i < n {
                 i = i + 1;

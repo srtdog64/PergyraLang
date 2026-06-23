@@ -146,14 +146,15 @@ logged directly (not via `ToString`) was emitted with `%s`; fixed by routing
 `Array<String>` parameters (the self-host emitter handles them correctly); filed
 separately.
 
-**Lexer parity (2026-06-18):** the committed lexer gate compiles the
+**Lexer parity (2026-06-23):** the committed lexer gate compiles the
 Pergyra-origin lexer through both C and LLVM, then proves byte-equal token
-output and live `pgy --tokens` drift on 6 source fixtures:
+output and live `pgy --tokens` drift on 7 source fixtures:
 `hello`, `array_literal`, `break_continue`, `basic`, `heap`, and
-`binary_search`. `main.pgy` is now only the entrypoint; character/codepoint
-classification, token keyword/line rendering, and the scan loop live in
-`char_owner.pgy`, `token_owner.pgy`, and `scan_owner.pgy`. The broader lexer
-scale result remains the committed scale probe measurement below.
+`binary_search`, plus backend-compare `string_escape_sequences`. `main.pgy` is
+now only the entrypoint; character/codepoint classification, token keyword/line
+rendering, and the scan loop live in `char_owner.pgy`, `token_owner.pgy`, and
+`scan_owner.pgy`. The broader lexer scale probe now measures **993 of 993**
+examples + backend_compare sources byte-equal to the C lexer oracle.
 
 **Parser at scale (2026-06-22):** the Pergyra-origin parser produces
 byte-equal output vs `pgy --ast` on **120 of 121** committed
@@ -204,7 +205,8 @@ Examples that **cannot** be added as fixtures (current state):
 
 Reading this honestly: the self-host journey has *just started*. The
 first compiler-internal substitute (`src/self_hosted/lexer/`) lands a
-Pergyra-written lexer that handles ~97% of the example token surface.
+Pergyra-written lexer that handles the measured examples + backend_compare
+token surface byte-for-byte.
 The parser (`src/self_hosted/parser/`) follows at ~52%: it covers a real
 domain grammar subset and has C/LLVM byte-equal parser parity over the
 committed fixture set, but still stops short of the remaining scale-probe
@@ -222,7 +224,7 @@ only observe text artifacts the C compiler produces. Their LOC is
 
 | Component       | C LOC   | Pergyra LOC | Coverage | Status            |
 |-----------------|---------|-------------|----------|-------------------|
-| `src/lexer/`    |    1003 |         670 | **~97%** | **191 of 195 sources byte-equal** (115 examples + 80 backend_compare). `main.pgy` is orchestration only; character/codepoint handling, token classification/output formatting, and scan-loop state are separate SoT owner modules. Remaining 4 use string interpolation (`$"...{var}..."`) or `/** doc */` comments. 6 representative sources committed as parity fixtures. |
+| `src/lexer/`    |    1003 |         679 | measured corpus parity | **993 of 993 sources byte-equal** (examples + backend_compare). `main.pgy` is orchestration only; character/codepoint handling, token classification/output formatting, and scan-loop state are separate SoT owner modules. Escaped strings, interpolation, and doc/block comments are covered by the measured corpus. 7 representative sources are committed as parity fixtures. |
 | `src/parser/`   |   21813 |        6852 | ~52%     | `src/self_hosted/parser/` parses 188 committed fixtures byte-equal `pgy --ast` on both C and LLVM parser binaries, and **120 of 121** `examples/*.pgy` byte-equal at scale (2026-06-22; zero byte-drift, zero self-host parser exits, 1 C-skip). Parser ownership is now partially split: `error_owner.pgy` owns parse failure rendering, `cursor_owner.pgy` owns source navigation/token reads and keyword boundary matching, `type_name_owner.pgy` owns written type-name parsing/primitive classification, `expr_string_owner.pgy` owns string interpolation expression desugaring, `expr_primary_owner.pgy` owns primary/postfix expression parsing, `expr_precedence_owner.pgy` owns expression precedence, `stmt_if_owner.pgy`/`stmt_parallel_owner.pgy`/`stmt_match_owner.pgy` own their recursive statement branches, `stmt_owner.pgy` owns statement dispatch/block parsing, `function_decl_owner.pgy` owns function declaration/signature rendering, `decl_dispatch_owner.pgy` owns recursive top-level declaration dispatch, `decl_type_owner.pgy`/`decl_ability_owner.pgy`/`decl_event_owner.pgy`/`decl_enum_owner.pgy`/`decl_zone_owner.pgy`/`decl_effect_relation_owner.pgy`/`decl_role_owner.pgy`/`decl_intent_owner.pgy`/`decl_nominal_owner.pgy` own their declaration branches, and `tree_text_owner.pgy` owns compact AST text formatting; `main.pgy` is parser-tool entrypoint orchestration only. Top-level: `[async]? [export]? func<T,U>`, `subject`/`class`/`vessel`/`struct`/`object`/`tobject` with `<T,U>` and `func`/`action` methods, `type` alias/record alias, `enum`, `namespace`, `event`, `ability`, `role`/`impl`, `party`, `roster`, `world`, `zone` (subject/object/tobject slots), `intent ... with retry(n)` metadata, `import "PATH.pgy";` (reads file relative to source dir, recursively parses, force-exports its funcs). Stmt: `let IDENT/(IDENTS)`, assign, `+=`/`-=`/`<-`, `return`, `if`/`else if`/`else`, `if let Some(...)`, `while`, `for`, `loop`, `break`, `continue`, `defer`, `match`, `parallel`, `parallel on`/`every`, `continuous`, `transaction`, `fail`, `with slot<TYPE> as VAR { stmts }`. `expr`: `! - <- spawn[blocking] await` > `*/% > +- > \|> > cmp > && > \|\|`. Primaries: STRING/NUMBER/IDENT/`( )`/`[ ]`/lambda/object-init/tuple-erasure, `async {}`/parallel expression blocks, postfix `(args)` / `[idx]` / `.member` / `?` / turbofish, and dollar interpolation. |
 | `src/semantic/` |   47541 |        1202 | rung-2 subset | Checks a bounded function-body subset against the C compiler oracle on C/LLVM-generated binaries: typed `let`, return typing, unary/binary expression typing, function-call return/arity/argument typing, scoped `if`/`while`/`for` bodies, branch conditions, assignment, bare call statements, and simple/compound undefined identifier use across 65 fixtures. `main.pgy` is now orchestration only; source scanning, diagnostic rendering, local environment lookup, expression typing, call checking, body/function checking, and program checking live in named owner modules. |
 | `src/codegen/`  |  111465 |        1689 | rung-0..16 | **C-emit rung-0..16 (2026-06-23).** Pergyra emitter consumes `pgy --ast` text and emits standalone C for: string `Log`/`Concat`, `Log(ToString(<intexpr>))`, integer `Let:`/`Assign:` (`+ - * / %`, negatives match oracle), `while`/`if`/`else` and `for i in a..b` + `break`/`continue` (structural lowering), multiple `Int`/`Bool`/`String`/`Void` functions with calls, recursion, `return`, block-local `Defer:` scope-exit emission in LIFO order for the supported statement subset, `String` types (routed by a per-function variable + global function type environment; `Concat`/`Substring`/`StringLength`/`StringIndexOf`/`StringTrim`/`StringJoin`/`Join` -> runtime helpers), `Bool` (`<stdbool.h>`), **growable `Array<Int>`/`Array<String>`** as a `{data,len,cap}` struct (`[..]` literal -> `new()`+`push`; `ArrayPush`/`ArrayLength`/`ArraySet`/`xs[i]` -> struct helpers via env-aware index-expression rewriting), `Array<Int>` combinators (`ArraySort`, `ArrayMap`, `ArrayFilter`) for unary `Int -> Int` / `Int -> Bool` function references, `Result<Int>` values (`Ok`, `Err`, `IsOk`, `IsErr`, `Unwrap`, `UnwrapOr`) plus postfix `?` early-return lowering for `Int` payload lets inside `Result<Int>` functions, `Option<Int>` values (`Some`, `None`, `IsSome`, `UnwrapOption`) plus MIR-owned `Some(v)` match binding flow, the `Exit(n)` statement, **`FileExists`/`ReadFile` file I/O**, `Args()` user-argument snapshots, value-passed Int-field structs with literals/member reads/params/returns, `Array<Int>` parameter/return flow, `ArrayPop`, type-aware bare returns, and the `ToUpper`/`ToLower`/`StringReplace`/`Abs`/`Min`/`Max` builtins (pure name-rewrites to runtime helpers), and the **string `+` concatenation operator** (in a string context a top-level `+`, after stripping the AST's redundant parens, lowers to nested `pgy_concat`), **`WriteFile(path, content)`** (Void, one-shot overwrite via `pgy_writefile`, the pair of the existing `ReadFile`), and a **`Log` newline-semantics fix** (the oracle strips all trailing newlines from a logged string then appends exactly one -- `Log("c\n\n")` -> `c\n`; string Log now routes through a `pgy_log` helper instead of a raw `printf("%s\n", ...)`, closing a real self-vs-oracle run-equivalence divergence on newline-terminated strings), the **runtime-aligned file path policy** (absolute paths are denied unless `PGY_IO_ALLOW_ABSOLUTE=1`, matching the C runtime default), the **file-handle I/O API** (`FileOpen`->Int handle over a static `FILE*` table, `FileWrite`/`FileClose`/`FileRead` one-line reads, plus `Print` for newline-free output), and **`Float`** (C `double`: Float locals, `ToFloat` via `atof`, `Sqrt`/`Pow`/`Floor`/`Ceil` math via `<math.h>`, `Log(Float)` as `%f`, Float `+`, and deterministic `Random(n)` = `rand() % n`; Float params/returns are deliberately rejected so complex Float programs stay a clean observable rejection rather than broken C). The codegen also **rejects `event` declarations** with an observable CODEGEN ERROR (no handler/dispatch model -- a no-op fake would mask real event dispatch). With that, **every one of the examples-scale programs is either compiled to run-equivalent C or cleanly rejected -- zero in-subset silent-broken-output cases**, satisfying the §1.1 observable-rejection invariant across the whole corpus. **55 fixtures run-stdout equal** to the C/LLVM oracle on tools built through both backends (incl. recursive Fibonacci, string index-of split, bool predicates, growable int + string array push/iterate, file read/path policy, argv snapshot, struct value flow, array param/return, Join/ToFloat scalar utility flow, Array<Int> sort/map/filter flow, Result<Int> value and `?` flow, Option<Int> value flow, and defer LIFO scope-exit flow). Gate: `parity/codegen_parity.sh` (`make self-host-codegen-parity-test-smoke`). Out-of-subset input is an observable `Exit(1)`. |
@@ -234,7 +236,7 @@ only observe text artifacts the C compiler produces. Their LOC is
 Notes:
 
 - *Coverage %* is a rough functional estimate, not a LOC-equivalence
-  number. The lexer is 670 LOC and is judged by byte-equal fixture coverage,
+  number. The lexer is 679 LOC and is judged by byte-equal fixture coverage,
   not by line-count parity with the C lexer.
 - *Runtime kernel stays C* by current design: allocator/OS/thread/panic/slot
   exports are what the target Pergyra program links against, so substituting
@@ -284,14 +286,13 @@ The realistic incremental path toward genuine self-host:
 1. **Lexer expansion** -- *substantially done* (2026-06-16). Handles
    common keywords, line + block comments, integer + float literals, string
    literals, and common operators. The committed executable gate is the
-   6-source C/LLVM parity harness; the broader scale number below is a
+   7-source C/LLVM parity harness; the broader scale number below is a
    historical measurement and should not be treated as a committed scale gate.
-2. **Lexer at scale** -- *historical measurement* (2026-06-16). Pergyra
-   lexer was measured against 115 `examples/*.pgy` + 80
-   `tests/cases/backend_compare/**/main.pgy` files; **191 of 195
-   byte-equal** vs `pgy --tokens` (97.9%). Remaining 4 need string
-   interpolation or `/** doc */` lexing -- both larger surface than the
-   current scope warrants. Coverage target met.
+2. **Lexer at scale** -- *historical measurement refreshed* (2026-06-23).
+   Pergyra lexer was measured against `examples/*.pgy` plus
+   `tests/cases/backend_compare/**/main.pgy`; **993 of 993 byte-equal** vs
+   `pgy --tokens`. String interpolation, escaped strings, and doc/block comment
+   lexing are now in the measured surface. Coverage target met for this corpus.
 3. **Parser bootstrap** -- *expanding* (2026-06-22). `src/self_hosted/parser/`
    parses 188 committed fixtures byte-equal `pgy --ast` on parser binaries
    generated by both C and LLVM, and **120 of 121** `examples/*.pgy` files at

@@ -27,9 +27,9 @@ rewrite history.
 
 ## Verified state (rolling)
 
-- **Lexer**: self-hosts on C+LLVM. Byte-identical to `pgy --tokens` across the 6
-  committed parity fixtures (gated) and **121/121 of the examples corpus**
-  (scale probe, as of session 2026-06-20). Zero self-host lexer crashes.
+- **Lexer**: self-hosts on C+LLVM. Byte-identical to `pgy --tokens` across the 7
+  committed parity fixtures (gated) and **993/993 examples + backend_compare
+  sources** (scale probe, as of session 2026-06-23). Zero self-host lexer crashes.
   `main.pgy` is now only the entrypoint; character/codepoint handling,
   token classification/output formatting, and scan-loop state are split into
   source-of-truth owner modules.
@@ -52,8 +52,8 @@ rewrite history.
 
 ## Roadmap to completion
 
-1. **Front-end coverage to 100%** (assist-safe): lexer corpus is at 121/121;
-   parser corpus is at 120/121 with only the C-oracle `secure_slots` skip
+1. **Front-end coverage to 100%** (assist-safe): lexer measured corpus is at
+   993/993; parser corpus is at 120/121 with only the C-oracle `secure_slots` skip
    remaining. The next parser move is structured AST ownership rather than
    polishing a text-mirror substitute.
 2. **Measurement/golden coverage** (assist-safe): committed scale probes per
@@ -75,6 +75,23 @@ rewrite history.
    allowed -- that is what makes a positive one mean something.
 
 ## Session log
+
+### 2026-06-23 -- Lexer measured corpus closed and escape fixture gated
+
+- Moved `src/self_hosted/parity/lexer_scale_probe.sh` from the legacy
+  `fixture/source.txt` override to the real `Args()[0]` invocation boundary and
+  widened the measured corpus from examples-only to examples +
+  `tests/cases/backend_compare/**/main.pgy`.
+- Fixed `src/self_hosted/lexer/scan_owner.pgy` so ordinary string scanning
+  consumes backslash escapes before testing for the closing quote, matching the
+  C lexer on `\"` and `\\`.
+- Promoted `tests/cases/backend_compare/string_escape_sequences/main.pgy` into
+  the hard lexer parity gate, moving the committed lexer fixture set from 6 to
+  **7 fixtures**.
+- Verified `src/self_hosted/parity/lexer_scale_probe.sh --failing` with
+  **993/993 byte-equal**, 0 drift, 0 self-host failures, 0 C skips, and
+  `make LLVM_ENABLED=0 BUILD_DIR=.tmp/pgy-build-c BIN_DIR=.tmp/pgy-bin-c
+  self-host-lexer-parity-test-smoke` green.
 
 ### 2026-06-23 -- Semantic checker split into SoT owner modules
 

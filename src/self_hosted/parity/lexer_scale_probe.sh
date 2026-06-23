@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Run the Pergyra-origin lexer against every examples/*.pgy file and
-# count how many produce byte-equal output vs `pgy --tokens`. This is a
-# coverage probe — not a parity gate. Output is a count summary plus
-# lists of matching and failing files. Read-only beyond source.txt.
+# Run the Pergyra-origin lexer against the examples corpus and backend-compare
+# corpus, then count how many produce byte-equal output vs `pgy --tokens`. This
+# is a coverage probe, not a parity gate. Output is a count summary plus lists
+# of matching and failing files.
 #
 # Mirrors parser_scale_probe.sh. The status doc records the lexer at
-# "191 of 195 historical sources byte-equal" with no committed probe;
-# this is that probe, run against the examples corpus.
+# "191 of 195 historical sources byte-equal"; this probe re-measures that
+# historical examples + backend_compare surface.
 
 set -uo pipefail
 
@@ -27,7 +27,6 @@ fi
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/lexer/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/lexer_scale}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
-SOURCE_OVERRIDE="$ROOT_DIR/src/self_hosted/lexer/fixture/source.txt"
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$ROOT_DIR/src/self_hosted/lexer/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"
@@ -35,10 +34,7 @@ cp "$ROOT_DIR/src/self_hosted/lexer/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"
 echo "[scale-probe] compiling lexer..."
 (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")" -o "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_BUILD_DIR/main.exe")" >/dev/null)
 
-cleanup() { rm -f "$SOURCE_OVERRIDE"; }
-trap cleanup EXIT
-
-shopt -s nullglob
+shopt -s nullglob globstar
 TOTAL=0
 MATCH=0
 DIFFER=0
@@ -46,36 +42,39 @@ P_FAIL=0
 C_SKIP=0
 MATCH_LIST=()
 FAIL_LIST=()
+LIVE_FILE="$PERGYRA_TOOL_BUILD_DIR/live.tokens"
+PERGYRA_FILE="$PERGYRA_TOOL_BUILD_DIR/pergyra.tokens"
 
-for src in "$ROOT_DIR"/examples/*.pgy; do
+for src in "$ROOT_DIR"/examples/*.pgy "$ROOT_DIR"/tests/cases/backend_compare/**/main.pgy; do
     rel="${src#$ROOT_DIR/}"
     TOTAL=$((TOTAL + 1))
 
-    printf '%s' "$rel" > "$SOURCE_OVERRIDE"
-
-    LIVE="$(cd "$ROOT_DIR" && "$PGY" --tokens "$rel" 2>/dev/null)"
-    LIVE_RC=$?
-    if [[ "$LIVE_RC" -ne 0 || -z "$LIVE" ]]; then
+    if ! (cd "$ROOT_DIR" && "$PGY" --tokens "$rel" 2>/dev/null | tr -d '\r' > "$LIVE_FILE"); then
+        C_SKIP=$((C_SKIP + 1))
+        continue
+    fi
+    if [[ ! -s "$LIVE_FILE" ]]; then
         C_SKIP=$((C_SKIP + 1))
         continue
     fi
 
-    PERGYRA="$(cd "$ROOT_DIR" && "$PERGYRA_TOOL_BUILD_DIR/main.exe" 2>/dev/null \
-        | tr -d '\r')"
-    P_RC=$?
-    if [[ "$P_RC" -ne 0 ]]; then
+    if ! (cd "$ROOT_DIR" && "$PERGYRA_TOOL_BUILD_DIR/main.exe" "$rel" 2>/dev/null \
+        | tr -d '\r' \
+        | sed '/^pgy: compiled /d' > "$PERGYRA_FILE"); then
         P_FAIL=$((P_FAIL + 1))
-        FAIL_LIST+=("$rel (pergyra exit $P_RC)")
+        FAIL_LIST+=("$rel (pergyra exit)")
         continue
     fi
 
-    LIVE_NORM="$(printf '%s' "$LIVE" | tr -d '\r')"
-    if [[ "$PERGYRA" == "$LIVE_NORM" ]]; then
+    if cmp -s "$PERGYRA_FILE" "$LIVE_FILE"; then
         MATCH=$((MATCH + 1))
         MATCH_LIST+=("$rel")
     else
         DIFFER=$((DIFFER + 1))
         FAIL_LIST+=("$rel (byte-drift)")
+        cp "$LIVE_FILE" "$PERGYRA_TOOL_BUILD_DIR/fail_live.tokens"
+        cp "$PERGYRA_FILE" "$PERGYRA_TOOL_BUILD_DIR/fail_pergyra.tokens"
+        printf '%s\n' "$rel" > "$PERGYRA_TOOL_BUILD_DIR/fail_source.txt"
     fi
 done
 
