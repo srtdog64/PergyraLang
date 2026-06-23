@@ -137,8 +137,6 @@ transpiler_hosted_world_roster_slot_view_name(
         return NULL;
     if (field != NULL)
         return mir_decl_field_name(field);
-    if (view->requires_mir_metadata)
-        return NULL;
     return NULL;
 }
 
@@ -154,8 +152,6 @@ transpiler_hosted_world_roster_slot_view_type_name(
         return NULL;
     if (field != NULL)
         return mir_decl_field_type_name(field);
-    if (view->requires_mir_metadata)
-        return NULL;
     return NULL;
 }
 

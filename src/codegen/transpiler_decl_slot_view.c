@@ -133,8 +133,6 @@ transpiler_hosted_zone_layer_slot_view_name(
         return NULL;
     if (field != NULL)
         return mir_decl_field_name(field);
-    if (view->requires_mir_metadata)
-        return NULL;
     return NULL;
 }
 
@@ -150,8 +148,6 @@ transpiler_hosted_zone_layer_slot_view_type(
         return NULL;
     if (field != NULL)
         return mir_decl_field_type(field);
-    if (view->requires_mir_metadata)
-        return NULL;
     return NULL;
 }
 
@@ -167,8 +163,6 @@ transpiler_hosted_zone_layer_slot_view_type_name(
         return NULL;
     if (field != NULL)
         return mir_decl_field_type_name(field);
-    if (view->requires_mir_metadata)
-        return NULL;
     return NULL;
 }
 
@@ -184,8 +178,6 @@ transpiler_hosted_zone_layer_slot_view_is_relation(
         return false;
     if (field != NULL)
         return mir_decl_field_is_relation_layer(field);
-    if (view->requires_mir_metadata)
-        return false;
     return false;
 }
 
@@ -201,8 +193,6 @@ transpiler_hosted_zone_layer_slot_view_is_pool(
         return false;
     if (field != NULL)
         return mir_decl_field_is_pool_layer(field);
-    if (view->requires_mir_metadata)
-        return false;
     return false;
 }
 
@@ -218,8 +208,6 @@ transpiler_hosted_zone_layer_slot_view_pool_capacity(
         return 0;
     if (field != NULL)
         return mir_decl_field_pool_capacity(field);
-    if (view->requires_mir_metadata)
-        return 0;
     return 0;
 }
 
@@ -587,8 +575,6 @@ transpiler_hosted_world_zone_slot_view_name(
         return NULL;
     if (field != NULL)
         return mir_decl_field_name(field);
-    if (view->requires_mir_metadata)
-        return NULL;
     return NULL;
 }
 
@@ -604,7 +590,5 @@ transpiler_hosted_world_zone_slot_view_type_name(
         return NULL;
     if (field != NULL)
         return mir_decl_field_type_name(field);
-    if (view->requires_mir_metadata)
-        return NULL;
     return NULL;
 }

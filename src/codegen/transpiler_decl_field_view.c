@@ -117,8 +117,6 @@ transpiler_hosted_field_view_name(const TranspilerHostedFieldView *view,
         return NULL;
     if (field != NULL)
         return mir_decl_field_name(field);
-    if (view->requires_mir_metadata)
-        return NULL;
     return NULL;
 }
 
@@ -133,8 +131,6 @@ transpiler_hosted_field_view_type(const TranspilerHostedFieldView *view,
         return NULL;
     if (field != NULL)
         return mir_decl_field_type(field);
-    if (view->requires_mir_metadata)
-        return NULL;
     return NULL;
 }
 
@@ -172,8 +168,6 @@ transpiler_hosted_field_view_is_subject_like(
         return false;
     if (field != NULL)
         return transpiler_mir_decl_field_is_subject_like(field);
-    if (view->requires_mir_metadata)
-        return false;
     return false;
 }
 
@@ -241,8 +235,6 @@ transpiler_hosted_shared_field_view_name(
         return NULL;
     if (field != NULL)
         return mir_decl_field_name(field);
-    if (view->requires_mir_metadata)
-        return NULL;
     return NULL;
 }
 
@@ -258,8 +250,6 @@ transpiler_hosted_shared_field_view_type(
         return NULL;
     if (field != NULL)
         return mir_decl_field_type(field);
-    if (view->requires_mir_metadata)
-        return NULL;
     return NULL;
 }
 
@@ -275,7 +265,5 @@ transpiler_hosted_shared_field_view_initializer(
         return NULL;
     if (field != NULL)
         return mir_decl_field_initializer(field);
-    if (view->requires_mir_metadata)
-        return NULL;
     return NULL;
 }
