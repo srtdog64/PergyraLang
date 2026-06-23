@@ -61,9 +61,9 @@ The target shape is not "one folder, one monolithic `main.pgy`". `main.pgy`
 is the CLI/orchestration entrypoint; semantic decisions belong in named
 source-of-truth owner modules. `codegen/`, `mir_lower/`, `semantic/`, and
 `lexer/` follow that shape. `parser/` has started the same transition with
-error/cursor owners; expression, statement, and declaration parsing remain the
-main surfaces to split by owned fact/contract as each hard substitution seam is
-closed.
+error, cursor, and compact-tree text owners; expression, statement, and
+declaration parsing remain the main surfaces to split by owned fact/contract as
+each hard substitution seam is closed.
 
 ## Current Status
 

@@ -36,8 +36,8 @@ rewrite history.
 - **Parser**: self-hosts on C+LLVM. Byte-identical against `pgy --ast` on 188
   committed fixtures (gated); examples scale probe last recorded 120/121 with
   zero byte-drift, zero self-host exits, 1 C-oracle skip. Parser ownership is
-  partially split: parse failure rendering and source cursor/token reads are
-  separate owner modules.
+  partially split: parse failure rendering, source cursor/token reads, and
+  compact AST text formatting are separate owner modules.
 - **Backend parity**: parser compiled by C and by LLVM produce byte-identical
   output -- the core self-host correctness signal.
 - **Compiler core**: capability-5 single-source-of-truth is READY for the

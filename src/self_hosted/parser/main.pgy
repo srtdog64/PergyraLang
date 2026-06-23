@@ -10,6 +10,7 @@
 
 import "error_owner.pgy";
 import "cursor_owner.pgy";
+import "tree_text_owner.pgy";
 
 func DesugarStringInterpolation(s: String) -> String {
     let n: Int = StringLength(s);
@@ -1002,17 +1003,6 @@ func ParseExpr(content: String, start: Int, cursor_out: Array<Int>) -> String {
     return ParseLogicalOr(content, start, cursor_out);
 }
 
-// Produce a string of `n` ASCII spaces, used to indent AST output.
-func IndentStr(n: Int) -> String {
-    let s: String = "";
-    let k: Int = 0;
-    while k < n {
-        s = Concat(s, " ");
-        k = k + 1;
-    }
-    return s;
-}
-
 // True if the `len` chars at `i` exactly match `kw` and the byte right
 // after is not a word char (so `else` matches but `elsewhere` doesn't).
 func MatchKeyword(content: String, i: Int, kw: String) -> Bool {
@@ -1854,30 +1844,6 @@ func ParseBlock(content: String, start: Int, inout cursor_out: Array<Int>, stmt_
         }
     }
     return out;
-}
-
-// Append a line to a string accumulator, inserting `\n` between
-// existing content and the new line. The decl-emission code uses this
-// shape pervasively; pulling it into a helper keeps the per-decl
-// branches readable.
-func AppendLine(acc: String, line: String) -> String {
-    if StringLength(acc) == 0 {
-        return line;
-    }
-    return Concat(acc, Concat("\n", line));
-}
-
-func AppendImplicitMain(decls: String, body: String) -> String {
-    if StringLength(body) == 0 {
-        return decls;
-    }
-    let main_block: String = "  Function: Main";
-    main_block = AppendLine(main_block, "    Parameters:");
-    main_block = AppendLine(main_block, "    Returns: Void");
-    main_block = AppendLine(main_block, "    Body:");
-    main_block = AppendLine(main_block, "      Block:");
-    main_block = AppendLine(main_block, body);
-    return AppendLine(decls, main_block);
 }
 
 // Parse one `func IDENT(params) -> RET { body }` declaration starting
