@@ -3241,21 +3241,10 @@ require_term "src/codegen/host_decl_compat.c" \
     "case AST_ROLE_DECL"
 require_term "src/codegen/llvm_inventory_host_methods.c" \
     "pgy_host_method_compat_view_from_decl(decl, llvm_active_has_mir(ctx))"
-require_term "src/codegen/llvm_inventory_host_methods.c" \
-    "if (llvm_active_has_mir(ctx))"
-require_term "src/codegen/llvm_inventory_host_methods.c" \
-    "llvm_find_host_decl_in_active_inventory(ctx, host_type_name)"
-require_term "src/codegen/llvm_inventory_host_methods.c" \
-    "ctx->current_host_decl"
-require_term "src/codegen/llvm_inventory_host_methods.c" \
-    "llvm_hosted_method_view_compat_method(&method_view, i)"
-require_term "src/codegen/llvm_inventory_host_methods.h" \
-    "llvm_hosted_method_view_compat_method("
-if awk '/llvm_find_host_method_decl_in_context\(/{in_fn=1} in_fn {print} /^}/{if (in_fn) exit}' \
-        "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.c" \
-        | grep -Fq "llvm_hosted_method_view_source_ast(&method_view, i)"; then
-    fail "LLVM host-method lookup fallback must read compatibility methods through the hosted method view owner"
-fi
+# MIR-only: the non-MIR LLVM host-method AST lookup fallback
+# (llvm_find_host_method_decl_in_context) is retired -- it fails closed (returns
+# NULL) and no longer reads compat methods, looks up active-inventory decls, or
+# probes ctx->current_host_decl. The compat-method accessor is removed.
 if grep -RInE 'method_view(\.|->)ast_compat_methods\[[^]]+\]' \
         "$ROOT_DIR/src/codegen"/llvm_*.c \
         "$ROOT_DIR/src/codegen"/llvm_*.h \
@@ -5428,16 +5417,17 @@ if grep -Fq "host_decl->type == AST_PARTY_DECL" \
     "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"; then
     fail "C self-member dispatch must consume host pointer-self policy instead of repeating domain host chains"
 fi
+# MIR-only: the non-MIR C host-method AST lookups (current_host_method_decl,
+# find_nominal_host_method_decl) are retired -- they fail closed (return NULL) and
+# no longer build a method view, read MIR method names, or cache nominal method
+# decls. Their host-DECL lookup siblings still consume the compat owner table.
 for term in \
-    "transpiler_active_has_mir(ctx)" \
     "transpiler_active_mir_identity(ctx)" \
     "pgy_host_decl_compat_is_type(owner_ast_type)" \
     "owner_ast_type, owner_name" \
     "pgy_host_decl_compat_nominal_lookup_types(&host_lookup_type_count)" \
     "host_lookup_types[i]" \
-    "AST_ROLE_DECL" \
-    "transpiler_hosted_method_view_from_decl(ctx, host_type_name, decl)" \
-    "transpiler_mir_decl_method_name(method_meta)"; do
+    "AST_ROLE_DECL"; do
     require_term "src/codegen/transpiler_decl_host_lookup.c" "$term"
 done
 if grep -Fq "transpiler_mir_decl_method_body_decl" \
@@ -6218,7 +6208,6 @@ for term in \
     "ast_compat_count" \
     "transpiler_hosted_method_view(" \
     "transpiler_hosted_method_view_metadata(" \
-    "transpiler_hosted_method_view_compat_method(" \
     "transpiler_find_host_method_metadata_in_context(" \
     "transpiler_mir_decl_method_name(" \
     "transpiler_mir_decl_method_is_async(" \
@@ -6245,12 +6234,9 @@ if grep -Fq "transpiler_generic_class_spec_base_decl(ctx," \
     "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"; then
     fail "C member-call emitter must not manually peel generic specializations; consume transpiler_find_host_method_metadata_in_context"
 fi
-for rel in \
-    "src/codegen/transpiler_class_decl_emit.c" \
-    "src/codegen/transpiler_decl_host_lookup.c" \
-    "src/codegen/transpiler_zone_specialization_emit.c"; do
-    require_term "$rel" "transpiler_hosted_method_view_compat_method("
-done
+# MIR-only: the C compat-method accessor and all its call sites (class/zone
+# specialization emit, host-method lookup) are retired -- method shape is owned
+# by MIR metadata and these paths fail closed.
 if grep -RInE 'method_view(\.|->)ast_compat_methods\[[^]]+\]' \
         "$ROOT_DIR/src/codegen"/transpiler_*.c \
         "$ROOT_DIR/src/codegen"/transpiler_*.h \
@@ -7691,9 +7677,6 @@ for term in \
     "LLVM MIR parameter self-field slot registration consumes" \
     "MIRDeclFieldClaim" \
     "MIRDeclZoneRefresh" \
-    "Hosted method compatibility method arrays are internal state" \
-    "transpiler_hosted_method_view_compat_method" \
-    "llvm_hosted_method_view_compat_method" \
     "Dedicated declaration IR" \
     "Closed (MIR-only decision"; do
     require_term "docs/125_source_of_truth_spine.md" "$term"

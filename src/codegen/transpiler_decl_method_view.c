@@ -64,19 +64,6 @@ transpiler_hosted_method_view_metadata(const TranspilerHostedMethodView *view,
     return mir_decl_header_method(view->decl_header, index);
 }
 
-ASTNode *
-transpiler_hosted_method_view_compat_method(
-    const TranspilerHostedMethodView *view,
-    size_t index)
-{
-    /* MIR-only: the non-MIR AST method fallback is retired. Method shape is
-     * owned by MIR declaration metadata
-     * (transpiler_hosted_method_view_metadata). Fail closed. */
-    (void)view;
-    (void)index;
-    return NULL;
-}
-
 const MIRDeclMethod *
 transpiler_find_host_method_metadata_in_context(
     const TranspilerCtx *ctx,

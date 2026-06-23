@@ -163,10 +163,6 @@ typedef struct
     char          last_nominal_host_name[128];
     const MIRProgram *last_nominal_host_mir;
     ASTNode      *last_nominal_host_decl;
-    char          last_nominal_method_host_name[128];
-    char          last_nominal_method_name[128];
-    const MIRProgram *last_nominal_method_mir;
-    ASTNode      *last_nominal_method_decl;
 
     /* Counter for unique parallel wrapper function names */
     unsigned int  parallel_id;

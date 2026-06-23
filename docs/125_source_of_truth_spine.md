@@ -224,12 +224,11 @@ Current beta closure snapshot:
   classification, shared-field compatibility, and domain-constructor lookup may
   consume that policy, but they must not restate local party/role/roster/
   relation/effect/zone/world switch chains.
-- Hosted method compatibility method arrays are internal state of the C/LLVM
-  hosted method views. Consumers may ask
-  `transpiler_hosted_method_view_compat_method(...)` or
-  `llvm_hosted_method_view_compat_method(...)` only in non-MIR compatibility
-  paths; MIR-active paths consume `MIRDeclMethod` metadata and linked routine
-  indexes. Backend consumers must not index `ast_compat_methods` directly.
+- Hosted method shape is owned solely by MIR declaration metadata. The C/LLVM
+  hosted method views expose only `MIRDeclMethod` metadata and linked routine
+  indexes; the non-MIR AST method fallback (`ast_compat_methods` and the
+  `*_hosted_method_view_compat_method` accessors) is retired (MIR-only,
+  2026-06-23). Backend consumers must not index `ast_compat_methods` directly.
 - LLVM MIR parameter self-field slot registration consumes
   `LLVMHostedFieldView` and `MIRDeclFieldClaim` rows. It may render a field
   type from AST only in the explicit non-MIR compatibility path; MIR-active

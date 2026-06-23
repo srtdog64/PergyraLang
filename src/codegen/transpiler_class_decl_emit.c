@@ -302,22 +302,10 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         const MIRRoutine *mir_method =
             transpiler_mir_decl_method_routine(ctx, method_meta);
         if (method_meta == NULL || mir_method == NULL) {
-            if (transpiler_active_has_mir(ctx)) {
-                transpiler_set_mir_inventory_missing(ctx,
-                    "MIR-only C path missing method specialization routine for class '%s'",
-                    name != NULL ? name : "(anonymous-class)");
-                return;
-            }
-            {
-                ASTNode *compat_method =
-                    transpiler_hosted_method_view_compat_method(
-                        &method_view, i);
-                if (compat_method == NULL)
-                    continue;
-                ensure_collection_specializations_from_stmt_to(ctx, ctx->out,
-                    compat_method);
-            }
-            continue;
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing method specialization routine for class '%s'",
+                name != NULL ? name : "(anonymous-class)");
+            return;
         }
         ensure_collection_specializations_from_mir_routine_to(ctx, ctx->out,
             mir_method);

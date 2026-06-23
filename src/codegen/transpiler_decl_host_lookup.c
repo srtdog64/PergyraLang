@@ -43,28 +43,6 @@ transpiler_cache_nominal_host_decl(TranspilerCtx *ctx,
     ctx->last_nominal_host_decl = decl;
 }
 
-static void
-transpiler_cache_nominal_method_decl(TranspilerCtx *ctx,
-                                     const char *host_type_name,
-                                     const char *method_name,
-                                     ASTNode *method)
-{
-    if (ctx == NULL || host_type_name == NULL || method_name == NULL
-        || method == NULL) {
-        return;
-    }
-    if (!transpiler_cache_name(ctx->last_nominal_method_host_name,
-            sizeof(ctx->last_nominal_method_host_name), host_type_name)
-        || !transpiler_cache_name(ctx->last_nominal_method_name,
-            sizeof(ctx->last_nominal_method_name), method_name)) {
-        ctx->last_nominal_method_mir = NULL;
-        ctx->last_nominal_method_decl = NULL;
-        return;
-    }
-    ctx->last_nominal_method_mir = transpiler_active_mir_identity(ctx);
-    ctx->last_nominal_method_decl = method;
-}
-
 ASTNode *
 transpiler_find_host_decl_from_owner_local(TranspilerCtx *ctx,
                                            const char *owner_name,
@@ -188,42 +166,12 @@ cache_and_return:
 ASTNode *
 current_host_method_decl(TranspilerCtx *ctx, const char *method_name)
 {
-    ASTNode *decl = NULL;
-    const char *host_name = NULL;
-    TranspilerHostedMethodView method_view;
-
-    if (ctx == NULL || method_name == NULL)
-        return NULL;
-    if (transpiler_active_has_mir(ctx))
-        return NULL;
-
-    decl = transpiler_current_host_decl_local(ctx);
-    host_name = transpiler_decl_name_local(decl);
-    method_view = transpiler_hosted_method_view_from_decl(ctx, host_name, decl);
-
-    for (size_t i = 0; i < method_view.count; i++) {
-        ASTNode *method = NULL;
-        const char *candidate_name = NULL;
-        const MIRDeclMethod *method_meta =
-            transpiler_hosted_method_view_metadata(&method_view, i);
-        if (method_meta != NULL) {
-            candidate_name = transpiler_mir_decl_method_name(method_meta);
-            if (candidate_name != NULL
-                && strcmp(candidate_name, method_name) == 0) {
-                return NULL;
-            }
-            continue;
-        }
-        method = transpiler_hosted_method_view_compat_method(
-            &method_view, i);
-        candidate_name = ast_declaration_name(method);
-        if (method != NULL && method->type == AST_FUNC_DECL
-            && candidate_name != NULL
-            && strcmp(candidate_name, method_name) == 0) {
-            return method;
-        }
-    }
-
+    /* MIR-only: hosted method declarations are resolved from MIR method
+     * metadata by callers (transpiler_hosted_method_view_metadata). The non-MIR
+     * AST method lookup is retired; production codegen always has MIR, so this
+     * fails closed. */
+    (void)ctx;
+    (void)method_name;
     return NULL;
 }
 
@@ -231,48 +179,10 @@ ASTNode *
 find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
                               const char *method_name)
 {
-    ASTNode *decl = NULL;
-    TranspilerHostedMethodView method_view;
-
-    if (ctx == NULL || host_type_name == NULL || method_name == NULL)
-        return NULL;
-    if (transpiler_active_has_mir(ctx))
-        return NULL;
-
-    if (ctx->last_nominal_method_decl != NULL
-        && ctx->last_nominal_method_mir == transpiler_active_mir_identity(ctx)
-        && strcmp(ctx->last_nominal_method_host_name, host_type_name) == 0
-        && strcmp(ctx->last_nominal_method_name, method_name) == 0) {
-        return ctx->last_nominal_method_decl;
-    }
-
-    decl = transpiler_find_nominal_host_decl_local(ctx, host_type_name);
-    method_view = transpiler_hosted_method_view_from_decl(ctx, host_type_name, decl);
-
-    for (size_t i = 0; i < method_view.count; i++) {
-        ASTNode *method = NULL;
-        const char *candidate_name = NULL;
-        const MIRDeclMethod *method_meta =
-            transpiler_hosted_method_view_metadata(&method_view, i);
-        if (method_meta != NULL) {
-            candidate_name = transpiler_mir_decl_method_name(method_meta);
-            if (candidate_name != NULL
-                && strcmp(candidate_name, method_name) == 0) {
-                return NULL;
-            }
-            continue;
-        }
-        method = transpiler_hosted_method_view_compat_method(
-            &method_view, i);
-        candidate_name = ast_declaration_name(method);
-        if (method != NULL && method->type == AST_FUNC_DECL
-            && candidate_name != NULL
-            && strcmp(candidate_name, method_name) == 0) {
-            transpiler_cache_nominal_method_decl(ctx, host_type_name,
-                method_name, method);
-            return method;
-        }
-    }
-
+    /* MIR-only: see current_host_method_decl. The non-MIR AST method lookup
+     * (and its nominal-method decl cache) is retired; fail closed. */
+    (void)ctx;
+    (void)host_type_name;
+    (void)method_name;
     return NULL;
 }

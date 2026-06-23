@@ -133,9 +133,6 @@ bool transpiler_require_hosted_method_view_rows(
 const MIRDeclMethod *transpiler_hosted_method_view_metadata(
     const TranspilerHostedMethodView *view,
     size_t index);
-ASTNode *transpiler_hosted_method_view_compat_method(
-    const TranspilerHostedMethodView *view,
-    size_t index);
 const MIRDeclMethod *transpiler_find_host_method_metadata_in_context(
     const TranspilerCtx *ctx,
     const char *host_type_name,
