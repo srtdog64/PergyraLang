@@ -4,8 +4,10 @@ Pergyra-written lexer that emits the same text `pgy --tokens` produces,
 byte-for-byte. Mirrors C-side `src/lexer/`. The goal is byte-equal output,
 not a full compiler rewrite.
 
-- `main.pgy` - entry point. Reads `Args()[0]` when present, then defaults to
-  `examples/hello.pgy` for no-arg manual probes.
+- `main.pgy` - entry point orchestration only. Delegates argv/default source
+  path selection and file-read failure policy to `source_input_owner.pgy`.
+- `source_input_owner.pgy` - lexer input SoT. Owns the source path contract and
+  source file read boundary consumed by `scan_owner.pgy`.
 - `fixture/` - committed `<base>_tokens.txt` baselines for the 7-source
   parity harness (`hello`, `array_literal`, `break_continue`, `basic`,
   `heap`, `binary_search`).

@@ -116,7 +116,8 @@ require_text "Makefile" "src/self_hosted/parity/mir_json_parity.sh"
 require_owner_surface lexer \
     "char_owner.pgy" \
     "token_owner.pgy" \
-    "scan_owner.pgy"
+    "scan_owner.pgy" \
+    "source_input_owner.pgy"
 require_owner_surface parser \
     "error_owner.pgy" \
     "cursor_owner.pgy" \

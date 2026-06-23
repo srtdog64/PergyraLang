@@ -62,7 +62,9 @@ is the CLI/orchestration entrypoint; semantic decisions belong in named
 source-of-truth owner modules. `semantic/` also owns its program-input fact in
 `source_bundle_owner.pgy`: imports are expanded there before `CheckProgram`
 consumes the bundle, so the entrypoint does not define "program" by accident.
-`codegen/`, `mir_lower/`, `semantic/`, and `lexer/` follow that shape.
+`lexer/` owns its argv/default source path and file-read boundary in
+`source_input_owner.pgy`; `codegen/`, `mir_lower/`, and `semantic/` follow the
+same entrypoint-plus-owner shape.
 `parser/` has started the same transition with
 error, cursor/token, source path/import input, type-name, expression, statement/block,
 function-declaration, top-level declaration dispatch, branch declaration

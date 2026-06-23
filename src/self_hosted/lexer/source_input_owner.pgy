@@ -1,0 +1,19 @@
+// Lexer source-input owner.
+//
+// This module owns the lexer tool's argv/default source path and source file
+// read boundary. `main.pgy` stays orchestration only and the scanner consumes
+// already-owned input facts.
+
+func LexerDefaultSourcePath(args: Array<String>) -> String {
+    if ArrayLength(args) > 0 {
+        return args[0];
+    }
+    return "examples/hello.pgy";
+}
+
+func LexerReadSource(source_path: String) -> String {
+    if !FileExists(source_path) {
+        Exit(1);
+    }
+    return ReadFile(source_path);
+}

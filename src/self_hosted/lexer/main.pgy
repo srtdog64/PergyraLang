@@ -16,17 +16,11 @@
 import "char_owner.pgy";
 import "token_owner.pgy";
 import "scan_owner.pgy";
+import "source_input_owner.pgy";
 
 func Main() -> Void {
     let run_args: Array<String> = Args();
-    let source_path: String = "examples/hello.pgy";
-    if ArrayLength(run_args) > 0 {
-        source_path = run_args[0];
-    }
-
-    if !FileExists(source_path) {
-        Exit(1);
-    }
-    let content: String = ReadFile(source_path);
+    let source_path: String = LexerDefaultSourcePath(run_args);
+    let content: String = LexerReadSource(source_path);
     Log(LexContent(source_path, content));
 }

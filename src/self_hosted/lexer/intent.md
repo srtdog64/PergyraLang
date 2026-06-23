@@ -24,6 +24,9 @@ compared, rollback to C trivial".
   seven source fixtures, including an escaped-string backend-compare fixture.
   The broader scale probe covers `examples/*.pgy` and
   `tests/cases/backend_compare/**/main.pgy`.
+- **input_owner**: `src/self_hosted/lexer/source_input_owner.pgy` owns
+  argv/default source path selection and the file-read failure boundary. The
+  entrypoint only orchestrates that owner and the scanner.
 - The parity and selfcheck scripts pass the source path through `Args()[0]`.
   No side-channel source file is part of the input contract.
 - The lexer subset handles the token families exercised by the measured

@@ -784,3 +784,13 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `src/self_hosted/parity/parser_parity.sh`,
   `make test-inc-size-test-smoke`, and
   `make self-host-preparation-test-smoke`.
+
+### 2026-06-23 -- lexer source-input owner split
+
+- Moved lexer argv/default source-path selection and source file read failure
+  policy into `src/self_hosted/lexer/source_input_owner.pgy`.
+- `main.pgy` now only orchestrates the owned input and scanner output:
+  `LexerDefaultSourcePath(args)` -> `LexerReadSource(path)` ->
+  `LexContent(path, content)`.
+- Contract ratchet: `tests/self_hosted_component_contract_smoke.sh` now requires
+  `source_input_owner.pgy` as part of the lexer owner surface.
