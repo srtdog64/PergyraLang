@@ -64,16 +64,30 @@ field may hold** and **whether the closure may escape**.
 
 ## 3. Staging
 
-### Stage A — copy-capture of value-type locals (foundation)
+### Stage A — copy-capture of value-type locals (foundation) — DONE
 
-Allow capturing outer **local** bindings of value types (`Int`, `Long`, `Bool`,
-`Float`, `String`) **by copy** (snapshot at closure creation). No aliasing, no
-lifetime link → always sound, escape-independent. Builds the env ABI end to end.
-Copy is inferred (no annotation): a snapshot can never be wrong. Any non-value /
-slot / token / authority / non-copyable capture **still rejects** (Stage D).
+Status: **landed in both backends with C/LLVM parity** (commit `6f0f596c`).
 
-Semantic: `type_checker_lambda_capture.c` stops rejecting copy-value locals and
-instead **records** them as captures (mode = copy) on the lambda AST node.
+Capturing outer **local** bindings of value types (`Int`, `Long`, `Bool`,
+`Float`, `Double`, `String`) **by copy** (snapshot at closure creation) is
+enabled. No aliasing, no lifetime link → always sound. The closure environment
+ABI is built end to end: a per-lambda env struct, a `{ fn, env }` closure value,
+a hoisted body taking the env as a hidden leading parameter (captures read
+through shadow locals), and call dispatch through `clo.fn(&clo.env, args)`.
+
+Scope boundary (important): copy-capture is wired only when the lambda is a
+**callable-let initializer** — a non-escaping position. Escaping lambdas (event
+handlers, arguments, returns, spawns) still reject with a distinct diagnostic;
+they are Stage B/C. Any non-value / slot / token / authority / aggregate capture
+also still rejects (Stage D).
+
+Semantic: `type_checker_lambda_capture.c` records copy-value captures (mode =
+copy) on the lambda AST node when `ctx->capture_allowed_let_init` is set;
+`type_checker_ownership_let.c` sets that flag for a lambda let initializer.
+
+Gate: `tests/cases/backend_compare/closure_copy_capture` (C==LLVM parity), the
+`event lambda handler rejects local capture` semantic test (escaping reject),
+and the `lambda value-type local is captured by copy` semantic test (accept).
 
 ### Stage B — ref-capture, non-escaping closures
 
