@@ -23,6 +23,11 @@ parity and the examples scale probe.
   cursor initialization, top-level declaration parse invocation, and final
   compact AST `Program:` assembly. `main.pgy` only wires the selected source
   path into this owner.
+- **statement_owner**: `stmt_owner.pgy` owns statement dispatch and block
+  recursion. Branch-specific statement syntax is split by SoT owner:
+  `stmt_loop_owner.pgy` owns `while`/`loop`/`for`, alongside the existing
+  `stmt_if_owner.pgy`, `stmt_parallel_owner.pgy`, and `stmt_match_owner.pgy`
+  branches.
 - Current committed grammar surface:
   - top-level `[async]? [export]? func<T,U>`, `subject`, `class`, `vessel`,
     `struct`, `object`, `tobject`, `type` aliases/record aliases, `enum`,

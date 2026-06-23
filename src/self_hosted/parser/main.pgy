@@ -17,6 +17,7 @@ import "expr_string_owner.pgy";
 import "expr_primary_owner.pgy";
 import "expr_precedence_owner.pgy";
 import "stmt_if_owner.pgy";
+import "stmt_loop_owner.pgy";
 import "stmt_parallel_owner.pgy";
 import "stmt_match_owner.pgy";
 import "stmt_owner.pgy";

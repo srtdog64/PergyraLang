@@ -123,8 +123,11 @@ require_owner_surface parser \
     "cursor_owner.pgy" \
     "source_path_owner.pgy" \
     "tree_text_owner.pgy" \
+    "stmt_loop_owner.pgy" \
     "decl_dispatch_owner.pgy" \
     "program_parse_owner.pgy"
+require_text "src/self_hosted/parser/stmt_loop_owner.pgy" "func ParseForStmt"
+reject_text "src/self_hosted/parser/stmt_owner.pgy" "func ParseForStmt"
 require_owner_surface semantic \
     "text_scan_owner.pgy" \
     "source_bundle_owner.pgy" \

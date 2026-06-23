@@ -38,32 +38,11 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
     }
 
     if head == "while" {
-        ArraySet(cursor_out, 0, i);
-        let cond: String = ParseExpr(content, i, cursor_out);
-        i = cursor_out[0];
-        let out: String = Concat(IndentStr(stmt_indent), Concat("While: ", cond));
-        out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
-        ArraySet(cursor_out, 0, i);
-        let body: String = ParseBlock(content, i, cursor_out, stmt_indent + 4);
-        i = cursor_out[0];
-        if StringLength(body) > 0 {
-            out = Concat(out, Concat("\n", body));
-        }
-        ArraySet(cursor_out, 0, i);
-        return out;
+        return ParseWhileStmt(content, i, cursor_out, stmt_indent);
     }
 
     if head == "loop" {
-        let out: String = Concat(IndentStr(stmt_indent), "While: true");
-        out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
-        ArraySet(cursor_out, 0, i);
-        let body: String = ParseBlock(content, i, cursor_out, stmt_indent + 4);
-        i = cursor_out[0];
-        if StringLength(body) > 0 {
-            out = Concat(out, Concat("\n", body));
-        }
-        ArraySet(cursor_out, 0, i);
-        return out;
+        return ParseLoopStmt(content, i, cursor_out, stmt_indent);
     }
 
     if head == "with" {
@@ -233,54 +212,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
     }
 
     if head == "for" {
-        // `for IDENT in EXPR..EXPR { ... }`. Range bounds use ParseExpr
-        // so `..` (which no expression layer matches) terminates the
-        // lower bound and we explicitly Expect `..` before the upper.
-        // (ReadNumber refuses to swallow a `.` not followed by a digit,
-        // so `0..10` lexes as `0`, `..`, `10` cleanly.)
-        i = SkipWhitespaceAndComments(content, i);
-        ArraySet(cursor_out, 0, i);
-        let var_name: String = ReadIdent(content, i, cursor_out);
-        i = cursor_out[0];
-        if StringLength(var_name) == 0 {
-            Exit(1);
-        }
-        i = SkipWhitespaceAndComments(content, i);
-        if !MatchKeyword(content, i, "in") {
-            Exit(1);
-        }
-        i = i + 2;
-        ArraySet(cursor_out, 0, i);
-        let lower: String = ParseExpr(content, i, cursor_out);
-        i = cursor_out[0];
-        // Two forms:
-        //   range: `for i in 0..10 { ... }`        → `For: i in 0..10`
-        //   array: `for n in someArr { ... }`      → `For: n in someArr`
-        //     (the C printer emits the iterable expression for the for-in-array
-        //     form; the lower-bound parse already captured it.)
-        let range_text: String = "";
-        let after_lower: Int = SkipWhitespaceAndComments(content, i);
-        if CharAt(content, after_lower) == "." && CharAt(content, after_lower + 1) == "." {
-            i = after_lower + 2;
-            ArraySet(cursor_out, 0, i);
-            let upper: String = ParseExpr(content, i, cursor_out);
-            i = cursor_out[0];
-            range_text = Concat(lower, Concat("..", upper));
-        } else {
-            range_text = lower;
-            i = after_lower;
-        }
-        let header: String = Concat("For: ", Concat(var_name, Concat(" in ", range_text)));
-        let out: String = Concat(IndentStr(stmt_indent), header);
-        out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
-        ArraySet(cursor_out, 0, i);
-        let body: String = ParseBlock(content, i, cursor_out, stmt_indent + 4);
-        i = cursor_out[0];
-        if StringLength(body) > 0 {
-            out = Concat(out, Concat("\n", body));
-        }
-        ArraySet(cursor_out, 0, i);
-        return out;
+        return ParseForStmt(content, i, cursor_out, stmt_indent);
     }
 
     if head == "return" {

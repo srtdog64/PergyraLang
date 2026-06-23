@@ -870,3 +870,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `make self-host-codegen-parity-test-smoke`,
   `make test-inc-size-test-smoke`, and
   `make self-host-preparation-test-smoke`.
+
+### 2026-06-23 -- parser loop statement owner split
+
+- Moved `while`/`loop`/`for` compact AST generation out of
+  `src/self_hosted/parser/stmt_owner.pgy` into
+  `src/self_hosted/parser/stmt_loop_owner.pgy`.
+- `stmt_owner.pgy` now owns statement dispatch and shared block recursion;
+  loop-statement syntax is consumed through the loop owner instead of a second
+  in-file branch body.
+- Contract ratchet: `tests/self_hosted_component_contract_smoke.sh` now requires
+  `stmt_loop_owner.pgy`, requires `func ParseForStmt` there, and rejects that
+  function in `stmt_owner.pgy`. Verified with
+  `bash tests/self_hosted_component_contract_smoke.sh` and
+  `make self-host-parser-parity-test-smoke`.

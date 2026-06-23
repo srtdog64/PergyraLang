@@ -14,6 +14,11 @@ inventing a second AST serialization format.
 - `source_path_owner.pgy` - parser input-path SoT. Owns the argv/default source
   path, source-dir extraction, import path resolution, and imported-source
   marker.
+- `stmt_owner.pgy` - statement dispatch and block parsing owner. It delegates
+  branch-specific statement syntax to statement owners instead of carrying every
+  statement shape itself.
+- `stmt_loop_owner.pgy` - loop statement syntax owner. Owns `while`, `loop`,
+  and `for` compact AST header/block emission.
 - `fixture/` - committed `<base>.pgy` sources and `<base>_ast.txt` baselines
   used by the 188-source parity harness.
 - `expected/clean.txt` - expected stdout when run on the default source.
