@@ -169,8 +169,7 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
     }
     allow_ast_compat = decl != NULL
         && decl->type == AST_FUNC_DECL
-        && (!transpiler_active_has_mir(ctx)
-            || callee_is_generic_func
+        && (callee_is_generic_func
             || callee_is_extern_func);
     if (arg_count > 0)
         args_type_name = transpiler_scratch_fmt(ctx,

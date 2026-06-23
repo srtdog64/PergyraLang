@@ -51,7 +51,7 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
         return;
     }
     allow_ast_compat = mir_routine == NULL
-        && (!transpiler_active_has_mir(ctx) || generic_func || extern_func);
+        && (generic_func || extern_func);
     ASTNode *return_type;
     const char *return_type_name = NULL;
     size_t param_count;

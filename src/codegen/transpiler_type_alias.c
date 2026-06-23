@@ -22,9 +22,7 @@ emit_type_alias_decl(ASTNode *node, TranspilerCtx *ctx)
     char target_c_type[256];
 
     if (node == NULL || ctx == NULL || node->type != AST_TYPE_ALIAS
-        || ast_type_alias_name(node) == NULL
-        || (!transpiler_active_has_mir(ctx)
-            && ast_type_alias_target_type(node) == NULL)) {
+        || ast_type_alias_name(node) == NULL) {
         return;
     }
 

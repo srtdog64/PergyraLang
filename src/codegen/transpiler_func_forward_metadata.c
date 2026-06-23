@@ -57,12 +57,6 @@ emit_hosted_method_forward_decl_from_metadata(const char *host_name,
         : 0;
     if (method_name == NULL && method != NULL)
         method_name = ast_declaration_name(method);
-    if (return_type == NULL && method_meta == NULL && method != NULL
-        && !transpiler_active_has_mir(ctx))
-        return_type = ast_func_return_type(method);
-    if (param_count == 0 && method_meta == NULL && method != NULL
-        && !transpiler_active_has_mir(ctx))
-        param_count = ast_func_param_count(method);
     if (method_name == NULL)
         return;
     if (!transpiler_mir_decl_method_metadata_complete_for(ctx,
@@ -104,9 +98,6 @@ emit_hosted_method_forward_decl_from_metadata(const char *host_name,
         char pt[256];
         char surface_desc[256];
 
-        if (p == NULL && method_meta == NULL && method != NULL
-            && !transpiler_active_has_mir(ctx))
-            p = ast_func_param(method, j);
         if (p == NULL || p->name == NULL)
             continue;
         if (strcmp(p->name, "self") == 0)

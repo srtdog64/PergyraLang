@@ -162,8 +162,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     }
     allow_ast_compat = callee_decl != NULL
         && callee_decl->type == AST_FUNC_DECL
-        && (!llvm_active_has_mir(ctx)
-            || callee_is_generic_func
+        && (callee_is_generic_func
             || callee_is_extern_func);
 
     if (argc > 0) {

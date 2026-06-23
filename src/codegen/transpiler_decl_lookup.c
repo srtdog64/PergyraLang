@@ -338,7 +338,7 @@ transpiler_type_alias_target_type_name_from_headers(TranspilerCtx *ctx,
 {
     MIRDeclHeaderInventory inventory;
 
-    if (ctx == NULL || alias_name == NULL || !transpiler_active_has_mir(ctx))
+    if (ctx == NULL || alias_name == NULL)
         return NULL;
     transpiler_active_decl_header_inventory(ctx, &inventory);
     return mir_decl_header_inventory_resolve_type_alias_target_type_name(

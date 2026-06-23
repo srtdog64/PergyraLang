@@ -186,10 +186,6 @@ ability_ref_vtable_typedef_name(ASTNode *ability_ref,
     if (buf == NULL || buf_size == 0)
         return false;
 
-    if (ctx != NULL && !transpiler_active_has_mir(ctx)
-        && ability_ref != NULL && ability_ref->type == AST_TYPE) {
-        ability_decl = find_ability_decl(ctx, ast_type_name(ability_ref));
-    }
     tag = render_effective_ability_ref_vtable_tag(ability_decl, ability_ref, ctx);
     if (tag == NULL) {
         transpiler_set_backend_error_with_hints(ctx,

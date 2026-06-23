@@ -193,7 +193,7 @@ find_role_operator_method_metadata(TranspilerCtx *ctx,
     TranspilerHostedMethodView view;
 
     if (ctx == NULL || role == NULL || role->type != AST_ROLE_DECL
-        || depth > 16 || !transpiler_active_has_mir(ctx)) {
+        || depth > 16) {
         return NULL;
     }
 

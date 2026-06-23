@@ -132,7 +132,7 @@ llvm_stmt_array_elem_type_from_declared_return(LLVMGenCtx *ctx, ASTNode *call)
         return NULL;
     }
 
-    if (!llvm_active_has_mir(ctx) || generic_func || extern_func) {
+    if (generic_func || extern_func) {
         ret = ast_func_return_type(decl);
     } else {
         return NULL;

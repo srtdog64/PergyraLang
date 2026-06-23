@@ -143,7 +143,7 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
         return;
     }
     allow_ast_compat = routine == NULL
-        && (!llvm_active_has_mir(ctx) || generic_func || extern_func);
+        && (generic_func || extern_func);
     size_t param_count;
     if (allow_ast_compat)
         param_count = ast_func_param_count(node);

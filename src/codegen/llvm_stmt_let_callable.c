@@ -61,7 +61,7 @@ llvm_stmt_register_callable_from_function_decl(LLVMGenCtx *ctx,
         return true;
     }
 
-    if (!llvm_active_has_mir(ctx) || generic_func || extern_func) {
+    if (generic_func || extern_func) {
         param_count = ast_func_param_count(decl);
         if (param_count > 0) {
             param_types = pgy_arena_calloc(&ctx->scratch,

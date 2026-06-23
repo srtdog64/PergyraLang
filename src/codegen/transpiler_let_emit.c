@@ -93,24 +93,6 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             }
         }
     }
-    if (ann_type_name != NULL
-        && !transpiler_active_has_mir(ctx)
-        && resolved_ann != NULL
-        && resolved_ann != ann) {
-        char *resolved_name = render_type_name_in_ctx(ctx, resolved_ann);
-        if (resolved_name == NULL) {
-            transpiler_set_backend_error_with_hints(ctx,
-                PGY_CODE_C_TYPE_UNSUPPORTED,
-                PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
-                "C backend: type-alias annotation rendering failed for '%s'",
-                name != NULL ? name : "<binding>");
-            free(ann_type_name);
-            return;
-        }
-        free(ann_type_name);
-        ann_type_name = resolved_name;
-    }
     if (ast_let_is_alias(node)) {
         register_alias_var(ctx, name, init);
         if (ann_type_name != NULL) {
@@ -167,8 +149,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
                     return;
                 }
                 return_type = transpiler_mir_routine_return_type(routine);
-            } else if (!transpiler_active_has_mir(ctx)
-                       || generic_call || extern_func) {
+            } else if (generic_call || extern_func) {
                 return_type = ast_func_return_type(decl);
             } else {
                 return_type = NULL;

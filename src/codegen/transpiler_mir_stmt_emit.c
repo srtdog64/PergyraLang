@@ -93,7 +93,7 @@ transpiler_mir_stmt_is_mirrored_resource(TranspilerCtx *ctx,
                                          const MIRBasicBlock *block,
                                          const MIRInstruction *stmt_inst)
 {
-    if (ctx == NULL || !transpiler_active_has_mir(ctx)
+    if (ctx == NULL
         || block == NULL || stmt_inst == NULL)
         return false;
 
