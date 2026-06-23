@@ -332,7 +332,18 @@ mir_source_local_type_capture_node(const MIRProgram *program,
     case AST_LET_DECL: {
         ASTNode *type_node = ast_let_type(node);
         ASTNode *callable_type = NULL;
+        ASTNode *closure_init = ast_let_initializer(node);
         MIRSourceLocalTypeScratch scratch = { 0 };
+        /* A captured-lambda local is a closure value, not a function-pointer
+         * source local. The backends declare and dispatch it structurally
+         * (docs/135 Stage A); recording a callable source-local fact here would
+         * make the SSA-locals pass pre-declare it as a bare function pointer.
+         * Skip the fact. (Dormant until semantic enables captures.) */
+        if (closure_init != NULL
+            && closure_init->type == AST_LAMBDA_EXPR
+            && ast_lambda_capture_count(closure_init) > 0) {
+            return true;
+        }
         if (type_node != NULL)
             return mir_source_local_type_append(program, routine,
                 ast_let_name(node), type_node);
