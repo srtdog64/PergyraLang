@@ -14,6 +14,7 @@
 
 import "../lib/diagnostic.pgy";
 import "text_scan_owner.pgy";
+import "source_bundle_owner.pgy";
 import "diagnostic_owner.pgy";
 import "env_owner.pgy";
 import "expr_type_owner.pgy";
@@ -27,7 +28,7 @@ func Main() -> Void {
         Log(SemanticError2("input_missing", "expected", "source", "actual", "none"));
         Exit(1);
     }
-    let content: String = ReadFile(args[0]);
+    let content: String = LoadSemanticSourceBundle(args[0]);
     let error: String = CheckProgram(content);
     if StringLength(error) > 0 {
         Log(error);

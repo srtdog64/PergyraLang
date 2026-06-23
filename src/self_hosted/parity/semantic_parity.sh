@@ -52,6 +52,7 @@ SOURCE_PAIRS=(
     "bad_builtin_arg:error"
     "bad_user_arg:error"
     "valid_user_call:ok"
+    "valid_import_call:ok"
     "valid_escaped_quote:ok"
     "bad_arity_too_few:error"
     "bad_arity_too_many:error"

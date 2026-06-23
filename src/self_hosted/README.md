@@ -59,8 +59,11 @@ src/self_hosted/
 
 The target shape is not "one folder, one monolithic `main.pgy`". `main.pgy`
 is the CLI/orchestration entrypoint; semantic decisions belong in named
-source-of-truth owner modules. `codegen/`, `mir_lower/`, `semantic/`, and
-`lexer/` follow that shape. `parser/` has started the same transition with
+source-of-truth owner modules. `semantic/` also owns its program-input fact in
+`source_bundle_owner.pgy`: imports are expanded there before `CheckProgram`
+consumes the bundle, so the entrypoint does not define "program" by accident.
+`codegen/`, `mir_lower/`, `semantic/`, and `lexer/` follow that shape.
+`parser/` has started the same transition with
 error, cursor/token, type-name, expression, statement/block,
 function-declaration, top-level declaration dispatch, branch declaration
 owners (`type`/`ability`/`event`/`enum`/`zone`/`effect`/`relation`/`role`/
@@ -113,6 +116,12 @@ one owner cannot accidentally materialize the same declarations twice.
   compiles through C and LLVM where available, and compares the same fixtures
   against the C compiler accept/reject oracle. This starts semantic
   substitution without pretending the full type checker is replaced.
+- **2026-06-23** -- semantic program input is no longer a hidden `main.pgy`
+  decision. `source_bundle_owner.pgy` owns root-source plus recursive import
+  expansion, `semantic_parity.sh` includes an import-backed function-call
+  fixture, and `selfcheck_sources.sh` now checks `src/self_hosted/semantic/main.pgy`
+  as a real imported source bundle instead of generating a grep-concatenated
+  semantic unit.
 - **2026-06-16** -- `make self-host-preparation-test-smoke` is green again on
   main after refreshing the doc-link checker expected counts for the current
   `docs/INDEX.md`. The measured compiler-internal substitution is now 8,642

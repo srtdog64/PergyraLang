@@ -98,6 +98,12 @@ func CheckProgram(content: String) -> String {
     ArrayPush(func_names, "StringTrim");
     ArrayPush(func_rets, "String");
     ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "CharCode");
+    ArrayPush(func_rets, "Int");
+    ArrayPush(func_params, "String|Int|Int");
+    ArrayPush(func_names, "CharAtN");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "String|Int|Int");
     let n: Int = StringLength(content);
     let scan: Int = 0;
     while scan < n {

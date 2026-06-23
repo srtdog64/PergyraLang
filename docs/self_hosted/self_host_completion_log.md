@@ -147,6 +147,19 @@ rewrite history.
   clean rejects** pass through
   `pgy --mir-json | mir_lower | codegen == C oracle`.
 
+### 2026-06-23 -- Semantic program input moved to a source-bundle owner
+
+- Added `src/self_hosted/semantic/source_bundle_owner.pgy` as the owner of the
+  root-source/import graph fact consumed by `CheckProgram`. `main.pgy` now only
+  reads `Args()[0]`, calls `LoadSemanticSourceBundle`, and renders the verdict.
+- Added `valid_import_call.pgy` plus an imported sibling fixture so semantic
+  parity proves imported function signatures are consumed from the bundle. The
+  semantic parity gate now covers **66 fixtures** and passes on C and LLVM.
+- Removed the grep-concatenated semantic unit from `selfcheck_sources.sh`.
+  `src/self_hosted/semantic/main.pgy` is now checked as a real imported source
+  bundle. `CharCode` and `CharAtN` were added to the semantic builtin signature
+  table so the existing lexer real-source unit stays green.
+
 ### 2026-06-23 -- MIR lower split into SoT owner modules
 
 - Split `src/self_hosted/mir_lower/main.pgy` from a 1060-line monolith into a

@@ -11,10 +11,10 @@
 #     make pgy
 #     src/self_hosted/parity/selfcheck_sources.sh
 #
-# Seed: src/self_hosted/lib/text_scan.pgy is verified to use only the checked
-# subset (typed let/return, if/while, assignment, builtin calls; no imports, no
-# for/match/class/zone). Sources that use unsupported constructs stay out of the
-# list until the checker covers them.
+# Seed: import-aware semantic self-application now checks
+# src/self_hosted/semantic/main.pgy through the same source-bundle owner used by
+# the tool. Sources that use unsupported constructs stay out of the list until
+# the checker covers them.
 
 set -euo pipefail
 
@@ -52,24 +52,11 @@ cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
 SELF_SOURCES=(
     "src/self_hosted/lib/text_scan.pgy"
     "src/self_hosted/lib/diagnostic.pgy"
+    "src/self_hosted/semantic/main.pgy"
 )
 
-SEMANTIC_UNIT="$BUILD_DIR/semantic_selfcheck_unit.pgy"
-: > "$SEMANTIC_UNIT"
-for rel in \
-    "src/self_hosted/lib/diagnostic.pgy" \
-    "src/self_hosted/semantic/text_scan_owner.pgy" \
-    "src/self_hosted/semantic/diagnostic_owner.pgy" \
-    "src/self_hosted/semantic/env_owner.pgy" \
-    "src/self_hosted/semantic/expr_type_owner.pgy" \
-    "src/self_hosted/semantic/call_check_owner.pgy" \
-    "src/self_hosted/semantic/body_check_owner.pgy" \
-    "src/self_hosted/semantic/program_check_owner.pgy" \
-    "src/self_hosted/semantic/main.pgy"; do
-    grep -h -v '^import ' "$ROOT_DIR/$rel" >> "$SEMANTIC_UNIT"
-done
-
-LEXER_UNIT="$BUILD_DIR/lexer_selfcheck_unit.pgy"
+LEXER_UNIT_REL=".tmp/self_hosted/semantic/lexer_selfcheck_unit.pgy"
+LEXER_UNIT="$ROOT_DIR/$LEXER_UNIT_REL"
 : > "$LEXER_UNIT"
 for rel in \
     "src/self_hosted/lexer/char_owner.pgy" \
@@ -79,7 +66,7 @@ for rel in \
     grep -h -v '^import ' "$ROOT_DIR/$rel" >> "$LEXER_UNIT"
 done
 
-SELF_SOURCES+=("$SEMANTIC_UNIT" "$LEXER_UNIT")
+SELF_SOURCES+=("$LEXER_UNIT_REL")
 
 BACKENDS="${PGY_SELFHOST_SEMANTIC_BACKENDS:-c llvm}"
 for backend in $BACKENDS; do

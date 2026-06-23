@@ -11,10 +11,12 @@ use, and literal/identifier expression typing for `Int`, `String`, `Bool`, and
 
 ## Input Contract
 
-The tool reads one source path from `Args()[0]`. The accepted subset is one or
-more `func` declarations with typed parameters, typed `let` declarations,
-`return` statements, scoped `if` / `while` bodies, simple local assignment, and
-direct calls to known functions.
+The tool reads one root source path from `Args()[0]`. `source_bundle_owner.pgy`
+expands recursive `import "PATH.pgy";` declarations relative to the importing
+file before `program_check_owner.pgy` consumes the source bundle. The accepted
+subset is one or more `func` declarations with typed parameters, typed `let`
+declarations, `return` statements, scoped `if` / `while` bodies, simple local
+assignment, and direct calls to known functions.
 
 ## Output Contract
 

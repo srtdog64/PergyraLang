@@ -116,6 +116,7 @@ require_owner_surface parser \
     "decl_dispatch_owner.pgy"
 require_owner_surface semantic \
     "text_scan_owner.pgy" \
+    "source_bundle_owner.pgy" \
     "diagnostic_owner.pgy" \
     "env_owner.pgy" \
     "program_check_owner.pgy"

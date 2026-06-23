@@ -250,9 +250,10 @@ Substrate progress.
   invariant-checking substrate on both C and LLVM.
 - The semantic substitution rung has reached rung-2:
   `src/self_hosted/semantic/` checks a bounded function-body subset and now
-  splits the checker into source-of-truth owner modules for source scanning,
-  diagnostic rendering, local environment lookup, expression typing, call
-  checking, body/function checking, and program checking. It types expressions
+  splits the checker into source-of-truth owner modules for source-bundle/import
+  expansion, source scanning, diagnostic rendering, local environment lookup,
+  expression typing, call checking, body/function checking, and program checking.
+  `main.pgy` is the CLI/output boundary only. It types expressions
   through unary not, top-level binary operators
   (arithmetic yields Int, comparison and logical yield Bool), and function calls
   resolved against a signature table seeded with built-ins and the program's own
@@ -276,7 +277,7 @@ Substrate progress.
   self-host source uses arithmetic on String or Bool operands (string building
   uses `Concat`); closing it would require operand-type-aware arithmetic typing.
   `src/self_hosted/parity/semantic_parity.sh` compares its verdicts with the C
-  compiler accept/reject oracle on C and LLVM across 61 committed fixtures that
+  compiler accept/reject oracle on C and LLVM across 66 committed fixtures that
   close the diagnostic matrix for every check across every statement position
   (typed let/return, arithmetic, comparison, call-return, call-argument,
   call-arity, branch-condition, scoped-block, assignment-type, bare-call-statement,
@@ -293,10 +294,11 @@ Substrate progress.
   arithmetic/call-argument expressions, now report `undefined_symbol` when
   absent from the local environment. It also checks scoped `if` / `while`
   bodies without leaking block-local `let` bindings into the parent
-  environment. The 61-fixture parity set is the current gate; direct runs over
-  full self-host sources are not yet claimed as a gate because the recursive
-  block scan still needs a real-source stability pass before it can cover the
-  lexer, parser, linter, and semantic checker sources themselves.
+  environment. The parity set now includes an import-backed fixture, and
+  `src/self_hosted/parity/selfcheck_sources.sh` checks
+  `src/self_hosted/semantic/main.pgy` as a real imported source bundle rather
+  than generating a grep-concatenated semantic unit. Parser/codegen/linter
+  source breadth remains a later semantic-substitution rung.
 - Building the signature table reproduced the array value-semantics finding from
   the linter: a helper that `ArrayPush`es into an `Array<T>` parameter mutates a
   copy, so the table is built inline in the owning function until `inout Array<T>`
@@ -336,12 +338,13 @@ diagnostics are covered, and verdicts stay
 byte-equal beside the C type checker on 65 committed fixtures across both
 backends. The checker now covers the common statement forms (let, return,
 assignment, if/while body, if/while condition, bare call), and the fixture
-matrix exercises each diagnostic in every position where it can fire. The next
-increments
-require deeper machinery: real-source semantic stability over the self-hosted
-lexer/parser/linter/semantic sources, a broader symbol table of builtins/types,
-and a stable diagnostic-code catalog shared with the C oracle, before moving
-into declaration-heavy semantic owners.
+  matrix exercises each diagnostic in every position where it can fire. The
+  source-bundle/import owner now gives the semantic checker a real program-input
+  fact for its own imported source. The next increments require deeper
+  machinery: broader real-source semantic stability over parser/codegen/linter
+  sources, a broader symbol table of builtins/types, and a stable
+  diagnostic-code catalog shared with the C oracle, before moving into
+  declaration-heavy semantic owners.
 
 ## How to reproduce
 
