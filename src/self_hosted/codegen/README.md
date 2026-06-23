@@ -14,6 +14,8 @@ String builtins: `Concat`, `ToString`, `StringLength`, `Substring`,
 `StringIndexOf`, `StringTrim`, `StringJoin`, `Join`. Scalar conversion:
 `ToFloat`. Array combinators: `ArraySort`, `ArrayMap`, `ArrayFilter`
 for `Array<Int>` plus unary `Int -> Int` / `Int -> Bool` function references.
+Result values: `Result<Int>` with `Ok`, `Err`, `IsOk`, `IsErr`, `Unwrap`, and
+`UnwrapOr`; postfix `?` remains an unsupported control-flow surface.
 Tool I/O: `FileExists`, `ReadFile`, `Args`.
 Arrays: growable `Array<Int>` / `Array<String>` locals plus `Array<Int>`
 parameters and returns.
@@ -30,6 +32,7 @@ recursion are free. `Main` lowers to `int main(void)`, or to
 - `String` param -> `const char*`, return -> `char*`
 - `Array<Int>` param/return -> `pgy_ai`; `Array<String>` param/return -> `pgy_as`
 - struct param/return -> value-passed C typedef for the generated struct
+- `Result<Int>` param/return -> value-passed `pgy_result_int`
 
 **Body statements:**
 
@@ -54,6 +57,10 @@ recursion are free. `Main` lowers to `int main(void)`, or to
 - `Let: <name> : StructName = StructName { field: value, ... }` -> an Int-field
   C compound literal. Struct-returning calls can initialize struct locals, and
   member reads (`p.x`) pass through as C field access.
+- `Let: <name> : Result<Int> = Ok(v)|Err(s)|Call(...)` -> value-passed
+  `pgy_result_int`; `IsOk` / `IsErr` branch conditions and `Unwrap` /
+  `UnwrapOr` integer expressions lower through local helpers. The postfix `?`
+  operator is rejected before C emission until early-return lowering is owned.
 
 `<intexpr>` / `<cond>` is the C-compatible parenthesized infix the AST printer
 produces (`+ - * / %`, comparisons, `&& ||`, `!`, identifiers, `Name(args)`
@@ -79,7 +86,7 @@ fallback. The intent contract is pinned in `intent.md`; this README is
 explanatory.
 
 Parity gate: `src/self_hosted/parity/codegen_parity.sh` builds `main.pgy` through
-the requested backend set, runs it on each of the 51 committed fixtures'
+the requested backend set, runs it on each of the 52 committed fixtures'
 `pgy --ast` output, gcc-compiles the emitted C, runs it, and compares run-stdout
 against the committed expected output. A live-drift guard re-derives that
 expected output from the C-backend oracle executable. LLVM is mandatory when the

@@ -67,6 +67,22 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Result<Int> values enter self-host codegen
+
+- Promoted the non-try `Result<Int>` value surface into self-hosted codegen:
+  `Ok`, `Err`, `IsOk`, `IsErr`, `Unwrap`, and `UnwrapOr` now lower through a
+  local value-passed `pgy_result_int` helper instead of stopping at the result
+  builtin boundary.
+- Kept postfix `?` as an explicit clean CODEGEN gap because early-return
+  lowering needs control-flow ownership, not token rewriting. The self-hosted
+  codegen gate now rejects `?` before generated C emission with a structured
+  unsupported-codegen diagnostic.
+- Added `result_int_core.pgy` to the codegen parity manifest, moving codegen
+  parity to **52 fixtures**. Refreshed examples-scale survey: 45 PASS, 27
+  CODEGEN-gap, 36 MIR-LOWER-gap, 13 ORACLE-skip, and 0 measured STDOUT-diff /
+  generated-C compile failures / via-run timeouts. `result_test` now passes;
+  `pipe_and_try` fails closed at `?`.
+
 ### 2026-06-23 -- Array<Int> combinators enter self-host codegen
 
 - Promoted the `Array<Int>` `ArraySort`, `ArrayMap`, and `ArrayFilter`

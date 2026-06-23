@@ -143,6 +143,7 @@ FIXTURES=(
     nested_ctrl
     func_call
     func_recursive
+    result_int_core
     str_greet
     str_reassign
     for_sum

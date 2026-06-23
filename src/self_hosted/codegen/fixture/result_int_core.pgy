@@ -1,0 +1,17 @@
+func SafeDiv(a: Int, b: Int) -> Result<Int> {
+    if b == 0 {
+        return Err("division by zero");
+    }
+    return Ok(a / b);
+}
+
+func Main() -> Void {
+    let r1: Result<Int> = SafeDiv(10, 2);
+    let r2: Result<Int> = SafeDiv(10, 0);
+    if IsOk(r1) {
+        Log(Unwrap(r1));
+    }
+    if IsErr(r2) {
+        Log(UnwrapOr(r2, -1));
+    }
+}

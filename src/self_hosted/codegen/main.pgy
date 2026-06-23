@@ -106,7 +106,41 @@ func ContainsCallOutsideStrings(text: String, callee: String) -> Bool {
     return false;
 }
 
+func ContainsOutsideStrings(text: String, needle: String) -> Bool {
+    let n: Int = StringLength(text);
+    let m: Int = StringLength(needle);
+    let i: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(text, i);
+        if in_str {
+            if c == "\\" {
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            i = i + 1;
+            continue;
+        }
+        if m > 0 && i + m <= n && Substring(text, i, m) == needle {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
 func RejectUnsupportedCodegenBuiltins(ast: String) -> Void {
+    if ContainsOutsideStrings(ast, "(?") {
+        Die("unsupported try expression in self-host codegen subset");
+    }
     if ContainsCallOutsideStrings(ast, "ArrayReverse") {
         Die("unsupported builtin in self-host codegen subset: ArrayReverse");
     }
@@ -373,6 +407,24 @@ func ExprKind(expr: String, env: String) -> String {
     }
     if StartsWith(e, "ArrayFilter(") {
         return "ArrayInt";
+    }
+    if StartsWith(e, "Ok(") {
+        return "ResultInt";
+    }
+    if StartsWith(e, "Err(") {
+        return "ResultInt";
+    }
+    if StartsWith(e, "Unwrap(") {
+        return "Int";
+    }
+    if StartsWith(e, "UnwrapOr(") {
+        return "Int";
+    }
+    if StartsWith(e, "IsOk(") {
+        return "Bool";
+    }
+    if StartsWith(e, "IsErr(") {
+        return "Bool";
     }
     if StartsWith(e, "StringContains(") {
         return "Int";
@@ -1022,7 +1074,13 @@ func RewriteTokens(e: String, env: String) -> String {
     let asort: String = ReplaceAllOutsideStrings(jn, "ArraySort(", "pgy_ai_sort(");
     let amap: String = ReplaceAllOutsideStrings(asort, "ArrayMap(", "pgy_ai_map(");
     let afilter: String = ReplaceAllOutsideStrings(amap, "ArrayFilter(", "pgy_ai_filter(");
-    let tf: String = ReplaceAllOutsideStrings(afilter, "ToFloat(", "atof(");
+    let rok: String = ReplaceAllOutsideStrings(afilter, "Ok(", "pgy_result_ok(");
+    let rerr: String = ReplaceAllOutsideStrings(rok, "Err(", "pgy_result_err(");
+    let risok: String = ReplaceAllOutsideStrings(rerr, "IsOk(", "pgy_result_is_ok(");
+    let riserr: String = ReplaceAllOutsideStrings(risok, "IsErr(", "pgy_result_is_err(");
+    let runwrapor: String = ReplaceAllOutsideStrings(riserr, "UnwrapOr(", "pgy_result_unwrap_or(");
+    let runwrap: String = ReplaceAllOutsideStrings(runwrapor, "Unwrap(", "pgy_result_unwrap(");
+    let tf: String = ReplaceAllOutsideStrings(runwrap, "ToFloat(", "atof(");
     let p: String = ReplaceAllOutsideStrings(tf, "ToString(", "pgy_tostr(");
     // `Concat(a, b)` -> `pgy_concat(a, b)` is a pure name rewrite (same args),
     // so it lowers recursively and inside arbitrary call arguments.
@@ -1214,6 +1272,10 @@ func EmitLet(line: String, inout env_box: Array<String>) -> String {
         }
         return out;
     }
+    if StartsWith(type_name, "Result<") && StringIndexOf(type_name, "Int") >= 0 {
+        ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:ResultInt|")));
+        return Concat("pgy_result_int ", Concat(name, Concat(" = ", Concat(RewriteExpr(expr, env_box[0]), ";"))));
+    }
     if LookupKindType(env_box[0], type_name, "s") == "struct" {
         // rung-14: struct-typed local from a `Name(f: v, ...)` literal or a
         // struct-returning call.
@@ -1336,6 +1398,9 @@ func EmitReturn(rexpr: String, cur_fn_ret: String, env: String) -> String {
     }
     if cur_fn_ret == "String" {
         return Concat("return ", Concat(StrEval(rexpr, env), ";"));
+    }
+    if StartsWith(cur_fn_ret, "Result<") && StringIndexOf(cur_fn_ret, "Int") >= 0 {
+        return Concat("return ", Concat(RewriteExpr(rexpr, env), ";"));
     }
     if LookupKindType(env, cur_fn_ret, "s") == "struct" {
         return Concat("return ", Concat(EmitStructValue(rexpr, cur_fn_ret, env), ";"));
@@ -1605,6 +1670,9 @@ func CParamType(type_name: String, struct_env: String) -> String {
             return "pgy_as";
         }
     }
+    if StartsWith(type_name, "Result<") && StringIndexOf(type_name, "Int") >= 0 {
+        return "pgy_result_int";
+    }
     if LookupKindType(struct_env, type_name, "s") == "struct" {
         return type_name;
     }
@@ -1637,6 +1705,9 @@ func CRetType(type_name: String, struct_env: String) -> String {
         if StringIndexOf(type_name, "String") >= 0 {
             return "pgy_as";
         }
+    }
+    if StartsWith(type_name, "Result<") && StringIndexOf(type_name, "Int") >= 0 {
+        return "pgy_result_int";
     }
     if LookupKindType(struct_env, type_name, "s") == "struct" {
         return type_name;
@@ -2048,7 +2119,14 @@ func GenerateC(ast: String) -> String {
     let uses_array_sort: Bool = StringIndexOf(ast, "ArraySort(") >= 0;
     let uses_array_map: Bool = StringIndexOf(ast, "ArrayMap(") >= 0;
     let uses_array_filter: Bool = StringIndexOf(ast, "ArrayFilter(") >= 0;
-    let uses_bool: Bool = StringIndexOf(ast, "Bool") >= 0 || uses_array_filter;
+    let uses_result: Bool = StringIndexOf(ast, "Result<") >= 0
+        || StringIndexOf(ast, "Ok(") >= 0
+        || StringIndexOf(ast, "Err(") >= 0
+        || StringIndexOf(ast, "IsOk(") >= 0
+        || StringIndexOf(ast, "IsErr(") >= 0
+        || StringIndexOf(ast, "Unwrap(") >= 0
+        || StringIndexOf(ast, "UnwrapOr(") >= 0;
+    let uses_bool: Bool = StringIndexOf(ast, "Bool") >= 0 || uses_array_filter || uses_result;
     let uses_exit: Bool = StringIndexOf(ast, "Exit(") >= 0;
     let uses_array: Bool = StringIndexOf(ast, "Array<") >= 0
         || StringIndexOf(ast, "ArrayPush(") >= 0
@@ -2084,7 +2162,7 @@ func GenerateC(ast: String) -> String {
         || StringIndexOf(ast, "Ceil(") >= 0
         || StringIndexOf(ast, "ToFloat(") >= 0;
     let uses_random: Bool = StringIndexOf(ast, "Random(") >= 0;
-    let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_io || uses_fhandle || uses_random || uses_float;
+    let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_io || uses_fhandle || uses_random || uses_float || uses_result;
     let header: String = "#include <stdio.h>\n";
     if uses_bool {
         header = Concat(header, "#include <stdbool.h>\n");
@@ -2119,6 +2197,15 @@ func GenerateC(ast: String) -> String {
         // the oracle's deterministic behavior.
         header = Concat(header, "static long long pgy_random(long long n)\n{\n");
         header = Concat(header, "    return n > 0 ? (long long)(rand() % n) : 0;\n}\n\n");
+    }
+    if uses_result {
+        header = Concat(header, "typedef struct { bool is_ok; long long value; } pgy_result_int;\n");
+        header = Concat(header, "static pgy_result_int pgy_result_ok(long long v) { pgy_result_int r; r.is_ok = true; r.value = v; return r; }\n");
+        header = Concat(header, "static pgy_result_int pgy_result_err(const char *msg) { (void)msg; pgy_result_int r; r.is_ok = false; r.value = 0; return r; }\n");
+        header = Concat(header, "static bool pgy_result_is_ok(pgy_result_int r) { return r.is_ok; }\n");
+        header = Concat(header, "static bool pgy_result_is_err(pgy_result_int r) { return !r.is_ok; }\n");
+        header = Concat(header, "static long long pgy_result_unwrap(pgy_result_int r) { return r.value; }\n");
+        header = Concat(header, "static long long pgy_result_unwrap_or(pgy_result_int r, long long fallback) { return r.is_ok ? r.value : fallback; }\n\n");
     }
     if uses_io || uses_fhandle {
         // Mirror the runtime path-policy default: absolute paths are denied
