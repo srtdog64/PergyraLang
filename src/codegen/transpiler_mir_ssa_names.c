@@ -110,7 +110,6 @@ transpiler_current_function_has_local_binding(TranspilerCtx *ctx,
                                               const char *base_name)
 {
     const MIRRoutine *routine;
-    bool allow_ast_compat;
 
     if (ctx == NULL || ctx->current_func_decl == NULL || base_name == NULL)
         return false;
@@ -120,12 +119,7 @@ transpiler_current_function_has_local_binding(TranspilerCtx *ctx,
             || transpiler_mir_routine_has_source_local_binding(
                 routine, base_name);
     }
-    if (transpiler_active_has_mir(ctx))
-        return false;
-    allow_ast_compat = !transpiler_active_has_mir(ctx);
-    return allow_ast_compat
-        && transpiler_has_explicit_local_binding(ctx->current_func_decl,
-            base_name);
+    return false;
 }
 
 static bool

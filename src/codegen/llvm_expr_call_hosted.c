@@ -145,7 +145,7 @@ llvm_emit_hosted_self_call(ASTNode *node, LLVMGenCtx *ctx,
             method_meta,
             host_method,
             i,
-            method_meta == NULL && !llvm_active_has_mir(ctx),
+            false,
             &param_type_name);
 
         if (ctx->has_error)

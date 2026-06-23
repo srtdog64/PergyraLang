@@ -293,8 +293,7 @@ llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
         ret_name = llvm_mir_routine_return_type_name(routine);
         return_type = llvm_mir_routine_return_type(routine);
     } else {
-        allow_ast_compat = !llvm_active_has_mir(ctx)
-            || generic_func || extern_func;
+        allow_ast_compat = generic_func || extern_func;
         if (!allow_ast_compat)
             return NULL;
         return_type = ast_func_return_type(decl);

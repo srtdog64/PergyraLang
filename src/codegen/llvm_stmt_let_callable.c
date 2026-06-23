@@ -156,8 +156,7 @@ llvm_stmt_register_callable_let_binding(ASTNode *node, LLVMGenCtx *ctx)
                     return false;
                 }
                 return_type = llvm_mir_routine_return_type(routine);
-            } else if (!llvm_active_has_mir(ctx)
-                       || generic_func || extern_func) {
+            } else if (generic_func || extern_func) {
                 return_type = ast_func_return_type(decl);
             } else {
                 return_type = NULL;

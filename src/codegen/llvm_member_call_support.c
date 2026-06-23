@@ -70,7 +70,9 @@ llvm_member_call_adjust_pointer_self_arg(LLVMGenCtx *ctx,
                                          LLVMValueRef arg_val)
 {
     size_t logical_idx = 0;
-    bool allow_ast_compat = method_meta == NULL && !llvm_active_has_mir(ctx);
+    /* MIR-only: member-call param shape is owned by MIR metadata; the non-MIR
+     * AST method-decl fallback is retired (production always has MIR). */
+    bool allow_ast_compat = false;
 
     if (method_meta == NULL
         && (!allow_ast_compat
