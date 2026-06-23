@@ -155,7 +155,7 @@ transpiler_mir_decl_method_metadata_complete_for(
         ? resolved_method_name
         : "(anonymous)";
 
-    if (method == NULL || !transpiler_active_has_mir(ctx))
+    if (method == NULL)
         return true;
 
     if ((requirements
@@ -269,7 +269,7 @@ transpiler_mir_decl_method_routine(const TranspilerCtx *ctx,
     TranspilerMIRRoutineInventory inventory;
     size_t routine_index = 0;
 
-    if (ctx == NULL || !transpiler_active_has_mir(ctx) || method == NULL)
+    if (ctx == NULL || method == NULL)
         return NULL;
     if (!mir_decl_method_routine_index(method, &routine_index))
         return NULL;

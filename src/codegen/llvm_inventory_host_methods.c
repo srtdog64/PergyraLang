@@ -158,7 +158,7 @@ llvm_mir_decl_method_metadata_complete_for(
         ? resolved_method_name
         : "(anonymous)";
 
-    if (method == NULL || !llvm_active_has_mir(ctx))
+    if (method == NULL)
         return true;
 
     if ((requirements & LLVM_MIR_DECL_METHOD_REQUIRE_RETURN_TYPE_NAME) != 0
@@ -267,7 +267,7 @@ llvm_mir_decl_method_routine(const LLVMGenCtx *ctx,
     LLVMMIRRoutineInventory inventory;
     size_t routine_index = 0;
 
-    if (!llvm_active_has_mir(ctx) || method == NULL)
+    if (method == NULL)
         return NULL;
     if (!mir_decl_method_routine_index(method, &routine_index))
         return NULL;

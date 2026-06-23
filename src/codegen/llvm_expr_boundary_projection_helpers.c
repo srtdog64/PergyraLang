@@ -149,7 +149,7 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
         }
     }
     allow_ast_compat = routine == NULL
-        && (!llvm_active_has_mir(ctx) || decl_is_generic || decl_is_extern);
+        && (decl_is_generic || decl_is_extern);
 
     if (allow_ast_compat)
         param_count = ast_func_param_count(decl);

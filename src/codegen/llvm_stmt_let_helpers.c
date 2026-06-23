@@ -99,7 +99,7 @@ llvm_stmt_declared_return_type_name(LLVMGenCtx *ctx, const char *name)
         return NULL;
     }
 
-    if (!llvm_active_has_mir(ctx) || generic_func || extern_func) {
+    if (generic_func || extern_func) {
         return_type = ast_func_return_type(decl);
     } else {
         return NULL;

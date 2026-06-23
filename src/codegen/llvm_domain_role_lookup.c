@@ -530,7 +530,7 @@ llvm_find_role_operator_method_metadata(LLVMGenCtx *ctx,
     LLVMHostedMethodView view;
 
     if (ctx == NULL || role == NULL || role->type != AST_ROLE_DECL
-        || depth > 16 || !llvm_active_has_mir(ctx)) {
+        || depth > 16) {
         return NULL;
     }
 
