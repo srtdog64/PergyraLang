@@ -1,0 +1,12 @@
+func Early() -> Int {
+    defer { Log("cleanup"); };
+    return 7;
+}
+
+func Main() -> Void {
+    Log("enter");
+    defer { Log("last"); };
+    defer { Log("middle"); };
+    Log("work");
+    Log(Early());
+}

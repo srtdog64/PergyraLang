@@ -133,6 +133,7 @@ FIXTURES=(
     hello
     two_logs
     concat
+    defer_scope
     nested_concat
     int_arith
     int_subdiv

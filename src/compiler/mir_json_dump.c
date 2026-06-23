@@ -55,6 +55,20 @@ mir_json_emit_expr_or_null(FILE *out, ASTNode *expr)
     free(text);
 }
 
+static void
+mir_json_emit_defer_body(FILE *out, ASTNode *body)
+{
+    size_t count = ast_block_statement_count(body);
+
+    fputs(",\"defer_body\":[", out);
+    for (size_t i = 0; i < count; i++) {
+        if (i > 0)
+            fputc(',', out);
+        mir_json_emit_expr_or_null(out, ast_block_statement(body, i));
+    }
+    fputc(']', out);
+}
+
 static const char *
 mir_json_nominal_kind_name(NominalDeclKind kind)
 {
@@ -253,6 +267,8 @@ mir_json_emit_instruction(FILE *out, const MIRInstruction *inst)
             ? mir_source_node_type_name((ASTNodeType)
                   mir_instruction_source_node_type_or(inst, AST_PROGRAM))
             : NULL);
+    if (mir_instruction_source_is_defer_stmt(inst))
+        mir_json_emit_defer_body(out, inst->expr0);
     fputs(",\"match_patterns\":[", out);
     for (size_t p = 0; p < mir_instruction_match_pattern_count(inst); p++) {
         if (p > 0)

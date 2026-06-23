@@ -67,6 +67,22 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- Defer body facts enter self-host MIR JSON lowering
+
+- Added an explicit `defer_body` MIR JSON fact for `AST_DEFER_STMT` instructions.
+  The self-hosted MIR lowerer now reconstructs `Defer: / Block:` from that fact
+  instead of inheriting the lossy `expr0:"{...}"` inline block placeholder.
+- Extended self-hosted codegen with block-local defer scope-exit emission in
+  LIFO order. Return paths emit the currently active defer stack before
+  returning; broader resource/defer semantics stay outside the supported subset
+  until the native backend path's cleanup model is substituted.
+- Added `defer_scope.pgy` to codegen parity and the MIR JSON hard path, moving
+  codegen parity to **53 fixtures** and MIR JSON lowering parity to **69
+  positive fixtures plus 2 clean rejects**. Refreshed examples-scale survey:
+  46 PASS, 26 CODEGEN-gap, 36 MIR-LOWER-gap, 13 ORACLE-skip, and 0 measured
+  STDOUT-diff / generated-C compile failures / via-run timeouts. `defer_test`
+  now passes.
+
 ### 2026-06-23 -- Result<Int> values enter self-host codegen
 
 - Promoted the non-try `Result<Int>` value surface into self-hosted codegen:

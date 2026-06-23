@@ -16,6 +16,8 @@ String builtins: `Concat`, `ToString`, `StringLength`, `Substring`,
 for `Array<Int>` plus unary `Int -> Int` / `Int -> Bool` function references.
 Result values: `Result<Int>` with `Ok`, `Err`, `IsOk`, `IsErr`, `Unwrap`, and
 `UnwrapOr`; postfix `?` remains an unsupported control-flow surface.
+Defer: block-local `Defer: / Block:` scope-exit statements with LIFO ordering
+for the supported statement subset.
 Tool I/O: `FileExists`, `ReadFile`, `Args`.
 Arrays: growable `Array<Int>` / `Array<String>` locals plus `Array<Int>`
 parameters and returns.
@@ -61,6 +63,9 @@ recursion are free. `Main` lowers to `int main(void)`, or to
   `pgy_result_int`; `IsOk` / `IsErr` branch conditions and `Unwrap` /
   `UnwrapOr` integer expressions lower through local helpers. The postfix `?`
   operator is rejected before C emission until early-return lowering is owned.
+- `Defer:` -> local block-exit emission in reverse registration order. Return
+  paths emit the currently active defer stack before returning; broader
+  resource/defer semantics remain owned by the native backend path.
 
 `<intexpr>` / `<cond>` is the C-compatible parenthesized infix the AST printer
 produces (`+ - * / %`, comparisons, `&& ||`, `!`, identifiers, `Name(args)`
@@ -86,7 +91,7 @@ fallback. The intent contract is pinned in `intent.md`; this README is
 explanatory.
 
 Parity gate: `src/self_hosted/parity/codegen_parity.sh` builds `main.pgy` through
-the requested backend set, runs it on each of the 52 committed fixtures'
+the requested backend set, runs it on each of the 53 committed fixtures'
 `pgy --ast` output, gcc-compiles the emitted C, runs it, and compares run-stdout
 against the committed expected output. A live-drift guard re-derives that
 expected output from the C-backend oracle executable. LLVM is mandatory when the

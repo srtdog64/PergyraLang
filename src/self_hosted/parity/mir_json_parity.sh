@@ -94,6 +94,7 @@ CODEGEN_FIXTURES=(
     bool_logic
     builtin_name_literal
     concat
+    defer_scope
     dir_walk
     else_if_chain
     exit_guard
@@ -323,6 +324,20 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
         if ! grep -Fq 'Let: id_str : String = _pgy_destructure_' "$reast" \
             || ! grep -Fq '[0]' "$reast"; then
             echo "[self-host-parity:mir-json] array_destructure: mir_lower did not reconstruct first binding from facts" >&2
+            exit 1
+        fi
+    fi
+    if [[ "$base" == "defer_scope" ]]; then
+        if ! grep -Fq '"source_type":"AST_DEFER_STMT","defer_body":["Log(\"last\")"]' "$mj"; then
+            echo "[self-host-parity:mir-json] defer_scope: missing first defer body fact" >&2
+            exit 1
+        fi
+        if ! grep -Fq '"source_type":"AST_DEFER_STMT","defer_body":["Log(\"middle\")"]' "$mj"; then
+            echo "[self-host-parity:mir-json] defer_scope: missing second defer body fact" >&2
+            exit 1
+        fi
+        if ! grep -Fq 'Defer:' "$reast" || ! grep -Fq 'Log("middle")' "$reast"; then
+            echo "[self-host-parity:mir-json] defer_scope: mir_lower did not reconstruct defer body facts" >&2
             exit 1
         fi
     fi

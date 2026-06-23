@@ -1,0 +1,6 @@
+enter
+work
+cleanup
+7
+middle
+last

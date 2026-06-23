@@ -440,6 +440,37 @@ func StmtToTreeLine(stmt: String) -> String {
     return s;
 }
 
+func RenderDeferFromFacts(json: String, inst_start: Int, inst_end: Int,
+                          indent: String) -> String {
+    let key: Int = FindFrom(json, "\"defer_body\":[", inst_start);
+    if key < 0 || key >= inst_end {
+        Die("defer instruction is missing body facts");
+    }
+    let open: Int = FindFrom(json, "[", key);
+    let close: Int = FindFrom(json, "]", open);
+    if open < 0 || close < 0 || close >= inst_end {
+        Die("defer instruction has malformed body facts");
+    }
+
+    let out: String = Concat(indent, "Defer:\n");
+    out = Concat(out, Concat(indent, "  Block:\n"));
+    let q: Int = FindFrom(json, "\"", open);
+    let emitted: Int = 0;
+    while q >= 0 && q < close {
+        let e: Array<Int> = [0];
+        let stmt: String = ReadJsonString(json, q, e);
+        if StringLength(stmt) > 0 {
+            out = Concat(out, Concat(indent, Concat("    ", Concat(StmtToTreeLine(stmt), "\n"))));
+            emitted = emitted + 1;
+        }
+        q = FindFrom(json, "\"", e[0]);
+    }
+    if emitted == 0 {
+        Die("defer instruction body facts are empty");
+    }
+    return out;
+}
+
 func RenderStmtFromFacts(kind: String, source_type: String,
                          arg0: String, expr0: String, expr1: String,
                          local_type: String) -> String {
@@ -678,7 +709,9 @@ func EmitBlockStmts(json: String, routine_start: Int, routine_end: Int,
             let arg0: String = JsonFieldString(json, kp, inst_end, "\"arg0\":");
             let source_type: String = JsonFieldString(json, kp, inst_end, "\"source_type\":");
             let local_type: String = SourceLocalType(json, routine_start, routine_end, arg0);
-            if ikind != "destructure" && StringLength(expr0) > 0 {
+            if ikind != "destructure" && source_type == "AST_DEFER_STMT" {
+                out = Concat(out, RenderDeferFromFacts(json, kp, inst_end, indent));
+            } else if ikind != "destructure" && StringLength(expr0) > 0 {
                 out = Concat(out, Concat(indent, Concat(RenderStmtFromFacts(ikind, source_type, arg0, expr0, expr1, local_type), "\n")));
             }
         }
