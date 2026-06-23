@@ -1,0 +1,179 @@
+// MIR declaration inventory -> AST-tree declaration reconstruction owner.
+//
+// This module owns the supported declaration fact surface for self-hosted
+// mir_lower: plain structs, plain classes, owner-qualified methods, and
+// payload-free enums. Unsupported declaration facts fail closed here.
+
+func DeclObjectEnd(json: String, p: Int, decls_end: Int) -> Int {
+    let next: Int = FindFrom(json, "},{\"kind\":", p + 1);
+    if next >= 0 && next < decls_end {
+        return next;
+    }
+    return decls_end;
+}
+
+func EmitDeclFields(json: String, decl_start: Int, decl_end: Int, owner_name: String) -> String {
+    let out: String = "";
+    let fk0: Int = FindFrom(json, "\"fields\":[", decl_start);
+    if fk0 < 0 || fk0 >= decl_end {
+        return out;
+    }
+    let fields_end: Int = FindFrom(json, "]", fk0);
+    if fields_end < 0 || fields_end >= decl_end {
+        Die(Concat("declaration has malformed fields fact: ", owner_name));
+    }
+    let fk: Int = FindFrom(json, "\"name\":", fk0);
+    while fk >= 0 && fk < fields_end {
+        let fnq: Int = FindFrom(json, "\"", fk + 7);
+        if fnq < 0 || fnq >= fields_end {
+            Die(Concat("malformed field name fact: ", owner_name));
+        }
+        let fne: Array<Int> = [0];
+        let fname: String = ReadJsonString(json, fnq, fne);
+        let tk: Int = FindFrom(json, "\"type\":", fne[0]);
+        if tk < 0 || tk >= fields_end {
+            Die(Concat("field is missing type fact: ", fname));
+        }
+        let tq: Int = FindFrom(json, "\"", tk + 7);
+        if tq < 0 || tq >= fields_end {
+            Die(Concat("malformed field type fact: ", fname));
+        }
+        let te: Array<Int> = [0];
+        let ftype: String = ReadJsonString(json, tq, te);
+        out = Concat(out, Concat("      ", Concat(fname, Concat(": ", Concat(ftype, "\n")))));
+        fk = FindFrom(json, "\"name\":", te[0]);
+    }
+    return out;
+}
+
+func EmitClassMethods(json: String, decl_start: Int, decl_end: Int, owner_name: String) -> String {
+    let out: String = "";
+    let mk: Int = FindFrom(json, "\"methods\":[", decl_start);
+    if mk < 0 || mk >= decl_end {
+        return out;
+    }
+    let mend: Int = FindFrom(json, "]", mk);
+    if mend < 0 || mend >= decl_end {
+        Die(Concat("class declaration has malformed methods fact: ", owner_name));
+    }
+    let mp: Int = FindFrom(json, "\"name\":", mk);
+    while mp >= 0 && mp < mend {
+        let mnq: Int = FindFrom(json, "\"", mp + 7);
+        if mnq < 0 || mnq >= mend {
+            Die(Concat("malformed class method name fact: ", owner_name));
+        }
+        let mne: Array<Int> = [0];
+        let mname: String = ReadJsonString(json, mnq, mne);
+        let routine_pos: Int = FindRoutineByOwnerName(json, owner_name, mname);
+        if routine_pos < 0 {
+            Die(Concat("class method is missing routine fact: ", Concat(owner_name, Concat(".", mname))));
+        }
+        out = Concat(out, EmitRoutineTree(json, routine_pos, "      "));
+        mp = FindFrom(json, "\"name\":", mne[0]);
+    }
+    if StringLength(out) > 0 {
+        return Concat("    Methods:\n", out);
+    }
+    return "";
+}
+
+func VariantObjectEnd(json: String, p: Int, variants_end: Int) -> Int {
+    let next: Int = FindFrom(json, "},{\"name\":", p + 1);
+    if next >= 0 && next < variants_end {
+        return next;
+    }
+    return variants_end;
+}
+
+func EmitEnumDecl(json: String, decl_start: Int, decl_end: Int, enum_name: String) -> String {
+    let vk: Int = FindFrom(json, "\"variants\":[", decl_start);
+    if vk < 0 || vk >= decl_end {
+        Die(Concat("enum declaration is missing variants fact: ", enum_name));
+    }
+    let variants_end: Int = FindFrom(json, "]", vk);
+    if variants_end < 0 || variants_end >= decl_end {
+        Die(Concat("enum declaration has malformed variants fact: ", enum_name));
+    }
+    let out: String = "";
+    let vp: Int = FindFrom(json, "\"name\":", vk);
+    while vp >= 0 && vp < variants_end {
+        let vend: Int = VariantObjectEnd(json, vp, variants_end);
+        let nq: Int = FindFrom(json, "\"", vp + 7);
+        if nq < 0 || nq >= vend {
+            Die(Concat("malformed enum variant name fact: ", enum_name));
+        }
+        let ne: Array<Int> = [0];
+        let vname: String = ReadJsonString(json, nq, ne);
+        let pc: String = JsonFieldNumber(json, vp, vend, "\"param_count\":");
+        if pc != "0" {
+            Die(Concat("payload enum variants are not supported in self-host subset: ", Concat(enum_name, Concat(".", vname))));
+        }
+        if StringLength(out) > 0 {
+            out = Concat(out, ", ");
+        }
+        out = Concat(out, vname);
+        vp = FindFrom(json, "\"name\":", vend);
+    }
+    return Concat("  Enum: ", Concat(enum_name, Concat(" { ", Concat(out, " }\n"))));
+}
+
+func EmitStructDecls(json: String) -> String {
+    let out: String = "";
+    let ds: Int = FindFrom(json, "\"decls\":[", 0);
+    if ds < 0 {
+        return out;
+    }
+    let de: Int = FindFrom(json, "],\"routines\":[", ds);
+    if de < 0 {
+        return out;
+    }
+    let p: Int = FindFrom(json, "\"kind\":", ds);
+    while p >= 0 && p < de {
+        let decl_end: Int = DeclObjectEnd(json, p, de);
+        let kind: String = JsonFieldString(json, p, decl_end, "\"kind\":");
+        if kind == "unsupported" {
+            let ast_type: String = JsonFieldString(json, p, decl_end, "\"ast_type\":");
+            let nominal_kind: String = JsonFieldString(json, p, decl_end, "\"nominal_kind\":");
+            let uname: String = JsonFieldString(json, p, decl_end, "\"name\":");
+            let display_kind: String = ast_type;
+            if ast_type == "AST_CLASS_DECL" && StringLength(nominal_kind) > 0 {
+                display_kind = nominal_kind;
+            }
+            Die(Concat("unsupported MIR declaration in self-host subset: ", Concat(display_kind, Concat(" ", uname))));
+        }
+        let nk: Int = FindFrom(json, "\"name\":", p);
+        if nk < 0 || nk >= decl_end {
+            Die(Concat(kind, " declaration is missing name fact"));
+        }
+        let nq: Int = FindFrom(json, "\"", nk + 7);
+        if nq < 0 || nq >= decl_end {
+            Die(Concat("malformed ", Concat(kind, " declaration name fact")));
+        }
+        let ne: Array<Int> = [0];
+        let sname: String = ReadJsonString(json, nq, ne);
+        if kind == "struct" {
+            out = Concat(out, Concat("  Struct: ", Concat(sname, "\n")));
+            let fields: String = EmitDeclFields(json, p, decl_end, sname);
+            if StringLength(fields) > 0 {
+                out = Concat(out, "    Fields:\n");
+                out = Concat(out, fields);
+            }
+        } else if kind == "class" {
+            let nominal_kind: String = JsonFieldString(json, p, decl_end, "\"nominal_kind\":");
+            if nominal_kind != "class" {
+                Die(Concat("unsupported nominal class kind in self-host subset: ", Concat(nominal_kind, Concat(" ", sname))));
+            }
+            out = Concat(out, Concat("  Class: ", Concat(sname, "\n")));
+            let cfields: String = EmitDeclFields(json, p, decl_end, sname);
+            if StringLength(cfields) > 0 {
+                out = Concat(out, "    Fields:\n");
+                out = Concat(out, cfields);
+            }
+            out = Concat(out, EmitClassMethods(json, p, decl_end, sname));
+        } else if kind == "enum" {
+            out = Concat(out, EmitEnumDecl(json, p, decl_end, sname));
+        }
+        p = FindFrom(json, "\"kind\":", decl_end);
+    }
+    return out;
+}

@@ -94,6 +94,14 @@ their MIR-owned `nominal_kind`, so the self-host boundary reports
 `subject`/`object`/`tobject`/`vessel` instead of collapsing those concepts back
 to a generic class alias.
 
+The self-hosted `mir_lower/` implementation is now split by source-of-truth
+owner rather than living as one monolithic `main.pgy`: `error_owner` owns the
+diagnostic boundary, `json_fact_read` owns JSON/MIR fact access, `stmt_render`
+owns instruction fact -> AST statement rendering, `routine_lower` owns routine
+discovery and CFG reconstruction, and `decl_lower` owns declaration inventory
+reconstruction. The entrypoint `main.pgy` is orchestration only, and each
+`mir_lower` source file is below the 600-line owner cap.
+
 **Hard migration opened (2026-06-17):** the codegen rung is the first *hard
 compiler-core* substitute, landed after the BDFL decision lifted the
 `docs/self_hosted/README.md` freeze. Hard migration proceeds rung-by-rung, each

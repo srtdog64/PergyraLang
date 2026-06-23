@@ -39,6 +39,8 @@ src/self_hosted/
     main.pgy (+ owner modules as split) + fixture/ + expected/ + intent.md
   codegen/                        -- mirrors C-side src/codegen/
     main.pgy (+ owner modules as split) + fixture/ + expected/ + intent.md
+  mir_lower/                      -- MIR JSON fact-only lowering substitute
+    main.pgy + owner modules + fixture/ + intent.md
   air/  hir/  mir/                -- IR-stage placeholders
   compiler/                       -- driver placeholder, mirrors src/compiler/
   runtime/                        -- native runtime kernel stays C; portable policy can move
@@ -57,9 +59,9 @@ src/self_hosted/
 
 The target shape is not "one folder, one monolithic `main.pgy`". `main.pgy`
 is the CLI/orchestration entrypoint; semantic decisions belong in named
-source-of-truth owner modules. `codegen/` already follows that shape. `lexer/`,
-`parser/`, `semantic/`, and `mir_lower/` are transition surfaces and should be
-split by owned fact/contract as each hard substitution seam is closed.
+source-of-truth owner modules. `codegen/` and `mir_lower/` already follow that
+shape. `lexer/`, `parser/`, and `semantic/` are transition surfaces and should
+be split by owned fact/contract as each hard substitution seam is closed.
 
 ## Current Status
 

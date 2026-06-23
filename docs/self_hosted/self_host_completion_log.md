@@ -67,6 +67,21 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-23 -- MIR lower split into SoT owner modules
+
+- Split `src/self_hosted/mir_lower/main.pgy` from a 1060-line monolith into a
+  66-line orchestration entrypoint plus source-of-truth owners:
+  `error_owner`, `json_fact_read`, `stmt_render`, `routine_lower`, and
+  `decl_lower`. Every `mir_lower` source file is now below the 600-line owner
+  cap; `routine_lower` is the largest at 498 lines.
+- Preserved the fact-only lowering boundary. JSON access, declaration
+  inventory reconstruction, statement rendering, and routine/CFG lowering now
+  have named owners instead of sharing a generic `main.pgy` bucket.
+- Verified `make LLVM_ENABLED=0 BUILD_DIR=.tmp/pgy-build-c
+  BIN_DIR=.tmp/pgy-bin-c self-host-mir-json-parity-test-smoke`: **72 positive
+  fixtures plus 2 clean rejects** still pass through
+  `pgy --mir-json | mir_lower | codegen == C oracle`.
+
 ### 2026-06-23 -- Option<Int> match facts enter self-host MIR JSON lowering
 
 - Added explicit MIR JSON match facts for Option-like cases:
