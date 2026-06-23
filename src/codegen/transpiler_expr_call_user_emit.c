@@ -45,12 +45,23 @@ char *
 emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 {
     const char *callee_name = ast_identifier_name(callee);
+    ASTNode *decl = (callee->type == AST_IDENTIFIER)
+        ? find_callable_decl(ctx, callee_name) : NULL;
     if (callee->type == AST_IDENTIFIER) {
         ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
         const char *host_name = transpiler_decl_name_local(host_decl);
         const MIRDeclMethod *host_method_meta =
             transpiler_find_host_method_metadata_in_context(
                 ctx, host_name, callee_name);
+        if (host_method_meta == NULL
+            && host_name != NULL
+            && decl == NULL) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing hosted self-call method metadata for '%s.%s'",
+                host_name,
+                callee_name != NULL ? callee_name : "(anonymous)");
+            return NULL;
+        }
         if (host_method_meta != NULL && host_name != NULL) {
             CodeBuf *args_buf = codebuf_create();
             codebuf_write(args_buf, "self");
@@ -89,8 +100,6 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         }
     }
 
-    ASTNode *decl = (callee->type == AST_IDENTIFIER)
-        ? find_callable_decl(ctx, callee_name) : NULL;
     char *callee_str = NULL;
     const MIRRoutine *intent_routine = NULL;
     IntentBindingMetadataView binding_metadata = {0};

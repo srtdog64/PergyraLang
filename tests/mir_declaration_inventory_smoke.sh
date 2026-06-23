@@ -3656,6 +3656,23 @@ if grep -RInE "ast_compat_decl|ast_compat_methods|ast_compat_slots" \
         --include='*.c' --include='*.h'; then
     fail "ast_compat_{decl,methods,slots} are retired; hosted declaration views must not reopen an AST compatibility fallback (MIR metadata is the single owner)"
 fi
+# Non-MIR codegen path lock: the entire AST-based (non-MIR) codegen fallback has
+# been retired. A new `!*_active_has_mir(ctx)` branch is how a non-MIR path would
+# be reintroduced -- forbid it everywhere except the two intentional fail-closed
+# MIR-enforcement guards (emit-program entry + role-method routine guard), which
+# *refuse* non-MIR rather than generate from AST. Positive `active_has_mir(ctx)`
+# checks (MIR-path gating) are unaffected. This is the structural backstop the
+# manual 45-site sweep needed: a nullable ctx->mir lets these branches hide
+# anywhere, so a grep gate -- not human review -- keeps the retirement permanent.
+non_mir_branch_hits="$(
+    grep -RInE '!(transpiler|llvm)_active_has_mir\(ctx\)' \
+        "$ROOT_DIR/src/codegen" --include='*.c' --include='*.h' |
+        grep -vE 'src/codegen/(transpiler\.c|transpiler_domain_role_methods_emit\.c):' || true
+)"
+if [[ -n "$non_mir_branch_hits" ]]; then
+    fail "non-MIR codegen path is retired; '!*_active_has_mir(ctx)' must not introduce an AST fallback (only the allowlisted fail-closed MIR-enforcement guards may negate it):
+$non_mir_branch_hits"
+fi
 for rel in \
     "src/codegen/transpiler_mir_func_emit.c" \
     "src/codegen/transpiler_mir_block_emit.c" \
