@@ -271,14 +271,6 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
         char fn_name[256];
         if (ctx != NULL && ctx->backend_error != NULL)
             return;
-        if (method_meta == NULL && !transpiler_active_has_mir(ctx)) {
-            method = find_role_operator_method_decl(ctx, role, op, 0);
-            if (method != NULL) {
-                method_name = ast_declaration_name(method);
-            } else {
-                method_name = NULL;
-            }
-        }
         if (method_meta != NULL && method_name == NULL) {
             transpiler_set_mir_inventory_missing(
                 ctx,

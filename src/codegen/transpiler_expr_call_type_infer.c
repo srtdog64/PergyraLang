@@ -383,8 +383,7 @@ transpiler_expr_infer_call_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     }
                     return_type =
                         transpiler_mir_routine_return_type(routine);
-                } else if (!transpiler_active_has_mir(ctx)
-                           || generic_call || extern_func) {
+                } else if (generic_call || extern_func) {
                     return_type = ast_func_return_type(decl);
                 } else {
                     return_type = NULL;

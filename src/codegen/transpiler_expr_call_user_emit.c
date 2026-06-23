@@ -220,8 +220,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         transpiler_mir_routine_param_type_name(
                             callee_routine, i);
                 }
-            } else if ((!transpiler_active_has_mir(ctx)
-                        || callee_is_generic_func
+            } else if ((callee_is_generic_func
                         || callee_is_extern_func)
                        && i < ast_func_param_count(decl)) {
                 param = ast_func_param(decl, i);

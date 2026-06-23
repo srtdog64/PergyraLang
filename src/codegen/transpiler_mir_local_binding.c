@@ -286,38 +286,7 @@ transpiler_register_ast_compat_local_bindings_in_block(
                     ctx, func_decl, initializer);
             }
             if (type_name != NULL && type_name[0] != '\0') {
-                bool registered_view_like = false;
-                if (!transpiler_active_has_mir(ctx)
-                    && transpiler_type_name_is_view_like(type_name)
-                    && initializer != NULL
-                    && initializer->type == AST_CALL
-                    && ast_call_callee(initializer) != NULL
-                    && ast_call_callee(initializer)->type == AST_IDENTIFIER
-                    && ast_call_arg_count(initializer) >= 1
-                    && ast_call_argument(initializer, 0) != NULL
-                    && ast_call_argument(initializer, 0)->type == AST_IDENTIFIER) {
-                    const char *callee =
-                        ast_identifier_name(ast_call_callee(initializer));
-                    const char *source =
-                        ast_identifier_name(ast_call_argument(initializer, 0));
-                    if (callee != NULL
-                        && source != NULL
-                        && pgy_codegen_call_name_is_view_constructor(callee)) {
-                        const char *source_type = lookup_typed_var(ctx, source);
-                        bool source_secure = lookup_slot_is_secure(ctx, source);
-                        if (!source_secure
-                            && source_type != NULL
-                            && (strcmp(source_type, "SecureSlot") == 0
-                                || strncmp(source_type, "SecureSlot<", 11) == 0)) {
-                            source_secure = true;
-                        }
-                        register_view_like_var(ctx, ast_let_name(stmt),
-                            type_name, source, source_secure, false);
-                        registered_view_like = true;
-                    }
-                }
-                if (!registered_view_like)
-                    register_typed_var(ctx, ast_let_name(stmt), type_name);
+                register_typed_var(ctx, ast_let_name(stmt), type_name);
                 if (transpiler_type_name_is_slot_like(type_name)) {
                     char slot_inner_buf[128];
                     const char *slot_inner = NULL;
@@ -334,43 +303,6 @@ transpiler_register_ast_compat_local_bindings_in_block(
             continue;
         }
         if (stmt->type == AST_WITH_STMT && ast_with_alias(stmt) != NULL) {
-            if (!transpiler_active_has_mir(ctx)) {
-                char *inner = render_type_name_in_ctx(ctx, ast_with_slot_type(stmt));
-                if (inner == NULL || inner[0] == '\0'
-                    || strcmp(inner, "Unknown") == 0) {
-                    if (ctx->backend_error == NULL) {
-                        transpiler_set_backend_error_with_hints(ctx,
-                            PGY_CODE_C_TYPE_UNSUPPORTED,
-                            PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                            "C MIR with-slot alias '%s' requires concrete slot type metadata",
-                            ast_with_alias(stmt));
-                    }
-                    free(inner);
-                    continue;
-                }
-                char *slot_type = strdup_fmt("%s<%s>",
-                    ast_with_is_secure(stmt) ? "SecureSlot" : "Slot",
-                    inner);
-                if (slot_type == NULL) {
-                    if (ctx->backend_error == NULL) {
-                        transpiler_set_backend_error_with_hints(ctx,
-                            PGY_CODE_C_TYPE_UNSUPPORTED,
-                            PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                            "C MIR with-slot alias '%s' cannot synthesize slot type metadata",
-                            ast_with_alias(stmt));
-                    }
-                    free(inner);
-                    continue;
-                }
-                register_typed_var(ctx, ast_with_alias(stmt), slot_type);
-                register_slot_var(ctx, ast_with_alias(stmt),
-                    inner,
-                    ast_with_is_secure(stmt), false);
-                free(slot_type);
-                free(inner);
-            }
             transpiler_register_ast_compat_local_bindings_in_block(ctx,
                 func_decl, ast_with_body(stmt));
             continue;
