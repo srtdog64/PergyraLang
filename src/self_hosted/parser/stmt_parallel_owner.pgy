@@ -1,0 +1,128 @@
+// Self-host parser statement branch owner.
+
+func ParseParallelStmt(content: String, after_head: Int, inout cursor_out: Array<Int>, stmt_indent: Int) -> String {
+    let i: Int = after_head;
+    let parallel_probe: Int = SkipWhitespaceAndComments(content, i);
+    if MatchKeyword(content, parallel_probe, "on") {
+        i = parallel_probe + 2;
+        i = SkipWhitespaceAndComments(content, i);
+        if CharAt(content, i) == "(" {
+            let on_depth: Int = 1;
+            i = i + 1;
+            while i < StringLength(content) && on_depth > 0 {
+                if CharAt(content, i) == "(" {
+                    on_depth = on_depth + 1;
+                } else if CharAt(content, i) == ")" {
+                    on_depth = on_depth - 1;
+                }
+                i = i + 1;
+            }
+            if on_depth != 0 {
+                Exit(1);
+            }
+        } else {
+            ArraySet(cursor_out, 0, i);
+            let on_target: String = ParseExpr(content, i, cursor_out);
+            i = cursor_out[0];
+            on_target = on_target;
+        }
+        i = Expect(content, i, "{");
+        if i < 0 {
+            Exit(1);
+        }
+        i = SkipWhitespaceAndComments(content, i);
+        let on_body: String = "";
+        if MatchKeyword(content, i, "every") || MatchKeyword(content, i, "continuous") {
+            let is_every_wrapper: Bool = MatchKeyword(content, i, "every");
+            i = i + 5;
+            if !is_every_wrapper {
+                i = i + 5;
+            }
+            i = SkipWhitespaceAndComments(content, i);
+            if is_every_wrapper && CharAt(content, i) == "(" {
+                let every_depth: Int = 1;
+                i = i + 1;
+                while i < StringLength(content) && every_depth > 0 {
+                    if CharAt(content, i) == "(" {
+                        every_depth = every_depth + 1;
+                    } else if CharAt(content, i) == ")" {
+                        every_depth = every_depth - 1;
+                    }
+                    i = i + 1;
+                }
+                if every_depth != 0 {
+                    Exit(1);
+                }
+            }
+            ArraySet(cursor_out, 0, i);
+            on_body = ParseBlock(content, i, cursor_out, stmt_indent + 6);
+            i = cursor_out[0];
+            i = Expect(content, i, "}");
+            if i < 0 {
+                Exit(1);
+            }
+        } else {
+            let direct_out: String = "";
+            while true {
+                i = SkipWhitespaceAndComments(content, i);
+                if CharAt(content, i) == "}" {
+                    i = i + 1;
+                    break;
+                }
+                ArraySet(cursor_out, 0, i);
+                let direct_stmt: String = ParseOneStmt(content, i, cursor_out, stmt_indent + 6);
+                i = cursor_out[0];
+                if StringLength(direct_stmt) > 0 {
+                    direct_out = AppendLine(direct_out, direct_stmt);
+                }
+            }
+            on_body = direct_out;
+        }
+        let on_out: String = Concat(IndentStr(stmt_indent), "Parallel On:");
+        on_out = AppendLine(on_out, Concat(IndentStr(stmt_indent + 2), "Parallel:"));
+        on_out = AppendLine(on_out, Concat(IndentStr(stmt_indent + 4), "Block:"));
+        if StringLength(on_body) > 0 {
+            on_out = AppendLine(on_out, on_body);
+        }
+        ArraySet(cursor_out, 0, i);
+        return on_out;
+    }
+    // `parallel { stmts }` — structured concurrency block. AST is
+    // compact: `Parallel:` header at stmt_indent, then body stmts
+    // directly under it at stmt_indent + 2 (no intermediate `Block:`
+    // wrapper).
+    i = SkipWhitespaceAndComments(content, i);
+    if CharAt(content, i) == "(" {
+        let ptarget_depth: Int = 1;
+        i = i + 1;
+        while i < StringLength(content) && ptarget_depth > 0 {
+            if CharAt(content, i) == "(" {
+                ptarget_depth = ptarget_depth + 1;
+            } else if CharAt(content, i) == ")" {
+                ptarget_depth = ptarget_depth - 1;
+            }
+            i = i + 1;
+        }
+        if ptarget_depth != 0 {
+            Exit(1);
+        }
+        while i < StringLength(content) && CharAt(content, i) != "\n" && CharAt(content, i) != ";" && CharAt(content, i) != "}" {
+            i = i + 1;
+        }
+        i = ConsumeStmtTerminator(content, i);
+        if i < 0 {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        return Concat(IndentStr(stmt_indent), "Parallel:");
+    }
+    ArraySet(cursor_out, 0, i);
+    let pbody: String = ParseBlock(content, i, cursor_out, stmt_indent + 2);
+    i = cursor_out[0];
+    ArraySet(cursor_out, 0, i);
+    let pout: String = Concat(IndentStr(stmt_indent), "Parallel:");
+    if StringLength(pbody) > 0 {
+        pout = Concat(pout, Concat("\n", pbody));
+    }
+    return pout;
+}

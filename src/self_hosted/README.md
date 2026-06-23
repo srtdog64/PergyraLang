@@ -61,9 +61,10 @@ The target shape is not "one folder, one monolithic `main.pgy`". `main.pgy`
 is the CLI/orchestration entrypoint; semantic decisions belong in named
 source-of-truth owner modules. `codegen/`, `mir_lower/`, `semantic/`, and
 `lexer/` follow that shape. `parser/` has started the same transition with
-error, cursor/token, type-name, expression, and compact-tree text owners;
-statement and declaration parsing remain the main surfaces to split by owned
-fact/contract as each hard substitution seam is closed.
+error, cursor/token, type-name, expression, statement/block,
+function-declaration, and compact-tree text owners; broad declaration parsing
+remains the main surface to split by owned fact/contract as each hard
+substitution seam is closed.
 
 Until import de-duplication is a compiler fact, sibling owner modules do not
 import each other. The entrypoint assembles owner modules in dependency order so

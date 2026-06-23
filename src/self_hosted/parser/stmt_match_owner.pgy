@@ -1,0 +1,76 @@
+// Self-host parser statement branch owner.
+
+func ParseMatchStmt(content: String, after_head: Int, inout cursor_out: Array<Int>, stmt_indent: Int) -> String {
+    let i: Int = after_head;
+    // `match EXPR { (case EXPR : STMT | default : STMT)* }`. Each
+    // case/default body is a single statement (the C parser
+    // currently rejects `{ ... }` brace bodies as object-literal
+    // syntax that isn't implemented). AST shape:
+    //   Match: <scrutinee>          (stmt_indent)
+    //     Case: <label>              (+2)
+    //       Block:                   (+4)
+    //         <body stmt at +6>
+    //     Default:                   (+2)
+    //       Block:                   (+4)
+    //         <body stmt at +6>
+    ArraySet(cursor_out, 0, i);
+    let scrut: String = ParseExpr(content, i, cursor_out);
+    i = cursor_out[0];
+    i = Expect(content, i, "{");
+    if i < 0 {
+        Exit(1);
+    }
+    let out: String = Concat(IndentStr(stmt_indent), Concat("Match: ", scrut));
+    let n_m: Int = StringLength(content);
+    while true {
+        i = SkipWhitespaceAndComments(content, i);
+        if i >= n_m {
+            Exit(1);
+        }
+        if CharAt(content, i) == "}" {
+            i = i + 1;
+            break;
+        }
+        let case_label: String = "";
+        if MatchKeyword(content, i, "case") {
+            i = i + 4;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            case_label = ParseExpr(content, i, cursor_out);
+            i = cursor_out[0];
+            i = Expect(content, i, ":");
+            if i < 0 {
+                Exit(1);
+            }
+            out = AppendLine(out, Concat(IndentStr(stmt_indent + 2), Concat("Case: ", case_label)));
+        } else if MatchKeyword(content, i, "default") {
+            i = i + 7;
+            i = SkipWhitespaceAndComments(content, i);
+            i = Expect(content, i, ":");
+            if i < 0 {
+                Exit(1);
+            }
+            out = AppendLine(out, Concat(IndentStr(stmt_indent + 2), "Default:"));
+        } else {
+            Exit(1);
+        }
+        out = AppendLine(out, Concat(IndentStr(stmt_indent + 4), "Block:"));
+        while true {
+            i = SkipWhitespaceAndComments(content, i);
+            if i >= n_m {
+                Exit(1);
+            }
+            if CharAt(content, i) == "}" || MatchKeyword(content, i, "case") || MatchKeyword(content, i, "default") {
+                break;
+            }
+            ArraySet(cursor_out, 0, i);
+            let case_body: String = ParseOneStmt(content, i, cursor_out, stmt_indent + 6);
+            i = cursor_out[0];
+            if StringLength(case_body) > 0 {
+                out = AppendLine(out, case_body);
+            }
+        }
+    }
+    ArraySet(cursor_out, 0, i);
+    return out;
+}

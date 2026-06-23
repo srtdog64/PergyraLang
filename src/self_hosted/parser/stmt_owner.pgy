@@ -1,0 +1,528 @@
+// Self-host parser statement and block owner.
+
+// Parse one statement. Returns its formatted AST lines joined by "\n";
+// empty string only if a parse error path was reached (which Exits anyway).
+// Mutually recursive with ParseBlock for `if` and `while` bodies.
+func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stmt_indent: Int) -> String {
+    let i: Int = SkipWhitespaceAndComments(content, start);
+    let head_start: Int = i;
+    ArraySet(cursor_out, 0, i);
+    let head: String = ReadIdent(content, i, cursor_out);
+    i = cursor_out[0];
+    if StringLength(head) == 0 {
+        Exit(1);
+    }
+
+    if head == "bind" {
+        i = SkipWhitespaceAndComments(content, i);
+        ArraySet(cursor_out, 0, i);
+        let bind_lhs: String = ParseExpr(content, i, cursor_out);
+        i = cursor_out[0];
+        i = Expect(content, i, "=");
+        if i < 0 {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        let bind_rhs: String = ParseExpr(content, i, cursor_out);
+        i = cursor_out[0];
+        i = ConsumeStmtTerminator(content, i);
+        if i < 0 {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        return Concat(IndentStr(stmt_indent), Concat("BindStmt: ", Concat(bind_lhs, Concat(" = ", bind_rhs))));
+    }
+
+    if head == "if" {
+        return ParseIfStmt(content, i, cursor_out, stmt_indent);
+    }
+
+    if head == "while" {
+        ArraySet(cursor_out, 0, i);
+        let cond: String = ParseExpr(content, i, cursor_out);
+        i = cursor_out[0];
+        let out: String = Concat(IndentStr(stmt_indent), Concat("While: ", cond));
+        out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
+        ArraySet(cursor_out, 0, i);
+        let body: String = ParseBlock(content, i, cursor_out, stmt_indent + 4);
+        i = cursor_out[0];
+        if StringLength(body) > 0 {
+            out = Concat(out, Concat("\n", body));
+        }
+        ArraySet(cursor_out, 0, i);
+        return out;
+    }
+
+    if head == "loop" {
+        let out: String = Concat(IndentStr(stmt_indent), "While: true");
+        out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
+        ArraySet(cursor_out, 0, i);
+        let body: String = ParseBlock(content, i, cursor_out, stmt_indent + 4);
+        i = cursor_out[0];
+        if StringLength(body) > 0 {
+            out = Concat(out, Concat("\n", body));
+        }
+        ArraySet(cursor_out, 0, i);
+        return out;
+    }
+
+    if head == "with" {
+        // `with slot<TYPE> as VAR { stmts }` — scoped slot binding.
+        // AST:
+        //   With slot<TYPE> as VAR
+        //     Block:
+        //       <body at stmt_indent + 4>
+        i = SkipWhitespaceAndComments(content, i);
+        if !MatchKeyword(content, i, "slot") {
+            Exit(1);
+        }
+        i = i + 4;
+        i = SkipWhitespaceAndComments(content, i);
+        if CharAt(content, i) != "<" {
+            Exit(1);
+        }
+        i = i + 1;
+        ArraySet(cursor_out, 0, i);
+        let with_type: String = ReadType(content, i, cursor_out);
+        i = cursor_out[0];
+        if CharAt(content, i) != ">" {
+            Exit(1);
+        }
+        i = i + 1;
+        i = SkipWhitespaceAndComments(content, i);
+        if !MatchKeyword(content, i, "as") {
+            Exit(1);
+        }
+        i = i + 2;
+        i = SkipWhitespaceAndComments(content, i);
+        ArraySet(cursor_out, 0, i);
+        let as_name: String = ReadIdent(content, i, cursor_out);
+        i = cursor_out[0];
+        if StringLength(as_name) == 0 {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        let with_body: String = ParseBlock(content, i, cursor_out, stmt_indent + 4);
+        i = cursor_out[0];
+        let with_out: String = Concat(IndentStr(stmt_indent), Concat("With slot<", Concat(with_type, Concat("> as ", as_name))));
+        with_out = Concat(with_out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
+        if StringLength(with_body) > 0 {
+            with_out = Concat(with_out, Concat("\n", with_body));
+        }
+        ArraySet(cursor_out, 0, i);
+        return with_out;
+    }
+
+    if head == "parallel" {
+        return ParseParallelStmt(content, i, cursor_out, stmt_indent);
+    }
+
+    if head == "transaction" {
+        // `transaction { ... }` owns top-level `compensate EXPR` handlers.
+        // The C AST printer stores compensations on the transaction node but
+        // does not print them; only non-compensate statements remain in body.
+        i = Expect(content, i, "{");
+        if i < 0 {
+            Exit(1);
+        }
+        let tx_out: String = Concat(IndentStr(stmt_indent), "TransactionBlock:");
+        tx_out = AppendLine(tx_out, Concat(IndentStr(stmt_indent + 2), "Block:"));
+        let n_tx: Int = StringLength(content);
+        while true {
+            i = SkipWhitespaceAndComments(content, i);
+            if i >= n_tx {
+                Exit(1);
+            }
+            if CharAt(content, i) == "}" {
+                i = i + 1;
+                break;
+            }
+            if MatchKeyword(content, i, "compensate") {
+                i = i + 10;
+                ArraySet(cursor_out, 0, i);
+                let handler_expr: String = ParseExpr(content, i, cursor_out);
+                i = cursor_out[0];
+                handler_expr = handler_expr;
+                i = ConsumeStmtTerminator(content, i);
+                if i < 0 {
+                    Exit(1);
+                }
+                continue;
+            }
+            ArraySet(cursor_out, 0, i);
+            let tx_stmt: String = ParseOneStmt(content, i, cursor_out, stmt_indent + 4);
+            i = cursor_out[0];
+            if StringLength(tx_stmt) > 0 {
+                tx_out = AppendLine(tx_out, tx_stmt);
+            }
+        }
+        ArraySet(cursor_out, 0, i);
+        return tx_out;
+    }
+
+    if head == "defer" {
+        // `defer { stmts } ;` — block with trailing semicolon. AST:
+        //   Defer:
+        //     Block:
+        //       <body at stmt_indent + 4>
+        i = SkipWhitespaceAndComments(content, i);
+        let out: String = Concat(IndentStr(stmt_indent), "Defer:");
+        out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
+        ArraySet(cursor_out, 0, i);
+        let body: String = ParseBlock(content, i, cursor_out, stmt_indent + 4);
+        i = cursor_out[0];
+        if StringLength(body) > 0 {
+            out = Concat(out, Concat("\n", body));
+        }
+        i = ConsumeStmtTerminator(content, i);
+        if i < 0 {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        return out;
+    }
+
+    if head == "break" {
+        i = ConsumeStmtTerminator(content, i);
+        if i < 0 {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        return Concat(IndentStr(stmt_indent), "Break");
+    }
+
+    if head == "continue" {
+        i = ConsumeStmtTerminator(content, i);
+        if i < 0 {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        return Concat(IndentStr(stmt_indent), "Continue");
+    }
+
+    if head == "fail" {
+        // `fail` prints as a transaction rollback marker. A reason is present
+        // only when it begins on the same source line.
+        let fail_cursor: Int = i;
+        let reason_start: Int = i;
+        while CharAt(content, reason_start) == " " || CharAt(content, reason_start) == "\t" || CharAt(content, reason_start) == "\r" {
+            reason_start = reason_start + 1;
+        }
+        let fail_out: String = Concat(IndentStr(stmt_indent), "Fail:");
+        if CharAt(content, reason_start) == "\n" || CharAt(content, reason_start) == ";" || CharAt(content, reason_start) == "}" {
+            i = ConsumeStmtTerminator(content, fail_cursor);
+            if i < 0 {
+                Exit(1);
+            }
+            ArraySet(cursor_out, 0, i);
+            return AppendLine(fail_out, Concat(IndentStr(stmt_indent + 2), "(null)"));
+        }
+        ArraySet(cursor_out, 0, reason_start);
+        let fail_reason: String = ParseExpr(content, reason_start, cursor_out);
+        i = cursor_out[0];
+        i = ConsumeStmtTerminator(content, i);
+        if i < 0 {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        return AppendLine(fail_out, Concat(IndentStr(stmt_indent + 2), fail_reason));
+    }
+
+    if head == "match" {
+        return ParseMatchStmt(content, i, cursor_out, stmt_indent);
+    }
+
+    if head == "for" {
+        // `for IDENT in EXPR..EXPR { ... }`. Range bounds use ParseExpr
+        // so `..` (which no expression layer matches) terminates the
+        // lower bound and we explicitly Expect `..` before the upper.
+        // (ReadNumber refuses to swallow a `.` not followed by a digit,
+        // so `0..10` lexes as `0`, `..`, `10` cleanly.)
+        i = SkipWhitespaceAndComments(content, i);
+        ArraySet(cursor_out, 0, i);
+        let var_name: String = ReadIdent(content, i, cursor_out);
+        i = cursor_out[0];
+        if StringLength(var_name) == 0 {
+            Exit(1);
+        }
+        i = SkipWhitespaceAndComments(content, i);
+        if !MatchKeyword(content, i, "in") {
+            Exit(1);
+        }
+        i = i + 2;
+        ArraySet(cursor_out, 0, i);
+        let lower: String = ParseExpr(content, i, cursor_out);
+        i = cursor_out[0];
+        // Two forms:
+        //   range: `for i in 0..10 { ... }`        → `For: i in 0..10`
+        //   array: `for n in someArr { ... }`      → `For: n in someArr`
+        //     (the C printer emits the iterable expression for the for-in-array
+        //     form; the lower-bound parse already captured it.)
+        let range_text: String = "";
+        let after_lower: Int = SkipWhitespaceAndComments(content, i);
+        if CharAt(content, after_lower) == "." && CharAt(content, after_lower + 1) == "." {
+            i = after_lower + 2;
+            ArraySet(cursor_out, 0, i);
+            let upper: String = ParseExpr(content, i, cursor_out);
+            i = cursor_out[0];
+            range_text = Concat(lower, Concat("..", upper));
+        } else {
+            range_text = lower;
+            i = after_lower;
+        }
+        let header: String = Concat("For: ", Concat(var_name, Concat(" in ", range_text)));
+        let out: String = Concat(IndentStr(stmt_indent), header);
+        out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
+        ArraySet(cursor_out, 0, i);
+        let body: String = ParseBlock(content, i, cursor_out, stmt_indent + 4);
+        i = cursor_out[0];
+        if StringLength(body) > 0 {
+            out = Concat(out, Concat("\n", body));
+        }
+        ArraySet(cursor_out, 0, i);
+        return out;
+    }
+
+    if head == "return" {
+        // `return ;`  or  `return EXPR ;`
+        i = SkipWhitespaceAndComments(content, i);
+        if CharAt(content, i) == ";" {
+            i = i + 1;
+            ArraySet(cursor_out, 0, i);
+            return Concat(IndentStr(stmt_indent), "Return");
+        }
+        ArraySet(cursor_out, 0, i);
+        let val_text: String = ParseExpr(content, i, cursor_out);
+        i = cursor_out[0];
+        i = ConsumeStmtTerminator(content, i);
+        if i < 0 {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        return Concat(IndentStr(stmt_indent), Concat("Return: ", val_text));
+    }
+
+    if head == "let" {
+        // `let IDENT (: TYPE)? = EXPR ;`. The `: TYPE` annotation is
+        // optional; without it the AST emits `Let: IDENT = EXPR` (no
+        // `:` segment), matching type-inferred bindings.
+        i = SkipWhitespaceAndComments(content, i);
+        // Destructuring let: `let ( IDENT, IDENT, ... ) = EXPR ;` is
+        // emitted by `pgy --ast` as the literal placeholder text
+        // `AST node type 6` (the C printer has no print form for
+        // destructuring pattern nodes). Consume and emit that bytes.
+        if CharAt(content, i) == "(" {
+            i = i + 1;
+            while true {
+                i = SkipWhitespaceAndComments(content, i);
+                ArraySet(cursor_out, 0, i);
+                let d_name: String = ReadIdent(content, i, cursor_out);
+                i = cursor_out[0];
+                if StringLength(d_name) == 0 {
+                    Exit(1);
+                }
+                i = SkipWhitespaceAndComments(content, i);
+                if CharAt(content, i) == "," {
+                    i = i + 1;
+                    continue;
+                }
+                break;
+            }
+            i = Expect(content, i, ")");
+            if i < 0 {
+                Exit(1);
+            }
+            i = Expect(content, i, "=");
+            if i < 0 {
+                Exit(1);
+            }
+            ArraySet(cursor_out, 0, i);
+            let d_rhs: String = ParseExpr(content, i, cursor_out);
+            i = cursor_out[0];
+            d_rhs = d_rhs;
+            i = Expect(content, i, ";");
+            if i < 0 {
+                Exit(1);
+            }
+            ArraySet(cursor_out, 0, i);
+            return Concat(IndentStr(stmt_indent), "AST node type 6");
+        }
+        ArraySet(cursor_out, 0, i);
+        if MatchKeyword(content, i, "mut") {
+            i = i + 3;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+        }
+        let var_name: String = ReadIdent(content, i, cursor_out);
+        i = cursor_out[0];
+        if StringLength(var_name) == 0 {
+            Exit(1);
+        }
+        i = SkipWhitespaceAndComments(content, i);
+        let var_type: String = "";
+        let has_type: Bool = false;
+        if CharAt(content, i) == ":" {
+            i = i + 1;
+            ArraySet(cursor_out, 0, i);
+            var_type = ReadType(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(var_type) == 0 {
+                Exit(1);
+            }
+            has_type = true;
+        }
+        i = Expect(content, i, "=");
+        if i < 0 {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        let val_text: String = ParseExpr(content, i, cursor_out);
+        i = cursor_out[0];
+        i = ConsumeStmtTerminator(content, i);
+        if i < 0 {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        let let_text: String = "";
+        if has_type {
+            let_text = Concat("Let: ", Concat(var_name, Concat(" : ", Concat(var_type, Concat(" = ", val_text)))));
+        } else {
+            let_text = Concat("Let: ", Concat(var_name, Concat(" = ", val_text)));
+        }
+        return Concat(IndentStr(stmt_indent), let_text);
+    }
+
+    // Walrus statement: `IDENT := EXPR ;` shorthand for `let IDENT =
+    // EXPR ;`, emitted as `Let: IDENT = EXPR` to match the printer.
+    let walrus_peek: Int = SkipWhitespaceAndComments(content, i);
+    if CharAt(content, walrus_peek) == ":" && CharAt(content, walrus_peek + 1) == "=" {
+        i = walrus_peek + 2;
+        ArraySet(cursor_out, 0, i);
+        let walrus_rhs: String = ParseExpr(content, i, cursor_out);
+        i = cursor_out[0];
+        i = ConsumeStmtTerminator(content, i);
+        if i < 0 {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        let walrus_text: String = Concat("Let: ", Concat(head, Concat(" = ", walrus_rhs)));
+        return Concat(IndentStr(stmt_indent), walrus_text);
+    }
+
+    // Rewind to head's start and parse a primary as the assignment LHS
+    // candidate. ParsePrimary handles postfix `.member`, `[idx]`, and
+    // `(args)` chains, so `p.x = 5;` and `arr[0] = 5;` are LHS shapes
+    // alongside the simple `x = 5;`. If `=` (not `==`) doesn't follow
+    // the primary, this is an expression statement — rewind once more
+    // and parse a full expression (so `a + b;` and `obj.Greet();` both
+    // work).
+    ArraySet(cursor_out, 0, head_start);
+    let lhs: String = ParsePrimary(content, head_start, cursor_out);
+    let i_after_lhs: Int = cursor_out[0];
+    let peek: Int = SkipWhitespaceAndComments(content, i_after_lhs);
+    // Event subscription: `LHS += RHS ;` emits
+    //   EventSubscribe: LHS += RHS
+    // at the statement indent. The C parser uses this shape for
+    // `event += handler` registration; non-event `+=` is a parse error
+    // upstream so we don't need to reject misuse here.
+    if CharAt(content, peek) == "+" && CharAt(content, peek + 1) == "=" {
+        i = peek + 2;
+        ArraySet(cursor_out, 0, i);
+        let rhs: String = ParseExpr(content, i, cursor_out);
+        i = cursor_out[0];
+        i = ConsumeStmtTerminator(content, i);
+        if i < 0 {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        let sub_text: String = Concat("EventSubscribe: ", Concat(lhs, Concat(" += ", rhs)));
+        return Concat(IndentStr(stmt_indent), sub_text);
+    }
+    // Event unsubscription: `LHS -= RHS ;` emits
+    //   EventUnsubscribe: LHS -= RHS
+    if CharAt(content, peek) == "-" && CharAt(content, peek + 1) == "=" {
+        i = peek + 2;
+        ArraySet(cursor_out, 0, i);
+        let unsub_rhs: String = ParseExpr(content, i, cursor_out);
+        i = cursor_out[0];
+        i = ConsumeStmtTerminator(content, i);
+        if i < 0 {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        let unsub_text: String = Concat("EventUnsubscribe: ", Concat(lhs, Concat(" -= ", unsub_rhs)));
+        return Concat(IndentStr(stmt_indent), unsub_text);
+    }
+    // Channel send statement: `LHS <- RHS ;` emits
+    //   ChannelSend: LHS <- RHS
+    // at the statement indent.
+    if CharAt(content, peek) == "<" && CharAt(content, peek + 1) == "-" {
+        i = peek + 2;
+        ArraySet(cursor_out, 0, i);
+        let send_rhs: String = ParseExpr(content, i, cursor_out);
+        i = cursor_out[0];
+        i = ConsumeStmtTerminator(content, i);
+        if i < 0 {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        let send_text: String = Concat("ChannelSend: ", Concat(lhs, Concat(" <- ", send_rhs)));
+        return Concat(IndentStr(stmt_indent), send_text);
+    }
+    if CharAt(content, peek) == "=" && CharAt(content, peek + 1) != "=" {
+        i = peek + 1;
+        ArraySet(cursor_out, 0, i);
+        let rhs: String = ParseExpr(content, i, cursor_out);
+        i = cursor_out[0];
+        i = ConsumeStmtTerminator(content, i);
+        if i < 0 {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        let assign_text: String = Concat("Assign: ", Concat(lhs, Concat(" = ", rhs)));
+        return Concat(IndentStr(stmt_indent), assign_text);
+    }
+
+    // Expression statement fallback.
+    ArraySet(cursor_out, 0, head_start);
+    let expr_text: String = ParseExpr(content, head_start, cursor_out);
+    i = cursor_out[0];
+    i = ConsumeStmtTerminator(content, i);
+    if i < 0 {
+        Fail("Semicolon missing in expression statement", content, cursor_out[0]);
+    }
+    ArraySet(cursor_out, 0, i);
+    return Concat(IndentStr(stmt_indent), expr_text);
+}
+
+// Parse a `{ stmt* }` block. Returns formatted lines joined by "\n".
+// stmt_indent is the column at which each child statement's first line
+// starts; nested blocks (if/while) compute their own deeper indents.
+func ParseBlock(content: String, start: Int, inout cursor_out: Array<Int>, stmt_indent: Int) -> String {
+    let i: Int = Expect(content, start, "{");
+    if i < 0 {
+        Exit(1);
+    }
+    let n: Int = StringLength(content);
+    let out: String = "";
+    while true {
+        i = SkipWhitespaceAndComments(content, i);
+        if i >= n {
+            Exit(1);
+        }
+        if CharAt(content, i) == "}" {
+            i = i + 1;
+            ArraySet(cursor_out, 0, i);
+            return out;
+        }
+        ArraySet(cursor_out, 0, i);
+        let stmt: String = ParseOneStmt(content, i, cursor_out, stmt_indent);
+        i = cursor_out[0];
+        if StringLength(out) == 0 {
+            out = stmt;
+        } else {
+            out = Concat(out, Concat("\n", stmt));
+        }
+    }
+    return out;
+}
