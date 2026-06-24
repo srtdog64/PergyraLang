@@ -173,9 +173,16 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
 
     /* Parameter types */
     LLVMTypeRef *param_types = NULL;
+    /* Evidence projection (docs/136): an `own` pointer parameter is uniquely
+     * owned by the callee, so it cannot alias any other accessible pointer ->
+     * lower it as LLVM `noalias`. This is optimization-only, so the C==LLVM
+     * parity gates double as the soundness oracle. */
+    bool *param_noalias = NULL;
     if (emitted_param_count > 0) {
         param_types = pgy_arena_calloc(&ctx->scratch,
                                        emitted_param_count * sizeof(LLVMTypeRef));
+        param_noalias = pgy_arena_calloc(&ctx->scratch,
+                                       emitted_param_count * sizeof(bool));
         if (param_types == NULL) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_OOM,
@@ -223,14 +230,23 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
                     param_type_name,
                     &is_secure)
                 : llvm_boundary_slot_inner_name(ctx, p, &is_secure);
+            bool is_own = (p != NULL && p->mode == PARAM_MODE_OWN);
             if (slot_inner != NULL) {
+                unsigned slot_idx = pidx;
                 param_types[pidx++] = LLVMPointerType(pt, 0);
+                /* an owned slot handle is a unique pointer -> noalias */
+                if (is_own && param_noalias != NULL)
+                    param_noalias[slot_idx] = true;
                 if (is_secure) {
                     param_types[pidx++] =
                         llvm_secure_token_type(ctx, slot_inner);
                 }
             } else {
+                unsigned val_idx = pidx;
                 param_types[pidx++] = pt;
+                if (is_own && param_noalias != NULL
+                    && LLVMGetTypeKind(pt) == LLVMPointerTypeKind)
+                    param_noalias[val_idx] = true;
             }
         }
     }
@@ -238,6 +254,18 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
     LLVMTypeRef fn_type = LLVMFunctionType(ret_type, param_types,
                                             emitted_param_count, 0);
     LLVMValueRef fn = LLVMAddFunction(ctx->module, name, fn_type);
+    if (param_noalias != NULL) {
+        unsigned noalias_kind = LLVMGetEnumAttributeKindForName("noalias", 7);
+        if (noalias_kind != 0) {
+            for (unsigned k = 0; k < emitted_param_count; k++) {
+                if (param_noalias[k]) {
+                    /* LLVM param attribute indices are 1-based (0 == return). */
+                    LLVMAddAttributeAtIndex(fn, k + 1,
+                        LLVMCreateEnumAttribute(ctx->context, noalias_kind, 0));
+                }
+            }
+        }
+    }
     llvm_register_function(ctx, name, fn, fn_type, ret_type);
 
 }
