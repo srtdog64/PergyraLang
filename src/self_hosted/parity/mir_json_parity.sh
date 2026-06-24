@@ -47,6 +47,7 @@ MIR_LOWER_SRC="$ROOT_DIR/src/self_hosted/mir_lower/main.pgy"
 CODEGEN_SRC="$ROOT_DIR/src/self_hosted/codegen/main.pgy"
 FIXTURE_DIR="$ROOT_DIR/src/self_hosted/mir_lower/fixture"
 CODEGEN_FIXTURE_DIR="$ROOT_DIR/src/self_hosted/codegen/fixture"
+EXAMPLE_FIXTURE_DIR="$ROOT_DIR/examples"
 B="$ROOT_DIR/.tmp/self_hosted/mir_lower/parity"
 mkdir -p "$B"
 
@@ -164,12 +165,19 @@ CODEGEN_FIXTURES=(
     write_file
 )
 
+EXAMPLE_FIXTURES=(
+    binary_search
+)
+
 pass=0
-for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}"; do
+for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}" "${EXAMPLE_FIXTURES[@]}"; do
     base="$fixture_entry"
     src="$FIXTURE_DIR/$base.pgy"
     if [[ ! -f "$src" ]]; then
         src="$CODEGEN_FIXTURE_DIR/$base.pgy"
+    fi
+    if [[ ! -f "$src" ]]; then
+        src="$EXAMPLE_FIXTURE_DIR/$base.pgy"
     fi
     if [[ ! -f "$src" ]]; then
         echo "[self-host-parity:mir-json] missing fixture: $src" >&2

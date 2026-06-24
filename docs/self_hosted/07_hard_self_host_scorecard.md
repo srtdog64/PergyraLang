@@ -177,7 +177,7 @@ constructors and inspection helpers, and `Join`/`ToFloat` string utility flow
 also run through this MIR-JSON path. Ability declarations are reconstructed from MIR method
 signature facts and treated as zero-artifact declaration hosts by the
 self-hosted codegen pre-passes. The committed MIR-lower/codegen fixture
-inventory is now measured at 81 PASS / 0 gap plus 1 clean reject through this
+inventory is now measured at 82 PASS / 0 gap plus 1 clean reject through this
 path. Role unsupported declaration facts are emitted and rejected before the
 self-host path can silently erase operator-overload semantics; richer
 projection/identity semantics beyond field-only nominal declarations still

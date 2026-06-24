@@ -139,8 +139,8 @@ subset.
   tobject/vessel declarations now flow through MIR-owned `nominal_kind` and
   field facts and reconstruct their exact AST labels in the self-hosted
   MIR-lowering path instead of being collapsed to a generic class alias. The
-  hard gate is now **76
-  positive fixtures plus 2 clean-reject fixtures** after
+  hard gate is now **82
+  positive fixtures plus 1 clean-reject fixture** after
   promoting the already run-equivalent
   trailing-newline Log, nested string concat, string array concat, string
   case/index/trim builtin, string reassignment, two-log, while-break, and
@@ -154,9 +154,10 @@ subset.
   declaration/method lowering, payload-free enum lowering, `Result<Int>` `?`
   early-return flow, `Result<Int>` core constructors/inspection helpers,
   `Option<Int>` value/match lowering, array sort/map/filter/reverse combinators, and
-  `Join`/`ToFloat` string utility flow. The coverage boundary is now measured
-  at **81 PASS / 0 gap plus 1 clean reject** across the committed
-  MIR-lower/codegen fixture inventory. Ability declarations now consume MIR
+  `Join`/`ToFloat` string utility flow, and the example-origin
+  `binary_search` fixture. The coverage boundary is now measured
+  at **82 PASS / 0 gap plus 1 clean reject** across the committed
+  MIR-lower/codegen/example fixture inventory. Ability declarations now consume MIR
   method signature facts and lower as zero-artifact declaration hosts in the
   self-hosted codegen pre-passes. Role declaration facts are still rejected by
   `mir_lower`, payload enum variants fail closed by MIR variant fact, and unsupported

@@ -55,7 +55,7 @@ rewrite history.
   Source-payload reads for the gated body surface have been replaced by
   dedicated MIR/source-shape facts, and the self-hosted MIR-lowering path is
   ratcheted against reading transitional `"ast"` text. The committed
-  MIR-lower/codegen frontier is **81 PASS / 0 gap plus 1 clean reject**.
+  MIR-lower/codegen frontier is **82 PASS / 0 gap plus 1 clean reject**.
 
 ## Roadmap to completion
 
@@ -82,6 +82,17 @@ rewrite history.
    allowed -- that is what makes a positive one mean something.
 
 ## Session log
+
+### 2026-06-24 -- MIR-lower hard gate admits an example-origin binary search fixture
+
+- Promoted `examples/binary_search.pgy` into the committed MIR JSON hard path,
+  proving the example through `pgy --mir-json | mir_lower | codegen | gcc`
+  against the C backend oracle.
+- `mir_json_parity.sh` now has an explicit `EXAMPLE_FIXTURES` inventory so
+  real example-origin programs can be ratcheted without copying them into the
+  self-host fixture directory.
+- The MIR JSON frontier moves to **82 PASS / 0 gap plus 1 clean reject**; the
+  remaining clean reject is still unsupported role declaration fact coverage.
 
 ### 2026-06-24 -- ArrayReverse exits the clean-reject boundary
 

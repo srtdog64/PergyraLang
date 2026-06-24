@@ -184,15 +184,16 @@ mir_positive_count="$(
     {
         extract_shell_array_items "$PARITY_DIR/mir_json_parity.sh" MIR_FIXTURES
         extract_shell_array_items "$PARITY_DIR/mir_json_parity.sh" CODEGEN_FIXTURES
+        extract_shell_array_items "$PARITY_DIR/mir_json_parity.sh" EXAMPLE_FIXTURES
     } | wc -l | tr -d ' '
 )"
-[[ "$mir_positive_count" -eq 81 ]] ||
-    fail "mir_json_parity positive fixture count drifted: $mir_positive_count != 81"
+[[ "$mir_positive_count" -eq 82 ]] ||
+    fail "mir_json_parity positive fixture count drifted: $mir_positive_count != 82"
 mir_clean_reject_count="$(grep -Ec '^base="unsupported_' "$PARITY_DIR/mir_json_parity.sh" || true)"
 [[ "$mir_clean_reject_count" -eq 1 ]] ||
     fail "mir_json_parity clean reject count drifted: $mir_clean_reject_count != 1"
-require_text "src/self_hosted/PROGRESS.md" "81 PASS / 0 gap plus 1 clean"
-require_text "docs/self_hosted/07_hard_self_host_scorecard.md" "81 PASS / 0 gap plus 1 clean reject"
+require_text "src/self_hosted/PROGRESS.md" "82 PASS / 0 gap plus 1 clean"
+require_text "docs/self_hosted/07_hard_self_host_scorecard.md" "82 PASS / 0 gap plus 1 clean reject"
 reject_text "src/self_hosted/PROGRESS.md" "77 PASS / 0 gap plus 2 clean rejects"
 reject_text "docs/self_hosted/07_hard_self_host_scorecard.md" "77 PASS / 0 gap plus 2 clean rejects"
 reject_text "docs/self_hosted/07_hard_self_host_scorecard.md" "61-fixture"

@@ -69,7 +69,7 @@ match-case integer pattern conditions, runtime-aligned absolute-path I/O policy,
 file read/write, and phi-bearing loop headers classified by CFG backedges rather
 than phi presence alone, plus MIR-owned array destructure binding facts), gated by
 `parity/mir_json_parity.sh`
-(`make self-host-mir-json-parity-test-smoke`, 81 fixtures plus 1 clean-reject
+(`make self-host-mir-json-parity-test-smoke`, 82 fixtures plus 1 clean-reject
 fixture). The gate now
 requires the MIR JSON fact surface and checks the `for`
 header is reconstructed from `arg0` plus `expr0`/`expr1` bounds, and checks
@@ -86,7 +86,7 @@ codegen subset. It is now fact-only for the supported MIR JSON statement,
 expression, source-local, CFG, match-case, I/O policy, Int-field struct
 declaration, field-only class/subject/object/tobject/vessel declaration/method,
 ability signature declaration, and payload-free enum surfaces. The committed
-MIR-lower/codegen fixture inventory is currently **81 PASS / 0 gap plus 1 clean
+MIR-lower/codegen fixture inventory is currently **82 PASS / 0 gap plus 1 clean
 reject** through this
 path. The nominal family now flows through MIR-owned `nominal_kind`/field facts
 and reconstructs `Class:` / `Subject:` / `Object:` / `TObject:` / `Vessel:`
@@ -101,9 +101,10 @@ symbols. New fixtures must preserve that by adding owning facts rather than
 text fallback.
 `self_hosted_component_contract_smoke` now also ratchets that frontier against
 the parity harness itself: the MIR JSON positive fixture inventory must stay at
-81, the clean-reject inventory must stay at 1, the scorecard must cite the same
-81 PASS / 0 gap plus 1 clean reject boundary, and stale fixture-count wording
-is rejected.
+82, the clean-reject inventory must stay at 1, the scorecard must cite the same
+82 PASS / 0 gap plus 1 clean reject boundary, and stale fixture-count wording
+is rejected. The positive inventory now includes `examples/binary_search.pgy`
+as an example-origin fixture, not only purpose-built self-host/codegen fixtures.
 
 The self-hosted `mir_lower/` implementation is now split by source-of-truth
 owner rather than living as one monolithic `main.pgy`: `error_owner` owns the
