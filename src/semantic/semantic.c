@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "../common/string_compat.h"
+#include "../common/squiggle_class.h"
 #include "semantic.h"
 #include "diag_payload.h"
 #include "type_checker.h"
@@ -225,10 +226,13 @@ semantic_analyze(ASTNode *ast)
     result->boundary_witness_summary = ctx->boundary_witness_summary;
     result->program_capabilities = ctx->program_capabilities;
     for (size_t i = 0; i < ctx->diagnostic_count; i++) {
-        if (ctx->diagnostics[i]->level == DIAG_ERROR)
+        DiagnosticLevel lvl = ctx->diagnostics[i]->level;
+        if (lvl == DIAG_ERROR)
             result->error_count++;
-        else
+        else if (lvl == DIAG_WARNING)
             result->warning_count++;
+        else
+            result->advisory_count++;
     }
 
     /*
@@ -358,11 +362,17 @@ semantic_result_print_json(const SemanticResult *result)
     fputc('[', out);
     for (size_t i = 0; i < result->diagnostic_count; i++) {
         Diagnostic *d = result->diagnostics[i];
-        const char *severity = (d->level == DIAG_ERROR) ? "error" : "warning";
+        const char *severity = d->level == DIAG_ERROR
+            ? "error"
+            : (d->level == DIAG_WARNING ? "warning" : "advisory");
+        SquiggleClass sq = squiggle_class_classify(d->level == DIAG_ERROR,
+            d->layer, d->code);
         if (i > 0)
             fputc(',', out);
         fputs("{\"severity\":", out);
         json_emit_string(out, severity);
+        fputs(",\"squiggleClass\":", out);
+        json_emit_string(out, squiggle_class_name(sq));
         fputs(",\"stage\":\"semantic\"", out);
         fputs(",\"layer\":", out);
         json_emit_string(out, diagnostic_layer_name(d->layer));

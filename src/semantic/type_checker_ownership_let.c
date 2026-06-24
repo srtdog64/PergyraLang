@@ -536,6 +536,36 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         sym->reflect_target_name = pergyra_strdup(ast_string_value(init));
     }
 
+    /* docs/140 advisory (non-blocking): if this binding shadows a Subject
+     * (domain-identity) binding in an enclosing scope, the same name now denotes
+     * a value without that domain identity inside this scope — a meaning-axis
+     * drift worth seeing. Cross-scope shadowing is legal, so this never blocks;
+     * it is shown as an amber squiggle. Checked before scope_declare so `sym`
+     * itself is not found, and gated on the outer name living in an *enclosing*
+     * scope (absent from the current scope). */
+    if (sym != NULL && sym->name != NULL
+        && scope_lookup_current(ctx->scope, sym->name) == NULL) {
+        Symbol *outer = scope_lookup(ctx->scope, sym->name);
+        if (outer != NULL && outer != sym
+            && type_is_subject_type(outer->type, ctx)) {
+            semantic_advisory_with_hints(ctx,
+                PGY_CODE_SEM_SUBJECT_IDENTITY_SHADOWED,
+                PGY_CAUSE_SUBJECT_SHADOW,
+                PGY_FIX_RENAME_SHADOW_OR_KEEP_DOMAIN_BINDING,
+                node,
+                "Domain identity of '%s' is shadowed here.\n"
+                "Reason:\n"
+                "- an enclosing '%s' carries a Subject (domain-identity) type\n"
+                "- this binding reuses the name for a value without that identity, "
+                "so inside this scope '%s' no longer denotes the domain entity\n"
+                "Note: this is advisory only and does not block compilation\n"
+                "Fix:\n"
+                "- rename this binding to keep the domain name distinct\n"
+                "- or keep using the enclosing domain binding if that was intended",
+                sym->name, sym->name, sym->name);
+        }
+    }
+
     scope_declare(ctx->scope, sym);
 
     return !ctx->has_error;

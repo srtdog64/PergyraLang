@@ -232,6 +232,16 @@ void semantic_warning_with_hints(SemanticContext* ctx,
                                  const char* fmt, ...)
     PGY_PRINTF_LIKE(6, 7);
 
+/* Advisory (non-blocking) variant — the "third state" (docs/140). Does not set
+ * has_error and is not counted as a warning; carries a meaning-axis squiggle. */
+void semantic_advisory_with_hints(SemanticContext* ctx,
+                                  const char* code,
+                                  const char* cause_ir,
+                                  const char* fix_source,
+                                  const ASTNode* node,
+                                  const char* fmt, ...)
+    PGY_PRINTF_LIKE(6, 7);
+
 void semantic_print_diagnostics(SemanticContext* ctx);
 
 /* -----------------------------------------------------------------

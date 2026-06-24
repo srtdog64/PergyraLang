@@ -1,6 +1,8 @@
 # Semantic Squiggle — 의미 물결선
 
-Status: `design, not yet implemented`. 이 문서는 **의미 축 불일치를 코드 차단 없이 에디터에 표시하는** 진단 표시 정책의 설계다. 구현은 단계적(§7).
+Status: `slices 1-3 landed`. 이 문서는 **의미 축 불일치를 코드 차단 없이 에디터에 표시하는** 진단 표시 정책의 설계다. 구현은 단계적(§6).
+
+진행: slice 1(분류 Policy `squiggle_class_classify`) + slice 2(`DIAG_ADVISORY` 제3 상태 + JSON `squiggleClass` emit) + slice 3(첫 net-new advisory: Subject 정체성 섀도잉, amber) **완료·검증**. 첫 vertical slice가 동작한다 — Subject 섀도 프로그램이 **0 error로 컴파일되면서 amber advisory를 표면화**한다. 남은 건 LSP 전송 + VS Code decoration 클라이언트(slice 4) + BLUE/erasure 배선(slice 5).
 
 ## 0. 동기 — 차단에서 인식으로
 
@@ -87,11 +89,12 @@ typedef enum {
 
 비율: **doc/policy가 80%, 확장이 20%.** 어려운 건 VS Code가 아니라 매핑 원칙이다.
 
-1. **이 문서(§3 매핑 테이블) 확정** — 의미론 결정. `docs/42`(축 소유)·`docs/14`(소거)·`docs/122`(drift) 옆에 앉음.
-2. `DiagnosticLevel`에 `DIAG_ADVISORY` + `Diagnostic.squiggle_class` 필드, 매핑 테이블 1곳.
-3. `src/lsp` 진단 payload에 `data.squiggleClass` 실어 LSP로 송출(RED/AMBER/VIOLET — BLUE 제외).
-4. thin VS Code decoration 클라이언트(4색, 보라는 decoration).
-5. (R&D) BLUE: AIR 소거 사이트를 라이브 진단에 연결.
+1. ✅ **이 문서(§3 매핑 테이블) 확정** — 의미론 결정. `docs/42`(축 소유)·`docs/14`(소거)·`docs/122`(drift) 옆에 앉음.
+   ✅ slice 1: `squiggle_class_classify()` 순수 Policy + 단위 테스트(`src/common/squiggle_class.*`).
+2. ✅ slice 2: `DiagnosticLevel`에 `DIAG_ADVISORY`(non-blocking, `advisory_count` 분리) + JSON emit에 `squiggleClass` 필드. 첫 advisory 생산자가 없으면 amber/violet은 안 뜨므로, 같은 슬라이스에서 첫 생산자를 추가한다(↓).
+3. ✅ slice 3: 첫 net-new advisory = **Subject 정체성 섀도잉**(`type_checker_ownership_let.c`, 코드 `PGY_SEM_SUBJECT_IDENTITY_SHADOWED` → amber). 기존 에러 0개 강등, 보장 불변. 단위 테스트가 "0 error로 컴파일 + advisory≥1" 검증.
+4. ⏳ `src/lsp` 진단 payload에 `data.squiggleClass` 실어 LSP로 송출 + thin VS Code decoration 클라이언트(4색, 보라는 decoration). **주의: pgy 드라이버의 `--error-format=json`은 에러가 있을 때만 JSON을 출력**(advisory-only 성공 컴파일은 무출력). LSP 경로는 항상 진단을 push해야 하므로 이 분기를 우회해 성공 시에도 advisory를 전송해야 한다.
+5. ⏳ (R&D) BLUE: AIR 소거 사이트를 라이브 진단에 연결.
 
 ## 7. 게이트 (회귀 방지)
 

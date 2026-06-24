@@ -14,12 +14,17 @@
 typedef struct DiagnosticPayloadSnapshot DiagnosticPayloadSnapshot;
 
 /*
- * Diagnostic severity
+ * Diagnostic severity.
+ *
+ * DIAG_ADVISORY is the "third state" (docs/140): it does NOT block compilation
+ * (only DIAG_ERROR sets has_error) and is not counted as a warning. It carries
+ * a meaning-axis squiggle (amber/violet/blue) shown without failing the build.
  */
 typedef enum
 {
     DIAG_ERROR,
-    DIAG_WARNING
+    DIAG_WARNING,
+    DIAG_ADVISORY
 } DiagnosticLevel;
 
 /*

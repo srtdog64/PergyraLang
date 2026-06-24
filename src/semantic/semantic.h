@@ -27,6 +27,7 @@ typedef struct SemanticResult
     size_t       diagnostic_count;
     size_t       error_count;
     size_t       warning_count;
+    size_t       advisory_count;   /* DIAG_ADVISORY — non-blocking, docs/140 */
     size_t       type_resolution_metadata_entries;
     size_t       type_resolution_metadata_hits;
     size_t       type_resolution_metadata_dead_ends;

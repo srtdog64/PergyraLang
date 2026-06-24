@@ -243,6 +243,24 @@ semantic_warning_with_hints(SemanticContext *ctx,
 }
 
 void
+semantic_advisory_with_hints(SemanticContext *ctx,
+                             const char *code,
+                             const char *cause_ir,
+                             const char *fix_source,
+                             const ASTNode *node,
+                             const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    /* DIAG_ADVISORY: non-blocking (emit_diagnostic_full sets has_error only for
+     * DIAG_ERROR). The "third state" (docs/140) — a meaning-axis squiggle shown
+     * without failing the build. */
+    emit_diagnostic_full(ctx, DIAG_ADVISORY, code, cause_ir, fix_source,
+                         node, NULL, fmt, ap);
+    va_end(ap);
+}
+
+void
 semantic_emit_payload(SemanticContext *ctx,
                       const DiagPayload *p,
                       const char *fmt, ...)
@@ -261,7 +279,9 @@ semantic_print_diagnostics(SemanticContext *ctx)
 {
     for (size_t i = 0; i < ctx->diagnostic_count; i++) {
         Diagnostic *d = ctx->diagnostics[i];
-        const char *level = (d->level == DIAG_ERROR) ? "ERROR" : "WARNING";
+        const char *level = d->level == DIAG_ERROR
+            ? "ERROR"
+            : (d->level == DIAG_WARNING ? "WARNING" : "ADVISORY");
         if (d->line == 0 || d->col == 0) {
             fprintf(stderr, "[%s] - %s\n", level, d->message);
         } else {

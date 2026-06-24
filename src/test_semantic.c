@@ -201,6 +201,7 @@ main(void)
     test_type_resolution_graph();
     test_misc_grammar_edges();
     test_squiggle_class();
+    test_squiggle_advisory();
 
     printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
 
