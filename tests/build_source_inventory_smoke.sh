@@ -1209,7 +1209,7 @@ for builtin_fact in \
     '{ "ToLower", "String"' \
     '{ "ToUpper", "String"'; do
     if ! grep -Fq "$builtin_fact" \
-        "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"; then
+        "$ROOT_DIR/src/common/pgy_builtin_type_table.c"; then
         echo "[build-source-inventory] fixed-return collection builtin type fact missing: $builtin_fact" >&2
         missing=1
     fi
@@ -1220,7 +1220,7 @@ for dynamic_numeric in \
     '{ "Max",' \
     '{ "Min",'; do
     if grep -Fq "$dynamic_numeric" \
-        "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"; then
+        "$ROOT_DIR/src/common/pgy_builtin_type_table.c"; then
         echo "[build-source-inventory] dynamic numeric builtin must not be fixed-return typed: $dynamic_numeric" >&2
         missing=1
     fi

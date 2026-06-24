@@ -78,6 +78,14 @@ Until import de-duplication is a compiler fact, sibling owner modules do not
 import each other. The entrypoint assembles owner modules in dependency order so
 one owner cannot accidentally materialize the same declarations twice.
 
+The compiler-stage shape is executable policy, not just a convention:
+`tests/self_hosted_component_contract_smoke.sh` requires every active
+compiler-stage `main.pgy` to stay an entrypoint-only boundary (one `Main`
+function, no local helper functions, no control-flow/parser/JSON/diagnostic
+work), and requires each stage owner source to stay at or below the 600-line
+split-review cap. If a stage needs new semantics, add or split a named owner
+module and import it from the entrypoint.
+
 ## Current Status
 
 - **2026-05-26** -- directory bootstrapped. First tool:

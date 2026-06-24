@@ -1498,20 +1498,20 @@ if [[ "$driver_diag_code_names" != "$driver_diag_code_names_sorted" ]]; then
 fi
 codegen_intent_obs_names="$(
     grep 'PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY' \
-        "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c" \
+        "$ROOT_DIR/src/common/pgy_builtin_type_table.c" \
         | grep -o '"Intent[A-Za-z0-9_]*"' \
         | tr -d '"' \
         | sort -u
 )"
 codegen_intent_obs_names_in_order="$(
     grep 'PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY' \
-        "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c" \
+        "$ROOT_DIR/src/common/pgy_builtin_type_table.c" \
         | grep -o '"Intent[A-Za-z0-9_]*"' \
         | tr -d '"'
 )"
 codegen_builtin_names="$(
     sed -n '/static const PgyBuiltinInfo entries\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c" \
+        "$ROOT_DIR/src/common/pgy_builtin_type_table.c" \
         | grep -o '{ "[^"]*"' \
         | sed 's/^{ "//'
 )"
@@ -3437,11 +3437,11 @@ grep -Fq "llvm_stmt_infer_scalar_math_return_type" "$ROOT_DIR/src/codegen/llvm_s
 grep -Fq "op == TOKEN_COALESCE" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
 grep -Fq "llvm_stmt_infer_nominal_name_from_init(ctx, receiver)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
 grep -Fq "llvm_lookup_enum_variant(ctx, callee)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
-grep -Fq '{ "IsOk", "Bool", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"
-grep -Fq '{ "IsErr", "Bool", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"
-grep -Fq '{ "IsSome", "Bool", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"
-grep -Fq '{ "IsNone", "Bool", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"
-grep -Fq '{ "StringLength", "Int", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"
+grep -Fq '{ "IsOk", "Bool", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/common/pgy_builtin_type_table.c"
+grep -Fq '{ "IsErr", "Bool", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/common/pgy_builtin_type_table.c"
+grep -Fq '{ "IsSome", "Bool", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/common/pgy_builtin_type_table.c"
+grep -Fq '{ "IsNone", "Bool", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/common/pgy_builtin_type_table.c"
+grep -Fq '{ "StringLength", "Int", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/common/pgy_builtin_type_table.c"
 grep -Fq "llvm_stmt_name_in_sorted_table" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
 grep -Fq "kLLVMCollectionGetSpecs" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
 grep -Fq "llvm_stmt_collection_get_spec_compare" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
@@ -5119,9 +5119,9 @@ grep -A34 -F "case AST_CHANNEL_RECV" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer
     grep -Fq "ctx->expected_type_name"
 grep -A34 -F "case AST_CHANNEL_RECV" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
     grep -Fq "pgy_classify_type(ctx->expected_type_name) != PGY_TK_CHANNEL"
-grep -Fq '{ "Input", "String", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"
-grep -Fq '{ "Concat", "String", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"
-grep -Fq '{ "StringConcat", "String", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"
+grep -Fq '{ "Input", "String", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/common/pgy_builtin_type_table.c"
+grep -Fq '{ "Concat", "String", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/common/pgy_builtin_type_table.c"
+grep -Fq '{ "StringConcat", "String", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/common/pgy_builtin_type_table.c"
 ! grep -Fq 'strcmp(callee, "Input")' "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
 ! grep -Fq 'strcmp(callee, "Concat")' "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
 ! grep -Fq 'strcmp(callee, "StringConcat")' "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"

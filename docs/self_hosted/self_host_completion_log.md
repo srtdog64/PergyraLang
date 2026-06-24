@@ -78,6 +78,19 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-24 -- Self-host compiler-stage owner shape is gated
+
+- Added an executable owner-shape contract to
+  `tests/self_hosted_component_contract_smoke.sh`.
+- Active compiler-stage `main.pgy` files (`lexer`, `parser`, `semantic`,
+  `codegen`, and `mir_lower`) must now stay entrypoint-only: exactly one
+  `Main`, no local helper functions, and no control-flow/string-scan/JSON-fact/
+  diagnostic construction work in the entrypoint.
+- The same gate enforces the 600-line split-review cap for active
+  compiler-stage owner `.pgy` files. New semantics must move behind a named
+  source-of-truth owner module, not into `main.pgy` or a generic helper bucket.
+- Verified with `make self-host-component-contract-test-smoke`.
+
 ### 2026-06-23 -- Semantic run boundary leaves the entrypoint
 
 - Split `src/self_hosted/semantic/semantic_run_owner.pgy` out of `main.pgy`.

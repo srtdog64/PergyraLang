@@ -82,6 +82,65 @@ require_owner_surface() {
     done
 }
 
+line_count() {
+    wc -l < "$1" | tr -d ' '
+}
+
+require_max_lines() {
+    local rel="$1"
+    local cap="$2"
+    local count
+    count="$(line_count "$ROOT_DIR/$rel")"
+    [[ "$count" -le "$cap" ]] ||
+        fail "$rel has $count lines; cap is $cap"
+}
+
+require_entrypoint_only_main() {
+    local stage="$1"
+    local rel="src/self_hosted/$stage/main.pgy"
+    local path="$ROOT_DIR/$rel"
+    local main_funcs
+    local other_funcs
+
+    require_max_lines "$rel" 80
+
+    main_funcs="$(grep -Ec '^[[:space:]]*func[[:space:]]+Main[[:space:]]*\(' "$path" || true)"
+    [[ "$main_funcs" -eq 1 ]] ||
+        fail "$rel must contain exactly one Main entrypoint"
+
+    other_funcs="$(
+        grep -En '^[[:space:]]*func[[:space:]]+' "$path" |
+            grep -Ev '^[0-9]+:[[:space:]]*func[[:space:]]+Main[[:space:]]*\(' || true
+    )"
+    [[ -z "$other_funcs" ]] ||
+        fail "$rel must not define helper functions: $other_funcs"
+
+    awk '
+        /^[[:space:]]*\/\// { next }
+        /^[[:space:]]*$/ { next }
+        /(^|[[:space:]])(if|while|for)[[:space:]]/ ||
+        /ArrayPush[[:space:]]*\(/ ||
+        /JsonField/ ||
+        /Substring[[:space:]]*\(/ ||
+        /String(IndexOf|Length)[[:space:]]*\(/ ||
+        /SEMANTIC ERROR/ ||
+        /[{]["]/ {
+            print FNR ":" $0
+        }
+    ' "$path" | while IFS= read -r line; do
+        fail "$rel reintroduced semantic work into entrypoint: $line"
+    done
+}
+
+require_stage_owner_line_cap() {
+    local stage="$1"
+    local file
+    while IFS= read -r file; do
+        rel="${file#"$ROOT_DIR/"}"
+        require_max_lines "$rel" 600
+    done < <(find "$SELF_HOST_DIR/$stage" -maxdepth 1 -type f -name '*.pgy' | sort)
+}
+
 for stage in lexer parser semantic codegen; do
     require_dir "src/self_hosted/$stage"
     require_file "src/self_hosted/$stage/main.pgy"
@@ -98,6 +157,8 @@ for stage in lexer parser semantic codegen; do
     require_text "src/self_hosted/parity/${stage}_parity.sh" "set -euo pipefail"
     require_text "Makefile" "self-host-${stage}-parity-test-smoke"
     require_text "Makefile" "src/self_hosted/parity/${stage}_parity.sh"
+    require_entrypoint_only_main "$stage"
+    require_stage_owner_line_cap "$stage"
 done
 
 require_dir "src/self_hosted/mir_lower"
@@ -112,6 +173,8 @@ done
 require_text "src/self_hosted/parity/mir_json_parity.sh" "set -euo pipefail"
 require_text "Makefile" "self-host-mir-json-parity-test-smoke"
 require_text "Makefile" "src/self_hosted/parity/mir_json_parity.sh"
+require_entrypoint_only_main "mir_lower"
+require_stage_owner_line_cap "mir_lower"
 
 require_owner_surface lexer \
     "char_owner.pgy" \

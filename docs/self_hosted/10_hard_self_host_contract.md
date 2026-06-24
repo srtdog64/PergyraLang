@@ -64,6 +64,19 @@ Forbidden fallbacks:
 - advisory-only checks for a rung that is counted as compiler-internal
   substitution.
 
+## Owner Shape Rule
+
+Hard rungs are organized by source-of-truth owner, not by a folder-local
+monolithic `main.pgy`. For active compiler-stage rungs, `main.pgy` is the CLI
+entrypoint only: it may import owners, read process arguments through the
+declared input owner, and call the run/lower/emit owner. It must not define
+local helper functions or perform semantic control-flow, JSON fact lookup,
+string scanning, diagnostic construction, or hidden compatibility parsing.
+
+Every active compiler-stage owner file stays at or below the 600-line
+split-review cap. When an owner grows past that threshold, split by the
+responsibility that owns the fact; do not create a generic helper bucket.
+
 ## Active Hard Rungs
 
 The active hard rungs are:
