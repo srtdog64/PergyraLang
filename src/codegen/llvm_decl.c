@@ -173,16 +173,18 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
 
     /* Parameter types */
     LLVMTypeRef *param_types = NULL;
-    /* Evidence projection (docs/136): an `own` pointer parameter is uniquely
-     * owned by the callee, so it cannot alias any other accessible pointer ->
-     * lower it as LLVM `noalias`. This is optimization-only, so the C==LLVM
-     * parity gates double as the soundness oracle. */
-    bool *param_noalias = NULL;
+    /* Evidence projection (docs/136): lower ownership-mode evidence onto LLVM
+     * pointer-parameter attributes the backend cannot rederive from lowered IR.
+     *   own / default-move (unique)  -> noalias  (cannot alias anything)
+     *   ref  (ReadView, read-only)   -> readonly (callee never writes through it)
+     * These are optimization-only, so the C==LLVM parity gates are the soundness
+     * oracle. param_attr: 0 none, 1 noalias, 2 readonly. */
+    unsigned char *param_attr = NULL;
     if (emitted_param_count > 0) {
         param_types = pgy_arena_calloc(&ctx->scratch,
                                        emitted_param_count * sizeof(LLVMTypeRef));
-        param_noalias = pgy_arena_calloc(&ctx->scratch,
-                                       emitted_param_count * sizeof(bool));
+        param_attr = pgy_arena_calloc(&ctx->scratch,
+                                       emitted_param_count * sizeof(unsigned char));
         if (param_types == NULL) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_OOM,
@@ -230,13 +232,19 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
                     param_type_name,
                     &is_secure)
                 : llvm_boundary_slot_inner_name(ctx, p, &is_secure);
-            bool is_own = (p != NULL && p->mode == PARAM_MODE_OWN);
+            ParamMode pmode = (p != NULL) ? p->mode : PARAM_MODE_DEFAULT;
             if (slot_inner != NULL) {
                 unsigned slot_idx = pidx;
                 param_types[pidx++] = LLVMPointerType(pt, 0);
-                /* an owned slot handle is a unique pointer -> noalias */
-                if (is_own && param_noalias != NULL)
-                    param_noalias[slot_idx] = true;
+                /* a slot handle taken by own or default is a moved, unique
+                 * pointer -> noalias; a ref slot is a read-only borrow
+                 * (ReadView) -> readonly (may alias, so not noalias). */
+                if (param_attr != NULL) {
+                    if (pmode == PARAM_MODE_OWN || pmode == PARAM_MODE_DEFAULT)
+                        param_attr[slot_idx] = 1;
+                    else if (pmode == PARAM_MODE_REF)
+                        param_attr[slot_idx] = 2;
+                }
                 if (is_secure) {
                     param_types[pidx++] =
                         llvm_secure_token_type(ctx, slot_inner);
@@ -244,9 +252,13 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
             } else {
                 unsigned val_idx = pidx;
                 param_types[pidx++] = pt;
-                if (is_own && param_noalias != NULL
-                    && LLVMGetTypeKind(pt) == LLVMPointerTypeKind)
-                    param_noalias[val_idx] = true;
+                if (param_attr != NULL
+                    && LLVMGetTypeKind(pt) == LLVMPointerTypeKind) {
+                    if (pmode == PARAM_MODE_OWN)
+                        param_attr[val_idx] = 1;
+                    else if (pmode == PARAM_MODE_REF)
+                        param_attr[val_idx] = 2;
+                }
             }
         }
     }
@@ -254,15 +266,20 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
     LLVMTypeRef fn_type = LLVMFunctionType(ret_type, param_types,
                                             emitted_param_count, 0);
     LLVMValueRef fn = LLVMAddFunction(ctx->module, name, fn_type);
-    if (param_noalias != NULL) {
+    if (param_attr != NULL) {
         unsigned noalias_kind = LLVMGetEnumAttributeKindForName("noalias", 7);
-        if (noalias_kind != 0) {
-            for (unsigned k = 0; k < emitted_param_count; k++) {
-                if (param_noalias[k]) {
-                    /* LLVM param attribute indices are 1-based (0 == return). */
-                    LLVMAddAttributeAtIndex(fn, k + 1,
-                        LLVMCreateEnumAttribute(ctx->context, noalias_kind, 0));
-                }
+        unsigned readonly_kind =
+            LLVMGetEnumAttributeKindForName("readonly", 8);
+        for (unsigned k = 0; k < emitted_param_count; k++) {
+            unsigned kind = 0;
+            if (param_attr[k] == 1)
+                kind = noalias_kind;
+            else if (param_attr[k] == 2)
+                kind = readonly_kind;
+            if (kind != 0) {
+                /* LLVM param attribute indices are 1-based (0 == return). */
+                LLVMAddAttributeAtIndex(fn, k + 1,
+                    LLVMCreateEnumAttribute(ctx->context, kind, 0));
             }
         }
     }
