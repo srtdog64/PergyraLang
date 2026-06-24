@@ -443,6 +443,54 @@
         ast_destroy(func);
     }
 
+    TEST("lambda expr body is type-checked even with expected type (docs/135)");
+    {
+        /* Regression: when the return type comes from the annotated let type,
+         * the expression body must still be type-checked. Skipping it let
+         * `(y: Long) => y * 2` accept a Long*Int operand mismatch that a normal
+         * body rejects, then miscompile (i64 * i32). */
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let h: func(Long) -> Long = (y: Long) => y * 2;\n"
+            "    Log(h(21));\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Type mismatch in binary operation"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("lambda expr body with matched operand types is accepted");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let h: func(Long) -> Long = (y: Long) => y * 2L;\n"
+            "    Log(h(21));\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("lambda block local shadow is not treated as capture");
     {
         SemanticContext *ctx = semantic_context_create();

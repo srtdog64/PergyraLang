@@ -126,6 +126,17 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         }
 
+        /* Always type-check an expression body so its internal checks
+         * (binary-op operand types, etc.) run even when the return type is
+         * supplied by an annotation or the expected lambda type. Skipping this
+         * let `(y: Long) => y * 2` accept a Long*Int mismatch that a normal
+         * function body rejects, then miscompile (i64 * i32). */
+        Type *body_expr_type = NULL;
+        if (lambda_body != NULL && lambda_body->type != AST_BLOCK) {
+            body_expr_type = expr_normalize_type(
+                type_check_expression(lambda_body, ctx));
+        }
+
         if (lambda_return_type != NULL) {
             return_type = expr_resolve_type_ref(
                 lambda_return_type, ctx);
@@ -135,9 +146,8 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
                         == param_count
                    && type_function_return_type(expected_lambda_type) != NULL) {
             return_type = type_function_return_type(expected_lambda_type);
-        } else if (lambda_body != NULL && lambda_body->type != AST_BLOCK) {
-            return_type = expr_normalize_type(
-                type_check_expression(lambda_body, ctx));
+        } else if (body_expr_type != NULL) {
+            return_type = body_expr_type;
         } else {
             return_type = TYPE_VOID;
         }
