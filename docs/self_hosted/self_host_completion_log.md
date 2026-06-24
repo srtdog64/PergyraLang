@@ -50,7 +50,8 @@ rewrite history.
   measured source_ast/source_decl and supported MIR-lowering frontier.
   Source-payload reads for the gated body surface have been replaced by
   dedicated MIR/source-shape facts, and the self-hosted MIR-lowering path is
-  ratcheted against reading transitional `"ast"` text.
+  ratcheted against reading transitional `"ast"` text. The committed
+  MIR-lower/codegen frontier is **80 PASS / 0 gap plus 2 clean rejects**.
 
 ## Roadmap to completion
 
@@ -77,6 +78,16 @@ rewrite history.
    allowed -- that is what makes a positive one mean something.
 
 ## Session log
+
+### 2026-06-24 -- MIR-lower codegen frontier expands to 80 fixtures
+
+- Promoted `array_combinators`, `result_int_core`, and `string_utils_core` from
+  codegen-only parity into the MIR JSON fact-only parity path.
+- `src/self_hosted/parity/mir_json_parity.sh` now proves **80 fixtures / 2
+  clean rejects** through `pgy --mir-json | mir_lower | codegen == C oracle`.
+- Updated the self-host progress/status/scorecard docs and the component
+  contract ratchet so the new MIR-lower frontier cannot drift back to the old
+  count.
 
 ### 2026-06-24 -- MIR-lower frontier wording is ratcheted to the parity inventory
 

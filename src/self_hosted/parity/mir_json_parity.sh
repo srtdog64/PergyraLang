@@ -107,6 +107,7 @@ MIR_FIXTURES=(
 
 CODEGEN_FIXTURES=(
     args_probe
+    array_combinators
     array_max
     array_param
     array_pop
@@ -139,6 +140,7 @@ CODEGEN_FIXTURES=(
     nested_concat
     nested_ctrl
     option_int_core
+    result_int_core
     result_try
     str_array
     str_array_concat
@@ -154,6 +156,7 @@ CODEGEN_FIXTURES=(
     struct_point
     string_concat_op
     string_equality
+    string_utils_core
     two_logs
     while_break
     while_sum

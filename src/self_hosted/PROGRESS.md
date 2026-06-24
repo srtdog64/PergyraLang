@@ -58,7 +58,9 @@ with bare-call statements, string concat/equality, `Result<Int>` `?`
 early-return flow, recursion, loop-control
 `continue`/`break` edge blocks, trailing-newline Log normalization, nested
 string concatenation, string array concatenation, string case/index/trim
-builtins, array pop, array for-each, Int-field struct declarations/value flow,
+builtins, `Join`/`ToFloat` string utility flow, array pop, array for-each,
+array sort/map/filter combinators, `Result<Int>` core constructors and
+inspection helpers, Int-field struct declarations/value flow,
 plain class/subject/object/tobject/vessel declarations and class methods through MIR-owned
 nominal-kind/field/method/owner facts,
 payload-free enum declarations through MIR-owned variant facts,
@@ -67,7 +69,7 @@ match-case integer pattern conditions, runtime-aligned absolute-path I/O policy,
 file read/write, and phi-bearing loop headers classified by CFG backedges rather
 than phi presence alone, plus MIR-owned array destructure binding facts), gated by
 `parity/mir_json_parity.sh`
-(`make self-host-mir-json-parity-test-smoke`, 77 fixtures plus 2 clean-reject
+(`make self-host-mir-json-parity-test-smoke`, 80 fixtures plus 2 clean-reject
 fixture). The gate now
 requires the MIR JSON fact surface and checks the `for`
 header is reconstructed from `arg0` plus `expr0`/`expr1` bounds, and checks
@@ -84,7 +86,7 @@ codegen subset. It is now fact-only for the supported MIR JSON statement,
 expression, source-local, CFG, match-case, I/O policy, Int-field struct
 declaration, field-only class/subject/object/tobject/vessel declaration/method,
 ability signature declaration, and payload-free enum surfaces. The committed
-MIR-lower/codegen fixture inventory is currently **77 PASS / 0 gap plus 2 clean
+MIR-lower/codegen fixture inventory is currently **80 PASS / 0 gap plus 2 clean
 rejects** through this
 path. The nominal family now flows through MIR-owned `nominal_kind`/field facts
 and reconstructs `Class:` / `Subject:` / `Object:` / `TObject:` / `Vessel:`
@@ -99,8 +101,8 @@ symbols. New fixtures must preserve that by adding owning facts rather than
 text fallback.
 `self_hosted_component_contract_smoke` now also ratchets that frontier against
 the parity harness itself: the MIR JSON positive fixture inventory must stay at
-77, the clean-reject inventory must stay at 2, the scorecard must cite the same
-77 PASS / 0 gap plus 2 clean rejects boundary, and stale fixture-count wording
+80, the clean-reject inventory must stay at 2, the scorecard must cite the same
+80 PASS / 0 gap plus 2 clean rejects boundary, and stale fixture-count wording
 is rejected.
 
 The self-hosted `mir_lower/` implementation is now split by source-of-truth
