@@ -1,0 +1,54 @@
+{
+  "name": "pergyra-semantic-squiggle",
+  "displayName": "Pergyra Semantic Squiggle",
+  "description": "Meaning-axis squiggles (amber/violet/blue) for Pergyra, served by pgy-lsp (docs/140).",
+  "version": "0.0.1",
+  "publisher": "pergyra",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters"
+  ],
+  "activationEvents": [
+    "onLanguage:pergyra"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "pergyra",
+        "aliases": [
+          "Pergyra"
+        ],
+        "extensions": [
+          ".pgy"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "configuration": {
+      "title": "Pergyra",
+      "properties": {
+        "pergyra.serverPath": {
+          "type": "string",
+          "default": "pgy-lsp",
+          "description": "Path to the pgy-lsp executable (built by `make lsp`)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^8.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.0",
+    "@types/vscode": "^1.75.0",
+    "typescript": "^5.4.0"
+  }
+}
