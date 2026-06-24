@@ -14,6 +14,12 @@
 #include "../common/squiggle_class.h"
 #include "../semantic/diag_codes.h"
 #include "../semantic/semantic.h"
+#include "../compiler/dir.h"
+#include "../compiler/hir.h"
+#include "../compiler/rir.h"
+#include "../compiler/air.h"
+#include "../compiler/air_erasure_squiggle.h"
+#include "../compiler/driver_app.h"   /* hir_lower, rir_lower */
 
 static bool
 lsp_advance_json_offset(size_t *off, size_t buf_size, int written)
@@ -50,6 +56,78 @@ lsp_escape_json_string(char *out, size_t out_size, const char *text)
         out[oi++] = *p;
     }
     out[oi] = '\0';
+}
+
+/*
+ * docs/140 slice 5c: BLUE erasure squiggles. Lower the (clean) program to AIR —
+ * the only stage that measures erasure — collect the fully-erased nodes, and
+ * append a BLUE advisory at each one's source line. LSP-only: the batch compiler
+ * never lowers to AIR for diagnostics, so its cost stays here in the editor.
+ */
+static void
+lsp_append_erasure_diagnostics(ASTNode *ast, char *diag_buf, size_t buf_size,
+                               size_t *off, size_t *emitted)
+{
+    DIRProgram *dir = NULL;
+    HIRProgram *hir = NULL;
+    RIRProgram *rir = NULL;
+    AIRProgram *air = NULL;
+    char *error = NULL;
+    AIRErasureSquiggle sites[20];
+    size_t site_count = 0;
+
+    if (ast == NULL)
+        return;
+
+    dir = dir_lower(ast, &error);
+    hir = hir_lower(ast, &error);
+    rir = rir_lower(ast, &error);
+    if (hir != NULL && rir != NULL)
+        (void)rir_enrich_with_hir_flow(rir, hir, &error);
+    if (dir != NULL && hir != NULL && rir != NULL)
+        air = air_synthesize(hir, dir, rir, &error);
+    if (air != NULL)
+        site_count = air_collect_erasure_squiggles(air, sites,
+            sizeof(sites) / sizeof(sites[0]));
+
+    for (size_t i = 0; i < site_count && *emitted < 20; i++) {
+        size_t before = *off;
+        char reason[512];
+        int dline;
+        int n;
+
+        if (sites[i].line == 0u)
+            continue;   /* synthetic node — no editor location */
+
+        if (*emitted > 0 && *off < buf_size - 1)
+            diag_buf[(*off)++] = ',';
+
+        dline = (int)sites[i].line - 1;
+        if (dline < 0) dline = 0;
+        lsp_escape_json_string(reason, sizeof(reason),
+            sites[i].reason != NULL ? sites[i].reason
+                                    : "meaning erased at runtime");
+
+        n = snprintf(diag_buf + *off, buf_size - *off,
+            "{\"range\":{\"start\":{\"line\":%d,\"character\":0},"
+            "\"end\":{\"line\":%d,\"character\":100}},"
+            "\"severity\":3,\"source\":\"pgy\","
+            "\"code\":\"PGY_AIR_MEANING_ERASED\","
+            "\"data\":{\"layer\":\"domain\",\"squiggleClass\":\"blue\"},"
+            "\"message\":\"domain meaning erased at runtime: %s\"}",
+            dline, dline, reason);
+        if (!lsp_advance_json_offset(off, buf_size, n)) {
+            *off = before;
+            break;
+        }
+        (*emitted)++;
+    }
+
+    air_destroy(air);
+    rir_destroy(rir);
+    hir_destroy(hir);
+    dir_destroy(dir);
+    free(error);
 }
 
 void
@@ -156,6 +234,11 @@ publish_diagnostics(const char *uri, const char *source_text)
                 }
                 emitted++;
             }
+            /* BLUE erasure squiggles, only for a clean parse/analyze (docs/140
+             * slice 5c). Incomplete editor buffers skip AIR lowering. */
+            if (sem->success)
+                lsp_append_erasure_diagnostics(sem->annotated_ast, diag_buf,
+                    sizeof(diag_buf), &off, &emitted);
         }
         semantic_result_destroy(sem);
     }
