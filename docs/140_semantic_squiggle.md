@@ -120,4 +120,10 @@ typedef enum {
 3. 코드 `PGY_SEM_*_ERASURE_*`(분류기 erasure-term → BLUE) 부여. squiggleClass=blue.
 4. 게이트: `tests/air_erasure`가 이미 측정하는 사이트 수와 BLUE 진단 수가 일치하는지 cross-check(계기판이 곧 golden).
 
-**선행 차단 요소**: AIR 노드→source-span 역매핑이 있는지(없으면 그것부터). 이게 BLUE를 R&D로 만드는 핵심이며, AMBER/VIOLET처럼 "한 함수에 한 줄"로 끝나지 않는 이유다.
+**선행 차단 요소**: AIR 노드→source-span 역매핑. 조사 결과 — AIR 경계는 `source_name`(이름) + HIR routine 증거를 갖지만 line/col span은 없다. 그러나 **`Symbol`이 `decl_line`/`decl_col`을 갖는다** → `source_name`을 symbol_table로 lookup하면 site가 나온다. 즉 역매핑은 *이름 경유*로 가능(블로커 완화). AIR 합성 진입점도 존재: `air_synthesize(hir)` → 경계별 compression/retain. BLUE는 tractable한 multi-slice 통합이다.
+
+**slice 5 진행**:
+- ✅ slice 5a: BLUE 정책 `air_compression_squiggle_class(budget, cause)` (`src/compiler/air_erasure_squiggle.*`). ERASE→BLUE(런타임 footprint 0), RETAIN/SUMMARIZE/FORBID/UNKNOWN→NONE. 순수 함수(런타임 0, codegen 0). test_air 단위테스트(138 passed). slice 1이 분류 정책으로 시작했듯, BLUE도 "어떤 소거→BLUE" 정책을 먼저 못박음.
+- ⏳ slice 5b: 실제 `AIRProgram` 경계 순회 → ERASE 경계의 `source_name`을 `Symbol.decl_line/col`로 해소 → BLUE advisory 레코드 생성(이름 경유 site 매핑).
+- ⏳ slice 5c: LSP publish에 AIR-erasure advisory 머지(AIR은 semantic 이후라 별도 수집 후 합침). **LSP-only로 격리** → 프로덕션 빌드 시간 0.
+- ⏳ 노이즈 관리: 소거는 보통 의도된 것(zero-cost)이라, 생산자는 *개발자가 쓴 도메인 annotation*에 한정해야 함. 정책 함수는 faithful map만 제공.

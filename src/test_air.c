@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "compiler/air.h"
+#include "compiler/air_erasure_squiggle.h"
 #include "compiler/air_internal.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
@@ -27,6 +28,29 @@ static int g_fail = 0;
         if (cond) { printf("ok\n"); g_pass++; } \
         else      { printf("fail (line %d)\n", __LINE__); g_fail++; } \
     } while (0)
+
+/* docs/140 slice 5: BLUE policy — only a fully erased boundary qualifies. */
+static bool
+test_air_erasure_squiggle_policy(void)
+{
+    bool ok = true;
+    ok = ok && air_compression_squiggle_class(
+                   AIR_COMPRESSION_ERASE, AIR_RETAIN_CAUSE_NONE)
+               == SQUIGGLE_BLUE;
+    ok = ok && air_compression_squiggle_class(
+                   AIR_COMPRESSION_RETAIN, AIR_RETAIN_CAUSE_INHERENT)
+               == SQUIGGLE_NONE;
+    ok = ok && air_compression_squiggle_class(
+                   AIR_COMPRESSION_SUMMARIZE, AIR_RETAIN_CAUSE_POLICY)
+               == SQUIGGLE_NONE;
+    ok = ok && air_compression_squiggle_class(
+                   AIR_COMPRESSION_FORBID, AIR_RETAIN_CAUSE_NONE)
+               == SQUIGGLE_NONE;
+    ok = ok && air_compression_squiggle_class(
+                   AIR_COMPRESSION_UNKNOWN, AIR_RETAIN_CAUSE_NONE)
+               == SQUIGGLE_NONE;
+    return ok;
+}
 
 static void
 test_air_clear_stack_drifts(AIRProgram *air)
@@ -116,6 +140,9 @@ main(void)
 
     TEST("AIR compression erases pure sync intent facts");
     EXPECT(test_air_compression_erases_pure_sync_intent());
+
+    TEST("AIR erasure squiggle policy: only ERASE is BLUE (docs/140 slice 5)");
+    EXPECT(test_air_erasure_squiggle_policy());
 
     TEST("AIR compression summarizes static zone and retains authority");
     EXPECT(test_air_compression_summarizes_static_zone_and_retains_authority());

@@ -808,6 +808,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/air_dump.c \
                    $(COMPILER_DIR)/air_dump_json.c \
                    $(COMPILER_DIR)/air_vocabulary.c \
+                   $(COMPILER_DIR)/air_erasure_squiggle.c \
                    $(COMPILER_DIR)/air_boundary_evidence_policy.c \
                    $(COMPILER_DIR)/air_evidence_node.c \
                    $(COMPILER_DIR)/air_evidence_ast.c \
@@ -1336,6 +1337,7 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/air_dump.o \
                    $(BUILD_DIR)/compiler/air_dump_json.o \
                    $(BUILD_DIR)/compiler/air_vocabulary.o \
+                   $(BUILD_DIR)/compiler/air_erasure_squiggle.o \
                    $(BUILD_DIR)/compiler/air_boundary_evidence_policy.o \
                    $(BUILD_DIR)/compiler/air_evidence_node.o \
                    $(BUILD_DIR)/compiler/air_evidence_ast.o \
