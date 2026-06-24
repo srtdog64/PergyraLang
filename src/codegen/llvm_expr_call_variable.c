@@ -6,6 +6,7 @@
 #include "llvm_expr_member_lvalue.h"
 #include "llvm_expr_scalar_core.h"
 #include "llvm_internal_api.h"
+#include "llvm_mir_store_coercion.h"
 
 LLVMValueRef
 llvm_emit_callable_variable_call(ASTNode *node,
@@ -74,8 +75,12 @@ llvm_emit_callable_variable_call(ASTNode *node,
             callee_var.alloca, 1, llvm_tmp_name(ctx));
 
         call_args[0] = env_ptr;
+        /* Coerce each argument to the closure's declared parameter type; the
+         * args were emitted with their natural types (e.g. an Int literal is
+         * i32 but a Long param is i64), so an uncoerced call fails LLVM verify. */
         for (unsigned i = 0; i < emitted_argc; i++)
-            call_args[i + 1] = args[i];
+            call_args[i + 1] = llvm_mir_coerce_value_for_store(ctx, args[i],
+                base_params[i]);
 
         if (LLVMGetReturnType(base_fn_ty) == ctx->type_void) {
             LLVMBuildCall2(ctx->builder, call_fn_ty, fn_ptr_val, call_args,
@@ -125,12 +130,25 @@ llvm_emit_callable_variable_call(ASTNode *node,
     if (fn_type == NULL || LLVMGetTypeKind(fn_type) != LLVMFunctionTypeKind)
         return NULL;
 
+    unsigned fn_argc = LLVMCountParamTypes(fn_type);
+    if (fn_argc != emitted_argc || emitted_argc > 64u)
+        return llvm_call_error_recovery(ctx, node,
+            "LLVM callable variable call argument count mismatch");
+
+    LLVMTypeRef param_types[64];
+    LLVMValueRef coerced_args[64];
+    LLVMGetParamTypes(fn_type, param_types);
+    for (unsigned i = 0; i < emitted_argc; i++)
+        coerced_args[i] = llvm_mir_coerce_value_for_store(ctx, args[i],
+            param_types[i]);
+
     if (LLVMGetReturnType(fn_type) == ctx->type_void) {
-        LLVMBuildCall2(ctx->builder, fn_type, fn_ptr, args, emitted_argc, "");
+        LLVMBuildCall2(ctx->builder, fn_type, fn_ptr, coerced_args,
+            emitted_argc, "");
         result = llvm_void_expression_placeholder(ctx, node,
             "callable-variable-call");
     } else {
-        result = LLVMBuildCall2(ctx->builder, fn_type, fn_ptr, args,
+        result = LLVMBuildCall2(ctx->builder, fn_type, fn_ptr, coerced_args,
             emitted_argc, llvm_tmp_name(ctx));
     }
     return result;

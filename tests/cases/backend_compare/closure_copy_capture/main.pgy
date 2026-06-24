@@ -8,4 +8,17 @@ func Main() -> Void {
     let mul: func(Int) -> Int = (x: Int) => x * scale;
     Log(mul(4));
     Log(mul(7));
+
+    // Long-param closure: the call arg must be coerced to the param type
+    // (i32 literal -> i64), otherwise the LLVM call fails verify.
+    let factor: Long = 5;
+    let scaleLong: func(Long) -> Long = (y: Long) => y * factor;
+    Log(scaleLong(6));
+    Log(scaleLong(11));
+
+    // String capture (non-scalar value type).
+    let prefix: String = "tag";
+    let labeler: func(Int) -> String = (n: Int) => prefix;
+    Print(labeler(1));
+    Print("\n");
 }
