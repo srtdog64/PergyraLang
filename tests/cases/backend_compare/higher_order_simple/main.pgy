@@ -1,17 +1,26 @@
 // Higher-order function: lambda stored in local variable and passed as
 // an argument to a regular function, which invokes it via function-pointer
-// indirection. Verifies lambda AST → function-pointer codegen parity
-// across C and LLVM backends.
+// indirection. Also exercises callable-variable argument coercion from the
+// callee signature fact (Int literal -> Long parameter) across C and LLVM.
 
 func Apply(f: func(Int) -> Int, x: Int) -> Int {
     return f(x);
 }
 
+func AddLong(x: Long) -> Long {
+    return x + 100L;
+}
+
 func Main() -> Void {
     let double: func(Int) -> Int = (x) => x * 2;
     let inc: func(Int) -> Int = (x) => x + 1;
+    let add_long: func(Long) -> Long = AddLong;
+    let offset: Long = 7L;
+    let bump_long: func(Long) -> Long = (x: Long) => x + offset;
 
     Log(Apply(double, 21));
     Log(Apply(inc, 41));
     Log(Apply(double, Apply(inc, 20)));
+    Log(add_long(5));
+    Log(bump_long(6));
 }
