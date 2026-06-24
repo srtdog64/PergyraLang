@@ -52,6 +52,47 @@ test_air_erasure_squiggle_policy(void)
     return ok;
 }
 
+/* docs/140 slice 5b: collector turns ERASE AIR nodes into BLUE squiggle sites. */
+static bool
+test_air_collect_erasure_squiggles(void)
+{
+    ASTNode site;
+    AIRIntentNode intents[1];
+    AIRProgram air;
+    AIRErasureSquiggle out[4];
+    size_t n;
+
+    memset(&site, 0, sizeof(site));
+    site.line = 42;
+    site.column = 7;
+
+    memset(intents, 0, sizeof(intents));
+    intents[0].intent_owner = "PureFlow";
+    intents[0].step_name = "forward";
+    intents[0].step_index = 0;
+    intents[0].ast = &site;
+    intents[0].sync_class = AIR_SYNC_SYNC;
+    intents[0].failure_class = AIR_FAILURE_RECOVERABLE;
+
+    memset(&air, 0, sizeof(air));
+    air.intents = intents;
+    air.intent_count = 1;
+
+    /* Sanity: this intent really does erase (same shape as the erase test). */
+    if (air_intent_compression_budget(&air, 0) != AIR_COMPRESSION_ERASE)
+        return false;
+
+    n = air_collect_erasure_squiggles(&air, out, 4);
+    return n == 1
+        && out[0].line == 42u
+        && out[0].col == 7u
+        && out[0].source_name != NULL
+        && strcmp(out[0].source_name, "PureFlow") == 0
+        && air_compression_squiggle_class(
+               air_intent_compression_budget(&air, 0),
+               AIR_RETAIN_CAUSE_NONE) == SQUIGGLE_BLUE;
+}
+
 static void
 test_air_clear_stack_drifts(AIRProgram *air)
 {
@@ -143,6 +184,9 @@ main(void)
 
     TEST("AIR erasure squiggle policy: only ERASE is BLUE (docs/140 slice 5)");
     EXPECT(test_air_erasure_squiggle_policy());
+
+    TEST("AIR erasure collector emits BLUE site for an erased intent (slice 5b)");
+    EXPECT(test_air_collect_erasure_squiggles());
 
     TEST("AIR compression summarizes static zone and retains authority");
     EXPECT(test_air_compression_summarizes_static_zone_and_retains_authority());

@@ -128,6 +128,6 @@ advisory는 *인식(recognition)* 보조라 **배치/CI 컴파일에선 안 돈�
 
 **slice 5 진행**:
 - ✅ slice 5a: BLUE 정책 `air_compression_squiggle_class(budget, cause)` (`src/compiler/air_erasure_squiggle.*`). ERASE→BLUE(런타임 footprint 0), RETAIN/SUMMARIZE/FORBID/UNKNOWN→NONE. 순수 함수(런타임 0, codegen 0). test_air 단위테스트(138 passed). slice 1이 분류 정책으로 시작했듯, BLUE도 "어떤 소거→BLUE" 정책을 먼저 못박음.
-- ⏳ slice 5b: 실제 `AIRProgram` 경계 순회 → ERASE 경계의 `source_name`을 `Symbol.decl_line/col`로 해소 → BLUE advisory 레코드 생성(이름 경유 site 매핑).
+- ✅ slice 5b: `air_collect_erasure_squiggles(air, out, cap)` — intents+boundaries 순회, `air_compression_squiggle_class`==BLUE인 노드의 **`node->ast`에서 line/col 직접** 획득(symbol lookup 불필요 — AIR 노드가 ast 포인터를 가짐) + source_name/reason. 순수 read-only walk. test_air 단위테스트(synthetic pure-sync ERASE intent → BLUE site @line). 139 passed.
 - ⏳ slice 5c: LSP publish에 AIR-erasure advisory 머지(AIR은 semantic 이후라 별도 수집 후 합침). **LSP-only로 격리** → 프로덕션 빌드 시간 0.
 - ⏳ 노이즈 관리: 소거는 보통 의도된 것(zero-cost)이라, 생산자는 *개발자가 쓴 도메인 annotation*에 한정해야 함. 정책 함수는 faithful map만 제공.
