@@ -83,8 +83,11 @@ The compiler-stage shape is executable policy, not just a convention:
 compiler-stage `main.pgy` to stay an entrypoint-only boundary (one `Main`
 function, no local helper functions, no control-flow/parser/JSON/diagnostic
 work), and requires each stage owner source to stay at or below the 600-line
-split-review cap. If a stage needs new semantics, add or split a named owner
-module and import it from the entrypoint.
+split-review cap. It also requires every active stage `.pgy` source to be
+listed in [`OWNERS.md`](OWNERS.md), which is the durable owner manifest for
+self-hosted stage responsibilities. If a stage needs new semantics, add or
+split a named owner module, document its owner responsibility there, and import
+it from the entrypoint.
 
 ## Current Status
 

@@ -138,8 +138,12 @@ require_stage_owner_line_cap() {
     while IFS= read -r file; do
         rel="${file#"$ROOT_DIR/"}"
         require_max_lines "$rel" 600
+        require_text "src/self_hosted/OWNERS.md" "$rel"
     done < <(find "$SELF_HOST_DIR/$stage" -maxdepth 1 -type f -name '*.pgy' | sort)
 }
+
+require_file "src/self_hosted/OWNERS.md"
+require_text "src/self_hosted/OWNERS.md" 'main.pgy` files are entrypoints only'
 
 for stage in lexer parser semantic codegen; do
     require_dir "src/self_hosted/$stage"

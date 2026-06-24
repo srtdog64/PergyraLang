@@ -1,0 +1,88 @@
+# Self-Hosted Owner Manifest
+
+This file is the source-of-truth map for active self-hosted compiler-stage
+modules. It prevents the track from collapsing back into "one directory plus a
+large `main.pgy`". Each active `.pgy` file below must own one clear stage
+responsibility. `main.pgy` files are entrypoints only: argv wiring,
+orchestration, and no semantic decisions.
+
+`tests/self_hosted_component_contract_smoke.sh` requires every active
+compiler-stage `.pgy` source to be listed here.
+
+## Lexer
+
+- `src/self_hosted/lexer/main.pgy` -- entrypoint only.
+- `src/self_hosted/lexer/char_owner.pgy` -- character/codepoint predicates.
+- `src/self_hosted/lexer/source_input_owner.pgy` -- source path and file input.
+- `src/self_hosted/lexer/scan_owner.pgy` -- token scan loop state.
+- `src/self_hosted/lexer/token_owner.pgy` -- token classification and rendering.
+
+## Parser
+
+- `src/self_hosted/parser/main.pgy` -- entrypoint only.
+- `src/self_hosted/parser/cursor_owner.pgy` -- parser cursor/token stream.
+- `src/self_hosted/parser/decl_ability_owner.pgy` -- ability declarations.
+- `src/self_hosted/parser/decl_dispatch_owner.pgy` -- top-level declaration dispatch.
+- `src/self_hosted/parser/decl_effect_relation_owner.pgy` -- effect and relation declarations.
+- `src/self_hosted/parser/decl_enum_owner.pgy` -- enum declarations.
+- `src/self_hosted/parser/decl_event_owner.pgy` -- event declarations.
+- `src/self_hosted/parser/decl_intent_owner.pgy` -- intent declarations.
+- `src/self_hosted/parser/decl_nominal_owner.pgy` -- class/subject/object/tobject/vessel declarations.
+- `src/self_hosted/parser/decl_role_owner.pgy` -- role declarations.
+- `src/self_hosted/parser/decl_type_owner.pgy` -- type declarations.
+- `src/self_hosted/parser/decl_zone_owner.pgy` -- zone declarations.
+- `src/self_hosted/parser/error_owner.pgy` -- parser diagnostic strings.
+- `src/self_hosted/parser/expr_postfix_owner.pgy` -- postfix expression parsing.
+- `src/self_hosted/parser/expr_precedence_owner.pgy` -- precedence expression parsing.
+- `src/self_hosted/parser/expr_primary_owner.pgy` -- primary expression parsing.
+- `src/self_hosted/parser/expr_string_owner.pgy` -- string literal expression parsing.
+- `src/self_hosted/parser/function_decl_owner.pgy` -- function signatures and bodies.
+- `src/self_hosted/parser/program_parse_owner.pgy` -- program-root assembly.
+- `src/self_hosted/parser/source_path_owner.pgy` -- source path and import input.
+- `src/self_hosted/parser/stmt_if_owner.pgy` -- if/if-let statements.
+- `src/self_hosted/parser/stmt_loop_owner.pgy` -- loop statements.
+- `src/self_hosted/parser/stmt_match_owner.pgy` -- match statements.
+- `src/self_hosted/parser/stmt_owner.pgy` -- statement dispatch.
+- `src/self_hosted/parser/stmt_parallel_owner.pgy` -- parallel/async statements.
+- `src/self_hosted/parser/tree_text_owner.pgy` -- compact AST text rendering.
+- `src/self_hosted/parser/type_name_owner.pgy` -- written type-name parsing.
+
+## Semantic
+
+- `src/self_hosted/semantic/main.pgy` -- entrypoint only.
+- `src/self_hosted/semantic/body_check_owner.pgy` -- statement/body checks.
+- `src/self_hosted/semantic/call_check_owner.pgy` -- call arity and argument checks.
+- `src/self_hosted/semantic/diagnostic_owner.pgy` -- semantic diagnostic blocks.
+- `src/self_hosted/semantic/env_owner.pgy` -- scoped local environment.
+- `src/self_hosted/semantic/expr_type_owner.pgy` -- expression type facts.
+- `src/self_hosted/semantic/expr_validation_owner.pgy` -- expression validation facts.
+- `src/self_hosted/semantic/program_check_owner.pgy` -- program/function signature checks.
+- `src/self_hosted/semantic/semantic_run_owner.pgy` -- semantic CLI run boundary.
+- `src/self_hosted/semantic/source_bundle_owner.pgy` -- root/import source bundle.
+- `src/self_hosted/semantic/text_scan_owner.pgy` -- semantic text scanning.
+
+## MIR Lower
+
+- `src/self_hosted/mir_lower/main.pgy` -- entrypoint only.
+- `src/self_hosted/mir_lower/decl_lower.pgy` -- declaration reconstruction.
+- `src/self_hosted/mir_lower/error_owner.pgy` -- MIR-lower diagnostics.
+- `src/self_hosted/mir_lower/json_fact_read.pgy` -- bounded MIR JSON fact reads.
+- `src/self_hosted/mir_lower/mir_json_input_owner.pgy` -- MIR JSON input boundary.
+- `src/self_hosted/mir_lower/program_lower.pgy` -- document-order program assembly.
+- `src/self_hosted/mir_lower/routine_inventory_owner.pgy` -- routine inventory facts.
+- `src/self_hosted/mir_lower/routine_lower.pgy` -- routine CFG/body reconstruction.
+- `src/self_hosted/mir_lower/stmt_render.pgy` -- instruction fact to AST text rendering.
+
+## Codegen
+
+- `src/self_hosted/codegen/main.pgy` -- entrypoint only.
+- `src/self_hosted/codegen/ast_input_owner.pgy` -- AST input boundary.
+- `src/self_hosted/codegen/codegen_run_owner.pgy` -- codegen CLI run boundary.
+- `src/self_hosted/codegen/expr_rewrite.pgy` -- expression rewrite/lowering.
+- `src/self_hosted/codegen/expr_scan.pgy` -- expression scanning.
+- `src/self_hosted/codegen/function_emit.pgy` -- function emission.
+- `src/self_hosted/codegen/program_emit.pgy` -- program emission and prepasses.
+- `src/self_hosted/codegen/stmt_emit.pgy` -- statement emission.
+- `src/self_hosted/codegen/struct_value_emit.pgy` -- struct value emission.
+- `src/self_hosted/codegen/text_owner.pgy` -- text helpers and token scanning.
+- `src/self_hosted/codegen/type_env.pgy` -- type environment facts.
