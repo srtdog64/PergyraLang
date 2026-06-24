@@ -30,6 +30,9 @@ shape.
   both live `pgy --air-json` outputs still byte-match the committed fixtures.
 
 The path is fixed relative to repository root; no CLI argument surface yet.
+`main.pgy` is entrypoint-only. `scan_owner.pgy` owns summary/count extraction
+and ordered finding fact rows, `report_owner.pgy` owns the emitted JSON schema,
+and `run_owner.pgy` owns fixture paths, file input, logging, and exit policy.
 
 ## Output Contract
 

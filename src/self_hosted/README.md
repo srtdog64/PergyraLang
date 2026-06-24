@@ -82,6 +82,9 @@ owns the `pgy.selfhost.diagnostic-catalog.v1` JSON schema, and `run_owner.pgy`
 owns filesystem input plus exit policy. A parity harness must copy or compile
 the tool directory as a unit so owner imports are tested instead of flattened
 back into a hidden monolith.
+`tools/air_graph_json_validator/` follows the same rule: scan owns AIR JSON
+count/finding facts, report owns `pgy.selfhost.air-graph-validator.v1`, and run
+owns fixed fixture input plus exit policy.
 
 Until import de-duplication is a compiler fact, sibling owner modules do not
 import each other. The entrypoint assembles owner modules in dependency order so

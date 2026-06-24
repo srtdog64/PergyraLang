@@ -1,0 +1,49 @@
+// src/self_hosted/tools/air_graph_json_validator/run_owner.pgy
+//
+// CLI/run owner for the AIR graph JSON validator. This file owns fixed fixture
+// paths, filesystem reads, logging, and process exit policy.
+
+func RunAirGraphJsonValidation() -> Void {
+    let fixture_path: String = "src/self_hosted/tools/air_graph_json_validator/fixture/sample.json";
+    let cap_fixture_path: String = "src/self_hosted/tools/air_graph_json_validator/fixture/cap_env.json";
+    if !FileExists(fixture_path) {
+        Log(InputErrorJson(fixture_path));
+        Exit(1);
+    }
+    if !FileExists(cap_fixture_path) {
+        Log(InputErrorJson(cap_fixture_path));
+        Exit(1);
+    }
+
+    let content: String = ReadFile(fixture_path);
+    let cap_content: String = ReadFile(cap_fixture_path);
+    let keys: Array<String> = RequiredKeys();
+    let cap_keys: Array<String> = RequiredCapabilityTraceKeys();
+    let missing_keys: Int = CountMissingKeys(content, keys) + CountMissingKeys(cap_content, cap_keys);
+    let schema_ok: Bool = HasExpectedSchema(content);
+    let cap_schema_ok: Bool = HasExpectedSchema(cap_content);
+    let intents: Int = ExtractIntField(content, "intent_count");
+    let boundaries: Int = ExtractIntField(content, "boundary_count");
+    let evidence: Int = ExtractIntField(content, "evidence_count");
+    let drifts: Int = ExtractIntField(content, "drift_count");
+    let effect_sites: Int = CountEffectSites(content, cap_content);
+    let env_effect_sites: Int = CountEnvEffectSites(cap_content);
+    let finding_facts: String = BuildAirGraphFindingFacts(content, cap_content, fixture_path, cap_fixture_path);
+    let ok: Bool = missing_keys == 0 && schema_ok && cap_schema_ok && env_effect_sites > 0;
+
+    Log(AirGraphValidatorJson(
+        fixture_path,
+        intents,
+        boundaries,
+        evidence,
+        drifts,
+        effect_sites,
+        env_effect_sites,
+        missing_keys,
+        ok,
+        finding_facts));
+
+    if !ok {
+        Exit(1);
+    }
+}

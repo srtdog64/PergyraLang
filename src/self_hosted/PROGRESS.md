@@ -278,9 +278,9 @@ keeps running fine with or without them.
 
 | Tool                              | LOC (Pergyra) | Function |
 |-----------------------------------|---------------|----------|
-| `diagnostic_catalog_checker`      | 266           | docs/72 vs diag_codes.h drift |
+| `diagnostic_catalog_checker`      | 303           | docs/72 vs diag_codes.h drift |
 | `stable_subset_section_checker`   | 122           | docs/107 canonical anchors |
-| `air_graph_json_validator`        | 165           | `pgy --air-json` shape gate |
+| `air_graph_json_validator`        | 314           | `pgy --air-json` shape gate |
 | `air_graph_id_uniqueness`         | 132           | AIR graph duplicate node-id check |
 | `air_graph_node_count_integrity`  | 140           | live AIR graph id-count summary check |
 | `air_graph_ref_live`              | 138           | live AIR graph back-reference range check |
@@ -288,15 +288,15 @@ keeps running fine with or without them.
 | `air_graph_reachability`          | 166           | AIR graph root reachability/worklist check |
 | `backend_output_comparator`       | 135           | paired text diff verdict |
 | `module_manifest_resolver`        | 121           | language_module_manifest.json |
-| `stdlib_dispatch_inventory_checker` | 105         | C/LLVM dispatch table count parity |
+| `stdlib_dispatch_inventory_checker` | 107         | C/LLVM dispatch table count parity |
 | `doc_link_checker`                | 143           | docs/INDEX.md dead-link audit |
 | `production_header_size_checker`  | 108           | DirWalk-owned `.h` 600-LOC cap |
 | `production_c_size_checker`       | 127           | DirWalk-owned `.c` 699-LOC cap |
 | `examples_inventory_checker`      | 112           | DirWalk-owned examples/ count + non-empty |
 | `ast_read_surface_checker`        | 219           | CFG/MIR SoT ratchet parity |
-| `linter`                          | 173           | LSP-style diagnostic JSON parity |
+| `linter`                          | 182           | LSP-style diagnostic JSON parity |
 | `runtime_boundary_checker`        | 82            | native-kernel vs portable-policy runtime boundary |
-| **Total peripheral**              | **2597**      | |
+| **Total peripheral**              | **2794**      | |
 
 Plus `src/self_hosted/lib/text_scan.pgy` (~47 LOC) shared across scan-based
 tools.

@@ -1,0 +1,103 @@
+// src/self_hosted/tools/air_graph_json_validator/report_owner.pgy
+//
+// JSON schema owner for pgy.selfhost.air-graph-validator.v1. Scan facts are
+// rendered here; this owner does not inspect AIR JSON fixture contents.
+
+func FindingFactField(row: String, index: Int) -> String {
+    let parts: Array<String> = Split(row, "|");
+    if ArrayLength(parts) <= index {
+        return "";
+    }
+    return parts[index];
+}
+
+func FindingJson(kind: String, key: String, location: String) -> String {
+    let parts: Array<String> = [
+        "{\"kind\":\"",
+        kind,
+        "\",\"key\":\"",
+        key,
+        "\",\"location\":\"",
+        location,
+        "\"}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func FindingsJsonFromFacts(facts: String) -> String {
+    let rows: Array<String> = Split(facts, "\n");
+    let findings: String = "";
+    for row in rows {
+        if StringLength(row) > 0 {
+            let kind: String = FindingFactField(row, 0);
+            let key: String = FindingFactField(row, 1);
+            let location: String = FindingFactField(row, 2);
+            let entry: String = FindingJson(kind, key, location);
+            if StringLength(findings) == 0 {
+                findings = entry;
+            } else {
+                findings = Concat(Concat(findings, ","), entry);
+            }
+        }
+    }
+    return findings;
+}
+
+func InputErrorJson(path: String) -> String {
+    let parts: Array<String> = [
+        "{\"schema\":\"pgy.selfhost.air-graph-validator.v1\",\"ok\":false,",
+        "\"source\":{\"input_schema\":\"pgy.air.graph.v1\",\"fixture_owner\":\"",
+        path,
+        "\"},\"counts\":{\"intents\":0,\"boundaries\":0,\"evidence\":0,",
+        "\"drifts\":0,\"effect_sites\":0,\"env_effect_sites\":0,",
+        "\"missing_keys\":0},",
+        "\"findings\":[{\"kind\":\"input_error\",\"key\":\"",
+        path,
+        "\",\"location\":\"",
+        path,
+        "\"}]}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func AirGraphValidatorJson(
+    fixture_path: String,
+    intents: Int,
+    boundaries: Int,
+    evidence: Int,
+    drifts: Int,
+    effect_sites: Int,
+    env_effect_sites: Int,
+    missing_keys: Int,
+    ok: Bool,
+    finding_facts: String
+) -> String {
+    let ok_text: String = "true";
+    if !ok {
+        ok_text = "false";
+    }
+    let json_parts: Array<String> = [
+        "{\"schema\":\"pgy.selfhost.air-graph-validator.v1\",\"ok\":",
+        ok_text,
+        ",\"source\":{\"input_schema\":\"pgy.air.graph.v1\",\"fixture_owner\":\"",
+        fixture_path,
+        "\"},\"counts\":{\"intents\":",
+        ToString(intents),
+        ",\"boundaries\":",
+        ToString(boundaries),
+        ",\"evidence\":",
+        ToString(evidence),
+        ",\"drifts\":",
+        ToString(drifts),
+        ",\"effect_sites\":",
+        ToString(effect_sites),
+        ",\"env_effect_sites\":",
+        ToString(env_effect_sites),
+        ",\"missing_keys\":",
+        ToString(missing_keys),
+        "},\"findings\":[",
+        FindingsJsonFromFacts(finding_facts),
+        "]}"
+    ];
+    return StringJoin(json_parts, "");
+}

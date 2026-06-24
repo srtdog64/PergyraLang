@@ -1,0 +1,174 @@
+// src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy
+//
+// AIR JSON scan owner. This file extracts the stable counts and finding facts
+// from committed AIR graph fixtures. It does not own the output JSON schema or
+// filesystem/exit policy.
+
+func ExtractIntField(content: String, field: String) -> Int {
+    let key: String = Concat(Concat("\"", field), "\":");
+    let key_idx: Int = StringIndexOf(content, key);
+    if key_idx < 0 {
+        return -1;
+    }
+    let value_start: Int = key_idx + StringLength(key);
+    let rest_len: Int = StringLength(content) - value_start;
+    if rest_len <= 0 {
+        return -1;
+    }
+    let rest: String = Substring(content, value_start, rest_len);
+    let comma_idx: Int = StringIndexOf(rest, ",");
+    let brace_idx: Int = StringIndexOf(rest, "}");
+    let stop: Int = -1;
+    if comma_idx >= 0 {
+        stop = comma_idx;
+    }
+    if brace_idx >= 0 {
+        if stop < 0 || brace_idx < stop {
+            stop = brace_idx;
+        }
+    }
+    if stop <= 0 {
+        return -1;
+    }
+    let num_str: String = Substring(rest, 0, stop);
+    return ToInt(num_str);
+}
+
+func CountSubstring(content: String, needle: String) -> Int {
+    let count: Int = 0;
+    let rest: String = content;
+    let needle_len: Int = StringLength(needle);
+    if needle_len <= 0 {
+        return 0;
+    }
+    while true {
+        let idx: Int = StringIndexOf(rest, needle);
+        if idx < 0 {
+            return count;
+        }
+        count = count + 1;
+        let next: Int = idx + needle_len;
+        let rest_len: Int = StringLength(rest);
+        if next >= rest_len {
+            return count;
+        }
+        rest = Substring(rest, next, rest_len - next);
+    }
+    return count;
+}
+
+func RequiredKeys() -> Array<String> {
+    let keys: Array<String> = [
+        "\"schema\":",
+        "\"capabilities\":",
+        "\"effects_by_op\":",
+        "\"summary\":",
+        "\"intents\":",
+        "\"boundaries\":",
+        "\"evidence\":",
+        "\"drifts\":",
+        "\"compression_budget\":",
+        "\"compression_reason\":"
+    ];
+    return keys;
+}
+
+func RequiredCapabilityTraceKeys() -> Array<String> {
+    let keys: Array<String> = [
+        "\"schema\":",
+        "\"capabilities\":",
+        "\"effects_by_op\":",
+        "\"summary\":",
+        "\"evidence\":",
+        "\"drifts\":"
+    ];
+    return keys;
+}
+
+func CountMissingKeys(content: String, keys: Array<String>) -> Int {
+    let missing: Int = 0;
+    let i: Int = 0;
+    let n: Int = ArrayLength(keys);
+    while i < n {
+        let key: String = keys[i];
+        if !StringContains(content, key) {
+            missing = missing + 1;
+        }
+        i = i + 1;
+    }
+    return missing;
+}
+
+func FindingFact(kind: String, key: String, location: String) -> String {
+    let s0: String = Concat(kind, "|");
+    let s1: String = Concat(Concat(s0, key), "|");
+    return Concat(s1, location);
+}
+
+func AppendFindingFact(facts: String, entry: String) -> String {
+    if StringLength(entry) == 0 {
+        return facts;
+    }
+    if StringLength(facts) == 0 {
+        return entry;
+    }
+    return Concat(Concat(facts, "\n"), entry);
+}
+
+func BuildMissingKeyFindingFacts(content: String, keys: Array<String>, location: String) -> String {
+    let facts: String = "";
+    let i: Int = 0;
+    let n: Int = ArrayLength(keys);
+    while i < n {
+        let key: String = keys[i];
+        if !StringContains(content, key) {
+            let entry: String = FindingFact("missing_key", key, location);
+            facts = AppendFindingFact(facts, entry);
+        }
+        i = i + 1;
+    }
+    return facts;
+}
+
+func HasExpectedSchema(content: String) -> Bool {
+    return StringContains(content, "\"schema\":\"pgy.air.graph.v1\"");
+}
+
+func CountEffectSites(content: String, cap_content: String) -> Int {
+    return CountSubstring(content, "\"capability_mask\":\"0x")
+        + CountSubstring(cap_content, "\"capability_mask\":\"0x");
+}
+
+func CountEnvEffectSites(cap_content: String) -> Int {
+    return CountSubstring(
+        cap_content,
+        "\"op\":\"Args\",\"effect\":\"ENV\",\"capability_mask\":\"0x20\"");
+}
+
+func BuildAirGraphFindingFacts(
+    content: String,
+    cap_content: String,
+    fixture_path: String,
+    cap_fixture_path: String
+) -> String {
+    let keys: Array<String> = RequiredKeys();
+    let cap_keys: Array<String> = RequiredCapabilityTraceKeys();
+    let facts: String = AppendFindingFact(
+        BuildMissingKeyFindingFacts(content, keys, fixture_path),
+        BuildMissingKeyFindingFacts(cap_content, cap_keys, cap_fixture_path));
+
+    if !HasExpectedSchema(content) {
+        facts = AppendFindingFact(
+            facts,
+            FindingFact("schema_mismatch", "schema-field-absent-or-wrong", fixture_path));
+    }
+    if !HasExpectedSchema(cap_content) {
+        facts = AppendFindingFact(
+            facts,
+            FindingFact("schema_mismatch", "schema-field-absent-or-wrong", cap_fixture_path));
+    }
+    if CountEnvEffectSites(cap_content) <= 0 {
+        facts = AppendFindingFact(facts, FindingFact("missing_effect_site", "Args:ENV:0x20", cap_fixture_path));
+    }
+    return facts;
+}

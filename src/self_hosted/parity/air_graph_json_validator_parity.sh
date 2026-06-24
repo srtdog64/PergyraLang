@@ -34,7 +34,8 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
-PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator/main.pgy"
+PERGYRA_TOOL_SOURCE_DIR="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator"
+PERGYRA_TOOL_SOURCE="$PERGYRA_TOOL_SOURCE_DIR/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/air_graph_json_validator}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator/expected/clean.json"
@@ -61,10 +62,11 @@ pgy_selfhost_tmp_root() {
 }
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
-cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
+cp "$PERGYRA_TOOL_SOURCE_DIR"/*.pgy "$PERGYRA_TOOL_BUILD_DIR"/
+PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
 
 set +e
-PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL" --run 2>/dev/null)"
+PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>/dev/null | tr -d '\r')"
 P_RC=$?
 set -e
 
@@ -219,7 +221,7 @@ cp "$CAP_FIXTURE_FILE" \
     "$NEG_ROOT/src/self_hosted/tools/air_graph_json_validator/fixture/cap_env.json"
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL" --run 2>&1)"
+NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>&1 | tr -d '\r')"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then
@@ -238,5 +240,5 @@ if ! grep -Fq '"missing_keys":1' <<<"$NEG_OUT"; then
     exit 1
 fi
 
-assert_llvm_leg "self-host-parity:air-graph-json" "$PERGYRA_TOOL" "$PERGYRA_TOOL_BUILD_DIR"
+assert_llvm_leg "self-host-parity:air-graph-json" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR"
 echo "[self-host-parity:air-graph-json] rung-2 parity ok (intents=$SHELL_INTENTS boundaries=$SHELL_BOUNDARIES evidence=$SHELL_EVIDENCE drifts=$SHELL_DRIFTS effect_sites=$SHELL_EFFECT_SITES env_effect_sites=$SHELL_ENV_EFFECT_SITES; missing-key rc=1; live-drift=$DRIFT_GUARD)"
