@@ -11,6 +11,7 @@
 
 #include "../lexer/lexer.h"
 #include "../parser/parser.h"
+#include "../common/squiggle_class.h"
 #include "../semantic/diag_codes.h"
 #include "../semantic/semantic.h"
 
@@ -108,7 +109,15 @@ publish_diagnostics(const char *uri, const char *source_text)
                 }
                 int dline = (int)d->line - 1;
                 if (dline < 0) dline = 0;
-                int severity = (d->level == DIAG_ERROR) ? 1 : 2;
+                /* LSP severity: 1 Error, 2 Warning, 3 Information. Advisory ->
+                 * Information so it shows without an error/warning badge; the
+                 * squiggleClass in `data` lets a decoration client recolour it
+                 * (amber/violet/blue). docs/140. */
+                int severity = d->level == DIAG_ERROR
+                    ? 1
+                    : (d->level == DIAG_WARNING ? 2 : 3);
+                SquiggleClass sq = squiggle_class_classify(
+                    d->level == DIAG_ERROR, d->layer, d->code);
 
                 char escaped[512];
                 char code[128];
@@ -126,6 +135,7 @@ publish_diagnostics(const char *uri, const char *source_text)
                     "\"severity\":%d,\"source\":\"pgy\","
                     "\"code\":\"%s\","
                     "\"data\":{\"layer\":\"%s\","
+                    "\"squiggleClass\":\"%s\","
                     "\"cause_ir\":\"%s\","
                     "\"fix_source\":\"%s\"},"
                     "\"message\":\"%s\"}",
@@ -134,6 +144,7 @@ publish_diagnostics(const char *uri, const char *source_text)
                     severity,
                     code,
                     diagnostic_layer_name(d->layer),
+                    squiggle_class_name(sq),
                     cause_ir,
                     fix_source,
                     escaped);
