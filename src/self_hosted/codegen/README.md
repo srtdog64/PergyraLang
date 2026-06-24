@@ -139,6 +139,7 @@ array; this keeps macOS bash 3.2, Git Bash, and Linux bash behavior aligned unde
 1. string freeing / arena ownership and block scoping (memory correctness, not
    just run-stdout parity)
 2. richer struct fields / nested AST-node shapes
-3. round-trip self-compilation (the codegen tool compiling a Pergyra tool)
+3. broader MIR-JSON driven codegen substitution, so new surfaces enter through
+   `mir_lower` facts before they reach the AST-text compatibility bridge
 
 LLVM emission substitution is later than C emission.

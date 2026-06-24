@@ -78,6 +78,18 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-24 -- MIR-lower frontier wording is ratcheted to the parity inventory
+
+- Tightened `tests/self_hosted_component_contract_smoke.sh` so the MIR JSON
+  positive fixture inventory must remain **77**, the clean-reject inventory must
+  remain **2**, and the hard-self-host scorecard must cite the same
+  **77 PASS / 0 gap plus 2 clean rejects** frontier.
+- Removed the stale old fixture-count wording from
+  `docs/self_hosted/07_hard_self_host_scorecard.md`.
+- Updated `src/self_hosted/codegen/README.md`: round-trip codegen
+  self-compilation is already achieved, so the next rung is broader MIR-JSON
+  driven substitution rather than redoing the bootstrap milestone.
+
 ### 2026-06-24 -- Self-host compiler-stage owner shape is gated
 
 - Added an executable owner-shape contract to

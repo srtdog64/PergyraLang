@@ -5,7 +5,7 @@ The number that matters is *how much of the C/LLVM compiler has been
 substituted by Pergyra-written equivalents* -- not how many peripheral
 audit tools exist.
 
-Last updated: 2026-06-23
+Last updated: 2026-06-24
 
 ## Headline Number
 
@@ -97,6 +97,11 @@ observable boundaries, so the self-host path fails closed instead of silently
 dropping operator-overload/domain nominal semantics or emitting undefined C
 symbols. New fixtures must preserve that by adding owning facts rather than
 text fallback.
+`self_hosted_component_contract_smoke` now also ratchets that frontier against
+the parity harness itself: the MIR JSON positive fixture inventory must stay at
+77, the clean-reject inventory must stay at 2, the scorecard must cite the same
+77 PASS / 0 gap plus 2 clean rejects boundary, and stale fixture-count wording
+is rejected.
 
 The self-hosted `mir_lower/` implementation is now split by source-of-truth
 owner rather than living as one monolithic `main.pgy`: `error_owner` owns the

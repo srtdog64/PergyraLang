@@ -176,6 +176,22 @@ require_text "Makefile" "src/self_hosted/parity/mir_json_parity.sh"
 require_entrypoint_only_main "mir_lower"
 require_stage_owner_line_cap "mir_lower"
 
+mir_positive_count="$(
+    {
+        extract_shell_array_items "$PARITY_DIR/mir_json_parity.sh" MIR_FIXTURES
+        extract_shell_array_items "$PARITY_DIR/mir_json_parity.sh" CODEGEN_FIXTURES
+    } | wc -l | tr -d ' '
+)"
+[[ "$mir_positive_count" -eq 77 ]] ||
+    fail "mir_json_parity positive fixture count drifted: $mir_positive_count != 77"
+mir_clean_reject_count="$(grep -Ec '^base="unsupported_' "$PARITY_DIR/mir_json_parity.sh" || true)"
+[[ "$mir_clean_reject_count" -eq 2 ]] ||
+    fail "mir_json_parity clean reject count drifted: $mir_clean_reject_count != 2"
+require_text "src/self_hosted/PROGRESS.md" "77 PASS / 0 gap plus 2 clean"
+require_text "docs/self_hosted/07_hard_self_host_scorecard.md" "77 PASS / 0 gap plus 2 clean rejects"
+reject_text "docs/self_hosted/07_hard_self_host_scorecard.md" "61-fixture"
+reject_text "src/self_hosted/codegen/README.md" "round-trip self-compilation (the codegen tool compiling a Pergyra tool)"
+
 require_owner_surface lexer \
     "char_owner.pgy" \
     "token_owner.pgy" \

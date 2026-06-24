@@ -151,9 +151,9 @@ backend emission facts. C source-local LET DEF emission, generic DEF expression
 emission, receive-payload type inference, MIR surface validation, and
 public-surface scalar provenance seeding and lifecycle MIR JSON source-text
 emission are also MIR/source-shape owned. The self-hosted checker proves the
-same manifest. `mir_lower` now reconstructs the supported 61-fixture parity
-subset from `expr0`/`expr1`/`source_type`/`source_locals` facts only, including
-`for` headers from `arg0` plus range bounds and selected
+same manifest. `mir_lower` now reconstructs the supported MIR-lower/codegen
+inventory from `expr0`/`expr1`/`source_type`/`source_locals` facts only,
+including `for` headers from `arg0` plus range bounds and selected
 args/array/string/Bool/Float/file/recursion, straight-line call, integer
 arithmetic, directory-walk, exit-guard, Bool-literal branch reassignment,
 trailing-newline Log, nested string concat, string array concat, string
@@ -170,19 +170,19 @@ as MIR JSON facts and consumed by `mir_lower` to reconstruct typed array-index
 methods are reconstructed from MIR field/method/owner facts and lowered through
 the self-hosted value-nominal path, field-only subject/object/tobject/vessel
 nominal declarations are reconstructed from MIR `nominal_kind`/field facts with
-their exact AST labels, and payload-free enum declarations are reconstructed
-from MIR variant facts. Ability declarations are reconstructed from MIR method
+their exact AST labels, payload-free enum declarations are reconstructed from
+MIR variant facts, and `Option<Int>` match branches consume MIR-owned variant
+and binding facts. Ability declarations are reconstructed from MIR method
 signature facts and treated as zero-artifact declaration hosts by the
 self-hosted codegen pre-passes. The committed MIR-lower/codegen fixture
 inventory is now measured at 77 PASS / 0 gap plus 2 clean rejects through this
 path. Role unsupported declaration facts are emitted and rejected before the
 self-host path can silently erase operator-overload semantics; richer
-projection/identity
-semantics beyond field-only nominal declarations still require later facts and
-fixtures; payload enum variants reject from their variant facts; and unsupported
-self-host codegen builtins are rejected before they leak undefined C symbols;
-`self-host-mir-json-parity-test-smoke` rejects reintroducing transitional
-`"ast"` reads.
+projection/identity semantics beyond field-only nominal declarations still
+require later facts and fixtures; payload enum variants reject from their
+variant facts; and unsupported self-host codegen builtins are rejected before
+they leak undefined C symbols; `self-host-mir-json-parity-test-smoke` rejects
+reintroducing transitional `"ast"` reads.
 Capability 4 is
 closed for the current compiler-pass
 substrate: named allocator lanes can be constructed, consumed by
