@@ -3,26 +3,33 @@
 #include "../parser/ast.h"
 
 /*
- * BLUE policy (docs/140 §9). Only a fully erased boundary qualifies:
+ * BLUE policy (docs/140 §9). BLUE marks meaning that is *erasable* at runtime —
+ * docs/140's definition is "erase 가능한 의미" (meaning that *can be* erased),
+ * not meaning that is already gone. The AIR budget that means exactly this is
+ * SUMMARIZE (bucket-B POLICY: kept as a runtime digest but removable by opt-out):
  *
- *   ERASE     -> BLUE   meaning has no runtime footprint ("erased at runtime")
- *   RETAIN    -> NONE   runtime evidence is kept (meaning survives)
- *   SUMMARIZE -> NONE   a runtime digest is kept (meaning partially survives)
+ *   SUMMARIZE -> BLUE   meaning is compressed to a digest, and is erasable
+ *   ERASE     -> NONE   already fully erased — nothing is left at the site to flag
+ *   RETAIN    -> NONE   bucket-A INHERENT (concurrency/authority): NOT erasable
  *   FORBID    -> NONE   a constraint, not an erasure of meaning
  *   UNKNOWN   -> NONE   undecided
  *
- * The retain cause refines the *message* a producer writes (A/B/C buckets), not
- * the class — an ERASE boundary carries cause NONE by construction. Erasure is
- * often intended (zero-cost abstraction), so a downstream producer should scope
- * the advisory to developer-written domain annotations to avoid noise; this
- * function is the faithful budget->class map those producers share.
+ * Empirically ERASE is unreachable from valid source: every writable intent step
+ * binds a zone (a SUMMARIZE boundary) or carries authority (a RETAIN boundary),
+ * and boundaries never erase — so keying BLUE on ERASE produced no real trigger.
+ * SUMMARIZE is the reachable, faithful "this meaning is erasable" signal.
+ *
+ * The retain cause is the same information viewed as A/B/C buckets; the budget is
+ * the load-bearing input. SUMMARIZE is common (every zone step), so a downstream
+ * producer should scope the advisory (e.g. developer-written annotations) to
+ * avoid noise — this function is the faithful budget->class map it builds on.
  */
 SquiggleClass
 air_compression_squiggle_class(AIRCompressionBudget budget,
                                AIRRetainCause cause)
 {
     (void)cause;
-    return budget == AIR_COMPRESSION_ERASE ? SQUIGGLE_BLUE : SQUIGGLE_NONE;
+    return budget == AIR_COMPRESSION_SUMMARIZE ? SQUIGGLE_BLUE : SQUIGGLE_NONE;
 }
 
 static bool

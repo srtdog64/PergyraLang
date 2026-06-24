@@ -106,15 +106,15 @@ lsp_append_erasure_diagnostics(ASTNode *ast, char *diag_buf, size_t buf_size,
         if (dline < 0) dline = 0;
         lsp_escape_json_string(reason, sizeof(reason),
             sites[i].reason != NULL ? sites[i].reason
-                                    : "meaning erased at runtime");
+                                    : "compressed to a runtime summary");
 
         n = snprintf(diag_buf + *off, buf_size - *off,
             "{\"range\":{\"start\":{\"line\":%d,\"character\":0},"
             "\"end\":{\"line\":%d,\"character\":100}},"
             "\"severity\":3,\"source\":\"pgy\","
-            "\"code\":\"PGY_AIR_MEANING_ERASED\","
+            "\"code\":\"PGY_AIR_MEANING_ERASABLE\","
             "\"data\":{\"layer\":\"domain\",\"squiggleClass\":\"blue\"},"
-            "\"message\":\"domain meaning erased at runtime: %s\"}",
+            "\"message\":\"domain meaning is erasable at runtime: %s\"}",
             dline, dline, reason);
         if (!lsp_advance_json_offset(off, buf_size, n)) {
             *off = before;

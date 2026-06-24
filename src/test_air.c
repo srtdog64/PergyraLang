@@ -29,19 +29,20 @@ static int g_fail = 0;
         else      { printf("fail (line %d)\n", __LINE__); g_fail++; } \
     } while (0)
 
-/* docs/140 slice 5: BLUE policy — only a fully erased boundary qualifies. */
+/* docs/140 slice 5: BLUE policy — SUMMARIZE (erasable-by-policy) is the blue
+ * signal; ERASE has nothing left to flag and RETAIN is inherent. */
 static bool
 test_air_erasure_squiggle_policy(void)
 {
     bool ok = true;
     ok = ok && air_compression_squiggle_class(
-                   AIR_COMPRESSION_ERASE, AIR_RETAIN_CAUSE_NONE)
+                   AIR_COMPRESSION_SUMMARIZE, AIR_RETAIN_CAUSE_POLICY)
                == SQUIGGLE_BLUE;
     ok = ok && air_compression_squiggle_class(
-                   AIR_COMPRESSION_RETAIN, AIR_RETAIN_CAUSE_INHERENT)
+                   AIR_COMPRESSION_ERASE, AIR_RETAIN_CAUSE_NONE)
                == SQUIGGLE_NONE;
     ok = ok && air_compression_squiggle_class(
-                   AIR_COMPRESSION_SUMMARIZE, AIR_RETAIN_CAUSE_POLICY)
+                   AIR_COMPRESSION_RETAIN, AIR_RETAIN_CAUSE_INHERENT)
                == SQUIGGLE_NONE;
     ok = ok && air_compression_squiggle_class(
                    AIR_COMPRESSION_FORBID, AIR_RETAIN_CAUSE_NONE)
@@ -52,45 +53,42 @@ test_air_erasure_squiggle_policy(void)
     return ok;
 }
 
-/* docs/140 slice 5b: collector turns ERASE AIR nodes into BLUE squiggle sites. */
+static AIRProgram *lower_air_from_source(const char *source);
+
+/* docs/140 slice 5b: the collector turns SUMMARIZE AIR nodes into BLUE squiggle
+ * sites. Lowered from real source — a zone-bound intent step summarizes (its
+ * domain meaning is compressed to a digest, i.e. erasable). */
 static bool
 test_air_collect_erasure_squiggles(void)
 {
-    ASTNode site;
-    AIRIntentNode intents[1];
-    AIRProgram air;
-    AIRErasureSquiggle out[4];
+    const char *source =
+        "subject Widget { let value: Int;\n"
+        "    action Inspect(self) -> Bool { return true; } }\n"
+        "zone CalmZone { subject slot w: Widget }\n"
+        "intent Observe(calm: CalmZone, w: Widget) {\n"
+        "    step Check {\n"
+        "        where: CalmZone;\n"
+        "        using: calm;\n"
+        "        who: w;\n"
+        "        expect: true;\n"
+        "    }\n"
+        "}\n"
+        "func Main() -> Void { Log(\"x\"); }\n";
+    AIRProgram *air = lower_air_from_source(source);
+    AIRErasureSquiggle out[8];
     size_t n;
+    bool has_located = false;
 
-    memset(&site, 0, sizeof(site));
-    site.line = 42;
-    site.column = 7;
-
-    memset(intents, 0, sizeof(intents));
-    intents[0].intent_owner = "PureFlow";
-    intents[0].step_name = "forward";
-    intents[0].step_index = 0;
-    intents[0].ast = &site;
-    intents[0].sync_class = AIR_SYNC_SYNC;
-    intents[0].failure_class = AIR_FAILURE_RECOVERABLE;
-
-    memset(&air, 0, sizeof(air));
-    air.intents = intents;
-    air.intent_count = 1;
-
-    /* Sanity: this intent really does erase (same shape as the erase test). */
-    if (air_intent_compression_budget(&air, 0) != AIR_COMPRESSION_ERASE)
+    if (air == NULL)
         return false;
-
-    n = air_collect_erasure_squiggles(&air, out, 4);
-    return n == 1
-        && out[0].line == 42u
-        && out[0].col == 7u
-        && out[0].source_name != NULL
-        && strcmp(out[0].source_name, "PureFlow") == 0
-        && air_compression_squiggle_class(
-               air_intent_compression_budget(&air, 0),
-               AIR_RETAIN_CAUSE_NONE) == SQUIGGLE_BLUE;
+    n = air_collect_erasure_squiggles(air, out, 8);
+    for (size_t i = 0; i < n; i++) {
+        if (out[i].line > 0u && out[i].source_name != NULL)
+            has_located = true;
+    }
+    air_destroy(air);
+    /* At least one erasable (summarized) node, with a real source location. */
+    return n >= 1 && has_located;
 }
 
 static void
@@ -182,10 +180,10 @@ main(void)
     TEST("AIR compression erases pure sync intent facts");
     EXPECT(test_air_compression_erases_pure_sync_intent());
 
-    TEST("AIR erasure squiggle policy: only ERASE is BLUE (docs/140 slice 5)");
+    TEST("AIR erasure squiggle policy: SUMMARIZE is BLUE (docs/140 slice 5)");
     EXPECT(test_air_erasure_squiggle_policy());
 
-    TEST("AIR erasure collector emits BLUE site for an erased intent (slice 5b)");
+    TEST("AIR erasure collector emits BLUE site for an erasable node (slice 5b)");
     EXPECT(test_air_collect_erasure_squiggles());
 
     TEST("AIR compression summarizes static zone and retains authority");
