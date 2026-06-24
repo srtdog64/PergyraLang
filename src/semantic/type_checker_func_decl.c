@@ -395,6 +395,39 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     name != NULL ? name : "<anonymous>",
                     missing_buf, declared_buf, used_buf);
             }
+
+            /* docs/140 advisory (non-blocking, violet): the reverse of the
+             * missing check. A `with caps` clause that grants more authority
+             * than the body exercises is legal but worth seeing — least
+             * authority is a recognition goal, not an error. Suppressed when the
+             * body is missing caps (the error above is the actionable signal). */
+            uint32_t excess_caps = declared_caps & ~used_caps;
+            if (ast_func_has_caps_clause(node)
+                && missing_caps == 0u
+                && excess_caps != 0u) {
+                char excess_buf[160];
+                char used_buf[160];
+                char declared_buf[160];
+                caps_mask_to_string(excess_caps, excess_buf, sizeof(excess_buf));
+                caps_mask_to_string(used_caps, used_buf, sizeof(used_buf));
+                caps_mask_to_string(declared_caps, declared_buf,
+                    sizeof(declared_buf));
+                semantic_advisory_with_hints(ctx,
+                    PGY_CODE_SEM_CAPABILITY_OVER_DECLARED,
+                    PGY_CAUSE_CAPABILITY_OVER_DECLARED,
+                    PGY_FIX_NARROW_CAPS_TO_USED_SET, node,
+                    "Function '%s' declares capabilities its body never uses: %s "
+                    "(declared: %s, used: %s).\n"
+                    "Reason:\n"
+                    "- the `with caps` grant is wider than the body's authority\n"
+                    "- least authority makes the capability surface read true\n"
+                    "Note: this is advisory only and does not block compilation\n"
+                    "Fix:\n"
+                    "- narrow the `with caps` clause to the used set\n"
+                    "- or keep the extra capability if a future body will need it",
+                    name != NULL ? name : "<anonymous>",
+                    excess_buf, declared_buf, used_buf);
+            }
         }
 
         /* Capability surface: declared (with caps) unioned with the body's

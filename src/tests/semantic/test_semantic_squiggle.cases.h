@@ -42,6 +42,8 @@ test_squiggle_class(void)
          * term wins over the layer fallback. */
         EXPECT(squiggle_class_classify(false, DIAG_LAYER_RESOURCE,
                    "PGY_CODE_SEM_PIN_ESCAPE") == SQUIGGLE_VIOLET);
+        EXPECT(squiggle_class_classify(false, DIAG_LAYER_DOMAIN,
+                   "PGY_SEM_CAPABILITY_OVER_DECLARED") == SQUIGGLE_VIOLET);
     }
 
     TEST("axis term wins over BOUNDARY (intent boundary is axis, not authority)");
@@ -118,6 +120,35 @@ test_squiggle_advisory(void)
         EXPECT(result != NULL && result->advisory_count >= 1);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Domain identity of 'hero' is shadowed"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("over-declared capability emits a non-blocking violet advisory");
+    {
+        /* `with caps clock` but the body uses no capability: declared {clock}
+         * exceeds used {} -> a violet (authority) advisory, no error. */
+        const char *source =
+            "func Pure() -> Int\n"
+            "    with caps clock {\n"
+            "    return 42;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    Log(Pure());\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->advisory_count >= 1);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "declares capabilities its body never uses"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

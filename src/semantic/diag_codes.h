@@ -67,6 +67,9 @@
 #define PGY_CODE_SEM_PARALLEL_SLOT_CONFLICT     "PGY_SEM_PARALLEL_SLOT_CONFLICT"
 #define PGY_CODE_SEM_PARALLEL_SLOT_RACE_RISK    "PGY_SEM_PARALLEL_SLOT_RACE_RISK"
 #define PGY_CODE_SEM_EFFECT_CONFLICT            "PGY_SEM_EFFECT_CONFLICT"
+/* Advisory (non-blocking, docs/140): a `with caps` clause declares a capability
+ * the body never exercises — the authority grant is wider than needed. */
+#define PGY_CODE_SEM_CAPABILITY_OVER_DECLARED   "PGY_SEM_CAPABILITY_OVER_DECLARED"
 #define PGY_CODE_SEM_PARALLEL_SECURE_FORBIDDEN  "PGY_SEM_PARALLEL_SECURE_FORBIDDEN"
 #define PGY_CODE_SEM_REDECLARATION              "PGY_SEM_REDECLARATION"
 #define PGY_CODE_SEM_BORROW_ESCAPE              "PGY_SEM_BORROW_ESCAPE"
@@ -147,6 +150,7 @@
 #define PGY_CAUSE_ROLE_CONTRACT                 "semantic:role_contract"
 #define PGY_CAUSE_ZONE_CONTRACT                 "semantic:zone_contract"
 #define PGY_CAUSE_SUBJECT_SHADOW                "semantic:axis:subject_shadow"
+#define PGY_CAUSE_CAPABILITY_OVER_DECLARED      "semantic:authority:capability_over_declared"
 #define PGY_CAUSE_WORLD_CONTRACT                "semantic:world_contract"
 
 /* --- Semantic: types --- */
@@ -342,6 +346,7 @@
 #define PGY_FIX_ALIGN_SUBJECT_ARG_TYPE          "align-subject-arg-type"
 #define PGY_FIX_RENAME_SHADOW_OR_KEEP_DOMAIN_BINDING \
                                                    "rename-shadow-or-keep-domain-binding"
+#define PGY_FIX_NARROW_CAPS_TO_USED_SET         "narrow-caps-to-used-set"
 #define PGY_FIX_ALIGN_VALUE_TO_SLOT_INNER       "align-value-to-slot-inner"
 #define PGY_FIX_ALIGN_WORLD_ZONE_STATE_COMPOSITION \
                                                 "align-world-zone-state-composition"
