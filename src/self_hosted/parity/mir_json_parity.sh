@@ -112,6 +112,7 @@ CODEGEN_FIXTURES=(
     array_param
     array_pop
     array_push
+    array_reverse
     array_sum
     bool_logic
     builtin_name_literal
@@ -569,29 +570,6 @@ fi
 if ! grep -q '^MIR-LOWER ERROR: unsupported MIR declaration in self-host subset: AST_ROLE_DECL IntMath' "$reast"; then
     echo "[self-host-parity:mir-json] $base: mir_lower must reject unsupported role facts by AST kind" >&2
     sed -n '1,5p' "$reast" >&2
-    exit 1
-fi
-rejects=$((rejects + 1))
-
-base="unsupported_codegen_builtin"
-src="$FIXTURE_DIR/$base.pgy"
-mj="$B/$base.mirjson"
-reast="$B/$base.reast"
-via_c="$B/$base.c"
-(cd "$ROOT_DIR" && "$PGY" --mir-json "$(pgy_path_for_compiler "$PGY" "$src")" \
-    2>/dev/null | tr -d '\r' > "$mj")
-"$B/mir_lower.exe" "${mj#$ROOT_DIR/}" 2>/dev/null | tr -d '\r' > "$reast"
-set +e
-"$B/codegen.exe" "${reast#$ROOT_DIR/}" 2>/dev/null | tr -d '\r' > "$via_c"
-reject_rc=${PIPESTATUS[0]}
-set -e
-if [[ "$reject_rc" -eq 0 ]]; then
-    echo "[self-host-parity:mir-json] $base: codegen must exit nonzero for unsupported builtins" >&2
-    exit 1
-fi
-if ! grep -q '^CODEGEN ERROR: unsupported builtin in self-host codegen subset: ArrayReverse' "$via_c"; then
-    echo "[self-host-parity:mir-json] $base: codegen must reject unsupported builtin facts before C emission" >&2
-    sed -n '1,5p' "$via_c" >&2
     exit 1
 fi
 rejects=$((rejects + 1))

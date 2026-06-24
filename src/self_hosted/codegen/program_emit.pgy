@@ -111,6 +111,7 @@ func GenerateC(ast: String) -> String {
         || StringIndexOf(ast, "Min(") >= 0
         || StringIndexOf(ast, "Max(") >= 0;
     let uses_array_sort: Bool = StringIndexOf(ast, "ArraySort(") >= 0;
+    let uses_array_reverse: Bool = StringIndexOf(ast, "ArrayReverse(") >= 0;
     let uses_array_map: Bool = StringIndexOf(ast, "ArrayMap(") >= 0;
     let uses_array_filter: Bool = StringIndexOf(ast, "ArrayFilter(") >= 0;
     let uses_result: Bool = StringIndexOf(ast, "Result<") >= 0
@@ -133,6 +134,7 @@ func GenerateC(ast: String) -> String {
         || StringIndexOf(ast, "ArraySet(") >= 0
         || StringIndexOf(ast, "ArrayPop(") >= 0
         || uses_array_sort
+        || uses_array_reverse
         || uses_array_map
         || uses_array_filter
         || StringIndexOf(ast, "StringJoin(") >= 0
@@ -266,6 +268,12 @@ func GenerateC(ast: String) -> String {
             header = Concat(header, "static pgy_ai pgy_ai_sort(pgy_ai a)\n{\n");
             header = Concat(header, "    if (a.len > 1) { qsort(a.data, (size_t)a.len, sizeof(long long), pgy_ai_cmp); }\n");
             header = Concat(header, "    return a;\n}\n\n");
+        }
+        if uses_array_reverse {
+            header = Concat(header, "static pgy_ai pgy_ai_reverse(pgy_ai a)\n{\n");
+            header = Concat(header, "    pgy_ai out = pgy_ai_new();\n");
+            header = Concat(header, "    for (long long i = a.len; i > 0; i--) { pgy_ai_push(&out, a.data[i - 1]); }\n");
+            header = Concat(header, "    return out;\n}\n\n");
         }
         if uses_array_map {
             header = Concat(header, "static pgy_ai pgy_ai_map(pgy_ai a, long long (*fn)(long long))\n{\n");

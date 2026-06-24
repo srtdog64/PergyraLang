@@ -153,9 +153,9 @@ subset.
   self-host via-run timeout, the array destructure binding surface, plain class
   declaration/method lowering, payload-free enum lowering, `Result<Int>` `?`
   early-return flow, `Result<Int>` core constructors/inspection helpers,
-  `Option<Int>` value/match lowering, array sort/map/filter combinators, and
+  `Option<Int>` value/match lowering, array sort/map/filter/reverse combinators, and
   `Join`/`ToFloat` string utility flow. The coverage boundary is now measured
-  at **80 PASS / 0 gap plus 2 clean rejects** across the committed
+  at **81 PASS / 0 gap plus 1 clean reject** across the committed
   MIR-lower/codegen fixture inventory. Ability declarations now consume MIR
   method signature facts and lower as zero-artifact declaration hosts in the
   self-hosted codegen pre-passes. Role declaration facts are still rejected by

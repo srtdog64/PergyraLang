@@ -312,7 +312,8 @@ func RewriteTokens(e: String, env: String) -> String {
     let jn0: String = ReplaceAllOutsideStrings(m, "StringJoin(", "pgy_strjoin(");
     let jn: String = ReplaceAllOutsideStrings(jn0, "Join(", "pgy_strjoin(");
     let asort: String = ReplaceAllOutsideStrings(jn, "ArraySort(", "pgy_ai_sort(");
-    let amap: String = ReplaceAllOutsideStrings(asort, "ArrayMap(", "pgy_ai_map(");
+    let arev: String = ReplaceAllOutsideStrings(asort, "ArrayReverse(", "pgy_ai_reverse(");
+    let amap: String = ReplaceAllOutsideStrings(arev, "ArrayMap(", "pgy_ai_map(");
     let afilter: String = ReplaceAllOutsideStrings(amap, "ArrayFilter(", "pgy_ai_filter(");
     let osome: String = ReplaceAllOutsideStrings(afilter, "Some(", "pgy_option_some(");
     let oissome: String = ReplaceAllOutsideStrings(osome, "IsSome(", "pgy_option_is_some(");

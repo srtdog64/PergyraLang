@@ -172,18 +172,17 @@ the self-hosted value-nominal path, field-only subject/object/tobject/vessel
 nominal declarations are reconstructed from MIR `nominal_kind`/field facts with
 their exact AST labels, payload-free enum declarations are reconstructed from
 MIR variant facts, and `Option<Int>` match branches consume MIR-owned variant
-and binding facts. Array sort/map/filter combinators, `Result<Int>` core
+and binding facts. Array sort/map/filter/reverse combinators, `Result<Int>` core
 constructors and inspection helpers, and `Join`/`ToFloat` string utility flow
 also run through this MIR-JSON path. Ability declarations are reconstructed from MIR method
 signature facts and treated as zero-artifact declaration hosts by the
 self-hosted codegen pre-passes. The committed MIR-lower/codegen fixture
-inventory is now measured at 80 PASS / 0 gap plus 2 clean rejects through this
+inventory is now measured at 81 PASS / 0 gap plus 1 clean reject through this
 path. Role unsupported declaration facts are emitted and rejected before the
 self-host path can silently erase operator-overload semantics; richer
 projection/identity semantics beyond field-only nominal declarations still
 require later facts and fixtures; payload enum variants reject from their
-variant facts; and unsupported self-host codegen builtins are rejected before
-they leak undefined C symbols; `self-host-mir-json-parity-test-smoke` rejects
+variant facts; `self-host-mir-json-parity-test-smoke` rejects
 reintroducing transitional `"ast"` reads.
 Capability 4 is
 closed for the current compiler-pass

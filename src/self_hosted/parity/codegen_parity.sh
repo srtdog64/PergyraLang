@@ -153,6 +153,7 @@ FIXTURES=(
     for_continue
     while_break
     bool_logic
+    array_reverse
     str_builtins
     array_sum
     array_max
@@ -396,4 +397,4 @@ if [[ "${#SKIPPED_BACKENDS[@]}" -gt 0 ]]; then
     BACKENDS_LABEL="$BACKENDS_LABEL; ${SKIPPED_BACKENDS[*]} skipped"
 fi
 
-echo "[self-host-parity:codegen] rung-0..16 parity ok (${#FIXTURES[@]} fixtures; backends=$BACKENDS_LABEL)"
+echo "[self-host-parity:codegen] rung-0..17 parity ok (${#FIXTURES[@]} fixtures; backends=$BACKENDS_LABEL)"

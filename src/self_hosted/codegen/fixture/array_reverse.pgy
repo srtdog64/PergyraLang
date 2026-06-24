@@ -2,4 +2,7 @@ func Main() -> Void {
     let nums: Array<Int> = [3, 1, 2];
     let reversed: Array<Int> = ArrayReverse(nums);
     Log(ArrayLength(reversed));
+    Log(reversed[0]);
+    Log(reversed[1]);
+    Log(reversed[2]);
 }

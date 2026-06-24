@@ -5,7 +5,7 @@ track** opened after the 2026-06-17 BDFL decision that lifted the
 `docs/self_hosted/README.md` (2026-06-13) "hard compiler-core migration is not
 open" freeze. Before that date this folder was a reserved stub.
 
-## Rung-0..16 (2026-06-23) - active
+## Rung-0..17 (2026-06-24) - active
 
 `main.pgy` is the thin CLI entrypoint. It imports owner modules for AST input,
 the codegen run boundary, text scanning, type environment lookup, expression
@@ -17,8 +17,9 @@ self-contained C program
 whose **run-stdout** matches the C/LLVM oracle.
 String builtins: `Concat`, `ToString`, `StringLength`, `Substring`,
 `StringIndexOf`, `StringTrim`, `StringJoin`, `Join`. Scalar conversion:
-`ToFloat`. Array combinators: `ArraySort`, `ArrayMap`, `ArrayFilter`
-for `Array<Int>` plus unary `Int -> Int` / `Int -> Bool` function references.
+`ToFloat`. Array combinators: `ArraySort`, `ArrayReverse`, `ArrayMap`,
+`ArrayFilter` for `Array<Int>` plus unary `Int -> Int` / `Int -> Bool`
+function references.
 Result values: `Result<Int>` with `Ok`, `Err`, `IsOk`, `IsErr`, `Unwrap`,
 `UnwrapOr`, and postfix `?` early-return lowering for `Int` payload lets inside
 `Result<Int>` functions.
@@ -60,7 +61,8 @@ recursion are free. `Main` lowers to `int main(void)`, or to
   `ArraySet(xs, i, v)`, `ArrayLength(xs)`, and index reads `xs[i]` lower to
   `pgy_*_push/set/len/get`. `ArraySort(xs)` sorts the shared `Array<Int>`
   buffer and returns the value, matching the oracle's value-with-shared-buffer
-  behavior; `ArrayMap(xs, F)` / `ArrayFilter(xs, P)` are supported for unary
+  behavior; `ArrayReverse(xs)` returns a fresh reversed `Array<Int>` value;
+  `ArrayMap(xs, F)` / `ArrayFilter(xs, P)` are supported for unary
   `Int -> Int` / `Int -> Bool` functions. Index reads are rewritten env-aware in arbitrary
   expressions (`total + xs[j]` -> `total + pgy_ai_get(xs, j)`), with string
   literals copied verbatim so a `[` inside a string is never touched (rung-7/8/10).
@@ -115,7 +117,7 @@ assignment, and return paths; `stmt_emit.pgy` consumes that boundary instead of
 owning struct literal policy directly.
 
 Parity gate: `src/self_hosted/parity/codegen_parity.sh` builds `main.pgy` through
-the requested backend set, runs it on each of the 55 committed fixtures'
+the requested backend set, runs it on each of the 56 committed fixtures'
 `pgy --ast` output, gcc-compiles the emitted C, runs it, and compares run-stdout
 against the committed expected output. A live-drift guard re-derives that
 expected output from the C-backend oracle executable. LLVM is mandatory when the

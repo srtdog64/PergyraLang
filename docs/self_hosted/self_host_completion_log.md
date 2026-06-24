@@ -55,7 +55,7 @@ rewrite history.
   Source-payload reads for the gated body surface have been replaced by
   dedicated MIR/source-shape facts, and the self-hosted MIR-lowering path is
   ratcheted against reading transitional `"ast"` text. The committed
-  MIR-lower/codegen frontier is **80 PASS / 0 gap plus 2 clean rejects**.
+  MIR-lower/codegen frontier is **81 PASS / 0 gap plus 1 clean reject**.
 
 ## Roadmap to completion
 
@@ -82,6 +82,19 @@ rewrite history.
    allowed -- that is what makes a positive one mean something.
 
 ## Session log
+
+### 2026-06-24 -- ArrayReverse exits the clean-reject boundary
+
+- Promoted `ArrayReverse(Array<Int>)` from the unsupported self-hosted codegen
+  builtin boundary into the C/LLVM codegen parity manifest and MIR JSON hard
+  path.
+- `type_env`, `expr_rewrite`, and `program_emit` now own the `ArrayReverse`
+  decision: it type-routes as `ArrayInt`, rewrites to `pgy_ai_reverse`, and
+  emits a fresh reversed `Array<Int>` value rather than mutating the caller's
+  storage.
+- The MIR JSON frontier moves to **81 PASS / 0 gap plus 1 clean reject**; the
+  remaining clean reject is unsupported declaration fact coverage, not
+  `ArrayReverse`.
 
 ### 2026-06-24 -- Semantic numeric type frontier expands to 68 fixtures
 
@@ -363,10 +376,12 @@ rewrite history.
   codegen surface out of the unsupported builtin boundary. The self-hosted
   emitter now lowers them to owned C helpers for sorted shared-buffer array
   values and unary `Int -> Int` / `Int -> Bool` function references.
-- Kept the clean-reject contract alive by moving the negative builtin fixture
-  to `ArrayReverse`, which remains unsupported and must fail before generated C
-  emission. The MIR JSON gate still proves **68 positive fixtures plus 2 clean
-  rejects**.
+- Kept the clean-reject contract alive at that point by moving the negative
+  builtin fixture to `ArrayReverse`, which then remained unsupported and had to
+  fail before generated C emission. This was superseded on 2026-06-24 when
+  `ArrayReverse(Array<Int>)` entered the supported codegen surface. The MIR JSON
+  gate still proved **68 positive fixtures plus 2 clean rejects** in that
+  session.
 - Added `array_combinators.pgy` to the codegen parity manifest, moving codegen
   parity to **51 fixtures**. Refreshed examples-scale survey: 44 PASS, 28
   CODEGEN-gap, 36 MIR-LOWER-gap, 13 ORACLE-skip, and 0 measured STDOUT-diff /

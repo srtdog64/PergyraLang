@@ -166,10 +166,11 @@ it from the entrypoint.
   `main.pgy` is only the CLI/orchestration entrypoint; source-of-truth
   decisions live in named owner modules such as `type_env`, `expr_rewrite`,
   `stmt_emit`, `function_emit`, and `program_emit`. It currently stands at
-  rung-0..16 with 55 fixtures, including `StringTrim`, `FileExists` /
+  rung-0..17 with 56 fixtures, including `StringTrim`, `FileExists` /
   `ReadFile` file I/O, `Args()` user-argument snapshots, value-passed
   Int-field structs, Array<Int> parameter/return flow, `Result<Int>` `?`
-  early-return lowering, and `Option<Int>` value flow.
+  early-return lowering, `Option<Int>` value flow, and `ArrayReverse` value
+  copy lowering.
 - **2026-06-23** -- codegen AST input is no longer owned by `main.pgy`.
   `ast_input_owner.pgy` owns `Args()[0]`/default fixture selection,
   missing-file diagnostics, and AST file reads; `main.pgy` now only wires

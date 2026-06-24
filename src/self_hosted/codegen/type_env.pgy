@@ -83,6 +83,9 @@ func ExprKind(expr: String, env: String) -> String {
     if StartsWith(e, "ArraySort(") {
         return "ArrayInt";
     }
+    if StartsWith(e, "ArrayReverse(") {
+        return "ArrayInt";
+    }
     if StartsWith(e, "ArrayMap(") {
         return "ArrayInt";
     }
