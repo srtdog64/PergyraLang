@@ -269,6 +269,7 @@ COMMON_SOURCES   = $(COMMON_DIR)/arena.c \
                    $(COMMON_DIR)/match_variant_policy.c \
                    $(COMMON_DIR)/numeric_parse.c \
                    $(COMMON_DIR)/pgy_builtin_type_table.c \
+                   $(COMMON_DIR)/squiggle_class.c \
                    $(COMMON_DIR)/worker_boundary_storage_policy.c
 LEXER_SOURCES    = $(LEXER_DIR)/lexer.c \
                    $(LEXER_DIR)/lexer_keywords.c \
@@ -515,6 +516,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_expr_host.c \
                    $(SEMANTIC_DIR)/type_checker_expr_call.c \
                    $(SEMANTIC_DIR)/type_checker_expr_enum.c \
+                   $(SEMANTIC_DIR)/type_checker_expr_lambda.c \
                    $(SEMANTIC_DIR)/type_checker_expr.c \
                    $(SEMANTIC_DIR)/type_checker_lambda_capture.c \
                    $(SEMANTIC_DIR)/type_checker_expr_names.c \

@@ -144,6 +144,7 @@ test_semantic_enter_isolated_cwd(void)
 #include "tests/semantic/test_semantic_misc_b2_part_f_1.cases.h"
 #include "tests/semantic/test_semantic_misc_b2_part_f_2.cases.h"
 #include "tests/semantic/test_semantic_misc_b2_part_g.cases.h"
+#include "tests/semantic/test_semantic_squiggle.cases.h"
 
 
 /* -----------------------------------------------------------------
@@ -199,6 +200,7 @@ main(void)
     test_effect_inference();
     test_type_resolution_graph();
     test_misc_grammar_edges();
+    test_squiggle_class();
 
     printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
 
