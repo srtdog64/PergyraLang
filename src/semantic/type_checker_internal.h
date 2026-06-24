@@ -176,6 +176,7 @@ Symbol *lookup_identifier_symbol(ASTNode *expr, SemanticContext *ctx);
 bool semantic_reject_lambda_unsupported_captures(ASTNode *lambda,
                                                  SemanticContext *ctx,
                                                  bool allow_copy_capture);
+Type *type_check_lambda_expression(ASTNode *expr, SemanticContext *ctx);
 void mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx);
 bool expr_is_class_constructor_call(const ASTNode *expr, SemanticContext *ctx);
 bool expr_is_qubit_claim(const ASTNode *expr);

@@ -522,6 +522,7 @@ direct_metadata_type_ref_users="$(
     | grep -Ev 'src/semantic/type_checker_generic_validation\.c' \
     | grep -Ev 'src/semantic/type_checker_program\.c' \
     | grep -Ev 'src/semantic/type_checker_expr\.c' \
+    | grep -Ev 'src/semantic/type_checker_expr_lambda\.c' \
     | grep -Ev 'src/semantic/type_checker_expr_enum\.c' \
     | grep -Ev 'src/semantic/type_checker_ability_decl\.c' \
     | grep -Ev 'src/semantic/type_checker_decls_domain_helpers\.c' \

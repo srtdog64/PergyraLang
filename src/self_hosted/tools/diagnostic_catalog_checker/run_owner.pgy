@@ -1,0 +1,29 @@
+// src/self_hosted/tools/diagnostic_catalog_checker/run_owner.pgy
+//
+// Input boundary and exit policy owner. This is the only layer that touches
+// filesystem paths or decides process success/failure for the catalog checker.
+
+func RunDiagnosticCatalogCheck() -> Void {
+    let header_path: String = "src/semantic/diag_codes.h";
+    let docs_path: String = "docs/72_diagnostic_codes.md";
+    if !FileExists(header_path) {
+        Log(InputErrorJson(header_path));
+        Exit(1);
+    }
+    if !FileExists(docs_path) {
+        Log(InputErrorJson(docs_path));
+        Exit(1);
+    }
+    let header: String = ReadFile(header_path);
+    let docs: String = ReadFile(docs_path);
+    let codes: Int = CountCodeMacros(header);
+    let documented: Int = CountDocumentedCodes(docs);
+    let missing: Int = CountMissingCodes(header, docs);
+    let duplicates: Int = CountDuplicateLiterals(header);
+    let orphans: Int = CountOrphanDocs(docs, header);
+    let findings: String = BuildFindings(header, docs);
+    Log(DiagnosticCatalogJson(codes, documented, missing, duplicates, orphans, findings));
+    if missing > 0 || duplicates > 0 || orphans > 0 {
+        Exit(1);
+    }
+}

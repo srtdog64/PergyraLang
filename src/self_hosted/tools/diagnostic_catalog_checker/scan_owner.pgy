@@ -1,0 +1,111 @@
+// src/self_hosted/tools/diagnostic_catalog_checker/scan_owner.pgy
+//
+// Stable diagnostic catalog fact extraction. This owner is the single place
+// that interprets src/semantic/diag_codes.h and docs/72_diagnostic_codes.md.
+
+func ExtractDelimitedLiteral(line: String, delimiter: String) -> String {
+    let first: Int = StringIndexOf(line, delimiter);
+    if first < 0 {
+        return "";
+    }
+    let tail_len: Int = StringLength(line) - first - 1;
+    let tail: String = Substring(line, first + 1, tail_len);
+    let second: Int = StringIndexOf(tail, delimiter);
+    if second <= 0 {
+        return "";
+    }
+    return Substring(tail, 0, second);
+}
+
+func CountCodeMacros(content: String) -> Int {
+    let lines: Array<String> = Split(content, "\n");
+    let count: Int = 0;
+    for line in lines {
+        if StringContains(line, "#define PGY_CODE_") {
+            count = count + 1;
+        }
+    }
+    return count;
+}
+
+func CountDocumentedCodes(content: String) -> Int {
+    let lines: Array<String> = Split(content, "\n");
+    let count: Int = 0;
+    for line in lines {
+        if StringContains(line, "#### `PGY_") {
+            count = count + 1;
+        }
+    }
+    return count;
+}
+
+func CountMissingCodes(header: String, docs: String) -> Int {
+    let lines: Array<String> = Split(header, "\n");
+    let missing: Int = 0;
+    let pending: Bool = false;
+    let i: Int = 0;
+    let n: Int = ArrayLength(lines);
+    while i < n {
+        let line: String = lines[i];
+        let should_scan: Bool = pending || StringContains(line, "#define PGY_CODE_");
+        if should_scan {
+            let literal: String = ExtractDelimitedLiteral(line, "\"");
+            if StringLength(literal) > 0 {
+                if !StringContains(docs, literal) {
+                    missing = missing + 1;
+                }
+                pending = false;
+            } else {
+                pending = true;
+            }
+        }
+        i = i + 1;
+    }
+    return missing;
+}
+
+func CountDuplicateLiterals(content: String) -> Int {
+    let lines: Array<String> = Split(content, "\n");
+    let seen: String = "";
+    let duplicates: Int = 0;
+    let pending: Bool = false;
+    let i: Int = 0;
+    let n: Int = ArrayLength(lines);
+    while i < n {
+        let line: String = lines[i];
+        let should_scan: Bool = pending || StringContains(line, "#define PGY_CODE_");
+        if should_scan {
+            let literal: String = ExtractDelimitedLiteral(line, "\"");
+            if StringLength(literal) > 0 {
+                let marker: String = Concat(Concat("|", literal), "|");
+                if StringContains(seen, marker) {
+                    duplicates = duplicates + 1;
+                } else {
+                    seen = Concat(seen, marker);
+                }
+                pending = false;
+            } else {
+                pending = true;
+            }
+        }
+        i = i + 1;
+    }
+    return duplicates;
+}
+
+func CountOrphanDocs(docs: String, header: String) -> Int {
+    let lines: Array<String> = Split(docs, "\n");
+    let orphans: Int = 0;
+    for line in lines {
+        if StringContains(line, "#### `PGY_") {
+            let literal: String = ExtractDelimitedLiteral(line, "`");
+            if StringLength(literal) > 0 {
+                let quoted: String = Concat(Concat("\"", literal), "\"");
+                if !StringContains(header, quoted) {
+                    orphans = orphans + 1;
+                }
+            }
+        }
+    }
+    return orphans;
+}

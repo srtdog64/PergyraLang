@@ -355,6 +355,16 @@ Function body joins effect classes that the current partial-order treats as inco
 - **Reason**: effect mask closure on the body produces a combination that the lattice flags as authority-sensitive work mixed with boundary/resource work.
 - **Fix**: split the routine so each helper owns one effect family; isolate the conflicting branch behind an explicit boundary helper.
 
+#### `PGY_SEM_CAPABILITY_OVER_DECLARED` (advisory)
+
+A function has an explicit `with caps` clause that grants capabilities the
+function body does not currently use.
+
+- **Reason**: over-declared capability authority is legal, but it makes the
+  authority surface wider than the body proves it needs.
+- **Fix**: narrow the `with caps` clause to the used set, or keep the extra
+  capability only when the future body is expected to need it.
+
 #### `PGY_SEM_PARALLEL_SECURE_FORBIDDEN`
 
 A capability-bearing operation (SecureSlot read/write/release, DeviceSlot access, or a secure-effect-tagged function/method call) appears inside a `parallel` block. Capability scheduling requires a serialized call-site so the capability identity is not aliased across tasks.
@@ -465,6 +475,18 @@ the required layered provenance.
 
 - **Reason**: world is a composition of zones and their states; every name in a clause must resolve to a slot/state the world already declares at that point.
 - **Fix**: declare or reorder the referenced zones/states; switch to the underlying zone slot instead of a derived alias; make the copy explicit via `Clone(...)` where unavoidable.
+
+#### `PGY_SEM_SUBJECT_IDENTITY_SHADOWED` (advisory)
+
+A nested binding reuses the name of an enclosing `Subject` / domain-identity
+binding, so the name no longer denotes that domain entity inside the nested
+scope.
+
+- **Reason**: subject identity is a semantic axis; shadowing it is legal but can
+  make later intent, role, or zone code read as if it still refers to the
+  domain entity.
+- **Fix**: rename the nested binding, or keep using the enclosing subject
+  binding if the domain identity was intended.
 
 ### Loop Control
 

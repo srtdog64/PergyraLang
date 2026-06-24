@@ -50,7 +50,8 @@ src/self_hosted/
   tools/                          -- peripheral audit tools (NOT counted toward substitution)
     <tool_name>/
       intent.md                   -- input/output contract + oracle
-      main.pgy
+      main.pgy                    -- entrypoint only
+      *_owner.pgy                 -- named source-of-truth owners
       expected/
   parity/                         -- C / LLVM / Pergyra comparison harness
     README.md
@@ -73,6 +74,14 @@ function-declaration, top-level declaration dispatch, branch declaration
 owners (`type`/`ability`/`event`/`enum`/`zone`/`effect`/`relation`/`role`/
 `intent`/nominal-domain hosts), and compact-tree text owners. `main.pgy` is now
 entrypoint orchestration only for the parser tool.
+
+Peripheral self-host tools follow the same shape when they graduate past a
+scaffold. For example, `tools/diagnostic_catalog_checker/main.pgy` only calls
+the run owner; `scan_owner.pgy` owns catalog fact extraction, `report_owner.pgy`
+owns the `pgy.selfhost.diagnostic-catalog.v1` JSON schema, and `run_owner.pgy`
+owns filesystem input plus exit policy. A parity harness must copy or compile
+the tool directory as a unit so owner imports are tested instead of flattened
+back into a hidden monolith.
 
 Until import de-duplication is a compiler fact, sibling owner modules do not
 import each other. The entrypoint assembles owner modules in dependency order so

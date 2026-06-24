@@ -12,7 +12,17 @@ Rung-2 parity asserts agreement on all five counters against shell-grep
 drift detectors. The C-side reference logic still lives in
 [`tests/diagnostic_registry_smoke.sh`](../../../../tests/diagnostic_registry_smoke.sh)
 and remains the C parity backend; the Pergyra side under
-[`main.pgy`](main.pgy) is the candidate implementation.
+this directory is the candidate implementation.
+
+`main.pgy` is entrypoint-only. Source-of-truth responsibilities are split by
+owner:
+
+- [`scan_owner.pgy`](scan_owner.pgy) owns stable fact extraction from the code
+  and docs owners.
+- [`report_owner.pgy`](report_owner.pgy) owns the emitted JSON schema and
+  finding ordering.
+- [`run_owner.pgy`](run_owner.pgy) owns filesystem input and process exit
+  policy.
 
 Follow-up rungs: rung-3 three-way agreement (C / LLVM / Pergyra origin).
 
@@ -69,7 +79,7 @@ surface before `ReadFile(...)` is called.
 ## Oracle
 
 `tests/diagnostic_registry_smoke.sh` is the C oracle for this rung-2 candidate.
-The Pergyra implementation in `main.pgy` is authoritative only for its emitted
+The Pergyra implementation directory is authoritative only for its emitted
 JSON/counter contract; it does not replace the C oracle until rung-3 three-way
 agreement is shipped.
 

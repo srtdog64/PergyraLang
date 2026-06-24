@@ -30,7 +30,8 @@ if [[ ! -x "$PGY" ]]; then
 fi
 
 C_ORACLE="$ROOT_DIR/tests/diagnostic_registry_smoke.sh"
-PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/diagnostic_catalog_checker/main.pgy"
+PERGYRA_TOOL_SOURCE_DIR="$ROOT_DIR/src/self_hosted/tools/diagnostic_catalog_checker"
+PERGYRA_TOOL_SOURCE="$PERGYRA_TOOL_SOURCE_DIR/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/diagnostic_catalog_checker}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/diagnostic_catalog_checker/expected/clean.json"
@@ -59,7 +60,7 @@ if [[ ! -f "$EXPECTED_INPUT_ERROR_JSON_FILE" ]]; then
 fi
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
-cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
+cp "$PERGYRA_TOOL_SOURCE_DIR"/*.pgy "$PERGYRA_TOOL_BUILD_DIR"/
 PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
 
 set +e
