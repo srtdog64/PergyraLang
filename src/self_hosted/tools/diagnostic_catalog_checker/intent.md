@@ -18,9 +18,9 @@ this directory is the candidate implementation.
 owner:
 
 - [`scan_owner.pgy`](scan_owner.pgy) owns stable fact extraction from the code
-  and docs owners.
+  and docs owners, including the ordered finding fact rows.
 - [`report_owner.pgy`](report_owner.pgy) owns the emitted JSON schema and
-  finding ordering.
+  renders those finding facts without reopening the source files.
 - [`run_owner.pgy`](run_owner.pgy) owns filesystem input and process exit
   policy.
 

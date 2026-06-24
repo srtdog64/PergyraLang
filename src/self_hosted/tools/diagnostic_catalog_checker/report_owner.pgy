@@ -1,8 +1,7 @@
 // src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy
 //
-// JSON schema owner for pgy.selfhost.diagnostic-catalog.v1. Scanning may
-// change independently, but emitted field names and source owner labels live
-// here so the parity harness has one schema source.
+// JSON schema owner for pgy.selfhost.diagnostic-catalog.v1. Source scanning
+// lives in scan_owner; this owner renders pre-extracted finding facts only.
 
 func FindingJson(kind: String, code: String, location: String) -> String {
     let s0: String = Concat("{\"kind\":\"", kind);
@@ -18,89 +17,25 @@ func AppendFinding(findings: String, entry: String) -> String {
     return Concat(Concat(findings, ","), entry);
 }
 
-func BuildMissingFindings(header: String, docs: String) -> String {
-    let lines: Array<String> = Split(header, "\n");
-    let findings: String = "";
-    let pending: Bool = false;
-    let i: Int = 0;
-    let n: Int = ArrayLength(lines);
-    while i < n {
-        let line: String = lines[i];
-        let should_scan: Bool = pending || StringContains(line, "#define PGY_CODE_");
-        if should_scan {
-            let literal: String = ExtractDelimitedLiteral(line, "\"");
-            if StringLength(literal) > 0 {
-                if !StringContains(docs, literal) {
-                    let entry: String = FindingJson("missing", literal, "src/semantic/diag_codes.h");
-                    findings = AppendFinding(findings, entry);
-                }
-                pending = false;
-            } else {
-                pending = true;
-            }
-        }
-        i = i + 1;
+func FindingFactField(row: String, index: Int) -> String {
+    let parts: Array<String> = Split(row, "|");
+    if ArrayLength(parts) <= index {
+        return "";
     }
-    return findings;
+    return parts[index];
 }
 
-func BuildDuplicateFindings(header: String) -> String {
-    let lines: Array<String> = Split(header, "\n");
-    let seen: String = "";
+func FindingsJsonFromFacts(facts: String) -> String {
+    let rows: Array<String> = Split(facts, "\n");
     let findings: String = "";
-    let pending: Bool = false;
-    let i: Int = 0;
-    let n: Int = ArrayLength(lines);
-    while i < n {
-        let line: String = lines[i];
-        let should_scan: Bool = pending || StringContains(line, "#define PGY_CODE_");
-        if should_scan {
-            let literal: String = ExtractDelimitedLiteral(line, "\"");
-            if StringLength(literal) > 0 {
-                let marker: String = Concat(Concat("|", literal), "|");
-                if StringContains(seen, marker) {
-                    let entry: String = FindingJson("duplicate", literal, "src/semantic/diag_codes.h");
-                    findings = AppendFinding(findings, entry);
-                } else {
-                    seen = Concat(seen, marker);
-                }
-                pending = false;
-            } else {
-                pending = true;
-            }
+    for row in rows {
+        if StringLength(row) > 0 {
+            let kind: String = FindingFactField(row, 0);
+            let code: String = FindingFactField(row, 1);
+            let location: String = FindingFactField(row, 2);
+            let entry: String = FindingJson(kind, code, location);
+            findings = AppendFinding(findings, entry);
         }
-        i = i + 1;
-    }
-    return findings;
-}
-
-func BuildOrphanFindings(docs: String, header: String) -> String {
-    let lines: Array<String> = Split(docs, "\n");
-    let findings: String = "";
-    for line in lines {
-        if StringContains(line, "#### `PGY_") {
-            let literal: String = ExtractDelimitedLiteral(line, "`");
-            if StringLength(literal) > 0 {
-                let quoted: String = Concat(Concat("\"", literal), "\"");
-                if !StringContains(header, quoted) {
-                    let entry: String = FindingJson("orphan", literal, "docs/72_diagnostic_codes.md");
-                    findings = AppendFinding(findings, entry);
-                }
-            }
-        }
-    }
-    return findings;
-}
-
-func BuildFindings(header: String, docs: String) -> String {
-    let findings: String = BuildMissingFindings(header, docs);
-    let duplicates: String = BuildDuplicateFindings(header);
-    let orphans: String = BuildOrphanFindings(docs, header);
-    if StringLength(duplicates) > 0 {
-        findings = AppendFinding(findings, duplicates);
-    }
-    if StringLength(orphans) > 0 {
-        findings = AppendFinding(findings, orphans);
     }
     return findings;
 }

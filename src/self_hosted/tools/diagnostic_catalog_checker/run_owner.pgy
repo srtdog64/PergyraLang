@@ -21,7 +21,8 @@ func RunDiagnosticCatalogCheck() -> Void {
     let missing: Int = CountMissingCodes(header, docs);
     let duplicates: Int = CountDuplicateLiterals(header);
     let orphans: Int = CountOrphanDocs(docs, header);
-    let findings: String = BuildFindings(header, docs);
+    let finding_facts: String = BuildDiagnosticFindingFacts(header, docs);
+    let findings: String = FindingsJsonFromFacts(finding_facts);
     Log(DiagnosticCatalogJson(codes, documented, missing, duplicates, orphans, findings));
     if missing > 0 || duplicates > 0 || orphans > 0 {
         Exit(1);

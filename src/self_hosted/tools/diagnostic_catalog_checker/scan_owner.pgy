@@ -109,3 +109,103 @@ func CountOrphanDocs(docs: String, header: String) -> Int {
     }
     return orphans;
 }
+
+func FindingFact(kind: String, code: String, location: String) -> String {
+    let s0: String = Concat(kind, "|");
+    let s1: String = Concat(Concat(s0, code), "|");
+    return Concat(s1, location);
+}
+
+func AppendFindingFact(facts: String, entry: String) -> String {
+    if StringLength(facts) == 0 {
+        return entry;
+    }
+    return Concat(Concat(facts, "\n"), entry);
+}
+
+func BuildMissingFindingFacts(header: String, docs: String) -> String {
+    let lines: Array<String> = Split(header, "\n");
+    let facts: String = "";
+    let pending: Bool = false;
+    let i: Int = 0;
+    let n: Int = ArrayLength(lines);
+    while i < n {
+        let line: String = lines[i];
+        let should_scan: Bool = pending || StringContains(line, "#define PGY_CODE_");
+        if should_scan {
+            let literal: String = ExtractDelimitedLiteral(line, "\"");
+            if StringLength(literal) > 0 {
+                if !StringContains(docs, literal) {
+                    let entry: String = FindingFact("missing", literal, "src/semantic/diag_codes.h");
+                    facts = AppendFindingFact(facts, entry);
+                }
+                pending = false;
+            } else {
+                pending = true;
+            }
+        }
+        i = i + 1;
+    }
+    return facts;
+}
+
+func BuildDuplicateFindingFacts(header: String) -> String {
+    let lines: Array<String> = Split(header, "\n");
+    let seen: String = "";
+    let facts: String = "";
+    let pending: Bool = false;
+    let i: Int = 0;
+    let n: Int = ArrayLength(lines);
+    while i < n {
+        let line: String = lines[i];
+        let should_scan: Bool = pending || StringContains(line, "#define PGY_CODE_");
+        if should_scan {
+            let literal: String = ExtractDelimitedLiteral(line, "\"");
+            if StringLength(literal) > 0 {
+                let marker: String = Concat(Concat("|", literal), "|");
+                if StringContains(seen, marker) {
+                    let entry: String = FindingFact("duplicate", literal, "src/semantic/diag_codes.h");
+                    facts = AppendFindingFact(facts, entry);
+                } else {
+                    seen = Concat(seen, marker);
+                }
+                pending = false;
+            } else {
+                pending = true;
+            }
+        }
+        i = i + 1;
+    }
+    return facts;
+}
+
+func BuildOrphanFindingFacts(docs: String, header: String) -> String {
+    let lines: Array<String> = Split(docs, "\n");
+    let facts: String = "";
+    for line in lines {
+        if StringContains(line, "#### `PGY_") {
+            let literal: String = ExtractDelimitedLiteral(line, "`");
+            if StringLength(literal) > 0 {
+                let quoted: String = Concat(Concat("\"", literal), "\"");
+                if !StringContains(header, quoted) {
+                    let entry: String = FindingFact("orphan", literal, "docs/72_diagnostic_codes.md");
+                    facts = AppendFindingFact(facts, entry);
+                }
+            }
+        }
+    }
+    return facts;
+}
+
+func BuildDiagnosticFindingFacts(header: String, docs: String) -> String {
+    let facts: String = BuildMissingFindingFacts(header, docs);
+    let duplicates: String = BuildDuplicateFindingFacts(header);
+    let orphans: String = BuildOrphanFindingFacts(docs, header);
+    if StringLength(duplicates) > 0 {
+        facts = AppendFindingFact(facts, duplicates);
+    }
+    if StringLength(orphans) > 0 {
+        facts = AppendFindingFact(facts, orphans);
+    }
+    return facts;
+}
