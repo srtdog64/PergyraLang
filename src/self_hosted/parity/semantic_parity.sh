@@ -42,6 +42,8 @@ SOURCE_PAIRS=(
     "valid_int_return:ok"
     "valid_string_return:ok"
     "valid_arith_int:ok"
+    "valid_long_arith:ok"
+    "valid_float_arith:ok"
     "valid_compare_bool:ok"
     "valid_call_int:ok"
     "bad_let_type:error"

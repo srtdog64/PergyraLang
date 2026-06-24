@@ -55,7 +55,7 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
             let actual_type: String = ExprType(let_expr, names, types, func_names, func_rets);
             if declared_type != "Unknown" {
                 if actual_type != "Unknown" {
-                    if declared_type != actual_type {
+                    if !ExpressionAssignableTo(declared_type, actual_type, let_expr) {
                         return SemanticError2("let_type_mismatch", "expected", declared_type, "actual", actual_type);
                     }
                 }
@@ -93,7 +93,7 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
             let return_actual_type: String = ExprType(return_expr, names, types, func_names, func_rets);
             if return_type != "Unknown" {
                 if return_actual_type != "Unknown" {
-                    if return_type != return_actual_type {
+                    if !ExpressionAssignableTo(return_type, return_actual_type, return_expr) {
                         return SemanticError2("return_type_mismatch", "expected", return_type, "actual", return_actual_type);
                     }
                 }
@@ -217,7 +217,7 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
                 }
                 let rhs_type: String = ExprType(rhs_expr, names, types, func_names, func_rets);
                 if rhs_type != "Unknown" {
-                    if lhs_type != rhs_type {
+                    if !ExpressionAssignableTo(lhs_type, rhs_type, rhs_expr) {
                         return SemanticError2("assign_type_mismatch", "expected", lhs_type, "actual", rhs_type);
                     }
                 }

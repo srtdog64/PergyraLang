@@ -1,0 +1,6 @@
+func Main() -> Int {
+    let x: Float = 1.5;
+    let y: Float = ToFloat("2.5");
+    let z: Float = x + y;
+    return 0;
+}

@@ -46,6 +46,10 @@ rewrite history.
   `fixture/source.txt` override.
 - **Backend parity**: parser compiled by C and by LLVM produce byte-identical
   output -- the core self-host correctness signal.
+- **Semantic**: self-hosts a bounded function-body checker on C+LLVM across
+  **68 committed fixtures**. Expression typing now owns same-type
+  `Int`/`Long`/`Float` arithmetic, with contextual integer-literal assignment
+  to `Long` as the only widening rule in this rung.
 - **Compiler core**: capability-5 single-source-of-truth is READY for the
   measured source_ast/source_decl and supported MIR-lowering frontier.
   Source-payload reads for the gated body surface have been replaced by
@@ -78,6 +82,18 @@ rewrite history.
    allowed -- that is what makes a positive one mean something.
 
 ## Session log
+
+### 2026-06-24 -- Semantic numeric type frontier expands to 68 fixtures
+
+- Added `Long` and `Float` local-arithmetic verdict fixtures to the
+  self-hosted semantic parity suite.
+- Moved numeric arithmetic result typing behind `expr_type_owner.pgy`: same-type
+  `Int`/`Long`/`Float` operands preserve their type, while mixed numeric
+  arithmetic remains outside the rung instead of being guessed.
+- Added the `ToFloat` builtin signature and a contextual integer-literal
+  assignment rule for `Long`; no broader implicit numeric promotion is opened.
+- Ratcheted `semantic_parity.sh` inventory to 68 fixtures in
+  `self_hosted_component_contract_smoke.sh`.
 
 ### 2026-06-24 -- MIR-lower codegen frontier expands to 80 fixtures
 

@@ -6,8 +6,8 @@ Provide the first Pergyra-written semantic checker slice for compiler-internal
 substitution. The slice is deliberately bounded: function return types, typed
 `let` bindings, scoped `if` / `while` bodies, branch conditions, simple
 assignment, call arity and argument types, simple/compound undefined identifier
-use, and literal/identifier expression typing for `Int`, `String`, `Bool`, and
-`Void`.
+use, and literal/identifier expression typing for `Int`, `Long`, `Float`,
+`String`, `Bool`, and `Void`.
 
 ## Input Contract
 
@@ -42,6 +42,10 @@ except for simple identifier tokens in expression position where the name is
 absent from the current local environment; those report `undefined_symbol`.
 Logical and arithmetic/comparison operand diagnostics are selected by
 `expr_validation_owner.pgy` after consuming `ExprType(...)` facts.
+Same-type `Int`/`Long`/`Float` arithmetic is owned by
+`expr_type_owner.pgy`; contextual integer literal assignment to `Long` is the
+only widening rule in this rung, so mixed `Long`/`Int` arithmetic remains out
+of subset instead of being guessed.
 
 The renderer lives in `src/self_hosted/lib/diagnostic.pgy`; the semantic checker
 only owns semantic codes, reasons, fixes, and facts. Do not rebuild the

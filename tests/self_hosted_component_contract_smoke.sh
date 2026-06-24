@@ -255,6 +255,10 @@ reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 
 semantic_items="$(extract_shell_array_items "$PARITY_DIR/semantic_parity.sh" SOURCE_PAIRS | sed 's/:.*//')"
 [[ -n "$semantic_items" ]] || fail "semantic parity SOURCE_PAIRS is empty"
+semantic_count="$(printf '%s\n' "$semantic_items" | sed '/^$/d' | wc -l | tr -d ' ')"
+[[ "$semantic_count" -eq 68 ]] ||
+    fail "semantic parity fixture count drifted: $semantic_count != 68"
+require_text "src/self_hosted/PROGRESS.md" "across 68 fixtures"
 
 while IFS= read -r fixture; do
     base="$(basename "$fixture" .pgy)"

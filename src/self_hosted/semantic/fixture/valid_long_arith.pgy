@@ -1,0 +1,6 @@
+func Main() -> Int {
+    let x: Long = 1;
+    let y: Long = 2;
+    let z: Long = x + y;
+    return 0;
+}

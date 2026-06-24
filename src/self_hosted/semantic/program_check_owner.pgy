@@ -26,6 +26,9 @@ func CheckProgram(content: String) -> String {
     ArrayPush(func_names, "ToInt");
     ArrayPush(func_rets, "Int");
     ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "ToFloat");
+    ArrayPush(func_rets, "Float");
+    ArrayPush(func_params, "Unknown");
     ArrayPush(func_names, "FileExists");
     ArrayPush(func_rets, "Bool");
     ArrayPush(func_params, "String");

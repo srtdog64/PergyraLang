@@ -5,8 +5,8 @@
 // typed params, typed `let`, return typing, scoped if/while bodies, branch
 // conditions, assignment, call arity/argument types, and undefined identifier
 // use. Expression typing now covers literals, identifiers, unary not,
-// top-level binary operators (arithmetic yields Int, comparison and logical
-// yield Bool), and function calls typed by a signature table seeded with
+// top-level binary operators (same-type Int/Long/Float arithmetic preserves
+// its operand type; comparison and logical yield Bool), and function calls typed by a signature table seeded with
 // built-ins and the program's own functions. Binary operands are checked for
 // type agreement: comparison and arithmetic operators require equal left/right
 // operand types (skipped when either side is Unknown), mirroring the C oracle's

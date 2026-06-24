@@ -257,7 +257,8 @@ Substrate progress.
   expression typing, call checking, body/function checking, and program checking.
   `main.pgy` is the CLI/output boundary only. It types expressions
   through unary not, top-level binary operators
-  (arithmetic yields Int, comparison and logical yield Bool), and function calls
+  (same-type Int/Long/Float arithmetic preserves its operand type; comparison
+  and logical yield Bool), and function calls
   resolved against a signature table seeded with built-ins and the program's own
   `func` return types. It also checks call-argument types positionally against
   each callee's parameter signature, emitting `call_arg_type_mismatch` when a
@@ -272,14 +273,14 @@ Substrate progress.
   operand (`not_operand_not_bool`), each emitted only when the operand types
   are known and disagree, mirroring the C oracle's `type_equals` rule and
   skipping when either side is Unknown. Known limitation: arithmetic result
-  typing is simplified to Int, which diverges from the C rule (binary `+ - * /`
-  is `type_equals` and yields the left operand type, with a numeric guard only on
-  unary `-`), so `"a" + "b"` (String) and `true + false` (Bool) would be accepted
-  by C but mis-typed here. This stays latent because no fixture and no real
-  self-host source uses arithmetic on String or Bool operands (string building
-  uses `Concat`); closing it would require operand-type-aware arithmetic typing.
+  typing now preserves same-type `Int`/`Long`/`Float` numeric operands, but it
+  still intentionally does not model C's broader String/Bool binary-operator
+  edge cases. This stays latent because no fixture and no real self-host source
+  uses arithmetic on String or Bool operands (string building uses `Concat`);
+  closing it requires a shared diagnostic-code catalog with the C oracle rather
+  than a self-host-only guess.
   `src/self_hosted/parity/semantic_parity.sh` compares its verdicts with the C
-  compiler accept/reject oracle on C and LLVM across 66 committed fixtures that
+  compiler accept/reject oracle on C and LLVM across 68 committed fixtures that
   close the diagnostic matrix for every check across every statement position
   (typed let/return, arithmetic, comparison, call-return, call-argument,
   call-arity, branch-condition, scoped-block, assignment-type, bare-call-statement,
@@ -334,11 +335,12 @@ now runs in that shape at rung-2: expression operators, function-call return
 typing, positional call-argument typing, call-arity checking (in `let`/`return`
 and bare expression statements), branch condition (`if`/`while` must be `Bool`)
 typing, scoped `if`/`while` body typing, simple local assignment typing,
-binary- and logical-operand-agreement typing (comparison and arithmetic operands
-must share a type; `&&`/`||` operands must be Bool) in let, return, condition,
-and assignment positions, and simple/compound undefined-identifier
-diagnostics are covered, and verdicts stay
-byte-equal beside the C type checker on 65 committed fixtures across both
+binary- and logical-operand-agreement typing (same-type Int/Long/Float numeric
+arithmetic preserves its operand type; comparison operands must share a type;
+`&&`/`||` operands must be Bool) in let, return, condition, and assignment
+positions, and simple/compound undefined-identifier diagnostics are covered,
+and verdicts stay
+byte-equal beside the C type checker on 68 committed fixtures across both
 backends. The checker now covers the common statement forms (let, return,
 assignment, if/while body, if/while condition, bare call), and the fixture
   matrix exercises each diagnostic in every position where it can fire. The
