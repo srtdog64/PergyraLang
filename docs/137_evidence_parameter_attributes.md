@@ -54,10 +54,12 @@ language-guaranteed, not heuristic.
 - IR confirms emission: `define void @Consume(ptr noalias %0, { i64, i1, i1 } %1)`
   (own slot pointer `noalias`, token value untouched) and
   `define void @Touch(ptr readonly %0)` (ref ReadView `readonly`).
-- 10/10 own/slot/ref `backend_compare` cases produce identical C/LLVM output,
-  including the `slot_subject_boundary_ref` (`readonly`) case.
-- A full `tests/compare_backends.sh` sweep is the belt-and-suspenders check for
-  `readonly` across non-slot ref params (the silent-miscompile-risk member).
+- A 24-case `backend_compare` sweep (10 slot/own/ref + 20 broad, overlapping)
+  produces identical C/LLVM output, covering the `readonly` member across **both
+  slot and non-slot** pointer params: `slot_subject_boundary_ref`,
+  `subject_projection`, `object_layer_binding`, `secure_slot_view`, etc.
+- `inout_caller_mutation` passes — confirming `MUT_REF` (mutable) is correctly
+  **not** given `readonly`.
 
 ## Measured win
 
@@ -71,7 +73,8 @@ language-guaranteed, not heuristic.
 ## Honest status
 
 `noalias` (own/move) is clearly sound and has a measured win. `readonly` (ref) is
-sound by the ReadView read-only-borrow guarantee and verified on the affected
-slot/ref surface; the full-suite sweep is the final confirmation for non-slot
-ref params. If that sweep ever diverges, narrow `readonly` to ref **slot** params
-(directly verified) or revert it; `noalias` is independent and stays.
+sound by the ReadView read-only-borrow guarantee and now verified across both
+slot and non-slot ref params (24-case sweep, with `MUT_REF` correctly excluded).
+A full all-cases sweep remains the exhaustive backstop; if it ever diverges,
+narrow `readonly` to ref **slot** params (directly verified) or revert it.
+`noalias` is independent and stays.
