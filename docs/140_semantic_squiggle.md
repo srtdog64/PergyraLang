@@ -75,6 +75,10 @@ typedef enum {
 - `DIAG_ADVISORY`는 `error_count`를 올리지 않는다(컴파일 통과). 별도 `advisory_count`.
 - `Diagnostic`에 `squiggle_class` 필드 추가(또는 `(level,layer,code)`에서 파생). 명시 필드를 권장 — 미래에 매핑이 layer로 안 끝나는 경우(BLUE) 대비.
 
+### 4.1 비용 격리 — advisory는 에디터 전용 (zero batch cost)
+
+advisory는 *인식(recognition)* 보조라 **배치/CI 컴파일에선 안 돈다**. `SemanticContext.emit_advisories`(기본 off)로 게이트: `semantic_analyze`(배치)=off, `semantic_analyze_ex(ast, true)`(LSP)=on. 생산자 블록 전체를 이 플래그로 감싸고(섀도의 `scope_lookup`까지 안 돎), `semantic_advisory_with_hints`도 chokepoint에서 early-return(미래 생산자 안전망). 결과: **빌드/컴파일/런타임 영향 = 정확히 0**(advisory는 codegen에 아무것도 안 emit하므로 런타임은 원래 0, 컴파일은 게이트로 0, 빌드는 컴파일러 자체 빌드 시간만 미미). 검증: 같은 섀도 소스가 `semantic_analyze`로는 `advisory_count==0`, `_ex(true)`로는 ≥1.
+
 ## 5. 정직한 제약 (capability guard — vision임)
 
 이 기능은 **비전**이다. 현재 capability로 광고하지 않는다.

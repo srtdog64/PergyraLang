@@ -402,7 +402,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
              * authority is a recognition goal, not an error. Suppressed when the
              * body is missing caps (the error above is the actionable signal). */
             uint32_t excess_caps = declared_caps & ~used_caps;
-            if (ast_func_has_caps_clause(node)
+            if (ctx->emit_advisories
+                && ast_func_has_caps_clause(node)
                 && missing_caps == 0u
                 && excess_caps != 0u) {
                 char excess_buf[160];

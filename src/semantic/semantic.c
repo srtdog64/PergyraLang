@@ -191,6 +191,13 @@ semantic_run_legacy_slot_resource_analysis(ASTNode *ast, SemanticContext *ctx)
 SemanticResult *
 semantic_analyze(ASTNode *ast)
 {
+    /* Default: no advisories. Batch/CI compiles pay zero cost (docs/140). */
+    return semantic_analyze_ex(ast, false);
+}
+
+SemanticResult *
+semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
+{
     SemanticResult *result = calloc(1, sizeof(SemanticResult));
     if (result == NULL)
         return NULL;
@@ -200,6 +207,7 @@ semantic_analyze(ASTNode *ast)
         free(result);
         return NULL;
     }
+    ctx->emit_advisories = emit_advisories;
 
     semantic_preload_stdlib_uses(ast);
 

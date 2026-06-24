@@ -57,6 +57,10 @@ typedef struct SemanticResult
  * ----------------------------------------------------------------- */
 
 SemanticResult* semantic_analyze(ASTNode* ast);
+/* Like semantic_analyze, but with non-blocking meaning-axis advisories (docs/140)
+ * enabled. Off by default (semantic_analyze) so batch/CI compiles pay nothing;
+ * the LSP/editor path passes true. */
+SemanticResult* semantic_analyze_ex(ASTNode* ast, bool emit_advisories);
 void            semantic_result_destroy(SemanticResult* result);
 void            semantic_result_print(const SemanticResult* result);
 size_t          semantic_result_type_resolution_metadata_entries(

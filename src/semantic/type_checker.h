@@ -105,6 +105,10 @@ struct SemanticContext
     uint32_t     program_capabilities; /* Union of every used capability   */
     uint32_t     current_function_body_summary; /* Interprocedural body facts */
     bool         tracking_function_effects; /* Only inside function body */
+    bool         emit_advisories; /* docs/140: run non-blocking meaning-axis
+                                    * advisories. Off by default so batch/CI
+                                    * compiles pay zero cost; the LSP turns it on
+                                    * (advisories are an editor recognition aid). */
     bool         in_async_func;  /* Inside async func              */
     bool         in_parallel;    /* Inside parallel block          */
     int          loop_depth;     /* Inside loop nesting            */

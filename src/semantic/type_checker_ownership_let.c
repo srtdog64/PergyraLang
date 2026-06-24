@@ -543,7 +543,8 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
      * it is shown as an amber squiggle. Checked before scope_declare so `sym`
      * itself is not found, and gated on the outer name living in an *enclosing*
      * scope (absent from the current scope). */
-    if (sym != NULL && sym->name != NULL
+    if (ctx->emit_advisories
+        && sym != NULL && sym->name != NULL
         && scope_lookup_current(ctx->scope, sym->name) == NULL) {
         Symbol *outer = scope_lookup(ctx->scope, sym->name);
         if (outer != NULL && outer != sym

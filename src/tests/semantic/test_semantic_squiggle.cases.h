@@ -111,7 +111,7 @@ test_squiggle_advisory(void)
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
+        SemanticResult *result = semantic_analyze_ex(program, true);
 
         EXPECT(!parser_has_error(parser));
         /* Non-blocking: compiles cleanly. */
@@ -120,6 +120,39 @@ test_squiggle_advisory(void)
         EXPECT(result != NULL && result->advisory_count >= 1);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Domain identity of 'hero' is shadowed"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("advisories are off by default (batch compile pays zero)");
+    {
+        /* The same shadow source via the plain (batch) entry point emits no
+         * advisory — production compiles run none of it (docs/140). */
+        const char *source =
+            "subject Hero {\n"
+            "    let name: String;\n"
+            "    let hp: Int;\n"
+            "    action Hp(self) -> Int { return hp; }\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let hero = Hero(\"knight\", 100);\n"
+            "    if true {\n"
+            "        let hero: Int = 7;\n"
+            "        Log(hero);\n"
+            "    }\n"
+            "    Log(hero.Hp());\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program); /* advisories OFF */
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->advisory_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -142,7 +175,7 @@ test_squiggle_advisory(void)
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
+        SemanticResult *result = semantic_analyze_ex(program, true);
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
@@ -171,7 +204,7 @@ test_squiggle_advisory(void)
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
+        SemanticResult *result = semantic_analyze_ex(program, true);
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);

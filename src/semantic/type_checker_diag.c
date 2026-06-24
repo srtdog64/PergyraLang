@@ -251,6 +251,12 @@ semantic_advisory_with_hints(SemanticContext *ctx,
                              const char *fmt, ...)
 {
     va_list ap;
+    /* Advisories are an editor recognition aid (docs/140): off unless the LSP
+     * turned them on, so batch/CI compiles emit nothing and pay nothing. This is
+     * the single chokepoint — a producer that forgets to guard its block still
+     * costs only its own condition, never a diagnostic. */
+    if (ctx == NULL || !ctx->emit_advisories)
+        return;
     va_start(ap, fmt);
     /* DIAG_ADVISORY: non-blocking (emit_diagnostic_full sets has_error only for
      * DIAG_ERROR). The "third state" (docs/140) — a meaning-axis squiggle shown

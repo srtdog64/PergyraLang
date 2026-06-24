@@ -94,7 +94,9 @@ publish_diagnostics(const char *uri, const char *source_text)
             "\"fix_source\":\"" PGY_FIX_CHECK_SYNTAX "\"},"
             "\"message\":\"%s\"}", line, line, escaped);
     } else if (ast != NULL) {
-        SemanticResult *sem = semantic_analyze(ast);
+        /* Editor path: advisories on (docs/140). The batch compiler keeps them
+         * off via plain semantic_analyze, so only the LSP pays their cost. */
+        SemanticResult *sem = semantic_analyze_ex(ast, true);
         if (sem != NULL) {
             size_t off = 0;
             size_t emitted = 0;
