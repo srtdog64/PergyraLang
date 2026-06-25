@@ -138,17 +138,12 @@ llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
             pt = pergyra_type_to_llvm(ctx, type_name);
             if (ctx->has_error || pt == NULL)
                 return;
-        } else if (binding != NULL && binding->type == AST_INTENT_VALUE) {
-            ASTNode *value = binding;
-            ASTNode *value_type = ast_intent_value_type(value);
-            alias = ast_intent_value_alias(value);
-            if (value_type != NULL) {
-                type_name = ast_type_name(value_type);
-                pt = ast_type_to_llvm(ctx, value_type);
-                if (ctx->has_error || pt == NULL)
-                    return;
-            }
         }
+        /* Row 607 (SoT docs/125): intent VALUE shape is owned solely by the MIR
+           IntentBinding carrier (the `mir_only_intent && value` branch above).
+           The non-MIR AST value fallback is retired — a value binding without a
+           MIR routine fails closed through the alias/type guard below instead of
+           reopening ast_intent_value_*. */
         if (alias == NULL || pt == NULL) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,

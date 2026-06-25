@@ -351,10 +351,18 @@ English anchor for tooling/doc gates:
   C MIR emission mapping precheck now seeds intent participant/value aliases
   only from MIR carrier rows and fails closed on missing/partial carrier metadata
   instead of silently refilling the map from AST or comparing separate
-  participant/value collector counts. Remaining intent value
-  consumers outside signature/setup/call-site lowering, AST-only event-handler
-  declarator compatibility, and a future dedicated non-AST routine-signature
-  payload remain before C/LLVM/Pergyra tri-parity for compiler-core functions.
+  participant/value collector counts. **Intent value consumers outside
+  signature/setup/call-site lowering are now closed**: the dead non-MIR
+  `ast_intent_value_type(...)` / `ast_intent_value_alias(...)` fallbacks in
+  C/LLVM intent setup, forward declaration, prologue, zone-binding,
+  early-eligibility, and call-site lowering are retired (value bindings without
+  a MIR routine fail closed), and `mir-declaration-inventory-test-smoke` rejects
+  any `ast_intent_value_*` reintroduction in `src/codegen`. Verified: clean
+  C+LLVM build, `test-transpile` 914/0. Only AST-only event-handler/tuple
+  declarator compatibility (inherent — callable/tuple types are not losslessly
+  representable in the `param_type_names` / `return_type_name` string cache) and
+  a future dedicated non-AST routine-signature payload remain before
+  C/LLVM/Pergyra tri-parity for compiler-core functions; both are design-gated.
   C and LLVM intent call-target lowering also validate ordered `IntentBinding`
   row completeness/shape instead of comparing MIR participant/value carrier
   counts against AST intent counts, and MIR-backed call-target lowering uses

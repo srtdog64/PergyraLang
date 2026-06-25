@@ -8145,6 +8145,17 @@ require_term "src/tests/mir/test_mir_lowering_part_h.cases.h" \
     "MIR validator rejects zone refresh metadata drift"
 
 require_term "TODO.md" "declaration-side MIR-only debt"
+
+# Row 607 (SoT docs/125): intent VALUE shape is owned solely by the MIR
+# IntentBinding carrier. Codegen must not reopen ast_intent_value_type(...) or
+# ast_intent_value_alias(...); a value binding without a MIR routine fails
+# closed. This keeps the row's intent-value residue from being reintroduced.
+for f in $(grep -rl "" "$ROOT_DIR/src/codegen" --include='*.c'); do
+    if grep -Eq 'ast_intent_value_(type|alias)\(' "$f"; then
+        fail "Row 607: codegen must consume MIR IntentBinding carrier, not ast_intent_value_*: ${f#$ROOT_DIR/}"
+    fi
+done
+
 require_term "src/compiler/mir_stmt_population_source.c" \
     "inst.abi_type_name ="
 require_term "src/codegen/llvm_stmt_destructure.c" \

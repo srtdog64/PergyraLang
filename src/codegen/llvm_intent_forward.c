@@ -228,14 +228,9 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
                 pt = pergyra_type_to_llvm(ctx, value_type_name);
                 if (ctx->has_error || pt == NULL)
                     return;
-            } else if (binding != NULL && binding->type == AST_INTENT_VALUE) {
-                ASTNode *value_type = ast_intent_value_type(binding);
-                if (value_type != NULL) {
-                    pt = ast_type_to_llvm(ctx, value_type);
-                    if (ctx->has_error || pt == NULL)
-                        return;
-                }
             }
+            /* Row 607: intent VALUE type is MIR-carrier-owned; the non-MIR AST
+               value fallback is retired and fails closed via the guard below. */
             if (pt == NULL) {
                 llvm_set_error_at_with_hints(ctx, node,
                     PGY_CODE_LLVM_TYPE_UNSUPPORTED,

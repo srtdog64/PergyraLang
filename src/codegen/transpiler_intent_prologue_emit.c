@@ -205,7 +205,6 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                 const char *value_type_name = mir_routine != NULL
                     ? intent_binding_metadata_view_type_at(bindings_view, i)
                     : NULL;
-                ASTNode *value_type = NULL;
                 (void)value_index;
                 if (mir_routine != NULL
                     && !intent_binding_metadata_view_row_is_kind(
@@ -216,10 +215,11 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                         intent_name != NULL ? intent_name : "(anonymous-intent)");
                     return false;
                 }
+                /* Row 607: intent VALUE alias is MIR-carrier-owned; non-MIR AST
+                   alias fallback retired (defaults to "value"). */
                 alias = mir_routine != NULL
                     ? intent_binding_metadata_view_alias_at(bindings_view, i)
-                    : ((binding != NULL && ast_intent_value_alias(binding) != NULL)
-                        ? ast_intent_value_alias(binding) : "value");
+                    : "value";
                 if (alias == NULL)
                     alias = "value";
                 if (!transpiler_intent_prologue_surface_desc(surface_desc,
@@ -235,16 +235,10 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                         sizeof(c_type_buf))) {
                     pt = c_type_buf;
                     type_name = pergyra_strdup(value_type_name);
-                } else if (mir_routine == NULL && value_type_name == NULL
-                           && (value_type = binding != NULL
-                               ? ast_intent_value_type(binding) : NULL) != NULL
-                           && transpiler_require_ast_c_type_copy(ctx,
-                               value_type, surface_desc, c_type_buf,
-                               sizeof(c_type_buf))) {
-                    pt = c_type_buf;
-                    if (value_type != NULL)
-                        type_name = render_type_name_in_ctx(ctx, value_type);
                 }
+                /* Row 607: intent VALUE type is MIR-carrier-owned; the non-MIR
+                   AST value-type fallback is retired and fails closed via the
+                   pt==NULL guard below. */
                 if (mir_routine == NULL)
                     value_index++;
             }

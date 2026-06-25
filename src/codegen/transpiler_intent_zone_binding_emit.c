@@ -285,10 +285,11 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 intent_name != NULL ? intent_name : "(anonymous-intent)");
             goto cleanup;
         }
+        /* Row 607: intent VALUE alias is MIR-carrier-owned; non-MIR AST alias
+           fallback retired (defaults to "value"). */
         alias = mir_only_intent
             ? intent_binding_metadata_view_alias_at(&binding_metadata, i)
-            : (binding != NULL && ast_intent_value_alias(binding) != NULL
-                ? ast_intent_value_alias(binding) : "value");
+            : "value";
         if (alias == NULL)
             alias = "value";
         if (!transpiler_intent_binding_surface_desc(surface_desc,
@@ -308,14 +309,9 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                     value_type_name, surface_desc, value_c_type_buf,
                     sizeof(value_c_type_buf))) {
                 pt = value_c_type_buf;
-            } else if (!mir_only_intent && value_type_name == NULL
-                       && transpiler_require_ast_c_type_copy(ctx,
-                           binding != NULL ? ast_intent_value_type(binding) : NULL,
-                           surface_desc,
-                           value_c_type_buf,
-                           sizeof(value_c_type_buf))) {
-                pt = value_c_type_buf;
             }
+            /* Row 607: intent VALUE type is MIR-carrier-owned; non-MIR AST
+               value-type fallback retired, fails closed via guard below. */
             if (pt == NULL) {
                 goto cleanup;
             }
@@ -338,10 +334,6 @@ transpiler_can_forward_declare_intent_early(TranspilerCtx *ctx, ASTNode *intent)
     const MIRRoutine *mir_routine = NULL;
     IntentBindingMetadataView binding_metadata = {0};
     size_t mir_binding_count = 0;
-    ASTNode **involves_nodes;
-    ASTNode **values;
-    size_t involve_count;
-    size_t value_count;
     size_t intent_step_count = 0;
     bool mir_requires_routine = false;
 
@@ -372,37 +364,14 @@ transpiler_can_forward_declare_intent_early(TranspilerCtx *ctx, ASTNode *intent)
         intent_binding_metadata_view_dispose(&binding_metadata);
         return true;
     }
-    involves_nodes = ast_intent_decl_involves(intent, &involve_count);
-    values = ast_intent_decl_values(intent, &value_count);
-    for (size_t i = 0; i < involve_count; i++) {
-        ASTNode *involves = involves_nodes[i];
-        ASTNode *subject_type = NULL;
-        if (involves == NULL || involves->type != AST_INTENT_INVOLVES) {
-            continue;
-        }
-        subject_type = ast_intent_involves_subject_type(involves);
-        if (subject_type == NULL) {
-            continue;
-        }
-        if (!transpiler_can_forward_declare_type_early(
-                ctx, subject_type)) {
-            return false;
-        }
-    }
-    for (size_t i = 0; i < value_count; i++) {
-        ASTNode *value = values[i];
-        ASTNode *value_type = NULL;
-        if (value == NULL || value->type != AST_INTENT_VALUE) {
-            continue;
-        }
-        value_type = ast_intent_value_type(value);
-        if (value_type == NULL) {
-            continue;
-        }
-        if (!transpiler_can_forward_declare_type_early(
-                ctx, value_type)) {
-            return false;
-        }
-    }
-    return true;
+    /* Row 607 (SoT docs/125): intent participant/value shape is owned solely by
+       the MIR routine binding carrier (handled in the mir_routine != NULL block
+       above). Production intents are always routine-backed, so a missing routine
+       here is a MIR-inventory defect, not an AST-fallback opportunity. Fail
+       closed instead of reopening ast_intent_decl_involves/values. */
+    transpiler_set_mir_inventory_missing(
+        ctx,
+        "MIR-only C path missing intent routine for early forward eligibility "
+        "(non-MIR participant/value fallback retired)");
+    return false;
 }

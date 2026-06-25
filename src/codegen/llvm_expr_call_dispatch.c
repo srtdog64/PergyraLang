@@ -318,13 +318,10 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                                 binding_type = ast_intent_involves_subject_type(binding);
                                 type_name = ast_type_name(binding_type);
                             }
-                        } else if (binding != NULL && binding->type == AST_INTENT_VALUE) {
-                            if (ast_intent_value_type(binding) != NULL
-                                && ast_intent_value_type(binding)->type == AST_TYPE) {
-                                binding_type = ast_intent_value_type(binding);
-                                type_name = ast_type_name(binding_type);
-                            }
                         }
+                        /* Row 607: intent VALUE type is MIR-carrier-owned; the
+                           non-MIR AST value fallback is retired. */
+                        (void) binding_type;
                     }
                 }
                 pointer_self = llvm_type_name_uses_pointer_self(ctx, type_name);
@@ -579,19 +576,9 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                                  && ast_class_is_struct(host_decl)))
                             pt = LLVMPointerType(pt, 0);
                     }
-                } else if (binding != NULL && binding->type == AST_INTENT_VALUE) {
-                    if (ast_intent_value_type(binding) != NULL) {
-                        binding_type = ast_intent_value_type(binding);
-                        if (binding_type->type == AST_TYPE)
-                            type_name = ast_type_name(binding_type);
-                        pt = ast_type_to_llvm(ctx, binding_type);
-                    }
-                    if (ctx->has_error || pt == NULL) {
-                        result = llvm_call_error_recovery(ctx, node,
-                            "LLVM intent forward declaration could not lower value type");
-                        goto cleanup;
-                    }
                 }
+                /* Row 607: intent VALUE type is MIR-carrier-owned; the non-MIR
+                   AST value fallback is retired and fails closed below. */
                 if (pt == NULL) {
                     result = llvm_call_error_recovery(ctx, node,
                         "LLVM intent forward declaration requires binding type metadata; silent i8ptr fallback is not allowed");

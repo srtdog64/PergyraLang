@@ -275,9 +275,9 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                             : values[i - involve_count]);
                     if (binding != NULL && binding->type == AST_INTENT_INVOLVES) {
                         intent_param_type = ast_intent_involves_subject_type(binding);
-                    } else if (binding != NULL && binding->type == AST_INTENT_VALUE) {
-                        intent_param_type = ast_intent_value_type(binding);
                     }
+                    /* Row 607: intent VALUE param type is MIR-carrier-owned; the
+                       non-MIR AST value fallback is retired. */
                 }
             }
             if (ctx->backend_error != NULL) {
