@@ -5,6 +5,7 @@
 #include "../common/string_compat.h"
 #include "type_checker_internal.h"
 #include "diag_codes.h"
+#include "compiler/decl_field_model.h"
 
 static void
 class_declare_field_symbol(SemanticContext *ctx, ClassField *field,
@@ -219,6 +220,9 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
     }
     size_t field_count = 0;
     ClassField **fields = ast_class_fields(node, &field_count);
+    /* F2 (docs/144) Phase 1: dual-run the pre-semantic field-shape model against
+       AST. Opt-in (PGY_F2_DRIFT_CHECK); a no-op in default builds. */
+    pgy_class_decl_field_model_drift(node);
     for (size_t i = 0; i < field_count; i++) {
         ClassField *field = fields != NULL ? fields[i] : NULL;
         Type *field_type;

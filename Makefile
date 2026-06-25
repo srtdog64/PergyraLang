@@ -892,6 +892,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_decl_header_zone_state.c \
                    $(COMPILER_DIR)/mir_decl_header_zone_state_validate.c \
                    $(COMPILER_DIR)/mir_decl_header_shape.c \
+                   $(COMPILER_DIR)/decl_field_model.c \
                    $(COMPILER_DIR)/mir_decl_header_fields.c \
                    $(COMPILER_DIR)/mir_decl_header_variants.c \
                    $(COMPILER_DIR)/mir_decl_header_role_validate.c \
