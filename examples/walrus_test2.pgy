@@ -1,3 +1,0 @@
-let y = 10;
-x := 42;
-Log(ToString(x));

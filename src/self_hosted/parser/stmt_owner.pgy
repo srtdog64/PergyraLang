@@ -339,23 +339,6 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
         return Concat(IndentStr(stmt_indent), let_text);
     }
 
-    // Walrus statement: `IDENT := EXPR ;` shorthand for `let IDENT =
-    // EXPR ;`, emitted as `Let: IDENT = EXPR` to match the printer.
-    let walrus_peek: Int = SkipWhitespaceAndComments(content, i);
-    if CharAt(content, walrus_peek) == ":" && CharAt(content, walrus_peek + 1) == "=" {
-        i = walrus_peek + 2;
-        ArraySet(cursor_out, 0, i);
-        let walrus_rhs: String = ParseExpr(content, i, cursor_out);
-        i = cursor_out[0];
-        i = ConsumeStmtTerminator(content, i);
-        if i < 0 {
-            Exit(1);
-        }
-        ArraySet(cursor_out, 0, i);
-        let walrus_text: String = Concat("Let: ", Concat(head, Concat(" = ", walrus_rhs)));
-        return Concat(IndentStr(stmt_indent), walrus_text);
-    }
-
     // Rewind to head's start and parse a primary as the assignment LHS
     // candidate. ParsePrimary handles postfix `.member`, `[idx]`, and
     // `(args)` chains, so `p.x = 5;` and `arr[0] = 5;` are LHS shapes

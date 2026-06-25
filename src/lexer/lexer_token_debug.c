@@ -109,7 +109,6 @@ const char* token_type_to_string(PgyTokenType type) {
         case TOKEN_AT: return "@";
         case TOKEN_COMMA: return ",";
         case TOKEN_COLON: return ":";
-        case TOKEN_COLON_ASSIGN: return ":=";
         case TOKEN_SEMICOLON: return ";";
         case TOKEN_LPAREN: return "(";
         case TOKEN_RPAREN: return ")";

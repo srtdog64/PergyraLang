@@ -235,34 +235,6 @@ ASTNode* parser_parse_statement(Parser* parser) {
         return parser_finalize_statement(parser, parser_parse_let_declaration(parser));
     }
 
-    // := 단축 선언: name := expr
-    // Consume identifier speculatively, check for :=, rewind if not
-    if (parser_check(parser, TOKEN_IDENTIFIER)) {
-        Token saved = parser->current_token;
-        Token saved_prev = parser->previous_token;
-        const char *lx_saved = parser->lexer->current;
-        size_t lx_pos = parser->lexer->position;
-        uint32_t lx_line = parser->lexer->line;
-        uint32_t lx_col = parser->lexer->column;
-
-        parser_advance(parser);  // consume identifier
-        if (parser_check(parser, TOKEN_COLON_ASSIGN)) {
-            parser_advance(parser);  // consume :=
-            ASTNode *init = parser_parse_expression(parser);
-            parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after := declaration");
-            ASTNode *let_node = ast_create_let_declaration(saved.text);
-            let_node->data.let_decl.initializer = init;
-            return let_node;
-        }
-        // Rewind — not a := declaration
-        parser->current_token = saved;
-        parser->previous_token = saved_prev;
-        parser->lexer->current = lx_saved;
-        parser->lexer->position = lx_pos;
-        parser->lexer->line = lx_line;
-        parser->lexer->column = lx_col;
-    }
-
     /* labeled loop: label: while ... / label: for ... */
     if (parser_check(parser, TOKEN_IDENTIFIER)) {
         Token saved = parser->current_token;

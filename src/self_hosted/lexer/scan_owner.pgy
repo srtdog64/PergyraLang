@@ -266,14 +266,6 @@ func LexContent(source_path: String, content: String) -> String {
             col = col + 2;
             continue;
         }
-        // := walrus
-        if c == Ord(":") && n2 == Ord("=") {
-            token_count = token_count + 1;
-            ArrayPush(output_lines, TokenLine(token_count, ":=", ":=", line, col));
-            i = i + 2;
-            col = col + 2;
-            continue;
-        }
         // ?? null-coalesce
         if c == Ord("?") && n2 == Ord("?") {
             token_count = token_count + 1;

@@ -30,7 +30,7 @@ zone CalendarZone
         // new Event(...) 문법이 있는가?
         // 컬렉션에 push하는 패턴이 자연스럽지 않다
 
-        let event_id := owner.calendar.event_count;
+        let event_id = owner.calendar.event_count;
         owner.calendar.event_count = owner.calendar.event_count + 1;
 
         // HashMap<Int, Event> 자체는 가능하지만, 이 예제는 생성/저장 흐름을
@@ -58,7 +58,7 @@ zone CalendarZone
     {
         // ⚠️ 약점: for-in 루프가 없다
         // 이벤트를 순회하며 출력하는 게 불가능하거나 매우 불편
-        let i := 0;
+        let i = 0;
         // while (i < owner.calendar.event_count) { ... }
         // ⚠️ while이 있는가?
         Print("Total events: ");

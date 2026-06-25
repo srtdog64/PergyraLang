@@ -70,19 +70,19 @@
 
 ## 2. 선언
 
-### 2.1 값 선언 (`let` / `:=`)
+### 2.1 값 선언 (`let`)
 
 ```pergyra
-let x = 42;                        // let 키워드
+let x = 42;                        // 타입 추론
 let mut count: Int = 0;             // 명시적 가변 바인딩
 let name: String = "Pergyra";      // 타입 명시
-x := 42;                           // := 단축 선언
 ```
 
 - `let name = expr;` — 기본 선언 (타입 추론)
 - `let mut name = expr;` — mutation intent를 명시하는 선언
 - `let name: Type = expr;` — 타입 명시
-- `name := expr;` — `let`의 축약 (타입 추론 전용)
+- 바인딩은 `let` 하나로 통일한다 — 추론은 타입 생략, 명시는 `: Type`.
+  과거의 `:=` 단축 선언은 `let x = expr`와 중복이라 제거됐다(A안, 2026-06).
 - `let`과 `let mut`은 분리된 표면이다. `let mut`은 로컬 저장소나 필드가
   이후 mutation 대상이라는 사실을 source에 남긴다.
 - `let`이 필요한 이유: 제네릭 `<>` 파서 모호성 해결 (`Array<Int> x` → 비교? 타입?)

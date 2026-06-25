@@ -23,7 +23,6 @@ fmt_token_is_binary_operator(PgyTokenType type)
     case TOKEN_ARROW:
     case TOKEN_CHANNEL_OP:
     case TOKEN_PIPE_ARROW:
-    case TOKEN_COLON_ASSIGN:
         return true;
     default:
         return false;

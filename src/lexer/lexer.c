@@ -378,10 +378,6 @@ Token lexer_next_token(Lexer* lexer) {
             return make_token(lexer, TOKEN_DOT, start, 1);
         case ';': return make_token(lexer, TOKEN_SEMICOLON, start, 1);
         case ':':
-            if (peek(lexer) == '=') {
-                advance(lexer);
-                return make_token(lexer, TOKEN_COLON_ASSIGN, start, 2);
-            }
             return make_token(lexer, TOKEN_COLON, start, 1);
         case '+':
             if (peek(lexer) == '=') {

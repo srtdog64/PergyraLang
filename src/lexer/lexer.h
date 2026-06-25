@@ -166,7 +166,6 @@ typedef enum
     TOKEN_AT,           /* @ (reserved attribute marker) */
     TOKEN_COMMA,        /* , */
     TOKEN_COLON,        /* : */
-    TOKEN_COLON_ASSIGN, /* := */
     TOKEN_SEMICOLON,    /* ; */
     
     /* Delimiters */

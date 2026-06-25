@@ -10,7 +10,7 @@ world CalendarApp
 
 func main()
 {
-    let user := User { name: "Alice", email: "alice@mail.com" };
+    let user = User { name: "Alice", email: "alice@mail.com" };
 
     // ⚠️ 약점: vessel 초기화 문법이 있는가?
     // user.calendar.event_count = 0; 같은 초기화가 필요
