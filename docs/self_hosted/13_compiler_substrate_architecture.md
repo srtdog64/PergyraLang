@@ -153,6 +153,7 @@ compiler replacement.
 | import graph | source-bundle/import owner | prevents duplicate declaration materialization and hidden source order |
 | deterministic collections | collection owner or stable iteration policy | keeps diagnostics, MIR JSON, emitted C, caches, and parity output stable |
 | diagnostic rendering | shared diagnostic owner | prevents raw text or JSON construction in entrypoints |
+| JSON read primitives | shared JSON owner | prevents every fact tool from hand-rolling string scans |
 | type environment | `TypeEnvZone` and stage type-fact owners | prevents backend emitters from re-inferring source types |
 | MIR fact graph | `MirFactGraphZone` | gives backend and self-host lowering one fact source |
 | ABI/layout facts | MIR ABI/layout owner | prevents C/LLVM/self-hosted emitters from inventing layout independently |

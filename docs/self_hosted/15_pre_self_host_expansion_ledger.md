@@ -36,6 +36,7 @@ rule for pre-self-host expansion.
 | Deterministic collections | `MapKeys`, `SetValues` over scalar compiler keys | `stage4-determinism-test-smoke` | stable diagnostics, codegen, MIR JSON, cache keys |
 | Allocator lanes | `AllocatorScratch`, `AllocatorResult`, `AllocatorPersistent`, `AllocatorDestroy` | `runtime-abi-lifetime-test-smoke`, `abi-ownership-shape-test-smoke` | scratch/result/persistent compiler-pass lanes |
 | Diagnostic rendering | `src/self_hosted/lib/diagnostic.pgy` | diagnostic catalog and semantic parity gates | no raw diagnostic construction in entrypoints |
+| JSON read primitives | `src/self_hosted/lib/json.pgy` | component contract and real-source selfcheck | shared string/number/span reads for fact-shaped tools |
 | MIR body facts | MIR source-shape / expression / source-local facts | `cfg-body-dataflow-test-smoke`, `ast-read-surface-smoke`, `self-host-mir-json-parity-test-smoke` | fact-only MIR lowering for the supported subset |
 | Raw/FFI policy | scoped raw/unsafe boundary documents and runtime gates | `raw-escape-contract-test-smoke` | normal compiler slices stay out of raw pointer escape |
 | Bit/layout boundary | `bits(..., order=...)`, `reinterpret(..., layout/endian/abi/world=...)` policy | `abi-ownership-shape-test-smoke`, language contract gates | no hidden logical-bit or backend-local layout defaults |
@@ -49,7 +50,7 @@ They are not optional polish; each one prevents a common fallback shape.
 | Blocker | Required owner | Why it matters |
 |---|---|---|
 | Mixed AST-like tree owner | Pergyra record/class/tagged-node owner plus traversal parity | Replaces text AST consumption with owned compiler data. |
-| Stable JSON parse/emit owner | self-hosted JSON fact reader/writer with schema diagnostics | Stops each tool from inventing ad hoc JSON or string parsing. |
+| Stable JSON parse/emit owner | schema-aware JSON reader/writer with diagnostics | Read primitives are shared; schema validation, object/array iteration, and emit ownership still need one owner. |
 | Subprocess runner | capability-gated process owner | Lets Pergyra runners invoke C/LLVM oracles without shell-only logic. |
 | Symbol/mangle owner | canonical symbol and name-mangling fact table | Prevents C, LLVM, and self-hosted emission from spelling names independently. |
 | ABI/layout row projection | self-hosted consumer of ABI layout facts | Prevents backend-local field order, niche, tag, or ownership-layout guesses. |

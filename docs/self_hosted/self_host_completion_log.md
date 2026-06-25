@@ -1536,3 +1536,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Verified with `make self-host-preparation-contract-test-smoke`,
   `tests/self_hosted/parity/doc_link_checker_parity.sh`,
   `make documentation-quality-test-smoke`, and `git diff --check`.
+
+### 2026-06-26 -- Shared JSON read owner enters self-host substrate
+
+- Added `src/self_hosted/lib/json.pgy` as the shared bounded JSON read
+  primitive owner. It owns string, number, array span, object span, and first
+  array-string reads for fact-shaped self-host tools.
+- Narrowed `src/self_hosted/mir_lower/json_fact_read.pgy` to MIR-specific
+  source-local fact lookup. Generic JSON scanning now comes from the shared
+  owner instead of living inside the MIR-lower consumer.
+- Added `src/self_hosted/lib/json.pgy` to the owner manifest and real-source
+  semantic selfcheck, raising accepted self-host owner/source files from 71 to
+  72.
+- Tightened `self_hosted_component_contract_smoke` so generic JSON read
+  functions cannot move back into `mir_lower/json_fact_read.pgy`.

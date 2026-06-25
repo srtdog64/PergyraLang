@@ -1,0 +1,185 @@
+// Shared JSON string-scan primitives for self-hosted tools.
+//
+// This is not a full JSON DOM. It owns bounded read primitives used by
+// fact-shaped tools so each stage does not invent its own string scanning.
+// Schema-specific decisions still belong to the consuming owner.
+
+func CharAt(s: String, i: Int) -> String {
+    return Substring(s, i, 1);
+}
+
+func FindFrom(hay: String, needle: String, start: Int) -> Int {
+    let n: Int = StringLength(hay);
+    if start < 0 {
+        return -1;
+    }
+    if start > n {
+        return -1;
+    }
+    let rest: String = Substring(hay, start, n - start);
+    let k: Int = StringIndexOf(rest, needle);
+    if k < 0 {
+        return -1;
+    }
+    return start + k;
+}
+
+func JsonArrayEnd(json: String, open: Int, limit: Int) -> Int {
+    let n: Int = StringLength(json);
+    let i: Int = open;
+    let depth: Int = 0;
+    let in_string: Bool = false;
+    let escape: Bool = false;
+    while i < n && i < limit {
+        let c: String = CharAt(json, i);
+        if in_string {
+            if escape {
+                escape = false;
+            } else if c == "\\" {
+                escape = true;
+            } else if c == "\"" {
+                in_string = false;
+            }
+        } else if c == "\"" {
+            in_string = true;
+        } else if c == "[" {
+            depth = depth + 1;
+        } else if c == "]" {
+            depth = depth - 1;
+            if depth == 0 {
+                return i;
+            }
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
+func JsonObjectEnd(json: String, open: Int, limit: Int) -> Int {
+    let n: Int = StringLength(json);
+    let i: Int = open;
+    let depth: Int = 0;
+    let in_string: Bool = false;
+    let escape: Bool = false;
+    while i < n && i < limit {
+        let c: String = CharAt(json, i);
+        if in_string {
+            if escape {
+                escape = false;
+            } else if c == "\\" {
+                escape = true;
+            } else if c == "\"" {
+                in_string = false;
+            }
+        } else if c == "\"" {
+            in_string = true;
+        } else if c == "{" {
+            depth = depth + 1;
+        } else if c == "}" {
+            depth = depth - 1;
+            if depth == 0 {
+                return i + 1;
+            }
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
+func ReadJsonString(json: String, open: Int, inout end: Array<Int>) -> String {
+    let n: Int = StringLength(json);
+    let i: Int = open + 1;
+    let out: String = "";
+    while i < n {
+        let c: String = CharAt(json, i);
+        if c == "\"" {
+            ArraySet(end, 0, i + 1);
+            return out;
+        }
+        if c == "\\" {
+            if i + 1 >= n {
+                return "";
+            }
+            let e: String = CharAt(json, i + 1);
+            if e == "n" {
+                out = Concat(out, "\n");
+            } else if e == "r" {
+                out = Concat(out, "\r");
+            } else if e == "t" {
+                out = Concat(out, "\t");
+            } else if e == "\"" {
+                out = Concat(out, "\"");
+            } else if e == "\\" {
+                out = Concat(out, "\\");
+            } else {
+                out = Concat(out, e);
+            }
+            i = i + 2;
+        } else {
+            out = Concat(out, c);
+            i = i + 1;
+        }
+    }
+    return "";
+}
+
+func JsonFieldString(json: String, start: Int, end: Int, key: String) -> String {
+    let p: Int = FindFrom(json, key, start);
+    if p < 0 || p >= end {
+        return "";
+    }
+    let vstart: Int = p + StringLength(key);
+    if vstart >= end {
+        return "";
+    }
+    if CharAt(json, vstart) != "\"" {
+        return "";
+    }
+    let e: Array<Int> = [0];
+    return ReadJsonString(json, vstart, e);
+}
+
+func JsonIsDigitChar(c: String) -> Bool {
+    return c == "0" || c == "1" || c == "2" || c == "3" || c == "4"
+        || c == "5" || c == "6" || c == "7" || c == "8" || c == "9";
+}
+
+func JsonFieldNumber(json: String, start: Int, end: Int, key: String) -> String {
+    let p: Int = FindFrom(json, key, start);
+    if p < 0 || p >= end {
+        return "";
+    }
+    let i: Int = p + StringLength(key);
+    let n: Int = StringLength(json);
+    let out: String = "";
+    while i < n && i < end {
+        let c: String = CharAt(json, i);
+        if !JsonIsDigitChar(c) {
+            if StringLength(out) > 0 {
+                return out;
+            }
+            return "";
+        }
+        out = Concat(out, c);
+        i = i + 1;
+    }
+    return out;
+}
+
+func JsonFirstArrayString(json: String, start: Int, end: Int, key: String) -> String {
+    let p: Int = FindFrom(json, key, start);
+    if p < 0 || p >= end {
+        return "";
+    }
+    let open: Int = FindFrom(json, "[", p);
+    let close: Int = FindFrom(json, "]", open);
+    if open < 0 || close < 0 || close >= end {
+        return "";
+    }
+    let q: Int = FindFrom(json, "\"", open);
+    if q < 0 || q >= close {
+        return "";
+    }
+    let e: Array<Int> = [0];
+    return ReadJsonString(json, q, e);
+}

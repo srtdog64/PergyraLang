@@ -153,6 +153,13 @@ require_stage_owner_line_cap() {
 
 require_file "src/self_hosted/OWNERS.md"
 require_text "src/self_hosted/OWNERS.md" 'main.pgy` files are entrypoints only'
+require_file "src/self_hosted/lib/json.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lib/json.pgy"
+require_max_lines "src/self_hosted/lib/json.pgy" 600
+require_text "src/self_hosted/lib/json.pgy" "func ReadJsonString"
+require_text "src/self_hosted/lib/json.pgy" "func JsonFieldString"
+require_text "src/self_hosted/lib/json.pgy" "func JsonFieldNumber"
+require_text "src/self_hosted/lib/json.pgy" "func JsonFirstArrayString"
 
 for stage in lexer parser semantic codegen; do
     require_dir "src/self_hosted/$stage"
@@ -368,6 +375,7 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/c
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/main.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/text/text_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/path.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/json.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/source_bundle_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/body_check_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/call_check_owner.pgy"'
@@ -392,8 +400,15 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 71 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 71"
+[[ "$selfcheck_count" -eq 72 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 72"
+
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func SourceLocalType"
+reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func ReadJsonString"
+reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func JsonFieldString"
+reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func JsonFieldNumber"
+reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func JsonFirstArrayString"
 
 semantic_items="$(extract_shell_array_items "$PARITY_DIR/semantic_parity.sh" SOURCE_PAIRS | sed 's/:.*//')"
 [[ -n "$semantic_items" ]] || fail "semantic parity SOURCE_PAIRS is empty"
