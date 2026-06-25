@@ -21,15 +21,16 @@ compiler flow.
   `EmissionZone`; it is not a resource zone.
 - `SourceIntakeZone`, `TokenStreamZone`, `AstTreeZone`,
   `SemanticVerdictZone`, `MirFactGraphZone`, `TypeEnvZone`, `AbiLayoutZone`,
-  `EmissionZone`, and `ParityZone` are the derived resource zones.
+  `TargetCapabilityZone`, `EmissionZone`, and `ParityZone` are the derived
+  resource zones.
 - `StagePathManifest` is the canonical path fact for the self-hosted source,
   test, parity, and stage entrypoint locations.
 - `path_manifest_owner.pgy` owns the current Pergyra string values for those
   paths; `tests/self_hosted/compiler_world_manifest.sh` is the shell projection
   used by the gates.
 - `IntakeSource`, `LexSource`, `ParseTokens`, `CheckProgramSemantics`,
-  `LowerProgramFacts`, `EmitProgramArtifact`, and `ProveSelfHostedParity` are
-  the derived stage intents.
+  `LowerProgramFacts`, `PlanTargetProjection`, `EmitProgramArtifact`, and
+  `ProveSelfHostedParity` are the derived stage intents.
 - Codegen is the projection nerve bundle from the compiler world into backend
   artifacts. It is grouped by resource zones such as `EmissionZone`,
   `TypeEnvZone`, and `AbiLayoutZone`, not by pretending every emitter file owns
@@ -65,6 +66,8 @@ For compiler self-hosting that means:
 - `MirFactGraphZone` owns MIR fact graph state.
 - `TypeEnvZone` owns type binding facts.
 - `AbiLayoutZone` owns ABI/layout facts consumed by backend emitters.
+- `TargetCapabilityZone` owns target acceptance, loss/fallback, and
+  materialization-reason facts consumed before backend emission.
 - `EmissionZone` owns the emitted C text buffer and admits writes through the
   `ProgramEmitter` participant.
 - `ParityZone` owns C/LLVM/Pergyra comparison evidence.
@@ -82,6 +85,8 @@ For codegen this is the concrete split:
   read-mostly type evidence.
 - `AbiLayoutZone`: `object slot layouts: AbiLayoutFacts`, consumed as
   read-only ABI/layout evidence.
+- `TargetCapabilityZone`: `object slot envelope: TargetCapabilityEnvelope`,
+  driven by `subject slot planner: TargetProjectionPlanner`.
 - Future symbol/name-mangling state may become a separate zone only if it owns
   mutable symbol facts. A new emitter file is not enough.
 
@@ -129,8 +134,8 @@ The split unit is a resource-owned intent cluster:
 - source-intake cluster: source path, import bundle, filesystem boundary;
 - token/AST clusters: token stream and AST tree facts;
 - middle-end clusters: semantic verdict and MIR fact flow;
-- backend clusters: type environment, ABI layout facts, emission buffer, and
-  codegen handoff facts;
+- backend clusters: type environment, ABI layout facts, target capability
+  envelope, emission buffer, and codegen handoff facts;
 - parity cluster: C/LLVM/Pergyra oracle comparison facts.
 
 This is deliberately not "one file per small intent." Too many tiny files would

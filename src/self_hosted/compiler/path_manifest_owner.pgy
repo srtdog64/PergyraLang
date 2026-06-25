@@ -28,6 +28,10 @@ func CompilerStageIntentsPath() -> String {
     return "src/self_hosted/compiler/stage_intents.pgy";
 }
 
+func CompilerTargetCapabilityOwnerPath() -> String {
+    return "src/self_hosted/compiler/target_capability_owner.pgy";
+}
+
 func CompilerOwnerManifestPath() -> String {
     return "src/self_hosted/OWNERS.md";
 }
@@ -82,7 +86,7 @@ func CompilerParityPathAt(index: Int) -> String {
 }
 
 func CompilerWorldManifestPathCount() -> Int {
-    return 15;
+    return 16;
 }
 
 func CompilerWorldManifestPathAt(index: Int) -> String {
@@ -96,13 +100,16 @@ func CompilerWorldManifestPathAt(index: Int) -> String {
         return CompilerStageIntentsPath();
     }
     if index == 3 {
+        return CompilerTargetCapabilityOwnerPath();
+    }
+    if index == 4 {
         return CompilerOwnerManifestPath();
     }
-    if index < 9 {
-        return CompilerStagePathAt(index - 4);
+    if index < 10 {
+        return CompilerStagePathAt(index - 5);
     }
-    if index < 15 {
-        return CompilerParityPathAt(index - 9);
+    if index < 16 {
+        return CompilerParityPathAt(index - 10);
     }
     return "";
 }

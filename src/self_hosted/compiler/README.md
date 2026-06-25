@@ -18,7 +18,7 @@ Pergyra self-hosting should be organized around the language's own surface.
 compiler intent. The source unit flows through derived resource zones
 (`SourceIntakeZone`, `TokenStreamZone`, `AstTreeZone`,
 `SemanticVerdictZone`, `MirFactGraphZone`, `TypeEnvZone`, `AbiLayoutZone`,
-`EmissionZone`, and `ParityZone`), and each zone is driven by a smaller intent. The stage actors
+`TargetCapabilityZone`, `EmissionZone`, and `ParityZone`), and each zone is driven by a smaller intent. The stage actors
 are named by what they own: `LexerStage`, `ParserStage`, `SemanticStage`, and
 `MirLowerStage` drive token, AST, semantic verdict, and MIR fact resources
 respectively. There is no generic `StageOwner` alias in the compiler world.
@@ -33,9 +33,16 @@ through a fact, view, or intent boundary? A codegen file like `stmt_emit.pgy` is
 a participant in the emission action graph; it is not a zone merely because it
 is a file. A zone appears when there is a distinct owned resource such as token
 facts, AST facts, semantic verdicts, MIR facts, type bindings, an emitted-C
-buffer, ABI layout facts, or parity evidence.
+buffer, ABI layout facts, target-capability facts, or parity evidence.
 `EmissionZone` owns the emitted-C buffer; `ProgramEmitter` is the participant
 that drives writes into that buffer.
+
+`TargetCapabilityZone` owns the projection envelope consumed before backend
+emission. `target_capability_owner.pgy` names the accepted projection facts and
+the fallback reasons (`unsupported_shape`, `forbidden_loss_budget`,
+`retained_effect`, `missing_authority_evidence`, and
+`host_only_slot_boundary`). That keeps CPU fallback or future accelerator
+rejects visible as facts instead of backend-local choices.
 
 `stage_intents.pgy` owns derived intent clusters such as `FrontendPipeline`,
 `MiddleEndPipeline`, `BackendPipeline`, and `SelfProofPipeline`. These clusters

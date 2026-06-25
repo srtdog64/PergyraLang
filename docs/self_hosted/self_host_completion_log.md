@@ -86,6 +86,28 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-26 -- Target capability envelope enters compiler world
+
+- Added `src/self_hosted/compiler/target_capability_owner.pgy` as the
+  self-hosted owner for target acceptance and fallback facts. It names the
+  current projection set (`cpu-c`, `cpu-llvm`, `self-hosted`), the projection
+  fact envelope (`intent_graph`, `effect_set`, `authority_evidence`,
+  `coordination`, `slot_ownership`, `layout_shape`, `loss_budget`,
+  `materialization_reason`), and explicit fallback reasons
+  (`unsupported_shape`, `forbidden_loss_budget`, `retained_effect`,
+  `missing_authority_evidence`, `host_only_slot_boundary`).
+- Wired `TargetCapabilityZone`, `TargetCapabilityEnvelope`, and
+  `TargetProjectionPlanner` into `PgyCompilerWorld`. `BackendPipeline` now
+  passes through `PlanTargetProjection(...)` before emission, so backend
+  replacement/fallback is represented as a compiler-world fact boundary rather
+  than prose only.
+- Added the owner to `StagePathManifest`, the shell compiler-world manifest,
+  `OWNERS.md`, and the real-source semantic selfcheck manifest, raising that
+  manifest from 72 to 73 accepted self-host owner/source files.
+- Tightened the compiler-world and component gates so the target-capability
+  owner, fallback vocabulary, zone, object, and pipeline step cannot disappear
+  silently.
+
 ### 2026-06-25 -- Codegen SeedRandom, indexed arrays, and mir_lower breadth enter bootstrap
 
 - Closed the self-hosted codegen `SeedRandom(seed)` builtin gap. The token

@@ -1,0 +1,148 @@
+// Self-host compiler target-capability owner.
+//
+// Owns the target acceptance/fallback envelope that backend projections must
+// consume before emission. This is a fact owner, not an accelerator backend.
+
+func CompilerTargetCapabilitySchema() -> String {
+    return "pgy.selfhost.target-capability-envelope.v1";
+}
+
+func CompilerTargetProjectionCount() -> Int {
+    return 3;
+}
+
+func CompilerTargetProjectionAt(index: Int) -> String {
+    if index == 0 {
+        return "cpu-c";
+    }
+    if index == 1 {
+        return "cpu-llvm";
+    }
+    if index == 2 {
+        return "self-hosted";
+    }
+    return "";
+}
+
+func CompilerTargetFactCount() -> Int {
+    return 8;
+}
+
+func CompilerTargetFactAt(index: Int) -> String {
+    if index == 0 {
+        return "intent_graph";
+    }
+    if index == 1 {
+        return "effect_set";
+    }
+    if index == 2 {
+        return "authority_evidence";
+    }
+    if index == 3 {
+        return "coordination";
+    }
+    if index == 4 {
+        return "slot_ownership";
+    }
+    if index == 5 {
+        return "layout_shape";
+    }
+    if index == 6 {
+        return "loss_budget";
+    }
+    if index == 7 {
+        return "materialization_reason";
+    }
+    return "";
+}
+
+func CompilerTargetFallbackReasonCount() -> Int {
+    return 5;
+}
+
+func CompilerTargetFallbackReasonAt(index: Int) -> String {
+    if index == 0 {
+        return "unsupported_shape";
+    }
+    if index == 1 {
+        return "forbidden_loss_budget";
+    }
+    if index == 2 {
+        return "retained_effect";
+    }
+    if index == 3 {
+        return "missing_authority_evidence";
+    }
+    if index == 4 {
+        return "host_only_slot_boundary";
+    }
+    return "";
+}
+
+func CompilerTargetFactKnown(fact: String) -> Bool {
+    let i: Int = 0;
+    while i < CompilerTargetFactCount() {
+        if CompilerTargetFactAt(i) == fact {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CompilerTargetFallbackReasonKnown(reason: String) -> Bool {
+    let i: Int = 0;
+    while i < CompilerTargetFallbackReasonCount() {
+        if CompilerTargetFallbackReasonAt(i) == reason {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CompilerTargetCapabilityEnvelopeReady() -> Bool {
+    if CompilerTargetProjectionCount() != 3 {
+        return false;
+    }
+    if !CompilerTargetFactKnown("intent_graph") {
+        return false;
+    }
+    if !CompilerTargetFactKnown("effect_set") {
+        return false;
+    }
+    if !CompilerTargetFactKnown("authority_evidence") {
+        return false;
+    }
+    if !CompilerTargetFactKnown("coordination") {
+        return false;
+    }
+    if !CompilerTargetFactKnown("slot_ownership") {
+        return false;
+    }
+    if !CompilerTargetFactKnown("layout_shape") {
+        return false;
+    }
+    if !CompilerTargetFactKnown("loss_budget") {
+        return false;
+    }
+    if !CompilerTargetFactKnown("materialization_reason") {
+        return false;
+    }
+    if !CompilerTargetFallbackReasonKnown("unsupported_shape") {
+        return false;
+    }
+    if !CompilerTargetFallbackReasonKnown("forbidden_loss_budget") {
+        return false;
+    }
+    if !CompilerTargetFallbackReasonKnown("retained_effect") {
+        return false;
+    }
+    if !CompilerTargetFallbackReasonKnown("missing_authority_evidence") {
+        return false;
+    }
+    if !CompilerTargetFallbackReasonKnown("host_only_slot_boundary") {
+        return false;
+    }
+    return true;
+}

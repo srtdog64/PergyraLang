@@ -62,6 +62,7 @@ require_file "src/self_hosted/compiler/README.md"
 require_file "src/self_hosted/compiler/world.pgy"
 require_file "src/self_hosted/compiler/path_manifest_owner.pgy"
 require_file "src/self_hosted/compiler/stage_intents.pgy"
+require_file "src/self_hosted/compiler/target_capability_owner.pgy"
 require_file "docs/self_hosted/11_compiler_world_architecture.md"
 require_file "docs/self_hosted/12_intent_zone_self_host_architecture.md"
 require_file "docs/self_hosted/13_compiler_substrate_architecture.md"
@@ -77,6 +78,7 @@ pgy_compiler_world_require_stage_conformance "$ROOT_DIR" ||
     fail "compiler world stages do not conform to the on-disk stage owners"
 require_max_lines "src/self_hosted/compiler/world.pgy" 600
 require_max_lines "src/self_hosted/compiler/path_manifest_owner.pgy" 200
+require_max_lines "src/self_hosted/compiler/target_capability_owner.pgy" 200
 
 for term in \
     "world PgyCompilerWorld" \
@@ -88,6 +90,7 @@ for term in \
     "zone MirFactGraphZone" \
     "zone TypeEnvZone" \
     "zone AbiLayoutZone" \
+    "zone TargetCapabilityZone" \
     "zone EmissionZone" \
     "zone ParityZone" \
     "intent CompilePergyraProgram" \
@@ -106,6 +109,7 @@ for term in \
     "intent CheckProgramSemantics" \
     "intent LowerProgramFacts" \
     "intent EmitProgramArtifact" \
+    "intent PlanTargetProjection" \
     "intent ProveSelfHostedParity" \
     "subject SourceUnit" \
     "subject LexerStage" \
@@ -118,6 +122,8 @@ for term in \
     "action Lower" \
     "subject ProgramEmitter" \
     "action Emit" \
+    "subject TargetProjectionPlanner" \
+    "action Plan" \
     "subject OraclePair" \
     "object SourceBatch" \
     "object StagePathManifest" \
@@ -131,6 +137,7 @@ for term in \
     "object MirFactGraph" \
     "object TypeEnvironment" \
     "object AbiLayoutFacts" \
+    "object TargetCapabilityEnvelope" \
     "object EmittedC" \
     "tobject ParityVerdict" \
     "subject slot lexer: LexerStage" \
@@ -139,12 +146,16 @@ for term in \
     "subject slot lowerer: MirLowerStage" \
     "subject slot emitter: ProgramEmitter" \
     "object slot abi_layout: AbiLayoutFacts" \
+    "object slot target_capability: TargetCapabilityEnvelope" \
     "object slot layouts: AbiLayoutFacts" \
+    "object slot envelope: TargetCapabilityEnvelope" \
     "zone abi_layout: AbiLayoutZone" \
-    "BackendPipeline(types, abi_layout, emit_zone, emitter)"; do
+    "zone target_capability: TargetCapabilityZone" \
+    "BackendPipeline(types, abi_layout, target_capability_zone, emit_zone, target_planner, emitter)"; do
     require_text "src/self_hosted/compiler/world.pgy" "$term"
 done
 require_text "src/self_hosted/compiler/world.pgy" 'import "path_manifest_owner.pgy"'
+require_text "src/self_hosted/compiler/world.pgy" 'import "target_capability_owner.pgy"'
 
 for term in \
     "func SelfHostSourceDir" \
@@ -153,6 +164,7 @@ for term in \
     "func CompilerWorldPath" \
     "func CompilerPathManifestPath" \
     "func CompilerStageIntentsPath" \
+    "func CompilerTargetCapabilityOwnerPath" \
     "func CompilerOwnerManifestPath" \
     "func CompilerStagePathAt" \
     "func CompilerParityPathAt" \
@@ -162,12 +174,36 @@ done
 for term in \
     "return CompilerPathManifestPath();" \
     "return CompilerStageIntentsPath();" \
+    "return CompilerTargetCapabilityOwnerPath();" \
     "return CompilerOwnerManifestPath();" \
-    "if index < 9" \
-    "CompilerStagePathAt(index - 4)" \
-    "if index < 15" \
-    "CompilerParityPathAt(index - 9)"; do
+    "if index < 10" \
+    "CompilerStagePathAt(index - 5)" \
+    "if index < 16" \
+    "CompilerParityPathAt(index - 10)"; do
     require_text "src/self_hosted/compiler/path_manifest_owner.pgy" "$term"
+done
+
+for term in \
+    "func CompilerTargetCapabilitySchema" \
+    "pgy.selfhost.target-capability-envelope.v1" \
+    "func CompilerTargetProjectionAt" \
+    "func CompilerTargetFactAt" \
+    "func CompilerTargetFallbackReasonAt" \
+    "func CompilerTargetCapabilityEnvelopeReady" \
+    "intent_graph" \
+    "effect_set" \
+    "authority_evidence" \
+    "coordination" \
+    "slot_ownership" \
+    "layout_shape" \
+    "loss_budget" \
+    "materialization_reason" \
+    "unsupported_shape" \
+    "forbidden_loss_budget" \
+    "retained_effect" \
+    "missing_authority_evidence" \
+    "host_only_slot_boundary"; do
+    require_text "src/self_hosted/compiler/target_capability_owner.pgy" "$term"
 done
 
 for rel in \
@@ -193,6 +229,7 @@ for term in \
     "intent FrontendPipeline" \
     "intent MiddleEndPipeline" \
     "intent BackendPipeline" \
+    "target_capability: TargetCapabilityZone" \
     "intent SelfProofPipeline" \
     "step Intake" \
     "step Lex" \
@@ -200,14 +237,17 @@ for term in \
     "step Check" \
     "step Lower" \
     "step Emit" \
+    "step PlanTarget" \
     "step Prove" \
     "IntakeSource(intake, source)" \
     "LexSource(tokens, lexer)" \
     "ParseTokens(ast, parser)" \
     "CheckProgramSemantics(semantic_zone, checker)" \
     "LowerProgramFacts(lower_zone, lowerer)" \
+    "PlanTargetProjection(target_capability, target_planner)" \
     "EmitProgramArtifact(emit_zone, types, abi_layout, emitter)" \
     "abi_layout: AbiLayoutZone" \
+    "target_planner: TargetProjectionPlanner" \
     "ProveSelfHostedParity(parity_zone, oracle)"; do
     require_text "src/self_hosted/compiler/stage_intents.pgy" "$term"
 done
@@ -243,6 +283,7 @@ forbid_text "src/self_hosted/compiler/README.md" "??"
 
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/world.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/stage_intents.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/target_capability_owner.pgy"
 require_text "src/self_hosted/README.md" "compiler/world.pgy"
 require_text "docs/self_hosted/README.md" "11_compiler_world_architecture.md"
 require_text "docs/self_hosted/README.md" "12_intent_zone_self_host_architecture.md"
@@ -338,6 +379,7 @@ require_text "docs/self_hosted/14_target_compiler_world.md" "Artifact Zone"
 require_text "docs/self_hosted/14_target_compiler_world.md" "projection nerve bundle"
 require_text "docs/self_hosted/14_target_compiler_world.md" "No hidden materialization"
 require_text "docs/self_hosted/14_target_compiler_world.md" "runtime materialization classification"
+require_text "docs/self_hosted/14_target_compiler_world.md" "target-capability gate"
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "Pre-Self-Host Expansion Ledger"
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "Expansion Import Rule"
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "Ready Surfaces"
@@ -388,6 +430,8 @@ grep -Fq "Zone: TypeEnvZone" "$ast_out" ||
     fail "compiler world AST missing TypeEnvZone zone"
 grep -Fq "Zone: AbiLayoutZone" "$ast_out" ||
     fail "compiler world AST missing AbiLayoutZone zone"
+grep -Fq "Zone: TargetCapabilityZone" "$ast_out" ||
+    fail "compiler world AST missing TargetCapabilityZone zone"
 grep -Fq "Subject: LexerStage" "$ast_out" ||
     fail "compiler world AST missing LexerStage subject"
 grep -Fq "Subject: ParserStage" "$ast_out" ||
@@ -398,11 +442,15 @@ grep -Fq "Subject: MirLowerStage" "$ast_out" ||
     fail "compiler world AST missing MirLowerStage subject"
 grep -Fq "Subject: ProgramEmitter" "$ast_out" ||
     fail "compiler world AST missing ProgramEmitter subject"
+grep -Fq "Subject: TargetProjectionPlanner" "$ast_out" ||
+    fail "compiler world AST missing TargetProjectionPlanner subject"
 grep -Fq "Object: StagePathManifest" "$ast_out" ||
     fail "compiler world AST missing StagePathManifest object"
 grep -Fq "Object: TypeEnvironment" "$ast_out" ||
     fail "compiler world AST missing TypeEnvironment object"
 grep -Fq "Object: AbiLayoutFacts" "$ast_out" ||
     fail "compiler world AST missing AbiLayoutFacts object"
+grep -Fq "Object: TargetCapabilityEnvelope" "$ast_out" ||
+    fail "compiler world AST missing TargetCapabilityEnvelope object"
 
 echo "[self-host-compiler-world] compiler world source shape ok"

@@ -9,6 +9,7 @@ PGY_SELFHOST_PARITY_DIR="tests/self_hosted/parity"
 PGY_SELFHOST_COMPILER_WORLD_PATH="src/self_hosted/compiler/world.pgy"
 PGY_SELFHOST_COMPILER_PATH_MANIFEST_PATH="src/self_hosted/compiler/path_manifest_owner.pgy"
 PGY_SELFHOST_COMPILER_STAGE_INTENTS_PATH="src/self_hosted/compiler/stage_intents.pgy"
+PGY_SELFHOST_COMPILER_TARGET_CAPABILITY_PATH="src/self_hosted/compiler/target_capability_owner.pgy"
 
 PGY_SELFHOST_STAGE_PATHS=(
     "src/self_hosted/lexer/main.pgy"
@@ -31,6 +32,7 @@ PGY_SELFHOST_COMPILER_WORLD_MANIFEST_PATHS=(
     "$PGY_SELFHOST_COMPILER_WORLD_PATH"
     "$PGY_SELFHOST_COMPILER_PATH_MANIFEST_PATH"
     "$PGY_SELFHOST_COMPILER_STAGE_INTENTS_PATH"
+    "$PGY_SELFHOST_COMPILER_TARGET_CAPABILITY_PATH"
     "src/self_hosted/OWNERS.md"
     "${PGY_SELFHOST_STAGE_PATHS[@]}"
     "${PGY_SELFHOST_PARITY_PATHS[@]}"

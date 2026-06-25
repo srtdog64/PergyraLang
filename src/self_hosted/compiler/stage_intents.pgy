@@ -72,10 +72,20 @@ intent MiddleEndPipeline(
 intent BackendPipeline(
     types: TypeEnvZone,
     abi_layout: AbiLayoutZone,
+    target_capability: TargetCapabilityZone,
     emit_zone: EmissionZone,
+    target_planner: TargetProjectionPlanner,
     emitter: ProgramEmitter
 ) {
     exclusive;
+
+    step PlanTarget {
+        where: TargetCapabilityZone;
+        using: target_capability;
+        who: target_planner;
+        on: PlanTargetProjection(target_capability, target_planner);
+        expect: true;
+    }
 
     step Emit {
         where: EmissionZone;

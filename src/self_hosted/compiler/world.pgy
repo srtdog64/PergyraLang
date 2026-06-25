@@ -1,3 +1,6 @@
+import "path_manifest_owner.pgy";
+import "target_capability_owner.pgy";
+
 subject SourceUnit {
     let path: String;
 
@@ -43,6 +46,14 @@ subject ProgramEmitter {
 
     action Emit(self) -> Bool {
         return true;
+    }
+}
+
+subject TargetProjectionPlanner {
+    let name: String;
+
+    action Plan(self) -> Bool {
+        return CompilerTargetCapabilityEnvelopeReady();
     }
 }
 
@@ -96,6 +107,10 @@ object AbiLayoutFacts {
     schema: String;
 }
 
+object TargetCapabilityEnvelope {
+    schema: String;
+}
+
 object EmittedC {
     schema: String;
 }
@@ -104,7 +119,6 @@ tobject ParityVerdict {
     schema: String;
 }
 
-import "path_manifest_owner.pgy";
 import "stage_intents.pgy";
 
 zone SourceIntakeZone {
@@ -141,6 +155,11 @@ zone AbiLayoutZone {
     object slot layouts: AbiLayoutFacts
 }
 
+zone TargetCapabilityZone {
+    subject slot planner: TargetProjectionPlanner
+    object slot envelope: TargetCapabilityEnvelope
+}
+
 zone EmissionZone {
     subject slot emitter: ProgramEmitter
     object slot c_output: EmittedC
@@ -158,6 +177,7 @@ zone SelfHostCompiler {
     subject slot checker: SemanticStage
     subject slot lowerer: MirLowerStage
     subject slot emitter: ProgramEmitter
+    subject slot target_planner: TargetProjectionPlanner
     subject slot oracle: OraclePair
     object slot paths: StagePathManifest
     object slot source_batch: SourceBatch
@@ -167,6 +187,7 @@ zone SelfHostCompiler {
     object slot mir: MirFactGraph
     object slot type_env: TypeEnvironment
     object slot abi_layout: AbiLayoutFacts
+    object slot target_capability: TargetCapabilityEnvelope
     object slot c_output: EmittedC
     tobject slot parity: ParityVerdict
 }
@@ -180,6 +201,7 @@ world PgyCompilerWorld {
     zone mir: MirFactGraphZone
     zone type_env: TypeEnvZone
     zone abi_layout: AbiLayoutZone
+    zone target_capability: TargetCapabilityZone
     zone emission: EmissionZone
     zone parity: ParityZone
 }
@@ -274,6 +296,21 @@ intent EmitProgramArtifact(emit_zone: EmissionZone, types: TypeEnvZone, abi_layo
     failure: false;
 }
 
+intent PlanTargetProjection(targets: TargetCapabilityZone, planner: TargetProjectionPlanner) {
+    exclusive;
+
+    step OwnEnvelope {
+        where: TargetCapabilityZone;
+        using: targets;
+        who: planner;
+        on: planner.Plan();
+        expect: true;
+    }
+
+    success: true;
+    failure: false;
+}
+
 intent ProveSelfHostedParity(parity_zone: ParityZone, oracle: OraclePair) {
     exclusive;
 
@@ -298,6 +335,7 @@ intent CompilePergyraProgram(
     lower_zone: MirFactGraphZone,
     types: TypeEnvZone,
     abi_layout: AbiLayoutZone,
+    target_capability_zone: TargetCapabilityZone,
     emit_zone: EmissionZone,
     parity_zone: ParityZone,
     source: SourceUnit,
@@ -307,6 +345,7 @@ intent CompilePergyraProgram(
     checker: SemanticStage,
     lowerer: MirLowerStage,
     emitter: ProgramEmitter,
+    target_planner: TargetProjectionPlanner,
     oracle: OraclePair
 ) {
     exclusive;
@@ -331,7 +370,7 @@ intent CompilePergyraProgram(
         where: EmissionZone;
         using: emit_zone;
         who: emitter;
-        on: BackendPipeline(types, abi_layout, emit_zone, emitter);
+        on: BackendPipeline(types, abi_layout, target_capability_zone, emit_zone, target_planner, emitter);
         expect: true;
     }
 

@@ -20,7 +20,7 @@ That gives the self-host compiler three layers:
 1. `PgyCompilerWorld` names the whole compiler world.
 2. Resource zones own compiler state: source intake, token stream, AST tree,
    semantic verdict, MIR fact graph, type facts, ABI layout facts, emitted
-   artifact, and parity evidence.
+   artifact, target capability envelope, and parity evidence.
 3. Intent clusters compose those zones into compiler actions.
 
 ## Compiler World Shape
@@ -38,12 +38,18 @@ clusters:
 
 - `FrontendPipeline`: source intake -> lexer -> parser.
 - `MiddleEndPipeline`: semantic verdict -> MIR fact graph.
-- `BackendPipeline`: type facts + ABI layout facts -> emitted C artifact.
+- `PlanTargetProjection`: target acceptance/fallback facts before backend
+  emission.
+- `BackendPipeline`: type facts + ABI layout facts + target capability envelope
+  -> emitted C artifact.
 - `SelfProofPipeline`: C/LLVM/Pergyra oracle comparison evidence.
 
 These are intent clusters, not zones. They reuse `SourceIntakeZone`,
 `TokenStreamZone`, `AstTreeZone`, `SemanticVerdictZone`, `MirFactGraphZone`,
 `TypeEnvZone`, `AbiLayoutZone`, `EmissionZone`, and `ParityZone`.
+`TargetCapabilityZone` sits between ABI layout facts and emission so backend
+projections cannot silently accept, reject, or fall back without an owned
+reason.
 The participants are also stage-specific: `LexerStage` scans token facts,
 `ParserStage` builds AST facts, `SemanticStage` proves semantic verdict facts,
 and `MirLowerStage` lowers MIR facts. Do not collapse those actors back into a
@@ -56,6 +62,8 @@ Self-hosted codegen is a backend resource cluster:
 - `TypeEnvZone` owns type binding facts.
 - `AbiLayoutZone` owns ABI/layout facts such as field order, representation
   kind, tag/niche policy, and payload offsets.
+- `TargetCapabilityZone` owns the projection envelope: accepted target facts,
+  loss/quantization budget, materialization reason, and fallback reason.
 - `EmissionZone` owns the emitted C text buffer.
 - `ProgramEmitter` is the participant that writes through `EmissionZone`.
 - `program_emit`, `function_emit`, `stmt_emit`, `expr_rewrite`, and
