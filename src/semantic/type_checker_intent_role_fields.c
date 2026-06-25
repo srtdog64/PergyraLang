@@ -7,66 +7,70 @@
 #include <string.h>
 
 static Type *
-intent_role_resolve_field_type(ClassField *field, SemanticContext *ctx)
+intent_role_resolve_field_type(ASTNode *field_type, SemanticContext *ctx)
 {
-    if (field == NULL)
+    if (field_type == NULL)
         return NULL;
-    return intent_normalize_type(intent_resolve_type_ref(field->type, ctx));
+    return intent_normalize_type(intent_resolve_type_ref(field_type, ctx));
 }
 
-static ClassField *
+/* F2 (docs/144) Phase 3b: these finders consume the pre-semantic field-shape
+   model and return PgyDeclField by value ("not found" == name == NULL). */
+static PgyDeclField
 find_nominal_field_by_name(ASTNode *decl, const char *field_name)
 {
+    PgyDeclField empty = {0};
     if (decl == NULL || decl->type != AST_CLASS_DECL || field_name == NULL)
-        return NULL;
+        return empty;
 
-    size_t field_count = 0;
-    ClassField **fields = ast_class_fields(decl, &field_count);
+    PgyDeclField *fields = NULL;
+    size_t field_count = pgy_class_decl_field_model_build(decl, &fields);
+    PgyDeclField result = empty;
     for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = fields != NULL ? fields[i] : NULL;
-        if (field != NULL && field->name != NULL
-            && strcmp(field->name, field_name) == 0) {
-            return field;
+        if (fields[i].name != NULL && strcmp(fields[i].name, field_name) == 0) {
+            result = fields[i];
+            break;
         }
     }
-
-    return NULL;
+    pgy_decl_field_model_free(fields, field_count);
+    return result;
 }
 
-static ClassField *
+static PgyDeclField
 find_subject_surface_field_by_name(SemanticContext *ctx,
                                    ASTNode *subject_decl,
                                    const char *field_name,
                                    const char **container_field_name_out)
 {
+    PgyDeclField empty = {0};
     if (container_field_name_out != NULL)
         *container_field_name_out = NULL;
 
     if (ctx == NULL || subject_decl == NULL
         || subject_decl->type != AST_CLASS_DECL || field_name == NULL) {
-        return NULL;
+        return empty;
     }
 
     {
-        ClassField *direct = find_nominal_field_by_name(subject_decl, field_name);
-        if (direct != NULL)
+        PgyDeclField direct = find_nominal_field_by_name(subject_decl, field_name);
+        if (direct.name != NULL)
             return direct;
     }
 
-    size_t field_count = 0;
-    ClassField **fields = ast_class_fields(subject_decl, &field_count);
+    PgyDeclField *fields = NULL;
+    size_t field_count = pgy_class_decl_field_model_build(subject_decl, &fields);
+    PgyDeclField result = empty;
     for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = fields != NULL ? fields[i] : NULL;
         ASTNode *vessel_decl;
-        ClassField *nested;
+        PgyDeclField nested;
         Type *field_type;
 
-        if (field == NULL || !field->is_vessel_field || field->type == NULL
-            || field->name == NULL) {
+        if (!fields[i].is_vessel_field || fields[i].type_ast == NULL
+            || fields[i].name == NULL) {
             continue;
         }
 
-        field_type = intent_role_resolve_field_type(field, ctx);
+        field_type = intent_role_resolve_field_type(fields[i].type_ast, ctx);
         vessel_decl = semantic_host_decl_for_type(ctx, field_type);
         if (vessel_decl == NULL || vessel_decl->type != AST_CLASS_DECL
             || ast_class_nominal_kind(vessel_decl) != NOMINAL_DECL_VESSEL) {
@@ -74,14 +78,15 @@ find_subject_surface_field_by_name(SemanticContext *ctx,
         }
 
         nested = find_nominal_field_by_name(vessel_decl, field_name);
-        if (nested != NULL) {
+        if (nested.name != NULL) {
             if (container_field_name_out != NULL)
-                *container_field_name_out = field->name;
-            return nested;
+                *container_field_name_out = fields[i].name;
+            result = nested;
+            break;
         }
     }
-
-    return NULL;
+    pgy_decl_field_model_free(fields, field_count);
+    return result;
 }
 
 static void
@@ -272,7 +277,7 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
         ASTNode *req = ast_ability_require_field(ability_decl, i);
         const char *req_name = ast_require_field_name(req);
         ASTNode *req_type = ast_require_field_type(req);
-        ClassField *field;
+        PgyDeclField field;
         const char *container_field_name = NULL;
         const char *bound_name = ast_class_name(bound_decl);
         Type *required_type;
@@ -284,7 +289,7 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
 
         field = find_subject_surface_field_by_name(ctx, bound_decl, req_name,
                                                    &container_field_name);
-        if (field == NULL) {
+        if (field.name == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ROLE_CONTRACT_INVALID, PGY_CAUSE_ROLE_CONTRACT, PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY, role_decl,
                 "Role '%s' cannot implement ability '%s' because subject '%s' is missing required field '%s'.\n"
                 "Reason:\n"
@@ -314,7 +319,7 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
                                                  role_decl,
                                                  ctx,
                                                  &required_type);
-        field_type = intent_role_resolve_field_type(field, ctx);
+        field_type = intent_role_resolve_field_type(field.type_ast, ctx);
         if (required_type != NULL && field_type != NULL
             && !type_is_assignable(field_type, required_type)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ROLE_CONTRACT_INVALID, PGY_CAUSE_ROLE_CONTRACT, PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY, role_decl,

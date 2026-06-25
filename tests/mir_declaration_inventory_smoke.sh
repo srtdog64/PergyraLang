@@ -8165,11 +8165,22 @@ for f in \
     "src/semantic/type_checker_resolution_stage_nominal.c" \
     "src/semantic/type_checker_assignment.c" \
     "src/semantic/type_checker_projection_path.c" \
-    "src/semantic/type_checker_helpers_resources.c"; do
+    "src/semantic/type_checker_helpers_resources.c" \
+    "src/semantic/type_checker_intent_role_fields.c"; do
     if grep -Eq 'ast_class_fields[[:space:]]*\(' "$ROOT_DIR/$f"; then
         fail "F2: migrated semantic consumer must consume PgyDeclField, not ast_class_fields(): $f"
     fi
 done
+
+# F2: the ONLY remaining ast_class_fields READER allowed in src/semantic is the
+# generic-shell AST *writer* in type_checker_class_decl.c (it mutates field->type
+# during parse-completion; the model is read-only over finalized AST). Every
+# other class-field shape read must go through the PgyDeclField model. Enforce
+# that the semantic-wide reader count stays at exactly that one writer site.
+sem_acf=$(grep -rE 'ast_class_fields[[:space:]]*\(' "$ROOT_DIR/src/semantic" --include='*.c' | wc -l | tr -d ' ')
+if [ "$sem_acf" != "1" ]; then
+    fail "F2: src/semantic ast_class_fields call count is $sem_acf (expected exactly 1 — the class_decl generic-shell AST writer). New readers must consume PgyDeclField."
+fi
 
 require_term "src/compiler/mir_stmt_population_source.c" \
     "inst.abi_type_name ="
