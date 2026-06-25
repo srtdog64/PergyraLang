@@ -30,6 +30,49 @@ because they own different artifacts. A shared `StageOwner` alias would hide
 which stage is allowed to scan tokens, build AST facts, prove semantic
 verdicts, or lower MIR facts.
 
+## Architecture Stack
+
+The self-hosted compiler is described at three levels.
+
+| Level | Owner | What it decides | What it must not decide |
+|---|---|---|---|
+| compiler world | `src/self_hosted/compiler/world.pgy` | the visible compiler flow, resource zones, root intent, path manifest shape | stage-local facts, backend layout, parser recovery rules |
+| stage fact owners | `lexer/`, `parser/`, `semantic/`, `mir_lower/`, `codegen/` | the artifact owned by one stage | orchestration aliases, oracle policy, unrelated stage facts |
+| shared substrates | `lib/`, future collection/import/diagnostic/layout owners | reusable facts consumed by multiple stages | hidden semantic recovery from AST/text payloads |
+
+This is the architecture difference from the C implementation. The C compiler
+may stay fragmented because it is the oracle. The Pergyra compiler must be read
+as one compiler world that delegates to named fact owners.
+
+The target layout is therefore not:
+
+```text
+compiler/
+  frontend/
+  middle/
+  backend/
+  helpers/
+```
+
+The target layout is:
+
+```text
+compiler/
+  world.pgy                 -- topology and root intent
+  stage_intents.pgy         -- compiler action clusters
+  path_manifest_owner.pgy   -- path facts
+
+lexer/                      -- token facts
+parser/                     -- AST/tree facts
+semantic/                   -- diagnostic/type verdict facts
+mir_lower/                  -- MIR JSON/fact lowering
+codegen/                    -- backend resource cluster
+lib/                        -- shared fact owners, not helper buckets
+```
+
+Folders are allowed only when they expose ownership. They are not a license to
+copy the C file graph.
+
 ## Compiler Flow
 
 The root flow is:
@@ -116,6 +159,35 @@ bridge input. It must not treat AST text as the final semantic source of truth.
 New semantic decisions should enter through type facts, MIR facts, ABI facts, or
 a declared unsupported diagnostic.
 
+### Codegen Resource Contract
+
+The long-term codegen shape is resource-first:
+
+| Resource | Zone/owner | Consumers | Gate expectation |
+|---|---|---|---|
+| emitted artifact text | `EmissionZone` / emission participants | C compiler, parity harness | one write owner; no scattered stdout construction |
+| type bindings | `TypeEnvZone` / `type_facts/` | expression, statement, return, log routing | emitters consume type facts instead of re-inferring from source text |
+| symbol and mangle facts | future symbol owner | C and LLVM emission | one canonical spelling owner before broader ABI parity |
+| ABI/layout facts | MIR ABI/layout owner | C, LLVM, self-hosted codegen | no backend invents field order, niche, pointer, or ownership shape |
+| unsupported surface | codegen diagnostic owner | parity harness | fail visibly, never emit broken C |
+
+The current `input/`, `run/`, `text/`, `type_facts/`, and `emission/`
+directories are an intermediate resource split. `text/` exists because the
+current rung still consumes `pgy --ast` text as a compatibility bridge. As MIR
+facts replace that bridge, text scanning should shrink; it must not become a
+second parser or a place to recover semantic truth.
+
+`program_emit`, `function_emit`, `stmt_emit`, `expr_rewrite`, and
+`struct_value_emit` remain action participants. They may split further only by
+owned responsibility:
+
+- a new type-fact owner is valid;
+- a new ABI/layout owner is valid;
+- a new symbol/mangle owner is valid;
+- a generic `emit_helpers.pgy` bucket is not valid;
+- a fake `ExprZone` or `StmtZone` is not valid while both mutate the same
+  emitted-output resource.
+
 ## Compiler Architecture
 
 The self-hosted compiler should not be organized as `frontend/`, `middle/`,
@@ -129,6 +201,57 @@ The self-hosted compiler should not be organized as `frontend/`, `middle/`,
 
 That keeps the Pergyra implementation readable as a Pergyra compiler world:
 intent owns the flow, zone owns resource isolation, and owner files own facts.
+
+### Current-To-Target Mapping
+
+| Current surface | Target owner shape | Migration rule |
+|---|---|---|
+| stage `main.pgy` imports every sibling in order | each owner imports the fact owners it consumes | entrypoints stop being dependency aggregators |
+| AST text read by codegen | MIR/type/ABI facts consumed by codegen | AST text remains a declared bridge until its facts exist |
+| shell scripts rediscovering files | `StagePathManifest` plus path owner projection | stage paths normalize once and are passed as facts |
+| raw diagnostic strings in tools | shared diagnostic owner and stage diagnostic vocabulary | diagnostics are structured before parity compares them |
+| recursive filesystem discovery for closed stage sets | manifest-owned direct paths | discovery is allowed only when the test is measuring discovery drift |
+| C/LLVM/backend-specific layout guesses | ABI/layout fact owner | backend emitters consume one layout fact source |
+
+This mapping is the self-hosted architecture work queue. A slice does not count
+as hard substitution if it merely moves logic into Pergyra while preserving a
+hidden C-style alias or fallback path.
+
+### Required Compiler Substrates
+
+The compiler needs these architectural substrates before full hard
+self-hosting can close:
+
+1. Source intake: path manifest, import graph, duplicate import materialization
+   policy, and source hash identity.
+2. Frontend facts: token stream and AST/tree facts with stable ordering.
+3. Semantic facts: type environment, diagnostic vocabulary, and fail-closed
+   unsupported-surface verdicts.
+4. Middle-end facts: MIR JSON/fact graph, CFG/body facts, cleanup/defer facts,
+   and authority/effect evidence.
+5. Backend facts: ABI/layout rows, symbol/mangle rows, emitted-artifact owner,
+   runtime materialization policy.
+6. Proof facts: C/LLVM/Pergyra parity verdicts, run-output equality, diagnostic
+   equality, IR JSON equality, and layout equality.
+
+The rule is the same for every substrate: if the fact is required and missing,
+add it to the owner or reject the program. Do not locally reconstruct it from an
+older artifact.
+
+## Anti-Patterns
+
+These shapes are rejected for the self-hosted architecture:
+
+- a stage `main.pgy` that becomes a hidden import-order owner;
+- one folder per implementation detail when no resource is owned;
+- fake zones around recursive functions that mutate the same resource;
+- generic `_helpers` modules that do not name a fact owner;
+- raw JSON/text parsing to reconstruct a semantic fact already owned by MIR,
+  DAG, ABI, or a stage-specific owner;
+- backend fallbacks that silently choose C-like behavior when C and LLVM facts
+  disagree;
+- parity gates that compare only process success when the owned artifact is a
+  diagnostic, IR, ABI shape, or emitted output.
 
 ## Caching Shape
 

@@ -8,9 +8,10 @@ The companion architecture documents are
 [`docs/self_hosted/12_intent_zone_self_host_architecture.md`](../../../docs/self_hosted/12_intent_zone_self_host_architecture.md),
 and
 [`docs/self_hosted/13_compiler_substrate_architecture.md`](../../../docs/self_hosted/13_compiler_substrate_architecture.md).
-`13_compiler_substrate_architecture.md` is the concrete substrate contract for
-codegen resources, stage fact owners, import graph ownership, deterministic
-facts, runtime materialization, caching, and parity promotion.
+`13_compiler_substrate_architecture.md` is the concrete architecture-stack and
+substrate contract for codegen resources, stage fact owners, import graph
+ownership, deterministic facts, runtime materialization, caching, and parity
+promotion.
 
 Pergyra self-hosting should be organized around the language's own surface.
 `PgyCompilerWorld` is the owner, and `CompilePergyraProgram` is the root

@@ -116,7 +116,7 @@ fallbacks are not.
 The architecture shape is recorded in
 [`11_compiler_world_architecture.md`](11_compiler_world_architecture.md) and
 [`12_intent_zone_self_host_architecture.md`](12_intent_zone_self_host_architecture.md).
-The substrate contract is recorded in
+The compiler/codegen/substrate architecture stack is recorded in
 [`13_compiler_substrate_architecture.md`](13_compiler_substrate_architecture.md).
 The short version: `intent` owns compiler flow, `zone` owns distinct compiler
 resources, stage files remain fact owners rather than fake zones, and compiler
@@ -165,6 +165,6 @@ its own ecosystem.
   facts.
 - `12_intent_zone_self_host_architecture.md` - intent/zone architecture for
   compiler flow, codegen resources, and path/source-intake facts.
-- `13_compiler_substrate_architecture.md` - self-hosted compiler substrate
-  contract for codegen, stage owners, imports, deterministic facts, runtime
-  materialization, caching, and parity promotion.
+- `13_compiler_substrate_architecture.md` - self-hosted compiler architecture
+  stack and substrate contract for codegen, stage owners, imports,
+  deterministic facts, runtime materialization, caching, and parity promotion.

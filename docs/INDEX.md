@@ -41,7 +41,7 @@ and follow-up debt over older design notes.
 | [`self_hosted/10_hard_self_host_contract.md`](self_hosted/10_hard_self_host_contract.md) | Active hard self-host substitution contract and SoT pass condition |
 | [`self_hosted/11_compiler_world_architecture.md`](self_hosted/11_compiler_world_architecture.md) | PgyCompilerWorld self-host compiler shape: stage facts remain owned, compiler flow is one Pergyra world |
 | [`self_hosted/12_intent_zone_self_host_architecture.md`](self_hosted/12_intent_zone_self_host_architecture.md) | Intent/zone architecture for self-hosted compiler growth, codegen resources, and path/source intake facts |
-| [`self_hosted/13_compiler_substrate_architecture.md`](self_hosted/13_compiler_substrate_architecture.md) | Self-hosted compiler substrate contract: codegen resources, stage owners, import graph, deterministic facts, runtime materialization, caching, and parity promotion |
+| [`self_hosted/13_compiler_substrate_architecture.md`](self_hosted/13_compiler_substrate_architecture.md) | Self-hosted compiler architecture stack: codegen resources, compiler-world fact owners, import graph, deterministic facts, runtime materialization, caching, and parity promotion |
 
 ## Historical Snapshots
 

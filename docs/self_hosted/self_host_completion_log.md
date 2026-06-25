@@ -1451,3 +1451,21 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   self-host owner/source files. This does not add a fallback; it makes the
   current semantic checker prove its own split owner files through the same
   C/LLVM-compiled checker used for other real sources.
+
+### 2026-06-25 -- Self-host compiler/codegen architecture stack recorded
+
+- Expanded `docs/self_hosted/13_compiler_substrate_architecture.md` from a
+  substrate checklist into the concrete self-hosted architecture stack for
+  `PgyCompilerWorld`, stage fact owners, shared substrates, and the codegen
+  backend resource cluster.
+- Recorded the current-to-target migration map: stage entrypoints stop acting
+  as dependency aggregators, path discovery moves behind `StagePathManifest`,
+  diagnostics move behind shared owners, and codegen migrates from AST-text
+  bridge reads toward MIR/type/ABI facts.
+- Made the codegen resource contract explicit: `EmissionZone` owns emitted
+  output, `TypeEnvZone` owns type facts, future symbol/mangle and ABI/layout
+  owners must become the single source for backend emission, and fake stmt/expr
+  zones remain forbidden while they mutate the same output resource.
+- Updated the self-host docs index and compiler README wording so future work
+  treats `13_compiler_substrate_architecture.md` as the codegen/compiler/
+  substrate architecture contract, not only a background note.
