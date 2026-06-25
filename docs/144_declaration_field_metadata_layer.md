@@ -209,6 +209,34 @@ correctness foundation for everything after.
   consumes the model; authority flip + lock) and the F1-shared type carrier
   remain.
 
+- **2026-06-26 — Phase 3b complete; SEMANTIC READER SIDE DONE** (`17723ac2`,
+  `49a8cee8`): the declaration-validation reader (`type_checker_class_decl.c`;
+  `class_declare_field_symbol` now takes `const char*`) and the
+  `intent_role_fields.c` finder cluster (`find_nominal_field_by_name` /
+  `find_subject_surface_field_by_name` return `PgyDeclField` by value;
+  `intent_role_resolve_field_type` takes the type node) are migrated. **Every
+  class-field shape read in `src/semantic` now goes through the model.** The only
+  remaining `ast_class_fields` call in all of `src/semantic` is the generic-shell
+  AST *writer* at `class_decl.c:64` (parse-completion mutation — not a shape
+  read, stays by design). Gate: `mir-declaration-inventory` smoke now asserts the
+  `src/semantic` `ast_class_fields` count stays at exactly 1 (the writer) — any
+  new reader fails. Verified 2786/0. **This closes the docs/125 row 612/L731
+  semantic residue** ("semantic rediscovers class-field arrays"): semantic no
+  longer rediscovers field shape, it consumes the owned model.
+
+### Remaining after the semantic reader side
+- **Phase 4** — the MIR builder (`mir_decl_header_fields.c`) still re-derives
+  `MIRDeclField` from AST. Making it consume `PgyDeclField` would make the model
+  the single owner for *both* semantic and codegen (today they derive the same
+  syntactic facts independently). The codegen side is already internally
+  consistent (row 616), so this is an ownership-unification step, not a
+  correctness gap.
+- **Phase 5 / F1 carrier** — the model's `type_ast` reference becomes a fully
+  AST-free carrier only when F1's lossless callable/tuple payload lands; and the
+  generic-shell AST writer at `class_decl.c:64` is the last AST-carried-field
+  dependency (relocating it into parse/normalization is the final step toward
+  "AST no longer carries class fields").
+
 ## 10. Phase 3 plan (interface cutover) — DONE (see §9); kept for reference
 
 The remaining `ast_class_fields` readers are **not** simple reads; they are the
