@@ -1572,3 +1572,19 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   72.
 - Tightened `self_hosted_component_contract_smoke` so generic JSON read
   functions cannot move back into `mir_lower/json_fact_read.pgy`.
+
+### 2026-06-26 -- Self-host codegen ABI type spelling moves behind ABI layout owner
+
+- Added `src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy` as the
+  self-host C subset owner for ABI type spelling. Function parameters, returns,
+  struct/class fields, local declarations, `try` temporaries, range-loop
+  indices, and for-each collection temporaries now consume that owner instead
+  of spelling C value types inside emission participants.
+- Tightened `self_hosted_component_contract_smoke` so `function_emit.pgy` cannot
+  reintroduce local `CParamType` / `CRetType` owners and `stmt_emit.pgy` cannot
+  reintroduce local declaration spellings such as direct `long long` /
+  `const char*` declaration strings.
+- Added the ABI layout owner to real-source semantic selfcheck, raising accepted
+  self-host owner/source files to 75. The broader cross-backend ABI/layout row
+  projection remains ACTIVE; this slice only closes self-host C type spelling in
+  the current supported subset.

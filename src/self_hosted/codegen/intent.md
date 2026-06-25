@@ -25,9 +25,9 @@ participant, not a zone.
   evidence. C, LLVM, and self-hosted codegen must not infer field order, tags,
   niches, or pointer ownership from emitted text or backend-local spelling.
 - `AbiLayoutOwner` owns self-host C ABI type spelling for the supported
-  signature and field subset. It is not the full cross-backend row projection;
-  that remains an active expansion surface until C/LLVM also consume the same
-  ABI rows.
+  signature, local declaration, and field subset. It is not the full
+  cross-backend row projection; that remains an active expansion surface until
+  C/LLVM also consume the same ABI rows.
 - `SymbolMangleOwner` owns emitted-symbol spelling for the self-host C subset.
   It is read-only at this rung; it becomes a zone only if it later owns mutable
   cross-backend symbol state.
@@ -51,7 +51,7 @@ Concrete split for the current codegen cluster:
 | emitted C text buffer | yes | single mutable output resource |
 | type environment | yes | separate read-mostly type-fact resource |
 | ABI layout facts | yes | separate read-only layout/ownership-shape fact resource |
-| self-host C ABI type spelling | owner, not zone yet | canonical C spelling for supported signatures and fields |
+| self-host C ABI type spelling | owner, not zone yet | canonical C spelling for supported signatures, locals, and fields |
 | symbol/name-mangling facts | owner, not zone yet | read-only canonical C spelling for supported self-host emission |
 | program/function/stmt/expr emit files | no | recursive participants over the same output/type resources |
 

@@ -24,7 +24,7 @@ resource-shaped subdirectories:
 - `text/` owns AST/expression text scanning primitives.
 - `type_facts/` owns type binding facts consumed as read-mostly evidence.
 - `symbol_facts/` owns emitted-symbol spelling for the self-host C subset.
-- `abi_layout/` owns self-host C ABI type spelling for signatures and fields.
+- `abi_layout/` owns self-host C ABI type spelling for signatures, locals, and fields.
 - `emission/` owns participants in the C-emission action graph.
 
 These folders are not a copy of the native C backend topology. `program_emit`,
@@ -148,9 +148,9 @@ spelling for function names, owner-qualified methods, role operator names, and
 payload-free enum variants in the supported subset; emitters must consume that
 owner instead of locally concatenating owner/member spellings.
 `abi_layout/abi_layout_owner.pgy` owns C ABI type spelling for parameter,
-return, and struct/class field declarations in the supported subset; emitters
-must consume that owner instead of locally mapping `Int` / `String` / aggregate
-types to C spellings.
+return, local, and struct/class field declarations in the supported subset;
+emitters must consume that owner instead of locally mapping `Int` / `String` /
+aggregate types to C spellings.
 
 Parity gate: `tests/self_hosted/parity/codegen_parity.sh` builds `main.pgy` through
 the requested backend set, runs it on each of the 63 committed fixtures'

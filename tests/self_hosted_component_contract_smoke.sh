@@ -360,12 +360,21 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(owner, 
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(owner_name, Concat("_",'
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCParamType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCReturnType"
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCLocalType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCFieldType"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCParamType"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCReturnType"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCFieldType"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "AbiLayoutCLocalType"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CParamType"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CRetType"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'return Concat("long long "'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'return Concat("const char* "'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'return Concat("pgy_result_int "'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'return Concat("pgy_option_int "'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'let arr_c: String = "pgy_ai"'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'let elem_c: String = "long long"'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'for (long long '
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "func EmitStructValue"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitStructValue"
 require_owner_surface mir_lower \

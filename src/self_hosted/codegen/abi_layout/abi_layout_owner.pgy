@@ -50,6 +50,10 @@ func AbiLayoutCReturnType(type_name: String, struct_env: String) -> String {
     return AbiLayoutCValueType(type_name, struct_env);
 }
 
+func AbiLayoutCLocalType(type_name: String, struct_env: String) -> String {
+    return AbiLayoutCValueType(type_name, struct_env);
+}
+
 func AbiLayoutCFieldType(type_name: String, struct_env: String) -> String {
     if StartsWith(type_name, "Array<") ||
         StartsWith(type_name, "Result<") ||

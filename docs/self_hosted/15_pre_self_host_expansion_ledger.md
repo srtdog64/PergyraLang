@@ -43,7 +43,7 @@ rule for pre-self-host expansion.
 | Runtime materialization policy | AIR/MIR evidence and runtime-frontier docs | AIR erasure/materialization gates | no hidden runtime calls on static hot paths |
 | Target capability envelope | `target_capability_owner.pgy`, `TargetCapabilityZone` | `self-host-compiler-world-contract-test-smoke`, real-source selfcheck | CPU/C/LLVM/self-hosted projections name accepted facts and fallback reasons before emission |
 | Self-host C symbol spelling | `src/self_hosted/codegen/symbol_facts/symbol_mangle_owner.pgy` | component contract, real-source selfcheck, codegen parity | function/method/operator/enum names are consumed from one owner inside the current self-host C subset |
-| Self-host C ABI type spelling | `src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy` | component contract, real-source selfcheck, codegen parity | parameter, return, and field C type spellings are consumed from one owner inside the current self-host C subset |
+| Self-host C ABI type spelling | `src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy` | component contract, real-source selfcheck, codegen parity | parameter, return, local, and field C type spellings are consumed from one owner inside the current self-host C subset |
 
 ## Active Blockers
 
