@@ -8156,6 +8156,18 @@ for f in $(grep -rl "" "$ROOT_DIR/src/codegen" --include='*.c'); do
     fi
 done
 
+# F2 (docs/144) Phase 2+: semantic consumers migrated to the pre-semantic
+# PgyDeclField field-shape model must not reopen ast_class_fields(...). This
+# allowlist grows as each consumer migrates; Phase 5 forbids the call everywhere
+# except the model owner (decl_field_model.c) and declaration validation.
+for f in \
+    "src/semantic/type_checker_resolution_graph_decl.c" \
+    "src/semantic/type_checker_resolution_stage_nominal.c"; do
+    if grep -Eq 'ast_class_fields[[:space:]]*\(' "$ROOT_DIR/$f"; then
+        fail "F2: migrated semantic consumer must consume PgyDeclField, not ast_class_fields(): $f"
+    fi
+done
+
 require_term "src/compiler/mir_stmt_population_source.c" \
     "inst.abi_type_name ="
 require_term "src/codegen/llvm_stmt_destructure.c" \

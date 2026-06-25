@@ -4,6 +4,7 @@
 
 #include "type_checker_internal.h"
 #include "type_checker_decls_a_helpers_internal.h"
+#include "compiler/decl_field_model.h"
 
 static char *
 resolution_decl_strdup_fmt(const char *fmt, ...)
@@ -44,23 +45,19 @@ semantic_type_resolution_precollect_class_inventory(ASTNode *class_decl,
         "class",
         ast_class_name(class_decl));
 
-    size_t field_count = 0;
-    ClassField **fields = ast_class_fields(class_decl, &field_count);
+    /* F2 (docs/144) Phase 2: consume the pre-semantic field-shape model instead
+       of re-reading ast_class_fields. */
+    PgyDeclField *fields = NULL;
+    size_t field_count = pgy_class_decl_field_model_build(class_decl, &fields);
     for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = fields != NULL ? fields[i] : NULL;
-        char *consumer_name;
-
-        if (field == NULL)
-            continue;
-
-        consumer_name = resolution_decl_strdup_fmt(
+        char *consumer_name = resolution_decl_strdup_fmt(
             "class %s.%s",
             ast_class_name(class_decl) != NULL
                 ? ast_class_name(class_decl) : "<class>",
-            field->name != NULL ? field->name : "<field>");
+            fields[i].name != NULL ? fields[i].name : "<field>");
         if (consumer_name != NULL) {
             semantic_type_resolution_collect_type_refs(
-                field->type,
+                fields[i].type_ast,
                 ctx,
                 class_decl,
                 consumer_name,
@@ -68,6 +65,7 @@ semantic_type_resolution_precollect_class_inventory(ASTNode *class_decl,
             free(consumer_name);
         }
     }
+    pgy_decl_field_model_free(fields, field_count);
 
     size_t method_count = 0;
     ASTNode **methods = ast_class_methods(class_decl, &method_count);

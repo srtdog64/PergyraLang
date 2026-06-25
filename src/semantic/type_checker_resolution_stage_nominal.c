@@ -4,6 +4,7 @@
 
 #include "type_checker_internal.h"
 #include "type_checker_decls_a_helpers_internal.h"
+#include "compiler/decl_field_model.h"
 
 static char *
 stage_nominal_strdup_fmt(const char *fmt, ...)
@@ -80,23 +81,20 @@ semantic_stage_class_decl(ASTNode *decl, SemanticContext *ctx)
 
     generic_scope_entered = stage_nominal_enter_generic_scope(
         ast_class_generic_params(decl), ctx);
-    size_t field_count = 0;
-    ClassField **fields = ast_class_fields(decl, &field_count);
+    /* F2 (docs/144) Phase 2: consume the pre-semantic field-shape model. */
+    PgyDeclField *fields = NULL;
+    size_t field_count = pgy_class_decl_field_model_build(decl, &fields);
     for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = fields != NULL ? fields[i] : NULL;
-        char *consumer_name;
-        if (field == NULL)
-            continue;
-        consumer_name = stage_nominal_strdup_fmt(
+        char *consumer_name = stage_nominal_strdup_fmt(
             "class %s.%s",
             ast_class_name(decl) != NULL ? ast_class_name(decl) : "<class>",
-            field->name != NULL ? field->name : "<field>");
+            fields[i].name != NULL ? fields[i].name : "<field>");
         if (consumer_name == NULL)
             continue;
-        if (semantic_type_resolution_lookup_metadata_type_ref(ctx, field->type)
+        if (semantic_type_resolution_lookup_metadata_type_ref(ctx, fields[i].type_ast)
             == NULL) {
             (void)semantic_stage_resolve_type_quiet(
-                field->type,
+                fields[i].type_ast,
                 ctx,
                 decl,
                 consumer_name,
@@ -104,6 +102,7 @@ semantic_stage_class_decl(ASTNode *decl, SemanticContext *ctx)
         }
         free(consumer_name);
     }
+    pgy_decl_field_model_free(fields, field_count);
     size_t method_count = 0;
     ASTNode **methods = ast_class_methods(decl, &method_count);
     semantic_stage_method_array(
