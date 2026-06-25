@@ -22,6 +22,7 @@ resource-shaped subdirectories:
 - `run/` owns CLI-to-output orchestration.
 - `text/` owns AST/expression text scanning primitives.
 - `type_facts/` owns type binding facts consumed as read-mostly evidence.
+- `symbol_facts/` owns emitted-symbol spelling for the self-host C subset.
 - future `abi_layout/` owns ABI/layout fact projection from MIR ABI rows.
 - `emission/` owns participants in the C-emission action graph.
 
@@ -141,10 +142,13 @@ orchestration that wires that owned AST text into `GenerateC`; `main.pgy` only
 calls the run owner. `emission/struct_value_emit.pgy` owns struct-valued
 expression lowering used by `let`, assignment, and return paths;
 `emission/stmt_emit.pgy` consumes that boundary instead of owning struct literal
-policy directly.
+policy directly. `symbol_facts/symbol_mangle_owner.pgy` owns C emitted-symbol
+spelling for function names, owner-qualified methods, role operator names, and
+payload-free enum variants in the supported subset; emitters must consume that
+owner instead of locally concatenating owner/member spellings.
 
 Parity gate: `tests/self_hosted/parity/codegen_parity.sh` builds `main.pgy` through
-the requested backend set, runs it on each of the 62 committed fixtures'
+the requested backend set, runs it on each of the 63 committed fixtures'
 `pgy --ast` output, gcc-compiles the emitted C, runs it, and compares run-stdout
 against the committed expected output. A live-drift guard re-derives that
 expected output from the C-backend oracle executable. LLVM is mandatory when the

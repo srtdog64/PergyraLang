@@ -90,6 +90,7 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/codegen/text/text_owner.pgy` -- text/token scanning primitives.
 - `src/self_hosted/codegen/text/expr_scan.pgy` -- expression text scanning.
 - `src/self_hosted/codegen/type_facts/type_env.pgy` -- type environment facts.
+- `src/self_hosted/codegen/symbol_facts/symbol_mangle_owner.pgy` -- emitted C symbol spelling facts.
 - `src/self_hosted/codegen/emission/expr_rewrite.pgy` -- expression rewrite/lowering.
 - `src/self_hosted/codegen/emission/function_emit.pgy` -- function emission.
 - `src/self_hosted/codegen/emission/program_emit.pgy` -- program emission and prepasses.

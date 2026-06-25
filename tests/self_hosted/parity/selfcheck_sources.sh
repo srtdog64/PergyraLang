@@ -52,6 +52,7 @@ cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
 SELF_SOURCES=(
     "src/self_hosted/codegen/input/ast_input_owner.pgy"
     "src/self_hosted/codegen/main.pgy"
+    "src/self_hosted/codegen/symbol_facts/symbol_mangle_owner.pgy"
     "src/self_hosted/codegen/text/text_owner.pgy"
     "src/self_hosted/compiler/path_manifest_owner.pgy"
     "src/self_hosted/compiler/stage_intents.pgy"

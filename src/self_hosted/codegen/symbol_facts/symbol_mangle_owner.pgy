@@ -1,0 +1,73 @@
+// src/self_hosted/codegen/symbol_facts/symbol_mangle_owner.pgy
+//
+// Canonical emitted-symbol spelling for the self-host C codegen subset.
+
+import "../text/text_owner.pgy";
+
+func SymbolMangleSchema() -> String {
+    return "pgy.selfhost.symbol-mangle.v1";
+}
+
+func SymbolMangleCReservedWord(name: String) -> Bool {
+    return name == "auto" || name == "break" || name == "case" ||
+        name == "char" || name == "const" || name == "continue" ||
+        name == "default" || name == "do" || name == "double" ||
+        name == "else" || name == "enum" || name == "extern" ||
+        name == "float" || name == "for" || name == "goto" ||
+        name == "if" || name == "inline" || name == "int" ||
+        name == "long" || name == "register" || name == "restrict" ||
+        name == "return" || name == "short" || name == "signed" ||
+        name == "sizeof" || name == "static" || name == "struct" ||
+        name == "switch" || name == "typedef" || name == "union" ||
+        name == "unsigned" || name == "void" || name == "volatile" ||
+        name == "while";
+}
+
+func SymbolMangleCIdentifier(source_name: String) -> String {
+    let name: String = StringTrim(source_name);
+    let n: Int = StringLength(name);
+    if n == 0 {
+        Die("empty source name cannot be emitted as a C symbol");
+    }
+
+    let out: String = "";
+    let i: Int = 0;
+    while i < n {
+        let c: String = CharAt(name, i);
+        if i == 0 {
+            if IsIdentStart(c) {
+                out = Concat(out, c);
+            } else if IsIdentChar(c) {
+                out = Concat("_", c);
+            } else {
+                out = "_";
+            }
+        } else if IsIdentChar(c) {
+            out = Concat(out, c);
+        } else {
+            out = Concat(out, "_");
+        }
+        i = i + 1;
+    }
+
+    if SymbolMangleCReservedWord(out) {
+        return Concat("pgy_", out);
+    }
+    return out;
+}
+
+func SymbolMangleCQualifiedName(owner_name: String, member_name: String) -> String {
+    let member_symbol: String = SymbolMangleCIdentifier(member_name);
+    if StringLength(StringTrim(owner_name)) == 0 {
+        return member_symbol;
+    }
+    return Concat(SymbolMangleCIdentifier(owner_name), Concat("_", member_symbol));
+}
+
+func SymbolMangleCRoleOperatorName(role_name: String, op_name: String) -> String {
+    return SymbolMangleCQualifiedName(role_name, op_name);
+}
+
+func SymbolMangleCEnumVariantName(enum_name: String, variant_name: String) -> String {
+    return SymbolMangleCQualifiedName(enum_name, variant_name);
+}

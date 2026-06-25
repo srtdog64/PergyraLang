@@ -47,8 +47,7 @@ The intended shape is tree-like, not bucket-like:
 - `codegen/` is not a separate backend kingdom. It is the projection nerve
   bundle that leaves the compiler world after MIR/type/ABI facts are known.
 - A codegen zone is a bundle around a resource: emitted text, type facts, ABI
-  layout facts, future symbol/mangle facts, runtime-link facts, or artifact
-  facts.
+  layout facts, symbol/mangle facts, runtime-link facts, or artifact facts.
 - C, LLVM, and self-hosted emission are projections that consume the same
   owner facts. They must not invent their own field order, symbol spelling,
   authority evidence, slot layout, or unsupported-surface verdict.
@@ -164,6 +163,7 @@ compiler replacement.
 | type environment | `TypeEnvZone` and stage type-fact owners | prevents backend emitters from re-inferring source types |
 | MIR fact graph | `MirFactGraphZone` | gives backend and self-host lowering one fact source |
 | ABI/layout facts | MIR ABI/layout owner | prevents C/LLVM/self-hosted emitters from inventing layout independently |
+| symbol/mangle facts | symbol owner | prevents backend emitters from spelling names independently |
 | emission buffer | `EmissionZone` | gives output writes one owner |
 | parity evidence | `ParityZone` and test harnesses | proves substitution against the C/LLVM oracle pair |
 | runtime materialization policy | runtime/frontier owner | distinguishes erased hot paths from explicit managed boundaries |
@@ -194,12 +194,16 @@ Self-hosted codegen is a backend resource cluster:
 - `run/` owns CLI-to-output orchestration.
 - `text/` owns text and expression scanning facts for the compatibility bridge.
 - `type_facts/` owns the type environment consumed by emitters.
+- `symbol_facts/` owns emitted-symbol spelling facts.
 - `emission/` contains participants that write or route emitted C.
 
 `program_emit`, `function_emit`, `stmt_emit`, `expr_rewrite`, and
 `struct_value_emit` are not zones. They are action participants over the same
 output and type resources. A new zone appears only when there is a new distinct
-resource, such as a mutable symbol/name-mangling table.
+resource, such as a mutable cross-backend symbol/name-mangling table. The
+current `symbol_facts/symbol_mangle_owner.pgy` owner is read-only: it centralizes
+the self-host C subset's emitted spelling without claiming full C/LLVM ABI
+mangling closure.
 
 This is the projection-nerve rule in code form: the backend does not own a new
 truth. It receives MIR/type/ABI facts from the compiler world and sends one
@@ -224,7 +228,7 @@ The long-term codegen shape is resource-first:
 |---|---|---|---|
 | emitted artifact text | `EmissionZone` / emission participants | C compiler, parity harness | one write owner; no scattered stdout construction |
 | type bindings | `TypeEnvZone` / `type_facts/` | expression, statement, return, log routing | emitters consume type facts instead of re-inferring from source text |
-| symbol and mangle facts | future symbol owner | C and LLVM emission | one canonical spelling owner before broader ABI parity |
+| symbol and mangle facts | `symbol_facts/symbol_mangle_owner.pgy` for self-host C subset; cross-backend owner still active | C, LLVM, and self-hosted emission | emitters consume canonical spelling facts; no owner/member string concatenation in local emission |
 | ABI/layout facts | `AbiLayoutZone` over the MIR ABI/layout owner | C, LLVM, self-hosted codegen | no backend invents field order, niche, pointer, or ownership shape |
 | unsupported surface | codegen diagnostic owner | parity harness | fail visibly, never emit broken C |
 | target acceptance/fallback | `target_capability_owner.pgy` plus future target-specific extensions | C, LLVM, self-hosted, accelerator projections | no hidden CPU fallback or unsupported accelerator lowering |

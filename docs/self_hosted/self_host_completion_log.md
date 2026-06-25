@@ -118,7 +118,7 @@ rewrite history.
   same-seed replay semantics without pinning a cross-libc random sequence.
   Added `array_index_assign.pgy` and `string_array_index_return.pgy` to close
   indexed array write/read return surfaces needed by real compiler-stage code.
-  Gate: `make self-host-codegen-parity-test-smoke` now covers **62 fixtures**.
+  Gate: `make self-host-codegen-parity-test-smoke` now covers **63 fixtures**.
 - Tightened the C ABI shape for self-hosted codegen string returns:
   `String -> const char*`, matching string params, literals, and
   `Array<String>` element reads at the boundary.
@@ -1485,9 +1485,9 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   diagnostics move behind shared owners, and codegen migrates from AST-text
   bridge reads toward MIR/type/ABI facts.
 - Made the codegen resource contract explicit: `EmissionZone` owns emitted
-  output, `TypeEnvZone` owns type facts, future symbol/mangle and ABI/layout
-  owners must become the single source for backend emission, and fake stmt/expr
-  zones remain forbidden while they mutate the same output resource.
+  output, `TypeEnvZone` owns type facts, symbol/mangle and ABI/layout owners
+  must become the single source for backend emission, and fake stmt/expr zones
+  remain forbidden while they mutate the same output resource.
 - Updated the self-host docs index and compiler README wording so future work
   treats `13_compiler_substrate_architecture.md` as the codegen/compiler/
   substrate architecture contract, not only a background note.

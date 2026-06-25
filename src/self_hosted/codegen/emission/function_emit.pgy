@@ -145,10 +145,7 @@ func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
                   base_env: String, uses_args: Bool, owner_name: String) -> String {
     let head: String = texts[cur[0]];
     let name: String = Substring(head, 10, StringLength(head) - 10);
-    let c_name: String = name;
-    if StringLength(owner_name) > 0 {
-        c_name = Concat(owner_name, Concat("_", name));
-    }
+    let c_name: String = SymbolMangleCQualifiedName(owner_name, name);
     ArraySet(cur, 0, cur[0] + 1);
 
     ExpectText(texts, count, cur, "Parameters:");
@@ -269,9 +266,9 @@ func BuildFunctionEnv(indents: Array<Int>, texts: Array<String>, count: Int) -> 
         }
         if StartsWith(texts[i], "Function:") {
             let fname: String = Substring(texts[i], 10, StringLength(texts[i]) - 10);
-            let cname: String = fname;
+            let cname: String = SymbolMangleCQualifiedName("", fname);
             if StringLength(owner) > 0 && indents[i] > owner_indent {
-                cname = Concat(owner, Concat("_", fname));
+                cname = SymbolMangleCQualifiedName(owner, fname);
             }
             let j: Int = i + 1;
             let rtype: String = "Void";
@@ -302,7 +299,7 @@ func CollectRoleOperators(indents: Array<Int>, texts: Array<String>, count: Int,
                 if StartsWith(texts[j], "Function: ") {
                     let mname: String = Substring(texts[j], 10, StringLength(texts[j]) - 10);
                     if for_type == "Int" && mname == "Add" {
-                        let c_name: String = Concat(role_name, "_Add");
+                        let c_name: String = SymbolMangleCRoleOperatorName(role_name, "Add");
                         ArraySet(env_box, 0, Concat(env_box[0], Concat("Int+=op:", Concat(c_name, "|"))));
                     }
                 }
@@ -395,7 +392,7 @@ func CollectEnums(indents: Array<Int>, texts: Array<String>, count: Int, inout e
                 if StringIndexOf(part, "(") >= 0 {
                     Die(Concat("payload enum variants are not supported in self-host codegen subset: ", part));
                 }
-                let cname: String = Concat(ename, Concat("_", part));
+                let cname: String = SymbolMangleCEnumVariantName(ename, part);
                 enum_c = Concat(enum_c, Concat("    ", Concat(cname, Concat(" = ", Concat(ToString(value), ",\n")))));
                 ArraySet(env_box, 0, Concat(env_box[0], Concat(ename, Concat(".", Concat(part, Concat("=e:", Concat(ToString(value), "|")))))));
                 value = value + 1;
@@ -446,10 +443,7 @@ func CollectProtos(indents: Array<Int>, texts: Array<String>, count: Int, struct
         }
         if StartsWith(texts[i], "Function:") {
             let name: String = Substring(texts[i], 10, StringLength(texts[i]) - 10);
-            let c_name: String = name;
-            if StringLength(owner) > 0 && indents[i] > owner_indent {
-                c_name = Concat(owner, Concat("_", name));
-            }
+            let c_name: String = SymbolMangleCQualifiedName(owner, name);
             if c_name != "Main" {
                 let f_indent: Int = indents[i];
                 let j: Int = i + 1;
