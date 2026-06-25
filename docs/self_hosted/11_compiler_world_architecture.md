@@ -30,6 +30,10 @@ compiler flow.
 - `IntakeSource`, `LexSource`, `ParseTokens`, `CheckProgramSemantics`,
   `LowerProgramFacts`, `EmitProgramArtifact`, and `ProveSelfHostedParity` are
   the derived stage intents.
+- Codegen is the projection nerve bundle from the compiler world into backend
+  artifacts. It is grouped by resource zones such as `EmissionZone`,
+  `TypeEnvZone`, and `AbiLayoutZone`, not by pretending every emitter file owns
+  a zone.
 - `LexerStage`, `ParserStage`, `SemanticStage`, and `MirLowerStage` are
   distinct actors. The world does not use a generic `StageOwner.Consume()`
   alias because lexing, parsing, semantic checking, and MIR lowering own

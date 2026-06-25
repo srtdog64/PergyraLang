@@ -61,6 +61,12 @@ Self-hosted codegen is a backend resource cluster:
 - `program_emit`, `function_emit`, `stmt_emit`, `expr_rewrite`, and
   `struct_value_emit` are action participants over those resources.
 
+The mental model is a projection nerve bundle. `PgyCompilerWorld` is the
+visible compiler body; codegen is where MIR/type/ABI facts leave that body as
+backend projections. The bundle is grouped by resource zones, not by syntactic
+helper categories. `EmissionZone`, `TypeEnvZone`, and `AbiLayoutZone` are
+zones; `stmt_emit` and `expr_rewrite` are nerves inside the emission action.
+
 The filesystem split under `src/self_hosted/codegen/` follows owner visibility:
 
 - `input/`: AST path and read boundary.

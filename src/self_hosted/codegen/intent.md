@@ -34,6 +34,11 @@ participant, not a zone.
 They all cooperate over the same output resource or read the same type facts,
 so wrapping each file in a zone would be ceremony rather than isolation.
 
+Projection-nerve rule: codegen is the bundle that carries compiler-world facts
+into backend artifacts. It does not own a second semantic truth. `TypeEnvZone`
+and `AbiLayoutZone` feed the bundle; `EmissionZone` owns the outgoing artifact;
+the emitter files are nerves inside that bundle.
+
 Concrete split for the current codegen cluster:
 
 | Candidate | Zone? | Owner reason |

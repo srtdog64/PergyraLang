@@ -30,6 +30,33 @@ because they own different artifacts. A shared `StageOwner` alias would hide
 which stage is allowed to scan tokens, build AST facts, prove semantic
 verdicts, or lower MIR facts.
 
+## Compiler Tree And Projection Nerves
+
+The intended shape is tree-like, not bucket-like:
+
+- `PgyCompilerWorld` is the trunk: it names the visible compiler action and the
+  resource topology.
+- Stage fact zones are owned nodes: source intake, token stream, AST tree,
+  semantic verdict, MIR fact graph, type environment, ABI layout, emission, and
+  parity evidence.
+- `codegen/` is not a separate backend kingdom. It is the projection nerve
+  bundle that leaves the compiler world after MIR/type/ABI facts are known.
+- A codegen zone is a bundle around a resource: emitted text, type facts, ABI
+  layout facts, future symbol/mangle facts, runtime-link facts, or artifact
+  facts.
+- C, LLVM, and self-hosted emission are projections that consume the same
+  owner facts. They must not invent their own field order, symbol spelling,
+  authority evidence, slot layout, or unsupported-surface verdict.
+
+That means the codegen folder may contain many action files, but those files are
+not the architecture. The architecture is the path facts take from
+`PgyCompilerWorld` into backend projections. A new codegen file is only a new
+participant unless it owns a distinct resource or fact table.
+
+Anti-rule: do not split codegen by "expr/stmt/function" and then call each
+split a zone. Those are nerves in one projection bundle while they mutate the
+same emitted artifact. Split zones only when the resource owner changes.
+
 ## Architecture Stack
 
 The self-hosted compiler is described at three levels.
@@ -155,6 +182,11 @@ Self-hosted codegen is a backend resource cluster:
 `struct_value_emit` are not zones. They are action participants over the same
 output and type resources. A new zone appears only when there is a new distinct
 resource, such as a mutable symbol/name-mangling table.
+
+This is the projection-nerve rule in code form: the backend does not own a new
+truth. It receives MIR/type/ABI facts from the compiler world and sends one
+projection through `EmissionZone`. C, LLVM, and self-hosted codegen may have
+different syntax emitters, but their input facts must be the same.
 
 The current codegen rung may consume AST text because that is the declared
 bridge input. It must not treat AST text as the final semantic source of truth.
