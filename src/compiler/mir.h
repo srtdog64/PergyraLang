@@ -258,6 +258,23 @@ typedef struct
     size_t callable_param_count;
 } MIRSourceLocalType;
 
+/*
+ * Row 607 (SoT docs/125): lossless callable (EventHandler) routine-signature
+ * payload. The flat param_type_names/return_type_name string cache cannot hold
+ * a callable's nested return/param shape, so this structured descriptor carries
+ * it. Populated during MIR signature lowering (the sanctioned AST-reading
+ * owner) and consumed by C/LLVM signature emitters so routine callable
+ * parameters/returns are MIR-owned, not reconstructed from source_ast.
+ * is_callable=false means the slot is a plain type carried by param_type_names.
+ */
+typedef struct
+{
+    bool   is_callable;
+    char  *return_type_name;        /* rendered MIR type name; NULL if void */
+    char **param_type_names;        /* [param_count] rendered MIR type names */
+    size_t param_count;
+} MIRCallableSig;
+
 typedef struct
 {
     size_t             id;
@@ -272,6 +289,12 @@ typedef struct
     FuncParam        **params;
     char             **param_type_names;
     size_t             param_count;
+    /* Row 607: lossless callable signature payload (parallel to
+     * param_type_names). param_callable_sigs[i].is_callable is true when
+     * param i is an EventHandler; return_callable_sig.is_callable likewise.
+     * NULL array / is_callable=false means the slot is a plain type. */
+    MIRCallableSig    *param_callable_sigs;
+    MIRCallableSig     return_callable_sig;
     ASTNode           *return_type;
     char              *return_type_name;
     const char        *within_zone;
@@ -536,6 +559,9 @@ const char *mir_routine_param_type_name(const MIRRoutine *routine,
                                         size_t index);
 ASTNode    *mir_routine_return_type(const MIRRoutine *routine);
 const char *mir_routine_return_type_name(const MIRRoutine *routine);
+const MIRCallableSig *mir_routine_param_callable_sig(const MIRRoutine *routine,
+                                                    size_t index);
+const MIRCallableSig *mir_routine_return_callable_sig(const MIRRoutine *routine);
 /* Source-local binding type facts are materialized during MIR lowering so
  * backends do not rescan function bodies. */
 const char *mir_routine_source_local_type_name(

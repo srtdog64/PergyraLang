@@ -159,6 +159,31 @@ transpiler_mir_routine_signature_metadata_complete_for(
     return true;
 }
 
+/*
+ * Row 607: validate a lossless callable (EventHandler) signature descriptor by
+ * its rendered MIR type names, so the supportedness check consumes the MIR
+ * carrier instead of re-reading the EventHandler AST node.
+ */
+static bool
+transpiler_mir_callable_sig_supported(TranspilerCtx *ctx,
+                                      const MIRCallableSig *sig)
+{
+    if (sig == NULL)
+        return true;
+    if (sig->return_type_name != NULL
+        && !transpiler_mir_type_name_supported(ctx, sig->return_type_name))
+        return false;
+    if (sig->param_type_names != NULL) {
+        for (size_t i = 0; i < sig->param_count; i++) {
+            if (sig->param_type_names[i] != NULL
+                && !transpiler_mir_type_name_supported(ctx,
+                       sig->param_type_names[i]))
+                return false;
+        }
+    }
+    return true;
+}
+
 bool
 transpiler_mir_routine_signature_supported(TranspilerCtx *ctx,
                                            const MIRRoutine *routine,
@@ -185,6 +210,12 @@ transpiler_mir_routine_signature_supported(TranspilerCtx *ctx,
     if (return_type_name != NULL) {
         if (!transpiler_mir_type_name_supported(ctx, return_type_name))
             return false;
+    } else if (has_signature
+               && mir_routine_return_callable_sig(routine) != NULL) {
+        /* Row 607: callable return shape is MIR-owned. */
+        if (!transpiler_mir_callable_sig_supported(ctx,
+                mir_routine_return_callable_sig(routine)))
+            return false;
     } else if (!transpiler_mir_ast_type_supported(
                    ctx, ast_func_return_type(func_decl))) {
         return false;
@@ -204,6 +235,14 @@ transpiler_mir_routine_signature_supported(TranspilerCtx *ctx,
             continue;
         if (param_type_name != NULL) {
             if (!transpiler_mir_type_name_supported(ctx, param_type_name))
+                return false;
+            continue;
+        }
+        if (has_signature
+            && mir_routine_param_callable_sig(routine, i) != NULL) {
+            /* Row 607: callable param shape is MIR-owned. */
+            if (!transpiler_mir_callable_sig_supported(ctx,
+                    mir_routine_param_callable_sig(routine, i)))
                 return false;
             continue;
         }

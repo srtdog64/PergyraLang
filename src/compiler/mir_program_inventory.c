@@ -165,6 +165,31 @@ mir_routine_return_type_name(const MIRRoutine *routine)
     return mir_routine_has_signature(routine) ? routine->return_type_name : NULL;
 }
 
+/* Row 607: lossless callable (EventHandler) signature for param `index`, or
+   NULL when the param is not a callable. */
+const MIRCallableSig *
+mir_routine_param_callable_sig(const MIRRoutine *routine, size_t index)
+{
+    if (!mir_routine_has_signature(routine)
+        || routine->param_callable_sigs == NULL
+        || index >= routine->param_count
+        || !routine->param_callable_sigs[index].is_callable) {
+        return NULL;
+    }
+    return &routine->param_callable_sigs[index];
+}
+
+/* Row 607: lossless callable signature for the return type, or NULL. */
+const MIRCallableSig *
+mir_routine_return_callable_sig(const MIRRoutine *routine)
+{
+    if (!mir_routine_has_signature(routine)
+        || !routine->return_callable_sig.is_callable) {
+        return NULL;
+    }
+    return &routine->return_callable_sig;
+}
+
 const char *
 mir_routine_source_local_type_name(const MIRRoutine *routine,
                                    const char *local_name)
