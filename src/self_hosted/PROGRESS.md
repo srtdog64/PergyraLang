@@ -341,11 +341,12 @@ The realistic incremental path toward genuine self-host:
    oracle. Recursive import expansion is now owned by `source_bundle_owner.pgy`,
    and the import-backed call fixture proves signatures are consumed from the
    source bundle instead of from a hidden single-file `main` assumption. The
-   real-source selfcheck now feeds 50 accepted self-host owner/source files
+   real-source selfcheck now feeds 56 accepted self-host owner/source files
    through that source-bundle owner rather than a generated import-stripped
    unit. The accepted manifest spans lexer/parser/mir-lower/codegen/compiler-world
-   entrypoints, the compiler path manifest owner, and audit-tool slices inside
-   the current subset. The oracle parity runs on C and LLVM
+   entrypoints, the compiler path manifest owner, semantic run/program/body/
+   call/expression owner files, and audit-tool slices inside the current
+   subset. The oracle parity runs on C and LLVM
    binaries across 93 fixtures. The same gate now validates the 15-code
    self-hosted semantic diagnostic vocabulary plus its C oracle JSON root-code
    mapping: committed expected `Code:` fields and literal

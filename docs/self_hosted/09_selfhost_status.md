@@ -313,12 +313,12 @@ Substrate progress.
   bodies without leaking block-local `let` bindings into the parent
   environment. The parity set now includes an import-backed fixture, and
   `tests/self_hosted/parity/selfcheck_sources.sh` now compiles the checker
-  through C and LLVM and accepts 50 real self-host owner/source files. The
+  through C and LLVM and accepts 56 real self-host owner/source files. The
   manifest includes lexer/parser/mir-lower/codegen/compiler-world entrypoints,
-  the compiler path manifest owner, the deterministic backend fuzz generator,
-  and audit-tool slices that are inside the current subset; sources stay out
-  until their import, local-binding, and call surfaces are covered without
-  semantic fallbacks.
+  the compiler path manifest owner, semantic run/program/body/call/expression
+  owner files, the deterministic backend fuzz generator, and audit-tool slices
+  that are inside the current subset; sources stay out until their import,
+  local-binding, and call surfaces are covered without semantic fallbacks.
 - Building the signature table reproduced the array value-semantics finding from
   the linter: a helper that `ArrayPush`es into an `Array<T>` parameter mutates a
   copy, so the table is built inline in the owning function until `inout Array<T>`

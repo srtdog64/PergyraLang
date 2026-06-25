@@ -1440,3 +1440,14 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Added the path manifest owner to the real-source semantic selfcheck manifest,
   raising accepted self-host owner/source files from 49 to 50 on both C and
   LLVM checker backends.
+
+### 2026-06-25 -- Semantic owner files enter real-source selfcheck
+
+- Added the already accepted semantic owner sources
+  `body_check_owner.pgy`, `call_check_owner.pgy`, `expr_type_owner.pgy`,
+  `expr_validation_owner.pgy`, `program_check_owner.pgy`, and
+  `semantic_run_owner.pgy` to `selfcheck_sources.sh`.
+- Raised the real-source semantic selfcheck manifest from 50 to 56 accepted
+  self-host owner/source files. This does not add a fallback; it makes the
+  current semantic checker prove its own split owner files through the same
+  C/LLVM-compiled checker used for other real sources.
