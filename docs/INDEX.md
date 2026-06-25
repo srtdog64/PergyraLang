@@ -42,6 +42,7 @@ and follow-up debt over older design notes.
 | [`self_hosted/11_compiler_world_architecture.md`](self_hosted/11_compiler_world_architecture.md) | PgyCompilerWorld self-host compiler shape: stage facts remain owned, compiler flow is one Pergyra world |
 | [`self_hosted/12_intent_zone_self_host_architecture.md`](self_hosted/12_intent_zone_self_host_architecture.md) | Intent/zone architecture for self-hosted compiler growth, codegen resources, and path/source intake facts |
 | [`self_hosted/13_compiler_substrate_architecture.md`](self_hosted/13_compiler_substrate_architecture.md) | Self-hosted compiler architecture stack: codegen resources, compiler-world fact owners, import graph, deterministic facts, runtime materialization, caching, and parity promotion |
+| [`self_hosted/14_target_compiler_world.md`](self_hosted/14_target_compiler_world.md) | Target compiler world (BDFL-desired): fact zones → single Codegen Projection intent → C/LLVM/SelfHosted emission peers → Artifact Zone parity sink |
 
 ## Historical Snapshots
 
