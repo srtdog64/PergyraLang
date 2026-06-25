@@ -285,5 +285,11 @@ require_term "docs/136_abi_niche_and_explicit_layout.md" "backends must consume 
 require_term "docs/136_abi_niche_and_explicit_layout.md" 'extern "C" ABI'
 require_term "docs/136_abi_niche_and_explicit_layout.md" "unsafe(ffi, layout)"
 require_term "docs/136_abi_niche_and_explicit_layout.md" "boundary-scoped, never the default aggregate model"
+require_term "docs/136_abi_niche_and_explicit_layout.md" "Pergyra must not hide a wire-order convention"
+require_term "docs/136_abi_niche_and_explicit_layout.md" 'bits(value, order = ...)'
+require_term "docs/136_abi_niche_and_explicit_layout.md" 'reinterpret(value, layout = ..., endian = ..., abi = ...)'
+require_term "docs/136_abi_niche_and_explicit_layout.md" "No safe surface may default to hidden little-endian"
+require_term "docs/semantics/04_ownership_abi.md" "Safe bit conversion is not memory reinterpretation"
+require_term "docs/semantics/04_ownership_abi.md" "hidden default bit order"
 
 echo "[abi-ownership-shape] Slot/Pin ABI shape, cleanup, and docs contract are gated"

@@ -309,6 +309,11 @@ Required invariants before any source-level packed layout is accepted:
 - Slot, SecureSlot, DeviceSlot, Pin, authority tokens, and capability handles
   are not packable until a dedicated layout owner proves their ABI, lifetime,
   and security invariants.
+- Safe bit conversion is not memory reinterpretation. A future `bits(...)`
+  surface must name the bit-order convention explicitly (`MSB-first` /
+  `LSB-first` or equivalent), while `reinterpret(...)` must be reserved for a
+  world/ABI boundary that names endianness and layout evidence. There is no
+  hidden default bit order.
 
 Future niche optimization follows the same rule. `NonZero<T>`, `NonNull<T>`,
 `NonEmpty<T>`, or similar proof types must be established by semantic/DAG

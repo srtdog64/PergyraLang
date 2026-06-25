@@ -9,6 +9,26 @@ optimized `Option<T>` layout. Runtime-internal ABI structs are frozen through
 the ABI spec, but user-visible layout control is still a future raw/extern
 capability surface.
 
+Bit reinterpretation policy: Pergyra must not hide a wire-order convention
+behind a generic "logical bits" default. Bit order is a domain fact, not a
+compiler preference. A future safe `bits(...)` value conversion must require an
+explicit order parameter such as `LSB-first` or `MSB-first`. A future
+`reinterpret(...)` operation is different: it crosses a world/ABI boundary and
+must name the layout, endianness, and ABI evidence that make the physical
+representation meaningful. In short:
+
+- `bits(value, order = ...)` is a pure value conversion with explicit bit-order
+  convention.
+- `reinterpret(value, layout = ..., endian = ..., abi = ...)` is a boundary
+  operation. The world/layout fact is visible at the source and carried into
+  AIR/MIR evidence.
+- No safe surface may default to hidden little-endian, hidden LSB-first, or
+  backend-local memory retyping.
+- Slot, SecureSlot, DeviceSlot, Pin, authority tokens, and capability handles
+  are not bit-conversion subjects. Only an authorized payload value read from
+  such a boundary may later participate in `bits(...)`, and only if the payload
+  type itself has a bit-layout fact.
+
 Short answer for `let mut` plus bitpacking: the current compiler can preserve
 and check runtime ABI layout, but it cannot safely expose source-level
 bitpacked fields yet. `let mut` only proves that a local binding may be
