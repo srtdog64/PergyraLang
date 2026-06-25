@@ -733,6 +733,31 @@ locally to rediscover class-field arrays. The remaining direct semantic
 collection, and the projection field owner itself until dedicated declaration
 field metadata replaces AST-carried class fields.
 
+### Residue classification (audit floor, 2026-06-25)
+
+The two rows above that remain **Partial** (MIR routine signature metadata;
+Declaration field metadata) are at their **residual-closure floor**. All
+declaration-bootstrap *residual cleanup* — dead non-MIR AST fallbacks, stale
+compatibility seams, and stale status cells — is closed. What keeps these two
+rows Partial is **net-new IR feature work, not uncleaned residue**, and each is
+deliberately deferred under the beta-blocker order (§4 item 5):
+
+- **F1 — lossless EventHandler routine-signature payload.** `mir_render_type_name`
+  already encodes tuples losslessly (`(Int,Long)`); only `AST_EVENT_HANDLER_TYPE`
+  returns NULL, so callable param/return signatures keep the retained AST node as
+  their lossless carrier. Closing requires a structured callable descriptor on
+  `MIRRoutine` (precedent: `MIRSourceLocalType.callable_*`) plus an *atomic*
+  migration of the dual-backend signature emitters off `param->type`. The intent
+  *value* consumer residue was closed 2026-06-25; this callable residue is the
+  remainder.
+- **F2 — pre-semantic declaration-field metadata layer.** Semantic runs *before*
+  MIR, so the residual `ast_class_fields(...)` reads cannot be retargeted at MIR;
+  closing requires a dedicated declaration-field metadata model produced between
+  parse and semantic. This is a new compiler layer, not a consumer migration.
+
+Treat "this row is Partial" here as "its closeable floor is reached; further
+closure is feature F1/F2," **not** as "uncleaned declaration-bootstrap debt."
+
 ## 2. Layer Contracts
 
 ### AST
