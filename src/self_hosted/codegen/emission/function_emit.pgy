@@ -2,80 +2,6 @@
 //
 // Function/declaration scan and signature emission owner for self-host C emission.
 
-func CParamType(type_name: String, struct_env: String) -> String {
-    if type_name == "Int" {
-        return "long long";
-    }
-    if type_name == "Bool" {
-        return "bool";
-    }
-    if type_name == "Float" {
-        return "double";
-    }
-    if type_name == "String" {
-        return "const char*";
-    }
-    if StartsWith(type_name, "Array<") {
-        if StringIndexOf(type_name, "Int") >= 0 {
-            return "pgy_ai";
-        }
-        if StringIndexOf(type_name, "String") >= 0 {
-            return "pgy_as";
-        }
-    }
-    if StartsWith(type_name, "Result<") && StringIndexOf(type_name, "Int") >= 0 {
-        return "pgy_result_int";
-    }
-    if StartsWith(type_name, "Option<") && StringIndexOf(type_name, "Int") >= 0 {
-        return "pgy_option_int";
-    }
-    if LookupKindType(struct_env, type_name, "s") == "struct" {
-        return type_name;
-    }
-    Die(Concat("unsupported parameter type (only Int/Bool/Float/String/Array/Option/struct): ", type_name));
-    return "";
-}
-
-// C return type for a Pergyra type. String values are read-only at the C
-// boundary; helpers may return malloc'd buffers, but callers consume them as
-// const strings just like string literals and array entries.
-func CRetType(type_name: String, struct_env: String) -> String {
-    if type_name == "Int" {
-        return "long long";
-    }
-    if type_name == "Bool" {
-        return "bool";
-    }
-    if type_name == "Float" {
-        return "double";
-    }
-    if type_name == "String" {
-        return "const char*";
-    }
-    if type_name == "Void" {
-        return "void";
-    }
-    if StartsWith(type_name, "Array<") {
-        if StringIndexOf(type_name, "Int") >= 0 {
-            return "pgy_ai";
-        }
-        if StringIndexOf(type_name, "String") >= 0 {
-            return "pgy_as";
-        }
-    }
-    if StartsWith(type_name, "Result<") && StringIndexOf(type_name, "Int") >= 0 {
-        return "pgy_result_int";
-    }
-    if StartsWith(type_name, "Option<") && StringIndexOf(type_name, "Int") >= 0 {
-        return "pgy_option_int";
-    }
-    if LookupKindType(struct_env, type_name, "s") == "struct" {
-        return type_name;
-    }
-    Die(Concat("unsupported return type (only Int/Bool/Float/String/Void/Array/Option/struct): ", type_name));
-    return "";
-}
-
 func NominalDeclPrefixLen(line: String) -> Int {
     if StartsWith(line, "Struct: ") {
         return 8;
@@ -166,7 +92,7 @@ func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
             p_name = Substring(pline, 0, pc);
             p_type = Substring(pline, pc + 2, StringLength(pline) - (pc + 2));
         }
-        let c_param: String = Concat(CParamType(p_type, base_env), Concat(" ", p_name));
+        let c_param: String = Concat(AbiLayoutCParamType(p_type, base_env), Concat(" ", p_name));
         if param_n == 0 {
             params = c_param;
         } else {
@@ -221,7 +147,7 @@ func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
         if param_n == 0 {
             param_list = "void";
         }
-        signature = Concat(CRetType(ret_type, base_env), Concat(" ", Concat(c_name, Concat("(", Concat(param_list, ")")))));
+        signature = Concat(AbiLayoutCReturnType(ret_type, base_env), Concat(" ", Concat(c_name, Concat("(", Concat(param_list, ")")))));
     }
 
     let tail: String = "}\n";
@@ -334,18 +260,7 @@ func CollectStructs(indents: Array<Int>, texts: Array<String>, count: Int, inout
                 }
                 let fname: String = Substring(fl, 0, cpos);
                 let ftype: String = Substring(fl, cpos + 2, StringLength(fl) - (cpos + 2));
-                let cfield_type: String = "long long";
-                if ftype == "Bool" {
-                    cfield_type = "bool";
-                } else if ftype == "Float" {
-                    cfield_type = "double";
-                } else if ftype == "String" {
-                    cfield_type = "const char *";
-                } else if LookupKindType(env_box[0], ftype, "s") == "struct" {
-                    cfield_type = ftype;
-                } else if ftype != "Int" {
-                    Die(Concat("struct/class fields must be Int/Bool/Float/String/previous struct, got: ", ftype));
-                }
+                let cfield_type: String = AbiLayoutCFieldType(ftype, env_box[0]);
                 if StringLength(field_names) == 0 {
                     field_names = fname;
                 } else {
@@ -466,7 +381,7 @@ func CollectProtos(indents: Array<Int>, texts: Array<String>, count: Int, struct
                         p_name = Substring(pl, 0, pc);
                         p_type = Substring(pl, pc + 2, StringLength(pl) - (pc + 2));
                     }
-                    let cp: String = Concat(CParamType(p_type, struct_env), Concat(" ", p_name));
+                    let cp: String = Concat(AbiLayoutCParamType(p_type, struct_env), Concat(" ", p_name));
                     if pn == 0 {
                         params = cp;
                     } else {
@@ -483,7 +398,7 @@ func CollectProtos(indents: Array<Int>, texts: Array<String>, count: Int, struct
                 if pn == 0 {
                     plist = "void";
                 }
-                let sig: String = Concat(CRetType(rtype, struct_env), Concat(" ", Concat(c_name, Concat("(", Concat(plist, ")")))));
+                let sig: String = Concat(AbiLayoutCReturnType(rtype, struct_env), Concat(" ", Concat(c_name, Concat("(", Concat(plist, ")")))));
                 block = Concat(block, Concat(sig, ";\n"));
             }
         }

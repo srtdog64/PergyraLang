@@ -4,6 +4,7 @@ import "text/text_owner.pgy";
 import "type_facts/type_env.pgy";
 import "text/expr_scan.pgy";
 import "symbol_facts/symbol_mangle_owner.pgy";
+import "abi_layout/abi_layout_owner.pgy";
 import "emission/expr_rewrite.pgy";
 import "emission/struct_value_emit.pgy";
 import "emission/stmt_emit.pgy";

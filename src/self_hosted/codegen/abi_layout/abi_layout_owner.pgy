@@ -1,0 +1,60 @@
+// src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy
+//
+// Self-host C ABI type spelling facts for the supported codegen subset.
+
+import "../text/text_owner.pgy";
+import "../type_facts/type_env.pgy";
+
+func AbiLayoutCValueType(type_name: String, struct_env: String) -> String {
+    if type_name == "Int" {
+        return "long long";
+    }
+    if type_name == "Bool" {
+        return "bool";
+    }
+    if type_name == "Float" {
+        return "double";
+    }
+    if type_name == "String" {
+        return "const char*";
+    }
+    if StartsWith(type_name, "Array<") {
+        if StringIndexOf(type_name, "Int") >= 0 {
+            return "pgy_ai";
+        }
+        if StringIndexOf(type_name, "String") >= 0 {
+            return "pgy_as";
+        }
+    }
+    if StartsWith(type_name, "Result<") && StringIndexOf(type_name, "Int") >= 0 {
+        return "pgy_result_int";
+    }
+    if StartsWith(type_name, "Option<") && StringIndexOf(type_name, "Int") >= 0 {
+        return "pgy_option_int";
+    }
+    if LookupKindType(struct_env, type_name, "s") == "struct" {
+        return type_name;
+    }
+    Die(Concat("unsupported C ABI value type (only Int/Bool/Float/String/Array/Result/Option/struct): ", type_name));
+    return "";
+}
+
+func AbiLayoutCParamType(type_name: String, struct_env: String) -> String {
+    return AbiLayoutCValueType(type_name, struct_env);
+}
+
+func AbiLayoutCReturnType(type_name: String, struct_env: String) -> String {
+    if type_name == "Void" {
+        return "void";
+    }
+    return AbiLayoutCValueType(type_name, struct_env);
+}
+
+func AbiLayoutCFieldType(type_name: String, struct_env: String) -> String {
+    if StartsWith(type_name, "Array<") ||
+        StartsWith(type_name, "Result<") ||
+        StartsWith(type_name, "Option<") {
+        Die(Concat("struct/class fields must be Int/Bool/Float/String/previous struct, got: ", type_name));
+    }
+    return AbiLayoutCValueType(type_name, struct_env);
+}

@@ -81,7 +81,8 @@ The filesystem split under `src/self_hosted/codegen/` follows owner visibility:
 - `run/`: CLI-to-output orchestration.
 - `text/`: AST/expression text scanning.
 - `type_facts/`: type evidence.
-- future `abi_layout/`: ABI/layout fact projection from MIR ABI rows.
+- `abi_layout/`: self-host C ABI type spelling facts now; broader ABI/layout
+  fact projection from MIR ABI rows remains the cross-backend target.
 - `emission/`: C emission participants.
 
 That split is not a semantic claim that every folder is a zone.

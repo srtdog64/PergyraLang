@@ -195,15 +195,18 @@ Self-hosted codegen is a backend resource cluster:
 - `text/` owns text and expression scanning facts for the compatibility bridge.
 - `type_facts/` owns the type environment consumed by emitters.
 - `symbol_facts/` owns emitted-symbol spelling facts.
+- `abi_layout/` owns self-host C ABI type spelling facts for the supported
+  signature and field subset.
 - `emission/` contains participants that write or route emitted C.
 
 `program_emit`, `function_emit`, `stmt_emit`, `expr_rewrite`, and
 `struct_value_emit` are not zones. They are action participants over the same
 output and type resources. A new zone appears only when there is a new distinct
 resource, such as a mutable cross-backend symbol/name-mangling table. The
-current `symbol_facts/symbol_mangle_owner.pgy` owner is read-only: it centralizes
-the self-host C subset's emitted spelling without claiming full C/LLVM ABI
-mangling closure.
+current `symbol_facts/symbol_mangle_owner.pgy` and
+`abi_layout/abi_layout_owner.pgy` owners are read-only: they centralize the
+self-host C subset's emitted symbol and ABI type spelling without claiming full
+C/LLVM symbol or ABI row closure.
 
 This is the projection-nerve rule in code form: the backend does not own a new
 truth. It receives MIR/type/ABI facts from the compiler world and sends one
@@ -229,6 +232,7 @@ The long-term codegen shape is resource-first:
 | emitted artifact text | `EmissionZone` / emission participants | C compiler, parity harness | one write owner; no scattered stdout construction |
 | type bindings | `TypeEnvZone` / `type_facts/` | expression, statement, return, log routing | emitters consume type facts instead of re-inferring from source text |
 | symbol and mangle facts | `symbol_facts/symbol_mangle_owner.pgy` for self-host C subset; cross-backend owner still active | C, LLVM, and self-hosted emission | emitters consume canonical spelling facts; no owner/member string concatenation in local emission |
+| self-host C ABI type spelling | `abi_layout/abi_layout_owner.pgy` for self-host C subset; cross-backend row projection still active | self-hosted C emission | signature and field declarations consume canonical C ABI type facts |
 | ABI/layout facts | `AbiLayoutZone` over the MIR ABI/layout owner | C, LLVM, self-hosted codegen | no backend invents field order, niche, pointer, or ownership shape |
 | unsupported surface | codegen diagnostic owner | parity harness | fail visibly, never emit broken C |
 | target acceptance/fallback | `target_capability_owner.pgy` plus future target-specific extensions | C, LLVM, self-hosted, accelerator projections | no hidden CPU fallback or unsupported accelerator lowering |

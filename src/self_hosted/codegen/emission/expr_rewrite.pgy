@@ -361,68 +361,6 @@ func IntEval(expr: String, env: String) -> String {
     return RewriteExpr(expr, env);
 }
 
-// Emit a C string-valued (char*) expression for a <strexpr>. `Concat` lowers
-// to a runtime `pgy_concat`; `Substring` to `pgy_substr`; array element reads
-// to `pgy_as_get`; literals / identifiers / calls pass through.
-// String-valued expressions now lower through the same `RewriteExpr` token
-// pipeline as everything else -- `Concat` is a name rewrite (see RewriteExpr),
-// so nested and call-argument occurrences lower correctly without special
-// top-level parsing here.
-// Strip redundant parentheses that wrap an entire expression. The AST printer
-// fully parenthesizes infix (`(("a" + b) + "c")`), which would hide top-level
-// operators behind depth > 0. Removes one wrapping layer at a time.
-func StripOuterParens(e: String) -> String {
-    let s: String = StringTrim(e);
-    while StringLength(s) >= 2 && CharAt(s, 0) == "(" && FindMatchingParen(s, 0) == StringLength(s) - 1 {
-        s = StringTrim(Substring(s, 1, StringLength(s) - 2));
-    }
-    return s;
-}
-
-// Find the first top-level single-char `+` (string-concatenation operator) in a
-// string-valued expression: depth 0 (outside any (), []) and outside string
-// literals. Returns -1 if none.
-func FindTopLevelPlus(s: String) -> Int {
-    let n: Int = StringLength(s);
-    let i: Int = 0;
-    let depth: Int = 0;
-    let in_str: Bool = false;
-    while i < n {
-        let c: String = CharAt(s, i);
-        if in_str {
-            if c == "\\" {
-                i = i + 2;
-                continue;
-            }
-            if c == "\"" {
-                in_str = false;
-            }
-            i = i + 1;
-            continue;
-        }
-        if c == "\"" {
-            in_str = true;
-            i = i + 1;
-            continue;
-        }
-        if c == "(" || c == "[" {
-            depth = depth + 1;
-            i = i + 1;
-            continue;
-        }
-        if c == ")" || c == "]" {
-            depth = depth - 1;
-            i = i + 1;
-            continue;
-        }
-        if depth == 0 && c == "+" {
-            return i;
-        }
-        i = i + 1;
-    }
-    return -1;
-}
-
 // Emit a C string-valued (char*) expression. In a confirmed string context a
 // top-level `+` is the concatenation operator (the operands are strings by
 // construction), so it lowers to nested `pgy_concat(...)`. Everything else

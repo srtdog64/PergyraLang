@@ -50,6 +50,7 @@ cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
 # Imported entrypoints must be checked through source_bundle_owner.pgy, not by
 # deleting import lines or concatenating temporary units.
 SELF_SOURCES=(
+    "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy"
     "src/self_hosted/codegen/input/ast_input_owner.pgy"
     "src/self_hosted/codegen/main.pgy"
     "src/self_hosted/codegen/symbol_facts/symbol_mangle_owner.pgy"

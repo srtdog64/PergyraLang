@@ -10,8 +10,9 @@ Architecture note:
 is the owner contract for this folder's long-term shape. Codegen is a backend
 resource cluster: `TypeEnvZone` owns type facts, `AbiLayoutZone` owns ABI/layout
 facts, `EmissionZone` owns emitted C, and `ProgramEmitter` is the participant
-that writes through the emission boundary. The files under `emission/` are
-action participants, not separate zones.
+that writes through the emission boundary. The current self-host C subset uses
+`abi_layout/abi_layout_owner.pgy` for C ABI type spelling. The files under
+`emission/` are action participants, not separate zones.
 
 ## Rung-0..20 (2026-06-24) - active
 
@@ -23,7 +24,7 @@ resource-shaped subdirectories:
 - `text/` owns AST/expression text scanning primitives.
 - `type_facts/` owns type binding facts consumed as read-mostly evidence.
 - `symbol_facts/` owns emitted-symbol spelling for the self-host C subset.
-- future `abi_layout/` owns ABI/layout fact projection from MIR ABI rows.
+- `abi_layout/` owns self-host C ABI type spelling for signatures and fields.
 - `emission/` owns participants in the C-emission action graph.
 
 These folders are not a copy of the native C backend topology. `program_emit`,
@@ -146,6 +147,10 @@ policy directly. `symbol_facts/symbol_mangle_owner.pgy` owns C emitted-symbol
 spelling for function names, owner-qualified methods, role operator names, and
 payload-free enum variants in the supported subset; emitters must consume that
 owner instead of locally concatenating owner/member spellings.
+`abi_layout/abi_layout_owner.pgy` owns C ABI type spelling for parameter,
+return, and struct/class field declarations in the supported subset; emitters
+must consume that owner instead of locally mapping `Int` / `String` / aggregate
+types to C spellings.
 
 Parity gate: `tests/self_hosted/parity/codegen_parity.sh` builds `main.pgy` through
 the requested backend set, runs it on each of the 63 committed fixtures'
