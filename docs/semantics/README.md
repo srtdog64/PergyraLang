@@ -116,16 +116,22 @@ Mechanized artifacts:
   seven Step forms: Cross/Emit/Acquire/Use/Release/Delegate/Rollback). Proves the cross-cutting
   capstone `authority_conservation` -- no Step form anywhere creates a capability
   (delegation redistributes; the others do not touch holdings), the whole-machine
-  no-ambient-authority theorem. Proves the non-interference of delegation and rollback
-  (`delegate_then_rollback_sound` and `acquire_delegate_then_rollback_sound`). Shows the capability,
-  typestate, and rollback disciplines coexist on one state without interference.
-  A full preservation/progress over a typing judgment remains the open synthesis.
+  no-ambient-authority theorem. Rollback now consumes snapshot-bearing effect
+  log entries and multi-slot compensation targets (`comp_target : eff -> list slot`).
+  Proves the non-interference of delegation and rollback over actual `step` /
+  `steps` edges (`delegate_then_rollback_sound`,
+  `delegate_rollback_steps_sound`, `acquire_delegate_then_rollback_sound`, and
+  `acquire_delegate_rollback_steps_sound`). Shows the capability, typestate,
+  and rollback disciplines coexist on one state without interference. A full
+  preservation/progress over a typing judgment remains the open synthesis.
 - [proofs/CompensationCore.v](proofs/CompensationCore.v): Coq proof sketch for the
   compensation / rollback Step form (the intent-specific facet, Saga lineage). The
-  effect->slot coupling `comp_target` makes rollback sound: `rollback_requires_log`
-  (fail-closed), `rollback_restores` (undo restores the coupled slot to Empty),
-  `rollback_pops_log`, and the saga round-trip `do_then_rollback_restores`. This is
-  the point where the effect facet and the slot/lifecycle facet are shown to agree.
+  effect->slots coupling `comp_target : eff -> list slot` and the logged
+  pre-forward store snapshot make rollback sound: `rollback_requires_log`
+  (fail-closed), `rollback_restores_snapshot` (undo restores each coupled slot
+  to the logged pre-forward state), `rollback_pops_log`, and the saga round-trip
+  `do_then_rollback_restores`. This is the point where the effect facet and the
+  slot/lifecycle facet are shown to agree.
 - [proofs/CoordinationCore.v](proofs/CoordinationCore.v): Coq proof sketch for the
   coordination Step form (the step dependency graph; dataflow / Kahn Process Network
   lineage). `run_requires_deps` (fail-closed: a step runs only when every dependency
@@ -134,7 +140,8 @@ Mechanized artifacts:
   position-ordered "sequence" view of intent steps with an explicit readiness model.
   With the prior six files this mechanizes the full `intent` decomposition; the
   remaining work is preservation/progress over a typing judgment and binding the
-  model's graphs to live AIR/MIR owner facts.
+  model's graphs, holdings, compensation targets, and snapshots to live AIR/MIR
+  owner facts.
 - [proofs/ProofCarryingIR.v](proofs/ProofCarryingIR.v): Coq proof sketch for
   the Stage 2 checker-core rule behind `pgy.proof-carrying-ir.v1`: a valid
   certificate permits downstream fact consumption, while missing AIR/MIR facts

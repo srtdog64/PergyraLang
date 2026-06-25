@@ -85,6 +85,27 @@ run_native_capture() {
     local bin="$4"
     shift 4
 
+    case "$(uname -s 2>/dev/null || echo unknown)" in
+        MINGW*|MSYS*|CYGWIN*)
+            local cwd_bash
+            local bin_bash
+            local out_bash
+            local err_bash
+            cwd_bash="$(pgy_path_for_bash_tool "$cwd")"
+            bin_bash="$(pgy_path_for_bash_tool "$bin")"
+            out_bash="$(pgy_path_for_bash_tool "$out")"
+            err_bash="$(pgy_path_for_bash_tool "$err")"
+            echo "[DEBUG] MINGW BYPASS: cwd=$cwd_bash bin=$bin_bash" >&2
+            local old_pwd="$PWD"
+            cd "$cwd_bash"
+            "$bin_bash" "$@" >"$out_bash" 2>"$err_bash"
+            local rc=$?
+            echo "[DEBUG] MINGW BYPASS: rc=$rc" >&2
+            cd "$old_pwd"
+            return "$rc"
+            ;;
+    esac
+
     if pgy_binary_is_runnable_here "$bin"; then
         (cd "$cwd" && "$bin" "$@" >"$out" 2>"$err")
         local direct_rc=$?
@@ -124,7 +145,7 @@ run_native_capture() {
     done
 
     powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
-        "\$env:PATH='${PGY_WINDOWS_PS_PATH_PREFIX}' + \$env:PATH; \$enc = New-Object System.Text.UTF8Encoding \$false; \$psi = New-Object System.Diagnostics.ProcessStartInfo; \$psi.FileName = $(pgy_powershell_quote "$bin_native"); \$psi.WorkingDirectory = $(pgy_powershell_quote "$cwd_native"); \$psi.UseShellExecute = \$false; \$psi.RedirectStandardOutput = \$true; \$psi.RedirectStandardError = \$true; \$psi.Arguments = $(pgy_powershell_quote "$args_native"); \$p = [System.Diagnostics.Process]::Start(\$psi); if (\$p -eq \$null) { exit 127 }; \$stdout = \$p.StandardOutput.ReadToEnd(); \$stderr = \$p.StandardError.ReadToEnd(); \$p.WaitForExit(); [System.IO.File]::WriteAllText($(pgy_powershell_quote "$out_native"), \$stdout, \$enc); [System.IO.File]::WriteAllText($(pgy_powershell_quote "$err_native"), \$stderr, \$enc); exit \$p.ExitCode"
+        "\$env:PATH='${PGY_WINDOWS_PS_PATH_PREFIX}' + \$env:PATH; \$enc = New-Object System.Text.UTF8Encoding \$false; \$psi = New-Object System.Diagnostics.ProcessStartInfo; \$psi.FileName = $(pgy_powershell_quote "$bin_native"); \$psi.WorkingDirectory = $(pgy_powershell_quote "$cwd_native"); \$psi.UseShellExecute = \$false; \$psi.RedirectStandardOutput = \$true; \$psi.RedirectStandardError = \$true; \$psi.Arguments = $(pgy_powershell_quote "$args_native"); \$p = [System.Diagnostics.Process]::Start(\$psi); if (\$p -eq \$null) { exit 127 }; \$t1 = \$p.StandardOutput.ReadToEndAsync(); \$t2 = \$p.StandardError.ReadToEndAsync(); [System.Threading.Tasks.Task]::WaitAll(@(\$t1, \$t2)); \$p.WaitForExit(); \$stdout = \$t1.Result; \$stderr = \$t2.Result; [System.IO.File]::WriteAllText($(pgy_powershell_quote "$out_native"), \$stdout, \$enc); [System.IO.File]::WriteAllText($(pgy_powershell_quote "$err_native"), \$stderr, \$enc); exit \$p.ExitCode"
 }
 
 # Fixture base names; each resolves to fixture/<base>.pgy and
@@ -236,7 +257,7 @@ check_oracle_drift() {
     local run_args=()
     while IFS= read -r arg; do
         run_args+=("$arg")
-    done < <(fixture_run_args "$base")
+    done < <(fixture_run_args "$base") || true
 
     local oracle_out
     local oracle_raw="$ABS_BUILD/${base}_oracle.out.raw"
@@ -338,7 +359,7 @@ run_tool_backend() {
         local run_args=()
         while IFS= read -r arg; do
             run_args+=("$arg")
-        done < <(fixture_run_args "$base")
+        done < <(fixture_run_args "$base") || true
 
         local run_raw="$ABS_BUILD/${base}_${backend}_self.out.raw"
         local run_err="$ABS_BUILD/${base}_${backend}_self.err"

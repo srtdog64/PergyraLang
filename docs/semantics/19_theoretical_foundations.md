@@ -188,15 +188,17 @@ interference. The full proof pack is `coqc`-checked under
 ### Compensation corner landed (2026-06-22)
 
 `docs/semantics/proofs/CompensationCore.v` adds the **compensation / rollback Step
-form** — the intent-specific facet docs/19 flags as the hard coupling, since a
+form** -- the intent-specific facet docs/19 flags as the hard coupling, since a
 rollback is sound only when it names *both* the effect to undo and the typestate
-to restore (`comp_target : eff -> slot` is the explicit coupling). Saga lineage.
-Theorems: `rollback_requires_log` (fail-closed: cannot undo what was never done),
-`rollback_restores` (rolling back effect `e` restores its target slot to `Empty`),
+snapshot to restore. `comp_target : eff -> list slot` is the explicit
+effect-to-targets coupling, and each effect-log entry carries the pre-forward
+store snapshot. Saga lineage. Theorems: `rollback_requires_log` (fail-closed:
+cannot undo what was never done), `rollback_restores_snapshot` (rolling back
+effect `e` restores each target slot to the logged pre-forward state),
 `rollback_pops_log` (removes exactly the compensated effect), and the saga
 round-trip `do_then_rollback_restores` (forward-then-compensate is the identity on
-the touched slot). This is where the effect facet and the slot/lifecycle facet are
-shown to agree — the synthesis point.
+every touched slot). This is where the effect facet and the slot/lifecycle facet
+are shown to agree -- the synthesis point.
 
 ### Status of the calculus
 
@@ -226,9 +228,11 @@ machine showing the base axes compose. Seven `coqc`-checked core-calculus files
 The remaining work is now:
 1. **Preservation/progress over a typing judgment** for whole programs (the current
    theorems are per-step fail-closed/soundness lemmas; the full pair is the depth).
-2. **Bind** the model's graphs/holdings terms to the live AIR/MIR owner facts —
-   the same plumbing that turns the `make machine-neutral-status` gate (docs/18)
-   from RED to GREEN. The calculus and the fact-ownership fix are one workstream;
-   this is the theory↔implementation bridge. The calculus now names exactly which
-   facts AIR must own (a `ZoneGraph`, an `effect_graph`, an `acquire_graph`, a
-   `holdings` map, a `deps` graph, and a `comp_target` map).
+2. **Bind** the model's graphs/holdings/snapshot terms to the live AIR/MIR owner
+   facts -- the same plumbing that turns the `make machine-neutral-status` gate
+   (docs/18) from RED to GREEN. The calculus and the fact-ownership fix are one
+   workstream; this is the theory-to-implementation bridge. The calculus now
+   names exactly which facts AIR/MIR must own (a `ZoneGraph`, an `effect_graph`,
+   an `acquire_graph`, a `holdings` map, a `deps` graph, and a
+   `comp_target : eff -> list slot` map, plus the effect-log pre-forward store
+   snapshot facts).

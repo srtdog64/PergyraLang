@@ -44,6 +44,7 @@ Inductive RemainingObligation : Type :=
   | ObligationParserToAstManifest
   | ObligationBehaviorJudgmentDiagnosticMap
   | ObligationTransitiveFrontierScheduler
+  | ObligationAirMirLiveOwnerFactBinding
   | ObligationWindowsLlvmRunnerParity.
 
 Definition HasNode (s : ProofNode -> Prop) (n : ProofNode) : Prop := s n.
@@ -105,6 +106,7 @@ Definition AllRemainingObligationsDischarged
   RemainingObligationDischarged d ObligationParserToAstManifest /\
   RemainingObligationDischarged d ObligationBehaviorJudgmentDiagnosticMap /\
   RemainingObligationDischarged d ObligationTransitiveFrontierScheduler /\
+  RemainingObligationDischarged d ObligationAirMirLiveOwnerFactBinding /\
   RemainingObligationDischarged d ObligationWindowsLlvmRunnerParity.
 
 Definition WholeLanguageVerificationReady
@@ -224,8 +226,18 @@ Theorem whole_language_ready_requires_windows_llvm_runner_parity :
     RemainingObligationDischarged d ObligationWindowsLlvmRunnerParity.
 Proof.
   unfold WholeLanguageVerificationReady, AllRemainingObligationsDischarged.
-  intros s d [_ [_ [_ [_ [_ Hwindows]]]]].
+  intros s d [_ [_ [_ [_ [_ [_ Hwindows]]]]]].
   exact Hwindows.
+Qed.
+
+Theorem whole_language_ready_requires_air_mir_live_owner_binding :
+  forall s d,
+    WholeLanguageVerificationReady s d ->
+    RemainingObligationDischarged d ObligationAirMirLiveOwnerFactBinding.
+Proof.
+  unfold WholeLanguageVerificationReady, AllRemainingObligationsDischarged.
+  intros s d [_ [_ [_ [_ [_ [Hbinding _]]]]]].
+  exact Hbinding.
 Qed.
 
 Theorem open_obligation_blocks_whole_language_ready :

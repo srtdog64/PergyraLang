@@ -44,6 +44,7 @@ implementation and gate work exists:
 | `ObligationParserToAstManifest` | `parser_to_ast` is tracked in the loss manifest as documentation-only. | Move the parser boundary into the pass manifest and add a gate that checks accepted loss and forbidden recovery. |
 | `ObligationBehaviorJudgmentDiagnosticMap` | Behavior-contract gaps are documented, but judgment rules are not yet mapped 1:1 to diagnostics. | Stable judgment rule ids must map to compiler diagnostic codes and verifier causes. |
 | `ObligationTransitiveFrontierScheduler` | Frontier slices are implemented and smoke-tested, but the full transitive world/zone/projection scheduler is not closed. | One source-of-truth scheduler must cover world, zone, projection, authority, failure, and handoff propagation. |
+| `ObligationAirMirLiveOwnerFactBinding` | Coq models name graphs, holdings, compensation targets, and snapshots as parameters. | Bind those terms to live AIR/MIR owner facts so implementation gates prove the same facts the model assumes. |
 | `ObligationWindowsLlvmRunnerParity` | Windows beta policy remains C backend only for strict platform claims. | Windows LLVM runner parity must be proven before Windows LLVM can be cited as a beta-stable leg. |
 
 The Coq spine models these as `RemainingObligation` constructors. A proof pack

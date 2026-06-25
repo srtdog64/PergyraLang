@@ -264,7 +264,7 @@ typedef struct
  * a callable's nested return/param shape, so this structured descriptor carries
  * it. Populated during MIR signature lowering (the sanctioned AST-reading
  * owner) and consumed by C/LLVM signature emitters so routine callable
- * parameters/returns are MIR-owned, not reconstructed from source_ast.
+ * parameters/returns are MIR-owned, not reconstructed from source AST payloads.
  * is_callable=false means the slot is a plain type carried by param_type_names.
  */
 typedef struct

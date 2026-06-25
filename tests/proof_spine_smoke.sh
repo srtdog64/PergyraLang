@@ -79,6 +79,7 @@ for term in \
     "Theorem whole_language_ready_requires_parser_to_ast_manifest" \
     "Theorem whole_language_ready_requires_behavior_judgment_map" \
     "Theorem whole_language_ready_requires_transitive_frontier_scheduler" \
+    "Theorem whole_language_ready_requires_air_mir_live_owner_binding" \
     "Theorem whole_language_ready_requires_windows_llvm_runner_parity" \
     "Theorem open_obligation_blocks_whole_language_ready"; do
     require_text "docs/semantics/proofs/ProofSpine.v" "$term"
@@ -90,6 +91,8 @@ require_text "docs/semantics/proofs/ProofSpine.md" "DropOnce / ReleaseAfterUnpin
 require_text "docs/semantics/proofs/ProofSpine.md" "ObligationParserToAstManifest"
 require_text "docs/semantics/proofs/ProofSpine.md" "ObligationBehaviorJudgmentDiagnosticMap"
 require_text "docs/semantics/proofs/ProofSpine.md" "ObligationTransitiveFrontierScheduler"
+require_text "docs/semantics/proofs/ProofSpine.md" "ObligationAirMirLiveOwnerFactBinding"
+require_text "docs/semantics/proofs/ProofSpine.md" "live AIR/MIR owner facts"
 require_text "docs/semantics/proofs/ProofSpine.md" "ObligationWindowsLlvmRunnerParity"
 require_text "docs/semantics/README.md" "proofs/ProofSpine.v"
 require_text "docs/semantics/16_language_contract_golden_spine.md" "Proof spine"
