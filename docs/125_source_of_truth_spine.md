@@ -745,11 +745,17 @@ deliberately deferred under the beta-blocker order (§4 item 5):
 - **F1 — lossless EventHandler routine-signature payload.** `mir_render_type_name`
   already encodes tuples losslessly (`(Int,Long)`); only `AST_EVENT_HANDLER_TYPE`
   returns NULL, so callable param/return signatures keep the retained AST node as
-  their lossless carrier. Closing requires a structured callable descriptor on
-  `MIRRoutine` (precedent: `MIRSourceLocalType.callable_*`) plus an *atomic*
-  migration of the dual-backend signature emitters off `param->type`. The intent
-  *value* consumer residue was closed 2026-06-25; this callable residue is the
-  remainder.
+  their lossless carrier. A structured `MIRCallableSig` descriptor now carries the
+  callable shape in MIR (2026-06-25): populated during signature capture and
+  consumed by the C supportedness check and the C param declarator emitter, with
+  the AST node retained only for the non-MIR / nested-unrenderable edge. **Why this
+  stays Partial (not closed):** docs/grammar/01_syntax.md §11 lists standalone
+  EventHandler-type parameter syntax as currently unsupported, so a routine
+  callable parameter/return is not reachable from real surface syntax today — the
+  path is exercised only synthetically. Removing the AST fallback and mirroring the
+  migration in LLVM is therefore defensive work that is low-value until the type is
+  surfaced, which is exactly why the retained-AST carrier was kept. The MIR carrier
+  + C consumers are landed so the foundation is ready when the type gets syntax.
 - **F2 — pre-semantic declaration-field metadata layer.** Semantic runs *before*
   MIR, so the residual `ast_class_fields(...)` reads cannot be retargeted at MIR;
   closing requires a dedicated declaration-field metadata model produced between
