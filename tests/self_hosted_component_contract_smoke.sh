@@ -222,14 +222,13 @@ require_text "src/self_hosted/lexer/scan_owner.pgy" 'import "token_owner.pgy";'
 reject_text "src/self_hosted/lexer/main.pgy" 'import "char_owner.pgy";'
 reject_text "src/self_hosted/lexer/main.pgy" 'import "token_owner.pgy";'
 require_owner_surface parser \
-    "error_owner.pgy" \
-    "cursor_owner.pgy" \
     "source_path_owner.pgy" \
-    "tree_text_owner.pgy" \
-    "expr_owner.pgy" \
-    "stmt_owner.pgy" \
-    "decl_dispatch_owner.pgy" \
     "program_parse_owner.pgy"
+reject_text "src/self_hosted/parser/main.pgy" 'import "error_owner.pgy";'
+reject_text "src/self_hosted/parser/main.pgy" 'import "cursor_owner.pgy";'
+reject_text "src/self_hosted/parser/main.pgy" 'import "tree_text_owner.pgy";'
+reject_text "src/self_hosted/parser/main.pgy" 'import "type_name_owner.pgy";'
+reject_text "src/self_hosted/parser/main.pgy" 'import "../lib/path.pgy";'
 require_text "src/self_hosted/parser/expr_owner.pgy" 'import "expr_string_owner.pgy";'
 require_text "src/self_hosted/parser/expr_owner.pgy" 'import "expr_postfix_owner.pgy";'
 require_text "src/self_hosted/parser/expr_owner.pgy" 'import "expr_primary_owner.pgy";'
@@ -249,9 +248,34 @@ reject_text "src/self_hosted/parser/main.pgy" 'import "stmt_if_owner.pgy";'
 reject_text "src/self_hosted/parser/main.pgy" 'import "stmt_loop_owner.pgy";'
 reject_text "src/self_hosted/parser/main.pgy" 'import "stmt_parallel_owner.pgy";'
 reject_text "src/self_hosted/parser/main.pgy" 'import "stmt_match_owner.pgy";'
+reject_text "src/self_hosted/parser/main.pgy" 'import "stmt_owner.pgy";'
 require_text "src/self_hosted/parser/stmt_loop_owner.pgy" "func ParseForStmt"
 reject_text "src/self_hosted/parser/stmt_owner.pgy" "func ParseForStmt"
 require_text "src/self_hosted/parser/source_path_owner.pgy" "func ParserImportGraphSeen"
+require_text "src/self_hosted/parser/program_parse_owner.pgy" 'import "decl_dispatch_owner.pgy";'
+require_text "src/self_hosted/parser/program_parse_owner.pgy" 'import "../lib/path.pgy";'
+require_text "src/self_hosted/parser/function_decl_owner.pgy" 'import "stmt_owner.pgy";'
+require_text "src/self_hosted/parser/function_decl_owner.pgy" 'import "expr_owner.pgy";'
+require_text "src/self_hosted/parser/decl_ability_owner.pgy" 'import "function_decl_owner.pgy";'
+require_text "src/self_hosted/parser/decl_role_owner.pgy" 'import "function_decl_owner.pgy";'
+require_text "src/self_hosted/parser/decl_nominal_owner.pgy" 'import "function_decl_owner.pgy";'
+require_text "src/self_hosted/parser/decl_intent_owner.pgy" 'import "expr_owner.pgy";'
+require_text "src/self_hosted/parser/decl_zone_owner.pgy" 'import "expr_owner.pgy";'
+require_text "src/self_hosted/parser/decl_zone_owner.pgy" 'import "function_decl_owner.pgy";'
+require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" 'import "source_path_owner.pgy";'
+require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" 'import "function_decl_owner.pgy";'
+require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" 'import "decl_ability_owner.pgy";'
+reject_text "src/self_hosted/parser/main.pgy" 'import "function_decl_owner.pgy";'
+reject_text "src/self_hosted/parser/main.pgy" 'import "decl_type_owner.pgy";'
+reject_text "src/self_hosted/parser/main.pgy" 'import "decl_ability_owner.pgy";'
+reject_text "src/self_hosted/parser/main.pgy" 'import "decl_event_owner.pgy";'
+reject_text "src/self_hosted/parser/main.pgy" 'import "decl_enum_owner.pgy";'
+reject_text "src/self_hosted/parser/main.pgy" 'import "decl_zone_owner.pgy";'
+reject_text "src/self_hosted/parser/main.pgy" 'import "decl_effect_relation_owner.pgy";'
+reject_text "src/self_hosted/parser/main.pgy" 'import "decl_role_owner.pgy";'
+reject_text "src/self_hosted/parser/main.pgy" 'import "decl_intent_owner.pgy";'
+reject_text "src/self_hosted/parser/main.pgy" 'import "decl_nominal_owner.pgy";'
+reject_text "src/self_hosted/parser/main.pgy" 'import "decl_dispatch_owner.pgy";'
 require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" "ParserImportGraphSeen(import_paths, imp_path)"
 require_text "tests/self_hosted/parity/parser_parity.sh" "import_dedup_graph"
 require_owner_surface semantic \
@@ -345,6 +369,9 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/s
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/semantic_run_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/main.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/expr_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/function_decl_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/decl_dispatch_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/program_parse_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/stmt_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/tree_text_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/main.pgy"'
@@ -357,8 +384,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 63 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 63"
+[[ "$selfcheck_count" -eq 71 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 71"
 
 semantic_items="$(extract_shell_array_items "$PARITY_DIR/semantic_parity.sh" SOURCE_PAIRS | sed 's/:.*//')"
 [[ -n "$semantic_items" ]] || fail "semantic parity SOURCE_PAIRS is empty"

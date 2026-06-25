@@ -8,26 +8,7 @@
 //
 // Contract: see intent.md in the same directory.
 
-import "error_owner.pgy";
-import "../lib/path.pgy";
-import "cursor_owner.pgy";
 import "source_path_owner.pgy";
-import "tree_text_owner.pgy";
-import "type_name_owner.pgy";
-import "expr_owner.pgy";
-import "stmt_owner.pgy";
-import "function_decl_owner.pgy";
-import "decl_type_owner.pgy";
-import "decl_ability_owner.pgy";
-import "decl_event_owner.pgy";
-import "decl_enum_owner.pgy";
-import "decl_zone_owner.pgy";
-import "decl_effect_relation_owner.pgy";
-import "decl_role_owner.pgy";
-import "decl_intent_owner.pgy";
-import "decl_nominal_owner.pgy";
-
-import "decl_dispatch_owner.pgy";
 import "program_parse_owner.pgy";
 
 func Main() -> Void with caps env, io_read {

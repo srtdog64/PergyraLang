@@ -1,5 +1,10 @@
 // Self-host parser ability declaration owner.
 
+import "cursor_owner.pgy";
+import "tree_text_owner.pgy";
+import "type_name_owner.pgy";
+import "function_decl_owner.pgy";
+
 // `ability NAME { func SIG; ... }` declares an interface-shaped collection of
 // function signatures. AST emits as `  [export] Ability: NAME`.
 func ParseAbilityDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String) -> String {

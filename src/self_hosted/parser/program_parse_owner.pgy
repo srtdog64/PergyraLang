@@ -3,6 +3,10 @@
 // Owns root source reads, root cursor initialization, and compact AST Program
 // assembly for the self-hosted parser entrypoint.
 
+import "../lib/path.pgy";
+import "cursor_owner.pgy";
+import "decl_dispatch_owner.pgy";
+
 func ParseRootProgram(source_path: String) -> String {
     if !FileExists(source_path) {
         Exit(1);

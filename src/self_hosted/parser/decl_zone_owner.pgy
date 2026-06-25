@@ -1,5 +1,11 @@
 // Self-host parser zone declaration owner.
 
+import "cursor_owner.pgy";
+import "tree_text_owner.pgy";
+import "type_name_owner.pgy";
+import "expr_owner.pgy";
+import "function_decl_owner.pgy";
+
 func ParseZoneDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String, inout involve_types: Array<String>) -> String {
     let i: Int = start;
     let n: Int = StringLength(content);

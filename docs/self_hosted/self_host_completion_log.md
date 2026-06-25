@@ -1506,3 +1506,15 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   while requiring them from `stmt_owner.pgy`.
 - Added `stmt_owner.pgy` to real-source semantic selfcheck, raising accepted
   self-host owner/source files from 62 to 63.
+
+### 2026-06-25 -- Parser declaration layer stops using main as import owner
+
+- Moved parser declaration/function/program dependencies behind direct owner
+  imports: `program_parse_owner` imports `decl_dispatch_owner`,
+  `decl_dispatch_owner` imports the top-level declaration branch owners, and
+  `function_decl_owner` imports cursor/tree/type/expression/statement facts.
+- Repointed `parser/main.pgy` to import only `source_path_owner.pgy` and
+  `program_parse_owner.pgy`. The entrypoint no longer owns parser cursor,
+  expression, statement, function, declaration, or path-library import order.
+- Added the parser declaration layer owners to real-source semantic selfcheck,
+  raising accepted self-host owner/source files from 63 to 71.

@@ -1,5 +1,21 @@
 // Self-host parser top-level declaration dispatch owner.
 
+import "../lib/path.pgy";
+import "cursor_owner.pgy";
+import "source_path_owner.pgy";
+import "tree_text_owner.pgy";
+import "stmt_owner.pgy";
+import "function_decl_owner.pgy";
+import "decl_type_owner.pgy";
+import "decl_ability_owner.pgy";
+import "decl_event_owner.pgy";
+import "decl_enum_owner.pgy";
+import "decl_zone_owner.pgy";
+import "decl_effect_relation_owner.pgy";
+import "decl_role_owner.pgy";
+import "decl_intent_owner.pgy";
+import "decl_nominal_owner.pgy";
+
 // Parse zero or more top-level declarations. `name_prefix` is prepended
 // to each emitted decl name and is non-empty inside `namespace` blocks
 // (e.g. `Math_` for `namespace Math { ... }`, `Outer_Inner_` for nested

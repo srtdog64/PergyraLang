@@ -1,5 +1,11 @@
 // Self-host parser function declaration owner.
 
+import "cursor_owner.pgy";
+import "tree_text_owner.pgy";
+import "type_name_owner.pgy";
+import "expr_owner.pgy";
+import "stmt_owner.pgy";
+
 // Parse one `func IDENT(params) -> RET { body }` declaration starting
 // at the `func` keyword. Returns the formatted multi-line block.
 // `base_indent` is the column at which `Function:` appears; child rows

@@ -23,6 +23,10 @@ parity and the examples scale probe.
   cursor initialization, top-level declaration parse invocation, and final
   compact AST `Program:` assembly. `main.pgy` only wires the selected source
   path into this owner.
+- **declaration_owner**: `decl_dispatch_owner.pgy` is the public boundary for
+  top-level declarations. It owns declaration dispatch, import graph
+  materialization, script-body collection, and branch owner imports. `main.pgy`
+  must not own declaration import order.
 - **statement_owner**: `stmt_owner.pgy` is the public boundary for the
   mutually recursive statement grammar. It owns statement dispatch and block
   recursion, and imports branch participants as one cluster because native
