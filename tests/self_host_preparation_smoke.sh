@@ -227,6 +227,7 @@ require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "determini
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "diagnostic rendering"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "MIR fact graph"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "ABI/layout facts"
+require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "AbiLayoutZone"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "EmissionZone"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "ParityZone"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "no-hidden-runtime"
@@ -242,6 +243,8 @@ require_text "src/self_hosted/README.md" "A tool that does not yet pass this con
 require_text "src/self_hosted/compiler/README.md" "Compiler World"
 require_text "src/self_hosted/compiler/README.md" "PgyCompilerWorld"
 require_text "src/self_hosted/compiler/world.pgy" "world PgyCompilerWorld"
+require_text "src/self_hosted/compiler/world.pgy" "zone AbiLayoutZone"
+require_text "src/self_hosted/compiler/world.pgy" "object AbiLayoutFacts"
 require_text "src/self_hosted/compiler/world.pgy" 'import "path_manifest_owner.pgy"'
 require_text "src/self_hosted/compiler/path_manifest_owner.pgy" "func CompilerWorldManifestPathAt"
 require_text "src/self_hosted/compiler/world.pgy" "intent CompilePergyraProgram"

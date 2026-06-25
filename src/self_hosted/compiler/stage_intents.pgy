@@ -71,6 +71,7 @@ intent MiddleEndPipeline(
 
 intent BackendPipeline(
     types: TypeEnvZone,
+    abi_layout: AbiLayoutZone,
     emit_zone: EmissionZone,
     emitter: ProgramEmitter
 ) {
@@ -80,7 +81,7 @@ intent BackendPipeline(
         where: EmissionZone;
         using: emit_zone;
         who: emitter;
-        on: EmitProgramArtifact(emit_zone, types, emitter);
+        on: EmitProgramArtifact(emit_zone, types, abi_layout, emitter);
         expect: true;
     }
 

@@ -19,8 +19,8 @@ That gives the self-host compiler three layers:
 
 1. `PgyCompilerWorld` names the whole compiler world.
 2. Resource zones own compiler state: source intake, token stream, AST tree,
-   semantic verdict, MIR fact graph, type facts, emitted artifact, and parity
-   evidence.
+   semantic verdict, MIR fact graph, type facts, ABI layout facts, emitted
+   artifact, and parity evidence.
 3. Intent clusters compose those zones into compiler actions.
 
 ## Compiler World Shape
@@ -38,12 +38,12 @@ clusters:
 
 - `FrontendPipeline`: source intake -> lexer -> parser.
 - `MiddleEndPipeline`: semantic verdict -> MIR fact graph.
-- `BackendPipeline`: type facts -> emitted C artifact.
+- `BackendPipeline`: type facts + ABI layout facts -> emitted C artifact.
 - `SelfProofPipeline`: C/LLVM/Pergyra oracle comparison evidence.
 
 These are intent clusters, not zones. They reuse `SourceIntakeZone`,
 `TokenStreamZone`, `AstTreeZone`, `SemanticVerdictZone`, `MirFactGraphZone`,
-`TypeEnvZone`, `EmissionZone`, and `ParityZone`.
+`TypeEnvZone`, `AbiLayoutZone`, `EmissionZone`, and `ParityZone`.
 The participants are also stage-specific: `LexerStage` scans token facts,
 `ParserStage` builds AST facts, `SemanticStage` proves semantic verdict facts,
 and `MirLowerStage` lowers MIR facts. Do not collapse those actors back into a
@@ -54,6 +54,8 @@ generic `StageOwner`; that hides the artifact each stage owns.
 Self-hosted codegen is a backend resource cluster:
 
 - `TypeEnvZone` owns type binding facts.
+- `AbiLayoutZone` owns ABI/layout facts such as field order, representation
+  kind, tag/niche policy, and payload offsets.
 - `EmissionZone` owns the emitted C text buffer.
 - `ProgramEmitter` is the participant that writes through `EmissionZone`.
 - `program_emit`, `function_emit`, `stmt_emit`, `expr_rewrite`, and
@@ -65,6 +67,7 @@ The filesystem split under `src/self_hosted/codegen/` follows owner visibility:
 - `run/`: CLI-to-output orchestration.
 - `text/`: AST/expression text scanning.
 - `type_facts/`: type evidence.
+- future `abi_layout/`: ABI/layout fact projection from MIR ABI rows.
 - `emission/`: C emission participants.
 
 That split is not a semantic claim that every folder is a zone.

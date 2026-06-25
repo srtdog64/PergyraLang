@@ -85,6 +85,7 @@ for term in \
     "zone SemanticVerdictZone" \
     "zone MirFactGraphZone" \
     "zone TypeEnvZone" \
+    "zone AbiLayoutZone" \
     "zone EmissionZone" \
     "zone ParityZone" \
     "intent CompilePergyraProgram" \
@@ -127,13 +128,18 @@ for term in \
     "object SemanticVerdict" \
     "object MirFactGraph" \
     "object TypeEnvironment" \
+    "object AbiLayoutFacts" \
     "object EmittedC" \
     "tobject ParityVerdict" \
     "subject slot lexer: LexerStage" \
     "subject slot parser: ParserStage" \
     "subject slot checker: SemanticStage" \
     "subject slot lowerer: MirLowerStage" \
-    "subject slot emitter: ProgramEmitter"; do
+    "subject slot emitter: ProgramEmitter" \
+    "object slot abi_layout: AbiLayoutFacts" \
+    "object slot layouts: AbiLayoutFacts" \
+    "zone abi_layout: AbiLayoutZone" \
+    "BackendPipeline(types, abi_layout, emit_zone, emitter)"; do
     require_text "src/self_hosted/compiler/world.pgy" "$term"
 done
 require_text "src/self_hosted/compiler/world.pgy" 'import "path_manifest_owner.pgy"'
@@ -198,7 +204,8 @@ for term in \
     "ParseTokens(ast, parser)" \
     "CheckProgramSemantics(semantic_zone, checker)" \
     "LowerProgramFacts(lower_zone, lowerer)" \
-    "EmitProgramArtifact(emit_zone, types, emitter)" \
+    "EmitProgramArtifact(emit_zone, types, abi_layout, emitter)" \
+    "abi_layout: AbiLayoutZone" \
     "ProveSelfHostedParity(parity_zone, oracle)"; do
     require_text "src/self_hosted/compiler/stage_intents.pgy" "$term"
 done
@@ -244,6 +251,7 @@ require_text "docs/self_hosted/11_compiler_world_architecture.md" "resource-owne
 require_text "docs/self_hosted/11_compiler_world_architecture.md" "resource ownership boundary"
 require_text "docs/self_hosted/11_compiler_world_architecture.md" "not a module, folder, phase, or helper"
 require_text "docs/self_hosted/11_compiler_world_architecture.md" "TypeEnvZone"
+require_text "docs/self_hosted/11_compiler_world_architecture.md" "AbiLayoutZone"
 require_text "docs/self_hosted/11_compiler_world_architecture.md" "ProgramEmitter"
 require_text "docs/self_hosted/11_compiler_world_architecture.md" "object slot c_output: EmittedC"
 require_text "docs/self_hosted/11_compiler_world_architecture.md" "backend resource cluster"
@@ -261,6 +269,7 @@ require_text "src/self_hosted/compiler/README.md" "resource ownership boundary"
 require_text "src/self_hosted/compiler/README.md" "ProgramEmitter"
 require_text "src/self_hosted/codegen/intent.md" "EmissionZone"
 require_text "src/self_hosted/codegen/intent.md" "TypeEnvZone"
+require_text "src/self_hosted/codegen/intent.md" "AbiLayoutZone"
 require_text "src/self_hosted/codegen/intent.md" "ProgramEmitter"
 require_text "src/self_hosted/codegen/intent.md" "participants in the emission action graph"
 require_text "src/self_hosted/codegen/intent.md" "does this boundary own a distinct resource"
@@ -284,6 +293,7 @@ require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "Promotion
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "import graph"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "deterministic collections"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "TypeEnvZone"
+require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "AbiLayoutZone"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "EmissionZone"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "ProgramEmitter"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "LexerStage"
@@ -328,6 +338,8 @@ grep -Fq "Zone: TokenStreamZone" "$ast_out" ||
     fail "compiler world AST missing TokenStreamZone zone"
 grep -Fq "Zone: TypeEnvZone" "$ast_out" ||
     fail "compiler world AST missing TypeEnvZone zone"
+grep -Fq "Zone: AbiLayoutZone" "$ast_out" ||
+    fail "compiler world AST missing AbiLayoutZone zone"
 grep -Fq "Subject: LexerStage" "$ast_out" ||
     fail "compiler world AST missing LexerStage subject"
 grep -Fq "Subject: ParserStage" "$ast_out" ||
@@ -342,5 +354,7 @@ grep -Fq "Object: StagePathManifest" "$ast_out" ||
     fail "compiler world AST missing StagePathManifest object"
 grep -Fq "Object: TypeEnvironment" "$ast_out" ||
     fail "compiler world AST missing TypeEnvironment object"
+grep -Fq "Object: AbiLayoutFacts" "$ast_out" ||
+    fail "compiler world AST missing AbiLayoutFacts object"
 
 echo "[self-host-compiler-world] compiler world source shape ok"

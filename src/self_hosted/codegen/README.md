@@ -8,10 +8,10 @@ open" freeze. Before that date this folder was a reserved stub.
 Architecture note:
 [`docs/self_hosted/13_compiler_substrate_architecture.md`](../../../docs/self_hosted/13_compiler_substrate_architecture.md)
 is the owner contract for this folder's long-term shape. Codegen is a backend
-resource cluster: `TypeEnvZone` owns type facts, `EmissionZone` owns emitted C,
-and `ProgramEmitter` is the participant that writes through the emission
-boundary. The files under `emission/` are action participants, not separate
-zones.
+resource cluster: `TypeEnvZone` owns type facts, `AbiLayoutZone` owns ABI/layout
+facts, `EmissionZone` owns emitted C, and `ProgramEmitter` is the participant
+that writes through the emission boundary. The files under `emission/` are
+action participants, not separate zones.
 
 ## Rung-0..20 (2026-06-24) - active
 
@@ -22,6 +22,7 @@ resource-shaped subdirectories:
 - `run/` owns CLI-to-output orchestration.
 - `text/` owns AST/expression text scanning primitives.
 - `type_facts/` owns type binding facts consumed as read-mostly evidence.
+- future `abi_layout/` owns ABI/layout fact projection from MIR ABI rows.
 - `emission/` owns participants in the C-emission action graph.
 
 These folders are not a copy of the native C backend topology. `program_emit`,

@@ -92,6 +92,10 @@ object TypeEnvironment {
     schema: String;
 }
 
+object AbiLayoutFacts {
+    schema: String;
+}
+
 object EmittedC {
     schema: String;
 }
@@ -133,6 +137,10 @@ zone TypeEnvZone {
     object slot bindings: TypeEnvironment
 }
 
+zone AbiLayoutZone {
+    object slot layouts: AbiLayoutFacts
+}
+
 zone EmissionZone {
     subject slot emitter: ProgramEmitter
     object slot c_output: EmittedC
@@ -158,6 +166,7 @@ zone SelfHostCompiler {
     object slot semantic: SemanticVerdict
     object slot mir: MirFactGraph
     object slot type_env: TypeEnvironment
+    object slot abi_layout: AbiLayoutFacts
     object slot c_output: EmittedC
     tobject slot parity: ParityVerdict
 }
@@ -170,6 +179,7 @@ world PgyCompilerWorld {
     zone semantic: SemanticVerdictZone
     zone mir: MirFactGraphZone
     zone type_env: TypeEnvZone
+    zone abi_layout: AbiLayoutZone
     zone emission: EmissionZone
     zone parity: ParityZone
 }
@@ -249,7 +259,7 @@ intent LowerProgramFacts(lower_zone: MirFactGraphZone, lowerer: MirLowerStage) {
     failure: false;
 }
 
-intent EmitProgramArtifact(emit_zone: EmissionZone, types: TypeEnvZone, emitter: ProgramEmitter) {
+intent EmitProgramArtifact(emit_zone: EmissionZone, types: TypeEnvZone, abi_layout: AbiLayoutZone, emitter: ProgramEmitter) {
     exclusive;
 
     step EmitC {
@@ -287,6 +297,7 @@ intent CompilePergyraProgram(
     semantic_zone: SemanticVerdictZone,
     lower_zone: MirFactGraphZone,
     types: TypeEnvZone,
+    abi_layout: AbiLayoutZone,
     emit_zone: EmissionZone,
     parity_zone: ParityZone,
     source: SourceUnit,
@@ -320,7 +331,7 @@ intent CompilePergyraProgram(
         where: EmissionZone;
         using: emit_zone;
         who: emitter;
-        on: BackendPipeline(types, emit_zone, emitter);
+        on: BackendPipeline(types, abi_layout, emit_zone, emitter);
         expect: true;
     }
 

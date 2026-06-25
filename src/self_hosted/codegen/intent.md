@@ -21,6 +21,9 @@ participant, not a zone.
 - `EmissionZone` owns the emitted C text buffer.
 - `TypeEnvZone` owns type binding facts consumed by emitters as read-mostly
   evidence.
+- `AbiLayoutZone` owns ABI/layout facts consumed by emitters as read-only
+  evidence. C, LLVM, and self-hosted codegen must not infer field order, tags,
+  niches, or pointer ownership from emitted text or backend-local spelling.
 - `ProgramEmitter` is the emission participant that drives writes into
   `EmissionZone`; it is not a zone.
 - A future name-mangling/symbol table owner may become its own zone if it owns
@@ -37,6 +40,7 @@ Concrete split for the current codegen cluster:
 |---|---:|---|
 | emitted C text buffer | yes | single mutable output resource |
 | type environment | yes | separate read-mostly type-fact resource |
+| ABI layout facts | yes | separate read-only layout/ownership-shape fact resource |
 | symbol/name-mangling state | later | only if it owns mutable symbol facts |
 | program/function/stmt/expr emit files | no | recursive participants over the same output/type resources |
 
@@ -47,6 +51,7 @@ a zone:
 - `run/` owns the CLI orchestration boundary.
 - `text/` owns reusable text and expression scanning facts.
 - `type_facts/` owns read-mostly type evidence.
+- future `abi_layout/` owns ABI/layout fact projection from MIR ABI rows.
 - `emission/` contains the action participants that write or route emitted C.
 
 ## Input Contract

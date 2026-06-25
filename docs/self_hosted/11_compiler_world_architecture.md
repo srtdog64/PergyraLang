@@ -20,8 +20,8 @@ compiler flow.
 - `ProgramEmitter` is the emission participant that drives writes into
   `EmissionZone`; it is not a resource zone.
 - `SourceIntakeZone`, `TokenStreamZone`, `AstTreeZone`,
-  `SemanticVerdictZone`, `MirFactGraphZone`, `TypeEnvZone`, `EmissionZone`,
-  and `ParityZone` are the derived resource zones.
+  `SemanticVerdictZone`, `MirFactGraphZone`, `TypeEnvZone`, `AbiLayoutZone`,
+  `EmissionZone`, and `ParityZone` are the derived resource zones.
 - `StagePathManifest` is the canonical path fact for the self-hosted source,
   test, parity, and stage entrypoint locations.
 - `path_manifest_owner.pgy` owns the current Pergyra string values for those
@@ -60,6 +60,7 @@ For compiler self-hosting that means:
 - `SemanticVerdictZone` owns semantic verdict facts.
 - `MirFactGraphZone` owns MIR fact graph state.
 - `TypeEnvZone` owns type binding facts.
+- `AbiLayoutZone` owns ABI/layout facts consumed by backend emitters.
 - `EmissionZone` owns the emitted C text buffer and admits writes through the
   `ProgramEmitter` participant.
 - `ParityZone` owns C/LLVM/Pergyra comparison evidence.
@@ -75,11 +76,13 @@ For codegen this is the concrete split:
   `subject slot emitter: ProgramEmitter`.
 - `TypeEnvZone`: `object slot bindings: TypeEnvironment`, consumed as
   read-mostly type evidence.
+- `AbiLayoutZone`: `object slot layouts: AbiLayoutFacts`, consumed as
+  read-only ABI/layout evidence.
 - Future symbol/name-mangling state may become a separate zone only if it owns
   mutable symbol facts. A new emitter file is not enough.
 
 That makes codegen a backend resource cluster, not a folder taxonomy. The
-cluster has output state and type facts; `program_emit`, `function_emit`,
+cluster has output state, type facts, and ABI layout facts; `program_emit`, `function_emit`,
 `stmt_emit`, `expr_rewrite`, and `struct_value_emit` are actions over those
 resources. Splitting those actions into files can keep review size under
 control, but the split is not a semantic zone split.
@@ -122,8 +125,8 @@ The split unit is a resource-owned intent cluster:
 - source-intake cluster: source path, import bundle, filesystem boundary;
 - token/AST clusters: token stream and AST tree facts;
 - middle-end clusters: semantic verdict and MIR fact flow;
-- backend clusters: type environment, emission buffer, and ABI/codegen handoff
-  facts;
+- backend clusters: type environment, ABI layout facts, emission buffer, and
+  codegen handoff facts;
 - parity cluster: C/LLVM/Pergyra oracle comparison facts.
 
 This is deliberately not "one file per small intent." Too many tiny files would

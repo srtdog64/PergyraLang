@@ -85,8 +85,9 @@ The root flow is:
 5. `MirFactGraphZone`: MIR JSON/fact graph, CFG/body facts, and ABI-relevant
    lowering facts.
 6. `TypeEnvZone`: read-mostly type environment consumed by backend emission.
-7. `EmissionZone`: emitted artifact buffer.
-8. `ParityZone`: C/LLVM/Pergyra comparison evidence.
+7. `AbiLayoutZone`: read-only ABI/layout facts consumed by backend emission.
+8. `EmissionZone`: emitted artifact buffer.
+9. `ParityZone`: C/LLVM/Pergyra comparison evidence.
 
 `CompilePergyraProgram` is the root intent over those resources. The derived
 pipelines in `stage_intents.pgy` are compiler actions, not hidden helper
@@ -140,6 +141,7 @@ contract-checked against the Pergyra owner.
 Self-hosted codegen is a backend resource cluster:
 
 - `TypeEnvZone` owns type binding facts.
+- `AbiLayoutZone` owns ABI/layout facts.
 - `EmissionZone` owns emitted C.
 - `ProgramEmitter` is the participant that writes through `EmissionZone`.
 - `input/` owns AST path and read boundaries while the rung still consumes
@@ -168,7 +170,7 @@ The long-term codegen shape is resource-first:
 | emitted artifact text | `EmissionZone` / emission participants | C compiler, parity harness | one write owner; no scattered stdout construction |
 | type bindings | `TypeEnvZone` / `type_facts/` | expression, statement, return, log routing | emitters consume type facts instead of re-inferring from source text |
 | symbol and mangle facts | future symbol owner | C and LLVM emission | one canonical spelling owner before broader ABI parity |
-| ABI/layout facts | MIR ABI/layout owner | C, LLVM, self-hosted codegen | no backend invents field order, niche, pointer, or ownership shape |
+| ABI/layout facts | `AbiLayoutZone` over the MIR ABI/layout owner | C, LLVM, self-hosted codegen | no backend invents field order, niche, pointer, or ownership shape |
 | unsupported surface | codegen diagnostic owner | parity harness | fail visibly, never emit broken C |
 
 The current `input/`, `run/`, `text/`, `type_facts/`, and `emission/`
@@ -182,7 +184,7 @@ second parser or a place to recover semantic truth.
 owned responsibility:
 
 - a new type-fact owner is valid;
-- a new ABI/layout owner is valid;
+- a new ABI/layout owner such as `AbiLayoutZone` is valid;
 - a new symbol/mangle owner is valid;
 - a generic `emit_helpers.pgy` bucket is not valid;
 - a fake `ExprZone` or `StmtZone` is not valid while both mutate the same
@@ -211,7 +213,7 @@ intent owns the flow, zone owns resource isolation, and owner files own facts.
 | shell scripts rediscovering files | `StagePathManifest` plus path owner projection | stage paths normalize once and are passed as facts |
 | raw diagnostic strings in tools | shared diagnostic owner and stage diagnostic vocabulary | diagnostics are structured before parity compares them |
 | recursive filesystem discovery for closed stage sets | manifest-owned direct paths | discovery is allowed only when the test is measuring discovery drift |
-| C/LLVM/backend-specific layout guesses | ABI/layout fact owner | backend emitters consume one layout fact source |
+| C/LLVM/backend-specific layout guesses | `AbiLayoutZone` over ABI/layout facts | backend emitters consume one layout fact source |
 
 This mapping is the self-hosted architecture work queue. A slice does not count
 as hard substitution if it merely moves logic into Pergyra while preserving a
@@ -264,6 +266,7 @@ Good cache keys:
 - token stream schema plus source hash;
 - AST/MIR JSON schema plus stable ordering;
 - type environment version plus function/declaration identity;
+- ABI layout fact version plus target ABI policy;
 - emitted artifact schema plus backend target and ABI/layout fact version.
 
 Bad cache keys:
