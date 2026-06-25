@@ -3,6 +3,7 @@
 #include "mir_ability_ref.h"
 #include "mir_decl_header_shape.h"
 #include "mir_type_helpers.h"
+#include "decl_field_model.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -90,17 +91,21 @@ mir_decl_field_metadata_init(MIRDeclField *meta,
     meta->required_ability_refs = NULL;
 }
 
+/* F2 (docs/144) Phase 4: the MIR class-field builder consumes the pre-semantic
+   PgyDeclField model, so class-field shape has one owner shared with semantic
+   instead of each layer re-reading ast_class_fields. (Class fields carry no
+   initializer here, so the model's syntactic facts are sufficient.) */
 static void
 mir_decl_field_metadata_init_class(MIRDeclField *meta,
                                    const MIRDeclHeader *header,
-                                   ClassField *field)
+                                   PgyDeclField field)
 {
-    if (meta == NULL || field == NULL)
+    if (meta == NULL || field.name == NULL)
         return;
     mir_decl_field_metadata_init(
-        meta, header, field->name, field->type, NULL,
+        meta, header, field.name, field.type_ast, NULL,
         MIR_DECL_FIELD_CLASS);
-    meta->is_subject_like = field->is_vessel_field;
+    meta->is_subject_like = field.is_vessel_field;
 }
 
 static void
@@ -362,11 +367,13 @@ mir_decl_header_set_fields(MIRDeclHeader *header, ASTNode *decl)
 
     switch (decl != NULL ? decl->type : AST_PROGRAM) {
     case AST_CLASS_DECL: {
-        ClassField **fields = ast_class_fields(decl, &count);
-        for (size_t i = 0; fields != NULL && i < count; i++) {
+        PgyDeclField *fields = NULL;
+        size_t model_count = pgy_class_decl_field_model_build(decl, &fields);
+        for (size_t i = 0; i < model_count; i++) {
             mir_decl_field_metadata_init_class(
                 &header->field_metadata[out++], header, fields[i]);
         }
+        pgy_decl_field_model_free(fields, model_count);
         break;
     }
     case AST_PARTY_DECL:
