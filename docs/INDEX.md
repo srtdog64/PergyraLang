@@ -103,6 +103,7 @@ and follow-up debt over older design notes.
 | [`141_closure_capture_design.md`](141_closure_capture_design.md) | Closure capture design: local capture gap, explicit environment ownership, and backend lowering obligations |
 | [`142_evidence_driven_guard_amortization.md`](142_evidence_driven_guard_amortization.md) | Evidence-driven guard amortization: measured preflight-view gate for slot-style hot paths |
 | [`143_evidence_parameter_attributes.md`](143_evidence_parameter_attributes.md) | Evidence-projected LLVM parameter attributes: ownership evidence lowered to backend optimization facts |
+| [`145_bit_layout_boundary_matrix.md`](145_bit_layout_boundary_matrix.md) | Bit/layout boundary matrix: explicit bit-order value conversion, world-bound reinterpretation, and language-by-language gap tracking |
 
 ## Language Surface
 

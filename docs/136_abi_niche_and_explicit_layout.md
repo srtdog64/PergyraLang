@@ -9,6 +9,8 @@ optimized `Option<T>` layout. Runtime-internal ABI structs are frozen through
 the ABI spec, but user-visible layout control is still a future raw/extern
 capability surface.
 
+Detailed layer and language-gap matrix: `docs/145_bit_layout_boundary_matrix.md`.
+
 Bit reinterpretation policy: Pergyra must not hide a wire-order convention
 behind a generic "logical bits" default. Bit order is a domain fact, not a
 compiler preference. A future safe `bits(...)` value conversion must require an

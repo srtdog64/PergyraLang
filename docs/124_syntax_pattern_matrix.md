@@ -11,6 +11,8 @@ Related source-of-truth documents:
 - `docs/119_pergyra_lineage_positioning.md` for language lineage.
 - `docs/121_types_as_domain_medium.md` for the type-system mandate.
 - `docs/125_source_of_truth_spine.md` for compiler fact ownership.
+- `docs/145_bit_layout_boundary_matrix.md` for bit layout, reinterpretation,
+  and language-by-language ABI gap tracking.
 
 ## 0. Purpose
 
@@ -446,6 +448,7 @@ Rules:
 | Full Rust-grade borrow checker as beta goal | Wrong target; Pergyra uses layered Slot + boundary verification. |
 | HKT/functor hierarchy as core | FP adapters belong in modules, not the core language spine. |
 | Zig comptime as core | Pergyra types carry domain coordinates; they are not imperative compile-time programs. |
+| Hidden logical-bit cast defaults | Bit order is a domain/world fact. Use explicit `bits(..., order=...)` or boundary-visible `reinterpret(...)`, not a generic safe default. |
 | Exception-first error model | Recoverable failure should remain `Result`/contract/queryable state. |
 | Core WebGL/GPU keywords | Rendering and GPU are module ecosystem surfaces. |
 | Switch fallthrough / goto | Conflicts with CFG safety and diagnostic clarity. |

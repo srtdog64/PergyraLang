@@ -72,6 +72,7 @@ for rel in \
     "docs/125_source_of_truth_spine.md" \
     "docs/118_slot_model_rigor_audit.md" \
     "docs/136_abi_niche_and_explicit_layout.md" \
+    "docs/145_bit_layout_boundary_matrix.md" \
     "docs/semantics/13_slot_abi_single_owner.md"; do
     require_file "$rel"
 done
@@ -291,5 +292,15 @@ require_term "docs/136_abi_niche_and_explicit_layout.md" 'reinterpret(value, lay
 require_term "docs/136_abi_niche_and_explicit_layout.md" "No safe surface may default to hidden little-endian"
 require_term "docs/semantics/04_ownership_abi.md" "Safe bit conversion is not memory reinterpretation"
 require_term "docs/semantics/04_ownership_abi.md" "hidden default bit order"
+require_term "docs/145_bit_layout_boundary_matrix.md" "Pergyra must not copy a hidden \"logical bits\" default"
+require_term "docs/145_bit_layout_boundary_matrix.md" "bits(value, order = LSB-first | MSB-first | named-order)"
+require_term "docs/145_bit_layout_boundary_matrix.md" "reinterpret(value, layout = ..., endian = ..., abi = ..., world = ...)"
+require_term "docs/145_bit_layout_boundary_matrix.md" "Layer-Width Contract"
+require_term "docs/145_bit_layout_boundary_matrix.md" "Slot is a resource boundary, not a bitstring"
+require_term "docs/145_bit_layout_boundary_matrix.md" "Language Comparison And Pergyra Gaps"
+require_term "docs/145_bit_layout_boundary_matrix.md" "Zig"
+require_term "docs/145_bit_layout_boundary_matrix.md" "Rust"
+require_term "docs/145_bit_layout_boundary_matrix.md" "C#"
+require_term "docs/145_bit_layout_boundary_matrix.md" "WebAssembly"
 
 echo "[abi-ownership-shape] Slot/Pin ABI shape, cleanup, and docs contract are gated"

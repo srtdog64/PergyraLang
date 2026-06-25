@@ -118,6 +118,7 @@ required_files=(
     "docs/134_language_surface_hygiene.md"
     "docs/135_backend_wasm_pointer_closure.md"
     "docs/139_golden_adt_verification_methodology.md"
+    "docs/145_bit_layout_boundary_matrix.md"
     "docs/semantics/proofs/VerificationMethodology.md"
     "docs/semantics/proofs/VerificationMethodology.v"
     "docs/semantics/proofs/ProofSpine.md"

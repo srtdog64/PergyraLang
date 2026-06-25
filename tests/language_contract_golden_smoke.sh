@@ -65,6 +65,7 @@ for rel in \
     src/semantic/type_checker_collection_mutation_contract.c \
     src/semantic/type_checker_helpers_late.c \
     docs/136_abi_niche_and_explicit_layout.md \
+    docs/145_bit_layout_boundary_matrix.md \
     Makefile; do
     require_file "$rel"
 done
@@ -181,6 +182,9 @@ require_text "tests/raw_escape_contract_smoke.sh" "scoped unsafe(raw) capability
 require_text "tests/abi_ownership_shape_smoke.sh" "MIR_ABI_REPR_NICHE_RESERVED"
 require_text "docs/136_abi_niche_and_explicit_layout.md" "MIR ABI fact must be the only backend input"
 require_text "docs/136_abi_niche_and_explicit_layout.md" "unsafe(ffi, layout)"
+require_text "docs/145_bit_layout_boundary_matrix.md" "There is no default bit order"
+require_text "docs/145_bit_layout_boundary_matrix.md" "Language Comparison And Pergyra Gaps"
+require_text "docs/124_syntax_pattern_matrix.md" "Hidden logical-bit cast defaults"
 
 # Self-hosting starts with verifier/tool parity, not a second compiler claim.
 require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "clean JSON parity"
