@@ -37,7 +37,12 @@
       (docs/19 no-ambient-authority, whole machine.)
     - rollback_restores: rolling back an effect restores its coupled slot to Empty.
     - delegate_then_rollback_sound: delegation does not interfere with rollback soundness,
-      and rollback preserves delegated authority (non-interference).
+      and rollback preserves delegated authority (non-interference, structural half).
+    - delegation_furnishes_gated_rollback: the COUPLED half -- delegating slot
+      (ct e)'s acquire-capability to the actor furnishes exactly the capability the
+      gated rollback now requires, so the gated step fires, restores the coupled
+      slot, and leaves the delegated authority intact. The two facets compose
+      through the holdings component, not merely coexist on disjoint ones.
 *)
 
 Require Import Coq.Lists.List.
@@ -260,6 +265,37 @@ Theorem no_op_after_release : forall gz ge ga ct s c c',
   ~ (step gz ge ga ct (ActUse s) c c' \/ step gz ge ga ct (ActRelease s) c c').
 Proof.
   intros gz ge ga ct s c c' Hrel [H | H]; inversion H; subst; congruence.
+Qed.
+
+(* ---- coupled non-interference: delegation FURNISHES the rollback gate ----
+
+   The deeper synthesis claim: the rollback gate (added above) is not just
+   *compatible* with delegation living on a disjoint config component -- it is
+   *satisfied by* delegation. Delegating slot (ct e)'s acquire-capability to the
+   acting principal furnishes exactly the capability the gated SRollback now
+   requires, so the two facets compose through the holdings component rather than
+   merely coexisting. The gated rollback then (a) fires, (b) restores the coupled
+   slot, and (c) leaves the delegated authority intact -- rollback consumes the
+   *effect log*, not capabilities. This is the coupled half of the synthesis
+   (cf. authority_conservation's structural half). *)
+
+Theorem delegation_furnishes_gated_rollback :
+  forall gz ge ga ct c e rest,
+    elog c = e :: rest ->
+    step gz ge ga ct ActRollback
+         (with_deleg c (actor c) (ga (ct e)))
+         (with_rollback (with_deleg c (actor c) (ga (ct e))) (ct e) rest)
+    /\ store (with_rollback (with_deleg c (actor c) (ga (ct e))) (ct e) rest) (ct e) = Empty
+    /\ In (ga (ct e)) (holdings (with_rollback (with_deleg c (actor c) (ga (ct e))) (ct e) rest) (actor c)).
+Proof.
+  intros gz ge ga ct c e rest Hlog.
+  split; [| split].
+  - apply SRollback.
+    + simpl. exact Hlog.
+    + unfold has_cap, with_deleg. simpl. unfold cmap.
+      rewrite Nat.eqb_refl. simpl. left. reflexivity.
+  - simpl. unfold smap. rewrite Nat.eqb_refl. reflexivity.
+  - simpl. unfold cmap. rewrite Nat.eqb_refl. simpl. left. reflexivity.
 Qed.
 
 End UnifiedCore.
