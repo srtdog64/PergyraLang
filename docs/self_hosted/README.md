@@ -120,11 +120,14 @@ The compiler/codegen/substrate architecture stack is recorded in
 [`13_compiler_substrate_architecture.md`](13_compiler_substrate_architecture.md).
 The target compiler-world projection shape is recorded in
 [`14_target_compiler_world.md`](14_target_compiler_world.md).
+The pre-self-host expansion ledger is recorded in
+[`15_pre_self_host_expansion_ledger.md`](15_pre_self_host_expansion_ledger.md).
 The short version: `intent` owns compiler flow, `zone` owns distinct compiler
 resources, stage files remain fact owners rather than fake zones, and compiler
 substrates such as imports, deterministic collections, diagnostics, MIR facts,
 ABI facts, emission buffers, AIR evidence, runtime materialization policy, and
-parity evidence must have named owners.
+parity evidence must have named owners. Surfaces needed by hard self-hosting
+must be classified as `READY`, `ACTIVE`, or `HOLD` before a rung consumes them.
 
 Fast and heavy self-host checks are split. Use
 `make self-host-preparation-contract-test-smoke` for quick structure/manifest
@@ -174,3 +177,6 @@ its own ecosystem.
 - `14_target_compiler_world.md` - target compiler-world shape: fact zones,
   Codegen Projection intent, C/LLVM/SelfHosted emission peers, and Artifact
   Zone parity sink.
+- `15_pre_self_host_expansion_ledger.md` - pre-self-host expansion ledger:
+  READY/ACTIVE/HOLD substrate classification, active blockers, held surfaces,
+  and the no-hidden-fallback rejection rule.

@@ -1518,3 +1518,21 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   expression, statement, function, declaration, or path-library import order.
 - Added the parser declaration layer owners to real-source semantic selfcheck,
   raising accepted self-host owner/source files from 63 to 71.
+
+### 2026-06-26 -- Pre-self-host expansion ledger becomes contract
+
+- Added `docs/self_hosted/15_pre_self_host_expansion_ledger.md` as the
+  load-bearing ledger for surfaces that must exist before broader hard
+  self-hosting. The ledger classifies each surface as `READY`, `ACTIVE`, or
+  `HOLD` so hard rungs cannot smuggle missing prerequisites back in as
+  fallbacks.
+- Recorded the active pre-hard blockers: mixed AST-like tree ownership, stable
+  JSON parse/emit, subprocess execution, symbol/mangle ownership, ABI/layout
+  row projection, AIR evidence zone, Artifact Zone evidence, and Pergyra-owned
+  test harness records.
+- Wired the ledger into the compiler-world contract smoke, the self-host docs
+  index, and the top-level docs index. Refreshed the self-hosted doc-link
+  checker golden count for the new index link.
+- Verified with `make self-host-preparation-contract-test-smoke`,
+  `tests/self_hosted/parity/doc_link_checker_parity.sh`,
+  `make documentation-quality-test-smoke`, and `git diff --check`.

@@ -43,6 +43,7 @@ and follow-up debt over older design notes.
 | [`self_hosted/12_intent_zone_self_host_architecture.md`](self_hosted/12_intent_zone_self_host_architecture.md) | Intent/zone architecture for self-hosted compiler growth, codegen resources, and path/source intake facts |
 | [`self_hosted/13_compiler_substrate_architecture.md`](self_hosted/13_compiler_substrate_architecture.md) | Self-hosted compiler architecture stack: codegen resources, compiler-world fact owners, import graph, deterministic facts, runtime materialization, caching, and parity promotion |
 | [`self_hosted/14_target_compiler_world.md`](self_hosted/14_target_compiler_world.md) | Target compiler world: fact zones -> single Codegen Projection intent -> C/LLVM/SelfHosted emission peers -> Artifact Zone parity sink |
+| [`self_hosted/15_pre_self_host_expansion_ledger.md`](self_hosted/15_pre_self_host_expansion_ledger.md) | Pre-self-host expansion ledger: READY/ACTIVE/HOLD substrate classification, active blockers, held surfaces, and no-hidden-fallback rule |
 
 ## Historical Snapshots
 

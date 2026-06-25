@@ -11,6 +11,11 @@ It is not a release claim that the compiler is already self-hosted. It is the
 architecture contract for how hard self-hosted slices should be added without
 recreating the C compiler's folder graph.
 
+The executable expansion checklist is
+[`15_pre_self_host_expansion_ledger.md`](15_pre_self_host_expansion_ledger.md).
+That ledger classifies each pre-self-host surface as `READY`, `ACTIVE`, or
+`HOLD`; this document explains the architecture behind those classifications.
+
 ## Core Rule
 
 The self-hosted compiler has one visible compiler flow and many fact owners.
@@ -157,6 +162,10 @@ compiler replacement.
 
 If one of these facts is missing, the fix is to add the fact to the owner or
 fail closed. The fix is not a local compatibility fallback.
+
+The pre-self-host expansion ledger is the ratchet for that rule: a hard rung may
+consume `READY` surfaces, must treat `ACTIVE` surfaces as blockers or explicit
+unsupported input, and must not depend on `HOLD` surfaces.
 
 `src/self_hosted/compiler/path_manifest_owner.pgy` is the current path owner.
 It owns the Pergyra source/test/parity path values for `StagePathManifest`;
