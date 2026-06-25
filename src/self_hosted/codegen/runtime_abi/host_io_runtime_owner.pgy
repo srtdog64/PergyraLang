@@ -1,0 +1,39 @@
+// src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy
+//
+// Self-host C host file/argv runtime symbol facts for the supported codegen subset.
+
+func HostIORuntimeCFileExistsFn() -> String {
+    return "pgy_fexists";
+}
+
+func HostIORuntimeCWriteFileFn() -> String {
+    return "pgy_writefile";
+}
+
+func HostIORuntimeCFileOpenFn() -> String {
+    return "pgy_fopen";
+}
+
+func HostIORuntimeCFileWriteFn() -> String {
+    return "pgy_fwrite";
+}
+
+func HostIORuntimeCFileCloseFn() -> String {
+    return "pgy_fclose";
+}
+
+func HostIORuntimeCFileReadFn() -> String {
+    return "pgy_fread";
+}
+
+func HostIORuntimeCReadFileFn() -> String {
+    return "pgy_readfile";
+}
+
+func HostIORuntimeCDirWalkFn() -> String {
+    return "pgy_dirwalk";
+}
+
+func HostIORuntimeCArgsFn() -> String {
+    return "pgy_args";
+}

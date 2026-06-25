@@ -1632,3 +1632,19 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   helper spelling remain direct self-host codegen surfaces.
 - Added the Option/Result runtime owner to real-source semantic selfcheck,
   raising accepted self-host owner/source files to 78 on both C and LLVM.
+
+### 2026-06-26 -- Self-host math and host I/O runtime helper spelling moves behind runtime ABI owners
+
+- Added `src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy` as the
+  self-host C subset owner for supported math/random runtime helper symbol
+  spelling (`Abs`, `Min`, `Max`, `SeedRandom`, `Random`).
+- Added `src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy` as the
+  self-host C subset owner for supported host file/argv runtime helper symbol
+  spelling (`FileExists`, `WriteFile`, `FileOpen`, `FileWrite`, `FileClose`,
+  `FileRead`, `ReadFile`, `DirWalk`, `Args`).
+- `expr_rewrite` now consumes runtime ABI owners for all supported Pergyra
+  `pgy_*` runtime helper call-site spellings. The remaining direct target
+  spellings in that path are C standard-library calls, not Pergyra runtime
+  helper facts.
+- Added the math and host I/O runtime owners to real-source semantic selfcheck,
+  raising accepted self-host owner/source files to 80 on both C and LLVM.

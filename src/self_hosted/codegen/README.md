@@ -26,7 +26,8 @@ resource-shaped subdirectories:
 - `type_facts/` owns type binding facts consumed as read-mostly evidence.
 - `symbol_facts/` owns emitted-symbol spelling for the self-host C subset.
 - `abi_layout/` owns self-host C ABI type spelling for signatures, locals, and fields.
-- `runtime_abi/` owns self-host C collection, Option/Result, and string/text runtime helper symbol spelling.
+- `runtime_abi/` owns self-host C collection, math/random, host I/O/argv,
+  Option/Result, and string/text runtime helper symbol spelling.
 - `emission/` owns participants in the C-emission action graph.
 
 These folders are not a copy of the native C backend topology. `program_emit`,
@@ -161,6 +162,11 @@ It also normalizes the current AST-text bridge spellings
 `program_emit.pgy` remains the generated helper definition host; expression and
 statement emitters must consume `collection_runtime_owner.pgy` instead of
 locally spelling `pgy_ai_*` / `pgy_as_*` helper names.
+`runtime_abi/math_runtime_owner.pgy` owns C math/random runtime helper symbol
+spelling for the supported `Abs` / `Min` / `Max` / `SeedRandom` / `Random`
+subset.
+`runtime_abi/host_io_runtime_owner.pgy` owns C host file/argv runtime helper
+symbol spelling for the supported file, directory-walk, and `Args()` subset.
 `runtime_abi/option_result_runtime_owner.pgy` owns C Option/Result runtime
 helper symbol spelling for the supported `Option<Int>` / `Result<Int>` subset.
 `program_emit.pgy` remains the generated helper definition host; expression and
@@ -172,9 +178,10 @@ search/trim/replace/case/join/subspan helpers, `ToString`, `ToInt`, `Print`,
 and string `Log`). `program_emit.pgy` remains the generated helper definition
 host; expression and statement emitters must consume `string_runtime_owner.pgy`
 instead of locally spelling those `pgy_*` helper names.
-Math and file/argv runtime helper spellings are not yet
-behind runtime ABI owners; direct call-site spellings there are tracked as the
-next runtime-spelling SoT surfaces.
+Expression/statement emitters should not locally spell `pgy_*` runtime helper
+names. Direct C standard-library spellings such as `sqrt`, `pow`, `floor`,
+`ceil`, `atof`, and `exit` remain target-library calls, not Pergyra runtime
+helper facts.
 
 Parity gate: `tests/self_hosted/parity/codegen_parity.sh` builds `main.pgy` through
 the requested backend set, runs it on each of the 63 committed fixtures'

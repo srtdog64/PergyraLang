@@ -54,6 +54,8 @@ SELF_SOURCES=(
     "src/self_hosted/codegen/input/ast_input_owner.pgy"
     "src/self_hosted/codegen/main.pgy"
     "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy"
+    "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy"
+    "src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy"
     "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy"
     "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy"
     "src/self_hosted/codegen/symbol_facts/symbol_mangle_owner.pgy"

@@ -1,0 +1,23 @@
+// src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy
+//
+// Self-host C math/random runtime symbol facts for the supported codegen subset.
+
+func MathRuntimeCAbsFn() -> String {
+    return "pgy_abs";
+}
+
+func MathRuntimeCMinFn() -> String {
+    return "pgy_min";
+}
+
+func MathRuntimeCMaxFn() -> String {
+    return "pgy_max";
+}
+
+func MathRuntimeCSeedRandomFn() -> String {
+    return "pgy_seedrandom";
+}
+
+func MathRuntimeCRandomFn() -> String {
+    return "pgy_random";
+}

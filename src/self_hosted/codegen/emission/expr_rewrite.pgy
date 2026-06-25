@@ -3,6 +3,8 @@
 // Expression lowering owner for self-host C emission.
 
 import "../runtime_abi/collection_runtime_owner.pgy";
+import "../runtime_abi/host_io_runtime_owner.pgy";
+import "../runtime_abi/math_runtime_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
 
@@ -310,25 +312,25 @@ func RewriteTokens(e: String, env: String) -> String {
     let f2: String = ReplaceAllOutsideStrings(f, "StringReplace(", Concat(StringRuntimeCStringReplaceFn(), "("));
     let f3: String = ReplaceAllOutsideStrings(f2, "ToUpper(", Concat(StringRuntimeCToUpperFn(), "("));
     let f4: String = ReplaceAllOutsideStrings(f3, "ToLower(", Concat(StringRuntimeCToLowerFn(), "("));
-    let f5: String = ReplaceAllOutsideStrings(f4, "Abs(", "pgy_abs(");
-    let f6: String = ReplaceAllOutsideStrings(f5, "Min(", "pgy_min(");
-    let f7a: String = ReplaceAllOutsideStrings(f6, "Max(", "pgy_max(");
+    let f5: String = ReplaceAllOutsideStrings(f4, "Abs(", Concat(MathRuntimeCAbsFn(), "("));
+    let f6: String = ReplaceAllOutsideStrings(f5, "Min(", Concat(MathRuntimeCMinFn(), "("));
+    let f7a: String = ReplaceAllOutsideStrings(f6, "Max(", Concat(MathRuntimeCMaxFn(), "("));
     let f7b: String = ReplaceAllOutsideStrings(f7a, "Sqrt(", "sqrt(");
     let f7c: String = ReplaceAllOutsideStrings(f7b, "Pow(", "pow(");
     let f7d: String = ReplaceAllOutsideStrings(f7c, "Floor(", "floor(");
     let f7e: String = ReplaceAllOutsideStrings(f7d, "Ceil(", "ceil(");
-    let f7seed: String = ReplaceAllOutsideStrings(f7e, "SeedRandom(", "pgy_seedrandom(");
-    let f7: String = ReplaceAllOutsideStrings(f7seed, "Random(", "pgy_random(");
-    let g: String = ReplaceAllOutsideStrings(f7, "FileExists(", "pgy_fexists(");
-    let gw: String = ReplaceAllOutsideStrings(g, "WriteFile(", "pgy_writefile(");
-    let go: String = ReplaceAllOutsideStrings(gw, "FileOpen(", "pgy_fopen(");
-    let gwr: String = ReplaceAllOutsideStrings(go, "FileWrite(", "pgy_fwrite(");
-    let gc: String = ReplaceAllOutsideStrings(gwr, "FileClose(", "pgy_fclose(");
-    let gr: String = ReplaceAllOutsideStrings(gc, "FileRead(", "pgy_fread(");
+    let f7seed: String = ReplaceAllOutsideStrings(f7e, "SeedRandom(", Concat(MathRuntimeCSeedRandomFn(), "("));
+    let f7: String = ReplaceAllOutsideStrings(f7seed, "Random(", Concat(MathRuntimeCRandomFn(), "("));
+    let g: String = ReplaceAllOutsideStrings(f7, "FileExists(", Concat(HostIORuntimeCFileExistsFn(), "("));
+    let gw: String = ReplaceAllOutsideStrings(g, "WriteFile(", Concat(HostIORuntimeCWriteFileFn(), "("));
+    let go: String = ReplaceAllOutsideStrings(gw, "FileOpen(", Concat(HostIORuntimeCFileOpenFn(), "("));
+    let gwr: String = ReplaceAllOutsideStrings(go, "FileWrite(", Concat(HostIORuntimeCFileWriteFn(), "("));
+    let gc: String = ReplaceAllOutsideStrings(gwr, "FileClose(", Concat(HostIORuntimeCFileCloseFn(), "("));
+    let gr: String = ReplaceAllOutsideStrings(gc, "FileRead(", Concat(HostIORuntimeCFileReadFn(), "("));
     let gp: String = ReplaceAllOutsideStrings(gr, "Print(", Concat(StringRuntimeCPrintFn(), "("));
-    let h0: String = ReplaceAllOutsideStrings(gp, "ReadFile(", "pgy_readfile(");
-    let h: String = ReplaceAllOutsideStrings(h0, "DirWalk(", "pgy_dirwalk(");
-    let k: String = ReplaceAllOutsideStrings(h, "Args(", "pgy_args(");
+    let h0: String = ReplaceAllOutsideStrings(gp, "ReadFile(", Concat(HostIORuntimeCReadFileFn(), "("));
+    let h: String = ReplaceAllOutsideStrings(h0, "DirWalk(", Concat(HostIORuntimeCDirWalkFn(), "("));
+    let k: String = ReplaceAllOutsideStrings(h, "Args(", Concat(HostIORuntimeCArgsFn(), "("));
     let mc: String = ReplaceAllOutsideStrings(k, "CharCode(", Concat(StringRuntimeCCharCodeFn(), "("));
     let m0: String = ReplaceAllOutsideStrings(mc, "CharAtN(", Concat(StringRuntimeCCharAtNFn(), "("));
     let sw0: String = ReplaceAllOutsideStrings(m0, "SubContainsWithLen(", Concat(StringRuntimeCSubContainsWithLenFn(), "("));
