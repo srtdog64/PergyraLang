@@ -255,6 +255,10 @@ int main(void) {
     /* Cross-check against runtime */
     ABI_TEST("Option<Int>: runtime size matches ABI spec",
              sizeof(PgyOption_Int) == sizeof(pgy_abi_option_int));
+    ABI_TEST("Option<Float>: runtime size matches ABI spec",
+             sizeof(PgyOption_Float) == sizeof(pgy_abi_option_float));
+    ABI_TEST("Option<Double>: runtime size matches ABI spec",
+             sizeof(PgyOption_Double) == sizeof(pgy_abi_option_double));
     ABI_TEST("Option<Bool>: runtime size matches ABI spec",
              sizeof(PgyOption_Bool) == sizeof(pgy_abi_option_bool));
     ABI_TEST("Option<String>: runtime size matches ABI spec",

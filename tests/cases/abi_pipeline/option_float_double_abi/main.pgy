@@ -1,0 +1,15 @@
+func Main() -> Void {
+    let f: Option<Float> = Some(1.5);
+    let dv: Double = 2.5;
+    let threshold: Double = 2.0;
+    let d: Option<Double> = Some(dv);
+    let nf: Option<Float> = None();
+    let nd: Option<Double> = None();
+
+    Log(IsSome(f));
+    Log(IsSome(d));
+    Log(IsNone(nf));
+    Log(IsNone(nd));
+    Log(UnwrapOption(f) > 1.0);
+    Log(UnwrapOption(d) > threshold);
+}

@@ -68,8 +68,10 @@ The current contract is executable:
   runtime Option specializations.
 - `src/runtime/pgy_abi_spec_asserts.h` statically rejects an accidental
   shrink from the explicit tagged layout to a backend-local niche layout.
-- `make test-mir` checks that `mir_abi_lookup("Option<Int>")` exposes an
-  explicit-tag MIR fact, not a niche fact.
+- `make test-mir` checks that `mir_abi_lookup("Option<Int>")`,
+  `mir_abi_lookup("Option<Float>")`, `mir_abi_lookup("Option<Double>")`, and
+  `mir_abi_lookup("Option<String>")` expose explicit-tag MIR facts, not niche
+  facts.
 - `make abi-ownership-shape-test-smoke` keeps this document, the runtime ABI
   header, and the MIR ABI fact wording tied together.
 

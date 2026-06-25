@@ -162,6 +162,8 @@ pgy_option_unwrap_##SuffixName(PgyOption_##SuffixName* o) \
 }
 
 PGY_OPTION_DEFINE(Int, int32_t)
+PGY_OPTION_DEFINE(Float, float)
+PGY_OPTION_DEFINE(Double, double)
 PGY_OPTION_DEFINE(Bool, bool)
 PGY_OPTION_DEFINE(String, char*)
 
@@ -170,6 +172,18 @@ PGY_OPTION_DEFINE(String, char*)
 #define IsSome_Int(o)           ((o).tag == PgyOptionSome)
 #define IsNone_Int(o)           ((o).tag == PgyOptionNone)
 #define UnwrapOption_Int(o)     pgy_option_unwrap_Int(&(PgyOption_Int){(o).tag, (o).value})
+
+#define Some_Float(...)         pgy_option_some_Float(__VA_ARGS__)
+#define None_Float()            pgy_option_none_Float()
+#define IsSome_Float(o)         ((o).tag == PgyOptionSome)
+#define IsNone_Float(o)         ((o).tag == PgyOptionNone)
+#define UnwrapOption_Float(o)   pgy_option_unwrap_Float(&(PgyOption_Float){(o).tag, (o).value})
+
+#define Some_Double(...)        pgy_option_some_Double(__VA_ARGS__)
+#define None_Double()           pgy_option_none_Double()
+#define IsSome_Double(o)        ((o).tag == PgyOptionSome)
+#define IsNone_Double(o)        ((o).tag == PgyOptionNone)
+#define UnwrapOption_Double(o)  pgy_option_unwrap_Double(&(PgyOption_Double){(o).tag, (o).value})
 
 #define Some_Bool(...)          pgy_option_some_Bool(__VA_ARGS__)
 #define None_Bool()             pgy_option_none_Bool()

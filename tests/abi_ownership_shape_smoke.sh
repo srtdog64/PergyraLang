@@ -39,6 +39,7 @@ for rel in \
     "src/runtime/slot_manager_pin.c" \
     "src/runtime/pgy_runtime_plain_slot_inline.h" \
     "src/runtime/pgy_runtime_slot_macros.h" \
+    "src/runtime/pgy_runtime_result_option_inline.h" \
     "src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" \
     "src/runtime/pgy_runtime_lib_slot_array_io_string_exports.h" \
     "src/runtime/pgy_runtime_lib_secure_slot_exports.h" \
@@ -93,6 +94,10 @@ reject_term "src/compiler/mir_abi_layout.c" "Slot<Int>_rel"
 reject_term "src/compiler/mir_abi_layout.c" 'mir_abi_format_owned("%s_rel"'
 require_term "src/test_abi_spec.c" "runtime size matches checked ABI"
 require_term "src/runtime/pgy_abi_spec.h" "Rust-style niche encoding"
+require_term "src/runtime/pgy_runtime_result_option_inline.h" "PGY_OPTION_DEFINE(Float, float)"
+require_term "src/runtime/pgy_runtime_result_option_inline.h" "PGY_OPTION_DEFINE(Double, double)"
+require_term "src/runtime/pgy_runtime_result_option_inline.h" "#define Some_Float"
+require_term "src/runtime/pgy_runtime_result_option_inline.h" "#define Some_Double"
 require_term "src/runtime/pgy_abi_spec.h" "MIR_ABI_REPR_EXPLICIT_TAG"
 require_term "src/runtime/pgy_abi_spec_asserts.h" "option_long_value_at_8"
 require_term "src/runtime/pgy_abi_spec_asserts.h" "option_string_size_two_words"
@@ -100,17 +105,25 @@ require_term "src/compiler/mir.h" "MIR_ABI_REPR_EXPLICIT_TAG"
 require_term "src/compiler/mir.h" "MIR_ABI_REPR_NICHE_RESERVED"
 require_term "src/compiler/mir.h" "niche_none_pattern"
 require_term "src/compiler/mir_abi_layout.c" "ABI_TAGGED_TYPE(\"Option<Int>\""
+require_term "src/compiler/mir_abi_layout.c" "ABI_TAGGED_TYPE(\"Option<Float>\""
+require_term "src/compiler/mir_abi_layout.c" "ABI_TAGGED_TYPE(\"Option<Double>\""
 require_term "src/compiler/mir_abi_layout.c" "PgyAbiOptionSome"
 require_term "src/compiler/mir_abi_layout.c" "PgyAbiOptionNone"
 require_term "src/tests/mir/test_mir_lowering_part_a_1.cases.h" "MIR ABI table records explicit Option tag representation"
 require_term "src/tests/mir/test_mir_lowering_part_a_1.cases.h" "MIR_ABI_REPR_EXPLICIT_TAG"
+require_term "src/tests/mir/test_mir_lowering_part_a_1.cases.h" "mir_abi_lookup(\"Option<Float>\")"
+require_term "src/tests/mir/test_mir_lowering_part_a_1.cases.h" "mir_abi_lookup(\"Option<Double>\")"
 require_term "src/tests/mir/test_mir_lowering_part_a_1.cases.h" "niche_none_pattern == NULL"
+require_term "src/codegen/transpiler_specialization_registry.c" "strcmp(inner_type, \"Float\") == 0"
+require_term "src/codegen/transpiler_specialization_registry.c" "strcmp(inner_type, \"Double\") == 0"
 require_term "src/runtime/pgy_abi_spec.h" "pgy_abi_pinned_slot_view_int"
 require_term "src/runtime/pgy_abi_spec.h" "pgy_abi_pinned_secure_slot_view_int"
 require_term "src/test_abi_spec.c" "sizeof(PgyPinnedSlotView_Int) == sizeof(pgy_abi_pinned_slot_view_int)"
 require_term "src/test_abi_spec.c" "offsetof(PgyPinnedSecureSlotView_Int, token) == offsetof(pgy_abi_pinned_secure_slot_view_int, token)"
 require_term "src/test_abi_spec.c" "Option<Long>: explicit tag layout is 16 bytes"
 require_term "src/test_abi_spec.c" "Option<String>: explicit tag layout is two words"
+require_term "src/test_abi_spec.c" "Option<Float>: runtime size matches ABI spec"
+require_term "src/test_abi_spec.c" "Option<Double>: runtime size matches ABI spec"
 
 require_term "src/runtime/pgy_abi_spec.h" "PGY_ABI_ALLOC_SCRATCH"
 require_term "src/runtime/pgy_abi_spec.h" "PGY_ABI_ALLOC_RESULT"

@@ -203,6 +203,7 @@ run_case() {
 
 CASES=(
     projection_abi
+    option_float_double_abi
     zone_projection_abi
     intent_trace_abi
     intent_value_params_abi

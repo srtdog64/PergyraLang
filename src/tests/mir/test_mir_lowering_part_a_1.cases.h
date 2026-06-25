@@ -98,10 +98,16 @@ test_mir_lowering_part_a(void)
     TEST("MIR ABI table records explicit Option tag representation");
     {
         const MIRTypeLayout *opt_int = mir_abi_lookup("Option<Int>");
+        const MIRTypeLayout *opt_float = mir_abi_lookup("Option<Float>");
+        const MIRTypeLayout *opt_double = mir_abi_lookup("Option<Double>");
         const MIRTypeLayout *opt_string = mir_abi_lookup("Option<String>");
         EXPECT(opt_int != NULL
+               && opt_float != NULL
+               && opt_double != NULL
                && opt_string != NULL
                && opt_int->representation == MIR_ABI_REPR_EXPLICIT_TAG
+               && opt_float->representation == MIR_ABI_REPR_EXPLICIT_TAG
+               && opt_double->representation == MIR_ABI_REPR_EXPLICIT_TAG
                && opt_string->representation == MIR_ABI_REPR_EXPLICIT_TAG
                && opt_int->discriminant_field_name != NULL
                && strcmp(opt_int->discriminant_field_name, "tag") == 0
@@ -113,6 +119,10 @@ test_mir_lowering_part_a(void)
                && opt_int->fields[0].offset == 0
                && strcmp(opt_int->fields[1].field_name, "value") == 0
                && opt_int->fields[1].offset == 4
+               && opt_float->fields[1].offset == 4
+               && opt_float->niche_none_pattern == NULL
+               && opt_double->fields[1].offset == 8
+               && opt_double->niche_none_pattern == NULL
                && opt_string->niche_none_pattern == NULL);
     }
 

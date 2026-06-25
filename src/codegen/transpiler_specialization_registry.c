@@ -93,6 +93,8 @@ ensure_option_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
     }
 
     if (strcmp(inner_type, "Int") == 0
+        || strcmp(inner_type, "Float") == 0
+        || strcmp(inner_type, "Double") == 0
         || strcmp(inner_type, "Bool") == 0
         || strcmp(inner_type, "String") == 0) {
         return;
