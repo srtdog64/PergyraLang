@@ -1,5 +1,9 @@
 // Self-host parser event declaration owner.
 
+import "cursor_owner.pgy";
+import "tree_text_owner.pgy";
+import "type_name_owner.pgy";
+
 // `event NAME(PNAME: PTYPE, ...);` top-level event signature.
 func ParseEventDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String) -> String {
     let i: Int = start + 5;

@@ -338,8 +338,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 56 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 56"
+[[ "$selfcheck_count" -eq 61 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 61"
 
 semantic_items="$(extract_shell_array_items "$PARITY_DIR/semantic_parity.sh" SOURCE_PAIRS | sed 's/:.*//')"
 [[ -n "$semantic_items" ]] || fail "semantic parity SOURCE_PAIRS is empty"

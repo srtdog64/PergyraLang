@@ -1469,3 +1469,16 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Updated the self-host docs index and compiler README wording so future work
   treats `13_compiler_substrate_architecture.md` as the codegen/compiler/
   substrate architecture contract, not only a background note.
+
+### 2026-06-25 -- Acyclic parser owners enter real-source selfcheck
+
+- Moved the acyclic parser type/declaration owners behind direct fact-owner
+  imports instead of relying only on `parser/main.pgy` import order:
+  `type_name_owner`, `decl_type_owner`, `decl_event_owner`, `decl_enum_owner`,
+  and `decl_effect_relation_owner`.
+- Added those five parser owner files to the real-source semantic selfcheck
+  manifest, raising accepted self-host owner/source files from 56 to 61.
+- Left the expression/statement mutual-recursion owners out of this slice
+  deliberately: the native import resolver still rejects circular imports, so
+  that group needs an explicit cycle/import-owner design before it can stop
+  relying on parser entrypoint materialization.

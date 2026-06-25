@@ -1,5 +1,7 @@
 // Self-host parser enum declaration owner.
 
+import "cursor_owner.pgy";
+
 // `enum NAME { V1, V2, V3 }` single-line emission. Variant payload tuples are
 // consumed but not printed, matching the C AST printer.
 func ParseEnumDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String) -> String {

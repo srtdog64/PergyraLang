@@ -1,5 +1,7 @@
 // Self-host parser written type-name owner.
 
+import "cursor_owner.pgy";
+
 // True if `base_type` is a builtin/primitive type that the C printer
 // classifies as a value (`IntentValue:`) in intent declarations. User-defined
 // types fall outside this set and are emitted as `IntentInvolves:`.
