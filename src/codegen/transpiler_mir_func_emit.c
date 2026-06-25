@@ -208,6 +208,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         bool boundary_slot = false;
         bool secure_slot = false;
         bool event_handler_param = false;
+        /* Row 607: prefer the MIR-owned callable signature; the AST
+           EventHandler node is only the fallback carrier. */
+        const MIRCallableSig *param_callable =
+            transpiler_mir_routine_param_callable_sig(mir_routine, i);
         if (p == NULL || p->name == NULL)
             continue;
         if (is_method && p != NULL && p->name != NULL
@@ -215,7 +219,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             continue;
         }
         event_handler_param =
-            p->type != NULL && p->type->type == AST_EVENT_HANDLER_TYPE;
+            param_callable != NULL
+            || (p->type != NULL && p->type->type == AST_EVENT_HANDLER_TYPE);
         if (!event_handler_param && type_name != NULL) {
             if (transpiler_require_type_name_c_type_copy(ctx,
                     type_name, "MIR function parameter",
@@ -299,7 +304,18 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             if (secure_slot)
                 codebuf_write(params_sig, ", PgyToken_%s %s_token", inner, p->name);
         } else if (event_handler_param) {
-            decl = pergyra_ast_typed_declarator_in_ctx(ctx, p->type, p->name);
+            /* Row 607: emit the function-pointer declarator from the MIR
+               callable signature; fall back to the retained AST node only
+               for the non-MIR / nested-unrenderable edge. */
+            if (param_callable != NULL) {
+                decl = pergyra_func_pointer_declarator_from_type_names_in_ctx(
+                    ctx, param_callable->return_type_name,
+                    param_callable->param_count,
+                    param_callable->param_type_names, p->name);
+            } else {
+                decl = pergyra_ast_typed_declarator_in_ctx(ctx, p->type,
+                    p->name);
+            }
             if (decl == NULL) {
                 codebuf_destroy(params_sig);
                 free(header_decl);

@@ -116,6 +116,20 @@ transpiler_mir_routine_return_type_name(const MIRRoutine *routine)
     return mir_routine_return_type_name(routine);
 }
 
+/* Row 607: lossless callable (EventHandler) signature views. */
+const MIRCallableSig *
+transpiler_mir_routine_param_callable_sig(const MIRRoutine *routine,
+                                          size_t index)
+{
+    return mir_routine_param_callable_sig(routine, index);
+}
+
+const MIRCallableSig *
+transpiler_mir_routine_return_callable_sig(const MIRRoutine *routine)
+{
+    return mir_routine_return_callable_sig(routine);
+}
+
 const char *
 transpiler_mir_routine_source_local_type_name(const MIRRoutine *routine,
                                               const char *local_name)

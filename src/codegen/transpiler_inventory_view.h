@@ -47,6 +47,10 @@ ASTNode *transpiler_mir_routine_return_type(const MIRRoutine *routine);
 
 const char *transpiler_mir_routine_return_type_name(
     const MIRRoutine *routine);
+const MIRCallableSig *transpiler_mir_routine_param_callable_sig(
+    const MIRRoutine *routine, size_t index);
+const MIRCallableSig *transpiler_mir_routine_return_callable_sig(
+    const MIRRoutine *routine);
 const char *transpiler_mir_routine_source_local_type_name(
     const MIRRoutine *routine,
     const char *local_name);
