@@ -193,7 +193,23 @@ correctness foundation for everything after.
   `type_checker_assignment.c` (field-mutability check). Each verified 2786/0. This
   closes the "graph collection" item of the docs/125 L731 sanctioned-residue list.
 
-## 10. Phase 3 plan (interface cutover) — ready to execute
+- **2026-06-26 — Phase 3 complete (interface cutover)** (`987065b4`): the two
+  `ClassField*`-returning accessors (`subject_host_field_at`,
+  `projection_source_field_at`) + `projection_source_field_count` now read the
+  model and return `PgyDeclField` by value; ~16 caller sites across 11 files
+  migrated to value semantics; `expr_host_resolve_class_field_type` takes the
+  type node directly. `intent_role_fields.c` contained (2 `ClassField*`-finders
+  kept on AST). Verified 2786/0. This closes the "projection field owner" item
+  of the docs/125 L731 list. **The semantic side is now down to 4
+  `ast_class_fields` sites in 2 files**, all in L731's sanctioned categories:
+  `type_checker_class_decl.c` (declaration validation at :222 — cascades via
+  `class_declare_field_symbol`; and the generic-shell AST *writer* at :64 which
+  stays), and `type_checker_intent_role_fields.c` (the 2 contained finders —
+  cascade via `intent_role_resolve_field_type`). Those + Phases 4-5 (MIR builder
+  consumes the model; authority flip + lock) and the F1-shared type carrier
+  remain.
+
+## 10. Phase 3 plan (interface cutover) — DONE (see §9); kept for reference
 
 The remaining `ast_class_fields` readers are **not** simple reads; they are the
 `ClassField*`-returning accessors that the whole semantic layer funnels through —
