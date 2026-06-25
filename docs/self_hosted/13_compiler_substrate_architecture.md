@@ -197,8 +197,8 @@ Self-hosted codegen is a backend resource cluster:
 - `symbol_facts/` owns emitted-symbol spelling facts.
 - `abi_layout/` owns self-host C ABI type spelling facts for the supported
   signature, local declaration, and field subset.
-- `runtime_abi/` owns self-host C collection and string/text runtime helper
-  symbol facts for the supported subset.
+- `runtime_abi/` owns self-host C collection, Option/Result, and string/text
+  runtime helper symbol facts for the supported subset.
 - `emission/` contains participants that write or route emitted C.
 
 `program_emit`, `function_emit`, `stmt_emit`, `expr_rewrite`, and
@@ -212,12 +212,14 @@ C/LLVM symbol or ABI row closure. `runtime_abi/collection_runtime_owner.pgy`
 is the read-only owner for self-host C collection runtime helper names;
 it also normalizes the current AST-text bridge spellings
 `Array<Int: Int>` / `Array<String: String>` to canonical collection kind facts.
+`runtime_abi/option_result_runtime_owner.pgy` is the read-only owner for
+supported self-host C Option/Result runtime helper names.
 `runtime_abi/string_runtime_owner.pgy` is the read-only owner for supported
 self-host C string/text runtime helper names. `program_emit.pgy` still owns the
 generated helper definitions.
-Math, file/argv, and `Option`/`Result` runtime helper spellings are still
-direct self-host codegen surfaces; they should move behind named runtime ABI
-owners before being treated as closed SoT.
+Math and file/argv runtime helper spellings are still direct self-host codegen
+surfaces; they should move behind named runtime ABI owners before being treated
+as closed SoT.
 
 This is the projection-nerve rule in code form: the backend does not own a new
 truth. It receives MIR/type/ABI facts from the compiler world and sends one
@@ -245,6 +247,7 @@ The long-term codegen shape is resource-first:
 | symbol and mangle facts | `symbol_facts/symbol_mangle_owner.pgy` for self-host C subset; cross-backend owner still active | C, LLVM, and self-hosted emission | emitters consume canonical spelling facts; no owner/member string concatenation in local emission |
 | self-host C ABI type spelling | `abi_layout/abi_layout_owner.pgy` for self-host C subset; cross-backend row projection still active | self-hosted C emission | signature, local, and field declarations consume canonical C ABI type facts |
 | self-host C collection runtime symbols | `runtime_abi/collection_runtime_owner.pgy` for `Array<Int>` / `Array<String>` helper calls | self-hosted C emission | expression/statement emitters consume canonical helper-name facts; generated helper definitions stay in one definition host |
+| self-host C Option/Result runtime symbols | `runtime_abi/option_result_runtime_owner.pgy` for `Option<Int>` / `Result<Int>` helper calls | self-hosted C emission | expression/statement emitters consume canonical helper-name facts; generated helper definitions stay in one definition host |
 | self-host C string/text runtime symbols | `runtime_abi/string_runtime_owner.pgy` for supported string/text builtin helper calls | self-hosted C emission | expression/statement emitters consume canonical helper-name facts; generated helper definitions stay in one definition host |
 | ABI/layout facts | `AbiLayoutZone` over the MIR ABI/layout owner | C, LLVM, self-hosted codegen | no backend invents field order, niche, pointer, or ownership shape |
 | unsupported surface | codegen diagnostic owner | parity harness | fail visibly, never emit broken C |

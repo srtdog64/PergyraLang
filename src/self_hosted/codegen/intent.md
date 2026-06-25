@@ -37,6 +37,11 @@ participant, not a zone.
   the helper names directly. It is also the only place that normalizes the
   current AST-text bridge spelling `Array<Int: Int>` / `Array<String: String>`
   into the canonical `ArrayInt` / `ArrayString` facts.
+- `OptionResultRuntimeOwner` owns self-host C Option/Result runtime helper
+  symbol spelling for the supported `Option<Int>` / `Result<Int>` subset. The
+  helper definitions stay in `program_emit`; expression and statement emitters
+  consume this owner instead of locally spelling `pgy_option_*` /
+  `pgy_result_*` names.
 - `StringRuntimeOwner` owns self-host C string/text runtime helper symbol
   spelling for the supported builtin rewrite subset. The helper definitions
   stay in `program_emit`; expression and statement emitters consume this owner
@@ -64,6 +69,7 @@ Concrete split for the current codegen cluster:
 | self-host C ABI type spelling | owner, not zone yet | canonical C spelling for supported signatures, locals, and fields |
 | symbol/name-mangling facts | owner, not zone yet | read-only canonical C spelling for supported self-host emission |
 | collection runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host array runtime calls |
+| Option/Result runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host Option/Result runtime calls |
 | string/text runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host string/text builtin calls |
 | program/function/stmt/expr emit files | no | recursive participants over the same output/type resources |
 
@@ -76,7 +82,7 @@ a zone:
 - `type_facts/` owns read-mostly type evidence.
 - `symbol_facts/` owns emitted-symbol spelling facts.
 - `abi_layout/` owns self-host C ABI type spelling facts.
-- `runtime_abi/` owns self-host C collection and string/text runtime helper symbol facts.
+- `runtime_abi/` owns self-host C collection, Option/Result, and string/text runtime helper symbol facts.
 - `emission/` contains the action participants that write or route emitted C.
 
 ## Input Contract

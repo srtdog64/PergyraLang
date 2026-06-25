@@ -1,0 +1,43 @@
+// src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy
+//
+// Self-host C Option/Result runtime symbol facts for the supported codegen subset.
+
+func OptionResultRuntimeCOptionSomeFn() -> String {
+    return "pgy_option_some";
+}
+
+func OptionResultRuntimeCOptionNoneFn() -> String {
+    return "pgy_option_none";
+}
+
+func OptionResultRuntimeCOptionIsSomeFn() -> String {
+    return "pgy_option_is_some";
+}
+
+func OptionResultRuntimeCOptionUnwrapFn() -> String {
+    return "pgy_option_unwrap";
+}
+
+func OptionResultRuntimeCResultOkFn() -> String {
+    return "pgy_result_ok";
+}
+
+func OptionResultRuntimeCResultErrFn() -> String {
+    return "pgy_result_err";
+}
+
+func OptionResultRuntimeCResultIsOkFn() -> String {
+    return "pgy_result_is_ok";
+}
+
+func OptionResultRuntimeCResultIsErrFn() -> String {
+    return "pgy_result_is_err";
+}
+
+func OptionResultRuntimeCResultUnwrapFn() -> String {
+    return "pgy_result_unwrap";
+}
+
+func OptionResultRuntimeCResultUnwrapOrFn() -> String {
+    return "pgy_result_unwrap_or";
+}

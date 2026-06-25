@@ -26,7 +26,7 @@ resource-shaped subdirectories:
 - `type_facts/` owns type binding facts consumed as read-mostly evidence.
 - `symbol_facts/` owns emitted-symbol spelling for the self-host C subset.
 - `abi_layout/` owns self-host C ABI type spelling for signatures, locals, and fields.
-- `runtime_abi/` owns self-host C collection and string/text runtime helper symbol spelling.
+- `runtime_abi/` owns self-host C collection, Option/Result, and string/text runtime helper symbol spelling.
 - `emission/` owns participants in the C-emission action graph.
 
 These folders are not a copy of the native C backend topology. `program_emit`,
@@ -161,13 +161,18 @@ It also normalizes the current AST-text bridge spellings
 `program_emit.pgy` remains the generated helper definition host; expression and
 statement emitters must consume `collection_runtime_owner.pgy` instead of
 locally spelling `pgy_ai_*` / `pgy_as_*` helper names.
+`runtime_abi/option_result_runtime_owner.pgy` owns C Option/Result runtime
+helper symbol spelling for the supported `Option<Int>` / `Result<Int>` subset.
+`program_emit.pgy` remains the generated helper definition host; expression and
+statement emitters must consume `option_result_runtime_owner.pgy` instead of
+locally spelling `pgy_option_*` / `pgy_result_*` helper names.
 `runtime_abi/string_runtime_owner.pgy` owns C string/text runtime helper symbol
 spelling for the supported builtin rewrite subset (`Concat`, string length/
 search/trim/replace/case/join/subspan helpers, `ToString`, `ToInt`, `Print`,
 and string `Log`). `program_emit.pgy` remains the generated helper definition
 host; expression and statement emitters must consume `string_runtime_owner.pgy`
 instead of locally spelling those `pgy_*` helper names.
-Math, file/argv, and `Option`/`Result` runtime helper spellings are not yet
+Math and file/argv runtime helper spellings are not yet
 behind runtime ABI owners; direct call-site spellings there are tracked as the
 next runtime-spelling SoT surfaces.
 

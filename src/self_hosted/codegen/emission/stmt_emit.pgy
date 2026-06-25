@@ -3,6 +3,7 @@
 // Statement lowering owner for self-host C emission.
 
 import "../runtime_abi/collection_runtime_owner.pgy";
+import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
 
 func EmitLet(line: String, inout env_box: Array<String>) -> String {
@@ -131,11 +132,11 @@ func EmitTryLet(line: String, inout env_box: Array<String>, cur_fn_ret: String, 
     ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:Int|")));
     let tmp: String = Concat("_pgy_try_", ToString(idx));
     let out: String = Concat(AbiLayoutCLocalType("Result<Int>", env_box[0]), Concat(" ", Concat(tmp, Concat(" = ", Concat(RewriteExpr(inner, env_box[0]), ";\n")))));
-    out = Concat(out, Concat(pad, Concat("if (!pgy_result_is_ok(", Concat(tmp, ")) {\n"))));
+    out = Concat(out, Concat(pad, Concat("if (!", Concat(OptionResultRuntimeCResultIsOkFn(), Concat("(", Concat(tmp, ")) {\n"))))));
     out = Concat(out, cleanup);
     out = Concat(out, Concat(pad, Concat("    return ", Concat(tmp, ";\n"))));
     out = Concat(out, Concat(pad, "}\n"));
-    out = Concat(out, Concat(pad, Concat(AbiLayoutCLocalType("Int", env_box[0]), Concat(" ", Concat(name, Concat(" = pgy_result_unwrap(", Concat(tmp, ");")))))));
+    out = Concat(out, Concat(pad, Concat(AbiLayoutCLocalType("Int", env_box[0]), Concat(" ", Concat(name, Concat(" = ", Concat(OptionResultRuntimeCResultUnwrapFn(), Concat("(", Concat(tmp, ");")))))))));
     return out;
 }
 

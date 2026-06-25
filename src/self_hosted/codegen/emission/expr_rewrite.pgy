@@ -3,6 +3,7 @@
 // Expression lowering owner for self-host C emission.
 
 import "../runtime_abi/collection_runtime_owner.pgy";
+import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
 
 func RewriteExpr(e: String, env: String) -> String {
@@ -283,7 +284,7 @@ func RewriteNoneLiteral(e: String) -> String {
         if prev_ok && i + 4 <= n && Substring(e, i, 4) == "None" {
             let next_ok: Bool = i + 4 == n || !IsIdentChar(CharAt(e, i + 4));
             if next_ok {
-                out = Concat(out, "pgy_option_none()");
+                out = Concat(out, Concat(OptionResultRuntimeCOptionNoneFn(), "()"));
                 i = i + 4;
                 continue;
             }
@@ -341,16 +342,16 @@ func RewriteTokens(e: String, env: String) -> String {
     let arev: String = ReplaceAllOutsideStrings(asort, "ArrayReverse(", Concat(CollectionRuntimeCIntReverseFn(), "("));
     let amap: String = ReplaceAllOutsideStrings(arev, "ArrayMap(", Concat(CollectionRuntimeCIntMapFn(), "("));
     let afilter: String = ReplaceAllOutsideStrings(amap, "ArrayFilter(", Concat(CollectionRuntimeCIntFilterFn(), "("));
-    let osome: String = ReplaceAllOutsideStrings(afilter, "Some(", "pgy_option_some(");
-    let oissome: String = ReplaceAllOutsideStrings(osome, "IsSome(", "pgy_option_is_some(");
-    let ounwrap: String = ReplaceAllOutsideStrings(oissome, "UnwrapOption(", "pgy_option_unwrap(");
+    let osome: String = ReplaceAllOutsideStrings(afilter, "Some(", Concat(OptionResultRuntimeCOptionSomeFn(), "("));
+    let oissome: String = ReplaceAllOutsideStrings(osome, "IsSome(", Concat(OptionResultRuntimeCOptionIsSomeFn(), "("));
+    let ounwrap: String = ReplaceAllOutsideStrings(oissome, "UnwrapOption(", Concat(OptionResultRuntimeCOptionUnwrapFn(), "("));
     let onone: String = RewriteNoneLiteral(ounwrap);
-    let rok: String = ReplaceAllOutsideStrings(onone, "Ok(", "pgy_result_ok(");
-    let rerr: String = ReplaceAllOutsideStrings(rok, "Err(", "pgy_result_err(");
-    let risok: String = ReplaceAllOutsideStrings(rerr, "IsOk(", "pgy_result_is_ok(");
-    let riserr: String = ReplaceAllOutsideStrings(risok, "IsErr(", "pgy_result_is_err(");
-    let runwrapor: String = ReplaceAllOutsideStrings(riserr, "UnwrapOr(", "pgy_result_unwrap_or(");
-    let runwrap: String = ReplaceAllOutsideStrings(runwrapor, "Unwrap(", "pgy_result_unwrap(");
+    let rok: String = ReplaceAllOutsideStrings(onone, "Ok(", Concat(OptionResultRuntimeCResultOkFn(), "("));
+    let rerr: String = ReplaceAllOutsideStrings(rok, "Err(", Concat(OptionResultRuntimeCResultErrFn(), "("));
+    let risok: String = ReplaceAllOutsideStrings(rerr, "IsOk(", Concat(OptionResultRuntimeCResultIsOkFn(), "("));
+    let riserr: String = ReplaceAllOutsideStrings(risok, "IsErr(", Concat(OptionResultRuntimeCResultIsErrFn(), "("));
+    let runwrapor: String = ReplaceAllOutsideStrings(riserr, "UnwrapOr(", Concat(OptionResultRuntimeCResultUnwrapOrFn(), "("));
+    let runwrap: String = ReplaceAllOutsideStrings(runwrapor, "Unwrap(", Concat(OptionResultRuntimeCResultUnwrapFn(), "("));
     let tf: String = ReplaceAllOutsideStrings(runwrap, "ToFloat(", "atof(");
     let p: String = ReplaceAllOutsideStrings(tf, "ToString(", Concat(StringRuntimeCToStringFn(), "("));
     // `Concat(a, b)` lowers through the string runtime concat helper.

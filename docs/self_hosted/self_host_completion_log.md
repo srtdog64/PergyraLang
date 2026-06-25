@@ -1618,3 +1618,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   surfaces.
 - Added the string runtime owner to real-source semantic selfcheck, raising
   accepted self-host owner/source files to 77 on both C and LLVM.
+
+### 2026-06-26 -- Self-host Option/Result runtime helper spelling moves behind runtime ABI owner
+
+- Added `src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy`
+  as the self-host C subset owner for supported `Option<Int>` / `Result<Int>`
+  runtime helper symbol spelling. `expr_rewrite` now consumes that owner for
+  `Some`, `None`, `IsSome`, `UnwrapOption`, `Ok`, `Err`, `IsOk`, `IsErr`,
+  `Unwrap`, and `UnwrapOr` helper names. `stmt_emit` consumes the same owner
+  for `?` try-lowering checks and unwraps.
+- Kept `program_emit.pgy` as the generated helper definition host. This closes
+  Option/Result helper call-site spelling drift only; math and file/argv
+  helper spelling remain direct self-host codegen surfaces.
+- Added the Option/Result runtime owner to real-source semantic selfcheck,
+  raising accepted self-host owner/source files to 78 on both C and LLVM.
