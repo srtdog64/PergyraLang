@@ -2,6 +2,8 @@
 //
 // Expression token scanning and first-pass rewrites for self-host C emission.
 
+import "../runtime_abi/collection_runtime_owner.pgy";
+
 func ReplaceAll(s: String, from: String, to: String) -> String {
     let fl: Int = StringLength(from);
     if fl == 0 {
@@ -72,8 +74,8 @@ func ReplaceAllOutsideStrings(s: String, from: String, to: String) -> String {
     return out;
 }
 
-// Rewrite `ArrayLength(<arr>)` to `pgy_ai_len(arr)` / `pgy_as_len(arr)` per the
-// array's element type (rung-10 growable-array representation).
+// Rewrite `ArrayLength(<arr>)` through the collection runtime symbol owner per
+// the array's element type (rung-10 growable-array representation).
 func RewriteArrayLengthEnv(e: String, env: String) -> String {
     let n: Int = StringLength(e);
     let out: String = "";
@@ -108,10 +110,7 @@ func RewriteArrayLengthEnv(e: String, env: String) -> String {
             }
             let arg: String = StringTrim(Substring(e, open + 1, close - open - 1));
             let kind: String = LookupKindType(env, arg, "v");
-            let fn: String = "pgy_ai_len";
-            if kind == "ArrayString" {
-                fn = "pgy_as_len";
-            }
+            let fn: String = CollectionRuntimeCLenFn(kind);
             out = Concat(out, Concat(fn, Concat("(", Concat(arg, ")"))));
             i = close + 1;
             continue;
@@ -122,10 +121,9 @@ func RewriteArrayLengthEnv(e: String, env: String) -> String {
     return out;
 }
 
-// Rewrite array index reads `IDENT[<expr>]` to `pgy_ai_get(IDENT, <expr>)` /
-// `pgy_as_get(IDENT, <expr>)` for array variables (rung-10). String literals
-// are copied verbatim so a `[` inside a string is never touched. Non-array
-// identifiers keep native `[...]` (defensive; should not occur in the subset).
+// Rewrite array index reads through the collection runtime symbol owner for
+// array variables (rung-10). String literals are copied verbatim so a `[` inside
+// a string is never touched.
 func RewriteIndexing(e: String, env: String) -> String {
     let n: Int = StringLength(e);
     let out: String = "";
@@ -163,13 +161,8 @@ func RewriteIndexing(e: String, env: String) -> String {
                 let inner: String = Substring(e, j + 1, close - j - 1);
                 let inner_r: String = RewriteIndexing(inner, env);
                 let kind: String = LookupKindType(env, ident, "v");
-                if kind == "ArrayString" {
-                    out = Concat(out, Concat("pgy_as_get(", Concat(ident, Concat(", ", Concat(inner_r, ")")))));
-                } else if kind == "ArrayInt" {
-                    out = Concat(out, Concat("pgy_ai_get(", Concat(ident, Concat(", ", Concat(inner_r, ")")))));
-                } else {
-                    out = Concat(out, Concat(ident, Concat("[", Concat(inner_r, "]"))));
-                }
+                let get_fn: String = CollectionRuntimeCGetFn(kind);
+                out = Concat(out, Concat(get_fn, Concat("(", Concat(ident, Concat(", ", Concat(inner_r, ")"))))));
                 i = close + 1;
             } else {
                 out = Concat(out, ident);

@@ -31,6 +31,12 @@ participant, not a zone.
 - `SymbolMangleOwner` owns emitted-symbol spelling for the self-host C subset.
   It is read-only at this rung; it becomes a zone only if it later owns mutable
   cross-backend symbol state.
+- `CollectionRuntimeOwner` owns self-host C collection runtime helper symbol
+  spelling for the supported `Array<Int>` / `Array<String>` subset. The helper
+  definitions are still emitted by `program_emit`; the consumers do not spell
+  the helper names directly. It is also the only place that normalizes the
+  current AST-text bridge spelling `Array<Int: Int>` / `Array<String: String>`
+  into the canonical `ArrayInt` / `ArrayString` facts.
 - `ProgramEmitter` is the emission participant that drives writes into
   `EmissionZone`; it is not a zone.
 
@@ -53,6 +59,7 @@ Concrete split for the current codegen cluster:
 | ABI layout facts | yes | separate read-only layout/ownership-shape fact resource |
 | self-host C ABI type spelling | owner, not zone yet | canonical C spelling for supported signatures, locals, and fields |
 | symbol/name-mangling facts | owner, not zone yet | read-only canonical C spelling for supported self-host emission |
+| collection runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host array runtime calls |
 | program/function/stmt/expr emit files | no | recursive participants over the same output/type resources |
 
 The filesystem mirrors that owner shape without pretending that every action is
@@ -64,6 +71,7 @@ a zone:
 - `type_facts/` owns read-mostly type evidence.
 - `symbol_facts/` owns emitted-symbol spelling facts.
 - `abi_layout/` owns self-host C ABI type spelling facts.
+- `runtime_abi/` owns self-host C collection runtime helper symbol facts.
 - `emission/` contains the action participants that write or route emitted C.
 
 ## Input Contract

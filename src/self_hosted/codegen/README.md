@@ -25,6 +25,7 @@ resource-shaped subdirectories:
 - `type_facts/` owns type binding facts consumed as read-mostly evidence.
 - `symbol_facts/` owns emitted-symbol spelling for the self-host C subset.
 - `abi_layout/` owns self-host C ABI type spelling for signatures, locals, and fields.
+- `runtime_abi/` owns self-host C collection runtime helper symbol spelling.
 - `emission/` owns participants in the C-emission action graph.
 
 These folders are not a copy of the native C backend topology. `program_emit`,
@@ -83,13 +84,13 @@ recursion are free. `Main` lowers to `int main(void)`, or to
   (`pgy_ai` / `pgy_as`, a `{data,len,cap}`); the literal lowers to `new()` plus
   one `push` per element (`[]` is just `new()`). `ArrayPush(xs, v)`,
   `ArraySet(xs, i, v)`, `ArrayLength(xs)`, and index reads `xs[i]` lower to
-  `pgy_*_push/set/len/get`; indexed assignments (`xs[i] = v`) lower through the
-  same set helpers. `ArraySort(xs)` sorts the shared `Array<Int>`
+  collection runtime helper calls; indexed assignments (`xs[i] = v`) lower
+  through the same set helper owner. `ArraySort(xs)` sorts the shared `Array<Int>`
   buffer and returns the value, matching the oracle's value-with-shared-buffer
   behavior; `ArrayReverse(xs)` returns a fresh reversed `Array<Int>` value;
   `ArrayMap(xs, F)` / `ArrayFilter(xs, P)` are supported for unary
   `Int -> Int` / `Int -> Bool` functions. Index reads are rewritten env-aware in arbitrary
-  expressions (`total + xs[j]` -> `total + pgy_ai_get(xs, j)`), with string
+  expressions (`total + xs[j]` -> a typed collection get helper), with string
   literals copied verbatim so a `[` inside a string is never touched (rung-7/8/10).
 - `Let: <name> : StructName = StructName { field: value, ... }` -> a C
   compound literal routed by collected field-type facts. Struct-returning calls
@@ -151,6 +152,14 @@ owner instead of locally concatenating owner/member spellings.
 return, local, and struct/class field declarations in the supported subset;
 emitters must consume that owner instead of locally mapping `Int` / `String` /
 aggregate types to C spellings.
+`runtime_abi/collection_runtime_owner.pgy` owns C collection runtime helper
+symbol spelling for the supported `Array<Int>` / `Array<String>` subset.
+It also normalizes the current AST-text bridge spellings
+`Array<Int: Int>` / `Array<String: String>` to the canonical
+`ArrayInt` / `ArrayString` kind facts at that owner boundary.
+`program_emit.pgy` remains the generated helper definition host; expression and
+statement emitters must consume `collection_runtime_owner.pgy` instead of
+locally spelling `pgy_ai_*` / `pgy_as_*` helper names.
 
 Parity gate: `tests/self_hosted/parity/codegen_parity.sh` builds `main.pgy` through
 the requested backend set, runs it on each of the 63 committed fixtures'

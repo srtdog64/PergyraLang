@@ -1588,3 +1588,19 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   self-host owner/source files to 75. The broader cross-backend ABI/layout row
   projection remains ACTIVE; this slice only closes self-host C type spelling in
   the current supported subset.
+
+### 2026-06-26 -- Self-host collection runtime helper spelling moves behind runtime ABI owner
+
+- Added `src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy` as
+  the self-host C subset owner for `Array<Int>` / `Array<String>` runtime helper
+  symbol spelling. `expr_scan`, `expr_rewrite`, and `stmt_emit` now consume that
+  owner instead of locally spelling `pgy_ai_*` / `pgy_as_*` helper names.
+- The owner also normalizes the current AST-text bridge spellings
+  `Array<Int: Int>` / `Array<String: String>` into canonical `ArrayInt` /
+  `ArrayString` facts. This is kept at the owner boundary so emitter
+  participants do not each grow their own compatibility spelling checks.
+- Kept `program_emit.pgy` as the generated helper definition host. This closes
+  call-site spelling drift only; it does not claim the broader cross-backend
+  runtime materialization or ABI row projection is complete.
+- Added the runtime ABI owner to real-source semantic selfcheck, raising
+  accepted self-host owner/source files to 76 on both C and LLVM.

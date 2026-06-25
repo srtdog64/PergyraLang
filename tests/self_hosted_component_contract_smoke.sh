@@ -350,6 +350,7 @@ require_owner_surface codegen \
     "text/expr_scan.pgy" \
     "symbol_facts/symbol_mangle_owner.pgy" \
     "abi_layout/abi_layout_owner.pgy" \
+    "runtime_abi/collection_runtime_owner.pgy" \
     "emission/struct_value_emit.pgy" \
     "emission/stmt_emit.pgy" \
     "emission/function_emit.pgy" \
@@ -362,10 +363,21 @@ require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func Abi
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCReturnType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCLocalType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCFieldType"
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCGetFn"
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCLenFn"
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCPushFn"
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCIntMapFn"
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "Array<Int: Int>"
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "Array<String: String>"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCParamType"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCReturnType"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCFieldType"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "AbiLayoutCLocalType"
+require_text "src/self_hosted/codegen/text/expr_scan.pgy" "CollectionRuntimeCLenFn"
+require_text "src/self_hosted/codegen/text/expr_scan.pgy" "CollectionRuntimeCGetFn"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CollectionRuntimeCPushFn"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CollectionRuntimeCSetFn"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CollectionRuntimeCIntSortFn"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CParamType"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CRetType"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'return Concat("long long "'
@@ -375,6 +387,22 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'return Concat("pgy
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'let arr_c: String = "pgy_ai"'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'let elem_c: String = "long long"'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'for (long long '
+reject_text "src/self_hosted/codegen/text/expr_scan.pgy" '"pgy_ai_len"'
+reject_text "src/self_hosted/codegen/text/expr_scan.pgy" '"pgy_as_len"'
+reject_text "src/self_hosted/codegen/text/expr_scan.pgy" '"pgy_ai_get("'
+reject_text "src/self_hosted/codegen/text/expr_scan.pgy" '"pgy_as_get("'
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" '"pgy_ai_sort("'
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" '"pgy_ai_reverse("'
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" '"pgy_ai_map("'
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" '"pgy_ai_filter("'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"pgy_ai_new"'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"pgy_as_new"'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"pgy_ai_push"'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"pgy_as_push"'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"pgy_ai_set"'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"pgy_as_set"'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"pgy_ai_pop"'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"pgy_as_pop"'
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "func EmitStructValue"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitStructValue"
 require_owner_surface mir_lower \
@@ -398,6 +426,7 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/c
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/world.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/main.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/symbol_facts/symbol_mangle_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/text/text_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/path.pgy"'
@@ -426,8 +455,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 75 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 75"
+[[ "$selfcheck_count" -eq 76 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 76"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func SourceLocalType"

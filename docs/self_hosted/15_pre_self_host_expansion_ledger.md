@@ -44,6 +44,7 @@ rule for pre-self-host expansion.
 | Target capability envelope | `target_capability_owner.pgy`, `TargetCapabilityZone` | `self-host-compiler-world-contract-test-smoke`, real-source selfcheck | CPU/C/LLVM/self-hosted projections name accepted facts and fallback reasons before emission |
 | Self-host C symbol spelling | `src/self_hosted/codegen/symbol_facts/symbol_mangle_owner.pgy` | component contract, real-source selfcheck, codegen parity | function/method/operator/enum names are consumed from one owner inside the current self-host C subset |
 | Self-host C ABI type spelling | `src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy` | component contract, real-source selfcheck, codegen parity | parameter, return, local, and field C type spellings are consumed from one owner inside the current self-host C subset |
+| Self-host C collection runtime symbols | `src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy` | component contract, real-source selfcheck, codegen parity | `Array<Int>` / `Array<String>` helper call names are consumed from one owner inside the current self-host C subset |
 
 ## Active Blockers
 
@@ -55,7 +56,7 @@ They are not optional polish; each one prevents a common fallback shape.
 | Mixed AST-like tree owner | Pergyra record/class/tagged-node owner plus traversal parity | Replaces text AST consumption with owned compiler data. |
 | Stable JSON parse/emit owner | schema-aware JSON reader/writer with diagnostics | Read primitives are shared; schema validation, object/array iteration, and emit ownership still need one owner. |
 | Subprocess runner | capability-gated process owner | Lets Pergyra runners invoke C/LLVM oracles without shell-only logic. |
-| Cross-backend symbol/mangle owner | canonical C/LLVM/self-hosted symbol and name-mangling fact table | The self-host C subset now has one spelling owner; full C/LLVM ABI parity still needs a shared symbol fact table consumed by every backend. |
+| Symbol/mangle owner | canonical C/LLVM/self-hosted symbol and name-mangling fact table | The self-host C subset now has one spelling owner; full C/LLVM ABI parity still needs a shared symbol fact table consumed by every backend. |
 | Cross-backend ABI/layout row projection | self-hosted and native consumers of shared ABI layout facts | The self-host C subset now has one type-spelling owner; full C/LLVM/self-hosted ABI parity still needs shared layout rows for field order, niche, tag, and ownership shape. |
 | AIR evidence zone | owned AIR evidence facts in `PgyCompilerWorld` | Makes intent/effect/authority/coordination evidence consumable by hard rungs. |
 | Artifact Zone evidence | one parity sink for diagnostics, IR JSON, ABI/layout, emitted artifacts, and run output | Keeps C, LLVM, and self-hosted outputs comparable by owned artifact. |

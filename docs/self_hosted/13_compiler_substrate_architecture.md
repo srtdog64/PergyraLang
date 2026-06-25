@@ -197,6 +197,8 @@ Self-hosted codegen is a backend resource cluster:
 - `symbol_facts/` owns emitted-symbol spelling facts.
 - `abi_layout/` owns self-host C ABI type spelling facts for the supported
   signature, local declaration, and field subset.
+- `runtime_abi/` owns self-host C collection runtime helper symbol facts for
+  the supported `Array<Int>` / `Array<String>` subset.
 - `emission/` contains participants that write or route emitted C.
 
 `program_emit`, `function_emit`, `stmt_emit`, `expr_rewrite`, and
@@ -206,7 +208,11 @@ resource, such as a mutable cross-backend symbol/name-mangling table. The
 current `symbol_facts/symbol_mangle_owner.pgy` and
 `abi_layout/abi_layout_owner.pgy` owners are read-only: they centralize the
 self-host C subset's emitted symbol and ABI type spelling without claiming full
-C/LLVM symbol or ABI row closure.
+C/LLVM symbol or ABI row closure. `runtime_abi/collection_runtime_owner.pgy`
+is the read-only owner for self-host C collection runtime helper names;
+it also normalizes the current AST-text bridge spellings
+`Array<Int: Int>` / `Array<String: String>` to canonical collection kind facts.
+`program_emit.pgy` still owns the generated helper definitions.
 
 This is the projection-nerve rule in code form: the backend does not own a new
 truth. It receives MIR/type/ABI facts from the compiler world and sends one
@@ -233,15 +239,17 @@ The long-term codegen shape is resource-first:
 | type bindings | `TypeEnvZone` / `type_facts/` | expression, statement, return, log routing | emitters consume type facts instead of re-inferring from source text |
 | symbol and mangle facts | `symbol_facts/symbol_mangle_owner.pgy` for self-host C subset; cross-backend owner still active | C, LLVM, and self-hosted emission | emitters consume canonical spelling facts; no owner/member string concatenation in local emission |
 | self-host C ABI type spelling | `abi_layout/abi_layout_owner.pgy` for self-host C subset; cross-backend row projection still active | self-hosted C emission | signature, local, and field declarations consume canonical C ABI type facts |
+| self-host C collection runtime symbols | `runtime_abi/collection_runtime_owner.pgy` for `Array<Int>` / `Array<String>` helper calls | self-hosted C emission | expression/statement emitters consume canonical helper-name facts; generated helper definitions stay in one definition host |
 | ABI/layout facts | `AbiLayoutZone` over the MIR ABI/layout owner | C, LLVM, self-hosted codegen | no backend invents field order, niche, pointer, or ownership shape |
 | unsupported surface | codegen diagnostic owner | parity harness | fail visibly, never emit broken C |
 | target acceptance/fallback | `target_capability_owner.pgy` plus future target-specific extensions | C, LLVM, self-hosted, accelerator projections | no hidden CPU fallback or unsupported accelerator lowering |
 
-The current `input/`, `run/`, `text/`, `type_facts/`, and `emission/`
-directories are an intermediate resource split. `text/` exists because the
-current rung still consumes `pgy --ast` text as a compatibility bridge. As MIR
-facts replace that bridge, text scanning should shrink; it must not become a
-second parser or a place to recover semantic truth.
+The current `input/`, `run/`, `text/`, `type_facts/`, `symbol_facts/`,
+`abi_layout/`, `runtime_abi/`, and `emission/` directories are an intermediate
+resource split. `text/` exists because the current rung still consumes
+`pgy --ast` text as a compatibility bridge. As MIR facts replace that bridge,
+text scanning should shrink; it must not become a second parser or a place to
+recover semantic truth.
 
 `program_emit`, `function_emit`, `stmt_emit`, `expr_rewrite`, and
 `struct_value_emit` remain action participants. They may split further only by

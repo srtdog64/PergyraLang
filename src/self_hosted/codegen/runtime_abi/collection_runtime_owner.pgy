@@ -1,0 +1,91 @@
+// src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy
+//
+// Self-host C collection runtime symbol facts for the supported codegen subset.
+
+import "../text/text_owner.pgy";
+
+// The AST-text bridge currently prints generic actuals as `Array<Int: Int>` /
+// `Array<String: String>`. Normalize that bridge spelling at the owner boundary
+// so emission participants consume only `ArrayInt` / `ArrayString` facts.
+func CollectionRuntimeKindFromTypeName(type_name: String) -> String {
+    if type_name == "Array<Int>" || type_name == "Array<Int: Int>" {
+        return "ArrayInt";
+    }
+    if type_name == "Array<String>" || type_name == "Array<String: String>" {
+        return "ArrayString";
+    }
+    Die(Concat("unsupported collection type (only Array<Int>/Array<String> bridge forms): ", type_name));
+    return "";
+}
+
+func CollectionRuntimeRequireKind(kind: String, context: String) -> String {
+    if kind == "ArrayInt" || kind == "ArrayString" {
+        return kind;
+    }
+    Die(Concat(context, Concat(" requires Array<Int> or Array<String>, got: ", kind)));
+    return "";
+}
+
+func CollectionRuntimeCNewFn(kind: String) -> String {
+    let checked: String = CollectionRuntimeRequireKind(kind, "array new");
+    if checked == "ArrayString" {
+        return "pgy_as_new";
+    }
+    return "pgy_ai_new";
+}
+
+func CollectionRuntimeCPushFn(kind: String) -> String {
+    let checked: String = CollectionRuntimeRequireKind(kind, "array push");
+    if checked == "ArrayString" {
+        return "pgy_as_push";
+    }
+    return "pgy_ai_push";
+}
+
+func CollectionRuntimeCSetFn(kind: String) -> String {
+    let checked: String = CollectionRuntimeRequireKind(kind, "array set");
+    if checked == "ArrayString" {
+        return "pgy_as_set";
+    }
+    return "pgy_ai_set";
+}
+
+func CollectionRuntimeCGetFn(kind: String) -> String {
+    let checked: String = CollectionRuntimeRequireKind(kind, "array get");
+    if checked == "ArrayString" {
+        return "pgy_as_get";
+    }
+    return "pgy_ai_get";
+}
+
+func CollectionRuntimeCLenFn(kind: String) -> String {
+    let checked: String = CollectionRuntimeRequireKind(kind, "array length");
+    if checked == "ArrayString" {
+        return "pgy_as_len";
+    }
+    return "pgy_ai_len";
+}
+
+func CollectionRuntimeCPopFn(kind: String) -> String {
+    let checked: String = CollectionRuntimeRequireKind(kind, "array pop");
+    if checked == "ArrayString" {
+        return "pgy_as_pop";
+    }
+    return "pgy_ai_pop";
+}
+
+func CollectionRuntimeCIntSortFn() -> String {
+    return "pgy_ai_sort";
+}
+
+func CollectionRuntimeCIntReverseFn() -> String {
+    return "pgy_ai_reverse";
+}
+
+func CollectionRuntimeCIntMapFn() -> String {
+    return "pgy_ai_map";
+}
+
+func CollectionRuntimeCIntFilterFn() -> String {
+    return "pgy_ai_filter";
+}

@@ -2,6 +2,8 @@
 //
 // Expression lowering owner for self-host C emission.
 
+import "../runtime_abi/collection_runtime_owner.pgy";
+
 func RewriteExpr(e: String, env: String) -> String {
     return RewriteRoleOperators(e, env);
 }
@@ -334,10 +336,10 @@ func RewriteTokens(e: String, env: String) -> String {
     let m: String = ReplaceAllOutsideStrings(sw3, "Substring(", "pgy_substr(");
     let jn0: String = ReplaceAllOutsideStrings(m, "StringJoin(", "pgy_strjoin(");
     let jn: String = ReplaceAllOutsideStrings(jn0, "Join(", "pgy_strjoin(");
-    let asort: String = ReplaceAllOutsideStrings(jn, "ArraySort(", "pgy_ai_sort(");
-    let arev: String = ReplaceAllOutsideStrings(asort, "ArrayReverse(", "pgy_ai_reverse(");
-    let amap: String = ReplaceAllOutsideStrings(arev, "ArrayMap(", "pgy_ai_map(");
-    let afilter: String = ReplaceAllOutsideStrings(amap, "ArrayFilter(", "pgy_ai_filter(");
+    let asort: String = ReplaceAllOutsideStrings(jn, "ArraySort(", Concat(CollectionRuntimeCIntSortFn(), "("));
+    let arev: String = ReplaceAllOutsideStrings(asort, "ArrayReverse(", Concat(CollectionRuntimeCIntReverseFn(), "("));
+    let amap: String = ReplaceAllOutsideStrings(arev, "ArrayMap(", Concat(CollectionRuntimeCIntMapFn(), "("));
+    let afilter: String = ReplaceAllOutsideStrings(amap, "ArrayFilter(", Concat(CollectionRuntimeCIntFilterFn(), "("));
     let osome: String = ReplaceAllOutsideStrings(afilter, "Some(", "pgy_option_some(");
     let oissome: String = ReplaceAllOutsideStrings(osome, "IsSome(", "pgy_option_is_some(");
     let ounwrap: String = ReplaceAllOutsideStrings(oissome, "UnwrapOption(", "pgy_option_unwrap(");
