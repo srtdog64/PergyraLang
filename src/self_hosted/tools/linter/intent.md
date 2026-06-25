@@ -34,7 +34,7 @@ and `4` Hint.
 
 ## Oracle
 
-`src/self_hosted/parity/linter_parity.sh` compiles and runs this tool through
+`tests/self_hosted/parity/linter_parity.sh` compiles and runs this tool through
 the C backend, compares the emitted JSON to
 `src/self_hosted/tools/linter/expected/diagnostics.json`, and checks LLVM output
 byte-for-byte when the active compiler supports the LLVM backend. LLVM-disabled

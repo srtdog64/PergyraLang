@@ -77,7 +77,7 @@ asserts they match. There is no existing C-side AIR-graph-JSON validator
 smoke today, so the Pergyra side is currently the primary implementation and
 the shell grep is the auxiliary parity backend.
 
-The parity rung (`src/self_hosted/parity/`) asserts:
+The parity rung (`tests/self_hosted/parity/`) asserts:
 
 - The Pergyra origin exits `0` on the committed fixture.
 - Emitted JSON byte-matches `expected/clean.json`.

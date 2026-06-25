@@ -47,6 +47,10 @@ require_text "docs/semantics/09_abstraction_loss_contracts.md" "The canonical er
 require_text "docs/semantics/09_abstraction_loss_contracts.md" 'The owner artifact is `pgy.air.graph.v1`.'
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "These are not erasure decision points:"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" '`tests/air_erasure`: it is the independent physical-residue oracle'
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "## Evidence-Amortization Cache Rule"
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "owner fact -> preflight/evidence view -> hot-path use -> cleanup/invalidation"
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "The stable example is Slot Pin/Lease."
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "It is an evidence-amortized language."
 require_text "docs/semantics/09_abstraction_loss_contracts.md" '`compression_budget` and'
 require_text "docs/semantics/09_abstraction_loss_contracts.md" '`consumer forbidden_to_recover fact from source`'
 require_text "docs/semantics/09_abstraction_loss_contracts.md" '`K compression budget fact`'
@@ -117,6 +121,9 @@ require_text "docs/semantics/README.md" "proofs/IRMinimality.v"
 require_text "docs/semantics/14_air_erasure_measurement.md" "## 0a. Decision Point"
 require_text "docs/semantics/14_air_erasure_measurement.md" "The semantic erasure decision is made once: AIR classifies each intent and"
 require_text "docs/semantics/14_air_erasure_measurement.md" "The harness is an oracle for whether the AIR decision matched reality"
+require_text "docs/semantics/14_air_erasure_measurement.md" "## 5a. Evidence-Amortized Hot Path"
+require_text "docs/semantics/14_air_erasure_measurement.md" "This optimization path is cacheable"
+require_text "docs/semantics/14_air_erasure_measurement.md" "Host-toolchain residue must be normalized."
 require_text "docs/102_formal_semantics_and_proof_obligations.md" "docs/semantics/09_abstraction_loss_contracts.md"
 require_text "docs/104_air_compiler_architecture.md" "The general version of this rule is the abstraction loss contract"
 require_text "docs/37_compiler_contracts.md" "### Loss Contracts"

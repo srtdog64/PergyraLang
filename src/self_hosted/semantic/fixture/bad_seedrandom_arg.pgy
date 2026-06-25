@@ -1,0 +1,3 @@
+func Main() -> Void {
+    SeedRandom("seven");
+}

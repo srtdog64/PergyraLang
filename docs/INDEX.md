@@ -1,6 +1,6 @@
 # PergyraLang Documentation Index
 
-Last updated: 2026-06-22
+Last updated: 2026-06-25
 
 Anti-hype update: 2026-04-29
 
@@ -39,6 +39,9 @@ and follow-up debt over older design notes.
 | [`self_hosted/05_compiler_core_gap_analysis.md`](self_hosted/05_compiler_core_gap_analysis.md) | Hard self-host gap analysis and substrate entry criteria |
 | [`self_hosted/06_self_host_groundwork_readiness.md`](self_hosted/06_self_host_groundwork_readiness.md) | Self-host substrate readiness and first AIR graph consumer slice |
 | [`self_hosted/10_hard_self_host_contract.md`](self_hosted/10_hard_self_host_contract.md) | Active hard self-host substitution contract and SoT pass condition |
+| [`self_hosted/11_compiler_world_architecture.md`](self_hosted/11_compiler_world_architecture.md) | PgyCompilerWorld self-host compiler shape: stage facts remain owned, compiler flow is one Pergyra world |
+| [`self_hosted/12_intent_zone_self_host_architecture.md`](self_hosted/12_intent_zone_self_host_architecture.md) | Intent/zone architecture for self-hosted compiler growth, codegen resources, and path/source intake facts |
+| [`self_hosted/13_compiler_substrate_architecture.md`](self_hosted/13_compiler_substrate_architecture.md) | Self-hosted compiler substrate contract: codegen resources, stage owners, import graph, deterministic facts, runtime materialization, caching, and parity promotion |
 
 ## Historical Snapshots
 
@@ -95,8 +98,10 @@ and follow-up debt over older design notes.
 | [`132_unsafe_capability_scope.md`](132_unsafe_capability_scope.md) | Unsafe capability scope contract |
 | [`135_backend_wasm_pointer_closure.md`](135_backend_wasm_pointer_closure.md) | Backend/WASM/pointer wording guard: verified subset, named debt, and non-overclaiming lifetime status |
 | [`136_abi_niche_and_explicit_layout.md`](136_abi_niche_and_explicit_layout.md) | ABI niche optimization and explicit layout policy: current tagged Option ABI, future proof gates, and raw/extern-only layout scope |
-| [`136_evidence_driven_guard_amortization.md`](136_evidence_driven_guard_amortization.md) | Evidence-driven guard amortization: measured preflight-view gate for slot-style hot paths |
 | [`139_golden_adt_verification_methodology.md`](139_golden_adt_verification_methodology.md) | Golden, ADT, and verification methodology: evidence ladder, ADT owner rules, differential/property/model-check/proof roles, and hard self-host review checklist |
+| [`141_closure_capture_design.md`](141_closure_capture_design.md) | Closure capture design: local capture gap, explicit environment ownership, and backend lowering obligations |
+| [`142_evidence_driven_guard_amortization.md`](142_evidence_driven_guard_amortization.md) | Evidence-driven guard amortization: measured preflight-view gate for slot-style hot paths |
+| [`143_evidence_parameter_attributes.md`](143_evidence_parameter_attributes.md) | Evidence-projected LLVM parameter attributes: ownership evidence lowered to backend optimization facts |
 
 ## Language Surface
 

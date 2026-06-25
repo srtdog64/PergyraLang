@@ -1,0 +1,4 @@
+func Main() -> Bool {
+    let ok: Bool = StringContains("alpha", 1);
+    return ok;
+}

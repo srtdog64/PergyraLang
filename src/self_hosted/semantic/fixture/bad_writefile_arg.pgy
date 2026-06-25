@@ -1,0 +1,3 @@
+func Main() -> Void {
+    WriteFile("selfhost_semantic_writefile.tmp", 1);
+}

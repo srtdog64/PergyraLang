@@ -1,5 +1,8 @@
 // Self-host semantic diagnostic rendering owner.
 
+import "../lib/diagnostic.pgy";
+import "diagnostic_code_owner.pgy";
+
 func SemanticReason(code: String) -> String {
     if code == "undefined_symbol" {
         return "identifier is used before a local binding is in scope";
@@ -42,6 +45,9 @@ func SemanticReason(code: String) -> String {
     }
     if code == "input_missing" {
         return "semantic checker requires a source path argument";
+    }
+    if code == "unregistered_diagnostic_code" {
+        return "semantic diagnostic code is not registered in the code owner";
     }
     return "semantic checker rejected the source";
 }
@@ -88,21 +94,30 @@ func SemanticFix(code: String) -> String {
     if code == "input_missing" {
         return "pass the source path as Args()[0]";
     }
+    if code == "unregistered_diagnostic_code" {
+        return "add the code to diagnostic_code_owner before emitting it";
+    }
     return "fix the semantic mismatch reported by the diagnostic code";
 }
 func SemanticOk() -> String {
     return SelfHostDiagnostic_RenderOk("pgy.selfhost.semantic.v1");
 }
 func SemanticErrorWithFacts(code: String, facts: String) -> String {
+    let stable_code: String = code;
+    let stable_facts: String = facts;
+    if !SemanticDiagnosticCodeKnown(code) {
+        stable_code = "unregistered_diagnostic_code";
+        stable_facts = SelfHostDiagnostic_Fact2("code", code, "owner", "diagnostic_code_owner");
+    }
     return SelfHostDiagnostic_RenderError(
         "pgy.selfhost.semantic.v1",
         "semantic",
         "error",
-        code,
-        SemanticReason(code),
-        SemanticFix(code),
+        stable_code,
+        SemanticReason(stable_code),
+        SemanticFix(stable_code),
         "none",
-        facts);
+        stable_facts);
 }
 func SemanticError1(code: String, k1: String, v1: String) -> String {
     return SemanticErrorWithFacts(code, SelfHostDiagnostic_Fact1(k1, v1));

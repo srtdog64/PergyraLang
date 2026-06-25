@@ -1,0 +1,6 @@
+func Main() -> Int {
+    let a: Int = Abs(-7);
+    let b: Int = Min(a, 3);
+    let c: Int = Max(b, 9);
+    return c;
+}

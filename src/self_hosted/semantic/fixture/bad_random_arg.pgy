@@ -1,0 +1,4 @@
+func Main() -> Int {
+    let roll: Int = Random("six");
+    return roll;
+}

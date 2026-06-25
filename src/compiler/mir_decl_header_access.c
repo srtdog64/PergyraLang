@@ -95,6 +95,14 @@ mir_decl_header_uses_pointer_self(const MIRDeclHeader *header)
     return header != NULL && header->uses_pointer_self;
 }
 
+const char *
+mir_decl_header_role_subject_type_name(const MIRDeclHeader *header)
+{
+    return header != NULL && header->ast_type == AST_ROLE_DECL
+        ? header->role_subject_type_name
+        : NULL;
+}
+
 size_t
 mir_decl_header_generic_param_count(const MIRDeclHeader *header)
 {

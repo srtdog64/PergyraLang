@@ -1,0 +1,5 @@
+func Main() -> Int {
+    SeedRandom(7);
+    let roll: Int = Random(6);
+    return roll;
+}

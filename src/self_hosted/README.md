@@ -24,39 +24,54 @@ its `intent.md`.
 
 ## Layout
 
-Compiler-stage directories mirror C-side `src/` siblings (one per
-compiler component, no umbrella).
+Compiler-stage directories are source-owner surfaces, not a copy of the C
+folder topology. They stay under `src/self_hosted/` only when they contain
+Pergyra source or source-owner documentation. Oracle harnesses, parity scripts,
+and long-lived test payloads belong under `tests/self_hosted/`.
 
 ```
 src/self_hosted/
   README.md                       -- this file
   PROGRESS.md                     -- honest substitution percentage
-  lexer/                          -- mirrors C-side src/lexer/
-    main.pgy (+ owner modules as split) + fixture/ + expected/ + intent.md
-  parser/                         -- mirrors C-side src/parser/
-    main.pgy (+ owner modules as split) + fixture/ + expected/ + intent.md
-  semantic/                       -- mirrors C-side src/semantic/
-    main.pgy (+ owner modules as split) + fixture/ + expected/ + intent.md
-  codegen/                        -- mirrors C-side src/codegen/
-    main.pgy (+ owner modules as split) + fixture/ + expected/ + intent.md
+  lexer/                          -- token stream substitution owner
+    main.pgy (+ owner modules as split) + intent.md
+  parser/                         -- AST text substitution owner
+    main.pgy (+ owner modules as split) + intent.md
+  semantic/                       -- diagnostic verdict substitution owner
+    main.pgy (+ owner modules as split) + intent.md
+  codegen/                        -- bounded AST-text to C emitter owner
+    main.pgy + intent.md
+    input/ run/ text/ type_facts/ emission/
   mir_lower/                      -- MIR JSON fact-only lowering substitute
-    main.pgy + owner modules + fixture/ + intent.md
+    main.pgy + owner modules + intent.md
   air/  hir/  mir/                -- IR-stage placeholders
-  compiler/                       -- driver placeholder, mirrors src/compiler/
+  compiler/                       -- PgyCompilerWorld hard-substitution owner
   runtime/                        -- native runtime kernel stays C; portable policy can move
-  lsp/                            -- mirrors C-side src/lsp/ (placeholder)
-  lib/                            -- shared Pergyra helpers (e.g. text_scan)
+  lsp/                            -- language-server placeholder
+  lib/                            -- shared Pergyra owners (path, diagnostics, text scan)
   fuzz/                           -- deterministic Pergyra-origin corpus generators
   tools/                          -- peripheral audit tools (NOT counted toward substitution)
     <tool_name>/
       intent.md                   -- input/output contract + oracle
       main.pgy                    -- entrypoint only
       *_owner.pgy                 -- named source-of-truth owners
-      expected/
+```
+
+`tests/self_hosted/` owns the oracle side of the same track:
+
+```
+tests/self_hosted/
   parity/                         -- C / LLVM / Pergyra comparison harness
     README.md
     lexer_parity.sh + parser_parity.sh + <tool>_parity.sh
 ```
+
+Some legacy `fixture/` and `expected/` directories are still collocated under
+stage/tool source directories. They are test payloads, not source owners. New
+parity fixtures should be added under `tests/self_hosted/`, and existing
+payloads should migrate there stage-by-stage with the corresponding parity
+script in the same change. Do not add a new top-level test harness directory
+under `src/self_hosted/`.
 
 The target shape is not "one folder, one monolithic `main.pgy`". `main.pgy`
 is the CLI/orchestration entrypoint; semantic decisions belong in named
@@ -65,8 +80,11 @@ source-of-truth owner modules. `semantic/` also owns its program-input fact in
 consumes the bundle, so the entrypoint does not define "program" by accident.
 `lexer/` owns its argv/default source path and file-read boundary in
 `source_input_owner.pgy`; `codegen/` owns its AST path/read boundary in
-`ast_input_owner.pgy`; `mir_lower/` owns its MIR JSON path/read/schema boundary
-in `mir_json_input_owner.pgy` and document-order Program assembly in
+`input/ast_input_owner.pgy`, its CLI orchestration in
+`run/codegen_run_owner.pgy`, expression/text scanning in `text/`, type evidence
+in `type_facts/`, and C emission participants in `emission/`; `mir_lower/`
+owns its MIR JSON path/read/schema boundary in `mir_json_input_owner.pgy` and
+document-order Program assembly in
 `program_lower.pgy`; `semantic/` follows the same entrypoint-plus-owner shape.
 `parser/` has started the same transition with
 error, cursor/token, source path/import input, root Program assembly, type-name, expression, statement/block,
@@ -86,6 +104,15 @@ back into a hidden monolith.
 count/finding facts, report owns `pgy.selfhost.air-graph-validator.v1`, and run
 owns fixed fixture input plus exit policy.
 
+The compiler world is different from a C-style driver folder.
+`compiler/world.pgy` is a parse-gated Pergyra source file that names the
+self-hosted compiler as `PgyCompilerWorld` and `CompilePergyraProgram`. Source
+intake, lexing, parsing, semantic checking, MIR lowering, emission, and parity
+are derived stage zones/intents under that root compiler intent. Stage
+directories still own their facts; `PgyCompilerWorld` owns the visible compiler
+flow. New hard-substitution stages should attach to that intent vocabulary
+instead of creating another folder-local orchestration alias.
+
 Until import de-duplication is a compiler fact, sibling owner modules do not
 import each other. The entrypoint assembles owner modules in dependency order so
 one owner cannot accidentally materialize the same declarations twice.
@@ -100,6 +127,12 @@ listed in [`OWNERS.md`](OWNERS.md), which is the durable owner manifest for
 self-hosted stage responsibilities. If a stage needs new semantics, add or
 split a named owner module, document its owner responsibility there, and import
 it from the entrypoint.
+
+Build and verification are intentionally separate. A normal compiler build does
+not run the self-hosted parity suite. For fast local checks, use
+`make self-host-preparation-contract-test-smoke`; for development/CI evidence,
+use `make self-host-preparation-test-smoke`, which also runs the heavy
+C/LLVM/Pergyra parity bundle.
 
 ## Current Status
 
@@ -121,6 +154,10 @@ it from the entrypoint.
   `lib/text_scan.pgy` owns reusable scan helpers used by multiple tools.
   `lib/diagnostic.pgy` owns stable diagnostic-block rendering so compiler
   slices do not hand-build raw error strings or JSON in their `main.pgy` files.
+  `lib/path.pgy` owns self-hosted source/import path string facts such as
+  dirname, absolute-path detection, joining, and `./` / `../` import-relative
+  normalization. Runtime file-access authorization still belongs to the native
+  runtime IO path resolver.
   `make self-host-preparation-test-smoke` now runs every parity script, not just
   the scaffold check. This is dogfood evidence only; the compiler core remains C.
 - **2026-05-28** -- first compiler-internal substitution candidates land as
@@ -153,6 +190,18 @@ it from the entrypoint.
   `src/self_hosted/lexer/main.pgy` through the same source-bundle owner. The
   retired lexer grep-concat unit and lexer `fixture/source.txt` input side
   channel are contract-gated against reappearing.
+- **2026-06-25** -- `src/self_hosted/lexer/scan_owner.pgy` now declares its
+  `char_owner.pgy` and `token_owner.pgy` dependencies directly and joins the
+  real-source semantic selfcheck. `main.pgy` stays an entrypoint and no longer
+  imports scan-loop internals.
+- **2026-06-25** -- `src/self_hosted/semantic/source_bundle_owner.pgy` now
+  declares its path/text-scan dependencies directly and joins the real-source
+  semantic selfcheck. `semantic/main.pgy` stays an entrypoint and no longer
+  imports source-bundle internals.
+- **2026-06-25** -- `src/self_hosted/semantic/diagnostic_owner.pgy` now
+  declares its shared renderer and diagnostic-code vocabulary dependencies
+  directly. `semantic/main.pgy` consumes the diagnostic owner instead of
+  importing those internals.
 - **2026-06-16** -- `make self-host-preparation-test-smoke` is green again on
   main after refreshing the doc-link checker expected counts for the current
   `docs/INDEX.md`. The measured compiler-internal substitution is now 8,642
@@ -178,11 +227,11 @@ it from the entrypoint.
   `main.pgy` is only the CLI/orchestration entrypoint; source-of-truth
   decisions live in named owner modules such as `type_env`, `expr_rewrite`,
   `stmt_emit`, `function_emit`, and `program_emit`. It currently stands at
-  rung-0..17 with 56 fixtures, including `StringTrim`, `FileExists` /
+  rung-0..20 with 62 fixtures, including `StringTrim`, `FileExists` /
   `ReadFile` file I/O, `Args()` user-argument snapshots, value-passed
-  Int-field structs, Array<Int> parameter/return flow, `Result<Int>` `?`
-  early-return lowering, `Option<Int>` value flow, and `ArrayReverse` value
-  copy lowering.
+  `Int` / `Bool` / `Float` / `String` field structs plus nested struct-valued
+  fields, Array<Int> parameter/return flow, `Result<Int>` `?` early-return
+  lowering, `Option<Int>` value flow, and `ArrayReverse` value copy lowering.
 - **2026-06-23** -- codegen AST input is no longer owned by `main.pgy`.
   `ast_input_owner.pgy` owns `Args()[0]`/default fixture selection,
   missing-file diagnostics, and AST file reads; `main.pgy` now only wires
@@ -195,7 +244,10 @@ it from the entrypoint.
   corpora, and optionally runs the generated cases through both backends.
   Focused gates: `make self-host-fuzz-backend-generator-parity-test-smoke` and
   `make fuzz-backend-parity-test-smoke`; `make fuzz-backend-parity-matrix-test-smoke`
-  runs a bounded multi-seed variant of the generated C/LLVM oracle.
+  runs a bounded multi-seed variant of the generated C/LLVM oracle. The
+  generator C/LLVM corpus parity leg is also wired into
+  `make self-host-preparation-test-smoke`, so the default hard-preparation
+  bundle now covers the generator itself.
 
 ## Non-Negotiable Rules
 

@@ -75,7 +75,7 @@ dead `mir_decl_header_ast_shape` compatibility arm that recomputed header shape
 from the origin AST is deleted. Routine source-decl compatibility is measured
 separately at 0 so lookup compatibility cannot grow.
 
-src/self_hosted/parity/ast_read_surface_checker_parity.sh runs the same
+tests/self_hosted/parity/ast_read_surface_checker_parity.sh runs the same
 manifest through a Pergyra-written checker and compares the literal counts
 against shell grep. The shell smoke still owns directory coverage; the
 self-hosted checker proves the manifest/cap verdict from inside the language,

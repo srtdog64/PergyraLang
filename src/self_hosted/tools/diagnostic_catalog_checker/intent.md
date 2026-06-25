@@ -83,7 +83,7 @@ The Pergyra implementation directory is authoritative only for its emitted
 JSON/counter contract; it does not replace the C oracle until rung-3 three-way
 agreement is shipped.
 
-The parity rung (`src/self_hosted/parity/`) re-runs the catalog walk against the
+The parity rung (`tests/self_hosted/parity/`) re-runs the catalog walk against the
 same clean-repo inputs from both implementations and asserts:
 
 - The C oracle exits `0` and the Pergyra tool exits `0` on the clean repo.

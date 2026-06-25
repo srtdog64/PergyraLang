@@ -1,5 +1,12 @@
 // Self-host semantic body/function checking owner.
 
+import "text_scan_owner.pgy";
+import "diagnostic_owner.pgy";
+import "env_owner.pgy";
+import "expr_type_owner.pgy";
+import "expr_validation_owner.pgy";
+import "call_check_owner.pgy";
+
 func RestoreEnv(inout names: Array<String>, inout types: Array<String>, inout modes: Array<String>, size: Int) -> Void {
     while ArrayLength(names) > size {
         ArrayPop(names);
@@ -21,8 +28,13 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
         }
         if MatchKeyword(content, i, "let") {
             i = i + 3;
-            let name: String = ReadIdent(content, i, cursor);
+            let first_name: String = ReadIdent(content, i, cursor);
             i = cursor[0];
+            let name: String = first_name;
+            if first_name == "mut" {
+                name = ReadIdent(content, i, cursor);
+                i = cursor[0];
+            }
             let declared_type: String = "Unknown";
             i = SkipWhitespaceAndComments(content, i);
             if CharAt(content, i) == ":" {
@@ -31,7 +43,7 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
             }
             i = ExpectLiteral(content, i, "=");
             if i < 0 {
-                i = FindStatementEnd(content, start, end) + 1;
+                i = FindStatementEnd(content, cursor[0], end) + 1;
                 continue;
             }
             let semi: Int = FindStatementEnd(content, i, end);
@@ -129,7 +141,7 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
                 }
             }
             if block_open < end && CharAt(content, block_open) == "{" {
-                let block_close: Int = FindMatchingBrace(content, block_open);
+                let block_close: Int = FindMatchingBraceWithin(content, block_open, end);
                 let env_size: Int = ArrayLength(names);
                 let block_error: String = CheckBody(content, block_open + 1, block_close, return_type, names, types, modes, func_names, func_rets, func_params);
                 RestoreEnv(names, types, modes, env_size);
@@ -145,7 +157,7 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
                     }
                     let else_open: Int = FindBlockOpen(content, else_start, end);
                     if else_open < end && CharAt(content, else_open) == "{" {
-                        let else_close: Int = FindMatchingBrace(content, else_open);
+                        let else_close: Int = FindMatchingBraceWithin(content, else_open, end);
                         let else_env_size: Int = ArrayLength(names);
                         let else_error: String = CheckBody(content, else_open + 1, else_close, return_type, names, types, modes, func_names, func_rets, func_params);
                         RestoreEnv(names, types, modes, else_env_size);
@@ -175,7 +187,7 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
                 }
             }
             if for_open < end && CharAt(content, for_open) == "{" {
-                let for_close: Int = FindMatchingBrace(content, for_open);
+                let for_close: Int = FindMatchingBraceWithin(content, for_open, end);
                 let for_env_size: Int = ArrayLength(names);
                 if StringLength(loop_var) > 0 {
                     ArrayPush(names, loop_var);

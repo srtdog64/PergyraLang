@@ -28,7 +28,7 @@ rescans, or default type guesses.
 
 ## Oracle
 
-`src/self_hosted/parity/mir_json_parity.sh` compares reconstructed output
+`tests/self_hosted/parity/mir_json_parity.sh` compares reconstructed output
 against the C compiler's `pgy --ast` output for supported fixtures and checks
 that unsupported fixtures fail closed. The Makefile entry is
 `self-host-mir-json-parity-test-smoke`.

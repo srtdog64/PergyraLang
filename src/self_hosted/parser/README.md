@@ -6,14 +6,15 @@ AST output for a growing source subset, so parity can be checked without
 inventing a second AST serialization format.
 
 - `main.pgy` - entry point orchestration only. It delegates source path/default
-  selection and source-relative import path resolution to
-  `source_path_owner.pgy`.
+  selection to `source_path_owner.pgy` and shared path string facts to
+  `../lib/path.pgy`.
 - `program_parse_owner.pgy` - root Program SoT. Owns root source reads, root
   cursor initialization, top-level declaration parse invocation, and final
   compact AST `Program:` assembly.
-- `source_path_owner.pgy` - parser input-path SoT. Owns the argv/default source
-  path, source-dir extraction, import path resolution, and imported-source
-  marker.
+- `source_path_owner.pgy` - parser input/import-path SoT. Owns the argv/default
+  source path, imported-source read marker, and import graph membership fact.
+  Source dirname and import joins consume `SelfHostPath` instead of
+  reimplementing path facts locally.
 - `expr_primary_owner.pgy` - primary expression root owner. Owns literals,
   identifiers, lambdas, grouped expressions, array literals, and expression
   block shims before postfix consumption.
@@ -26,9 +27,9 @@ inventing a second AST serialization format.
 - `stmt_loop_owner.pgy` - loop statement syntax owner. Owns `while`, `loop`,
   and `for` compact AST header/block emission.
 - `fixture/` - committed `<base>.pgy` sources and `<base>_ast.txt` baselines
-  used by the 188-source parity harness.
+  used by the 189-source parity harness.
 - `expected/clean.txt` - expected stdout when run on the default source.
 - `intent.md` - contract, current grammar surface, and latest fixture/scale
   coverage result.
 
-Run: `bash src/self_hosted/parity/parser_parity.sh`
+Run: `bash tests/self_hosted/parity/parser_parity.sh`

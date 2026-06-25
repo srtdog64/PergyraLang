@@ -1,0 +1,9 @@
+func Main() -> Void {
+    let nums: Array<Int> = [1, 2, 3];
+    nums[1] = 9;
+    Log(ToString(nums[0] + nums[1] + nums[2]));
+
+    let words: Array<String> = ["a", "b"];
+    words[0] = "z";
+    Log(Concat(words[0], words[1]));
+}

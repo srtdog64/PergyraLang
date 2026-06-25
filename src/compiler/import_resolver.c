@@ -94,11 +94,12 @@ import_resolver_load_internal(const char *source_path,
         return NULL;
     }
 
-    if (is_stdlib_module && imported
-        && ((loaded_stdlib_modules != NULL
-             && stdlib_module_name != NULL
-             && import_stack_contains(loaded_stdlib_modules, stdlib_module_name))
-            || import_stack_contains(loaded, canonical_source))) {
+    if (imported
+        && (import_stack_contains(loaded, canonical_source)
+            || (is_stdlib_module
+                && loaded_stdlib_modules != NULL
+                && stdlib_module_name != NULL
+                && import_stack_contains(loaded_stdlib_modules, stdlib_module_name)))) {
         free(canonical_source);
         return ast_create_program();
     }
@@ -123,12 +124,13 @@ import_resolver_load_internal(const char *source_path,
         goto fail;
     }
 
-    if (is_stdlib_module) {
+    if (imported) {
         if (!import_stack_push(loaded, canonical_source)) {
             set_error(error_message, "out of memory while tracking loaded modules");
             goto fail;
         }
-        if (loaded_stdlib_modules != NULL
+        if (is_stdlib_module
+            && loaded_stdlib_modules != NULL
             && stdlib_module_name != NULL
             && !import_stack_contains(loaded_stdlib_modules, stdlib_module_name)
             && !import_stack_push(loaded_stdlib_modules, stdlib_module_name)) {

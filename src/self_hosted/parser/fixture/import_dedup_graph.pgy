@@ -1,0 +1,6 @@
+import "import_dedup_leaf.pgy";
+import "import_dedup_mid.pgy";
+
+func Main() -> Void {
+    Log(ToString(MidValue()));
+}

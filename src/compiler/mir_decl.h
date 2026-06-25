@@ -164,6 +164,7 @@ typedef struct
     size_t       method_count;
     MIRDeclMethod *method_metadata;
     size_t       method_metadata_count;
+    char        *role_subject_type_name;
     size_t       role_impl_count;
     MIRDeclRoleImpl *role_impl_metadata;
     size_t       role_impl_metadata_count;

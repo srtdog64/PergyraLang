@@ -1,0 +1,5 @@
+import "import_dedup_leaf.pgy";
+
+export func MidValue() -> Int {
+    return SharedValue();
+}

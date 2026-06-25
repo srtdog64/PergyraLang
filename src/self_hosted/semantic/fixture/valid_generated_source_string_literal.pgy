@@ -1,0 +1,5 @@
+func Main() -> String {
+    let source: String = "func Fake() -> Void { MissingSymbol(); }";
+    let tail: String = "return \"ok\";";
+    return Concat(source, tail);
+}

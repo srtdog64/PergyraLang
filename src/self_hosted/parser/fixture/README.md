@@ -1,7 +1,7 @@
 # Parser Parity Fixtures
 
 This directory holds inputs and baselines for
-`src/self_hosted/parity/parser_parity.sh`. Each row in that script's
+`tests/self_hosted/parity/parser_parity.sh`. Each row in that script's
 `SOURCE_PAIRS` array is `"<source path>:<base name>"` and the parity test
 asserts that running the Pergyra-written parser on `<source>` produces output
 byte-equal to `fixture/<base>_ast.txt`.

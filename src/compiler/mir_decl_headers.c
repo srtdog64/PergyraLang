@@ -486,18 +486,29 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
         header.uses_pointer_self = true;
         if (header.name == NULL)
             return true;
-        if (!mir_decl_header_set_fields(&header, decl))
+        header.role_subject_type_name =
+            mir_capture_type_name(ast_role_for_type(decl), NULL);
+        if (ast_role_for_type(decl) != NULL
+            && header.role_subject_type_name == NULL) {
             return false;
+        }
+        if (!mir_decl_header_set_fields(&header, decl)) {
+            free(header.role_subject_type_name);
+            return false;
+        }
         if (!mir_decl_header_set_generics(&header, decl)) {
+            free(header.role_subject_type_name);
             mir_decl_header_free_fields(&header);
             return false;
         }
         if (!mir_decl_header_set_role_impls(&header, decl)) {
+            free(header.role_subject_type_name);
             mir_decl_header_free_fields(&header);
             mir_decl_header_free_generics(&header);
             return false;
         }
         if (!mir_decl_header_set_role_includes(&header, decl)) {
+            free(header.role_subject_type_name);
             mir_decl_header_free_role_impls(&header);
             mir_decl_header_free_fields(&header);
             mir_decl_header_free_generics(&header);
@@ -507,6 +518,7 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
             for (size_t i = 0; i < header.method_metadata_count; i++)
                 mir_decl_method_metadata_clear(&header.method_metadata[i]);
             free(header.method_metadata);
+            free(header.role_subject_type_name);
             mir_decl_header_free_role_includes(&header);
             mir_decl_header_free_role_impls(&header);
             mir_decl_header_free_fields(&header);
@@ -517,6 +529,7 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
             for (size_t i = 0; i < header.method_metadata_count; i++)
                 mir_decl_method_metadata_clear(&header.method_metadata[i]);
             free(header.method_metadata);
+            free(header.role_subject_type_name);
             mir_decl_header_free_role_includes(&header);
             mir_decl_header_free_role_impls(&header);
             mir_decl_header_free_fields(&header);

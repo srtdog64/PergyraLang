@@ -152,8 +152,9 @@ rung-2 tools with parity scripts:
 - `production_c_size_checker`
 - `examples_inventory_checker`
 
-As of 2026-05-28, compiler-internal rung-1 substitutes mirror C-side
-`src/<component>/` as siblings of `src/self_hosted/`:
+As of 2026-05-28, compiler-internal rung-1 substitutes use familiar stage names
+for discoverability, but the target self-host layout is source-owner based and
+does not copy the C implementation's fragmented file topology:
 
 - `src/self_hosted/lexer/` compares byte-for-byte against `pgy --tokens`.
 - `src/self_hosted/parser/` compares a growing text-tree subset

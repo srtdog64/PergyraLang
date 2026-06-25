@@ -1,0 +1,78 @@
+// Struct-valued expression lowering owner for self-host C emission.
+
+// Emit a C struct-valued expression: a `Name(f: v, ...)` literal becomes a
+// compound literal; anything else (e.g. a struct-returning call) passes through.
+func EmitStructValue(expr: String, sname: String, env: String) -> String {
+    let e: String = StringTrim(expr);
+    if StartsWith(e, Concat(sname, "(")) {
+        return EmitStructLit(e, env);
+    }
+    return RewriteExpr(e, env);
+}
+
+// Emit a C compound literal for a `Name(f: v, ...)` struct construction:
+// `(Name){ .f = (v), ... }`, routing each field by the collected field type.
+func EmitStructLit(expr: String, env: String) -> String {
+    let e: String = StringTrim(expr);
+    let op: Int = StringIndexOf(e, "(");
+    if op <= 0 || CharAt(e, StringLength(e) - 1) != ")" {
+        Die(Concat("malformed struct literal: ", expr));
+    }
+    let sname: String = Substring(e, 0, op);
+    let close: Int = FindMatchingParen(e, op);
+    let inner: String = Substring(e, op + 1, close - op - 1);
+    let out: String = Concat("(", Concat(sname, "){ "));
+    let rem: String = StringTrim(inner);
+    let first: Bool = true;
+    let field_pos: Int = 0;
+    let field_names: String = LookupKindType(env, sname, "fields");
+    while StringLength(rem) > 0 {
+        let comma: Int = FindTopLevelComma(rem);
+        let part: String = "";
+        if comma < 0 {
+            part = StringTrim(rem);
+            rem = "";
+        } else {
+            part = StringTrim(Substring(rem, 0, comma));
+            rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
+        }
+        if StringLength(part) > 0 {
+            let cp: Int = StringIndexOf(part, ": ");
+            let fld: String = "";
+            let val: String = "";
+            if cp >= 0 {
+                fld = Substring(part, 0, cp);
+                val = Substring(part, cp + 2, StringLength(part) - (cp + 2));
+            } else {
+                fld = CsvAt(field_names, field_pos);
+                val = part;
+                if StringLength(fld) == 0 {
+                    Die(Concat("struct positional initializer has no field fact: ", part));
+                }
+            }
+            if !first {
+                out = Concat(out, ", ");
+            }
+            let ftype: String = LookupFieldType(env, sname, fld);
+            if StringLength(ftype) == 0 {
+                Die(Concat("struct initializer field lacks type fact: ", Concat(sname, Concat(".", fld))));
+            }
+            let cval: String = "";
+            if ftype == "String" {
+                cval = StrEval(val, env);
+            } else if ftype == "Float" {
+                cval = RewriteExpr(val, env);
+            } else if ftype == "Int" || ftype == "Bool" {
+                cval = IntEval(val, env);
+            } else if LookupKindType(env, ftype, "s") == "struct" {
+                cval = EmitStructValue(val, ftype, env);
+            } else {
+                Die(Concat("unsupported struct initializer field type: ", ftype));
+            }
+            out = Concat(out, Concat(".", Concat(fld, Concat(" = (", Concat(cval, ")")))));
+            first = false;
+            field_pos = field_pos + 1;
+        }
+    }
+    return Concat(out, " }");
+}

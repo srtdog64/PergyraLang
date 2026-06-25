@@ -51,9 +51,9 @@ for rel in \
     tests/raw_escape_contract_smoke.sh \
     tests/proof_carrying_pipeline_smoke.sh \
     tests/abi_ownership_shape_smoke.sh \
-    src/self_hosted/parity/semantic_parity.sh \
-    src/self_hosted/parity/diagnostic_catalog_checker_parity.sh \
-    src/self_hosted/parity/fuzz_backend_parity_generator_parity.sh \
+    tests/self_hosted/parity/semantic_parity.sh \
+    tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh \
+    tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh \
     src/self_hosted/semantic/expected/bad_logical_int.diag \
     src/self_hosted/semantic/expected/bad_logical_right.diag \
     src/self_hosted/semantic/fixture/bad_value_param_arraypush.pgy \
@@ -163,10 +163,10 @@ require_text "src/semantic/type_checker_assignment.c" "array index assignment"
 
 # Logical Bool anchors: self-hosted semantic parity has exact diagnostics for
 # the same contract the C compiler rejects.
-require_text "src/self_hosted/parity/semantic_parity.sh" "valid_logical_bool:ok"
-require_text "src/self_hosted/parity/semantic_parity.sh" "bad_logical_int:error"
-require_text "src/self_hosted/parity/semantic_parity.sh" "bad_logical_right:error"
-require_text "src/self_hosted/parity/semantic_parity.sh" "bad_value_param_arraypush:error"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_logical_bool:ok"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_logical_int:error"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_logical_right:error"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_value_param_arraypush:error"
 require_text "src/self_hosted/semantic/expected/bad_logical_int.diag" "Code: logical_operand_not_bool"
 require_text "src/self_hosted/semantic/expected/bad_logical_right.diag" "Reason: logical operators require Bool operands"
 require_text "src/self_hosted/semantic/fixture/bad_value_param_arraypush.pgy" "func Grow(xs: Array<Int>) -> Void"
@@ -183,9 +183,9 @@ require_text "docs/136_abi_niche_and_explicit_layout.md" "MIR ABI fact must be t
 require_text "docs/136_abi_niche_and_explicit_layout.md" "unsafe(ffi, layout)"
 
 # Self-hosting starts with verifier/tool parity, not a second compiler claim.
-require_text "src/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "clean JSON parity"
-require_text "src/self_hosted/parity/semantic_parity.sh" "verdict drift"
-require_text "src/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" "PGY_FUZZ_BACKEND_RUN_ORACLE"
+require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "clean JSON parity"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "verdict drift"
+require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" "PGY_FUZZ_BACKEND_RUN_ORACLE"
 
 require_text "Makefile" "language-contract-golden-test-smoke:"
 require_text "Makefile" "verification-methodology-test-smoke:"

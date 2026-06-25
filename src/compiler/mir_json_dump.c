@@ -196,6 +196,52 @@ mir_json_emit_decl_methods(FILE *out,
 }
 
 static void
+mir_json_emit_ability_ref(FILE *out, const MIRAbilityRef *ref)
+{
+    fputs("{\"base\":", out);
+    mir_json_emit_str_or_null(out, mir_ability_ref_base_name(ref));
+    fputs(",\"actuals\":[", out);
+    for (size_t i = 0; i < mir_ability_ref_actual_arg_count(ref); i++) {
+        if (i > 0)
+            fputc(',', out);
+        mir_json_emit_str_or_null(
+            out, mir_ability_ref_actual_arg_type_name(ref, i));
+    }
+    fputs("]}", out);
+}
+
+static void
+mir_json_emit_role_includes(FILE *out, const MIRDeclHeader *header)
+{
+    fputs(",\"includes\":[", out);
+    for (size_t i = 0; i < mir_decl_header_role_include_count(header); i++) {
+        const MIRDeclRoleInclude *include =
+            mir_decl_header_role_include(header, i);
+        if (i > 0)
+            fputc(',', out);
+        mir_json_emit_str_or_null(out, mir_decl_role_include_name(include));
+    }
+    fputc(']', out);
+}
+
+static void
+mir_json_emit_role_impls(FILE *out, const MIRDeclHeader *header)
+{
+    fputs(",\"impls\":[", out);
+    for (size_t i = 0; i < mir_decl_header_role_impl_count(header); i++) {
+        const MIRDeclRoleImpl *impl = mir_decl_header_role_impl(header, i);
+        if (i > 0)
+            fputc(',', out);
+        fputs("{\"ability\":", out);
+        mir_json_emit_ability_ref(out, mir_decl_role_impl_ability_ref(impl));
+        fprintf(out, ",\"method_start\":%zu,\"method_count\":%zu}",
+                mir_decl_role_impl_method_start_index(impl),
+                mir_decl_role_impl_method_count(impl));
+    }
+    fputc(']', out);
+}
+
+static void
 mir_json_emit_enum_variants(FILE *out, const MIRDeclHeader *header)
 {
     fputs(",\"variants\":[", out);
@@ -230,7 +276,7 @@ static bool
 mir_json_decl_is_unsupported_fact(ASTNodeType ast_type,
                                   NominalDeclKind nominal_kind)
 {
-    if (ast_type == AST_ROLE_DECL || ast_type == AST_EVENT_DECL)
+    if (ast_type == AST_EVENT_DECL)
         return true;
     return ast_type == AST_CLASS_DECL
         && !mir_json_decl_is_supported_nominal(ast_type, nominal_kind);
@@ -274,6 +320,19 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
         return;
     }
 
+    if (ast_type == AST_ROLE_DECL) {
+        fputs("{\"kind\":\"role\",\"name\":", out);
+        mir_json_emit_str_or_null(out, mir_decl_header_name(header));
+        fputs(",\"for_type\":", out);
+        mir_json_emit_str_or_null(
+            out, mir_decl_header_role_subject_type_name(header));
+        mir_json_emit_role_includes(out, header);
+        mir_json_emit_role_impls(out, header);
+        mir_json_emit_decl_methods(out, header, true);
+        fputc('}', out);
+        return;
+    }
+
     fputs("{\"kind\":\"unsupported\",\"ast_type\":", out);
     mir_json_emit_str(out, mir_source_node_type_name(ast_type));
     if (ast_type == AST_CLASS_DECL) {
@@ -301,6 +360,7 @@ mir_json_emit_decls(FILE *out, const MIRProgram *mir)
         if (ast_type == AST_FUNC_DECL || ast_type == AST_TYPE_ALIAS)
             continue;
         if (ast_type != AST_ENUM_DECL && ast_type != AST_ABILITY_DECL
+            && ast_type != AST_ROLE_DECL
             && !mir_json_decl_is_supported_nominal(ast_type, nominal_kind)
             && !mir_json_decl_is_unsupported_fact(ast_type, nominal_kind))
             continue;

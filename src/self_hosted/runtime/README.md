@@ -1,7 +1,7 @@
 # Runtime Track
 
-This directory mirrors C-side `src/runtime/`, but runtime self-hosting is split
-into two different claims.
+This directory is the runtime self-host owner surface, not a copy of C-side
+`src/runtime/`. Runtime self-hosting is split into two different claims.
 
 ## Native Kernel Boundary
 

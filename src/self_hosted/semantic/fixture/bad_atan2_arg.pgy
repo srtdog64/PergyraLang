@@ -1,0 +1,4 @@
+func Main() -> Float {
+    let value: Float = Atan2(0.0, "1");
+    return value;
+}

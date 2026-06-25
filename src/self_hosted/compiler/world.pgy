@@ -1,0 +1,306 @@
+subject SourceUnit {
+    let path: String;
+
+    action Read(self) -> Bool {
+        return true;
+    }
+}
+
+subject StageOwner {
+    let name: String;
+
+    action Consume(self) -> Bool {
+        return true;
+    }
+}
+
+subject ProgramEmitter {
+    let name: String;
+
+    action Emit(self) -> Bool {
+        return true;
+    }
+}
+
+subject OraclePair {
+    let c_backend: String;
+    let llvm_backend: String;
+
+    action Compare(self) -> Bool {
+        return true;
+    }
+}
+
+object SourceBatch {
+    schema: String;
+}
+
+object StagePathManifest {
+    root: String;
+    source_dir: String;
+    test_dir: String;
+    parity_dir: String;
+    compiler_world: String;
+    lexer: String;
+    parser: String;
+    semantic: String;
+    mir_lower: String;
+    codegen: String;
+}
+
+object TokenStream {
+    schema: String;
+}
+
+object AstTree {
+    schema: String;
+}
+
+object SemanticVerdict {
+    schema: String;
+}
+
+object MirFactGraph {
+    schema: String;
+}
+
+object TypeEnvironment {
+    schema: String;
+}
+
+object EmittedC {
+    schema: String;
+}
+
+tobject ParityVerdict {
+    schema: String;
+}
+
+import "stage_intents.pgy";
+
+zone SourceIntakeZone {
+    subject slot source: SourceUnit
+    object slot paths: StagePathManifest
+    object slot imports: SourceBatch
+}
+
+zone TokenStreamZone {
+    subject slot owner: StageOwner
+    object slot tokens: TokenStream
+}
+
+zone AstTreeZone {
+    subject slot owner: StageOwner
+    object slot ast: AstTree
+}
+
+zone SemanticVerdictZone {
+    subject slot owner: StageOwner
+    object slot verdict: SemanticVerdict
+}
+
+zone MirFactGraphZone {
+    subject slot owner: StageOwner
+    object slot mir: MirFactGraph
+}
+
+zone TypeEnvZone {
+    object slot bindings: TypeEnvironment
+}
+
+zone EmissionZone {
+    subject slot emitter: ProgramEmitter
+    object slot c_output: EmittedC
+}
+
+zone ParityZone {
+    subject slot oracle: OraclePair
+    tobject slot verdict: ParityVerdict
+}
+
+zone SelfHostCompiler {
+    subject slot source: SourceUnit
+    subject slot owner: StageOwner
+    subject slot emitter: ProgramEmitter
+    subject slot oracle: OraclePair
+    object slot paths: StagePathManifest
+    object slot source_batch: SourceBatch
+    object slot tokens: TokenStream
+    object slot ast: AstTree
+    object slot semantic: SemanticVerdict
+    object slot mir: MirFactGraph
+    object slot type_env: TypeEnvironment
+    object slot c_output: EmittedC
+    tobject slot parity: ParityVerdict
+}
+
+world PgyCompilerWorld {
+    zone compiler: SelfHostCompiler
+    zone source_intake: SourceIntakeZone
+    zone tokens: TokenStreamZone
+    zone ast: AstTreeZone
+    zone semantic: SemanticVerdictZone
+    zone mir: MirFactGraphZone
+    zone type_env: TypeEnvZone
+    zone emission: EmissionZone
+    zone parity: ParityZone
+}
+
+intent IntakeSource(intake: SourceIntakeZone, source: SourceUnit) {
+    exclusive;
+
+    step ReadRoot {
+        where: SourceIntakeZone;
+        using: intake;
+        who: source;
+        on: source.Read();
+        expect: true;
+    }
+
+    success: true;
+    failure: false;
+}
+
+intent LexSource(tokens: TokenStreamZone, owner: StageOwner) {
+    exclusive;
+
+    step Scan {
+        where: TokenStreamZone;
+        using: tokens;
+        who: owner;
+        on: owner.Consume();
+        expect: true;
+    }
+
+    success: true;
+    failure: false;
+}
+
+intent ParseTokens(ast: AstTreeZone, owner: StageOwner) {
+    exclusive;
+
+    step BuildAst {
+        where: AstTreeZone;
+        using: ast;
+        who: owner;
+        on: owner.Consume();
+        expect: true;
+    }
+
+    success: true;
+    failure: false;
+}
+
+intent CheckProgramSemantics(semantic_zone: SemanticVerdictZone, owner: StageOwner) {
+    exclusive;
+
+    step ProveFacts {
+        where: SemanticVerdictZone;
+        using: semantic_zone;
+        who: owner;
+        on: owner.Consume();
+        expect: true;
+    }
+
+    success: true;
+    failure: false;
+}
+
+intent LowerProgramFacts(lower_zone: MirFactGraphZone, owner: StageOwner) {
+    exclusive;
+
+    step BuildMir {
+        where: MirFactGraphZone;
+        using: lower_zone;
+        who: owner;
+        on: owner.Consume();
+        expect: true;
+    }
+
+    success: true;
+    failure: false;
+}
+
+intent EmitProgramArtifact(emit_zone: EmissionZone, types: TypeEnvZone, emitter: ProgramEmitter) {
+    exclusive;
+
+    step EmitC {
+        where: EmissionZone;
+        using: emit_zone;
+        who: emitter;
+        on: emitter.Emit();
+        expect: true;
+    }
+
+    success: true;
+    failure: false;
+}
+
+intent ProveSelfHostedParity(parity_zone: ParityZone, oracle: OraclePair) {
+    exclusive;
+
+    step CompareArtifacts {
+        where: ParityZone;
+        using: parity_zone;
+        who: oracle;
+        on: oracle.Compare();
+        expect: true;
+    }
+
+    success: true;
+    failure: false;
+}
+
+intent CompilePergyraProgram(
+    compiler: SelfHostCompiler,
+    intake: SourceIntakeZone,
+    tokens: TokenStreamZone,
+    ast: AstTreeZone,
+    semantic_zone: SemanticVerdictZone,
+    lower_zone: MirFactGraphZone,
+    types: TypeEnvZone,
+    emit_zone: EmissionZone,
+    parity_zone: ParityZone,
+    source: SourceUnit,
+    paths: StagePathManifest,
+    owner: StageOwner,
+    emitter: ProgramEmitter,
+    oracle: OraclePair
+) {
+    exclusive;
+
+    step Frontend {
+        where: SourceIntakeZone;
+        using: intake;
+        who: source;
+        on: FrontendPipeline(intake, tokens, ast, source, owner);
+        expect: true;
+    }
+
+    step MiddleEnd {
+        where: SemanticVerdictZone;
+        using: semantic_zone;
+        who: owner;
+        on: MiddleEndPipeline(semantic_zone, lower_zone, owner);
+        expect: true;
+    }
+
+    step Backend {
+        where: EmissionZone;
+        using: emit_zone;
+        who: emitter;
+        on: BackendPipeline(types, emit_zone, emitter);
+        expect: true;
+    }
+
+    step SelfProof {
+        where: ParityZone;
+        using: parity_zone;
+        who: oracle;
+        on: SelfProofPipeline(parity_zone, oracle);
+        expect: true;
+    }
+
+    success: true;
+    failure: false;
+}

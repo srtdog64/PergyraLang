@@ -1,0 +1,4 @@
+func Main() -> Float {
+    let value: Float = Clamp(5.75, 1.0, 3.0);
+    return value;
+}

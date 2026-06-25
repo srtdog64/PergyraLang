@@ -11,16 +11,54 @@ matches the C/LLVM oracle.
 This is a hard self-host rung, not a full backend replacement. Unsupported input
 must fail visibly instead of falling through to an unverified translation.
 
+## Resource-Zone Shape
+
+Codegen should use zones only where there is distinct resource ownership.
+The one-line test is: does this boundary own a distinct resource that others
+must access through a view, fact, or intent boundary? If not, it is an action
+participant, not a zone.
+
+- `EmissionZone` owns the emitted C text buffer.
+- `TypeEnvZone` owns type binding facts consumed by emitters as read-mostly
+  evidence.
+- `ProgramEmitter` is the emission participant that drives writes into
+  `EmissionZone`; it is not a zone.
+- A future name-mangling/symbol table owner may become its own zone if it owns
+  mutable symbol state.
+
+`program_emit`, `function_emit`, `stmt_emit`, `expr_rewrite`, and
+`struct_value_emit` are participants in the emission action graph, not zones.
+They all cooperate over the same output resource or read the same type facts,
+so wrapping each file in a zone would be ceremony rather than isolation.
+
+Concrete split for the current codegen cluster:
+
+| Candidate | Zone? | Owner reason |
+|---|---:|---|
+| emitted C text buffer | yes | single mutable output resource |
+| type environment | yes | separate read-mostly type-fact resource |
+| symbol/name-mangling state | later | only if it owns mutable symbol facts |
+| program/function/stmt/expr emit files | no | recursive participants over the same output/type resources |
+
+The filesystem mirrors that owner shape without pretending that every action is
+a zone:
+
+- `input/` owns AST path/read boundaries.
+- `run/` owns the CLI orchestration boundary.
+- `text/` owns reusable text and expression scanning facts.
+- `type_facts/` owns read-mostly type evidence.
+- `emission/` contains the action participants that write or route emitted C.
+
 ## Input Contract
 
 The tool reads one AST text path from `Args()[0]`, with the no-argument
-`hello_ast.txt` fixture as the default probe. `ast_input_owner.pgy` owns path
-selection, the missing-file diagnostic, and the file-read boundary.
-`codegen_run_owner.pgy` owns the CLI-to-output orchestration that feeds the
+`hello_ast.txt` fixture as the default probe. `input/ast_input_owner.pgy` owns
+path selection, the missing-file diagnostic, and the file-read boundary.
+`run/codegen_run_owner.pgy` owns the CLI-to-output orchestration that feeds the
 owned input into `GenerateC`; `main.pgy` only calls that run owner.
-`struct_value_emit.pgy` owns struct-valued expression lowering for the statement
-paths that need it. That AST must come from the live compiler's `pgy --ast`
-output for committed codegen fixtures. The accepted subset is:
+`emission/struct_value_emit.pgy` owns struct-valued expression lowering for the
+statement paths that need it. That AST must come from the live compiler's
+`pgy --ast` output for committed codegen fixtures. The accepted subset is:
 
 - one or more `func` declarations with exactly one `Main`;
 - `Int`, `Bool`, `String`, `Void`, growable `Array<Int>` / `Array<String>`
@@ -46,7 +84,7 @@ or arbitrary nested/mixed struct layout.
 
 ## Oracle
 
-`src/self_hosted/parity/codegen_parity.sh` builds this tool through the C and
+`tests/self_hosted/parity/codegen_parity.sh` builds this tool through the C and
 LLVM backends, derives `pgy --ast` text from the live compiler, runs this tool to
 emit C, compiles the emitted C, and compares the resulting program stdout with
 the committed expected output. The expected output is guarded against drift by

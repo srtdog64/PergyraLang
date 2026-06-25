@@ -13,9 +13,10 @@ func ParseRootProgram(source_path: String) -> String {
     let i: Int = SkipWhitespaceAndComments(content, 0);
     ArraySet(cursor, 0, i);
 
-    let src_dir: String = ParserSourceDir(source_path);
+    let src_dir: String = SelfHostPath.Dirname(source_path);
     let involve_types: Array<String> = [];
-    let decls: String = ParseDecls(content, i, cursor, "", false, src_dir, false, "", involve_types);
+    let import_paths: Array<String> = [source_path];
+    let decls: String = ParseDecls(content, i, cursor, "", false, src_dir, false, "", involve_types, import_paths);
     if StringLength(decls) == 0 {
         return "Program:";
     }

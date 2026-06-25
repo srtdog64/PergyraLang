@@ -441,6 +441,10 @@ PGY_SEM_PIN_PARALLEL_CONFLICT
 PGY_SEM_PIN_AWAIT_BOUNDARY
 PGY_SEM_PIN_QUBIT_REJECT
 PGY_SEM_PIN_TOKEN_INVALID
+Evidence View Cache Policy
+evidence-amortization path
+cacheable only as an acceleration cache over MIR facts
+mir_block_has_pin_guard_amortization_region
 EOF
 
 pin_diag_terms=$(cat <<'EOF'
@@ -524,6 +528,7 @@ WINDOWS_LLVM_READY :=
 ci-macos:
 check-macos-toolchain:
 perf-contract-test-smoke:
+evidence-guard-amortization-test-smoke:
 tooling-conformance-test-smoke:
 package-module-resolver-test-smoke:
 unicode-policy-test-smoke:
@@ -537,6 +542,15 @@ EOF
 require_terms "scripts/ci_windows_steps.sh" <<'EOF'
 ci-windows: LLVM toolchain detected; running LLVM smoke and backend compare
 ci-windows: LLVM toolchain not detected; skipping Windows LLVM smoke/backend compare
+evidence-guard-amortization-test-smoke
+EOF
+
+require_terms "scripts/ci_linux_steps.sh" <<'EOF'
+evidence-guard-amortization-test-smoke
+EOF
+
+require_terms "scripts/ci_macos_steps.sh" <<'EOF'
+evidence-guard-amortization-test-smoke
 EOF
 
 forbid_text "Makefile" 'WINDOWS_LLVM_READY := $(shell if [ -n "$(LLVM_CONFIG)" ] ||'

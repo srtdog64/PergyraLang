@@ -1,0 +1,5 @@
+func Main() -> String {
+    Print("prefix:");
+    Print("body");
+    return "ok";
+}

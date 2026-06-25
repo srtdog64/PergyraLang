@@ -116,8 +116,11 @@ This distinction is deliberate:
 ## Quick Start
 
 ```bash
-# Build
+# Build compiler and LSP only; test binaries are not part of the default build.
 make all
+
+# Development build with frontend/runtime test binaries materialized.
+make all-with-tests
 
 # Run
 ./bin/pgy examples/hello.pgy --run -v
@@ -621,11 +624,12 @@ Design-sketch examples:
 ## Testing
 
 ```bash
-make test-all                  # All tests
+make all-with-tests            # Build compiler plus test binaries
+make test-all                  # Run the frontend/runtime regression bundle
 make test-semantic             # Semantic analysis
 make test-transpile            # C backend
 make llvm-test-backend-compare # C/LLVM parity
-make rebuild                   # Force clean + full rebuild (use when stale)
+make rebuild                   # Clean + rebuild the default compiler/LSP binaries
 ```
 
 If a build looks stale ("Nothing to be done" while sources changed), see

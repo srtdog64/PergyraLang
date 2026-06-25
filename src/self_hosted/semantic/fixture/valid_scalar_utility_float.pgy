@@ -1,0 +1,6 @@
+func Main() -> Float {
+    let a: Float = Abs(-3.75);
+    let b: Float = Min(a, 2.5);
+    let c: Float = Max(b, 1.5);
+    return c;
+}

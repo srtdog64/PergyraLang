@@ -224,6 +224,9 @@ require_term "tests/compare_backends.sh" "tests/cases/backend_compare/pin_break_
 require_term "tests/compare_backends.sh" "tests/cases/backend_compare/pin_secure_param_read_view_block"
 
 require_term "docs/74_slot_pinning_caching.md" "Pin/Lease is a typed lexical lease"
+require_term "docs/74_slot_pinning_caching.md" "Evidence View Cache Policy"
+require_term "docs/74_slot_pinning_caching.md" "The cache must be fail-closed."
+require_term "docs/74_slot_pinning_caching.md" "Generated code may cache a typed view only when MIR pin-region facts"
 require_term "docs/100_beta_readiness_checklist.md" "Slot/Pin/Zone-bound handle/runtime-none/raw escape"
 require_term "docs/107_beta_stable_subset.md" "Non-pin handle expiration is not claimed as a single-mechanism proof"
 require_term "docs/107_beta_stable_subset.md" "Rust-style niche optimization and user-directed explicit layout are not"

@@ -37,9 +37,10 @@ parity and the examples scale probe.
     `struct`, `object`, `tobject`, `type` aliases/record aliases, `enum`,
     `namespace`, `event`, `ability`, `role`/`impl`, `party`, `roster`, `world`,
     `zone`, and `intent ... with retry(n)` metadata.
-  - imports with source-relative recursive parse, plus common declaration
-    methods/actions and nested generic type names, including simple `impl T`,
-    `any T`, intersection, unit, and function type spelling.
+  - imports with source-relative recursive parse and import graph de-duplication
+    through `source_path_owner.pgy`, plus common declaration methods/actions and
+    nested generic type names, including simple `impl T`, `any T`,
+    intersection, unit, and function type spelling.
   - statements: typed/inferred `let`, destructure-like let shapes, assignment,
     `+=`, `-=`, `<-`, `return`, `if`/`else if`/`else`, `while`, `for`,
     `loop`, `break`, `continue`, `defer`, `match`, `if let Some(...)`,
@@ -67,8 +68,8 @@ cannot launch the pgy subprocess).
 
 Current measured coverage:
 
-- `parser_parity.sh`: 188 committed sources byte-equal on both generated C and
-  LLVM parser binaries.
+- `parser_parity.sh`: 189 committed sources byte-equal on both generated C and
+  LLVM parser binaries, including duplicate import graph materialization.
 - `parser_scale_probe.sh --failing`: 120 of 121 `examples/*.pgy` byte-equal
   against live `pgy --ast`; zero byte-drift, zero self-host parser exits, and 1
   C-oracle skip (`secure_slots`).

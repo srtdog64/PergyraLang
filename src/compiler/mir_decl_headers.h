@@ -21,6 +21,8 @@ NominalDeclKind mir_decl_header_nominal_kind_or(
     const MIRDeclHeader *header,
     NominalDeclKind fallback);
 bool mir_decl_header_uses_pointer_self(const MIRDeclHeader *header);
+const char *mir_decl_header_role_subject_type_name(
+    const MIRDeclHeader *header);
 size_t mir_decl_header_generic_param_count(const MIRDeclHeader *header);
 const MIRDeclGenericParam *mir_decl_header_generic_param(
     const MIRDeclHeader *header,

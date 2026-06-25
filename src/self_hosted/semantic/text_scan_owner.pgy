@@ -55,6 +55,33 @@ func SkipWhitespaceAndComments(content: String, start: Int) -> Int {
     }
     return i;
 }
+func SkipQuotedString(content: String, start: Int, limit: Int) -> Int {
+    let i: Int = start + 1;
+    while i < limit && CharAt(content, i) != "\"" {
+        if CharAt(content, i) == "\\" {
+            i = i + 1;
+        }
+        i = i + 1;
+    }
+    return i + 1;
+}
+func SkipLineComment(content: String, start: Int, limit: Int) -> Int {
+    let i: Int = start + 2;
+    while i < limit && CharAt(content, i) != "\n" {
+        i = i + 1;
+    }
+    return i;
+}
+func SkipBlockComment(content: String, start: Int, limit: Int) -> Int {
+    let i: Int = start + 2;
+    while i < limit {
+        if CharAt(content, i) == "*" && CharAt(content, i + 1) == "/" {
+            return i + 2;
+        }
+        i = i + 1;
+    }
+    return limit;
+}
 func MatchKeyword(content: String, start: Int, kw: String) -> Bool {
     let i: Int = SkipWhitespaceAndComments(content, start);
     let n: Int = StringLength(content);
@@ -138,13 +165,14 @@ func FindStatementEnd(content: String, start: Int, limit: Int) -> Int {
     while i < limit {
         let c: String = CharAt(content, i);
         if c == "\"" {
-            i = i + 1;
-            while i < limit && CharAt(content, i) != "\"" {
-                if CharAt(content, i) == "\\" {
-                    i = i + 1;
-                }
-                i = i + 1;
-            }
+            i = SkipQuotedString(content, i, limit);
+            continue;
+        } else if c == "/" && CharAt(content, i + 1) == "/" {
+            i = SkipLineComment(content, i, limit);
+            continue;
+        } else if c == "/" && CharAt(content, i + 1) == "*" {
+            i = SkipBlockComment(content, i, limit);
+            continue;
         } else if c == "(" || c == "[" {
             depth = depth + 1;
         } else if c == ")" || c == "]" {
@@ -158,20 +186,20 @@ func FindStatementEnd(content: String, start: Int, limit: Int) -> Int {
     }
     return limit;
 }
-func FindMatchingBrace(content: String, open_idx: Int) -> Int {
-    let n: Int = StringLength(content);
+func FindMatchingBraceWithin(content: String, open_idx: Int, limit: Int) -> Int {
     let i: Int = open_idx;
     let depth: Int = 0;
-    while i < n {
+    while i < limit {
         let c: String = CharAt(content, i);
         if c == "\"" {
-            i = i + 1;
-            while i < n && CharAt(content, i) != "\"" {
-                if CharAt(content, i) == "\\" {
-                    i = i + 1;
-                }
-                i = i + 1;
-            }
+            i = SkipQuotedString(content, i, limit);
+            continue;
+        } else if c == "/" && CharAt(content, i + 1) == "/" {
+            i = SkipLineComment(content, i, limit);
+            continue;
+        } else if c == "/" && CharAt(content, i + 1) == "*" {
+            i = SkipBlockComment(content, i, limit);
+            continue;
         } else if c == "{" {
             depth = depth + 1;
         } else if c == "}" {
@@ -182,7 +210,11 @@ func FindMatchingBrace(content: String, open_idx: Int) -> Int {
         }
         i = i + 1;
     }
-    return n;
+    return limit;
+}
+func FindMatchingBrace(content: String, open_idx: Int) -> Int {
+    let n: Int = StringLength(content);
+    return FindMatchingBraceWithin(content, open_idx, n);
 }
 func FindBlockOpen(content: String, start: Int, limit: Int) -> Int {
     let i: Int = start;
@@ -190,13 +222,14 @@ func FindBlockOpen(content: String, start: Int, limit: Int) -> Int {
     while i < limit {
         let c: String = CharAt(content, i);
         if c == "\"" {
-            i = i + 1;
-            while i < limit && CharAt(content, i) != "\"" {
-                if CharAt(content, i) == "\\" {
-                    i = i + 1;
-                }
-                i = i + 1;
-            }
+            i = SkipQuotedString(content, i, limit);
+            continue;
+        } else if c == "/" && CharAt(content, i + 1) == "/" {
+            i = SkipLineComment(content, i, limit);
+            continue;
+        } else if c == "/" && CharAt(content, i + 1) == "*" {
+            i = SkipBlockComment(content, i, limit);
+            continue;
         } else if c == "(" || c == "[" {
             depth = depth + 1;
         } else if c == ")" || c == "]" {

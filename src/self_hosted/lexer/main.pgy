@@ -13,8 +13,6 @@
 //
 // Contract: see intent.md in the same directory.
 
-import "char_owner.pgy";
-import "token_owner.pgy";
 import "scan_owner.pgy";
 import "source_input_owner.pgy";
 

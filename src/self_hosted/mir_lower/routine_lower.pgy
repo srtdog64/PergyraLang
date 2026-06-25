@@ -367,7 +367,7 @@ func EmitRegion(json: String, routine_start: Int, bp: Int, span_end: Int,
     return out;
 }
 
-func EmitRoutineTree(json: String, rpos: Int, routine_indent: String) -> String {
+func EmitRoutineTreeWithSelfType(json: String, rpos: Int, routine_indent: String, self_type: String) -> String {
     let nq: Int = FindFrom(json, "\"", rpos + 7);
     if nq < 0 {
         Die("malformed routine name");
@@ -401,6 +401,9 @@ func EmitRoutineTree(json: String, rpos: Int, routine_indent: String) -> String 
                     after_type = tv;
                 }
             }
+            if StringLength(ptype) == 0 && pname == "self" && StringLength(self_type) > 0 {
+                ptype = self_type;
+            }
             if StringLength(ptype) > 0 {
                 out = Concat(out, Concat(item_pad, Concat(pname, Concat(": ", Concat(ptype, "\n")))));
             } else {
@@ -428,4 +431,8 @@ func EmitRoutineTree(json: String, rpos: Int, routine_indent: String) -> String 
         Die(Concat("unsupported or empty MIR CFG shape in routine: ", routine));
     }
     return Concat(out, region);
+}
+
+func EmitRoutineTree(json: String, rpos: Int, routine_indent: String) -> String {
+    return EmitRoutineTreeWithSelfType(json, rpos, routine_indent, "");
 }

@@ -43,7 +43,7 @@ check_gates READY  "1 module/package resolver"    module_smoke.sh package_module
 check_gates READY  "2 collections + iteration"     stdlib_surface_smoke.sh stage4_determinism_smoke.sh
 check_gates READY  "3 string/path/unicode policy"  unicode_policy_smoke.sh source_utf8_smoke.sh memory_string_safety_smoke.sh filesystem_directory_walk_smoke.sh
 check_gates READY  "4 arena/ownership ergonomics"  verify_arena_closure.sh runtime_abi_lifetime_smoke.sh abi_ownership_shape_smoke.sh
-check_gates READY  "5 CFG/MIR body as SoT"         cfg_body_dataflow_smoke.sh ast_read_surface_smoke.sh mir_or_abort_invariant_smoke.sh src/self_hosted/parity/ast_read_surface_checker_parity.sh src/self_hosted/parity/mir_json_parity.sh
+check_gates READY  "5 CFG/MIR body as SoT"         cfg_body_dataflow_smoke.sh ast_read_surface_smoke.sh mir_or_abort_invariant_smoke.sh tests/self_hosted/parity/ast_read_surface_checker_parity.sh tests/self_hosted/parity/mir_json_parity.sh
 check_gates READY  "6 AIR as verifier"             air_json_schema_smoke.sh air_drift_smoke.sh air_backend_nonimpact_smoke.sh
 check_gates READY  "7 DAG type resolution SoT"     type_resolution_dag_smoke.sh type_resolution_resolver_inventory_smoke.sh
 check_gates READY  "8 scoped unsafe/raw escape"    raw_escape_contract_smoke.sh

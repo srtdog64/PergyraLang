@@ -1,0 +1,4 @@
+func Main() -> Int {
+    let high: Int = Max(1, 2.0);
+    return high;
+}

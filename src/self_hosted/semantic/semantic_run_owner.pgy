@@ -3,6 +3,10 @@
 // Owns CLI argument validation and deterministic diagnostic verdict emission.
 // Semantic facts stay in the source bundle and program checker owners.
 
+import "source_bundle_owner.pgy";
+import "diagnostic_owner.pgy";
+import "program_check_owner.pgy";
+
 func RunSemanticFromArgs(args: Array<String>) -> Void {
     if ArrayLength(args) < 1 {
         Log(SemanticError2("input_missing", "expected", "source", "actual", "none"));

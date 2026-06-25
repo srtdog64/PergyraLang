@@ -104,6 +104,7 @@ mir_destroy(MIRProgram *mir)
                 }
             }
             free(mir->decl_headers[i].type_alias_target_type_name);
+            free(mir->decl_headers[i].role_subject_type_name);
             if (mir->decl_headers[i].generic_metadata != NULL) {
                 for (size_t j = 0;
                      j < mir->decl_headers[i].generic_metadata_count;

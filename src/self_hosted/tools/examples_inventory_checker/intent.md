@@ -61,7 +61,7 @@ sorted file snapshot and `TextScan.CountLines` supplies line counts. The shell
 harness only builds the tool, checks byte-equal clean JSON, and constructs a
 negative fixture; it no longer owns the clean inventory list.
 
-The parity rung (`src/self_hosted/parity/`) asserts:
+The parity rung (`tests/self_hosted/parity/`) asserts:
 
 - The Pergyra origin exits `0` on the clean repo.
 - Emitted JSON byte-matches `expected/clean.json`.

@@ -1,15 +1,15 @@
 // Self-host codegen entrypoint.
 
-import "text_owner.pgy";
-import "type_env.pgy";
-import "expr_scan.pgy";
-import "expr_rewrite.pgy";
-import "struct_value_emit.pgy";
-import "stmt_emit.pgy";
-import "function_emit.pgy";
-import "program_emit.pgy";
-import "ast_input_owner.pgy";
-import "codegen_run_owner.pgy";
+import "text/text_owner.pgy";
+import "type_facts/type_env.pgy";
+import "text/expr_scan.pgy";
+import "emission/expr_rewrite.pgy";
+import "emission/struct_value_emit.pgy";
+import "emission/stmt_emit.pgy";
+import "emission/function_emit.pgy";
+import "emission/program_emit.pgy";
+import "input/ast_input_owner.pgy";
+import "run/codegen_run_owner.pgy";
 
 func Main() -> Void {
     let run_args: Array<String> = Args();

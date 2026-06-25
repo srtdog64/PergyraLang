@@ -1,0 +1,21 @@
+func Main() -> Float {
+    let zero: Float = 0.0;
+    let one: Float = 1.0;
+    let two: Float = 2.0;
+    let three: Float = 3.0;
+    let eight: Float = 8.0;
+    let hundred: Float = 100.0;
+    let s: Float = Sin(zero);
+    let c: Float = Cos(zero);
+    let t: Float = Tan(zero);
+    let asi: Float = Asin(zero);
+    let aco: Float = Acos(one);
+    let ata: Float = Atan(zero);
+    let at2: Float = Atan2(zero, one);
+    let rounded: Float = Round(ToFloat("2.6"));
+    let expd: Float = Exp(zero);
+    let logged: Float = MathLog(one);
+    let ten: Float = Log10(hundred);
+    let two_log: Float = Log2(eight);
+    return Pow(two, three) + s + c + t + asi + aco + ata + at2 + rounded + expd + logged + ten + two_log;
+}

@@ -27,7 +27,7 @@ self-hosted result cannot be trusted as the deciding value.
 **BDFL decision (2026-06-17): the hard compiler-core migration freeze is lifted.**
 The owner explicitly chose to open hard migration (codegen/runtime/compiler
 driver) after being shown the substitution numbers; the canonical tracker now
-records self-host compiler-internal substitution at ~3.88% direct owner-file LOC-scale, with
+records self-host compiler-internal substitution at ~3.96% direct owner-file LOC-scale, with
 runtime/compiler driver/LSP still at 0%. Hard migration now proceeds
 *incrementally and verified*: each compiler-core substitute lands as a rung with
 a parity gate against the C/LLVM oracle before the next rung opens. This is not a
@@ -45,10 +45,15 @@ compiler-adjacent tools, stable file/dump validators, lexer/parser parity
 expansion, and C/LLVM/Pergyra comparator evidence. Hard compiler-core migration
 is not open. *(Reversed 2026-06-17.)*
 
-The executable soft self-host scaffolds live in `src/self_hosted/`. This
-`docs/self_hosted/` folder is the contract and handoff documentation;
-`src/self_hosted/` is where Pergyra-language tool stubs, expected outputs, and
-parity harnesses live.
+The executable self-hosted Pergyra sources live in `src/self_hosted/`. This
+`docs/self_hosted/` folder is the contract and handoff documentation, and
+`tests/self_hosted/` owns oracle harnesses plus long-lived parity fixtures. The
+self-host source tree must not become a dumping ground for shell harnesses or
+golden-output payloads; those are test artifacts, not compiler source owners.
+It must also not become a Pergyra spelling of the C folder graph: the
+self-hosted compiler flow is owned by `PgyCompilerWorld` under
+`src/self_hosted/compiler/world.pgy`, while individual stage directories own the
+facts consumed by that flow.
 
 ## Architecture Migration Judgement
 
@@ -63,6 +68,10 @@ Self-host is the right point to recover the cleaner architecture:
   `world`, `relation`, `effect`, `projection`, `slot`, and `air`;
 - avoid generic `_helpers` modules by default;
 - split by responsibility and evidence owner, not by line count;
+- keep Pergyra source owners under `src/self_hosted/`, and keep oracle/parity
+  machinery under `tests/self_hosted/`;
+- make the hard compiler flow visible through `PgyCompilerWorld` in
+  `src/self_hosted/compiler/world.pgy` rather than a C-style driver mirror;
 - keep C as the oracle while each Pergyra-written tool or pass proves parity;
 - prefer small compiler-adjacent tools before moving frontend/backend core.
 
@@ -104,6 +113,22 @@ a self-hosted pass condition, the C compiler remains the primary oracle, LLVM is
 the second oracle when enabled, and bridge scripts are allowed while hidden
 fallbacks are not.
 
+The architecture shape is recorded in
+[`11_compiler_world_architecture.md`](11_compiler_world_architecture.md) and
+[`12_intent_zone_self_host_architecture.md`](12_intent_zone_self_host_architecture.md).
+The substrate contract is recorded in
+[`13_compiler_substrate_architecture.md`](13_compiler_substrate_architecture.md).
+The short version: `intent` owns compiler flow, `zone` owns distinct compiler
+resources, stage files remain fact owners rather than fake zones, and compiler
+substrates such as imports, deterministic collections, diagnostics, MIR facts,
+ABI facts, emission buffers, and parity evidence must have named owners.
+
+Fast and heavy self-host checks are split. Use
+`make self-host-preparation-contract-test-smoke` for quick structure/manifest
+work, and use `make self-host-preparation-test-smoke` when developing or
+validating a full rung because it also runs the heavy C/LLVM/Pergyra parity
+bundle. A normal compiler build must not imply the full self-host parity suite.
+
 ## First Self-Host Rule
 
 The first Pergyra-written programs must be tools around the compiler, not the
@@ -135,3 +160,11 @@ its own ecosystem.
   substitution.
 - `10_hard_self_host_contract.md` - active hard substitution contract, oracle
   rule, bridge/fallback split, and CI owner.
+- `11_compiler_world_architecture.md` - hard self-host source shape: the
+  compiler flow is owned by `PgyCompilerWorld`, while stage directories own
+  facts.
+- `12_intent_zone_self_host_architecture.md` - intent/zone architecture for
+  compiler flow, codegen resources, and path/source-intake facts.
+- `13_compiler_substrate_architecture.md` - self-hosted compiler substrate
+  contract for codegen, stage owners, imports, deterministic facts, runtime
+  materialization, caching, and parity promotion.

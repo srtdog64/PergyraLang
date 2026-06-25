@@ -20,13 +20,17 @@ compared, rollback to C trivial".
 ## Input Contract
 
 - **source_owner**: the committed `SOURCE_PAIRS` in
-  `src/self_hosted/parity/lexer_parity.sh`. The hard gate currently covers
+  `tests/self_hosted/parity/lexer_parity.sh`. The hard gate currently covers
   seven source fixtures, including an escaped-string backend-compare fixture.
   The broader scale probe covers `examples/*.pgy` and
   `tests/cases/backend_compare/**/main.pgy`.
 - **input_owner**: `src/self_hosted/lexer/source_input_owner.pgy` owns
   argv/default source path selection and the file-read failure boundary. The
   entrypoint only orchestrates that owner and the scanner.
+- **scan_owner**: `src/self_hosted/lexer/scan_owner.pgy` owns the scan loop and
+  explicitly imports `char_owner.pgy` and `token_owner.pgy`. `main.pgy` must not
+  import those internals directly; otherwise the import graph reopens the
+  sibling-bundle convention and duplicates MIR declaration headers.
 - The parity and selfcheck scripts pass the source path through `Args()[0]`.
   No side-channel source file is part of the input contract.
 - The lexer subset handles the token families exercised by the measured
@@ -61,7 +65,7 @@ The parity rung asserts the Pergyra lexer's token payload is byte-equal to the
 C lexer's token payload. The harness strips runner-level CRLF and
 `pgy: compiled ...` noise before comparison.
 
-The parity rung (`src/self_hosted/parity/`) asserts:
+The parity rung (`tests/self_hosted/parity/`) asserts:
 
 - The Pergyra origin exits `0` on the clean repo.
 - The Pergyra origin's stdout byte-equals the committed fixture for each source

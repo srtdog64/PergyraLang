@@ -1,0 +1,11 @@
+func Main() -> Int {
+    let x: Int = 0;
+    while x < 2 {
+        // generated C preview: while (...) {
+        let t: Int = x;
+        if t < 2 {
+            x = t + 1;
+        }
+    }
+    return x;
+}

@@ -1,6 +1,6 @@
 # Architecture Decision: Slot Pinning / Lease
 
-Last updated: 2026-04-27
+Last updated: 2026-06-24
 
 Related documents:
 
@@ -291,6 +291,57 @@ Runtime invariants:
   the legacy void destructor panics because losing the token would make the
   pinned secure slot unreleasable.
 
+## 7a. Evidence View Cache Policy
+
+Pin/Lease is the stable evidence-amortization path for repeated Slot access. It
+is not a promise that every Slot operation is zero cost. The intended shape is:
+
+1. validate the handle, generation, mode, authority, token, and layout once at
+   the lexical entry point;
+2. materialize a typed evidence view whose lifetime is bounded by MIR pin-region
+   and cleanup-edge facts;
+3. use that view on the hot path without repeating the full owner/generation/
+   capability/state guard on every indexed access;
+4. invalidate the view on every exit, mutation boundary, release/move, async or
+   parallel boundary, token revocation, generation change, or layout change.
+
+This path is cacheable only as an acceleration cache over MIR facts, never as a
+second source of truth. The cache key must include at least:
+
+- source Slot identity;
+- generation or equivalent freshness epoch;
+- access mode (`ReadView<T>` or `WriteView<T>`);
+- capability/token identity for secure slots;
+- canonical payload type/layout fact;
+- MIR pin-region id and cleanup-edge owner.
+
+There are three allowed cache scopes:
+
+| Scope | Allowed? | Rule |
+|---|---|---|
+| local SSA/view variable inside one pin block | yes | Preferred hot path. The view dies at the lexical cleanup edge. |
+| loop/region-local preflight reused across repeated reads or writes | yes | Requires `mir_block_has_pin_guard_amortization_region(...)` and no invalidating edge in the region. |
+| cross-call, cross-intent, async, parallel, or persistent runtime cache | no for beta | Requires a future retained materialization contract with explicit epochs, revocation, and task ownership. |
+
+The cache must be fail-closed. A missing fact, mismatched generation, unknown
+layout, or escaped view rejects or retains through the documented runtime path;
+it must not silently fall back to a stale cached pointer. Plain Slot MIR pin
+regions may inline the preflight view because the layout fact is static. Secure
+Slot pinning remains a policy retain point unless the token/capability evidence
+is also proven local and non-escaping.
+
+Current measurement:
+
+- `benchmarks/perf_guard_amortization.c` compares per-access guards with a
+  repeated-preflight no-cache path and a one-time cached preflight evidence
+  view. The fixture reports internal benchmark-process timings to avoid shell
+  launch and scheduler noise dominating the signal.
+- `make evidence-guard-amortization-test-smoke` gates the source shape and, on
+  supported shell/toolchain paths, the guard and cache-effect best paired
+  ratios.
+- The cache target is not "zero cost"; it is evidence cost paid once per
+  proven region and amortized across the hot loop.
+
 ## 8. CFG / AIR / Backend Interaction
 
 CFG requirements:
@@ -299,6 +350,8 @@ CFG requirements:
 - Insert cleanup on early return, loop exit, panic/unwind, and branch joins.
 - Track view escape as the same family as borrow/resource escape.
 - Track `WriteView<T>` as aliasing-XOR-mutability evidence.
+- Reject or retain any attempted evidence-view cache whose invalidation point is
+  not visible in CFG/MIR.
 
 AIR requirements:
 
@@ -306,6 +359,8 @@ AIR requirements:
 - AIR must not silently change codegen behavior.
 - Strict evidence mode must fail when authority evidence for a secure pin is
   missing or inconsistent.
+- AIR records why a retained/materialized view survives; it does not decide a
+  cache hit from backend-local runtime symbols.
 
 Backend requirements:
 
@@ -317,6 +372,8 @@ Backend requirements:
   runtime layers are intentionally separate.
 - Generated code may use raw pointers internally, but the source surface stays
   typed.
+- Generated code may cache a typed view only when MIR pin-region facts and
+  cleanup-edge facts prove the view lifetime and invalidation boundary.
 - Backend compare must cover read pin, write pin, early return cleanup, invalid
   token, qubit reject, and conflict cases before the syntax is stable.
 

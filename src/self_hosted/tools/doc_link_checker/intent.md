@@ -60,7 +60,7 @@ count and a per-target `[[ -f docs/$path ]]` for liveness. There is no
 existing C-side doc-link smoke today; the Pergyra origin is the primary
 implementation and the shell loop is the auxiliary parity backend.
 
-The parity rung (`src/self_hosted/parity/`) asserts:
+The parity rung (`tests/self_hosted/parity/`) asserts:
 
 - The Pergyra origin exits `0` on the clean repo (no dead links).
 - Emitted JSON byte-matches `expected/clean.json`.

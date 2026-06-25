@@ -1508,9 +1508,17 @@ ABI_PERF_LINKER_ENV =
 endif
 
 # -----------------------------------------------------------------
-# Default target - build the driver and all tests
+# Default target - build user-facing binaries only. Test binaries are explicit
+# through all-with-tests / test-* targets so normal builds stay cheap.
 # -----------------------------------------------------------------
-all: $(PGY) $(PGY_LSP) $(LEXER_TEST) $(PARSER_TEST) $(SEMANTIC_TEST) $(TRANSPILE_TEST) $(MEMORY_TEST) $(CONCURRENCY_TEST) $(HIR_TEST)
+all: $(PGY) $(PGY_LSP)
+
+FRONTEND_TEST_BINARIES = $(LEXER_TEST) $(PARSER_TEST) $(DATASTRUCTURES_TEST) \
+	$(SECURITY_TEST) $(SEMANTIC_TEST) $(TRANSPILE_TEST) $(MEMORY_TEST) \
+	$(ABI_TEST) $(ABI_PIPELINE_TEST) $(CONCURRENCY_TEST) $(DIR_TEST) \
+	$(AIR_TEST) $(RIR_TEST) $(MIR_TEST) $(HIR_TEST)
+
+all-with-tests: $(PGY) $(PGY_LSP) $(FRONTEND_TEST_BINARIES)
 
 ifeq ($(EXEEXT),.exe)
 pgy: $(PGY) $(REPO_BIN_DIR)/pgy$(EXEEXT)
@@ -1922,11 +1930,9 @@ test-hir: $(HIR_TEST)
 	@echo "=== HIR Test ==="
 	$(call pgy_run_native,$(HIR_TEST))
 
-windows-build-smoke: $(PGY) $(LEXER_TEST) $(PARSER_TEST) $(DATASTRUCTURES_TEST) $(SEMANTIC_TEST) $(TRANSPILE_TEST) \
-	$(MEMORY_TEST) $(ABI_TEST) $(ABI_PIPELINE_TEST) $(CONCURRENCY_TEST) $(DIR_TEST) \
-	$(AIR_TEST) $(RIR_TEST) $(MIR_TEST) $(HIR_TEST)
+windows-build-smoke: all-with-tests
 	@echo "=== Windows Build Smoke ==="
-	@echo "built compiler and frontend/runtime test binaries with CC=$(CC)"
+	@echo "built compiler/LSP and explicit frontend/runtime test binaries with CC=$(CC)"
 
 test-all:
 	$(MAKE) test
@@ -2084,101 +2090,113 @@ verification-methodology-test-smoke:
 proof-spine-test-smoke:
 	"$(BASH)" tests/proof_spine_smoke.sh
 
-self-host-preparation-test-smoke: $(PGY)
+self-host-preparation-test-smoke: self-host-preparation-contract-test-smoke self-host-preparation-parity-test-smoke
+
+self-host-preparation-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/self_host_preparation_smoke.sh
 	"$(BASH)" tests/self_hosted_scaffold_smoke.sh
 	"$(BASH)" tests/self_hosted_component_contract_smoke.sh
 	"$(BASH)" tests/self_host_substrate_contract_smoke.sh
 	"$(BASH)" tests/self_host_hard_contract_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_host_compiler_world_contract_smoke.sh
 	PGY_FILESYSTEM_WALK_BACKENDS="$${PGY_FILESYSTEM_WALK_BACKENDS:-$(FILESYSTEM_WALK_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/filesystem_directory_walk_smoke.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/air_graph_json_validator_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/air_graph_id_uniqueness_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/air_graph_node_count_integrity_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/air_graph_ref_live_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/air_graph_ref_integrity_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/air_graph_reachability_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/ast_read_surface_checker_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/backend_output_comparator_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/backend_output_tri_compare_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/diagnostic_catalog_checker_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/doc_link_checker_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/examples_inventory_checker_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/lexer_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/linter_parity.sh
+
+self-host-preparation-parity-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_json_validator_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_ref_live_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_ref_integrity_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_reachability_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ast_read_surface_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/backend_output_comparator_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/backend_output_tri_compare_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/doc_link_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/examples_inventory_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lexer_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/linter_parity.sh
 	PGY_SELFHOST_PARSER_BACKENDS="$${PGY_SELFHOST_PARSER_BACKENDS:-$(SELFHOST_PARSER_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/parser_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/parser_parity.sh
 	PGY_SELFHOST_SEMANTIC_BACKENDS="$${PGY_SELFHOST_SEMANTIC_BACKENDS:-$(SELFHOST_SEMANTIC_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/semantic_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/codegen_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/codegen_bootstrap.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/mir_json_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/module_manifest_resolver_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/production_c_size_checker_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/production_header_size_checker_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/runtime_boundary_checker_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/stable_subset_section_checker_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic_parity.sh
+	PGY_SELFHOST_SEMANTIC_BACKENDS="$${PGY_SELFHOST_SEMANTIC_BACKENDS:-$(SELFHOST_SEMANTIC_BACKENDS)}" \
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/selfcheck_sources.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_bootstrap.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_json_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/module_manifest_resolver_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/production_c_size_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/production_header_size_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/runtime_boundary_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/stable_subset_section_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh
 
 self-host-runtime-boundary-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/runtime_boundary_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/runtime_boundary_checker_parity.sh
 
 self-host-air-graph-consumer-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/air_graph_id_uniqueness_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/air_graph_node_count_integrity_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/air_graph_ref_live_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/air_graph_ref_integrity_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/air_graph_reachability_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_ref_live_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_ref_integrity_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_reachability_parity.sh
 
 self-host-diagnostic-catalog-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/diagnostic_catalog_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh
 
 self-host-ast-read-surface-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/ast_read_surface_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/ast_read_surface_checker_parity.sh
 
 self-host-semantic-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_SEMANTIC_BACKENDS="$${PGY_SELFHOST_SEMANTIC_BACKENDS:-$(SELFHOST_SEMANTIC_BACKENDS)}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/semantic_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic_parity.sh
+
+self-host-semantic-selfcheck-test-smoke: $(PGY)
+	PGY_SELFHOST_SEMANTIC_BACKENDS="$${PGY_SELFHOST_SEMANTIC_BACKENDS:-$(SELFHOST_SEMANTIC_BACKENDS)}" \
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/selfcheck_sources.sh
 
 self-host-linter-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/linter_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/linter_parity.sh
 
 self-host-backend-tri-compare-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/backend_output_tri_compare_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/backend_output_tri_compare_parity.sh
 
 self-host-backend-tri-compare-extended-test-smoke: $(PGY)
-	PGY_BACKEND_TRI_COMPARE_SUITE=extended PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/backend_output_tri_compare_parity.sh
+	PGY_BACKEND_TRI_COMPARE_SUITE=extended PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/backend_output_tri_compare_parity.sh
 
 self-host-lexer-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/lexer_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lexer_parity.sh
 
 self-host-lex-minimal-parity-test-smoke: self-host-lexer-parity-test-smoke
 
 self-host-parser-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_PARSER_BACKENDS="$${PGY_SELFHOST_PARSER_BACKENDS:-$(SELFHOST_PARSER_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" \
-	"$(BASH)" src/self_hosted/parity/parser_parity.sh
+	"$(BASH)" tests/self_hosted/parity/parser_parity.sh
 
 self-host-codegen-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_CODEGEN_BACKENDS="$${PGY_SELFHOST_CODEGEN_BACKENDS:-c llvm}" \
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/codegen_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_parity.sh
 
 self-host-codegen-bootstrap-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/codegen_bootstrap.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_bootstrap.sh
 
 self-host-mir-json-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/mir_json_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_json_parity.sh
 
 self-host-fuzz-backend-generator-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/fuzz_backend_parity_generator_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh
 
 fuzz-backend-parity-test-smoke: $(PGY)
-	PGY_FUZZ_BACKEND_RUN_ORACLE=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/fuzz_backend_parity_generator_parity.sh
+	PGY_FUZZ_BACKEND_RUN_ORACLE=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh
 
 fuzz-backend-parity-matrix-test-smoke: $(PGY)
-	PGY_FUZZ_BACKEND_RUN_ORACLE=1 PGY_FUZZ_COUNT=12 PGY_FUZZ_SEED=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/fuzz_backend_parity_generator_parity.sh
-	PGY_FUZZ_BACKEND_RUN_ORACLE=1 PGY_FUZZ_COUNT=12 PGY_FUZZ_SEED=42 PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/fuzz_backend_parity_generator_parity.sh
-	PGY_FUZZ_BACKEND_RUN_ORACLE=1 PGY_FUZZ_COUNT=12 PGY_FUZZ_SEED=1001 PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/fuzz_backend_parity_generator_parity.sh
+	PGY_FUZZ_BACKEND_RUN_ORACLE=1 PGY_FUZZ_COUNT=12 PGY_FUZZ_SEED=1 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh
+	PGY_FUZZ_BACKEND_RUN_ORACLE=1 PGY_FUZZ_COUNT=12 PGY_FUZZ_SEED=42 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh
+	PGY_FUZZ_BACKEND_RUN_ORACLE=1 PGY_FUZZ_COUNT=12 PGY_FUZZ_SEED=1001 PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh
 
 self-host-component-contract-test-smoke:
 	"$(BASH)" tests/self_hosted_component_contract_smoke.sh
@@ -2188,6 +2206,12 @@ self-host-substrate-contract-test-smoke:
 
 self-host-hard-contract-test-smoke:
 	"$(BASH)" tests/self_host_hard_contract_smoke.sh
+
+self-host-compiler-world-contract-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_host_compiler_world_contract_smoke.sh
+
+self-host-compiler-world-perf-probe:
+	"$(BASH)" tests/self_host_compiler_world_perf_probe.sh
 
 debug-hygiene-test-smoke:
 	"$(BASH)" tests/debug_hygiene_smoke.sh
@@ -2286,15 +2310,15 @@ semantic-tu-size-test-smoke:
 
 production-header-size-test-smoke: $(PGY)
 	"$(BASH)" tests/production_header_size_smoke.sh
-	"$(BASH)" src/self_hosted/parity/production_header_size_checker_parity.sh
+	"$(BASH)" tests/self_hosted/parity/production_header_size_checker_parity.sh
 
 # Pergyra-side primary gate: no C-side smoke owns the .c file cap today.
 production-c-size-test-smoke: $(PGY)
-	"$(BASH)" src/self_hosted/parity/production_c_size_checker_parity.sh
+	"$(BASH)" tests/self_hosted/parity/production_c_size_checker_parity.sh
 
 # Pergyra-side primary gate: examples/ inventory has no C-side smoke today.
 examples-inventory-test-smoke: $(PGY)
-	"$(BASH)" src/self_hosted/parity/examples_inventory_checker_parity.sh
+	"$(BASH)" tests/self_hosted/parity/examples_inventory_checker_parity.sh
 
 backend-inc-size-test-smoke:
 	"$(BASH)" tests/backend_inc_size_smoke.sh
@@ -2583,8 +2607,8 @@ clean:
 clean-objects:
 	"$(BASH)" -c "rm -f $(BUILD_ARTIFACT_GLOBS)"
 
-# Force a full rebuild from scratch.  Use when source edits aren't
-# reflected (stale .o, broken .d, CONFIG_STAMP mismatch, etc).
+# Force a default compiler/LSP rebuild from scratch. Use when source edits
+# aren't reflected (stale .o, broken .d, CONFIG_STAMP mismatch, etc).
 # See docs/91_build_troubleshooting.md.
 rebuild: clean
 	$(MAKE) all
@@ -2606,9 +2630,9 @@ memcheck: debug
 
 lsp: $(PGY_LSP)
 
-.PHONY: all clean clean-objects rebuild debug release analyze format memcheck \
+.PHONY: all all-with-tests clean clean-objects rebuild debug release analyze format memcheck \
         test test-parser test-datastructures test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-air test-rir test-mir test-hir test-all \
-llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir backend-compare-inventory-test-smoke backend-compare-llvm-coverage-test-smoke llvm-test-backend-compare llvm-test-all llvm-test-smoke llvm-runtime-aggregate-return-abi-test-smoke tooling-conformance-test-smoke stdlib-test-smoke stage4-determinism-test-smoke filesystem-directory-walk-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke build-source-inventory-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke documentation-quality-test-smoke backend-wasm-pointer-closure-test-smoke language-surface-hygiene-test-smoke grammar-cheatsheet-contract-test-smoke language-contract-golden-test-smoke verification-methodology-test-smoke proof-spine-test-smoke self-host-preparation-test-smoke self-host-runtime-boundary-parity-test-smoke self-host-air-graph-consumer-parity-test-smoke self-host-diagnostic-catalog-parity-test-smoke self-host-ast-read-surface-parity-test-smoke self-host-semantic-parity-test-smoke self-host-linter-parity-test-smoke self-host-backend-tri-compare-test-smoke self-host-backend-tri-compare-extended-test-smoke self-host-lexer-parity-test-smoke self-host-parser-parity-test-smoke self-host-codegen-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-mir-json-parity-test-smoke self-host-fuzz-backend-generator-parity-test-smoke fuzz-backend-parity-test-smoke fuzz-backend-parity-matrix-test-smoke self-host-component-contract-test-smoke self-host-substrate-contract-test-smoke self-host-hard-contract-test-smoke self-host-lex-minimal-parity-test-smoke debug-hygiene-test-smoke memory-string-safety-test-smoke security-portability-contract-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke dogfood-webgl-test-smoke wasm-backend-parity-test-smoke formal-semantics-test-smoke proof-carrying-pipeline-test-smoke proof-carrying-adequacy-test-smoke abstraction-loss-contract-test-smoke ast-to-mir-loss-contract-test-smoke air-drift-test-smoke air-json-schema-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke production-c-size-test-smoke examples-inventory-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke transpile-strict-source-test-smoke source-test-harness-compile-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke layered-diagnostics-contract-test-smoke intent-compression-contract-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke slot-contract-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke abi-ownership-shape-test-smoke runtime-frontier-contract-test-smoke runtime-frontier-policy-test-smoke runtime-intent-observability-contract-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke backend-fail-closed-test-smoke worker-boundary-ub-test-smoke perf-c-baseline-test-smoke evidence-guard-amortization-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-build-tools check-security-toolchain check-linux-toolchain check-macos-toolchain check-windows-toolchain \
+llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir backend-compare-inventory-test-smoke backend-compare-llvm-coverage-test-smoke llvm-test-backend-compare llvm-test-all llvm-test-smoke llvm-runtime-aggregate-return-abi-test-smoke tooling-conformance-test-smoke stdlib-test-smoke stage4-determinism-test-smoke filesystem-directory-walk-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke build-source-inventory-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke documentation-quality-test-smoke backend-wasm-pointer-closure-test-smoke language-surface-hygiene-test-smoke grammar-cheatsheet-contract-test-smoke language-contract-golden-test-smoke verification-methodology-test-smoke proof-spine-test-smoke self-host-preparation-test-smoke self-host-preparation-contract-test-smoke self-host-preparation-parity-test-smoke self-host-runtime-boundary-parity-test-smoke self-host-air-graph-consumer-parity-test-smoke self-host-diagnostic-catalog-parity-test-smoke self-host-ast-read-surface-parity-test-smoke self-host-semantic-parity-test-smoke self-host-semantic-selfcheck-test-smoke self-host-linter-parity-test-smoke self-host-backend-tri-compare-test-smoke self-host-backend-tri-compare-extended-test-smoke self-host-lexer-parity-test-smoke self-host-parser-parity-test-smoke self-host-codegen-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-mir-json-parity-test-smoke self-host-fuzz-backend-generator-parity-test-smoke fuzz-backend-parity-test-smoke fuzz-backend-parity-matrix-test-smoke self-host-component-contract-test-smoke self-host-substrate-contract-test-smoke self-host-hard-contract-test-smoke self-host-compiler-world-contract-test-smoke self-host-lex-minimal-parity-test-smoke debug-hygiene-test-smoke memory-string-safety-test-smoke security-portability-contract-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke dogfood-webgl-test-smoke wasm-backend-parity-test-smoke formal-semantics-test-smoke proof-carrying-pipeline-test-smoke proof-carrying-adequacy-test-smoke abstraction-loss-contract-test-smoke ast-to-mir-loss-contract-test-smoke air-drift-test-smoke air-json-schema-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke production-c-size-test-smoke examples-inventory-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke transpile-strict-source-test-smoke source-test-harness-compile-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke layered-diagnostics-contract-test-smoke intent-compression-contract-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke slot-contract-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke abi-ownership-shape-test-smoke runtime-frontier-contract-test-smoke runtime-frontier-policy-test-smoke runtime-intent-observability-contract-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke backend-fail-closed-test-smoke worker-boundary-ub-test-smoke perf-c-baseline-test-smoke evidence-guard-amortization-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-build-tools check-security-toolchain check-linux-toolchain check-macos-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)

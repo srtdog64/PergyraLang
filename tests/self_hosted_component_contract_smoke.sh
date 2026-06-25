@@ -10,7 +10,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SELF_HOST_DIR="$ROOT_DIR/src/self_hosted"
-PARITY_DIR="$SELF_HOST_DIR/parity"
+PARITY_DIR="$ROOT_DIR/tests/self_hosted/parity"
 
 fail() {
     echo "[self-host-component-contract] $*" >&2
@@ -48,6 +48,15 @@ contains_line() {
     printf '%s\n' "$haystack" | grep -Fxq -- "$needle"
 }
 
+find_stage_owner_sources() {
+    local stage="$1"
+    local stage_dir="$SELF_HOST_DIR/$stage"
+    find "$stage_dir" -type f -name '*.pgy' \
+        ! -path "$stage_dir/fixture/*" \
+        ! -path "$stage_dir/expected/*" \
+        | sort
+}
+
 extract_shell_array_items() {
     local file="$1"
     local array_name="$2"
@@ -71,7 +80,7 @@ require_owner_surface() {
     shift
     local stage_dir="$SELF_HOST_DIR/$stage"
     local count
-    count="$(find "$stage_dir" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
+    count="$(find_stage_owner_sources "$stage" | wc -l | tr -d ' ')"
     [[ "$count" -gt 1 ]] ||
         fail "$stage must not be a monolithic main.pgy-only compiler stage"
 
@@ -139,7 +148,7 @@ require_stage_owner_line_cap() {
         rel="${file#"$ROOT_DIR/"}"
         require_max_lines "$rel" 600
         require_text "src/self_hosted/OWNERS.md" "$rel"
-    done < <(find "$SELF_HOST_DIR/$stage" -maxdepth 1 -type f -name '*.pgy' | sort)
+    done < <(find_stage_owner_sources "$stage")
 }
 
 require_file "src/self_hosted/OWNERS.md"
@@ -152,15 +161,15 @@ for stage in lexer parser semantic codegen; do
     require_file "src/self_hosted/$stage/intent.md"
     require_dir "src/self_hosted/$stage/fixture"
     require_dir "src/self_hosted/$stage/expected"
-    require_file "src/self_hosted/parity/${stage}_parity.sh"
+    require_file "tests/self_hosted/parity/${stage}_parity.sh"
 
     for anchor in '## Intent' '## Input Contract' '## Output Contract' '## Oracle'; do
         require_text "src/self_hosted/$stage/intent.md" "$anchor"
     done
 
-    require_text "src/self_hosted/parity/${stage}_parity.sh" "set -euo pipefail"
+    require_text "tests/self_hosted/parity/${stage}_parity.sh" "set -euo pipefail"
     require_text "Makefile" "self-host-${stage}-parity-test-smoke"
-    require_text "Makefile" "src/self_hosted/parity/${stage}_parity.sh"
+    require_text "Makefile" "tests/self_hosted/parity/${stage}_parity.sh"
     require_entrypoint_only_main "$stage"
     require_stage_owner_line_cap "$stage"
 done
@@ -170,13 +179,13 @@ require_file "src/self_hosted/mir_lower/main.pgy"
 require_file "src/self_hosted/mir_lower/README.md"
 require_file "src/self_hosted/mir_lower/intent.md"
 require_dir "src/self_hosted/mir_lower/fixture"
-require_file "src/self_hosted/parity/mir_json_parity.sh"
+require_file "tests/self_hosted/parity/mir_json_parity.sh"
 for anchor in '## Intent' '## Input Contract' '## Output Contract' '## Oracle'; do
     require_text "src/self_hosted/mir_lower/intent.md" "$anchor"
 done
-require_text "src/self_hosted/parity/mir_json_parity.sh" "set -euo pipefail"
+require_text "tests/self_hosted/parity/mir_json_parity.sh" "set -euo pipefail"
 require_text "Makefile" "self-host-mir-json-parity-test-smoke"
-require_text "Makefile" "src/self_hosted/parity/mir_json_parity.sh"
+require_text "Makefile" "tests/self_hosted/parity/mir_json_parity.sh"
 require_entrypoint_only_main "mir_lower"
 require_stage_owner_line_cap "mir_lower"
 
@@ -187,23 +196,31 @@ mir_positive_count="$(
         extract_shell_array_items "$PARITY_DIR/mir_json_parity.sh" EXAMPLE_FIXTURES
     } | wc -l | tr -d ' '
 )"
-[[ "$mir_positive_count" -eq 82 ]] ||
-    fail "mir_json_parity positive fixture count drifted: $mir_positive_count != 82"
+[[ "$mir_positive_count" -eq 85 ]] ||
+    fail "mir_json_parity positive fixture count drifted: $mir_positive_count != 85"
 mir_clean_reject_count="$(grep -Ec '^base="unsupported_' "$PARITY_DIR/mir_json_parity.sh" || true)"
-[[ "$mir_clean_reject_count" -eq 1 ]] ||
-    fail "mir_json_parity clean reject count drifted: $mir_clean_reject_count != 1"
-require_text "src/self_hosted/PROGRESS.md" "82 PASS / 0 gap plus 1 clean"
-require_text "docs/self_hosted/07_hard_self_host_scorecard.md" "82 PASS / 0 gap plus 1 clean reject"
+[[ "$mir_clean_reject_count" -eq 0 ]] ||
+    fail "mir_json_parity clean reject count drifted: $mir_clean_reject_count != 0"
+require_text "src/self_hosted/PROGRESS.md" "85 PASS / 0 gap plus 0 clean"
+require_text "docs/self_hosted/07_hard_self_host_scorecard.md" "85 PASS / 0 gap plus 0 clean rejects"
+require_text "tests/self_hosted/parity/mir_json_parity.sh" '"kind":"role","name":"IntMath","for_type":"Int"'
+require_text "tests/self_hosted/parity/mir_json_parity.sh" "Role: IntMath for Int"
+reject_text "tests/self_hosted/parity/mir_json_parity.sh" "unsupported MIR role declaration in self-host subset"
+reject_text "tests/self_hosted/parity/mir_json_parity.sh" '"kind":"unsupported","ast_type":"AST_ROLE_DECL"'
 reject_text "src/self_hosted/PROGRESS.md" "77 PASS / 0 gap plus 2 clean rejects"
 reject_text "docs/self_hosted/07_hard_self_host_scorecard.md" "77 PASS / 0 gap plus 2 clean rejects"
 reject_text "docs/self_hosted/07_hard_self_host_scorecard.md" "61-fixture"
 reject_text "src/self_hosted/codegen/README.md" "round-trip self-compilation (the codegen tool compiling a Pergyra tool)"
 
 require_owner_surface lexer \
-    "char_owner.pgy" \
-    "token_owner.pgy" \
     "scan_owner.pgy" \
     "source_input_owner.pgy"
+require_file "src/self_hosted/lexer/char_owner.pgy"
+require_file "src/self_hosted/lexer/token_owner.pgy"
+require_text "src/self_hosted/lexer/scan_owner.pgy" 'import "char_owner.pgy";'
+require_text "src/self_hosted/lexer/scan_owner.pgy" 'import "token_owner.pgy";'
+reject_text "src/self_hosted/lexer/main.pgy" 'import "char_owner.pgy";'
+reject_text "src/self_hosted/lexer/main.pgy" 'import "token_owner.pgy";'
 require_owner_surface parser \
     "error_owner.pgy" \
     "cursor_owner.pgy" \
@@ -217,29 +234,70 @@ require_text "src/self_hosted/parser/expr_postfix_owner.pgy" "func ApplyPostfixE
 reject_text "src/self_hosted/parser/expr_primary_owner.pgy" "Postfix loop:"
 require_text "src/self_hosted/parser/stmt_loop_owner.pgy" "func ParseForStmt"
 reject_text "src/self_hosted/parser/stmt_owner.pgy" "func ParseForStmt"
+require_text "src/self_hosted/parser/source_path_owner.pgy" "func ParserImportGraphSeen"
+require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" "ParserImportGraphSeen(import_paths, imp_path)"
+require_text "tests/self_hosted/parity/parser_parity.sh" "import_dedup_graph"
 require_owner_surface semantic \
-    "text_scan_owner.pgy" \
-    "source_bundle_owner.pgy" \
-    "diagnostic_owner.pgy" \
-    "env_owner.pgy" \
-    "expr_type_owner.pgy" \
-    "expr_validation_owner.pgy" \
-    "call_check_owner.pgy" \
-    "body_check_owner.pgy" \
-    "program_check_owner.pgy" \
     "semantic_run_owner.pgy"
+require_file "src/self_hosted/semantic/text_scan_owner.pgy"
+require_file "src/self_hosted/semantic/diagnostic_code_owner.pgy"
+require_file "src/self_hosted/semantic/source_bundle_owner.pgy"
+require_file "src/self_hosted/semantic/diagnostic_owner.pgy"
+require_file "src/self_hosted/semantic/env_owner.pgy"
+require_file "src/self_hosted/semantic/expr_type_owner.pgy"
+require_file "src/self_hosted/semantic/expr_validation_owner.pgy"
+require_file "src/self_hosted/semantic/call_check_owner.pgy"
+require_file "src/self_hosted/semantic/body_check_owner.pgy"
+require_file "src/self_hosted/semantic/program_check_owner.pgy"
+reject_text "src/self_hosted/semantic/main.pgy" 'import "source_bundle_owner.pgy";'
+reject_text "src/self_hosted/semantic/main.pgy" 'import "diagnostic_owner.pgy";'
+reject_text "src/self_hosted/semantic/main.pgy" 'import "env_owner.pgy";'
+reject_text "src/self_hosted/semantic/main.pgy" 'import "expr_type_owner.pgy";'
+reject_text "src/self_hosted/semantic/main.pgy" 'import "expr_validation_owner.pgy";'
+reject_text "src/self_hosted/semantic/main.pgy" 'import "call_check_owner.pgy";'
+reject_text "src/self_hosted/semantic/main.pgy" 'import "body_check_owner.pgy";'
+reject_text "src/self_hosted/semantic/main.pgy" 'import "program_check_owner.pgy";'
+require_text "src/self_hosted/semantic/semantic_run_owner.pgy" 'import "source_bundle_owner.pgy";'
+require_text "src/self_hosted/semantic/semantic_run_owner.pgy" 'import "diagnostic_owner.pgy";'
+require_text "src/self_hosted/semantic/semantic_run_owner.pgy" 'import "program_check_owner.pgy";'
+require_text "src/self_hosted/semantic/source_bundle_owner.pgy" 'import "../lib/path.pgy";'
+require_text "src/self_hosted/semantic/source_bundle_owner.pgy" 'import "text_scan_owner.pgy";'
+reject_text "src/self_hosted/semantic/main.pgy" 'import "../lib/path.pgy";'
+reject_text "src/self_hosted/semantic/main.pgy" 'import "text_scan_owner.pgy";'
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" 'import "../lib/diagnostic.pgy";'
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" 'import "diagnostic_code_owner.pgy";'
+reject_text "src/self_hosted/semantic/main.pgy" 'import "../lib/diagnostic.pgy";'
+reject_text "src/self_hosted/semantic/main.pgy" 'import "diagnostic_code_owner.pgy";'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" 'import "text_scan_owner.pgy";'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" 'import "expr_type_owner.pgy";'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" 'import "body_check_owner.pgy";'
+require_text "src/self_hosted/semantic/body_check_owner.pgy" 'import "call_check_owner.pgy";'
+require_text "src/self_hosted/semantic/body_check_owner.pgy" 'import "expr_validation_owner.pgy";'
+require_text "src/self_hosted/semantic/body_check_owner.pgy" 'import "expr_type_owner.pgy";'
+require_text "src/self_hosted/semantic/call_check_owner.pgy" 'import "expr_validation_owner.pgy";'
+require_text "src/self_hosted/semantic/call_check_owner.pgy" 'import "expr_type_owner.pgy";'
+require_text "src/self_hosted/semantic/expr_validation_owner.pgy" 'import "expr_type_owner.pgy";'
+require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'import "env_owner.pgy";'
 require_text "src/self_hosted/semantic/expr_validation_owner.pgy" "func CheckUndefinedIdentifiers"
 reject_text "src/self_hosted/semantic/expr_type_owner.pgy" "func CheckUndefinedIdentifiers"
+require_text "src/self_hosted/semantic/diagnostic_code_owner.pgy" "func SemanticDiagnosticCodeKnown"
+require_text "src/self_hosted/semantic/diagnostic_code_owner.pgy" "func SemanticDiagnosticCodeCount"
+require_text "src/self_hosted/semantic/diagnostic_code_owner.pgy" "func SemanticDiagnosticOracleCode"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticDiagnosticCodeKnown(code)"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "check_semantic_diagnostic_code_surface"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "semantic_oracle_code_for"
 require_owner_surface codegen \
-    "ast_input_owner.pgy" \
-    "codegen_run_owner.pgy" \
-    "text_owner.pgy" \
-    "type_env.pgy" \
-    "struct_value_emit.pgy" \
-    "stmt_emit.pgy" \
-    "program_emit.pgy"
-require_text "src/self_hosted/codegen/struct_value_emit.pgy" "func EmitStructValue"
-reject_text "src/self_hosted/codegen/stmt_emit.pgy" "func EmitStructValue"
+    "input/ast_input_owner.pgy" \
+    "run/codegen_run_owner.pgy" \
+    "text/text_owner.pgy" \
+    "type_facts/type_env.pgy" \
+    "text/expr_scan.pgy" \
+    "emission/struct_value_emit.pgy" \
+    "emission/stmt_emit.pgy" \
+    "emission/function_emit.pgy" \
+    "emission/program_emit.pgy"
+require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "func EmitStructValue"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitStructValue"
 require_owner_surface mir_lower \
     "error_owner.pgy" \
     "mir_json_input_owner.pgy" \
@@ -252,18 +310,60 @@ require_owner_surface mir_lower \
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func FindRoutine"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "func FindRoutine"
 
-require_text "src/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/main.pgy"'
-require_text "src/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lexer/main.pgy"'
-reject_text "src/self_hosted/parity/selfcheck_sources.sh" "lexer_selfcheck_unit"
-reject_text "src/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import '"
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/main.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lexer/main.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lexer/scan_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/stage_intents.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/world.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/main.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/text/text_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/path.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/source_bundle_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/main.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/tree_text_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/main.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/fuzz/backend_parity_generator/main.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy"'
+require_text "Makefile" "self-host-semantic-selfcheck-test-smoke"
+require_text "Makefile" "tests/self_hosted/parity/selfcheck_sources.sh"
+reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "lexer_selfcheck_unit"
+reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import '"
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
+selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
+selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
+[[ "$selfcheck_count" -eq 49 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 49"
 
 semantic_items="$(extract_shell_array_items "$PARITY_DIR/semantic_parity.sh" SOURCE_PAIRS | sed 's/:.*//')"
 [[ -n "$semantic_items" ]] || fail "semantic parity SOURCE_PAIRS is empty"
 semantic_count="$(printf '%s\n' "$semantic_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$semantic_count" -eq 68 ]] ||
-    fail "semantic parity fixture count drifted: $semantic_count != 68"
-require_text "src/self_hosted/PROGRESS.md" "across 68 fixtures"
+[[ "$semantic_count" -eq 93 ]] ||
+    fail "semantic parity fixture count drifted: $semantic_count != 93"
+require_text "src/self_hosted/PROGRESS.md" "across 93 fixtures"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_scalar_math_builtins"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_seedrandom_builtin"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_writefile_builtin"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_let_mut_reassign"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_generated_source_string_literal"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_scalar_utility_int"
+require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "Sqrt")'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "Random")'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "SeedRandom")'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "WriteFile")'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "Abs")'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "Min")'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "Max")'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "Clamp")'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "Sin")'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "Atan2")'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "Log2")'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "Join")'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "StringSplit")'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "Print")'
+require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func SkipLineComment"
+require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func SkipBlockComment"
+require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func FindMatchingBraceWithin"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_comment_brace_scope"
 
 while IFS= read -r fixture; do
     base="$(basename "$fixture" .pgy)"
@@ -287,12 +387,18 @@ codegen_items="$(extract_shell_array_items "$PARITY_DIR/codegen_parity.sh" FIXTU
 [[ -n "$codegen_items" ]] || fail "codegen parity FIXTURES is empty"
 contains_line "$codegen_items" "hello" ||
     fail "codegen no-argument golden fixture must stay listed: hello"
+contains_line "$codegen_items" "seed_random" ||
+    fail "codegen SeedRandom replay fixture must stay listed: seed_random"
+contains_line "$codegen_items" "array_index_assign" ||
+    fail "codegen indexed array assignment fixture must stay listed: array_index_assign"
+contains_line "$codegen_items" "string_array_index_return" ||
+    fail "codegen Array<String> index return fixture must stay listed: string_array_index_return"
 require_text "src/self_hosted/codegen/README.md" "Golden/platform contract"
 require_text "src/self_hosted/codegen/README.md" "PGY_SELFHOST_CODEGEN_BACKENDS=c"
-require_text "src/self_hosted/parity/codegen_parity.sh" 'run_native_capture()'
-require_text "src/self_hosted/parity/codegen_parity.sh" 'pgy_binary_is_runnable_here "$bin"'
-require_text "src/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$oracle_raw" "$oracle_err" "$oracle_exe" "${run_args[@]}"'
-require_text "src/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$run_raw" "$run_err" "$self_exe" "${run_args[@]}"'
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture()'
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'pgy_binary_is_runnable_here "$bin"'
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$oracle_raw" "$oracle_err" "$oracle_exe" "${run_args[@]}"'
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$run_raw" "$run_err" "$self_exe" "${run_args[@]}"'
 
 while IFS= read -r fixture; do
     base="$(basename "$fixture" .pgy)"

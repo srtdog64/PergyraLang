@@ -9,6 +9,12 @@ orchestration, and no semantic decisions.
 `tests/self_hosted_component_contract_smoke.sh` requires every active
 compiler-stage `.pgy` source to be listed here.
 
+## Shared Lib
+
+- `src/self_hosted/lib/diagnostic.pgy` -- stable diagnostic-block rendering.
+- `src/self_hosted/lib/path.pgy` -- self-hosted source/import path string facts.
+- `src/self_hosted/lib/text_scan.pgy` -- shared text-scan helpers.
+
 ## Lexer
 
 - `src/self_hosted/lexer/main.pgy` -- entrypoint only.
@@ -38,7 +44,7 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/parser/expr_string_owner.pgy` -- string literal expression parsing.
 - `src/self_hosted/parser/function_decl_owner.pgy` -- function signatures and bodies.
 - `src/self_hosted/parser/program_parse_owner.pgy` -- program-root assembly.
-- `src/self_hosted/parser/source_path_owner.pgy` -- source path and import input.
+- `src/self_hosted/parser/source_path_owner.pgy` -- source path/default and import read input.
 - `src/self_hosted/parser/stmt_if_owner.pgy` -- if/if-let statements.
 - `src/self_hosted/parser/stmt_loop_owner.pgy` -- loop statements.
 - `src/self_hosted/parser/stmt_match_owner.pgy` -- match statements.
@@ -52,6 +58,7 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/semantic/main.pgy` -- entrypoint only.
 - `src/self_hosted/semantic/body_check_owner.pgy` -- statement/body checks.
 - `src/self_hosted/semantic/call_check_owner.pgy` -- call arity and argument checks.
+- `src/self_hosted/semantic/diagnostic_code_owner.pgy` -- stable semantic diagnostic code vocabulary.
 - `src/self_hosted/semantic/diagnostic_owner.pgy` -- semantic diagnostic blocks.
 - `src/self_hosted/semantic/env_owner.pgy` -- scoped local environment.
 - `src/self_hosted/semantic/expr_type_owner.pgy` -- expression type facts.
@@ -76,13 +83,19 @@ compiler-stage `.pgy` source to be listed here.
 ## Codegen
 
 - `src/self_hosted/codegen/main.pgy` -- entrypoint only.
-- `src/self_hosted/codegen/ast_input_owner.pgy` -- AST input boundary.
-- `src/self_hosted/codegen/codegen_run_owner.pgy` -- codegen CLI run boundary.
-- `src/self_hosted/codegen/expr_rewrite.pgy` -- expression rewrite/lowering.
-- `src/self_hosted/codegen/expr_scan.pgy` -- expression scanning.
-- `src/self_hosted/codegen/function_emit.pgy` -- function emission.
-- `src/self_hosted/codegen/program_emit.pgy` -- program emission and prepasses.
-- `src/self_hosted/codegen/stmt_emit.pgy` -- statement emission.
-- `src/self_hosted/codegen/struct_value_emit.pgy` -- struct value emission.
-- `src/self_hosted/codegen/text_owner.pgy` -- text helpers and token scanning.
-- `src/self_hosted/codegen/type_env.pgy` -- type environment facts.
+- `src/self_hosted/codegen/input/ast_input_owner.pgy` -- AST path and read boundary.
+- `src/self_hosted/codegen/run/codegen_run_owner.pgy` -- codegen CLI run boundary.
+- `src/self_hosted/codegen/text/text_owner.pgy` -- text/token scanning primitives.
+- `src/self_hosted/codegen/text/expr_scan.pgy` -- expression text scanning.
+- `src/self_hosted/codegen/type_facts/type_env.pgy` -- type environment facts.
+- `src/self_hosted/codegen/emission/expr_rewrite.pgy` -- expression rewrite/lowering.
+- `src/self_hosted/codegen/emission/function_emit.pgy` -- function emission.
+- `src/self_hosted/codegen/emission/program_emit.pgy` -- program emission and prepasses.
+- `src/self_hosted/codegen/emission/stmt_emit.pgy` -- statement emission.
+- `src/self_hosted/codegen/emission/struct_value_emit.pgy` -- struct value emission.
+
+## Compiler World
+
+- `src/self_hosted/compiler/world.pgy` -- `PgyCompilerWorld`, stage path
+  manifest, and root compiler intent flow.
+- `src/self_hosted/compiler/stage_intents.pgy` -- derived compiler intent clusters.

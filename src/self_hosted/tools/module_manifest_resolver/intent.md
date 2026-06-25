@@ -65,7 +65,7 @@ C-side smoke today that emits this structured JSON; the Pergyra origin is
 the primary implementation and the shell grep is the auxiliary parity
 backend.
 
-The parity rung (`src/self_hosted/parity/`) asserts:
+The parity rung (`tests/self_hosted/parity/`) asserts:
 
 - The Pergyra origin exits `0` on the live manifest.
 - Emitted JSON byte-matches `expected/clean.json` on the live manifest.

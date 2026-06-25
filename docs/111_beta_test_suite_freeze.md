@@ -60,6 +60,7 @@ The beta release candidate must keep these gates green:
 - `make self-host-preparation-test-smoke`
 - `make tooling-conformance-test-smoke`
 - `make perf-contract-test-smoke`
+- `make evidence-guard-amortization-test-smoke`
 - `make backend-fail-closed-test-smoke`
 - `make language-contract-golden-test-smoke`
 - `make beta-readiness-checklist-test-smoke`
@@ -89,7 +90,8 @@ The beta release candidate must keep these gates green:
 - Coverage percentage is not yet a beta acceptance metric. The beta gate is
   named stable-surface coverage, not raw line coverage.
 - Long-running stress/performance sweeps are out-of-beta except for the
-  bounded `make perf-contract-test-smoke` baseline.
+  bounded `make perf-contract-test-smoke` baseline and the ratio-based
+  `make evidence-guard-amortization-test-smoke` evidence-view cache gate.
 
 ## Regression Policy
 

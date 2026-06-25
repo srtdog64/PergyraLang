@@ -1,0 +1,8 @@
+func Scale(x: Float) -> Float {
+    return x + 1.5;
+}
+
+func Main() -> Void {
+    let y: Float = Scale(2.5);
+    Log(y);
+}

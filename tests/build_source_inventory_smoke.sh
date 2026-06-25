@@ -119,6 +119,22 @@ if ! grep -Fq 'ifneq ($(ENABLE_ASM_FASTPATH),1)' "$ROOT_DIR/Makefile"; then
     echo "[build-source-inventory] runtime asm objects must stay disabled by default" >&2
     missing=1
 fi
+if ! grep -Fxq 'all: $(PGY) $(PGY_LSP)' "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] default all target must build compiler/LSP only" >&2
+    missing=1
+fi
+if grep -Eq '^all: .*\$\(.*TEST' "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] default all target must not depend on test binaries" >&2
+    missing=1
+fi
+if ! grep -Fq 'all-with-tests: $(PGY) $(PGY_LSP) $(FRONTEND_TEST_BINARIES)' "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] test-including build must be explicit through all-with-tests" >&2
+    missing=1
+fi
+if ! grep -Fxq 'windows-build-smoke: all-with-tests' "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] Windows build smoke must consume the explicit test-including build owner" >&2
+    missing=1
+fi
 if ! grep -Fq 'LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" source-test-harness-compile-test-smoke' \
     "$ROOT_DIR/scripts/ci_windows_steps.sh"; then
     echo "[build-source-inventory] Windows source harness smoke must use the isolated CI build/bin dirs" >&2
@@ -520,8 +536,8 @@ if ! grep -Fq 'backend-compare-linux:' "$ROOT_DIR/.github/workflows/ci.yml" \
 fi
 
 bash4_lint_dirs=(tests)
-if [[ -d "$ROOT_DIR/src/self_hosted/parity" ]]; then
-    bash4_lint_dirs+=(src/self_hosted/parity)
+if [[ -d "$ROOT_DIR/tests/self_hosted/parity" ]]; then
+    bash4_lint_dirs+=(tests/self_hosted/parity)
 fi
 
 bash4_only_smoke_terms="$(

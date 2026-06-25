@@ -65,7 +65,7 @@ The shell drift detector is `diff -q expected.txt actual.txt` plus
 that emits this structured JSON; the Pergyra origin is the primary
 implementation and the shell `diff` is the auxiliary parity backend.
 
-The parity rung (`src/self_hosted/parity/`) asserts:
+The parity rung (`tests/self_hosted/parity/`) asserts:
 
 - The Pergyra origin exits `0` when the committed fixture matches.
 - The emitted JSON byte-matches `expected/clean.json`.

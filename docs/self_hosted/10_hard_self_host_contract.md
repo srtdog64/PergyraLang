@@ -77,6 +77,30 @@ Every active compiler-stage owner file stays at or below the 600-line
 split-review cap. When an owner grows past that threshold, split by the
 responsibility that owns the fact; do not create a generic helper bucket.
 
+The self-hosted source tree must also keep source owners separate from oracle
+machinery. `src/self_hosted/` is for Pergyra source and owner documentation.
+`tests/self_hosted/` is for parity scripts, committed fixtures, expected
+outputs, and migration probes. Mirroring the C implementation's fragmented test
+and harness layout inside `src/self_hosted/` is not a valid hard-self-host
+architecture.
+
+## Compiler World Rule
+
+The self-hosted compiler flow is owned by
+`src/self_hosted/compiler/world.pgy`. Stage directories own facts, but the
+compiler action itself must be visible as Pergyra `world`, `zone`, and `intent`
+declarations. The current compiler world names `PgyCompilerWorld` as the owner
+and `CompilePergyraProgram` as the root compiler intent, then derives source
+intake, lexing, parsing, semantic checking, MIR lowering, emission, and parity
+as smaller stage zones/intents. Hard-substitution work should extend that
+vocabulary instead of creating a second driver-shaped folder graph.
+
+No Compiler World exception exists for the 600-line cap. `world.pgy` is a root
+topology and manifest owner, not a place to accumulate every compiler-stage
+detail. If compiler-world detail grows, split by stage intent cluster
+(source-intake, frontend, middle-end, backend, parity) and keep stage facts in
+their source-of-truth owners.
+
 ## Active Hard Rungs
 
 The active hard rungs are:
@@ -123,3 +147,16 @@ No step may broaden by adding a hidden fallback.
 `tests/self_host_hard_contract_smoke.sh` owns this contract. It does not replace
 the heavy parity scripts; it proves the hard rungs, docs, and Makefile wiring
 stay aligned so the heavy scripts remain load-bearing.
+
+The Makefile keeps the fast and heavy paths separate:
+
+- `self-host-preparation-contract-test-smoke` checks structure, manifests,
+  documentation, owner shape, and compiler-world parsing.
+- `self-host-preparation-parity-test-smoke` runs the heavy C/LLVM/Pergyra
+  parity bundle.
+- `self-host-preparation-test-smoke` is the development/CI wrapper that runs
+  both.
+
+Normal compiler builds must not imply the heavy self-host parity bundle. Test
+included verification is opt-in locally and mandatory only for the full
+preparation gate.

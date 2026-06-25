@@ -1,5 +1,9 @@
 // Self-host semantic program checking owner.
 
+import "text_scan_owner.pgy";
+import "expr_type_owner.pgy";
+import "body_check_owner.pgy";
+
 func CheckProgram(content: String) -> String {
     let cursor: Array<Int> = [0];
     let func_names: Array<String> = [];
@@ -23,12 +27,81 @@ func CheckProgram(content: String) -> String {
     ArrayPush(func_names, "ReadFile");
     ArrayPush(func_rets, "String");
     ArrayPush(func_params, "String");
+    ArrayPush(func_names, "WriteFile");
+    ArrayPush(func_rets, "Void");
+    ArrayPush(func_params, "String|String");
     ArrayPush(func_names, "ToInt");
     ArrayPush(func_rets, "Int");
     ArrayPush(func_params, "Unknown");
     ArrayPush(func_names, "ToFloat");
     ArrayPush(func_rets, "Float");
     ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "Sqrt");
+    ArrayPush(func_rets, "Float");
+    ArrayPush(func_params, "Float");
+    ArrayPush(func_names, "Pow");
+    ArrayPush(func_rets, "Float");
+    ArrayPush(func_params, "Float|Float");
+    ArrayPush(func_names, "Floor");
+    ArrayPush(func_rets, "Float");
+    ArrayPush(func_params, "Float");
+    ArrayPush(func_names, "Ceil");
+    ArrayPush(func_rets, "Float");
+    ArrayPush(func_params, "Float");
+    ArrayPush(func_names, "Sin");
+    ArrayPush(func_rets, "Float");
+    ArrayPush(func_params, "Float");
+    ArrayPush(func_names, "Cos");
+    ArrayPush(func_rets, "Float");
+    ArrayPush(func_params, "Float");
+    ArrayPush(func_names, "Tan");
+    ArrayPush(func_rets, "Float");
+    ArrayPush(func_params, "Float");
+    ArrayPush(func_names, "Asin");
+    ArrayPush(func_rets, "Float");
+    ArrayPush(func_params, "Float");
+    ArrayPush(func_names, "Acos");
+    ArrayPush(func_rets, "Float");
+    ArrayPush(func_params, "Float");
+    ArrayPush(func_names, "Atan");
+    ArrayPush(func_rets, "Float");
+    ArrayPush(func_params, "Float");
+    ArrayPush(func_names, "Atan2");
+    ArrayPush(func_rets, "Float");
+    ArrayPush(func_params, "Float|Float");
+    ArrayPush(func_names, "Round");
+    ArrayPush(func_rets, "Float");
+    ArrayPush(func_params, "Float");
+    ArrayPush(func_names, "Exp");
+    ArrayPush(func_rets, "Float");
+    ArrayPush(func_params, "Float");
+    ArrayPush(func_names, "MathLog");
+    ArrayPush(func_rets, "Float");
+    ArrayPush(func_params, "Float");
+    ArrayPush(func_names, "Log10");
+    ArrayPush(func_rets, "Float");
+    ArrayPush(func_params, "Float");
+    ArrayPush(func_names, "Log2");
+    ArrayPush(func_rets, "Float");
+    ArrayPush(func_params, "Float");
+    ArrayPush(func_names, "Random");
+    ArrayPush(func_rets, "Int");
+    ArrayPush(func_params, "Int");
+    ArrayPush(func_names, "SeedRandom");
+    ArrayPush(func_rets, "Void");
+    ArrayPush(func_params, "Int");
+    ArrayPush(func_names, "Abs");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "Min");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown|Unknown");
+    ArrayPush(func_names, "Max");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown|Unknown");
+    ArrayPush(func_names, "Clamp");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown|Unknown|Unknown");
     ArrayPush(func_names, "FileExists");
     ArrayPush(func_rets, "Bool");
     ArrayPush(func_params, "String");
@@ -52,7 +125,7 @@ func CheckProgram(content: String) -> String {
     ArrayPush(func_params, "Unknown|Unknown|Unknown");
     ArrayPush(func_names, "StringContains");
     ArrayPush(func_rets, "Bool");
-    ArrayPush(func_params, "Unknown|Unknown");
+    ArrayPush(func_params, "String|String");
     ArrayPush(func_names, "SubContainsWithLen");
     ArrayPush(func_rets, "Bool");
     ArrayPush(func_params, "String|Int|Int|Int|String");
@@ -83,6 +156,9 @@ func CheckProgram(content: String) -> String {
     ArrayPush(func_names, "Log");
     ArrayPush(func_rets, "Unknown");
     ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "Print");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown");
     ArrayPush(func_names, "Exit");
     ArrayPush(func_rets, "Unknown");
     ArrayPush(func_params, "Unknown");
@@ -103,10 +179,16 @@ func CheckProgram(content: String) -> String {
     ArrayPush(func_params, "Unknown|Unknown|Unknown|Unknown|Unknown|Unknown");
     ArrayPush(func_names, "StringJoin");
     ArrayPush(func_rets, "String");
-    ArrayPush(func_params, "Unknown|Unknown");
+    ArrayPush(func_params, "Unknown|String");
+    ArrayPush(func_names, "Join");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown|String");
     ArrayPush(func_names, "Split");
     ArrayPush(func_rets, "Unknown");
-    ArrayPush(func_params, "Unknown|Unknown");
+    ArrayPush(func_params, "String|String");
+    ArrayPush(func_names, "StringSplit");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "String|String");
     ArrayPush(func_names, "DirWalk");
     ArrayPush(func_rets, "Unknown");
     ArrayPush(func_params, "Unknown");
@@ -125,6 +207,10 @@ func CheckProgram(content: String) -> String {
         scan = SkipWhitespaceAndComments(content, scan);
         if scan >= n {
             break;
+        }
+        if CharAt(content, scan) == "\"" {
+            scan = SkipQuotedString(content, scan, n);
+            continue;
         }
         if !MatchKeyword(content, scan, "func") {
             scan = scan + 1;
@@ -159,6 +245,11 @@ func CheckProgram(content: String) -> String {
         ArrayPush(func_names, fn_name);
         ArrayPush(func_rets, ret);
         ArrayPush(func_params, ParamTypes(param_src));
+        let body_open: Int = FindBlockOpen(content, k, n);
+        if body_open < n && CharAt(content, body_open) == "{" {
+            scan = FindMatchingBraceWithin(content, body_open, n) + 1;
+            continue;
+        }
         scan = k;
     }
     let i: Int = 0;
@@ -166,6 +257,10 @@ func CheckProgram(content: String) -> String {
         i = SkipWhitespaceAndComments(content, i);
         if i >= n {
             break;
+        }
+        if CharAt(content, i) == "\"" {
+            i = SkipQuotedString(content, i, n);
+            continue;
         }
         if MatchKeyword(content, i, "export") {
             i = i + 6;

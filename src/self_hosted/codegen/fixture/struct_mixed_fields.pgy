@@ -1,0 +1,20 @@
+struct Meter {
+    value: Float,
+    ok: Bool,
+    label: String,
+    count: Int
+}
+
+func MakeMeter(v: Float, label: String, count: Int) -> Meter {
+    return Meter { value: v + 1.5, ok: true, label: label, count: count };
+}
+
+func Main() -> Void {
+    let m: Meter = MakeMeter(2.5, "ready", 7);
+    Log(m.value);
+    Log(m.value + 1.0);
+    if m.ok {
+        Log(m.label);
+    }
+    Log(ToString(m.count));
+}

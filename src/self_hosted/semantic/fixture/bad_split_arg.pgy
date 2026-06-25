@@ -1,0 +1,4 @@
+func Main() -> Int {
+    let parts: Array<String> = Split("a,b", 1);
+    return ArrayLength(parts);
+}

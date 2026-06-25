@@ -1,0 +1,474 @@
+// src/self_hosted/codegen/emission/program_emit.pgy
+//
+// Program-level C assembly owner for self-host C emission.
+
+func GenerateC(ast: String) -> String {
+    RejectUnsupportedCodegenBuiltins(ast);
+
+    let indents: Array<Int> = [];
+    let texts: Array<String> = [];
+    let total: Int = StringLength(ast);
+    let pos: Int = 0;
+    let main_count: Int = 0;
+    while pos < total {
+        let nl: Int = NextNewline(ast, pos);
+        let raw_line: String = Substring(ast, pos, nl - pos);
+        let trimmed: String = StringTrim(raw_line);
+        // Strip an `[export] ` modifier (namespace/import functions are flattened
+        // to top-level `[export] Function: NS_Func`); the rest of the emitter
+        // then treats them as ordinary functions.
+        if StartsWith(trimmed, "[export] ") {
+            trimmed = Substring(trimmed, 9, StringLength(trimmed) - 9);
+        }
+        // `event` declarations have no handler/dispatch model in this codegen.
+        // Reject them with an observable CODEGEN ERROR rather than silently
+        // dropping the declaration and emitting a call to an undefined symbol
+        // (which would be unobservable broken C -- a no-op fake would be worse,
+        // masking real event dispatch in programs that register handlers).
+        if StartsWith(trimmed, "Event:") {
+            Die(Concat("event declarations are not supported (no handler/dispatch model): ", trimmed));
+        }
+        if StringLength(trimmed) > 0 {
+            ArrayPush(indents, IndentOf(raw_line));
+            ArrayPush(texts, trimmed);
+            if trimmed == "Function: Main" {
+                main_count = main_count + 1;
+            }
+        }
+        pos = nl + 1;
+    }
+    if main_count != 1 {
+        Die(Concat("exactly one `Main` function is required; saw count=", ToString(main_count)));
+    }
+
+    let count: Int = ArrayLength(texts);
+    let first_fn: Int = -1;
+    let scan: Int = 0;
+    while scan < count {
+        if texts[scan] == "Function: Main" {
+            first_fn = scan;
+            scan = count;
+        } else {
+            scan = scan + 1;
+        }
+    }
+    if first_fn < 0 {
+        Die("no function found in AST");
+    }
+    let f_indent: Int = indents[first_fn];
+    let env_acc: Array<String> = [BuildFunctionEnv(indents, texts, count)];
+    let enum_block: String = CollectEnums(indents, texts, count, env_acc);
+    let typedef_block: String = CollectStructs(indents, texts, count, env_acc);
+    CollectRoleOperators(indents, texts, count, env_acc);
+    let base_env: String = env_acc[0];
+    let uses_args: Bool = StringIndexOf(ast, "Args(") >= 0;
+
+    let defs: String = "";
+    let cur: Array<Int> = [0];
+    while cur[0] < count {
+        if IsZeroArtifactDeclLine(texts[cur[0]]) {
+            let decl_indent: Int = indents[cur[0]];
+            ArraySet(cur, 0, cur[0] + 1);
+            while cur[0] < count && indents[cur[0]] > decl_indent {
+                ArraySet(cur, 0, cur[0] + 1);
+            }
+        } else if IsNominalDeclLine(texts[cur[0]]) {
+            let owner_name: String = NominalDeclName(texts[cur[0]]);
+            let owner_indent: Int = indents[cur[0]];
+            ArraySet(cur, 0, cur[0] + 1);
+            while cur[0] < count && indents[cur[0]] > owner_indent {
+                if StartsWith(texts[cur[0]], "Function:") {
+                    let method_indent: Int = indents[cur[0]];
+                    let mdef: String = EmitFunction(indents, texts, count, cur, method_indent, base_env, uses_args, owner_name);
+                    defs = Concat(defs, Concat(mdef, "\n"));
+                } else {
+                    ArraySet(cur, 0, cur[0] + 1);
+                }
+            }
+        } else if IsRoleDeclLine(texts[cur[0]]) {
+            let role_owner_name: String = RoleDeclName(texts[cur[0]]);
+            let role_owner_indent: Int = indents[cur[0]];
+            ArraySet(cur, 0, cur[0] + 1);
+            while cur[0] < count && indents[cur[0]] > role_owner_indent {
+                if StartsWith(texts[cur[0]], "Function:") {
+                    let role_method_indent: Int = indents[cur[0]];
+                    let role_mdef: String = EmitFunction(indents, texts, count, cur, role_method_indent, base_env, uses_args, role_owner_name);
+                    defs = Concat(defs, Concat(role_mdef, "\n"));
+                } else {
+                    ArraySet(cur, 0, cur[0] + 1);
+                }
+            }
+        } else if StartsWith(texts[cur[0]], "Function:") && indents[cur[0]] == f_indent {
+            let def: String = EmitFunction(indents, texts, count, cur, f_indent, base_env, uses_args, "");
+            defs = Concat(defs, Concat(def, "\n"));
+        } else {
+            ArraySet(cur, 0, cur[0] + 1);
+        }
+    }
+
+    // Forward declarations come from a GenerateC-scope pre-pass.
+    let proto_block: String = CollectProtos(indents, texts, count, base_env);
+
+    // String programs need the runtime string helpers; bool programs need
+    // <stdbool.h>; array programs need the growable-array structs + stdlib;
+    // int-only programs stay lean.
+    let uses_str: Bool = StringIndexOf(ast, "String") >= 0
+        || StringIndexOf(ast, "Concat(") >= 0
+        || StringIndexOf(ast, "Substring(") >= 0
+        || StringIndexOf(ast, "SubIndexOfWithLen(") >= 0
+        || StringIndexOf(ast, "SubEqualsWithLen(") >= 0
+        || StringIndexOf(ast, "SubContainsWithLen(") >= 0
+        || StringIndexOf(ast, "SubStartsWithLen(") >= 0
+        || StringIndexOf(ast, "ToUpper(") >= 0
+        || StringIndexOf(ast, "ToLower(") >= 0;
+    let uses_math: Bool = StringIndexOf(ast, "Abs(") >= 0
+        || StringIndexOf(ast, "Min(") >= 0
+        || StringIndexOf(ast, "Max(") >= 0;
+    let uses_array_sort: Bool = StringIndexOf(ast, "ArraySort(") >= 0;
+    let uses_array_reverse: Bool = StringIndexOf(ast, "ArrayReverse(") >= 0;
+    let uses_array_map: Bool = StringIndexOf(ast, "ArrayMap(") >= 0;
+    let uses_array_filter: Bool = StringIndexOf(ast, "ArrayFilter(") >= 0;
+    let uses_result: Bool = StringIndexOf(ast, "Result<") >= 0
+        || StringIndexOf(ast, "Ok(") >= 0
+        || StringIndexOf(ast, "Err(") >= 0
+        || StringIndexOf(ast, "IsOk(") >= 0
+        || StringIndexOf(ast, "IsErr(") >= 0
+        || StringIndexOf(ast, "Unwrap(") >= 0
+        || StringIndexOf(ast, "UnwrapOr(") >= 0;
+    let uses_option: Bool = StringIndexOf(ast, "Option<") >= 0
+        || StringIndexOf(ast, "Some(") >= 0
+        || StringIndexOf(ast, "None") >= 0
+        || StringIndexOf(ast, "IsSome(") >= 0
+        || StringIndexOf(ast, "UnwrapOption(") >= 0;
+    let uses_bool: Bool = StringIndexOf(ast, "Bool") >= 0 || uses_array_filter || uses_result || uses_option;
+    let uses_exit: Bool = StringIndexOf(ast, "Exit(") >= 0;
+    let uses_array: Bool = StringIndexOf(ast, "Array<") >= 0
+        || StringIndexOf(ast, "ArrayPush(") >= 0
+        || StringIndexOf(ast, "ArrayLength(") >= 0
+        || StringIndexOf(ast, "ArraySet(") >= 0
+        || StringIndexOf(ast, "ArrayPop(") >= 0
+        || uses_array_sort
+        || uses_array_reverse
+        || uses_array_map
+        || uses_array_filter
+        || StringIndexOf(ast, "StringJoin(") >= 0
+        || StringIndexOf(ast, "Join(") >= 0
+        || StringIndexOf(ast, "Split(") >= 0
+        || StringIndexOf(ast, "DirWalk(") >= 0
+        || StringIndexOf(ast, "Args(") >= 0;
+    let uses_args2: Bool = StringIndexOf(ast, "Args(") >= 0;
+    let uses_io: Bool = StringIndexOf(ast, "ReadFile(") >= 0
+        || StringIndexOf(ast, "FileExists(") >= 0
+        || StringIndexOf(ast, "WriteFile(") >= 0;
+    let uses_join: Bool = StringIndexOf(ast, "StringJoin(") >= 0
+        || StringIndexOf(ast, "Join(") >= 0;
+    let uses_split: Bool = StringIndexOf(ast, "Split(") >= 0;
+    let uses_dirwalk: Bool = StringIndexOf(ast, "DirWalk(") >= 0;
+    let uses_log: Bool = StringIndexOf(ast, "Log") >= 0;
+    let uses_fhandle: Bool = StringIndexOf(ast, "FileOpen(") >= 0
+        || StringIndexOf(ast, "FileWrite(") >= 0
+        || StringIndexOf(ast, "FileClose(") >= 0
+        || StringIndexOf(ast, "FileRead(") >= 0;
+    let uses_print: Bool = StringIndexOf(ast, "Print(") >= 0;
+    let uses_float: Bool = StringIndexOf(ast, "Float") >= 0
+        || StringIndexOf(ast, "Sqrt(") >= 0
+        || StringIndexOf(ast, "Pow(") >= 0
+        || StringIndexOf(ast, "Floor(") >= 0
+        || StringIndexOf(ast, "Ceil(") >= 0
+        || StringIndexOf(ast, "ToFloat(") >= 0;
+    let uses_random_value: Bool = StringIndexOf(ast, "Random(") >= 0;
+    let uses_seed_random: Bool = StringIndexOf(ast, "SeedRandom(") >= 0;
+    let uses_random: Bool = uses_random_value || uses_seed_random;
+    let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_io || uses_fhandle || uses_random || uses_float || uses_result || uses_option;
+    let header: String = "#include <stdio.h>\n";
+    if uses_bool {
+        header = Concat(header, "#include <stdbool.h>\n");
+    }
+    if need_stdlib {
+        header = Concat(header, "#include <stdlib.h>\n");
+    }
+    if uses_str || uses_io || uses_fhandle {
+        header = Concat(header, "#include <string.h>\n");
+    }
+    if uses_float {
+        header = Concat(header, "#include <math.h>\n");
+    }
+    if uses_dirwalk {
+        header = Concat(header, "#include <dirent.h>\n#include <sys/stat.h>\n");
+    }
+    header = Concat(header, "\n");
+    if uses_log {
+        // String Log: strip all trailing newlines, then emit exactly one (the
+        // oracle's `Log` semantics). Self-contained (no string.h dependency).
+        header = Concat(header, "static void pgy_log(const char *s)\n{\n");
+        header = Concat(header, "    long long n = 0;\n    while (s[n] != '\\0') { n++; }\n");
+        header = Concat(header, "    while (n > 0 && (s[n-1] == '\\n' || s[n-1] == '\\r')) { n--; }\n");
+        header = Concat(header, "    fwrite(s, 1, (size_t)n, stdout);\n    putchar('\\n');\n}\n\n");
+    }
+    if uses_print {
+        // Print: write to stdout with no added newline.
+        header = Concat(header, "static void pgy_print(const char *s)\n{\n    fputs(s, stdout);\n}\n\n");
+    }
+    if uses_random_value {
+        // Random(n): rand() % n with the default (unseeded) sequence, matching
+        // the oracle's deterministic behavior.
+        header = Concat(header, "static long long pgy_random(long long n)\n{\n");
+        header = Concat(header, "    return n > 0 ? (long long)(rand() % n) : 0;\n}\n\n");
+    }
+    if uses_seed_random {
+        header = Concat(header, "static void pgy_seedrandom(long long seed)\n{\n");
+        header = Concat(header, "    srand((unsigned int)seed);\n}\n\n");
+    }
+    if uses_result {
+        header = Concat(header, "typedef struct { bool is_ok; long long value; } pgy_result_int;\n");
+        header = Concat(header, "static pgy_result_int pgy_result_ok(long long v) { pgy_result_int r; r.is_ok = true; r.value = v; return r; }\n");
+        header = Concat(header, "static pgy_result_int pgy_result_err(const char *msg) { (void)msg; pgy_result_int r; r.is_ok = false; r.value = 0; return r; }\n");
+        header = Concat(header, "static bool pgy_result_is_ok(pgy_result_int r) { return r.is_ok; }\n");
+        header = Concat(header, "static bool pgy_result_is_err(pgy_result_int r) { return !r.is_ok; }\n");
+        header = Concat(header, "static long long pgy_result_unwrap(pgy_result_int r) { return r.value; }\n");
+        header = Concat(header, "static long long pgy_result_unwrap_or(pgy_result_int r, long long fallback) { return r.is_ok ? r.value : fallback; }\n\n");
+    }
+    if uses_option {
+        header = Concat(header, "typedef struct { bool is_some; long long value; } pgy_option_int;\n");
+        header = Concat(header, "static pgy_option_int pgy_option_some(long long v) { pgy_option_int o; o.is_some = true; o.value = v; return o; }\n");
+        header = Concat(header, "static pgy_option_int pgy_option_none(void) { pgy_option_int o; o.is_some = false; o.value = 0; return o; }\n");
+        header = Concat(header, "static bool pgy_option_is_some(pgy_option_int o) { return o.is_some; }\n");
+        header = Concat(header, "static long long pgy_option_unwrap(pgy_option_int o) { return o.value; }\n\n");
+    }
+    if uses_io || uses_fhandle {
+        // Mirror the runtime path-policy default: absolute paths are denied
+        // unless PGY_IO_ALLOW_ABSOLUTE=1 is present.
+        header = Concat(header, "static int pgy_path_allowed(const char *path)\n{\n");
+        header = Concat(header, "    if (path == NULL || path[0] == '\\0') { return 0; }\n");
+        header = Concat(header, "    int drive = ((path[0] >= 'A' && path[0] <= 'Z') || (path[0] >= 'a' && path[0] <= 'z')) && path[1] == ':';\n");
+        header = Concat(header, "    int absolute = path[0] == '/' || path[0] == '\\\\' || drive;\n");
+        header = Concat(header, "    if (!absolute) { return 1; }\n");
+        header = Concat(header, "    const char *allow = getenv(\"PGY_IO_ALLOW_ABSOLUTE\");\n");
+        header = Concat(header, "    return allow != NULL && allow[0] == '1' && allow[1] == '\\0';\n");
+        header = Concat(header, "}\n\n");
+    }
+    if uses_fhandle {
+        // File-handle API: an int handle indexes a small static FILE* table.
+        // FileOpen returns -1 on failure; FileRead returns one line (with its
+        // trailing newline) or "" at EOF. Self-contained (no string.h).
+        header = Concat(header, "static FILE *pgy_fh[256];\nstatic long long pgy_fh_n = 0;\n");
+        header = Concat(header, "static long long pgy_fopen(const char *path, const char *mode)\n{\n");
+        header = Concat(header, "    if (!pgy_path_allowed(path)) { return -1; }\n");
+        header = Concat(header, "    FILE *f = fopen(path, mode);\n    if (!f) { return -1; }\n");
+        header = Concat(header, "    if (pgy_fh_n >= 256) { fclose(f); return -1; }\n");
+        header = Concat(header, "    pgy_fh[pgy_fh_n] = f;\n    return pgy_fh_n++;\n}\n\n");
+        header = Concat(header, "static int pgy_fh_valid(long long fd)\n{\n");
+        header = Concat(header, "    return fd >= 0 && fd < pgy_fh_n && pgy_fh[fd] != NULL;\n}\n\n");
+        header = Concat(header, "static void pgy_fwrite(long long fd, const char *s)\n{\n");
+        header = Concat(header, "    if (!pgy_fh_valid(fd)) { return; }\n    fputs(s, pgy_fh[fd]);\n}\n\n");
+        header = Concat(header, "static void pgy_fclose(long long fd)\n{\n");
+        header = Concat(header, "    if (!pgy_fh_valid(fd)) { return; }\n    fclose(pgy_fh[fd]);\n    pgy_fh[fd] = NULL;\n}\n\n");
+        header = Concat(header, "static char *pgy_fread(long long fd)\n{\n");
+        header = Concat(header, "    if (!pgy_fh_valid(fd)) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
+        header = Concat(header, "    char buf[4096];\n    if (!fgets(buf, (int)sizeof(buf), pgy_fh[fd])) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
+        header = Concat(header, "    long long n = 0;\n    while (buf[n] != '\\0') { n++; }\n");
+        header = Concat(header, "    char *r = (char *)malloc((size_t)n + 1);\n");
+        header = Concat(header, "    long long i = 0;\n    while (i <= n) { r[i] = buf[i]; i++; }\n    return r;\n}\n\n");
+    }
+    if uses_array {
+        header = Concat(header, "typedef struct { long long *data; long long len; long long cap; } pgy_ai;\n");
+        header = Concat(header, "typedef struct { const char **data; long long len; long long cap; } pgy_as;\n\n");
+        header = Concat(header, "static pgy_ai pgy_ai_new(void) { pgy_ai a; a.data = NULL; a.len = 0; a.cap = 0; return a; }\n");
+        header = Concat(header, "static void pgy_ai_push(pgy_ai *a, long long v) {\n");
+        header = Concat(header, "    if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (long long *)realloc(a->data, (size_t)a->cap * sizeof(long long)); }\n");
+        header = Concat(header, "    a->data[a->len++] = v;\n}\n");
+        header = Concat(header, "static long long pgy_ai_get(pgy_ai a, long long i) { return a.data[i]; }\n");
+        header = Concat(header, "static void pgy_ai_set(pgy_ai *a, long long i, long long v) { a->data[i] = v; }\n");
+        header = Concat(header, "static long long pgy_ai_len(pgy_ai a) { return a.len; }\n");
+        header = Concat(header, "static long long pgy_ai_pop(pgy_ai *a) { return a->len > 0 ? a->data[--a->len] : 0; }\n\n");
+        if uses_array_sort {
+            header = Concat(header, "static int pgy_ai_cmp(const void *pa, const void *pb)\n{\n");
+            header = Concat(header, "    long long a = *(const long long *)pa;\n    long long b = *(const long long *)pb;\n");
+            header = Concat(header, "    return (a > b) - (a < b);\n}\n");
+            header = Concat(header, "static pgy_ai pgy_ai_sort(pgy_ai a)\n{\n");
+            header = Concat(header, "    if (a.len > 1) { qsort(a.data, (size_t)a.len, sizeof(long long), pgy_ai_cmp); }\n");
+            header = Concat(header, "    return a;\n}\n\n");
+        }
+        if uses_array_reverse {
+            header = Concat(header, "static pgy_ai pgy_ai_reverse(pgy_ai a)\n{\n");
+            header = Concat(header, "    pgy_ai out = pgy_ai_new();\n");
+            header = Concat(header, "    for (long long i = a.len; i > 0; i--) { pgy_ai_push(&out, a.data[i - 1]); }\n");
+            header = Concat(header, "    return out;\n}\n\n");
+        }
+        if uses_array_map {
+            header = Concat(header, "static pgy_ai pgy_ai_map(pgy_ai a, long long (*fn)(long long))\n{\n");
+            header = Concat(header, "    pgy_ai out = pgy_ai_new();\n");
+            header = Concat(header, "    for (long long i = 0; i < a.len; i++) { pgy_ai_push(&out, fn(a.data[i])); }\n");
+            header = Concat(header, "    return out;\n}\n\n");
+        }
+        if uses_array_filter {
+            header = Concat(header, "static pgy_ai pgy_ai_filter(pgy_ai a, bool (*pred)(long long))\n{\n");
+            header = Concat(header, "    pgy_ai out = pgy_ai_new();\n");
+            header = Concat(header, "    for (long long i = 0; i < a.len; i++) { if (pred(a.data[i])) { pgy_ai_push(&out, a.data[i]); } }\n");
+            header = Concat(header, "    return out;\n}\n\n");
+        }
+        header = Concat(header, "static pgy_as pgy_as_new(void) { pgy_as a; a.data = NULL; a.len = 0; a.cap = 0; return a; }\n");
+        header = Concat(header, "static void pgy_as_push(pgy_as *a, const char *v) {\n");
+        header = Concat(header, "    if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (const char **)realloc(a->data, (size_t)a->cap * sizeof(const char *)); }\n");
+        header = Concat(header, "    a->data[a->len++] = v;\n}\n");
+        header = Concat(header, "static const char *pgy_as_get(pgy_as a, long long i) { return a.data[i]; }\n");
+        header = Concat(header, "static void pgy_as_set(pgy_as *a, long long i, const char *v) { a->data[i] = v; }\n");
+        header = Concat(header, "static long long pgy_as_len(pgy_as a) { return a.len; }\n");
+        header = Concat(header, "static const char *pgy_as_pop(pgy_as *a) { return a->len > 0 ? a->data[--a->len] : \"\"; }\n\n");
+    }
+    if uses_args2 {
+        // `Args()` -> pgy_args(): user args (argv[1..]) as a pgy_as. main() stashes
+        // argc/argv into these globals before any body statement runs.
+        header = Concat(header, "static int pgy_argc = 0;\nstatic char **pgy_argv = NULL;\n");
+        header = Concat(header, "static pgy_as pgy_args(void)\n{\n");
+        header = Concat(header, "    pgy_as a = pgy_as_new();\n");
+        header = Concat(header, "    for (int i = 1; i < pgy_argc; i++) { pgy_as_push(&a, pgy_argv[i]); }\n");
+        header = Concat(header, "    return a;\n}\n\n");
+    }
+    if uses_str {
+        header = Concat(header, "static char *pgy_concat(const char *a, const char *b)\n{\n");
+        header = Concat(header, "    size_t la = strlen(a);\n    size_t lb = strlen(b);\n");
+        header = Concat(header, "    char *r = (char *)malloc(la + lb + 1);\n");
+        header = Concat(header, "    memcpy(r, a, la);\n    memcpy(r + la, b, lb);\n    r[la + lb] = '\\0';\n");
+        header = Concat(header, "    return r;\n}\n\n");
+        header = Concat(header, "static long long pgy_strlen(const char *s)\n{\n");
+        header = Concat(header, "    return (long long)strlen(s);\n}\n\n");
+        header = Concat(header, "static char *pgy_charatn(const char *s, long long len, long long i)\n{\n");
+        header = Concat(header, "    if (s == NULL || i < 0 || i >= len) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
+        header = Concat(header, "    char *r = (char *)malloc(2);\n    r[0] = s[i];\n    r[1] = '\\0';\n    return r;\n}\n\n");
+        header = Concat(header, "static long long pgy_charcode(const char *s, long long len, long long i)\n{\n");
+        header = Concat(header, "    if (s == NULL || i < 0 || i >= len) return -1;\n");
+        header = Concat(header, "    return (long long)(unsigned char)s[i];\n}\n\n");
+        header = Concat(header, "static char *pgy_substr(const char *s, long long start, long long len)\n{\n");
+        header = Concat(header, "    char *r = (char *)malloc((size_t)len + 1);\n");
+        header = Concat(header, "    memcpy(r, s + start, (size_t)len);\n    r[len] = '\\0';\n");
+        header = Concat(header, "    return r;\n}\n\n");
+        header = Concat(header, "static long long pgy_strindexof(const char *hay, const char *needle)\n{\n");
+        header = Concat(header, "    const char *p = strstr(hay, needle);\n");
+        header = Concat(header, "    if (p == NULL) { return -1; }\n");
+        header = Concat(header, "    return (long long)(p - hay);\n}\n\n");
+        header = Concat(header, "static char *pgy_strtrim(const char *s)\n{\n");
+        header = Concat(header, "    while (*s == ' ' || *s == '\\t' || *s == '\\n' || *s == '\\r') { s++; }\n");
+        header = Concat(header, "    size_t len = strlen(s);\n");
+        header = Concat(header, "    while (len > 0 && (s[len-1] == ' ' || s[len-1] == '\\t' || s[len-1] == '\\n' || s[len-1] == '\\r')) { len--; }\n");
+        header = Concat(header, "    char *r = (char *)malloc(len + 1);\n");
+        header = Concat(header, "    memcpy(r, s, len);\n    r[len] = '\\0';\n");
+        header = Concat(header, "    return r;\n}\n\n");
+        header = Concat(header, "static char *pgy_tostr(long long v)\n{\n");
+        header = Concat(header, "    char *r = (char *)malloc(24);\n");
+        header = Concat(header, "    sprintf(r, \"%lld\", v);\n    return r;\n}\n\n");
+        header = Concat(header, "static int pgy_strcontains(const char *h, const char *n)\n{\n");
+        header = Concat(header, "    return strstr(h, n) != NULL ? 1 : 0;\n}\n\n");
+        header = Concat(header, "static long long pgy_subindexof_with_len(const char *s, long long source_len, long long start, long long len, const char *needle)\n{\n");
+        header = Concat(header, "    if (s == NULL || needle == NULL || source_len < 0 || start < 0 || start >= source_len || len <= 0) return -1;\n");
+        header = Concat(header, "    if (len > source_len - start) len = source_len - start;\n    size_t nl = strlen(needle);\n    if (nl == 0) return 0;\n    if ((size_t)len < nl) return -1;\n");
+        header = Concat(header, "    if (nl == 1) { const char *m = (const char *)memchr(s + start, needle[0], (size_t)len); return m ? (long long)(m - (s + start)) : -1; }\n");
+        header = Concat(header, "    long long limit = len - (long long)nl;\n    for (long long i = 0; i <= limit; i++) { if (memcmp(s + start + i, needle, nl) == 0) return i; }\n    return -1;\n}\n\n");
+        header = Concat(header, "static int pgy_subequals_with_len(const char *s, long long source_len, long long start, long long len, const char *other)\n{\n");
+        header = Concat(header, "    if (other == NULL) return 0;\n    if (s == NULL || source_len < 0 || start < 0 || start >= source_len || len <= 0) return strlen(other) == 0 ? 1 : 0;\n");
+        header = Concat(header, "    if (len > source_len - start) len = source_len - start;\n    size_t n = strlen(other);\n    if ((size_t)len != n) return 0;\n");
+        header = Concat(header, "    if (n == 0) return 1;\n    if (n == 1) return s[start] == other[0];\n    if (n == 2) return s[start] == other[0] && s[start + 1] == other[1];\n");
+        header = Concat(header, "    if (n == 3) return s[start] == other[0] && s[start + 1] == other[1] && s[start + 2] == other[2];\n");
+        header = Concat(header, "    if (n == 4) return s[start] == other[0] && s[start + 1] == other[1] && s[start + 2] == other[2] && s[start + 3] == other[3];\n");
+        header = Concat(header, "    return memcmp(s + start, other, n) == 0;\n}\n\n");
+        header = Concat(header, "static int pgy_subcontains_with_len(const char *s, long long source_len, long long start, long long len, const char *needle)\n{\n");
+        header = Concat(header, "    return pgy_subindexof_with_len(s, source_len, start, len, needle) >= 0;\n}\n\n");
+        header = Concat(header, "static int pgy_substartswith_with_len(const char *s, long long source_len, long long start, const char *prefix)\n{\n");
+        header = Concat(header, "    if (s == NULL || prefix == NULL || source_len < 0 || start < 0 || start > source_len) return 0;\n");
+        header = Concat(header, "    size_t n = strlen(prefix);\n    if (n == 0) return 1;\n    if ((size_t)(source_len - start) < n) return 0;\n");
+        header = Concat(header, "    return pgy_subequals_with_len(s, source_len, start, (long long)n, prefix);\n}\n\n");
+        header = Concat(header, "static long long pgy_toint(const char *s)\n{\n    return atoll(s);\n}\n\n");
+        header = Concat(header, "static char *pgy_toupper(const char *s)\n{\n");
+        header = Concat(header, "    size_t n = strlen(s);\n    char *r = (char *)malloc(n + 1);\n");
+        header = Concat(header, "    for (size_t i = 0; i < n; i++) { char c = s[i]; r[i] = (c >= 'a' && c <= 'z') ? (char)(c - 32) : c; }\n");
+        header = Concat(header, "    r[n] = '\\0';\n    return r;\n}\n\n");
+        header = Concat(header, "static char *pgy_tolower(const char *s)\n{\n");
+        header = Concat(header, "    size_t n = strlen(s);\n    char *r = (char *)malloc(n + 1);\n");
+        header = Concat(header, "    for (size_t i = 0; i < n; i++) { char c = s[i]; r[i] = (c >= 'A' && c <= 'Z') ? (char)(c + 32) : c; }\n");
+        header = Concat(header, "    r[n] = '\\0';\n    return r;\n}\n\n");
+        header = Concat(header, "static char *pgy_strreplace(const char *s, const char *from, const char *to)\n{\n");
+        header = Concat(header, "    size_t fl = strlen(from);\n    if (fl == 0) { return pgy_concat(s, \"\"); }\n");
+        header = Concat(header, "    size_t tl = strlen(to);\n    size_t cnt = 0;\n    const char *p = s;\n");
+        header = Concat(header, "    while ((p = strstr(p, from)) != NULL) { cnt++; p += fl; }\n");
+        header = Concat(header, "    char *r = (char *)malloc(strlen(s) + cnt * (tl > fl ? tl - fl : 0) + 1);\n");
+        header = Concat(header, "    char *w = r;\n    const char *q = s;\n");
+        header = Concat(header, "    while (*q) {\n        if (strncmp(q, from, fl) == 0) { memcpy(w, to, tl); w += tl; q += fl; }\n");
+        header = Concat(header, "        else { *w++ = *q++; }\n    }\n    *w = '\\0';\n    return r;\n}\n\n");
+    }
+    if uses_math {
+        header = Concat(header, "static long long pgy_abs(long long v)\n{\n    return v < 0 ? -v : v;\n}\n\n");
+        header = Concat(header, "static long long pgy_min(long long a, long long b)\n{\n    return a < b ? a : b;\n}\n\n");
+        header = Concat(header, "static long long pgy_max(long long a, long long b)\n{\n    return a > b ? a : b;\n}\n\n");
+    }
+    // pgy_strjoin needs both the pgy_as struct (uses_array) and string.h
+    // (uses_str); emit it only when StringJoin is actually used so string-only
+    // programs do not reference an undefined pgy_as.
+    if uses_split {
+        header = Concat(header, "static pgy_as pgy_split(const char *s, const char *sep)\n{\n");
+        header = Concat(header, "    pgy_as a = pgy_as_new();\n    size_t sl = strlen(sep);\n");
+        header = Concat(header, "    if (sl == 0) { pgy_as_push(&a, s); return a; }\n");
+        header = Concat(header, "    const char *start = s;\n    const char *p;\n");
+        header = Concat(header, "    while ((p = strstr(start, sep)) != NULL) {\n");
+        header = Concat(header, "        size_t len = (size_t)(p - start);\n");
+        header = Concat(header, "        char *part = (char *)malloc(len + 1);\n");
+        header = Concat(header, "        memcpy(part, start, len); part[len] = '\\0';\n");
+        header = Concat(header, "        pgy_as_push(&a, part);\n        start = p + sl;\n    }\n");
+        header = Concat(header, "    char *last = (char *)malloc(strlen(start) + 1);\n");
+        header = Concat(header, "    strcpy(last, start);\n    pgy_as_push(&a, last);\n    return a;\n}\n\n");
+    }
+    if uses_join {
+        header = Concat(header, "static char *pgy_strjoin(pgy_as a, const char *sep)\n{\n");
+        header = Concat(header, "    size_t sl = strlen(sep);\n    size_t total = 0;\n");
+        header = Concat(header, "    for (long long i = 0; i < a.len; i++) { total += strlen(a.data[i]); }\n");
+        header = Concat(header, "    if (a.len > 1) { total += sl * (size_t)(a.len - 1); }\n");
+        header = Concat(header, "    char *r = (char *)malloc(total + 1);\n    char *p = r;\n");
+        header = Concat(header, "    for (long long i = 0; i < a.len; i++) {\n");
+        header = Concat(header, "        if (i > 0) { memcpy(p, sep, sl); p += sl; }\n");
+        header = Concat(header, "        size_t el = strlen(a.data[i]);\n        memcpy(p, a.data[i], el); p += el;\n    }\n");
+        header = Concat(header, "    *p = '\\0';\n    return r;\n}\n\n");
+    }
+    if uses_io {
+        header = Concat(header, "static int pgy_fexists(const char *path)\n{\n");
+        header = Concat(header, "    if (!pgy_path_allowed(path)) { return 0; }\n");
+        header = Concat(header, "    FILE *f = fopen(path, \"rb\");\n");
+        header = Concat(header, "    if (f) { fclose(f); return 1; }\n    return 0;\n}\n\n");
+        header = Concat(header, "static char *pgy_readfile(const char *path)\n{\n");
+        header = Concat(header, "    if (!pgy_path_allowed(path)) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
+        header = Concat(header, "    FILE *f = fopen(path, \"rb\");\n");
+        header = Concat(header, "    if (!f) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
+        header = Concat(header, "    fseek(f, 0, SEEK_END);\n    long sz = ftell(f);\n    fseek(f, 0, SEEK_SET);\n");
+        header = Concat(header, "    if (sz < 0) { sz = 0; }\n");
+        header = Concat(header, "    char *buf = (char *)malloc((size_t)sz + 1);\n");
+        header = Concat(header, "    size_t rd = fread(buf, 1, (size_t)sz, f);\n");
+        header = Concat(header, "    buf[rd] = '\\0';\n    fclose(f);\n    return buf;\n}\n\n");
+        header = Concat(header, "static int pgy_writefile(const char *path, const char *content)\n{\n");
+        header = Concat(header, "    if (!pgy_path_allowed(path)) { return 0; }\n");
+        header = Concat(header, "    FILE *f = fopen(path, \"wb\");\n");
+        header = Concat(header, "    if (!f) { return 0; }\n");
+        header = Concat(header, "    size_t n = strlen(content);\n");
+        header = Concat(header, "    size_t wr = fwrite(content, 1, n, f);\n");
+        header = Concat(header, "    fclose(f);\n    return (int)wr;\n}\n\n");
+    }
+    if uses_dirwalk {
+        // DirWalk: recursive regular-file walk, `/`-joined paths, flat lexical
+        // sort -- matches the oracle's snapshot. Needs pgy_as (uses_array).
+        header = Concat(header, "static void pgy_dirwalk_rec(const char *dir, pgy_as *out)\n{\n");
+        header = Concat(header, "    DIR *d = opendir(dir);\n    if (!d) { return; }\n");
+        header = Concat(header, "    struct dirent *e;\n    while ((e = readdir(d)) != NULL) {\n");
+        header = Concat(header, "        if (strcmp(e->d_name, \".\") == 0 || strcmp(e->d_name, \"..\") == 0) { continue; }\n");
+        header = Concat(header, "        char *path = (char *)malloc(strlen(dir) + strlen(e->d_name) + 2);\n");
+        header = Concat(header, "        sprintf(path, \"%s/%s\", dir, e->d_name);\n");
+        header = Concat(header, "        struct stat st;\n");
+        header = Concat(header, "        if (stat(path, &st) == 0) {\n");
+        header = Concat(header, "            if (S_ISDIR(st.st_mode)) { pgy_dirwalk_rec(path, out); free(path); }\n");
+        header = Concat(header, "            else { pgy_as_push(out, path); }\n");
+        header = Concat(header, "        } else { free(path); }\n    }\n    closedir(d);\n}\n");
+        header = Concat(header, "static int pgy_str_cmp(const void *a, const void *b)\n{\n");
+        header = Concat(header, "    return strcmp(*(const char **)a, *(const char **)b);\n}\n");
+        header = Concat(header, "static pgy_as pgy_dirwalk(const char *dir)\n{\n");
+        header = Concat(header, "    pgy_as a = pgy_as_new();\n    pgy_dirwalk_rec(dir, &a);\n");
+        header = Concat(header, "    qsort(a.data, (size_t)a.len, sizeof(const char *), pgy_str_cmp);\n");
+        header = Concat(header, "    return a;\n}\n\n");
+    }
+    return Concat(header, Concat(enum_block, Concat(typedef_block, Concat(proto_block, defs))));
+}

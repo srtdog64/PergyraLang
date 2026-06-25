@@ -45,6 +45,21 @@ stdlib_scalar_require_string_arg(ASTNode *expr, size_t index,
     require_assignable(type_check_expression(arg, ctx), TYPE_STRING, arg, ctx);
 }
 
+static void
+stdlib_scalar_require_int_arg(ASTNode *expr, size_t index, SemanticContext *ctx)
+{
+    ASTNode *arg = ast_call_argument(expr, index);
+    require_assignable(type_check_expression(arg, ctx), TYPE_INT, arg, ctx);
+}
+
+static void
+stdlib_scalar_require_float_arg(ASTNode *expr, size_t index,
+                                SemanticContext *ctx)
+{
+    ASTNode *arg = ast_call_argument(expr, index);
+    require_assignable(type_check_expression(arg, ctx), TYPE_FLOAT, arg, ctx);
+}
+
 static Type *
 stdlib_scalar_check_abs(ASTNode *expr, const char *name, SemanticContext *ctx)
 {
@@ -321,7 +336,7 @@ stdlib_scalar_check_math_unary_float(ASTNode *expr, const char *name,
 {
     if (!check_call_arity(expr, 1, name, ctx))
         return TYPE_UNKNOWN;
-    type_check_expression(ast_call_argument(expr, 0), ctx);
+    stdlib_scalar_require_float_arg(expr, 0, ctx);
     return TYPE_FLOAT;
 }
 
@@ -331,8 +346,8 @@ stdlib_scalar_check_atan2(ASTNode *expr, const char *name,
 {
     if (!check_call_arity(expr, 2, name, ctx))
         return TYPE_UNKNOWN;
-    type_check_expression(ast_call_argument(expr, 0), ctx);
-    type_check_expression(ast_call_argument(expr, 1), ctx);
+    stdlib_scalar_require_float_arg(expr, 0, ctx);
+    stdlib_scalar_require_float_arg(expr, 1, ctx);
     return TYPE_FLOAT;
 }
 
@@ -345,8 +360,10 @@ stdlib_scalar_check_clamp(ASTNode *expr, const char *name,
         return TYPE_UNKNOWN;
     val = stdlib_scalar_normalize_type(
         type_check_expression(ast_call_argument(expr, 0), ctx));
-    type_check_expression(ast_call_argument(expr, 1), ctx);
-    type_check_expression(ast_call_argument(expr, 2), ctx);
+    require_assignable(type_check_expression(ast_call_argument(expr, 1), ctx),
+        val, ast_call_argument(expr, 1), ctx);
+    require_assignable(type_check_expression(ast_call_argument(expr, 2), ctx),
+        val, ast_call_argument(expr, 2), ctx);
     return val;
 }
 
@@ -365,17 +382,17 @@ stdlib_scalar_check_pow(ASTNode *expr, const char *name, SemanticContext *ctx)
 {
     if (!check_call_arity(expr, 2, name, ctx))
         return TYPE_UNKNOWN;
-    type_check_expression(ast_call_argument(expr, 0), ctx);
-    type_check_expression(ast_call_argument(expr, 1), ctx);
+    stdlib_scalar_require_float_arg(expr, 0, ctx);
+    stdlib_scalar_require_float_arg(expr, 1, ctx);
     return TYPE_FLOAT;
 }
 
 static Type *
 stdlib_scalar_check_random(ASTNode *expr, const char *name, SemanticContext *ctx)
 {
-    (void)name;
-    if (ast_call_arg_count(expr) > 0)
-        type_check_expression(ast_call_argument(expr, 0), ctx);
+    if (!check_call_arity(expr, 1, name, ctx))
+        return TYPE_UNKNOWN;
+    stdlib_scalar_require_int_arg(expr, 0, ctx);
     semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
     semantic_record_capability(ctx, PGY_CAP_RANDOM);
     return TYPE_INT;

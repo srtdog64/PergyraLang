@@ -1,6 +1,6 @@
 # Lexer Parity Fixtures
 
-This directory holds baselines for `src/self_hosted/parity/lexer_parity.sh`.
+This directory holds baselines for `tests/self_hosted/parity/lexer_parity.sh`.
 Each row in that script's `SOURCE_PAIRS` array is
 `"<source path>:<base>_tokens.txt"`, and the parity test asserts that running
 the Pergyra-written lexer on `<source>` produces output byte-equal to

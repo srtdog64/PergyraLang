@@ -5,8 +5,8 @@ measured by building pgy and running
 `make self-host-preparation-test-smoke` on 2026-06-21. The lexer/parser scale
 figures below were refreshed on 2026-06-23 with
 `make self-host-lexer-parity-test-smoke self-host-parser-parity-test-smoke`
-and `src/self_hosted/parity/lexer_scale_probe.sh --failing` /
-`src/self_hosted/parity/parser_scale_probe.sh --failing`. The gate runs the
+and `tests/self_hosted/parity/lexer_scale_probe.sh --failing` /
+`tests/self_hosted/parity/parser_scale_probe.sh --failing`. The gate runs the
 self-hosted tools on C and, when the current `pgy` build includes the LLVM
 backend, LLVM. `LLVM_ENABLED=0` jobs still prove the C leg and require an
 explicit LLVM-leg skip instead of treating the build configuration as a tool
@@ -24,7 +24,7 @@ Front-end self-hosts on both backends in LLVM-enabled builds.
   oracle. The broader lexer scale probe now measures 993 of 993 examples +
   backend_compare sources byte-equal.
 - Parser (src/self_hosted/parser/): compiles on C and LLVM and compares
-  byte-identical against `pgy --ast` on 188 committed source fixtures. It parses
+  byte-identical against `pgy --ast` on 189 committed source fixtures. It parses
   the domain grammar, not just generic constructs: it dispatches on zone, world,
   party, role, and intent keywords, plus bind, if, within-zone, and intent
   steps, intent retry declaration metadata, with full expression precedence.
@@ -139,13 +139,13 @@ subset.
   tobject/vessel declarations now flow through MIR-owned `nominal_kind` and
   field facts and reconstruct their exact AST labels in the self-hosted
   MIR-lowering path instead of being collapsed to a generic class alias. The
-  hard gate is now **82
-  positive fixtures plus 1 clean-reject fixture** after
+  hard gate is now **85
+  positive fixtures plus 0 clean-reject fixtures** after
   promoting the already run-equivalent
   trailing-newline Log, nested string concat, string array concat, string
   case/index/trim builtin, string reassignment, two-log, while-break, and
-  while-sum surfaces, array pop and array for-each loops, and Int-field struct
-  declaration/value flow. It also reconstructs break edges after non-empty
+  while-sum surfaces, array pop and array for-each loops, and typed struct
+  field declaration/value flow. It also reconstructs break edges after non-empty
   statement blocks from CFG successor facts and consumes the MIR-owned
   `Random()` Int source-local type fact, the match-case integer pattern
   condition surface, the default absolute-path I/O rejection policy, and the
@@ -155,12 +155,14 @@ subset.
   early-return flow, `Result<Int>` core constructors/inspection helpers,
   `Option<Int>` value/match lowering, array sort/map/filter/reverse combinators, and
   `Join`/`ToFloat` string utility flow, and the example-origin
-  `binary_search` fixture. The coverage boundary is now measured
-  at **82 PASS / 0 gap plus 1 clean reject** across the committed
+  `binary_search` fixture and the Int role operator-dispatch fixture. The
+  coverage boundary is now measured
+  at **85 PASS / 0 gap plus 0 clean rejects** across the committed
   MIR-lower/codegen/example fixture inventory. Ability declarations now consume MIR
   method signature facts and lower as zero-artifact declaration hosts in the
-  self-hosted codegen pre-passes. Role declaration facts are still rejected by
-  `mir_lower`, payload enum variants fail closed by MIR variant fact, and unsupported
+  self-hosted codegen pre-passes. Role declaration facts are consumed for the
+  supported Int/`Arithmetic.Add` operator path, payload enum variants fail
+  closed by MIR variant fact, and unsupported
   self-host codegen builtins are
   rejected before C emission, so out-of-subset operator-overload/domain nominal
   semantics and unsupported runtime helper surfaces cannot silently produce
@@ -238,7 +240,7 @@ Substrate progress.
   (C) backend, leaving each tool's LLVM compilation ungated. Each now compiles
   its tool with the C and the LLVM backend and asserts the two native binaries
   produce byte-identical output, via the shared
-  `src/self_hosted/parity/llvm_leg_helpers.sh` (`assert_llvm_leg`) for the
+  `tests/self_hosted/parity/llvm_leg_helpers.sh` (`assert_llvm_leg`) for the
   `--run` tools and inline legs for the lexer and backend-output comparator. At
   the time of writing all 22 pass, so the gap was harness coverage, not an LLVM
   backend defect; the gates now hold the C/LLVM equality invariant for the whole
@@ -278,18 +280,29 @@ Substrate progress.
   still intentionally does not model C's broader String/Bool binary-operator
   edge cases. This stays latent because no fixture and no real self-host source
   uses arithmetic on String or Bool operands (string building uses `Concat`);
-  closing it requires a shared diagnostic-code catalog with the C oracle rather
-  than a self-host-only guess.
-  `src/self_hosted/parity/semantic_parity.sh` compares its verdicts with the C
-  compiler accept/reject oracle on C and LLVM across 68 committed fixtures that
+  closing it requires expanding the shared self-host/C diagnostic-code mapping
+  beyond the current fixture root-code gate rather than a self-host-only guess.
+  `tests/self_hosted/parity/semantic_parity.sh` compares its verdicts with the C
+  compiler accept/reject oracle on C and LLVM across 93 committed fixtures that
   close the diagnostic matrix for every check across every statement position
   (typed let/return, arithmetic, comparison, call-return, call-argument,
   call-arity, branch-condition, scoped-block, assignment-type, bare-call-statement,
-  binary-, logical-, and unary-not-operand-agreement, builtin-table calls, and
-  undefined-identifier cases), all
+  binary-, logical-, and unary-not-operand-agreement, `let mut`, file IO builtin
+  calls, scalar math builtin-table calls, trig/log Float builtin calls, string
+  split/join aliases, first-argument scalar utility calls, generated-source
+  string literals, and undefined-identifier cases), all
   emitted as `pgy.selfhost.semantic.v1` diagnostic blocks through
   `src/self_hosted/lib/diagnostic.pgy` and byte-equal on both backends. It
-  checks that `if` / `while` conditions are
+  now also gates the self-hosted semantic diagnostic-code vocabulary:
+  `src/self_hosted/semantic/diagnostic_code_owner.pgy` owns the 15 lower-case
+  codes, and the parity harness rejects fixture `Code:` fields or literal
+  `SemanticError...("code")` call sites that are not registered there. The same
+  owner maps every fixture-emitted self-hosted code to the current C oracle JSON
+  root code, and the parity harness rejects invalid fixtures that fall through
+  to backend-native failure or report a different C root code. This is still a
+  fixture-root-code gate, not a claim that every C semantic diagnostic has a
+  one-to-one Pergyra code.
+  The same parity matrix checks that `if` / `while` conditions are
   `Bool` (`condition_not_bool`), that a simple local assignment `name = expr`
   matches the variable's declared type (`assign_type_mismatch`), and that
   expression-statement calls (`Foo(args);`) satisfy the callee's arity and
@@ -299,11 +312,12 @@ Substrate progress.
   absent from the local environment. It also checks scoped `if` / `while`
   bodies without leaking block-local `let` bindings into the parent
   environment. The parity set now includes an import-backed fixture, and
-  `src/self_hosted/parity/selfcheck_sources.sh` checks
-  `src/self_hosted/semantic/main.pgy` and `src/self_hosted/lexer/main.pgy` as
-  real imported source bundles rather than generating import-stripped temporary
-  units. Parser/codegen/linter source breadth remains a later
-  semantic-substitution rung.
+  `tests/self_hosted/parity/selfcheck_sources.sh` now compiles the checker
+  through C and LLVM and accepts 46 real self-host owner/source files. The
+  manifest includes lexer/parser/mir-lower/codegen/compiler-world entrypoints,
+  the deterministic backend fuzz generator, and audit-tool slices that are
+  inside the current subset; sources stay out until their import, local-binding,
+  and call surfaces are covered without semantic fallbacks.
 - Building the signature table reproduced the array value-semantics finding from
   the linter: a helper that `ArrayPush`es into an `Array<T>` parameter mutates a
   copy, so the table is built inline in the owning function until `inout Array<T>`
@@ -341,7 +355,7 @@ arithmetic preserves its operand type; comparison operands must share a type;
 `&&`/`||` operands must be Bool) in let, return, condition, and assignment
 positions, and simple/compound undefined-identifier diagnostics are covered,
 and verdicts stay
-byte-equal beside the C type checker on 68 committed fixtures across both
+byte-equal beside the C type checker on 93 committed fixtures across both
 backends. The checker now covers the common statement forms (let, return,
 assignment, if/while body, if/while condition, bare call), and the fixture
   matrix exercises each diagnostic in every position where it can fire. The
@@ -362,4 +376,4 @@ tables, or fixtures, regenerate the expected verdict blocks from the tool itself
 (the checker is the single source of truth for its own output) and review the
 diff before committing:
 
-    src/self_hosted/parity/regen_expected.sh
+    tests/self_hosted/parity/regen_expected.sh

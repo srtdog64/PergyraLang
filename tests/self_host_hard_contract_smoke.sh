@@ -32,8 +32,16 @@ forbid_text() {
     fi
 }
 
+source "$ROOT_DIR/tests/self_hosted/compiler_world_manifest.sh"
+
 require_file "docs/self_hosted/10_hard_self_host_contract.md"
+require_file "docs/self_hosted/11_compiler_world_architecture.md"
+require_file "docs/self_hosted/12_intent_zone_self_host_architecture.md"
 require_file "tests/self_host_hard_contract_smoke.sh"
+require_file "tests/self_hosted/compiler_world_manifest.sh"
+
+pgy_compiler_world_require_manifest_paths "$ROOT_DIR" ||
+    fail "compiler world path manifest is incomplete"
 
 for term in \
     "Hard self-host is active as staged substitution" \
@@ -54,36 +62,76 @@ require_text "docs/self_hosted/00_agent_entry.md" \
     "Keep the C compiler as the oracle during soft, partial, and hard substitution work."
 require_text "src/self_hosted/README.md" \
     "The C compiler remains the oracle during soft, partial, and hard substitution."
-require_text "src/self_hosted/parity/README.md" \
+require_text "tests/self_hosted/parity/README.md" \
     "Hard substitution rungs are parity gates promoted to pass conditions"
+require_text "docs/self_hosted/10_hard_self_host_contract.md" \
+    '`src/self_hosted/` is for Pergyra source and owner documentation.'
+require_text "docs/self_hosted/10_hard_self_host_contract.md" \
+    '`tests/self_hosted/` is for parity scripts, committed fixtures, expected'
+require_text "docs/self_hosted/10_hard_self_host_contract.md" \
+    "## Compiler World Rule"
+require_text "docs/self_hosted/10_hard_self_host_contract.md" \
+    "src/self_hosted/compiler/world.pgy"
+require_text "docs/self_hosted/10_hard_self_host_contract.md" \
+    "PgyCompilerWorld"
+require_text "docs/self_hosted/11_compiler_world_architecture.md" \
+    'PgyCompilerWorld` is the self-host compiler owner.'
+require_text "src/self_hosted/compiler/world.pgy" \
+    "world PgyCompilerWorld"
+require_text "src/self_hosted/compiler/world.pgy" \
+    "intent CompilePergyraProgram"
+require_text "src/self_hosted/compiler/world.pgy" \
+    "intent ProveSelfHostedParity"
+require_text "src/self_hosted/compiler/stage_intents.pgy" \
+    "intent FrontendPipeline"
+require_text "src/self_hosted/compiler/stage_intents.pgy" \
+    "intent BackendPipeline"
+require_text "tests/self_hosted/README.md" \
+    '`src/self_hosted/` is for Pergyra source owners.'
 require_text "src/self_hosted/PROGRESS.md" \
     "Hard self-host contract"
 
 require_text "Makefile" "self-host-hard-contract-test-smoke"
+require_text "Makefile" "self-host-compiler-world-contract-test-smoke"
+require_text "Makefile" "self-host-preparation-contract-test-smoke"
+require_text "Makefile" "self-host-preparation-parity-test-smoke"
 require_text "Makefile" "tests/self_host_hard_contract_smoke.sh"
+require_text "Makefile" "tests/self_host_compiler_world_contract_smoke.sh"
 require_text "Makefile" "self-host-preparation-test-smoke:"
+require_text "docs/self_hosted/10_hard_self_host_contract.md" \
+    "Normal compiler builds must not imply the heavy self-host parity bundle."
 
 active_stages=(lexer parser semantic codegen)
 for stage in "${active_stages[@]}"; do
     require_file "src/self_hosted/$stage/main.pgy"
     require_file "src/self_hosted/$stage/intent.md"
-    require_file "src/self_hosted/parity/${stage}_parity.sh"
+    require_file "tests/self_hosted/parity/${stage}_parity.sh"
     require_text "Makefile" "self-host-${stage}-parity-test-smoke"
-    require_text "Makefile" "src/self_hosted/parity/${stage}_parity.sh"
+    require_text "Makefile" "tests/self_hosted/parity/${stage}_parity.sh"
     require_text "src/self_hosted/$stage/intent.md" "## Oracle"
 done
 
 for rel in \
-    "src/self_hosted/parity/codegen_bootstrap.sh" \
-    "src/self_hosted/parity/mir_json_parity.sh"; do
+    "tests/self_hosted/parity/codegen_bootstrap.sh" \
+    "tests/self_hosted/parity/mir_json_parity.sh"; do
     require_file "$rel"
     require_text "$rel" "C oracle"
 done
 
-require_text "src/self_hosted/parity/codegen_bootstrap.sh" "FIXPOINT"
-require_text "src/self_hosted/parity/mir_json_parity.sh" \
+require_file "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh"
+require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" \
+    "Pergyra-origin backend parity fuzz smoke"
+require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" \
+    "generator parity ok"
+
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "FIXPOINT"
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "codegen compiles mir_lower"
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "mir_lower_via_codegen.c"
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "fuzz backend parity generator"
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "fuzz_generator_via_codegen.c"
+require_text "tests/self_hosted/parity/mir_json_parity.sh" \
     "MIR JSON facts"
-require_text "src/self_hosted/parity/mir_json_parity.sh" \
+require_text "tests/self_hosted/parity/mir_json_parity.sh" \
     "must not read transitional ast compatibility text"
 require_text "src/self_hosted/mir_lower/main.pgy" \
     "source_type"

@@ -5,7 +5,7 @@ The number that matters is *how much of the C/LLVM compiler has been
 substituted by Pergyra-written equivalents* -- not how many peripheral
 audit tools exist.
 
-Last updated: 2026-06-24
+Last updated: 2026-06-25
 
 ## Headline Number
 
@@ -18,11 +18,11 @@ MIR JSON fact-only lowering aligned. The substitution percentage below is
 unchanged by that contract gate; future percentage increases require a Pergyra
 implementation to replace a real compiler stage/pass beside the C/LLVM oracle.
 
-**Compiler-internal substitution: ~3.88% direct owner-file LOC-scale** (9,885 Pergyra LOC vs 254,742
+**Compiler-internal substitution: ~4.03% direct owner-file LOC-scale** (10,275 Pergyra LOC vs 254,742
 C LOC across `src/lexer/`, `src/parser/`, `src/semantic/`, `src/codegen/`,
 `src/runtime/`, `src/compiler/`, `src/lsp/`). The verified substitutes are the
 lexer, parser, a bounded semantic verdict rung, and -- as of 2026-06-17 -- the
-**first codegen rungs** (`src/self_hosted/codegen/`, 2723 LOC; rung-0 string Log,
+**first codegen rungs** (`src/self_hosted/codegen/`, 2904 LOC; rung-0 string Log,
 rung-1 integer let/arithmetic, rung-2 assign + `while`/`if`/`else`, rung-3
 multi-function definitions + calls + `return`, rung-4 `String` types with a
 variable/function type environment + runtime `pgy_concat`, rung-5 `for` loops +
@@ -32,14 +32,17 @@ rung-7/8 fixed `Array<Int>`/`Array<String>` literals + indexing +
 **growable arrays** (`ArrayPush`) via a `{data,len,cap}` struct rep with
 env-aware index-expression rewriting, rung-11 `StringTrim` builtin, rung-12
 `FileExists`/`ReadFile` file I/O, rung-13 `Args()` user-argument snapshots,
-rung-14 value-passed Int-field structs, rung-15 `Array<Int>` param/return flow).
+rung-14 value-passed Int-field structs, rung-15 `Array<Int>` param/return flow,
+rung-19 typed `Int` / `Bool` / `Float` / `String` struct field facts, and rung-20 nested struct-valued field facts).
 The codegen entrypoint is now split into thin `main.pgy` orchestration plus
-responsibility-owned modules (`ast_input_owner`, `text_owner`, `type_env`,
-`expr_scan`, `expr_rewrite`, `struct_value_emit`, `stmt_emit`, `function_emit`,
-`program_emit`) rather than one
-monolithic implementation file. The rest of codegen, runtime, compiler driver,
-and LSP substitution are still 0%; the MIR-lowering substitution has now
-*started* (see below).
+resource-owner folders: `input/` for AST path/read ownership, `run/` for the
+CLI boundary, `text/` for text/expression scanning, `type_facts/` for type
+evidence, and `emission/` for C-emission action participants. That keeps
+`program_emit`, `function_emit`, `stmt_emit`, `expr_rewrite`, and
+`struct_value_emit` out of fake zone folders while still making the real
+resource owners visible. The rest of codegen, runtime, compiler driver, and LSP
+substitution are still 0%; the MIR-lowering substitution has now *started* (see
+below).
 
 **MIR-lowering substitution started (2026-06-18, path (a) rung-0b):** the C
 compiler now emits MIR JSON (`pgy --mir-json`, schema `pgy.mir.v1`) with the CFG
@@ -60,7 +63,7 @@ early-return flow, recursion, loop-control
 string concatenation, string array concatenation, string case/index/trim
 builtins, `Join`/`ToFloat` string utility flow, array pop, array for-each,
 array sort/map/filter/reverse combinators, `Result<Int>` core constructors and
-inspection helpers, Int-field struct declarations/value flow,
+inspection helpers, typed struct field declarations/value flow,
 plain class/subject/object/tobject/vessel declarations and class methods through MIR-owned
 nominal-kind/field/method/owner facts,
 payload-free enum declarations through MIR-owned variant facts,
@@ -69,8 +72,8 @@ match-case integer pattern conditions, runtime-aligned absolute-path I/O policy,
 file read/write, and phi-bearing loop headers classified by CFG backedges rather
 than phi presence alone, plus MIR-owned array destructure binding facts), gated by
 `parity/mir_json_parity.sh`
-(`make self-host-mir-json-parity-test-smoke`, 82 fixtures plus 1 clean-reject
-fixture). The gate now
+(`make self-host-mir-json-parity-test-smoke`, 85 fixtures plus 0 clean-reject
+fixtures). The gate now
 requires the MIR JSON fact surface and checks the `for`
 header is reconstructed from `arg0` plus `expr0`/`expr1` bounds, and checks
 struct/class declarations, nominal family declarations, owner-qualified class methods, payload-free enum
@@ -83,17 +86,21 @@ facts before generated C emission. It rejects
 reintroducing reads of the transitional `ast` compatibility text. This is the
 first verified slice of the actual compiler-core (~96% of the LOC), not the
 codegen subset. It is now fact-only for the supported MIR JSON statement,
-expression, source-local, CFG, match-case, I/O policy, Int-field struct
+expression, source-local, CFG, match-case, I/O policy, typed struct field
 declaration, field-only class/subject/object/tobject/vessel declaration/method,
-ability signature declaration, and payload-free enum surfaces. The committed
-MIR-lower/codegen fixture inventory is currently **82 PASS / 0 gap plus 1 clean
-reject** through this
+ability signature declaration, payload-free enum surfaces, and the Int role
+operator dispatch surface. The committed MIR-lower/codegen fixture inventory is
+currently **85 PASS / 0 gap plus 0 clean rejects** through this
 path. The nominal family now flows through MIR-owned `nominal_kind`/field facts
 and reconstructs `Class:` / `Subject:` / `Object:` / `TObject:` / `Vessel:`
 instead of collapsing those labels to a generic class alias. Ability
 declarations now flow through MIR-owned method signature facts and are treated
 as zero-artifact declaration hosts by the self-host codegen pre-passes. Role
-declarations, richer projection/identity semantics beyond field-only nominal
+declarations now flow as MIR-owned `kind:"role"` facts with `for_type`, impl
+ability spans, and method signature facts; the supported Int/`Arithmetic.Add`
+operator path is consumed by self-hosted MIR lowering/codegen instead of being a
+clean-reject boundary.
+Richer projection/identity semantics beyond field-only nominal
 declarations and payload enum variants remain observable boundaries, so the
 self-host path fails closed instead of silently
 dropping operator-overload/domain nominal semantics or emitting undefined C
@@ -101,8 +108,8 @@ symbols. New fixtures must preserve that by adding owning facts rather than
 text fallback.
 `self_hosted_component_contract_smoke` now also ratchets that frontier against
 the parity harness itself: the MIR JSON positive fixture inventory must stay at
-82, the clean-reject inventory must stay at 1, the scorecard must cite the same
-82 PASS / 0 gap plus 1 clean reject boundary, and stale fixture-count wording
+85, the clean-reject inventory must stay at 0, the scorecard must cite the same
+85 PASS / 0 gap plus 0 clean reject boundary, and stale fixture-count wording
 is rejected. The positive inventory now includes `examples/binary_search.pgy`
 as an example-origin fixture, not only purpose-built self-host/codegen fixtures.
 
@@ -128,12 +135,12 @@ A Pergyra-built copy of the tool, run on the tool's own source (`main.pgy`,
 1504 lines), emits C that gcc-compiles and **reproduces its own
 source-compilation exactly** -- `gen2 == gen3` byte-identical -- and the
 Pergyra-built tool emits byte-identical C to the oracle-built tool on the sample
-fixtures. Breadth: the same codegen also compiles the lexer (587 lines) and parser (3338 lines); each codegen-built binary matches its oracle-built counterpart on a sample source -- three real self-host components self-built. Wider survey: the codegen compiles **all 22 of 22** committed self-host components/tools to valid C, each verified run-equivalent to the oracle-built binary on a sample -- the entire committed self-host toolchain (lexer, parser, semantic, codegen itself, + 18 audit tools) is self-built by the Pergyra-written codegen. This includes namespace-imported audit tools (`TextScan::` qualified calls, flattened to `NS_Func` -- import/namespace + DirWalk support added). The earlier 18/22 ceiling was a `pgy --ast` bug (for-each `for x in lines` rendered as `For: x in (null)..(null)`, dropping the collection); FIXED in src/parser/ast_print.c (emit the iterable) + the self-host parser, regenerated 5 parser fixtures, and added for-each lowering + bare-void-return + word-boundary builtin matching to the codegen. The final component (semantic) needed `ArrayPop` + type-aware bare `return` (String→`return ""`, non-Void→`return 0`, Main→`return 0`); added both. Parser parity (188 sources) stays byte-equal. The bootstrap gate verifies codegen self-hosts (gen2==gen3) + builds lexer + parser + semantic + 13 audit tools, all matching oracle-built. Gated by `parity/codegen_bootstrap.sh`
+fixtures. Breadth: the same codegen also compiles the lexer (587 lines) and parser (3338 lines); each codegen-built binary matches its oracle-built counterpart on a sample source -- three real self-host components self-built. Wider survey: the codegen compiles **all 22 of 22** committed self-host components/tools to valid C, each verified run-equivalent to the oracle-built binary on a sample -- the entire committed self-host toolchain (lexer, parser, semantic, codegen itself, + 18 audit tools) is self-built by the Pergyra-written codegen. This includes namespace-imported audit tools (`TextScan::` qualified calls, flattened to `NS_Func` -- import/namespace + DirWalk support added). The earlier 18/22 ceiling was a `pgy --ast` bug (for-each `for x in lines` rendered as `For: x in (null)..(null)`, dropping the collection); FIXED in src/parser/ast_print.c (emit the iterable) + the self-host parser, regenerated 5 parser fixtures, and added for-each lowering + bare-void-return + word-boundary builtin matching to the codegen. The final component (semantic) needed `ArrayPop` + type-aware bare `return` (String -> `return ""`, non-Void -> `return 0`, Main -> `return 0`); added both. Parser parity (188 sources) stays byte-equal. The bootstrap gate verifies codegen self-hosts (gen2==gen3) + builds lexer + parser + semantic + mir_lower + 13 audit tools and the backend fuzz generator, all matching oracle-built. Gated by `parity/codegen_bootstrap.sh`
 (`make self-host-codegen-bootstrap-test-smoke`).
 
 Reaching the fixpoint drove out and fixed real gaps: `else if` chains,
 string-literal-safe builtin rewriting, recursive `Concat`/`ToString`/call-argument
-lowering (`Concat`→`pgy_concat` is a pure name rewrite -- same args -- so it
+lowering (`Concat` -> `pgy_concat` is a pure name rewrite -- same args -- so it
 lowers anywhere), bare-call statements, **string `==`/`!=` -> `strcmp(...)==0`**
 (C `==` on `char*` compares pointers; the silent root cause of a non-working
 first attempt), and a latent **forward-declaration bug** -- Pergyra arrays pass by
@@ -190,7 +197,7 @@ payload fact instead of relying on branch-local `String` reassignment.
 Previous historical match counts:
 105 -> 86 -> 83 -> 80 -> 79 -> 77 -> 72 -> 72 -> 63 -> 59 -> 58 -> 57 -> 53 -> 48 -> 46 -> 43 -> 37 -> 25 -> 11.
 Refresh:
-`bash src/self_hosted/parity/parser_scale_probe.sh --failing`.
+`bash tests/self_hosted/parity/parser_scale_probe.sh --failing`.
 
 **Rung-1 parity (2026-06-16):** the committed
 `parser_parity.sh` `SOURCE_PAIRS` array now exercises **188
@@ -246,14 +253,14 @@ only observe text artifacts the C compiler produces. Their LOC is
 
 | Component       | C LOC   | Pergyra LOC | Coverage | Status            |
 |-----------------|---------|-------------|----------|-------------------|
-| `src/lexer/`    |    1003 |         684 | measured corpus parity | **993 of 993 sources byte-equal** (examples + backend_compare). `main.pgy` is orchestration only; source input, character/codepoint handling, token classification/output formatting, and scan-loop state are separate SoT owner modules. Escaped strings, interpolation, and doc/block comments are covered by the measured corpus. 7 representative sources are committed as parity fixtures. |
-| `src/parser/`   |   21813 |        4564 | ~52%     | `src/self_hosted/parser/` parses 188 committed fixtures byte-equal `pgy --ast` on both C and LLVM parser binaries, and **120 of 121** `examples/*.pgy` byte-equal at scale (2026-06-22; zero byte-drift, zero self-host parser exits, 1 C-skip). Parser ownership is now partially split: `error_owner.pgy` owns parse failure rendering, `cursor_owner.pgy` owns source navigation/token reads and keyword boundary matching, `source_path_owner.pgy` owns argv/default source path selection plus source-relative import path resolution, `program_parse_owner.pgy` owns root source reads/root cursor initialization/root `Program:` assembly, `type_name_owner.pgy` owns written type-name parsing/primitive classification, `expr_string_owner.pgy` owns string interpolation expression desugaring, `expr_primary_owner.pgy` owns primary expression roots, `expr_postfix_owner.pgy` owns postfix expression chains, `expr_precedence_owner.pgy` owns expression precedence, `stmt_if_owner.pgy`/`stmt_loop_owner.pgy`/`stmt_parallel_owner.pgy`/`stmt_match_owner.pgy` own their recursive statement branches, `stmt_owner.pgy` owns statement dispatch/block parsing, `function_decl_owner.pgy` owns function declaration/signature rendering, `decl_dispatch_owner.pgy` owns recursive top-level declaration dispatch, `decl_type_owner.pgy`/`decl_ability_owner.pgy`/`decl_event_owner.pgy`/`decl_enum_owner.pgy`/`decl_zone_owner.pgy`/`decl_effect_relation_owner.pgy`/`decl_role_owner.pgy`/`decl_intent_owner.pgy`/`decl_nominal_owner.pgy` own their declaration branches, and `tree_text_owner.pgy` owns compact AST text formatting; `main.pgy` is parser-tool entrypoint orchestration only. Top-level: `[async]? [export]? func<T,U>`, `subject`/`class`/`vessel`/`struct`/`object`/`tobject` with `<T,U>` and `func`/`action` methods, `type` alias/record alias, `enum`, `namespace`, `event`, `ability`, `role`/`impl`, `party`, `roster`, `world`, `zone` (subject/object/tobject slots), `intent ... with retry(n)` metadata, `import "PATH.pgy";` (reads file relative to source dir, recursively parses, force-exports its funcs). Stmt: `let IDENT/(IDENTS)`, assign, `+=`/`-=`/`<-`, `return`, `if`/`else if`/`else`, `if let Some(...)`, `while`, `for`, `loop`, `break`, `continue`, `defer`, `match`, `parallel`, `parallel on`/`every`, `continuous`, `transaction`, `fail`, `with slot<TYPE> as VAR { stmts }`. `expr`: `! - <- spawn[blocking] await` > `*/% > +- > \|> > cmp > && > \|\|`. Primaries: STRING/NUMBER/IDENT/`( )`/`[ ]`/lambda/tuple-erasure, `async {}`/parallel expression blocks, postfix object init / `(args)` / `[idx]` / `.member` / `?` / turbofish, and dollar interpolation. |
-| `src/semantic/` |   47541 |        1914 | rung-2 subset | Checks a bounded function-body subset against the C compiler oracle on C/LLVM-generated binaries: typed `let`, return typing, unary/binary expression typing, same-type `Int`/`Long`/`Float` arithmetic result typing, function-call return/arity/argument typing, scoped `if`/`while`/`for` bodies, branch conditions, assignment, bare call statements, import-backed function signatures, and simple/compound undefined identifier use across 68 fixtures. `main.pgy` is orchestration only; CLI diagnostic/run boundary, source-bundle/import expansion, source scanning, diagnostic rendering, local environment lookup, expression typing, expression diagnostics, call checking, body/function checking, and program checking live in named owner modules. |
-| `src/codegen/`  |  111465 |        2723 | rung-0..17 | **C-emit rung-0..17 (2026-06-24).** Pergyra emitter consumes `pgy --ast` text and emits standalone C for: string `Log`/`Concat`, `Log(ToString(<intexpr>))`, integer `Let:`/`Assign:` (`+ - * / %`, negatives match oracle), `while`/`if`/`else` and `for i in a..b` + `break`/`continue` (structural lowering), multiple `Int`/`Bool`/`String`/`Void` functions with calls, recursion, `return`, block-local `Defer:` scope-exit emission in LIFO order for the supported statement subset, `String` types (routed by a per-function variable + global function type environment; `Concat`/`Substring`/`StringLength`/`StringIndexOf`/`StringTrim`/`StringJoin`/`Join` -> runtime helpers), `Bool` (`<stdbool.h>`), **growable `Array<Int>`/`Array<String>`** as a `{data,len,cap}` struct (`[..]` literal -> `new()`+`push`; `ArrayPush`/`ArrayLength`/`ArraySet`/`xs[i]` -> struct helpers via env-aware index-expression rewriting), `Array<Int>` combinators (`ArraySort`, `ArrayReverse`, `ArrayMap`, `ArrayFilter`) for owned reverse-copy values and unary `Int -> Int` / `Int -> Bool` function references, `Result<Int>` values (`Ok`, `Err`, `IsOk`, `IsErr`, `Unwrap`, `UnwrapOr`) plus postfix `?` early-return lowering for `Int` payload lets inside `Result<Int>` functions, `Option<Int>` values (`Some`, `None`, `IsSome`, `UnwrapOption`) plus MIR-owned `Some(v)` match binding flow, the `Exit(n)` statement, **`FileExists`/`ReadFile` file I/O**, `Args()` user-argument snapshots, value-passed Int-field structs with literals/member reads/params/returns, `Array<Int>` parameter/return flow, `ArrayPop`, type-aware bare returns, and the `ToUpper`/`ToLower`/`StringReplace`/`Abs`/`Min`/`Max` builtins (pure name-rewrites to runtime helpers), and the **string `+` concatenation operator** (in a string context a top-level `+`, after stripping the AST's redundant parens, lowers to nested `pgy_concat`), **`WriteFile(path, content)`** (Void, one-shot overwrite via `pgy_writefile`, the pair of the existing `ReadFile`), and a **`Log` newline-semantics fix** (the oracle strips all trailing newlines from a logged string then appends exactly one -- `Log("c\n\n")` -> `c\n`; string Log now routes through a `pgy_log` helper instead of a raw `printf("%s\n", ...)`, closing a real self-vs-oracle run-equivalence divergence on newline-terminated strings), the **runtime-aligned file path policy** (absolute paths are denied unless `PGY_IO_ALLOW_ABSOLUTE=1`, matching the C runtime default), the **file-handle I/O API** (`FileOpen`->Int handle over a static `FILE*` table, `FileWrite`/`FileClose`/`FileRead` one-line reads, plus `Print` for newline-free output), and **`Float`** (C `double`: Float locals, `ToFloat` via `atof`, `Sqrt`/`Pow`/`Floor`/`Ceil` math via `<math.h>`, `Log(Float)` as `%f`, Float `+`, and deterministic `Random(n)` = `rand() % n`; Float params/returns are deliberately rejected so complex Float programs stay a clean observable rejection rather than broken C). `ast_input_owner.pgy` owns AST path selection, missing-file diagnostics, and the read boundary; `codegen_run_owner.pgy` owns CLI-to-output orchestration; `struct_value_emit.pgy` owns struct-valued expression lowering consumed by `let`/assignment/return emission; `main.pgy` only calls the run owner. The codegen also **rejects `event` declarations** with an observable CODEGEN ERROR (no handler/dispatch model -- a no-op fake would mask real event dispatch). With that, **every one of the examples-scale programs is either compiled to run-equivalent C or cleanly rejected -- zero in-subset silent-broken-output cases**, satisfying the §1.1 observable-rejection invariant across the whole corpus. **56 fixtures run-stdout equal** to the C/LLVM oracle on tools built through both backends (incl. recursive Fibonacci, string index-of split, bool predicates, growable int + string array push/iterate, file read/path policy, argv snapshot, struct value flow, array param/return, Join/ToFloat scalar utility flow, Array<Int> sort/reverse/map/filter flow, Result<Int> value and `?` flow, Option<Int> value flow, and defer LIFO scope-exit flow). Gate: `parity/codegen_parity.sh` (`make self-host-codegen-parity-test-smoke`). Out-of-subset input is an observable `Exit(1)`. |
+| `src/lexer/`    |    1003 |         684 | measured corpus parity | **993 of 993 sources byte-equal** (examples + backend_compare). `main.pgy` is orchestration only; source input, character/codepoint handling, token classification/output formatting, and scan-loop state are separate SoT owner modules. `scan_owner.pgy` now declares its real owner dependencies (`char_owner.pgy`, `token_owner.pgy`) and is part of the real-source semantic selfcheck set. Escaped strings, interpolation, and doc/block comments are covered by the measured corpus. 7 representative sources are committed as parity fixtures. |
+| `src/parser/`   |   21813 |        4564 | ~52%     | `src/self_hosted/parser/` parses 188 committed fixtures byte-equal `pgy --ast` on both C and LLVM parser binaries, and **120 of 121** `examples/*.pgy` byte-equal at scale (2026-06-22; zero byte-drift, zero self-host parser exits, 1 C-skip). Parser ownership is now partially split: `error_owner.pgy` owns parse failure rendering, `cursor_owner.pgy` owns source navigation/token reads and keyword boundary matching, `source_path_owner.pgy` owns argv/default source path selection plus imported-source read policy, shared `SelfHostPath` owns dirname/import path string facts, `program_parse_owner.pgy` owns root source reads/root cursor initialization/root `Program:` assembly, `type_name_owner.pgy` owns written type-name parsing/primitive classification, `expr_string_owner.pgy` owns string interpolation expression desugaring, `expr_primary_owner.pgy` owns primary expression roots, `expr_postfix_owner.pgy` owns postfix expression chains, `expr_precedence_owner.pgy` owns expression precedence, `stmt_if_owner.pgy`/`stmt_loop_owner.pgy`/`stmt_parallel_owner.pgy`/`stmt_match_owner.pgy` own their recursive statement branches, `stmt_owner.pgy` owns statement dispatch/block parsing, `function_decl_owner.pgy` owns function declaration/signature rendering, `decl_dispatch_owner.pgy` owns recursive top-level declaration dispatch, `decl_type_owner.pgy`/`decl_ability_owner.pgy`/`decl_event_owner.pgy`/`decl_enum_owner.pgy`/`decl_zone_owner.pgy`/`decl_effect_relation_owner.pgy`/`decl_role_owner.pgy`/`decl_intent_owner.pgy`/`decl_nominal_owner.pgy` own their declaration branches, and `tree_text_owner.pgy` owns compact AST text formatting; `main.pgy` is parser-tool entrypoint orchestration only. Top-level: `[async]? [export]? func<T,U>`, `subject`/`class`/`vessel`/`struct`/`object`/`tobject` with `<T,U>` and `func`/`action` methods, `type` alias/record alias, `enum`, `namespace`, `event`, `ability`, `role`/`impl`, `party`, `roster`, `world`, `zone` (subject/object/tobject slots), `intent ... with retry(n)` metadata, `import "PATH.pgy";` (reads file relative to source dir, recursively parses, force-exports its funcs). Stmt: `let IDENT/(IDENTS)`, assign, `+=`/`-=`/`<-`, `return`, `if`/`else if`/`else`, `if let Some(...)`, `while`, `for`, `loop`, `break`, `continue`, `defer`, `match`, `parallel`, `parallel on`/`every`, `continuous`, `transaction`, `fail`, `with slot<TYPE> as VAR { stmts }`. `expr`: `! - <- spawn[blocking] await` > `*/% > +- > \|> > cmp > && > \|\|`. Primaries: STRING/NUMBER/IDENT/`( )`/`[ ]`/lambda/tuple-erasure, `async {}`/parallel expression blocks, postfix object init / `(args)` / `[idx]` / `.member` / `?` / turbofish, and dollar interpolation. |
+| `src/semantic/` |   47541 |        2123 | rung-2 subset | Checks a bounded function-body subset against the C compiler oracle on C/LLVM-generated binaries: typed `let`/`let mut`, return typing, unary/binary expression typing, same-type `Int`/`Long`/`Float` arithmetic result typing including unary minus, function-call return/arity/argument typing, file IO builtin signatures (`FileExists`/`ReadFile`/`WriteFile`), scalar math builtin signatures (`Sqrt`/`Pow`/`Floor`/`Ceil`/`Random`/`SeedRandom`), trig/log Float builtin signatures (`Sin`/`Cos`/`Tan`/`Asin`/`Acos`/`Atan`/`Atan2`/`Round`/`Exp`/`MathLog`/`Log10`/`Log2`), string split/join aliases (`Split`/`StringSplit`/`StringJoin`/`Join`) with string argument contracts, and first-argument scalar utility typing (`Abs`/`Min`/`Max`/`Clamp`), scoped `if`/`while`/`for` bodies, branch conditions, assignment, bare call statements, import-backed function signatures, and simple/compound undefined identifier use across 93 fixtures. The same parity gate now checks the 15-code self-hosted semantic diagnostic vocabulary and its C oracle JSON root-code mapping: expected fixture `Code:` fields and literal `SemanticError...("code")` call sites must be registered in `diagnostic_code_owner.pgy`, and invalid fixtures must be rejected by the C oracle with the mapped JSON code instead of falling through to backend-native failure. `main.pgy` is orchestration only; CLI diagnostic/run boundary, diagnostic-code vocabulary, C oracle code mapping, source-bundle/import expansion, source scanning, diagnostic rendering, local environment lookup, expression typing, expression diagnostics, call checking, body/function checking, and program checking live in named owner modules. |
+| `src/codegen/`  |  111465 |        2904 | rung-0..20 | **C-emit rung-0..20 (2026-06-24).** Pergyra emitter consumes `pgy --ast` text and emits standalone C for: string `Log`/`Concat`, `Log(ToString(<intexpr>))`, integer `Let:`/`Assign:` (`+ - * / %`, negatives match oracle), `while`/`if`/`else` and `for i in a..b` + `break`/`continue` (structural lowering), multiple `Int`/`Bool`/`String`/`Void` functions with calls, recursion, `return`, block-local `Defer:` scope-exit emission in LIFO order for the supported statement subset, `String` types (routed by a per-function variable + global function type environment; `String` returns lower to `const char*`, and `Concat`/`Substring`/`StringLength`/`StringIndexOf`/`StringTrim`/`StringJoin`/`Join` -> runtime helpers), `Bool` (`<stdbool.h>`), **growable `Array<Int>`/`Array<String>`** as a `{data,len,cap}` struct (`[..]` literal -> `new()`+`push`; `ArrayPush`/`ArrayLength`/`ArraySet`/`xs[i]` plus indexed assignments `xs[i] = v` -> struct helpers via env-aware index-expression rewriting), `Array<Int>` combinators (`ArraySort`, `ArrayReverse`, `ArrayMap`, `ArrayFilter`) for owned reverse-copy values and unary `Int -> Int` / `Int -> Bool` function references, `Result<Int>` values (`Ok`, `Err`, `IsOk`, `IsErr`, `Unwrap`, `UnwrapOr`) plus postfix `?` early-return lowering for `Int` payload lets inside `Result<Int>` functions, `Option<Int>` values (`Some`, `None`, `IsSome`, `UnwrapOption`) plus MIR-owned `Some(v)` match binding flow, the `Exit(n)` statement, **`FileExists`/`ReadFile` file I/O**, `Args()` user-argument snapshots, value-passed Int / Bool / Float / String field structs plus nested struct-valued fields with literals/member reads/params/returns, `Array<Int>` parameter/return flow, `ArrayPop`, type-aware bare returns, and the `ToUpper`/`ToLower`/`StringReplace`/`Abs`/`Min`/`Max` builtins (pure name-rewrites to runtime helpers), and the **string `+` concatenation operator** (in a string context a top-level `+`, after stripping the AST's redundant parens, lowers to nested `pgy_concat`), **`WriteFile(path, content)`** (Void, one-shot overwrite via `pgy_writefile`, the pair of the existing `ReadFile`), and a **`Log` newline-semantics fix** (the oracle strips all trailing newlines from a logged string then appends exactly one -- `Log("c\n\n")` -> `c\n`; string Log now routes through a `pgy_log` helper instead of a raw `printf("%s\n", ...)`, closing a real self-vs-oracle run-equivalence divergence on newline-terminated strings), the **runtime-aligned file path policy** (absolute paths are denied unless `PGY_IO_ALLOW_ABSOLUTE=1`, matching the C runtime default), the **file-handle I/O API** (`FileOpen`->Int handle over a static `FILE*` table, `FileWrite`/`FileClose`/`FileRead` one-line reads, plus `Print` for newline-free output), **deterministic replay of `SeedRandom(seed)` + `Random(n)`** (no cross-libc sequence promise; the fixture proves same-seed replay), and **`Float`** (C `double`: Float locals, `ToFloat` via `atof`, `Sqrt`/`Pow`/`Floor`/`Ceil` math via `<math.h>`, `Log(Float)` as `%f`, Float `+`, Float params/returns as `double`; `Array<Float>` remains a clean reject; Float and nested struct-valued fields are routed by collected field facts). `ast_input_owner.pgy` owns AST path selection, missing-file diagnostics, and the read boundary; `codegen_run_owner.pgy` owns CLI-to-output orchestration; `struct_value_emit.pgy` owns struct-valued expression lowering consumed by `let`/assignment/return emission; `main.pgy` only calls the run owner. The codegen also **rejects `event` declarations** with an observable CODEGEN ERROR (no handler/dispatch model -- a no-op fake would mask real event dispatch). With that, **every one of the examples-scale programs is either compiled to run-equivalent C or cleanly rejected -- zero in-subset silent-broken-output cases**, satisfying the §1.1 observable-rejection invariant across the whole corpus. **62 fixtures run-stdout equal** to the C/LLVM oracle on tools built through both backends (incl. recursive Fibonacci, string index-of split, bool predicates, growable int + string array push/iterate, indexed array assignment, `Array<String>` index returns, file read/path policy, argv snapshot, typed and nested struct field flow, seeded random replay, array param/return, Join/ToFloat scalar utility flow, Array<Int> sort/reverse/map/filter flow, Result<Int> value and `?` flow, Option<Int> value flow, and defer LIFO scope-exit flow). Gate: `parity/codegen_parity.sh` (`make self-host-codegen-parity-test-smoke`). Out-of-subset input is an observable `Exit(1)`. |
 | `src/runtime/`  |   31985 |           0 | 0%       | native runtime kernel stays C; portable runtime policy libraries may move later |
 | `src/compiler/` |   39863 |           0 | 0%       | not started       |
 | `src/lsp/`      |    1072 |           0 | 0%       | not started       |
-| **Total**       | **254742** |   **9885**  | **~3.88% direct owner-file LOC-scale** | lexer/parser/semantic + codegen rung-0..17; MIR JSON lowering is tracked separately above |
+| **Total**       | **254742** |  **10275**  | **~4.03% direct owner-file LOC-scale** | lexer/parser/semantic + codegen rung-0..20; MIR JSON lowering is tracked separately above |
 
 Notes:
 
@@ -334,18 +341,30 @@ The realistic incremental path toward genuine self-host:
    oracle. Recursive import expansion is now owned by `source_bundle_owner.pgy`,
    and the import-backed call fixture proves signatures are consumed from the
    source bundle instead of from a hidden single-file `main` assumption. The
-   real-source selfcheck now feeds both `src/self_hosted/semantic/main.pgy` and
-   `src/self_hosted/lexer/main.pgy` through that source-bundle owner rather than
-   a generated import-stripped unit. The oracle parity runs on C and LLVM
-   binaries across 68 fixtures. The implementation is split
+   real-source selfcheck now feeds 49 accepted self-host owner/source files
+   through that source-bundle owner rather than a generated import-stripped
+   unit. The accepted manifest spans lexer/parser/mir-lower/codegen/compiler-world
+   entrypoints and audit-tool slices inside the current subset. The oracle parity runs on C and LLVM
+   binaries across 93 fixtures. The same gate now validates the 15-code
+   self-hosted semantic diagnostic vocabulary plus its C oracle JSON root-code
+   mapping: committed expected `Code:` fields and literal
+   `SemanticError...("code")` call sites must be registered in
+   `diagnostic_code_owner.pgy`, and invalid fixtures must be rejected by the C
+   oracle with that mapped JSON code. The implementation is split
    into source-of-truth owners (`text_scan_owner`, `source_bundle_owner`,
    `diagnostic_owner`, `env_owner`, `expr_type_owner`,
    `expr_validation_owner`, `call_check_owner`, `body_check_owner`,
-   `program_check_owner`, and `semantic_run_owner`) with a thin `main.pgy`
+   `program_check_owner`, `diagnostic_code_owner`, and `semantic_run_owner`) with a thin `main.pgy`
    entrypoint. Expression diagnostics consume `ExprType(...)` facts instead of
-   living inside the type-query owner. Next expansion should add a broader
-   builtin/type symbol table and diagnostic-code parity before broadening into
-   declarations.
+   living inside the type-query owner. The builtin/type table now includes the
+   scalar math signatures `Sqrt`, `Pow`, `Floor`, `Ceil`, and `Random`, trig/log
+   Float signatures from `Sin` through `Log2`, string split/join alias
+   signatures, and the first-argument scalar utility contracts for `Abs`,
+   `Min`, `Max`, and `Clamp`, newline-free `Print` output calls, and
+   comment-skipping brace/statement scanning, and the codegen entrypoint source.
+   The next semantic expansion should broaden declarations
+   only after that shared-code boundary or another equally narrow fact owner is
+   available.
 5. **AIR graph consumer passes** -- *rung-1 active* (2026-06-16). Five
    Pergyra-origin graph consumers now run in the self-host preparation suite:
    node-id uniqueness, live-dump node-count integrity, live-dump
@@ -353,7 +372,7 @@ The realistic incremental path toward genuine self-host:
    and root reachability via a push-only worklist. These are still peripheral
    because they do not replace `src/self_hosted/air/`, but they prove the
    deterministic graph substrate the first middle-end pass needs.
-6. **C-emit codegen subset** -- *rung-0..17 active* (2026-06-24). A Pergyra
+6. **C-emit codegen subset** -- *rung-0..20 active* (2026-06-24). A Pergyra
    program (`src/self_hosted/codegen/main.pgy`) takes `pgy --ast` text and emits
    standalone C for: string `Log`/`Concat`, `Log(ToString(<intexpr>))`, integer
    `Let:`/`Assign:`, `while`/`if`/`else` and `for i in a..b` + `break`/`continue`
@@ -369,12 +388,12 @@ The realistic incremental path toward genuine self-host:
    `Some`/`None`/`IsSome`/`UnwrapOption`, block-local `defer`,
    `Exit(n)`,
    `FileExists`/`ReadFile` file I/O, `Args()` snapshots, and
-   value-passed Int-field structs with literals/member reads/params/returns,
+   value-passed `Int` / `Bool` / `Float` / `String` field structs plus nested struct-valued fields with
+   literals/member reads/params/returns,
    and `Array<Int>` parameter/return flow.
    Round-trip C-emit-by-Pergyra -> gcc -> run -> stdout matches the C/LLVM oracle
-   on 56 committed fixtures, with the emitter built through both backends. Next
-   rungs: string freeing / block scoping, richer struct fields / nested
-   AST-node shapes, then round-trip
+   on 59 committed fixtures, with the emitter built through both backends. Next
+   rungs: string freeing / block scoping, broader nested AST-node shapes, then round-trip
    self-compilation.
 7. **Bootstrap loop** -- the Pergyra-written compiler subset compiles
    itself, output runs.

@@ -1,0 +1,4 @@
+func Main() -> Float {
+    let value: Float = Sin("0");
+    return value;
+}

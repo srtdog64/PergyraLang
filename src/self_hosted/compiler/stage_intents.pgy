@@ -1,0 +1,102 @@
+// src/self_hosted/compiler/stage_intents.pgy
+//
+// Derived compiler intent clusters. These are not resource zones: they compose
+// existing resource zones into visible compiler actions.
+
+intent FrontendPipeline(
+    intake: SourceIntakeZone,
+    tokens: TokenStreamZone,
+    ast: AstTreeZone,
+    source: SourceUnit,
+    owner: StageOwner
+) {
+    exclusive;
+
+    step Intake {
+        where: SourceIntakeZone;
+        using: intake;
+        who: source;
+        on: IntakeSource(intake, source);
+        expect: true;
+    }
+
+    step Lex {
+        where: TokenStreamZone;
+        using: tokens;
+        who: owner;
+        on: LexSource(tokens, owner);
+        expect: true;
+    }
+
+    step Parse {
+        where: AstTreeZone;
+        using: ast;
+        who: owner;
+        on: ParseTokens(ast, owner);
+        expect: true;
+    }
+
+    success: true;
+    failure: false;
+}
+
+intent MiddleEndPipeline(
+    semantic_zone: SemanticVerdictZone,
+    lower_zone: MirFactGraphZone,
+    owner: StageOwner
+) {
+    exclusive;
+
+    step Check {
+        where: SemanticVerdictZone;
+        using: semantic_zone;
+        who: owner;
+        on: CheckProgramSemantics(semantic_zone, owner);
+        expect: true;
+    }
+
+    step Lower {
+        where: MirFactGraphZone;
+        using: lower_zone;
+        who: owner;
+        on: LowerProgramFacts(lower_zone, owner);
+        expect: true;
+    }
+
+    success: true;
+    failure: false;
+}
+
+intent BackendPipeline(
+    types: TypeEnvZone,
+    emit_zone: EmissionZone,
+    emitter: ProgramEmitter
+) {
+    exclusive;
+
+    step Emit {
+        where: EmissionZone;
+        using: emit_zone;
+        who: emitter;
+        on: EmitProgramArtifact(emit_zone, types, emitter);
+        expect: true;
+    }
+
+    success: true;
+    failure: false;
+}
+
+intent SelfProofPipeline(parity_zone: ParityZone, oracle: OraclePair) {
+    exclusive;
+
+    step Prove {
+        where: ParityZone;
+        using: parity_zone;
+        who: oracle;
+        on: ProveSelfHostedParity(parity_zone, oracle);
+        expect: true;
+    }
+
+    success: true;
+    failure: false;
+}

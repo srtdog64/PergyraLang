@@ -1,0 +1,279 @@
+// src/self_hosted/codegen/type_facts/type_env.pgy
+//
+// Flat type-environment and expression-kind owner for self-host C emission.
+
+func LookupKindType(env: String, name: String, kind: String) -> String {
+    let needle: String = Concat("|", Concat(name, Concat("=", Concat(kind, ":"))));
+    let idx: Int = StringIndexOf(env, needle);
+    if idx < 0 {
+        return "";
+    }
+    let start: Int = idx + StringLength(needle);
+    let rest: String = Substring(env, start, StringLength(env) - start);
+    let bar: Int = StringIndexOf(rest, "|");
+    if bar < 0 {
+        return rest;
+    }
+    return Substring(rest, 0, bar);
+}
+
+func CsvAt(csv: String, want: Int) -> String {
+    let i: Int = 0;
+    let idx: Int = 0;
+    let start: Int = 0;
+    let n: Int = StringLength(csv);
+    while i <= n {
+        if i == n || CharAt(csv, i) == "," {
+            if idx == want {
+                return Substring(csv, start, i - start);
+            }
+            idx = idx + 1;
+            start = i + 1;
+        }
+        i = i + 1;
+    }
+    return "";
+}
+
+func LookupFieldType(env: String, owner: String, field: String) -> String {
+    return LookupKindType(env, Concat(owner, Concat(".", field)), "field");
+}
+
+func ExprMemberFieldType(expr: String, env: String) -> String {
+    let e: String = StringTrim(expr);
+    let n: Int = StringLength(e);
+    let first_dot: Int = StringIndexOf(e, ".");
+    if first_dot <= 0 {
+        return "";
+    }
+    let receiver: String = Substring(e, 0, first_dot);
+    if !IsIdentifier(receiver) {
+        return "";
+    }
+    let owner: String = LookupKindType(env, receiver, "v");
+    if StringLength(owner) == 0 {
+        return "";
+    }
+    let pos: Int = first_dot;
+    while pos < n {
+        if CharAt(e, pos) != "." {
+            return "";
+        }
+        pos = pos + 1;
+        if pos >= n || !IsIdentStart(CharAt(e, pos)) {
+            return "";
+        }
+        let start: Int = pos;
+        while pos < n && IsIdentChar(CharAt(e, pos)) {
+            pos = pos + 1;
+        }
+        let field: String = Substring(e, start, pos - start);
+        let ftype: String = LookupFieldType(env, owner, field);
+        if StringLength(ftype) == 0 {
+            return "";
+        }
+        owner = ftype;
+    }
+    return owner;
+}
+
+// Classify an expression using the environment.
+func ExprKind(expr: String, env: String) -> String {
+    let e: String = StringTrim(expr);
+    if StringLength(e) == 0 {
+        return "Int";
+    }
+    let member_type: String = ExprMemberFieldType(e, env);
+    if StringLength(member_type) > 0 {
+        return member_type;
+    }
+    if LookupKindType(env, e, "e") != "" {
+        return "Int";
+    }
+    if CharAt(e, 0) == "\"" {
+        return "String";
+    }
+    // A top-level `+` whose left operand is a string is string concatenation.
+    let stripped: String = StripOuterParens(e);
+    let plus: Int = FindTopLevelPlus(stripped);
+    if plus >= 0 {
+        let lhs: String = StringTrim(Substring(stripped, 0, plus));
+        let rhs: String = StringTrim(Substring(stripped, plus + 1, StringLength(stripped) - (plus + 1)));
+        if ExprKind(lhs, env) == "String" {
+            return "String";
+        }
+        if ExprKind(lhs, env) == "Float" || ExprKind(rhs, env) == "Float" {
+            return "Float";
+        }
+    }
+    if StartsWith(e, "Concat(") {
+        return "String";
+    }
+    if StartsWith(e, "Substring(") {
+        return "String";
+    }
+    if StartsWith(e, "CharAtN(") {
+        return "String";
+    }
+    if StartsWith(e, "CharCode(") {
+        return "Int";
+    }
+    if StartsWith(e, "StringTrim(") {
+        return "String";
+    }
+    if StartsWith(e, "StringJoin(") {
+        return "String";
+    }
+    if StartsWith(e, "Join(") {
+        return "String";
+    }
+    if StartsWith(e, "Split(") {
+        return "ArrayString";
+    }
+    if StartsWith(e, "ArraySort(") {
+        return "ArrayInt";
+    }
+    if StartsWith(e, "ArrayReverse(") {
+        return "ArrayInt";
+    }
+    if StartsWith(e, "ArrayMap(") {
+        return "ArrayInt";
+    }
+    if StartsWith(e, "ArrayFilter(") {
+        return "ArrayInt";
+    }
+    if StartsWith(e, "Some(") {
+        return "OptionInt";
+    }
+    if e == "None" {
+        return "OptionInt";
+    }
+    if StartsWith(e, "IsSome(") {
+        return "Bool";
+    }
+    if StartsWith(e, "UnwrapOption(") {
+        return "Int";
+    }
+    if StartsWith(e, "Ok(") {
+        return "ResultInt";
+    }
+    if StartsWith(e, "Err(") {
+        return "ResultInt";
+    }
+    if StartsWith(e, "Unwrap(") {
+        return "Int";
+    }
+    if StartsWith(e, "UnwrapOr(") {
+        return "Int";
+    }
+    if StartsWith(e, "IsOk(") {
+        return "Bool";
+    }
+    if StartsWith(e, "IsErr(") {
+        return "Bool";
+    }
+    if StartsWith(e, "StringContains(") {
+        return "Int";
+    }
+    if StartsWith(e, "ToInt(") {
+        return "Int";
+    }
+    if StartsWith(e, "ToFloat(") {
+        return "Float";
+    }
+    if StartsWith(e, "ReadFile(") {
+        return "String";
+    }
+    if StartsWith(e, "DirWalk(") {
+        return "ArrayString";
+    }
+    if StartsWith(e, "FileExists(") {
+        return "Int";
+    }
+    if StartsWith(e, "FileOpen(") {
+        return "Int";
+    }
+    if StartsWith(e, "FileRead(") {
+        return "String";
+    }
+    if StartsWith(e, "Args(") {
+        return "ArrayString";
+    }
+    let bracket: Int = StringIndexOf(e, "[");
+    if bracket > 0 && CharAt(e, StringLength(e) - 1) == "]" {
+        let arr_name: String = Substring(e, 0, bracket);
+        let arr_kind: String = LookupKindType(env, arr_name, "v");
+        if arr_kind == "ArrayString" {
+            return "String";
+        }
+        if arr_kind == "ArrayInt" {
+            return "Int";
+        }
+    }
+    if StartsWith(e, "ToString(") {
+        return "String";
+    }
+    if StartsWith(e, "StringLength(") {
+        return "Int";
+    }
+    if StartsWith(e, "ToUpper(") {
+        return "String";
+    }
+    if StartsWith(e, "ToLower(") {
+        return "String";
+    }
+    if StartsWith(e, "StringReplace(") {
+        return "String";
+    }
+    if StartsWith(e, "Abs(") {
+        return "Int";
+    }
+    if StartsWith(e, "Min(") {
+        return "Int";
+    }
+    if StartsWith(e, "Max(") {
+        return "Int";
+    }
+    if StartsWith(e, "Sqrt(") {
+        return "Float";
+    }
+    if StartsWith(e, "Pow(") {
+        return "Float";
+    }
+    if StartsWith(e, "Floor(") {
+        return "Float";
+    }
+    if StartsWith(e, "Ceil(") {
+        return "Float";
+    }
+    if IsIdentifier(e) {
+        let vt: String = LookupKindType(env, e, "v");
+        if StringLength(vt) > 0 {
+            return vt;
+        }
+        return "Int";
+    }
+    if IsSingleCall(e) {
+        let op: Int = StringIndexOf(e, "(");
+        let fname: String = Substring(e, 0, op);
+        let ft: String = LookupKindType(env, fname, "f");
+        if StringLength(ft) > 0 {
+            return ft;
+        }
+        return "Int";
+    }
+    // Array element access `IDENT[...]`: element type follows the array's kind.
+    let ob: Int = StringIndexOf(e, "[");
+    if ob > 0 {
+        let pfx: String = Substring(e, 0, ob);
+        if IsIdentifier(pfx) && FindMatchingBracket(e, ob) == StringLength(e) - 1 {
+            if LookupKindType(env, pfx, "v") == "ArrayString" {
+                return "String";
+            }
+            return "Int";
+        }
+    }
+    return "Int";
+}
+
+// Replace every occurrence of `from` with `to` in `s`.

@@ -1,0 +1,5 @@
+func Main() -> Int {
+    let mut x: Int = 1;
+    x = x + 2;
+    return x;
+}

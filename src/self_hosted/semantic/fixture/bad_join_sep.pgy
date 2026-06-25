@@ -1,0 +1,4 @@
+func Main() -> String {
+    let parts: Array<String> = Split("a,b", ",");
+    return Join(parts, 1);
+}

@@ -1,0 +1,4 @@
+func Main() -> Int {
+    let value: Int = Clamp(5.75, 1.0, 3.0);
+    return value;
+}

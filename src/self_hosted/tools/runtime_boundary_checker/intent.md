@@ -24,6 +24,6 @@ missing.
 
 ## Oracle
 
-`src/self_hosted/parity/runtime_boundary_checker_parity.sh` compares the
+`tests/self_hosted/parity/runtime_boundary_checker_parity.sh` compares the
 Pergyra result against shell `grep` checks for the same required terms, verifies
 the committed clean JSON, and checks a synthetic missing-term fixture.

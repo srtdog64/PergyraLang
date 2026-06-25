@@ -5,7 +5,7 @@
 // (e.g. `Math_` for `namespace Math { ... }`, `Outer_Inner_` for nested
 // namespaces). When `until_brace` is true, parsing stops at `}` (used
 // by the namespace branch); otherwise it stops at EOF.
-func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_prefix: String, until_brace: Bool, source_dir: String, force_export: Bool, within_zone: String, inout involve_types: Array<String>) -> String {
+func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_prefix: String, until_brace: Bool, source_dir: String, force_export: Bool, within_zone: String, inout involve_types: Array<String>, inout import_paths: Array<String>) -> String {
     let i: Int = start;
     let n: Int = StringLength(content);
     let out: String = "";
@@ -61,11 +61,15 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
             // Strip the leading and trailing `"` from raw_path.
             let rp_len: Int = StringLength(raw_path);
             let imp_rel: String = Substring(raw_path, 1, rp_len - 2);
-            let imp_path: String = ParserResolveImportPath(source_dir, imp_rel);
+            let imp_path: String = SelfHostPath.NormalizeImportRelative(source_dir, imp_rel);
+            if ParserImportGraphSeen(import_paths, imp_path) {
+                continue;
+            }
+            ArrayPush(import_paths, imp_path);
             let imp_content: String = ParserReadImportedSource(imp_path);
-            let imp_dir: String = ParserSourceDir(imp_path);
+            let imp_dir: String = SelfHostPath.Dirname(imp_path);
             let imp_cursor: Array<Int> = [0];
-            let imp_inner: String = ParseDecls(imp_content, 0, imp_cursor, name_prefix, false, imp_dir, true, active_within_zone, involve_types);
+            let imp_inner: String = ParseDecls(imp_content, 0, imp_cursor, name_prefix, false, imp_dir, true, active_within_zone, involve_types, import_paths);
             if StringLength(imp_inner) > 0 {
                 out = AppendLine(out, imp_inner);
             }
@@ -90,7 +94,7 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
             }
             let new_prefix: String = Concat(name_prefix, Concat(ns_name, "_"));
             ArraySet(cursor_out, 0, i);
-            let inner: String = ParseDecls(content, i, cursor_out, new_prefix, true, source_dir, force_export, active_within_zone, involve_types);
+            let inner: String = ParseDecls(content, i, cursor_out, new_prefix, true, source_dir, force_export, active_within_zone, involve_types, import_paths);
             i = cursor_out[0];
             if StringLength(inner) > 0 {
                 out = AppendLine(out, inner);
@@ -114,7 +118,7 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
                 Exit(1);
             }
             ArraySet(cursor_out, 0, i);
-            let inner: String = ParseDecls(content, i, cursor_out, name_prefix, true, source_dir, force_export, wz_name, involve_types);
+            let inner: String = ParseDecls(content, i, cursor_out, name_prefix, true, source_dir, force_export, wz_name, involve_types, import_paths);
             i = cursor_out[0];
             if StringLength(inner) > 0 {
                 out = AppendLine(out, inner);

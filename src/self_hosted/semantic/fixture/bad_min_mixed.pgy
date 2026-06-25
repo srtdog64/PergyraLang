@@ -1,0 +1,4 @@
+func Main() -> Int {
+    let low: Int = Min(1, 2.0);
+    return low;
+}

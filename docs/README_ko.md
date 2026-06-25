@@ -72,11 +72,14 @@ LLVM 지원 빌드에서는 LLVM을 기본 백엔드로 사용하고, 그렇지 
 ### 빌드 및 실행
 
 ```bash
+# 기본 빌드: 컴파일러와 LSP만 빌드한다. 테스트 바이너리는 포함하지 않는다.
+make all
+
+# 개발 빌드: 컴파일러/LSP와 프런트엔드·런타임 테스트 바이너리를 함께 만든다.
+make all-with-tests
+
 # LLVM 기본 백엔드 빌드
 make LLVM_ENABLED=1 all
-
-# 전체 빌드(C 폴백)
-make all
 
 # Hello World 실행
 ./bin/pgy examples/hello.pgy --run -v

@@ -2,14 +2,14 @@
 # Gates the src/self_hosted/ scaffold integrity.
 #
 # This smoke does not run the Pergyra tools or the parity rungs (each tool
-# owns its own parity script under src/self_hosted/parity/). It only verifies the
+# owns its own parity script under tests/self_hosted/parity/). It only verifies the
 # scaffold contract from docs/self_hosted/00_agent_entry.md is intact:
 #
 #   - legacy root self_hosted/ is absent; executable scaffolds live in src/self_hosted/
 #   - src/self_hosted/README.md exists
-#   - src/self_hosted/parity/README.md exists
+#   - tests/self_hosted/parity/README.md exists
 #   - every tool dir under src/self_hosted/tools/<name>/ has intent.md and main.pgy
-#   - every tool dir has a matching parity script src/self_hosted/parity/<name>_parity.sh
+#   - every tool dir has a matching parity script tests/self_hosted/parity/<name>_parity.sh
 #   - every parity script is bash-compatible and declares `set -euo pipefail`
 
 set -euo pipefail
@@ -18,7 +18,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LEGACY_SELF_HOST_DIR="$ROOT_DIR/self_hosted"
 SELF_HOST_DIR="$ROOT_DIR/src/self_hosted"
 TOOLS_DIR="$SELF_HOST_DIR/tools"
-PARITY_DIR="$SELF_HOST_DIR/parity"
+PARITY_DIR="$ROOT_DIR/tests/self_hosted/parity"
 
 fail() {
     echo "[self-host-scaffold] $1" >&2
@@ -28,9 +28,16 @@ fail() {
 [[ ! -d "$LEGACY_SELF_HOST_DIR" ]] \
     || fail "legacy root self_hosted/ directory must stay absent; use src/self_hosted/"
 [[ -d "$SELF_HOST_DIR" ]] || fail "missing src/self_hosted/ directory"
+[[ ! -d "$SELF_HOST_DIR/parity" ]] \
+    || fail "src/self_hosted/parity must stay absent; parity harnesses live in tests/self_hosted/parity/"
 [[ -f "$SELF_HOST_DIR/README.md" ]] || fail "missing src/self_hosted/README.md"
-[[ -f "$PARITY_DIR/README.md" ]] || fail "missing src/self_hosted/parity/README.md"
+[[ -f "$ROOT_DIR/tests/self_hosted/README.md" ]] || fail "missing tests/self_hosted/README.md"
+[[ -f "$PARITY_DIR/README.md" ]] || fail "missing tests/self_hosted/parity/README.md"
 [[ -f "$SELF_HOST_DIR/PROGRESS.md" ]] || fail "missing src/self_hosted/PROGRESS.md (self-host coverage tracker)"
+grep -Fq '`src/self_hosted/` is for Pergyra source owners.' "$ROOT_DIR/tests/self_hosted/README.md" \
+    || fail "tests/self_hosted/README.md must define src/tests ownership split"
+grep -Fq 'tests/self_hosted/' "$SELF_HOST_DIR/README.md" \
+    || fail "src/self_hosted/README.md must point parity/test artifacts to tests/self_hosted/"
 
 # PROGRESS.md must contain the canonical Headline Number anchor so
 # updates are not silently dropped during edits.

@@ -1,0 +1,61 @@
+// src/self_hosted/lib/path.pgy
+//
+// Shared path policy for self-hosted compiler-stage tools. This owns path
+// string facts only; runtime file-access authorization remains owned by the
+// native runtime IO path resolver.
+
+namespace SelfHostPath {
+    export func Dirname(path: String) -> String {
+        let last_slash: Int = -1;
+        let i: Int = 0;
+        while i < StringLength(path) {
+            if CharAt(path, i) == "/" {
+                last_slash = i;
+            }
+            i = i + 1;
+        }
+        if last_slash < 0 {
+            return "";
+        }
+        return Substring(path, 0, last_slash);
+    }
+
+    export func IsAbsolute(path: String) -> Bool {
+        if StringLength(path) == 0 {
+            return false;
+        }
+        if CharAt(path, 0) == "/" {
+            return true;
+        }
+        if StringLength(path) > 1 && CharAt(path, 1) == ":" {
+            return true;
+        }
+        return false;
+    }
+
+    export func Join(base_dir: String, rel_path: String) -> String {
+        if IsAbsolute(rel_path) {
+            return rel_path;
+        }
+        if StringLength(base_dir) == 0 {
+            return rel_path;
+        }
+        return Concat(base_dir, Concat("/", rel_path));
+    }
+
+    export func NormalizeImportRelative(base_dir: String, rel_path: String) -> String {
+        if IsAbsolute(rel_path) {
+            return rel_path;
+        }
+        let dir: String = base_dir;
+        let path: String = rel_path;
+        while StringLength(path) >= 3 && Substring(path, 0, 3) == "../" {
+            dir = Dirname(dir);
+            path = Substring(path, 3, StringLength(path) - 3);
+        }
+        while StringLength(path) >= 2 && Substring(path, 0, 2) == "./" {
+            path = Substring(path, 2, StringLength(path) - 2);
+        }
+        return Join(dir, path);
+    }
+}

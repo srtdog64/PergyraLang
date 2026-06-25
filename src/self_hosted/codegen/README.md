@@ -5,12 +5,29 @@ track** opened after the 2026-06-17 BDFL decision that lifted the
 `docs/self_hosted/README.md` (2026-06-13) "hard compiler-core migration is not
 open" freeze. Before that date this folder was a reserved stub.
 
-## Rung-0..17 (2026-06-24) - active
+Architecture note:
+[`docs/self_hosted/13_compiler_substrate_architecture.md`](../../../docs/self_hosted/13_compiler_substrate_architecture.md)
+is the owner contract for this folder's long-term shape. Codegen is a backend
+resource cluster: `TypeEnvZone` owns type facts, `EmissionZone` owns emitted C,
+and `ProgramEmitter` is the participant that writes through the emission
+boundary. The files under `emission/` are action participants, not separate
+zones.
 
-`main.pgy` is the thin CLI entrypoint. It imports owner modules for AST input,
-the codegen run boundary, text scanning, type environment lookup, expression
-rewriting, struct-valued expression lowering, statement emission,
-function/declaration scanning, and program assembly. Together they consume
+## Rung-0..20 (2026-06-24) - active
+
+`main.pgy` is the thin CLI entrypoint. It imports owner modules through
+resource-shaped subdirectories:
+
+- `input/` owns AST path selection and file reads.
+- `run/` owns CLI-to-output orchestration.
+- `text/` owns AST/expression text scanning primitives.
+- `type_facts/` owns type binding facts consumed as read-mostly evidence.
+- `emission/` owns participants in the C-emission action graph.
+
+These folders are not a copy of the native C backend topology. `program_emit`,
+`function_emit`, `stmt_emit`, `expr_rewrite`, and `struct_value_emit` are
+participants over the same output/type resources, not separate zones. Together
+they consume
 `pgy --ast` text for an `Int` / `Bool` / `String` / `Array<Int>` /
 `Array<String>` / `Option<Int>` / `Void` function subset and emit a
 self-contained C program
@@ -26,11 +43,14 @@ Result values: `Result<Int>` with `Ok`, `Err`, `IsOk`, `IsErr`, `Unwrap`,
 Option values: `Option<Int>` with `Some`, `None`, `IsSome`, and `UnwrapOption`.
 Defer: block-local `Defer: / Block:` scope-exit statements with LIFO ordering
 for the supported statement subset.
-Tool I/O: `FileExists`, `ReadFile`, `Args`.
+Tool I/O: `FileExists`, `ReadFile`, `WriteFile`, `Args`.
+Deterministic RNG: `SeedRandom(seed)` plus `Random(n)`, with parity fixtures
+checking replay semantics instead of pinning a cross-libc random sequence.
 Arrays: growable `Array<Int>` / `Array<String>` locals plus `Array<Int>`
 parameters and returns.
-User structs: top-level `struct` declarations with `Int` fields, struct
-literals, member reads, struct parameters, and struct returns.
+User structs: top-level `struct` declarations with `Int` / `Bool` / `Float` /
+`String` fields plus previously declared struct-valued fields, struct literals,
+member reads, nested member reads, struct parameters, and struct returns.
 
 **Functions:** one or more functions, exactly one named `Main`. Each emits a C
 function; non-`Main` functions get forward declarations, so call order and
@@ -39,7 +59,8 @@ recursion are free. `Main` lowers to `int main(void)`, or to
 
 - `Int` param -> `long long`, return -> `long long`
 - `Bool` param/return -> `bool` (`<stdbool.h>`); `true` / `false` / `!` pass through
-- `String` param -> `const char*`, return -> `char*`
+- `Float` param/return -> `double`
+- `String` param -> `const char*`, return -> `const char*`
 - `Array<Int>` param/return -> `pgy_ai`; `Array<String>` param/return -> `pgy_as`
 - struct param/return -> value-passed C typedef for the generated struct
 - `Result<Int>` param/return -> value-passed `pgy_result_int`
@@ -59,16 +80,20 @@ recursion are free. `Main` lowers to `int main(void)`, or to
   (`pgy_ai` / `pgy_as`, a `{data,len,cap}`); the literal lowers to `new()` plus
   one `push` per element (`[]` is just `new()`). `ArrayPush(xs, v)`,
   `ArraySet(xs, i, v)`, `ArrayLength(xs)`, and index reads `xs[i]` lower to
-  `pgy_*_push/set/len/get`. `ArraySort(xs)` sorts the shared `Array<Int>`
+  `pgy_*_push/set/len/get`; indexed assignments (`xs[i] = v`) lower through the
+  same set helpers. `ArraySort(xs)` sorts the shared `Array<Int>`
   buffer and returns the value, matching the oracle's value-with-shared-buffer
   behavior; `ArrayReverse(xs)` returns a fresh reversed `Array<Int>` value;
   `ArrayMap(xs, F)` / `ArrayFilter(xs, P)` are supported for unary
   `Int -> Int` / `Int -> Bool` functions. Index reads are rewritten env-aware in arbitrary
   expressions (`total + xs[j]` -> `total + pgy_ai_get(xs, j)`), with string
   literals copied verbatim so a `[` inside a string is never touched (rung-7/8/10).
-- `Let: <name> : StructName = StructName { field: value, ... }` -> an Int-field
-  C compound literal. Struct-returning calls can initialize struct locals, and
-  member reads (`p.x`) pass through as C field access.
+- `Let: <name> : StructName = StructName { field: value, ... }` -> a C
+  compound literal routed by collected field-type facts. Struct-returning calls
+  can initialize struct locals, and member reads (`p.x`) pass through as C field
+  access while `ExprKind` consumes the field-type fact for `Log` / condition
+  routing. Struct-valued fields recurse through the same fact-owned literal
+  boundary, and dotted reads such as `line.end.x` resolve through field facts.
 - `Let: <name> : Result<Int> = Ok(v)|Err(s)|Call(...)` -> value-passed
   `pgy_result_int`; `IsOk` / `IsErr` branch conditions and `Unwrap` /
   `UnwrapOr` integer expressions lower through local helpers. `Let: <name> :
@@ -108,16 +133,17 @@ Anything outside the subset is an observable `Exit(1)` failure; no silent
 fallback. The intent contract is pinned in `intent.md`; this README is
 explanatory.
 
-`ast_input_owner.pgy` owns the AST path policy (`Args()[0]` or the no-argument
-`hello_ast.txt` fixture), the missing-file diagnostic, and the `ReadFile`
-boundary. `codegen_run_owner.pgy` owns the CLI-to-output orchestration that
-wires that owned AST text into `GenerateC`; `main.pgy` only calls the run owner.
-`struct_value_emit.pgy` owns struct-valued expression lowering used by `let`,
-assignment, and return paths; `stmt_emit.pgy` consumes that boundary instead of
-owning struct literal policy directly.
+`input/ast_input_owner.pgy` owns the AST path policy (`Args()[0]` or the
+no-argument `hello_ast.txt` fixture), the missing-file diagnostic, and the
+`ReadFile` boundary. `run/codegen_run_owner.pgy` owns the CLI-to-output
+orchestration that wires that owned AST text into `GenerateC`; `main.pgy` only
+calls the run owner. `emission/struct_value_emit.pgy` owns struct-valued
+expression lowering used by `let`, assignment, and return paths;
+`emission/stmt_emit.pgy` consumes that boundary instead of owning struct literal
+policy directly.
 
-Parity gate: `src/self_hosted/parity/codegen_parity.sh` builds `main.pgy` through
-the requested backend set, runs it on each of the 56 committed fixtures'
+Parity gate: `tests/self_hosted/parity/codegen_parity.sh` builds `main.pgy` through
+the requested backend set, runs it on each of the 62 committed fixtures'
 `pgy --ast` output, gcc-compiles the emitted C, runs it, and compares run-stdout
 against the committed expected output. A live-drift guard re-derives that
 expected output from the C-backend oracle executable. LLVM is mandatory when the
@@ -140,7 +166,7 @@ array; this keeps macOS bash 3.2, Git Bash, and Linux bash behavior aligned unde
 
 1. string freeing / arena ownership and block scoping (memory correctness, not
    just run-stdout parity)
-2. richer struct fields / nested AST-node shapes
+2. broader nested AST-node shapes
 3. broader MIR-JSON driven codegen substitution, so new surfaces enter through
    `mir_lower` facts before they reach the AST-text compatibility bridge
 

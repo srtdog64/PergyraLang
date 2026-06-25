@@ -158,7 +158,7 @@ args/array/string/Bool/Float/file/recursion, straight-line call, integer
 arithmetic, directory-walk, exit-guard, Bool-literal branch reassignment,
 trailing-newline Log, nested string concat, string array concat, string
 case/index/trim builtins, string reassignment, array pop, array for-each,
-Int-field struct declarations/value flow, two-log, loop-control
+typed struct field declarations/value flow, two-log, loop-control
 `continue`/`break` edge-block surfaces, and break edges after non-empty
 statement blocks, inferred `Random()` Int source-local facts, and match-case
 integer pattern conditions from `match_patterns` facts, plus runtime-aligned
@@ -177,9 +177,11 @@ constructors and inspection helpers, and `Join`/`ToFloat` string utility flow
 also run through this MIR-JSON path. Ability declarations are reconstructed from MIR method
 signature facts and treated as zero-artifact declaration hosts by the
 self-hosted codegen pre-passes. The committed MIR-lower/codegen fixture
-inventory is now measured at 82 PASS / 0 gap plus 1 clean reject through this
-path. Role unsupported declaration facts are emitted and rejected before the
-self-host path can silently erase operator-overload semantics; richer
+inventory is now measured at 85 PASS / 0 gap plus 0 clean rejects through this
+path. Role declarations now flow as MIR-owned `kind:"role"` facts with
+`for_type`, impl ability spans, and method signature facts; the supported
+Int/`Arithmetic.Add` operator dispatch path is now consumed by self-hosted
+MIR lowering/codegen instead of a clean-reject boundary. Richer
 projection/identity semantics beyond field-only nominal declarations still
 require later facts and fixtures; payload enum variants reject from their
 variant facts; `self-host-mir-json-parity-test-smoke` rejects

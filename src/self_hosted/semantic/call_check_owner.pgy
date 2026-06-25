@@ -1,5 +1,11 @@
 // Self-host semantic call checking owner.
 
+import "text_scan_owner.pgy";
+import "diagnostic_owner.pgy";
+import "env_owner.pgy";
+import "expr_type_owner.pgy";
+import "expr_validation_owner.pgy";
+
 func CompareCallArgs(callee: String, args_src: String, sig: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
     let n: Int = StringLength(args_src);
     let i: Int = 0;
@@ -52,6 +58,27 @@ func CompareCallArgs(callee: String, args_src: String, sig: String, names: Array
             part_start = i + 1;
         }
         i = i + 1;
+    }
+    return "";
+}
+func CheckScalarUtilityArgs(callee: String, args_src: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
+    if callee != "Min" && callee != "Max" {
+        return "";
+    }
+    let first: String = CallArgAt(args_src, 0);
+    let second: String = CallArgAt(args_src, 1);
+    let first_undefined: String = CheckUndefinedIdentifiers(first, names);
+    if StringLength(first_undefined) > 0 {
+        return first_undefined;
+    }
+    let second_undefined: String = CheckUndefinedIdentifiers(second, names);
+    if StringLength(second_undefined) > 0 {
+        return second_undefined;
+    }
+    let first_type: String = ExprType(first, names, types, func_names, func_rets);
+    let second_type: String = ExprType(second, names, types, func_names, func_rets);
+    if first_type != "Unknown" && second_type != "Unknown" && !ExpressionAssignableTo(first_type, second_type, second) {
+        return SemanticError3("call_arg_type_mismatch", "func", callee, "expected", first_type, "actual", second_type);
     }
     return "";
 }
@@ -245,6 +272,10 @@ func CheckCall(text: String, names: Array<String>, types: Array<String>, modes: 
     let actual_count: Int = ArgCount(args_src);
     if expected_count != actual_count {
         return SemanticError3("call_arity_mismatch", "func", callee, "expected", NumToStr(expected_count), "actual", NumToStr(actual_count));
+    }
+    let scalar_error: String = CheckScalarUtilityArgs(callee, args_src, names, types, func_names, func_rets);
+    if StringLength(scalar_error) > 0 {
+        return scalar_error;
     }
     if StringLength(sig) == 0 {
         return "";

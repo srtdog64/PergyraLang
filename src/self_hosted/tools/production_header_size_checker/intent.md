@@ -61,7 +61,7 @@ and comparison against the 600-LOC cap. The C-side oracle is
 verdict in Pergyra and the parity script asserts both agree on file count,
 violation count, and max line count.
 
-The parity rung (`src/self_hosted/parity/`) asserts:
+The parity rung (`tests/self_hosted/parity/`) asserts:
 
 - The Pergyra origin exits `0` on the clean repo.
 - Emitted JSON byte-matches `expected/clean.json`.

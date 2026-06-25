@@ -59,7 +59,7 @@ typedef enum {
     INTENT_ROLLBACK_NONE
 } IntentRollbackPolicy;
 
-/* Closure capture descriptor (see docs/135_closure_capture_design.md).
+/* Closure capture descriptor (see docs/141_closure_capture_design.md).
  * Computed during semantic analysis and stored on the lambda AST node;
  * the list is empty until then. Capture lives on the Resource axis. */
 typedef enum {

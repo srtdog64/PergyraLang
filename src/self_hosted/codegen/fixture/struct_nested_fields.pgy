@@ -1,0 +1,20 @@
+struct Vec2 {
+    x: Int,
+    y: Int
+}
+
+struct Line {
+    start: Vec2,
+    end: Vec2,
+    weight: Float
+}
+
+func MakeLine() -> Line {
+    return Line { start: Vec2 { x: 1, y: 2 }, end: Vec2 { x: 4, y: 6 }, weight: 2.5 };
+}
+
+func Main() -> Void {
+    let line: Line = MakeLine();
+    Log(ToString(line.end.x - line.start.x));
+    Log(line.weight + 1.5);
+}

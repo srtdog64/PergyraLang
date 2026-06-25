@@ -1,0 +1,8 @@
+func Pick(xs: Array<String>) -> String {
+    return xs[1];
+}
+
+func Main() -> Void {
+    let words: Array<String> = ["zero", "one", "two"];
+    Log(Pick(words));
+}

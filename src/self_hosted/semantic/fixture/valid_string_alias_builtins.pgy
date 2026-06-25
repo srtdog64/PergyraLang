@@ -1,0 +1,9 @@
+func Main() -> String {
+    let parts: Array<String> = StringSplit("red,green,blue", ",");
+    let joined: String = Join(parts, "|");
+    let has: Bool = StringContains(joined, "green");
+    if has {
+        return joined;
+    }
+    return StringJoin(parts, ",");
+}

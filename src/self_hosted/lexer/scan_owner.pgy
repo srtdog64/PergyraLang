@@ -1,5 +1,8 @@
 // Self-host lexer scan-loop owner.
 
+import "char_owner.pgy";
+import "token_owner.pgy";
+
 func LexContent(source_path: String, content: String) -> String {
     let n: Int = StringLength(content);
 

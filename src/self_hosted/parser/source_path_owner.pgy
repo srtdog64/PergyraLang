@@ -1,9 +1,7 @@
 // Parser source-path owner.
 //
-// This module owns the parser tool's source input path, source-relative import
-// path resolution, and imported-source marker. `main.pgy` stays orchestration
-// only, and declaration dispatch consumes these facts rather than recomputing
-// path policy locally.
+// This module owns the parser tool's source input path and imported-source
+// marker. Shared path string facts live in SelfHostPath.
 
 func ParserDefaultSourcePath(args: Array<String>) -> String {
     if ArrayLength(args) > 0 {
@@ -12,32 +10,20 @@ func ParserDefaultSourcePath(args: Array<String>) -> String {
     return "examples/hello.pgy";
 }
 
-func ParserSourceDir(source_path: String) -> String {
-    let last_slash: Int = -1;
-    let n: Int = StringLength(source_path);
-    let i: Int = 0;
-    while i < n {
-        if CharAt(source_path, i) == "/" {
-            last_slash = i;
-        }
-        i = i + 1;
-    }
-    if last_slash >= 0 {
-        return Substring(source_path, 0, last_slash);
-    }
-    return "";
-}
-
-func ParserResolveImportPath(source_dir: String, import_rel: String) -> String {
-    if StringLength(source_dir) > 0 {
-        return Concat(source_dir, Concat("/", import_rel));
-    }
-    return import_rel;
-}
-
 func ParserReadImportedSource(import_path: String) -> String {
     if !FileExists(import_path) {
         Exit(1);
     }
     return Concat(ReadFile(import_path), "\n// __imported__\n");
+}
+
+func ParserImportGraphSeen(paths: Array<String>, path: String) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(paths) {
+        if paths[i] == path {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
 }

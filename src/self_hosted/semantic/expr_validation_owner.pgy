@@ -4,6 +4,11 @@
 // The expression type owner answers type queries; it does not own diagnostic
 // traversal or semantic error selection.
 
+import "text_scan_owner.pgy";
+import "diagnostic_owner.pgy";
+import "env_owner.pgy";
+import "expr_type_owner.pgy";
+
 func CheckUndefinedIdentifiers(expr: String, names: Array<String>) -> String {
     let text: String = Trim(expr);
     let n: Int = StringLength(text);

@@ -33,7 +33,7 @@ rewrite history.
   `main.pgy` is now only the entrypoint; character/codepoint handling,
   token classification/output formatting, and scan-loop state are split into
   source-of-truth owner modules.
-- **Parser**: self-hosts on C+LLVM. Byte-identical against `pgy --ast` on 188
+- **Parser**: self-hosts on C+LLVM. Byte-identical against `pgy --ast` on 189
   committed fixtures (gated); examples scale probe last recorded 120/121 with
   zero byte-drift, zero self-host exits, 1 C-oracle skip. Parser ownership is
   partially split: parse failure rendering, source cursor/token reads, written
@@ -47,15 +47,18 @@ rewrite history.
 - **Backend parity**: parser compiled by C and by LLVM produce byte-identical
   output -- the core self-host correctness signal.
 - **Semantic**: self-hosts a bounded function-body checker on C+LLVM across
-  **68 committed fixtures**. Expression typing now owns same-type
-  `Int`/`Long`/`Float` arithmetic, with contextual integer-literal assignment
-  to `Long` as the only widening rule in this rung.
+  **93 committed fixtures**. Expression typing now owns same-type
+  `Int`/`Long`/`Float` arithmetic, contextual integer-literal assignment
+  to `Long` as the only widening rule in this rung, and scalar math builtin
+  signatures for `Sqrt`, `Pow`, `Floor`, `Ceil`, `Random`, and `SeedRandom`, trig/log Float
+  signatures from `Sin` through `Log2`, string split/join aliases, plus
+  first-argument scalar utility typing for `Abs`, `Min`, `Max`, and `Clamp`.
 - **Compiler core**: capability-5 single-source-of-truth is READY for the
   measured source_ast/source_decl and supported MIR-lowering frontier.
   Source-payload reads for the gated body surface have been replaced by
   dedicated MIR/source-shape facts, and the self-hosted MIR-lowering path is
   ratcheted against reading transitional `"ast"` text. The committed
-  MIR-lower/codegen frontier is **82 PASS / 0 gap plus 1 clean reject**.
+  MIR-lower/codegen frontier is **85 PASS / 0 gap plus 0 clean rejects**.
 
 ## Roadmap to completion
 
@@ -82,6 +85,160 @@ rewrite history.
    allowed -- that is what makes a positive one mean something.
 
 ## Session log
+
+### 2026-06-25 -- Codegen SeedRandom, indexed arrays, and mir_lower breadth enter bootstrap
+
+- Closed the self-hosted codegen `SeedRandom(seed)` builtin gap. The token
+  rewrite owner now lowers it to `pgy_seedrandom`, and the program prelude owner
+  emits the corresponding `srand((unsigned int)seed)` helper only when the AST
+  carries that fact.
+- Added `seed_random.pgy` to the codegen parity manifest. The fixture proves
+  same-seed replay semantics without pinning a cross-libc random sequence.
+  Added `array_index_assign.pgy` and `string_array_index_return.pgy` to close
+  indexed array write/read return surfaces needed by real compiler-stage code.
+  Gate: `make self-host-codegen-parity-test-smoke` now covers **62 fixtures**.
+- Tightened the C ABI shape for self-hosted codegen string returns:
+  `String -> const char*`, matching string params, literals, and
+  `Array<String>` element reads at the boundary.
+- Tightened bootstrap breadth to use `gen2` for component/tool emission. The
+  previous breadth loop described a codegen-built binary but emitted those
+  component/tool C files through `gen0`; now lexer, parser, semantic, and audit
+  tool breadth are emitted by the Pergyra-built codegen.
+- Tightened `codegen_bootstrap.sh`: `gen2` (the Pergyra-built codegen) must now
+  compile `src/self_hosted/mir_lower/main.pgy` and match the C oracle-built
+  `mir_lower` output on `let_log`, `forloop`, and `role_operator_dispatch`.
+- Tightened `codegen_bootstrap.sh`: `gen2` (the Pergyra-built codegen) must now
+  compile the backend parity fuzz generator and produce the same stdout,
+  manifest, and generated `f*.pgy` corpus as the C oracle-built generator.
+  Gate: `make self-host-codegen-bootstrap-test-smoke`.
+
+### 2026-06-25 -- Semantic scalar math builtins enter the oracle parity rung
+
+- Added semantic signatures for `Sqrt(Float) -> Float`, `Pow(Float, Float) ->
+  Float`, `Floor(Float) -> Float`, `Ceil(Float) -> Float`, and
+  `Random(Int) -> Int` in `program_check_owner.pgy`.
+- Added three C-oracle-backed semantic fixtures:
+  `valid_scalar_math_builtins`, `bad_sqrt_arg`, and `bad_random_arg`.
+- Ratcheted `semantic_parity.sh` and the component contract from 68 to
+  **71 committed fixtures**. The new bad fixtures prove `call_arg_type_mismatch`
+  is emitted before relying on backend/native C type errors for these scalar
+  builtin calls.
+
+### 2026-06-25 -- Semantic scalar utility builtins consume first-argument facts
+
+- Added self-hosted semantic inventory entries for `Abs`, `Min`, and `Max`.
+  `expr_type_owner.pgy` now returns the first argument's known type for these
+  calls, matching the C semantic owner instead of falling through to `Unknown`.
+- `call_check_owner.pgy` now enforces the `Min`/`Max` second-argument
+  assignability contract through `ExpressionAssignableTo(...)`, so the
+  utility rule is owned by the self-hosted call checker rather than backend
+  compile failure.
+- Added four C-oracle-backed fixtures:
+  `valid_scalar_utility_int`, `valid_scalar_utility_float`, `bad_min_mixed`,
+  and `bad_max_mixed`, raising semantic parity to **75 committed fixtures**.
+
+### 2026-06-25 -- Clamp joins first-argument scalar utility typing
+
+- Added `Clamp` to the self-hosted semantic builtin inventory. The Pergyra
+  expression type owner now returns the first argument's known type for
+  `Clamp(x, lo, hi)`, matching the C scalar owner.
+- Added `valid_clamp_int`, `valid_clamp_float`, and `bad_clamp_assign` fixtures.
+  The bad fixture proves a `Float` first-argument `Clamp` cannot initialize an
+  `Int` local through an `Unknown` fallback.
+- Ratcheted semantic parity and the component contract to **78 committed
+  fixtures**.
+
+### 2026-06-25 -- Trig/log Float builtins enter semantic parity
+
+- Added semantic inventory entries for `Sin`, `Cos`, `Tan`, `Asin`, `Acos`,
+  `Atan`, `Atan2`, `Round`, `Exp`, `MathLog`, `Log10`, and `Log2`, matching
+  the C scalar builtin table used by `scalar_trig_log_runtime`.
+- Added `valid_scalar_trig_log_builtins`, `bad_sin_arg`, and `bad_atan2_arg`
+  fixtures so unary and binary Float builtin calls are C-oracle-backed instead
+  of falling through to native backend errors.
+- Ratcheted semantic parity and the component contract to **81 committed
+  fixtures**.
+
+### 2026-06-25 -- String split/join aliases enter semantic parity
+
+- Added `Join` and `StringSplit` to the self-hosted semantic builtin inventory.
+  `StringJoin`/`Join` now require a string separator, while `Split`/
+  `StringSplit` and `StringContains` require string arguments where the C
+  scalar owner already does.
+- Added `valid_string_alias_builtins`, `bad_string_contains_arg`,
+  `bad_split_arg`, and `bad_join_sep` fixtures. These close the common
+  self-hosted tool surface (`Split` + `StringJoin` + `StringContains`) against
+  native backend fallback diagnostics.
+- Ratcheted semantic parity and the component contract to **85 committed
+  fixtures**.
+
+### 2026-06-25 -- Role operator dispatch becomes a positive MIR JSON path
+
+- Promoted `role_operator_dispatch.pgy` from a clean-reject boundary into the
+  positive MIR JSON hard path. The fixture now reconstructs `Role: IntMath for
+  Int`, lowers the role method with `self: Int` from the role `for_type` fact,
+  and rewrites `a + b` through the MIR-owned `IntMath_Add` operator path.
+- Tightened the self-hosted `mir_lower` declaration consumer so class/role
+  method lists are read through bounded JSON array/object facts. This prevents
+  parameter names such as `self` from being mistaken for declaration method
+  names.
+- The rolling MIR JSON frontier moves to **85 PASS / 0 gap plus 0 clean
+  rejects**. Remaining role work is now richer/default/generic/dynamic ability
+  dispatch, not a declaration-fact or source-AST fallback boundary.
+
+### 2026-06-25 -- Role declarations become fact-owned clean rejects
+
+- Closed the remaining MIR JSON role declaration fact seam. The C MIR
+  declaration header now captures the role subject `for_type`, and
+  `pgy --mir-json` emits role declarations as MIR-owned `kind:"role"` facts
+  with includes, impl ability spans, and method signature facts.
+- The self-hosted `mir_lower` no longer depends on an `AST_ROLE_DECL`
+  unsupported fallback for this boundary. It reads the role fact, requires
+  `for_type`, and rejects with an observable
+  `unsupported MIR role declaration in self-host subset: IntMath for Int`
+  diagnostic.
+- The MIR JSON frontier remains **84 PASS / 0 gap plus 1 clean reject**, but
+  the clean reject is now a semantic-support boundary: role operator/dispatch
+  consumption is not implemented in the self-host subset yet. It is no longer a
+  missing declaration-fact or source-AST fallback boundary.
+
+### 2026-06-25 -- MIR JSON hard path admits mixed and nested struct-field fixtures
+
+- Promoted `struct_mixed_fields.pgy` and `struct_nested_fields.pgy` from the
+  codegen parity manifest into the MIR JSON hard path. Both already consume
+  struct field facts in self-hosted codegen; this session verified the full
+  `pgy --mir-json | mir_lower | codegen | gcc == C oracle` path before adding
+  them to the ratcheted manifest.
+- The MIR JSON frontier moves to **84 PASS / 0 gap plus 1 clean reject**. The
+  remaining clean reject at this point was still unsupported role declaration
+  fact coverage; the follow-up session above turns it into a fact-owned role
+  semantic-support boundary.
+
+### 2026-06-24 -- Codegen nested struct fields consume field facts
+
+- Extended the same struct-field fact path to struct-valued fields. Previously
+  self-hosted codegen could route primitive field facts, but `Line.start: Vec2`
+  remained a clean reject despite the C oracle supporting it.
+- `CollectStructs` now accepts previously declared struct field types,
+  `struct_value_emit.pgy` recursively lowers struct-valued field literals, and
+  `ExprKind` resolves dotted member chains such as `line.end.x` through
+  `Struct.field=field:Type` facts instead of defaulting to `Int`.
+- Added `struct_nested_fields.pgy` to the codegen parity manifest. Gate:
+  `make self-host-codegen-parity-test-smoke` now proves **59 fixtures**
+  run-stdout equal across C and LLVM tool builds.
+
+### 2026-06-24 -- Codegen struct field facts expand to Bool/Float/String
+
+- Closed the self-hosted codegen struct-field type seam. `CollectStructs` now
+  records `Struct.field=field:Type` facts, `ExprKind` consumes those facts for
+  member reads, and `struct_value_emit.pgy` routes literal initializers by the
+  collected type instead of assuming integer fields.
+- Added `struct_mixed_fields.pgy` to the codegen parity manifest. It proves
+  Float field reads/arithmetic, Bool field conditions, String field reads, and
+  Int field reads against the live C oracle and the self-hosted C/LLVM codegen
+  tool legs.
+- Gate: `make self-host-codegen-parity-test-smoke` now proves **58 fixtures**
+  run-stdout equal across C and LLVM tool builds.
 
 ### 2026-06-24 -- MIR-lower hard gate admits an example-origin binary search fixture
 
@@ -123,7 +280,7 @@ rewrite history.
 
 - Promoted `array_combinators`, `result_int_core`, and `string_utils_core` from
   codegen-only parity into the MIR JSON fact-only parity path.
-- `src/self_hosted/parity/mir_json_parity.sh` now proves **80 fixtures / 2
+- `tests/self_hosted/parity/mir_json_parity.sh` now proves **80 fixtures / 2
   clean rejects** through `pgy --mir-json | mir_lower | codegen == C oracle`.
 - Updated the self-host progress/status/scorecard docs and the component
   contract ratchet so the new MIR-lower frontier cannot drift back to the old
@@ -218,7 +375,7 @@ rewrite history.
 - Removed the legacy `fixture/source.txt` source override from
   `src/self_hosted/parser/main.pgy`; no-arg runs still default to
   `examples/hello.pgy`, while parity/scale runs use `Args()[0]`.
-- Rewrote `src/self_hosted/parity/parser_scale_probe.sh` to invoke the parser
+- Rewrote `tests/self_hosted/parity/parser_scale_probe.sh` to invoke the parser
   through the same argv path as the hard parity gate and to compare AST outputs
   through files with `cmp -s`, avoiding shell string interpretation as a hidden
   comparison path.
@@ -229,7 +386,7 @@ rewrite history.
   `Case: Some()` because the generated parser depended on branch-local
   `String` reassignment. Moved that responsibility behind
   `ParseIfLetPayload`, which returns the payload fact directly.
-- Verified `src/self_hosted/parity/parser_scale_probe.sh --failing` with
+- Verified `tests/self_hosted/parity/parser_scale_probe.sh --failing` with
   **120/121 byte-equal**, 0 drift, 0 self-host failures, 1 C skip
   (`secure_slots`), and `make LLVM_ENABLED=0 BUILD_DIR=.tmp/pgy-build-c
   BIN_DIR=.tmp/pgy-bin-c self-host-parser-parity-test-smoke` green at
@@ -237,7 +394,7 @@ rewrite history.
 
 ### 2026-06-23 -- Lexer measured corpus closed and escape fixture gated
 
-- Moved `src/self_hosted/parity/lexer_scale_probe.sh` from the legacy
+- Moved `tests/self_hosted/parity/lexer_scale_probe.sh` from the legacy
   `fixture/source.txt` override to the real `Args()[0]` invocation boundary and
   widened the measured corpus from examples-only to examples +
   `tests/cases/backend_compare/**/main.pgy`.
@@ -247,7 +404,7 @@ rewrite history.
 - Promoted `tests/cases/backend_compare/string_escape_sequences/main.pgy` into
   the hard lexer parity gate, moving the committed lexer fixture set from 6 to
   **7 fixtures**.
-- Verified `src/self_hosted/parity/lexer_scale_probe.sh --failing` with
+- Verified `tests/self_hosted/parity/lexer_scale_probe.sh --failing` with
   **993/993 byte-equal**, 0 drift, 0 self-host failures, 0 C skips, and
   `make LLVM_ENABLED=0 BUILD_DIR=.tmp/pgy-build-c BIN_DIR=.tmp/pgy-bin-c
   self-host-lexer-parity-test-smoke` green.
@@ -279,7 +436,7 @@ rewrite history.
 - Added `ability_decl.pgy` to the MIR JSON manifest. Role declarations remain a
   clean reject until role impl/body semantics have their own owner facts.
   Verified `PGY_BIN=/tmp/pgy-PergyraLang-bin/pgy
-  src/self_hosted/parity/mir_json_parity.sh`: **77 positive fixtures plus 2
+  tests/self_hosted/parity/mir_json_parity.sh`: **77 positive fixtures plus 2
   clean rejects** pass through
   `pgy --mir-json | mir_lower | codegen == C oracle`.
 
@@ -633,7 +790,7 @@ rewrite history.
 
 ### 2026-06-23 -- MIR JSON hard rung widened to 54 and coverage probe made fail-closed
 
-- Made `src/self_hosted/parity/mir_json_coverage_probe.sh` fail closed: it now
+- Made `tests/self_hosted/parity/mir_json_coverage_probe.sh` fail closed: it now
   runs with `set -euo pipefail`, removes stale generated gen0
   `mir_lower.exe` / `codegen.exe` before rebuilding, and asserts both tools are
   executable before classifying coverage. This closes the measurement false
@@ -709,7 +866,7 @@ rewrite history.
   codegen fixtures: args, arrays, Bool/string/Float builtins, concat/equality,
   recursion, `continue`, mixed int/string output, and file handle/read/write.
 - Verified with `PGY_BIN=/mnt/e/PergyraLang/bin-codex-hard-full/pgy.exe bash
-  src/self_hosted/parity/mir_json_parity.sh`: **30/30 MIR JSON -> self-hosted
+  tests/self_hosted/parity/mir_json_parity.sh`: **30/30 MIR JSON -> self-hosted
   lowering -> self-hosted codegen -> native run** equal to the C backend oracle.
 
 ### 2026-06-22 -- parser examples scale closed to oracle skip
@@ -762,7 +919,7 @@ nested if, boolean conditions, reassignment, while, for) is covered end to end.
 
 The self-host MIR->C lowering path (`pgy --mir-json | mir_lower | codegen | gcc`
 == C oracle) had a set of empty parts mapped by the coverage probe
-(`src/self_hosted/parity/mir_json_coverage_probe.sh`). This session filled three,
+(`tests/self_hosted/parity/mir_json_coverage_probe.sh`). This session filled three,
 each a *read-a-fact-already-present* fill (not decompilation):
 
 - **multi-routine** (`df370923`): `mir_lower` walked only one routine and merged
@@ -793,13 +950,13 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `if`/`else` case (closes `if_else`, then `nested_if`/`bool_ops`/
   `reassign_block`); `while`, `for`, nesting follow as their own increments.
 
-- Committed `src/self_hosted/parity/lexer_scale_probe.sh` (`c7adbb1a`) -- fills
+- Committed `tests/self_hosted/parity/lexer_scale_probe.sh` (`c7adbb1a`) -- fills
   the noted "no committed lexer-scale probe" gap; mirrors the parser probe.
   Initial measurement: 115/121.
 - `a856d3d9`: emit `DOC_COMMENT` for `///` (was skipped), matching the oracle's
-  text + text-start column. 115 → 116.
+  text + text-start column. 115 -> 116.
 - `62d71ffa`: add missing keywords (transaction, compensate, fail, extends) and
-  `$"`/`f"` `INTERPOLATED_STRING` prefixes. 116 → **121/121, zero drift**.
+  `$"`/`f"` `INTERPOLATED_STRING` prefixes. 116 -> **121/121, zero drift**.
 - Lexer parity gate stayed green throughout (no regression on the 6 fixtures).
 - Stayed out of the BDFL's capability-5 MIR files; all changes were in the
   self-host lexer + a new probe.
@@ -908,7 +1065,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Contract ratchet: `tests/self_hosted_component_contract_smoke.sh` now requires
   `source_path_owner.pgy` as part of the parser owner surface. Verified with
   `tests/self_hosted_component_contract_smoke.sh`,
-  `src/self_hosted/parity/parser_parity.sh`,
+  `tests/self_hosted/parity/parser_parity.sh`,
   `make test-inc-size-test-smoke`, and
   `make self-host-preparation-test-smoke`.
 
@@ -1005,3 +1162,232 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Contract ratchet: `tests/self_hosted_component_contract_smoke.sh` now requires
   `expr_validation_owner.pgy`, requires `func CheckUndefinedIdentifiers` there,
   and rejects that owner function in `expr_type_owner.pgy`.
+
+### 2026-06-25 -- Semantic diagnostic code owner
+
+- Added `src/self_hosted/semantic/diagnostic_code_owner.pgy` as the source of
+  truth for the self-hosted semantic checker's lower-case diagnostic codes.
+- `diagnostic_owner.pgy` now consumes `SemanticDiagnosticCodeKnown(code)` before
+  rendering an error. Unknown codes become the visible
+  `unregistered_diagnostic_code` diagnostic instead of leaking as new ad hoc
+  strings.
+- `tests/self_hosted/parity/semantic_parity.sh` now checks expected fixture
+  `Code:` fields and literal `SemanticError...("code")` call sites against the
+  code owner before running C/LLVM verdict parity. This closes the self-hosted
+  diagnostic-code vocabulary seam while honestly leaving a fully shared
+  C/Pergyra diagnostic-code catalog for a later rung.
+- Verified with `make self-host-semantic-parity-test-smoke`,
+  `make self-host-component-contract-test-smoke`,
+  `make self-host-preparation-contract-test-smoke`,
+  `make documentation-quality-test-smoke`, and `git diff --check`.
+
+### 2026-06-25 -- Semantic C-oracle diagnostic-code mapping
+
+- Extended `diagnostic_code_owner.pgy` with `SemanticDiagnosticOracleCode`, the
+  fixture-root mapping from self-hosted lower-case semantic codes to the current
+  C oracle JSON diagnostic codes.
+- Tightened `tests/self_hosted/parity/semantic_parity.sh`: invalid fixtures must
+  now be rejected by the C oracle with the mapped JSON root code. A backend-native
+  fallthrough with no semantic JSON code is a gate failure.
+- Closed the scalar builtin signature gap in
+  `src/semantic/type_checker_builtins_stdlib_scalar.c`: `Sqrt`/trig/log unary
+  Float builtins, `Pow`, `Atan2`, `Random`, and `Clamp` now check their argument
+  types in the semantic owner instead of letting native C compilation discover
+  the mismatch later.
+
+### 2026-06-25 -- Semantic real-source selfcheck expands to owner slices
+
+- Expanded `tests/self_hosted/parity/selfcheck_sources.sh` from 4 to 41 real
+  self-host owner/source files. The manifest now includes accepted lexer/parser/
+  codegen/compiler-world slices plus audit-tool sources, not only the semantic
+  and lexer entrypoints.
+- Tightened `tests/self_hosted_component_contract_smoke.sh` to ratchet the
+  selfcheck manifest at 41 files and require representative parser, codegen,
+  compiler-world, and audit-tool sources.
+- The gate still excludes broader parser/codegen entrypoints whose imported
+  helper/local-binding/call surfaces are not covered by the current semantic
+  subset; those remain implementation work, not manifest omissions.
+
+### 2026-06-25 -- Semantic `Print` builtin fact and MIR-lower entrypoint selfcheck
+
+- Added `Print` to the self-hosted semantic checker's builtin function fact
+  inventory. This is not a `Log` alias: project docs and codegen already define
+  `Print` as newline-free output, so the missing semantic fact made
+  `src/self_hosted/mir_lower/main.pgy` fail with `undefined_function`.
+- Added `valid_print_builtin` to semantic parity, raising the semantic fixture
+  manifest to 86.
+- Added `src/self_hosted/mir_lower/main.pgy` to the real-source selfcheck,
+  raising that manifest to 42 accepted sources.
+
+### 2026-06-25 -- Semantic source scanner skips comment braces
+
+- Moved quoted-string, line-comment, and block-comment skipping into
+  `text_scan_owner.pgy` and made statement-end, block-open, and matching-brace
+  scans consume those facts consistently.
+- Added `valid_comment_brace_scope`, a fixture with a `{` inside a line comment
+  before a block-local binding. This prevents comment text from changing block
+  scope or hiding a local binding such as codegen's `t` variable.
+- The semantic parity manifest is now 87 fixtures.
+- `src/self_hosted/codegen/main.pgy` now passes the real-source semantic
+  selfcheck and is included in the manifest, raising that manifest to 43
+  accepted sources.
+
+### 2026-06-25 -- Compiler-world zone rule tightened
+
+- Reaffirmed the self-host compiler-world rule that a zone is a resource
+  ownership boundary, not a module/folder/phase label.
+- `src/self_hosted/codegen/intent.md` now records the codegen split explicitly:
+  `EmissionZone` owns emitted C, `TypeEnvZone` owns type facts, future
+  symbol/name-mangling state can become a zone only if it owns mutable symbol
+  facts, and `program_emit`/`function_emit`/`stmt_emit`/`expr_rewrite`/
+  `struct_value_emit` remain participants over those resources.
+- `tests/self_host_compiler_world_contract_smoke.sh` now ratchets that wording so
+  codegen files cannot drift into fake zone wrappers merely because they are
+  separate files.
+
+### 2026-06-25 -- Parser entrypoint enters semantic real-source selfcheck
+
+- Added `FindMatchingBraceWithin` to `text_scan_owner.pgy` and repointed scoped
+  `if`/`while`/`for` body checks to consume the caller-owned body boundary
+  instead of reopening an unbounded brace scan.
+- Verified `src/self_hosted/parser/main.pgy` through the real import-aware
+  semantic checker. It now produces `Status: ok` and is included in
+  `tests/self_hosted/parity/selfcheck_sources.sh`.
+- Ratcheted the real-source semantic selfcheck manifest from 43 to 44 accepted
+  self-host owner/source files. The parser entrypoint still takes about 21s on
+  the local Windows checker binary, so performance work remains; the semantic
+  result is no longer a blocker.
+
+### 2026-06-25 -- Seeded RNG builtin enters semantic parity
+
+- Added `SeedRandom(Int) -> Void` to the self-hosted semantic builtin signature
+  inventory. `SeedRandom` already exists in the native builtin/type table and
+  C/LLVM runtime paths; the self-hosted checker was the missing consumer fact.
+- Added `valid_seedrandom_builtin` and `bad_seedrandom_arg` semantic fixtures,
+  proving a seeded RNG statement call is accepted and a non-Int seed reports
+  `call_arg_type_mismatch` through the C-oracle-backed diagnostic mapping.
+- `src/self_hosted/fuzz/backend_parity_generator/main.pgy` reached the next
+  semantic frontier at this point: the `SeedRandom` fact was present, but
+  `let mut`, generated-source string literals, and `WriteFile` still needed
+  checker coverage before the file could enter the real-source manifest.
+
+### 2026-06-25 -- Backend fuzz generator enters semantic real-source selfcheck
+
+- Added `let mut` local declaration support to the self-hosted semantic body
+  owner. The previous parser treated `mut` as the binding name, then recovered
+  from the missing `=` by jumping to a statement end from the body start; that
+  could move the cursor backwards on real sources. The recovery path now skips
+  from the current declaration cursor, and `let mut name: Type = expr` consumes
+  the same local fact as `let name: Type = expr`.
+- Made the program-level function inventory skip quoted strings and jump over a
+  function body after its signature is captured. Generated source snippets such
+  as `"func Fake() -> Void { ... }"` are now string data, not declarations to
+  rediscover.
+- Added `WriteFile(String, String) -> Void` to the self-hosted semantic builtin
+  inventory. The native builtin/type table and C/LLVM codegen already owned
+  that IO surface; the self-hosted checker was the missing consumer fact.
+- Added semantic parity fixtures for `let mut`, generated-source string
+  literals, and `WriteFile`, raising semantic parity to 93 fixtures.
+- Added `src/self_hosted/fuzz/backend_parity_generator/main.pgy` to the
+  real-source semantic selfcheck manifest, raising it to 45 accepted
+  self-host owner/source files. Local C-backend checker measurement after the
+  fix accepted that source in about 135 ms.
+
+### 2026-06-25 -- Fuzz generator parity enters self-host preparation
+
+- Wired `tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh` into
+  `self-host-preparation-parity-test-smoke`. The generator was already a named
+  parity target; this closes the docs/CI drift where the parity README said the
+  preparation gate ran the full parity set while the fuzz generator leg stayed
+  focused-only.
+- Tightened the self-host preparation and hard-contract smokes so the fuzz
+  generator parity harness remains linked from the preparation path.
+
+### 2026-06-25 -- Codegen owner folders follow resource zones
+
+- Moved the self-hosted codegen owner files out of one flat folder into
+  resource-shaped subdirectories: `input/`, `run/`, `text/`, `type_facts/`, and
+  `emission/`.
+- Kept `program_emit`, `function_emit`, `stmt_emit`, `expr_rewrite`, and
+  `struct_value_emit` as emission action participants rather than pretending
+  each is a zone. The filesystem split now matches the rule in
+  `src/self_hosted/codegen/intent.md`: folders expose owner boundaries, not
+  arbitrary call-graph nodes.
+- Updated the component contract to check owner sources recursively while
+  excluding `fixture/` and `expected/`, so nested codegen owners remain under
+  the 600-line cap and must stay listed in `src/self_hosted/OWNERS.md`.
+
+### 2026-06-25 -- Self-host path facts get a shared owner
+
+- Added `src/self_hosted/lib/path.pgy` as `SelfHostPath`, the shared owner for
+  self-hosted path string facts: dirname, absolute-path detection, joining, and
+  `./` / `../` import-relative normalization.
+- Repointed parser import handling and semantic source-bundle import expansion
+  to consume `SelfHostPath` directly instead of keeping local dirname/join
+  aliases in each stage.
+- Updated parser parity build mirrors so `../lib/path.pgy` resolves under the
+  copied `.tmp/self_hosted/parser*` source roots. The real-source semantic
+  selfcheck manifest now includes `lib/path.pgy`, raising the accepted source
+  count to 46.
+
+### 2026-06-25 -- Lexer scan owner declares its real imports
+
+- Moved lexer character/token dependencies behind `scan_owner.pgy`: the scan
+  loop now imports `char_owner.pgy` and `token_owner.pgy` directly, while
+  `main.pgy` stays an entrypoint that imports only the scan owner and source
+  input owner.
+- Added `src/self_hosted/lexer/scan_owner.pgy` to the real-source semantic
+  selfcheck manifest, raising accepted self-host owner/source files to 48.
+- Ratcheted component/preparation contracts so `main.pgy` cannot re-import the
+  scan-loop internals and duplicate MIR declaration headers.
+
+### 2026-06-25 -- Semantic source bundle declares path and scan facts
+
+- Moved semantic import-expansion dependencies behind
+  `source_bundle_owner.pgy`: the bundle owner now imports `../lib/path.pgy` and
+  `text_scan_owner.pgy` directly because it consumes path normalization,
+  comment/whitespace skipping, keyword matching, and character facts.
+- Kept `semantic/main.pgy` as an entrypoint that imports the source-bundle owner
+  instead of re-importing path/text-scan internals.
+- Added `src/self_hosted/semantic/source_bundle_owner.pgy` to the real-source
+  semantic selfcheck manifest, raising accepted self-host owner/source files to
+  49.
+
+### 2026-06-25 -- Semantic diagnostic owner declares renderer and code facts
+
+- Moved semantic diagnostic rendering dependencies behind
+  `diagnostic_owner.pgy`: it now imports the shared
+  `src/self_hosted/lib/diagnostic.pgy` renderer and
+  `diagnostic_code_owner.pgy` vocabulary directly.
+- Kept `semantic/main.pgy` from importing diagnostic renderer/code internals;
+  it now consumes the diagnostic owner as the boundary.
+- Ratcheted component/preparation contracts so the entrypoint cannot re-open
+  those internal imports and create another duplicate declaration path.
+
+### 2026-06-25 -- Self-host compiler substrate architecture documented
+
+- Added `docs/self_hosted/13_compiler_substrate_architecture.md` as the
+  concrete architecture contract below the compiler-world and intent/zone
+  documents. The document records the required substrates for hard
+  self-hosting: path manifests, import graph ownership, deterministic
+  collections, diagnostics, type facts, MIR facts, ABI/layout facts, emission
+  buffers, runtime materialization policy, caching, and parity evidence.
+- Linked the document from `docs/INDEX.md`, `docs/self_hosted/README.md`,
+  `src/self_hosted/compiler/README.md`, and `src/self_hosted/codegen/README.md`.
+- Tightened the compiler-world and preparation contract smokes so the substrate
+  document stays load-bearing instead of becoming a standalone note.
+
+### 2026-06-25 -- Parser import graph de-duplicates source materialization
+
+- Closed the parser import graph SoT seam for duplicate source materialization.
+  The native `import_resolver` now tracks every imported canonical source path
+  in the `loaded` stack, not only stdlib modules, so importing the same file
+  through two paths materializes its declarations once.
+- Mirrored the same fact in the self-hosted parser. `source_path_owner.pgy`
+  owns `ParserImportGraphSeen`, `program_parse_owner.pgy` initializes the root
+  import path set, and `decl_dispatch_owner.pgy` consumes that set before
+  recursively parsing an import.
+- Added `import_dedup_graph.pgy` to parser parity. The fixture imports the same
+  leaf directly and through a midpoint file, and the oracle AST contains the
+  leaf function once. This unblocks direct owner-import growth without relying
+  on entrypoint-order workarounds.

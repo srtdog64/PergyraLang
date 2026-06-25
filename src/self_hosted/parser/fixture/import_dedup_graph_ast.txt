@@ -1,0 +1,20 @@
+Program:
+  [export] Function: SharedValue
+    Parameters:
+    Returns: Int
+    Body:
+      Block:
+        Return: 7
+  [export] Function: MidValue
+    Parameters:
+    Returns: Int
+    Body:
+      Block:
+        Return: SharedValue()
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log(ToString(MidValue()))
+

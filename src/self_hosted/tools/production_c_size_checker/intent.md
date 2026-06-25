@@ -58,7 +58,7 @@ filter. The broader C-side cap is also enforced by
 `tests/test_inc_size_smoke.sh`; the Pergyra origin emits the structured
 verdict and the shell path is the auxiliary parity backend.
 
-The parity rung (`src/self_hosted/parity/`) asserts:
+The parity rung (`tests/self_hosted/parity/`) asserts:
 
 - The Pergyra origin exits `0` on the clean repo.
 - Emitted JSON byte-matches `expected/clean.json`.

@@ -1,5 +1,8 @@
 // Self-host semantic expression typing owner.
 
+import "text_scan_owner.pgy";
+import "env_owner.pgy";
+
 func IsIdentText(text: String) -> Bool {
     if StringLength(text) == 0 {
         return false;
@@ -246,6 +249,76 @@ func NthExpected(sig: String, target: Int) -> String {
     }
     return "";
 }
+func CallArgAt(args_src: String, target: Int) -> String {
+    let n: Int = StringLength(args_src);
+    let i: Int = 0;
+    let depth: Int = 0;
+    let field: Int = 0;
+    let start: Int = 0;
+    while i <= n {
+        let at_end: Bool = i >= n;
+        let c: String = "";
+        if !at_end {
+            c = CharAt(args_src, i);
+        }
+        if !at_end && c == "\"" {
+            i = i + 1;
+            while i < n && CharAt(args_src, i) != "\"" {
+                if CharAt(args_src, i) == "\\" {
+                    i = i + 1;
+                }
+                i = i + 1;
+            }
+            i = i + 1;
+            continue;
+        }
+        if !at_end && (c == "<" || c == "(" || c == "[") {
+            depth = depth + 1;
+            i = i + 1;
+            continue;
+        }
+        if !at_end && (c == ">" || c == ")" || c == "]") {
+            if depth > 0 {
+                depth = depth - 1;
+            }
+            i = i + 1;
+            continue;
+        }
+        if at_end || (depth == 0 && c == ",") {
+            if field == target {
+                return Trim(Substring(args_src, start, i - start));
+            }
+            field = field + 1;
+            start = i + 1;
+        }
+        i = i + 1;
+    }
+    return "";
+}
+func ScalarUtilityReturnType(text: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
+    let n: Int = StringLength(text);
+    if n == 0 || CharAt(text, n - 1) != ")" {
+        return "";
+    }
+    let paren: Int = StringIndexOf(text, "(");
+    if paren <= 0 {
+        return "";
+    }
+    let callee: String = Trim(Substring(text, 0, paren));
+    if callee != "Abs" && callee != "Min" && callee != "Max" && callee != "Clamp" {
+        return "";
+    }
+    let args_src: String = Substring(text, paren + 1, n - paren - 2);
+    let first: String = CallArgAt(args_src, 0);
+    if StringLength(first) == 0 {
+        return "Unknown";
+    }
+    let first_type: String = ExprType(first, names, types, func_names, func_rets);
+    if first_type != "Unknown" {
+        return first_type;
+    }
+    return "Unknown";
+}
 func ArithmeticResultType(expr: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
     let text: String = Trim(expr);
     let n: Int = StringLength(text);
@@ -330,6 +403,13 @@ func ExprType(expr: String, names: Array<String>, types: Array<String>, func_nam
     if CharAt(text, 0) == "!" && CharAt(text, 1) != "=" {
         return "Bool";
     }
+    if CharAt(text, 0) == "-" && StringLength(text) > 1 {
+        let negated: String = Trim(Substring(text, 1, StringLength(text) - 1));
+        let negated_type: String = ExprType(negated, names, types, func_names, func_rets);
+        if negated_type == "Int" || negated_type == "Long" || negated_type == "Float" {
+            return negated_type;
+        }
+    }
     let op_type: String = TopLevelOpType(text);
     if op_type == "Bool" {
         return "Bool";
@@ -352,6 +432,10 @@ func ExprType(expr: String, names: Array<String>, types: Array<String>, func_nam
     }
     if IsFloatLiteral(text) {
         return "Float";
+    }
+    let scalar_utility_type: String = ScalarUtilityReturnType(text, names, types, func_names, func_rets);
+    if StringLength(scalar_utility_type) > 0 {
+        return scalar_utility_type;
     }
     let call_type: String = CallReturnType(text, func_names, func_rets);
     if call_type != "Unknown" {

@@ -3,52 +3,8 @@
 // Owns the "program source" fact consumed by CheckProgram. `main.pgy` is only
 // the CLI boundary; import graph expansion and source ordering live here.
 
-func SourceBundleDirname(path: String) -> String {
-    let last_slash: Int = -1;
-    let i: Int = 0;
-    while i < StringLength(path) {
-        if CharAt(path, i) == "/" {
-            last_slash = i;
-        }
-        i = i + 1;
-    }
-    if last_slash < 0 {
-        return "";
-    }
-    return Substring(path, 0, last_slash);
-}
-
-func SourceBundleIsAbsolute(path: String) -> Bool {
-    if StringLength(path) == 0 {
-        return false;
-    }
-    if CharAt(path, 0) == "/" {
-        return true;
-    }
-    if StringLength(path) > 1 && CharAt(path, 1) == ":" {
-        return true;
-    }
-    return false;
-}
-
-func SourceBundleJoin(base_dir: String, rel_path: String) -> String {
-    if SourceBundleIsAbsolute(rel_path) {
-        return rel_path;
-    }
-    let dir: String = base_dir;
-    let path: String = rel_path;
-    while StringLength(path) >= 3 && Substring(path, 0, 3) == "../" {
-        dir = SourceBundleDirname(dir);
-        path = Substring(path, 3, StringLength(path) - 3);
-    }
-    while StringLength(path) >= 2 && Substring(path, 0, 2) == "./" {
-        path = Substring(path, 2, StringLength(path) - 2);
-    }
-    if StringLength(dir) == 0 {
-        return path;
-    }
-    return Concat(dir, Concat("/", path));
-}
+import "../lib/path.pgy";
+import "text_scan_owner.pgy";
 
 func SourceBundleSeen(paths: Array<String>, path: String) -> Bool {
     let i: Int = 0;
@@ -102,7 +58,7 @@ func LoadSemanticSourceBundleVisit(path: String, inout seen_paths: Array<String>
     ArrayPush(seen_paths, path);
 
     let content: String = ReadFile(path);
-    let base_dir: String = SourceBundleDirname(path);
+    let base_dir: String = SelfHostPath.Dirname(path);
     let out: String = Concat(content, "\n");
     let cursor: Array<Int> = [0];
     let i: Int = 0;
@@ -119,7 +75,7 @@ func LoadSemanticSourceBundleVisit(path: String, inout seen_paths: Array<String>
             let rel_path: String = SourceBundleReadImportPath(content, i + 6, cursor);
             i = cursor[0];
             if StringLength(rel_path) > 0 {
-                let imp_path: String = SourceBundleJoin(base_dir, rel_path);
+                let imp_path: String = SelfHostPath.NormalizeImportRelative(base_dir, rel_path);
                 let imp_content: String = LoadSemanticSourceBundleVisit(imp_path, seen_paths);
                 if StringLength(imp_content) > 0 {
                     out = Concat(imp_content, out);

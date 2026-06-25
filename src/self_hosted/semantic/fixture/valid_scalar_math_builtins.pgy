@@ -1,0 +1,8 @@
+func Main() -> Int {
+    let root: Float = Sqrt(16.0);
+    let powed: Float = Pow(2.0, 10.0);
+    let low: Float = Floor(3.7);
+    let high: Float = Ceil(3.2);
+    let roll: Int = Random(6);
+    return roll;
+}

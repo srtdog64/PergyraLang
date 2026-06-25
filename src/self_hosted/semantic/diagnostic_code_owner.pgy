@@ -1,0 +1,100 @@
+// Self-host semantic diagnostic code vocabulary owner.
+//
+// This is the source of truth for stable lower-case semantic codes emitted by
+// the Pergyra-origin semantic checker. Rendering stays in diagnostic_owner.
+
+func SemanticDiagnosticCodeKnown(code: String) -> Bool {
+    if code == "undefined_symbol" {
+        return true;
+    }
+    if code == "logical_operand_not_bool" {
+        return true;
+    }
+    if code == "not_operand_not_bool" {
+        return true;
+    }
+    if code == "compare_type_mismatch" {
+        return true;
+    }
+    if code == "binop_type_mismatch" {
+        return true;
+    }
+    if code == "call_arg_type_mismatch" {
+        return true;
+    }
+    if code == "value_param_collection_mutation" {
+        return true;
+    }
+    if code == "undefined_function" {
+        return true;
+    }
+    if code == "call_arity_mismatch" {
+        return true;
+    }
+    if code == "let_type_mismatch" {
+        return true;
+    }
+    if code == "return_type_mismatch" {
+        return true;
+    }
+    if code == "condition_not_bool" {
+        return true;
+    }
+    if code == "assign_type_mismatch" {
+        return true;
+    }
+    if code == "input_missing" {
+        return true;
+    }
+    if code == "unregistered_diagnostic_code" {
+        return true;
+    }
+    return false;
+}
+
+func SemanticDiagnosticCodeCount() -> Int {
+    return 15;
+}
+
+func SemanticDiagnosticOracleCode(code: String) -> String {
+    if code == "undefined_symbol" {
+        return "PGY_SEM_UNDEFINED_SYMBOL";
+    }
+    if code == "logical_operand_not_bool" {
+        return "PGY_SEM_BINOP_TYPE_MISMATCH";
+    }
+    if code == "not_operand_not_bool" {
+        return "PGY_SEM_UNOP_TYPE_MISMATCH";
+    }
+    if code == "compare_type_mismatch" {
+        return "PGY_SEM_BINOP_TYPE_MISMATCH";
+    }
+    if code == "binop_type_mismatch" {
+        return "PGY_SEM_BINOP_TYPE_MISMATCH";
+    }
+    if code == "call_arg_type_mismatch" {
+        return "PGY_SEM_TYPE_MISMATCH";
+    }
+    if code == "value_param_collection_mutation" {
+        return "PGY_SEM_BUILTIN_ARGS_INVALID";
+    }
+    if code == "undefined_function" {
+        return "PGY_SEM_UNDEFINED_SYMBOL";
+    }
+    if code == "call_arity_mismatch" {
+        return "PGY_SEM_BUILTIN_ARGS_INVALID";
+    }
+    if code == "let_type_mismatch" {
+        return "PGY_SEM_TYPE_MISMATCH";
+    }
+    if code == "return_type_mismatch" {
+        return "PGY_SEM_TYPE_MISMATCH";
+    }
+    if code == "condition_not_bool" {
+        return "PGY_SEM_TYPE_MISMATCH";
+    }
+    if code == "assign_type_mismatch" {
+        return "PGY_SEM_TYPE_MISMATCH";
+    }
+    return "";
+}

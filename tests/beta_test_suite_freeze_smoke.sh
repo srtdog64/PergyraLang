@@ -79,6 +79,7 @@ mandatory_targets=(
     "self-host-preparation-test-smoke"
     "tooling-conformance-test-smoke"
     "perf-contract-test-smoke"
+    "evidence-guard-amortization-test-smoke"
     "backend-fail-closed-test-smoke"
     "language-contract-golden-test-smoke"
     "beta-readiness-checklist-test-smoke"

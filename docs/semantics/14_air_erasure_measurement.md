@@ -146,6 +146,56 @@ Rows `01`, `02`, `07` **satisfy** this (`Axis = 0`, `Abort = 0`). That is the
 honest, checkable form of "the abstraction is erased": not *"the runtime does not
 exist"* but *"a program that does not need it does not link or pay for it."*
 
+## 5a. Evidence-Amortized Hot Path
+
+The performance target is not "zero cost everywhere." Pergyra's target is
+evidence cost that is visible, attributed, and amortized away from repeated hot
+path operations when MIR/AIR facts prove the region.
+
+The canonical shape is Slot Pin/Lease:
+
+```text
+preflight owner/generation/capability/layout evidence once
+-> materialize a typed ReadView<T> or WriteView<T>
+-> run the hot loop over that view
+-> invalidate at the MIR cleanup edge
+```
+
+This optimization path is cacheable, but only under the same source-of-truth
+rule as every other AIR decision. A cached evidence view is an acceleration over
+MIR/AIR/ABI facts; it is not a second proof. Its cache key must carry the facts
+that make it valid: slot identity, generation or epoch, access mode, payload
+layout, authority/capability token for secure slots, and the MIR pin-region /
+cleanup-edge owner. A missing or mismatched fact fails closed or routes through a
+declared retain path; it must not use a stale cached pointer.
+
+Allowed cache scopes:
+
+- local typed view inside a lexical pin block;
+- loop/region-local preflight reused across repeated reads/writes when
+  `mir_block_has_pin_guard_amortization_region(...)` is present;
+- compile-time proof cache of AIR/MIR classifications keyed by input/fact graph
+  hashes, as long as the cache is invalidated by any owner-fact change.
+
+Disallowed in beta:
+
+- cross-call or cross-intent runtime view caches;
+- async/parallel view caches;
+- persistent slot pointer caches;
+- cache hits that bypass authority/capability evidence;
+- backend-local caches that rediscover source facts instead of consuming MIR/AIR
+  facts.
+
+`benchmarks/perf_guard_amortization.c` is the seed Track-A fixture for this
+claim: it compares per-access guard checks with a one-time preflight evidence
+view over the same data, plus a repeated-preflight no-cache path so the cache
+effect is measured directly. `make evidence-guard-amortization-test-smoke` keeps
+the source/codegen shape gated and reports internal benchmark-process timings so
+shell launch and scheduling noise do not dominate the signal. The pass/fail
+threshold is applied to the best paired guard ratio and cache-effect ratio on
+supported toolchains. Treat its numbers as a hot-path microbenchmark, not as a
+whole-language performance claim.
+
 ## 6. Limits of this dashboard (not silent)
 
 - **`.text` size is not cross-program comparable** (different programs do
@@ -158,6 +208,10 @@ exist"* but *"a program that does not need it does not link or pay for it."*
 - **Physical column is single-backend (C → `-O2`).** A parallel LLVM-backend
   physical pass (post-`.bc`-link `opt`) should be added and checked for parity
   with the C numbers (C == LLVM is the standing contract).
+- **Host-toolchain residue must be normalized.** Windows/MinGW object files may
+  expose CRT/thread/abort imports that are not Pergyra axis residue. The harness
+  must classify or subtract those host baseline symbols before treating them as
+  compression drift.
 - This is a **seed** dashboard (8 fixtures). The intended end state is a CI gate:
   the per-program contract of §5 enforced as a regression, and the A/B/C counts
   tracked over time so bucket C only ever shrinks.
@@ -253,6 +307,11 @@ The three gaps §6/§7 recorded are now filled:
 
 - When `opt`/`llc` are available, add the faithful LLVM *physical* `nm` pass and
   check residue-count parity, not just behavioral parity.
+- Add a host-baseline normalization pass for Windows/MinGW physical residue so
+  compiler-axis residue is separated from CRT/toolchain imports.
+- Extend the evidence-amortization cache fixtures from Slot read to write,
+  SecureSlot local-token, rejected stale-generation, and rejected async/parallel
+  escape cases.
 - Cross-check against `docs/semantics/proofs/IRMinimality.v`: that proof bounds
   the *codegen IR layering* (HIR→RIR→MIR is minimal, not over-decomposed); it does
   **not** by itself bound machine-code residue. This dashboard is the empirical

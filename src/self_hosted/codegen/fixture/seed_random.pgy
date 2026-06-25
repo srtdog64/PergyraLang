@@ -1,0 +1,19 @@
+func Main() -> Void {
+    SeedRandom(12345);
+    let first: Int = Random(1000);
+    let second: Int = Random(1000);
+    SeedRandom(12345);
+    let first_again: Int = Random(1000);
+    let second_again: Int = Random(1000);
+    if first == first_again {
+        Log("first:same");
+    } else {
+        Log("first:diff");
+    }
+    if second == second_again {
+        Log("second:same");
+    } else {
+        Log("second:diff");
+    }
+    Log(ToString(Random(0)));
+}

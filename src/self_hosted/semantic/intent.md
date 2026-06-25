@@ -13,14 +13,18 @@ use, and literal/identifier expression typing for `Int`, `Long`, `Float`,
 
 The tool reads one root source path from `Args()[0]`. `source_bundle_owner.pgy`
 expands recursive `import "PATH.pgy";` declarations relative to the importing
-file before `program_check_owner.pgy` consumes the source bundle. The accepted
+file before `program_check_owner.pgy` consumes the source bundle. It directly
+imports the path and text-scan owners it consumes. The entrypoint imports only
+`semantic_run_owner.pgy`; stage owner dependencies are declared by the owners
+that consume those facts, not by `main.pgy`. The accepted
 subset is one or more `func` declarations with typed parameters, typed `let`
-declarations, `return` statements, scoped `if` / `while` bodies, simple local
-assignment, and direct calls to known functions.
+and `let mut` declarations, `return` statements, scoped `if` / `while` bodies,
+simple local assignment, and direct calls to known functions.
 
 `semantic_run_owner.pgy` owns the process boundary for this contract: missing
 input is reported as a structured `input_missing` diagnostic, then the selected
-root source bundle is checked by `program_check_owner.pgy`.
+root source bundle is checked by `program_check_owner.pgy`. It imports the
+source-bundle, diagnostic, and program-check owners directly.
 Expression type answers are owned by `expr_type_owner.pgy`; expression
 diagnostics are owned by `expr_validation_owner.pgy` and must consume those type
 answers rather than re-owning the type rules.
@@ -49,10 +53,27 @@ of subset instead of being guessed.
 
 The renderer lives in `src/self_hosted/lib/diagnostic.pgy`; the semantic checker
 only owns semantic codes, reasons, fixes, and facts. Do not rebuild the
-diagnostic output shape inside `semantic/main.pgy`.
+diagnostic output shape inside `semantic/main.pgy`. Stable semantic diagnostic
+codes are owned by `diagnostic_code_owner.pgy`; expected fixture `Code:` fields
+and `SemanticError...("code")` call sites must be registered there. The owner
+also records the current C oracle JSON root code for each fixture-emitted
+self-hosted code; the parity harness rejects an invalid fixture when the C
+oracle falls through to a backend-native error or reports a different root code.
+`diagnostic_owner.pgy` imports both the shared renderer and code vocabulary;
+the entrypoint must not import either implementation detail directly.
 
 ## Oracle
 
-`src/self_hosted/parity/semantic_parity.sh` compiles this tool through the
+`tests/self_hosted/parity/semantic_parity.sh` compiles this tool through the
 available C/LLVM backends, runs it on committed fixtures, and checks the same
-fixtures against the C compiler accept/reject oracle.
+fixtures against the C compiler accept/reject oracle. The same gate also checks
+the diagnostic-code vocabulary so new self-hosted semantic codes cannot appear
+as fixture-only or call-site-only aliases, and it checks that invalid fixtures
+are rejected with the mapped C oracle JSON diagnostic code.
+
+`tests/self_hosted/parity/selfcheck_sources.sh` is the real-source rung. It
+compiles this checker through C and LLVM and requires 49 curated self-host
+owner/source files to produce `Status: ok`, including the parser entrypoint
+through its real import bundle and the deterministic backend fuzz generator.
+Files stay out of that manifest until the checker can consume their imports,
+local bindings, and call surface without semantic fallbacks.

@@ -1,6 +1,6 @@
 # Abstraction Loss Contracts
 
-Last updated: 2026-06-16
+Last updated: 2026-06-24
 
 Status: `beta-proof-obligation`
 
@@ -116,6 +116,50 @@ If AIR declares `erase` and physical residue survives outside an expected drift
 entry, the program has a compression-residue mismatch. If AIR declares `retain`
 or `summarize`, the backend must be able to point back to the AIR/MIR/ABI fact
 that justifies the remaining artifact.
+
+## Evidence-Amortization Cache Rule
+
+Pergyra does not require every proof or guard to be zero cost. It requires that
+the cost be owned, visible, and movable out of the hot path when the owner facts
+prove that this is safe. A backend may therefore cache an evidence-derived view
+only when the cache is an acceleration over the owner fact, not a new owner of
+the fact.
+
+Allowed cache pattern:
+
+```text
+owner fact -> preflight/evidence view -> hot-path use -> cleanup/invalidation
+```
+
+The cache may remember a typed view, rendered ABI name, local lookup snapshot,
+or proof classification. It must not remember a stale source interpretation or
+backend-local guess. The cache key must include the freshness facts that make the
+view valid: identity, generation or epoch, access mode, layout/type fact,
+authority/capability token where relevant, and the MIR/AIR region that owns
+cleanup.
+
+Forbidden cache patterns:
+
+- caching a source/AST read to recover a fact already owned by MIR, AIR, DAG, or
+  ABI metadata;
+- caching a pointer or view across a release, move, generation change, async
+  suspension, parallel boundary, token revocation, layout change, or cleanup
+  edge;
+- treating a cache hit as proof when the required owner fact is missing;
+- falling back to per-access runtime checks without recording the retained
+  materialization in AIR/MIR evidence.
+
+The stable example is Slot Pin/Lease. A repeated Slot hot path may validate once
+at the pin-region entry and consume a typed `ReadView<T>` or `WriteView<T>` in
+the loop. That view is cacheable only for the lexical/MIR region whose
+cleanup-edge facts prove invalidation. Cross-call, cross-intent, async,
+parallel, or persistent caches require a future retained-materialization
+contract; they are not beta-stable.
+
+The performance claim is deliberately narrow: Pergyra is not a zero-cost
+language. It is an evidence-amortized language. Proof cost may be paid once per
+proven region and then consumed cheaply on the hot path, while remaining runtime
+residue stays attributed as retain/summarize/erase/forbid evidence.
 
 ## Core Judgments
 
