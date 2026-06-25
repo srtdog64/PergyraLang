@@ -32,6 +32,20 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
+PGY_EXPECTS_WINDOWS_PATHS=0
+if pgy_binary_expects_windows_paths "$PGY"; then
+    PGY_EXPECTS_WINDOWS_PATHS=1
+fi
+
+semantic_compiler_path() {
+    local path="$1"
+    if [[ "$PGY_EXPECTS_WINDOWS_PATHS" -eq 1 ]]; then
+        pgy_path_for_windows_tool "$path"
+        return 0
+    fi
+    printf '%s\n' "$path"
+}
+
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/semantic/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/semantic}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
@@ -261,9 +275,9 @@ check_c_oracle() {
     local rc
 
     set +e
-    output="$(cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$source")" \
+    output="$(cd "$ROOT_DIR" && "$PGY" "$(semantic_compiler_path "$source")" \
         --backend=c --error-format=json \
-        -o "$(pgy_path_for_compiler "$PGY" "$exe")" 2>&1)"
+        -o "$(semantic_compiler_path "$exe")" 2>&1)"
     rc=$?
     set -e
 
@@ -304,9 +318,9 @@ compile_semantic_backend() {
 
     echo "[self-host-parity:semantic] compiling semantic backend=$backend..."
     (cd "$ROOT_DIR" && "$PGY" \
-        "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")" \
+        "$(semantic_compiler_path "$PERGYRA_TOOL")" \
         --backend="$backend" \
-        -o "$(pgy_path_for_compiler "$PGY" "$tool_bin")" >/dev/null)
+        -o "$(semantic_compiler_path "$tool_bin")" >/dev/null)
 }
 
 run_semantic_backend() {

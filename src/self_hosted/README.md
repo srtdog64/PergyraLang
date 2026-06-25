@@ -106,16 +106,20 @@ owns fixed fixture input plus exit policy.
 
 The compiler world is different from a C-style driver folder.
 `compiler/world.pgy` is a parse-gated Pergyra source file that names the
-self-hosted compiler as `PgyCompilerWorld` and `CompilePergyraProgram`. Source
-intake, lexing, parsing, semantic checking, MIR lowering, emission, and parity
-are derived stage zones/intents under that root compiler intent. Stage
+self-hosted compiler as `PgyCompilerWorld` and `CompilePergyraProgram`.
+`compiler/path_manifest_owner.pgy` owns the current self-host source/test/parity
+path values consumed by that world. Source intake, lexing, parsing, semantic
+checking, MIR lowering, emission, and parity are derived stage zones/intents
+under that root compiler intent. Stage
 directories still own their facts; `PgyCompilerWorld` owns the visible compiler
 flow. New hard-substitution stages should attach to that intent vocabulary
 instead of creating another folder-local orchestration alias.
 
-Until import de-duplication is a compiler fact, sibling owner modules do not
-import each other. The entrypoint assembles owner modules in dependency order so
-one owner cannot accidentally materialize the same declarations twice.
+Import de-duplication is now a compiler fact and a self-hosted parser fact.
+Sibling owner modules should declare the fact-owner imports they actually
+consume. The entrypoint must not act as a dependency aggregator or preserve a
+hidden declaration order; if an owner needs another owner fact, import that
+owner directly and let the import graph materialize it once.
 
 The compiler-stage shape is executable policy, not just a convention:
 `tests/self_hosted_component_contract_smoke.sh` requires every active

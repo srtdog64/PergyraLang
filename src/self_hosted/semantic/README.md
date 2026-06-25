@@ -32,7 +32,8 @@ owners until expression-operator and diagnostic-code parity are gated. The
 diagnostic-code gate checks committed fixture `Code:` fields and self-hosted
 semantic call sites against `diagnostic_code_owner.pgy`, then checks invalid
 fixtures against the mapped C oracle JSON code. `selfcheck_sources.sh` is the
-real-source gate: it compiles this checker through C and LLVM and runs it on 49
+real-source gate: it compiles this checker through C and LLVM and runs it on 50
 accepted self-host owner/source files, including lexer/parser/mir_lower/codegen/
-compiler-world, the deterministic backend fuzz generator, and audit-tool slices
-that are inside the current semantic subset.
+compiler-world, the compiler path manifest owner, the deterministic backend
+fuzz generator, and audit-tool slices that are inside the current semantic
+subset.

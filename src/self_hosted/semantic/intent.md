@@ -72,8 +72,9 @@ as fixture-only or call-site-only aliases, and it checks that invalid fixtures
 are rejected with the mapped C oracle JSON diagnostic code.
 
 `tests/self_hosted/parity/selfcheck_sources.sh` is the real-source rung. It
-compiles this checker through C and LLVM and requires 49 curated self-host
+compiles this checker through C and LLVM and requires 50 curated self-host
 owner/source files to produce `Status: ok`, including the parser entrypoint
-through its real import bundle and the deterministic backend fuzz generator.
-Files stay out of that manifest until the checker can consume their imports,
-local bindings, and call surface without semantic fallbacks.
+through its real import bundle, the compiler path manifest owner, and the
+deterministic backend fuzz generator. Files stay out of that manifest until the
+checker can consume their imports, local bindings, and call surface without
+semantic fallbacks.

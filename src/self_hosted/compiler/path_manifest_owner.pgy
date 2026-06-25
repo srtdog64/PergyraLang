@@ -1,0 +1,108 @@
+// Self-host compiler path manifest owner.
+//
+// Owns the stable source/test/parity paths consumed by PgyCompilerWorld. The
+// shell manifest in tests/self_hosted/compiler_world_manifest.sh is the harness
+// projection of these facts, not a separate source of truth.
+
+func SelfHostSourceDir() -> String {
+    return "src/self_hosted";
+}
+
+func SelfHostTestDir() -> String {
+    return "tests/self_hosted";
+}
+
+func SelfHostParityDir() -> String {
+    return "tests/self_hosted/parity";
+}
+
+func CompilerWorldPath() -> String {
+    return "src/self_hosted/compiler/world.pgy";
+}
+
+func CompilerPathManifestPath() -> String {
+    return "src/self_hosted/compiler/path_manifest_owner.pgy";
+}
+
+func CompilerStageIntentsPath() -> String {
+    return "src/self_hosted/compiler/stage_intents.pgy";
+}
+
+func CompilerOwnerManifestPath() -> String {
+    return "src/self_hosted/OWNERS.md";
+}
+
+func CompilerStagePathCount() -> Int {
+    return 5;
+}
+
+func CompilerStagePathAt(index: Int) -> String {
+    if index == 0 {
+        return "src/self_hosted/lexer/main.pgy";
+    }
+    if index == 1 {
+        return "src/self_hosted/parser/main.pgy";
+    }
+    if index == 2 {
+        return "src/self_hosted/semantic/main.pgy";
+    }
+    if index == 3 {
+        return "src/self_hosted/mir_lower/main.pgy";
+    }
+    if index == 4 {
+        return "src/self_hosted/codegen/main.pgy";
+    }
+    return "";
+}
+
+func CompilerParityPathCount() -> Int {
+    return 6;
+}
+
+func CompilerParityPathAt(index: Int) -> String {
+    if index == 0 {
+        return "tests/self_hosted/parity/lexer_parity.sh";
+    }
+    if index == 1 {
+        return "tests/self_hosted/parity/parser_parity.sh";
+    }
+    if index == 2 {
+        return "tests/self_hosted/parity/semantic_parity.sh";
+    }
+    if index == 3 {
+        return "tests/self_hosted/parity/mir_json_parity.sh";
+    }
+    if index == 4 {
+        return "tests/self_hosted/parity/codegen_parity.sh";
+    }
+    if index == 5 {
+        return "tests/self_hosted/parity/codegen_bootstrap.sh";
+    }
+    return "";
+}
+
+func CompilerWorldManifestPathCount() -> Int {
+    return 15;
+}
+
+func CompilerWorldManifestPathAt(index: Int) -> String {
+    if index == 0 {
+        return CompilerWorldPath();
+    }
+    if index == 1 {
+        return CompilerPathManifestPath();
+    }
+    if index == 2 {
+        return CompilerStageIntentsPath();
+    }
+    if index == 3 {
+        return CompilerOwnerManifestPath();
+    }
+    if index < 9 {
+        return CompilerStagePathAt(index - 4);
+    }
+    if index < 15 {
+        return CompilerParityPathAt(index - 9);
+    }
+    return "";
+}

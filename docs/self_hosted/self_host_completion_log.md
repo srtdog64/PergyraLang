@@ -1391,3 +1391,52 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   leaf directly and through a midpoint file, and the oracle AST contains the
   leaf function once. This unblocks direct owner-import growth without relying
   on entrypoint-order workarounds.
+
+### 2026-06-25 -- Semantic entrypoint stops aggregating owner imports
+
+- Repointed `src/self_hosted/semantic/main.pgy` to import only
+  `semantic_run_owner.pgy`. The entrypoint is now a process boundary again,
+  not the hidden owner of semantic dependency order.
+- Moved semantic owner dependencies to the owners that consume those facts:
+  the run owner imports source-bundle, diagnostic, and program-check owners;
+  the program/body/call/expression owners import text-scan, environment,
+  expression-type, expression-validation, and call-check facts directly.
+- Ratcheted the component and preparation contracts so `semantic/main.pgy`
+  cannot re-import source-bundle, diagnostic, environment, expression,
+  body/call/program-check, or shared diagnostic/path internals. This keeps the
+  import graph SoT in owner declarations rather than entrypoint aliases.
+- Cached semantic parity compiler path classification once per script run.
+  The C oracle loop previously re-read the compiler binary magic for every
+  fixture path conversion on Windows; the parity contract is unchanged, but the
+  hot path no longer pays that repeated probe.
+
+### 2026-06-25 -- Compiler world stages stop sharing one generic actor
+
+- Removed the generic `StageOwner.Consume()` shape from
+  `src/self_hosted/compiler/world.pgy`. The compiler world now names
+  `LexerStage`, `ParserStage`, `SemanticStage`, and `MirLowerStage` as
+  separate subjects with stage-specific actions.
+- Repointed `FrontendPipeline` and `MiddleEndPipeline` in
+  `stage_intents.pgy` so lexing, parsing, semantic checking, and MIR lowering
+  consume the actor that owns the artifact being produced, instead of a shared
+  stage alias.
+- Tightened `self-host-compiler-world-contract-test-smoke` to reject
+  reintroducing `subject StageOwner` or `.Consume()` in the compiler-world
+  source and to require the stage-specific subjects in the parsed AST.
+- Updated the compiler-world, intent/zone, and substrate architecture docs so
+  the self-host shape is explicitly intent/zone-driven rather than a
+  C-style driver with renamed helper participants.
+
+### 2026-06-25 -- Compiler path manifest gets a Pergyra owner
+
+- Added `src/self_hosted/compiler/path_manifest_owner.pgy` as the Pergyra
+  owner for self-host source/test/parity path values consumed by
+  `StagePathManifest`.
+- Imported that owner from `world.pgy` and added it to the compiler-world shell
+  projection in `tests/self_hosted/compiler_world_manifest.sh`.
+- Tightened `self-host-compiler-world-contract-test-smoke` so every shell
+  manifest path must appear in the Pergyra owner and every path returned by the
+  Pergyra owner must exist in the shell projection.
+- Added the path manifest owner to the real-source semantic selfcheck manifest,
+  raising accepted self-host owner/source files from 49 to 50 on both C and
+  LLVM checker backends.

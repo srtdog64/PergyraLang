@@ -17,8 +17,11 @@ Pergyra self-hosting should be organized around the language's own surface.
 compiler intent. The source unit flows through derived resource zones
 (`SourceIntakeZone`, `TokenStreamZone`, `AstTreeZone`,
 `SemanticVerdictZone`, `MirFactGraphZone`, `TypeEnvZone`, `EmissionZone`, and
-`ParityZone`), and each zone is driven by a smaller intent. The stage owners
-remain under `lexer/`, `parser/`,
+`ParityZone`), and each zone is driven by a smaller intent. The stage actors
+are named by what they own: `LexerStage`, `ParserStage`, `SemanticStage`, and
+`MirLowerStage` drive token, AST, semantic verdict, and MIR fact resources
+respectively. There is no generic `StageOwner` alias in the compiler world.
+The stage owners remain under `lexer/`, `parser/`,
 `semantic/`, `mir_lower/`, and `codegen/`; this directory records the
 orchestration contract that makes them one compiler slice instead of C-style
 fragments.
@@ -40,8 +43,10 @@ facts or parity policy.
 
 The compiler world also owns `StagePathManifest`, the canonical path fact for
 self-host source roots, test roots, parity harness roots, and active stage
-entrypoints. That gives future hard-substitution code a way to consume paths as
-facts instead of rediscovering them with recursive scans.
+entrypoints. `path_manifest_owner.pgy` owns the current string values for those
+paths, while `tests/self_hosted/compiler_world_manifest.sh` is the shell-side
+projection used by the gates. That gives future hard-substitution code a way
+to consume paths as facts instead of rediscovering them with recursive scans.
 
 `world.pgy` is the current scaffold. It is parse-gated by
 `make self-host-compiler-world-contract-test-smoke` and wired into

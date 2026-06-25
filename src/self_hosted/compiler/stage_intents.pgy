@@ -8,7 +8,8 @@ intent FrontendPipeline(
     tokens: TokenStreamZone,
     ast: AstTreeZone,
     source: SourceUnit,
-    owner: StageOwner
+    lexer: LexerStage,
+    parser: ParserStage
 ) {
     exclusive;
 
@@ -23,16 +24,16 @@ intent FrontendPipeline(
     step Lex {
         where: TokenStreamZone;
         using: tokens;
-        who: owner;
-        on: LexSource(tokens, owner);
+        who: lexer;
+        on: LexSource(tokens, lexer);
         expect: true;
     }
 
     step Parse {
         where: AstTreeZone;
         using: ast;
-        who: owner;
-        on: ParseTokens(ast, owner);
+        who: parser;
+        on: ParseTokens(ast, parser);
         expect: true;
     }
 
@@ -43,23 +44,24 @@ intent FrontendPipeline(
 intent MiddleEndPipeline(
     semantic_zone: SemanticVerdictZone,
     lower_zone: MirFactGraphZone,
-    owner: StageOwner
+    checker: SemanticStage,
+    lowerer: MirLowerStage
 ) {
     exclusive;
 
     step Check {
         where: SemanticVerdictZone;
         using: semantic_zone;
-        who: owner;
-        on: CheckProgramSemantics(semantic_zone, owner);
+        who: checker;
+        on: CheckProgramSemantics(semantic_zone, checker);
         expect: true;
     }
 
     step Lower {
         where: MirFactGraphZone;
         using: lower_zone;
-        who: owner;
-        on: LowerProgramFacts(lower_zone, owner);
+        who: lowerer;
+        on: LowerProgramFacts(lower_zone, lowerer);
         expect: true;
     }
 

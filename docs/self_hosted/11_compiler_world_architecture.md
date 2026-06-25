@@ -24,9 +24,16 @@ compiler flow.
   and `ParityZone` are the derived resource zones.
 - `StagePathManifest` is the canonical path fact for the self-hosted source,
   test, parity, and stage entrypoint locations.
+- `path_manifest_owner.pgy` owns the current Pergyra string values for those
+  paths; `tests/self_hosted/compiler_world_manifest.sh` is the shell projection
+  used by the gates.
 - `IntakeSource`, `LexSource`, `ParseTokens`, `CheckProgramSemantics`,
   `LowerProgramFacts`, `EmitProgramArtifact`, and `ProveSelfHostedParity` are
   the derived stage intents.
+- `LexerStage`, `ParserStage`, `SemanticStage`, and `MirLowerStage` are
+  distinct actors. The world does not use a generic `StageOwner.Consume()`
+  alias because lexing, parsing, semantic checking, and MIR lowering own
+  different artifacts.
 - `lexer/`, `parser/`, `semantic/`, `mir_lower/`, and `codegen/` remain
   source-of-truth owners for their facts.
 
@@ -177,7 +184,10 @@ and test trees. The world shape lets a compiler run resolve the stage paths
 once, cache their normalized variants, and then pass stable facts to source
 intake, lexing, parsing, MIR lowering, codegen, and parity.
 
-`StagePathManifest` is the first explicit fact for that direction. It carries:
+`StagePathManifest` is the first explicit fact for that direction.
+`src/self_hosted/compiler/path_manifest_owner.pgy` owns the current path
+values, and the shell manifest gate rejects drift between that owner and the
+harness projection. It carries:
 
 - the self-host source root;
 - the self-host test root;
@@ -199,7 +209,7 @@ Compiler-world flow:
 2. check exact paths;
 3. normalize once per run;
 4. cache the normalized forms;
-5. pass the path fact to the stage intent.
+5. pass the path fact to the stage-specific actor and intent.
 
 Local Windows path-cost probe on 2026-06-24:
 

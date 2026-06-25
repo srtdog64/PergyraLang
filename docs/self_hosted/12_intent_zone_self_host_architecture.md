@@ -44,6 +44,10 @@ clusters:
 These are intent clusters, not zones. They reuse `SourceIntakeZone`,
 `TokenStreamZone`, `AstTreeZone`, `SemanticVerdictZone`, `MirFactGraphZone`,
 `TypeEnvZone`, `EmissionZone`, and `ParityZone`.
+The participants are also stage-specific: `LexerStage` scans token facts,
+`ParserStage` builds AST facts, `SemanticStage` proves semantic verdict facts,
+and `MirLowerStage` lowers MIR facts. Do not collapse those actors back into a
+generic `StageOwner`; that hides the artifact each stage owns.
 
 ## Codegen Shape
 

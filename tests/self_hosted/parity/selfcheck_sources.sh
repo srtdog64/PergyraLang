@@ -53,6 +53,7 @@ SELF_SOURCES=(
     "src/self_hosted/codegen/input/ast_input_owner.pgy"
     "src/self_hosted/codegen/main.pgy"
     "src/self_hosted/codegen/text/text_owner.pgy"
+    "src/self_hosted/compiler/path_manifest_owner.pgy"
     "src/self_hosted/compiler/stage_intents.pgy"
     "src/self_hosted/compiler/world.pgy"
     "src/self_hosted/fuzz/backend_parity_generator/main.pgy"

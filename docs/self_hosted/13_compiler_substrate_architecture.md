@@ -24,6 +24,12 @@ The self-hosted compiler has one visible compiler flow and many fact owners.
 The unit of architecture is not "a folder with code." The unit is an owned
 fact, resource, or artifact boundary.
 
+The compiler world also avoids generic stage actors. `LexerStage`,
+`ParserStage`, `SemanticStage`, and `MirLowerStage` are separate participants
+because they own different artifacts. A shared `StageOwner` alias would hide
+which stage is allowed to scan tokens, build AST facts, prove semantic
+verdicts, or lower MIR facts.
+
 ## Compiler Flow
 
 The root flow is:
@@ -80,6 +86,11 @@ compiler replacement.
 
 If one of these facts is missing, the fix is to add the fact to the owner or
 fail closed. The fix is not a local compatibility fallback.
+
+`src/self_hosted/compiler/path_manifest_owner.pgy` is the current path owner.
+It owns the Pergyra source/test/parity path values for `StagePathManifest`;
+`tests/self_hosted/compiler_world_manifest.sh` is the shell projection and is
+contract-checked against the Pergyra owner.
 
 ## Codegen Architecture
 
@@ -173,4 +184,3 @@ A self-hosted slice is promoted only when:
 
 SoT closure is therefore not a separate cleanup after self-hosting. It is the
 condition that lets a self-hosted slice count.
-

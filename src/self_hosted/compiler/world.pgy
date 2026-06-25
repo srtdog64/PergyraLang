@@ -6,10 +6,34 @@ subject SourceUnit {
     }
 }
 
-subject StageOwner {
+subject LexerStage {
     let name: String;
 
-    action Consume(self) -> Bool {
+    action Scan(self) -> Bool {
+        return true;
+    }
+}
+
+subject ParserStage {
+    let name: String;
+
+    action BuildAst(self) -> Bool {
+        return true;
+    }
+}
+
+subject SemanticStage {
+    let name: String;
+
+    action Check(self) -> Bool {
+        return true;
+    }
+}
+
+subject MirLowerStage {
+    let name: String;
+
+    action Lower(self) -> Bool {
         return true;
     }
 }
@@ -76,6 +100,7 @@ tobject ParityVerdict {
     schema: String;
 }
 
+import "path_manifest_owner.pgy";
 import "stage_intents.pgy";
 
 zone SourceIntakeZone {
@@ -85,22 +110,22 @@ zone SourceIntakeZone {
 }
 
 zone TokenStreamZone {
-    subject slot owner: StageOwner
+    subject slot lexer: LexerStage
     object slot tokens: TokenStream
 }
 
 zone AstTreeZone {
-    subject slot owner: StageOwner
+    subject slot parser: ParserStage
     object slot ast: AstTree
 }
 
 zone SemanticVerdictZone {
-    subject slot owner: StageOwner
+    subject slot checker: SemanticStage
     object slot verdict: SemanticVerdict
 }
 
 zone MirFactGraphZone {
-    subject slot owner: StageOwner
+    subject slot lowerer: MirLowerStage
     object slot mir: MirFactGraph
 }
 
@@ -120,7 +145,10 @@ zone ParityZone {
 
 zone SelfHostCompiler {
     subject slot source: SourceUnit
-    subject slot owner: StageOwner
+    subject slot lexer: LexerStage
+    subject slot parser: ParserStage
+    subject slot checker: SemanticStage
+    subject slot lowerer: MirLowerStage
     subject slot emitter: ProgramEmitter
     subject slot oracle: OraclePair
     object slot paths: StagePathManifest
@@ -161,14 +189,14 @@ intent IntakeSource(intake: SourceIntakeZone, source: SourceUnit) {
     failure: false;
 }
 
-intent LexSource(tokens: TokenStreamZone, owner: StageOwner) {
+intent LexSource(tokens: TokenStreamZone, lexer: LexerStage) {
     exclusive;
 
     step Scan {
         where: TokenStreamZone;
         using: tokens;
-        who: owner;
-        on: owner.Consume();
+        who: lexer;
+        on: lexer.Scan();
         expect: true;
     }
 
@@ -176,14 +204,14 @@ intent LexSource(tokens: TokenStreamZone, owner: StageOwner) {
     failure: false;
 }
 
-intent ParseTokens(ast: AstTreeZone, owner: StageOwner) {
+intent ParseTokens(ast: AstTreeZone, parser: ParserStage) {
     exclusive;
 
     step BuildAst {
         where: AstTreeZone;
         using: ast;
-        who: owner;
-        on: owner.Consume();
+        who: parser;
+        on: parser.BuildAst();
         expect: true;
     }
 
@@ -191,14 +219,14 @@ intent ParseTokens(ast: AstTreeZone, owner: StageOwner) {
     failure: false;
 }
 
-intent CheckProgramSemantics(semantic_zone: SemanticVerdictZone, owner: StageOwner) {
+intent CheckProgramSemantics(semantic_zone: SemanticVerdictZone, checker: SemanticStage) {
     exclusive;
 
     step ProveFacts {
         where: SemanticVerdictZone;
         using: semantic_zone;
-        who: owner;
-        on: owner.Consume();
+        who: checker;
+        on: checker.Check();
         expect: true;
     }
 
@@ -206,14 +234,14 @@ intent CheckProgramSemantics(semantic_zone: SemanticVerdictZone, owner: StageOwn
     failure: false;
 }
 
-intent LowerProgramFacts(lower_zone: MirFactGraphZone, owner: StageOwner) {
+intent LowerProgramFacts(lower_zone: MirFactGraphZone, lowerer: MirLowerStage) {
     exclusive;
 
     step BuildMir {
         where: MirFactGraphZone;
         using: lower_zone;
-        who: owner;
-        on: owner.Consume();
+        who: lowerer;
+        on: lowerer.Lower();
         expect: true;
     }
 
@@ -263,7 +291,10 @@ intent CompilePergyraProgram(
     parity_zone: ParityZone,
     source: SourceUnit,
     paths: StagePathManifest,
-    owner: StageOwner,
+    lexer: LexerStage,
+    parser: ParserStage,
+    checker: SemanticStage,
+    lowerer: MirLowerStage,
     emitter: ProgramEmitter,
     oracle: OraclePair
 ) {
@@ -273,15 +304,15 @@ intent CompilePergyraProgram(
         where: SourceIntakeZone;
         using: intake;
         who: source;
-        on: FrontendPipeline(intake, tokens, ast, source, owner);
+        on: FrontendPipeline(intake, tokens, ast, source, lexer, parser);
         expect: true;
     }
 
     step MiddleEnd {
         where: SemanticVerdictZone;
         using: semantic_zone;
-        who: owner;
-        on: MiddleEndPipeline(semantic_zone, lower_zone, owner);
+        who: checker;
+        on: MiddleEndPipeline(semantic_zone, lower_zone, checker, lowerer);
         expect: true;
     }
 

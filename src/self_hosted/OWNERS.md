@@ -98,4 +98,6 @@ compiler-stage `.pgy` source to be listed here.
 
 - `src/self_hosted/compiler/world.pgy` -- `PgyCompilerWorld`, stage path
   manifest, and root compiler intent flow.
+- `src/self_hosted/compiler/path_manifest_owner.pgy` -- self-host compiler
+  source/test/parity path fact values.
 - `src/self_hosted/compiler/stage_intents.pgy` -- derived compiler intent clusters.
