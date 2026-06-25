@@ -5,7 +5,16 @@ Last updated: 2026-06-22
 Status: `long-term-contract`
 
 This document records a design contract that is already shaping the compiler:
-Pergyra source semantics must not collapse into a von Neumann CPU model. C and LLVM are the first validation projections, not the language's final execution ontology.
+Pergyra source semantics must not collapse into a von Neumann CPU model. C and
+LLVM are the first validation projections, not the language's final execution
+ontology.
+
+The sharp claim is not "Pergyra has many backends" in the ordinary compiler
+sense. The claim is that the language keeps a machine-neutral fact layer above
+all execution substrates. A CPU, C, LLVM, a future tensor/NPU backend, a future
+dataflow backend, and a future capability-machine backend are all projections
+from the same owner facts. They are not allowed to become the language's source
+of truth.
 
 ## Core Claim
 
@@ -31,10 +40,32 @@ If the owner fact is missing, the compiler must fail closed. If the evidence is
 present, a backend may retain, summarize, erase, or specialize the source-level
 axis according to its own execution substrate.
 
+## Projection Fact Envelope
+
+Every backend projection consumes an explicit fact envelope. The envelope is
+target-independent; the backend-specific lowering is not.
+
+| Fact family | Why a projection needs it |
+| --- | --- |
+| `intent_graph` | Work units, dependencies, and coordination order. |
+| `effect_set` | Which operations are pure, observable, external, or retained. |
+| `authority_evidence` | Which participant/capability proves the operation is allowed. |
+| `slot_ownership` | Buffer/handle identity, access mode, generation, and transfer boundary. |
+| `layout_shape` | Type layout, field order, element shape, ABI policy, and device/host address-space facts. |
+| `loss_budget` | Whether approximation, quantization, compression, or lossy projection is allowed. |
+| `materialization_reason` | Why a source axis remains runtime-visible instead of being erased. |
+| `fallback_reason` | Why a target cannot accept the projection, and which lower target must own the fallback. |
+
+For CPU projections, the envelope usually lowers to stack/heap objects, calls,
+branches, and ABI rows. For a future tensor/NPU projection, the same envelope
+would lower to graph nodes, tensor shapes, buffer transfers, quantization/loss
+budgets, and explicit host fallback reasons. This is the intended Pergyra
+advantage: the abstraction layer is heavier than a CPU-first language, but it
+keeps the replacement boundary above the backend.
+
 ## Current Projection
 
-The current production projections are C and LLVM. They exist to prove the
-stable subset is not accidentally defined by one backend's quirks:
+The current production projections are C and LLVM. C and LLVM are the first validation projections. They are CPU-family validation projections. They exist to prove the stable subset is not accidentally defined by one backend's quirks:
 
 ```text
 same source -> same AIR/MIR/ABI facts -> C output ~= LLVM output
@@ -43,6 +74,10 @@ same source -> same AIR/MIR/ABI facts -> C output ~= LLVM output
 This is not the end state. It is the first executable oracle pair. C and LLVM
 must never become the source of truth for `intent`, `effect`, `authority`,
 `coordination`, `slot`, `world`, or `zone`.
+
+Self-hosted compiler code must obey the same rule. A self-hosted C emitter is a
+projection consumer, not a second semantic oracle. A future NPU emitter would be
+another projection consumer, not a new language layer.
 
 ## Future Execution Models
 
@@ -54,7 +89,7 @@ facts are not CPU-specific:
 | Dataflow architecture | `intent` dependency graph, readiness facts, effect ordering. |
 | Actor model | `world` / `zone` boundaries, participant identity, message-like intent dispatch. |
 | Graph reduction | pure intent subgraphs, effect-free expressions, proof-gated erasure. |
-| Systolic / tensor architecture | bulk slots, deterministic layout facts, data-parallel coordination. |
+| Systolic / tensor / NPU architecture | bulk slots, deterministic layout and shape facts, data-parallel coordination, loss/quantization budgets, host/device transfer ownership. |
 | Capability machine | slot handles, authority evidence, capability-gated external effects. |
 | Reconfigurable computing | static intent/effect graph, layout facts, capability gates as circuit boundaries. |
 | Neuromorphic / event-driven systems | event-triggered intent nodes and sparse boundary activation. |
@@ -76,6 +111,10 @@ changing source semantics.
    the same authority, effect, failure, and observable ordering contract.
 6. If a future substrate cannot represent the required facts, it is an
    unsupported projection, not a reason to weaken the language.
+7. A CPU fallback is not an implicit escape hatch. If a tensor/NPU/dataflow
+   projection falls back to CPU, the fallback must be represented by an owner
+   fact with a reason such as unsupported shape, forbidden loss budget, retained
+   effect, missing authority evidence, or host-only slot boundary.
 
 ## Relation To Existing Work
 
@@ -97,6 +136,12 @@ machine-neutral fact ownership
 
 Pergyra should compile to CPUs today, but it should not make the CPU the shape
 of the language.
+
+The shorter positioning sentence is:
+
+```text
+Pergyra is an intent/evidence language whose backends are projection consumers.
+```
 
 ## Current Reality vs The Contract (2026-06-22 falsification)
 
@@ -157,6 +202,10 @@ Those targets become credible only when a backend consumes the same owner facts
 and passes projection-specific golden tests. Until then, they are future
 projection targets, not advertised capabilities.
 
+The same applies to NPU/tensor targets. Pergyra's current contract reserves the
+facts such a backend would need; it does not claim an implemented accelerator
+backend.
+
 ## Acceptance Rule
 
 A new non-CPU or non-von-Neumann backend may be called aligned with Pergyra only
@@ -167,6 +216,9 @@ when all of these hold:
   is missing;
 - it has positive and negative golden tests for retained, summarized, erased,
   and forbidden-to-erase axes;
+- it has positive and negative golden tests for target capability acceptance,
+  loss/quantization acceptance, host/device slot transfer, and explicit fallback
+  reasons when the target cannot consume a fact;
 - it documents which source axes are physicalized and which are erased;
 - it proves observable parity against the current C/LLVM oracle where the
   frozen subset overlaps.

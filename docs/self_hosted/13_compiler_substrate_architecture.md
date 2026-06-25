@@ -53,6 +53,13 @@ The intended shape is tree-like, not bucket-like:
   owner facts. They must not invent their own field order, symbol spelling,
   authority evidence, slot layout, or unsupported-surface verdict.
 
+The same rule is why the self-hosted compiler must not become a C folder graph
+rewritten in Pergyra syntax. C is only the current CPU projection. A future
+tensor/NPU or other accelerator projection should attach at the same codegen
+nerve bundle and consume the same intent/effect/authority/coordination/slot/
+layout/loss facts, with explicit reject or fallback evidence when the target
+cannot accept them.
+
 That means the codegen folder may contain many action files, but those files are
 not the architecture. The architecture is the path facts take from
 `PgyCompilerWorld` into backend projections. A new codegen file is only a new
@@ -160,6 +167,7 @@ compiler replacement.
 | emission buffer | `EmissionZone` | gives output writes one owner |
 | parity evidence | `ParityZone` and test harnesses | proves substitution against the C/LLVM oracle pair |
 | runtime materialization policy | runtime/frontier owner | distinguishes erased hot paths from explicit managed boundaries |
+| target capability envelope | projection fact owner | keeps CPU, self-hosted, and future accelerator acceptance/reject/fallback decisions visible |
 
 If one of these facts is missing, the fix is to add the fact to the owner or
 fail closed. The fix is not a local compatibility fallback.
@@ -203,6 +211,11 @@ bridge input. It must not treat AST text as the final semantic source of truth.
 New semantic decisions should enter through type facts, MIR facts, ABI facts, or
 a declared unsupported diagnostic.
 
+For future non-CPU targets, codegen must also consume target-capability facts:
+accepted operations, required loss/quantization budget, buffer transfer shape,
+host/device ownership, and fallback/materialization reason. These are facts, not
+backend-local guesses.
+
 ### Codegen Resource Contract
 
 The long-term codegen shape is resource-first:
@@ -214,6 +227,7 @@ The long-term codegen shape is resource-first:
 | symbol and mangle facts | future symbol owner | C and LLVM emission | one canonical spelling owner before broader ABI parity |
 | ABI/layout facts | `AbiLayoutZone` over the MIR ABI/layout owner | C, LLVM, self-hosted codegen | no backend invents field order, niche, pointer, or ownership shape |
 | unsupported surface | codegen diagnostic owner | parity harness | fail visibly, never emit broken C |
+| target acceptance/fallback | future target-capability owner | C, LLVM, self-hosted, accelerator projections | no hidden CPU fallback or unsupported accelerator lowering |
 
 The current `input/`, `run/`, `text/`, `type_facts/`, and `emission/`
 directories are an intermediate resource split. `text/` exists because the
@@ -274,7 +288,7 @@ self-hosting can close:
 4. Middle-end facts: MIR JSON/fact graph, CFG/body facts, cleanup/defer facts,
    and authority/effect evidence.
 5. Backend facts: ABI/layout rows, symbol/mangle rows, emitted-artifact owner,
-   runtime materialization policy.
+   runtime materialization policy, target acceptance/fallback facts.
 6. Proof facts: C/LLVM/Pergyra parity verdicts, run-output equality, diagnostic
    equality, IR JSON equality, and layout equality.
 

@@ -57,6 +57,13 @@ Codegen is then one projection intent over those facts. C, LLVM, and
 self-hosted emission are peer projections. None of them owns a second semantic
 truth.
 
+This is also the future backend replacement boundary. A future tensor/NPU,
+dataflow, capability-machine, or other non-CPU emitter must attach below the
+same `Codegen Projection Intent` and consume the same fact envelope. It may
+lower those facts to a different execution substrate, but it must not create a
+new semantic oracle beside `SourceFacts`, `TypeDag`, `AIR Evidence`, `MIR Fact`,
+or `ABI Layout`.
+
 ## Contract
 
 1. **Facts before backends.** Frontend, type, AIR, MIR, and ABI data are owned
@@ -79,6 +86,11 @@ truth.
    runtime boundary survives into emitted code, the retaining owner fact must
    say why. Static hot paths may erase; open-world or FFI/raw boundaries may
    materialize only through explicit evidence.
+7. **Backend replacement happens above CPU shape.** The compiler world does not
+   promise zero cost and does not promise that every target can accept every
+   intent. It promises that target acceptance, loss/quantization, buffer
+   transfer, materialization, and fallback are owned facts, so a CPU backend can
+   be replaced by another projection without rewriting source semantics.
 
 ## Current-To-Target Mapping
 
@@ -125,6 +137,9 @@ projection-nerve rule. This target document adds the next gate direction:
 - a future AIR-evidence gate should reject unowned evidence drift;
 - a future codegen-projection gate should prove C, LLVM, and SelfHosted consume
   the same MIR/type/ABI rows;
+- a future target-capability gate should prove any non-CPU projection consumes
+  the same intent/effect/authority/slot/layout/loss envelope and explains every
+  reject or CPU fallback;
 - a future artifact-zone gate should classify retained runtime symbols as
   erased, summarized, or explicitly materialized by evidence;
 - a future ABI/layout gate should reject backend-local field order, tag/niche,

@@ -40,7 +40,7 @@ Required shape for each proof document:
 - [13_slot_abi_single_owner.md](13_slot_abi_single_owner.md): Slot ABI single-owner rule. `PgySlot_*` names always carry the checked `{ value, occupied }` layout; value-only storage must use a distinct explicit ABI owner instead of remapping the canonical Slot ABI.
 - [16_language_contract_golden_spine.md](16_language_contract_golden_spine.md): golden-spine map for the language-design cleanup contracts: proof/refinement, semantic fallback, authority/effect, `inout`, logical Bool, value-collection mutation, proof-gated erasure, raw/FFI/layout, IR verifiers, machine-neutral compute, and self-hosted verifier/tool parity.
 - [17_proof_carrying_pipeline.md](17_proof_carrying_pipeline.md): proof-carrying IR pipeline contract. Stage 1 wraps live AIR/MIR payloads in a `pgy.proof-carrying-ir.v1` certificate envelope with digest checks, required evidence/fact lists, and a negative deletion check; Stage 2 is the mechanized checker-core proof boundary.
-- [18_machine_neutral_compute.md](18_machine_neutral_compute.md): machine-neutral compute contract. C and LLVM are the first validation projections, while AIR/MIR/ABI owner facts preserve `intent`, `effect`, `authority`, `coordination`, `slot`, `world`, and `zone` for future dataflow, actor, tensor, capability, reconfigurable, and event-driven substrates. (Includes the 2026-06-22 capability-machine falsification: AIR now owns the measured effect/capability/slot/authority-contract projection fields, and `make machine-neutral-status` remains the executable regression marker.)
+- [18_machine_neutral_compute.md](18_machine_neutral_compute.md): machine-neutral compute contract. C and LLVM are the first CPU-family validation projections, while AIR/MIR/ABI owner facts preserve `intent`, `effect`, `authority`, `coordination`, `slot`, `world`, `zone`, layout/shape, loss-budget, materialization, and fallback facts for future dataflow, actor, tensor/NPU, capability, reconfigurable, and event-driven substrates. (Includes the 2026-06-22 capability-machine falsification: AIR now owns the measured effect/capability/slot/authority-contract projection fields, and `make machine-neutral-status` remains the executable regression marker.)
 - [19_theoretical_foundations.md](19_theoretical_foundations.md): theory-lineage bibliography + synthesis boundary. Maps each Pergyra axis to established theory while explicitly stating that a citation is a lineage anchor, not a whole-language proof. The open work is the Pergyra abstract machine/core calculus.
 
 Mechanized artifacts:
@@ -181,8 +181,9 @@ Stable proof scope:
   accepted loss, preserved facts, forbidden downstream reads, compression
   evidence, and proof-gated erasure budget.
 - Machine-neutral compute: stable source-level axes must be owned by AIR/MIR/ABI
-  facts rather than C/LLVM physical artifacts, so future backend projections can
-  consume the same evidence or fail closed.
+  facts rather than C/LLVM physical artifacts, so CPU, self-hosted, tensor/NPU,
+  dataflow, or capability-machine projections can consume the same evidence or
+  fail closed with an explicit fallback/materialization reason.
 - Behavior-contract closure: stable behavior claims must not be described as a
   closed calculus until their judgment rules, typed evidence facts, strict
   proof path, pass/loss manifest, backend oracle class, and mechanized-proof

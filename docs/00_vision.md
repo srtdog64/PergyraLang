@@ -4,6 +4,7 @@
 
 Pergyra should not make the von Neumann CPU the shape of the language. C and
 LLVM are the first validation projections, not the final execution ontology.
+The CPU is therefore a current projection target, not the language's ontology.
 
 The long-term source of truth is the fact pipeline: `intent`, `effect`,
 `authority`, `coordination`, `slot`, `world`, and `zone` must survive as
@@ -11,6 +12,13 @@ AIR/MIR/ABI owner facts until a backend either consumes them or fails closed.
 That is what makes future dataflow, actor, tensor, capability-machine,
 reconfigurable, and event-driven substrates plausible without changing source
 semantics.
+
+The useful sharp edge is projection replacement. A future NPU/tensor backend
+should not need a new source language; it should consume the same intent,
+effect, authority, coordination, slot, layout, loss-budget, and materialization
+facts that the C and LLVM projections consume today. If that backend cannot
+accept a program, the rejection or CPU fallback must be fact-backed and visible,
+not a hidden backend convenience.
 
 The governing contract is
 [`docs/semantics/18_machine_neutral_compute.md`](semantics/18_machine_neutral_compute.md).

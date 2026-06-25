@@ -60,7 +60,7 @@ and follow-up debt over older design notes.
 | [`semantics/09_abstraction_loss_contracts.md`](semantics/09_abstraction_loss_contracts.md) | Abstraction loss contract rules for compiler and tooling boundaries |
 | [`semantics/pass_contract_manifest.md`](semantics/pass_contract_manifest.md) | Pass-level fact contract manifest for CFG/MIR, AIR, DAG/type-resolution, MIR/LLVM declaration parity, and ABI/Slot/Pin closure |
 | [`semantics/10_behavior_contract_closure_gaps.md`](semantics/10_behavior_contract_closure_gaps.md) | Remaining proof gaps before calling behavior contracts a closed calculus |
-| [`semantics/18_machine_neutral_compute.md`](semantics/18_machine_neutral_compute.md) | Machine-neutral compute contract: C/LLVM as first projections, AIR/MIR/ABI facts as the long-term target-independent source of truth |
+| [`semantics/18_machine_neutral_compute.md`](semantics/18_machine_neutral_compute.md) | Machine-neutral compute contract: C/LLVM as first CPU projections, AIR/MIR/ABI facts as the target-independent source of truth, and future tensor/NPU/dataflow/capability projections as fact consumers |
 | [`semantics/19_theoretical_foundations.md`](semantics/19_theoretical_foundations.md) | Theory-lineage bibliography and synthesis boundary: citations anchor each axis, but the open proof target is Pergyra's own abstract machine/core calculus |
 | [`103_cfg_body_dataflow_need.md`](103_cfg_body_dataflow_need.md) | Why CFG/body dataflow is required for beta-grade ownership and cleanup |
 | [`104_air_compiler_architecture.md`](104_air_compiler_architecture.md) | AIR architecture and abstraction drift model |
