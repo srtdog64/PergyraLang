@@ -38,6 +38,7 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/parser/decl_type_owner.pgy` -- type declarations.
 - `src/self_hosted/parser/decl_zone_owner.pgy` -- zone declarations.
 - `src/self_hosted/parser/error_owner.pgy` -- parser diagnostic strings.
+- `src/self_hosted/parser/expr_owner.pgy` -- expression grammar import boundary.
 - `src/self_hosted/parser/expr_postfix_owner.pgy` -- postfix expression parsing.
 - `src/self_hosted/parser/expr_precedence_owner.pgy` -- precedence expression parsing.
 - `src/self_hosted/parser/expr_primary_owner.pgy` -- primary expression parsing.

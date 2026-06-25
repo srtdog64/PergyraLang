@@ -1482,3 +1482,15 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   deliberately: the native import resolver still rejects circular imports, so
   that group needs an explicit cycle/import-owner design before it can stop
   relying on parser entrypoint materialization.
+
+### 2026-06-25 -- Expression parser gains a cycle-safe owner boundary
+
+- Added `src/self_hosted/parser/expr_owner.pgy` as the public owner boundary
+  for the mutually recursive expression grammar. It imports the string,
+  postfix, primary, and precedence participants as one cluster instead of
+  asking those files to circularly import each other.
+- Repointed `parser/main.pgy` to import `expr_owner.pgy` rather than the four
+  expression participant files directly, and ratcheted the component/prep
+  smokes so the old entrypoint aggregation cannot come back.
+- Added the expression owner boundary to real-source semantic selfcheck,
+  raising accepted self-host owner/source files from 61 to 62.

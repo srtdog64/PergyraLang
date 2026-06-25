@@ -226,10 +226,18 @@ require_owner_surface parser \
     "cursor_owner.pgy" \
     "source_path_owner.pgy" \
     "tree_text_owner.pgy" \
-    "expr_postfix_owner.pgy" \
+    "expr_owner.pgy" \
     "stmt_loop_owner.pgy" \
     "decl_dispatch_owner.pgy" \
     "program_parse_owner.pgy"
+require_text "src/self_hosted/parser/expr_owner.pgy" 'import "expr_string_owner.pgy";'
+require_text "src/self_hosted/parser/expr_owner.pgy" 'import "expr_postfix_owner.pgy";'
+require_text "src/self_hosted/parser/expr_owner.pgy" 'import "expr_primary_owner.pgy";'
+require_text "src/self_hosted/parser/expr_owner.pgy" 'import "expr_precedence_owner.pgy";'
+reject_text "src/self_hosted/parser/main.pgy" 'import "expr_string_owner.pgy";'
+reject_text "src/self_hosted/parser/main.pgy" 'import "expr_primary_owner.pgy";'
+reject_text "src/self_hosted/parser/main.pgy" 'import "expr_postfix_owner.pgy";'
+reject_text "src/self_hosted/parser/main.pgy" 'import "expr_precedence_owner.pgy";'
 require_text "src/self_hosted/parser/expr_postfix_owner.pgy" "func ApplyPostfixExpr"
 reject_text "src/self_hosted/parser/expr_primary_owner.pgy" "Postfix loop:"
 require_text "src/self_hosted/parser/stmt_loop_owner.pgy" "func ParseForStmt"
@@ -327,6 +335,7 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/s
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/program_check_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/semantic_run_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/main.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/expr_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/tree_text_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/main.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/fuzz/backend_parity_generator/main.pgy"'
@@ -338,8 +347,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 61 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 61"
+[[ "$selfcheck_count" -eq 62 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 62"
 
 semantic_items="$(extract_shell_array_items "$PARITY_DIR/semantic_parity.sh" SOURCE_PAIRS | sed 's/:.*//')"
 [[ -n "$semantic_items" ]] || fail "semantic parity SOURCE_PAIRS is empty"

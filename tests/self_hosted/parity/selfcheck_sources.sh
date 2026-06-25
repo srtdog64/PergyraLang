@@ -73,6 +73,7 @@ SELF_SOURCES=(
     "src/self_hosted/parser/decl_event_owner.pgy"
     "src/self_hosted/parser/decl_type_owner.pgy"
     "src/self_hosted/parser/error_owner.pgy"
+    "src/self_hosted/parser/expr_owner.pgy"
     "src/self_hosted/parser/main.pgy"
     "src/self_hosted/parser/source_path_owner.pgy"
     "src/self_hosted/parser/tree_text_owner.pgy"

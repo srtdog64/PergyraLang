@@ -1,0 +1,14 @@
+// Self-host parser expression grammar owner.
+//
+// Expression parsing is a mutually recursive grammar cluster:
+// primary expressions call back into ParseExpr for grouped/lambda/list forms,
+// while precedence parsing calls ParsePrimary. Native imports reject circular
+// imports, so the expression cluster has one import boundary and the split
+// files below remain internal participants of that owner.
+
+import "cursor_owner.pgy";
+import "type_name_owner.pgy";
+import "expr_string_owner.pgy";
+import "expr_postfix_owner.pgy";
+import "expr_primary_owner.pgy";
+import "expr_precedence_owner.pgy";
