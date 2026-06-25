@@ -1,0 +1,10 @@
+func Main() -> Void {
+    let a: String = "fo";
+    let b: String = "ob";
+    let c: String = "ar";
+    if a + b + c == "foobar" {
+        Log("concat_eq_ok");
+    } else {
+        Log("concat_eq_fail");
+    }
+}

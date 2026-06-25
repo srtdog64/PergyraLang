@@ -192,6 +192,7 @@ FIXTURES=(
     seed_random
     array_index_assign
     string_array_index_return
+    string_equality_concat
 )
 
 # Per-fixture runtime arguments. The same argv snapshot is passed to both the

@@ -118,10 +118,13 @@ The architecture shape is recorded in
 [`12_intent_zone_self_host_architecture.md`](12_intent_zone_self_host_architecture.md).
 The compiler/codegen/substrate architecture stack is recorded in
 [`13_compiler_substrate_architecture.md`](13_compiler_substrate_architecture.md).
+The target compiler-world projection shape is recorded in
+[`14_target_compiler_world.md`](14_target_compiler_world.md).
 The short version: `intent` owns compiler flow, `zone` owns distinct compiler
 resources, stage files remain fact owners rather than fake zones, and compiler
 substrates such as imports, deterministic collections, diagnostics, MIR facts,
-ABI facts, emission buffers, and parity evidence must have named owners.
+ABI facts, emission buffers, AIR evidence, runtime materialization policy, and
+parity evidence must have named owners.
 
 Fast and heavy self-host checks are split. Use
 `make self-host-preparation-contract-test-smoke` for quick structure/manifest
@@ -168,3 +171,6 @@ its own ecosystem.
 - `13_compiler_substrate_architecture.md` - self-hosted compiler architecture
   stack and substrate contract for codegen, stage owners, imports,
   deterministic facts, runtime materialization, caching, and parity promotion.
+- `14_target_compiler_world.md` - target compiler-world shape: fact zones,
+  Codegen Projection intent, C/LLVM/SelfHosted emission peers, and Artifact
+  Zone parity sink.

@@ -272,7 +272,7 @@ func RewriteBool(e: String, env: String) -> String {
             if !is_eq {
                 tail = ") != 0)";
             }
-            return Concat("(strcmp(", Concat(RewriteTokens(lhs, env), Concat(", ", Concat(RewriteTokens(rhs, env), tail))));
+            return Concat("(strcmp(", Concat(RewriteExpr(lhs, env), Concat(", ", Concat(RewriteExpr(rhs, env), tail))));
         }
     }
     return RewriteTokens(s, env);

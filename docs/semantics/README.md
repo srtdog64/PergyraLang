@@ -112,13 +112,14 @@ Mechanized artifacts:
   docs/19 abstract machine now have a mechanized soundness/fail-closed theorem;
   compensation + AIR binding are the open synthesis.
 - [proofs/UnifiedCore.v](proofs/UnifiedCore.v): Coq proof sketch unifying the four
-  corners into ONE abstract machine (single `config` + a `step` relation with all
-  six Step forms: Cross/Emit/Acquire/Use/Release/Delegate). Proves the cross-cutting
+  corners and the compensation/rollback step into ONE abstract machine (single `config` + a `step` relation with all
+  seven Step forms: Cross/Emit/Acquire/Use/Release/Delegate/Rollback). Proves the cross-cutting
   capstone `authority_conservation` -- no Step form anywhere creates a capability
   (delegation redistributes; the others do not touch holdings), the whole-machine
-  no-ambient-authority theorem. Shows the four disciplines coexist on one state
-  without interference. Compensation and a full preservation/progress over a typing
-  judgment are the remaining synthesis.
+  no-ambient-authority theorem. Proves the non-interference of delegation and rollback
+  (`delegate_then_rollback_sound` and `acquire_delegate_then_rollback_sound`). Shows the capability,
+  typestate, and rollback disciplines coexist on one state without interference.
+  A full preservation/progress over a typing judgment remains the open synthesis.
 - [proofs/CompensationCore.v](proofs/CompensationCore.v): Coq proof sketch for the
   compensation / rollback Step form (the intent-specific facet, Saga lineage). The
   effect->slot coupling `comp_target` makes rollback sound: `rollback_requires_log`

@@ -111,4 +111,8 @@ if ! grep -Fq '"kind":"inventory_count_drift"' <<<"$NEG_OUT"; then
 fi
 
 assert_llvm_leg "self-host-parity:examples-inventory" "$PERGYRA_TOOL" "$PERGYRA_TOOL_BUILD_DIR"
-echo "[self-host-parity:examples-inventory] rung-2 parity ok (DirWalk examples=121 missing=0 empty=0 max=544; count-drift fixture rc=1)"
+CLEAN_EXAMPLES="$(sed -n 's/.*"examples":\([0-9][0-9]*\).*/\1/p' <<<"$PERGYRA_JSON")"
+CLEAN_MISSING="$(sed -n 's/.*"missing":\([0-9][0-9]*\).*/\1/p' <<<"$PERGYRA_JSON")"
+CLEAN_EMPTY="$(sed -n 's/.*"empty":\([0-9][0-9]*\).*/\1/p' <<<"$PERGYRA_JSON")"
+CLEAN_MAX_LINES="$(sed -n 's/.*"max_lines":\([0-9][0-9]*\).*/\1/p' <<<"$PERGYRA_JSON")"
+echo "[self-host-parity:examples-inventory] rung-2 parity ok (DirWalk examples=$CLEAN_EXAMPLES missing=$CLEAN_MISSING empty=$CLEAN_EMPTY max=$CLEAN_MAX_LINES; count-drift fixture rc=1)"

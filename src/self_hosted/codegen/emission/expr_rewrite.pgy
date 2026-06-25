@@ -16,6 +16,9 @@ func RewriteRoleOperators(e: String, env: String) -> String {
         let rhs_kind: String = ExprKind(rhs, env);
         if lhs_kind == rhs_kind {
             let op_name: String = LookupKindType(env, Concat(lhs_kind, "+"), "op");
+            if StringLength(op_name) == 0 && lhs_kind == "String" {
+                op_name = "pgy_concat";
+            }
             if StringLength(op_name) > 0 {
                 return Concat(op_name, Concat("(", Concat(RewriteExpr(lhs, env),
                     Concat(", ", Concat(RewriteExpr(rhs, env), ")")))));
