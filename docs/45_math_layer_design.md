@@ -101,7 +101,7 @@ LaTeX-like source → Math Parser → Math AST (IR) → { Eval, ToLatex, TypeChe
 #### 문법
 
 ```pergyra
-let eq := texmath `\frac{x^2 + 1}{x - 1}`;
+let eq = texmath `\frac{x^2 + 1}{x - 1}`;
 let rendered: String = Math.ToLatex(eq);
 let value: Float = Math.Eval(eq, Bind("x", 2.0));
 ```
@@ -200,9 +200,9 @@ let dot: Float = v . w;        // 내적
 ```pergyra
 use symbolic;
 
-let expr := Sym.Parse("2*x^2 + 3*x + 1");
-let diff := Sym.Differentiate(expr, "x");   // 4*x + 3
-let simp := Sym.Simplify(diff);
+let expr = Sym.Parse("2*x^2 + 3*x + 1");
+let diff = Sym.Differentiate(expr, "x");   // 4*x + 3
+let simp = Sym.Simplify(diff);
 let tex: String = Sym.ToLatex(simp);
 ```
 

@@ -239,7 +239,7 @@ func BindAll(pairs: Array<(String, Float)>) -> Map<String, Float>;
 ### 사용 예시
 
 ```pergyra
-let eq := texmath `\frac{x^2 + 1}{x - 1}`;
+let eq = texmath `\frac{x^2 + 1}{x - 1}`;
 
 // 자유 변수 확인
 let vars: Array<String> = Math.FreeVars(eq);  // ["x"]
@@ -251,7 +251,7 @@ let y: Float = Math.Eval(eq, Bind("x", 3.0));  // (9+1)/(3-1) = 5.0
 let tex: String = Math.ToLatex(eq);  // "\\frac{x^{2} + 1}{x - 1}"
 
 // 대입
-let specific := Math.Substitute(eq, "x", texmath `a + 1`);
+let specific = Math.Substitute(eq, "x", texmath `a + 1`);
 // → \frac{(a+1)^2 + 1}{(a+1) - 1}
 ```
 

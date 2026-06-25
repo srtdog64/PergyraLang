@@ -211,6 +211,14 @@ reject_text "src/self_hosted/PROGRESS.md" "77 PASS / 0 gap plus 2 clean rejects"
 reject_text "docs/self_hosted/07_hard_self_host_scorecard.md" "77 PASS / 0 gap plus 2 clean rejects"
 reject_text "docs/self_hosted/07_hard_self_host_scorecard.md" "61-fixture"
 reject_text "src/self_hosted/codegen/README.md" "round-trip self-compilation (the codegen tool compiling a Pergyra tool)"
+reject_text "src/lexer/lexer.h" "TOKEN_COLON_ASSIGN"
+reject_text "src/lexer/lexer.c" "TOKEN_COLON_ASSIGN"
+reject_text "src/lexer/lexer_token_debug.c" "COLON_ASSIGN"
+reject_text "src/parser/parser_statement_dispatch.c" "TOKEN_COLON_ASSIGN"
+reject_text "src/self_hosted/lexer/scan_owner.pgy" "walrus"
+reject_text "src/self_hosted/parser/stmt_owner.pgy" "Walrus"
+reject_text "tests/self_hosted/parity/parser_parity.sh" "walrus_"
+reject_text "src/self_hosted/PROGRESS.md" "walrus surface"
 
 require_owner_surface lexer \
     "scan_owner.pgy" \

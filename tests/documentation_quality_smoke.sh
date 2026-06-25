@@ -538,6 +538,17 @@ for forbidden in \
     forbid_text "README.md" "$forbidden"
 done
 
+require_text "docs/grammar/01_syntax.md" '과거의 `:=` 단축 선언은 `let x = expr`와 중복이라 제거됐다'
+require_text "docs/grammar/02_grammar.md" '단축 선언은 같은 의미의'
+for rel in \
+    "README.md" \
+    "docs/45_math_layer_design.md" \
+    "docs/46_texmath_spec.md" \
+    "src/self_hosted/PROGRESS.md"; do
+    forbid_text "$rel" ":="
+    forbid_text "$rel" "walrus surface"
+done
+
 readme_ko_anti_hype_terms=(
     "strict beta readiness"
     "production-ready"

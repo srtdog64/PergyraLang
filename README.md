@@ -239,10 +239,8 @@ Authoring-surface references:
 ```pergyra
 let x: Int = 10;
 let name: String = "Alice";
-
-// := shorthand (type inferred)
-count := 0;
-msg := "hello";
+let count = 0;
+let msg = "hello";
 ```
 
 ### Functions
@@ -255,7 +253,7 @@ func Add(a: Int, b: Int) -> Int
 
 func main()
 {
-    let result := Add(3, 4);
+    let result = Add(3, 4);
     PrintInt(result);
 }
 ```
@@ -546,15 +544,15 @@ use fsm;
 use timer;
 use cooldown;
 
-let state := FsmNew();
+let state = FsmNew();
 FsmAddState(state, 0, "idle");
 FsmAddState(state, 1, "attack");
 FsmTransition(state, 0, 1);
 
-let t := TimerNew(100);
+let t = TimerNew(100);
 TimerTick(t, 16);
 
-let cd := CooldownNew(60);
+let cd = CooldownNew(60);
 CooldownTrigger(cd);
 ```
 
