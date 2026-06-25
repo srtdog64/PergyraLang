@@ -23,11 +23,12 @@ parity and the examples scale probe.
   cursor initialization, top-level declaration parse invocation, and final
   compact AST `Program:` assembly. `main.pgy` only wires the selected source
   path into this owner.
-- **statement_owner**: `stmt_owner.pgy` owns statement dispatch and block
-  recursion. Branch-specific statement syntax is split by SoT owner:
-  `stmt_loop_owner.pgy` owns `while`/`loop`/`for`, alongside the existing
-  `stmt_if_owner.pgy`, `stmt_parallel_owner.pgy`, and `stmt_match_owner.pgy`
-  branches.
+- **statement_owner**: `stmt_owner.pgy` is the public boundary for the
+  mutually recursive statement grammar. It owns statement dispatch and block
+  recursion, and imports branch participants as one cluster because native
+  imports reject circular imports. Branch-specific statement syntax is split by
+  SoT owner: `stmt_loop_owner.pgy` owns `while`/`loop`/`for`, alongside
+  `stmt_if_owner.pgy`, `stmt_parallel_owner.pgy`, and `stmt_match_owner.pgy`.
 - **expression_owner**: `expr_owner.pgy` is the public boundary for the
   mutually recursive expression grammar. `expr_primary_owner.pgy` owns primary
   expression roots, `expr_postfix_owner.pgy` owns the postfix chain for calls,

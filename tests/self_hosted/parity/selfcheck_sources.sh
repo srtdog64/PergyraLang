@@ -76,6 +76,7 @@ SELF_SOURCES=(
     "src/self_hosted/parser/expr_owner.pgy"
     "src/self_hosted/parser/main.pgy"
     "src/self_hosted/parser/source_path_owner.pgy"
+    "src/self_hosted/parser/stmt_owner.pgy"
     "src/self_hosted/parser/tree_text_owner.pgy"
     "src/self_hosted/parser/type_name_owner.pgy"
     "src/self_hosted/semantic/diagnostic_code_owner.pgy"

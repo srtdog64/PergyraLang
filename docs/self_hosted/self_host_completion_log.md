@@ -1494,3 +1494,15 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   smokes so the old entrypoint aggregation cannot come back.
 - Added the expression owner boundary to real-source semantic selfcheck,
   raising accepted self-host owner/source files from 61 to 62.
+
+### 2026-06-25 -- Statement parser branch imports move behind stmt owner
+
+- Repointed `parser/main.pgy` so statement branch files are no longer imported
+  by the entrypoint. `stmt_owner.pgy` is now the public statement grammar
+  boundary and imports the if/loop/parallel/match branch participants as one
+  cluster.
+- Added ratchets that reject `stmt_if_owner`, `stmt_loop_owner`,
+  `stmt_parallel_owner`, and `stmt_match_owner` imports from `parser/main.pgy`
+  while requiring them from `stmt_owner.pgy`.
+- Added `stmt_owner.pgy` to real-source semantic selfcheck, raising accepted
+  self-host owner/source files from 62 to 63.

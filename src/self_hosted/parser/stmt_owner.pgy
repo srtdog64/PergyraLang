@@ -1,4 +1,19 @@
 // Self-host parser statement and block owner.
+//
+// Statement parsing is a mutually recursive grammar cluster: branch owners
+// need ParseBlock/ParseOneStmt, while this dispatch owner calls those branch
+// owners. Native imports reject circular imports, so this file is the public
+// statement boundary and imports branch participants as one cluster.
+
+import "cursor_owner.pgy";
+import "error_owner.pgy";
+import "tree_text_owner.pgy";
+import "type_name_owner.pgy";
+import "expr_owner.pgy";
+import "stmt_if_owner.pgy";
+import "stmt_loop_owner.pgy";
+import "stmt_parallel_owner.pgy";
+import "stmt_match_owner.pgy";
 
 // Parse one statement. Returns its formatted AST lines joined by "\n";
 // empty string only if a parse error path was reached (which Exits anyway).
