@@ -8163,7 +8163,9 @@ done
 for f in \
     "src/semantic/type_checker_resolution_graph_decl.c" \
     "src/semantic/type_checker_resolution_stage_nominal.c" \
-    "src/semantic/type_checker_assignment.c"; do
+    "src/semantic/type_checker_assignment.c" \
+    "src/semantic/type_checker_projection_path.c" \
+    "src/semantic/type_checker_helpers_resources.c"; do
     if grep -Eq 'ast_class_fields[[:space:]]*\(' "$ROOT_DIR/$f"; then
         fail "F2: migrated semantic consumer must consume PgyDeclField, not ast_class_fields(): $f"
     fi

@@ -105,19 +105,19 @@ type_check_projection_call(ASTNode *call,
 
     size_t target_field_count = projection_source_field_count(target_decl);
     for (size_t i = 0; i < target_field_count; i++) {
-        ClassField *target_field =
+        PgyDeclField target_field =
             projection_source_field_at(target_decl, i);
         Type *target_field_type;
         Type *source_field_type;
         int source_status;
 
-        if (target_field == NULL || target_field->name == NULL
-            || target_field->type == NULL) {
+        if (target_field.name == NULL
+            || target_field.type_ast == NULL) {
             continue;
         }
 
         source_status = semantic_resolve_projection_source_field_type(
-            ctx, source_decl, target_field->name, &source_field_type);
+            ctx, source_decl, target_field.name, &source_field_type);
         if (source_status == 2) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call,
                 "%s target field '%s' is ambiguous in source subject '%s'.\n"
@@ -128,22 +128,22 @@ type_check_projection_call(ASTNode *call,
                 "- rename one of the source fields to make the path unique\n"
                 "- or expose the desired value directly on the subject host",
                 builtin_name,
-                target_field->name,
+                target_field.name,
                 type_name_or_unknown(source_type),
-                target_field->name);
+                target_field.name);
             continue;
         }
         if (source_status == 0 || source_field_type == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call,
                 "%s target field '%s' is missing from source subject '%s'",
                 builtin_name,
-                target_field->name,
+                target_field.name,
                 type_name_or_unknown(source_type));
             continue;
         }
 
         target_field_type = projection_resolve_type_ref(
-            target_field->type, ctx);
+            target_field.type_ast, ctx);
         require_assignable(
             builtin_projection_normalize_type(source_field_type),
             builtin_projection_normalize_type(target_field_type),

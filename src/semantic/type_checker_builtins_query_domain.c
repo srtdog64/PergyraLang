@@ -253,25 +253,25 @@ resolve_projection_source_field_type_rec(ASTNode *source_decl,
 
     field_count = projection_source_field_count(source_decl);
     for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = projection_source_field_at(source_decl, i);
-        if (field != NULL && field->name != NULL
-            && strcmp(field->name, field_name) == 0) {
+        PgyDeclField field = projection_source_field_at(source_decl, i);
+        if (field.name != NULL
+            && strcmp(field.name, field_name) == 0) {
             if (field_type_out != NULL)
-                *field_type_out = field->type != NULL
-                    ? projection_resolve_type_ref(field->type, ctx)
+                *field_type_out = field.type_ast != NULL
+                    ? projection_resolve_type_ref(field.type_ast, ctx)
                     : TYPE_UNKNOWN;
             return 1;
         }
     }
 
     for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = projection_source_field_at(source_decl, i);
+        PgyDeclField field = projection_source_field_at(source_decl, i);
         ASTNode *vessel_decl;
         Type *nested_type = NULL;
         int nested_status;
-        const char *field_type_name = field != NULL ? ast_type_name(field->type) : NULL;
+        const char *field_type_name = field.name != NULL ? ast_type_name(field.type_ast) : NULL;
 
-        if (field == NULL || !field->is_vessel_field
+        if (!field.is_vessel_field
             || field_type_name == NULL) {
             continue;
         }

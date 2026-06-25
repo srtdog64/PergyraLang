@@ -380,14 +380,14 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
         if (decl != NULL && decl->type == AST_CLASS_DECL) {
             size_t field_count = projection_source_field_count(decl);
             for (size_t fi = 0; fi < field_count; fi++) {
-                ClassField *cf = projection_source_field_at(decl, fi);
-                if (cf == NULL || cf->name == NULL)
+                PgyDeclField cf = projection_source_field_at(decl, fi);
+                if (cf.name == NULL)
                     continue;
-                if (strcmp(cf->name, field_name) == 0) {
+                if (strcmp(cf.name, field_name) == 0) {
                     if (!explicit_member_access_allowed(decl,
                             object_type,
-                            cf->access,
-                            cf->has_explicit_access,
+                            cf.access,
+                            cf.has_explicit_access,
                             ctx)) {
                         semantic_error_with_hints(ctx, PGY_CODE_SEM_VISIBILITY_BOUNDARY, PGY_CAUSE_VISIBILITY_BOUNDARY_CROSS, PGY_FIX_WIDEN_VISIBILITY_OR_MOVE_CALLER, expr,
                             "Member '%s.%s' is not accessible across the current visibility boundary",
@@ -395,7 +395,7 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
                             field_name);
                         return TYPE_UNKNOWN;
                     }
-                    return expr_resolve_type_ref(cf->type, ctx);
+                    return expr_resolve_type_ref(cf.type_ast, ctx);
                 }
             }
         } else if (decl != NULL) {

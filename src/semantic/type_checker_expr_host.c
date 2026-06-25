@@ -13,11 +13,11 @@ expr_host_normalize_type(Type *type)
 }
 
 static Type *
-expr_host_resolve_class_field_type(ClassField *field, SemanticContext *ctx)
+expr_host_resolve_class_field_type(ASTNode *field_type, SemanticContext *ctx)
 {
-    if (field == NULL)
+    if (field_type == NULL)
         return NULL;
-    return semantic_host_resolve_type_ref(field->type, ctx);
+    return semantic_host_resolve_type_ref(field_type, ctx);
 }
 
 static Type *
@@ -48,10 +48,10 @@ expr_current_host_field_type(SemanticContext *ctx, const char *field_name)
     if (decl->type == AST_CLASS_DECL) {
         size_t field_count = projection_source_field_count(decl);
         for (size_t i = 0; i < field_count; i++) {
-            ClassField *field = projection_source_field_at(decl, i);
-            if (field != NULL && field->name != NULL
-                && strcmp(field->name, field_name) == 0) {
-                return expr_host_resolve_class_field_type(field, ctx);
+            PgyDeclField field = projection_source_field_at(decl, i);
+            if (field.name != NULL
+                && strcmp(field.name, field_name) == 0) {
+                return expr_host_resolve_class_field_type(field.type_ast, ctx);
             }
         }
         return NULL;

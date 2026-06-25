@@ -39,10 +39,10 @@ constructor_decl_field_type_at(ASTNode *decl,
     if (decl == NULL)
         return NULL;
     if (decl->type == AST_CLASS_DECL) {
-        ClassField *field = subject_host_field_at(decl, index);
-        if (field_name_out != NULL && field != NULL)
-            *field_name_out = field->name;
-        return field != NULL ? field->type : NULL;
+        PgyDeclField field = subject_host_field_at(decl, index);
+        if (field_name_out != NULL && field.name != NULL)
+            *field_name_out = field.name;
+        return field.name != NULL ? field.type_ast : NULL;
     }
     return overlay_field_decl_at(decl, index, field_name_out);
 }

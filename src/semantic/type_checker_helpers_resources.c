@@ -262,17 +262,15 @@ decl_is_projection_source(const ASTNode *decl)
         && ast_class_nominal_kind(decl) == NOMINAL_DECL_OBJECT;
 }
 
-ClassField *
+PgyDeclField
 subject_host_field_at(ASTNode *decl, size_t index)
 {
-    if (decl == NULL)
-        return NULL;
-    if (decl->type == AST_CLASS_DECL) {
-        size_t field_count = 0;
-        ClassField **fields = ast_class_fields(decl, &field_count);
-        if (index < field_count && fields != NULL)
-            return fields[index];
-        return NULL;
-    }
-    return NULL;
+    PgyDeclField empty = {0};
+    if (decl == NULL || decl->type != AST_CLASS_DECL)
+        return empty;
+    PgyDeclField *fields = NULL;
+    size_t field_count = pgy_class_decl_field_model_build(decl, &fields);
+    PgyDeclField result = (index < field_count) ? fields[index] : empty;
+    pgy_decl_field_model_free(fields, field_count);
+    return result;
 }

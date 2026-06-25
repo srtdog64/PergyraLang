@@ -108,7 +108,7 @@ type_check_projection_field_contracts(ASTNode *target_decl,
 
     target_field_count = projection_source_field_count(target_decl);
     for (size_t i = 0; i < target_field_count; i++) {
-        ClassField *target_field =
+        PgyDeclField target_field =
             projection_source_field_at(target_decl, i);
         Type *target_field_type;
         Type *source_field_type;
@@ -116,13 +116,13 @@ type_check_projection_field_contracts(ASTNode *target_decl,
         const char *source_path = NULL;
         int source_status;
 
-        if (target_field == NULL || target_field->name == NULL
-            || target_field->type == NULL) {
+        if (target_field.name == NULL
+            || target_field.type_ast == NULL) {
             continue;
         }
 
         source_field_name = projection_refresh_source_field_name(site,
-            target_field->name);
+            target_field.name);
         source_status = semantic_resolve_projection_source_field_path(
             ctx, source_decl, source_field_name,
             &source_path, &source_field_type);
@@ -142,7 +142,7 @@ type_check_projection_field_contracts(ASTNode *target_decl,
                 "- rename one of the source fields to make the path unique\n"
                 "- or expose the desired value through a dedicated object/tobject field",
                 owner_label, action_name,
-                target_field->name,
+                target_field.name,
                 source_slot_name != NULL ? source_slot_name : "<unknown>",
                 object_slot_name != NULL ? object_slot_name : "<unknown>",
                 source_slot_name != NULL ? source_slot_name : "<unknown>",
@@ -151,8 +151,8 @@ type_check_projection_field_contracts(ASTNode *target_decl,
                     : "<unknown>",
                 object_slot_name != NULL ? object_slot_name : "<unknown>",
                 source_slot_name != NULL ? source_slot_name : "<unknown>",
-                source_field_name != NULL ? source_field_name : target_field->name,
-                source_field_name != NULL ? source_field_name : target_field->name,
+                source_field_name != NULL ? source_field_name : target_field.name,
+                source_field_name != NULL ? source_field_name : target_field.name,
                 source_type != NULL && source_type->name != NULL
                     ? source_type->name
                     : "<unknown>");
@@ -160,7 +160,7 @@ type_check_projection_field_contracts(ASTNode *target_decl,
         }
         if (source_status == 0 || source_field_type == NULL) {
             if (source_field_name != NULL
-                && strcmp(source_field_name, target_field->name) != 0) {
+                && strcmp(source_field_name, target_field.name) != 0) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
                     "%s %s target field '%s' maps from missing source field '%s' in slot '%s'.\n"
                     "Contract source:\n"
@@ -175,7 +175,7 @@ type_check_projection_field_contracts(ASTNode *target_decl,
                     "- add source field '%s' to '%s'\n"
                     "- or change the map entry to a field that actually exists",
                     owner_label, action_name,
-                    target_field->name,
+                    target_field.name,
                     source_field_name,
                     source_slot_name != NULL ? source_slot_name : "<unknown>",
                     object_slot_name != NULL ? object_slot_name : "<unknown>",
@@ -185,7 +185,7 @@ type_check_projection_field_contracts(ASTNode *target_decl,
                     action_name,
                     object_slot_name != NULL ? object_slot_name : "<unknown>",
                     source_slot_name != NULL ? source_slot_name : "<unknown>",
-                    target_field->name,
+                    target_field.name,
                     source_field_name,
                     source_type != NULL && source_type->name != NULL
                         ? source_type->name
@@ -213,7 +213,7 @@ type_check_projection_field_contracts(ASTNode *target_decl,
                     "- add field '%s' to source declaration '%s'\n"
                     "- or add an explicit field map to a different existing source field",
                     owner_label, action_name,
-                    target_field->name,
+                    target_field.name,
                     source_slot_name != NULL ? source_slot_name : "<unknown>",
                     object_slot_name != NULL ? object_slot_name : "<unknown>",
                     owner_label != NULL ? owner_label : "<owner>",
@@ -223,11 +223,11 @@ type_check_projection_field_contracts(ASTNode *target_decl,
                     object_slot_name != NULL ? object_slot_name : "<unknown>",
                     source_slot_name != NULL ? source_slot_name : "<unknown>",
                     object_slot_name != NULL ? object_slot_name : "<unknown>",
-                    target_field->name,
+                    target_field.name,
                     source_type != NULL && source_type->name != NULL
                         ? source_type->name
                         : "<unknown>",
-                    target_field->name,
+                    target_field.name,
                     source_type != NULL && source_type->name != NULL
                         ? source_type->name
                         : "<unknown>");
@@ -235,7 +235,7 @@ type_check_projection_field_contracts(ASTNode *target_decl,
             continue;
         }
 
-        target_field_type = domain_lookup_named_type_metadata(target_field->type, ctx);
+        target_field_type = domain_lookup_named_type_metadata(target_field.type_ast, ctx);
         if (!type_is_assignable(source_field_type, target_field_type)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
                 "%s %s target field '%s' cannot accept source path '%s' from slot '%s'.\n"
@@ -251,7 +251,7 @@ type_check_projection_field_contracts(ASTNode *target_decl,
                 "- change target field '%s' to type '%s'\n"
                 "- or map '%s' from a source field/path whose type matches '%s'",
                 owner_label, action_name,
-                target_field->name,
+                target_field.name,
                 source_path != NULL ? source_path : source_field_name,
                 source_slot_name != NULL ? source_slot_name : "<unknown>",
                 object_slot_name != NULL ? object_slot_name : "<unknown>",
@@ -262,14 +262,14 @@ type_check_projection_field_contracts(ASTNode *target_decl,
                 object_slot_name != NULL ? object_slot_name : "<unknown>",
                 source_slot_name != NULL ? source_slot_name : "<unknown>",
                 object_slot_name != NULL ? object_slot_name : "<unknown>",
-                target_field->name,
+                target_field.name,
                 type_name_or_unknown(target_field_type),
                 source_path != NULL ? source_path : source_field_name,
                 source_slot_name != NULL ? source_slot_name : "<unknown>",
                 type_name_or_unknown(source_field_type),
-                target_field->name,
+                target_field.name,
                 type_name_or_unknown(source_field_type),
-                target_field->name,
+                target_field.name,
                 type_name_or_unknown(target_field_type));
             continue;
         }

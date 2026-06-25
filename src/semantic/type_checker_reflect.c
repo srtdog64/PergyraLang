@@ -103,14 +103,14 @@ expr_ops_projection_member(ASTNode *expr, ASTNode *member_object,
         if (decl != NULL) {
             size_t field_count = projection_source_field_count(decl);
             for (size_t fi = 0; fi < field_count; fi++) {
-                ClassField *cf = projection_source_field_at(decl, fi);
-                if (cf == NULL || cf->name == NULL)
+                PgyDeclField cf = projection_source_field_at(decl, fi);
+                if (cf.name == NULL)
                     continue;
                 if (buf[0] != '\0')
                     pergyra_str_append(buf, sizeof(buf), ",");
-                pergyra_str_append(buf, sizeof(buf), cf->name);
-                const char *ft = cf->type != NULL
-                    ? ast_type_name(cf->type) : NULL;
+                pergyra_str_append(buf, sizeof(buf), cf.name);
+                const char *ft = cf.type_ast != NULL
+                    ? ast_type_name(cf.type_ast) : NULL;
                 if (ft != NULL) {
                     pergyra_str_append(buf, sizeof(buf), ":");
                     pergyra_str_append(buf, sizeof(buf), ft);

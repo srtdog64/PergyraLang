@@ -5,6 +5,7 @@
 #include "type_checker_domain_internal.h"
 #include "type_checker_resolution_graph_internal.h"
 #include "type_checker_resolution_internal.h"
+#include "compiler/decl_field_model.h"
 
 bool type_is_constructed_named(const Type *type, const char *name);
 bool type_is_qubit(const Type *type);
@@ -112,9 +113,13 @@ ASTNode *overlay_field_decl_at(ASTNode *decl,
                                size_t index,
                                const char **field_name_out);
 bool decl_is_subject_host(const ASTNode *decl);
-ClassField *subject_host_field_at(ASTNode *decl, size_t index);
+/* F2 (docs/144) Phase 3: these accessors now read the pre-semantic field-shape
+   model and return PgyDeclField by value. "Not found" is signalled by a zeroed
+   result (name == NULL). The returned name/type_ast point into the AST and stay
+   valid for the whole compile. */
+PgyDeclField subject_host_field_at(ASTNode *decl, size_t index);
 size_t projection_source_field_count(ASTNode *decl);
-ClassField *projection_source_field_at(ASTNode *decl, size_t index);
+PgyDeclField projection_source_field_at(ASTNode *decl, size_t index);
 Type *projection_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx);
 Type *expr_ops_projection_member(ASTNode *expr, ASTNode *member_object,
                                  const char *member_name, Type *object_type,
