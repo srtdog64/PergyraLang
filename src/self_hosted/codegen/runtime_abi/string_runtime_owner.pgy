@@ -1,0 +1,87 @@
+// src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy
+//
+// Self-host C string/text runtime symbol facts for the supported codegen subset.
+
+func StringRuntimeCConcatFn() -> String {
+    return "pgy_concat";
+}
+
+func StringRuntimeCLogFn() -> String {
+    return "pgy_log";
+}
+
+func StringRuntimeCPrintFn() -> String {
+    return "pgy_print";
+}
+
+func StringRuntimeCStringLengthFn() -> String {
+    return "pgy_strlen";
+}
+
+func StringRuntimeCStringContainsFn() -> String {
+    return "pgy_strcontains";
+}
+
+func StringRuntimeCStringIndexOfFn() -> String {
+    return "pgy_strindexof";
+}
+
+func StringRuntimeCSplitFn() -> String {
+    return "pgy_split";
+}
+
+func StringRuntimeCToIntFn() -> String {
+    return "pgy_toint";
+}
+
+func StringRuntimeCStringTrimFn() -> String {
+    return "pgy_strtrim";
+}
+
+func StringRuntimeCStringReplaceFn() -> String {
+    return "pgy_strreplace";
+}
+
+func StringRuntimeCToUpperFn() -> String {
+    return "pgy_toupper";
+}
+
+func StringRuntimeCToLowerFn() -> String {
+    return "pgy_tolower";
+}
+
+func StringRuntimeCCharCodeFn() -> String {
+    return "pgy_charcode";
+}
+
+func StringRuntimeCCharAtNFn() -> String {
+    return "pgy_charatn";
+}
+
+func StringRuntimeCSubContainsWithLenFn() -> String {
+    return "pgy_subcontains_with_len";
+}
+
+func StringRuntimeCSubEqualsWithLenFn() -> String {
+    return "pgy_subequals_with_len";
+}
+
+func StringRuntimeCSubIndexOfWithLenFn() -> String {
+    return "pgy_subindexof_with_len";
+}
+
+func StringRuntimeCSubStartsWithLenFn() -> String {
+    return "pgy_substartswith_with_len";
+}
+
+func StringRuntimeCSubstringFn() -> String {
+    return "pgy_substr";
+}
+
+func StringRuntimeCStringJoinFn() -> String {
+    return "pgy_strjoin";
+}
+
+func StringRuntimeCToStringFn() -> String {
+    return "pgy_tostr";
+}

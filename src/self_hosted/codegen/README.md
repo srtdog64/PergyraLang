@@ -11,7 +11,8 @@ is the owner contract for this folder's long-term shape. Codegen is a backend
 resource cluster: `TypeEnvZone` owns type facts, `AbiLayoutZone` owns ABI/layout
 facts, `EmissionZone` owns emitted C, and `ProgramEmitter` is the participant
 that writes through the emission boundary. The current self-host C subset uses
-`abi_layout/abi_layout_owner.pgy` for C ABI type spelling. The files under
+`abi_layout/abi_layout_owner.pgy` for C ABI type spelling and `runtime_abi/`
+for supported self-host C runtime helper symbol spelling. The files under
 `emission/` are action participants, not separate zones.
 
 ## Rung-0..20 (2026-06-24) - active
@@ -25,7 +26,7 @@ resource-shaped subdirectories:
 - `type_facts/` owns type binding facts consumed as read-mostly evidence.
 - `symbol_facts/` owns emitted-symbol spelling for the self-host C subset.
 - `abi_layout/` owns self-host C ABI type spelling for signatures, locals, and fields.
-- `runtime_abi/` owns self-host C collection runtime helper symbol spelling.
+- `runtime_abi/` owns self-host C collection and string/text runtime helper symbol spelling.
 - `emission/` owns participants in the C-emission action graph.
 
 These folders are not a copy of the native C backend topology. `program_emit`,
@@ -122,9 +123,9 @@ valid C. `<strexpr>` is a string literal, `Concat(<strexpr>, <strexpr>)`, a
 string-typed identifier, or a string-returning call. The builtins
 `StringLength(x)`, `Substring(s, start, len)`, `StringIndexOf(hay, needle)`, `StringTrim(s)`,
 and `StringJoin(xs, sep)` / `Join(xs, sep)` are rewritten to runtime helpers
-`pgy_strlen` / `pgy_substr` / `pgy_strindexof` / `pgy_strtrim` / `pgy_strjoin`
-(`pgy_concat` for `Concat`; `pgy_strindexof` is `strstr`-based, returns -1 when
-absent). `ToFloat(s)` lowers to `atof(s)`. `Exit(n)` lowers to `exit(n);`. `Args()` lowers to a stable user-argv
+owned by `runtime_abi/string_runtime_owner.pgy` (`StringIndexOf` remains
+`strstr`-based and returns -1 when absent). `ToFloat(s)` lowers to `atof(s)`.
+`Exit(n)` lowers to `exit(n);`. `Args()` lowers to a stable user-argv
 snapshot (`argv[1..]`) stored in the same growable string-array representation.
 
 **Type routing:** `Assign` / `Log` / `Return` need to know whether an operand is
@@ -160,6 +161,15 @@ It also normalizes the current AST-text bridge spellings
 `program_emit.pgy` remains the generated helper definition host; expression and
 statement emitters must consume `collection_runtime_owner.pgy` instead of
 locally spelling `pgy_ai_*` / `pgy_as_*` helper names.
+`runtime_abi/string_runtime_owner.pgy` owns C string/text runtime helper symbol
+spelling for the supported builtin rewrite subset (`Concat`, string length/
+search/trim/replace/case/join/subspan helpers, `ToString`, `ToInt`, `Print`,
+and string `Log`). `program_emit.pgy` remains the generated helper definition
+host; expression and statement emitters must consume `string_runtime_owner.pgy`
+instead of locally spelling those `pgy_*` helper names.
+Math, file/argv, and `Option`/`Result` runtime helper spellings are not yet
+behind runtime ABI owners; direct call-site spellings there are tracked as the
+next runtime-spelling SoT surfaces.
 
 Parity gate: `tests/self_hosted/parity/codegen_parity.sh` builds `main.pgy` through
 the requested backend set, runs it on each of the 63 committed fixtures'

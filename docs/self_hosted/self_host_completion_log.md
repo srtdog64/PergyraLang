@@ -1604,3 +1604,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   runtime materialization or ABI row projection is complete.
 - Added the runtime ABI owner to real-source semantic selfcheck, raising
   accepted self-host owner/source files to 76 on both C and LLVM.
+
+### 2026-06-26 -- Self-host string runtime helper spelling moves behind runtime ABI owner
+
+- Added `src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy` as the
+  self-host C subset owner for supported string/text runtime helper symbol
+  spelling. `expr_rewrite` and `stmt_emit` now consume that owner for `Concat`,
+  string length/search/trim/replace/case/join/subspan helpers, `ToString`,
+  `ToInt`, `Print`, and string `Log` helper names.
+- Kept `program_emit.pgy` as the generated helper definition host. This closes
+  string/text helper call-site spelling drift only; file, math, Result/Option,
+  and broader cross-backend runtime materialization facts remain separate
+  surfaces.
+- Added the string runtime owner to real-source semantic selfcheck, raising
+  accepted self-host owner/source files to 77 on both C and LLVM.

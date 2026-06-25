@@ -3,6 +3,7 @@
 // Expression lowering owner for self-host C emission.
 
 import "../runtime_abi/collection_runtime_owner.pgy";
+import "../runtime_abi/string_runtime_owner.pgy";
 
 func RewriteExpr(e: String, env: String) -> String {
     return RewriteRoleOperators(e, env);
@@ -19,7 +20,7 @@ func RewriteRoleOperators(e: String, env: String) -> String {
         if lhs_kind == rhs_kind {
             let op_name: String = LookupKindType(env, Concat(lhs_kind, "+"), "op");
             if StringLength(op_name) == 0 && lhs_kind == "String" {
-                op_name = "pgy_concat";
+                op_name = StringRuntimeCConcatFn();
             }
             if StringLength(op_name) > 0 {
                 return Concat(op_name, Concat("(", Concat(RewriteExpr(lhs, env),
@@ -299,15 +300,15 @@ func RewriteTokens(e: String, env: String) -> String {
     let q: String = RewriteQualifiedCalls(q0);
     let a: String = RewriteArrayLengthEnv(q, env);
     let b: String = RewriteIndexing(a, env);
-    let c: String = ReplaceAllOutsideStrings(b, "StringLength(", "pgy_strlen(");
-    let d0: String = ReplaceAllOutsideStrings(c, "StringContains(", "pgy_strcontains(");
-    let d: String = ReplaceAllOutsideStrings(d0, "StringIndexOf(", "pgy_strindexof(");
-    let f0: String = ReplaceAllOutsideStrings(d, "Split(", "pgy_split(");
-    let f1: String = ReplaceAllOutsideStrings(f0, "ToInt(", "pgy_toint(");
-    let f: String = ReplaceAllOutsideStrings(f1, "StringTrim(", "pgy_strtrim(");
-    let f2: String = ReplaceAllOutsideStrings(f, "StringReplace(", "pgy_strreplace(");
-    let f3: String = ReplaceAllOutsideStrings(f2, "ToUpper(", "pgy_toupper(");
-    let f4: String = ReplaceAllOutsideStrings(f3, "ToLower(", "pgy_tolower(");
+    let c: String = ReplaceAllOutsideStrings(b, "StringLength(", Concat(StringRuntimeCStringLengthFn(), "("));
+    let d0: String = ReplaceAllOutsideStrings(c, "StringContains(", Concat(StringRuntimeCStringContainsFn(), "("));
+    let d: String = ReplaceAllOutsideStrings(d0, "StringIndexOf(", Concat(StringRuntimeCStringIndexOfFn(), "("));
+    let f0: String = ReplaceAllOutsideStrings(d, "Split(", Concat(StringRuntimeCSplitFn(), "("));
+    let f1: String = ReplaceAllOutsideStrings(f0, "ToInt(", Concat(StringRuntimeCToIntFn(), "("));
+    let f: String = ReplaceAllOutsideStrings(f1, "StringTrim(", Concat(StringRuntimeCStringTrimFn(), "("));
+    let f2: String = ReplaceAllOutsideStrings(f, "StringReplace(", Concat(StringRuntimeCStringReplaceFn(), "("));
+    let f3: String = ReplaceAllOutsideStrings(f2, "ToUpper(", Concat(StringRuntimeCToUpperFn(), "("));
+    let f4: String = ReplaceAllOutsideStrings(f3, "ToLower(", Concat(StringRuntimeCToLowerFn(), "("));
     let f5: String = ReplaceAllOutsideStrings(f4, "Abs(", "pgy_abs(");
     let f6: String = ReplaceAllOutsideStrings(f5, "Min(", "pgy_min(");
     let f7a: String = ReplaceAllOutsideStrings(f6, "Max(", "pgy_max(");
@@ -323,19 +324,19 @@ func RewriteTokens(e: String, env: String) -> String {
     let gwr: String = ReplaceAllOutsideStrings(go, "FileWrite(", "pgy_fwrite(");
     let gc: String = ReplaceAllOutsideStrings(gwr, "FileClose(", "pgy_fclose(");
     let gr: String = ReplaceAllOutsideStrings(gc, "FileRead(", "pgy_fread(");
-    let gp: String = ReplaceAllOutsideStrings(gr, "Print(", "pgy_print(");
+    let gp: String = ReplaceAllOutsideStrings(gr, "Print(", Concat(StringRuntimeCPrintFn(), "("));
     let h0: String = ReplaceAllOutsideStrings(gp, "ReadFile(", "pgy_readfile(");
     let h: String = ReplaceAllOutsideStrings(h0, "DirWalk(", "pgy_dirwalk(");
     let k: String = ReplaceAllOutsideStrings(h, "Args(", "pgy_args(");
-    let mc: String = ReplaceAllOutsideStrings(k, "CharCode(", "pgy_charcode(");
-    let m0: String = ReplaceAllOutsideStrings(mc, "CharAtN(", "pgy_charatn(");
-    let sw0: String = ReplaceAllOutsideStrings(m0, "SubContainsWithLen(", "pgy_subcontains_with_len(");
-    let sw1: String = ReplaceAllOutsideStrings(sw0, "SubEqualsWithLen(", "pgy_subequals_with_len(");
-    let sw2: String = ReplaceAllOutsideStrings(sw1, "SubIndexOfWithLen(", "pgy_subindexof_with_len(");
-    let sw3: String = ReplaceAllOutsideStrings(sw2, "SubStartsWithLen(", "pgy_substartswith_with_len(");
-    let m: String = ReplaceAllOutsideStrings(sw3, "Substring(", "pgy_substr(");
-    let jn0: String = ReplaceAllOutsideStrings(m, "StringJoin(", "pgy_strjoin(");
-    let jn: String = ReplaceAllOutsideStrings(jn0, "Join(", "pgy_strjoin(");
+    let mc: String = ReplaceAllOutsideStrings(k, "CharCode(", Concat(StringRuntimeCCharCodeFn(), "("));
+    let m0: String = ReplaceAllOutsideStrings(mc, "CharAtN(", Concat(StringRuntimeCCharAtNFn(), "("));
+    let sw0: String = ReplaceAllOutsideStrings(m0, "SubContainsWithLen(", Concat(StringRuntimeCSubContainsWithLenFn(), "("));
+    let sw1: String = ReplaceAllOutsideStrings(sw0, "SubEqualsWithLen(", Concat(StringRuntimeCSubEqualsWithLenFn(), "("));
+    let sw2: String = ReplaceAllOutsideStrings(sw1, "SubIndexOfWithLen(", Concat(StringRuntimeCSubIndexOfWithLenFn(), "("));
+    let sw3: String = ReplaceAllOutsideStrings(sw2, "SubStartsWithLen(", Concat(StringRuntimeCSubStartsWithLenFn(), "("));
+    let m: String = ReplaceAllOutsideStrings(sw3, "Substring(", Concat(StringRuntimeCSubstringFn(), "("));
+    let jn0: String = ReplaceAllOutsideStrings(m, "StringJoin(", Concat(StringRuntimeCStringJoinFn(), "("));
+    let jn: String = ReplaceAllOutsideStrings(jn0, "Join(", Concat(StringRuntimeCStringJoinFn(), "("));
     let asort: String = ReplaceAllOutsideStrings(jn, "ArraySort(", Concat(CollectionRuntimeCIntSortFn(), "("));
     let arev: String = ReplaceAllOutsideStrings(asort, "ArrayReverse(", Concat(CollectionRuntimeCIntReverseFn(), "("));
     let amap: String = ReplaceAllOutsideStrings(arev, "ArrayMap(", Concat(CollectionRuntimeCIntMapFn(), "("));
@@ -351,10 +352,10 @@ func RewriteTokens(e: String, env: String) -> String {
     let runwrapor: String = ReplaceAllOutsideStrings(riserr, "UnwrapOr(", "pgy_result_unwrap_or(");
     let runwrap: String = ReplaceAllOutsideStrings(runwrapor, "Unwrap(", "pgy_result_unwrap(");
     let tf: String = ReplaceAllOutsideStrings(runwrap, "ToFloat(", "atof(");
-    let p: String = ReplaceAllOutsideStrings(tf, "ToString(", "pgy_tostr(");
-    // `Concat(a, b)` -> `pgy_concat(a, b)` is a pure name rewrite (same args),
+    let p: String = ReplaceAllOutsideStrings(tf, "ToString(", Concat(StringRuntimeCToStringFn(), "("));
+    // `Concat(a, b)` lowers through the string runtime concat helper.
     // so it lowers recursively and inside arbitrary call arguments.
-    return RewriteBoolLiterals(ReplaceAllOutsideStrings(p, "Concat(", "pgy_concat("));
+    return RewriteBoolLiterals(ReplaceAllOutsideStrings(p, "Concat(", Concat(StringRuntimeCConcatFn(), "(")));
 }
 
 // Emit a C integer-valued (or boolean) expression from the AST's parenthesized
@@ -365,7 +366,7 @@ func IntEval(expr: String, env: String) -> String {
 
 // Emit a C string-valued (char*) expression. In a confirmed string context a
 // top-level `+` is the concatenation operator (the operands are strings by
-// construction), so it lowers to nested `pgy_concat(...)`. Everything else
+// construction), so it lowers through the string runtime concat helper. Everything else
 // flows through the token pipeline.
 func StrEval(expr: String, env: String) -> String {
     let e: String = StripOuterParens(expr);
@@ -373,7 +374,7 @@ func StrEval(expr: String, env: String) -> String {
     if p >= 0 {
         let lhs: String = StringTrim(Substring(e, 0, p));
         let rhs: String = StringTrim(Substring(e, p + 1, StringLength(e) - (p + 1)));
-        return Concat("pgy_concat(", Concat(StrEval(lhs, env), Concat(", ", Concat(StrEval(rhs, env), ")"))));
+        return Concat(StringRuntimeCConcatFn(), Concat("(", Concat(StrEval(lhs, env), Concat(", ", Concat(StrEval(rhs, env), ")")))));
     }
     if StartsWith(e, "ToString(") {
         let n: Int = StringLength(e);

@@ -3,6 +3,7 @@
 // Statement lowering owner for self-host C emission.
 
 import "../runtime_abi/collection_runtime_owner.pgy";
+import "../runtime_abi/string_runtime_owner.pgy";
 
 func EmitLet(line: String, inout env_box: Array<String>) -> String {
     let rest: String = Substring(line, 5, StringLength(line) - 5);
@@ -183,7 +184,7 @@ func EmitLog(inner: String, env: String) -> String {
         }
         let arg: String = Substring(inner, 9, n - 9 - 1);
         if ExprKind(arg, env) == "String" {
-            return Concat("pgy_log(", Concat(StrEval(arg, env), ");"));
+            return Concat(StringRuntimeCLogFn(), Concat("(", Concat(StrEval(arg, env), ");")));
         }
         return Concat("printf(\"%lld\\n\", (long long)(", Concat(IntEval(arg, env), "));"));
     }
@@ -197,8 +198,8 @@ func EmitLog(inner: String, env: String) -> String {
     }
     // String Log: the oracle strips all trailing newlines from the value and
     // then appends exactly one (`Log("c\n\n")` -> `c\n`), so route through the
-    // pgy_log helper rather than a raw `printf("%s\n", ...)`.
-    return Concat("pgy_log(", Concat(StrEval(inner, env), ");"));
+    // string runtime log helper rather than a raw `printf("%s\n", ...)`.
+    return Concat(StringRuntimeCLogFn(), Concat("(", Concat(StrEval(inner, env), ");")));
 }
 
 // `Return: <expr>` / bare `Return:`. String returns route through StrEval.
