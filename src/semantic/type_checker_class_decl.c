@@ -8,7 +8,7 @@
 #include "compiler/decl_field_model.h"
 
 static void
-class_declare_field_symbol(SemanticContext *ctx, ClassField *field,
+class_declare_field_symbol(SemanticContext *ctx, const char *field_name,
                            Type *field_type, ASTNode *node)
 {
     Symbol *field_sym;
@@ -18,7 +18,7 @@ class_declare_field_symbol(SemanticContext *ctx, ClassField *field,
      * the same way a function-local slot binding is recognized. */
     if (field_type != NULL && field_type->kind == TYPE_KIND_SLOT)
     {
-        Symbol *slot_sym = symbol_create_slot(field->name, field_type,
+        Symbol *slot_sym = symbol_create_slot(field_name, field_type,
             type_slot_is_secure(field_type), NULL,
             node->line, node->column);
         if (slot_sym == NULL)
@@ -29,7 +29,7 @@ class_declare_field_symbol(SemanticContext *ctx, ClassField *field,
         return;
     }
 
-    field_sym = symbol_create_variable(field->name, field_type,
+    field_sym = symbol_create_variable(field_name, field_type,
         node->line, node->column);
     if (field_sym != NULL)
         scope_declare(ctx->scope, field_sym);
@@ -218,33 +218,33 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
             scope_declare(ctx->scope, s);
         }
     }
-    size_t field_count = 0;
-    ClassField **fields = ast_class_fields(node, &field_count);
-    /* F2 (docs/144) Phase 1: dual-run the pre-semantic field-shape model against
-       AST. Opt-in (PGY_F2_DRIFT_CHECK); a no-op in default builds. */
-    pgy_class_decl_field_model_drift(node);
+    /* F2 (docs/144) Phase 3b: declaration validation consumes the pre-semantic
+       field-shape model. The generic-shell fixup above is an AST *writer* and
+       legitimately stays on ast_class_fields. */
+    PgyDeclField *fields = NULL;
+    size_t field_count = pgy_class_decl_field_model_build(node, &fields);
     for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = fields != NULL ? fields[i] : NULL;
         Type *field_type;
 
-        if (field == NULL || field->name == NULL || field->type == NULL)
+        if (fields[i].name == NULL || fields[i].type_ast == NULL)
             continue;
 
-        field_type = semantic_host_resolve_type_ref(field->type, ctx);
-        if (field->is_vessel_field) {
+        field_type = semantic_host_resolve_type_ref(fields[i].type_ast, ctx);
+        if (fields[i].is_vessel_field) {
             ASTNode *field_decl = semantic_host_decl_for_type(ctx, field_type);
             if (field_decl == NULL
                 || ast_class_nominal_kind(field_decl) != NOMINAL_DECL_VESSEL) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                     PGY_CAUSE_DOMAIN_VESSEL_REQUIRED,
                     PGY_FIX_DECLARE_VESSEL_TYPE,
-                    field->type,
+                    fields[i].type_ast,
                     "subject vessel field '%s' must reference a vessel type",
-                    field->name != NULL ? field->name : "<field>");
+                    fields[i].name);
             }
         }
-        class_declare_field_symbol(ctx, field, field_type, node);
+        class_declare_field_symbol(ctx, fields[i].name, field_type, node);
     }
+    pgy_decl_field_model_free(fields, field_count);
 
     /* Class-body destructuring groups (`let (a, b) = ClaimSecureSlot<T>(...)`).
      * Reuse the statement-level destructure checker so the bound names enter
