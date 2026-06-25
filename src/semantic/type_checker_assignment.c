@@ -3,6 +3,7 @@
 #include "type_checker_builtins_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "diag_codes.h"
+#include "compiler/decl_field_model.h"
 
 #include <string.h>
 
@@ -151,13 +152,13 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
                          * are assignable. */
                         const char *field_name = ast_member_name(target);
                         if (field_name != NULL) {
-                            size_t fc = 0;
-                            ClassField **fields = ast_class_fields(decl, &fc);
+                            /* F2 (docs/144) Phase 2: consume the field-shape model. */
+                            PgyDeclField *fields = NULL;
+                            size_t fc = pgy_class_decl_field_model_build(decl, &fields);
                             for (size_t fi = 0; fi < fc; fi++) {
-                                if (fields[fi] != NULL
-                                    && fields[fi]->name != NULL
-                                    && strcmp(fields[fi]->name, field_name) == 0) {
-                                    if (!fields[fi]->is_mutable) {
+                                if (fields[fi].name != NULL
+                                    && strcmp(fields[fi].name, field_name) == 0) {
+                                    if (!fields[fi].is_mutable) {
                                         semantic_error_with_hints(ctx,
                                             PGY_CODE_SEM_IMMUTABLE_FIELD_WRITE,
                                             PGY_CAUSE_IMMUTABLE_FIELD_WRITE,
@@ -174,6 +175,7 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
                                     break;
                                 }
                             }
+                            pgy_decl_field_model_free(fields, fc);
                         }
                     }
                 }
