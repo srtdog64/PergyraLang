@@ -76,7 +76,7 @@ AI에게 "컴파일러 로직을 짜라"고만 시키면 ABI 물리 사실을 �
  * 1. Slot<T> ABI
  * ----------------------------------------------------------------
  * Canonical checked ABI: { value: CType, occupied: bool } + padding
- * Raw opt-out:           { value: CType } only under whole-program PGY_RAW_SLOTS
+ * Raw/value-only storage must use a distinct explicit ABI owner.
  *
  * Pergyra MIR가 레이아웃을 결정. C 컴파일러는 이를 따른다.
  */
@@ -680,7 +680,7 @@ Step 10: C 매크로 제거 및 명시적 런타임 라이브러리 전환 [최�
 | 위험 | 영향 | 대응 |
 |------|------|------|
 | pthread_mutex_t 크기 플랫폼 의존 | Channel ABI 불안정 | Channel은 MIR에서 "불투명 포인터"로 취급, 스택 할당 금지 |
-| bool padding differs by compiler | Slot size drift | canonical checked Slot keeps `occupied`; raw value-only slots require explicit `PGY_RAW_SLOTS` |
+| bool padding differs by compiler | Slot size drift | canonical checked Slot keeps `occupied`; value-only storage must use a distinct ABI owner |
 | Union 패딩이 C 컴파일러마다 다름 | Result ABI 변동 | MIR가 union 레이아웃을 명시적으로 계산, static_assert로 검증 |
 | 기존 매크로 의존 코드가 많음 | 마이그레이션 비용 | 점진적 전환: 새 코드는 ABI spec, 기존 코드는 매크로 유지 |
 | AI가 규칙을 잘못 해석 | 잘못된 MIR 생성 | human 리뷰 필수, 테스트 기반 검증 |

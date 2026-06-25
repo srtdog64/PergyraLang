@@ -72,14 +72,13 @@
  * Layout: { value: CType, occupied: bool } + compiler padding
  *
  * The 'occupied' flag enables runtime safety checks (double-free,
- * use-after-release detection). It is present in EVERY build by default
+ * use-after-release detection). It is present in EVERY build profile
  * (fail-closed: safety must not silently depend on the build profile). The
  * primary use-after-release protection is the static own/ref boundary contract
  * + interprocedural release tracking, which is always on; this runtime flag is
  * the defense-in-depth backstop (FFI/corruption-supplied handles, static-analyzer
- * gaps). Define PGY_RAW_SLOTS only as a whole-program raw/unsafe opt-out for
- * measured systems-tier builds. It is not the beta-stable canonical ABI and
- * must not be mixed with checked runtime bitcode/objects.
+ * gaps). Raw/value-only storage must use a distinct ABI owner; it must not
+ * reuse PgySlot_* names or change this checked Slot<T> layout.
  * ================================================================ */
 
 /* --- Slot<T> canonical checked ABI --- */
@@ -97,8 +96,7 @@ typedef struct { char    *value; bool occupied; } pgy_abi_slot_string;
  *
  * The token is a capability that gates read/write/release operations.
  * SecureSlot<T> keeps the same token layout and hard-fail checks across
- * debug/release builds. Plain Slot<T> is checked by default too; raw
- * zero-overhead slots are an explicit non-canonical PGY_RAW_SLOTS build mode.
+ * debug/release builds. Plain Slot<T> uses the same single-owner ABI rule.
  * Wrong token causes PGY_PANIC.
  * ================================================================ */
 

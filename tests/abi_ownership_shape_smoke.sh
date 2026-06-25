@@ -71,7 +71,8 @@ for rel in \
     "docs/107_beta_stable_subset.md" \
     "docs/125_source_of_truth_spine.md" \
     "docs/118_slot_model_rigor_audit.md" \
-    "docs/136_abi_niche_and_explicit_layout.md"; do
+    "docs/136_abi_niche_and_explicit_layout.md" \
+    "docs/semantics/13_slot_abi_single_owner.md"; do
     require_file "$rel"
 done
 
@@ -82,17 +83,28 @@ reject_term "src/runtime/pgy_abi_spec.h" "pgy_abi_token_int_dbg"
 require_term "src/runtime/pgy_abi_spec.h" "typedef struct { int32_t  value; bool occupied; } pgy_abi_slot_int;"
 reject_term "src/runtime/pgy_abi_spec.h" "pgy_abi_slot_int_rel"
 reject_term "src/runtime/pgy_abi_spec.h" "pgy_abi_slot_int_dbg"
+reject_term "src/runtime/pgy_abi_spec.h" "PGY_RAW_SLOTS"
 require_term "src/runtime/pgy_abi_spec.h" "typedef struct { int32_t value; bool occupied; uint64_t token; } pgy_abi_secure_slot_int;"
 reject_term "src/runtime/pgy_abi_spec.h" "pgy_abi_secure_slot_int_rel"
 reject_term "src/runtime/pgy_abi_spec.h" "pgy_abi_secure_slot_int_dbg"
-require_term "src/runtime/pgy_runtime_panic_checked_inline.h" "PGY_RAW_SLOTS only as a whole-program raw/unsafe build mode"
-require_term "src/runtime/pgy_runtime_plain_slot_inline.h" "PGY_SLOT_DEFINE_CHECKED"
-require_term "src/runtime/pgy_runtime_plain_slot_inline.h" "PGY_SLOT_DEFINE_RAW"
+require_term "src/runtime/pgy_runtime_panic_checked_inline.h" "PGY_WITH_SLOT_CHECKS remains defined"
+reject_term "src/runtime/pgy_runtime_panic_checked_inline.h" "PGY_RAW_SLOTS"
+require_term "src/runtime/pgy_runtime_plain_slot_inline.h" "Canonical Slot<T> runtime shape"
+reject_term "src/runtime/pgy_runtime_plain_slot_inline.h" "PGY_SLOT_DEFINE_CHECKED"
+require_term "src/runtime/pgy_runtime_plain_slot_inline.h" "Raw/value-only storage must use a"
+reject_term "src/runtime/pgy_runtime_plain_slot_inline.h" "PGY_SLOT_DEFINE_RAW"
+reject_term "src/runtime/pgy_runtime_plain_slot_inline.h" "#if PGY_WITH_SLOT_CHECKS"
+reject_term "src/runtime/pgy_runtime_slot_macros.h" "PGY_SECURE_SLOT_DEFINE_CHECKED"
+reject_term "src/runtime/pgy_runtime_slot_macros.h" "PGY_SECURE_SLOT_DEFINE_DEBUG"
 require_term "src/compiler/mir_abi_layout.c" 'ABI_FIELD_STRUCT("occupied", pgy_abi_slot_int, occupied)'
 require_term "src/compiler/mir_abi_layout.c" 'ABI_FIELD_STRUCT("token", pgy_abi_secure_slot_int, token)'
 reject_term "src/compiler/mir_abi_layout.c" "Slot<Int>_rel"
 reject_term "src/compiler/mir_abi_layout.c" 'mir_abi_format_owned("%s_rel"'
 require_term "src/test_abi_spec.c" "runtime size matches checked ABI"
+reject_term "src/test_abi_spec.c" "PGY_RUNTIME_SLOT_MODE_CHECKED"
+reject_term "src/test_abi_spec.c" "raw slot mode"
+require_term "docs/semantics/13_slot_abi_single_owner.md" "Slot layout is no longer selected by build mode."
+require_term "docs/semantics/13_slot_abi_single_owner.md" 'It must not be implemented as a macro that remaps `PgySlot_*`.'
 require_term "src/runtime/pgy_abi_spec.h" "Rust-style niche encoding"
 require_term "src/runtime/pgy_runtime_result_option_inline.h" "PGY_OPTION_DEFINE(Float, float)"
 require_term "src/runtime/pgy_runtime_result_option_inline.h" "PGY_OPTION_DEFINE(Double, double)"

@@ -114,7 +114,7 @@ survivors after `-O2`.
 | Bucket | Meaning | Measured evidence | Erasable? |
 |---|---|---|---|
 | **A — irreducible runtime fact** | information that does not exist at compile time | `04` Sync=11, Heap=2 (concurrency); `world_roster` = who-is-alive | No — no compiler erases it; Rust pays the same (Arc/Mutex/std sync) |
-| **B — by-design fail-closed evidence** | always-on safety tag kept for consistency/traceability, opt-out via raw mode | `05` Sync=2/Heap=1 = intent-trace machinery; slot gen-counter check (here DCE'd) | Yes — by policy (`PGY_RAW_SLOTS`) or when statically dischargeable |
+| **B — by-design fail-closed evidence** | always-on safety tag kept for consistency/traceability | `05` Sync=2/Heap=1 = intent-trace machinery; slot gen-counter check (here DCE'd) | Only when statically dischargeable or moved behind a distinct explicit ABI owner |
 | **C — static-analysis incompleteness** | a runtime check a stronger analysis could remove | `06` Abort=1 = lifecycle guard at a branch join | Partially — better dataflow shrinks it; the *true* ambiguous remainder is bucket A/B |
 
 **Two cases worth the honesty caveat:**

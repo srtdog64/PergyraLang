@@ -99,9 +99,9 @@ Current evidence:
   runtime, and LLVM-linkable runtime all use the same `PgyToken<T>` layout with
   `can_write` and `can_read` capability bits. Release-mode inline secure-slot
   reads/writes/releases keep hard-fail token and occupancy checks, and the
-  legacy release-mode SecureSlot macro has been removed. Plain `Slot<T>` is
-  checked by default as well; zero-overhead raw slots are a non-canonical
-  `PGY_RAW_SLOTS` systems-tier build mode.
+  legacy release-mode SecureSlot macro has been removed. Plain `Slot<T>` has
+  the same single-owner rule: `PgySlot_*` always includes `occupied`; raw
+  value-only storage, if reintroduced, must use a distinct explicit ABI owner.
 - The ABI spec carries one canonical checked SecureSlot layout row for every
   stable primitive payload (`Int`, `Long`, `Float`, `Double`, `Bool`, `String`).
   Historical debug/release names are typedef aliases only and must not become

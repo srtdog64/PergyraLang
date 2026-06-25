@@ -164,11 +164,10 @@ pgy_submit_device_read_##SuffixName(PgyDeviceSlot_##SuffixName *s) \
  * Secure Slot (Token-based Access Control)
  *
  * Always includes checks because this is a security boundary. Plain Slot<T>
- * is also checked by default; zero-overhead raw slots are a separate
- * non-canonical PGY_RAW_SLOTS build mode.
+ * uses the same single-ABI rule: safety policy must not change type layout.
  * ================================================================= */
 
-#define PGY_SECURE_SLOT_DEFINE_DEBUG(SuffixName, CType) \
+#define PGY_SECURE_SLOT_DEFINE(SuffixName, CType) \
 \
 typedef struct { \
     CType    value; \
@@ -400,8 +399,5 @@ pgy_secure_unpin_cleanup_##SuffixName(PgyPinnedSecureSlotView_##SuffixName* view
     if (view != NULL && view->active) \
         pgy_secure_unpin_##SuffixName(view); \
 }
-
-#define PGY_SECURE_SLOT_DEFINE(SuffixName, CType) \
-    PGY_SECURE_SLOT_DEFINE_DEBUG(SuffixName, CType)
 
 #endif /* PGY_RUNTIME_SLOT_MACROS_H */

@@ -49,16 +49,9 @@ static int g_fail = 0;
 
 /* -----------------------------------------------------------------
  * Include the real runtime for cross-checking.
- * The runtime decides checked vs raw Slot<T> shape through PGY_WITH_SLOT_CHECKS.
+ * Runtime Slot<T> uses the same canonical checked ABI in every build profile.
  * ----------------------------------------------------------------- */
 #include "runtime/pgy_runtime.h"
-
-/* Determine which slot mode the runtime is using. */
-#if PGY_WITH_SLOT_CHECKS
-    #define PGY_RUNTIME_SLOT_MODE_CHECKED 1
-#else
-    #define PGY_RUNTIME_SLOT_MODE_CHECKED 0
-#endif
 
 int main(void) {
     printf("=== Pergyra ABI Spec Validation ===\n");
@@ -99,7 +92,6 @@ int main(void) {
     printf("\n");
 
     /* Cross-check against runtime types (PgySlot_* from pgy_runtime.h) */
-#if PGY_RUNTIME_SLOT_MODE_CHECKED
     ABI_TEST("Slot<Int>: runtime size matches checked ABI",
              sizeof(PgySlot_Int) == sizeof(pgy_abi_slot_int));
     ABI_TEST("Slot<Int>: value offset matches checked ABI",
@@ -118,14 +110,6 @@ int main(void) {
              sizeof(PgySlot_String) == sizeof(pgy_abi_slot_string));
     ABI_TEST("Slot<String>: occupied offset matches checked ABI",
              offsetof(PgySlot_String, occupied) == offsetof(pgy_abi_slot_string, occupied));
-#else
-    ABI_TEST("Slot<Int>: raw slot mode is value-only opt-out",
-             sizeof(PgySlot_Int) == sizeof(int32_t));
-    ABI_TEST("Slot<Long>: raw slot mode is value-only opt-out",
-             sizeof(PgySlot_Long) == sizeof(int64_t));
-    ABI_TEST("Slot<String>: raw slot mode is value-only opt-out",
-             sizeof(PgySlot_String) == sizeof(char *));
-#endif
 
     /* ================================================================
      * 2. SecureSlot<T>
