@@ -178,6 +178,60 @@ landable and gate-verified, so it can proceed incrementally without a long-lived
 branch. Phase 1 (model + drift check) is the natural first session and the
 correctness foundation for everything after.
 
+## 9. Progress log
+
+- **2026-06-26 — Phase 1 landed** (`47992aed`): `src/compiler/decl_field_model.{h,c}`
+  (`PgyDeclField`, class-field subset) + opt-in dual-run drift check
+  (`PGY_F2_DRIFT_CHECK`). Verified: `test-semantic` 2786/0 with the check on,
+  **zero `[f2-drift]`** across the corpus — the model is a faithful, total carrier
+  of class-field shape.
+- **2026-06-26 — Phase 2 complete (simple read consumers)** (`5c1fc7e7`,
+  `14c40d1f`): the three pure name/type/mutability readers migrated off
+  `ast_class_fields` to the model and added to the smoke allowlist —
+  `type_checker_resolution_graph_decl.c` (graph collection),
+  `type_checker_resolution_stage_nominal.c` (nominal-stage resolution),
+  `type_checker_assignment.c` (field-mutability check). Each verified 2786/0. This
+  closes the "graph collection" item of the docs/125 L731 sanctioned-residue list.
+
+## 10. Phase 3 plan (interface cutover) — ready to execute
+
+The remaining `ast_class_fields` readers are **not** simple reads; they are the
+`ClassField*`-returning accessors that the whole semantic layer funnels through —
+the "projection field owner" docs/125 L731 names as the sanctioned residue. The
+right move is to migrate the *accessor's source* (AST → model), not to delete it.
+
+**Accessors to migrate** (`type_checker_internal.h`):
+- `subject_host_field_at(decl, index) -> ClassField*` (owner: `type_checker_helpers_resources.c`)
+- `projection_source_field_at(decl, index) -> ClassField*` (owner: `type_checker_projection_path.c`)
+- `projection_source_field_count(decl) -> size_t` (same owner; trivial — model count)
+
+**Design:** change the `_at` accessors to return `PgyDeclField` **by value** (a
+small struct of AST-lifetime pointers + scalars — no allocation lifetime to
+manage; "not found" is signalled by `name == NULL`, matching the current NULL
+return). The owner builds the model and indexes it.
+
+**Caller cutover** (~16 sites; each changes `field->X` → `field.X`,
+`field->type` → `field.type_ast`, and `field == NULL` → `field.name == NULL`):
+`type_checker_builtins_projection.c`, `type_checker_builtins_query_domain.c` (×2),
+`type_checker_call_constructor.c` (subject + projection), `type_checker_domain_projection_fields.c`,
+`type_checker_expr.c`, `type_checker_expr_host.c`, `type_checker_intent_helpers.c`,
+`type_checker_intent_role_fields.c` (×2), `type_checker_projection_path.c` (×2),
+`type_checker_reflect.c`.
+
+**Watch-outs:**
+- *O(n²):* building the model inside `_at(index)` per call is O(fields) per call
+  → O(fields²) in the typical `for i<count { at(i) }` loop. Acceptable for
+  semantic (not hot; correctness > perf per CLAUDE.md §9), but the cleaner end
+  state is to give callers a `build-once + iterate` accessor in a later pass.
+- *Parity:* `test-semantic` (2786/0) after the cutover; never partial-land (all
+  callers in one slice, since the accessor signature changes).
+- *Gate:* once the two owners read the model, add them to the F2 allowlist; the
+  only remaining sanctioned AST reader is then `type_checker_class_decl.c`
+  (declaration validation + the generic-shell AST *writer* at :63, which stays).
+
+**Phases 4-5** (MIR builder consumes the model; flip authority + lock the gate)
+and the F1-shared type-carrier residue follow, per §6.
+
 ## Related
 - `docs/125` rows 612 / 609 / L731-734 — the residue this closes
 - `docs/36` — IR minimality (this layer is pre-IR declaration metadata, not a new codegen IR)
