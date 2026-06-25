@@ -166,8 +166,14 @@ typedef enum
     TOKEN_AT,           /* @ (reserved attribute marker) */
     TOKEN_COMMA,        /* , */
     TOKEN_COLON,        /* : */
+    TOKEN_COLON_ASSIGN, /* := — RESERVED/DEAD: the `:=` walrus binding was removed
+                         * (A안). The lexer never produces this token and the
+                         * parser never consumes it, so `:=` is a parse error.
+                         * The enum slot is kept so token values do not shift —
+                         * removing it renumbers every later token and breaks
+                         * incremental builds via a lexer/parser enum mismatch. */
     TOKEN_SEMICOLON,    /* ; */
-    
+
     /* Delimiters */
     TOKEN_LPAREN,       /* ( */
     TOKEN_RPAREN,       /* ) */
