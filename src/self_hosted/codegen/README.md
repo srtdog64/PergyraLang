@@ -20,7 +20,7 @@ for supported self-host C runtime helper symbol spelling. The files under
 `main.pgy` is the thin CLI entrypoint. It imports owner modules through
 resource-shaped subdirectories:
 
-- `input/` owns AST path selection and file reads.
+- `input/` owns AST path selection, file reads, and AST-text line inventory.
 - `run/` owns CLI-to-output orchestration.
 - `text/` owns AST/expression text scanning primitives.
 - `type_facts/` owns type binding facts consumed as read-mostly evidence.
@@ -141,7 +141,11 @@ explanatory.
 
 `input/ast_input_owner.pgy` owns the AST path policy (`Args()[0]` or the
 no-argument `hello_ast.txt` fixture), the missing-file diagnostic, and the
-`ReadFile` boundary. `run/codegen_run_owner.pgy` owns the CLI-to-output
+`ReadFile` boundary. `input/ast_text_inventory_owner.pgy` owns the transitional
+AST-text line inventory consumed by `GenerateC`: raw line splitting, leading
+indent counting, empty-line removal, and `[export]` line normalization live
+there, not in emission participants. This is a compatibility bridge, not the
+final typed/tagged AST owner. `run/codegen_run_owner.pgy` owns the CLI-to-output
 orchestration that wires that owned AST text into `GenerateC`; `main.pgy` only
 calls the run owner. `emission/struct_value_emit.pgy` owns struct-valued
 expression lowering used by `let`, assignment, and return paths;

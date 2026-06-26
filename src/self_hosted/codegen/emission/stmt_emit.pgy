@@ -223,16 +223,6 @@ func EmitReturn(rexpr: String, cur_fn_ret: String, env: String) -> String {
     return Concat("return ", Concat(IntEval(rexpr, env), ";"));
 }
 
-// Count the leading spaces of a raw (untrimmed) AST line.
-func IndentOf(raw: String) -> Int {
-    let n: Int = StringLength(raw);
-    let i: Int = 0;
-    while i < n && CharAt(raw, i) == " " {
-        i = i + 1;
-    }
-    return i;
-}
-
 // Consume the line at cur[0], asserting its trimmed text equals `expected`.
 func ExpectText(texts: Array<String>, count: Int, inout cur: Array<Int>, expected: String) -> Void {
     if cur[0] >= count {

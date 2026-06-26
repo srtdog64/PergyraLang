@@ -7,41 +7,29 @@ func GenerateC(ast: String) -> String {
 
     let indents: Array<Int> = [];
     let texts: Array<String> = [];
-    let total: Int = StringLength(ast);
-    let pos: Int = 0;
+    CodegenAstTextInventory(ast, indents, texts);
+
+    let count: Int = ArrayLength(texts);
     let main_count: Int = 0;
-    while pos < total {
-        let nl: Int = NextNewline(ast, pos);
-        let raw_line: String = Substring(ast, pos, nl - pos);
-        let trimmed: String = StringTrim(raw_line);
-        // Strip an `[export] ` modifier (namespace/import functions are flattened
-        // to top-level `[export] Function: NS_Func`); the rest of the emitter
-        // then treats them as ordinary functions.
-        if StartsWith(trimmed, "[export] ") {
-            trimmed = Substring(trimmed, 9, StringLength(trimmed) - 9);
-        }
+    let main_scan: Int = 0;
+    while main_scan < count {
         // `event` declarations have no handler/dispatch model in this codegen.
         // Reject them with an observable CODEGEN ERROR rather than silently
         // dropping the declaration and emitting a call to an undefined symbol
         // (which would be unobservable broken C -- a no-op fake would be worse,
         // masking real event dispatch in programs that register handlers).
-        if StartsWith(trimmed, "Event:") {
-            Die(Concat("event declarations are not supported (no handler/dispatch model): ", trimmed));
+        if StartsWith(texts[main_scan], "Event:") {
+            Die(Concat("event declarations are not supported (no handler/dispatch model): ", texts[main_scan]));
         }
-        if StringLength(trimmed) > 0 {
-            ArrayPush(indents, IndentOf(raw_line));
-            ArrayPush(texts, trimmed);
-            if trimmed == "Function: Main" {
-                main_count = main_count + 1;
-            }
+        if texts[main_scan] == "Function: Main" {
+            main_count = main_count + 1;
         }
-        pos = nl + 1;
+        main_scan = main_scan + 1;
     }
     if main_count != 1 {
         Die(Concat("exactly one `Main` function is required; saw count=", ToString(main_count)));
     }
 
-    let count: Int = ArrayLength(texts);
     let first_fn: Int = -1;
     let scan: Int = 0;
     while scan < count {

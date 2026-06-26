@@ -82,7 +82,8 @@ Concrete split for the current codegen cluster:
 The filesystem mirrors that owner shape without pretending that every action is
 a zone:
 
-- `input/` owns AST path/read boundaries.
+- `input/` owns AST path/read boundaries and the transitional AST-text line
+  inventory.
 - `run/` owns the CLI orchestration boundary.
 - `text/` owns reusable text and expression scanning facts.
 - `type_facts/` owns read-mostly type evidence.
@@ -96,6 +97,11 @@ a zone:
 The tool reads one AST text path from `Args()[0]`, with the no-argument
 `hello_ast.txt` fixture as the default probe. `input/ast_input_owner.pgy` owns
 path selection, the missing-file diagnostic, and the file-read boundary.
+`input/ast_text_inventory_owner.pgy` owns raw AST-text line splitting,
+indent counting, blank-line filtering, and `[export]` line normalization.
+`GenerateC` consumes that inventory and must not recover those facts locally.
+This is a transitional text bridge; the mixed AST-like tagged-node owner remains
+an active expansion surface.
 `run/codegen_run_owner.pgy` owns the CLI-to-output orchestration that feeds the
 owned input into `GenerateC`; `main.pgy` only calls that run owner.
 `emission/struct_value_emit.pgy` owns struct-valued expression lowering for the

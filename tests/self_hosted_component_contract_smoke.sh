@@ -344,6 +344,7 @@ require_text "tests/self_hosted/parity/semantic_parity.sh" "check_semantic_diagn
 require_text "tests/self_hosted/parity/semantic_parity.sh" "semantic_oracle_code_for"
 require_owner_surface codegen \
     "input/ast_input_owner.pgy" \
+    "input/ast_text_inventory_owner.pgy" \
     "run/codegen_run_owner.pgy" \
     "text/text_owner.pgy" \
     "type_facts/type_env.pgy" \
@@ -367,6 +368,13 @@ require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func Abi
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCReturnType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCLocalType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCFieldType"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextInventory"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIndentOf"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextInventory(ast, indents, texts)"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "NextNewline(ast, pos)"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringTrim(raw_line)"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "IndentOf(raw_line)"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func IndentOf"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCGetFn"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCLenFn"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCPushFn"
@@ -498,6 +506,7 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/c
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/world.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/main.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/input/ast_text_inventory_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy"'
@@ -531,8 +540,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 80 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 80"
+[[ "$selfcheck_count" -eq 81 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 81"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func SourceLocalType"

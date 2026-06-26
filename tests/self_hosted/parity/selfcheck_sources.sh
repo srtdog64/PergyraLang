@@ -52,6 +52,7 @@ cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
 SELF_SOURCES=(
     "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy"
     "src/self_hosted/codegen/input/ast_input_owner.pgy"
+    "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy"
     "src/self_hosted/codegen/main.pgy"
     "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy"
     "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy"

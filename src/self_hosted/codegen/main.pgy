@@ -14,6 +14,7 @@ import "emission/expr_rewrite.pgy";
 import "emission/struct_value_emit.pgy";
 import "emission/stmt_emit.pgy";
 import "emission/function_emit.pgy";
+import "input/ast_text_inventory_owner.pgy";
 import "emission/program_emit.pgy";
 import "input/ast_input_owner.pgy";
 import "run/codegen_run_owner.pgy";

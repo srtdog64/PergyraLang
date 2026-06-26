@@ -1648,3 +1648,20 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   helper facts.
 - Added the math and host I/O runtime owners to real-source semantic selfcheck,
   raising accepted self-host owner/source files to 80 on both C and LLVM.
+
+### 2026-06-26 -- Self-host AST text line inventory moves behind input owner
+
+- Added `src/self_hosted/codegen/input/ast_text_inventory_owner.pgy` as the
+  transitional owner for raw `pgy --ast` text line inventory. It owns line
+  splitting, leading indentation, blank-line filtering, and `[export]`
+  normalization before `program_emit` consumes the inventory.
+- Removed the unused `IndentOf` owner from `stmt_emit`; indentation is now an
+  AST-text inventory fact, not a statement-emission fact.
+- Tightened `self_hosted_component_contract_smoke` so `program_emit.pgy` cannot
+  reintroduce raw `NextNewline(ast, pos)` / `StringTrim(raw_line)` inventory
+  recovery or call a local `IndentOf(raw_line)` path.
+- This does not close the mixed AST-like tree owner. It only closes the
+  raw-line inventory seam while the bounded codegen rung still consumes
+  compiler-emitted AST text.
+- Added the AST text inventory owner to real-source semantic selfcheck, raising
+  accepted self-host owner/source files to 81 on both C and LLVM.

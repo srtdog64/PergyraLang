@@ -1,0 +1,35 @@
+// src/self_hosted/codegen/input/ast_text_inventory_owner.pgy
+//
+// Owns the AST-text line inventory consumed by the self-host C emitter.
+// This is still a text bridge, not the final tagged AST owner.
+
+import "../text/text_owner.pgy";
+
+func CodegenAstTextIndentOf(raw: String) -> Int {
+    let n: Int = StringLength(raw);
+    let i: Int = 0;
+    while i < n && CharAt(raw, i) == " " {
+        i = i + 1;
+    }
+    return i;
+}
+
+func CodegenAstTextInventory(ast: String, inout indents: Array<Int>, inout texts: Array<String>) -> Void {
+    let total: Int = StringLength(ast);
+    let pos: Int = 0;
+    while pos < total {
+        let nl: Int = NextNewline(ast, pos);
+        let raw_line: String = Substring(ast, pos, nl - pos);
+        let trimmed: String = StringTrim(raw_line);
+        // Namespace/import functions are flattened to top-level exported
+        // function lines by the current parser bridge.
+        if StartsWith(trimmed, "[export] ") {
+            trimmed = Substring(trimmed, 9, StringLength(trimmed) - 9);
+        }
+        if StringLength(trimmed) > 0 {
+            ArrayPush(indents, CodegenAstTextIndentOf(raw_line));
+            ArrayPush(texts, trimmed);
+        }
+        pos = nl + 1;
+    }
+}
