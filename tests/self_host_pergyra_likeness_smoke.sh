@@ -6,26 +6,25 @@
 # or in C-shaped string-munging that merely passes through the Pergyra parser?
 #
 # The hard-self-host LOC percentage answers "how much is substituted". It does
-# NOT answer "is the substitute Pergyra-like". This gate answers the second
+# not answer "is the substitute Pergyra-like". This gate answers the second
 # question and forces it to improve monotonically:
 #
 #   - string_munge_sig: `(...: String) -> String` signatures. Each one is a
-#     text-in/text-out function — the C-compiler shape, not a typed transform.
-#     This is the dominant un-Pergyra signal and the linchpin metric. RATCHET DOWN.
-#   - ast_string_surface: `ast: String` parameters. The AST carried as serialized
-#     text instead of a typed node tree — the root that forces everything else
-#     into strings. RATCHET DOWN (toward a typed AST).
+#     text-in/text-out function: the C-compiler shape, not a typed transform.
+#     This is the dominant un-Pergyra signal and the linchpin metric. Ratchet
+#     down.
+#   - ast_string_surface: `ast: String` parameters. The AST carried as
+#     serialized text instead of a typed node tree is the root that forces
+#     everything else into strings. Ratchet down toward a typed AST.
 #   - sentinel: `return -1` / `== -1` / `!= -1`. Out-of-band error/not-found
-#     signalling — a hidden-control-flow path (CLAUDE.md §1.1) that Pergyra's own
-#     Result/Option (already lowered by the self-host rungs) is meant to replace.
-#     RATCHET DOWN.
+#     signalling is hidden control flow that Pergyra's own Result/Option
+#     surface is meant to replace. Ratchet down.
 #   - result_use: Result/Option/Ok/Err/Some/None occurrences. Errors-as-data.
-#     RATCHET UP.
+#     Ratchet up.
 #
-# Baselines are embedded below. When you improve a metric, TIGHTEN the baseline
-# in the same commit (lower a max, raise the min) so the ratchet can only get
-# stricter — exactly the AIR-erasure / monotonic-decrease discipline used
-# elsewhere in this repo.
+# Baselines are embedded below. When a metric improves, tighten the baseline in
+# the same commit so the ratchet can only get stricter, matching the
+# AIR-erasure / monotonic-decrease discipline used elsewhere in this repo.
 
 set -euo pipefail
 
@@ -37,7 +36,7 @@ SH_DIR="$ROOT_DIR/src/self_hosted"
 STRING_MUNGE_SIG_MAX=168
 AST_STRING_SURFACE_MAX=5
 SENTINEL_MAX=42
-RESULT_USE_MIN=71
+RESULT_USE_MIN=74
 
 fail() {
     echo "[self-host-likeness] FAIL" >&2
@@ -46,8 +45,13 @@ fail() {
 }
 
 count() {
-    # count(pattern) -> number of matches across self-host .pgy sources
-    grep -rhoE "$1" "$SH_DIR" --include='*.pgy' 2>/dev/null | wc -l | tr -d ' '
+    # count(pattern) -> matches across self-host .pgy CODE (// comments stripped,
+    # so documentation that merely mentions a pattern does not trip the ratchet).
+    find "$SH_DIR" -name '*.pgy' -print0 2>/dev/null \
+        | xargs -0 cat 2>/dev/null \
+        | sed 's://.*$::' \
+        | grep -oE "$1" \
+        | wc -l | tr -d ' '
 }
 
 string_munge_sig=$(count ': String\) -> String')
@@ -63,13 +67,13 @@ echo "  result_use         : $result_use  (min $RESULT_USE_MIN)    <- errors-as-
 
 # ---- bad metrics: current must not exceed baseline ----
 if [ "$string_munge_sig" -gt "$STRING_MUNGE_SIG_MAX" ]; then
-    fail "string_munge_sig rose to $string_munge_sig (> $STRING_MUNGE_SIG_MAX). New '(...: String) -> String' text-munging functions move the self-host compiler AWAY from Pergyra. Carry a typed AST/IR node + Result instead."
+    fail "string_munge_sig rose to $string_munge_sig (> $STRING_MUNGE_SIG_MAX). New '(...: String) -> String' text-munging functions move the self-host compiler away from Pergyra. Carry a typed AST/IR node plus Result instead."
 fi
 if [ "$ast_string_surface" -gt "$AST_STRING_SURFACE_MAX" ]; then
     fail "ast_string_surface rose to $ast_string_surface (> $AST_STRING_SURFACE_MAX). The AST must move toward a typed node tree, not more 'ast: String' text surfaces."
 fi
 if [ "$sentinel" -gt "$SENTINEL_MAX" ]; then
-    fail "sentinel rose to $sentinel (> $SENTINEL_MAX). '-1' out-of-band signalling is hidden control flow (CLAUDE.md §1.1). Use Option/Result — already lowered by the self-host rungs."
+    fail "sentinel rose to $sentinel (> $SENTINEL_MAX). '-1' out-of-band signalling is hidden control flow. Use Option/Result, already lowered by the self-host rungs."
 fi
 
 # ---- good metric: current must not fall below baseline ----
@@ -82,7 +86,7 @@ if [ "$string_munge_sig" -lt "$STRING_MUNGE_SIG_MAX" ] \
     || [ "$ast_string_surface" -lt "$AST_STRING_SURFACE_MAX" ] \
     || [ "$sentinel" -lt "$SENTINEL_MAX" ] \
     || [ "$result_use" -gt "$RESULT_USE_MIN" ]; then
-    echo "[self-host-likeness] NOTE: a metric improved past its baseline — tighten the baselines in $0 in this commit so the ratchet stays strict."
+    echo "[self-host-likeness] NOTE: a metric improved past its baseline; tighten the baselines in $0 in this commit so the ratchet stays strict."
 fi
 
 echo "[self-host-likeness] PASS"
