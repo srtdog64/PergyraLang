@@ -397,6 +397,58 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             return true;
         }
         LLVMValueRef var_alloca = llvm_create_entry_alloca(ctx, array_type, name);
+        const char *primitive_suffix = llvm_type_to_suffix(ctx, elem_type);
+        bool raw_nominal_array = primitive_suffix == NULL
+            || strcmp(primitive_suffix, "Unknown") == 0;
+        if (raw_nominal_array) {
+            LLVMFuncEntry *raw_new_fn = llvm_lookup_function(ctx,
+                "pgy_array_new_raw_export");
+            LLVMFuncEntry *raw_push_fn = llvm_lookup_function(ctx,
+                "pgy_array_push_raw_export");
+            LLVMValueRef elem_size = LLVMSizeOf(elem_type);
+            if (LLVMTypeOf(elem_size) != ctx->type_i64)
+                elem_size = LLVMBuildZExtOrBitCast(ctx->builder, elem_size,
+                    ctx->type_i64, llvm_tmp_name(ctx));
+            if (raw_new_fn == NULL || raw_push_fn == NULL) {
+                bool ok = llvm_stmt_diag_collection(ctx, node,
+                    LLVM_STMT_COLLECTION_DIAG_RUNTIME_FN, name,
+                    "Array", 0,
+                    raw_new_fn == NULL ? "pgy_array_new_raw_export"
+                                       : "pgy_array_push_raw_export");
+                free(owned_inner_name);
+                return ok;
+            }
+            LLVMValueRef raw_arr = LLVMBuildBitCast(ctx->builder, var_alloca,
+                ctx->type_i8ptr, llvm_tmp_name(ctx));
+            LLVMValueRef new_args[] = {
+                raw_arr,
+                LLVMConstInt(ctx->type_i64, (unsigned long long)count, 0),
+                elem_size
+            };
+            LLVMBuildCall2(ctx->builder, raw_new_fn->fn_type,
+                raw_new_fn->fn, new_args, 3, "");
+            for (size_t i = 0; i < count; i++) {
+                LLVMValueRef element = llvm_emit_expression(
+                    ast_array_literal_element(init, i), ctx);
+                if (element == NULL) {
+                    free(owned_inner_name);
+                    return true;
+                }
+                LLVMValueRef elem_alloca = llvm_create_entry_alloca(ctx,
+                    elem_type, llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder, element, elem_alloca);
+                LLVMValueRef raw_elem = LLVMBuildBitCast(ctx->builder,
+                    elem_alloca, ctx->type_i8ptr, llvm_tmp_name(ctx));
+                LLVMValueRef push_args[] = { raw_arr, raw_elem, elem_size };
+                LLVMBuildCall2(ctx->builder, raw_push_fn->fn_type,
+                    raw_push_fn->fn, push_args, 3, "");
+            }
+            llvm_scope_declare(ctx, name, var_alloca, array_type);
+            llvm_register_array_var(ctx, name, elem_type, inner_name,
+                (int64_t)count);
+            free(owned_inner_name);
+            return true;
+        }
         char new_fn_name[64];
         char push_fn_name[64];
         LLVMFuncEntry *new_fn;
@@ -465,7 +517,8 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
         }
 
         llvm_scope_declare(ctx, name, var_alloca, array_type);
-        llvm_register_array_var(ctx, name, elem_type, (int64_t)count);
+        llvm_register_array_var(ctx, name, elem_type, inner_name,
+            (int64_t)count);
         free(owned_inner_name);
         return true;
     }

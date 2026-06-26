@@ -236,7 +236,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             }
             return;
         }
-        llvm_register_array_var(ctx, name, elem_type, -1);
+        llvm_register_array_var(ctx, name, elem_type, elem_name, -1);
     } else if (init != NULL
         && init->type == AST_CALL
         && ast_call_callee(init) != NULL
@@ -257,7 +257,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             }
             return;
         }
-        llvm_register_array_var(ctx, name, elem_type, -1);
+        llvm_register_array_var(ctx, name, elem_type, NULL, -1);
         if (llvm_debug_detail_enabled())
             fprintf(stderr, "[llvm let] name=%s phase=after-slice-register\n",
                 name != NULL ? name : "-");

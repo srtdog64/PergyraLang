@@ -8,6 +8,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include "llvm_internal_api.h"
 
 bool
 llvm_is_upper_ident(ASTNode *node)
@@ -175,6 +176,9 @@ llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
             }
         }
         return NULL;
+    case AST_ARRAY_ACCESS: {
+        return llvm_array_access_element_class_name(ctx, node);
+    }
     case AST_CALL:
         if (ast_call_callee(node) != NULL
             && ast_call_callee(node)->type == AST_IDENTIFIER) {

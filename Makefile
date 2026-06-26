@@ -1009,6 +1009,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_mir_store_coercion.c \
                         $(CODEGEN_DIR)/llvm_mir_async_fact.c \
                         $(CODEGEN_DIR)/llvm_mir_local_emit.c \
+                        $(CODEGEN_DIR)/llvm_mir_local_array_registry.c \
                         $(CODEGEN_DIR)/llvm_mir_local_expected_type.c \
                         $(CODEGEN_DIR)/llvm_mir_local_element_type.c \
                         $(CODEGEN_DIR)/llvm_mir_local_type_lookup.c \
@@ -1049,6 +1050,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_boundary_projection_helpers.c \
                         $(CODEGEN_DIR)/llvm_expr_common.c \
                         $(CODEGEN_DIR)/llvm_expr_array_calls.c \
+                        $(CODEGEN_DIR)/llvm_expr_array_raw_nominal_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_allocator_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_box_array_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_call_args.c \
@@ -1251,6 +1253,7 @@ BUILD_CONTRACT_INVENTORY_FILES = \
                    $(RUNTIME_DIR)/pgy_runtime_process_args_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_process_exit.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_qubit_state_exports.h \
+                   $(RUNTIME_DIR)/pgy_runtime_lib_raw_array_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_collection_common_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_map_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_map_key_exports.h \

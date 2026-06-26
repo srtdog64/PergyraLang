@@ -168,6 +168,7 @@ compiler replacement.
 | parity evidence | `ParityZone` and test harnesses | proves substitution against the C/LLVM oracle pair |
 | runtime materialization policy | runtime/frontier owner | distinguishes erased hot paths from explicit managed boundaries |
 | target capability envelope | projection fact owner | keeps CPU, self-hosted, and future accelerator acceptance/reject/fallback decisions visible |
+| nominal-record array substrate | LLVM array registry element-name facts plus raw record-array exports | lets typed compiler records live in `Array<T>` without AST element-type guessing |
 
 If one of these facts is missing, the fix is to add the fact to the owner or
 fail closed. The fix is not a local compatibility fallback.
@@ -175,6 +176,12 @@ fail closed. The fix is not a local compatibility fallback.
 The pre-self-host expansion ledger is the ratchet for that rule: a hard rung may
 consume `READY` surfaces, must treat `ACTIVE` surfaces as blockers or explicit
 unsupported input, and must not depend on `HOLD` surfaces.
+
+The basic nominal-record array substrate is now a `READY` input to that ledger:
+`Array<NominalRecord>` supports creation, parameter passing, push, set, pop,
+indexing, and indexed member access under C/LLVM parity. It is not yet a full
+generic collection-algorithm surface; map/filter/sort/slice over nominal
+records need separate ABI/runtime owners before hard rungs can rely on them.
 
 `src/self_hosted/compiler/path_manifest_owner.pgy` is the current path owner.
 It owns the Pergyra source/test/parity path values for `StagePathManifest`;

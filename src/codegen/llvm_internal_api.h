@@ -252,16 +252,21 @@ void                llvm_register_projection_borrow(LLVMGenCtx *ctx,
 LLVMProjectionBorrowEntry *llvm_lookup_projection_borrow(LLVMGenCtx *ctx,
                                                          const char *var_name);
 void                llvm_register_array_var(LLVMGenCtx *ctx, const char *var_name,
-                                             LLVMTypeRef elem_type, int64_t length);
+                                             LLVMTypeRef elem_type,
+                                             const char *elem_name,
+                                             int64_t length);
 void                llvm_register_array_var_binding(LLVMGenCtx *ctx,
                                                      const char *var_name,
                                                      LLVMValueRef binding,
                                                      LLVMTypeRef elem_type,
+                                                     const char *elem_name,
                                                      int64_t length);
 LLVMArrayVarEntry  *llvm_lookup_array_var(LLVMGenCtx *ctx, const char *var_name);
 LLVMArrayVarEntry  *llvm_lookup_array_var_binding(LLVMGenCtx *ctx,
                                                    const char *var_name,
                                                    LLVMValueRef binding);
+const char         *llvm_array_access_element_class_name(LLVMGenCtx *ctx,
+                                                         ASTNode *array_access);
 void                llvm_register_enum_variant(LLVMGenCtx *ctx,
                                                 const char *enum_name,
                                                 const char *variant_name,

@@ -181,6 +181,7 @@ typedef struct
     const char  *var_name;
     LLVMValueRef binding;
     LLVMTypeRef  elem_type;
+    const char  *elem_name;
     int64_t      length;
 } LLVMArrayVarEntry;
 

@@ -629,6 +629,7 @@ main() {
         "tests/cases/backend_compare/function_returning_array"
         "tests/cases/backend_compare/if_expression_in_let"
         "tests/cases/backend_compare/struct_field_access"
+        "tests/cases/backend_compare/record_array_basic"
         "tests/cases/backend_compare/array_of_strings_loop"
         "tests/cases/backend_compare/else_if_int_classify"
         "tests/cases/backend_compare/option_match_simple"

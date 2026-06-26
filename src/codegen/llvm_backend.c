@@ -340,8 +340,10 @@ llvm_ctx_destroy(LLVMGenCtx *ctx)
     free(ctx->class_types);
     free(ctx->var_classes);
     free(ctx->projection_borrows);
-    for (int i = 0; i < ctx->array_var_count; i++)
+    for (int i = 0; i < ctx->array_var_count; i++) {
         free((char *)ctx->array_vars[i].var_name);
+        free((char *)ctx->array_vars[i].elem_name);
+    }
     free(ctx->array_vars);
     free(ctx->list_vars);
     free(ctx->set_vars);

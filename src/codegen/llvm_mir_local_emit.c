@@ -9,6 +9,7 @@
 #include "llvm_backend_type_map_internal.h"
 #include "llvm_internal_api.h"
 #include "llvm_mir_async_fact.h"
+#include "llvm_mir_local_array_registry.h"
 #include "llvm_mir_local_expected_type.h"
 #include "llvm_mir_local_element_type.h"
 #include "llvm_mir_local_type_lookup.h"
@@ -631,31 +632,10 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                 if (has_base_name
                     && value_expr != NULL
                     && value_expr->type == AST_ARRAY_LITERAL) {
-                    LLVMTypeRef elem_type = NULL;
-                    if (ast_array_literal_count(value_expr) > 0
-                        && ast_array_literal_element(value_expr, 0) != NULL) {
-                        elem_type = llvm_stmt_infer_expr_type(ctx,
-                            ast_array_literal_element(value_expr, 0));
-                    } else {
-                        const char *source_type_name =
-                            mir_routine_source_local_type_name(routine,
-                                                               base_name);
-                        if (source_type_name != NULL) {
-                            elem_type =
-                                llvm_mir_local_elem_type_from_type_name(
-                                    ctx, source_type_name);
-                        }
-                        if (elem_type == NULL) {
-                            elem_type = llvm_mir_local_elem_type_from_layout(
-                                ctx, inst->type_layout);
-                        }
-                    }
-                    if (!llvm_mir_local_require_elem_type(ctx, value_expr,
-                            elem_type, base_name))
+                    if (!llvm_mir_register_source_local_array_fact(routine,
+                            ctx, inst, base_name, value_expr,
+                            vars[var_count].alloca))
                         return;
-                    llvm_register_array_var_binding(ctx, base_name,
-                        vars[var_count].alloca, elem_type,
-                        (int64_t)ast_array_literal_count(value_expr));
                 } else if (has_base_name
                     && value_expr != NULL
                     && value_expr->type == AST_CALL
@@ -676,7 +656,7 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                             elem_type, base_name))
                         return;
                     llvm_register_array_var_binding(ctx, base_name,
-                        vars[var_count].alloca, elem_type, -1);
+                        vars[var_count].alloca, elem_type, NULL, -1);
                 }
                 if (has_base_name) {
                     LLVMClassTypeEntry *value_cls =

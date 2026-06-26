@@ -181,7 +181,8 @@ llvm_register_typed_var_binding(LLVMGenCtx *ctx, const char *var_name,
         elem_type = pergyra_type_to_llvm(ctx, arg0_name);
         if (ctx->has_error || elem_type == NULL)
             return;
-        llvm_register_array_var_binding(ctx, var_name, binding, elem_type, -1);
+        llvm_register_array_var_binding(ctx, var_name, binding, elem_type,
+            arg0_name, -1);
         return;
     }
 
@@ -333,7 +334,8 @@ llvm_register_typed_var_abi_binding(LLVMGenCtx *ctx,
         LLVMTypeRef elem_type = pergyra_type_to_llvm(ctx, arg0_name);
         if (ctx->has_error || elem_type == NULL)
             return;
-        llvm_register_array_var_binding(ctx, var_name, binding, elem_type, -1);
+        llvm_register_array_var_binding(ctx, var_name, binding, elem_type,
+            arg0_name, -1);
         return;
     }
     case LLVM_REGISTRY_TYPE_LIST:

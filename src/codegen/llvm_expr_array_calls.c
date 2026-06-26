@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "llvm_expr_array_raw_nominal_calls.h"
 #include "llvm_expr_box_array_calls.h"
 #include "llvm_internal_api.h"
 #include "parser/ast_api.h"
@@ -462,10 +463,13 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         if (arr_alloca == NULL)
             return llvm_array_error_out(node, ctx,
                 "LLVM ArrayPush requires registered Array<T> receiver", out);
-        const char *suffix = llvm_array_required_elem_suffix(
-            ctx, node, entry, callee_name);
-        if (suffix == NULL)
+        const char *suffix = llvm_type_to_suffix(ctx, entry->elem_type);
+        bool use_raw_nominal = llvm_array_entry_uses_raw_nominal(ctx, entry);
+        if ((suffix == NULL || strcmp(suffix, "Unknown") == 0)
+            && !use_raw_nominal) {
+            llvm_array_required_elem_suffix(ctx, node, entry, callee_name);
             return true;
+        }
 
         LLVMValueRef value = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (value == NULL)
@@ -479,6 +483,14 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                 && (LLVMTypeOf(value) == ctx->type_i32 || LLVMTypeOf(value) == ctx->type_i64))
                 value = LLVMBuildSIToFP(ctx->builder, value, entry->elem_type, llvm_tmp_name(ctx));
         }
+        if (LLVMTypeOf(value) != entry->elem_type)
+            return llvm_array_error_out(node, ctx,
+                "LLVM ArrayPush value does not match Array<T> element type",
+                out);
+
+        if (use_raw_nominal)
+            return llvm_array_emit_raw_nominal_push(ctx, node, callee_name,
+                arr_alloca, entry, value, out);
 
         char fn_name[64];
         if (!llvm_array_format_runtime_name(fn_name, sizeof(fn_name),
@@ -503,10 +515,13 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         if (arr_alloca == NULL)
             return llvm_array_error_out(node, ctx,
                 "LLVM ArraySet requires registered Array<T> receiver", out);
-        const char *suffix = llvm_array_required_elem_suffix(
-            ctx, node, entry, callee_name);
-        if (suffix == NULL)
+        const char *suffix = llvm_type_to_suffix(ctx, entry->elem_type);
+        bool use_raw_nominal = llvm_array_entry_uses_raw_nominal(ctx, entry);
+        if ((suffix == NULL || strcmp(suffix, "Unknown") == 0)
+            && !use_raw_nominal) {
+            llvm_array_required_elem_suffix(ctx, node, entry, callee_name);
             return true;
+        }
 
         LLVMValueRef idx = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         LLVMValueRef value = llvm_emit_expression(ast_call_argument(node, 2), ctx);
@@ -522,6 +537,17 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                 && (LLVMTypeOf(value) == ctx->type_i32 || LLVMTypeOf(value) == ctx->type_i64))
                 value = LLVMBuildSIToFP(ctx->builder, value, entry->elem_type, llvm_tmp_name(ctx));
         }
+        if (LLVMTypeOf(value) != entry->elem_type)
+            return llvm_array_error_out(node, ctx,
+                "LLVM ArraySet value does not match Array<T> element type",
+                out);
+        LLVMValueRef index64 = idx;
+        if (LLVMTypeOf(index64) != ctx->type_i64)
+            index64 = LLVMBuildSExtOrBitCast(ctx->builder, index64,
+                ctx->type_i64, llvm_tmp_name(ctx));
+        if (use_raw_nominal)
+            return llvm_array_emit_raw_nominal_set(ctx, node, callee_name,
+                arr_alloca, entry, index64, value, out);
         char fn_name[64];
         /* Contract: checked ArraySet lowers to pgy_array_set_<suffix>. */
         if (!llvm_array_format_runtime_name(fn_name, sizeof(fn_name),
@@ -532,10 +558,6 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         if (fn == NULL)
             return llvm_array_error_out(node, ctx,
                 "LLVM ArraySet requires registered runtime function", out);
-        LLVMValueRef index64 = idx;
-        if (LLVMTypeOf(index64) != ctx->type_i64)
-            index64 = LLVMBuildSExtOrBitCast(ctx->builder, index64,
-                ctx->type_i64, llvm_tmp_name(ctx));
         LLVMValueRef args[] = { arr_alloca, index64, value };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
         *out = llvm_void_expression_placeholder(ctx, node, callee_name);
@@ -598,9 +620,13 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         if (arr_alloca == NULL)
             return llvm_array_error_out(node, ctx,
                 "LLVM ArrayPop requires registered Array<T> receiver", out);
-        const char *suffix = llvm_array_required_elem_suffix(
-            ctx, node, entry, callee_name);
-        if (suffix == NULL) {
+        const char *suffix = llvm_type_to_suffix(ctx, entry->elem_type);
+        bool use_raw_nominal = llvm_array_entry_uses_raw_nominal(ctx, entry);
+        if (use_raw_nominal)
+            return llvm_array_emit_raw_nominal_pop(ctx, node, callee_name,
+                arr_alloca, entry, out);
+        if (suffix == NULL || strcmp(suffix, "Unknown") == 0) {
+            llvm_array_required_elem_suffix(ctx, node, entry, callee_name);
             return llvm_array_error_out(node, ctx,
                 "LLVM ArrayPop requires concrete Array<T> element metadata", out);
         }

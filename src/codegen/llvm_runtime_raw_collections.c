@@ -4,6 +4,40 @@
 void
 llvm_declare_runtime_raw_collections(LLVMGenCtx *ctx)
 {
+    { LLVMTypeRef params[] = { ctx->type_i8ptr, ctx->type_i64,
+                               ctx->type_i64 };
+      LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 3, 0);
+      LLVMValueRef fn = LLVMAddFunction(ctx->module,
+          "pgy_array_new_raw_export", ft);
+      llvm_register_function(ctx, "pgy_array_new_raw_export", fn, ft,
+          ctx->type_void); }
+    { LLVMTypeRef params[] = { ctx->type_i8ptr, ctx->type_i8ptr,
+                               ctx->type_i64 };
+      LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 3, 0);
+      LLVMValueRef fn = LLVMAddFunction(ctx->module,
+          "pgy_array_push_raw_export", ft);
+      llvm_register_function(ctx, "pgy_array_push_raw_export", fn, ft,
+          ctx->type_void); }
+    { LLVMTypeRef params[] = { ctx->type_i8ptr, ctx->type_i64,
+                               ctx->type_i8ptr, ctx->type_i64 };
+      LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 4, 0);
+      LLVMValueRef fn = LLVMAddFunction(ctx->module,
+          "pgy_array_get_raw_export", ft);
+      llvm_register_function(ctx, "pgy_array_get_raw_export", fn, ft,
+          ctx->type_void); }
+    { LLVMTypeRef params[] = { ctx->type_i8ptr, ctx->type_i64,
+                               ctx->type_i8ptr, ctx->type_i64 };
+      LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 4, 0);
+      LLVMValueRef fn = LLVMAddFunction(ctx->module,
+          "pgy_array_set_raw_export", ft);
+      llvm_register_function(ctx, "pgy_array_set_raw_export", fn, ft,
+          ctx->type_void); }
+    { LLVMTypeRef params[] = { ctx->type_i8ptr };
+      LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
+      LLVMValueRef fn = LLVMAddFunction(ctx->module,
+          "pgy_array_pop_raw_export", ft);
+      llvm_register_function(ctx, "pgy_array_pop_raw_export", fn, ft,
+          ctx->type_void); }
     { LLVMTypeRef params[] = { ctx->type_i8ptr, ctx->type_i64 };
       LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
       LLVMValueRef fn = LLVMAddFunction(ctx->module, "pgy_list_new_raw_export", ft);

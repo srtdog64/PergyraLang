@@ -560,18 +560,48 @@ llvm_emit_array_access_expr(ASTNode *node, LLVMGenCtx *ctx)
         LLVMArrayVarEntry *entry = llvm_lookup_array_var(ctx, name);
         if (has_arr_var && entry != NULL) {
             const char *suffix = llvm_type_to_suffix(ctx, entry->elem_type);
-            if (suffix != NULL && strcmp(suffix, "Unknown") != 0) {
+            bool use_raw_nominal = (suffix == NULL
+                || strcmp(suffix, "Unknown") == 0)
+                && entry->elem_name != NULL && entry->elem_name[0] != '\0';
+            if ((suffix != NULL && strcmp(suffix, "Unknown") != 0)
+                || use_raw_nominal) {
                 const char *struct_name = LLVMGetStructName(arr_var.type);
-                if (struct_name != NULL
-                    && strncmp(struct_name, "PgyArray_", 9) == 0) {
-                    LLVMValueRef aggregate = LLVMBuildLoad2(ctx->builder,
-                        arr_var.type, arr_var.alloca, llvm_tmp_name(ctx));
-                    LLVMValueRef inlined = llvm_emit_inline_array_get(ctx,
-                        aggregate, entry->elem_type, idx, struct_name);
-                    if (inlined != NULL)
-                        return inlined;
-                    if (ctx->has_error)
+                LLVMValueRef aggregate = LLVMBuildLoad2(ctx->builder,
+                    arr_var.type, arr_var.alloca, llvm_tmp_name(ctx));
+                LLVMValueRef inlined = llvm_emit_inline_array_get(ctx,
+                    aggregate, entry->elem_type, idx, struct_name);
+                if (inlined != NULL)
+                    return inlined;
+                if (ctx->has_error)
+                    return NULL;
+                if (use_raw_nominal) {
+                    LLVMFuncEntry *raw_get_fn = llvm_required_runtime_function(
+                        ctx, node, "indexed collection access", "ArrayGet",
+                        "pgy_array_get_raw_export");
+                    if (raw_get_fn == NULL)
                         return NULL;
+                    LLVMValueRef index64 = idx;
+                    if (LLVMTypeOf(index64) != ctx->type_i64)
+                        index64 = LLVMBuildSExtOrBitCast(ctx->builder,
+                            index64, ctx->type_i64, llvm_tmp_name(ctx));
+                    LLVMValueRef elem_size = LLVMSizeOf(entry->elem_type);
+                    if (LLVMTypeOf(elem_size) != ctx->type_i64)
+                        elem_size = LLVMBuildZExtOrBitCast(ctx->builder,
+                            elem_size, ctx->type_i64, llvm_tmp_name(ctx));
+                    LLVMValueRef out_alloca = llvm_create_entry_alloca(ctx,
+                        entry->elem_type, llvm_tmp_name(ctx));
+                    LLVMValueRef args[] = {
+                        LLVMBuildBitCast(ctx->builder, arr_var.alloca,
+                            ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                        index64,
+                        LLVMBuildBitCast(ctx->builder, out_alloca,
+                            ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                        elem_size
+                    };
+                    LLVMBuildCall2(ctx->builder, raw_get_fn->fn_type,
+                        raw_get_fn->fn, args, 4, "");
+                    return LLVMBuildLoad2(ctx->builder, entry->elem_type,
+                        out_alloca, llvm_tmp_name(ctx));
                 }
                 const char *fn_prefix = "pgy_array_get_";
                 char fn_name[64];

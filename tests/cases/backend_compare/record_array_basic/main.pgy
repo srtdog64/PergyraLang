@@ -1,0 +1,21 @@
+struct RecordRow {
+    let id: Int;
+    let label: String;
+}
+
+func Score(rows: Array<RecordRow>) -> Int {
+    return rows[0].id + rows[1].id
+        + StringLength(rows[0].label)
+        + StringLength(rows[1].label);
+}
+
+func Main() -> Void {
+    let rows: Array<RecordRow> = [];
+    ArrayPush(rows, RecordRow(4, "ant"));
+    ArrayPush(rows, RecordRow(6, "bee"));
+    ArraySet(rows, 1, RecordRow(7, "bee"));
+    ArrayPop(rows);
+    ArrayPush(rows, RecordRow(8, "cat"));
+    Log(Score(rows));
+    Log(rows[0].label);
+}

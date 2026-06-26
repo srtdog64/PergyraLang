@@ -1,5 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+#include "llvm_internal_api.h"
 #include "llvm_stmt_type_infer_helpers.h"
 #include "parser/ast_api.h"
 
@@ -92,6 +93,10 @@ llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
                     return field_cls->class_name;
             }
         }
+    }
+
+    if (init->type == AST_ARRAY_ACCESS) {
+        return llvm_array_access_element_class_name(ctx, init);
     }
 
     return NULL;

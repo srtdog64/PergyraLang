@@ -1678,3 +1678,20 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `ArrayPush` with missing concrete `Array<T>` element/runtime metadata for a
   nominal record element. The typed/tagged AST inventory remains blocked on a
   record-array C/LLVM parity owner rather than being papered over in codegen.
+
+### 2026-06-26 -- Basic nominal-record arrays become C/LLVM parity substrate
+
+- Added the `record_array_basic` backend-compare fixture to cover
+  `Array<NominalRecord>` creation, parameter passing, `ArrayPush`, `ArraySet`,
+  `ArrayPop`, indexing, and indexed member access.
+- Extended the LLVM array registry to retain the canonical element type name
+  next to the element `LLVMTypeRef`. Indexed member access now consumes that
+  registry fact for receivers such as `rows[0].id` instead of trying to recover
+  a nominal element type from the source AST.
+- Added raw byte-array runtime exports for nominal record arrays and wired LLVM
+  collection lowering to use them for the supported mutation surface.
+- Verified the narrow fixture with the freshly built compiler:
+  `PGY_BIN=E:/PergyraLang/bin/pgy.exe tests/compare_backends.sh tests/cases/backend_compare/record_array_basic`.
+- Scope is deliberately narrow. This opens typed-record array inventory for the
+  next self-host slice; it does not claim nominal-record support for map,
+  filter, sort, slice, or arbitrary collection algorithms.

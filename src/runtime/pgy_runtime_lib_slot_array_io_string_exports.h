@@ -5,6 +5,7 @@
 
 #include "pgy_runtime_lib_secure_slot_exports.h"
 #include "pgy_runtime_lib_device_slot_exports.h"
+#include "pgy_runtime_lib_raw_array_exports.h"
 #include "pgy_runtime_lib_array_map_exports.h"
 #include "pgy_runtime_lib_array_set_exports.h"
 #include "pgy_runtime_lib_allocator_exports.h"

@@ -50,6 +50,7 @@ rule for pre-self-host expansion.
 | Self-host C host I/O runtime symbols | `src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy` | component contract, real-source selfcheck, codegen parity | file, directory-walk, and argv helper call names are consumed from one owner inside the current self-host C subset |
 | Self-host C Option/Result runtime symbols | `src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy` | component contract, real-source selfcheck, codegen parity | `Option<Int>` / `Result<Int>` helper call names are consumed from one owner inside the current self-host C subset |
 | Self-host C string/text runtime symbols | `src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy` | component contract, real-source selfcheck, codegen parity | supported string/text helper call names are consumed from one owner inside the current self-host C subset |
+| Basic nominal-record arrays | LLVM array registry `elem_name` facts plus raw record-array runtime exports | `backend_compare/record_array_basic` through C and LLVM | `Array<NominalRecord>` can be created, passed as a parameter, pushed, set, popped, indexed, and used for member access without reopening AST type guessing |
 
 ## Active Blockers
 
@@ -59,7 +60,6 @@ They are not optional polish; each one prevents a common fallback shape.
 | Blocker | Required owner | Why it matters |
 |---|---|---|
 | Mixed AST-like tree owner | Pergyra record/class/tagged-node owner plus traversal parity | The raw AST-text line inventory now has one owner, but codegen still consumes text lines; this blocker closes only when owned typed/tagged AST data replaces text-line consumption. |
-| Record-array C/LLVM parity | LLVM array element metadata/runtime owner for `Array<NominalRecord>` plus C/LLVM parity fixture | A typed AST-line inventory needs `Array<AstTextLine>`; C currently accepts a probe while LLVM fail-closes on missing concrete array element/runtime metadata. |
 | Stable JSON parse/emit owner | schema-aware JSON reader/writer with diagnostics | Read primitives are shared; schema validation, object/array iteration, and emit ownership still need one owner. |
 | Subprocess runner | capability-gated process owner | Lets Pergyra runners invoke C/LLVM oracles without shell-only logic. |
 | Symbol/mangle owner | canonical C/LLVM/self-hosted symbol and name-mangling fact table | The self-host C subset now has one spelling owner; full C/LLVM ABI parity still needs a shared symbol fact table consumed by every backend. |
@@ -105,3 +105,17 @@ continue by:
 
 This is the expansion guard: add the surface now, or reject the program. Do not
 grow self-hosting by hiding another compatibility path.
+
+## Nominal Record Array Scope
+
+The `record_array_basic` backend-compare fixture closes the first
+`Array<NominalRecord>` parity seam. The LLVM path now records the nominal
+element name in the array registry and uses that fact for indexed member access
+such as `rows[0].field`; it does not re-infer the element from the AST payload.
+Nominal arrays use raw byte-array runtime exports for the currently supported
+mutation surface.
+
+This is intentionally not a claim that every collection algorithm accepts
+nominal records. `ArrayMap`, `ArrayFilter`, `ArraySort`, slicing, and broader
+generic collection algorithms remain primitive/scalar-owned until their ABI and
+runtime facts have explicit owners and parity fixtures.

@@ -117,10 +117,9 @@ llvm_emit_inline_array_get(LLVMGenCtx *ctx, LLVMValueRef aggregate,
     LLVMBasicBlockRef fail_bb;
     LLVMBasicBlockRef ok_bb;
 
-    if (ctx == NULL || aggregate == NULL || elem_type == NULL || index == NULL
-        || struct_name == NULL)
+    if (ctx == NULL || aggregate == NULL || elem_type == NULL || index == NULL)
         return NULL;
-    if (strncmp(struct_name, "PgyArray_", 9) != 0)
+    if (struct_name != NULL && strncmp(struct_name, "PgyArray_", 9) != 0)
         return NULL;
 
     insert_block = LLVMGetInsertBlock(ctx->builder);

@@ -91,6 +91,7 @@ compiler_runtime_cache_is_fresh(const char *cache_obj_path)
         PGY_RUNTIME_DIR "/pgy_runtime_lib_slot_array_io_string_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_secure_slot_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_device_slot_exports.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_lib_raw_array_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_array_map_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_array_set_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_allocator_exports.h",
