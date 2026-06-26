@@ -413,7 +413,8 @@ The realistic incremental path toward genuine self-host:
    readers consumed by the AIR graph JSON validator, in addition to the shared
    JSON string/field/object/array emission helpers consumed by production size
    checkers, the stable-subset section checker, and the module manifest
-   resolver.
+   resolver. The module manifest resolver now consumes bounded module-array
+   object/field counts from the JSON owner instead of global substring counts.
    Round-trip C-emit-by-Pergyra -> gcc -> run -> stdout matches the C/LLVM oracle
    on 59 committed fixtures, with the emitter built through both backends. Next
    rungs: string freeing / block scoping, broader nested AST-node shapes, then round-trip

@@ -133,7 +133,8 @@ func JsonFieldString(json: String, start: Int, end: Int, key: String) -> String 
     if vstart >= end {
         return "";
     }
-    if CharAt(json, vstart) != "\"" {
+    vstart = JsonSkipWhitespace(json, vstart, end);
+    if vstart >= end || CharAt(json, vstart) != "\"" {
         return "";
     }
     let e: Array<Int> = [0];
@@ -174,12 +175,42 @@ func JsonDocumentHasField(json: String, field: String) -> Bool {
     return p >= 0 && p < end;
 }
 
+func JsonFieldArrayBounds(json: String, start: Int, end: Int, field: String, inout bounds: Array<Int>) -> Bool {
+    let p: Int = FindFrom(json, JsonFieldKey(field), start);
+    if p < 0 || p >= end {
+        return false;
+    }
+    let open: Int = FindFrom(json, "[", p);
+    if open < 0 || open >= end {
+        return false;
+    }
+    let close: Int = JsonArrayEnd(json, open, end);
+    if close < 0 || close >= end {
+        return false;
+    }
+    ArraySet(bounds, 0, open);
+    ArraySet(bounds, 1, close + 1);
+    return true;
+}
+
 func JsonDocumentNumberField(json: String, field: String) -> String {
     let end: Int = JsonDocumentObjectEnd(json);
     if end <= 0 {
         return "";
     }
     return JsonFieldNumber(json, 0, end, JsonFieldKey(field));
+}
+
+func JsonSkipWhitespace(json: String, index: Int, end: Int) -> Int {
+    let i: Int = index;
+    while i < end {
+        let c: String = CharAt(json, i);
+        if c != " " && c != "\n" && c != "\r" && c != "\t" {
+            return i;
+        }
+        i = i + 1;
+    }
+    return i;
 }
 
 func JsonIsDigitChar(c: String) -> Bool {
@@ -249,6 +280,7 @@ func JsonFieldNumber(json: String, start: Int, end: Int, key: String) -> String 
         return "";
     }
     let i: Int = p + StringLength(key);
+    i = JsonSkipWhitespace(json, i, end);
     let n: Int = StringLength(json);
     let out: String = "";
     while i < n && i < end {
@@ -263,6 +295,112 @@ func JsonFieldNumber(json: String, start: Int, end: Int, key: String) -> String 
         i = i + 1;
     }
     return out;
+}
+
+func JsonObjectHasField(json: String, start: Int, end: Int, field: String) -> Bool {
+    let p: Int = FindFrom(json, JsonFieldKey(field), start);
+    return p >= 0 && p < end;
+}
+
+func JsonObjectStringFieldEquals(json: String, start: Int, end: Int, field: String, expected: String) -> Bool {
+    let actual: String = JsonFieldString(json, start, end, JsonFieldKey(field));
+    return actual == expected;
+}
+
+func JsonObjectBoolFieldEquals(json: String, start: Int, end: Int, field: String, expected: Bool) -> Bool {
+    let p: Int = FindFrom(json, JsonFieldKey(field), start);
+    if p < 0 || p >= end {
+        return false;
+    }
+    let value_start: Int = JsonSkipWhitespace(json, p + StringLength(JsonFieldKey(field)), end);
+    if expected {
+        if value_start + 4 > end {
+            return false;
+        }
+        return Substring(json, value_start, 4) == "true";
+    }
+    if value_start + 5 > end {
+        return false;
+    }
+    return Substring(json, value_start, 5) == "false";
+}
+
+func JsonArrayObjectCount(json: String, array_open: Int, array_end: Int) -> Int {
+    let count: Int = 0;
+    let i: Int = array_open + 1;
+    while i < array_end {
+        let obj_start: Int = FindFrom(json, "{", i);
+        if obj_start < 0 || obj_start >= array_end {
+            return count;
+        }
+        let obj_end: Int = JsonObjectEnd(json, obj_start, array_end);
+        if obj_end < 0 {
+            return count;
+        }
+        count = count + 1;
+        i = obj_end;
+    }
+    return count;
+}
+
+func JsonArrayObjectFieldCount(json: String, array_open: Int, array_end: Int, field: String) -> Int {
+    let count: Int = 0;
+    let i: Int = array_open + 1;
+    while i < array_end {
+        let obj_start: Int = FindFrom(json, "{", i);
+        if obj_start < 0 || obj_start >= array_end {
+            return count;
+        }
+        let obj_end: Int = JsonObjectEnd(json, obj_start, array_end);
+        if obj_end < 0 {
+            return count;
+        }
+        if JsonObjectHasField(json, obj_start, obj_end, field) {
+            count = count + 1;
+        }
+        i = obj_end;
+    }
+    return count;
+}
+
+func JsonArrayObjectStringFieldEqualsCount(json: String, array_open: Int, array_end: Int, field: String, expected: String) -> Int {
+    let count: Int = 0;
+    let i: Int = array_open + 1;
+    while i < array_end {
+        let obj_start: Int = FindFrom(json, "{", i);
+        if obj_start < 0 || obj_start >= array_end {
+            return count;
+        }
+        let obj_end: Int = JsonObjectEnd(json, obj_start, array_end);
+        if obj_end < 0 {
+            return count;
+        }
+        if JsonObjectStringFieldEquals(json, obj_start, obj_end, field, expected) {
+            count = count + 1;
+        }
+        i = obj_end;
+    }
+    return count;
+}
+
+func JsonArrayObjectBoolFieldEqualsCount(json: String, array_open: Int, array_end: Int, field: String, expected: Bool) -> Int {
+    let count: Int = 0;
+    let i: Int = array_open + 1;
+    while i < array_end {
+        let obj_start: Int = FindFrom(json, "{", i);
+        if obj_start < 0 || obj_start >= array_end {
+            return count;
+        }
+        let obj_end: Int = JsonObjectEnd(json, obj_start, array_end);
+        if obj_end < 0 {
+            return count;
+        }
+        if JsonObjectBoolFieldEquals(json, obj_start, obj_end, field, expected) {
+            count = count + 1;
+        }
+        i = obj_end;
+    }
+    return count;
 }
 
 func JsonFirstArrayString(json: String, start: Int, end: Int, key: String) -> String {

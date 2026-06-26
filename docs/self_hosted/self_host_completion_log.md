@@ -86,6 +86,16 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-27 -- Module manifest consumes JSON array-object traversal
+
+- Added bounded JSON array/object traversal primitives to
+  `src/self_hosted/lib/json.pgy`.
+- Repointed `module_manifest_resolver` so module count, required field counts,
+  `beta_blocker:true`, and `status:"stable-subset"` are read from the bounded
+  `modules` array rather than whole-document substring counts.
+- Tightened the component contract to reject `TextScan.CountOccurrences` in the
+  resolver and require the JSON owner traversal calls.
+
 ### 2026-06-27 -- Module manifest report consumes JSON owner
 
 - Repointed `module_manifest_resolver` report emission from manual

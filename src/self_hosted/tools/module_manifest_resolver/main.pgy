@@ -2,25 +2,19 @@
 //
 // Status: rung-2 minimal (2026-05-27). Reads
 // docs/language_module_manifest.json relative to cwd, counts modules,
-// beta_blocker entries, and stable-subset entries via substring scans,
-// validates that every module has a full required-field set by comparing
-// counts in parallel, emits the validator schema.
+// beta_blocker entries, and stable-subset entries through the shared JSON
+// owner, validates that every module object has a full required-field set, and
+// emits the validator schema.
 //
 // Cwd contract: the parity harness cd's into the repo root before running.
 //
-// Required-field check: a well-formed manifest has equal counts of `"name":`,
-// `"layer":`, `"status":`, and `"beta_blocker":` inside the modules array,
-// because the BDFL keeps the manifest pretty-printed one-field-per-line.
-// If any field count diverges from the module count, a finding is emitted.
-//
-// CountOccurrences moved to src/self_hosted/lib/text_scan.pgy (2026-05-27).
-// The parity harness mirrors the lib subtree into the build dir so the
-// relative import resolves under the copied tool source.
+// Required-field check: a well-formed manifest has each module object carrying
+// `name`, `layer`, `status`, and `beta_blocker`. If a field count diverges from
+// the module object count, a finding is emitted.
 //
 // Contract: see intent.md in the same directory.
 
 import "../../lib/json.pgy";
-import "../../lib/text_scan.pgy";
 
 func MissingFieldFinding(field: String, expected: Int, actual: Int) -> String {
     let fields: Array<String> = [
@@ -93,18 +87,21 @@ func Main() -> Void {
 
     let findings: Array<String> = [];
 
-    if !JsonDocumentHasField(content, "modules") {
+    let module_bounds: Array<Int> = [0, 0];
+    if !JsonFieldArrayBounds(content, 0, JsonDocumentObjectEnd(content), "modules", module_bounds) {
         ArrayPush(findings, MissingModulesKeyFinding());
         Log(ModuleManifestReportJson(false, manifest_path, 0, 0, 0, 1, findings));
         Exit(1);
     }
+    let modules_open: Int = module_bounds[0];
+    let modules_end: Int = module_bounds[1];
 
-    let modules: Int = TextScan.CountOccurrences(content, "\"name\":");
-    let layers: Int = TextScan.CountOccurrences(content, "\"layer\":");
-    let statuses: Int = TextScan.CountOccurrences(content, "\"status\":");
-    let blockers_present: Int = TextScan.CountOccurrences(content, "\"beta_blocker\":");
-    let beta_blockers: Int = TextScan.CountOccurrences(content, "\"beta_blocker\": true");
-    let stable_subset: Int = TextScan.CountOccurrences(content, "\"status\": \"stable-subset\"");
+    let modules: Int = JsonArrayObjectCount(content, modules_open, modules_end);
+    let layers: Int = JsonArrayObjectFieldCount(content, modules_open, modules_end, "layer");
+    let statuses: Int = JsonArrayObjectFieldCount(content, modules_open, modules_end, "status");
+    let blockers_present: Int = JsonArrayObjectFieldCount(content, modules_open, modules_end, "beta_blocker");
+    let beta_blockers: Int = JsonArrayObjectBoolFieldEqualsCount(content, modules_open, modules_end, "beta_blocker", true);
+    let stable_subset: Int = JsonArrayObjectStringFieldEqualsCount(content, modules_open, modules_end, "status", "stable-subset");
 
     let missing_fields: Int = 0;
     if layers != modules {

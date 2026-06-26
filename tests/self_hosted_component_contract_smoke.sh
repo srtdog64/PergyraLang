@@ -163,6 +163,11 @@ require_text "src/self_hosted/lib/json.pgy" "func JsonFieldKey"
 require_text "src/self_hosted/lib/json.pgy" "func JsonDocumentObjectEnd"
 require_text "src/self_hosted/lib/json.pgy" "func JsonDocumentStringFieldEquals"
 require_text "src/self_hosted/lib/json.pgy" "func JsonDocumentHasField"
+require_text "src/self_hosted/lib/json.pgy" "func JsonFieldArrayBounds"
+require_text "src/self_hosted/lib/json.pgy" "func JsonArrayObjectCount"
+require_text "src/self_hosted/lib/json.pgy" "func JsonArrayObjectFieldCount"
+require_text "src/self_hosted/lib/json.pgy" "func JsonArrayObjectStringFieldEqualsCount"
+require_text "src/self_hosted/lib/json.pgy" "func JsonArrayObjectBoolFieldEqualsCount"
 require_text "src/self_hosted/lib/json.pgy" "func JsonDocumentNumberField"
 require_text "src/self_hosted/lib/json.pgy" "func JsonFirstArrayString"
 require_text "src/self_hosted/lib/json.pgy" "func JsonEscapeString"
@@ -610,11 +615,16 @@ require_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" "Jso
 reject_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" 'let json_parts: Array<String>'
 require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/json.pgy"'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'import "../../lib/json.pgy";'
-require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonDocumentHasField(content, \"modules\")"
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonFieldArrayBounds(content, 0, JsonDocumentObjectEnd(content), \"modules\", module_bounds)"
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectCount(content, modules_open, modules_end)"
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectFieldCount(content, modules_open, modules_end, \"layer\")"
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectBoolFieldEqualsCount(content, modules_open, modules_end, \"beta_blocker\", true)"
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectStringFieldEqualsCount(content, modules_open, modules_end, \"status\", \"stable-subset\")"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonEmitArray(findings)"
 reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'let json_parts: Array<String>'
 reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'StringContains(content, "\"modules\":")'
+reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "TextScan.CountOccurrences"
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/source_bundle_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/body_check_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/call_check_owner.pgy"'
