@@ -86,6 +86,16 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-27 -- Stable subset report consumes JSON owner
+
+- Repointed `stable_subset_section_checker` report emission from manual
+  `json_parts` assembly to `src/self_hosted/lib/json.pgy`.
+- Updated its parity harness to mirror the JSON library into the copied tool
+  build directory, so C/LLVM parity checks the imported owner path rather than
+  a repo-root accident.
+- Added component-contract ratchets requiring `JsonEmitObject(report_fields)`
+  and `JsonEmitArray(pieces)` for the stable-subset report.
+
 ### 2026-06-27 -- JSON schema reader first consumer
 
 - Moved the AIR graph JSON validator's schema check and integer summary field

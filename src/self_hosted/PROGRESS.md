@@ -411,7 +411,8 @@ The realistic incremental path toward genuine self-host:
    and `Array<Int>` parameter/return flow.
    `lib/json.pgy` now owns the first document-level schema and numeric-field
    readers consumed by the AIR graph JSON validator, in addition to the shared
-   JSON string/field/object/array emission helpers.
+   JSON string/field/object/array emission helpers consumed by production size
+   checkers and the stable-subset section checker.
    Round-trip C-emit-by-Pergyra -> gcc -> run -> stdout matches the C/LLVM oracle
    on 59 committed fixtures, with the emitter built through both backends. Next
    rungs: string freeing / block scoping, broader nested AST-node shapes, then round-trip

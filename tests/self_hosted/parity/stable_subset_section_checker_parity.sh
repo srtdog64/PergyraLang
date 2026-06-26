@@ -51,6 +51,8 @@ fi
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
+mkdir -p "$PERGYRA_TOOL_BUILD_DIR/../../lib"
+cp "$ROOT_DIR/src/self_hosted/lib/json.pgy" "$PERGYRA_TOOL_BUILD_DIR/../../lib/json.pgy"
 
 set +e
 PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL" --run 2>/dev/null)"

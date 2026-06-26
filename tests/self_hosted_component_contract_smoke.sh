@@ -603,6 +603,11 @@ require_text "src/self_hosted/tools/production_header_size_checker/main.pgy" 'im
 require_text "src/self_hosted/tools/production_header_size_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/production_header_size_checker/main.pgy" "JsonEmitArray(findings)"
 reject_text "src/self_hosted/tools/production_header_size_checker/main.pgy" 'let json_parts: Array<String>'
+require_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" 'import "../../lib/json.pgy";'
+require_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" "JsonEmitObject(report_fields)"
+require_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" "JsonEmitArray(pieces)"
+reject_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" 'let json_parts: Array<String>'
+require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/json.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/source_bundle_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/body_check_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/call_check_owner.pgy"'
