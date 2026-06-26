@@ -57,6 +57,16 @@ func CodegenAstTextInventory(ast: String, inout indents: Array<Int>, inout texts
     CodegenAstTextProjectLegacy(nodes, count_box[0], indents, texts);
 }
 
+func CodegenAstTextExpectNode(nodes: Array<CodegenAstTextNode>, count: Int, inout cur: Array<Int>, expected: String) -> Void {
+    if cur[0] >= count {
+        Die(Concat("expected `", Concat(expected, "` but reached end of AST")));
+    }
+    if nodes[cur[0]].text != expected {
+        Die(Concat("expected `", Concat(expected, Concat("` but got: ", nodes[cur[0]].text))));
+    }
+    ArraySet(cur, 0, cur[0] + 1);
+}
+
 func CodegenAstTextExpect(texts: Array<String>, count: Int, inout cur: Array<Int>, expected: String) -> Void {
     if cur[0] >= count {
         Die(Concat("expected `", Concat(expected, "` but reached end of AST")));

@@ -74,7 +74,7 @@ func GenerateC(ast: String) -> String {
             while cur[0] < count && nodes[cur[0]].indent > owner_indent {
                 if StartsWith(nodes[cur[0]].text, "Function:") {
                     let method_indent: Int = nodes[cur[0]].indent;
-                    let mdef: String = EmitFunction(indents, texts, count, cur, method_indent, base_env, uses_args, owner_name);
+                    let mdef: String = EmitFunction(nodes, indents, texts, count, cur, method_indent, base_env, uses_args, owner_name);
                     defs = Concat(defs, Concat(mdef, "\n"));
                 } else {
                     ArraySet(cur, 0, cur[0] + 1);
@@ -87,14 +87,14 @@ func GenerateC(ast: String) -> String {
             while cur[0] < count && nodes[cur[0]].indent > role_owner_indent {
                 if StartsWith(nodes[cur[0]].text, "Function:") {
                     let role_method_indent: Int = nodes[cur[0]].indent;
-                    let role_mdef: String = EmitFunction(indents, texts, count, cur, role_method_indent, base_env, uses_args, role_owner_name);
+                    let role_mdef: String = EmitFunction(nodes, indents, texts, count, cur, role_method_indent, base_env, uses_args, role_owner_name);
                     defs = Concat(defs, Concat(role_mdef, "\n"));
                 } else {
                     ArraySet(cur, 0, cur[0] + 1);
                 }
             }
         } else if StartsWith(cur_line, "Function:") && cur_indent == f_indent {
-            let def: String = EmitFunction(indents, texts, count, cur, f_indent, base_env, uses_args, "");
+            let def: String = EmitFunction(nodes, indents, texts, count, cur, f_indent, base_env, uses_args, "");
             defs = Concat(defs, Concat(def, "\n"));
         } else {
             ArraySet(cur, 0, cur[0] + 1);
@@ -151,6 +151,7 @@ func GenerateC(ast: String) -> String {
         || StringIndexOf(ast, "Split(") >= 0
         || StringIndexOf(ast, "DirWalk(") >= 0
         || StringIndexOf(ast, "Args(") >= 0;
+    let uses_ast_text_node_array: Bool = StringIndexOf(ast, "Array<CodegenAstTextNode") >= 0;
     let uses_args2: Bool = StringIndexOf(ast, "Args(") >= 0;
     let uses_io: Bool = StringIndexOf(ast, "ReadFile(") >= 0
         || StringIndexOf(ast, "FileExists(") >= 0
@@ -311,6 +312,18 @@ func GenerateC(ast: String) -> String {
         header = Concat(header, "static long long pgy_as_len(pgy_as a) { return a.len; }\n");
         header = Concat(header, "static const char *pgy_as_pop(pgy_as *a) { return a->len > 0 ? a->data[--a->len] : \"\"; }\n\n");
     }
+    let record_array_block: String = "";
+    if uses_ast_text_node_array {
+        record_array_block = Concat(record_array_block, "typedef struct { CodegenAstTextNode *data; long long len; long long cap; } pgy_CodegenAstTextNode_array;\n\n");
+        record_array_block = Concat(record_array_block, "static pgy_CodegenAstTextNode_array pgy_CodegenAstTextNode_array_new(void) { pgy_CodegenAstTextNode_array a; a.data = NULL; a.len = 0; a.cap = 0; return a; }\n");
+        record_array_block = Concat(record_array_block, "static void pgy_CodegenAstTextNode_array_push(pgy_CodegenAstTextNode_array *a, CodegenAstTextNode v) {\n");
+        record_array_block = Concat(record_array_block, "    if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (CodegenAstTextNode *)realloc(a->data, (size_t)a->cap * sizeof(CodegenAstTextNode)); }\n");
+        record_array_block = Concat(record_array_block, "    a->data[a->len++] = v;\n}\n");
+        record_array_block = Concat(record_array_block, "static CodegenAstTextNode pgy_CodegenAstTextNode_array_get(pgy_CodegenAstTextNode_array a, long long i) { return a.data[i]; }\n");
+        record_array_block = Concat(record_array_block, "static void pgy_CodegenAstTextNode_array_set(pgy_CodegenAstTextNode_array *a, long long i, CodegenAstTextNode v) { a->data[i] = v; }\n");
+        record_array_block = Concat(record_array_block, "static long long pgy_CodegenAstTextNode_array_len(pgy_CodegenAstTextNode_array a) { return a.len; }\n");
+        record_array_block = Concat(record_array_block, "static CodegenAstTextNode pgy_CodegenAstTextNode_array_pop(pgy_CodegenAstTextNode_array *a) { return a->len > 0 ? a->data[--a->len] : (CodegenAstTextNode){0, \"\"}; }\n\n");
+    }
     if uses_args2 {
         // `Args()` -> pgy_args(): user args (argv[1..]) as a pgy_as. main() stashes
         // argc/argv into these globals before any body statement runs.
@@ -465,5 +478,5 @@ func GenerateC(ast: String) -> String {
         header = Concat(header, "    qsort(a.data, (size_t)a.len, sizeof(const char *), pgy_str_cmp);\n");
         header = Concat(header, "    return a;\n}\n\n");
     }
-    return Concat(header, Concat(enum_block, Concat(typedef_block, Concat(proto_block, defs))));
+    return Concat(header, Concat(enum_block, Concat(typedef_block, Concat(record_array_block, Concat(proto_block, defs)))));
 }

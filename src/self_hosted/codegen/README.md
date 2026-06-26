@@ -54,6 +54,10 @@ Deterministic RNG: `SeedRandom(seed)` plus `Random(n)`, with parity fixtures
 checking replay semantics instead of pinning a cross-libc random sequence.
 Arrays: growable `Array<Int>` / `Array<String>` locals plus `Array<Int>`
 parameters and returns.
+The bootstrap-only typed AST bridge also supports
+`Array<CodegenAstTextNode>` through the collection/runtime and ABI owners; that
+record-array lane exists to move the codegen input off parallel text arrays,
+not to claim arbitrary generic array algorithms over records.
 User structs: top-level `struct` declarations with `Int` / `Bool` / `Float` /
 `String` fields plus previously declared struct-valued fields, struct literals,
 member reads, nested member reads, struct parameters, and struct returns.
@@ -71,6 +75,11 @@ recursion are free. `Main` lowers to `int main(void)`, or to
 - struct param/return -> value-passed C typedef for the generated struct
 - `Result<Int>` param/return -> value-passed `pgy_result_int`
 - `Option<Int>` param/return -> value-passed `pgy_option_int`
+- `inout` parameters are preserved by `pgy --ast`, recorded as per-function
+  `pm` facts, lowered as C pointer parameters with local copy-in/copy-out, and
+  call arguments are rewritten to `&name` only from that recorded mode fact.
+  `own` and `ref` are preserved by the parser but fail closed in this bounded
+  self-host C emitter until their ABI and ownership semantics have owners.
 
 **Body statements:**
 
@@ -147,7 +156,13 @@ AST-text line inventory consumed by `GenerateC`: raw line splitting, typed
 `[export]` line normalization, program-level declaration routing facts,
 declaration collector prepass facts, legacy projection, and cursor expectation
 diagnostics live there, not in emission participants. This is a compatibility
-bridge, not the final typed/tagged AST owner. `run/codegen_run_owner.pgy` owns the CLI-to-output
+bridge, not the final typed/tagged AST owner. Function signature emission now
+also consumes this typed node owner for function headers, parameters, return
+lines, and body markers; the legacy projection remains only for statement body
+emission until that owner migrates. Parameter mode spelling (`inout`, `own`,
+`ref`) is a fact preserved by the native and self-host AST printers; codegen
+consumes that fact through function-env `pm` rows and must not infer mutation
+mode from `ArrayPush` or other statement text. `run/codegen_run_owner.pgy` owns the CLI-to-output
 orchestration that wires that owned AST text into `GenerateC`; `main.pgy` only
 calls the run owner. `emission/struct_value_emit.pgy` owns struct-valued
 expression lowering used by `let`, assignment, and return paths;
@@ -161,10 +176,11 @@ return, local, and struct/class field declarations in the supported subset;
 emitters must consume that owner instead of locally mapping `Int` / `String` /
 aggregate types to C spellings.
 `runtime_abi/collection_runtime_owner.pgy` owns C collection runtime helper
-symbol spelling for the supported `Array<Int>` / `Array<String>` subset.
-It also normalizes the current AST-text bridge spellings
-`Array<Int: Int>` / `Array<String: String>` to the canonical
-`ArrayInt` / `ArrayString` kind facts at that owner boundary.
+symbol spelling for the supported `Array<Int>` / `Array<String>` subset and the
+bootstrap-only `Array<CodegenAstTextNode>` typed AST-line bridge. It also
+normalizes the current AST-text bridge spellings `Array<Int: Int>` /
+`Array<String: String>` / `Array<CodegenAstTextNode: CodegenAstTextNode>` to
+canonical collection kind facts at that owner boundary.
 `program_emit.pgy` remains the generated helper definition host; expression and
 statement emitters must consume `collection_runtime_owner.pgy` instead of
 locally spelling `pgy_ai_*` / `pgy_as_*` helper names.

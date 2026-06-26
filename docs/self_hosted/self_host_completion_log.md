@@ -1742,3 +1742,46 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - The legacy projection remains only for function body and statement emission.
   This continues the text-bridge burn-down without claiming full tagged AST
   ownership.
+
+### 2026-06-26 -- Function emission consumes typed AST text nodes
+
+- Moved `EmitFunction` header, parameter, return, `Body:`, and `Block:` reads
+  to consume `CodegenAstTextNode` inventories. The input owner now exposes a
+  node-based cursor expectation check so function signature emission no longer
+  indexes projected `texts[]` or `indents[]`.
+- `program_emit.pgy` still projects legacy `indents` / `texts` arrays because
+  `stmt_emit.pgy` remains the next unmigrated statement-body consumer. That
+  projection is now pass-through compatibility for statement emission only, not
+  a function-signature source of truth.
+- Tightened the component contract to require the typed `EmitFunction`
+  signature and reject direct `texts[]` / `indents[]` indexing inside
+  `function_emit.pgy`.
+- Recorded the Pergyra-style self-host criterion: a `.pgy` compiler slice is
+  not enough by itself. It must preserve `PgyCompilerWorld`, intent-owned flow,
+  resource-owned zones, single fact owners, peer backend projections, and
+  parity evidence instead of becoming a C folder graph translated into Pergyra.
+
+### 2026-06-26 -- Parameter-mode facts and typed-node arrays close the codegen bootstrap gap
+
+- Found a real self-host SoT bug: `pgy --ast` dropped parameter mode, so an
+  `inout Array<CodegenAstTextNode>` parameter became a value parameter in the
+  self-host C emitter. The generated tool copied mutations into a local array
+  value, then crashed when later code read the caller's still-empty node array.
+- Fixed the native AST printer and the self-host parser to preserve `inout`,
+  `own`, and `ref` parameter rows. The self-host codegen now records
+  per-function `pm` mode facts, lowers `inout` signatures as C pointer
+  parameters with copy-in/copy-out, and rewrites call arguments to `&name` from
+  that fact. `own` and `ref` are preserved but fail closed in this bounded C
+  emitter until their ABI/ownership semantics have owners.
+- Added the bootstrap-only `Array<CodegenAstTextNode>` record-array lane behind
+  `collection_runtime_owner.pgy` and `abi_layout_owner.pgy`. Statement and
+  program emission consume that lane through collection and ABI owners rather
+  than spelling record-array helpers locally.
+- Tightened `self_hosted_component_contract_smoke` so the old paths cannot
+  return: native/self-host AST printers must preserve parameter modes, codegen
+  must consume `pm` facts, inout calls must use the mode-aware rewrite, and the
+  `CodegenAstTextNode` array helper names must remain behind their owners.
+- Verified parser parity on 186 sources for both C and LLVM parser binaries,
+  then verified the codegen bootstrap gate: `gen2 == gen3` and the
+  codegen-built lexer, parser, semantic checker, mir_lower, audit tools, and
+  backend fuzz generator all match their oracle-built counterparts.

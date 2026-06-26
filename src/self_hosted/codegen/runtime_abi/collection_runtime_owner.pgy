@@ -4,9 +4,9 @@
 
 import "../text/text_owner.pgy";
 
-// The AST-text bridge currently prints generic actuals as `Array<Int: Int>` /
-// `Array<String: String>`. Normalize that bridge spelling at the owner boundary
-// so emission participants consume only `ArrayInt` / `ArrayString` facts.
+// The AST-text bridge currently prints generic actuals as `Array<T: T>`.
+// Normalize bridge spelling at the owner boundary so emission participants
+// consume canonical collection-kind facts rather than re-parsing type text.
 func CollectionRuntimeKindFromTypeName(type_name: String) -> String {
     if type_name == "Array<Int>" || type_name == "Array<Int: Int>" {
         return "ArrayInt";
@@ -14,22 +14,50 @@ func CollectionRuntimeKindFromTypeName(type_name: String) -> String {
     if type_name == "Array<String>" || type_name == "Array<String: String>" {
         return "ArrayString";
     }
-    Die(Concat("unsupported collection type (only Array<Int>/Array<String> bridge forms): ", type_name));
+    if type_name == "Array<CodegenAstTextNode>" ||
+        type_name == "Array<CodegenAstTextNode: CodegenAstTextNode>" {
+        return "ArrayCodegenAstTextNode";
+    }
+    Die(Concat("unsupported collection type (only Array<Int>/Array<String>/Array<CodegenAstTextNode> bridge forms): ", type_name));
     return "";
 }
 
 func CollectionRuntimeRequireKind(kind: String, context: String) -> String {
-    if kind == "ArrayInt" || kind == "ArrayString" {
+    if kind == "ArrayInt" || kind == "ArrayString" || kind == "ArrayCodegenAstTextNode" {
         return kind;
     }
-    Die(Concat(context, Concat(" requires Array<Int> or Array<String>, got: ", kind)));
+    Die(Concat(context, Concat(" requires Array<Int>, Array<String>, or Array<CodegenAstTextNode>, got: ", kind)));
     return "";
+}
+
+func CollectionRuntimeKindCode(kind: String) -> Int {
+    let checked: String = CollectionRuntimeRequireKind(kind, "array kind code");
+    if checked == "ArrayString" {
+        return 2;
+    }
+    if checked == "ArrayCodegenAstTextNode" {
+        return 3;
+    }
+    return 1;
+}
+
+func CollectionRuntimeElementTypeFromKindCode(kind_code: Int) -> String {
+    if kind_code == 2 {
+        return "String";
+    }
+    if kind_code == 3 {
+        return "CodegenAstTextNode";
+    }
+    return "Int";
 }
 
 func CollectionRuntimeCNewFn(kind: String) -> String {
     let checked: String = CollectionRuntimeRequireKind(kind, "array new");
     if checked == "ArrayString" {
         return "pgy_as_new";
+    }
+    if checked == "ArrayCodegenAstTextNode" {
+        return "pgy_CodegenAstTextNode_array_new";
     }
     return "pgy_ai_new";
 }
@@ -39,6 +67,9 @@ func CollectionRuntimeCPushFn(kind: String) -> String {
     if checked == "ArrayString" {
         return "pgy_as_push";
     }
+    if checked == "ArrayCodegenAstTextNode" {
+        return "pgy_CodegenAstTextNode_array_push";
+    }
     return "pgy_ai_push";
 }
 
@@ -46,6 +77,9 @@ func CollectionRuntimeCSetFn(kind: String) -> String {
     let checked: String = CollectionRuntimeRequireKind(kind, "array set");
     if checked == "ArrayString" {
         return "pgy_as_set";
+    }
+    if checked == "ArrayCodegenAstTextNode" {
+        return "pgy_CodegenAstTextNode_array_set";
     }
     return "pgy_ai_set";
 }
@@ -55,6 +89,9 @@ func CollectionRuntimeCGetFn(kind: String) -> String {
     if checked == "ArrayString" {
         return "pgy_as_get";
     }
+    if checked == "ArrayCodegenAstTextNode" {
+        return "pgy_CodegenAstTextNode_array_get";
+    }
     return "pgy_ai_get";
 }
 
@@ -63,6 +100,9 @@ func CollectionRuntimeCLenFn(kind: String) -> String {
     if checked == "ArrayString" {
         return "pgy_as_len";
     }
+    if checked == "ArrayCodegenAstTextNode" {
+        return "pgy_CodegenAstTextNode_array_len";
+    }
     return "pgy_ai_len";
 }
 
@@ -70,6 +110,9 @@ func CollectionRuntimeCPopFn(kind: String) -> String {
     let checked: String = CollectionRuntimeRequireKind(kind, "array pop");
     if checked == "ArrayString" {
         return "pgy_as_pop";
+    }
+    if checked == "ArrayCodegenAstTextNode" {
+        return "pgy_CodegenAstTextNode_array_pop";
     }
     return "pgy_ai_pop";
 }

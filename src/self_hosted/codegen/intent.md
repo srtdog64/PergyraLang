@@ -32,11 +32,13 @@ participant, not a zone.
   It is read-only at this rung; it becomes a zone only if it later owns mutable
   cross-backend symbol state.
 - `CollectionRuntimeOwner` owns self-host C collection runtime helper symbol
-  spelling for the supported `Array<Int>` / `Array<String>` subset. The helper
+  spelling for the supported `Array<Int>` / `Array<String>` subset and the
+  bootstrap-only `Array<CodegenAstTextNode>` typed AST-line bridge. The helper
   definitions are still emitted by `program_emit`; the consumers do not spell
   the helper names directly. It is also the only place that normalizes the
-  current AST-text bridge spelling `Array<Int: Int>` / `Array<String: String>`
-  into the canonical `ArrayInt` / `ArrayString` facts.
+  current AST-text bridge spelling `Array<Int: Int>` / `Array<String: String>` /
+  `Array<CodegenAstTextNode: CodegenAstTextNode>` into canonical collection
+  kind facts.
 - `MathRuntimeOwner` owns self-host C math/random runtime helper symbol spelling
   for the supported `Abs` / `Min` / `Max` / `SeedRandom` / `Random` subset.
 - `HostIORuntimeOwner` owns self-host C host file/argv runtime helper symbol
@@ -72,7 +74,7 @@ Concrete split for the current codegen cluster:
 | ABI layout facts | yes | separate read-only layout/ownership-shape fact resource |
 | self-host C ABI type spelling | owner, not zone yet | canonical C spelling for supported signatures, locals, and fields |
 | symbol/name-mangling facts | owner, not zone yet | read-only canonical C spelling for supported self-host emission |
-| collection runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host array runtime calls |
+| collection runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host array runtime calls, including the bootstrap typed AST-line record array |
 | math/random runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host math/random runtime calls |
 | host I/O runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host file/argv runtime calls |
 | Option/Result runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host Option/Result runtime calls |
@@ -100,9 +102,14 @@ path selection, the missing-file diagnostic, and the file-read boundary.
 `input/ast_text_inventory_owner.pgy` owns raw AST-text line splitting, typed
 `CodegenAstTextNode` inventory, indent counting, blank-line filtering,
 `[export]` line normalization, program-level declaration routing facts,
-declaration collector prepass facts, legacy projection, and cursor expectation
-checks.
+declaration collector prepass facts, function signature/header facts, legacy
+projection, and cursor expectation checks.
 `GenerateC` consumes that inventory and must not recover those facts locally.
+Parameter mode is part of that input contract: `pgy --ast` must preserve
+`inout`, `own`, and `ref` parameter rows. This codegen rung consumes `inout`
+through function-env `pm` facts, lowers it as value-result copy-in/copy-out, and
+rewrites call arguments from those facts. It preserves but fail-closes on `own`
+and `ref` until their ABI and ownership facts have owners.
 This is a transitional text bridge; the mixed AST-like tagged-node owner remains
 an active expansion surface.
 `run/codegen_run_owner.pgy` owns the CLI-to-output orchestration that feeds the

@@ -161,6 +161,7 @@ compiler replacement.
 | diagnostic rendering | shared diagnostic owner | prevents raw text or JSON construction in entrypoints |
 | JSON read primitives | shared JSON owner | prevents every fact tool from hand-rolling string scans |
 | type environment | `TypeEnvZone` and stage type-fact owners | prevents backend emitters from re-inferring source types |
+| parameter mode facts | AST printer plus stage function-signature owner | keeps `inout` / `own` / `ref` ABI decisions from being guessed from body text |
 | MIR fact graph | `MirFactGraphZone` | gives backend and self-host lowering one fact source |
 | ABI/layout facts | MIR ABI/layout owner | prevents C/LLVM/self-hosted emitters from inventing layout independently |
 | symbol/mangle facts | symbol owner | prevents backend emitters from spelling names independently |
@@ -182,6 +183,9 @@ The basic nominal-record array substrate is now a `READY` input to that ledger:
 indexing, and indexed member access under C/LLVM parity. It is not yet a full
 generic collection-algorithm surface; map/filter/sort/slice over nominal
 records need separate ABI/runtime owners before hard rungs can rely on them.
+The current self-host codegen consumes that substrate only for the
+bootstrap-owned `Array<CodegenAstTextNode>` bridge; it is not a claim that
+arbitrary compiler record arrays have all collection algorithms.
 
 `src/self_hosted/compiler/path_manifest_owner.pgy` is the current path owner.
 It owns the Pergyra source/test/parity path values for `StagePathManifest`;
@@ -218,20 +222,27 @@ raw AST-text line splitting, typed `CodegenAstTextNode` inventory, indentation,
 blank-line filtering, and `[export]` normalization, plus cursor expectation
 diagnostics. It does not close the mixed AST-like tree owner; it only prevents
 emission participants from each recovering line inventory facts locally. The
-current `program_emit.pgy` and declaration collectors consume typed nodes for
-program-level declaration routing, `Main` counting, event rejection, owner
-skipping, method/function dispatch, global function environment construction,
-role-operator discovery, struct/enum collection, and prototype emission. It
-still projects the legacy parallel `indents`/`texts` arrays for function and
-statement emitters that have not migrated yet. The legacy projection is a
-measured bridge, not a final semantic source of truth. The
+current `program_emit.pgy`, declaration collectors, and function signature
+emission consume typed nodes for program-level declaration routing, `Main`
+counting, event rejection, owner skipping, method/function dispatch, function
+header, parameter, return, and body-marker reads, global function environment
+construction, role-operator discovery, struct/enum collection, and prototype
+emission. It still projects the legacy parallel `indents`/`texts` arrays for
+statement body emission that has not migrated yet. The legacy projection is a
+measured bridge, not a final semantic source of truth. Parameter mode is part
+of this bridge contract: native and self-host AST printers preserve `inout`,
+`own`, and `ref`; the current codegen consumes `inout` via function-env `pm`
+facts and lowers calls/signatures from that fact instead of guessing mutation
+from `ArrayPush` or statement text. The
 current `symbol_facts/symbol_mangle_owner.pgy` and
 `abi_layout/abi_layout_owner.pgy` owners are read-only: they centralize the
 self-host C subset's emitted symbol and ABI type spelling without claiming full
 C/LLVM symbol or ABI row closure. `runtime_abi/collection_runtime_owner.pgy`
 is the read-only owner for self-host C collection runtime helper names;
 it also normalizes the current AST-text bridge spellings
-`Array<Int: Int>` / `Array<String: String>` to canonical collection kind facts.
+`Array<Int: Int>` / `Array<String: String>` /
+`Array<CodegenAstTextNode: CodegenAstTextNode>` to canonical collection kind
+facts, including the bootstrap-only typed AST-line record-array lane.
 `runtime_abi/math_runtime_owner.pgy` is the read-only owner for supported
 self-host C math/random runtime helper names. `runtime_abi/host_io_runtime_owner.pgy`
 is the read-only owner for supported self-host C host file/argv runtime helper
@@ -270,8 +281,8 @@ The long-term codegen shape is resource-first:
 | type bindings | `TypeEnvZone` / `type_facts/` | expression, statement, return, log routing | emitters consume type facts instead of re-inferring from source text |
 | symbol and mangle facts | `symbol_facts/symbol_mangle_owner.pgy` for self-host C subset; cross-backend owner still active | C, LLVM, and self-hosted emission | emitters consume canonical spelling facts; no owner/member string concatenation in local emission |
 | self-host C ABI type spelling | `abi_layout/abi_layout_owner.pgy` for self-host C subset; cross-backend row projection still active | self-hosted C emission | signature, local, and field declarations consume canonical C ABI type facts |
-| self-host typed AST-text bridge | `input/ast_text_inventory_owner.pgy` for raw `pgy --ast` lines, `CodegenAstTextNode`, indentation, blank filtering, `[export]` normalization, legacy projection, and cursor expectations | self-hosted C emission | `program_emit` and declaration collectors consume typed nodes for program-level routing and prepasses; unmigrated function/statement emitters consume prepared bridge facts and cursor checks instead of splitting, normalizing, or asserting AST text locally |
-| self-host C collection runtime symbols | `runtime_abi/collection_runtime_owner.pgy` for `Array<Int>` / `Array<String>` helper calls | self-hosted C emission | expression/statement emitters consume canonical helper-name facts; generated helper definitions stay in one definition host |
+| self-host typed AST-text bridge | `input/ast_text_inventory_owner.pgy` for raw `pgy --ast` lines, `CodegenAstTextNode`, indentation, blank filtering, `[export]` normalization, parameter mode preservation, legacy projection, and cursor expectations | self-hosted C emission | `program_emit`, declaration collectors, and function signature emission consume typed nodes for program-level routing, prepasses, and function header/parameter/return/body-marker reads; `inout` signatures/calls consume recorded `pm` facts; unmigrated statement body emission consumes prepared bridge facts and cursor checks instead of splitting, normalizing, or asserting AST text locally |
+| self-host C collection runtime symbols | `runtime_abi/collection_runtime_owner.pgy` for `Array<Int>` / `Array<String>` helper calls plus the `Array<CodegenAstTextNode>` bootstrap bridge | self-hosted C emission | expression/statement emitters consume canonical helper-name facts; generated helper definitions stay in one definition host |
 | self-host C math/random runtime symbols | `runtime_abi/math_runtime_owner.pgy` for `Abs` / `Min` / `Max` / `SeedRandom` / `Random` helper calls | self-hosted C emission | expression emitters consume canonical helper-name facts; generated helper definitions stay in one definition host |
 | self-host C host I/O runtime symbols | `runtime_abi/host_io_runtime_owner.pgy` for file, directory-walk, and `Args()` helper calls | self-hosted C emission | expression emitters consume canonical helper-name facts; generated helper definitions stay in one definition host |
 | self-host C Option/Result runtime symbols | `runtime_abi/option_result_runtime_owner.pgy` for `Option<Int>` / `Result<Int>` helper calls | self-hosted C emission | expression/statement emitters consume canonical helper-name facts; generated helper definitions stay in one definition host |
@@ -311,6 +322,34 @@ The self-hosted compiler should not be organized as `frontend/`, `middle/`,
 
 That keeps the Pergyra implementation readable as a Pergyra compiler world:
 intent owns the flow, zone owns resource isolation, and owner files own facts.
+
+### Pergyra-Style Self-Host Test
+
+A self-hosted slice is Pergyra-style only if it keeps the language's semantic
+shape visible. Writing a compiler slice in `.pgy` is not enough.
+
+The slice must pass these design checks:
+
+1. The root flow is an intent or a named derived intent cluster, not a hidden
+   import order in `main.pgy`.
+2. A zone appears only for a distinct owned resource: source facts, token
+   facts, AST/tree facts, semantic verdicts, MIR facts, type bindings, ABI
+   layout, target capability, emitted artifacts, or parity evidence.
+3. Implementation files such as expression, statement, function, or program
+   emitters are action participants over resource zones. They are not fake
+   zones merely because the code was split into files.
+4. A semantic decision is consumed from one fact owner. If the fact is missing,
+   the slice must add that fact to the owner or reject the input; it must not
+   rediscover the answer from text, JSON, AST payloads, or a backend fallback.
+5. C, LLVM, and self-hosted outputs are peer projections over the same facts.
+   No backend is allowed to become a second semantic oracle for the same flow.
+6. Parity evidence belongs in a proof/artifact owner. A passing `.pgy` tool is
+   not a hard substitution until its diagnostics, facts, emitted artifacts where
+   stable, and run behavior are compared against the C/LLVM oracle.
+
+This is the practical answer to "is the self-host compiler Pergyra enough?":
+the code should read as `PgyCompilerWorld` plus intent-driven resource
+ownership, not as a C folder graph translated into Pergyra syntax.
 
 ### Current-To-Target Mapping
 

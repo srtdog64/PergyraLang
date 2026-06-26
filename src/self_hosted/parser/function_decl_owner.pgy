@@ -73,10 +73,21 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
     if CharAt(content, i) != ")" {
         while true {
             i = SkipWhitespaceAndComments(content, i);
+            let param_mode_prefix: String = "";
             if MatchKeyword(content, i, "inout") {
+                param_mode_prefix = "inout ";
                 i = i + 5;
                 i = SkipWhitespaceAndComments(content, i);
+            } else if MatchKeyword(content, i, "own") {
+                param_mode_prefix = "own ";
+                i = i + 3;
+                i = SkipWhitespaceAndComments(content, i);
+            } else if MatchKeyword(content, i, "ref") {
+                param_mode_prefix = "ref ";
+                i = i + 3;
+                i = SkipWhitespaceAndComments(content, i);
             } else if CharAt(content, i) == "&" {
+                param_mode_prefix = "ref ";
                 i = i + 1;
                 i = SkipWhitespaceAndComments(content, i);
             }
@@ -91,7 +102,7 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
             // not `:`.
             let after_pname: Int = SkipWhitespaceAndComments(content, i);
             if p_name == "self" && CharAt(content, after_pname) != ":" {
-                ArrayPush(param_lines, Concat(IndentStr(base_indent + 4), "self"));
+                ArrayPush(param_lines, Concat(IndentStr(base_indent + 4), Concat(param_mode_prefix, "self")));
                 i = after_pname;
                 if CharAt(content, i) == "," {
                     i = i + 1;
@@ -109,7 +120,7 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
             if StringLength(p_type) == 0 {
                 Exit(1);
             }
-            ArrayPush(param_lines, Concat(IndentStr(base_indent + 4), Concat(p_name, Concat(": ", p_type))));
+            ArrayPush(param_lines, Concat(IndentStr(base_indent + 4), Concat(param_mode_prefix, Concat(p_name, Concat(": ", p_type)))));
             i = SkipWhitespaceAndComments(content, i);
             if CharAt(content, i) == "," {
                 i = i + 1;

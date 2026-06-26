@@ -297,11 +297,122 @@ func RewriteNoneLiteral(e: String) -> String {
     return out;
 }
 
+func ModeCsvCount(modes: String) -> Int {
+    if StringLength(modes) == 0 {
+        return 0;
+    }
+    let count: Int = 1;
+    let i: Int = 0;
+    while i < StringLength(modes) {
+        if CharAt(modes, i) == "," {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
+func RewriteCallArgsWithModes(inner: String, modes: String, env: String, mode_count: Int) -> String {
+    let rem: String = StringTrim(inner);
+    let out: String = "";
+    let arg_index: Int = 0;
+    while StringLength(rem) > 0 {
+        let comma: Int = FindTopLevelComma(rem);
+        let part: String = "";
+        if comma < 0 {
+            part = StringTrim(rem);
+            rem = "";
+        } else {
+            part = StringTrim(Substring(rem, 0, comma));
+            rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
+        }
+        let mode: String = "default";
+        if arg_index < mode_count {
+            mode = CsvAt(modes, arg_index);
+        }
+        let rendered: String = RewriteExpr(part, env);
+        if mode == "inout" {
+            if !IsIdentifier(part) {
+                Die(Concat("inout argument must be a variable: ", part));
+            }
+            rendered = Concat("&", rendered);
+        }
+        if arg_index == 0 {
+            out = rendered;
+        } else {
+            out = Concat(out, Concat(", ", rendered));
+        }
+        arg_index = arg_index + 1;
+    }
+    return out;
+}
+
+func RewriteInoutCallArgs(e: String, env: String, strict: Bool) -> String {
+    let n: Int = StringLength(e);
+    let out: String = "";
+    let i: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(e, i);
+        if in_str {
+            out = Concat(out, c);
+            if c == "\\" && i + 1 < n {
+                out = Concat(out, CharAt(e, i + 1));
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            out = Concat(out, c);
+            i = i + 1;
+            continue;
+        }
+        if IsIdentStart(c) {
+            let j: Int = i;
+            while j < n && IsIdentChar(CharAt(e, j)) {
+                j = j + 1;
+            }
+            let ident: String = Substring(e, i, j - i);
+            if j < n && CharAt(e, j) == "(" {
+                let modes: String = LookupKindType(env, ident, "pm");
+                if StringLength(modes) > 0 {
+                    let close: Int = FindMatchingParen(e, j);
+                    if close < 0 {
+                        if strict {
+                            Die(Concat("malformed call expression: ", e));
+                        }
+                        out = Concat(out, ident);
+                        i = j;
+                        continue;
+                    }
+                    let inner: String = Substring(e, j + 1, close - j - 1);
+                    out = Concat(out, Concat(ident, Concat("(", Concat(RewriteCallArgsWithModes(inner, modes, env, ModeCsvCount(modes)), ")"))));
+                    i = close + 1;
+                    continue;
+                }
+            }
+            out = Concat(out, ident);
+            i = j;
+            continue;
+        }
+        out = Concat(out, c);
+        i = i + 1;
+    }
+    return out;
+}
+
 func RewriteTokens(e: String, env: String) -> String {
     let enumed: String = RewriteEnumRefs(e, env);
     let q0: String = RewriteMemberCalls(enumed, env);
     let q: String = RewriteQualifiedCalls(q0);
-    let a: String = RewriteArrayLengthEnv(q, env);
+    let call_args: String = RewriteInoutCallArgs(q, env, true);
+    let a: String = RewriteArrayLengthEnv(call_args, env);
     let b: String = RewriteIndexing(a, env);
     let c: String = ReplaceAllOutsideStrings(b, "StringLength(", Concat(StringRuntimeCStringLengthFn(), "("));
     let d0: String = ReplaceAllOutsideStrings(c, "StringContains(", Concat(StringRuntimeCStringContainsFn(), "("));

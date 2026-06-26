@@ -49,6 +49,17 @@ rejects visible as facts instead of backend-local choices.
 compose existing resource zones. They are not new zones and must not hide stage
 facts or parity policy.
 
+## Pergyra-Style Check
+
+A self-hosted compiler slice is accepted only when it reads as a Pergyra
+compiler world, not as a C folder graph rewritten in `.pgy`. The flow must be
+owned by `CompilePergyraProgram` or a named derived intent cluster; zones must
+own distinct resources; expression/statement/function/program files must remain
+participants over those resources; and every semantic decision must come from a
+single fact owner. If a slice needs a missing fact, it adds the owner fact or
+rejects the input. It must not recover that fact from AST text, JSON text,
+backend-local fallbacks, or import order.
+
 The compiler world also owns `StagePathManifest`, the canonical path fact for
 self-host source roots, test roots, parity harness roots, and active stage
 entrypoints. `path_manifest_owner.pgy` owns the current string values for those

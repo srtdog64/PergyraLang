@@ -6,6 +6,17 @@ import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
 
+func EmitCollectionElementValue(kind: String, value_expr: String, env: String, kind_code: Int) -> String {
+    let elem_type: String = CollectionRuntimeElementTypeFromKindCode(kind_code);
+    if elem_type == "String" {
+        return StrEval(value_expr, env);
+    }
+    if elem_type == "CodegenAstTextNode" {
+        return EmitStructValue(value_expr, elem_type, env);
+    }
+    return IntEval(value_expr, env);
+}
+
 func EmitLet(line: String, inout env_box: Array<String>) -> String {
     let rest: String = Substring(line, 5, StringLength(line) - 5);
     let ci: Int = StringIndexOf(rest, " : ");
@@ -44,7 +55,6 @@ func EmitLet(line: String, inout env_box: Array<String>) -> String {
         let c_type: String = AbiLayoutCLocalType(type_name, env_box[0]);
         let new_fn: String = CollectionRuntimeCNewFn(array_kind);
         let push_fn: String = CollectionRuntimeCPushFn(array_kind);
-        let is_str: Bool = array_kind == "ArrayString";
         let ex: String = StringTrim(expr);
         let exn: Int = StringLength(ex);
         ArraySet(env_box, 0, Concat(env_box[0], Concat(name, Concat("=v:", Concat(array_kind, "|")))));
@@ -69,10 +79,7 @@ func EmitLet(line: String, inout env_box: Array<String>) -> String {
                 rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
             }
             if StringLength(elem) > 0 {
-                let ev: String = IntEval(elem, env_box[0]);
-                if is_str {
-                    ev = StrEval(elem, env_box[0]);
-                }
+                let ev: String = EmitCollectionElementValue(array_kind, elem, env_box[0], CollectionRuntimeKindCode(array_kind));
                 out = Concat(out, Concat(" ", Concat(push_fn, Concat("(&", Concat(name, Concat(", ", Concat(ev, ");")))))));
             }
         }
@@ -155,10 +162,7 @@ func EmitAssign(line: String, env_box: Array<String>) -> String {
         let idx_expr: String = Substring(name, lb + 1, StringLength(name) - lb - 2);
         let arr_kind: String = LookupKindType(env_box[0], arr_name, "v");
         let set_fn: String = CollectionRuntimeCSetFn(arr_kind);
-        let rhs: String = IntEval(expr, env_box[0]);
-        if arr_kind == "ArrayString" {
-            rhs = StrEval(expr, env_box[0]);
-        }
+        let rhs: String = EmitCollectionElementValue(arr_kind, expr, env_box[0], CollectionRuntimeKindCode(arr_kind));
         return Concat(set_fn, Concat("(&", Concat(arr_name, Concat(", ",
             Concat(IntEval(idx_expr, env_box[0]), Concat(", ", Concat(rhs, ");")))))));
     }
@@ -314,10 +318,7 @@ func EmitStmtList(indents: Array<Int>, texts: Array<String>, count: Int,
             let a_val: String = StringTrim(Substring(a_rest, c2 + 1, StringLength(a_rest) - (c2 + 1)));
             let a_kind: String = LookupKindType(env_box[0], a_arr, "v");
             let set_fn: String = CollectionRuntimeCSetFn(a_kind);
-            let a_rhs: String = IntEval(a_val, env_box[0]);
-            if a_kind == "ArrayString" {
-                a_rhs = StrEval(a_val, env_box[0]);
-            }
+            let a_rhs: String = EmitCollectionElementValue(a_kind, a_val, env_box[0], CollectionRuntimeKindCode(a_kind));
             let set_stmt: String = Concat(set_fn, Concat("(&", Concat(a_arr, Concat(", ", Concat(IntEval(a_idx, env_box[0]), Concat(", ", Concat(a_rhs, ");")))))));
             result = Concat(result, Concat(pad, Concat(set_stmt, "\n")));
             ArraySet(cur, 0, idx + 1);
@@ -336,10 +337,7 @@ func EmitStmtList(indents: Array<Int>, texts: Array<String>, count: Int,
             let p_val: String = StringTrim(Substring(p_inner, pc + 1, StringLength(p_inner) - (pc + 1)));
             let p_kind: String = LookupKindType(env_box[0], p_arr, "v");
             let push_fn: String = CollectionRuntimeCPushFn(p_kind);
-            let p_rhs: String = IntEval(p_val, env_box[0]);
-            if p_kind == "ArrayString" {
-                p_rhs = StrEval(p_val, env_box[0]);
-            }
+            let p_rhs: String = EmitCollectionElementValue(p_kind, p_val, env_box[0], CollectionRuntimeKindCode(p_kind));
             let push_stmt: String = Concat(push_fn, Concat("(&", Concat(p_arr, Concat(", ", Concat(p_rhs, ");")))));
             result = Concat(result, Concat(pad, Concat(push_stmt, "\n")));
             ArraySet(cur, 0, idx + 1);

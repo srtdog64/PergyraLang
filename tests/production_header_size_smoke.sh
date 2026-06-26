@@ -7,19 +7,14 @@ DEFAULT_LIMIT="${PRODUCTION_HEADER_MAX_LINES:-600}"
 cd "$ROOT_DIR"
 
 violations="$(
-    find src/codegen src/runtime src/compiler src/semantic src/parser src/lsp \
-        -name '*.h' -type f -print0 \
-    | awk -v RS='\0' -v limit="$DEFAULT_LIMIT" '
-        length($0) == 0 { next }
-        {
-            n = 0
-            while ((getline line < $0) > 0)
-                n++
-            close($0)
-            if (n > limit)
-                printf "%d %s > %d\n", n, $0, limit
-        }
-    '
+    while IFS= read -r -d '' file; do
+        lines="$(wc -l < "$file")"
+        lines="${lines//[[:space:]]/}"
+        if [ "$lines" -gt "$DEFAULT_LIMIT" ]; then
+            printf "%d %s > %d\n" "$lines" "$file" "$DEFAULT_LIMIT"
+        fi
+    done < <(find src/codegen src/runtime src/compiler src/semantic src/parser src/lsp \
+        -name '*.h' -type f -print0)
 )"
 
 if [ -n "$violations" ]; then

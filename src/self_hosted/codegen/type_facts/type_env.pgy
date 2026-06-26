@@ -209,6 +209,9 @@ func ExprKind(expr: String, env: String) -> String {
         if arr_kind == "ArrayInt" {
             return "Int";
         }
+        if arr_kind == "ArrayCodegenAstTextNode" {
+            return "CodegenAstTextNode";
+        }
     }
     if StartsWith(e, "ToString(") {
         return "String";
@@ -269,6 +272,9 @@ func ExprKind(expr: String, env: String) -> String {
         if IsIdentifier(pfx) && FindMatchingBracket(e, ob) == StringLength(e) - 1 {
             if LookupKindType(env, pfx, "v") == "ArrayString" {
                 return "String";
+            }
+            if LookupKindType(env, pfx, "v") == "ArrayCodegenAstTextNode" {
+                return "CodegenAstTextNode";
             }
             return "Int";
         }

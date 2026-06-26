@@ -71,6 +71,10 @@ require_file "docs/self_hosted/15_pre_self_host_expansion_ledger.md"
 require_file "tests/self_host_compiler_world_contract_smoke.sh"
 require_file "tests/self_hosted/compiler_world_manifest.sh"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_PATH_MANIFEST_PATH"
+require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "### Pergyra-Style Self-Host Test"
+require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "C, LLVM, and self-hosted outputs are peer projections over the same facts"
+require_text "src/self_hosted/compiler/README.md" "## Pergyra-Style Check"
+require_text "src/self_hosted/compiler/README.md" 'not as a C folder graph rewritten in `.pgy`'
 
 pgy_compiler_world_require_manifest_paths "$ROOT_DIR" ||
     fail "compiler world path manifest is incomplete"

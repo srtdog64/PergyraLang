@@ -48,6 +48,20 @@ print_func_params(FuncParam** params, size_t count, int indent)
             printf("?\n");
             continue;
         }
+        switch (param->mode) {
+        case PARAM_MODE_OWN:
+            printf("own ");
+            break;
+        case PARAM_MODE_REF:
+            printf("ref ");
+            break;
+        case PARAM_MODE_MUT_REF:
+            printf("inout ");
+            break;
+        case PARAM_MODE_DEFAULT:
+        default:
+            break;
+        }
         printf("%s", param->name != NULL ? param->name : "?");
         if (param->type != NULL) {
             printf(": ");

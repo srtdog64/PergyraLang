@@ -24,6 +24,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
+PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix_from_current_path)"
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
@@ -42,6 +43,31 @@ if ! command -v "$CC" >/dev/null 2>&1; then
     echo "[self-host-parity:mir-json] SKIP missing C compiler on PATH: $CC"
     exit 0
 fi
+
+compile_c_to_exe() {
+    local src="$1"
+    local out="$2"
+    local log="$3"
+
+    case "$(uname -s 2>/dev/null || echo unknown)" in
+        MINGW*|MSYS*|CYGWIN*)
+            command -v powershell.exe >/dev/null 2>&1 || return 127
+
+            local src_native
+            local out_native
+            local log_native
+            src_native="$(pgy_path_for_windows_tool "$src")"
+            out_native="$(pgy_path_for_windows_tool "$out")"
+            log_native="$(pgy_path_for_windows_tool "$log")"
+
+            powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
+                "\$env:PATH=$(pgy_powershell_quote "$PGY_WINDOWS_PS_PATH_PREFIX") + \$env:PATH; & $(pgy_powershell_quote "$CC") $(pgy_powershell_quote "$src_native") '-o' $(pgy_powershell_quote "$out_native") 2> $(pgy_powershell_quote "$log_native"); exit \$LASTEXITCODE"
+            return $?
+            ;;
+    esac
+
+    "$CC" "$src" -o "$out" 2>"$log"
+}
 
 MIR_LOWER_SRC="$ROOT_DIR/src/self_hosted/mir_lower/main.pgy"
 CODEGEN_SRC="$ROOT_DIR/src/self_hosted/codegen/main.pgy"
@@ -559,7 +585,7 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}" "${EXAMPLE_FI
         echo "  Rebuild the self-host tools in a shell where gcc works." >&2
         exit 1
     fi
-    if ! "$CC" "$via_c" -o "$B/${base}_via_mir.exe" 2>"$B/${base}_cc.log"; then
+    if ! compile_c_to_exe "$via_c" "$B/${base}_via_mir.exe" "$B/${base}_cc.log"; then
         echo "[self-host-parity:mir-json] $base: reconstructed C failed to compile" >&2
         cat "$B/${base}_cc.log" >&2
         exit 1

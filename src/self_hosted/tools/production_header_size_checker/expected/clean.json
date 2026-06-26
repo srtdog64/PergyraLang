@@ -1,1 +1,1 @@
-{"schema":"pgy.selfhost.production-header-size.v1","ok":true,"source":{"dirwalk_owner":"src","filter":"production_header_smoke_scope","cap_lines":600},"counts":{"headers":579,"violations":0,"max_lines":600},"findings":[]}
+{"schema":"pgy.selfhost.production-header-size.v1","ok":true,"source":{"dirwalk_owner":"src","filter":"production_header_smoke_scope","cap_lines":600},"counts":{"headers":584,"violations":0,"max_lines":600},"findings":[]}

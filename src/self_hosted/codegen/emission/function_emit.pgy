@@ -64,35 +64,88 @@ func NominalDeclName(line: String) -> String {
     return Substring(line, prefix_len, StringLength(line) - prefix_len);
 }
 
+func ParamLineMode(line: String) -> Int {
+    if StartsWith(line, "inout ") {
+        return 1;
+    }
+    if StartsWith(line, "own ") {
+        return 2;
+    }
+    if StartsWith(line, "ref ") {
+        return 3;
+    }
+    return 0;
+}
+
+func ParamLinePayload(line: String, mode: Int) -> String {
+    if mode == 0 {
+        return line;
+    }
+    let prefix_len: Int = 4;
+    if mode == 1 {
+        prefix_len = 6;
+    }
+    return Substring(line, prefix_len, StringLength(line) - prefix_len);
+}
+
+func ParamModeCsvAppend(csv: String, mode: Int) -> String {
+    let next: String = "default";
+    if mode == 1 {
+        next = "inout";
+    } else if mode == 2 {
+        next = "own";
+    } else if mode == 3 {
+        next = "ref";
+    }
+    if StringLength(csv) == 0 {
+        return next;
+    }
+    return Concat(csv, Concat(",", next));
+}
+
 // Emit one function definition starting at the `Function: <Name>` line at
 // cur[0]. `base_env` carries the global function return-type bindings.
-func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
+func EmitFunction(nodes: Array<CodegenAstTextNode>, indents: Array<Int>, texts: Array<String>, count: Int,
                   inout cur: Array<Int>, f_indent: Int,
                   base_env: String, uses_args: Bool, owner_name: String) -> String {
-    let head: String = texts[cur[0]];
+    let head: String = nodes[cur[0]].text;
     let name: String = Substring(head, 10, StringLength(head) - 10);
     let c_name: String = SymbolMangleCQualifiedName(owner_name, name);
     ArraySet(cur, 0, cur[0] + 1);
 
-    CodegenAstTextExpect(texts, count, cur, "Parameters:");
+    CodegenAstTextExpectNode(nodes, count, cur, "Parameters:");
     let params: String = "";
     let param_n: Int = 0;
     let env_box: Array<String> = [base_env];
-    while cur[0] < count && indents[cur[0]] == f_indent + 4 {
-        let pline: String = texts[cur[0]];
-        let pc: Int = StringIndexOf(pline, ": ");
+    let prologue: String = "";
+    let copyout: String = "";
+    while cur[0] < count && nodes[cur[0]].indent == f_indent + 4 {
+        let pline: String = nodes[cur[0]].text;
+        let p_mode: Int = ParamLineMode(pline);
+        let p_payload: String = ParamLinePayload(pline, p_mode);
+        if p_mode == 2 || p_mode == 3 {
+            Die(Concat("unsupported self-host codegen parameter mode: ", pline));
+        }
+        let pc: Int = StringIndexOf(p_payload, ": ");
         let p_name: String = "";
         let p_type: String = "";
-        if pc < 0 && StringLength(owner_name) > 0 && pline == "self" {
+        if pc < 0 && StringLength(owner_name) > 0 && p_payload == "self" {
             p_name = "self";
             p_type = owner_name;
         } else if pc < 0 {
-            Die(Concat("malformed parameter: ", pline));
+            Die(Concat("malformed parameter: ", p_payload));
         } else {
-            p_name = Substring(pline, 0, pc);
-            p_type = Substring(pline, pc + 2, StringLength(pline) - (pc + 2));
+            p_name = Substring(p_payload, 0, pc);
+            p_type = Substring(p_payload, pc + 2, StringLength(p_payload) - (pc + 2));
         }
-        let c_param: String = Concat(AbiLayoutCParamType(p_type, base_env), Concat(" ", p_name));
+        let c_param_type: String = AbiLayoutCParamType(p_type, base_env);
+        let c_param: String = Concat(c_param_type, Concat(" ", p_name));
+        if p_mode == 1 {
+            let inout_name: String = Concat("_pgy_inout_", p_name);
+            c_param = Concat(c_param_type, Concat(" *", inout_name));
+            prologue = Concat(prologue, Concat("    ", Concat(c_param_type, Concat(" ", Concat(p_name, Concat(" = *", Concat(inout_name, ";\n")))))));
+            copyout = Concat(copyout, Concat("    *", Concat(inout_name, Concat(" = ", Concat(p_name, ";\n")))));
+        }
         if param_n == 0 {
             params = c_param;
         } else {
@@ -102,26 +155,22 @@ func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
         // rewriting recognizes it (`Array<Int...>` -> ArrayInt, etc.).
         let p_kind: String = p_type;
         if StartsWith(p_type, "Array<") {
-            if StringIndexOf(p_type, "Int") >= 0 {
-                p_kind = "ArrayInt";
-            } else if StringIndexOf(p_type, "String") >= 0 {
-                p_kind = "ArrayString";
-            }
+            p_kind = CollectionRuntimeKindFromTypeName(p_type);
         }
         ArraySet(env_box, 0, Concat(env_box[0], Concat(p_name, Concat("=v:", Concat(p_kind, "|")))));
         param_n = param_n + 1;
         ArraySet(cur, 0, cur[0] + 1);
     }
 
-    if cur[0] >= count || !StartsWith(texts[cur[0]], "Returns:") {
+    if cur[0] >= count || !StartsWith(nodes[cur[0]].text, "Returns:") {
         Die("expected Returns: line after parameters");
     }
-    let ret_line: String = texts[cur[0]];
+    let ret_line: String = nodes[cur[0]].text;
     let ret_type: String = StringTrim(Substring(ret_line, 8, StringLength(ret_line) - 8));
     ArraySet(cur, 0, cur[0] + 1);
 
-    CodegenAstTextExpect(texts, count, cur, "Body:");
-    CodegenAstTextExpect(texts, count, cur, "Block:");
+    CodegenAstTextExpectNode(nodes, count, cur, "Body:");
+    CodegenAstTextExpectNode(nodes, count, cur, "Block:");
     let stmt_indent: Int = f_indent + 6;
     let is_main: Bool = name == "Main";
     // Main lowers to `int main`, so a bare `return` inside it must be `return 0;`
@@ -130,15 +179,15 @@ func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
     if is_main {
         body_ret = "Int";
     }
-    let body: String = EmitStmtList(indents, texts, count, stmt_indent, cur, "    ", env_box, body_ret, "");
+    let body: String = EmitStmtList(indents, texts, count, stmt_indent, cur, "    ", env_box, body_ret, copyout);
 
     let signature: String = "";
-    let body_full: String = body;
+    let body_full: String = Concat(prologue, Concat(body, copyout));
     if is_main {
         if uses_args {
             // Capture argv into globals so `Args()` (-> pgy_args) can read them.
             signature = "int main(int argc, char **argv)";
-            body_full = Concat("    pgy_argc = argc;\n    pgy_argv = argv;\n", body);
+            body_full = Concat("    pgy_argc = argc;\n    pgy_argv = argv;\n", Concat(prologue, Concat(body, copyout)));
         } else {
             signature = "int main(void)";
         }
@@ -202,6 +251,16 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int) -> String {
             let rtype: String = "Void";
             while j < count && !StartsWith(nodes[j].text, "Function:") {
                 let ret_line: String = nodes[j].text;
+                if ret_line == "Parameters:" {
+                    j = j + 1;
+                    let modes: String = "";
+                    while j < count && nodes[j].indent == indent + 4 {
+                        modes = ParamModeCsvAppend(modes, ParamLineMode(nodes[j].text));
+                        j = j + 1;
+                    }
+                    env = Concat(env, Concat(cname, Concat("=pm:", Concat(modes, "|"))));
+                    continue;
+                }
                 if StartsWith(ret_line, "Returns:") {
                     rtype = StringTrim(Substring(ret_line, 8, StringLength(ret_line) - 8));
                     j = count;
@@ -377,19 +436,28 @@ func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, struct_env: Str
                 let pn: Int = 0;
                 while j < count && nodes[j].indent == f_indent + 4 {
                     let pl: String = nodes[j].text;
-                    let pc: Int = StringIndexOf(pl, ": ");
+                    let p_mode: Int = ParamLineMode(pl);
+                    let p_payload: String = ParamLinePayload(pl, p_mode);
+                    if p_mode == 2 || p_mode == 3 {
+                        Die(Concat("unsupported self-host codegen parameter mode: ", pl));
+                    }
+                    let pc: Int = StringIndexOf(p_payload, ": ");
                     let p_name: String = "";
                     let p_type: String = "";
-                    if pc < 0 && StringLength(owner) > 0 && pl == "self" {
+                    if pc < 0 && StringLength(owner) > 0 && p_payload == "self" {
                         p_name = "self";
                         p_type = owner;
                     } else if pc < 0 {
-                        Die(Concat("malformed parameter: ", pl));
+                        Die(Concat("malformed parameter: ", p_payload));
                     } else {
-                        p_name = Substring(pl, 0, pc);
-                        p_type = Substring(pl, pc + 2, StringLength(pl) - (pc + 2));
+                        p_name = Substring(p_payload, 0, pc);
+                        p_type = Substring(p_payload, pc + 2, StringLength(p_payload) - (pc + 2));
                     }
-                    let cp: String = Concat(AbiLayoutCParamType(p_type, struct_env), Concat(" ", p_name));
+                    let cpt: String = AbiLayoutCParamType(p_type, struct_env);
+                    let cp: String = Concat(cpt, Concat(" ", p_name));
+                    if p_mode == 1 {
+                        cp = Concat(cpt, Concat(" *_pgy_inout_", p_name));
+                    }
                     if pn == 0 {
                         params = cp;
                     } else {

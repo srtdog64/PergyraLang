@@ -2,12 +2,15 @@
 #
 # self_host_pergyra_likeness_smoke.sh
 #
-# Ratchet gate: is the self-hosted compiler itself written in idiomatic Pergyra,
-# or in C-shaped string-munging that merely passes through the Pergyra parser?
+# Ratchet gate: does the tracked self-host implementation move toward idiomatic
+# Pergyra, or toward C-shaped string-munging that merely passes through the
+# Pergyra parser?
 #
 # The hard-self-host LOC percentage answers "how much is substituted". It does
-# not answer "is the substitute Pergyra-like". This gate answers the second
-# question and forces it to improve monotonically:
+# not answer "is the substitute Pergyra-like". This gate is not the architecture
+# proof; compiler-world contracts own intent/zone/resource structure. This gate
+# owns only monotonic smell metrics that should fall as typed facts replace text
+# bridges:
 #
 #   - string_munge_sig: `(...: String) -> String` signatures. Each one is a
 #     text-in/text-out function: the C-compiler shape, not a typed transform.
@@ -22,9 +25,12 @@
 #   - result_use: Result/Option/Ok/Err/Some/None occurrences. Errors-as-data.
 #     Ratchet up.
 #
-# Baselines are embedded below. When a metric improves, tighten the baseline in
-# the same commit so the ratchet can only get stricter, matching the
-# AIR-erasure / monotonic-decrease discipline used elsewhere in this repo.
+# Baselines are embedded below. The measured scope is tracked, non-fixture
+# `src/self_hosted/**/*.pgy` implementation source with `//` comments stripped.
+# Untracked design sketches and committed fixtures are not part of this gate.
+# When a metric improves, tighten the baseline in the same commit so the
+# ratchet can only get stricter, matching the AIR-erasure / monotonic-decrease
+# discipline used elsewhere in this repo.
 
 set -euo pipefail
 
@@ -33,10 +39,10 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SH_DIR="$ROOT_DIR/src/self_hosted"
 
 # ---- ratchet baselines (tighten on improvement, never loosen) ----
-STRING_MUNGE_SIG_MAX=168
+STRING_MUNGE_SIG_MAX=165
 AST_STRING_SURFACE_MAX=5
-SENTINEL_MAX=42
-RESULT_USE_MIN=74
+SENTINEL_MAX=39
+RESULT_USE_MIN=32
 
 fail() {
     echo "[self-host-likeness] FAIL" >&2
@@ -45,13 +51,25 @@ fail() {
 }
 
 count() {
-    # count(pattern) -> matches across self-host .pgy CODE (// comments stripped,
-    # so documentation that merely mentions a pattern does not trip the ratchet).
-    find "$SH_DIR" -name '*.pgy' -print0 2>/dev/null \
-        | xargs -0 cat 2>/dev/null \
-        | sed 's://.*$::' \
-        | grep -oE "$1" \
-        | wc -l | tr -d ' '
+    # count(pattern) -> matches across tracked self-host implementation code.
+    # Fixtures, untracked sketches, and // comments are intentionally excluded
+    # so this gate measures the implementation, not examples or notes.
+    local pattern="$1"
+    local matches
+    matches="$(
+        git -C "$ROOT_DIR" ls-files src/self_hosted \
+            | grep '\.pgy$' \
+            | grep -Ev '/fixture(s)?/' \
+            | while IFS= read -r rel; do
+                sed 's://.*$::' "$ROOT_DIR/$rel"
+            done \
+            | grep -oE "$pattern" || true
+    )"
+    if [ -z "$matches" ]; then
+        echo 0
+    else
+        printf '%s\n' "$matches" | wc -l | tr -d ' '
+    fi
 }
 
 string_munge_sig=$(count ': String\) -> String')
