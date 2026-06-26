@@ -224,7 +224,33 @@ correctness foundation for everything after.
   semantic residue** ("semantic rediscovers class-field arrays"): semantic no
   longer rediscovers field shape, it consumes the owned model.
 
-### Remaining after the semantic reader side
+### Scope boundary — what F2 (the docs/125 L731 residue) actually was
+
+docs/125 row 612 / L731 named exactly one residue: **semantic re-reading
+`ast_class_fields(...)`** ("declaration validation, graph collection, and the
+projection field owner ... until dedicated declaration field metadata replaces
+AST-carried class fields"). **That residue is now closed and gate-locked**
+(semantic `ast_class_fields` count == 1, the writer) + the MIR class-field
+builder consumes the model.
+
+What it did NOT name, and what is therefore **a separate, larger generalization
+(call it "F2-general"), not the L731 residue**:
+- the ~20 semantic readers of *other* field kinds — `ast_*_shared_fields`
+  (party/roster/world/domain), `ast_zone_layer_slots` — and the ~10 MIR-builder
+  sites for the same. These are different field *shapes* (shared fields, role
+  slots, zone-layer slots), not class fields; modelling them means `PgyDeclField`
+  becomes multi-kind (or grows siblings), touching ~30 sites.
+- The codegen side of those kinds is already internally consistent (row 616 /
+  hosted-view fail-closed), so F2-general is an *ownership-unification* effort,
+  not a correctness gap. It should be a deliberately-scoped decision, not folded
+  silently into "the F2 residue".
+
+So `mir_decl_header_fields.c` is intentionally in a **mixed** state: class fields
+build from the model; the other kinds still build from their own AST shapes
+(unchanged, row-616-sanctioned). That is correct, not a wart — the model owns
+the one shape L731 was about.
+
+### Remaining after the semantic reader side (F2-general, opt-in scope)
 - **Phase 4** — the MIR builder (`mir_decl_header_fields.c`) still re-derives
   `MIRDeclField` from AST. Making it consume `PgyDeclField` would make the model
   the single owner for *both* semantic and codegen (today they derive the same
