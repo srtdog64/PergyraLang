@@ -1,0 +1,42 @@
+// Self-host compiler subprocess-runner owner.
+//
+// Owns the capability envelope for invoking external compiler oracles. It does
+// not grant raw shell escape; a runner must consume this envelope first.
+
+func CompilerSubprocessSchema() -> String {
+    return "pgy.selfhost.subprocess-runner.v1";
+}
+
+func CompilerSubprocessFactCount() -> Int {
+    return 7;
+}
+
+func CompilerSubprocessFactAt(index: Int) -> String {
+    if index == 0 { return "executable_path"; }
+    if index == 1 { return "argv"; }
+    if index == 2 { return "cwd"; }
+    if index == 3 { return "env_allowlist"; }
+    if index == 4 { return "timeout_ms"; }
+    if index == 5 { return "stdout_stderr"; }
+    if index == 6 { return "exit_code"; }
+    return "";
+}
+
+func CompilerSubprocessUseCaseCount() -> Int {
+    return 3;
+}
+
+func CompilerSubprocessUseCaseAt(index: Int) -> String {
+    if index == 0 { return "oracle_compare"; }
+    if index == 1 { return "fixture_build"; }
+    if index == 2 { return "artifact_probe"; }
+    return "";
+}
+
+func CompilerSubprocessRunnerReady() -> Bool {
+    return CompilerSubprocessFactAt(0) == "executable_path" &&
+        CompilerSubprocessFactAt(1) == "argv" &&
+        CompilerSubprocessFactAt(3) == "env_allowlist" &&
+        CompilerSubprocessFactAt(6) == "exit_code" &&
+        CompilerSubprocessUseCaseAt(0) == "oracle_compare";
+}

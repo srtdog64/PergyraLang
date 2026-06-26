@@ -124,8 +124,15 @@ The root flow is:
    lowering facts.
 6. `TypeEnvZone`: read-mostly type environment consumed by backend emission.
 7. `AbiLayoutZone`: read-only ABI/layout facts consumed by backend emission.
-8. `EmissionZone`: emitted artifact buffer.
-9. `ParityZone`: C/LLVM/Pergyra comparison evidence.
+8. `AirEvidenceZone`: AIR evidence vocabulary for hard-rung proof facts.
+9. `SymbolFactTableZone`: cross-backend symbol rows.
+10. `AbiRowProjectionZone`: cross-backend ABI/layout rows.
+11. `EmissionZone`: emitted artifact buffer.
+12. `ArtifactZone`: comparable diagnostic, IR, ABI/layout, emitted, and run
+    artifacts.
+13. `TestHarnessZone`: fixture/result row vocabulary.
+14. `SubprocessRunnerZone`: capability envelope for oracle processes.
+15. `ParityZone`: C/LLVM/Pergyra comparison evidence.
 
 `CompilePergyraProgram` is the root intent over those resources. The derived
 pipelines in `stage_intents.pgy` are compiler actions, not hidden helper
@@ -165,8 +172,12 @@ compiler replacement.
 | MIR fact graph | `MirFactGraphZone` | gives backend and self-host lowering one fact source |
 | ABI/layout facts | MIR ABI/layout owner | prevents C/LLVM/self-hosted emitters from inventing layout independently |
 | symbol/mangle facts | symbol owner | prevents backend emitters from spelling names independently |
+| AIR evidence rows | `air_evidence_owner.pgy` plus `AirEvidenceZone` | keeps intent/effect/authority/coordination/materialization proof facts consumable |
+| cross-backend ABI rows | `abi_layout_row_owner.pgy` plus `AbiRowProjectionZone` | makes field order, tag, niche, ownership, size/align, and materialization policy one table |
+| cross-backend symbol rows | `symbol_table_owner.pgy` plus `SymbolFactTableZone` | makes C/LLVM/self-hosted spelling rows one table |
 | emission buffer | `EmissionZone` | gives output writes one owner |
-| parity evidence | `ParityZone` and test harnesses | proves substitution against the C/LLVM oracle pair |
+| artifact evidence | `artifact_zone_owner.pgy` plus `ArtifactZone` | keeps diagnostics, IR JSON, ABI/layout, emitted artifacts, and run output comparable |
+| parity evidence | `ParityZone`, `test_harness_owner.pgy`, and `subprocess_runner_owner.pgy` | proves substitution against the C/LLVM oracle pair without giving the shell a permanent SoT role |
 | runtime materialization policy | runtime/frontier owner | distinguishes erased hot paths from explicit managed boundaries |
 | target capability envelope | projection fact owner | keeps CPU, self-hosted, and future accelerator acceptance/reject/fallback decisions visible |
 | nominal-record array substrate | LLVM array registry element-name facts plus raw record-array exports | lets typed compiler records live in `Array<T>` without AST element-type guessing |

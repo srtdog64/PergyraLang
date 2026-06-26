@@ -1,0 +1,43 @@
+// Self-host compiler artifact-zone owner.
+//
+// Owns the comparable artifact kinds for C, LLVM, and self-hosted proof.
+
+func CompilerArtifactSchema() -> String {
+    return "pgy.selfhost.artifact-zone.v1";
+}
+
+func CompilerArtifactKindCount() -> Int {
+    return 7;
+}
+
+func CompilerArtifactKindAt(index: Int) -> String {
+    if index == 0 { return "diagnostics"; }
+    if index == 1 { return "ir_json"; }
+    if index == 2 { return "abi_layout"; }
+    if index == 3 { return "emitted_c"; }
+    if index == 4 { return "emitted_llvm"; }
+    if index == 5 { return "emitted_self_hosted"; }
+    if index == 6 { return "run_output"; }
+    return "";
+}
+
+func CompilerArtifactKindKnown(kind: String) -> Bool {
+    let i: Int = 0;
+    while i < CompilerArtifactKindCount() {
+        if CompilerArtifactKindAt(i) == kind {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CompilerArtifactZoneReady() -> Bool {
+    return CompilerArtifactKindKnown("diagnostics") &&
+        CompilerArtifactKindKnown("ir_json") &&
+        CompilerArtifactKindKnown("abi_layout") &&
+        CompilerArtifactKindKnown("emitted_c") &&
+        CompilerArtifactKindKnown("emitted_llvm") &&
+        CompilerArtifactKindKnown("emitted_self_hosted") &&
+        CompilerArtifactKindKnown("run_output");
+}

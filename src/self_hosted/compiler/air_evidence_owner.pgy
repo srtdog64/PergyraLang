@@ -1,0 +1,44 @@
+// Self-host compiler AIR evidence owner.
+//
+// Owns the hard-rung evidence vocabulary that ties intent, effect, authority,
+// coordination, slot ownership, materialization, and loss budget together.
+
+func CompilerAirEvidenceSchema() -> String {
+    return "pgy.selfhost.air-evidence.v1";
+}
+
+func CompilerAirEvidenceFactCount() -> Int {
+    return 7;
+}
+
+func CompilerAirEvidenceFactAt(index: Int) -> String {
+    if index == 0 { return "intent_graph"; }
+    if index == 1 { return "effect_set"; }
+    if index == 2 { return "authority_evidence"; }
+    if index == 3 { return "coordination"; }
+    if index == 4 { return "slot_ownership"; }
+    if index == 5 { return "materialization_reason"; }
+    if index == 6 { return "loss_budget"; }
+    return "";
+}
+
+func CompilerAirEvidenceFactKnown(fact: String) -> Bool {
+    let i: Int = 0;
+    while i < CompilerAirEvidenceFactCount() {
+        if CompilerAirEvidenceFactAt(i) == fact {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CompilerAirEvidenceEnvelopeReady() -> Bool {
+    return CompilerAirEvidenceFactKnown("intent_graph") &&
+        CompilerAirEvidenceFactKnown("effect_set") &&
+        CompilerAirEvidenceFactKnown("authority_evidence") &&
+        CompilerAirEvidenceFactKnown("coordination") &&
+        CompilerAirEvidenceFactKnown("slot_ownership") &&
+        CompilerAirEvidenceFactKnown("materialization_reason") &&
+        CompilerAirEvidenceFactKnown("loss_budget");
+}

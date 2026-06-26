@@ -1,5 +1,11 @@
 import "path_manifest_owner.pgy";
 import "target_capability_owner.pgy";
+import "air_evidence_owner.pgy";
+import "artifact_zone_owner.pgy";
+import "test_harness_owner.pgy";
+import "subprocess_runner_owner.pgy";
+import "abi_layout_row_owner.pgy";
+import "symbol_table_owner.pgy";
 
 subject SourceUnit {
     let path: String;
@@ -57,6 +63,42 @@ subject TargetProjectionPlanner {
     }
 }
 
+subject AirEvidenceOwner {
+    let name: String;
+
+    action Verify(self) -> Bool { return CompilerAirEvidenceEnvelopeReady(); }
+}
+
+subject SymbolTableOwner {
+    let name: String;
+
+    action Own(self) -> Bool { return CompilerSymbolTableReady(); }
+}
+
+subject AbiRowProjector {
+    let name: String;
+
+    action Project(self) -> Bool { return CompilerAbiLayoutRowsReady(); }
+}
+
+subject ArtifactSink {
+    let name: String;
+
+    action Collect(self) -> Bool { return CompilerArtifactZoneReady(); }
+}
+
+subject TestHarnessRunner {
+    let name: String;
+
+    action Prepare(self) -> Bool { return CompilerTestHarnessReady(); }
+}
+
+subject SubprocessRunner {
+    let name: String;
+
+    action Plan(self) -> Bool { return CompilerSubprocessRunnerReady(); }
+}
+
 subject OraclePair {
     let c_backend: String;
     let llvm_backend: String;
@@ -111,7 +153,31 @@ object TargetCapabilityEnvelope {
     schema: String;
 }
 
+object AirEvidenceFacts {
+    schema: String;
+}
+
+object SymbolFactTable {
+    schema: String;
+}
+
+object AbiLayoutRows {
+    schema: String;
+}
+
 object EmittedC {
+    schema: String;
+}
+
+object ArtifactEvidence {
+    schema: String;
+}
+
+object TestHarnessFacts {
+    schema: String;
+}
+
+object SubprocessCapabilityEnvelope {
     schema: String;
 }
 
@@ -160,9 +226,39 @@ zone TargetCapabilityZone {
     object slot envelope: TargetCapabilityEnvelope
 }
 
+zone AirEvidenceZone {
+    subject slot owner: AirEvidenceOwner
+    object slot facts: AirEvidenceFacts
+}
+
+zone SymbolFactTableZone {
+    subject slot owner: SymbolTableOwner
+    object slot symbols: SymbolFactTable
+}
+
+zone AbiRowProjectionZone {
+    subject slot projector: AbiRowProjector
+    object slot rows: AbiLayoutRows
+}
+
 zone EmissionZone {
     subject slot emitter: ProgramEmitter
     object slot c_output: EmittedC
+}
+
+zone ArtifactZone {
+    subject slot sink: ArtifactSink
+    object slot evidence: ArtifactEvidence
+}
+
+zone TestHarnessZone {
+    subject slot runner: TestHarnessRunner
+    object slot facts: TestHarnessFacts
+}
+
+zone SubprocessRunnerZone {
+    subject slot runner: SubprocessRunner
+    object slot envelope: SubprocessCapabilityEnvelope
 }
 
 zone ParityZone {
@@ -178,6 +274,12 @@ zone SelfHostCompiler {
     subject slot lowerer: MirLowerStage
     subject slot emitter: ProgramEmitter
     subject slot target_planner: TargetProjectionPlanner
+    subject slot evidence_owner: AirEvidenceOwner
+    subject slot symbol_owner: SymbolTableOwner
+    subject slot abi_projector: AbiRowProjector
+    subject slot artifact_sink: ArtifactSink
+    subject slot harness_runner: TestHarnessRunner
+    subject slot subprocess_runner: SubprocessRunner
     subject slot oracle: OraclePair
     object slot paths: StagePathManifest
     object slot source_batch: SourceBatch
@@ -188,7 +290,13 @@ zone SelfHostCompiler {
     object slot type_env: TypeEnvironment
     object slot abi_layout: AbiLayoutFacts
     object slot target_capability: TargetCapabilityEnvelope
+    object slot air_evidence: AirEvidenceFacts
+    object slot symbols: SymbolFactTable
+    object slot abi_rows: AbiLayoutRows
     object slot c_output: EmittedC
+    object slot artifacts: ArtifactEvidence
+    object slot harness: TestHarnessFacts
+    object slot subprocess: SubprocessCapabilityEnvelope
     tobject slot parity: ParityVerdict
 }
 
@@ -202,7 +310,13 @@ world PgyCompilerWorld {
     zone type_env: TypeEnvZone
     zone abi_layout: AbiLayoutZone
     zone target_capability: TargetCapabilityZone
+    zone air_evidence: AirEvidenceZone
+    zone symbols: SymbolFactTableZone
+    zone abi_rows: AbiRowProjectionZone
     zone emission: EmissionZone
+    zone artifacts: ArtifactZone
+    zone harness: TestHarnessZone
+    zone subprocess: SubprocessRunnerZone
     zone parity: ParityZone
 }
 
@@ -311,6 +425,74 @@ intent PlanTargetProjection(targets: TargetCapabilityZone, planner: TargetProjec
     failure: false;
 }
 
+intent ProveHardSelfHostEvidence(
+    air: AirEvidenceZone,
+    symbols: SymbolFactTableZone,
+    abi_rows: AbiRowProjectionZone,
+    artifacts: ArtifactZone,
+    harness: TestHarnessZone,
+    subprocess: SubprocessRunnerZone,
+    evidence_owner: AirEvidenceOwner,
+    symbol_owner: SymbolTableOwner,
+    abi_projector: AbiRowProjector,
+    artifact_sink: ArtifactSink,
+    harness_runner: TestHarnessRunner,
+    subprocess_runner: SubprocessRunner
+) {
+    exclusive;
+
+    step AirEvidence {
+        where: AirEvidenceZone;
+        using: air;
+        who: evidence_owner;
+        on: evidence_owner.Verify();
+        expect: true;
+    }
+
+    step SymbolFacts {
+        where: SymbolFactTableZone;
+        using: symbols;
+        who: symbol_owner;
+        on: symbol_owner.Own();
+        expect: true;
+    }
+
+    step AbiRows {
+        where: AbiRowProjectionZone;
+        using: abi_rows;
+        who: abi_projector;
+        on: abi_projector.Project();
+        expect: true;
+    }
+
+    step Artifacts {
+        where: ArtifactZone;
+        using: artifacts;
+        who: artifact_sink;
+        on: artifact_sink.Collect();
+        expect: true;
+    }
+
+    step Harness {
+        where: TestHarnessZone;
+        using: harness;
+        who: harness_runner;
+        on: harness_runner.Prepare();
+        expect: true;
+    }
+
+    step Subprocess {
+        where: SubprocessRunnerZone;
+        using: subprocess;
+        who: subprocess_runner;
+        on: subprocess_runner.Plan();
+        expect: true;
+    }
+
+    success: true;
+    failure: false;
+}
+
 intent ProveSelfHostedParity(parity_zone: ParityZone, oracle: OraclePair) {
     exclusive;
 
@@ -336,7 +518,13 @@ intent CompilePergyraProgram(
     types: TypeEnvZone,
     abi_layout: AbiLayoutZone,
     target_capability_zone: TargetCapabilityZone,
+    air_evidence_zone: AirEvidenceZone,
+    symbol_zone: SymbolFactTableZone,
+    abi_row_zone: AbiRowProjectionZone,
     emit_zone: EmissionZone,
+    artifact_zone: ArtifactZone,
+    harness_zone: TestHarnessZone,
+    subprocess_zone: SubprocessRunnerZone,
     parity_zone: ParityZone,
     source: SourceUnit,
     paths: StagePathManifest,
@@ -346,6 +534,12 @@ intent CompilePergyraProgram(
     lowerer: MirLowerStage,
     emitter: ProgramEmitter,
     target_planner: TargetProjectionPlanner,
+    evidence_owner: AirEvidenceOwner,
+    symbol_owner: SymbolTableOwner,
+    abi_projector: AbiRowProjector,
+    artifact_sink: ArtifactSink,
+    harness_runner: TestHarnessRunner,
+    subprocess_runner: SubprocessRunner,
     oracle: OraclePair
 ) {
     exclusive;
@@ -363,6 +557,17 @@ intent CompilePergyraProgram(
         using: semantic_zone;
         who: checker;
         on: MiddleEndPipeline(semantic_zone, lower_zone, checker, lowerer);
+        expect: true;
+    }
+
+    step Evidence {
+        where: AirEvidenceZone;
+        using: air_evidence_zone;
+        who: evidence_owner;
+        on: ProveHardSelfHostEvidence(
+            air_evidence_zone, symbol_zone, abi_row_zone, artifact_zone,
+            harness_zone, subprocess_zone, evidence_owner, symbol_owner,
+            abi_projector, artifact_sink, harness_runner, subprocess_runner);
         expect: true;
     }
 

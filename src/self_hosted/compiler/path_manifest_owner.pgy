@@ -32,6 +32,30 @@ func CompilerTargetCapabilityOwnerPath() -> String {
     return "src/self_hosted/compiler/target_capability_owner.pgy";
 }
 
+func CompilerAirEvidenceOwnerPath() -> String {
+    return "src/self_hosted/compiler/air_evidence_owner.pgy";
+}
+
+func CompilerArtifactZoneOwnerPath() -> String {
+    return "src/self_hosted/compiler/artifact_zone_owner.pgy";
+}
+
+func CompilerTestHarnessOwnerPath() -> String {
+    return "src/self_hosted/compiler/test_harness_owner.pgy";
+}
+
+func CompilerSubprocessRunnerOwnerPath() -> String {
+    return "src/self_hosted/compiler/subprocess_runner_owner.pgy";
+}
+
+func CompilerAbiLayoutRowOwnerPath() -> String {
+    return "src/self_hosted/compiler/abi_layout_row_owner.pgy";
+}
+
+func CompilerSymbolTableOwnerPath() -> String {
+    return "src/self_hosted/compiler/symbol_table_owner.pgy";
+}
+
 func CompilerOwnerManifestPath() -> String {
     return "src/self_hosted/OWNERS.md";
 }
@@ -86,7 +110,7 @@ func CompilerParityPathAt(index: Int) -> String {
 }
 
 func CompilerWorldManifestPathCount() -> Int {
-    return 16;
+    return 22;
 }
 
 func CompilerWorldManifestPathAt(index: Int) -> String {
@@ -103,13 +127,31 @@ func CompilerWorldManifestPathAt(index: Int) -> String {
         return CompilerTargetCapabilityOwnerPath();
     }
     if index == 4 {
+        return CompilerAirEvidenceOwnerPath();
+    }
+    if index == 5 {
+        return CompilerArtifactZoneOwnerPath();
+    }
+    if index == 6 {
+        return CompilerTestHarnessOwnerPath();
+    }
+    if index == 7 {
+        return CompilerSubprocessRunnerOwnerPath();
+    }
+    if index == 8 {
+        return CompilerAbiLayoutRowOwnerPath();
+    }
+    if index == 9 {
+        return CompilerSymbolTableOwnerPath();
+    }
+    if index == 10 {
         return CompilerOwnerManifestPath();
     }
-    if index < 10 {
-        return CompilerStagePathAt(index - 5);
-    }
     if index < 16 {
-        return CompilerParityPathAt(index - 10);
+        return CompilerStagePathAt(index - 11);
+    }
+    if index < 22 {
+        return CompilerParityPathAt(index - 16);
     }
     return "";
 }

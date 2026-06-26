@@ -63,6 +63,12 @@ require_file "src/self_hosted/compiler/world.pgy"
 require_file "src/self_hosted/compiler/path_manifest_owner.pgy"
 require_file "src/self_hosted/compiler/stage_intents.pgy"
 require_file "src/self_hosted/compiler/target_capability_owner.pgy"
+require_file "src/self_hosted/compiler/air_evidence_owner.pgy"
+require_file "src/self_hosted/compiler/artifact_zone_owner.pgy"
+require_file "src/self_hosted/compiler/test_harness_owner.pgy"
+require_file "src/self_hosted/compiler/subprocess_runner_owner.pgy"
+require_file "src/self_hosted/compiler/abi_layout_row_owner.pgy"
+require_file "src/self_hosted/compiler/symbol_table_owner.pgy"
 require_file "docs/self_hosted/11_compiler_world_architecture.md"
 require_file "docs/self_hosted/12_intent_zone_self_host_architecture.md"
 require_file "docs/self_hosted/13_compiler_substrate_architecture.md"
@@ -83,6 +89,12 @@ pgy_compiler_world_require_stage_conformance "$ROOT_DIR" ||
 require_max_lines "src/self_hosted/compiler/world.pgy" 600
 require_max_lines "src/self_hosted/compiler/path_manifest_owner.pgy" 200
 require_max_lines "src/self_hosted/compiler/target_capability_owner.pgy" 200
+require_max_lines "src/self_hosted/compiler/air_evidence_owner.pgy" 120
+require_max_lines "src/self_hosted/compiler/artifact_zone_owner.pgy" 120
+require_max_lines "src/self_hosted/compiler/test_harness_owner.pgy" 120
+require_max_lines "src/self_hosted/compiler/subprocess_runner_owner.pgy" 120
+require_max_lines "src/self_hosted/compiler/abi_layout_row_owner.pgy" 120
+require_max_lines "src/self_hosted/compiler/symbol_table_owner.pgy" 120
 
 for term in \
     "world PgyCompilerWorld" \
@@ -95,11 +107,18 @@ for term in \
     "zone TypeEnvZone" \
     "zone AbiLayoutZone" \
     "zone TargetCapabilityZone" \
+    "zone AirEvidenceZone" \
+    "zone SymbolFactTableZone" \
+    "zone AbiRowProjectionZone" \
     "zone EmissionZone" \
+    "zone ArtifactZone" \
+    "zone TestHarnessZone" \
+    "zone SubprocessRunnerZone" \
     "zone ParityZone" \
     "intent CompilePergyraProgram" \
     "step Frontend" \
     "step MiddleEnd" \
+    "step Evidence" \
     "step Backend" \
     "step SelfProof" \
     "FrontendPipeline" \
@@ -114,6 +133,7 @@ for term in \
     "intent LowerProgramFacts" \
     "intent EmitProgramArtifact" \
     "intent PlanTargetProjection" \
+    "intent ProveHardSelfHostEvidence" \
     "intent ProveSelfHostedParity" \
     "subject SourceUnit" \
     "subject LexerStage" \
@@ -128,6 +148,12 @@ for term in \
     "action Emit" \
     "subject TargetProjectionPlanner" \
     "action Plan" \
+    "subject AirEvidenceOwner" \
+    "subject SymbolTableOwner" \
+    "subject AbiRowProjector" \
+    "subject ArtifactSink" \
+    "subject TestHarnessRunner" \
+    "subject SubprocessRunner" \
     "subject OraclePair" \
     "object SourceBatch" \
     "object StagePathManifest" \
@@ -142,7 +168,13 @@ for term in \
     "object TypeEnvironment" \
     "object AbiLayoutFacts" \
     "object TargetCapabilityEnvelope" \
+    "object AirEvidenceFacts" \
+    "object SymbolFactTable" \
+    "object AbiLayoutRows" \
     "object EmittedC" \
+    "object ArtifactEvidence" \
+    "object TestHarnessFacts" \
+    "object SubprocessCapabilityEnvelope" \
     "tobject ParityVerdict" \
     "subject slot lexer: LexerStage" \
     "subject slot parser: ParserStage" \
@@ -151,15 +183,37 @@ for term in \
     "subject slot emitter: ProgramEmitter" \
     "object slot abi_layout: AbiLayoutFacts" \
     "object slot target_capability: TargetCapabilityEnvelope" \
+    "object slot air_evidence: AirEvidenceFacts" \
+    "object slot symbols: SymbolFactTable" \
+    "object slot abi_rows: AbiLayoutRows" \
+    "object slot artifacts: ArtifactEvidence" \
+    "object slot harness: TestHarnessFacts" \
+    "object slot subprocess: SubprocessCapabilityEnvelope" \
     "object slot layouts: AbiLayoutFacts" \
     "object slot envelope: TargetCapabilityEnvelope" \
+    "object slot facts: AirEvidenceFacts" \
+    "object slot symbols: SymbolFactTable" \
+    "object slot rows: AbiLayoutRows" \
+    "object slot evidence: ArtifactEvidence" \
     "zone abi_layout: AbiLayoutZone" \
     "zone target_capability: TargetCapabilityZone" \
+    "zone air_evidence: AirEvidenceZone" \
+    "zone symbols: SymbolFactTableZone" \
+    "zone abi_rows: AbiRowProjectionZone" \
+    "zone artifacts: ArtifactZone" \
+    "zone harness: TestHarnessZone" \
+    "zone subprocess: SubprocessRunnerZone" \
     "BackendPipeline(types, abi_layout, target_capability_zone, emit_zone, target_planner, emitter)"; do
     require_text "src/self_hosted/compiler/world.pgy" "$term"
 done
 require_text "src/self_hosted/compiler/world.pgy" 'import "path_manifest_owner.pgy"'
 require_text "src/self_hosted/compiler/world.pgy" 'import "target_capability_owner.pgy"'
+require_text "src/self_hosted/compiler/world.pgy" 'import "air_evidence_owner.pgy"'
+require_text "src/self_hosted/compiler/world.pgy" 'import "artifact_zone_owner.pgy"'
+require_text "src/self_hosted/compiler/world.pgy" 'import "test_harness_owner.pgy"'
+require_text "src/self_hosted/compiler/world.pgy" 'import "subprocess_runner_owner.pgy"'
+require_text "src/self_hosted/compiler/world.pgy" 'import "abi_layout_row_owner.pgy"'
+require_text "src/self_hosted/compiler/world.pgy" 'import "symbol_table_owner.pgy"'
 
 for term in \
     "func SelfHostSourceDir" \
@@ -169,6 +223,12 @@ for term in \
     "func CompilerPathManifestPath" \
     "func CompilerStageIntentsPath" \
     "func CompilerTargetCapabilityOwnerPath" \
+    "func CompilerAirEvidenceOwnerPath" \
+    "func CompilerArtifactZoneOwnerPath" \
+    "func CompilerTestHarnessOwnerPath" \
+    "func CompilerSubprocessRunnerOwnerPath" \
+    "func CompilerAbiLayoutRowOwnerPath" \
+    "func CompilerSymbolTableOwnerPath" \
     "func CompilerOwnerManifestPath" \
     "func CompilerStagePathAt" \
     "func CompilerParityPathAt" \
@@ -179,12 +239,87 @@ for term in \
     "return CompilerPathManifestPath();" \
     "return CompilerStageIntentsPath();" \
     "return CompilerTargetCapabilityOwnerPath();" \
+    "return CompilerAirEvidenceOwnerPath();" \
+    "return CompilerArtifactZoneOwnerPath();" \
+    "return CompilerTestHarnessOwnerPath();" \
+    "return CompilerSubprocessRunnerOwnerPath();" \
+    "return CompilerAbiLayoutRowOwnerPath();" \
+    "return CompilerSymbolTableOwnerPath();" \
     "return CompilerOwnerManifestPath();" \
-    "if index < 10" \
-    "CompilerStagePathAt(index - 5)" \
     "if index < 16" \
-    "CompilerParityPathAt(index - 10)"; do
+    "CompilerStagePathAt(index - 11)" \
+    "if index < 22" \
+    "CompilerParityPathAt(index - 16)"; do
     require_text "src/self_hosted/compiler/path_manifest_owner.pgy" "$term"
+done
+
+for term in \
+    "func CompilerAirEvidenceSchema" \
+    "CompilerAirEvidenceEnvelopeReady" \
+    "intent_graph" \
+    "authority_evidence" \
+    "coordination" \
+    "materialization_reason" \
+    "loss_budget"; do
+    require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "$term"
+done
+
+for term in \
+    "func CompilerArtifactSchema" \
+    "CompilerArtifactZoneReady" \
+    "diagnostics" \
+    "ir_json" \
+    "abi_layout" \
+    "emitted_self_hosted" \
+    "run_output"; do
+    require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "$term"
+done
+
+for term in \
+    "func CompilerTestHarnessSchema" \
+    "CompilerTestHarnessReady" \
+    "source_path" \
+    "expected_diagnostic" \
+    "expected_abi_layout" \
+    "c_oracle" \
+    "llvm_oracle" \
+    "self_hosted"; do
+    require_text "src/self_hosted/compiler/test_harness_owner.pgy" "$term"
+done
+
+for term in \
+    "func CompilerSubprocessSchema" \
+    "CompilerSubprocessRunnerReady" \
+    "executable_path" \
+    "argv" \
+    "env_allowlist" \
+    "timeout_ms" \
+    "oracle_compare" \
+    "artifact_probe"; do
+    require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "$term"
+done
+
+for term in \
+    "func CompilerAbiLayoutRowSchema" \
+    "CompilerAbiLayoutRowsReady" \
+    "field_order" \
+    "tag_kind" \
+    "niche" \
+    "ownership_shape" \
+    "materialization_policy"; do
+    require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "$term"
+done
+
+for term in \
+    "func CompilerSymbolTableSchema" \
+    "CompilerSymbolTableReady" \
+    "source_owner" \
+    "namespace_path" \
+    "c_symbol" \
+    "llvm_symbol" \
+    "self_hosted_symbol" \
+    "collision_policy"; do
+    require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "$term"
 done
 
 for term in \
@@ -288,6 +423,12 @@ forbid_text "src/self_hosted/compiler/README.md" "??"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/world.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/stage_intents.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/target_capability_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/air_evidence_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/artifact_zone_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/subprocess_runner_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/abi_layout_row_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/symbol_table_owner.pgy"
 require_text "src/self_hosted/README.md" "compiler/world.pgy"
 require_text "docs/self_hosted/README.md" "11_compiler_world_architecture.md"
 require_text "docs/self_hosted/README.md" "12_intent_zone_self_host_architecture.md"
@@ -422,6 +563,8 @@ grep -Fq "Intent: LexSource" "$ast_out" ||
     fail "compiler world AST missing LexSource intent"
 grep -Fq "Intent: ProveSelfHostedParity" "$ast_out" ||
     fail "compiler world AST missing ProveSelfHostedParity intent"
+grep -Fq "Intent: ProveHardSelfHostEvidence" "$ast_out" ||
+    fail "compiler world AST missing ProveHardSelfHostEvidence intent"
 grep -Fq "Intent: FrontendPipeline" "$ast_out" ||
     fail "compiler world AST missing FrontendPipeline intent"
 grep -Fq "Intent: BackendPipeline" "$ast_out" ||
@@ -436,6 +579,18 @@ grep -Fq "Zone: AbiLayoutZone" "$ast_out" ||
     fail "compiler world AST missing AbiLayoutZone zone"
 grep -Fq "Zone: TargetCapabilityZone" "$ast_out" ||
     fail "compiler world AST missing TargetCapabilityZone zone"
+grep -Fq "Zone: AirEvidenceZone" "$ast_out" ||
+    fail "compiler world AST missing AirEvidenceZone zone"
+grep -Fq "Zone: SymbolFactTableZone" "$ast_out" ||
+    fail "compiler world AST missing SymbolFactTableZone zone"
+grep -Fq "Zone: AbiRowProjectionZone" "$ast_out" ||
+    fail "compiler world AST missing AbiRowProjectionZone zone"
+grep -Fq "Zone: ArtifactZone" "$ast_out" ||
+    fail "compiler world AST missing ArtifactZone zone"
+grep -Fq "Zone: TestHarnessZone" "$ast_out" ||
+    fail "compiler world AST missing TestHarnessZone zone"
+grep -Fq "Zone: SubprocessRunnerZone" "$ast_out" ||
+    fail "compiler world AST missing SubprocessRunnerZone zone"
 grep -Fq "Subject: LexerStage" "$ast_out" ||
     fail "compiler world AST missing LexerStage subject"
 grep -Fq "Subject: ParserStage" "$ast_out" ||
@@ -448,6 +603,18 @@ grep -Fq "Subject: ProgramEmitter" "$ast_out" ||
     fail "compiler world AST missing ProgramEmitter subject"
 grep -Fq "Subject: TargetProjectionPlanner" "$ast_out" ||
     fail "compiler world AST missing TargetProjectionPlanner subject"
+grep -Fq "Subject: AirEvidenceOwner" "$ast_out" ||
+    fail "compiler world AST missing AirEvidenceOwner subject"
+grep -Fq "Subject: SymbolTableOwner" "$ast_out" ||
+    fail "compiler world AST missing SymbolTableOwner subject"
+grep -Fq "Subject: AbiRowProjector" "$ast_out" ||
+    fail "compiler world AST missing AbiRowProjector subject"
+grep -Fq "Subject: ArtifactSink" "$ast_out" ||
+    fail "compiler world AST missing ArtifactSink subject"
+grep -Fq "Subject: TestHarnessRunner" "$ast_out" ||
+    fail "compiler world AST missing TestHarnessRunner subject"
+grep -Fq "Subject: SubprocessRunner" "$ast_out" ||
+    fail "compiler world AST missing SubprocessRunner subject"
 grep -Fq "Object: StagePathManifest" "$ast_out" ||
     fail "compiler world AST missing StagePathManifest object"
 grep -Fq "Object: TypeEnvironment" "$ast_out" ||
@@ -456,5 +623,17 @@ grep -Fq "Object: AbiLayoutFacts" "$ast_out" ||
     fail "compiler world AST missing AbiLayoutFacts object"
 grep -Fq "Object: TargetCapabilityEnvelope" "$ast_out" ||
     fail "compiler world AST missing TargetCapabilityEnvelope object"
+grep -Fq "Object: AirEvidenceFacts" "$ast_out" ||
+    fail "compiler world AST missing AirEvidenceFacts object"
+grep -Fq "Object: SymbolFactTable" "$ast_out" ||
+    fail "compiler world AST missing SymbolFactTable object"
+grep -Fq "Object: AbiLayoutRows" "$ast_out" ||
+    fail "compiler world AST missing AbiLayoutRows object"
+grep -Fq "Object: ArtifactEvidence" "$ast_out" ||
+    fail "compiler world AST missing ArtifactEvidence object"
+grep -Fq "Object: TestHarnessFacts" "$ast_out" ||
+    fail "compiler world AST missing TestHarnessFacts object"
+grep -Fq "Object: SubprocessCapabilityEnvelope" "$ast_out" ||
+    fail "compiler world AST missing SubprocessCapabilityEnvelope object"
 
 echo "[self-host-compiler-world] compiler world source shape ok"

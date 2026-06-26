@@ -1850,3 +1850,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   by routine signatures and source-local facts.
 - Tightened `mir_declaration_inventory_smoke` to reject the retired LLVM alias
   helper name and require the new C intent fail-closed diagnostics.
+
+### 2026-06-26 -- Hard self-host expansion owners enter PgyCompilerWorld
+
+- Added compiler-world owner files for AIR evidence, Artifact Zone evidence,
+  TestHarness rows, Subprocess runner capability envelopes, cross-backend
+  ABI/layout rows, and cross-backend symbol rows.
+- Wired those owners into `PgyCompilerWorld` through `AirEvidenceZone`,
+  `SymbolFactTableZone`, `AbiRowProjectionZone`, `ArtifactZone`,
+  `TestHarnessZone`, and `SubprocessRunnerZone`.
+- Updated the path manifest and shell projection so the new owners are a single
+  manifest fact rather than parallel file lists.
+- Kept the pre-self-host expansion ledger honest: these surfaces now have
+  owner envelopes, but remain ACTIVE until live C/LLVM/self-hosted consumers
+  consume the rows instead of shell/text/backend-local fallbacks.

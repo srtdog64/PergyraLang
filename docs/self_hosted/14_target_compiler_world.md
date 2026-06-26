@@ -101,8 +101,14 @@ or `ABI Layout`.
 | AIR graph/checker tools and erasure evidence | `AIR Evidence` |
 | `MirFactGraphZone` | `MIR Fact` |
 | `AbiLayoutZone` | `ABI Layout` |
+| `AirEvidenceZone`, `air_evidence_owner.pgy` | `AIR Evidence` |
+| `SymbolFactTableZone`, `symbol_table_owner.pgy` | symbol/mangle fact rows |
+| `AbiRowProjectionZone`, `abi_layout_row_owner.pgy` | ABI/layout row projection |
 | `EmissionZone` | `C Emission`, `LLVM Emission`, and `SelfHosted Emission` |
-| `ParityZone` | `Artifact Zone` |
+| `ArtifactZone`, `artifact_zone_owner.pgy` | `Artifact Zone` |
+| `TestHarnessZone`, `test_harness_owner.pgy` | parity fixture/result rows |
+| `SubprocessRunnerZone`, `subprocess_runner_owner.pgy` | capability-gated oracle execution envelope |
+| `ParityZone` | proof verdict |
 | current backend drivers | `Codegen Projection Intent` participants |
 
 The migration order is:

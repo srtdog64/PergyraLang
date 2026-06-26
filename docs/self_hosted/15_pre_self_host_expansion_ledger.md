@@ -61,12 +61,12 @@ They are not optional polish; each one prevents a common fallback shape.
 |---|---|---|
 | Mixed AST-like tree owner | Pergyra record/class/tagged-node owner plus traversal parity | The AST-text bridge now has typed line nodes, `program_emit` routes program-level declarations through them, declaration collectors consume them for global env/prototype/struct/enum prepasses, `function_emit` consumes them for function header/parameter/return/body-marker reads, `stmt_emit` consumes them for statement body reads, and parameter mode facts survive into codegen. This blocker remains active because `CodegenAstTextNode.text` is still a line-text payload; it closes only when owned typed/tagged AST data replaces line-text semantics. |
 | Stable JSON parse/emit owner | schema-aware JSON reader/writer with diagnostics | Read primitives plus string/field/object/array emission are shared, and production size checkers now consume the object writer. This blocker remains active because schema validation, object/array iteration, and a structured writer for every self-hosted report schema are not yet single-owner. |
-| Subprocess runner | capability-gated process owner | Lets Pergyra runners invoke C/LLVM oracles without shell-only logic. |
-| Symbol/mangle owner | canonical C/LLVM/self-hosted symbol and name-mangling fact table | The self-host C subset now has one spelling owner; full C/LLVM ABI parity still needs a shared symbol fact table consumed by every backend. |
-| Cross-backend ABI/layout row projection | self-hosted and native consumers of shared ABI layout facts | The self-host C subset now has one type-spelling owner; full C/LLVM/self-hosted ABI parity still needs shared layout rows for field order, niche, tag, and ownership shape. |
-| AIR evidence zone | owned AIR evidence facts in `PgyCompilerWorld` | Makes intent/effect/authority/coordination evidence consumable by hard rungs. |
-| Artifact Zone evidence | one parity sink for diagnostics, IR JSON, ABI/layout, emitted artifacts, and run output | Keeps C, LLVM, and self-hosted outputs comparable by owned artifact. |
-| Test harness substrate | Pergyra-owned fixture/run/result records | Stops hard rungs from being permanently shell-owned after the first bridge. |
+| Subprocess runner | `src/self_hosted/compiler/subprocess_runner_owner.pgy` | The capability envelope now names executable path, argv, cwd, env allowlist, timeout, stdout/stderr, and exit code facts. It remains active until a Pergyra runner consumes that envelope instead of shell-only logic. |
+| Symbol/mangle owner | `src/self_hosted/compiler/symbol_table_owner.pgy` plus current C-subset `symbol_mangle_owner.pgy` | The self-host C subset has one spelling owner and the compiler world now has a cross-backend row vocabulary. It remains active until C, LLVM, and self-hosted projections all consume the same row table. |
+| Cross-backend ABI/layout row projection | `src/self_hosted/compiler/abi_layout_row_owner.pgy` plus current C-subset `abi_layout_owner.pgy` | The self-host C subset has one type-spelling owner and the compiler world now has row facts for field order, tag, niche, ownership shape, target ABI, size/align, and materialization policy. It remains active until native and self-hosted consumers read the same rows. |
+| AIR evidence zone | `src/self_hosted/compiler/air_evidence_owner.pgy`, `AirEvidenceZone` | `PgyCompilerWorld` now owns the hard-rung evidence vocabulary for intent/effect/authority/coordination/slot/materialization/loss. It remains active until hard rungs consume live AIR evidence rows rather than the vocabulary envelope. |
+| Artifact Zone evidence | `src/self_hosted/compiler/artifact_zone_owner.pgy`, `ArtifactZone` | The comparable artifact vocabulary now covers diagnostics, IR JSON, ABI/layout, emitted C, emitted LLVM, emitted self-hosted output, and run output. It remains active until the parity harness writes and compares those records from this owner. |
+| Test harness substrate | `src/self_hosted/compiler/test_harness_owner.pgy`, `TestHarnessZone` | Fixture and result row vocabulary is now Pergyra-owned. It remains active until the shell parity scripts are projections of these records instead of the primary harness owner. |
 
 ## Held Surfaces
 
@@ -85,10 +85,13 @@ These are explicitly not imported as default hard-self-host dependencies.
 1. Promote the mixed AST-like tree owner first. It is the largest remaining
    reason self-hosted parser/codegen slices still consume text artifacts.
 2. Add a stable JSON fact owner before adding more IR/AIR tools.
-3. Add subprocess as a capability-gated owner, not as unrestricted shell escape.
-4. Finish cross-backend symbol/mangle and ABI/layout consumers before widening backend parity.
-5. Add AIR evidence and Artifact Zone evidence to `PgyCompilerWorld` before
-   claiming three-way compiler self-proof.
+3. Implement the subprocess runner against the capability envelope; do not add
+   unrestricted shell escape.
+4. Repoint C, LLVM, and self-hosted symbol/mangle and ABI/layout consumers to
+   the compiler-world row owners before widening backend parity.
+5. Repoint AIR evidence, Artifact Zone, and TestHarness consumers from shell
+   scripts into the `PgyCompilerWorld` zones before claiming three-way compiler
+   self-proof.
 
 ## Rejection Rule
 

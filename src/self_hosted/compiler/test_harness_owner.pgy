@@ -1,0 +1,41 @@
+// Self-host compiler test-harness owner.
+//
+// Owns the fixture/result row vocabulary for hard self-host parity.
+
+func CompilerTestHarnessSchema() -> String {
+    return "pgy.selfhost.test-harness.v1";
+}
+
+func CompilerHarnessRowCount() -> Int {
+    return 7;
+}
+
+func CompilerHarnessRowAt(index: Int) -> String {
+    if index == 0 { return "source_path"; }
+    if index == 1 { return "expected_diagnostic"; }
+    if index == 2 { return "expected_ir_json"; }
+    if index == 3 { return "expected_abi_layout"; }
+    if index == 4 { return "expected_stdout"; }
+    if index == 5 { return "expected_exit"; }
+    if index == 6 { return "projection"; }
+    return "";
+}
+
+func CompilerHarnessProjectionCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessProjectionAt(index: Int) -> String {
+    if index == 0 { return "c_oracle"; }
+    if index == 1 { return "llvm_oracle"; }
+    if index == 2 { return "self_hosted"; }
+    return "";
+}
+
+func CompilerTestHarnessReady() -> Bool {
+    return CompilerHarnessRowAt(0) == "source_path" &&
+        CompilerHarnessRowAt(6) == "projection" &&
+        CompilerHarnessProjectionAt(0) == "c_oracle" &&
+        CompilerHarnessProjectionAt(1) == "llvm_oracle" &&
+        CompilerHarnessProjectionAt(2) == "self_hosted";
+}

@@ -1,0 +1,45 @@
+// Self-host compiler cross-backend ABI/layout row owner.
+//
+// Owns the row vocabulary every projection must consume before emission.
+
+func CompilerAbiLayoutRowSchema() -> String {
+    return "pgy.selfhost.abi-layout-row.v1";
+}
+
+func CompilerAbiLayoutRowFactCount() -> Int {
+    return 8;
+}
+
+func CompilerAbiLayoutRowFactAt(index: Int) -> String {
+    if index == 0 { return "decl_name"; }
+    if index == 1 { return "field_order"; }
+    if index == 2 { return "tag_kind"; }
+    if index == 3 { return "niche"; }
+    if index == 4 { return "ownership_shape"; }
+    if index == 5 { return "target_abi"; }
+    if index == 6 { return "size_align"; }
+    if index == 7 { return "materialization_policy"; }
+    return "";
+}
+
+func CompilerAbiLayoutRowKnown(fact: String) -> Bool {
+    let i: Int = 0;
+    while i < CompilerAbiLayoutRowFactCount() {
+        if CompilerAbiLayoutRowFactAt(i) == fact {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CompilerAbiLayoutRowsReady() -> Bool {
+    return CompilerAbiLayoutRowKnown("decl_name") &&
+        CompilerAbiLayoutRowKnown("field_order") &&
+        CompilerAbiLayoutRowKnown("tag_kind") &&
+        CompilerAbiLayoutRowKnown("niche") &&
+        CompilerAbiLayoutRowKnown("ownership_shape") &&
+        CompilerAbiLayoutRowKnown("target_abi") &&
+        CompilerAbiLayoutRowKnown("size_align") &&
+        CompilerAbiLayoutRowKnown("materialization_policy");
+}

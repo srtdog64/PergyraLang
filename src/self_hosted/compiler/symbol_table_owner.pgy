@@ -1,0 +1,31 @@
+// Self-host compiler cross-backend symbol table owner.
+//
+// Owns canonical symbol row facts across C, LLVM, and self-hosted projections.
+
+func CompilerSymbolTableSchema() -> String {
+    return "pgy.selfhost.symbol-table.v1";
+}
+
+func CompilerSymbolTableRowCount() -> Int {
+    return 7;
+}
+
+func CompilerSymbolTableRowAt(index: Int) -> String {
+    if index == 0 { return "source_owner"; }
+    if index == 1 { return "source_name"; }
+    if index == 2 { return "namespace_path"; }
+    if index == 3 { return "c_symbol"; }
+    if index == 4 { return "llvm_symbol"; }
+    if index == 5 { return "self_hosted_symbol"; }
+    if index == 6 { return "collision_policy"; }
+    return "";
+}
+
+func CompilerSymbolTableReady() -> Bool {
+    return CompilerSymbolTableRowAt(0) == "source_owner" &&
+        CompilerSymbolTableRowAt(1) == "source_name" &&
+        CompilerSymbolTableRowAt(3) == "c_symbol" &&
+        CompilerSymbolTableRowAt(4) == "llvm_symbol" &&
+        CompilerSymbolTableRowAt(5) == "self_hosted_symbol" &&
+        CompilerSymbolTableRowAt(6) == "collision_policy";
+}

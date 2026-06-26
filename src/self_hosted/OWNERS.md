@@ -115,3 +115,15 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/compiler/stage_intents.pgy` -- derived compiler intent clusters.
 - `src/self_hosted/compiler/target_capability_owner.pgy` -- target acceptance
   and fallback fact envelope for backend projections.
+- `src/self_hosted/compiler/air_evidence_owner.pgy` -- hard-rung AIR evidence
+  fact vocabulary for intent/effect/authority/coordination.
+- `src/self_hosted/compiler/artifact_zone_owner.pgy` -- comparable artifact
+  kinds consumed by C/LLVM/self-hosted parity.
+- `src/self_hosted/compiler/test_harness_owner.pgy` -- fixture/result row
+  vocabulary for Pergyra-owned parity harness work.
+- `src/self_hosted/compiler/subprocess_runner_owner.pgy` -- capability envelope
+  for oracle subprocess execution without raw shell escape.
+- `src/self_hosted/compiler/abi_layout_row_owner.pgy` -- cross-backend ABI row
+  fact vocabulary for field order, niche, tags, ownership, and layout.
+- `src/self_hosted/compiler/symbol_table_owner.pgy` -- cross-backend symbol row
+  fact vocabulary for C/LLVM/self-hosted projections.

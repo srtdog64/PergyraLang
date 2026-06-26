@@ -18,7 +18,9 @@ Pergyra self-hosting should be organized around the language's own surface.
 compiler intent. The source unit flows through derived resource zones
 (`SourceIntakeZone`, `TokenStreamZone`, `AstTreeZone`,
 `SemanticVerdictZone`, `MirFactGraphZone`, `TypeEnvZone`, `AbiLayoutZone`,
-`TargetCapabilityZone`, `EmissionZone`, and `ParityZone`), and each zone is driven by a smaller intent. The stage actors
+`TargetCapabilityZone`, `AirEvidenceZone`, `SymbolFactTableZone`,
+`AbiRowProjectionZone`, `EmissionZone`, `ArtifactZone`, `TestHarnessZone`,
+`SubprocessRunnerZone`, and `ParityZone`), and each zone is driven by a smaller intent. The stage actors
 are named by what they own: `LexerStage`, `ParserStage`, `SemanticStage`, and
 `MirLowerStage` drive token, AST, semantic verdict, and MIR fact resources
 respectively. There is no generic `StageOwner` alias in the compiler world.
@@ -43,6 +45,15 @@ the fallback reasons (`unsupported_shape`, `forbidden_loss_budget`,
 `retained_effect`, `missing_authority_evidence`, and
 `host_only_slot_boundary`). That keeps CPU fallback or future accelerator
 rejects visible as facts instead of backend-local choices.
+
+The hard-self-host expansion owners live beside the world because they are
+compiler-world facts, not codegen implementation details:
+`air_evidence_owner.pgy`, `symbol_table_owner.pgy`,
+`abi_layout_row_owner.pgy`, `artifact_zone_owner.pgy`,
+`test_harness_owner.pgy`, and `subprocess_runner_owner.pgy`. These files own
+vocabulary envelopes only. A surface remains active until C, LLVM, and
+self-hosted consumers use those rows as data rather than rediscovering the same
+facts from shell scripts, emitted text, or backend-local fallbacks.
 
 `stage_intents.pgy` owns derived intent clusters such as `FrontendPipeline`,
 `MiddleEndPipeline`, `BackendPipeline`, and `SelfProofPipeline`. These clusters
