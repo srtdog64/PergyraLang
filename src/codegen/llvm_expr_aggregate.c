@@ -61,7 +61,7 @@ llvm_sequence_expected_type_name(LLVMGenCtx *ctx)
     expected_type_name = ctx->expected_type_name;
     if (expected_type_name == NULL)
         return NULL;
-    alias_target_type_name = llvm_render_alias_target_type_name_scratch(
+    alias_target_type_name = llvm_render_alias_target_type_name_from_headers(
         ctx, expected_type_name, &ctx->scratch);
     if (alias_target_type_name != NULL)
         return alias_target_type_name;

@@ -60,6 +60,16 @@ require_term() {
     fail "$rel missing term: $term"
 }
 
+reject_term() {
+    local rel="$1"
+    local term="$2"
+
+    load_file_text "$rel"
+    if [[ "${!PGY_FILE_TEXT_VAR}" == *"$term"* ]]; then
+        fail "$rel must not contain retired term: $term"
+    fi
+}
+
 require_term_any() {
     local term="$1"
     shift
@@ -314,6 +324,8 @@ require_each_following_term "src/codegen/llvm_backend_type_map.c" \
     8
 require_term "src/codegen/llvm_backend_type_render.c" \
     "llvm_render_alias_target_type_name_from_headers"
+reject_term "src/codegen/llvm_backend_type_render.c" \
+    "llvm_render_alias_target_type_name_scratch"
 require_term "src/codegen/llvm_backend_type_render.c" \
     "mir_decl_header_type_alias_target_type_name(alias_header)"
 require_term "src/codegen/llvm_backend_type_render.c" \
@@ -700,6 +712,8 @@ require_term "src/codegen/transpiler_intent_zone_binding_emit.c" \
 require_term "src/codegen/transpiler_intent_zone_binding_emit.c" \
     "MIR-backed C forward declaration has invalid ordered intent binding metadata"
 require_term "src/codegen/transpiler_intent_zone_binding_emit.c" \
+    "MIR-backed C forward declaration has missing value type metadata"
+require_term "src/codegen/transpiler_intent_zone_binding_emit.c" \
     "mir_routine == NULL"
 require_term "src/codegen/transpiler_intent_zone_binding_emit.c" \
     "subject_type = ast_intent_involves_subject_type(binding)"
@@ -1020,6 +1034,8 @@ require_term "src/codegen/transpiler_intent_prologue_emit.c" \
     "MIR-backed C intent prologue has incomplete ordered binding metadata"
 require_term "src/codegen/transpiler_intent_prologue_emit.c" \
     "MIR-backed C intent prologue has invalid ordered binding metadata"
+require_term "src/codegen/transpiler_intent_prologue_emit.c" \
+    "MIR-backed C intent prologue missing routine"
 require_term "src/codegen/transpiler_intent_prologue_emit.c" \
     "intent_binding_metadata_view_has_supported_row"
 require_term "src/codegen/transpiler_intent_prologue_emit.c" \
@@ -8150,11 +8166,11 @@ require_term "TODO.md" "declaration-side MIR-only debt"
 # IntentBinding carrier. Codegen must not reopen ast_intent_value_type(...) or
 # ast_intent_value_alias(...); a value binding without a MIR routine fails
 # closed. This keeps the row's intent-value residue from being reintroduced.
-for f in $(grep -rl "" "$ROOT_DIR/src/codegen" --include='*.c'); do
+while IFS= read -r f; do
     if grep -Eq 'ast_intent_value_(type|alias)\(' "$f"; then
         fail "Row 607: codegen must consume MIR IntentBinding carrier, not ast_intent_value_*: ${f#$ROOT_DIR/}"
     fi
-done
+done < <(find "$ROOT_DIR/src/codegen" -type f -name '*.c')
 
 # F2 (docs/144) Phase 2+: semantic consumers migrated to the pre-semantic
 # PgyDeclField field-shape model must not reopen ast_class_fields(...). This

@@ -42,7 +42,7 @@ mir_callable_sig_build(const ASTNode *type_node, MIRCallableSig *out)
 
     ASTNode *ret = ast_event_handler_return_type((ASTNode *)type_node);
     if (ret != NULL) {
-        out->return_type_name = mir_render_type_name(ret);
+        out->return_type_name = mir_capture_type_name(ret, NULL);
         if (out->return_type_name == NULL) {
             mir_callable_sig_clear(out);
             return;
@@ -59,7 +59,7 @@ mir_callable_sig_build(const ASTNode *type_node, MIRCallableSig *out)
             ASTNode *pt =
                 ast_event_handler_param_type((ASTNode *)type_node, i);
             if (pt != NULL) {
-                out->param_type_names[i] = mir_render_type_name(pt);
+                out->param_type_names[i] = mir_capture_type_name(pt, NULL);
                 if (out->param_type_names[i] == NULL) {
                     mir_callable_sig_clear(out);
                     return;

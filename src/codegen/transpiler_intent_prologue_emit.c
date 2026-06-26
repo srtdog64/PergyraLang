@@ -64,6 +64,7 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
     size_t involve_count = 0;
     size_t value_count = 0;
     size_t mir_binding_count = 0;
+    bool allow_ast_compat;
     ASTNode **bindings = NULL;
     ASTNode **involves_nodes = NULL;
     ASTNode **values = NULL;
@@ -73,6 +74,8 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
         return false;
 
     intent_name = ast_intent_decl_name(node);
+    allow_ast_compat = mir_routine == NULL &&
+        (bindings_view == NULL || bindings_view->count == 0);
     if (mir_routine != NULL) {
         priority_expr = transpiler_find_mir_intent_eval_expr(
             mir_routine, intent_name, "priority");
@@ -102,7 +105,7 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                 return false;
             }
         }
-    } else {
+    } else if (allow_ast_compat) {
         priority_expr = ast_intent_decl_priority_expr(node);
         explicit_binding_count = ast_intent_decl_binding_count(node);
         involve_count = ast_intent_decl_involve_count(node);
@@ -110,6 +113,12 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
         bindings = ast_intent_decl_bindings(node, NULL);
         involves_nodes = ast_intent_decl_involves(node, NULL);
         values = ast_intent_decl_values(node, NULL);
+    } else {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-backed C intent prologue missing routine for '%s'",
+            intent_name != NULL ? intent_name : "(anonymous-intent)");
+        return false;
     }
 
     codebuf_write(ctx->out, "\nbool\n%s(", intent_name);

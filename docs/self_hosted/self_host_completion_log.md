@@ -1831,3 +1831,22 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   then verified the codegen bootstrap gate: `gen2 == gen3` and the
   codegen-built lexer, parser, semantic checker, mir_lower, audit tools, and
   backend fuzz generator all match their oracle-built counterparts.
+
+### 2026-06-26 -- MIR-backed C intent fallback closes harder
+
+- Renamed the LLVM type-alias target renderer to
+  `llvm_render_alias_target_type_name_from_headers` so the helper name matches
+  the declaration-header owner instead of looking like an arbitrary alias
+  scratch path.
+- C intent prologue emission now permits AST compatibility only for non-MIR
+  intents with no binding rows. If MIR binding metadata exists but the routine
+  is absent, the C backend fails closed instead of silently reopening AST
+  priority/binding/value reads.
+- C intent forward declaration emission now fails closed when a MIR-backed
+  value binding lacks type metadata, matching the existing ordered
+  `IntentBindingMetadataView` completeness checks.
+- MIR callable signature metadata now stores nested return/parameter type-name
+  facts through `mir_capture_type_name`, matching the same capture owner used
+  by routine signatures and source-local facts.
+- Tightened `mir_declaration_inventory_smoke` to reject the retired LLVM alias
+  helper name and require the new C intent fail-closed diagnostics.

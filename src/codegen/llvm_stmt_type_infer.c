@@ -146,7 +146,7 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         char *alias_target_type_name = NULL;
         if (exp != NULL) {
             alias_target_type_name =
-                llvm_render_alias_target_type_name_scratch(
+                llvm_render_alias_target_type_name_from_headers(
                     ctx, exp, &ctx->scratch);
             if (alias_target_type_name != NULL)
                 exp = alias_target_type_name;

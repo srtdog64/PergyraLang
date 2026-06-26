@@ -304,6 +304,16 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 ? intent_binding_metadata_view_type_at(&binding_metadata, i)
                 : NULL;
             char value_c_type_buf[256];
+            if (mir_only_intent && value_type_name == NULL) {
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-backed C forward declaration has missing value type metadata for '%s'",
+                    intent_name != NULL ? intent_name : "(anonymous-intent)");
+                goto cleanup;
+            }
+            if (!mir_only_intent && value_type_name == NULL) {
+                goto cleanup;
+            }
             if (value_type_name != NULL
                 && transpiler_require_type_name_c_type_copy(ctx,
                     value_type_name, surface_desc, value_c_type_buf,

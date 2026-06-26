@@ -108,9 +108,9 @@ llvm_constructed_arg_name_copy(const char *type_name, int arg_index,
 }
 
 char *
-llvm_render_alias_target_type_name_scratch(LLVMGenCtx *ctx,
-                                           const char *type_name,
-                                           PgyArena *arena)
+llvm_render_alias_target_type_name_from_headers(LLVMGenCtx *ctx,
+                                                const char *type_name,
+                                                PgyArena *arena)
 {
     const char *current = type_name;
 
@@ -187,7 +187,7 @@ llvm_render_type_name_scratch_in_ctx(LLVMGenCtx *ctx, ASTNode *type_node,
         size_t type_count = 0;
         if (ctx != NULL) {
             alias_target_type_name =
-                llvm_render_alias_target_type_name_scratch(
+                llvm_render_alias_target_type_name_from_headers(
                     ctx, ast_type_name(type_node), arena);
         }
         if (alias_target_type_name != NULL)
