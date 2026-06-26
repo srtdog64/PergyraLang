@@ -9,10 +9,6 @@ func GenerateC(ast: String) -> String {
     let node_count_box: Array<Int> = [0];
     CodegenAstTextNodeInventory(ast, nodes, node_count_box);
 
-    let indents: Array<Int> = [];
-    let texts: Array<String> = [];
-    CodegenAstTextProjectLegacy(nodes, node_count_box[0], indents, texts);
-
     let count: Int = node_count_box[0];
     let main_count: Int = 0;
     let main_scan: Int = 0;
@@ -74,7 +70,7 @@ func GenerateC(ast: String) -> String {
             while cur[0] < count && nodes[cur[0]].indent > owner_indent {
                 if StartsWith(nodes[cur[0]].text, "Function:") {
                     let method_indent: Int = nodes[cur[0]].indent;
-                    let mdef: String = EmitFunction(nodes, indents, texts, count, cur, method_indent, base_env, uses_args, owner_name);
+                    let mdef: String = EmitFunction(nodes, count, cur, method_indent, base_env, uses_args, owner_name);
                     defs = Concat(defs, Concat(mdef, "\n"));
                 } else {
                     ArraySet(cur, 0, cur[0] + 1);
@@ -87,14 +83,14 @@ func GenerateC(ast: String) -> String {
             while cur[0] < count && nodes[cur[0]].indent > role_owner_indent {
                 if StartsWith(nodes[cur[0]].text, "Function:") {
                     let role_method_indent: Int = nodes[cur[0]].indent;
-                    let role_mdef: String = EmitFunction(nodes, indents, texts, count, cur, role_method_indent, base_env, uses_args, role_owner_name);
+                    let role_mdef: String = EmitFunction(nodes, count, cur, role_method_indent, base_env, uses_args, role_owner_name);
                     defs = Concat(defs, Concat(role_mdef, "\n"));
                 } else {
                     ArraySet(cur, 0, cur[0] + 1);
                 }
             }
         } else if StartsWith(cur_line, "Function:") && cur_indent == f_indent {
-            let def: String = EmitFunction(nodes, indents, texts, count, cur, f_indent, base_env, uses_args, "");
+            let def: String = EmitFunction(nodes, count, cur, f_indent, base_env, uses_args, "");
             defs = Concat(defs, Concat(def, "\n"));
         } else {
             ArraySet(cur, 0, cur[0] + 1);

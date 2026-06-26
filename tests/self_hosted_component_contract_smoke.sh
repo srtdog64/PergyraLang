@@ -160,6 +160,8 @@ require_text "src/self_hosted/lib/json.pgy" "func ReadJsonString"
 require_text "src/self_hosted/lib/json.pgy" "func JsonFieldString"
 require_text "src/self_hosted/lib/json.pgy" "func JsonFieldNumber"
 require_text "src/self_hosted/lib/json.pgy" "func JsonFirstArrayString"
+require_text "src/self_hosted/lib/json.pgy" "func JsonEscapeString"
+require_text "src/self_hosted/lib/json.pgy" "func JsonStringLiteral"
 
 for stage in lexer parser semantic codegen; do
     require_dir "src/self_hosted/$stage"
@@ -368,20 +370,19 @@ require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func Abi
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCReturnType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCLocalType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCFieldType"
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextInventory"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIndentOf"
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextExpect"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "struct CodegenAstTextNode"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextNodeInventory"
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextProjectLegacy"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextExpectNode"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextInventory(ast: String, inout indents:"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextProjectLegacy"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextExpect(texts:"
 require_text "src/parser/ast_print.c" "PARAM_MODE_MUT_REF"
 require_text "src/parser/ast_print.c" 'printf("inout ")'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "inout "'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "ref "'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "own "'
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextNodeInventory(ast, nodes, node_count_box)"
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextProjectLegacy(nodes, node_count_box[0], indents, texts)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let main_line: String = nodes[main_scan].text"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let f_indent: Int = nodes[first_fn].indent"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let cur_line: String = nodes[cur[0]].text"
@@ -395,12 +396,12 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectR
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectStructs(nodes: Array<CodegenAstTextNode>, count: Int"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectEnums(nodes: Array<CodegenAstTextNode>, count: Int"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func EmitFunction(nodes: Array<CodegenAstTextNode>, indents: Array<Int>, texts: Array<String>, count: Int"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextExpectNode(nodes, count, cur, \"Parameters:\")"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func ParamLineMode"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=pm:"'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"_pgy_inout_"'
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "EmitStmtList(indents, texts, count, stmt_indent, cur, \"    \", env_box, body_ret, copyout)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "EmitStmtList(nodes, count, stmt_indent, cur, \"    \", env_box, body_ret, copyout)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv(indents:"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectRoleOperators(indents:"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectStructs(indents:"
@@ -409,7 +410,12 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectPr
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func EmitFunction(indents:"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "texts["
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "indents["
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextExpect"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextExpectNode(nodes, count, cur"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextExpect(texts"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitStmtList(indents:"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "texts["
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "indents["
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "NextNewline(ast, pos)"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringTrim(raw_line)"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "IndentOf(raw_line)"
@@ -565,6 +571,10 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/c
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/text/text_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/path.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/json.pgy"'
+require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" 'import "../../lib/json.pgy";'
+require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" "JsonStringLiteral(path)"
+require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" 'import "../../lib/json.pgy";'
+require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" "JsonStringLiteral(fixture_path)"
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/source_bundle_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/body_check_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/call_check_owner.pgy"'

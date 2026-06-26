@@ -154,12 +154,11 @@ no-argument `hello_ast.txt` fixture), the missing-file diagnostic, and the
 AST-text line inventory consumed by `GenerateC`: raw line splitting, typed
 `CodegenAstTextNode` inventory, leading indent counting, empty-line removal,
 `[export]` line normalization, program-level declaration routing facts,
-declaration collector prepass facts, legacy projection, and cursor expectation
-diagnostics live there, not in emission participants. This is a compatibility
-bridge, not the final typed/tagged AST owner. Function signature emission now
-also consumes this typed node owner for function headers, parameters, return
-lines, and body markers; the legacy projection remains only for statement body
-emission until that owner migrates. Parameter mode spelling (`inout`, `own`,
+declaration collector prepass facts, and cursor expectation diagnostics live
+there, not in emission participants. This is a compatibility bridge, not the
+final typed/tagged AST owner. Function signature and statement body emission now
+consume this typed node owner for function headers, parameters, return lines,
+body markers, and statement reads. Parameter mode spelling (`inout`, `own`,
 `ref`) is a fact preserved by the native and self-host AST printers; codegen
 consumes that fact through function-env `pm` rows and must not infer mutation
 mode from `ArrayPush` or other statement text. `run/codegen_run_owner.pgy` owns the CLI-to-output

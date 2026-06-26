@@ -25,9 +25,12 @@
 #   - result_use: Result/Option/Ok/Err/Some/None occurrences. Errors-as-data.
 #     Ratchet up.
 #
-# Baselines are embedded below. The measured scope is tracked, non-fixture
-# `src/self_hosted/**/*.pgy` implementation source with `//` comments stripped.
-# Untracked design sketches and committed fixtures are not part of this gate.
+# Baselines are embedded below. The default measured scope is tracked,
+# non-fixture `src/self_hosted/**/*.pgy` implementation source with `//`
+# comments stripped. Untracked design sketches and committed fixtures are not
+# part of this gate. A metric may exclude a named text-domain owner only when
+# that owner owns text as its resource; this keeps the gate from punishing real
+# responsibility separation such as JSON string escaping.
 # When a metric improves, tighten the baseline in the same commit so the
 # ratchet can only get stricter, matching the AIR-erasure / monotonic-decrease
 # discipline used elsewhere in this repo.
@@ -39,8 +42,8 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SH_DIR="$ROOT_DIR/src/self_hosted"
 
 # ---- ratchet baselines (tighten on improvement, never loosen) ----
-STRING_MUNGE_SIG_MAX=165
-AST_STRING_SURFACE_MAX=5
+STRING_MUNGE_SIG_MAX=162
+AST_STRING_SURFACE_MAX=4
 SENTINEL_MAX=39
 RESULT_USE_MIN=32
 
@@ -55,11 +58,19 @@ count() {
     # Fixtures, untracked sketches, and // comments are intentionally excluded
     # so this gate measures the implementation, not examples or notes.
     local pattern="$1"
+    local exclude_re="${2:-}"
     local matches
     matches="$(
         git -C "$ROOT_DIR" ls-files src/self_hosted \
             | grep '\.pgy$' \
             | grep -Ev '/fixture(s)?/' \
+            | {
+                if [ -n "$exclude_re" ]; then
+                    grep -Ev "$exclude_re"
+                else
+                    cat
+                fi
+            } \
             | while IFS= read -r rel; do
                 sed 's://.*$::' "$ROOT_DIR/$rel"
             done \
@@ -72,7 +83,7 @@ count() {
     fi
 }
 
-string_munge_sig=$(count ': String\) -> String')
+string_munge_sig=$(count ': String\) -> String' '^src/self_hosted/lib/json\.pgy$')
 ast_string_surface=$(count '\bast: String\b')
 sentinel=$(count 'return -1|== -1|!= -1')
 result_use=$(count '\bResult<|\bOption<|\bOk\(|\bErr\(|\bSome\(|\bNone\b')

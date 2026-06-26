@@ -1,8 +1,9 @@
-// Shared JSON string-scan primitives for self-hosted tools.
+// Shared JSON string-scan and string-emit primitives for self-hosted tools.
 //
-// This is not a full JSON DOM. It owns bounded read primitives used by
-// fact-shaped tools so each stage does not invent its own string scanning.
-// Schema-specific decisions still belong to the consuming owner.
+// This is not a full JSON DOM. It owns bounded read primitives and JSON string
+// escaping/literal emission used by fact-shaped tools so each stage does not
+// invent its own string scanning or quoting rules. Schema-specific object shape
+// decisions still belong to the consuming owner.
 
 func CharAt(s: String, i: Int) -> String {
     return Substring(s, i, 1);
@@ -142,6 +143,34 @@ func JsonFieldString(json: String, start: Int, end: Int, key: String) -> String 
 func JsonIsDigitChar(c: String) -> Bool {
     return c == "0" || c == "1" || c == "2" || c == "3" || c == "4"
         || c == "5" || c == "6" || c == "7" || c == "8" || c == "9";
+}
+
+func JsonEscapeString(value: String) -> String {
+    let out: String = "";
+    let i: Int = 0;
+    let n: Int = StringLength(value);
+    while i < n {
+        let c: String = CharAt(value, i);
+        if c == "\"" {
+            out = Concat(out, "\\\"");
+        } else if c == "\\" {
+            out = Concat(out, "\\\\");
+        } else if c == "\n" {
+            out = Concat(out, "\\n");
+        } else if c == "\r" {
+            out = Concat(out, "\\r");
+        } else if c == "\t" {
+            out = Concat(out, "\\t");
+        } else {
+            out = Concat(out, c);
+        }
+        i = i + 1;
+    }
+    return out;
+}
+
+func JsonStringLiteral(value: String) -> String {
+    return Concat("\"", Concat(JsonEscapeString(value), "\""));
 }
 
 func JsonFieldNumber(json: String, start: Int, end: Int, key: String) -> String {

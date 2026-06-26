@@ -1761,6 +1761,37 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   resource-owned zones, single fact owners, peer backend projections, and
   parity evidence instead of becoming a C folder graph translated into Pergyra.
 
+### 2026-06-26 -- Statement emission consumes typed AST text nodes
+
+- Repointed `EmitStmtList` to consume `Array<CodegenAstTextNode>` directly.
+  Statement-body emission now reads `nodes[idx].text` and `nodes[idx].indent`
+  from the AST-text inventory owner instead of projected `texts[]` /
+  `indents[]` arrays.
+- Removed the legacy `CodegenAstTextProjectLegacy`,
+  `CodegenAstTextInventory(ast, indents, texts)`, and
+  `CodegenAstTextExpect(texts, ...)` bridge APIs from
+  `input/ast_text_inventory_owner.pgy`.
+- Tightened `self_hosted_component_contract_smoke` so `program_emit`,
+  `function_emit`, and `stmt_emit` cannot reintroduce the parallel text/indent
+  projection.
+- The mixed AST-like tree blocker remains active because
+  `CodegenAstTextNode.text` is still serialized AST text. The closed seam is
+  the duplicated line-inventory owner, not the final tagged AST owner.
+
+### 2026-06-26 -- JSON string emission gets a shared owner
+
+- Promoted JSON string escaping and literal emission into
+  `src/self_hosted/lib/json.pgy` via `JsonEscapeString` and
+  `JsonStringLiteral`.
+- Repointed the diagnostic catalog checker and AIR graph JSON validator report
+  owners to consume that JSON owner for dynamic string fields instead of
+  hand-splicing unescaped values into schema JSON.
+- Tightened `self_hosted_component_contract_smoke` so the shared JSON emit
+  primitives and representative report-owner imports cannot disappear.
+- The Stable JSON parse/emit blocker remains active: schema object shape,
+  object/array iteration, and a structured JSON writer are still owned by
+  individual report owners.
+
 ### 2026-06-26 -- Parameter-mode facts and typed-node arrays close the codegen bootstrap gap
 
 - Found a real self-host SoT bug: `pgy --ast` dropped parameter mode, so an

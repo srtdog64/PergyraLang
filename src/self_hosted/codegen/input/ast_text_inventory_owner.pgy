@@ -41,38 +41,12 @@ func CodegenAstTextNodeInventory(ast: String, inout nodes: Array<CodegenAstTextN
     }
 }
 
-func CodegenAstTextProjectLegacy(nodes: Array<CodegenAstTextNode>, count: Int, inout indents: Array<Int>, inout texts: Array<String>) -> Void {
-    let i: Int = 0;
-    while i < count {
-        ArrayPush(indents, nodes[i].indent);
-        ArrayPush(texts, nodes[i].text);
-        i = i + 1;
-    }
-}
-
-func CodegenAstTextInventory(ast: String, inout indents: Array<Int>, inout texts: Array<String>) -> Void {
-    let nodes: Array<CodegenAstTextNode> = [];
-    let count_box: Array<Int> = [0];
-    CodegenAstTextNodeInventory(ast, nodes, count_box);
-    CodegenAstTextProjectLegacy(nodes, count_box[0], indents, texts);
-}
-
 func CodegenAstTextExpectNode(nodes: Array<CodegenAstTextNode>, count: Int, inout cur: Array<Int>, expected: String) -> Void {
     if cur[0] >= count {
         Die(Concat("expected `", Concat(expected, "` but reached end of AST")));
     }
     if nodes[cur[0]].text != expected {
         Die(Concat("expected `", Concat(expected, Concat("` but got: ", nodes[cur[0]].text))));
-    }
-    ArraySet(cur, 0, cur[0] + 1);
-}
-
-func CodegenAstTextExpect(texts: Array<String>, count: Int, inout cur: Array<Int>, expected: String) -> Void {
-    if cur[0] >= count {
-        Die(Concat("expected `", Concat(expected, "` but reached end of AST")));
-    }
-    if texts[cur[0]] != expected {
-        Die(Concat("expected `", Concat(expected, Concat("` but got: ", texts[cur[0]]))));
     }
     ArraySet(cur, 0, cur[0] + 1);
 }

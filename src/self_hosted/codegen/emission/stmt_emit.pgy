@@ -231,7 +231,7 @@ func EmitReturn(rexpr: String, cur_fn_ret: String, env: String) -> String {
 // starting at line cur[0]. `pad` is the C indentation prefix. `env_box` carries
 // the mutable variable type environment; `cur_fn_ret` is the enclosing
 // function's return type. Recurses for `while` / `if` bodies. Advances cur[0].
-func EmitStmtList(indents: Array<Int>, texts: Array<String>, count: Int,
+func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int,
                   stmt_indent: Int, inout cur: Array<Int>, pad: String,
                   inout env_box: Array<String>, cur_fn_ret: String,
                   active_defers: String) -> String {
@@ -240,14 +240,14 @@ func EmitStmtList(indents: Array<Int>, texts: Array<String>, count: Int,
     let inner_pad: String = Concat(pad, "    ");
     while cur[0] < count {
         let idx: Int = cur[0];
-        let ind: Int = indents[idx];
+        let ind: Int = nodes[idx].indent;
         if ind < stmt_indent {
             return Concat(result, deferred);
         }
         if ind > stmt_indent {
-            Die(Concat("unexpected over-indented AST line: ", texts[idx]));
+            Die(Concat("unexpected over-indented AST line: ", nodes[idx].text));
         }
-        let t: String = texts[idx];
+        let t: String = nodes[idx].text;
         if StartsWith(t, "Let: ") {
             if ContainsOutsideStrings(t, "(?") {
                 result = Concat(result, Concat(pad, Concat(EmitTryLet(t, env_box, cur_fn_ret, pad, Concat(deferred, active_defers), idx), "\n")));
@@ -292,9 +292,9 @@ func EmitStmtList(indents: Array<Int>, texts: Array<String>, count: Int,
             ArraySet(cur, 0, idx + 1);
         } else if t == "Defer:" {
             ArraySet(cur, 0, idx + 1);
-            CodegenAstTextExpect(texts, count, cur, "Block:");
+            CodegenAstTextExpectNode(nodes, count, cur, "Block:");
             let defer_env: Array<String> = [env_box[0]];
-            let body: String = EmitStmtList(indents, texts, count, stmt_indent + 4,
+            let body: String = EmitStmtList(nodes, count, stmt_indent + 4,
                 cur, pad, defer_env, cur_fn_ret, Concat(deferred, active_defers));
             deferred = Concat(body, deferred);
         } else if StartsWith(t, "ArraySet(") {
@@ -431,35 +431,35 @@ func EmitStmtList(indents: Array<Int>, texts: Array<String>, count: Int,
                 result = Concat(result, Concat(inner_pad, Concat(elem_c, Concat(" ", Concat(loop_var, Concat(" = ", Concat(get_fn, Concat("(", Concat(tc, Concat(", ", Concat(ti, ");\n")))))))))));
             }
             ArraySet(cur, 0, idx + 1);
-            CodegenAstTextExpect(texts, count, cur, "Block:");
-            result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 4, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
+            CodegenAstTextExpectNode(nodes, count, cur, "Block:");
+            result = Concat(result, EmitStmtList(nodes, count, stmt_indent + 4, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
             result = Concat(result, Concat(pad, "}\n"));
         } else if StartsWith(t, "While: ") {
             let cond: String = WrapCond(Substring(t, 7, StringLength(t) - 7), env_box[0]);
             result = Concat(result, Concat(pad, Concat("while ", Concat(cond, " {\n"))));
             ArraySet(cur, 0, idx + 1);
-            CodegenAstTextExpect(texts, count, cur, "Block:");
-            result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 4, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
+            CodegenAstTextExpectNode(nodes, count, cur, "Block:");
+            result = Concat(result, EmitStmtList(nodes, count, stmt_indent + 4, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
             result = Concat(result, Concat(pad, "}\n"));
         } else if StartsWith(t, "If: ") {
             let cond2: String = WrapCond(Substring(t, 4, StringLength(t) - 4), env_box[0]);
             result = Concat(result, Concat(pad, Concat("if ", Concat(cond2, " {\n"))));
             ArraySet(cur, 0, idx + 1);
-            CodegenAstTextExpect(texts, count, cur, "Then:");
-            CodegenAstTextExpect(texts, count, cur, "Block:");
-            result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 6, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
-            if cur[0] < count && texts[cur[0]] == "Else:" && indents[cur[0]] == stmt_indent + 2 {
+            CodegenAstTextExpectNode(nodes, count, cur, "Then:");
+            CodegenAstTextExpectNode(nodes, count, cur, "Block:");
+            result = Concat(result, EmitStmtList(nodes, count, stmt_indent + 6, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
+            if cur[0] < count && nodes[cur[0]].text == "Else:" && nodes[cur[0]].indent == stmt_indent + 2 {
                 ArraySet(cur, 0, cur[0] + 1);
-                if cur[0] < count && StartsWith(texts[cur[0]], "If: ") {
+                if cur[0] < count && StartsWith(nodes[cur[0]].text, "If: ") {
                     // `else if`: the AST nests an `If:` directly under `Else:`
                     // (no `Block:`). Emit `} else ` and recurse on that If at its
                     // own indent; the nested if-chain closes itself.
                     result = Concat(result, Concat(pad, "} else "));
-                    result = Concat(result, EmitStmtList(indents, texts, count, indents[cur[0]], cur, pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
+                    result = Concat(result, EmitStmtList(nodes, count, nodes[cur[0]].indent, cur, pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
                 } else {
                     result = Concat(result, Concat(pad, "} else {\n"));
-                    CodegenAstTextExpect(texts, count, cur, "Block:");
-                    result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 6, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
+                    CodegenAstTextExpectNode(nodes, count, cur, "Block:");
+                    result = Concat(result, EmitStmtList(nodes, count, stmt_indent + 6, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
                     result = Concat(result, Concat(pad, "}\n"));
                 }
             } else {

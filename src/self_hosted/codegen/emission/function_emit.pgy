@@ -105,7 +105,7 @@ func ParamModeCsvAppend(csv: String, mode: Int) -> String {
 
 // Emit one function definition starting at the `Function: <Name>` line at
 // cur[0]. `base_env` carries the global function return-type bindings.
-func EmitFunction(nodes: Array<CodegenAstTextNode>, indents: Array<Int>, texts: Array<String>, count: Int,
+func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int,
                   inout cur: Array<Int>, f_indent: Int,
                   base_env: String, uses_args: Bool, owner_name: String) -> String {
     let head: String = nodes[cur[0]].text;
@@ -179,7 +179,7 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, indents: Array<Int>, texts: 
     if is_main {
         body_ret = "Int";
     }
-    let body: String = EmitStmtList(indents, texts, count, stmt_indent, cur, "    ", env_box, body_ret, copyout);
+    let body: String = EmitStmtList(nodes, count, stmt_indent, cur, "    ", env_box, body_ret, copyout);
 
     let signature: String = "";
     let body_full: String = Concat(prologue, Concat(body, copyout));

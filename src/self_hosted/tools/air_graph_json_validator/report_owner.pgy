@@ -3,6 +3,8 @@
 // JSON schema owner for pgy.selfhost.air-graph-validator.v1. Scan facts are
 // rendered here; this owner does not inspect AIR JSON fixture contents.
 
+import "../../lib/json.pgy";
+
 func FindingFactField(row: String, index: Int) -> String {
     let parts: Array<String> = Split(row, "|");
     if ArrayLength(parts) <= index {
@@ -13,13 +15,13 @@ func FindingFactField(row: String, index: Int) -> String {
 
 func FindingJson(kind: String, key: String, location: String) -> String {
     let parts: Array<String> = [
-        "{\"kind\":\"",
-        kind,
-        "\",\"key\":\"",
-        key,
-        "\",\"location\":\"",
-        location,
-        "\"}"
+        "{\"kind\":",
+        JsonStringLiteral(kind),
+        ",\"key\":",
+        JsonStringLiteral(key),
+        ",\"location\":",
+        JsonStringLiteral(location),
+        "}"
     ];
     return StringJoin(parts, "");
 }
@@ -46,16 +48,16 @@ func FindingsJsonFromFacts(facts: String) -> String {
 func InputErrorJson(path: String) -> String {
     let parts: Array<String> = [
         "{\"schema\":\"pgy.selfhost.air-graph-validator.v1\",\"ok\":false,",
-        "\"source\":{\"input_schema\":\"pgy.air.graph.v1\",\"fixture_owner\":\"",
-        path,
-        "\"},\"counts\":{\"intents\":0,\"boundaries\":0,\"evidence\":0,",
+        "\"source\":{\"input_schema\":\"pgy.air.graph.v1\",\"fixture_owner\":",
+        JsonStringLiteral(path),
+        "},\"counts\":{\"intents\":0,\"boundaries\":0,\"evidence\":0,",
         "\"drifts\":0,\"effect_sites\":0,\"env_effect_sites\":0,",
         "\"missing_keys\":0},",
-        "\"findings\":[{\"kind\":\"input_error\",\"key\":\"",
-        path,
-        "\",\"location\":\"",
-        path,
-        "\"}]}"
+        "\"findings\":[{\"kind\":\"input_error\",\"key\":",
+        JsonStringLiteral(path),
+        ",\"location\":",
+        JsonStringLiteral(path),
+        "}]}"
     ];
     return StringJoin(parts, "");
 }
@@ -79,9 +81,9 @@ func AirGraphValidatorJson(
     let json_parts: Array<String> = [
         "{\"schema\":\"pgy.selfhost.air-graph-validator.v1\",\"ok\":",
         ok_text,
-        ",\"source\":{\"input_schema\":\"pgy.air.graph.v1\",\"fixture_owner\":\"",
-        fixture_path,
-        "\"},\"counts\":{\"intents\":",
+        ",\"source\":{\"input_schema\":\"pgy.air.graph.v1\",\"fixture_owner\":",
+        JsonStringLiteral(fixture_path),
+        "},\"counts\":{\"intents\":",
         ToString(intents),
         ",\"boundaries\":",
         ToString(boundaries),

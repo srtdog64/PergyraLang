@@ -61,6 +61,8 @@ fi
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$PERGYRA_TOOL_SOURCE_DIR"/*.pgy "$PERGYRA_TOOL_BUILD_DIR"/
+mkdir -p "$PERGYRA_TOOL_BUILD_DIR/../../lib"
+cp "$ROOT_DIR/src/self_hosted/lib/json.pgy" "$PERGYRA_TOOL_BUILD_DIR/../../lib/json.pgy"
 PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
 
 set +e

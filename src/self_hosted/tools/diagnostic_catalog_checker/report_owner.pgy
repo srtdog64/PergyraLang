@@ -3,11 +3,19 @@
 // JSON schema owner for pgy.selfhost.diagnostic-catalog.v1. Source scanning
 // lives in scan_owner; this owner renders pre-extracted finding facts only.
 
+import "../../lib/json.pgy";
+
 func FindingJson(kind: String, code: String, location: String) -> String {
-    let s0: String = Concat("{\"kind\":\"", kind);
-    let s1: String = Concat(Concat(s0, "\",\"code\":\""), code);
-    let s2: String = Concat(Concat(s1, "\",\"location\":\""), location);
-    return Concat(s2, "\"}");
+    let parts: Array<String> = [
+        "{\"kind\":",
+        JsonStringLiteral(kind),
+        ",\"code\":",
+        JsonStringLiteral(code),
+        ",\"location\":",
+        JsonStringLiteral(location),
+        "}"
+    ];
+    return StringJoin(parts, "");
 }
 
 func AppendFinding(findings: String, entry: String) -> String {
@@ -41,10 +49,14 @@ func FindingsJsonFromFacts(facts: String) -> String {
 }
 
 func InputErrorJson(path: String) -> String {
-    let prefix: String = "{\"schema\":\"pgy.selfhost.diagnostic-catalog.v1\",\"ok\":false,\"source\":{\"code_owner\":\"src/semantic/diag_codes.h\",\"docs_owner\":\"docs/72_diagnostic_codes.md\"},\"counts\":{\"codes\":0,\"documented\":0,\"missing\":0,\"duplicates\":0,\"orphans\":0},\"findings\":[{\"kind\":\"input_error\",\"code\":\"";
-    let middle: String = "\",\"location\":\"";
-    let suffix: String = "\"}]}";
-    return Concat(Concat(Concat(Concat(prefix, path), middle), path), suffix);
+    let parts: Array<String> = [
+        "{\"schema\":\"pgy.selfhost.diagnostic-catalog.v1\",\"ok\":false,\"source\":{\"code_owner\":\"src/semantic/diag_codes.h\",\"docs_owner\":\"docs/72_diagnostic_codes.md\"},\"counts\":{\"codes\":0,\"documented\":0,\"missing\":0,\"duplicates\":0,\"orphans\":0},\"findings\":[{\"kind\":\"input_error\",\"code\":",
+        JsonStringLiteral(path),
+        ",\"location\":",
+        JsonStringLiteral(path),
+        "}]}"
+    ];
+    return StringJoin(parts, "");
 }
 
 func DiagnosticCatalogJson(codes: Int, documented: Int, missing: Int, duplicates: Int, orphans: Int, findings: String) -> String {
