@@ -250,7 +250,33 @@ build from the model; the other kinds still build from their own AST shapes
 (unchanged, row-616-sanctioned). That is correct, not a wart — the model owns
 the one shape L731 was about.
 
-### Remaining after the semantic reader side (F2-general, opt-in scope)
+### F2-general is a misdiagnosis (verified 2026-06-26)
+
+The ~30 "other field kind" sites are NOT instances of the L731 residue. Verified
+by reading them: `ast_*_shared_fields(...)` and `ast_zone_layer_slots(...)`
+return **opaque `ASTNode*`** elements, and every consumer reads them through
+**accessor functions** (`ast_zone_layer_slot_name(slot)`,
+`ast_zone_layer_slot_layer_type(slot)`, …) — never as a raw typed struct. The
+only `->` reads on those elements are AST node-type discriminants
+(`field->type != AST_PARTY_SHARED`). A repo-wide search for raw
+`SharedField *` / `ZoneLayerSlot *` / `RoleSlot *` pointers in `src/semantic`
+returns nothing.
+
+This is the structural opposite of the class-field case. L731's residue existed
+*because* `ast_class_fields(...)` returned `ClassField **` and consumers read the
+`ClassField` struct directly (`field->name`, `field->type`) — the shape leaked
+out of its owner. The other kinds never leaked a struct: their shape is owned by
+the `ast_*` accessor functions (the AST layer's sanctioned role per the docs/125
+AST layer contract — "AST owns raw parse structure"). Reading them through those
+accessors *is* consuming through the owner.
+
+So there is no F2-general residue to close. The MIR builder reading AST for the
+other kinds (and for class fields, before the Phase-4 slice) is likewise the
+*builder's* job — it is the owner that translates AST into `MIRDeclField`; an
+owner reading its source is not rediscovery. **F2's residue is closed; the
+suspected generalization does not exist.**
+
+### Genuinely remaining (F1-gated, not F2 residue)
 - **Phase 4** — the MIR builder (`mir_decl_header_fields.c`) still re-derives
   `MIRDeclField` from AST. Making it consume `PgyDeclField` would make the model
   the single owner for *both* semantic and codegen (today they derive the same
