@@ -223,17 +223,6 @@ func EmitReturn(rexpr: String, cur_fn_ret: String, env: String) -> String {
     return Concat("return ", Concat(IntEval(rexpr, env), ";"));
 }
 
-// Consume the line at cur[0], asserting its trimmed text equals `expected`.
-func ExpectText(texts: Array<String>, count: Int, inout cur: Array<Int>, expected: String) -> Void {
-    if cur[0] >= count {
-        Die(Concat("expected `", Concat(expected, "` but reached end of AST")));
-    }
-    if texts[cur[0]] != expected {
-        Die(Concat("expected `", Concat(expected, Concat("` but got: ", texts[cur[0]]))));
-    }
-    ArraySet(cur, 0, cur[0] + 1);
-}
-
 // Emit the C for a sequence of statements at AST indentation `stmt_indent`,
 // starting at line cur[0]. `pad` is the C indentation prefix. `env_box` carries
 // the mutable variable type environment; `cur_fn_ret` is the enclosing
@@ -299,7 +288,7 @@ func EmitStmtList(indents: Array<Int>, texts: Array<String>, count: Int,
             ArraySet(cur, 0, idx + 1);
         } else if t == "Defer:" {
             ArraySet(cur, 0, idx + 1);
-            ExpectText(texts, count, cur, "Block:");
+            CodegenAstTextExpect(texts, count, cur, "Block:");
             let defer_env: Array<String> = [env_box[0]];
             let body: String = EmitStmtList(indents, texts, count, stmt_indent + 4,
                 cur, pad, defer_env, cur_fn_ret, Concat(deferred, active_defers));
@@ -444,22 +433,22 @@ func EmitStmtList(indents: Array<Int>, texts: Array<String>, count: Int,
                 result = Concat(result, Concat(inner_pad, Concat(elem_c, Concat(" ", Concat(loop_var, Concat(" = ", Concat(get_fn, Concat("(", Concat(tc, Concat(", ", Concat(ti, ");\n")))))))))));
             }
             ArraySet(cur, 0, idx + 1);
-            ExpectText(texts, count, cur, "Block:");
+            CodegenAstTextExpect(texts, count, cur, "Block:");
             result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 4, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
             result = Concat(result, Concat(pad, "}\n"));
         } else if StartsWith(t, "While: ") {
             let cond: String = WrapCond(Substring(t, 7, StringLength(t) - 7), env_box[0]);
             result = Concat(result, Concat(pad, Concat("while ", Concat(cond, " {\n"))));
             ArraySet(cur, 0, idx + 1);
-            ExpectText(texts, count, cur, "Block:");
+            CodegenAstTextExpect(texts, count, cur, "Block:");
             result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 4, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
             result = Concat(result, Concat(pad, "}\n"));
         } else if StartsWith(t, "If: ") {
             let cond2: String = WrapCond(Substring(t, 4, StringLength(t) - 4), env_box[0]);
             result = Concat(result, Concat(pad, Concat("if ", Concat(cond2, " {\n"))));
             ArraySet(cur, 0, idx + 1);
-            ExpectText(texts, count, cur, "Then:");
-            ExpectText(texts, count, cur, "Block:");
+            CodegenAstTextExpect(texts, count, cur, "Then:");
+            CodegenAstTextExpect(texts, count, cur, "Block:");
             result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 6, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
             if cur[0] < count && texts[cur[0]] == "Else:" && indents[cur[0]] == stmt_indent + 2 {
                 ArraySet(cur, 0, cur[0] + 1);
@@ -471,7 +460,7 @@ func EmitStmtList(indents: Array<Int>, texts: Array<String>, count: Int,
                     result = Concat(result, EmitStmtList(indents, texts, count, indents[cur[0]], cur, pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
                 } else {
                     result = Concat(result, Concat(pad, "} else {\n"));
-                    ExpectText(texts, count, cur, "Block:");
+                    CodegenAstTextExpect(texts, count, cur, "Block:");
                     result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 6, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
                     result = Concat(result, Concat(pad, "}\n"));
                 }

@@ -74,7 +74,7 @@ func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
     let c_name: String = SymbolMangleCQualifiedName(owner_name, name);
     ArraySet(cur, 0, cur[0] + 1);
 
-    ExpectText(texts, count, cur, "Parameters:");
+    CodegenAstTextExpect(texts, count, cur, "Parameters:");
     let params: String = "";
     let param_n: Int = 0;
     let env_box: Array<String> = [base_env];
@@ -120,8 +120,8 @@ func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
     let ret_type: String = StringTrim(Substring(ret_line, 8, StringLength(ret_line) - 8));
     ArraySet(cur, 0, cur[0] + 1);
 
-    ExpectText(texts, count, cur, "Body:");
-    ExpectText(texts, count, cur, "Block:");
+    CodegenAstTextExpect(texts, count, cur, "Body:");
+    CodegenAstTextExpect(texts, count, cur, "Block:");
     let stmt_indent: Int = f_indent + 6;
     let is_main: Bool = name == "Main";
     // Main lowers to `int main`, so a bare `return` inside it must be `return 0;`

@@ -208,7 +208,8 @@ output and type resources. A new zone appears only when there is a new distinct
 resource, such as a mutable cross-backend symbol/name-mangling table. The
 current `input/ast_text_inventory_owner.pgy` is a read-only bridge owner for
 raw AST-text line splitting, indentation, blank-line filtering, and `[export]`
-normalization. It does not close the mixed AST-like tree owner; it only prevents
+normalization, plus cursor expectation diagnostics. It does not close the
+mixed AST-like tree owner; it only prevents
 emission participants from each recovering line inventory facts locally. The
 current `symbol_facts/symbol_mangle_owner.pgy` and
 `abi_layout/abi_layout_owner.pgy` owners are read-only: they centralize the
@@ -255,7 +256,7 @@ The long-term codegen shape is resource-first:
 | type bindings | `TypeEnvZone` / `type_facts/` | expression, statement, return, log routing | emitters consume type facts instead of re-inferring from source text |
 | symbol and mangle facts | `symbol_facts/symbol_mangle_owner.pgy` for self-host C subset; cross-backend owner still active | C, LLVM, and self-hosted emission | emitters consume canonical spelling facts; no owner/member string concatenation in local emission |
 | self-host C ABI type spelling | `abi_layout/abi_layout_owner.pgy` for self-host C subset; cross-backend row projection still active | self-hosted C emission | signature, local, and field declarations consume canonical C ABI type facts |
-| self-host AST-text line inventory | `input/ast_text_inventory_owner.pgy` for raw `pgy --ast` lines, indentation, blank filtering, and `[export]` normalization | self-hosted C emission | `program_emit` consumes a prepared line inventory instead of splitting or normalizing AST text locally |
+| self-host AST-text line inventory | `input/ast_text_inventory_owner.pgy` for raw `pgy --ast` lines, indentation, blank filtering, `[export]` normalization, and cursor expectations | self-hosted C emission | emitters consume prepared line inventory and cursor checks instead of splitting, normalizing, or asserting AST text locally |
 | self-host C collection runtime symbols | `runtime_abi/collection_runtime_owner.pgy` for `Array<Int>` / `Array<String>` helper calls | self-hosted C emission | expression/statement emitters consume canonical helper-name facts; generated helper definitions stay in one definition host |
 | self-host C math/random runtime symbols | `runtime_abi/math_runtime_owner.pgy` for `Abs` / `Min` / `Max` / `SeedRandom` / `Random` helper calls | self-hosted C emission | expression emitters consume canonical helper-name facts; generated helper definitions stay in one definition host |
 | self-host C host I/O runtime symbols | `runtime_abi/host_io_runtime_owner.pgy` for file, directory-walk, and `Args()` helper calls | self-hosted C emission | expression emitters consume canonical helper-name facts; generated helper definitions stay in one definition host |

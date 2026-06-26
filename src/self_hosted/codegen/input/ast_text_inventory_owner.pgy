@@ -33,3 +33,13 @@ func CodegenAstTextInventory(ast: String, inout indents: Array<Int>, inout texts
         pos = nl + 1;
     }
 }
+
+func CodegenAstTextExpect(texts: Array<String>, count: Int, inout cur: Array<Int>, expected: String) -> Void {
+    if cur[0] >= count {
+        Die(Concat("expected `", Concat(expected, "` but reached end of AST")));
+    }
+    if texts[cur[0]] != expected {
+        Die(Concat("expected `", Concat(expected, Concat("` but got: ", texts[cur[0]]))));
+    }
+    ArraySet(cur, 0, cur[0] + 1);
+}

@@ -1665,3 +1665,16 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   compiler-emitted AST text.
 - Added the AST text inventory owner to real-source semantic selfcheck, raising
   accepted self-host owner/source files to 81 on both C and LLVM.
+
+### 2026-06-26 -- Self-host AST text cursor expectations move behind input owner
+
+- Moved AST cursor expectation checks out of `stmt_emit.pgy` and into
+  `src/self_hosted/codegen/input/ast_text_inventory_owner.pgy` as
+  `CodegenAstTextExpect`.
+- Repointed function and statement emitters to consume that input owner. The
+  component contract now rejects a local `func ExpectText` in `stmt_emit.pgy`.
+- Probed typed AST-line records as the next target:
+  `Array<AstTextLine>` compiles on the C backend, but LLVM fail-closes on
+  `ArrayPush` with missing concrete `Array<T>` element/runtime metadata for a
+  nominal record element. The typed/tagged AST inventory remains blocked on a
+  record-array C/LLVM parity owner rather than being papered over in codegen.

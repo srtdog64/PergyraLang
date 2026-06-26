@@ -86,7 +86,7 @@ compiler-stage `.pgy` source to be listed here.
 
 - `src/self_hosted/codegen/main.pgy` -- entrypoint only.
 - `src/self_hosted/codegen/input/ast_input_owner.pgy` -- AST path and read boundary.
-- `src/self_hosted/codegen/input/ast_text_inventory_owner.pgy` -- AST text line inventory boundary.
+- `src/self_hosted/codegen/input/ast_text_inventory_owner.pgy` -- AST text line inventory and cursor expectation boundary.
 - `src/self_hosted/codegen/run/codegen_run_owner.pgy` -- codegen CLI run boundary.
 - `src/self_hosted/codegen/text/text_owner.pgy` -- text/token scanning primitives.
 - `src/self_hosted/codegen/text/expr_scan.pgy` -- expression text scanning.
