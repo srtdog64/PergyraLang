@@ -409,6 +409,9 @@ The realistic incremental path toward genuine self-host:
    value-passed `Int` / `Bool` / `Float` / `String` field structs plus nested struct-valued fields with
    literals/member reads/params/returns,
    and `Array<Int>` parameter/return flow.
+   `lib/json.pgy` now owns the first document-level schema and numeric-field
+   readers consumed by the AIR graph JSON validator, in addition to the shared
+   JSON string/field/object/array emission helpers.
    Round-trip C-emit-by-Pergyra -> gcc -> run -> stdout matches the C/LLVM oracle
    on 59 committed fixtures, with the emitter built through both backends. Next
    rungs: string freeing / block scoping, broader nested AST-node shapes, then round-trip

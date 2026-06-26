@@ -86,6 +86,16 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-27 -- JSON schema reader first consumer
+
+- Moved the AIR graph JSON validator's schema check and integer summary field
+  reads behind `src/self_hosted/lib/json.pgy`.
+- Added component-contract ratchets so the validator cannot return to a raw
+  `"schema":"pgy.air.graph.v1"` substring check.
+- This advances the stable JSON owner but does not close it: object/array
+  iteration and all self-host report schemas still need to consume one
+  structured writer/reader owner.
+
 ### 2026-06-26 -- Target capability envelope enters compiler world
 
 - Added `src/self_hosted/compiler/target_capability_owner.pgy` as the

@@ -159,6 +159,10 @@ require_max_lines "src/self_hosted/lib/json.pgy" 600
 require_text "src/self_hosted/lib/json.pgy" "func ReadJsonString"
 require_text "src/self_hosted/lib/json.pgy" "func JsonFieldString"
 require_text "src/self_hosted/lib/json.pgy" "func JsonFieldNumber"
+require_text "src/self_hosted/lib/json.pgy" "func JsonFieldKey"
+require_text "src/self_hosted/lib/json.pgy" "func JsonDocumentObjectEnd"
+require_text "src/self_hosted/lib/json.pgy" "func JsonDocumentStringFieldEquals"
+require_text "src/self_hosted/lib/json.pgy" "func JsonDocumentNumberField"
 require_text "src/self_hosted/lib/json.pgy" "func JsonFirstArrayString"
 require_text "src/self_hosted/lib/json.pgy" "func JsonEscapeString"
 require_text "src/self_hosted/lib/json.pgy" "func JsonStringLiteral"
@@ -587,6 +591,10 @@ require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy"
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" "JsonStringLiteral(path)"
 require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" "JsonStringLiteral(fixture_path)"
+require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'import "../../lib/json.pgy";'
+require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonDocumentStringFieldEquals(content, \"schema\", \"pgy.air.graph.v1\")"
+require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonDocumentNumberField(content, field)"
+reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'StringContains(content, "\"schema\":\"pgy.air.graph.v1\"")'
 require_text "src/self_hosted/tools/production_c_size_checker/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/production_c_size_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/production_c_size_checker/main.pgy" "JsonEmitArray(findings)"

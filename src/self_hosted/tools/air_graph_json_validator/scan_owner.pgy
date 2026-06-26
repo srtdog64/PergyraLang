@@ -4,33 +4,13 @@
 // from committed AIR graph fixtures. It does not own the output JSON schema or
 // filesystem/exit policy.
 
+import "../../lib/json.pgy";
+
 func ExtractIntField(content: String, field: String) -> Int {
-    let key: String = Concat(Concat("\"", field), "\":");
-    let key_idx: Int = StringIndexOf(content, key);
-    if key_idx < 0 {
+    let num_str: String = JsonDocumentNumberField(content, field);
+    if StringLength(num_str) == 0 {
         return -1;
     }
-    let value_start: Int = key_idx + StringLength(key);
-    let rest_len: Int = StringLength(content) - value_start;
-    if rest_len <= 0 {
-        return -1;
-    }
-    let rest: String = Substring(content, value_start, rest_len);
-    let comma_idx: Int = StringIndexOf(rest, ",");
-    let brace_idx: Int = StringIndexOf(rest, "}");
-    let stop: Int = -1;
-    if comma_idx >= 0 {
-        stop = comma_idx;
-    }
-    if brace_idx >= 0 {
-        if stop < 0 || brace_idx < stop {
-            stop = brace_idx;
-        }
-    }
-    if stop <= 0 {
-        return -1;
-    }
-    let num_str: String = Substring(rest, 0, stop);
     return ToInt(num_str);
 }
 
@@ -59,28 +39,28 @@ func CountSubstring(content: String, needle: String) -> Int {
 
 func RequiredKeys() -> Array<String> {
     let keys: Array<String> = [
-        "\"schema\":",
-        "\"capabilities\":",
-        "\"effects_by_op\":",
-        "\"summary\":",
-        "\"intents\":",
-        "\"boundaries\":",
-        "\"evidence\":",
-        "\"drifts\":",
-        "\"compression_budget\":",
-        "\"compression_reason\":"
+        JsonFieldKey("schema"),
+        JsonFieldKey("capabilities"),
+        JsonFieldKey("effects_by_op"),
+        JsonFieldKey("summary"),
+        JsonFieldKey("intents"),
+        JsonFieldKey("boundaries"),
+        JsonFieldKey("evidence"),
+        JsonFieldKey("drifts"),
+        JsonFieldKey("compression_budget"),
+        JsonFieldKey("compression_reason")
     ];
     return keys;
 }
 
 func RequiredCapabilityTraceKeys() -> Array<String> {
     let keys: Array<String> = [
-        "\"schema\":",
-        "\"capabilities\":",
-        "\"effects_by_op\":",
-        "\"summary\":",
-        "\"evidence\":",
-        "\"drifts\":"
+        JsonFieldKey("schema"),
+        JsonFieldKey("capabilities"),
+        JsonFieldKey("effects_by_op"),
+        JsonFieldKey("summary"),
+        JsonFieldKey("evidence"),
+        JsonFieldKey("drifts")
     ];
     return keys;
 }
@@ -131,7 +111,7 @@ func BuildMissingKeyFindingFacts(content: String, keys: Array<String>, location:
 }
 
 func HasExpectedSchema(content: String) -> Bool {
-    return StringContains(content, "\"schema\":\"pgy.air.graph.v1\"");
+    return JsonDocumentStringFieldEquals(content, "schema", "pgy.air.graph.v1");
 }
 
 func CountEffectSites(content: String, cap_content: String) -> Int {

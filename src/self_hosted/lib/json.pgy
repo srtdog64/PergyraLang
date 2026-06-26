@@ -140,6 +140,38 @@ func JsonFieldString(json: String, start: Int, end: Int, key: String) -> String 
     return ReadJsonString(json, vstart, e);
 }
 
+func JsonFieldKey(field: String) -> String {
+    return Concat(Concat("\"", field), "\":");
+}
+
+func JsonDocumentObjectEnd(json: String) -> Int {
+    let n: Int = StringLength(json);
+    if n <= 0 {
+        return -1;
+    }
+    if CharAt(json, 0) != "{" {
+        return -1;
+    }
+    return JsonObjectEnd(json, 0, n);
+}
+
+func JsonDocumentStringFieldEquals(json: String, field: String, expected: String) -> Bool {
+    let end: Int = JsonDocumentObjectEnd(json);
+    if end <= 0 {
+        return false;
+    }
+    let actual: String = JsonFieldString(json, 0, end, JsonFieldKey(field));
+    return actual == expected;
+}
+
+func JsonDocumentNumberField(json: String, field: String) -> String {
+    let end: Int = JsonDocumentObjectEnd(json);
+    if end <= 0 {
+        return "";
+    }
+    return JsonFieldNumber(json, 0, end, JsonFieldKey(field));
+}
+
 func JsonIsDigitChar(c: String) -> Bool {
     return c == "0" || c == "1" || c == "2" || c == "3" || c == "4"
         || c == "5" || c == "6" || c == "7" || c == "8" || c == "9";
