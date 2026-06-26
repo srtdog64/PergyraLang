@@ -1724,6 +1724,21 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   dispatch no longer index the projected `texts` / `indents` arrays.
 - Tightened `self_hosted_component_contract_smoke` so `program_emit.pgy` cannot
   reintroduce direct `texts[...]` or `indents[...]` reads.
-- The legacy projection remains for collector, function, and statement
-  emitters. This narrows the bridge boundary but does not claim full tagged AST
+- At that point, the legacy projection still remained for collector, function,
+  and statement emitters. This narrowed the bridge boundary but did not claim
+  full tagged AST ownership.
+
+### 2026-06-26 -- Declaration collector prepasses consume typed AST nodes
+
+- Repointed the program-scope prepasses in
+  `src/self_hosted/codegen/emission/function_emit.pgy` to consume
+  `Array<CodegenAstTextNode>` directly: `BuildFunctionEnv`,
+  `CollectRoleOperators`, `CollectStructs`, `CollectEnums`, and
+  `CollectProtos`.
+- Updated `GenerateC` to pass the typed node inventory into those prepasses
+  instead of the projected `indents` / `texts` arrays.
+- Tightened `self_hosted_component_contract_smoke` so those prepass signatures
+  cannot regress to `indents` / `texts` inputs.
+- The legacy projection remains only for function body and statement emission.
+  This continues the text-bridge burn-down without claiming full tagged AST
   ownership.

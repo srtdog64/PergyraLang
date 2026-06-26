@@ -49,10 +49,10 @@ func GenerateC(ast: String) -> String {
         Die("no function found in AST");
     }
     let f_indent: Int = nodes[first_fn].indent;
-    let env_acc: Array<String> = [BuildFunctionEnv(indents, texts, count)];
-    let enum_block: String = CollectEnums(indents, texts, count, env_acc);
-    let typedef_block: String = CollectStructs(indents, texts, count, env_acc);
-    CollectRoleOperators(indents, texts, count, env_acc);
+    let env_acc: Array<String> = [BuildFunctionEnv(nodes, count)];
+    let enum_block: String = CollectEnums(nodes, count, env_acc);
+    let typedef_block: String = CollectStructs(nodes, count, env_acc);
+    CollectRoleOperators(nodes, count, env_acc);
     let base_env: String = env_acc[0];
     let uses_args: Bool = StringIndexOf(ast, "Args(") >= 0;
 
@@ -102,7 +102,7 @@ func GenerateC(ast: String) -> String {
     }
 
     // Forward declarations come from a GenerateC-scope pre-pass.
-    let proto_block: String = CollectProtos(indents, texts, count, base_env);
+    let proto_block: String = CollectProtos(nodes, count, base_env);
 
     // String programs need the runtime string helpers; bool programs need
     // <stdbool.h>; array programs need the growable-array structs + stdlib;

@@ -99,8 +99,9 @@ The tool reads one AST text path from `Args()[0]`, with the no-argument
 path selection, the missing-file diagnostic, and the file-read boundary.
 `input/ast_text_inventory_owner.pgy` owns raw AST-text line splitting, typed
 `CodegenAstTextNode` inventory, indent counting, blank-line filtering,
-`[export]` line normalization, program-level declaration routing facts, legacy
-projection, and cursor expectation checks.
+`[export]` line normalization, program-level declaration routing facts,
+declaration collector prepass facts, legacy projection, and cursor expectation
+checks.
 `GenerateC` consumes that inventory and must not recover those facts locally.
 This is a transitional text bridge; the mixed AST-like tagged-node owner remains
 an active expansion surface.

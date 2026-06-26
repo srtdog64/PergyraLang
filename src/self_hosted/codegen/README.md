@@ -144,10 +144,10 @@ no-argument `hello_ast.txt` fixture), the missing-file diagnostic, and the
 `ReadFile` boundary. `input/ast_text_inventory_owner.pgy` owns the transitional
 AST-text line inventory consumed by `GenerateC`: raw line splitting, typed
 `CodegenAstTextNode` inventory, leading indent counting, empty-line removal,
-`[export]` line normalization, program-level declaration routing facts, legacy
-projection, and cursor expectation diagnostics live there, not in emission
-participants. This is a compatibility bridge, not the final typed/tagged AST
-owner. `run/codegen_run_owner.pgy` owns the CLI-to-output
+`[export]` line normalization, program-level declaration routing facts,
+declaration collector prepass facts, legacy projection, and cursor expectation
+diagnostics live there, not in emission participants. This is a compatibility
+bridge, not the final typed/tagged AST owner. `run/codegen_run_owner.pgy` owns the CLI-to-output
 orchestration that wires that owned AST text into `GenerateC`; `main.pgy` only
 calls the run owner. `emission/struct_value_emit.pgy` owns struct-valued
 expression lowering used by `let`, assignment, and return paths;
