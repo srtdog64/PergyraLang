@@ -86,6 +86,15 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-27 -- Module manifest report consumes JSON owner
+
+- Repointed `module_manifest_resolver` report emission from manual
+  `json_parts` assembly to `src/self_hosted/lib/json.pgy`.
+- Added `JsonDocumentHasField(...)` and made the missing-`modules` check consume
+  that owner instead of a raw `"modules":` substring probe.
+- Added component-contract ratchets requiring JSON owner use and rejecting the
+  old raw field check.
+
 ### 2026-06-27 -- Stable subset report consumes JSON owner
 
 - Repointed `stable_subset_section_checker` report emission from manual

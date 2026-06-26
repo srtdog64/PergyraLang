@@ -164,6 +164,16 @@ func JsonDocumentStringFieldEquals(json: String, field: String, expected: String
     return actual == expected;
 }
 
+func JsonDocumentHasField(json: String, field: String) -> Bool {
+    let end: Int = JsonDocumentObjectEnd(json);
+    if end <= 0 {
+        return false;
+    }
+    let key: String = JsonFieldKey(field);
+    let p: Int = FindFrom(json, key, 0);
+    return p >= 0 && p < end;
+}
+
 func JsonDocumentNumberField(json: String, field: String) -> String {
     let end: Int = JsonDocumentObjectEnd(json);
     if end <= 0 {

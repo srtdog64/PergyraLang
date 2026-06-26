@@ -162,6 +162,7 @@ require_text "src/self_hosted/lib/json.pgy" "func JsonFieldNumber"
 require_text "src/self_hosted/lib/json.pgy" "func JsonFieldKey"
 require_text "src/self_hosted/lib/json.pgy" "func JsonDocumentObjectEnd"
 require_text "src/self_hosted/lib/json.pgy" "func JsonDocumentStringFieldEquals"
+require_text "src/self_hosted/lib/json.pgy" "func JsonDocumentHasField"
 require_text "src/self_hosted/lib/json.pgy" "func JsonDocumentNumberField"
 require_text "src/self_hosted/lib/json.pgy" "func JsonFirstArrayString"
 require_text "src/self_hosted/lib/json.pgy" "func JsonEscapeString"
@@ -608,6 +609,12 @@ require_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" "Jso
 require_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" "JsonEmitArray(pieces)"
 reject_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" 'let json_parts: Array<String>'
 require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/json.pgy"'
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'import "../../lib/json.pgy";'
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonDocumentHasField(content, \"modules\")"
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonEmitObject(report_fields)"
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonEmitArray(findings)"
+reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'let json_parts: Array<String>'
+reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'StringContains(content, "\"modules\":")'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/source_bundle_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/body_check_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/call_check_owner.pgy"'
