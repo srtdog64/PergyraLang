@@ -2102,6 +2102,7 @@ self-host-preparation-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/self_hosted_component_contract_smoke.sh
 	"$(BASH)" tests/self_host_substrate_contract_smoke.sh
 	"$(BASH)" tests/self_host_hard_contract_smoke.sh
+	"$(BASH)" tests/self_host_pergyra_likeness_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_host_compiler_world_contract_smoke.sh
 	PGY_FILESYSTEM_WALK_BACKENDS="$${PGY_FILESYSTEM_WALK_BACKENDS:-$(FILESYSTEM_WALK_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/filesystem_directory_walk_smoke.sh
@@ -2210,6 +2211,9 @@ self-host-substrate-contract-test-smoke:
 
 self-host-hard-contract-test-smoke:
 	"$(BASH)" tests/self_host_hard_contract_smoke.sh
+
+self-host-pergyra-likeness-test-smoke:
+	"$(BASH)" tests/self_host_pergyra_likeness_smoke.sh
 
 self-host-compiler-world-contract-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_host_compiler_world_contract_smoke.sh
