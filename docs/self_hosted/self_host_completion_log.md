@@ -1714,3 +1714,16 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   record-array blocker and turns the raw line bridge into a typed owner surface;
   full closure still requires function/statement emitters to consume typed or
   tagged AST data instead of projected text lines.
+
+### 2026-06-26 -- Program emit routes top-level declarations through typed nodes
+
+- Repointed `src/self_hosted/codegen/emission/program_emit.pgy` so
+  program-level declaration routing consumes `CodegenAstTextNode` directly:
+  `Main` counting, event rejection, first-function indentation, zero-artifact
+  skipping, nominal owner dispatch, role owner dispatch, and top-level function
+  dispatch no longer index the projected `texts` / `indents` arrays.
+- Tightened `self_hosted_component_contract_smoke` so `program_emit.pgy` cannot
+  reintroduce direct `texts[...]` or `indents[...]` reads.
+- The legacy projection remains for collector, function, and statement
+  emitters. This narrows the bridge boundary but does not claim full tagged AST
+  ownership.

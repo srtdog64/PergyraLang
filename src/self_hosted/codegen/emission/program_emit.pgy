@@ -17,15 +17,16 @@ func GenerateC(ast: String) -> String {
     let main_count: Int = 0;
     let main_scan: Int = 0;
     while main_scan < count {
+        let main_line: String = nodes[main_scan].text;
         // `event` declarations have no handler/dispatch model in this codegen.
         // Reject them with an observable CODEGEN ERROR rather than silently
         // dropping the declaration and emitting a call to an undefined symbol
         // (which would be unobservable broken C -- a no-op fake would be worse,
         // masking real event dispatch in programs that register handlers).
-        if StartsWith(texts[main_scan], "Event:") {
-            Die(Concat("event declarations are not supported (no handler/dispatch model): ", texts[main_scan]));
+        if StartsWith(main_line, "Event:") {
+            Die(Concat("event declarations are not supported (no handler/dispatch model): ", main_line));
         }
-        if texts[main_scan] == "Function: Main" {
+        if main_line == "Function: Main" {
             main_count = main_count + 1;
         }
         main_scan = main_scan + 1;
@@ -37,7 +38,7 @@ func GenerateC(ast: String) -> String {
     let first_fn: Int = -1;
     let scan: Int = 0;
     while scan < count {
-        if texts[scan] == "Function: Main" {
+        if nodes[scan].text == "Function: Main" {
             first_fn = scan;
             scan = count;
         } else {
@@ -47,7 +48,7 @@ func GenerateC(ast: String) -> String {
     if first_fn < 0 {
         Die("no function found in AST");
     }
-    let f_indent: Int = indents[first_fn];
+    let f_indent: Int = nodes[first_fn].indent;
     let env_acc: Array<String> = [BuildFunctionEnv(indents, texts, count)];
     let enum_block: String = CollectEnums(indents, texts, count, env_acc);
     let typedef_block: String = CollectStructs(indents, texts, count, env_acc);
@@ -58,39 +59,41 @@ func GenerateC(ast: String) -> String {
     let defs: String = "";
     let cur: Array<Int> = [0];
     while cur[0] < count {
-        if IsZeroArtifactDeclLine(texts[cur[0]]) {
-            let decl_indent: Int = indents[cur[0]];
+        let cur_line: String = nodes[cur[0]].text;
+        let cur_indent: Int = nodes[cur[0]].indent;
+        if IsZeroArtifactDeclLine(cur_line) {
+            let decl_indent: Int = cur_indent;
             ArraySet(cur, 0, cur[0] + 1);
-            while cur[0] < count && indents[cur[0]] > decl_indent {
+            while cur[0] < count && nodes[cur[0]].indent > decl_indent {
                 ArraySet(cur, 0, cur[0] + 1);
             }
-        } else if IsNominalDeclLine(texts[cur[0]]) {
-            let owner_name: String = NominalDeclName(texts[cur[0]]);
-            let owner_indent: Int = indents[cur[0]];
+        } else if IsNominalDeclLine(cur_line) {
+            let owner_name: String = NominalDeclName(cur_line);
+            let owner_indent: Int = cur_indent;
             ArraySet(cur, 0, cur[0] + 1);
-            while cur[0] < count && indents[cur[0]] > owner_indent {
-                if StartsWith(texts[cur[0]], "Function:") {
-                    let method_indent: Int = indents[cur[0]];
+            while cur[0] < count && nodes[cur[0]].indent > owner_indent {
+                if StartsWith(nodes[cur[0]].text, "Function:") {
+                    let method_indent: Int = nodes[cur[0]].indent;
                     let mdef: String = EmitFunction(indents, texts, count, cur, method_indent, base_env, uses_args, owner_name);
                     defs = Concat(defs, Concat(mdef, "\n"));
                 } else {
                     ArraySet(cur, 0, cur[0] + 1);
                 }
             }
-        } else if IsRoleDeclLine(texts[cur[0]]) {
-            let role_owner_name: String = RoleDeclName(texts[cur[0]]);
-            let role_owner_indent: Int = indents[cur[0]];
+        } else if IsRoleDeclLine(cur_line) {
+            let role_owner_name: String = RoleDeclName(cur_line);
+            let role_owner_indent: Int = cur_indent;
             ArraySet(cur, 0, cur[0] + 1);
-            while cur[0] < count && indents[cur[0]] > role_owner_indent {
-                if StartsWith(texts[cur[0]], "Function:") {
-                    let role_method_indent: Int = indents[cur[0]];
+            while cur[0] < count && nodes[cur[0]].indent > role_owner_indent {
+                if StartsWith(nodes[cur[0]].text, "Function:") {
+                    let role_method_indent: Int = nodes[cur[0]].indent;
                     let role_mdef: String = EmitFunction(indents, texts, count, cur, role_method_indent, base_env, uses_args, role_owner_name);
                     defs = Concat(defs, Concat(role_mdef, "\n"));
                 } else {
                     ArraySet(cur, 0, cur[0] + 1);
                 }
             }
-        } else if StartsWith(texts[cur[0]], "Function:") && indents[cur[0]] == f_indent {
+        } else if StartsWith(cur_line, "Function:") && cur_indent == f_indent {
             let def: String = EmitFunction(indents, texts, count, cur, f_indent, base_env, uses_args, "");
             defs = Concat(defs, Concat(def, "\n"));
         } else {
