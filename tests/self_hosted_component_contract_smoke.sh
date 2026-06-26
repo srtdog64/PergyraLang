@@ -162,6 +162,12 @@ require_text "src/self_hosted/lib/json.pgy" "func JsonFieldNumber"
 require_text "src/self_hosted/lib/json.pgy" "func JsonFirstArrayString"
 require_text "src/self_hosted/lib/json.pgy" "func JsonEscapeString"
 require_text "src/self_hosted/lib/json.pgy" "func JsonStringLiteral"
+require_text "src/self_hosted/lib/json.pgy" "func JsonEmitObject"
+require_text "src/self_hosted/lib/json.pgy" "func JsonEmitArray"
+require_text "src/self_hosted/lib/json.pgy" "func JsonEmitFieldRaw"
+require_text "src/self_hosted/lib/json.pgy" "func JsonEmitFieldString"
+require_text "src/self_hosted/lib/json.pgy" "func JsonEmitFieldNumber"
+require_text "src/self_hosted/lib/json.pgy" "func JsonEmitFieldBool"
 
 for stage in lexer parser semantic codegen; do
     require_dir "src/self_hosted/$stage"
@@ -575,6 +581,14 @@ require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy"
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" "JsonStringLiteral(path)"
 require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" "JsonStringLiteral(fixture_path)"
+require_text "src/self_hosted/tools/production_c_size_checker/main.pgy" 'import "../../lib/json.pgy";'
+require_text "src/self_hosted/tools/production_c_size_checker/main.pgy" "JsonEmitObject(report_fields)"
+require_text "src/self_hosted/tools/production_c_size_checker/main.pgy" "JsonEmitArray(findings)"
+reject_text "src/self_hosted/tools/production_c_size_checker/main.pgy" 'let json_parts: Array<String>'
+require_text "src/self_hosted/tools/production_header_size_checker/main.pgy" 'import "../../lib/json.pgy";'
+require_text "src/self_hosted/tools/production_header_size_checker/main.pgy" "JsonEmitObject(report_fields)"
+require_text "src/self_hosted/tools/production_header_size_checker/main.pgy" "JsonEmitArray(findings)"
+reject_text "src/self_hosted/tools/production_header_size_checker/main.pgy" 'let json_parts: Array<String>'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/source_bundle_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/body_check_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/call_check_owner.pgy"'

@@ -1792,6 +1792,21 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   object/array iteration, and a structured JSON writer are still owned by
   individual report owners.
 
+### 2026-06-26 -- JSON object emission gets first shared consumers
+
+- Promoted JSON field, object, and array emission into
+  `src/self_hosted/lib/json.pgy` via `JsonEmitField*`, `JsonEmitObject`, and
+  `JsonEmitArray`.
+- Repointed `production_c_size_checker` and
+  `production_header_size_checker` to build report objects and findings
+  through that JSON owner instead of local `json_parts` arrays.
+- Tightened `self_hosted_component_contract_smoke` so both production size
+  checkers must import the JSON owner and cannot return to local report object
+  string assembly.
+- The Stable JSON parse/emit blocker remains active: schema-specific report
+  object decisions, object/array iteration, and remaining report emitters still
+  need to converge on the same owner.
+
 ### 2026-06-26 -- Parameter-mode facts and typed-node arrays close the codegen bootstrap gap
 
 - Found a real self-host SoT bug: `pgy --ast` dropped parameter mode, so an

@@ -165,10 +165,10 @@ C/LLVM/Pergyra parity bundle.
   dirname, absolute-path detection, joining, and `./` / `../` import-relative
   normalization. Runtime file-access authorization still belongs to the native
   runtime IO path resolver.
-  `lib/json.pgy` owns bounded JSON string-read primitives and JSON string
-  escaping/literal emission for fact-shaped tools; schema-specific object
-  decisions stay with the consuming owner until a full JSON parse/emit owner
-  lands.
+  `lib/json.pgy` owns bounded JSON string-read primitives plus JSON string,
+  field, object, and array emission for fact-shaped tools; schema-specific
+  object decisions and full object/array iteration stay with the consuming
+  owner until a full JSON parse/emit owner lands.
   `make self-host-preparation-test-smoke` now runs every parity script, not just
   the scaffold check. This is dogfood evidence only; the compiler core remains C.
 - **2026-05-28** -- first compiler-internal substitution candidates land as

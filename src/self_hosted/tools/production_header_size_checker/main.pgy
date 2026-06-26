@@ -12,19 +12,17 @@
 //
 // Contract: see intent.md in the same directory.
 
+import "../../lib/json.pgy";
 import "../../lib/text_scan.pgy";
 
 func OverCapFinding(path: String, lines: Int) -> String {
-    let parts: Array<String> = [
-        "{\"kind\":\"header_over_cap\",\"path\":\"",
-        path,
-        "\",\"lines\":",
-        ToString(lines),
-        ",\"location\":\"",
-        path,
-        "\"}"
+    let fields: Array<String> = [
+        JsonEmitFieldString("kind", "header_over_cap"),
+        JsonEmitFieldString("path", path),
+        JsonEmitFieldNumber("lines", ToString(lines)),
+        JsonEmitFieldString("location", path)
     ];
-    return StringJoin(parts, "");
+    return JsonEmitObject(fields);
 }
 
 func StartsWith(text: String, prefix: String) -> Bool {
@@ -89,29 +87,24 @@ func Main() -> Void {
         i = i + 1;
     }
 
-    let ok_text: String = "true";
-    if violations > 0 {
-        ok_text = "false";
-    }
-
-    let json_parts: Array<String> = [
-        "{\"schema\":\"pgy.selfhost.production-header-size.v1\",\"ok\":",
-        ok_text,
-        ",\"source\":{\"dirwalk_owner\":\"",
-        dirwalk_owner,
-        "\",\"filter\":\"production_header_smoke_scope\",\"cap_lines\":",
-        ToString(cap),
-        "},\"counts\":{\"headers\":",
-        ToString(headers),
-        ",\"violations\":",
-        ToString(violations),
-        ",\"max_lines\":",
-        ToString(max_lines),
-        "},\"findings\":[",
-        StringJoin(findings, ","),
-        "]}"
+    let source_fields: Array<String> = [
+        JsonEmitFieldString("dirwalk_owner", dirwalk_owner),
+        JsonEmitFieldString("filter", "production_header_smoke_scope"),
+        JsonEmitFieldNumber("cap_lines", ToString(cap))
     ];
-    Log(StringJoin(json_parts, ""));
+    let counts_fields: Array<String> = [
+        JsonEmitFieldNumber("headers", ToString(headers)),
+        JsonEmitFieldNumber("violations", ToString(violations)),
+        JsonEmitFieldNumber("max_lines", ToString(max_lines))
+    ];
+    let report_fields: Array<String> = [
+        JsonEmitFieldString("schema", "pgy.selfhost.production-header-size.v1"),
+        JsonEmitFieldBool("ok", violations == 0),
+        JsonEmitFieldRaw("source", JsonEmitObject(source_fields)),
+        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ];
+    Log(JsonEmitObject(report_fields));
 
     if violations > 0 {
         Exit(1);

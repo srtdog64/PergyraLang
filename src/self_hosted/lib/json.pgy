@@ -1,9 +1,9 @@
-// Shared JSON string-scan and string-emit primitives for self-hosted tools.
+// Shared JSON string-scan and emit primitives for self-hosted tools.
 //
-// This is not a full JSON DOM. It owns bounded read primitives and JSON string
-// escaping/literal emission used by fact-shaped tools so each stage does not
-// invent its own string scanning or quoting rules. Schema-specific object shape
-// decisions still belong to the consuming owner.
+// This is not a full JSON DOM. It owns bounded read primitives plus JSON
+// string, field, object, and array emission used by fact-shaped tools so each
+// stage does not invent its own string scanning or quoting rules.
+// Schema-specific object shape decisions still belong to the consuming owner.
 
 func CharAt(s: String, i: Int) -> String {
     return Substring(s, i, 1);
@@ -171,6 +171,34 @@ func JsonEscapeString(value: String) -> String {
 
 func JsonStringLiteral(value: String) -> String {
     return Concat("\"", Concat(JsonEscapeString(value), "\""));
+}
+
+func JsonEmitObject(fields: Array<String>) -> String {
+    return Concat("{", Concat(StringJoin(fields, ","), "}"));
+}
+
+func JsonEmitArray(items: Array<String>) -> String {
+    return Concat("[", Concat(StringJoin(items, ","), "]"));
+}
+
+func JsonEmitFieldRaw(key: String, raw_value: String) -> String {
+    return Concat(JsonStringLiteral(key), Concat(":", raw_value));
+}
+
+func JsonEmitFieldString(key: String, value: String) -> String {
+    return JsonEmitFieldRaw(key, JsonStringLiteral(value));
+}
+
+func JsonEmitFieldNumber(key: String, value: String) -> String {
+    return JsonEmitFieldRaw(key, value);
+}
+
+func JsonEmitFieldBool(key: String, value: Bool) -> String {
+    let raw: String = "false";
+    if value {
+        raw = "true";
+    }
+    return JsonEmitFieldRaw(key, raw);
 }
 
 func JsonFieldNumber(json: String, start: Int, end: Int, key: String) -> String {
