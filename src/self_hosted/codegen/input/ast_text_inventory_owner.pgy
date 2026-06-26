@@ -1,9 +1,16 @@
 // src/self_hosted/codegen/input/ast_text_inventory_owner.pgy
 //
 // Owns the AST-text line inventory consumed by the self-host C emitter.
-// This is still a text bridge, not the final tagged AST owner.
+// This is still a text bridge, not the final tagged AST owner. The bridge now
+// carries a typed node record so downstream owners can migrate one consumer at a
+// time instead of re-pairing parallel text/indent arrays.
 
 import "../text/text_owner.pgy";
+
+struct CodegenAstTextNode {
+    let indent: Int;
+    let text: String;
+}
 
 func CodegenAstTextIndentOf(raw: String) -> Int {
     let n: Int = StringLength(raw);
@@ -14,7 +21,7 @@ func CodegenAstTextIndentOf(raw: String) -> Int {
     return i;
 }
 
-func CodegenAstTextInventory(ast: String, inout indents: Array<Int>, inout texts: Array<String>) -> Void {
+func CodegenAstTextNodeInventory(ast: String, inout nodes: Array<CodegenAstTextNode>, inout count_box: Array<Int>) -> Void {
     let total: Int = StringLength(ast);
     let pos: Int = 0;
     while pos < total {
@@ -27,11 +34,27 @@ func CodegenAstTextInventory(ast: String, inout indents: Array<Int>, inout texts
             trimmed = Substring(trimmed, 9, StringLength(trimmed) - 9);
         }
         if StringLength(trimmed) > 0 {
-            ArrayPush(indents, CodegenAstTextIndentOf(raw_line));
-            ArrayPush(texts, trimmed);
+            ArrayPush(nodes, CodegenAstTextNode(CodegenAstTextIndentOf(raw_line), trimmed));
+            ArraySet(count_box, 0, count_box[0] + 1);
         }
         pos = nl + 1;
     }
+}
+
+func CodegenAstTextProjectLegacy(nodes: Array<CodegenAstTextNode>, count: Int, inout indents: Array<Int>, inout texts: Array<String>) -> Void {
+    let i: Int = 0;
+    while i < count {
+        ArrayPush(indents, nodes[i].indent);
+        ArrayPush(texts, nodes[i].text);
+        i = i + 1;
+    }
+}
+
+func CodegenAstTextInventory(ast: String, inout indents: Array<Int>, inout texts: Array<String>) -> Void {
+    let nodes: Array<CodegenAstTextNode> = [];
+    let count_box: Array<Int> = [0];
+    CodegenAstTextNodeInventory(ast, nodes, count_box);
+    CodegenAstTextProjectLegacy(nodes, count_box[0], indents, texts);
 }
 
 func CodegenAstTextExpect(texts: Array<String>, count: Int, inout cur: Array<Int>, expected: String) -> Void {

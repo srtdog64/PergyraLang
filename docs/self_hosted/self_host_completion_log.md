@@ -1695,3 +1695,22 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Scope is deliberately narrow. This opens typed-record array inventory for the
   next self-host slice; it does not claim nominal-record support for map,
   filter, sort, slice, or arbitrary collection algorithms.
+
+### 2026-06-26 -- Self-host AST text bridge gets typed node inventory
+
+- Added `CodegenAstTextNode` and `CodegenAstTextNodeInventory` to
+  `src/self_hosted/codegen/input/ast_text_inventory_owner.pgy`. The owner now
+  stores each bridge line as a typed record with `indent` and `text` rather
+  than treating the parallel `Array<Int>` / `Array<String>` pair as the first
+  owned form.
+- Repointed `program_emit.pgy` to consume typed nodes first, then project the
+  legacy `indents` / `texts` arrays for current function and statement
+  emitters. This is the first migration step enabled by nominal-record array
+  C/LLVM parity.
+- Tightened `self_hosted_component_contract_smoke` so `program_emit.pgy`
+  cannot return to direct `CodegenAstTextInventory(ast, indents, texts)`
+  consumption.
+- This does not close the mixed AST-like tree owner. It removes the immediate
+  record-array blocker and turns the raw line bridge into a typed owner surface;
+  full closure still requires function/statement emitters to consume typed or
+  tagged AST data instead of projected text lines.

@@ -5,11 +5,15 @@
 func GenerateC(ast: String) -> String {
     RejectUnsupportedCodegenBuiltins(ast);
 
+    let nodes: Array<CodegenAstTextNode> = [];
+    let node_count_box: Array<Int> = [0];
+    CodegenAstTextNodeInventory(ast, nodes, node_count_box);
+
     let indents: Array<Int> = [];
     let texts: Array<String> = [];
-    CodegenAstTextInventory(ast, indents, texts);
+    CodegenAstTextProjectLegacy(nodes, node_count_box[0], indents, texts);
 
-    let count: Int = ArrayLength(texts);
+    let count: Int = node_count_box[0];
     let main_count: Int = 0;
     let main_scan: Int = 0;
     while main_scan < count {
