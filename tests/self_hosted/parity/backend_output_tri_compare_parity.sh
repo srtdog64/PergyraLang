@@ -286,7 +286,9 @@ run_tri_case() {
     tri_root="$WORK_DIR/${case_name}_tri_root"
     tri_tool="$tri_root/src/self_hosted/tools/backend_output_comparator/main.pgy"
     mkdir -p "$(dirname "$tri_tool")"
+    mkdir -p "$tri_root/src/self_hosted/lib"
     cp "$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy" "$tri_tool"
+    cp "$ROOT_DIR/src/self_hosted/lib/json.pgy" "$tri_root/src/self_hosted/lib/json.pgy"
 
     run_pergyra_output_compare "$source_rel" "stdout" "$c_out" "$llvm_out" \
         "$tri_root" "$tri_tool"

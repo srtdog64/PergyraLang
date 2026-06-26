@@ -48,11 +48,14 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$FIXTURE_EXPECTED" "$F
 done
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
+mkdir -p "$PERGYRA_TOOL_BUILD_DIR/../../lib"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
+cp "$ROOT_DIR/src/self_hosted/lib/json.pgy" "$PERGYRA_TOOL_BUILD_DIR/../../lib/json.pgy"
+PERGYRA_TOOL_INPUT="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
 
 # Phase 1 - clean (match) fixture.
 set +e
-CLEAN_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL" --run 2>/dev/null)"
+CLEAN_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_INPUT" --run 2>/dev/null)"
 CLEAN_RC=$?
 set -e
 if [[ "$CLEAN_RC" -ne 0 ]]; then
@@ -61,6 +64,7 @@ if [[ "$CLEAN_RC" -ne 0 ]]; then
     exit 1
 fi
 CLEAN_JSON="$(printf '%s\n' "$CLEAN_OUT" \
+    | tr -d '\r' \
     | grep -F 'pgy.selfhost.backend-output-comparator.v1' \
     | tail -n 1)"
 EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"
@@ -73,7 +77,7 @@ fi
 
 LLVM_BACKEND_LABEL="llvm"
 LLVM_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/main_llvm.compile.log"
-if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")" --backend=llvm \
+if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_INPUT" --backend=llvm \
     -o "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_BUILD_DIR/main_llvm.exe")" \
     >"$LLVM_COMPILE_LOG" 2>&1); then
     if pgy_selfhost_log_reports_no_llvm "$LLVM_COMPILE_LOG"; then
@@ -87,6 +91,7 @@ if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
 else
     LLVM_CLEAN_OUT="$(cd "$ROOT_DIR" && "$PERGYRA_TOOL_BUILD_DIR/main_llvm.exe" 2>/dev/null)"
     LLVM_CLEAN_JSON="$(printf '%s\n' "$LLVM_CLEAN_OUT" \
+        | tr -d '\r' \
         | grep -F 'pgy.selfhost.backend-output-comparator.v1' \
         | tail -n 1)"
     if [[ "$LLVM_CLEAN_JSON" != "$EXPECTED_JSON" ]]; then
@@ -145,7 +150,7 @@ sed 's/gamma/GAMMA-DRIFT/' "$FIXTURE_ACTUAL" \
     > "$NEG_ROOT/src/self_hosted/tools/backend_output_comparator/fixture/actual.txt"
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL" --run 2>&1)"
+NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_INPUT" --run 2>&1)"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then
@@ -177,7 +182,7 @@ mkdir -p "$MISS_ROOT/.tmp"
 cp "$FIXTURE_EXPECTED" "$MISS_ROOT/src/self_hosted/tools/backend_output_comparator/fixture/expected.txt"
 
 set +e
-MISS_OUT="$(cd "$MISS_ROOT" && "$PGY" "$PERGYRA_TOOL" --run 2>&1)"
+MISS_OUT="$(cd "$MISS_ROOT" && "$PGY" "$PERGYRA_TOOL_INPUT" --run 2>&1)"
 MISS_RC=$?
 set -e
 if [[ "$MISS_RC" -ne 1 ]]; then

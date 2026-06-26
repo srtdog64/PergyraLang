@@ -614,6 +614,12 @@ require_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" "Jso
 require_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" "JsonEmitArray(pieces)"
 reject_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" 'let json_parts: Array<String>'
 require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/json.pgy"'
+require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'import "../../lib/json.pgy";'
+require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "JsonEmitObject(report_fields)"
+require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "JsonEmitArray(findings)"
+reject_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'let json_parts: Array<String>'
+require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/json.pgy"'
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/json.pgy"'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonFieldArrayBounds(content, 0, JsonDocumentObjectEnd(content), \"modules\", module_bounds)"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectCount(content, modules_open, modules_end)"

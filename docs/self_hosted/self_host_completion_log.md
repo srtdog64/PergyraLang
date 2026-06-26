@@ -86,6 +86,15 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-27 -- Backend comparator report consumes JSON owner
+
+- Repointed `backend_output_comparator` report emission from manual
+  `json_parts` assembly to `src/self_hosted/lib/json.pgy`.
+- Updated the comparator parity harness to mirror the JSON library into the
+  copied tool build directory, so C/LLVM parity checks the imported owner path.
+- Added component-contract ratchets requiring `JsonEmitObject(report_fields)`,
+  `JsonEmitArray(findings)`, and rejecting the old local `json_parts` report.
+
 ### 2026-06-27 -- Module manifest consumes JSON array-object traversal
 
 - Added bounded JSON array/object traversal primitives to

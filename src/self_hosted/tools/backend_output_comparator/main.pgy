@@ -13,31 +13,40 @@
 //
 // Contract: see intent.md in the same directory.
 
+import "../../lib/json.pgy";
+
 func MismatchFinding(kind: String, line_index: Int, location: String) -> String {
-    let parts: Array<String> = [
-        "{\"kind\":\"",
-        kind,
-        "\",\"line\":",
-        ToString(line_index),
-        ",\"location\":\"",
-        location,
-        "\"}"
+    let fields: Array<String> = [
+        JsonEmitFieldString("kind", kind),
+        JsonEmitFieldNumber("line", ToString(line_index)),
+        JsonEmitFieldString("location", location)
     ];
-    return StringJoin(parts, "");
+    return JsonEmitObject(fields);
 }
 
 func InputErrorJson(path: String) -> String {
-    let parts: Array<String> = [
-        "{\"schema\":\"pgy.selfhost.backend-output-comparator.v1\",\"ok\":false,",
-        "\"source\":{\"expected_owner\":\"src/self_hosted/tools/backend_output_comparator/fixture/expected.txt\",",
-        "\"actual_owner\":\"src/self_hosted/tools/backend_output_comparator/fixture/actual.txt\"},",
-        "\"counts\":{\"expected_lines\":0,\"actual_lines\":0,\"mismatch_lines\":0,",
-        "\"extra_actual_lines\":0,\"missing_actual_lines\":0},",
-        "\"findings\":[{\"kind\":\"input_error\",\"line\":0,\"location\":\"",
-        path,
-        "\"}]}"
+    let source_fields: Array<String> = [
+        JsonEmitFieldString("expected_owner", "src/self_hosted/tools/backend_output_comparator/fixture/expected.txt"),
+        JsonEmitFieldString("actual_owner", "src/self_hosted/tools/backend_output_comparator/fixture/actual.txt")
     ];
-    return StringJoin(parts, "");
+    let counts_fields: Array<String> = [
+        JsonEmitFieldNumber("expected_lines", "0"),
+        JsonEmitFieldNumber("actual_lines", "0"),
+        JsonEmitFieldNumber("mismatch_lines", "0"),
+        JsonEmitFieldNumber("extra_actual_lines", "0"),
+        JsonEmitFieldNumber("missing_actual_lines", "0")
+    ];
+    let findings: Array<String> = [
+        MismatchFinding("input_error", 0, path)
+    ];
+    let report_fields: Array<String> = [
+        JsonEmitFieldString("schema", "pgy.selfhost.backend-output-comparator.v1"),
+        JsonEmitFieldBool("ok", false),
+        JsonEmitFieldRaw("source", JsonEmitObject(source_fields)),
+        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ];
+    return JsonEmitObject(report_fields);
 }
 
 func Main() -> Void {
@@ -113,35 +122,25 @@ func Main() -> Void {
     }
 
     let ok: Bool = (mismatch_count == 0) && (extra_actual == 0) && (missing_actual == 0);
-    let ok_text: String = "true";
-    if !ok {
-        ok_text = "false";
-    }
-
-    let findings_str: String = StringJoin(findings, ",");
-
-    let json_parts: Array<String> = [
-        "{\"schema\":\"pgy.selfhost.backend-output-comparator.v1\",\"ok\":",
-        ok_text,
-        ",\"source\":{\"expected_owner\":\"",
-        expected_path,
-        "\",\"actual_owner\":\"",
-        actual_path,
-        "\"},\"counts\":{\"expected_lines\":",
-        ToString(exp_n),
-        ",\"actual_lines\":",
-        ToString(act_n),
-        ",\"mismatch_lines\":",
-        ToString(mismatch_count),
-        ",\"extra_actual_lines\":",
-        ToString(extra_actual),
-        ",\"missing_actual_lines\":",
-        ToString(missing_actual),
-        "},\"findings\":[",
-        findings_str,
-        "]}"
+    let source_fields: Array<String> = [
+        JsonEmitFieldString("expected_owner", expected_path),
+        JsonEmitFieldString("actual_owner", actual_path)
     ];
-    Log(StringJoin(json_parts, ""));
+    let counts_fields: Array<String> = [
+        JsonEmitFieldNumber("expected_lines", ToString(exp_n)),
+        JsonEmitFieldNumber("actual_lines", ToString(act_n)),
+        JsonEmitFieldNumber("mismatch_lines", ToString(mismatch_count)),
+        JsonEmitFieldNumber("extra_actual_lines", ToString(extra_actual)),
+        JsonEmitFieldNumber("missing_actual_lines", ToString(missing_actual))
+    ];
+    let report_fields: Array<String> = [
+        JsonEmitFieldString("schema", "pgy.selfhost.backend-output-comparator.v1"),
+        JsonEmitFieldBool("ok", ok),
+        JsonEmitFieldRaw("source", JsonEmitObject(source_fields)),
+        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ];
+    Log(JsonEmitObject(report_fields));
 
     if !ok {
         Exit(1);
