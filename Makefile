@@ -2224,6 +2224,9 @@ execution-lane-policy-test-smoke:
 sea-execution-lane-golden-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/sea_execution_lane_golden_smoke.sh
 
+lane-scheduler-test-smoke:
+	"$(BASH)" tests/lane_scheduler_smoke.sh
+
 self-host-compiler-world-contract-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_host_compiler_world_contract_smoke.sh
 
