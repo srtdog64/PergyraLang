@@ -86,6 +86,16 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-27 -- Inventory reports consume JSON owner
+
+- Repointed `examples_inventory_checker` and
+  `stdlib_dispatch_inventory_checker` report emission from manual `json_parts`
+  assembly to `src/self_hosted/lib/json.pgy`.
+- Updated both parity harnesses to pass compiler-native tool paths to Windows
+  `pgy` and normalize CR when extracting the clean JSON line.
+- Added component-contract ratchets requiring `JsonEmitObject(report_fields)`,
+  `JsonEmitArray(findings)`, and rejecting the old local `json_parts` reports.
+
 ### 2026-06-27 -- Doc link checker report consumes JSON owner
 
 - Repointed `doc_link_checker` report emission from manual `json_parts`

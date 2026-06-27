@@ -47,9 +47,10 @@ cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
 LIB_BUILD_DIR="$ROOT_DIR/.tmp/lib"
 mkdir -p "$LIB_BUILD_DIR"
 cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
+PERGYRA_TOOL_INPUT="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
 
 set +e
-PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL" --run 2>/dev/null)"
+PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_INPUT" --run 2>/dev/null)"
 P_RC=$?
 set -e
 
@@ -64,6 +65,7 @@ if ! grep -Fq 'pgy.selfhost.examples-inventory.v1' <<<"$PERGYRA_OUT"; then
 fi
 
 PERGYRA_JSON="$(printf '%s\n' "$PERGYRA_OUT" \
+    | tr -d '\r' \
     | grep -F 'pgy.selfhost.examples-inventory.v1' \
     | tail -n 1)"
 EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"
@@ -96,7 +98,7 @@ while IFS= read -r source; do
 done < <(find "$ROOT_DIR/examples" -maxdepth 1 -type f -name '*.pgy' | sort)
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL" --run 2>&1)"
+NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_INPUT" --run 2>&1)"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then
@@ -110,7 +112,7 @@ if ! grep -Fq '"kind":"inventory_count_drift"' <<<"$NEG_OUT"; then
     exit 1
 fi
 
-assert_llvm_leg "self-host-parity:examples-inventory" "$PERGYRA_TOOL" "$PERGYRA_TOOL_BUILD_DIR"
+assert_llvm_leg "self-host-parity:examples-inventory" "$PERGYRA_TOOL_INPUT" "$PERGYRA_TOOL_BUILD_DIR"
 CLEAN_EXAMPLES="$(sed -n 's/.*"examples":\([0-9][0-9]*\).*/\1/p' <<<"$PERGYRA_JSON")"
 CLEAN_MISSING="$(sed -n 's/.*"missing":\([0-9][0-9]*\).*/\1/p' <<<"$PERGYRA_JSON")"
 CLEAN_EMPTY="$(sed -n 's/.*"empty":\([0-9][0-9]*\).*/\1/p' <<<"$PERGYRA_JSON")"

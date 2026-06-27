@@ -22,31 +22,44 @@
 // Contract: see intent.md in the same directory.
 
 import "../../lib/text_scan.pgy";
+import "../../lib/json.pgy";
 
 func DriftFinding(c_entries: Int, llvm_entries: Int) -> String {
-    let parts: Array<String> = [
-        "{\"kind\":\"count_drift\",\"c_entries\":",
-        ToString(c_entries),
-        ",\"llvm_entries\":",
-        ToString(llvm_entries),
-        ",\"location\":\"src/codegen/transpiler_expr_stdlib_scalar_builtin.c\"}"
+    let fields: Array<String> = [
+        JsonEmitFieldString("kind", "count_drift"),
+        JsonEmitFieldNumber("c_entries", ToString(c_entries)),
+        JsonEmitFieldNumber("llvm_entries", ToString(llvm_entries)),
+        JsonEmitFieldString("location", "src/codegen/transpiler_expr_stdlib_scalar_builtin.c")
     ];
-    return StringJoin(parts, "");
+    return JsonEmitObject(fields);
 }
 
 func InputErrorJson(path: String) -> String {
-    let parts: Array<String> = [
-        "{\"schema\":\"pgy.selfhost.stdlib-dispatch-inventory.v1\",\"ok\":false,",
-        "\"source\":{\"c_dispatch_owner\":\"src/codegen/transpiler_expr_stdlib_scalar_builtin.c\",",
-        "\"llvm_dispatch_owner\":\"src/codegen/llvm_expr_stdlib_scalar_io_calls.c\"},",
-        "\"counts\":{\"c_entries\":0,\"llvm_entries\":0,\"drift\":0},",
-        "\"findings\":[{\"kind\":\"input_error\",\"key\":\"",
-        path,
-        "\",\"location\":\"",
-        path,
-        "\"}]}"
+    let source_fields: Array<String> = [
+        JsonEmitFieldString("c_dispatch_owner", "src/codegen/transpiler_expr_stdlib_scalar_builtin.c"),
+        JsonEmitFieldString("llvm_dispatch_owner", "src/codegen/llvm_expr_stdlib_scalar_io_calls.c")
     ];
-    return StringJoin(parts, "");
+    let counts_fields: Array<String> = [
+        JsonEmitFieldNumber("c_entries", "0"),
+        JsonEmitFieldNumber("llvm_entries", "0"),
+        JsonEmitFieldNumber("drift", "0")
+    ];
+    let finding_fields: Array<String> = [
+        JsonEmitFieldString("kind", "input_error"),
+        JsonEmitFieldString("key", path),
+        JsonEmitFieldString("location", path)
+    ];
+    let findings: Array<String> = [
+        JsonEmitObject(finding_fields)
+    ];
+    let report_fields: Array<String> = [
+        JsonEmitFieldString("schema", "pgy.selfhost.stdlib-dispatch-inventory.v1"),
+        JsonEmitFieldBool("ok", false),
+        JsonEmitFieldRaw("source", JsonEmitObject(source_fields)),
+        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ];
+    return JsonEmitObject(report_fields);
 }
 
 func Main() -> Void {
@@ -88,29 +101,23 @@ func Main() -> Void {
         ArrayPush(findings, DriftFinding(c_entries, llvm_entries));
     }
 
-    let ok_text: String = "true";
-    if drift > 0 {
-        ok_text = "false";
-    }
-
-    let json_parts: Array<String> = [
-        "{\"schema\":\"pgy.selfhost.stdlib-dispatch-inventory.v1\",\"ok\":",
-        ok_text,
-        ",\"source\":{\"c_dispatch_owner\":\"",
-        c_path,
-        "\",\"llvm_dispatch_owner\":\"",
-        llvm_path,
-        "\"},\"counts\":{\"c_entries\":",
-        ToString(c_entries),
-        ",\"llvm_entries\":",
-        ToString(llvm_entries),
-        ",\"drift\":",
-        ToString(drift),
-        "},\"findings\":[",
-        StringJoin(findings, ","),
-        "]}"
+    let source_fields: Array<String> = [
+        JsonEmitFieldString("c_dispatch_owner", c_path),
+        JsonEmitFieldString("llvm_dispatch_owner", llvm_path)
     ];
-    Log(StringJoin(json_parts, ""));
+    let counts_fields: Array<String> = [
+        JsonEmitFieldNumber("c_entries", ToString(c_entries)),
+        JsonEmitFieldNumber("llvm_entries", ToString(llvm_entries)),
+        JsonEmitFieldNumber("drift", ToString(drift))
+    ];
+    let report_fields: Array<String> = [
+        JsonEmitFieldString("schema", "pgy.selfhost.stdlib-dispatch-inventory.v1"),
+        JsonEmitFieldBool("ok", drift == 0),
+        JsonEmitFieldRaw("source", JsonEmitObject(source_fields)),
+        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ];
+    Log(JsonEmitObject(report_fields));
 
     if drift > 0 {
         Exit(1);

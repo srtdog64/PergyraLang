@@ -12,18 +12,15 @@
 // Contract: see intent.md in the same directory.
 
 import "../../lib/text_scan.pgy";
+import "../../lib/json.pgy";
 
 func MissingFinding(kind: String, path: String) -> String {
-    let parts: Array<String> = [
-        "{\"kind\":\"",
-        kind,
-        "\",\"path\":\"",
-        path,
-        "\",\"location\":\"",
-        path,
-        "\"}"
+    let fields: Array<String> = [
+        JsonEmitFieldString("kind", kind),
+        JsonEmitFieldString("path", path),
+        JsonEmitFieldString("location", path)
     ];
-    return StringJoin(parts, "");
+    return JsonEmitObject(fields);
 }
 
 func EndsWith(text: String, suffix: String) -> Bool {
@@ -90,31 +87,24 @@ func Main() -> Void {
     }
 
     let ok: Bool = (examples == expected_examples) && (empty == 0);
-    let ok_text: String = "true";
-    if !ok {
-        ok_text = "false";
-    }
-
-    let json_parts: Array<String> = [
-        "{\"schema\":\"pgy.selfhost.examples-inventory.v1\",\"ok\":",
-        ok_text,
-        ",\"source\":{\"dirwalk_owner\":\"",
-        dirwalk_owner,
-        "\",\"expected_examples\":",
-        ToString(expected_examples),
-        "},\"counts\":{\"examples\":",
-        ToString(examples),
-        ",\"missing\":",
-        ToString(missing),
-        ",\"empty\":",
-        ToString(empty),
-        ",\"max_lines\":",
-        ToString(max_lines),
-        "},\"findings\":[",
-        StringJoin(findings, ","),
-        "]}"
+    let source_fields: Array<String> = [
+        JsonEmitFieldString("dirwalk_owner", dirwalk_owner),
+        JsonEmitFieldNumber("expected_examples", ToString(expected_examples))
     ];
-    Log(StringJoin(json_parts, ""));
+    let counts_fields: Array<String> = [
+        JsonEmitFieldNumber("examples", ToString(examples)),
+        JsonEmitFieldNumber("missing", ToString(missing)),
+        JsonEmitFieldNumber("empty", ToString(empty)),
+        JsonEmitFieldNumber("max_lines", ToString(max_lines))
+    ];
+    let report_fields: Array<String> = [
+        JsonEmitFieldString("schema", "pgy.selfhost.examples-inventory.v1"),
+        JsonEmitFieldBool("ok", ok),
+        JsonEmitFieldRaw("source", JsonEmitObject(source_fields)),
+        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ];
+    Log(JsonEmitObject(report_fields));
 
     if !ok {
         Exit(1);

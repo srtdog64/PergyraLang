@@ -625,6 +625,14 @@ require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "JsonEmitObject(r
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "JsonEmitArray(findings)"
 reject_text "src/self_hosted/tools/doc_link_checker/main.pgy" 'let json_parts: Array<String>'
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/json.pgy"'
+require_text "src/self_hosted/tools/examples_inventory_checker/main.pgy" 'import "../../lib/json.pgy";'
+require_text "src/self_hosted/tools/examples_inventory_checker/main.pgy" "JsonEmitObject(report_fields)"
+require_text "src/self_hosted/tools/examples_inventory_checker/main.pgy" "JsonEmitArray(findings)"
+reject_text "src/self_hosted/tools/examples_inventory_checker/main.pgy" 'let json_parts: Array<String>'
+require_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" 'import "../../lib/json.pgy";'
+require_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" "JsonEmitObject(report_fields)"
+require_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" "JsonEmitArray(findings)"
+reject_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" 'let json_parts: Array<String>'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonFieldArrayBounds(content, 0, JsonDocumentObjectEnd(content), \"modules\", module_bounds)"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectCount(content, modules_open, modules_end)"
