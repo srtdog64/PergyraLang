@@ -99,8 +99,8 @@ The tool reads one AST text path from `Args()[0]`, with the no-argument
 `hello_ast.txt` fixture as the default probe. `input/ast_input_owner.pgy` owns
 path selection, the missing-file diagnostic, and the file-read boundary.
 `input/ast_text_inventory_owner.pgy` owns raw AST-text line splitting, typed
-`CodegenAstTextNode` inventory, indent counting, blank-line filtering,
-`[export]` line normalization, program-level declaration routing facts,
+`CodegenAstTextNode` inventory, indent counting, parent edges, coarse node
+kinds, blank-line filtering, `[export]` line normalization, program-level declaration routing facts,
 declaration collector prepass facts, function signature/header facts, statement
 body read facts, and cursor expectation checks.
 `GenerateC` consumes that inventory and must not recover those facts locally.

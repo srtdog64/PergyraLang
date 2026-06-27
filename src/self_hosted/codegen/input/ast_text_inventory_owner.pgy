@@ -10,6 +10,49 @@ import "../text/text_owner.pgy";
 struct CodegenAstTextNode {
     let indent: Int;
     let text: String;
+    let parent: Int;
+    let kind: Int;
+}
+
+func CodegenAstTextKindOf(text: String) -> Int {
+    if text == "Parameters:" {
+        return 2;
+    }
+    if StartsWith(text, "Returns:") {
+        return 3;
+    }
+    if text == "Fields:" {
+        return 4;
+    }
+    if StartsWith(text, "Field:") {
+        return 5;
+    }
+    if StartsWith(text, "Function:") {
+        return 6;
+    }
+    if StartsWith(text, "Role:") {
+        return 7;
+    }
+    if StartsWith(text, "Class:") || StartsWith(text, "Subject:") ||
+        StartsWith(text, "Object:") || StartsWith(text, "TObject:") ||
+        StartsWith(text, "Vessel:") {
+        return 8;
+    }
+    if StartsWith(text, "Enum:") {
+        return 9;
+    }
+    return 1;
+}
+
+func CodegenAstTextParentIndex(nodes: Array<CodegenAstTextNode>, count: Int, indent: Int) -> Int {
+    let back: Int = count - 1;
+    while back >= 0 {
+        if nodes[back].indent < indent {
+            return back;
+        }
+        back = back - 1;
+    }
+    return -1;
 }
 
 func CodegenAstTextIndentOf(raw: String) -> Int {
@@ -34,7 +77,9 @@ func CodegenAstTextNodeInventory(ast: String, inout nodes: Array<CodegenAstTextN
             trimmed = Substring(trimmed, 9, StringLength(trimmed) - 9);
         }
         if StringLength(trimmed) > 0 {
-            ArrayPush(nodes, CodegenAstTextNode(CodegenAstTextIndentOf(raw_line), trimmed));
+            let indent: Int = CodegenAstTextIndentOf(raw_line);
+            let parent: Int = CodegenAstTextParentIndex(nodes, count_box[0], indent);
+            ArrayPush(nodes, CodegenAstTextNode(indent, trimmed, parent, CodegenAstTextKindOf(trimmed)));
             ArraySet(count_box, 0, count_box[0] + 1);
         }
         pos = nl + 1;

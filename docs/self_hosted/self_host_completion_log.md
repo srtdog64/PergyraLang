@@ -2002,3 +2002,15 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This is still not full cross-backend ABI row projection: concrete native
   C/LLVM/self-hosted row consumption for field order, tag/niche, size/align,
   ownership shape, and materialization policy remains ACTIVE.
+
+### 2026-06-28 -- AST-text bridge records parent and kind rows
+
+- Extended `CodegenAstTextNode` from an `(indent, text)` pair to an
+  `(indent, text, parent, kind)` row.
+- `CodegenAstTextNodeInventory` now records a parent edge for each non-empty
+  AST-text line and a coarse node kind for common compiler routing labels such
+  as `Function:`, `Parameters:`, `Returns:`, `Fields:`, `Field:`, role,
+  nominal, and enum declarations.
+- This reduces the mixed AST-like tree blocker but does not close it:
+  `CodegenAstTextNode.text` is still a serialized line payload, so complete
+  closure still requires owned tagged AST data instead of line-text semantics.

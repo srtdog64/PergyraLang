@@ -152,8 +152,8 @@ explanatory.
 no-argument `hello_ast.txt` fixture), the missing-file diagnostic, and the
 `ReadFile` boundary. `input/ast_text_inventory_owner.pgy` owns the transitional
 AST-text line inventory consumed by `GenerateC`: raw line splitting, typed
-`CodegenAstTextNode` inventory, leading indent counting, empty-line removal,
-`[export]` line normalization, program-level declaration routing facts,
+`CodegenAstTextNode` inventory, leading indent counting, parent edges, coarse
+node kinds, empty-line removal, `[export]` line normalization, program-level declaration routing facts,
 declaration collector prepass facts, and cursor expectation diagnostics live
 there, not in emission participants. This is a compatibility bridge, not the
 final typed/tagged AST owner. Function signature and statement body emission now

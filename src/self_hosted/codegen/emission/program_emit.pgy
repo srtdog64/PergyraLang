@@ -318,7 +318,7 @@ func GenerateC(ast: String) -> String {
         record_array_block = Concat(record_array_block, "static CodegenAstTextNode pgy_CodegenAstTextNode_array_get(pgy_CodegenAstTextNode_array a, long long i) { return a.data[i]; }\n");
         record_array_block = Concat(record_array_block, "static void pgy_CodegenAstTextNode_array_set(pgy_CodegenAstTextNode_array *a, long long i, CodegenAstTextNode v) { a->data[i] = v; }\n");
         record_array_block = Concat(record_array_block, "static long long pgy_CodegenAstTextNode_array_len(pgy_CodegenAstTextNode_array a) { return a.len; }\n");
-        record_array_block = Concat(record_array_block, "static CodegenAstTextNode pgy_CodegenAstTextNode_array_pop(pgy_CodegenAstTextNode_array *a) { return a->len > 0 ? a->data[--a->len] : (CodegenAstTextNode){0, \"\"}; }\n\n");
+        record_array_block = Concat(record_array_block, "static CodegenAstTextNode pgy_CodegenAstTextNode_array_pop(pgy_CodegenAstTextNode_array *a) { return a->len > 0 ? a->data[--a->len] : (CodegenAstTextNode){0, \"\", -1, 0}; }\n\n");
     }
     if uses_args2 {
         // `Args()` -> pgy_args(): user args (argv[1..]) as a pgy_as. main() stashes
