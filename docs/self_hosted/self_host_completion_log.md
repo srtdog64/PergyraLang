@@ -1971,3 +1971,19 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   top-level `layer` requirement.
 - The Stable JSON parse/emit blocker remains active because this is still a
   bounded schema scanner, not a complete JSON DOM/fact table.
+
+### 2026-06-28 -- Backend comparator consumes artifact and harness owners
+
+- Repointed `backend_output_comparator` to import
+  `artifact_zone_owner.pgy` and `test_harness_owner.pgy` alongside the JSON
+  owner.
+- The comparator report now records `artifact_kind:"run_output"` from
+  `CompilerArtifactKindAt(6)` and C/LLVM projection rows from
+  `CompilerHarnessProjectionAt(0/1)` instead of carrying those facts as local
+  shell/test vocabulary.
+- Tightened the comparator and tri-compare parity harnesses to copy the
+  compiler-world artifact/test-harness owners into the build roots, so those
+  imports are live for both direct comparator parity and C/LLVM tri-compare.
+- Artifact Zone evidence and TestHarness substrate remain active until every
+  parity artifact is written through these rows, but the first run-output
+  parity sink now consumes the compiler-world owners.

@@ -287,8 +287,13 @@ run_tri_case() {
     tri_tool="$tri_root/src/self_hosted/tools/backend_output_comparator/main.pgy"
     mkdir -p "$(dirname "$tri_tool")"
     mkdir -p "$tri_root/src/self_hosted/lib"
+    mkdir -p "$tri_root/src/self_hosted/compiler"
     cp "$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy" "$tri_tool"
     cp "$ROOT_DIR/src/self_hosted/lib/json.pgy" "$tri_root/src/self_hosted/lib/json.pgy"
+    cp "$ROOT_DIR/src/self_hosted/compiler/artifact_zone_owner.pgy" \
+        "$tri_root/src/self_hosted/compiler/artifact_zone_owner.pgy"
+    cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_owner.pgy" \
+        "$tri_root/src/self_hosted/compiler/test_harness_owner.pgy"
 
     run_pergyra_output_compare "$source_rel" "stdout" "$c_out" "$llvm_out" \
         "$tri_root" "$tri_tool"

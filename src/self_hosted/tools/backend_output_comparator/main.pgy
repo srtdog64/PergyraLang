@@ -14,6 +14,8 @@
 // Contract: see intent.md in the same directory.
 
 import "../../lib/json.pgy";
+import "../../compiler/artifact_zone_owner.pgy";
+import "../../compiler/test_harness_owner.pgy";
 
 func MismatchFinding(kind: String, line_index: Int, location: String) -> String {
     let fields: Array<String> = [
@@ -24,11 +26,25 @@ func MismatchFinding(kind: String, line_index: Int, location: String) -> String 
     return JsonEmitObject(fields);
 }
 
-func InputErrorJson(path: String) -> String {
-    let source_fields: Array<String> = [
-        JsonEmitFieldString("expected_owner", "src/self_hosted/tools/backend_output_comparator/fixture/expected.txt"),
-        JsonEmitFieldString("actual_owner", "src/self_hosted/tools/backend_output_comparator/fixture/actual.txt")
+func ComparatorSourceFields(expected_path: String, actual_path: String) -> Array<String> {
+    if !CompilerArtifactKindKnown("run_output") || !CompilerTestHarnessReady() {
+        Log("BACKEND COMPARATOR OWNER ERROR artifact/test-harness rows not ready");
+        Exit(1);
+    }
+    let fields: Array<String> = [
+        JsonEmitFieldString("expected_owner", expected_path),
+        JsonEmitFieldString("actual_owner", actual_path),
+        JsonEmitFieldString("artifact_kind", CompilerArtifactKindAt(6)),
+        JsonEmitFieldString("expected_projection", CompilerHarnessProjectionAt(0)),
+        JsonEmitFieldString("actual_projection", CompilerHarnessProjectionAt(1))
     ];
+    return fields;
+}
+
+func InputErrorJson(path: String) -> String {
+    let source_fields: Array<String> = ComparatorSourceFields(
+        "src/self_hosted/tools/backend_output_comparator/fixture/expected.txt",
+        "src/self_hosted/tools/backend_output_comparator/fixture/actual.txt");
     let counts_fields: Array<String> = [
         JsonEmitFieldNumber("expected_lines", "0"),
         JsonEmitFieldNumber("actual_lines", "0"),
@@ -122,10 +138,7 @@ func Main() -> Void {
     }
 
     let ok: Bool = (mismatch_count == 0) && (extra_actual == 0) && (missing_actual == 0);
-    let source_fields: Array<String> = [
-        JsonEmitFieldString("expected_owner", expected_path),
-        JsonEmitFieldString("actual_owner", actual_path)
-    ];
+    let source_fields: Array<String> = ComparatorSourceFields(expected_path, actual_path);
     let counts_fields: Array<String> = [
         JsonEmitFieldNumber("expected_lines", ToString(exp_n)),
         JsonEmitFieldNumber("actual_lines", ToString(act_n)),
