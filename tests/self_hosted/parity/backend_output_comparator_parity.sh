@@ -56,6 +56,8 @@ cp "$ROOT_DIR/src/self_hosted/compiler/artifact_zone_owner.pgy" \
     "$PERGYRA_TOOL_BUILD_DIR/../../compiler/artifact_zone_owner.pgy"
 cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_owner.pgy" \
     "$PERGYRA_TOOL_BUILD_DIR/../../compiler/test_harness_owner.pgy"
+cp "$ROOT_DIR/src/self_hosted/compiler/subprocess_runner_owner.pgy" \
+    "$PERGYRA_TOOL_BUILD_DIR/../../compiler/subprocess_runner_owner.pgy"
 PERGYRA_TOOL_INPUT="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
 
 # Phase 1 - clean (match) fixture.

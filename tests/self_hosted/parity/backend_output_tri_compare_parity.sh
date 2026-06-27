@@ -294,6 +294,8 @@ run_tri_case() {
         "$tri_root/src/self_hosted/compiler/artifact_zone_owner.pgy"
     cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_owner.pgy" \
         "$tri_root/src/self_hosted/compiler/test_harness_owner.pgy"
+    cp "$ROOT_DIR/src/self_hosted/compiler/subprocess_runner_owner.pgy" \
+        "$tri_root/src/self_hosted/compiler/subprocess_runner_owner.pgy"
 
     run_pergyra_output_compare "$source_rel" "stdout" "$c_out" "$llvm_out" \
         "$tri_root" "$tri_tool"

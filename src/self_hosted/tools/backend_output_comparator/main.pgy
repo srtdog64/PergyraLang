@@ -16,6 +16,7 @@
 import "../../lib/json.pgy";
 import "../../compiler/artifact_zone_owner.pgy";
 import "../../compiler/test_harness_owner.pgy";
+import "../../compiler/subprocess_runner_owner.pgy";
 
 func MismatchFinding(kind: String, line_index: Int, location: String) -> String {
     let fields: Array<String> = [
@@ -27,8 +28,10 @@ func MismatchFinding(kind: String, line_index: Int, location: String) -> String 
 }
 
 func ComparatorSourceFields(expected_path: String, actual_path: String) -> Array<String> {
-    if !CompilerArtifactKindKnown("run_output") || !CompilerTestHarnessReady() {
-        Log("BACKEND COMPARATOR OWNER ERROR artifact/test-harness rows not ready");
+    if !CompilerArtifactKindKnown("run_output") ||
+        !CompilerTestHarnessReady() ||
+        !CompilerSubprocessRunnerReady() {
+        Log("BACKEND COMPARATOR OWNER ERROR artifact/test-harness/subprocess rows not ready");
         Exit(1);
     }
     let fields: Array<String> = [
@@ -36,7 +39,10 @@ func ComparatorSourceFields(expected_path: String, actual_path: String) -> Array
         JsonEmitFieldString("actual_owner", actual_path),
         JsonEmitFieldString("artifact_kind", CompilerArtifactKindAt(6)),
         JsonEmitFieldString("expected_projection", CompilerHarnessProjectionAt(0)),
-        JsonEmitFieldString("actual_projection", CompilerHarnessProjectionAt(1))
+        JsonEmitFieldString("actual_projection", CompilerHarnessProjectionAt(1)),
+        JsonEmitFieldString("subprocess_use_case", CompilerSubprocessUseCaseAt(0)),
+        JsonEmitFieldString("subprocess_stream_fact", CompilerSubprocessFactAt(5)),
+        JsonEmitFieldString("subprocess_exit_fact", CompilerSubprocessFactAt(6))
     ];
     return fields;
 }
