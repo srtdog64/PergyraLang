@@ -783,7 +783,10 @@ require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectArray
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectArrayObjectBoundsAt"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirDeclObjectBoundsAt"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func SourceLocalType"
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "MirObjectArrayObjectBoundsAt(json, start, end, \"source_locals\", row, bounds)"
 reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func ReadJsonString"
+reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" "ReadJsonString(json,"
+reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'FindFrom(json, "\"source_locals\":['
 reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func JsonFieldString"
 reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func JsonFieldNumber"
 reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func JsonFirstArrayString"

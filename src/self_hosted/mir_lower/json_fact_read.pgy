@@ -84,32 +84,14 @@ func MirDeclObjectBoundsAt(json: String, row: Int, inout bounds: Array<Int>) -> 
 // self-hosted mirror of MIRRoutine::source_local_types; mir_lower uses it
 // before the transitional statement text when reconstructing Let: lines.
 func SourceLocalType(json: String, start: Int, end: Int, name: String) -> String {
-    let sp: Int = FindFrom(json, "\"source_locals\":[", start);
-    if sp < 0 || sp >= end {
-        return "";
-    }
-    let pk: Int = FindFrom(json, "\"name\":", sp);
-    while pk >= 0 && pk < end {
-        let nq: Int = FindFrom(json, "\"", pk + 7);
-        if nq < 0 || nq >= end {
-            return "";
-        }
-        let ne: Array<Int> = [0];
-        let n: String = ReadJsonString(json, nq, ne);
-        let tk: Int = FindFrom(json, "\"type\":", ne[0]);
-        if tk < 0 || tk >= end {
-            return "";
-        }
-        let tq: Int = FindFrom(json, "\"", tk + 7);
-        if tq < 0 || tq >= end {
-            return "";
-        }
-        let te: Array<Int> = [0];
-        let t: String = ReadJsonString(json, tq, te);
+    let row: Int = 0;
+    let bounds: Array<Int> = [0, 0];
+    while MirObjectArrayObjectBoundsAt(json, start, end, "source_locals", row, bounds) {
+        let n: String = MirObjectStringFact(json, bounds[0], bounds[1], "name");
         if n == name {
-            return t;
+            return MirObjectStringFact(json, bounds[0], bounds[1], "type");
         }
-        pk = FindFrom(json, "\"name\":", te[0]);
+        row = row + 1;
     }
     return "";
 }

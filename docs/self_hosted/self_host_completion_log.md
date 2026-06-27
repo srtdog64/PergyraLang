@@ -2100,3 +2100,13 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Tightened the component contract against those direct routine-header scans.
   This keeps moving MIR lowering toward owner-owned facts while the Stable JSON
   blocker remains active for the broader DOM/fact-table work.
+
+### 2026-06-28 -- Source-local MIR facts use array row accessors
+
+- Repointed `SourceLocalType` in
+  `src/self_hosted/mir_lower/json_fact_read.pgy` from manual
+  `"source_locals"` string scanning to `MirObjectArrayObjectBoundsAt`.
+- Tightened the component contract so the source-local fact reader cannot
+  reintroduce local `ReadJsonString` or direct `"source_locals"` key scans.
+- This keeps source-local type recovery on the same MIR fact-owner path as
+  declaration, routine header, and CFG fact reads.
