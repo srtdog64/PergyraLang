@@ -8,6 +8,7 @@
 #include "llvm_expr_spawn_names.h"
 #include "llvm_expr_spawn_worker_boundary.h"
 #include "llvm_mir_signature.h"
+#include "../compiler/execution_lane.h"
 
 #include <limits.h>
 #include <stdint.h>
@@ -219,10 +220,17 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     callee_entry = llvm_resolve_callee_entry(ctx, callee_name, args, argc);
-    spawn_fn = llvm_lookup_function(ctx,
-        ast_spawn_is_blocking(node)
+    /* SEA: the spawn executor is chosen by the ExecutionLane policy, not an
+       ad-hoc per-backend branch — BlockingPool -> blocking export, otherwise the
+       async path. Output is identical to the old is_blocking branch today;
+       routing it through the policy makes the decision single-sourced and ready
+       for richer lanes. */
+    const char *spawn_export_name =
+        pgy_lane_uses_blocking_executor(
+            pgy_spawn_lane_from_blocking(ast_spawn_is_blocking(node)))
             ? "pgy_spawn_blocking_export"
-            : "pgy_async_spawn_export");
+            : "pgy_async_spawn_export";
+    spawn_fn = llvm_lookup_function(ctx, spawn_export_name);
     malloc_fn = llvm_lookup_function(ctx, "malloc");
     free_fn = llvm_lookup_function(ctx, "free");
     panic_fn = llvm_spawn_required_panic_fn(ctx, node);
@@ -233,9 +241,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
             PGY_FIX_INSPECT_MIR_INVENTORY,
             "LLVM spawn expression requires registered runtime functions '%s', 'malloc', 'free', and panic",
-            ast_spawn_is_blocking(node)
-                ? "pgy_spawn_blocking_export"
-                : "pgy_async_spawn_export");
+            spawn_export_name);
         return NULL;
     }
     if (callee_entry == NULL) {

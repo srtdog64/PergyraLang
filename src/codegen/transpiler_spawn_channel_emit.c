@@ -6,6 +6,7 @@
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
+#include "../compiler/execution_lane.h"
 
 #include "transpiler_context.h"
 #include "transpiler_channel_type_query.h"
@@ -348,8 +349,13 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
     }
 
     {
-        const char *spawn_fn = ast_spawn_is_blocking(node)
-            ? "pgy_spawn_blocking" : "pgy_async_spawn";
+        /* SEA: spawn executor chosen by the ExecutionLane policy (BlockingPool ->
+           blocking export, else async), single-sourced across both backends.
+           Output-identical to the old is_blocking branch today. */
+        const char *spawn_fn =
+            pgy_lane_uses_blocking_executor(
+                pgy_spawn_lane_from_blocking(ast_spawn_is_blocking(node)))
+                ? "pgy_spawn_blocking" : "pgy_async_spawn";
         if (args_type_name == NULL) {
             codebuf_write(expr,
                 "({ PgyTaskHandle _pgy_spawn_h = %s(%s, NULL); "

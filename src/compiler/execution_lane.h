@@ -77,4 +77,18 @@ PgyExecutionLane pgy_classify_execution_lane(const PgyLaneEvidence *evidence);
 /* Stable name for diagnostics / AIR dump / tests. Never NULL. */
 const char *pgy_execution_lane_name(PgyExecutionLane lane);
 
+/*
+ * SEA spawn-site convenience: the lane for a spawn whose only distinguishing
+ * evidence today is whether it is a blocking call. A blocking spawn is the
+ * BlockingPool lane; a non-blocking spawn is cooperative LocalAsync until richer
+ * capture/authority evidence promotes it. Both codegen backends route their
+ * spawn-executor choice through this so the decision has ONE source (the policy),
+ * not an independent `is_blocking ? ... : ...` branch per backend.
+ */
+PgyExecutionLane pgy_spawn_lane_from_blocking(bool is_blocking);
+
+/* Whether a lane runs on the dedicated blocking executor (vs the async path).
+   The single fact the spawn emitters branch on to pick the runtime export. */
+bool pgy_lane_uses_blocking_executor(PgyExecutionLane lane);
+
 #endif /* PERGYRA_EXECUTION_LANE_H */
