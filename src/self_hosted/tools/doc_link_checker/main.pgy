@@ -13,6 +13,8 @@
 //
 // Contract: see intent.md in the same directory.
 
+import "../../lib/json.pgy";
+
 func ExtractLinkPath(line: String) -> String {
     let open: String = "](";
     let close: String = ")";
@@ -56,26 +58,39 @@ func IsExternalUrl(path: String) -> Bool {
 }
 
 func MissingLinkFinding(path: String) -> String {
-    let parts: Array<String> = [
-        "{\"kind\":\"missing_link\",\"path\":\"docs/",
-        path,
-        "\",\"location\":\"docs/INDEX.md\"}"
+    let fields: Array<String> = [
+        JsonEmitFieldString("kind", "missing_link"),
+        JsonEmitFieldString("path", Concat("docs/", path)),
+        JsonEmitFieldString("location", "docs/INDEX.md")
     ];
-    return StringJoin(parts, "");
+    return JsonEmitObject(fields);
 }
 
 func InputErrorJson(path: String) -> String {
-    let parts: Array<String> = [
-        "{\"schema\":\"pgy.selfhost.doc-link-checker.v1\",\"ok\":false,",
-        "\"source\":{\"index_owner\":\"docs/INDEX.md\"},",
-        "\"counts\":{\"total_links\":0,\"md_links\":0,\"missing_links\":0},",
-        "\"findings\":[{\"kind\":\"input_error\",\"path\":\"",
-        path,
-        "\",\"location\":\"",
-        path,
-        "\"}]}"
+    let source_fields: Array<String> = [
+        JsonEmitFieldString("index_owner", "docs/INDEX.md")
     ];
-    return StringJoin(parts, "");
+    let counts_fields: Array<String> = [
+        JsonEmitFieldNumber("total_links", "0"),
+        JsonEmitFieldNumber("md_links", "0"),
+        JsonEmitFieldNumber("missing_links", "0")
+    ];
+    let finding_fields: Array<String> = [
+        JsonEmitFieldString("kind", "input_error"),
+        JsonEmitFieldString("path", path),
+        JsonEmitFieldString("location", path)
+    ];
+    let findings: Array<String> = [
+        JsonEmitObject(finding_fields)
+    ];
+    let report_fields: Array<String> = [
+        JsonEmitFieldString("schema", "pgy.selfhost.doc-link-checker.v1"),
+        JsonEmitFieldBool("ok", false),
+        JsonEmitFieldRaw("source", JsonEmitObject(source_fields)),
+        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ];
+    return JsonEmitObject(report_fields);
 }
 
 func Main() -> Void {
@@ -128,26 +143,22 @@ func Main() -> Void {
         i = i + 1;
     }
 
-    let ok_text: String = "true";
-    if missing_links > 0 {
-        ok_text = "false";
-    }
-
-    let json_parts: Array<String> = [
-        "{\"schema\":\"pgy.selfhost.doc-link-checker.v1\",\"ok\":",
-        ok_text,
-        ",\"source\":{\"index_owner\":\"docs/INDEX.md\"},",
-        "\"counts\":{\"total_links\":",
-        ToString(total_links),
-        ",\"md_links\":",
-        ToString(md_links),
-        ",\"missing_links\":",
-        ToString(missing_links),
-        "},\"findings\":[",
-        StringJoin(findings, ","),
-        "]}"
+    let source_fields: Array<String> = [
+        JsonEmitFieldString("index_owner", "docs/INDEX.md")
     ];
-    Log(StringJoin(json_parts, ""));
+    let counts_fields: Array<String> = [
+        JsonEmitFieldNumber("total_links", ToString(total_links)),
+        JsonEmitFieldNumber("md_links", ToString(md_links)),
+        JsonEmitFieldNumber("missing_links", ToString(missing_links))
+    ];
+    let report_fields: Array<String> = [
+        JsonEmitFieldString("schema", "pgy.selfhost.doc-link-checker.v1"),
+        JsonEmitFieldBool("ok", missing_links == 0),
+        JsonEmitFieldRaw("source", JsonEmitObject(source_fields)),
+        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ];
+    Log(JsonEmitObject(report_fields));
 
     if missing_links > 0 {
         Exit(1);

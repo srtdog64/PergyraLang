@@ -45,10 +45,13 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$ROOT_DIR/$INDEX_PATH"
 done
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
+mkdir -p "$PERGYRA_TOOL_BUILD_DIR/../../lib"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
+cp "$ROOT_DIR/src/self_hosted/lib/json.pgy" "$PERGYRA_TOOL_BUILD_DIR/../../lib/json.pgy"
+PERGYRA_TOOL_INPUT="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
 
 set +e
-PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL" --run 2>/dev/null)"
+PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_INPUT" --run 2>/dev/null)"
 P_RC=$?
 set -e
 
@@ -81,6 +84,7 @@ if ! grep -Fq "\"md_links\":${SHELL_MD}," <<<"$PERGYRA_OUT"; then
 fi
 
 PERGYRA_JSON="$(printf '%s\n' "$PERGYRA_OUT" \
+    | tr -d '\r' \
     | grep -F 'pgy.selfhost.doc-link-checker.v1' \
     | tail -n 1)"
 EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"
@@ -105,7 +109,7 @@ sed 's|](100_beta_readiness_checklist.md)|](XX_NONEXISTENT_FAKE_DRIFT.md)|' \
     "$ROOT_DIR/$INDEX_PATH" > "$NEG_ROOT/$INDEX_PATH"
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL" --run 2>&1)"
+NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_INPUT" --run 2>&1)"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then
@@ -124,5 +128,5 @@ if ! grep -Fq 'XX_NONEXISTENT_FAKE_DRIFT.md' <<<"$NEG_OUT"; then
     exit 1
 fi
 
-assert_llvm_leg "self-host-parity:doc-link-checker" "$PERGYRA_TOOL" "$PERGYRA_TOOL_BUILD_DIR"
+assert_llvm_leg "self-host-parity:doc-link-checker" "$PERGYRA_TOOL_INPUT" "$PERGYRA_TOOL_BUILD_DIR"
 echo "[self-host-parity:doc-link-checker] rung-2 parity ok (total=$SHELL_TOTAL md=$SHELL_MD missing=0; dead-link fixture rc=1)"

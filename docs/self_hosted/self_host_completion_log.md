@@ -86,6 +86,15 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-27 -- Doc link checker report consumes JSON owner
+
+- Repointed `doc_link_checker` report emission from manual `json_parts`
+  assembly to `src/self_hosted/lib/json.pgy`.
+- Updated the doc-link parity harness to mirror the JSON library into the copied
+  tool build directory and pass a compiler-native tool path to Windows `pgy`.
+- Added component-contract ratchets requiring `JsonEmitObject(report_fields)`,
+  `JsonEmitArray(findings)`, and rejecting the old local `json_parts` report.
+
 ### 2026-06-27 -- Backend comparator report consumes JSON owner
 
 - Repointed `backend_output_comparator` report emission from manual
