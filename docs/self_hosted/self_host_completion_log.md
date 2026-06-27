@@ -2066,3 +2066,14 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This removes another duplicate category classifier from the transitional AST
   text bridge. Name extraction still consumes `CodegenAstTextNode.text`, so the
   mixed AST-like tree blocker remains active.
+
+### 2026-06-28 -- Subprocess owner records oracle compare plan facts
+
+- Added `oracle_compare` timeout and env-allowlist plan facts to
+  `src/self_hosted/compiler/subprocess_runner_owner.pgy`.
+- Repointed `backend_output_comparator` report emission to record the
+  subprocess schema, timeout, env allowlist, stream, and exit-code facts from
+  the subprocess owner.
+- This reduces shell-owned policy drift for C/LLVM oracle comparison. It does
+  not close the subprocess runner blocker because Pergyra still lacks a
+  subprocess execution primitive for running the envelope directly.

@@ -33,10 +33,31 @@ func CompilerSubprocessUseCaseAt(index: Int) -> String {
     return "";
 }
 
+func CompilerSubprocessOracleCompareTimeoutMs() -> String {
+    return "30000";
+}
+
+func CompilerSubprocessOracleCompareEnvAllowlist() -> String {
+    return "PATH,PGY_BIN,PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS,PGY_SELFHOST_BUILD_DIR";
+}
+
+func CompilerSubprocessOracleComparePlanReady() -> Bool {
+    return CompilerSubprocessUseCaseAt(0) == "oracle_compare" &&
+        CompilerSubprocessFactAt(0) == "executable_path" &&
+        CompilerSubprocessFactAt(1) == "argv" &&
+        CompilerSubprocessFactAt(2) == "cwd" &&
+        CompilerSubprocessFactAt(3) == "env_allowlist" &&
+        CompilerSubprocessFactAt(4) == "timeout_ms" &&
+        CompilerSubprocessFactAt(5) == "stdout_stderr" &&
+        CompilerSubprocessFactAt(6) == "exit_code" &&
+        CompilerSubprocessOracleCompareTimeoutMs() != "" &&
+        CompilerSubprocessOracleCompareEnvAllowlist() != "";
+}
+
 func CompilerSubprocessRunnerReady() -> Bool {
     return CompilerSubprocessFactAt(0) == "executable_path" &&
         CompilerSubprocessFactAt(1) == "argv" &&
         CompilerSubprocessFactAt(3) == "env_allowlist" &&
         CompilerSubprocessFactAt(6) == "exit_code" &&
-        CompilerSubprocessUseCaseAt(0) == "oracle_compare";
+        CompilerSubprocessOracleComparePlanReady();
 }

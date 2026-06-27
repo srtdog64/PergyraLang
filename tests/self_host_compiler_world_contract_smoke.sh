@@ -295,7 +295,10 @@ for term in \
     "env_allowlist" \
     "timeout_ms" \
     "oracle_compare" \
-    "artifact_probe"; do
+    "artifact_probe" \
+    "CompilerSubprocessOracleCompareTimeoutMs" \
+    "CompilerSubprocessOracleCompareEnvAllowlist" \
+    "CompilerSubprocessOracleComparePlanReady"; do
     require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "$term"
 done
 

@@ -684,12 +684,20 @@ require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "Compile
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerHarnessComparableArtifactPathAt(1)"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerHarnessFindingCap()"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerSubprocessUseCaseAt(0)"
+require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerSubprocessSchema()"
+require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerSubprocessOracleCompareTimeoutMs()"
+require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerSubprocessOracleCompareEnvAllowlist()"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "JsonEmitArray(findings)"
 reject_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'let json_parts: Array<String>'
 reject_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'src/self_hosted/tools/backend_output_comparator/fixture/'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessComparableArtifactPathAt"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessFindingCap"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareTimeoutMs"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareEnvAllowlist"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleComparePlanReady"
+require_text "src/self_hosted/tools/backend_output_comparator/expected/clean.json" '"subprocess_timeout_ms":"30000"'
+require_text "src/self_hosted/tools/backend_output_comparator/expected/clean.json" '"subprocess_env_allowlist":"PATH,PGY_BIN,PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS,PGY_SELFHOST_BUILD_DIR"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/json.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/artifact_zone_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_owner.pgy"'

@@ -37,7 +37,10 @@ JSON document on stdout, conforming to schema
   "ok": true,
   "source": {
     "expected_owner": "src/self_hosted/tools/backend_output_comparator/fixture/expected.txt",
-    "actual_owner": "src/self_hosted/tools/backend_output_comparator/fixture/actual.txt"
+    "actual_owner": "src/self_hosted/tools/backend_output_comparator/fixture/actual.txt",
+    "subprocess_schema": "pgy.selfhost.subprocess-runner.v1",
+    "subprocess_timeout_ms": "30000",
+    "subprocess_env_allowlist": "PATH,PGY_BIN,PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS,PGY_SELFHOST_BUILD_DIR"
   },
   "counts": {
     "expected_lines": 0,
