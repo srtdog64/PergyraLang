@@ -1,10 +1,10 @@
 # Backend Output Comparator -- Intent / Contract
 
 **Status:** *rung-2 minimal* (2026-05-27). Reads two output files (`expected.txt`
-and `actual.txt`) from a fixed fixture path, compares line-by-line, emits a
-verdict JSON, and exits `1` on any mismatch. No diff payload yet -- only
-counts and a small `findings[]` enumeration of the first few mismatching
-lines.
+and `actual.txt`) from the `TestHarness` owner path facts, compares
+line-by-line, emits a verdict JSON, and exits `1` on any mismatch. No diff
+payload yet -- only counts and a small `findings[]` enumeration of the first
+few mismatching lines.
 
 ## Intent
 
@@ -16,14 +16,15 @@ can route on `counts.mismatch_lines` instead of grepping logs.
 
 ## Input Contract
 
-- **expected_owner**: `src/self_hosted/tools/backend_output_comparator/fixture/expected.txt`
+- **expected_owner**: `CompilerHarnessComparableArtifactPathAt(0)`
   (text, UTF-8, line-oriented).
-- **actual_owner**: `src/self_hosted/tools/backend_output_comparator/fixture/actual.txt`
+- **actual_owner**: `CompilerHarnessComparableArtifactPathAt(1)`
   (text, UTF-8, line-oriented).
 
-Both paths are fixed relative to repository root. CLI argument parsing is
-not yet on the Pergyra surface; the parity script swaps fixture contents
-via a temp directory to exercise both match and mismatch scenarios.
+Both owner facts currently resolve to fixed paths relative to repository root.
+CLI argument parsing is not yet on the Pergyra surface; the parity script swaps
+fixture contents via a temp directory to exercise both match and mismatch
+scenarios.
 
 ## Output Contract
 
@@ -54,6 +55,7 @@ JSON document on stdout, conforming to schema
 - `findings[]` carries at most the first 8 mismatching line indices:
   `{ "kind": "mismatch" | "extra" | "missing" | "input_error",
      "line": <int>, "location": "..." }`.
+  The cap is `CompilerHarnessFindingCap()`.
 
 Exit code: `0` on `ok:true`, `1` on `ok:false`. Missing input reports
 `input_error` and exits `1`.

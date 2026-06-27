@@ -49,8 +49,8 @@ func ComparatorSourceFields(expected_path: String, actual_path: String) -> Array
 
 func InputErrorJson(path: String) -> String {
     let source_fields: Array<String> = ComparatorSourceFields(
-        "src/self_hosted/tools/backend_output_comparator/fixture/expected.txt",
-        "src/self_hosted/tools/backend_output_comparator/fixture/actual.txt");
+        CompilerHarnessComparableArtifactPathAt(0),
+        CompilerHarnessComparableArtifactPathAt(1));
     let counts_fields: Array<String> = [
         JsonEmitFieldNumber("expected_lines", "0"),
         JsonEmitFieldNumber("actual_lines", "0"),
@@ -72,8 +72,8 @@ func InputErrorJson(path: String) -> String {
 }
 
 func Main() -> Void {
-    let expected_path: String = "src/self_hosted/tools/backend_output_comparator/fixture/expected.txt";
-    let actual_path: String = "src/self_hosted/tools/backend_output_comparator/fixture/actual.txt";
+    let expected_path: String = CompilerHarnessComparableArtifactPathAt(0);
+    let actual_path: String = CompilerHarnessComparableArtifactPathAt(1);
 
     if !FileExists(expected_path) {
         Log(InputErrorJson(expected_path));
@@ -106,7 +106,7 @@ func Main() -> Void {
     let extra_actual: Int = 0;
     let missing_actual: Int = 0;
     let findings: Array<String> = [];
-    let findings_cap: Int = 8;
+    let findings_cap: Int = CompilerHarnessFindingCap();
 
     let i: Int = 0;
     while i < max_n {
@@ -120,7 +120,7 @@ func Main() -> Void {
                 if ArrayLength(findings) < findings_cap {
                     ArrayPush(findings,
                         MismatchFinding("mismatch", i,
-                            "src/self_hosted/tools/backend_output_comparator/fixture/actual.txt"));
+                            actual_path));
                 }
             }
         } else {
@@ -129,14 +129,14 @@ func Main() -> Void {
                 if ArrayLength(findings) < findings_cap {
                     ArrayPush(findings,
                         MismatchFinding("extra", i,
-                            "src/self_hosted/tools/backend_output_comparator/fixture/actual.txt"));
+                            actual_path));
                 }
             } else {
                 missing_actual = missing_actual + 1;
                 if ArrayLength(findings) < findings_cap {
                     ArrayPush(findings,
                         MismatchFinding("missing", i,
-                            "src/self_hosted/tools/backend_output_comparator/fixture/expected.txt"));
+                            expected_path));
                 }
             }
         }

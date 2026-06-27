@@ -2046,3 +2046,13 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This reduces the stable JSON blocker for MIR declaration lowering. The
   blocker remains active because the shared owner is still a bounded scanner,
   not a complete schema-aware JSON fact table.
+
+### 2026-06-28 -- Backend comparator consumes harness artifact rows
+
+- Added comparable artifact path facts and finding-cap policy to
+  `src/self_hosted/compiler/test_harness_owner.pgy`.
+- Repointed `backend_output_comparator` so expected/actual fixture paths and
+  mismatch finding locations come from the `TestHarness` owner rather than
+  tool-local string constants.
+- Tightened the component contract to reject backend comparator fixture-path
+  literals outside the harness owner.

@@ -32,10 +32,27 @@ func CompilerHarnessProjectionAt(index: Int) -> String {
     return "";
 }
 
+func CompilerHarnessComparableArtifactPathCount() -> Int {
+    return 2;
+}
+
+func CompilerHarnessComparableArtifactPathAt(index: Int) -> String {
+    if index == 0 { return "src/self_hosted/tools/backend_output_comparator/fixture/expected.txt"; }
+    if index == 1 { return "src/self_hosted/tools/backend_output_comparator/fixture/actual.txt"; }
+    return "";
+}
+
+func CompilerHarnessFindingCap() -> Int {
+    return 8;
+}
+
 func CompilerTestHarnessReady() -> Bool {
     return CompilerHarnessRowAt(0) == "source_path" &&
         CompilerHarnessRowAt(6) == "projection" &&
         CompilerHarnessProjectionAt(0) == "c_oracle" &&
         CompilerHarnessProjectionAt(1) == "llvm_oracle" &&
-        CompilerHarnessProjectionAt(2) == "self_hosted";
+        CompilerHarnessProjectionAt(2) == "self_hosted" &&
+        CompilerHarnessComparableArtifactPathAt(0) != "" &&
+        CompilerHarnessComparableArtifactPathAt(1) != "" &&
+        CompilerHarnessFindingCap() > 0;
 }
