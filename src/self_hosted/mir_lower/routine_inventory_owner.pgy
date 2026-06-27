@@ -45,11 +45,11 @@ func RoutineHeaderEnd(json: String, routine_name_end: Int, span_end: Int) -> Int
 }
 
 func RoutineKind(json: String, rpos: Int, routine_name_end: Int, span_end: Int) -> String {
-    return JsonFieldString(json, rpos, RoutineHeaderEnd(json, routine_name_end, span_end), "\"kind\":");
+    return MirObjectStringFact(json, rpos, RoutineHeaderEnd(json, routine_name_end, span_end), "kind");
 }
 
 func RoutineOwner(json: String, rpos: Int, routine_name_end: Int, span_end: Int) -> String {
-    return JsonFieldString(json, rpos, RoutineHeaderEnd(json, routine_name_end, span_end), "\"owner\":");
+    return MirObjectStringFact(json, rpos, RoutineHeaderEnd(json, routine_name_end, span_end), "owner");
 }
 
 func FindRoutineByOwnerName(json: String, owner: String, name: String) -> Int {

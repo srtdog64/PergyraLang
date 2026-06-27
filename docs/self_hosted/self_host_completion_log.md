@@ -2077,3 +2077,15 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This reduces shell-owned policy drift for C/LLVM oracle comparison. It does
   not close the subprocess runner blocker because Pergyra still lacks a
   subprocess execution primitive for running the envelope directly.
+
+### 2026-06-28 -- Routine MIR lowering consumes JSON fact owner accessors
+
+- Added shared JSON array-string accessors in `src/self_hosted/lib/json.pgy`
+  and a MIR-specific `MirObjectArrayStringFactAt` accessor in
+  `src/self_hosted/mir_lower/json_fact_read.pgy`.
+- Repointed `routine_lower.pgy` and `routine_inventory_owner.pgy` so routine
+  CFG/source facts consume `MirObjectStringFact` / `MirObjectArrayStringFactAt`
+  instead of local `JsonFieldString` and `JsonFirstArrayString` calls.
+- Tightened the component contract so MIR routine lowering cannot reintroduce
+  those direct JSON field scans. The Stable JSON blocker remains active until
+  the shared owner becomes a complete schema-aware DOM/fact table.

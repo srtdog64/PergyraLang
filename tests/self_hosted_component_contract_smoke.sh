@@ -172,6 +172,8 @@ require_text "src/self_hosted/lib/json.pgy" "func JsonObjectNumberField"
 require_text "src/self_hosted/lib/json.pgy" "func JsonArrayObjectFieldCount"
 require_text "src/self_hosted/lib/json.pgy" "func JsonArrayObjectStringFieldEqualsCount"
 require_text "src/self_hosted/lib/json.pgy" "func JsonArrayObjectBoolFieldEqualsCount"
+require_text "src/self_hosted/lib/json.pgy" "func JsonArrayStringAt"
+require_text "src/self_hosted/lib/json.pgy" "func JsonObjectArrayStringAt"
 require_text "src/self_hosted/lib/json.pgy" "func JsonDocumentNumberField"
 require_text "src/self_hosted/lib/json.pgy" "func JsonFirstArrayString"
 require_text "src/self_hosted/lib/json.pgy" "func JsonEscapeString"
@@ -759,8 +761,10 @@ selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -
     fail "real-source selfcheck count drifted: $selfcheck_count != 86"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirFactObjectStart"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectStringFact"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectNumberFact"
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectArrayStringFactAt"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectArrayBounds"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectArrayObjectBoundsAt"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirDeclObjectBoundsAt"
@@ -780,6 +784,12 @@ reject_text "src/self_hosted/mir_lower/decl_lower.pgy" 'FindFrom(json, "\"method
 reject_text "src/self_hosted/mir_lower/decl_lower.pgy" 'FindFrom(json, "\"variants\":['
 reject_text "src/self_hosted/mir_lower/decl_lower.pgy" "JsonFieldString(json,"
 reject_text "src/self_hosted/mir_lower/decl_lower.pgy" "ReadJsonString(json,"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectStringFact(json, rpos"
+reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "JsonFieldString(json,"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectStringFact(json, kp, inst_end, \"source_type\")"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayStringFactAt(json, kp, inst_end, \"match_bindings\", 0)"
+reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "JsonFieldString(json,"
+reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "JsonFirstArrayString(json,"
 
 semantic_items="$(extract_shell_array_items "$PARITY_DIR/semantic_parity.sh" SOURCE_PAIRS | sed 's/:.*//')"
 [[ -n "$semantic_items" ]] || fail "semantic parity SOURCE_PAIRS is empty"

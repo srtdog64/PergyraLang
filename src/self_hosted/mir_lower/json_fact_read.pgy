@@ -6,16 +6,41 @@
 
 import "../lib/json.pgy";
 
+func MirFactObjectStart(json: String, start: Int) -> Int {
+    if start < 0 {
+        return start;
+    }
+    if CharAt(json, start) == "{" {
+        return start;
+    }
+    let i: Int = start - 1;
+    while i >= 0 {
+        let c: String = CharAt(json, i);
+        if c == "{" {
+            return i;
+        }
+        if c == "}" || c == "]" {
+            return start;
+        }
+        i = i - 1;
+    }
+    return start;
+}
+
 func MirObjectStringFact(json: String, start: Int, end: Int, field: String) -> String {
-    return JsonObjectStringField(json, start, end, field);
+    return JsonObjectStringField(json, MirFactObjectStart(json, start), end, field);
 }
 
 func MirObjectNumberFact(json: String, start: Int, end: Int, field: String) -> String {
-    return JsonObjectNumberField(json, start, end, field);
+    return JsonObjectNumberField(json, MirFactObjectStart(json, start), end, field);
+}
+
+func MirObjectArrayStringFactAt(json: String, start: Int, end: Int, field: String, row: Int) -> String {
+    return JsonObjectArrayStringAt(json, MirFactObjectStart(json, start), end, field, row);
 }
 
 func MirObjectArrayBounds(json: String, start: Int, end: Int, field: String, inout bounds: Array<Int>) -> Bool {
-    if !JsonObjectFieldValueBounds(json, start, end, field, bounds) {
+    if !JsonObjectFieldValueBounds(json, MirFactObjectStart(json, start), end, field, bounds) {
         return false;
     }
     if bounds[0] >= bounds[1] {

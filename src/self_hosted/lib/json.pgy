@@ -522,6 +522,53 @@ func JsonArrayObjectBoolFieldEqualsCount(json: String, array_open: Int, array_en
     return count;
 }
 
+func JsonArrayStringAt(json: String, array_open: Int, array_end: Int, target_index: Int) -> String {
+    if target_index < 0 {
+        return "";
+    }
+    let row: Int = 0;
+    let i: Int = array_open + 1;
+    while i < array_end {
+        i = JsonSkipWhitespace(json, i, array_end);
+        if i >= array_end {
+            return "";
+        }
+        let c: String = CharAt(json, i);
+        if c == "]" {
+            return "";
+        }
+        if c == "," {
+            i = i + 1;
+            continue;
+        }
+        if c != "\"" {
+            return "";
+        }
+        let value_end: Array<Int> = [0];
+        let value: String = ReadJsonString(json, i, value_end);
+        if value_end[0] <= i {
+            return "";
+        }
+        if row == target_index {
+            return value;
+        }
+        row = row + 1;
+        i = value_end[0];
+    }
+    return "";
+}
+
+func JsonObjectArrayStringAt(json: String, start: Int, end: Int, field: String, target_index: Int) -> String {
+    let bounds: Array<Int> = [0, 0];
+    if !JsonObjectFieldValueBounds(json, start, end, field, bounds) {
+        return "";
+    }
+    if bounds[0] >= bounds[1] || CharAt(json, bounds[0]) != "[" {
+        return "";
+    }
+    return JsonArrayStringAt(json, bounds[0], bounds[1], target_index);
+}
+
 func JsonFirstArrayString(json: String, start: Int, end: Int, key: String) -> String {
     let p: Int = FindFrom(json, key, start);
     if p < 0 || p >= end {

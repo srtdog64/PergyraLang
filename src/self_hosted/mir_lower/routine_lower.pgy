@@ -92,9 +92,9 @@ func BlockCond(json: String, routine_start: Int, routine_end: Int, bs: Int, be: 
     if next_kp >= 0 && next_kp < be {
         inst_end = next_kp;
     }
-    let source_type: String = JsonFieldString(json, kp, inst_end, "\"source_type\":");
+    let source_type: String = MirObjectStringFact(json, kp, inst_end, "source_type");
     if source_type == "AST_MATCH_CASE" {
-        let match_subject: String = JsonFieldString(json, kp, inst_end, "\"expr0\":");
+        let match_subject: String = MirObjectStringFact(json, kp, inst_end, "expr0");
         let pk: Int = FindFrom(json, "\"match_patterns\":[", kp);
         if StringLength(match_subject) == 0 || pk < 0 || pk >= inst_end {
             Die("match-case branch is missing MIR subject/pattern facts");
@@ -113,7 +113,7 @@ func BlockCond(json: String, routine_start: Int, routine_end: Int, bs: Int, be: 
         if next >= 0 && next < pe {
             Die("multi-pattern match cases are outside the self-host MIR subset");
         }
-        let variant: String = JsonFieldString(json, kp, inst_end, "\"match_variant\":");
+        let variant: String = MirObjectStringFact(json, kp, inst_end, "match_variant");
         if variant == "Some" {
             return Concat("IsSome(", Concat(match_subject, ")"));
         }
@@ -123,9 +123,9 @@ func BlockCond(json: String, routine_start: Int, routine_end: Int, bs: Int, be: 
         return Concat(match_subject, Concat(" == ", pattern));
     }
     if source_type == "AST_FOR_LOOP" {
-        let binding: String = JsonFieldString(json, kp, inst_end, "\"arg0\":");
-        let start: String = JsonFieldString(json, kp, inst_end, "\"expr0\":");
-        let stop: String = JsonFieldString(json, kp, inst_end, "\"expr1\":");
+        let binding: String = MirObjectStringFact(json, kp, inst_end, "arg0");
+        let start: String = MirObjectStringFact(json, kp, inst_end, "expr0");
+        let stop: String = MirObjectStringFact(json, kp, inst_end, "expr1");
         if StringLength(binding) > 0 && StringLength(start) > 0 && StringLength(stop) > 0 {
             let iter_type: String = SourceLocalType(json, routine_start, routine_end, start);
             if start == stop && StringLength(iter_type) >= 6 && Substring(iter_type, 0, 6) == "Array<" {
@@ -134,7 +134,7 @@ func BlockCond(json: String, routine_start: Int, routine_end: Int, bs: Int, be: 
             return Concat("for ", Concat(binding, Concat(" in ", Concat(start, Concat("..", stop)))));
         }
     }
-    let cond: String = JsonFieldString(json, kp, inst_end, "\"expr0\":");
+    let cond: String = MirObjectStringFact(json, kp, inst_end, "expr0");
     if StringLength(cond) > 0 {
         return cond;
     }
@@ -152,16 +152,16 @@ func BlockMatchBindingLine(json: String, routine_start: Int, routine_end: Int,
     if next_kp >= 0 && next_kp < be {
         inst_end = next_kp;
     }
-    let source_type: String = JsonFieldString(json, kp, inst_end, "\"source_type\":");
+    let source_type: String = MirObjectStringFact(json, kp, inst_end, "source_type");
     if source_type != "AST_MATCH_CASE" {
         return "";
     }
-    let variant: String = JsonFieldString(json, kp, inst_end, "\"match_variant\":");
+    let variant: String = MirObjectStringFact(json, kp, inst_end, "match_variant");
     if variant != "Some" {
         return "";
     }
-    let match_subject2: String = JsonFieldString(json, kp, inst_end, "\"expr0\":");
-    let binding: String = JsonFirstArrayString(json, kp, inst_end, "\"match_bindings\":[");
+    let match_subject2: String = MirObjectStringFact(json, kp, inst_end, "expr0");
+    let binding: String = MirObjectArrayStringFactAt(json, kp, inst_end, "match_bindings", 0);
     if StringLength(match_subject2) == 0 || StringLength(binding) == 0 {
         Die("Some match case is missing subject or binding MIR fact");
     }
@@ -191,16 +191,16 @@ func EmitBlockStmts(json: String, routine_start: Int, routine_end: Int,
             inst_end = next_kp;
         }
         if ikind == "destructure" {
-            let d_expr0: String = JsonFieldString(json, kp, inst_end, "\"expr0\":");
+            let d_expr0: String = MirObjectStringFact(json, kp, inst_end, "expr0");
             out = Concat(out, RenderDestructureFromFacts(
                 json, routine_start, routine_end, kp, inst_end, indent,
                 d_expr0));
         }
         if ikind != "branch" && ikind != "loop-init" {
-            let expr0: String = JsonFieldString(json, kp, inst_end, "\"expr0\":");
-            let expr1: String = JsonFieldString(json, kp, inst_end, "\"expr1\":");
-            let arg0: String = JsonFieldString(json, kp, inst_end, "\"arg0\":");
-            let source_type: String = JsonFieldString(json, kp, inst_end, "\"source_type\":");
+            let expr0: String = MirObjectStringFact(json, kp, inst_end, "expr0");
+            let expr1: String = MirObjectStringFact(json, kp, inst_end, "expr1");
+            let arg0: String = MirObjectStringFact(json, kp, inst_end, "arg0");
+            let source_type: String = MirObjectStringFact(json, kp, inst_end, "source_type");
             let local_type: String = SourceLocalType(json, routine_start, routine_end, arg0);
             if ikind != "destructure" && source_type == "AST_DEFER_STMT" {
                 out = Concat(out, RenderDeferFromFacts(json, kp, inst_end, indent));
