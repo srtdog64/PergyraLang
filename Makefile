@@ -2230,6 +2230,12 @@ lane-scheduler-test-smoke:
 self-host-execution-lane-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_host_execution_lane_parity_smoke.sh
 
+site-generator-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/site_generator_smoke.sh
+
+site: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" site/build.sh
+
 self-host-compiler-world-contract-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_host_compiler_world_contract_smoke.sh
 
