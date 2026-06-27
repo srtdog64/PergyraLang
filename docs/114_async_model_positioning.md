@@ -30,6 +30,11 @@ Related documents:
 - `docs/122_managing_intent_drift.md` - sister positioning; drift management
   discipline (5 dimensions x 5 drift kinds; methodology where language
   cannot reach).
+- `docs/146_sea_execution_lanes.md` - the execution layer BELOW this one. SEA
+  names the contract; the ExecutionLane fact records which runtime lane a task's
+  evidence permits (M:N is one lane, evidence-gated). This is where §8's "no
+  user-selectable scheduler" is realised: the compiler chooses the lane from
+  evidence, the runtime stays swappable underneath.
 
 This document positions Pergyra's concurrency model relative to the
 callback -> promise/future -> async/await history. It is a positioning and

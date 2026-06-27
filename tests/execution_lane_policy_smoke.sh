@@ -22,4 +22,13 @@ fail() { echo "[execution-lane-policy] FAIL: $*" >&2; exit 1; }
 
 "$OUT" || fail "decision table mismatch"
 
+# Naming-layer contract (docs/146 §1): SEA is the semantic model/contract, never
+# the name of a scheduler. The runtime scheduler is PgyLaneScheduler. Forbid
+# collapsing the layers by naming a scheduler "SEA*".
+if git -C "$ROOT_DIR" grep -InE 'SEA[_ ]?[Ss]cheduler|sea_scheduler' \
+        -- 'src/**' 'docs/**' >/dev/null 2>&1; then
+    git -C "$ROOT_DIR" grep -InE 'SEA[_ ]?[Ss]cheduler|sea_scheduler' -- 'src/**' 'docs/**' >&2 || true
+    fail "SEA must name the contract, not a scheduler (docs/146 §1). Use PgyLaneScheduler / *Executor for the runtime."
+fi
+
 echo "[execution-lane-policy] PASS"
