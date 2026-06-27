@@ -111,6 +111,15 @@ strictly underneath.
   diffs it against the C policy's decision-table output on both C and LLVM
   (10/10 each).
 
+**Landed — codegen executor choice is SEA-governed (2026-06-27):**
+- Both backends chose the spawn executor with an independent
+  `ast_spawn_is_blocking ? blocking : async` branch. They now route that choice
+  through one policy call (`pgy_spawn_lane_from_blocking` +
+  `pgy_lane_uses_blocking_executor`), so C and LLVM agree by construction and the
+  decision is single-sourced. Output is identical today (parity-safe,
+  test-transpile 914/0); when richer evidence lands, the same path promotes a
+  non-blocking spawn to Worker/Movable without touching the emitters.
+
 **Remaining (deep fill, not a quick slice):**
 - **Per-boundary evidence.** The classifier is still kind-driven. Enriching it
   precisely needs per-boundary capture facts (pin/live-view, raw-vs-value
@@ -119,10 +128,14 @@ strictly underneath.
   over-pins — a `parallel` would become `PinnedZone` merely because an unrelated
   slot exists in the same routine. Precise evidence is the F-series closure-
   capture plumbing, not a kind lookup.
-- **Codegen emits the dispatch call.** Generated programs do not yet call
-  `pgy_lane_dispatch` at spawn sites; doing so is dual-backend codegen work, and
-  on the self-host side it depends on async lowering through the MIR JSON path
-  (today the self-host parses async but does not lower it).
+- **Codegen emits the facade call.** The spawn-executor *choice* is now
+  SEA-governed (above), but generated programs still call the existing
+  `pgy_*_spawn` exports directly, not the `pgy_lane_dispatch` facade. Unifying
+  them (so every concurrent site goes through the facade) is the next codegen
+  step. On the self-host side it is gated by async *lowering*: the self-host
+  parses async but does not lower it (its `mir_lower` carries zero async facts),
+  so self-host async codegen is the larger frontier — the MIR JSON async fact
+  surface, tracked with the self-host expansion.
 - **Executor depth.** The Worker/Blocking/LocalAsync/Movable lanes currently
   share one worker-thread executor; backing them with the fiber scheduler /
   work-stealing pool / dedicated blocking pool is refinement under the same
