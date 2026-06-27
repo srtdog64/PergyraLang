@@ -11,6 +11,7 @@
 #include "hir.h"
 #include "mir.h"
 #include "rir.h"
+#include "execution_lane.h"
 
 typedef struct SemanticResult SemanticResult;
 
@@ -188,7 +189,21 @@ typedef struct
     const char     *hir_routine_evidence_name;
     const char     *rir_boundary_evidence_scope;
     const char     *rir_authority_evidence_name;
+    /* SEA ExecutionLane fact (docs/146): which runtime lane this boundary's task
+       is permitted, derived from boundary evidence by air_boundary_classify_lane.
+       Zero-initialised to PGY_LANE_REJECT (0) — an unclassified boundary is
+       fail-closed, not silently runnable, until classification sets its lane. */
+    PgyExecutionLane execution_lane;
 } AIRBoundaryNode;
+
+/*
+ * SEA: derive the ExecutionLane for a concurrency boundary from the evidence the
+ * boundary already carries (kind, authority, sync class). First-cut mapping —
+ * pin/capture/effect facts that live in MIR/semantic are not yet plumbed onto
+ * the boundary, so this is conservative (it never assigns MovableScheduler
+ * without explicit pure-value + authority evidence). See docs/146 §5.
+ */
+PgyExecutionLane air_boundary_classify_lane(const AIRBoundaryNode *boundary);
 
 typedef struct
 {

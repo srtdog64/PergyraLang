@@ -809,6 +809,8 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/air_dump_json.c \
                    $(COMPILER_DIR)/air_vocabulary.c \
                    $(COMPILER_DIR)/air_erasure_squiggle.c \
+                   $(COMPILER_DIR)/execution_lane.c \
+                   $(COMPILER_DIR)/air_execution_lane.c \
                    $(COMPILER_DIR)/air_boundary_evidence_policy.c \
                    $(COMPILER_DIR)/air_evidence_node.c \
                    $(COMPILER_DIR)/air_evidence_ast.c \
