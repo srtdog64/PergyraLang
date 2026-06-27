@@ -136,5 +136,40 @@ if ! grep -Fq '"kind":"missing_modules_key"' <<<"$NEG_OUT"; then
     exit 1
 fi
 
+# Synthetic nested-field fixture: a nested object may contain `layer`, but the
+# module row itself does not. The JSON owner must not let recursive text search
+# satisfy a top-level required-field check.
+cat > "$NEG_ROOT/$MANIFEST_PATH" <<'JSON'
+{
+  "schema": 1,
+  "modules": [
+    {
+      "name": "pgy.synthetic",
+      "status": "stable-subset",
+      "beta_blocker": true,
+      "surfaces": [
+        { "layer": "not-a-module-layer" }
+      ]
+    }
+  ]
+}
+JSON
+
+set +e
+NESTED_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>&1)"
+NESTED_RC=$?
+set -e
+if [[ "$NESTED_RC" -ne 1 ]]; then
+    echo "[self-host-parity:module-manifest-resolver] nested-field fixture expected rc=1, got rc=$NESTED_RC" >&2
+    printf '%s\n' "$NESTED_OUT" >&2
+    exit 1
+fi
+if ! grep -Fq '"kind":"field_count_mismatch"' <<<"$NESTED_OUT" ||
+   ! grep -Fq '"key":"layer"' <<<"$NESTED_OUT"; then
+    echo "[self-host-parity:module-manifest-resolver] nested-field fixture expected layer field_count_mismatch" >&2
+    printf '%s\n' "$NESTED_OUT" >&2
+    exit 1
+fi
+
 assert_llvm_leg "self-host-parity:module-manifest-resolver" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR"
-echo "[self-host-parity:module-manifest-resolver] rung-2 parity ok (modules=$SHELL_MODULES blockers=$SHELL_BLOCKERS stable=$SHELL_STABLE; missing-modules-key rc=1)"
+echo "[self-host-parity:module-manifest-resolver] rung-2 parity ok (modules=$SHELL_MODULES blockers=$SHELL_BLOCKERS stable=$SHELL_STABLE; missing-modules-key rc=1; nested-field rc=1)"

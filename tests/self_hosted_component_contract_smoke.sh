@@ -165,6 +165,10 @@ require_text "src/self_hosted/lib/json.pgy" "func JsonDocumentStringFieldEquals"
 require_text "src/self_hosted/lib/json.pgy" "func JsonDocumentHasField"
 require_text "src/self_hosted/lib/json.pgy" "func JsonFieldArrayBounds"
 require_text "src/self_hosted/lib/json.pgy" "func JsonArrayObjectCount"
+require_text "src/self_hosted/lib/json.pgy" "func JsonArrayObjectBoundsAt"
+require_text "src/self_hosted/lib/json.pgy" "func JsonObjectFieldValueBounds"
+require_text "src/self_hosted/lib/json.pgy" "func JsonObjectStringField"
+require_text "src/self_hosted/lib/json.pgy" "func JsonObjectNumberField"
 require_text "src/self_hosted/lib/json.pgy" "func JsonArrayObjectFieldCount"
 require_text "src/self_hosted/lib/json.pgy" "func JsonArrayObjectStringFieldEqualsCount"
 require_text "src/self_hosted/lib/json.pgy" "func JsonArrayObjectBoolFieldEqualsCount"
@@ -601,7 +605,8 @@ require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" "
 reject_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" 'let json_parts: Array<String>'
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonDocumentStringFieldEquals(content, \"schema\", \"pgy.air.graph.v1\")"
-require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonDocumentNumberField(content, field)"
+require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonObjectFieldValueBounds(content, 0, doc_end, \"summary\", summary_bounds)"
+require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonObjectNumberField(content, summary_bounds[0], summary_bounds[1], field)"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'JsonFieldKey("execution_lane")'
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'StringContains(content, "\"schema\":\"pgy.air.graph.v1\"")'
 for air_graph_report in \
@@ -662,7 +667,8 @@ reject_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" '
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonFieldArrayBounds(content, 0, JsonDocumentObjectEnd(content), \"modules\", module_bounds)"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectCount(content, modules_open, modules_end)"
-require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectFieldCount(content, modules_open, modules_end, \"layer\")"
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectBoundsAt("
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonObjectHasField(content, object_bounds[0], object_bounds[1], \"layer\")"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectBoolFieldEqualsCount(content, modules_open, modules_end, \"beta_blocker\", true)"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectStringFieldEqualsCount(content, modules_open, modules_end, \"status\", \"stable-subset\")"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonEmitObject(report_fields)"

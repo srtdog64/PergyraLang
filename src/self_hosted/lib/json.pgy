@@ -161,7 +161,7 @@ func JsonDocumentStringFieldEquals(json: String, field: String, expected: String
     if end <= 0 {
         return false;
     }
-    let actual: String = JsonFieldString(json, 0, end, JsonFieldKey(field));
+    let actual: String = JsonObjectStringField(json, 0, end, field);
     return actual == expected;
 }
 
@@ -170,9 +170,7 @@ func JsonDocumentHasField(json: String, field: String) -> Bool {
     if end <= 0 {
         return false;
     }
-    let key: String = JsonFieldKey(field);
-    let p: Int = FindFrom(json, key, 0);
-    return p >= 0 && p < end;
+    return JsonObjectHasField(json, 0, end, field);
 }
 
 func JsonFieldArrayBounds(json: String, start: Int, end: Int, field: String, inout bounds: Array<Int>) -> Bool {
@@ -198,7 +196,7 @@ func JsonDocumentNumberField(json: String, field: String) -> String {
     if end <= 0 {
         return "";
     }
-    return JsonFieldNumber(json, 0, end, JsonFieldKey(field));
+    return JsonObjectNumberField(json, 0, end, field);
 }
 
 func JsonSkipWhitespace(json: String, index: Int, end: Int) -> Int {
@@ -297,108 +295,229 @@ func JsonFieldNumber(json: String, start: Int, end: Int, key: String) -> String 
     return out;
 }
 
+func JsonValueEnd(json: String, value_start: Int, end: Int) -> Int {
+    let i: Int = JsonSkipWhitespace(json, value_start, end);
+    if i >= end {
+        return -1;
+    }
+    let c: String = CharAt(json, i);
+    if c == "\"" {
+        let string_end: Array<Int> = [0];
+        let ignored: String = ReadJsonString(json, i, string_end);
+        if string_end[0] <= i {
+            return -1;
+        }
+        return string_end[0];
+    }
+    if c == "{" {
+        return JsonObjectEnd(json, i, end);
+    }
+    if c == "[" {
+        let array_close: Int = JsonArrayEnd(json, i, end);
+        if array_close < 0 {
+            return -1;
+        }
+        return array_close + 1;
+    }
+    while i < end {
+        let d: String = CharAt(json, i);
+        if d == "," || d == "}" || d == "]" {
+            return i;
+        }
+        i = i + 1;
+    }
+    return i;
+}
+
+func JsonObjectFieldValueBounds(json: String, start: Int, end: Int, field: String, inout bounds: Array<Int>) -> Bool {
+    if start < 0 || end <= start {
+        return false;
+    }
+    if CharAt(json, start) != "{" {
+        return false;
+    }
+    let i: Int = start + 1;
+    while i < end {
+        i = JsonSkipWhitespace(json, i, end);
+        if i >= end {
+            return false;
+        }
+        let c: String = CharAt(json, i);
+        if c == "}" {
+            return false;
+        }
+        if c == "," {
+            i = i + 1;
+            continue;
+        }
+        if c != "\"" {
+            return false;
+        }
+        let key_end: Array<Int> = [0];
+        let key: String = ReadJsonString(json, i, key_end);
+        if key_end[0] <= i {
+            return false;
+        }
+        i = JsonSkipWhitespace(json, key_end[0], end);
+        if i >= end || CharAt(json, i) != ":" {
+            return false;
+        }
+        i = JsonSkipWhitespace(json, i + 1, end);
+        let value_end: Int = JsonValueEnd(json, i, end);
+        if value_end < 0 {
+            return false;
+        }
+        if key == field {
+            ArraySet(bounds, 0, i);
+            ArraySet(bounds, 1, value_end);
+            return true;
+        }
+        i = value_end;
+    }
+    return false;
+}
+
+func JsonObjectStringField(json: String, start: Int, end: Int, field: String) -> String {
+    let bounds: Array<Int> = [0, 0];
+    if !JsonObjectFieldValueBounds(json, start, end, field, bounds) {
+        return "";
+    }
+    if bounds[0] >= bounds[1] || CharAt(json, bounds[0]) != "\"" {
+        return "";
+    }
+    let string_end: Array<Int> = [0];
+    return ReadJsonString(json, bounds[0], string_end);
+}
+
+func JsonObjectNumberField(json: String, start: Int, end: Int, field: String) -> String {
+    let bounds: Array<Int> = [0, 0];
+    if !JsonObjectFieldValueBounds(json, start, end, field, bounds) {
+        return "";
+    }
+    let i: Int = bounds[0];
+    let out: String = "";
+    while i < bounds[1] {
+        let c: String = CharAt(json, i);
+        if !JsonIsDigitChar(c) {
+            if StringLength(out) > 0 {
+                return out;
+            }
+            return "";
+        }
+        out = Concat(out, c);
+        i = i + 1;
+    }
+    return out;
+}
+
 func JsonObjectHasField(json: String, start: Int, end: Int, field: String) -> Bool {
-    let p: Int = FindFrom(json, JsonFieldKey(field), start);
-    return p >= 0 && p < end;
+    let bounds: Array<Int> = [0, 0];
+    return JsonObjectFieldValueBounds(json, start, end, field, bounds);
 }
 
 func JsonObjectStringFieldEquals(json: String, start: Int, end: Int, field: String, expected: String) -> Bool {
-    let actual: String = JsonFieldString(json, start, end, JsonFieldKey(field));
+    let actual: String = JsonObjectStringField(json, start, end, field);
     return actual == expected;
 }
 
 func JsonObjectBoolFieldEquals(json: String, start: Int, end: Int, field: String, expected: Bool) -> Bool {
-    let p: Int = FindFrom(json, JsonFieldKey(field), start);
-    if p < 0 || p >= end {
+    let bounds: Array<Int> = [0, 0];
+    if !JsonObjectFieldValueBounds(json, start, end, field, bounds) {
         return false;
     }
-    let value_start: Int = JsonSkipWhitespace(json, p + StringLength(JsonFieldKey(field)), end);
     if expected {
-        if value_start + 4 > end {
+        if bounds[0] + 4 > bounds[1] {
             return false;
         }
-        return Substring(json, value_start, 4) == "true";
+        return Substring(json, bounds[0], 4) == "true";
     }
-    if value_start + 5 > end {
+    if bounds[0] + 5 > bounds[1] {
         return false;
     }
-    return Substring(json, value_start, 5) == "false";
+    return Substring(json, bounds[0], 5) == "false";
+}
+
+func JsonArrayObjectBoundsAt(json: String, array_open: Int, array_end: Int, target_index: Int, inout bounds: Array<Int>) -> Bool {
+    if target_index < 0 {
+        return false;
+    }
+    let row: Int = 0;
+    let i: Int = array_open + 1;
+    while i < array_end {
+        i = JsonSkipWhitespace(json, i, array_end);
+        if i >= array_end {
+            return false;
+        }
+        let c: String = CharAt(json, i);
+        if c == "]" {
+            return false;
+        }
+        if c == "," {
+            i = i + 1;
+            continue;
+        }
+        if c != "{" {
+            return false;
+        }
+        let obj_end: Int = JsonObjectEnd(json, i, array_end);
+        if obj_end < 0 {
+            return false;
+        }
+        if row == target_index {
+            ArraySet(bounds, 0, i);
+            ArraySet(bounds, 1, obj_end);
+            return true;
+        }
+        row = row + 1;
+        i = obj_end;
+    }
+    return false;
 }
 
 func JsonArrayObjectCount(json: String, array_open: Int, array_end: Int) -> Int {
     let count: Int = 0;
-    let i: Int = array_open + 1;
-    while i < array_end {
-        let obj_start: Int = FindFrom(json, "{", i);
-        if obj_start < 0 || obj_start >= array_end {
-            return count;
-        }
-        let obj_end: Int = JsonObjectEnd(json, obj_start, array_end);
-        if obj_end < 0 {
-            return count;
-        }
+    let bounds: Array<Int> = [0, 0];
+    while JsonArrayObjectBoundsAt(json, array_open, array_end, count, bounds) {
         count = count + 1;
-        i = obj_end;
     }
     return count;
 }
 
 func JsonArrayObjectFieldCount(json: String, array_open: Int, array_end: Int, field: String) -> Int {
     let count: Int = 0;
-    let i: Int = array_open + 1;
-    while i < array_end {
-        let obj_start: Int = FindFrom(json, "{", i);
-        if obj_start < 0 || obj_start >= array_end {
-            return count;
-        }
-        let obj_end: Int = JsonObjectEnd(json, obj_start, array_end);
-        if obj_end < 0 {
-            return count;
-        }
-        if JsonObjectHasField(json, obj_start, obj_end, field) {
+    let row: Int = 0;
+    let bounds: Array<Int> = [0, 0];
+    while JsonArrayObjectBoundsAt(json, array_open, array_end, row, bounds) {
+        if JsonObjectHasField(json, bounds[0], bounds[1], field) {
             count = count + 1;
         }
-        i = obj_end;
+        row = row + 1;
     }
     return count;
 }
 
 func JsonArrayObjectStringFieldEqualsCount(json: String, array_open: Int, array_end: Int, field: String, expected: String) -> Int {
     let count: Int = 0;
-    let i: Int = array_open + 1;
-    while i < array_end {
-        let obj_start: Int = FindFrom(json, "{", i);
-        if obj_start < 0 || obj_start >= array_end {
-            return count;
-        }
-        let obj_end: Int = JsonObjectEnd(json, obj_start, array_end);
-        if obj_end < 0 {
-            return count;
-        }
-        if JsonObjectStringFieldEquals(json, obj_start, obj_end, field, expected) {
+    let row: Int = 0;
+    let bounds: Array<Int> = [0, 0];
+    while JsonArrayObjectBoundsAt(json, array_open, array_end, row, bounds) {
+        if JsonObjectStringFieldEquals(json, bounds[0], bounds[1], field, expected) {
             count = count + 1;
         }
-        i = obj_end;
+        row = row + 1;
     }
     return count;
 }
 
 func JsonArrayObjectBoolFieldEqualsCount(json: String, array_open: Int, array_end: Int, field: String, expected: Bool) -> Int {
     let count: Int = 0;
-    let i: Int = array_open + 1;
-    while i < array_end {
-        let obj_start: Int = FindFrom(json, "{", i);
-        if obj_start < 0 || obj_start >= array_end {
-            return count;
-        }
-        let obj_end: Int = JsonObjectEnd(json, obj_start, array_end);
-        if obj_end < 0 {
-            return count;
-        }
-        if JsonObjectBoolFieldEquals(json, obj_start, obj_end, field, expected) {
+    let row: Int = 0;
+    let bounds: Array<Int> = [0, 0];
+    while JsonArrayObjectBoundsAt(json, array_open, array_end, row, bounds) {
+        if JsonObjectBoolFieldEquals(json, bounds[0], bounds[1], field, expected) {
             count = count + 1;
         }
-        i = obj_end;
+        row = row + 1;
     }
     return count;
 }

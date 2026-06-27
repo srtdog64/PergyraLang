@@ -7,7 +7,15 @@
 import "../../lib/json.pgy";
 
 func ExtractIntField(content: String, field: String) -> Int {
-    let num_str: String = JsonDocumentNumberField(content, field);
+    let doc_end: Int = JsonDocumentObjectEnd(content);
+    if doc_end <= 0 {
+        return -1;
+    }
+    let summary_bounds: Array<Int> = [0, 0];
+    if !JsonObjectFieldValueBounds(content, 0, doc_end, "summary", summary_bounds) {
+        return -1;
+    }
+    let num_str: String = JsonObjectNumberField(content, summary_bounds[0], summary_bounds[1], field);
     if StringLength(num_str) == 0 {
         return -1;
     }

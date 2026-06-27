@@ -1953,3 +1953,21 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Kept the pre-self-host expansion ledger honest: these surfaces now have
   owner envelopes, but remain ACTIVE until live C/LLVM/self-hosted consumers
   consume the rows instead of shell/text/backend-local fallbacks.
+
+### 2026-06-28 -- JSON owner gains top-level row bounds
+
+- Added top-level object value bounds and array-object row iteration to
+  `src/self_hosted/lib/json.pgy`, keeping JSON schema decisions in consumers
+  while removing recursive key text search from row-level manifest checks.
+- Repointed `module_manifest_resolver` required-field validation to consume
+  `JsonArrayObjectBoundsAt` plus top-level `JsonObjectHasField` for each
+  module row.
+- Repointed the AIR graph JSON validator's summary count reads to consume the
+  top-level `summary` object bounds before reading `intent_count`,
+  `boundary_count`, `evidence_count`, and `drift_count`; the old behavior was
+  an accidental recursive document-number search.
+- Tightened the module manifest parity gate with a nested-field negative
+  fixture: a nested `"layer"` key no longer satisfies the module row's
+  top-level `layer` requirement.
+- The Stable JSON parse/emit blocker remains active because this is still a
+  bounded schema scanner, not a complete JSON DOM/fact table.

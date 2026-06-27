@@ -12,7 +12,8 @@ compiler-stage `.pgy` source to be listed here.
 ## Shared Lib
 
 - `src/self_hosted/lib/diagnostic.pgy` -- stable diagnostic-block rendering.
-- `src/self_hosted/lib/json.pgy` -- shared bounded JSON string-read plus
+- `src/self_hosted/lib/json.pgy` -- shared bounded JSON string-read,
+  top-level object/value bounds, array-object row iteration, and
   string/field/object/array emit primitives.
 - `src/self_hosted/lib/path.pgy` -- self-hosted source/import path string facts.
 - `src/self_hosted/lib/text_scan.pgy` -- shared text-scan helpers.

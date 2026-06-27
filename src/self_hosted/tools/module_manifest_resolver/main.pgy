@@ -97,9 +97,23 @@ func Main() -> Void {
     let modules_end: Int = module_bounds[1];
 
     let modules: Int = JsonArrayObjectCount(content, modules_open, modules_end);
-    let layers: Int = JsonArrayObjectFieldCount(content, modules_open, modules_end, "layer");
-    let statuses: Int = JsonArrayObjectFieldCount(content, modules_open, modules_end, "status");
-    let blockers_present: Int = JsonArrayObjectFieldCount(content, modules_open, modules_end, "beta_blocker");
+    let layers: Int = 0;
+    let statuses: Int = 0;
+    let blockers_present: Int = 0;
+    let row: Int = 0;
+    let object_bounds: Array<Int> = [0, 0];
+    while JsonArrayObjectBoundsAt(content, modules_open, modules_end, row, object_bounds) {
+        if JsonObjectHasField(content, object_bounds[0], object_bounds[1], "layer") {
+            layers = layers + 1;
+        }
+        if JsonObjectHasField(content, object_bounds[0], object_bounds[1], "status") {
+            statuses = statuses + 1;
+        }
+        if JsonObjectHasField(content, object_bounds[0], object_bounds[1], "beta_blocker") {
+            blockers_present = blockers_present + 1;
+        }
+        row = row + 1;
+    }
     let beta_blockers: Int = JsonArrayObjectBoolFieldEqualsCount(content, modules_open, modules_end, "beta_blocker", true);
     let stable_subset: Int = JsonArrayObjectStringFieldEqualsCount(content, modules_open, modules_end, "status", "stable-subset");
 
