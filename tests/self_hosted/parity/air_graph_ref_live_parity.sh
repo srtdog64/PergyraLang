@@ -70,6 +70,9 @@ count_dangling_refs() {
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
+LIB_BUILD_DIR="$ROOT_DIR/.tmp/lib"
+mkdir -p "$LIB_BUILD_DIR"
+cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
 PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
 
 set +e
@@ -84,6 +87,7 @@ if [[ "$P_RC" -ne 0 ]]; then
 fi
 
 PERGYRA_JSON="$(printf '%s\n' "$PERGYRA_OUT" \
+    | tr -d '\r' \
     | grep -F 'pgy.selfhost.air-ref-live.v1' \
     | tail -n 1)"
 EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"

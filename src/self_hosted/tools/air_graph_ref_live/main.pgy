@@ -12,6 +12,8 @@
 // Cwd contract: the parity harness cd's into the repo root before running.
 // Contract: see intent.md in the same directory.
 
+import "../../lib/json.pgy";
+
 func FirstTokenAfter(s: String, start: Int) -> String {
     let after: String = Substring(s, start, StringLength(s) - start);
     let c: Int = StringIndexOf(after, ",");
@@ -74,36 +76,48 @@ func ExtractIntField(content: String, field: String) -> Int {
 }
 
 func DanglingFinding(boundary_d: Int, intent_d: Int) -> String {
-    let parts: Array<String> = [
-        "{\"kind\":\"dangling_reference\",\"boundary_refs\":",
-        ToString(boundary_d),
-        ",\"intent_refs\":",
-        ToString(intent_d),
-        "}"
+    let fields: Array<String> = [
+        JsonEmitFieldString("kind", "dangling_reference"),
+        JsonEmitFieldNumber("boundary_refs", ToString(boundary_d)),
+        JsonEmitFieldNumber("intent_refs", ToString(intent_d))
     ];
-    return StringJoin(parts, "");
+    return JsonEmitObject(fields);
 }
 
-func FindingsFor(dangling: Int, boundary_d: Int, intent_d: Int) -> String {
+func FindingsFor(dangling: Int, boundary_d: Int, intent_d: Int) -> Array<String> {
+    let findings: Array<String> = [];
     if dangling > 0 {
-        return DanglingFinding(boundary_d, intent_d);
+        ArrayPush(findings, DanglingFinding(boundary_d, intent_d));
     }
-    return "";
+    return findings;
 }
 
 func InputErrorJson(path: String) -> String {
-    let parts: Array<String> = [
-        "{\"schema\":\"pgy.selfhost.air-ref-live.v1\",\"ok\":false,",
-        "\"source\":{\"input_schema\":\"pgy.air.graph.v1\",\"fixture_owner\":\"",
-        path,
-        "\"},\"counts\":{\"boundary_refs_dangling\":0,\"intent_refs_dangling\":0,\"dangling\":0},",
-        "\"findings\":[{\"kind\":\"input_error\",\"key\":\"",
-        path,
-        "\",\"location\":\"",
-        path,
-        "\"}]}"
+    let source_fields: Array<String> = [
+        JsonEmitFieldString("input_schema", "pgy.air.graph.v1"),
+        JsonEmitFieldString("fixture_owner", path)
     ];
-    return StringJoin(parts, "");
+    let counts_fields: Array<String> = [
+        JsonEmitFieldNumber("boundary_refs_dangling", "0"),
+        JsonEmitFieldNumber("intent_refs_dangling", "0"),
+        JsonEmitFieldNumber("dangling", "0")
+    ];
+    let finding_fields: Array<String> = [
+        JsonEmitFieldString("kind", "input_error"),
+        JsonEmitFieldString("key", path),
+        JsonEmitFieldString("location", path)
+    ];
+    let findings: Array<String> = [
+        JsonEmitObject(finding_fields)
+    ];
+    let report_fields: Array<String> = [
+        JsonEmitFieldString("schema", "pgy.selfhost.air-ref-live.v1"),
+        JsonEmitFieldBool("ok", false),
+        JsonEmitFieldRaw("source", JsonEmitObject(source_fields)),
+        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ];
+    return JsonEmitObject(report_fields);
 }
 
 func Main() -> Void {
@@ -121,29 +135,24 @@ func Main() -> Void {
     let intent_dangling: Int = DanglingRefs(content, "\"intent\":", intent_count);
     let dangling: Int = boundary_dangling + intent_dangling;
 
-    let findings: String = FindingsFor(dangling, boundary_dangling, intent_dangling);
-
-    let ok_text: String = "true";
-    if dangling > 0 {
-        ok_text = "false";
-    }
-
-    let json_parts: Array<String> = [
-        "{\"schema\":\"pgy.selfhost.air-ref-live.v1\",\"ok\":",
-        ok_text,
-        ",\"source\":{\"input_schema\":\"pgy.air.graph.v1\",\"fixture_owner\":\"",
-        fixture_path,
-        "\"},\"counts\":{\"boundary_refs_dangling\":",
-        ToString(boundary_dangling),
-        ",\"intent_refs_dangling\":",
-        ToString(intent_dangling),
-        ",\"dangling\":",
-        ToString(dangling),
-        "},\"findings\":[",
-        findings,
-        "]}"
+    let findings: Array<String> = FindingsFor(dangling, boundary_dangling, intent_dangling);
+    let source_fields: Array<String> = [
+        JsonEmitFieldString("input_schema", "pgy.air.graph.v1"),
+        JsonEmitFieldString("fixture_owner", fixture_path)
     ];
-    Log(StringJoin(json_parts, ""));
+    let counts_fields: Array<String> = [
+        JsonEmitFieldNumber("boundary_refs_dangling", ToString(boundary_dangling)),
+        JsonEmitFieldNumber("intent_refs_dangling", ToString(intent_dangling)),
+        JsonEmitFieldNumber("dangling", ToString(dangling))
+    ];
+    let report_fields: Array<String> = [
+        JsonEmitFieldString("schema", "pgy.selfhost.air-ref-live.v1"),
+        JsonEmitFieldBool("ok", dangling == 0),
+        JsonEmitFieldRaw("source", JsonEmitObject(source_fields)),
+        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ];
+    Log(JsonEmitObject(report_fields));
 
     if dangling > 0 {
         Exit(1);

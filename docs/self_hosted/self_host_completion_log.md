@@ -86,6 +86,17 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-27 -- AIR graph reports consume JSON owner
+
+- Repointed `air_graph_id_uniqueness`, `air_graph_node_count_integrity`,
+  `air_graph_reachability`, `air_graph_ref_integrity`, and
+  `air_graph_ref_live` report emission from manual `json_parts` assembly to
+  `src/self_hosted/lib/json.pgy`.
+- Updated their parity harnesses to mirror the JSON library into `.tmp/lib` and
+  normalize CR when extracting clean JSON.
+- Added component-contract ratchets requiring `JsonEmitObject(report_fields)`,
+  `JsonEmitArray(...)`, and rejecting the old local `json_parts` reports.
+
 ### 2026-06-27 -- Inventory reports consume JSON owner
 
 - Repointed `examples_inventory_checker` and

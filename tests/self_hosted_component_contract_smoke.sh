@@ -601,6 +601,25 @@ require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'im
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonDocumentStringFieldEquals(content, \"schema\", \"pgy.air.graph.v1\")"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonDocumentNumberField(content, field)"
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'StringContains(content, "\"schema\":\"pgy.air.graph.v1\"")'
+for air_graph_report in \
+    src/self_hosted/tools/air_graph_id_uniqueness/main.pgy \
+    src/self_hosted/tools/air_graph_node_count_integrity/main.pgy \
+    src/self_hosted/tools/air_graph_reachability/main.pgy \
+    src/self_hosted/tools/air_graph_ref_integrity/main.pgy \
+    src/self_hosted/tools/air_graph_ref_live/main.pgy; do
+    require_text "$air_graph_report" 'import "../../lib/json.pgy";'
+    require_text "$air_graph_report" "JsonEmitObject(report_fields)"
+    require_text "$air_graph_report" "JsonEmitArray("
+    reject_text "$air_graph_report" 'let json_parts: Array<String>'
+done
+for air_graph_parity in \
+    tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh \
+    tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh \
+    tests/self_hosted/parity/air_graph_reachability_parity.sh \
+    tests/self_hosted/parity/air_graph_ref_integrity_parity.sh \
+    tests/self_hosted/parity/air_graph_ref_live_parity.sh; do
+    require_text "$air_graph_parity" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"'
+done
 require_text "src/self_hosted/tools/production_c_size_checker/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/production_c_size_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/production_c_size_checker/main.pgy" "JsonEmitArray(findings)"

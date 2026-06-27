@@ -12,6 +12,8 @@
 // Cwd contract: the parity harness cd's into the repo root before running.
 // Contract: see intent.md in the same directory.
 
+import "../../lib/json.pgy";
+
 func CountKey(content: String, key: String) -> Int {
     let count: Int = 0;
     let rest: String = content;
@@ -64,36 +66,50 @@ func ExtractIntField(content: String, field: String) -> Int {
 }
 
 func MismatchFinding(ids: Int, declared: Int) -> String {
-    let parts: Array<String> = [
-        "{\"kind\":\"node_count_mismatch\",\"ids\":",
-        ToString(ids),
-        ",\"declared\":",
-        ToString(declared),
-        "}"
+    let fields: Array<String> = [
+        JsonEmitFieldString("kind", "node_count_mismatch"),
+        JsonEmitFieldNumber("ids", ToString(ids)),
+        JsonEmitFieldNumber("declared", ToString(declared))
     ];
-    return StringJoin(parts, "");
+    return JsonEmitObject(fields);
 }
 
-func FindingsForNC(mismatch: Bool, ids: Int, declared: Int) -> String {
+func FindingsForNC(mismatch: Bool, ids: Int, declared: Int) -> Array<String> {
+    let findings: Array<String> = [];
     if mismatch {
-        return MismatchFinding(ids, declared);
+        ArrayPush(findings, MismatchFinding(ids, declared));
     }
-    return "";
+    return findings;
 }
 
 func InputErrorJson(path: String) -> String {
-    let parts: Array<String> = [
-        "{\"schema\":\"pgy.selfhost.air-node-count.v1\",\"ok\":false,",
-        "\"source\":{\"input_schema\":\"pgy.air.graph.v1\",\"fixture_owner\":\"",
-        path,
-        "\"},\"counts\":{\"ids\":0,\"declared\":0,\"intents\":0,\"boundaries\":0,\"evidence\":0},",
-        "\"findings\":[{\"kind\":\"input_error\",\"key\":\"",
-        path,
-        "\",\"location\":\"",
-        path,
-        "\"}]}"
+    let source_fields: Array<String> = [
+        JsonEmitFieldString("input_schema", "pgy.air.graph.v1"),
+        JsonEmitFieldString("fixture_owner", path)
     ];
-    return StringJoin(parts, "");
+    let counts_fields: Array<String> = [
+        JsonEmitFieldNumber("ids", "0"),
+        JsonEmitFieldNumber("declared", "0"),
+        JsonEmitFieldNumber("intents", "0"),
+        JsonEmitFieldNumber("boundaries", "0"),
+        JsonEmitFieldNumber("evidence", "0")
+    ];
+    let finding_fields: Array<String> = [
+        JsonEmitFieldString("kind", "input_error"),
+        JsonEmitFieldString("key", path),
+        JsonEmitFieldString("location", path)
+    ];
+    let findings: Array<String> = [
+        JsonEmitObject(finding_fields)
+    ];
+    let report_fields: Array<String> = [
+        JsonEmitFieldString("schema", "pgy.selfhost.air-node-count.v1"),
+        JsonEmitFieldBool("ok", false),
+        JsonEmitFieldRaw("source", JsonEmitObject(source_fields)),
+        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ];
+    return JsonEmitObject(report_fields);
 }
 
 func Main() -> Void {
@@ -119,33 +135,26 @@ func Main() -> Void {
         mismatch = true;
     }
 
-    let findings: String = FindingsForNC(mismatch, id_count, declared);
-
-    let ok_text: String = "true";
-    if mismatch {
-        ok_text = "false";
-    }
-
-    let json_parts: Array<String> = [
-        "{\"schema\":\"pgy.selfhost.air-node-count.v1\",\"ok\":",
-        ok_text,
-        ",\"source\":{\"input_schema\":\"pgy.air.graph.v1\",\"fixture_owner\":\"",
-        fixture_path,
-        "\"},\"counts\":{\"ids\":",
-        ToString(id_count),
-        ",\"declared\":",
-        ToString(declared),
-        ",\"intents\":",
-        ToString(intents),
-        ",\"boundaries\":",
-        ToString(boundaries),
-        ",\"evidence\":",
-        ToString(evidence),
-        "},\"findings\":[",
-        findings,
-        "]}"
+    let findings: Array<String> = FindingsForNC(mismatch, id_count, declared);
+    let source_fields: Array<String> = [
+        JsonEmitFieldString("input_schema", "pgy.air.graph.v1"),
+        JsonEmitFieldString("fixture_owner", fixture_path)
     ];
-    Log(StringJoin(json_parts, ""));
+    let counts_fields: Array<String> = [
+        JsonEmitFieldNumber("ids", ToString(id_count)),
+        JsonEmitFieldNumber("declared", ToString(declared)),
+        JsonEmitFieldNumber("intents", ToString(intents)),
+        JsonEmitFieldNumber("boundaries", ToString(boundaries)),
+        JsonEmitFieldNumber("evidence", ToString(evidence))
+    ];
+    let report_fields: Array<String> = [
+        JsonEmitFieldString("schema", "pgy.selfhost.air-node-count.v1"),
+        JsonEmitFieldBool("ok", !mismatch),
+        JsonEmitFieldRaw("source", JsonEmitObject(source_fields)),
+        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ];
+    Log(JsonEmitObject(report_fields));
 
     if mismatch {
         Exit(1);

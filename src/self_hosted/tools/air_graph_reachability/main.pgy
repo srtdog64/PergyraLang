@@ -13,6 +13,8 @@
 // Cwd contract: the parity harness cd's into the repo root before running.
 // Contract: see intent.md in the same directory.
 
+import "../../lib/json.pgy";
+
 func ExtractByKey(content: String, key: String) -> Array<String> {
     let vals: Array<String> = [];
     let rest: String = content;
@@ -64,27 +66,39 @@ func ArrayContainsString(arr: Array<String>, target: String) -> Bool {
 }
 
 func OrphanFinding(id_val: String) -> String {
-    let parts: Array<String> = [
-        "{\"kind\":\"orphan_node\",\"id\":\"",
-        id_val,
-        "\"}"
+    let fields: Array<String> = [
+        JsonEmitFieldString("kind", "orphan_node"),
+        JsonEmitFieldString("id", id_val)
     ];
-    return StringJoin(parts, "");
+    return JsonEmitObject(fields);
 }
 
 func InputErrorJson(path: String) -> String {
-    let parts: Array<String> = [
-        "{\"schema\":\"pgy.selfhost.air-reachability.v1\",\"ok\":false,",
-        "\"source\":{\"input_schema\":\"pgy.air.graph.v1\",\"fixture_owner\":\"",
-        path,
-        "\"},\"counts\":{\"nodes\":0,\"reachable\":0,\"orphans\":0},",
-        "\"findings\":[{\"kind\":\"input_error\",\"key\":\"",
-        path,
-        "\",\"location\":\"",
-        path,
-        "\"}]}"
+    let source_fields: Array<String> = [
+        JsonEmitFieldString("input_schema", "pgy.air.graph.v1"),
+        JsonEmitFieldString("fixture_owner", path)
     ];
-    return StringJoin(parts, "");
+    let counts_fields: Array<String> = [
+        JsonEmitFieldNumber("nodes", "0"),
+        JsonEmitFieldNumber("reachable", "0"),
+        JsonEmitFieldNumber("orphans", "0")
+    ];
+    let finding_fields: Array<String> = [
+        JsonEmitFieldString("kind", "input_error"),
+        JsonEmitFieldString("key", path),
+        JsonEmitFieldString("location", path)
+    ];
+    let findings: Array<String> = [
+        JsonEmitObject(finding_fields)
+    ];
+    let report_fields: Array<String> = [
+        JsonEmitFieldString("schema", "pgy.selfhost.air-reachability.v1"),
+        JsonEmitFieldBool("ok", false),
+        JsonEmitFieldRaw("source", JsonEmitObject(source_fields)),
+        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ];
+    return JsonEmitObject(report_fields);
 }
 
 // BFS over edges (froms[i] -> tos[i]) starting from every root; returns the
@@ -151,28 +165,23 @@ func Main() -> Void {
     let nodes: Int = ArrayLength(node_ids);
     let reachable: Int = ArrayLength(visited);
 
-    let ok_text: String = "true";
-    if orphans > 0 {
-        ok_text = "false";
-    }
-    let findings: String = StringJoin(findings_list, ",");
-
-    let json_parts: Array<String> = [
-        "{\"schema\":\"pgy.selfhost.air-reachability.v1\",\"ok\":",
-        ok_text,
-        ",\"source\":{\"input_schema\":\"pgy.air.graph.v1\",\"fixture_owner\":\"",
-        fixture_path,
-        "\"},\"counts\":{\"nodes\":",
-        ToString(nodes),
-        ",\"reachable\":",
-        ToString(reachable),
-        ",\"orphans\":",
-        ToString(orphans),
-        "},\"findings\":[",
-        findings,
-        "]}"
+    let source_fields: Array<String> = [
+        JsonEmitFieldString("input_schema", "pgy.air.graph.v1"),
+        JsonEmitFieldString("fixture_owner", fixture_path)
     ];
-    Log(StringJoin(json_parts, ""));
+    let counts_fields: Array<String> = [
+        JsonEmitFieldNumber("nodes", ToString(nodes)),
+        JsonEmitFieldNumber("reachable", ToString(reachable)),
+        JsonEmitFieldNumber("orphans", ToString(orphans))
+    ];
+    let report_fields: Array<String> = [
+        JsonEmitFieldString("schema", "pgy.selfhost.air-reachability.v1"),
+        JsonEmitFieldBool("ok", orphans == 0),
+        JsonEmitFieldRaw("source", JsonEmitObject(source_fields)),
+        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings_list))
+    ];
+    Log(JsonEmitObject(report_fields));
 
     if orphans > 0 {
         Exit(1);
