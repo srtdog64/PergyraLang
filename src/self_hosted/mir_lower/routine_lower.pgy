@@ -368,64 +368,47 @@ func EmitRegion(json: String, routine_start: Int, bp: Int, span_end: Int,
 }
 
 func EmitRoutineTreeWithSelfType(json: String, rpos: Int, routine_indent: String, self_type: String) -> String {
-    let nq: Int = FindFrom(json, "\"", rpos + 7);
-    if nq < 0 {
+    let routine_name_end: Int = RoutineNameEnd(json, rpos);
+    if routine_name_end < 0 {
         Die("malformed routine name");
     }
-    let nend: Array<Int> = [0];
-    let routine: String = ReadJsonString(json, nq, nend);
-    let span_end: Int = RoutineSpanEnd(json, nend[0]);
-    let header_end: Int = RoutineHeaderEnd(json, nend[0], span_end);
+    let routine: String = RoutineName(json, rpos);
+    let span_end: Int = RoutineSpanEnd(json, routine_name_end);
+    let header_end: Int = RoutineHeaderEnd(json, routine_name_end, span_end);
     let ppad: String = Concat(routine_indent, "  ");
     let item_pad: String = Concat(routine_indent, "    ");
     let out: String = Concat(routine_indent, Concat("Function: ", Concat(routine, "\n")));
 
     out = Concat(out, Concat(ppad, "Parameters:\n"));
-    let pp: Int = FindFrom(json, "\"params\":[", nend[0]);
-    if pp >= 0 && pp < header_end {
-        let pk: Int = FindFrom(json, "\"name\":", pp);
-        while pk >= 0 && pk < header_end {
-            let pnq: Int = FindFrom(json, "\"", pk + 7);
-            let pne: Array<Int> = [0];
-            let pname: String = ReadJsonString(json, pnq, pne);
-            let tk: Int = FindFrom(json, "\"type\":", pne[0]);
-            let ptype: String = "";
-            let after_type: Int = pne[0];
-            if tk >= 0 && tk < header_end {
-                let tv: Int = tk + 7;
-                if tv < header_end && CharAt(json, tv) == "\"" {
-                    let tne: Array<Int> = [0];
-                    ptype = ReadJsonString(json, tv, tne);
-                    after_type = tne[0];
-                } else {
-                    after_type = tv;
-                }
-            }
-            if StringLength(ptype) == 0 && pname == "self" && StringLength(self_type) > 0 {
-                ptype = self_type;
-            }
-            if StringLength(ptype) > 0 {
-                out = Concat(out, Concat(item_pad, Concat(pname, Concat(": ", Concat(ptype, "\n")))));
-            } else {
-                out = Concat(out, Concat(item_pad, Concat(pname, "\n")));
-            }
-            pk = FindFrom(json, "\"name\":", after_type);
+    let param_count: Int = RoutineParamCount(json, rpos, header_end);
+    let param_row: Int = 0;
+    while param_row < param_count {
+        let pname: String = RoutineParamNameAt(json, rpos, header_end, param_row);
+        if StringLength(pname) == 0 {
+            Die(Concat("routine parameter is missing name fact: ", routine));
         }
+        let ptype: String = RoutineParamTypeAt(json, rpos, header_end, param_row);
+        if StringLength(ptype) == 0 && pname == "self" && StringLength(self_type) > 0 {
+            ptype = self_type;
+        }
+        if StringLength(ptype) > 0 {
+            out = Concat(out, Concat(item_pad, Concat(pname, Concat(": ", Concat(ptype, "\n")))));
+        } else {
+            out = Concat(out, Concat(item_pad, Concat(pname, "\n")));
+        }
+        param_row = param_row + 1;
     }
 
-    let rtype: String = "Void";
-    let rk: Int = FindFrom(json, "\"return\":", nend[0]);
-    if rk >= 0 && rk < header_end {
-        let rnq: Int = FindFrom(json, "\"", rk + 9);
-        let rne: Array<Int> = [0];
-        rtype = ReadJsonString(json, rnq, rne);
-    }
+    let rtype: String = RoutineReturnType(json, rpos, header_end);
     out = Concat(out, Concat(ppad, Concat("Returns: ", Concat(rtype, "\n"))));
     out = Concat(out, Concat(ppad, "Body:\n"));
     out = Concat(out, Concat(item_pad, "Block:\n"));
 
-    let bp: Int = FindFrom(json, "\"blocks\":", nend[0]);
-    let region: String = EmitRegion(json, nend[0], bp, span_end, "0", "",
+    let bp: Int = RoutineBlocksStart(json, routine_name_end, span_end);
+    if bp < 0 {
+        Die(Concat("routine is missing blocks fact: ", routine));
+    }
+    let region: String = EmitRegion(json, routine_name_end, bp, span_end, "0", "",
         Concat(item_pad, "  "), "", "");
     if StringLength(region) == 0 {
         Die(Concat("unsupported or empty MIR CFG shape in routine: ", routine));

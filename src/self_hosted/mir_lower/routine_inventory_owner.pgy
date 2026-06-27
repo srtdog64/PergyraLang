@@ -44,6 +44,25 @@ func RoutineHeaderEnd(json: String, routine_name_end: Int, span_end: Int) -> Int
     return span_end;
 }
 
+func RoutineNameEnd(json: String, rpos: Int) -> Int {
+    let nq: Int = FindFrom(json, "\"", rpos + 7);
+    if nq < 0 {
+        return -1;
+    }
+    let nend: Array<Int> = [0];
+    let ignored: String = ReadJsonString(json, nq, nend);
+    return nend[0];
+}
+
+func RoutineName(json: String, rpos: Int) -> String {
+    let nq: Int = FindFrom(json, "\"", rpos + 7);
+    if nq < 0 {
+        return "";
+    }
+    let nend: Array<Int> = [0];
+    return ReadJsonString(json, nq, nend);
+}
+
 func RoutineKind(json: String, rpos: Int, routine_name_end: Int, span_end: Int) -> String {
     return MirObjectStringFact(json, rpos, RoutineHeaderEnd(json, routine_name_end, span_end), "kind");
 }
@@ -52,22 +71,62 @@ func RoutineOwner(json: String, rpos: Int, routine_name_end: Int, span_end: Int)
     return MirObjectStringFact(json, rpos, RoutineHeaderEnd(json, routine_name_end, span_end), "owner");
 }
 
+func RoutineParamCount(json: String, rpos: Int, header_end: Int) -> Int {
+    let count: Int = 0;
+    let bounds: Array<Int> = [0, 0];
+    while MirObjectArrayObjectBoundsAt(json, rpos, header_end, "params", count, bounds) {
+        count = count + 1;
+    }
+    return count;
+}
+
+func RoutineParamNameAt(json: String, rpos: Int, header_end: Int, row: Int) -> String {
+    let bounds: Array<Int> = [0, 0];
+    if !MirObjectArrayObjectBoundsAt(json, rpos, header_end, "params", row, bounds) {
+        return "";
+    }
+    return MirObjectStringFact(json, bounds[0], bounds[1], "name");
+}
+
+func RoutineParamTypeAt(json: String, rpos: Int, header_end: Int, row: Int) -> String {
+    let bounds: Array<Int> = [0, 0];
+    if !MirObjectArrayObjectBoundsAt(json, rpos, header_end, "params", row, bounds) {
+        return "";
+    }
+    return MirObjectStringFact(json, bounds[0], bounds[1], "type");
+}
+
+func RoutineReturnType(json: String, rpos: Int, header_end: Int) -> String {
+    let rtype: String = MirObjectStringFact(json, rpos, header_end, "return");
+    if StringLength(rtype) == 0 {
+        return "Void";
+    }
+    return rtype;
+}
+
+func RoutineBlocksStart(json: String, routine_name_end: Int, span_end: Int) -> Int {
+    let blk: Int = FindFrom(json, "\"blocks\":", routine_name_end);
+    if blk >= 0 && blk < span_end {
+        return blk;
+    }
+    return -1;
+}
+
 func FindRoutineByOwnerName(json: String, owner: String, name: String) -> Int {
     let rpos: Int = FindRoutine(json, 0);
     while rpos >= 0 {
-        let nq: Int = FindFrom(json, "\"", rpos + 7);
-        if nq < 0 {
+        let nend: Int = RoutineNameEnd(json, rpos);
+        if nend < 0 {
             return -1;
         }
-        let nend: Array<Int> = [0];
-        let routine: String = ReadJsonString(json, nq, nend);
-        let span_end: Int = RoutineSpanEnd(json, nend[0]);
-        let kind: String = RoutineKind(json, rpos, nend[0], span_end);
-        let ro: String = RoutineOwner(json, rpos, nend[0], span_end);
+        let routine: String = RoutineName(json, rpos);
+        let span_end: Int = RoutineSpanEnd(json, nend);
+        let kind: String = RoutineKind(json, rpos, nend, span_end);
+        let ro: String = RoutineOwner(json, rpos, nend, span_end);
         if kind == "method" && ro == owner && routine == name {
             return rpos;
         }
-        rpos = FindRoutine(json, nend[0]);
+        rpos = FindRoutine(json, nend);
     }
     return -1;
 }

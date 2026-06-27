@@ -2089,3 +2089,14 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Tightened the component contract so MIR routine lowering cannot reintroduce
   those direct JSON field scans. The Stable JSON blocker remains active until
   the shared owner becomes a complete schema-aware DOM/fact table.
+
+### 2026-06-28 -- Routine header facts move to the routine inventory owner
+
+- Added routine name, parameter, return, and blocks-start fact accessors to
+  `src/self_hosted/mir_lower/routine_inventory_owner.pgy`.
+- Repointed `routine_lower.pgy` so function AST-tree headers consume those
+  owner facts instead of directly scanning `"params"`, `"return"`, or routine
+  name JSON fields.
+- Tightened the component contract against those direct routine-header scans.
+  This keeps moving MIR lowering toward owner-owned facts while the Stable JSON
+  blocker remains active for the broader DOM/fact-table work.

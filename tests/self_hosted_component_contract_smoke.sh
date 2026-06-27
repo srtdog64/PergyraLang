@@ -602,7 +602,21 @@ require_owner_surface mir_lower \
     "decl_lower.pgy" \
     "program_lower.pgy"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func FindRoutine"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineNameEnd"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineName"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineParamCount"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineParamNameAt"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineParamTypeAt"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineReturnType"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineBlocksStart"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "func FindRoutine"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "RoutineParamCount(json, rpos, header_end)"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "RoutineReturnType(json, rpos, header_end)"
+reject_text "src/self_hosted/mir_lower/routine_lower.pgy" 'FindFrom(json, "\"params\":['
+reject_text "src/self_hosted/mir_lower/routine_lower.pgy" 'FindFrom(json, "\"return\":'
+reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, nq"
+reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, pnq"
+reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, rnq"
 
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/main.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lexer/main.pgy"'
