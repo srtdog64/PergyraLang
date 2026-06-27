@@ -441,7 +441,17 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTex
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func ParamLineMode"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=pm:"'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"_pgy_inout_"'
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsZeroArtifactDecl(nodes[i])"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsNominalDecl(nodes[i])"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsRoleDecl(nodes[i])"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsEnumDecl(nodes[i])"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsFunction(nodes[i])"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "!CodegenAstTextIsFunction(nodes[j])"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "EmitStmtList(nodes, count, stmt_indent, cur, \"    \", env_box, body_ret, copyout)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func IsZeroArtifactDeclLine"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func IsNominalDeclLine"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func IsRoleDeclLine"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'if StartsWith(line, "Function:")'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv(indents:"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectRoleOperators(indents:"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectStructs(indents:"

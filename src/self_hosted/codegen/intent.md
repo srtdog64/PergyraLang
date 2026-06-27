@@ -100,10 +100,10 @@ The tool reads one AST text path from `Args()[0]`, with the no-argument
 path selection, the missing-file diagnostic, and the file-read boundary.
 `input/ast_text_inventory_owner.pgy` owns raw AST-text line splitting, typed
 `CodegenAstTextNode` inventory, indent counting, parent edges, coarse node
-kinds, blank-line filtering, `[export]` line normalization, program-level
-declaration routing predicates,
-declaration collector prepass facts, function signature/header facts, statement
-body read facts, and cursor expectation checks.
+kinds, blank-line filtering, `[export]` line normalization, program/function
+declaration routing predicates, declaration collector prepass facts, function
+signature/header facts, statement body read facts, and cursor expectation
+checks.
 `GenerateC` consumes that inventory and must not recover those facts locally.
 Parameter mode is part of that input contract: `pgy --ast` must preserve
 `inout`, `own`, and `ref` parameter rows. This codegen rung consumes `inout`

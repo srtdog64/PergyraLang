@@ -24,18 +24,6 @@ func NominalDeclPrefixLen(line: String) -> Int {
     return -1;
 }
 
-func IsNominalDeclLine(line: String) -> Bool {
-    return NominalDeclPrefixLen(line) >= 0;
-}
-
-func IsZeroArtifactDeclLine(line: String) -> Bool {
-    return StartsWith(line, "Ability: ");
-}
-
-func IsRoleDeclLine(line: String) -> Bool {
-    return StartsWith(line, "Role: ");
-}
-
 func RoleForPos(line: String) -> Int {
     return StringIndexOf(line, " for ");
 }
@@ -228,20 +216,20 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int) -> String {
             owner = "";
             owner_indent = -1;
         }
-        if IsZeroArtifactDeclLine(line) {
+        if CodegenAstTextIsZeroArtifactDecl(nodes[i]) {
             skip_indent = indent;
             i = i + 1;
             continue;
         }
-        if IsNominalDeclLine(line) {
+        if CodegenAstTextIsNominalDecl(nodes[i]) {
             owner = NominalDeclName(line);
             owner_indent = indent;
         }
-        if IsRoleDeclLine(line) {
+        if CodegenAstTextIsRoleDecl(nodes[i]) {
             owner = RoleDeclName(line);
             owner_indent = indent;
         }
-        if StartsWith(line, "Function:") {
+        if CodegenAstTextIsFunction(nodes[i]) {
             let fname: String = Substring(line, 10, StringLength(line) - 10);
             let cname: String = CompilerSymbolCQualifiedName("", fname);
             if StringLength(owner) > 0 && indent > owner_indent {
@@ -249,7 +237,7 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int) -> String {
             }
             let j: Int = i + 1;
             let rtype: String = "Void";
-            while j < count && !StartsWith(nodes[j].text, "Function:") {
+            while j < count && !CodegenAstTextIsFunction(nodes[j]) {
                 let ret_line: String = nodes[j].text;
                 if ret_line == "Parameters:" {
                     j = j + 1;
@@ -279,14 +267,14 @@ func CollectRoleOperators(nodes: Array<CodegenAstTextNode>, count: Int, inout en
     let i: Int = 0;
     while i < count {
         let line: String = nodes[i].text;
-        if IsRoleDeclLine(line) {
+        if CodegenAstTextIsRoleDecl(nodes[i]) {
             let role_name: String = RoleDeclName(line);
             let for_type: String = RoleDeclForType(line);
             let role_indent: Int = nodes[i].indent;
             let j: Int = i + 1;
             while j < count && nodes[j].indent > role_indent {
                 let method_line: String = nodes[j].text;
-                if StartsWith(method_line, "Function: ") {
+                if CodegenAstTextIsFunction(nodes[j]) {
                     let mname: String = Substring(method_line, 10, StringLength(method_line) - 10);
                     if for_type == "Int" && mname == "Add" {
                         let c_name: String = CompilerSymbolCRoleOperatorName(role_name, "Add");
@@ -308,7 +296,7 @@ func CollectStructs(nodes: Array<CodegenAstTextNode>, count: Int, inout env_box:
     let i: Int = 0;
     while i < count {
         let line: String = nodes[i].text;
-        if IsNominalDeclLine(line) {
+        if CodegenAstTextIsNominalDecl(nodes[i]) {
             let sname: String = NominalDeclName(line);
             let s_indent: Int = nodes[i].indent;
             let j: Int = i + 1;
@@ -349,7 +337,7 @@ func CollectEnums(nodes: Array<CodegenAstTextNode>, count: Int, inout env_box: A
     let i: Int = 0;
     while i < count {
         let line: String = nodes[i].text;
-        if StartsWith(line, "Enum: ") {
+        if CodegenAstTextIsEnumDecl(nodes[i]) {
             let brace: Int = StringIndexOf(line, " { ");
             if brace < 0 || CharAt(line, StringLength(line) - 1) != "}" {
                 Die(Concat("malformed enum declaration: ", line));
@@ -410,20 +398,20 @@ func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, struct_env: Str
             owner = "";
             owner_indent = -1;
         }
-        if IsZeroArtifactDeclLine(line) {
+        if CodegenAstTextIsZeroArtifactDecl(nodes[i]) {
             skip_indent = indent;
             i = i + 1;
             continue;
         }
-        if IsNominalDeclLine(line) {
+        if CodegenAstTextIsNominalDecl(nodes[i]) {
             owner = NominalDeclName(line);
             owner_indent = indent;
         }
-        if IsRoleDeclLine(line) {
+        if CodegenAstTextIsRoleDecl(nodes[i]) {
             owner = RoleDeclName(line);
             owner_indent = indent;
         }
-        if StartsWith(line, "Function:") {
+        if CodegenAstTextIsFunction(nodes[i]) {
             let name: String = Substring(line, 10, StringLength(line) - 10);
             let c_name: String = CompilerSymbolCQualifiedName(owner, name);
             if c_name != "Main" {

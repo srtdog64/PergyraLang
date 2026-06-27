@@ -2056,3 +2056,13 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   tool-local string constants.
 - Tightened the component contract to reject backend comparator fixture-path
   literals outside the harness owner.
+
+### 2026-06-28 -- Function emit consumes AST bridge kind facts
+
+- Removed local declaration-kind predicates from
+  `src/self_hosted/codegen/emission/function_emit.pgy`.
+- Repointed function env, role-operator, struct, enum, and prototype prepasses
+  to consume `CodegenAstTextIs*` predicates from the AST text inventory owner.
+- This removes another duplicate category classifier from the transitional AST
+  text bridge. Name extraction still consumes `CodegenAstTextNode.text`, so the
+  mixed AST-like tree blocker remains active.
