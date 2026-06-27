@@ -2014,3 +2014,13 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This reduces the mixed AST-like tree blocker but does not close it:
   `CodegenAstTextNode.text` is still a serialized line payload, so complete
   closure still requires owned tagged AST data instead of line-text semantics.
+
+### 2026-06-28 -- Symbol spelling requires compiler-world row envelope
+
+- Added `CompilerSymbolRequireTable()` to
+  `src/self_hosted/compiler/symbol_table_owner.pgy`.
+- `CompilerSymbolCIdentifier()` now fail-closes before projecting a C spelling
+  if the compiler-world symbol row envelope is not ready.
+- This still does not close cross-backend symbol/mangle SoT: native C, LLVM,
+  and self-hosted projections still need to consume the same concrete symbol
+  row table instead of sharing only the vocabulary envelope.

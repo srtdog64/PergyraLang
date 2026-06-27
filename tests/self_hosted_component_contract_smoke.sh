@@ -383,6 +383,8 @@ require_owner_surface codegen \
     "emission/program_emit.pgy"
 require_text "src/self_hosted/codegen/main.pgy" 'import "../compiler/symbol_table_owner.pgy";'
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCQualifiedName"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolRequireTable"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "CompilerSymbolRequireTable();"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCQualifiedName"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "SymbolMangle"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(owner, Concat("_",'

@@ -20,6 +20,12 @@ func CompilerSymbolProjectionAt(index: Int) -> String {
     if index == 2 { return "self_hosted_symbol"; }
     return "";
 }
+func CompilerSymbolRequireTable() -> Void {
+    if !CompilerSymbolTableReady() {
+        Log("SYMBOL ERROR: compiler symbol table owner is not ready");
+        Exit(1);
+    }
+}
 func CompilerSymbolCharAt(s: String, i: Int) -> String {
     if i < 0 || i >= StringLength(s) {
         return "";
@@ -53,6 +59,7 @@ func CompilerSymbolCReservedWord(name: String) -> Bool {
         name == "while";
 }
 func CompilerSymbolCIdentifier(source_name: String) -> String {
+    CompilerSymbolRequireTable();
     let name: String = StringTrim(source_name);
     let n: Int = StringLength(name);
     if n == 0 {
