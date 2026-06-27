@@ -401,6 +401,12 @@ require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let p
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let kind: Int"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextKindOf"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextParentIndex"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsFunction"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsMainFunction"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsNominalDecl"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsRoleDecl"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsEventDecl"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsZeroArtifactDecl"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextNodeInventory"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextExpectNode"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextInventory(ast: String, inout indents:"
@@ -412,7 +418,12 @@ require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "ref "'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "own "'
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextNodeInventory(ast, nodes, node_count_box)"
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let main_line: String = nodes[main_scan].text"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextIsEventDecl(nodes[main_scan])"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextIsMainFunction(nodes[scan])"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextIsNominalDecl(nodes[cur[0]])"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextIsRoleDecl(nodes[cur[0]])"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextIsZeroArtifactDecl(nodes[cur[0]])"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" 'StartsWith(main_line, "Event:")'
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let f_indent: Int = nodes[first_fn].indent"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let cur_line: String = nodes[cur[0]].text"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let record_array_block: String = \"\""

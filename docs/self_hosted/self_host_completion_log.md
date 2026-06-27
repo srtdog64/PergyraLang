@@ -2024,3 +2024,14 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This still does not close cross-backend symbol/mangle SoT: native C, LLVM,
   and self-hosted projections still need to consume the same concrete symbol
   row table instead of sharing only the vocabulary envelope.
+
+### 2026-06-28 -- Program routing consumes AST bridge kind facts
+
+- Added `CodegenAstTextIs*` predicates to
+  `src/self_hosted/codegen/input/ast_text_inventory_owner.pgy` for function,
+  main function, role, nominal, enum, event, and zero-artifact declaration rows.
+- Repointed `program_emit.pgy` top-level declaration routing to consume those
+  owner predicates instead of testing declaration category directly with local
+  `StartsWith` checks.
+- Name extraction still consumes `CodegenAstTextNode.text`, so this is a
+  reduction of the mixed AST-like tree blocker, not full closure.

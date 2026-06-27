@@ -33,7 +33,7 @@ func CodegenAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "Role:") {
         return 7;
     }
-    if StartsWith(text, "Class:") || StartsWith(text, "Subject:") ||
+    if StartsWith(text, "Struct:") || StartsWith(text, "Class:") || StartsWith(text, "Subject:") ||
         StartsWith(text, "Object:") || StartsWith(text, "TObject:") ||
         StartsWith(text, "Vessel:") {
         return 8;
@@ -41,7 +41,41 @@ func CodegenAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "Enum:") {
         return 9;
     }
+    if StartsWith(text, "Event:") {
+        return 10;
+    }
+    if StartsWith(text, "Ability:") {
+        return 11;
+    }
     return 1;
+}
+
+func CodegenAstTextIsFunction(node: CodegenAstTextNode) -> Bool {
+    return node.kind == 6;
+}
+
+func CodegenAstTextIsMainFunction(node: CodegenAstTextNode) -> Bool {
+    return CodegenAstTextIsFunction(node) && node.text == "Function: Main";
+}
+
+func CodegenAstTextIsRoleDecl(node: CodegenAstTextNode) -> Bool {
+    return node.kind == 7;
+}
+
+func CodegenAstTextIsNominalDecl(node: CodegenAstTextNode) -> Bool {
+    return node.kind == 8;
+}
+
+func CodegenAstTextIsEnumDecl(node: CodegenAstTextNode) -> Bool {
+    return node.kind == 9;
+}
+
+func CodegenAstTextIsEventDecl(node: CodegenAstTextNode) -> Bool {
+    return node.kind == 10;
+}
+
+func CodegenAstTextIsZeroArtifactDecl(node: CodegenAstTextNode) -> Bool {
+    return node.kind == 11;
 }
 
 func CodegenAstTextParentIndex(nodes: Array<CodegenAstTextNode>, count: Int, indent: Int) -> Int {
