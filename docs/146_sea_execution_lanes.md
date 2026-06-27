@@ -96,12 +96,34 @@ strictly underneath.
   (`zone -> PinnedZone`, `world -> LocalAsync`), with a regression guard that a
   classified boundary is never left at the fail-closed zero (`Reject`).
 
-**Remaining (fill):**
-- Plumb the richer evidence (pin/live-view, raw-vs-value capture, effect mask)
-  from MIR/semantic onto the boundary so the classifier can reach
-  `MovableScheduler` / `BlockingPool` from real sites, not just kind.
-- Build the `PgyLaneScheduler` runtime facade dispatching each lane to its
-  executor (`LocalCoroutineExecutor`, `WorkerPoolExecutor`, `BlockingExecutor`,
-  `MovableExecutor`, pinned).
-- A parity test that the same concurrent program is observationally equal across
-  executors — the real test of "the scheduler does not leak into semantics".
+**Landed — runtime facade + self-host mirror (2026-06-27):**
+- `PgyLaneScheduler` (`src/runtime/pgy_lane_scheduler.c`) consumes the fact:
+  `pgy_lane_dispatch` maps a lane to an executor (Inline/Pinned run in place;
+  Worker/Blocking/LocalAsync/Movable on a worker thread joined for the result)
+  and fails closed on `Reject`. Its contract is executor-invariance — the same
+  task yields the same result on every non-Reject lane — proved by
+  `lane-scheduler-test-smoke`. This is the keystone wiring: the compiler's
+  decision now reaches actual execution.
+- The self-host compiler makes the SAME decision in idiomatic Pergyra
+  (`src/self_hosted/sea/execution_lane.pgy` — a typed `enum` returned directly,
+  `Reject` as a first-class variant, zero `-1` sentinels). A cross-language /
+  cross-backend parity smoke (`self-host-execution-lane-parity-test-smoke`)
+  diffs it against the C policy's decision-table output on both C and LLVM
+  (10/10 each).
+
+**Remaining (deep fill, not a quick slice):**
+- **Per-boundary evidence.** The classifier is still kind-driven. Enriching it
+  precisely needs per-boundary capture facts (pin/live-view, raw-vs-value
+  capture) from MIR/closure-capture analysis. A coarse routine-level correlation
+  (does the boundary's routine hold any slot/effect anywhere) was rejected: it
+  over-pins — a `parallel` would become `PinnedZone` merely because an unrelated
+  slot exists in the same routine. Precise evidence is the F-series closure-
+  capture plumbing, not a kind lookup.
+- **Codegen emits the dispatch call.** Generated programs do not yet call
+  `pgy_lane_dispatch` at spawn sites; doing so is dual-backend codegen work, and
+  on the self-host side it depends on async lowering through the MIR JSON path
+  (today the self-host parses async but does not lower it).
+- **Executor depth.** The Worker/Blocking/LocalAsync/Movable lanes currently
+  share one worker-thread executor; backing them with the fiber scheduler /
+  work-stealing pool / dedicated blocking pool is refinement under the same
+  executor-invariant contract.
