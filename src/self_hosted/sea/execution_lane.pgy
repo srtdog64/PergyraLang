@@ -1,0 +1,86 @@
+// src/self_hosted/sea/execution_lane.pgy
+//
+// SEA ExecutionLane classifier — the self-host (Pergyra) mirror of the C policy
+// in src/compiler/execution_lane.c. This is the self-host side of the async
+// wiring (docs/146): the compiler decides which runtime lane a task's evidence
+// permits, and the self-host compiler must be able to make the SAME decision.
+//
+// Idiomatic Pergyra, not C-shaped: the lane is a typed `enum` value returned
+// directly, never an out-of-band integer; "not found / rejected" is the
+// first-class `Reject` variant, never a -1 sentinel. The ordering of the rules
+// is the contract, identical to the C policy (pin -> effect -> movability).
+
+enum ExecutionLane {
+    Reject,
+    Inline,
+    PinnedZone,
+    BlockingPool,
+    LocalAsync,
+    WorkerPool,
+    MovableScheduler
+}
+
+func ClassifyLane(
+    is_concurrent: Bool,
+    has_pin_or_view: Bool,
+    has_raw_capture: Bool,
+    requires_movability: Bool,
+    has_io_ffi: Bool,
+    is_await_local: Bool,
+    is_fork_join: Bool,
+    pure_value: Bool,
+    authority_clear: Bool
+) -> ExecutionLane {
+    if !is_concurrent {
+        return ExecutionLane.Inline;
+    }
+    if has_pin_or_view || has_raw_capture {
+        if requires_movability {
+            return ExecutionLane.Reject;
+        }
+        return ExecutionLane.PinnedZone;
+    }
+    if has_io_ffi {
+        return ExecutionLane.BlockingPool;
+    }
+    if is_await_local {
+        return ExecutionLane.LocalAsync;
+    }
+    if is_fork_join {
+        return ExecutionLane.WorkerPool;
+    }
+    if pure_value && authority_clear {
+        return ExecutionLane.MovableScheduler;
+    }
+    if pure_value {
+        return ExecutionLane.WorkerPool;
+    }
+    return ExecutionLane.LocalAsync;
+}
+
+func LaneName(lane: ExecutionLane) -> String {
+    match lane {
+        case Reject: return "Reject";
+        case Inline: return "Inline";
+        case PinnedZone: return "PinnedZone";
+        case BlockingPool: return "BlockingPool";
+        case LocalAsync: return "LocalAsync";
+        case WorkerPool: return "WorkerPool";
+        case MovableScheduler: return "MovableScheduler";
+    }
+}
+
+// The 10 decision-table cases, in the same order as the C proof
+// (src/tests/execution_lane_policy_test.c), so the two policies can be diffed.
+func Main() -> Void {
+    Log(LaneName(ClassifyLane(false, false, false, false, false, false, false, false, false)));
+    Log(LaneName(ClassifyLane(true,  true,  false, false, false, false, false, false, false)));
+    Log(LaneName(ClassifyLane(true,  false, true,  false, false, false, false, false, false)));
+    Log(LaneName(ClassifyLane(true,  true,  false, true,  false, false, false, false, false)));
+    Log(LaneName(ClassifyLane(true,  false, false, false, true,  false, false, true,  true)));
+    Log(LaneName(ClassifyLane(true,  false, false, false, false, true,  false, false, false)));
+    Log(LaneName(ClassifyLane(true,  false, false, false, false, false, true,  true,  true)));
+    Log(LaneName(ClassifyLane(true,  false, false, false, false, false, false, true,  true)));
+    Log(LaneName(ClassifyLane(true,  false, false, false, false, false, false, true,  false)));
+    Log(LaneName(ClassifyLane(true,  false, false, false, false, false, false, false, false)));
+}
