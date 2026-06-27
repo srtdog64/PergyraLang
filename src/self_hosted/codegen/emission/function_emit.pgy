@@ -110,7 +110,7 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int,
                   base_env: String, uses_args: Bool, owner_name: String) -> String {
     let head: String = nodes[cur[0]].text;
     let name: String = Substring(head, 10, StringLength(head) - 10);
-    let c_name: String = SymbolMangleCQualifiedName(owner_name, name);
+    let c_name: String = CompilerSymbolCQualifiedName(owner_name, name);
     ArraySet(cur, 0, cur[0] + 1);
 
     CodegenAstTextExpectNode(nodes, count, cur, "Parameters:");
@@ -243,9 +243,9 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int) -> String {
         }
         if StartsWith(line, "Function:") {
             let fname: String = Substring(line, 10, StringLength(line) - 10);
-            let cname: String = SymbolMangleCQualifiedName("", fname);
+            let cname: String = CompilerSymbolCQualifiedName("", fname);
             if StringLength(owner) > 0 && indent > owner_indent {
-                cname = SymbolMangleCQualifiedName(owner, fname);
+                cname = CompilerSymbolCQualifiedName(owner, fname);
             }
             let j: Int = i + 1;
             let rtype: String = "Void";
@@ -289,7 +289,7 @@ func CollectRoleOperators(nodes: Array<CodegenAstTextNode>, count: Int, inout en
                 if StartsWith(method_line, "Function: ") {
                     let mname: String = Substring(method_line, 10, StringLength(method_line) - 10);
                     if for_type == "Int" && mname == "Add" {
-                        let c_name: String = SymbolMangleCRoleOperatorName(role_name, "Add");
+                        let c_name: String = CompilerSymbolCRoleOperatorName(role_name, "Add");
                         ArraySet(env_box, 0, Concat(env_box[0], Concat("Int+=op:", Concat(c_name, "|"))));
                     }
                 }
@@ -372,7 +372,7 @@ func CollectEnums(nodes: Array<CodegenAstTextNode>, count: Int, inout env_box: A
                 if StringIndexOf(part, "(") >= 0 {
                     Die(Concat("payload enum variants are not supported in self-host codegen subset: ", part));
                 }
-                let cname: String = SymbolMangleCEnumVariantName(ename, part);
+                let cname: String = CompilerSymbolCEnumVariantName(ename, part);
                 enum_c = Concat(enum_c, Concat("    ", Concat(cname, Concat(" = ", Concat(ToString(value), ",\n")))));
                 ArraySet(env_box, 0, Concat(env_box[0], Concat(ename, Concat(".", Concat(part, Concat("=e:", Concat(ToString(value), "|")))))));
                 value = value + 1;
@@ -425,7 +425,7 @@ func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, struct_env: Str
         }
         if StartsWith(line, "Function:") {
             let name: String = Substring(line, 10, StringLength(line) - 10);
-            let c_name: String = SymbolMangleCQualifiedName(owner, name);
+            let c_name: String = CompilerSymbolCQualifiedName(owner, name);
             if c_name != "Main" {
                 let f_indent: Int = indent;
                 let j: Int = i + 1;

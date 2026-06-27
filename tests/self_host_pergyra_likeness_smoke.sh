@@ -72,6 +72,7 @@ count() {
                 fi
             } \
             | while IFS= read -r rel; do
+                [ -f "$ROOT_DIR/$rel" ] || continue
                 sed 's://.*$::' "$ROOT_DIR/$rel"
             done \
             | grep -oE "$pattern" || true

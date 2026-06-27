@@ -313,6 +313,8 @@ done
 for term in \
     "func CompilerSymbolTableSchema" \
     "CompilerSymbolTableReady" \
+    "CompilerSymbolProjectionAt" \
+    "CompilerSymbolCQualifiedName" \
     "source_owner" \
     "namespace_path" \
     "c_symbol" \

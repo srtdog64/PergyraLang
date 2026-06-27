@@ -41,7 +41,7 @@ src/self_hosted/
     main.pgy (+ owner modules as split) + intent.md
   codegen/                        -- bounded AST-text to C emitter owner
     main.pgy + intent.md
-    input/ run/ text/ type_facts/ symbol_facts/ abi_layout/ runtime_abi/ emission/
+    input/ run/ text/ type_facts/ abi_layout/ runtime_abi/ emission/
   mir_lower/                      -- MIR JSON fact-only lowering substitute
     main.pgy + owner modules + intent.md
   air/  hir/  mir/                -- IR-stage placeholders
@@ -83,9 +83,9 @@ consumes the bundle, so the entrypoint does not define "program" by accident.
 `input/ast_input_owner.pgy`, its AST-text line inventory in
 `input/ast_text_inventory_owner.pgy`, its CLI orchestration in
 `run/codegen_run_owner.pgy`, expression/text scanning in `text/`, type evidence
-in `type_facts/`, symbol facts in `symbol_facts/`, ABI type spelling in
-`abi_layout/`, runtime helper symbol facts in `runtime_abi/`, and C emission
-participants in `emission/`; `mir_lower/`
+in `type_facts/`, emitted-symbol rows in `compiler/symbol_table_owner.pgy`,
+ABI type spelling in `abi_layout/`, runtime helper symbol facts in
+`runtime_abi/`, and C emission participants in `emission/`; `mir_lower/`
 owns its MIR JSON path/read/schema boundary in `mir_json_input_owner.pgy` and
 document-order Program assembly in
 `program_lower.pgy`; `semantic/` follows the same entrypoint-plus-owner shape.

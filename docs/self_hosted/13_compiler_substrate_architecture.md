@@ -216,7 +216,7 @@ Self-hosted codegen is a backend resource cluster:
 - `run/` owns CLI-to-output orchestration.
 - `text/` owns text and expression scanning facts for the compatibility bridge.
 - `type_facts/` owns the type environment consumed by emitters.
-- `symbol_facts/` owns emitted-symbol spelling facts.
+- `compiler/symbol_table_owner.pgy` owns emitted-symbol spelling rows.
 - `abi_layout/` owns self-host C ABI type spelling facts for the supported
   signature, local declaration, and field subset.
 - `runtime_abi/` owns self-host C collection, math/random, host I/O/argv,
@@ -246,10 +246,10 @@ self-host AST printers preserve `inout`,
 `own`, and `ref`; the current codegen consumes `inout` via function-env `pm`
 facts and lowers calls/signatures from that fact instead of guessing mutation
 from `ArrayPush` or statement text. The
-current `symbol_facts/symbol_mangle_owner.pgy` and
-`abi_layout/abi_layout_owner.pgy` owners are read-only: they centralize the
-self-host C subset's emitted symbol and ABI type spelling without claiming full
-C/LLVM symbol or ABI row closure. `runtime_abi/collection_runtime_owner.pgy`
+current `compiler/symbol_table_owner.pgy` and `abi_layout/abi_layout_owner.pgy`
+owners are read-only: they centralize the self-host C subset's emitted symbol
+and ABI type spelling without claiming full C/LLVM symbol or ABI row closure.
+`runtime_abi/collection_runtime_owner.pgy`
 is the read-only owner for self-host C collection runtime helper names;
 it also normalizes the current AST-text bridge spellings
 `Array<Int: Int>` / `Array<String: String>` /
@@ -291,7 +291,7 @@ The long-term codegen shape is resource-first:
 |---|---|---|---|
 | emitted artifact text | `EmissionZone` / emission participants | C compiler, parity harness | one write owner; no scattered stdout construction |
 | type bindings | `TypeEnvZone` / `type_facts/` | expression, statement, return, log routing | emitters consume type facts instead of re-inferring from source text |
-| symbol and mangle facts | `symbol_facts/symbol_mangle_owner.pgy` for self-host C subset; cross-backend owner still active | C, LLVM, and self-hosted emission | emitters consume canonical spelling facts; no owner/member string concatenation in local emission |
+| symbol and mangle facts | `compiler/symbol_table_owner.pgy`; cross-backend owner still active beyond the self-host C consumer | C, LLVM, and self-hosted emission | emitters consume canonical spelling facts; no owner/member string concatenation in local emission |
 | self-host C ABI type spelling | `abi_layout/abi_layout_owner.pgy` for self-host C subset; cross-backend row projection still active | self-hosted C emission | signature, local, and field declarations consume canonical C ABI type facts |
 | self-host typed AST-text bridge | `input/ast_text_inventory_owner.pgy` for raw `pgy --ast` lines, `CodegenAstTextNode`, indentation, blank filtering, `[export]` normalization, parameter mode preservation, and cursor expectations | self-hosted C emission | `program_emit`, declaration collectors, function signature emission, and statement body emission consume typed nodes for program-level routing, prepasses, function header/parameter/return/body-marker reads, and statement reads; `inout` signatures/calls consume recorded `pm` facts; no emission participant may re-split AST text or consume parallel `indents`/`texts` arrays |
 | self-host C collection runtime symbols | `runtime_abi/collection_runtime_owner.pgy` for `Array<Int>` / `Array<String>` helper calls plus the `Array<CodegenAstTextNode>` bootstrap bridge | self-hosted C emission | expression/statement emitters consume canonical helper-name facts; generated helper definitions stay in one definition host |
@@ -303,8 +303,8 @@ The long-term codegen shape is resource-first:
 | unsupported surface | codegen diagnostic owner | parity harness | fail visibly, never emit broken C |
 | target acceptance/fallback | `target_capability_owner.pgy` plus future target-specific extensions | C, LLVM, self-hosted, accelerator projections | no hidden CPU fallback or unsupported accelerator lowering |
 
-The current `input/`, `run/`, `text/`, `type_facts/`, `symbol_facts/`,
-`abi_layout/`, `runtime_abi/`, and `emission/` directories are an intermediate
+The current `input/`, `run/`, `text/`, `type_facts/`, `abi_layout/`,
+`runtime_abi/`, and `emission/` directories are an intermediate
 resource split. `text/` exists because the current rung still consumes
 `pgy --ast` text as a compatibility bridge. As MIR facts replace that bridge,
 text scanning should shrink; it must not become a second parser or a place to
@@ -316,7 +316,7 @@ owned responsibility:
 
 - a new type-fact owner is valid;
 - a new ABI/layout owner such as `AbiLayoutZone` is valid;
-- a new symbol/mangle owner is valid;
+- a new symbol/mangle row consumer is valid;
 - a generic `emit_helpers.pgy` bucket is not valid;
 - a fake `ExprZone` or `StmtZone` is not valid while both mutate the same
   emitted-output resource.

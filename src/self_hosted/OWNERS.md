@@ -93,7 +93,6 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/codegen/text/text_owner.pgy` -- text/token scanning primitives.
 - `src/self_hosted/codegen/text/expr_scan.pgy` -- expression text scanning.
 - `src/self_hosted/codegen/type_facts/type_env.pgy` -- type environment facts.
-- `src/self_hosted/codegen/symbol_facts/symbol_mangle_owner.pgy` -- emitted C symbol spelling facts.
 - `src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy` -- self-host C ABI type spelling facts.
 - `src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy` -- self-host C collection runtime symbol facts.
 - `src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy` -- self-host C host file/argv runtime symbol facts.

@@ -28,9 +28,9 @@ participant, not a zone.
   signature, local declaration, and field subset. It is not the full
   cross-backend row projection; that remains an active expansion surface until
   C/LLVM also consume the same ABI rows.
-- `SymbolMangleOwner` owns emitted-symbol spelling for the self-host C subset.
-  It is read-only at this rung; it becomes a zone only if it later owns mutable
-  cross-backend symbol state.
+- `CompilerSymbolTableOwner` owns emitted-symbol spelling rows consumed by the
+  self-host C subset. Codegen reads that compiler-world owner directly instead
+  of keeping a second C-only mangle owner.
 - `CollectionRuntimeOwner` owns self-host C collection runtime helper symbol
   spelling for the supported `Array<Int>` / `Array<String>` subset and the
   bootstrap-only `Array<CodegenAstTextNode>` typed AST-line bridge. The helper
@@ -73,7 +73,7 @@ Concrete split for the current codegen cluster:
 | type environment | yes | separate read-mostly type-fact resource |
 | ABI layout facts | yes | separate read-only layout/ownership-shape fact resource |
 | self-host C ABI type spelling | owner, not zone yet | canonical C spelling for supported signatures, locals, and fields |
-| symbol/name-mangling facts | owner, not zone yet | read-only canonical C spelling for supported self-host emission |
+| symbol/name-mangling facts | compiler-world owner, not codegen zone | read-only canonical spelling rows for supported self-host emission |
 | collection runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host array runtime calls, including the bootstrap typed AST-line record array |
 | math/random runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host math/random runtime calls |
 | host I/O runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host file/argv runtime calls |
@@ -89,7 +89,6 @@ a zone:
 - `run/` owns the CLI orchestration boundary.
 - `text/` owns reusable text and expression scanning facts.
 - `type_facts/` owns read-mostly type evidence.
-- `symbol_facts/` owns emitted-symbol spelling facts.
 - `abi_layout/` owns self-host C ABI type spelling facts.
 - `runtime_abi/` owns self-host C collection, math/random, host I/O/argv, Option/Result, and string/text runtime helper symbol facts.
 - `emission/` contains the action participants that write or route emitted C.

@@ -1,15 +1,9 @@
-// Self-host compiler cross-backend symbol table owner.
-//
-// Owns canonical symbol row facts across C, LLVM, and self-hosted projections.
-
 func CompilerSymbolTableSchema() -> String {
     return "pgy.selfhost.symbol-table.v1";
 }
-
 func CompilerSymbolTableRowCount() -> Int {
     return 7;
 }
-
 func CompilerSymbolTableRowAt(index: Int) -> String {
     if index == 0 { return "source_owner"; }
     if index == 1 { return "source_name"; }
@@ -20,12 +14,97 @@ func CompilerSymbolTableRowAt(index: Int) -> String {
     if index == 6 { return "collision_policy"; }
     return "";
 }
-
+func CompilerSymbolProjectionAt(index: Int) -> String {
+    if index == 0 { return "c_symbol"; }
+    if index == 1 { return "llvm_symbol"; }
+    if index == 2 { return "self_hosted_symbol"; }
+    return "";
+}
+func CompilerSymbolCharAt(s: String, i: Int) -> String {
+    if i < 0 || i >= StringLength(s) {
+        return "";
+    }
+    return Substring(s, i, 1);
+}
+func CompilerSymbolCIdentChar(c: String) -> Bool {
+    if StringLength(c) != 1 {
+        return false;
+    }
+    return StringIndexOf("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_", c) >= 0;
+}
+func CompilerSymbolCIdentStart(c: String) -> Bool {
+    if StringLength(c) != 1 {
+        return false;
+    }
+    return StringIndexOf("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_", c) >= 0;
+}
+func CompilerSymbolCReservedWord(name: String) -> Bool {
+    return name == "auto" || name == "break" || name == "case" ||
+        name == "char" || name == "const" || name == "continue" ||
+        name == "default" || name == "do" || name == "double" ||
+        name == "else" || name == "enum" || name == "extern" ||
+        name == "float" || name == "for" || name == "goto" ||
+        name == "if" || name == "inline" || name == "int" ||
+        name == "long" || name == "register" || name == "restrict" ||
+        name == "return" || name == "short" || name == "signed" ||
+        name == "sizeof" || name == "static" || name == "struct" ||
+        name == "switch" || name == "typedef" || name == "union" ||
+        name == "unsigned" || name == "void" || name == "volatile" ||
+        name == "while";
+}
+func CompilerSymbolCIdentifier(source_name: String) -> String {
+    let name: String = StringTrim(source_name);
+    let n: Int = StringLength(name);
+    if n == 0 {
+        Log("SYMBOL ERROR: empty source name cannot be projected");
+        Exit(1);
+        return "";
+    }
+    let out: String = "";
+    let i: Int = 0;
+    while i < n {
+        let c: String = CompilerSymbolCharAt(name, i);
+        if i == 0 {
+            if CompilerSymbolCIdentStart(c) {
+                out = Concat(out, c);
+            } else if CompilerSymbolCIdentChar(c) {
+                out = Concat("_", c);
+            } else {
+                out = "_";
+            }
+        } else if CompilerSymbolCIdentChar(c) {
+            out = Concat(out, c);
+        } else {
+            out = Concat(out, "_");
+        }
+        i = i + 1;
+    }
+    if CompilerSymbolCReservedWord(out) {
+        return Concat("pgy_", out);
+    }
+    return out;
+}
+func CompilerSymbolCQualifiedName(owner_name: String, member_name: String) -> String {
+    let member_symbol: String = CompilerSymbolCIdentifier(member_name);
+    if StringLength(StringTrim(owner_name)) == 0 {
+        return member_symbol;
+    }
+    return Concat(CompilerSymbolCIdentifier(owner_name), Concat("_", member_symbol));
+}
+func CompilerSymbolCRoleOperatorName(role_name: String, op_name: String) -> String {
+    return CompilerSymbolCQualifiedName(role_name, op_name);
+}
+func CompilerSymbolCEnumVariantName(enum_name: String, variant_name: String) -> String {
+    return CompilerSymbolCQualifiedName(enum_name, variant_name);
+}
 func CompilerSymbolTableReady() -> Bool {
     return CompilerSymbolTableRowAt(0) == "source_owner" &&
         CompilerSymbolTableRowAt(1) == "source_name" &&
         CompilerSymbolTableRowAt(3) == "c_symbol" &&
         CompilerSymbolTableRowAt(4) == "llvm_symbol" &&
         CompilerSymbolTableRowAt(5) == "self_hosted_symbol" &&
-        CompilerSymbolTableRowAt(6) == "collision_policy";
+        CompilerSymbolTableRowAt(6) == "collision_policy" &&
+        CompilerSymbolProjectionAt(0) == "c_symbol" &&
+        CompilerSymbolProjectionAt(1) == "llvm_symbol" &&
+        CompilerSymbolProjectionAt(2) == "self_hosted_symbol";
 }

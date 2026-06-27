@@ -59,7 +59,6 @@ SELF_SOURCES=(
     "src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy"
     "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy"
     "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy"
-    "src/self_hosted/codegen/symbol_facts/symbol_mangle_owner.pgy"
     "src/self_hosted/codegen/text/text_owner.pgy"
     "src/self_hosted/compiler/path_manifest_owner.pgy"
     "src/self_hosted/compiler/stage_intents.pgy"

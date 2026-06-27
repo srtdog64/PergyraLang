@@ -24,7 +24,7 @@ resource-shaped subdirectories:
 - `run/` owns CLI-to-output orchestration.
 - `text/` owns AST/expression text scanning primitives.
 - `type_facts/` owns type binding facts consumed as read-mostly evidence.
-- `symbol_facts/` owns emitted-symbol spelling for the self-host C subset.
+- `../compiler/symbol_table_owner.pgy` owns emitted-symbol spelling rows.
 - `abi_layout/` owns self-host C ABI type spelling for signatures, locals, and fields.
 - `runtime_abi/` owns self-host C collection, math/random, host I/O/argv,
   Option/Result, and string/text runtime helper symbol spelling.
@@ -166,10 +166,10 @@ orchestration that wires that owned AST text into `GenerateC`; `main.pgy` only
 calls the run owner. `emission/struct_value_emit.pgy` owns struct-valued
 expression lowering used by `let`, assignment, and return paths;
 `emission/stmt_emit.pgy` consumes that boundary instead of owning struct literal
-policy directly. `symbol_facts/symbol_mangle_owner.pgy` owns C emitted-symbol
-spelling for function names, owner-qualified methods, role operator names, and
+policy directly. `compiler/symbol_table_owner.pgy` owns emitted-symbol spelling
+rows for function names, owner-qualified methods, role operator names, and
 payload-free enum variants in the supported subset; emitters must consume that
-owner instead of locally concatenating owner/member spellings.
+compiler-world owner instead of locally concatenating owner/member spellings.
 `abi_layout/abi_layout_owner.pgy` owns C ABI type spelling for parameter,
 return, local, and struct/class field declarations in the supported subset;
 emitters must consume that owner instead of locally mapping `Int` / `String` /

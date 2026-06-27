@@ -367,7 +367,6 @@ require_owner_surface codegen \
     "text/text_owner.pgy" \
     "type_facts/type_env.pgy" \
     "text/expr_scan.pgy" \
-    "symbol_facts/symbol_mangle_owner.pgy" \
     "abi_layout/abi_layout_owner.pgy" \
     "runtime_abi/collection_runtime_owner.pgy" \
     "runtime_abi/host_io_runtime_owner.pgy" \
@@ -378,8 +377,10 @@ require_owner_surface codegen \
     "emission/stmt_emit.pgy" \
     "emission/function_emit.pgy" \
     "emission/program_emit.pgy"
-require_text "src/self_hosted/codegen/symbol_facts/symbol_mangle_owner.pgy" "func SymbolMangleCQualifiedName"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "SymbolMangleCQualifiedName"
+require_text "src/self_hosted/codegen/main.pgy" 'import "../compiler/symbol_table_owner.pgy";'
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCQualifiedName"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCQualifiedName"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "SymbolMangle"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(owner, Concat("_",'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(owner_name, Concat("_",'
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCParamType"
@@ -589,7 +590,6 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/c
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/symbol_facts/symbol_mangle_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/text/text_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/path.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/json.pgy"'
@@ -693,8 +693,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 87 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 87"
+[[ "$selfcheck_count" -eq 86 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 86"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func SourceLocalType"
