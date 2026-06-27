@@ -532,6 +532,16 @@ air_synthesize(const HIRProgram *hir,
         air_destroy(air);
         return NULL;
     }
+
+    /* SEA finalization: every boundary, however it was built, gets its
+       ExecutionLane classified once here — after all evidence (kind, authority,
+       required abilities) is set (docs/146). Single chokepoint so no builder is
+       missed; replaces per-construction classification. */
+    for (size_t i = 0; i < air->boundary_count; i++) {
+        air->boundaries[i].execution_lane =
+            air_boundary_classify_lane(&air->boundaries[i]);
+    }
+
     return air;
 }
 

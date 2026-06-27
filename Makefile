@@ -2221,6 +2221,9 @@ self-host-pergyra-likeness-test-smoke:
 execution-lane-policy-test-smoke:
 	"$(BASH)" tests/execution_lane_policy_smoke.sh
 
+sea-execution-lane-golden-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/sea_execution_lane_golden_smoke.sh
+
 self-host-compiler-world-contract-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_host_compiler_world_contract_smoke.sh
 

@@ -84,14 +84,24 @@ strictly underneath.
 
 ## 5. Status / remaining
 
-- **Landed**: the fact + the pure classification policy + decision-table proof
-  (`execution-lane-policy-test-smoke`, 10/10).
-- **Skeleton**: `execution_lane` attached to `AIRBoundaryNode` +
-  `air_boundary_classify_lane` (first-cut evidence from boundary kind); the
-  `PgyLaneScheduler` facade naming.
-- **Remaining (fill)**: populate full evidence from real spawn/async/parallel
-  sites (pin/capture/effect already exist in MIR/semantic — wire them into the
-  evidence struct); emit the lane into the AIR JSON; build the runtime facade
-  that dispatches each lane to its executor; a parity test that the same
-  concurrent program is observationally equal across executors (the real test of
-  "the scheduler does not leak into semantics").
+**Landed — the fact flows end to end, gated and golden-tested:**
+- The fact + the pure classification policy + a decision-table proof covering
+  every lane and both load-bearing edges (`execution-lane-policy-test-smoke`,
+  10/10).
+- `execution_lane` on `AIRBoundaryNode`, classified in ONE finalization pass in
+  `air_synthesize` (after all boundary evidence is set, so no builder is missed),
+  and emitted in `--air-json` as `"execution_lane"`.
+- A golden test (`sea-execution-lane-golden-test-smoke`) that compiles a real
+  program, synthesises AIR, and pins the per-boundary lanes
+  (`zone -> PinnedZone`, `world -> LocalAsync`), with a regression guard that a
+  classified boundary is never left at the fail-closed zero (`Reject`).
+
+**Remaining (fill):**
+- Plumb the richer evidence (pin/live-view, raw-vs-value capture, effect mask)
+  from MIR/semantic onto the boundary so the classifier can reach
+  `MovableScheduler` / `BlockingPool` from real sites, not just kind.
+- Build the `PgyLaneScheduler` runtime facade dispatching each lane to its
+  executor (`LocalCoroutineExecutor`, `WorkerPoolExecutor`, `BlockingExecutor`,
+  `MovableExecutor`, pinned).
+- A parity test that the same concurrent program is observationally equal across
+  executors — the real test of "the scheduler does not leak into semantics".

@@ -1,0 +1,2 @@
+zone PinnedZone
+world LocalAsync

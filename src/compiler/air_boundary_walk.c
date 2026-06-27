@@ -63,6 +63,8 @@ air_append_current_boundary(AIRBoundaryWalkCtx *ctx,
         ? node
         : ctx->step->ast;
     boundary->sync_class = air_boundary_sync_from_kind(kind);
+    /* ExecutionLane is classified in one finalization pass in air_synthesize,
+       after all boundary evidence is set (docs/146) — not per-builder here. */
     (*ctx->boundary_index)++;
     return true;
 }

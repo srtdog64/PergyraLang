@@ -315,6 +315,8 @@ air_dump_json_boundaries(const AIRProgram *air, FILE *out)
                 boundary->intent_index,
                 boundary->step_index);
         air_json_string(out, air_sync_class_name(boundary->sync_class));
+        fputs(",\"execution_lane\":", out);
+        air_json_string(out, pgy_execution_lane_name(boundary->execution_lane));
         fputs(",\"", out);
         fputs(kAirJsonFieldCompressionBudget, out);
         fputs("\":", out);
