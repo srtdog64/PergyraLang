@@ -1990,3 +1990,15 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   active until every parity artifact and runner invocation is written through
   these rows, but the first run-output parity sink now consumes the
   compiler-world owners.
+
+### 2026-06-28 -- Self-host C ABI spelling consumes compiler-world ABI envelope
+
+- Repointed `src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy` to import
+  `compiler/abi_layout_row_owner.pgy`.
+- The self-host C ABI type spelling owner now calls
+  `CompilerAbiLayoutRowsReady()` before emitting any C value type spelling, so
+  supported parameter, return, local, and field spellings fail closed if the
+  compiler-world ABI/layout row envelope drifts.
+- This is still not full cross-backend ABI row projection: concrete native
+  C/LLVM/self-hosted row consumption for field order, tag/niche, size/align,
+  ownership shape, and materialization policy remains ACTIVE.

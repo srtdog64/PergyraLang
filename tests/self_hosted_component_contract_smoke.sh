@@ -391,6 +391,8 @@ require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func Abi
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCReturnType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCLocalType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCFieldType"
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'import "../../compiler/abi_layout_row_owner.pgy";'
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutRowsReady()"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIndentOf"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "struct CodegenAstTextNode"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextNodeInventory"
