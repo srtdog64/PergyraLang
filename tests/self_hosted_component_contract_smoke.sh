@@ -735,11 +735,27 @@ selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -
     fail "real-source selfcheck count drifted: $selfcheck_count != 86"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectStringFact"
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectNumberFact"
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectArrayBounds"
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectArrayObjectBoundsAt"
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirDeclObjectBoundsAt"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func SourceLocalType"
 reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func ReadJsonString"
 reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func JsonFieldString"
 reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func JsonFieldNumber"
 reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func JsonFirstArrayString"
+require_text "src/self_hosted/mir_lower/decl_lower.pgy" "MirDeclObjectBoundsAt(json, row, decl_bounds)"
+require_text "src/self_hosted/mir_lower/decl_lower.pgy" "MirObjectArrayObjectBoundsAt(json, decl_start, decl_end, \"fields\", row, field_bounds)"
+require_text "src/self_hosted/mir_lower/decl_lower.pgy" "MirObjectStringFact(json, decl_bounds[0], decl_bounds[1], \"kind\")"
+reject_text "src/self_hosted/mir_lower/decl_lower.pgy" "func DeclObjectEnd"
+reject_text "src/self_hosted/mir_lower/decl_lower.pgy" "func VariantObjectEnd"
+reject_text "src/self_hosted/mir_lower/decl_lower.pgy" 'FindFrom(json, "\"decls\":['
+reject_text "src/self_hosted/mir_lower/decl_lower.pgy" 'FindFrom(json, "\"fields\":['
+reject_text "src/self_hosted/mir_lower/decl_lower.pgy" 'FindFrom(json, "\"methods\":['
+reject_text "src/self_hosted/mir_lower/decl_lower.pgy" 'FindFrom(json, "\"variants\":['
+reject_text "src/self_hosted/mir_lower/decl_lower.pgy" "JsonFieldString(json,"
+reject_text "src/self_hosted/mir_lower/decl_lower.pgy" "ReadJsonString(json,"
 
 semantic_items="$(extract_shell_array_items "$PARITY_DIR/semantic_parity.sh" SOURCE_PAIRS | sed 's/:.*//')"
 [[ -n "$semantic_items" ]] || fail "semantic parity SOURCE_PAIRS is empty"

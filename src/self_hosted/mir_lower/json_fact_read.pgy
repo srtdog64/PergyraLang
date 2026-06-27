@@ -6,6 +6,55 @@
 
 import "../lib/json.pgy";
 
+func MirObjectStringFact(json: String, start: Int, end: Int, field: String) -> String {
+    return JsonObjectStringField(json, start, end, field);
+}
+
+func MirObjectNumberFact(json: String, start: Int, end: Int, field: String) -> String {
+    return JsonObjectNumberField(json, start, end, field);
+}
+
+func MirObjectArrayBounds(json: String, start: Int, end: Int, field: String, inout bounds: Array<Int>) -> Bool {
+    if !JsonObjectFieldValueBounds(json, start, end, field, bounds) {
+        return false;
+    }
+    if bounds[0] >= bounds[1] {
+        return false;
+    }
+    return CharAt(json, bounds[0]) == "[";
+}
+
+func MirObjectArrayObjectBoundsAt(
+    json: String,
+    start: Int,
+    end: Int,
+    field: String,
+    row: Int,
+    inout bounds: Array<Int>
+) -> Bool {
+    let array_bounds: Array<Int> = [0, 0];
+    if !MirObjectArrayBounds(json, start, end, field, array_bounds) {
+        return false;
+    }
+    return JsonArrayObjectBoundsAt(json, array_bounds[0], array_bounds[1], row, bounds);
+}
+
+func MirDeclArrayBounds(json: String, inout bounds: Array<Int>) -> Bool {
+    let doc_end: Int = JsonDocumentObjectEnd(json);
+    if doc_end <= 0 {
+        return false;
+    }
+    return JsonFieldArrayBounds(json, 0, doc_end, "decls", bounds);
+}
+
+func MirDeclObjectBoundsAt(json: String, row: Int, inout bounds: Array<Int>) -> Bool {
+    let decls: Array<Int> = [0, 0];
+    if !MirDeclArrayBounds(json, decls) {
+        return false;
+    }
+    return JsonArrayObjectBoundsAt(json, decls[0], decls[1], row, bounds);
+}
+
 // Find a MIR source-local type fact in the current routine span. This is the
 // self-hosted mirror of MIRRoutine::source_local_types; mir_lower uses it
 // before the transitional statement text when reconstructing Let: lines.

@@ -12,12 +12,13 @@ payloads for semantic answers.
 
 The input is a path to a `pgy.mir.v1` JSON document emitted by `pgy --mir-json`.
 `mir_json_input_owner.pgy` owns path selection, file reads, and schema gating;
-`routine_inventory_owner.pgy` owns routine discovery plus bounded routine
-header facts, and `main.pgy` only wires the validated document into the
-lowering owners. Supported facts are routine signatures, source-local type
-facts, bounded CFG statement facts, nominal declaration inventory facts, and
-explicitly listed declaration facts. Missing or unsupported MIR facts are hard
-errors.
+`json_fact_read.pgy` owns bounded JSON/MIR fact reads including declaration
+row, object, and array bounds; `routine_inventory_owner.pgy` owns routine
+discovery plus bounded routine header facts, and `main.pgy` only wires the
+validated document into the lowering owners. Supported facts are routine
+signatures, source-local type facts, bounded CFG statement facts, nominal
+declaration inventory facts, and explicitly listed declaration facts. Missing
+or unsupported MIR facts are hard errors.
 
 ## Output Contract
 

@@ -10,8 +10,10 @@ by the sibling modules:
 
 - `mir_json_input_owner.pgy` owns argv path selection, file reads, and schema
   gating for MIR JSON input.
-- `json_fact_read.pgy` owns bounded JSON fact access.
-- `decl_lower.pgy` owns declaration fact reconstruction.
+- `json_fact_read.pgy` owns bounded JSON fact access, including MIR
+  declaration row/object/array bounds.
+- `decl_lower.pgy` owns declaration fact reconstruction and consumes MIR
+  declaration rows from `json_fact_read.pgy`.
 - `program_lower.pgy` owns document-order Program assembly and supported
   routine selection.
 - `routine_inventory_owner.pgy` owns routine discovery and bounded routine

@@ -2035,3 +2035,14 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `StartsWith` checks.
 - Name extraction still consumes `CodegenAstTextNode.text`, so this is a
   reduction of the mixed AST-like tree blocker, not full closure.
+
+### 2026-06-28 -- MIR declaration lowering consumes JSON row facts
+
+- Added MIR-specific object/string/number/array row accessors to
+  `src/self_hosted/mir_lower/json_fact_read.pgy`.
+- Repointed `decl_lower.pgy` declaration, field, method, parameter, and enum
+  variant traversal to consume those accessors instead of guessing object spans
+  with delimiter strings such as `"},{"kind":`.
+- This reduces the stable JSON blocker for MIR declaration lowering. The
+  blocker remains active because the shared owner is still a bounded scanner,
+  not a complete schema-aware JSON fact table.
