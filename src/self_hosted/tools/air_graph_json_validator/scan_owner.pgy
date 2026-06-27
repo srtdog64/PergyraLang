@@ -48,7 +48,8 @@ func RequiredKeys() -> Array<String> {
         JsonFieldKey("evidence"),
         JsonFieldKey("drifts"),
         JsonFieldKey("compression_budget"),
-        JsonFieldKey("compression_reason")
+        JsonFieldKey("compression_reason"),
+        JsonFieldKey("execution_lane")
     ];
     return keys;
 }

@@ -5,8 +5,9 @@ dumps (`pgy.air.graph.v1`) from fixture paths relative to cwd, validates the
 schema field and required top-level keys, extracts summary counts, and checks
 one capability/effect residual trace (`Args -> ENV -> 0x20`). No JSON parser;
 substring-anchored scan only.
-The required-key set includes `compression_budget` and `compression_reason`
-because proof-gated erasure is now part of the stable AIR graph contract.
+The required-key set includes `compression_budget`, `compression_reason`, and
+`execution_lane` because proof-gated erasure and SEA lane classification are
+now part of the stable AIR graph contract.
 
 ## Intent
 
