@@ -47,17 +47,9 @@ func RenderDestructureFromFacts(json: String, routine_start: Int, routine_end: I
     if StringLength(elem_type) == 0 {
         Die(Concat("destructure initializer element type is unknown: ", init));
     }
-    let bindings: Int = FindFrom(json, "\"destructure_bindings\":[", inst_start);
-    if bindings < 0 || bindings >= inst_end {
+    let binding_bounds: Array<Int> = [0, 0];
+    if !MirObjectArrayBounds(json, inst_start, inst_end, "destructure_bindings", binding_bounds) {
         Die("destructure instruction is missing binding-name facts");
-    }
-    let open: Int = FindFrom(json, "[", bindings);
-    if open < 0 || open >= inst_end {
-        Die("malformed destructure binding-name facts");
-    }
-    let close: Int = FindFrom(json, "]", open);
-    if close < 0 || close >= inst_end {
-        Die("malformed destructure binding-name facts");
     }
 
     let out: String = "";
@@ -68,19 +60,14 @@ func RenderDestructureFromFacts(json: String, routine_start: Int, routine_end: I
             Concat(" : Array<", Concat(elem_type, Concat("> = ", Concat(init, "\n"))))))));
     }
 
-    let pos: Int = open + 1;
     let index: Int = 0;
-    let q: Int = FindFrom(json, "\"", pos);
-    while q >= 0 && q < close {
-        let end: Array<Int> = [0];
-        let name: String = ReadJsonString(json, q, end);
-        if StringLength(name) > 0 {
-            out = Concat(out, Concat(indent, Concat("Let: ", Concat(name,
-                Concat(" : ", Concat(elem_type, Concat(" = ", Concat(source,
-                    Concat("[", Concat(ToString(index), "]\n"))))))))));
-            index = index + 1;
-        }
-        q = FindFrom(json, "\"", end[0]);
+    let name: String = MirObjectArrayStringFactAt(json, inst_start, inst_end, "destructure_bindings", index);
+    while StringLength(name) > 0 {
+        out = Concat(out, Concat(indent, Concat("Let: ", Concat(name,
+            Concat(" : ", Concat(elem_type, Concat(" = ", Concat(source,
+                Concat("[", Concat(ToString(index), "]\n"))))))))));
+        index = index + 1;
+        name = MirObjectArrayStringFactAt(json, inst_start, inst_end, "destructure_bindings", index);
     }
     if index == 0 {
         Die("destructure instruction has no binding-name facts");
@@ -108,28 +95,19 @@ func StmtToTreeLine(stmt: String) -> String {
 
 func RenderDeferFromFacts(json: String, inst_start: Int, inst_end: Int,
                           indent: String) -> String {
-    let key: Int = FindFrom(json, "\"defer_body\":[", inst_start);
-    if key < 0 || key >= inst_end {
+    let body_bounds: Array<Int> = [0, 0];
+    if !MirObjectArrayBounds(json, inst_start, inst_end, "defer_body", body_bounds) {
         Die("defer instruction is missing body facts");
-    }
-    let open: Int = FindFrom(json, "[", key);
-    let close: Int = FindFrom(json, "]", open);
-    if open < 0 || close < 0 || close >= inst_end {
-        Die("defer instruction has malformed body facts");
     }
 
     let out: String = Concat(indent, "Defer:\n");
     out = Concat(out, Concat(indent, "  Block:\n"));
-    let q: Int = FindFrom(json, "\"", open);
     let emitted: Int = 0;
-    while q >= 0 && q < close {
-        let e: Array<Int> = [0];
-        let stmt: String = ReadJsonString(json, q, e);
-        if StringLength(stmt) > 0 {
-            out = Concat(out, Concat(indent, Concat("    ", Concat(StmtToTreeLine(stmt), "\n"))));
-            emitted = emitted + 1;
-        }
-        q = FindFrom(json, "\"", e[0]);
+    let stmt: String = MirObjectArrayStringFactAt(json, inst_start, inst_end, "defer_body", emitted);
+    while StringLength(stmt) > 0 {
+        out = Concat(out, Concat(indent, Concat("    ", Concat(StmtToTreeLine(stmt), "\n"))));
+        emitted = emitted + 1;
+        stmt = MirObjectArrayStringFactAt(json, inst_start, inst_end, "defer_body", emitted);
     }
     if emitted == 0 {
         Die("defer instruction body facts are empty");

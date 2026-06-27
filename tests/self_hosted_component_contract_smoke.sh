@@ -807,6 +807,11 @@ require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectStringFact(
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayStringFactAt(json, kp, inst_end, \"match_bindings\", 0)"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "JsonFieldString(json,"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "JsonFirstArrayString(json,"
+require_text "src/self_hosted/mir_lower/stmt_render.pgy" "MirObjectArrayStringFactAt(json, inst_start, inst_end, \"destructure_bindings\", index)"
+require_text "src/self_hosted/mir_lower/stmt_render.pgy" "MirObjectArrayStringFactAt(json, inst_start, inst_end, \"defer_body\", emitted)"
+reject_text "src/self_hosted/mir_lower/stmt_render.pgy" 'FindFrom(json, "\"destructure_bindings\":['
+reject_text "src/self_hosted/mir_lower/stmt_render.pgy" 'FindFrom(json, "\"defer_body\":['
+reject_text "src/self_hosted/mir_lower/stmt_render.pgy" "ReadJsonString(json,"
 
 semantic_items="$(extract_shell_array_items "$PARITY_DIR/semantic_parity.sh" SOURCE_PAIRS | sed 's/:.*//')"
 [[ -n "$semantic_items" ]] || fail "semantic parity SOURCE_PAIRS is empty"

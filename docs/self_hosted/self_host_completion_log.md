@@ -2110,3 +2110,14 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   reintroduce local `ReadJsonString` or direct `"source_locals"` key scans.
 - This keeps source-local type recovery on the same MIR fact-owner path as
   declaration, routine header, and CFG fact reads.
+
+### 2026-06-28 -- Statement MIR array facts use row accessors
+
+- Repointed `RenderDestructureFromFacts` and `RenderDeferFromFacts` in
+  `src/self_hosted/mir_lower/stmt_render.pgy` from manual
+  `destructure_bindings` / `defer_body` string scanning to
+  `MirObjectArrayStringFactAt`.
+- Tightened the component contract so statement rendering cannot reintroduce
+  those direct array key scans or local `ReadJsonString` calls.
+- This moves destructure and defer reconstruction onto the same MIR fact-owner
+  path as declaration, routine header, CFG, and source-local reads.
