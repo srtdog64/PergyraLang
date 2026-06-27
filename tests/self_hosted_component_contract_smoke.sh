@@ -596,7 +596,9 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/l
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" "JsonStringLiteral(path)"
 require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" 'import "../../lib/json.pgy";'
-require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" "JsonStringLiteral(fixture_path)"
+require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" "JsonEmitObject(report_fields)"
+require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" "JsonEmitArray("
+reject_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" 'let json_parts: Array<String>'
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonDocumentStringFieldEquals(content, \"schema\", \"pgy.air.graph.v1\")"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonDocumentNumberField(content, field)"
@@ -620,6 +622,10 @@ for air_graph_parity in \
     tests/self_hosted/parity/air_graph_ref_live_parity.sh; do
     require_text "$air_graph_parity" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"'
 done
+require_text "src/self_hosted/tools/ast_read_surface_checker/main.pgy" 'import "../../lib/json.pgy";'
+require_text "src/self_hosted/tools/ast_read_surface_checker/main.pgy" "JsonEmitObject(report_fields)"
+require_text "src/self_hosted/tools/ast_read_surface_checker/main.pgy" "JsonEmitArray(findings)"
+reject_text "src/self_hosted/tools/ast_read_surface_checker/main.pgy" 'let json_parts: Array<String>'
 require_text "src/self_hosted/tools/production_c_size_checker/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/production_c_size_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/production_c_size_checker/main.pgy" "JsonEmitArray(findings)"

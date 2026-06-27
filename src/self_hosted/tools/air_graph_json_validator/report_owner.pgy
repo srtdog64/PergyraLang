@@ -14,52 +14,59 @@ func FindingFactField(row: String, index: Int) -> String {
 }
 
 func FindingJson(kind: String, key: String, location: String) -> String {
-    let parts: Array<String> = [
-        "{\"kind\":",
-        JsonStringLiteral(kind),
-        ",\"key\":",
-        JsonStringLiteral(key),
-        ",\"location\":",
-        JsonStringLiteral(location),
-        "}"
+    let fields: Array<String> = [
+        JsonEmitFieldString("kind", kind),
+        JsonEmitFieldString("key", key),
+        JsonEmitFieldString("location", location)
     ];
-    return StringJoin(parts, "");
+    return JsonEmitObject(fields);
 }
 
-func FindingsJsonFromFacts(facts: String) -> String {
+func FindingsJsonFromFacts(facts: String) -> Array<String> {
     let rows: Array<String> = Split(facts, "\n");
-    let findings: String = "";
+    let findings: Array<String> = [];
     for row in rows {
         if StringLength(row) > 0 {
             let kind: String = FindingFactField(row, 0);
             let key: String = FindingFactField(row, 1);
             let location: String = FindingFactField(row, 2);
             let entry: String = FindingJson(kind, key, location);
-            if StringLength(findings) == 0 {
-                findings = entry;
-            } else {
-                findings = Concat(Concat(findings, ","), entry);
-            }
+            ArrayPush(findings, entry);
         }
     }
     return findings;
 }
 
 func InputErrorJson(path: String) -> String {
-    let parts: Array<String> = [
-        "{\"schema\":\"pgy.selfhost.air-graph-validator.v1\",\"ok\":false,",
-        "\"source\":{\"input_schema\":\"pgy.air.graph.v1\",\"fixture_owner\":",
-        JsonStringLiteral(path),
-        "},\"counts\":{\"intents\":0,\"boundaries\":0,\"evidence\":0,",
-        "\"drifts\":0,\"effect_sites\":0,\"env_effect_sites\":0,",
-        "\"missing_keys\":0},",
-        "\"findings\":[{\"kind\":\"input_error\",\"key\":",
-        JsonStringLiteral(path),
-        ",\"location\":",
-        JsonStringLiteral(path),
-        "}]}"
+    let source_fields: Array<String> = [
+        JsonEmitFieldString("input_schema", "pgy.air.graph.v1"),
+        JsonEmitFieldString("fixture_owner", path)
     ];
-    return StringJoin(parts, "");
+    let counts_fields: Array<String> = [
+        JsonEmitFieldNumber("intents", "0"),
+        JsonEmitFieldNumber("boundaries", "0"),
+        JsonEmitFieldNumber("evidence", "0"),
+        JsonEmitFieldNumber("drifts", "0"),
+        JsonEmitFieldNumber("effect_sites", "0"),
+        JsonEmitFieldNumber("env_effect_sites", "0"),
+        JsonEmitFieldNumber("missing_keys", "0")
+    ];
+    let finding_fields: Array<String> = [
+        JsonEmitFieldString("kind", "input_error"),
+        JsonEmitFieldString("key", path),
+        JsonEmitFieldString("location", path)
+    ];
+    let findings: Array<String> = [
+        JsonEmitObject(finding_fields)
+    ];
+    let report_fields: Array<String> = [
+        JsonEmitFieldString("schema", "pgy.selfhost.air-graph-validator.v1"),
+        JsonEmitFieldBool("ok", false),
+        JsonEmitFieldRaw("source", JsonEmitObject(source_fields)),
+        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ];
+    return JsonEmitObject(report_fields);
 }
 
 func AirGraphValidatorJson(
@@ -74,32 +81,25 @@ func AirGraphValidatorJson(
     ok: Bool,
     finding_facts: String
 ) -> String {
-    let ok_text: String = "true";
-    if !ok {
-        ok_text = "false";
-    }
-    let json_parts: Array<String> = [
-        "{\"schema\":\"pgy.selfhost.air-graph-validator.v1\",\"ok\":",
-        ok_text,
-        ",\"source\":{\"input_schema\":\"pgy.air.graph.v1\",\"fixture_owner\":",
-        JsonStringLiteral(fixture_path),
-        "},\"counts\":{\"intents\":",
-        ToString(intents),
-        ",\"boundaries\":",
-        ToString(boundaries),
-        ",\"evidence\":",
-        ToString(evidence),
-        ",\"drifts\":",
-        ToString(drifts),
-        ",\"effect_sites\":",
-        ToString(effect_sites),
-        ",\"env_effect_sites\":",
-        ToString(env_effect_sites),
-        ",\"missing_keys\":",
-        ToString(missing_keys),
-        "},\"findings\":[",
-        FindingsJsonFromFacts(finding_facts),
-        "]}"
+    let source_fields: Array<String> = [
+        JsonEmitFieldString("input_schema", "pgy.air.graph.v1"),
+        JsonEmitFieldString("fixture_owner", fixture_path)
     ];
-    return StringJoin(json_parts, "");
+    let counts_fields: Array<String> = [
+        JsonEmitFieldNumber("intents", ToString(intents)),
+        JsonEmitFieldNumber("boundaries", ToString(boundaries)),
+        JsonEmitFieldNumber("evidence", ToString(evidence)),
+        JsonEmitFieldNumber("drifts", ToString(drifts)),
+        JsonEmitFieldNumber("effect_sites", ToString(effect_sites)),
+        JsonEmitFieldNumber("env_effect_sites", ToString(env_effect_sites)),
+        JsonEmitFieldNumber("missing_keys", ToString(missing_keys))
+    ];
+    let report_fields: Array<String> = [
+        JsonEmitFieldString("schema", "pgy.selfhost.air-graph-validator.v1"),
+        JsonEmitFieldBool("ok", ok),
+        JsonEmitFieldRaw("source", JsonEmitObject(source_fields)),
+        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
+        JsonEmitFieldRaw("findings", JsonEmitArray(FindingsJsonFromFacts(finding_facts)))
+    ];
+    return JsonEmitObject(report_fields);
 }

@@ -86,6 +86,17 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-27 -- Final self-host reports consume JSON owner
+
+- Repointed `air_graph_json_validator/report_owner.pgy` and
+  `ast_read_surface_checker` report emission from manual `json_parts` assembly
+  to `src/self_hosted/lib/json.pgy`.
+- Tightened component-contract ratchets so those reports require
+  `JsonEmitObject(report_fields)`, `JsonEmitArray(...)`, and reject local
+  `json_parts`.
+- After this slice, `rg json_parts src/self_hosted/tools -g "*.pgy"` returns no
+  self-hosted tool report emitters.
+
 ### 2026-06-27 -- AIR graph reports consume JSON owner
 
 - Repointed `air_graph_id_uniqueness`, `air_graph_node_count_integrity`,

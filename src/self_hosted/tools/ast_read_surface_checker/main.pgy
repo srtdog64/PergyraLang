@@ -8,39 +8,49 @@
 // Contract: see intent.md in the same directory.
 
 import "../../lib/text_scan.pgy";
+import "../../lib/json.pgy";
 
 func SurfaceFinding(kind: String, reads: Int, ceiling: Int, scope: String) -> String {
-    let parts: Array<String> = [
-        "{\"kind\":\"surface_growth\",\"metric\":\"",
-        kind,
-        "\",\"reads\":",
-        ToString(reads),
-        ",\"ceiling\":",
-        ToString(ceiling),
-        ",\"location\":\"",
-        scope,
-        "\"}"
+    let fields: Array<String> = [
+        JsonEmitFieldString("kind", "surface_growth"),
+        JsonEmitFieldString("metric", kind),
+        JsonEmitFieldNumber("reads", ToString(reads)),
+        JsonEmitFieldNumber("ceiling", ToString(ceiling)),
+        JsonEmitFieldString("location", scope)
     ];
-    return StringJoin(parts, "");
+    return JsonEmitObject(fields);
 }
 
 func InputErrorJson(error_kind: String, key: String, location: String) -> String {
-    let parts: Array<String> = [
-        "{\"schema\":\"pgy.selfhost.ast-read-surface.v1\",\"ok\":false,",
-        "\"source\":{\"ratchet_owner\":\"tests/ast_read_surface_ratchet.txt\",",
-        "\"inventory_owner\":\"DirWalk(scope)\"},",
-        "\"counts\":{\"enum\":0,\"source_ast_codegen\":0,\"source_ast_compiler\":0,",
-        "\"source_decl_codegen\":0,\"source_decl_compiler\":0,",
-        "\"routine_source_decl_codegen\":0,\"violations\":1},",
-        "\"findings\":[{\"kind\":\"",
-        error_kind,
-        "\",\"key\":\"",
-        key,
-        "\",\"location\":\"",
-        location,
-        "\"}]}"
+    let source_fields: Array<String> = [
+        JsonEmitFieldString("ratchet_owner", "tests/ast_read_surface_ratchet.txt"),
+        JsonEmitFieldString("inventory_owner", "DirWalk(scope)")
     ];
-    return StringJoin(parts, "");
+    let counts_fields: Array<String> = [
+        JsonEmitFieldNumber("enum", "0"),
+        JsonEmitFieldNumber("source_ast_codegen", "0"),
+        JsonEmitFieldNumber("source_ast_compiler", "0"),
+        JsonEmitFieldNumber("source_decl_codegen", "0"),
+        JsonEmitFieldNumber("source_decl_compiler", "0"),
+        JsonEmitFieldNumber("routine_source_decl_codegen", "0"),
+        JsonEmitFieldNumber("violations", "1")
+    ];
+    let finding_fields: Array<String> = [
+        JsonEmitFieldString("kind", error_kind),
+        JsonEmitFieldString("key", key),
+        JsonEmitFieldString("location", location)
+    ];
+    let findings: Array<String> = [
+        JsonEmitObject(finding_fields)
+    ];
+    let report_fields: Array<String> = [
+        JsonEmitFieldString("schema", "pgy.selfhost.ast-read-surface.v1"),
+        JsonEmitFieldBool("ok", false),
+        JsonEmitFieldRaw("source", JsonEmitObject(source_fields)),
+        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ];
+    return JsonEmitObject(report_fields);
 }
 
 func EndsWith(text: String, suffix: String) -> Bool {
@@ -200,35 +210,27 @@ func Main() -> Void {
             "src/codegen"));
     }
 
-    let ok_text: String = "true";
-    if violations > 0 {
-        ok_text = "false";
-    }
-
-    let json_parts: Array<String> = [
-        "{\"schema\":\"pgy.selfhost.ast-read-surface.v1\",\"ok\":",
-        ok_text,
-        ",\"source\":{\"ratchet_owner\":\"",
-        ratchet_path,
-        "\",\"inventory_owner\":\"DirWalk(scope)\"},\"counts\":{\"enum\":",
-        ToString(enum_reads),
-        ",\"source_ast_codegen\":",
-        ToString(source_ast_codegen_reads),
-        ",\"source_ast_compiler\":",
-        ToString(source_ast_compiler_reads),
-        ",\"source_decl_codegen\":",
-        ToString(source_decl_codegen_reads),
-        ",\"source_decl_compiler\":",
-        ToString(source_decl_compiler_reads),
-        ",\"routine_source_decl_codegen\":",
-        ToString(routine_source_decl_codegen_reads),
-        ",\"violations\":",
-        ToString(violations),
-        "},\"findings\":[",
-        StringJoin(findings, ","),
-        "]}"
+    let source_fields: Array<String> = [
+        JsonEmitFieldString("ratchet_owner", ratchet_path),
+        JsonEmitFieldString("inventory_owner", "DirWalk(scope)")
     ];
-    Log(StringJoin(json_parts, ""));
+    let counts_fields: Array<String> = [
+        JsonEmitFieldNumber("enum", ToString(enum_reads)),
+        JsonEmitFieldNumber("source_ast_codegen", ToString(source_ast_codegen_reads)),
+        JsonEmitFieldNumber("source_ast_compiler", ToString(source_ast_compiler_reads)),
+        JsonEmitFieldNumber("source_decl_codegen", ToString(source_decl_codegen_reads)),
+        JsonEmitFieldNumber("source_decl_compiler", ToString(source_decl_compiler_reads)),
+        JsonEmitFieldNumber("routine_source_decl_codegen", ToString(routine_source_decl_codegen_reads)),
+        JsonEmitFieldNumber("violations", ToString(violations))
+    ];
+    let report_fields: Array<String> = [
+        JsonEmitFieldString("schema", "pgy.selfhost.ast-read-surface.v1"),
+        JsonEmitFieldBool("ok", violations == 0),
+        JsonEmitFieldRaw("source", JsonEmitObject(source_fields)),
+        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ];
+    Log(JsonEmitObject(report_fields));
 
     if violations > 0 {
         Exit(1);
