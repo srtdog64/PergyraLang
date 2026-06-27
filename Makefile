@@ -1299,6 +1299,7 @@ SEMANTIC_LINK_SUPPORT = $(BUILD_DIR)/compiler/import_stack.o \
                         $(BUILD_DIR)/compiler/module_normalizer_domain_refs.o \
                         $(BUILD_DIR)/compiler/module_normalizer_scope.o \
                         $(BUILD_DIR)/compiler/module_normalizer_shadow.o \
+                        $(BUILD_DIR)/compiler/decl_field_model.o \
                         $(BUILD_DIR)/compiler/path_utils.o
 DIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/dir.o \
                    $(BUILD_DIR)/compiler/dir_storage.o \
@@ -2214,6 +2215,9 @@ self-host-hard-contract-test-smoke:
 
 self-host-pergyra-likeness-test-smoke:
 	"$(BASH)" tests/self_host_pergyra_likeness_smoke.sh
+
+execution-lane-policy-test-smoke:
+	"$(BASH)" tests/execution_lane_policy_smoke.sh
 
 self-host-compiler-world-contract-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_host_compiler_world_contract_smoke.sh
