@@ -39,6 +39,14 @@ func MirObjectArrayStringFactAt(json: String, start: Int, end: Int, field: Strin
     return JsonObjectArrayStringAt(json, MirFactObjectStart(json, start), end, field, row);
 }
 
+func MirObjectArrayStringFactCount(json: String, start: Int, end: Int, field: String) -> Int {
+    let bounds: Array<Int> = [0, 0];
+    if !MirObjectArrayBounds(json, start, end, field, bounds) {
+        return 0;
+    }
+    return JsonArrayStringCount(json, bounds[0], bounds[1]);
+}
+
 func MirObjectArrayBounds(json: String, start: Int, end: Int, field: String, inout bounds: Array<Int>) -> Bool {
     if !JsonObjectFieldValueBounds(json, MirFactObjectStart(json, start), end, field, bounds) {
         return false;

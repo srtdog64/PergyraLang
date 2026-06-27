@@ -2121,3 +2121,14 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   those direct array key scans or local `ReadJsonString` calls.
 - This moves destructure and defer reconstruction onto the same MIR fact-owner
   path as declaration, routine header, CFG, and source-local reads.
+
+### 2026-06-28 -- Match pattern MIR facts use array row accessors
+
+- Removed the obsolete `JsonFirstArrayString` helper from
+  `src/self_hosted/lib/json.pgy` and added `JsonArrayStringCount`.
+- Added `MirObjectArrayStringFactCount` in
+  `src/self_hosted/mir_lower/json_fact_read.pgy`.
+- Repointed `routine_lower.pgy` match-case condition rendering from manual
+  `match_patterns` string scanning to array count plus row accessors.
+- Tightened the component contract so match-pattern reconstruction cannot
+  reintroduce local `match_patterns` key scans.
