@@ -49,10 +49,21 @@ llvm_fn_is_checked_arith(const char *fn_name)
 bool
 llvm_fn_is_bounds_checked_accessor(const char *fn_name)
 {
+    /*
+     * Only EXTERNAL (T) runtime symbols may be stripped from the inlined
+     * bitcode: stripping replaces the body with an external declaration, which
+     * the linker must be able to resolve against the separately compiled runtime
+     * object. The typed/raw array accessors (pgy_array_get_/set_*) are external
+     * and carry the inline out-of-bounds PGY_RUNTIME_PANIC that mis-lowers when
+     * folded, so they must be stripped. pgy_map_grow_raw_export is `static`
+     * (local) and delegates its bounds panic to the already-external
+     * pgy_runtime_panic_out_of_bounds_export, so it neither needs nor tolerates
+     * stripping -- stripping a static symbol yields an undefined-reference link
+     * error (it broke HashMap on the LLVM backend until this was removed).
+     */
     return fn_name != NULL
         && (strstr(fn_name, "pgy_array_get_") != NULL
-            || strstr(fn_name, "pgy_array_set_") != NULL
-            || strcmp(fn_name, "pgy_map_grow_raw_export") == 0);
+            || strstr(fn_name, "pgy_array_set_") != NULL);
 }
 
 /*
