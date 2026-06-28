@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let big: Int = 2000000000;
+    let total: Int = CheckedAdd(big, big);
+    Log("UNREACHABLE: addition overflow should have failed closed");
+}

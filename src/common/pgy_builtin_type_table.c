@@ -51,6 +51,8 @@ pgy_builtin_entries(size_t *count)
         { "ChannelSpace", "Int", PGY_BUILTIN_FLAG_NONE },
         { "CharAtN", "String", PGY_BUILTIN_FLAG_NONE },
         { "CharCode", "Int", PGY_BUILTIN_FLAG_NONE },
+        { "CheckedAdd", "Int", PGY_BUILTIN_FLAG_NONE },
+        { "CheckedMul", "Int", PGY_BUILTIN_FLAG_NONE },
         { "ClaimQubit", "QubitSlot", PGY_BUILTIN_FLAG_NONE },
         { "Concat", "String", PGY_BUILTIN_FLAG_NONE },
         { "Contains", "Bool", PGY_BUILTIN_FLAG_NONE },

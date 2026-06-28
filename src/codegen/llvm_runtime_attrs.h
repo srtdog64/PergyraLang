@@ -8,6 +8,7 @@ bool llvm_fn_is_checked_arith(const char *fn_name);
 bool llvm_fn_is_lifecycle_runtime(const char *fn_name);
 bool llvm_fn_is_capability_runtime(const char *fn_name);
 bool llvm_fn_is_budget_runtime(const char *fn_name);
+bool llvm_fn_is_bounds_checked_accessor(const char *fn_name);
 bool llvm_fn_never_returns(const char *fn_name);
 bool llvm_fn_is_readnone_runtime(const char *fn_name);
 bool llvm_fn_is_readonly_runtime(const char *fn_name);

@@ -197,6 +197,10 @@ llvm_stmt_infer_scalar_math_return_type(LLVMGenCtx *ctx, ASTNode *call,
         && argc == 0) {
         return ctx->type_f32;
     }
+    if ((strcmp(callee, "CheckedAdd") == 0 || strcmp(callee, "CheckedMul") == 0)
+        && argc == 2) {
+        return ctx->type_i32;
+    }
     return NULL;
 }
 

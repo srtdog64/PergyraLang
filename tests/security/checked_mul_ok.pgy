@@ -1,0 +1,10 @@
+func Main() -> Void {
+    let a: Int = 6;
+    let b: Int = 7;
+    let product: Int = CheckedMul(a, b);
+    if (product == 42) {
+        Log("OK: CheckedMul(6,7)==42");
+    } else {
+        Log("FAIL: wrong product");
+    }
+}

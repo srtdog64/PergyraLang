@@ -15,6 +15,8 @@
 typedef enum LLVMMathOp {
     LLVM_MATH_OP_NONE = 0,
     LLVM_MATH_OP_ABS,
+    LLVM_MATH_OP_CHECKED_ADD,
+    LLVM_MATH_OP_CHECKED_MUL,
     LLVM_MATH_OP_CLAMP,
     LLVM_MATH_OP_E,
     LLVM_MATH_OP_MAX,
@@ -42,6 +44,8 @@ llvm_math_lookup(const char *callee_name, size_t argc)
 {
     static const LLVMMathSpec kLLVMMathSpecs[] = {
         { "Abs", 1, LLVM_MATH_OP_ABS },
+        { "CheckedAdd", 2, LLVM_MATH_OP_CHECKED_ADD },
+        { "CheckedMul", 2, LLVM_MATH_OP_CHECKED_MUL },
         { "Clamp", 3, LLVM_MATH_OP_CLAMP },
         { "E", 0, LLVM_MATH_OP_E },
         { "Max", 2, LLVM_MATH_OP_MAX },
@@ -150,6 +154,32 @@ llvm_emit_scalar_math_call(ASTNode *node, LLVMGenCtx *ctx,
                                 llvm_tmp_name(ctx));
         }
         *out = LLVMBuildSelect(ctx->builder, cmp, a, b, llvm_tmp_name(ctx));
+        return true;
+    }
+
+    if (op == LLVM_MATH_OP_CHECKED_ADD || op == LLVM_MATH_OP_CHECKED_MUL) {
+        LLVMValueRef a = llvm_emit_expression(ast_call_argument(node, 0), ctx);
+        LLVMValueRef b = llvm_emit_expression(ast_call_argument(node, 1), ctx);
+        if (a == NULL || b == NULL)
+            return llvm_math_error_out(ctx, node, out,
+                "LLVM CheckedAdd/CheckedMul could not lower operand expression");
+        if (LLVMTypeOf(a) == ctx->type_i64)
+            a = LLVMBuildTrunc(ctx->builder, a, ctx->type_i32,
+                               llvm_tmp_name(ctx));
+        if (LLVMTypeOf(b) == ctx->type_i64)
+            b = LLVMBuildTrunc(ctx->builder, b, ctx->type_i32,
+                               llvm_tmp_name(ctx));
+        const char *helper = (op == LLVM_MATH_OP_CHECKED_ADD)
+            ? "pgy_checked_add_i32_export" : "pgy_checked_mul_i32_export";
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, helper);
+        if (fn == NULL)
+            return llvm_math_error_out(ctx, node, out,
+                "LLVM checked arithmetic requires registered runtime helper");
+        LLVMValueRef args[2];
+        args[0] = a;
+        args[1] = b;
+        *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2,
+                              llvm_tmp_name(ctx));
         return true;
     }
 

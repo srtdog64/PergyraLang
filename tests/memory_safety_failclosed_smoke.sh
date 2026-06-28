@@ -13,7 +13,11 @@
 #                objdump DLX, VLC VP9): in Pergyra the write panics, it cannot
 #                reach an adjacent heap object.
 #   oob_read  -> the OOB-read-to-leak class (e.g. PHP StreamBucket HashTable leak).
-#   div_zero / mod_zero -> checked integer arithmetic.
+#   div_zero / mod_zero -> checked integer arithmetic (operator form).
+#   checked_mul_overflow / checked_add_overflow -> the surface CheckedMul/CheckedAdd
+#                builtins: a signed *-overflow / +-overflow (e.g. the malloc(n*size)
+#                integer-overflow-to-undersized-allocation class) panics instead of
+#                wrapping to a smaller-than-expected value.
 
 set -euo pipefail
 
@@ -36,7 +40,7 @@ backends="c"
 if "$PGY" --help 2>/dev/null | grep -qiE 'llvm'; then backends="c llvm"; fi
 
 WORK="$(mktemp -d)"
-cases="oob_write:out-of-bounds oob_read:out-of-bounds div_zero:divide-by-zero mod_zero:divide-by-zero"
+cases="oob_write:out-of-bounds oob_read:out-of-bounds div_zero:divide-by-zero mod_zero:divide-by-zero checked_mul_overflow:arithmetic-overflow checked_add_overflow:arithmetic-overflow"
 
 for be in $backends; do
     for spec in $cases; do

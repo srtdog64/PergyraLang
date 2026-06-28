@@ -117,6 +117,7 @@ compiler_runtime_cache_is_fresh(const char *cache_obj_path)
         PGY_RUNTIME_DIR "/pgy_runtime_intent_history.h",
         PGY_RUNTIME_DIR "/pgy_runtime_intent_exit.h",
         PGY_RUNTIME_DIR "/pgy_runtime_panic_checked_inline.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_panic_contract.h",
         PGY_RUNTIME_DIR "/pgy_runtime_memory_array_slot_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_plain_slot_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_slot_macros.h",

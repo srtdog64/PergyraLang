@@ -244,6 +244,7 @@ llvm_exclude_critical_runtime_from_bitcode(LLVMModuleRef runtime_module)
                 || llvm_fn_is_lifecycle_runtime(name)
                 || llvm_fn_is_capability_runtime(name)
                 || llvm_fn_is_budget_runtime(name)
+                || llvm_fn_is_bounds_checked_accessor(name)
                 || strip_noreturn))
             llvm_strip_function_body(fn);
     }

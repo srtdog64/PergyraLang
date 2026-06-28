@@ -61,6 +61,8 @@ typedef enum {
     TRANSPILER_SCALAR_OP_NONE = 0,
     TRANSPILER_SCALAR_OP_ABS,
     TRANSPILER_SCALAR_OP_ATAN2,
+    TRANSPILER_SCALAR_OP_CHECKED_ADD,
+    TRANSPILER_SCALAR_OP_CHECKED_MUL,
     TRANSPILER_SCALAR_OP_CLAMP,
     TRANSPILER_SCALAR_OP_CONCAT,
     TRANSPILER_SCALAR_OP_E,
@@ -107,6 +109,8 @@ static const TranspilerScalarSpec kTranspilerScalarSpecs[] = {
     {"Atan2", 2, TRANSPILER_SCALAR_OP_ATAN2},
     {"CharAtN", 3, TRANSPILER_SCALAR_OP_CHAR_AT_N},
     {"CharCode", 3, TRANSPILER_SCALAR_OP_CHAR_CODE},
+    {"CheckedAdd", 2, TRANSPILER_SCALAR_OP_CHECKED_ADD},
+    {"CheckedMul", 2, TRANSPILER_SCALAR_OP_CHECKED_MUL},
     {"Clamp", 3, TRANSPILER_SCALAR_OP_CLAMP},
     {"Concat", 2, TRANSPILER_SCALAR_OP_CONCAT},
     {"Contains", 2, TRANSPILER_SCALAR_OP_STRING_CONTAINS},
@@ -271,6 +275,25 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
             return NULL;
         }
         char *result = strdup_fmt("((%s) < (%s) ? (%s) : (%s))", a, b, a, b);
+        free(a); free(b);
+        return result;
+    }
+    if (op == TRANSPILER_SCALAR_OP_CHECKED_ADD
+        || op == TRANSPILER_SCALAR_OP_CHECKED_MUL) {
+        char *a = transpiler_scalar_emit_arg(ctx, a0, fn, "left");
+        char *b = a != NULL
+            ? transpiler_scalar_emit_arg(ctx, a1, fn, "right")
+            : NULL;
+        if (a == NULL || b == NULL) {
+            free(a);
+            free(b);
+            return NULL;
+        }
+        const char *callee = (op == TRANSPILER_SCALAR_OP_CHECKED_ADD)
+            ? "pgy_checked_add_i32_export"
+            : "pgy_checked_mul_i32_export";
+        char *result = strdup_fmt("%s((int32_t)(%s), (int32_t)(%s))",
+                                  callee, a, b);
         free(a); free(b);
         return result;
     }

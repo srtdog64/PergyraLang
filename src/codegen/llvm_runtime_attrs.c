@@ -29,7 +29,30 @@ llvm_fn_is_checked_arith(const char *fn_name)
 {
     return fn_name != NULL
         && (strstr(fn_name, "pgy_checked_div_") != NULL
-            || strstr(fn_name, "pgy_checked_mod_") != NULL);
+            || strstr(fn_name, "pgy_checked_mod_") != NULL
+            || strstr(fn_name, "pgy_checked_add_") != NULL
+            || strstr(fn_name, "pgy_checked_mul_") != NULL);
+}
+
+/*
+ * Bounds-checked collection accessors carry a fail-closed out-of-bounds guard
+ * that ends in an inline PGY_RUNTIME_PANIC (the same stderr+abort body as the
+ * panic family). When the runtime bitcode provides the function and the LLVM
+ * backend re-optimizes it, that inline panic body mis-lowers and crashes with an
+ * access violation instead of printing and aborting -- exactly the hazard the
+ * panic and checked-arith exclusions already guard against. Strip these bodies
+ * so each call resolves to the separately compiled runtime object, whose guard
+ * is byte-identical to the C backend's and never mis-lowers. These are the typed
+ * array get/set accessors (pgy_array_get_Int, pgy_array_set_Long, ...) plus the
+ * raw guarded cores they share.
+ */
+bool
+llvm_fn_is_bounds_checked_accessor(const char *fn_name)
+{
+    return fn_name != NULL
+        && (strstr(fn_name, "pgy_array_get_") != NULL
+            || strstr(fn_name, "pgy_array_set_") != NULL
+            || strcmp(fn_name, "pgy_map_grow_raw_export") == 0);
 }
 
 /*

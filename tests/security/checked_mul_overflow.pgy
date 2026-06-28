@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let big: Int = 100000;
+    let product: Int = CheckedMul(big, big);
+    Log("UNREACHABLE: overflow should have failed closed");
+}

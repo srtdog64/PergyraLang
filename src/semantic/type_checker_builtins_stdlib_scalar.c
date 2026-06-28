@@ -430,6 +430,8 @@ static const StdlibScalarSpec stdlib_scalar_specs[] = {
     { "Ceil", stdlib_scalar_check_math_unary_float },
     { "CharAtN", stdlib_scalar_check_string_substring },
     { "CharCode", stdlib_scalar_check_string_char_code },
+    { "CheckedAdd", stdlib_scalar_check_minmax },
+    { "CheckedMul", stdlib_scalar_check_minmax },
     { "Clamp", stdlib_scalar_check_clamp },
     { "Concat", stdlib_scalar_check_string_concat },
     { "Contains", stdlib_scalar_check_string_contains },
