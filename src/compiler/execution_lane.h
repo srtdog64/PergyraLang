@@ -21,25 +21,11 @@
 #ifndef PERGYRA_EXECUTION_LANE_H
 #define PERGYRA_EXECUTION_LANE_H
 
+#include "../common/execution_lane_kind.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 
-/*
- * The lane a task is assigned to. Ordered from most-constrained (must stay put)
- * to most-movable. REJECT is the fail-closed verdict: the evidence is
- * contradictory (a pinned/raw resource asked to move) and no lane is sound.
- */
-typedef enum
-{
-    PGY_LANE_REJECT = 0,        /* fail-closed: pinned/raw resource cannot move */
-    PGY_LANE_INLINE,            /* no concurrency need — run in place */
-    PGY_LANE_PINNED_ZONE,       /* has pin/slot/live-view: bound to its owner/zone */
-    PGY_LANE_BLOCKING_POOL,     /* IO/FFI/OS blocking: its own lane */
-    PGY_LANE_LOCAL_ASYNC,       /* await-heavy + local state: cooperative, same owner */
-    PGY_LANE_WORKER_POOL,       /* deterministic fork-join / pure value, bounded pool */
-    PGY_LANE_MOVABLE_SCHEDULER  /* the ONLY M:N lane: pure value, no pin/raw,
-                                   authority boundary clear — work-stealing eligible */
-} PgyExecutionLane;
 
 /*
  * BoundaryCaptureFact is the evidence the classifier reads. Every field is a

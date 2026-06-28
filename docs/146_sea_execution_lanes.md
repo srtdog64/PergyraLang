@@ -119,14 +119,15 @@ strictly underneath.
   (`self-host-execution-lane-parity-test-smoke`) diffs it against the C policy's
   decision-table output on both C and LLVM (10/10 each).
 
-**Landed — codegen executor choice is SEA-governed (2026-06-27):**
-- Both backends chose the spawn executor with an independent
-  `ast_spawn_is_blocking ? blocking : async` branch. They now route that choice
-  through one policy call (`pgy_spawn_lane_from_blocking` +
-  `pgy_lane_uses_blocking_executor`), so C and LLVM agree by construction and the
-  decision is single-sourced. Output is identical today (parity-safe,
-  test-transpile 914/0); when richer evidence lands, the same path promotes a
-  non-blocking spawn to Worker/Movable without touching the emitters.
+**Landed — spawn expression consumes the lane facade (2026-06-29):**
+- Both backends used to choose the spawn executor with an independent
+  `ast_spawn_is_blocking ? blocking : async` branch. The first slice routed that
+  choice through `pgy_spawn_lane_from_blocking`; the second slice now emits the
+  lane itself and calls the lane-owned spawn facade:
+  `pgy_lane_spawn_dispatch(...)` in generated C and
+  `pgy_lane_spawn_dispatch_export(...)` in LLVM. The concrete executor mapping
+  lives under `PgyLaneScheduler`, so spawn expression lowering no longer selects
+  `pgy_async_spawn` or `pgy_spawn_blocking` directly.
 
 **Remaining (deep fill, not a quick slice):**
 - **Precise capture plumbing.** `BoundaryCaptureFact` now exists and is stored
@@ -137,13 +138,13 @@ strictly underneath.
   over-pins — a `parallel` would become `PinnedZone` merely because an unrelated
   slot exists in the same routine. Precise evidence is the F-series closure-
   capture plumbing, not a kind lookup.
-- **Codegen emits the facade call.** The spawn-executor *choice* is now
-  SEA-governed (above), but generated programs still call the existing
-  `pgy_*_spawn` exports directly, not the `pgy_lane_dispatch` facade. Unifying
-  them (so every concurrent site goes through the facade) is the next codegen
-  step. On the self-host side it is gated by async *lowering*: the self-host
-  parses async but does not lower it (its `mir_lower` carries zero async facts),
-  so self-host async codegen is the larger frontier — the MIR JSON async fact
+- **Remaining concurrent-site facade coverage.** Spawn expressions now consume
+  the lane-owned spawn facade. Async blocks, `parallel { ... }`, channel
+  send/receive, and cancellation still call their older runtime entry points
+  directly. Unifying those sites is the next codegen step. On the self-host side
+  it is gated by async *lowering*: the self-host parses async but does not lower
+  it (its `mir_lower` carries zero async facts), so the self-host async codegen
+  is the larger frontier -- the MIR JSON async fact
   surface, tracked with the self-host expansion.
 - **Executor depth.** The Worker/Blocking/LocalAsync/Movable lanes currently
   share one worker-thread executor; backing them with the fiber scheduler /

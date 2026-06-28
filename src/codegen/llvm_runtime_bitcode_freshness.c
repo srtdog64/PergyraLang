@@ -47,6 +47,9 @@ llvm_runtime_bitcode_is_fresh(const char *bc_path)
         PGY_RUNTIME_DIR "/pgy_runtime_panic_checked_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_zone_result_option_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_authority_file_core.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_lib_quantum_exports.h",
+        PGY_RUNTIME_DIR "/pgy_lane_scheduler.h",
+        PGY_RUNTIME_DIR "/pgy_parallel.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_raw_array_exports.h",
         NULL
     };

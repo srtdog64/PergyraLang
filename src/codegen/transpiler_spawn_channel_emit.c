@@ -67,6 +67,22 @@ transpiler_spawn_reject_worker_storage(TranspilerCtx *ctx,
     return true;
 }
 
+static const char *
+transpiler_spawn_lane_symbol(PgyExecutionLane lane)
+{
+    switch (lane)
+    {
+        case PGY_LANE_REJECT:            return "PGY_LANE_REJECT";
+        case PGY_LANE_INLINE:            return "PGY_LANE_INLINE";
+        case PGY_LANE_PINNED_ZONE:       return "PGY_LANE_PINNED_ZONE";
+        case PGY_LANE_BLOCKING_POOL:     return "PGY_LANE_BLOCKING_POOL";
+        case PGY_LANE_LOCAL_ASYNC:       return "PGY_LANE_LOCAL_ASYNC";
+        case PGY_LANE_WORKER_POOL:       return "PGY_LANE_WORKER_POOL";
+        case PGY_LANE_MOVABLE_SCHEDULER: return "PGY_LANE_MOVABLE_SCHEDULER";
+    }
+    return "PGY_LANE_REJECT";
+}
+
 char *
 emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -349,19 +365,17 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
     }
 
     {
-        /* SEA: spawn executor chosen by the ExecutionLane policy (BlockingPool ->
-           blocking export, else async), single-sourced across both backends.
-           Output-identical to the old is_blocking branch today. */
-        const char *spawn_fn =
-            pgy_lane_uses_blocking_executor(
-                pgy_spawn_lane_from_blocking(ast_spawn_is_blocking(node)))
-                ? "pgy_spawn_blocking" : "pgy_async_spawn";
+        /* SEA: spawn lowering consumes the ExecutionLane fact. The generated
+           program no longer chooses a concrete executor export; the lane
+           scheduler facade owns that mapping. */
+        const char *lane_symbol = transpiler_spawn_lane_symbol(
+            pgy_spawn_lane_from_blocking(ast_spawn_is_blocking(node)));
         if (args_type_name == NULL) {
             codebuf_write(expr,
-                "({ PgyTaskHandle _pgy_spawn_h = %s(%s, NULL); "
+                "({ PgyTaskHandle _pgy_spawn_h = pgy_lane_spawn_dispatch(%s, %s, NULL); "
                 "if (_pgy_spawn_h.task == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"spawn task creation failed\"); } "
                 "_pgy_spawn_h; })",
-                spawn_fn, wrapper_name);
+                lane_symbol, wrapper_name);
         } else {
             codebuf_write(expr,
                 "({ %s *_pgy_args = (%s *)malloc(sizeof(%s)); "
@@ -378,10 +392,10 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                 free(arg);
             }
             codebuf_write(expr,
-                "PgyTaskHandle _pgy_spawn_h = %s(%s, _pgy_args); "
+                "PgyTaskHandle _pgy_spawn_h = pgy_lane_spawn_dispatch(%s, %s, _pgy_args); "
                 "if (_pgy_spawn_h.task == NULL) { free(_pgy_args); PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"spawn task creation failed\"); } "
                 "_pgy_spawn_h; })",
-                spawn_fn, wrapper_name);
+                lane_symbol, wrapper_name);
         }
     }
 

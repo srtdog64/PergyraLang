@@ -104,6 +104,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     LLVMFuncEntry *malloc_fn = NULL;
     LLVMFuncEntry *free_fn = NULL;
     LLVMFuncEntry *panic_fn = NULL;
+    PgyExecutionLane spawn_lane = PGY_LANE_REJECT;
     int wrapper_id = ++ctx->tmp_counter;
 
     if (target == NULL) {
@@ -220,16 +221,10 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     callee_entry = llvm_resolve_callee_entry(ctx, callee_name, args, argc);
-    /* SEA: the spawn executor is chosen by the ExecutionLane policy, not an
-       ad-hoc per-backend branch — BlockingPool -> blocking export, otherwise the
-       async path. Output is identical to the old is_blocking branch today;
-       routing it through the policy makes the decision single-sourced and ready
-       for richer lanes. */
-    const char *spawn_export_name =
-        pgy_lane_uses_blocking_executor(
-            pgy_spawn_lane_from_blocking(ast_spawn_is_blocking(node)))
-            ? "pgy_spawn_blocking_export"
-            : "pgy_async_spawn_export";
+    /* SEA: LLVM spawn lowering emits the ExecutionLane fact.
+       The runtime facade owns the concrete executor mapping. */
+    spawn_lane = pgy_spawn_lane_from_blocking(ast_spawn_is_blocking(node));
+    const char *spawn_export_name = "pgy_lane_spawn_dispatch_export";
     spawn_fn = llvm_lookup_function(ctx, spawn_export_name);
     malloc_fn = llvm_lookup_function(ctx, "malloc");
     free_fn = llvm_lookup_function(ctx, "free");
@@ -277,7 +272,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
         LLVMValueRef call_result = NULL;
         LLVMValueRef raw_spawn_arg = LLVMConstNull(ctx->type_i8ptr);
         LLVMValueRef fn_ptr;
-        LLVMValueRef spawn_args[2];
+        LLVMValueRef spawn_args[3];
         LLVMValueRef handle;
         LLVMBasicBlockRef entry;
 
@@ -414,10 +409,12 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
 
         fn_ptr = LLVMBuildBitCast(ctx->builder, wrapper_fn, ctx->type_i8ptr,
             llvm_tmp_name(ctx));
-        spawn_args[0] = fn_ptr;
-        spawn_args[1] = raw_spawn_arg;
+        spawn_args[0] = LLVMConstInt(ctx->type_i32,
+            (unsigned long long)spawn_lane, 0);
+        spawn_args[1] = fn_ptr;
+        spawn_args[2] = raw_spawn_arg;
         handle = LLVMBuildCall2(ctx->builder, spawn_fn->fn_type, spawn_fn->fn,
-            spawn_args, 2, llvm_tmp_name(ctx));
+            spawn_args, 3, llvm_tmp_name(ctx));
         {
             LLVMValueRef task = LLVMBuildExtractValue(ctx->builder, handle, 0,
                 llvm_tmp_name(ctx));

@@ -17,7 +17,7 @@
 #ifndef PERGYRA_LANE_SCHEDULER_H
 #define PERGYRA_LANE_SCHEDULER_H
 
-#include "../compiler/execution_lane.h"
+#include "../common/execution_lane_kind.h"
 
 typedef void *(*PgyLaneTaskFn)(void *arg);
 
@@ -38,6 +38,48 @@ typedef enum
 PgyLaneDispatchStatus
 pgy_lane_dispatch(PgyExecutionLane lane, PgyLaneTaskFn fn, void *arg,
                   void **result_out);
+
+/*
+ * Spawn-shaped lane facade. This form preserves Future<T> / PgyTaskHandle
+ * semantics while keeping the concrete executor choice behind the lane fact.
+ * It is available when pgy_parallel.h has already defined the task-handle ABI.
+ */
+#ifdef PERGYRA_RUNTIME_PGY_PARALLEL_H
+static inline PgyTaskHandle
+pgy_lane_spawn_dispatch(PgyExecutionLane lane, PgyLaneTaskFn fn, void *arg)
+{
+    PgyTaskHandle handle = {0};
+
+    if (fn == NULL) {
+        pgy_parallel_warn("lane-spawn", "task function is null");
+        return handle;
+    }
+
+    switch (lane)
+    {
+        case PGY_LANE_REJECT:
+            pgy_parallel_warn("lane-spawn", "execution lane rejected task");
+            return handle;
+
+        case PGY_LANE_INLINE:
+        case PGY_LANE_PINNED_ZONE:
+            return pgy_spawn_inline_completed(fn, arg, "lane-spawn", true);
+
+        case PGY_LANE_BLOCKING_POOL:
+            return pgy_spawn_blocking(fn, arg);
+
+        case PGY_LANE_LOCAL_ASYNC:
+            return pgy_async_spawn(fn, arg);
+
+        case PGY_LANE_WORKER_POOL:
+        case PGY_LANE_MOVABLE_SCHEDULER:
+            return pgy_spawn(fn, arg);
+    }
+
+    pgy_parallel_warn("lane-spawn", "unknown execution lane");
+    return handle;
+}
+#endif
 
 /* The executor name a lane routes to, for diagnostics/tracing. Never NULL. */
 const char *pgy_lane_executor_name(PgyExecutionLane lane);

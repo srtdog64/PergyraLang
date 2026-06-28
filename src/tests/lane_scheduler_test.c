@@ -9,7 +9,10 @@
  *
  * Built and run by tests/lane_scheduler_smoke.sh.
  */
+#include "pgy_runtime.h"
+#include "pgy_parallel.h"
 #include "pgy_lane_scheduler.h"
+#include "compiler/execution_lane.h"
 #include <stdint.h>
 #include <stdio.h>
 
@@ -69,6 +72,40 @@ main(void)
             fails++;
         } else {
             printf("ok   null-task        -> invalid\n");
+        }
+    }
+
+    for (size_t i = 0; i < sizeof(non_reject) / sizeof(non_reject[0]); i++) {
+        g_ran = 0;
+        PgyTaskHandle h =
+            pgy_lane_spawn_dispatch(non_reject[i], task_plus42,
+                                    (void *)(intptr_t)100);
+        const char *ln = pgy_execution_lane_name(non_reject[i]);
+        if (h.task == NULL) {
+            printf("FAIL spawn %-10s returned null handle\n", ln);
+            fails++;
+            continue;
+        }
+        intptr_t got = (intptr_t)pgy_await(h);
+        if (got != 142 || g_ran != 1) {
+            printf("FAIL spawn %-10s result=%ld ran=%d\n",
+                   ln, (long)got, g_ran);
+            fails++;
+        } else {
+            printf("ok   spawn %-10s -> handle result=142\n", ln);
+        }
+    }
+
+    {
+        g_ran = 0;
+        PgyTaskHandle h =
+            pgy_lane_spawn_dispatch(PGY_LANE_REJECT, task_plus42,
+                                    (void *)(intptr_t)100);
+        if (h.task != NULL || g_ran != 0) {
+            printf("FAIL spawn Reject task=%p ran=%d\n", h.task, g_ran);
+            fails++;
+        } else {
+            printf("ok   spawn Reject    -> fail-closed, no handle\n");
         }
     }
 

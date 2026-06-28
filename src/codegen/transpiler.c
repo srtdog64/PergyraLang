@@ -225,6 +225,7 @@ emit_program(TranspilerCtx *ctx)
     codebuf_write(ctx->out,
         "#include \"pgy_runtime.h\"\n"
         "#include \"pgy_parallel.h\"\n"
+        "#include \"pgy_lane_scheduler.h\"\n"
         "#include \"pgy_channel.h\"\n"
         "#ifndef PGY_EVENT_MAX_HANDLERS\n"
         "#define PGY_EVENT_MAX_HANDLERS 16\n"

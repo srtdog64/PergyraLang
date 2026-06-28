@@ -170,6 +170,41 @@ pgy_task_sync_init(PgyTask *task, const char *op)
     return true;
 }
 
+static inline PgyTaskHandle
+pgy_spawn_inline_completed(void *(*fn)(void *), void *arg, const char *op,
+                           bool charge_spawn_budget)
+{
+    PgyTaskHandle handle = {0};
+    const char *op_name = op != NULL ? op : "spawn-inline";
+
+    if (fn == NULL) {
+        pgy_parallel_warn(op_name, "task function is null");
+        return handle;
+    }
+    if (charge_spawn_budget && pgy_budget_is_imposed_export())
+        pgy_budget_charge_export(PGY_BUDGET_SPAWN_COUNT, 1, "spawn");
+
+    PgyTask *task = (PgyTask *)calloc(1, sizeof(PgyTask));
+    if (task == NULL) {
+        pgy_parallel_warn(op_name, "inline task allocation failed");
+        return handle;
+    }
+    task->model = PGY_TASK_MODEL_THREAD;
+    task->fn = fn;
+    task->arg = arg;
+    if (!pgy_task_sync_init(task, op_name)) {
+        free(task);
+        return handle;
+    }
+    task->cancel_node = pgy_cancel_node_create(pgy_current_cancel_node());
+    task->result = pgy_cancel_is_requested(task->cancel_node)
+        ? NULL
+        : fn(arg);
+    task->state = PGY_TASK_DONE;
+    handle.task = task;
+    return handle;
+}
+
 /* =================================================================
  * Thread pool runtime for `parallel`
  * ================================================================= */
@@ -400,25 +435,7 @@ pgy_spawn(void *(*fn)(void *), void *arg)
     }
     if (!atomic_load_explicit(&g_pgy_pool_active, memory_order_acquire)) {
         pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
-        PgyTask *task = (PgyTask *)calloc(1, sizeof(PgyTask));
-        if (task == NULL) {
-            pgy_parallel_warn("spawn", "inline task allocation failed");
-            return handle;
-        }
-        task->model = PGY_TASK_MODEL_THREAD;
-        task->fn = fn;
-        task->arg = arg;
-        if (!pgy_task_sync_init(task, "spawn")) {
-            free(task);
-            return handle;
-        }
-        task->cancel_node = pgy_cancel_node_create(pgy_current_cancel_node());
-        task->result = pgy_cancel_is_requested(task->cancel_node)
-            ? NULL
-            : (fn != NULL ? fn(arg) : NULL);
-        task->state = PGY_TASK_DONE;
-        handle.task = task;
-        return handle;
+        return pgy_spawn_inline_completed(fn, arg, "spawn", false);
     }
 
     PgyTask *task = (PgyTask *)calloc(1, sizeof(PgyTask));

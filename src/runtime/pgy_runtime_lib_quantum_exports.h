@@ -272,6 +272,7 @@ PGY_RC_EXPORT_DEFINE(String, char *)
  * ================================================================= */
 
 #include "runtime/pgy_parallel.h"
+#include "runtime/pgy_lane_scheduler.h"
 
 /* Force non-inline symbol exports for the linker */
 void pgy_pool_init_export(size_t n)    { pgy_pool_init(n); }
@@ -300,6 +301,13 @@ void *pgy_await_export(PgyTaskHandle h)
 PgyTaskHandle pgy_spawn_blocking_export(void *(*fn)(void *), void *arg)
 {
     return pgy_spawn_blocking(fn, arg);
+}
+
+PgyTaskHandle pgy_lane_spawn_dispatch_export(int32_t lane,
+                                             void *(*fn)(void *),
+                                             void *arg)
+{
+    return pgy_lane_spawn_dispatch((PgyExecutionLane)lane, fn, arg);
 }
 
 bool pgy_task_cancel_export(PgyTaskHandle h)
