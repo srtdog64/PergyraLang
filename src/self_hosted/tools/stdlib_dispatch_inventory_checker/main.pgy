@@ -37,6 +37,7 @@ func DriftFinding(c_entries: Int, llvm_entries: Int) -> String {
 func InputErrorJson(path: String) -> String {
     let source_fields: Array<String> = [
         JsonEmitFieldString("c_dispatch_owner", "src/codegen/transpiler_expr_stdlib_scalar_builtin.c"),
+        JsonEmitFieldString("c_unary_dispatch_owner", "src/codegen/transpiler_expr_stdlib_scalar_unary.c"),
         JsonEmitFieldString("llvm_dispatch_owner", "src/codegen/llvm_expr_stdlib_scalar_io_calls.c")
     ];
     let counts_fields: Array<String> = [
@@ -64,10 +65,15 @@ func InputErrorJson(path: String) -> String {
 
 func Main() -> Void {
     let c_path: String = "src/codegen/transpiler_expr_stdlib_scalar_builtin.c";
+    let c_unary_path: String = "src/codegen/transpiler_expr_stdlib_scalar_unary.c";
     let llvm_path: String = "src/codegen/llvm_expr_stdlib_scalar_io_calls.c";
 
     if !FileExists(c_path) {
         Log(InputErrorJson(c_path));
+        Exit(1);
+    }
+    if !FileExists(c_unary_path) {
+        Log(InputErrorJson(c_unary_path));
         Exit(1);
     }
     if !FileExists(llvm_path) {
@@ -76,14 +82,14 @@ func Main() -> Void {
     }
 
     let c_content: String = ReadFile(c_path);
+    let c_unary_content: String = ReadFile(c_unary_path);
     let llvm_content: String = ReadFile(llvm_path);
 
-    // C dispatch is split across two tables: the main TRANSPILER_SCALAR_OP_
-    // family (most builtins) and a TranspilerScalarUnarySpec math family
-    // ({ "Acos" }, { "Asin" }, ...). Sum both so the count is comparable to
-    // the single LLVM table.
+    // C dispatch is split across two owners: the main TRANSPILER_SCALAR_OP_
+    // family and the TranspilerScalarUnarySpec math catalog. Sum both so the
+    // count is comparable to the single LLVM table.
     let c_entries: Int = TextScan.CountOccurrences(c_content, ", TRANSPILER_SCALAR_OP_")
-        + TextScan.CountOccurrences(c_content, "        { \"");
+        + TextScan.CountOccurrences(c_unary_content, "        { \"");
     let llvm_entries: Int = TextScan.CountOccurrences(llvm_content, "\"stdlib ");
 
     // Allow a small drift band: builtin parity is post-beta work, and the
@@ -103,6 +109,7 @@ func Main() -> Void {
 
     let source_fields: Array<String> = [
         JsonEmitFieldString("c_dispatch_owner", c_path),
+        JsonEmitFieldString("c_unary_dispatch_owner", c_unary_path),
         JsonEmitFieldString("llvm_dispatch_owner", llvm_path)
     ];
     let counts_fields: Array<String> = [

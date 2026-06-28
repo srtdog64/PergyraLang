@@ -38,9 +38,10 @@ PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/std
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/stdlib_dispatch_inventory_checker/expected/clean.json"
 C_DISPATCH="src/codegen/transpiler_expr_stdlib_scalar_builtin.c"
+C_UNARY_DISPATCH="src/codegen/transpiler_expr_stdlib_scalar_unary.c"
 LLVM_DISPATCH="src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
 
-for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$ROOT_DIR/$C_DISPATCH" "$ROOT_DIR/$LLVM_DISPATCH"; do
+for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$ROOT_DIR/$C_DISPATCH" "$ROOT_DIR/$C_UNARY_DISPATCH" "$ROOT_DIR/$LLVM_DISPATCH"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:stdlib-dispatch-inventory] missing input: $path" >&2
         exit 1
@@ -72,11 +73,10 @@ if ! grep -Fq 'pgy.selfhost.stdlib-dispatch-inventory.v1' <<<"$PERGYRA_OUT"; the
     exit 1
 fi
 
-# Shell drift detector. C dispatch is split across two tables
-# (TRANSPILER_SCALAR_OP_ main family + TranspilerScalarUnarySpec math
-# family), so sum both anchor counts to match the Pergyra tool.
+# Shell drift detector. C dispatch is split across the main scalar table and
+# the unary math catalog, so sum both anchor counts to match the Pergyra tool.
 SHELL_C_MAIN="$(grep -c ', TRANSPILER_SCALAR_OP_' "$ROOT_DIR/$C_DISPATCH" || true)"
-SHELL_C_MATH="$(grep -cE '^        \{ \"' "$ROOT_DIR/$C_DISPATCH" || true)"
+SHELL_C_MATH="$(grep -cE '^        \{ \"' "$ROOT_DIR/$C_UNARY_DISPATCH" || true)"
 SHELL_C=$((SHELL_C_MAIN + SHELL_C_MATH))
 SHELL_LLVM="$(grep -c '"stdlib ' "$ROOT_DIR/$LLVM_DISPATCH" || true)"
 if [[ -z "$SHELL_C_MAIN" || -z "$SHELL_LLVM" ]]; then
@@ -127,6 +127,7 @@ trap cleanup_neg_root EXIT
 mkdir -p "$NEG_ROOT/src/codegen"
 mkdir -p "$NEG_ROOT/.tmp"
 cp "$ROOT_DIR/$C_DISPATCH" "$NEG_ROOT/$C_DISPATCH"
+cp "$ROOT_DIR/$C_UNARY_DISPATCH" "$NEG_ROOT/$C_UNARY_DISPATCH"
 # Delete enough `"stdlib ` lines in LLVM dispatch to push raw drift above
 # the tool's tolerance band (currently 5). Strip 12 to be safely past.
 awk 'BEGIN{stripped=0} /"stdlib /{ if(stripped<12){stripped++; next} } {print}' \

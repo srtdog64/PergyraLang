@@ -6,9 +6,11 @@ tolerance, emits the validator schema.
 
 ## Intent
 
-Adding a new stdlib scalar/IO builtin should update *both* the C-backend
-transpiler dispatch (`transpiler_expr_stdlib_scalar_builtin.c`) and the
-LLVM-backend stdlib registry (`llvm_expr_stdlib_scalar_io_calls.c`).
+Adding a new stdlib scalar/IO builtin should update the C-backend
+transpiler dispatch (`transpiler_expr_stdlib_scalar_builtin.c`), the C
+unary math catalog (`transpiler_expr_stdlib_scalar_unary.c`) when applicable,
+and the LLVM-backend stdlib registry
+(`llvm_expr_stdlib_scalar_io_calls.c`).
 When the two drift (e.g. `StringJoin` was once C-only and crashed the LLVM
 backend until the LLVM entry was added during the 2026-05-26 self-host
 dogfood pass), backend-compare fixtures silently catch the regression but
@@ -22,6 +24,9 @@ the long-term ratchet is `drift_tolerance = 0`.
 - **c_dispatch_owner**:
   `src/codegen/transpiler_expr_stdlib_scalar_builtin.c` (entries of shape
   `{ "Name", N, TRANSPILER_SCALAR_OP_... }`).
+- **c_unary_dispatch_owner**:
+  `src/codegen/transpiler_expr_stdlib_scalar_unary.c` (entries of shape
+  `{ "Name" }` in the unary math catalog).
 - **llvm_dispatch_owner**:
   `src/codegen/llvm_expr_stdlib_scalar_io_calls.c` (entries of shape
   `{ "Name", "stdlib family", "RuntimeSymbol", N }`).
@@ -39,6 +44,7 @@ JSON document on stdout, conforming to schema
   "ok": true,
   "source": {
     "c_dispatch_owner": "src/codegen/transpiler_expr_stdlib_scalar_builtin.c",
+    "c_unary_dispatch_owner": "src/codegen/transpiler_expr_stdlib_scalar_unary.c",
     "llvm_dispatch_owner": "src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
   },
   "counts": {
