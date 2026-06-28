@@ -7,7 +7,7 @@
 #include "execution_lane.h"
 
 PgyExecutionLane
-pgy_classify_execution_lane(const PgyLaneEvidence *e)
+pgy_classify_execution_lane(const BoundaryCaptureFact *e)
 {
     if (e == NULL)
         return PGY_LANE_REJECT;
@@ -21,7 +21,8 @@ pgy_classify_execution_lane(const PgyLaneEvidence *e)
        movability (handed to a detached/movable executor), that is a
        contradiction the evidence cannot satisfy — fail closed, do not silently
        pick a weaker lane. Otherwise it is pinned to its zone. */
-    if (e->has_pin_or_live_view || e->has_raw_slot_or_channel_capture)
+    if (e->captures_pin || e->captures_live_view
+        || e->captures_raw_slot || e->captures_raw_channel)
     {
         if (e->requires_movability)
             return PGY_LANE_REJECT;
@@ -47,14 +48,15 @@ pgy_classify_execution_lane(const PgyLaneEvidence *e)
        value, nothing raw is held, and the authority boundary is explicit. This
        is the strictest gate — M:N is an optimisation unlocked by evidence, not a
        default. */
-    if (e->capture_is_pure_value
-        && !e->has_raw_slot_or_channel_capture
-        && e->authority_boundary_clear)
+    if (e->captures_value_only
+        && !e->captures_raw_slot
+        && !e->captures_raw_channel
+        && e->crosses_authority_boundary)
         return PGY_LANE_MOVABLE_SCHEDULER;
 
     /* (6) Pure-value work without a clear authority boundary still parallelises,
        but stays in the bounded pool rather than a migrating one. */
-    if (e->capture_is_pure_value)
+    if (e->captures_value_only)
         return PGY_LANE_WORKER_POOL;
 
     /* (7) Concurrent site with no movability evidence: keep it local and
@@ -65,7 +67,7 @@ pgy_classify_execution_lane(const PgyLaneEvidence *e)
 PgyExecutionLane
 pgy_spawn_lane_from_blocking(bool is_blocking)
 {
-    PgyLaneEvidence e = {0};
+    BoundaryCaptureFact e = {0};
     e.is_concurrent_site = true;
     /* A blocking spawn is exactly the IO/FFI/OS-blocking evidence the policy
        routes to BlockingPool; a non-blocking spawn falls to LocalAsync. Richer

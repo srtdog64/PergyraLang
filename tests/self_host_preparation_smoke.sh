@@ -305,6 +305,7 @@ forbid_text "src/self_hosted/tools/air_graph_json_validator/main.pgy" "CountMiss
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "BuildAirGraphFindingFacts"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "CountEnvEffectSites"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'JsonFieldKey("execution_lane")'
+require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'JsonFieldKey("boundary_capture")'
 require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" "AirGraphValidatorJson"
 require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" "FindingsJsonFromFacts"
 require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" "ReadFile(fixture_path)"

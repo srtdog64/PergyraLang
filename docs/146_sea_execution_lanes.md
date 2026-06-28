@@ -1,6 +1,7 @@
-# 146. SEA — Structured Effect Async, and the ExecutionLane fact
+# 146. SEA — Structured Effect Async, BoundaryCaptureFact, and ExecutionLane
 
-Status: design + first slice landed (2026-06-26). Sister doc to
+Status: design + BoundaryCaptureFact/ExecutionLane first slices landed
+(2026-06-29). Sister doc to
 `docs/114_async_model_positioning.md` (the async positioning) — this one names
 the execution layer below it.
 
@@ -23,7 +24,8 @@ same category error as letting `async` mean five things at once — it conflates
 | Layer | Name | What it is | Where |
 |---|---|---|---|
 | Semantic model / contract | **SEA** (Structured Effect Async) | execution boundaries are decided by intent/effect/authority/coordination evidence | docs/114, this doc |
-| Compiler decision (IR fact) | **ExecutionLaneFact** | a per-task lane chosen from evidence | `src/compiler/execution_lane.{h,c}`, attached to AIR |
+| Compiler input (IR fact) | **BoundaryCaptureFact** | the per-boundary capture/movability facts that lane classification consumes | `src/compiler/execution_lane.{h,c}`, stored on `AIRBoundaryNode` |
+| Compiler decision (IR fact) | **ExecutionLaneFact** | a per-task lane chosen from `BoundaryCaptureFact` | `src/compiler/execution_lane.{h,c}`, attached to AIR |
 | Runtime implementation | **PgyLaneScheduler** | facade that dispatches a lane to a concrete executor | `src/runtime/` (skeleton) |
 
 SEA is the philosophy/contract; it must never be used as the *name of a
@@ -49,7 +51,8 @@ executor for `PinnedZone`.
 
 ## 3. The decision table (the contract)
 
-`pgy_classify_execution_lane(evidence)` is pure, total, ordered, fail-closed.
+`pgy_classify_execution_lane(boundary_capture)` is pure, total, ordered,
+fail-closed.
 The ORDER is the contract: a pinned resource is decided before an effect, which
 is decided before a movability optimisation, so the same evidence always yields
 the same lane regardless of runtime.
@@ -84,17 +87,22 @@ strictly underneath.
 
 ## 5. Status / remaining
 
-**Landed — the fact flows end to end, gated and golden-tested:**
-- The fact + the pure classification policy + a decision-table proof covering
-  every lane and both load-bearing edges (`execution-lane-policy-test-smoke`,
-  10/10).
-- `execution_lane` on `AIRBoundaryNode`, classified in ONE finalization pass in
-  `air_synthesize` (after all boundary evidence is set, so no builder is missed),
-  and emitted in `--air-json` as `"execution_lane"`.
+**Landed — the facts flow end to end, gated and golden-tested:**
+- `BoundaryCaptureFact` is the input SoT for lane selection. It records
+  `captures_pin`, `captures_live_view`, `captures_raw_slot`,
+  `captures_raw_channel`, `captures_value_only`,
+  `crosses_authority_boundary`, and `requires_movability`, plus effect/shape
+  facts needed by the decision table.
+- `ExecutionLaneFact` is the output SoT. The pure classification policy has a
+  decision-table proof covering every lane and both load-bearing edges
+  (`execution-lane-policy-test-smoke`, 10/10).
+- `boundary_capture` and `execution_lane` live on `AIRBoundaryNode`, are
+  finalized in ONE pass in `air_synthesize`, and are emitted in `--air-json`.
 - A golden test (`sea-execution-lane-golden-test-smoke`) that compiles a real
   program, synthesises AIR, and pins the per-boundary lanes
   (`zone -> PinnedZone`, `world -> LocalAsync`), with a regression guard that a
-  classified boundary is never left at the fail-closed zero (`Reject`).
+  classified boundary is never left at the fail-closed zero (`Reject`). The AIR
+  JSON schema smoke also requires the `boundary_capture` object.
 
 **Landed — runtime facade + self-host mirror (2026-06-27):**
 - `PgyLaneScheduler` (`src/runtime/pgy_lane_scheduler.c`) consumes the fact:
@@ -105,11 +113,11 @@ strictly underneath.
   `lane-scheduler-test-smoke`. This is the keystone wiring: the compiler's
   decision now reaches actual execution.
 - The self-host compiler makes the SAME decision in idiomatic Pergyra
-  (`src/self_hosted/sea/execution_lane.pgy` — a typed `enum` returned directly,
-  `Reject` as a first-class variant, zero `-1` sentinels). A cross-language /
-  cross-backend parity smoke (`self-host-execution-lane-parity-test-smoke`)
-  diffs it against the C policy's decision-table output on both C and LLVM
-  (10/10 each).
+  (`src/self_hosted/sea/execution_lane.pgy` — a typed `BoundaryCaptureFact`
+  struct consumed by a typed `ExecutionLane` return, `Reject` as a first-class
+  variant, zero `-1` sentinels). A cross-language / cross-backend parity smoke
+  (`self-host-execution-lane-parity-test-smoke`) diffs it against the C policy's
+  decision-table output on both C and LLVM (10/10 each).
 
 **Landed — codegen executor choice is SEA-governed (2026-06-27):**
 - Both backends chose the spawn executor with an independent
@@ -121,9 +129,10 @@ strictly underneath.
   non-blocking spawn to Worker/Movable without touching the emitters.
 
 **Remaining (deep fill, not a quick slice):**
-- **Per-boundary evidence.** The classifier is still kind-driven. Enriching it
-  precisely needs per-boundary capture facts (pin/live-view, raw-vs-value
-  capture) from MIR/closure-capture analysis. A coarse routine-level correlation
+- **Precise capture plumbing.** `BoundaryCaptureFact` now exists and is stored
+  on AIR, but some fields are still filled conservatively from boundary kind.
+  Enriching them precisely needs per-boundary capture facts (pin/live-view,
+  raw-vs-value capture) from MIR/closure-capture analysis. A coarse routine-level correlation
   (does the boundary's routine hold any slot/effect anywhere) was rejected: it
   over-pins — a `parallel` would become `PinnedZone` merely because an unrelated
   slot exists in the same routine. Precise evidence is the F-series closure-

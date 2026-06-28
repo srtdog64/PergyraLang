@@ -1,71 +1,67 @@
 /*
- * air_execution_lane.c — derive the SEA ExecutionLane for an AIR boundary.
+ * air_execution_lane.c - derive SEA BoundaryCaptureFact and ExecutionLane for
+ * an AIR boundary.
  *
- * First-cut: builds PgyLaneEvidence from the facts a boundary already carries
- * (kind, authority). The richer evidence — pin/live-view, raw-vs-value capture,
- * effect mask — lives in MIR/semantic and is not yet threaded onto the boundary;
- * until it is, this stays conservative and NEVER reaches MovableScheduler (M:N),
- * because that lane requires explicit pure-value + authority evidence that a
- * boundary kind alone cannot supply. See docs/146 §5.
+ * First-cut: builds BoundaryCaptureFact from facts a boundary already carries
+ * (kind, authority). Richer evidence, such as precise raw-vs-value closure
+ * capture and pin/live-view provenance, lives in MIR/semantic and is not yet
+ * fully threaded onto the boundary. Until it is, this stays conservative and
+ * never reaches MovableScheduler from boundary kind alone.
  */
 #include "air.h"
 
-PgyExecutionLane
-air_boundary_classify_lane(const AIRBoundaryNode *boundary)
+BoundaryCaptureFact
+air_boundary_capture_fact(const AIRBoundaryNode *boundary)
 {
-    PgyLaneEvidence e = {0};
+    BoundaryCaptureFact fact = {0};
 
     if (boundary == NULL)
-        return PGY_LANE_INLINE;
+        return fact;
 
-    /* authority_required + named participants => the authority boundary is
-       explicit. (Necessary-but-not-sufficient for MovableScheduler, which also
-       needs pure-value capture evidence not yet plumbed here.) */
-    e.authority_boundary_clear =
+    /* Explicit authority participants are necessary, but not sufficient, for a
+       movable lane. Pure-value capture evidence must also be present. */
+    fact.crosses_authority_boundary =
         boundary->authority_required && boundary->authority_name_count > 0;
 
     switch (boundary->kind)
     {
         case AIR_BOUNDARY_ZONE:
-            /* A zone is a resource-ownership boundary; a task that needs the
-               zone's resources is bound to it. */
-            e.is_concurrent_site = true;
-            e.has_pin_or_live_view = true;
+            fact.is_concurrent_site = true;
+            fact.captures_pin = true;
             break;
 
         case AIR_BOUNDARY_CHANNEL:
-            /* A channel boundary holds a channel handle — a raw resource, so the
-               task stays pinned to its owner rather than migrating. */
-            e.is_concurrent_site = true;
-            e.has_raw_slot_or_channel_capture = true;
+            fact.is_concurrent_site = true;
+            fact.captures_raw_channel = true;
             break;
 
         case AIR_BOUNDARY_IO:
-            e.is_concurrent_site = true;
-            e.has_io_or_ffi_effect = true;
+            fact.is_concurrent_site = true;
+            fact.has_io_or_ffi_effect = true;
             break;
 
         case AIR_BOUNDARY_PARALLEL:
-            /* `parallel` is scoped fork-join: deterministic, bounded pool. */
-            e.is_concurrent_site = true;
-            e.is_deterministic_fork_join = true;
+            fact.is_concurrent_site = true;
+            fact.is_deterministic_fork_join = true;
             break;
 
         case AIR_BOUNDARY_WORLD:
         case AIR_BOUNDARY_EXECUTION:
-            /* A concurrent site whose capture/effect shape is not yet plumbed:
-               keep it local and cooperative rather than guessing a stronger
-               lane. */
-            e.is_concurrent_site = true;
+            fact.is_concurrent_site = true;
             break;
 
         case AIR_BOUNDARY_UNKNOWN:
         default:
-            /* No boundary evidence => treat as non-concurrent (run in place)
-               rather than inventing a lane. */
-            e.is_concurrent_site = false;
+            fact.is_concurrent_site = false;
             break;
     }
 
-    return pgy_classify_execution_lane(&e);
+    return fact;
+}
+
+PgyExecutionLane
+air_boundary_classify_lane(const AIRBoundaryNode *boundary)
+{
+    BoundaryCaptureFact fact = air_boundary_capture_fact(boundary);
+    return pgy_classify_execution_lane(&fact);
 }

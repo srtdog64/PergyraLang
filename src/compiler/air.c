@@ -538,8 +538,10 @@ air_synthesize(const HIRProgram *hir,
        required abilities) is set (docs/146). Single chokepoint so no builder is
        missed; replaces per-construction classification. */
     for (size_t i = 0; i < air->boundary_count; i++) {
+        air->boundaries[i].boundary_capture =
+            air_boundary_capture_fact(&air->boundaries[i]);
         air->boundaries[i].execution_lane =
-            air_boundary_classify_lane(&air->boundaries[i]);
+            pgy_classify_execution_lane(&air->boundaries[i].boundary_capture);
     }
 
     return air;

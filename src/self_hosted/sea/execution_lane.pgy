@@ -20,39 +20,43 @@ enum ExecutionLane {
     MovableScheduler
 }
 
-func ClassifyLane(
-    is_concurrent: Bool,
-    has_pin_or_view: Bool,
-    has_raw_capture: Bool,
-    requires_movability: Bool,
-    has_io_ffi: Bool,
-    is_await_local: Bool,
-    is_fork_join: Bool,
-    pure_value: Bool,
-    authority_clear: Bool
-) -> ExecutionLane {
-    if !is_concurrent {
+struct BoundaryCaptureFact {
+    let captures_pin: Bool;
+    let captures_live_view: Bool;
+    let captures_raw_slot: Bool;
+    let captures_raw_channel: Bool;
+    let captures_value_only: Bool;
+    let crosses_authority_boundary: Bool;
+    let requires_movability: Bool;
+    let has_io_or_ffi_effect: Bool;
+    let is_await_heavy_local: Bool;
+    let is_deterministic_fork_join: Bool;
+    let is_concurrent_site: Bool;
+}
+
+func ClassifyLane(fact: BoundaryCaptureFact) -> ExecutionLane {
+    if !fact.is_concurrent_site {
         return ExecutionLane.Inline;
     }
-    if has_pin_or_view || has_raw_capture {
-        if requires_movability {
+    if fact.captures_pin || fact.captures_live_view || fact.captures_raw_slot || fact.captures_raw_channel {
+        if fact.requires_movability {
             return ExecutionLane.Reject;
         }
         return ExecutionLane.PinnedZone;
     }
-    if has_io_ffi {
+    if fact.has_io_or_ffi_effect {
         return ExecutionLane.BlockingPool;
     }
-    if is_await_local {
+    if fact.is_await_heavy_local {
         return ExecutionLane.LocalAsync;
     }
-    if is_fork_join {
+    if fact.is_deterministic_fork_join {
         return ExecutionLane.WorkerPool;
     }
-    if pure_value && authority_clear {
+    if fact.captures_value_only && fact.crosses_authority_boundary {
         return ExecutionLane.MovableScheduler;
     }
-    if pure_value {
+    if fact.captures_value_only {
         return ExecutionLane.WorkerPool;
     }
     return ExecutionLane.LocalAsync;
@@ -73,14 +77,14 @@ func LaneName(lane: ExecutionLane) -> String {
 // The 10 decision-table cases, in the same order as the C proof
 // (src/tests/execution_lane_policy_test.c), so the two policies can be diffed.
 func Main() -> Void {
-    Log(LaneName(ClassifyLane(false, false, false, false, false, false, false, false, false)));
-    Log(LaneName(ClassifyLane(true,  true,  false, false, false, false, false, false, false)));
-    Log(LaneName(ClassifyLane(true,  false, true,  false, false, false, false, false, false)));
-    Log(LaneName(ClassifyLane(true,  true,  false, true,  false, false, false, false, false)));
-    Log(LaneName(ClassifyLane(true,  false, false, false, true,  false, false, true,  true)));
-    Log(LaneName(ClassifyLane(true,  false, false, false, false, true,  false, false, false)));
-    Log(LaneName(ClassifyLane(true,  false, false, false, false, false, true,  true,  true)));
-    Log(LaneName(ClassifyLane(true,  false, false, false, false, false, false, true,  true)));
-    Log(LaneName(ClassifyLane(true,  false, false, false, false, false, false, true,  false)));
-    Log(LaneName(ClassifyLane(true,  false, false, false, false, false, false, false, false)));
+    Log(LaneName(ClassifyLane(BoundaryCaptureFact(false, false, false, false, false, false, false, false, false, false, false))));
+    Log(LaneName(ClassifyLane(BoundaryCaptureFact(true,  false, false, false, false, false, false, false, false, false, true))));
+    Log(LaneName(ClassifyLane(BoundaryCaptureFact(false, false, true,  false, false, false, false, false, false, false, true))));
+    Log(LaneName(ClassifyLane(BoundaryCaptureFact(true,  false, false, false, false, false, true,  false, false, false, true))));
+    Log(LaneName(ClassifyLane(BoundaryCaptureFact(false, false, false, false, true,  true,  false, true,  false, false, true))));
+    Log(LaneName(ClassifyLane(BoundaryCaptureFact(false, false, false, false, false, false, false, false, true,  false, true))));
+    Log(LaneName(ClassifyLane(BoundaryCaptureFact(false, false, false, false, true,  true,  false, false, false, true,  true))));
+    Log(LaneName(ClassifyLane(BoundaryCaptureFact(false, false, false, false, true,  true,  false, false, false, false, true))));
+    Log(LaneName(ClassifyLane(BoundaryCaptureFact(false, false, false, false, true,  false, false, false, false, false, true))));
+    Log(LaneName(ClassifyLane(BoundaryCaptureFact(false, false, false, false, false, false, false, false, false, false, true))));
 }

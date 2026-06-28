@@ -317,6 +317,32 @@ air_dump_json_boundaries(const AIRProgram *air, FILE *out)
         air_json_string(out, air_sync_class_name(boundary->sync_class));
         fputs(",\"execution_lane\":", out);
         air_json_string(out, pgy_execution_lane_name(boundary->execution_lane));
+        fputs(",\"boundary_capture\":{", out);
+        fputs("\"captures_pin\":", out);
+        air_json_bool(out, boundary->boundary_capture.captures_pin);
+        fputs(",\"captures_live_view\":", out);
+        air_json_bool(out, boundary->boundary_capture.captures_live_view);
+        fputs(",\"captures_raw_slot\":", out);
+        air_json_bool(out, boundary->boundary_capture.captures_raw_slot);
+        fputs(",\"captures_raw_channel\":", out);
+        air_json_bool(out, boundary->boundary_capture.captures_raw_channel);
+        fputs(",\"captures_value_only\":", out);
+        air_json_bool(out, boundary->boundary_capture.captures_value_only);
+        fputs(",\"crosses_authority_boundary\":", out);
+        air_json_bool(out,
+                      boundary->boundary_capture.crosses_authority_boundary);
+        fputs(",\"requires_movability\":", out);
+        air_json_bool(out, boundary->boundary_capture.requires_movability);
+        fputs(",\"has_io_or_ffi_effect\":", out);
+        air_json_bool(out, boundary->boundary_capture.has_io_or_ffi_effect);
+        fputs(",\"is_await_heavy_local\":", out);
+        air_json_bool(out, boundary->boundary_capture.is_await_heavy_local);
+        fputs(",\"is_deterministic_fork_join\":", out);
+        air_json_bool(out,
+                      boundary->boundary_capture.is_deterministic_fork_join);
+        fputs(",\"is_concurrent_site\":", out);
+        air_json_bool(out, boundary->boundary_capture.is_concurrent_site);
+        fputs("}", out);
         fputs(",\"", out);
         fputs(kAirJsonFieldCompressionBudget, out);
         fputs("\":", out);

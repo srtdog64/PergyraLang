@@ -189,6 +189,10 @@ typedef struct
     const char     *hir_routine_evidence_name;
     const char     *rir_boundary_evidence_scope;
     const char     *rir_authority_evidence_name;
+    /* SEA BoundaryCaptureFact (docs/146): the input fact used to classify this
+       boundary's ExecutionLane. Stored on AIR so JSON/verifiers can audit the
+       evidence instead of trusting a backend-side lane guess. */
+    BoundaryCaptureFact boundary_capture;
     /* SEA ExecutionLane fact (docs/146): which runtime lane this boundary's task
        is permitted, derived from boundary evidence by air_boundary_classify_lane.
        Zero-initialised to PGY_LANE_REJECT (0) — an unclassified boundary is
@@ -203,6 +207,7 @@ typedef struct
  * the boundary, so this is conservative (it never assigns MovableScheduler
  * without explicit pure-value + authority evidence). See docs/146 §5.
  */
+BoundaryCaptureFact air_boundary_capture_fact(const AIRBoundaryNode *boundary);
 PgyExecutionLane air_boundary_classify_lane(const AIRBoundaryNode *boundary);
 
 typedef struct

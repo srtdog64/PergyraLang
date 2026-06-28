@@ -1,8 +1,8 @@
 # Semantic Squiggle — 의미 물결선
 
-Status: `slices 1-3 landed`. 이 문서는 **의미 축 불일치를 코드 차단 없이 에디터에 표시하는** 진단 표시 정책의 설계다. 구현은 단계적(§6).
+Status: `slices 1-5 landed`. 이 문서는 **의미 축 불일치를 코드 차단 없이 에디터에 표시하는** 진단 표시 정책의 설계다. 구현은 단계적(§6).
 
-진행: slice 1(분류 Policy `squiggle_class_classify`) + slice 2(`DIAG_ADVISORY` 제3 상태 + JSON `squiggleClass` emit) + slice 3(첫 net-new advisory: Subject 정체성 섀도잉, amber) **완료·검증**. 첫 vertical slice가 동작한다 — Subject 섀도 프로그램이 **0 error로 컴파일되면서 amber advisory를 표면화**한다. 남은 건 LSP 전송 + VS Code decoration 클라이언트(slice 4) + BLUE/erasure 배선(slice 5).
+진행: slice 1(분류 Policy `squiggle_class_classify`) + slice 2(`DIAG_ADVISORY` 제3 상태 + JSON `squiggleClass` emit) + slice 3(첫 net-new advisory: Subject 정체성 섀도잉, amber) + slice 4(LSP/VS Code decoration surface) + slice 5(AIR BLUE/erasure 배선) **완료·검증**. 첫 vertical slice가 동작한다 — Subject 섀도 프로그램이 **0 error로 컴파일되면서 amber advisory를 표면화**하고, AIR erasure site는 LSP-only BLUE advisory로 표면화된다. 남은 작업은 새 advisory 생산자와 editor polish이지 BLUE 배선 자체가 아니다.
 
 ## 0. 동기 — 차단에서 인식으로
 
@@ -99,7 +99,7 @@ advisory는 *인식(recognition)* 보조라 **배치/CI 컴파일에선 안 돈�
 3. ✅ slice 3: 첫 net-new advisory = **Subject 정체성 섀도잉**(`type_checker_ownership_let.c`, 코드 `PGY_SEM_SUBJECT_IDENTITY_SHADOWED` → amber). 기존 에러 0개 강등, 보장 불변. 단위 테스트가 "0 error로 컴파일 + advisory≥1" 검증.
 4. ✅ slice 4a: `src/lsp/pgy_lsp_diagnostics.c`가 `data.squiggleClass` 송출 + advisory→LSP severity 3(Information). LSP publish 루프는 모든 진단을 순회하므로 advisory가 자연히 나간다(드라이버 `--error-format=json`은 에러 시에만 출력 — 이 분기는 LSP에 없음). 실제 LSP 세션(initialize+didOpen)으로 `severity:3 + squiggleClass:"amber"` 검증.
    ✅ slice 4b: thin VS Code decoration 클라이언트(`editors/vscode/`). `data.squiggleClass`를 읽어 amber/violet/blue 물결 밑줄 decoration(보라 포함 — LSP severity로 불가능한 4색). `npm install`+`tsc` 타입체크 통과. Extension Host 실행은 데스크톱 VS Code 필요(수동).
-5. ⏳ (R&D) BLUE: AIR 소거 사이트를 라이브 진단에 연결 — §9.
+5. ✅ slice 5: BLUE — AIR 소거 사이트를 LSP-only 라이브 진단에 연결 — §9.
 
 다른 색 advisory 생산자는 같은 패턴으로 계속 추가한다(AMBER=Subject 섀도 외, VIOLET=cap 과대선언 외).
 
@@ -114,7 +114,7 @@ advisory는 *인식(recognition)* 보조라 **배치/CI 컴파일에선 안 돈�
 - `docs/122` drift 관리 — recognition 차원, 1년 freeze=recognition window
 - `src/lsp/`, `src/common/diagnostic_layer.h`, `src/semantic/diagnostic_types.h` — 구현 기반
 
-## 9. BLUE(erasure) 통합 설계 — slice 5 (R&D)
+## 9. BLUE(erasure) 통합 설계 — slice 5 (landed)
 
 **왜 semantic-stage proxy를 안 쓰는가.** AMBER/VIOLET은 semantic 단계에서 *직접* 관측 가능한 사실(섀도/cap 마스크)이다. BLUE는 "이 의미가 런타임에 소거되는가"인데, 그 사실은 **AIR에만 있다**: `AIR_COMPRESSION_ERASE` + retain-cause 버킷 A/B/C(`src/compiler/air.h`), 그리고 `tests/air_erasure` 계기판이 declared-vs-measured 갭을 기록한다. AIR은 **codegen 경로 밖(verification IR)이고 semantic 이후 단계**라, 라이브 진단(semantic)은 소거 사실을 모른다. semantic 단계에서 추측하면 **소거 아닌 곳에 BLUE를 그리거나 그 반대**가 되어 *틀린 물결선*을 만든다 — evidence-projection의 soundness 원칙(틀린 물결선은 없는 것보다 나쁨) 위반. 그래서 proxy를 거부한다.
 

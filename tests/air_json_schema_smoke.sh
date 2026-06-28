@@ -161,6 +161,18 @@ for required in \
     '"kind":"runtime_frontier_policy"' \
     '"provider":"runtime-observability-schema"' \
     '"location":{"line":' \
+    '"boundary_capture"' \
+    '"captures_pin"' \
+    '"captures_live_view"' \
+    '"captures_raw_slot"' \
+    '"captures_raw_channel"' \
+    '"captures_value_only"' \
+    '"crosses_authority_boundary"' \
+    '"requires_movability"' \
+    '"has_io_or_ffi_effect"' \
+    '"is_await_heavy_local"' \
+    '"is_deterministic_fork_join"' \
+    '"is_concurrent_site"' \
     '"authority_names"'; do
     require_text "$required"
 done
@@ -218,6 +230,30 @@ assert all("source_from_action" in boundary for boundary in data["boundaries"])
 assert all("source_from_transfer" in boundary for boundary in data["boundaries"])
 assert all("authority_from_zone" in boundary for boundary in data["boundaries"])
 assert all("authority_from_action" in boundary for boundary in data["boundaries"])
+assert all("boundary_capture" in boundary for boundary in data["boundaries"])
+capture_keys = {
+    "captures_pin",
+    "captures_live_view",
+    "captures_raw_slot",
+    "captures_raw_channel",
+    "captures_value_only",
+    "crosses_authority_boundary",
+    "requires_movability",
+    "has_io_or_ffi_effect",
+    "is_await_heavy_local",
+    "is_deterministic_fork_join",
+    "is_concurrent_site",
+}
+assert all(
+    capture_keys <= set(boundary["boundary_capture"].keys())
+    for boundary in data["boundaries"]
+)
+assert any(
+    b["kind"] == "zone"
+    and b["execution_lane"] == "PinnedZone"
+    and b["boundary_capture"]["captures_pin"] is True
+    for b in data["boundaries"]
+)
 assert all("compression_budget" in boundary for boundary in data["boundaries"])
 assert all("compression_reason" in boundary for boundary in data["boundaries"])
 assert all(

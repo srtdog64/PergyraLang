@@ -151,7 +151,7 @@ SOURCE_PAIRS=(
 known_semantic_codes() {
     awk '
         /^func SemanticDiagnosticCodeKnown\(/ { inside=1; next }
-        inside && /^}/ { inside=0 }
+        inside && /^func[[:space:]]/ { inside=0 }
         inside {
             while (match($0, /code == "[a-z0-9_]+"/)) {
                 code=substr($0, RSTART, RLENGTH)
@@ -165,16 +165,30 @@ known_semantic_codes() {
         sort
 }
 
+contains_line() {
+    local haystack="$1"
+    local needle="$2"
+    local line
+
+    while IFS= read -r line; do
+        [[ "$line" == "$needle" ]] && return 0
+    done <<<"$haystack"
+    return 1
+}
+
 semantic_code_known() {
     local code="$1"
-    known_semantic_codes | grep -Fxq -- "$code"
+    local known
+
+    known="$(known_semantic_codes)"
+    contains_line "$known" "$code"
 }
 
 semantic_oracle_code_for() {
     local code="$1"
     awk -v target="$code" '
         /^func SemanticDiagnosticOracleCode\(/ { inside=1; next }
-        inside && /^}/ { inside=0 }
+        inside && /^func[[:space:]]/ { inside=0 }
         inside && $0 ~ "code == \"" target "\"" { found=1; next }
         inside && found && match($0, /return "[^"]*"/) {
             value=substr($0, RSTART, RLENGTH)
@@ -241,6 +255,7 @@ check_semantic_diagnostic_code_surface() {
         fi
     done < <(
         grep -h '^Code: ' "$EXPECTED_DIR"/*.diag |
+            tr -d '\r' |
             sed -E 's/^Code: //'
     )
 

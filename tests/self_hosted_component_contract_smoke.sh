@@ -8,7 +8,9 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+SCRIPT_DIR="$(cd "${SCRIPT_PATH%/*}" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SELF_HOST_DIR="$ROOT_DIR/src/self_hosted"
 PARITY_DIR="$ROOT_DIR/tests/self_hosted/parity"
 
@@ -27,17 +29,32 @@ require_dir() {
     [[ -d "$ROOT_DIR/$rel" ]] || fail "missing directory $rel"
 }
 
+TEXT_CACHE_REL=""
+TEXT_CACHE_CONTENT=""
+
+load_text_cache() {
+    local rel="$1"
+
+    if [[ "$TEXT_CACHE_REL" != "$rel" ]]; then
+        [[ -f "$ROOT_DIR/$rel" ]] || fail "missing text input: $rel"
+        TEXT_CACHE_CONTENT="$(<"$ROOT_DIR/$rel")" || fail "could not read text input: $rel"
+        TEXT_CACHE_REL="$rel"
+    fi
+}
+
 require_text() {
     local rel="$1"
     local term="$2"
-    grep -Fq -- "$term" "$ROOT_DIR/$rel" ||
+    load_text_cache "$rel"
+    [[ "$TEXT_CACHE_CONTENT" == *"$term"* ]] ||
         fail "$rel missing term: $term"
 }
 
 reject_text() {
     local rel="$1"
     local term="$2"
-    if grep -Fq -- "$term" "$ROOT_DIR/$rel"; then
+    load_text_cache "$rel"
+    if [[ "$TEXT_CACHE_CONTENT" == *"$term"* ]]; then
         fail "$rel must not contain retired term: $term"
     fi
 }
@@ -45,7 +62,12 @@ reject_text() {
 contains_line() {
     local haystack="$1"
     local needle="$2"
-    printf '%s\n' "$haystack" | grep -Fxq -- "$needle"
+    local line
+
+    while IFS= read -r line; do
+        [[ "$line" == "$needle" ]] && return 0
+    done <<<"$haystack"
+    return 1
 }
 
 find_stage_owner_sources() {
@@ -92,7 +114,11 @@ require_owner_surface() {
 }
 
 line_count() {
-    wc -l < "$1" | tr -d ' '
+    local count
+
+    count="$(wc -l <"$1")"
+    count="${count//[[:space:]]/}"
+    printf '%s\n' "$count"
 }
 
 require_max_lines() {
@@ -702,6 +728,7 @@ require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "Js
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonObjectNumberField(content, summary_bounds[0], summary_bounds[1], field)"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonValueEnd(content,"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'JsonFieldKey("execution_lane")'
+require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'JsonFieldKey("boundary_capture")'
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'StringContains(content, "\"schema\":\"pgy.air.graph.v1\"")'
 for air_graph_report in \
     src/self_hosted/tools/air_graph_id_uniqueness/main.pgy \

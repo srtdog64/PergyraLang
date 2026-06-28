@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+SCRIPT_DIR="$(cd "${SCRIPT_PATH%/*}" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PGY_DOC_QUALITY_FULL_UTF8="${PGY_DOC_QUALITY_FULL_UTF8:-0}"
 
 fail() {
@@ -9,9 +11,30 @@ fail() {
     exit 1
 }
 
+TEXT_CACHE_REL=""
+TEXT_CACHE_CONTENT=""
+
 require_file() {
     local rel="$1"
     [[ -f "$ROOT_DIR/$rel" ]] || fail "missing documentation quality input: $rel"
+}
+
+load_text_cache() {
+    local rel="$1"
+
+    if [[ "$TEXT_CACHE_REL" != "$rel" ]]; then
+        [[ -f "$ROOT_DIR/$rel" ]] || fail "missing text input: $rel"
+        TEXT_CACHE_CONTENT="$(<"$ROOT_DIR/$rel")" || fail "could not read text input: $rel"
+        TEXT_CACHE_REL="$rel"
+    fi
+}
+
+file_contains_text() {
+    local rel="$1"
+    local term="$2"
+
+    load_text_cache "$rel"
+    [[ "$TEXT_CACHE_CONTENT" == *"$term"* ]]
 }
 
 require_text() {
@@ -26,20 +49,20 @@ require_text() {
             "docs/100b_beta_p0_semantics_systems_air.md" \
             "docs/100c_beta_dag_mir_abi_runtime.md" \
             "docs/100d_beta_execution_log.md"; do
-            if grep -Fq -- "$term" "$ROOT_DIR/$candidate"; then
+            if file_contains_text "$candidate" "$term"; then
                 return 0
             fi
         done
         fail "$rel shards missing term: $term"
     fi
 
-    grep -Fq -- "$term" "$ROOT_DIR/$rel" || fail "$rel missing term: $term"
+    file_contains_text "$rel" "$term" || fail "$rel missing term: $term"
 }
 
 forbid_text() {
     local rel="$1"
     local term="$2"
-    if grep -Fq -- "$term" "$ROOT_DIR/$rel"; then
+    if file_contains_text "$rel" "$term"; then
         fail "$rel contains forbidden simplification: $term"
     fi
 }
@@ -77,6 +100,28 @@ validate_utf8_file() {
     if LC_ALL=C grep -q $'\357\277\275' "$path"; then
         fail "$rel contains Unicode replacement characters"
     fi
+}
+
+validate_utf8_files() {
+    if command -v perl >/dev/null 2>&1; then
+        perl -MEncode -e '
+            for my $path (@ARGV) {
+                open(my $fh, "<:raw", $path) or die "$path: $!\n";
+                local $/;
+                my $bytes = <$fh>;
+                eval { Encode::decode("UTF-8", $bytes, Encode::FB_CROAK); 1 }
+                    or die "$path is not valid UTF-8\n";
+                die "$path contains Unicode replacement characters\n"
+                    if index($bytes, "\xEF\xBF\xBD") >= 0;
+            }
+        ' "$@" || fail "UTF-8 validation failed"
+        return 0
+    fi
+
+    local path
+    for path in "$@"; do
+        validate_utf8_file "$path"
+    done
 }
 
 required_files=(
@@ -118,6 +163,8 @@ required_files=(
     "docs/134_language_surface_hygiene.md"
     "docs/135_backend_wasm_pointer_closure.md"
     "docs/139_golden_adt_verification_methodology.md"
+    "docs/140_semantic_squiggle.md"
+    "docs/146_sea_execution_lanes.md"
     "docs/145_bit_layout_boundary_matrix.md"
     "docs/semantics/proofs/VerificationMethodology.md"
     "docs/semantics/proofs/VerificationMethodology.v"
@@ -133,10 +180,11 @@ for rel in "${required_files[@]}"; do
     require_file "$rel"
 done
 
+required_paths=()
 for rel in "${required_files[@]}"; do
-    validate_utf8_file "$ROOT_DIR/$rel"
+    required_paths+=("$ROOT_DIR/$rel")
 done
-validate_utf8_file "$ROOT_DIR/TODO.md"
+validate_utf8_files "${required_paths[@]}"
 
 for rel in \
     "docs/19_design_philosophy.md" \
@@ -146,17 +194,23 @@ for rel in \
     forbid_mojibake_text "$rel"
 done
 
-doc_number_prefixes="$(mktemp "${TMPDIR:-/tmp}/pgy-doc-prefixes.XXXXXX")"
-trap 'rm -f "$doc_number_prefixes"' EXIT
+doc_number_prefixes=""
 for path in "$ROOT_DIR"/docs/[0-9][0-9][0-9]_*.md; do
     [[ -e "$path" ]] || continue
-    file="$(basename "$path")"
+    file="${path##*/}"
     prefix="${file:0:3}"
-    previous="$(grep "^$prefix " "$doc_number_prefixes" | head -n 1 || true)"
+    previous=""
+    while IFS=' ' read -r seen_prefix seen_file; do
+        [[ -z "$seen_prefix" ]] && continue
+        if [[ "$seen_prefix" == "$prefix" ]]; then
+            previous="$seen_file"
+            break
+        fi
+    done <<<"$doc_number_prefixes"
     if [[ -n "$previous" ]]; then
-        fail "duplicate numbered docs prefix $prefix: ${previous#"$prefix "} and $file"
+        fail "duplicate numbered docs prefix $prefix: $previous and $file"
     fi
-    printf '%s %s\n' "$prefix" "$file" >>"$doc_number_prefixes"
+    doc_number_prefixes+="$prefix $file"$'\n'
 done
 
 if [[ "$PGY_DOC_QUALITY_FULL_UTF8" == "1" ]]; then
@@ -894,6 +948,30 @@ air_architecture_terms=(
 )
 for term in "${air_architecture_terms[@]}"; do
     require_text "docs/104_air_compiler_architecture.md" "$term"
+done
+
+semantic_squiggle_terms=(
+    'Status: `slices 1-5 landed`'
+    "slice 5(AIR BLUE/erasure 배선) **완료·검증**"
+    "slice 5: BLUE"
+    "slice 5 (landed)"
+)
+for term in "${semantic_squiggle_terms[@]}"; do
+    require_text "docs/140_semantic_squiggle.md" "$term"
+done
+forbid_text "docs/140_semantic_squiggle.md" 'Status: `slices 1-3 landed`'
+forbid_text "docs/140_semantic_squiggle.md" "⏳ (R&D) BLUE"
+
+sea_execution_lane_terms=(
+    "BoundaryCaptureFact"
+    "boundary_capture"
+    "captures_pin"
+    "captures_raw_channel"
+    "ExecutionLaneFact"
+    "Precise capture plumbing"
+)
+for term in "${sea_execution_lane_terms[@]}"; do
+    require_text "docs/146_sea_execution_lanes.md" "$term"
 done
 
 loss_contract_terms=(
