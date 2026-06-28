@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let row: Array<Int> = [0, 0, 0];
+    ArraySet(row, 99, 305419896);
+    Log("UNREACHABLE: the out-of-bounds write should have failed closed");
+}

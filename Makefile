@@ -2230,6 +2230,9 @@ lane-scheduler-test-smoke:
 self-host-execution-lane-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_host_execution_lane_parity_smoke.sh
 
+memory-safety-failclosed-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/memory_safety_failclosed_smoke.sh
+
 site-generator-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/site_generator_smoke.sh
 

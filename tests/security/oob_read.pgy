@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let row: Array<Int> = [0, 0, 0];
+    let leaked: Int = row[99];
+    Log("UNREACHABLE: the out-of-bounds read should have failed closed");
+}

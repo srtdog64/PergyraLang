@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+#
+# memory_safety_failclosed_smoke.sh — security evidence.
+#
+# Pergyra has no raw pointers and no pointer arithmetic; array indexing is
+# bounds-checked and integer division is checked, all fail-closed (a panic, never
+# memory corruption / a wrong result silently used). This gate compiles and runs
+# counterexamples that each attempt a memory- or arithmetic-safety violation and
+# asserts every one PANICS instead of corrupting memory — on both backends.
+#
+# Each maps to a real-world memory-corruption class:
+#   oob_write -> the OOB-write-overwrites-a-pointer class (e.g. FFmpeg RASC,
+#                objdump DLX, VLC VP9): in Pergyra the write panics, it cannot
+#                reach an adjacent heap object.
+#   oob_read  -> the OOB-read-to-leak class (e.g. PHP StreamBucket HashTable leak).
+#   div_zero / mod_zero -> checked integer arithmetic.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
+
+PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
+PGY="$(pgy_select_optional_exe_binary "$PGY")"
+
+fail() { echo "[mem-safety-failclosed] FAIL: $*" >&2; exit 1; }
+
+if { [ ! -x "$PGY" ] && [ ! -f "$PGY" ]; } || ! pgy_binary_is_runnable_here "$PGY"; then
+    echo "[mem-safety-failclosed] SKIP: compiler binary not runnable"
+    exit 0
+fi
+
+backends="c"
+if "$PGY" --help 2>/dev/null | grep -qiE 'llvm'; then backends="c llvm"; fi
+
+WORK="$(mktemp -d)"
+cases="oob_write:out-of-bounds oob_read:out-of-bounds div_zero:divide-by-zero mod_zero:divide-by-zero"
+
+for be in $backends; do
+    for spec in $cases; do
+        name="${spec%%:*}"; want_class="${spec##*:}"
+        src="$ROOT_DIR/tests/security/$name.pgy"
+        [ -f "$src" ] || fail "missing counterexample: $src"
+        exe="$WORK/${name}_${be}"
+        "$PGY" "$(pgy_path_for_compiler "$PGY" "$src")" --backend="$be" -o "$exe" \
+            >"$WORK/c.out" 2>"$WORK/c.err" || { cat "$WORK/c.err" >&2; fail "$name did not compile (backend=$be)"; }
+
+        out="$("$exe" 2>&1)" && rc=0 || rc=$?
+        if [ "$rc" -eq 0 ]; then
+            fail "$name ran to completion (backend=$be) — the violation was NOT fail-closed. Output: $out"
+        fi
+        echo "$out" | grep -qi 'PGY PANIC' \
+            || fail "$name exited $rc but without a PGY PANIC (backend=$be): $out"
+        echo "$out" | grep -qi "class=$want_class" \
+            || fail "$name panicked but not class=$want_class (backend=$be): $out"
+        echo "[mem-safety-failclosed] backend=$be $name -> fail-closed (class=$want_class)"
+    done
+done
+
+echo "[mem-safety-failclosed] PASS — no raw pointers, every violation fail-closed"

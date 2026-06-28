@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let z: Int = 0;
+    let r: Int = 7 % z;
+    Log("UNREACHABLE: modulo by zero should have failed closed");
+}

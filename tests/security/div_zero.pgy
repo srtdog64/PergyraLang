@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let z: Int = 0;
+    let q: Int = 7 / z;
+    Log("UNREACHABLE: divide by zero should have failed closed");
+}
