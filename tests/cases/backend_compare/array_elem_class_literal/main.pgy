@@ -1,0 +1,31 @@
+// Array LITERAL of user-class instances: `let a: Array<P> = [P(5), P(7)]`.
+// The element has no scalar suffix, so both backends must route the literal
+// through the struct-by-pointer construction path (C: per-class kernel; LLVM:
+// the raw-export runtime, the same path ArrayPush of a class element uses)
+// rather than the scalar typed runtime. Exercises field access on a literal-
+// built array (a[i].x), a 4-element literal indexed at a non-trivial position
+// (c[3].x), ArrayLength on a literal-built array, and a literal followed by
+// for-in element binding + method dispatch summed across elements.
+class P {
+    let x: Int;
+    func V(self) -> Int {
+        return self.x;
+    }
+}
+
+func Main() -> Void {
+    let a: Array<P> = [P(5), P(7)];
+    Log(ToString(a[0].x));
+    Log(ToString(a[1].x));
+    Log(ToString(ArrayLength(a)));
+
+    let c: Array<P> = [P(1), P(2), P(3), P(4)];
+    Log(ToString(c[3].x));
+
+    let b: Array<P> = [P(10), P(20), P(30)];
+    let sum: Int = 0;
+    for p in b {
+        sum = sum + p.V();
+    }
+    Log(ToString(sum));
+}

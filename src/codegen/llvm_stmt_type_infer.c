@@ -170,6 +170,18 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 if (nested != NULL)
                     return llvm_array_struct_type(ctx, nested);
             }
+            /* A class/nominal element has no scalar suffix and is not a nested
+             * scalar array. Recover the element class name from the binding's
+             * declared Array<ClassName> context (the same recovery the empty
+             * literal uses below), so `[P(5), P(7)]` lowers to PgyArray_P. The
+             * literal emit path then builds it via the raw-export runtime,
+             * matching how ArrayPush of a class element already works. */
+            if ((suffix == NULL || strcmp(suffix, "Unknown") == 0)
+                && exp != NULL && expected_kind == PGY_TK_ARRAY
+                && llvm_constructed_arg_name_copy(exp, 0, suffix_buf,
+                        sizeof(suffix_buf))) {
+                return llvm_array_struct_type(ctx, suffix_buf);
+            }
             if (suffix == NULL || strcmp(suffix, "Unknown") == 0)
                 return llvm_stmt_unknown_expr_type(ctx, expr,
                     "array literal element type is unresolved");

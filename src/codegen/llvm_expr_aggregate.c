@@ -176,11 +176,15 @@ llvm_emit_seq_list_queue_literal(ASTNode *node, LLVMGenCtx *ctx,
     return LLVMBuildLoad2(ctx->builder, seq_ty, tmp, llvm_tmp_name(ctx));
 }
 
-/* Build a one-level nested array literal [[..],[..]] via the raw export path.
- * The outer struct (PgyArray_Array_<T>) is initialized in place and each inner
- * array element (PgyArray_<T>, >2 eightbytes) is pushed by pointer so the
- * runtime boundary uses the indirect ABI clang lowers it to. The inner `data`
- * pointer is shared (shallow copy) - correct under Pergyra's no-free model. */
+/* Build an array literal whose element is a struct value passed across the
+ * runtime boundary by pointer, via the raw export path. Two callers:
+ *   - one-level nested array [[..],[..]] (element = PgyArray_<T>), and
+ *   - array of class instances [P(5), P(7)] (element = the class struct).
+ * The outer struct (PgyArray_<suffix>) is initialized in place and each element
+ * is pushed by pointer so the runtime boundary uses the indirect ABI. For the
+ * nested case the inner `data` pointer is shared (shallow copy) - correct under
+ * Pergyra's no-free model; for the class case the element struct is copied by
+ * value into the array slot, matching the C backend. */
 static LLVMValueRef
 llvm_emit_nested_array_literal_raw(ASTNode *node, LLVMGenCtx *ctx, size_t count,
                                    LLVMTypeRef elem_type, const char *suffix,
@@ -292,8 +296,22 @@ llvm_emit_array_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
                     elem_type, nested_suffix, first_value);
         }
         const char *suffix = llvm_type_to_suffix(ctx, elem_type);
-        if (suffix != NULL && strcmp(suffix, "Unknown") != 0)
+        if (suffix != NULL && strcmp(suffix, "Unknown") != 0) {
             inner_name = suffix;
+        } else if (expected_type_name != NULL
+                   && pgy_classify_type(expected_type_name) == PGY_TK_ARRAY
+                   && llvm_constructed_arg_name_copy(expected_type_name, 0,
+                          inner_name_buf, sizeof(inner_name_buf))) {
+            /* A class/nominal element (P(5), ...) has no scalar suffix. The
+             * element is a struct value that crosses the runtime boundary by
+             * pointer, exactly like a nested scalar array, so build the array
+             * via the same ABI-safe raw-export path. This mirrors how
+             * ArrayPush of a class element already routes through the nominal
+             * raw-export runtime. The element class name comes from the
+             * binding's declared Array<ClassName> context. */
+            return llvm_emit_nested_array_literal_raw(node, ctx, count,
+                elem_type, inner_name_buf, first_value);
+        }
     } else if (expected_type_name != NULL
                && pgy_classify_type(expected_type_name)
                     == PGY_TK_ARRAY) {
