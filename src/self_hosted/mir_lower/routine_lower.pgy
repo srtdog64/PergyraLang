@@ -14,36 +14,10 @@
 // Block ids are sequential digit strings ("0".."n"); we key on them as text.
 // ---------------------------------------------------------------------------
 
-func IsDigit(c: String) -> Bool {
-    return c == "0" || c == "1" || c == "2" || c == "3" || c == "4"
-        || c == "5" || c == "6" || c == "7" || c == "8" || c == "9";
-}
-
-// Read the run of digits starting at `p`; "" if none.
-func ReadDigits(s: String, p: Int) -> String {
-    let r: String = "";
-    let i: Int = p;
-    let n: Int = StringLength(s);
-    while i < n {
-        let c: String = CharAt(s, i);
-        if IsDigit(c) {
-            r = Concat(r, c);
-            i = i + 1;
-        } else {
-            i = n;
-        }
-    }
-    return r;
-}
-
-// Successor id (digit string) for `kw` (e.g. "\"succ_true\":") within [bs,be);
-// "" when the key is absent (no such edge).
-func ReadSucc(json: String, bs: Int, be: Int, kw: String) -> String {
-    let p: Int = FindFrom(json, kw, bs);
-    if p < 0 || p >= be {
-        return "";
-    }
-    return ReadDigits(json, p + StringLength(kw));
+// Successor id fact for `field` (`succ_true` / `succ_false`) within a block.
+// "" when the field is absent (no such edge).
+func ReadSucc(json: String, bs: Int, be: Int, field: String) -> String {
+    return MirObjectNumberFact(json, bs, be, field);
 }
 
 func OptionInnerTypeName(type_name: String) -> String {
@@ -231,10 +205,10 @@ func RegionExit(json: String, routine_start: Int, bp: Int, span_end: Int, start:
         }
         let cond: String = BlockCond(json, routine_start, span_end, o[0], o[1]);
         if StringLength(cond) == 0 {
-            return ReadSucc(json, o[0], o[1], "\"succ_true\":");
+            return ReadSucc(json, o[0], o[1], "succ_true");
         }
-        let t: String = ReadSucc(json, o[0], o[1], "\"succ_true\":");
-        let f: String = ReadSucc(json, o[0], o[1], "\"succ_false\":");
+        let t: String = ReadSucc(json, o[0], o[1], "succ_true");
+        let f: String = ReadSucc(json, o[0], o[1], "succ_false");
         let te: String = RegionExit(json, routine_start, bp, span_end, t);
         if te == f {
             cur = f;
@@ -269,10 +243,10 @@ func BlockHasIncomingBackedge(json: String, bp: Int, span_end: Int, want: String
         if !BlockBounds(json, bp, span_end, id, o) {
             return false;
         }
-        if ReadSucc(json, o[0], o[1], "\"succ_true\":") == want {
+        if ReadSucc(json, o[0], o[1], "succ_true") == want {
             return true;
         }
-        if ReadSucc(json, o[0], o[1], "\"succ_false\":") == want {
+        if ReadSucc(json, o[0], o[1], "succ_false") == want {
             return true;
         }
         i = i + 1;
@@ -303,7 +277,7 @@ func EmitRegion(json: String, routine_start: Int, bp: Int, span_end: Int,
         out = Concat(out, stmts);
         let cond: String = BlockCond(json, routine_start, span_end, bs, be);
         if StringLength(cond) == 0 {
-            let next: String = ReadSucc(json, bs, be, "\"succ_true\":");
+            let next: String = ReadSucc(json, bs, be, "succ_true");
             if StringLength(loop_header) > 0 && next == loop_header {
                 out = Concat(out, Concat(indent, "Continue\n"));
                 cur = stop;
@@ -314,8 +288,8 @@ func EmitRegion(json: String, routine_start: Int, bp: Int, span_end: Int,
                 cur = next;
             }
         } else {
-            let t: String = ReadSucc(json, bs, be, "\"succ_true\":");
-            let f: String = ReadSucc(json, bs, be, "\"succ_false\":");
+            let t: String = ReadSucc(json, bs, be, "succ_true");
+            let f: String = ReadSucc(json, bs, be, "succ_false");
             let isFor: Bool = StringLength(cond) >= 4 && Substring(cond, 0, 4) == "for ";
             let isLoop: Bool = isFor || (BlockHasPhi(json, bs, be)
                 && BlockHasIncomingBackedge(json, bp, span_end, cur));

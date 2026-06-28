@@ -2171,3 +2171,13 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   direct `"blocks"` field scans while computing header/body boundaries. This is
   still within the ACTIVE Stable JSON blocker, but the remaining `mir_lower`
   raw scans are now concentrated in CFG block/instruction traversal.
+
+### 2026-06-28 -- CFG successor reads consume block number facts
+
+- Repointed `ReadSucc` in `src/self_hosted/mir_lower/routine_lower.pgy` from
+  direct `succ_true` / `succ_false` key scans to `MirObjectNumberFact`.
+- Removed the local digit-run reader that only existed to parse successor
+  values after raw key lookup.
+- Tightened the component contract so successor reconstruction cannot
+  reintroduce local `FindFrom(json, kw, ...)` scans. The remaining
+  `routine_lower` raw scans are block lookup and instruction traversal.
