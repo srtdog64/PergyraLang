@@ -322,11 +322,11 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         if (has_captures) {
             codebuf_write(ctx->out,
-                "PgyTaskHandle _ph_%zu = pgy_spawn(_pgy_par_%zu_%u, &_pctx%u);\n",
+                "PgyTaskHandle _ph_%zu = pgy_lane_spawn_dispatch(PGY_LANE_WORKER_POOL, _pgy_par_%zu_%u, &_pctx%u);\n",
                 i, i, pid, pid);
         } else {
             codebuf_write(ctx->out,
-                "PgyTaskHandle _ph_%zu = pgy_spawn(_pgy_par_%zu_%u, NULL);\n",
+                "PgyTaskHandle _ph_%zu = pgy_lane_spawn_dispatch(PGY_LANE_WORKER_POOL, _pgy_par_%zu_%u, NULL);\n",
                 i, i, pid);
         }
         write_indent(ctx);
@@ -414,7 +414,7 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent++;
     write_indent(ctx);
     codebuf_write(ctx->out,
-        "PgyTaskHandle _ah_%u = pgy_async_spawn(_pgy_async_%u, NULL);\n",
+        "PgyTaskHandle _ah_%u = pgy_lane_spawn_dispatch(PGY_LANE_LOCAL_ASYNC, _pgy_async_%u, NULL);\n",
         pid, pid);
     write_indent(ctx);
     codebuf_write(ctx->out,

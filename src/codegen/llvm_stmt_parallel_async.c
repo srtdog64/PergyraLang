@@ -2,6 +2,7 @@
 #include "llvm_internal.h"
 #include "llvm_stmt_parallel_names.h"
 #include "transpiler_type_mapping.h"
+#include "../common/execution_lane_kind.h"
 #include "../parser/ast_analysis.h"
 #include "../parser/ast_api.h"
 
@@ -129,14 +130,15 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
     if (count == 0)
         return;
 
-    LLVMFuncEntry *spawn_fn = llvm_lookup_function(ctx, "pgy_spawn_export");
+    LLVMFuncEntry *spawn_fn = llvm_lookup_function(ctx,
+        "pgy_lane_spawn_dispatch_export");
     LLVMFuncEntry *await_fn = llvm_lookup_function(ctx, "pgy_await_export");
     if (spawn_fn == NULL || await_fn == NULL) {
         llvm_set_error_at_with_hints(ctx, node,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
             PGY_FIX_INSPECT_MIR_INVENTORY,
-            "LLVM parallel block requires registered runtime functions 'pgy_spawn_export' and 'pgy_await_export'; sequential fallback is disabled");
+            "LLVM parallel block requires registered runtime functions 'pgy_lane_spawn_dispatch_export' and 'pgy_await_export'; sequential fallback is disabled");
         return;
     }
 
@@ -369,9 +371,13 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
             ctx->builder, wrapper_fns[i], ctx->type_i8ptr,
             llvm_tmp_name(ctx));
 
-        LLVMValueRef args[] = { fn_ptr, ctx_i8ptr };
+        LLVMValueRef args[] = {
+            LLVMConstInt(ctx->type_i32, PGY_LANE_WORKER_POOL, 0),
+            fn_ptr,
+            ctx_i8ptr
+        };
         handles[i] = LLVMBuildCall2(ctx->builder, spawn_fn->fn_type,
-                                     spawn_fn->fn, args, 2,
+                                     spawn_fn->fn, args, 3,
                                      llvm_tmp_name(ctx));
         if (!llvm_emit_task_handle_nonnull_guard(ctx, node, handles[i],
                 "LLVM parallel task spawn failed")) {
@@ -391,14 +397,15 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
 {
     size_t statement_count = 0;
     ASTNode **statements = ast_async_block_statements(node, &statement_count);
-    LLVMFuncEntry *spawn_fn = llvm_lookup_function(ctx, "pgy_async_spawn_export");
+    LLVMFuncEntry *spawn_fn = llvm_lookup_function(ctx,
+        "pgy_lane_spawn_dispatch_export");
     LLVMFuncEntry *detach_fn = llvm_lookup_function(ctx, "pgy_async_detach_export");
     if (spawn_fn == NULL || detach_fn == NULL) {
         llvm_set_error_at_with_hints(ctx, node,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
             PGY_FIX_INSPECT_MIR_INVENTORY,
-            "LLVM async block requires registered runtime functions 'pgy_async_spawn_export' and 'pgy_async_detach_export'; synchronous fallback is disabled");
+            "LLVM async block requires registered runtime functions 'pgy_lane_spawn_dispatch_export' and 'pgy_async_detach_export'; synchronous fallback is disabled");
         return;
     }
 
@@ -501,9 +508,13 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
         LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
 
     LLVMValueRef fn_ptr = LLVMBuildBitCast(ctx->builder, fn, ctx->type_i8ptr, llvm_tmp_name(ctx));
-    LLVMValueRef spawn_args[] = { fn_ptr, ctx_i8ptr };
+    LLVMValueRef spawn_args[] = {
+        LLVMConstInt(ctx->type_i32, PGY_LANE_LOCAL_ASYNC, 0),
+        fn_ptr,
+        ctx_i8ptr
+    };
     LLVMValueRef handle = LLVMBuildCall2(ctx->builder, spawn_fn->fn_type, spawn_fn->fn,
-        spawn_args, 2, llvm_tmp_name(ctx));
+        spawn_args, 3, llvm_tmp_name(ctx));
     if (!llvm_emit_task_handle_nonnull_guard(ctx, node, handle,
             "LLVM async block spawn failed")) {
         return;

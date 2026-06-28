@@ -30,9 +30,32 @@ grep -Fq "pgy_lane_spawn_dispatch(" \
 grep -Fq "pgy_lane_spawn_dispatch_export" \
     "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c" \
     || fail "LLVM spawn lowering does not consume the lane spawn facade export"
+grep -Fq "pgy_lane_spawn_dispatch(PGY_LANE_WORKER_POOL" \
+    "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c" \
+    || fail "C parallel lowering does not consume the WorkerPool lane facade"
+grep -Fq "pgy_lane_spawn_dispatch(PGY_LANE_LOCAL_ASYNC" \
+    "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c" \
+    || fail "C async block lowering does not consume the LocalAsync lane facade"
+grep -Fq "pgy_lane_spawn_dispatch_export" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c" \
+    || fail "LLVM async/parallel lowering does not consume the lane spawn facade export"
+grep -Fq "PGY_LANE_WORKER_POOL" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c" \
+    || fail "LLVM parallel lowering does not emit the WorkerPool lane fact"
+grep -Fq "PGY_LANE_LOCAL_ASYNC" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c" \
+    || fail "LLVM async block lowering does not emit the LocalAsync lane fact"
 if grep -Fq '"pgy_spawn_blocking" : "pgy_async_spawn"' \
     "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"; then
     fail "C spawn lowering reintroduced direct executor selection"
+fi
+if grep -Fq "pgy_spawn(" \
+    "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"; then
+    fail "C parallel lowering reintroduced direct pgy_spawn"
+fi
+if grep -Fq "pgy_async_spawn(" \
+    "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"; then
+    fail "C async block lowering reintroduced direct pgy_async_spawn"
 fi
 if grep -Fq "pgy_spawn_blocking_export" \
     "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"; then
@@ -41,6 +64,14 @@ fi
 if grep -Fq "pgy_async_spawn_export" \
     "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"; then
     fail "LLVM spawn lowering reintroduced direct executor selection"
+fi
+if grep -Fq "pgy_spawn_export" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"; then
+    fail "LLVM parallel lowering reintroduced direct pgy_spawn_export"
+fi
+if grep -Fq "pgy_async_spawn_export" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"; then
+    fail "LLVM async block lowering reintroduced direct pgy_async_spawn_export"
 fi
 
 echo "[lane-scheduler] PASS"
