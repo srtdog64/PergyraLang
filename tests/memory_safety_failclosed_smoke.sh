@@ -18,6 +18,10 @@
 #                builtins: a signed *-overflow / +-overflow (e.g. the malloc(n*size)
 #                integer-overflow-to-undersized-allocation class) panics instead of
 #                wrapping to a smaller-than-expected value.
+#   lifecycle_wrong_state -> the use-after-free / use-in-wrong-state class: a
+#                domain-lifecycle operation applied in a state that forbids it
+#                (Capture on a non-Authorized Payment) panics instead of silently
+#                mutating an invalid-state object.
 
 set -euo pipefail
 
@@ -40,7 +44,7 @@ backends="c"
 if "$PGY" --help 2>/dev/null | grep -qiE 'llvm'; then backends="c llvm"; fi
 
 WORK="$(mktemp -d)"
-cases="oob_write:out-of-bounds oob_read:out-of-bounds div_zero:divide-by-zero mod_zero:divide-by-zero checked_mul_overflow:arithmetic-overflow checked_add_overflow:arithmetic-overflow"
+cases="oob_write:out-of-bounds oob_read:out-of-bounds div_zero:divide-by-zero mod_zero:divide-by-zero checked_mul_overflow:arithmetic-overflow checked_add_overflow:arithmetic-overflow lifecycle_wrong_state:invalid-lifecycle-state"
 
 for be in $backends; do
     for spec in $cases; do

@@ -1,0 +1,23 @@
+// Domain-lifecycle counterexample: the Pergyra analog of use-after-free /
+// use-in-the-wrong-state. Capture() is only valid on an Authorized Payment, but
+// on the false branch the Payment is still Pending at the join, so the operation
+// is invalid. Static analysis cannot prove the state at the branch join, so a
+// single runtime guard fires fail-closed (a panic, never a silent invalid-state
+// mutation) -- on both backends.
+subject Payment {
+    func Authorize(self) -> Void { }
+    func Capture(self) -> Void { }
+}
+lifecycle Payment {
+    Authorize: Pending -> Authorized;
+    Capture: Authorized -> Captured;
+}
+func Flag() -> Bool { return false; }
+func Main() -> Void {
+    let p: Payment = Payment();
+    if Flag() {
+        p.Authorize();
+    }
+    p.Capture();
+    Log("UNREACHABLE: Capture on a non-Authorized Payment should fail closed");
+}
