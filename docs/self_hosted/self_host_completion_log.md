@@ -2267,3 +2267,16 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   reintroduce local schema-string recovery. This is still within the ACTIVE
   Stable JSON blocker, but the MIR input gate now consumes the same document
   field owner as other self-hosted JSON consumers.
+
+### 2026-06-29 -- Codegen runtime usage facts consume AST node inventory
+
+- Added `src/self_hosted/codegen/input/ast_usage_owner.pgy` with
+  `CodegenRuntimeUsageFactsFromNodes`.
+- Repointed `program_emit.pgy` so runtime/header decisions consume the
+  `CodegenAstTextNode` inventory instead of rescanning the whole `ast` string
+  for `Args`, arrays, strings, IO, random, Result/Option, and related helper
+  triggers.
+- Tightened the component contract so `program_emit.pgy` cannot reintroduce
+  `StringIndexOf(ast, ...)` for runtime usage facts. This reduces the ACTIVE
+  mixed AST-like tree blocker while the transitional `CodegenAstTextNode.text`
+  payload remains.

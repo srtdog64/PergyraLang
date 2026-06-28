@@ -1,0 +1,140 @@
+// Codegen AST usage fact owner.
+//
+// The self-host C emitter still consumes the transitional AST-text bridge, but
+// runtime/header decisions should not rescan the raw AST document. This owner
+// derives those decisions from the typed line inventory.
+
+struct CodegenRuntimeUsageFacts {
+    let uses_args: Bool;
+    let uses_str: Bool;
+    let uses_math: Bool;
+    let uses_array_sort: Bool;
+    let uses_array_reverse: Bool;
+    let uses_array_map: Bool;
+    let uses_array_filter: Bool;
+    let uses_result: Bool;
+    let uses_option: Bool;
+    let uses_bool: Bool;
+    let uses_exit: Bool;
+    let uses_array: Bool;
+    let uses_ast_text_node_array: Bool;
+    let uses_io: Bool;
+    let uses_join: Bool;
+    let uses_split: Bool;
+    let uses_dirwalk: Bool;
+    let uses_log: Bool;
+    let uses_fhandle: Bool;
+    let uses_print: Bool;
+    let uses_float: Bool;
+    let uses_random_value: Bool;
+    let uses_seed_random: Bool;
+    let uses_random: Bool;
+}
+
+func CodegenAstTextContains(nodes: Array<CodegenAstTextNode>, count: Int, needle: String) -> Bool {
+    let i: Int = 0;
+    while i < count {
+        if StringIndexOf(nodes[i].text, needle) >= 0 {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CodegenRuntimeUsageFactsFromNodes(nodes: Array<CodegenAstTextNode>, count: Int) -> CodegenRuntimeUsageFacts {
+    let uses_args: Bool = CodegenAstTextContains(nodes, count, "Args(");
+    let uses_str: Bool = CodegenAstTextContains(nodes, count, "String")
+        || CodegenAstTextContains(nodes, count, "Concat(")
+        || CodegenAstTextContains(nodes, count, "Substring(")
+        || CodegenAstTextContains(nodes, count, "SubIndexOfWithLen(")
+        || CodegenAstTextContains(nodes, count, "SubEqualsWithLen(")
+        || CodegenAstTextContains(nodes, count, "SubContainsWithLen(")
+        || CodegenAstTextContains(nodes, count, "SubStartsWithLen(")
+        || CodegenAstTextContains(nodes, count, "ToUpper(")
+        || CodegenAstTextContains(nodes, count, "ToLower(");
+    let uses_math: Bool = CodegenAstTextContains(nodes, count, "Abs(")
+        || CodegenAstTextContains(nodes, count, "Min(")
+        || CodegenAstTextContains(nodes, count, "Max(");
+    let uses_array_sort: Bool = CodegenAstTextContains(nodes, count, "ArraySort(");
+    let uses_array_reverse: Bool = CodegenAstTextContains(nodes, count, "ArrayReverse(");
+    let uses_array_map: Bool = CodegenAstTextContains(nodes, count, "ArrayMap(");
+    let uses_array_filter: Bool = CodegenAstTextContains(nodes, count, "ArrayFilter(");
+    let uses_result: Bool = CodegenAstTextContains(nodes, count, "Result<")
+        || CodegenAstTextContains(nodes, count, "Ok(")
+        || CodegenAstTextContains(nodes, count, "Err(")
+        || CodegenAstTextContains(nodes, count, "IsOk(")
+        || CodegenAstTextContains(nodes, count, "IsErr(")
+        || CodegenAstTextContains(nodes, count, "Unwrap(")
+        || CodegenAstTextContains(nodes, count, "UnwrapOr(");
+    let uses_option: Bool = CodegenAstTextContains(nodes, count, "Option<")
+        || CodegenAstTextContains(nodes, count, "Some(")
+        || CodegenAstTextContains(nodes, count, "None")
+        || CodegenAstTextContains(nodes, count, "IsSome(")
+        || CodegenAstTextContains(nodes, count, "UnwrapOption(");
+    let uses_bool: Bool = CodegenAstTextContains(nodes, count, "Bool") || uses_array_filter || uses_result || uses_option;
+    let uses_exit: Bool = CodegenAstTextContains(nodes, count, "Exit(");
+    let uses_array: Bool = CodegenAstTextContains(nodes, count, "Array<")
+        || CodegenAstTextContains(nodes, count, "ArrayPush(")
+        || CodegenAstTextContains(nodes, count, "ArrayLength(")
+        || CodegenAstTextContains(nodes, count, "ArraySet(")
+        || CodegenAstTextContains(nodes, count, "ArrayPop(")
+        || uses_array_sort
+        || uses_array_reverse
+        || uses_array_map
+        || uses_array_filter
+        || CodegenAstTextContains(nodes, count, "StringJoin(")
+        || CodegenAstTextContains(nodes, count, "Join(")
+        || CodegenAstTextContains(nodes, count, "Split(")
+        || CodegenAstTextContains(nodes, count, "DirWalk(")
+        || uses_args;
+    let uses_ast_text_node_array: Bool = CodegenAstTextContains(nodes, count, "Array<CodegenAstTextNode");
+    let uses_io: Bool = CodegenAstTextContains(nodes, count, "ReadFile(")
+        || CodegenAstTextContains(nodes, count, "FileExists(")
+        || CodegenAstTextContains(nodes, count, "WriteFile(");
+    let uses_join: Bool = CodegenAstTextContains(nodes, count, "StringJoin(")
+        || CodegenAstTextContains(nodes, count, "Join(");
+    let uses_split: Bool = CodegenAstTextContains(nodes, count, "Split(");
+    let uses_dirwalk: Bool = CodegenAstTextContains(nodes, count, "DirWalk(");
+    let uses_log: Bool = CodegenAstTextContains(nodes, count, "Log");
+    let uses_fhandle: Bool = CodegenAstTextContains(nodes, count, "FileOpen(")
+        || CodegenAstTextContains(nodes, count, "FileWrite(")
+        || CodegenAstTextContains(nodes, count, "FileClose(")
+        || CodegenAstTextContains(nodes, count, "FileRead(");
+    let uses_print: Bool = CodegenAstTextContains(nodes, count, "Print(");
+    let uses_float: Bool = CodegenAstTextContains(nodes, count, "Float")
+        || CodegenAstTextContains(nodes, count, "Sqrt(")
+        || CodegenAstTextContains(nodes, count, "Pow(")
+        || CodegenAstTextContains(nodes, count, "Floor(")
+        || CodegenAstTextContains(nodes, count, "Ceil(")
+        || CodegenAstTextContains(nodes, count, "ToFloat(");
+    let uses_random_value: Bool = CodegenAstTextContains(nodes, count, "Random(");
+    let uses_seed_random: Bool = CodegenAstTextContains(nodes, count, "SeedRandom(");
+    let uses_random: Bool = uses_random_value || uses_seed_random;
+    return CodegenRuntimeUsageFacts(
+        uses_args,
+        uses_str,
+        uses_math,
+        uses_array_sort,
+        uses_array_reverse,
+        uses_array_map,
+        uses_array_filter,
+        uses_result,
+        uses_option,
+        uses_bool,
+        uses_exit,
+        uses_array,
+        uses_ast_text_node_array,
+        uses_io,
+        uses_join,
+        uses_split,
+        uses_dirwalk,
+        uses_log,
+        uses_fhandle,
+        uses_print,
+        uses_float,
+        uses_random_value,
+        uses_seed_random,
+        uses_random
+    );
+}

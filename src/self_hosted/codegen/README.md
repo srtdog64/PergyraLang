@@ -20,7 +20,8 @@ for supported self-host C runtime helper symbol spelling. The files under
 `main.pgy` is the thin CLI entrypoint. It imports owner modules through
 resource-shaped subdirectories:
 
-- `input/` owns AST path selection, file reads, and AST-text line inventory.
+- `input/` owns AST path selection, file reads, AST-text line inventory, and
+  runtime/header usage facts derived from that inventory.
 - `run/` owns CLI-to-output orchestration.
 - `text/` owns AST/expression text scanning primitives.
 - `type_facts/` owns type binding facts consumed as read-mostly evidence.

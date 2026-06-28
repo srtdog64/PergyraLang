@@ -11,6 +11,7 @@ import "runtime_abi/math_runtime_owner.pgy";
 import "runtime_abi/option_result_runtime_owner.pgy";
 import "runtime_abi/string_runtime_owner.pgy";
 import "input/ast_text_inventory_owner.pgy";
+import "input/ast_usage_owner.pgy";
 import "emission/expr_rewrite.pgy";
 import "emission/struct_value_emit.pgy";
 import "emission/stmt_emit.pgy";

@@ -370,6 +370,7 @@ require_text "tests/self_hosted/parity/semantic_parity.sh" "semantic_oracle_code
 require_owner_surface codegen \
     "input/ast_input_owner.pgy" \
     "input/ast_text_inventory_owner.pgy" \
+    "input/ast_usage_owner.pgy" \
     "run/codegen_run_owner.pgy" \
     "text/text_owner.pgy" \
     "type_facts/type_env.pgy" \
@@ -415,12 +416,18 @@ require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func 
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextInventory(ast: String, inout indents:"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextProjectLegacy"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextExpect(texts:"
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "struct CodegenRuntimeUsageFacts"
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenRuntimeUsageFactsFromNodes"
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenAstTextContains"
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstTextContains(nodes, count, \"Args(\")"
 require_text "src/parser/ast_print.c" "PARAM_MODE_MUT_REF"
 require_text "src/parser/ast_print.c" 'printf("inout ")'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "inout "'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "ref "'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "own "'
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextNodeInventory(ast, nodes, node_count_box)"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let usage: CodegenRuntimeUsageFacts = CodegenRuntimeUsageFactsFromNodes(nodes, count)"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let uses_args: Bool = usage.uses_args"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextIsEventDecl(nodes[main_scan])"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextIsMainFunction(nodes[scan])"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextIsNominalDecl(nodes[cur[0]])"
@@ -432,6 +439,7 @@ require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let cur_line: 
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let record_array_block: String = \"\""
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "pgy_CodegenAstTextNode_array_get"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextInventory(ast, indents, texts)"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringIndexOf(ast,"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "texts["
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "indents["
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int)"
@@ -668,6 +676,7 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/c
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/symbol_table_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/world.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/main.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/input/ast_usage_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/input/ast_text_inventory_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy"'
@@ -844,8 +853,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 86 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 86"
+[[ "$selfcheck_count" -eq 87 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 87"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirFactObjectStart"

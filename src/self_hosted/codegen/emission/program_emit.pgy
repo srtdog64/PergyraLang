@@ -49,7 +49,8 @@ func GenerateC(ast: String) -> String {
     let typedef_block: String = CollectStructs(nodes, count, env_acc);
     CollectRoleOperators(nodes, count, env_acc);
     let base_env: String = env_acc[0];
-    let uses_args: Bool = StringIndexOf(ast, "Args(") >= 0;
+    let usage: CodegenRuntimeUsageFacts = CodegenRuntimeUsageFactsFromNodes(nodes, count);
+    let uses_args: Bool = usage.uses_args;
 
     let defs: String = "";
     let cur: Array<Int> = [0];
@@ -102,74 +103,30 @@ func GenerateC(ast: String) -> String {
     // String programs need the runtime string helpers; bool programs need
     // <stdbool.h>; array programs need the growable-array structs + stdlib;
     // int-only programs stay lean.
-    let uses_str: Bool = StringIndexOf(ast, "String") >= 0
-        || StringIndexOf(ast, "Concat(") >= 0
-        || StringIndexOf(ast, "Substring(") >= 0
-        || StringIndexOf(ast, "SubIndexOfWithLen(") >= 0
-        || StringIndexOf(ast, "SubEqualsWithLen(") >= 0
-        || StringIndexOf(ast, "SubContainsWithLen(") >= 0
-        || StringIndexOf(ast, "SubStartsWithLen(") >= 0
-        || StringIndexOf(ast, "ToUpper(") >= 0
-        || StringIndexOf(ast, "ToLower(") >= 0;
-    let uses_math: Bool = StringIndexOf(ast, "Abs(") >= 0
-        || StringIndexOf(ast, "Min(") >= 0
-        || StringIndexOf(ast, "Max(") >= 0;
-    let uses_array_sort: Bool = StringIndexOf(ast, "ArraySort(") >= 0;
-    let uses_array_reverse: Bool = StringIndexOf(ast, "ArrayReverse(") >= 0;
-    let uses_array_map: Bool = StringIndexOf(ast, "ArrayMap(") >= 0;
-    let uses_array_filter: Bool = StringIndexOf(ast, "ArrayFilter(") >= 0;
-    let uses_result: Bool = StringIndexOf(ast, "Result<") >= 0
-        || StringIndexOf(ast, "Ok(") >= 0
-        || StringIndexOf(ast, "Err(") >= 0
-        || StringIndexOf(ast, "IsOk(") >= 0
-        || StringIndexOf(ast, "IsErr(") >= 0
-        || StringIndexOf(ast, "Unwrap(") >= 0
-        || StringIndexOf(ast, "UnwrapOr(") >= 0;
-    let uses_option: Bool = StringIndexOf(ast, "Option<") >= 0
-        || StringIndexOf(ast, "Some(") >= 0
-        || StringIndexOf(ast, "None") >= 0
-        || StringIndexOf(ast, "IsSome(") >= 0
-        || StringIndexOf(ast, "UnwrapOption(") >= 0;
-    let uses_bool: Bool = StringIndexOf(ast, "Bool") >= 0 || uses_array_filter || uses_result || uses_option;
-    let uses_exit: Bool = StringIndexOf(ast, "Exit(") >= 0;
-    let uses_array: Bool = StringIndexOf(ast, "Array<") >= 0
-        || StringIndexOf(ast, "ArrayPush(") >= 0
-        || StringIndexOf(ast, "ArrayLength(") >= 0
-        || StringIndexOf(ast, "ArraySet(") >= 0
-        || StringIndexOf(ast, "ArrayPop(") >= 0
-        || uses_array_sort
-        || uses_array_reverse
-        || uses_array_map
-        || uses_array_filter
-        || StringIndexOf(ast, "StringJoin(") >= 0
-        || StringIndexOf(ast, "Join(") >= 0
-        || StringIndexOf(ast, "Split(") >= 0
-        || StringIndexOf(ast, "DirWalk(") >= 0
-        || StringIndexOf(ast, "Args(") >= 0;
-    let uses_ast_text_node_array: Bool = StringIndexOf(ast, "Array<CodegenAstTextNode") >= 0;
-    let uses_args2: Bool = StringIndexOf(ast, "Args(") >= 0;
-    let uses_io: Bool = StringIndexOf(ast, "ReadFile(") >= 0
-        || StringIndexOf(ast, "FileExists(") >= 0
-        || StringIndexOf(ast, "WriteFile(") >= 0;
-    let uses_join: Bool = StringIndexOf(ast, "StringJoin(") >= 0
-        || StringIndexOf(ast, "Join(") >= 0;
-    let uses_split: Bool = StringIndexOf(ast, "Split(") >= 0;
-    let uses_dirwalk: Bool = StringIndexOf(ast, "DirWalk(") >= 0;
-    let uses_log: Bool = StringIndexOf(ast, "Log") >= 0;
-    let uses_fhandle: Bool = StringIndexOf(ast, "FileOpen(") >= 0
-        || StringIndexOf(ast, "FileWrite(") >= 0
-        || StringIndexOf(ast, "FileClose(") >= 0
-        || StringIndexOf(ast, "FileRead(") >= 0;
-    let uses_print: Bool = StringIndexOf(ast, "Print(") >= 0;
-    let uses_float: Bool = StringIndexOf(ast, "Float") >= 0
-        || StringIndexOf(ast, "Sqrt(") >= 0
-        || StringIndexOf(ast, "Pow(") >= 0
-        || StringIndexOf(ast, "Floor(") >= 0
-        || StringIndexOf(ast, "Ceil(") >= 0
-        || StringIndexOf(ast, "ToFloat(") >= 0;
-    let uses_random_value: Bool = StringIndexOf(ast, "Random(") >= 0;
-    let uses_seed_random: Bool = StringIndexOf(ast, "SeedRandom(") >= 0;
-    let uses_random: Bool = uses_random_value || uses_seed_random;
+    let uses_str: Bool = usage.uses_str;
+    let uses_math: Bool = usage.uses_math;
+    let uses_array_sort: Bool = usage.uses_array_sort;
+    let uses_array_reverse: Bool = usage.uses_array_reverse;
+    let uses_array_map: Bool = usage.uses_array_map;
+    let uses_array_filter: Bool = usage.uses_array_filter;
+    let uses_result: Bool = usage.uses_result;
+    let uses_option: Bool = usage.uses_option;
+    let uses_bool: Bool = usage.uses_bool;
+    let uses_exit: Bool = usage.uses_exit;
+    let uses_array: Bool = usage.uses_array;
+    let uses_ast_text_node_array: Bool = usage.uses_ast_text_node_array;
+    let uses_args2: Bool = usage.uses_args;
+    let uses_io: Bool = usage.uses_io;
+    let uses_join: Bool = usage.uses_join;
+    let uses_split: Bool = usage.uses_split;
+    let uses_dirwalk: Bool = usage.uses_dirwalk;
+    let uses_log: Bool = usage.uses_log;
+    let uses_fhandle: Bool = usage.uses_fhandle;
+    let uses_print: Bool = usage.uses_print;
+    let uses_float: Bool = usage.uses_float;
+    let uses_random_value: Bool = usage.uses_random_value;
+    let uses_seed_random: Bool = usage.uses_seed_random;
+    let uses_random: Bool = usage.uses_random;
     let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_io || uses_fhandle || uses_random || uses_float || uses_result || uses_option;
     let header: String = "#include <stdio.h>\n";
     if uses_bool {
