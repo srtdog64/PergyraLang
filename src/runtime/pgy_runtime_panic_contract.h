@@ -63,6 +63,10 @@
     "integer division or modulo by zero"
 #define PGY_RUNTIME_PANIC_REASON_DIVISION_OVERFLOW \
     "signed division overflow (INT_MIN / -1 has no representable result)"
+#define PGY_RUNTIME_PANIC_REASON_ADDITION_OVERFLOW \
+    "signed integer addition overflow"
+#define PGY_RUNTIME_PANIC_REASON_MULTIPLICATION_OVERFLOW \
+    "signed integer multiplication overflow"
 #define PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR \
     "Result unwrap on Err value"
 #define PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE \
