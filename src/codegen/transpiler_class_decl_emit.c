@@ -280,6 +280,15 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "    %s %s;\n", ft, field_name);
     }
 
+    if (field_view.count == 0) {
+        /* A fieldless class (methods only, no state) would otherwise emit an
+         * empty struct -- a GCC extension that rejects the (Type){0}
+         * zero-initializer the constructor path emits, breaking the C backend
+         * while LLVM compiles fine. A single reserved member keeps the struct
+         * standard C and makes {0} a valid initializer. */
+        codebuf_write(ctx->out, "    char _pgy_reserved;\n");
+    }
+
     codebuf_write(ctx->out, "} %s;\n", name);
     codebuf_write(ctx->out,
         "\n/* Auto-generated container types for %s */\n"

@@ -268,6 +268,12 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         }
         codebuf_write(ctx->helpers, "    %s %s;\n", ft, field_name);
     }
+    if (field_view.count == 0) {
+        /* Fieldless generic specialization: keep the struct standard C so the
+         * (Type){0} constructor initializer is valid (see the same guard in
+         * transpiler_class_decl_emit.c). */
+        codebuf_write(ctx->helpers, "    char _pgy_reserved;\n");
+    }
     codebuf_write(ctx->helpers, "} %s;\n", spec_name);
 
     codebuf_write(ctx->helpers,

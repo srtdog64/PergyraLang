@@ -1,0 +1,11 @@
+// Fieldless class (methods only, no state): the C backend must not emit an empty
+// struct that rejects the (Type){0} constructor initializer. C and LLVM must agree.
+class Calc {
+    func Add(self, a: Int, b: Int) -> Int {
+        return a + b;
+    }
+}
+func Main() -> Void {
+    let c: Calc = Calc();
+    Log(StringConcat("r=", ToString(c.Add(3, 4))));
+}

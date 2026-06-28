@@ -1427,6 +1427,7 @@ main() {
         "tests/cases/backend_compare/for_in_array_literal_iterable"
         "tests/cases/backend_compare/for_in_call_iterable"
         "tests/cases/backend_compare/for_in_member_iterable"
+        "tests/cases/backend_compare/fieldless_class_method"
     )
 
     local use_default_cases=0
