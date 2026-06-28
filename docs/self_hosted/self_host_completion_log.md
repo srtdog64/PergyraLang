@@ -2193,3 +2193,16 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Tightened the component contract so block lookup cannot reintroduce raw block
   marker or `reachable` scans. The remaining `routine_lower` raw scans are now
   instruction traversal and branch/phi detection.
+
+### 2026-06-28 -- CFG instruction traversal consumes row facts
+
+- Added `BlockInstructionBoundsAt`, `BlockInstructionKind`, and
+  `BlockInstructionOfKindBounds` in
+  `src/self_hosted/mir_lower/routine_lower.pgy`.
+- Repointed branch condition, match binding, statement emission, and phi
+  detection from local `FindFrom(json, "\"kind\"...")` scans to the block
+  `instructions` array row facts.
+- Tightened the component contract so `routine_lower.pgy` cannot reintroduce
+  local `FindFrom(json, ...)` scans. The `mir_lower` path now consumes
+  declaration, routine, block, successor, source-local, statement-array,
+  match-pattern, and instruction facts through the MIR JSON fact owner surface.

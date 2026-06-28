@@ -21,6 +21,31 @@ func ReadSucc(json: String, bs: Int, be: Int, field: String) -> String {
     return MirObjectNumberFact(json, bs, be, field);
 }
 
+func BlockInstructionBoundsAt(json: String, bs: Int, be: Int, row: Int, inout bounds: Array<Int>) -> Bool {
+    return MirObjectArrayObjectBoundsAt(json, bs, be, "instructions", row, bounds);
+}
+
+func BlockInstructionKind(json: String, inst_start: Int, inst_end: Int) -> String {
+    return MirObjectStringFact(json, inst_start, inst_end, "kind");
+}
+
+func BlockInstructionOfKindBounds(
+    json: String,
+    bs: Int,
+    be: Int,
+    wanted: String,
+    inout bounds: Array<Int>
+) -> Bool {
+    let row: Int = 0;
+    while BlockInstructionBoundsAt(json, bs, be, row, bounds) {
+        if BlockInstructionKind(json, bounds[0], bounds[1]) == wanted {
+            return true;
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
 func OptionInnerTypeName(type_name: String) -> String {
     let lt: Int = StringIndexOf(type_name, "<");
     if lt < 0 {
@@ -54,15 +79,12 @@ func BlockBounds(json: String, routine_start: Int, routine_end: Int, id: String,
 // Branch condition within [bs,be); "" if the block does not end in a branch or
 // the branch does not carry the required MIR fact.
 func BlockCond(json: String, routine_start: Int, routine_end: Int, bs: Int, be: Int) -> String {
-    let kp: Int = FindFrom(json, "\"kind\":\"branch\"", bs);
-    if kp < 0 || kp >= be {
+    let inst_bounds: Array<Int> = [0, 0];
+    if !BlockInstructionOfKindBounds(json, bs, be, "branch", inst_bounds) {
         return "";
     }
-    let next_kp: Int = FindFrom(json, "\"kind\":", kp + 8);
-    let inst_end: Int = be;
-    if next_kp >= 0 && next_kp < be {
-        inst_end = next_kp;
-    }
+    let kp: Int = inst_bounds[0];
+    let inst_end: Int = inst_bounds[1];
     let source_type: String = MirObjectStringFact(json, kp, inst_end, "source_type");
     if source_type == "AST_MATCH_CASE" {
         let match_subject: String = MirObjectStringFact(json, kp, inst_end, "expr0");
@@ -104,15 +126,12 @@ func BlockCond(json: String, routine_start: Int, routine_end: Int, bs: Int, be: 
 
 func BlockMatchBindingLine(json: String, routine_start: Int, routine_end: Int,
                            bs: Int, be: Int, indent: String) -> String {
-    let kp: Int = FindFrom(json, "\"kind\":\"branch\"", bs);
-    if kp < 0 || kp >= be {
+    let inst_bounds: Array<Int> = [0, 0];
+    if !BlockInstructionOfKindBounds(json, bs, be, "branch", inst_bounds) {
         return "";
     }
-    let next_kp: Int = FindFrom(json, "\"kind\":", kp + 8);
-    let inst_end: Int = be;
-    if next_kp >= 0 && next_kp < be {
-        inst_end = next_kp;
-    }
+    let kp: Int = inst_bounds[0];
+    let inst_end: Int = inst_bounds[1];
     let source_type: String = MirObjectStringFact(json, kp, inst_end, "source_type");
     if source_type != "AST_MATCH_CASE" {
         return "";
@@ -141,14 +160,12 @@ func BlockMatchBindingLine(json: String, routine_start: Int, routine_end: Int,
 func EmitBlockStmts(json: String, routine_start: Int, routine_end: Int,
                     bs: Int, be: Int, indent: String) -> String {
     let out: String = "";
-    let kp: Int = FindFrom(json, "\"kind\":", bs);
-    while kp >= 0 && kp < be {
-        let ikind: String = MirObjectStringFact(json, kp, be, "kind");
-        let next_kp: Int = FindFrom(json, "\"kind\":", kp + 1);
-        let inst_end: Int = be;
-        if next_kp >= 0 && next_kp < be {
-            inst_end = next_kp;
-        }
+    let row: Int = 0;
+    let inst_bounds: Array<Int> = [0, 0];
+    while BlockInstructionBoundsAt(json, bs, be, row, inst_bounds) {
+        let kp: Int = inst_bounds[0];
+        let inst_end: Int = inst_bounds[1];
+        let ikind: String = BlockInstructionKind(json, kp, inst_end);
         if ikind == "destructure" {
             let d_expr0: String = MirObjectStringFact(json, kp, inst_end, "expr0");
             out = Concat(out, RenderDestructureFromFacts(
@@ -167,7 +184,7 @@ func EmitBlockStmts(json: String, routine_start: Int, routine_end: Int,
                 out = Concat(out, Concat(indent, Concat(RenderStmtFromFacts(ikind, source_type, arg0, expr0, expr1, local_type), "\n")));
             }
         }
-        kp = next_kp;
+        row = row + 1;
     }
     return out;
 }
@@ -175,8 +192,8 @@ func EmitBlockStmts(json: String, routine_start: Int, routine_end: Int,
 // True if block [bs,be) carries a `phi` -- the marker of a loop header (a
 // `while` header is a block holding both a phi and a branch).
 func BlockHasPhi(json: String, bs: Int, be: Int) -> Bool {
-    let p: Int = FindFrom(json, "\"kind\":\"phi\"", bs);
-    return p >= 0 && p < be;
+    let inst_bounds: Array<Int> = [0, 0];
+    return BlockInstructionOfKindBounds(json, bs, be, "phi", inst_bounds);
 }
 
 // Render a loop header. A `for` branch carries `for <binding>` as its condition
