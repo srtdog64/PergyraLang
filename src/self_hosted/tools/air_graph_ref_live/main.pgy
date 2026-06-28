@@ -7,7 +7,8 @@
 // evidence."boundary" names a boundary id (or null), each boundary."intent"
 // names an intent id. Because ids are dense and 0-based, a reference is valid
 // iff 0 <= ref < count, where count is the compiler-owned summary count -- so no
-// array scoping is needed. No JSON parser; substring-anchored scan only.
+// array scoping is needed. AIR graph scalar facts are consumed through the
+// shared scan owner.
 //
 // Cwd contract: the parity harness cd's into the repo root before running.
 // Contract: see intent.md in the same directory.
@@ -15,47 +16,19 @@
 import "../../lib/json.pgy";
 import "../air_graph_json_validator/scan_owner.pgy";
 
-func FirstTokenAfter(s: String, start: Int) -> String {
-    let after: String = Substring(s, start, StringLength(s) - start);
-    let c: Int = StringIndexOf(after, ",");
-    let b: Int = StringIndexOf(after, "}");
-    let stop: Int = -1;
-    if c >= 0 {
-        stop = c;
-    }
-    if b >= 0 {
-        if stop < 0 || b < stop {
-            stop = b;
-        }
-    }
-    if stop <= 0 {
-        stop = StringLength(after);
-    }
-    return Substring(after, 0, stop);
-}
-
-// Count references under `key` whose value is not "null" and falls outside
-// [0, limit). Each `"<key>":` occurrence is scanned in order.
-func DanglingRefs(content: String, key: String, limit: Int) -> Int {
+func DanglingRefs(refs: Array<String>, limit: Int) -> Int {
     let dangling: Int = 0;
-    let rest: String = content;
-    let guard: Int = 0;
-    while guard < 1000000 {
-        guard = guard + 1;
-        let idx: Int = StringIndexOf(rest, key);
-        if idx < 0 {
-            break;
-        }
-        let vstart: Int = idx + StringLength(key);
-        let tok: String = FirstTokenAfter(rest, vstart);
+    let i: Int = 0;
+    let nrefs: Int = ArrayLength(refs);
+    while i < nrefs {
+        let tok: String = refs[i];
         if tok != "null" {
             let n: Int = ToInt(tok);
             if n < 0 || n >= limit {
                 dangling = dangling + 1;
             }
         }
-        let tail_len: Int = StringLength(rest) - vstart;
-        rest = Substring(rest, vstart, tail_len);
+        i = i + 1;
     }
     return dangling;
 }
@@ -125,8 +98,10 @@ func Main() -> Void {
     let intent_count: Int = intent_count_box[0];
     let boundary_count: Int = boundary_count_box[0];
 
-    let boundary_dangling: Int = DanglingRefs(content, "\"boundary\":", boundary_count);
-    let intent_dangling: Int = DanglingRefs(content, "\"intent\":", intent_count);
+    let boundary_refs: Array<String> = AirGraphScalarFieldValues(content, "boundary");
+    let intent_refs: Array<String> = AirGraphScalarFieldValues(content, "intent");
+    let boundary_dangling: Int = DanglingRefs(boundary_refs, boundary_count);
+    let intent_dangling: Int = DanglingRefs(intent_refs, intent_count);
     let dangling: Int = boundary_dangling + intent_dangling;
     if !counts_ok {
         dangling = dangling + 1;

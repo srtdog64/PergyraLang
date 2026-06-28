@@ -27,7 +27,9 @@ the smallest real consistency check that only the live dump can exercise.
 The path is fixed relative to repository root; no CLI argument surface yet.
 Summary counts are read through
 `air_graph_json_validator/scan_owner.pgy::AirGraphSummaryIntField`; this tool
-does not own a second JSON summary-number scanner.
+does not own a second JSON summary-number scanner. Node id fields are read
+through `AirGraphScalarFieldValues`, so this tool also does not own a second
+AIR graph scalar-token scanner.
 
 ## Output Contract
 

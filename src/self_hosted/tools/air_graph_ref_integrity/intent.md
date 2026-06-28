@@ -3,13 +3,15 @@
 **Status:** rung-1 minimal. A consumer/analysis pass over an
 AIR-graph-shaped JSON dump: it extracts node ids and directed edge endpoints,
 then reports any `"from"` or `"to"` endpoint that has no matching node id.
+The scalar AIR graph facts come from the shared AIR graph scan owner, not a
+checker-local token scanner.
 
 ## Intent
 
 AIR graph edges must only point at nodes that exist. A dangling endpoint is a
 real IR defect: a producer pass deleted or failed to number a node while still
-leaving an edge behind. This Pergyra origin checks that invariant with only
-stable string scanning and `Array<String>` accumulation.
+leaving an edge behind. This Pergyra origin checks that invariant with shared
+AIR graph scalar fact reads and `Array<String>` accumulation.
 
 ## Input Contract
 
@@ -66,6 +68,7 @@ The parity rung asserts:
 
 ## Not In Scope
 
-- Full JSON parsing.
+- Full JSON DOM construction; the shared owner still provides bounded fact
+  reads, not a general-purpose tree.
 - Reachability from roots.
 - Dense or monotonic id numbering.

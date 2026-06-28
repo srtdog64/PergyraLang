@@ -1,8 +1,8 @@
 // src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy
 //
-// AIR JSON scan owner. This file extracts the stable counts and finding facts
-// from committed AIR graph fixtures. It does not own the output JSON schema or
-// filesystem/exit policy.
+// AIR JSON scan owner. This file extracts stable summary counts, scalar graph
+// facts, and finding facts from committed AIR graph fixtures. It does not own
+// the output JSON schema or filesystem/exit policy.
 
 import "../../lib/json.pgy";
 
@@ -21,6 +21,96 @@ func AirGraphSummaryIntField(content: String, field: String, inout value_out: Ar
     }
     value_out[0] = ToInt(num_str);
     return true;
+}
+
+func AirGraphScalarToken(content: String, start: Int, end: Int) -> String {
+    let value_start: Int = JsonSkipWhitespace(content, start, end);
+    if value_start >= end {
+        return "";
+    }
+    if CharAt(content, value_start) == "\"" {
+        let string_end: Array<Int> = [0];
+        return ReadJsonString(content, value_start, string_end);
+    }
+    return Substring(content, value_start, end - value_start);
+}
+
+func AirGraphCollectScalarFieldValues(content: String, start: Int, end: Int, field: String, inout values: Array<String>) -> Void {
+    if start < 0 || end <= start {
+        return;
+    }
+    let open: String = CharAt(content, start);
+    if open == "{" {
+        let i: Int = start + 1;
+        while i < end {
+            i = JsonSkipWhitespace(content, i, end);
+            if i >= end || CharAt(content, i) == "}" {
+                return;
+            }
+            if CharAt(content, i) == "," {
+                i = i + 1;
+                continue;
+            }
+            if CharAt(content, i) != "\"" {
+                return;
+            }
+            let key_end: Array<Int> = [0];
+            let key: String = ReadJsonString(content, i, key_end);
+            if key_end[0] <= i {
+                return;
+            }
+            i = JsonSkipWhitespace(content, key_end[0], end);
+            if i >= end || CharAt(content, i) != ":" {
+                return;
+            }
+            i = JsonSkipWhitespace(content, i + 1, end);
+            let value_end: Int = JsonValueEnd(content, i, end);
+            if value_end < 0 {
+                return;
+            }
+            if key == field {
+                ArrayPush(values, AirGraphScalarToken(content, i, value_end));
+            }
+            let value_open: String = CharAt(content, i);
+            if value_open == "{" || value_open == "[" {
+                AirGraphCollectScalarFieldValues(content, i, value_end, field, values);
+            }
+            i = value_end;
+        }
+        return;
+    }
+    if open == "[" {
+        let j: Int = start + 1;
+        while j < end {
+            j = JsonSkipWhitespace(content, j, end);
+            if j >= end || CharAt(content, j) == "]" {
+                return;
+            }
+            if CharAt(content, j) == "," {
+                j = j + 1;
+                continue;
+            }
+            let item_end: Int = JsonValueEnd(content, j, end);
+            if item_end < 0 {
+                return;
+            }
+            let item_open: String = CharAt(content, j);
+            if item_open == "{" || item_open == "[" {
+                AirGraphCollectScalarFieldValues(content, j, item_end, field, values);
+            }
+            j = item_end;
+        }
+    }
+}
+
+func AirGraphScalarFieldValues(content: String, field: String) -> Array<String> {
+    let values: Array<String> = [];
+    let doc_end: Int = JsonDocumentObjectEnd(content);
+    if doc_end <= 0 {
+        return values;
+    }
+    AirGraphCollectScalarFieldValues(content, 0, doc_end, field, values);
+    return values;
 }
 
 func CountSubstring(content: String, needle: String) -> Int {

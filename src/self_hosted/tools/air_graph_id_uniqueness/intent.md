@@ -3,9 +3,9 @@
 **Status:** rung-1 minimal. A consumer/analysis pass over an AIR-graph-shaped
 JSON dump: it extracts every node id and asserts each id is unique. Duplicate
 node ids in the compiler IR graph are a real defect, so this is an invariant
-check on the graph contents, not a schema validator. No JSON parser --
-substring-anchored scan only, the same surface the AIR graph JSON validator
-established.
+check on the graph contents, not a schema validator. The checker consumes
+`AirGraphScalarFieldValues` from the AIR graph scan owner instead of rebuilding
+`"id":` token extraction locally.
 
 ## Intent
 
@@ -67,6 +67,7 @@ The parity rung asserts:
 
 ## Not In Scope
 
-- Full JSON parsing (escapes, nested objects, mixed arrays).
+- Full JSON DOM construction; the shared owner still provides bounded fact
+  reads, not a general-purpose tree.
 - Validating that ids are dense or monotonic; only uniqueness.
 - Cross-checking ids against edge endpoints (a later reachability pass).

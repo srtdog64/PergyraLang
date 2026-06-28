@@ -24,6 +24,8 @@ The path is fixed relative to repository root; no CLI argument surface yet.
 `intent_count` and `boundary_count` are read through
 `air_graph_json_validator/scan_owner.pgy::AirGraphSummaryIntField`; this tool
 only owns live-reference validation, not AIR graph summary-number extraction.
+`boundary` and `intent` reference tokens are read through
+`AirGraphScalarFieldValues`, not a checker-local token scanner.
 
 ## Output Contract
 

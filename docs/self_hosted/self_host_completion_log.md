@@ -2242,3 +2242,18 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Tightened the component contract so these downstream AIR tools cannot
   reintroduce `ExtractIntField` locals for `intent_count`, `boundary_count`,
   or `evidence_count`.
+
+### 2026-06-29 -- AIR graph scalar facts use one scan owner
+
+- Added `AirGraphScalarFieldValues` to
+  `src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy`.
+- Repointed `air_graph_id_uniqueness`, `air_graph_node_count_integrity`,
+  `air_graph_ref_integrity`, `air_graph_reachability`, and
+  `air_graph_ref_live` to consume scalar graph facts from that owner instead
+  of rebuilding local `"id"` / `"from"` / `"to"` / `"root"` / `"boundary"` /
+  `"intent"` token scanners.
+- Tightened the component contract so AIR graph consumers cannot reintroduce
+  `ExtractIds`, `ExtractByKey`, `CountKey`, `FirstTokenAfter`, or direct
+  `StringIndexOf(rest, ...)` fact recovery. This reduces the ACTIVE Stable JSON
+  blocker, but does not close it: the owner is still a bounded schema scanner,
+  not a complete JSON DOM/fact table.

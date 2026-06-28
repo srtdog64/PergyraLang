@@ -7,34 +7,13 @@
 // equal intent_count + boundary_count + evidence_count from the summary the
 // compiler itself emits. A mismatch means a node was emitted without being
 // counted, or counted without being emitted. The summary counts are the C-owned
-// oracle. No JSON parser -- substring-anchored scan only.
+// oracle. AIR graph scalar facts are consumed through the shared scan owner.
 //
 // Cwd contract: the parity harness cd's into the repo root before running.
 // Contract: see intent.md in the same directory.
 
 import "../../lib/json.pgy";
 import "../air_graph_json_validator/scan_owner.pgy";
-
-func CountKey(content: String, key: String) -> Int {
-    let count: Int = 0;
-    let rest: String = content;
-    let guard: Int = 0;
-    while guard < 1000000 {
-        guard = guard + 1;
-        let idx: Int = StringIndexOf(rest, key);
-        if idx < 0 {
-            break;
-        }
-        count = count + 1;
-        let advance: Int = idx + StringLength(key);
-        let rest_len: Int = StringLength(rest) - advance;
-        if rest_len <= 0 {
-            break;
-        }
-        rest = Substring(rest, advance, rest_len);
-    }
-    return count;
-}
 
 func MismatchFinding(ids: Int, declared: Int) -> String {
     let fields: Array<String> = [
@@ -91,7 +70,7 @@ func Main() -> Void {
     }
 
     let content: String = ReadFile(fixture_path);
-    let id_count: Int = CountKey(content, "\"id\":");
+    let id_count: Int = ArrayLength(AirGraphScalarFieldValues(content, "id"));
     let intents_box: Array<Int> = [0];
     let boundaries_box: Array<Int> = [0];
     let evidence_box: Array<Int> = [0];

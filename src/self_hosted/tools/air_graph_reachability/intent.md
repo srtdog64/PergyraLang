@@ -5,7 +5,8 @@ JSON dump: it runs a worklist reachability from the declared root(s) over the
 directed edges and reports any node no path reaches (an orphan). Orphan IR nodes
 are dead work and often a symptom of a producer pass that dropped an edge. This
 is the third and richest of the AIR graph consumer passes, after node-id
-uniqueness and edge referential integrity.
+uniqueness and edge referential integrity. The scalar AIR graph facts come from
+the shared AIR graph scan owner, not a checker-local token scanner.
 
 ## Intent
 
@@ -71,6 +72,7 @@ The parity rung asserts:
 
 ## Not In Scope
 
-- Full JSON parsing.
+- Full JSON DOM construction; the shared owner still provides bounded fact
+  reads, not a general-purpose tree.
 - Cycle reporting, dominator/postdominator structure (later passes).
 - Multi-edge weighting or labelled edges.

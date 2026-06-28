@@ -4,51 +4,14 @@
 // referential integrity: every edge endpoint ("from"/"to") must name a node id
 // that exists. A dangling endpoint is a real IR defect (an edge into a node that
 // was deleted or never numbered). Consumer/analysis pass, not a schema
-// validator. No JSON parser -- substring-anchored scan only.
+// validator. AIR graph scalar facts are consumed through the shared scan owner
+// so this checker does not rebuild JSON token extraction locally.
 //
 // Cwd contract: the parity harness cd's into the repo root before running.
 // Contract: see intent.md in the same directory.
 
 import "../../lib/json.pgy";
-
-// Extract the raw token after each `<key>` occurrence, up to the next ',' or '}'.
-func ExtractByKey(content: String, key: String) -> Array<String> {
-    let vals: Array<String> = [];
-    let rest: String = content;
-    let guard: Int = 0;
-    while guard < 1000000 {
-        guard = guard + 1;
-        let idx: Int = StringIndexOf(rest, key);
-        if idx < 0 {
-            break;
-        }
-        let value_start: Int = idx + StringLength(key);
-        let rest_len: Int = StringLength(rest) - value_start;
-        if rest_len <= 0 {
-            break;
-        }
-        let after: String = Substring(rest, value_start, rest_len);
-        let comma_idx: Int = StringIndexOf(after, ",");
-        let brace_idx: Int = StringIndexOf(after, "}");
-        let stop: Int = -1;
-        if comma_idx >= 0 {
-            stop = comma_idx;
-        }
-        if brace_idx >= 0 {
-            if stop < 0 || brace_idx < stop {
-                stop = brace_idx;
-            }
-        }
-        if stop <= 0 {
-            stop = StringLength(after);
-        }
-        let val: String = Substring(after, 0, stop);
-        ArrayPush(vals, val);
-        let tail_len: Int = StringLength(after) - stop;
-        rest = Substring(after, stop, tail_len);
-    }
-    return vals;
-}
+import "../air_graph_json_validator/scan_owner.pgy";
 
 func ArrayContainsString(arr: Array<String>, target: String) -> Bool {
     let i: Int = 0;
@@ -117,9 +80,9 @@ func Main() -> Void {
     }
 
     let content: String = ReadFile(fixture_path);
-    let node_ids: Array<String> = ExtractByKey(content, "\"id\":");
-    let froms: Array<String> = ExtractByKey(content, "\"from\":");
-    let tos: Array<String> = ExtractByKey(content, "\"to\":");
+    let node_ids: Array<String> = AirGraphScalarFieldValues(content, "id");
+    let froms: Array<String> = AirGraphScalarFieldValues(content, "from");
+    let tos: Array<String> = AirGraphScalarFieldValues(content, "to");
 
     let endpoints: Array<String> = [];
     endpoints = AppendAll(endpoints, froms);

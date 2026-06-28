@@ -34,11 +34,12 @@ TOOL_DIR="$ROOT_DIR/src/self_hosted/tools/air_graph_reachability"
 PERGYRA_TOOL_SOURCE="$TOOL_DIR/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/air_graph_reachability}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
+AIR_GRAPH_SCAN_OWNER="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy"
 EXPECTED_JSON_FILE="$TOOL_DIR/expected/clean.json"
 FIXTURE_FILE="$TOOL_DIR/fixture/graph_rooted.json"
 ORPHAN_FIXTURE_FILE="$TOOL_DIR/fixture/graph_orphan.json"
 
-for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$FIXTURE_FILE" "$ORPHAN_FIXTURE_FILE"; do
+for path in "$PERGYRA_TOOL_SOURCE" "$AIR_GRAPH_SCAN_OWNER" "$EXPECTED_JSON_FILE" "$FIXTURE_FILE" "$ORPHAN_FIXTURE_FILE"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:air-reachability] missing input: $path" >&2
         exit 1
@@ -57,6 +58,9 @@ pgy_selfhost_tmp_root() {
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
+AIR_SCAN_BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/air_graph_json_validator"
+mkdir -p "$AIR_SCAN_BUILD_DIR"
+cp "$AIR_GRAPH_SCAN_OWNER" "$AIR_SCAN_BUILD_DIR/scan_owner.pgy"
 LIB_BUILD_DIR="$ROOT_DIR/.tmp/lib"
 mkdir -p "$LIB_BUILD_DIR"
 cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
