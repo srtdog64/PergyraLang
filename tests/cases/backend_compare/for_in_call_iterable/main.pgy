@@ -1,0 +1,13 @@
+/* for-in over a non-identifier iterable: a call returning Array<Int>.
+ * The hoist guarantees the call is evaluated exactly once before the loop. */
+func Make() -> Array<Int> {
+    return [1, 2, 3];
+}
+
+func Main() -> Void {
+    let s: Int = 0;
+    for x in Make() {
+        s = s + x;
+    }
+    Log(s);
+}

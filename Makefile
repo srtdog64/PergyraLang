@@ -940,6 +940,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/compiler_toolchain.c \
                    $(COMPILER_DIR)/compiler_runtime_cache.c \
                    $(COMPILER_DIR)/runtime_none_contract.c \
+                   $(COMPILER_DIR)/forin_desugar.c \
                    $(COMPILER_DIR)/path_utils.c \
                    $(COMPILER_DIR)/llvm_runner.c \
                    $(COMPILER_DIR)/c_runner.c \

@@ -1421,6 +1421,9 @@ main() {
         "tests/cases/backend_compare/llvm_unannotated_let_from_call"
         "tests/cases/backend_compare/llvm_dyn_role_vtable_swap"
         "tests/cases/backend_compare/llvm_lambda_first_class"
+        "tests/cases/backend_compare/for_in_array_literal_iterable"
+        "tests/cases/backend_compare/for_in_call_iterable"
+        "tests/cases/backend_compare/for_in_member_iterable"
     )
 
     local use_default_cases=0

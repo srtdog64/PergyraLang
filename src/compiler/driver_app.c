@@ -25,6 +25,7 @@
 #include "module_loader.h"
 #include "path_utils.h"
 #include "runtime_none_contract.h"
+#include "forin_desugar.h"
 #include "llvm_runner.h"
 #include "c_runner.h"
 #include "driver_diag.h"
@@ -158,6 +159,11 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
 
     if (flags->verbose)
         printf("pgy: semantic analysis\n");
+
+    /* Compile-path desugar (post-parse, post `--ast` dump so parser-parity is
+     * untouched): hoist non-identifier for-in iterables into a synthetic local
+     * so both backends see an identifier iterable evaluated exactly once. */
+    forin_desugar_program(ast);
 
     driver_debug_stage("semantic");
     phase_start = driver_now_seconds();

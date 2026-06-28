@@ -1,0 +1,10 @@
+/* for-in over a non-identifier iterable: an inline array literal.
+ * Desugared post-parse into a hoisted synthetic local evaluated once,
+ * so both backends see an identifier iterable. */
+func Main() -> Void {
+    let s: Int = 0;
+    for x in [10, 20, 30] {
+        s = s + x;
+    }
+    Log(s);
+}

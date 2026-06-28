@@ -1,0 +1,14 @@
+/* for-in over a non-identifier iterable: member access on a class field.
+ * The hoisted local carries the Array<Int> field once before the loop. */
+class Bag {
+    let items: Array<Int>;
+}
+
+func Main() -> Void {
+    let b: Bag = Bag([4, 5, 6]);
+    let s: Int = 0;
+    for x in b.items {
+        s = s + x;
+    }
+    Log(s);
+}
