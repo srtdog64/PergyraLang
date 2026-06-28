@@ -34,10 +34,14 @@ func RoutineSpanEnd(json: String, routine_name_end: Int) -> Int {
     return StringLength(json);
 }
 
+func RoutineBlocksBounds(json: String, routine_name_end: Int, span_end: Int, inout bounds: Array<Int>) -> Bool {
+    return MirObjectArrayBounds(json, routine_name_end, span_end, "blocks", bounds);
+}
+
 func RoutineHeaderEnd(json: String, routine_name_end: Int, span_end: Int) -> Int {
-    let blk: Int = FindFrom(json, "\"blocks\":", routine_name_end);
-    if blk >= 0 && blk < span_end {
-        return blk;
+    let bounds: Array<Int> = [0, 0];
+    if RoutineBlocksBounds(json, routine_name_end, span_end, bounds) {
+        return bounds[0];
     }
     return span_end;
 }
@@ -98,9 +102,9 @@ func RoutineReturnType(json: String, rpos: Int, header_end: Int) -> String {
 }
 
 func RoutineBlocksStart(json: String, routine_name_end: Int, span_end: Int) -> Int {
-    let blk: Int = FindFrom(json, "\"blocks\":", routine_name_end);
-    if blk >= 0 && blk < span_end {
-        return blk;
+    let bounds: Array<Int> = [0, 0];
+    if RoutineBlocksBounds(json, routine_name_end, span_end, bounds) {
+        return bounds[0];
     }
     return -1;
 }

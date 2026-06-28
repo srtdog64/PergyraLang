@@ -610,11 +610,14 @@ require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func Routi
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineParamNameAt"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineParamTypeAt"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineReturnType"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineBlocksBounds"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineBlocksStart"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirRoutineObjectBoundsAt(json, row, bounds)"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectEnd(json, routine_name_end"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectArrayBounds(json, routine_name_end, span_end, \"blocks\", bounds)"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "let next_rpos: Int = FindRoutine(json, routine_name_end)"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" 'FindFrom(json, "\"name\":'
+reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" 'FindFrom(json, "\"blocks\":'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "func FindRoutine"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "RoutineParamCount(json, rpos, header_end)"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "RoutineReturnType(json, rpos, header_end)"

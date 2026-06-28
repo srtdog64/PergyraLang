@@ -2160,3 +2160,14 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   The Stable JSON blocker remains active until the owner is a full schema-aware
   DOM/fact table, but this removes one more local compatibility scan from
   `mir_lower`.
+
+### 2026-06-28 -- Routine block boundaries consume MIR array facts
+
+- Added `RoutineBlocksBounds` to
+  `src/self_hosted/mir_lower/routine_inventory_owner.pgy`.
+- Repointed `RoutineHeaderEnd` and `RoutineBlocksStart` from direct
+  `"blocks"` key scans to the MIR object array-bounds fact owner.
+- Tightened the component contract so routine inventory cannot reintroduce
+  direct `"blocks"` field scans while computing header/body boundaries. This is
+  still within the ACTIVE Stable JSON blocker, but the remaining `mir_lower`
+  raw scans are now concentrated in CFG block/instruction traversal.
