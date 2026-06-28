@@ -64,11 +64,15 @@ emit_array_access_expression(ASTNode *node, TranspilerCtx *ctx)
             free(index);
             return NULL;
         }
+        /* Recursive suffix: Array<Array<Int>> indexing yields the inner
+         * PgyArray_Int via pgy_array_get_Array_Int. Identity for scalars. */
+        char arr_suffix[128];
+        sanitize_c_suffix(inner, arr_suffix, sizeof(arr_suffix));
         int tmp_id = ++ctx->tmp_counter;
         result = strdup_fmt(
             "({ PgyArray_%s _pgy_arr_get_%d = %s; "
             "pgy_array_get_%s(&_pgy_arr_get_%d, %s); })",
-            inner, tmp_id, array, inner, tmp_id, index);
+            arr_suffix, tmp_id, array, arr_suffix, tmp_id, index);
     } else if (transpiler_type_name_is_slice(array_type)) {
         char inner_buf[128];
         const char *inner = NULL;
@@ -87,11 +91,13 @@ emit_array_access_expression(ASTNode *node, TranspilerCtx *ctx)
             free(index);
             return NULL;
         }
+        char slice_suffix[128];
+        sanitize_c_suffix(inner, slice_suffix, sizeof(slice_suffix));
         int tmp_id = ++ctx->tmp_counter;
         result = strdup_fmt(
             "({ PgySlice_%s _pgy_slice_get_%d = %s; "
             "pgy_slice_get_%s(&_pgy_slice_get_%d, %s); })",
-            inner, tmp_id, array, inner, tmp_id, index);
+            slice_suffix, tmp_id, array, slice_suffix, tmp_id, index);
     } else {
         result = strdup_fmt("%s[%s]", array, index);
     }

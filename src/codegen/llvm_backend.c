@@ -267,6 +267,45 @@ llvm_ctx_create(const char *module_name)
         ctx->array_type_String = LLVMStructCreateNamed(ctx->context, "PgyArray_String");
         LLVMStructSetBody(ctx->array_type_String, arr_fields_string, 4, 0);
 
+        /* One-level nested arrays: Array<Array<T>>. The element is the inner
+         * array struct stored by value, so the data pointer is PgyArray_T*.
+         * These mirror the runtime monomorphizations PgyArray_Array_T. */
+        LLVMTypeRef arr_fields_array_int[] = {
+            LLVMPointerType(ctx->array_type_Int, 0), ctx->type_i64, ctx->type_i64, ctx->type_i8ptr
+        };
+        ctx->array_type_Array_Int = LLVMStructCreateNamed(ctx->context, "PgyArray_Array_Int");
+        LLVMStructSetBody(ctx->array_type_Array_Int, arr_fields_array_int, 4, 0);
+
+        LLVMTypeRef arr_fields_array_long[] = {
+            LLVMPointerType(ctx->array_type_Long, 0), ctx->type_i64, ctx->type_i64, ctx->type_i8ptr
+        };
+        ctx->array_type_Array_Long = LLVMStructCreateNamed(ctx->context, "PgyArray_Array_Long");
+        LLVMStructSetBody(ctx->array_type_Array_Long, arr_fields_array_long, 4, 0);
+
+        LLVMTypeRef arr_fields_array_float[] = {
+            LLVMPointerType(ctx->array_type_Float, 0), ctx->type_i64, ctx->type_i64, ctx->type_i8ptr
+        };
+        ctx->array_type_Array_Float = LLVMStructCreateNamed(ctx->context, "PgyArray_Array_Float");
+        LLVMStructSetBody(ctx->array_type_Array_Float, arr_fields_array_float, 4, 0);
+
+        LLVMTypeRef arr_fields_array_double[] = {
+            LLVMPointerType(ctx->array_type_Double, 0), ctx->type_i64, ctx->type_i64, ctx->type_i8ptr
+        };
+        ctx->array_type_Array_Double = LLVMStructCreateNamed(ctx->context, "PgyArray_Array_Double");
+        LLVMStructSetBody(ctx->array_type_Array_Double, arr_fields_array_double, 4, 0);
+
+        LLVMTypeRef arr_fields_array_bool[] = {
+            LLVMPointerType(ctx->array_type_Bool, 0), ctx->type_i64, ctx->type_i64, ctx->type_i8ptr
+        };
+        ctx->array_type_Array_Bool = LLVMStructCreateNamed(ctx->context, "PgyArray_Array_Bool");
+        LLVMStructSetBody(ctx->array_type_Array_Bool, arr_fields_array_bool, 4, 0);
+
+        LLVMTypeRef arr_fields_array_string[] = {
+            LLVMPointerType(ctx->array_type_String, 0), ctx->type_i64, ctx->type_i64, ctx->type_i8ptr
+        };
+        ctx->array_type_Array_String = LLVMStructCreateNamed(ctx->context, "PgyArray_Array_String");
+        LLVMStructSetBody(ctx->array_type_Array_String, arr_fields_array_string, 4, 0);
+
         LLVMTypeRef slice_fields_int[] = { LLVMPointerType(ctx->type_i32, 0), ctx->type_i64 };
         ctx->slice_type_Int = LLVMStructCreateNamed(ctx->context, "PgySlice_Int");
         LLVMStructSetBody(ctx->slice_type_Int, slice_fields_int, 2, 0);

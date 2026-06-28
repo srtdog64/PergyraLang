@@ -364,6 +364,65 @@ type_check_unary(ASTNode *expr, SemanticContext *ctx)
 /* reflect projection field folding (expr_ops_projection_member) lives in
  * type_checker_reflect.c to keep this file under its size cap. */
 
+/* Sequence (Array/Slice/List/Queue) constructors whose element nesting we
+ * track for the nested-array support boundary. */
+static bool
+expr_ops_type_is_sequence_like(const Type *type)
+{
+    return type_is_constructed_named(type, "Array")
+        || type_is_constructed_named(type, "Slice")
+        || type_is_constructed_named(type, "List")
+        || type_is_constructed_named(type, "Queue");
+}
+
+/* The scalar element types nested arrays are monomorphized for on both
+ * backends (PgyArray_Array_<T>). Anything else fails closed. */
+static bool
+expr_ops_type_is_supported_nested_scalar(Type *type)
+{
+    return type_equals(type, TYPE_INT)
+        || type_equals(type, TYPE_LONG)
+        || type_equals(type, TYPE_FLOAT)
+        || type_equals(type, TYPE_DOUBLE)
+        || type_equals(type, TYPE_BOOL)
+        || type_equals(type, TYPE_STRING);
+}
+
+/* Fail-closed guard for nested sequences. `elem_type` is the element type of a
+ * sequence literal/annotation. Returns true (and emits a diagnostic) when the
+ * nesting is beyond the supported one level (Array<Array<scalar>>): either the
+ * inner element is itself a sequence (depth >= 3) or the supported one-level
+ * case has an unsupported inner scalar. Unknown element types are allowed so
+ * inference failures surface their own diagnostics rather than this one. */
+static bool
+expr_ops_reject_unsupported_nested_sequence(ASTNode *node, Type *elem_type,
+                                            SemanticContext *ctx)
+{
+    Type *inner;
+
+    if (elem_type == NULL || type_equals(elem_type, TYPE_UNKNOWN))
+        return false;
+    if (!expr_ops_type_is_sequence_like(elem_type))
+        return false;
+
+    inner = expr_ops_normalize_type(type_get_constructed_arg(elem_type, 0));
+    if (inner != NULL && type_equals(inner, TYPE_UNKNOWN))
+        return false;
+
+    if (inner == NULL || expr_ops_type_is_sequence_like(inner)
+        || !expr_ops_type_is_supported_nested_scalar(inner)) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_ARRAY_LITERAL_ELEMENT_TYPE_MISMATCH,
+            PGY_FIX_ALIGN_ARRAY_ELEMENT_TYPES,
+            node,
+            "nested array nesting deeper than two levels (or with this element "
+            "type '%s') is not yet supported - use a flatter representation",
+            type_name_or_unknown(elem_type));
+        return true;
+    }
+    return false;
+}
+
 Type *
 type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
 {
@@ -384,8 +443,14 @@ type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
         if (expected_seq != NULL
             && (type_is_constructed_named(expected_seq, "Array")
                 || type_is_constructed_named(expected_seq, "List")
-                || type_is_constructed_named(expected_seq, "Queue")))
+                || type_is_constructed_named(expected_seq, "Queue"))) {
+            Type *expected_elem = expr_ops_normalize_type(
+                type_get_constructed_arg(expected_seq, 0));
+            if (expr_ops_reject_unsupported_nested_sequence(expr, expected_elem,
+                    ctx))
+                return TYPE_UNKNOWN;
             return expected_seq;
+        }
         return wrap_constructed(seq_ctor, TYPE_UNKNOWN);
     }
 
@@ -428,6 +493,9 @@ type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
             elem_type = TYPE_UNKNOWN;
         }
     }
+
+    if (expr_ops_reject_unsupported_nested_sequence(expr, elem_type, ctx))
+        return TYPE_UNKNOWN;
 
     return wrap_constructed(seq_ctor, elem_type);
 }

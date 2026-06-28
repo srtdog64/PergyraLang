@@ -1,0 +1,7 @@
+func Main() -> Void {
+    let words: Array<Array<String>> = [["alpha", "beta"], ["gamma"]];
+    Log(ArrayLength(words));
+    Log(ArrayLength(words[0]));
+    Log(StringConcat(words[0][0], words[0][1]));
+    Log(words[1][0]);
+}

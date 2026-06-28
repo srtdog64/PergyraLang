@@ -1,0 +1,13 @@
+func Main() -> Void {
+    let grid: Array<Array<Int>> = [[1, 2, 3], [4, 5], [6]];
+    let sum: Int = 0;
+    let rows: Int = 0;
+    for row in grid {
+        rows = rows + 1;
+        for x in row {
+            sum = sum + x;
+        }
+    }
+    Log(rows);
+    Log(sum);
+}

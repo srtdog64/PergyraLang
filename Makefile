@@ -2234,6 +2234,9 @@ self-host-execution-lane-parity-test-smoke: $(PGY)
 memory-safety-failclosed-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/memory_safety_failclosed_smoke.sh
 
+nested-array-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/nested_array_smoke.sh
+
 checkedarith-failclosed-test-smoke:
 	"$(BASH)" tests/checked_arith_failclosed_smoke.sh
 

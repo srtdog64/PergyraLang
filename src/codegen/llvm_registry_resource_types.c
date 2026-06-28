@@ -116,9 +116,103 @@ llvm_secure_token_type(LLVMGenCtx *ctx, const char *inner)
     }
 }
 
+/* Map the scalar suffix of a one-level nested array element name to its named
+ * nested array struct. `scalar` is the innermost element classification (the
+ * T in Array<Array<T>>). Returns NULL for unsupported inner scalars so the
+ * caller fails closed instead of silently producing a wrong layout. */
+static LLVMTypeRef
+llvm_nested_array_type_for_scalar(LLVMGenCtx *ctx, PgyTypeKind scalar)
+{
+    switch (scalar) {
+    case PGY_TK_INT:    return ctx->array_type_Array_Int;
+    case PGY_TK_LONG:   return ctx->array_type_Array_Long;
+    case PGY_TK_FLOAT:  return ctx->array_type_Array_Float;
+    case PGY_TK_DOUBLE: return ctx->array_type_Array_Double;
+    case PGY_TK_BOOL:   return ctx->array_type_Array_Bool;
+    case PGY_TK_STRING: return ctx->array_type_Array_String;
+    default:            return NULL;
+    }
+}
+
+/* Recognize a one-level nested-array element name in either rendered form:
+ *   "Array<Int>"  (angle, from llvm_constructed_arg_name_copy)
+ *   "Array_Int"   (suffix, from a PgyArray_Array_Int struct name)
+ * Returns the named PgyArray_Array_<T> struct, or NULL if `inner` is not a
+ * one-level array of a supported scalar. */
+LLVMTypeRef
+llvm_nested_array_struct_type(LLVMGenCtx *ctx, const char *inner)
+{
+    const char *scalar_name = NULL;
+    char scalar_buf[64];
+
+    if (ctx == NULL || inner == NULL)
+        return NULL;
+    if (strncmp(inner, "Array<", 6) == 0) {
+        const char *open = inner + 6;
+        const char *close = strrchr(open, '>');
+        size_t len;
+        if (close == NULL || close <= open)
+            return NULL;
+        len = (size_t)(close - open);
+        if (len >= sizeof(scalar_buf))
+            return NULL;
+        memcpy(scalar_buf, open, len);
+        scalar_buf[len] = '\0';
+        scalar_name = scalar_buf;
+    } else if (strncmp(inner, "Array_", 6) == 0) {
+        scalar_name = inner + 6;
+    } else {
+        return NULL;
+    }
+    /* Only a single nesting level: the inner scalar must itself be a scalar,
+     * not another array (depth >= 3 is rejected up front by semantics). */
+    return llvm_nested_array_type_for_scalar(ctx,
+        pgy_classify_type(scalar_name));
+}
+
+/* If `elem_type` is one of the six scalar array structs (the element type of a
+ * one-level nested Array<Array<scalar>>), return the runtime/type suffix that
+ * names an array-of-that-element ("Array_Int", ...). Otherwise NULL. Used to
+ * route nested array construction/access through the ABI-safe raw export path
+ * (the inner array struct is larger than two eightbytes, so it cannot be passed
+ * to the typed runtime by value across the C/LLVM boundary). */
+const char *
+llvm_scalar_array_elem_suffix(LLVMGenCtx *ctx, LLVMTypeRef elem_type)
+{
+    if (ctx == NULL || elem_type == NULL)
+        return NULL;
+    if (elem_type == ctx->array_type_Int)    return "Array_Int";
+    if (elem_type == ctx->array_type_Long)   return "Array_Long";
+    if (elem_type == ctx->array_type_Float)  return "Array_Float";
+    if (elem_type == ctx->array_type_Double) return "Array_Double";
+    if (elem_type == ctx->array_type_Bool)   return "Array_Bool";
+    if (elem_type == ctx->array_type_String) return "Array_String";
+    return NULL;
+}
+
+/* If `type` is one of the six scalar array structs (PgyArray_Int, ...) return
+ * the LLVM type of its scalar element (i32 for Int, i8ptr for String, ...).
+ * Used to resolve the element type of a[i] when a[i] is itself the inner
+ * Array<scalar> of a nested array (chained index a[i][j]). */
+LLVMTypeRef
+llvm_scalar_array_struct_element_type(LLVMGenCtx *ctx, LLVMTypeRef type)
+{
+    if (ctx == NULL || type == NULL)
+        return NULL;
+    if (type == ctx->array_type_Int)    return ctx->type_i32;
+    if (type == ctx->array_type_Long)   return ctx->type_i64;
+    if (type == ctx->array_type_Float)  return ctx->type_f32;
+    if (type == ctx->array_type_Double) return ctx->type_f64;
+    if (type == ctx->array_type_Bool)   return ctx->type_i1;
+    if (type == ctx->array_type_String) return ctx->type_i8ptr;
+    return NULL;
+}
+
 LLVMTypeRef
 llvm_array_struct_type(LLVMGenCtx *ctx, const char *inner)
 {
+    LLVMTypeRef nested;
+
     switch (pgy_classify_type(inner)) {
     case PGY_TK_INT:    return ctx->array_type_Int;
     case PGY_TK_LONG:   return ctx->array_type_Long;
@@ -126,7 +220,12 @@ llvm_array_struct_type(LLVMGenCtx *ctx, const char *inner)
     case PGY_TK_DOUBLE: return ctx->array_type_Double;
     case PGY_TK_BOOL:   return ctx->array_type_Bool;
     case PGY_TK_STRING: return ctx->array_type_String;
-    default: {
+    default: break;
+    }
+    nested = llvm_nested_array_struct_type(ctx, inner);
+    if (nested != NULL)
+        return nested;
+    {
         LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
         if (ctx->has_error || elem_ty == NULL)
             return NULL;
@@ -134,7 +233,6 @@ llvm_array_struct_type(LLVMGenCtx *ctx, const char *inner)
             LLVMPointerType(elem_ty, 0), ctx->type_i64, ctx->type_i64, ctx->type_i8ptr
         };
         return LLVMStructTypeInContext(ctx->context, fields, 4, 0);
-    }
     }
 }
 

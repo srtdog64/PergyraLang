@@ -161,6 +161,15 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             elem_type = llvm_stmt_infer_expr_type(ctx,
                 ast_array_literal_element(expr, 0));
             suffix = llvm_type_to_suffix(ctx, elem_type);
+            /* One-level nested array literal [[..]]: the element is a scalar
+             * array struct, so the outer suffix is "Array_<T>" and the outer
+             * type is the named PgyArray_Array_<T>. */
+            if (suffix == NULL && !want_list && !want_queue) {
+                const char *nested =
+                    llvm_scalar_array_elem_suffix(ctx, elem_type);
+                if (nested != NULL)
+                    return llvm_array_struct_type(ctx, nested);
+            }
             if (suffix == NULL || strcmp(suffix, "Unknown") == 0)
                 return llvm_stmt_unknown_expr_type(ctx, expr,
                     "array literal element type is unresolved");

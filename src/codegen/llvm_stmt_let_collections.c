@@ -391,6 +391,22 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             return ok;
         }
 
+        /* Canonicalize the element name to its runtime suffix so nested
+         * Array<Array<Int>> keys on "Array_Int" (pgy_array_*_Array_Int) rather
+         * than the un-mangled "Array<Int>". Identity for scalar suffixes. */
+        {
+            const char *canon = llvm_type_to_suffix(ctx, elem_type);
+            if (canon != NULL && strcmp(canon, "Unknown") != 0
+                && (inner_name == NULL || strcmp(inner_name, canon) != 0)) {
+                char *owned_canon = pergyra_strdup(canon);
+                if (owned_canon != NULL) {
+                    free(owned_inner_name);
+                    owned_inner_name = owned_canon;
+                    inner_name = owned_inner_name;
+                }
+            }
+        }
+
         LLVMTypeRef array_type = llvm_array_struct_type(ctx, inner_name);
         if (ctx->has_error || array_type == NULL) {
             free(owned_inner_name);

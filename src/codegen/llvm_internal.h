@@ -35,6 +35,10 @@
 #include "llvm_result_spec.h"
 
 LLVMTypeRef llvm_array_struct_type(LLVMGenCtx *ctx, const char *inner);
+LLVMTypeRef llvm_nested_array_struct_type(LLVMGenCtx *ctx, const char *inner);
+const char *llvm_scalar_array_elem_suffix(LLVMGenCtx *ctx, LLVMTypeRef elem_type);
+LLVMTypeRef llvm_scalar_array_struct_element_type(LLVMGenCtx *ctx,
+                                                  LLVMTypeRef type);
 LLVMTypeRef llvm_slice_struct_type(LLVMGenCtx *ctx, const char *inner);
 LLVMTypeRef llvm_list_struct_type(LLVMGenCtx *ctx, const char *inner);
 LLVMTypeRef llvm_set_struct_type(LLVMGenCtx *ctx, const char *inner);
@@ -410,6 +414,15 @@ typedef struct LLVMGenCtx
     LLVMTypeRef     array_type_Double;
     LLVMTypeRef     array_type_Bool;
     LLVMTypeRef     array_type_String;
+
+    /* One-level nested arrays: Array<Array<T>> for scalar T. Element type is
+     * the inner array struct (array_type_Int, ...) stored by value. */
+    LLVMTypeRef     array_type_Array_Int;
+    LLVMTypeRef     array_type_Array_Long;
+    LLVMTypeRef     array_type_Array_Float;
+    LLVMTypeRef     array_type_Array_Double;
+    LLVMTypeRef     array_type_Array_Bool;
+    LLVMTypeRef     array_type_Array_String;
 
     LLVMTypeRef     slice_type_Int;
     LLVMTypeRef     slice_type_Long;

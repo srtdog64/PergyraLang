@@ -332,6 +332,18 @@ llvm_stmt_resolve_array_elem_type(LLVMGenCtx *ctx, ASTNode *expr,
             return inferred;
     }
 
+    /* Chained index a[i][j]: the receiver expr is itself an array access whose
+     * value type is a scalar array struct (the inner Array<scalar> of a nested
+     * Array<Array<scalar>>). Its element type is the scalar pointee of the
+     * data field. */
+    if (expr->type == AST_ARRAY_ACCESS) {
+        LLVMTypeRef recv_type = llvm_stmt_infer_expr_type(ctx, expr);
+        LLVMTypeRef scalar_elem =
+            llvm_scalar_array_struct_element_type(ctx, recv_type);
+        if (scalar_elem != NULL)
+            return scalar_elem;
+    }
+
     inferred = llvm_stmt_array_elem_type_from_slice_receiver(ctx, expr);
     if (inferred != NULL)
         return inferred;

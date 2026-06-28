@@ -429,13 +429,22 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
         slot_inner_type_name_copy(name, inner, sizeof(inner));
         if (type_arg_name_is_unknown(inner))
             return false;
-        return transpiler_type_name_join(out, out_size, "PgySlice_", inner);
+        /* Recursive mangle: Slice<Array<Int>> -> PgySlice_Array_Int. The
+         * inner type name may itself be a constructed type (e.g. "Array<Int>")
+         * whose angle brackets must collapse to underscores so the C type
+         * matches the runtime instantiation exactly. */
+        sanitize_c_suffix(inner, suffix, sizeof(suffix));
+        return transpiler_type_name_join(out, out_size, "PgySlice_", suffix);
     }
     if (transpiler_type_name_is_array(name)) {
         slot_inner_type_name_copy(name, inner, sizeof(inner));
         if (type_arg_name_is_unknown(inner))
             return false;
-        return transpiler_type_name_join(out, out_size, "PgyArray_", inner);
+        /* Recursive mangle: Array<Array<Int>> -> PgyArray_Array_Int,
+         * Array<Int> -> PgyArray_Int. sanitize_c_suffix is the identity on a
+         * bare scalar ("Int" -> "Int") so single-level arrays are unaffected. */
+        sanitize_c_suffix(inner, suffix, sizeof(suffix));
+        return transpiler_type_name_join(out, out_size, "PgyArray_", suffix);
     }
     if (strncmp(name, "SecureSlot<", 11) == 0) {
         slot_inner_type_name_copy(name, inner, sizeof(inner));

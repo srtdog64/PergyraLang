@@ -176,6 +176,81 @@ llvm_emit_seq_list_queue_literal(ASTNode *node, LLVMGenCtx *ctx,
     return LLVMBuildLoad2(ctx->builder, seq_ty, tmp, llvm_tmp_name(ctx));
 }
 
+/* Build a one-level nested array literal [[..],[..]] via the raw export path.
+ * The outer struct (PgyArray_Array_<T>) is initialized in place and each inner
+ * array element (PgyArray_<T>, >2 eightbytes) is pushed by pointer so the
+ * runtime boundary uses the indirect ABI clang lowers it to. The inner `data`
+ * pointer is shared (shallow copy) - correct under Pergyra's no-free model. */
+static LLVMValueRef
+llvm_emit_nested_array_literal_raw(ASTNode *node, LLVMGenCtx *ctx, size_t count,
+                                   LLVMTypeRef elem_type, const char *suffix,
+                                   LLVMValueRef first_value)
+{
+    LLVMTypeRef array_type = llvm_array_struct_type(ctx, suffix);
+    LLVMFuncEntry *new_fn;
+    LLVMFuncEntry *push_fn;
+    LLVMValueRef tmp;
+    LLVMValueRef raw_arr;
+    LLVMValueRef elem_size;
+
+    if (ctx->has_error || array_type == NULL)
+        return llvm_expression_error(ctx, node,
+            "LLVM nested array literal could not lower Array<Array<T>> type");
+    new_fn = llvm_lookup_function(ctx, "pgy_array_new_raw_export");
+    push_fn = llvm_lookup_function(ctx, "pgy_array_push_raw_export");
+    if (new_fn == NULL || push_fn == NULL)
+        return llvm_expression_error(ctx, node,
+            "LLVM nested array literal requires raw array runtime functions");
+
+    tmp = llvm_create_entry_alloca(ctx, array_type, llvm_tmp_name(ctx));
+    if (tmp == NULL)
+        return llvm_expression_error(ctx, node,
+            "LLVM nested array literal could not allocate array temporary");
+    raw_arr = LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr,
+        llvm_tmp_name(ctx));
+    elem_size = LLVMSizeOf(elem_type);
+    if (LLVMTypeOf(elem_size) != ctx->type_i64)
+        elem_size = LLVMBuildZExtOrBitCast(ctx->builder, elem_size,
+            ctx->type_i64, llvm_tmp_name(ctx));
+
+    {
+        LLVMValueRef new_args[] = {
+            raw_arr, LLVMConstInt(ctx->type_i64, (unsigned long long)count, 0),
+            elem_size
+        };
+        LLVMBuildCall2(ctx->builder, new_fn->fn_type, new_fn->fn, new_args, 3,
+            "");
+    }
+    for (size_t i = 0; i < count; i++) {
+        LLVMValueRef elem = i == 0 ? first_value
+            : llvm_emit_expression(ast_array_literal_element(node, i), ctx);
+        LLVMValueRef elem_alloca;
+        if (elem == NULL) {
+            if (ctx != NULL && !ctx->has_error)
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM nested array literal could not lower element %zu", i);
+            return NULL;
+        }
+        elem_alloca = llvm_create_entry_alloca(ctx, elem_type,
+            llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, elem, elem_alloca);
+        {
+            LLVMValueRef push_args[] = {
+                raw_arr,
+                LLVMBuildBitCast(ctx->builder, elem_alloca, ctx->type_i8ptr,
+                    llvm_tmp_name(ctx)),
+                elem_size
+            };
+            LLVMBuildCall2(ctx->builder, push_fn->fn_type, push_fn->fn,
+                push_args, 3, "");
+        }
+    }
+    return LLVMBuildLoad2(ctx->builder, array_type, tmp, llvm_tmp_name(ctx));
+}
+
 LLVMValueRef
 llvm_emit_array_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -205,6 +280,17 @@ llvm_emit_array_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
             return llvm_expression_error(ctx, node,
                 "LLVM array literal could not lower element 0");
         elem_type = LLVMTypeOf(first_value);
+        /* One-level nested array literal [[..],[..]]: the element is a scalar
+         * array struct (PgyArray_Int, ...) which exceeds two eightbytes, so it
+         * must cross the runtime boundary by pointer. Build via the ABI-safe
+         * raw export path instead of the typed by-value runtime. */
+        {
+            const char *nested_suffix =
+                llvm_scalar_array_elem_suffix(ctx, elem_type);
+            if (nested_suffix != NULL)
+                return llvm_emit_nested_array_literal_raw(node, ctx, count,
+                    elem_type, nested_suffix, first_value);
+        }
         const char *suffix = llvm_type_to_suffix(ctx, elem_type);
         if (suffix != NULL && strcmp(suffix, "Unknown") != 0)
             inner_name = suffix;

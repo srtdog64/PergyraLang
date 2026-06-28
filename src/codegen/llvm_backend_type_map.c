@@ -419,6 +419,22 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
     if (primitive != NULL)
         return primitive;
 
+    /* Array element name in suffix form "Array_<Scalar>" (e.g. "Array_Int"),
+     * produced when extracting the element type from a PgyArray_Array_Int
+     * struct name. This *names the type Array<Scalar>*, whose LLVM struct is
+     * the single-level array_type_<Scalar> - NOT the nested struct. (The angle
+     * form "Array<Scalar>" is handled by the PGY_TK_ARRAY case below.) */
+    if (strncmp(type_name, "Array_", 6) == 0) {
+        PgyTypeKind scalar = pgy_classify_type(type_name + 6);
+        switch (scalar) {
+        case PGY_TK_INT: case PGY_TK_LONG: case PGY_TK_FLOAT:
+        case PGY_TK_DOUBLE: case PGY_TK_BOOL: case PGY_TK_STRING:
+            return llvm_array_struct_type(ctx, type_name + 6);
+        default:
+            break;
+        }
+    }
+
     {
         LLVMTypeRef alias_type = llvm_resolve_alias_type(ctx, type_name);
         if (alias_type != NULL)

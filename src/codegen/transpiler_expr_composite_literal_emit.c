@@ -160,10 +160,15 @@ emit_array_literal_expression(ASTNode *node, TranspilerCtx *ctx)
     if (transpiler_type_name_is_queue(array_type))
         return emit_sequence_list_queue_literal(node, ctx, array_type, inner,
             "queue", "Queue");
+    /* Recursive suffix so Array<Array<Int>> keys on the monomorphized
+     * `Array_Int` runtime/type names (PgyArray_Array_Int, pgy_array_*_Array_Int)
+     * rather than the literal `Array<Int>`. Identity for scalar inner types. */
+    char arr_suffix[128];
+    sanitize_c_suffix(inner, arr_suffix, sizeof(arr_suffix));
     int tmp_id = ++ctx->tmp_counter;
     CodeBuf *buf = codebuf_create();
     codebuf_write(buf, "({ PgyArray_%s _pgy_arr_%d = pgy_array_new_%s(%zu); ",
-        inner, tmp_id, inner, ast_array_literal_count(node));
+        arr_suffix, tmp_id, arr_suffix, ast_array_literal_count(node));
     for (size_t i = 0; i < ast_array_literal_count(node); i++) {
         char *elem = emit_expression(ast_array_literal_element(node, i), ctx);
         if (elem == NULL) {
@@ -176,7 +181,7 @@ emit_array_literal_expression(ASTNode *node, TranspilerCtx *ctx)
             return NULL;
         }
         codebuf_write(buf, "pgy_array_push_%s(&_pgy_arr_%d, %s); ",
-            inner, tmp_id, elem);
+            arr_suffix, tmp_id, elem);
         free(elem);
     }
     codebuf_write(buf, "_pgy_arr_%d; })", tmp_id);

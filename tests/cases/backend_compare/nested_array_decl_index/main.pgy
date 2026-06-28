@@ -1,0 +1,10 @@
+func Main() -> Void {
+    let a: Array<Array<Int>> = [[1, 2], [3, 4]];
+    Log(ArrayLength(a));
+    let row: Array<Int> = a[1];
+    Log(ArrayLength(row));
+    Log(a[0][0]);
+    Log(a[0][1]);
+    Log(a[1][0]);
+    Log(a[1][1]);
+}
