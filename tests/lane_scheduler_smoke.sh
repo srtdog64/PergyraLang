@@ -24,6 +24,19 @@ fail() { echo "[lane-scheduler] FAIL: $*" >&2; exit 1; }
 
 "$OUT" || fail "facade contract violated"
 
+grep -Fq "PgyExecutionLane lane;" \
+    "$ROOT_DIR/src/runtime/pgy_parallel.h" \
+    || fail "runtime task header does not preserve the ExecutionLane fact"
+grep -Fq "pgy_task_handle_lane" \
+    "$ROOT_DIR/src/runtime/pgy_parallel.h" \
+    || fail "task handle lane accessor is missing"
+grep -Fq "task_handle_fields[] = { ctx->type_i8ptr }" \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c" \
+    || fail "LLVM PgyTaskHandle ABI should remain a stable task pointer"
+grep -Fq "pgy_task_handle_set_lane(handle, lane)" \
+    "$ROOT_DIR/src/runtime/pgy_lane_scheduler.h" \
+    || fail "lane spawn facade does not store the consumed lane fact"
+
 grep -Fq "pgy_lane_spawn_dispatch(" \
     "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c" \
     || fail "C spawn lowering does not consume the lane spawn facade"

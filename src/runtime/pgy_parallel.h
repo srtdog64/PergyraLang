@@ -16,6 +16,7 @@
 #include <pthread.h>
 #include <stdio.h>
 
+#include "../common/execution_lane_kind.h"
 #include "pgy_runtime_panic_contract.h"
 
 #ifndef PGY_COROUTINES_AVAILABLE
@@ -61,6 +62,7 @@ typedef struct PgyCancelNode {
 
 typedef struct {
     PgyTaskModel model;
+    PgyExecutionLane lane;
 } PgyTaskHeader;
 
 static inline PgyCancelNode *
@@ -137,6 +139,7 @@ pgy_cancel_is_requested(PgyCancelNode *node)
 
 typedef struct PgyTask {
     PgyTaskModel    model;
+    PgyExecutionLane lane;
     void *(*fn)(void *);
     void           *arg;
     void           *result;
@@ -150,6 +153,21 @@ typedef struct PgyTask {
 typedef struct {
     void *task;                 /* PgyTask* or coroutine task header */
 } PgyTaskHandle;
+
+static inline PgyExecutionLane
+pgy_task_handle_lane(PgyTaskHandle handle)
+{
+    PgyTaskHeader *header = (PgyTaskHeader *)handle.task;
+    return header != NULL ? header->lane : PGY_LANE_REJECT;
+}
+
+static inline void
+pgy_task_handle_set_lane(PgyTaskHandle handle, PgyExecutionLane lane)
+{
+    PgyTaskHeader *header = (PgyTaskHeader *)handle.task;
+    if (header != NULL)
+        header->lane = lane;
+}
 
 static inline bool
 pgy_task_sync_init(PgyTask *task, const char *op)
@@ -172,7 +190,7 @@ pgy_task_sync_init(PgyTask *task, const char *op)
 
 static inline PgyTaskHandle
 pgy_spawn_inline_completed(void *(*fn)(void *), void *arg, const char *op,
-                           bool charge_spawn_budget)
+                           bool charge_spawn_budget, PgyExecutionLane lane)
 {
     PgyTaskHandle handle = {0};
     const char *op_name = op != NULL ? op : "spawn-inline";
@@ -190,6 +208,7 @@ pgy_spawn_inline_completed(void *(*fn)(void *), void *arg, const char *op,
         return handle;
     }
     task->model = PGY_TASK_MODEL_THREAD;
+    task->lane = lane;
     task->fn = fn;
     task->arg = arg;
     if (!pgy_task_sync_init(task, op_name)) {
@@ -435,7 +454,8 @@ pgy_spawn(void *(*fn)(void *), void *arg)
     }
     if (!atomic_load_explicit(&g_pgy_pool_active, memory_order_acquire)) {
         pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
-        return pgy_spawn_inline_completed(fn, arg, "spawn", false);
+        return pgy_spawn_inline_completed(fn, arg, "spawn", false,
+                                          PGY_LANE_WORKER_POOL);
     }
 
     PgyTask *task = (PgyTask *)calloc(1, sizeof(PgyTask));
@@ -446,6 +466,7 @@ pgy_spawn(void *(*fn)(void *), void *arg)
     }
 
     task->model = PGY_TASK_MODEL_THREAD;
+    task->lane = PGY_LANE_WORKER_POOL;
     task->fn = fn;
     task->arg = arg;
     task->state = PGY_TASK_PENDING;

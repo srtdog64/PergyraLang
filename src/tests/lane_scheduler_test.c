@@ -86,6 +86,13 @@ main(void)
             fails++;
             continue;
         }
+        if (pgy_task_handle_lane(h) != non_reject[i]) {
+            printf("FAIL spawn %-10s lane=%s\n",
+                   ln, pgy_execution_lane_name(pgy_task_handle_lane(h)));
+            fails++;
+            (void)pgy_await(h);
+            continue;
+        }
         intptr_t got = (intptr_t)pgy_await(h);
         if (got != 142 || g_ran != 1) {
             printf("FAIL spawn %-10s result=%ld ran=%d\n",
@@ -101,8 +108,11 @@ main(void)
         PgyTaskHandle h =
             pgy_lane_spawn_dispatch(PGY_LANE_REJECT, task_plus42,
                                     (void *)(intptr_t)100);
-        if (h.task != NULL || g_ran != 0) {
-            printf("FAIL spawn Reject task=%p ran=%d\n", h.task, g_ran);
+        if (h.task != NULL || pgy_task_handle_lane(h) != PGY_LANE_REJECT
+            || g_ran != 0) {
+            printf("FAIL spawn Reject task=%p lane=%s ran=%d\n",
+                   h.task, pgy_execution_lane_name(pgy_task_handle_lane(h)),
+                   g_ran);
             fails++;
         } else {
             printf("ok   spawn Reject    -> fail-closed, no handle\n");

@@ -63,20 +63,28 @@ pgy_lane_spawn_dispatch(PgyExecutionLane lane, PgyLaneTaskFn fn, void *arg)
 
         case PGY_LANE_INLINE:
         case PGY_LANE_PINNED_ZONE:
-            return pgy_spawn_inline_completed(fn, arg, "lane-spawn", true);
+            return pgy_spawn_inline_completed(fn, arg, "lane-spawn", true,
+                                              lane);
 
         case PGY_LANE_BLOCKING_POOL:
-            return pgy_spawn_blocking(fn, arg);
+            handle = pgy_spawn_blocking(fn, arg);
+            break;
 
         case PGY_LANE_LOCAL_ASYNC:
-            return pgy_async_spawn(fn, arg);
+            handle = pgy_async_spawn(fn, arg);
+            break;
 
         case PGY_LANE_WORKER_POOL:
         case PGY_LANE_MOVABLE_SCHEDULER:
-            return pgy_spawn(fn, arg);
+            handle = pgy_spawn(fn, arg);
+            break;
+
+        default:
+            pgy_parallel_warn("lane-spawn", "unknown execution lane");
+            return handle;
     }
 
-    pgy_parallel_warn("lane-spawn", "unknown execution lane");
+    pgy_task_handle_set_lane(handle, lane);
     return handle;
 }
 #endif

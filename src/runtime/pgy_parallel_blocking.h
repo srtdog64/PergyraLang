@@ -192,6 +192,7 @@ pgy_spawn_blocking(void *(*fn)(void *), void *arg)
     }
 
     task->model = PGY_TASK_MODEL_THREAD;
+    task->lane = PGY_LANE_BLOCKING_POOL;
     task->fn = fn;
     task->arg = arg;
     task->state = PGY_TASK_PENDING;

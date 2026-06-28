@@ -31,6 +31,7 @@
 
 typedef struct PgyCoroTask {
     PgyTaskModel           model;
+    PgyExecutionLane       lane;
     void *(*fn)(void *);
     void                  *arg;
     void                  *result;
@@ -223,6 +224,7 @@ pgy_async_spawn(void *(*fn)(void *), void *arg)
         return handle;
 
     task->model = PGY_TASK_MODEL_COROUTINE;
+    task->lane = PGY_LANE_LOCAL_ASYNC;
     task->fn = fn;
     task->arg = arg;
     task->cancel_node = pgy_cancel_node_create(pgy_current_cancel_node());
@@ -340,7 +342,10 @@ pgy_current_cancel_node(void)
 static inline PgyTaskHandle
 pgy_async_spawn(void *(*fn)(void *), void *arg)
 {
-    return pgy_spawn(fn, arg);
+    PgyTaskHandle handle = pgy_spawn(fn, arg);
+    if (handle.task != NULL)
+        pgy_task_handle_set_lane(handle, PGY_LANE_LOCAL_ASYNC);
+    return handle;
 }
 
 static inline bool

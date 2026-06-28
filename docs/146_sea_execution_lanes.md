@@ -133,6 +133,11 @@ strictly underneath.
   These are still conservative lane facts until precise capture plumbing can
   move the decision fully onto boundary-owned evidence, but executor selection
   itself is no longer duplicated in C and LLVM emitters.
+- The task header now preserves the consumed `ExecutionLaneFact` while
+  `PgyTaskHandle` stays ABI-stable as a task pointer. This keeps the lane fact
+  alive past spawn-shaped lowering so later await/detach/cancellation work can
+  consume the same fact instead of reclassifying or guessing from the handle
+  shape.
 
 **Remaining (deep fill, not a quick slice):**
 - **Precise capture plumbing.** `BoundaryCaptureFact` now exists and is stored
@@ -145,12 +150,14 @@ strictly underneath.
   capture plumbing, not a kind lookup.
 - **Remaining concurrent-site facade coverage.** Spawn expressions,
   `parallel { ... }`, and async blocks now consume the lane-owned spawn facade.
-  Channel send/receive and cancellation still call their older runtime entry
-  points directly. Unifying those sites is the next codegen step. On the
-  self-host side it is gated by async *lowering*: the self-host parses async but
-  does not lower it (its `mir_lower` carries zero async facts), so the self-host
-  async codegen is the larger frontier -- the MIR JSON async fact surface,
-  tracked with the self-host expansion.
+  The task handle now carries the lane fact through await/detach/cancellation,
+  but those operations still use the older runtime entry points. Channel
+  send/receive also still calls its typed channel runtime directly. Unifying
+  those sites is the next codegen step. On the self-host side it is gated by
+  async *lowering*: the self-host parses async but does not lower it (its
+  `mir_lower` carries zero async facts), so the self-host async codegen is the
+  larger frontier -- the MIR JSON async fact surface, tracked with the self-host
+  expansion.
 - **Executor depth.** The Worker/Blocking/LocalAsync/Movable lanes currently
   share one worker-thread executor; backing them with the fiber scheduler /
   work-stealing pool / dedicated blocking pool is refinement under the same
