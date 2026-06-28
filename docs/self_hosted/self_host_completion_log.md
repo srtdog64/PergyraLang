@@ -2206,3 +2206,28 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   local `FindFrom(json, ...)` scans. The `mir_lower` path now consumes
   declaration, routine, block, successor, source-local, statement-array,
   match-pattern, and instruction facts through the MIR JSON fact owner surface.
+
+### 2026-06-28 -- Comparator consumes artifact pair rows through argv
+
+- Added projection-index validation to
+  `src/self_hosted/compiler/test_harness_owner.pgy`, including the
+  `self_hosted` projection row.
+- Repointed `backend_output_comparator` so artifact paths and projection row
+  indexes can be supplied through `Args()` while preserving the no-arg fixture
+  owner defaults.
+- Reworked the backend tri-compare harness to compile the Pergyra comparator
+  once and run it on explicit C/LLVM artifact paths, rather than copying
+  stdout/stderr into fixed fixture locations to imply the compared artifacts.
+- Tightened the component contract and comparator parity gate so the
+  `self_hosted` projection row is exercised by a real comparator invocation.
+
+### 2026-06-28 -- AIR graph count reads stop using integer sentinels
+
+- Repointed the AIR graph JSON validator, node-count integrity checker, and
+  live-reference checker so summary count reads return `Bool` evidence plus an
+  `inout` value row instead of `-1` out-of-band failure values.
+- Threaded missing-count evidence into each tool's verdict path, so malformed
+  AIR graph summaries fail as explicit checker state rather than by arithmetic
+  over a sentinel value.
+- Tightened `self_host_pergyra_likeness_smoke.sh` by lowering the sentinel
+  ratchet from 39 to 38 after the conversion.

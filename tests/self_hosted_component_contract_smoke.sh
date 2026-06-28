@@ -728,7 +728,11 @@ require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'import 
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'import "../../compiler/test_harness_owner.pgy";'
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'import "../../compiler/subprocess_runner_owner.pgy";'
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerArtifactKindAt(6)"
-require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerHarnessProjectionAt(0)"
+require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "let args: Array<String> = Args();"
+require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "expected_path = args[0];"
+require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "actual_path = args[1];"
+require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerHarnessProjectionOrExit(ToInt(args[2]))"
+require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerHarnessProjectionOrExit(ToInt(args[3]))"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerHarnessComparableArtifactPathAt(0)"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerHarnessComparableArtifactPathAt(1)"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerHarnessFindingCap()"
@@ -740,6 +744,8 @@ require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "JsonEmi
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "JsonEmitArray(findings)"
 reject_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'let json_parts: Array<String>'
 reject_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'src/self_hosted/tools/backend_output_comparator/fixture/'
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessProjectionIndexKnown"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessProjectionOrExit"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessComparableArtifactPathAt"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessFindingCap"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareTimeoutMs"
@@ -751,10 +757,13 @@ require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp 
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/artifact_zone_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/subprocess_runner_owner.pgy"'
+require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" '"$ARG_BIN" "$ARG_EXPECTED_PATH" "$ARG_ACTUAL_PATH" 0 2'
+require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" '"actual_projection":"self_hosted"'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/json.pgy"'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/artifact_zone_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/subprocess_runner_owner.pgy"'
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'run_native_bin "$tri_bin" "$tri_stdout" "$tri_stderr" "$expected_arg" "$actual_arg" 0 1'
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "JsonEmitArray(findings)"

@@ -190,30 +190,23 @@ run_pergyra_output_compare() {
     local expected="$3"
     local actual="$4"
     local tri_root="$5"
-    local tri_tool="$6"
-    local tri_fixture
-    local tri_tool_arg
+    local tri_bin="$6"
     local tri_out
     local tri_stdout
     local tri_stderr
     local tri_rc
+    local expected_arg
+    local actual_arg
 
-    tri_fixture="$tri_root/src/self_hosted/tools/backend_output_comparator/fixture"
-    mkdir -p "$tri_fixture"
     mkdir -p "$tri_root/.tmp"
-    cp "$expected" "$tri_fixture/expected.txt"
-    cp "$actual" "$tri_fixture/actual.txt"
 
-    tri_tool_arg="$(pgy_path_for_compiler "$PGY" "$tri_tool")"
+    expected_arg="${expected#"$ROOT_DIR/"}"
+    actual_arg="${actual#"$ROOT_DIR/"}"
     tri_stdout="$tri_root/.tmp/${stream_label}.tri.stdout"
     tri_stderr="$tri_root/.tmp/${stream_label}.tri.stderr"
     set +e
-    (cd "$tri_root" && "$PGY" "$tri_tool_arg" --run >"$tri_stdout" 2>"$tri_stderr")
+    run_native_bin "$tri_bin" "$tri_stdout" "$tri_stderr" "$expected_arg" "$actual_arg" 0 1
     tri_rc=$?
-    if [[ "$tri_rc" -eq 126 || "$tri_rc" -eq 127 ]]; then
-        run_pgy_windows_capture "$tri_root" "$tri_stdout" "$tri_stderr" "$tri_tool_arg" "--run"
-        tri_rc=$?
-    fi
     set -e
     tri_out="$(cat "$tri_stdout" "$tri_stderr")"
     if [[ "$tri_rc" -ne 0 ]]; then
@@ -249,6 +242,8 @@ run_tri_case() {
     local llvm_rc
     local tri_root
     local tri_tool
+    local tri_bin
+    local tri_compile_log
 
     case_name="$(basename "$case_dir")"
     source_rel="$case_dir/main.pgy"
@@ -285,9 +280,12 @@ run_tri_case() {
 
     tri_root="$WORK_DIR/${case_name}_tri_root"
     tri_tool="$tri_root/src/self_hosted/tools/backend_output_comparator/main.pgy"
+    tri_bin="$tri_root/.tmp/backend_output_comparator.exe"
+    tri_compile_log="$tri_root/.tmp/backend_output_comparator.compile.log"
     mkdir -p "$(dirname "$tri_tool")"
     mkdir -p "$tri_root/src/self_hosted/lib"
     mkdir -p "$tri_root/src/self_hosted/compiler"
+    mkdir -p "$tri_root/.tmp"
     cp "$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy" "$tri_tool"
     cp "$ROOT_DIR/src/self_hosted/lib/json.pgy" "$tri_root/src/self_hosted/lib/json.pgy"
     cp "$ROOT_DIR/src/self_hosted/compiler/artifact_zone_owner.pgy" \
@@ -297,10 +295,18 @@ run_tri_case() {
     cp "$ROOT_DIR/src/self_hosted/compiler/subprocess_runner_owner.pgy" \
         "$tri_root/src/self_hosted/compiler/subprocess_runner_owner.pgy"
 
+    if ! (cd "$tri_root" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$tri_tool")" \
+        --backend=c -o "$(pgy_path_for_compiler "$PGY" "$tri_bin")" \
+        >"$tri_compile_log" 2>&1); then
+        echo "[self-host-parity:backend-tri-compare] comparator compile failed for $source_rel" >&2
+        cat "$tri_compile_log" >&2
+        exit 1
+    fi
+
     run_pergyra_output_compare "$source_rel" "stdout" "$c_out" "$llvm_out" \
-        "$tri_root" "$tri_tool"
+        "$tri_root" "$tri_bin"
     run_pergyra_output_compare "$source_rel" "stderr" "$c_err" "$llvm_err" \
-        "$tri_root" "$tri_tool"
+        "$tri_root" "$tri_bin"
 }
 
 if [[ "$#" -gt 0 ]]; then

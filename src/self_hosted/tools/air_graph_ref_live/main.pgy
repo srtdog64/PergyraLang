@@ -59,20 +59,21 @@ func DanglingRefs(content: String, key: String, limit: Int) -> Int {
     return dangling;
 }
 
-func ExtractIntField(content: String, field: String) -> Int {
+func ExtractIntField(content: String, field: String, inout value_out: Array<Int>) -> Bool {
     let key: String = Concat(Concat("\"", field), "\":");
     let key_idx: Int = StringIndexOf(content, key);
     if key_idx < 0 {
-        return -1;
+        return false;
     }
     let value_start: Int = key_idx + StringLength(key);
     let rest_len: Int = StringLength(content) - value_start;
     if rest_len <= 0 {
-        return -1;
+        return false;
     }
     let rest: String = Substring(content, value_start, rest_len);
     let tok: String = FirstTokenAfter(content, value_start);
-    return ToInt(tok);
+    value_out[0] = ToInt(tok);
+    return true;
 }
 
 func DanglingFinding(boundary_d: Int, intent_d: Int) -> String {
@@ -128,12 +129,24 @@ func Main() -> Void {
     }
 
     let content: String = ReadFile(fixture_path);
-    let intent_count: Int = ExtractIntField(content, "intent_count");
-    let boundary_count: Int = ExtractIntField(content, "boundary_count");
+    let intent_count_box: Array<Int> = [0];
+    let boundary_count_box: Array<Int> = [0];
+    let counts_ok: Bool = true;
+    if !ExtractIntField(content, "intent_count", intent_count_box) {
+        counts_ok = false;
+    }
+    if !ExtractIntField(content, "boundary_count", boundary_count_box) {
+        counts_ok = false;
+    }
+    let intent_count: Int = intent_count_box[0];
+    let boundary_count: Int = boundary_count_box[0];
 
     let boundary_dangling: Int = DanglingRefs(content, "\"boundary\":", boundary_count);
     let intent_dangling: Int = DanglingRefs(content, "\"intent\":", intent_count);
     let dangling: Int = boundary_dangling + intent_dangling;
+    if !counts_ok {
+        dangling = dangling + 1;
+    }
 
     let findings: Array<String> = FindingsFor(dangling, boundary_dangling, intent_dangling);
     let source_fields: Array<String> = [

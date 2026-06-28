@@ -82,6 +82,31 @@ if [[ "$CLEAN_JSON" != "$EXPECTED_JSON" ]]; then
     exit 1
 fi
 
+# Phase 1b - argv-driven pair/projection facts. This is the hard-self-host
+# path: the comparator receives artifact paths and projection rows through
+# Args() instead of relying only on fixed fixture owner paths.
+ARG_BIN="$PERGYRA_TOOL_BUILD_DIR/main_args.exe"
+ARG_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/main_args.compile.log"
+ARG_EXPECTED_PATH="${FIXTURE_EXPECTED#"$ROOT_DIR/"}"
+ARG_ACTUAL_PATH="${FIXTURE_ACTUAL#"$ROOT_DIR/"}"
+if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_INPUT" --backend=c \
+    -o "$(pgy_path_for_compiler "$PGY" "$ARG_BIN")" >"$ARG_COMPILE_LOG" 2>&1); then
+    echo "[self-host-parity:backend-output-comparator] argv-mode C compile failed" >&2
+    cat "$ARG_COMPILE_LOG" >&2
+    exit 1
+fi
+ARG_OUT="$(cd "$ROOT_DIR" && "$ARG_BIN" "$ARG_EXPECTED_PATH" "$ARG_ACTUAL_PATH" 0 2 2>/dev/null | tr -d '\r')"
+ARG_JSON="$(printf '%s\n' "$ARG_OUT" \
+    | grep -F 'pgy.selfhost.backend-output-comparator.v1' \
+    | tail -n 1)"
+if ! grep -Fq '"expected_projection":"c_oracle"' <<<"$ARG_JSON" \
+    || ! grep -Fq '"actual_projection":"self_hosted"' <<<"$ARG_JSON" \
+    || ! grep -Fq '"ok":true' <<<"$ARG_JSON"; then
+    echo "[self-host-parity:backend-output-comparator] argv-mode projection parity FAIL" >&2
+    printf '%s\n' "$ARG_OUT" >&2
+    exit 1
+fi
+
 LLVM_BACKEND_LABEL="llvm"
 LLVM_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/main_llvm.compile.log"
 if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_INPUT" --backend=llvm \

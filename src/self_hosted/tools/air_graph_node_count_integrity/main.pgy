@@ -35,16 +35,16 @@ func CountKey(content: String, key: String) -> Int {
     return count;
 }
 
-func ExtractIntField(content: String, field: String) -> Int {
+func ExtractIntField(content: String, field: String, inout value_out: Array<Int>) -> Bool {
     let key: String = Concat(Concat("\"", field), "\":");
     let key_idx: Int = StringIndexOf(content, key);
     if key_idx < 0 {
-        return -1;
+        return false;
     }
     let value_start: Int = key_idx + StringLength(key);
     let rest_len: Int = StringLength(content) - value_start;
     if rest_len <= 0 {
-        return -1;
+        return false;
     }
     let rest: String = Substring(content, value_start, rest_len);
     let comma_idx: Int = StringIndexOf(rest, ",");
@@ -59,10 +59,11 @@ func ExtractIntField(content: String, field: String) -> Int {
         }
     }
     if stop <= 0 {
-        return -1;
+        return false;
     }
     let num_str: String = Substring(rest, 0, stop);
-    return ToInt(num_str);
+    value_out[0] = ToInt(num_str);
+    return true;
 }
 
 func MismatchFinding(ids: Int, declared: Int) -> String {
@@ -121,14 +122,27 @@ func Main() -> Void {
 
     let content: String = ReadFile(fixture_path);
     let id_count: Int = CountKey(content, "\"id\":");
-    let intents: Int = ExtractIntField(content, "intent_count");
-    let boundaries: Int = ExtractIntField(content, "boundary_count");
-    let evidence: Int = ExtractIntField(content, "evidence_count");
+    let intents_box: Array<Int> = [0];
+    let boundaries_box: Array<Int> = [0];
+    let evidence_box: Array<Int> = [0];
+    let counts_ok: Bool = true;
+    if !ExtractIntField(content, "intent_count", intents_box) {
+        counts_ok = false;
+    }
+    if !ExtractIntField(content, "boundary_count", boundaries_box) {
+        counts_ok = false;
+    }
+    if !ExtractIntField(content, "evidence_count", evidence_box) {
+        counts_ok = false;
+    }
+    let intents: Int = intents_box[0];
+    let boundaries: Int = boundaries_box[0];
+    let evidence: Int = evidence_box[0];
 
     let declared: Int = intents + boundaries + evidence;
 
     let mismatch: Bool = false;
-    if intents < 0 || boundaries < 0 || evidence < 0 {
+    if !counts_ok {
         mismatch = true;
     }
     if id_count != declared {

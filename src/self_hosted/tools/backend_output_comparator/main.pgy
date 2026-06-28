@@ -18,16 +18,26 @@ import "../../compiler/artifact_zone_owner.pgy";
 import "../../compiler/test_harness_owner.pgy";
 import "../../compiler/subprocess_runner_owner.pgy";
 
-func MismatchFinding(kind: String, line_index: Int, location: String) -> String {
+func AppendMismatchFinding(
+    inout findings: Array<String>,
+    kind: String,
+    line_index: Int,
+    location: String
+) -> Void {
     let fields: Array<String> = [
         JsonEmitFieldString("kind", kind),
         JsonEmitFieldNumber("line", ToString(line_index)),
         JsonEmitFieldString("location", location)
     ];
-    return JsonEmitObject(fields);
+    ArrayPush(findings, JsonEmitObject(fields));
 }
 
-func ComparatorSourceFields(expected_path: String, actual_path: String) -> Array<String> {
+func ComparatorSourceFields(
+    expected_path: String,
+    actual_path: String,
+    expected_projection: String,
+    actual_projection: String
+) -> Array<String> {
     if !CompilerArtifactKindKnown("run_output") ||
         !CompilerTestHarnessReady() ||
         !CompilerSubprocessRunnerReady() {
@@ -38,8 +48,8 @@ func ComparatorSourceFields(expected_path: String, actual_path: String) -> Array
         JsonEmitFieldString("expected_owner", expected_path),
         JsonEmitFieldString("actual_owner", actual_path),
         JsonEmitFieldString("artifact_kind", CompilerArtifactKindAt(6)),
-        JsonEmitFieldString("expected_projection", CompilerHarnessProjectionAt(0)),
-        JsonEmitFieldString("actual_projection", CompilerHarnessProjectionAt(1)),
+        JsonEmitFieldString("expected_projection", expected_projection),
+        JsonEmitFieldString("actual_projection", actual_projection),
         JsonEmitFieldString("subprocess_schema", CompilerSubprocessSchema()),
         JsonEmitFieldString("subprocess_use_case", CompilerSubprocessUseCaseAt(0)),
         JsonEmitFieldString("subprocess_timeout_ms", CompilerSubprocessOracleCompareTimeoutMs()),
@@ -50,10 +60,18 @@ func ComparatorSourceFields(expected_path: String, actual_path: String) -> Array
     return fields;
 }
 
-func InputErrorJson(path: String) -> String {
+func InputErrorJson(
+    path: String,
+    expected_path: String,
+    actual_path: String,
+    expected_projection: String,
+    actual_projection: String
+) -> String {
     let source_fields: Array<String> = ComparatorSourceFields(
-        CompilerHarnessComparableArtifactPathAt(0),
-        CompilerHarnessComparableArtifactPathAt(1));
+        expected_path,
+        actual_path,
+        expected_projection,
+        actual_projection);
     let counts_fields: Array<String> = [
         JsonEmitFieldNumber("expected_lines", "0"),
         JsonEmitFieldNumber("actual_lines", "0"),
@@ -61,9 +79,8 @@ func InputErrorJson(path: String) -> String {
         JsonEmitFieldNumber("extra_actual_lines", "0"),
         JsonEmitFieldNumber("missing_actual_lines", "0")
     ];
-    let findings: Array<String> = [
-        MismatchFinding("input_error", 0, path)
-    ];
+    let findings: Array<String> = [];
+    AppendMismatchFinding(findings, "input_error", 0, path);
     let report_fields: Array<String> = [
         JsonEmitFieldString("schema", "pgy.selfhost.backend-output-comparator.v1"),
         JsonEmitFieldBool("ok", false),
@@ -75,15 +92,30 @@ func InputErrorJson(path: String) -> String {
 }
 
 func Main() -> Void {
+    let args: Array<String> = Args();
     let expected_path: String = CompilerHarnessComparableArtifactPathAt(0);
     let actual_path: String = CompilerHarnessComparableArtifactPathAt(1);
+    let expected_projection: String = CompilerHarnessProjectionOrExit(0);
+    let actual_projection: String = CompilerHarnessProjectionOrExit(1);
+    if ArrayLength(args) > 0 {
+        expected_path = args[0];
+    }
+    if ArrayLength(args) > 1 {
+        actual_path = args[1];
+    }
+    if ArrayLength(args) > 2 {
+        expected_projection = CompilerHarnessProjectionOrExit(ToInt(args[2]));
+    }
+    if ArrayLength(args) > 3 {
+        actual_projection = CompilerHarnessProjectionOrExit(ToInt(args[3]));
+    }
 
     if !FileExists(expected_path) {
-        Log(InputErrorJson(expected_path));
+        Log(InputErrorJson(expected_path, expected_path, actual_path, expected_projection, actual_projection));
         Exit(1);
     }
     if !FileExists(actual_path) {
-        Log(InputErrorJson(actual_path));
+        Log(InputErrorJson(actual_path, expected_path, actual_path, expected_projection, actual_projection));
         Exit(1);
     }
 
@@ -121,25 +153,19 @@ func Main() -> Void {
             if e != a {
                 mismatch_count = mismatch_count + 1;
                 if ArrayLength(findings) < findings_cap {
-                    ArrayPush(findings,
-                        MismatchFinding("mismatch", i,
-                            actual_path));
+                    AppendMismatchFinding(findings, "mismatch", i, actual_path);
                 }
             }
         } else {
             if in_actual {
                 extra_actual = extra_actual + 1;
                 if ArrayLength(findings) < findings_cap {
-                    ArrayPush(findings,
-                        MismatchFinding("extra", i,
-                            actual_path));
+                    AppendMismatchFinding(findings, "extra", i, actual_path);
                 }
             } else {
                 missing_actual = missing_actual + 1;
                 if ArrayLength(findings) < findings_cap {
-                    ArrayPush(findings,
-                        MismatchFinding("missing", i,
-                            expected_path));
+                    AppendMismatchFinding(findings, "missing", i, expected_path);
                 }
             }
         }
@@ -147,7 +173,11 @@ func Main() -> Void {
     }
 
     let ok: Bool = (mismatch_count == 0) && (extra_actual == 0) && (missing_actual == 0);
-    let source_fields: Array<String> = ComparatorSourceFields(expected_path, actual_path);
+    let source_fields: Array<String> = ComparatorSourceFields(
+        expected_path,
+        actual_path,
+        expected_projection,
+        actual_projection);
     let counts_fields: Array<String> = [
         JsonEmitFieldNumber("expected_lines", ToString(exp_n)),
         JsonEmitFieldNumber("actual_lines", ToString(act_n)),

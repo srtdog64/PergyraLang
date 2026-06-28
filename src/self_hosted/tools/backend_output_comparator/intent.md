@@ -1,10 +1,10 @@
 # Backend Output Comparator -- Intent / Contract
 
-**Status:** *rung-2 minimal* (2026-05-27). Reads two output files (`expected.txt`
-and `actual.txt`) from the `TestHarness` owner path facts, compares
-line-by-line, emits a verdict JSON, and exits `1` on any mismatch. No diff
-payload yet -- only counts and a small `findings[]` enumeration of the first
-few mismatching lines.
+**Status:** *rung-2 minimal* (2026-06-28). Reads two output files from the
+`TestHarness` owner path facts or from `Args()[0..1]`, compares line-by-line,
+emits a verdict JSON, and exits `1` on any mismatch. No diff payload yet --
+only counts and a small `findings[]` enumeration of the first few mismatching
+lines.
 
 ## Intent
 
@@ -16,15 +16,18 @@ can route on `counts.mismatch_lines` instead of grepping logs.
 
 ## Input Contract
 
-- **expected_owner**: `CompilerHarnessComparableArtifactPathAt(0)`
-  (text, UTF-8, line-oriented).
-- **actual_owner**: `CompilerHarnessComparableArtifactPathAt(1)`
-  (text, UTF-8, line-oriented).
+- **expected_owner**: `Args()[0]` when supplied, otherwise
+  `CompilerHarnessComparableArtifactPathAt(0)` (text, UTF-8, line-oriented).
+- **actual_owner**: `Args()[1]` when supplied, otherwise
+  `CompilerHarnessComparableArtifactPathAt(1)` (text, UTF-8, line-oriented).
+- **expected_projection**: `CompilerHarnessProjectionAt(ToInt(Args()[2]))`
+  when supplied, otherwise `CompilerHarnessProjectionAt(0)`.
+- **actual_projection**: `CompilerHarnessProjectionAt(ToInt(Args()[3]))`
+  when supplied, otherwise `CompilerHarnessProjectionAt(1)`.
 
-Both owner facts currently resolve to fixed paths relative to repository root.
-CLI argument parsing is not yet on the Pergyra surface; the parity script swaps
-fixture contents via a temp directory to exercise both match and mismatch
-scenarios.
+The no-argument path preserves the committed fixture contract. The argv path is
+the hard-self-host path: shell may provide artifact locations, but projection
+identity still comes from `test_harness_owner.pgy` rows.
 
 ## Output Contract
 
@@ -74,6 +77,8 @@ The parity rung (`tests/self_hosted/parity/`) asserts:
 
 - The Pergyra origin exits `0` when the committed fixture matches.
 - The emitted JSON byte-matches `expected/clean.json`.
+- The compiled comparator accepts explicit artifact path arguments and reports
+  a `self_hosted` projection row when passed projection index `2`.
 - A synthetic mismatch fixture (`actual.txt` replaced with a 1-line drift)
   yields `rc=1` and `ok:false` with `counts.mismatch_lines >= 1`.
 - A synthetic missing-input fixture (delete `actual.txt`) yields `rc=1`

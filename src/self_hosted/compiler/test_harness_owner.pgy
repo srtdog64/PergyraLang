@@ -32,6 +32,21 @@ func CompilerHarnessProjectionAt(index: Int) -> String {
     return "";
 }
 
+func CompilerHarnessProjectionIndexKnown(index: Int) -> Bool {
+    return index >= 0 &&
+        index < CompilerHarnessProjectionCount() &&
+        CompilerHarnessProjectionAt(index) != "";
+}
+
+func CompilerHarnessProjectionOrExit(index: Int) -> String {
+    if !CompilerHarnessProjectionIndexKnown(index) {
+        Log("HARNESS ERROR: unknown projection row");
+        Exit(1);
+        return "";
+    }
+    return CompilerHarnessProjectionAt(index);
+}
+
 func CompilerHarnessComparableArtifactPathCount() -> Int {
     return 2;
 }
@@ -52,6 +67,9 @@ func CompilerTestHarnessReady() -> Bool {
         CompilerHarnessProjectionAt(0) == "c_oracle" &&
         CompilerHarnessProjectionAt(1) == "llvm_oracle" &&
         CompilerHarnessProjectionAt(2) == "self_hosted" &&
+        CompilerHarnessProjectionIndexKnown(0) &&
+        CompilerHarnessProjectionIndexKnown(1) &&
+        CompilerHarnessProjectionIndexKnown(2) &&
         CompilerHarnessComparableArtifactPathAt(0) != "" &&
         CompilerHarnessComparableArtifactPathAt(1) != "" &&
         CompilerHarnessFindingCap() > 0;

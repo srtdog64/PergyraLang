@@ -6,20 +6,21 @@
 
 import "../../lib/json.pgy";
 
-func ExtractIntField(content: String, field: String) -> Int {
+func ExtractIntField(content: String, field: String, inout value_out: Array<Int>) -> Bool {
     let doc_end: Int = JsonDocumentObjectEnd(content);
     if doc_end <= 0 {
-        return -1;
+        return false;
     }
     let summary_bounds: Array<Int> = [0, 0];
     if !JsonObjectFieldValueBounds(content, 0, doc_end, "summary", summary_bounds) {
-        return -1;
+        return false;
     }
     let num_str: String = JsonObjectNumberField(content, summary_bounds[0], summary_bounds[1], field);
     if StringLength(num_str) == 0 {
-        return -1;
+        return false;
     }
-    return ToInt(num_str);
+    value_out[0] = ToInt(num_str);
+    return true;
 }
 
 func CountSubstring(content: String, needle: String) -> Int {

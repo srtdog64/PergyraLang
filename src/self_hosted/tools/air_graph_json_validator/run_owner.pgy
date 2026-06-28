@@ -22,14 +22,31 @@ func RunAirGraphJsonValidation() -> Void {
     let missing_keys: Int = CountMissingKeys(content, keys) + CountMissingKeys(cap_content, cap_keys);
     let schema_ok: Bool = HasExpectedSchema(content);
     let cap_schema_ok: Bool = HasExpectedSchema(cap_content);
-    let intents: Int = ExtractIntField(content, "intent_count");
-    let boundaries: Int = ExtractIntField(content, "boundary_count");
-    let evidence: Int = ExtractIntField(content, "evidence_count");
-    let drifts: Int = ExtractIntField(content, "drift_count");
+    let intents_box: Array<Int> = [0];
+    let boundaries_box: Array<Int> = [0];
+    let evidence_box: Array<Int> = [0];
+    let drifts_box: Array<Int> = [0];
+    let counts_ok: Bool = true;
+    if !ExtractIntField(content, "intent_count", intents_box) {
+        counts_ok = false;
+    }
+    if !ExtractIntField(content, "boundary_count", boundaries_box) {
+        counts_ok = false;
+    }
+    if !ExtractIntField(content, "evidence_count", evidence_box) {
+        counts_ok = false;
+    }
+    if !ExtractIntField(content, "drift_count", drifts_box) {
+        counts_ok = false;
+    }
+    let intents: Int = intents_box[0];
+    let boundaries: Int = boundaries_box[0];
+    let evidence: Int = evidence_box[0];
+    let drifts: Int = drifts_box[0];
     let effect_sites: Int = CountEffectSites(content, cap_content);
     let env_effect_sites: Int = CountEnvEffectSites(cap_content);
     let finding_facts: String = BuildAirGraphFindingFacts(content, cap_content, fixture_path, cap_fixture_path);
-    let ok: Bool = missing_keys == 0 && schema_ok && cap_schema_ok && env_effect_sites > 0;
+    let ok: Bool = missing_keys == 0 && schema_ok && cap_schema_ok && counts_ok && env_effect_sites > 0;
 
     Log(AirGraphValidatorJson(
         fixture_path,
