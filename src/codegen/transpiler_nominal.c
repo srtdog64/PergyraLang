@@ -10,6 +10,7 @@
 #include "../parser/ast_api.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_expr_type_infer.h"
 #include "transpiler_generic_param_query.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_inventory_intent_collect.h"
@@ -18,6 +19,7 @@
 #include "transpiler_nominal.h"
 #include "transpiler_projection.h"
 #include "transpiler_symbols.h"
+#include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
 
 static const char *
@@ -389,6 +391,25 @@ transpiler_resolve_nominal_host_expr_type_name(TranspilerCtx *ctx, ASTNode *expr
             return transpiler_lookup_nominal_host_member_type_name(
                 ctx, obj_type, ast_member_name(expr));
         }
+    }
+
+    /* Array-index receiver `a[i]`: resolve the array's element type so that a
+     * direct method call on the indexed element dispatches through the element
+     * class. This mirrors the field-access path, which already relies on the
+     * element type being recoverable for `a[i].field`. */
+    if (expr->type == AST_ARRAY_ACCESS) {
+        const char *array_type = transpiler_resolve_nominal_host_expr_type_name(
+            ctx, ast_array_access_array(expr));
+        if (array_type == NULL)
+            array_type = infer_expression_type_name(ctx,
+                ast_array_access_array(expr));
+        if (transpiler_type_name_is_array_or_slice(array_type)) {
+            const char *elem_type =
+                transpiler_infer_slot_inner_type_name(ctx, array_type);
+            if (elem_type != NULL && is_nominal_host_type_name(ctx, elem_type))
+                return elem_type;
+        }
+        return NULL;
     }
 
     if (expr->type == AST_CALL

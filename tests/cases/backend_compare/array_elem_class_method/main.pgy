@@ -1,0 +1,34 @@
+// Method call dispatched directly on an array-index receiver `arr[i].M()` where
+// the array holds user-class instances. The receiver type of `arr[i]` must
+// resolve to the element class so the call routes through the class method
+// (C: `P_M(&recv)`, LLVM: registered method) rather than a struct-member access.
+// Exercises push-built arrays, a method that reads a field, a method that reads
+// a field and an argument, and for-in element binding + method dispatch.
+class P {
+    let x: Int;
+    func V(self) -> Int {
+        return self.x;
+    }
+    func Add(self, n: Int) -> Int {
+        return self.x + n;
+    }
+}
+
+func Main() -> Void {
+    let a: Array<P> = [];
+    ArrayPush(a, P(5));
+    ArrayPush(a, P(7));
+    Log(ToString(a[0].V()));
+    Log(ToString(a[1].V()));
+    Log(ToString(a[0].Add(3)));
+
+    let b: Array<P> = [];
+    ArrayPush(b, P(10));
+    ArrayPush(b, P(20));
+    ArrayPush(b, P(30));
+    let sum: Int = 0;
+    for p in b {
+        sum = sum + p.V();
+    }
+    Log(ToString(sum));
+}

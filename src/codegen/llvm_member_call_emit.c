@@ -449,6 +449,93 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
+    /* Method call directly on an array-index receiver `a[i].M()`: resolve the
+     * receiver to its element class (the same element-type resolution the
+     * field-access path `a[i].x` already relies on), lower the indexed element
+     * to a struct value, and dispatch through the registered method using the
+     * class self-convention (pointer-self -> address of a temp, value-self ->
+     * the struct value itself). */
+    if (obj_node != NULL && obj_node->type == AST_ARRAY_ACCESS
+        && method_name != NULL) {
+        const char *class_name = llvm_expr_custom_type_name(obj_node, ctx);
+        LLVMClassTypeEntry *cls = class_name != NULL
+            ? llvm_lookup_class(ctx, class_name) : NULL;
+        if (cls != NULL) {
+            char *full_name = llvm_member_call_mangle_method_name(ctx, node,
+                class_name, method_name);
+            if (full_name == NULL)
+                return NULL;
+            LLVMFuncEntry *fn = llvm_lookup_function(ctx, full_name);
+            LLVMValueRef fn_value = fn != NULL ? fn->fn
+                : LLVMGetNamedFunction(ctx->module, full_name);
+            LLVMTypeRef fn_type = fn != NULL
+                ? fn->fn_type
+                : (fn_value != NULL ? LLVMGlobalGetValueType(fn_value) : NULL);
+            LLVMTypeRef ret_type = fn != NULL
+                ? fn->ret_type
+                : (fn_type != NULL ? LLVMGetReturnType(fn_type) : NULL);
+            const MIRDeclMethod *method_meta =
+                llvm_find_host_method_metadata_in_context(ctx,
+                    class_name, method_name);
+            ASTNode *method_decl = NULL;
+            if (method_meta == NULL) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing member-call method metadata for '%s.%s'",
+                    class_name != NULL ? class_name : "(anonymous)",
+                    method_name != NULL ? method_name : "(anonymous)");
+                return NULL;
+            }
+            if (fn_value != NULL && fn_type != NULL && ret_type != NULL) {
+                size_t argc = ast_call_arg_count(node);
+                LLVMValueRef *args = llvm_member_call_alloc_args(ctx, node,
+                    class_name, method_name, argc);
+                if (args == NULL)
+                    return NULL;
+                LLVMValueRef recv = llvm_emit_expression(obj_node, ctx);
+                if (recv == NULL)
+                    return llvm_member_call_error_recovery(ctx, node,
+                        class_name, method_name, "could not lower receiver");
+                if (llvm_type_name_uses_pointer_self(ctx, class_name)) {
+                    LLVMValueRef self_ptr = recv;
+                    if (LLVMGetTypeKind(LLVMTypeOf(recv)) == LLVMStructTypeKind) {
+                        self_ptr = llvm_create_entry_alloca(ctx,
+                            cls->struct_type, llvm_tmp_name(ctx));
+                        LLVMBuildStore(ctx->builder, recv, self_ptr);
+                    }
+                    args[0] = self_ptr;
+                } else {
+                    if (LLVMGetTypeKind(LLVMTypeOf(recv))
+                        == LLVMPointerTypeKind) {
+                        recv = LLVMBuildLoad2(ctx->builder, cls->struct_type,
+                            recv, llvm_tmp_name(ctx));
+                    }
+                    args[0] = recv;
+                }
+                for (size_t i = 0; i < argc; i++) {
+                    ASTNode *arg_node = ast_call_argument(node, i);
+                    LLVMValueRef arg_val = llvm_emit_expression(arg_node, ctx);
+                    arg_val = llvm_member_call_adjust_pointer_self_arg(
+                        ctx, method_meta, method_decl, class_name,
+                        method_name, i, arg_node, arg_val);
+                    if (!llvm_member_call_store_arg(ctx, node, class_name,
+                            method_name, args, i, arg_val))
+                        return NULL;
+                }
+                LLVMValueRef result;
+                if (ret_type == ctx->type_void) {
+                    LLVMBuildCall2(ctx->builder, fn_type, fn_value,
+                        args, (unsigned)(argc + 1), "");
+                    result = llvm_void_expression_placeholder(ctx, node,
+                        "member-call");
+                } else {
+                    result = LLVMBuildCall2(ctx->builder, fn_type, fn_value,
+                        args, (unsigned)(argc + 1), llvm_tmp_name(ctx));
+                }
+                return result;
+            }
+        }
+    }
+
     if (obj_node != NULL && obj_node->type == AST_CALL
         && method_name != NULL) {
         const char *class_name = llvm_expr_custom_type_name(obj_node, ctx);
