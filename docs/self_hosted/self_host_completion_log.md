@@ -2181,3 +2181,15 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Tightened the component contract so successor reconstruction cannot
   reintroduce local `FindFrom(json, kw, ...)` scans. The remaining
   `routine_lower` raw scans are block lookup and instruction traversal.
+
+### 2026-06-28 -- CFG block lookup consumes block row facts
+
+- Repointed `BlockBounds` in `src/self_hosted/mir_lower/routine_lower.pgy`
+  from raw `"id":<n>,"reachable"` marker scans to
+  `MirObjectArrayObjectBoundsAt(..., "blocks", ToInt(id), ...)`.
+- Added an explicit row `id` fact check before returning the block span, so the
+  sequential-id subset assumption is verified instead of hidden in string
+  lookup.
+- Tightened the component contract so block lookup cannot reintroduce raw block
+  marker or `reachable` scans. The remaining `routine_lower` raw scans are now
+  instruction traversal and branch/phi detection.

@@ -11,7 +11,8 @@
 // routines we follow those edges to rebuild `If: / Then: / Else:` structure
 // instead of flattening. Loop routines (while/for) still take the flat walk
 // (detected below) -- they need back-edge handling, a separate increment.
-// Block ids are sequential digit strings ("0".."n"); we key on them as text.
+// Block ids are sequential digit strings ("0".."n"); block lookup consumes the
+// MIR `blocks` row and verifies the row's `id` fact.
 // ---------------------------------------------------------------------------
 
 // Successor id fact for `field` (`succ_true` / `succ_false`) within a block.
@@ -37,21 +38,17 @@ func OptionInnerTypeName(type_name: String) -> String {
     return inner;
 }
 
-// Resolve block `id` to its JSON span [o[0], o[1]); false if not found. The span
-// runs from this block's `"id":<id>,"reachable"` to the next block's marker.
-func BlockBounds(json: String, bp: Int, span_end: Int, id: String, inout o: Array<Int>) -> Bool {
-    let key: String = Concat("\"id\":", Concat(id, ",\"reachable\""));
-    let p: Int = FindFrom(json, key, bp);
-    if p < 0 || p >= span_end {
+// Resolve block `id` to its MIR `blocks` row span [o[0], o[1]); false if not
+// found. The supported MIR subset uses sequential block ids, but we still check
+// the row's `id` fact before returning it.
+func BlockBounds(json: String, routine_start: Int, routine_end: Int, id: String, inout o: Array<Int>) -> Bool {
+    if StringLength(id) == 0 {
         return false;
     }
-    let nb: Int = FindFrom(json, ",\"reachable\"", p + StringLength(key));
-    if nb < 0 || nb > span_end {
-        nb = span_end;
+    if !MirObjectArrayObjectBoundsAt(json, routine_start, routine_end, "blocks", ToInt(id), o) {
+        return false;
     }
-    o[0] = p;
-    o[1] = nb;
-    return true;
+    return MirObjectNumberFact(json, o[0], o[1], "id") == id;
 }
 
 // Branch condition within [bs,be); "" if the block does not end in a branch or
@@ -194,13 +191,13 @@ func LoopHeaderLine(cond: String) -> String {
 // The block at which the single-entry region starting at `start` rejoins its
 // parent (the if's merge / post-dominator). Plain blocks fall through to their
 // successor; branch blocks recurse to skip past their own if. "" = no exit.
-func RegionExit(json: String, routine_start: Int, bp: Int, span_end: Int, start: String) -> String {
+func RegionExit(json: String, routine_start: Int, span_end: Int, start: String) -> String {
     let cur: String = start;
     let guard: Int = 0;
     while StringLength(cur) > 0 && guard < 100000 {
         guard = guard + 1;
         let o: Array<Int> = [0, 0];
-        if !BlockBounds(json, bp, span_end, cur, o) {
+        if !BlockBounds(json, routine_start, span_end, cur, o) {
             return "";
         }
         let cond: String = BlockCond(json, routine_start, span_end, o[0], o[1]);
@@ -209,7 +206,7 @@ func RegionExit(json: String, routine_start: Int, bp: Int, span_end: Int, start:
         }
         let t: String = ReadSucc(json, o[0], o[1], "succ_true");
         let f: String = ReadSucc(json, o[0], o[1], "succ_false");
-        let te: String = RegionExit(json, routine_start, bp, span_end, t);
+        let te: String = RegionExit(json, routine_start, span_end, t);
         if te == f {
             cur = f;
         } else {
@@ -232,7 +229,7 @@ func IsLoopAbrupt(id: String, loop_header: String, loop_exit: String) -> Bool {
     return false;
 }
 
-func BlockHasIncomingBackedge(json: String, bp: Int, span_end: Int, want: String) -> Bool {
+func BlockHasIncomingBackedge(json: String, routine_start: Int, span_end: Int, want: String) -> Bool {
     if StringLength(want) == 0 {
         return false;
     }
@@ -240,7 +237,7 @@ func BlockHasIncomingBackedge(json: String, bp: Int, span_end: Int, want: String
     while i < 1000 {
         let id: String = ToString(i);
         let o: Array<Int> = [0, 0];
-        if !BlockBounds(json, bp, span_end, id, o) {
+        if !BlockBounds(json, routine_start, span_end, id, o) {
             return false;
         }
         if ReadSucc(json, o[0], o[1], "succ_true") == want {
@@ -258,7 +255,7 @@ func BlockHasIncomingBackedge(json: String, bp: Int, span_end: Int, want: String
 // (exclusive). Straight-line blocks emit their statements; a branch block emits
 // `If:/Then:/Else:` and recurses into the then/else regions, then continues from
 // the merge. `indent` is the leading whitespace for statements at this level.
-func EmitRegion(json: String, routine_start: Int, bp: Int, span_end: Int,
+func EmitRegion(json: String, routine_start: Int, span_end: Int,
                 start: String, stop: String, indent: String,
                 loop_header: String, loop_exit: String) -> String {
     let out: String = "";
@@ -267,7 +264,7 @@ func EmitRegion(json: String, routine_start: Int, bp: Int, span_end: Int,
     while StringLength(cur) > 0 && cur != stop && guard < 100000 {
         guard = guard + 1;
         let o: Array<Int> = [0, 0];
-        if !BlockBounds(json, bp, span_end, cur, o) {
+        if !BlockBounds(json, routine_start, span_end, cur, o) {
             return out;
         }
         let bs: Int = o[0];
@@ -292,16 +289,16 @@ func EmitRegion(json: String, routine_start: Int, bp: Int, span_end: Int,
             let f: String = ReadSucc(json, bs, be, "succ_false");
             let isFor: Bool = StringLength(cond) >= 4 && Substring(cond, 0, 4) == "for ";
             let isLoop: Bool = isFor || (BlockHasPhi(json, bs, be)
-                && BlockHasIncomingBackedge(json, bp, span_end, cur));
+                && BlockHasIncomingBackedge(json, routine_start, span_end, cur));
             if isLoop {
                 // Loop header: the body region (succ_true) flows back here, so we
                 // bound it by `cur` (this header); the loop exit is succ_false.
                 out = Concat(out, Concat(indent, Concat(LoopHeaderLine(cond), "\n")));
                 out = Concat(out, Concat(indent, "  Block:\n"));
-                out = Concat(out, EmitRegion(json, routine_start, bp, span_end, t, cur, Concat(indent, "    "), cur, f));
+                out = Concat(out, EmitRegion(json, routine_start, span_end, t, cur, Concat(indent, "    "), cur, f));
                 cur = f;
             } else {
-                let te: String = RegionExit(json, routine_start, bp, span_end, t);
+                let te: String = RegionExit(json, routine_start, span_end, t);
                 let merge: String = "";
                 let hasElse: Bool = false;
                 if IsLoopAbrupt(te, loop_header, loop_exit) {
@@ -316,11 +313,11 @@ func EmitRegion(json: String, routine_start: Int, bp: Int, span_end: Int,
                 out = Concat(out, Concat(indent, "  Then:\n"));
                 out = Concat(out, Concat(indent, "    Block:\n"));
                 out = Concat(out, BlockMatchBindingLine(json, routine_start, span_end, bs, be, Concat(indent, "      ")));
-                out = Concat(out, EmitRegion(json, routine_start, bp, span_end, t, merge, Concat(indent, "      "), loop_header, loop_exit));
+                out = Concat(out, EmitRegion(json, routine_start, span_end, t, merge, Concat(indent, "      "), loop_header, loop_exit));
                 if hasElse {
                     out = Concat(out, Concat(indent, "  Else:\n"));
                     out = Concat(out, Concat(indent, "    Block:\n"));
-                    out = Concat(out, EmitRegion(json, routine_start, bp, span_end, f, merge, Concat(indent, "      "), loop_header, loop_exit));
+                    out = Concat(out, EmitRegion(json, routine_start, span_end, f, merge, Concat(indent, "      "), loop_header, loop_exit));
                 }
                 cur = merge;
             }
@@ -370,7 +367,7 @@ func EmitRoutineTreeWithSelfType(json: String, rpos: Int, routine_indent: String
     if bp < 0 {
         Die(Concat("routine is missing blocks fact: ", routine));
     }
-    let region: String = EmitRegion(json, routine_name_end, bp, span_end, "0", "",
+    let region: String = EmitRegion(json, routine_name_end, span_end, "0", "",
         Concat(item_pad, "  "), "", "");
     if StringLength(region) == 0 {
         Die(Concat("unsupported or empty MIR CFG shape in routine: ", routine));

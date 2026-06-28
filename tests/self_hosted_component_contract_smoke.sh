@@ -623,7 +623,12 @@ require_text "src/self_hosted/mir_lower/routine_lower.pgy" "RoutineParamCount(js
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "RoutineReturnType(json, rpos, header_end)"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectStringFact(json, kp, be, \"kind\")"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectNumberFact(json, bs, be, field)"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayObjectBoundsAt(json, routine_start, routine_end, \"blocks\", ToInt(id), o)"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectNumberFact(json, o[0], o[1], \"id\") == id"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadSucc(json, bs, be, \"succ_true\")"
+reject_text "src/self_hosted/mir_lower/routine_lower.pgy" 'let key: String = Concat("\"id\":'
+reject_text "src/self_hosted/mir_lower/routine_lower.pgy" 'FindFrom(json, ",\"reachable\""'
+reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "BlockBounds(json, bp"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "FindFrom(json, kw"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" 'ReadSucc(json, bs, be, "\"succ_true\":")'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" 'ReadSucc(json, bs, be, "\"succ_false\":")'
