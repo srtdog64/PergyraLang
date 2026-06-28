@@ -2141,3 +2141,22 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `ReadJsonString` to `MirObjectStringFact`.
 - Tightened the component contract so program assembly and instruction-kind
   lowering cannot reintroduce those local string reads.
+
+### 2026-06-28 -- Routine discovery consumes MIR routine row facts
+
+- Added MIR fact accessors for object end, field-value bounds, and `routines`
+  array row bounds in
+  `src/self_hosted/mir_lower/json_fact_read.pgy`.
+- Repointed `routine_inventory_owner.pgy` so routine discovery consumes the
+  MIR `routines` array rows and each row's `kind` / `name` facts instead of
+  globally scanning `"name"` keys or checking raw `,"kind":"function|method"`
+  suffixes after a name string.
+- Repointed routine span advancement to the containing routine object's end, so
+  program assembly does not re-scan instruction `name` facts while looking for
+  the next routine.
+- Tightened the component contract so routine inventory discovery cannot
+  reintroduce local `ReadJsonString` calls, global name scans, or
+  function/method suffix peeks.
+  The Stable JSON blocker remains active until the owner is a full schema-aware
+  DOM/fact table, but this removes one more local compatibility scan from
+  `mir_lower`.

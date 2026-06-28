@@ -4,34 +4,32 @@
 // header facts in pgy.mir.v1 JSON. CFG reconstruction and AST-tree emission
 // belong to routine_lower.pgy.
 
-// Find the next routine declaration: a `"name":` whose object is a function or
-// method (`,"kind":"function|method"` follows the value). Instruction
-// `"name":"stmt"` entries are skipped. Returns the position of the routine's
-// `"name":` key, or -1.
+// Find the next routine declaration row after `from`. Routine discovery is
+// owned by the MIR `routines` array; instruction/name payloads are not scanned.
+// Returns the containing routine object position, or -1.
 func FindRoutine(json: String, from: Int) -> Int {
-    let p: Int = FindFrom(json, "\"name\":", from);
-    while p >= 0 {
-        let q: Int = FindFrom(json, "\"", p + 7);
-        if q < 0 {
-            return -1;
+    let row: Int = 0;
+    let bounds: Array<Int> = [0, 0];
+    while MirRoutineObjectBoundsAt(json, row, bounds) {
+        if bounds[0] >= from {
+            let kind: String = MirObjectStringFact(json, bounds[0], bounds[1], "kind");
+            if kind == "function" || kind == "method" {
+                return bounds[0];
+            }
         }
-        let e: Array<Int> = [0];
-        let v: String = ReadJsonString(json, q, e);
-        if StringLength(v) >= 0 && Substring(json, e[0], 18) == ",\"kind\":\"function\"" {
-            return p;
-        }
-        if StringLength(v) >= 0 && Substring(json, e[0], 16) == ",\"kind\":\"method\"" {
-            return p;
-        }
-        p = FindFrom(json, "\"name\":", e[0]);
+        row = row + 1;
     }
     return -1;
 }
 
+func RoutineObjectEnd(json: String, rpos: Int) -> Int {
+    return MirObjectEnd(json, rpos, StringLength(json));
+}
+
 func RoutineSpanEnd(json: String, routine_name_end: Int) -> Int {
-    let next_rpos: Int = FindRoutine(json, routine_name_end);
-    if next_rpos >= 0 {
-        return next_rpos;
+    let object_end: Int = MirObjectEnd(json, routine_name_end, StringLength(json));
+    if object_end > routine_name_end {
+        return object_end;
     }
     return StringLength(json);
 }
@@ -45,22 +43,17 @@ func RoutineHeaderEnd(json: String, routine_name_end: Int, span_end: Int) -> Int
 }
 
 func RoutineNameEnd(json: String, rpos: Int) -> Int {
-    let nq: Int = FindFrom(json, "\"", rpos + 7);
-    if nq < 0 {
+    let object_end: Int = RoutineObjectEnd(json, rpos);
+    let bounds: Array<Int> = [0, 0];
+    if object_end <= rpos || !MirObjectFieldValueBounds(json, rpos, object_end, "name", bounds) {
         return -1;
     }
-    let nend: Array<Int> = [0];
-    let ignored: String = ReadJsonString(json, nq, nend);
-    return nend[0];
+    return bounds[1];
 }
 
 func RoutineName(json: String, rpos: Int) -> String {
-    let nq: Int = FindFrom(json, "\"", rpos + 7);
-    if nq < 0 {
-        return "";
-    }
-    let nend: Array<Int> = [0];
-    return ReadJsonString(json, nq, nend);
+    let object_end: Int = RoutineObjectEnd(json, rpos);
+    return MirObjectStringFact(json, rpos, object_end, "name");
 }
 
 func RoutineKind(json: String, rpos: Int, routine_name_end: Int, span_end: Int) -> String {
@@ -126,7 +119,7 @@ func FindRoutineByOwnerName(json: String, owner: String, name: String) -> Int {
         if kind == "method" && ro == owner && routine == name {
             return rpos;
         }
-        rpos = FindRoutine(json, nend);
+        rpos = FindRoutine(json, span_end);
     }
     return -1;
 }

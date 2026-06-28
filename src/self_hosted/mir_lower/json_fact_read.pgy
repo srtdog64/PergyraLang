@@ -35,6 +35,14 @@ func MirObjectNumberFact(json: String, start: Int, end: Int, field: String) -> S
     return JsonObjectNumberField(json, MirFactObjectStart(json, start), end, field);
 }
 
+func MirObjectEnd(json: String, start: Int, limit: Int) -> Int {
+    return JsonObjectEnd(json, MirFactObjectStart(json, start), limit);
+}
+
+func MirObjectFieldValueBounds(json: String, start: Int, end: Int, field: String, inout bounds: Array<Int>) -> Bool {
+    return JsonObjectFieldValueBounds(json, MirFactObjectStart(json, start), end, field, bounds);
+}
+
 func MirObjectArrayStringFactAt(json: String, start: Int, end: Int, field: String, row: Int) -> String {
     return JsonObjectArrayStringAt(json, MirFactObjectStart(json, start), end, field, row);
 }
@@ -86,6 +94,22 @@ func MirDeclObjectBoundsAt(json: String, row: Int, inout bounds: Array<Int>) -> 
         return false;
     }
     return JsonArrayObjectBoundsAt(json, decls[0], decls[1], row, bounds);
+}
+
+func MirRoutineArrayBounds(json: String, inout bounds: Array<Int>) -> Bool {
+    let doc_end: Int = JsonDocumentObjectEnd(json);
+    if doc_end <= 0 {
+        return false;
+    }
+    return JsonFieldArrayBounds(json, 0, doc_end, "routines", bounds);
+}
+
+func MirRoutineObjectBoundsAt(json: String, row: Int, inout bounds: Array<Int>) -> Bool {
+    let routines: Array<Int> = [0, 0];
+    if !MirRoutineArrayBounds(json, routines) {
+        return false;
+    }
+    return JsonArrayObjectBoundsAt(json, routines[0], routines[1], row, bounds);
 }
 
 // Find a MIR source-local type fact in the current routine span. This is the

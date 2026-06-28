@@ -603,6 +603,7 @@ require_owner_surface mir_lower \
     "decl_lower.pgy" \
     "program_lower.pgy"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func FindRoutine"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineObjectEnd"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineNameEnd"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineName"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineParamCount"
@@ -610,6 +611,10 @@ require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func Routi
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineParamTypeAt"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineReturnType"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineBlocksStart"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirRoutineObjectBoundsAt(json, row, bounds)"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectEnd(json, routine_name_end"
+reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "let next_rpos: Int = FindRoutine(json, routine_name_end)"
+reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" 'FindFrom(json, "\"name\":'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "func FindRoutine"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "RoutineParamCount(json, rpos, header_end)"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "RoutineReturnType(json, rpos, header_end)"
@@ -621,7 +626,12 @@ reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, 
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, rnq"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, kq"
 require_text "src/self_hosted/mir_lower/program_lower.pgy" "RoutineNameEnd(json, rpos)"
+require_text "src/self_hosted/mir_lower/program_lower.pgy" "FindRoutine(json, span_end)"
+reject_text "src/self_hosted/mir_lower/program_lower.pgy" "FindRoutine(json, nend)"
 reject_text "src/self_hosted/mir_lower/program_lower.pgy" "ReadJsonString(json,"
+reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" 'Substring(json, e[0]'
+reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" ',"kind":"function"'
+reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" ',"kind":"method"'
 
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/main.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lexer/main.pgy"'
@@ -783,6 +793,10 @@ require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirFactObjectStart"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectStringFact"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectNumberFact"
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectEnd"
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectFieldValueBounds"
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirRoutineArrayBounds"
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirRoutineObjectBoundsAt"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectArrayStringFactAt"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectArrayStringFactCount"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectArrayBounds"
@@ -808,7 +822,9 @@ reject_text "src/self_hosted/mir_lower/decl_lower.pgy" 'FindFrom(json, "\"varian
 reject_text "src/self_hosted/mir_lower/decl_lower.pgy" "JsonFieldString(json,"
 reject_text "src/self_hosted/mir_lower/decl_lower.pgy" "ReadJsonString(json,"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectStringFact(json, rpos"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectFieldValueBounds(json, rpos"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "JsonFieldString(json,"
+reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "ReadJsonString(json,"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectStringFact(json, kp, inst_end, \"source_type\")"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayStringFactCount(json, kp, inst_end, \"match_patterns\")"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayStringFactAt(json, kp, inst_end, \"match_patterns\", 0)"

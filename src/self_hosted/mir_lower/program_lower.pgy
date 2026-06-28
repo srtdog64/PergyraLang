@@ -22,7 +22,7 @@ func EmitMirProgramTree(json: String) -> String {
             out = Concat(out, EmitRoutineTree(json, rpos, "  "));
             total = total + 1;
         }
-        rpos = FindRoutine(json, nend);
+        rpos = FindRoutine(json, span_end);
     }
 
     if total == 0 {
