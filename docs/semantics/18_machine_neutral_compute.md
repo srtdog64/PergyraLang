@@ -1,6 +1,6 @@
 # 18. Machine-Neutral Compute Contract
 
-Last updated: 2026-06-22
+Last updated: 2026-06-27
 
 Status: `long-term-contract`
 
@@ -62,6 +62,40 @@ would lower to graph nodes, tensor shapes, buffer transfers, quantization/loss
 budgets, and explicit host fallback reasons. This is the intended Pergyra
 advantage: the abstraction layer is heavier than a CPU-first language, but it
 keeps the replacement boundary above the backend.
+
+## IR Layering Rule
+
+`IR` is not a promise that every target must look like a CPU. In Pergyra,
+`IR` means a family of owned representations, with different levels of
+machine commitment:
+
+| Layer | Status | Target dependence |
+| --- | --- | --- |
+| AIR / evidence graph | Semantic fact IR for `intent`, `effect`, `authority`, `coordination`, and erasure obligations. | Target-neutral. |
+| DIR/RIR-style resource facts | Resource, ownership, boundary, capability, and handoff facts. | Mostly target-neutral; may carry target capability requirements. |
+| MIR | Backend semantic source of truth for CPU-family projections. CFG, SSA, cleanup, and ABI facts are allowed here. | CPU/C/LLVM projection-biased, not language ontology. |
+| Projection IR | Target-specific lowering for tensor/NPU/dataflow/GPU/distributed backends. | Target-specific and may be graph/schedule/placement shaped instead of CFG-shaped. |
+
+The forbidden shape is:
+
+```text
+source -> CPU-shaped MIR -> every target
+```
+
+That would make non-CPU substrates inherit branch/block/load/store assumptions
+even when the source facts are naturally dataflow, tensor, actor, or capability
+facts. The intended shape is:
+
+```text
+source -> owner facts/evidence -> target-specific projection IR
+```
+
+For C and LLVM, the target-specific projection IR may be MIR/ABI/CFG-shaped.
+For a future NPU/tensor backend, it should instead consume the same fact
+envelope and lower to graph nodes, tensor shapes, buffer lifetimes, placement,
+loss/quantization budgets, and explicit host fallback reasons. Such a backend
+must not recover semantics by rereading source or by forcing every program
+through CPU-shaped MIR first.
 
 ## Current Projection
 

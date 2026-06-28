@@ -11067,6 +11067,10 @@ dispatch / semantic lookup / runtime data structure 3??결과 ??합. *??확?????
   each AIR boundary must have matching HIR routine provenance; RIR-only
   boundary evidence is no longer enough to make a boundary look complete.
   `air_dump()` also prints `hir_input=yes/no`, and `make test-air` is green.
+- AIR abstraction safety는 Phase 1 데이터 구조 / synthesis / drift checker baseline까지 구현되어 있고, strict evidence는 기본값으로 승격됐다.
+  Relaxation은 개발/디버그용 `PGY_AIR_STRICT_EVIDENCE=0` opt-out으로만
+  남긴다. Gates: `make air-drift-test-smoke`,
+  `make air-json-schema-test-smoke`, `make air-backend-nonimpact-test-smoke`.
 - LLVM declaration inventory helper ownership is now split without changing the
   public include seam: `llvm_inventory_intenal.h` is a 185 LOC facade/domain
   inventory owner, `llvm_inventory_decl_lookup.h` owns MIR header-first

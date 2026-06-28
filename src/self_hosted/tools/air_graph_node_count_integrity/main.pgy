@@ -13,6 +13,7 @@
 // Contract: see intent.md in the same directory.
 
 import "../../lib/json.pgy";
+import "../air_graph_json_validator/scan_owner.pgy";
 
 func CountKey(content: String, key: String) -> Int {
     let count: Int = 0;
@@ -33,37 +34,6 @@ func CountKey(content: String, key: String) -> Int {
         rest = Substring(rest, advance, rest_len);
     }
     return count;
-}
-
-func ExtractIntField(content: String, field: String, inout value_out: Array<Int>) -> Bool {
-    let key: String = Concat(Concat("\"", field), "\":");
-    let key_idx: Int = StringIndexOf(content, key);
-    if key_idx < 0 {
-        return false;
-    }
-    let value_start: Int = key_idx + StringLength(key);
-    let rest_len: Int = StringLength(content) - value_start;
-    if rest_len <= 0 {
-        return false;
-    }
-    let rest: String = Substring(content, value_start, rest_len);
-    let comma_idx: Int = StringIndexOf(rest, ",");
-    let brace_idx: Int = StringIndexOf(rest, "}");
-    let stop: Int = -1;
-    if comma_idx >= 0 {
-        stop = comma_idx;
-    }
-    if brace_idx >= 0 {
-        if stop < 0 || brace_idx < stop {
-            stop = brace_idx;
-        }
-    }
-    if stop <= 0 {
-        return false;
-    }
-    let num_str: String = Substring(rest, 0, stop);
-    value_out[0] = ToInt(num_str);
-    return true;
 }
 
 func MismatchFinding(ids: Int, declared: Int) -> String {
@@ -126,13 +96,13 @@ func Main() -> Void {
     let boundaries_box: Array<Int> = [0];
     let evidence_box: Array<Int> = [0];
     let counts_ok: Bool = true;
-    if !ExtractIntField(content, "intent_count", intents_box) {
+    if !AirGraphSummaryIntField(content, "intent_count", intents_box) {
         counts_ok = false;
     }
-    if !ExtractIntField(content, "boundary_count", boundaries_box) {
+    if !AirGraphSummaryIntField(content, "boundary_count", boundaries_box) {
         counts_ok = false;
     }
-    if !ExtractIntField(content, "evidence_count", evidence_box) {
+    if !AirGraphSummaryIntField(content, "evidence_count", evidence_box) {
         counts_ok = false;
     }
     let intents: Int = intents_box[0];

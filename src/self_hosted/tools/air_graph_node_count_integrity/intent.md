@@ -25,6 +25,9 @@ the smallest real consistency check that only the live dump can exercise.
   drift-guarded fixture rather than maintaining its own copy.
 
 The path is fixed relative to repository root; no CLI argument surface yet.
+Summary counts are read through
+`air_graph_json_validator/scan_owner.pgy::AirGraphSummaryIntField`; this tool
+does not own a second JSON summary-number scanner.
 
 ## Output Contract
 
@@ -55,7 +58,8 @@ Exit code: `0` on `ok:true`, `1` on `ok:false`.
 
 The shell ground truth is `grep -oE '"id":' | wc -l` for the id count and the
 sum of `intent_count + boundary_count + evidence_count` from the same dump. The
-Pergyra origin must report the same `ids` and `declared` values.
+Pergyra origin must report the same `ids` and `declared` values while consuming
+summary counts from the shared AIR graph scan owner.
 
 The parity rung asserts:
 

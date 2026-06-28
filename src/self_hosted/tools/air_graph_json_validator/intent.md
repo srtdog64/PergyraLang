@@ -32,8 +32,10 @@ shape.
 
 The path is fixed relative to repository root; no CLI argument surface yet.
 `main.pgy` is entrypoint-only. `scan_owner.pgy` owns summary/count extraction
-and ordered finding fact rows, `report_owner.pgy` owns the emitted JSON schema,
-and `run_owner.pgy` owns fixture paths, file input, logging, and exit policy.
+through `AirGraphSummaryIntField` plus ordered finding fact rows; downstream
+AIR graph tools must consume that owner rather than inventing local summary
+number scanners. `report_owner.pgy` owns the emitted JSON schema, and
+`run_owner.pgy` owns fixture paths, file input, logging, and exit policy.
 
 ## Output Contract
 

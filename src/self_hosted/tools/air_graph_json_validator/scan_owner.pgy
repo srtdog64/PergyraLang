@@ -6,7 +6,7 @@
 
 import "../../lib/json.pgy";
 
-func ExtractIntField(content: String, field: String, inout value_out: Array<Int>) -> Bool {
+func AirGraphSummaryIntField(content: String, field: String, inout value_out: Array<Int>) -> Bool {
     let doc_end: Int = JsonDocumentObjectEnd(content);
     if doc_end <= 0 {
         return false;

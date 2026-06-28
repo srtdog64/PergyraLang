@@ -27,16 +27,16 @@ func RunAirGraphJsonValidation() -> Void {
     let evidence_box: Array<Int> = [0];
     let drifts_box: Array<Int> = [0];
     let counts_ok: Bool = true;
-    if !ExtractIntField(content, "intent_count", intents_box) {
+    if !AirGraphSummaryIntField(content, "intent_count", intents_box) {
         counts_ok = false;
     }
-    if !ExtractIntField(content, "boundary_count", boundaries_box) {
+    if !AirGraphSummaryIntField(content, "boundary_count", boundaries_box) {
         counts_ok = false;
     }
-    if !ExtractIntField(content, "evidence_count", evidence_box) {
+    if !AirGraphSummaryIntField(content, "evidence_count", evidence_box) {
         counts_ok = false;
     }
-    if !ExtractIntField(content, "drift_count", drifts_box) {
+    if !AirGraphSummaryIntField(content, "drift_count", drifts_box) {
         counts_ok = false;
     }
     let intents: Int = intents_box[0];

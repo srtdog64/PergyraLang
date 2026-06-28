@@ -1048,6 +1048,7 @@ builtins_cancel_path = root / "src" / "semantic" / "type_checker_builtins_cancel
 type_system_path = root / "src" / "semantic" / "type_system.h"
 type_system_impl_path = root / "src" / "semantic" / "type_system.c"
 expr_path = root / "src" / "semantic" / "type_checker_expr.c"
+expr_lambda_path = root / "src" / "semantic" / "type_checker_expr_lambda.c"
 program_path = root / "src" / "semantic" / "type_checker_func_decl.c"
 diag_path = root / "src" / "semantic" / "diag_codes.h"
 diag_doc_path = root / "docs" / "72_diagnostic_codes.md"
@@ -1153,6 +1154,7 @@ for path in (
     type_system_path,
     type_system_impl_path,
     expr_path,
+    expr_lambda_path,
     program_path,
     diag_path,
     diag_doc_path,
@@ -1212,6 +1214,8 @@ flow = (
     + type_system_impl_path.read_text(encoding="utf-8")
     + "\n"
     + expr_path.read_text(encoding="utf-8")
+    + "\n"
+    + expr_lambda_path.read_text(encoding="utf-8")
 )
 mir_cleanup = mir_cleanup_path.read_text(encoding="utf-8")
 mir_intent_text = mir_intent_path.read_text(encoding="utf-8")

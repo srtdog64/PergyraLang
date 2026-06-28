@@ -682,6 +682,7 @@ require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" "
 require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" "JsonEmitArray("
 reject_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" 'let json_parts: Array<String>'
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'import "../../lib/json.pgy";'
+require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "func AirGraphSummaryIntField"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonDocumentStringFieldEquals(content, \"schema\", \"pgy.air.graph.v1\")"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonObjectFieldValueBounds(content, 0, doc_end, \"summary\", summary_bounds)"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonObjectNumberField(content, summary_bounds[0], summary_bounds[1], field)"
@@ -698,6 +699,15 @@ for air_graph_report in \
     require_text "$air_graph_report" "JsonEmitArray("
     reject_text "$air_graph_report" 'let json_parts: Array<String>'
 done
+require_text "src/self_hosted/tools/air_graph_node_count_integrity/main.pgy" 'import "../air_graph_json_validator/scan_owner.pgy";'
+require_text "src/self_hosted/tools/air_graph_node_count_integrity/main.pgy" "AirGraphSummaryIntField(content, \"intent_count\", intents_box)"
+require_text "src/self_hosted/tools/air_graph_node_count_integrity/main.pgy" "AirGraphSummaryIntField(content, \"boundary_count\", boundaries_box)"
+require_text "src/self_hosted/tools/air_graph_node_count_integrity/main.pgy" "AirGraphSummaryIntField(content, \"evidence_count\", evidence_box)"
+reject_text "src/self_hosted/tools/air_graph_node_count_integrity/main.pgy" "func ExtractIntField"
+require_text "src/self_hosted/tools/air_graph_ref_live/main.pgy" 'import "../air_graph_json_validator/scan_owner.pgy";'
+require_text "src/self_hosted/tools/air_graph_ref_live/main.pgy" "AirGraphSummaryIntField(content, \"intent_count\", intent_count_box)"
+require_text "src/self_hosted/tools/air_graph_ref_live/main.pgy" "AirGraphSummaryIntField(content, \"boundary_count\", boundary_count_box)"
+reject_text "src/self_hosted/tools/air_graph_ref_live/main.pgy" "func ExtractIntField"
 for air_graph_parity in \
     tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh \
     tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh \

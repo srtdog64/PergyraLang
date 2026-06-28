@@ -21,6 +21,9 @@ compiler-owned summary counts as the bounds for valid references.
   committed drift-guarded AIR graph fixture produced from `pgy --air-json`.
 
 The path is fixed relative to repository root; no CLI argument surface yet.
+`intent_count` and `boundary_count` are read through
+`air_graph_json_validator/scan_owner.pgy::AirGraphSummaryIntField`; this tool
+only owns live-reference validation, not AIR graph summary-number extraction.
 
 ## Output Contract
 
@@ -55,8 +58,9 @@ Exit code: `0` on `ok:true`, `1` on `ok:false`.
 
 The shell ground truth extracts `intent_count` and `boundary_count`, then scans
 `"intent":` and `"boundary":` references. A non-null reference is valid iff it
-is in `[0, count)`. The Pergyra origin must report zero dangling references on
-the clean fixture and detect a corrupted reference fixture.
+is in `[0, count)`. The Pergyra origin must get the summary bounds from the
+shared AIR graph scan owner, report zero dangling references on the clean
+fixture, and detect a corrupted reference fixture.
 
 The parity rung asserts:
 

@@ -2231,3 +2231,14 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   over a sentinel value.
 - Tightened `self_host_pergyra_likeness_smoke.sh` by lowering the sentinel
   ratchet from 39 to 38 after the conversion.
+
+### 2026-06-28 -- AIR graph summary counts use one scan owner
+
+- Renamed the AIR graph summary count reader to
+  `AirGraphSummaryIntField` in
+  `src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy`.
+- Repointed the node-count integrity checker and live-reference checker to
+  import that scan owner instead of carrying local summary-number scanners.
+- Tightened the component contract so these downstream AIR tools cannot
+  reintroduce `ExtractIntField` locals for `intent_count`, `boundary_count`,
+  or `evidence_count`.

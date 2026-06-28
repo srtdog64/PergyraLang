@@ -666,6 +666,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_type_infer.c \
                    $(CODEGEN_DIR)/transpiler_expr_stdlib_misc_builtin.c \
                    $(CODEGEN_DIR)/transpiler_expr_stdlib_scalar_builtin.c \
+                   $(CODEGEN_DIR)/transpiler_expr_stdlib_scalar_unary.c \
                    $(CODEGEN_DIR)/transpiler_expr_unary_emit.c \
                    $(CODEGEN_DIR)/transpiler_format.c \
                    $(CODEGEN_DIR)/transpiler_func_class_flow_emit.c \
@@ -1044,6 +1045,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_inventory_host_methods.c \
                         $(CODEGEN_DIR)/llvm_expr.c \
                         $(CODEGEN_DIR)/llvm_expr_aggregate.c \
+                        $(CODEGEN_DIR)/llvm_expr_array_access.c \
                         $(CODEGEN_DIR)/llvm_expr_emit_support.c \
                         $(CODEGEN_DIR)/llvm_expr_aggregate_utils.c \
                         $(CODEGEN_DIR)/llvm_expr_assignment_member_projection.c \

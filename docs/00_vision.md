@@ -26,6 +26,12 @@ Do not advertise those substrates as current support; they are future backend
 projections that must consume the same owner facts and pass their own golden
 tests.
 
+The same contract also defines the IR boundary: AIR/evidence is the
+machine-neutral fact layer, while MIR is the CPU-family projection layer for
+C/LLVM-style backends. Future NPU, tensor, dataflow, or GPU projections must
+consume the same owner facts through their own projection IR instead of making
+CPU-shaped MIR the universal ontology.
+
 ## Beta Then Self-Hosting
 
 Self-hosting is a post-beta validation target, not a beta blocker.

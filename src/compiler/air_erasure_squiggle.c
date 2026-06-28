@@ -56,8 +56,10 @@ air_collect_erasure_squiggles(const AIRProgram *air, AIRErasureSquiggle *out,
         return 0;
 
     /* Intents: a step whose orchestration meaning is fully erased. */
-    for (size_t i = 0; i < air->intent_count; i++) {
-        const AIRIntentNode *intent = &air->intents[i];
+    for (size_t i = 0; i < air_intent_node_count(air); i++) {
+        const AIRIntentNode *intent = air_intent_node_at(air, i);
+        if (intent == NULL)
+            continue;
         if (air_compression_squiggle_class(
                 air_intent_compression_budget(air, i),
                 AIR_RETAIN_CAUSE_NONE) != SQUIGGLE_BLUE)
@@ -69,8 +71,10 @@ air_collect_erasure_squiggles(const AIRProgram *air, AIRErasureSquiggle *out,
     }
 
     /* Boundaries: a boundary whose domain meaning is fully erased. */
-    for (size_t i = 0; i < air->boundary_count; i++) {
-        const AIRBoundaryNode *boundary = &air->boundaries[i];
+    for (size_t i = 0; i < air_boundary_node_count(air); i++) {
+        const AIRBoundaryNode *boundary = air_boundary_node_at(air, i);
+        if (boundary == NULL)
+            continue;
         if (air_compression_squiggle_class(
                 air_boundary_compression_budget(boundary),
                 air_boundary_retain_cause(boundary)) != SQUIGGLE_BLUE)

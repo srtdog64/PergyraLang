@@ -493,7 +493,7 @@ for token in [
     if token not in export_collection_text:
         raise SystemExit(f"exported collection runtime missing hard-fail token {token}")
 
-runtime_export_text = (root / "src" / "runtime" / "pgy_runtime_lib_authority_file_core.h").read_text(encoding="utf-8")
+runtime_export_text = (root / "src" / "runtime" / "pgy_runtime_lib_checked_arith_core.h").read_text(encoding="utf-8")
 inline_runtime_text = "\n".join([
     (root / "src" / "runtime" / "pgy_runtime_memory_array_slot_inline.h").read_text(encoding="utf-8"),
     (root / "src" / "runtime" / "pgy_runtime_panic_checked_inline.h").read_text(encoding="utf-8"),
@@ -596,7 +596,7 @@ for path, tokens in unwrap_lowering_paths.items():
 array_lowering_paths = {
     root / "src" / "codegen" / "transpiler_expr_stdlib_builtin.c": ["pgy_array_set_"],
     root / "src" / "codegen" / "transpiler_expr_array_access_emit.c": ["pgy_array_get_", "pgy_slice_get_"],
-    root / "src" / "codegen" / "llvm_expr_aggregate.c": ["pgy_array_get_", "pgy_slice_get_", "llvm_emit_checked_collection_get", "llvm_emit_inline_array_get"],
+    root / "src" / "codegen" / "llvm_expr_array_access.c": ["pgy_array_get_", "pgy_slice_get_", "llvm_emit_checked_collection_get", "llvm_emit_inline_array_get"],
     root / "src" / "codegen" / "llvm_expr_helpers.c": [
         "llvm_emit_inline_array_get",
         "pgy_runtime_panic_out_of_bounds_export",

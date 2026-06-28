@@ -364,11 +364,13 @@ grep -Fq "llvm_scope_lookup_snapshot(ctx, name, &var)" \
 ! grep -Fq "llvm_scope_lookup(ctx," \
     "$ROOT_DIR/src/codegen/llvm_stmt_array_type_infer.c"
 grep -Fq "bool has_arr_var = llvm_scope_lookup_snapshot(ctx, name, &arr_var)" \
-    "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
-grep -Fq "LLVMValueRef args[] = { arr_var.alloca, index64 }" \
-    "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
+    "$ROOT_DIR/src/codegen/llvm_expr_array_access.c"
+grep -Fq "args[0] = arr_var.alloca" \
+    "$ROOT_DIR/src/codegen/llvm_expr_array_access.c"
+grep -Fq "args[1] = index64" \
+    "$ROOT_DIR/src/codegen/llvm_expr_array_access.c"
 ! grep -Fq "llvm_scope_lookup(ctx," \
-    "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
+    "$ROOT_DIR/src/codegen/llvm_expr_array_access.c"
 grep -Fq "llvm_scope_lookup_snapshot(ctx, recv_name, &arr_var)" \
     "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
 grep -Fq "LLVMValueRef args[] = { arr_var.alloca, sep }" \
@@ -1987,9 +1989,9 @@ grep -Fq "type_check_func_resolve_param_type(param, ctx)" "$ROOT_DIR/src/semanti
 grep -Fq "type_function_return_type(sym->type)" "$ROOT_DIR/src/semantic/type_checker_helpers_late.c"
 grep -Fq "type_check_func_resolve_return_type(method, ctx)" "$ROOT_DIR/src/semantic/type_checker_expr_ops.c"
 grep -Fq "type_check_func_resolve_param_type(rhs_param, ctx)" "$ROOT_DIR/src/semantic/type_checker_expr_ops.c"
-grep -Fq "semantic_host_resolve_type_ref(field->type, ctx)" "$ROOT_DIR/src/semantic/type_checker_expr_host.c"
+grep -Fq "expr_host_resolve_class_field_type(field.type_ast, ctx)" "$ROOT_DIR/src/semantic/type_checker_expr_host.c"
 grep -Fq "semantic_host_resolve_type_ref(type_node, ctx)" "$ROOT_DIR/src/semantic/type_checker_expr_host.c"
-grep -Fq "semantic_host_resolve_type_ref(field->type, ctx)" "$ROOT_DIR/src/semantic/type_checker_class_decl.c"
+grep -Fq "semantic_host_resolve_type_ref(fields[i].type_ast, ctx)" "$ROOT_DIR/src/semantic/type_checker_class_decl.c"
 grep -Fq "semantic_host_resolve_type_ref(" "$ROOT_DIR/src/semantic/type_checker_call_constructor.c"
 grep -Fq "semantic_host_resolve_type_ref(for_type, ctx)" "$ROOT_DIR/src/semantic/type_checker_role_decl.c"
 grep -Fq "type_check_func_resolve_param_type(param, ctx)" "$ROOT_DIR/src/semantic/type_checker_func_action_contract.c"
@@ -3515,7 +3517,7 @@ grep -A95 -F "llvm_register_typed_var_abi_binding(LLVMGenCtx *ctx" \
     grep -Fq "llvm_register_map_var_binding(ctx, var_name, binding, arg0_name"
 grep -A70 -F "llvm_register_typed_var_abi_binding(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c" | \
-    grep -Fq "llvm_register_array_var_binding(ctx, var_name, binding, elem_type, -1)"
+    grep -Fq "llvm_register_array_var_binding(ctx, var_name, binding, elem_type,"
 grep -A70 -F "llvm_register_typed_var_abi_binding(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c" | \
     grep -Fq "llvm_register_list_var_binding(ctx, var_name, binding, arg0_name)"
@@ -3917,16 +3919,16 @@ grep -Fq "LLVM LogBanner could not lower or stringify its argument" "$ROOT_DIR/s
 ! grep -Fq "LLVMFuncEntry *fn = llvm_lookup_function(ctx, helper)" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
 ! grep -Fq "LLVMFuncEntry *fn = llvm_lookup_function(ctx, \"StringConcat\")" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
 ! grep -Fq "LLVMFuncEntry *fn = llvm_lookup_function(ctx, \"pgy_string_equals\")" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
-grep -Fq "indexed collection access" "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
+grep -Fq "indexed collection access" "$ROOT_DIR/src/codegen/llvm_expr_array_access.c"
 grep -Fq "llvm_expression_error" "$ROOT_DIR/src/codegen/llvm_expr_emit_support.c"
 ! grep -A16 -F "llvm_expression_error(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_expr_emit_support.c" | \
     grep -Fq "LLVMConstInt(ctx->type_i32, 0, 0)"
-grep -Fq "LLVM array access could not lower receiver or index expression" "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
-grep -Fq "LLVM aggregate array access requires concrete element metadata" "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
+grep -Fq "LLVM array access could not lower receiver or index expression" "$ROOT_DIR/src/codegen/llvm_expr_array_access.c"
+grep -Fq "LLVM aggregate array access requires concrete element metadata" "$ROOT_DIR/src/codegen/llvm_expr_array_access.c"
 grep -Fq "strcmp(inner_name, \"Unknown\") == 0" "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
 grep -Fq "if (ctx == NULL || node == NULL || ctx->has_error)" "$ROOT_DIR/src/codegen/llvm_expr.c"
-grep -Fq "LLVM array access receiver is not an array, slice, string, or pointer" "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
+grep -Fq "LLVM array access receiver is not an array, slice, string, or pointer" "$ROOT_DIR/src/codegen/llvm_expr_array_access.c"
 grep -Fq "llvm_zero_value_for_type" "$ROOT_DIR/src/codegen/llvm_expr_emit_support.c"
 grep -Fq "LLVM TaskGroup expression must lower through AIR/RIR/MIR task-group boundary" "$ROOT_DIR/src/codegen/llvm_expr.c"
 grep -Fq "first_value = llvm_emit_expression" "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
@@ -3981,7 +3983,7 @@ grep -Fq "inlined = llvm_emit_inline_array_get(ctx, aggregate, elem_type" "$ROOT
 grep -Fq "LLVMBuildICmp(ctx->builder, LLVMIntUGE" "$ROOT_DIR/src/codegen/llvm_expr_helpers.c"
 grep -Fq "pgy_runtime_panic_out_of_bounds_export" "$ROOT_DIR/src/codegen/llvm_expr_helpers.c"
 grep -Fq "LLVMBuildUnreachable(ctx->builder)" "$ROOT_DIR/src/codegen/llvm_expr_helpers.c"
-grep -Fq "llvm_emit_inline_array_get(ctx," "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
+grep -Fq "llvm_emit_inline_array_get(ctx," "$ROOT_DIR/src/codegen/llvm_expr_array_access.c"
 grep -Fq "llvm_fn_never_returns" "$ROOT_DIR/src/codegen/llvm_api.c"
 grep -Fq "llvm_fn_never_returns" "$ROOT_DIR/src/codegen/llvm_runtime_attrs.c"
 grep -Fq "exact_never_return" "$ROOT_DIR/src/codegen/llvm_runtime_attrs.c"
@@ -4177,7 +4179,8 @@ grep -Fq "LLVM type rendering requires concrete type metadata" "$ROOT_DIR/src/co
     grep -Fq "return ctx->type_i32"
 grep -Fq "LLVM intent forward declaration parameter allocation failed" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
 grep -Fq "LLVM intent forward declaration could not lower participant type" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
-grep -Fq "LLVM intent forward declaration could not lower value type" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
+grep -Fq "LLVM intent forward declaration could not lower ordered binding type" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
+grep -Fq "LLVM intent forward declaration requires binding type metadata; silent i8ptr fallback is not allowed" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
 ! grep -Fq "pt = ctx->type_i8ptr;" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
 grep -Fq "if (ctx->has_error || participant_value_type == NULL)" "$ROOT_DIR/src/codegen/llvm_intent_zone.c"
 grep -Fq "llvm_scope_lookup_snapshot(ctx, zone_alias, &zone_var)" "$ROOT_DIR/src/codegen/llvm_intent_zone.c"
@@ -4233,7 +4236,8 @@ grep -Fq "implicit Int fallback is disabled" "$ROOT_DIR/src/codegen/llvm_stmt_le
 ! grep -Fq "llvm_find_local_let_type_in_block" "$ROOT_DIR/src/codegen/llvm_expr_common.c"
 ! grep -Fq "llvm_infer_local_let_type_in_block" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_nominal.c"
 grep -Fq "llvm_mir_local_elem_type_from_layout" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
-grep -Fq "LLVMTypeRef elem_type = NULL" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
+grep -Fq "LLVMTypeRef elem_type =" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
+grep -Fq "llvm_mir_slice_fact_elem_type_from_receiver(ctx" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 grep -Fq "llvm_mir_local_require_elem_type" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 ! grep -Fq "LLVMTypeRef elem_type = ctx->type_i32" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 grep -Fq "LLVMTypeRef pt = NULL" "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c"
@@ -4887,11 +4891,12 @@ grep -Fq "atomic_fetch_add_explicit(&_sel_rr_" "$ROOT_DIR/src/codegen/transpiler
 grep -Fq "transpiler_channel_query_spec_compare" "$channel_builtin_owner"
 grep -Fq "emit_call_stdlib_channel_query_builtin" "$channel_builtin_owner"
 scalar_builtin_owner="$ROOT_DIR/src/codegen/transpiler_expr_stdlib_scalar_builtin.c"
-grep -Fq "transpiler_scalar_unary_spec_compare" "$scalar_builtin_owner"
-grep -Fq "transpiler_scalar_unary_builtin_name(fn)" "$scalar_builtin_owner"
+scalar_unary_owner="$ROOT_DIR/src/codegen/transpiler_expr_stdlib_scalar_unary.c"
+grep -Fq "transpiler_scalar_unary_spec_compare" "$scalar_unary_owner"
+grep -Fq "transpiler_scalar_unary_builtin_name(fn" "$scalar_builtin_owner"
 transpiler_scalar_unary_names="$(
     sed -n '/static const TranspilerScalarUnarySpec specs\[\]/,/^    };/p' \
-        "$scalar_builtin_owner" \
+        "$scalar_unary_owner" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -5230,7 +5235,7 @@ grep -A10 -F "llvm_register_array_var(ctx, name, elem_type" \
 grep -A10 -F "llvm_register_array_var_binding(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_registry_arrays.c" | \
     grep -Fq "ctx == NULL"
-grep -A24 -F "llvm_register_array_var_binding(LLVMGenCtx *ctx" \
+grep -A40 -F "llvm_register_array_var_binding(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_registry_arrays.c" | \
     grep -Fq "ctx->array_vars[ctx->array_var_count].binding = binding"
 grep -A14 -F "llvm_lookup_array_var(LLVMGenCtx *ctx" \

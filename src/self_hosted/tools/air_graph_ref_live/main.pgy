@@ -13,6 +13,7 @@
 // Contract: see intent.md in the same directory.
 
 import "../../lib/json.pgy";
+import "../air_graph_json_validator/scan_owner.pgy";
 
 func FirstTokenAfter(s: String, start: Int) -> String {
     let after: String = Substring(s, start, StringLength(s) - start);
@@ -57,23 +58,6 @@ func DanglingRefs(content: String, key: String, limit: Int) -> Int {
         rest = Substring(rest, vstart, tail_len);
     }
     return dangling;
-}
-
-func ExtractIntField(content: String, field: String, inout value_out: Array<Int>) -> Bool {
-    let key: String = Concat(Concat("\"", field), "\":");
-    let key_idx: Int = StringIndexOf(content, key);
-    if key_idx < 0 {
-        return false;
-    }
-    let value_start: Int = key_idx + StringLength(key);
-    let rest_len: Int = StringLength(content) - value_start;
-    if rest_len <= 0 {
-        return false;
-    }
-    let rest: String = Substring(content, value_start, rest_len);
-    let tok: String = FirstTokenAfter(content, value_start);
-    value_out[0] = ToInt(tok);
-    return true;
 }
 
 func DanglingFinding(boundary_d: Int, intent_d: Int) -> String {
@@ -132,10 +116,10 @@ func Main() -> Void {
     let intent_count_box: Array<Int> = [0];
     let boundary_count_box: Array<Int> = [0];
     let counts_ok: Bool = true;
-    if !ExtractIntField(content, "intent_count", intent_count_box) {
+    if !AirGraphSummaryIntField(content, "intent_count", intent_count_box) {
         counts_ok = false;
     }
-    if !ExtractIntField(content, "boundary_count", boundary_count_box) {
+    if !AirGraphSummaryIntField(content, "boundary_count", boundary_count_box) {
         counts_ok = false;
     }
     let intent_count: Int = intent_count_box[0];
