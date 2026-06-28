@@ -2132,3 +2132,12 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `match_patterns` string scanning to array count plus row accessors.
 - Tightened the component contract so match-pattern reconstruction cannot
   reintroduce local `match_patterns` key scans.
+
+### 2026-06-28 -- Program and instruction kind reads consume MIR facts
+
+- Repointed `program_lower.pgy` from direct routine-name string reads to
+  `RoutineNameEnd` from the routine inventory owner.
+- Repointed `routine_lower.pgy` instruction kind reads from local
+  `ReadJsonString` to `MirObjectStringFact`.
+- Tightened the component contract so program assembly and instruction-kind
+  lowering cannot reintroduce those local string reads.

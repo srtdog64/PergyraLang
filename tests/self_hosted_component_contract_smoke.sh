@@ -613,11 +613,15 @@ require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func Routi
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "func FindRoutine"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "RoutineParamCount(json, rpos, header_end)"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "RoutineReturnType(json, rpos, header_end)"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectStringFact(json, kp, be, \"kind\")"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" 'FindFrom(json, "\"params\":['
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" 'FindFrom(json, "\"return\":'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, nq"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, pnq"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, rnq"
+reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, kq"
+require_text "src/self_hosted/mir_lower/program_lower.pgy" "RoutineNameEnd(json, rpos)"
+reject_text "src/self_hosted/mir_lower/program_lower.pgy" "ReadJsonString(json,"
 
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/main.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lexer/main.pgy"'

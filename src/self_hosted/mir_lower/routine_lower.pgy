@@ -172,10 +172,8 @@ func EmitBlockStmts(json: String, routine_start: Int, routine_end: Int,
     let out: String = "";
     let kp: Int = FindFrom(json, "\"kind\":", bs);
     while kp >= 0 && kp < be {
-        let kq: Int = FindFrom(json, "\"", kp + 7);
-        let ke: Array<Int> = [0];
-        let ikind: String = ReadJsonString(json, kq, ke);
-        let next_kp: Int = FindFrom(json, "\"kind\":", ke[0]);
+        let ikind: String = MirObjectStringFact(json, kp, be, "kind");
+        let next_kp: Int = FindFrom(json, "\"kind\":", kp + 1);
         let inst_end: Int = be;
         if next_kp >= 0 && next_kp < be {
             inst_end = next_kp;
