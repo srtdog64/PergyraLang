@@ -602,6 +602,9 @@ require_owner_surface mir_lower \
     "routine_lower.pgy" \
     "decl_lower.pgy" \
     "program_lower.pgy"
+require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'import "../lib/json.pgy";'
+require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'JsonDocumentStringFieldEquals(json, "schema", "pgy.mir.v1")'
+reject_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'StringIndexOf(json, "\"schema\":\"pgy.mir.v1\"")'
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func FindRoutine"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineObjectEnd"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineNameEnd"

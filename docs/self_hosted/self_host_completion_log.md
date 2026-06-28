@@ -2257,3 +2257,13 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `StringIndexOf(rest, ...)` fact recovery. This reduces the ACTIVE Stable JSON
   blocker, but does not close it: the owner is still a bounded schema scanner,
   not a complete JSON DOM/fact table.
+
+### 2026-06-29 -- MIR JSON schema gate consumes document field facts
+
+- Repointed `src/self_hosted/mir_lower/mir_json_input_owner.pgy` from a raw
+  `"schema":"pgy.mir.v1"` substring search to
+  `JsonDocumentStringFieldEquals(json, "schema", "pgy.mir.v1")`.
+- Tightened the component contract so the MIR lowering entry boundary cannot
+  reintroduce local schema-string recovery. This is still within the ACTIVE
+  Stable JSON blocker, but the MIR input gate now consumes the same document
+  field owner as other self-hosted JSON consumers.
