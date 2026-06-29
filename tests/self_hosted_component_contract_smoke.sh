@@ -59,6 +59,32 @@ reject_text() {
     fi
 }
 
+require_make_target_recipe_line() {
+    local target="$1"
+    local recipe_line="$2"
+
+    awk -v target="$target" -v recipe_line="$recipe_line" '
+        {
+            line = $0
+            sub(/\r$/, "", line)
+            if (index(line, target ":") == 1) {
+                inside = 1
+                next
+            }
+            if (inside && line !~ /^[[:space:]]/ && line ~ /:/) {
+                inside = 0
+            }
+            if (inside && line == "\t" recipe_line) {
+                found = 1
+            }
+        }
+        END {
+            exit found ? 0 : 1
+        }
+    ' "$ROOT_DIR/Makefile" ||
+        fail "Makefile target $target missing recipe line: $recipe_line"
+}
+
 contains_line() {
     local haystack="$1"
     local needle="$2"
@@ -794,6 +820,9 @@ for air_graph_parity in \
     require_text "$air_graph_parity" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"'
     require_text "$air_graph_parity" 'cp "$AIR_GRAPH_SCAN_OWNER" "$AIR_SCAN_BUILD_DIR/scan_owner.pgy"'
 done
+require_make_target_recipe_line \
+    "self-host-air-graph-consumer-parity-test-smoke" \
+    'PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_json_validator_parity.sh'
 require_text "src/self_hosted/tools/ast_read_surface_checker/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/ast_read_surface_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/ast_read_surface_checker/main.pgy" "JsonEmitArray(findings)"
@@ -852,6 +881,21 @@ require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/subprocess_runner_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'run_native_bin "$tri_bin" "$tri_stdout" "$tri_stderr" "$expected_arg" "$actual_arg" 0 1'
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "pgy_selfhost_compile_backend_output_comparator"
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "assert_llvm_leg_with_artifact_owner"
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "comparator artifact path escapes repo root"
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "comparator artifact path must be repo-relative"
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "backend_output_comparator_\$\$.exe"
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'assert_llvm_leg_with_artifact_owner "$label" "$build_dir" "$c_out" "$llvm_out"'
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" '"$comparator_bin" "$c_rel" "$llvm_rel" 0 1'
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "artifact-equal"
+reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" ".tmp/self_hosted/shared"
+reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "pgy_selfhost_comparator_needs_rebuild"
+reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'diff <(printf'
+reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'cmp -s'
+reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" '$(cat "$c_out")'
+reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'c_out="$(cd "$ROOT_DIR"'
+reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'llvm_out="$(cd "$ROOT_DIR"'
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "JsonEmitArray(findings)"

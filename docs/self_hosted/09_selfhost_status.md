@@ -238,14 +238,16 @@ Substrate progress.
   when the compiler build includes LLVM.
   Previously 12 of them built and ran their Pergyra tool only with the default
   (C) backend, leaving each tool's LLVM compilation ungated. Each now compiles
-  its tool with the C and the LLVM backend and asserts the two native binaries
-  produce byte-identical output, via the shared
-  `tests/self_hosted/parity/llvm_leg_helpers.sh` (`assert_llvm_leg`) for the
-  `--run` tools and inline legs for the lexer and backend-output comparator. At
-  the time of writing all 22 pass, so the gap was harness coverage, not an LLVM
-  backend defect; the gates now hold the C/LLVM equality invariant for the whole
-  tool corpus. C-only CI builds keep the C leg mandatory and report an explicit
-  LLVM-leg skip from the parity harness.
+  its tool with the C and the LLVM backend and writes both native outputs as
+  comparable artifacts. The shared
+  `tests/self_hosted/parity/llvm_leg_helpers.sh` (`assert_llvm_leg`) now invokes
+  the Pergyra `backend_output_comparator` with `c_oracle`/`llvm_oracle`
+  projection rows for the `--run` tools; the lexer and backend-output
+  comparator keep their inline artifact legs. At the time of writing all 22
+  pass, so the gap was harness coverage, not an LLVM backend defect; the gates
+  now hold the C/LLVM equality invariant for the whole tool corpus. C-only CI
+  builds keep the C leg mandatory and report an explicit LLVM-leg skip from the
+  parity harness.
 - Five Pergyra-origin AIR graph consumers now run as soft self-host evidence:
   node-id uniqueness, live-dump node-count integrity, live-dump back-reference
   range checking, fixture-shaped edge referential integrity, and root

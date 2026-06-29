@@ -90,6 +90,22 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-30 -- Shared LLVM leg consumes Artifact/TestHarness owner
+
+- Repointed `tests/self_hosted/parity/llvm_leg_helpers.sh` so shared C-vs-LLVM
+  tool-output comparison is no longer a shell string/diff verdict. The helper
+  writes normalized C and LLVM stdout artifacts, builds a build-dir/PID-local
+  Pergyra `backend_output_comparator`, rejects artifact paths that escape the
+  repository root, and invokes it with `c_oracle` and `llvm_oracle` projection
+  rows. There is no ignored shared comparator cache in the verdict path.
+- The helper is used by AIR graph consumers, diagnostic/doc/examples/manifest
+  checkers, size checkers, runtime boundary, stable subset, and stdlib dispatch
+  inventory rungs, so one owner repoint moves those C/LLVM equality checks
+  behind `ArtifactZone`, `TestHarnessZone`, and the subprocess envelope owner.
+- Tightened the component contract so `llvm_leg_helpers.sh` cannot silently
+  reintroduce shared ignored comparator caches, command-substitution output
+  equality, `cmp`, or `diff <(...)` as the verdict owner.
+
 ### 2026-06-30 -- Lexer token parity consumes Artifact/TestHarness owner
 
 - Repointed `tests/self_hosted/parity/lexer_parity.sh` so C-compiled,
