@@ -78,6 +78,147 @@ func CodegenAstTextIsZeroArtifactDecl(node: CodegenAstTextNode) -> Bool {
     return node.kind == 11;
 }
 
+func CodegenAstTextPayloadAfter(node: CodegenAstTextNode, prefix: String, label: String) -> String {
+    if !StartsWith(node.text, prefix) {
+        Die(Concat("expected ", Concat(label, Concat(" AST line: ", node.text))));
+    }
+    let prefix_len: Int = StringLength(prefix);
+    return Substring(node.text, prefix_len, StringLength(node.text) - prefix_len);
+}
+
+func CodegenAstTextFunctionName(node: CodegenAstTextNode) -> String {
+    return CodegenAstTextPayloadAfter(node, "Function: ", "function");
+}
+
+func CodegenAstTextReturnType(node: CodegenAstTextNode) -> String {
+    return StringTrim(CodegenAstTextPayloadAfter(node, "Returns:", "return type"));
+}
+
+func CodegenAstTextNominalPrefixLen(node: CodegenAstTextNode) -> Int {
+    if StartsWith(node.text, "Struct: ") {
+        return 8;
+    }
+    if StartsWith(node.text, "Class: ") {
+        return 7;
+    }
+    if StartsWith(node.text, "Subject: ") {
+        return 9;
+    }
+    if StartsWith(node.text, "Vessel: ") {
+        return 8;
+    }
+    if StartsWith(node.text, "Object: ") {
+        return 8;
+    }
+    if StartsWith(node.text, "TObject: ") {
+        return 9;
+    }
+    Die(Concat("expected nominal declaration AST line: ", node.text));
+    return -1;
+}
+
+func CodegenAstTextNominalName(node: CodegenAstTextNode) -> String {
+    let prefix_len: Int = CodegenAstTextNominalPrefixLen(node);
+    return Substring(node.text, prefix_len, StringLength(node.text) - prefix_len);
+}
+
+func CodegenAstTextRoleForPos(node: CodegenAstTextNode) -> Int {
+    let pos: Int = StringIndexOf(node.text, " for ");
+    if pos < 0 {
+        Die(Concat("malformed role declaration AST line: ", node.text));
+    }
+    return pos;
+}
+
+func CodegenAstTextRoleName(node: CodegenAstTextNode) -> String {
+    let fp: Int = CodegenAstTextRoleForPos(node);
+    return Substring(node.text, 6, fp - 6);
+}
+
+func CodegenAstTextRoleForType(node: CodegenAstTextNode) -> String {
+    let fp: Int = CodegenAstTextRoleForPos(node);
+    return Substring(node.text, fp + 5, StringLength(node.text) - (fp + 5));
+}
+
+func CodegenAstTextParamMode(node: CodegenAstTextNode) -> Int {
+    if StartsWith(node.text, "inout ") {
+        return 1;
+    }
+    if StartsWith(node.text, "own ") {
+        return 2;
+    }
+    if StartsWith(node.text, "ref ") {
+        return 3;
+    }
+    return 0;
+}
+
+func CodegenAstTextParamModeName(mode: Int) -> String {
+    if mode == 1 {
+        return "inout";
+    }
+    if mode == 2 {
+        return "own";
+    }
+    if mode == 3 {
+        return "ref";
+    }
+    return "default";
+}
+
+func CodegenAstTextParamPayload(node: CodegenAstTextNode, mode: Int) -> String {
+    if mode == 0 {
+        return node.text;
+    }
+    let prefix_len: Int = 4;
+    if mode == 1 {
+        prefix_len = 6;
+    }
+    return Substring(node.text, prefix_len, StringLength(node.text) - prefix_len);
+}
+
+func CodegenAstTextParamName(node: CodegenAstTextNode, owner_name: String) -> String {
+    let mode: Int = CodegenAstTextParamMode(node);
+    let payload: String = CodegenAstTextParamPayload(node, mode);
+    let colon: Int = StringIndexOf(payload, ": ");
+    if colon < 0 && StringLength(owner_name) > 0 && payload == "self" {
+        return "self";
+    }
+    if colon < 0 {
+        Die(Concat("malformed parameter AST line: ", node.text));
+    }
+    return Substring(payload, 0, colon);
+}
+
+func CodegenAstTextParamType(node: CodegenAstTextNode, owner_name: String) -> String {
+    let mode: Int = CodegenAstTextParamMode(node);
+    let payload: String = CodegenAstTextParamPayload(node, mode);
+    let colon: Int = StringIndexOf(payload, ": ");
+    if colon < 0 && StringLength(owner_name) > 0 && payload == "self" {
+        return owner_name;
+    }
+    if colon < 0 {
+        Die(Concat("malformed parameter AST line: ", node.text));
+    }
+    return Substring(payload, colon + 2, StringLength(payload) - (colon + 2));
+}
+
+func CodegenAstTextFieldName(node: CodegenAstTextNode) -> String {
+    let colon: Int = StringIndexOf(node.text, ": ");
+    if colon < 0 {
+        Die(Concat("malformed field AST line: ", node.text));
+    }
+    return Substring(node.text, 0, colon);
+}
+
+func CodegenAstTextFieldType(node: CodegenAstTextNode) -> String {
+    let colon: Int = StringIndexOf(node.text, ": ");
+    if colon < 0 {
+        Die(Concat("malformed field AST line: ", node.text));
+    }
+    return Substring(node.text, colon + 2, StringLength(node.text) - (colon + 2));
+}
+
 func CodegenAstTextParentIndex(nodes: Array<CodegenAstTextNode>, count: Int, indent: Int) -> Int {
     let back: Int = count - 1;
     while back >= 0 {

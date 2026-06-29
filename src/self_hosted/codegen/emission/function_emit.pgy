@@ -2,89 +2,8 @@
 //
 // Function/declaration scan and signature emission owner for self-host C emission.
 
-func NominalDeclPrefixLen(line: String) -> Int {
-    if StartsWith(line, "Struct: ") {
-        return 8;
-    }
-    if StartsWith(line, "Class: ") {
-        return 7;
-    }
-    if StartsWith(line, "Subject: ") {
-        return 9;
-    }
-    if StartsWith(line, "Vessel: ") {
-        return 8;
-    }
-    if StartsWith(line, "Object: ") {
-        return 8;
-    }
-    if StartsWith(line, "TObject: ") {
-        return 9;
-    }
-    return -1;
-}
-
-func RoleForPos(line: String) -> Int {
-    return StringIndexOf(line, " for ");
-}
-
-func RoleDeclName(line: String) -> String {
-    let fp: Int = RoleForPos(line);
-    if fp < 0 {
-        Die(Concat("malformed role declaration line: ", line));
-    }
-    return Substring(line, 6, fp - 6);
-}
-
-func RoleDeclForType(line: String) -> String {
-    let fp: Int = RoleForPos(line);
-    if fp < 0 {
-        Die(Concat("malformed role declaration line: ", line));
-    }
-    return Substring(line, fp + 5, StringLength(line) - (fp + 5));
-}
-
-func NominalDeclName(line: String) -> String {
-    let prefix_len: Int = NominalDeclPrefixLen(line);
-    if prefix_len < 0 {
-        Die(Concat("expected nominal declaration line: ", line));
-    }
-    return Substring(line, prefix_len, StringLength(line) - prefix_len);
-}
-
-func ParamLineMode(line: String) -> Int {
-    if StartsWith(line, "inout ") {
-        return 1;
-    }
-    if StartsWith(line, "own ") {
-        return 2;
-    }
-    if StartsWith(line, "ref ") {
-        return 3;
-    }
-    return 0;
-}
-
-func ParamLinePayload(line: String, mode: Int) -> String {
-    if mode == 0 {
-        return line;
-    }
-    let prefix_len: Int = 4;
-    if mode == 1 {
-        prefix_len = 6;
-    }
-    return Substring(line, prefix_len, StringLength(line) - prefix_len);
-}
-
 func ParamModeCsvAppend(csv: String, mode: Int) -> String {
-    let next: String = "default";
-    if mode == 1 {
-        next = "inout";
-    } else if mode == 2 {
-        next = "own";
-    } else if mode == 3 {
-        next = "ref";
-    }
+    let next: String = CodegenAstTextParamModeName(mode);
     if StringLength(csv) == 0 {
         return next;
     }
@@ -96,8 +15,7 @@ func ParamModeCsvAppend(csv: String, mode: Int) -> String {
 func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int,
                   inout cur: Array<Int>, f_indent: Int,
                   base_env: String, uses_args: Bool, owner_name: String) -> String {
-    let head: String = nodes[cur[0]].text;
-    let name: String = Substring(head, 10, StringLength(head) - 10);
+    let name: String = CodegenAstTextFunctionName(nodes[cur[0]]);
     let c_name: String = CompilerSymbolCQualifiedName(owner_name, name);
     ArraySet(cur, 0, cur[0] + 1);
 
@@ -108,24 +26,12 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int,
     let prologue: String = "";
     let copyout: String = "";
     while cur[0] < count && nodes[cur[0]].indent == f_indent + 4 {
-        let pline: String = nodes[cur[0]].text;
-        let p_mode: Int = ParamLineMode(pline);
-        let p_payload: String = ParamLinePayload(pline, p_mode);
+        let p_mode: Int = CodegenAstTextParamMode(nodes[cur[0]]);
         if p_mode == 2 || p_mode == 3 {
-            Die(Concat("unsupported self-host codegen parameter mode: ", pline));
+            Die(Concat("unsupported self-host codegen parameter mode: ", nodes[cur[0]].text));
         }
-        let pc: Int = StringIndexOf(p_payload, ": ");
-        let p_name: String = "";
-        let p_type: String = "";
-        if pc < 0 && StringLength(owner_name) > 0 && p_payload == "self" {
-            p_name = "self";
-            p_type = owner_name;
-        } else if pc < 0 {
-            Die(Concat("malformed parameter: ", p_payload));
-        } else {
-            p_name = Substring(p_payload, 0, pc);
-            p_type = Substring(p_payload, pc + 2, StringLength(p_payload) - (pc + 2));
-        }
+        let p_name: String = CodegenAstTextParamName(nodes[cur[0]], owner_name);
+        let p_type: String = CodegenAstTextParamType(nodes[cur[0]], owner_name);
         let c_param_type: String = AbiLayoutCParamType(p_type, base_env);
         let c_param: String = Concat(c_param_type, Concat(" ", p_name));
         if p_mode == 1 {
@@ -153,8 +59,7 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int,
     if cur[0] >= count || !StartsWith(nodes[cur[0]].text, "Returns:") {
         Die("expected Returns: line after parameters");
     }
-    let ret_line: String = nodes[cur[0]].text;
-    let ret_type: String = StringTrim(Substring(ret_line, 8, StringLength(ret_line) - 8));
+    let ret_type: String = CodegenAstTextReturnType(nodes[cur[0]]);
     ArraySet(cur, 0, cur[0] + 1);
 
     CodegenAstTextExpectNode(nodes, count, cur, "Body:");
@@ -203,7 +108,6 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int) -> String {
     let owner_indent: Int = -1;
     let skip_indent: Int = -1;
     while i < count {
-        let line: String = nodes[i].text;
         let indent: Int = nodes[i].indent;
         if skip_indent >= 0 {
             if indent > skip_indent {
@@ -222,15 +126,15 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int) -> String {
             continue;
         }
         if CodegenAstTextIsNominalDecl(nodes[i]) {
-            owner = NominalDeclName(line);
+            owner = CodegenAstTextNominalName(nodes[i]);
             owner_indent = indent;
         }
         if CodegenAstTextIsRoleDecl(nodes[i]) {
-            owner = RoleDeclName(line);
+            owner = CodegenAstTextRoleName(nodes[i]);
             owner_indent = indent;
         }
         if CodegenAstTextIsFunction(nodes[i]) {
-            let fname: String = Substring(line, 10, StringLength(line) - 10);
+            let fname: String = CodegenAstTextFunctionName(nodes[i]);
             let cname: String = CompilerSymbolCQualifiedName("", fname);
             if StringLength(owner) > 0 && indent > owner_indent {
                 cname = CompilerSymbolCQualifiedName(owner, fname);
@@ -243,14 +147,14 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int) -> String {
                     j = j + 1;
                     let modes: String = "";
                     while j < count && nodes[j].indent == indent + 4 {
-                        modes = ParamModeCsvAppend(modes, ParamLineMode(nodes[j].text));
+                        modes = ParamModeCsvAppend(modes, CodegenAstTextParamMode(nodes[j]));
                         j = j + 1;
                     }
                     env = Concat(env, Concat(cname, Concat("=pm:", Concat(modes, "|"))));
                     continue;
                 }
                 if StartsWith(ret_line, "Returns:") {
-                    rtype = StringTrim(Substring(ret_line, 8, StringLength(ret_line) - 8));
+                    rtype = CodegenAstTextReturnType(nodes[j]);
                     j = count;
                 } else {
                     j = j + 1;
@@ -266,16 +170,14 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int) -> String {
 func CollectRoleOperators(nodes: Array<CodegenAstTextNode>, count: Int, inout env_box: Array<String>) -> String {
     let i: Int = 0;
     while i < count {
-        let line: String = nodes[i].text;
         if CodegenAstTextIsRoleDecl(nodes[i]) {
-            let role_name: String = RoleDeclName(line);
-            let for_type: String = RoleDeclForType(line);
+            let role_name: String = CodegenAstTextRoleName(nodes[i]);
+            let for_type: String = CodegenAstTextRoleForType(nodes[i]);
             let role_indent: Int = nodes[i].indent;
             let j: Int = i + 1;
             while j < count && nodes[j].indent > role_indent {
-                let method_line: String = nodes[j].text;
                 if CodegenAstTextIsFunction(nodes[j]) {
-                    let mname: String = Substring(method_line, 10, StringLength(method_line) - 10);
+                    let mname: String = CodegenAstTextFunctionName(nodes[j]);
                     if for_type == "Int" && mname == "Add" {
                         let c_name: String = CompilerSymbolCRoleOperatorName(role_name, "Add");
                         ArraySet(env_box, 0, Concat(env_box[0], Concat("Int+=op:", Concat(c_name, "|"))));
@@ -295,9 +197,8 @@ func CollectStructs(nodes: Array<CodegenAstTextNode>, count: Int, inout env_box:
     let typedefs: String = "";
     let i: Int = 0;
     while i < count {
-        let line: String = nodes[i].text;
         if CodegenAstTextIsNominalDecl(nodes[i]) {
-            let sname: String = NominalDeclName(line);
+            let sname: String = CodegenAstTextNominalName(nodes[i]);
             let s_indent: Int = nodes[i].indent;
             let j: Int = i + 1;
             if j < count && nodes[j].text == "Fields:" {
@@ -306,13 +207,8 @@ func CollectStructs(nodes: Array<CodegenAstTextNode>, count: Int, inout env_box:
             let fields_c: String = "";
             let field_names: String = "";
             while j < count && nodes[j].indent == s_indent + 4 {
-                let fl: String = nodes[j].text;
-                let cpos: Int = StringIndexOf(fl, ": ");
-                if cpos < 0 {
-                    Die(Concat("malformed struct field: ", fl));
-                }
-                let fname: String = Substring(fl, 0, cpos);
-                let ftype: String = Substring(fl, cpos + 2, StringLength(fl) - (cpos + 2));
+                let fname: String = CodegenAstTextFieldName(nodes[j]);
+                let ftype: String = CodegenAstTextFieldType(nodes[j]);
                 let cfield_type: String = AbiLayoutCFieldType(ftype, env_box[0]);
                 if StringLength(field_names) == 0 {
                     field_names = fname;
@@ -385,7 +281,6 @@ func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, struct_env: Str
     let owner_indent: Int = -1;
     let skip_indent: Int = -1;
     while i < count {
-        let line: String = nodes[i].text;
         let indent: Int = nodes[i].indent;
         if skip_indent >= 0 {
             if indent > skip_indent {
@@ -404,15 +299,15 @@ func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, struct_env: Str
             continue;
         }
         if CodegenAstTextIsNominalDecl(nodes[i]) {
-            owner = NominalDeclName(line);
+            owner = CodegenAstTextNominalName(nodes[i]);
             owner_indent = indent;
         }
         if CodegenAstTextIsRoleDecl(nodes[i]) {
-            owner = RoleDeclName(line);
+            owner = CodegenAstTextRoleName(nodes[i]);
             owner_indent = indent;
         }
         if CodegenAstTextIsFunction(nodes[i]) {
-            let name: String = Substring(line, 10, StringLength(line) - 10);
+            let name: String = CodegenAstTextFunctionName(nodes[i]);
             let c_name: String = CompilerSymbolCQualifiedName(owner, name);
             if c_name != "Main" {
                 let f_indent: Int = indent;
@@ -423,24 +318,12 @@ func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, struct_env: Str
                 let params: String = "";
                 let pn: Int = 0;
                 while j < count && nodes[j].indent == f_indent + 4 {
-                    let pl: String = nodes[j].text;
-                    let p_mode: Int = ParamLineMode(pl);
-                    let p_payload: String = ParamLinePayload(pl, p_mode);
+                    let p_mode: Int = CodegenAstTextParamMode(nodes[j]);
                     if p_mode == 2 || p_mode == 3 {
-                        Die(Concat("unsupported self-host codegen parameter mode: ", pl));
+                        Die(Concat("unsupported self-host codegen parameter mode: ", nodes[j].text));
                     }
-                    let pc: Int = StringIndexOf(p_payload, ": ");
-                    let p_name: String = "";
-                    let p_type: String = "";
-                    if pc < 0 && StringLength(owner) > 0 && p_payload == "self" {
-                        p_name = "self";
-                        p_type = owner;
-                    } else if pc < 0 {
-                        Die(Concat("malformed parameter: ", p_payload));
-                    } else {
-                        p_name = Substring(p_payload, 0, pc);
-                        p_type = Substring(p_payload, pc + 2, StringLength(p_payload) - (pc + 2));
-                    }
+                    let p_name: String = CodegenAstTextParamName(nodes[j], owner);
+                    let p_type: String = CodegenAstTextParamType(nodes[j], owner);
                     let cpt: String = AbiLayoutCParamType(p_type, struct_env);
                     let cp: String = Concat(cpt, Concat(" ", p_name));
                     if p_mode == 1 {
@@ -456,8 +339,7 @@ func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, struct_env: Str
                 }
                 let rtype: String = "Void";
                 if j < count && StartsWith(nodes[j].text, "Returns:") {
-                    let ret_line: String = nodes[j].text;
-                    rtype = StringTrim(Substring(ret_line, 8, StringLength(ret_line) - 8));
+                    rtype = CodegenAstTextReturnType(nodes[j]);
                 }
                 let plist: String = params;
                 if pn == 0 {

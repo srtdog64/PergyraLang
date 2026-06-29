@@ -36,7 +36,8 @@ rung-14 value-passed Int-field structs, rung-15 `Array<Int>` param/return flow,
 rung-19 typed `Int` / `Bool` / `Float` / `String` struct field facts, and rung-20 nested struct-valued field facts).
 The codegen entrypoint is now split into thin `main.pgy` orchestration plus
 resource-owner folders: `input/` for AST path/read ownership and AST-text line
-inventory ownership, `run/` for the
+inventory ownership, including function/return/nominal/role/parameter/field
+payload accessors for the transitional `pgy --ast` bridge, `run/` for the
 CLI boundary, `text/` for text/expression scanning, `type_facts/` for type
 evidence, compiler-world symbol rows for emitted-symbol spelling,
 `abi_layout/` for self-host C ABI type spelling, `runtime_abi/` for `Array<Int>` /

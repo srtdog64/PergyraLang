@@ -2390,3 +2390,18 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This reduces the ACTIVE Artifact Zone and Test Harness blockers; they remain
   active until diagnostics, IR JSON, ABI/layout, emitted C/LLVM, and all other
   parity scripts are also projections of these Pergyra-owned records.
+
+### 2026-06-30 -- AST-text payload reads move behind the input owner
+
+- Extended `src/self_hosted/codegen/input/ast_text_inventory_owner.pgy` with
+  owner-owned accessors for function names, return types, nominal names, role
+  names and `for` types, parameter mode/name/type rows, and field name/type
+  rows.
+- Repointed `program_emit.pgy` and `function_emit.pgy` so declaration routing,
+  signature emission, struct collection, role-operator discovery, and prototype
+  collection consume those accessors instead of carrying local AST-text payload
+  parsers.
+- Tightened `self_hosted_component_contract_smoke` so the removed local
+  emission parsers cannot reappear. This reduces the ACTIVE mixed AST-like tree
+  blocker; it does not close it because `CodegenAstTextNode.text` remains the
+  transitional bridge payload inside the input owner.

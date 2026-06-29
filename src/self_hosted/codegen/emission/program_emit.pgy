@@ -55,7 +55,6 @@ func GenerateC(ast: String) -> String {
     let defs: String = "";
     let cur: Array<Int> = [0];
     while cur[0] < count {
-        let cur_line: String = nodes[cur[0]].text;
         let cur_indent: Int = nodes[cur[0]].indent;
         if CodegenAstTextIsZeroArtifactDecl(nodes[cur[0]]) {
             let decl_indent: Int = cur_indent;
@@ -64,7 +63,7 @@ func GenerateC(ast: String) -> String {
                 ArraySet(cur, 0, cur[0] + 1);
             }
         } else if CodegenAstTextIsNominalDecl(nodes[cur[0]]) {
-            let owner_name: String = NominalDeclName(cur_line);
+            let owner_name: String = CodegenAstTextNominalName(nodes[cur[0]]);
             let owner_indent: Int = cur_indent;
             ArraySet(cur, 0, cur[0] + 1);
             while cur[0] < count && nodes[cur[0]].indent > owner_indent {
@@ -77,7 +76,7 @@ func GenerateC(ast: String) -> String {
                 }
             }
         } else if CodegenAstTextIsRoleDecl(nodes[cur[0]]) {
-            let role_owner_name: String = RoleDeclName(cur_line);
+            let role_owner_name: String = CodegenAstTextRoleName(nodes[cur[0]]);
             let role_owner_indent: Int = cur_indent;
             ArraySet(cur, 0, cur[0] + 1);
             while cur[0] < count && nodes[cur[0]].indent > role_owner_indent {
