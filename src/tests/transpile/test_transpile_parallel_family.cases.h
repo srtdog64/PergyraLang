@@ -95,8 +95,8 @@ test_parallel_family_emit(void)
         TranspilerCtx *ctx = transpiler_ctx_create();
         emit_statement(&async_block, ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_async_spawn");
-        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_async_detach");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_lane_spawn_dispatch");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_lane_detach");
         EXPECT_STR_CONTAINS(ctx->helpers->data, "return 1;");
 
         ast_destroy(ret_stmt);

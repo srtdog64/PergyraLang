@@ -362,7 +362,7 @@ test_parallel_execution_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("Cancel emits pgy_task_cancel");
+    TEST("Cancel emits pgy_lane_cancel");
     {
         TranspilerCtx *ctx = transpiler_ctx_create();
         ASTNode *spawn = calloc(1, sizeof(ASTNode));
@@ -376,7 +376,7 @@ test_parallel_execution_emit(void)
         char *result = emit_expression(make_call("Cancel", args, 1, 2), ctx);
 
         EXPECT(result != NULL);
-        EXPECT(strstr(result, "pgy_task_cancel(pending)") != NULL);
+        EXPECT(strstr(result, "pgy_lane_cancel(pending)") != NULL);
 
         free(result);
         transpiler_ctx_destroy(ctx);

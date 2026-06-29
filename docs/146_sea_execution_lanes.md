@@ -138,6 +138,11 @@ strictly underneath.
   alive past spawn-shaped lowering so later await/detach/cancellation work can
   consume the same fact instead of reclassifying or guessing from the handle
   shape.
+- Await/detach/cancel now have lane-owned task-operation facades. Generated C
+  calls `pgy_lane_await`, `pgy_lane_detach`, and `pgy_lane_cancel`; LLVM keeps
+  the stable export names but those exports call the same facades internally.
+  `detach` is intentionally restricted to `LocalAsync`, making the lane fact a
+  real runtime contract instead of passive metadata.
 
 **Remaining (deep fill, not a quick slice):**
 - **Precise capture plumbing.** `BoundaryCaptureFact` now exists and is stored
@@ -150,13 +155,13 @@ strictly underneath.
   capture plumbing, not a kind lookup.
 - **Remaining concurrent-site facade coverage.** Spawn expressions,
   `parallel { ... }`, and async blocks now consume the lane-owned spawn facade.
-  The task handle now carries the lane fact through await/detach/cancellation,
-  but those operations still use the older runtime entry points. Channel
-  send/receive also still calls its typed channel runtime directly. Unifying
-  those sites is the next codegen step. On the self-host side it is gated by
-  async *lowering*: the self-host parses async but does not lower it (its
-  `mir_lower` carries zero async facts), so the self-host async codegen is the
-  larger frontier -- the MIR JSON async fact surface, tracked with the self-host
+  The task header carries the lane fact through await/detach/cancellation, and
+  those task operations now consume the lane-owned facades. Channel send/receive
+  still calls its typed channel runtime directly. Unifying the channel boundary
+  is the next codegen step. On the self-host side it is gated by async
+  *lowering*: the self-host parses async but does not lower it (its `mir_lower`
+  carries zero async facts), so the self-host async codegen is the larger
+  frontier -- the MIR JSON async fact surface, tracked with the self-host
   expansion.
 - **Executor depth.** The Worker/Blocking/LocalAsync/Movable lanes currently
   share one worker-thread executor; backing them with the fiber scheduler /

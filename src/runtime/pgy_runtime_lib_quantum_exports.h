@@ -290,12 +290,12 @@ PgyTaskHandle pgy_async_spawn_export(void *(*fn)(void *), void *arg)
 
 void pgy_async_detach_export(PgyTaskHandle h)
 {
-    pgy_async_detach(h);
+    pgy_lane_detach(h);
 }
 
 void *pgy_await_export(PgyTaskHandle h)
 {
-    return pgy_await(h);
+    return pgy_lane_await(h);
 }
 
 PgyTaskHandle pgy_spawn_blocking_export(void *(*fn)(void *), void *arg)
@@ -312,7 +312,7 @@ PgyTaskHandle pgy_lane_spawn_dispatch_export(int32_t lane,
 
 bool pgy_task_cancel_export(PgyTaskHandle h)
 {
-    return pgy_task_cancel(h);
+    return pgy_lane_cancel(h);
 }
 
 bool pgy_task_is_cancelled_export(void)

@@ -141,7 +141,7 @@ test_program_emit_head(void)
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "IdentityInt");
-        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_async_spawn");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_lane_spawn_dispatch");
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);
@@ -150,7 +150,7 @@ test_program_emit_head(void)
         ast_destroy(prog);
     }
 
-    TEST("parallel block emits pgy_spawn / pgy_await per task");
+    TEST("parallel block emits lane spawn / lane await per task");
     {
         ASTNode **tasks = calloc(2, sizeof(ASTNode *));
         tasks[0] = make_call("A", NULL, 0, 1);
@@ -190,8 +190,8 @@ test_program_emit_head(void)
         ctx->mir = mir;
         emit_program(ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_spawn");
-        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_await");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_lane_spawn_dispatch");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_lane_await");
         EXPECT_STR_CONTAINS(ctx->out->data, "_pgy_par_");
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);

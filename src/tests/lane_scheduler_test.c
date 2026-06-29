@@ -90,10 +90,10 @@ main(void)
             printf("FAIL spawn %-10s lane=%s\n",
                    ln, pgy_execution_lane_name(pgy_task_handle_lane(h)));
             fails++;
-            (void)pgy_await(h);
+            (void)pgy_lane_await(h);
             continue;
         }
-        intptr_t got = (intptr_t)pgy_await(h);
+        intptr_t got = (intptr_t)pgy_lane_await(h);
         if (got != 142 || g_ran != 1) {
             printf("FAIL spawn %-10s result=%ld ran=%d\n",
                    ln, (long)got, g_ran);

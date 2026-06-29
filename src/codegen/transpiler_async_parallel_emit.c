@@ -336,7 +336,7 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
     }
     for (size_t i = 0; i < count; i++) {
         write_indent(ctx);
-        codebuf_write(ctx->out, "pgy_await(_ph_%zu);\n", i);
+        codebuf_write(ctx->out, "pgy_lane_await(_ph_%zu);\n", i);
     }
 
     ctx->indent--;
@@ -421,7 +421,7 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
         "if (_ah_%u.task == NULL) PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"async block spawn failed\");\n",
         pid);
     write_indent(ctx);
-    codebuf_write(ctx->out, "pgy_async_detach(_ah_%u);\n", pid);
+    codebuf_write(ctx->out, "pgy_lane_detach(_ah_%u);\n", pid);
     ctx->indent--;
     write_indent(ctx);
     codebuf_write(ctx->out, "}\n");

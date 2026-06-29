@@ -396,7 +396,7 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
             ast_call_argument(call, 0), "Cancel", "task");
         if (task == NULL)
             return NULL;
-        char *result = strdup_fmt("pgy_task_cancel(%s)", task);
+        char *result = strdup_fmt("pgy_lane_cancel(%s)", task);
         free(task);
         return result;
     }

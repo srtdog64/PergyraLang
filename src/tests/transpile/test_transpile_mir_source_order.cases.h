@@ -28,7 +28,7 @@ test_source_order_mir_emit(void)
         if (ok && ctx != NULL && ctx->out != NULL && ctx->out->data != NULL) {
             log_pos = strstr(ctx->out->data,
                 "=== ASYNC RESOURCE SCHEDULER PROBE ===");
-            await_pos = strstr(ctx->out->data, "pgy_await(");
+            await_pos = strstr(ctx->out->data, "pgy_lane_await(");
             recv_pos = strstr(ctx->out->data, "pgy_channel_recv_val_Int(&laneA)");
         }
 

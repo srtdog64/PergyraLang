@@ -87,6 +87,74 @@ pgy_lane_spawn_dispatch(PgyExecutionLane lane, PgyLaneTaskFn fn, void *arg)
     pgy_task_handle_set_lane(handle, lane);
     return handle;
 }
+
+static inline void *
+pgy_lane_await(PgyTaskHandle handle)
+{
+    switch (pgy_task_handle_lane(handle))
+    {
+        case PGY_LANE_REJECT:
+            PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                              "await rejected execution lane");
+
+        case PGY_LANE_INLINE:
+        case PGY_LANE_PINNED_ZONE:
+        case PGY_LANE_BLOCKING_POOL:
+        case PGY_LANE_LOCAL_ASYNC:
+        case PGY_LANE_WORKER_POOL:
+        case PGY_LANE_MOVABLE_SCHEDULER:
+            return pgy_await(handle);
+    }
+
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                      "await unknown execution lane");
+}
+
+static inline void
+pgy_lane_detach(PgyTaskHandle handle)
+{
+    switch (pgy_task_handle_lane(handle))
+    {
+        case PGY_LANE_LOCAL_ASYNC:
+            pgy_async_detach(handle);
+            return;
+
+        case PGY_LANE_REJECT:
+            PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                              "detach rejected execution lane");
+
+        case PGY_LANE_INLINE:
+        case PGY_LANE_PINNED_ZONE:
+        case PGY_LANE_BLOCKING_POOL:
+        case PGY_LANE_WORKER_POOL:
+        case PGY_LANE_MOVABLE_SCHEDULER:
+            PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                              "detach requires LocalAsync execution lane");
+    }
+
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                      "detach unknown execution lane");
+}
+
+static inline bool
+pgy_lane_cancel(PgyTaskHandle handle)
+{
+    switch (pgy_task_handle_lane(handle))
+    {
+        case PGY_LANE_REJECT:
+            return false;
+
+        case PGY_LANE_INLINE:
+        case PGY_LANE_PINNED_ZONE:
+        case PGY_LANE_BLOCKING_POOL:
+        case PGY_LANE_LOCAL_ASYNC:
+        case PGY_LANE_WORKER_POOL:
+        case PGY_LANE_MOVABLE_SCHEDULER:
+            return pgy_task_cancel(handle);
+    }
+
+    return false;
+}
 #endif
 
 /* The executor name a lane routes to, for diagnostics/tracing. Never NULL. */

@@ -36,6 +36,20 @@ grep -Fq "task_handle_fields[] = { ctx->type_i8ptr }" \
 grep -Fq "pgy_task_handle_set_lane(handle, lane)" \
     "$ROOT_DIR/src/runtime/pgy_lane_scheduler.h" \
     || fail "lane spawn facade does not store the consumed lane fact"
+for lane_task_op in pgy_lane_await pgy_lane_detach pgy_lane_cancel; do
+    grep -Fq "$lane_task_op" \
+        "$ROOT_DIR/src/runtime/pgy_lane_scheduler.h" \
+        || fail "lane scheduler is missing task operation facade: $lane_task_op"
+done
+grep -Fq "return pgy_lane_await(h)" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_quantum_exports.h" \
+    || fail "LLVM await export does not consume the lane task facade"
+grep -Fq "pgy_lane_detach(h)" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_quantum_exports.h" \
+    || fail "LLVM detach export does not consume the lane task facade"
+grep -Fq "return pgy_lane_cancel(h)" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_quantum_exports.h" \
+    || fail "LLVM cancel export does not consume the lane task facade"
 
 grep -Fq "pgy_lane_spawn_dispatch(" \
     "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c" \
@@ -49,6 +63,15 @@ grep -Fq "pgy_lane_spawn_dispatch(PGY_LANE_WORKER_POOL" \
 grep -Fq "pgy_lane_spawn_dispatch(PGY_LANE_LOCAL_ASYNC" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c" \
     || fail "C async block lowering does not consume the LocalAsync lane facade"
+grep -Fq "pgy_lane_await(_ph_" \
+    "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c" \
+    || fail "C parallel lowering does not consume the lane await facade"
+grep -Fq "pgy_lane_detach(_ah_" \
+    "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c" \
+    || fail "C async block lowering does not consume the lane detach facade"
+grep -Fq 'pgy_lane_cancel(%s)' \
+    "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.c" \
+    || fail "C Cancel builtin does not consume the lane cancel facade"
 grep -Fq "pgy_lane_spawn_dispatch_export" \
     "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c" \
     || fail "LLVM async/parallel lowering does not consume the lane spawn facade export"
@@ -69,6 +92,18 @@ fi
 if grep -Fq "pgy_async_spawn(" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"; then
     fail "C async block lowering reintroduced direct pgy_async_spawn"
+fi
+if grep -Fq "pgy_await(_ph_" \
+    "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"; then
+    fail "C parallel lowering reintroduced direct pgy_await"
+fi
+if grep -Fq "pgy_async_detach(_ah_" \
+    "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"; then
+    fail "C async block lowering reintroduced direct pgy_async_detach"
+fi
+if grep -Fq 'pgy_task_cancel(%s)' \
+    "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.c"; then
+    fail "C Cancel builtin reintroduced direct pgy_task_cancel"
 fi
 if grep -Fq "pgy_spawn_blocking_export" \
     "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"; then
