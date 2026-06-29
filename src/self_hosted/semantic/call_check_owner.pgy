@@ -240,6 +240,9 @@ func CheckOptionBuiltinArgs(callee: String, args_src: String, names: Array<Strin
     if option_type == "Unknown" {
         return "";
     }
+    if option_type == "Option<Unknown>" {
+        return SemanticError3("option_concrete_type_required", "func", callee, "expected", "Option<T>", "actual", option_type);
+    }
     if !IsOptionType(option_type) {
         return SemanticError3("builtin_arg_type_mismatch", "func", callee, "expected", "Option<T>", "actual", option_type);
     }

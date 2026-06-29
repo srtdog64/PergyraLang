@@ -283,18 +283,20 @@ Substrate progress.
   closing it requires expanding the shared self-host/C diagnostic-code mapping
   beyond the current fixture root-code gate rather than a self-host-only guess.
   `tests/self_hosted/parity/semantic_parity.sh` compares its verdicts with the C
-  compiler accept/reject oracle on C and LLVM across 93 committed fixtures that
+  compiler accept/reject oracle on C and LLVM across 104 committed fixtures that
   close the diagnostic matrix for every check across every statement position
   (typed let/return, arithmetic, comparison, call-return, call-argument,
   call-arity, branch-condition, scoped-block, assignment-type, bare-call-statement,
   binary-, logical-, and unary-not-operand-agreement, `let mut`, file IO builtin
   calls, scalar math builtin-table calls, trig/log Float builtin calls, string
   split/join aliases, first-argument scalar utility calls, generated-source
-  string literals, and undefined-identifier cases), all
+  string literals, Option payload typing, `None()` context typing, concrete
+  `Option<T>` requirements for `IsSome`/`UnwrapOption`, and
+  undefined-identifier cases), all
   emitted as `pgy.selfhost.semantic.v1` diagnostic blocks through
   `src/self_hosted/lib/diagnostic.pgy` and byte-equal on both backends. It
   now also gates the self-hosted semantic diagnostic-code vocabulary:
-  `src/self_hosted/semantic/diagnostic_code_owner.pgy` owns the 15 lower-case
+  `src/self_hosted/semantic/diagnostic_code_owner.pgy` owns the 17 lower-case
   codes, and the parity harness rejects fixture `Code:` fields or literal
   `SemanticError...("code")` call sites that are not registered there. The same
   owner maps every fixture-emitted self-hosted code to the current C oracle JSON
@@ -313,7 +315,7 @@ Substrate progress.
   bodies without leaking block-local `let` bindings into the parent
   environment. The parity set now includes an import-backed fixture, and
   `tests/self_hosted/parity/selfcheck_sources.sh` now compiles the checker
-  through C and LLVM and accepts 56 real self-host owner/source files. The
+  through C and LLVM and accepts 87 real self-host owner/source files. The
   manifest includes lexer/parser/mir-lower/codegen/compiler-world entrypoints,
   the compiler path manifest owner, semantic run/program/body/call/expression
   owner files, the deterministic backend fuzz generator, and audit-tool slices
@@ -355,8 +357,8 @@ binary- and logical-operand-agreement typing (same-type Int/Long/Float numeric
 arithmetic preserves its operand type; comparison operands must share a type;
 `&&`/`||` operands must be Bool) in let, return, condition, and assignment
 positions, and simple/compound undefined-identifier diagnostics are covered,
-and verdicts stay
-byte-equal beside the C type checker on 93 committed fixtures across both
+plus Option payload/concrete-Option builtin contracts, and verdicts stay
+byte-equal beside the C type checker on 104 committed fixtures across both
 backends. The checker now covers the common statement forms (let, return,
 assignment, if/while body, if/while condition, bare call), and the fixture
   matrix exercises each diagnostic in every position where it can fire. The

@@ -25,6 +25,9 @@ func SemanticDiagnosticCodeKnown(code: String) -> Bool {
     if code == "builtin_arg_type_mismatch" {
         return true;
     }
+    if code == "option_concrete_type_required" {
+        return true;
+    }
     if code == "value_param_collection_mutation" {
         return true;
     }
@@ -56,7 +59,7 @@ func SemanticDiagnosticCodeKnown(code: String) -> Bool {
 }
 
 func SemanticDiagnosticCodeCount() -> Int {
-    return 16;
+    return 17;
 }
 
 func SemanticDiagnosticOracleCode(code: String) -> String {
@@ -80,6 +83,9 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
     }
     if code == "builtin_arg_type_mismatch" {
         return "PGY_SEM_BUILTIN_ARGS_INVALID";
+    }
+    if code == "option_concrete_type_required" {
+        return "PGY_C_TYPE_UNSUPPORTED";
     }
     if code == "value_param_collection_mutation" {
         return "PGY_SEM_BUILTIN_ARGS_INVALID";

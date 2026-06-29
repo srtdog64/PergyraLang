@@ -47,12 +47,15 @@ rewrite history.
 - **Backend parity**: parser compiled by C and by LLVM produce byte-identical
   output -- the core self-host correctness signal.
 - **Semantic**: self-hosts a bounded function-body checker on C+LLVM across
-  **93 committed fixtures**. Expression typing now owns same-type
+  **104 committed fixtures**. Expression typing now owns same-type
   `Int`/`Long`/`Float` arithmetic, contextual integer-literal assignment
   to `Long` as the only widening rule in this rung, and scalar math builtin
   signatures for `Sqrt`, `Pow`, `Floor`, `Ceil`, `Random`, and `SeedRandom`, trig/log Float
   signatures from `Sin` through `Log2`, string split/join aliases, plus
   first-argument scalar utility typing for `Abs`, `Min`, `Max`, and `Clamp`.
+  `Option<T>` payload typing now rejects `Some` payload drift and rejects
+  `IsSome`/`UnwrapOption` on non-Option or non-concrete `Option<Unknown>`
+  operands against the C/LLVM oracle.
 - **Compiler core**: capability-5 single-source-of-truth is READY for the
   measured source_ast/source_decl and supported MIR-lowering frontier.
   Source-payload reads for the gated body surface have been replaced by
@@ -85,6 +88,20 @@ rewrite history.
    allowed -- that is what makes a positive one mean something.
 
 ## Session log
+
+### 2026-06-29 -- Option semantic contracts are concrete-gated
+
+- `src/self_hosted/semantic/expr_type_owner.pgy` now owns `Some(expr) ->
+  Option<ExprType(expr)>`, `None -> Option<Unknown>`, `None() ->
+  Option<Unknown>`, and `UnwrapOption(Option<T>) -> T`.
+- `src/self_hosted/semantic/call_check_owner.pgy` rejects `IsSome` and
+  `UnwrapOption` when the operand is not `Option<T>` or when the operand is the
+  non-concrete `Option<Unknown>` fact produced by unannotated `None`.
+- `tests/self_hosted/parity/semantic_parity.sh` now covers 104 fixtures on
+  both C and LLVM, including `Some("x")` payload mismatch, `None()` contextual
+  success, and non-concrete Option builtin rejection.
+- `tests/self_hosted/parity/selfcheck_sources.sh` accepts 87 real self-host
+  source files on C and LLVM after the stricter Option contract.
 
 ### 2026-06-27 -- Final self-host reports consume JSON owner
 

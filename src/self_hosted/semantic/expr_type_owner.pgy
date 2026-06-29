@@ -407,6 +407,9 @@ func OptionCallReturnType(text: String, names: Array<String>, types: Array<Strin
     }
     let callee: String = Trim(Substring(text, 0, paren));
     let args_src: String = Substring(text, paren + 1, n - paren - 2);
+    if callee == "None" {
+        return "Option<Unknown>";
+    }
     if callee == "Some" {
         let value_expr: String = CallArgAt(args_src, 0);
         let value_type: String = ExprType(value_expr, names, types, func_names, func_rets);

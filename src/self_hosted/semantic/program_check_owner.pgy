@@ -320,6 +320,9 @@ func CheckProgram(content: String) -> String {
     ArrayPush(func_names, "Some");
     ArrayPush(func_rets, "Unknown");
     ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "None");
+    ArrayPush(func_rets, "Option<Unknown>");
+    ArrayPush(func_params, "");
     ArrayPush(func_names, "IsSome");
     ArrayPush(func_rets, "Bool");
     ArrayPush(func_params, "Unknown");

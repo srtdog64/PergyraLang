@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let v: Int = UnwrapOption(None);
+    Log(v);
+}

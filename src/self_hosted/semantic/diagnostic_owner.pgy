@@ -25,6 +25,9 @@ func SemanticReason(code: String) -> String {
     if code == "builtin_arg_type_mismatch" {
         return "builtin argument type does not match the builtin contract";
     }
+    if code == "option_concrete_type_required" {
+        return "Option builtin requires a concrete Option<T> payload type";
+    }
     if code == "value_param_collection_mutation" {
         return "caller-visible collection mutation requires an explicit inout boundary";
     }
@@ -75,6 +78,9 @@ func SemanticFix(code: String) -> String {
     }
     if code == "builtin_arg_type_mismatch" {
         return "pass a value that satisfies the builtin signature";
+    }
+    if code == "option_concrete_type_required" {
+        return "annotate the None value or pass a concretely typed Option<T>";
     }
     if code == "value_param_collection_mutation" {
         return "spell the parameter as inout or mutate a local collection and return it";

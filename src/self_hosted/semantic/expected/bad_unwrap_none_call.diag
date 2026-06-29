@@ -1,0 +1,12 @@
+Diagnostic: pgy.selfhost.semantic.v1
+Status: error
+Stage: semantic
+Severity: error
+Code: option_concrete_type_required
+Reason: Option builtin requires a concrete Option<T> payload type
+Fix: annotate the None value or pass a concretely typed Option<T>
+Span: none
+Facts:
+- func: UnwrapOption
+- expected: Option<T>
+- actual: Option<Unknown>

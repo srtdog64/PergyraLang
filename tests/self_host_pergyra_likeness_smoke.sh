@@ -45,7 +45,7 @@ SH_DIR="$ROOT_DIR/src/self_hosted"
 STRING_MUNGE_SIG_MAX=161
 AST_STRING_SURFACE_MAX=4
 SENTINEL_MAX=34
-RESULT_USE_MIN=52
+RESULT_USE_MIN=61
 
 fail() {
     echo "[self-host-likeness] FAIL" >&2

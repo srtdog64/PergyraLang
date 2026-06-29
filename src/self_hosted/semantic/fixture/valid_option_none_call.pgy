@@ -1,0 +1,13 @@
+func Pick(flag: Bool) -> Option<Int> {
+    if flag {
+        return Some(1);
+    }
+    return None();
+}
+
+func Main() -> Void {
+    let picked: Option<Int> = Pick(false);
+    if !IsSome(picked) {
+        Log(0);
+    }
+}

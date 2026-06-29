@@ -935,9 +935,9 @@ reject_text "src/self_hosted/mir_lower/stmt_render.pgy" "ReadJsonString(json,"
 semantic_items="$(extract_shell_array_items "$PARITY_DIR/semantic_parity.sh" SOURCE_PAIRS | sed 's/:.*//')"
 [[ -n "$semantic_items" ]] || fail "semantic parity SOURCE_PAIRS is empty"
 semantic_count="$(printf '%s\n' "$semantic_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$semantic_count" -eq 99 ]] ||
-    fail "semantic parity fixture count drifted: $semantic_count != 99"
-require_text "src/self_hosted/PROGRESS.md" "across 99 fixtures"
+[[ "$semantic_count" -eq 104 ]] ||
+    fail "semantic parity fixture count drifted: $semantic_count != 104"
+require_text "src/self_hosted/PROGRESS.md" "across 104 fixtures"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_scalar_math_builtins"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_seedrandom_builtin"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_writefile_builtin"
@@ -949,11 +949,19 @@ require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_option_payload_r
 require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_option_payload_let"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_issome_non_option"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_unwrap_non_option"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_option_none_call"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_issome_none_literal"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_issome_none_call"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_unwrap_none_literal"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_unwrap_none_call"
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" "func OptionCallReturnType"
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'return Concat(Concat("Option<", value_type), ">")'
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" "return Substring(option_type, 7, StringLength(option_type) - 8)"
+require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'if callee == "None"'
 require_text "src/self_hosted/semantic/call_check_owner.pgy" "func CheckOptionBuiltinArgs"
 require_text "src/self_hosted/semantic/call_check_owner.pgy" "builtin_arg_type_mismatch"
+require_text "src/self_hosted/semantic/call_check_owner.pgy" "option_concrete_type_required"
+require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "None")'
 require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "Sqrt")'
 require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "Random")'
 require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "SeedRandom")'
