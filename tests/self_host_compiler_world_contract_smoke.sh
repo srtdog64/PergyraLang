@@ -306,7 +306,8 @@ for term in \
     "func CompilerAbiLayoutRowSchema" \
     "CompilerAbiLayoutRowsReady" \
     "CompilerAbiLayoutConcreteRowCount" \
-    "CompilerAbiLayoutCValueType" \
+    "CompilerAbiLayoutRowIndex" \
+    "CompilerAbiLayoutRowCValueTypeAt" \
     "CompilerAbiLayoutFieldAllowed" \
     "CompilerAbiLayoutRowMaterializationAt" \
     "field_order" \

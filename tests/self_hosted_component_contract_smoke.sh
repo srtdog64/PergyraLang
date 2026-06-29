@@ -287,6 +287,16 @@ require_text "src/self_hosted/lexer/scan_owner.pgy" 'import "char_owner.pgy";'
 require_text "src/self_hosted/lexer/scan_owner.pgy" 'import "token_owner.pgy";'
 reject_text "src/self_hosted/lexer/main.pgy" 'import "char_owner.pgy";'
 reject_text "src/self_hosted/lexer/main.pgy" 'import "token_owner.pgy";'
+require_text "tests/self_hosted/parity/lexer_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy"'
+require_text "tests/self_hosted/parity/lexer_parity.sh" "normalize_text_artifact"
+require_text "tests/self_hosted/parity/lexer_parity.sh" "compile_backend_output_comparator"
+require_text "tests/self_hosted/parity/lexer_parity.sh" 'compare_lexer_output_with_owner "c" "$label" "$expected_file" "$c_out" 2'
+require_text "tests/self_hosted/parity/lexer_parity.sh" 'compare_lexer_output_with_owner "llvm" "$label" "$expected_file" "$llvm_out" 2'
+require_text "tests/self_hosted/parity/lexer_parity.sh" 'compare_lexer_output_with_owner "live-tokens" "$label" "$expected_file" "$live_out" 0'
+reject_text "tests/self_hosted/parity/lexer_parity.sh" 'EXPECTED_OUT="$(tr -d'
+reject_text "tests/self_hosted/parity/lexer_parity.sh" 'PERGYRA_OUT="$(cd'
+reject_text "tests/self_hosted/parity/lexer_parity.sh" 'LLVM_LEX_OUT="$(cd'
+reject_text "tests/self_hosted/parity/lexer_parity.sh" "diff <(printf"
 require_owner_surface parser \
     "source_path_owner.pgy" \
     "program_parse_owner.pgy"
@@ -425,12 +435,14 @@ require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func Abi
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCFieldType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'import "../../compiler/abi_layout_row_owner.pgy";'
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutRowsReady()"
-require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutCValueType(type_name)"
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutRowIndex(type_name)"
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutRowCValueTypeAt(UnwrapOption(row))"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutFieldAllowed(type_name)"
 reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CollectionRuntimeKindFromTypeName"
 reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'import "../runtime_abi/collection_runtime_owner.pgy";'
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutConcreteRowCount"
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutCValueType"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutRowIndex"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutRowCValueTypeAt"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutFieldAllowed"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutRowMaterializationAt"
 reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'StringIndexOf(type_name, "Int")'

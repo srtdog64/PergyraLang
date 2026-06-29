@@ -14,9 +14,9 @@ func AbiLayoutRequireCompilerRows() -> Void {
 
 func AbiLayoutCValueType(type_name: String, struct_env: String) -> String {
     AbiLayoutRequireCompilerRows();
-    let row_type: String = CompilerAbiLayoutCValueType(type_name);
-    if row_type != "" {
-        return row_type;
+    let row: Option<Int> = CompilerAbiLayoutRowIndex(type_name);
+    if IsSome(row) {
+        return CompilerAbiLayoutRowCValueTypeAt(UnwrapOption(row));
     }
     if LookupKindType(struct_env, type_name, "s") == "struct" {
         return type_name;
@@ -41,8 +41,8 @@ func AbiLayoutCLocalType(type_name: String, struct_env: String) -> String {
 }
 
 func AbiLayoutCFieldType(type_name: String, struct_env: String) -> String {
-    let row_type: String = CompilerAbiLayoutCValueType(type_name);
-    if row_type != "" && !CompilerAbiLayoutFieldAllowed(type_name) {
+    let row: Option<Int> = CompilerAbiLayoutRowIndex(type_name);
+    if IsSome(row) && !CompilerAbiLayoutFieldAllowed(type_name) {
         Die(Concat("struct/class fields must be Int/Bool/Float/String/previous struct, got: ", type_name));
     }
     return AbiLayoutCValueType(type_name, struct_env);

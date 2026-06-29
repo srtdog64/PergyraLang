@@ -90,6 +90,29 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-30 -- Lexer token parity consumes Artifact/TestHarness owner
+
+- Repointed `tests/self_hosted/parity/lexer_parity.sh` so C-compiled,
+  LLVM-compiled, and live `pgy --tokens` lexer output comparison is no longer a
+  shell string/diff verdict. The harness writes token streams as artifact files
+  and invokes the Pergyra `backend_output_comparator` with explicit projection
+  rows.
+- The lexer rung now records expected fixture vs `self_hosted` token output and
+  expected fixture vs `c_oracle` live-token drift through `ArtifactZone`,
+  `TestHarnessZone`, and the subprocess envelope owner.
+- Tightened the component contract so lexer parity cannot silently reintroduce
+  `EXPECTED_OUT`/`PERGYRA_OUT` shell equality or `diff <(...)` as the owner of
+  the verdict.
+- Removed the thin `CompilerAbiLayoutCValueType(type_name: String) -> String`
+  ABI row alias after the broader self-host preparation gate caught the
+  `string_munge_sig` ratchet at 162/161. `CompilerAbiLayoutRowIndex` now returns
+  `Option<Int>` instead of the `-1` sentinel, and the self-host C ABI consumer
+  reads `CompilerAbiLayoutRowCValueTypeAt(UnwrapOption(row))` directly. This
+  keeps the row owner as the SoT without adding another text-to-text spelling
+  path or out-of-band row-missing value.
+- Tightened `tests/self_host_pergyra_likeness_smoke.sh` after the Option row
+  change raised `result_use` to 69; the new minimum is 69.
+
 ### 2026-06-29 -- String and Bool arithmetic mirror the C oracle
 
 - `src/self_hosted/semantic/expr_type_owner.pgy` now preserves C-oracle

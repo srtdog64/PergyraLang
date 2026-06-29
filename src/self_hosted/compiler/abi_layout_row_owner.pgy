@@ -87,29 +87,21 @@ func CompilerAbiLayoutRowMatches(index: Int, type_name: String) -> Bool {
     return false;
 }
 
-func CompilerAbiLayoutRowIndex(type_name: String) -> Int {
+func CompilerAbiLayoutRowIndex(type_name: String) -> Option<Int> {
     let i: Int = 0;
     while i < CompilerAbiLayoutConcreteRowCount() {
         if CompilerAbiLayoutRowMatches(i, type_name) {
-            return i;
+            return Some(i);
         }
         i = i + 1;
     }
-    return -1;
-}
-
-func CompilerAbiLayoutCValueType(type_name: String) -> String {
-    let row: Int = CompilerAbiLayoutRowIndex(type_name);
-    if row < 0 {
-        return "";
-    }
-    return CompilerAbiLayoutRowCValueTypeAt(row);
+    return None;
 }
 
 func CompilerAbiLayoutFieldAllowed(type_name: String) -> Bool {
-    let row: Int = CompilerAbiLayoutRowIndex(type_name);
-    if row < 0 {
+    let row: Option<Int> = CompilerAbiLayoutRowIndex(type_name);
+    if !IsSome(row) {
         return false;
     }
-    return CompilerAbiLayoutRowMaterializationAt(row) == "field_allowed";
+    return CompilerAbiLayoutRowMaterializationAt(UnwrapOption(row)) == "field_allowed";
 }

@@ -28,17 +28,73 @@ if [[ ! -x "$PGY" ]]; then
 fi
 
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/lexer/main.pgy"
+COMPARATOR_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/lexer}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
+COMPARATOR_BIN="$PERGYRA_TOOL_BUILD_DIR/backend_output_comparator.exe"
 FIXTURE_DIR="$ROOT_DIR/src/self_hosted/lexer/fixture"
 
 if [[ ! -f "$PERGYRA_TOOL_SOURCE" ]]; then
     echo "[self-host-parity:lexer] missing Pergyra tool: $PERGYRA_TOOL_SOURCE" >&2
     exit 1
 fi
+if [[ ! -f "$COMPARATOR_SOURCE" ]]; then
+    echo "[self-host-parity:lexer] missing Pergyra comparator: $COMPARATOR_SOURCE" >&2
+    exit 1
+fi
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$ROOT_DIR/src/self_hosted/lexer/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"
+
+path_relative_to_root() {
+    local path="$1"
+    printf '%s\n' "${path#"$ROOT_DIR"/}"
+}
+
+normalize_text_artifact() {
+    local input="$1"
+    local output="$2"
+
+    tr -d '\r' < "$input" \
+        | awk 'NR > 1 { printf "\n" } { printf "%s", $0 }' >"$output"
+}
+
+compile_backend_output_comparator() {
+    local compile_log="$PERGYRA_TOOL_BUILD_DIR/backend_output_comparator.compile.log"
+
+    if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$COMPARATOR_SOURCE")" \
+        --backend=c -o "$(pgy_path_for_compiler "$PGY" "$COMPARATOR_BIN")" \
+        >"$compile_log" 2>&1); then
+        echo "[self-host-parity:lexer] backend output comparator failed to build" >&2
+        cat "$compile_log" >&2
+        exit 1
+    fi
+}
+
+compare_lexer_output_with_owner() {
+    local backend="$1"
+    local label="$2"
+    local expected_file="$3"
+    local actual_file="$4"
+    local actual_projection="$5"
+    local expected_norm="$PERGYRA_TOOL_BUILD_DIR/${label}_${backend}_expected.out"
+    local cmp_out="$PERGYRA_TOOL_BUILD_DIR/${label}_${backend}_compare.out"
+    local cmp_err="$PERGYRA_TOOL_BUILD_DIR/${label}_${backend}_compare.err"
+    local expected_rel
+    local actual_rel
+
+    normalize_text_artifact "$expected_file" "$expected_norm"
+
+    expected_rel="$(path_relative_to_root "$expected_norm")"
+    actual_rel="$(path_relative_to_root "$actual_file")"
+
+    if ! (cd "$ROOT_DIR" && "$COMPARATOR_BIN" "$expected_rel" "$actual_rel" 0 "$actual_projection" \
+        >"$cmp_out" 2>"$cmp_err"); then
+        echo "[self-host-parity:lexer] $label: backend=$backend token artifact drift vs $expected_file" >&2
+        cat "$cmp_out" "$cmp_err" >&2
+        exit 1
+    fi
+}
 
 echo "[self-host-parity:lexer] compiling lexer..."
 C_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/main.compile.log"
@@ -66,6 +122,8 @@ if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
     fi
 fi
 
+compile_backend_output_comparator
+
 # Sources to lex + their committed fixtures. Each entry is
 # "<source path relative to repo root>:<fixture filename>". The Pergyra
 # binary reads the source path from Args()[0].
@@ -85,6 +143,7 @@ for pair in "${SOURCE_PAIRS[@]}"; do
     src="${pair%%:*}"
     fix="${pair##*:}"
     expected_file="$FIXTURE_DIR/$fix"
+    label="${fix%.txt}"
 
     if [[ ! -f "$ROOT_DIR/$src" ]]; then
         echo "[self-host-parity:lexer] missing source: $src" >&2
@@ -95,50 +154,52 @@ for pair in "${SOURCE_PAIRS[@]}"; do
         exit 1
     fi
 
+    c_out="$PERGYRA_TOOL_BUILD_DIR/${label}_c_tokens.out"
+    c_err="$PERGYRA_TOOL_BUILD_DIR/${label}_c_tokens.err"
     set +e
-    PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PERGYRA_TOOL_BUILD_DIR/main.exe" "$src" 2>/dev/null \
+    (cd "$ROOT_DIR" && "$PERGYRA_TOOL_BUILD_DIR/main.exe" "$src" 2>"$c_err" \
         | tr -d '\r' \
-        | sed '/^pgy: compiled /d')"
+        | sed '/^pgy: compiled /d' \
+        | awk 'NR > 1 { printf "\n" } { printf "%s", $0 }' >"$c_out")
     P_RC=$?
     set -e
     if [[ "$P_RC" -ne 0 ]]; then
         echo "[self-host-parity:lexer] $src: clean exit-code FAIL (pergyra=$P_RC)" >&2
-        printf '%s\n' "$PERGYRA_OUT" >&2
+        cat "$c_out" "$c_err" >&2
         exit 1
     fi
 
-    EXPECTED_OUT="$(tr -d '\r' < "$expected_file")"
-    if [[ "$PERGYRA_OUT" != "$EXPECTED_OUT" ]]; then
-        echo "[self-host-parity:lexer] $src: fixture byte-drift" >&2
-        diff <(printf '%s\n' "$EXPECTED_OUT") <(printf '%s\n' "$PERGYRA_OUT") | head -20 >&2
-        exit 1
-    fi
+    compare_lexer_output_with_owner "c" "$label" "$expected_file" "$c_out" 2
 
     if [[ "$LLVM_LEX_AVAILABLE" -eq 1 ]]; then
+        llvm_out="$PERGYRA_TOOL_BUILD_DIR/${label}_llvm_tokens.out"
+        llvm_err="$PERGYRA_TOOL_BUILD_DIR/${label}_llvm_tokens.err"
         set +e
-        LLVM_LEX_OUT="$(cd "$ROOT_DIR" && "$PERGYRA_TOOL_BUILD_DIR/main_llvm.exe" "$src" 2>/dev/null \
+        (cd "$ROOT_DIR" && "$PERGYRA_TOOL_BUILD_DIR/main_llvm.exe" "$src" 2>"$llvm_err" \
             | tr -d '\r' \
-            | sed '/^pgy: compiled /d')"
+            | sed '/^pgy: compiled /d' \
+            | awk 'NR > 1 { printf "\n" } { printf "%s", $0 }' >"$llvm_out")
         LLVM_LEX_RC=$?
         set -e
-        if [[ "$LLVM_LEX_RC" -ne 0 || "$LLVM_LEX_OUT" != "$EXPECTED_OUT" ]]; then
-            echo "[self-host-parity:lexer] $src: LLVM-compiled lexer diverges from C/fixture" >&2
-            diff <(printf '%s\n' "$EXPECTED_OUT") <(printf '%s\n' "$LLVM_LEX_OUT") | head -20 >&2
+        if [[ "$LLVM_LEX_RC" -ne 0 ]]; then
+            echo "[self-host-parity:lexer] $src: LLVM-compiled lexer exit-code FAIL (pergyra=$LLVM_LEX_RC)" >&2
+            cat "$llvm_out" "$llvm_err" >&2
             exit 1
         fi
+        compare_lexer_output_with_owner "llvm" "$label" "$expected_file" "$llvm_out" 2
     fi
 
     # Live C-lexer drift guard for this source pair.
+    live_out="$PERGYRA_TOOL_BUILD_DIR/${label}_live_tokens.out"
+    live_err="$PERGYRA_TOOL_BUILD_DIR/${label}_live_tokens.err"
     set +e
-    LIVE_OUT="$(cd "$ROOT_DIR" && "$PGY" --tokens "$src" 2>/dev/null)"
+    (cd "$ROOT_DIR" && "$PGY" --tokens "$src" 2>"$live_err" \
+        | tr -d '\r' \
+        | awk 'NR > 1 { printf "\n" } { printf "%s", $0 }' >"$live_out")
     LIVE_RC=$?
     set -e
-    if [[ "$LIVE_RC" -eq 0 && -n "$LIVE_OUT" ]]; then
-        LIVE_NORM="$(printf '%s' "$LIVE_OUT" | tr -d '\r')"
-        if [[ "$LIVE_NORM" != "$EXPECTED_OUT" ]]; then
-            echo "[self-host-parity:lexer] $src: committed fixture drifted from live pgy --tokens" >&2
-            exit 1
-        fi
+    if [[ "$LIVE_RC" -eq 0 && -s "$live_out" ]]; then
+        compare_lexer_output_with_owner "live-tokens" "$label" "$expected_file" "$live_out" 0
         ANY_DRIFT_GUARD_RAN="yes"
     fi
 done
