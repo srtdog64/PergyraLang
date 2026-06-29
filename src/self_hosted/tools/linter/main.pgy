@@ -19,27 +19,27 @@ func CharAt(s: String, i: Int) -> String {
     return Substring(s, i, 1);
 }
 
-func IndexOfWord(line: String, word: String) -> Int {
+func IndexOfWord(line: String, word: String) -> Option<Int> {
     let n: Int = StringLength(line);
     let w: Int = StringLength(word);
-    if w == 0 { return -1; }
+    if w == 0 { return None; }
     let j: Int = 0;
     while j + w <= n {
         if Substring(line, j, w) == word {
-            return j;
+            return Some(j);
         }
         j = j + 1;
     }
-    return -1;
+    return None;
 }
 
-func TrailingSpaceCol(line: String) -> Int {
+func TrailingSpaceCol(line: String) -> Option<Int> {
     let n: Int = StringLength(line);
-    if n == 0 { return -1; }
+    if n == 0 { return None; }
     let last: String = CharAt(line, n - 1);
-    if last == " " { return n - 1; }
-    if last == "\t" { return n - 1; }
-    return -1;
+    if last == " " { return Some(n - 1); }
+    if last == "\t" { return Some(n - 1); }
+    return None;
 }
 
 func StartsWithTab(line: String) -> Bool {
@@ -156,9 +156,10 @@ func Main() -> Void {
             let line: String = Substring(content, lineStart, i - lineStart);
             let len: Int = StringLength(line);
 
-            let tw: Int = TrailingSpaceCol(line);
-            if tw >= 0 {
-                ArrayPush(diags, Diag(lineNum, tw, len, 2, "trailing whitespace"));
+            let tw: Option<Int> = TrailingSpaceCol(line);
+            if IsSome(tw) {
+                let twCol: Int = UnwrapOption(tw);
+                ArrayPush(diags, Diag(lineNum, twCol, len, 2, "trailing whitespace"));
             }
             if StartsWithTab(line) {
                 ArrayPush(diags, Diag(lineNum, 0, 1, 2, "tab indentation; use spaces"));
@@ -166,13 +167,15 @@ func Main() -> Void {
             if len > 100 {
                 ArrayPush(diags, Diag(lineNum, 100, len, 3, "line exceeds 100 columns"));
             }
-            let todo: Int = IndexOfWord(line, "TODO");
-            if todo >= 0 {
-                ArrayPush(diags, Diag(lineNum, todo, todo + 4, 3, "TODO marker"));
+            let todo: Option<Int> = IndexOfWord(line, "TODO");
+            if IsSome(todo) {
+                let todoCol: Int = UnwrapOption(todo);
+                ArrayPush(diags, Diag(lineNum, todoCol, todoCol + 4, 3, "TODO marker"));
             }
-            let fixme: Int = IndexOfWord(line, "FIXME");
-            if fixme >= 0 {
-                ArrayPush(diags, Diag(lineNum, fixme, fixme + 5, 3, "FIXME marker"));
+            let fixme: Option<Int> = IndexOfWord(line, "FIXME");
+            if IsSome(fixme) {
+                let fixmeCol: Int = UnwrapOption(fixme);
+                ArrayPush(diags, Diag(lineNum, fixmeCol, fixmeCol + 5, 3, "FIXME marker"));
             }
 
             lineStart = i + 1;

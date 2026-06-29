@@ -44,8 +44,8 @@ SH_DIR="$ROOT_DIR/src/self_hosted"
 # ---- ratchet baselines (tighten on improvement, never loosen) ----
 STRING_MUNGE_SIG_MAX=161
 AST_STRING_SURFACE_MAX=4
-SENTINEL_MAX=38
-RESULT_USE_MIN=32
+SENTINEL_MAX=34
+RESULT_USE_MIN=45
 
 fail() {
     echo "[self-host-likeness] FAIL" >&2
