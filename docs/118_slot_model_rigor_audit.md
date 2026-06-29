@@ -174,6 +174,44 @@ The practical consequence is simple:
 - The proof that no bad access exists must come from CFG/body dataflow,
   ownership classification, boundary rejection, and cleanup insertion.
 
+### 2.1 Forbidden: Lifetime Annotation Syntax (`'a`)
+
+This is a hard design constraint (BDFL, 2026-06-29), not a default that may be
+revisited per proposal: **Pergyra must never import Rust-style lifetime
+annotation syntax** — `'a`, generic lifetime parameters `<'a>`, annotated
+references `&'a T`, lifetime bounds `'a: 'b`, or higher-ranked `for<'a>`. It is
+explicitly rejected, in any future form, for any motivating feature.
+
+Rationale — this is the positive corollary of "Slot is not a borrow checker":
+
+- The entire slot / `own` / `ref` / lifecycle / generation-token stack exists
+  *precisely to deliver safety without lifetime annotations*. Importing `'a`
+  would reintroduce the exact cognitive load that stack was designed to remove
+  and would make the model self-contradictory.
+- Ownership and validity are already carried by other facts: `own`/`ref` at
+  boundaries (interprocedural, compile-time), slot release/generation/token
+  state (runtime), zone/handle scope, and CFG cleanup. Lifetime parameters would
+  be a redundant second encoding of the same information, in the most
+  notation-heavy form available.
+- Even Vale — which is *more* aggressive on memory safety — rejects pervasive
+  lifetime syntax (generational references + regions instead). So refusing `'a`
+  is well-trodden, not reckless.
+
+Enforcement of the constraint:
+
+- Any proposal to add lifetime annotations for *any* reason (variance,
+  self-referential structs, higher-ranked bounds, escaping closures, returned
+  handles, etc.) is auto-rejected at the design gate. A real expressiveness gap
+  must be closed by a slot/zone/handle/`SlotHandle<T> in Zone` primitive, never
+  by lifetime syntax.
+- Surface, docs, tutorials, and release notes must not present `'a`-style
+  annotations even as an example or comparison target beyond the explicit
+  "we do not adopt this" framing in `docs/106_ownership_model_comparison.md`.
+- If the apostrophe ever becomes a type-position sigil through a parser change,
+  it must be a hard, helpful rejection ("Pergyra has no lifetime annotations;
+  express ownership with `own`/`ref` and slot lifecycle — see docs/118 §2"),
+  never a silently-accepted construct.
+
 ## 3. The Actual Borrow-Checker-Equivalent
 
 The static layer that does the borrow-checker-equivalent work has five
