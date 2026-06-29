@@ -532,5 +532,6 @@ pgy_channel_closed_String(PgyChannel_String *ch)
 }
 
 #include "pgy_runtime_channel_string_result_inline.h"
+#include "pgy_runtime_channel_string_lane_inline.h"
 
 #endif /* PGY_RUNTIME_CHANNEL_STRING_INLINE_H */

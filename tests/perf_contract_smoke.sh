@@ -1718,8 +1718,8 @@ grep -Fq "llvm_lexical_registry_snapshot(LLVMGenCtx *ctx)" \
 grep -Fq "llvm_lexical_registry_restore(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_registry.c"
 if awk '
-    /pgy_spawn_export/ && parallel_runtime == 0 { parallel_runtime = NR }
-    /pgy_async_spawn_export/ && async_runtime == 0 { async_runtime = NR }
+    /pgy_lane_spawn_dispatch_export/ && parallel_runtime == 0 { parallel_runtime = NR }
+    /pgy_async_detach_export/ && async_runtime == 0 { async_runtime = NR }
     /LLVMAddFunction\(ctx->module, fn_name, wrapper_type\)/ {
         if (parallel_add == 0) {
             parallel_add = NR
@@ -2740,19 +2740,19 @@ fi
 grep -Fq "transpiler_mir_render_select_case_condition" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"
 grep -Fq "emit_expression_with_ssa_map(channel, ctx, NULL)" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"
 ! grep -Fq "return pergyra_strdup(\"0\")" "$ROOT_DIR/src/codegen/transpiler_mir_expr_ssa.c"
-grep -Fq "pgy_channel_ready_%s(&%s)" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"
+grep -Fq "pgy_lane_channel_ready_%s(PGY_LANE_PINNED_ZONE, &%s)" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"
 grep -Fq "MIR select dispatch emits channel readiness in C backend" "$ROOT_DIR/src/tests/transpile/test_transpile_mir_part_b.cases.h"
 grep -Fq "MIR select dispatch materializes bound receive local type" "$ROOT_DIR/src/tests/transpile/test_transpile_mir_part_b.cases.h"
 grep -Fq "MIR select dispatch preserves implicit field channel lvalue" "$ROOT_DIR/src/tests/transpile/test_transpile_mir_part_b.cases.h"
-grep -Fq "pgy_channel_ready_Int(&self.ch)" "$ROOT_DIR/src/tests/transpile/test_transpile_mir_part_b.cases.h"
+grep -Fq "pgy_lane_channel_ready_Int(PGY_LANE_PINNED_ZONE, &self.ch)" "$ROOT_DIR/src/tests/transpile/test_transpile_mir_part_b.cases.h"
 grep -Fq "transpiler_select_case_has_receive_binding" "$ROOT_DIR/src/codegen/transpiler_mir_local_binding.c"
 grep -Fq "ASTNode *value = ast_assignment_value(node)" "$ROOT_DIR/src/codegen/transpiler_mir_local_binding.c"
 grep -Fq "value->type == AST_CHANNEL_RECV" "$ROOT_DIR/src/codegen/transpiler_mir_local_binding.c"
 grep -Fq "ast_assignment_value(body) != NULL" "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.c"
 grep -Fq "ast_assignment_value(body)->type == AST_CHANNEL_RECV" "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.c"
 grep -Fq "case AST_CHANNEL_RECV" "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.c"
-grep -Fq "_pgy_ssa_v_1 = pgy_channel_recv_val_Int(&ch)" "$ROOT_DIR/src/tests/transpile/test_transpile_mir_part_b.cases.h"
-grep -Fq "strstr(output, \"\\nv = pgy_channel_recv_val_Int(&ch)\") == NULL" "$ROOT_DIR/src/tests/transpile/test_transpile_mir_part_b.cases.h"
+grep -Fq "_pgy_ssa_v_1 = pgy_lane_channel_recv_val_Int(PGY_LANE_PINNED_ZONE, &ch)" "$ROOT_DIR/src/tests/transpile/test_transpile_mir_part_b.cases.h"
+grep -Fq "\"\\nv = pgy_lane_channel_recv_val_Int(PGY_LANE_PINNED_ZONE, &ch)\"" "$ROOT_DIR/src/tests/transpile/test_transpile_mir_part_b.cases.h"
 grep -Fq "condition = inst->expr0" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"
 ! grep -Fq "? inst->expr0" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"
 grep -Fq "emit_expression_with_ssa_map(inst->expr0" "$ROOT_DIR/src/codegen/transpiler_mir_terminator_emit.c"

@@ -72,6 +72,18 @@ grep -Fq "pgy_lane_detach(_ah_" \
 grep -Fq 'pgy_lane_cancel(%s)' \
     "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.c" \
     || fail "C Cancel builtin does not consume the lane cancel facade"
+grep -Fq "pgy_lane_channel_send_%s(PGY_LANE_PINNED_ZONE" \
+    "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c" \
+    || fail "C channel send lowering does not consume the pinned channel lane facade"
+grep -Fq "pgy_lane_channel_recv_val_%s(PGY_LANE_PINNED_ZONE" \
+    "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c" \
+    || fail "C channel recv lowering does not consume the pinned channel lane facade"
+grep -Fq "pgy_lane_channel_try_recv_result_%s(PGY_LANE_PINNED_ZONE" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.c" \
+    || fail "C TryRecv lowering does not consume the pinned channel lane facade"
+grep -Fq "pgy_lane_channel_ready_%s(PGY_LANE_PINNED_ZONE" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c" \
+    || fail "C MIR select readiness does not consume the pinned channel lane facade"
 grep -Fq "pgy_lane_spawn_dispatch_export" \
     "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c" \
     || fail "LLVM async/parallel lowering does not consume the lane spawn facade export"
@@ -81,6 +93,18 @@ grep -Fq "PGY_LANE_WORKER_POOL" \
 grep -Fq "PGY_LANE_LOCAL_ASYNC" \
     "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c" \
     || fail "LLVM async block lowering does not emit the LocalAsync lane fact"
+grep -Fq "pgy_lane_channel_send" \
+    "$ROOT_DIR/src/codegen/llvm_expr_channel.c" \
+    || fail "LLVM channel send lowering does not consume the channel lane facade"
+grep -Fq "pgy_lane_channel_recv_val" \
+    "$ROOT_DIR/src/codegen/llvm_expr_channel.c" \
+    || fail "LLVM channel recv lowering does not consume the channel lane facade"
+grep -Fq "pgy_lane_channel_try_recv_result" \
+    "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c" \
+    || fail "LLVM TryRecv lowering does not consume the channel lane facade"
+grep -Fq "pgy_lane_channel_ready_" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_select.c" \
+    || fail "LLVM select readiness does not consume the channel lane facade"
 if grep -Fq '"pgy_spawn_blocking" : "pgy_async_spawn"' \
     "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"; then
     fail "C spawn lowering reintroduced direct executor selection"
@@ -104,6 +128,22 @@ fi
 if grep -Fq 'pgy_task_cancel(%s)' \
     "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.c"; then
     fail "C Cancel builtin reintroduced direct pgy_task_cancel"
+fi
+if grep -Fq "pgy_channel_send_%s(&%s" \
+    "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"; then
+    fail "C channel send reintroduced direct pgy_channel_send"
+fi
+if grep -Fq "pgy_channel_recv_val_%s(&%s" \
+    "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"; then
+    fail "C channel recv reintroduced direct pgy_channel_recv_val"
+fi
+if grep -Fq "pgy_channel_try_recv_result_%s(&%s" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.c"; then
+    fail "C TryRecv reintroduced direct pgy_channel_try_recv_result"
+fi
+if grep -Fq "pgy_channel_ready_%s(&%s)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"; then
+    fail "C MIR select readiness reintroduced direct pgy_channel_ready"
 fi
 if grep -Fq "pgy_spawn_blocking_export" \
     "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"; then

@@ -43,6 +43,14 @@ llvm_runtime_bitcode_is_fresh(const char *bc_path)
         PGY_RUNTIME_LIB_C,
         PGY_RUNTIME_DIR "/pgy_runtime.h",
         PGY_RUNTIME_DIR "/pgy_runtime_inline_core.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_channel_status.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_channel_inline.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_channel_lane_inline.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_channel_string_inline.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_channel_string_result_inline.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_channel_string_lane_inline.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_lib_channel_int_exports.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_lib_channel_string_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_panic_contract.h",
         PGY_RUNTIME_DIR "/pgy_runtime_panic_checked_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_zone_result_option_inline.h",
@@ -53,6 +61,7 @@ llvm_runtime_bitcode_is_fresh(const char *bc_path)
         PGY_RUNTIME_DIR "/pgy_parallel.h",
         PGY_RUNTIME_DIR "/pgy_parallel_blocking.h",
         PGY_RUNTIME_DIR "/pgy_parallel_coroutine.h",
+        PGY_RUNTIME_DIR "/pgy_parallel_task_ops.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_raw_array_exports.h",
         NULL
     };

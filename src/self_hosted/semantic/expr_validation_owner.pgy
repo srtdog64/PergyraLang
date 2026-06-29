@@ -33,7 +33,7 @@ func CheckUndefinedIdentifiers(expr: String, names: Array<String>) -> String {
                 i = i + 1;
             }
             let name: String = Substring(text, start, i - start);
-            if name == "true" || name == "false" {
+            if name == "true" || name == "false" || name == "None" {
                 continue;
             }
             if start > 0 && CharAt(text, start - 1) == "." {

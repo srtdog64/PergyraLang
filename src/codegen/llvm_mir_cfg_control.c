@@ -8,6 +8,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include "../common/execution_lane_kind.h"
 #include "../parser/ast_api.h"
 
 static ASTNode *
@@ -43,7 +44,7 @@ llvm_mir_emit_channel_ready_condition(ASTNode *channel, LLVMGenCtx *ctx)
     LLVMChannelTarget target;
     char fn_name[128];
     LLVMFuncEntry *ready_fn;
-    LLVMValueRef args[1];
+    LLVMValueRef args[2];
 
     if (channel == NULL || ctx == NULL || channel->type != AST_IDENTIFIER)
         return NULL;
@@ -56,14 +57,16 @@ llvm_mir_emit_channel_ready_condition(ASTNode *channel, LLVMGenCtx *ctx)
         || target.ptr == NULL)
         return NULL;
 
-    snprintf(fn_name, sizeof(fn_name), "pgy_channel_ready_%s", target.inner);
+    snprintf(fn_name, sizeof(fn_name), "pgy_lane_channel_ready_%s",
+             target.inner);
     ready_fn = llvm_mir_required_channel_ready_function(channel, ctx, fn_name);
     if (ready_fn == NULL)
         return NULL;
 
-    args[0] = target.ptr;
+    args[0] = LLVMConstInt(ctx->type_i32, PGY_LANE_PINNED_ZONE, 0);
+    args[1] = target.ptr;
     return LLVMBuildCall2(ctx->builder, ready_fn->fn_type, ready_fn->fn,
-                          args, 1, llvm_tmp_name(ctx));
+                          args, 2, llvm_tmp_name(ctx));
 }
 
 static LLVMValueRef
@@ -142,7 +145,7 @@ llvm_mir_emit_channel_receive_def(const MIRInstruction *inst,
     LLVMChannelTarget channel_target;
     LLVMVarEntry target_var;
     LLVMFuncEntry *recv_fn;
-    LLVMValueRef args[1];
+    LLVMValueRef args[2];
     LLVMValueRef value;
     char fn_name[128];
 
@@ -194,7 +197,7 @@ llvm_mir_emit_channel_receive_def(const MIRInstruction *inst,
         return false;
     }
 
-    snprintf(fn_name, sizeof(fn_name), "pgy_channel_recv_val_%s",
+    snprintf(fn_name, sizeof(fn_name), "pgy_lane_channel_recv_val_%s",
              channel_target.inner);
     recv_fn = llvm_lookup_function(ctx, fn_name);
     if (recv_fn == NULL || recv_fn->fn == NULL) {
@@ -207,9 +210,10 @@ llvm_mir_emit_channel_receive_def(const MIRInstruction *inst,
         return false;
     }
 
-    args[0] = channel_target.ptr;
+    args[0] = LLVMConstInt(ctx->type_i32, PGY_LANE_PINNED_ZONE, 0);
+    args[1] = channel_target.ptr;
     value = LLVMBuildCall2(ctx->builder, recv_fn->fn_type, recv_fn->fn,
-                           args, 1, llvm_tmp_name(ctx));
+                           args, 2, llvm_tmp_name(ctx));
     LLVMBuildStore(ctx->builder, value, target_var.alloca);
     if (mir_alloca != NULL && mir_alloca != target_var.alloca)
         LLVMBuildStore(ctx->builder, value, mir_alloca);

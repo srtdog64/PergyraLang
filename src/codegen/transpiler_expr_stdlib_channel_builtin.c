@@ -238,7 +238,7 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
         }
         result = strdup_fmt(
             "({ PgyRuntimeChannel%sResult _pgy_recv_result = "
-            "pgy_channel_try_recv_result_%s(&%s); "
+            "pgy_lane_channel_try_recv_result_%s(PGY_LANE_PINNED_ZONE, &%s); "
             "_pgy_recv_result.tag == PGY_RUNTIME_CHANNEL_RESULT_OK "
             "? Some_%s(_pgy_recv_result.ok) : None_%s(); })",
             inner, inner, ch, inner, inner);
@@ -274,7 +274,7 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
         }
         result = strdup_fmt(
             "({ PgyRuntimeChannel%sResult _pgy_recv_result = "
-            "pgy_channel_recv_timeout_result_%s(&%s, (uint64_t)(%s)); "
+            "pgy_lane_channel_recv_timeout_result_%s(PGY_LANE_PINNED_ZONE, &%s, (uint64_t)(%s)); "
             "_pgy_recv_result.tag == PGY_RUNTIME_CHANNEL_RESULT_OK "
             "? Some_%s(_pgy_recv_result.ok) : None_%s(); })",
             inner, inner, ch, timeout, inner, inner);
@@ -308,7 +308,8 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
             free(val);
             return NULL;
         }
-        result = strdup_fmt("pgy_channel_try_send_%s(&%s, %s)",
+        result = strdup_fmt(
+            "pgy_lane_channel_try_send_%s(PGY_LANE_PINNED_ZONE, &%s, %s)",
             inner, ch, val);
         free(ch);
         free(val);
@@ -341,7 +342,8 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
             free(val);
             return NULL;
         }
-        result = strdup_fmt("pgy_channel_try_send_status_%s(&%s, %s)",
+        result = strdup_fmt(
+            "pgy_lane_channel_try_send_status_%s(PGY_LANE_PINNED_ZONE, &%s, %s)",
             inner, ch, val);
         free(ch);
         free(val);
@@ -384,7 +386,8 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
             free(timeout);
             return NULL;
         }
-        result = strdup_fmt("pgy_channel_%s_%s(&%s, %s, (uint64_t)(%s))",
+        result = strdup_fmt(
+            "pgy_lane_channel_%s_%s(PGY_LANE_PINNED_ZONE, &%s, %s, (uint64_t)(%s))",
             runtime_op, inner, ch, val, timeout);
         free(ch);
         free(val);

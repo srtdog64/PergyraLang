@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "../common/execution_lane_kind.h"
+
 typedef enum
 {
     PGY_RUNTIME_CHANNEL_STATUS_OK = 0,
@@ -13,7 +15,8 @@ typedef enum
     PGY_RUNTIME_CHANNEL_STATUS_EMPTY,
     PGY_RUNTIME_CHANNEL_STATUS_FULL,
     PGY_RUNTIME_CHANNEL_STATUS_TIMEOUT,
-    PGY_RUNTIME_CHANNEL_STATUS_ALLOC_FAILED
+    PGY_RUNTIME_CHANNEL_STATUS_ALLOC_FAILED,
+    PGY_RUNTIME_CHANNEL_STATUS_REJECTED
 } PgyRuntimeChannelStatus;
 
 typedef struct
@@ -69,9 +72,17 @@ pgy_runtime_channel_status_name(PgyRuntimeChannelStatus status)
         return "timeout";
     case PGY_RUNTIME_CHANNEL_STATUS_ALLOC_FAILED:
         return "alloc-failed";
+    case PGY_RUNTIME_CHANNEL_STATUS_REJECTED:
+        return "rejected";
     default:
         return "unknown";
     }
+}
+
+static inline bool
+pgy_runtime_channel_lane_accepts_boundary(PgyExecutionLane lane)
+{
+    return lane == PGY_LANE_PINNED_ZONE;
 }
 
 static inline bool
@@ -88,6 +99,7 @@ pgy_runtime_channel_status_boundary_recoverable(
     case PGY_RUNTIME_CHANNEL_STATUS_NULL_CHANNEL:
     case PGY_RUNTIME_CHANNEL_STATUS_UNINITIALIZED:
     case PGY_RUNTIME_CHANNEL_STATUS_ALLOC_FAILED:
+    case PGY_RUNTIME_CHANNEL_STATUS_REJECTED:
     default:
         return false;
     }

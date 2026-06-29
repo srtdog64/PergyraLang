@@ -39,19 +39,95 @@ GOLDEN="$ROOT_DIR/tests/cases/sea_execution_lanes/expected_lanes.txt"
 WORK="$(mktemp -d)"
 JSON="$WORK/air.json"
 GOT="$WORK/got.txt"
+PY_BIN=""
+if command -v python3 >/dev/null 2>&1; then
+    PY_BIN="$(command -v python3)"
+elif command -v python >/dev/null 2>&1; then
+    PY_BIN="$(command -v python)"
+fi
 
 "$PGY" --air-json "$(pgy_path_for_compiler "$PGY" "$FIXTURE")" > "$JSON" 2>"$WORK/err" \
     || { cat "$WORK/err" >&2; fail "pgy --air-json failed"; }
 
-# Extract "<kind> <lane>" per boundary, in document order. The non-greedy class
-# keeps each kind paired with the execution_lane inside the same boundary object.
-grep -oE '"kind":"[a-z]+"[^}]*?"execution_lane":"[A-Za-z]+"' "$JSON" \
-    | sed -E 's/.*"kind":"([a-z]+)".*"execution_lane":"([A-Za-z]+)".*/\1 \2/' \
-    > "$GOT" || true
+if [ -n "$PY_BIN" ]; then
+    "$PY_BIN" - "$JSON" > "$GOT" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], "r", encoding="utf-8") as fh:
+    graph = json.load(fh)
+
+fields = [
+    ("pin", "captures_pin"),
+    ("live_view", "captures_live_view"),
+    ("raw_slot", "captures_raw_slot"),
+    ("raw_channel", "captures_raw_channel"),
+    ("value_only", "captures_value_only"),
+    ("authority", "crosses_authority_boundary"),
+    ("movable", "requires_movability"),
+    ("io", "has_io_or_ffi_effect"),
+    ("await_local", "is_await_heavy_local"),
+    ("fork_join", "is_deterministic_fork_join"),
+    ("concurrent", "is_concurrent_site"),
+]
+
+def bool_text(value):
+    return "true" if value is True else "false"
+
+for boundary in graph.get("boundaries", []):
+    capture = boundary.get("boundary_capture", {})
+    parts = [
+        boundary.get("kind", ""),
+        boundary.get("execution_lane", ""),
+        "source=" + str(boundary.get("source", "")),
+        "sync=" + str(boundary.get("sync", "")),
+    ]
+    for label, key in fields:
+        parts.append(f"{label}={bool_text(capture.get(key))}")
+    print(" ".join(parts))
+PY
+else
+    # Fallback for Windows Git Bash dev loops without Python. `pgy --air-json`
+    # emits compact single-line JSON; this fixture has no quotes inside source
+    # names, so the stable boundary/capture shape can still be extracted.
+    grep -oE '"kind":"[^"]+"[^}]*"boundary_capture":\{[^}]*\}' "$JSON" \
+        | awk '
+function jval(line, key, marker, pos, rest, end) {
+    marker = "\"" key "\":";
+    pos = index(line, marker);
+    if (pos == 0) return "";
+    rest = substr(line, pos + length(marker));
+    if (substr(rest, 1, 1) == "\"") {
+        rest = substr(rest, 2);
+        end = index(rest, "\"");
+        return end > 0 ? substr(rest, 1, end - 1) : "";
+    }
+    if (substr(rest, 1, 4) == "true") return "true";
+    if (substr(rest, 1, 5) == "false") return "false";
+    return "";
+}
+{
+    print jval($0, "kind") " " jval($0, "execution_lane") \
+        " source=" jval($0, "source") \
+        " sync=" jval($0, "sync") \
+        " pin=" jval($0, "captures_pin") \
+        " live_view=" jval($0, "captures_live_view") \
+        " raw_slot=" jval($0, "captures_raw_slot") \
+        " raw_channel=" jval($0, "captures_raw_channel") \
+        " value_only=" jval($0, "captures_value_only") \
+        " authority=" jval($0, "crosses_authority_boundary") \
+        " movable=" jval($0, "requires_movability") \
+        " io=" jval($0, "has_io_or_ffi_effect") \
+        " await_local=" jval($0, "is_await_heavy_local") \
+        " fork_join=" jval($0, "is_deterministic_fork_join") \
+        " concurrent=" jval($0, "is_concurrent_site");
+}' \
+        > "$GOT" || true
+fi
 
 # Regression guard: a classified boundary must never be the fail-closed zero
 # value. If every lane is Reject the finalization pass did not run.
-if [ -s "$GOT" ] && ! grep -qvE ' Reject$' "$GOT"; then
+if [ -s "$GOT" ] && ! grep -qvE '^[^[:space:]]+[[:space:]]+Reject([[:space:]]|$)' "$GOT"; then
     fail "every boundary is Reject — the SEA finalization classifier did not run"
 fi
 

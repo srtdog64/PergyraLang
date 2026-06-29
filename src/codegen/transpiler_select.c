@@ -100,13 +100,13 @@ select_write_case_guard(TranspilerCtx *ctx, size_t offset, size_t index,
 
     if (bind_name != NULL) {
         codebuf_write(ctx->out,
-            "%s (pgy_channel_try_recv_%s(&%s, &_sel_recv_%zu)) { /* select case %zu */\n",
+            "%s (pgy_lane_channel_try_recv_%s(PGY_LANE_PINNED_ZONE, &%s, &_sel_recv_%zu)) { /* select case %zu */\n",
             prefix, inner, channel_name, index, index);
         return;
     }
 
     codebuf_write(ctx->out,
-        "%s (pgy_channel_ready_%s(&%s)) { /* select case %zu */\n",
+        "%s (pgy_lane_channel_ready_%s(PGY_LANE_PINNED_ZONE, &%s)) { /* select case %zu */\n",
         prefix, inner, channel_name, index);
 }
 
@@ -124,7 +124,8 @@ select_emit_unbound_consume(ASTNode *channel, const char *inner,
         return false;
     }
     write_indent(ctx);
-    codebuf_write(ctx->out, "(void)pgy_channel_recv_val_%s(&%s);\n",
+    codebuf_write(ctx->out,
+                  "(void)pgy_lane_channel_recv_val_%s(PGY_LANE_PINNED_ZONE, &%s);\n",
                   inner, channel_expr);
     free(channel_expr);
     return true;

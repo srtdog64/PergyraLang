@@ -431,7 +431,9 @@ emit_channel_send(ASTNode *node, TranspilerCtx *ctx)
         return NULL;
     }
 
-    char *result = strdup_fmt("pgy_channel_send_%s(&%s, %s)", inner, ch, val);
+    char *result = strdup_fmt(
+        "pgy_lane_channel_send_%s(PGY_LANE_PINNED_ZONE, &%s, %s)",
+        inner, ch, val);
     free(ch);
     free(val);
     return result;
@@ -456,7 +458,9 @@ emit_channel_recv(ASTNode *node, TranspilerCtx *ctx)
         return NULL;
     }
 
-    char *result = strdup_fmt("pgy_channel_recv_val_%s(&%s)", inner, ch);
+    char *result = strdup_fmt(
+        "pgy_lane_channel_recv_val_%s(PGY_LANE_PINNED_ZONE, &%s)",
+        inner, ch);
     free(ch);
     return result;
 }

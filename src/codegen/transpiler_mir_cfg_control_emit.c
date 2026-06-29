@@ -414,7 +414,9 @@ transpiler_mir_render_channel_ready_condition(
     }
     if (channel_expr == NULL)
         return NULL;
-    result = strdup_fmt("pgy_channel_ready_%s(&%s)", inner, channel_expr);
+    result = strdup_fmt(
+        "pgy_lane_channel_ready_%s(PGY_LANE_PINNED_ZONE, &%s)",
+        inner, channel_expr);
     free(channel_expr);
     return result;
 }

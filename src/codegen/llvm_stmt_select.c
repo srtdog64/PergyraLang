@@ -1,6 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 #include "llvm_stmt_parallel_names.h"
+#include "../common/execution_lane_kind.h"
 #include "../parser/ast_api.h"
 
 #include <string.h>
@@ -131,16 +132,20 @@ llvm_select_emit_bound_receive_case(const LLVMSelectCaseInfo *info,
         return false;
     LLVMValueRef tmp = llvm_create_entry_alloca(ctx, val_ty, llvm_tmp_name(ctx));
     if (!llvm_select_channel_runtime_name(ctx, fn_name, sizeof(fn_name),
-            "pgy_channel_try_recv_", info->inner))
+            "pgy_lane_channel_try_recv_", info->inner))
         return false;
     LLVMFuncEntry *try_fn = llvm_select_required_runtime_function(
         ctx, info->channel, "receive", fn_name);
     if (try_fn == NULL)
         return false;
 
-    LLVMValueRef args[] = { info->channel_ptr, tmp };
+    LLVMValueRef args[] = {
+        LLVMConstInt(ctx->type_i32, PGY_LANE_PINNED_ZONE, 0),
+        info->channel_ptr,
+        tmp
+    };
     LLVMValueRef ok = LLVMBuildCall2(ctx->builder, try_fn->fn_type,
-        try_fn->fn, args, 2, llvm_tmp_name(ctx));
+        try_fn->fn, args, 3, llvm_tmp_name(ctx));
     LLVMBuildCondBr(ctx->builder, ok, case_bb, fail_bb);
 
     LLVMPositionBuilderAtEnd(ctx->builder, case_bb);
@@ -174,31 +179,37 @@ llvm_select_emit_ready_consume_case(const LLVMSelectCaseInfo *info,
 {
     char fn_name[128];
     if (!llvm_select_channel_runtime_name(ctx, fn_name, sizeof(fn_name),
-            "pgy_channel_ready_", info->inner))
+            "pgy_lane_channel_ready_", info->inner))
         return false;
     LLVMFuncEntry *ready_fn = llvm_select_required_runtime_function(
         ctx, info->channel, "readiness", fn_name);
     if (ready_fn == NULL)
         return false;
 
-    LLVMValueRef args[] = { info->channel_ptr };
+    LLVMValueRef args[] = {
+        LLVMConstInt(ctx->type_i32, PGY_LANE_PINNED_ZONE, 0),
+        info->channel_ptr
+    };
     LLVMValueRef ready = LLVMBuildCall2(ctx->builder, ready_fn->fn_type,
-        ready_fn->fn, args, 1, llvm_tmp_name(ctx));
+        ready_fn->fn, args, 2, llvm_tmp_name(ctx));
     LLVMBuildCondBr(ctx->builder, ready, case_bb, fail_bb);
 
     LLVMPositionBuilderAtEnd(ctx->builder, case_bb);
     {
         char recv_name[128];
         if (!llvm_select_channel_runtime_name(ctx, recv_name, sizeof(recv_name),
-                "pgy_channel_recv_val_", info->inner))
+                "pgy_lane_channel_recv_val_", info->inner))
             return false;
         LLVMFuncEntry *recv_fn = llvm_select_required_runtime_function(
             ctx, info->channel, "consume", recv_name);
         if (recv_fn == NULL)
             return false;
-        LLVMValueRef recv_args[] = { info->channel_ptr };
+        LLVMValueRef recv_args[] = {
+            LLVMConstInt(ctx->type_i32, PGY_LANE_PINNED_ZONE, 0),
+            info->channel_ptr
+        };
         (void)LLVMBuildCall2(ctx->builder, recv_fn->fn_type,
-            recv_fn->fn, recv_args, 1, "");
+            recv_fn->fn, recv_args, 2, "");
     }
     if (info->body != NULL)
         llvm_emit_statement(info->body, ctx);

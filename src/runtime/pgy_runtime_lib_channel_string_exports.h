@@ -50,12 +50,36 @@ int32_t pgy_channel_try_send_status_code_String(PgyChannel_String *ch, char *v)
     return status.value ? 1 : 0;
 }
 
+int32_t pgy_lane_channel_try_send_status_code_String(int32_t lane,
+                                                     PgyChannel_String *ch,
+                                                     char *v)
+{
+    PgyOption_Bool status = pgy_lane_channel_try_send_status_String(
+        (PgyExecutionLane)lane, ch, v);
+    if (status.tag != 0)
+        return -1;
+    return status.value ? 1 : 0;
+}
+
 int32_t pgy_channel_send_timeout_status_code_String(PgyChannel_String *ch,
                                                     char *v,
                                                     uint64_t timeout_ns)
 {
     PgyOption_Bool status =
         pgy_channel_send_timeout_status_String(ch, v, timeout_ns);
+    if (status.tag != 0)
+        return -1;
+    return status.value ? 1 : 0;
+}
+
+int32_t pgy_lane_channel_send_timeout_status_code_String(
+    int32_t lane,
+    PgyChannel_String *ch,
+    char *v,
+    uint64_t timeout_ns)
+{
+    PgyOption_Bool status = pgy_lane_channel_send_timeout_status_String(
+        (PgyExecutionLane)lane, ch, v, timeout_ns);
     if (status.tag != 0)
         return -1;
     return status.value ? 1 : 0;

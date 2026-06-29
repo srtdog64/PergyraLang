@@ -935,9 +935,9 @@ reject_text "src/self_hosted/mir_lower/stmt_render.pgy" "ReadJsonString(json,"
 semantic_items="$(extract_shell_array_items "$PARITY_DIR/semantic_parity.sh" SOURCE_PAIRS | sed 's/:.*//')"
 [[ -n "$semantic_items" ]] || fail "semantic parity SOURCE_PAIRS is empty"
 semantic_count="$(printf '%s\n' "$semantic_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$semantic_count" -eq 93 ]] ||
-    fail "semantic parity fixture count drifted: $semantic_count != 93"
-require_text "src/self_hosted/PROGRESS.md" "across 93 fixtures"
+[[ "$semantic_count" -eq 94 ]] ||
+    fail "semantic parity fixture count drifted: $semantic_count != 94"
+require_text "src/self_hosted/PROGRESS.md" "across 94 fixtures"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_scalar_math_builtins"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_seedrandom_builtin"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_writefile_builtin"

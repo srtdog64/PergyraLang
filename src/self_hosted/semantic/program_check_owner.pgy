@@ -4,6 +4,122 @@ import "text_scan_owner.pgy";
 import "expr_type_owner.pgy";
 import "body_check_owner.pgy";
 
+func NominalDeclKeywordLength(content: String, start: Int) -> Int {
+    if MatchKeyword(content, start, "struct") {
+        return 6;
+    }
+    if MatchKeyword(content, start, "class") {
+        return 5;
+    }
+    if MatchKeyword(content, start, "subject") {
+        return 7;
+    }
+    if MatchKeyword(content, start, "object") {
+        return 6;
+    }
+    if MatchKeyword(content, start, "tobject") {
+        return 7;
+    }
+    if MatchKeyword(content, start, "vessel") {
+        return 6;
+    }
+    return 0;
+}
+
+func NominalConstructorParams(content: String, body_open: Int, body_close: Int, inout cursor: Array<Int>) -> String {
+    let i: Int = body_open + 1;
+    let depth: Int = 0;
+    let params: String = "";
+    while i < body_close {
+        i = SkipWhitespaceAndComments(content, i);
+        if i >= body_close {
+            break;
+        }
+        let c: String = CharAt(content, i);
+        if c == "\"" {
+            i = SkipQuotedString(content, i, body_close);
+            continue;
+        }
+        if c == "{" {
+            depth = depth + 1;
+            i = i + 1;
+            continue;
+        }
+        if c == "}" {
+            if depth > 0 {
+                depth = depth - 1;
+            }
+            i = i + 1;
+            continue;
+        }
+        if depth != 0 {
+            i = i + 1;
+            continue;
+        }
+        if !MatchKeyword(content, i, "let") {
+            i = i + 1;
+            continue;
+        }
+        i = i + 3;
+        let field_name: String = ReadIdent(content, i, cursor);
+        i = cursor[0];
+        i = SkipWhitespaceAndComments(content, i);
+        if StringLength(field_name) == 0 || CharAt(content, i) != ":" {
+            let bad_field_end: Int = FindStatementEnd(content, i, body_close);
+            i = bad_field_end + 1;
+            continue;
+        }
+        let field_type: String = ReadTypeName(content, i + 1, cursor);
+        i = cursor[0];
+        if StringLength(field_type) > 0 {
+            if StringLength(params) > 0 {
+                params = Concat(params, "|");
+            }
+            params = Concat(params, field_type);
+        }
+        let field_end: Int = FindStatementEnd(content, i, body_close);
+        i = field_end + 1;
+    }
+    return params;
+}
+
+func SeedNominalConstructors(content: String, inout func_names: Array<String>, inout func_rets: Array<String>, inout func_params: Array<String>) -> Void {
+    let n: Int = StringLength(content);
+    let scan: Int = 0;
+    let cursor: Array<Int> = [0];
+    while scan < n {
+        scan = SkipWhitespaceAndComments(content, scan);
+        if scan >= n {
+            break;
+        }
+        if CharAt(content, scan) == "\"" {
+            scan = SkipQuotedString(content, scan, n);
+            continue;
+        }
+        let kw_len: Int = NominalDeclKeywordLength(content, scan);
+        if kw_len == 0 {
+            scan = scan + 1;
+            continue;
+        }
+        let name: String = ReadIdent(content, scan + kw_len, cursor);
+        let after_name: Int = cursor[0];
+        if StringLength(name) == 0 {
+            scan = scan + kw_len;
+            continue;
+        }
+        let body_open: Int = FindBlockOpen(content, after_name, n);
+        if body_open >= n || CharAt(content, body_open) != "{" {
+            scan = after_name;
+            continue;
+        }
+        let body_close: Int = FindMatchingBraceWithin(content, body_open, n);
+        ArrayPush(func_names, name);
+        ArrayPush(func_rets, name);
+        ArrayPush(func_params, NominalConstructorParams(content, body_open, body_close, cursor));
+        scan = body_close + 1;
+    }
+}
+
 func CheckProgram(content: String) -> String {
     let cursor: Array<Int> = [0];
     let func_names: Array<String> = [];
@@ -201,6 +317,16 @@ func CheckProgram(content: String) -> String {
     ArrayPush(func_names, "CharAtN");
     ArrayPush(func_rets, "String");
     ArrayPush(func_params, "String|Int|Int");
+    ArrayPush(func_names, "Some");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "IsSome");
+    ArrayPush(func_rets, "Bool");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "UnwrapOption");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown");
+    SeedNominalConstructors(content, func_names, func_rets, func_params);
     let n: Int = StringLength(content);
     let scan: Int = 0;
     while scan < n {

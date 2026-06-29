@@ -1,2 +1,2 @@
-zone PinnedZone
-world LocalAsync
+zone PinnedZone source=PaymentZone sync=async pin=true live_view=false raw_slot=false raw_channel=false value_only=false authority=false movable=false io=false await_local=false fork_join=false concurrent=true
+world LocalAsync source=payment sync=async pin=false live_view=false raw_slot=false raw_channel=false value_only=false authority=false movable=false io=false await_local=false fork_join=false concurrent=true

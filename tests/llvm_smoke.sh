@@ -231,8 +231,8 @@ class SelectBox {
     }
 }
 EOF
-run_ir_contains_case "field_channel_send" "$TMPDIR/field_channel.pgy" "pgy_channel_send_Int"
-run_ir_contains_case "field_channel_select" "$TMPDIR/field_channel.pgy" "pgy_channel_ready_Int"
+run_ir_contains_case "field_channel_send" "$TMPDIR/field_channel.pgy" "pgy_lane_channel_send_Int"
+run_ir_contains_case "field_channel_select" "$TMPDIR/field_channel.pgy" "pgy_lane_channel_ready_Int"
 
 cat > "$TMPDIR/field_channel_builtins.pgy" <<'EOF'
 class BuiltinBox {
@@ -251,7 +251,7 @@ class BuiltinBox {
     }
 }
 EOF
-run_ir_contains_case "field_channel_try_send" "$TMPDIR/field_channel_builtins.pgy" "pgy_channel_try_send_Int"
+run_ir_contains_case "field_channel_try_send" "$TMPDIR/field_channel_builtins.pgy" "pgy_lane_channel_try_send_Int"
 run_ir_contains_case "field_channel_builtin_query" "$TMPDIR/field_channel_builtins.pgy" "pgy_channel_length_Int"
 run_ir_contains_case "field_channel_close" "$TMPDIR/field_channel_builtins.pgy" "pgy_channel_close_Int"
 
@@ -265,7 +265,7 @@ class StringBox {
     }
 }
 EOF
-run_ir_contains_case "field_channel_recv_infer" "$TMPDIR/field_channel_recv_infer.pgy" "pgy_channel_recv_val_String"
+run_ir_contains_case "field_channel_recv_infer" "$TMPDIR/field_channel_recv_infer.pgy" "pgy_lane_channel_recv_val_String"
 run_ir_not_contains_case "field_channel_recv_not_i32" "$TMPDIR/field_channel_recv_infer.pgy" "alloca i32"
 
 cat > "$TMPDIR/tagged_union.pgy" <<'EOF'

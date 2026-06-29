@@ -8,6 +8,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include "../common/execution_lane_kind.h"
 #include "../parser/ast_api.h"
 
 #include <stdio.h>
@@ -74,7 +75,7 @@ llvm_emit_channel_send_expr(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef val = llvm_emit_expression(ast_channel_send_value(node), ctx);
     char fname[128];
     if (!llvm_channel_format_runtime_name(fname, sizeof(fname),
-            "pgy_channel_send", target.inner)) {
+            "pgy_lane_channel_send", target.inner)) {
         return llvm_channel_expr_error(ctx, node,
             "LLVM channel send expression runtime function name is too long");
     }
@@ -85,9 +86,13 @@ llvm_emit_channel_send_expr(ASTNode *node, LLVMGenCtx *ctx)
         return NULL;
     }
     if (val != NULL) {
-        LLVMValueRef args[] = { target.ptr, val };
+        LLVMValueRef args[] = {
+            LLVMConstInt(ctx->type_i32, PGY_LANE_PINNED_ZONE, 0),
+            target.ptr,
+            val
+        };
         return LLVMBuildCall2(ctx->builder, fn->fn_type,
-            fn->fn, args, 2, llvm_tmp_name(ctx));
+            fn->fn, args, 3, llvm_tmp_name(ctx));
     }
     return llvm_channel_expr_error(ctx, node,
         "LLVM channel send expression could not lower value expression");
@@ -103,7 +108,7 @@ llvm_emit_channel_recv_expr(ASTNode *node, LLVMGenCtx *ctx)
 
     char fname[128];
     if (!llvm_channel_format_runtime_name(fname, sizeof(fname),
-            "pgy_channel_recv_val", target.inner)) {
+            "pgy_lane_channel_recv_val", target.inner)) {
         return llvm_channel_expr_error(ctx, node,
             "LLVM channel receive expression runtime function name is too long");
     }
@@ -113,9 +118,12 @@ llvm_emit_channel_recv_expr(ASTNode *node, LLVMGenCtx *ctx)
             "channel receive expression", "ChannelRecv", fname);
         return NULL;
     }
-    LLVMValueRef args[] = { target.ptr };
+    LLVMValueRef args[] = {
+        LLVMConstInt(ctx->type_i32, PGY_LANE_PINNED_ZONE, 0),
+        target.ptr
+    };
     return LLVMBuildCall2(ctx->builder, fn->fn_type,
-        fn->fn, args, 1, llvm_tmp_name(ctx));
+        fn->fn, args, 2, llvm_tmp_name(ctx));
 }
 
 #endif /* PGY_LLVM_ENABLED */

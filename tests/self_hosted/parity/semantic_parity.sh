@@ -115,6 +115,7 @@ SOURCE_PAIRS=(
     "valid_logical_bool:ok"
     "bad_logical_int:error"
     "valid_literal_compare:ok"
+    "valid_option_none_literal:ok"
     "bad_arith_operand:error"
     "bad_compare_operand:error"
     "bad_logical_return:error"

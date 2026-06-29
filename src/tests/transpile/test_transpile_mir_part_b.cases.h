@@ -59,9 +59,11 @@ test_mir_select_dispatch_emit(void)
         if (ok && output != NULL) {
             EXPECT(mir_emit_ok);
             EXPECT(strstr(output, "/* emitted-from-mir */") != NULL);
-            EXPECT(strstr(output, "pgy_channel_ready_Int(&ch)") != NULL
-                   || strstr(output, "pgy_channel_ready_Int(&_pgy_ssa_ch_") != NULL);
-            EXPECT(strstr(output, "if (pgy_channel_ready_Int(") != NULL);
+            EXPECT(strstr(output,
+                "pgy_lane_channel_ready_Int(PGY_LANE_PINNED_ZONE, &ch)") != NULL
+                   || strstr(output,
+                       "pgy_lane_channel_ready_Int(PGY_LANE_PINNED_ZONE, &_pgy_ssa_ch_") != NULL);
+            EXPECT(strstr(output, "if (pgy_lane_channel_ready_Int(") != NULL);
         }
 
         free(output);
@@ -132,11 +134,15 @@ test_mir_select_dispatch_emit(void)
         if (ok && output != NULL) {
             EXPECT(mir_emit_ok);
             EXPECT(strstr(output, "/* emitted-from-mir */") != NULL);
-            EXPECT(strstr(output, "pgy_channel_ready_Int(&ch)") != NULL
-                   || strstr(output, "pgy_channel_ready_Int(&_pgy_ssa_ch_") != NULL);
+            EXPECT(strstr(output,
+                "pgy_lane_channel_ready_Int(PGY_LANE_PINNED_ZONE, &ch)") != NULL
+                   || strstr(output,
+                       "pgy_lane_channel_ready_Int(PGY_LANE_PINNED_ZONE, &_pgy_ssa_ch_") != NULL);
             EXPECT(strstr(output, "int32_t _pgy_ssa_v_") != NULL);
-            EXPECT(strstr(output, "_pgy_ssa_v_1 = pgy_channel_recv_val_Int(&ch)") != NULL);
-            EXPECT(strstr(output, "\nv = pgy_channel_recv_val_Int(&ch)") == NULL);
+            EXPECT(strstr(output,
+                "_pgy_ssa_v_1 = pgy_lane_channel_recv_val_Int(PGY_LANE_PINNED_ZONE, &ch)") != NULL);
+            EXPECT(strstr(output,
+                "\nv = pgy_lane_channel_recv_val_Int(PGY_LANE_PINNED_ZONE, &ch)") == NULL);
         }
 
         free(output);
@@ -211,9 +217,12 @@ test_mir_select_dispatch_emit(void)
         if (ok && output != NULL) {
             EXPECT(mir_emit_ok);
             EXPECT(strstr(output, "/* emitted-from-mir */") != NULL);
-            EXPECT(strstr(output, "pgy_channel_ready_Int(&self.ch)") != NULL);
-            EXPECT(strstr(output, "pgy_channel_ready_Int(&ch)") == NULL);
-            EXPECT(strstr(output, "pgy_channel_recv_val_Int(&self.ch)") != NULL);
+            EXPECT(strstr(output,
+                "pgy_lane_channel_ready_Int(PGY_LANE_PINNED_ZONE, &self.ch)") != NULL);
+            EXPECT(strstr(output,
+                "pgy_lane_channel_ready_Int(PGY_LANE_PINNED_ZONE, &ch)") == NULL);
+            EXPECT(strstr(output,
+                "pgy_lane_channel_recv_val_Int(PGY_LANE_PINNED_ZONE, &self.ch)") != NULL);
         }
 
         free(output);

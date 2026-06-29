@@ -120,8 +120,8 @@ run_literal_contract_smoke() {
     require_literal "src/runtime/pgy_parallel.h" "pgy_runtime_panic_contract.h"
     require_literal "src/runtime/pgy_parallel_run.h" "parallel task array is null"
     require_literal "src/runtime/pgy_parallel_run.h" "parallel task spawn failed"
-    require_literal "src/runtime/pgy_parallel.h" "await task handle is null"
-    require_literal "src/runtime/pgy_parallel.h" "Future await returned null result"
+    require_literal "src/runtime/pgy_parallel_task_ops.h" "await task handle is null"
+    require_literal "src/runtime/pgy_parallel_task_ops.h" "Future await returned null result"
     require_literal "src/runtime/pgy_parallel.h" "pgy_cancel_node_create"
     require_literal "src/runtime/pgy_parallel_coroutine.h" "detach task handle is null"
     forbid_literal "src/runtime/pgy_parallel.h" "cancellation disabled because cancel node allocation failed"
@@ -183,6 +183,7 @@ result_option_inline = root / "src" / "runtime" / "pgy_runtime_result_option_inl
 process_exit_h = root / "src" / "runtime" / "pgy_runtime_process_exit.h"
 parallel_h = root / "src" / "runtime" / "pgy_parallel.h"
 parallel_run_h = root / "src" / "runtime" / "pgy_parallel_run.h"
+parallel_task_ops_h = root / "src" / "runtime" / "pgy_parallel_task_ops.h"
 parallel_coroutine_h = root / "src" / "runtime" / "pgy_parallel_coroutine.h"
 fiber_c = root / "src" / "runtime" / "async" / "fiber.c"
 llvm_api_c = root / "src" / "codegen" / "llvm_api.c"
@@ -268,12 +269,13 @@ for path in [slot_macros, device_slot_export]:
 
 parallel_text = parallel_h.read_text(encoding="utf-8")
 parallel_run_text = parallel_run_h.read_text(encoding="utf-8")
+parallel_task_ops_text = parallel_task_ops_h.read_text(encoding="utf-8")
 # The `parallel task array is null` / `parallel task is null` / `parallel
 # task spawn failed` panic strings now live in pgy_parallel_run.h after
 # the parallel-spawn helpers were split out of pgy_parallel.h. Check each
 # token against the union of the two files so the contract still pins
 # every panic string regardless of which header carries it.
-combined_parallel_text = parallel_text + parallel_run_text
+combined_parallel_text = parallel_text + parallel_run_text + parallel_task_ops_text
 for token in [
     "pgy_runtime_panic_contract.h",
     "parallel task array is null",

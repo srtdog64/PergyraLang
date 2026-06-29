@@ -110,6 +110,7 @@ compiler_runtime_cache_is_fresh(const char *cache_obj_path)
         PGY_RUNTIME_DIR "/pgy_parallel.h",
         PGY_RUNTIME_DIR "/pgy_parallel_blocking.h",
         PGY_RUNTIME_DIR "/pgy_parallel_coroutine.h",
+        PGY_RUNTIME_DIR "/pgy_parallel_task_ops.h",
         PGY_RUNTIME_DIR "/pgy_parallel_run.h",
         PGY_RUNTIME_DIR "/pgy_runtime_platform_io_core.h",
         PGY_RUNTIME_DIR "/pgy_runtime_process_exit.h",
@@ -135,8 +136,10 @@ compiler_runtime_cache_is_fresh(const char *cache_obj_path)
         PGY_RUNTIME_DIR "/pgy_runtime_pool_fsm_timer_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_zone_result_option_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_channel_inline.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_channel_lane_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_channel_string_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_channel_string_result_inline.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_channel_string_lane_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_io_qubit_inline.h",
         /* Inline headers pulled in transitively (e.g. via memory_array_slot ->
          * allocator) but not otherwise tracked. Their edits change the runtime

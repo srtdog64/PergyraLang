@@ -17,6 +17,7 @@
  * ================================================================= */
 
 #include "pgy_runtime_channel_status.h"
+#include "pgy_runtime_channel_lane_inline.h"
 
 #define PGY_CHANNEL_DEFINE(SuffixName, CType, PGY_CH_STORAGE) \
 typedef struct \
@@ -586,6 +587,7 @@ pgy_channel_recv_val_##SuffixName(PgyChannel_##SuffixName *ch) \
  * longer drift (target #4, dual-backend unified consumption). */
 #ifndef PGY_CHANNEL_MACRO_ONLY
 PGY_CHANNEL_DEFINE(Int, int32_t, static inline)
+PGY_CHANNEL_LANE_DEFINE(Int, int32_t, static inline)
 
 #include "pgy_runtime_channel_string_inline.h"
 #include "pgy_runtime_channel_spsc_inline.h"

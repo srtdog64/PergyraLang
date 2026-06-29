@@ -99,10 +99,12 @@ strictly underneath.
 - `boundary_capture` and `execution_lane` live on `AIRBoundaryNode`, are
   finalized in ONE pass in `air_synthesize`, and are emitted in `--air-json`.
 - A golden test (`sea-execution-lane-golden-test-smoke`) that compiles a real
-  program, synthesises AIR, and pins the per-boundary lanes
-  (`zone -> PinnedZone`, `world -> LocalAsync`), with a regression guard that a
-  classified boundary is never left at the fail-closed zero (`Reject`). The AIR
-  JSON schema smoke also requires the `boundary_capture` object.
+  program, synthesises AIR, and pins the per-boundary lanes plus the
+  serialized `boundary_capture` bits for the clean AIR boundary kinds currently
+  reachable from valid intent clauses (`zone -> PinnedZone`,
+  `world -> LocalAsync`). It has a regression guard that a classified boundary
+  is never left at the fail-closed zero (`Reject`). The AIR JSON schema smoke
+  also requires the `boundary_capture` object.
 
 **Landed — runtime facade + self-host mirror (2026-06-27):**
 - `PgyLaneScheduler` (`src/runtime/pgy_lane_scheduler.c`) consumes the fact:
@@ -143,6 +145,13 @@ strictly underneath.
   the stable export names but those exports call the same facades internally.
   `detach` is intentionally restricted to `LocalAsync`, making the lane fact a
   real runtime contract instead of passive metadata.
+- Channel boundaries now consume a lane-owned typed facade in both backends.
+  Plain send/recv, TryRecv/RecvTimeout, TrySend/SendTimeout, MIR select
+  readiness, and select consume all emit `pgy_lane_channel_*` with
+  `PGY_LANE_PINNED_ZONE`. The underlying typed channel runtime still owns the
+  queue mechanics; the compiler-visible boundary entrypoint now consumes the
+  same `captures_raw_channel -> PinnedZone` fact instead of calling
+  `pgy_channel_*` directly.
 
 **Remaining (deep fill, not a quick slice):**
 - **Precise capture plumbing.** `BoundaryCaptureFact` now exists and is stored
@@ -154,15 +163,22 @@ strictly underneath.
   slot exists in the same routine. Precise evidence is the F-series closure-
   capture plumbing, not a kind lookup.
 - **Remaining concurrent-site facade coverage.** Spawn expressions,
-  `parallel { ... }`, and async blocks now consume the lane-owned spawn facade.
-  The task header carries the lane fact through await/detach/cancellation, and
-  those task operations now consume the lane-owned facades. Channel send/receive
-  still calls its typed channel runtime directly. Unifying the channel boundary
-  is the next codegen step. On the self-host side it is gated by async
-  *lowering*: the self-host parses async but does not lower it (its `mir_lower`
-  carries zero async facts), so the self-host async codegen is the larger
-  frontier -- the MIR JSON async fact surface, tracked with the self-host
-  expansion.
+  `parallel { ... }`, async blocks, await/detach/cancel, and channel
+  send/receive/select boundaries now consume lane-owned facades. The remaining
+  frontier is precise fact production rather than facade routing: AIR still
+  fills several `BoundaryCaptureFact` fields conservatively from boundary kind.
+  On the self-host side it is also gated by async *lowering*: the self-host
+  parses async but does not lower it (its `mir_lower` carries zero async facts),
+  so the self-host async codegen is tracked with the MIR JSON async fact
+  surface.
+- **Full AIR JSON lane matrix.** The policy proof and self-host parity proof
+  cover `Inline`, `PinnedZone`, `BlockingPool`, `LocalAsync`, `WorkerPool`,
+  `MovableScheduler`, and `Reject`. Clean AIR JSON currently cannot produce
+  every row: valid intent clauses reject control-transfer expressions such as
+  `spawn`/`await`, and `MovableScheduler`/`Reject` require precise
+  raw-vs-value/movability facts not yet threaded onto AIR. The JSON golden
+  therefore pins the reachable clean AIR rows now and must expand as precise
+  capture plumbing lands, rather than manufacturing synthetic AIR state.
 - **Executor depth.** The Worker/Blocking/LocalAsync/Movable lanes currently
   share one worker-thread executor; backing them with the fiber scheduler /
   work-stealing pool / dedicated blocking pool is refinement under the same

@@ -132,7 +132,7 @@ test_parallel_execution_emit(void)
         lexer_destroy(lexer);
     }
 
-    TEST("channel send emits pgy_channel_send");
+    TEST("channel send emits lane-owned channel send");
     {
         ASTNode ch_node; memset(&ch_node, 0, sizeof(ch_node));
         ch_node.type = AST_IDENTIFIER;
@@ -152,14 +152,15 @@ test_parallel_execution_emit(void)
         char *result = emit_expression(&send_node, ctx);
 
         EXPECT(result != NULL);
-        EXPECT(strstr(result, "pgy_channel_send") != NULL);
+        EXPECT(strstr(result, "pgy_lane_channel_send_Int") != NULL);
+        EXPECT(strstr(result, "PGY_LANE_PINNED_ZONE") != NULL);
         EXPECT(strstr(result, "myChan") != NULL);
 
         free(result);
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("channel recv emits pgy_channel_recv");
+    TEST("channel recv emits lane-owned channel recv");
     {
         ASTNode ch_node; memset(&ch_node, 0, sizeof(ch_node));
         ch_node.type = AST_IDENTIFIER;
@@ -174,7 +175,8 @@ test_parallel_execution_emit(void)
         char *result = emit_expression(&recv_node, ctx);
 
         EXPECT(result != NULL);
-        EXPECT(strstr(result, "pgy_channel_recv") != NULL);
+        EXPECT(strstr(result, "pgy_lane_channel_recv_val_Int") != NULL);
+        EXPECT(strstr(result, "PGY_LANE_PINNED_ZONE") != NULL);
         EXPECT(strstr(result, "myChan") != NULL);
 
         free(result);
@@ -292,7 +294,8 @@ test_parallel_execution_emit(void)
 
         EXPECT(result != NULL);
         EXPECT(strstr(result, "PgyRuntimeChannelIntResult _pgy_recv_result") != NULL);
-        EXPECT(strstr(result, "pgy_channel_try_recv_result_Int(&ch)") != NULL);
+        EXPECT(strstr(result,
+            "pgy_lane_channel_try_recv_result_Int(PGY_LANE_PINNED_ZONE, &ch)") != NULL);
         EXPECT(strstr(result, "PGY_RUNTIME_CHANNEL_RESULT_OK") != NULL);
         EXPECT(strstr(result, "Some_Int(_pgy_recv_result.ok)") != NULL);
         EXPECT(strstr(result, "None_Int()") != NULL);
@@ -315,7 +318,8 @@ test_parallel_execution_emit(void)
 
         EXPECT(result != NULL);
         EXPECT(strstr(result, "PgyRuntimeChannelIntResult _pgy_recv_result") != NULL);
-        EXPECT(strstr(result, "pgy_channel_recv_timeout_result_Int(&ch, (uint64_t)(1000))") != NULL);
+        EXPECT(strstr(result,
+            "pgy_lane_channel_recv_timeout_result_Int(PGY_LANE_PINNED_ZONE, &ch, (uint64_t)(1000))") != NULL);
         EXPECT(strstr(result, "PGY_RUNTIME_CHANNEL_RESULT_OK") != NULL);
         EXPECT(strstr(result, "Some_Int(_pgy_recv_result.ok)") != NULL);
         EXPECT(strstr(result, "None_Int()") != NULL);
@@ -324,7 +328,7 @@ test_parallel_execution_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("TrySend emits pgy_channel_try_send");
+    TEST("TrySend emits lane-owned channel try_send");
     {
         TranspilerCtx *ctx = transpiler_ctx_create();
         ASTNode *cap_args[1] = { make_number(4, 1) };
@@ -337,7 +341,8 @@ test_parallel_execution_emit(void)
         char *result = emit_expression(make_call("TrySend", args, 2, 2), ctx);
 
         EXPECT(result != NULL);
-        EXPECT(strstr(result, "pgy_channel_try_send_Int(&ch, 42)") != NULL);
+        EXPECT(strstr(result,
+            "pgy_lane_channel_try_send_Int(PGY_LANE_PINNED_ZONE, &ch, 42)") != NULL);
 
         free(result);
         transpiler_ctx_destroy(ctx);
@@ -356,7 +361,8 @@ test_parallel_execution_emit(void)
         char *result = emit_expression(make_call("TrySendStatus", args, 2, 2), ctx);
 
         EXPECT(result != NULL);
-        EXPECT(strstr(result, "pgy_channel_try_send_status_Int(&ch, 42)") != NULL);
+        EXPECT(strstr(result,
+            "pgy_lane_channel_try_send_status_Int(PGY_LANE_PINNED_ZONE, &ch, 42)") != NULL);
 
         free(result);
         transpiler_ctx_destroy(ctx);
@@ -536,7 +542,8 @@ test_parallel_execution_emit(void)
         };
         char *result = emit_expression(make_call("SendTimeoutStatus", args, 3, 2), ctx);
 
-        EXPECT(strstr(result, "pgy_channel_send_timeout_status_Int(&ch, 42, (uint64_t)(1000))") != NULL);
+        EXPECT(strstr(result,
+            "pgy_lane_channel_send_timeout_status_Int(PGY_LANE_PINNED_ZONE, &ch, 42, (uint64_t)(1000))") != NULL);
 
         free(result);
         transpiler_ctx_destroy(ctx);

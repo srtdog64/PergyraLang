@@ -173,14 +173,15 @@ for required_await_guard in \
     "await condition wait failed" \
     "Future await returned null result"; do
     if ! grep -Fq "$required_await_guard" \
-        "$ROOT_DIR/src/runtime/pgy_parallel.h"; then
+        "$ROOT_DIR/src/runtime/pgy_parallel_task_ops.h"; then
         echo "[memory-concurrency] await runtime missing fail-closed guard: $required_await_guard" >&2
         exit 1
     fi
 done
 if grep -R -Fq "cancellation disabled because cancel node allocation failed" \
     "$ROOT_DIR/src/runtime/pgy_parallel.h" \
-    "$ROOT_DIR/src/runtime/pgy_parallel_blocking.h"; then
+    "$ROOT_DIR/src/runtime/pgy_parallel_blocking.h" \
+    "$ROOT_DIR/src/runtime/pgy_parallel_task_ops.h"; then
     echo "[memory-concurrency] cancellation allocation failure must not silently disable cancellation" >&2
     exit 1
 fi
