@@ -9,18 +9,45 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 CC="${CC:-gcc}"
-OUT="$(mktemp -d)/lane_scheduler_test"
+CC_CMD=($CC)
 
 fail() { echo "[lane-scheduler] FAIL: $*" >&2; exit 1; }
 
-"$CC" -Wall -Wextra -Werror -std=c11 \
+OUT_DIR="$ROOT_DIR/build"
+if [[ ! -d "$OUT_DIR" ]]; then
+    mkdir -p "$OUT_DIR" || fail "could not create build output dir"
+fi
+OUT="$OUT_DIR/lane_scheduler_test_$$.exe"
+COMPILE_PATH="$PATH"
+if [[ "${CC_CMD[0]}" = "gcc" && -x /c/ProgramData/mingw64/mingw64/bin/gcc ]]; then
+    COMPILE_PATH="/c/ProgramData/mingw64/mingw64/bin:/c/Windows/system32:/c/Windows"
+fi
+
+COMPILE_OUT="$OUT.compile.out"
+COMPILE_ERR="$OUT.compile.err"
+ORIGINAL_PATH="$PATH"
+PATH="$COMPILE_PATH"
+if ! "${CC_CMD[@]}" -Wall -Wextra -Werror -std=c11 \
     -I"$ROOT_DIR/src" \
     -I"$ROOT_DIR/src/runtime" \
     "$ROOT_DIR/src/tests/lane_scheduler_test.c" \
     "$ROOT_DIR/src/runtime/pgy_lane_scheduler.c" \
     "$ROOT_DIR/src/compiler/execution_lane.c" \
     -lpthread \
-    -o "$OUT" || fail "compile failed"
+    -o "$OUT" >"$COMPILE_OUT" 2>"$COMPILE_ERR"; then
+    PATH="$ORIGINAL_PATH"
+    cat "$COMPILE_OUT" >&2 || true
+    cat "$COMPILE_ERR" >&2 || true
+    echo "[lane-scheduler] CC=$CC" >&2
+    echo "[lane-scheduler] MAKEFLAGS=${MAKEFLAGS:-}" >&2
+    echo "[lane-scheduler] PATH=$PATH" >&2
+    command -v "${CC_CMD[0]}" >&2 || true
+    "${CC_CMD[0]}" --version >&2 || true
+    echo "[lane-scheduler] OUT=$OUT" >&2
+    echo "[lane-scheduler] ROOT_DIR=$ROOT_DIR" >&2
+    fail "compile failed"
+fi
+PATH="$ORIGINAL_PATH"
 
 "$OUT" || fail "facade contract violated"
 
@@ -57,6 +84,14 @@ grep -Fq "pgy_lane_spawn_dispatch(" \
 grep -Fq "pgy_lane_spawn_dispatch_export" \
     "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c" \
     || fail "LLVM spawn lowering does not consume the lane spawn facade export"
+if grep -Eq "pgy_(spawn|async_spawn|spawn_blocking)_export" \
+    "$ROOT_DIR/src/codegen/llvm_runtime_task_memory_decl.c"; then
+    fail "LLVM runtime declaration reintroduced direct spawn executor export aliases"
+fi
+if grep -Eq "pgy_(spawn|async_spawn|spawn_blocking)_export" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_quantum_exports.h"; then
+    fail "runtime export surface reintroduced direct spawn executor aliases"
+fi
 grep -Fq "pgy_lane_spawn_dispatch(PGY_LANE_WORKER_POOL" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c" \
     || fail "C parallel lowering does not consume the WorkerPool lane facade"

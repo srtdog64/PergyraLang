@@ -1315,7 +1315,12 @@ if grep -Fq "resolve_world_zone_subject_receiver(TranspilerCtx" \
 fi
 grep -Fq "llvm_runtime_task_memory_decl.c" "$ROOT_DIR/Makefile"
 grep -Fq "llvm_declare_runtime_task_memory(ctx)" "$ROOT_DIR/src/codegen/llvm_runtime.c"
-grep -Fq "pgy_spawn_blocking_export" "$ROOT_DIR/src/codegen/llvm_runtime_task_memory_decl.c"
+grep -Fq "pgy_lane_spawn_dispatch_export" "$ROOT_DIR/src/codegen/llvm_runtime_task_memory_decl.c"
+if grep -Eq "pgy_(spawn|async_spawn|spawn_blocking)_export" \
+    "$ROOT_DIR/src/codegen/llvm_runtime_task_memory_decl.c"; then
+    echo "[perf-contract] LLVM runtime decl reintroduced direct spawn executor export aliases" >&2
+    exit 1
+fi
 grep -Fq "index_keys" "$ROOT_DIR/src/semantic/type_checker.h"
 grep -Fq "metadata_index_capacity_is_valid" "$ROOT_DIR/src/semantic/type_checker_resolution_metadata_index.c"
 grep -Fq "metadata_lookup_entry_index" "$ROOT_DIR/src/semantic/type_checker_resolution_metadata_index.c"

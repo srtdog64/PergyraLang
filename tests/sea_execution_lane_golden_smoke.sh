@@ -125,6 +125,9 @@ function jval(line, key, marker, pos, rest, end) {
         > "$GOT" || true
 fi
 
+tr -d '\r' < "$GOT" > "$GOT.norm"
+mv "$GOT.norm" "$GOT"
+
 # Regression guard: a classified boundary must never be the fail-closed zero
 # value. If every lane is Reject the finalization pass did not run.
 if [ -s "$GOT" ] && ! grep -qvE '^[^[:space:]]+[[:space:]]+Reject([[:space:]]|$)' "$GOT"; then

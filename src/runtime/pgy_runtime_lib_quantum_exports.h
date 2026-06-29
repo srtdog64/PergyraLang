@@ -278,16 +278,6 @@ PGY_RC_EXPORT_DEFINE(String, char *)
 void pgy_pool_init_export(size_t n)    { pgy_pool_init(n); }
 void pgy_pool_shutdown_export(void)    { pgy_pool_shutdown(); }
 
-PgyTaskHandle pgy_spawn_export(void *(*fn)(void *), void *arg)
-{
-    return pgy_spawn(fn, arg);
-}
-
-PgyTaskHandle pgy_async_spawn_export(void *(*fn)(void *), void *arg)
-{
-    return pgy_async_spawn(fn, arg);
-}
-
 void pgy_async_detach_export(PgyTaskHandle h)
 {
     pgy_lane_detach(h);
@@ -296,11 +286,6 @@ void pgy_async_detach_export(PgyTaskHandle h)
 void *pgy_await_export(PgyTaskHandle h)
 {
     return pgy_lane_await(h);
-}
-
-PgyTaskHandle pgy_spawn_blocking_export(void *(*fn)(void *), void *arg)
-{
-    return pgy_spawn_blocking(fn, arg);
 }
 
 PgyTaskHandle pgy_lane_spawn_dispatch_export(int32_t lane,

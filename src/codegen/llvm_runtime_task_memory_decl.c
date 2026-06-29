@@ -18,18 +18,6 @@ llvm_declare_runtime_task_memory(LLVMGenCtx *ctx)
     { LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, NULL, 0, 0);
       LLVMValueRef fn = LLVMAddFunction(ctx->module, "pgy_pool_shutdown_export", ft);
       llvm_register_function(ctx, "pgy_pool_shutdown_export", fn, ft, ctx->type_void); }
-    { LLVMTypeRef params[] = { ctx->type_i8ptr, ctx->type_i8ptr };
-      LLVMTypeRef ft = LLVMFunctionType(ctx->type_task_handle, params, 2, 0);
-      LLVMValueRef fn = LLVMAddFunction(ctx->module, "pgy_spawn_export", ft);
-      llvm_register_function(ctx, "pgy_spawn_export", fn, ft, ctx->type_task_handle); }
-    { LLVMTypeRef params[] = { ctx->type_i8ptr, ctx->type_i8ptr };
-      LLVMTypeRef ft = LLVMFunctionType(ctx->type_task_handle, params, 2, 0);
-      LLVMValueRef fn = LLVMAddFunction(ctx->module, "pgy_async_spawn_export", ft);
-      llvm_register_function(ctx, "pgy_async_spawn_export", fn, ft, ctx->type_task_handle); }
-    { LLVMTypeRef params[] = { ctx->type_i8ptr, ctx->type_i8ptr };
-      LLVMTypeRef ft = LLVMFunctionType(ctx->type_task_handle, params, 2, 0);
-      LLVMValueRef fn = LLVMAddFunction(ctx->module, "pgy_spawn_blocking_export", ft);
-      llvm_register_function(ctx, "pgy_spawn_blocking_export", fn, ft, ctx->type_task_handle); }
     { LLVMTypeRef params[] = { ctx->type_i32, ctx->type_i8ptr, ctx->type_i8ptr };
       LLVMTypeRef ft = LLVMFunctionType(ctx->type_task_handle, params, 3, 0);
       LLVMValueRef fn = LLVMAddFunction(ctx->module, "pgy_lane_spawn_dispatch_export", ft);

@@ -198,9 +198,9 @@ The earlier coarse effect→capability cross-check is retired.
     through `pgy_spawn`, so it carries its own charge). Each charges SPAWN_COUNT
     once behind the imposed fast-path, deny-before-allocate, so a fork-bomb
     fail-closes on the spawn that crosses the host's ceiling. Unlike the allocator,
-    spawn was *not* the IR-reimplementation problem: LLVM emits
-    `pgy_async_spawn_export`/`pgy_spawn_blocking_export` which call the shared
-    runtime functions, so a single runtime charge covers both backends — the
+    spawn was *not* the IR-reimplementation problem: LLVM emits the lane-owned
+    `pgy_lane_spawn_dispatch_export`, which calls the shared runtime dispatcher,
+    so a single runtime charge covers both backends through the
     capability-gated-op pattern. The one wiring cost was include order: the spawn
     headers (`pgy_parallel.h`) are pulled in before the budget twin in both chains,
     so the inline twin is now pulled into the C-only `platform_io_core.h` ahead of
