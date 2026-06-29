@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let s: String = "a" + "b";
+    Log(s);
+}

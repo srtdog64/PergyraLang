@@ -325,6 +325,7 @@ func ArithmeticResultType(expr: String, names: Array<String>, types: Array<Strin
     let i: Int = 0;
     let depth: Int = 0;
     let split_idx: Int = -1;
+    let split_op: String = "";
     while i < n {
         let c: String = CharAt(text, i);
         if c == "\"" {
@@ -352,6 +353,7 @@ func ArithmeticResultType(expr: String, names: Array<String>, types: Array<Strin
         }
         if depth == 0 && (c == "+" || c == "*" || c == "/") {
             split_idx = i;
+            split_op = c;
             break;
         }
         if depth == 0 && c == "-" && CharAt(text, i + 1) != ">" {
@@ -363,6 +365,7 @@ func ArithmeticResultType(expr: String, names: Array<String>, types: Array<Strin
                 let prevc: String = CharAt(text, j);
                 if prevc == ")" || prevc == "]" || prevc == "\"" || IsAlphaNum(prevc) {
                     split_idx = i;
+                    split_op = c;
                     break;
                 }
             }
@@ -379,8 +382,11 @@ func ArithmeticResultType(expr: String, names: Array<String>, types: Array<Strin
     }
     let lt: String = ExprType(left, names, types, func_names, func_rets);
     let rt: String = ExprType(right, names, types, func_names, func_rets);
+    if split_op == "+" && lt == "String" && rt == "String" {
+        return "String";
+    }
     if lt == rt {
-        if lt == "Int" || lt == "Long" || lt == "Float" {
+        if lt == "Int" || lt == "Long" || lt == "Float" || lt == "Bool" {
             return lt;
         }
     }

@@ -275,22 +275,20 @@ Substrate progress.
   operands (`logical_operand_not_bool`), and a leading unary `!` requires a Bool
   operand (`not_operand_not_bool`), each emitted only when the operand types
   are known and disagree, mirroring the C oracle's `type_equals` rule and
-  skipping when either side is Unknown. Known limitation: arithmetic result
-  typing now preserves same-type `Int`/`Long`/`Float` numeric operands, but it
-  still intentionally does not model C's broader String/Bool binary-operator
-  edge cases. This stays latent because no fixture and no real self-host source
-  uses arithmetic on String or Bool operands (string building uses `Concat`);
-  closing it requires expanding the shared self-host/C diagnostic-code mapping
-  beyond the current fixture root-code gate rather than a self-host-only guess.
+  skipping when either side is Unknown. Arithmetic result typing now preserves
+  same-type `Int`/`Long`/`Float` numeric operands, same-type `Bool` arithmetic,
+  and C-oracle `String + String` concatenation typing while still rejecting
+  mixed `Int + String` as a binary-operand mismatch.
   `tests/self_hosted/parity/semantic_parity.sh` compares its verdicts with the C
-  compiler accept/reject oracle on C and LLVM across 104 committed fixtures that
+  compiler accept/reject oracle on C and LLVM across 107 committed fixtures that
   close the diagnostic matrix for every check across every statement position
   (typed let/return, arithmetic, comparison, call-return, call-argument,
   call-arity, branch-condition, scoped-block, assignment-type, bare-call-statement,
   binary-, logical-, and unary-not-operand-agreement, `let mut`, file IO builtin
   calls, scalar math builtin-table calls, trig/log Float builtin calls, string
   split/join aliases, first-argument scalar utility calls, generated-source
-  string literals, Option payload typing, `None()` context typing, concrete
+  string literals, String-plus and Bool arithmetic typing, Option payload typing,
+  `None()` context typing, concrete
   `Option<T>` requirements for `IsSome`/`UnwrapOption`, and
   undefined-identifier cases), all
   emitted as `pgy.selfhost.semantic.v1` diagnostic blocks through
@@ -355,10 +353,11 @@ and bare expression statements), branch condition (`if`/`while` must be `Bool`)
 typing, scoped `if`/`while` body typing, simple local assignment typing,
 binary- and logical-operand-agreement typing (same-type Int/Long/Float numeric
 arithmetic preserves its operand type; comparison operands must share a type;
-`&&`/`||` operands must be Bool) in let, return, condition, and assignment
+same-type Bool arithmetic and `String + String` follow the C oracle; `&&`/`||`
+operands must be Bool) in let, return, condition, and assignment
 positions, and simple/compound undefined-identifier diagnostics are covered,
 plus Option payload/concrete-Option builtin contracts, and verdicts stay
-byte-equal beside the C type checker on 104 committed fixtures across both
+byte-equal beside the C type checker on 107 committed fixtures across both
 backends. The checker now covers the common statement forms (let, return,
 assignment, if/while body, if/while condition, bare call), and the fixture
   matrix exercises each diagnostic in every position where it can fire. The

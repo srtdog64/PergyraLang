@@ -47,8 +47,9 @@ rewrite history.
 - **Backend parity**: parser compiled by C and by LLVM produce byte-identical
   output -- the core self-host correctness signal.
 - **Semantic**: self-hosts a bounded function-body checker on C+LLVM across
-  **104 committed fixtures**. Expression typing now owns same-type
-  `Int`/`Long`/`Float` arithmetic, contextual integer-literal assignment
+  **107 committed fixtures**. Expression typing now owns same-type
+  `Int`/`Long`/`Float` arithmetic, same-type `Bool` arithmetic,
+  `String + String` concatenation typing, contextual integer-literal assignment
   to `Long` as the only widening rule in this rung, and scalar math builtin
   signatures for `Sqrt`, `Pow`, `Floor`, `Ceil`, `Random`, and `SeedRandom`, trig/log Float
   signatures from `Sin` through `Log2`, string split/join aliases, plus
@@ -88,6 +89,18 @@ rewrite history.
    allowed -- that is what makes a positive one mean something.
 
 ## Session log
+
+### 2026-06-29 -- String and Bool arithmetic mirror the C oracle
+
+- `src/self_hosted/semantic/expr_type_owner.pgy` now preserves C-oracle
+  arithmetic result facts for same-type `Bool` arithmetic and `String + String`
+  concatenation.
+- `src/self_hosted/semantic/expr_validation_owner.pgy` keeps mixed
+  `Int + String` rejected as `binop_type_mismatch`, matching the C semantic
+  oracle, while the valid String/Bool cases are accepted.
+- `tests/self_hosted/parity/semantic_parity.sh` now covers 107 fixtures on both
+  C and LLVM, adding `valid_string_plus`, `valid_string_scalar_plus`, and
+  `valid_bool_arith`.
 
 ### 2026-06-29 -- Option semantic contracts are concrete-gated
 

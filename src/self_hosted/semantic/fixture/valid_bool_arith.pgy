@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let b: Bool = true + false;
+    let c: Bool = b * true;
+    Log(c);
+}
