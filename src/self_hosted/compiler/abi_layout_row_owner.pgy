@@ -5,11 +5,9 @@
 func CompilerAbiLayoutRowSchema() -> String {
     return "pgy.selfhost.abi-layout-row.v1";
 }
-
 func CompilerAbiLayoutRowFactCount() -> Int {
     return 8;
 }
-
 func CompilerAbiLayoutRowFactAt(index: Int) -> String {
     if index == 0 { return "decl_name"; }
     if index == 1 { return "field_order"; }
@@ -21,25 +19,97 @@ func CompilerAbiLayoutRowFactAt(index: Int) -> String {
     if index == 7 { return "materialization_policy"; }
     return "";
 }
+func CompilerAbiLayoutRowsReady() -> Bool {
+    return CompilerAbiLayoutRowFactAt(0) == "decl_name" &&
+        CompilerAbiLayoutRowFactAt(1) == "field_order" &&
+        CompilerAbiLayoutRowFactAt(2) == "tag_kind" &&
+        CompilerAbiLayoutRowFactAt(3) == "niche" &&
+        CompilerAbiLayoutRowFactAt(4) == "ownership_shape" &&
+        CompilerAbiLayoutRowFactAt(5) == "target_abi" &&
+        CompilerAbiLayoutRowFactAt(6) == "size_align" &&
+        CompilerAbiLayoutRowFactAt(7) == "materialization_policy";
+}
+func CompilerAbiLayoutConcreteRowCount() -> Int {
+    return 9;
+}
+func CompilerAbiLayoutRowTypeNameAt(index: Int) -> String {
+    if index == 0 { return "Int"; }
+    if index == 1 { return "Bool"; }
+    if index == 2 { return "Float"; }
+    if index == 3 { return "String"; }
+    if index == 4 { return "Array<Int>"; }
+    if index == 5 { return "Array<String>"; }
+    if index == 6 { return "Array<CodegenAstTextNode>"; }
+    if index == 7 { return "Result<Int>"; }
+    if index == 8 { return "Option<Int>"; }
+    return "";
+}
+func CompilerAbiLayoutRowCValueTypeAt(index: Int) -> String {
+    if index == 0 { return "long long"; }
+    if index == 1 { return "bool"; }
+    if index == 2 { return "double"; }
+    if index == 3 { return "const char*"; }
+    if index == 4 { return "pgy_ai"; }
+    if index == 5 { return "pgy_as"; }
+    if index == 6 { return "pgy_CodegenAstTextNode_array"; }
+    if index == 7 { return "pgy_result_int"; }
+    if index == 8 { return "pgy_option_int"; }
+    return "";
+}
 
-func CompilerAbiLayoutRowKnown(fact: String) -> Bool {
-    let i: Int = 0;
-    while i < CompilerAbiLayoutRowFactCount() {
-        if CompilerAbiLayoutRowFactAt(i) == fact {
-            return true;
-        }
-        i = i + 1;
+func CompilerAbiLayoutRowMaterializationAt(index: Int) -> String {
+    if index >= 0 && index <= 3 { return "field_allowed"; }
+    if index >= 4 && index <= 8 { return "runtime_value_only"; }
+    return "";
+}
+
+func CompilerAbiLayoutRowMatches(index: Int, type_name: String) -> Bool {
+    let canonical: String = CompilerAbiLayoutRowTypeNameAt(index);
+    if type_name == canonical {
+        return true;
+    }
+    if canonical == "Array<Int>" && type_name == "Array<Int: Int>" {
+        return true;
+    }
+    if canonical == "Array<String>" && type_name == "Array<String: String>" {
+        return true;
+    }
+    if canonical == "Array<CodegenAstTextNode>" &&
+        type_name == "Array<CodegenAstTextNode: CodegenAstTextNode>" {
+        return true;
+    }
+    if canonical == "Result<Int>" && type_name == "Result<Int: Int>" {
+        return true;
+    }
+    if canonical == "Option<Int>" && type_name == "Option<Int: Int>" {
+        return true;
     }
     return false;
 }
 
-func CompilerAbiLayoutRowsReady() -> Bool {
-    return CompilerAbiLayoutRowKnown("decl_name") &&
-        CompilerAbiLayoutRowKnown("field_order") &&
-        CompilerAbiLayoutRowKnown("tag_kind") &&
-        CompilerAbiLayoutRowKnown("niche") &&
-        CompilerAbiLayoutRowKnown("ownership_shape") &&
-        CompilerAbiLayoutRowKnown("target_abi") &&
-        CompilerAbiLayoutRowKnown("size_align") &&
-        CompilerAbiLayoutRowKnown("materialization_policy");
+func CompilerAbiLayoutRowIndex(type_name: String) -> Int {
+    let i: Int = 0;
+    while i < CompilerAbiLayoutConcreteRowCount() {
+        if CompilerAbiLayoutRowMatches(i, type_name) {
+            return i;
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
+func CompilerAbiLayoutCValueType(type_name: String) -> String {
+    let row: Int = CompilerAbiLayoutRowIndex(type_name);
+    if row < 0 {
+        return "";
+    }
+    return CompilerAbiLayoutRowCValueTypeAt(row);
+}
+
+func CompilerAbiLayoutFieldAllowed(type_name: String) -> Bool {
+    let row: Int = CompilerAbiLayoutRowIndex(type_name);
+    if row < 0 {
+        return false;
+    }
+    return CompilerAbiLayoutRowMaterializationAt(row) == "field_allowed";
 }

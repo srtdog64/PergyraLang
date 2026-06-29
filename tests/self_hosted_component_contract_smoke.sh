@@ -425,6 +425,15 @@ require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func Abi
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCFieldType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'import "../../compiler/abi_layout_row_owner.pgy";'
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutRowsReady()"
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutCValueType(type_name)"
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutFieldAllowed(type_name)"
+reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CollectionRuntimeKindFromTypeName"
+reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'import "../runtime_abi/collection_runtime_owner.pgy";'
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutConcreteRowCount"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutCValueType"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutFieldAllowed"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutRowMaterializationAt"
+reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'StringIndexOf(type_name, "Int")'
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIndentOf"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "struct CodegenAstTextNode"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let parent: Int"
@@ -513,7 +522,7 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitStructValue(v
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "func RewriteInoutCallArgs"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'LookupKindType(env, ident, "pm")'
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'rendered = Concat("&", rendered)'
-require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "pgy_CodegenAstTextNode_array"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "pgy_CodegenAstTextNode_array"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCGetFn"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCLenFn"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCPushFn"

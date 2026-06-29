@@ -2310,3 +2310,18 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `StringIndexOf(ast, ...)` for runtime usage facts. This reduces the ACTIVE
   mixed AST-like tree blocker while the transitional `CodegenAstTextNode.text`
   payload remains.
+
+### 2026-06-29 -- Self-host C ABI spelling consumes compiler row projection
+
+- Extended `src/self_hosted/compiler/abi_layout_row_owner.pgy` from a row
+  vocabulary envelope to concrete supported C ABI row projections for scalar,
+  array bridge, `Result<Int>`, and `Option<Int>` types, including
+  materialization policy.
+- Repointed `src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy` so
+  parameter, return, local, and field C type spelling consumes those compiler
+  rows first. The only remaining local lookup is the `TypeEnvZone` user-struct
+  fact, which is a separate owner.
+- Tightened the self-host component/world gates so ABI spelling cannot
+  reintroduce collection-runtime kind lookup or bypass the compiler row owner.
+  This reduces the ACTIVE ABI/layout row projection blocker; native C/LLVM
+  still need to consume the same concrete row table before the blocker closes.

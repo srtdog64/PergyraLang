@@ -305,6 +305,10 @@ done
 for term in \
     "func CompilerAbiLayoutRowSchema" \
     "CompilerAbiLayoutRowsReady" \
+    "CompilerAbiLayoutConcreteRowCount" \
+    "CompilerAbiLayoutCValueType" \
+    "CompilerAbiLayoutFieldAllowed" \
+    "CompilerAbiLayoutRowMaterializationAt" \
     "field_order" \
     "tag_kind" \
     "niche" \
