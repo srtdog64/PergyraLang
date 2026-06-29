@@ -177,6 +177,7 @@ compare_run_output_with_owner() {
     local base="$2"
     local expected_file="$3"
     local actual_file="$4"
+    local actual_projection="$5"
     local cmp_out="$ABS_BUILD/${base}_${backend}_compare.out"
     local cmp_err="$ABS_BUILD/${base}_${backend}_compare.err"
     local expected_rel
@@ -186,7 +187,7 @@ compare_run_output_with_owner() {
     actual_rel="$(path_relative_to_root "$actual_file")"
 
     if ! run_native_capture "$ROOT_DIR" "$cmp_out" "$cmp_err" "$COMPARATOR_BIN" \
-        "$expected_rel" "$actual_rel" 0 2; then
+        "$expected_rel" "$actual_rel" 0 "$actual_projection"; then
         echo "[self-host-parity:codegen] backend=$backend $base: RUN-STDOUT DRIFT vs $expected_file" >&2
         cat "$cmp_out" "$cmp_err" >&2
         exit 1
@@ -304,8 +305,8 @@ check_oracle_drift() {
         run_args+=("$arg")
     done < <(fixture_run_args "$base") || true
 
-    local oracle_out
     local oracle_raw="$ABS_BUILD/${base}_oracle.out.raw"
+    local oracle_norm="$ABS_BUILD/${base}_oracle.out"
     local oracle_err="$ABS_BUILD/${base}_oracle.err"
     # Run from ROOT_DIR so file-reading fixtures (ReadFile/FileExists) resolve
     # repo-relative paths deterministically.
@@ -314,15 +315,8 @@ check_oracle_drift() {
         cat "$oracle_err" >&2
         exit 1
     fi
-    oracle_out="$(tr -d '\r' < "$oracle_raw")"
-    local expected_norm
-    expected_norm="$(tr -d '\r' < "$expected_file")"
-    if [[ "$oracle_out" != "$expected_norm" ]]; then
-        echo "[self-host-parity:codegen] $base: committed expected drifted from C-backend oracle" >&2
-        echo "regenerate: pgy <fixture> --backend=c -o oracle && oracle > $expected_file" >&2
-        diff <(printf '%s\n' "$expected_norm") <(printf '%s\n' "$oracle_out") | head -20 >&2
-        exit 1
-    fi
+    tr -d '\r' < "$oracle_raw" > "$oracle_norm"
+    compare_run_output_with_owner "c-oracle" "$base" "$expected_file" "$oracle_norm" 0
 }
 
 compile_tool_backend() {
@@ -424,16 +418,16 @@ run_tool_backend() {
         # 4. Compare against committed expected (== oracle, guarded above).
         # The verdict is owned by the Pergyra backend-output comparator so
         # run-output artifact parity consumes ArtifactZone/TestHarness rows.
-        compare_run_output_with_owner "$backend" "$base" "$expected_file" "$run_norm"
+        compare_run_output_with_owner "$backend" "$base" "$expected_file" "$run_norm" 2
     done
 
     echo "[self-host-parity:codegen] backend=$backend run-stdout equal (${#FIXTURES[@]} fixtures)"
 }
 
+compile_backend_output_comparator
 for base in "${FIXTURES[@]}"; do
     check_oracle_drift "$base"
 done
-compile_backend_output_comparator
 
 BACKENDS="${PGY_SELFHOST_CODEGEN_BACKENDS:-c llvm}"
 RAN_BACKENDS=()

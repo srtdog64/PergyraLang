@@ -2331,7 +2331,8 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Repointed `tests/self_hosted/parity/codegen_parity.sh` so generated
   run-output comparison is no longer a local shell string verdict. The script
   builds the Pergyra `backend_output_comparator` once and invokes it for each
-  expected/generated run-output artifact pair.
+  committed-expected/live-oracle and expected/generated run-output artifact
+  pair.
 - The comparator consumes `ArtifactZone`, `TestHarnessZone`, and subprocess
   envelope rows, so codegen parity now records the `run_output`,
   `c_oracle`, and `self_hosted` projection facts through the Pergyra owner.
