@@ -2325,3 +2325,16 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   reintroduce collection-runtime kind lookup or bypass the compiler row owner.
   This reduces the ACTIVE ABI/layout row projection blocker; native C/LLVM
   still need to consume the same concrete row table before the blocker closes.
+
+### 2026-06-29 -- Codegen parity run output consumes Artifact/TestHarness owner
+
+- Repointed `tests/self_hosted/parity/codegen_parity.sh` so generated
+  run-output comparison is no longer a local shell string verdict. The script
+  builds the Pergyra `backend_output_comparator` once and invokes it for each
+  expected/generated run-output artifact pair.
+- The comparator consumes `ArtifactZone`, `TestHarnessZone`, and subprocess
+  envelope rows, so codegen parity now records the `run_output`,
+  `c_oracle`, and `self_hosted` projection facts through the Pergyra owner.
+- This reduces the ACTIVE Artifact Zone and Test Harness blockers; they remain
+  active until diagnostics, IR JSON, ABI/layout, emitted C/LLVM, and all other
+  parity scripts are also projections of these Pergyra-owned records.

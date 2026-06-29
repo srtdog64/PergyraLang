@@ -63,6 +63,7 @@ if ! command -v "$CC" >/dev/null 2>&1; then
 fi
 
 TOOL_SOURCE="$ROOT_DIR/src/self_hosted/codegen/main.pgy"
+COMPARATOR_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy"
 FIXTURE_DIR="$ROOT_DIR/src/self_hosted/codegen/fixture"
 EXPECTED_DIR="$ROOT_DIR/src/self_hosted/codegen/expected"
 # Build artifacts live under a repo-relative dir. The Pergyra codegen tool is a
@@ -76,8 +77,13 @@ if [[ ! -f "$TOOL_SOURCE" ]]; then
     echo "[self-host-parity:codegen] missing Pergyra tool: $TOOL_SOURCE" >&2
     exit 1
 fi
+if [[ ! -f "$COMPARATOR_SOURCE" ]]; then
+    echo "[self-host-parity:codegen] missing Pergyra comparator: $COMPARATOR_SOURCE" >&2
+    exit 1
+fi
 
 mkdir -p "$ABS_BUILD"
+COMPARATOR_BIN="$ABS_BUILD/backend_output_comparator.exe"
 
 run_native_capture() {
     local cwd="$1"
@@ -145,6 +151,46 @@ run_native_capture() {
 
     powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
         "\$env:PATH='${PGY_WINDOWS_PS_PATH_PREFIX}' + \$env:PATH; \$enc = New-Object System.Text.UTF8Encoding \$false; \$psi = New-Object System.Diagnostics.ProcessStartInfo; \$psi.FileName = $(pgy_powershell_quote "$bin_native"); \$psi.WorkingDirectory = $(pgy_powershell_quote "$cwd_native"); \$psi.UseShellExecute = \$false; \$psi.RedirectStandardOutput = \$true; \$psi.RedirectStandardError = \$true; \$psi.Arguments = $(pgy_powershell_quote "$args_native"); \$p = [System.Diagnostics.Process]::Start(\$psi); if (\$p -eq \$null) { exit 127 }; \$t1 = \$p.StandardOutput.ReadToEndAsync(); \$t2 = \$p.StandardError.ReadToEndAsync(); [System.Threading.Tasks.Task]::WaitAll(@(\$t1, \$t2)); \$p.WaitForExit(); \$stdout = \$t1.Result; \$stderr = \$t2.Result; [System.IO.File]::WriteAllText($(pgy_powershell_quote "$out_native"), \$stdout, \$enc); [System.IO.File]::WriteAllText($(pgy_powershell_quote "$err_native"), \$stderr, \$enc); exit \$p.ExitCode"
+}
+
+path_relative_to_root() {
+    local path="$1"
+    printf '%s\n' "${path#"$ROOT_DIR"/}"
+}
+
+compile_backend_output_comparator() {
+    local compile_out="$ABS_BUILD/backend_output_comparator.compile.out"
+    local compile_err="$ABS_BUILD/backend_output_comparator.compile.err"
+
+    if ! run_native_capture "$ROOT_DIR" "$compile_out" "$compile_err" "$PGY" \
+        "$(pgy_path_for_compiler "$PGY" "$COMPARATOR_SOURCE")" \
+        --backend=c \
+        -o "$(pgy_path_for_compiler "$PGY" "$COMPARATOR_BIN")"; then
+        echo "[self-host-parity:codegen] backend output comparator failed to build" >&2
+        cat "$compile_out" "$compile_err" >&2
+        exit 1
+    fi
+}
+
+compare_run_output_with_owner() {
+    local backend="$1"
+    local base="$2"
+    local expected_file="$3"
+    local actual_file="$4"
+    local cmp_out="$ABS_BUILD/${base}_${backend}_compare.out"
+    local cmp_err="$ABS_BUILD/${base}_${backend}_compare.err"
+    local expected_rel
+    local actual_rel
+
+    expected_rel="$(path_relative_to_root "$expected_file")"
+    actual_rel="$(path_relative_to_root "$actual_file")"
+
+    if ! run_native_capture "$ROOT_DIR" "$cmp_out" "$cmp_err" "$COMPARATOR_BIN" \
+        "$expected_rel" "$actual_rel" 0 2; then
+        echo "[self-host-parity:codegen] backend=$backend $base: RUN-STDOUT DRIFT vs $expected_file" >&2
+        cat "$cmp_out" "$cmp_err" >&2
+        exit 1
+    fi
 }
 
 # Fixture base names; each resolves to fixture/<base>.pgy and
@@ -374,17 +420,11 @@ run_tool_backend() {
             cat "$run_err" >&2
             exit 1
         fi
-        local self_out
-        self_out="$(cat "$run_norm")"
 
         # 4. Compare against committed expected (== oracle, guarded above).
-        local expected_norm
-        expected_norm="$(tr -d '\r' < "$expected_file")"
-        if [[ "$self_out" != "$expected_norm" ]]; then
-            echo "[self-host-parity:codegen] backend=$backend $base: RUN-STDOUT DRIFT vs $expected_file" >&2
-            diff <(printf '%s\n' "$expected_norm") <(printf '%s\n' "$self_out") | head -20 >&2
-            exit 1
-        fi
+        # The verdict is owned by the Pergyra backend-output comparator so
+        # run-output artifact parity consumes ArtifactZone/TestHarness rows.
+        compare_run_output_with_owner "$backend" "$base" "$expected_file" "$run_norm"
     done
 
     echo "[self-host-parity:codegen] backend=$backend run-stdout equal (${#FIXTURES[@]} fixtures)"
@@ -393,6 +433,7 @@ run_tool_backend() {
 for base in "${FIXTURES[@]}"; do
     check_oracle_drift "$base"
 done
+compile_backend_output_comparator
 
 BACKENDS="${PGY_SELFHOST_CODEGEN_BACKENDS:-c llvm}"
 RAN_BACKENDS=()

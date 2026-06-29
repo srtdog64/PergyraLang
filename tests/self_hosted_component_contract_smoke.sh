@@ -1034,6 +1034,11 @@ require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 
 reject_text "tests/self_hosted/parity/codegen_parity.sh" "MINGW BYPASS"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$oracle_raw" "$oracle_err" "$oracle_exe" "${run_args[@]}"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$run_raw" "$run_err" "$self_exe" "${run_args[@]}"'
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy"'
+require_text "tests/self_hosted/parity/codegen_parity.sh" "compile_backend_output_comparator"
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'compare_run_output_with_owner "$backend" "$base" "$expected_file" "$run_norm"'
+require_text "tests/self_hosted/parity/codegen_parity.sh" '"$expected_rel" "$actual_rel" 0 2'
+reject_text "tests/self_hosted/parity/codegen_parity.sh" 'self_out="$(cat "$run_norm")"'
 
 while IFS= read -r fixture; do
     base="$(basename "$fixture" .pgy)"
