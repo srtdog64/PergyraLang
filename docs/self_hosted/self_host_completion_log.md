@@ -90,6 +90,18 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-30 -- Pergyra-likeness reports compiler-world topology
+
+- Extended `tests/self_host_pergyra_likeness_smoke.sh` so it is no longer only
+  a negative smell ratchet. It still tracks text-munging, AST-as-string,
+  sentinel control flow, and Result/Option use, but it now also prints positive
+  topology floors for `PgyCompilerWorld`, resource-zone declarations,
+  compiler-intent surface, and intent steps bound to resource zones.
+- Documented that these positive topology numbers are floors, not scores:
+  adding fake zones or tiny intent files is not an improvement. The floor only
+  prevents hard self-hosting from losing the visible world/zone/intent spine
+  while the compiler starts eating its own slices.
+
 ### 2026-06-30 -- Shared LLVM leg consumes Artifact/TestHarness owner
 
 - Repointed `tests/self_hosted/parity/llvm_leg_helpers.sh` so shared C-vs-LLVM
