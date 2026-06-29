@@ -35,6 +35,7 @@ if [[ ! -x "$PGY" ]]; then
     echo "[self-host-bootstrap] missing compiler binary: $PGY" >&2
     exit 1
 fi
+pgy_reject_wsl_windows_pgy_parity_mix "self-host-bootstrap" "$PGY"
 CC="${PGY_SELFHOST_CC:-gcc}"
 if ! command -v "$CC" >/dev/null 2>&1; then
     echo "[self-host-bootstrap] SKIP missing C compiler on PATH: $CC"

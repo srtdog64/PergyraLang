@@ -38,6 +38,31 @@ pgy_binary_expects_windows_paths() {
     return 0
 }
 
+pgy_host_is_wsl() {
+    case "$(uname -s 2>/dev/null || echo unknown)" in
+        Linux*)
+            if [[ -r /proc/sys/kernel/osrelease ]] \
+                && grep -qiE 'microsoft|wsl' /proc/sys/kernel/osrelease; then
+                return 0
+            fi
+            ;;
+    esac
+    return 1
+}
+
+pgy_reject_wsl_windows_pgy_parity_mix() {
+    local label="$1"
+    local pgy="$2"
+
+    if pgy_host_is_wsl && pgy_binary_expects_windows_paths "$pgy"; then
+        echo "[$label] Windows pgy.exe under WSL is not a valid self-host parity runner" >&2
+        echo "[$label] use Git Bash/mingw32-make, or use a native Linux pgy binary" >&2
+        echo "[$label] mixing a Windows oracle with a POSIX runner can create false drift" >&2
+        return 1
+    fi
+    return 0
+}
+
 pgy_binary_is_runnable_here() {
     local bin="$1"
     local desc=""

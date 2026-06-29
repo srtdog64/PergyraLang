@@ -54,6 +54,7 @@ if [[ ! -x "$PGY" ]]; then
     echo "[self-host-parity:codegen] missing compiler binary: $PGY" >&2
     exit 1
 fi
+pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:codegen" "$PGY"
 
 CC="${PGY_SELFHOST_CC:-gcc}"
 if ! command -v "$CC" >/dev/null 2>&1; then
@@ -95,12 +96,10 @@ run_native_capture() {
             bin_bash="$(pgy_path_for_bash_tool "$bin")"
             out_bash="$(pgy_path_for_bash_tool "$out")"
             err_bash="$(pgy_path_for_bash_tool "$err")"
-            echo "[DEBUG] MINGW BYPASS: cwd=$cwd_bash bin=$bin_bash" >&2
             local old_pwd="$PWD"
             cd "$cwd_bash"
             "$bin_bash" "$@" >"$out_bash" 2>"$err_bash"
             local rc=$?
-            echo "[DEBUG] MINGW BYPASS: rc=$rc" >&2
             cd "$old_pwd"
             return "$rc"
             ;;

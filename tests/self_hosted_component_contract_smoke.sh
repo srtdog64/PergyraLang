@@ -1027,6 +1027,11 @@ require_text "src/self_hosted/codegen/README.md" "Golden/platform contract"
 require_text "src/self_hosted/codegen/README.md" "PGY_SELFHOST_CODEGEN_BACKENDS=c"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture()'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'pgy_binary_is_runnable_here "$bin"'
+require_text "tests/pgy_binary_path_helpers.sh" "pgy_reject_wsl_windows_pgy_parity_mix()"
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:codegen" "$PGY"'
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'pgy_reject_wsl_windows_pgy_parity_mix "self-host-bootstrap" "$PGY"'
+require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:fuzz-generator" "$PGY"'
+reject_text "tests/self_hosted/parity/codegen_parity.sh" "MINGW BYPASS"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$oracle_raw" "$oracle_err" "$oracle_exe" "${run_args[@]}"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$run_raw" "$run_err" "$self_exe" "${run_args[@]}"'
 

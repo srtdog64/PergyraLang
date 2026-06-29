@@ -36,6 +36,7 @@ if [[ ! -x "$PGY" ]]; then
     echo "[self-host-parity:fuzz-generator] missing compiler binary: $PGY" >&2
     exit 1
 fi
+pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:fuzz-generator" "$PGY"
 
 TOOL_SOURCE="$ROOT_DIR/src/self_hosted/fuzz/backend_parity_generator/main.pgy"
 if [[ ! -f "$TOOL_SOURCE" ]]; then
