@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let v: Bool = IsSome(7);
+    Log(v);
+}

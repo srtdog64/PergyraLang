@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let picked: Option<Int> = Some("x");
+    if IsSome(picked) {
+        Log(1);
+    }
+}

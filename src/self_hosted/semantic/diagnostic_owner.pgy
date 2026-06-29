@@ -22,6 +22,9 @@ func SemanticReason(code: String) -> String {
     if code == "call_arg_type_mismatch" {
         return "call argument type does not match the callee parameter type";
     }
+    if code == "builtin_arg_type_mismatch" {
+        return "builtin argument type does not match the builtin contract";
+    }
     if code == "value_param_collection_mutation" {
         return "caller-visible collection mutation requires an explicit inout boundary";
     }
@@ -69,6 +72,9 @@ func SemanticFix(code: String) -> String {
     }
     if code == "call_arg_type_mismatch" {
         return "change the argument expression or the callee parameter type";
+    }
+    if code == "builtin_arg_type_mismatch" {
+        return "pass a value that satisfies the builtin signature";
     }
     if code == "value_param_collection_mutation" {
         return "spell the parameter as inout or mutate a local collection and return it";

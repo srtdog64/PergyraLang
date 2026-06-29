@@ -386,8 +386,53 @@ func ArithmeticResultType(expr: String, names: Array<String>, types: Array<Strin
     }
     return "Int";
 }
+func IsOptionType(type_name: String) -> Bool {
+    let n: Int = StringLength(type_name);
+    if n < 9 {
+        return false;
+    }
+    return Substring(type_name, 0, 7) == "Option<" && CharAt(type_name, n - 1) == ">";
+}
+func OptionCallReturnType(text: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
+    let n: Int = StringLength(text);
+    if text == "None" {
+        return "Option<Unknown>";
+    }
+    if n == 0 || CharAt(text, n - 1) != ")" {
+        return "";
+    }
+    let paren: Int = StringIndexOf(text, "(");
+    if paren <= 0 {
+        return "";
+    }
+    let callee: String = Trim(Substring(text, 0, paren));
+    let args_src: String = Substring(text, paren + 1, n - paren - 2);
+    if callee == "Some" {
+        let value_expr: String = CallArgAt(args_src, 0);
+        let value_type: String = ExprType(value_expr, names, types, func_names, func_rets);
+        if StringLength(value_type) == 0 {
+            return "Option<Unknown>";
+        }
+        return Concat(Concat("Option<", value_type), ">");
+    }
+    if callee == "UnwrapOption" {
+        let option_expr: String = CallArgAt(args_src, 0);
+        let option_type: String = ExprType(option_expr, names, types, func_names, func_rets);
+        if IsOptionType(option_type) {
+            return Substring(option_type, 7, StringLength(option_type) - 8);
+        }
+        return "Unknown";
+    }
+    if callee == "IsSome" {
+        return "Bool";
+    }
+    return "";
+}
 func ExpressionAssignableTo(expected: String, actual: String, expr: String) -> Bool {
     if expected == actual {
+        return true;
+    }
+    if IsOptionType(expected) && actual == "Option<Unknown>" {
         return true;
     }
     if expected == "Long" && actual == "Int" && IsIntLiteral(Trim(expr)) {
@@ -432,6 +477,10 @@ func ExprType(expr: String, names: Array<String>, types: Array<String>, func_nam
     }
     if IsFloatLiteral(text) {
         return "Float";
+    }
+    let option_type: String = OptionCallReturnType(text, names, types, func_names, func_rets);
+    if StringLength(option_type) > 0 {
+        return option_type;
     }
     let scalar_utility_type: String = ScalarUtilityReturnType(text, names, types, func_names, func_rets);
     if StringLength(scalar_utility_type) > 0 {

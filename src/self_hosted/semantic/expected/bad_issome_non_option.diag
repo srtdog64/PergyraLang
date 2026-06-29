@@ -1,0 +1,12 @@
+Diagnostic: pgy.selfhost.semantic.v1
+Status: error
+Stage: semantic
+Severity: error
+Code: builtin_arg_type_mismatch
+Reason: builtin argument type does not match the builtin contract
+Fix: pass a value that satisfies the builtin signature
+Span: none
+Facts:
+- func: IsSome
+- expected: Option<T>
+- actual: Int

@@ -268,7 +268,7 @@ only observe text artifacts the C compiler produces. Their LOC is
 |-----------------|---------|-------------|----------|-------------------|
 | `src/lexer/`    |     921 |         677 | measured corpus parity | **993 of 993 sources byte-equal** (examples + backend_compare). `main.pgy` is orchestration only; source input, character/codepoint handling, token classification/output formatting, and scan-loop state are separate SoT owner modules. `scan_owner.pgy` now declares its real owner dependencies (`char_owner.pgy`, `token_owner.pgy`) and is part of the real-source semantic selfcheck set. Escaped strings, interpolation, and doc/block comments are covered by the measured corpus. 7 representative sources are committed as parity fixtures. |
 | `src/parser/`   |   20579 |        8127 | ~52%     | `src/self_hosted/parser/` parses 186 committed fixtures byte-equal `pgy --ast` on both C and LLVM parser binaries, and **120 of 121** `examples/*.pgy` byte-equal at scale (2026-06-22; zero byte-drift, zero self-host parser exits, 1 C-skip). Parser ownership is now split into declaration, expression, statement, import/source, cursor, type-name, diagnostic, and tree-text owners; `main.pgy` is parser-tool entrypoint orchestration only. |
-| `src/semantic/` |   46203 |        2716 | rung-2 subset | Checks a bounded function-body subset against the C compiler oracle on C/LLVM-generated binaries across 94 fixtures. `main.pgy` is orchestration only; CLI diagnostic/run boundary, diagnostic-code vocabulary, C oracle code mapping, source-bundle/import expansion, source scanning, diagnostic rendering, local environment lookup, expression typing, expression diagnostics, call checking, body/function checking, and program checking live in named owner modules. |
+| `src/semantic/` |   46203 |        2716 | rung-2 subset | Checks a bounded function-body subset against the C compiler oracle on C/LLVM-generated binaries across 99 fixtures. `main.pgy` is orchestration only; CLI diagnostic/run boundary, diagnostic-code vocabulary, C oracle code mapping, source-bundle/import expansion, source scanning, diagnostic rendering, local environment lookup, expression typing, expression diagnostics, call checking, body/function checking, and program checking live in named owner modules. |
 | `src/codegen/`  |  107123 |        4394 | rung-0..20 | **C-emit rung-0..20 (2026-06-24).** Pergyra emitter consumes `pgy --ast` text and emits standalone C for the supported scalar/string/array/result/option/struct/defer/file/argv/random/float subset. `ast_input_owner.pgy` owns AST path selection, `ast_text_inventory_owner.pgy` owns the typed `CodegenAstTextNode` bridge inventory, program-level declaration routing, declaration collector prepasses, function signature/header facts, statement body reads, `inout`/`own`/`ref` parameter-mode preservation, and cursor expectations, `codegen_run_owner.pgy` owns CLI-to-output orchestration, `type_facts/` owns type routing, `compiler/symbol_table_owner.pgy` owns function/method/operator/enum emitted-symbol rows, `abi_layout/abi_layout_owner.pgy` owns parameter/return/local/field C ABI type spelling, `runtime_abi/collection_runtime_owner.pgy` owns supported array runtime helper call spelling including the bootstrap `Array<CodegenAstTextNode>` lane, `runtime_abi/math_runtime_owner.pgy` owns supported math/random runtime helper call spelling, `runtime_abi/host_io_runtime_owner.pgy` owns supported host file/argv runtime helper call spelling, `runtime_abi/option_result_runtime_owner.pgy` owns supported Option/Result runtime helper call spelling, `runtime_abi/string_runtime_owner.pgy` owns supported string/text runtime helper call spelling, and `emission/` contains action participants. `lib/json.pgy` now owns JSON string/field/object/array emission for self-host tools while schema object shape remains tool-owned. **63 fixtures run-stdout equal** to the C/LLVM oracle on tools built through both backends; bootstrap fixpoint is `gen2 == gen3`. Gate: `parity/codegen_parity.sh` (`make self-host-codegen-parity-test-smoke`) and `parity/codegen_bootstrap.sh` (`make self-host-codegen-bootstrap-test-smoke`). Out-of-subset input is an observable `Exit(1)`. |
 | `src/runtime/`  |   29627 |           0 | 0%       | native runtime kernel stays C; portable runtime policy libraries may move later |
 | `src/compiler/` |   43304 |           0 | 0%       | compiler-world contracts exist in Pergyra, but native compiler driver replacement has not started |
@@ -363,7 +363,7 @@ The realistic incremental path toward genuine self-host:
   math-runtime, host-I/O-runtime, Option/Result-runtime, and string-runtime owners, semantic run/program/body/call/expression owner files, and audit-tool
    slices inside the current
    subset. The oracle parity runs on C and LLVM
-   binaries across 94 fixtures. The same gate now validates the 15-code
+   binaries across 99 fixtures. The same gate now validates the 16-code
    self-hosted semantic diagnostic vocabulary plus its C oracle JSON root-code
    mapping: committed expected `Code:` fields and literal
    `SemanticError...("code")` call sites must be registered in
@@ -378,8 +378,11 @@ The realistic incremental path toward genuine self-host:
    scalar math signatures `Sqrt`, `Pow`, `Floor`, `Ceil`, and `Random`, trig/log
    Float signatures from `Sin` through `Log2`, string split/join alias
    signatures, and the first-argument scalar utility contracts for `Abs`,
-   `Min`, `Max`, and `Clamp`, newline-free `Print` output calls, and
-   comment-skipping brace/statement scanning, and the codegen entrypoint source.
+   `Min`, `Max`, and `Clamp`, newline-free `Print` output calls,
+   `Some(expr) -> Option<ExprType(expr)>`, `None -> Option<Unknown>`,
+   `UnwrapOption(Option<T>) -> T`, `IsSome`/`UnwrapOption` builtin argument
+   rejection for non-Option operands, comment-skipping brace/statement scanning,
+   and the codegen entrypoint source.
    The next semantic expansion should broaden declarations
    only after that shared-code boundary or another equally narrow fact owner is
    available.

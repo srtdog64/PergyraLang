@@ -1,0 +1,9 @@
+func Pick() -> Option<Int> {
+    return Some(7);
+}
+
+func Main() -> Void {
+    let picked: Option<Int> = Pick();
+    let value: Int = UnwrapOption(picked);
+    Log(value);
+}

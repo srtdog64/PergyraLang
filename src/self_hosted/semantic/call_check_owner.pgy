@@ -231,6 +231,20 @@ func CheckCollectionMutatorReceiver(callee: String, args_src: String, names: Arr
     }
     return SemanticError3("value_param_collection_mutation", "func", callee, "param", receiver, "mode", "default");
 }
+func CheckOptionBuiltinArgs(callee: String, args_src: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
+    if callee != "IsSome" && callee != "UnwrapOption" {
+        return "";
+    }
+    let option_expr: String = CallArgAt(args_src, 0);
+    let option_type: String = ExprType(option_expr, names, types, func_names, func_rets);
+    if option_type == "Unknown" {
+        return "";
+    }
+    if !IsOptionType(option_type) {
+        return SemanticError3("builtin_arg_type_mismatch", "func", callee, "expected", "Option<T>", "actual", option_type);
+    }
+    return "";
+}
 func CheckCall(text: String, names: Array<String>, types: Array<String>, modes: Array<String>, func_names: Array<String>, func_rets: Array<String>, func_params: Array<String>) -> String {
     let trimmed: String = Trim(text);
     let tn: Int = StringLength(trimmed);
@@ -272,6 +286,10 @@ func CheckCall(text: String, names: Array<String>, types: Array<String>, modes: 
     let actual_count: Int = ArgCount(args_src);
     if expected_count != actual_count {
         return SemanticError3("call_arity_mismatch", "func", callee, "expected", NumToStr(expected_count), "actual", NumToStr(actual_count));
+    }
+    let option_error: String = CheckOptionBuiltinArgs(callee, args_src, names, types, func_names, func_rets);
+    if StringLength(option_error) > 0 {
+        return option_error;
     }
     let scalar_error: String = CheckScalarUtilityArgs(callee, args_src, names, types, func_names, func_rets);
     if StringLength(scalar_error) > 0 {

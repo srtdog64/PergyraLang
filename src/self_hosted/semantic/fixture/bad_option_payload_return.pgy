@@ -1,0 +1,10 @@
+func Pick() -> Option<Int> {
+    return Some("x");
+}
+
+func Main() -> Void {
+    let picked: Option<Int> = Pick();
+    if IsSome(picked) {
+        Log(1);
+    }
+}
