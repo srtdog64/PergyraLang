@@ -70,7 +70,7 @@ func CodegenAstTextIsElseStmt(node: CodegenAstTextNode) -> Bool {
 }
 
 func CodegenAstTextIsBareCallStmt(node: CodegenAstTextNode) -> Bool {
-    return IsSingleCall(node.text);
+    return node.kind == 29;
 }
 
 func CodegenAstTextLetPayload(node: CodegenAstTextNode) -> String {
@@ -337,8 +337,8 @@ func CodegenAstTextIsElseIfAt(nodes: Array<CodegenAstTextNode>, count: Int, inde
 }
 
 func CodegenAstTextBareCallExpr(node: CodegenAstTextNode) -> String {
-    if !CodegenAstTextIsBareCallStmt(node) {
+    if !CodegenAstTextIsBareCallStmt(node) || node.payload == "" {
         Die(Concat("expected bare call statement AST line: ", node.text));
     }
-    return node.text;
+    return node.payload;
 }

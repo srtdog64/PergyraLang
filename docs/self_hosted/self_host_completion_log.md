@@ -78,6 +78,15 @@ rewrite history.
 - Removed the transitional `CodegenAstTextPayloadAfter` helper and tightened the
   component contract so statement-owner line-prefix parsing cannot return.
 
+## 2026-07-01 - Codegen bare-call statements leave statement-owner text parsing
+
+- Moved bare-call statement classification into `CodegenAstTextKindOf` so the
+  inventory owner records single-call rows as typed statement facts.
+- Repointed `CodegenAstTextIsBareCallStmt` and `CodegenAstTextBareCallExpr` to
+  consume `CodegenAstTextNode.kind` and `payload`.
+- Tightened the component contract to reject `IsSingleCall(node.text)` and
+  `return node.text` inside the statement owner.
+
 ## 2026-07-01 - Codegen role payload leaves declaration-line slicing
 
 - Extended `CodegenAstTextPayloadFor` so role declarations record the

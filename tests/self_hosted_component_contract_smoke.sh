@@ -645,6 +645,7 @@ require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "retur
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 26"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 27"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 28"
+require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 29"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLetName"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLetTypeName"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLetInitializer"
@@ -685,11 +686,14 @@ reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'node.t
 reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'node.text == "Break"'
 reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'node.text == "Continue"'
 reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'node.text == "Else:"'
+reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "IsSingleCall(node.text)"
+reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.text"
 reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'Substring(node.text, 4'
 reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'Substring(node.text, 9'
 reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'Substring(node.text, 10'
 reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'Substring(node.text, 5'
 reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'CodegenAstTextPayloadAfter('
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "if IsSingleCall(text)"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsLetStmt"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextLetName"
 require_text "src/self_hosted/codegen/main.pgy" 'import "input/ast_text_statement_owner.pgy";'

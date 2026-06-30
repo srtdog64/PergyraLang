@@ -97,6 +97,9 @@ func CodegenAstTextKindOf(text: String) -> Int {
     if text == "Continue" {
         return 28;
     }
+    if IsSingleCall(text) {
+        return 29;
+    }
     return 1;
 }
 
@@ -187,6 +190,9 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
     }
     if kind == 24 {
         return Substring(text, 4, StringLength(text) - 4);
+    }
+    if kind == 29 {
+        return text;
     }
     return "";
 }
