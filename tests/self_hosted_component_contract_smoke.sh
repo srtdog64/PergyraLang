@@ -541,13 +541,16 @@ require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func 
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'node.text == "Function: Main"'
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'StringIndexOf(node.text, " for ")'
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'StringIndexOf(node.text, ": ")'
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'StringIndexOf(node.text, " { ")'
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return Substring(node.text, 6, fp - 6)"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return Substring(node.text, fp + 5"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return Substring(node.text, 6, brace - 6)"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "Substring(node.text, brace + 3"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'StartsWith(node.text, "inout ")'
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'StartsWith(node.text, "own ")'
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'StartsWith(node.text, "ref ")'
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return node.text"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextEnumBracePos"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextNominalPrefixLen"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let prefix_len: Int = CodegenAstTextNominalPrefixLen"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let parent: Int"
@@ -562,11 +565,14 @@ require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func 
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsRoleDecl"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsEventDecl"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsZeroArtifactDecl"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let aux_payload: String"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextAuxPayloadFor"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextFunctionName"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextReturnType"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextEnumName"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextEnumVariantCount"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextEnumVariantNameAt"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return node.aux_payload"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextNominalName"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextRoleName"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextRoleForType"

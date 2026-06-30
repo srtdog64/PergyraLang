@@ -13,6 +13,7 @@ struct CodegenAstTextNode {
     let text: String;
     let kind: Int;
     let payload: String;
+    let aux_payload: String;
 }
 
 func CodegenAstTextKindOf(text: String) -> Int {
@@ -99,6 +100,16 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
     return "";
 }
 
+func CodegenAstTextAuxPayloadFor(text: String, kind: Int) -> String {
+    if kind == 9 {
+        let brace: Int = StringIndexOf(text, " { ");
+        if brace >= 0 && CharAt(text, StringLength(text) - 1) == "}" {
+            return StringTrim(Substring(text, brace + 3, StringLength(text) - (brace + 4)));
+        }
+    }
+    return "";
+}
+
 func CodegenAstTextIsFunction(node: CodegenAstTextNode) -> Bool {
     return node.kind == 6;
 }
@@ -165,14 +176,6 @@ func CodegenAstTextReturnType(node: CodegenAstTextNode) -> String {
     return node.payload;
 }
 
-func CodegenAstTextEnumBracePos(node: CodegenAstTextNode) -> Int {
-    let brace: Int = StringIndexOf(node.text, " { ");
-    if brace < 0 || CharAt(node.text, StringLength(node.text) - 1) != "}" {
-        Die(Concat("malformed enum declaration AST line: ", node.text));
-    }
-    return brace;
-}
-
 func CodegenAstTextEnumName(node: CodegenAstTextNode) -> String {
     if !CodegenAstTextIsEnumDecl(node) || node.payload == "" {
         Die(Concat("expected enum declaration AST line: ", node.text));
@@ -181,8 +184,10 @@ func CodegenAstTextEnumName(node: CodegenAstTextNode) -> String {
 }
 
 func CodegenAstTextEnumVariantPayload(node: CodegenAstTextNode) -> String {
-    let brace: Int = CodegenAstTextEnumBracePos(node);
-    return StringTrim(Substring(node.text, brace + 3, StringLength(node.text) - (brace + 4)));
+    if !CodegenAstTextIsEnumDecl(node) {
+        Die(Concat("expected enum declaration AST line: ", node.text));
+    }
+    return node.aux_payload;
 }
 
 func CodegenAstTextEnumVariantCount(node: CodegenAstTextNode) -> Int {
@@ -397,7 +402,13 @@ func CodegenAstTextNodeInventory(tree_text: String, inout nodes: Array<CodegenAs
             } else if field_indent >= 0 && indent == field_indent && StringIndexOf(trimmed, ": ") >= 0 {
                 kind = 5;
             }
-            ArrayPush(nodes, CodegenAstTextNode(indent, trimmed, kind, CodegenAstTextPayloadFor(trimmed, kind)));
+            ArrayPush(nodes, CodegenAstTextNode(
+                indent,
+                trimmed,
+                kind,
+                CodegenAstTextPayloadFor(trimmed, kind),
+                CodegenAstTextAuxPayloadFor(trimmed, kind)
+            ));
             ArraySet(count_box, 0, count_box[0] + 1);
         }
         pos = nl + 1;

@@ -49,6 +49,15 @@ rewrite history.
 - Tightened the component contract to reject enum-name recovery from
   `node.text` brace slicing.
 
+## 2026-07-01 - Codegen enum variant payload leaves brace-list slicing
+
+- Added `CodegenAstTextNode.aux_payload` and populated it from enum declaration
+  rows during inventory construction.
+- Repointed enum variant count/name accessors to consume the stored variant
+  payload instead of recalculating brace offsets from `node.text`.
+- Tightened the component contract to reject enum-variant recovery from enum
+  declaration text slicing.
+
 ## 2026-07-01 - Codegen role payload leaves declaration-line slicing
 
 - Extended `CodegenAstTextPayloadFor` so role declarations record the
