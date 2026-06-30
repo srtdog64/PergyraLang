@@ -14,8 +14,9 @@ func RewriteExpr(e: String, env: String) -> String {
 
 func RewriteRoleOperators(e: String, env: String) -> String {
     let s: String = StripOuterParens(e);
-    let p: Int = FindTopLevelPlus(s);
-    if p >= 0 {
+    let p_opt: Option<Int> = FindTopLevelPlus(s);
+    if IsSome(p_opt) {
+        let p: Int = UnwrapOption(p_opt);
         let lhs: String = StringTrim(Substring(s, 0, p));
         let rhs: String = StringTrim(Substring(s, p + 1, StringLength(s) - (p + 1)));
         let lhs_kind: String = ExprKind(lhs, env);
@@ -78,7 +79,13 @@ func RewriteMemberCalls(e: String, env: String) -> String {
                     let method: String = Substring(e, i + 1, j - (i + 1));
                     let c_name: String = Concat(recv_type, Concat("_", method));
                     if StringLength(recv_type) > 0 && LookupKindType(env, c_name, "f") != "" {
-                        let close: Int = FindMatchingParen(e, j);
+                        let close_opt: Option<Int> = FindMatchingParen(e, j);
+                        if !IsSome(close_opt) {
+                            out = Concat(out, c);
+                            i = i + 1;
+                            continue;
+                        }
+                        let close: Int = UnwrapOption(close_opt);
                         let args: String = Substring(e, j + 1, close - j - 1);
                         out = Substring(out, 0, start);
                         out = Concat(out, Concat(c_name, Concat("(", receiver)));
@@ -324,12 +331,13 @@ func RewriteCallArgsWithModes(inner: String, modes: String, env: String, mode_co
     let out: String = "";
     let arg_index: Int = 0;
     while StringLength(rem) > 0 {
-        let comma: Int = FindTopLevelComma(rem);
+        let comma_opt: Option<Int> = FindTopLevelComma(rem);
         let part: String = "";
-        if comma < 0 {
+        if !IsSome(comma_opt) {
             part = StringTrim(rem);
             rem = "";
         } else {
+            let comma: Int = UnwrapOption(comma_opt);
             part = StringTrim(Substring(rem, 0, comma));
             rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
         }
@@ -389,8 +397,8 @@ func RewriteInoutCallArgs(e: String, env: String, strict: Bool) -> String {
             if j < n && CharAt(e, j) == "(" {
                 let modes: String = LookupKindType(env, ident, "pm");
                 if StringLength(modes) > 0 {
-                    let close: Int = FindMatchingParen(e, j);
-                    if close < 0 {
+                    let close_opt: Option<Int> = FindMatchingParen(e, j);
+                    if !IsSome(close_opt) {
                         if strict {
                             Die(Concat("malformed call expression: ", e));
                         }
@@ -398,6 +406,7 @@ func RewriteInoutCallArgs(e: String, env: String, strict: Bool) -> String {
                         i = j;
                         continue;
                     }
+                    let close: Int = UnwrapOption(close_opt);
                     let inner: String = Substring(e, j + 1, close - j - 1);
                     out = Concat(out, Concat(ident, Concat("(", Concat(RewriteCallArgsWithModes(inner, modes, env, ModeCsvCount(modes)), ")"))));
                     i = close + 1;
@@ -491,8 +500,9 @@ func IntEval(expr: String, env: String) -> String {
 // flows through the token pipeline.
 func StrEval(expr: String, env: String) -> String {
     let e: String = StripOuterParens(expr);
-    let p: Int = FindTopLevelPlus(e);
-    if p >= 0 {
+    let p_opt: Option<Int> = FindTopLevelPlus(e);
+    if IsSome(p_opt) {
+        let p: Int = UnwrapOption(p_opt);
         let lhs: String = StringTrim(Substring(e, 0, p));
         let rhs: String = StringTrim(Substring(e, p + 1, StringLength(e) - (p + 1)));
         return Concat(StringRuntimeCConcatFn(), Concat("(", Concat(StrEval(lhs, env), Concat(", ", Concat(StrEval(rhs, env), ")")))));
@@ -516,7 +526,9 @@ func StrEval(expr: String, env: String) -> String {
 func WrapCond(cond: String, env: String) -> String {
     let c: String = StringTrim(cond);
     let n: Int = StringLength(c);
-    if n >= 2 && CharAt(c, 0) == "(" && CharAt(c, n - 1) == ")" && FindMatchingParen(c, 0) == n - 1 {
+    let close_opt: Option<Int> = FindMatchingParen(c, 0);
+    if n >= 2 && CharAt(c, 0) == "(" && CharAt(c, n - 1) == ")" &&
+        IsSome(close_opt) && UnwrapOption(close_opt) == n - 1 {
         return RewriteExpr(c, env);
     }
     return Concat("(", Concat(RewriteExpr(c, env), ")"));

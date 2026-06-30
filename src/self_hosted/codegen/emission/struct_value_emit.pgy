@@ -19,7 +19,11 @@ func EmitStructLit(expr: String, env: String) -> String {
         Die(Concat("malformed struct literal: ", expr));
     }
     let sname: String = Substring(e, 0, op);
-    let close: Int = FindMatchingParen(e, op);
+    let close_opt: Option<Int> = FindMatchingParen(e, op);
+    if !IsSome(close_opt) {
+        Die(Concat("malformed struct literal: ", expr));
+    }
+    let close: Int = UnwrapOption(close_opt);
     let inner: String = Substring(e, op + 1, close - op - 1);
     let out: String = Concat("(", Concat(sname, "){ "));
     let rem: String = StringTrim(inner);
@@ -27,12 +31,13 @@ func EmitStructLit(expr: String, env: String) -> String {
     let field_pos: Int = 0;
     let field_names: String = LookupKindType(env, sname, "fields");
     while StringLength(rem) > 0 {
-        let comma: Int = FindTopLevelComma(rem);
+        let comma_opt: Option<Int> = FindTopLevelComma(rem);
         let part: String = "";
-        if comma < 0 {
+        if !IsSome(comma_opt) {
             part = StringTrim(rem);
             rem = "";
         } else {
+            let comma: Int = UnwrapOption(comma_opt);
             part = StringTrim(Substring(rem, 0, comma));
             rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
         }

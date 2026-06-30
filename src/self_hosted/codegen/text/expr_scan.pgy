@@ -104,10 +104,11 @@ func RewriteArrayLengthEnv(e: String, env: String) -> String {
         }
         if i + 12 <= n && Substring(e, i, 12) == "ArrayLength(" {
             let open: Int = i + 11;
-            let close: Int = FindMatchingParen(e, open);
-            if close < 0 {
+            let close_opt: Option<Int> = FindMatchingParen(e, open);
+            if !IsSome(close_opt) {
                 Die(Concat("malformed ArrayLength(...): ", e));
             }
+            let close: Int = UnwrapOption(close_opt);
             let arg: String = StringTrim(Substring(e, open + 1, close - open - 1));
             let kind: String = LookupKindType(env, arg, "v");
             let fn: String = CollectionRuntimeCLenFn(kind);
@@ -154,10 +155,11 @@ func RewriteIndexing(e: String, env: String) -> String {
             }
             let ident: String = Substring(e, i, j - i);
             if j < n && CharAt(e, j) == "[" {
-                let close: Int = FindMatchingBracket(e, j);
-                if close < 0 {
+                let close_opt: Option<Int> = FindMatchingBracket(e, j);
+                if !IsSome(close_opt) {
                     Die(Concat("unmatched index bracket: ", e));
                 }
+                let close: Int = UnwrapOption(close_opt);
                 let inner: String = Substring(e, j + 1, close - j - 1);
                 let inner_r: String = RewriteIndexing(inner, env);
                 let kind: String = LookupKindType(env, ident, "v");
@@ -232,7 +234,8 @@ func RewriteBool(e: String, env: String) -> String {
         return s;
     }
     // Fully parenthesized group -> recurse inside, keep the parens.
-    if CharAt(s, 0) == "(" && FindMatchingParen(s, 0) == n - 1 {
+    let close_opt: Option<Int> = FindMatchingParen(s, 0);
+    if CharAt(s, 0) == "(" && IsSome(close_opt) && UnwrapOption(close_opt) == n - 1 {
         return Concat("(", Concat(RewriteBool(Substring(s, 1, n - 2), env), ")"));
     }
     // Lowest precedence first: `||`, then `&&`.

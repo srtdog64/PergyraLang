@@ -171,22 +171,22 @@ func CodegenAstTextArraySetInner(node: CodegenAstTextNode) -> String {
 
 func CodegenAstTextArraySetFirstComma(node: CodegenAstTextNode) -> Int {
     let inner: String = CodegenAstTextArraySetInner(node);
-    let comma: Int = FindTopLevelComma(inner);
-    if comma < 0 {
+    let comma_opt: Option<Int> = FindTopLevelComma(inner);
+    if !IsSome(comma_opt) {
         Die(Concat("ArraySet needs three arguments: ", node.text));
     }
-    return comma;
+    return UnwrapOption(comma_opt);
 }
 
 func CodegenAstTextArraySetSecondComma(node: CodegenAstTextNode) -> Int {
     let inner: String = CodegenAstTextArraySetInner(node);
     let first: Int = CodegenAstTextArraySetFirstComma(node);
     let rest: String = Substring(inner, first + 1, StringLength(inner) - (first + 1));
-    let comma: Int = FindTopLevelComma(rest);
-    if comma < 0 {
+    let comma_opt: Option<Int> = FindTopLevelComma(rest);
+    if !IsSome(comma_opt) {
         Die(Concat("ArraySet needs three arguments: ", node.text));
     }
-    return comma;
+    return UnwrapOption(comma_opt);
 }
 
 func CodegenAstTextArraySetTarget(node: CodegenAstTextNode) -> String {
@@ -220,11 +220,11 @@ func CodegenAstTextArrayPushInner(node: CodegenAstTextNode) -> String {
 
 func CodegenAstTextArrayPushComma(node: CodegenAstTextNode) -> Int {
     let inner: String = CodegenAstTextArrayPushInner(node);
-    let comma: Int = FindTopLevelComma(inner);
-    if comma < 0 {
+    let comma_opt: Option<Int> = FindTopLevelComma(inner);
+    if !IsSome(comma_opt) {
         Die(Concat("ArrayPush needs two arguments: ", node.text));
     }
-    return comma;
+    return UnwrapOption(comma_opt);
 }
 
 func CodegenAstTextArrayPushTarget(node: CodegenAstTextNode) -> String {

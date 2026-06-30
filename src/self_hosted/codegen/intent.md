@@ -110,7 +110,9 @@ a zone:
 - `run/` owns the CLI orchestration boundary.
 - `text/` owns reusable text and expression scanning facts. Top-level boolean
   operator lookup is an `Option<Int>` fact; consumers must not use `-1` as the
-  absence path for that scanner result.
+  absence path for that scanner result. Delimiter matching, top-level string
+  concatenation, and top-level comma scanners are also `Option<Int>` facts; the
+  emitters must prove presence before slicing expression text.
 - `type_facts/` owns read-mostly type evidence.
 - `abi_layout/` owns self-host C ABI type spelling facts.
 - `runtime_abi/` owns self-host C collection, math/random, host I/O/argv, Option/Result, and string/text runtime helper symbol facts.

@@ -163,8 +163,8 @@ func IsIdentStart(c: String) -> Bool {
 }
 
 // Given the index of a '[' in `s`, return the index of its matching ']',
-// respecting nesting and string literals. Returns -1 if unmatched.
-func FindMatchingBracket(s: String, open_idx: Int) -> Int {
+// respecting nesting and string literals.
+func FindMatchingBracket(s: String, open_idx: Int) -> Option<Int> {
     let n: Int = StringLength(s);
     let i: Int = open_idx;
     let depth: Int = 0;
@@ -189,17 +189,17 @@ func FindMatchingBracket(s: String, open_idx: Int) -> Int {
         } else if c == "]" {
             depth = depth - 1;
             if depth == 0 {
-                return i;
+                return Some(i);
             }
         }
         i = i + 1;
     }
-    return -1;
+    return None;
 }
 
 // Given the index of a '(' in `s`, return the index of its matching ')',
-// respecting nested parens and string literals. Returns -1 if unmatched.
-func FindMatchingParen(s: String, open_idx: Int) -> Int {
+// respecting nested parens and string literals.
+func FindMatchingParen(s: String, open_idx: Int) -> Option<Int> {
     let n: Int = StringLength(s);
     let i: Int = open_idx;
     let depth: Int = 0;
@@ -224,12 +224,12 @@ func FindMatchingParen(s: String, open_idx: Int) -> Int {
         } else if c == ")" {
             depth = depth - 1;
             if depth == 0 {
-                return i;
+                return Some(i);
             }
         }
         i = i + 1;
     }
-    return -1;
+    return None;
 }
 
 // True when `e` is a single call `Name(args...)` whose closing paren is the
@@ -247,7 +247,8 @@ func IsSingleCall(e: String) -> Bool {
     if !IsIdentifier(prefix) {
         return false;
     }
-    return FindMatchingParen(e, op) == n - 1;
+    let close: Option<Int> = FindMatchingParen(e, op);
+    return IsSome(close) && UnwrapOption(close) == n - 1;
 }
 
 // Strip redundant parentheses that wrap an entire expression. The AST printer
@@ -255,7 +256,11 @@ func IsSingleCall(e: String) -> Bool {
 // operators behind depth > 0. Removes one wrapping layer at a time.
 func StripOuterParens(e: String) -> String {
     let s: String = StringTrim(e);
-    while StringLength(s) >= 2 && CharAt(s, 0) == "(" && FindMatchingParen(s, 0) == StringLength(s) - 1 {
+    while StringLength(s) >= 2 && CharAt(s, 0) == "(" {
+        let close: Option<Int> = FindMatchingParen(s, 0);
+        if !IsSome(close) || UnwrapOption(close) != StringLength(s) - 1 {
+            return s;
+        }
         s = StringTrim(Substring(s, 1, StringLength(s) - 2));
     }
     return s;
@@ -263,8 +268,8 @@ func StripOuterParens(e: String) -> String {
 
 // Find the first top-level single-char `+` (string-concatenation operator) in a
 // string-valued expression: depth 0 (outside any (), []) and outside string
-// literals. Returns -1 if none.
-func FindTopLevelPlus(s: String) -> Int {
+// literals.
+func FindTopLevelPlus(s: String) -> Option<Int> {
     let n: Int = StringLength(s);
     let i: Int = 0;
     let depth: Int = 0;
@@ -298,17 +303,17 @@ func FindTopLevelPlus(s: String) -> Int {
             continue;
         }
         if depth == 0 && c == "+" {
-            return i;
+            return Some(i);
         }
         i = i + 1;
     }
-    return -1;
+    return None;
 }
 
 // Within `s`, find the index of the top-level comma (depth 0, not inside a
-// string literal). Returns -1 if none. `s` is the argument list interior of
+// string literal). `s` is the argument list interior of
 // a Concat(...) call, e.g. `"a", "b"` or `"a", Concat("b", "c")`.
-func FindTopLevelComma(s: String) -> Int {
+func FindTopLevelComma(s: String) -> Option<Int> {
     let n: Int = StringLength(s);
     let i: Int = 0;
     let depth: Int = 0;
@@ -342,11 +347,11 @@ func FindTopLevelComma(s: String) -> Int {
             continue;
         }
         if c == "," && depth == 0 {
-            return i;
+            return Some(i);
         }
         i = i + 1;
     }
-    return -1;
+    return None;
 }
 
 // ---- Type environment --------------------------------------------------

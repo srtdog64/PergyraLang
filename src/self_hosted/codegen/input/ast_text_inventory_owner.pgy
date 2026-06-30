@@ -128,12 +128,13 @@ func CodegenAstTextEnumVariantCount(node: CodegenAstTextNode) -> Int {
     let rem: String = CodegenAstTextEnumVariantPayload(node);
     let count: Int = 0;
     while StringLength(rem) > 0 {
-        let comma: Int = FindTopLevelComma(rem);
+        let comma_opt: Option<Int> = FindTopLevelComma(rem);
         let part: String = "";
-        if comma < 0 {
+        if !IsSome(comma_opt) {
             part = StringTrim(rem);
             rem = "";
         } else {
+            let comma: Int = UnwrapOption(comma_opt);
             part = StringTrim(Substring(rem, 0, comma));
             rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
         }
@@ -148,12 +149,13 @@ func CodegenAstTextEnumVariantNameAt(node: CodegenAstTextNode, index: Int) -> St
     let rem: String = CodegenAstTextEnumVariantPayload(node);
     let cur: Int = 0;
     while StringLength(rem) > 0 {
-        let comma: Int = FindTopLevelComma(rem);
+        let comma_opt: Option<Int> = FindTopLevelComma(rem);
         let part: String = "";
-        if comma < 0 {
+        if !IsSome(comma_opt) {
             part = StringTrim(rem);
             rem = "";
         } else {
+            let comma: Int = UnwrapOption(comma_opt);
             part = StringTrim(Substring(rem, 0, comma));
             rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
         }

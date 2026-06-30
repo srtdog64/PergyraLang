@@ -90,6 +90,27 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-30 -- Codegen text scanners stop using integer sentinels
+
+- Changed `FindMatchingBracket`, `FindMatchingParen`, `FindTopLevelPlus`, and
+  `FindTopLevelComma` in `codegen/text/text_owner.pgy` from `Int` with `-1`
+  absence to `Option<Int>`.
+- Repointed expression rewrite, expression scan, statement emit, struct-value
+  emit, AST-text statement/inventory, and type-fact consumers to check
+  `IsSome` before unwrapping scanner positions.
+- Tightened the component contract to reject `return -1` in `text_owner.pgy`
+  and lowered the Pergyra-likeness ratchet from `sentinel <= 27` to
+  `sentinel <= 23`; `result_use` rose from 106 to 140.
+- Verified with AST parsing for all touched self-host codegen owners,
+  `self-host-pergyra-likeness-test-smoke`,
+  `self-host-component-contract-test-smoke`,
+  `self-host-codegen-parity-test-smoke`, `production-c-size-test-smoke`, and
+  `self-host-codegen-bootstrap-test-smoke`.
+- Design note: this does not try to raise Pergyra-likeness by adding more
+  `world` or `zone` keywords. The owner responsibility is `TextOwner` producing
+  typed absence facts, and emitters consuming those facts before slicing. That
+  is the part that makes the bootstrap more Pergyra-like.
+
 ### 2026-06-30 -- MIR-lower routine inventory discovery stops using integer sentinels
 
 - Changed `FindRoutine`, `RoutineNameEnd`, and `RoutineBlocksStart` in

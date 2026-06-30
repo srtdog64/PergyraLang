@@ -95,8 +95,9 @@ func ExprKind(expr: String, env: String) -> String {
     }
     // A top-level `+` whose left operand is a string is string concatenation.
     let stripped: String = StripOuterParens(e);
-    let plus: Int = FindTopLevelPlus(stripped);
-    if plus >= 0 {
+    let plus_opt: Option<Int> = FindTopLevelPlus(stripped);
+    if IsSome(plus_opt) {
+        let plus: Int = UnwrapOption(plus_opt);
         let lhs: String = StringTrim(Substring(stripped, 0, plus));
         let rhs: String = StringTrim(Substring(stripped, plus + 1, StringLength(stripped) - (plus + 1)));
         if ExprKind(lhs, env) == "String" {
@@ -269,7 +270,8 @@ func ExprKind(expr: String, env: String) -> String {
     let ob: Int = StringIndexOf(e, "[");
     if ob > 0 {
         let pfx: String = Substring(e, 0, ob);
-        if IsIdentifier(pfx) && FindMatchingBracket(e, ob) == StringLength(e) - 1 {
+        let close_opt: Option<Int> = FindMatchingBracket(e, ob);
+        if IsIdentifier(pfx) && IsSome(close_opt) && UnwrapOption(close_opt) == StringLength(e) - 1 {
             if LookupKindType(env, pfx, "v") == "ArrayString" {
                 return "String";
             }

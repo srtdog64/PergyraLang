@@ -387,6 +387,15 @@ not make the compiler more Pergyra-like; the floor only prevents the root
 world, resource ownership boundaries, and intent-bound zone steps from
 disappearing while the bootstrap grows.
 
+Treat this as a bootstrap-quality guard, not an aesthetic scoreboard. A higher
+keyword count does not prove the compiler is eating itself in a Pergyra-shaped
+way. The proof improves when a named owner produces the fact, the consumer
+checks that fact, and C/LLVM/Pergyra parity proves the result. For example,
+moving delimiter absence from integer sentinels to `Option<Int>` in the codegen
+text owner is a Pergyra-likeness improvement even though it adds no new zone:
+the ownership boundary becomes sharper, and the bootstrap consumes a typed fact
+instead of hidden C-style control flow.
+
 A low keyword density inside `codegen/` is not itself a failure. The failure
 would be a codegen slice that hides resource ownership, re-parses facts locally,
 or lets `main.pgy` become the flow owner. Pergyra-likeness is measured by the

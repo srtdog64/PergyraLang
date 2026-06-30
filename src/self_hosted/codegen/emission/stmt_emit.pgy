@@ -60,12 +60,13 @@ func EmitLet(node: CodegenAstTextNode, inout env_box: Array<String>) -> String {
         let out: String = Concat(c_type, Concat(" ", Concat(name, Concat(" = ", Concat(new_fn, "();")))));
         let rem: String = StringTrim(Substring(ex, 1, exn - 2));
         while StringLength(rem) > 0 {
-            let comma: Int = FindTopLevelComma(rem);
+            let comma_opt: Option<Int> = FindTopLevelComma(rem);
             let elem: String = "";
-            if comma < 0 {
+            if !IsSome(comma_opt) {
                 elem = StringTrim(rem);
                 rem = "";
             } else {
+                let comma: Int = UnwrapOption(comma_opt);
                 elem = StringTrim(Substring(rem, 0, comma));
                 rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
             }
@@ -100,7 +101,8 @@ func TryExprInner(expr: String) -> String {
     if n < 4 || CharAt(e, 0) != "(" || CharAt(e, 1) != "?" || CharAt(e, n - 1) != ")" {
         return "";
     }
-    if FindMatchingParen(e, 0) != n - 1 {
+    let close_opt: Option<Int> = FindMatchingParen(e, 0);
+    if !IsSome(close_opt) || UnwrapOption(close_opt) != n - 1 {
         return "";
     }
     return StringTrim(Substring(e, 2, n - 3));
