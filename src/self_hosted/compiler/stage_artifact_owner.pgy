@@ -3,12 +3,14 @@ import "../lexer/token_owner.pgy";
 import "../parser/tree_text_owner.pgy";
 import "../semantic/diagnostic_owner.pgy";
 import "../mir_lower/mir_fact_graph_contract_owner.pgy";
+import "../codegen/typed_ast_node_skeleton.pgy";
 
 // Stage artifact envelope facts for PgyCompilerWorld.
 //
 // These facts prove that each active compiler stage is present in the path
-// manifest and bound to the expected world/zone/actor/intent row. They do not
-// claim to validate the full token/AST/semantic/MIR payload yet.
+// manifest and bound to the expected world/zone/actor/intent row. Each stage
+// readiness fact then consumes the current payload contract owned by that
+// stage, so world actions stay load-bearing rather than decorative topology.
 
 func CompilerStageArtifactRowReady(index: Int, binding: String) -> Bool {
     if CompilerStagePathAt(index) == "" {
@@ -46,4 +48,11 @@ func CompilerMirFactGraphReady() -> Bool {
         return false;
     }
     return MirFactGraphPayloadContractReady();
+}
+
+func CompilerEmissionFactReady() -> Bool {
+    if !CompilerStageArtifactRowReady(4, "codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact") {
+        return false;
+    }
+    return TypedAstArenaPayloadContractReady();
 }

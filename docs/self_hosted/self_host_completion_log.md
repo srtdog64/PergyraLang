@@ -25,6 +25,21 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-01 - Emission stage consumes codegen payload fact
+
+- Added `CompilerEmissionFactReady()` to
+  `src/self_hosted/compiler/stage_artifact_owner.pgy`. It checks the
+  `codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact` stage binding row
+  and then consumes `TypedAstArenaPayloadContractReady()` from
+  `codegen/typed_ast_node_skeleton.pgy`.
+- Repointed `ProgramEmitter.Emit` so backend emission must prove the codegen
+  stage payload contract in addition to ABI-layout, symbol-table, and
+  target-capability facts. This makes the backend nerve bundle more
+  load-bearing inside `PgyCompilerWorld` instead of leaving codegen as only a
+  documented stage binding.
+- Tightened the compiler-world and component contract gates so the codegen
+  payload binding cannot fall back to manifest-only topology.
+
 ## 2026-06-30 - Pergyra-likeness load-bearing metric
 
 - Added `compiler_world_stub_actions` to

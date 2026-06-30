@@ -461,9 +461,11 @@ beyond the lexer:
   substitution. The first self-hosted compiler AST model contract now exists in
   `src/self_hosted/codegen/typed_ast_node_skeleton.pgy`: it owns a flat typed
   arena vocabulary, explicit child lookup, atom lookup, and a small traversal
-  payload fixture. Current parser and codegen rungs still consume text AST
-  artifacts; the next closure is making those passes consume the typed arena
-  with oracle parity.
+  payload fixture. `PgyCompilerWorld` now requires that contract through
+  `CompilerEmissionFactReady()` before `ProgramEmitter` can claim emission
+  readiness. Current parser and codegen rungs still consume text AST artifacts;
+  the next closure is making those passes consume the typed arena with oracle
+  parity.
 - **Raw pointer / FFI** -- if a Pergyra component needs to call into
   the C compiler's runtime (e.g. share the diagnostic emitter), there
   is no stable FFI today. This is intentional for the current compiler-pass

@@ -52,7 +52,10 @@ subject ProgramEmitter {
     let name: String;
 
     action Emit(self, types: TypeEnvZone, abi_layout: AbiLayoutZone, target_capability: TargetCapabilityZone) -> Bool {
-        return CompilerAbiLayoutRowsReady() && CompilerSymbolTableReady() && CompilerTargetCapabilityEnvelopeReady();
+        return CompilerEmissionFactReady() &&
+            CompilerAbiLayoutRowsReady() &&
+            CompilerSymbolTableReady() &&
+            CompilerTargetCapabilityEnvelopeReady();
     }
 }
 

@@ -152,7 +152,10 @@ for term in \
     "action Lower" \
     "subject ProgramEmitter" \
     "action Emit" \
-    "CompilerAbiLayoutRowsReady() && CompilerSymbolTableReady() && CompilerTargetCapabilityEnvelopeReady()" \
+    "CompilerEmissionFactReady()" \
+    "CompilerAbiLayoutRowsReady()" \
+    "CompilerSymbolTableReady()" \
+    "CompilerTargetCapabilityEnvelopeReady()" \
     "CompilerTokenStreamFactReady()" \
     "CompilerAstTreeFactReady()" \
     "CompilerSemanticVerdictFactReady()" \
@@ -283,20 +286,24 @@ for term in \
     "func CompilerAstTreeFactReady" \
     "func CompilerSemanticVerdictFactReady" \
     "func CompilerMirFactGraphReady" \
+    "func CompilerEmissionFactReady" \
     'import "../lexer/token_owner.pgy";' \
     'import "../parser/tree_text_owner.pgy";' \
     'import "../semantic/diagnostic_owner.pgy";' \
     'import "../mir_lower/mir_fact_graph_contract_owner.pgy";' \
+    'import "../codegen/typed_ast_node_skeleton.pgy";' \
     "LexerTokenPayloadContractReady()" \
     "ParserAstTreePayloadContractReady()" \
     "SemanticVerdictPayloadContractReady()" \
     "MirFactGraphPayloadContractReady()" \
+    "TypedAstArenaPayloadContractReady()" \
     "CompilerStagePathAt(index)" \
     "CompilerStageWorldBindingAt(index)" \
     "lexer|TokenStreamZone|LexerStage|LexSource" \
     "parser|AstTreeZone|ParserStage|ParseTokens" \
     "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics" \
-    "mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts"; do
+    "mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts" \
+    "codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact"; do
     require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "$term"
 done
 

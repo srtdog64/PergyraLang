@@ -170,12 +170,12 @@ stage artifact envelope, emitted artifact, or parity verdict.
 
 Current source intake already consumes the `StagePathManifest` path fact through
 `CompilerStagePathManifestReady()`, and parity comparison consumes artifact and
-test-harness facts. Emission consumes ABI-layout, symbol, and target-capability
-facts. Lexing, parsing, semantic checking, and MIR lowering now consume
-`stage_artifact_owner.pgy`, which proves their path/world-binding envelope. That
-is the first load-bearing envelope that prevents the stage actors from being
-decorative `return true` scaffolding. Lexer readiness now goes one step deeper:
-it also consumes `LexerTokenPayloadContractReady()` from `lexer/token_owner.pgy`.
+test-harness facts. Emission consumes ABI-layout, symbol, target-capability, and
+codegen-stage payload facts. Lexing, parsing, semantic checking, MIR lowering,
+and emission now consume `stage_artifact_owner.pgy`, which proves their
+path/world-binding envelope before a stage can claim readiness. Lexer readiness
+then goes one step deeper: it also consumes `LexerTokenPayloadContractReady()`
+from `lexer/token_owner.pgy`.
 Parser readiness does the same for the current compact-AST text rung through
 `ParserAstTreePayloadContractReady()` in `parser/tree_text_owner.pgy`.
 Semantic readiness consumes `SemanticVerdictPayloadContractReady()` from
@@ -185,7 +185,10 @@ count, status rendering, and code vocabulary. MIR readiness consumes
 `mir_lower/mir_fact_graph_contract_owner.pgy`,
 tying the stage to the MIR JSON schema, 85-fixture parity surface,
 decl/routine arrays, source-local array, and instruction source facts. No
-compiler stage is allowed to remain envelope-only.
+compiler stage is allowed to remain envelope-only. Backend emission consumes
+`CompilerEmissionFactReady()`, which binds `ProgramEmitter` to the codegen
+stage row and the typed AST arena migration contract in
+`codegen/typed_ast_node_skeleton.pgy`.
 
 ## Cost Model
 

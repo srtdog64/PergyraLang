@@ -210,11 +210,13 @@ actor, and intent so a bootstrap driver can route a stage through
 contract-checked against the Pergyra owner.
 
 `src/self_hosted/compiler/stage_artifact_owner.pgy` is the current stage
-artifact envelope owner. It does not validate full token, AST, semantic-verdict,
-or MIR payload content yet. It proves that each active stage actor consumes a
-manifest path and the expected world/zone/actor/intent binding row before it can
-claim readiness. That is the load-bearing replacement for the old stage
-`return true` scaffolding.
+artifact and payload-readiness owner. It proves that each active stage actor
+consumes a manifest path and the expected world/zone/actor/intent binding row
+before it can claim readiness, then delegates to the current payload owner for
+that stage: lexer token facts, parser AST-tree text facts, semantic verdict
+facts, MIR fact graph rows, or the codegen typed-AST arena migration contract.
+That is the load-bearing replacement for the old stage `return true`
+scaffolding.
 
 ## Codegen Architecture
 

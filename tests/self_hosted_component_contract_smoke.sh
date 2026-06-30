@@ -559,6 +559,10 @@ require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "struct AstNo
 require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "func ChildAt"
 require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "func AtomText"
 reject_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "SKELETON"
+require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../codegen/typed_ast_node_skeleton.pgy";'
+require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "func CompilerEmissionFactReady"
+require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact"
+require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "TypedAstArenaPayloadContractReady()"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'import "ast_text_inventory_owner.pgy";'
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsLetStmt"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsAssignStmt"
