@@ -15,7 +15,9 @@ The input is a path to a `pgy.mir.v1` JSON document emitted by `pgy --mir-json`.
 `json_fact_read.pgy` owns bounded JSON/MIR fact reads including declaration
 row, object, and array bounds; `routine_inventory_owner.pgy` owns routine
 discovery plus bounded routine header facts, and `main.pgy` only wires the
-validated document into the lowering owners. Supported facts are routine
+validated document into the lowering owners. Owner-qualified method routine
+lookup is exposed as an `Option<Int>` fact so declaration lowering consumes
+presence explicitly instead of using a `-1` sentinel. Supported facts are routine
 signatures, source-local type facts, bounded CFG statement facts, nominal
 declaration inventory facts, and explicitly listed declaration facts. Missing
 or unsupported MIR facts are hard errors.

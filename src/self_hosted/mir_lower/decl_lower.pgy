@@ -33,11 +33,11 @@ func EmitClassMethods(json: String, decl_start: Int, decl_end: Int, owner_name: 
         if StringLength(mname) == 0 {
             Die(Concat("class declaration has unnamed method fact: ", owner_name));
         }
-        let routine_pos: Int = FindRoutineByOwnerName(json, owner_name, mname);
-        if routine_pos < 0 {
+        let routine_pos: Option<Int> = FindRoutineByOwnerName(json, owner_name, mname);
+        if !IsSome(routine_pos) {
             Die(Concat("class method is missing routine fact: ", Concat(owner_name, Concat(".", mname))));
         }
-        out = Concat(out, EmitRoutineTree(json, routine_pos, "      "));
+        out = Concat(out, EmitRoutineTree(json, UnwrapOption(routine_pos), "      "));
         row = row + 1;
     }
     if StringLength(out) > 0 {
@@ -114,11 +114,11 @@ func EmitRoleMethods(json: String, decl_start: Int, decl_end: Int, role_name: St
         if StringLength(mname) == 0 {
             Die(Concat("role declaration has unnamed method fact: ", role_name));
         }
-        let routine_pos: Int = FindRoutineByOwnerName(json, role_name, mname);
-        if routine_pos < 0 {
+        let routine_pos: Option<Int> = FindRoutineByOwnerName(json, role_name, mname);
+        if !IsSome(routine_pos) {
             Die(Concat("role method is missing routine fact: ", Concat(role_name, Concat(".", mname))));
         }
-        out = Concat(out, EmitRoutineTreeWithSelfType(json, routine_pos, "      ", for_type));
+        out = Concat(out, EmitRoutineTreeWithSelfType(json, UnwrapOption(routine_pos), "      ", for_type));
         row = row + 1;
     }
     if StringLength(out) > 0 {

@@ -90,6 +90,16 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-30 -- MIR-lower method routine lookup stops using integer sentinel
+
+- Changed `FindRoutineByOwnerName` in `mir_lower/routine_inventory_owner.pgy`
+  from `Int` with `-1` absence to `Option<Int>`.
+- Repointed class and role method declaration reconstruction in
+  `decl_lower.pgy` to consume that lookup with `IsSome` / `UnwrapOption`.
+- Tightened the component contract so the owner signature and consumer path
+  stay Option-based, and lowered the Pergyra-likeness ratchet from
+  `sentinel <= 32` to `sentinel <= 30`; `result_use` rose from 85 to 91.
+
 ### 2026-06-30 -- Codegen boolean operator scanner stops using integer sentinel
 
 - Changed `FindTopLevelOp2` in `codegen/text/expr_scan.pgy` from `Int` with

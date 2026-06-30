@@ -109,21 +109,21 @@ func RoutineBlocksStart(json: String, routine_name_end: Int, span_end: Int) -> I
     return -1;
 }
 
-func FindRoutineByOwnerName(json: String, owner: String, name: String) -> Int {
+func FindRoutineByOwnerName(json: String, owner: String, name: String) -> Option<Int> {
     let rpos: Int = FindRoutine(json, 0);
     while rpos >= 0 {
         let nend: Int = RoutineNameEnd(json, rpos);
         if nend < 0 {
-            return -1;
+            return None;
         }
         let routine: String = RoutineName(json, rpos);
         let span_end: Int = RoutineSpanEnd(json, nend);
         let kind: String = RoutineKind(json, rpos, nend, span_end);
         let ro: String = RoutineOwner(json, rpos, nend, span_end);
         if kind == "method" && ro == owner && routine == name {
-            return rpos;
+            return Some(rpos);
         }
         rpos = FindRoutine(json, span_end);
     }
-    return -1;
+    return None;
 }
