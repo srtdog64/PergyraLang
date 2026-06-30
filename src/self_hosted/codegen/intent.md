@@ -31,9 +31,9 @@ participant, not a zone.
 - `AstTextInventoryOwner` owns the transitional AST-text node inventory and
   declaration/signature row facts. It is an input fact boundary, not a generic
   parser helper.
-- `AstTextStatementOwner` owns transitional statement-row facts for control flow
-  and simple/collection mutation statements. Statement emitters consume this
-  owner instead of slicing AST text locally.
+- `AstTextStatementOwner` owns transitional statement-row facts for control flow,
+  bare call statements, and simple/collection mutation statements. Statement
+  emitters consume this owner instead of slicing AST text locally.
 - `CompilerSymbolTableOwner` owns emitted-symbol spelling rows consumed by the
   self-host C subset. Codegen reads that compiler-world owner directly instead
   of keeping a second C-only mangle owner.
@@ -113,9 +113,9 @@ declaration routing predicates, declaration collector prepass facts, function
 signature/header facts, and cursor expectation checks.
 `input/ast_text_statement_owner.pgy` owns statement-row facts, including
 `Let`, `Assign`, `Log`, `Return`, `Defer`, `ArrayPop`, `ArraySet`,
-`ArrayPush`, `Exit`, `Break`, `Continue`, `For`, `While`, `If`, and `Else`
-routing. `GenerateC` and statement emission consume those owners and must not
-recover those facts locally.
+`ArrayPush`, `Exit`, `Break`, `Continue`, `For`, `While`, `If`, `Else`
+routing, and bare call statements. `GenerateC` and statement emission consume
+those owners and must not recover those facts locally.
 Parameter mode is part of that input contract: `pgy --ast` must preserve
 `inout`, `own`, and `ref` parameter rows. This codegen rung consumes `inout`
 through function-env `pm` facts, lowers it as value-result copy-in/copy-out, and

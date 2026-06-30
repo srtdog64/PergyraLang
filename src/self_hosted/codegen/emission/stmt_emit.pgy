@@ -399,10 +399,11 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int,
             } else {
                 result = Concat(result, Concat(pad, "}\n"));
             }
-        } else if IsSingleCall(t) {
+        } else if CodegenAstTextIsBareCallStmt(nodes[idx]) {
             // Bare function-call statement, e.g. `Die(Concat(...))` or a void
             // user call. Arguments lower through the same RewriteExpr pipeline.
-            result = Concat(result, Concat(pad, Concat(RewriteExpr(t, env_box[0]), ";\n")));
+            let call_expr: String = CodegenAstTextBareCallExpr(nodes[idx]);
+            result = Concat(result, Concat(pad, Concat(RewriteExpr(call_expr, env_box[0]), ";\n")));
             ArraySet(cur, 0, idx + 1);
         } else {
             Die(Concat("unsupported AST line in supported subset: ", t));

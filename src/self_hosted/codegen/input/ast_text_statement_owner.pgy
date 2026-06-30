@@ -69,6 +69,10 @@ func CodegenAstTextIsElseStmt(node: CodegenAstTextNode) -> Bool {
     return node.text == "Else:";
 }
 
+func CodegenAstTextIsBareCallStmt(node: CodegenAstTextNode) -> Bool {
+    return IsSingleCall(node.text);
+}
+
 func CodegenAstTextLetPayload(node: CodegenAstTextNode) -> String {
     return CodegenAstTextPayloadAfter(node, "Let: ", "let statement");
 }
@@ -312,4 +316,11 @@ func CodegenAstTextHasElseAt(nodes: Array<CodegenAstTextNode>, count: Int, index
 
 func CodegenAstTextIsElseIfAt(nodes: Array<CodegenAstTextNode>, count: Int, index: Int) -> Bool {
     return index < count && CodegenAstTextIsIfStmt(nodes[index]);
+}
+
+func CodegenAstTextBareCallExpr(node: CodegenAstTextNode) -> String {
+    if !CodegenAstTextIsBareCallStmt(node) {
+        Die(Concat("expected bare call statement AST line: ", node.text));
+    }
+    return node.text;
 }

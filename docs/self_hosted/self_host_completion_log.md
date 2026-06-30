@@ -2470,3 +2470,14 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   dispatch and parsing shapes in `stmt_emit.pgy`. The remaining bridge surfaces
   are bare call statements and expression payload parsing; the mixed AST-like
   tree blocker remains active until typed/tagged AST rows replace line text.
+
+### 2026-06-30 -- Bare call statement facts move behind the statement owner
+
+- Added owner-owned bare-call statement predicate and expression accessors to
+  `ast_text_statement_owner.pgy`.
+- Repointed `stmt_emit.pgy` so void/user call statements consume the statement
+  owner instead of calling `IsSingleCall` on raw `node.text` in the emitter.
+- Tightened the component contract to reject the old bare-call `IsSingleCall(t)`
+  and `RewriteExpr(t, ...)` path. The remaining bridge surface is expression
+  payload parsing; the mixed AST-like tree blocker remains active until
+  typed/tagged AST rows replace line text.

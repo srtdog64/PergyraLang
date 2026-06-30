@@ -520,6 +520,7 @@ require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func 
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsWhileStmt"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsIfStmt"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsElseStmt"
+require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsBareCallStmt"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLetName"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLetTypeName"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLetInitializer"
@@ -543,6 +544,7 @@ require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func 
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIfCondition"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextHasElseAt"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsElseIfAt"
+require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextBareCallExpr"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsLetStmt"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextLetName"
 require_text "src/self_hosted/codegen/main.pgy" 'import "input/ast_text_statement_owner.pgy";'
@@ -676,6 +678,8 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextIsI
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextIfCondition(nodes[idx])"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextHasElseAt(nodes, count, cur[0], stmt_indent)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextIsElseIfAt(nodes, count, cur[0])"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextIsBareCallStmt(nodes[idx])"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextBareCallExpr(nodes[idx])"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextExpect(texts"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitStmtList(indents:"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "texts["
@@ -705,6 +709,8 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'StringIndexOf(rang
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'Substring(t, 5'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'Substring(t, 7'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'Substring(t, 4'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'IsSingleCall(t)'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'RewriteExpr(t, env_box[0])'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'Substring(line, 5'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'Substring(line, 8'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'let a_inner: String = Substring(t, 9'
