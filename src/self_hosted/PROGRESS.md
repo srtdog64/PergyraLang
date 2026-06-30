@@ -38,10 +38,10 @@ The codegen entrypoint is now split into thin `main.pgy` orchestration plus
 resource-owner folders: `input/` for AST path/read ownership and AST-text line
 inventory ownership, including marker-node predicates and
 function/return/enum/nominal/role/parameter/field payload accessors plus
-simple statement fact accessors (`Let`, `Assign`, `Log`, `Return`, `Defer`,
-`ArrayPop`, `Exit`, `Break`, `Continue`) and collection mutation statement fact
-accessors (`ArraySet`, `ArrayPush`) for the transitional `pgy --ast`
-bridge, `run/` for the
+statement fact ownership in `ast_text_statement_owner.pgy` for `Let`, `Assign`,
+`Log`, `Return`, `Defer`, `ArrayPop`, `ArraySet`, `ArrayPush`, `Exit`, `Break`,
+`Continue`, `For`, `While`, `If`, and `Else`/`else if` routing for the
+transitional `pgy --ast` bridge, `run/` for the
 CLI boundary, `text/` for text/expression scanning, `type_facts/` for type
 evidence, compiler-world symbol rows for emitted-symbol spelling,
 `abi_layout/` for self-host C ABI type spelling, `runtime_abi/` for `Array<Int>` /

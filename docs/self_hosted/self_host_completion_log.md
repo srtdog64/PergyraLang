@@ -2456,3 +2456,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   AST-text dispatch and argument splitting in `stmt_emit.pgy`. The remaining
   statement-body bridge surfaces are control-flow statements, else-if routing,
   bare call statements, and expression payload parsing.
+
+### 2026-06-30 -- Control-flow statement facts move behind the statement owner
+
+- Split `src/self_hosted/codegen/input/ast_text_statement_owner.pgy` out from
+  the AST-text inventory owner so statement rows have their own fact boundary
+  instead of inflating the node-inventory owner.
+- Added owner-owned accessors for `For`, `While`, `If`, `Else`, and `else if`
+  routing facts. `stmt_emit.pgy` now consumes loop variables, range bounds,
+  foreach collections, conditions, and else routing through that owner instead
+  of slicing AST text locally.
+- Tightened the component contract to reject the old control-flow string
+  dispatch and parsing shapes in `stmt_emit.pgy`. The remaining bridge surfaces
+  are bare call statements and expression payload parsing; the mixed AST-like
+  tree blocker remains active until typed/tagged AST rows replace line text.

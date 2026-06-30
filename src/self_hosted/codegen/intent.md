@@ -28,6 +28,12 @@ participant, not a zone.
   signature, local declaration, and field subset. It is not the full
   cross-backend row projection; that remains an active expansion surface until
   C/LLVM also consume the same ABI rows.
+- `AstTextInventoryOwner` owns the transitional AST-text node inventory and
+  declaration/signature row facts. It is an input fact boundary, not a generic
+  parser helper.
+- `AstTextStatementOwner` owns transitional statement-row facts for control flow
+  and simple/collection mutation statements. Statement emitters consume this
+  owner instead of slicing AST text locally.
 - `CompilerSymbolTableOwner` owns emitted-symbol spelling rows consumed by the
   self-host C subset. Codegen reads that compiler-world owner directly instead
   of keeping a second C-only mangle owner.
@@ -72,6 +78,8 @@ Concrete split for the current codegen cluster:
 | emitted C text buffer | yes | single mutable output resource |
 | type environment | yes | separate read-mostly type-fact resource |
 | ABI layout facts | yes | separate read-only layout/ownership-shape fact resource |
+| AST text node inventory | bridge owner, not final zone | transitional `pgy --ast` node rows until a tagged AST owner replaces line text |
+| AST text statement rows | bridge owner, not final zone | statement facts are consumed from one owner while the text bridge remains active |
 | self-host C ABI type spelling | owner, not zone yet | canonical C spelling for supported signatures, locals, and fields |
 | symbol/name-mangling facts | compiler-world owner, not codegen zone | read-only canonical spelling rows for supported self-host emission |
 | collection runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host array runtime calls, including the bootstrap typed AST-line record array |
@@ -84,8 +92,8 @@ Concrete split for the current codegen cluster:
 The filesystem mirrors that owner shape without pretending that every action is
 a zone:
 
-- `input/` owns AST path/read boundaries and the transitional AST-text line
-  inventory.
+- `input/` owns AST path/read boundaries plus the transitional AST-text
+  inventory and statement-row fact owners.
 - `run/` owns the CLI orchestration boundary.
 - `text/` owns reusable text and expression scanning facts.
 - `type_facts/` owns read-mostly type evidence.
@@ -102,9 +110,12 @@ path selection, the missing-file diagnostic, and the file-read boundary.
 `CodegenAstTextNode` inventory, indent counting, parent edges, coarse node
 kinds, blank-line filtering, `[export]` line normalization, program/function
 declaration routing predicates, declaration collector prepass facts, function
-signature/header facts, statement body read facts, and cursor expectation
-checks.
-`GenerateC` consumes that inventory and must not recover those facts locally.
+signature/header facts, and cursor expectation checks.
+`input/ast_text_statement_owner.pgy` owns statement-row facts, including
+`Let`, `Assign`, `Log`, `Return`, `Defer`, `ArrayPop`, `ArraySet`,
+`ArrayPush`, `Exit`, `Break`, `Continue`, `For`, `While`, `If`, and `Else`
+routing. `GenerateC` and statement emission consume those owners and must not
+recover those facts locally.
 Parameter mode is part of that input contract: `pgy --ast` must preserve
 `inout`, `own`, and `ref` parameter rows. This codegen rung consumes `inout`
 through function-env `pm` facts, lowers it as value-result copy-in/copy-out, and

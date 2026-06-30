@@ -227,19 +227,20 @@ Self-hosted codegen is a backend resource cluster:
 `program_emit`, `function_emit`, `stmt_emit`, `expr_rewrite`, and
 `struct_value_emit` are not zones. They are action participants over the same
 output and type resources. A new zone appears only when there is a new distinct
-resource, such as a mutable cross-backend symbol/name-mangling table. The
-current `input/ast_text_inventory_owner.pgy` is a read-only bridge owner for
-raw AST-text line splitting, typed `CodegenAstTextNode` inventory, indentation,
-blank-line filtering, and `[export]` normalization, plus cursor expectation
-diagnostics. It does not close the mixed AST-like tree owner; it only prevents
-emission participants from each recovering line inventory facts locally. It now
-also owns marker-node predicates and the bridge payload accessors for function
-names, return types, enum names/variants, nominal names, role names and `for`
-types, parameter mode/name/type rows, field name/type rows, the first
-statement-level rows for `Let`, `Assign`, `Log`, `Return`, `Defer`, `ArrayPop`,
-`Exit`, `Break`, and `Continue`, and collection mutation statement rows for
-`ArraySet` / `ArrayPush`; emission participants consume those accessors
-instead of carrying local AST-text parsers. The
+resource, such as a mutable cross-backend symbol/name-mangling table.
+
+The current `input/` bridge has two explicit fact owners:
+
+- `ast_text_inventory_owner.pgy` owns raw AST-text line splitting, typed
+  `CodegenAstTextNode` inventory, indentation, parent/kind rows, blank-line
+  filtering, `[export]` normalization, marker-node predicates, declaration and
+  signature payload accessors, and cursor expectation diagnostics.
+- `ast_text_statement_owner.pgy` owns statement-row facts for `Let`, `Assign`,
+  `Log`, `Return`, `Defer`, `ArrayPop`, `ArraySet`, `ArrayPush`, `Exit`,
+  `Break`, `Continue`, `For`, `While`, `If`, and `Else`/`else if` routing.
+
+This does not close the mixed AST-like tree owner; it only prevents emission
+participants from each recovering inventory or statement facts locally. The
 current `program_emit.pgy`, declaration collectors, function signature
 emission, and statement body emission consume typed nodes for program-level
 declaration routing, `Main` counting, event rejection, owner skipping,
@@ -380,6 +381,13 @@ are floors, not scores. Adding fake zones or one-intent-per-helper files does
 not make the compiler more Pergyra-like; the floor only prevents the root
 world, resource ownership boundaries, and intent-bound zone steps from
 disappearing while the bootstrap grows.
+
+A low keyword density inside `codegen/` is not itself a failure. The failure
+would be a codegen slice that hides resource ownership, re-parses facts locally,
+or lets `main.pgy` become the flow owner. Pergyra-likeness is measured by the
+visible `PgyCompilerWorld` topology and by fact owners such as
+`ast_text_statement_owner.pgy`, `TypeEnvZone`, `AbiLayoutZone`, and
+`EmissionZone` owning the decisions they consume.
 
 ### Current-To-Target Mapping
 
