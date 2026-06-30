@@ -98,7 +98,8 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/codegen/input/ast_text_inventory_owner.pgy` -- AST text line inventory, kind row facts, and cursor expectation boundary.
 - `src/self_hosted/codegen/input/ast_text_statement_owner.pgy` -- AST text statement-row fact accessors for the transitional bridge.
 - `src/self_hosted/codegen/input/ast_usage_owner.pgy` -- runtime/header usage facts derived from the AST text node inventory.
-- `src/self_hosted/codegen/typed_ast_node_skeleton.pgy` -- typed AST arena migration target for retiring the AST text bridge.
+- `src/self_hosted/codegen/typed_ast_node_skeleton.pgy` -- typed AST arena
+  payload contract and migration target for retiring the AST text bridge.
 - `src/self_hosted/codegen/run/codegen_run_owner.pgy` -- codegen CLI run boundary.
 - `src/self_hosted/codegen/text/text_owner.pgy` -- text/token scanning primitives.
 - `src/self_hosted/codegen/text/expr_scan.pgy` -- expression text scanning.

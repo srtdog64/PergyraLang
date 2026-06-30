@@ -362,7 +362,7 @@ The realistic incremental path toward genuine self-host:
    oracle. Recursive import expansion is now owned by `source_bundle_owner.pgy`,
    and the import-backed call fixture proves signatures are consumed from the
   source bundle instead of from a hidden single-file `main` assumption. The
-  real-source selfcheck now feeds 89 accepted self-host owner/source files
+  real-source selfcheck now feeds 90 accepted self-host owner/source files
    through that source-bundle owner rather than a generated import-stripped
    unit. The accepted manifest spans lexer/parser/mir-lower/codegen/compiler-world
   entrypoints, the compiler path manifest owner, target-capability envelope
@@ -458,11 +458,12 @@ beyond the lexer:
   `HashMap<String, List<HashMap<Int, Array<String>>>>` fixture prove user
   classes/records and nested generics across C/LLVM-facing gates. These
   mixed tree shapes are parser/backend evidence, not compiler-model
-  substitution. It is still not yet a self-hosted compiler AST model: current
-  self-hosted parser and codegen rungs consume text AST artifacts instead of
-  owning a mixed tagged-node tree in Pergyra. The next closure is a compiler
-  pass that owns explicit Pergyra node records/classes and proves traversal
-  against the C oracle.
+  substitution. The first self-hosted compiler AST model contract now exists in
+  `src/self_hosted/codegen/typed_ast_node_skeleton.pgy`: it owns a flat typed
+  arena vocabulary, explicit child lookup, atom lookup, and a small traversal
+  payload fixture. Current parser and codegen rungs still consume text AST
+  artifacts; the next closure is making those passes consume the typed arena
+  with oracle parity.
 - **Raw pointer / FFI** -- if a Pergyra component needs to call into
   the C compiler's runtime (e.g. share the diagnostic emitter), there
   is no stable FFI today. This is intentional for the current compiler-pass

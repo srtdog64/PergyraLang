@@ -551,6 +551,14 @@ require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func 
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextFieldType"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextNodeInventory"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextExpectNode"
+require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "func TypedAstArenaPayloadContractReady"
+require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "func TypedAstArenaPayloadSchema"
+require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "pgy.selfhost.typed-ast-arena.v1"
+require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "struct AstArena"
+require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "struct AstNode"
+require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "func ChildAt"
+require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "func AtomText"
+reject_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "SKELETON"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'import "ast_text_inventory_owner.pgy";'
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsLetStmt"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsAssignStmt"
@@ -1005,6 +1013,7 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/c
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/world.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/main.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/input/ast_usage_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/typed_ast_node_skeleton.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/input/ast_text_inventory_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy"'
@@ -1201,8 +1210,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 89 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 89"
+[[ "$selfcheck_count" -eq 90 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 90"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirFactObjectStart"

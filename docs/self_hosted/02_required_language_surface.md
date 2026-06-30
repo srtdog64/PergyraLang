@@ -65,9 +65,13 @@ practical. It is not a request to add new syntax before beta.
   diagnostics instead of raw access. Self-hosted compiler passes must use file,
   process, or stable ABI boundaries until a real FFI contract lands.
 - Arbitrary tree representation is partially proven by parser/backend fixtures
-  over user classes and nested generics. It is not yet a self-hosted compiler
-  AST model; hard self-host cannot claim AST replacement until a Pergyra pass
-  owns such a mixed tree and has oracle parity.
+  over user classes and nested generics. The first self-hosted compiler AST
+  model contract now lives in
+  `src/self_hosted/codegen/typed_ast_node_skeleton.pgy`: it owns the flat typed
+  arena vocabulary, explicit child lookup, atom lookup, and a small traversal
+  payload contract. Hard self-host still cannot claim AST replacement until
+  parser/codegen consume that typed arena with oracle parity; current
+  parser/codegen rungs still consume text AST artifacts.
 
 ## Explicitly Not Required
 

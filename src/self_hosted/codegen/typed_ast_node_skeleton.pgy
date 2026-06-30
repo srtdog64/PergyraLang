@@ -1,39 +1,27 @@
 // src/self_hosted/codegen/typed_ast_node_skeleton.pgy
 //
-// SKELETON (2026-06-26) — the typed AST node model the self-host compiler should
-// grow into, replacing the text core.
+// Typed AST arena payload contract owner. This is the migration target for
+// replacing the AST text bridge with owned node records.
 //
 // WHY THIS EXISTS
 // ---------------
 // Today the self-host compiler is text->text: `GenerateC(ast: String) -> String`,
-// and the "typed" compiler-world objects are veneers — `object AstTree { schema:
+// and the "typed" compiler-world objects are veneers: `object AstTree { schema:
 // String; }` carries the whole tree as a serialized String. Because the core
 // datum is String, every lookup falls back to `-1` sentinels and every transform
 // is `(...: String) -> String` munging. That is C-shaped code passing through the
-// Pergyra parser; it is NOT idiomatic Pergyra. (Measured + ratcheted by
-// tests/self_host_pergyra_likeness_smoke.sh.)
-//
-// THE LINCHPIN
-// ------------
-// Give the AST a typed representation and the rest cascades: lookups return
-// `Option`, not `-1`; transforms take typed nodes, not String; `AstTree.schema:
-// String` becomes `AstTree { nodes: Array<...>, ... }`.
+// Pergyra parser; it is not idiomatic Pergyra. This file owns the first payload
+// contract for a typed arena that future parser/codegen cutover slices can
+// consume.
 //
 // BOOTSTRAP-COMPATIBLE SHAPE
 // --------------------------
 // Recursive enum payloads are not lowered by the current self-host rungs, so this
-// uses the classic *flat arena*: nodes live in parallel arrays indexed by a NodeId
-// (an Int), children are NodeId edges, and textual atoms (identifiers, literals)
-// are interned into a string table so the node records themselves stay
-// String-free. NodeKind is a payload-free enum (already lowered). Not-found is
-// `Option`, never a sentinel.
-//
-// This file is a parse-verified skeleton: it fixes the shape and the idioms.
-// Filling it (parser emits these nodes; codegen consumes them) is the migration
-// that drives string_munge_sig / ast_string_surface / sentinel toward zero.
+// uses a flat arena: nodes live in arrays indexed by a NodeId (an Int), children
+// are NodeId edges, and textual atoms (identifiers, literals) are interned into
+// a string table. NodeKind is payload-free. Not-found is Option, never a
+// sentinel.
 
-// A node's syntactic category. Payload-free — the discriminant only; structure
-// lives in the arena edges below.
 enum NodeKind {
     Program,
     FuncDecl,
@@ -58,48 +46,94 @@ enum NodeKind {
     TypeRef
 }
 
-// A NodeId is an index into the arena's parallel arrays. -1 is never used; a
-// missing edge is encoded as an absent Option at the lookup boundary, and a
-// "no child here" slot is its own NodeKind-tagged emptiness, not a magic Int.
-// (Kept as Int for arena indexing only; it never leaks as a sentinel.)
+// A NodeId is an index into the arena's parallel arrays. Missing edges are
+// represented as absent Option values at lookup boundaries.
 
-// One node record. `atom` indexes the interned string table for nodes that carry
-// text (Ident name, StringLit value, operator spelling); non-text nodes leave it
-// unset via the table's empty slot. `first_child` / `child_count` describe a
-// contiguous run in the `children` edge array.
 struct AstNode {
     kind: NodeKind;
     atom: Int;
+    has_atom: Bool;
     first_child: Int;
     child_count: Int;
 }
 
-// The whole tree as owned, typed data — the shape `object AstTree { schema:
-// String; }` must become. No String carries structure; only interned atoms do.
 struct AstArena {
     nodes: Array<Int>;        // placeholder until Array<AstNode> field-lowering lands
     children: Array<Int>;     // flattened child NodeId edges
     atom_table: Array<String>; // interned identifier/literal text
 }
 
-// Lookup the i-th child NodeId of `node`, as data — NOT a -1 sentinel. This is
-// the idiom the whole compiler should use in place of `>= 0` / `== -1` checks.
-func ChildAt(arena: AstArena, node: AstNode, i: Int) -> Option<Int> {
+func ChildAtFromEdges(children: Array<Int>, first_child: Int, child_count: Int, i: Int) -> Option<Int> {
     if i < 0 {
         return None;
     }
-    if i >= node.child_count {
+    if i >= child_count {
         return None;
     }
-    let edge: Int = node.first_child + i;
-    return Some(ArrayGet(arena.children, edge));
+    let edge: Int = first_child + i;
+    return Some(ArrayGet(children, edge));
 }
 
-// Resolve an interned atom for a node, as data. Non-text nodes return None
-// instead of an empty-string-or-(-1) ambiguity.
-func AtomText(arena: AstArena, node: AstNode) -> Option<String> {
-    if node.atom < 0 {
+func ChildAt(arena: AstArena, node: AstNode, i: Int) -> Option<Int> {
+    return ChildAtFromEdges(arena.children, node.first_child, node.child_count, i);
+}
+
+func AtomTextFromTable(atom_table: Array<String>, has_atom: Bool, atom: Int) -> Option<String> {
+    if !has_atom {
         return None;
     }
-    return Some(ArrayGet(arena.atom_table, node.atom));
+    return Some(ArrayGet(atom_table, atom));
+}
+
+func AtomText(arena: AstArena, node: AstNode) -> Option<String> {
+    return AtomTextFromTable(arena.atom_table, node.has_atom, node.atom);
+}
+
+func TypedAstArenaPayloadSchema() -> String {
+    return "pgy.selfhost.typed-ast-arena.v1";
+}
+
+func TypedAstArenaPayloadFixtureCount() -> Int {
+    return 1;
+}
+
+func TypedAstArenaRootTraversalReady() -> Bool {
+    let children: Array<Int> = [1];
+    let atom_table: Array<String> = ["", "Main"];
+
+    let first_child: Option<Int> = ChildAtFromEdges(children, 0, 1, 0);
+    if !IsSome(first_child) {
+        return false;
+    }
+    if UnwrapOption(first_child) != 1 {
+        return false;
+    }
+    if IsSome(ChildAtFromEdges(children, 0, 1, 1)) {
+        return false;
+    }
+    if IsSome(AtomTextFromTable(atom_table, false, 0)) {
+        return false;
+    }
+
+    let atom: Option<String> = AtomTextFromTable(atom_table, true, 1);
+    if !IsSome(atom) {
+        return false;
+    }
+    if UnwrapOption(atom) != "Main" {
+        return false;
+    }
+    return true;
+}
+
+func TypedAstArenaPayloadContractReady() -> Bool {
+    if TypedAstArenaPayloadSchema() != "pgy.selfhost.typed-ast-arena.v1" {
+        return false;
+    }
+    if TypedAstArenaPayloadFixtureCount() != 1 {
+        return false;
+    }
+    if !TypedAstArenaRootTraversalReady() {
+        return false;
+    }
+    return true;
 }

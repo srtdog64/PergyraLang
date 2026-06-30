@@ -61,7 +61,7 @@ SH_DIR="$ROOT_DIR/src/self_hosted"
 STRING_MUNGE_SIG_MAX=161
 AST_STRING_SURFACE_MAX=4
 SENTINEL_MAX=18
-RESULT_USE_MIN=149
+RESULT_USE_MIN=153
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=17
 COMPILER_WORLD_MEMBERS_EXACT=17
@@ -70,6 +70,7 @@ COMPILER_ZONE_BOUND_STEPS_MIN=27
 COMPILER_STAGE_BINDINGS_EXACT=5
 COMPILER_WORLD_STUB_ACTIONS_MAX=0
 COMPILER_STAGE_ENVELOPE_ONLY_MAX=0
+TYPED_AST_CONTRACT_MIN=1
 
 fail() {
     echo "[self-host-likeness] FAIL" >&2
@@ -211,6 +212,8 @@ compiler_world_stub_actions=$(count_lines_in_files '^[[:space:]]*return true;' \
     src/self_hosted/compiler/world.pgy)
 compiler_stage_envelope_only=$(count_lines_in_files 'return[[:space:]]+CompilerStageArtifactRowReady' \
     src/self_hosted/compiler/stage_artifact_owner.pgy)
+typed_ast_contract=$(count_lines_in_files 'func[[:space:]]+TypedAstArenaPayloadContractReady' \
+    src/self_hosted/codegen/typed_ast_node_skeleton.pgy)
 
 echo "[self-host-likeness] metrics (current vs baseline):"
 echo "  string_munge_sig   : $string_munge_sig  (max $STRING_MUNGE_SIG_MAX)   <- text->text functions; linchpin"
@@ -225,6 +228,7 @@ echo "  zone_bound_steps   : $compiler_zone_bound_steps  (min $COMPILER_ZONE_BOU
 echo "  stage_bindings     : $compiler_stage_bindings  (exact $COMPILER_STAGE_BINDINGS_EXACT)  <- stage intent docs bound to compiler world"
 echo "  world_stub_actions : $compiler_world_stub_actions  (max $COMPILER_WORLD_STUB_ACTIONS_MAX)     <- compiler-world scaffold actions"
 echo "  stage_envelope_only: $compiler_stage_envelope_only  (max $COMPILER_STAGE_ENVELOPE_ONLY_MAX)     <- stage readiness only proves envelope facts"
+echo "  typed_ast_contract : $typed_ast_contract  (min $TYPED_AST_CONTRACT_MIN)     <- typed AST arena migration owner"
 
 # ---- bad metrics: current must not exceed baseline ----
 if [ "$string_munge_sig" -gt "$STRING_MUNGE_SIG_MAX" ]; then
@@ -265,6 +269,9 @@ fi
 if [ "$compiler_stage_envelope_only" -gt "$COMPILER_STAGE_ENVELOPE_ONLY_MAX" ]; then
     fail "stage_envelope_only rose to $compiler_stage_envelope_only (> $COMPILER_STAGE_ENVELOPE_ONLY_MAX). Stage readiness must move toward payload facts, not more envelope-only proofs."
 fi
+if [ "$typed_ast_contract" -lt "$TYPED_AST_CONTRACT_MIN" ]; then
+    fail "typed_ast_contract is $typed_ast_contract (< $TYPED_AST_CONTRACT_MIN). Hard self-host needs a typed AST arena owner, not only AST text bridge owners."
+fi
 
 require_compiler_world_zone "compiler" "SelfHostCompiler"
 require_compiler_world_zone "source_intake" "SourceIntakeZone"
@@ -301,7 +308,8 @@ if [ "$string_munge_sig" -lt "$STRING_MUNGE_SIG_MAX" ] \
     || [ "$sentinel" -lt "$SENTINEL_MAX" ] \
     || [ "$result_use" -gt "$RESULT_USE_MIN" ] \
     || [ "$compiler_world_stub_actions" -lt "$COMPILER_WORLD_STUB_ACTIONS_MAX" ] \
-    || [ "$compiler_stage_envelope_only" -lt "$COMPILER_STAGE_ENVELOPE_ONLY_MAX" ]; then
+    || [ "$compiler_stage_envelope_only" -lt "$COMPILER_STAGE_ENVELOPE_ONLY_MAX" ] \
+    || [ "$typed_ast_contract" -gt "$TYPED_AST_CONTRACT_MIN" ]; then
     echo "[self-host-likeness] NOTE: a metric improved past its baseline; tighten the baselines in $0 in this commit so the ratchet stays strict."
 fi
 

@@ -55,6 +55,7 @@ SELF_SOURCES=(
     "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy"
     "src/self_hosted/codegen/input/ast_usage_owner.pgy"
     "src/self_hosted/codegen/main.pgy"
+    "src/self_hosted/codegen/typed_ast_node_skeleton.pgy"
     "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy"
     "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy"
     "src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy"

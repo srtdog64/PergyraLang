@@ -135,6 +135,21 @@ rewrite history.
   readiness functions now consume a payload contract after their
   path/world-binding envelope.
 
+## 2026-06-30 - Typed AST arena payload contract
+
+- Promoted `src/self_hosted/codegen/typed_ast_node_skeleton.pgy` from a
+  parse-only migration sketch to the first typed AST arena payload contract.
+  It now owns the `pgy.selfhost.typed-ast-arena.v1` schema, `AstArena`,
+  `AstNode`, explicit `ChildAt` traversal, `AtomText` lookup, and a small
+  root traversal fixture.
+- Added a `typed_ast_contract` floor to
+  `tests/self_host_pergyra_likeness_smoke.sh` and component-contract checks so
+  the mixed AST-like tree owner cannot disappear while parser/codegen still use
+  the transitional AST text bridge.
+- This does not retire the bridge yet. It creates the typed owner that future
+  parser/codegen cutover slices must consume before hard self-host can claim AST
+  replacement.
+
 ## Verified state (rolling)
 
 - **Lexer**: self-hosts on C+LLVM. Byte-identical to `pgy --tokens` across the 7
