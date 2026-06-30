@@ -90,6 +90,16 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-30 -- Float math call spelling consumes MathRuntimeOwner
+
+- Added `MathRuntimeCSqrtFn`, `MathRuntimeCPowFn`, `MathRuntimeCFloorFn`, and
+  `MathRuntimeCCeilFn` to `runtime_abi/math_runtime_owner.pgy`.
+- Repointed self-host C expression rewrite for `Sqrt`, `Pow`, `Floor`, and
+  `Ceil` so the emitter consumes owner facts instead of local `"sqrt("` /
+  `"pow("` / `"floor("` / `"ceil("` string literals.
+- Tightened the component contract to require those owner functions and reject
+  the old expression-local target-library spellings.
+
 ### 2026-06-30 -- Stage path manifest carries compiler-world bindings
 
 - Added `CompilerStageWorldBindingAt` to

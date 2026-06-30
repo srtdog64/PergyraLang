@@ -738,6 +738,10 @@ require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" 
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "ArrayCodegenAstTextNode"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "Array<String: String>"
 require_text "src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy" "func MathRuntimeCAbsFn"
+require_text "src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy" "func MathRuntimeCSqrtFn"
+require_text "src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy" "func MathRuntimeCPowFn"
+require_text "src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy" "func MathRuntimeCFloorFn"
+require_text "src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy" "func MathRuntimeCCeilFn"
 require_text "src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy" "func MathRuntimeCRandomFn"
 require_text "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy" "func HostIORuntimeCFileExistsFn"
 require_text "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy" "func HostIORuntimeCArgsFn"
@@ -762,6 +766,10 @@ require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "StringRuntimeC
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "StringRuntimeCConcatFn"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "StringRuntimeCLogFn"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "MathRuntimeCAbsFn"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "MathRuntimeCSqrtFn"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "MathRuntimeCPowFn"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "MathRuntimeCFloorFn"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "MathRuntimeCCeilFn"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "HostIORuntimeCFileExistsFn"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "OptionResultRuntimeCOptionSomeFn"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "OptionResultRuntimeCResultOkFn"
@@ -773,6 +781,10 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'return Concat("con
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'return Concat("pgy_result_int "'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'return Concat("pgy_option_int "'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'let arr_c: String = "pgy_ai"'
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" '"sqrt("'
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" '"pow("'
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" '"floor("'
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" '"ceil("'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'let elem_c: String = "long long"'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'for (long long '
 reject_text "src/self_hosted/codegen/text/expr_scan.pgy" '"pgy_ai_len"'

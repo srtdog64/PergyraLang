@@ -186,9 +186,9 @@ canonical collection kind facts at that owner boundary.
 `program_emit.pgy` remains the generated helper definition host; expression and
 statement emitters must consume `collection_runtime_owner.pgy` instead of
 locally spelling `pgy_ai_*` / `pgy_as_*` helper names.
-`runtime_abi/math_runtime_owner.pgy` owns C math/random runtime helper symbol
-spelling for the supported `Abs` / `Min` / `Max` / `SeedRandom` / `Random`
-subset.
+`runtime_abi/math_runtime_owner.pgy` owns C math/random helper and
+target-library symbol spelling for the supported `Abs` / `Min` / `Max` /
+`Sqrt` / `Pow` / `Floor` / `Ceil` / `SeedRandom` / `Random` subset.
 `runtime_abi/host_io_runtime_owner.pgy` owns C host file/argv runtime helper
 symbol spelling for the supported file, directory-walk, and `Args()` subset.
 `runtime_abi/option_result_runtime_owner.pgy` owns C Option/Result runtime
@@ -203,9 +203,9 @@ and string `Log`). `program_emit.pgy` remains the generated helper definition
 host; expression and statement emitters must consume `string_runtime_owner.pgy`
 instead of locally spelling those `pgy_*` helper names.
 Expression/statement emitters should not locally spell `pgy_*` runtime helper
-names. Direct C standard-library spellings such as `sqrt`, `pow`, `floor`,
-`ceil`, `atof`, and `exit` remain target-library calls, not Pergyra runtime
-helper facts.
+names or supported target-library call names. `sqrt`, `pow`, `floor`, and
+`ceil` are math owner facts; remaining C library spellings such as `atof` and
+`exit` stay target-library calls until their boundary gets a dedicated owner.
 
 Parity gate: `tests/self_hosted/parity/codegen_parity.sh` builds `main.pgy` through
 the requested backend set, runs it on each of the 63 committed fixtures'

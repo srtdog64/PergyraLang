@@ -46,8 +46,9 @@ participant, not a zone.
   current AST-text bridge spelling `Array<Int: Int>` / `Array<String: String>` /
   `Array<CodegenAstTextNode: CodegenAstTextNode>` into canonical collection
   kind facts.
-- `MathRuntimeOwner` owns self-host C math/random runtime helper symbol spelling
-  for the supported `Abs` / `Min` / `Max` / `SeedRandom` / `Random` subset.
+- `MathRuntimeOwner` owns self-host C math/random helper and target-library
+  symbol spelling for the supported `Abs` / `Min` / `Max` / `Sqrt` / `Pow` /
+  `Floor` / `Ceil` / `SeedRandom` / `Random` subset.
 - `HostIORuntimeOwner` owns self-host C host file/argv runtime helper symbol
   spelling for the supported file, directory-walk, and `Args()` subset.
 - `OptionResultRuntimeOwner` owns self-host C Option/Result runtime helper
@@ -84,7 +85,7 @@ Concrete split for the current codegen cluster:
 | self-host C ABI type spelling | owner, not zone yet | canonical C spelling for supported signatures, locals, and fields |
 | symbol/name-mangling facts | compiler-world owner, not codegen zone | read-only canonical spelling rows for supported self-host emission |
 | collection runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host array runtime calls, including the bootstrap typed AST-line record array |
-| math/random runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host math/random runtime calls |
+| math/random helper and target-library symbols | owner, not zone yet | canonical C names for supported self-host math/random calls |
 | host I/O runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host file/argv runtime calls |
 | Option/Result runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host Option/Result runtime calls |
 | string/text runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host string/text builtin calls |

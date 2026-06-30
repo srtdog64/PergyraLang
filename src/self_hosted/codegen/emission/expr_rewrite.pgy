@@ -433,10 +433,10 @@ func RewriteTokens(e: String, env: String) -> String {
     let f5: String = ReplaceAllOutsideStrings(f4, "Abs(", Concat(MathRuntimeCAbsFn(), "("));
     let f6: String = ReplaceAllOutsideStrings(f5, "Min(", Concat(MathRuntimeCMinFn(), "("));
     let f7a: String = ReplaceAllOutsideStrings(f6, "Max(", Concat(MathRuntimeCMaxFn(), "("));
-    let f7b: String = ReplaceAllOutsideStrings(f7a, "Sqrt(", "sqrt(");
-    let f7c: String = ReplaceAllOutsideStrings(f7b, "Pow(", "pow(");
-    let f7d: String = ReplaceAllOutsideStrings(f7c, "Floor(", "floor(");
-    let f7e: String = ReplaceAllOutsideStrings(f7d, "Ceil(", "ceil(");
+    let f7b: String = ReplaceAllOutsideStrings(f7a, "Sqrt(", Concat(MathRuntimeCSqrtFn(), "("));
+    let f7c: String = ReplaceAllOutsideStrings(f7b, "Pow(", Concat(MathRuntimeCPowFn(), "("));
+    let f7d: String = ReplaceAllOutsideStrings(f7c, "Floor(", Concat(MathRuntimeCFloorFn(), "("));
+    let f7e: String = ReplaceAllOutsideStrings(f7d, "Ceil(", Concat(MathRuntimeCCeilFn(), "("));
     let f7seed: String = ReplaceAllOutsideStrings(f7e, "SeedRandom(", Concat(MathRuntimeCSeedRandomFn(), "("));
     let f7: String = ReplaceAllOutsideStrings(f7seed, "Random(", Concat(MathRuntimeCRandomFn(), "("));
     let g: String = ReplaceAllOutsideStrings(f7, "FileExists(", Concat(HostIORuntimeCFileExistsFn(), "("));
