@@ -56,7 +56,7 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int,
         ArraySet(cur, 0, cur[0] + 1);
     }
 
-    if cur[0] >= count || !StartsWith(nodes[cur[0]].text, "Returns:") {
+    if cur[0] >= count || !CodegenAstTextIsReturns(nodes[cur[0]]) {
         Die("expected Returns: line after parameters");
     }
     let ret_type: String = CodegenAstTextReturnType(nodes[cur[0]]);
@@ -142,8 +142,7 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int) -> String {
             let j: Int = i + 1;
             let rtype: String = "Void";
             while j < count && !CodegenAstTextIsFunction(nodes[j]) {
-                let ret_line: String = nodes[j].text;
-                if ret_line == "Parameters:" {
+                if CodegenAstTextIsParameters(nodes[j]) {
                     j = j + 1;
                     let modes: String = "";
                     while j < count && nodes[j].indent == indent + 4 {
@@ -153,7 +152,7 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int) -> String {
                     env = Concat(env, Concat(cname, Concat("=pm:", Concat(modes, "|"))));
                     continue;
                 }
-                if StartsWith(ret_line, "Returns:") {
+                if CodegenAstTextIsReturns(nodes[j]) {
                     rtype = CodegenAstTextReturnType(nodes[j]);
                     j = count;
                 } else {
@@ -201,7 +200,7 @@ func CollectStructs(nodes: Array<CodegenAstTextNode>, count: Int, inout env_box:
             let sname: String = CodegenAstTextNominalName(nodes[i]);
             let s_indent: Int = nodes[i].indent;
             let j: Int = i + 1;
-            if j < count && nodes[j].text == "Fields:" {
+            if j < count && CodegenAstTextIsFieldsHeader(nodes[j]) {
                 j = j + 1;
             }
             let fields_c: String = "";
@@ -232,30 +231,13 @@ func CollectEnums(nodes: Array<CodegenAstTextNode>, count: Int, inout env_box: A
     let block: String = "";
     let i: Int = 0;
     while i < count {
-        let line: String = nodes[i].text;
         if CodegenAstTextIsEnumDecl(nodes[i]) {
-            let brace: Int = StringIndexOf(line, " { ");
-            if brace < 0 || CharAt(line, StringLength(line) - 1) != "}" {
-                Die(Concat("malformed enum declaration: ", line));
-            }
-            let ename: String = Substring(line, 6, brace - 6);
-            let inner: String = StringTrim(Substring(line, brace + 3, StringLength(line) - (brace + 4)));
+            let ename: String = CodegenAstTextEnumName(nodes[i]);
+            let variant_total: Int = CodegenAstTextEnumVariantCount(nodes[i]);
             let value: Int = 0;
-            let rem: String = inner;
             let enum_c: String = "enum {\n";
-            while StringLength(rem) > 0 {
-                let comma: Int = FindTopLevelComma(rem);
-                let part: String = "";
-                if comma < 0 {
-                    part = StringTrim(rem);
-                    rem = "";
-                } else {
-                    part = StringTrim(Substring(rem, 0, comma));
-                    rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
-                }
-                if StringIndexOf(part, "(") >= 0 {
-                    Die(Concat("payload enum variants are not supported in self-host codegen subset: ", part));
-                }
+            while value < variant_total {
+                let part: String = CodegenAstTextEnumVariantNameAt(nodes[i], value);
                 let cname: String = CompilerSymbolCEnumVariantName(ename, part);
                 enum_c = Concat(enum_c, Concat("    ", Concat(cname, Concat(" = ", Concat(ToString(value), ",\n")))));
                 ArraySet(env_box, 0, Concat(env_box[0], Concat(ename, Concat(".", Concat(part, Concat("=e:", Concat(ToString(value), "|")))))));
@@ -312,7 +294,7 @@ func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, struct_env: Str
             if c_name != "Main" {
                 let f_indent: Int = indent;
                 let j: Int = i + 1;
-                if j < count && nodes[j].text == "Parameters:" {
+                if j < count && CodegenAstTextIsParameters(nodes[j]) {
                     j = j + 1;
                 }
                 let params: String = "";
@@ -338,7 +320,7 @@ func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, struct_env: Str
                     j = j + 1;
                 }
                 let rtype: String = "Void";
-                if j < count && StartsWith(nodes[j].text, "Returns:") {
+                if j < count && CodegenAstTextIsReturns(nodes[j]) {
                     rtype = CodegenAstTextReturnType(nodes[j]);
                 }
                 let plist: String = params;

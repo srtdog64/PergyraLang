@@ -478,6 +478,9 @@ require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let p
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let kind: Int"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextKindOf"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextParentIndex"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsParameters"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsReturns"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsFieldsHeader"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsFunction"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsMainFunction"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsNominalDecl"
@@ -486,6 +489,9 @@ require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func 
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsZeroArtifactDecl"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextFunctionName"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextReturnType"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextEnumName"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextEnumVariantCount"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextEnumVariantNameAt"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextNominalName"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextRoleName"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextRoleForType"
@@ -539,6 +545,12 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTex
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextParamName(nodes[cur[0]], owner_name)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextParamType(nodes[cur[0]], owner_name)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextReturnType(nodes[cur[0]])"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsReturns(nodes[cur[0]])"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsParameters(nodes[j])"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsFieldsHeader(nodes[j])"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextEnumName(nodes[i])"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextEnumVariantCount(nodes[i])"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextEnumVariantNameAt(nodes[i], value)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextNominalName(nodes[i])"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextRoleName(nodes[i])"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextRoleForType(nodes[i])"
@@ -562,6 +574,12 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func RoleDeclF
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func NominalDeclName"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func ParamLineMode"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func ParamLinePayload"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let ret_line: String = nodes[j].text"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'nodes[j].text == "Fields:"'
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'nodes[j].text == "Parameters:"'
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'StartsWith(nodes[j].text, "Returns:")'
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let line: String = nodes[i].text"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'StringIndexOf(line, " { ")'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'if StartsWith(line, "Function:")'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv(indents:"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectRoleOperators(indents:"

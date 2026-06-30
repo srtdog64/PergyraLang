@@ -54,6 +54,18 @@ func CodegenAstTextIsFunction(node: CodegenAstTextNode) -> Bool {
     return node.kind == 6;
 }
 
+func CodegenAstTextIsParameters(node: CodegenAstTextNode) -> Bool {
+    return node.kind == 2;
+}
+
+func CodegenAstTextIsReturns(node: CodegenAstTextNode) -> Bool {
+    return node.kind == 3;
+}
+
+func CodegenAstTextIsFieldsHeader(node: CodegenAstTextNode) -> Bool {
+    return node.kind == 4;
+}
+
 func CodegenAstTextIsMainFunction(node: CodegenAstTextNode) -> Bool {
     return CodegenAstTextIsFunction(node) && node.text == "Function: Main";
 }
@@ -92,6 +104,71 @@ func CodegenAstTextFunctionName(node: CodegenAstTextNode) -> String {
 
 func CodegenAstTextReturnType(node: CodegenAstTextNode) -> String {
     return StringTrim(CodegenAstTextPayloadAfter(node, "Returns:", "return type"));
+}
+
+func CodegenAstTextEnumBracePos(node: CodegenAstTextNode) -> Int {
+    let brace: Int = StringIndexOf(node.text, " { ");
+    if brace < 0 || CharAt(node.text, StringLength(node.text) - 1) != "}" {
+        Die(Concat("malformed enum declaration AST line: ", node.text));
+    }
+    return brace;
+}
+
+func CodegenAstTextEnumName(node: CodegenAstTextNode) -> String {
+    let brace: Int = CodegenAstTextEnumBracePos(node);
+    return Substring(node.text, 6, brace - 6);
+}
+
+func CodegenAstTextEnumVariantPayload(node: CodegenAstTextNode) -> String {
+    let brace: Int = CodegenAstTextEnumBracePos(node);
+    return StringTrim(Substring(node.text, brace + 3, StringLength(node.text) - (brace + 4)));
+}
+
+func CodegenAstTextEnumVariantCount(node: CodegenAstTextNode) -> Int {
+    let rem: String = CodegenAstTextEnumVariantPayload(node);
+    let count: Int = 0;
+    while StringLength(rem) > 0 {
+        let comma: Int = FindTopLevelComma(rem);
+        let part: String = "";
+        if comma < 0 {
+            part = StringTrim(rem);
+            rem = "";
+        } else {
+            part = StringTrim(Substring(rem, 0, comma));
+            rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
+        }
+        if StringLength(part) > 0 {
+            count = count + 1;
+        }
+    }
+    return count;
+}
+
+func CodegenAstTextEnumVariantNameAt(node: CodegenAstTextNode, index: Int) -> String {
+    let rem: String = CodegenAstTextEnumVariantPayload(node);
+    let cur: Int = 0;
+    while StringLength(rem) > 0 {
+        let comma: Int = FindTopLevelComma(rem);
+        let part: String = "";
+        if comma < 0 {
+            part = StringTrim(rem);
+            rem = "";
+        } else {
+            part = StringTrim(Substring(rem, 0, comma));
+            rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
+        }
+        if StringLength(part) > 0 {
+            if cur == index {
+                if StringIndexOf(part, "(") >= 0 {
+                    Die(Concat("payload enum variants are not supported in self-host codegen subset: ", part));
+                }
+                return part;
+            }
+            cur = cur + 1;
+        }
+    }
+    Die(Concat("enum variant index out of bounds: ", ToString(index)));
+    return "";
 }
 
 func CodegenAstTextNominalPrefixLen(node: CodegenAstTextNode) -> Int {

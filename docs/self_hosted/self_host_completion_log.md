@@ -2405,3 +2405,16 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   emission parsers cannot reappear. This reduces the ACTIVE mixed AST-like tree
   blocker; it does not close it because `CodegenAstTextNode.text` remains the
   transitional bridge payload inside the input owner.
+
+### 2026-06-30 -- AST-text marker and enum rows move behind the input owner
+
+- Added owner-owned predicates for `Parameters:`, `Returns:`, and `Fields:`
+  marker nodes, so signature and struct prepasses no longer compare marker
+  strings in emission code.
+- Added enum declaration accessors for enum name, variant count, and variant
+  name rows. `CollectEnums` now consumes these rows instead of parsing the
+  `Enum: Name { ... }` line locally.
+- Tightened the component contract to reject the old marker-string and enum-line
+  parsing shapes in `function_emit.pgy`. This further reduces the ACTIVE mixed
+  AST-like tree blocker while leaving statement-body AST text as the remaining
+  intentional bridge surface.

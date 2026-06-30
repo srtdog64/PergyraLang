@@ -233,10 +233,11 @@ raw AST-text line splitting, typed `CodegenAstTextNode` inventory, indentation,
 blank-line filtering, and `[export]` normalization, plus cursor expectation
 diagnostics. It does not close the mixed AST-like tree owner; it only prevents
 emission participants from each recovering line inventory facts locally. It now
-also owns the bridge payload accessors for function names, return types,
-nominal names, role names and `for` types, parameter mode/name/type rows, and
-field name/type rows; emission participants consume those accessors instead of
-carrying local AST-text parsers. The
+also owns marker-node predicates and the bridge payload accessors for function
+names, return types, enum names/variants, nominal names, role names and `for`
+types, parameter mode/name/type rows, and field name/type rows; emission
+participants consume those accessors instead of carrying local AST-text parsers.
+The
 current `program_emit.pgy`, declaration collectors, function signature
 emission, and statement body emission consume typed nodes for program-level
 declaration routing, `Main` counting, event rejection, owner skipping,
@@ -298,7 +299,7 @@ The long-term codegen shape is resource-first:
 | type bindings | `TypeEnvZone` / `type_facts/` | expression, statement, return, log routing | emitters consume type facts instead of re-inferring from source text |
 | symbol and mangle facts | `compiler/symbol_table_owner.pgy`; cross-backend owner still active beyond the self-host C consumer | C, LLVM, and self-hosted emission | emitters consume canonical spelling facts; no owner/member string concatenation in local emission |
 | self-host C ABI type spelling | `compiler/abi_layout_row_owner.pgy` for supported concrete rows, consumed by `abi_layout/abi_layout_owner.pgy` for self-host C subset; cross-backend native row projection still active | self-hosted C emission | signature, local, and field declarations consume canonical C ABI rows before user-struct lookup |
-| self-host typed AST-text bridge | `input/ast_text_inventory_owner.pgy` for raw `pgy --ast` lines, `CodegenAstTextNode`, indentation, parent edge, coarse kind, blank filtering, `[export]` normalization, declaration payload accessors, parameter mode preservation, and cursor expectations | self-hosted C emission | `program_emit`, declaration collectors, function signature emission, and statement body emission consume typed nodes for program-level routing, prepasses, function/return/nominal/role/parameter/field payloads, function body-marker reads, and statement reads; `inout` signatures/calls consume recorded `pm` facts; no emission participant may re-split AST text or consume parallel `indents`/`texts` arrays |
+| self-host typed AST-text bridge | `input/ast_text_inventory_owner.pgy` for raw `pgy --ast` lines, `CodegenAstTextNode`, indentation, parent edge, coarse kind, marker predicates, blank filtering, `[export]` normalization, declaration payload accessors, parameter mode preservation, and cursor expectations | self-hosted C emission | `program_emit`, declaration collectors, function signature emission, and statement body emission consume typed nodes for program-level routing, prepasses, marker rows, function/return/enum/nominal/role/parameter/field payloads, function body-marker reads, and statement reads; `inout` signatures/calls consume recorded `pm` facts; no emission participant may re-split AST text or consume parallel `indents`/`texts` arrays |
 | self-host C collection runtime symbols | `runtime_abi/collection_runtime_owner.pgy` for `Array<Int>` / `Array<String>` helper calls plus the `Array<CodegenAstTextNode>` bootstrap bridge | self-hosted C emission | expression/statement emitters consume canonical helper-name facts; generated helper definitions stay in one definition host |
 | self-host C math/random runtime symbols | `runtime_abi/math_runtime_owner.pgy` for `Abs` / `Min` / `Max` / `SeedRandom` / `Random` helper calls | self-hosted C emission | expression emitters consume canonical helper-name facts; generated helper definitions stay in one definition host |
 | self-host C host I/O runtime symbols | `runtime_abi/host_io_runtime_owner.pgy` for file, directory-walk, and `Args()` helper calls | self-hosted C emission | expression emitters consume canonical helper-name facts; generated helper definitions stay in one definition host |
