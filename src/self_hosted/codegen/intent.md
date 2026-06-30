@@ -127,7 +127,9 @@ path selection, the missing-file diagnostic, and the file-read boundary.
 `CodegenAstTextNode` inventory, indent counting, parent edges, coarse node
 kinds, blank-line filtering, `[export]` line normalization, program/function
 declaration routing predicates, declaration collector prepass facts, function
-signature/header facts, and cursor expectation checks.
+signature/header facts, cursor expectation checks, and the
+`CodegenTypedAstBridgeReady` guard that consumes the typed AST arena payload
+contract before emission.
 `input/ast_text_statement_owner.pgy` owns statement-row facts, including
 `Let`, `Assign`, `Log`, `Return`, `Defer`, `ArrayPop`, `ArraySet`,
 `ArrayPush`, `Exit`, `Break`, `Continue`, `For`, `While`, `If`, `Else`

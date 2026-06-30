@@ -6,6 +6,7 @@
 // time instead of re-pairing parallel text/indent arrays.
 
 import "../text/text_owner.pgy";
+import "../typed_ast_node_skeleton.pgy";
 
 struct CodegenAstTextNode {
     let indent: Int;
@@ -306,12 +307,12 @@ func CodegenAstTextIndentOf(raw: String) -> Int {
     return i;
 }
 
-func CodegenAstTextNodeInventory(ast: String, inout nodes: Array<CodegenAstTextNode>, inout count_box: Array<Int>) -> Void {
-    let total: Int = StringLength(ast);
+func CodegenAstTextNodeInventory(tree_text: String, inout nodes: Array<CodegenAstTextNode>, inout count_box: Array<Int>) -> Void {
+    let total: Int = StringLength(tree_text);
     let pos: Int = 0;
     while pos < total {
-        let nl: Int = NextNewline(ast, pos);
-        let raw_line: String = Substring(ast, pos, nl - pos);
+        let nl: Int = NextNewline(tree_text, pos);
+        let raw_line: String = Substring(tree_text, pos, nl - pos);
         let trimmed: String = StringTrim(raw_line);
         // Namespace/import functions are flattened to top-level exported
         // function lines by the current parser bridge.
@@ -325,6 +326,19 @@ func CodegenAstTextNodeInventory(ast: String, inout nodes: Array<CodegenAstTextN
         }
         pos = nl + 1;
     }
+}
+
+func CodegenTypedAstBridgeReady(nodes: Array<CodegenAstTextNode>, count: Int) -> Bool {
+    if !TypedAstArenaPayloadContractReady() {
+        return false;
+    }
+    if count <= 0 {
+        return false;
+    }
+    if nodes[0].text != "Program:" {
+        return false;
+    }
+    return true;
 }
 
 func CodegenAstTextExpectNode(nodes: Array<CodegenAstTextNode>, count: Int, inout cur: Array<Int>, expected: String) -> Void {

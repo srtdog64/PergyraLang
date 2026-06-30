@@ -550,6 +550,11 @@ require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func 
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextFieldName"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextFieldType"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextNodeInventory"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "CodegenAstTextNodeInventory(tree_text: String"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'import "../typed_ast_node_skeleton.pgy";'
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenTypedAstBridgeReady"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "TypedAstArenaPayloadContractReady()"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'nodes[0].text != "Program:"'
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextExpectNode"
 require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "func TypedAstArenaPayloadContractReady"
 require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "func TypedAstArenaPayloadSchema"
@@ -558,6 +563,7 @@ require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "struct AstAr
 require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "struct AstNode"
 require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "func ChildAt"
 require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "func AtomText"
+reject_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "ArrayGet("
 reject_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "SKELETON"
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../codegen/typed_ast_node_skeleton.pgy";'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "func CompilerEmissionFactReady"
@@ -609,6 +615,7 @@ reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func C
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextLetName"
 require_text "src/self_hosted/codegen/main.pgy" 'import "input/ast_text_statement_owner.pgy";'
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextInventory(ast: String, inout indents:"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "CodegenAstTextNodeInventory(ast: String"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextProjectLegacy"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextExpect(texts:"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "struct CodegenRuntimeUsageFacts"
@@ -620,7 +627,13 @@ require_text "src/parser/ast_print.c" 'printf("inout ")'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "inout "'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "ref "'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "own "'
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextNodeInventory(ast, nodes, node_count_box)"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "GenerateC(tree_text: String)"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "RejectUnsupportedCodegenBuiltins(tree_text)"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextNodeInventory(tree_text, nodes, node_count_box)"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenTypedAstBridgeReady(nodes, count)"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "GenerateC(ast: String)"
+reject_text "src/self_hosted/codegen/text/text_owner.pgy" "RejectUnsupportedCodegenBuiltins(ast: String)"
+reject_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "let ast: String"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let usage: CodegenRuntimeUsageFacts = CodegenRuntimeUsageFactsFromNodes(nodes, count)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let uses_args: Bool = usage.uses_args"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextIsEventDecl(nodes[main_scan])"

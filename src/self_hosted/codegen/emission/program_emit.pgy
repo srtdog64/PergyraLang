@@ -2,14 +2,17 @@
 //
 // Program-level C assembly owner for self-host C emission.
 
-func GenerateC(ast: String) -> String {
-    RejectUnsupportedCodegenBuiltins(ast);
+func GenerateC(tree_text: String) -> String {
+    RejectUnsupportedCodegenBuiltins(tree_text);
 
     let nodes: Array<CodegenAstTextNode> = [];
     let node_count_box: Array<Int> = [0];
-    CodegenAstTextNodeInventory(ast, nodes, node_count_box);
+    CodegenAstTextNodeInventory(tree_text, nodes, node_count_box);
 
     let count: Int = node_count_box[0];
+    if !CodegenTypedAstBridgeReady(nodes, count) {
+        Die("codegen AST text bridge failed typed AST arena contract");
+    }
     let main_count: Int = 0;
     let main_scan: Int = 0;
     while main_scan < count {

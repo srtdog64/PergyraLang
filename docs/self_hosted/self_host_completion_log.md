@@ -40,6 +40,19 @@ rewrite history.
 - Tightened the compiler-world and component contract gates so the codegen
   payload binding cannot fall back to manifest-only topology.
 
+## 2026-07-01 - Codegen execution consumes typed AST bridge guard
+
+- Repointed the codegen run/emission boundary away from `ast: String` naming:
+  `RunCodegenFromArgs`, `GenerateC`, `RejectUnsupportedCodegenBuiltins`, and
+  `CodegenAstTextNodeInventory` now call the serialized input `tree_text`.
+- Added `CodegenTypedAstBridgeReady(nodes, count)` in
+  `input/ast_text_inventory_owner.pgy`. The guard consumes
+  `TypedAstArenaPayloadContractReady()` and verifies that the owned
+  `CodegenAstTextNode` inventory has a `Program:` root before emission starts.
+- Tightened the `ast_string_surface` ratchet to zero and extended the component
+  contract so future codegen slices cannot reintroduce `ast: String` execution
+  surfaces while the typed-AST migration is underway.
+
 ## 2026-06-30 - Pergyra-likeness load-bearing metric
 
 - Added `compiler_world_stub_actions` to

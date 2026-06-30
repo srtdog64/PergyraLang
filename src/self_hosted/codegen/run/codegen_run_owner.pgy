@@ -6,7 +6,7 @@
 
 func RunCodegenFromArgs(args: Array<String>) -> Void {
     let ast_path: String = CodegenDefaultAstPath(args);
-    let ast: String = CodegenReadAst(ast_path);
-    let c_source: String = GenerateC(ast);
+    let tree_text: String = CodegenReadAst(ast_path);
+    let c_source: String = GenerateC(tree_text);
     Log(c_source);
 }

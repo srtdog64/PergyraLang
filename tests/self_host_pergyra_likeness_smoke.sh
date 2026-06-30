@@ -59,7 +59,7 @@ SH_DIR="$ROOT_DIR/src/self_hosted"
 
 # ---- ratchet baselines (tighten on improvement, never loosen) ----
 STRING_MUNGE_SIG_MAX=161
-AST_STRING_SURFACE_MAX=4
+AST_STRING_SURFACE_MAX=0
 SENTINEL_MAX=18
 RESULT_USE_MIN=153
 COMPILER_WORLD_SURFACE_MIN=1

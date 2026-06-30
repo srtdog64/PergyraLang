@@ -5,14 +5,13 @@
 //
 // WHY THIS EXISTS
 // ---------------
-// Today the self-host compiler is text->text: `GenerateC(ast: String) -> String`,
+// Today the self-host compiler still carries the AST as serialized tree text,
 // and the "typed" compiler-world objects are veneers: `object AstTree { schema:
 // String; }` carries the whole tree as a serialized String. Because the core
-// datum is String, every lookup falls back to `-1` sentinels and every transform
-// is `(...: String) -> String` munging. That is C-shaped code passing through the
-// Pergyra parser; it is not idiomatic Pergyra. This file owns the first payload
-// contract for a typed arena that future parser/codegen cutover slices can
-// consume.
+// datum is String, every lookup tends toward sentinel and text-munging APIs.
+// That is C-shaped code passing through the Pergyra parser; it is not idiomatic
+// Pergyra. This file owns the first payload contract for a typed arena that
+// future parser/codegen cutover slices can consume.
 //
 // BOOTSTRAP-COMPATIBLE SHAPE
 // --------------------------
@@ -71,7 +70,7 @@ func ChildAtFromEdges(children: Array<Int>, first_child: Int, child_count: Int, 
         return None;
     }
     let edge: Int = first_child + i;
-    return Some(ArrayGet(children, edge));
+    return Some(children[edge]);
 }
 
 func ChildAt(arena: AstArena, node: AstNode, i: Int) -> Option<Int> {
@@ -82,7 +81,7 @@ func AtomTextFromTable(atom_table: Array<String>, has_atom: Bool, atom: Int) -> 
     if !has_atom {
         return None;
     }
-    return Some(ArrayGet(atom_table, atom));
+    return Some(atom_table[atom]);
 }
 
 func AtomText(arena: AstArena, node: AstNode) -> Option<String> {
