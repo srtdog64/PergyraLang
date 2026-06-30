@@ -705,7 +705,13 @@ reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func C
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "struct CodegenRuntimeUsageFacts"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenRuntimeUsageFactsFromNodes"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenAstTextContains"
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenAstTextKindPresent"
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "StringIndexOf(nodes[i].payload"
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "StringIndexOf(nodes[i].aux_payload"
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstTextKindPresent(nodes, count, 13)"
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstTextKindPresent(nodes, count, 17)"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstTextContains(nodes, count, \"Args(\")"
+reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "StringIndexOf(nodes[i].text"
 require_text "src/parser/ast_print.c" "PARAM_MODE_MUT_REF"
 require_text "src/parser/ast_print.c" 'printf("inout ")'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "inout "'

@@ -34,7 +34,19 @@ struct CodegenRuntimeUsageFacts {
 func CodegenAstTextContains(nodes: Array<CodegenAstTextNode>, count: Int, needle: String) -> Bool {
     let i: Int = 0;
     while i < count {
-        if StringIndexOf(nodes[i].text, needle) >= 0 {
+        if StringIndexOf(nodes[i].payload, needle) >= 0 ||
+            StringIndexOf(nodes[i].aux_payload, needle) >= 0 {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CodegenAstTextKindPresent(nodes: Array<CodegenAstTextNode>, count: Int, kind: Int) -> Bool {
+    let i: Int = 0;
+    while i < count {
+        if nodes[i].kind == kind {
             return true;
         }
         i = i + 1;
@@ -73,11 +85,15 @@ func CodegenRuntimeUsageFactsFromNodes(nodes: Array<CodegenAstTextNode>, count: 
         || CodegenAstTextContains(nodes, count, "IsSome(")
         || CodegenAstTextContains(nodes, count, "UnwrapOption(");
     let uses_bool: Bool = CodegenAstTextContains(nodes, count, "Bool") || uses_array_filter || uses_result || uses_option;
-    let uses_exit: Bool = CodegenAstTextContains(nodes, count, "Exit(");
+    let uses_exit: Bool = CodegenAstTextKindPresent(nodes, count, 17)
+        || CodegenAstTextContains(nodes, count, "Exit(");
     let uses_array: Bool = CodegenAstTextContains(nodes, count, "Array<")
+        || CodegenAstTextKindPresent(nodes, count, 19)
         || CodegenAstTextContains(nodes, count, "ArrayPush(")
         || CodegenAstTextContains(nodes, count, "ArrayLength(")
+        || CodegenAstTextKindPresent(nodes, count, 18)
         || CodegenAstTextContains(nodes, count, "ArraySet(")
+        || CodegenAstTextKindPresent(nodes, count, 16)
         || CodegenAstTextContains(nodes, count, "ArrayPop(")
         || uses_array_sort
         || uses_array_reverse
@@ -96,7 +112,8 @@ func CodegenRuntimeUsageFactsFromNodes(nodes: Array<CodegenAstTextNode>, count: 
         || CodegenAstTextContains(nodes, count, "Join(");
     let uses_split: Bool = CodegenAstTextContains(nodes, count, "Split(");
     let uses_dirwalk: Bool = CodegenAstTextContains(nodes, count, "DirWalk(");
-    let uses_log: Bool = CodegenAstTextContains(nodes, count, "Log");
+    let uses_log: Bool = CodegenAstTextKindPresent(nodes, count, 13)
+        || CodegenAstTextContains(nodes, count, "Log");
     let uses_fhandle: Bool = CodegenAstTextContains(nodes, count, "FileOpen(")
         || CodegenAstTextContains(nodes, count, "FileWrite(")
         || CodegenAstTextContains(nodes, count, "FileClose(")

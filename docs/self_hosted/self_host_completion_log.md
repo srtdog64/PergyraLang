@@ -87,6 +87,16 @@ rewrite history.
 - Tightened the component contract to reject `IsSingleCall(node.text)` and
   `return node.text` inside the statement owner.
 
+## 2026-07-01 - Runtime usage facts consume node payloads instead of line text
+
+- Repointed `CodegenAstTextContains` in `ast_usage_owner.pgy` from
+  `nodes[i].text` to typed `payload` and `aux_payload` fields.
+- Added a kind-presence fact helper for statement-only runtime decisions such
+  as `Log`, `Exit`, and collection mutation statements whose payload no longer
+  includes the callee spelling.
+- Tightened the component contract so runtime/header usage facts cannot drift
+  back to line-text substring scans.
+
 ## 2026-07-01 - Codegen role payload leaves declaration-line slicing
 
 - Extended `CodegenAstTextPayloadFor` so role declarations record the
