@@ -14,15 +14,15 @@ func CodegenAstTextIsAssignStmt(node: CodegenAstTextNode) -> Bool {
 }
 
 func CodegenAstTextIsLogStmt(node: CodegenAstTextNode) -> Bool {
-    return StartsWith(node.text, "Log(");
+    return node.kind == 13;
 }
 
 func CodegenAstTextIsBareReturnStmt(node: CodegenAstTextNode) -> Bool {
-    return node.text == "Return";
+    return node.kind == 14;
 }
 
 func CodegenAstTextIsValueReturnStmt(node: CodegenAstTextNode) -> Bool {
-    return StartsWith(node.text, "Return:");
+    return node.kind == 15;
 }
 
 func CodegenAstTextIsDeferStmt(node: CodegenAstTextNode) -> Bool {
@@ -30,19 +30,19 @@ func CodegenAstTextIsDeferStmt(node: CodegenAstTextNode) -> Bool {
 }
 
 func CodegenAstTextIsArrayPopStmt(node: CodegenAstTextNode) -> Bool {
-    return StartsWith(node.text, "ArrayPop(");
+    return node.kind == 16;
 }
 
 func CodegenAstTextIsArraySetStmt(node: CodegenAstTextNode) -> Bool {
-    return StartsWith(node.text, "ArraySet(");
+    return node.kind == 18;
 }
 
 func CodegenAstTextIsArrayPushStmt(node: CodegenAstTextNode) -> Bool {
-    return StartsWith(node.text, "ArrayPush(");
+    return node.kind == 19;
 }
 
 func CodegenAstTextIsExitStmt(node: CodegenAstTextNode) -> Bool {
-    return StartsWith(node.text, "Exit(");
+    return node.kind == 17;
 }
 
 func CodegenAstTextIsBreakStmt(node: CodegenAstTextNode) -> Bool {
@@ -145,28 +145,31 @@ func CodegenAstTextAssignValue(node: CodegenAstTextNode) -> String {
 }
 
 func CodegenAstTextLogInner(node: CodegenAstTextNode) -> String {
-    if !StartsWith(node.text, "Log(") || CharAt(node.text, StringLength(node.text) - 1) != ")" {
+    if !CodegenAstTextIsLogStmt(node) || node.payload == "" {
         Die(Concat("malformed Log statement AST line: ", node.text));
     }
-    return StringTrim(Substring(node.text, 4, StringLength(node.text) - 5));
+    return node.payload;
 }
 
 func CodegenAstTextReturnValue(node: CodegenAstTextNode) -> String {
-    return StringTrim(CodegenAstTextPayloadAfter(node, "Return:", "return statement"));
+    if !CodegenAstTextIsValueReturnStmt(node) {
+        Die(Concat("malformed Return statement AST line: ", node.text));
+    }
+    return node.payload;
 }
 
 func CodegenAstTextArrayPopTarget(node: CodegenAstTextNode) -> String {
-    if !StartsWith(node.text, "ArrayPop(") || CharAt(node.text, StringLength(node.text) - 1) != ")" {
+    if !CodegenAstTextIsArrayPopStmt(node) || node.payload == "" {
         Die(Concat("malformed ArrayPop statement AST line: ", node.text));
     }
-    return StringTrim(Substring(node.text, 9, StringLength(node.text) - 10));
+    return node.payload;
 }
 
 func CodegenAstTextArraySetInner(node: CodegenAstTextNode) -> String {
-    if !StartsWith(node.text, "ArraySet(") || CharAt(node.text, StringLength(node.text) - 1) != ")" {
+    if !CodegenAstTextIsArraySetStmt(node) || node.payload == "" {
         Die(Concat("malformed ArraySet statement AST line: ", node.text));
     }
-    return Substring(node.text, 9, StringLength(node.text) - 10);
+    return node.payload;
 }
 
 func CodegenAstTextArraySetFirstComma(node: CodegenAstTextNode) -> Int {
@@ -212,10 +215,10 @@ func CodegenAstTextArraySetValue(node: CodegenAstTextNode) -> String {
 }
 
 func CodegenAstTextArrayPushInner(node: CodegenAstTextNode) -> String {
-    if !StartsWith(node.text, "ArrayPush(") || CharAt(node.text, StringLength(node.text) - 1) != ")" {
+    if !CodegenAstTextIsArrayPushStmt(node) || node.payload == "" {
         Die(Concat("malformed ArrayPush statement AST line: ", node.text));
     }
-    return Substring(node.text, 10, StringLength(node.text) - 11);
+    return node.payload;
 }
 
 func CodegenAstTextArrayPushComma(node: CodegenAstTextNode) -> Int {
@@ -240,10 +243,10 @@ func CodegenAstTextArrayPushValue(node: CodegenAstTextNode) -> String {
 }
 
 func CodegenAstTextExitValue(node: CodegenAstTextNode) -> String {
-    if !StartsWith(node.text, "Exit(") || CharAt(node.text, StringLength(node.text) - 1) != ")" {
+    if !CodegenAstTextIsExitStmt(node) || node.payload == "" {
         Die(Concat("malformed Exit statement AST line: ", node.text));
     }
-    return StringTrim(Substring(node.text, 5, StringLength(node.text) - 6));
+    return node.payload;
 }
 
 func CodegenAstTextForSpec(node: CodegenAstTextNode) -> String {

@@ -49,6 +49,27 @@ func CodegenAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "Ability:") {
         return 11;
     }
+    if StartsWith(text, "Log(") {
+        return 13;
+    }
+    if text == "Return" {
+        return 14;
+    }
+    if StartsWith(text, "Return:") {
+        return 15;
+    }
+    if StartsWith(text, "ArrayPop(") {
+        return 16;
+    }
+    if StartsWith(text, "Exit(") {
+        return 17;
+    }
+    if StartsWith(text, "ArraySet(") {
+        return 18;
+    }
+    if StartsWith(text, "ArrayPush(") {
+        return 19;
+    }
     return 1;
 }
 
@@ -95,6 +116,34 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
         let brace: Int = StringIndexOf(text, " { ");
         if brace >= 0 {
             return Substring(text, 6, brace - 6);
+        }
+    }
+    if kind == 13 {
+        if CharAt(text, StringLength(text) - 1) == ")" {
+            return StringTrim(Substring(text, 4, StringLength(text) - 5));
+        }
+    }
+    if kind == 15 {
+        return StringTrim(Substring(text, 7, StringLength(text) - 7));
+    }
+    if kind == 16 {
+        if CharAt(text, StringLength(text) - 1) == ")" {
+            return StringTrim(Substring(text, 9, StringLength(text) - 10));
+        }
+    }
+    if kind == 17 {
+        if CharAt(text, StringLength(text) - 1) == ")" {
+            return StringTrim(Substring(text, 5, StringLength(text) - 6));
+        }
+    }
+    if kind == 18 {
+        if CharAt(text, StringLength(text) - 1) == ")" {
+            return Substring(text, 9, StringLength(text) - 10);
+        }
+    }
+    if kind == 19 {
+        if CharAt(text, StringLength(text) - 1) == ")" {
+            return Substring(text, 10, StringLength(text) - 11);
         }
     }
     return "";

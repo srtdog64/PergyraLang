@@ -58,6 +58,16 @@ rewrite history.
 - Tightened the component contract to reject enum-variant recovery from enum
   declaration text slicing.
 
+## 2026-07-01 - Codegen statement payloads leave statement-line slicing
+
+- Extended the AST-text inventory with typed statement kinds and payloads for
+  `Log`, value `Return`, `ArrayPop`, `ArraySet`, `ArrayPush`, and `Exit` rows.
+- Repointed statement predicates and payload accessors for those rows to consume
+  `CodegenAstTextNode.kind` and `payload` instead of rechecking prefixes and
+  slicing `node.text`.
+- Tightened the component contract so those simple statement facts cannot drift
+  back into statement-owner text parsing.
+
 ## 2026-07-01 - Codegen role payload leaves declaration-line slicing
 
 - Extended `CodegenAstTextPayloadFor` so role declarations record the
