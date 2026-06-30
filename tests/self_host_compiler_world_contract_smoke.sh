@@ -69,6 +69,7 @@ require_file "src/self_hosted/compiler/test_harness_owner.pgy"
 require_file "src/self_hosted/compiler/subprocess_runner_owner.pgy"
 require_file "src/self_hosted/compiler/abi_layout_row_owner.pgy"
 require_file "src/self_hosted/compiler/symbol_table_owner.pgy"
+require_file "src/self_hosted/compiler/stage_artifact_owner.pgy"
 require_file "docs/self_hosted/11_compiler_world_architecture.md"
 require_file "docs/self_hosted/12_intent_zone_self_host_architecture.md"
 require_file "docs/self_hosted/13_compiler_substrate_architecture.md"
@@ -77,8 +78,10 @@ require_file "docs/self_hosted/15_pre_self_host_expansion_ledger.md"
 require_file "tests/self_host_compiler_world_contract_smoke.sh"
 require_file "tests/self_hosted/compiler_world_manifest.sh"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_PATH_MANIFEST_PATH"
+require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_STAGE_ARTIFACT_PATH"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "### Pergyra-Style Self-Host Test"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "C, LLVM, and self-hosted outputs are peer projections over the same facts"
+require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "stage_artifact_owner.pgy"
 require_text "src/self_hosted/compiler/README.md" "## Pergyra-Style Check"
 require_text "src/self_hosted/compiler/README.md" 'not as a C folder graph rewritten in `.pgy`'
 
@@ -95,6 +98,7 @@ require_max_lines "src/self_hosted/compiler/test_harness_owner.pgy" 120
 require_max_lines "src/self_hosted/compiler/subprocess_runner_owner.pgy" 120
 require_max_lines "src/self_hosted/compiler/abi_layout_row_owner.pgy" 120
 require_max_lines "src/self_hosted/compiler/symbol_table_owner.pgy" 120
+require_max_lines "src/self_hosted/compiler/stage_artifact_owner.pgy" 120
 
 for term in \
     "world PgyCompilerWorld" \
@@ -149,6 +153,10 @@ for term in \
     "subject ProgramEmitter" \
     "action Emit" \
     "CompilerAbiLayoutRowsReady() && CompilerSymbolTableReady() && CompilerTargetCapabilityEnvelopeReady()" \
+    "CompilerTokenStreamFactReady()" \
+    "CompilerAstTreeFactReady()" \
+    "CompilerSemanticVerdictFactReady()" \
+    "CompilerMirFactGraphReady()" \
     "emitter.Emit(types, abi_layout, target_capability)" \
     "subject TargetProjectionPlanner" \
     "action Plan" \
@@ -219,6 +227,7 @@ require_text "src/self_hosted/compiler/world.pgy" 'import "test_harness_owner.pg
 require_text "src/self_hosted/compiler/world.pgy" 'import "subprocess_runner_owner.pgy"'
 require_text "src/self_hosted/compiler/world.pgy" 'import "abi_layout_row_owner.pgy"'
 require_text "src/self_hosted/compiler/world.pgy" 'import "symbol_table_owner.pgy"'
+require_text "src/self_hosted/compiler/world.pgy" 'import "stage_artifact_owner.pgy"'
 
 for term in \
     "func SelfHostSourceDir" \
@@ -234,6 +243,7 @@ for term in \
     "func CompilerSubprocessRunnerOwnerPath" \
     "func CompilerAbiLayoutRowOwnerPath" \
     "func CompilerSymbolTableOwnerPath" \
+    "func CompilerStageArtifactOwnerPath" \
     "func CompilerOwnerManifestPath" \
     "func CompilerStagePathManifestReady" \
     "func CompilerStagePathAt" \
@@ -252,18 +262,34 @@ for term in \
     "return CompilerSubprocessRunnerOwnerPath();" \
     "return CompilerAbiLayoutRowOwnerPath();" \
     "return CompilerSymbolTableOwnerPath();" \
+    "return CompilerStageArtifactOwnerPath();" \
     "return CompilerOwnerManifestPath();" \
     "CompilerStagePathManifestReady" \
-    "if index < 16" \
-    "CompilerStagePathAt(index - 11)" \
-    "if index < 22" \
-    "CompilerParityPathAt(index - 16)" \
+    "if index < 17" \
+    "CompilerStagePathAt(index - 12)" \
+    "if index < 23" \
+    "CompilerParityPathAt(index - 17)" \
     "lexer|TokenStreamZone|LexerStage|LexSource" \
     "parser|AstTreeZone|ParserStage|ParseTokens" \
     "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics" \
     "mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts" \
     "codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact"; do
     require_text "src/self_hosted/compiler/path_manifest_owner.pgy" "$term"
+done
+
+for term in \
+    "func CompilerStageArtifactRowReady" \
+    "func CompilerTokenStreamFactReady" \
+    "func CompilerAstTreeFactReady" \
+    "func CompilerSemanticVerdictFactReady" \
+    "func CompilerMirFactGraphReady" \
+    "CompilerStagePathAt(index)" \
+    "CompilerStageWorldBindingAt(index)" \
+    "lexer|TokenStreamZone|LexerStage|LexSource" \
+    "parser|AstTreeZone|ParserStage|ParseTokens" \
+    "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics" \
+    "mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts"; do
+    require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "$term"
 done
 
 for term in \
@@ -453,6 +479,7 @@ require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/subprocess_runner_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/abi_layout_row_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/symbol_table_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/stage_artifact_owner.pgy"
 require_text "src/self_hosted/README.md" "compiler/world.pgy"
 require_text "docs/self_hosted/README.md" "11_compiler_world_architecture.md"
 require_text "docs/self_hosted/README.md" "12_intent_zone_self_host_architecture.md"

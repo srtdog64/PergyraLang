@@ -99,6 +99,7 @@ compiler/
   world.pgy                 -- topology and root intent
   stage_intents.pgy         -- compiler action clusters
   path_manifest_owner.pgy   -- path facts
+  stage_artifact_owner.pgy  -- stage artifact envelope facts
 
 lexer/                      -- token facts
 parser/                     -- AST/tree facts
@@ -205,6 +206,13 @@ actor, and intent so a bootstrap driver can route a stage through
 `PgyCompilerWorld` instead of inferring ownership from a folder name.
 `tests/self_hosted/compiler_world_manifest.sh` is the shell projection and is
 contract-checked against the Pergyra owner.
+
+`src/self_hosted/compiler/stage_artifact_owner.pgy` is the current stage
+artifact envelope owner. It does not validate full token, AST, semantic-verdict,
+or MIR payload content yet. It proves that each active stage actor consumes a
+manifest path and the expected world/zone/actor/intent binding row before it can
+claim readiness. That is the load-bearing replacement for the old stage
+`return true` scaffolding.
 
 ## Codegen Architecture
 
@@ -343,6 +351,8 @@ The self-hosted compiler should not be organized as `frontend/`, `middle/`,
 - root world: `src/self_hosted/compiler/world.pgy`;
 - derived compiler actions: `src/self_hosted/compiler/stage_intents.pgy`;
 - fact owners: `lexer/`, `parser/`, `semantic/`, `mir_lower/`, `codegen/`;
+- stage artifact envelope owner:
+  `src/self_hosted/compiler/stage_artifact_owner.pgy`;
 - shared substrate owners: `lib/` and future collection/import/path owners;
 - oracle and parity machinery: `tests/self_hosted/`.
 
@@ -380,8 +390,12 @@ ownership, not as a C folder graph translated into Pergyra syntax.
 `tests/self_host_pergyra_likeness_smoke.sh` now reports both sides of that
 claim. The negative smell metrics (`string_munge_sig`, `ast_string_surface`,
 `sentinel`) must trend down as typed facts replace text bridges, and
-`compiler_world_stub_actions` must trend down as stage actors stop returning
-scaffold `true` and start consuming owned facts. `result_use` must not fall.
+`compiler_world_stub_actions` must stay at zero now that stage actors consume
+owned facts instead of scaffold `true`. `stage_envelope_only` is the next
+payload-depth ratchet: it counts stage readiness functions that only prove
+path/world-binding envelopes. It starts at four and should fall as the lexer,
+parser, semantic, and MIR stages consume payload facts. `result_use` must not
+fall.
 The positive topology metrics are different:
 `compiler_world`, `resource_zones`, `intent_surface`, and `zone_bound_steps`
 are floors, not scores. Adding fake zones or one-intent-per-helper files does
@@ -409,18 +423,20 @@ The weakest current signal is not missing `world` or `zone` syntax; it is
 load-bearing depth. Source intake now consumes the path-manifest owner through
 `CompilerStagePathManifestReady()`, and parity comparison consumes artifact and
 test-harness facts. Emission consumes ABI-layout, symbol, and
-target-capability facts. `world.pgy` still contains scaffold stage actions that
-return `true` for lexing, parsing, semantic checking, and MIR lowering. Those
-actions are acceptable while the world is a shape contract, but they are
-tracked as debt. A hard bootstrap improves when each actor action consumes a
-concrete owner fact: token stream fact, AST tree fact, semantic verdict, or MIR
-fact graph.
+target-capability facts. Lexing, parsing, semantic checking, and MIR lowering
+now consume `stage_artifact_owner.pgy` facts, so `world.pgy` has no scaffold
+`return true` actor actions left. The remaining depth gap is payload-level
+ownership: the stage artifact owner currently proves stage placement and
+world-binding envelopes, not the full token stream, AST tree, semantic verdict,
+or MIR fact graph contents. That gap is tracked separately by the
+`stage_envelope_only` ratchet.
 
 ### Current-To-Target Mapping
 
 | Current surface | Target owner shape | Migration rule |
 |---|---|---|
 | stage `main.pgy` imports every sibling in order | each owner imports the fact owners it consumes | entrypoints stop being dependency aggregators |
+| stage actor returns scaffold `true` | `stage_artifact_owner.pgy` readiness fact | actors consume path/world-binding envelopes before claiming readiness |
 | AST text read by codegen | MIR/type/ABI facts consumed by codegen | AST text remains a declared bridge until its facts exist |
 | shell scripts rediscovering files | `StagePathManifest` plus path/world-binding owner projection | stage paths normalize once and are passed with resource zone, actor, and intent facts |
 | raw diagnostic strings in tools | shared diagnostic owner and stage diagnostic vocabulary | diagnostics are structured before parity compares them |

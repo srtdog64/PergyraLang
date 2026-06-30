@@ -68,6 +68,22 @@ rewrite history.
 - Tightened `world_stub_actions` from `<= 5` to `<= 4`. The remaining scaffold
   actors are lexer, parser, semantic, and MIR-lower.
 
+## 2026-06-30 - Stage actors consume artifact-envelope facts
+
+- Added `src/self_hosted/compiler/stage_artifact_owner.pgy` as the owner for
+  stage artifact envelope readiness. It binds token, AST, semantic, and MIR
+  stage actors to their path-manifest entry and world/zone/actor/intent row.
+- Repointed `LexerStage.Scan`, `ParserStage.BuildAst`,
+  `SemanticStage.Check`, and `MirLowerStage.Lower` away from scaffold `true`
+  and into that owner.
+- Tightened `world_stub_actions` from `<= 4` to `<= 0`. This closes the
+  decorative compiler-world actor scaffold. It does not yet prove payload
+  contents; payload-level token/AST/semantic/MIR facts remain the next hard
+  bootstrap depth.
+- Added the separate `stage_envelope_only <= 4` ratchet so that envelope-only
+  stage readiness remains visible and can be driven down without pretending the
+  payload facts are already closed.
+
 ## Verified state (rolling)
 
 - **Lexer**: self-hosts on C+LLVM. Byte-identical to `pgy --tokens` across the 7

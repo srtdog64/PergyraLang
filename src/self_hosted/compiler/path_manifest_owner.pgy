@@ -56,6 +56,10 @@ func CompilerSymbolTableOwnerPath() -> String {
     return "src/self_hosted/compiler/symbol_table_owner.pgy";
 }
 
+func CompilerStageArtifactOwnerPath() -> String {
+    return "src/self_hosted/compiler/stage_artifact_owner.pgy";
+}
+
 func CompilerOwnerManifestPath() -> String {
     return "src/self_hosted/OWNERS.md";
 }
@@ -129,7 +133,7 @@ func CompilerParityPathAt(index: Int) -> String {
 }
 
 func CompilerWorldManifestPathCount() -> Int {
-    return 22;
+    return 23;
 }
 
 func CompilerWorldManifestPathAt(index: Int) -> String {
@@ -164,13 +168,16 @@ func CompilerWorldManifestPathAt(index: Int) -> String {
         return CompilerSymbolTableOwnerPath();
     }
     if index == 10 {
+        return CompilerStageArtifactOwnerPath();
+    }
+    if index == 11 {
         return CompilerOwnerManifestPath();
     }
-    if index < 16 {
-        return CompilerStagePathAt(index - 11);
+    if index < 17 {
+        return CompilerStagePathAt(index - 12);
     }
-    if index < 22 {
-        return CompilerParityPathAt(index - 16);
+    if index < 23 {
+        return CompilerParityPathAt(index - 17);
     }
     return "";
 }
@@ -178,7 +185,7 @@ func CompilerWorldManifestPathAt(index: Int) -> String {
 func CompilerStagePathManifestReady() -> Bool {
     if CompilerStagePathCount() != 5 { return false; }
     if CompilerParityPathCount() != 6 { return false; }
-    if CompilerWorldManifestPathCount() != 22 { return false; }
+    if CompilerWorldManifestPathCount() != 23 { return false; }
     if SelfHostSourceDir() == "" { return false; }
     if CompilerWorldPath() == "" { return false; }
     if CompilerStagePathAt(0) == "" { return false; }
@@ -188,6 +195,6 @@ func CompilerStagePathManifestReady() -> Bool {
     if CompilerParityPathAt(0) == "" { return false; }
     if CompilerParityPathAt(5) == "" { return false; }
     if CompilerWorldManifestPathAt(0) == "" { return false; }
-    if CompilerWorldManifestPathAt(21) == "" { return false; }
+    if CompilerWorldManifestPathAt(22) == "" { return false; }
     return true;
 }

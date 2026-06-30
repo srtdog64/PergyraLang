@@ -37,6 +37,9 @@
 #   - compiler_world_stub_actions: scaffold actions in the compiler world that
 #     still return `true` instead of consuming an owned fact. Ratchet down as
 #     stage actors become real compiler-world evidence consumers.
+#   - compiler_stage_envelope_only: stage readiness functions that only prove a
+#     path/world-binding envelope. Ratchet down as lexer/parser/semantic/MIR
+#     readiness consumes real payload facts instead of only placement facts.
 #
 # Baselines are embedded below. The default measured scope is tracked,
 # non-fixture `src/self_hosted/**/*.pgy` implementation source with `//`
@@ -65,7 +68,8 @@ COMPILER_WORLD_MEMBERS_EXACT=17
 COMPILER_INTENT_SURFACE_MIN=14
 COMPILER_ZONE_BOUND_STEPS_MIN=27
 COMPILER_STAGE_BINDINGS_EXACT=5
-COMPILER_WORLD_STUB_ACTIONS_MAX=4
+COMPILER_WORLD_STUB_ACTIONS_MAX=0
+COMPILER_STAGE_ENVELOPE_ONLY_MAX=4
 
 fail() {
     echo "[self-host-likeness] FAIL" >&2
@@ -205,6 +209,8 @@ compiler_zone_bound_steps=$(count_lines_in_files 'where:[[:space:]]*[A-Za-z0-9_]
 compiler_stage_bindings=$(count_stage_world_bindings)
 compiler_world_stub_actions=$(count_lines_in_files '^[[:space:]]*return true;' \
     src/self_hosted/compiler/world.pgy)
+compiler_stage_envelope_only=$(count_lines_in_files 'return[[:space:]]+CompilerStageArtifactRowReady' \
+    src/self_hosted/compiler/stage_artifact_owner.pgy)
 
 echo "[self-host-likeness] metrics (current vs baseline):"
 echo "  string_munge_sig   : $string_munge_sig  (max $STRING_MUNGE_SIG_MAX)   <- text->text functions; linchpin"
@@ -218,6 +224,7 @@ echo "  intent_surface     : $compiler_intent_surface  (min $COMPILER_INTENT_SUR
 echo "  zone_bound_steps   : $compiler_zone_bound_steps  (min $COMPILER_ZONE_BOUND_STEPS_MIN)    <- steps bound to resource zones"
 echo "  stage_bindings     : $compiler_stage_bindings  (exact $COMPILER_STAGE_BINDINGS_EXACT)  <- stage intent docs bound to compiler world"
 echo "  world_stub_actions : $compiler_world_stub_actions  (max $COMPILER_WORLD_STUB_ACTIONS_MAX)     <- compiler-world scaffold actions"
+echo "  stage_envelope_only: $compiler_stage_envelope_only  (max $COMPILER_STAGE_ENVELOPE_ONLY_MAX)     <- stage readiness only proves envelope facts"
 
 # ---- bad metrics: current must not exceed baseline ----
 if [ "$string_munge_sig" -gt "$STRING_MUNGE_SIG_MAX" ]; then
@@ -255,6 +262,9 @@ fi
 if [ "$compiler_world_stub_actions" -gt "$COMPILER_WORLD_STUB_ACTIONS_MAX" ]; then
     fail "world_stub_actions rose to $compiler_world_stub_actions (> $COMPILER_WORLD_STUB_ACTIONS_MAX). Compiler-world actors must consume owned facts, not add scaffold 'return true' actions."
 fi
+if [ "$compiler_stage_envelope_only" -gt "$COMPILER_STAGE_ENVELOPE_ONLY_MAX" ]; then
+    fail "stage_envelope_only rose to $compiler_stage_envelope_only (> $COMPILER_STAGE_ENVELOPE_ONLY_MAX). Stage readiness must move toward payload facts, not more envelope-only proofs."
+fi
 
 require_compiler_world_zone "compiler" "SelfHostCompiler"
 require_compiler_world_zone "source_intake" "SourceIntakeZone"
@@ -290,7 +300,8 @@ if [ "$string_munge_sig" -lt "$STRING_MUNGE_SIG_MAX" ] \
     || [ "$ast_string_surface" -lt "$AST_STRING_SURFACE_MAX" ] \
     || [ "$sentinel" -lt "$SENTINEL_MAX" ] \
     || [ "$result_use" -gt "$RESULT_USE_MIN" ] \
-    || [ "$compiler_world_stub_actions" -lt "$COMPILER_WORLD_STUB_ACTIONS_MAX" ]; then
+    || [ "$compiler_world_stub_actions" -lt "$COMPILER_WORLD_STUB_ACTIONS_MAX" ] \
+    || [ "$compiler_stage_envelope_only" -lt "$COMPILER_STAGE_ENVELOPE_ONLY_MAX" ]; then
     echo "[self-host-likeness] NOTE: a metric improved past its baseline; tighten the baselines in $0 in this commit so the ratchet stays strict."
 fi
 

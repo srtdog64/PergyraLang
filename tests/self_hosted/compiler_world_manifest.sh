@@ -16,6 +16,7 @@ PGY_SELFHOST_COMPILER_TEST_HARNESS_PATH="src/self_hosted/compiler/test_harness_o
 PGY_SELFHOST_COMPILER_SUBPROCESS_RUNNER_PATH="src/self_hosted/compiler/subprocess_runner_owner.pgy"
 PGY_SELFHOST_COMPILER_ABI_LAYOUT_ROW_PATH="src/self_hosted/compiler/abi_layout_row_owner.pgy"
 PGY_SELFHOST_COMPILER_SYMBOL_TABLE_PATH="src/self_hosted/compiler/symbol_table_owner.pgy"
+PGY_SELFHOST_COMPILER_STAGE_ARTIFACT_PATH="src/self_hosted/compiler/stage_artifact_owner.pgy"
 
 PGY_SELFHOST_STAGE_PATHS=(
     "src/self_hosted/lexer/main.pgy"
@@ -45,6 +46,7 @@ PGY_SELFHOST_COMPILER_WORLD_MANIFEST_PATHS=(
     "$PGY_SELFHOST_COMPILER_SUBPROCESS_RUNNER_PATH"
     "$PGY_SELFHOST_COMPILER_ABI_LAYOUT_ROW_PATH"
     "$PGY_SELFHOST_COMPILER_SYMBOL_TABLE_PATH"
+    "$PGY_SELFHOST_COMPILER_STAGE_ARTIFACT_PATH"
     "src/self_hosted/OWNERS.md"
     "${PGY_SELFHOST_STAGE_PATHS[@]}"
     "${PGY_SELFHOST_PARITY_PATHS[@]}"

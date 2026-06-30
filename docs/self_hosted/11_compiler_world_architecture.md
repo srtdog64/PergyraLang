@@ -164,17 +164,18 @@ that row, the compiler world has become decorative instead of load-bearing.
 
 The likeness gate also tracks scaffold actions inside `world.pgy`: a compiler
 actor that only returns `true` is still topology, not proof. Those stubs are
-allowed while the world shape is being brought up, but they must ratchet down as
-the hard bootstrap grows. The replacement is not more syntax; the replacement
-is an actor action that consumes a concrete owner fact such as a path manifest,
-token stream, AST tree, semantic verdict, MIR fact graph, emitted artifact, or
-parity verdict.
+not allowed to regrow. The replacement is not more syntax; the replacement is
+an actor action that consumes a concrete owner fact such as a path manifest,
+stage artifact envelope, emitted artifact, or parity verdict.
 
 Current source intake already consumes the `StagePathManifest` path fact through
 `CompilerStagePathManifestReady()`, and parity comparison consumes artifact and
 test-harness facts. Emission consumes ABI-layout, symbol, and target-capability
-facts. The remaining scaffold actions are the stage actors for token, AST,
-semantic, and MIR facts.
+facts. Lexing, parsing, semantic checking, and MIR lowering now consume
+`stage_artifact_owner.pgy`, which proves their path/world-binding envelope. That
+is not yet token/AST/semantic/MIR payload validation; it is the first
+load-bearing envelope that prevents the stage actors from being decorative
+`return true` scaffolding.
 
 ## Cost Model
 

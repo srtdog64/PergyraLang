@@ -1,0 +1,33 @@
+import "path_manifest_owner.pgy";
+
+// Stage artifact envelope facts for PgyCompilerWorld.
+//
+// These facts prove that each active compiler stage is present in the path
+// manifest and bound to the expected world/zone/actor/intent row. They do not
+// claim to validate the full token/AST/semantic/MIR payload yet.
+
+func CompilerStageArtifactRowReady(index: Int, binding: String) -> Bool {
+    if CompilerStagePathAt(index) == "" {
+        return false;
+    }
+    if CompilerStageWorldBindingAt(index) != binding {
+        return false;
+    }
+    return true;
+}
+
+func CompilerTokenStreamFactReady() -> Bool {
+    return CompilerStageArtifactRowReady(0, "lexer|TokenStreamZone|LexerStage|LexSource");
+}
+
+func CompilerAstTreeFactReady() -> Bool {
+    return CompilerStageArtifactRowReady(1, "parser|AstTreeZone|ParserStage|ParseTokens");
+}
+
+func CompilerSemanticVerdictFactReady() -> Bool {
+    return CompilerStageArtifactRowReady(2, "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics");
+}
+
+func CompilerMirFactGraphReady() -> Bool {
+    return CompilerStageArtifactRowReady(3, "mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts");
+}

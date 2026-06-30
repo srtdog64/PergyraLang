@@ -131,3 +131,6 @@ compiler-stage `.pgy` source to be listed here.
   fact vocabulary for field order, niche, tags, ownership, and layout.
 - `src/self_hosted/compiler/symbol_table_owner.pgy` -- cross-backend symbol row
   fact vocabulary for C/LLVM/self-hosted projections.
+- `src/self_hosted/compiler/stage_artifact_owner.pgy` -- stage artifact
+  envelope facts that bind token, AST, semantic, and MIR stage actors to the
+  compiler-world path manifest rows.

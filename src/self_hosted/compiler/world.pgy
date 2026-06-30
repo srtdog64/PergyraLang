@@ -6,6 +6,7 @@ import "test_harness_owner.pgy";
 import "subprocess_runner_owner.pgy";
 import "abi_layout_row_owner.pgy";
 import "symbol_table_owner.pgy";
+import "stage_artifact_owner.pgy";
 
 subject SourceUnit {
     let path: String;
@@ -19,7 +20,7 @@ subject LexerStage {
     let name: String;
 
     action Scan(self) -> Bool {
-        return true;
+        return CompilerTokenStreamFactReady();
     }
 }
 
@@ -27,7 +28,7 @@ subject ParserStage {
     let name: String;
 
     action BuildAst(self) -> Bool {
-        return true;
+        return CompilerAstTreeFactReady();
     }
 }
 
@@ -35,7 +36,7 @@ subject SemanticStage {
     let name: String;
 
     action Check(self) -> Bool {
-        return true;
+        return CompilerSemanticVerdictFactReady();
     }
 }
 
@@ -43,7 +44,7 @@ subject MirLowerStage {
     let name: String;
 
     action Lower(self) -> Bool {
-        return true;
+        return CompilerMirFactGraphReady();
     }
 }
 
