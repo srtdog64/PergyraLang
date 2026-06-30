@@ -283,6 +283,8 @@ for term in \
     "func CompilerAstTreeFactReady" \
     "func CompilerSemanticVerdictFactReady" \
     "func CompilerMirFactGraphReady" \
+    'import "../lexer/token_owner.pgy";' \
+    "LexerTokenPayloadContractReady()" \
     "CompilerStagePathAt(index)" \
     "CompilerStageWorldBindingAt(index)" \
     "lexer|TokenStreamZone|LexerStage|LexSource" \
@@ -290,6 +292,19 @@ for term in \
     "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics" \
     "mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts"; do
     require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "$term"
+done
+
+for term in \
+    "func LexerTokenPayloadSchema" \
+    "pgy.selfhost.lexer-token-stream.v1" \
+    "func LexerTokenPayloadFixtureCount" \
+    "func LexerTokenPayloadKeywordReady" \
+    "func LexerTokenPayloadFormatReady" \
+    "func LexerTokenPayloadContractReady" \
+    "KeywordType(\"projection\") != \"IDENTIFIER\"" \
+    "KeywordType(\"impl\") != \"UNKNOWN\"" \
+    "TokenLine(1, \"FUNC\", \"func\", 7, 1)"; do
+    require_text "src/self_hosted/lexer/token_owner.pgy" "$term"
 done
 
 for term in \

@@ -84,6 +84,18 @@ rewrite history.
   stage readiness remains visible and can be driven down without pretending the
   payload facts are already closed.
 
+## 2026-06-30 - Lexer stage consumes token payload contract
+
+- Added `LexerTokenPayloadContractReady()` to
+  `src/self_hosted/lexer/token_owner.pgy`. The token owner now exposes the
+  token-stream schema, committed fixture count, keyword classification quirks,
+  and token-line output formatting as the lexer payload contract.
+- Repointed `CompilerTokenStreamFactReady()` so it first checks the
+  `lexer|TokenStreamZone|LexerStage|LexSource` envelope and then consumes the
+  lexer token payload contract.
+- Tightened `stage_envelope_only` from `<= 4` to `<= 3`. Parser, semantic, and
+  MIR readiness remain envelope-only and are the next payload-depth targets.
+
 ## Verified state (rolling)
 
 - **Lexer**: self-hosts on C+LLVM. Byte-identical to `pgy --tokens` across the 7

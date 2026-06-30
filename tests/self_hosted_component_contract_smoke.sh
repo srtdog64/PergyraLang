@@ -339,6 +339,12 @@ require_file "src/self_hosted/lexer/char_owner.pgy"
 require_file "src/self_hosted/lexer/token_owner.pgy"
 require_text "src/self_hosted/lexer/scan_owner.pgy" 'import "char_owner.pgy";'
 require_text "src/self_hosted/lexer/scan_owner.pgy" 'import "token_owner.pgy";'
+require_text "src/self_hosted/lexer/token_owner.pgy" "func LexerTokenPayloadContractReady"
+require_text "src/self_hosted/lexer/token_owner.pgy" "func LexerTokenPayloadSchema"
+require_text "src/self_hosted/lexer/token_owner.pgy" "pgy.selfhost.lexer-token-stream.v1"
+require_text "src/self_hosted/lexer/token_owner.pgy" "LexerTokenPayloadFixtureCount() != 7"
+require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../lexer/token_owner.pgy";'
+require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "LexerTokenPayloadContractReady()"
 reject_text "src/self_hosted/lexer/main.pgy" 'import "char_owner.pgy";'
 reject_text "src/self_hosted/lexer/main.pgy" 'import "token_owner.pgy";'
 require_text "tests/self_hosted/parity/lexer_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy"'

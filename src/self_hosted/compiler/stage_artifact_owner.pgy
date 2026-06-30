@@ -1,4 +1,5 @@
 import "path_manifest_owner.pgy";
+import "../lexer/token_owner.pgy";
 
 // Stage artifact envelope facts for PgyCompilerWorld.
 //
@@ -17,7 +18,10 @@ func CompilerStageArtifactRowReady(index: Int, binding: String) -> Bool {
 }
 
 func CompilerTokenStreamFactReady() -> Bool {
-    return CompilerStageArtifactRowReady(0, "lexer|TokenStreamZone|LexerStage|LexSource");
+    if !CompilerStageArtifactRowReady(0, "lexer|TokenStreamZone|LexerStage|LexSource") {
+        return false;
+    }
+    return LexerTokenPayloadContractReady();
 }
 
 func CompilerAstTreeFactReady() -> Bool {

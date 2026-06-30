@@ -238,3 +238,50 @@ func TokenLine(idx: Int, ttype: String, text: String, line: Int, col: Int) -> St
     ];
     return StringJoin(parts, "");
 }
+
+func LexerTokenPayloadSchema() -> String {
+    return "pgy.selfhost.lexer-token-stream.v1";
+}
+
+func LexerTokenPayloadFixtureCount() -> Int {
+    return 7;
+}
+
+func LexerTokenPayloadKeywordReady() -> Bool {
+    if KeywordType("func") != "FUNC" {
+        return false;
+    }
+    if KeywordType("world") != "WORLD" {
+        return false;
+    }
+    if KeywordType("projection") != "IDENTIFIER" {
+        return false;
+    }
+    if KeywordType("impl") != "UNKNOWN" {
+        return false;
+    }
+    if KeywordType("ref") != "UNKNOWN" {
+        return false;
+    }
+    return true;
+}
+
+func LexerTokenPayloadFormatReady() -> Bool {
+    return TokenLine(1, "FUNC", "func", 7, 1) == "   1  Token{type: FUNC, text: \"func\", line: 7, col: 1}";
+}
+
+func LexerTokenPayloadContractReady() -> Bool {
+    if LexerTokenPayloadSchema() == "" {
+        return false;
+    }
+    if LexerTokenPayloadFixtureCount() != 7 {
+        return false;
+    }
+    if !LexerTokenPayloadKeywordReady() {
+        return false;
+    }
+    if !LexerTokenPayloadFormatReady() {
+        return false;
+    }
+    return true;
+}

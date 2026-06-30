@@ -173,9 +173,11 @@ Current source intake already consumes the `StagePathManifest` path fact through
 test-harness facts. Emission consumes ABI-layout, symbol, and target-capability
 facts. Lexing, parsing, semantic checking, and MIR lowering now consume
 `stage_artifact_owner.pgy`, which proves their path/world-binding envelope. That
-is not yet token/AST/semantic/MIR payload validation; it is the first
-load-bearing envelope that prevents the stage actors from being decorative
-`return true` scaffolding.
+is the first load-bearing envelope that prevents the stage actors from being
+decorative `return true` scaffolding. Lexer readiness now goes one step deeper:
+it also consumes `LexerTokenPayloadContractReady()` from `lexer/token_owner.pgy`.
+Parser, semantic, and MIR readiness remain envelope-only until their payload
+facts are wired through the same pattern.
 
 ## Cost Model
 

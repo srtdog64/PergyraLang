@@ -26,7 +26,8 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/lexer/char_owner.pgy` -- character/codepoint predicates.
 - `src/self_hosted/lexer/source_input_owner.pgy` -- source path and file input.
 - `src/self_hosted/lexer/scan_owner.pgy` -- token scan loop state.
-- `src/self_hosted/lexer/token_owner.pgy` -- token classification and rendering.
+- `src/self_hosted/lexer/token_owner.pgy` -- token classification, rendering,
+  and token-stream payload contract facts.
 
 ## Parser
 
