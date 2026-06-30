@@ -287,7 +287,7 @@ run_tri_case() {
     mkdir -p "$tri_root/src/self_hosted/compiler"
     mkdir -p "$tri_root/.tmp"
     cp "$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy" "$tri_tool"
-    cp "$ROOT_DIR/src/self_hosted/lib/json.pgy" "$tri_root/src/self_hosted/lib/json.pgy"
+    cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$tri_root/src/self_hosted/lib/"
     cp "$ROOT_DIR/src/self_hosted/compiler/artifact_zone_owner.pgy" \
         "$tri_root/src/self_hosted/compiler/artifact_zone_owner.pgy"
     cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_owner.pgy" \

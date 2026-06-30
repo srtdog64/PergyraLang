@@ -90,6 +90,22 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-30 -- JSON owner `FindFrom` returns Option
+
+- Changed the self-hosted shared JSON owner's internal `FindFrom` scanner from
+  `Int` with `-1` absence to `Option<Int>`.
+- Repointed JSON string/number/array-bound consumers inside `lib/json.pgy` to
+  check `IsSome` before unwrapping positions. Public JSON field APIs remain
+  stable; the cutover is internal to the JSON owner.
+- Split JSON scan primitives into `lib/json_scan.pgy` so `lib/json.pgy` stays
+  under the 600-line owner cap and keeps object/field/emit responsibility.
+  Parity harnesses that previously copied only `json.pgy` now mirror
+  `lib/*.pgy`, matching the shared-lib owner set.
+- Tightened the component contract to require the `Option<Int>` signature and
+  reject the old `Int` signature; lowered the Pergyra-likeness ratchet from
+  `sentinel <= 21` to `sentinel <= 18`, and raised `result_use` from 140 to
+  149.
+
 ### 2026-06-30 -- Codegen AST-text inventory drops dead parent sentinel
 
 - Removed the unused `parent: Int` backedge from `CodegenAstTextNode` and

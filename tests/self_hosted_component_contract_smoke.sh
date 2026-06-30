@@ -224,6 +224,12 @@ require_text "src/self_hosted/OWNERS.md" 'main.pgy` files are entrypoints only'
 require_file "src/self_hosted/lib/json.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lib/json.pgy"
 require_max_lines "src/self_hosted/lib/json.pgy" 600
+require_file "src/self_hosted/lib/json_scan.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lib/json_scan.pgy"
+require_max_lines "src/self_hosted/lib/json_scan.pgy" 600
+require_text "src/self_hosted/lib/json.pgy" 'import "json_scan.pgy";'
+require_text "src/self_hosted/lib/json_scan.pgy" "func FindFrom(hay: String, needle: String, start: Int) -> Option<Int>"
+reject_text "src/self_hosted/lib/json_scan.pgy" "func FindFrom(hay: String, needle: String, start: Int) -> Int"
 require_text "src/self_hosted/lib/json.pgy" "func ReadJsonString"
 require_text "src/self_hosted/lib/json.pgy" "func JsonFieldString"
 require_text "src/self_hosted/lib/json.pgy" "func JsonFieldNumber"
@@ -982,6 +988,7 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/c
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/text/text_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/path.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/json.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/json_scan.pgy"'
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" "JsonStringLiteral(path)"
 require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" 'import "../../lib/json.pgy";'
@@ -1061,7 +1068,7 @@ require_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" 'imp
 require_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" "JsonEmitArray(pieces)"
 reject_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" 'let json_parts: Array<String>'
-require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/json.pgy"'
+require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'import "../../compiler/artifact_zone_owner.pgy";'
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'import "../../compiler/test_harness_owner.pgy";'
@@ -1092,13 +1099,13 @@ require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func Compil
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleComparePlanReady"
 require_text "src/self_hosted/tools/backend_output_comparator/expected/clean.json" '"subprocess_timeout_ms":"30000"'
 require_text "src/self_hosted/tools/backend_output_comparator/expected/clean.json" '"subprocess_env_allowlist":"PATH,PGY_BIN,PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS,PGY_SELFHOST_BUILD_DIR"'
-require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/json.pgy"'
+require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/artifact_zone_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/subprocess_runner_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" '"$ARG_BIN" "$ARG_EXPECTED_PATH" "$ARG_ACTUAL_PATH" 0 2'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" '"actual_projection":"self_hosted"'
-require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/json.pgy"'
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/artifact_zone_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/subprocess_runner_owner.pgy"'
@@ -1122,7 +1129,7 @@ require_text "src/self_hosted/tools/doc_link_checker/main.pgy" 'import "../../li
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "JsonEmitArray(findings)"
 reject_text "src/self_hosted/tools/doc_link_checker/main.pgy" 'let json_parts: Array<String>'
-require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/json.pgy"'
+require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'
 require_text "src/self_hosted/tools/examples_inventory_checker/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/examples_inventory_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/examples_inventory_checker/main.pgy" "JsonEmitArray(findings)"
@@ -1167,8 +1174,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 87 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 87"
+[[ "$selfcheck_count" -eq 88 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 88"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirFactObjectStart"

@@ -12,9 +12,11 @@ compiler-stage `.pgy` source to be listed here.
 ## Shared Lib
 
 - `src/self_hosted/lib/diagnostic.pgy` -- stable diagnostic-block rendering.
-- `src/self_hosted/lib/json.pgy` -- shared bounded JSON string-read,
-  top-level object/value bounds, array-object row iteration, and
-  string/field/object/array emit primitives.
+- `src/self_hosted/lib/json_scan.pgy` -- shared JSON cursor/string scan
+  primitives.
+- `src/self_hosted/lib/json.pgy` -- shared bounded JSON string-read, top-level
+  object/value bounds, array-object row iteration, and string/field/object/array
+  emit primitives.
 - `src/self_hosted/lib/path.pgy` -- self-hosted source/import path string facts.
 - `src/self_hosted/lib/text_scan.pgy` -- shared text-scan helpers.
 
@@ -88,7 +90,7 @@ compiler-stage `.pgy` source to be listed here.
 
 - `src/self_hosted/codegen/main.pgy` -- entrypoint only.
 - `src/self_hosted/codegen/input/ast_input_owner.pgy` -- AST path and read boundary.
-- `src/self_hosted/codegen/input/ast_text_inventory_owner.pgy` -- AST text line inventory, parent/kind row facts, and cursor expectation boundary.
+- `src/self_hosted/codegen/input/ast_text_inventory_owner.pgy` -- AST text line inventory, kind row facts, and cursor expectation boundary.
 - `src/self_hosted/codegen/input/ast_text_statement_owner.pgy` -- AST text statement-row fact accessors for the transitional bridge.
 - `src/self_hosted/codegen/input/ast_usage_owner.pgy` -- runtime/header usage facts derived from the AST text node inventory.
 - `src/self_hosted/codegen/typed_ast_node_skeleton.pgy` -- typed AST arena migration target for retiring the AST text bridge.

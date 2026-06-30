@@ -5,25 +5,7 @@
 // stage does not invent its own string scanning or quoting rules.
 // Schema-specific object shape decisions still belong to the consuming owner.
 
-func CharAt(s: String, i: Int) -> String {
-    return Substring(s, i, 1);
-}
-
-func FindFrom(hay: String, needle: String, start: Int) -> Int {
-    let n: Int = StringLength(hay);
-    if start < 0 {
-        return -1;
-    }
-    if start > n {
-        return -1;
-    }
-    let rest: String = Substring(hay, start, n - start);
-    let k: Int = StringIndexOf(rest, needle);
-    if k < 0 {
-        return -1;
-    }
-    return start + k;
-}
+import "json_scan.pgy";
 
 func JsonArrayEnd(json: String, open: Int, limit: Int) -> Int {
     let n: Int = StringLength(json);
@@ -125,8 +107,12 @@ func ReadJsonString(json: String, open: Int, inout end: Array<Int>) -> String {
 }
 
 func JsonFieldString(json: String, start: Int, end: Int, key: String) -> String {
-    let p: Int = FindFrom(json, key, start);
-    if p < 0 || p >= end {
+    let p_opt: Option<Int> = FindFrom(json, key, start);
+    if !IsSome(p_opt) {
+        return "";
+    }
+    let p: Int = UnwrapOption(p_opt);
+    if p >= end {
         return "";
     }
     let vstart: Int = p + StringLength(key);
@@ -174,12 +160,20 @@ func JsonDocumentHasField(json: String, field: String) -> Bool {
 }
 
 func JsonFieldArrayBounds(json: String, start: Int, end: Int, field: String, inout bounds: Array<Int>) -> Bool {
-    let p: Int = FindFrom(json, JsonFieldKey(field), start);
-    if p < 0 || p >= end {
+    let p_opt: Option<Int> = FindFrom(json, JsonFieldKey(field), start);
+    if !IsSome(p_opt) {
         return false;
     }
-    let open: Int = FindFrom(json, "[", p);
-    if open < 0 || open >= end {
+    let p: Int = UnwrapOption(p_opt);
+    if p >= end {
+        return false;
+    }
+    let open_opt: Option<Int> = FindFrom(json, "[", p);
+    if !IsSome(open_opt) {
+        return false;
+    }
+    let open: Int = UnwrapOption(open_opt);
+    if open >= end {
         return false;
     }
     let close: Int = JsonArrayEnd(json, open, end);
@@ -197,23 +191,6 @@ func JsonDocumentNumberField(json: String, field: String) -> String {
         return "";
     }
     return JsonObjectNumberField(json, 0, end, field);
-}
-
-func JsonSkipWhitespace(json: String, index: Int, end: Int) -> Int {
-    let i: Int = index;
-    while i < end {
-        let c: String = CharAt(json, i);
-        if c != " " && c != "\n" && c != "\r" && c != "\t" {
-            return i;
-        }
-        i = i + 1;
-    }
-    return i;
-}
-
-func JsonIsDigitChar(c: String) -> Bool {
-    return c == "0" || c == "1" || c == "2" || c == "3" || c == "4"
-        || c == "5" || c == "6" || c == "7" || c == "8" || c == "9";
 }
 
 func JsonEscapeString(value: String) -> String {
@@ -273,8 +250,12 @@ func JsonEmitFieldBool(key: String, value: Bool) -> String {
 }
 
 func JsonFieldNumber(json: String, start: Int, end: Int, key: String) -> String {
-    let p: Int = FindFrom(json, key, start);
-    if p < 0 || p >= end {
+    let p_opt: Option<Int> = FindFrom(json, key, start);
+    if !IsSome(p_opt) {
+        return "";
+    }
+    let p: Int = UnwrapOption(p_opt);
+    if p >= end {
         return "";
     }
     let i: Int = p + StringLength(key);
