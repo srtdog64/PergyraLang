@@ -50,8 +50,8 @@ subject MirLowerStage {
 subject ProgramEmitter {
     let name: String;
 
-    action Emit(self) -> Bool {
-        return true;
+    action Emit(self, types: TypeEnvZone, abi_layout: AbiLayoutZone, target_capability: TargetCapabilityZone) -> Bool {
+        return CompilerAbiLayoutRowsReady() && CompilerSymbolTableReady() && CompilerTargetCapabilityEnvelopeReady();
     }
 }
 
@@ -395,14 +395,14 @@ intent LowerProgramFacts(lower_zone: MirFactGraphZone, lowerer: MirLowerStage) {
     failure: false;
 }
 
-intent EmitProgramArtifact(emit_zone: EmissionZone, types: TypeEnvZone, abi_layout: AbiLayoutZone, emitter: ProgramEmitter) {
+intent EmitProgramArtifact(emit_zone: EmissionZone, types: TypeEnvZone, abi_layout: AbiLayoutZone, target_capability: TargetCapabilityZone, emitter: ProgramEmitter) {
     exclusive;
 
     step EmitC {
         where: EmissionZone;
         using: emit_zone;
         who: emitter;
-        on: emitter.Emit();
+        on: emitter.Emit(types, abi_layout, target_capability);
         expect: true;
     }
 

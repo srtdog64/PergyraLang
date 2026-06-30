@@ -172,8 +172,9 @@ parity verdict.
 
 Current source intake already consumes the `StagePathManifest` path fact through
 `CompilerStagePathManifestReady()`, and parity comparison consumes artifact and
-test-harness facts. The remaining scaffold actions are the stage actors for
-token, AST, semantic, MIR, and emission facts.
+test-harness facts. Emission consumes ABI-layout, symbol, and target-capability
+facts. The remaining scaffold actions are the stage actors for token, AST,
+semantic, and MIR facts.
 
 ## Cost Model
 

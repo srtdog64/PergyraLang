@@ -57,6 +57,17 @@ rewrite history.
 - Tightened `world_stub_actions` from `<= 6` to `<= 5`. The remaining scaffold
   actors are lexer, parser, semantic, MIR-lower, and emission.
 
+## 2026-06-30 - Program emitter consumes backend projection facts
+
+- Repointed `ProgramEmitter.Emit` from scaffold `true` to
+  `CompilerAbiLayoutRowsReady() && CompilerSymbolTableReady() &&
+  CompilerTargetCapabilityEnvelopeReady()`.
+- Routed `TargetCapabilityZone` through `EmitProgramArtifact`, so emission is
+  not just an output-buffer participant; it consumes ABI layout, symbol, and
+  target acceptance facts before claiming success.
+- Tightened `world_stub_actions` from `<= 5` to `<= 4`. The remaining scaffold
+  actors are lexer, parser, semantic, and MIR-lower.
+
 ## Verified state (rolling)
 
 - **Lexer**: self-hosts on C+LLVM. Byte-identical to `pgy --tokens` across the 7

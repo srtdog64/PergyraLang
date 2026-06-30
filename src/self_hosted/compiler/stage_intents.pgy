@@ -92,7 +92,7 @@ intent BackendPipeline(
         where: EmissionZone;
         using: emit_zone;
         who: emitter;
-        on: EmitProgramArtifact(emit_zone, types, abi_layout, emitter);
+        on: EmitProgramArtifact(emit_zone, types, abi_layout, target_capability, emitter);
         expect: true;
     }
 

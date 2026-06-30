@@ -148,6 +148,8 @@ for term in \
     "action Lower" \
     "subject ProgramEmitter" \
     "action Emit" \
+    "CompilerAbiLayoutRowsReady() && CompilerSymbolTableReady() && CompilerTargetCapabilityEnvelopeReady()" \
+    "emitter.Emit(types, abi_layout, target_capability)" \
     "subject TargetProjectionPlanner" \
     "action Plan" \
     "subject AirEvidenceOwner" \
@@ -406,7 +408,7 @@ for term in \
     "CheckProgramSemantics(semantic_zone, checker)" \
     "LowerProgramFacts(lower_zone, lowerer)" \
     "PlanTargetProjection(target_capability, target_planner)" \
-    "EmitProgramArtifact(emit_zone, types, abi_layout, emitter)" \
+    "EmitProgramArtifact(emit_zone, types, abi_layout, target_capability, emitter)" \
     "abi_layout: AbiLayoutZone" \
     "target_planner: TargetProjectionPlanner" \
     "ProveSelfHostedParity(parity_zone, oracle)"; do
