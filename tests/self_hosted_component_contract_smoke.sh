@@ -530,10 +530,14 @@ require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func 
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextPayloadFor"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'node.payload == "Main"'
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return node.payload"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'if kind == 7'
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'if kind == 8'
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'if kind == 9'
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextNominalName"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'node.text == "Function: Main"'
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'StringIndexOf(node.text, " for ")'
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return Substring(node.text, 6, fp - 6)"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return Substring(node.text, fp + 5"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return Substring(node.text, 6, brace - 6)"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextNominalPrefixLen"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let prefix_len: Int = CodegenAstTextNominalPrefixLen"

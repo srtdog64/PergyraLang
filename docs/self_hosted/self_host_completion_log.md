@@ -49,6 +49,17 @@ rewrite history.
 - Tightened the component contract to reject enum-name recovery from
   `node.text` brace slicing.
 
+## 2026-07-01 - Codegen role payload leaves declaration-line slicing
+
+- Extended `CodegenAstTextPayloadFor` so role declarations record the
+  `Name for Type` payload in `CodegenAstTextNode.payload` during inventory
+  construction.
+- Repointed `CodegenAstTextRoleName` and `CodegenAstTextRoleForType` to split
+  `node.payload` instead of recovering the `Role: ` prefix and `for` position
+  from `node.text`.
+- Tightened the component contract to reject role-name/type recovery from
+  `node.text` declaration-line slicing.
+
 ## 2026-07-01 - Emission stage consumes codegen payload fact
 
 - Added `CompilerEmissionFactReady()` to

@@ -58,6 +58,9 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
     if kind == 3 {
         return StringTrim(Substring(text, 8, StringLength(text) - 8));
     }
+    if kind == 7 {
+        return Substring(text, 6, StringLength(text) - 6);
+    }
     if kind == 8 {
         if StartsWith(text, "Struct: ") {
             return Substring(text, 8, StringLength(text) - 8);
@@ -226,7 +229,11 @@ func CodegenAstTextNominalName(node: CodegenAstTextNode) -> String {
 }
 
 func CodegenAstTextRoleForPos(node: CodegenAstTextNode) -> Int {
-    let pos: Int = StringIndexOf(node.text, " for ");
+    let payload: String = node.payload;
+    if !CodegenAstTextIsRoleDecl(node) || payload == "" {
+        Die(Concat("expected role declaration AST line: ", node.text));
+    }
+    let pos: Int = StringIndexOf(payload, " for ");
     if pos < 0 {
         Die(Concat("malformed role declaration AST line: ", node.text));
     }
@@ -235,12 +242,12 @@ func CodegenAstTextRoleForPos(node: CodegenAstTextNode) -> Int {
 
 func CodegenAstTextRoleName(node: CodegenAstTextNode) -> String {
     let fp: Int = CodegenAstTextRoleForPos(node);
-    return Substring(node.text, 6, fp - 6);
+    return Substring(node.payload, 0, fp);
 }
 
 func CodegenAstTextRoleForType(node: CodegenAstTextNode) -> String {
     let fp: Int = CodegenAstTextRoleForPos(node);
-    return Substring(node.text, fp + 5, StringLength(node.text) - (fp + 5));
+    return Substring(node.payload, fp + 5, StringLength(node.payload) - (fp + 5));
 }
 
 func CodegenAstTextParamMode(node: CodegenAstTextNode) -> Int {
