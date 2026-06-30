@@ -285,8 +285,10 @@ for term in \
     "func CompilerMirFactGraphReady" \
     'import "../lexer/token_owner.pgy";' \
     'import "../parser/tree_text_owner.pgy";' \
+    'import "../semantic/diagnostic_owner.pgy";' \
     "LexerTokenPayloadContractReady()" \
     "ParserAstTreePayloadContractReady()" \
+    "SemanticVerdictPayloadContractReady()" \
     "CompilerStagePathAt(index)" \
     "CompilerStageWorldBindingAt(index)" \
     "lexer|TokenStreamZone|LexerStage|LexSource" \
@@ -319,6 +321,19 @@ for term in \
     "AppendImplicitMain(\"\", body)" \
     "StringIndexOf(tree_text, \"  Function: Main\")"; do
     require_text "src/self_hosted/parser/tree_text_owner.pgy" "$term"
+done
+
+for term in \
+    "func SemanticVerdictPayloadSchema" \
+    "pgy.selfhost.semantic.v1" \
+    "func SemanticVerdictPayloadFixtureCount" \
+    "func SemanticVerdictPayloadStatusReady" \
+    "func SemanticVerdictPayloadContractReady" \
+    "SemanticVerdictPayloadFixtureCount() != 107" \
+    "SemanticDiagnosticCodeCount() != 17" \
+    "StringIndexOf(ok, \"Status: ok\")" \
+    "StringIndexOf(err, \"Code: undefined_symbol\")"; do
+    require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "$term"
 done
 
 for term in \

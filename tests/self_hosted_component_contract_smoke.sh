@@ -467,6 +467,13 @@ require_text "src/self_hosted/semantic/diagnostic_code_owner.pgy" "func Semantic
 require_text "src/self_hosted/semantic/diagnostic_code_owner.pgy" "func SemanticDiagnosticCodeCount"
 require_text "src/self_hosted/semantic/diagnostic_code_owner.pgy" "func SemanticDiagnosticOracleCode"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticDiagnosticCodeKnown(code)"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadContractReady"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadSchema"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "pgy.selfhost.semantic.v1"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticVerdictPayloadFixtureCount() != 107"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticDiagnosticCodeCount() != 17"
+require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../semantic/diagnostic_owner.pgy";'
+require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "SemanticVerdictPayloadContractReady()"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "check_semantic_diagnostic_code_surface"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "semantic_oracle_code_for"
 require_owner_surface codegen \

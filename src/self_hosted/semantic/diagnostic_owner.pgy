@@ -114,6 +114,53 @@ func SemanticFix(code: String) -> String {
 func SemanticOk() -> String {
     return SelfHostDiagnostic_RenderOk("pgy.selfhost.semantic.v1");
 }
+
+func SemanticVerdictPayloadSchema() -> String {
+    return "pgy.selfhost.semantic.v1";
+}
+
+func SemanticVerdictPayloadFixtureCount() -> Int {
+    return 107;
+}
+
+func SemanticVerdictPayloadStatusReady() -> Bool {
+    let ok: String = SemanticOk();
+    if StringIndexOf(ok, "Diagnostic: pgy.selfhost.semantic.v1") != 0 {
+        return false;
+    }
+    if StringIndexOf(ok, "Status: ok") < 0 {
+        return false;
+    }
+
+    let err: String = SemanticError1("undefined_symbol", "name", "x");
+    if StringIndexOf(err, "Status: error") < 0 {
+        return false;
+    }
+    if StringIndexOf(err, "Stage: semantic") < 0 {
+        return false;
+    }
+    if StringIndexOf(err, "Code: undefined_symbol") < 0 {
+        return false;
+    }
+    return true;
+}
+
+func SemanticVerdictPayloadContractReady() -> Bool {
+    if SemanticVerdictPayloadSchema() != "pgy.selfhost.semantic.v1" {
+        return false;
+    }
+    if SemanticVerdictPayloadFixtureCount() != 107 {
+        return false;
+    }
+    if SemanticDiagnosticCodeCount() != 17 {
+        return false;
+    }
+    if !SemanticVerdictPayloadStatusReady() {
+        return false;
+    }
+    return true;
+}
+
 func SemanticErrorWithFacts(code: String, facts: String) -> String {
     let stable_code: String = code;
     let stable_facts: String = facts;

@@ -67,7 +67,8 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/semantic/body_check_owner.pgy` -- statement/body checks.
 - `src/self_hosted/semantic/call_check_owner.pgy` -- call arity and argument checks.
 - `src/self_hosted/semantic/diagnostic_code_owner.pgy` -- stable semantic diagnostic code vocabulary.
-- `src/self_hosted/semantic/diagnostic_owner.pgy` -- semantic diagnostic blocks.
+- `src/self_hosted/semantic/diagnostic_owner.pgy` -- semantic diagnostic blocks
+  and verdict payload contract facts.
 - `src/self_hosted/semantic/env_owner.pgy` -- scoped local environment.
 - `src/self_hosted/semantic/expr_type_owner.pgy` -- expression type facts.
 - `src/self_hosted/semantic/expr_validation_owner.pgy` -- expression validation facts.

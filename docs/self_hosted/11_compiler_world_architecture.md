@@ -177,9 +177,12 @@ is the first load-bearing envelope that prevents the stage actors from being
 decorative `return true` scaffolding. Lexer readiness now goes one step deeper:
 it also consumes `LexerTokenPayloadContractReady()` from `lexer/token_owner.pgy`.
 Parser readiness does the same for the current compact-AST text rung through
-`ParserAstTreePayloadContractReady()` in `parser/tree_text_owner.pgy`. Semantic
-and MIR readiness remain envelope-only until their payload facts are wired
-through the same pattern.
+`ParserAstTreePayloadContractReady()` in `parser/tree_text_owner.pgy`.
+Semantic readiness consumes `SemanticVerdictPayloadContractReady()` from
+`semantic/diagnostic_owner.pgy`, tying the stage to its verdict schema, fixture
+count, status rendering, and code vocabulary. MIR readiness remains
+envelope-only until its fact graph payload contract is wired through the same
+pattern.
 
 ## Cost Model
 

@@ -108,6 +108,19 @@ rewrite history.
 - Tightened `stage_envelope_only` from `<= 3` to `<= 2`. Semantic and MIR
   readiness remain envelope-only and are the next payload-depth targets.
 
+## 2026-06-30 - Semantic stage consumes verdict payload contract
+
+- Added `SemanticVerdictPayloadContractReady()` to
+  `src/self_hosted/semantic/diagnostic_owner.pgy`. The semantic diagnostic
+  owner now exposes the verdict schema, 107-fixture parity surface, ok/error
+  status rendering, and 17-code vocabulary as the semantic verdict payload
+  contract.
+- Repointed `CompilerSemanticVerdictFactReady()` so it first checks the
+  `semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics` envelope
+  and then consumes the semantic verdict payload contract.
+- Tightened `stage_envelope_only` from `<= 2` to `<= 1`. MIR readiness remains
+  the only envelope-only compiler stage.
+
 ## Verified state (rolling)
 
 - **Lexer**: self-hosts on C+LLVM. Byte-identical to `pgy --tokens` across the 7

@@ -1,6 +1,7 @@
 import "path_manifest_owner.pgy";
 import "../lexer/token_owner.pgy";
 import "../parser/tree_text_owner.pgy";
+import "../semantic/diagnostic_owner.pgy";
 
 // Stage artifact envelope facts for PgyCompilerWorld.
 //
@@ -33,7 +34,10 @@ func CompilerAstTreeFactReady() -> Bool {
 }
 
 func CompilerSemanticVerdictFactReady() -> Bool {
-    return CompilerStageArtifactRowReady(2, "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics");
+    if !CompilerStageArtifactRowReady(2, "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics") {
+        return false;
+    }
+    return SemanticVerdictPayloadContractReady();
 }
 
 func CompilerMirFactGraphReady() -> Bool {
