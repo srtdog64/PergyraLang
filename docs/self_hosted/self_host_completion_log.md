@@ -2418,3 +2418,16 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   parsing shapes in `function_emit.pgy`. This further reduces the ACTIVE mixed
   AST-like tree blocker while leaving statement-body AST text as the remaining
   intentional bridge surface.
+
+### 2026-06-30 -- Let and Assign statement facts move behind the input owner
+
+- Added owner-owned `Let` and `Assign` statement predicates plus accessors for
+  let name/type/initializer and assign target/value rows in
+  `ast_text_inventory_owner.pgy`.
+- Repointed `stmt_emit.pgy` so `EmitLet`, `EmitTryLet`, and `EmitAssign`
+  consume `CodegenAstTextNode` facts instead of splitting `Let:` / `Assign:`
+  lines locally.
+- Tightened the component contract to reject the old `line: String` statement
+  parser shapes and direct `Let:` / `Assign:` dispatch in `stmt_emit.pgy`. The
+  broader statement-body text bridge remains active for control flow, calls,
+  collection statements, and expression payloads.

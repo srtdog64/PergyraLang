@@ -54,6 +54,14 @@ func CodegenAstTextIsFunction(node: CodegenAstTextNode) -> Bool {
     return node.kind == 6;
 }
 
+func CodegenAstTextIsLetStmt(node: CodegenAstTextNode) -> Bool {
+    return StartsWith(node.text, "Let: ");
+}
+
+func CodegenAstTextIsAssignStmt(node: CodegenAstTextNode) -> Bool {
+    return StartsWith(node.text, "Assign: ");
+}
+
 func CodegenAstTextIsParameters(node: CodegenAstTextNode) -> Bool {
     return node.kind == 2;
 }
@@ -104,6 +112,77 @@ func CodegenAstTextFunctionName(node: CodegenAstTextNode) -> String {
 
 func CodegenAstTextReturnType(node: CodegenAstTextNode) -> String {
     return StringTrim(CodegenAstTextPayloadAfter(node, "Returns:", "return type"));
+}
+
+func CodegenAstTextLetPayload(node: CodegenAstTextNode) -> String {
+    return CodegenAstTextPayloadAfter(node, "Let: ", "let statement");
+}
+
+func CodegenAstTextLetNameEnd(node: CodegenAstTextNode) -> Int {
+    let rest: String = CodegenAstTextLetPayload(node);
+    let pos: Int = StringIndexOf(rest, " : ");
+    if pos < 0 {
+        Die(Concat("malformed Let statement (no type separator): ", node.text));
+    }
+    return pos;
+}
+
+func CodegenAstTextLetName(node: CodegenAstTextNode) -> String {
+    let rest: String = CodegenAstTextLetPayload(node);
+    let pos: Int = CodegenAstTextLetNameEnd(node);
+    return Substring(rest, 0, pos);
+}
+
+func CodegenAstTextLetAfterName(node: CodegenAstTextNode) -> String {
+    let rest: String = CodegenAstTextLetPayload(node);
+    let pos: Int = CodegenAstTextLetNameEnd(node);
+    return Substring(rest, pos + 3, StringLength(rest) - (pos + 3));
+}
+
+func CodegenAstTextLetInitializerPos(node: CodegenAstTextNode) -> Int {
+    let after_name: String = CodegenAstTextLetAfterName(node);
+    let pos: Int = StringIndexOf(after_name, " = ");
+    if pos < 0 {
+        Die(Concat("malformed Let statement (no initializer): ", node.text));
+    }
+    return pos;
+}
+
+func CodegenAstTextLetTypeName(node: CodegenAstTextNode) -> String {
+    let after_name: String = CodegenAstTextLetAfterName(node);
+    let pos: Int = CodegenAstTextLetInitializerPos(node);
+    return Substring(after_name, 0, pos);
+}
+
+func CodegenAstTextLetInitializer(node: CodegenAstTextNode) -> String {
+    let after_name: String = CodegenAstTextLetAfterName(node);
+    let pos: Int = CodegenAstTextLetInitializerPos(node);
+    return Substring(after_name, pos + 3, StringLength(after_name) - (pos + 3));
+}
+
+func CodegenAstTextAssignPayload(node: CodegenAstTextNode) -> String {
+    return CodegenAstTextPayloadAfter(node, "Assign: ", "assign statement");
+}
+
+func CodegenAstTextAssignEqualsPos(node: CodegenAstTextNode) -> Int {
+    let rest: String = CodegenAstTextAssignPayload(node);
+    let pos: Int = StringIndexOf(rest, " = ");
+    if pos < 0 {
+        Die(Concat("malformed Assign statement: ", node.text));
+    }
+    return pos;
+}
+
+func CodegenAstTextAssignTarget(node: CodegenAstTextNode) -> String {
+    let rest: String = CodegenAstTextAssignPayload(node);
+    let pos: Int = CodegenAstTextAssignEqualsPos(node);
+    return Substring(rest, 0, pos);
+}
+
+func CodegenAstTextAssignValue(node: CodegenAstTextNode) -> String {
+    let rest: String = CodegenAstTextAssignPayload(node);
+    let pos: Int = CodegenAstTextAssignEqualsPos(node);
+    return Substring(rest, pos + 3, StringLength(rest) - (pos + 3));
 }
 
 func CodegenAstTextEnumBracePos(node: CodegenAstTextNode) -> Int {

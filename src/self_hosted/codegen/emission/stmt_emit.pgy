@@ -17,20 +17,10 @@ func EmitCollectionElementValue(kind: String, value_expr: String, env: String, k
     return IntEval(value_expr, env);
 }
 
-func EmitLet(line: String, inout env_box: Array<String>) -> String {
-    let rest: String = Substring(line, 5, StringLength(line) - 5);
-    let ci: Int = StringIndexOf(rest, " : ");
-    if ci < 0 {
-        Die(Concat("malformed Let (no type separator): ", line));
-    }
-    let name: String = Substring(rest, 0, ci);
-    let after_name: String = Substring(rest, ci + 3, StringLength(rest) - (ci + 3));
-    let ei: Int = StringIndexOf(after_name, " = ");
-    if ei < 0 {
-        Die(Concat("malformed Let (no initializer): ", line));
-    }
-    let type_name: String = Substring(after_name, 0, ei);
-    let expr: String = Substring(after_name, ei + 3, StringLength(after_name) - (ei + 3));
+func EmitLet(node: CodegenAstTextNode, inout env_box: Array<String>) -> String {
+    let name: String = CodegenAstTextLetName(node);
+    let type_name: String = CodegenAstTextLetTypeName(node);
+    let expr: String = CodegenAstTextLetInitializer(node);
     if type_name == "Int" {
         ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:Int|")));
         return Concat(AbiLayoutCLocalType(type_name, env_box[0]), Concat(" ", Concat(name, Concat(" = ", Concat(IntEval(expr, env_box[0]), ";")))));
@@ -115,26 +105,16 @@ func TryExprInner(expr: String) -> String {
     return StringTrim(Substring(e, 2, n - 3));
 }
 
-func EmitTryLet(line: String, inout env_box: Array<String>, cur_fn_ret: String, pad: String, cleanup: String, idx: Int) -> String {
-    let rest: String = Substring(line, 5, StringLength(line) - 5);
-    let ci: Int = StringIndexOf(rest, " : ");
-    if ci < 0 {
-        Die(Concat("malformed try Let (no type separator): ", line));
-    }
-    let name: String = Substring(rest, 0, ci);
-    let after_name: String = Substring(rest, ci + 3, StringLength(rest) - (ci + 3));
-    let ei: Int = StringIndexOf(after_name, " = ");
-    if ei < 0 {
-        Die(Concat("malformed try Let (no initializer): ", line));
-    }
-    let type_name: String = Substring(after_name, 0, ei);
-    let expr: String = Substring(after_name, ei + 3, StringLength(after_name) - (ei + 3));
+func EmitTryLet(node: CodegenAstTextNode, inout env_box: Array<String>, cur_fn_ret: String, pad: String, cleanup: String, idx: Int) -> String {
+    let name: String = CodegenAstTextLetName(node);
+    let type_name: String = CodegenAstTextLetTypeName(node);
+    let expr: String = CodegenAstTextLetInitializer(node);
     let inner: String = TryExprInner(expr);
     if type_name != "Int" || StringLength(inner) == 0 {
-        Die(Concat("unsupported try let shape in self-host codegen subset: ", line));
+        Die(Concat("unsupported try let shape in self-host codegen subset: ", node.text));
     }
     if !(StartsWith(cur_fn_ret, "Result<") && StringIndexOf(cur_fn_ret, "Int") >= 0) {
-        Die(Concat("try expression requires Result<Int> function return: ", line));
+        Die(Concat("try expression requires Result<Int> function return: ", node.text));
     }
     ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:Int|")));
     let tmp: String = Concat("_pgy_try_", ToString(idx));
@@ -148,14 +128,9 @@ func EmitTryLet(line: String, inout env_box: Array<String>, cur_fn_ret: String, 
 }
 
 // `Assign: <name> = <expr>`. Routes by the variable's recorded type.
-func EmitAssign(line: String, env_box: Array<String>) -> String {
-    let rest: String = Substring(line, 8, StringLength(line) - 8);
-    let eq: Int = StringIndexOf(rest, " = ");
-    if eq < 0 {
-        Die(Concat("malformed Assign: ", line));
-    }
-    let name: String = Substring(rest, 0, eq);
-    let expr: String = Substring(rest, eq + 3, StringLength(rest) - (eq + 3));
+func EmitAssign(node: CodegenAstTextNode, env_box: Array<String>) -> String {
+    let name: String = CodegenAstTextAssignTarget(node);
+    let expr: String = CodegenAstTextAssignValue(node);
     let lb: Int = StringIndexOf(name, "[");
     if lb > 0 && CharAt(name, StringLength(name) - 1) == "]" {
         let arr_name: String = Substring(name, 0, lb);
@@ -248,15 +223,15 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int,
             Die(Concat("unexpected over-indented AST line: ", nodes[idx].text));
         }
         let t: String = nodes[idx].text;
-        if StartsWith(t, "Let: ") {
-            if ContainsOutsideStrings(t, "(?") {
-                result = Concat(result, Concat(pad, Concat(EmitTryLet(t, env_box, cur_fn_ret, pad, Concat(deferred, active_defers), idx), "\n")));
+        if CodegenAstTextIsLetStmt(nodes[idx]) {
+            if ContainsOutsideStrings(CodegenAstTextLetInitializer(nodes[idx]), "(?") {
+                result = Concat(result, Concat(pad, Concat(EmitTryLet(nodes[idx], env_box, cur_fn_ret, pad, Concat(deferred, active_defers), idx), "\n")));
             } else {
-                result = Concat(result, Concat(pad, Concat(EmitLet(t, env_box), "\n")));
+                result = Concat(result, Concat(pad, Concat(EmitLet(nodes[idx], env_box), "\n")));
             }
             ArraySet(cur, 0, idx + 1);
-        } else if StartsWith(t, "Assign: ") {
-            result = Concat(result, Concat(pad, Concat(EmitAssign(t, env_box), "\n")));
+        } else if CodegenAstTextIsAssignStmt(nodes[idx]) {
+            result = Concat(result, Concat(pad, Concat(EmitAssign(nodes[idx], env_box), "\n")));
             ArraySet(cur, 0, idx + 1);
         } else if StartsWith(t, "Log(") {
             if CharAt(t, StringLength(t) - 1) != ")" {

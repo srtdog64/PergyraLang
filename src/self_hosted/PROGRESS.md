@@ -37,8 +37,9 @@ rung-19 typed `Int` / `Bool` / `Float` / `String` struct field facts, and rung-2
 The codegen entrypoint is now split into thin `main.pgy` orchestration plus
 resource-owner folders: `input/` for AST path/read ownership and AST-text line
 inventory ownership, including marker-node predicates and
-function/return/enum/nominal/role/parameter/field payload accessors for the
-transitional `pgy --ast` bridge, `run/` for the
+function/return/enum/nominal/role/parameter/field payload accessors plus
+`Let`/`Assign` statement fact accessors for the transitional `pgy --ast`
+bridge, `run/` for the
 CLI boundary, `text/` for text/expression scanning, `type_facts/` for type
 evidence, compiler-world symbol rows for emitted-symbol spelling,
 `abi_layout/` for self-host C ABI type spelling, `runtime_abi/` for `Array<Int>` /
