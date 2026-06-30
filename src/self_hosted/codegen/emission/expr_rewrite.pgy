@@ -472,7 +472,7 @@ func RewriteTokens(e: String, env: String) -> String {
     let riserr: String = ReplaceAllOutsideStrings(risok, "IsErr(", Concat(OptionResultRuntimeCResultIsErrFn(), "("));
     let runwrapor: String = ReplaceAllOutsideStrings(riserr, "UnwrapOr(", Concat(OptionResultRuntimeCResultUnwrapOrFn(), "("));
     let runwrap: String = ReplaceAllOutsideStrings(runwrapor, "Unwrap(", Concat(OptionResultRuntimeCResultUnwrapFn(), "("));
-    let tf: String = ReplaceAllOutsideStrings(runwrap, "ToFloat(", "atof(");
+    let tf: String = ReplaceAllOutsideStrings(runwrap, "ToFloat(", Concat(StringRuntimeCToFloatFn(), "("));
     let p: String = ReplaceAllOutsideStrings(tf, "ToString(", Concat(StringRuntimeCToStringFn(), "("));
     // `Concat(a, b)` lowers through the string runtime concat helper.
     // so it lowers recursively and inside arbitrary call arguments.

@@ -271,14 +271,14 @@ facts, including the bootstrap-only typed AST-line record-array lane.
 `runtime_abi/math_runtime_owner.pgy` is the read-only owner for supported
 self-host C math/random helper names and C target-library spellings.
 `runtime_abi/host_io_runtime_owner.pgy` is the read-only owner for supported
-self-host C host file/argv runtime helper names.
+self-host C host file/argv/process helper names and target-library spellings.
 `runtime_abi/option_result_runtime_owner.pgy` is the read-only owner for
 supported self-host C Option/Result runtime helper names.
 `runtime_abi/string_runtime_owner.pgy` is the read-only owner for supported
-self-host C string/text runtime helper names. `program_emit.pgy` still owns the
-generated helper definitions.
+self-host C string/text helper names and conversion target-library spellings.
+`program_emit.pgy` still owns the generated helper definitions.
 Expression/statement emitters should not locally spell Pergyra `pgy_*` runtime
-helper names or supported target-library call names such as `sqrt`. Direct C
+helper names or supported target-library call names such as `sqrt`, `atof`, or `exit`. Direct C
 standard-library calls are target-library spelling facts, not expression-local
 literals.
 
@@ -310,9 +310,9 @@ The long-term codegen shape is resource-first:
 | self-host typed AST-text bridge | `input/ast_text_inventory_owner.pgy` for raw `pgy --ast` lines, `CodegenAstTextNode`, indentation, parent edge, coarse kind, marker predicates, blank filtering, `[export]` normalization, declaration payload accessors, parameter mode preservation, and cursor expectations; `input/ast_text_statement_owner.pgy` for statement-row facts | self-hosted C emission | `program_emit`, declaration collectors, function signature emission, and statement body emission consume typed nodes for program-level routing, prepasses, marker rows, function/return/enum/nominal/role/parameter/field payloads, statement facts, function body-marker reads, and remaining expression payload reads; `inout` signatures/calls consume recorded `pm` facts; no emission participant may re-split AST text or consume parallel `indents`/`texts` arrays |
 | self-host C collection runtime symbols | `runtime_abi/collection_runtime_owner.pgy` for `Array<Int>` / `Array<String>` helper calls plus the `Array<CodegenAstTextNode>` bootstrap bridge | self-hosted C emission | expression/statement emitters consume canonical helper-name facts; generated helper definitions stay in one definition host |
 | self-host C math/random symbols | `runtime_abi/math_runtime_owner.pgy` for `Abs` / `Min` / `Max` / `Sqrt` / `Pow` / `Floor` / `Ceil` / `SeedRandom` / `Random` helper or target-library calls | self-hosted C emission | expression emitters consume canonical symbol facts; generated helper definitions stay in one definition host |
-| self-host C host I/O runtime symbols | `runtime_abi/host_io_runtime_owner.pgy` for file, directory-walk, and `Args()` helper calls | self-hosted C emission | expression emitters consume canonical helper-name facts; generated helper definitions stay in one definition host |
+| self-host C host I/O/process symbols | `runtime_abi/host_io_runtime_owner.pgy` for file, directory-walk, `Args()`, and `Exit(Int)` helper or target-library calls | self-hosted C emission | expression/statement emitters consume canonical symbol facts; generated helper definitions stay in one definition host |
 | self-host C Option/Result runtime symbols | `runtime_abi/option_result_runtime_owner.pgy` for `Option<Int>` / `Result<Int>` helper calls | self-hosted C emission | expression/statement emitters consume canonical helper-name facts; generated helper definitions stay in one definition host |
-| self-host C string/text runtime symbols | `runtime_abi/string_runtime_owner.pgy` for supported string/text builtin helper calls | self-hosted C emission | expression/statement emitters consume canonical helper-name facts; generated helper definitions stay in one definition host |
+| self-host C string/text symbols | `runtime_abi/string_runtime_owner.pgy` for supported string/text builtin helper and conversion target-library calls | self-hosted C emission | expression/statement emitters consume canonical symbol facts; generated helper definitions stay in one definition host |
 | ABI/layout facts | `AbiLayoutZone` over the MIR ABI/layout owner | C, LLVM, self-hosted codegen | no backend invents field order, niche, pointer, or ownership shape |
 | unsupported surface | codegen diagnostic owner | parity harness | fail visibly, never emit broken C |
 | target acceptance/fallback | `target_capability_owner.pgy` plus future target-specific extensions | C, LLVM, self-hosted, accelerator projections | no hidden CPU fallback or unsupported accelerator lowering |

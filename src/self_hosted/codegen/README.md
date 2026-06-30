@@ -135,8 +135,9 @@ string-typed identifier, or a string-returning call. The builtins
 `StringLength(x)`, `Substring(s, start, len)`, `StringIndexOf(hay, needle)`, `StringTrim(s)`,
 and `StringJoin(xs, sep)` / `Join(xs, sep)` are rewritten to runtime helpers
 owned by `runtime_abi/string_runtime_owner.pgy` (`StringIndexOf` remains
-`strstr`-based and returns -1 when absent). `ToFloat(s)` lowers to `atof(s)`.
-`Exit(n)` lowers to `exit(n);`. `Args()` lowers to a stable user-argv
+`strstr`-based and returns -1 when absent). `ToFloat(s)` lowers through the
+string runtime owner to the target `atof` symbol. `Exit(n)` lowers through the
+host I/O owner to the target `exit` symbol. `Args()` lowers to a stable user-argv
 snapshot (`argv[1..]`) stored in the same growable string-array representation.
 
 **Type routing:** `Assign` / `Log` / `Return` need to know whether an operand is
@@ -203,9 +204,8 @@ and string `Log`). `program_emit.pgy` remains the generated helper definition
 host; expression and statement emitters must consume `string_runtime_owner.pgy`
 instead of locally spelling those `pgy_*` helper names.
 Expression/statement emitters should not locally spell `pgy_*` runtime helper
-names or supported target-library call names. `sqrt`, `pow`, `floor`, and
-`ceil` are math owner facts; remaining C library spellings such as `atof` and
-`exit` stay target-library calls until their boundary gets a dedicated owner.
+names or supported target-library call names. `sqrt`, `pow`, `floor`, `ceil`,
+`atof`, and `exit` are owner facts consumed by emission participants.
 
 Parity gate: `tests/self_hosted/parity/codegen_parity.sh` builds `main.pgy` through
 the requested backend set, runs it on each of the 63 committed fixtures'

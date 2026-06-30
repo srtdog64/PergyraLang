@@ -745,10 +745,12 @@ require_text "src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy" "func 
 require_text "src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy" "func MathRuntimeCRandomFn"
 require_text "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy" "func HostIORuntimeCFileExistsFn"
 require_text "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy" "func HostIORuntimeCArgsFn"
+require_text "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy" "func HostIORuntimeCExitFn"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCConcatFn"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCStringLengthFn"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCStringJoinFn"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCLogFn"
+require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCToFloatFn"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCOptionSomeFn"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCOptionNoneFn"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCResultOkFn"
@@ -771,6 +773,8 @@ require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "MathRuntimeCPo
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "MathRuntimeCFloorFn"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "MathRuntimeCCeilFn"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "HostIORuntimeCFileExistsFn"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "StringRuntimeCToFloatFn"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "HostIORuntimeCExitFn"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "OptionResultRuntimeCOptionSomeFn"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "OptionResultRuntimeCResultOkFn"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "OptionResultRuntimeCResultIsOkFn"
@@ -785,6 +789,8 @@ reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" '"sqrt("'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" '"pow("'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" '"floor("'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" '"ceil("'
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" '"atof("'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"exit("'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'let elem_c: String = "long long"'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'for (long long '
 reject_text "src/self_hosted/codegen/text/expr_scan.pgy" '"pgy_ai_len"'

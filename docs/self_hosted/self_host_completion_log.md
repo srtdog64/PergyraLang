@@ -90,6 +90,16 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-30 -- ToFloat and Exit target spellings consume runtime owners
+
+- Added `StringRuntimeCToFloatFn` to `string_runtime_owner.pgy` and
+  `HostIORuntimeCExitFn` to `host_io_runtime_owner.pgy`.
+- Repointed `ToFloat` expression rewrite and `Exit(Int)` statement emission so
+  self-host C emission consumes owner facts instead of local `"atof("` and
+  `"exit("` literals.
+- Tightened the component contract to require the owner functions and reject the
+  old expression/statement-local target spellings.
+
 ### 2026-06-30 -- Float math call spelling consumes MathRuntimeOwner
 
 - Added `MathRuntimeCSqrtFn`, `MathRuntimeCPowFn`, `MathRuntimeCFloorFn`, and

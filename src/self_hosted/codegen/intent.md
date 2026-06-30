@@ -49,17 +49,19 @@ participant, not a zone.
 - `MathRuntimeOwner` owns self-host C math/random helper and target-library
   symbol spelling for the supported `Abs` / `Min` / `Max` / `Sqrt` / `Pow` /
   `Floor` / `Ceil` / `SeedRandom` / `Random` subset.
-- `HostIORuntimeOwner` owns self-host C host file/argv runtime helper symbol
-  spelling for the supported file, directory-walk, and `Args()` subset.
+- `HostIORuntimeOwner` owns self-host C host file/argv/process runtime helper
+  and target-library symbol spelling for the supported file, directory-walk,
+  `Args()`, and `Exit(Int)` subset.
 - `OptionResultRuntimeOwner` owns self-host C Option/Result runtime helper
   symbol spelling for the supported `Option<Int>` / `Result<Int>` subset. The
   helper definitions stay in `program_emit`; expression and statement emitters
   consume this owner instead of locally spelling `pgy_option_*` /
   `pgy_result_*` names.
-- `StringRuntimeOwner` owns self-host C string/text runtime helper symbol
-  spelling for the supported builtin rewrite subset. The helper definitions
-  stay in `program_emit`; expression and statement emitters consume this owner
-  instead of locally spelling those `pgy_*` names.
+- `StringRuntimeOwner` owns self-host C string/text runtime helper and
+  conversion target-library symbol spelling for the supported builtin rewrite
+  subset, including `ToFloat(String)`. The helper definitions stay in
+  `program_emit`; expression and statement emitters consume this owner instead
+  of locally spelling those `pgy_*` or target-library names.
 - `ProgramEmitter` is the emission participant that drives writes into
   `EmissionZone`; it is not a zone.
 
@@ -86,9 +88,9 @@ Concrete split for the current codegen cluster:
 | symbol/name-mangling facts | compiler-world owner, not codegen zone | read-only canonical spelling rows for supported self-host emission |
 | collection runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host array runtime calls, including the bootstrap typed AST-line record array |
 | math/random helper and target-library symbols | owner, not zone yet | canonical C names for supported self-host math/random calls |
-| host I/O runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host file/argv runtime calls |
+| host I/O/process helper and target-library symbols | owner, not zone yet | canonical C names for supported self-host file/argv/process calls |
 | Option/Result runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host Option/Result runtime calls |
-| string/text runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host string/text builtin calls |
+| string/text helper and conversion target-library symbols | owner, not zone yet | canonical C names for supported self-host string/text builtin calls |
 | program/function/stmt/expr emit files | no | recursive participants over the same output/type resources |
 
 The filesystem mirrors that owner shape without pretending that every action is

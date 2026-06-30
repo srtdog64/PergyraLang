@@ -34,6 +34,10 @@ func StringRuntimeCToIntFn() -> String {
     return "pgy_toint";
 }
 
+func StringRuntimeCToFloatFn() -> String {
+    return "atof";
+}
+
 func StringRuntimeCStringTrimFn() -> String {
     return "pgy_strtrim";
 }

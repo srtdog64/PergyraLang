@@ -37,3 +37,7 @@ func HostIORuntimeCDirWalkFn() -> String {
 func HostIORuntimeCArgsFn() -> String {
     return "pgy_args";
 }
+
+func HostIORuntimeCExitFn() -> String {
+    return "exit";
+}
