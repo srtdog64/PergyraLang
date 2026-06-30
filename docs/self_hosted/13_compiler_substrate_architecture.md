@@ -199,7 +199,10 @@ bootstrap-owned `Array<CodegenAstTextNode>` bridge; it is not a claim that
 arbitrary compiler record arrays have all collection algorithms.
 
 `src/self_hosted/compiler/path_manifest_owner.pgy` is the current path owner.
-It owns the Pergyra source/test/parity path values for `StagePathManifest`;
+It owns the Pergyra source/test/parity path values for `StagePathManifest` and
+the active stage-to-world binding rows. Each row names the stage, resource zone,
+actor, and intent so a bootstrap driver can route a stage through
+`PgyCompilerWorld` instead of inferring ownership from a folder name.
 `tests/self_hosted/compiler_world_manifest.sh` is the shell projection and is
 contract-checked against the Pergyra owner.
 
@@ -396,7 +399,7 @@ visible `PgyCompilerWorld` topology and by fact owners such as
 |---|---|---|
 | stage `main.pgy` imports every sibling in order | each owner imports the fact owners it consumes | entrypoints stop being dependency aggregators |
 | AST text read by codegen | MIR/type/ABI facts consumed by codegen | AST text remains a declared bridge until its facts exist |
-| shell scripts rediscovering files | `StagePathManifest` plus path owner projection | stage paths normalize once and are passed as facts |
+| shell scripts rediscovering files | `StagePathManifest` plus path/world-binding owner projection | stage paths normalize once and are passed with resource zone, actor, and intent facts |
 | raw diagnostic strings in tools | shared diagnostic owner and stage diagnostic vocabulary | diagnostics are structured before parity compares them |
 | recursive filesystem discovery for closed stage sets | manifest-owned direct paths | discovery is allowed only when the test is measuring discovery drift |
 | C/LLVM/backend-specific layout guesses | `AbiLayoutZone` over ABI/layout facts | backend emitters consume one layout fact source |

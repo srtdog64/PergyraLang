@@ -90,6 +90,17 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-30 -- Stage path manifest carries compiler-world bindings
+
+- Added `CompilerStageWorldBindingAt` to
+  `src/self_hosted/compiler/path_manifest_owner.pgy`. Each active self-host
+  stage path now has a manifest-owned row for its resource zone, actor, and
+  intent (`lexer|TokenStreamZone|LexerStage|LexSource`, etc.).
+- Tightened the compiler-world contract smoke so those rows cannot drift out of
+  the path owner. This makes Pergyra-likeness more load-bearing: future
+  bootstrap drivers can consume world placement facts instead of inferring a
+  stage's role from folder names.
+
 ### 2026-06-30 -- Pergyra-likeness reports compiler-world topology
 
 - Extended `tests/self_host_pergyra_likeness_smoke.sh` so it is no longer only

@@ -83,6 +83,25 @@ func CompilerStagePathAt(index: Int) -> String {
     return "";
 }
 
+func CompilerStageWorldBindingAt(index: Int) -> String {
+    if index == 0 {
+        return "lexer|TokenStreamZone|LexerStage|LexSource";
+    }
+    if index == 1 {
+        return "parser|AstTreeZone|ParserStage|ParseTokens";
+    }
+    if index == 2 {
+        return "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics";
+    }
+    if index == 3 {
+        return "mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts";
+    }
+    if index == 4 {
+        return "codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact";
+    }
+    return "";
+}
+
 func CompilerParityPathCount() -> Int {
     return 6;
 }

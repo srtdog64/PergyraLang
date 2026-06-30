@@ -205,7 +205,9 @@ harness projection. It carries:
 - the self-host test root;
 - the parity harness root;
 - the compiler world source path;
-- the active stage entrypoint paths.
+- the active stage entrypoint paths;
+- the stage-to-world binding rows that map each active stage to its resource
+  zone, actor, and intent.
 
 Existing discovery-style flow:
 
@@ -221,7 +223,7 @@ Compiler-world flow:
 2. check exact paths;
 3. normalize once per run;
 4. cache the normalized forms;
-5. pass the path fact to the stage-specific actor and intent.
+5. pass the path and world-binding facts to the stage-specific actor and intent.
 
 Local Windows path-cost probe on 2026-06-24:
 

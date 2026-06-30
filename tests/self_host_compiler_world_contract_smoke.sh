@@ -231,6 +231,7 @@ for term in \
     "func CompilerSymbolTableOwnerPath" \
     "func CompilerOwnerManifestPath" \
     "func CompilerStagePathAt" \
+    "func CompilerStageWorldBindingAt" \
     "func CompilerParityPathAt" \
     "func CompilerWorldManifestPathAt"; do
     require_text "src/self_hosted/compiler/path_manifest_owner.pgy" "$term"
@@ -249,7 +250,12 @@ for term in \
     "if index < 16" \
     "CompilerStagePathAt(index - 11)" \
     "if index < 22" \
-    "CompilerParityPathAt(index - 16)"; do
+    "CompilerParityPathAt(index - 16)" \
+    "lexer|TokenStreamZone|LexerStage|LexSource" \
+    "parser|AstTreeZone|ParserStage|ParseTokens" \
+    "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics" \
+    "mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts" \
+    "codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact"; do
     require_text "src/self_hosted/compiler/path_manifest_owner.pgy" "$term"
 done
 
