@@ -551,6 +551,7 @@ reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'Starts
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'StartsWith(node.text, "ref ")'
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return node.text"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextEnumBracePos"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextPayloadAfter"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextNominalPrefixLen"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let prefix_len: Int = CodegenAstTextNominalPrefixLen"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let parent: Int"
@@ -635,6 +636,15 @@ require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "retur
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 17"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 18"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 19"
+require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 20"
+require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 21"
+require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 22"
+require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 23"
+require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 24"
+require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 25"
+require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 26"
+require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 27"
+require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 28"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLetName"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLetTypeName"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLetInitializer"
@@ -660,17 +670,26 @@ require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func 
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsElseIfAt"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextBareCallExpr"
 reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'StartsWith(node.text, "Log(")'
+reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'StartsWith(node.text, "Let: ")'
+reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'StartsWith(node.text, "Assign: ")'
 reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'StartsWith(node.text, "Return:")'
 reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'StartsWith(node.text, "ArrayPop(")'
 reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'StartsWith(node.text, "ArraySet(")'
 reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'StartsWith(node.text, "ArrayPush(")'
 reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'StartsWith(node.text, "Exit(")'
+reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'StartsWith(node.text, "For: ")'
+reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'StartsWith(node.text, "While: ")'
+reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'StartsWith(node.text, "If: ")'
 reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'node.text == "Return"'
+reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'node.text == "Defer:"'
+reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'node.text == "Break"'
+reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'node.text == "Continue"'
+reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'node.text == "Else:"'
 reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'Substring(node.text, 4'
 reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'Substring(node.text, 9'
 reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'Substring(node.text, 10'
 reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'Substring(node.text, 5'
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'CodegenAstTextPayloadAfter(node, "Return:"'
+reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'CodegenAstTextPayloadAfter('
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsLetStmt"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextLetName"
 require_text "src/self_hosted/codegen/main.pgy" 'import "input/ast_text_statement_owner.pgy";'

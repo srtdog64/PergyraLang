@@ -70,6 +70,33 @@ func CodegenAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "ArrayPush(") {
         return 19;
     }
+    if StartsWith(text, "Let: ") {
+        return 20;
+    }
+    if StartsWith(text, "Assign: ") {
+        return 21;
+    }
+    if StartsWith(text, "For: ") {
+        return 22;
+    }
+    if StartsWith(text, "While: ") {
+        return 23;
+    }
+    if StartsWith(text, "If: ") {
+        return 24;
+    }
+    if text == "Else:" {
+        return 25;
+    }
+    if text == "Defer:" {
+        return 26;
+    }
+    if text == "Break" {
+        return 27;
+    }
+    if text == "Continue" {
+        return 28;
+    }
     return 1;
 }
 
@@ -146,6 +173,21 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
             return Substring(text, 10, StringLength(text) - 11);
         }
     }
+    if kind == 20 {
+        return Substring(text, 5, StringLength(text) - 5);
+    }
+    if kind == 21 {
+        return Substring(text, 8, StringLength(text) - 8);
+    }
+    if kind == 22 {
+        return Substring(text, 5, StringLength(text) - 5);
+    }
+    if kind == 23 {
+        return Substring(text, 7, StringLength(text) - 7);
+    }
+    if kind == 24 {
+        return Substring(text, 4, StringLength(text) - 4);
+    }
     return "";
 }
 
@@ -201,14 +243,6 @@ func CodegenAstTextIsEventDecl(node: CodegenAstTextNode) -> Bool {
 
 func CodegenAstTextIsZeroArtifactDecl(node: CodegenAstTextNode) -> Bool {
     return node.kind == 11;
-}
-
-func CodegenAstTextPayloadAfter(node: CodegenAstTextNode, prefix: String, label: String) -> String {
-    if !StartsWith(node.text, prefix) {
-        Die(Concat("expected ", Concat(label, Concat(" AST line: ", node.text))));
-    }
-    let prefix_len: Int = StringLength(prefix);
-    return Substring(node.text, prefix_len, StringLength(node.text) - prefix_len);
 }
 
 func CodegenAstTextFunctionName(node: CodegenAstTextNode) -> String {

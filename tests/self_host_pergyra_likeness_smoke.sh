@@ -63,7 +63,7 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SH_DIR="$ROOT_DIR/src/self_hosted"
 
 # ---- ratchet baselines (tighten on improvement, never loosen) ----
-STRING_MUNGE_SIG_MAX=161
+STRING_MUNGE_SIG_MAX=160
 AST_STRING_SURFACE_MAX=0
 SENTINEL_MAX=18
 RESULT_USE_MIN=153

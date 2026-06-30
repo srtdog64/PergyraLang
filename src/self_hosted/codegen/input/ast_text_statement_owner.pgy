@@ -6,11 +6,11 @@ import "ast_text_inventory_owner.pgy";
 import "../text/text_owner.pgy";
 
 func CodegenAstTextIsLetStmt(node: CodegenAstTextNode) -> Bool {
-    return StartsWith(node.text, "Let: ");
+    return node.kind == 20;
 }
 
 func CodegenAstTextIsAssignStmt(node: CodegenAstTextNode) -> Bool {
-    return StartsWith(node.text, "Assign: ");
+    return node.kind == 21;
 }
 
 func CodegenAstTextIsLogStmt(node: CodegenAstTextNode) -> Bool {
@@ -26,7 +26,7 @@ func CodegenAstTextIsValueReturnStmt(node: CodegenAstTextNode) -> Bool {
 }
 
 func CodegenAstTextIsDeferStmt(node: CodegenAstTextNode) -> Bool {
-    return node.text == "Defer:";
+    return node.kind == 26;
 }
 
 func CodegenAstTextIsArrayPopStmt(node: CodegenAstTextNode) -> Bool {
@@ -46,27 +46,27 @@ func CodegenAstTextIsExitStmt(node: CodegenAstTextNode) -> Bool {
 }
 
 func CodegenAstTextIsBreakStmt(node: CodegenAstTextNode) -> Bool {
-    return node.text == "Break";
+    return node.kind == 27;
 }
 
 func CodegenAstTextIsContinueStmt(node: CodegenAstTextNode) -> Bool {
-    return node.text == "Continue";
+    return node.kind == 28;
 }
 
 func CodegenAstTextIsForStmt(node: CodegenAstTextNode) -> Bool {
-    return StartsWith(node.text, "For: ");
+    return node.kind == 22;
 }
 
 func CodegenAstTextIsWhileStmt(node: CodegenAstTextNode) -> Bool {
-    return StartsWith(node.text, "While: ");
+    return node.kind == 23;
 }
 
 func CodegenAstTextIsIfStmt(node: CodegenAstTextNode) -> Bool {
-    return StartsWith(node.text, "If: ");
+    return node.kind == 24;
 }
 
 func CodegenAstTextIsElseStmt(node: CodegenAstTextNode) -> Bool {
-    return node.text == "Else:";
+    return node.kind == 25;
 }
 
 func CodegenAstTextIsBareCallStmt(node: CodegenAstTextNode) -> Bool {
@@ -74,7 +74,10 @@ func CodegenAstTextIsBareCallStmt(node: CodegenAstTextNode) -> Bool {
 }
 
 func CodegenAstTextLetPayload(node: CodegenAstTextNode) -> String {
-    return CodegenAstTextPayloadAfter(node, "Let: ", "let statement");
+    if !CodegenAstTextIsLetStmt(node) || node.payload == "" {
+        Die(Concat("malformed Let statement AST line: ", node.text));
+    }
+    return node.payload;
 }
 
 func CodegenAstTextLetNameEnd(node: CodegenAstTextNode) -> Int {
@@ -120,7 +123,10 @@ func CodegenAstTextLetInitializer(node: CodegenAstTextNode) -> String {
 }
 
 func CodegenAstTextAssignPayload(node: CodegenAstTextNode) -> String {
-    return CodegenAstTextPayloadAfter(node, "Assign: ", "assign statement");
+    if !CodegenAstTextIsAssignStmt(node) || node.payload == "" {
+        Die(Concat("malformed Assign statement AST line: ", node.text));
+    }
+    return node.payload;
 }
 
 func CodegenAstTextAssignEqualsPos(node: CodegenAstTextNode) -> Int {
@@ -250,7 +256,10 @@ func CodegenAstTextExitValue(node: CodegenAstTextNode) -> String {
 }
 
 func CodegenAstTextForSpec(node: CodegenAstTextNode) -> String {
-    return CodegenAstTextPayloadAfter(node, "For: ", "for statement");
+    if !CodegenAstTextIsForStmt(node) || node.payload == "" {
+        Die(Concat("malformed For statement AST line: ", node.text));
+    }
+    return node.payload;
 }
 
 func CodegenAstTextForInPos(node: CodegenAstTextNode) -> Int {
@@ -306,11 +315,17 @@ func CodegenAstTextForEachCollection(node: CodegenAstTextNode) -> String {
 }
 
 func CodegenAstTextWhileCondition(node: CodegenAstTextNode) -> String {
-    return CodegenAstTextPayloadAfter(node, "While: ", "while statement");
+    if !CodegenAstTextIsWhileStmt(node) || node.payload == "" {
+        Die(Concat("malformed While statement AST line: ", node.text));
+    }
+    return node.payload;
 }
 
 func CodegenAstTextIfCondition(node: CodegenAstTextNode) -> String {
-    return CodegenAstTextPayloadAfter(node, "If: ", "if statement");
+    if !CodegenAstTextIsIfStmt(node) || node.payload == "" {
+        Die(Concat("malformed If statement AST line: ", node.text));
+    }
+    return node.payload;
 }
 
 func CodegenAstTextHasElseAt(nodes: Array<CodegenAstTextNode>, count: Int, index: Int, if_indent: Int) -> Bool {

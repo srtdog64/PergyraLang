@@ -68,6 +68,16 @@ rewrite history.
 - Tightened the component contract so those simple statement facts cannot drift
   back into statement-owner text parsing.
 
+## 2026-07-01 - Codegen control/dataflow statements leave line-prefix parsing
+
+- Extended the AST-text inventory with typed statement kinds and payloads for
+  `Let`, `Assign`, `For`, `While`, and `If`, plus kind facts for `Else`,
+  `Defer`, `Break`, and `Continue`.
+- Repointed statement predicates and payload accessors for those rows to consume
+  `CodegenAstTextNode.kind` and `payload`.
+- Removed the transitional `CodegenAstTextPayloadAfter` helper and tightened the
+  component contract so statement-owner line-prefix parsing cannot return.
+
 ## 2026-07-01 - Codegen role payload leaves declaration-line slicing
 
 - Extended `CodegenAstTextPayloadFor` so role declarations record the
