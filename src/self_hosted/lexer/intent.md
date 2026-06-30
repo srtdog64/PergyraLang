@@ -17,6 +17,14 @@ roadmap (`docs/self_hosted/01_staged_roadmap.md`): "bounded compiler owner
 reimplemented in Pergyra, both implementations run side-by-side, output
 compared, rollback to C trivial".
 
+## Compiler World Binding
+
+- **world_zone**: `TokenStreamZone`
+- **stage_actor**: `LexerStage`
+- **stage_intent**: `LexSource`
+- **intent_cluster**: `FrontendPipeline`
+- **manifest_binding**: `lexer|TokenStreamZone|LexerStage|LexSource`
+
 ## Input Contract
 
 - **source_owner**: the committed `SOURCE_PAIRS` in

@@ -11,6 +11,15 @@ matches the C/LLVM oracle.
 This is a hard self-host rung, not a full backend replacement. Unsupported input
 must fail visibly instead of falling through to an unverified translation.
 
+## Compiler World Binding
+
+- **world_zone**: `EmissionZone`
+- **stage_actor**: `ProgramEmitter`
+- **stage_intent**: `EmitProgramArtifact`
+- **intent_cluster**: `BackendPipeline`
+- **manifest_binding**: `codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact`
+- **resource_inputs**: `TypeEnvZone`, `AbiLayoutZone`, `TargetCapabilityZone`
+
 ## Resource-Zone Shape
 
 Codegen should use zones only where there is distinct resource ownership.

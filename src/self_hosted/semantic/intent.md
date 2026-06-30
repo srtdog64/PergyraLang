@@ -9,6 +9,14 @@ assignment, call arity and argument types, simple/compound undefined identifier
 use, and literal/identifier expression typing for `Int`, `Long`, `Float`,
 `String`, `Bool`, and `Void`.
 
+## Compiler World Binding
+
+- **world_zone**: `SemanticVerdictZone`
+- **stage_actor**: `SemanticStage`
+- **stage_intent**: `CheckProgramSemantics`
+- **intent_cluster**: `MiddleEndPipeline`
+- **manifest_binding**: `semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics`
+
 ## Input Contract
 
 The tool reads one root source path from `Args()[0]`. `source_bundle_owner.pgy`

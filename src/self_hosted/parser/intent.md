@@ -14,6 +14,14 @@ recognises a growing declaration/statement/expression surface, and emits the
 same `pgy --ast` tree. Coverage is measured in two ways: committed fixture
 parity and the examples scale probe.
 
+## Compiler World Binding
+
+- **world_zone**: `AstTreeZone`
+- **stage_actor**: `ParserStage`
+- **stage_intent**: `ParseTokens`
+- **intent_cluster**: `FrontendPipeline`
+- **manifest_binding**: `parser|AstTreeZone|ParserStage|ParseTokens`
+
 ## Input Contract
 
 - **source_owner**: `examples/hello.pgy` by default. The parity harness and

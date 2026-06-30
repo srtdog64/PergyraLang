@@ -145,6 +145,23 @@ clusters should own detailed intent expansion only when that detail becomes
 load-bearing. A new folder is not enough reason to introduce a new zone; a new
 owned resource is.
 
+## Stage Binding Visibility
+
+Each active self-host compiler stage must name its compiler-world binding in
+its own `intent.md`. The required row is:
+
+```text
+<stage>|<resource zone>|<stage actor>|<stage intent>
+```
+
+That row mirrors `CompilerStageWorldBindingAt(...)` in
+`path_manifest_owner.pgy` and the shell projection in
+`tests/self_hosted/compiler_world_manifest.sh`. The point is not to inflate a
+score by repeating words. The point is to make the stage say which compiler
+resource it owns, which actor executes it, and which intent the root world
+calls. If a self-host stage can be moved, renamed, or expanded without updating
+that row, the compiler world has become decorative instead of load-bearing.
+
 ## Cost Model
 
 The compiler world is an architecture contract, not a runtime hot path. It

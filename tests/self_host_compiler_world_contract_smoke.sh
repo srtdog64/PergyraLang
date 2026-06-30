@@ -466,6 +466,8 @@ require_text "docs/self_hosted/11_compiler_world_architecture.md" "not a semanti
 require_text "docs/self_hosted/11_compiler_world_architecture.md" "LexerStage"
 require_text "docs/self_hosted/11_compiler_world_architecture.md" 'generic `StageOwner.Consume()`'
 require_text "docs/self_hosted/11_compiler_world_architecture.md" "path_manifest_owner.pgy"
+require_text "docs/self_hosted/11_compiler_world_architecture.md" "Stage Binding Visibility"
+require_text "docs/self_hosted/11_compiler_world_architecture.md" "CompilerStageWorldBindingAt"
 require_text "docs/self_hosted/12_intent_zone_self_host_architecture.md" "compiler flow owner"
 require_text "docs/self_hosted/12_intent_zone_self_host_architecture.md" "stage_intents.pgy"
 require_text "docs/self_hosted/12_intent_zone_self_host_architecture.md" "Codegen Shape"
@@ -485,6 +487,14 @@ require_text "src/self_hosted/codegen/intent.md" "Projection-nerve rule"
 require_text "src/self_hosted/codegen/intent.md" "does not own a second semantic truth"
 require_text "src/self_hosted/codegen/intent.md" "does this boundary own a distinct resource"
 require_text "src/self_hosted/codegen/intent.md" "recursive participants over the same output/type resources"
+for term in \
+    'lexer|TokenStreamZone|LexerStage|LexSource' \
+    'parser|AstTreeZone|ParserStage|ParseTokens' \
+    'semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics' \
+    'mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts' \
+    'codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact'; do
+    require_text "src/self_hosted/compiler/path_manifest_owner.pgy" "$term"
+done
 require_text "docs/INDEX.md" "self_hosted/11_compiler_world_architecture.md"
 require_text "docs/INDEX.md" "self_hosted/12_intent_zone_self_host_architecture.md"
 require_text "Makefile" "self-host-compiler-world-contract-test-smoke"

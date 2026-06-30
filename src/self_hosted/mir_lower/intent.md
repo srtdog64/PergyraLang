@@ -8,6 +8,14 @@ the Pergyra codegen substitute. This closes source-of-truth seams by forcing
 the self-hosted path to consume MIR facts instead of rescanning source or AST
 payloads for semantic answers.
 
+## Compiler World Binding
+
+- **world_zone**: `MirFactGraphZone`
+- **stage_actor**: `MirLowerStage`
+- **stage_intent**: `LowerProgramFacts`
+- **intent_cluster**: `MiddleEndPipeline`
+- **manifest_binding**: `mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts`
+
 ## Input Contract
 
 The input is a path to a `pgy.mir.v1` JSON document emitted by `pgy --mir-json`.

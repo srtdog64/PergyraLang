@@ -139,6 +139,22 @@ require_owner_surface() {
     done
 }
 
+require_stage_world_binding() {
+    local stage="$1"
+    local zone="$2"
+    local actor="$3"
+    local intent="$4"
+    local cluster="$5"
+    local rel="src/self_hosted/$stage/intent.md"
+
+    require_text "$rel" "## Compiler World Binding"
+    require_text "$rel" "- **world_zone**: \`$zone\`"
+    require_text "$rel" "- **stage_actor**: \`$actor\`"
+    require_text "$rel" "- **stage_intent**: \`$intent\`"
+    require_text "$rel" "- **intent_cluster**: \`$cluster\`"
+    require_text "$rel" "- **manifest_binding**: \`$stage|$zone|$actor|$intent\`"
+}
+
 line_count() {
     local count
 
@@ -247,7 +263,7 @@ for stage in lexer parser semantic codegen; do
     require_dir "src/self_hosted/$stage/expected"
     require_file "tests/self_hosted/parity/${stage}_parity.sh"
 
-    for anchor in '## Intent' '## Input Contract' '## Output Contract' '## Oracle'; do
+    for anchor in '## Intent' '## Compiler World Binding' '## Input Contract' '## Output Contract' '## Oracle'; do
         require_text "src/self_hosted/$stage/intent.md" "$anchor"
     done
 
@@ -264,7 +280,7 @@ require_file "src/self_hosted/mir_lower/README.md"
 require_file "src/self_hosted/mir_lower/intent.md"
 require_dir "src/self_hosted/mir_lower/fixture"
 require_file "tests/self_hosted/parity/mir_json_parity.sh"
-for anchor in '## Intent' '## Input Contract' '## Output Contract' '## Oracle'; do
+for anchor in '## Intent' '## Compiler World Binding' '## Input Contract' '## Output Contract' '## Oracle'; do
     require_text "src/self_hosted/mir_lower/intent.md" "$anchor"
 done
 require_text "tests/self_hosted/parity/mir_json_parity.sh" "set -euo pipefail"
@@ -272,6 +288,12 @@ require_text "Makefile" "self-host-mir-json-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/mir_json_parity.sh"
 require_entrypoint_only_main "mir_lower"
 require_stage_owner_line_cap "mir_lower"
+
+require_stage_world_binding "lexer" "TokenStreamZone" "LexerStage" "LexSource" "FrontendPipeline"
+require_stage_world_binding "parser" "AstTreeZone" "ParserStage" "ParseTokens" "FrontendPipeline"
+require_stage_world_binding "semantic" "SemanticVerdictZone" "SemanticStage" "CheckProgramSemantics" "MiddleEndPipeline"
+require_stage_world_binding "mir_lower" "MirFactGraphZone" "MirLowerStage" "LowerProgramFacts" "MiddleEndPipeline"
+require_stage_world_binding "codegen" "EmissionZone" "ProgramEmitter" "EmitProgramArtifact" "BackendPipeline"
 
 mir_positive_count="$(
     {

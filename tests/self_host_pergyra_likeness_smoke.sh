@@ -30,6 +30,10 @@
 #     compiler world. These are not "more is better" scores; declared zones and
 #     world members are exact to prevent cosmetic zone inflation while hard
 #     substitution grows.
+#   - compiler_stage_bindings: every active compiler stage must publish its
+#     world-zone/actor/intent row in the stage intent document, matching the
+#     compiler-world path manifest. This keeps PgyCompilerWorld load-bearing
+#     instead of decorative.
 #
 # Baselines are embedded below. The default measured scope is tracked,
 # non-fixture `src/self_hosted/**/*.pgy` implementation source with `//`
@@ -57,6 +61,7 @@ COMPILER_RESOURCE_ZONES_EXACT=17
 COMPILER_WORLD_MEMBERS_EXACT=17
 COMPILER_INTENT_SURFACE_MIN=14
 COMPILER_ZONE_BOUND_STEPS_MIN=27
+COMPILER_STAGE_BINDINGS_EXACT=5
 
 fail() {
     echo "[self-host-likeness] FAIL" >&2
@@ -130,6 +135,26 @@ count_world_zone_members() {
     ' "$SH_DIR/compiler/world.pgy"
 }
 
+count_stage_world_bindings() {
+    local matches
+    matches="$(
+        for rel in \
+            src/self_hosted/lexer/intent.md \
+            src/self_hosted/parser/intent.md \
+            src/self_hosted/semantic/intent.md \
+            src/self_hosted/mir_lower/intent.md \
+            src/self_hosted/codegen/intent.md; do
+            [ -f "$ROOT_DIR/$rel" ] || continue
+            grep -F -- "**manifest_binding**:" "$ROOT_DIR/$rel" || true
+        done
+    )"
+    if [ -z "$matches" ]; then
+        echo 0
+    else
+        printf '%s\n' "$matches" | wc -l | tr -d ' '
+    fi
+}
+
 require_file_text() {
     local rel="$1"
     local term="$2"
@@ -173,6 +198,7 @@ compiler_intent_surface=$(count_lines_in_files '^intent[[:space:]]' \
 compiler_zone_bound_steps=$(count_lines_in_files 'where:[[:space:]]*[A-Za-z0-9_]+Zone;' \
     src/self_hosted/compiler/world.pgy \
     src/self_hosted/compiler/stage_intents.pgy)
+compiler_stage_bindings=$(count_stage_world_bindings)
 
 echo "[self-host-likeness] metrics (current vs baseline):"
 echo "  string_munge_sig   : $string_munge_sig  (max $STRING_MUNGE_SIG_MAX)   <- text->text functions; linchpin"
@@ -184,6 +210,7 @@ echo "  resource_zones     : $compiler_resource_zones  (exact $COMPILER_RESOURCE
 echo "  world_members      : $compiler_world_members  (exact $COMPILER_WORLD_MEMBERS_EXACT) <- PgyCompilerWorld member set"
 echo "  intent_surface     : $compiler_intent_surface  (min $COMPILER_INTENT_SURFACE_MIN)    <- compiler flow intents"
 echo "  zone_bound_steps   : $compiler_zone_bound_steps  (min $COMPILER_ZONE_BOUND_STEPS_MIN)    <- steps bound to resource zones"
+echo "  stage_bindings     : $compiler_stage_bindings  (exact $COMPILER_STAGE_BINDINGS_EXACT)  <- stage intent docs bound to compiler world"
 
 # ---- bad metrics: current must not exceed baseline ----
 if [ "$string_munge_sig" -gt "$STRING_MUNGE_SIG_MAX" ]; then
@@ -214,6 +241,9 @@ if [ "$compiler_intent_surface" -lt "$COMPILER_INTENT_SURFACE_MIN" ]; then
 fi
 if [ "$compiler_zone_bound_steps" -lt "$COMPILER_ZONE_BOUND_STEPS_MIN" ]; then
     fail "zone_bound_steps fell to $compiler_zone_bound_steps (< $COMPILER_ZONE_BOUND_STEPS_MIN). Intent steps must remain explicitly bound to resource zones."
+fi
+if [ "$compiler_stage_bindings" -ne "$COMPILER_STAGE_BINDINGS_EXACT" ]; then
+    fail "stage_bindings is $compiler_stage_bindings (!= $COMPILER_STAGE_BINDINGS_EXACT). Active stages must publish their compiler-world binding row in intent.md."
 fi
 
 require_compiler_world_zone "compiler" "SelfHostCompiler"

@@ -111,7 +111,9 @@ When self-hosting grows, add detail in this order:
 2. Add an intent cluster when a meaningful compiler action composes existing
    resource zones.
 3. Keep stage implementation facts in the stage owner directory.
-4. Keep oracle comparison and shell bridge mechanics under `tests/self_hosted/`.
+4. Keep each active stage's `intent.md` bound to its compiler-world row:
+   stage name, resource zone, stage actor, and stage intent.
+5. Keep oracle comparison and shell bridge mechanics under `tests/self_hosted/`.
 
 Do not add:
 
