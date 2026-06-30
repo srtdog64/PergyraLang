@@ -36,7 +36,8 @@ participant, not a zone.
   emitters consume this owner instead of slicing AST text locally.
 - `CompilerSymbolTableOwner` owns emitted-symbol spelling rows consumed by the
   self-host C subset. Codegen reads that compiler-world owner directly instead
-  of keeping a second C-only mangle owner.
+  of keeping a second C-only mangle owner. Function/method emission and
+  namespace-qualified call lowering both consume this owner.
 - `CollectionRuntimeOwner` owns self-host C collection runtime helper symbol
   spelling for the supported `Array<Int>` / `Array<String>` subset and the
   bootstrap-only `Array<CodegenAstTextNode>` typed AST-line bridge. The helper

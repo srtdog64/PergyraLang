@@ -2481,3 +2481,15 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   and `RewriteExpr(t, ...)` path. The remaining bridge surface is expression
   payload parsing; the mixed AST-like tree blocker remains active until
   typed/tagged AST rows replace line text.
+
+### 2026-06-30 -- Qualified call spelling consumes the symbol owner
+
+- Repointed `RewriteQualifiedCalls` so namespace-qualified calls use
+  `CompilerSymbolCQualifiedName(owner, member)` instead of locally inserting an
+  underscore between owner and member text.
+- Tightened the component contract to require the symbol owner consumer in
+  `expr_rewrite.pgy` and reject the old direct `out = Concat(out, "_")`
+  spelling path.
+- This reduces the self-host symbol/mangle SoT gap for expression lowering. The
+  broader symbol/mangle blocker remains active until native C, LLVM, and
+  self-hosted projections consume one concrete cross-backend symbol row table.

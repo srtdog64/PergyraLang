@@ -195,8 +195,15 @@ func RewriteQualifiedCalls(e: String) -> String {
                     j = j + 1;
                 }
                 if j < n && CharAt(e, j) == "(" {
-                    out = Concat(out, "_");
-                    i = i + 1;
+                    let start: Int = ol;
+                    while start > 0 && (IsIdentChar(CharAt(out, start - 1)) || CharAt(out, start - 1) == ".") {
+                        start = start - 1;
+                    }
+                    let owner: String = Substring(out, start, ol - start);
+                    let member: String = Substring(e, i + 1, j - (i + 1));
+                    out = Substring(out, 0, start);
+                    out = Concat(out, CompilerSymbolCQualifiedName(owner, member));
+                    i = j;
                     continue;
                 }
             }
