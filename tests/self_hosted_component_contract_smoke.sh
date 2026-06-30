@@ -523,7 +523,12 @@ reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'StringIndexOf(t
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIndentOf"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "struct CodegenAstTextNode"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let kind: Int"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let payload: String"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextKindOf"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextPayloadFor"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'node.payload == "Main"'
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return node.payload"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'node.text == "Function: Main"'
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let parent: Int"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextParentIndex"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return -1"
@@ -616,6 +621,7 @@ reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func C
 require_text "src/self_hosted/codegen/main.pgy" 'import "input/ast_text_statement_owner.pgy";'
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextInventory(ast: String, inout indents:"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "CodegenAstTextNodeInventory(ast: String"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "CodegenAstTextPayloadAfter(node, \"Function: \""
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextProjectLegacy"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextExpect(texts:"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "struct CodegenRuntimeUsageFacts"

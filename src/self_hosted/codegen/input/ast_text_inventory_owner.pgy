@@ -12,6 +12,7 @@ struct CodegenAstTextNode {
     let indent: Int;
     let text: String;
     let kind: Int;
+    let payload: String;
 }
 
 func CodegenAstTextKindOf(text: String) -> Int {
@@ -50,6 +51,16 @@ func CodegenAstTextKindOf(text: String) -> Int {
     return 1;
 }
 
+func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
+    if kind == 6 {
+        return Substring(text, 10, StringLength(text) - 10);
+    }
+    if kind == 3 {
+        return StringTrim(Substring(text, 8, StringLength(text) - 8));
+    }
+    return "";
+}
+
 func CodegenAstTextIsFunction(node: CodegenAstTextNode) -> Bool {
     return node.kind == 6;
 }
@@ -67,7 +78,7 @@ func CodegenAstTextIsFieldsHeader(node: CodegenAstTextNode) -> Bool {
 }
 
 func CodegenAstTextIsMainFunction(node: CodegenAstTextNode) -> Bool {
-    return CodegenAstTextIsFunction(node) && node.text == "Function: Main";
+    return CodegenAstTextIsFunction(node) && node.payload == "Main";
 }
 
 func CodegenAstTextIsRoleDecl(node: CodegenAstTextNode) -> Bool {
@@ -99,11 +110,17 @@ func CodegenAstTextPayloadAfter(node: CodegenAstTextNode, prefix: String, label:
 }
 
 func CodegenAstTextFunctionName(node: CodegenAstTextNode) -> String {
-    return CodegenAstTextPayloadAfter(node, "Function: ", "function");
+    if !CodegenAstTextIsFunction(node) {
+        Die(Concat("expected function AST line: ", node.text));
+    }
+    return node.payload;
 }
 
 func CodegenAstTextReturnType(node: CodegenAstTextNode) -> String {
-    return StringTrim(CodegenAstTextPayloadAfter(node, "Returns:", "return type"));
+    if !CodegenAstTextIsReturns(node) {
+        Die(Concat("expected return type AST line: ", node.text));
+    }
+    return node.payload;
 }
 
 func CodegenAstTextEnumBracePos(node: CodegenAstTextNode) -> Int {
@@ -321,7 +338,8 @@ func CodegenAstTextNodeInventory(tree_text: String, inout nodes: Array<CodegenAs
         }
         if StringLength(trimmed) > 0 {
             let indent: Int = CodegenAstTextIndentOf(raw_line);
-            ArrayPush(nodes, CodegenAstTextNode(indent, trimmed, CodegenAstTextKindOf(trimmed)));
+            let kind: Int = CodegenAstTextKindOf(trimmed);
+            ArrayPush(nodes, CodegenAstTextNode(indent, trimmed, kind, CodegenAstTextPayloadFor(trimmed, kind)));
             ArraySet(count_box, 0, count_box[0] + 1);
         }
         pos = nl + 1;

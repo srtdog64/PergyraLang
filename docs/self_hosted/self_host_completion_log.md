@@ -53,6 +53,17 @@ rewrite history.
   contract so future codegen slices cannot reintroduce `ast: String` execution
   surfaces while the typed-AST migration is underway.
 
+## 2026-07-01 - Codegen function payload leaves line-text comparison
+
+- Extended `CodegenAstTextNode` with a `payload` field. The inventory owner now
+  records function-name and return-type payload rows while it builds the typed
+  bridge node array.
+- Repointed `CodegenAstTextIsMainFunction`,
+  `CodegenAstTextFunctionName`, and `CodegenAstTextReturnType` to consume the
+  payload field instead of re-slicing or comparing `node.text`.
+- Tightened the component contract to reject the old
+  `node.text == "Function: Main"` check and require the typed payload field.
+
 ## 2026-06-30 - Pergyra-likeness load-bearing metric
 
 - Added `compiler_world_stub_actions` to
