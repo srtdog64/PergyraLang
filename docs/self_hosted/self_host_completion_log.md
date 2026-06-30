@@ -90,6 +90,17 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-30 -- Codegen AST-text inventory drops dead parent sentinel
+
+- Removed the unused `parent: Int` backedge from `CodegenAstTextNode` and
+  deleted `CodegenAstTextParentIndex`. No consumer read that field; keeping it
+  only preserved a `-1` parent sentinel as a fake fact.
+- Replaced the unreachable `CodegenAstTextNominalPrefixLen` panic-tail
+  `return -1` with a neutral return after `Die`.
+- Tightened the component contract to reject `parent`, `CodegenAstTextParentIndex`,
+  and `return -1` in `ast_text_inventory_owner.pgy`; lowered the
+  Pergyra-likeness ratchet from `sentinel <= 23` to `sentinel <= 21`.
+
 ### 2026-06-30 -- Codegen text scanners stop using integer sentinels
 
 - Changed `FindMatchingBracket`, `FindMatchingParen`, `FindTopLevelPlus`, and
