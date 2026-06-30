@@ -157,6 +157,7 @@ for term in \
     "subject TestHarnessRunner" \
     "subject SubprocessRunner" \
     "subject OraclePair" \
+    "CompilerArtifactZoneReady() && CompilerTestHarnessReady()" \
     "object SourceBatch" \
     "object StagePathManifest" \
     "compiler_world: String" \

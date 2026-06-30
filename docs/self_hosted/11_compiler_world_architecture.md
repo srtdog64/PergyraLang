@@ -171,8 +171,9 @@ token stream, AST tree, semantic verdict, MIR fact graph, emitted artifact, or
 parity verdict.
 
 Current source intake already consumes the `StagePathManifest` path fact through
-`CompilerStagePathManifestReady()`. The remaining scaffold actions are the
-stage actors for token, AST, semantic, MIR, emission, and parity facts.
+`CompilerStagePathManifestReady()`, and parity comparison consumes artifact and
+test-harness facts. The remaining scaffold actions are the stage actors for
+token, AST, semantic, MIR, and emission facts.
 
 ## Cost Model
 

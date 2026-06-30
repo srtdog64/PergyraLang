@@ -104,7 +104,7 @@ subject OraclePair {
     let llvm_backend: String;
 
     action Compare(self) -> Bool {
-        return true;
+        return CompilerArtifactZoneReady() && CompilerTestHarnessReady();
     }
 }
 

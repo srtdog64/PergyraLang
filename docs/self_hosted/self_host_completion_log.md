@@ -50,6 +50,13 @@ rewrite history.
   `<= 6`. The remaining scaffold actors are lexer, parser, semantic,
   MIR-lower, emission, and parity.
 
+## 2026-06-30 - Parity actor consumes artifact/test-harness facts
+
+- Repointed `OraclePair.Compare` from scaffold `true` to
+  `CompilerArtifactZoneReady() && CompilerTestHarnessReady()`.
+- Tightened `world_stub_actions` from `<= 6` to `<= 5`. The remaining scaffold
+  actors are lexer, parser, semantic, MIR-lower, and emission.
+
 ## Verified state (rolling)
 
 - **Lexer**: self-hosts on C+LLVM. Byte-identical to `pgy --tokens` across the 7
