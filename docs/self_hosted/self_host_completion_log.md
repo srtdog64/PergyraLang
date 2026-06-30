@@ -39,6 +39,16 @@ rewrite history.
   distinguish load-bearing world/zone/intent usage from decorative keyword
   counts.
 
+## 2026-07-01 - Codegen enum name payload leaves brace-name slicing
+
+- Extended `CodegenAstTextPayloadFor` so enum declarations record the enum name
+  in `CodegenAstTextNode.payload` during inventory construction.
+- Repointed `CodegenAstTextEnumName` to consume `node.payload`; enum variant
+  list slicing remains in the input owner until variant rows become a separate
+  payload fact.
+- Tightened the component contract to reject enum-name recovery from
+  `node.text` brace slicing.
+
 ## 2026-07-01 - Emission stage consumes codegen payload fact
 
 - Added `CompilerEmissionFactReady()` to

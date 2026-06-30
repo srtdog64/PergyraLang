@@ -78,6 +78,12 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
             return Substring(text, 9, StringLength(text) - 9);
         }
     }
+    if kind == 9 {
+        let brace: Int = StringIndexOf(text, " { ");
+        if brace >= 0 {
+            return Substring(text, 6, brace - 6);
+        }
+    }
     return "";
 }
 
@@ -152,8 +158,10 @@ func CodegenAstTextEnumBracePos(node: CodegenAstTextNode) -> Int {
 }
 
 func CodegenAstTextEnumName(node: CodegenAstTextNode) -> String {
-    let brace: Int = CodegenAstTextEnumBracePos(node);
-    return Substring(node.text, 6, brace - 6);
+    if !CodegenAstTextIsEnumDecl(node) || node.payload == "" {
+        Die(Concat("expected enum declaration AST line: ", node.text));
+    }
+    return node.payload;
 }
 
 func CodegenAstTextEnumVariantPayload(node: CodegenAstTextNode) -> String {
