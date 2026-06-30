@@ -90,6 +90,16 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-30 -- Codegen boolean operator scanner stops using integer sentinel
+
+- Changed `FindTopLevelOp2` in `codegen/text/expr_scan.pgy` from `Int` with
+  `-1` absence to `Option<Int>`.
+- Repointed `RewriteBool` to consume top-level `||`, `&&`, `==`, and `!=`
+  positions with `IsSome` / `UnwrapOption`.
+- Tightened the component contract to reject `return -1` in `expr_scan.pgy`
+  and lowered the Pergyra-likeness ratchet from `sentinel <= 33` to
+  `sentinel <= 32`; `result_use` rose from 77 to 85.
+
 ### 2026-06-30 -- Semantic literal scanner stops using integer sentinel
 
 - Changed `ExpectLiteral` in `semantic/text_scan_owner.pgy` from `Int` with

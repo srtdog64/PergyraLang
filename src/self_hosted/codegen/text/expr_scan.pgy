@@ -179,8 +179,8 @@ func RewriteIndexing(e: String, env: String) -> String {
 // Rewrite a C expression: array length, then array indexing, then string
 // builtin call-names to their runtime helpers. Environment-aware.
 // Find the index of a top-level two-char operator `op` (depth 0, outside string
-// literals). Returns -1 if none.
-func FindTopLevelOp2(s: String, op: String) -> Int {
+// literals).
+func FindTopLevelOp2(s: String, op: String) -> Option<Int> {
     let n: Int = StringLength(s);
     let i: Int = 0;
     let depth: Int = 0;
@@ -214,11 +214,11 @@ func FindTopLevelOp2(s: String, op: String) -> Int {
             continue;
         }
         if depth == 0 && i + 2 <= n && Substring(s, i, 2) == op {
-            return i;
+            return Some(i);
         }
         i = i + 1;
     }
-    return -1;
+    return None;
 }
 
 // Recursively lower a boolean/comparison expression. The key job: a string
@@ -236,30 +236,36 @@ func RewriteBool(e: String, env: String) -> String {
         return Concat("(", Concat(RewriteBool(Substring(s, 1, n - 2), env), ")"));
     }
     // Lowest precedence first: `||`, then `&&`.
-    let orp: Int = FindTopLevelOp2(s, "||");
-    if orp >= 0 {
-        let l: String = Substring(s, 0, orp);
-        let r: String = Substring(s, orp + 2, n - (orp + 2));
+    let orp: Option<Int> = FindTopLevelOp2(s, "||");
+    if IsSome(orp) {
+        let or_pos: Int = UnwrapOption(orp);
+        let l: String = Substring(s, 0, or_pos);
+        let r: String = Substring(s, or_pos + 2, n - (or_pos + 2));
         return Concat(RewriteBool(l, env), Concat(" || ", RewriteBool(r, env)));
     }
-    let andp: Int = FindTopLevelOp2(s, "&&");
-    if andp >= 0 {
-        let l2: String = Substring(s, 0, andp);
-        let r2: String = Substring(s, andp + 2, n - (andp + 2));
+    let andp: Option<Int> = FindTopLevelOp2(s, "&&");
+    if IsSome(andp) {
+        let and_pos: Int = UnwrapOption(andp);
+        let l2: String = Substring(s, 0, and_pos);
+        let r2: String = Substring(s, and_pos + 2, n - (and_pos + 2));
         return Concat(RewriteBool(l2, env), Concat(" && ", RewriteBool(r2, env)));
     }
     // Equality / inequality: rewrite to strcmp when an operand is a string.
-    let eqp: Int = FindTopLevelOp2(s, "==");
-    let nep: Int = FindTopLevelOp2(s, "!=");
-    let cmpp: Int = eqp;
+    let eqp: Option<Int> = FindTopLevelOp2(s, "==");
+    let nep: Option<Int> = FindTopLevelOp2(s, "!=");
+    let cmpp: Option<Int> = eqp;
     let is_eq: Bool = true;
-    if eqp < 0 || (nep >= 0 && nep < eqp) {
+    if !IsSome(eqp) {
+        cmpp = nep;
+        is_eq = false;
+    } else if IsSome(nep) && UnwrapOption(nep) < UnwrapOption(eqp) {
         cmpp = nep;
         is_eq = false;
     }
-    if cmpp >= 0 {
-        let lhs: String = StringTrim(Substring(s, 0, cmpp));
-        let rhs: String = StringTrim(Substring(s, cmpp + 2, n - (cmpp + 2)));
+    if IsSome(cmpp) {
+        let cmp_pos: Int = UnwrapOption(cmpp);
+        let lhs: String = StringTrim(Substring(s, 0, cmp_pos));
+        let rhs: String = StringTrim(Substring(s, cmp_pos + 2, n - (cmp_pos + 2)));
         if ExprKind(lhs, env) == "String" || ExprKind(rhs, env) == "String" {
             let tail: String = ") == 0)";
             if !is_eq {

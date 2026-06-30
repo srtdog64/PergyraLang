@@ -99,7 +99,9 @@ a zone:
 - `input/` owns AST path/read boundaries plus the transitional AST-text
   inventory and statement-row fact owners.
 - `run/` owns the CLI orchestration boundary.
-- `text/` owns reusable text and expression scanning facts.
+- `text/` owns reusable text and expression scanning facts. Top-level boolean
+  operator lookup is an `Option<Int>` fact; consumers must not use `-1` as the
+  absence path for that scanner result.
 - `type_facts/` owns read-mostly type evidence.
 - `abi_layout/` owns self-host C ABI type spelling facts.
 - `runtime_abi/` owns self-host C collection, math/random, host I/O/argv, Option/Result, and string/text runtime helper symbol facts.
