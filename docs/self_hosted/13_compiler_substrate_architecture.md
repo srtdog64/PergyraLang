@@ -406,13 +406,14 @@ visible `PgyCompilerWorld` topology and by fact owners such as
 `EmissionZone` owning the decisions they consume.
 
 The weakest current signal is not missing `world` or `zone` syntax; it is
-load-bearing depth. `world.pgy` still contains scaffold stage actions that
-return `true` for source intake, lexing, parsing, semantic checking, MIR
-lowering, emission, and oracle comparison. Those actions are acceptable while
-the world is a shape contract, but they are tracked as debt. A hard bootstrap
-improves when each actor action consumes a concrete owner fact: path manifest,
-token stream fact, AST tree fact, semantic verdict, MIR fact graph, emission
-artifact, or parity verdict.
+load-bearing depth. Source intake now consumes the path-manifest owner through
+`CompilerStagePathManifestReady()`, so it is no longer a pure scaffold action.
+`world.pgy` still contains scaffold stage actions that return `true` for
+lexing, parsing, semantic checking, MIR lowering, emission, and oracle
+comparison. Those actions are acceptable while the world is a shape contract,
+but they are tracked as debt. A hard bootstrap improves when each actor action
+consumes a concrete owner fact: token stream fact, AST tree fact, semantic
+verdict, MIR fact graph, emission artifact, or parity verdict.
 
 ### Current-To-Target Mapping
 

@@ -174,3 +174,20 @@ func CompilerWorldManifestPathAt(index: Int) -> String {
     }
     return "";
 }
+
+func CompilerStagePathManifestReady() -> Bool {
+    if CompilerStagePathCount() != 5 { return false; }
+    if CompilerParityPathCount() != 6 { return false; }
+    if CompilerWorldManifestPathCount() != 22 { return false; }
+    if SelfHostSourceDir() == "" { return false; }
+    if CompilerWorldPath() == "" { return false; }
+    if CompilerStagePathAt(0) == "" { return false; }
+    if CompilerStagePathAt(4) == "" { return false; }
+    if CompilerStageWorldBindingAt(0) == "" { return false; }
+    if CompilerStageWorldBindingAt(4) == "" { return false; }
+    if CompilerParityPathAt(0) == "" { return false; }
+    if CompilerParityPathAt(5) == "" { return false; }
+    if CompilerWorldManifestPathAt(0) == "" { return false; }
+    if CompilerWorldManifestPathAt(21) == "" { return false; }
+    return true;
+}

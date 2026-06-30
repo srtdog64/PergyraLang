@@ -7,6 +7,7 @@ intent FrontendPipeline(
     intake: SourceIntakeZone,
     tokens: TokenStreamZone,
     ast: AstTreeZone,
+    paths: StagePathManifest,
     source: SourceUnit,
     lexer: LexerStage,
     parser: ParserStage
@@ -17,7 +18,7 @@ intent FrontendPipeline(
         where: SourceIntakeZone;
         using: intake;
         who: source;
-        on: IntakeSource(intake, source);
+        on: IntakeSource(intake, source, paths);
         expect: true;
     }
 

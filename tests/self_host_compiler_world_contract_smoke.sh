@@ -136,6 +136,8 @@ for term in \
     "intent ProveHardSelfHostEvidence" \
     "intent ProveSelfHostedParity" \
     "subject SourceUnit" \
+    "action Read" \
+    "source.Read(paths)" \
     "subject LexerStage" \
     "subject ParserStage" \
     "subject SemanticStage" \
@@ -230,6 +232,7 @@ for term in \
     "func CompilerAbiLayoutRowOwnerPath" \
     "func CompilerSymbolTableOwnerPath" \
     "func CompilerOwnerManifestPath" \
+    "func CompilerStagePathManifestReady" \
     "func CompilerStagePathAt" \
     "func CompilerStageWorldBindingAt" \
     "func CompilerParityPathAt" \
@@ -247,6 +250,7 @@ for term in \
     "return CompilerAbiLayoutRowOwnerPath();" \
     "return CompilerSymbolTableOwnerPath();" \
     "return CompilerOwnerManifestPath();" \
+    "CompilerStagePathManifestReady" \
     "if index < 16" \
     "CompilerStagePathAt(index - 11)" \
     "if index < 22" \
@@ -394,7 +398,8 @@ for term in \
     "step Emit" \
     "step PlanTarget" \
     "step Prove" \
-    "IntakeSource(intake, source)" \
+    "paths: StagePathManifest" \
+    "IntakeSource(intake, source, paths)" \
     "LexSource(tokens, lexer)" \
     "ParseTokens(ast, parser)" \
     "CheckProgramSemantics(semantic_zone, checker)" \

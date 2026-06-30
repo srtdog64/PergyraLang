@@ -40,6 +40,16 @@ rewrite history.
   intake, lexer, parser, semantic, MIR-lower, emission, and parity actors
   consume path, token, AST, verdict, MIR, artifact, and parity facts.
 
+## 2026-06-30 - Source intake consumes path-manifest fact
+
+- Repointed `SourceUnit.Read` so it accepts `StagePathManifest` and returns
+  `CompilerStagePathManifestReady()` instead of scaffold `true`.
+- Routed `paths` through `FrontendPipeline` and `IntakeSource`, making the root
+  compiler world pass the path-manifest fact into source intake.
+- Tightened the Pergyra-likeness ratchet from `world_stub_actions <= 7` to
+  `<= 6`. The remaining scaffold actors are lexer, parser, semantic,
+  MIR-lower, emission, and parity.
+
 ## Verified state (rolling)
 
 - **Lexer**: self-hosts on C+LLVM. Byte-identical to `pgy --tokens` across the 7

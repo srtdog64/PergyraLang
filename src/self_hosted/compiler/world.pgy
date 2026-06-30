@@ -10,8 +10,8 @@ import "symbol_table_owner.pgy";
 subject SourceUnit {
     let path: String;
 
-    action Read(self) -> Bool {
-        return true;
+    action Read(self, paths: StagePathManifest) -> Bool {
+        return CompilerStagePathManifestReady();
     }
 }
 
@@ -320,14 +320,14 @@ world PgyCompilerWorld {
     zone parity: ParityZone
 }
 
-intent IntakeSource(intake: SourceIntakeZone, source: SourceUnit) {
+intent IntakeSource(intake: SourceIntakeZone, source: SourceUnit, paths: StagePathManifest) {
     exclusive;
 
     step ReadRoot {
         where: SourceIntakeZone;
         using: intake;
         who: source;
-        on: source.Read();
+        on: source.Read(paths);
         expect: true;
     }
 
@@ -548,7 +548,7 @@ intent CompilePergyraProgram(
         where: SourceIntakeZone;
         using: intake;
         who: source;
-        on: FrontendPipeline(intake, tokens, ast, source, lexer, parser);
+        on: FrontendPipeline(intake, tokens, ast, paths, source, lexer, parser);
         expect: true;
     }
 

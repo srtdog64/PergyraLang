@@ -65,7 +65,7 @@ COMPILER_WORLD_MEMBERS_EXACT=17
 COMPILER_INTENT_SURFACE_MIN=14
 COMPILER_ZONE_BOUND_STEPS_MIN=27
 COMPILER_STAGE_BINDINGS_EXACT=5
-COMPILER_WORLD_STUB_ACTIONS_MAX=7
+COMPILER_WORLD_STUB_ACTIONS_MAX=6
 
 fail() {
     echo "[self-host-likeness] FAIL" >&2
@@ -275,7 +275,7 @@ require_compiler_world_zone "subprocess" "SubprocessRunnerZone"
 require_compiler_world_zone "parity" "ParityZone"
 
 require_file_text "src/self_hosted/compiler/world.pgy" "step Frontend"
-require_file_text "src/self_hosted/compiler/world.pgy" "on: FrontendPipeline(intake, tokens, ast, source, lexer, parser);"
+require_file_text "src/self_hosted/compiler/world.pgy" "on: FrontendPipeline(intake, tokens, ast, paths, source, lexer, parser);"
 require_file_text "src/self_hosted/compiler/world.pgy" "step MiddleEnd"
 require_file_text "src/self_hosted/compiler/world.pgy" "on: MiddleEndPipeline(semantic_zone, lower_zone, checker, lowerer);"
 require_file_text "src/self_hosted/compiler/world.pgy" "step Evidence"
