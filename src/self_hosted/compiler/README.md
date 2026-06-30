@@ -75,9 +75,10 @@ The compiler world also owns `StagePathManifest`, the canonical path fact for
 self-host source roots, test roots, parity harness roots, and active stage
 entrypoints. `path_manifest_owner.pgy` owns the current string values for those
 paths and the stage-to-world binding rows that map each stage to its resource
-zone, actor, and intent. `tests/self_hosted/compiler_world_manifest.sh` is the
-shell-side projection used by the gates. That gives future hard-substitution
-code a way to consume paths and compiler-world placement as facts instead of
+zone, actor, intent, and payload contract.
+`tests/self_hosted/compiler_world_manifest.sh` is the shell-side projection used
+by the gates. That gives future hard-substitution code a way to consume paths,
+compiler-world placement, and stage payload ownership as facts instead of
 rediscovering them with recursive scans or folder names.
 
 `world.pgy` is the current scaffold. It is parse-gated by

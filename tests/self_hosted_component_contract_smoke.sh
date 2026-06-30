@@ -145,6 +145,7 @@ require_stage_world_binding() {
     local actor="$3"
     local intent="$4"
     local cluster="$5"
+    local payload="$6"
     local rel="src/self_hosted/$stage/intent.md"
 
     require_text "$rel" "## Compiler World Binding"
@@ -152,7 +153,8 @@ require_stage_world_binding() {
     require_text "$rel" "- **stage_actor**: \`$actor\`"
     require_text "$rel" "- **stage_intent**: \`$intent\`"
     require_text "$rel" "- **intent_cluster**: \`$cluster\`"
-    require_text "$rel" "- **manifest_binding**: \`$stage|$zone|$actor|$intent\`"
+    require_text "$rel" "- **payload_contract**: \`$payload\`"
+    require_text "$rel" "- **manifest_binding**: \`$stage|$zone|$actor|$intent|$payload\`"
 }
 
 line_count() {
@@ -295,11 +297,11 @@ require_text "Makefile" "tests/self_hosted/parity/mir_json_parity.sh"
 require_entrypoint_only_main "mir_lower"
 require_stage_owner_line_cap "mir_lower"
 
-require_stage_world_binding "lexer" "TokenStreamZone" "LexerStage" "LexSource" "FrontendPipeline"
-require_stage_world_binding "parser" "AstTreeZone" "ParserStage" "ParseTokens" "FrontendPipeline"
-require_stage_world_binding "semantic" "SemanticVerdictZone" "SemanticStage" "CheckProgramSemantics" "MiddleEndPipeline"
-require_stage_world_binding "mir_lower" "MirFactGraphZone" "MirLowerStage" "LowerProgramFacts" "MiddleEndPipeline"
-require_stage_world_binding "codegen" "EmissionZone" "ProgramEmitter" "EmitProgramArtifact" "BackendPipeline"
+require_stage_world_binding "lexer" "TokenStreamZone" "LexerStage" "LexSource" "FrontendPipeline" "LexerTokenPayloadContractReady"
+require_stage_world_binding "parser" "AstTreeZone" "ParserStage" "ParseTokens" "FrontendPipeline" "ParserAstTreePayloadContractReady"
+require_stage_world_binding "semantic" "SemanticVerdictZone" "SemanticStage" "CheckProgramSemantics" "MiddleEndPipeline" "SemanticVerdictPayloadContractReady"
+require_stage_world_binding "mir_lower" "MirFactGraphZone" "MirLowerStage" "LowerProgramFacts" "MiddleEndPipeline" "MirFactGraphPayloadContractReady"
+require_stage_world_binding "codegen" "EmissionZone" "ProgramEmitter" "EmitProgramArtifact" "BackendPipeline" "TypedAstArenaPayloadContractReady"
 
 mir_positive_count="$(
     {

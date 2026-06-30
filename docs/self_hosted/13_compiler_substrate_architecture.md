@@ -204,19 +204,19 @@ codegen consumes typed AST nodes for emission.
 `src/self_hosted/compiler/path_manifest_owner.pgy` is the current path owner.
 It owns the Pergyra source/test/parity path values for `StagePathManifest` and
 the active stage-to-world binding rows. Each row names the stage, resource zone,
-actor, and intent so a bootstrap driver can route a stage through
-`PgyCompilerWorld` instead of inferring ownership from a folder name.
+actor, intent, and payload contract so a bootstrap driver can route a stage
+through `PgyCompilerWorld` instead of inferring ownership from a folder name.
 `tests/self_hosted/compiler_world_manifest.sh` is the shell projection and is
 contract-checked against the Pergyra owner.
 
 `src/self_hosted/compiler/stage_artifact_owner.pgy` is the current stage
 artifact and payload-readiness owner. It proves that each active stage actor
 consumes a manifest path and the expected world/zone/actor/intent binding row
-before it can claim readiness, then delegates to the current payload owner for
-that stage: lexer token facts, parser AST-tree text facts, semantic verdict
-facts, MIR fact graph rows, or the codegen typed-AST arena migration contract.
-That is the load-bearing replacement for the old stage `return true`
-scaffolding.
+before it can claim readiness. The binding row also names the payload contract,
+and the readiness function delegates to that owner for the stage: lexer token
+facts, parser AST-tree text facts, semantic verdict facts, MIR fact graph rows,
+or the codegen typed-AST arena migration contract. That is the load-bearing
+replacement for the old stage `return true` scaffolding.
 
 ## Codegen Architecture
 

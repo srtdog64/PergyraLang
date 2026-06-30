@@ -25,6 +25,20 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-01 - Stage bindings name payload contracts
+
+- Promoted active self-host stage binding rows from
+  `stage|zone|actor|intent` to `stage|zone|actor|intent|payload_contract`.
+  Lexer, parser, semantic, MIR lower, and codegen `intent.md` files now name the
+  payload owner each compiler-world stage readiness function must consume.
+- Repointed `CompilerStageWorldBindingAt(...)` and
+  `stage_artifact_owner.pgy` to the same 5-field rows, so the docs cannot claim
+  payload ownership while the code still checks only placement topology.
+- Tightened `self_host_pergyra_likeness_smoke.sh`,
+  `self_host_compiler_world_contract_smoke.sh`, and the component contract to
+  distinguish load-bearing world/zone/intent usage from decorative keyword
+  counts.
+
 ## 2026-07-01 - Emission stage consumes codegen payload fact
 
 - Added `CompilerEmissionFactReady()` to

@@ -151,16 +151,17 @@ Each active self-host compiler stage must name its compiler-world binding in
 its own `intent.md`. The required row is:
 
 ```text
-<stage>|<resource zone>|<stage actor>|<stage intent>
+<stage>|<resource zone>|<stage actor>|<stage intent>|<payload contract>
 ```
 
 That row mirrors `CompilerStageWorldBindingAt(...)` in
 `path_manifest_owner.pgy` and the shell projection in
 `tests/self_hosted/compiler_world_manifest.sh`. The point is not to inflate a
 score by repeating words. The point is to make the stage say which compiler
-resource it owns, which actor executes it, and which intent the root world
-calls. If a self-host stage can be moved, renamed, or expanded without updating
-that row, the compiler world has become decorative instead of load-bearing.
+resource it owns, which actor executes it, which intent the root world calls,
+and which payload contract proves the stage fact is real. If a self-host stage
+can be moved, renamed, or expanded without updating that row, the compiler
+world has become decorative instead of load-bearing.
 
 The likeness gate also tracks scaffold actions inside `world.pgy`: a compiler
 actor that only returns `true` is still topology, not proof. Those stubs are
@@ -189,6 +190,28 @@ compiler stage is allowed to remain envelope-only. Backend emission consumes
 `CompilerEmissionFactReady()`, which binds `ProgramEmitter` to the codegen
 stage row and the typed AST arena migration contract in
 `codegen/typed_ast_node_skeleton.pgy`.
+
+## Pergyra-Likeness Reading
+
+The Pergyra-likeness gate is not a beauty score. A high count of `world`,
+`zone`, or `intent` tokens can still be decorative if those declarations do not
+force stage code to consume owned facts. The useful reading is:
+
+- topology exists: `PgyCompilerWorld` names the compiler resource map;
+- topology is load-bearing: world actions call named compiler fact owners;
+- stage rows are bound: each active stage publishes a
+  `stage|zone|actor|intent|payload_contract` row;
+- payloads are bound: stage readiness consumes the current payload contract,
+  not only a path or world-placement row;
+- bridge debt is visible: text-munging and sentinel metrics remain ratchets
+  that should fall as typed AST/MIR facts replace compact text bridges.
+
+This is why the gate tracks both positive topology and negative C-shaped
+signals. The target is not to make every compiler helper into a zone. The target
+is that every self-hosted compiler decision can be traced to one resource owner
+inside the compiler world. If a new slice only adds more directories, helper
+names, or repeated `zone` syntax without consuming a fact owner, it lowers
+Pergyra-likeness even if the keyword count rises.
 
 ## Cost Model
 

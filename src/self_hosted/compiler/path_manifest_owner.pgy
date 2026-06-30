@@ -89,19 +89,19 @@ func CompilerStagePathAt(index: Int) -> String {
 
 func CompilerStageWorldBindingAt(index: Int) -> String {
     if index == 0 {
-        return "lexer|TokenStreamZone|LexerStage|LexSource";
+        return "lexer|TokenStreamZone|LexerStage|LexSource|LexerTokenPayloadContractReady";
     }
     if index == 1 {
-        return "parser|AstTreeZone|ParserStage|ParseTokens";
+        return "parser|AstTreeZone|ParserStage|ParseTokens|ParserAstTreePayloadContractReady";
     }
     if index == 2 {
-        return "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics";
+        return "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics|SemanticVerdictPayloadContractReady";
     }
     if index == 3 {
-        return "mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts";
+        return "mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts|MirFactGraphPayloadContractReady";
     }
     if index == 4 {
-        return "codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact";
+        return "codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact|TypedAstArenaPayloadContractReady";
     }
     return "";
 }

@@ -20,7 +20,8 @@ parity and the examples scale probe.
 - **stage_actor**: `ParserStage`
 - **stage_intent**: `ParseTokens`
 - **intent_cluster**: `FrontendPipeline`
-- **manifest_binding**: `parser|AstTreeZone|ParserStage|ParseTokens`
+- **payload_contract**: `ParserAstTreePayloadContractReady`
+- **manifest_binding**: `parser|AstTreeZone|ParserStage|ParseTokens|ParserAstTreePayloadContractReady`
 
 ## Input Contract
 

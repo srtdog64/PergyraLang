@@ -272,11 +272,11 @@ for term in \
     "CompilerStagePathAt(index - 12)" \
     "if index < 23" \
     "CompilerParityPathAt(index - 17)" \
-    "lexer|TokenStreamZone|LexerStage|LexSource" \
-    "parser|AstTreeZone|ParserStage|ParseTokens" \
-    "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics" \
-    "mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts" \
-    "codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact"; do
+    "lexer|TokenStreamZone|LexerStage|LexSource|LexerTokenPayloadContractReady" \
+    "parser|AstTreeZone|ParserStage|ParseTokens|ParserAstTreePayloadContractReady" \
+    "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics|SemanticVerdictPayloadContractReady" \
+    "mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts|MirFactGraphPayloadContractReady" \
+    "codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact|TypedAstArenaPayloadContractReady"; do
     require_text "src/self_hosted/compiler/path_manifest_owner.pgy" "$term"
 done
 
@@ -299,11 +299,11 @@ for term in \
     "TypedAstArenaPayloadContractReady()" \
     "CompilerStagePathAt(index)" \
     "CompilerStageWorldBindingAt(index)" \
-    "lexer|TokenStreamZone|LexerStage|LexSource" \
-    "parser|AstTreeZone|ParserStage|ParseTokens" \
-    "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics" \
-    "mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts" \
-    "codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact"; do
+    "lexer|TokenStreamZone|LexerStage|LexSource|LexerTokenPayloadContractReady" \
+    "parser|AstTreeZone|ParserStage|ParseTokens|ParserAstTreePayloadContractReady" \
+    "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics|SemanticVerdictPayloadContractReady" \
+    "mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts|MirFactGraphPayloadContractReady" \
+    "codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact|TypedAstArenaPayloadContractReady"; do
     require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "$term"
 done
 
@@ -570,6 +570,14 @@ require_text "docs/self_hosted/11_compiler_world_architecture.md" 'generic `Stag
 require_text "docs/self_hosted/11_compiler_world_architecture.md" "path_manifest_owner.pgy"
 require_text "docs/self_hosted/11_compiler_world_architecture.md" "Stage Binding Visibility"
 require_text "docs/self_hosted/11_compiler_world_architecture.md" "CompilerStageWorldBindingAt"
+require_text "docs/self_hosted/11_compiler_world_architecture.md" "Pergyra-Likeness Reading"
+require_text "docs/self_hosted/11_compiler_world_architecture.md" "not a beauty score"
+require_text "docs/self_hosted/11_compiler_world_architecture.md" "topology is load-bearing"
+require_text "docs/self_hosted/11_compiler_world_architecture.md" "world actions call named compiler fact owners"
+require_text "docs/self_hosted/11_compiler_world_architecture.md" "<stage>|<resource zone>|<stage actor>|<stage intent>|<payload contract>"
+require_text "docs/self_hosted/11_compiler_world_architecture.md" "stage|zone|actor|intent|payload_contract"
+require_text "tests/self_host_pergyra_likeness_smoke.sh" "COMPILER_WORLD_FACT_CONSUMERS_MIN"
+require_text "tests/self_host_pergyra_likeness_smoke.sh" "STAGE_PAYLOAD_CONSUMERS_EXACT"
 require_text "docs/self_hosted/12_intent_zone_self_host_architecture.md" "compiler flow owner"
 require_text "docs/self_hosted/12_intent_zone_self_host_architecture.md" "stage_intents.pgy"
 require_text "docs/self_hosted/12_intent_zone_self_host_architecture.md" "Codegen Shape"

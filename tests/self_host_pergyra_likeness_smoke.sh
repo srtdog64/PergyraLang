@@ -34,6 +34,11 @@
 #     world-zone/actor/intent row in the stage intent document, matching the
 #     compiler-world path manifest. This keeps PgyCompilerWorld load-bearing
 #     instead of decorative.
+#   - compiler_world_fact_consumers: compiler-world actors must delegate
+#     readiness to named compiler fact owners. A zone/intent shell that does not
+#     consume owner facts is only decoration.
+#   - stage_payload_consumers: active stage readiness must go below placement
+#     rows and consume stage-owned payload contracts.
 #   - compiler_world_stub_actions: scaffold actions in the compiler world that
 #     still return `true` instead of consuming an owned fact. Ratchet down as
 #     stage actors become real compiler-world evidence consumers.
@@ -68,6 +73,8 @@ COMPILER_WORLD_MEMBERS_EXACT=17
 COMPILER_INTENT_SURFACE_MIN=14
 COMPILER_ZONE_BOUND_STEPS_MIN=27
 COMPILER_STAGE_BINDINGS_EXACT=5
+COMPILER_WORLD_FACT_CONSUMERS_MIN=17
+STAGE_PAYLOAD_CONSUMERS_EXACT=5
 COMPILER_WORLD_STUB_ACTIONS_MAX=0
 COMPILER_STAGE_ENVELOPE_ONLY_MAX=0
 TYPED_AST_CONTRACT_MIN=1
@@ -208,6 +215,10 @@ compiler_zone_bound_steps=$(count_lines_in_files 'where:[[:space:]]*[A-Za-z0-9_]
     src/self_hosted/compiler/world.pgy \
     src/self_hosted/compiler/stage_intents.pgy)
 compiler_stage_bindings=$(count_stage_world_bindings)
+compiler_world_fact_consumers=$(count_lines_in_files 'Compiler[A-Za-z0-9]+Ready\(' \
+    src/self_hosted/compiler/world.pgy)
+stage_payload_consumers=$(count_lines_in_files 'PayloadContractReady\(|TypedAstArenaPayloadContractReady\(' \
+    src/self_hosted/compiler/stage_artifact_owner.pgy)
 compiler_world_stub_actions=$(count_lines_in_files '^[[:space:]]*return true;' \
     src/self_hosted/compiler/world.pgy)
 compiler_stage_envelope_only=$(count_lines_in_files 'return[[:space:]]+CompilerStageArtifactRowReady' \
@@ -226,6 +237,8 @@ echo "  world_members      : $compiler_world_members  (exact $COMPILER_WORLD_MEM
 echo "  intent_surface     : $compiler_intent_surface  (min $COMPILER_INTENT_SURFACE_MIN)    <- compiler flow intents"
 echo "  zone_bound_steps   : $compiler_zone_bound_steps  (min $COMPILER_ZONE_BOUND_STEPS_MIN)    <- steps bound to resource zones"
 echo "  stage_bindings     : $compiler_stage_bindings  (exact $COMPILER_STAGE_BINDINGS_EXACT)  <- stage intent docs bound to compiler world"
+echo "  fact_consumers     : $compiler_world_fact_consumers  (min $COMPILER_WORLD_FACT_CONSUMERS_MIN)    <- compiler-world actions consume owner facts"
+echo "  payload_consumers  : $stage_payload_consumers  (exact $STAGE_PAYLOAD_CONSUMERS_EXACT)  <- stage readiness consumes payload contracts"
 echo "  world_stub_actions : $compiler_world_stub_actions  (max $COMPILER_WORLD_STUB_ACTIONS_MAX)     <- compiler-world scaffold actions"
 echo "  stage_envelope_only: $compiler_stage_envelope_only  (max $COMPILER_STAGE_ENVELOPE_ONLY_MAX)     <- stage readiness only proves envelope facts"
 echo "  typed_ast_contract : $typed_ast_contract  (min $TYPED_AST_CONTRACT_MIN)     <- typed AST arena migration owner"
@@ -262,6 +275,12 @@ if [ "$compiler_zone_bound_steps" -lt "$COMPILER_ZONE_BOUND_STEPS_MIN" ]; then
 fi
 if [ "$compiler_stage_bindings" -ne "$COMPILER_STAGE_BINDINGS_EXACT" ]; then
     fail "stage_bindings is $compiler_stage_bindings (!= $COMPILER_STAGE_BINDINGS_EXACT). Active stages must publish their compiler-world binding row in intent.md."
+fi
+if [ "$compiler_world_fact_consumers" -lt "$COMPILER_WORLD_FACT_CONSUMERS_MIN" ]; then
+    fail "compiler_world_fact_consumers fell to $compiler_world_fact_consumers (< $COMPILER_WORLD_FACT_CONSUMERS_MIN). World/zone/intent syntax must stay load-bearing by consuming named owner facts."
+fi
+if [ "$stage_payload_consumers" -ne "$STAGE_PAYLOAD_CONSUMERS_EXACT" ]; then
+    fail "stage_payload_consumers is $stage_payload_consumers (!= $STAGE_PAYLOAD_CONSUMERS_EXACT). Active stage readiness must consume payload contracts, not only world-placement rows."
 fi
 if [ "$compiler_world_stub_actions" -gt "$COMPILER_WORLD_STUB_ACTIONS_MAX" ]; then
     fail "world_stub_actions rose to $compiler_world_stub_actions (> $COMPILER_WORLD_STUB_ACTIONS_MAX). Compiler-world actors must consume owned facts, not add scaffold 'return true' actions."
@@ -307,6 +326,7 @@ if [ "$string_munge_sig" -lt "$STRING_MUNGE_SIG_MAX" ] \
     || [ "$ast_string_surface" -lt "$AST_STRING_SURFACE_MAX" ] \
     || [ "$sentinel" -lt "$SENTINEL_MAX" ] \
     || [ "$result_use" -gt "$RESULT_USE_MIN" ] \
+    || [ "$compiler_world_fact_consumers" -gt "$COMPILER_WORLD_FACT_CONSUMERS_MIN" ] \
     || [ "$compiler_world_stub_actions" -lt "$COMPILER_WORLD_STUB_ACTIONS_MAX" ] \
     || [ "$compiler_stage_envelope_only" -lt "$COMPILER_STAGE_ENVELOPE_ONLY_MAX" ] \
     || [ "$typed_ast_contract" -gt "$TYPED_AST_CONTRACT_MIN" ]; then

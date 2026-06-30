@@ -14,7 +14,8 @@ payloads for semantic answers.
 - **stage_actor**: `MirLowerStage`
 - **stage_intent**: `LowerProgramFacts`
 - **intent_cluster**: `MiddleEndPipeline`
-- **manifest_binding**: `mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts`
+- **payload_contract**: `MirFactGraphPayloadContractReady`
+- **manifest_binding**: `mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts|MirFactGraphPayloadContractReady`
 
 ## Input Contract
 

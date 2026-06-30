@@ -17,7 +17,8 @@ must fail visibly instead of falling through to an unverified translation.
 - **stage_actor**: `ProgramEmitter`
 - **stage_intent**: `EmitProgramArtifact`
 - **intent_cluster**: `BackendPipeline`
-- **manifest_binding**: `codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact`
+- **payload_contract**: `TypedAstArenaPayloadContractReady`
+- **manifest_binding**: `codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact|TypedAstArenaPayloadContractReady`
 - **resource_inputs**: `TypeEnvZone`, `AbiLayoutZone`, `TargetCapabilityZone`
 
 ## Resource-Zone Shape

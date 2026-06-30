@@ -23,7 +23,8 @@ compared, rollback to C trivial".
 - **stage_actor**: `LexerStage`
 - **stage_intent**: `LexSource`
 - **intent_cluster**: `FrontendPipeline`
-- **manifest_binding**: `lexer|TokenStreamZone|LexerStage|LexSource`
+- **payload_contract**: `LexerTokenPayloadContractReady`
+- **manifest_binding**: `lexer|TokenStreamZone|LexerStage|LexSource|LexerTokenPayloadContractReady`
 
 ## Input Contract
 

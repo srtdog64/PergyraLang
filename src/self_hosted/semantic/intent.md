@@ -15,7 +15,8 @@ use, and literal/identifier expression typing for `Int`, `Long`, `Float`,
 - **stage_actor**: `SemanticStage`
 - **stage_intent**: `CheckProgramSemantics`
 - **intent_cluster**: `MiddleEndPipeline`
-- **manifest_binding**: `semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics`
+- **payload_contract**: `SemanticVerdictPayloadContractReady`
+- **manifest_binding**: `semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics|SemanticVerdictPayloadContractReady`
 
 ## Input Contract
 

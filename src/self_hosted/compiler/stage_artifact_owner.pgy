@@ -23,35 +23,35 @@ func CompilerStageArtifactRowReady(index: Int, binding: String) -> Bool {
 }
 
 func CompilerTokenStreamFactReady() -> Bool {
-    if !CompilerStageArtifactRowReady(0, "lexer|TokenStreamZone|LexerStage|LexSource") {
+    if !CompilerStageArtifactRowReady(0, "lexer|TokenStreamZone|LexerStage|LexSource|LexerTokenPayloadContractReady") {
         return false;
     }
     return LexerTokenPayloadContractReady();
 }
 
 func CompilerAstTreeFactReady() -> Bool {
-    if !CompilerStageArtifactRowReady(1, "parser|AstTreeZone|ParserStage|ParseTokens") {
+    if !CompilerStageArtifactRowReady(1, "parser|AstTreeZone|ParserStage|ParseTokens|ParserAstTreePayloadContractReady") {
         return false;
     }
     return ParserAstTreePayloadContractReady();
 }
 
 func CompilerSemanticVerdictFactReady() -> Bool {
-    if !CompilerStageArtifactRowReady(2, "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics") {
+    if !CompilerStageArtifactRowReady(2, "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics|SemanticVerdictPayloadContractReady") {
         return false;
     }
     return SemanticVerdictPayloadContractReady();
 }
 
 func CompilerMirFactGraphReady() -> Bool {
-    if !CompilerStageArtifactRowReady(3, "mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts") {
+    if !CompilerStageArtifactRowReady(3, "mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts|MirFactGraphPayloadContractReady") {
         return false;
     }
     return MirFactGraphPayloadContractReady();
 }
 
 func CompilerEmissionFactReady() -> Bool {
-    if !CompilerStageArtifactRowReady(4, "codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact") {
+    if !CompilerStageArtifactRowReady(4, "codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact|TypedAstArenaPayloadContractReady") {
         return false;
     }
     return TypedAstArenaPayloadContractReady();
