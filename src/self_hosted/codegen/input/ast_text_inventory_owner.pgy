@@ -58,6 +58,12 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
     if kind == 3 {
         return StringTrim(Substring(text, 8, StringLength(text) - 8));
     }
+    if kind == 5 {
+        if StartsWith(text, "Field: ") {
+            return Substring(text, 7, StringLength(text) - 7);
+        }
+        return text;
+    }
     if kind == 7 {
         return Substring(text, 6, StringLength(text) - 6);
     }
@@ -314,19 +320,27 @@ func CodegenAstTextParamType(node: CodegenAstTextNode, owner_name: String) -> St
 }
 
 func CodegenAstTextFieldName(node: CodegenAstTextNode) -> String {
-    let colon: Int = StringIndexOf(node.text, ": ");
+    let payload: String = node.payload;
+    if payload == "" {
+        Die(Concat("expected field AST line: ", node.text));
+    }
+    let colon: Int = StringIndexOf(payload, ": ");
     if colon < 0 {
         Die(Concat("malformed field AST line: ", node.text));
     }
-    return Substring(node.text, 0, colon);
+    return Substring(payload, 0, colon);
 }
 
 func CodegenAstTextFieldType(node: CodegenAstTextNode) -> String {
-    let colon: Int = StringIndexOf(node.text, ": ");
+    let payload: String = node.payload;
+    if payload == "" {
+        Die(Concat("expected field AST line: ", node.text));
+    }
+    let colon: Int = StringIndexOf(payload, ": ");
     if colon < 0 {
         Die(Concat("malformed field AST line: ", node.text));
     }
-    return Substring(node.text, colon + 2, StringLength(node.text) - (colon + 2));
+    return Substring(payload, colon + 2, StringLength(payload) - (colon + 2));
 }
 
 func CodegenAstTextIndentOf(raw: String) -> Int {
@@ -341,6 +355,7 @@ func CodegenAstTextIndentOf(raw: String) -> Int {
 func CodegenAstTextNodeInventory(tree_text: String, inout nodes: Array<CodegenAstTextNode>, inout count_box: Array<Int>) -> Void {
     let total: Int = StringLength(tree_text);
     let pos: Int = 0;
+    let field_indent: Int = -1;
     while pos < total {
         let nl: Int = NextNewline(tree_text, pos);
         let raw_line: String = Substring(tree_text, pos, nl - pos);
@@ -353,6 +368,14 @@ func CodegenAstTextNodeInventory(tree_text: String, inout nodes: Array<CodegenAs
         if StringLength(trimmed) > 0 {
             let indent: Int = CodegenAstTextIndentOf(raw_line);
             let kind: Int = CodegenAstTextKindOf(trimmed);
+            if field_indent >= 0 && indent < field_indent {
+                field_indent = -1;
+            }
+            if kind == 4 {
+                field_indent = indent + 2;
+            } else if field_indent >= 0 && indent == field_indent && StringIndexOf(trimmed, ": ") >= 0 {
+                kind = 5;
+            }
             ArrayPush(nodes, CodegenAstTextNode(indent, trimmed, kind, CodegenAstTextPayloadFor(trimmed, kind)));
             ArraySet(count_box, 0, count_box[0] + 1);
         }

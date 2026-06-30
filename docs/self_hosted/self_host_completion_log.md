@@ -60,6 +60,16 @@ rewrite history.
 - Tightened the component contract to reject role-name/type recovery from
   `node.text` declaration-line slicing.
 
+## 2026-07-01 - Codegen field payload leaves Fields-line slicing
+
+- Extended `CodegenAstTextNodeInventory` so `Fields:` header context promotes
+  child `name: Type` rows to field kind rows and records the field payload in
+  `CodegenAstTextNode.payload`.
+- Repointed `CodegenAstTextFieldName` and `CodegenAstTextFieldType` to consume
+  that payload instead of splitting `node.text`.
+- Tightened the component contract to reject field name/type recovery from
+  `node.text` colon slicing.
+
 ## 2026-07-01 - Emission stage consumes codegen payload fact
 
 - Added `CompilerEmissionFactReady()` to
