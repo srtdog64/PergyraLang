@@ -918,6 +918,7 @@ require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "func Emit
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitStructValue"
 require_owner_surface mir_lower \
     "error_owner.pgy" \
+    "mir_fact_graph_contract_owner.pgy" \
     "mir_json_input_owner.pgy" \
     "json_fact_read.pgy" \
     "stmt_render.pgy" \
@@ -927,6 +928,12 @@ require_owner_surface mir_lower \
     "program_lower.pgy"
 require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'JsonDocumentStringFieldEquals(json, "schema", "pgy.mir.v1")'
+require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "func MirFactGraphPayloadContractReady"
+require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "func MirFactGraphPayloadSchema"
+require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "pgy.mir.v1"
+require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirFactGraphPayloadFixtureCount() != 85"
+require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../mir_lower/mir_fact_graph_contract_owner.pgy";'
+require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "MirFactGraphPayloadContractReady()"
 reject_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'StringIndexOf(json, "\"schema\":\"pgy.mir.v1\"")'
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func FindRoutine(json: String, from: Int) -> Option<Int>"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineObjectEnd"

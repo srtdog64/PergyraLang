@@ -286,9 +286,11 @@ for term in \
     'import "../lexer/token_owner.pgy";' \
     'import "../parser/tree_text_owner.pgy";' \
     'import "../semantic/diagnostic_owner.pgy";' \
+    'import "../mir_lower/mir_fact_graph_contract_owner.pgy";' \
     "LexerTokenPayloadContractReady()" \
     "ParserAstTreePayloadContractReady()" \
     "SemanticVerdictPayloadContractReady()" \
+    "MirFactGraphPayloadContractReady()" \
     "CompilerStagePathAt(index)" \
     "CompilerStageWorldBindingAt(index)" \
     "lexer|TokenStreamZone|LexerStage|LexSource" \
@@ -334,6 +336,20 @@ for term in \
     "StringIndexOf(ok, \"Status: ok\")" \
     "StringIndexOf(err, \"Code: undefined_symbol\")"; do
     require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "$term"
+done
+
+for term in \
+    "func MirFactGraphPayloadSchema" \
+    "pgy.mir.v1" \
+    "func MirFactGraphPayloadFixtureCount" \
+    "func MirFactGraphPayloadRootReady" \
+    "func MirFactGraphPayloadContractReady" \
+    "MirFactGraphPayloadFixtureCount() != 85" \
+    "JsonDocumentStringFieldEquals(json, \"schema\", MirFactGraphPayloadSchema())" \
+    "JsonFieldArrayBounds(json, 0, doc_end, \"decls\", decls)" \
+    "JsonFieldArrayBounds(json, 0, doc_end, \"routines\", routines)" \
+    "JsonObjectStringField(json, inst[0], inst[1], \"source_type\")"; do
+    require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "$term"
 done
 
 for term in \

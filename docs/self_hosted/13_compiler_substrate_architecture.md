@@ -397,8 +397,9 @@ path/world-binding envelopes. It started at four; the lexer stage moved to a
 token payload contract owned by `lexer/token_owner.pgy`, the parser stage
 consumes the compact-AST text contract owned by `parser/tree_text_owner.pgy`,
 and the semantic stage consumes the verdict contract owned by
-`semantic/diagnostic_owner.pgy`, so the current baseline is one. It should
-continue falling as the MIR stage consumes MIR fact graph payload facts.
+`semantic/diagnostic_owner.pgy`. The MIR stage now consumes the MIR fact graph
+contract owned by `mir_lower/mir_fact_graph_contract_owner.pgy`, so the current
+baseline is zero.
 `result_use` must not fall.
 The positive topology metrics are different:
 `compiler_world`, `resource_zones`, `intent_surface`, and `zone_bound_steps`
@@ -439,9 +440,12 @@ count, and root `Program:` / implicit-`Main` output shape. Semantic readiness
 consumes `SemanticVerdictPayloadContractReady()` from
 `semantic/diagnostic_owner.pgy`, tying the stage to the verdict schema,
 107-fixture parity surface, ok/error status rendering, and 17-code vocabulary.
-The remaining depth gap is payload-level ownership for MIR: its stage readiness
-currently proves stage placement and world-binding envelope, not MIR fact graph
-contents. That gap is tracked separately by the `stage_envelope_only` ratchet.
+MIR readiness consumes `MirFactGraphPayloadContractReady()` from
+`mir_lower/mir_fact_graph_contract_owner.pgy`, tying the stage to the MIR JSON
+schema, 85-fixture parity surface, declaration/routine arrays, source-local
+arrays, and instruction source facts. The `stage_envelope_only` ratchet is now
+closed at zero; future work should deepen each payload contract rather than
+reintroducing envelope-only readiness.
 
 ### Current-To-Target Mapping
 

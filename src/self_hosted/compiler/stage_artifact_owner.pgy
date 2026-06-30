@@ -2,6 +2,7 @@ import "path_manifest_owner.pgy";
 import "../lexer/token_owner.pgy";
 import "../parser/tree_text_owner.pgy";
 import "../semantic/diagnostic_owner.pgy";
+import "../mir_lower/mir_fact_graph_contract_owner.pgy";
 
 // Stage artifact envelope facts for PgyCompilerWorld.
 //
@@ -41,5 +42,8 @@ func CompilerSemanticVerdictFactReady() -> Bool {
 }
 
 func CompilerMirFactGraphReady() -> Bool {
-    return CompilerStageArtifactRowReady(3, "mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts");
+    if !CompilerStageArtifactRowReady(3, "mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts") {
+        return false;
+    }
+    return MirFactGraphPayloadContractReady();
 }

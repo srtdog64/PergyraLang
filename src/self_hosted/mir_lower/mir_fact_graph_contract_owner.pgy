@@ -1,0 +1,79 @@
+// MIR fact graph payload contract owner.
+
+import "../lib/json.pgy";
+
+func MirFactGraphPayloadSchema() -> String {
+    return "pgy.mir.v1";
+}
+
+func MirFactGraphPayloadFixtureCount() -> Int {
+    return 85;
+}
+
+func MirFactGraphPayloadRootReady() -> Bool {
+    let json: String = "{\"schema\":\"pgy.mir.v1\",\"decls\":[],\"routines\":[{\"name\":\"Main\",\"source_locals\":[],\"body\":[{\"source_type\":\"AST_LOG_CALL\",\"expr0\":\"1\"}]}]}";
+    if !JsonDocumentStringFieldEquals(json, "schema", MirFactGraphPayloadSchema()) {
+        return false;
+    }
+
+    let doc_end: Int = JsonDocumentObjectEnd(json);
+    if doc_end <= 0 {
+        return false;
+    }
+
+    let decls: Array<Int> = [0, 0];
+    if !JsonFieldArrayBounds(json, 0, doc_end, "decls", decls) {
+        return false;
+    }
+
+    let routines: Array<Int> = [0, 0];
+    if !JsonFieldArrayBounds(json, 0, doc_end, "routines", routines) {
+        return false;
+    }
+
+    let routine: Array<Int> = [0, 0];
+    if !JsonArrayObjectBoundsAt(json, routines[0], routines[1], 0, routine) {
+        return false;
+    }
+    if JsonObjectStringField(json, routine[0], routine[1], "name") != "Main" {
+        return false;
+    }
+
+    let source_locals: Array<Int> = [0, 0];
+    if !JsonObjectFieldValueBounds(json, routine[0], routine[1], "source_locals", source_locals) {
+        return false;
+    }
+    if CharAt(json, source_locals[0]) != "[" {
+        return false;
+    }
+
+    let body: Array<Int> = [0, 0];
+    if !JsonObjectFieldValueBounds(json, routine[0], routine[1], "body", body) {
+        return false;
+    }
+
+    let inst: Array<Int> = [0, 0];
+    if !JsonArrayObjectBoundsAt(json, body[0], body[1], 0, inst) {
+        return false;
+    }
+    if JsonObjectStringField(json, inst[0], inst[1], "source_type") != "AST_LOG_CALL" {
+        return false;
+    }
+    if JsonObjectStringField(json, inst[0], inst[1], "expr0") != "1" {
+        return false;
+    }
+    return true;
+}
+
+func MirFactGraphPayloadContractReady() -> Bool {
+    if MirFactGraphPayloadSchema() != "pgy.mir.v1" {
+        return false;
+    }
+    if MirFactGraphPayloadFixtureCount() != 85 {
+        return false;
+    }
+    if !MirFactGraphPayloadRootReady() {
+        return false;
+    }
+    return true;
+}

@@ -121,6 +121,20 @@ rewrite history.
 - Tightened `stage_envelope_only` from `<= 2` to `<= 1`. MIR readiness remains
   the only envelope-only compiler stage.
 
+## 2026-06-30 - MIR stage consumes fact graph payload contract
+
+- Added `MirFactGraphPayloadContractReady()` to
+  `src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy`. The MIR fact
+  graph contract owner now exposes the `pgy.mir.v1` schema, 85-fixture MIR
+  parity surface, declaration/routine arrays, source-local array, and
+  instruction source facts as the MIR fact graph payload contract.
+- Repointed `CompilerMirFactGraphReady()` so it first checks the
+  `mir_lower|MirFactGraphZone|MirLowerStage|LowerProgramFacts` envelope and
+  then consumes the MIR fact graph payload contract.
+- Tightened `stage_envelope_only` from `<= 1` to `<= 0`. All compiler stage
+  readiness functions now consume a payload contract after their
+  path/world-binding envelope.
+
 ## Verified state (rolling)
 
 - **Lexer**: self-hosts on C+LLVM. Byte-identical to `pgy --tokens` across the 7

@@ -12,6 +12,7 @@
 // no-hidden-flow rule).
 
 import "error_owner.pgy";
+import "mir_fact_graph_contract_owner.pgy";
 import "mir_json_input_owner.pgy";
 import "json_fact_read.pgy";
 import "stmt_render.pgy";

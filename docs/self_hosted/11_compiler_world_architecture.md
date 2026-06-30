@@ -180,9 +180,12 @@ Parser readiness does the same for the current compact-AST text rung through
 `ParserAstTreePayloadContractReady()` in `parser/tree_text_owner.pgy`.
 Semantic readiness consumes `SemanticVerdictPayloadContractReady()` from
 `semantic/diagnostic_owner.pgy`, tying the stage to its verdict schema, fixture
-count, status rendering, and code vocabulary. MIR readiness remains
-envelope-only until its fact graph payload contract is wired through the same
-pattern.
+count, status rendering, and code vocabulary. MIR readiness consumes
+`MirFactGraphPayloadContractReady()` from
+`mir_lower/mir_fact_graph_contract_owner.pgy`,
+tying the stage to the MIR JSON schema, 85-fixture parity surface,
+decl/routine arrays, source-local array, and instruction source facts. No
+compiler stage is allowed to remain envelope-only.
 
 ## Cost Model
 
