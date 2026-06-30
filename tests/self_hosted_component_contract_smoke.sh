@@ -887,9 +887,15 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitCollecti
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitStructValue(value_expr, elem_type, env)"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "func RewriteInoutCallArgs"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'LookupKindType(env, ident, "pm")'
+require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func ParamModeCsvCount"
+require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func ParamModeCsvAt"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "ParamModeCsvCount(modes)"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "ParamModeCsvAt(modes, arg_index)"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'rendered = Concat("&", rendered)'
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CompilerSymbolCQualifiedName(owner, member)"
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'out = Concat(out, "_")'
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "func ModeCsvCount"
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "mode = CsvAt(modes"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "pgy_CodegenAstTextNode_array"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCGetFn"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCLenFn"

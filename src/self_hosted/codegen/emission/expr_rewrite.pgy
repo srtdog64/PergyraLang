@@ -311,21 +311,6 @@ func RewriteNoneLiteral(e: String) -> String {
     return out;
 }
 
-func ModeCsvCount(modes: String) -> Int {
-    if StringLength(modes) == 0 {
-        return 0;
-    }
-    let count: Int = 1;
-    let i: Int = 0;
-    while i < StringLength(modes) {
-        if CharAt(modes, i) == "," {
-            count = count + 1;
-        }
-        i = i + 1;
-    }
-    return count;
-}
-
 func RewriteCallArgsWithModes(inner: String, modes: String, env: String, mode_count: Int) -> String {
     let rem: String = StringTrim(inner);
     let out: String = "";
@@ -343,7 +328,7 @@ func RewriteCallArgsWithModes(inner: String, modes: String, env: String, mode_co
         }
         let mode: String = "default";
         if arg_index < mode_count {
-            mode = CsvAt(modes, arg_index);
+            mode = ParamModeCsvAt(modes, arg_index);
         }
         let rendered: String = RewriteExpr(part, env);
         if mode == "inout" {
@@ -408,7 +393,7 @@ func RewriteInoutCallArgs(e: String, env: String, strict: Bool) -> String {
                     }
                     let close: Int = UnwrapOption(close_opt);
                     let inner: String = Substring(e, j + 1, close - j - 1);
-                    out = Concat(out, Concat(ident, Concat("(", Concat(RewriteCallArgsWithModes(inner, modes, env, ModeCsvCount(modes)), ")"))));
+                    out = Concat(out, Concat(ident, Concat("(", Concat(RewriteCallArgsWithModes(inner, modes, env, ParamModeCsvCount(modes)), ")"))));
                     i = close + 1;
                     continue;
                 }

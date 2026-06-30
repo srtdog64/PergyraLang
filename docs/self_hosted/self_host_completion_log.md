@@ -97,6 +97,15 @@ rewrite history.
 - Tightened the component contract so runtime/header usage facts cannot drift
   back to line-text substring scans.
 
+## 2026-07-01 - Call parameter mode CSV parsing moves to type facts
+
+- Moved parameter-mode CSV count/index interpretation from
+  `emission/expr_rewrite.pgy` into `type_facts/type_env.pgy`.
+- Repointed inout call argument rewriting to consume `ParamModeCsvCount` and
+  `ParamModeCsvAt` from the type-fact owner.
+- Tightened the component contract so expression rewrite cannot regain local
+  `pm` CSV parsing.
+
 ## 2026-07-01 - Codegen role payload leaves declaration-line slicing
 
 - Extended `CodegenAstTextPayloadFor` so role declarations record the

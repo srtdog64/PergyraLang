@@ -35,6 +35,25 @@ func CsvAt(csv: String, want: Int) -> String {
     return "";
 }
 
+func ParamModeCsvCount(modes: String) -> Int {
+    if StringLength(modes) == 0 {
+        return 0;
+    }
+    let count: Int = 1;
+    let i: Int = 0;
+    while i < StringLength(modes) {
+        if CharAt(modes, i) == "," {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
+func ParamModeCsvAt(modes: String, want: Int) -> String {
+    return CsvAt(modes, want);
+}
+
 func LookupFieldType(env: String, owner: String, field: String) -> String {
     return LookupKindType(env, Concat(owner, Concat(".", field)), "field");
 }
