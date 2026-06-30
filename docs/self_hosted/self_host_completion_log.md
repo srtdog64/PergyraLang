@@ -64,6 +64,17 @@ rewrite history.
 - Tightened the component contract to reject the old
   `node.text == "Function: Main"` check and require the typed payload field.
 
+## 2026-07-01 - Codegen nominal payload leaves prefix-length helper
+
+- Extended `CodegenAstTextPayloadFor` so nominal declarations (`Struct`,
+  `Class`, `Subject`, `Vessel`, `Object`, and `TObject`) record their owner
+  name in `CodegenAstTextNode.payload` during inventory construction.
+- Repointed `CodegenAstTextNominalName` to consume `node.payload` and removed
+  `CodegenAstTextNominalPrefixLen`, which was re-decoding the same declaration
+  prefix from `node.text`.
+- Tightened the component contract so nominal declaration name reads cannot
+  return to prefix-length slicing.
+
 ## 2026-06-30 - Pergyra-likeness load-bearing metric
 
 - Added `compiler_world_stub_actions` to

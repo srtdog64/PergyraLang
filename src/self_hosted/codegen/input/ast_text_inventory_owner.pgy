@@ -58,6 +58,26 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
     if kind == 3 {
         return StringTrim(Substring(text, 8, StringLength(text) - 8));
     }
+    if kind == 8 {
+        if StartsWith(text, "Struct: ") {
+            return Substring(text, 8, StringLength(text) - 8);
+        }
+        if StartsWith(text, "Class: ") {
+            return Substring(text, 7, StringLength(text) - 7);
+        }
+        if StartsWith(text, "Subject: ") {
+            return Substring(text, 9, StringLength(text) - 9);
+        }
+        if StartsWith(text, "Vessel: ") {
+            return Substring(text, 8, StringLength(text) - 8);
+        }
+        if StartsWith(text, "Object: ") {
+            return Substring(text, 8, StringLength(text) - 8);
+        }
+        if StartsWith(text, "TObject: ") {
+            return Substring(text, 9, StringLength(text) - 9);
+        }
+    }
     return "";
 }
 
@@ -190,32 +210,11 @@ func CodegenAstTextEnumVariantNameAt(node: CodegenAstTextNode, index: Int) -> St
     return "";
 }
 
-func CodegenAstTextNominalPrefixLen(node: CodegenAstTextNode) -> Int {
-    if StartsWith(node.text, "Struct: ") {
-        return 8;
-    }
-    if StartsWith(node.text, "Class: ") {
-        return 7;
-    }
-    if StartsWith(node.text, "Subject: ") {
-        return 9;
-    }
-    if StartsWith(node.text, "Vessel: ") {
-        return 8;
-    }
-    if StartsWith(node.text, "Object: ") {
-        return 8;
-    }
-    if StartsWith(node.text, "TObject: ") {
-        return 9;
-    }
-    Die(Concat("expected nominal declaration AST line: ", node.text));
-    return 0;
-}
-
 func CodegenAstTextNominalName(node: CodegenAstTextNode) -> String {
-    let prefix_len: Int = CodegenAstTextNominalPrefixLen(node);
-    return Substring(node.text, prefix_len, StringLength(node.text) - prefix_len);
+    if !CodegenAstTextIsNominalDecl(node) {
+        Die(Concat("expected nominal declaration AST line: ", node.text));
+    }
+    return node.payload;
 }
 
 func CodegenAstTextRoleForPos(node: CodegenAstTextNode) -> Int {
