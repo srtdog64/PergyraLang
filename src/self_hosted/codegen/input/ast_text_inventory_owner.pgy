@@ -82,6 +82,14 @@ func CodegenAstTextIsArrayPopStmt(node: CodegenAstTextNode) -> Bool {
     return StartsWith(node.text, "ArrayPop(");
 }
 
+func CodegenAstTextIsArraySetStmt(node: CodegenAstTextNode) -> Bool {
+    return StartsWith(node.text, "ArraySet(");
+}
+
+func CodegenAstTextIsArrayPushStmt(node: CodegenAstTextNode) -> Bool {
+    return StartsWith(node.text, "ArrayPush(");
+}
+
 func CodegenAstTextIsExitStmt(node: CodegenAstTextNode) -> Bool {
     return StartsWith(node.text, "Exit(");
 }
@@ -233,6 +241,83 @@ func CodegenAstTextArrayPopTarget(node: CodegenAstTextNode) -> String {
         Die(Concat("malformed ArrayPop statement AST line: ", node.text));
     }
     return StringTrim(Substring(node.text, 9, StringLength(node.text) - 10));
+}
+
+func CodegenAstTextArraySetInner(node: CodegenAstTextNode) -> String {
+    if !StartsWith(node.text, "ArraySet(") || CharAt(node.text, StringLength(node.text) - 1) != ")" {
+        Die(Concat("malformed ArraySet statement AST line: ", node.text));
+    }
+    return Substring(node.text, 9, StringLength(node.text) - 10);
+}
+
+func CodegenAstTextArraySetFirstComma(node: CodegenAstTextNode) -> Int {
+    let inner: String = CodegenAstTextArraySetInner(node);
+    let comma: Int = FindTopLevelComma(inner);
+    if comma < 0 {
+        Die(Concat("ArraySet needs three arguments: ", node.text));
+    }
+    return comma;
+}
+
+func CodegenAstTextArraySetSecondComma(node: CodegenAstTextNode) -> Int {
+    let inner: String = CodegenAstTextArraySetInner(node);
+    let first: Int = CodegenAstTextArraySetFirstComma(node);
+    let rest: String = Substring(inner, first + 1, StringLength(inner) - (first + 1));
+    let comma: Int = FindTopLevelComma(rest);
+    if comma < 0 {
+        Die(Concat("ArraySet needs three arguments: ", node.text));
+    }
+    return comma;
+}
+
+func CodegenAstTextArraySetTarget(node: CodegenAstTextNode) -> String {
+    let inner: String = CodegenAstTextArraySetInner(node);
+    let first: Int = CodegenAstTextArraySetFirstComma(node);
+    return StringTrim(Substring(inner, 0, first));
+}
+
+func CodegenAstTextArraySetIndex(node: CodegenAstTextNode) -> String {
+    let inner: String = CodegenAstTextArraySetInner(node);
+    let first: Int = CodegenAstTextArraySetFirstComma(node);
+    let rest: String = Substring(inner, first + 1, StringLength(inner) - (first + 1));
+    let second: Int = CodegenAstTextArraySetSecondComma(node);
+    return StringTrim(Substring(rest, 0, second));
+}
+
+func CodegenAstTextArraySetValue(node: CodegenAstTextNode) -> String {
+    let inner: String = CodegenAstTextArraySetInner(node);
+    let first: Int = CodegenAstTextArraySetFirstComma(node);
+    let rest: String = Substring(inner, first + 1, StringLength(inner) - (first + 1));
+    let second: Int = CodegenAstTextArraySetSecondComma(node);
+    return StringTrim(Substring(rest, second + 1, StringLength(rest) - (second + 1)));
+}
+
+func CodegenAstTextArrayPushInner(node: CodegenAstTextNode) -> String {
+    if !StartsWith(node.text, "ArrayPush(") || CharAt(node.text, StringLength(node.text) - 1) != ")" {
+        Die(Concat("malformed ArrayPush statement AST line: ", node.text));
+    }
+    return Substring(node.text, 10, StringLength(node.text) - 11);
+}
+
+func CodegenAstTextArrayPushComma(node: CodegenAstTextNode) -> Int {
+    let inner: String = CodegenAstTextArrayPushInner(node);
+    let comma: Int = FindTopLevelComma(inner);
+    if comma < 0 {
+        Die(Concat("ArrayPush needs two arguments: ", node.text));
+    }
+    return comma;
+}
+
+func CodegenAstTextArrayPushTarget(node: CodegenAstTextNode) -> String {
+    let inner: String = CodegenAstTextArrayPushInner(node);
+    let comma: Int = CodegenAstTextArrayPushComma(node);
+    return StringTrim(Substring(inner, 0, comma));
+}
+
+func CodegenAstTextArrayPushValue(node: CodegenAstTextNode) -> String {
+    let inner: String = CodegenAstTextArrayPushInner(node);
+    let comma: Int = CodegenAstTextArrayPushComma(node);
+    return StringTrim(Substring(inner, comma + 1, StringLength(inner) - (comma + 1)));
 }
 
 func CodegenAstTextExitValue(node: CodegenAstTextNode) -> String {

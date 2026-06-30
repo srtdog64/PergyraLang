@@ -25,10 +25,11 @@
 #   - result_use: Result/Option/Ok/Err/Some/None occurrences. Errors-as-data.
 #     Ratchet up.
 #   - compiler_world_surface / compiler_resource_zones /
-#     compiler_intent_surface / compiler_zone_bound_steps: positive topology
-#     floors for the self-host compiler world. These are not "more is better"
-#     scores; they only prove that PgyCompilerWorld, resource zones, and
-#     intent-owned flow remain visible while hard substitution grows.
+#     compiler_world_members / compiler_intent_surface /
+#     compiler_zone_bound_steps: positive topology checks for the self-host
+#     compiler world. These are not "more is better" scores; declared zones and
+#     world members are exact to prevent cosmetic zone inflation while hard
+#     substitution grows.
 #
 # Baselines are embedded below. The default measured scope is tracked,
 # non-fixture `src/self_hosted/**/*.pgy` implementation source with `//`
@@ -52,7 +53,8 @@ AST_STRING_SURFACE_MAX=4
 SENTINEL_MAX=34
 RESULT_USE_MIN=69
 COMPILER_WORLD_SURFACE_MIN=1
-COMPILER_RESOURCE_ZONES_MIN=17
+COMPILER_RESOURCE_ZONES_EXACT=17
+COMPILER_WORLD_MEMBERS_EXACT=17
 COMPILER_INTENT_SURFACE_MIN=14
 COMPILER_ZONE_BOUND_STEPS_MIN=27
 
@@ -110,6 +112,52 @@ count_lines_in_files() {
     fi
 }
 
+count_world_zone_members() {
+    awk '
+        /^world[[:space:]]+PgyCompilerWorld[[:space:]]*\{/ {
+            inside = 1
+            next
+        }
+        inside && /^[[:space:]]*\}/ {
+            inside = 0
+        }
+        inside && /^[[:space:]]*zone[[:space:]]+[A-Za-z_][A-Za-z0-9_]*:[[:space:]]+[A-Za-z_][A-Za-z0-9_]*/ {
+            count++
+        }
+        END {
+            print count + 0
+        }
+    ' "$SH_DIR/compiler/world.pgy"
+}
+
+require_file_text() {
+    local rel="$1"
+    local term="$2"
+    local path="$ROOT_DIR/$rel"
+
+    [ -f "$path" ] || fail "missing file for likeness check: $rel"
+    grep -Fq "$term" "$path" ||
+        fail "$rel missing required compiler-world topology term: $term"
+}
+
+require_file_regex() {
+    local rel="$1"
+    local pattern="$2"
+    local path="$ROOT_DIR/$rel"
+
+    [ -f "$path" ] || fail "missing file for likeness check: $rel"
+    grep -Eq "$pattern" "$path" ||
+        fail "$rel missing required compiler-world topology pattern: $pattern"
+}
+
+require_compiler_world_zone() {
+    local member="$1"
+    local zone_type="$2"
+
+    require_file_regex "src/self_hosted/compiler/world.pgy" "^zone[[:space:]]+$zone_type[[:space:]]*\\{"
+    require_file_regex "src/self_hosted/compiler/world.pgy" "^[[:space:]]*zone[[:space:]]+$member:[[:space:]]+$zone_type[[:space:]]*$"
+}
+
 string_munge_sig=$(count ': String\) -> String' '^src/self_hosted/lib/json\.pgy$')
 ast_string_surface=$(count '\bast: String\b')
 sentinel=$(count 'return -1|== -1|!= -1')
@@ -118,6 +166,7 @@ compiler_world_surface=$(count_lines_in_files '^world[[:space:]]+PgyCompilerWorl
     src/self_hosted/compiler/world.pgy)
 compiler_resource_zones=$(count_lines_in_files '^zone[[:space:]]' \
     src/self_hosted/compiler/world.pgy)
+compiler_world_members=$(count_world_zone_members)
 compiler_intent_surface=$(count_lines_in_files '^intent[[:space:]]' \
     src/self_hosted/compiler/world.pgy \
     src/self_hosted/compiler/stage_intents.pgy)
@@ -131,7 +180,8 @@ echo "  ast_string_surface : $ast_string_surface  (max $AST_STRING_SURFACE_MAX) 
 echo "  sentinel           : $sentinel  (max $SENTINEL_MAX)    <- out-of-band error/not-found"
 echo "  result_use         : $result_use  (min $RESULT_USE_MIN)    <- errors-as-data"
 echo "  compiler_world     : $compiler_world_surface  (min $COMPILER_WORLD_SURFACE_MIN)     <- root PgyCompilerWorld surface"
-echo "  resource_zones     : $compiler_resource_zones  (min $COMPILER_RESOURCE_ZONES_MIN)    <- compiler resource boundaries"
+echo "  resource_zones     : $compiler_resource_zones  (exact $COMPILER_RESOURCE_ZONES_EXACT) <- compiler resource boundaries"
+echo "  world_members      : $compiler_world_members  (exact $COMPILER_WORLD_MEMBERS_EXACT) <- PgyCompilerWorld member set"
 echo "  intent_surface     : $compiler_intent_surface  (min $COMPILER_INTENT_SURFACE_MIN)    <- compiler flow intents"
 echo "  zone_bound_steps   : $compiler_zone_bound_steps  (min $COMPILER_ZONE_BOUND_STEPS_MIN)    <- steps bound to resource zones"
 
@@ -153,8 +203,11 @@ fi
 if [ "$compiler_world_surface" -lt "$COMPILER_WORLD_SURFACE_MIN" ]; then
     fail "compiler_world fell to $compiler_world_surface (< $COMPILER_WORLD_SURFACE_MIN). The self-host compiler must stay rooted in PgyCompilerWorld."
 fi
-if [ "$compiler_resource_zones" -lt "$COMPILER_RESOURCE_ZONES_MIN" ]; then
-    fail "resource_zones fell to $compiler_resource_zones (< $COMPILER_RESOURCE_ZONES_MIN). The self-host compiler is losing visible resource ownership boundaries."
+if [ "$compiler_resource_zones" -ne "$COMPILER_RESOURCE_ZONES_EXACT" ]; then
+    fail "resource_zones is $compiler_resource_zones (!= $COMPILER_RESOURCE_ZONES_EXACT). Resource boundaries must be an owned zone set, not a cosmetic zone count."
+fi
+if [ "$compiler_world_members" -ne "$COMPILER_WORLD_MEMBERS_EXACT" ]; then
+    fail "world_members is $compiler_world_members (!= $COMPILER_WORLD_MEMBERS_EXACT). PgyCompilerWorld must expose the expected compiler zone member set."
 fi
 if [ "$compiler_intent_surface" -lt "$COMPILER_INTENT_SURFACE_MIN" ]; then
     fail "intent_surface fell to $compiler_intent_surface (< $COMPILER_INTENT_SURFACE_MIN). Compiler flow must remain intent-owned, not hidden in import order."
@@ -162,6 +215,35 @@ fi
 if [ "$compiler_zone_bound_steps" -lt "$COMPILER_ZONE_BOUND_STEPS_MIN" ]; then
     fail "zone_bound_steps fell to $compiler_zone_bound_steps (< $COMPILER_ZONE_BOUND_STEPS_MIN). Intent steps must remain explicitly bound to resource zones."
 fi
+
+require_compiler_world_zone "compiler" "SelfHostCompiler"
+require_compiler_world_zone "source_intake" "SourceIntakeZone"
+require_compiler_world_zone "tokens" "TokenStreamZone"
+require_compiler_world_zone "ast" "AstTreeZone"
+require_compiler_world_zone "semantic" "SemanticVerdictZone"
+require_compiler_world_zone "mir" "MirFactGraphZone"
+require_compiler_world_zone "type_env" "TypeEnvZone"
+require_compiler_world_zone "abi_layout" "AbiLayoutZone"
+require_compiler_world_zone "target_capability" "TargetCapabilityZone"
+require_compiler_world_zone "air_evidence" "AirEvidenceZone"
+require_compiler_world_zone "symbols" "SymbolFactTableZone"
+require_compiler_world_zone "abi_rows" "AbiRowProjectionZone"
+require_compiler_world_zone "emission" "EmissionZone"
+require_compiler_world_zone "artifacts" "ArtifactZone"
+require_compiler_world_zone "harness" "TestHarnessZone"
+require_compiler_world_zone "subprocess" "SubprocessRunnerZone"
+require_compiler_world_zone "parity" "ParityZone"
+
+require_file_text "src/self_hosted/compiler/world.pgy" "step Frontend"
+require_file_text "src/self_hosted/compiler/world.pgy" "on: FrontendPipeline(intake, tokens, ast, source, lexer, parser);"
+require_file_text "src/self_hosted/compiler/world.pgy" "step MiddleEnd"
+require_file_text "src/self_hosted/compiler/world.pgy" "on: MiddleEndPipeline(semantic_zone, lower_zone, checker, lowerer);"
+require_file_text "src/self_hosted/compiler/world.pgy" "step Evidence"
+require_file_text "src/self_hosted/compiler/world.pgy" "on: ProveHardSelfHostEvidence("
+require_file_text "src/self_hosted/compiler/world.pgy" "step Backend"
+require_file_text "src/self_hosted/compiler/world.pgy" "on: BackendPipeline(types, abi_layout, target_capability_zone, emit_zone, target_planner, emitter);"
+require_file_text "src/self_hosted/compiler/world.pgy" "step SelfProof"
+require_file_text "src/self_hosted/compiler/world.pgy" "on: SelfProofPipeline(parity_zone, oracle);"
 
 # ---- improvement nudges (non-fatal): tell the author to tighten the ratchet ----
 if [ "$string_munge_sig" -lt "$STRING_MUNGE_SIG_MAX" ] \

@@ -2444,3 +2444,15 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   reappear in `stmt_emit.pgy`. `ArraySet`/`ArrayPush`, control-flow statements,
   else-if routing, bare call statements, and expression payload parsing remain
   the next AST-text bridge surfaces.
+
+### 2026-06-30 -- Array mutation statement facts move behind the input owner
+
+- Added owner-owned predicates and payload accessors for `ArraySet` and
+  `ArrayPush` statement rows, including `target`, `index`, and `value` facts.
+- Repointed `stmt_emit.pgy` so collection mutation statements consume
+  `CodegenAstTextNode` facts and only choose the collection runtime helper plus
+  emitted C spelling locally.
+- Tightened the component contract to reject direct `ArraySet` / `ArrayPush`
+  AST-text dispatch and argument splitting in `stmt_emit.pgy`. The remaining
+  statement-body bridge surfaces are control-flow statements, else-if routing,
+  bare call statements, and expression payload parsing.
