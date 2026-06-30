@@ -60,6 +60,17 @@ rewrite history.
 - Tightened the component contract to reject role-name/type recovery from
   `node.text` declaration-line slicing.
 
+## 2026-07-01 - Codegen parameter payload leaves parameter-line slicing
+
+- Extended `CodegenAstTextNodeInventory` so `Parameters:` header context
+  promotes child parameter rows to parameter kind rows and records the
+  parameter payload in `CodegenAstTextNode.payload`.
+- Repointed `CodegenAstTextParamMode`, `CodegenAstTextParamName`, and
+  `CodegenAstTextParamType` to consume that payload instead of reading
+  mode/name/type facts from `node.text`.
+- Tightened the component contract to reject parameter mode and payload recovery
+  from `node.text`.
+
 ## 2026-07-01 - Codegen field payload leaves Fields-line slicing
 
 - Extended `CodegenAstTextNodeInventory` so `Fields:` header context promotes

@@ -64,6 +64,9 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
         }
         return text;
     }
+    if kind == 12 {
+        return text;
+    }
     if kind == 7 {
         return Substring(text, 6, StringLength(text) - 6);
     }
@@ -102,6 +105,10 @@ func CodegenAstTextIsFunction(node: CodegenAstTextNode) -> Bool {
 
 func CodegenAstTextIsParameters(node: CodegenAstTextNode) -> Bool {
     return node.kind == 2;
+}
+
+func CodegenAstTextIsParameterRow(node: CodegenAstTextNode) -> Bool {
+    return node.kind == 12;
 }
 
 func CodegenAstTextIsReturns(node: CodegenAstTextNode) -> Bool {
@@ -257,13 +264,16 @@ func CodegenAstTextRoleForType(node: CodegenAstTextNode) -> String {
 }
 
 func CodegenAstTextParamMode(node: CodegenAstTextNode) -> Int {
-    if StartsWith(node.text, "inout ") {
+    if !CodegenAstTextIsParameterRow(node) || node.payload == "" {
+        Die(Concat("expected parameter AST line: ", node.text));
+    }
+    if StartsWith(node.payload, "inout ") {
         return 1;
     }
-    if StartsWith(node.text, "own ") {
+    if StartsWith(node.payload, "own ") {
         return 2;
     }
-    if StartsWith(node.text, "ref ") {
+    if StartsWith(node.payload, "ref ") {
         return 3;
     }
     return 0;
@@ -284,13 +294,13 @@ func CodegenAstTextParamModeName(mode: Int) -> String {
 
 func CodegenAstTextParamPayload(node: CodegenAstTextNode, mode: Int) -> String {
     if mode == 0 {
-        return node.text;
+        return node.payload;
     }
     let prefix_len: Int = 4;
     if mode == 1 {
         prefix_len = 6;
     }
-    return Substring(node.text, prefix_len, StringLength(node.text) - prefix_len);
+    return Substring(node.payload, prefix_len, StringLength(node.payload) - prefix_len);
 }
 
 func CodegenAstTextParamName(node: CodegenAstTextNode, owner_name: String) -> String {
@@ -355,6 +365,7 @@ func CodegenAstTextIndentOf(raw: String) -> Int {
 func CodegenAstTextNodeInventory(tree_text: String, inout nodes: Array<CodegenAstTextNode>, inout count_box: Array<Int>) -> Void {
     let total: Int = StringLength(tree_text);
     let pos: Int = 0;
+    let param_indent: Int = -1;
     let field_indent: Int = -1;
     while pos < total {
         let nl: Int = NextNewline(tree_text, pos);
@@ -368,11 +379,21 @@ func CodegenAstTextNodeInventory(tree_text: String, inout nodes: Array<CodegenAs
         if StringLength(trimmed) > 0 {
             let indent: Int = CodegenAstTextIndentOf(raw_line);
             let kind: Int = CodegenAstTextKindOf(trimmed);
+            if param_indent >= 0 && indent < param_indent {
+                param_indent = -1;
+            }
             if field_indent >= 0 && indent < field_indent {
                 field_indent = -1;
             }
-            if kind == 4 {
+            if kind == 2 {
+                param_indent = indent + 2;
+                field_indent = -1;
+            } else if kind == 4 {
                 field_indent = indent + 2;
+                param_indent = -1;
+            } else if param_indent >= 0 && indent == param_indent &&
+                (StringIndexOf(trimmed, ": ") >= 0 || trimmed == "self") {
+                kind = 12;
             } else if field_indent >= 0 && indent == field_indent && StringIndexOf(trimmed, ": ") >= 0 {
                 kind = 5;
             }

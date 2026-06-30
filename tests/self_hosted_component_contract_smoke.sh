@@ -544,6 +544,10 @@ reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'String
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return Substring(node.text, 6, fp - 6)"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return Substring(node.text, fp + 5"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return Substring(node.text, 6, brace - 6)"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'StartsWith(node.text, "inout ")'
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'StartsWith(node.text, "own ")'
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'StartsWith(node.text, "ref ")'
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return node.text"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextNominalPrefixLen"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let prefix_len: Int = CodegenAstTextNominalPrefixLen"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let parent: Int"
@@ -566,13 +570,22 @@ require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func 
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextNominalName"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextRoleName"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextRoleForType"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "if kind == 12"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsParameterRow"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextParamMode"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextParamName"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextParamType"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "StartsWith(node.payload, \"inout \")"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "StartsWith(node.payload, \"own \")"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "StartsWith(node.payload, \"ref \")"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return node.payload"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextFieldName"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextFieldType"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextNodeInventory"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "CodegenAstTextNodeInventory(tree_text: String"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let param_indent: Int = -1"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "param_indent = indent + 2"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "kind = 12"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'import "../typed_ast_node_skeleton.pgy";'
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenTypedAstBridgeReady"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "TypedAstArenaPayloadContractReady()"
