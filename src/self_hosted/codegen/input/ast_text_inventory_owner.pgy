@@ -62,6 +62,38 @@ func CodegenAstTextIsAssignStmt(node: CodegenAstTextNode) -> Bool {
     return StartsWith(node.text, "Assign: ");
 }
 
+func CodegenAstTextIsLogStmt(node: CodegenAstTextNode) -> Bool {
+    return StartsWith(node.text, "Log(");
+}
+
+func CodegenAstTextIsBareReturnStmt(node: CodegenAstTextNode) -> Bool {
+    return node.text == "Return";
+}
+
+func CodegenAstTextIsValueReturnStmt(node: CodegenAstTextNode) -> Bool {
+    return StartsWith(node.text, "Return:");
+}
+
+func CodegenAstTextIsDeferStmt(node: CodegenAstTextNode) -> Bool {
+    return node.text == "Defer:";
+}
+
+func CodegenAstTextIsArrayPopStmt(node: CodegenAstTextNode) -> Bool {
+    return StartsWith(node.text, "ArrayPop(");
+}
+
+func CodegenAstTextIsExitStmt(node: CodegenAstTextNode) -> Bool {
+    return StartsWith(node.text, "Exit(");
+}
+
+func CodegenAstTextIsBreakStmt(node: CodegenAstTextNode) -> Bool {
+    return node.text == "Break";
+}
+
+func CodegenAstTextIsContinueStmt(node: CodegenAstTextNode) -> Bool {
+    return node.text == "Continue";
+}
+
 func CodegenAstTextIsParameters(node: CodegenAstTextNode) -> Bool {
     return node.kind == 2;
 }
@@ -183,6 +215,31 @@ func CodegenAstTextAssignValue(node: CodegenAstTextNode) -> String {
     let rest: String = CodegenAstTextAssignPayload(node);
     let pos: Int = CodegenAstTextAssignEqualsPos(node);
     return Substring(rest, pos + 3, StringLength(rest) - (pos + 3));
+}
+
+func CodegenAstTextLogInner(node: CodegenAstTextNode) -> String {
+    if !StartsWith(node.text, "Log(") || CharAt(node.text, StringLength(node.text) - 1) != ")" {
+        Die(Concat("malformed Log statement AST line: ", node.text));
+    }
+    return StringTrim(Substring(node.text, 4, StringLength(node.text) - 5));
+}
+
+func CodegenAstTextReturnValue(node: CodegenAstTextNode) -> String {
+    return StringTrim(CodegenAstTextPayloadAfter(node, "Return:", "return statement"));
+}
+
+func CodegenAstTextArrayPopTarget(node: CodegenAstTextNode) -> String {
+    if !StartsWith(node.text, "ArrayPop(") || CharAt(node.text, StringLength(node.text) - 1) != ")" {
+        Die(Concat("malformed ArrayPop statement AST line: ", node.text));
+    }
+    return StringTrim(Substring(node.text, 9, StringLength(node.text) - 10));
+}
+
+func CodegenAstTextExitValue(node: CodegenAstTextNode) -> String {
+    if !StartsWith(node.text, "Exit(") || CharAt(node.text, StringLength(node.text) - 1) != ")" {
+        Die(Concat("malformed Exit statement AST line: ", node.text));
+    }
+    return StringTrim(Substring(node.text, 5, StringLength(node.text) - 6));
 }
 
 func CodegenAstTextEnumBracePos(node: CodegenAstTextNode) -> Int {

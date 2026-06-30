@@ -2431,3 +2431,16 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   parser shapes and direct `Let:` / `Assign:` dispatch in `stmt_emit.pgy`. The
   broader statement-body text bridge remains active for control flow, calls,
   collection statements, and expression payloads.
+
+### 2026-06-30 -- Simple statement facts move behind the input owner
+
+- Added owner-owned predicates and payload accessors for `Log`, bare/value
+  `Return`, `Defer`, `ArrayPop`, `Exit`, `Break`, and `Continue` statement
+  rows.
+- Repointed `stmt_emit.pgy` so these statements consume
+  `CodegenAstTextNode` facts instead of matching and slicing the AST text line
+  locally.
+- Tightened the component contract so those statement dispatch shapes cannot
+  reappear in `stmt_emit.pgy`. `ArraySet`/`ArrayPush`, control-flow statements,
+  else-if routing, bare call statements, and expression payload parsing remain
+  the next AST-text bridge surfaces.

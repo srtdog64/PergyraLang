@@ -233,14 +233,11 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int,
         } else if CodegenAstTextIsAssignStmt(nodes[idx]) {
             result = Concat(result, Concat(pad, Concat(EmitAssign(nodes[idx], env_box), "\n")));
             ArraySet(cur, 0, idx + 1);
-        } else if StartsWith(t, "Log(") {
-            if CharAt(t, StringLength(t) - 1) != ")" {
-                Die(Concat("malformed Log statement: ", t));
-            }
-            let log_inner: String = StringTrim(Substring(t, 4, StringLength(t) - 4 - 1));
+        } else if CodegenAstTextIsLogStmt(nodes[idx]) {
+            let log_inner: String = CodegenAstTextLogInner(nodes[idx]);
             result = Concat(result, Concat(pad, Concat(EmitLog(log_inner, env_box[0]), "\n")));
             ArraySet(cur, 0, idx + 1);
-        } else if t == "Return" {
+        } else if CodegenAstTextIsBareReturnStmt(nodes[idx]) {
             // Bare return (the AST printer omits the colon when there is no
             // value). The C form follows the *C* return type: void -> `return;`,
             // otherwise a typed default (Main lowers to `int main`, so its
@@ -258,14 +255,14 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int,
             deferred = "";
             result = Concat(result, Concat(pad, Concat(bare, "\n")));
             ArraySet(cur, 0, idx + 1);
-        } else if StartsWith(t, "Return:") {
-            let rexpr: String = StringTrim(Substring(t, 7, StringLength(t) - 7));
+        } else if CodegenAstTextIsValueReturnStmt(nodes[idx]) {
+            let rexpr: String = CodegenAstTextReturnValue(nodes[idx]);
             result = Concat(result, deferred);
             result = Concat(result, active_defers);
             deferred = "";
             result = Concat(result, Concat(pad, Concat(EmitReturn(rexpr, cur_fn_ret, env_box[0]), "\n")));
             ArraySet(cur, 0, idx + 1);
-        } else if t == "Defer:" {
+        } else if CodegenAstTextIsDeferStmt(nodes[idx]) {
             ArraySet(cur, 0, idx + 1);
             CodegenAstTextExpectNode(nodes, count, cur, "Block:");
             let defer_env: Array<String> = [env_box[0]];
@@ -316,30 +313,22 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int,
             let push_stmt: String = Concat(push_fn, Concat("(&", Concat(p_arr, Concat(", ", Concat(p_rhs, ");")))));
             result = Concat(result, Concat(pad, Concat(push_stmt, "\n")));
             ArraySet(cur, 0, idx + 1);
-        } else if StartsWith(t, "ArrayPop(") {
+        } else if CodegenAstTextIsArrayPopStmt(nodes[idx]) {
             // `ArrayPop(arr)` statement lowers through the collection pop helper owner.
-            let qn: Int = StringLength(t);
-            if CharAt(t, qn - 1) != ")" {
-                Die(Concat("malformed ArrayPop(...): ", t));
-            }
-            let q_arr: String = StringTrim(Substring(t, 9, qn - 9 - 1));
+            let q_arr: String = CodegenAstTextArrayPopTarget(nodes[idx]);
             let q_kind: String = LookupKindType(env_box[0], q_arr, "v");
             let pop_fn: String = CollectionRuntimeCPopFn(q_kind);
             result = Concat(result, Concat(pad, Concat(pop_fn, Concat("(&", Concat(q_arr, ");\n")))));
             ArraySet(cur, 0, idx + 1);
-        } else if StartsWith(t, "Exit(") {
+        } else if CodegenAstTextIsExitStmt(nodes[idx]) {
             // `Exit(N)` statement -> `exit(N);` (rung-9).
-            let en: Int = StringLength(t);
-            if CharAt(t, en - 1) != ")" {
-                Die(Concat("malformed Exit(...): ", t));
-            }
-            let e_arg: String = StringTrim(Substring(t, 5, en - 5 - 1));
+            let e_arg: String = CodegenAstTextExitValue(nodes[idx]);
             result = Concat(result, Concat(pad, Concat("exit(", Concat(IntEval(e_arg, env_box[0]), ");\n"))));
             ArraySet(cur, 0, idx + 1);
-        } else if t == "Break" {
+        } else if CodegenAstTextIsBreakStmt(nodes[idx]) {
             result = Concat(result, Concat(pad, "break;\n"));
             ArraySet(cur, 0, idx + 1);
-        } else if t == "Continue" {
+        } else if CodegenAstTextIsContinueStmt(nodes[idx]) {
             result = Concat(result, Concat(pad, "continue;\n"));
             ArraySet(cur, 0, idx + 1);
         } else if StartsWith(t, "For: ") {

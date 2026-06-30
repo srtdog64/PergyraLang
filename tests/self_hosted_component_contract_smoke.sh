@@ -480,6 +480,14 @@ require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func 
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextParentIndex"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsLetStmt"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsAssignStmt"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsLogStmt"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsBareReturnStmt"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsValueReturnStmt"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsDeferStmt"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsArrayPopStmt"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsExitStmt"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsBreakStmt"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsContinueStmt"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsParameters"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsReturns"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsFieldsHeader"
@@ -499,6 +507,10 @@ require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func 
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextLetInitializer"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextAssignTarget"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextAssignValue"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextLogInner"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextReturnValue"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextArrayPopTarget"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextExitValue"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextNominalName"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextRoleName"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextRoleForType"
@@ -608,6 +620,18 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextLet
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextLetInitializer(node)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextAssignTarget(node)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextAssignValue(node)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextIsLogStmt(nodes[idx])"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextLogInner(nodes[idx])"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextIsBareReturnStmt(nodes[idx])"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextIsValueReturnStmt(nodes[idx])"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextReturnValue(nodes[idx])"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextIsDeferStmt(nodes[idx])"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextIsArrayPopStmt(nodes[idx])"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextArrayPopTarget(nodes[idx])"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextIsExitStmt(nodes[idx])"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextExitValue(nodes[idx])"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextIsBreakStmt(nodes[idx])"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextIsContinueStmt(nodes[idx])"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextExpect(texts"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitStmtList(indents:"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "texts["
@@ -617,6 +641,14 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitTryLet(li
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitAssign(line: String"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'StartsWith(t, "Let: ")'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'StartsWith(t, "Assign: ")'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'StartsWith(t, "Log(")'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'StartsWith(t, "Return:")'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'StartsWith(t, "ArrayPop(")'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'StartsWith(t, "Exit(")'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 't == "Return"'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 't == "Defer:"'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 't == "Break"'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 't == "Continue"'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'Substring(line, 5'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'Substring(line, 8'
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "NextNewline(ast, pos)"
