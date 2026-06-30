@@ -380,7 +380,9 @@ ownership, not as a C folder graph translated into Pergyra syntax.
 `tests/self_host_pergyra_likeness_smoke.sh` now reports both sides of that
 claim. The negative smell metrics (`string_munge_sig`, `ast_string_surface`,
 `sentinel`) must trend down as typed facts replace text bridges, and
-`result_use` must not fall. The positive topology metrics are different:
+`compiler_world_stub_actions` must trend down as stage actors stop returning
+scaffold `true` and start consuming owned facts. `result_use` must not fall.
+The positive topology metrics are different:
 `compiler_world`, `resource_zones`, `intent_surface`, and `zone_bound_steps`
 are floors, not scores. Adding fake zones or one-intent-per-helper files does
 not make the compiler more Pergyra-like; the floor only prevents the root
@@ -402,6 +404,15 @@ or lets `main.pgy` become the flow owner. Pergyra-likeness is measured by the
 visible `PgyCompilerWorld` topology and by fact owners such as
 `ast_text_statement_owner.pgy`, `TypeEnvZone`, `AbiLayoutZone`, and
 `EmissionZone` owning the decisions they consume.
+
+The weakest current signal is not missing `world` or `zone` syntax; it is
+load-bearing depth. `world.pgy` still contains scaffold stage actions that
+return `true` for source intake, lexing, parsing, semantic checking, MIR
+lowering, emission, and oracle comparison. Those actions are acceptable while
+the world is a shape contract, but they are tracked as debt. A hard bootstrap
+improves when each actor action consumes a concrete owner fact: path manifest,
+token stream fact, AST tree fact, semantic verdict, MIR fact graph, emission
+artifact, or parity verdict.
 
 ### Current-To-Target Mapping
 

@@ -34,6 +34,9 @@
 #     world-zone/actor/intent row in the stage intent document, matching the
 #     compiler-world path manifest. This keeps PgyCompilerWorld load-bearing
 #     instead of decorative.
+#   - compiler_world_stub_actions: scaffold actions in the compiler world that
+#     still return `true` instead of consuming an owned fact. Ratchet down as
+#     stage actors become real compiler-world evidence consumers.
 #
 # Baselines are embedded below. The default measured scope is tracked,
 # non-fixture `src/self_hosted/**/*.pgy` implementation source with `//`
@@ -62,6 +65,7 @@ COMPILER_WORLD_MEMBERS_EXACT=17
 COMPILER_INTENT_SURFACE_MIN=14
 COMPILER_ZONE_BOUND_STEPS_MIN=27
 COMPILER_STAGE_BINDINGS_EXACT=5
+COMPILER_WORLD_STUB_ACTIONS_MAX=7
 
 fail() {
     echo "[self-host-likeness] FAIL" >&2
@@ -199,6 +203,8 @@ compiler_zone_bound_steps=$(count_lines_in_files 'where:[[:space:]]*[A-Za-z0-9_]
     src/self_hosted/compiler/world.pgy \
     src/self_hosted/compiler/stage_intents.pgy)
 compiler_stage_bindings=$(count_stage_world_bindings)
+compiler_world_stub_actions=$(count_lines_in_files '^[[:space:]]*return true;' \
+    src/self_hosted/compiler/world.pgy)
 
 echo "[self-host-likeness] metrics (current vs baseline):"
 echo "  string_munge_sig   : $string_munge_sig  (max $STRING_MUNGE_SIG_MAX)   <- text->text functions; linchpin"
@@ -211,6 +217,7 @@ echo "  world_members      : $compiler_world_members  (exact $COMPILER_WORLD_MEM
 echo "  intent_surface     : $compiler_intent_surface  (min $COMPILER_INTENT_SURFACE_MIN)    <- compiler flow intents"
 echo "  zone_bound_steps   : $compiler_zone_bound_steps  (min $COMPILER_ZONE_BOUND_STEPS_MIN)    <- steps bound to resource zones"
 echo "  stage_bindings     : $compiler_stage_bindings  (exact $COMPILER_STAGE_BINDINGS_EXACT)  <- stage intent docs bound to compiler world"
+echo "  world_stub_actions : $compiler_world_stub_actions  (max $COMPILER_WORLD_STUB_ACTIONS_MAX)     <- compiler-world scaffold actions"
 
 # ---- bad metrics: current must not exceed baseline ----
 if [ "$string_munge_sig" -gt "$STRING_MUNGE_SIG_MAX" ]; then
@@ -244,6 +251,9 @@ if [ "$compiler_zone_bound_steps" -lt "$COMPILER_ZONE_BOUND_STEPS_MIN" ]; then
 fi
 if [ "$compiler_stage_bindings" -ne "$COMPILER_STAGE_BINDINGS_EXACT" ]; then
     fail "stage_bindings is $compiler_stage_bindings (!= $COMPILER_STAGE_BINDINGS_EXACT). Active stages must publish their compiler-world binding row in intent.md."
+fi
+if [ "$compiler_world_stub_actions" -gt "$COMPILER_WORLD_STUB_ACTIONS_MAX" ]; then
+    fail "world_stub_actions rose to $compiler_world_stub_actions (> $COMPILER_WORLD_STUB_ACTIONS_MAX). Compiler-world actors must consume owned facts, not add scaffold 'return true' actions."
 fi
 
 require_compiler_world_zone "compiler" "SelfHostCompiler"
@@ -279,7 +289,8 @@ require_file_text "src/self_hosted/compiler/world.pgy" "on: SelfProofPipeline(pa
 if [ "$string_munge_sig" -lt "$STRING_MUNGE_SIG_MAX" ] \
     || [ "$ast_string_surface" -lt "$AST_STRING_SURFACE_MAX" ] \
     || [ "$sentinel" -lt "$SENTINEL_MAX" ] \
-    || [ "$result_use" -gt "$RESULT_USE_MIN" ]; then
+    || [ "$result_use" -gt "$RESULT_USE_MIN" ] \
+    || [ "$compiler_world_stub_actions" -lt "$COMPILER_WORLD_STUB_ACTIONS_MAX" ]; then
     echo "[self-host-likeness] NOTE: a metric improved past its baseline; tighten the baselines in $0 in this commit so the ratchet stays strict."
 fi
 

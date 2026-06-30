@@ -25,6 +25,21 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-06-30 - Pergyra-likeness load-bearing metric
+
+- Added `compiler_world_stub_actions` to
+  `tests/self_host_pergyra_likeness_smoke.sh`. The self-host likeness gate
+  already checked that `PgyCompilerWorld`, resource zones, intent clusters, and
+  stage binding rows exist; this new metric tracks the weaker point: compiler
+  actors in `world.pgy` that still return scaffold `true` instead of consuming a
+  concrete owner fact.
+- Documented the distinction in
+  `11_compiler_world_architecture.md` and
+  `13_compiler_substrate_architecture.md`: low keyword density is not the
+  problem; decorative topology is. The hard bootstrap improves when source
+  intake, lexer, parser, semantic, MIR-lower, emission, and parity actors
+  consume path, token, AST, verdict, MIR, artifact, and parity facts.
+
 ## Verified state (rolling)
 
 - **Lexer**: self-hosts on C+LLVM. Byte-identical to `pgy --tokens` across the 7

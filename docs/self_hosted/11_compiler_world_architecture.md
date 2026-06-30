@@ -162,6 +162,14 @@ resource it owns, which actor executes it, and which intent the root world
 calls. If a self-host stage can be moved, renamed, or expanded without updating
 that row, the compiler world has become decorative instead of load-bearing.
 
+The likeness gate also tracks scaffold actions inside `world.pgy`: a compiler
+actor that only returns `true` is still topology, not proof. Those stubs are
+allowed while the world shape is being brought up, but they must ratchet down as
+the hard bootstrap grows. The replacement is not more syntax; the replacement
+is an actor action that consumes a concrete owner fact such as a path manifest,
+token stream, AST tree, semantic verdict, MIR fact graph, emitted artifact, or
+parity verdict.
+
 ## Cost Model
 
 The compiler world is an architecture contract, not a runtime hot path. It
