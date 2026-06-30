@@ -6,20 +6,20 @@
 
 // Find the next routine declaration row after `from`. Routine discovery is
 // owned by the MIR `routines` array; instruction/name payloads are not scanned.
-// Returns the containing routine object position, or -1.
-func FindRoutine(json: String, from: Int) -> Int {
+// Returns the containing routine object position when present.
+func FindRoutine(json: String, from: Int) -> Option<Int> {
     let row: Int = 0;
     let bounds: Array<Int> = [0, 0];
     while MirRoutineObjectBoundsAt(json, row, bounds) {
         if bounds[0] >= from {
             let kind: String = MirObjectStringFact(json, bounds[0], bounds[1], "kind");
             if kind == "function" || kind == "method" {
-                return bounds[0];
+                return Some(bounds[0]);
             }
         }
         row = row + 1;
     }
-    return -1;
+    return None;
 }
 
 func RoutineObjectEnd(json: String, rpos: Int) -> Int {
@@ -46,13 +46,13 @@ func RoutineHeaderEnd(json: String, routine_name_end: Int, span_end: Int) -> Int
     return span_end;
 }
 
-func RoutineNameEnd(json: String, rpos: Int) -> Int {
+func RoutineNameEnd(json: String, rpos: Int) -> Option<Int> {
     let object_end: Int = RoutineObjectEnd(json, rpos);
     let bounds: Array<Int> = [0, 0];
     if object_end <= rpos || !MirObjectFieldValueBounds(json, rpos, object_end, "name", bounds) {
-        return -1;
+        return None;
     }
-    return bounds[1];
+    return Some(bounds[1]);
 }
 
 func RoutineName(json: String, rpos: Int) -> String {
@@ -101,21 +101,23 @@ func RoutineReturnType(json: String, rpos: Int, header_end: Int) -> String {
     return rtype;
 }
 
-func RoutineBlocksStart(json: String, routine_name_end: Int, span_end: Int) -> Int {
+func RoutineBlocksStart(json: String, routine_name_end: Int, span_end: Int) -> Option<Int> {
     let bounds: Array<Int> = [0, 0];
     if RoutineBlocksBounds(json, routine_name_end, span_end, bounds) {
-        return bounds[0];
+        return Some(bounds[0]);
     }
-    return -1;
+    return None;
 }
 
 func FindRoutineByOwnerName(json: String, owner: String, name: String) -> Option<Int> {
-    let rpos: Int = FindRoutine(json, 0);
-    while rpos >= 0 {
-        let nend: Int = RoutineNameEnd(json, rpos);
-        if nend < 0 {
+    let rpos_opt: Option<Int> = FindRoutine(json, 0);
+    while IsSome(rpos_opt) {
+        let rpos: Int = UnwrapOption(rpos_opt);
+        let nend_opt: Option<Int> = RoutineNameEnd(json, rpos);
+        if !IsSome(nend_opt) {
             return None;
         }
+        let nend: Int = UnwrapOption(nend_opt);
         let routine: String = RoutineName(json, rpos);
         let span_end: Int = RoutineSpanEnd(json, nend);
         let kind: String = RoutineKind(json, rpos, nend, span_end);
@@ -123,7 +125,7 @@ func FindRoutineByOwnerName(json: String, owner: String, name: String) -> Option
         if kind == "method" && ro == owner && routine == name {
             return Some(rpos);
         }
-        rpos = FindRoutine(json, span_end);
+        rpos_opt = FindRoutine(json, span_end);
     }
     return None;
 }

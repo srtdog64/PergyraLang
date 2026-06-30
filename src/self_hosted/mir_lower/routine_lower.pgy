@@ -344,10 +344,11 @@ func EmitRegion(json: String, routine_start: Int, span_end: Int,
 }
 
 func EmitRoutineTreeWithSelfType(json: String, rpos: Int, routine_indent: String, self_type: String) -> String {
-    let routine_name_end: Int = RoutineNameEnd(json, rpos);
-    if routine_name_end < 0 {
+    let routine_name_end_opt: Option<Int> = RoutineNameEnd(json, rpos);
+    if !IsSome(routine_name_end_opt) {
         Die("malformed routine name");
     }
+    let routine_name_end: Int = UnwrapOption(routine_name_end_opt);
     let routine: String = RoutineName(json, rpos);
     let span_end: Int = RoutineSpanEnd(json, routine_name_end);
     let header_end: Int = RoutineHeaderEnd(json, routine_name_end, span_end);
@@ -380,8 +381,8 @@ func EmitRoutineTreeWithSelfType(json: String, rpos: Int, routine_indent: String
     out = Concat(out, Concat(ppad, "Body:\n"));
     out = Concat(out, Concat(item_pad, "Block:\n"));
 
-    let bp: Int = RoutineBlocksStart(json, routine_name_end, span_end);
-    if bp < 0 {
+    let bp: Option<Int> = RoutineBlocksStart(json, routine_name_end, span_end);
+    if !IsSome(bp) {
         Die(Concat("routine is missing blocks fact: ", routine));
     }
     let region: String = EmitRegion(json, routine_name_end, span_end, "0", "",

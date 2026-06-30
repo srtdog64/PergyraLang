@@ -90,6 +90,17 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-30 -- MIR-lower routine inventory discovery stops using integer sentinels
+
+- Changed `FindRoutine`, `RoutineNameEnd`, and `RoutineBlocksStart` in
+  `mir_lower/routine_inventory_owner.pgy` from `Int` with `-1` absence to
+  `Option<Int>`.
+- Repointed program and routine lowering to check `IsSome` before unwrapping
+  routine positions, routine-name bounds, and block-start presence.
+- Tightened the component contract to reject `return -1` in the routine
+  inventory owner and lowered the Pergyra-likeness ratchet from
+  `sentinel <= 30` to `sentinel <= 27`; `result_use` rose from 91 to 106.
+
 ### 2026-06-30 -- MIR-lower method routine lookup stops using integer sentinel
 
 - Changed `FindRoutineByOwnerName` in `mir_lower/routine_inventory_owner.pgy`

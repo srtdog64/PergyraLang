@@ -6,15 +6,17 @@
 func EmitMirProgramTree(json: String) -> String {
     let out: String = Concat("Program:\n", EmitStructDecls(json));
     let total: Int = 0;
-    let rpos: Int = FindRoutine(json, 0);
-    if rpos < 0 {
+    let rpos_opt: Option<Int> = FindRoutine(json, 0);
+    if !IsSome(rpos_opt) {
         Die("no routine name in MIR-JSON");
     }
-    while rpos >= 0 {
-        let nend: Int = RoutineNameEnd(json, rpos);
-        if nend < 0 {
+    while IsSome(rpos_opt) {
+        let rpos: Int = UnwrapOption(rpos_opt);
+        let nend_opt: Option<Int> = RoutineNameEnd(json, rpos);
+        if !IsSome(nend_opt) {
             Die("malformed routine name");
         }
+        let nend: Int = UnwrapOption(nend_opt);
         let span_end: Int = RoutineSpanEnd(json, nend);
         let kind: String = RoutineKind(json, rpos, nend, span_end);
         let owner: String = RoutineOwner(json, rpos, nend, span_end);
@@ -22,7 +24,7 @@ func EmitMirProgramTree(json: String) -> String {
             out = Concat(out, EmitRoutineTree(json, rpos, "  "));
             total = total + 1;
         }
-        rpos = FindRoutine(json, span_end);
+        rpos_opt = FindRoutine(json, span_end);
     }
 
     if total == 0 {

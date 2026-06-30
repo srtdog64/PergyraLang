@@ -897,17 +897,18 @@ require_owner_surface mir_lower \
 require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'JsonDocumentStringFieldEquals(json, "schema", "pgy.mir.v1")'
 reject_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'StringIndexOf(json, "\"schema\":\"pgy.mir.v1\"")'
-require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func FindRoutine"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func FindRoutine(json: String, from: Int) -> Option<Int>"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineObjectEnd"
-require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineNameEnd"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineNameEnd(json: String, rpos: Int) -> Option<Int>"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineName"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineParamCount"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineParamNameAt"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineParamTypeAt"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineReturnType"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineBlocksBounds"
-require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineBlocksStart"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineBlocksStart(json: String, routine_name_end: Int, span_end: Int) -> Option<Int>"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirRoutineObjectBoundsAt(json, row, bounds)"
+reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "return -1"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectEnd(json, routine_name_end"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectArrayBounds(json, routine_name_end, span_end, \"blocks\", bounds)"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "let next_rpos: Int = FindRoutine(json, routine_name_end)"
@@ -938,10 +939,14 @@ reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, 
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, pnq"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, rnq"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, kq"
-require_text "src/self_hosted/mir_lower/program_lower.pgy" "RoutineNameEnd(json, rpos)"
+require_text "src/self_hosted/mir_lower/program_lower.pgy" "let rpos_opt: Option<Int> = FindRoutine(json, 0)"
+require_text "src/self_hosted/mir_lower/program_lower.pgy" "let nend_opt: Option<Int> = RoutineNameEnd(json, rpos)"
+require_text "src/self_hosted/mir_lower/program_lower.pgy" "let nend: Int = UnwrapOption(nend_opt)"
 require_text "src/self_hosted/mir_lower/program_lower.pgy" "FindRoutine(json, span_end)"
 reject_text "src/self_hosted/mir_lower/program_lower.pgy" "FindRoutine(json, nend)"
 reject_text "src/self_hosted/mir_lower/program_lower.pgy" "ReadJsonString(json,"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "let routine_name_end_opt: Option<Int> = RoutineNameEnd(json, rpos)"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "let bp: Option<Int> = RoutineBlocksStart(json, routine_name_end, span_end)"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" 'Substring(json, e[0]'
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" ',"kind":"function"'
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" ',"kind":"method"'
