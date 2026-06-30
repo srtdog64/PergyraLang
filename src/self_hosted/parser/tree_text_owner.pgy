@@ -34,3 +34,39 @@ func AppendImplicitMain(decls: String, body: String) -> String {
     main_block = AppendLine(main_block, body);
     return AppendLine(decls, main_block);
 }
+
+func ParserAstTreePayloadSchema() -> String {
+    return "pgy.selfhost.parser-ast-tree.v1";
+}
+
+func ParserAstTreePayloadFixtureCount() -> Int {
+    return 186;
+}
+
+func ParserAstTreePayloadRootReady() -> Bool {
+    let body: String = "        Log(\"hi\")";
+    let tree_text: String = AppendImplicitMain("", body);
+    if StringIndexOf(tree_text, "  Function: Main") != 0 {
+        return false;
+    }
+    if StringIndexOf(tree_text, "      Block:") < 0 {
+        return false;
+    }
+    if StringIndexOf(tree_text, body) < 0 {
+        return false;
+    }
+    return true;
+}
+
+func ParserAstTreePayloadContractReady() -> Bool {
+    if ParserAstTreePayloadSchema() == "" {
+        return false;
+    }
+    if ParserAstTreePayloadFixtureCount() != 186 {
+        return false;
+    }
+    if !ParserAstTreePayloadRootReady() {
+        return false;
+    }
+    return true;
+}

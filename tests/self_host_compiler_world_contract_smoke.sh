@@ -284,7 +284,9 @@ for term in \
     "func CompilerSemanticVerdictFactReady" \
     "func CompilerMirFactGraphReady" \
     'import "../lexer/token_owner.pgy";' \
+    'import "../parser/tree_text_owner.pgy";' \
     "LexerTokenPayloadContractReady()" \
+    "ParserAstTreePayloadContractReady()" \
     "CompilerStagePathAt(index)" \
     "CompilerStageWorldBindingAt(index)" \
     "lexer|TokenStreamZone|LexerStage|LexSource" \
@@ -305,6 +307,18 @@ for term in \
     "KeywordType(\"impl\") != \"UNKNOWN\"" \
     "TokenLine(1, \"FUNC\", \"func\", 7, 1)"; do
     require_text "src/self_hosted/lexer/token_owner.pgy" "$term"
+done
+
+for term in \
+    "func ParserAstTreePayloadSchema" \
+    "pgy.selfhost.parser-ast-tree.v1" \
+    "func ParserAstTreePayloadFixtureCount" \
+    "func ParserAstTreePayloadRootReady" \
+    "func ParserAstTreePayloadContractReady" \
+    "ParserAstTreePayloadFixtureCount() != 186" \
+    "AppendImplicitMain(\"\", body)" \
+    "StringIndexOf(tree_text, \"  Function: Main\")"; do
+    require_text "src/self_hosted/parser/tree_text_owner.pgy" "$term"
 done
 
 for term in \

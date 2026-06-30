@@ -96,6 +96,18 @@ rewrite history.
 - Tightened `stage_envelope_only` from `<= 4` to `<= 3`. Parser, semantic, and
   MIR readiness remain envelope-only and are the next payload-depth targets.
 
+## 2026-06-30 - Parser stage consumes compact AST payload contract
+
+- Added `ParserAstTreePayloadContractReady()` to
+  `src/self_hosted/parser/tree_text_owner.pgy`. The parser tree-text owner now
+  exposes the current compact-AST text schema, committed fixture count, and root
+  `Program:` / implicit-`Main` output shape as a parser payload contract.
+- Repointed `CompilerAstTreeFactReady()` so it first checks the
+  `parser|AstTreeZone|ParserStage|ParseTokens` envelope and then consumes the
+  parser AST payload contract.
+- Tightened `stage_envelope_only` from `<= 3` to `<= 2`. Semantic and MIR
+  readiness remain envelope-only and are the next payload-depth targets.
+
 ## Verified state (rolling)
 
 - **Lexer**: self-hosts on C+LLVM. Byte-identical to `pgy --tokens` across the 7
@@ -104,7 +116,7 @@ rewrite history.
   `main.pgy` is now only the entrypoint; character/codepoint handling,
   token classification/output formatting, and scan-loop state are split into
   source-of-truth owner modules.
-- **Parser**: self-hosts on C+LLVM. Byte-identical against `pgy --ast` on 189
+- **Parser**: self-hosts on C+LLVM. Byte-identical against `pgy --ast` on 186
   committed fixtures (gated); examples scale probe last recorded 120/121 with
   zero byte-drift, zero self-host exits, 1 C-oracle skip. Parser ownership is
   partially split: parse failure rendering, source cursor/token reads, written

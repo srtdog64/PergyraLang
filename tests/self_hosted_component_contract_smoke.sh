@@ -360,6 +360,12 @@ reject_text "tests/self_hosted/parity/lexer_parity.sh" "diff <(printf"
 require_owner_surface parser \
     "source_path_owner.pgy" \
     "program_parse_owner.pgy"
+require_text "src/self_hosted/parser/tree_text_owner.pgy" "func ParserAstTreePayloadContractReady"
+require_text "src/self_hosted/parser/tree_text_owner.pgy" "func ParserAstTreePayloadSchema"
+require_text "src/self_hosted/parser/tree_text_owner.pgy" "pgy.selfhost.parser-ast-tree.v1"
+require_text "src/self_hosted/parser/tree_text_owner.pgy" "ParserAstTreePayloadFixtureCount() != 186"
+require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../parser/tree_text_owner.pgy";'
+require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "ParserAstTreePayloadContractReady()"
 reject_text "src/self_hosted/parser/main.pgy" 'import "error_owner.pgy";'
 reject_text "src/self_hosted/parser/main.pgy" 'import "cursor_owner.pgy";'
 reject_text "src/self_hosted/parser/main.pgy" 'import "tree_text_owner.pgy";'

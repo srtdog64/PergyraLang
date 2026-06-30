@@ -176,8 +176,10 @@ facts. Lexing, parsing, semantic checking, and MIR lowering now consume
 is the first load-bearing envelope that prevents the stage actors from being
 decorative `return true` scaffolding. Lexer readiness now goes one step deeper:
 it also consumes `LexerTokenPayloadContractReady()` from `lexer/token_owner.pgy`.
-Parser, semantic, and MIR readiness remain envelope-only until their payload
-facts are wired through the same pattern.
+Parser readiness does the same for the current compact-AST text rung through
+`ParserAstTreePayloadContractReady()` in `parser/tree_text_owner.pgy`. Semantic
+and MIR readiness remain envelope-only until their payload facts are wired
+through the same pattern.
 
 ## Cost Model
 

@@ -394,9 +394,11 @@ claim. The negative smell metrics (`string_munge_sig`, `ast_string_surface`,
 owned facts instead of scaffold `true`. `stage_envelope_only` is the next
 payload-depth ratchet: it counts stage readiness functions that only prove
 path/world-binding envelopes. It started at four; the lexer stage has now moved
-to a token payload contract owned by `lexer/token_owner.pgy`, so the current
-baseline is three. It should continue falling as parser, semantic, and MIR
-stages consume payload facts. `result_use` must not fall.
+to a token payload contract owned by `lexer/token_owner.pgy`, and the parser
+stage now consumes the compact-AST text contract owned by
+`parser/tree_text_owner.pgy`, so the current baseline is two. It should continue
+falling as semantic and MIR stages consume payload facts. `result_use` must not
+fall.
 The positive topology metrics are different:
 `compiler_world`, `resource_zones`, `intent_surface`, and `zone_bound_steps`
 are floors, not scores. Adding fake zones or one-intent-per-helper files does
@@ -429,11 +431,14 @@ now consume `stage_artifact_owner.pgy` facts, so `world.pgy` has no scaffold
 `return true` actor actions left. Lexer readiness also consumes
 `LexerTokenPayloadContractReady()` from `lexer/token_owner.pgy`, which ties the
 token stage to its token-stream schema, fixture count, keyword classification
-quirks, and token-line payload formatting. The remaining depth gap is
-payload-level ownership for parser, semantic, and MIR: their stage readiness
-currently proves stage placement and world-binding envelopes, not the full AST
-tree, semantic verdict, or MIR fact graph contents. That gap is tracked
-separately by the `stage_envelope_only` ratchet.
+quirks, and token-line payload formatting. Parser readiness consumes
+`ParserAstTreePayloadContractReady()` from `parser/tree_text_owner.pgy`, tying
+the parser stage to the current compact-AST text schema, committed fixture
+count, and root `Program:` / implicit-`Main` output shape. The remaining depth
+gap is payload-level ownership for semantic and MIR: their stage readiness
+currently proves stage placement and world-binding envelopes, not the semantic
+verdict or MIR fact graph contents. That gap is tracked separately by the
+`stage_envelope_only` ratchet.
 
 ### Current-To-Target Mapping
 

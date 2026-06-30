@@ -57,7 +57,8 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/parser/stmt_match_owner.pgy` -- match statements.
 - `src/self_hosted/parser/stmt_owner.pgy` -- statement dispatch.
 - `src/self_hosted/parser/stmt_parallel_owner.pgy` -- parallel/async statements.
-- `src/self_hosted/parser/tree_text_owner.pgy` -- compact AST text rendering.
+- `src/self_hosted/parser/tree_text_owner.pgy` -- compact AST text rendering
+  and current AST payload contract consumed by `PgyCompilerWorld`.
 - `src/self_hosted/parser/type_name_owner.pgy` -- written type-name parsing.
 
 ## Semantic

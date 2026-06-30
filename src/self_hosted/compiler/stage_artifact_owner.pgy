@@ -1,5 +1,6 @@
 import "path_manifest_owner.pgy";
 import "../lexer/token_owner.pgy";
+import "../parser/tree_text_owner.pgy";
 
 // Stage artifact envelope facts for PgyCompilerWorld.
 //
@@ -25,7 +26,10 @@ func CompilerTokenStreamFactReady() -> Bool {
 }
 
 func CompilerAstTreeFactReady() -> Bool {
-    return CompilerStageArtifactRowReady(1, "parser|AstTreeZone|ParserStage|ParseTokens");
+    if !CompilerStageArtifactRowReady(1, "parser|AstTreeZone|ParserStage|ParseTokens") {
+        return false;
+    }
+    return ParserAstTreePayloadContractReady();
 }
 
 func CompilerSemanticVerdictFactReady() -> Bool {
