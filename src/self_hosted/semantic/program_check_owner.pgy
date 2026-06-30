@@ -348,11 +348,12 @@ func CheckProgram(content: String) -> String {
         let name_pos: Int = scan + 4;
         let fn_name: String = ReadIdent(content, name_pos, cursor);
         let after_name: Int = cursor[0];
-        let open: Int = ExpectLiteral(content, after_name, "(");
-        if open < 0 || StringLength(fn_name) == 0 {
+        let open_match: Option<Int> = ExpectLiteral(content, after_name, "(");
+        if !IsSome(open_match) || StringLength(fn_name) == 0 {
             scan = scan + 4;
             continue;
         }
+        let open: Int = UnwrapOption(open_match);
         let depth: Int = 1;
         let k: Int = open;
         while k < n && depth > 0 {

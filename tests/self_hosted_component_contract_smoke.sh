@@ -1234,6 +1234,10 @@ require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func SkipLineComment"
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func SkipBlockComment"
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func FindMatchingBraceWithin"
+require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func ExpectLiteral(content: String, start: Int, tok: String) -> Option<Int>"
+require_text "src/self_hosted/semantic/text_scan_owner.pgy" "return None"
+require_text "src/self_hosted/semantic/text_scan_owner.pgy" "return Some(i + tl)"
+reject_text "src/self_hosted/semantic/text_scan_owner.pgy" "return -1"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_comment_brace_scope"
 
 while IFS= read -r fixture; do

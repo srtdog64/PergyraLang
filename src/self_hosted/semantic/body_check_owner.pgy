@@ -41,11 +41,12 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
                 declared_type = ReadTypeName(content, i + 1, cursor);
                 i = cursor[0];
             }
-            i = ExpectLiteral(content, i, "=");
-            if i < 0 {
+            let eq_match: Option<Int> = ExpectLiteral(content, i, "=");
+            if !IsSome(eq_match) {
                 i = FindStatementEnd(content, cursor[0], end) + 1;
                 continue;
             }
+            i = UnwrapOption(eq_match);
             let semi: Int = FindStatementEnd(content, i, end);
             let let_call_error: String = CheckCall(Substring(content, i, semi - i), names, types, modes, func_names, func_rets, func_params);
             if StringLength(let_call_error) > 0 {
@@ -175,10 +176,11 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
         if MatchKeyword(content, i, "for") {
             let loop_var: String = ReadIdent(content, i + 3, cursor);
             let after_var: Int = cursor[0];
-            let for_in: Int = ExpectLiteral(content, after_var, "in");
+            let for_in: Option<Int> = ExpectLiteral(content, after_var, "in");
             let for_open: Int = FindBlockOpen(content, after_var, end);
-            if for_in >= 0 && for_in < for_open {
-                let iter_text: String = Trim(Substring(content, for_in, for_open - for_in));
+            if IsSome(for_in) && UnwrapOption(for_in) < for_open {
+                let for_in_pos: Int = UnwrapOption(for_in);
+                let iter_text: String = Trim(Substring(content, for_in_pos, for_open - for_in_pos));
                 if StringLength(iter_text) > 0 {
                     let iter_undefined: String = CheckUndefinedIdentifiers(iter_text, names);
                     if StringLength(iter_undefined) > 0 {
@@ -258,11 +260,12 @@ func CheckFunction(content: String, func_pos: Int, inout cursor_out: Array<Int>,
     let i: Int = func_pos + 4;
     let fn_name: String = ReadIdent(content, i, cursor);
     i = cursor[0];
-    i = ExpectLiteral(content, i, "(");
-    if i < 0 || StringLength(fn_name) == 0 {
+    let open_match: Option<Int> = ExpectLiteral(content, i, "(");
+    if !IsSome(open_match) || StringLength(fn_name) == 0 {
         ArraySet(cursor_out, 0, func_pos + 1);
         return "";
     }
+    i = UnwrapOption(open_match);
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if CharAt(content, i) == ")" {
@@ -278,11 +281,12 @@ func CheckFunction(content: String, func_pos: Int, inout cursor_out: Array<Int>,
             param_name = ReadIdent(content, i, cursor);
             i = cursor[0];
         }
-        i = ExpectLiteral(content, i, ":");
-        if i < 0 {
+        let colon_match: Option<Int> = ExpectLiteral(content, i, ":");
+        if !IsSome(colon_match) {
             ArraySet(cursor_out, 0, func_pos + 1);
             return "";
         }
+        i = UnwrapOption(colon_match);
         let param_type: String = ReadTypeName(content, i, cursor);
         i = cursor[0];
         ArrayPush(names, param_name);

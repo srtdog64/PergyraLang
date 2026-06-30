@@ -90,6 +90,16 @@ rewrite history.
 
 ## Session log
 
+### 2026-06-30 -- Semantic literal scanner stops using integer sentinel
+
+- Changed `ExpectLiteral` in `semantic/text_scan_owner.pgy` from `Int` with
+  `-1` absence to `Option<Int>`.
+- Repointed semantic body/program consumers to `IsSome` / `UnwrapOption`
+  consumption at the scanner boundary.
+- Tightened the component contract to reject `return -1` in the semantic text
+  scanner and lowered the Pergyra-likeness ratchet from `sentinel <= 34` to
+  `sentinel <= 33`; `result_use` rose from 69 to 77.
+
 ### 2026-06-30 -- ToFloat and Exit target spellings consume runtime owners
 
 - Added `StringRuntimeCToFloatFn` to `string_runtime_owner.pgy` and
