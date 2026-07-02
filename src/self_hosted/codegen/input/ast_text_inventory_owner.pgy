@@ -247,6 +247,11 @@ func CodegenAstTextIsEventDecl(node: CodegenAstTextNode) -> Bool {
     return node.kind == 10;
 }
 
+func CodegenAstTextProvenance(node: CodegenAstTextNode) -> String {
+    let provenance: String = node.text;
+    return provenance;
+}
+
 func CodegenAstTextIsZeroArtifactDecl(node: CodegenAstTextNode) -> Bool {
     return node.kind == 11;
 }

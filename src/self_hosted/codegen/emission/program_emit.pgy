@@ -22,7 +22,7 @@ func GenerateC(tree_text: String) -> String {
         // (which would be unobservable broken C -- a no-op fake would be worse,
         // masking real event dispatch in programs that register handlers).
         if CodegenAstTextIsEventDecl(nodes[main_scan]) {
-            Die(Concat("event declarations are not supported (no handler/dispatch model): ", nodes[main_scan].text));
+            Die(Concat("event declarations are not supported (no handler/dispatch model): ", CodegenAstTextProvenance(nodes[main_scan])));
         }
         if CodegenAstTextIsMainFunction(nodes[main_scan]) {
             main_count = main_count + 1;

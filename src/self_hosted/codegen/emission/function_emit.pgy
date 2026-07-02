@@ -28,7 +28,7 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int,
     while cur[0] < count && nodes[cur[0]].indent == f_indent + 4 {
         let p_mode: Int = CodegenAstTextParamMode(nodes[cur[0]]);
         if p_mode == 2 || p_mode == 3 {
-            Die(Concat("unsupported self-host codegen parameter mode: ", nodes[cur[0]].text));
+            Die(Concat("unsupported self-host codegen parameter mode: ", CodegenAstTextProvenance(nodes[cur[0]])));
         }
         let p_name: String = CodegenAstTextParamName(nodes[cur[0]], owner_name);
         let p_type: String = CodegenAstTextParamType(nodes[cur[0]], owner_name);
@@ -303,7 +303,7 @@ func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, struct_env: Str
                 while j < count && nodes[j].indent == f_indent + 4 {
                     let p_mode: Int = CodegenAstTextParamMode(nodes[j]);
                     if p_mode == 2 || p_mode == 3 {
-                        Die(Concat("unsupported self-host codegen parameter mode: ", nodes[j].text));
+                        Die(Concat("unsupported self-host codegen parameter mode: ", CodegenAstTextProvenance(nodes[j])));
                     }
                     let p_name: String = CodegenAstTextParamName(nodes[j], owner);
                     let p_type: String = CodegenAstTextParamType(nodes[j], owner);

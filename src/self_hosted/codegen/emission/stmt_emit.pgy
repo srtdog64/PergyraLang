@@ -124,10 +124,10 @@ func EmitTryLet(node: CodegenAstTextNode, inout env_box: Array<String>, cur_fn_r
     let expr: String = CodegenAstTextLetInitializer(node);
     let inner: String = TryExprInner(expr);
     if type_name != "Int" || StringLength(inner) == 0 {
-        Die(Concat("unsupported try let shape in self-host codegen subset: ", node.text));
+        Die(Concat("unsupported try let shape in self-host codegen subset: ", CodegenAstTextProvenance(node)));
     }
     if !(StartsWith(cur_fn_ret, "Result<") && StringIndexOf(cur_fn_ret, "Int") >= 0) {
-        Die(Concat("try expression requires Result<Int> function return: ", node.text));
+        Die(Concat("try expression requires Result<Int> function return: ", CodegenAstTextProvenance(node)));
     }
     ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:Int|")));
     let tmp: String = Concat("_pgy_try_", ToString(idx));
@@ -254,9 +254,8 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int,
             return Concat(result, deferred);
         }
         if ind > stmt_indent {
-            Die(Concat("unexpected over-indented AST line: ", nodes[idx].text));
+            Die(Concat("unexpected over-indented AST line: ", CodegenAstTextProvenance(nodes[idx])));
         }
-        let t: String = nodes[idx].text;
         if CodegenAstTextIsLetStmt(nodes[idx]) {
             if ContainsOutsideStrings(CodegenAstTextLetInitializer(nodes[idx]), "(?") {
                 result = Concat(result, Concat(pad, Concat(EmitTryLet(nodes[idx], env_box, cur_fn_ret, pad, Concat(deferred, active_defers), idx), "\n")));
@@ -440,7 +439,7 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int,
             result = Concat(result, Concat(pad, Concat(RewriteExpr(call_expr, env_box[0]), ";\n")));
             ArraySet(cur, 0, idx + 1);
         } else {
-            Die(Concat("unsupported AST line in supported subset: ", t));
+            Die(Concat("unsupported AST line in supported subset: ", CodegenAstTextProvenance(nodes[idx])));
         }
     }
     return Concat(result, deferred);
