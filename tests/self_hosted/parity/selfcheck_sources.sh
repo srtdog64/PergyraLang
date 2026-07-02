@@ -87,6 +87,7 @@ SELF_SOURCES=(
     "src/self_hosted/lib/text_scan.pgy"
     "src/self_hosted/lib/diagnostic.pgy"
     "src/self_hosted/lib/json_scan.pgy"
+    "src/self_hosted/lib/json_emit.pgy"
     "src/self_hosted/lib/json.pgy"
     "src/self_hosted/lexer/main.pgy"
     "src/self_hosted/lexer/scan_owner.pgy"

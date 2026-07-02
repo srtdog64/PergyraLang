@@ -33,7 +33,7 @@ English anchor for tooling/doc gates:
   MIR-lower JSON fact/input/inventory/decl/statement/routine/program owners, and
   the SEA `execution_lane.pgy` mirror now declare their direct imports and enter
   the real-source semantic selfcheck manifest. The manifest count moves from 97
-  to 107 accepted owner/source files, with `main.pgy` kept as orchestration
+  to 108 accepted owner/source files, with `main.pgy` kept as orchestration
   rather than the hidden dependency assembler for those owners. Parser/codegen
   expression participants with real import cycles stay out of this slice; they
   need an owner-boundary decision before promotion.
@@ -47,6 +47,11 @@ English anchor for tooling/doc gates:
   contract consumes `MirObjectStringFactOpt` instead of comparing the old empty
   string sentinel. The blocker remains open because the shared JSON reader is
   still a bounded scanner, not a complete DOM/fact table.
+- Stable JSON owner progress: number-field lookup now also has an
+  `Option<String>` fact API (`JsonObjectNumberFieldOpt`), AIR graph summary
+  counts consume it instead of checking an empty-string sentinel, and JSON emit
+  primitives moved to the separate `json_emit.pgy` owner so read and emit facts
+  no longer share one growing file.
 - Evidence-driven guard amortization first slice: plain `Slot<T>` MIR pin
   regions now have an explicit owner fact,
   `mir_block_has_pin_guard_amortization_region(...)`, requiring source slot,

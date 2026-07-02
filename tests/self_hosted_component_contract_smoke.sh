@@ -226,9 +226,13 @@ require_text "src/self_hosted/OWNERS.md" 'main.pgy` files are entrypoints only'
 require_file "src/self_hosted/lib/json.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lib/json.pgy"
 require_max_lines "src/self_hosted/lib/json.pgy" 600
+require_file "src/self_hosted/lib/json_emit.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lib/json_emit.pgy"
+require_max_lines "src/self_hosted/lib/json_emit.pgy" 600
 require_file "src/self_hosted/lib/json_scan.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lib/json_scan.pgy"
 require_max_lines "src/self_hosted/lib/json_scan.pgy" 600
+require_text "src/self_hosted/lib/json.pgy" 'import "json_emit.pgy";'
 require_text "src/self_hosted/lib/json.pgy" 'import "json_scan.pgy";'
 require_text "src/self_hosted/lib/json_scan.pgy" "func FindFrom(hay: String, needle: String, start: Int) -> Option<Int>"
 reject_text "src/self_hosted/lib/json_scan.pgy" "func FindFrom(hay: String, needle: String, start: Int) -> Int"
@@ -249,6 +253,7 @@ require_text "src/self_hosted/lib/json.pgy" "func JsonArrayObjectBoundsAt"
 require_text "src/self_hosted/lib/json.pgy" "func JsonObjectFieldValueBounds"
 require_text "src/self_hosted/lib/json.pgy" "func JsonObjectStringField"
 require_text "src/self_hosted/lib/json.pgy" "func JsonObjectNumberField"
+require_text "src/self_hosted/lib/json.pgy" "func JsonObjectNumberFieldOpt"
 require_text "src/self_hosted/lib/json.pgy" "func JsonArrayObjectFieldCount"
 require_text "src/self_hosted/lib/json.pgy" "func JsonArrayObjectStringFieldEqualsCount"
 require_text "src/self_hosted/lib/json.pgy" "func JsonArrayObjectBoolFieldEqualsCount"
@@ -257,14 +262,14 @@ require_text "src/self_hosted/lib/json.pgy" "func JsonArrayStringCount"
 require_text "src/self_hosted/lib/json.pgy" "func JsonObjectArrayStringAt"
 require_text "src/self_hosted/lib/json.pgy" "func JsonDocumentNumberField"
 reject_text "src/self_hosted/lib/json.pgy" "func JsonFirstArrayString"
-require_text "src/self_hosted/lib/json.pgy" "func JsonEscapeString"
-require_text "src/self_hosted/lib/json.pgy" "func JsonStringLiteral"
-require_text "src/self_hosted/lib/json.pgy" "func JsonEmitObject"
-require_text "src/self_hosted/lib/json.pgy" "func JsonEmitArray"
-require_text "src/self_hosted/lib/json.pgy" "func JsonEmitFieldRaw"
-require_text "src/self_hosted/lib/json.pgy" "func JsonEmitFieldString"
-require_text "src/self_hosted/lib/json.pgy" "func JsonEmitFieldNumber"
-require_text "src/self_hosted/lib/json.pgy" "func JsonEmitFieldBool"
+require_text "src/self_hosted/lib/json_emit.pgy" "func JsonEscapeString"
+require_text "src/self_hosted/lib/json_emit.pgy" "func JsonStringLiteral"
+require_text "src/self_hosted/lib/json_emit.pgy" "func JsonEmitObject"
+require_text "src/self_hosted/lib/json_emit.pgy" "func JsonEmitArray"
+require_text "src/self_hosted/lib/json_emit.pgy" "func JsonEmitFieldRaw"
+require_text "src/self_hosted/lib/json_emit.pgy" "func JsonEmitFieldString"
+require_text "src/self_hosted/lib/json_emit.pgy" "func JsonEmitFieldNumber"
+require_text "src/self_hosted/lib/json_emit.pgy" "func JsonEmitFieldBool"
 
 for stage in lexer parser semantic codegen; do
     require_dir "src/self_hosted/$stage"
@@ -1183,6 +1188,7 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/m
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/sea/execution_lane.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/path.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/json.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/json_emit.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/json_scan.pgy"'
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" "JsonStringLiteral(path)"
@@ -1197,7 +1203,7 @@ require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "fu
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonDocumentStringFieldEquals(content, \"schema\", \"pgy.air.graph.v1\")"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "let doc_end_opt: Option<Int> = JsonDocumentObjectEnd(content)"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonObjectFieldValueBounds(content, 0, UnwrapOption(doc_end_opt), \"summary\", summary_bounds)"
-require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonObjectNumberField(content, summary_bounds[0], summary_bounds[1], field)"
+require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonObjectNumberFieldOpt(content, summary_bounds[0], summary_bounds[1], field)"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "let value_end_opt: Option<Int> = JsonValueEnd(content,"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "let item_end_opt: Option<Int> = JsonValueEnd(content,"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'JsonFieldKey("execution_lane")'
@@ -1205,6 +1211,8 @@ require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'Js
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'StringContains(content, "\"schema\":\"pgy.air.graph.v1\"")'
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "let doc_end: Int = JsonDocumentObjectEnd(content)"
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "let value_end: Int = JsonValueEnd(content,"
+reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonObjectNumberField(content, summary_bounds[0], summary_bounds[1], field)"
+reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "StringLength(num_str) == 0"
 for air_graph_report in \
     src/self_hosted/tools/air_graph_id_uniqueness/main.pgy \
     src/self_hosted/tools/air_graph_node_count_integrity/main.pgy \
@@ -1375,14 +1383,15 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 107 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 107"
+[[ "$selfcheck_count" -eq 108 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 108"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirFactObjectStart"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectStringFact"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectStringFactOpt"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectNumberFact"
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectNumberFactOpt"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectEnd(json: String, start: Int, limit: Int) -> Option<Int>"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectFieldValueBounds"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirRoutineArrayBounds"

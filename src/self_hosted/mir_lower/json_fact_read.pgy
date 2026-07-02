@@ -40,7 +40,15 @@ func MirObjectStringFactOpt(json: String, start: Int, end: Int, field: String) -
 }
 
 func MirObjectNumberFact(json: String, start: Int, end: Int, field: String) -> String {
-    return JsonObjectNumberField(json, MirFactObjectStart(json, start), end, field);
+    let value: Option<String> = MirObjectNumberFactOpt(json, start, end, field);
+    if !IsSome(value) {
+        return "";
+    }
+    return UnwrapOption(value);
+}
+
+func MirObjectNumberFactOpt(json: String, start: Int, end: Int, field: String) -> Option<String> {
+    return JsonObjectNumberFieldOpt(json, MirFactObjectStart(json, start), end, field);
 }
 
 func MirObjectEnd(json: String, start: Int, limit: Int) -> Option<Int> {

@@ -1,10 +1,11 @@
-// Shared JSON string-scan and emit primitives for self-hosted tools.
+// Shared JSON string-read primitives for self-hosted tools.
 //
 // This is not a full JSON DOM. It owns bounded read primitives plus JSON
-// string, field, object, and array emission used by fact-shaped tools so each
-// stage does not invent its own string scanning or quoting rules.
+// string, field, object, and array reads so each stage does not invent its own
+// string scanning rules.
 // Schema-specific object shape decisions still belong to the consuming owner.
 
+import "json_emit.pgy";
 import "json_scan.pgy";
 
 func JsonArrayEnd(json: String, open: Int, limit: Int) -> Option<Int> {
@@ -197,62 +198,6 @@ func JsonDocumentNumberField(json: String, field: String) -> String {
     return JsonObjectNumberField(json, 0, UnwrapOption(end_opt), field);
 }
 
-func JsonEscapeString(value: String) -> String {
-    let out: String = "";
-    let i: Int = 0;
-    let n: Int = StringLength(value);
-    while i < n {
-        let c: String = CharAt(value, i);
-        if c == "\"" {
-            out = Concat(out, "\\\"");
-        } else if c == "\\" {
-            out = Concat(out, "\\\\");
-        } else if c == "\n" {
-            out = Concat(out, "\\n");
-        } else if c == "\r" {
-            out = Concat(out, "\\r");
-        } else if c == "\t" {
-            out = Concat(out, "\\t");
-        } else {
-            out = Concat(out, c);
-        }
-        i = i + 1;
-    }
-    return out;
-}
-
-func JsonStringLiteral(value: String) -> String {
-    return Concat("\"", Concat(JsonEscapeString(value), "\""));
-}
-
-func JsonEmitObject(fields: Array<String>) -> String {
-    return Concat("{", Concat(StringJoin(fields, ","), "}"));
-}
-
-func JsonEmitArray(items: Array<String>) -> String {
-    return Concat("[", Concat(StringJoin(items, ","), "]"));
-}
-
-func JsonEmitFieldRaw(key: String, raw_value: String) -> String {
-    return Concat(JsonStringLiteral(key), Concat(":", raw_value));
-}
-
-func JsonEmitFieldString(key: String, value: String) -> String {
-    return JsonEmitFieldRaw(key, JsonStringLiteral(value));
-}
-
-func JsonEmitFieldNumber(key: String, value: String) -> String {
-    return JsonEmitFieldRaw(key, value);
-}
-
-func JsonEmitFieldBool(key: String, value: Bool) -> String {
-    let raw: String = "false";
-    if value {
-        raw = "true";
-    }
-    return JsonEmitFieldRaw(key, raw);
-}
-
 func JsonFieldNumber(json: String, start: Int, end: Int, key: String) -> String {
     let p_opt: Option<Int> = FindFrom(json, key, start);
     if !IsSome(p_opt) {
@@ -388,9 +333,17 @@ func JsonObjectStringFieldOpt(json: String, start: Int, end: Int, field: String)
 }
 
 func JsonObjectNumberField(json: String, start: Int, end: Int, field: String) -> String {
+    let value: Option<String> = JsonObjectNumberFieldOpt(json, start, end, field);
+    if !IsSome(value) {
+        return "";
+    }
+    return UnwrapOption(value);
+}
+
+func JsonObjectNumberFieldOpt(json: String, start: Int, end: Int, field: String) -> Option<String> {
     let bounds: Array<Int> = [0, 0];
     if !JsonObjectFieldValueBounds(json, start, end, field, bounds) {
-        return "";
+        return None;
     }
     let i: Int = bounds[0];
     let out: String = "";
@@ -398,14 +351,17 @@ func JsonObjectNumberField(json: String, start: Int, end: Int, field: String) ->
         let c: String = CharAt(json, i);
         if !JsonIsDigitChar(c) {
             if StringLength(out) > 0 {
-                return out;
+                return Some(out);
             }
-            return "";
+            return None;
         }
         out = Concat(out, c);
         i = i + 1;
     }
-    return out;
+    if StringLength(out) == 0 {
+        return None;
+    }
+    return Some(out);
 }
 
 func JsonObjectHasField(json: String, start: Int, end: Int, field: String) -> Bool {

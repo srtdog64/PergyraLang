@@ -1,7 +1,7 @@
 // Shared JSON scan primitives for self-hosted tools.
 //
-// This owner deliberately stops at cursor/string scanning. JSON object shape,
-// field semantics, and emission stay in json.pgy.
+// This owner deliberately stops at cursor/string scanning. JSON object shape
+// and field semantics stay in json.pgy; emission stays in json_emit.pgy.
 
 func CharAt(s: String, i: Int) -> String {
     return Substring(s, i, 1);

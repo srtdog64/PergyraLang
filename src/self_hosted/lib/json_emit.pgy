@@ -1,0 +1,57 @@
+// Shared JSON emission primitives for self-hosted fact-shaped tools.
+
+func JsonEscapeString(value: String) -> String {
+    let out: String = "";
+    let i: Int = 0;
+    let n: Int = StringLength(value);
+    while i < n {
+        let c: String = Substring(value, i, 1);
+        if c == "\"" {
+            out = Concat(out, "\\\"");
+        } else if c == "\\" {
+            out = Concat(out, "\\\\");
+        } else if c == "\n" {
+            out = Concat(out, "\\n");
+        } else if c == "\r" {
+            out = Concat(out, "\\r");
+        } else if c == "\t" {
+            out = Concat(out, "\\t");
+        } else {
+            out = Concat(out, c);
+        }
+        i = i + 1;
+    }
+    return out;
+}
+
+func JsonStringLiteral(value: String) -> String {
+    return Concat("\"", Concat(JsonEscapeString(value), "\""));
+}
+
+func JsonEmitObject(fields: Array<String>) -> String {
+    return Concat("{", Concat(StringJoin(fields, ","), "}"));
+}
+
+func JsonEmitArray(items: Array<String>) -> String {
+    return Concat("[", Concat(StringJoin(items, ","), "]"));
+}
+
+func JsonEmitFieldRaw(key: String, raw_value: String) -> String {
+    return Concat(JsonStringLiteral(key), Concat(":", raw_value));
+}
+
+func JsonEmitFieldString(key: String, value: String) -> String {
+    return JsonEmitFieldRaw(key, JsonStringLiteral(value));
+}
+
+func JsonEmitFieldNumber(key: String, value: String) -> String {
+    return JsonEmitFieldRaw(key, value);
+}
+
+func JsonEmitFieldBool(key: String, value: Bool) -> String {
+    let raw: String = "false";
+    if value {
+        raw = "true";
+    }
+    return JsonEmitFieldRaw(key, raw);
+}

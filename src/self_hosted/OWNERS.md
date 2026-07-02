@@ -14,9 +14,10 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/lib/diagnostic.pgy` -- stable diagnostic-block rendering.
 - `src/self_hosted/lib/json_scan.pgy` -- shared JSON cursor/string scan
   primitives.
+- `src/self_hosted/lib/json_emit.pgy` -- shared JSON string escaping and
+  emission primitives for fact-shaped tools.
 - `src/self_hosted/lib/json.pgy` -- shared bounded JSON string-read, top-level
-  object/value bounds, array-object row iteration, and string/field/object/array
-  emit primitives.
+  object/value bounds, and array-object row iteration.
 - `src/self_hosted/lib/path.pgy` -- self-hosted source/import path string facts.
 - `src/self_hosted/lib/text_scan.pgy` -- shared text-scan helpers.
 

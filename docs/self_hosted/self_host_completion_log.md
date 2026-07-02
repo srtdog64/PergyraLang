@@ -3043,3 +3043,21 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   (**107 real sources accepted**), and
   `tests/self_hosted/parity/mir_json_parity.sh` (**86 fixtures**, 0 clean
   rejects).
+
+### 2026-07-03 -- JSON emit splits from read owner and number facts become Option-owned
+
+- Split self-host JSON emission helpers into `src/self_hosted/lib/json_emit.pgy`.
+  The read owner `json.pgy` now owns bounded object/array/string/number reads,
+  while the emit owner owns string escaping and object/array/field emission.
+- Added `JsonObjectNumberFieldOpt(...) -> Option<String>` and
+  `MirObjectNumberFactOpt(...) -> Option<String>`. The legacy string-returning
+  functions remain as compatibility wrappers, but AIR graph summary counts now
+  consume the typed number-presence fact instead of checking an empty-string
+  sentinel.
+- Promoted `json_emit.pgy` into the real-source selfcheck manifest and updated
+  the owner ledger so JSON read/emit responsibilities are no longer stored in
+  one growing file.
+- Verified `tests/self_hosted_component_contract_smoke.sh`,
+  `tests/self_hosted/parity/air_graph_json_validator_parity.sh`, and
+  `tests/self_hosted/parity/selfcheck_sources.sh` with C backend
+  (**108 real sources accepted**).
