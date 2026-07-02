@@ -42,6 +42,11 @@ English anchor for tooling/doc gates:
   `CodegenAstTextNode.text` equality. The blocker remains open because line
   text is still the transitional payload/provenance source inside the bridge
   owner.
+- Stable JSON owner progress: object string-field lookup now has an
+  `Option<String>` fact API (`JsonObjectStringFieldOpt`), and the MIR fact graph
+  contract consumes `MirObjectStringFactOpt` instead of comparing the old empty
+  string sentinel. The blocker remains open because the shared JSON reader is
+  still a bounded scanner, not a complete DOM/fact table.
 - Evidence-driven guard amortization first slice: plain `Slot<T>` MIR pin
   regions now have an explicit owner fact,
   `mir_block_has_pin_guard_amortization_region(...)`, requiring source slot,

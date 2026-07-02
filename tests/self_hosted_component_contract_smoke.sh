@@ -1381,6 +1381,7 @@ selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirFactObjectStart"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectStringFact"
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectStringFactOpt"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectNumberFact"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectEnd(json: String, start: Int, limit: Int) -> Option<Int>"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectFieldValueBounds"
@@ -1399,6 +1400,10 @@ reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'FindFrom(json, "\"so
 reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func JsonFieldString"
 reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func JsonFieldNumber"
 reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func JsonFirstArrayString"
+require_text "src/self_hosted/lib/json.pgy" "func JsonObjectStringFieldOpt"
+require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirObjectStringFactOpt(json, routine[0], routine[1], \"name\")"
+require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirObjectStringFactOpt(json, inst[0], inst[1], \"source_type\")"
+reject_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "JsonObjectStringField(json,"
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" "MirDeclObjectBoundsAt(json, row, decl_bounds)"
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" "MirObjectArrayObjectBoundsAt(json, decl_start, decl_end, \"fields\", row, field_bounds)"
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" "MirObjectStringFact(json, decl_bounds[0], decl_bounds[1], \"kind\")"

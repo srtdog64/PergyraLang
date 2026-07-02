@@ -1,6 +1,7 @@
 // MIR fact graph payload contract owner.
 
 import "../lib/json.pgy";
+import "json_fact_read.pgy";
 
 func MirFactGraphPayloadSchema() -> String {
     return "pgy.mir.v1";
@@ -36,7 +37,8 @@ func MirFactGraphPayloadRootReady() -> Bool {
     if !JsonArrayObjectBoundsAt(json, routines[0], routines[1], 0, routine) {
         return false;
     }
-    if JsonObjectStringField(json, routine[0], routine[1], "name") != "Main" {
+    let routine_name: Option<String> = MirObjectStringFactOpt(json, routine[0], routine[1], "name");
+    if !IsSome(routine_name) || UnwrapOption(routine_name) != "Main" {
         return false;
     }
 
@@ -57,10 +59,12 @@ func MirFactGraphPayloadRootReady() -> Bool {
     if !JsonArrayObjectBoundsAt(json, body[0], body[1], 0, inst) {
         return false;
     }
-    if JsonObjectStringField(json, inst[0], inst[1], "source_type") != "AST_LOG_CALL" {
+    let source_type: Option<String> = MirObjectStringFactOpt(json, inst[0], inst[1], "source_type");
+    if !IsSome(source_type) || UnwrapOption(source_type) != "AST_LOG_CALL" {
         return false;
     }
-    if JsonObjectStringField(json, inst[0], inst[1], "expr0") != "1" {
+    let expr0: Option<String> = MirObjectStringFactOpt(json, inst[0], inst[1], "expr0");
+    if !IsSome(expr0) || UnwrapOption(expr0) != "1" {
         return false;
     }
     return true;

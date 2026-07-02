@@ -3025,3 +3025,21 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   and LLVM. This keeps the active codegen statement SoT owner inside the hard
   self-host semantic pass condition instead of only inside source-shape smoke
   checks.
+
+### 2026-07-03 -- MIR JSON string facts become Option-owned
+
+- Added `JsonObjectStringFieldOpt(...) -> Option<String>` to the shared
+  self-host JSON owner. The old `JsonObjectStringField(...) -> String` remains
+  as a compatibility wrapper, but absence and malformed string payloads now have
+  a typed fact path instead of relying on the empty-string sentinel.
+- Added `MirObjectStringFactOpt(...) -> Option<String>` in the MIR JSON fact
+  reader and repointed the MIR fact graph payload contract to consume that fact
+  for routine name, instruction source type, and expression payload checks.
+- Tightened `self_hosted_component_contract_smoke.sh` so the MIR fact graph
+  contract cannot return to direct `JsonObjectStringField(json, ...)` sentinel
+  comparison.
+- Verified `tests/self_hosted_component_contract_smoke.sh`,
+  `tests/self_hosted/parity/selfcheck_sources.sh` with C backend
+  (**107 real sources accepted**), and
+  `tests/self_hosted/parity/mir_json_parity.sh` (**86 fixtures**, 0 clean
+  rejects).

@@ -364,15 +364,27 @@ func JsonObjectFieldValueBounds(json: String, start: Int, end: Int, field: Strin
 }
 
 func JsonObjectStringField(json: String, start: Int, end: Int, field: String) -> String {
+    let value: Option<String> = JsonObjectStringFieldOpt(json, start, end, field);
+    if !IsSome(value) {
+        return "";
+    }
+    return UnwrapOption(value);
+}
+
+func JsonObjectStringFieldOpt(json: String, start: Int, end: Int, field: String) -> Option<String> {
     let bounds: Array<Int> = [0, 0];
     if !JsonObjectFieldValueBounds(json, start, end, field, bounds) {
-        return "";
+        return None;
     }
     if bounds[0] >= bounds[1] || CharAt(json, bounds[0]) != "\"" {
-        return "";
+        return None;
     }
     let string_end: Array<Int> = [0];
-    return ReadJsonString(json, bounds[0], string_end);
+    let value: String = ReadJsonString(json, bounds[0], string_end);
+    if string_end[0] <= bounds[0] {
+        return None;
+    }
+    return Some(value);
 }
 
 func JsonObjectNumberField(json: String, start: Int, end: Int, field: String) -> String {
@@ -402,8 +414,11 @@ func JsonObjectHasField(json: String, start: Int, end: Int, field: String) -> Bo
 }
 
 func JsonObjectStringFieldEquals(json: String, start: Int, end: Int, field: String, expected: String) -> Bool {
-    let actual: String = JsonObjectStringField(json, start, end, field);
-    return actual == expected;
+    let actual: Option<String> = JsonObjectStringFieldOpt(json, start, end, field);
+    if !IsSome(actual) {
+        return false;
+    }
+    return UnwrapOption(actual) == expected;
 }
 
 func JsonObjectBoolFieldEquals(json: String, start: Int, end: Int, field: String, expected: Bool) -> Bool {
