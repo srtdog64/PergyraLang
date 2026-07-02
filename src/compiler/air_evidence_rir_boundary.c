@@ -136,8 +136,12 @@ static void
 air_collect_rir_scope_capture_evidence(AIRBoundaryNode *boundary,
                                        const RIRScope *scope)
 {
+    bool resource_capture_boundary;
+
     if (boundary == NULL || scope == NULL)
         return;
+
+    resource_capture_boundary = boundary->kind == AIR_BOUNDARY_PARALLEL;
 
     for (size_t i = 0; i < rir_scope_op_count(scope); i++) {
         const RIROp *op = rir_scope_op_at(scope, i);
@@ -164,6 +168,7 @@ air_collect_rir_scope_capture_evidence(AIRBoundaryNode *boundary,
 
         if ((op->kind == RIR_OP_BORROW_READ
              || op->kind == RIR_OP_BORROW_WRITE)
+            && resource_capture_boundary
             && air_ast_contains_node(boundary->ast, op->ast)) {
             boundary->has_rir_live_view_capture_evidence = true;
         }
@@ -173,6 +178,7 @@ air_collect_rir_scope_capture_evidence(AIRBoundaryNode *boundary,
              || op->kind == RIR_OP_WRITE
              || op->kind == RIR_OP_RELEASE
              || op->kind == RIR_OP_MOVE)
+            && resource_capture_boundary
             && air_ast_contains_node(boundary->ast, op->ast)) {
             boundary->has_rir_raw_slot_capture_evidence = true;
         }
@@ -205,6 +211,8 @@ air_collect_rir_scope_boundary_evidence(AIRProgram *air,
                                               error_message)) {
             return false;
         }
+        if (boundary->kind == AIR_BOUNDARY_ZONE)
+            boundary->has_rir_zone_pin_evidence = true;
         if (!air_collect_rir_scope_fact_authority(air,
                                                   boundary,
                                                   i,

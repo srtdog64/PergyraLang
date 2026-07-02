@@ -116,4 +116,16 @@ if git -C "$ROOT_DIR" grep -InE 'SEA[_ ]?[Ss]cheduler|sea_scheduler' \
     fail "SEA must name the contract, not a scheduler (docs/146 §1). Use PgyLaneScheduler / *Executor for the runtime."
 fi
 
+grep -Fq "boundary->has_rir_zone_pin_evidence" \
+    "$ROOT_DIR/src/compiler/air_execution_lane.c" ||
+    fail "AIR zone lane capture must consume RIR zone-pin evidence"
+if awk '
+    /case AIR_BOUNDARY_ZONE:/ { in_zone = 1 }
+    in_zone && /break;/ { in_zone = 0 }
+    in_zone && /captures_pin[[:space:]]*=[[:space:]]*true/ { found = 1 }
+    END { exit(found ? 0 : 1) }
+' "$ROOT_DIR/src/compiler/air_execution_lane.c"; then
+    fail "AIR zone lane capture must not derive pin directly from boundary kind"
+fi
+
 echo "[execution-lane-policy] PASS"

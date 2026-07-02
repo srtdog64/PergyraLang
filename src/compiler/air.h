@@ -190,6 +190,7 @@ typedef struct
     bool            has_rir_await_local_evidence;
     bool            has_rir_movability_requirement_evidence;
     bool            has_rir_deterministic_fork_join_evidence;
+    bool            has_rir_zone_pin_evidence;
     bool            has_rir_live_view_capture_evidence;
     bool            has_rir_raw_slot_capture_evidence;
     bool            has_rir_raw_channel_capture_evidence;

@@ -21,6 +21,7 @@ boundary(AIRBoundaryKind kind,
          bool has_rir_live_view_capture_evidence,
          bool has_mir_pin_cleanup_evidence,
          bool has_mir_value_capture_evidence,
+         bool has_rir_zone_pin_evidence,
          bool crosses_authority_boundary)
 {
     AIRBoundaryNode b = {0};
@@ -40,6 +41,7 @@ boundary(AIRBoundaryKind kind,
         has_rir_live_view_capture_evidence;
     b.has_mir_pin_cleanup_evidence = has_mir_pin_cleanup_evidence;
     b.has_mir_value_capture_evidence = has_mir_value_capture_evidence;
+    b.has_rir_zone_pin_evidence = has_rir_zone_pin_evidence;
     return b;
 }
 
@@ -54,6 +56,7 @@ chk(const char *name,
     bool has_rir_live_view_capture_evidence,
     bool has_mir_pin_cleanup_evidence,
     bool has_mir_value_capture_evidence,
+    bool has_rir_zone_pin_evidence,
     bool crosses_authority_boundary,
     bool want_pin,
     bool want_raw_slot,
@@ -75,6 +78,7 @@ chk(const char *name,
                                  has_rir_live_view_capture_evidence,
                                  has_mir_pin_cleanup_evidence,
                                  has_mir_value_capture_evidence,
+                                 has_rir_zone_pin_evidence,
                                  crosses_authority_boundary);
     BoundaryCaptureFact fact = air_boundary_capture_fact(&b);
     PgyExecutionLane got_lane = pgy_classify_execution_lane(&fact);
@@ -111,39 +115,47 @@ int
 main(void)
 {
     chk("parallel", AIR_BOUNDARY_PARALLEL,
-        false, false, true, false, false, false, false, false, false,
+        false, false, true, false, false, false, false, false, false, false,
         false, false, false, false, false, false, false, true, false,
         PGY_LANE_WORKER_POOL);
     chk("parallel-no-rir", AIR_BOUNDARY_PARALLEL,
-        false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false,
         false, false, false, false, false, false, false, false, false,
         PGY_LANE_LOCAL_ASYNC);
     chk("await-local", AIR_BOUNDARY_PARALLEL,
-        true, false, false, false, false, false, false, false, false,
+        true, false, false, false, false, false, false, false, false, false,
         false, false, false, false, false, false, true, false, false,
         PGY_LANE_LOCAL_ASYNC);
     chk("spawn-raw-slot", AIR_BOUNDARY_PARALLEL,
-        false, true, false, false, true, false, false, false, false,
+        false, true, false, false, true, false, false, false, false, false,
         false, true, false, false, false, false, false, false, true,
         PGY_LANE_REJECT);
     chk("spawn-value-auth", AIR_BOUNDARY_PARALLEL,
-        false, true, false, false, false, false, false, true, true,
+        false, true, false, false, false, false, false, true, false, true,
         false, false, false, false, true, true, false, false, true,
         PGY_LANE_MOVABLE_SCHEDULER);
     chk("channel-rir", AIR_BOUNDARY_CHANNEL,
-        false, false, false, true, false, false, false, false, false,
+        false, false, false, true, false, false, false, false, false, false,
         false, false, false, true, false, false, false, false, false,
         PGY_LANE_PINNED_ZONE);
     chk("channel-no-rir", AIR_BOUNDARY_CHANNEL,
-        false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false,
         false, false, false, false, false, false, false, false, false,
         PGY_LANE_LOCAL_ASYNC);
-    chk("pin-no-mir", AIR_BOUNDARY_EXECUTION,
+    chk("zone-no-rir-pin", AIR_BOUNDARY_ZONE,
+        false, false, false, false, false, false, false, false, false, false,
         false, false, false, false, false, false, false, false, false,
+        PGY_LANE_LOCAL_ASYNC);
+    chk("zone-rir-pin", AIR_BOUNDARY_ZONE,
+        false, false, false, false, false, false, false, false, true, false,
+        true, false, false, false, false, false, false, false, false,
+        PGY_LANE_PINNED_ZONE);
+    chk("pin-no-mir", AIR_BOUNDARY_EXECUTION,
+        false, false, false, false, false, false, false, false, false, false,
         false, false, false, false, false, false, false, false, false,
         PGY_LANE_LOCAL_ASYNC);
     chk("pin-mir", AIR_BOUNDARY_EXECUTION,
-        false, false, false, false, false, false, true, false, false,
+        false, false, false, false, false, false, true, false, false, false,
         true, false, false, false, false, false, false, false, false,
         PGY_LANE_PINNED_ZONE);
 
@@ -151,6 +163,6 @@ main(void)
         printf("\n%d FAIL\n", fails);
         return 1;
     }
-    printf("\nALL PASS (9/9)\n");
+    printf("\nALL PASS (11/11)\n");
     return 0;
 }

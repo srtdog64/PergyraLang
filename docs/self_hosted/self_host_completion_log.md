@@ -2933,3 +2933,22 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-codegen-parity-test-smoke` (**64 fixtures**, C and LLVM), and
   `self-host-codegen-bootstrap-test-smoke` (`gen2 == gen3`, 5484 generated-C
   lines, plus lexer/parser/semantic/mir_lower/tool/fuzz generator parity).
+
+### 2026-07-02 -- Zone lane pinning becomes RIR-evidence-owned
+
+- Split the last coarse SEA zone pin decision out of boundary kind. Zone
+  boundaries now become `PinnedZone` only when
+  `has_rir_zone_pin_evidence` is produced by the RIR boundary evidence owner;
+  a hand-built zone boundary with no RIR zone-pin evidence stays
+  `LocalAsync`.
+- Tightened the producer side as well: RIR raw-slot/live-view capture evidence
+  is now limited to resource-capturing parallel boundaries, so a world
+  transfer step is not over-pinned merely because slot operations appear under
+  the same step AST.
+- Updated the self-host SEA mirror and parity golden from 27 to 29 rows, and
+  fixed the AIR unit-test link slice so `test-air` links the lane owner objects
+  that `air.c` consumes.
+- Verified `execution-lane-policy-test-smoke`,
+  `self-host-execution-lane-parity-test-smoke`,
+  `sea-execution-lane-golden-test-smoke`, `air-json-schema-test-smoke`,
+  `self-host-preparation-test-smoke`, and `test-air` (139/139).

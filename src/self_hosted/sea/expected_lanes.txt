@@ -21,6 +21,8 @@ PinnedZone
 WorkerPool
 PinnedZone
 LocalAsync
+LocalAsync
+PinnedZone
 PinnedZone
 LocalAsync
 LocalAsync

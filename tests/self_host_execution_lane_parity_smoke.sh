@@ -35,6 +35,8 @@ grep -Fq "struct BoundaryLaneInputFact" "$SRC" \
     || fail "self-host lane classifier must consume a typed BoundaryLaneInputFact"
 grep -Fq "func CaptureFactFromBoundaryFact" "$SRC" \
     || fail "self-host lane classifier must derive capture facts from typed input"
+grep -Fq "has_rir_zone_pin_evidence" "$SRC" \
+    || fail "self-host lane classifier must consume RIR zone-pin evidence"
 if grep -Fq "BoundarySourceKind" "$SRC" || grep -Fq "source_kind" "$SRC"; then
     fail "self-host lane classifier reintroduced source-kind lane evidence"
 fi
@@ -67,7 +69,7 @@ for be in $backends; do
     if ! diff -u "$GOLDEN" "$WORK/got_$be.txt"; then
         fail "lane decision drift (backend=$be) vs the C policy golden (see diff)."
     fi
-    echo "[sea-self-host-lane] backend=$be matches C policy/evidence shape (27/27)"
+    echo "[sea-self-host-lane] backend=$be matches C policy/evidence shape (29/29)"
 done
 
 echo "[sea-self-host-lane] PASS"

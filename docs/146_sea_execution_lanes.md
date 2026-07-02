@@ -1,7 +1,8 @@
 # 146. SEA — Structured Effect Async, BoundaryCaptureFact, and ExecutionLane
 
-Status: BoundaryCaptureFact/ExecutionLane contract landed, source-kind lane
-evidence removed from AIR classification (2026-07-02). Sister doc to
+Status: BoundaryCaptureFact/ExecutionLane contract landed, source-kind and
+boundary-kind pin lane evidence removed from AIR classification (2026-07-02).
+Sister doc to
 `docs/114_async_model_positioning.md` (the async positioning) — this one names
 the execution layer below it.
 
@@ -101,8 +102,9 @@ strictly underneath.
 - A golden test (`sea-execution-lane-golden-test-smoke`) that compiles a real
   program, synthesises AIR, and pins the per-boundary lanes plus the
   serialized `boundary_capture` bits for the clean AIR boundary kinds currently
-  reachable from valid intent clauses (`zone -> PinnedZone`,
-  `world -> LocalAsync`). It has a regression guard that a classified boundary
+  reachable from valid intent clauses (valid RIR zone evidence produces
+  `zone -> PinnedZone`; `world -> LocalAsync`). It has a regression guard that
+  a classified boundary
   is never left at the fail-closed zero (`Reject`). The AIR JSON schema smoke
   also requires the `boundary_capture` object.
 
@@ -119,7 +121,7 @@ strictly underneath.
   struct consumed by a typed `ExecutionLane` return, `Reject` as a first-class
   variant, zero `-1` sentinels). A cross-language / cross-backend parity smoke
   (`self-host-execution-lane-parity-test-smoke`) diffs it against the C policy
-  table plus AIR evidence-shape rows on both C and LLVM (27/27 each). The
+  table plus AIR evidence-shape rows on both C and LLVM (29/29 each). The
   self-host mirror is forbidden to reintroduce `BoundarySourceKind`,
   `source_kind`, or source-string lane APIs.
 
@@ -156,11 +158,13 @@ strictly underneath.
 **Landed ??AIR capture fact classification no longer guesses from source kind
 (2026-07-02):**
 - `AIRBoundaryNode` now carries explicit RIR/MIR evidence summary bits for
-  await-local, movability requirement, deterministic fork-join, raw channel,
-  raw slot, live view, pin cleanup, and value-only capture.
+  await-local, movability requirement, deterministic fork-join, zone pin, raw
+  channel, raw slot, live view, pin cleanup, and value-only capture.
 - `src/compiler/air_execution_lane.c` consumes those evidence bits when it
   builds `BoundaryCaptureFact`. The gate forbids
-  `air_boundary_source_kind(boundary)` from participating in lane evidence.
+  `air_boundary_source_kind(boundary)` from participating in lane evidence, and
+  forbids `AIR_BOUNDARY_ZONE` from producing `captures_pin` without the RIR
+  zone-pin evidence bit.
 - `src/compiler/air_evidence_rir_boundary.c` and
   `src/compiler/air_evidence_mir_pin.c` are the current producers for the
   boundary-local RIR/MIR evidence summary. Routine-level correlation was
