@@ -163,12 +163,14 @@ llvm_emit_scalar_math_call(ASTNode *node, LLVMGenCtx *ctx,
         if (a == NULL || b == NULL)
             return llvm_math_error_out(ctx, node, out,
                 "LLVM CheckedAdd/CheckedMul could not lower operand expression");
-        if (LLVMTypeOf(a) == ctx->type_i64)
-            a = LLVMBuildTrunc(ctx->builder, a, ctx->type_i32,
-                               llvm_tmp_name(ctx));
-        if (LLVMTypeOf(b) == ctx->type_i64)
-            b = LLVMBuildTrunc(ctx->builder, b, ctx->type_i32,
-                               llvm_tmp_name(ctx));
+        /* The semantic layer requires Int operands (the builtins lower to the
+         * i32 overflow-checked helpers). Anything else reaching this point is a
+         * front-end regression: fail closed with a diagnostic instead of the
+         * silent i64->i32 truncation this branch used to perform. */
+        if (LLVMTypeOf(a) != ctx->type_i32 || LLVMTypeOf(b) != ctx->type_i32)
+            return llvm_math_error_out(ctx, node, out,
+                "LLVM CheckedAdd/CheckedMul requires Int (i32) operands; "
+                "a non-Int operand leaked past the semantic layer");
         const char *helper = (op == LLVM_MATH_OP_CHECKED_ADD)
             ? "pgy_checked_add_i32_export" : "pgy_checked_mul_i32_export";
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, helper);
