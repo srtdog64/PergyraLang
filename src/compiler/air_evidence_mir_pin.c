@@ -64,6 +64,7 @@ air_collect_mir_pin_block_evidence(AIRProgram *air,
 
         if (!air_mir_pin_block_matches_boundary(block, boundary))
             continue;
+        boundary->has_mir_pin_cleanup_evidence = true;
         if (air_boundary_has_evidence_kind_provider(
                 air,
                 i,

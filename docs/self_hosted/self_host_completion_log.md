@@ -2901,3 +2901,35 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This reduces the self-host symbol/mangle SoT gap for expression lowering. The
   broader symbol/mangle blocker remains active until native C, LLVM, and
   self-hosted projections consume one concrete cross-backend symbol row table.
+
+### 2026-07-02 -- SEA lane facts consume boundary-owned evidence
+
+- Repointed AIR lane capture classification away from source-kind/boundary-kind
+  guesses. `AIRBoundaryNode` now carries RIR/MIR evidence summary bits for
+  await-local, movability requirement, deterministic fork-join, raw channel,
+  raw slot, live view, pin cleanup, and value-only capture, and
+  `air_execution_lane.c` consumes those bits to build `BoundaryCaptureFact`.
+- Extended the self-host SEA mirror with a typed `BoundaryLaneInputFact` so the
+  Pergyra implementation consumes the same evidence shape instead of
+  reconstructing lane decisions from source labels. The parity golden now covers
+  the 10 C policy rows plus 17 AIR evidence-shape rows on both C and LLVM.
+- Tightened the lane gates so `air_boundary_source_kind(boundary)`,
+  `BoundarySourceKind`, `source_kind`, and source-string lane APIs cannot
+  reappear in this path. Remaining work is producer depth, especially complete
+  MIR value-capture evidence for all boundary shapes, not facade routing.
+
+### 2026-07-02 -- Codegen Option<String> payload enters the ABI/runtime row owners
+
+- The typed AST arena fixture exposed a real self-host codegen subset gap:
+  `Option<String>` functions and locals had semantic support in the source
+  language, but the self-host C emitter only had `Option<Int>` ABI/runtime facts.
+- Added `Option<String>` to `compiler/abi_layout_row_owner.pgy` and consumed it
+  through `abi_layout_owner.pgy`; added payload-aware Option constructor/None
+  symbol facts to `runtime_abi/option_result_runtime_owner.pgy`; and moved
+  `Some(...)` emission to a typed constructor rewrite that consults `ExprKind`
+  before index lowering erases array element payload facts.
+- Added `option_string_core` to the codegen parity suite. Verified
+  `self-host-component-contract-test-smoke`,
+  `self-host-codegen-parity-test-smoke` (**64 fixtures**, C and LLVM), and
+  `self-host-codegen-bootstrap-test-smoke` (`gen2 == gen3`, 5484 generated-C
+  lines, plus lexer/parser/semantic/mir_lower/tool/fuzz generator parity).

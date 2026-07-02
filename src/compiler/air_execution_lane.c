@@ -2,11 +2,10 @@
  * air_execution_lane.c - derive SEA BoundaryCaptureFact and ExecutionLane for
  * an AIR boundary.
  *
- * First-cut: builds BoundaryCaptureFact from facts a boundary already carries
- * (kind, authority). Richer evidence, such as precise raw-vs-value closure
- * capture and pin/live-view provenance, lives in MIR/semantic and is not yet
- * fully threaded onto the boundary. Until it is, this stays conservative and
- * never reaches MovableScheduler from boundary kind alone.
+ * Builds BoundaryCaptureFact from facts a boundary already carries (kind,
+ * authority, and RIR/MIR evidence). Lane-relevant resource, movability, and
+ * value-capture shape comes from boundary-local evidence, not source spelling
+ * or routine-level guesses.
  */
 #include "air.h"
 
@@ -22,6 +21,12 @@ air_boundary_capture_fact(const AIRBoundaryNode *boundary)
        movable lane. Pure-value capture evidence must also be present. */
     fact.crosses_authority_boundary =
         boundary->authority_required && boundary->authority_name_count > 0;
+    fact.captures_live_view =
+        boundary->has_rir_live_view_capture_evidence;
+    fact.captures_raw_slot =
+        boundary->has_rir_raw_slot_capture_evidence;
+    fact.captures_value_only =
+        boundary->has_mir_value_capture_evidence;
 
     switch (boundary->kind)
     {
@@ -32,7 +37,8 @@ air_boundary_capture_fact(const AIRBoundaryNode *boundary)
 
         case AIR_BOUNDARY_CHANNEL:
             fact.is_concurrent_site = true;
-            fact.captures_raw_channel = true;
+            fact.captures_raw_channel =
+                boundary->has_rir_raw_channel_capture_evidence;
             break;
 
         case AIR_BOUNDARY_IO:
@@ -42,12 +48,23 @@ air_boundary_capture_fact(const AIRBoundaryNode *boundary)
 
         case AIR_BOUNDARY_PARALLEL:
             fact.is_concurrent_site = true;
-            fact.is_deterministic_fork_join = true;
+            fact.is_await_heavy_local =
+                boundary->has_rir_await_local_evidence;
+            fact.requires_movability =
+                boundary->has_rir_movability_requirement_evidence;
+            fact.is_deterministic_fork_join =
+                boundary->has_rir_deterministic_fork_join_evidence;
             break;
 
         case AIR_BOUNDARY_WORLD:
+            fact.is_concurrent_site = true;
+            break;
+
         case AIR_BOUNDARY_EXECUTION:
             fact.is_concurrent_site = true;
+            if (boundary->has_mir_pin_cleanup_evidence) {
+                fact.captures_pin = true;
+            }
             break;
 
         case AIR_BOUNDARY_UNKNOWN:

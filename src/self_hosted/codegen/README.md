@@ -36,7 +36,7 @@ These folders are not a copy of the native C backend topology. `program_emit`,
 participants over the same output/type resources, not separate zones. Together
 they consume
 `pgy --ast` text for an `Int` / `Bool` / `String` / `Array<Int>` /
-`Array<String>` / `Option<Int>` / `Void` function subset and emit a
+`Array<String>` / `Option<Int>` / `Option<String>` / `Void` function subset and emit a
 self-contained C program
 whose **run-stdout** matches the C/LLVM oracle.
 String builtins: `Concat`, `ToString`, `StringLength`, `Substring`,
@@ -47,7 +47,8 @@ function references.
 Result values: `Result<Int>` with `Ok`, `Err`, `IsOk`, `IsErr`, `Unwrap`,
 `UnwrapOr`, and postfix `?` early-return lowering for `Int` payload lets inside
 `Result<Int>` functions.
-Option values: `Option<Int>` with `Some`, `None`, `IsSome`, and `UnwrapOption`.
+Option values: `Option<Int>` / `Option<String>` with `Some`, `None`, `IsSome`,
+and `UnwrapOption`.
 Defer: block-local `Defer: / Block:` scope-exit statements with LIFO ordering
 for the supported statement subset.
 Tool I/O: `FileExists`, `ReadFile`, `WriteFile`, `Args`.
@@ -76,6 +77,7 @@ recursion are free. `Main` lowers to `int main(void)`, or to
 - struct param/return -> value-passed C typedef for the generated struct
 - `Result<Int>` param/return -> value-passed `pgy_result_int`
 - `Option<Int>` param/return -> value-passed `pgy_option_int`
+- `Option<String>` param/return -> value-passed `pgy_option_string`
 - `inout` parameters are preserved by `pgy --ast`, recorded as per-function
   `pm` facts, lowered as C pointer parameters with local copy-in/copy-out, and
   call arguments are rewritten to `&name` only from that recorded mode fact.
@@ -116,9 +118,12 @@ recursion are free. `Main` lowers to `int main(void)`, or to
   Int = Call(...)?` inside a `Result<Int>` function lowers to a temporary
   `pgy_result_int`, propagates `Err` with the active defer stack emitted before
   return, and binds the unwrapped `Int` payload on the success path.
-- `Let: <name> : Option<Int> = Some(v)|None|Call(...)` -> value-passed
-  `pgy_option_int`; `IsSome` branch conditions and `UnwrapOption` integer
-  expressions lower through local helpers. Match-case `Some(v)` binding is not
+- `Let: <name> : Option<Int>|Option<String> = Some(v)|None|Call(...)` ->
+  value-passed `pgy_option_int` / `pgy_option_string`; `Some(...)` chooses the
+  constructor from the payload expression kind, while typed `None` is emitted
+  from the declared/return `Option<T>` type. `IsSome` branch conditions and
+  `UnwrapOption` expressions lower through common field-access helpers.
+  Match-case `Some(v)` binding is not
   reconstructed from source text here; the MIR JSON path must provide
   `match_variant` and `match_bindings` facts before this emitter sees the
   lowered `Let: v : Int = UnwrapOption(...)` line.
@@ -193,7 +198,8 @@ target-library symbol spelling for the supported `Abs` / `Min` / `Max` /
 `runtime_abi/host_io_runtime_owner.pgy` owns C host file/argv runtime helper
 symbol spelling for the supported file, directory-walk, and `Args()` subset.
 `runtime_abi/option_result_runtime_owner.pgy` owns C Option/Result runtime
-helper symbol spelling for the supported `Option<Int>` / `Result<Int>` subset.
+helper symbol spelling for the supported `Option<Int>` / `Option<String>` /
+`Result<Int>` subset.
 `program_emit.pgy` remains the generated helper definition host; expression and
 statement emitters must consume `option_result_runtime_owner.pgy` instead of
 locally spelling `pgy_option_*` / `pgy_result_*` helper names.
@@ -208,7 +214,7 @@ names or supported target-library call names. `sqrt`, `pow`, `floor`, `ceil`,
 `atof`, and `exit` are owner facts consumed by emission participants.
 
 Parity gate: `tests/self_hosted/parity/codegen_parity.sh` builds `main.pgy` through
-the requested backend set, runs it on each of the 63 committed fixtures'
+the requested backend set, runs it on each of the 64 committed fixtures'
 `pgy --ast` output, gcc-compiles the emitted C, runs it, and compares run-stdout
 against the committed expected output. A live-drift guard re-derives that
 expected output from the C-backend oracle executable. LLVM is mandatory when the

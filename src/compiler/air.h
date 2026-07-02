@@ -186,6 +186,14 @@ typedef struct
     bool            has_hir_cfg_evidence;
     bool            has_rir_boundary_evidence;
     bool            has_rir_authority_evidence;
+    bool            has_mir_pin_cleanup_evidence;
+    bool            has_rir_await_local_evidence;
+    bool            has_rir_movability_requirement_evidence;
+    bool            has_rir_deterministic_fork_join_evidence;
+    bool            has_rir_live_view_capture_evidence;
+    bool            has_rir_raw_slot_capture_evidence;
+    bool            has_rir_raw_channel_capture_evidence;
+    bool            has_mir_value_capture_evidence;
     const char     *hir_routine_evidence_name;
     const char     *rir_boundary_evidence_scope;
     const char     *rir_authority_evidence_name;

@@ -107,7 +107,13 @@ run_native_capture() {
             "$bin_bash" "$@" >"$out_bash" 2>"$err_bash"
             local rc=$?
             cd "$old_pwd"
-            return "$rc"
+            case "$rc" in
+                126|127)
+                    ;;
+                *)
+                    return "$rc"
+                    ;;
+            esac
             ;;
     esac
 
@@ -210,6 +216,7 @@ FIXTURES=(
     if_else
     nested_ctrl
     option_int_core
+    option_string_core
     func_call
     func_recursive
     result_int_core
@@ -459,4 +466,5 @@ if [[ "${#SKIPPED_BACKENDS[@]}" -gt 0 ]]; then
     BACKENDS_LABEL="$BACKENDS_LABEL; ${SKIPPED_BACKENDS[*]} skipped"
 fi
 
-echo "[self-host-parity:codegen] rung-0..20 parity ok (${#FIXTURES[@]} fixtures; backends=$BACKENDS_LABEL)"
+printf '[self-host-parity:codegen] rung-0..20 parity ok: fixtures=%s backends=%s\n' \
+    "${#FIXTURES[@]}" "$BACKENDS_LABEL"

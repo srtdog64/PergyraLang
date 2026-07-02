@@ -132,6 +132,53 @@ air_collect_rir_scope_op_authority(AIRProgram *air,
     return true;
 }
 
+static void
+air_collect_rir_scope_capture_evidence(AIRBoundaryNode *boundary,
+                                       const RIRScope *scope)
+{
+    if (boundary == NULL || scope == NULL)
+        return;
+
+    for (size_t i = 0; i < rir_scope_op_count(scope); i++) {
+        const RIROp *op = rir_scope_op_at(scope, i);
+        if (op == NULL)
+            continue;
+
+        if (air_rir_parallel_op_matches_boundary(op, boundary)) {
+            if (op->kind == RIR_OP_AWAIT_LOCAL)
+                boundary->has_rir_await_local_evidence = true;
+            if (op->kind == RIR_OP_SPAWN)
+                boundary->has_rir_movability_requirement_evidence = true;
+            if (op->kind == RIR_OP_PARALLEL
+                || op->kind == RIR_OP_TASK_GROUP) {
+                boundary->has_rir_deterministic_fork_join_evidence = true;
+            }
+        }
+
+        if ((op->kind == RIR_OP_CHANNEL_SEND
+             || op->kind == RIR_OP_CHANNEL_RECV
+             || op->kind == RIR_OP_CHANNEL_SELECT)
+            && boundary->kind == AIR_BOUNDARY_CHANNEL) {
+            boundary->has_rir_raw_channel_capture_evidence = true;
+        }
+
+        if ((op->kind == RIR_OP_BORROW_READ
+             || op->kind == RIR_OP_BORROW_WRITE)
+            && air_ast_contains_node(boundary->ast, op->ast)) {
+            boundary->has_rir_live_view_capture_evidence = true;
+        }
+
+        if ((op->kind == RIR_OP_CLAIM
+             || op->kind == RIR_OP_READ
+             || op->kind == RIR_OP_WRITE
+             || op->kind == RIR_OP_RELEASE
+             || op->kind == RIR_OP_MOVE)
+            && air_ast_contains_node(boundary->ast, op->ast)) {
+            boundary->has_rir_raw_slot_capture_evidence = true;
+        }
+    }
+}
+
 bool
 air_collect_rir_scope_boundary_evidence(AIRProgram *air,
                                         const RIRScope *scope,
@@ -174,6 +221,7 @@ air_collect_rir_scope_boundary_evidence(AIRProgram *air,
                                                 error_message)) {
             return false;
         }
+        air_collect_rir_scope_capture_evidence(boundary, scope);
     }
     return true;
 }

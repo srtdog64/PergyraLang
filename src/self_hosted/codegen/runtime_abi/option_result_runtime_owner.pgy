@@ -6,8 +6,63 @@ func OptionResultRuntimeCOptionSomeFn() -> String {
     return "pgy_option_some";
 }
 
+func OptionResultRuntimeOptionPayloadKindInt() -> Int {
+    return 1;
+}
+
+func OptionResultRuntimeOptionPayloadKindString() -> Int {
+    return 2;
+}
+
+func OptionResultRuntimeOptionPayloadKindFromExprKind(kind: String) -> Int {
+    if kind == "String" {
+        return OptionResultRuntimeOptionPayloadKindString();
+    }
+    return OptionResultRuntimeOptionPayloadKindInt();
+}
+
+func OptionResultRuntimeOptionPayloadKindForType(type_name: String) -> Int {
+    if type_name == "Option<String>" {
+        return OptionResultRuntimeOptionPayloadKindString();
+    }
+    if type_name == "Option<String: String>" {
+        return OptionResultRuntimeOptionPayloadKindString();
+    }
+    if type_name == "Option<Int>" {
+        return OptionResultRuntimeOptionPayloadKindInt();
+    }
+    if type_name == "Option<Int: Int>" {
+        return OptionResultRuntimeOptionPayloadKindInt();
+    }
+    return 0;
+}
+
+func OptionResultRuntimeOptionPayloadKindFromEnvKind(kind: String) -> Int {
+    if kind == "OptionString" {
+        return OptionResultRuntimeOptionPayloadKindString();
+    }
+    if kind == "OptionInt" {
+        return OptionResultRuntimeOptionPayloadKindInt();
+    }
+    return 0;
+}
+
+func OptionResultRuntimeCOptionSomeFnForPayloadKind(kind: Int) -> String {
+    if kind == OptionResultRuntimeOptionPayloadKindString() {
+        return "pgy_option_some_string";
+    }
+    return OptionResultRuntimeCOptionSomeFn();
+}
+
 func OptionResultRuntimeCOptionNoneFn() -> String {
     return "pgy_option_none";
+}
+
+func OptionResultRuntimeCOptionNoneFnForPayloadKind(kind: Int) -> String {
+    if kind == OptionResultRuntimeOptionPayloadKindString() {
+        return "pgy_option_none_string";
+    }
+    return OptionResultRuntimeCOptionNoneFn();
 }
 
 func OptionResultRuntimeCOptionIsSomeFn() -> String {
@@ -16,6 +71,26 @@ func OptionResultRuntimeCOptionIsSomeFn() -> String {
 
 func OptionResultRuntimeCOptionUnwrapFn() -> String {
     return "pgy_option_unwrap";
+}
+
+func OptionResultRuntimeOptionEnvKindForPayloadKind(kind: Int) -> String {
+    if kind == OptionResultRuntimeOptionPayloadKindString() {
+        return "OptionString";
+    }
+    if kind == OptionResultRuntimeOptionPayloadKindInt() {
+        return "OptionInt";
+    }
+    return "";
+}
+
+func OptionResultRuntimeOptionTypeNameForPayloadKind(kind: Int) -> String {
+    if kind == OptionResultRuntimeOptionPayloadKindString() {
+        return "Option<String>";
+    }
+    if kind == OptionResultRuntimeOptionPayloadKindInt() {
+        return "Option<Int>";
+    }
+    return "";
 }
 
 func OptionResultRuntimeCResultOkFn() -> String {

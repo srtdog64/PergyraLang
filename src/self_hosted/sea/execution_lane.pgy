@@ -20,6 +20,16 @@ enum ExecutionLane {
     MovableScheduler
 }
 
+enum BoundaryKind {
+    BoundaryKindUnknown,
+    BoundaryKindZone,
+    BoundaryKindWorld,
+    BoundaryKindIO,
+    BoundaryKindParallel,
+    BoundaryKindChannel,
+    BoundaryKindExecution
+}
+
 struct BoundaryCaptureFact {
     let captures_pin: Bool;
     let captures_live_view: Bool;
@@ -32,6 +42,20 @@ struct BoundaryCaptureFact {
     let is_await_heavy_local: Bool;
     let is_deterministic_fork_join: Bool;
     let is_concurrent_site: Bool;
+}
+
+struct BoundaryLaneInputFact {
+    let kind: BoundaryKind;
+    let authority_required: Bool;
+    let authority_count: Int;
+    let has_rir_await_local_evidence: Bool;
+    let has_rir_movability_requirement_evidence: Bool;
+    let has_rir_deterministic_fork_join_evidence: Bool;
+    let has_rir_raw_channel_capture_evidence: Bool;
+    let has_rir_raw_slot_capture_evidence: Bool;
+    let has_rir_live_view_capture_evidence: Bool;
+    let has_mir_pin_cleanup_evidence: Bool;
+    let has_mir_value_capture_evidence: Bool;
 }
 
 func ClassifyLane(fact: BoundaryCaptureFact) -> ExecutionLane {
@@ -74,6 +98,33 @@ func LaneName(lane: ExecutionLane) -> String {
     }
 }
 
+func CaptureFactFromBoundaryFact(fact: BoundaryLaneInputFact) -> BoundaryCaptureFact {
+    let crosses_authority: Bool = fact.authority_required && fact.authority_count > 0;
+    match fact.kind {
+        case BoundaryKindZone:
+            return BoundaryCaptureFact(true, fact.has_rir_live_view_capture_evidence, fact.has_rir_raw_slot_capture_evidence, false, fact.has_mir_value_capture_evidence, crosses_authority, false, false, false, false, true);
+        case BoundaryKindChannel:
+            return BoundaryCaptureFact(false, fact.has_rir_live_view_capture_evidence, fact.has_rir_raw_slot_capture_evidence, fact.has_rir_raw_channel_capture_evidence, fact.has_mir_value_capture_evidence, crosses_authority, false, false, false, false, true);
+        case BoundaryKindIO:
+            return BoundaryCaptureFact(false, fact.has_rir_live_view_capture_evidence, fact.has_rir_raw_slot_capture_evidence, false, fact.has_mir_value_capture_evidence, crosses_authority, false, true, false, false, true);
+        case BoundaryKindParallel:
+            return BoundaryCaptureFact(false, fact.has_rir_live_view_capture_evidence, fact.has_rir_raw_slot_capture_evidence, false, fact.has_mir_value_capture_evidence, crosses_authority, fact.has_rir_movability_requirement_evidence, false, fact.has_rir_await_local_evidence, fact.has_rir_deterministic_fork_join_evidence, true);
+        case BoundaryKindWorld:
+            return BoundaryCaptureFact(false, fact.has_rir_live_view_capture_evidence, fact.has_rir_raw_slot_capture_evidence, false, fact.has_mir_value_capture_evidence, crosses_authority, false, false, false, false, true);
+        case BoundaryKindExecution:
+            if fact.has_mir_pin_cleanup_evidence {
+                return BoundaryCaptureFact(true, fact.has_rir_live_view_capture_evidence, fact.has_rir_raw_slot_capture_evidence, false, fact.has_mir_value_capture_evidence, crosses_authority, false, false, false, false, true);
+            }
+            return BoundaryCaptureFact(false, fact.has_rir_live_view_capture_evidence, fact.has_rir_raw_slot_capture_evidence, false, fact.has_mir_value_capture_evidence, crosses_authority, false, false, false, false, true);
+        case BoundaryKindUnknown:
+            return BoundaryCaptureFact(false, false, false, false, false, crosses_authority, false, false, false, false, false);
+    }
+}
+
+func LaneFromBoundaryFact(fact: BoundaryLaneInputFact) -> ExecutionLane {
+    return ClassifyLane(CaptureFactFromBoundaryFact(fact));
+}
+
 // The 10 decision-table cases, in the same order as the C proof
 // (src/tests/execution_lane_policy_test.c), so the two policies can be diffed.
 func Main() -> Void {
@@ -87,4 +138,21 @@ func Main() -> Void {
     Log(LaneName(ClassifyLane(BoundaryCaptureFact(false, false, false, false, true,  true,  false, false, false, false, true))));
     Log(LaneName(ClassifyLane(BoundaryCaptureFact(false, false, false, false, true,  false, false, false, false, false, true))));
     Log(LaneName(ClassifyLane(BoundaryCaptureFact(false, false, false, false, false, false, false, false, false, false, true))));
+    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, true, false, false, false, false, false))));
+    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, true, false, false, false, false, false))));
+    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, false, false, false, false, false, false))));
+    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, false, false, false, false, false, false))));
+    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, true, false, false, false, false, false, false, false))));
+    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, true, false, false, false, false, false, false, false))));
+    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, true, false, false, false, false, false, false))));
+    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, true, false, false, true, false, false, false))));
+    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, true, 1, false, true, false, false, false, false, false, true))));
+    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, true, false, true, false, false, false))));
+    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, false, false, false, false, false, true))));
+    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, true, false, false, false, false, true, false, false))));
+    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, false, false, false, false, false, false))));
+    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindChannel, false, 0, false, false, false, true, false, false, false, false))));
+    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindChannel, false, 0, false, false, false, false, false, false, false, false))));
+    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindExecution, false, 0, false, false, false, false, false, false, false, false))));
+    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindExecution, false, 0, false, false, false, false, false, false, true, false))));
 }

@@ -163,6 +163,14 @@ func ExprKind(expr: String, env: String) -> String {
         return "ArrayInt";
     }
     if StartsWith(e, "Some(") {
+        let some_open: Int = StringIndexOf(e, "(");
+        let some_close_opt: Option<Int> = FindMatchingParen(e, some_open);
+        if IsSome(some_close_opt) && UnwrapOption(some_close_opt) == StringLength(e) - 1 {
+            let some_inner: String = StringTrim(Substring(e, some_open + 1, UnwrapOption(some_close_opt) - some_open - 1));
+            if ExprKind(some_inner, env) == "String" {
+                return "OptionString";
+            }
+        }
         return "OptionInt";
     }
     if e == "None" {
@@ -172,6 +180,14 @@ func ExprKind(expr: String, env: String) -> String {
         return "Bool";
     }
     if StartsWith(e, "UnwrapOption(") {
+        let unwrap_open: Int = StringIndexOf(e, "(");
+        let unwrap_close_opt: Option<Int> = FindMatchingParen(e, unwrap_open);
+        if IsSome(unwrap_close_opt) && UnwrapOption(unwrap_close_opt) == StringLength(e) - 1 {
+            let unwrap_inner: String = StringTrim(Substring(e, unwrap_open + 1, UnwrapOption(unwrap_close_opt) - unwrap_open - 1));
+            if ExprKind(unwrap_inner, env) == "OptionString" {
+                return "String";
+            }
+        }
         return "Int";
     }
     if StartsWith(e, "Ok(") {

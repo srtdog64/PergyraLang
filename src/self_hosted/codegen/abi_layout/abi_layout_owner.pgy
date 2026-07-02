@@ -21,7 +21,10 @@ func AbiLayoutCValueType(type_name: String, struct_env: String) -> String {
     if LookupKindType(struct_env, type_name, "s") == "struct" {
         return type_name;
     }
-    Die(Concat("unsupported C ABI value type (only Int/Bool/Float/String/Array/Result/Option/struct): ", type_name));
+    if LookupKindType(struct_env, type_name, "enum") == "payload_free" {
+        return "long long";
+    }
+    Die(Concat("unsupported C ABI value type (only Int/Bool/Float/String/Array/Result/Option/struct/payload-free enum): ", type_name));
     return "";
 }
 
@@ -44,6 +47,9 @@ func AbiLayoutCFieldType(type_name: String, struct_env: String) -> String {
     let row: Option<Int> = CompilerAbiLayoutRowIndex(type_name);
     if IsSome(row) && !CompilerAbiLayoutFieldAllowed(type_name) {
         Die(Concat("struct/class fields must be Int/Bool/Float/String/previous struct, got: ", type_name));
+    }
+    if LookupKindType(struct_env, type_name, "enum") == "payload_free" {
+        return "long long";
     }
     return AbiLayoutCValueType(type_name, struct_env);
 }

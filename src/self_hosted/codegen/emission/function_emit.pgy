@@ -236,6 +236,7 @@ func CollectEnums(nodes: Array<CodegenAstTextNode>, count: Int, inout env_box: A
             let variant_total: Int = CodegenAstTextEnumVariantCount(nodes[i]);
             let value: Int = 0;
             let enum_c: String = "enum {\n";
+            ArraySet(env_box, 0, Concat(env_box[0], Concat(ename, "=enum:payload_free|")));
             while value < variant_total {
                 let part: String = CodegenAstTextEnumVariantNameAt(nodes[i], value);
                 let cname: String = CompilerSymbolCEnumVariantName(ename, part);

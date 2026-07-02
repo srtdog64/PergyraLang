@@ -30,7 +30,7 @@ func CompilerAbiLayoutRowsReady() -> Bool {
         CompilerAbiLayoutRowFactAt(7) == "materialization_policy";
 }
 func CompilerAbiLayoutConcreteRowCount() -> Int {
-    return 9;
+    return 10;
 }
 func CompilerAbiLayoutRowTypeNameAt(index: Int) -> String {
     if index == 0 { return "Int"; }
@@ -42,6 +42,7 @@ func CompilerAbiLayoutRowTypeNameAt(index: Int) -> String {
     if index == 6 { return "Array<CodegenAstTextNode>"; }
     if index == 7 { return "Result<Int>"; }
     if index == 8 { return "Option<Int>"; }
+    if index == 9 { return "Option<String>"; }
     return "";
 }
 func CompilerAbiLayoutRowCValueTypeAt(index: Int) -> String {
@@ -54,12 +55,13 @@ func CompilerAbiLayoutRowCValueTypeAt(index: Int) -> String {
     if index == 6 { return "pgy_CodegenAstTextNode_array"; }
     if index == 7 { return "pgy_result_int"; }
     if index == 8 { return "pgy_option_int"; }
+    if index == 9 { return "pgy_option_string"; }
     return "";
 }
 
 func CompilerAbiLayoutRowMaterializationAt(index: Int) -> String {
-    if index >= 0 && index <= 3 { return "field_allowed"; }
-    if index >= 4 && index <= 8 { return "runtime_value_only"; }
+    if index >= 0 && index <= 6 { return "field_allowed"; }
+    if index >= 7 && index <= 9 { return "runtime_value_only"; }
     return "";
 }
 
@@ -82,6 +84,9 @@ func CompilerAbiLayoutRowMatches(index: Int, type_name: String) -> Bool {
         return true;
     }
     if canonical == "Option<Int>" && type_name == "Option<Int: Int>" {
+        return true;
+    }
+    if canonical == "Option<String>" && type_name == "Option<String: String>" {
         return true;
     }
     return false;

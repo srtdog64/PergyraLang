@@ -19,9 +19,17 @@
 
 set -euo pipefail
 
+if ! command -v dirname >/dev/null 2>&1 \
+    || ! command -v tr >/dev/null 2>&1 \
+    || ! command -v pwd >/dev/null 2>&1; then
+    PATH="/usr/bin:/bin:$PATH"
+    export PATH
+fi
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
+PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix_from_current_path)"
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
@@ -46,8 +54,107 @@ TOOL_SOURCE="$ROOT_DIR/src/self_hosted/codegen/main.pgy"
 B="$ROOT_DIR/.tmp/self_hosted/codegen/bootstrap"
 mkdir -p "$B"
 
+run_native_capture() {
+    local cwd="$1"
+    local out="$2"
+    local err="$3"
+    local bin="$4"
+    shift 4
+
+    case "$(uname -s 2>/dev/null || echo unknown)" in
+        MINGW*|MSYS*|CYGWIN*)
+            local cwd_bash
+            local bin_bash
+            local out_bash
+            local err_bash
+            cwd_bash="$(pgy_path_for_bash_tool "$cwd")"
+            bin_bash="$(pgy_path_for_bash_tool "$bin")"
+            out_bash="$(pgy_path_for_bash_tool "$out")"
+            err_bash="$(pgy_path_for_bash_tool "$err")"
+            local old_pwd="$PWD"
+            cd "$cwd_bash"
+            "$bin_bash" "$@" >"$out_bash" 2>"$err_bash"
+            local rc=$?
+            cd "$old_pwd"
+            case "$rc" in
+                126|127)
+                    ;;
+                *)
+                    return "$rc"
+                    ;;
+            esac
+            ;;
+    esac
+
+    if pgy_binary_is_runnable_here "$bin"; then
+        (cd "$cwd" && "$bin" "$@" >"$out" 2>"$err")
+        local direct_rc=$?
+        case "$direct_rc" in
+            126|127)
+                case "$(uname -s 2>/dev/null || echo unknown)" in
+                    MINGW*|MSYS*|CYGWIN*) ;;
+                    *) return "$direct_rc" ;;
+                esac
+                ;;
+            *)
+                return "$direct_rc"
+                ;;
+        esac
+    fi
+
+    case "$(uname -s 2>/dev/null || echo unknown)" in
+        MINGW*|MSYS*|CYGWIN*) ;;
+        *) return 127 ;;
+    esac
+    command -v powershell.exe >/dev/null 2>&1 || return 127
+
+    local cwd_native
+    local bin_native
+    local out_native
+    local err_native
+    local args_native=""
+    local arg
+
+    cwd_native="$(pgy_path_for_windows_tool "$cwd")"
+    bin_native="$(pgy_path_for_windows_tool "$bin")"
+    out_native="$(pgy_path_for_windows_tool "$out")"
+    err_native="$(pgy_path_for_windows_tool "$err")"
+    for arg in "$@"; do
+        local escaped_arg="${arg//\"/\\\"}"
+        args_native="${args_native} \"${escaped_arg}\""
+    done
+
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
+        "\$env:PATH='${PGY_WINDOWS_PS_PATH_PREFIX}' + \$env:PATH; \$enc = New-Object System.Text.UTF8Encoding \$false; \$psi = New-Object System.Diagnostics.ProcessStartInfo; \$psi.FileName = $(pgy_powershell_quote "$bin_native"); \$psi.WorkingDirectory = $(pgy_powershell_quote "$(pgy_path_for_windows_tool "$cwd")"); \$psi.UseShellExecute = \$false; \$psi.RedirectStandardOutput = \$true; \$psi.RedirectStandardError = \$true; \$psi.Arguments = $(pgy_powershell_quote "$args_native"); \$p = [System.Diagnostics.Process]::Start(\$psi); if (\$p -eq \$null) { exit 127 }; \$t1 = \$p.StandardOutput.ReadToEndAsync(); \$t2 = \$p.StandardError.ReadToEndAsync(); [System.Threading.Tasks.Task]::WaitAll(@(\$t1, \$t2)); \$p.WaitForExit(); \$stdout = \$t1.Result; \$stderr = \$t2.Result; [System.IO.File]::WriteAllText($(pgy_powershell_quote "$out_native"), \$stdout, \$enc); [System.IO.File]::WriteAllText($(pgy_powershell_quote "$err_native"), \$stderr, \$enc); exit \$p.ExitCode"
+}
+
+run_native_to_file() {
+    local label="$1"
+    local bin="$2"
+    local out="$3"
+    shift 3
+    local raw="$B/${label}.raw"
+    local err="$B/${label}.err"
+
+    if ! run_native_capture "$ROOT_DIR" "$raw" "$err" "$bin" "$@"; then
+        cat "$err" >&2 || true
+        return 1
+    fi
+    tr -d '\r' < "$raw" > "$out"
+}
+
+run_native_stdout() {
+    local label="$1"
+    local bin="$2"
+    shift 2
+    local out="$B/${label}.out"
+
+    run_native_to_file "$label" "$bin" "$out" "$@"
+    tr -d '\r' < "$out"
+}
+
 emit() {  # emit <tool-exe> <out.c>
-    (cd "$ROOT_DIR" && "$1" "$AST_REL" 2>/dev/null | tr -d '\r' > "$2")
+    run_native_to_file "emit_$(basename "$2")" "$1" "$2" "$AST_REL"
 }
 
 files_equal_text() {
@@ -128,8 +235,8 @@ for base in $SAMPLE; do
     (cd "$ROOT_DIR" && "$PGY" --ast \
         "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/src/self_hosted/codegen/fixture/${base}.pgy")" \
         2>/dev/null | tr -d '\r' > "${fa#$ROOT_DIR/}") || true
-    o="$(cd "$ROOT_DIR" && "$B/gen0.exe" "${fa#$ROOT_DIR/}" 2>/dev/null | tr -d '\r')"
-    g="$(cd "$ROOT_DIR" && "$B/gen2.exe" "${fa#$ROOT_DIR/}" 2>/dev/null | tr -d '\r')"
+    o="$(run_native_stdout "sample_${base}_oracle" "$B/gen0.exe" "${fa#$ROOT_DIR/}")"
+    g="$(run_native_stdout "sample_${base}_self" "$B/gen2.exe" "${fa#$ROOT_DIR/}")"
     if [[ "$o" != "$g" ]]; then
         echo "[self-host-bootstrap] $base: Pergyra-built tool emit differs from oracle-built" >&2
         exit 1
@@ -147,7 +254,7 @@ for comp in lexer parser semantic; do
     crel=".tmp/self_hosted/codegen/bootstrap/${comp}_ast.txt"
     (cd "$ROOT_DIR" && "$PGY" --ast "$(pgy_path_for_compiler "$PGY" "$csrc")" 2>/dev/null \
         | tr -d '\r' > "$crel")
-    (cd "$ROOT_DIR" && "$B/gen2.exe" "$crel" 2>/dev/null | tr -d '\r' > "$B/${comp}_via_codegen.c")
+    run_native_to_file "${comp}_via_codegen" "$B/gen2.exe" "$B/${comp}_via_codegen.c" "$crel"
     if grep -q '^CODEGEN ERROR' "$B/${comp}_via_codegen.c"; then
         echo "[self-host-bootstrap] $comp: out of codegen subset (skip breadth check)"
         continue
@@ -159,8 +266,8 @@ for comp in lexer parser semantic; do
     fi
     (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$csrc")" --backend=c \
         -o "$(pgy_path_for_compiler "$PGY" "$B/${comp}_oracle.exe")" >/dev/null 2>&1)
-    via="$(cd "$ROOT_DIR" && "$B/${comp}_via_codegen.exe" "$SAMPLE_SRC" 2>/dev/null | tr -d '\r')"
-    orc="$(cd "$ROOT_DIR" && "$B/${comp}_oracle.exe" "$SAMPLE_SRC" 2>/dev/null | tr -d '\r')"
+    via="$(run_native_stdout "${comp}_via_run" "$B/${comp}_via_codegen.exe" "$SAMPLE_SRC")"
+    orc="$(run_native_stdout "${comp}_oracle_run" "$B/${comp}_oracle.exe" "$SAMPLE_SRC")"
     if [[ "$via" != "$orc" ]]; then
         echo "[self-host-bootstrap] $comp: codegen-built output differs from oracle-built on $SAMPLE_SRC" >&2
         exit 1
@@ -177,7 +284,7 @@ for name in $TOOLS; do
     trel=".tmp/self_hosted/codegen/bootstrap/tool_${name}_ast.txt"
     (cd "$ROOT_DIR" && "$PGY" --ast "$(pgy_path_for_compiler "$PGY" "$tsrc")" 2>/dev/null \
         | tr -d '\r' > "$trel")
-    (cd "$ROOT_DIR" && "$B/gen2.exe" "$trel" 2>/dev/null | tr -d '\r' > "$B/tool_${name}.c")
+    run_native_to_file "tool_${name}_emit" "$B/gen2.exe" "$B/tool_${name}.c" "$trel"
     if grep -q '^CODEGEN ERROR' "$B/tool_${name}.c"; then
         echo "[self-host-bootstrap] tool $name out of codegen subset (skip)"
         continue
@@ -189,9 +296,9 @@ for name in $TOOLS; do
     (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$tsrc")" --backend=c \
         -o "$(pgy_path_for_compiler "$PGY" "$B/tool_${name}_oracle.exe")" >/dev/null 2>&1)
     set +e
-    via="$(cd "$ROOT_DIR" && "$B/tool_${name}_self.exe" 2>/dev/null | tr -d '\r')"
+    via="$(run_native_stdout "tool_${name}_self_run" "$B/tool_${name}_self.exe")"
     via_rc=$?
-    orc="$(cd "$ROOT_DIR" && "$B/tool_${name}_oracle.exe" 2>/dev/null | tr -d '\r')"
+    orc="$(run_native_stdout "tool_${name}_oracle_run" "$B/tool_${name}_oracle.exe")"
     orc_rc=$?
     set -e
     if [[ "$via_rc" -ne "$orc_rc" ]]; then
@@ -214,7 +321,7 @@ if [[ -f "$MIR_LOWER_SOURCE" ]]; then
     mir_ast_rel=".tmp/self_hosted/codegen/bootstrap/mir_lower_ast.txt"
     (cd "$ROOT_DIR" && "$PGY" --ast "$(pgy_path_for_compiler "$PGY" "$MIR_LOWER_SOURCE")" 2>/dev/null \
         | tr -d '\r' > "$mir_ast_rel")
-    (cd "$ROOT_DIR" && "$B/gen2.exe" "$mir_ast_rel" 2>/dev/null | tr -d '\r' > "$B/mir_lower_via_codegen.c")
+    run_native_to_file "mir_lower_emit" "$B/gen2.exe" "$B/mir_lower_via_codegen.c" "$mir_ast_rel"
     if grep -q '^CODEGEN ERROR' "$B/mir_lower_via_codegen.c"; then
         echo "[self-host-bootstrap] mir_lower out of codegen subset" >&2
         grep '^CODEGEN ERROR' "$B/mir_lower_via_codegen.c" | head -3 >&2
@@ -233,8 +340,8 @@ if [[ -f "$MIR_LOWER_SOURCE" ]]; then
         (cd "$ROOT_DIR" && "$PGY" --mir-json \
             "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/src/self_hosted/mir_lower/fixture/${mir_base}.pgy")" \
             2>/dev/null | tr -d '\r' > "$mir_json_rel")
-        mir_via="$(cd "$ROOT_DIR" && "$B/mir_lower_self.exe" "$mir_json_rel" 2>/dev/null | tr -d '\r')"
-        mir_orc="$(cd "$ROOT_DIR" && "$B/mir_lower_oracle.exe" "$mir_json_rel" 2>/dev/null | tr -d '\r')"
+        mir_via="$(run_native_stdout "mir_${mir_base}_self_run" "$B/mir_lower_self.exe" "$mir_json_rel")"
+        mir_orc="$(run_native_stdout "mir_${mir_base}_oracle_run" "$B/mir_lower_oracle.exe" "$mir_json_rel")"
         if [[ "$mir_via" != "$mir_orc" ]]; then
             echo "[self-host-bootstrap] mir_lower: codegen-built output differs from oracle-built on $mir_base" >&2
             exit 1
@@ -251,7 +358,7 @@ if [[ -f "$FUZZ_SOURCE" ]]; then
     fuzz_ast_rel=".tmp/self_hosted/codegen/bootstrap/fuzz_generator_ast.txt"
     (cd "$ROOT_DIR" && "$PGY" --ast "$(pgy_path_for_compiler "$PGY" "$FUZZ_SOURCE")" 2>/dev/null \
         | tr -d '\r' > "$fuzz_ast_rel")
-    (cd "$ROOT_DIR" && "$B/gen2.exe" "$fuzz_ast_rel" 2>/dev/null | tr -d '\r' > "$B/fuzz_generator_via_codegen.c")
+    run_native_to_file "fuzz_generator_emit" "$B/gen2.exe" "$B/fuzz_generator_via_codegen.c" "$fuzz_ast_rel"
     if grep -q '^CODEGEN ERROR' "$B/fuzz_generator_via_codegen.c"; then
         echo "[self-host-bootstrap] fuzz generator out of codegen subset" >&2
         grep '^CODEGEN ERROR' "$B/fuzz_generator_via_codegen.c" | head -3 >&2
@@ -266,8 +373,8 @@ if [[ -f "$FUZZ_SOURCE" ]]; then
         -o "$(pgy_path_for_compiler "$PGY" "$B/fuzz_generator_oracle.exe")" >/dev/null 2>&1)
     rm -rf "$B/fuzz_codegen_corpus" "$B/fuzz_oracle_corpus"
     mkdir -p "$B/fuzz_codegen_corpus" "$B/fuzz_oracle_corpus"
-    fuzz_via="$(cd "$ROOT_DIR" && "$B/fuzz_generator_self.exe" 1001 8 ".tmp/self_hosted/codegen/bootstrap/fuzz_codegen_corpus" 2>/dev/null | tr -d '\r')"
-    fuzz_orc="$(cd "$ROOT_DIR" && "$B/fuzz_generator_oracle.exe" 1001 8 ".tmp/self_hosted/codegen/bootstrap/fuzz_oracle_corpus" 2>/dev/null | tr -d '\r')"
+    fuzz_via="$(run_native_stdout "fuzz_generator_self_run" "$B/fuzz_generator_self.exe" 1001 8 ".tmp/self_hosted/codegen/bootstrap/fuzz_codegen_corpus")"
+    fuzz_orc="$(run_native_stdout "fuzz_generator_oracle_run" "$B/fuzz_generator_oracle.exe" 1001 8 ".tmp/self_hosted/codegen/bootstrap/fuzz_oracle_corpus")"
     if [[ "$fuzz_via" != "$fuzz_orc" ]]; then
         echo "[self-host-bootstrap] fuzz generator: codegen-built stdout differs from oracle-built" >&2
         exit 1

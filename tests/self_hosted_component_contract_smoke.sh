@@ -514,6 +514,7 @@ require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "Compiler
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutRowIndex(type_name)"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutRowCValueTypeAt(UnwrapOption(row))"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutFieldAllowed(type_name)"
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'LookupKindType(struct_env, type_name, "enum") == "payload_free"'
 reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CollectionRuntimeKindFromTypeName"
 reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'import "../runtime_abi/collection_runtime_owner.pgy";'
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutConcreteRowCount"
@@ -521,6 +522,8 @@ require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerA
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutRowCValueTypeAt"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutFieldAllowed"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutRowMaterializationAt"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'if index == 9 { return "Option<String>"; }'
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'if index == 9 { return "pgy_option_string"; }'
 reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'StringIndexOf(type_name, "Int")'
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIndentOf"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "struct CodegenAstTextNode"
@@ -760,6 +763,7 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTex
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextEnumName(nodes[i])"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextEnumVariantCount(nodes[i])"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextEnumVariantNameAt(nodes[i], value)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=enum:payload_free|"'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextNominalName(nodes[i])"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextRoleName(nodes[i])"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextRoleForType(nodes[i])"
@@ -921,7 +925,11 @@ require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "fun
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCLogFn"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCToFloatFn"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCOptionSomeFn"
+require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCOptionSomeFnForPayloadKind"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCOptionNoneFn"
+require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCOptionNoneFnForPayloadKind"
+require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeOptionPayloadKindForType"
+require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeOptionEnvKindForPayloadKind"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCResultOkFn"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCResultUnwrapFn"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCParamType"
@@ -954,8 +962,16 @@ require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "HostIORuntimeC
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "StringRuntimeCToFloatFn"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "HostIORuntimeCExitFn"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "OptionResultRuntimeCOptionSomeFn"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "OptionResultRuntimeOptionPayloadKindFromExprKind(ExprKind(some_inner, env))"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "OptionResultRuntimeCOptionSomeFnForPayloadKind(some_payload_kind)"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "OptionResultRuntimeCResultOkFn"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "OptionResultRuntimeCResultIsOkFn"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "OptionResultRuntimeOptionPayloadKindForType(type_name)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "OptionResultRuntimeOptionEnvKindForPayloadKind(option_payload_kind)"
+require_text "src/self_hosted/codegen/type_facts/type_env.pgy" 'return "OptionString";'
+require_text "tests/self_hosted/parity/codegen_parity.sh" "option_string_core"
+require_file "src/self_hosted/codegen/fixture/option_string_core.pgy"
+require_file "src/self_hosted/codegen/expected/option_string_core_stdout.txt"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CParamType"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CRetType"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'return Concat("long long "'

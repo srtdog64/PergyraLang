@@ -3,11 +3,12 @@
 # self_host_execution_lane_parity_smoke.sh
 #
 # The self-host SEA ExecutionLane classifier (src/self_hosted/sea/execution_lane.pgy)
-# must make the SAME lane decision as the C policy (src/compiler/execution_lane.c),
-# on both backends. The golden file IS the C policy's decision table output, so a
-# match proves two parities at once:
-#   - self-host (Pergyra) policy == C policy   (cross-language)
-#   - C backend == LLVM backend                (cross-backend)
+# must make the SAME lane decision as the C policy (src/compiler/execution_lane.c)
+# and the same boundary evidence -> capture-fact decisions as
+# src/compiler/air_execution_lane.c, on both backends. The golden file is the C
+# decision table plus AIR evidence-shape proof output, so a match proves:
+#   - self-host (Pergyra) policy/evidence shape == C policy/evidence shape
+#   - C backend == LLVM backend
 
 set -euo pipefail
 
@@ -29,6 +30,20 @@ if { [ ! -x "$PGY" ] && [ ! -f "$PGY" ]; } || ! pgy_binary_is_runnable_here "$PG
 fi
 [ -f "$SRC" ]    || fail "missing classifier: $SRC"
 [ -f "$GOLDEN" ] || fail "missing golden: $GOLDEN"
+
+grep -Fq "struct BoundaryLaneInputFact" "$SRC" \
+    || fail "self-host lane classifier must consume a typed BoundaryLaneInputFact"
+grep -Fq "func CaptureFactFromBoundaryFact" "$SRC" \
+    || fail "self-host lane classifier must derive capture facts from typed input"
+if grep -Fq "BoundarySourceKind" "$SRC" || grep -Fq "source_kind" "$SRC"; then
+    fail "self-host lane classifier reintroduced source-kind lane evidence"
+fi
+if grep -Fq "CaptureFactFromBoundarySource" "$SRC"; then
+    fail "self-host lane classifier reintroduced source-string capture fact API"
+fi
+if grep -Fq "LaneFromBoundarySource" "$SRC"; then
+    fail "self-host lane classifier reintroduced source-string lane API"
+fi
 
 WORK="$(mktemp -d)"
 backends="c"
@@ -52,7 +67,7 @@ for be in $backends; do
     if ! diff -u "$GOLDEN" "$WORK/got_$be.txt"; then
         fail "lane decision drift (backend=$be) vs the C policy golden (see diff)."
     fi
-    echo "[sea-self-host-lane] backend=$be matches C policy (10/10)"
+    echo "[sea-self-host-lane] backend=$be matches C policy/evidence shape (27/27)"
 done
 
 echo "[sea-self-host-lane] PASS"

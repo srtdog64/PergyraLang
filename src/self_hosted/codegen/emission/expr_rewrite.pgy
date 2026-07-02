@@ -414,7 +414,58 @@ func RewriteTokens(e: String, env: String) -> String {
     let q: String = RewriteQualifiedCalls(q0);
     let call_args: String = RewriteInoutCallArgs(q, env, true);
     let a: String = RewriteArrayLengthEnv(call_args, env);
-    let b: String = RewriteIndexing(a, env);
+    let optioned: String = "";
+    let some_scan_len: Int = StringLength(a);
+    let some_scan_i: Int = 0;
+    let some_scan_in_str: Bool = false;
+    while some_scan_i < some_scan_len {
+        let some_scan_char: String = CharAt(a, some_scan_i);
+        if some_scan_in_str {
+            optioned = Concat(optioned, some_scan_char);
+            if some_scan_char == "\\" && some_scan_i + 1 < some_scan_len {
+                optioned = Concat(optioned, CharAt(a, some_scan_i + 1));
+                some_scan_i = some_scan_i + 2;
+                continue;
+            }
+            if some_scan_char == "\"" {
+                some_scan_in_str = false;
+            }
+            some_scan_i = some_scan_i + 1;
+            continue;
+        }
+        if some_scan_char == "\"" {
+            some_scan_in_str = true;
+            optioned = Concat(optioned, some_scan_char);
+            some_scan_i = some_scan_i + 1;
+            continue;
+        }
+        if IsIdentStart(some_scan_char) {
+            let some_ident_end: Int = some_scan_i;
+            while some_ident_end < some_scan_len && IsIdentChar(CharAt(a, some_ident_end)) {
+                some_ident_end = some_ident_end + 1;
+            }
+            let some_ident: String = Substring(a, some_scan_i, some_ident_end - some_scan_i);
+            if some_ident == "Some" && some_ident_end < some_scan_len && CharAt(a, some_ident_end) == "(" {
+                let some_close_opt: Option<Int> = FindMatchingParen(a, some_ident_end);
+                if !IsSome(some_close_opt) {
+                    Die(Concat("malformed Some(...) expression: ", a));
+                }
+                let some_close: Int = UnwrapOption(some_close_opt);
+                let some_inner: String = StringTrim(Substring(a, some_ident_end + 1, some_close - some_ident_end - 1));
+                let some_payload_kind: Int = OptionResultRuntimeOptionPayloadKindFromExprKind(ExprKind(some_inner, env));
+                let some_fn: String = OptionResultRuntimeCOptionSomeFnForPayloadKind(some_payload_kind);
+                optioned = Concat(optioned, Concat(some_fn, Concat("(", Concat(RewriteExpr(some_inner, env), ")"))));
+                some_scan_i = some_close + 1;
+                continue;
+            }
+            optioned = Concat(optioned, some_ident);
+            some_scan_i = some_ident_end;
+            continue;
+        }
+        optioned = Concat(optioned, some_scan_char);
+        some_scan_i = some_scan_i + 1;
+    }
+    let b: String = RewriteIndexing(optioned, env);
     let c: String = ReplaceAllOutsideStrings(b, "StringLength(", Concat(StringRuntimeCStringLengthFn(), "("));
     let d0: String = ReplaceAllOutsideStrings(c, "StringContains(", Concat(StringRuntimeCStringContainsFn(), "("));
     let d: String = ReplaceAllOutsideStrings(d0, "StringIndexOf(", Concat(StringRuntimeCStringIndexOfFn(), "("));
@@ -455,8 +506,7 @@ func RewriteTokens(e: String, env: String) -> String {
     let asort: String = ReplaceAllOutsideStrings(jn, "ArraySort(", Concat(CollectionRuntimeCIntSortFn(), "("));
     let arev: String = ReplaceAllOutsideStrings(asort, "ArrayReverse(", Concat(CollectionRuntimeCIntReverseFn(), "("));
     let amap: String = ReplaceAllOutsideStrings(arev, "ArrayMap(", Concat(CollectionRuntimeCIntMapFn(), "("));
-    let afilter: String = ReplaceAllOutsideStrings(amap, "ArrayFilter(", Concat(CollectionRuntimeCIntFilterFn(), "("));
-    let osome: String = ReplaceAllOutsideStrings(afilter, "Some(", Concat(OptionResultRuntimeCOptionSomeFn(), "("));
+    let osome: String = ReplaceAllOutsideStrings(amap, "ArrayFilter(", Concat(CollectionRuntimeCIntFilterFn(), "("));
     let oissome: String = ReplaceAllOutsideStrings(osome, "IsSome(", Concat(OptionResultRuntimeCOptionIsSomeFn(), "("));
     let ounwrap: String = ReplaceAllOutsideStrings(oissome, "UnwrapOption(", Concat(OptionResultRuntimeCOptionUnwrapFn(), "("));
     let onone: String = RewriteNoneLiteral(ounwrap);

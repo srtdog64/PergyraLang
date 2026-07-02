@@ -7,6 +7,12 @@
 
 set -euo pipefail
 
+if ! command -v cat >/dev/null 2>&1 \
+    || ! command -v mkdir >/dev/null 2>&1; then
+    PATH="/usr/bin:/bin:$PATH"
+    export PATH
+fi
+
 SCRIPT_PATH="${BASH_SOURCE[0]}"
 SCRIPT_DIR="$(cd "${SCRIPT_PATH%/*}" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -52,6 +58,54 @@ fi
 PATH="$ORIGINAL_PATH"
 
 "$OUT" || fail "decision table mismatch"
+
+AIR_OUT="$OUT_DIR/air_lane_capture_test_$$.exe"
+AIR_COMPILE_OUT="$AIR_OUT.compile.out"
+AIR_COMPILE_ERR="$AIR_OUT.compile.err"
+PATH="$COMPILE_PATH"
+if ! "${CC_CMD[@]}" -Wall -Wextra -Werror -std=c11 \
+        -I"$ROOT_FOR_CC/src/compiler" \
+        "$ROOT_FOR_CC/src/tests/air_execution_lane_source_test.c" \
+        "$ROOT_FOR_CC/src/compiler/air_execution_lane.c" \
+        "$ROOT_FOR_CC/src/compiler/execution_lane.c" \
+        -o "$AIR_OUT" >"$AIR_COMPILE_OUT" 2>"$AIR_COMPILE_ERR"; then
+    PATH="$ORIGINAL_PATH"
+    cat "$AIR_COMPILE_OUT" >&2 || true
+    cat "$AIR_COMPILE_ERR" >&2 || true
+    fail "AIR boundary evidence lane compile failed"
+fi
+PATH="$ORIGINAL_PATH"
+
+"$AIR_OUT" || fail "AIR boundary evidence lane mismatch"
+
+if grep -Fq "air_boundary_source_kind(boundary)" \
+        "$ROOT_DIR/src/compiler/air_execution_lane.c"; then
+    fail "AIR lane capture must not consume source-kind as lane evidence"
+fi
+grep -Fq "boundary->has_rir_deterministic_fork_join_evidence" \
+    "$ROOT_DIR/src/compiler/air_execution_lane.c" ||
+    fail "AIR fork-join lane capture must consume RIR fork-join evidence"
+grep -Fq "boundary->has_rir_await_local_evidence" \
+    "$ROOT_DIR/src/compiler/air_execution_lane.c" ||
+    fail "AIR async/await lane capture must consume RIR await-local evidence"
+grep -Fq "boundary->has_rir_movability_requirement_evidence" \
+    "$ROOT_DIR/src/compiler/air_execution_lane.c" ||
+    fail "AIR spawn lane capture must consume RIR movability-requirement evidence"
+grep -Fq "boundary->has_rir_raw_channel_capture_evidence" \
+    "$ROOT_DIR/src/compiler/air_execution_lane.c" ||
+    fail "AIR channel lane capture must consume RIR raw-channel evidence"
+grep -Fq "boundary->has_rir_raw_slot_capture_evidence" \
+    "$ROOT_DIR/src/compiler/air_execution_lane.c" ||
+    fail "AIR resource lane capture must consume RIR raw-slot evidence"
+grep -Fq "boundary->has_rir_live_view_capture_evidence" \
+    "$ROOT_DIR/src/compiler/air_execution_lane.c" ||
+    fail "AIR resource lane capture must consume RIR live-view evidence"
+grep -Fq "boundary->has_mir_pin_cleanup_evidence" \
+    "$ROOT_DIR/src/compiler/air_execution_lane.c" ||
+    fail "AIR pin lane capture must consume MIR pin-cleanup evidence"
+grep -Fq "boundary->has_mir_value_capture_evidence" \
+    "$ROOT_DIR/src/compiler/air_execution_lane.c" ||
+    fail "AIR value-only lane capture must consume MIR value-capture evidence"
 
 # Naming-layer contract (docs/146 §1): SEA is the semantic model/contract, never
 # the name of a scheduler. The runtime scheduler is PgyLaneScheduler. Forbid

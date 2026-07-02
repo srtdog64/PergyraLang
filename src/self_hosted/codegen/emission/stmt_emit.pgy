@@ -81,9 +81,19 @@ func EmitLet(node: CodegenAstTextNode, inout env_box: Array<String>) -> String {
         ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:ResultInt|")));
         return Concat(AbiLayoutCLocalType(type_name, env_box[0]), Concat(" ", Concat(name, Concat(" = ", Concat(RewriteExpr(expr, env_box[0]), ";")))));
     }
-    if StartsWith(type_name, "Option<") && StringIndexOf(type_name, "Int") >= 0 {
-        ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:OptionInt|")));
-        return Concat(AbiLayoutCLocalType(type_name, env_box[0]), Concat(" ", Concat(name, Concat(" = ", Concat(RewriteExpr(expr, env_box[0]), ";")))));
+    if StartsWith(type_name, "Option<") {
+        let option_payload_kind: Int = OptionResultRuntimeOptionPayloadKindForType(type_name);
+        let option_kind: String = OptionResultRuntimeOptionEnvKindForPayloadKind(option_payload_kind);
+        if StringLength(option_kind) == 0 {
+            Die(Concat("unsupported option let payload type: ", type_name));
+        }
+        ArraySet(env_box, 0, Concat(env_box[0], Concat(name, Concat("=v:", Concat(option_kind, "|")))));
+        let option_expr: String = RewriteExpr(expr, env_box[0]);
+        let option_trimmed: String = StringTrim(expr);
+        if option_trimmed == "None" || option_trimmed == "None()" {
+            option_expr = Concat(OptionResultRuntimeCOptionNoneFnForPayloadKind(option_payload_kind), "()");
+        }
+        return Concat(AbiLayoutCLocalType(type_name, env_box[0]), Concat(" ", Concat(name, Concat(" = ", Concat(option_expr, ";")))));
     }
     if LookupKindType(env_box[0], type_name, "s") == "struct" {
         // rung-14: struct-typed local from a `Name(f: v, ...)` literal or a
@@ -151,6 +161,15 @@ func EmitAssign(node: CodegenAstTextNode, env_box: Array<String>) -> String {
     if vt == "Float" {
         return Concat(name, Concat(" = ", Concat(RewriteExpr(expr, env_box[0]), ";")));
     }
+    let assign_option_payload_kind: Int = OptionResultRuntimeOptionPayloadKindFromEnvKind(vt);
+    if assign_option_payload_kind != 0 {
+        let assign_option_expr: String = RewriteExpr(expr, env_box[0]);
+        let assign_option_trimmed: String = StringTrim(expr);
+        if assign_option_trimmed == "None" || assign_option_trimmed == "None()" {
+            assign_option_expr = Concat(OptionResultRuntimeCOptionNoneFnForPayloadKind(assign_option_payload_kind), "()");
+        }
+        return Concat(name, Concat(" = ", Concat(assign_option_expr, ";")));
+    }
     if LookupKindType(env_box[0], vt, "s") == "struct" {
         return Concat(name, Concat(" = ", Concat(EmitStructValue(expr, vt, env_box[0]), ";")));
     }
@@ -198,6 +217,18 @@ func EmitReturn(rexpr: String, cur_fn_ret: String, env: String) -> String {
     }
     if StartsWith(cur_fn_ret, "Result<") && StringIndexOf(cur_fn_ret, "Int") >= 0 {
         return Concat("return ", Concat(RewriteExpr(rexpr, env), ";"));
+    }
+    if StartsWith(cur_fn_ret, "Option<") {
+        let return_option_payload_kind: Int = OptionResultRuntimeOptionPayloadKindForType(cur_fn_ret);
+        if return_option_payload_kind == 0 {
+            Die(Concat("unsupported option return payload type: ", cur_fn_ret));
+        }
+        let return_option_expr: String = RewriteExpr(rexpr, env);
+        let return_option_trimmed: String = StringTrim(rexpr);
+        if return_option_trimmed == "None" || return_option_trimmed == "None()" {
+            return_option_expr = Concat(OptionResultRuntimeCOptionNoneFnForPayloadKind(return_option_payload_kind), "()");
+        }
+        return Concat("return ", Concat(return_option_expr, ";"));
     }
     if LookupKindType(env, cur_fn_ret, "s") == "struct" {
         return Concat("return ", Concat(EmitStructValue(rexpr, cur_fn_ret, env), ";"));

@@ -1,7 +1,7 @@
 # 146. SEA — Structured Effect Async, BoundaryCaptureFact, and ExecutionLane
 
-Status: design + BoundaryCaptureFact/ExecutionLane first slices landed
-(2026-06-29). Sister doc to
+Status: BoundaryCaptureFact/ExecutionLane contract landed, source-kind lane
+evidence removed from AIR classification (2026-07-02). Sister doc to
 `docs/114_async_model_positioning.md` (the async positioning) — this one names
 the execution layer below it.
 
@@ -118,8 +118,10 @@ strictly underneath.
   (`src/self_hosted/sea/execution_lane.pgy` — a typed `BoundaryCaptureFact`
   struct consumed by a typed `ExecutionLane` return, `Reject` as a first-class
   variant, zero `-1` sentinels). A cross-language / cross-backend parity smoke
-  (`self-host-execution-lane-parity-test-smoke`) diffs it against the C policy's
-  decision-table output on both C and LLVM (10/10 each).
+  (`self-host-execution-lane-parity-test-smoke`) diffs it against the C policy
+  table plus AIR evidence-shape rows on both C and LLVM (27/27 each). The
+  self-host mirror is forbidden to reintroduce `BoundarySourceKind`,
+  `source_kind`, or source-string lane APIs.
 
 **Landed — spawn-shaped boundaries consume the lane facade (2026-06-29):**
 - Both backends used to choose the spawn executor with an independent
@@ -132,9 +134,7 @@ strictly underneath.
   `pgy_async_spawn` or `pgy_spawn_blocking` directly.
 - `parallel { ... }` and async block lowering now use the same facade in both
   backends. `parallel` emits `WorkerPool`; async block emits `LocalAsync`.
-  These are still conservative lane facts until precise capture plumbing can
-  move the decision fully onto boundary-owned evidence, but executor selection
-  itself is no longer duplicated in C and LLVM emitters.
+  Executor selection itself is no longer duplicated in C and LLVM emitters.
 - The task header now preserves the consumed `ExecutionLaneFact` while
   `PgyTaskHandle` stays ABI-stable as a task pointer. This keeps the lane fact
   alive past spawn-shaped lowering so later await/detach/cancellation work can
@@ -153,11 +153,25 @@ strictly underneath.
   same `captures_raw_channel -> PinnedZone` fact instead of calling
   `pgy_channel_*` directly.
 
+**Landed ??AIR capture fact classification no longer guesses from source kind
+(2026-07-02):**
+- `AIRBoundaryNode` now carries explicit RIR/MIR evidence summary bits for
+  await-local, movability requirement, deterministic fork-join, raw channel,
+  raw slot, live view, pin cleanup, and value-only capture.
+- `src/compiler/air_execution_lane.c` consumes those evidence bits when it
+  builds `BoundaryCaptureFact`. The gate forbids
+  `air_boundary_source_kind(boundary)` from participating in lane evidence.
+- `src/compiler/air_evidence_rir_boundary.c` and
+  `src/compiler/air_evidence_mir_pin.c` are the current producers for the
+  boundary-local RIR/MIR evidence summary. Routine-level correlation was
+  rejected because it over-pins unrelated work in the same routine.
+
 **Remaining (deep fill, not a quick slice):**
-- **Precise capture plumbing.** `BoundaryCaptureFact` now exists and is stored
-  on AIR, but some fields are still filled conservatively from boundary kind.
-  Enriching them precisely needs per-boundary capture facts (pin/live-view,
-  raw-vs-value capture) from MIR/closure-capture analysis. A coarse routine-level correlation
+- **Precise value-capture producer coverage.** `has_mir_value_capture_evidence`
+  is part of the classifier contract and parity matrix, but the MIR
+  closure-capture producer still needs full end-to-end coverage for all
+  boundary shapes. Missing evidence must leave the lane conservative and must
+  not be recovered from source text or boundary kind. A coarse routine-level correlation
   (does the boundary's routine hold any slot/effect anywhere) was rejected: it
   over-pins — a `parallel` would become `PinnedZone` merely because an unrelated
   slot exists in the same routine. Precise evidence is the F-series closure-
@@ -165,8 +179,9 @@ strictly underneath.
 - **Remaining concurrent-site facade coverage.** Spawn expressions,
   `parallel { ... }`, async blocks, await/detach/cancel, and channel
   send/receive/select boundaries now consume lane-owned facades. The remaining
-  frontier is precise fact production rather than facade routing: AIR still
-  fills several `BoundaryCaptureFact` fields conservatively from boundary kind.
+  frontier is precise fact production rather than facade routing: AIR consumes
+  boundary-owned evidence bits, and the task is to expand those producers rather
+  than reclassify from source syntax.
   On the self-host side it is also gated by async *lowering*: the self-host
   parses async but does not lower it (its `mir_lower` carries zero async facts),
   so the self-host async codegen is tracked with the MIR JSON async fact
