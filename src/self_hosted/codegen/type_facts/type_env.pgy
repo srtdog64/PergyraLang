@@ -2,6 +2,8 @@
 //
 // Flat type-environment and expression-kind owner for self-host C emission.
 
+import "../text/text_owner.pgy";
+
 func LookupKindType(env: String, name: String, kind: String) -> String {
     let needle: String = Concat("|", Concat(name, Concat("=", Concat(kind, ":"))));
     let idx: Int = StringIndexOf(env, needle);

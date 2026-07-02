@@ -1166,6 +1166,16 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/c
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/text/text_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/type_facts/type_env.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/json_fact_read.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/mir_json_input_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/routine_inventory_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/decl_lower.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/stmt_render.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/routine_lower.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/program_lower.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/sea/execution_lane.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/path.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/json.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/json_scan.pgy"'
@@ -1360,8 +1370,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 97 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 97"
+[[ "$selfcheck_count" -eq 107 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 107"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirFactObjectStart"

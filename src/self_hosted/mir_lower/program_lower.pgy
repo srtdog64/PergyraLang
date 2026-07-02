@@ -3,6 +3,11 @@
 // Owns document-order declaration/routine assembly. `main.pgy` supplies an
 // already validated MIR JSON document and prints this owner's result.
 
+import "error_owner.pgy";
+import "decl_lower.pgy";
+import "routine_inventory_owner.pgy";
+import "routine_lower.pgy";
+
 func EmitMirProgramTree(json: String) -> String {
     let out: String = Concat("Program:\n", EmitStructDecls(json));
     let total: Int = 0;

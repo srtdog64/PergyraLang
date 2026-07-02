@@ -5,6 +5,10 @@
 // methods, and payload-free enums. Unsupported declaration facts fail closed
 // here. JSON row/bounds lookup belongs to json_fact_read.pgy.
 
+import "error_owner.pgy";
+import "json_fact_read.pgy";
+import "routine_inventory_owner.pgy";
+
 func EmitDeclFields(json: String, decl_start: Int, decl_end: Int, owner_name: String) -> String {
     let out: String = "";
     let field_bounds: Array<Int> = [0, 0];

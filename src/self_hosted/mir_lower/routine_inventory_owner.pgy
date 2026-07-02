@@ -4,6 +4,8 @@
 // header facts in pgy.mir.v1 JSON. CFG reconstruction and AST-tree emission
 // belong to routine_lower.pgy.
 
+import "json_fact_read.pgy";
+
 // Find the next routine declaration row after `from`. Routine discovery is
 // owned by the MIR `routines` array; instruction/name payloads are not scanned.
 // Returns the containing routine object position when present.

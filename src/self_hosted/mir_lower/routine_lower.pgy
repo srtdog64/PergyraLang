@@ -4,6 +4,11 @@
 // emission from MIR JSON facts. Routine inventory discovery belongs to
 // routine_inventory_owner.pgy.
 
+import "error_owner.pgy";
+import "json_fact_read.pgy";
+import "routine_inventory_owner.pgy";
+import "stmt_render.pgy";
+
 // ---------------------------------------------------------------------------
 // Control-flow reconstruction (CFG -> structured AST).
 //

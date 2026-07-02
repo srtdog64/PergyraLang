@@ -29,6 +29,14 @@ English anchor for tooling/doc gates:
   CFG/body safety source-of-truth, AIR abstraction-boundary verification,
   DAG recursive compatibility seam removal, MIR/LLVM declaration bootstrap parity,
   and ABI/Slot/Pin ownership freeze.
+- Self-host real-source selfcheck frontier: codegen `type_facts/type_env.pgy`,
+  MIR-lower JSON fact/input/inventory/decl/statement/routine/program owners, and
+  the SEA `execution_lane.pgy` mirror now declare their direct imports and enter
+  the real-source semantic selfcheck manifest. The manifest count moves from 97
+  to 107 accepted owner/source files, with `main.pgy` kept as orchestration
+  rather than the hidden dependency assembler for those owners. Parser/codegen
+  expression participants with real import cycles stay out of this slice; they
+  need an owner-boundary decision before promotion.
 - Evidence-driven guard amortization first slice: plain `Slot<T>` MIR pin
   regions now have an explicit owner fact,
   `mir_block_has_pin_guard_amortization_region(...)`, requiring source slot,

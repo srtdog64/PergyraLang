@@ -25,6 +25,19 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-03 - MIR-lower and lane facts enter real-source selfcheck
+
+- Added explicit imports to the self-host `type_env` owner and MIR-lower
+  owners so they declare the text, JSON fact, error, routine-inventory, and
+  render facts they consume instead of relying on `main.pgy` to assemble them.
+- Promoted `type_facts/type_env.pgy`, the standalone MIR-lower fact/render/
+  program owners, and `sea/execution_lane.pgy` into `selfcheck_sources.sh`.
+  The real-source semantic selfcheck manifest now rises from 97 to 107 accepted
+  self-host owner/source files.
+- Kept circular parser/codegen expression participants out of this slice; those
+  need a separate import-cycle/owner-boundary decision rather than a blind
+  manifest bump.
+
 ## 2026-07-02 - Codegen action owners declare their source-bundle dependencies
 
 - Added explicit owner imports to `codegen/run/codegen_run_owner.pgy` and the

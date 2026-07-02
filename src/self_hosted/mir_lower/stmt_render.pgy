@@ -1,5 +1,8 @@
 // MIR instruction facts -> AST-tree statement rendering owner.
 
+import "error_owner.pgy";
+import "json_fact_read.pgy";
+
 func TextStartsWith(text: String, prefix: String) -> Bool {
     return StringLength(text) >= StringLength(prefix)
         && Substring(text, 0, StringLength(prefix)) == prefix;
