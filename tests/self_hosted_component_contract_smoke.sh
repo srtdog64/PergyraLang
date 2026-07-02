@@ -232,7 +232,7 @@ require_max_lines "src/self_hosted/lib/json_emit.pgy" 600
 require_file "src/self_hosted/lib/json_scan.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lib/json_scan.pgy"
 require_max_lines "src/self_hosted/lib/json_scan.pgy" 600
-require_text "src/self_hosted/lib/json.pgy" 'import "json_emit.pgy";'
+reject_text "src/self_hosted/lib/json.pgy" 'import "json_emit.pgy";'
 require_text "src/self_hosted/lib/json.pgy" 'import "json_scan.pgy";'
 require_text "src/self_hosted/lib/json_scan.pgy" "func FindFrom(hay: String, needle: String, start: Int) -> Option<Int>"
 reject_text "src/self_hosted/lib/json_scan.pgy" "func FindFrom(hay: String, needle: String, start: Int) -> Int"
@@ -270,6 +270,25 @@ require_text "src/self_hosted/lib/json_emit.pgy" "func JsonEmitFieldRaw"
 require_text "src/self_hosted/lib/json_emit.pgy" "func JsonEmitFieldString"
 require_text "src/self_hosted/lib/json_emit.pgy" "func JsonEmitFieldNumber"
 require_text "src/self_hosted/lib/json_emit.pgy" "func JsonEmitFieldBool"
+for json_emit_consumer in \
+    src/self_hosted/tools/air_graph_id_uniqueness/main.pgy \
+    src/self_hosted/tools/air_graph_json_validator/report_owner.pgy \
+    src/self_hosted/tools/air_graph_node_count_integrity/main.pgy \
+    src/self_hosted/tools/air_graph_reachability/main.pgy \
+    src/self_hosted/tools/air_graph_ref_integrity/main.pgy \
+    src/self_hosted/tools/air_graph_ref_live/main.pgy \
+    src/self_hosted/tools/ast_read_surface_checker/main.pgy \
+    src/self_hosted/tools/backend_output_comparator/main.pgy \
+    src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy \
+    src/self_hosted/tools/doc_link_checker/main.pgy \
+    src/self_hosted/tools/examples_inventory_checker/main.pgy \
+    src/self_hosted/tools/module_manifest_resolver/main.pgy \
+    src/self_hosted/tools/production_c_size_checker/main.pgy \
+    src/self_hosted/tools/production_header_size_checker/main.pgy \
+    src/self_hosted/tools/stable_subset_section_checker/main.pgy \
+    src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy; do
+    require_text "$json_emit_consumer" 'import "../../lib/json_emit.pgy";'
+done
 
 for stage in lexer parser semantic codegen; do
     require_dir "src/self_hosted/$stage"

@@ -5,7 +5,6 @@
 // string scanning rules.
 // Schema-specific object shape decisions still belong to the consuming owner.
 
-import "json_emit.pgy";
 import "json_scan.pgy";
 
 func JsonArrayEnd(json: String, open: Int, limit: Int) -> Option<Int> {

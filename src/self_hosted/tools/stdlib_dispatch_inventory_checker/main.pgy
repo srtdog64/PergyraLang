@@ -23,6 +23,7 @@
 
 import "../../lib/text_scan.pgy";
 import "../../lib/json.pgy";
+import "../../lib/json_emit.pgy";
 
 func DriftFinding(c_entries: Int, llvm_entries: Int) -> String {
     let fields: Array<String> = [

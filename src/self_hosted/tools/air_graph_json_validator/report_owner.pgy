@@ -4,6 +4,7 @@
 // rendered here; this owner does not inspect AIR JSON fixture contents.
 
 import "../../lib/json.pgy";
+import "../../lib/json_emit.pgy";
 
 func FindingFactField(row: String, index: Int) -> String {
     let parts: Array<String> = Split(row, "|");

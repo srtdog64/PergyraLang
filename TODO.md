@@ -50,8 +50,10 @@ English anchor for tooling/doc gates:
 - Stable JSON owner progress: number-field lookup now also has an
   `Option<String>` fact API (`JsonObjectNumberFieldOpt`), AIR graph summary
   counts consume it instead of checking an empty-string sentinel, and JSON emit
-  primitives moved to the separate `json_emit.pgy` owner so read and emit facts
-  no longer share one growing file.
+  primitives moved to the separate `json_emit.pgy` owner. Emit consumers now
+  import that owner directly instead of receiving it transitively from
+  `json.pgy`, so read and emit facts no longer share one growing file or one
+  hidden import path.
 - Evidence-driven guard amortization first slice: plain `Slot<T>` MIR pin
   regions now have an explicit owner fact,
   `mir_block_has_pin_guard_amortization_region(...)`, requiring source slot,

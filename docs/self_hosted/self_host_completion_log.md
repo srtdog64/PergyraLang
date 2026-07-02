@@ -3061,3 +3061,12 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `tests/self_hosted/parity/air_graph_json_validator_parity.sh`, and
   `tests/self_hosted/parity/selfcheck_sources.sh` with C backend
   (**108 real sources accepted**).
+
+### 2026-07-03 -- JSON emit consumers declare the emit owner directly
+
+- Removed the transitional `json.pgy -> json_emit.pgy` import path. JSON read
+  consumers keep importing `json.pgy`, while report/render consumers that call
+  `JsonEmit*`, `JsonStringLiteral`, or `JsonEscapeString` now import
+  `json_emit.pgy` directly.
+- Tightened the component contract so `json.pgy` cannot resume re-exporting the
+  emit owner, and the current emit consumers must keep the direct owner import.

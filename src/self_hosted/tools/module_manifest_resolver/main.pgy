@@ -15,6 +15,7 @@
 // Contract: see intent.md in the same directory.
 
 import "../../lib/json.pgy";
+import "../../lib/json_emit.pgy";
 
 func MissingFieldFinding(field: String, expected: Int, actual: Int) -> String {
     let fields: Array<String> = [

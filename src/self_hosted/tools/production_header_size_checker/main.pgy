@@ -13,6 +13,7 @@
 // Contract: see intent.md in the same directory.
 
 import "../../lib/json.pgy";
+import "../../lib/json_emit.pgy";
 import "../../lib/text_scan.pgy";
 
 func OverCapFinding(path: String, lines: Int) -> String {

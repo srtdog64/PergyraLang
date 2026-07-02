@@ -14,6 +14,7 @@
 // Contract: see intent.md in the same directory.
 
 import "../../lib/json.pgy";
+import "../../lib/json_emit.pgy";
 import "../../compiler/artifact_zone_owner.pgy";
 import "../../compiler/test_harness_owner.pgy";
 import "../../compiler/subprocess_runner_owner.pgy";

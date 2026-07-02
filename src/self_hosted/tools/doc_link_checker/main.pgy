@@ -14,6 +14,7 @@
 // Contract: see intent.md in the same directory.
 
 import "../../lib/json.pgy";
+import "../../lib/json_emit.pgy";
 
 func ExtractLinkPath(line: String) -> String {
     let open: String = "](";

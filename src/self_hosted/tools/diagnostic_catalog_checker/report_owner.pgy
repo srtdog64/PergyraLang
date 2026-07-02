@@ -4,6 +4,7 @@
 // lives in scan_owner; this owner renders pre-extracted finding facts only.
 
 import "../../lib/json.pgy";
+import "../../lib/json_emit.pgy";
 
 func FindingJson(kind: String, code: String, location: String) -> String {
     let parts: Array<String> = [

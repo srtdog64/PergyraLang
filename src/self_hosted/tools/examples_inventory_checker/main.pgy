@@ -13,6 +13,7 @@
 
 import "../../lib/text_scan.pgy";
 import "../../lib/json.pgy";
+import "../../lib/json_emit.pgy";
 
 func MissingFinding(kind: String, path: String) -> String {
     let fields: Array<String> = [

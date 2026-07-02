@@ -9,6 +9,7 @@
 
 import "../../lib/text_scan.pgy";
 import "../../lib/json.pgy";
+import "../../lib/json_emit.pgy";
 
 func SurfaceFinding(kind: String, reads: Int, ceiling: Int, scope: String) -> String {
     let fields: Array<String> = [
