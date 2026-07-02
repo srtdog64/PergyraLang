@@ -70,6 +70,8 @@ AXIS_COQ="$PROOF_DIR/proofs/AxisOwnership.v"
 WITNESS_COQ="$PROOF_DIR/proofs/WitnessDataRace.v"
 METHODOLOGY_COQ="$PROOF_DIR/proofs/VerificationMethodology.v"
 PROOF_SPINE_COQ="$PROOF_DIR/proofs/ProofSpine.v"
+GUARD_COQ="$PROOF_DIR/proofs/GuardCalculus.v"
+MINIMAL_POSITION_DOC="$PROOF_DIR/20_minimal_verification_position.md"
 WITNESS_DOC="$PROOF_DIR/10_ability_witness_evidence.md"
 BOUNDARY_WITNESS_HEADER="$ROOT_DIR/src/semantic/boundary_witness.h"
 BOUNDARY_WITNESS_SOURCE="$ROOT_DIR/src/semantic/boundary_witness.c"
@@ -97,6 +99,8 @@ require_file "$AXIS_COQ" "docs/semantics/proofs/AxisOwnership.v"
 require_file "$WITNESS_COQ" "docs/semantics/proofs/WitnessDataRace.v"
 require_file "$METHODOLOGY_COQ" "docs/semantics/proofs/VerificationMethodology.v"
 require_file "$PROOF_SPINE_COQ" "docs/semantics/proofs/ProofSpine.v"
+require_file "$GUARD_COQ" "docs/semantics/proofs/GuardCalculus.v"
+require_file "$MINIMAL_POSITION_DOC" "docs/semantics/20_minimal_verification_position.md"
 require_file "$WITNESS_DOC" "docs/semantics/10_ability_witness_evidence.md"
 require_file "$BOUNDARY_WITNESS_HEADER" "src/semantic/boundary_witness.h"
 require_file "$BOUNDARY_WITNESS_SOURCE" "src/semantic/boundary_witness.c"
@@ -269,6 +273,31 @@ OpAcqW
 OpAcqR
 well_typed_data_race_free
 read-write
+TERMS
+
+require_terms "$GUARD_COQ" "docs/semantics/proofs/GuardCalculus.v" <<'TERMS'
+Theorem no_silent_ub
+Theorem coverage_is_local
+Theorem guarded_more_permissive_at_equal_safety
+Corollary pergyra_no_silent_ub
+Proven,    true => UB
+OpSecureToken
+OpLifecycle
+TERMS
+
+require_terms "$MINIMAL_POSITION_DOC" "docs/semantics/20_minimal_verification_position.md" <<'TERMS'
+UB-Completeness As The Proof Obligation
+Status: `beta-proof-obligation`
+no_silent_ub
+coverage_is_local
+guarded_more_permissive_at_equal_safety
+The Honest Ledger
+amortized-cost
+never "zero-cost"
+an abort, never
+Rust As Shipped Is Already Hybrid
+phrase this as "Rust-equivalent safety"
+unfilled row is exactly the `Unhandled` verdict
 TERMS
 
 require_terms "$WITNESS_DOC" "docs/semantics/10_ability_witness_evidence.md" <<'TERMS'

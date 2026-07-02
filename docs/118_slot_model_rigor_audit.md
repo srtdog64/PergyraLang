@@ -636,6 +636,16 @@ active static rejection for the frozen subset and no mechanized proof, but it
 does not claim Rust-level borrow checking, full lifetime inference, or
 Rust-level memory safety.
 
+The POSITIVE form of this comparison — why the smaller static subset plus
+fail-closed runtime guards is a coherent position rather than a deficit — is
+now formalized: `docs/semantics/20_minimal_verification_position.md` states the
+minimal-verification position (same no-UB end guarantee, obligation reduced to
+a finite per-operation coverage table plus the small `Proven` set's promises),
+and `docs/semantics/proofs/GuardCalculus.v` mechanizes it (coqc-checked:
+`no_silent_ub`, `coverage_is_local`,
+`guarded_more_permissive_at_equal_safety`). The marketing constraint stands:
+that position is never phrased as "Rust-equivalent safety".
+
 ## 8. Marketing Language Audit
 
 These are phrases that have appeared or could appear in docs / README /
