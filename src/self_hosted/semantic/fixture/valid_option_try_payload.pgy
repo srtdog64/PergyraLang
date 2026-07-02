@@ -1,0 +1,22 @@
+func Pick(x: Int) -> Option<Int> {
+    if x == 3 {
+        return None;
+    }
+    return Some(x);
+}
+
+func Doubled(x: Int) -> Option<Int> {
+    let found: Int = Pick(x)?;
+    return Some(found * 2);
+}
+
+func Main() -> Void {
+    let first: Option<Int> = Doubled(4);
+    if IsSome(first) {
+        Log(UnwrapOption(first));
+    }
+    let second: Option<Int> = Doubled(3);
+    if !IsSome(second) {
+        Log(0);
+    }
+}

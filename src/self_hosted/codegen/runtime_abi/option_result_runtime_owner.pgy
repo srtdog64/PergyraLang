@@ -93,6 +93,16 @@ func OptionResultRuntimeOptionTypeNameForPayloadKind(kind: Int) -> String {
     return "";
 }
 
+func OptionResultRuntimeOptionValueTypeForPayloadKind(kind: Int) -> String {
+    if kind == OptionResultRuntimeOptionPayloadKindString() {
+        return "String";
+    }
+    if kind == OptionResultRuntimeOptionPayloadKindInt() {
+        return "Int";
+    }
+    return "";
+}
+
 func OptionResultRuntimeCResultOkFn() -> String {
     return "pgy_result_ok";
 }

@@ -130,21 +130,49 @@ func EmitTryLet(node: CodegenAstTextNode, inout env_box: Array<String>, cur_fn_r
     let type_name: String = CodegenAstTextLetTypeName(node);
     let expr: String = CodegenAstTextLetInitializer(node);
     let inner: String = TryExprInner(expr);
-    if type_name != "Int" || StringLength(inner) == 0 {
+    if StringLength(inner) == 0 {
         Die(Concat("unsupported try let shape in self-host codegen subset: ", CodegenAstTextProvenance(node)));
     }
-    if !(StartsWith(cur_fn_ret, "Result<") && StringIndexOf(cur_fn_ret, "Int") >= 0) {
-        Die(Concat("try expression requires Result<Int> function return: ", CodegenAstTextProvenance(node)));
-    }
-    ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:Int|")));
     let tmp: String = Concat("_pgy_try_", ToString(idx));
-    let out: String = Concat(AbiLayoutCLocalType("Result<Int>", env_box[0]), Concat(" ", Concat(tmp, Concat(" = ", Concat(RewriteExpr(inner, env_box[0]), ";\n")))));
-    out = Concat(out, Concat(pad, Concat("if (!", Concat(OptionResultRuntimeCResultIsOkFn(), Concat("(", Concat(tmp, ")) {\n"))))));
-    out = Concat(out, cleanup);
-    out = Concat(out, Concat(pad, Concat("    return ", Concat(tmp, ";\n"))));
-    out = Concat(out, Concat(pad, "}\n"));
-    out = Concat(out, Concat(pad, Concat(AbiLayoutCLocalType("Int", env_box[0]), Concat(" ", Concat(name, Concat(" = ", Concat(OptionResultRuntimeCResultUnwrapFn(), Concat("(", Concat(tmp, ");")))))))));
-    return out;
+    if StartsWith(cur_fn_ret, "Result<") && StringIndexOf(cur_fn_ret, "Int") >= 0 {
+        if type_name != "Int" {
+            Die(Concat("unsupported Result try let payload type in self-host codegen subset: ", CodegenAstTextProvenance(node)));
+        }
+        ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:Int|")));
+        let result_out: String = Concat(AbiLayoutCLocalType("Result<Int>", env_box[0]), Concat(" ", Concat(tmp, Concat(" = ", Concat(RewriteExpr(inner, env_box[0]), ";\n")))));
+        result_out = Concat(result_out, Concat(pad, Concat("if (!", Concat(OptionResultRuntimeCResultIsOkFn(), Concat("(", Concat(tmp, ")) {\n"))))));
+        result_out = Concat(result_out, cleanup);
+        result_out = Concat(result_out, Concat(pad, Concat("    return ", Concat(tmp, ";\n"))));
+        result_out = Concat(result_out, Concat(pad, "}\n"));
+        result_out = Concat(result_out, Concat(pad, Concat(AbiLayoutCLocalType("Int", env_box[0]), Concat(" ", Concat(name, Concat(" = ", Concat(OptionResultRuntimeCResultUnwrapFn(), Concat("(", Concat(tmp, ");")))))))));
+        return result_out;
+    }
+    if StartsWith(cur_fn_ret, "Option<") {
+        let return_option_payload_kind: Int = OptionResultRuntimeOptionPayloadKindForType(cur_fn_ret);
+        if return_option_payload_kind == 0 {
+            Die(Concat("unsupported option try return payload type: ", cur_fn_ret));
+        }
+        let inner_kind: String = ExprKind(inner, env_box[0]);
+        let operand_payload_kind: Int = OptionResultRuntimeOptionPayloadKindForType(inner_kind);
+        if operand_payload_kind == 0 {
+            operand_payload_kind = OptionResultRuntimeOptionPayloadKindFromEnvKind(inner_kind);
+        }
+        let operand_value_type: String = OptionResultRuntimeOptionValueTypeForPayloadKind(operand_payload_kind);
+        if StringLength(operand_value_type) == 0 || operand_value_type != type_name {
+            Die(Concat("try expression payload type does not match let type: ", CodegenAstTextProvenance(node)));
+        }
+        ArraySet(env_box, 0, Concat(env_box[0], Concat(name, Concat("=v:", Concat(type_name, "|")))));
+        let operand_option_type: String = OptionResultRuntimeOptionTypeNameForPayloadKind(operand_payload_kind);
+        let option_out: String = Concat(AbiLayoutCLocalType(operand_option_type, env_box[0]), Concat(" ", Concat(tmp, Concat(" = ", Concat(RewriteExpr(inner, env_box[0]), ";\n")))));
+        option_out = Concat(option_out, Concat(pad, Concat("if (!", Concat(OptionResultRuntimeCOptionIsSomeFn(), Concat("(", Concat(tmp, ")) {\n"))))));
+        option_out = Concat(option_out, cleanup);
+        option_out = Concat(option_out, Concat(pad, Concat("    return ", Concat(OptionResultRuntimeCOptionNoneFnForPayloadKind(return_option_payload_kind), "();\n"))));
+        option_out = Concat(option_out, Concat(pad, "}\n"));
+        option_out = Concat(option_out, Concat(pad, Concat(AbiLayoutCLocalType(type_name, env_box[0]), Concat(" ", Concat(name, Concat(" = ", Concat(OptionResultRuntimeCOptionUnwrapFn(), Concat("(", Concat(tmp, ");")))))))));
+        return option_out;
+    }
+    Die(Concat("try expression requires Result<Int> or Option<T> function return: ", CodegenAstTextProvenance(node)));
+    return "";
 }
 
 // `Assign: <name> = <expr>`. Routes by the variable's recorded type.

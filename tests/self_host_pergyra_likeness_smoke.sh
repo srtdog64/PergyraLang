@@ -66,7 +66,7 @@ SH_DIR="$ROOT_DIR/src/self_hosted"
 STRING_MUNGE_SIG_MAX=160
 AST_STRING_SURFACE_MAX=0
 SENTINEL_MAX=11
-RESULT_USE_MIN=222
+RESULT_USE_MIN=249
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=17
 COMPILER_WORLD_MEMBERS_EXACT=17
@@ -199,7 +199,7 @@ require_compiler_world_zone() {
     require_file_regex "src/self_hosted/compiler/world.pgy" "^[[:space:]]*zone[[:space:]]+$member:[[:space:]]+$zone_type[[:space:]]*$"
 }
 
-string_munge_sig=$(count ': String\) -> String' '^src/self_hosted/lib/json\.pgy$')
+string_munge_sig=$(count ': String\) -> String' '^src/self_hosted/lib/json(_emit)?\.pgy$')
 ast_string_surface=$(count '\bast: String\b')
 sentinel=$(count 'return -1|== -1|!= -1')
 result_use=$(count '\bResult<|\bOption<|\bOk\(|\bErr\(|\bSome\(|\bNone\b')

@@ -3070,3 +3070,24 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `json_emit.pgy` directly.
 - Tightened the component contract so `json.pgy` cannot resume re-exporting the
   emit owner, and the current emit consumers must keep the direct owner import.
+
+### 2026-07-03 -- Option `?` enters the self-host semantic and codegen subset
+
+- Added self-host semantic support for Option try operands. `ExprType` now maps
+  `Option<T>?` to `T`, and expression diagnostics reject `?` on non-Option
+  operands through the existing structured diagnostic surface.
+- Extended self-host C codegen try-let lowering so an Option-returning function
+  emits an `is_some` guard and returns the enclosing function's typed `None`
+  on failure. Result try-let lowering remains unchanged.
+- Added semantic fixture `valid_option_try_payload` and codegen fixture
+  `option_try`, raising semantic parity to 108 fixtures and codegen parity to
+  65 fixtures.
+- Kept the Pergyra-likeness ratchet closed by routing try-operand extraction
+  through a bounds fact instead of new text-in/text-out helper functions, and
+  by treating the split JSON emit owner as the same text-domain exception as
+  the JSON read owner.
+- Repaired the C MIR SSA local type lookup order found while rerunning the
+  broader gates: exact versioned DEF type facts still win first, but unique
+  source-local type facts now precede AST annotation rendering.
+- Verified with `self-host-preparation-test-smoke`, C/LLVM self-host codegen
+  parity, and `cfg-body-dataflow-test-smoke` on the local Windows toolchain.

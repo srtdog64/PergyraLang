@@ -500,7 +500,7 @@ require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticDiagnostic
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadContractReady"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadSchema"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "pgy.selfhost.semantic.v1"
-require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticVerdictPayloadFixtureCount() != 107"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticVerdictPayloadFixtureCount() != 108"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticDiagnosticCodeCount() != 17"
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../semantic/diagnostic_owner.pgy";'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "SemanticVerdictPayloadContractReady()"
@@ -967,6 +967,7 @@ require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pg
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCOptionNoneFnForPayloadKind"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeOptionPayloadKindForType"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeOptionEnvKindForPayloadKind"
+require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeOptionValueTypeForPayloadKind"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCResultOkFn"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCResultUnwrapFn"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCParamType"
@@ -1005,10 +1006,15 @@ require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "OptionResultRu
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "OptionResultRuntimeCResultIsOkFn"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "OptionResultRuntimeOptionPayloadKindForType(type_name)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "OptionResultRuntimeOptionEnvKindForPayloadKind(option_payload_kind)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "OptionResultRuntimeCOptionNoneFnForPayloadKind(return_option_payload_kind)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "OptionResultRuntimeOptionValueTypeForPayloadKind(operand_payload_kind)"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" 'return "OptionString";'
 require_text "tests/self_hosted/parity/codegen_parity.sh" "option_string_core"
+require_text "tests/self_hosted/parity/codegen_parity.sh" "option_try"
 require_file "src/self_hosted/codegen/fixture/option_string_core.pgy"
 require_file "src/self_hosted/codegen/expected/option_string_core_stdout.txt"
+require_file "src/self_hosted/codegen/fixture/option_try.pgy"
+require_file "src/self_hosted/codegen/expected/option_try_stdout.txt"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CParamType"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CRetType"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'return Concat("long long "'
@@ -1467,9 +1473,9 @@ reject_text "src/self_hosted/mir_lower/stmt_render.pgy" "ReadJsonString(json,"
 semantic_items="$(extract_shell_array_items "$PARITY_DIR/semantic_parity.sh" SOURCE_PAIRS | sed 's/:.*//')"
 [[ -n "$semantic_items" ]] || fail "semantic parity SOURCE_PAIRS is empty"
 semantic_count="$(printf '%s\n' "$semantic_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$semantic_count" -eq 107 ]] ||
-    fail "semantic parity fixture count drifted: $semantic_count != 107"
-require_text "src/self_hosted/PROGRESS.md" "across 107 fixtures"
+[[ "$semantic_count" -eq 108 ]] ||
+    fail "semantic parity fixture count drifted: $semantic_count != 108"
+require_text "src/self_hosted/PROGRESS.md" "across 108 fixtures"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_scalar_math_builtins"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_string_plus"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_string_scalar_plus"
@@ -1480,6 +1486,7 @@ require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_let_mut_reassi
 require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_generated_source_string_literal"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_scalar_utility_int"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_option_unwrap_payload"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_option_try_payload"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_option_payload_return"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_option_payload_let"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_issome_non_option"
@@ -1490,6 +1497,10 @@ require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_issome_none_call
 require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_unwrap_none_literal"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_unwrap_none_call"
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" "func OptionCallReturnType"
+require_text "src/self_hosted/semantic/expr_type_owner.pgy" "func TryOperandBounds"
+require_text "src/self_hosted/semantic/expr_type_owner.pgy" "TryOperandBounds(text, try_bounds)"
+require_text "src/self_hosted/semantic/expr_validation_owner.pgy" "func CheckTryOperand"
+require_text "src/self_hosted/semantic/expr_validation_owner.pgy" "TryOperandBounds(text, bounds)"
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'split_op == "+" && lt == "String" && rt == "String"'
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'lt == "Int" || lt == "Long" || lt == "Float" || lt == "Bool"'
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'return Concat(Concat("Option<", value_type), ">")'

@@ -217,6 +217,7 @@ FIXTURES=(
     nested_ctrl
     option_int_core
     option_string_core
+    option_try
     func_call
     func_recursive
     result_int_core

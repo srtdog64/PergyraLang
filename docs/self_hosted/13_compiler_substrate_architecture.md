@@ -443,7 +443,7 @@ the parser stage to the current compact-AST text schema, committed fixture
 count, and root `Program:` / implicit-`Main` output shape. Semantic readiness
 consumes `SemanticVerdictPayloadContractReady()` from
 `semantic/diagnostic_owner.pgy`, tying the stage to the verdict schema,
-107-fixture parity surface, ok/error status rendering, and 17-code vocabulary.
+108-fixture parity surface, ok/error status rendering, and 17-code vocabulary.
 MIR readiness consumes `MirFactGraphPayloadContractReady()` from
 `mir_lower/mir_fact_graph_contract_owner.pgy`, tying the stage to the MIR JSON
 schema, 85-fixture parity surface, declaration/routine arrays, source-local

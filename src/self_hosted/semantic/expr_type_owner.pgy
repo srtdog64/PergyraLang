@@ -399,6 +399,20 @@ func IsOptionType(type_name: String) -> Bool {
     }
     return Substring(type_name, 0, 7) == "Option<" && CharAt(type_name, n - 1) == ">";
 }
+func TryOperandBounds(text: String, inout bounds: Array<Int>) -> Bool {
+    let n: Int = StringLength(text);
+    if n >= 4 && CharAt(text, 0) == "(" && CharAt(text, 1) == "?" && CharAt(text, n - 1) == ")" {
+        ArraySet(bounds, 0, 2);
+        ArraySet(bounds, 1, n - 3);
+        return true;
+    }
+    if n > 1 && CharAt(text, n - 1) == "?" {
+        ArraySet(bounds, 0, 0);
+        ArraySet(bounds, 1, n - 1);
+        return true;
+    }
+    return false;
+}
 func OptionCallReturnType(text: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
     let n: Int = StringLength(text);
     if text == "None" {
@@ -453,6 +467,15 @@ func ExprType(expr: String, names: Array<String>, types: Array<String>, func_nam
     let text: String = Trim(expr);
     if StringLength(text) == 0 {
         return "Void";
+    }
+    let try_bounds: Array<Int> = [0, 0];
+    if TryOperandBounds(text, try_bounds) {
+        let try_operand: String = Trim(Substring(text, try_bounds[0], try_bounds[1]));
+        let try_operand_type: String = ExprType(try_operand, names, types, func_names, func_rets);
+        if IsOptionType(try_operand_type) {
+            return Substring(try_operand_type, 7, StringLength(try_operand_type) - 8);
+        }
+        return "Unknown";
     }
     if CharAt(text, 0) == "!" && CharAt(text, 1) != "=" {
         return "Bool";

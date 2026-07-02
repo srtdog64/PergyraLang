@@ -120,7 +120,7 @@ func SemanticVerdictPayloadSchema() -> String {
 }
 
 func SemanticVerdictPayloadFixtureCount() -> Int {
-    return 107;
+    return 108;
 }
 
 func SemanticVerdictPayloadStatusReady() -> Bool {
@@ -149,7 +149,7 @@ func SemanticVerdictPayloadContractReady() -> Bool {
     if SemanticVerdictPayloadSchema() != "pgy.selfhost.semantic.v1" {
         return false;
     }
-    if SemanticVerdictPayloadFixtureCount() != 107 {
+    if SemanticVerdictPayloadFixtureCount() != 108 {
         return false;
     }
     if SemanticDiagnosticCodeCount() != 17 {

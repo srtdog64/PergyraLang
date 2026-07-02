@@ -57,6 +57,10 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
             if StringLength(let_undefined_error) > 0 {
                 return let_undefined_error;
             }
+            let let_try_error: String = CheckTryOperand(let_expr, names, types, func_names, func_rets);
+            if StringLength(let_try_error) > 0 {
+                return let_try_error;
+            }
             let let_logical_error: String = CheckLogicalOperands(let_expr, names, types, func_names, func_rets);
             if StringLength(let_logical_error) > 0 {
                 return let_logical_error;
@@ -95,6 +99,10 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
             if StringLength(return_undefined_error) > 0 {
                 return return_undefined_error;
             }
+            let return_try_error: String = CheckTryOperand(return_expr, names, types, func_names, func_rets);
+            if StringLength(return_try_error) > 0 {
+                return return_try_error;
+            }
             let return_logical_error: String = CheckLogicalOperands(return_expr, names, types, func_names, func_rets);
             if StringLength(return_logical_error) > 0 {
                 return return_logical_error;
@@ -125,6 +133,10 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
                 let cond_undefined_error: String = CheckUndefinedIdentifiers(cond_text, names);
                 if StringLength(cond_undefined_error) > 0 {
                     return cond_undefined_error;
+                }
+                let cond_try_error: String = CheckTryOperand(cond_text, names, types, func_names, func_rets);
+                if StringLength(cond_try_error) > 0 {
+                    return cond_try_error;
                 }
                 let cond_logical_error: String = CheckLogicalOperands(cond_text, names, types, func_names, func_rets);
                 if StringLength(cond_logical_error) > 0 {
@@ -220,6 +232,10 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
                 let asn_undefined_error: String = CheckUndefinedIdentifiers(rhs_expr, names);
                 if StringLength(asn_undefined_error) > 0 {
                     return asn_undefined_error;
+                }
+                let asn_try_error: String = CheckTryOperand(rhs_expr, names, types, func_names, func_rets);
+                if StringLength(asn_try_error) > 0 {
+                    return asn_try_error;
                 }
                 let asn_logical_error: String = CheckLogicalOperands(rhs_expr, names, types, func_names, func_rets);
                 if StringLength(asn_logical_error) > 0 {

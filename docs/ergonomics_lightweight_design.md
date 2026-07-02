@@ -32,7 +32,7 @@ static (source reading) plus the user's CI.
 Legend: Present (works end-to-end) / Partial (some layers) / Reserved (stubbed
 on purpose) / Absent.
 
-### 3.1 Error propagation `?` — Partial (Result only)
+### 3.1 Error propagation `?` — Partial (`Result` full compiler, `Option` self-host subset)
 
 Implemented end-to-end for `Result`:
 
@@ -50,10 +50,15 @@ Implemented end-to-end for `Result`:
   `src/codegen/transpiler_let_emit.c:383`,
   `src/codegen/transpiler_mir_preserved_let_emit.c:280`).
 
-Gaps:
+Gaps and current self-host status:
 
-- Works for `Result` only. Rust's `?` also threads `Option`. No `Option`
-  support today.
+- The production compiler path works for `Result`. Rust's `?` also threads
+  `Option`; the full C/LLVM language surface still needs that promotion.
+- The self-host semantic/codegen subset now accepts `Option<T>?` in a
+  let-binding and lowers the missing branch to `None` from an enclosing
+  `Option`-returning function. This is pinned by
+  `valid_option_try_payload` in the self-host semantic parity suite and
+  `option_try` in the self-host codegen parity suite.
 - Modeled as a generic unary operator rather than a first-class try node, so
   its semantics piggyback on unary handling. The exact failure path
   (early-return honoring the enclosing function's `Result` return type vs a
@@ -142,7 +147,8 @@ place. The ADT/matching machinery is mature; `?` already works for `Result`.
 The "경량감 부족" therefore reduces to a short, specific list:
 
 1. Inference depth (the primary felt-heaviness lever).
-2. `?` for `Option` (and freezing the `?` failure-path semantics).
+2. `?` for `Option` in the full compiler path, after the self-host subset
+   proof stays green (and freezing the `?` failure-path semantics).
 3. `?.` optional chaining (unfreeze the reserved feature by threading
    provenance through the IR).
 4. Ability coherence (the one true polymorphism gap).
@@ -249,6 +255,12 @@ Surfaces: semantic only (`type_checker_*`); no new syntax.
 
 ### 5.2 `?` extended to Option, and frozen semantics (priority 2)
 
+Status: PARTIAL. The self-host subset has landed the low-risk slice:
+`Option<T>?` inside `let` statements, with early `None` propagation when the
+enclosing function returns `Option`. The full language path still needs C/LLVM
+compiler promotion and a dedicated spec/golden row before this section can be
+marked stable.
+
 - Allow `expr?` where `expr : Option<T>`, yielding `T`, with the failure path
   returning `None` from an enclosing `Option`-returning function (symmetric to
   the existing `Result` behavior returning `Err`).
@@ -305,7 +317,8 @@ code (string `#define`, no enum/switch hazard).
 
 1. Inference friction audit, then inference depth (5.1) — biggest lightness win,
    lowest risk, no syntax change.
-2. `?` on Option + freeze semantics (5.2).
+2. `?` on Option + freeze semantics (5.2). The self-host let-binding slice is
+   landed; full compiler promotion remains.
 3. Ability coherence (5.4) — parallelizable, independent track.
 4. `?.` optional chaining (5.3) — after Option plumbing settles.
 5. ADT/match polish (5.5) — confirm and fill.

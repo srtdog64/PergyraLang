@@ -268,11 +268,6 @@ transpiler_mir_ssa_local_find_versioned_type_name(
                     && strcmp(inst->abi_type_name, "Unknown") != 0) {
                     return pergyra_strdup(inst->abi_type_name);
                 }
-                if (inst->expr1 != NULL
-                    && inst->expr1->type == AST_TYPE) {
-                    return transpiler_render_effective_local_type_name(
-                        ctx, inst->expr1);
-                }
                 const char *source_type =
                     transpiler_mir_routine_source_local_type_name(
                         routine, base_name);
@@ -282,6 +277,11 @@ transpiler_mir_ssa_local_find_versioned_type_name(
                     && transpiler_mir_ssa_local_source_def_count(
                         routine, base_name) == 1) {
                     return pergyra_strdup(source_type);
+                }
+                if (inst->expr1 != NULL
+                    && inst->expr1->type == AST_TYPE) {
+                    return transpiler_render_effective_local_type_name(
+                        ctx, inst->expr1);
                 }
                 if (inst->expr0 != NULL) {
                     const char *inferred =

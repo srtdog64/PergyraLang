@@ -120,6 +120,7 @@ SOURCE_PAIRS=(
     "valid_literal_compare:ok"
     "valid_option_none_literal:ok"
     "valid_option_unwrap_payload:ok"
+    "valid_option_try_payload:ok"
     "bad_option_payload_return:error"
     "bad_option_payload_let:error"
     "bad_issome_non_option:error"

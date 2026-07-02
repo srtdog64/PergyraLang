@@ -300,8 +300,8 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_fact_surface_validate.c" "residual STMT emit is outside allowed residual statement policy"
     require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_source_stmt_residual_emit_is_allowed(inst)"
     require_literal "src/codegen/transpiler_mir_block_emit.c" "mir_instruction_source_stmt_residual_emit_is_allowed(inst)"
-    require_literal "src/compiler/mir.h" "mir_instruction_source_stmt_reemit_is_redundant"
-    require_literal "src/compiler/mir.h" "mir_instruction_source_stmt_call_emit_is_allowed"
+    require_literal "src/compiler/mir_source_emit_predicates.h" "mir_instruction_source_stmt_reemit_is_redundant"
+    require_literal "src/compiler/mir_source_emit_predicates.h" "mir_instruction_source_stmt_call_emit_is_allowed"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_reemit_is_redundant"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_call_emit_is_allowed"
     require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_source_stmt_reemit_is_redundant(inst)"
@@ -536,7 +536,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_statement_order_compare"
     require_literal "src/compiler/mir_source_shape.c" "mir_instructions_share_source_statement"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_line_matches_node"
-    require_literal "src/compiler/mir.h" "mir_instruction_source_stmt_runtime_boundary_emit_is_allowed"
+    require_literal "src/compiler/mir_source_emit_predicates.h" "mir_instruction_source_stmt_runtime_boundary_emit_is_allowed"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_runtime_boundary_emit_is_allowed"
     if grep -A8 -F "mir_instruction_uses_source_statement_emit" \
         "$ROOT_DIR/src/compiler/mir_source_shape.c" | \

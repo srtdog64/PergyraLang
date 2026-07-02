@@ -56,6 +56,26 @@ func CheckUndefinedIdentifiers(expr: String, names: Array<String>) -> String {
     return "";
 }
 
+func CheckTryOperand(expr: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
+    let text: String = Trim(expr);
+    let bounds: Array<Int> = [0, 0];
+    if !TryOperandBounds(text, bounds) {
+        return "";
+    }
+    let operand: String = Trim(Substring(text, bounds[0], bounds[1]));
+    let operand_type: String = ExprType(operand, names, types, func_names, func_rets);
+    if operand_type == "Unknown" {
+        return "";
+    }
+    if operand_type == "Option<Unknown>" {
+        return SemanticError3("option_concrete_type_required", "func", "?", "expected", "Option<T>", "actual", operand_type);
+    }
+    if !IsOptionType(operand_type) {
+        return SemanticError3("builtin_arg_type_mismatch", "func", "?", "expected", "Option<T>", "actual", operand_type);
+    }
+    return "";
+}
+
 func CheckLogicalOperands(expr: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
     let text: String = Trim(expr);
     let n: Int = StringLength(text);

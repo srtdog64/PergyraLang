@@ -368,7 +368,7 @@ for term in \
     "func SemanticVerdictPayloadFixtureCount" \
     "func SemanticVerdictPayloadStatusReady" \
     "func SemanticVerdictPayloadContractReady" \
-    "SemanticVerdictPayloadFixtureCount() != 107" \
+    "SemanticVerdictPayloadFixtureCount() != 108" \
     "SemanticDiagnosticCodeCount() != 17" \
     "StringIndexOf(ok, \"Status: ok\")" \
     "StringIndexOf(err, \"Code: undefined_symbol\")"; do
@@ -385,7 +385,7 @@ for term in \
     "JsonDocumentStringFieldEquals(json, \"schema\", MirFactGraphPayloadSchema())" \
     "JsonFieldArrayBounds(json, 0, doc_end, \"decls\", decls)" \
     "JsonFieldArrayBounds(json, 0, doc_end, \"routines\", routines)" \
-    "JsonObjectStringField(json, inst[0], inst[1], \"source_type\")"; do
+    "MirObjectStringFactOpt(json, inst[0], inst[1], \"source_type\")"; do
     require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "$term"
 done
 

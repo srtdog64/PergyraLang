@@ -1,0 +1,38 @@
+func Pick(x: Int) -> Option<Int> {
+    if x == 3 {
+        return None;
+    }
+    return Some(x);
+}
+
+func Doubled(x: Int) -> Option<Int> {
+    let found: Int = Pick(x)?;
+    return Some(found * 2);
+}
+
+func Describe(x: Int) -> Option<String> {
+    let found: Int = Pick(x)?;
+    return Some(Concat("found:", ToString(found)));
+}
+
+func Main() -> Void {
+    let a: Option<Int> = Doubled(4);
+    if IsSome(a) {
+        Log(UnwrapOption(a));
+    }
+
+    let b: Option<Int> = Doubled(3);
+    if !IsSome(b) {
+        Log(0);
+    }
+
+    let c: Option<String> = Describe(6);
+    if IsSome(c) {
+        Log(UnwrapOption(c));
+    }
+
+    let d: Option<String> = Describe(3);
+    if !IsSome(d) {
+        Log("none");
+    }
+}
