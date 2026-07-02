@@ -9716,6 +9716,461 @@ runtime-validated handles) ?????? 진입 비용 ???? ??리, ??기??식 ??합.
 ??reflection?? *self-host 진입 ??가??????산*: lifetime annotation????으??컴파??러 ??체??Pergyra????시 ????????리가 *??????게 ??현
 가??. Rust가 self-host ??lifetime annotation??로 부??친 ??리????리????피.
 
+## ★★ 작업지시서 보드 (Work-Order Board) — 2026-07-02 정밀화
+
+★ Core Goal 4-step 시퀀스를 **세션 단위로 집어 실행 가능한 작업지시서(WO)**로
+분해한 보드다. 미래 세션은 이 보드에서 WO 하나를 골라 해당 블록 + 인용된
+docs만 읽고 착수할 수 있어야 한다. 각 WO는 목표/현재 상태/단계/게이트/완료
+정의(DoD)/금지를 self-contained로 명시한다. 완료된 WO는 지우지 말고 상태만
+`✅ CLOSED (날짜, 커밋)`으로 바꾼다.
+
+### WO-0. 공통 운영 규칙 — 모든 WO에 선행 (위반 시 그 세션 결과는 무효)
+
+1. **세션 시작 절차**: `git status --short` + `git log --oneline -10` 먼저.
+   동시 세션이 수정 중인 파일(2026-07-02 기준: SEA lane 계열 —
+   `src/compiler/air_execution_lane.c`, `src/self_hosted/sea/*`,
+   `docs/146_sea_execution_lanes.md`, 관련 smoke)은 읽기만 하고 수정/롤백/
+   스테이징 금지. 커밋은 `git add <내 파일 명시>`만.
+2. **빌드 채널**: PowerShell에서 `bash.exe -c "make -j ..."`. 로그인 셸
+   (`bash -lc`)은 빌드를 EXIT=0으로 무음 삼킴 — 금지. Bash 도구는
+   `dangerouslyDisableSandbox` 없이는 gcc가 차단된다. 진단: `make -n`은 할
+   일이 있는데 실제 make가 무음이면 셸/샌드박스 차단이다.
+3. **게이트 실행 규율**: `make -j` 필수. 무거운 smoke는 하나씩 + timeout.
+   범용 헤더 수정 직후 전체 smoke 직렬 방치 금지(2시간 사건 재발 방지).
+   grep-게이트와 컴파일-게이트는 분리 실행.
+4. **런타임 수정 시**: C-inline 트윈(`PGY_RUNTIME_BC_BUILD` 가드 포함)과
+   LLVM-export 트윈을 lockstep으로 수정하고 `.bc` 재생성을 확인한다
+   (`make pgy`는 `.bc`를 재생성하지 않는다 — stale `.bc`는 UB 가드를 무음
+   재개방). `.bc` 인라인 대상에서 `PGY_RUNTIME_PANIC` 본문 포함 함수는
+   `llvm_exclude_critical_runtime_from_bitcode` 분류 확인; EXTERNAL(`T`)
+   심볼만 strip 가능(`t` strip은 링크 에러).
+5. **커밋 규율**: main 직접 커밋. `Co-Authored-By`/AI 트레일러 금지.
+   push는 fast-forward만 — 뒤처졌으면 origin/main 위 cherry-pick, force 금지.
+6. **표현 규율**: "Rust-equivalent safety" 표현 금지(docs/118 §8 표 준수).
+   lifetime 주석 구문(`'a`) 제안/도입 영구 금지(docs/118 §2.1).
+7. **완료 정의(공통 DoD)**: 코드 + 지정 게이트 green 로그 + TODO 진행 노트
+   1블록 + (계약 변경 시) 해당 docs 갱신. 게이트 없는 "done" 보고 금지.
+8. **stale 노트 주의**: 이 파일은 append-log라 옛 갭 기록이 남아 있다.
+   착수 전 아래 "닫힘 정정 기록"과 git log로 현재성 확인.
+
+### 닫힘 정정 기록 (2026-07-02 보드 작성 시점 검증)
+
+이 보드 작성 시 grep/실측으로 확인한, **본문 옛 노트/메모리와 어긋나는 현재
+사실**. 미래 세션은 옛 노트보다 이 블록을 우선한다.
+
+- §0-selfhost의 2026-05-27 "surface 갭 3종" 노트는 **전부 닫혔다**:
+  native JSON parser → `src/self_hosted/lib/json.pgy` + `json_scan.pgy`,
+  디렉터리 순회 → `pgy_runtime_dir_walk_*` 런타임 + builtin,
+  CLI 인자 → `Args()` (+ `PGY_CAP_ENV` 게이팅, task #43/#44).
+- machine-neutral 게이트는 **RED → GREEN 전환됨**(task #45,
+  `tests/machine_neutral/*` "GREEN: AIR owns capability-machine projection
+  fields"). "FALSIFIED" 서술은 그 시점 기록.
+- docs/125 SoT residue(row 607 tail / row 612 L731)는 F1+F2로 **완전
+  닫힘**(`0be230b6` "F2-general is a misdiagnosis; F2 residue is fully
+  closed").
+- 문서 번호 정정: closure capture 설계=**docs/141**, guard amortization=
+  **docs/142**, 외부 레드팀 리뷰=**docs/137** (메모리의 135/136/134 인용은
+  stale).
+
+### 트랙 지형 스냅샷 (2026-07-02)
+
+| 트랙 | 상태 | 다음 WO |
+|---|---|---|
+| Beta closure (§0a) | strict ~83%; full-suite 증거 재신선화 필요 | WO-B1 → WO-B2 |
+| Red-team 잔여 (docs/137) | R6 닫힘; D1/D3 열림, D2/D4 결정 대기 | WO-B4, WO-B5 |
+| Self-host typed AST | payload 커밋 스트림 활성(동시 세션 가능성) | WO-S1/WO-S2 |
+| Formal corpus (docs/semantics/19) | 10 .v coqc green, 0 admits | WO-F1 |
+| Machine-neutral | projection GREEN, test-all 미승격 | WO-A1 |
+| AIR erasure dashboard | 실측 landed, CI 게이트 미승격 | WO-A2 |
+| String perf | fused builtins+StrView 런타임 landed | WO-P1 |
+| Guard amortization (docs/142) | 첫 슬라이스 landed | WO-P2 |
+| Closure capture (docs/141) | Stage A 完 | WO-C1→C3 |
+| Intent-Compress (§0c) | post-beta prio 0 | A-6 (설계만) |
+
+---
+
+### Beta closure 트랙 (§0a "남는 순서" 실행 분해)
+
+#### WO-B1 — backend-compare full-suite 증거 갱신
+
+- **목표**: 최상단 anchor의 "beta-complete 선언 전 full-suite evidence
+  refresh" 요구를 이행하고 날짜 박제.
+- **현재**: 기본 스위트가 커져 CI는 20-shard(`CI_BACKEND_COMPARE_SHARD_TOTAL`)
+  결정적 분할. 마지막 로컬 full sweep 이후 커밋 다수 누적.
+- **단계**:
+  1. `bash.exe -c "make -j LLVM_ENABLED=1 pgy"` 빌드 (+ `.bc` 확인).
+  2. 로컬 full sweep을 shard로: `PGY_BACKEND_COMPARE_SHARD_TOTAL=8
+     PGY_BACKEND_COMPARE_SHARD_INDEX=k make llvm-test-backend-compare`
+     (k=0..7, 하나씩 + timeout).
+  3. 실패 fixture는 `tests/compare_backends.sh
+     tests/cases/backend_compare/<fixture>`로 최소 재현 후 SoT 방식 수리
+     (문자열 패치 금지 — 소유 fact 경로로).
+  4. 전 shard 0 fail이면 최상단 anchor의 수치/날짜 갱신.
+- **게이트**: `llvm-test-backend-compare` 전 shard, `test-transpile`,
+  `llvm-test-smoke`.
+- **DoD**: 전 shard green 로그 + anchor 갱신 커밋.
+- **금지**: 일부 shard만 돌리고 "full-suite 검증" 보고.
+
+#### WO-B2 — ABI/Slot/Pin ownership freeze 마감 (§0a-6)
+
+- **목표**: Slot/Pin cleanup, zone-bound handle, runtime-none, raw escape,
+  ABI non-leakage를 코드 게이트 + 문서 계약으로 **명시 고정**(freeze 선언).
+- **현재**: 게이트는 산재 존재(`abi-ownership-shape-test-smoke`,
+  `runtime-abi-lifetime-test-smoke`, `security-portability-contract-test-smoke`,
+  `secure-token-reuse-test-smoke`). freeze **표**가 없다.
+- **단계**:
+  1. 위 게이트들이 각각 잠그는 계약을 인벤토리(게이트 → 계약 → 위반 시 증상).
+  2. docs/118에 "ABI Freeze Table" 절 추가: ABI 표면(슬롯 id 32+32,
+     token 카운터, pin view, panic class 목록)별 소유 게이트/변경 절차
+     (= ABI-breaking 결정은 post-beta 명시 결정으로만).
+  3. 표에 있는데 게이트 없는 행 → 게이트 leg 추가. 게이트 있는데 표에 없는
+     행 → 표 보완.
+  4. freeze 선언 커밋(이후 ABI 변경은 이 표 개정을 강제).
+- **게이트**: 위 4종 + 신규 leg.
+- **DoD**: freeze 표 + 전 행 게이트 매핑 100% + §0a-6 항목 ✅ 표기.
+
+#### WO-B3 — runtime frontier full transitive scheduler (§0a-5)
+
+- **목표**: world/zone/projection bounded recompute 다음 단계인 full
+  transitive frontier scheduler 마감.
+- **현재**: `runtime-frontier-contract-test-smoke` /
+  `runtime-frontier-policy-test-smoke` green. bounded 단계까지 landed.
+- **단계**:
+  1. 현재 bounded recompute의 경계(어떤 전이가 1-hop에서 멈추는지)를
+     fixture로 명시화 — RED fixture 먼저.
+  2. frontier pass-limit(카운티드) 계약 위에 transitive 폐포 스케줄 설계:
+     방문 집합 + 세대 태그로 재진입 종결 보장(무한 propagate 금지 —
+     §1.1 hidden control flow).
+  3. C/LLVM 양쪽 lockstep 구현(트윈 규율, WO-0-4) + parity fixture.
+  4. 실패는 fail-closed: 폐포 미수렴 시 진단 이벤트로 보고, 무음 부분
+     전파 금지.
+- **게이트**: 위 frontier 2종 + 신규 transitive fixture +
+  `llvm-test-backend-compare` 해당 slice.
+- **DoD**: RED→GREEN fixture 쌍 + parity green + §0a-5 ✅.
+
+#### WO-B4 — zone-bound handle typed evidence (red-team Defense 3)
+
+- **목표**: `SlotHandle<T> in Zone` / `handle@zone`을 typed CFG/AIR fact로
+  승격 — 명시적 `handoff` 허용 + source-zone use-after-handoff 거절 +
+  미승인 spawn/channel/parallel escape 거절.
+- **현재**: unsafe escape는 보수적 거절/hard-fail. 1급 표면 없음.
+- **단계**:
+  1. 표면 문법 결정 최소화: 기존 zone/own-ref 어휘 재사용 우선(신규
+     키워드 최소 — docs/134 표면 위생).
+  2. semantic: handle의 zone-binding fact + handoff 지점 추적(정적,
+     interprocedural은 capability 전파 패턴 재사용).
+  3. AIR: boundary evidence node로 반영(AIRBinding.v의 5-패밀리 인터페이스와
+     정합 — acquire/zone gate 축).
+  4. C/LLVM: 거절은 semantic에서 종결(코드젠 도달 금지 = fail-closed).
+  5. 신규 게이트 `zone-bound-handle-region-test-smoke`: 허용 3 + 거절 4
+     (handoff 후 source-zone read/write, spawn escape, channel escape,
+     parallel escape) fixture.
+- **게이트**: 신규 smoke + `test-semantic` + `test-air`.
+- **DoD**: 게이트 green + docs/118 §freeze 표에 행 추가 + Defense 3 ✅.
+- **금지**: 이 작업을 이유로 lifetime 주석 구문 도입(WO-0-6).
+
+#### WO-B5 — Result-first host boundary wrappers (red-team Defense 1)
+
+- **목표**: file/FFI/network/runtime-slot 경계 호출의 host-facing
+  `Result<T, E>` 래퍼 완성 + 래퍼가 raw panic 표면으로 lower되지 않음을
+  게이트로 고정.
+- **현재**: primitive `Slot`/`DeviceSlot`/`SecureSlot`의 typed `try_*` +
+  `PgyRuntimeSlotFailure` payload는 landed(sharp panic export 병존).
+  file/FFI/network 쪽 Result 표면이 미완.
+- **단계**:
+  1. 경계 인벤토리: panic-only로만 노출된 호출 목록화(ReadFile/WriteFile/
+     FileOpen/channel/FFI 진입점).
+  2. 각 경계에 `Try*` 계열 Result 표면 추가 — 기존 `try_*` 슬롯 패턴과
+     동일한 failure payload 스키마 재사용(신규 에러 표현 발명 금지).
+  3. 게이트 leg: 래퍼 lower 경로에 `PGY_RUNTIME_PANIC` 미포함을 grep +
+     실행 fixture 양쪽으로.
+  4. C/LLVM parity fixture(성공/실패 각 1).
+- **게이트**: `runtime-panic-abi-test-smoke`,
+  `security-portability-contract-test-smoke`, 신규 fixture.
+- **DoD**: 경계 인벤토리 표 + 전 행 Result 표면 + Defense 1 ✅.
+
+---
+
+### Self-host 트랙 (§0-selfhost 실행 분해)
+
+#### WO-S1 — typed AST 마이그레이션 계속 (Pergyra-likeness 본체)
+
+- **목표**: self-host 코어의 `ast: String` text-munging을 typed AST node
+  payload로 치환하는 스트림 지속("Move codegen * payload into AST node"
+  커밋 계열, 최근 `f7719dea` "ratchet codegen emission off ast text").
+- **현재**: ratchet 게이트 `tests/self_host_pergyra_likeness_smoke.sh`가
+  `string_munge_sig`(max 160) / `ast_string_surface` / `sentinel` /
+  `result_use`(min 172) / typed-AST payload 계약을 감시.
+- **착수 전 확인**: 이 스트림은 동시 세션이 진행 중일 수 있다 — `git log
+  --oneline --since="24 hours ago"`에 payload 커밋이 보이면 **이 WO를 집지
+  말고** WO-S2 또는 다른 트랙으로 전환.
+- **단계**:
+  1. `bash.exe -c "bash tests/self_host_pergyra_likeness_smoke.sh"`로 현재
+     실측치 출력 — 가장 큰 잔여 `(String) -> String` 클러스터 식별
+     (`src/self_hosted/lib/json.pgy`가 카운트 대상).
+  2. 클러스터 1개를 typed node + `Result`/`Option` 반환으로 치환
+     (sentinel `-1` 재도입 금지 — ratchet이 잡는다).
+  3. 치환 후 실측치가 내려가면 baseline max를 그 값으로 하향(WO-S2).
+- **게이트**: likeness smoke + `self-host-preparation-test-smoke` +
+  관련 parity smoke.
+- **DoD**: 실측 하락 + baseline 하향 + 커밋. 한 세션 1클러스터면 충분
+  (ratchet은 단조 감소가 목적, 빅뱅 금지).
+
+#### WO-S2 — likeness baseline 조이기 (ratchet 하향 전용 미니 WO)
+
+- **목표**: 코드 치환 없이도, 실측이 baseline보다 이미 낮으면 max/min을
+  실측치에 밀착시켜 후퇴 여지를 제거.
+- **단계**: smoke 실행 → `metrics (current vs baseline)` 출력에서 여유가
+  있는 행의 `*_MAX`/`*_MIN`(스크립트 상단 66-69행 부근)을 실측치로 갱신 →
+  smoke 재실행 green 확인 → 커밋.
+- **DoD**: baseline 갱신 커밋 1개. 소요 15분급 — 세션 워밍업용으로 적합.
+
+---
+
+### Formal 트랙 (docs/semantics/19 corpus — 현재 10 .v, 0 admits/0 axioms)
+
+#### WO-F1 — AxisOwnership 후속: reading-confluence + binary-adequacy
+
+- **목표**: docs/42 직교성 기계화의 남은 두 정리 —
+  (a) reading-confluence: 서로 다른 축 읽기 순서가 같은 판정에 수렴,
+  (b) binary-adequacy: 표면 구문 2진 판정(수용/거절)이 calculus 판정과 일치.
+- **현재**: `AxisOwnership.v` 세션 1+2 전부 coqc PASS. 신규 파일 컨벤션은
+  one-file-per-proof(WholeProgramCore.v/AIRBinding.v 참조 — standalone
+  섹션 + 최소 config 재선언).
+- **단계**:
+  1. `coqc`는 `/c/Users/Pc/AppData/Local/Rocq-Platform~9.0~2025.08/bin/coqc`
+     (ROCQLIB env 필요 — `tests/formal_semantics_smoke.sh` 상단 참조).
+  2. `docs/semantics/proofs/ReadingConfluence.v` 신규: AxisOwnership의
+     axis-read를 순열로 일반화, `read_order_irrelevant` 정리.
+  3. `docs/semantics/proofs/BinaryAdequacy.v` 신규: 표면 판정 함수
+     (accept/reject) ↔ calculus guard의 iff. AIRBinding의
+     `guard_air_faithful` 패턴 재사용.
+  4. `tests/formal_semantics_smoke.sh`에 require_file + require_terms
+     (정리 이름 고정) 추가.
+- **게이트**: `bash tests/formal_semantics_smoke.sh` → "formal semantics
+  Coq smoke: ok".
+- **DoD**: 2파일 coqc green(0 admits/0 axioms) + smoke 배선 +
+  docs/semantics/19 corpus 표 갱신.
+- **금지**: 모델↔C 구현 일치를 "증명됨"으로 표현(그건 parity 게이트 몫 —
+  AIRBinding.v negative-scope 주석 준수).
+
+#### WO-F2 — red-team Defense 4 게이트 명명 정리
+
+- **목표**: Defense 4가 요구한 `formal-proof-mechanization-test-smoke`는
+  실질적으로 `tests/formal_semantics_smoke.sh`로 존재 — Makefile 타깃
+  별칭 + Defense 4 문구를 현재 corpus(10파일) 기준으로 갱신하고 ✅ 처리.
+- **단계**: Makefile에 `formal-semantics-test-smoke` 타깃(스크립트 호출)
+  추가 → optional-toolchain 의미(coqc 부재 시 명시 skip, 무음 pass 금지)
+  확인 → 아래 Defense 4 블록 상태 갱신.
+- **DoD**: make 타깃 + Defense 4 ✅ + 이 보드 스냅샷 갱신. 30분급.
+
+---
+
+### AIR / Machine-neutral 트랙
+
+#### WO-A1 — machine-neutral projection 게이트 test-all 승격
+
+- **목표**: `make machine-neutral-status`(Makefile ~1813행, 현재 "progress
+  marker, NOT in test-all")를 상시 게이트로 승격.
+- **현재**: capability-machine projection이 AIR-only fact로 GREEN
+  (task #45). 승격 조건인 안정성 검증이 남음.
+- **단계**:
+  1. 5회 연속 실행 결정성 확인(비결정 출력 시 그게 먼저 버그).
+  2. `test-all` 및 `ci-windows` 스텝 리스트에 추가(과거 task #40의
+     test-sandbox-gates 배선 패턴 그대로).
+  3. python3 부재 환경 fallback(`capability_projection_shell_gate.sh`)이
+     CI에서 실제로 도달 가능한지 확인 — 무음 skip 금지.
+  4. Makefile 주석의 "NOT in test-all" 문구 제거 + docs/semantics/18
+     Acceptance Rule 절에 승격 날짜 기록.
+- **게이트**: `machine-neutral-status` + `test-all` 통과.
+- **DoD**: CI 배선 커밋 + 문서 갱신.
+
+#### WO-A2 — AIR erasure dashboard CI 게이트화
+
+- **목표**: `tests/air_erasure/`(baseline.json + measure/parity/gate.ps1)를
+  수동 계기판에서 CI 게이트로 승격 — "축 어휘 100% 소거, 잔여는
+  bounded·measured·attributed" 주장의 상시 증거화.
+- **단계**:
+  1. `gate.ps1`의 판정 로직 확인: A(환원불가)/B(설계 fail-closed)/
+     C(정적 미완성) 버킷별 baseline 비교, C-버킷 단조 비증가가 핵심 룰.
+  2. make 타깃 `air-erasure-gate` 추가 — Windows CI는 MSYS2 bash이므로
+     `powershell.exe -File tests/air_erasure/gate.ps1` 호출 또는 sh 포팅
+     중 택1(포팅 시 결과 byte-diff로 동치 확인).
+  3. `ci-windows` 스텝 리스트에 배선. baseline 갱신은 명시 커밋으로만
+     (자동 재기록 금지 — ratchet 원칙).
+- **게이트**: 신규 타깃 green + 의도적 위반 fixture(런타임에 축 어휘 심볼
+  추가)로 RED 확인.
+- **DoD**: CI 배선 + RED/GREEN 양방향 증거 + docs/14 갱신.
+
+---
+
+### Perf 트랙
+
+#### WO-P1 — StrView lifetime fact 승격 (docs/138 P0 잔여)
+
+- **목표**: `StrView`(runtime `pgy_runtime_strview_inline.h` +
+  `stdlib/strview.pgy`: `SubView`/`ViewOf`/`ViewIndexOf`)의 남은 갭 —
+  "lifetime fact still to promote"(docs/138 표 55행) — 를 정적 fact로 승격:
+  view가 owner 버퍼보다 오래 살 수 없음을 semantic이 거절.
+- **단계**:
+  1. escape 사례 fixture 먼저(RED): view를 return/spawn/channel로 유출,
+     owner 해제 후 view 사용.
+  2. slot own/ref 증거 패턴 재사용(UAF interprocedural 추적과 동형) —
+     신규 lifetime 어휘 발명 금지(WO-0-6).
+  3. 런타임 backstop: debug 모드 owner 세대 태그 검사(항상-on 여부는
+     slot 검사 일관성 결정과 정합 유지).
+  4. perf 재측정: `docs/perf_close_to_c.md`의 window-class 표에 StrView
+     정적화 이후 수치 추가.
+- **게이트**: `string-window-builtins-test-smoke` + 신규 lifetime smoke +
+  backend parity fixture.
+- **DoD**: RED→GREEN fixture + parity + perf 표 갱신.
+
+#### WO-P2 — guard amortization 잔여 (docs/142)
+
+- **목표**: 첫 슬라이스(plain `Slot<T>` MIR pin region owner fact +
+  `PgyPinnedSlotView_*`, 게이트 `evidence-guard-amortization-test-smoke`)
+  다음 슬라이스 선정·구현. Track B(도메인 상태 특수화)는 실측 moot(분기 0,
+  dyn dispatch 부재) — **종결 기록만** 남기고 착수 금지.
+- **착수 전 확인**: docs/142가 동시 세션 소유였던 이력 있음 — 최근 수정자
+  확인 후 충돌 시 회피.
+- **단계**: docs/142의 측정 표에서 다음 WIN 후보(secure pin region,
+  루프 내 bounds guard 등)를 **측정 먼저** → 이득 확인된 것만 hoist 구현
+  (측정 없는 hoist 금지 — evidence-guard 원칙) → 트윈 lockstep + parity.
+- **게이트**: `evidence-guard-amortization-test-smoke` + 대상 pin/bounds
+  backend-compare slice.
+- **DoD**: 측정 표 1행 추가 + (WIN이면) 구현 + Track B moot 종결 문단.
+
+---
+
+### Closure capture 트랙 (docs/141 — Stage A 完, task #49-51)
+
+공통 패턴(Stage A에서 확립): closure env ABI + 람다는 MIR 우회라 dual-backend
+codegen 직접 수술 + `closure_copy_capture` 게이트 계열 + parity fixture.
+Stage 순서는 B→C→D 고정(각 stage는 이전 stage 거절 경로를 허용으로 전환).
+
+#### WO-C1 — Stage B: non-escaping closure의 ref-capture
+
+- **목표**: escaping하지 않는(callable-let 지역 사용) 클로저의 참조 캡처
+  허용 — 현재는 value copy만.
+- **단계**: docs/141 Stage B 절 준수. (1) non-escaping 판정을 semantic
+  fact로(escape 4경로 — event handler/arg/return/spawn — 는 계속 거절),
+  (2) env에 포인터 슬롯, (3) 캡처 변수 재할당 가시성 fixture(C/LLVM 동일
+  출력), (4) 거절 유지 fixture(escaping + ref 조합).
+- **게이트**: `closure_copy_capture` 계열 확장 + backend parity.
+- **DoD**: 허용/거절 fixture 쌍 + parity + docs/141 Stage B ✅.
+
+#### WO-C2 — Stage C: escaping closure의 own-capture (move)
+
+- **목표**: event handler/인자/return/spawn으로 나가는 클로저에 move 캡처
+  허용(현 Stage C 거절의 해제).
+- **단계**: (1) move-out 이후 원본 사용 거절(definite-move CFG fact 재사용),
+  (2) env 소유권 해제 시점 = 클로저 drop과 결속(lifecycle fact),
+  (3) spawn 경계는 capability/effect 전파와 정합(§capability interproc 패턴).
+- **게이트**: 신규 stage-C smoke + parity + `test-semantic`.
+- **DoD**: 4개 escape 경로 각각 허용 fixture + move-후-사용 거절 fixture.
+
+#### WO-C3 — Stage D: slot/token/authority/capability capture
+
+- **목표**: 도메인 자원(slot handle, secure token, authority, cap mask)의
+  캡처 — 언어 차별화 지점. 캡처는 **증거 이동**으로 취급: 캡처된 authority/
+  cap은 클로저 body의 declared⊇used 검사에 산입.
+- **단계**: (1) 자원별 캡처 의미론 표(copy 금지 대상: secure token은 move만),
+  (2) capability mask 전파를 클로저 호출 간선에 연장, (3) AIR boundary
+  evidence 반영, (4) 거절: 캡처로 zone/cap 게이트 우회 시도 fixture.
+- **게이트**: stage-D smoke + `make test-capability` + `test-air` + parity.
+- **DoD**: 자원 4종 각 허용/거절 fixture + 우회 불가 증거.
+
+---
+
+### 아키텍처 TODO (정밀 분해, 2026-07-02)
+
+WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목을 WO로 승격해
+위 보드에 블록을 추가한다.
+
+#### A-1. Target #4 — dual-backend unified MIR consumption (task #42)
+
+- **문제**: dual backend 113k LoC가 dominant cost(thesis 2배 세금). C와
+  LLVM이 같은 MIR fact를 **각자** 소비하는 지점이 중복의 뿌리.
+- **방향**: hosted-view 패턴(`TranspilerHostedFieldView`/`LLVMHostedFieldView`
+  → 이미 성공)과 channel twin op-set SoT guard(Makefile "target #4" 주석)를
+  일반화 — 백엔드 중립 MIR consumption 뷰 계층. 전면 재작성 아님:
+  **소비 지점별 뷰 통일의 누적**.
+- **1차 슬라이스 후보**: 표현식 타입 추론 소비(`llvm_mir_local_expected_type_name`
+  ↔ C 대응)의 공유 뷰화. 슬라이스마다 parity full-slice 재확인.
+- **정합**: A-2와 함께 진행(아래).
+
+#### A-2. LLVM struct-return ABI 일반 fix (option B)
+
+- **문제**: struct-반환 런타임 콜의 by-value 선언은 1+인자만 동작, 0-인자는
+  sret slot 패턴 필요(Args() 사건, task #44). 현재는 가드로 latent trap만
+  명시화.
+- **방향**: 반환-분류를 콜사이트 산재 판단이 아닌 단일 ABI classifier로
+  (option B). **비상시 아님 — A-1(target #4)과 같은 세션 계열에서** 처리
+  (둘 다 LLVM 콜 lowering 소유권 정리이므로 분리 착수 시 충돌).
+
+#### A-3. SEA lane runtime facade — ★동시 세션 소유 (2026-07-02 현재)
+
+- SEA 3층(계약/ExecutionLaneFact IR/PgyLaneScheduler) 중 런타임 facade가
+  남은 fill. **현재 워킹트리에서 다른 세션이 해당 파일 수정 중** — 이
+  항목은 그 세션 종료 확인 전 착수 금지(WO-0-1). 계약: lane은 증거 기반,
+  M:N은 한 lane(증거-gated), 층 collapse 금지(docs/146).
+
+#### A-4. Semantic squiggle 2단계 — advisory drift 목록 (docs/140)
+
+- 배관(DIAG_ADVISORY + 첫 생산자 + LSP + VS Code)은 전부 landed. 병목은
+  **언어 결정**: docs/122 drift 매트릭스(5차원×5종) 중 어떤 조합이 advisory
+  4색의 어느 색을 받는가.
+- **산출물**: 결정 표(도메인 drift → 색/차단 여부/근거) 문서 + 표의 상위
+  2-3행에 대한 2·3번째 생산자 구현. 코드보다 표가 먼저다.
+
+#### A-5. Slot id 폭 결정 (red-team Defense 2)
+
+- option A: 64+64로 확장(명시적 ABI-breaking, post-beta 결정) vs option B:
+  현 32+32 유지 + recycling 증명/게이트 확장. **dogfood 증거(던전 크롤러
+  워크로드의 id churn 실측) 확보 전 결정 금지.** 128-bit 표현 금지 유지.
+  결정 시 WO-B2 freeze 표 개정 절차를 따른다.
+
+#### A-6. Intent-Compress (§0c) — post-beta priority 0, self-host 직전
+
+- 지금 할 것은 **설계 예산 산정만**: Phase 1 명세(compressed-default +
+  who/where/requires/authorized-by 4-clause 추론)의 구현 견적. 코드 착수는
+  beta closure + dogfood evidence(어느 clause가 과잉 required인지) 이후.
+  self-host가 verbose intent 비용을 다시 내지 않게 하는 순서 장치.
+
+#### A-7. Capability sandbox 잔여 (docs/15) — 킬러 비전 램프
+
+- 남은 3계단: (1) WASM target(§0b 경로 — C backend `--emit-c` +
+  Emscripten smoke가 1차, native LLVM wasm은 beta+1), (2) 실미디어 백엔드
+  (render/audio/input stub → 실제 구현, capability 게이트 유지),
+  (3) 서명 로더(배포 콘텐츠 신뢰 체인). 순서 고정 — WASM 없이 미디어부터
+  가지 말 것(배포 스토리가 thesis).
+
+#### A-8. Self-eating bootstrap — Stage 5 North Star
+
+- `docs/self_hosted/01_staged_roadmap.md` Stage 5: 3-stage fixed point
+  (B==C byte-identical). 진입 트리거는 §0-selfhost 규정(BDFL 시기 강제
+  없음, partial=interim). 현 스트림(WO-S1 typed AST)이 이 방향의 밑작업.
+
+#### A-9. F2-general — 착수 금지 판정 기록
+
+- `ast_*_shared_fields`/`ast_zone_layer_slots` 계열 ~30 사이트는 L731
+  residue가 **아님**(검증: opaque `ASTNode*` + accessor 경유, `0be230b6`).
+  ownership-unification으로 다시 열려면 별도 명시 결정 필요 — "residue
+  청소"로 위장 착수 금지.
+
+#### A-10. Core calculus synthesis 잔여 (docs/semantics/19)
+
+- corpus 10파일 이후 남은 조각: WO-F1 두 정리 → 그다음 후보는
+  effect-handler/compensation의 표면 대응(adequacy)과 channel/session
+  fragment. 원칙 유지: 파일당 한 증명, standalone, 0 admits, smoke
+  require_terms로 정리 이름 고정.
+
+#### A-11. TPU/MLIR — post-beta 설계 여지만
+
+- 베타 중 직접 작업 금지. LLVM → MLIR/StableHLO 경로 후보 메모만 유지.
+
+---
+
 ## Red-team security closure plan (2026-05-31 refreshed)
 
 This section records the security red-team work without overstating the current
