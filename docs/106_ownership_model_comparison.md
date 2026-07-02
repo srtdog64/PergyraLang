@@ -170,11 +170,12 @@ Pergyra mapping:
   stale handle protection.
 - Scratch/result/persistent arenas map to role-based lifetime lanes.
 
-Precision gap vs Vale's monotonic generational reference: the secure-slot token
-is currently address-derived (`addr ^ const`), so a same-address reuse after
-release can false-match a stale token. Folding a monotonic generation into the
-token closes this; tracked as the refinement in
-`docs/118_slot_model_rigor_audit.md` §6.7.
+Precision vs Vale's monotonic generational reference: closed (2026-07-02). Both
+secure-slot twins issue a monotonic per-suffix token identity on every claim
+(the inline C-leg twin previously derived the token from the claim temp's
+address, so repeated claims through one call site reproduced the same id and
+false-matched stale tokens). Locked by `make secure-token-reuse-test-smoke`;
+history and mechanism in `docs/118_slot_model_rigor_audit.md` §6.7.
 
 Lesson: Pergyra can reject lifetime annotation syntax and still become safer by
 making generation, arena lane, and CFG cleanup facts explicit.

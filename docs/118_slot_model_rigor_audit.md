@@ -583,42 +583,35 @@ documentation does not drift.
   by a layered static/runtime contract, with Zone-Bound Handle typing still a
   beta-freeze design decision."
 
-### 6.7 Secure-Slot Token Is Address-Derived (Reuse-Collision Refinement)
+### 6.7 Secure-Slot Token Reuse Collision — CLOSED (monotonic generation)
 
-- **Status**: the `SecureSlot<T>` token is computed purely from the slot's
-  address — `pgy_make_token` does `id = (uint64_t)(uintptr_t)s ^
-  0xDEADBEEFCAFEBABE` and use-time validation is the equality
-  `s->token != t->id` (`src/runtime/pgy_runtime_slot_macros.h`). There is **no
-  monotonic generation component** in the token. So if a secure slot at address
-  A is released and a new secure slot is later claimed at the *same* address A,
-  `pgy_make_token` reproduces the *identical* id, and a stale token retained from
-  the old slot satisfies the equality check against the new slot — a
-  use-after-release / stale-handle that the token layer does **not** catch in
-  that specific reuse case. This is the precise difference from Vale's
-  generational reference (§4.4), whose monotonically-increasing generation never
-  lets a stale reference's old generation match a reclaimed object.
-- **Current mitigation (why it is a refinement, not an open hole)**: the runtime
-  does not eagerly free, so heap-address reuse for slots is rare; plain `Slot`
-  additionally carries an occupied/released flag that catches in-place
-  use-after-release and double-release. `SlotHandle` already carries a real
-  generation counter (§4.4 / line 151). The gap is specific to the
-  *secure-slot token* under same-address reuse (most reachable via stack-local
-  secure-slot storage recycled across scopes).
-- **Closure path (the actual refinement to do in code)**: fold a monotonic
-  generation into the secure-slot identity — a per-slot (or global) counter that
-  increments on each claim/release, combined with the address so a reclaimed
-  address yields a fresh, non-matching token (`token = mix(addr, generation)`).
-  This makes the secure-slot token reuse-immune to the same standard as Vale's
-  monotonic generational reference, proven in code rather than asserted in docs.
-  Lock it with a counterexample fixture: claim → release → reclaim at the same
-  storage → use the stale token, and assert it fails closed
-  (`class=released-slot` / invalid-token), not a silent false-accept.
-- **Marketing to avoid**: do not claim "Vale-grade generational memory safety"
-  while the token is address-derived. Honest today: "generation-style
-  stale-handle protection; `SlotHandle` uses a generation counter, the
-  secure-slot token is address-derived and has a same-address reuse-collision
-  refinement pending (§6.7)." See also `docs/106_ownership_model_comparison.md`
-  (Vale section), which already frames these as "generation-style".
+- **Status: CLOSED (2026-07-02).** Both secure-slot twins now issue a
+  monotonic, per-suffix token identity on every claim. The audit that opened
+  this item found the gap was narrower — and in one spot wider — than first
+  written: the **extern twin** (`pgy_runtime_lib_secure_slot_exports.h`, the
+  LLVM leg) already used a monotonic atomic counter, while the **inline twin**
+  (`pgy_runtime_slot_macros.h`, the C leg) still derived the token purely from
+  an address: `id = (uintptr_t)s ^ 0xDEADBEEFCAFEBABE`. Worse than same-address
+  slot reuse, the address used was the *claim temp* (`pgy_claim_secure` builds
+  the slot in a local and returns it by value), so **repeated claims through one
+  call site reproduced the identical id every time** — any stale token
+  false-matched any later slot claimed through that site. That was also a
+  runtime-twin lockstep violation (C and LLVM legs disagreed on identity
+  semantics).
+- **Fix**: the inline twin now mirrors the extern twin exactly — a per-suffix
+  `atomic_uint_least64_t` counter (same golden-ratio seed, same zero-skip),
+  `pgy_make_token` takes `fetch_add + 1`. Every claim's identity is fresh; a
+  stale token can never equal a later one, meeting the same standard as Vale's
+  monotonic generational reference (§4.4).
+- **Locked by** `tests/secure_token_reuse_failclosed_smoke.sh`
+  (`make secure-token-reuse-test-smoke`) driving
+  `src/tests/secure_token_reuse_test.c`: `distinct_ids` asserts two claims
+  through one call site get distinct ids (the old scheme fails this), and
+  `stale_read`/`stale_write` assert a token retained across release/re-claim
+  fails closed with `class=invalid-secure-token`, never a silent false-accept.
+- **Marketing**: "generation-style stale-handle protection" may now say both
+  slot-token legs use monotonic generation. Still do not conflate this with a
+  static lifetime proof — it is a runtime fail-closed layer (§2, §4.4).
 
 ## 7. Comparison To Rust Across Time
 

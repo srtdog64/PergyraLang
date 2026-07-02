@@ -2243,6 +2243,9 @@ nested-array-test-smoke: $(PGY)
 checkedarith-failclosed-test-smoke:
 	"$(BASH)" tests/checked_arith_failclosed_smoke.sh
 
+secure-token-reuse-test-smoke:
+	"$(BASH)" tests/secure_token_reuse_failclosed_smoke.sh
+
 site-generator-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/site_generator_smoke.sh
 

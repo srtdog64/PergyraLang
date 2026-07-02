@@ -1,6 +1,8 @@
 #ifndef PGY_RUNTIME_SLOT_MACROS_H
 #define PGY_RUNTIME_SLOT_MACROS_H
 
+#include <stdatomic.h>
+
 #include "pgy_runtime_panic_contract.h"
 
 /*
@@ -181,11 +183,28 @@ typedef struct { \
     bool     can_read; \
 } PgyToken_##SuffixName; \
 \
+/* Monotonic per-suffix token generation, in lockstep with the extern twin in \
+ * pgy_runtime_lib_secure_slot_exports.h (same seed, same zero-skip). The \
+ * previous address-derived id ((uintptr_t)s ^ CONST) reproduced the SAME id \
+ * whenever a claim temp landed at the same address -- trivially true for \
+ * repeated claims through one call site -- so a token retained across \
+ * release/re-claim false-matched the new slot. A monotonic counter makes \
+ * every claim's identity fresh; a stale token can never equal a later one. */ \
+static atomic_uint_least64_t pgy_secure_token_counter_##SuffixName = \
+    ATOMIC_VAR_INIT(0x9e3779b97f4a7c15ULL); \
+\
 static inline void \
 pgy_make_token_##SuffixName(PgySecureSlot_##SuffixName* s, \
                              PgyToken_##SuffixName* t) \
 { \
-    uint64_t id = (uint64_t)(uintptr_t)s ^ 0xDEADBEEFCAFEBABEULL; \
+    uint64_t id = (uint64_t)atomic_fetch_add_explicit( \
+        &pgy_secure_token_counter_##SuffixName, 1u, \
+        memory_order_relaxed) + 1u; \
+    if (id == 0) { \
+        id = (uint64_t)atomic_fetch_add_explicit( \
+            &pgy_secure_token_counter_##SuffixName, 1u, \
+            memory_order_relaxed) + 1u; \
+    } \
     s->token    = id; \
     t->id       = id; \
     t->can_write = true; \
