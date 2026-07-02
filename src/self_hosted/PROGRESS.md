@@ -5,7 +5,7 @@ The number that matters is *how much of the C/LLVM compiler has been
 substituted by Pergyra-written equivalents* -- not how many peripheral
 audit tools exist.
 
-Last updated: 2026-06-30
+Last updated: 2026-07-02
 
 ## Headline Number
 
@@ -59,8 +59,9 @@ for C-emission action participants. That keeps
 resource owners visible. Parameter-mode facts (`inout` / `own` / `ref`) now
 survive `pgy --ast`; the self-host C codegen consumes `inout` from function-env
 `pm` facts and lowers it as value-result copy-in/copy-out instead of guessing
-from `ArrayPush` or other statement text. The real-source semantic selfcheck now accepts 90
-self-host owner/source files through both C and LLVM. The rest of codegen,
+from `ArrayPush` or other statement text. The real-source semantic selfcheck now accepts 91
+self-host owner/source files through both C and LLVM, including the codegen
+statement fact owner. The rest of codegen,
 runtime, compiler driver, and LSP
 substitution are still 0%; the MIR-lowering substitution has now *started* (see
 below).
@@ -362,7 +363,7 @@ The realistic incremental path toward genuine self-host:
    oracle. Recursive import expansion is now owned by `source_bundle_owner.pgy`,
    and the import-backed call fixture proves signatures are consumed from the
   source bundle instead of from a hidden single-file `main` assumption. The
-  real-source selfcheck now feeds 90 accepted self-host owner/source files
+  real-source selfcheck now feeds 91 accepted self-host owner/source files
    through that source-bundle owner rather than a generated import-stripped
    unit. The accepted manifest spans lexer/parser/mir-lower/codegen/compiler-world
   entrypoints, the compiler path manifest owner, target-capability envelope

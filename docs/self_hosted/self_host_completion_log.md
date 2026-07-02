@@ -2975,3 +2975,14 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-codegen-parity-test-smoke` (64 fixtures on C and LLVM), and
   `self-host-codegen-bootstrap-test-smoke` (`gen2 == gen3`,
   self-host-built codegen tool matches the oracle on committed probes).
+
+### 2026-07-02 -- Codegen statement owner enters semantic selfcheck
+
+- Promoted `src/self_hosted/codegen/input/ast_text_statement_owner.pgy` into
+  the real-source semantic selfcheck manifest after verifying the checker
+  accepts it as a normal imported source unit.
+- Tightened the component contract so the selfcheck manifest must include the
+  statement fact owner and the accepted real-source count is now 91 on both C
+  and LLVM. This keeps the active codegen statement SoT owner inside the hard
+  self-host semantic pass condition instead of only inside source-shape smoke
+  checks.

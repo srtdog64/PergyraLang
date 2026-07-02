@@ -53,6 +53,7 @@ SELF_SOURCES=(
     "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy"
     "src/self_hosted/codegen/input/ast_input_owner.pgy"
     "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy"
+    "src/self_hosted/codegen/input/ast_text_statement_owner.pgy"
     "src/self_hosted/codegen/input/ast_usage_owner.pgy"
     "src/self_hosted/codegen/main.pgy"
     "src/self_hosted/codegen/typed_ast_node_skeleton.pgy"
