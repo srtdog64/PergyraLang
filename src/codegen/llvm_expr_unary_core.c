@@ -106,7 +106,24 @@ llvm_emit_unary(ASTNode *node, LLVMGenCtx *ctx)
             fn_ret_type = ctx->current_ret_type;
         if (fn_ret_type == result_ty) {
             LLVMBuildRet(ctx->builder, result);
-        } else if (fn_ret_type != NULL
+        } else if (field_count == 2
+            && fn_ret_type != NULL
+            && LLVMGetTypeKind(fn_ret_type) == LLVMStructTypeKind
+            && LLVMCountStructElementTypes(fn_ret_type) == 2) {
+            /* Option<T> -> Option<U> None propagation: None carries no
+             * payload, so rebuild a fresh None of the return option type
+             * (tag=1, zero payload). Result operands are 3-field and never
+             * take this branch, matching the C backend's panic contract. */
+            LLVMTypeRef ret_fields2[2];
+            LLVMGetStructElementTypes(fn_ret_type, ret_fields2);
+            LLVMValueRef rebuilt = LLVMGetUndef(fn_ret_type);
+            rebuilt = LLVMBuildInsertValue(ctx->builder, rebuilt,
+                LLVMConstInt(ctx->type_i32, 1, 0), 0, llvm_tmp_name(ctx));
+            rebuilt = LLVMBuildInsertValue(ctx->builder, rebuilt,
+                LLVMConstNull(ret_fields2[1]), 1, llvm_tmp_name(ctx));
+            LLVMBuildRet(ctx->builder, rebuilt);
+        } else if (field_count >= 3
+            && fn_ret_type != NULL
             && LLVMGetTypeKind(fn_ret_type) == LLVMStructTypeKind
             && LLVMCountStructElementTypes(fn_ret_type) == 3) {
             LLVMTypeRef ret_fields[3];

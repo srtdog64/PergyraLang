@@ -9784,6 +9784,14 @@ docs만 읽고 착수할 수 있어야 한다. 각 WO는 목표/현재 상태/�
 - 문서 번호 정정: closure capture 설계=**docs/141**, guard amortization=
   **docs/142**, 외부 레드팀 리뷰=**docs/137** (메모리의 135/136/134 인용은
   stale).
+- (2026-07-03 추가) **surface sugar "없다" 전제 금지**: `?`는 Result에 한해,
+  문자열 보간(`${}`/`f"`/`$"`)은 전면적으로 **이미 언어에 있었다**
+  (docs/147 §1 감사 표). 같은 날 `?`의 Option<T> 확장이 landed —
+  fixture `try_operator_option` + semantic 2791/0 + transpile 916/0.
+  남은 진짜 갭 = subset lag(WO-U2)와 tuple ABI(WO-U3).
+- (2026-07-03 추가) authority+caps 뼈대 landed(`37e46252`): compiler world의
+  민감 경계 4곳에 ability/role/zone-authority/step-clause + with caps 2좌석.
+  부산물로 self-checker의 태초 off-by-one(ReadTypeName with-절 break 불발) 수정.
 
 ### 트랙 지형 스냅샷 (2026-07-02)
 
@@ -9799,7 +9807,8 @@ docs만 읽고 착수할 수 있어야 한다. 각 WO는 목표/현재 상태/�
 | String perf | fused builtins+StrView 런타임 landed | WO-P1 |
 | Guard amortization (docs/142) | 첫 슬라이스 landed | WO-P2 |
 | Closure capture (docs/141) | Stage A 完 | WO-C1→C3 |
-| Intent-Compress (§0c) | post-beta prio 0 | A-6 (설계만) |
+| Surface sugar (docs/147) | `?`+보간 C-측 完; subset lag | WO-U2 → WO-U3 |
+| Intent-Compress (§0c) | post-beta prio 0; 32-param 실증 확보 | A-6 (설계만) |
 
 ---
 
@@ -10096,6 +10105,53 @@ Stage 순서는 B→C→D 고정(각 stage는 이전 stage 거절 경로를 허�
 
 ---
 
+### Surface-sugar 트랙 (docs/147 — 사용자 pain 상위 3 실측 기반)
+
+착수 전 docs/147 §1 감사 표 필독: **"sugar가 없다" 전제 금지.** `?`(Result+
+Option)와 보간(`${}`/`f"`/`$"`)은 C 컴파일러에 full end-to-end로 존재한다.
+
+#### WO-U1 — `?` Option<T> 확장 ✅ CLOSED (2026-07-03)
+
+- semantic 수용 + C 트윈 2좌석 + LLVM 2-field None 재구성 분기(+3-field 가드로
+  혼합-kind panic parity). cross-type None 전파 포함. fixture
+  `try_operator_option` C==LLVM, semantic 케이스 2종, 2791/0 + 916/0.
+  계약 상세 = docs/147 §2.
+
+#### WO-U2 — subset lag 해소: self-호스트가 자기 sugar를 쓰게
+
+- **목표**: self-호스트 parser/checker(bounded subset)에 `?` + 보간 교육 →
+  self_hosted 코드가 채택 가능해짐 → ratchet(sentinel/munge) 하향의 구조적
+  뚜껑 제거.
+- **현재**: subset이 두 sugar를 파싱 불가 → selfcheck 거절 → 최대 Pergyra
+  코드베이스가 4줄 Option 의식과 Concat 피라미드에 갇힘 (docs/147 §0 실측).
+- **단계**:
+  1. self-parser: expr postfix `?` + `${}`/`f"` 문자열 스캔
+     (`parser/expr_*_owner.pgy`, `parser/cursor_owner.pgy` ReadString 계열).
+  2. self-checker: `body_check_owner` ExprType에 `?` unwrap 타입 규칙 +
+     보간의 String 타입 규칙. (with-caps 때처럼 스킵이 아니라 **타입까지** —
+     수용-후-미검증 금지.)
+  3. 채택 1호: `lib/json.pgy`의 Option 의식을 `?`로 재작성(오라클 =
+     기존 tool parity byte-diff 불변) → likeness `result_use` 실측 후 ratchet 갱신.
+  4. selfcheck 107+ 소스 green + parity 스위트 green.
+- **게이트**: selfcheck(c+llvm) + self-host-preparation smoke + likeness.
+- **금지**: subset 교육 없이 self_hosted에 sugar 사용(즉시 selfcheck RED).
+
+#### WO-U3 — tuple 반환 + 구조분해 (full ABI, 부분 착지 금지)
+
+- **목표**: `func F() -> (Int, Int)` + `let (a, b) = F();` — `inout Array<Int>`
+  아웃파라미터 전염병(docs/147 §0-3)의 근치.
+- **왜 한 번에**: parser/semantic 선행 수용은 accepted-then-broken(최악 클래스).
+  표면+리터럴+구조분해+**양 백엔드 struct-like 값 ABI**+parity를 한 묶음으로.
+- **단계**: (1) 표면 문법 결정(F1의 MIR `(Int,Long)` 인코딩과 정합),
+  (2) semantic tuple 타입 + 구조분해 let, (3) C: anonymous struct lowering,
+  (4) LLVM: struct 값 반환(기존 sret 계약 — A-2와 좌석 겹침 주의),
+  (5) fixture: 반환/구조분해/중첩/파라미터-전달 각 leg + 거절(개수 불일치).
+- **게이트**: 신규 backend_compare fixture 3+ / test-semantic / MIR 인코딩
+  왕복 검증.
+- **정합**: A-2(sret 일반화)와 같은 세션 계열 권장 — 둘 다 LLVM 집계-반환 ABI.
+
+---
+
 ### 아키텍처 TODO (정밀 분해, 2026-07-02)
 
 WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목을 WO로 승격해
@@ -10176,6 +10232,9 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
   who/where/requires/authorized-by 4-clause 추론)의 구현 견적. 코드 착수는
   beta closure + dogfood evidence(어느 clause가 과잉 required인지) 이후.
   self-host가 verbose intent 비용을 다시 내지 않게 하는 순서 장치.
+- **실증 확보(2026-07-03)**: `world.pgy`의 `CompilePergyraProgram`이
+  **파라미터 32개**(zone 17 + actor 15 전수 명시 배선) — 언어의 간판 선언이
+  자기 도메인에서 이 모양. evidence source 1호로 Phase 1 명세에 인용할 것.
 
 #### A-7. Capability sandbox 잔여 (docs/15) — 킬러 비전 램프
 

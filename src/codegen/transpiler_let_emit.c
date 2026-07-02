@@ -369,12 +369,85 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         int try_id;
         int current_returns_result;
 
+        if (transpiler_type_name_is_option(result_type)) {
+            /* Option<T> try: unwrap Some or propagate None. Mirrors the
+             * Result lowering below; None carries no payload, so propagation
+             * rebuilds a fresh None of the enclosing Option return type. */
+            int current_returns_option = ctx->current_return_type[0] != '\0'
+                && transpiler_type_name_is_option(ctx->current_return_type);
+            char option_c_type_buf[256];
+            char ret_option_c_type_buf[256];
+            char opt_c_type_buf[256];
+
+            if (!transpiler_require_type_name_c_type_copy(ctx, result_type,
+                    "try operand Option", option_c_type_buf,
+                    sizeof(option_c_type_buf))) {
+                free(ann_type_name);
+                return;
+            }
+            if (current_returns_option
+                && (!transpiler_require_type_name_c_type_copy(ctx,
+                        ctx->current_return_type, "try return Option",
+                        ret_option_c_type_buf,
+                        sizeof(ret_option_c_type_buf))
+                    || strncmp(ret_option_c_type_buf, "PgyOption_", 10) != 0)) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                    "C try lowering for let binding '%s' could not render the enclosing Option return type",
+                    name != NULL ? name : "<binding>");
+                free(ann_type_name);
+                return;
+            }
+            if (c_type != NULL) {
+                copy_capped_string(opt_c_type_buf, sizeof(opt_c_type_buf),
+                    c_type);
+                c_type = opt_c_type_buf;
+            } else {
+                c_type = "Unknown";
+            }
+            operand_expr = transpiler_let_emit_initializer(ctx, operand,
+                name, "try operand");
+            if (operand_expr == NULL) {
+                free(ann_type_name);
+                return;
+            }
+            try_id = ctx->tmp_counter++;
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s __try_%d = %s;\n",
+                          option_c_type_buf, try_id, operand_expr);
+            write_indent(ctx);
+            if (current_returns_option) {
+                codebuf_write(ctx->out,
+                    "if (__try_%d.tag != PgyOptionSome) return pgy_option_none_%s();\n",
+                    try_id, ret_option_c_type_buf + 10);
+            } else {
+                codebuf_write(ctx->out,
+                    "if (__try_%d.tag != PgyOptionSome) PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE);\n",
+                    try_id);
+            }
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s %s = __try_%d.value;\n",
+                          c_type, name, try_id);
+            free(operand_expr);
+            if (ann_type_name != NULL) {
+                register_typed_var(ctx, name, ann_type_name);
+                free(ann_type_name);
+            } else {
+                const char *inferred = infer_expression_type_name(ctx, init);
+                if (inferred != NULL)
+                    register_typed_var(ctx, name, inferred);
+            }
+            return;
+        }
+
         if (!transpiler_type_name_is_result(result_type)) {
             transpiler_set_backend_error_with_hints(ctx,
                 PGY_CODE_C_TYPE_UNSUPPORTED,
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,
                 PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
-                "C try lowering for let binding '%s' requires Result<T,E> operand type",
+                "C try lowering for let binding '%s' requires Result<T,E> or Option<T> operand type",
                 name != NULL ? name : "<binding>");
             free(ann_type_name);
             return;

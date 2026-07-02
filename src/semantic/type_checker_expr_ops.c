@@ -347,11 +347,12 @@ type_check_unary(ASTNode *expr, SemanticContext *ctx)
     }
 
     if (op == TOKEN_QUESTION) {
-        if (!type_is_constructed_named(operand, "Result")) {
+        if (!type_is_constructed_named(operand, "Result")
+            && !type_is_constructed_named(operand, "Option")) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_UNOP_TYPE_MISMATCH,
                 PGY_CAUSE_UNARY_OPERATOR_OPERAND, PGY_FIX_ALIGN_OPERAND_TYPE,
                 expr,
-                "'?' operator requires Result<T> or Result<T, E>, got '%s'",
+                "'?' operator requires Result<T>, Result<T, E>, or Option<T>, got '%s'",
                 type_name_or_unknown(operand));
             return TYPE_UNKNOWN;
         }

@@ -396,4 +396,54 @@ test_stdlib_and_io(void)
         semantic_context_destroy(ctx);
         ast_destroy(assign);
     }
+
+    TEST("try operator accepts Option operand and unwraps inner type");
+    {
+        const char *source =
+            "func Find(x: Int) -> Option<Int> {\n"
+            "    if x > 0 {\n"
+            "        return Some(x);\n"
+            "    }\n"
+            "    return None;\n"
+            "}\n"
+            "func Use(x: Int) -> Option<Int> {\n"
+            "    let v: Int = Find(x)?;\n"
+            "    return Some(v + 1);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("try operator on non-Result non-Option operand is rejected");
+    {
+        const char *source =
+            "func Use() -> Option<Int> {\n"
+            "    let v: Int = 5?;\n"
+            "    return Some(v);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "'?' operator requires Result<T>, Result<T, E>, or Option<T>"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
 }

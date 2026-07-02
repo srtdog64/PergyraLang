@@ -1,0 +1,38 @@
+func FindEven(x: Int) -> Option<Int> {
+    if x % 2 == 0 {
+        return Some(x);
+    }
+    return None;
+}
+
+func Doubled(x: Int) -> Option<Int> {
+    let found: Int = FindEven(x)?;
+    return Some(found * 2);
+}
+
+func Describe(x: Int) -> Option<String> {
+    let found: Int = FindEven(x)?;
+    return Some(Concat("even:", ToString(found)));
+}
+
+func Main() -> Void {
+    let a: Option<Int> = Doubled(4);
+    if IsSome(a) {
+        Log(ToString(UnwrapOption(a)));
+    }
+
+    let b: Option<Int> = Doubled(3);
+    if !IsSome(b) {
+        Log("none-propagated");
+    }
+
+    let c: Option<String> = Describe(6);
+    if IsSome(c) {
+        Log(UnwrapOption(c));
+    }
+
+    let d: Option<String> = Describe(5);
+    if !IsSome(d) {
+        Log("cross-type-none-propagated");
+    }
+}

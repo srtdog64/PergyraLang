@@ -251,16 +251,87 @@ transpiler_emit_mir_source_local_let_def_inst(
         ctx->active_type_hint = saved_type_hint;
         free(rendered_type_hint);
         if (lhs == NULL || result_type == NULL
-            || !transpiler_type_name_is_result(result_type)) {
+            || (!transpiler_type_name_is_result(result_type)
+                && !transpiler_type_name_is_option(result_type))) {
             free(lhs);
             free(local_type_name_owned);
             if (reason != NULL && reason_cap > 0) {
                 transpiler_mir_reasonf(reason, reason_cap,
-                    "MIR block %llu emission failed: '?' let binding '%s' requires Result<T,E> operand",
+                    "MIR block %llu emission failed: '?' let binding '%s' requires Result<T,E> or Option<T> operand",
                     (unsigned long long) block->id,
                     let_name != NULL ? let_name : "<binding>");
             }
             return TRANSPILE_MIR_LOCAL_LET_FAILED;
+        }
+        if (transpiler_type_name_is_option(result_type)) {
+            /* Option<T> try: unwrap Some or propagate None. Mirrors the
+             * Result branch below; None carries no payload, so propagation
+             * rebuilds a fresh None of the enclosing Option return type. */
+            bool current_returns_option = ctx->current_return_type[0] != '\0'
+                && transpiler_type_name_is_option(ctx->current_return_type);
+            char ret_option_c_type_buf[256];
+
+            if (!transpiler_require_type_name_c_type_copy(ctx, result_type,
+                    "MIR preserved try operand Option", result_c_type_buf,
+                    sizeof(result_c_type_buf))
+                || (current_returns_option
+                    && (!transpiler_require_type_name_c_type_copy(ctx,
+                            ctx->current_return_type,
+                            "MIR preserved try return Option",
+                            ret_option_c_type_buf,
+                            sizeof(ret_option_c_type_buf))
+                        || strncmp(ret_option_c_type_buf, "PgyOption_",
+                                   10) != 0))) {
+                free(lhs);
+                free(local_type_name_owned);
+                if (reason != NULL && reason_cap > 0) {
+                    transpiler_mir_reasonf(reason, reason_cap,
+                        "MIR block %llu emission failed: '?' Option operand/return type has no stable C rendering",
+                        (unsigned long long) block->id);
+                }
+                return TRANSPILE_MIR_LOCAL_LET_FAILED;
+            }
+            operand_expr = emit_expression_with_ssa_map(operand, ctx,
+                ssa_map_out);
+            if (operand_expr == NULL) {
+                free(lhs);
+                free(local_type_name_owned);
+                if (reason != NULL && reason_cap > 0) {
+                    transpiler_mir_reasonf(reason, reason_cap,
+                        "MIR block %llu emission failed: unable to render '?' operand for '%s'",
+                        (unsigned long long) block->id,
+                        let_name != NULL ? let_name : "<binding>");
+                }
+                return TRANSPILE_MIR_LOCAL_LET_FAILED;
+            }
+            try_id = ctx->tmp_counter++;
+            write_indent_to(buf, ctx->indent);
+            codebuf_write(buf, "%s __try_%d = %s;\n",
+                          result_c_type_buf, try_id, operand_expr);
+            write_indent_to(buf, ctx->indent);
+            if (current_returns_option) {
+                codebuf_write(buf,
+                    "if (__try_%d.tag != PgyOptionSome) return pgy_option_none_%s();\n",
+                    try_id, ret_option_c_type_buf + 10);
+            } else {
+                codebuf_write(buf,
+                    "if (__try_%d.tag != PgyOptionSome) PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE);\n",
+                    try_id);
+            }
+            write_indent_to(buf, ctx->indent);
+            codebuf_write(buf, "%s = __try_%d.value;\n", lhs, try_id);
+            free(operand_expr);
+            free(lhs);
+
+            if (!transpiler_ssa_name_map_set(ssa_map_out, let_name,
+                                             inst->result_name)) {
+                free(local_type_name_owned);
+                return TRANSPILE_MIR_LOCAL_LET_FAILED;
+            }
+            if (local_type_name_owned != NULL)
+                register_typed_var(ctx, let_name, local_type_name_owned);
+            free(local_type_name_owned);
+            return TRANSPILE_MIR_LOCAL_LET_HANDLED;
         }
         current_returns_result = ctx->current_return_type[0] != '\0'
             && transpiler_type_name_is_result(ctx->current_return_type);
