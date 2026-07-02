@@ -7,6 +7,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -15,6 +16,7 @@
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_type_mapping.h"
 #include "transpiler_expr_stdlib_builtin_policy.h"
 #include "transpiler_expr_stdlib_channel_builtin.h"
 #include "transpiler_expr_stdlib_collection_builtin.h"
@@ -96,6 +98,27 @@ transpiler_resolve_unary_constructed_inner(TranspilerCtx *ctx,
     return false;
 }
 
+/* Runtime array kernels are named by the SANITIZED element suffix
+ * (Array<Int> element -> pgy_array_push_Array_Int), matching the literal and
+ * index emit paths. The resolver hands back the raw inner type name, so a
+ * nested-array element would otherwise leak literal angle brackets into the
+ * callee name (pgy_array_push_Array<Int> -- invalid C). Scalar inners are
+ * unchanged (sanitize is the identity on a bare name). */
+static void
+transpiler_array_inner_sanitize_suffix(char *inner_buf,
+                                       size_t inner_buf_size,
+                                       const char **inner_out)
+{
+    char sanitized[128];
+
+    if (inner_out == NULL || *inner_out == NULL || inner_buf == NULL
+        || inner_buf_size == 0)
+        return;
+    sanitize_c_suffix(*inner_out, sanitized, sizeof(sanitized));
+    snprintf(inner_buf, inner_buf_size, "%s", sanitized);
+    *inner_out = inner_buf;
+}
+
 static bool
 transpiler_require_array_inner_type(TranspilerCtx *ctx, ASTNode *expr,
                                     const char *operation,
@@ -107,11 +130,15 @@ transpiler_require_array_inner_type(TranspilerCtx *ctx, ASTNode *expr,
     const char *type_name = transpiler_expr_infer_type_name(ctx, expr);
     if (transpiler_resolve_unary_constructed_inner(ctx, type_name, "Array",
             inner_buf, inner_buf_size, inner_out)) {
+        transpiler_array_inner_sanitize_suffix(inner_buf, inner_buf_size,
+                                               inner_out);
         return true;
     }
     if (allow_slice
         && transpiler_resolve_unary_constructed_inner(ctx, type_name, "Slice",
             inner_buf, inner_buf_size, inner_out)) {
+        transpiler_array_inner_sanitize_suffix(inner_buf, inner_buf_size,
+                                               inner_out);
         return true;
     }
 

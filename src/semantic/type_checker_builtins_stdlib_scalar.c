@@ -85,6 +85,25 @@ stdlib_scalar_check_minmax(ASTNode *expr, const char *name,
     return a;
 }
 
+/* CheckedAdd/CheckedMul lower to the i32 overflow-checked runtime helpers on
+ * both backends, so the arguments must be Int specifically. Sharing the
+ * Min/Max check would let Float/Long operands type through (Min/Max promote),
+ * and the i32 helper call would then silently truncate on the C backend and
+ * fail LLVM verification -- accepted-then-broken. Fail closed here instead. */
+static Type *
+stdlib_scalar_check_checked_arith(ASTNode *expr, const char *name,
+                                  SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 2, name, ctx))
+        return TYPE_UNKNOWN;
+    for (size_t i = 0; i < 2; i++) {
+        Type *t = stdlib_scalar_normalize_type(
+            type_check_expression(ast_call_argument(expr, i), ctx));
+        require_assignable(t, TYPE_INT, ast_call_argument(expr, i), ctx);
+    }
+    return TYPE_INT;
+}
+
 static Type *
 stdlib_scalar_check_string_join(ASTNode *expr, const char *name,
                                 SemanticContext *ctx)
@@ -430,8 +449,8 @@ static const StdlibScalarSpec stdlib_scalar_specs[] = {
     { "Ceil", stdlib_scalar_check_math_unary_float },
     { "CharAtN", stdlib_scalar_check_string_substring },
     { "CharCode", stdlib_scalar_check_string_char_code },
-    { "CheckedAdd", stdlib_scalar_check_minmax },
-    { "CheckedMul", stdlib_scalar_check_minmax },
+    { "CheckedAdd", stdlib_scalar_check_checked_arith },
+    { "CheckedMul", stdlib_scalar_check_checked_arith },
     { "Clamp", stdlib_scalar_check_clamp },
     { "Concat", stdlib_scalar_check_string_concat },
     { "Contains", stdlib_scalar_check_string_contains },

@@ -67,4 +67,26 @@ for be in $backends; do
     done
 done
 
+# ---- checked-arith surface arg typing rejects at compile time --------------
+# Regression: CheckedAdd/CheckedMul lower to the i32 overflow-checked helpers,
+# so non-Int operands must be a clean SEMANTIC rejection on both backends. A
+# shared Min/Max-style promoting check once let Float through: the C backend
+# silently truncated and LLVM failed verification (accepted-then-broken).
+reject_src="$WORK/checked_arith_float_arg.pgy"
+cat > "$reject_src" <<'EOF'
+func Main() -> Void {
+    Log(ToString(CheckedAdd(1.5, 2.5)));
+}
+EOF
+for be in $backends; do
+    out="$("$PGY" "$(pgy_path_for_compiler "$PGY" "$reject_src")" --backend="$be" -o "$WORK/rej_$be" 2>&1)" && rc=0 || rc=$?
+    [ "$rc" -ne 0 ] \
+        || fail "CheckedAdd(Float) compiled (backend=$be) — must be rejected at semantic"
+    echo "$out" | grep -qiE 'Type mismatch|cannot assign' \
+        || fail "CheckedAdd(Float) failed without the type diagnostic (backend=$be): $out"
+    echo "$out" | grep -qiE 'LLVM verify|gcc|In function' \
+        && fail "CheckedAdd(Float) reached the codegen layer (backend=$be): $out"
+    echo "[mem-safety-failclosed] backend=$be checked_arith_float_arg -> clean semantic reject"
+done
+
 echo "[mem-safety-failclosed] PASS — no raw pointers, every violation fail-closed"

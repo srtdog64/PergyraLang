@@ -64,6 +64,34 @@ want=$'2\n2\n3\n10'
 [ "$c_out" = "$want" ] || fail "depth-2 output = '$c_out', expected '$want'"
 echo "[nested-array] depth-2 decl/index/chained/for-in parity ok (2 2 3 10)"
 
+# ---- depth-2 assembled via ArrayPush (non-literal construction) ------------
+# Regression: the C ArrayPush emit must sanitize the element suffix; an
+# unsanitized inner leaked literal angle brackets into the callee name
+# (pgy_array_push_Array<Int> -- invalid C) while LLVM worked, a divergence.
+push_src="$WORK_DIR/push.pgy"
+cat > "$push_src" <<'EOF'
+func Main() -> Void {
+    let outer: Array<Array<Int>> = [];
+    let inner: Array<Int> = [7, 8];
+    ArrayPush(outer, inner);
+    Log(ArrayLength(outer));
+    Log(outer[0][1]);
+}
+EOF
+
+push_c="$(run_backend c "$push_src")"
+push_llvm="$(run_backend llvm "$push_src")"
+[ "$push_c" = "$push_llvm" ] \
+    || fail "push-assembled nested array diverged:
+C:
+$push_c
+LLVM:
+$push_llvm"
+push_want=$'1\n8'
+[ "$push_c" = "$push_want" ] \
+    || fail "push-assembled nested array output = '$push_c', expected '$push_want'"
+echo "[nested-array] depth-2 ArrayPush-assembled parity ok (1 8)"
+
 # ---- depth-3 fails closed with a clean semantic error (both backends) -----
 bad_src="$WORK_DIR/depth3.pgy"
 cat > "$bad_src" <<'EOF'
