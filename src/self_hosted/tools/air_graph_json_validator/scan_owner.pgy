@@ -7,12 +7,12 @@
 import "../../lib/json.pgy";
 
 func AirGraphSummaryIntField(content: String, field: String, inout value_out: Array<Int>) -> Bool {
-    let doc_end: Int = JsonDocumentObjectEnd(content);
-    if doc_end <= 0 {
+    let doc_end_opt: Option<Int> = JsonDocumentObjectEnd(content);
+    if !IsSome(doc_end_opt) {
         return false;
     }
     let summary_bounds: Array<Int> = [0, 0];
-    if !JsonObjectFieldValueBounds(content, 0, doc_end, "summary", summary_bounds) {
+    if !JsonObjectFieldValueBounds(content, 0, UnwrapOption(doc_end_opt), "summary", summary_bounds) {
         return false;
     }
     let num_str: String = JsonObjectNumberField(content, summary_bounds[0], summary_bounds[1], field);
@@ -64,10 +64,11 @@ func AirGraphCollectScalarFieldValues(content: String, start: Int, end: Int, fie
                 return;
             }
             i = JsonSkipWhitespace(content, i + 1, end);
-            let value_end: Int = JsonValueEnd(content, i, end);
-            if value_end < 0 {
+            let value_end_opt: Option<Int> = JsonValueEnd(content, i, end);
+            if !IsSome(value_end_opt) {
                 return;
             }
+            let value_end: Int = UnwrapOption(value_end_opt);
             if key == field {
                 ArrayPush(values, AirGraphScalarToken(content, i, value_end));
             }
@@ -90,10 +91,11 @@ func AirGraphCollectScalarFieldValues(content: String, start: Int, end: Int, fie
                 j = j + 1;
                 continue;
             }
-            let item_end: Int = JsonValueEnd(content, j, end);
-            if item_end < 0 {
+            let item_end_opt: Option<Int> = JsonValueEnd(content, j, end);
+            if !IsSome(item_end_opt) {
                 return;
             }
+            let item_end: Int = UnwrapOption(item_end_opt);
             let item_open: String = CharAt(content, j);
             if item_open == "{" || item_open == "[" {
                 AirGraphCollectScalarFieldValues(content, j, item_end, field, values);
@@ -105,11 +107,11 @@ func AirGraphCollectScalarFieldValues(content: String, start: Int, end: Int, fie
 
 func AirGraphScalarFieldValues(content: String, field: String) -> Array<String> {
     let values: Array<String> = [];
-    let doc_end: Int = JsonDocumentObjectEnd(content);
-    if doc_end <= 0 {
+    let doc_end_opt: Option<Int> = JsonDocumentObjectEnd(content);
+    if !IsSome(doc_end_opt) {
         return values;
     }
-    AirGraphCollectScalarFieldValues(content, 0, doc_end, field, values);
+    AirGraphCollectScalarFieldValues(content, 0, UnwrapOption(doc_end_opt), field, values);
     return values;
 }
 

@@ -2952,3 +2952,26 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-execution-lane-parity-test-smoke`,
   `sea-execution-lane-golden-test-smoke`, `air-json-schema-test-smoke`,
   `self-host-preparation-test-smoke`, and `test-air` (139/139).
+
+### 2026-07-02 -- Self-host text and JSON absence become Option-owned
+
+- Moved self-host codegen statement delimiter lookup behind `FindTextFrom`,
+  returning `Option<Int>` instead of leaking `StringIndexOf`'s `-1` sentinel
+  into statement-row consumers. `Let`, `Assign`, `For in`, and range `..`
+  parsing now prove delimiter presence before slicing.
+- Converted the shared self-host JSON end scanners (`JsonArrayEnd`,
+  `JsonObjectEnd`, `JsonDocumentObjectEnd`, and `JsonValueEnd`) to
+  `Option<Int>` and repointed the AIR graph validator, module manifest
+  resolver, and MIR fact readers to unwrap only after an explicit presence
+  check.
+- Tightened the component contract so direct statement-owner delimiter
+  `StringIndexOf` scans, JSON `return -1` absence paths, and direct
+  `JsonDocumentObjectEnd`/`JsonValueEnd` integer consumers cannot reappear.
+  The Pergyra-likeness ratchet now permits only 11 remaining sentinel-style
+  paths and requires 222 `Result`/`Option`-style uses.
+- Verified the narrow and bootstrap gates:
+  `self-host-pergyra-likeness-test-smoke`,
+  `self-host-component-contract-test-smoke`,
+  `self-host-codegen-parity-test-smoke` (64 fixtures on C and LLVM), and
+  `self-host-codegen-bootstrap-test-smoke` (`gen2 == gen3`,
+  self-host-built codegen tool matches the oracle on committed probes).

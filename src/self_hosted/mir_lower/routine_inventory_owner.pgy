@@ -22,14 +22,17 @@ func FindRoutine(json: String, from: Int) -> Option<Int> {
     return None;
 }
 
-func RoutineObjectEnd(json: String, rpos: Int) -> Int {
+func RoutineObjectEnd(json: String, rpos: Int) -> Option<Int> {
     return MirObjectEnd(json, rpos, StringLength(json));
 }
 
 func RoutineSpanEnd(json: String, routine_name_end: Int) -> Int {
-    let object_end: Int = MirObjectEnd(json, routine_name_end, StringLength(json));
-    if object_end > routine_name_end {
-        return object_end;
+    let object_end_opt: Option<Int> = MirObjectEnd(json, routine_name_end, StringLength(json));
+    if IsSome(object_end_opt) {
+        let object_end: Int = UnwrapOption(object_end_opt);
+        if object_end > routine_name_end {
+            return object_end;
+        }
     }
     return StringLength(json);
 }
@@ -47,7 +50,11 @@ func RoutineHeaderEnd(json: String, routine_name_end: Int, span_end: Int) -> Int
 }
 
 func RoutineNameEnd(json: String, rpos: Int) -> Option<Int> {
-    let object_end: Int = RoutineObjectEnd(json, rpos);
+    let object_end_opt: Option<Int> = RoutineObjectEnd(json, rpos);
+    if !IsSome(object_end_opt) {
+        return None;
+    }
+    let object_end: Int = UnwrapOption(object_end_opt);
     let bounds: Array<Int> = [0, 0];
     if object_end <= rpos || !MirObjectFieldValueBounds(json, rpos, object_end, "name", bounds) {
         return None;
@@ -56,8 +63,11 @@ func RoutineNameEnd(json: String, rpos: Int) -> Option<Int> {
 }
 
 func RoutineName(json: String, rpos: Int) -> String {
-    let object_end: Int = RoutineObjectEnd(json, rpos);
-    return MirObjectStringFact(json, rpos, object_end, "name");
+    let object_end_opt: Option<Int> = RoutineObjectEnd(json, rpos);
+    if !IsSome(object_end_opt) {
+        return "";
+    }
+    return MirObjectStringFact(json, rpos, UnwrapOption(object_end_opt), "name");
 }
 
 func RoutineKind(json: String, rpos: Int, routine_name_end: Int, span_end: Int) -> String {

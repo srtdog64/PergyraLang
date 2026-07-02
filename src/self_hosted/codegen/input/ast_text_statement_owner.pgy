@@ -82,11 +82,11 @@ func CodegenAstTextLetPayload(node: CodegenAstTextNode) -> String {
 
 func CodegenAstTextLetNameEnd(node: CodegenAstTextNode) -> Int {
     let rest: String = CodegenAstTextLetPayload(node);
-    let pos: Int = StringIndexOf(rest, " : ");
-    if pos < 0 {
+    let pos: Option<Int> = FindTextFrom(rest, " : ", 0);
+    if !IsSome(pos) {
         Die(Concat("malformed Let statement (no type separator): ", node.text));
     }
-    return pos;
+    return UnwrapOption(pos);
 }
 
 func CodegenAstTextLetName(node: CodegenAstTextNode) -> String {
@@ -103,11 +103,11 @@ func CodegenAstTextLetAfterName(node: CodegenAstTextNode) -> String {
 
 func CodegenAstTextLetInitializerPos(node: CodegenAstTextNode) -> Int {
     let after_name: String = CodegenAstTextLetAfterName(node);
-    let pos: Int = StringIndexOf(after_name, " = ");
-    if pos < 0 {
+    let pos: Option<Int> = FindTextFrom(after_name, " = ", 0);
+    if !IsSome(pos) {
         Die(Concat("malformed Let statement (no initializer): ", node.text));
     }
-    return pos;
+    return UnwrapOption(pos);
 }
 
 func CodegenAstTextLetTypeName(node: CodegenAstTextNode) -> String {
@@ -131,11 +131,11 @@ func CodegenAstTextAssignPayload(node: CodegenAstTextNode) -> String {
 
 func CodegenAstTextAssignEqualsPos(node: CodegenAstTextNode) -> Int {
     let rest: String = CodegenAstTextAssignPayload(node);
-    let pos: Int = StringIndexOf(rest, " = ");
-    if pos < 0 {
+    let pos: Option<Int> = FindTextFrom(rest, " = ", 0);
+    if !IsSome(pos) {
         Die(Concat("malformed Assign statement: ", node.text));
     }
-    return pos;
+    return UnwrapOption(pos);
 }
 
 func CodegenAstTextAssignTarget(node: CodegenAstTextNode) -> String {
@@ -264,11 +264,11 @@ func CodegenAstTextForSpec(node: CodegenAstTextNode) -> String {
 
 func CodegenAstTextForInPos(node: CodegenAstTextNode) -> Int {
     let spec: String = CodegenAstTextForSpec(node);
-    let pos: Int = StringIndexOf(spec, " in ");
-    if pos < 0 {
+    let pos: Option<Int> = FindTextFrom(spec, " in ", 0);
+    if !IsSome(pos) {
         Die(Concat("malformed For (no `in`): ", node.text));
     }
-    return pos;
+    return UnwrapOption(pos);
 }
 
 func CodegenAstTextForLoopVar(node: CodegenAstTextNode) -> String {
@@ -283,31 +283,32 @@ func CodegenAstTextForIterable(node: CodegenAstTextNode) -> String {
     return Substring(spec, inpos + 4, StringLength(spec) - (inpos + 4));
 }
 
-func CodegenAstTextForRangeDotPos(node: CodegenAstTextNode) -> Int {
+func CodegenAstTextForRangeDotPos(node: CodegenAstTextNode) -> Option<Int> {
     let iterable: String = CodegenAstTextForIterable(node);
-    return StringIndexOf(iterable, "..");
+    return FindTextFrom(iterable, "..", 0);
 }
 
 func CodegenAstTextForIsRange(node: CodegenAstTextNode) -> Bool {
-    return CodegenAstTextForRangeDotPos(node) >= 0;
+    return IsSome(CodegenAstTextForRangeDotPos(node));
 }
 
 func CodegenAstTextForRangeStart(node: CodegenAstTextNode) -> String {
     let iterable: String = CodegenAstTextForIterable(node);
-    let dotpos: Int = CodegenAstTextForRangeDotPos(node);
-    if dotpos < 0 {
+    let dotpos: Option<Int> = CodegenAstTextForRangeDotPos(node);
+    if !IsSome(dotpos) {
         Die(Concat("For range start requested for non-range statement: ", node.text));
     }
-    return Substring(iterable, 0, dotpos);
+    return Substring(iterable, 0, UnwrapOption(dotpos));
 }
 
 func CodegenAstTextForRangeEnd(node: CodegenAstTextNode) -> String {
     let iterable: String = CodegenAstTextForIterable(node);
-    let dotpos: Int = CodegenAstTextForRangeDotPos(node);
-    if dotpos < 0 {
+    let dotpos: Option<Int> = CodegenAstTextForRangeDotPos(node);
+    if !IsSome(dotpos) {
         Die(Concat("For range end requested for non-range statement: ", node.text));
     }
-    return Substring(iterable, dotpos + 2, StringLength(iterable) - (dotpos + 2));
+    let pos: Int = UnwrapOption(dotpos);
+    return Substring(iterable, pos + 2, StringLength(iterable) - (pos + 2));
 }
 
 func CodegenAstTextForEachCollection(node: CodegenAstTextNode) -> String {

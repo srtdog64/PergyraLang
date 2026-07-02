@@ -7,7 +7,7 @@
 
 import "json_scan.pgy";
 
-func JsonArrayEnd(json: String, open: Int, limit: Int) -> Int {
+func JsonArrayEnd(json: String, open: Int, limit: Int) -> Option<Int> {
     let n: Int = StringLength(json);
     let i: Int = open;
     let depth: Int = 0;
@@ -30,15 +30,15 @@ func JsonArrayEnd(json: String, open: Int, limit: Int) -> Int {
         } else if c == "]" {
             depth = depth - 1;
             if depth == 0 {
-                return i;
+                return Some(i);
             }
         }
         i = i + 1;
     }
-    return -1;
+    return None;
 }
 
-func JsonObjectEnd(json: String, open: Int, limit: Int) -> Int {
+func JsonObjectEnd(json: String, open: Int, limit: Int) -> Option<Int> {
     let n: Int = StringLength(json);
     let i: Int = open;
     let depth: Int = 0;
@@ -61,12 +61,12 @@ func JsonObjectEnd(json: String, open: Int, limit: Int) -> Int {
         } else if c == "}" {
             depth = depth - 1;
             if depth == 0 {
-                return i + 1;
+                return Some(i + 1);
             }
         }
         i = i + 1;
     }
-    return -1;
+    return None;
 }
 
 func ReadJsonString(json: String, open: Int, inout end: Array<Int>) -> String {
@@ -131,32 +131,32 @@ func JsonFieldKey(field: String) -> String {
     return Concat(Concat("\"", field), "\":");
 }
 
-func JsonDocumentObjectEnd(json: String) -> Int {
+func JsonDocumentObjectEnd(json: String) -> Option<Int> {
     let n: Int = StringLength(json);
     if n <= 0 {
-        return -1;
+        return None;
     }
     if CharAt(json, 0) != "{" {
-        return -1;
+        return None;
     }
     return JsonObjectEnd(json, 0, n);
 }
 
 func JsonDocumentStringFieldEquals(json: String, field: String, expected: String) -> Bool {
-    let end: Int = JsonDocumentObjectEnd(json);
-    if end <= 0 {
+    let end_opt: Option<Int> = JsonDocumentObjectEnd(json);
+    if !IsSome(end_opt) {
         return false;
     }
-    let actual: String = JsonObjectStringField(json, 0, end, field);
+    let actual: String = JsonObjectStringField(json, 0, UnwrapOption(end_opt), field);
     return actual == expected;
 }
 
 func JsonDocumentHasField(json: String, field: String) -> Bool {
-    let end: Int = JsonDocumentObjectEnd(json);
-    if end <= 0 {
+    let end_opt: Option<Int> = JsonDocumentObjectEnd(json);
+    if !IsSome(end_opt) {
         return false;
     }
-    return JsonObjectHasField(json, 0, end, field);
+    return JsonObjectHasField(json, 0, UnwrapOption(end_opt), field);
 }
 
 func JsonFieldArrayBounds(json: String, start: Int, end: Int, field: String, inout bounds: Array<Int>) -> Bool {
@@ -176,8 +176,12 @@ func JsonFieldArrayBounds(json: String, start: Int, end: Int, field: String, ino
     if open >= end {
         return false;
     }
-    let close: Int = JsonArrayEnd(json, open, end);
-    if close < 0 || close >= end {
+    let close_opt: Option<Int> = JsonArrayEnd(json, open, end);
+    if !IsSome(close_opt) {
+        return false;
+    }
+    let close: Int = UnwrapOption(close_opt);
+    if close >= end {
         return false;
     }
     ArraySet(bounds, 0, open);
@@ -186,11 +190,11 @@ func JsonFieldArrayBounds(json: String, start: Int, end: Int, field: String, ino
 }
 
 func JsonDocumentNumberField(json: String, field: String) -> String {
-    let end: Int = JsonDocumentObjectEnd(json);
-    if end <= 0 {
+    let end_opt: Option<Int> = JsonDocumentObjectEnd(json);
+    if !IsSome(end_opt) {
         return "";
     }
-    return JsonObjectNumberField(json, 0, end, field);
+    return JsonObjectNumberField(json, 0, UnwrapOption(end_opt), field);
 }
 
 func JsonEscapeString(value: String) -> String {
@@ -276,38 +280,38 @@ func JsonFieldNumber(json: String, start: Int, end: Int, key: String) -> String 
     return out;
 }
 
-func JsonValueEnd(json: String, value_start: Int, end: Int) -> Int {
+func JsonValueEnd(json: String, value_start: Int, end: Int) -> Option<Int> {
     let i: Int = JsonSkipWhitespace(json, value_start, end);
     if i >= end {
-        return -1;
+        return None;
     }
     let c: String = CharAt(json, i);
     if c == "\"" {
         let string_end: Array<Int> = [0];
         let ignored: String = ReadJsonString(json, i, string_end);
         if string_end[0] <= i {
-            return -1;
+            return None;
         }
-        return string_end[0];
+        return Some(string_end[0]);
     }
     if c == "{" {
         return JsonObjectEnd(json, i, end);
     }
     if c == "[" {
-        let array_close: Int = JsonArrayEnd(json, i, end);
-        if array_close < 0 {
-            return -1;
+        let array_close_opt: Option<Int> = JsonArrayEnd(json, i, end);
+        if !IsSome(array_close_opt) {
+            return None;
         }
-        return array_close + 1;
+        return Some(UnwrapOption(array_close_opt) + 1);
     }
     while i < end {
         let d: String = CharAt(json, i);
         if d == "," || d == "}" || d == "]" {
-            return i;
+            return Some(i);
         }
         i = i + 1;
     }
-    return i;
+    return Some(i);
 }
 
 func JsonObjectFieldValueBounds(json: String, start: Int, end: Int, field: String, inout bounds: Array<Int>) -> Bool {
@@ -344,10 +348,11 @@ func JsonObjectFieldValueBounds(json: String, start: Int, end: Int, field: Strin
             return false;
         }
         i = JsonSkipWhitespace(json, i + 1, end);
-        let value_end: Int = JsonValueEnd(json, i, end);
-        if value_end < 0 {
+        let value_end_opt: Option<Int> = JsonValueEnd(json, i, end);
+        if !IsSome(value_end_opt) {
             return false;
         }
+        let value_end: Int = UnwrapOption(value_end_opt);
         if key == field {
             ArraySet(bounds, 0, i);
             ArraySet(bounds, 1, value_end);
@@ -440,10 +445,11 @@ func JsonArrayObjectBoundsAt(json: String, array_open: Int, array_end: Int, targ
         if c != "{" {
             return false;
         }
-        let obj_end: Int = JsonObjectEnd(json, i, array_end);
-        if obj_end < 0 {
+        let obj_end_opt: Option<Int> = JsonObjectEnd(json, i, array_end);
+        if !IsSome(obj_end_opt) {
             return false;
         }
+        let obj_end: Int = UnwrapOption(obj_end_opt);
         if row == target_index {
             ArraySet(bounds, 0, i);
             ArraySet(bounds, 1, obj_end);

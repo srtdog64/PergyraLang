@@ -88,7 +88,12 @@ func Main() -> Void {
     let findings: Array<String> = [];
 
     let module_bounds: Array<Int> = [0, 0];
-    if !JsonFieldArrayBounds(content, 0, JsonDocumentObjectEnd(content), "modules", module_bounds) {
+    let has_modules: Bool = false;
+    let doc_end_opt: Option<Int> = JsonDocumentObjectEnd(content);
+    if IsSome(doc_end_opt) {
+        has_modules = JsonFieldArrayBounds(content, 0, UnwrapOption(doc_end_opt), "modules", module_bounds);
+    }
+    if !has_modules {
         ArrayPush(findings, MissingModulesKeyFinding());
         Log(ModuleManifestReportJson(false, manifest_path, 0, 0, 0, 1, findings));
         Exit(1);

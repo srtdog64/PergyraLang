@@ -16,10 +16,11 @@ func MirFactGraphPayloadRootReady() -> Bool {
         return false;
     }
 
-    let doc_end: Int = JsonDocumentObjectEnd(json);
-    if doc_end <= 0 {
+    let doc_end_opt: Option<Int> = JsonDocumentObjectEnd(json);
+    if !IsSome(doc_end_opt) {
         return false;
     }
+    let doc_end: Int = UnwrapOption(doc_end_opt);
 
     let decls: Array<Int> = [0, 0];
     if !JsonFieldArrayBounds(json, 0, doc_end, "decls", decls) {

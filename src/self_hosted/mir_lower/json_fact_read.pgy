@@ -35,7 +35,7 @@ func MirObjectNumberFact(json: String, start: Int, end: Int, field: String) -> S
     return JsonObjectNumberField(json, MirFactObjectStart(json, start), end, field);
 }
 
-func MirObjectEnd(json: String, start: Int, limit: Int) -> Int {
+func MirObjectEnd(json: String, start: Int, limit: Int) -> Option<Int> {
     return JsonObjectEnd(json, MirFactObjectStart(json, start), limit);
 }
 
@@ -81,11 +81,11 @@ func MirObjectArrayObjectBoundsAt(
 }
 
 func MirDeclArrayBounds(json: String, inout bounds: Array<Int>) -> Bool {
-    let doc_end: Int = JsonDocumentObjectEnd(json);
-    if doc_end <= 0 {
+    let doc_end_opt: Option<Int> = JsonDocumentObjectEnd(json);
+    if !IsSome(doc_end_opt) {
         return false;
     }
-    return JsonFieldArrayBounds(json, 0, doc_end, "decls", bounds);
+    return JsonFieldArrayBounds(json, 0, UnwrapOption(doc_end_opt), "decls", bounds);
 }
 
 func MirDeclObjectBoundsAt(json: String, row: Int, inout bounds: Array<Int>) -> Bool {
@@ -97,11 +97,11 @@ func MirDeclObjectBoundsAt(json: String, row: Int, inout bounds: Array<Int>) -> 
 }
 
 func MirRoutineArrayBounds(json: String, inout bounds: Array<Int>) -> Bool {
-    let doc_end: Int = JsonDocumentObjectEnd(json);
-    if doc_end <= 0 {
+    let doc_end_opt: Option<Int> = JsonDocumentObjectEnd(json);
+    if !IsSome(doc_end_opt) {
         return false;
     }
-    return JsonFieldArrayBounds(json, 0, doc_end, "routines", bounds);
+    return JsonFieldArrayBounds(json, 0, UnwrapOption(doc_end_opt), "routines", bounds);
 }
 
 func MirRoutineObjectBoundsAt(json: String, row: Int, inout bounds: Array<Int>) -> Bool {

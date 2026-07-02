@@ -236,7 +236,11 @@ require_text "src/self_hosted/lib/json.pgy" "func ReadJsonString"
 require_text "src/self_hosted/lib/json.pgy" "func JsonFieldString"
 require_text "src/self_hosted/lib/json.pgy" "func JsonFieldNumber"
 require_text "src/self_hosted/lib/json.pgy" "func JsonFieldKey"
-require_text "src/self_hosted/lib/json.pgy" "func JsonDocumentObjectEnd"
+require_text "src/self_hosted/lib/json.pgy" "func JsonArrayEnd(json: String, open: Int, limit: Int) -> Option<Int>"
+require_text "src/self_hosted/lib/json.pgy" "func JsonObjectEnd(json: String, open: Int, limit: Int) -> Option<Int>"
+require_text "src/self_hosted/lib/json.pgy" "func JsonDocumentObjectEnd(json: String) -> Option<Int>"
+require_text "src/self_hosted/lib/json.pgy" "func JsonValueEnd(json: String, value_start: Int, end: Int) -> Option<Int>"
+reject_text "src/self_hosted/lib/json.pgy" "return -1"
 require_text "src/self_hosted/lib/json.pgy" "func JsonDocumentStringFieldEquals"
 require_text "src/self_hosted/lib/json.pgy" "func JsonDocumentHasField"
 require_text "src/self_hosted/lib/json.pgy" "func JsonFieldArrayBounds"
@@ -1077,7 +1081,7 @@ require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../mir
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "MirFactGraphPayloadContractReady()"
 reject_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'StringIndexOf(json, "\"schema\":\"pgy.mir.v1\"")'
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func FindRoutine(json: String, from: Int) -> Option<Int>"
-require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineObjectEnd"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineObjectEnd(json: String, rpos: Int) -> Option<Int>"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineNameEnd(json: String, rpos: Int) -> Option<Int>"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineName"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineParamCount"
@@ -1088,7 +1092,7 @@ require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func Routi
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineBlocksStart(json: String, routine_name_end: Int, span_end: Int) -> Option<Int>"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirRoutineObjectBoundsAt(json, row, bounds)"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "return -1"
-require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectEnd(json, routine_name_end"
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "let object_end_opt: Option<Int> = MirObjectEnd(json, routine_name_end"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectArrayBounds(json, routine_name_end, span_end, \"blocks\", bounds)"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "let next_rpos: Int = FindRoutine(json, routine_name_end)"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" 'FindFrom(json, "\"name\":'
@@ -1169,12 +1173,16 @@ require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "fu
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "func AirGraphScalarFieldValues"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "func AirGraphCollectScalarFieldValues"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonDocumentStringFieldEquals(content, \"schema\", \"pgy.air.graph.v1\")"
-require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonObjectFieldValueBounds(content, 0, doc_end, \"summary\", summary_bounds)"
+require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "let doc_end_opt: Option<Int> = JsonDocumentObjectEnd(content)"
+require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonObjectFieldValueBounds(content, 0, UnwrapOption(doc_end_opt), \"summary\", summary_bounds)"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonObjectNumberField(content, summary_bounds[0], summary_bounds[1], field)"
-require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonValueEnd(content,"
+require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "let value_end_opt: Option<Int> = JsonValueEnd(content,"
+require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "let item_end_opt: Option<Int> = JsonValueEnd(content,"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'JsonFieldKey("execution_lane")'
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'JsonFieldKey("boundary_capture")'
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'StringContains(content, "\"schema\":\"pgy.air.graph.v1\"")'
+reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "let doc_end: Int = JsonDocumentObjectEnd(content)"
+reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "let value_end: Int = JsonValueEnd(content,"
 for air_graph_report in \
     src/self_hosted/tools/air_graph_id_uniqueness/main.pgy \
     src/self_hosted/tools/air_graph_node_count_integrity/main.pgy \
@@ -1308,7 +1316,8 @@ require_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" 
 require_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" "JsonEmitArray(findings)"
 reject_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" 'let json_parts: Array<String>'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'import "../../lib/json.pgy";'
-require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonFieldArrayBounds(content, 0, JsonDocumentObjectEnd(content), \"modules\", module_bounds)"
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "let doc_end_opt: Option<Int> = JsonDocumentObjectEnd(content)"
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonFieldArrayBounds(content, 0, UnwrapOption(doc_end_opt), \"modules\", module_bounds)"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectCount(content, modules_open, modules_end)"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectBoundsAt("
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonObjectHasField(content, object_bounds[0], object_bounds[1], \"layer\")"
@@ -1319,6 +1328,7 @@ require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonEmit
 reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'let json_parts: Array<String>'
 reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'StringContains(content, "\"modules\":")'
 reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "TextScan.CountOccurrences"
+reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonFieldArrayBounds(content, 0, JsonDocumentObjectEnd(content)"
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/source_bundle_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/body_check_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/call_check_owner.pgy"'
@@ -1350,7 +1360,7 @@ require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirFactObjectStart"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectStringFact"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectNumberFact"
-require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectEnd"
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectEnd(json: String, start: Int, limit: Int) -> Option<Int>"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectFieldValueBounds"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirRoutineArrayBounds"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirRoutineObjectBoundsAt"

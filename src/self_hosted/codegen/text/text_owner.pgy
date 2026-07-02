@@ -35,6 +35,22 @@ func StartsWith(s: String, prefix: String) -> Bool {
     return Substring(s, 0, pn) == prefix;
 }
 
+func FindTextFrom(hay: String, needle: String, start: Int) -> Option<Int> {
+    let n: Int = StringLength(hay);
+    if start < 0 {
+        return None;
+    }
+    if start > n {
+        return None;
+    }
+    let rest: String = Substring(hay, start, n - start);
+    let k: Int = StringIndexOf(rest, needle);
+    if k < 0 {
+        return None;
+    }
+    return Some(start + k);
+}
+
 func Die(msg: String) -> Void {
     Log(Concat("CODEGEN ERROR: ", msg));
     Exit(1);
