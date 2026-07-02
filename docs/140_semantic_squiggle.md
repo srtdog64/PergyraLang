@@ -41,7 +41,7 @@ squiggle_class = f(blocks?, meaning_dimension)
 | **의미 차원 분류** | 있음(`DiagnosticLayer`) | `src/common/diagnostic_layer.h` |
 | advisory(막지 않는) 등급 | **없음** | — |
 | `squiggle_class` 필드 | **없음** | — |
-| 파랑(erasure) 데이터 | 측정만 있음, 라이브 진단 미연결 | `docs/14` AIR 소거 계기판 |
+| 파랑(erasure) 데이터 | LSP-only BLUE 배선 landed; 배치 컴파일 진단 경로와 런타임에는 영향 없음 | `docs/14` AIR 소거 계기판, `src/compiler/air_erasure_squiggle.*`, `src/lsp/pgy_lsp_diagnostics.c` |
 
 `DiagnosticLayer` = `{UNKNOWN, SYNTAX, TYPE, RESOURCE, CONCURRENCY, DOMAIN, BACKEND, DRIVER}` 가 심각도와 직교하는 *의미 차원 축*을 이미 제공한다. squiggle_class는 본질적으로 `(level, layer, code)`에 대한 분류 함수다.
 
@@ -86,8 +86,12 @@ advisory는 *인식(recognition)* 보조라 **배치/CI 컴파일에선 안 돈�
 ### 5.1 VS Code에서 "보라색"은 표준 LSP로 안 나온다
 표준 LSP `DiagnosticSeverity`는 `Error/Warning/Information/Hint` 4개뿐이고, 색은 **에디터가** 정한다(보통 빨강/주황/파랑/흐림). 빨강·노랑·파랑은 severity로 매핑되지만 **진짜 보라는 클라이언트 측 decoration provider**가 진단 `data.squiggleClass`를 읽어 직접 그려야 한다. "순수 LSP로 4색"은 과장.
 
-### 5.2 파랑(erasure)이 유일한 진짜 R&D
-나머지 3색은 *오늘* 있는 진단 데이터로 된다. 파랑만 "이 식의 의미가 런타임에 소거되는가"를 편집 시점에 알아야 하는데, 그 데이터는 `docs/14`(AIR 소거 계기판)가 **측정은 하지만 라이브 진단 경로엔 미연결**이다. 이게 가장 늦고 가장 차별적인 조각이다 — 소거를 *측정*하는 언어만 보여줄 수 있다. 미연결 상태를 숨기지 않는다.
+### 5.2 파랑(erasure)의 남은 R&D는 noise policy다
+나머지 3색은 semantic 진단 데이터에서 직접 나온다. 파랑은 AIR의 `SUMMARIZE`
+evidence에서 source site로 역매핑되어 LSP-only advisory로 연결됐다. 이제 남은
+R&D는 연결 여부가 아니라 **생산자 제한**이다. 모든 SUMMARIZE site에 파란
+물결선을 표시하면 recognition이 아니라 noise가 되므로, developer-authored domain
+annotation 또는 explicit observability marker가 있는 site부터만 보여준다.
 
 ## 6. 단계 계획
 

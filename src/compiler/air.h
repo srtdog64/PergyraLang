@@ -210,11 +210,11 @@ typedef struct
 } AIRBoundaryNode;
 
 /*
- * SEA: derive the ExecutionLane for a concurrency boundary from the evidence the
- * boundary already carries (kind, authority, sync class). First-cut mapping —
- * pin/capture/effect facts that live in MIR/semantic are not yet plumbed onto
- * the boundary, so this is conservative (it never assigns MovableScheduler
- * without explicit pure-value + authority evidence). See docs/146 §5.
+ * SEA: derive the ExecutionLane for a concurrency boundary from boundary-local
+ * authority plus RIR/MIR evidence bits. The classifier must not recover
+ * pin/raw/value facts from source kind, boundary kind, source text, or
+ * routine-level correlation; missing producer coverage stays conservative. See
+ * docs/146 §5.
  */
 BoundaryCaptureFact air_boundary_capture_fact(const AIRBoundaryNode *boundary);
 PgyExecutionLane air_boundary_classify_lane(const AIRBoundaryNode *boundary);

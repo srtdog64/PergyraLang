@@ -170,7 +170,7 @@ strictly underneath.
   boundary-local RIR/MIR evidence summary. Routine-level correlation was
   rejected because it over-pins unrelated work in the same routine.
 
-**Remaining (deep fill, not a quick slice):**
+**Remaining — Precise capture plumbing (deep fill, not a quick slice):**
 - **Precise value-capture producer coverage.** `has_mir_value_capture_evidence`
   is part of the classifier contract and parity matrix, but the MIR
   closure-capture producer still needs full end-to-end coverage for all

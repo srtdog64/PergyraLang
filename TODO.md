@@ -9782,6 +9782,7 @@ docs만 읽고 착수할 수 있어야 한다. 각 WO는 목표/현재 상태/�
 | Formal corpus (docs/semantics/19) | 10 .v coqc green, 0 admits | WO-F1 |
 | Machine-neutral | projection GREEN, test-all 미승격 | WO-A1 |
 | AIR erasure dashboard | 실측 landed, CI 게이트 미승격 | WO-A2 |
+| SEA / ExecutionLane | runtime facade landed; precise producer coverage/AIR lane matrix 남음 | A-3 |
 | String perf | fused builtins+StrView 런타임 landed | WO-P1 |
 | Guard amortization (docs/142) | 첫 슬라이스 landed | WO-P2 |
 | Closure capture (docs/141) | Stage A 完 | WO-C1→C3 |
@@ -10108,18 +10109,44 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
   (option B). **비상시 아님 — A-1(target #4)과 같은 세션 계열에서** 처리
   (둘 다 LLVM 콜 lowering 소유권 정리이므로 분리 착수 시 충돌).
 
-#### A-3. SEA lane runtime facade — ★동시 세션 소유 (2026-07-02 현재)
+#### A-3. SEA precise capture plumbing + AIR lane matrix
 
-- SEA 3층(계약/ExecutionLaneFact IR/PgyLaneScheduler) 중 런타임 facade가
-  남은 fill. **현재 워킹트리에서 다른 세션이 해당 파일 수정 중** — 이
-  항목은 그 세션 종료 확인 전 착수 금지(WO-0-1). 계약: lane은 증거 기반,
-  M:N은 한 lane(증거-gated), 층 collapse 금지(docs/146).
+- **현재**: SEA 3층(계약/ExecutionLaneFact IR/PgyLaneScheduler) 중 runtime
+  facade는 landed. Spawn, parallel, async block, await/detach/cancel, channel
+  send/receive/select는 lane-owned facade를 소비한다(docs/146). 남은 병목은
+  facade routing이 아니라 **boundary-local evidence producer coverage**다.
+- **문제**: `BoundaryCaptureFact`가 policy/self-host parity에서는 모든 lane을
+  표현하지만, clean AIR JSON이 아직 `Inline`, `PinnedZone`, `BlockingPool`,
+  `LocalAsync`, `WorkerPool`, `MovableScheduler`, `Reject` 전 행을 real source
+  fixture에서 생산하지 못한다. missing fact는 source text나 boundary kind로
+  복원하면 안 되고 conservative lane에 남아야 한다.
+- **방향**:
+  1. MIR/closure-capture owner가 boundary별 `captures_pin`,
+     `captures_live_view`, `captures_raw_slot`, `captures_raw_channel`,
+     `captures_value_only`, `requires_movability`,
+     `crosses_authority_boundary`를 생산한다.
+  2. routine-level correlation 금지: 같은 routine에 unrelated slot/effect가
+     있다는 이유만으로 boundary를 pin/raw로 분류하지 않는다.
+  3. AIR JSON lane matrix는 synthetic AIR state 제조 금지. valid source가
+     실제 생산 가능한 row부터 golden에 추가한다.
+  4. C/LLVM/self-host는 `ExecutionLaneFact`만 소비한다. backend-local
+     executor 선택, source-kind lane guess, source-string lane API 재도입 금지.
+- **게이트**: `execution-lane-policy-test-smoke`,
+  `sea-execution-lane-golden-test-smoke`, `air-json-schema-test-smoke`,
+  `self-host-execution-lane-parity-test-smoke`; producer 확장 시 해당 row의
+  C/LLVM backend parity fixture 추가.
+- **DoD**: clean AIR JSON에서 real source 기반 lane row가 늘고, TODO/docs/146
+  matrix가 같은 수치를 말하며, old source-kind/boundary-kind guess가 smoke로
+  차단된다.
 
 #### A-4. Semantic squiggle 2단계 — advisory drift 목록 (docs/140)
 
 - 배관(DIAG_ADVISORY + 첫 생산자 + LSP + VS Code)은 전부 landed. 병목은
   **언어 결정**: docs/122 drift 매트릭스(5차원×5종) 중 어떤 조합이 advisory
   4색의 어느 색을 받는가.
+- BLUE는 `SUMMARIZE -> BLUE` 배선이 landed지만, 모든 SUMMARIZE site를 곧장
+  표시하면 recognition이 아니라 noise가 된다. 다음 생산자는 developer-authored
+  domain annotation 또는 explicit observability marker가 있는 site로 한정한다.
 - **산출물**: 결정 표(도메인 drift → 색/차단 여부/근거) 문서 + 표의 상위
   2-3행에 대한 2·3번째 생산자 구현. 코드보다 표가 먼저다.
 
@@ -10144,6 +10171,10 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
   (render/audio/input stub → 실제 구현, capability 게이트 유지),
   (3) 서명 로더(배포 콘텐츠 신뢰 체인). 순서 고정 — WASM 없이 미디어부터
   가지 말 것(배포 스토리가 thesis).
+- sandbox claim은 `world/zone/authority` fact를 WIT-style import/export
+  manifest와 frame budget으로 projection한 뒤에만 올린다. 최소 budget row:
+  fuel, host-call count, command-buffer count, memory, stream bytes, input queue,
+  storage ops, wall-clock. WASM/WASI 자체를 안전성 증거로 광고하지 않는다.
 
 #### A-8. Self-eating bootstrap — Stage 5 North Star
 
