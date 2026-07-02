@@ -1,0 +1,62 @@
+// Self-host compiler authority contracts.
+//
+// Declares WHO may act at the compiler world's sensitive boundaries, as
+// declared abilities satisfied through roles. world.pgy consumes these via
+// zone `authority <slot> requires <Ability>` annotations and intent step
+// `requires:` / `authorized by:` clauses. Skeleton scope: the four boundaries
+// where a wrong actor is a real hazard -- semantic verdict, C emission,
+// subprocess planning, parity judgement. The marker funcs are the ability
+// surface contract; they become load-bearing when stage actors start
+// publishing provenance rows.
+
+ability FactProving {
+    fields name: String;
+    func AuthorityMark() -> String;
+}
+
+ability ArtifactEmission {
+    fields name: String;
+    func AuthorityMark() -> String;
+}
+
+ability SubprocessDiscipline {
+    fields name: String;
+    func AuthorityMark() -> String;
+}
+
+ability ParityJudging {
+    fields c_backend: String;
+    func AuthorityMark() -> String;
+}
+
+role SemanticAuthority for SemanticStage {
+    impl ability FactProving {
+        func AuthorityMark() -> String {
+            return "semantic-verdict";
+        }
+    }
+}
+
+role EmitterAuthority for ProgramEmitter {
+    impl ability ArtifactEmission {
+        func AuthorityMark() -> String {
+            return "emitted-c";
+        }
+    }
+}
+
+role SubprocessAuthority for SubprocessRunner {
+    impl ability SubprocessDiscipline {
+        func AuthorityMark() -> String {
+            return "subprocess-envelope";
+        }
+    }
+}
+
+role OracleAuthority for OraclePair {
+    impl ability ParityJudging {
+        func AuthorityMark() -> String {
+            return "parity-verdict";
+        }
+    }
+}

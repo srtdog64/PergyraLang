@@ -112,9 +112,7 @@ subject OraclePair {
     }
 }
 
-object SourceBatch {
-    schema: String;
-}
+object SourceBatch { schema: String; }
 
 object StagePathManifest {
     root: String;
@@ -129,67 +127,24 @@ object StagePathManifest {
     codegen: String;
 }
 
-object TokenStream {
-    schema: String;
-}
-
-object AstTree {
-    schema: String;
-}
-
-object SemanticVerdict {
-    schema: String;
-}
-
-object MirFactGraph {
-    schema: String;
-}
-
-object TypeEnvironment {
-    schema: String;
-}
-
-object AbiLayoutFacts {
-    schema: String;
-}
-
-object TargetCapabilityEnvelope {
-    schema: String;
-}
-
-object AirEvidenceFacts {
-    schema: String;
-}
-
-object SymbolFactTable {
-    schema: String;
-}
-
-object AbiLayoutRows {
-    schema: String;
-}
-
-object EmittedC {
-    schema: String;
-}
-
-object ArtifactEvidence {
-    schema: String;
-}
-
-object TestHarnessFacts {
-    schema: String;
-}
-
-object SubprocessCapabilityEnvelope {
-    schema: String;
-}
-
-tobject ParityVerdict {
-    schema: String;
-}
+object TokenStream { schema: String; }
+object AstTree { schema: String; }
+object SemanticVerdict { schema: String; }
+object MirFactGraph { schema: String; }
+object TypeEnvironment { schema: String; }
+object AbiLayoutFacts { schema: String; }
+object TargetCapabilityEnvelope { schema: String; }
+object AirEvidenceFacts { schema: String; }
+object SymbolFactTable { schema: String; }
+object AbiLayoutRows { schema: String; }
+object EmittedC { schema: String; }
+object ArtifactEvidence { schema: String; }
+object TestHarnessFacts { schema: String; }
+object SubprocessCapabilityEnvelope { schema: String; }
+tobject ParityVerdict { schema: String; }
 
 import "stage_intents.pgy";
+import "authority_owner.pgy";
 
 zone SourceIntakeZone {
     subject slot source: SourceUnit
@@ -210,6 +165,7 @@ zone AstTreeZone {
 zone SemanticVerdictZone {
     subject slot checker: SemanticStage
     object slot verdict: SemanticVerdict
+    authority checker requires FactProving
 }
 
 zone MirFactGraphZone {
@@ -248,6 +204,7 @@ zone AbiRowProjectionZone {
 zone EmissionZone {
     subject slot emitter: ProgramEmitter
     object slot c_output: EmittedC
+    authority emitter requires ArtifactEmission
 }
 
 zone ArtifactZone {
@@ -263,11 +220,13 @@ zone TestHarnessZone {
 zone SubprocessRunnerZone {
     subject slot runner: SubprocessRunner
     object slot envelope: SubprocessCapabilityEnvelope
+    authority runner requires SubprocessDiscipline
 }
 
 zone ParityZone {
     subject slot oracle: OraclePair
     tobject slot verdict: ParityVerdict
+    authority oracle requires ParityJudging
 }
 
 zone SelfHostCompiler {
@@ -377,6 +336,8 @@ intent CheckProgramSemantics(semantic_zone: SemanticVerdictZone, checker: Semant
         using: semantic_zone;
         who: checker;
         on: checker.Check();
+        requires: FactProving;
+        authorized by: checker;
         expect: true;
     }
 
@@ -407,6 +368,8 @@ intent EmitProgramArtifact(emit_zone: EmissionZone, types: TypeEnvZone, abi_layo
         using: emit_zone;
         who: emitter;
         on: emitter.Emit(types, abi_layout, target_capability);
+        requires: ArtifactEmission;
+        authorized by: emitter;
         expect: true;
     }
 
@@ -490,6 +453,8 @@ intent ProveHardSelfHostEvidence(
         using: subprocess;
         who: subprocess_runner;
         on: subprocess_runner.Plan();
+        requires: SubprocessDiscipline;
+        authorized by: subprocess_runner;
         expect: true;
     }
 
@@ -505,6 +470,8 @@ intent ProveSelfHostedParity(parity_zone: ParityZone, oracle: OraclePair) {
         using: parity_zone;
         who: oracle;
         on: oracle.Compare();
+        requires: ParityJudging;
+        authorized by: oracle;
         expect: true;
     }
 

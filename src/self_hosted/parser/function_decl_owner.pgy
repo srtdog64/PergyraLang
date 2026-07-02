@@ -257,6 +257,22 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
                 }
                 continue;
             }
+            if MatchKeyword(content, next_i, "caps") {
+                i = next_i + 4;
+                while true {
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let cap_dummy: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    i = SkipWhitespaceAndComments(content, i);
+                    if CharAt(content, i) == "," {
+                        i = i + 1;
+                        continue;
+                    }
+                    break;
+                }
+                continue;
+            }
         }
         if MatchKeyword(content, i, "where") {
             let where_start: Int = i;

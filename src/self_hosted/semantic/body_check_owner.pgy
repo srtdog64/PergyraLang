@@ -309,6 +309,23 @@ func CheckFunction(content: String, func_pos: Int, inout cursor_out: Array<Int>,
         i = cursor[0];
     }
     i = SkipWhitespaceAndComments(content, i);
+    if MatchKeyword(content, i, "with") {
+        let caps_probe: Int = SkipWhitespaceAndComments(content, i + 4);
+        if MatchKeyword(content, caps_probe, "caps") {
+            i = caps_probe + 4;
+            while true {
+                i = SkipWhitespaceAndComments(content, i);
+                let cap_name: String = ReadIdent(content, i, cursor);
+                i = cursor[0];
+                i = SkipWhitespaceAndComments(content, i);
+                if CharAt(content, i) == "," {
+                    i = i + 1;
+                    continue;
+                }
+                break;
+            }
+        }
+    }
     if CharAt(content, i) != "{" {
         ArraySet(cursor_out, 0, i + 1);
         return "";

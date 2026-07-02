@@ -60,6 +60,10 @@ func CompilerStageArtifactOwnerPath() -> String {
     return "src/self_hosted/compiler/stage_artifact_owner.pgy";
 }
 
+func CompilerAuthorityOwnerPath() -> String {
+    return "src/self_hosted/compiler/authority_owner.pgy";
+}
+
 func CompilerOwnerManifestPath() -> String {
     return "src/self_hosted/OWNERS.md";
 }
@@ -133,59 +137,36 @@ func CompilerParityPathAt(index: Int) -> String {
 }
 
 func CompilerWorldManifestPathCount() -> Int {
-    return 23;
+    return 24;
 }
 
 func CompilerWorldManifestPathAt(index: Int) -> String {
-    if index == 0 {
-        return CompilerWorldPath();
-    }
-    if index == 1 {
-        return CompilerPathManifestPath();
-    }
-    if index == 2 {
-        return CompilerStageIntentsPath();
-    }
-    if index == 3 {
-        return CompilerTargetCapabilityOwnerPath();
-    }
-    if index == 4 {
-        return CompilerAirEvidenceOwnerPath();
-    }
-    if index == 5 {
-        return CompilerArtifactZoneOwnerPath();
-    }
-    if index == 6 {
-        return CompilerTestHarnessOwnerPath();
-    }
-    if index == 7 {
-        return CompilerSubprocessRunnerOwnerPath();
-    }
-    if index == 8 {
-        return CompilerAbiLayoutRowOwnerPath();
-    }
-    if index == 9 {
-        return CompilerSymbolTableOwnerPath();
-    }
-    if index == 10 {
-        return CompilerStageArtifactOwnerPath();
-    }
-    if index == 11 {
-        return CompilerOwnerManifestPath();
-    }
+    if index == 0 { return CompilerWorldPath(); }
+    if index == 1 { return CompilerPathManifestPath(); }
+    if index == 2 { return CompilerStageIntentsPath(); }
+    if index == 3 { return CompilerTargetCapabilityOwnerPath(); }
+    if index == 4 { return CompilerAirEvidenceOwnerPath(); }
+    if index == 5 { return CompilerArtifactZoneOwnerPath(); }
+    if index == 6 { return CompilerTestHarnessOwnerPath(); }
+    if index == 7 { return CompilerSubprocessRunnerOwnerPath(); }
+    if index == 8 { return CompilerAbiLayoutRowOwnerPath(); }
+    if index == 9 { return CompilerSymbolTableOwnerPath(); }
+    if index == 10 { return CompilerStageArtifactOwnerPath(); }
+    if index == 11 { return CompilerOwnerManifestPath(); }
     if index < 17 {
         return CompilerStagePathAt(index - 12);
     }
     if index < 23 {
         return CompilerParityPathAt(index - 17);
     }
+    if index == 23 { return CompilerAuthorityOwnerPath(); }
     return "";
 }
 
-func CompilerStagePathManifestReady() -> Bool {
+func CompilerStagePathManifestReady() -> Bool with caps io_read {
     if CompilerStagePathCount() != 5 { return false; }
     if CompilerParityPathCount() != 6 { return false; }
-    if CompilerWorldManifestPathCount() != 23 { return false; }
+    if CompilerWorldManifestPathCount() != 24 { return false; }
     if SelfHostSourceDir() == "" { return false; }
     if CompilerWorldPath() == "" { return false; }
     if CompilerStagePathAt(0) == "" { return false; }
@@ -195,6 +176,6 @@ func CompilerStagePathManifestReady() -> Bool {
     if CompilerParityPathAt(0) == "" { return false; }
     if CompilerParityPathAt(5) == "" { return false; }
     if CompilerWorldManifestPathAt(0) == "" { return false; }
-    if CompilerWorldManifestPathAt(22) == "" { return false; }
+    if CompilerWorldManifestPathAt(23) == "" { return false; }
     return true;
 }

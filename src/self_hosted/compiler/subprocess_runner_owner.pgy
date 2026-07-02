@@ -54,7 +54,7 @@ func CompilerSubprocessOracleComparePlanReady() -> Bool {
         CompilerSubprocessOracleCompareEnvAllowlist() != "";
 }
 
-func CompilerSubprocessRunnerReady() -> Bool {
+func CompilerSubprocessRunnerReady() -> Bool with caps env {
     return CompilerSubprocessFactAt(0) == "executable_path" &&
         CompilerSubprocessFactAt(1) == "argv" &&
         CompilerSubprocessFactAt(3) == "env_allowlist" &&

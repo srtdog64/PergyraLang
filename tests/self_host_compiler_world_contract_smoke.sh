@@ -70,6 +70,7 @@ require_file "src/self_hosted/compiler/subprocess_runner_owner.pgy"
 require_file "src/self_hosted/compiler/abi_layout_row_owner.pgy"
 require_file "src/self_hosted/compiler/symbol_table_owner.pgy"
 require_file "src/self_hosted/compiler/stage_artifact_owner.pgy"
+require_file "src/self_hosted/compiler/authority_owner.pgy"
 require_file "docs/self_hosted/11_compiler_world_architecture.md"
 require_file "docs/self_hosted/12_intent_zone_self_host_architecture.md"
 require_file "docs/self_hosted/13_compiler_substrate_architecture.md"
@@ -79,6 +80,7 @@ require_file "tests/self_host_compiler_world_contract_smoke.sh"
 require_file "tests/self_hosted/compiler_world_manifest.sh"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_PATH_MANIFEST_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_STAGE_ARTIFACT_PATH"
+require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_AUTHORITY_PATH"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "### Pergyra-Style Self-Host Test"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "C, LLVM, and self-hosted outputs are peer projections over the same facts"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "stage_artifact_owner.pgy"
@@ -99,6 +101,34 @@ require_max_lines "src/self_hosted/compiler/subprocess_runner_owner.pgy" 120
 require_max_lines "src/self_hosted/compiler/abi_layout_row_owner.pgy" 120
 require_max_lines "src/self_hosted/compiler/symbol_table_owner.pgy" 120
 require_max_lines "src/self_hosted/compiler/stage_artifact_owner.pgy" 120
+require_max_lines "src/self_hosted/compiler/authority_owner.pgy" 120
+
+# Authority skeleton locks: sensitive-boundary abilities/roles plus the zone
+# and intent-step clauses that consume them. These keep the authority axis
+# from silently rotting back into who-only provenance.
+require_text "src/self_hosted/compiler/world.pgy" 'import "authority_owner.pgy";'
+require_text "src/self_hosted/compiler/world.pgy" "authority checker requires FactProving"
+require_text "src/self_hosted/compiler/world.pgy" "authority emitter requires ArtifactEmission"
+require_text "src/self_hosted/compiler/world.pgy" "authority runner requires SubprocessDiscipline"
+require_text "src/self_hosted/compiler/world.pgy" "authority oracle requires ParityJudging"
+require_text "src/self_hosted/compiler/world.pgy" "requires: FactProving;"
+require_text "src/self_hosted/compiler/world.pgy" "authorized by: checker;"
+require_text "src/self_hosted/compiler/world.pgy" "requires: ArtifactEmission;"
+require_text "src/self_hosted/compiler/world.pgy" "authorized by: emitter;"
+require_text "src/self_hosted/compiler/world.pgy" "requires: SubprocessDiscipline;"
+require_text "src/self_hosted/compiler/world.pgy" "authorized by: subprocess_runner;"
+require_text "src/self_hosted/compiler/world.pgy" "requires: ParityJudging;"
+require_text "src/self_hosted/compiler/world.pgy" "authorized by: oracle;"
+require_text "src/self_hosted/compiler/authority_owner.pgy" "ability FactProving"
+require_text "src/self_hosted/compiler/authority_owner.pgy" "ability ArtifactEmission"
+require_text "src/self_hosted/compiler/authority_owner.pgy" "ability SubprocessDiscipline"
+require_text "src/self_hosted/compiler/authority_owner.pgy" "ability ParityJudging"
+require_text "src/self_hosted/compiler/authority_owner.pgy" "role SemanticAuthority for SemanticStage"
+require_text "src/self_hosted/compiler/authority_owner.pgy" "role EmitterAuthority for ProgramEmitter"
+require_text "src/self_hosted/compiler/authority_owner.pgy" "role SubprocessAuthority for SubprocessRunner"
+require_text "src/self_hosted/compiler/authority_owner.pgy" "role OracleAuthority for OraclePair"
+require_text "src/self_hosted/compiler/path_manifest_owner.pgy" "with caps io_read"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "with caps env"
 
 for term in \
     "world PgyCompilerWorld" \
