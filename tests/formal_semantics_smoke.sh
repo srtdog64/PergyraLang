@@ -71,6 +71,8 @@ WITNESS_COQ="$PROOF_DIR/proofs/WitnessDataRace.v"
 METHODOLOGY_COQ="$PROOF_DIR/proofs/VerificationMethodology.v"
 PROOF_SPINE_COQ="$PROOF_DIR/proofs/ProofSpine.v"
 GUARD_COQ="$PROOF_DIR/proofs/GuardCalculus.v"
+WHOLE_PROGRAM_COQ="$PROOF_DIR/proofs/WholeProgramCore.v"
+AIR_BINDING_COQ="$PROOF_DIR/proofs/AIRBinding.v"
 MINIMAL_POSITION_DOC="$PROOF_DIR/20_minimal_verification_position.md"
 WITNESS_DOC="$PROOF_DIR/10_ability_witness_evidence.md"
 BOUNDARY_WITNESS_HEADER="$ROOT_DIR/src/semantic/boundary_witness.h"
@@ -100,6 +102,8 @@ require_file "$WITNESS_COQ" "docs/semantics/proofs/WitnessDataRace.v"
 require_file "$METHODOLOGY_COQ" "docs/semantics/proofs/VerificationMethodology.v"
 require_file "$PROOF_SPINE_COQ" "docs/semantics/proofs/ProofSpine.v"
 require_file "$GUARD_COQ" "docs/semantics/proofs/GuardCalculus.v"
+require_file "$WHOLE_PROGRAM_COQ" "docs/semantics/proofs/WholeProgramCore.v"
+require_file "$AIR_BINDING_COQ" "docs/semantics/proofs/AIRBinding.v"
 require_file "$MINIMAL_POSITION_DOC" "docs/semantics/20_minimal_verification_position.md"
 require_file "$WITNESS_DOC" "docs/semantics/10_ability_witness_evidence.md"
 require_file "$BOUNDARY_WITNESS_HEADER" "src/semantic/boundary_witness.h"
@@ -283,6 +287,28 @@ Corollary pergyra_no_silent_ub
 Proven,    true => UB
 OpSecureToken
 OpLifecycle
+TERMS
+
+require_terms "$WHOLE_PROGRAM_COQ" "docs/semantics/proofs/WholeProgramCore.v" <<'TERMS'
+Theorem step_requires_guard
+Theorem guard_enables_step
+Theorem step_iff_guard
+Theorem step_preserves_wf
+Theorem whole_program_safety
+| ActRun (t : task)
+Qed.
+TERMS
+
+require_terms "$AIR_BINDING_COQ" "docs/semantics/proofs/AIRBinding.v" <<'TERMS'
+Record AIRFacts
+Theorem guard_air_faithful
+Theorem gate_locality
+Theorem delegate_use_release_air_independent
+air_zone_gate
+air_effect_gate
+air_acquire_gate
+air_comp_targets
+air_dep_graph
 TERMS
 
 require_terms "$MINIMAL_POSITION_DOC" "docs/semantics/20_minimal_verification_position.md" <<'TERMS'

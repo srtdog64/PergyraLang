@@ -225,14 +225,41 @@ compensation), each with a checked soundness/fail-closed theorem, and the unifie
 machine showing the base axes compose. Seven `coqc`-checked core-calculus files
 (14/14 with the existing proofs).
 
-The remaining work is now:
-1. **Preservation/progress over a typing judgment** for whole programs (the current
-   theorems are per-step fail-closed/soundness lemmas; the full pair is the depth).
-2. **Bind** the model's graphs/holdings/snapshot terms to the live AIR/MIR owner
-   facts -- the same plumbing that turns the `make machine-neutral-status` gate
-   (docs/18) from RED to GREEN. The calculus and the fact-ownership fix are one
-   workstream; this is the theory-to-implementation bridge. The calculus now
-   names exactly which facts AIR/MIR must own (a `ZoneGraph`, an `effect_graph`,
-   an `acquire_graph`, a `holdings` map, a `deps` graph, and a
-   `comp_target : eff -> list slot` map, plus the effect-log pre-forward store
-   snapshot facts).
+### Whole-program machine + progress/preservation + AIR binding landed (2026-07-02)
+
+Both remaining items above are now `coqc`-checked (task #47 closed):
+
+1. **`WholeProgramCore.v`** folds the coordination facet (previously a separate
+   machine in `CoordinationCore.v`) into the unified config+step as the eighth
+   step form (`SRun`), so the whole intent decomposition is ONE machine, and
+   proves the depth pair:
+   - **Progress** as `step_iff_guard` (from `step_requires_guard` +
+     `guard_enables_step`): the step relation is EXACTLY the guard -- a
+     guard-satisfied action always steps, a step only fires when its guard
+     holds. There is no stuck-with-UB state; operationally the machine IS the
+     fail-closed guard calculus (`GuardCalculus.v`).
+   - **Preservation** as `step_preserves_wf` / `steps_preserve_wf`: the
+     whole-program invariant (coordination done-set dependency-closed) is
+     preserved by every step, and `whole_program_safety` bundles it with
+     authority conservation over any run.
+2. **`AIRBinding.v`** bundles the five fact families the gate reads into one
+   `AIRFacts` record and proves the binding the fact-ownership fix needs, at
+   model level (no live AIR C touched):
+   - **`guard_air_faithful`**: the machine's guard is EXACTLY the guard computed
+     from the `AIRFacts` record -- AIR owning these five fields is necessary and
+     sufficient to reconstruct every gate.
+   - **`gate_locality`** (+ per-action `*_reads_only` lemmas): each action's gate
+     reads EXACTLY ONE AIR field; changing any other cannot change it -- the
+     operational form of the docs/42 single-owner discipline at the AIR-fact
+     level. `delegate_use_release_air_independent` fixes the boundary: authority
+     delegation flows through holdings and typestate through the store, neither
+     through AIR.
+
+This fixes the gating INTERFACE (what AIR must own and that nothing else
+influences a decision); it does not prove the C AIR emitter populates the fields
+correctly -- that remains the `air-json-schema` smoke plus the
+`make machine-neutral-status` producer gate.
+
+Core-calculus corpus is now **10 `coqc`-checked files** (the 7 corners/facets +
+`GuardCalculus` + `WholeProgramCore` + `AIRBinding`), all wired into
+`formal_semantics_smoke`.
