@@ -2,6 +2,12 @@
 //
 // Program-level C assembly owner for self-host C emission.
 
+import "../text/text_owner.pgy";
+import "../input/ast_text_inventory_owner.pgy";
+import "../input/ast_text_statement_owner.pgy";
+import "../input/ast_usage_owner.pgy";
+import "function_emit.pgy";
+
 func GenerateC(tree_text: String) -> String {
     RejectUnsupportedCodegenBuiltins(tree_text);
 

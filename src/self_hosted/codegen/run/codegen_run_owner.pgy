@@ -4,6 +4,9 @@
 // path/file policy stays in ast_input_owner.pgy; C translation stays in
 // program_emit.pgy.
 
+import "../input/ast_input_owner.pgy";
+import "../emission/program_emit.pgy";
+
 func RunCodegenFromArgs(args: Array<String>) -> Void {
     let ast_path: String = CodegenDefaultAstPath(args);
     let tree_text: String = CodegenReadAst(ast_path);

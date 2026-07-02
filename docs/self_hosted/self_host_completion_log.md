@@ -25,6 +25,19 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-02 - Codegen action owners declare their source-bundle dependencies
+
+- Added explicit owner imports to `codegen/run/codegen_run_owner.pgy` and the
+  five emission action participants (`program_emit`, `function_emit`,
+  `stmt_emit`, `expr_rewrite`, `struct_value_emit`). They no longer rely on
+  `codegen/main.pgy` as the only file that assembles their dependency graph.
+- Promoted those six real sources into `selfcheck_sources.sh`, raising the
+  real-source semantic selfcheck manifest from 91 to 97 accepted
+  self-host owner/source files.
+- This is a source-bundle SoT closure: `main.pgy` remains orchestration, while
+  each owner declares the facts/functions it consumes. No import-stripped
+  generated unit or helper concat path was introduced.
+
 ## 2026-07-01 - Stage bindings name payload contracts
 
 - Promoted active self-host stage binding rows from

@@ -1149,6 +1149,12 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/c
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/stage_artifact_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/world.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/main.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/emission/expr_rewrite.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/emission/function_emit.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/emission/program_emit.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/emission/stmt_emit.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/emission/struct_value_emit.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/run/codegen_run_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/input/ast_usage_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/typed_ast_node_skeleton.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy"'
@@ -1354,8 +1360,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 91 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 91"
+[[ "$selfcheck_count" -eq 97 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 97"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirFactObjectStart"

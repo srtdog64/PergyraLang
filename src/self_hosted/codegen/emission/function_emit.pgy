@@ -2,6 +2,14 @@
 //
 // Function/declaration scan and signature emission owner for self-host C emission.
 
+import "../text/text_owner.pgy";
+import "../input/ast_text_inventory_owner.pgy";
+import "../input/ast_text_statement_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
+import "../runtime_abi/collection_runtime_owner.pgy";
+import "stmt_emit.pgy";
+
 func ParamModeCsvAppend(csv: String, mode: Int) -> String {
     let next: String = CodegenAstTextParamModeName(mode);
     if StringLength(csv) == 0 {
