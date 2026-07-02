@@ -565,6 +565,7 @@ reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let pa
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextParentIndex"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return -1"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsParameters"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsProgramRoot"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsReturns"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsFieldsHeader"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsFunction"
@@ -604,8 +605,12 @@ require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "kind 
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'import "../typed_ast_node_skeleton.pgy";'
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenTypedAstBridgeReady"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "TypedAstArenaPayloadContractReady()"
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'nodes[0].text != "Program:"'
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "CodegenAstTextIsProgramRoot(nodes[0])"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextExpectNode"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let expected_kind: Int = CodegenAstTextKindOf(expected)"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "nodes[cur[0]].kind != expected_kind"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'nodes[0].text != "Program:"'
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "nodes[cur[0]].text != expected"
 require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "func TypedAstArenaPayloadContractReady"
 require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "func TypedAstArenaPayloadSchema"
 require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "pgy.selfhost.typed-ast-arena.v1"

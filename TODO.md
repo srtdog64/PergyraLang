@@ -37,6 +37,11 @@ English anchor for tooling/doc gates:
   rather than the hidden dependency assembler for those owners. Parser/codegen
   expression participants with real import cycles stay out of this slice; they
   need an owner-boundary decision before promotion.
+- Mixed AST-text bridge progress: structural markers (`Program:`, `Body:`,
+  `Block:`, `Then:`) now compare owner-owned `kind` facts instead of raw
+  `CodegenAstTextNode.text` equality. The blocker remains open because line
+  text is still the transitional payload/provenance source inside the bridge
+  owner.
 - Evidence-driven guard amortization first slice: plain `Slot<T>` MIR pin
   regions now have an explicit owner fact,
   `mir_block_has_pin_guard_amortization_region(...)`, requiring source slot,

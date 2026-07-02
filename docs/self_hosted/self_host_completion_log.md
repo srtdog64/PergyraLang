@@ -25,6 +25,19 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-03 - AST-text structural markers consume kind facts
+
+- Moved the self-host codegen AST-text bridge's structural marker checks for
+  `Program:`, `Body:`, `Block:`, and `Then:` from raw text equality to the
+  owner-owned `kind` fact. `CodegenTypedAstBridgeReady` now checks the program
+  root through `CodegenAstTextIsProgramRoot`, and `CodegenAstTextExpectNode`
+  compares the expected marker kind instead of reopening line text.
+- Tightened the component contract so root/expected marker checks cannot regress
+  to `nodes[0].text != "Program:"` or `nodes[cur[0]].text != expected`.
+- This reduces the mixed AST-like tree blocker but does not close it:
+  `CodegenAstTextNode.text` still exists as diagnostic provenance and as the
+  transitional payload source inside the bridge owner.
+
 ## 2026-07-03 - MIR-lower and lane facts enter real-source selfcheck
 
 - Added explicit imports to the self-host `type_env` owner and MIR-lower

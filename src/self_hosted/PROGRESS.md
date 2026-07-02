@@ -5,7 +5,7 @@ The number that matters is *how much of the C/LLVM compiler has been
 substituted by Pergyra-written equivalents* -- not how many peripheral
 audit tools exist.
 
-Last updated: 2026-07-02
+Last updated: 2026-07-03
 
 ## Headline Number
 
@@ -62,7 +62,9 @@ survive `pgy --ast`; the self-host C codegen consumes `inout` from function-env
 from `ArrayPush` or other statement text. The real-source semantic selfcheck now accepts 107
 self-host owner/source files through both C and LLVM, including the codegen
 run boundary, emission action owners, type-fact owner, MIR-lower fact owners,
-and SEA execution-lane mirror. The rest of codegen,
+and SEA execution-lane mirror. The AST-text bridge's root/body/block/then
+structural marker checks now consume owner-owned `kind` facts rather than raw
+line-text equality. The rest of codegen,
 runtime, compiler driver, and LSP
 substitution are still 0%; the MIR-lowering substitution has now *started* (see
 below).

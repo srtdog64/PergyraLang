@@ -17,8 +17,20 @@ struct CodegenAstTextNode {
 }
 
 func CodegenAstTextKindOf(text: String) -> Int {
+    if text == "Program:" {
+        return 30;
+    }
     if text == "Parameters:" {
         return 2;
+    }
+    if text == "Body:" {
+        return 31;
+    }
+    if text == "Block:" {
+        return 32;
+    }
+    if text == "Then:" {
+        return 33;
     }
     if StartsWith(text, "Returns:") {
         return 3;
@@ -213,6 +225,10 @@ func CodegenAstTextIsFunction(node: CodegenAstTextNode) -> Bool {
 
 func CodegenAstTextIsParameters(node: CodegenAstTextNode) -> Bool {
     return node.kind == 2;
+}
+
+func CodegenAstTextIsProgramRoot(node: CodegenAstTextNode) -> Bool {
+    return node.kind == 30;
 }
 
 func CodegenAstTextIsParameterRow(node: CodegenAstTextNode) -> Bool {
@@ -516,7 +532,7 @@ func CodegenTypedAstBridgeReady(nodes: Array<CodegenAstTextNode>, count: Int) ->
     if count <= 0 {
         return false;
     }
-    if nodes[0].text != "Program:" {
+    if !CodegenAstTextIsProgramRoot(nodes[0]) {
         return false;
     }
     return true;
@@ -526,8 +542,12 @@ func CodegenAstTextExpectNode(nodes: Array<CodegenAstTextNode>, count: Int, inou
     if cur[0] >= count {
         Die(Concat("expected `", Concat(expected, "` but reached end of AST")));
     }
-    if nodes[cur[0]].text != expected {
-        Die(Concat("expected `", Concat(expected, Concat("` but got: ", nodes[cur[0]].text))));
+    let expected_kind: Int = CodegenAstTextKindOf(expected);
+    if expected_kind == 1 {
+        Die(Concat("unsupported expected AST marker: ", expected));
+    }
+    if nodes[cur[0]].kind != expected_kind {
+        Die(Concat("expected `", Concat(expected, Concat("` but got: ", CodegenAstTextProvenance(nodes[cur[0]])))));
     }
     ArraySet(cur, 0, cur[0] + 1);
 }
