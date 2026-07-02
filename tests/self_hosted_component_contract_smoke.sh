@@ -310,13 +310,13 @@ mir_positive_count="$(
         extract_shell_array_items "$PARITY_DIR/mir_json_parity.sh" EXAMPLE_FIXTURES
     } | wc -l | tr -d ' '
 )"
-[[ "$mir_positive_count" -eq 85 ]] ||
-    fail "mir_json_parity positive fixture count drifted: $mir_positive_count != 85"
+[[ "$mir_positive_count" -eq 86 ]] ||
+    fail "mir_json_parity positive fixture count drifted: $mir_positive_count != 86"
 mir_clean_reject_count="$(grep -Ec '^base="unsupported_' "$PARITY_DIR/mir_json_parity.sh" || true)"
 [[ "$mir_clean_reject_count" -eq 0 ]] ||
     fail "mir_json_parity clean reject count drifted: $mir_clean_reject_count != 0"
-require_text "src/self_hosted/PROGRESS.md" "85 PASS / 0 gap plus 0 clean"
-require_text "docs/self_hosted/07_hard_self_host_scorecard.md" "85 PASS / 0 gap plus 0 clean rejects"
+require_text "src/self_hosted/PROGRESS.md" "86 PASS / 0 gap plus 0 clean"
+require_text "docs/self_hosted/07_hard_self_host_scorecard.md" "86 PASS / 0 gap plus 0 clean rejects"
 require_text "tests/self_hosted/parity/mir_json_parity.sh" '"kind":"role","name":"IntMath","for_type":"Int"'
 require_text "tests/self_hosted/parity/mir_json_parity.sh" "Role: IntMath for Int"
 reject_text "tests/self_hosted/parity/mir_json_parity.sh" "unsupported MIR role declaration in self-host subset"
@@ -1068,7 +1068,7 @@ require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'JsonDocumentS
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "func MirFactGraphPayloadContractReady"
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "func MirFactGraphPayloadSchema"
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "pgy.mir.v1"
-require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirFactGraphPayloadFixtureCount() != 85"
+require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirFactGraphPayloadFixtureCount() != 86"
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../mir_lower/mir_fact_graph_contract_owner.pgy";'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "MirFactGraphPayloadContractReady()"
 reject_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'StringIndexOf(json, "\"schema\":\"pgy.mir.v1\"")'

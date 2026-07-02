@@ -350,7 +350,7 @@ rewrite history.
   Source-payload reads for the gated body surface have been replaced by
   dedicated MIR/source-shape facts, and the self-hosted MIR-lowering path is
   ratcheted against reading transitional `"ast"` text. The committed
-  MIR-lower/codegen frontier is **85 PASS / 0 gap plus 0 clean rejects**.
+  MIR-lower/codegen frontier is **86 PASS / 0 gap plus 0 clean rejects**.
 
 ## Roadmap to completion
 
@@ -782,7 +782,7 @@ rewrite history.
   method lists are read through bounded JSON array/object facts. This prevents
   parameter names such as `self` from being mistaken for declaration method
   names.
-- The rolling MIR JSON frontier moves to **85 PASS / 0 gap plus 0 clean
+- The rolling MIR JSON frontier moves to **86 PASS / 0 gap plus 0 clean
   rejects**. Remaining role work is now richer/default/generic/dynamic ability
   dispatch, not a declaration-fact or source-AST fallback boundary.
 

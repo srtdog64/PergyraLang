@@ -93,7 +93,7 @@ match-case integer pattern conditions, runtime-aligned absolute-path I/O policy,
 file read/write, and phi-bearing loop headers classified by CFG backedges rather
 than phi presence alone, plus MIR-owned array destructure binding facts), gated by
 `parity/mir_json_parity.sh`
-(`make self-host-mir-json-parity-test-smoke`, 85 fixtures plus 0 clean-reject
+(`make self-host-mir-json-parity-test-smoke`, 86 fixtures plus 0 clean-reject
 fixtures). The gate now
 requires the MIR JSON fact surface and checks the `for`
 header is reconstructed from `arg0` plus `expr0`/`expr1` bounds, and checks
@@ -111,7 +111,7 @@ expression, source-local, CFG, match-case, I/O policy, typed struct field
 declaration, field-only class/subject/object/tobject/vessel declaration/method,
 ability signature declaration, payload-free enum surfaces, and the Int role
 operator dispatch surface. The committed MIR-lower/codegen fixture inventory is
-currently **85 PASS / 0 gap plus 0 clean rejects** through this
+currently **86 PASS / 0 gap plus 0 clean rejects** through this
 path. The nominal family now flows through MIR-owned `nominal_kind`/field facts
 and reconstructs `Class:` / `Subject:` / `Object:` / `TObject:` / `Vessel:`
 instead of collapsing those labels to a generic class alias. Ability
@@ -129,8 +129,8 @@ symbols. New fixtures must preserve that by adding owning facts rather than
 text fallback.
 `self_hosted_component_contract_smoke` now also ratchets that frontier against
 the parity harness itself: the MIR JSON positive fixture inventory must stay at
-85, the clean-reject inventory must stay at 0, the scorecard must cite the same
-85 PASS / 0 gap plus 0 clean reject boundary, and stale fixture-count wording
+86, the clean-reject inventory must stay at 0, the scorecard must cite the same
+86 PASS / 0 gap plus 0 clean reject boundary, and stale fixture-count wording
 is rejected. The positive inventory now includes `examples/binary_search.pgy`
 as an example-origin fixture, not only purpose-built self-host/codegen fixtures.
 

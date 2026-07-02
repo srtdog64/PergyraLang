@@ -177,7 +177,7 @@ constructors and inspection helpers, and `Join`/`ToFloat` string utility flow
 also run through this MIR-JSON path. Ability declarations are reconstructed from MIR method
 signature facts and treated as zero-artifact declaration hosts by the
 self-hosted codegen pre-passes. The committed MIR-lower/codegen fixture
-inventory is now measured at 85 PASS / 0 gap plus 0 clean rejects through this
+inventory is now measured at 86 PASS / 0 gap plus 0 clean rejects through this
 path. Role declarations now flow as MIR-owned `kind:"role"` facts with
 `for_type`, impl ability spans, and method signature facts; the supported
 Int/`Arithmetic.Add` operator dispatch path is now consumed by self-hosted

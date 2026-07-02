@@ -351,7 +351,7 @@ for term in \
     "func MirFactGraphPayloadFixtureCount" \
     "func MirFactGraphPayloadRootReady" \
     "func MirFactGraphPayloadContractReady" \
-    "MirFactGraphPayloadFixtureCount() != 85" \
+    "MirFactGraphPayloadFixtureCount() != 86" \
     "JsonDocumentStringFieldEquals(json, \"schema\", MirFactGraphPayloadSchema())" \
     "JsonFieldArrayBounds(json, 0, doc_end, \"decls\", decls)" \
     "JsonFieldArrayBounds(json, 0, doc_end, \"routines\", routines)" \
