@@ -90,36 +90,19 @@ func Main() -> Void {
     let findings: Array<String> = [];
 
     let root_facts: JsonObjectFactTable = JsonDocumentObjectFactTable(content);
-    let module_bounds: Array<Int> = [0, 0];
-    let has_modules: Bool = JsonObjectFactArrayBounds(root_facts, "modules", module_bounds);
-    if !has_modules {
+    let modules_facts: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(root_facts, "modules");
+    if !JsonArrayObjectFactTableReady(modules_facts) {
         ArrayPush(findings, MissingModulesKeyFinding());
         Log(ModuleManifestReportJson(false, manifest_path, 0, 0, 0, 1, findings));
         Exit(1);
     }
-    let modules_open: Int = module_bounds[0];
-    let modules_end: Int = module_bounds[1];
 
-    let modules: Int = JsonArrayObjectCount(content, modules_open, modules_end);
-    let layers: Int = 0;
-    let statuses: Int = 0;
-    let blockers_present: Int = 0;
-    let row: Int = 0;
-    let object_bounds: Array<Int> = [0, 0];
-    while JsonArrayObjectBoundsAt(content, modules_open, modules_end, row, object_bounds) {
-        if JsonObjectHasField(content, object_bounds[0], object_bounds[1], "layer") {
-            layers = layers + 1;
-        }
-        if JsonObjectHasField(content, object_bounds[0], object_bounds[1], "status") {
-            statuses = statuses + 1;
-        }
-        if JsonObjectHasField(content, object_bounds[0], object_bounds[1], "beta_blocker") {
-            blockers_present = blockers_present + 1;
-        }
-        row = row + 1;
-    }
-    let beta_blockers: Int = JsonArrayObjectBoolFieldEqualsCount(content, modules_open, modules_end, "beta_blocker", true);
-    let stable_subset: Int = JsonArrayObjectStringFieldEqualsCount(content, modules_open, modules_end, "status", "stable-subset");
+    let modules: Int = JsonArrayObjectFactCount(modules_facts);
+    let layers: Int = JsonArrayObjectFactFieldCount(modules_facts, "layer");
+    let statuses: Int = JsonArrayObjectFactFieldCount(modules_facts, "status");
+    let blockers_present: Int = JsonArrayObjectFactFieldCount(modules_facts, "beta_blocker");
+    let beta_blockers: Int = JsonArrayObjectFactBoolFieldEqualsCount(modules_facts, "beta_blocker", true);
+    let stable_subset: Int = JsonArrayObjectFactStringFieldEqualsCount(modules_facts, "status", "stable-subset");
 
     let missing_fields: Int = 0;
     if layers != modules {

@@ -18,8 +18,8 @@ compiler-stage `.pgy` source to be listed here.
   emission primitives for fact-shaped tools.
 - `src/self_hosted/lib/json.pgy` -- shared bounded JSON string-read, top-level
   object/value bounds, and array-object row iteration.
-- `src/self_hosted/lib/json_fact_table.pgy` -- shared object field-row facts
-  over a bounded JSON object span.
+- `src/self_hosted/lib/json_fact_table.pgy` -- shared object and array-object
+  boundary facts over bounded JSON spans.
 - `src/self_hosted/lib/path.pgy` -- self-hosted source/import path string facts.
 - `src/self_hosted/lib/text_scan.pgy` -- shared text-scan helpers.
 

@@ -237,10 +237,14 @@ require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lib/json_fact_table.pg
 require_max_lines "src/self_hosted/lib/json_fact_table.pgy" 600
 require_text "src/self_hosted/lib/json_fact_table.pgy" 'import "json.pgy";'
 require_text "src/self_hosted/lib/json_fact_table.pgy" "struct JsonObjectFactTable"
+require_text "src/self_hosted/lib/json_fact_table.pgy" "struct JsonArrayObjectFactTable"
 require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonObjectFactTableSchema"
 require_text "src/self_hosted/lib/json_fact_table.pgy" "pgy.selfhost.json-object-fact-table.v1"
 require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonDocumentObjectFactTable"
 require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonObjectFactArrayBounds"
+require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonObjectFactArrayObjectTable"
+require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonArrayObjectFactAt"
+require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonArrayObjectFactFieldCount"
 reject_text "src/self_hosted/lib/json_fact_table.pgy" "let keys: Array<String>;"
 reject_text "src/self_hosted/lib/json_fact_table.pgy" "let value_starts: Array<Int>;"
 reject_text "src/self_hosted/lib/json.pgy" 'import "json_emit.pgy";'
@@ -1389,14 +1393,20 @@ reject_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" '
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'import "../../lib/json_fact_table.pgy";'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonDocumentObjectFactTable(content)"
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonObjectFactArrayObjectTable(root_facts, \"modules\")"
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectFactTableReady(modules_facts)"
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "nested-modules fixture"
 reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "let doc_end_opt: Option<Int> = JsonDocumentObjectEnd(content)"
 reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonFieldArrayBounds(content, 0, UnwrapOption(doc_end_opt), \"modules\", module_bounds)"
-require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectCount(content, modules_open, modules_end)"
-require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectBoundsAt("
-require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonObjectHasField(content, object_bounds[0], object_bounds[1], \"layer\")"
-require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectBoolFieldEqualsCount(content, modules_open, modules_end, \"beta_blocker\", true)"
-require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectStringFieldEqualsCount(content, modules_open, modules_end, \"status\", \"stable-subset\")"
+reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectCount(content, modules_open, modules_end)"
+reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectBoundsAt("
+reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonObjectHasField(content, object_bounds[0], object_bounds[1], \"layer\")"
+reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectBoolFieldEqualsCount(content, modules_open, modules_end, \"beta_blocker\", true)"
+reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectStringFieldEqualsCount(content, modules_open, modules_end, \"status\", \"stable-subset\")"
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectFactCount(modules_facts)"
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectFactFieldCount(modules_facts, \"layer\")"
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectFactBoolFieldEqualsCount(modules_facts, \"beta_blocker\", true)"
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectFactStringFieldEqualsCount(modules_facts, \"status\", \"stable-subset\")"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonEmitArray(findings)"
 reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'let json_parts: Array<String>'

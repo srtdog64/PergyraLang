@@ -32,6 +32,10 @@ rewrite history.
   span/kind accessors so consumers no longer discover object bounds locally.
 - Repointed `module_manifest_resolver` so the top-level `modules` array comes
   from `JsonDocumentObjectFactTable` + `JsonObjectFactArrayBounds`.
+- Extended that owner with bounded array-object facts. `module_manifest_resolver`
+  now consumes module count, required-field counts, and string/bool equality
+  counts through `JsonArrayObjectFact*` accessors instead of locally composing
+  `JsonArrayObjectBoundsAt` and `JsonObjectHasField`.
 - Tightened parity with a nested-`modules` negative fixture: a nested object may
   contain `"modules"`, but it must not satisfy the document-root manifest
   contract.

@@ -12,12 +12,23 @@ struct JsonObjectFactTable {
     let end: Int;
 }
 
+struct JsonArrayObjectFactTable {
+    let valid: Bool;
+    let json: String;
+    let start: Int;
+    let end: Int;
+}
+
 func JsonObjectFactTableSchema() -> String {
     return "pgy.selfhost.json-object-fact-table.v1";
 }
 
 func EmptyJsonObjectFactTable() -> JsonObjectFactTable {
     return JsonObjectFactTable(false, "", 0, 0);
+}
+
+func EmptyJsonArrayObjectFactTable() -> JsonArrayObjectFactTable {
+    return JsonArrayObjectFactTable(false, "", 0, 0);
 }
 
 func JsonValueKindAt(json: String, start: Int, end: Int) -> String {
@@ -193,4 +204,117 @@ func JsonObjectFactArrayBounds(table: JsonObjectFactTable, field: String, inout 
         return false;
     }
     return JsonObjectFactValueBounds(table, field, bounds);
+}
+
+func JsonArrayObjectFactTableFromBounds(json: String, start: Int, end: Int) -> JsonArrayObjectFactTable {
+    if start < 0 || end <= start {
+        return EmptyJsonArrayObjectFactTable();
+    }
+    if CharAt(json, start) != "[" {
+        return EmptyJsonArrayObjectFactTable();
+    }
+    let array_end_opt: Option<Int> = JsonArrayEnd(json, start, end);
+    if !IsSome(array_end_opt) {
+        return EmptyJsonArrayObjectFactTable();
+    }
+    if UnwrapOption(array_end_opt) + 1 != end {
+        return EmptyJsonArrayObjectFactTable();
+    }
+    return JsonArrayObjectFactTable(true, json, start, end);
+}
+
+func JsonObjectFactArrayObjectTable(table: JsonObjectFactTable, field: String) -> JsonArrayObjectFactTable {
+    let bounds: Array<Int> = [0, 0];
+    if !JsonObjectFactArrayBounds(table, field, bounds) {
+        return EmptyJsonArrayObjectFactTable();
+    }
+    return JsonArrayObjectFactTableFromBounds(table.json, bounds[0], bounds[1]);
+}
+
+func JsonArrayObjectFactTableReady(table: JsonArrayObjectFactTable) -> Bool {
+    return table.valid && table.start >= 0 && table.end > table.start;
+}
+
+func JsonArrayObjectFactCount(table: JsonArrayObjectFactTable) -> Int {
+    if !JsonArrayObjectFactTableReady(table) {
+        return 0;
+    }
+    return JsonArrayObjectCount(table.json, table.start, table.end);
+}
+
+func JsonArrayObjectFactAt(table: JsonArrayObjectFactTable, index: Int) -> JsonObjectFactTable {
+    if !JsonArrayObjectFactTableReady(table) {
+        return EmptyJsonObjectFactTable();
+    }
+    let bounds: Array<Int> = [0, 0];
+    if !JsonArrayObjectBoundsAt(table.json, table.start, table.end, index, bounds) {
+        return EmptyJsonObjectFactTable();
+    }
+    return JsonObjectFactTableFromBounds(table.json, bounds[0], bounds[1]);
+}
+
+func JsonArrayObjectFactFieldCount(table: JsonArrayObjectFactTable, field: String) -> Int {
+    let count: Int = 0;
+    let row: Int = 0;
+    let row_fact: JsonObjectFactTable = JsonArrayObjectFactAt(table, row);
+    while JsonObjectFactTableReady(row_fact) {
+        if JsonObjectFactHasField(row_fact, field) {
+            count = count + 1;
+        }
+        row = row + 1;
+        row_fact = JsonArrayObjectFactAt(table, row);
+    }
+    return count;
+}
+
+func JsonArrayObjectFactStringFieldEqualsCount(
+    table: JsonArrayObjectFactTable,
+    field: String,
+    expected: String
+) -> Int {
+    let count: Int = 0;
+    let row: Int = 0;
+    let row_fact: JsonObjectFactTable = JsonArrayObjectFactAt(table, row);
+    while JsonObjectFactTableReady(row_fact) {
+        let value_bounds: Array<Int> = [0, 0];
+        if JsonObjectFactValueBounds(row_fact, field, value_bounds) {
+            if value_bounds[0] < value_bounds[1] && CharAt(table.json, value_bounds[0]) == "\"" {
+                let value_end: Array<Int> = [0];
+                let actual: String = ReadJsonString(table.json, value_bounds[0], value_end);
+                if value_end[0] > value_bounds[0] && actual == expected {
+                    count = count + 1;
+                }
+            }
+        }
+        row = row + 1;
+        row_fact = JsonArrayObjectFactAt(table, row);
+    }
+    return count;
+}
+
+func JsonArrayObjectFactBoolFieldEqualsCount(
+    table: JsonArrayObjectFactTable,
+    field: String,
+    expected: Bool
+) -> Int {
+    let count: Int = 0;
+    let row: Int = 0;
+    let row_fact: JsonObjectFactTable = JsonArrayObjectFactAt(table, row);
+    while JsonObjectFactTableReady(row_fact) {
+        let value_bounds: Array<Int> = [0, 0];
+        if JsonObjectFactValueBounds(row_fact, field, value_bounds) {
+            if expected {
+                if value_bounds[0] + 4 <= value_bounds[1] &&
+                    Substring(table.json, value_bounds[0], 4) == "true" {
+                    count = count + 1;
+                }
+            } else if value_bounds[0] + 5 <= value_bounds[1] &&
+                Substring(table.json, value_bounds[0], 5) == "false" {
+                count = count + 1;
+            }
+        }
+        row = row + 1;
+        row_fact = JsonArrayObjectFactAt(table, row);
+    }
+    return count;
 }
