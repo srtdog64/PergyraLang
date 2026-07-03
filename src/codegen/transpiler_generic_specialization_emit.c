@@ -44,6 +44,65 @@ transpiler_generic_specialization_name_too_long(TranspilerCtx *ctx,
         decl_name != NULL ? decl_name : "(anonymous)");
 }
 
+/* Current C specialization substitutes bare type parameters only; a type
+ * parameter nested inside a constructed type (Option<T>, Array<T>, ...)
+ * would be rendered literally and produce broken C source. Detect that
+ * shape in the signature so the call fails closed with a diagnostic,
+ * mirroring the LLVM backend's concrete-metadata error. Returns the
+ * offending type-parameter name, or NULL when the signature is safe. */
+static const char *
+transpiler_type_nested_generic_param(const ASTNode *type,
+                                     GenericParams *gparams,
+                                     bool at_top_level)
+{
+    GenericParams *args;
+    size_t count;
+
+    if (type == NULL || gparams == NULL)
+        return NULL;
+    if (!at_top_level) {
+        const char *tname = ast_type_name(type);
+        size_t gcount = ast_generic_param_count(gparams);
+        for (size_t i = 0; i < gcount; i++) {
+            const char *gname = ast_generic_param_name(
+                ast_generic_param_at(gparams, i));
+            if (gname != NULL && tname != NULL
+                && strcmp(gname, tname) == 0)
+                return gname;
+        }
+    }
+    args = ast_type_generic_args(type);
+    if (args == NULL)
+        return NULL;
+    count = ast_generic_param_count(args);
+    for (size_t i = 0; i < count; i++) {
+        ASTNode *arg_type = ast_generic_param_constraint(
+            ast_generic_param_at(args, i));
+        const char *hit = transpiler_type_nested_generic_param(
+            arg_type, gparams, false);
+        if (hit != NULL)
+            return hit;
+    }
+    return NULL;
+}
+
+static const char *
+transpiler_generic_signature_nested_param(ASTNode *decl)
+{
+    GenericParams *gparams = ast_func_generic_params(decl);
+    size_t param_count = ast_func_param_count(decl);
+    const char *nested;
+
+    nested = transpiler_type_nested_generic_param(
+        ast_func_return_type(decl), gparams, true);
+    for (size_t i = 0; nested == NULL && i < param_count; i++) {
+        FuncParam *param = ast_func_param(decl, i);
+        nested = transpiler_type_nested_generic_param(
+            param != NULL ? param->type : NULL, gparams, true);
+    }
+    return nested;
+}
+
 const char *
 ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
 {
@@ -63,6 +122,20 @@ ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
     if (!transpiler_infer_generic_call_bindings(ctx, decl, call, bindings,
             &binding_count))
         return NULL;
+
+    {
+        const char *nested = transpiler_generic_signature_nested_param(decl);
+        if (nested != NULL) {
+            transpiler_set_backend_error_with_hints(
+                ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C backend: generic function '%s' uses type parameter '%s' inside a constructed type; C specialization does not substitute nested type parameters yet -- use a per-type function",
+                decl_name, nested);
+            return NULL;
+        }
+    }
 
     name_buf = codebuf_create();
     if (name_buf == NULL)
