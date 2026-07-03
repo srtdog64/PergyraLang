@@ -2253,6 +2253,9 @@ generic-nested-failclosed-test-smoke: $(PGY)
 stdlib-inventory-test-smoke:
 	"$(BASH)" tests/stdlib_inventory_smoke.sh
 
+selfhost-driver-lsp-wiring-test-smoke:
+	"$(BASH)" tests/selfhost_driver_lsp_wiring_smoke.sh
+
 secure-token-reuse-test-smoke:
 	"$(BASH)" tests/secure_token_reuse_failclosed_smoke.sh
 

@@ -9960,6 +9960,31 @@ docs만 읽고 착수할 수 있어야 한다. 각 WO는 목표/현재 상태/�
   smoke 재실행 green 확인 → 커밋.
 - **DoD**: baseline 갱신 커밋 1개. 소요 15분급 — 세션 워밍업용으로 적합.
 
+#### Self-host Driver/LSP 트랙 (배선도 = docs/150, 2026-07-04)
+
+두 0% 트랙의 rung 사다리 고정. §4 rung 표를
+`selfhost-driver-lsp-wiring-test-smoke`가 잠금(landed=artifact+gate 실존,
+planned=주장 불가, 갭 등록부 가시성 강제 — RED/GREEN 검증 完).
+
+- **WO-DRV-0 — in-process 스테이지 조립 (착수 가능, Stage 5 직결)**:
+  driver .pgy가 self-parser(→AST text)와 self-codegen(→C text)을 한
+  프로세스에서 import 체이닝 — 셸 조립공(`codegen_bootstrap.sh`)의
+  `pgy --ast` 좌석을 self-parser로 치환(byte-equal 실증 근거). world
+  fact 소비 의무 포함 — `PgyCompilerWorld`가 실행형으로 승격되는 자리.
+  **소유권 주의**: codegen/emission owner들은 typed-AST 동시 스트림
+  활성 영역 — import만, 수정 금지.
+- **WO-DRV-1** CLI 표면(Args) → **WO-DRV-2** cc 호출(**차단: G-EXEC** —
+  process spawn builtin+capability 표면 결정 필요; world.pgy Subprocess
+  계약이 어휘를 이미 파둠) → **WO-DRV-3** `--self-driver` 플래그 parity.
+- **WO-LSP-0 — 진단 페이로드 투영 (착수 가능, 고가성비)**: checker 진단 →
+  `publishDiagnostics` JSON(lib/json_emit 재사용). **오라클 배관 O-LSP**:
+  C LSP 페이로드 덤프 플래그 필요(소형) — 그 전엔 golden 수동 승인.
+- **WO-LSP-1** squiggle 4색 분류기(docs/140 로직의 Pergyra화, BLUE는
+  A-4 noise policy 확정분만) → **WO-LSP-2** transport(**차단: G-STDIN** —
+  바이트 단위 stdin builtin 표면 결정) → **WO-LSP-3** C LSP parity.
+- **순서 권고**: DRV-0 ≻ LSP-0/1(병행 가능) ≻ G-EXEC/G-STDIN 표면 결정 ≻
+  DRV-2/LSP-2. runtime 커널 치환은 전제 아님(C 잔류 결정 유지).
+
 ---
 
 ### Formal 트랙 (docs/semantics/19 corpus — 현재 10 .v, 0 admits/0 axioms)
