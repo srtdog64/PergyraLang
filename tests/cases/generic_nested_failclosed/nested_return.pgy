@@ -1,0 +1,10 @@
+func GiveOpt<T>(x: T) -> Option<T> {
+    return Some(x);
+}
+
+func Main() -> Void {
+    let g: Option<Int> = GiveOpt(7);
+    if IsSome(g) {
+        Log(ToString(UnwrapOption(g)));
+    }
+}

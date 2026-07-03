@@ -200,6 +200,7 @@ STAGE4_DETERMINISM_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 FILESYSTEM_WALK_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 SELFHOST_PARSER_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 SELFHOST_SEMANTIC_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
+SELFHOST_CODEGEN_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 RUNTIME_PANIC_CODEGEN_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 SLOT_CONTRACT_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 AIR_NONIMPACT_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
@@ -2137,6 +2138,7 @@ self-host-preparation-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/semantic_parity.sh
 	PGY_SELFHOST_SEMANTIC_BACKENDS="$${PGY_SELFHOST_SEMANTIC_BACKENDS:-$(SELFHOST_SEMANTIC_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/selfcheck_sources.sh
+	PGY_SELFHOST_CODEGEN_BACKENDS="$${PGY_SELFHOST_CODEGEN_BACKENDS:-$(SELFHOST_CODEGEN_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_bootstrap.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_json_parity.sh
@@ -2192,7 +2194,7 @@ self-host-parser-parity-test-smoke: $(PGY)
 	"$(BASH)" tests/self_hosted/parity/parser_parity.sh
 
 self-host-codegen-parity-test-smoke: $(PGY)
-	PGY_SELFHOST_CODEGEN_BACKENDS="$${PGY_SELFHOST_CODEGEN_BACKENDS:-c llvm}" \
+	PGY_SELFHOST_CODEGEN_BACKENDS="$${PGY_SELFHOST_CODEGEN_BACKENDS:-$(SELFHOST_CODEGEN_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_parity.sh
 
 self-host-codegen-bootstrap-test-smoke: $(PGY)
@@ -2244,6 +2246,9 @@ nested-array-test-smoke: $(PGY)
 
 checkedarith-failclosed-test-smoke:
 	PLATFORM_CFLAGS="$(PLATFORM_CFLAGS)" THREAD_LINK_LIB="$(THREAD_LINK_LIB)" "$(BASH)" tests/checked_arith_failclosed_smoke.sh
+
+generic-nested-failclosed-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/generic_nested_failclosed_smoke.sh
 
 secure-token-reuse-test-smoke:
 	"$(BASH)" tests/secure_token_reuse_failclosed_smoke.sh

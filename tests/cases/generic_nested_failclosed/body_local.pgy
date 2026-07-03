@@ -1,0 +1,11 @@
+func Wrap<T>(x: T) -> T {
+    let held: Option<T> = Some(x);
+    if IsSome(held) {
+        return UnwrapOption(held);
+    }
+    return x;
+}
+
+func Main() -> Void {
+    Log(ToString(Wrap(9)));
+}

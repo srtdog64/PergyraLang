@@ -119,10 +119,11 @@ ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
     decl_name = ast_declaration_name(decl);
     if (decl_name == NULL)
         return NULL;
-    if (!transpiler_infer_generic_call_bindings(ctx, decl, call, bindings,
-            &binding_count))
-        return NULL;
-
+    /* The signature guard needs no bindings, and binding inference itself
+     * gives up on constructed-over-T params -- so it must run FIRST, or an
+     * inference failure would return NULL before the guard and let the
+     * caller fall back to the silent raw-name emission this guard exists
+     * to prevent. */
     {
         const char *nested = transpiler_generic_signature_nested_param(decl);
         if (nested != NULL) {
@@ -136,6 +137,10 @@ ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
             return NULL;
         }
     }
+
+    if (!transpiler_infer_generic_call_bindings(ctx, decl, call, bindings,
+            &binding_count))
+        return NULL;
 
     name_buf = codebuf_create();
     if (name_buf == NULL)
