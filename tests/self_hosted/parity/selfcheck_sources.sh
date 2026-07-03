@@ -167,7 +167,10 @@ for backend in $BACKENDS; do
     (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$TOOL")" \
         --backend="$backend" -o "$(pgy_path_for_compiler "$PGY" "$TOOL_BIN")" >/dev/null)
 
+    source_index=0
     for src in "${SELF_SOURCES[@]}"; do
+        source_index=$((source_index + 1))
+        echo "[self-host-selfcheck] backend=$backend checking $source_index/${#SELF_SOURCES[@]} $src"
         out="$(cd "$ROOT_DIR" && "$TOOL_BIN" "$src" 2>/dev/null | tr -d '\r')"
         if ! grep -Fq 'Diagnostic: pgy.selfhost.semantic.v1' <<<"$out"; then
             echo "[self-host-selfcheck] backend=$backend $src: no diagnostic block" >&2

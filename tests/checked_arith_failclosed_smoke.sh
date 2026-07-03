@@ -11,8 +11,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
-CC="${CC:-gcc}"
-OUT="$(mktemp -d)/checked_arith"
+pgy_prepend_windows_runtime_paths
+read -r -a CC_ARGS <<< "${CC:-gcc}"
+OUT="$(mktemp -d)/checked_arith.exe"
+COMPILE_LOG="$OUT.compile.log"
 read -r -a PLATFORM_CFLAG_ARGS <<< "${PLATFORM_CFLAGS:-}"
 read -r -a THREAD_LINK_ARGS <<< "${THREAD_LINK_LIB:-}"
 INCLUDE_DIR_CC="$(pgy_path_for_windows_tool "$ROOT_DIR/src/runtime")"
@@ -21,10 +23,13 @@ OUT_CC="$(pgy_path_for_windows_tool "$OUT")"
 
 fail() { echo "[checked-arith] FAIL: $*" >&2; exit 1; }
 
-"$CC" "${PLATFORM_CFLAG_ARGS[@]}" -Wall -Wextra -Werror -std=c11 \
+if ! "${CC_ARGS[@]}" "${PLATFORM_CFLAG_ARGS[@]}" -Wall -Wextra -Werror -std=c11 \
     -I"$INCLUDE_DIR_CC" \
     "$SOURCE_CC" \
-    -o "$OUT_CC" "${THREAD_LINK_ARGS[@]}" || fail "test did not compile"
+    -o "$OUT_CC" "${THREAD_LINK_ARGS[@]}" >"$COMPILE_LOG" 2>&1; then
+    cat "$COMPILE_LOG" >&2
+    fail "test did not compile"
+fi
 
 expect_ok() {
     local mode="$1" want="$2" got

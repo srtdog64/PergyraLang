@@ -486,6 +486,8 @@ require_text "tests/self_hosted/parity/semantic_parity.sh" "PGY_SELFHOST_SEMANTI
 require_text "tests/self_hosted/parity/semantic_parity.sh" "src/self_hosted/semantic/\"*.pgy"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "raw semantic text leaked"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "JSON semantic output leaked"
+require_text "Makefile" 'SELFHOST_CODEGEN_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)'
+require_text "Makefile" 'PGY_SELFHOST_CODEGEN_BACKENDS="$${PGY_SELFHOST_CODEGEN_BACKENDS:-$(SELFHOST_CODEGEN_BACKENDS)}"'
 
 forbid_text "docs/self_hosted/05_compiler_core_gap_analysis.md" "hard self-host can start from the compiler core"
 forbid_text "TODO.md" "hard self-host can start from the compiler core"
