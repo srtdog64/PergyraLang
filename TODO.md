@@ -10147,6 +10147,11 @@ Option)와 보간(`${}`/`f"`/`$"`)은 C 컴파일러에 full end-to-end로 존�
   - ★ **ratchet 정의 확장**: `?` 전파(`)?`)를 errors-as-data 패턴에 산입 —
     ritual→`?` 전환이 Option</None 토큰을 걷어내 min을 뚫는 문제의 정직한
     해법. 채택 파동마다 RESULT_USE_MIN 재기저(smoke 주석에 규칙 명문화).
+  - ✅ 채택 2파 — 보간 1호 (2사이트, `dd4339c5`): FindingFact Concat 4줄 →
+    `"${kind}|${key}|${location}"`, JsonFieldKey → `"\"${field}\":"`
+    (이스케이프+보간 혼합). **프로브로 byte-동일 선증명** 후 도구 parity
+    (validator missing-key fixture가 FindingFact 출력 직접 행사) + selfcheck
+    108 + likeness green. 이 프로브→parity 레시피가 후속 파동의 표준.
 - **잔여**:
   1. 채택 2파+: 남은 IsSome-ritual 적합 사이트 순회(적합 조건: enclosing이
      Option 반환 + on-None이 즉시 return None). Concat 피라미드 → 보간 채택도
