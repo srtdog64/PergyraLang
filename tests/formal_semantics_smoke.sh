@@ -311,6 +311,16 @@ air_comp_targets
 air_dep_graph
 TERMS
 
+OPTION_TRY_COQ="$PROOF_DIR/proofs/OptionTry.v"
+require_file "$OPTION_TRY_COQ" "docs/semantics/proofs/OptionTry.v"
+require_terms "$OPTION_TRY_COQ" "docs/semantics/proofs/OptionTry.v" <<'TERMS'
+Theorem try_ritual_equiv
+Theorem try_none_propagates
+Theorem try_bind_assoc
+Theorem try_result_err_carries
+0 admits / 0 axioms
+TERMS
+
 require_terms "$MINIMAL_POSITION_DOC" "docs/semantics/20_minimal_verification_position.md" <<'TERMS'
 UB-Completeness As The Proof Obligation
 Status: `beta-proof-obligation`
@@ -610,7 +620,11 @@ if command -v coqc >/dev/null 2>&1; then
         docs/semantics/proofs/CompensationCore.v \
         docs/semantics/proofs/CoordinationCore.v \
         docs/semantics/proofs/VerificationMethodology.v \
-        docs/semantics/proofs/ProofSpine.v; do
+        docs/semantics/proofs/ProofSpine.v \
+        docs/semantics/proofs/GuardCalculus.v \
+        docs/semantics/proofs/WholeProgramCore.v \
+        docs/semantics/proofs/AIRBinding.v \
+        docs/semantics/proofs/OptionTry.v; do
         if command -v timeout >/dev/null 2>&1; then
             (cd "$ROOT_DIR" && timeout "$coq_timeout" coqc "$coq_proof")
         else

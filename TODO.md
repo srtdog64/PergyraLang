@@ -9999,6 +9999,34 @@ docs만 읽고 착수할 수 있어야 한다. 각 WO는 목표/현재 상태/�
   확인 → 아래 Defense 4 블록 상태 갱신.
 - **DoD**: make 타깃 + Defense 4 ✅ + 이 보드 스냅샷 갱신. 30분급.
 
+#### 형식화 지도 (2026-07-03 재실측) + 신규 후보
+
+**corpus = 20 .v, coqc 루프 20/20** (누락이던 GuardCalculus/WholeProgramCore/
+AIRBinding 3파일을 루프에 복구 — require_terms만 있고 컴파일이 안 돌던 갭).
+커버 영역: slot/zone/effect-authority/delegation/intent-step/compensation/
+coordination/whole-program/AIR-binding/witness-race/checked-arith/IR-최소성/
+axis-직교성/guard-calculus/proof-spine/methodology + **OptionTry(신규)**.
+
+- ✅ **OptionTry.v (2026-07-03)**: `?` desugar ≡ 4줄 ritual
+  (`try_ritual_equiv` — unwrap-default 무관 = 가드가 unwrap의 None 분기를
+  사장시킴을 정리로), None 전파/Some 바인드, **연쇄 평탄화**
+  (`try_bind_assoc` — 다중 `?` 함수의 중첩 순서 무관), Result 대칭
+  (`try_result_err_carries` — Err payload가 흐르므로 E 공유 강제 vs Option의
+  cross-payload 자유 = LLVM 2-field 분기의 타입적 근거). 채택 파동의 프로브
+  논증을 정리로 승격. negative scope: 전파형만(패닉형=런타임 계약),
+  emitter 충실성은 try_operator_* fixture 몫.
+- **WO-F3 (후보·고가치)** — who/approval 분리 정리: "local `who`는
+  authorization을 만들지 않는다; `authorized by`는 명시 또는 action-상속만"
+  (문법 §2.2.1 규칙 + `derived_authorized_by_from_zone` 트립와이어)를
+  기계화. 기존 corpus는 authorization *존재*를 가정한 soundness만 —
+  who≠approval **구분** 자체는 미기계화. 어제 authority 뼈대와 직결.
+- **WO-F4 (후보·소형)** — StringInterp.v: 보간 render(segments) =
+  Concat fold 동치(+호출-hole 합성성). 채택 3파의 프로브 논증 승격.
+- **WO-F1 (기존 잔여)** — reading-confluence + binary-adequacy
+  (AxisOwnership 후속).
+- **비후보 판정**: ratchet 단조성(셸 메트릭 — 증명 대상 아님),
+  subset⊆C-수용 건전성(현 시점 과대 — bounded subset이 안정된 후).
+
 ---
 
 ### AIR / Machine-neutral 트랙
