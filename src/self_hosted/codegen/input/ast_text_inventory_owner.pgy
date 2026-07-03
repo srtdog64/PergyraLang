@@ -7,6 +7,7 @@
 
 import "../text/text_owner.pgy";
 import "../typed_ast_node_skeleton.pgy";
+import "ast_text_row_fact_owner.pgy";
 
 struct CodegenAstTextNode {
     let indent: Int;
@@ -14,6 +15,9 @@ struct CodegenAstTextNode {
     let kind: Int;
     let payload: String;
     let aux_payload: String;
+    let name: String;
+    let type_name: String;
+    let mode: Int;
 }
 
 func CodegenAstTextKindOf(text: String) -> Int {
@@ -244,7 +248,7 @@ func CodegenAstTextIsFieldsHeader(node: CodegenAstTextNode) -> Bool {
 }
 
 func CodegenAstTextIsMainFunction(node: CodegenAstTextNode) -> Bool {
-    return CodegenAstTextIsFunction(node) && node.payload == "Main";
+    return CodegenAstTextIsFunction(node) && node.name == "Main";
 }
 
 func CodegenAstTextIsRoleDecl(node: CodegenAstTextNode) -> Bool {
@@ -273,24 +277,24 @@ func CodegenAstTextIsZeroArtifactDecl(node: CodegenAstTextNode) -> Bool {
 }
 
 func CodegenAstTextFunctionName(node: CodegenAstTextNode) -> String {
-    if !CodegenAstTextIsFunction(node) {
+    if !CodegenAstTextIsFunction(node) || node.name == "" {
         Die(Concat("expected function AST line: ", node.text));
     }
-    return node.payload;
+    return node.name;
 }
 
 func CodegenAstTextReturnType(node: CodegenAstTextNode) -> String {
-    if !CodegenAstTextIsReturns(node) {
+    if !CodegenAstTextIsReturns(node) || node.type_name == "" {
         Die(Concat("expected return type AST line: ", node.text));
     }
-    return node.payload;
+    return node.type_name;
 }
 
 func CodegenAstTextEnumName(node: CodegenAstTextNode) -> String {
-    if !CodegenAstTextIsEnumDecl(node) || node.payload == "" {
+    if !CodegenAstTextIsEnumDecl(node) || node.name == "" {
         Die(Concat("expected enum declaration AST line: ", node.text));
     }
-    return node.payload;
+    return node.name;
 }
 
 func CodegenAstTextEnumVariantPayload(node: CodegenAstTextNode) -> String {
@@ -350,48 +354,31 @@ func CodegenAstTextEnumVariantNameAt(node: CodegenAstTextNode, index: Int) -> St
 }
 
 func CodegenAstTextNominalName(node: CodegenAstTextNode) -> String {
-    if !CodegenAstTextIsNominalDecl(node) {
+    if !CodegenAstTextIsNominalDecl(node) || node.name == "" {
         Die(Concat("expected nominal declaration AST line: ", node.text));
     }
-    return node.payload;
-}
-
-func CodegenAstTextRoleForPos(node: CodegenAstTextNode) -> Int {
-    let payload: String = node.payload;
-    if !CodegenAstTextIsRoleDecl(node) || payload == "" {
-        Die(Concat("expected role declaration AST line: ", node.text));
-    }
-    let pos: Int = StringIndexOf(payload, " for ");
-    if pos < 0 {
-        Die(Concat("malformed role declaration AST line: ", node.text));
-    }
-    return pos;
+    return node.name;
 }
 
 func CodegenAstTextRoleName(node: CodegenAstTextNode) -> String {
-    let fp: Int = CodegenAstTextRoleForPos(node);
-    return Substring(node.payload, 0, fp);
+    if !CodegenAstTextIsRoleDecl(node) || node.name == "" {
+        Die(Concat("expected role declaration AST line: ", node.text));
+    }
+    return node.name;
 }
 
 func CodegenAstTextRoleForType(node: CodegenAstTextNode) -> String {
-    let fp: Int = CodegenAstTextRoleForPos(node);
-    return Substring(node.payload, fp + 5, StringLength(node.payload) - (fp + 5));
+    if !CodegenAstTextIsRoleDecl(node) || node.type_name == "" {
+        Die(Concat("malformed role declaration AST line: ", node.text));
+    }
+    return node.type_name;
 }
 
 func CodegenAstTextParamMode(node: CodegenAstTextNode) -> Int {
     if !CodegenAstTextIsParameterRow(node) || node.payload == "" {
         Die(Concat("expected parameter AST line: ", node.text));
     }
-    if StartsWith(node.payload, "inout ") {
-        return 1;
-    }
-    if StartsWith(node.payload, "own ") {
-        return 2;
-    }
-    if StartsWith(node.payload, "ref ") {
-        return 3;
-    }
-    return 0;
+    return node.mode;
 }
 
 func CodegenAstTextParamModeName(mode: Int) -> String {
@@ -407,65 +394,35 @@ func CodegenAstTextParamModeName(mode: Int) -> String {
     return "default";
 }
 
-func CodegenAstTextParamPayload(node: CodegenAstTextNode, mode: Int) -> String {
-    if mode == 0 {
-        return node.payload;
-    }
-    let prefix_len: Int = 4;
-    if mode == 1 {
-        prefix_len = 6;
-    }
-    return Substring(node.payload, prefix_len, StringLength(node.payload) - prefix_len);
-}
-
 func CodegenAstTextParamName(node: CodegenAstTextNode, owner_name: String) -> String {
-    let mode: Int = CodegenAstTextParamMode(node);
-    let payload: String = CodegenAstTextParamPayload(node, mode);
-    let colon: Int = StringIndexOf(payload, ": ");
-    if colon < 0 && StringLength(owner_name) > 0 && payload == "self" {
-        return "self";
-    }
-    if colon < 0 {
+    if !CodegenAstTextIsParameterRow(node) || node.name == "" {
         Die(Concat("malformed parameter AST line: ", node.text));
     }
-    return Substring(payload, 0, colon);
+    return node.name;
 }
 
 func CodegenAstTextParamType(node: CodegenAstTextNode, owner_name: String) -> String {
-    let mode: Int = CodegenAstTextParamMode(node);
-    let payload: String = CodegenAstTextParamPayload(node, mode);
-    let colon: Int = StringIndexOf(payload, ": ");
-    if colon < 0 && StringLength(owner_name) > 0 && payload == "self" {
+    if CodegenAstTextIsParameterRow(node) && node.name == "self" && node.type_name == "" && StringLength(owner_name) > 0 {
         return owner_name;
     }
-    if colon < 0 {
+    if !CodegenAstTextIsParameterRow(node) || node.type_name == "" {
         Die(Concat("malformed parameter AST line: ", node.text));
     }
-    return Substring(payload, colon + 2, StringLength(payload) - (colon + 2));
+    return node.type_name;
 }
 
 func CodegenAstTextFieldName(node: CodegenAstTextNode) -> String {
-    let payload: String = node.payload;
-    if payload == "" {
+    if node.kind != 5 || node.name == "" {
         Die(Concat("expected field AST line: ", node.text));
     }
-    let colon: Int = StringIndexOf(payload, ": ");
-    if colon < 0 {
-        Die(Concat("malformed field AST line: ", node.text));
-    }
-    return Substring(payload, 0, colon);
+    return node.name;
 }
 
 func CodegenAstTextFieldType(node: CodegenAstTextNode) -> String {
-    let payload: String = node.payload;
-    if payload == "" {
+    if node.kind != 5 || node.type_name == "" {
         Die(Concat("expected field AST line: ", node.text));
     }
-    let colon: Int = StringIndexOf(payload, ": ");
-    if colon < 0 {
-        Die(Concat("malformed field AST line: ", node.text));
-    }
-    return Substring(payload, colon + 2, StringLength(payload) - (colon + 2));
+    return node.type_name;
 }
 
 func CodegenAstTextIndentOf(raw: String) -> Int {
@@ -512,12 +469,16 @@ func CodegenAstTextNodeInventory(tree_text: String, inout nodes: Array<CodegenAs
             } else if field_indent >= 0 && indent == field_indent && StringIndexOf(trimmed, ": ") >= 0 {
                 kind = 5;
             }
+            let payload: String = CodegenAstTextPayloadFor(trimmed, kind);
             ArrayPush(nodes, CodegenAstTextNode(
                 indent,
                 trimmed,
                 kind,
-                CodegenAstTextPayloadFor(trimmed, kind),
-                CodegenAstTextAuxPayloadFor(trimmed, kind)
+                payload,
+                CodegenAstTextAuxPayloadFor(trimmed, kind),
+                CodegenAstTextNameFactFor(kind, payload),
+                CodegenAstTextTypeNameFactFor(kind, payload),
+                CodegenAstTextParamModeForPayload(kind, payload)
             ));
             ArraySet(count_box, 0, count_box[0] + 1);
         }

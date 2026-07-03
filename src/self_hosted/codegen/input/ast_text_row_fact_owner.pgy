@@ -1,0 +1,98 @@
+// src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy
+//
+// Owns name/type/mode row facts derived from AST-text inventory payloads.
+
+import "../text/text_owner.pgy";
+
+func CodegenAstTextParamModeForPayload(kind: Int, payload: String) -> Int {
+    if kind != 12 {
+        return 0;
+    }
+    if StartsWith(payload, "inout ") {
+        return 1;
+    }
+    if StartsWith(payload, "own ") {
+        return 2;
+    }
+    if StartsWith(payload, "ref ") {
+        return 3;
+    }
+    return 0;
+}
+
+func CodegenAstTextParamPayloadForMode(payload: String, mode: Int) -> String {
+    if mode == 0 {
+        return payload;
+    }
+    let prefix_len: Int = 4;
+    if mode == 1 {
+        prefix_len = 6;
+    }
+    return Substring(payload, prefix_len, StringLength(payload) - prefix_len);
+}
+
+func CodegenAstTextNameFactFor(kind: Int, payload: String) -> String {
+    if kind == 6 || kind == 8 || kind == 9 {
+        return payload;
+    }
+    if kind == 7 {
+        let pos: Int = StringIndexOf(payload, " for ");
+        if pos >= 0 {
+            return Substring(payload, 0, pos);
+        }
+        return "";
+    }
+    if kind == 12 {
+        let mode: Int = CodegenAstTextParamModeForPayload(kind, payload);
+        let row: String = CodegenAstTextParamPayloadForMode(payload, mode);
+        if row == "self" {
+            return "self";
+        }
+        let colon: Int = StringIndexOf(row, ": ");
+        if colon >= 0 {
+            return Substring(row, 0, colon);
+        }
+        return "";
+    }
+    if kind == 5 {
+        let colon2: Int = StringIndexOf(payload, ": ");
+        if colon2 >= 0 {
+            return Substring(payload, 0, colon2);
+        }
+        return "";
+    }
+    return "";
+}
+
+func CodegenAstTextTypeNameFactFor(kind: Int, payload: String) -> String {
+    if kind == 3 {
+        return payload;
+    }
+    if kind == 7 {
+        let pos: Int = StringIndexOf(payload, " for ");
+        if pos >= 0 {
+            return Substring(payload, pos + 5, StringLength(payload) - (pos + 5));
+        }
+        return "";
+    }
+    if kind == 12 {
+        let mode: Int = CodegenAstTextParamModeForPayload(kind, payload);
+        let row: String = CodegenAstTextParamPayloadForMode(payload, mode);
+        if row == "self" {
+            return "";
+        }
+        let colon: Int = StringIndexOf(row, ": ");
+        if colon >= 0 {
+            return Substring(row, colon + 2, StringLength(row) - (colon + 2));
+        }
+        return "";
+    }
+    if kind == 5 {
+        let colon2: Int = StringIndexOf(payload, ": ");
+        if colon2 >= 0 {
+            return Substring(payload, colon2 + 2, StringLength(payload) - (colon2 + 2));
+        }
+        return "";
+    }
+    return "";
+}

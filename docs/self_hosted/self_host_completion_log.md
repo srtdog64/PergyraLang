@@ -25,6 +25,28 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-04 - AST-text row facts split from inventory owner
+
+- Added `src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy` as the
+  owner for name/type/mode rows derived from transitional AST-text inventory
+  payloads.
+- Extended `CodegenAstTextNode` with `name`, `type_name`, and `mode` fields.
+  Function, return, role, nominal, enum, field, and parameter accessors now
+  consume those fields instead of reparsing `node.payload` at each use site.
+- Kept `ast_text_inventory_owner.pgy` under the 600-line component cap by
+  limiting it to line inventory, kind/payload rows, bridge readiness, and cursor
+  expectation diagnostics.
+- Updated `OWNERS.md`, the component contract, and the real-source selfcheck
+  manifest so the new row-fact owner is a first-class self-host source. The
+  real-source semantic selfcheck now covers **110 sources** on both C and LLVM.
+- Verified `build-source-inventory-test-smoke`,
+  `self-host-component-contract-test-smoke`,
+  `self-host-semantic-selfcheck-test-smoke`, `self-host-codegen-parity-test-smoke`,
+  `self-host-preparation-test-smoke`, `checkedarith-failclosed-test-smoke`,
+  `semantic-core-shape-test-smoke`, `slot-contract-test-smoke`, and targeted
+  `spawn_future_await_slot` C/LLVM backend compare with and without AIR strict
+  evidence.
+
 ## 2026-07-03 - AIR graph required keys split root facts from feature facts
 
 - Repointed `src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy`
@@ -66,7 +88,7 @@ rewrite history.
   `JsonArrayObjectBoundsAt`, or `JsonObjectFieldValueBounds`.
 - Verified `self_hosted_component_contract_smoke.sh`,
   `self_host_compiler_world_contract_smoke.sh`, MIR JSON parity (**86 fixtures,
-  0 clean rejects**), and real-source selfcheck (**109 sources** on C and LLVM).
+  0 clean rejects**), and real-source selfcheck (**110 sources** on C and LLVM).
   The Stable JSON blocker remains active until the wider schema/fact-table
   surface replaces remaining bounded scan compatibility helpers.
 
@@ -3183,7 +3205,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   new typed absence facts cannot be removed without failing the gate.
 - Verified `self-host-component-contract-test-smoke`,
   `self-host-air-graph-consumer-parity-test-smoke`, and
-  `self-host-semantic-selfcheck-test-smoke` (109 real sources accepted on both
+  `self-host-semantic-selfcheck-test-smoke` (110 real sources accepted on both
   C and LLVM).
 - Broader CI-repro checks also passed locally: `build-source-inventory`,
   `checkedarith-failclosed`, `semantic-core-shape`, `slot-contract`,

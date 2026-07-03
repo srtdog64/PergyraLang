@@ -59,7 +59,7 @@ for C-emission action participants. That keeps
 resource owners visible. Parameter-mode facts (`inout` / `own` / `ref`) now
 survive `pgy --ast`; the self-host C codegen consumes `inout` from function-env
 `pm` facts and lowers it as value-result copy-in/copy-out instead of guessing
-from `ArrayPush` or other statement text. The real-source semantic selfcheck now accepts 109
+from `ArrayPush` or other statement text. The real-source semantic selfcheck now accepts 110
 self-host owner/source files through both C and LLVM, including the codegen
 run boundary, emission action owners, type-fact owner, MIR-lower fact owners,
 and SEA execution-lane mirror. The AST-text bridge's root/body/block/then
@@ -366,7 +366,7 @@ The realistic incremental path toward genuine self-host:
    oracle. Recursive import expansion is now owned by `source_bundle_owner.pgy`,
    and the import-backed call fixture proves signatures are consumed from the
   source bundle instead of from a hidden single-file `main` assumption. The
-  real-source selfcheck now feeds 109 accepted self-host owner/source files
+  real-source selfcheck now feeds 110 accepted self-host owner/source files
    through that source-bundle owner rather than a generated import-stripped
    unit. The accepted manifest spans lexer/parser/mir-lower/codegen/compiler-world
   entrypoints, the compiler path manifest owner, target-capability envelope

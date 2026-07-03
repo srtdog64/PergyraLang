@@ -528,6 +528,7 @@ require_text "tests/self_hosted/parity/semantic_parity.sh" "semantic_oracle_code
 require_owner_surface codegen \
     "input/ast_input_owner.pgy" \
     "input/ast_text_inventory_owner.pgy" \
+    "input/ast_text_row_fact_owner.pgy" \
     "input/ast_text_statement_owner.pgy" \
     "input/ast_usage_owner.pgy" \
     "run/codegen_run_owner.pgy" \
@@ -576,10 +577,15 @@ require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func 
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "struct CodegenAstTextNode"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let kind: Int"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let payload: String"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let name: String"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let type_name: String"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let mode: Int"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextKindOf"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextPayloadFor"
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'node.payload == "Main"'
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return node.payload"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'import "ast_text_row_fact_owner.pgy";'
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'node.name == "Main"'
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return node.name"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return node.type_name"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'if kind == 5'
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'if kind == 7'
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'if kind == 8'
@@ -634,10 +640,18 @@ require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func 
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextParamMode"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextParamName"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextParamType"
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "StartsWith(node.payload, \"inout \")"
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "StartsWith(node.payload, \"own \")"
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "StartsWith(node.payload, \"ref \")"
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return node.payload"
+require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" 'import "../text/text_owner.pgy";'
+require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" "func CodegenAstTextParamModeForPayload"
+require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" "func CodegenAstTextParamPayloadForMode"
+require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" "func CodegenAstTextNameFactFor"
+require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" "func CodegenAstTextTypeNameFactFor"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return node.mode"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "StartsWith(node.payload, \"inout \")"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "StartsWith(node.payload, \"own \")"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "StartsWith(node.payload, \"ref \")"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextRoleForPos"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextParamPayload(node"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextParamPayloadForMode"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextFieldName"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextFieldType"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextNodeInventory"
@@ -1451,8 +1465,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 109 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 109"
+[[ "$selfcheck_count" -eq 110 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 110"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'
