@@ -10204,10 +10204,19 @@ Option)와 보간(`${}`/`f"`/`$"`)은 C 컴파일러에 full end-to-end로 존�
      깨짐) vs LLVM은 이미 fail-closed — 능력 갭이 아니라 **실패-모드
      divergence**였음. C 특수화 진입에 시그니처 워크 가드 추가: 구성 타입
      안의 선언 type param 발견 시 함수/파라미터 명명 진단으로 중단.
-     회귀 3/3 parity + transpile 916/0. **잔여**: (a) reject-leg 영구
-     smoke — Makefile이 동시 세션 손에서 풀리면 배선(checkedarith 패턴),
-     (b) bare-T 시그니처 + 본문-로컬 `Option<T>` 주석은 가드 밖(희귀,
-     동일 클래스), (c) 진짜 중첩 치환 지원 = 별도 feature 결정.
+     회귀 3/3 parity + transpile 916/0.
+     **잔여 정리 (f54ca5f2, 2026-07-03)**: (a) ✅ durable smoke
+     `generic-nested-failclosed-test-smoke` — 한 픽스처 세트에 **양 백엔드
+     목소리를 각각 잠금**(C 진단 / LLVM 진단 / LLVM의 return·body-local
+     실능력을 성공-단언 / bare-T no-false-positive). 첫 RED가 가드 순서
+     버그까지 잡음(infer가 constructed-over-T에서 포기 → 가드 도달 전
+     NULL → 무음 낙하; 가드를 infer 앞으로). (b) ✅ body-local 재분류:
+     C는 rc!=0(native 단계) 보장 = 무음 오작동 아님, 진단 품질 갭으로
+     스모크에 명문 단언. LLVM은 body-local·return 위치를 **실제 지원**
+     (실측) — C-vs-LLVM은 능력 비대칭으로 계약화. (c) 진짜 중첩 치환 =
+     여전히 별도 feature 결정 — 원인 좌석 확정: 렌더러는 이미 재귀
+     치환하나 generic 방출이 MIR의 lowering-시점 타입-텍스트 fact
+     ("Option<T>")를 소비하는 MIR-only×generics seam이 근원.
   2. **Result<String> C 매크로 누락 → 수리 完**: 런타임에
      `PGY_RESULT_DEFINE(String,...)`은 있는데 `Ok_/Err_/IsOk_/IsErr_/
      Unwrap_/UnwrapOr_String` 별칭 계열이 통째 누락(LLVM은 정상 = 조용한
