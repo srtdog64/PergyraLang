@@ -10129,22 +10129,31 @@ Option)와 보간(`${}`/`f"`/`$"`)은 C 컴파일러에 full end-to-end로 존�
   `try_operator_option` C==LLVM, semantic 케이스 2종, 2791/0 + 916/0.
   계약 상세 = docs/147 §2.
 
-#### WO-U2 — subset lag 해소: self-호스트가 자기 sugar를 쓰게
+#### WO-U2 — subset lag 해소: self-호스트가 자기 sugar를 쓰게 (진행 중)
 
 - **목표**: self-호스트 parser/checker(bounded subset)에 `?` + 보간 교육 →
   self_hosted 코드가 채택 가능해짐 → ratchet(sentinel/munge) 하향의 구조적
   뚜껑 제거.
-- **현재**: subset이 두 sugar를 파싱 불가 → selfcheck 거절 → 최대 Pergyra
-  코드베이스가 4줄 Option 의식과 Concat 피라미드에 갇힘 (docs/147 §0 실측).
-- **단계**:
-  1. self-parser: expr postfix `?` + `${}`/`f"` 문자열 스캔
-     (`parser/expr_*_owner.pgy`, `parser/cursor_owner.pgy` ReadString 계열).
-  2. self-checker: `body_check_owner` ExprType에 `?` unwrap 타입 규칙 +
-     보간의 String 타입 규칙. (with-caps 때처럼 스킵이 아니라 **타입까지** —
-     수용-후-미검증 금지.)
-  3. 채택 1호: `lib/json.pgy`의 Option 의식을 `?`로 재작성(오라클 =
-     기존 tool parity byte-diff 불변) → likeness `result_use` 실측 후 ratchet 갱신.
-  4. selfcheck 107+ 소스 green + parity 스위트 green.
+- **진행 (2026-07-03)**:
+  - ✅ 단계 1-2 (`?` 교육): `36f008ff` — ExprType TryOperandBounds + Option
+    unwrap 규칙 + body/validation + **self-codegen emission**(stmt_emit) +
+    fixture/diag까지.
+  - ✅ 보간은 교육 불요 판명: subset checker가 `${}` 프로브를 Status: ok로
+    수용(불투명 String로 — hole 타입은 C 오라클 몫). 채택 차단막 없음.
+  - ✅ 채택 1파 (3사이트, `2894dc7f`): json.pgy JsonValueEnd +
+    routine_inventory RoutineNameEnd/FindRoutineByOwnerName. 오라클:
+    selfcheck 108 c+llvm + mir_json_parity 86 + 소비 도구 2종 parity
+    byte-equal + likeness PASS.
+  - ★ **ratchet 정의 확장**: `?` 전파(`)?`)를 errors-as-data 패턴에 산입 —
+    ritual→`?` 전환이 Option</None 토큰을 걷어내 min을 뚫는 문제의 정직한
+    해법. 채택 파동마다 RESULT_USE_MIN 재기저(smoke 주석에 규칙 명문화).
+- **잔여**:
+  1. 채택 2파+: 남은 IsSome-ritual 적합 사이트 순회(적합 조건: enclosing이
+     Option 반환 + on-None이 즉시 return None). Concat 피라미드 → 보간 채택도
+     동일 오라클(도구 parity byte-diff... 주의: 보간 desugar가 Concat과
+     byte-동일 출력인지 fixture로 먼저 확인).
+  2. self-parser의 `?`/보간 **파싱 표면** 잔여 확인(현재 checker는 green —
+     tree_text/expr_owner 계열이 `?`를 AST 텍스트로 보존하는지 codegen_parity로).
 - **게이트**: selfcheck(c+llvm) + self-host-preparation smoke + likeness.
 - **금지**: subset 교육 없이 self_hosted에 sugar 사용(즉시 selfcheck RED).
 
