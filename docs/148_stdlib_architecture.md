@@ -50,32 +50,38 @@ Status: `wiring-doc, inventory-gated`. docs/138이 **무엇을**(scope ledger)
 
 ## 3. 정책 배선 (모듈이 지켜야 할 7계약)
 
-1. **per-type 우선** — generic 함수의 구성-타입 단형화 seam(MIR 타입-텍스트
-   fact, docs/147 · TODO 발견-1)이 닫히기 전까지 stdlib에 `<T>` 시그니처
-   금지. `generic-nested-failclosed-test-smoke`가 회귀를 잠근다. Go-1
-   시대가 이 형태의 10년 선례다. 명명: `<동사구><Type>` (`OptionOrInt`).
-2. **caps 의무** — ambient에 닿는 모듈(http/storage/timer/device_adapter)은
-   함수 시그니처에 `with caps <cap>` 선언 의무. **stdlib이 capability
-   showcase다**: 샌드박스 스토리(docs/15)의 첫 소비자가 자기 표준
-   라이브러리여야 한다. 현재 0/13 — caps 없는 ambient 모듈은 active 불가.
-3. **namespace 의무(신규/승격분)** — `SelfHostDiagnostic` 선례대로
-   namespace 블록 사용. 평평한 전역에서 이름-접두사로 소속을 짊어지는
-   짐(OWNERS의 `Compiler...` 장명 교훈)을 stdlib에 반입하지 않는다.
-   기존 gated 2종(option/strview)은 소급 리네임 비용 > 이득이라 유예,
-   승격/신규부터 적용.
+각 계약의 집행자는 `stdlib-inventory-test-smoke`의 leg다(G-번호).
+문서가 약속하고 스모크가 문다 — 전 leg RED/GREEN 검증(2026-07-04).
+
+1. **per-type 우선** `[gate: G1]` — generic 함수의 구성-타입 단형화
+   seam(MIR 타입-텍스트 fact, docs/147 · TODO 발견-1)이 닫히기 전까지
+   stdlib에 `<T>` 시그니처 금지 — G1이 stdlib 소스에서 직접 거절.
+   (컴파일러 측 동작은 `generic-nested-failclosed-test-smoke`가 별도
+   잠금.) Go-1 시대가 이 형태의 10년 선례다. 명명: `<동사구><Type>`
+   (`OptionOrInt`). seam이 닫히는 날 G1 제거가 곧 해금 선언이다.
+2. **caps 의무** `[gate: G2]` — ambient 빌트인(ReadFile/WriteFile/Now/
+   Random/Args/DirWalk/Input…)에 닿는 **active** 모듈은 `with caps` 선언
+   의무 — G2가 사용-감지 기반으로 검사(모듈 명단 하드코딩이 아니라
+   행동 기반이라 자기-유지). sketch는 유예; WO-L4가 active로 올리는
+   순간 G2가 무장된다. **stdlib이 capability showcase다**(docs/15).
+3. **namespace 의무(신규/승격분)** `[gate: G3]` — `SelfHostDiagnostic`
+   선례대로 namespace 블록. 2026-07-04 시점의 13개는 grandfather 명단으로
+   유예(스모크에 명단 고정), 그 밖의 모든 신규/승격 파일은 G3가 거절.
 4. **import 경로** — 상대경로 import는 실증됨(`stdlib_option_bridges`가
    `../../../../stdlib/` 관통). `std:` 별칭 resolver = WO-L3 (편의지
-   차단막 아님).
-5. **게이트 의무** — `active` 모듈 = ① backend_compare fixture 또는 전용
-   smoke ≥1, ② docs/138 행, ③ 본 문서 §4 행. `stdlib-inventory-test-smoke`
-   가 ③과 파일계의 양방향 일치 + active의 게이트 실존을 검사한다.
-6. **승격 파이프라인** — self_hosted/lib → stdlib(L1)로만, **stdlib이
-   원본**이 되고 self_hosted가 import(역방향 의존 금지). 1호 = json*
-   (WO-L1, 착수 조건은 TODO 보드).
-7. **안정성 원장** — `active`(게이트 green, 계약 준수) / `sketch`(코드는
-   있으나 게이트·caps·doctrine 미충족 — **호환성 약속 없음, 예고 없이
-   변경/삭제 가능**) / 추후 `stable-subset`(docs/107 확장, beta 시점 동결)
-   3단. Go 1 호환 약속의 축소판은 stable-subset 승격 시 명문화한다.
+   차단막 아님). [gate 불요 — 경로 형태는 자유]
+5. **게이트 의무** `[gate: inventory + G4-lite]` — `active` 모듈 = ①
+   backend_compare fixture 또는 전용 smoke ≥1(inventory leg가 실존 검사),
+   ② docs/138 행(G4-lite가 이름-수준 검사), ③ 본 문서 §4 행(inventory
+   leg가 트리와 양방향 일치 검사).
+6. **승격 파이프라인** `[gate: G5]` — self_hosted/lib → stdlib(L1)로만,
+   **stdlib이 원본**이 되고 self_hosted가 import. 역방향(stdlib이 src/를
+   import)은 G5가 거절. 1호 = json* (WO-L1, 착수 조건은 TODO 보드).
+7. **안정성 원장** `[gate: inventory]` — `active`(게이트 green, 계약
+   준수) / `sketch`(코드는 있으나 게이트·caps·doctrine 미충족 — **호환성
+   약속 없음, 예고 없이 변경/삭제 가능**) / 추후 `stable-subset`(docs/107
+   확장, beta 시점 동결) 3단 — 어휘 자체를 inventory leg가 닫는다.
+   Go 1 호환 약속의 축소판은 stable-subset 승격 시 명문화한다.
 
 ## 4. Inventory (stdlib-inventory-test-smoke가 잠금)
 

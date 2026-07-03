@@ -10197,7 +10197,12 @@ Option)와 보간(`${}`/`f"`/`$"`)은 C 컴파일러에 full end-to-end로 존�
   PEP 594 반면교사) + **7계약**(per-type/caps 의무/namespace/import/게이트
   의무/승격 방향/안정성 원장). §4 inventory 표를
   `stdlib-inventory-test-smoke`가 트리와 양방향 잠금(RED/GREEN 검증 完) —
-  배선도가 산문이 아니라 계약. 현 inventory: **active 2**(option/strview),
+  배선도가 산문이 아니라 계약. **+게이트化 完(2026-07-04)**: 7계약 중
+  집행 가능한 전부를 같은 스모크의 leg로 — G1 per-type(`<T>` 소스 거절),
+  G2 caps(active×ambient 사용-감지, WO-L4 승격 시 자동 무장), G3
+  namespace(grandfather 13 외 신규분 거절), G4-lite 138-행 의무, G5
+  역방향 import 거절. 전 leg RED/GREEN 프로브 검증. 현 inventory:
+  **active 2**(option/strview),
   **sketch 11**(게이트 0·caps 0·도메인 fail-closed 미구현 — 표본:
   `MoneyAdd` 통화 불일치 무검사 = docs/12 반례).
 - ✅ **WO-L2 — Option/Result 브리지 (2026-07-03)**: 최초의 Pergyra-소스
