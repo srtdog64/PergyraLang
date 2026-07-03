@@ -10152,6 +10152,14 @@ Option)와 보간(`${}`/`f"`/`$"`)은 C 컴파일러에 full end-to-end로 존�
     (이스케이프+보간 혼합). **프로브로 byte-동일 선증명** 후 도구 parity
     (validator missing-key fixture가 FindingFact 출력 직접 행사) + selfcheck
     108 + likeness green. 이 프로브→parity 레시피가 후속 파동의 표준.
+  - ✅ 채택 3파 — 진단 렌더러 (`b4055154`): lib/diagnostic.pgy 52→32줄,
+    Concat 조립 전량 → 템플릿(호출-hole `${Fact1(k1,v1)}` 포함 — 프로브가
+    \n/Int/Bool/호출-hole까지 확장, LLVM leg 포함 byte-동일). 오라클:
+    semantic_parity 108 `.diag` byte-fixture c+llvm + selfcheck 108.
+  - **남은 대형 피라미드**(program_emit 240 / stmt_emit 127 / expr_rewrite
+    108 / mir_lower 계열)는 **동시 typed-AST 스트림 영역** — 그 스트림이
+    해당 파일을 놓으면 같은 레시피로. parser/stmt_owner(30)·
+    decl_intent_owner(26)·lib 잔여가 다음 무주공산 후보.
 - **잔여**:
   1. 채택 2파+: 남은 IsSome-ritual 적합 사이트 순회(적합 조건: enclosing이
      Option 반환 + on-None이 즉시 return None). Concat 피라미드 → 보간 채택도
