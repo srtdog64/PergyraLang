@@ -25,6 +25,27 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-03 - MIR root arrays consume JSON fact tables
+
+- Repointed `src/self_hosted/mir_lower/json_fact_read.pgy` so MIR `decls` and
+  `routines` root-array discovery consumes `JsonDocumentObjectFactTable` and
+  `JsonArrayObjectFactTable` instead of recomputing document end plus
+  `JsonFieldArrayBounds` locally.
+- Kept the existing `MirDeclArrayBounds`, `MirDeclObjectBoundsAt`,
+  `MirRoutineArrayBounds`, and `MirRoutineObjectBoundsAt` facade stable, but
+  moved the owner decision behind MIR fact-reader table accessors.
+- Repointed `mir_fact_graph_contract_owner.pgy` so its payload fixture consumes
+  `MirDeclArrayBounds`, `MirRoutineObjectBoundsAt`, `MirObjectArrayBounds`, and
+  `MirObjectArrayObjectBoundsAt` instead of direct JSON array/object scans.
+- Tightened both self-host component and compiler-world contracts against
+  regressing the MIR payload contract to `JsonFieldArrayBounds`,
+  `JsonArrayObjectBoundsAt`, or `JsonObjectFieldValueBounds`.
+- Verified `self_hosted_component_contract_smoke.sh`,
+  `self_host_compiler_world_contract_smoke.sh`, MIR JSON parity (**86 fixtures,
+  0 clean rejects**), and real-source selfcheck (**109 sources** on C and LLVM).
+  The Stable JSON blocker remains active until the wider schema/fact-table
+  surface replaces remaining bounded scan compatibility helpers.
+
 ## 2026-07-03 - JSON object boundary facts enter hard-self-host substrate
 
 - Added `src/self_hosted/lib/json_fact_table.pgy` as the bounded JSON object

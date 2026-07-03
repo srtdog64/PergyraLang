@@ -17,24 +17,13 @@ func MirFactGraphPayloadRootReady() -> Bool {
         return false;
     }
 
-    let doc_end_opt: Option<Int> = JsonDocumentObjectEnd(json);
-    if !IsSome(doc_end_opt) {
-        return false;
-    }
-    let doc_end: Int = UnwrapOption(doc_end_opt);
-
     let decls: Array<Int> = [0, 0];
-    if !JsonFieldArrayBounds(json, 0, doc_end, "decls", decls) {
-        return false;
-    }
-
-    let routines: Array<Int> = [0, 0];
-    if !JsonFieldArrayBounds(json, 0, doc_end, "routines", routines) {
+    if !MirDeclArrayBounds(json, decls) {
         return false;
     }
 
     let routine: Array<Int> = [0, 0];
-    if !JsonArrayObjectBoundsAt(json, routines[0], routines[1], 0, routine) {
+    if !MirRoutineObjectBoundsAt(json, 0, routine) {
         return false;
     }
     let routine_name: Option<String> = MirObjectStringFactOpt(json, routine[0], routine[1], "name");
@@ -43,20 +32,12 @@ func MirFactGraphPayloadRootReady() -> Bool {
     }
 
     let source_locals: Array<Int> = [0, 0];
-    if !JsonObjectFieldValueBounds(json, routine[0], routine[1], "source_locals", source_locals) {
-        return false;
-    }
-    if CharAt(json, source_locals[0]) != "[" {
-        return false;
-    }
-
-    let body: Array<Int> = [0, 0];
-    if !JsonObjectFieldValueBounds(json, routine[0], routine[1], "body", body) {
+    if !MirObjectArrayBounds(json, routine[0], routine[1], "source_locals", source_locals) {
         return false;
     }
 
     let inst: Array<Int> = [0, 0];
-    if !JsonArrayObjectBoundsAt(json, body[0], body[1], 0, inst) {
+    if !MirObjectArrayObjectBoundsAt(json, routine[0], routine[1], "body", 0, inst) {
         return false;
     }
     let source_type: Option<String> = MirObjectStringFactOpt(json, inst[0], inst[1], "source_type");

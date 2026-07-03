@@ -5,6 +5,7 @@
 // schema decisions in their local control flow.
 
 import "../lib/json.pgy";
+import "../lib/json_fact_table.pgy";
 
 func MirFactObjectStart(json: String, start: Int) -> Int {
     if start < 0 {
@@ -96,36 +97,54 @@ func MirObjectArrayObjectBoundsAt(
     return JsonArrayObjectBoundsAt(json, array_bounds[0], array_bounds[1], row, bounds);
 }
 
+func MirDeclArrayObjectFactTable(json: String) -> JsonArrayObjectFactTable {
+    let root: JsonObjectFactTable = JsonDocumentObjectFactTable(json);
+    return JsonObjectFactArrayObjectTable(root, "decls");
+}
+
 func MirDeclArrayBounds(json: String, inout bounds: Array<Int>) -> Bool {
-    let doc_end_opt: Option<Int> = JsonDocumentObjectEnd(json);
-    if !IsSome(doc_end_opt) {
+    let table: JsonArrayObjectFactTable = MirDeclArrayObjectFactTable(json);
+    if !JsonArrayObjectFactTableReady(table) {
         return false;
     }
-    return JsonFieldArrayBounds(json, 0, UnwrapOption(doc_end_opt), "decls", bounds);
+    bounds[0] = table.start;
+    bounds[1] = table.end;
+    return true;
 }
 
 func MirDeclObjectBoundsAt(json: String, row: Int, inout bounds: Array<Int>) -> Bool {
-    let decls: Array<Int> = [0, 0];
-    if !MirDeclArrayBounds(json, decls) {
+    let row_fact: JsonObjectFactTable = JsonArrayObjectFactAt(MirDeclArrayObjectFactTable(json), row);
+    if !JsonObjectFactTableReady(row_fact) {
         return false;
     }
-    return JsonArrayObjectBoundsAt(json, decls[0], decls[1], row, bounds);
+    bounds[0] = row_fact.start;
+    bounds[1] = row_fact.end;
+    return true;
+}
+
+func MirRoutineArrayObjectFactTable(json: String) -> JsonArrayObjectFactTable {
+    let root: JsonObjectFactTable = JsonDocumentObjectFactTable(json);
+    return JsonObjectFactArrayObjectTable(root, "routines");
 }
 
 func MirRoutineArrayBounds(json: String, inout bounds: Array<Int>) -> Bool {
-    let doc_end_opt: Option<Int> = JsonDocumentObjectEnd(json);
-    if !IsSome(doc_end_opt) {
+    let table: JsonArrayObjectFactTable = MirRoutineArrayObjectFactTable(json);
+    if !JsonArrayObjectFactTableReady(table) {
         return false;
     }
-    return JsonFieldArrayBounds(json, 0, UnwrapOption(doc_end_opt), "routines", bounds);
+    bounds[0] = table.start;
+    bounds[1] = table.end;
+    return true;
 }
 
 func MirRoutineObjectBoundsAt(json: String, row: Int, inout bounds: Array<Int>) -> Bool {
-    let routines: Array<Int> = [0, 0];
-    if !MirRoutineArrayBounds(json, routines) {
+    let row_fact: JsonObjectFactTable = JsonArrayObjectFactAt(MirRoutineArrayObjectFactTable(json), row);
+    if !JsonObjectFactTableReady(row_fact) {
         return false;
     }
-    return JsonArrayObjectBoundsAt(json, routines[0], routines[1], row, bounds);
+    bounds[0] = row_fact.start;
+    bounds[1] = row_fact.end;
+    return true;
 }
 
 // Find a MIR source-local type fact in the current routine span. This is the
