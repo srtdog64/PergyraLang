@@ -1,4 +1,9 @@
-# 138. Standard Library Scope And Tiers
+# 138. Standard Library Scope
+
+> 이 문서는 **무엇을**(scope ledger — 모듈 후보/tier/AI%)이고,
+> **어떻게**(층/경계/7계약/inventory 게이트)는 `docs/148_stdlib_architecture.md`가
+> 소유한다. 모듈의 현재 상태(active/sketch)는 148 §4 inventory 표가
+> 정본이며 `stdlib-inventory-test-smoke`가 트리와의 일치를 잠근다. And Tiers
 
 Last updated: 2026-06-22
 

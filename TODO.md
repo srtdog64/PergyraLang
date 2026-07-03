@@ -10189,8 +10189,17 @@ Option)와 보간(`${}`/`f"`/`$"`)은 C 컴파일러에 full end-to-end로 존�
     해당 파일을 놓으면 같은 레시피로. parser/stmt_owner(30)·
     decl_intent_owner(26)·lib 잔여가 다음 무주공산 후보.
 
-#### Stdlib-먹기 트랙 (docs/138 P0 회수)
+#### Stdlib-먹기 트랙 (docs/138 P0 회수 · **배선도 = docs/148**)
 
+- ✅ **배선도 착지 (2026-07-04, docs/148)**: 3층(L0 builtin / L1 core /
+  L2 domain — money·obligation이 std에 있는 **유일-베팅 층**) + 타 언어
+  비교 근거(Rust 층/원장, Go per-type 선례, C# CoreLib-BCL 경계, Python
+  PEP 594 반면교사) + **7계약**(per-type/caps 의무/namespace/import/게이트
+  의무/승격 방향/안정성 원장). §4 inventory 표를
+  `stdlib-inventory-test-smoke`가 트리와 양방향 잠금(RED/GREEN 검증 完) —
+  배선도가 산문이 아니라 계약. 현 inventory: **active 2**(option/strview),
+  **sketch 11**(게이트 0·caps 0·도메인 fail-closed 미구현 — 표본:
+  `MoneyAdd` 통화 불일치 무검사 = docs/12 반례).
 - ✅ **WO-L2 — Option/Result 브리지 (2026-07-03)**: 최초의 Pergyra-소스
   stdlib 모듈 `stdlib/option.pgy` — per-type 브리지 6종(OptionOr/OkOption/
   OptionToResult × Int/String). fixture `stdlib_option_bridges`가 C==LLVM
@@ -10227,7 +10236,17 @@ Option)와 보간(`${}`/`f"`/`$"`)은 C 컴파일러에 full end-to-end로 존�
   ② 방향 고정: stdlib/이 원본, self_hosted가 import(역방향 금지),
   ③ 계약 일괄 갱신(component contract 앵커 ~40 + OWNERS + likeness scope
   재기저 — lib 이탈로 result_use 대폭 하락 예상, 재기저 사유 명문화).
-  트리-밖 import는 WO-L2 fixture로 실증 완료.
+  트리-밖 import는 WO-L2 fixture로 실증 완료. **+④ (docs/148 계약)**:
+  승격분은 namespace 블록 + docs/148 §4 inventory 행(core/active).
+- **WO-L3 — `std:` import 별칭 resolver**: 상대경로(`../../../../stdlib/`)는
+  실증된 차단막-아님 상태 — 별칭은 편의 개선. C resolver + self-host
+  source_bundle 양쪽. 소형.
+- **WO-L4 — domain 모듈 doctrine-pass (sketch→active)**: docs/148 §4 사유
+  3종 해소가 모듈당 계약 — ① `with caps` 선언(http=NETWORK,
+  storage/timer/device_adapter=io/clock), ② 도메인 fail-closed(표본:
+  MoneyAdd 통화 불일치 → 거절/패닉, docs/12), ③ backend_compare fixture.
+  **견인 순서 = 킬러 유즈케이스**(Python PEP 594 교훈): datetime →
+  page/spray → money/ledger → http. 견인 없는 모듈은 sketch로 둔다.
 - **잔여**:
   1. 채택 2파+: 남은 IsSome-ritual 적합 사이트 순회(적합 조건: enclosing이
      Option 반환 + on-None이 즉시 return None). Concat 피라미드 → 보간 채택도
