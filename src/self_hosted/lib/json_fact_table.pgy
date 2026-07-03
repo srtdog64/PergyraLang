@@ -1,0 +1,196 @@
+// JSON object fact table owner for self-hosted tools.
+//
+// This owner captures one object boundary as the stable JSON fact. Consumers ask
+// for field spans through accessors instead of discovering object bounds.
+
+import "json.pgy";
+
+struct JsonObjectFactTable {
+    let valid: Bool;
+    let json: String;
+    let start: Int;
+    let end: Int;
+}
+
+func JsonObjectFactTableSchema() -> String {
+    return "pgy.selfhost.json-object-fact-table.v1";
+}
+
+func EmptyJsonObjectFactTable() -> JsonObjectFactTable {
+    return JsonObjectFactTable(false, "", 0, 0);
+}
+
+func JsonValueKindAt(json: String, start: Int, end: Int) -> String {
+    let i: Int = JsonSkipWhitespace(json, start, end);
+    if i >= end {
+        return "invalid";
+    }
+    let c: String = CharAt(json, i);
+    if c == "\"" {
+        return "string";
+    }
+    if c == "{" {
+        return "object";
+    }
+    if c == "[" {
+        return "array";
+    }
+    if c == "t" || c == "f" {
+        return "bool";
+    }
+    if c == "n" {
+        return "null";
+    }
+    if JsonIsDigitChar(c) {
+        return "number";
+    }
+    return "scalar";
+}
+
+func JsonObjectFactTableFromBounds(json: String, start: Int, end: Int) -> JsonObjectFactTable {
+    if start < 0 || end <= start {
+        return EmptyJsonObjectFactTable();
+    }
+    if CharAt(json, start) != "{" {
+        return EmptyJsonObjectFactTable();
+    }
+    let object_end_opt: Option<Int> = JsonObjectEnd(json, start, end);
+    if !IsSome(object_end_opt) {
+        return EmptyJsonObjectFactTable();
+    }
+    if UnwrapOption(object_end_opt) != end {
+        return EmptyJsonObjectFactTable();
+    }
+    return JsonObjectFactTable(true, json, start, end);
+}
+
+func JsonDocumentObjectFactTable(json: String) -> JsonObjectFactTable {
+    let end_opt: Option<Int> = JsonDocumentObjectEnd(json);
+    if !IsSome(end_opt) {
+        return EmptyJsonObjectFactTable();
+    }
+    let end: Int = UnwrapOption(end_opt);
+    return JsonObjectFactTableFromBounds(json, 0, end);
+}
+
+func JsonObjectFactTableReady(table: JsonObjectFactTable) -> Bool {
+    return table.valid && table.start >= 0 && table.end > table.start;
+}
+
+func JsonObjectFactCount(table: JsonObjectFactTable) -> Int {
+    if !JsonObjectFactTableReady(table) {
+        return 0;
+    }
+    let count: Int = 0;
+    let i: Int = table.start + 1;
+    while i < table.end {
+        i = JsonSkipWhitespace(table.json, i, table.end);
+        if i >= table.end {
+            return 0;
+        }
+        let c: String = CharAt(table.json, i);
+        if c == "}" {
+            return count;
+        }
+        if c == "," {
+            i = i + 1;
+            continue;
+        }
+        if c != "\"" {
+            return 0;
+        }
+        let key_end: Array<Int> = [0];
+        let ignored: String = ReadJsonString(table.json, i, key_end);
+        if key_end[0] <= i {
+            return 0;
+        }
+        i = JsonSkipWhitespace(table.json, key_end[0], table.end);
+        if i >= table.end || CharAt(table.json, i) != ":" {
+            return 0;
+        }
+        i = JsonSkipWhitespace(table.json, i + 1, table.end);
+        let value_end_opt: Option<Int> = JsonValueEnd(table.json, i, table.end);
+        if !IsSome(value_end_opt) {
+            return 0;
+        }
+        count = count + 1;
+        i = UnwrapOption(value_end_opt);
+    }
+    return 0;
+}
+
+func JsonObjectFactIndex(table: JsonObjectFactTable, field: String) -> Option<Int> {
+    if !JsonObjectFactTableReady(table) {
+        return None;
+    }
+    let i: Int = 0;
+    let cursor: Int = table.start + 1;
+    while cursor < table.end {
+        cursor = JsonSkipWhitespace(table.json, cursor, table.end);
+        if cursor >= table.end {
+            return None;
+        }
+        let c: String = CharAt(table.json, cursor);
+        if c == "}" {
+            return None;
+        }
+        if c == "," {
+            cursor = cursor + 1;
+            continue;
+        }
+        if c != "\"" {
+            return None;
+        }
+        let key_end: Array<Int> = [0];
+        let key: String = ReadJsonString(table.json, cursor, key_end);
+        if key_end[0] <= cursor {
+            return None;
+        }
+        cursor = JsonSkipWhitespace(table.json, key_end[0], table.end);
+        if cursor >= table.end || CharAt(table.json, cursor) != ":" {
+            return None;
+        }
+        cursor = JsonSkipWhitespace(table.json, cursor + 1, table.end);
+        let value_end_opt: Option<Int> = JsonValueEnd(table.json, cursor, table.end);
+        if !IsSome(value_end_opt) {
+            return None;
+        }
+        if key == field {
+            return Some(i);
+        }
+        i = i + 1;
+        cursor = UnwrapOption(value_end_opt);
+    }
+    return None;
+}
+
+func JsonObjectFactHasField(table: JsonObjectFactTable, field: String) -> Bool {
+    let index_opt: Option<Int> = JsonObjectFactIndex(table, field);
+    return IsSome(index_opt);
+}
+
+func JsonObjectFactValueBounds(table: JsonObjectFactTable, field: String, inout bounds: Array<Int>) -> Bool {
+    if !JsonObjectFactTableReady(table) {
+        return false;
+    }
+    return JsonObjectFieldValueBounds(table.json, table.start, table.end, field, bounds);
+}
+
+func JsonObjectFactValueKind(table: JsonObjectFactTable, field: String) -> Option<String> {
+    let bounds: Array<Int> = [0, 0];
+    if !JsonObjectFactValueBounds(table, field, bounds) {
+        return None;
+    }
+    return Some(JsonValueKindAt(table.json, bounds[0], bounds[1]));
+}
+
+func JsonObjectFactArrayBounds(table: JsonObjectFactTable, field: String, inout bounds: Array<Int>) -> Bool {
+    let kind_opt: Option<String> = JsonObjectFactValueKind(table, field);
+    if !IsSome(kind_opt) {
+        return false;
+    }
+    if UnwrapOption(kind_opt) != "array" {
+        return false;
+    }
+    return JsonObjectFactValueBounds(table, field, bounds);
+}

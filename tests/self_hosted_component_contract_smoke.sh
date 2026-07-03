@@ -232,6 +232,17 @@ require_max_lines "src/self_hosted/lib/json_emit.pgy" 600
 require_file "src/self_hosted/lib/json_scan.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lib/json_scan.pgy"
 require_max_lines "src/self_hosted/lib/json_scan.pgy" 600
+require_file "src/self_hosted/lib/json_fact_table.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lib/json_fact_table.pgy"
+require_max_lines "src/self_hosted/lib/json_fact_table.pgy" 600
+require_text "src/self_hosted/lib/json_fact_table.pgy" 'import "json.pgy";'
+require_text "src/self_hosted/lib/json_fact_table.pgy" "struct JsonObjectFactTable"
+require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonObjectFactTableSchema"
+require_text "src/self_hosted/lib/json_fact_table.pgy" "pgy.selfhost.json-object-fact-table.v1"
+require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonDocumentObjectFactTable"
+require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonObjectFactArrayBounds"
+reject_text "src/self_hosted/lib/json_fact_table.pgy" "let keys: Array<String>;"
+reject_text "src/self_hosted/lib/json_fact_table.pgy" "let value_starts: Array<Int>;"
 reject_text "src/self_hosted/lib/json.pgy" 'import "json_emit.pgy";'
 require_text "src/self_hosted/lib/json.pgy" 'import "json_scan.pgy";'
 require_text "src/self_hosted/lib/json_scan.pgy" "func FindFrom(hay: String, needle: String, start: Int) -> Option<Int>"
@@ -1219,6 +1230,7 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/l
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/json.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/json_emit.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/json_scan.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/json_fact_table.pgy"'
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" "JsonStringLiteral(path)"
 require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" 'import "../../lib/json.pgy";'
@@ -1375,8 +1387,11 @@ require_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" 
 require_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" "JsonEmitArray(findings)"
 reject_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" 'let json_parts: Array<String>'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'import "../../lib/json.pgy";'
-require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "let doc_end_opt: Option<Int> = JsonDocumentObjectEnd(content)"
-require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonFieldArrayBounds(content, 0, UnwrapOption(doc_end_opt), \"modules\", module_bounds)"
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'import "../../lib/json_fact_table.pgy";'
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonDocumentObjectFactTable(content)"
+require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "nested-modules fixture"
+reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "let doc_end_opt: Option<Int> = JsonDocumentObjectEnd(content)"
+reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonFieldArrayBounds(content, 0, UnwrapOption(doc_end_opt), \"modules\", module_bounds)"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectCount(content, modules_open, modules_end)"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectBoundsAt("
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonObjectHasField(content, object_bounds[0], object_bounds[1], \"layer\")"
@@ -1412,8 +1427,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 108 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 108"
+[[ "$selfcheck_count" -eq 109 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 109"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirFactObjectStart"

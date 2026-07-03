@@ -25,6 +25,21 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-03 - JSON object boundary facts enter hard-self-host substrate
+
+- Added `src/self_hosted/lib/json_fact_table.pgy` as the bounded JSON object
+  boundary owner. It validates and carries one object span, then exposes field
+  span/kind accessors so consumers no longer discover object bounds locally.
+- Repointed `module_manifest_resolver` so the top-level `modules` array comes
+  from `JsonDocumentObjectFactTable` + `JsonObjectFactArrayBounds`.
+- Tightened parity with a nested-`modules` negative fixture: a nested object may
+  contain `"modules"`, but it must not satisfy the document-root manifest
+  contract.
+- Promoted the new owner into `OWNERS.md`, real-source selfcheck, component
+  contract, and the pre-self-host expansion ledger. The broader JSON blocker
+  remains active until more consumers use shared fact tables instead of bounded
+  scan helpers.
+
 ## 2026-07-03 - Parser cursor owner drops sentinel mismatch flow
 
 - Repointed the self-host parser cursor owner from `-1` mismatch sentinels to
