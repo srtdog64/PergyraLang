@@ -10448,6 +10448,21 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
 - 장기 참고: AAM(abstract machines에서 sound 정적분석 유도) — ad-hoc walker
   누적을 피하는 방향타.
 
+#### A-13. Generic × 7축 합성 결정표 (docs/151, 2026-07-04)
+
+- BDFL 초안(7축: World/Zone/Actor/Auth/Intent·Eff/Site/Phase + 판정
+  ALLOW/REJECT/DEFER/ERASE) + 레드팀 병합 완료. 핵심 프레임: **현행 =
+  전-REJECT(fail-closed 가드)에서 증거로 셀을 여는 래칫** — 위시리스트
+  아님.
+- **미결정 2건(BDFL)**: Decision-0(축별 carriage ∈ positional/
+  value-typed/runtime-tag — 레드팀 권고: positional 기본, 승격은 WO-B4
+  zone 선례처럼 축별 증거로만) + GATE 5번째 판정값 채택 여부.
+- **착수 조건(엄수)**: 셀 개방은 MIR type-text seam(docs/147 발견-1)
+  해소 후. 게이트(matrix-lock smoke)는 미결정 2건 닫힌 후 — 열린
+  결정을 게이트로 잠그는 것 금지.
+- 파생 Coq 후보: GenericAxisCarriage.v(운반 단조성 + erase-soundness)
+  — WO-F 계보.
+
 #### A-11. TPU/MLIR — post-beta 설계 여지만
 
 - 베타 중 직접 작업 금지. LLVM → MLIR/StableHLO 경로 후보 메모만 유지.
