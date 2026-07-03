@@ -1073,6 +1073,7 @@ main() {
         "tests/cases/backend_compare/select_match_case"
         "tests/cases/backend_compare/select_fairness"
         "tests/cases/backend_compare/try_operator_result"
+        "tests/cases/backend_compare/try_operator_option"
         "tests/cases/backend_compare/triple_paradigm"
         "tests/cases/backend_compare/bin_push_chain"
         "tests/cases/backend_compare/bid_max_score"

@@ -12,13 +12,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 CC="${CC:-gcc}"
 OUT="$(mktemp -d)/checked_arith"
+read -r -a PLATFORM_CFLAG_ARGS <<< "${PLATFORM_CFLAGS:-}"
+read -r -a THREAD_LINK_ARGS <<< "${THREAD_LINK_LIB:-}"
 
 fail() { echo "[checked-arith] FAIL: $*" >&2; exit 1; }
 
-"$CC" -Wall -Wextra -Werror -std=c11 \
+"$CC" "${PLATFORM_CFLAG_ARGS[@]}" -Wall -Wextra -Werror -std=c11 \
     -I"$ROOT_DIR/src/runtime" \
     "$ROOT_DIR/src/tests/checked_arith_test.c" \
-    -o "$OUT" || fail "test did not compile"
+    -o "$OUT" "${THREAD_LINK_ARGS[@]}" || fail "test did not compile"
 
 expect_ok() {
     local mode="$1" want="$2" got

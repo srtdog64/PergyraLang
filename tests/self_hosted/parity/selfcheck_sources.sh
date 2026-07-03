@@ -36,7 +36,7 @@ if [[ ! -x "$PGY" ]]; then
 fi
 
 TOOL_SOURCE="$ROOT_DIR/src/self_hosted/semantic/main.pgy"
-BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/semantic}"
+BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/semantic_selfcheck}"
 TOOL="$BUILD_DIR/main.pgy"
 TOOL_BIN="$BUILD_DIR/main_selfcheck.exe"
 

@@ -32,12 +32,10 @@
 
 /* Reserved synthetic-name prefix; cannot collide with user identifiers
  * because `__pgy_forin_` is not a legal user-chosen convention and the
- * counter makes every site unique. */
+ * per-program counter makes every site unique. */
 #define PGY_FORIN_PREFIX "__pgy_forin_"
 
-static unsigned g_forin_counter;
-
-static void desugar_node(ASTNode *node);
+static void desugar_node(ASTNode *node, unsigned *counter);
 
 /* Build `{ let __pgy_forin_N = <iterable>; for VAR in __pgy_forin_N { BODY } }`
  * by mutating `loop` in place and wrapping it in a fresh block. Ownership of
@@ -45,14 +43,14 @@ static void desugar_node(ASTNode *node);
  * not copied). Returns the wrapping block, or `loop` unchanged on allocation
  * failure (so the caller keeps a valid tree). */
 static ASTNode *
-desugar_for_loop_slot(ASTNode *loop)
+desugar_for_loop_slot(ASTNode *loop, unsigned *counter)
 {
     ASTNode *iterable = ast_for_iterable(loop);
     if (iterable == NULL || iterable->type == AST_IDENTIFIER)
         return loop;
 
     char name[64];
-    unsigned n = g_forin_counter++;
+    unsigned n = counter != NULL ? (*counter)++ : 0;
     snprintf(name, sizeof(name), PGY_FORIN_PREFIX "%u", n);
 
     ASTNode *let = ast_create_let_declaration(name);
@@ -70,10 +68,19 @@ desugar_for_loop_slot(ASTNode *loop)
     block->column = loop->column;
 
     /* Re-parent the existing iterable node into the let initializer. */
-    let->data.let_decl.initializer = iterable;
+    iterable = ast_for_detach_iterable(loop);
+    if (iterable == NULL)
+        return loop;
+    if (!ast_let_attach_initializer(let, iterable)) {
+        (void)ast_for_attach_iterable(loop, iterable);
+        return loop;
+    }
 
     /* Rewrite the loop to iterate the hoisted local (now an identifier). */
-    loop->data.for_loop.iterable = ident;
+    if (!ast_for_attach_iterable(loop, ident)) {
+        (void)ast_for_attach_iterable(loop, iterable);
+        return loop;
+    }
 
     /* Assemble the block: [ let, loop ]. */
     ast_add_statement(block, let);
@@ -86,7 +93,7 @@ desugar_for_loop_slot(ASTNode *loop)
  * sibling statement evaluated once before the loop. Recurses into each
  * statement first so nested loops are handled. */
 static void
-desugar_statement_list(ASTNode **statements, size_t count)
+desugar_statement_list(ASTNode **statements, size_t count, unsigned *counter)
 {
     if (statements == NULL)
         return;
@@ -94,11 +101,11 @@ desugar_statement_list(ASTNode **statements, size_t count)
         ASTNode *stmt = statements[i];
         if (stmt == NULL)
             continue;
-        desugar_node(stmt);
+        desugar_node(stmt, counter);
         if (stmt->type == AST_FOR_LOOP
             && ast_for_iterable(stmt) != NULL
             && ast_for_iterable(stmt)->type != AST_IDENTIFIER) {
-            statements[i] = desugar_for_loop_slot(stmt);
+            statements[i] = desugar_for_loop_slot(stmt, counter);
         }
     }
 }
@@ -109,67 +116,87 @@ desugar_statement_list(ASTNode **statements, size_t count)
  * (func/loop/if/with/match) are AST_BLOCK nodes, so visiting them reaches
  * their statement lists. */
 static void
-desugar_node(ASTNode *node)
+desugar_node(ASTNode *node, unsigned *counter)
 {
     if (node == NULL)
         return;
 
     switch (node->type) {
     case AST_PROGRAM:
-        desugar_statement_list(node->data.program.statements,
-                               node->data.program.count);
+    {
+        size_t statement_count = 0;
+        ASTNode **statements = ast_program_statements(node, &statement_count);
+        desugar_statement_list(statements, statement_count, counter);
         return;
+    }
     case AST_BLOCK:
-        desugar_statement_list(node->data.block.statements,
-                               node->data.block.count);
+    {
+        size_t statement_count = 0;
+        ASTNode **statements = ast_block_statements(node, &statement_count);
+        desugar_statement_list(statements, statement_count, counter);
         return;
+    }
     case AST_ASYNC_BLOCK:
-        desugar_statement_list(node->data.async_block.statements,
-                               node->data.async_block.statement_count);
+    {
+        size_t statement_count = 0;
+        ASTNode **statements =
+            ast_async_block_statements(node, &statement_count);
+        desugar_statement_list(statements, statement_count, counter);
         return;
+    }
     case AST_PARALLEL_BLOCK:
-        desugar_statement_list(node->data.parallel.tasks,
-                               node->data.parallel.task_count);
+    {
+        size_t task_count = 0;
+        ASTNode **tasks = ast_parallel_tasks(node, &task_count);
+        desugar_statement_list(tasks, task_count, counter);
         return;
+    }
     case AST_EXTERN_BLOCK:
-        desugar_statement_list(node->data.extern_block.declarations,
-                               node->data.extern_block.count);
+    {
+        size_t declaration_count = 0;
+        ASTNode **declarations =
+            ast_extern_block_declarations(node, &declaration_count);
+        desugar_statement_list(declarations, declaration_count, counter);
         return;
+    }
     case AST_NAMESPACE_DECL:
-        desugar_statement_list(node->data.namespace_decl.statements,
-                               node->data.namespace_decl.count);
+    {
+        size_t statement_count = 0;
+        ASTNode **statements = ast_namespace_statements(node, &statement_count);
+        desugar_statement_list(statements, statement_count, counter);
         return;
+    }
     case AST_FUNC_DECL:
-        desugar_node(node->data.func_decl.body);
+        desugar_node(ast_func_body(node), counter);
         return;
     case AST_FOR_LOOP:
         /* Only the body can hold nested loops; the iterable/range are
          * expressions, handled where the loop sits in its statement list. */
-        desugar_node(node->data.for_loop.body);
+        desugar_node(ast_for_body(node), counter);
         return;
     case AST_WHILE_LOOP:
-        desugar_node(node->data.while_loop.body);
+        desugar_node(ast_while_body(node), counter);
         return;
     case AST_IF_STMT:
-        desugar_node(node->data.if_stmt.then_branch);
-        desugar_node(node->data.if_stmt.else_branch);
+        desugar_node(ast_if_then_branch(node), counter);
+        desugar_node(ast_if_else_branch(node), counter);
         return;
     case AST_WITH_STMT:
-        desugar_node(node->data.with_stmt.body);
+        desugar_node(ast_with_body(node), counter);
         return;
     case AST_MATCH_STMT:
-        for (size_t i = 0; i < node->data.match_stmt.case_count; i++)
-            desugar_node(node->data.match_stmt.cases[i]);
-        desugar_node(node->data.match_stmt.default_body);
+        for (size_t i = 0; i < ast_match_case_count(node); i++)
+            desugar_node(ast_match_case_at(node, i), counter);
+        desugar_node(ast_match_default_body(node), counter);
         return;
     case AST_MATCH_CASE:
-        desugar_node(node->data.match_case.guard);
-        desugar_node(node->data.match_case.body);
+        desugar_node(ast_match_case_guard(node), counter);
+        desugar_node(ast_match_case_body(node), counter);
         return;
     case AST_SELECT_STMT:
-        for (size_t i = 0; i < node->data.select_stmt.case_count; i++)
-            desugar_node(node->data.select_stmt.cases[i]);
-        desugar_node(node->data.select_stmt.default_case);
+        for (size_t i = 0; i < ast_select_case_count(node); i++)
+            desugar_node(ast_select_case(node, i), counter);
+        desugar_node(ast_select_default_case(node), counter);
         return;
     default:
         break;
@@ -183,59 +210,51 @@ desugar_node(ASTNode *node)
     size_t method_count = 0;
     switch (node->type) {
     case AST_CLASS_DECL:
-        methods = node->data.class_decl.methods;
-        method_count = node->data.class_decl.method_count;
+        methods = ast_class_methods(node, &method_count);
         break;
     case AST_ENUM_DECL:
-        methods = node->data.enum_decl.methods;
-        method_count = node->data.enum_decl.method_count;
+        methods = ast_enum_methods(node, &method_count);
         break;
     case AST_ABILITY_DECL:
-        methods = node->data.ability_decl.methods;
-        method_count = node->data.ability_decl.method_count;
+        methods = ast_ability_methods(node, &method_count);
         break;
     case AST_IMPL_ABILITY:
-        methods = node->data.impl_ability.methods;
-        method_count = node->data.impl_ability.method_count;
-        break;
+        for (size_t i = 0; i < ast_impl_ability_method_count(node); i++)
+            desugar_node(ast_impl_ability_method(node, i), counter);
+        return;
     case AST_PARTY_DECL:
-        methods = node->data.party_decl.methods;
-        method_count = node->data.party_decl.method_count;
+        methods = ast_party_methods(node, &method_count);
         break;
     case AST_ROSTER_DECL:
-        methods = node->data.roster_decl.methods;
-        method_count = node->data.roster_decl.method_count;
+        methods = ast_roster_methods(node, &method_count);
         break;
     case AST_WORLD_DECL:
-        methods = node->data.world_decl.methods;
-        method_count = node->data.world_decl.method_count;
+        methods = ast_world_methods(node, &method_count);
         break;
     case AST_RELATION_DECL:
-        methods = node->data.relation_decl.methods;
-        method_count = node->data.relation_decl.method_count;
+        methods = ast_relation_methods(node, &method_count);
         break;
     case AST_EFFECT_DECL:
-        methods = node->data.effect_decl.methods;
-        method_count = node->data.effect_decl.method_count;
+        methods = ast_effect_methods(node, &method_count);
         break;
     case AST_ZONE_DECL:
-        methods = node->data.zone_decl.methods;
-        method_count = node->data.zone_decl.method_count;
+        methods = ast_zone_methods(node, &method_count);
         break;
     default:
         return;
     }
     for (size_t i = 0; i < method_count; i++) {
         if (methods[i] != NULL)
-            desugar_node(methods[i]);
+            desugar_node(methods[i], counter);
     }
 }
 
 void
 forin_desugar_program(ASTNode *program)
 {
+    unsigned counter = 0;
+
     if (program == NULL)
         return;
-    g_forin_counter = 0;
-    desugar_node(program);
+    desugar_node(program, &counter);
 }

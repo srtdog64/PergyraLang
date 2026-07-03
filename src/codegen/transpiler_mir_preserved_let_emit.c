@@ -305,18 +305,20 @@ transpiler_emit_mir_source_local_let_def_inst(
                 return TRANSPILE_MIR_LOCAL_LET_FAILED;
             }
             try_id = ctx->tmp_counter++;
+            const char *some_tag =
+                pgy_codegen_match_variant_c_option_tag(PGY_MATCH_VARIANT_SOME);
             write_indent_to(buf, ctx->indent);
             codebuf_write(buf, "%s __try_%d = %s;\n",
                           result_c_type_buf, try_id, operand_expr);
             write_indent_to(buf, ctx->indent);
             if (current_returns_option) {
                 codebuf_write(buf,
-                    "if (__try_%d.tag != PgyOptionSome) return pgy_option_none_%s();\n",
-                    try_id, ret_option_c_type_buf + 10);
+                    "if (__try_%d.tag != %s) return pgy_option_none_%s();\n",
+                    try_id, some_tag, ret_option_c_type_buf + 10);
             } else {
                 codebuf_write(buf,
-                    "if (__try_%d.tag != PgyOptionSome) PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE);\n",
-                    try_id);
+                    "if (__try_%d.tag != %s) PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE);\n",
+                    try_id, some_tag);
             }
             write_indent_to(buf, ctx->indent);
             codebuf_write(buf, "%s = __try_%d.value;\n", lhs, try_id);

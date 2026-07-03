@@ -129,6 +129,15 @@ ast_let_initializer(const ASTNode* node)
 }
 
 bool
+ast_let_attach_initializer(ASTNode* node, ASTNode* initializer)
+{
+    if (node == NULL || node->type != AST_LET_DECL)
+        return false;
+    node->data.let_decl.initializer = initializer;
+    return true;
+}
+
+bool
 ast_let_is_mutable(const ASTNode* node)
 {
     return node != NULL && node->type == AST_LET_DECL

@@ -2243,7 +2243,7 @@ nested-array-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/nested_array_smoke.sh
 
 checkedarith-failclosed-test-smoke:
-	"$(BASH)" tests/checked_arith_failclosed_smoke.sh
+	PLATFORM_CFLAGS="$(PLATFORM_CFLAGS)" THREAD_LINK_LIB="$(THREAD_LINK_LIB)" "$(BASH)" tests/checked_arith_failclosed_smoke.sh
 
 secure-token-reuse-test-smoke:
 	"$(BASH)" tests/secure_token_reuse_failclosed_smoke.sh

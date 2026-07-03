@@ -499,6 +499,26 @@ ast_for_iterable(const ASTNode* node)
 }
 
 ASTNode*
+ast_for_detach_iterable(ASTNode* node)
+{
+    ASTNode *iterable;
+    if (node == NULL || node->type != AST_FOR_LOOP)
+        return NULL;
+    iterable = node->data.for_loop.iterable;
+    node->data.for_loop.iterable = NULL;
+    return iterable;
+}
+
+bool
+ast_for_attach_iterable(ASTNode* node, ASTNode* iterable)
+{
+    if (node == NULL || node->type != AST_FOR_LOOP)
+        return false;
+    node->data.for_loop.iterable = iterable;
+    return true;
+}
+
+ASTNode*
 ast_for_body(const ASTNode* node)
 {
     if (node == NULL || node->type != AST_FOR_LOOP)
@@ -593,4 +613,3 @@ ast_return_value(const ASTNode* node)
         return NULL;
     return node->data.return_stmt.value;
 }
-
