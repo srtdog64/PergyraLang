@@ -242,11 +242,8 @@ func JsonValueEnd(json: String, value_start: Int, end: Int) -> Option<Int> {
         return JsonObjectEnd(json, i, end);
     }
     if c == "[" {
-        let array_close_opt: Option<Int> = JsonArrayEnd(json, i, end);
-        if !IsSome(array_close_opt) {
-            return None;
-        }
-        return Some(UnwrapOption(array_close_opt) + 1);
+        let array_close: Int = JsonArrayEnd(json, i, end)?;
+        return Some(array_close + 1);
     }
     while i < end {
         let d: String = CharAt(json, i);
