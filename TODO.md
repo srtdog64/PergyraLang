@@ -10333,6 +10333,13 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
 - **DoD**: clean AIR JSON에서 real source 기반 lane row가 늘고, TODO/docs/146
   matrix가 같은 수치를 말하며, old source-kind/boundary-kind guess가 smoke로
   차단된다.
+- **P1 후속 — executor 분리** (외부 리뷰 2호 docs/149 §2-N6 합류): 현재
+  Worker/Blocking/LocalAsync/Movable이 단일 worker-thread executor 공유
+  (docs/146:202). 목표 매핑 = WorkerPool→bounded queue,
+  BlockingPool→전용 blocking pool, LocalAsync→fiber/coroutine,
+  MovableScheduler→work-stealing. **원칙: LaneFact=의미, executor=구현 —
+  executor를 갈아도 언어 계약 불변**(Swift SE-0304 task/executor 분리 선례).
+  capture 정밀도(P0, 동시 세션 소유)보다 후순위.
 
 #### A-4. Semantic squiggle 2단계 — advisory drift 목록 (docs/140)
 
@@ -10344,6 +10351,9 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
   domain annotation 또는 explicit observability marker가 있는 site로 한정한다.
 - **산출물**: 결정 표(도메인 drift → 색/차단 여부/근거) 문서 + 표의 상위
   2-3행에 대한 2·3번째 생산자 구현. 코드보다 표가 먼저다.
+- 참고(docs/149 §2-N7): Luau telemetry 연구 — creator 규모에서
+  false-positive 관리 + privacy-preserving 진단 텔레메트리가 채택을 좌우.
+  BLUE noise policy와 동주제, advisory-first 원칙의 외부 실증.
 
 #### A-5. Slot id 폭 결정 (red-team Defense 2)
 
@@ -10373,6 +10383,14 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
   manifest와 frame budget으로 projection한 뒤에만 올린다. 최소 budget row:
   fuel, host-call count, command-buffer count, memory, stream bytes, input queue,
   storage ops, wall-clock. WASM/WASI 자체를 안전성 증거로 광고하지 않는다.
+- 참고자료 (docs/149 §2): **WASI 0.3.0**(2026-06-11 — async가
+  component-native: `future<T>`/`stream<u8>`; 착수 시 0.2 pollable 패턴이
+  아니라 0.3 기준) · **Wasmtime fuel vs epoch interruption**(fuel=결정적/
+  계측비용, epoch=저렴한 협조 timeslice; blocking host-call timeout은 별도
+  설계 — 기존 wall-time watchdog과 상보) · **WASM 격리 공격 연구**
+  (arXiv 2509.11242 — WASI 경유 host 자원고갈 실증 = "WASM≠자동 안전"
+  입장의 외부 근거). guest 구조 원칙: per-call host crossing 대신
+  **command-buffer 배치 + flush 시 budget 검증**.
 
 #### A-8. Self-eating bootstrap — Stage 5 North Star
 
@@ -10393,6 +10411,17 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
   effect-handler/compensation의 표면 대응(adequacy)과 channel/session
   fragment. 원칙 유지: 파일당 한 증명, standalone, 0 admits, smoke
   require_terms로 정리 이름 고정.
+
+#### A-12. AIR relation-table export + 관계형 CI verifier (P2, docs/149 §2-N5)
+
+- AIR fact(boundary/capture/effect/authority/evidence/lane/compression)를
+  관계 테이블로 export하고, 위반 규칙을 Datalog/Soufflé류 관계 질의로 CI에서
+  검사 (예: `lane(B,"MovableScheduler") ∧ capture(B,"RawSlot") → violation`).
+- **경계 조건(엄수)**: CI verifier 한정 — 컴파일러 본체/backend가 이 관계
+  테이블을 소비하기 시작하면 AIR-as-second-truth 재개방(A-3 원칙 위반).
+  export는 `--air-json`의 파생 뷰로만.
+- 장기 참고: AAM(abstract machines에서 sound 정적분석 유도) — ad-hoc walker
+  누적을 피하는 방향타.
 
 #### A-11. TPU/MLIR — post-beta 설계 여지만
 
