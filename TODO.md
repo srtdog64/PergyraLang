@@ -10198,10 +10198,16 @@ Option)와 보간(`${}`/`f"`/`$"`)은 C 컴파일러에 full end-to-end로 존�
   선행 프로브 겸). map/andThen은 callable-param(docs/141 Stage B + F1)
   대기로 의도적 부재 — 시그니처를 클로저 작업이 소유해야 함.
 - ★ **발견 2건 (착지 중 audit)**:
-  1. **generic 함수 × Option<T> 단형화 부재**: `func F<T>(o: Option<T>)`가
-     semantic 수용 → C codegen 방출 실패(in-file조차) = accepted-then-broken
-     클래스. 처방: semantic 선-거절(명시 진단) 또는 codegen 지원 중 택일
-     필요 — 방치 금지. (per-type 교리라 stdlib은 비차단.)
+  1. **generic 함수 × Option<T> 단형화 부재 → fail-closed 처방 完**
+     (`ffb32c27`): 정밀 프로브 결과 bare-T는 양 백엔드 정상, 구성-타입-내
+     T(파라미터/반환 위치 모두)가 C에서 **문자 그대로 `T` 방출**(무음
+     깨짐) vs LLVM은 이미 fail-closed — 능력 갭이 아니라 **실패-모드
+     divergence**였음. C 특수화 진입에 시그니처 워크 가드 추가: 구성 타입
+     안의 선언 type param 발견 시 함수/파라미터 명명 진단으로 중단.
+     회귀 3/3 parity + transpile 916/0. **잔여**: (a) reject-leg 영구
+     smoke — Makefile이 동시 세션 손에서 풀리면 배선(checkedarith 패턴),
+     (b) bare-T 시그니처 + 본문-로컬 `Option<T>` 주석은 가드 밖(희귀,
+     동일 클래스), (c) 진짜 중첩 치환 지원 = 별도 feature 결정.
   2. **Result<String> C 매크로 누락 → 수리 完**: 런타임에
      `PGY_RESULT_DEFINE(String,...)`은 있는데 `Ok_/Err_/IsOk_/IsErr_/
      Unwrap_/UnwrapOr_String` 별칭 계열이 통째 누락(LLVM은 정상 = 조용한
