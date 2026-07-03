@@ -65,11 +65,11 @@ SH_DIR="$ROOT_DIR/src/self_hosted"
 # ---- ratchet baselines (tighten on improvement, never loosen) ----
 STRING_MUNGE_SIG_MAX=160
 AST_STRING_SURFACE_MAX=0
-SENTINEL_MAX=11
+SENTINEL_MAX=8
 # 249 -> 246 (2026-07-03): first '?'-adoption wave (3 sites) converted 4-line
 # IsSome/UnwrapOption rituals to try-propagation; pattern gained `\)\?` in the
 # same commit. Re-base per the result_use comment below -- not a loosening.
-RESULT_USE_MIN=246
+RESULT_USE_MIN=258
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=17
 COMPILER_WORLD_MEMBERS_EXACT=17

@@ -25,6 +25,19 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-03 - Parser cursor owner drops sentinel mismatch flow
+
+- Repointed the self-host parser cursor owner from `-1` mismatch sentinels to
+  `Option<Int>` cursor facts. `ExpectOpt` and `ConsumeStmtTerminatorOpt` own
+  the optional cursor result; the required `Expect` and
+  `ConsumeStmtTerminator` APIs now fail closed through the parser error owner.
+- Tightened `self_host_pergyra_likeness_smoke.sh` from `sentinel<=11` to
+  `sentinel<=8` and raised the `Result`/`Option` usage floor from 246 to 258.
+- Tightened the component contract so `cursor_owner.pgy` cannot reintroduce
+  `return -1`. The remaining sentinel metric comes from generated C runtime
+  helper ABI strings in the self-host codegen output owner, not parser cursor
+  flow.
+
 ## 2026-07-03 - AST-text structural markers consume kind facts
 
 - Moved the self-host codegen AST-text bridge's structural marker checks for

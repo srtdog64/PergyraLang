@@ -1,5 +1,7 @@
 // Self-host parser source cursor and token-read owner.
 
+import "error_owner.pgy";
+
 func CharAt(s: String, i: Int) -> String {
     let n: Int = StringLength(s);
     if i < 0 {
@@ -167,23 +169,31 @@ func ReadString(content: String, start: Int, inout cursor_out: Array<Int>) -> St
     return Substring(content, start, i - start);
 }
 
-// Expect the literal `tok` at the cursor, skipping leading
-// whitespace/comments. Returns the new cursor or -1 on mismatch.
-func Expect(content: String, start: Int, tok: String) -> Int {
+// Expect the literal `tok` at the cursor, skipping leading whitespace/comments.
+func ExpectOpt(content: String, start: Int, tok: String) -> Option<Int> {
     let i: Int = SkipWhitespaceAndComments(content, start);
     let tlen: Int = StringLength(tok);
     let n: Int = StringLength(content);
     if i + tlen > n {
-        return -1;
+        return None;
     }
     let slice: String = Substring(content, i, tlen);
     if slice != tok {
-        return -1;
+        return None;
     }
-    return i + tlen;
+    return Some(i + tlen);
 }
 
-func ConsumeStmtTerminator(content: String, start: Int) -> Int {
+func Expect(content: String, start: Int, tok: String) -> Int {
+    let next: Option<Int> = ExpectOpt(content, start, tok);
+    if IsSome(next) {
+        return UnwrapOption(next);
+    }
+    Fail(Concat("expected token `", Concat(tok, "`")), content, start);
+    return start;
+}
+
+func ConsumeStmtTerminatorOpt(content: String, start: Int) -> Option<Int> {
     let n: Int = StringLength(content);
     let i: Int = start;
     while i < n {
@@ -193,21 +203,30 @@ func ConsumeStmtTerminator(content: String, start: Int) -> Int {
             continue;
         }
         if c == ";" {
-            return i + 1;
+            return Some(i + 1);
         }
         if c == "\n" {
-            return i + 1;
+            return Some(i + 1);
         }
         if c == "}" {
-            return i;
+            return Some(i);
         }
         if c == "/" && CharAt(content, i + 1) == "/" {
             while i < n && CharAt(content, i) != "\n" {
                 i = i + 1;
             }
-            return i;
+            return Some(i);
         }
         break;
     }
-    return -1;
+    return None;
+}
+
+func ConsumeStmtTerminator(content: String, start: Int) -> Int {
+    let next: Option<Int> = ConsumeStmtTerminatorOpt(content, start);
+    if IsSome(next) {
+        return UnwrapOption(next);
+    }
+    Fail("expected statement terminator", content, start);
+    return start;
 }
