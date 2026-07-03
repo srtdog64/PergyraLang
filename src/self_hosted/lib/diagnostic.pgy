@@ -10,43 +10,22 @@
 
 namespace SelfHostDiagnostic {
     export func Fact1(k1: String, v1: String) -> String {
-        return Concat("- ", Concat(k1, Concat(": ", v1)));
+        return "- ${k1}: ${v1}";
     }
 
     export func Fact2(k1: String, v1: String, k2: String, v2: String) -> String {
-        return Concat(Fact1(k1, v1), Concat("\n", Fact1(k2, v2)));
+        return "${Fact1(k1, v1)}\n${Fact1(k2, v2)}";
     }
 
     export func Fact3(k1: String, v1: String, k2: String, v2: String, k3: String, v3: String) -> String {
-        return Concat(Fact2(k1, v1, k2, v2), Concat("\n", Fact1(k3, v3)));
+        return "${Fact2(k1, v1, k2, v2)}\n${Fact1(k3, v3)}";
     }
 
     export func RenderOk(schema: String) -> String {
-        let out: String = "Diagnostic: ";
-        out = Concat(out, schema);
-        out = Concat(out, "\nStatus: ok");
-        out = Concat(out, "\nDiagnostics: none");
-        return out;
+        return "Diagnostic: ${schema}\nStatus: ok\nDiagnostics: none";
     }
 
     export func RenderError(schema: String, stage: String, severity: String, code: String, reason: String, fix: String, span: String, facts: String) -> String {
-        let out: String = "Diagnostic: ";
-        out = Concat(out, schema);
-        out = Concat(out, "\nStatus: error");
-        out = Concat(out, "\nStage: ");
-        out = Concat(out, stage);
-        out = Concat(out, "\nSeverity: ");
-        out = Concat(out, severity);
-        out = Concat(out, "\nCode: ");
-        out = Concat(out, code);
-        out = Concat(out, "\nReason: ");
-        out = Concat(out, reason);
-        out = Concat(out, "\nFix: ");
-        out = Concat(out, fix);
-        out = Concat(out, "\nSpan: ");
-        out = Concat(out, span);
-        out = Concat(out, "\nFacts:\n");
-        out = Concat(out, facts);
-        return out;
+        return "Diagnostic: ${schema}\nStatus: error\nStage: ${stage}\nSeverity: ${severity}\nCode: ${code}\nReason: ${reason}\nFix: ${fix}\nSpan: ${span}\nFacts:\n${facts}";
     }
 }
