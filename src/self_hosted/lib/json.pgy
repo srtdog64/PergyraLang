@@ -128,7 +128,7 @@ func JsonFieldString(json: String, start: Int, end: Int, key: String) -> String 
 }
 
 func JsonFieldKey(field: String) -> String {
-    return Concat(Concat("\"", field), "\":");
+    return "\"${field}\":";
 }
 
 func JsonDocumentObjectEnd(json: String) -> Option<Int> {

@@ -184,9 +184,7 @@ func CountMissingKeys(content: String, keys: Array<String>) -> Int {
 }
 
 func FindingFact(kind: String, key: String, location: String) -> String {
-    let s0: String = Concat(kind, "|");
-    let s1: String = Concat(Concat(s0, key), "|");
-    return Concat(s1, location);
+    return "${kind}|${key}|${location}";
 }
 
 func AppendFindingFact(facts: String, entry: String) -> String {
