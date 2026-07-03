@@ -676,6 +676,7 @@ main() {
         "tests/cases/backend_compare/fib_memo_pair"
         "tests/cases/backend_compare/map_count_unique"
         "tests/cases/backend_compare/result_via_unwrap"
+        "tests/cases/backend_compare/stdlib_option_bridges"
         "tests/cases/backend_compare/string_compare_branch"
         "tests/cases/backend_compare/if_short_circuit_pure"
         "tests/cases/backend_compare/for_range_explicit"

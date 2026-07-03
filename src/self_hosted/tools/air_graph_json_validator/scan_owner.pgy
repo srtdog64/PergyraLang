@@ -5,14 +5,12 @@
 // the output JSON schema or filesystem/exit policy.
 
 import "../../lib/json.pgy";
+import "../../lib/json_fact_table.pgy";
 
 func AirGraphSummaryIntField(content: String, field: String, inout value_out: Array<Int>) -> Bool {
-    let doc_end_opt: Option<Int> = JsonDocumentObjectEnd(content);
-    if !IsSome(doc_end_opt) {
-        return false;
-    }
+    let root: JsonObjectFactTable = JsonDocumentObjectFactTable(content);
     let summary_bounds: Array<Int> = [0, 0];
-    if !JsonObjectFieldValueBounds(content, 0, UnwrapOption(doc_end_opt), "summary", summary_bounds) {
+    if !JsonObjectFactValueBounds(root, "summary", summary_bounds) {
         return false;
     }
     let num_str: Option<String> = JsonObjectNumberFieldOpt(content, summary_bounds[0], summary_bounds[1], field);
@@ -141,41 +139,66 @@ func CountSubstring(content: String, needle: String) -> Int {
 
 func RequiredKeys() -> Array<String> {
     let keys: Array<String> = [
-        JsonFieldKey("schema"),
-        JsonFieldKey("capabilities"),
-        JsonFieldKey("effects_by_op"),
-        JsonFieldKey("summary"),
-        JsonFieldKey("intents"),
-        JsonFieldKey("boundaries"),
-        JsonFieldKey("evidence"),
-        JsonFieldKey("drifts"),
-        JsonFieldKey("compression_budget"),
-        JsonFieldKey("compression_reason"),
-        JsonFieldKey("execution_lane"),
-        JsonFieldKey("boundary_capture")
+        "schema",
+        "capabilities",
+        "effects_by_op",
+        "summary",
+        "intents",
+        "boundaries",
+        "evidence",
+        "drifts"
+    ];
+    return keys;
+}
+
+func RequiredGraphFeatureKeys() -> Array<String> {
+    let keys: Array<String> = [
+        "compression_budget",
+        "compression_reason",
+        "execution_lane",
+        "boundary_capture"
     ];
     return keys;
 }
 
 func RequiredCapabilityTraceKeys() -> Array<String> {
     let keys: Array<String> = [
-        JsonFieldKey("schema"),
-        JsonFieldKey("capabilities"),
-        JsonFieldKey("effects_by_op"),
-        JsonFieldKey("summary"),
-        JsonFieldKey("evidence"),
-        JsonFieldKey("drifts")
+        "schema",
+        "capabilities",
+        "effects_by_op",
+        "summary",
+        "evidence",
+        "drifts"
     ];
     return keys;
 }
 
 func CountMissingKeys(content: String, keys: Array<String>) -> Int {
     let missing: Int = 0;
+    let root: JsonObjectFactTable = JsonDocumentObjectFactTable(content);
+    if !JsonObjectFactTableReady(root) {
+        return ArrayLength(keys);
+    }
     let i: Int = 0;
     let n: Int = ArrayLength(keys);
     while i < n {
         let key: String = keys[i];
-        if !StringContains(content, key) {
+        if !JsonObjectFactHasField(root, key) {
+            missing = missing + 1;
+        }
+        i = i + 1;
+    }
+    return missing;
+}
+
+func CountMissingGraphFeatureKeys(content: String, keys: Array<String>) -> Int {
+    let missing: Int = 0;
+    let i: Int = 0;
+    let n: Int = ArrayLength(keys);
+    while i < n {
+        let key: String = keys[i];
+        let values: Array<String> = AirGraphScalarFieldValues(content, key);
+        if ArrayLength(values) == 0 {
             missing = missing + 1;
         }
         i = i + 1;
@@ -199,11 +222,28 @@ func AppendFindingFact(facts: String, entry: String) -> String {
 
 func BuildMissingKeyFindingFacts(content: String, keys: Array<String>, location: String) -> String {
     let facts: String = "";
+    let root: JsonObjectFactTable = JsonDocumentObjectFactTable(content);
     let i: Int = 0;
     let n: Int = ArrayLength(keys);
     while i < n {
         let key: String = keys[i];
-        if !StringContains(content, key) {
+        if !JsonObjectFactTableReady(root) || !JsonObjectFactHasField(root, key) {
+            let entry: String = FindingFact("missing_key", key, location);
+            facts = AppendFindingFact(facts, entry);
+        }
+        i = i + 1;
+    }
+    return facts;
+}
+
+func BuildMissingGraphFeatureFindingFacts(content: String, keys: Array<String>, location: String) -> String {
+    let facts: String = "";
+    let i: Int = 0;
+    let n: Int = ArrayLength(keys);
+    while i < n {
+        let key: String = keys[i];
+        let values: Array<String> = AirGraphScalarFieldValues(content, key);
+        if ArrayLength(values) == 0 {
             let entry: String = FindingFact("missing_key", key, location);
             facts = AppendFindingFact(facts, entry);
         }
@@ -235,9 +275,13 @@ func BuildAirGraphFindingFacts(
 ) -> String {
     let keys: Array<String> = RequiredKeys();
     let cap_keys: Array<String> = RequiredCapabilityTraceKeys();
+    let feature_keys: Array<String> = RequiredGraphFeatureKeys();
     let facts: String = AppendFindingFact(
         BuildMissingKeyFindingFacts(content, keys, fixture_path),
         BuildMissingKeyFindingFacts(cap_content, cap_keys, cap_fixture_path));
+    facts = AppendFindingFact(
+        facts,
+        BuildMissingGraphFeatureFindingFacts(content, feature_keys, fixture_path));
 
     if !HasExpectedSchema(content) {
         facts = AppendFindingFact(

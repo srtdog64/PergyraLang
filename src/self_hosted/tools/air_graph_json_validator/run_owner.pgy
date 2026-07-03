@@ -19,7 +19,10 @@ func RunAirGraphJsonValidation() -> Void {
     let cap_content: String = ReadFile(cap_fixture_path);
     let keys: Array<String> = RequiredKeys();
     let cap_keys: Array<String> = RequiredCapabilityTraceKeys();
-    let missing_keys: Int = CountMissingKeys(content, keys) + CountMissingKeys(cap_content, cap_keys);
+    let feature_keys: Array<String> = RequiredGraphFeatureKeys();
+    let missing_keys: Int = CountMissingKeys(content, keys)
+        + CountMissingKeys(cap_content, cap_keys)
+        + CountMissingGraphFeatureKeys(content, feature_keys);
     let schema_ok: Bool = HasExpectedSchema(content);
     let cap_schema_ok: Bool = HasExpectedSchema(cap_content);
     let intents_box: Array<Int> = [0];

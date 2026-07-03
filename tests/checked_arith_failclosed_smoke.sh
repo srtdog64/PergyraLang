@@ -10,17 +10,21 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 CC="${CC:-gcc}"
 OUT="$(mktemp -d)/checked_arith"
 read -r -a PLATFORM_CFLAG_ARGS <<< "${PLATFORM_CFLAGS:-}"
 read -r -a THREAD_LINK_ARGS <<< "${THREAD_LINK_LIB:-}"
+INCLUDE_DIR_CC="$(pgy_path_for_windows_tool "$ROOT_DIR/src/runtime")"
+SOURCE_CC="$(pgy_path_for_windows_tool "$ROOT_DIR/src/tests/checked_arith_test.c")"
+OUT_CC="$(pgy_path_for_windows_tool "$OUT")"
 
 fail() { echo "[checked-arith] FAIL: $*" >&2; exit 1; }
 
 "$CC" "${PLATFORM_CFLAG_ARGS[@]}" -Wall -Wextra -Werror -std=c11 \
-    -I"$ROOT_DIR/src/runtime" \
-    "$ROOT_DIR/src/tests/checked_arith_test.c" \
-    -o "$OUT" "${THREAD_LINK_ARGS[@]}" || fail "test did not compile"
+    -I"$INCLUDE_DIR_CC" \
+    "$SOURCE_CC" \
+    -o "$OUT_CC" "${THREAD_LINK_ARGS[@]}" || fail "test did not compile"
 
 expect_ok() {
     local mode="$1" want="$2" got

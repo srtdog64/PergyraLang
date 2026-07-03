@@ -25,6 +25,30 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-03 - AIR graph required keys split root facts from feature facts
+
+- Repointed `src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy`
+  so required document-root keys consume `JsonDocumentObjectFactTable` and
+  `JsonObjectFactHasField` instead of whole-document `StringContains(content,
+  key)` scans.
+- Kept graph feature requirements (`compression_budget`, `compression_reason`,
+  `execution_lane`, and `boundary_capture`) as graph-wide scalar facts consumed
+  through `AirGraphScalarFieldValues`, because those keys live inside intent or
+  boundary records rather than at the document root.
+- Repointed summary reads through `JsonObjectFactValueBounds(root, "summary",
+  ...)`, so nested `summary`-like text cannot satisfy the root summary contract.
+- Registered the newly added `stdlib_option_bridges` backend-compare fixture in
+  `tests/compare_backends.sh`; the default case inventory is complete again.
+- Tightened the self-host preparation and component contracts against
+  reintroducing root-key `StringContains` scans or treating nested AIR feature
+  keys as document-root fields.
+- Verified `build-source-inventory-test-smoke`,
+  `backend-compare-inventory-test-smoke`, `semantic-core-shape-test-smoke`,
+  `self-host-component-contract-test-smoke`, `self_host_preparation_smoke.sh`,
+  AIR graph JSON validator parity, targeted `spawn_future_await_slot` C/LLVM
+  backend compare, targeted air-strict backend compare, and `slot-contract`
+  C/LLVM goldens on the local Windows toolchain.
+
 ## 2026-07-03 - MIR root arrays consume JSON fact tables
 
 - Repointed `src/self_hosted/mir_lower/json_fact_read.pgy` so MIR `decls` and
