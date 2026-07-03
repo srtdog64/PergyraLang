@@ -73,7 +73,9 @@ SENTINEL_MAX=8
 # propagation is the measured errors-as-data baseline.
 # 273 -> 278 (2026-07-03): JSON fact-table object/string/number Option APIs
 # move AIR summary count reads behind typed absence facts.
-RESULT_USE_MIN=278
+# 278 -> 280 (2026-07-04): AST text row facts now consume a typed row input and
+# keep Let name/type absence as first-class Option checks.
+RESULT_USE_MIN=280
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=17
 COMPILER_WORLD_MEMBERS_EXACT=17

@@ -5,7 +5,7 @@ The number that matters is *how much of the C/LLVM compiler has been
 substituted by Pergyra-written equivalents* -- not how many peripheral
 audit tools exist.
 
-Last updated: 2026-07-03
+Last updated: 2026-07-04
 
 ## Headline Number
 
@@ -36,8 +36,9 @@ rung-14 value-passed Int-field structs, rung-15 `Array<Int>` param/return flow,
 rung-19 typed `Int` / `Bool` / `Float` / `String` struct field facts, and rung-20 nested struct-valued field facts).
 The codegen entrypoint is now split into thin `main.pgy` orchestration plus
 resource-owner folders: `input/` for AST path/read ownership and AST-text line
-inventory ownership, including marker-node predicates and
-function/return/enum/nominal/role/parameter/field payload accessors plus
+inventory ownership, including typed `CodegenAstTextRowFactInput` row facts,
+marker-node predicates and function/return/enum/nominal/role/parameter/field
+payload accessors plus `Let` name/type row facts and
 statement fact ownership in `ast_text_statement_owner.pgy` for `Let`, `Assign`,
 `Log`, `Return`, `Defer`, `ArrayPop`, `ArraySet`, `ArrayPush`, `Exit`, `Break`,
 `Continue`, `For`, `While`, `If`, `Else`/`else if` routing, and bare call

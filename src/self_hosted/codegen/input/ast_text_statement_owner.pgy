@@ -80,46 +80,28 @@ func CodegenAstTextLetPayload(node: CodegenAstTextNode) -> String {
     return node.payload;
 }
 
-func CodegenAstTextLetNameEnd(node: CodegenAstTextNode) -> Int {
-    let rest: String = CodegenAstTextLetPayload(node);
-    let pos: Option<Int> = FindTextFrom(rest, " : ", 0);
-    if !IsSome(pos) {
-        Die(Concat("malformed Let statement (no type separator): ", node.text));
-    }
-    return UnwrapOption(pos);
-}
-
 func CodegenAstTextLetName(node: CodegenAstTextNode) -> String {
-    let rest: String = CodegenAstTextLetPayload(node);
-    let pos: Int = CodegenAstTextLetNameEnd(node);
-    return Substring(rest, 0, pos);
-}
-
-func CodegenAstTextLetAfterName(node: CodegenAstTextNode) -> String {
-    let rest: String = CodegenAstTextLetPayload(node);
-    let pos: Int = CodegenAstTextLetNameEnd(node);
-    return Substring(rest, pos + 3, StringLength(rest) - (pos + 3));
-}
-
-func CodegenAstTextLetInitializerPos(node: CodegenAstTextNode) -> Int {
-    let after_name: String = CodegenAstTextLetAfterName(node);
-    let pos: Option<Int> = FindTextFrom(after_name, " = ", 0);
-    if !IsSome(pos) {
-        Die(Concat("malformed Let statement (no initializer): ", node.text));
+    if !CodegenAstTextIsLetStmt(node) || node.name == "" {
+        Die(Concat("malformed Let statement AST line: ", node.text));
     }
-    return UnwrapOption(pos);
+    return node.name;
 }
 
 func CodegenAstTextLetTypeName(node: CodegenAstTextNode) -> String {
-    let after_name: String = CodegenAstTextLetAfterName(node);
-    let pos: Int = CodegenAstTextLetInitializerPos(node);
-    return Substring(after_name, 0, pos);
+    if !CodegenAstTextIsLetStmt(node) || node.type_name == "" {
+        Die(Concat("malformed Let statement AST line: ", node.text));
+    }
+    return node.type_name;
 }
 
 func CodegenAstTextLetInitializer(node: CodegenAstTextNode) -> String {
-    let after_name: String = CodegenAstTextLetAfterName(node);
-    let pos: Int = CodegenAstTextLetInitializerPos(node);
-    return Substring(after_name, pos + 3, StringLength(after_name) - (pos + 3));
+    let rest: String = CodegenAstTextLetPayload(node);
+    let pos: Option<Int> = FindTextFrom(rest, " = ", 0);
+    if !IsSome(pos) {
+        Die(Concat("malformed Let statement (no initializer): ", node.text));
+    }
+    let start: Int = UnwrapOption(pos) + 3;
+    return Substring(rest, start, StringLength(rest) - start);
 }
 
 func CodegenAstTextAssignPayload(node: CodegenAstTextNode) -> String {

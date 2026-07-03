@@ -641,14 +641,23 @@ require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func 
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextParamName"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextParamType"
 require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" 'import "../text/text_owner.pgy";'
+require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" "struct CodegenAstTextRowFactInput"
 require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" "func CodegenAstTextParamModeForPayload"
 require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" "func CodegenAstTextParamPayloadForMode"
-require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" "func CodegenAstTextNameFactFor"
-require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" "func CodegenAstTextTypeNameFactFor"
+require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" "func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput)"
+require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" "func CodegenAstTextTypeNameFactFor(input: CodegenAstTextRowFactInput)"
+require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" "if kind == 20"
+require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" 'FindTextFrom(payload, " : ", 0)'
+require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" 'FindTextFrom(payload, " = ", type_start)'
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return node.mode"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let row_input: CodegenAstTextRowFactInput"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "CodegenAstTextNameFactFor(row_input)"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "CodegenAstTextTypeNameFactFor(row_input)"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "StartsWith(node.payload, \"inout \")"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "StartsWith(node.payload, \"own \")"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "StartsWith(node.payload, \"ref \")"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "CodegenAstTextNameFactFor(kind, payload)"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "CodegenAstTextTypeNameFactFor(kind, payload)"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextRoleForPos"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextParamPayload(node"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextParamPayloadForMode"
@@ -719,6 +728,8 @@ require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "retur
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLetName"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLetTypeName"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLetInitializer"
+require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.name"
+require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.type_name"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextAssignTarget"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextAssignValue"
 require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLogInner"
@@ -763,6 +774,9 @@ reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'Substr
 reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'Substring(node.text, 10'
 reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'Substring(node.text, 5'
 reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'CodegenAstTextPayloadAfter('
+reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLetNameEnd"
+reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLetAfterName"
+reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLetInitializerPos"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "if IsSingleCall(text)"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsLetStmt"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextLetName"

@@ -25,6 +25,26 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-04 - Let row facts consume typed row input
+
+- Added `CodegenAstTextRowFactInput` as the typed input contract for
+  `ast_text_row_fact_owner.pgy`, so name/type fact derivation consumes one row
+  record instead of a loose `(kind, payload)` pair.
+- Moved `Let` name/type rows behind the row-fact owner during inventory
+  construction. `ast_text_statement_owner.pgy` now reads `node.name` and
+  `node.type_name` for `Let` facts and only keeps initializer payload slicing
+  in the statement owner.
+- Tightened `self_hosted_component_contract_smoke.sh` against regressing to
+  `CodegenAstTextNameFactFor(kind, payload)` /
+  `CodegenAstTextTypeNameFactFor(kind, payload)` and against reintroducing the
+  old `Let` local split helpers.
+- Kept the Pergyra-likeness ratchet closed by holding `string_munge_sig` at
+  156 and tightening `result_use` from 278 to 280.
+- Verified `self-host-component-contract-test-smoke`,
+  `self-host-pergyra-likeness-test-smoke`, and
+  `self-host-semantic-selfcheck-test-smoke` on the local Windows toolchain; the
+  selfcheck accepts **110 real self-host sources** through both C and LLVM.
+
 ## 2026-07-04 - AST-text row facts split from inventory owner
 
 - Added `src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy` as the

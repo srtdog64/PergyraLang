@@ -4,6 +4,12 @@
 
 import "../text/text_owner.pgy";
 
+struct CodegenAstTextRowFactInput {
+    let kind: Int;
+    let payload: String;
+    let mode: Int;
+}
+
 func CodegenAstTextParamModeForPayload(kind: Int, payload: String) -> Int {
     if kind != 12 {
         return 0;
@@ -31,7 +37,9 @@ func CodegenAstTextParamPayloadForMode(payload: String, mode: Int) -> String {
     return Substring(payload, prefix_len, StringLength(payload) - prefix_len);
 }
 
-func CodegenAstTextNameFactFor(kind: Int, payload: String) -> String {
+func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput) -> String {
+    let kind: Int = input.kind;
+    let payload: String = input.payload;
     if kind == 6 || kind == 8 || kind == 9 {
         return payload;
     }
@@ -43,14 +51,20 @@ func CodegenAstTextNameFactFor(kind: Int, payload: String) -> String {
         return "";
     }
     if kind == 12 {
-        let mode: Int = CodegenAstTextParamModeForPayload(kind, payload);
-        let row: String = CodegenAstTextParamPayloadForMode(payload, mode);
+        let row: String = CodegenAstTextParamPayloadForMode(payload, input.mode);
         if row == "self" {
             return "self";
         }
         let colon: Int = StringIndexOf(row, ": ");
         if colon >= 0 {
             return Substring(row, 0, colon);
+        }
+        return "";
+    }
+    if kind == 20 {
+        let sep: Option<Int> = FindTextFrom(payload, " : ", 0);
+        if IsSome(sep) {
+            return Substring(payload, 0, UnwrapOption(sep));
         }
         return "";
     }
@@ -64,7 +78,9 @@ func CodegenAstTextNameFactFor(kind: Int, payload: String) -> String {
     return "";
 }
 
-func CodegenAstTextTypeNameFactFor(kind: Int, payload: String) -> String {
+func CodegenAstTextTypeNameFactFor(input: CodegenAstTextRowFactInput) -> String {
+    let kind: Int = input.kind;
+    let payload: String = input.payload;
     if kind == 3 {
         return payload;
     }
@@ -76,14 +92,24 @@ func CodegenAstTextTypeNameFactFor(kind: Int, payload: String) -> String {
         return "";
     }
     if kind == 12 {
-        let mode: Int = CodegenAstTextParamModeForPayload(kind, payload);
-        let row: String = CodegenAstTextParamPayloadForMode(payload, mode);
+        let row: String = CodegenAstTextParamPayloadForMode(payload, input.mode);
         if row == "self" {
             return "";
         }
         let colon: Int = StringIndexOf(row, ": ");
         if colon >= 0 {
             return Substring(row, colon + 2, StringLength(row) - (colon + 2));
+        }
+        return "";
+    }
+    if kind == 20 {
+        let type_sep: Option<Int> = FindTextFrom(payload, " : ", 0);
+        if IsSome(type_sep) {
+            let type_start: Int = UnwrapOption(type_sep) + 3;
+            let init_sep: Option<Int> = FindTextFrom(payload, " = ", type_start);
+            if IsSome(init_sep) {
+                return Substring(payload, type_start, UnwrapOption(init_sep) - type_start);
+            }
         }
         return "";
     }
