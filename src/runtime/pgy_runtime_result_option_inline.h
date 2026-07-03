@@ -82,6 +82,13 @@ PGY_RESULT_DEFINE(String, char*, PgyError)
 #define Unwrap_Bool(r)      pgy_result_unwrap_Bool(&(PgyResult_Bool){(r).tag, {.ok=(r).ok}})
 #define UnwrapOr_Bool(r, f) ((r).tag == PgyResultOk ? (r).ok : (f))
 
+#define Ok_String(...)        pgy_result_ok_String(__VA_ARGS__)
+#define Err_String(...)       pgy_result_err_String(__VA_ARGS__)
+#define IsOk_String(r)        ((r).tag == PgyResultOk)
+#define IsErr_String(r)       ((r).tag == PgyResultErr)
+#define Unwrap_String(r)      pgy_result_unwrap_String(&(PgyResult_String){(r).tag, {.ok=(r).ok}})
+#define UnwrapOr_String(r, f) ((r).tag == PgyResultOk ? (r).ok : (f))
+
 /* Result helper macros (similar to Rust's ? operator)
  * ResultType: the concrete result struct type (e.g. PgyResult_Int)
  */

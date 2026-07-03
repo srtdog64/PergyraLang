@@ -10188,6 +10188,31 @@ Option)와 보간(`${}`/`f"`/`$"`)은 C 컴파일러에 full end-to-end로 존�
     108 / mir_lower 계열)는 **동시 typed-AST 스트림 영역** — 그 스트림이
     해당 파일을 놓으면 같은 레시피로. parser/stmt_owner(30)·
     decl_intent_owner(26)·lib 잔여가 다음 무주공산 후보.
+
+#### Stdlib-먹기 트랙 (docs/138 P0 회수)
+
+- ✅ **WO-L2 — Option/Result 브리지 (2026-07-03)**: 최초의 Pergyra-소스
+  stdlib 모듈 `stdlib/option.pgy` — per-type 브리지 6종(OptionOr/OkOption/
+  OptionToResult × Int/String). fixture `stdlib_option_bridges`가 C==LLVM
+  parity + **트리-밖 import**(`../../../../stdlib/`)를 동시 실증(WO-L1의
+  선행 프로브 겸). map/andThen은 callable-param(docs/141 Stage B + F1)
+  대기로 의도적 부재 — 시그니처를 클로저 작업이 소유해야 함.
+- ★ **발견 2건 (착지 중 audit)**:
+  1. **generic 함수 × Option<T> 단형화 부재**: `func F<T>(o: Option<T>)`가
+     semantic 수용 → C codegen 방출 실패(in-file조차) = accepted-then-broken
+     클래스. 처방: semantic 선-거절(명시 진단) 또는 codegen 지원 중 택일
+     필요 — 방치 금지. (per-type 교리라 stdlib은 비차단.)
+  2. **Result<String> C 매크로 누락 → 수리 完**: 런타임에
+     `PGY_RESULT_DEFINE(String,...)`은 있는데 `Ok_/Err_/IsOk_/IsErr_/
+     Unwrap_/UnwrapOr_String` 별칭 계열이 통째 누락(LLVM은 정상 = 조용한
+     backend divergence였음). Int/Bool 미러로 보충, 양 백엔드 "yes" +
+     fixture parity + transpile 916/0.
+- **WO-L1 — self_hosted/lib/json* → stdlib 승격 (대기)**: 착수 조건 =
+  ① 동시 json 스트림(json_fact_table/manifest-row 작업)이 놓일 것,
+  ② 방향 고정: stdlib/이 원본, self_hosted가 import(역방향 금지),
+  ③ 계약 일괄 갱신(component contract 앵커 ~40 + OWNERS + likeness scope
+  재기저 — lib 이탈로 result_use 대폭 하락 예상, 재기저 사유 명문화).
+  트리-밖 import는 WO-L2 fixture로 실증 완료.
 - **잔여**:
   1. 채택 2파+: 남은 IsSome-ritual 적합 사이트 순회(적합 조건: enclosing이
      Option 반환 + on-None이 즉시 return None). Concat 피라미드 → 보간 채택도

@@ -1,0 +1,60 @@
+// Pergyra stdlib -- Option/Result value-level bridges (per-type).
+//
+// The predicate/value builtins (IsSome/IsNone/IsOk/IsErr/Unwrap/UnwrapOption/
+// UnwrapOr/Some/None) already live in the compiler surface; this module owns
+// the cross-kind bridges that need no callable argument.
+//
+// Shape ledger:
+// - Per-type on purpose (docs/138: "per-type, NOT HKT"). A generic
+//   `OptionOr<T>` form is semantic-accepted today but C codegen does not
+//   monomorphize generic functions over Option<T> (probed 2026-07-03) --
+//   registered on the TODO board; do not switch to <T> until that lands.
+// - Callable-taking combinators (map/andThen/filter) are deliberately absent
+//   until callable parameters surface (docs/141 Stage B/C + the F1 callable
+//   carrier); adding them earlier would freeze a signature the closure work
+//   must own. Scope ledger: docs/138 row "Option/Result combinators".
+
+// First Some wins; both absent stays absent.
+func OptionOrInt(primary: Option<Int>, fallback: Option<Int>) -> Option<Int> {
+    if IsSome(primary) {
+        return primary;
+    }
+    return fallback;
+}
+
+func OptionOrString(primary: Option<String>, fallback: Option<String>) -> Option<String> {
+    if IsSome(primary) {
+        return primary;
+    }
+    return fallback;
+}
+
+// Drop the error channel: Ok(v) becomes Some(v), Err(_) becomes None.
+func OkOptionInt(r: Result<Int>) -> Option<Int> {
+    if IsOk(r) {
+        return Some(Unwrap(r));
+    }
+    return None;
+}
+
+func OkOptionString(r: Result<String>) -> Option<String> {
+    if IsOk(r) {
+        return Some(Unwrap(r));
+    }
+    return None;
+}
+
+// Add an error channel: Some(v) becomes Ok(v), None carries the given error.
+func OptionToResultInt(o: Option<Int>, err: String) -> Result<Int> {
+    if IsSome(o) {
+        return Ok(UnwrapOption(o));
+    }
+    return Err(err);
+}
+
+func OptionToResultString(o: Option<String>, err: String) -> Result<String> {
+    if IsSome(o) {
+        return Ok(UnwrapOption(o));
+    }
+    return Err(err);
+}

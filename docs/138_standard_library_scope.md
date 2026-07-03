@@ -206,7 +206,7 @@ for such a search over stdlib kernels.)
 ### Error / Option / Result utilities
 | module | ref | status | Pergyra seam | AI % | tier |
 | --- | --- | --- | --- | --- | --- |
-| Option/Result combinators (map/andThen/unwrapOr) | Rust | partial | aligns with CLAUDE.md no-throw / Result-first; effect propagation | 70 | P0 |
+| Option/Result combinators (map/andThen/unwrapOr) | Rust | partial: value-level done | predicates/unwrap/UnwrapOr are builtins; `stdlib/option.pgy` (2026-07-03) adds per-type bridges OptionOr/OkOption/OptionToResult (Int/String) with a backend-compare fixture. map/andThen deliberately deferred: callable params await docs/141 Stage B + F1 carrier. Generic `<T>` form blocked: C codegen does not monomorphize generic functions over Option<T> (probed; TODO board) | 70 | P0 |
 | typed error vocabulary | `thiserror` | — | structured `AppError`-style (CLAUDE.md §1.2); stage/code | 50 | P1 |
 
 ### Concurrency (mostly builtin — formalize, don't rebuild)

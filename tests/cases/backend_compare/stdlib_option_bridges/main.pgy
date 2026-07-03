@@ -1,0 +1,56 @@
+import "../../../../stdlib/option.pgy";
+
+func FindEven(x: Int) -> Option<Int> {
+    if x % 2 == 0 {
+        return Some(x);
+    }
+    return None;
+}
+
+func Named(x: Int) -> Option<String> {
+    if x > 0 {
+        return Some("plus");
+    }
+    return None;
+}
+
+func Checked(x: Int) -> Result<Int> {
+    if x > 100 {
+        return Err("too large");
+    }
+    return Ok(x);
+}
+
+func Main() -> Void {
+    let a: Option<Int> = OptionOrInt(FindEven(3), FindEven(4));
+    if IsSome(a) {
+        Log(ToString(UnwrapOption(a)));
+    }
+    let b: Option<Int> = OptionOrInt(FindEven(3), FindEven(5));
+    if !IsSome(b) {
+        Log("both-none");
+    }
+
+    let c: Option<Int> = OkOptionInt(Checked(7));
+    if IsSome(c) {
+        Log(ToString(UnwrapOption(c)));
+    }
+    let d: Option<Int> = OkOptionInt(Checked(200));
+    if !IsSome(d) {
+        Log("err-dropped");
+    }
+
+    let e: Result<Int> = OptionToResultInt(FindEven(6), "odd");
+    if IsOk(e) {
+        Log(ToString(Unwrap(e)));
+    }
+    let f: Result<Int> = OptionToResultInt(FindEven(9), "odd");
+    if IsErr(f) {
+        Log("none-carried");
+    }
+
+    let g: Option<String> = OptionOrString(Named(-1), Named(2));
+    if IsSome(g) {
+        Log(UnwrapOption(g));
+    }
+}
