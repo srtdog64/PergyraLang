@@ -71,7 +71,9 @@ SENTINEL_MAX=8
 # same commit. Re-base per the result_use comment below -- not a loosening.
 # 276 -> 273 (2026-07-03): current tracked self-host source after try
 # propagation is the measured errors-as-data baseline.
-RESULT_USE_MIN=273
+# 273 -> 278 (2026-07-03): JSON fact-table object/string/number Option APIs
+# move AIR summary count reads behind typed absence facts.
+RESULT_USE_MIN=278
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=17
 COMPILER_WORLD_MEMBERS_EXACT=17

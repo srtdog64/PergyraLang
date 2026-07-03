@@ -9,11 +9,11 @@ import "../../lib/json_fact_table.pgy";
 
 func AirGraphSummaryIntField(content: String, field: String, inout value_out: Array<Int>) -> Bool {
     let root: JsonObjectFactTable = JsonDocumentObjectFactTable(content);
-    let summary_bounds: Array<Int> = [0, 0];
-    if !JsonObjectFactValueBounds(root, "summary", summary_bounds) {
+    let summary: JsonObjectFactTable = JsonObjectFactObjectTable(root, "summary");
+    if !JsonObjectFactTableReady(summary) {
         return false;
     }
-    let num_str: Option<String> = JsonObjectNumberFieldOpt(content, summary_bounds[0], summary_bounds[1], field);
+    let num_str: Option<String> = JsonObjectFactNumberFieldOpt(summary, field);
     if !IsSome(num_str) {
         return false;
     }

@@ -206,6 +206,35 @@ func JsonObjectFactArrayBounds(table: JsonObjectFactTable, field: String, inout 
     return JsonObjectFactValueBounds(table, field, bounds);
 }
 
+func JsonObjectFactObjectTable(table: JsonObjectFactTable, field: String) -> JsonObjectFactTable {
+    let kind_opt: Option<String> = JsonObjectFactValueKind(table, field);
+    if !IsSome(kind_opt) {
+        return EmptyJsonObjectFactTable();
+    }
+    if UnwrapOption(kind_opt) != "object" {
+        return EmptyJsonObjectFactTable();
+    }
+    let bounds: Array<Int> = [0, 0];
+    if !JsonObjectFactValueBounds(table, field, bounds) {
+        return EmptyJsonObjectFactTable();
+    }
+    return JsonObjectFactTableFromBounds(table.json, bounds[0], bounds[1]);
+}
+
+func JsonObjectFactStringFieldOpt(table: JsonObjectFactTable, field: String) -> Option<String> {
+    if !JsonObjectFactTableReady(table) {
+        return None;
+    }
+    return JsonObjectStringFieldOpt(table.json, table.start, table.end, field);
+}
+
+func JsonObjectFactNumberFieldOpt(table: JsonObjectFactTable, field: String) -> Option<String> {
+    if !JsonObjectFactTableReady(table) {
+        return None;
+    }
+    return JsonObjectNumberFieldOpt(table.json, table.start, table.end, field);
+}
+
 func JsonArrayObjectFactTableFromBounds(json: String, start: Int, end: Int) -> JsonArrayObjectFactTable {
     if start < 0 || end <= start {
         return EmptyJsonArrayObjectFactTable();

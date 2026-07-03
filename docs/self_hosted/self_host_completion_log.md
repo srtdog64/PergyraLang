@@ -3168,3 +3168,25 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   source-local type facts now precede AST annotation rendering.
 - Verified with `self-host-preparation-test-smoke`, C/LLVM self-host codegen
   parity, and `cfg-body-dataflow-test-smoke` on the local Windows toolchain.
+
+### 2026-07-03 -- AIR summary counts consume JSON fact-table rows
+
+- Added `JsonObjectFactObjectTable`, `JsonObjectFactStringFieldOpt`, and
+  `JsonObjectFactNumberFieldOpt` to the shared self-host JSON fact-table owner.
+  AIR graph summary count readers now consume the nested `summary` object and
+  number field through that owner instead of carrying raw summary bounds into
+  `scan_owner.pgy`.
+- Tightened the component contract so the AIR graph validator cannot return to
+  `JsonObjectFactValueBounds(root, "summary", summary_bounds)` plus direct
+  `JsonObjectNumberFieldOpt(content, bounds...)` in the consuming tool.
+- Tightened the Pergyra-likeness `result_use` ratchet from 273 to 278 so the
+  new typed absence facts cannot be removed without failing the gate.
+- Verified `self-host-component-contract-test-smoke`,
+  `self-host-air-graph-consumer-parity-test-smoke`, and
+  `self-host-semantic-selfcheck-test-smoke` (109 real sources accepted on both
+  C and LLVM).
+- Broader CI-repro checks also passed locally: `build-source-inventory`,
+  `checkedarith-failclosed`, `semantic-core-shape`, `slot-contract`,
+  `self-host-preparation` (including bootstrap `SELF-HOSTING OK`),
+  `llvm-test-backend-compare`, and `air-strict-backend-compare-test-smoke`
+  (885/885 backend-compare fixtures each).
