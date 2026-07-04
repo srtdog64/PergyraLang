@@ -3454,6 +3454,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   reintroduce local `EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"` verdicts or
   `clean JSON parity FAIL` branches.
 
+### 2026-07-05 -- Fuzz generator output parity uses ArtifactZone
+
+- Repointed `fuzz_backend_parity_generator_parity.sh` manifest, generated
+  source, stdout, and stderr file equality from local `cmp`/`diff` helpers to
+  `pgy_selfhost_compare_expected_text_artifact_file_with_owner(...)`.
+- Used artifact kind `emitted_self_hosted`, matching the existing
+  codegen-bootstrap fuzz-generator corpus comparison owner.
+- Tightened `self_hosted_component_contract_smoke.sh` so the fuzz generator
+  parity script cannot reintroduce `files_equal`, `show_diff`, `cmp -s`, or
+  `diff -u` verdict paths.
+
 ### 2026-07-04 -- Codegen bootstrap corpus consumes emitted-self-hosted artifact owner
 
 - Added `CompilerEmittedSelfHostedArtifactKind()` to the self-host ArtifactZone

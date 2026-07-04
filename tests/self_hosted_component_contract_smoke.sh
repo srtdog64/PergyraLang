@@ -2280,6 +2280,12 @@ require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" '"class":"viol
 reject_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" 'cmp -s'
 reject_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" 'diff -u'
 require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:fuzz-generator" "$PGY"'
+require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
+require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" '"emitted_self_hosted"'
+reject_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'cmp -s'
+reject_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'diff -u'
+reject_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'show_diff'
+reject_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'files_equal'
 reject_text "tests/self_hosted/parity/codegen_parity.sh" "MINGW BYPASS"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$oracle_raw" "$oracle_err" "$oracle_exe" "${run_args[@]}"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$run_raw" "$run_err" "$self_exe" "${run_args[@]}"'

@@ -18,6 +18,7 @@ fi
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -63,36 +64,6 @@ cleanup() {
     fi
 }
 trap cleanup EXIT
-
-files_equal() {
-    local left="$1"
-    local right="$2"
-
-    if command -v cmp >/dev/null 2>&1; then
-        cmp -s "$left" "$right"
-        return $?
-    fi
-
-    [[ "$(cat "$left")" == "$(cat "$right")" ]]
-}
-
-show_diff() {
-    local left="$1"
-    local right="$2"
-
-    if command -v git >/dev/null 2>&1; then
-        git --no-pager diff --no-index --no-prefix -- "$left" "$right" || true
-        return 0
-    fi
-    if command -v diff >/dev/null 2>&1; then
-        diff -u "$left" "$right" || true
-        return 0
-    fi
-    echo "--- left ---"
-    cat "$left"
-    echo "--- right ---"
-    cat "$right"
-}
 
 resolve_native_bin() {
     local path="$1"
@@ -173,11 +144,12 @@ assert_file_equal() {
     local left="$2"
     local right="$3"
 
-    if ! files_equal "$left" "$right"; then
-        echo "[self-host-parity:fuzz-generator] $label mismatch" >&2
-        show_diff "$left" "$right" >&2
-        exit 1
-    fi
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "self-host-parity:fuzz-generator:$label" \
+        "$WORK_DIR" \
+        "$left" \
+        "$right" \
+        "emitted_self_hosted"
 }
 
 normalize_output() {
