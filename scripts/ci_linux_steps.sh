@@ -1,8 +1,9 @@
 # CI Linux step list. Sourced by scripts/ci_step_runner.sh.
 #
-# Each `run` line is labeled by the runner and aborts the whole CI on first
-# failure with a final `[ci-linux FAILED at step N: <cmd>]` message. Required
-# env vars: CI_LINUX_CC, CI_LINUX_BUILD_DIR, CI_LINUX_BIN_DIR,
+# Each `run` line is labeled by the runner. The runner defaults to release
+# collection mode: it records failures, keeps running independent steps, and
+# prints a final summary. Set PGY_CI_FAIL_FAST=1 for first-failure reporting.
+# Required env vars: CI_LINUX_CC, CI_LINUX_BUILD_DIR, CI_LINUX_BIN_DIR,
 # CI_BACKEND_COMPARE_SHARD_TOTAL, CI_BACKEND_COMPARE_SHARD_INDEX. The Makefile
 # `ci-linux` recipe exports these before invoking the runner.
 

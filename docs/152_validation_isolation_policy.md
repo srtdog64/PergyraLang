@@ -81,6 +81,45 @@ metadata, a later macOS slot-contract failure is an independent owner failure
 until the log proves that the MIR declaration fact crossed into the slot
 artifact.
 
+## 2026-07-04 Step-List Recheck
+
+The platform step lists were rechecked against this policy. The judgment is:
+they are acceptable as release collection lists, but they must not be used as
+local impact selectors.
+
+Observed facts:
+
+- `scripts/ci_step_runner.sh` defaults to collect mode. A failing step is
+  recorded, then later independent steps still run so one expensive CI attempt
+  surfaces every red owner.
+- `scripts/ci_linux_steps.sh` is the broadest release surface. It runs source
+  inventory, frontend, semantic, AIR, MIR, ABI/runtime, self-host, backend
+  compare, LLVM campaigns, and `test-all` wrappers. That is release confidence,
+  not a statement that those owners depend on each other.
+- `scripts/ci_windows_steps.sh` is platform-gated. It splits native MSYS2
+  runtime execution from cross-MinGW build-only coverage, then conditionally
+  adds C-only executable smokes and optional LLVM coverage. A Windows summary
+  can therefore mix toolchain reachability, C-only runtime behavior, and
+  self-host parity in one report.
+- `scripts/ci_macos_steps.sh` is a C-only platform confidence list. Its red
+  entries should be read as macOS C-surface evidence unless the log names a
+  shared source-of-truth fact.
+- `semantic-fixture-isolation-test-smoke` is not this policy. It tests whether
+  the semantic binary can run fixture state concurrently without cross-run
+  contamination. Validation isolation is the separate question of whether a
+  changed owner can affect a gate's artifact.
+
+Therefore, when a release summary says many steps failed, the correct local
+response is not "run them all again." The correct response is:
+
+1. find the first concrete child failure under each aggregate wrapper;
+2. classify the failure by isolation face;
+3. ask whether the current diff changed that face's owner artifact;
+4. execute nothing else unless a crossed fact is named.
+
+This keeps the CI release sweep valuable without letting it destroy owner
+isolation during source-of-truth closure.
+
 ## Isolation Surfaces
 
 | Surface | Owned Artifact | Narrow Evidence | Escalate Only When |
@@ -142,6 +181,27 @@ The weak spot is not that unrelated surfaces exist. The weak spot is treating a
 release CI collection as an owner dependency graph. The fix is procedural:
 classify each red step by owner before deciding whether it belongs to the
 current patch.
+
+## Layer Boundary Judgment
+
+These are the boundaries that must remain isolated when choosing local
+validation:
+
+| Boundary | Judgment | Local Validation Rule |
+|---|---|---|
+| Toolchain/bootstrap vs language semantics | Keep separate | A compiler discovery, shell, path, or source-list failure does not imply semantic drift. Inspect the toolchain/source owner first. |
+| Frontend syntax vs semantic meaning | Mostly separate | Lexer/parser fixtures are relevant when token or AST text contracts change. They do not justify backend execution until semantic facts or IR facts change. |
+| Semantic/type facts vs backend projection | Separate until fact crosses | A semantic checker change is not a backend change unless it changes DAG/MIR/AIR/type facts consumed by C or LLVM. |
+| AIR evidence vs runtime materialization | Evidence-linked | Runtime retention is allowed only when an AIR/MIR/ABI fact says retain. AIR proof changes do not imply runtime tests unless the retained-runtime classifier changed. |
+| MIR body vs MIR declaration inventory | Separate | CFG/local/body facts and declaration header/routine facts have different owners. Do not swap their gates by target adjacency. |
+| ABI/layout vs ordinary runtime behavior | Separate with explicit ABI facts | Slot/pin/layout changes own ABI/runtime shape. Ordinary runtime contract failures are independent unless the log names that layout fact. |
+| C projection vs LLVM projection | Separate unless sharing an input fact | A C-only emitter change starts with C evidence. LLVM parity is escalation only when the same MIR/AIR/ABI fact is shared or output drift is observed. |
+| Backend compare vs backend-local gates | Compare is escalation | Backend compare proves parity, not ownership. Use one named case after the owner fact is known, not all shards as a first response. |
+| Self-host rung vs C/LLVM oracle | Bridge, not fallback | A self-host rung compares to the oracle artifact it claims to replace. It must not pull unrelated compiler surfaces unless the shared compiler-world owner changed. |
+| Docs/proofs vs implementation | Text-contract only | Documentation and Coq/Lean model edits do not execute implementation gates by default. Pair them only when implementation files also moved. |
+
+If one boundary is unclear, the next action is read-only owner tracing, not case
+execution.
 
 ## Per-Face Trigger Contract
 
