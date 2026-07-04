@@ -400,6 +400,7 @@ done
 for term in \
     "func CompilerAirEvidenceSchema" \
     "CompilerAirEvidenceEnvelopeReady" \
+    "CompilerAirEvidenceFactCount() == 7" \
     "intent_graph" \
     "authority_evidence" \
     "coordination" \
@@ -498,8 +499,13 @@ for term in \
     "func CompilerTargetCapabilitySchema" \
     "pgy.selfhost.target-capability-envelope.v1" \
     "func CompilerTargetProjectionAt" \
+    "CompilerTargetProjectionAt(0) == \"cpu-c\"" \
+    "CompilerTargetProjectionAt(1) == \"cpu-llvm\"" \
+    "CompilerTargetProjectionAt(2) == \"self-hosted\"" \
     "func CompilerTargetFactAt" \
+    "CompilerTargetFactCount() == 8" \
     "func CompilerTargetFallbackReasonAt" \
+    "CompilerTargetFallbackReasonCount() == 5" \
     "func CompilerTargetCapabilityEnvelopeReady" \
     "intent_graph" \
     "effect_set" \

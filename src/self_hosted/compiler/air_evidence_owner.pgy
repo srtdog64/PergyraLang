@@ -22,23 +22,13 @@ func CompilerAirEvidenceFactAt(index: Int) -> String {
     return "";
 }
 
-func CompilerAirEvidenceFactKnown(fact: String) -> Bool {
-    let i: Int = 0;
-    while i < CompilerAirEvidenceFactCount() {
-        if CompilerAirEvidenceFactAt(i) == fact {
-            return true;
-        }
-        i = i + 1;
-    }
-    return false;
-}
-
 func CompilerAirEvidenceEnvelopeReady() -> Bool {
-    return CompilerAirEvidenceFactKnown("intent_graph") &&
-        CompilerAirEvidenceFactKnown("effect_set") &&
-        CompilerAirEvidenceFactKnown("authority_evidence") &&
-        CompilerAirEvidenceFactKnown("coordination") &&
-        CompilerAirEvidenceFactKnown("slot_ownership") &&
-        CompilerAirEvidenceFactKnown("materialization_reason") &&
-        CompilerAirEvidenceFactKnown("loss_budget");
+    return CompilerAirEvidenceFactCount() == 7 &&
+        CompilerAirEvidenceFactAt(0) == "intent_graph" &&
+        CompilerAirEvidenceFactAt(1) == "effect_set" &&
+        CompilerAirEvidenceFactAt(2) == "authority_evidence" &&
+        CompilerAirEvidenceFactAt(3) == "coordination" &&
+        CompilerAirEvidenceFactAt(4) == "slot_ownership" &&
+        CompilerAirEvidenceFactAt(5) == "materialization_reason" &&
+        CompilerAirEvidenceFactAt(6) == "loss_budget";
 }
