@@ -10617,20 +10617,21 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
   zone SILENT-COPY와 같은 배치) / **who-swap 완전 비간섭**(통과·거절
   양방향 — who는 승인 아님, WO-F3 실측판; 기계화=AC-4). AC-rung:
   AC-0/1 landed, AC-2(부재쌍 커널)·AC-4(WO-F3 Coq)·AC-5(G-4 합류)
-  planned. **AC-3(docs/157) = 정리 T 비준(2026-07-04) → S1 LANDED
-  (2026-07-05) / S2 범위 재심 대기**: 연역(전제 P1–P7 신규가정 0 +
-  실측 P-A/P-B) → 정리 T(경계-포크 선언 규칙: 경계 횡단 live binding
-  = Clone/Channel 요구, 무선언 REJECT). **S1 착지**: zone 생성자
-  live subject = STATIC 거절+Clone(중첩 World(Zone(subj)) 인자 하강
-  포함), corpus 28사이트 개종(행동 보존 — logistics golden diff 공백
-  실측), zone_pos_share leg는 예고대로 REJECT 잠금 전환, docs/151
-  §2.1 발견-2 닫힘. **S2 회수·재심**: 전면 유출금지가 플래그십
-  same-world 관용구(shopping_mall 7·logistics 3·abi 8파일이 world
-  zone을 plain func API층으로 통과)와 정면 충돌 — 측정이 L1 "무선언"
-  전제를 재개방. 선택지 (A)전면 T(플래그십 개종+golden 재생성) vs
-  (B)cross-world-mix만 REJECT + same-world = 사인 face(간선 후보
-  world⊢orchestration). cross 커널 2/1/2는 smoke가 계속 고정.
-  부수: S2 진단 위치 0:0 강등·중첩 base 미커버 — 구현 시 함께.
+  planned. **AC-3(docs/157) = ★전면 정리 T LANDED(2026-07-05, 재비준
+  2회)**: 연역(전제 P1–P7 신규가정 0 + 실측 P-A/P-B) → 정리 T(경계-
+  포크 선언 규칙: 경계 횡단 live binding = Clone/Channel 요구, 무선언
+  REJECT). **S1**: zone 생성자 live subject = STATIC+Clone(중첩 인자
+  하강 포함), corpus 28사이트 개종(행동 보존), zone_pos_share leg
+  REJECT 전환, docs/151 §2.1 발견-2 닫힘. **S2**: 재심 2회 — ①플래그십
+  plain-func 관용구 충돌 → BDFL (A) 유지, ②handoff가 설계 기능(intent
+  `step Handoff`+frontier state 기계+expect가 사후상태 계약)이라는
+  반증 → BDFL 그래도 (A) 전면 — **handoff live-mutation 형태는 아래
+  재설계 트랙으로**. 착지: call 인자+let-init 유출 = STATIC 거절
+  ("cannot escape as a live binding"), cross·probe_world_member =
+  REJECT 회귀 픽스처, handoff 픽스처 let-Clone 개종(intent zone 인자
+  addressable 요구 발견), logistics·shopping 개종 + expected_stdout
+  재생성(35/92줄 행동 변화 = 예고 비용), semantic 2791/0. 명명 잔여:
+  중첩 base(w.zone.subject) 미커버 / S2 진단 위치 0:0 / handoff 재설계.
 - **진입 근거**: docs/155 §3 체크리스트 5항목 전부 닫힘(2026-07-04 —
   WO-F1 ✅ + WO-A1 ✅ + WO-A2 ✅ + GuardWitnessBinding.v ✅ + matrix-lock
   green 재확인).
@@ -10647,6 +10648,21 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
 - **삼률 canon = docs/155** ("의미를 선언하라, 드리프트를 게이트하라,
   잔차는 fail-close하라") — formal-semantics-smoke가 삼률 문구·§3
   정의 잠금.
+
+#### A-16. Handoff 기능 재설계 (전면 T가 안고 간 모순의 해소 트랙)
+
+- **배경(2026-07-05, docs/157 §5 재심 2)**: `step Handoff`+`transfer:`+
+  world frontier state 기계는 world 내부 상태의 live-mutation을
+  관측하도록 설계됐는데, 전면 정리 T가 그 호출 형태(`Intent(world.zone,
+  …)`)를 거절하게 됐다. BDFL이 모순을 알고 전면 T를 재확인 — handoff
+  기능 쪽을 재설계한다.
+- **방향 후보**: world 메서드 내부에서 intent 실행(경계 안 오케스트레이션
+  — 유출 없음) / transfer를 Channel-급 선언 경계로 승격 / world-스코프
+  intent 선언 형식. 어느 쪽이든 frontier state 관측 기계와 재결합해야
+  하고, backend_compare handoff 픽스처가 그 검증 자리(현재는 detached-
+  copy 의미로 개종된 상태 — 기능의 원 형태는 이 트랙이 회복).
+- **부수 잔여(같은 트랙에서 조임)**: S2 진단 위치 0:0 강등(member-access
+  노드 line 소실), 중첩 base(`w.zone.subject`) 유출 미커버.
 
 #### A-11. TPU/MLIR — post-beta 설계 여지만
 
