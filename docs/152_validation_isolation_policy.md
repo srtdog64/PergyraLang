@@ -27,6 +27,25 @@ A CI failure list is triage input, not a dependency graph. First inspect the
 failed log tail, identify the owner surface, and then choose the smallest gate
 that proves that owner did not drift.
 
+## Impact Decision
+
+Before running any executable case, answer these three questions in order:
+
+1. **Which owner changed?** Use the path and the owning document/module, not the
+   CI target name. `src/self_hosted/compiler/target_capability_owner.pgy`
+   changes `TargetCapabilityZone`; it does not change every backend compare
+   shard just because a platform summary later lists backend failures.
+2. **Which artifact can that owner emit or mutate?** If the answer is only a
+   vocabulary/envelope document, owner source, or static contract, the default
+   evidence is read-only inspection plus a contract smoke at most.
+3. **Which consumer actually crosses the owner boundary?** Escalate only to a
+   consumer gate that reads that exact fact. If no consumer fact crosses the
+   boundary, do not run unrelated cases.
+
+The default when uncertain is not "run more." The default is to inspect the
+owner linkage until the affected artifact is named. Broad execution is useful
+release evidence, but it is not a substitute for impact analysis.
+
 ## CI Runner Modes
 
 Pergyra has two different validation modes, and they must not be confused.
@@ -79,6 +98,28 @@ artifact.
 | Self-host rung | Pergyra implementation artifact compared to oracle | the rung's contract smoke or focused parity fixture | the rung is being promoted or a shared compiler-world owner changed |
 | Docs/proofs | documented contract, proof model, methodology binding | documentation/proof smoke for the touched document family | implementation code also changed the contract being documented |
 
+## Change-Surface Defaults
+
+This table is the practical "do not run unrelated work" rule.
+
+| Changed Surface | Default Local Evidence | Do Not Run By Default |
+|---|---|---|
+| Documentation only | read-only diff review, optional documentation/proof smoke if the touched family has one | backend compare, slot/runtime gates, self-host parity bundles |
+| Proof/model file only | proof/document smoke for that model family, if execution is explicitly allowed | C/LLVM backend compare, semantic fixture sweeps, platform CI |
+| Shell/Makefile/source inventory | source inventory gate and the edited shell contract | semantic/runtime/backend cases unless their source list changed |
+| Self-host compiler-world envelope owner | `self-host-compiler-world-contract-test-smoke` or static term inspection | frontend fixtures, slot contract, broad backend compare, platform wrappers |
+| Self-host stage owner | that stage's component contract or one named parity fixture | full `self-host-preparation-test-smoke` before the component gate is stable |
+| Lexer/parser syntax owner | the focused lexer/parser fixture for the changed syntax | backend compare, runtime ABI, self-host parity unrelated to that fixture |
+| Semantic/type owner | focused semantic/type resolver gate | backend projection gates until emitted IR facts change |
+| AIR evidence owner | AIR schema/drift gate for the changed evidence | backend nonimpact/full compare unless that AIR fact is consumed by output |
+| MIR CFG/body owner | CFG/body/dataflow gate and a named MIR fixture | declaration inventory, slot/runtime, broad backend compare |
+| MIR declaration owner | declaration-inventory gate | CFG/body, slot/runtime, semantic core shape |
+| ABI/layout owner | ABI/layout/slot shape gate for that owner | parser/semantic fixtures that do not consume layout facts |
+| C-only emitter | C projection fixture for the touched emitter | LLVM shard sweep unless the input fact is shared |
+| LLVM-only lowering | LLVM projection fixture for the touched lowering | C projection sweep unless the input fact is shared |
+| Shared projection fact | narrow owner gate, then one named C/LLVM parity fixture if output-visible | all shards, all platforms, `test-all` |
+| Runtime/materialization classification | runtime/materialization evidence gate | parser/semantic/backend gates outside retained-runtime consumers |
+
 ## Isolation Face Audit
 
 This is the current judgment after rechecking the Makefile targets, platform CI
@@ -101,6 +142,24 @@ The weak spot is not that unrelated surfaces exist. The weak spot is treating a
 release CI collection as an owner dependency graph. The fix is procedural:
 classify each red step by owner before deciding whether it belongs to the
 current patch.
+
+## Stop Conditions
+
+Stop expanding validation when any of these is true:
+
+- the next gate owns an artifact that the changed owner cannot emit, mutate, or
+  verify;
+- the current failure is an aggregate wrapper and the child failure has already
+  been identified;
+- the proposed gate would execute an entire case family before a named fixture
+  or static owner contract has failed;
+- the only reason to run the gate is that it appeared later in a platform CI
+  summary;
+- the patch is documentation/proof-only and no implementation artifact changed.
+
+Continue only when the crossed owner fact is named in the log tail, the diff, or
+the gate contract. This is the operational version of source-of-truth closure:
+validation follows facts, not fear.
 
 ## CI Failure Classification
 
