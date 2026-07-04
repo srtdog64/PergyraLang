@@ -9,6 +9,7 @@
 run 'make check-build-tools CC="$CI_LINUX_CC"'
 run 'make check-linux-toolchain'
 run 'make build-source-inventory-test-smoke'
+run 'make ci-step-runner-test-smoke'
 run 'make grammar-cheatsheet-contract-test-smoke'
 run 'make source-utf8-test-smoke'
 run 'make backend-fail-closed-test-smoke'
