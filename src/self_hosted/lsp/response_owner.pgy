@@ -1,0 +1,211 @@
+// Self-host LSP response emission owner.
+//
+// LSP-2d consumes buffered request bodies and emits response body/frame plans.
+// It deliberately stops before the live read-exact loop and document-store
+// mutation. textDocument feature responses remain out of scope.
+
+import "../lib/json_emit.pgy";
+import "../lib/json_fact_table.pgy";
+import "../lib/json_scan.pgy";
+import "request_owner.pgy";
+import "transport_owner.pgy";
+
+func LspResponseEmissionSchema() -> String {
+    return "pgy.selfhost.lsp-response-emission.v1";
+}
+
+func LspResponseEmissionStreamSchema() -> String {
+    return "pgy.selfhost.lsp-response-emission-stream.v1";
+}
+
+func LspResponseProbeMode() -> String {
+    return "--response-probe";
+}
+
+func LspResponseProbeRequested(args: Array<String>) -> Bool {
+    return ArrayLength(args) > 0 && args[0] == LspResponseProbeMode();
+}
+
+func LspResponseInitializeResultJson() -> String {
+    return "{\"capabilities\":{\"textDocumentSync\":1,\"hoverProvider\":true,\"completionProvider\":{\"resolveProvider\":false},\"documentSymbolProvider\":true,\"definitionProvider\":true,\"referencesProvider\":true,\"renameProvider\":true},\"serverInfo\":{\"name\":\"pgy-lsp\",\"version\":\"0.1\"},\"experimental\":{\"airSchema\":\"pgy.air.graph.v1\",\"observabilitySchema\":\"pgy.intent.observability.v1\",\"traceSchema\":\"pgy.intent.trace.v1\",\"observabilitySurfaces\":[\"last\",\"history\",\"active\",\"recent\"]}}";
+}
+
+func LspResponseIdRaw(id: String) -> Option<String> {
+    if StringLength(id) == 0 {
+        return Some("null");
+    }
+    let i: Int = 0;
+    while i < StringLength(id) {
+        let c: String = JsonCharAt(id, i);
+        if c != "0" && c != "1" && c != "2" && c != "3" && c != "4" &&
+            c != "5" && c != "6" && c != "7" && c != "8" && c != "9" {
+            return Some(JsonStringLiteral(id));
+        }
+        i = i + 1;
+    }
+    return Some(id);
+}
+
+func LspResponseBodyJson(id: String, result_raw: String) -> Option<String> {
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldString("jsonrpc", "2.0"));
+    ArrayPush(fields, JsonEmitFieldRaw("id", UnwrapOption(LspResponseIdRaw(id))));
+    ArrayPush(fields, JsonEmitFieldRaw("result", result_raw));
+    return Some(JsonEmitObject(fields));
+}
+
+func LspResponseFrameForBody(body: String) -> Option<String> {
+    return Some(Concat("Content-Length: ", Concat(ToString(StringLength(body)), Concat("\r\n\r\n", body))));
+}
+
+func LspResponseTextDocumentFeature(method: String) -> Bool {
+    let prefix: String = "textDocument/";
+    if StringLength(method) < StringLength(prefix) {
+        return false;
+    }
+    return Substring(method, 0, StringLength(prefix)) == prefix;
+}
+
+func LspResponseResultForMethod(method: String) -> Option<String> {
+    if method == "initialize" {
+        return Some(LspResponseInitializeResultJson());
+    }
+    if method == "shutdown" {
+        return Some("null");
+    }
+    if method == "initialized" || method == "exit" {
+        return None;
+    }
+    if LspResponseTextDocumentFeature(method) {
+        return None;
+    }
+    return Some("null");
+}
+
+func LspResponsePlanJsonError(reason: String) -> Option<String> {
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldString("schema", LspResponseEmissionSchema()));
+    ArrayPush(fields, JsonEmitFieldBool("ok", false));
+    ArrayPush(fields, JsonEmitFieldString("reason", reason));
+    ArrayPush(fields, JsonEmitFieldString("method", ""));
+    ArrayPush(fields, JsonEmitFieldString("id", ""));
+    ArrayPush(fields, JsonEmitFieldBool("responseRequired", false));
+    ArrayPush(fields, JsonEmitFieldBool("emitted", false));
+    ArrayPush(fields, JsonEmitFieldString("body", ""));
+    ArrayPush(fields, JsonEmitFieldString("frame", ""));
+    return Some(JsonEmitObject(fields));
+}
+
+func LspResponsePlanJson(body: String) -> Option<String> {
+    let root: JsonObjectFactTable = JsonDocumentObjectFactTable(body);
+    if !JsonObjectFactTableReady(root) {
+        return LspResponsePlanJsonError("invalid_json");
+    }
+    if !JsonObjectFactStringFieldEquals(root, "jsonrpc", "2.0") {
+        return LspResponsePlanJsonError("invalid_jsonrpc");
+    }
+    let method_opt: Option<String> = JsonObjectFactStringFieldOpt(root, "method");
+    if !IsSome(method_opt) {
+        return LspResponsePlanJsonError("missing_method");
+    }
+
+    let method: String = UnwrapOption(method_opt);
+    let id: String = LspRequestIdText(root);
+    let response_required: Bool = LspRequestResponseRequired(method, StringLength(id) > 0);
+    let result_opt: Option<String> = LspResponseResultForMethod(method);
+    let emitted: Bool = response_required && IsSome(result_opt);
+    let reason: String = "";
+    let response_body: String = "";
+    let frame: String = "";
+    if !response_required {
+        reason = "no_response_required";
+    } else if !IsSome(result_opt) {
+        reason = "unsupported_response";
+    } else {
+        response_body = UnwrapOption(LspResponseBodyJson(id, UnwrapOption(result_opt)));
+        frame = UnwrapOption(LspResponseFrameForBody(response_body));
+    }
+
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldString("schema", LspResponseEmissionSchema()));
+    ArrayPush(fields, JsonEmitFieldBool("ok", !response_required || emitted));
+    ArrayPush(fields, JsonEmitFieldString("reason", reason));
+    ArrayPush(fields, JsonEmitFieldString("method", method));
+    ArrayPush(fields, JsonEmitFieldString("id", id));
+    ArrayPush(fields, JsonEmitFieldBool("responseRequired", response_required));
+    ArrayPush(fields, JsonEmitFieldBool("emitted", emitted));
+    ArrayPush(fields, JsonEmitFieldString("body", response_body));
+    ArrayPush(fields, JsonEmitFieldString("frame", frame));
+    return Some(JsonEmitObject(fields));
+}
+
+func LspResponseEmissionStreamJson(buffer: String) -> Option<String> {
+    let responses: Array<String> = [];
+    let cursor: Int = 0;
+    let partial_reason: Option<String> = None;
+    let errors: Int = 0;
+    let emitted_count: Int = 0;
+    while cursor < StringLength(buffer) {
+        let tail: String = Substring(buffer, cursor, StringLength(buffer) - cursor);
+        let complete_opt: Option<Int> = LspTransportCompleteFrameLength(tail);
+        if !IsSome(complete_opt) {
+            partial_reason = LspTransportPartialReason(tail);
+            cursor = StringLength(buffer);
+        } else {
+            let body_opt: Option<String> = LspTransportFrameBody(tail);
+            if !IsSome(body_opt) {
+                partial_reason = Some("body_incomplete");
+                cursor = StringLength(buffer);
+            } else {
+                let plan: String = UnwrapOption(LspResponsePlanJson(UnwrapOption(body_opt)));
+                if StringIndexOf(plan, "\"ok\":false") >= 0 {
+                    errors = errors + 1;
+                }
+                if StringIndexOf(plan, "\"emitted\":true") >= 0 {
+                    emitted_count = emitted_count + 1;
+                }
+                ArrayPush(responses, plan);
+                cursor = cursor + UnwrapOption(complete_opt);
+            }
+        }
+    }
+
+    let partial_reason_text: String = "";
+    if IsSome(partial_reason) {
+        partial_reason_text = UnwrapOption(partial_reason);
+    }
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldString("schema", LspResponseEmissionStreamSchema()));
+    ArrayPush(fields, JsonEmitFieldBool("ok", errors == 0 && !IsSome(partial_reason)));
+    ArrayPush(fields, JsonEmitFieldNumber("frameCount", ToString(ArrayLength(responses))));
+    ArrayPush(fields, JsonEmitFieldNumber("emittedCount", ToString(emitted_count)));
+    ArrayPush(fields, JsonEmitFieldNumber("errors", ToString(errors)));
+    ArrayPush(fields, JsonEmitFieldString("partialReason", partial_reason_text));
+    ArrayPush(fields, JsonEmitFieldRaw("responses", JsonEmitArray(responses)));
+    return Some(JsonEmitObject(fields));
+}
+
+func LspResponseEmissionContractReady() -> Bool {
+    let body: String = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{}}";
+    let plan: String = UnwrapOption(LspResponsePlanJson(body));
+    if StringIndexOf(plan, LspResponseEmissionSchema()) < 0 {
+        return false;
+    }
+    if StringIndexOf(plan, "\"emitted\":true") < 0 {
+        return false;
+    }
+    if StringIndexOf(plan, "\"Content-Length:") < 0 {
+        return false;
+    }
+    let notify: String = UnwrapOption(LspResponsePlanJson("{\"jsonrpc\":\"2.0\",\"method\":\"initialized\"}"));
+    return StringIndexOf(notify, "\"reason\":\"no_response_required\"") >= 0;
+}
+
+func RunLspResponseProbeFromArgs(args: Array<String>) -> Void with caps io_read {
+    let max_bytes: Int = 4096;
+    if ArrayLength(args) > 1 {
+        max_bytes = ToInt(args[1]);
+    }
+    let buffer: String = ReadStdin(max_bytes);
+    Log(UnwrapOption(LspResponseEmissionStreamJson(buffer)));
+}

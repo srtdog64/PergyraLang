@@ -10,6 +10,8 @@ replacement.
   from diagnostic status/severity/stage/code/facts.
 - `request_owner.pgy` classifies buffered JSON-RPC request bodies through the
   shared JSON fact-table owner.
+- `response_owner.pgy` projects response-required request bodies into response
+  body/frame plans.
 - `main.pgy` is the runnable boundary for parity fixtures.
 - `fixture/` and `expected/` are the committed clean/error payload and
   squiggle-policy contracts. Error payloads carry both the self-host lower-case
@@ -19,7 +21,7 @@ The `ReadStdin(n)` substrate for transport framing is present, and
 `transport_owner.pgy` consumes it for one JSON-RPC Content-Length frame
 (LSP-2a) and ordered multi-frame consumption from one stdin buffer (LSP-2b).
 `request_owner.pgy` consumes those buffered bodies for request dispatch planning
-(LSP-2c). Full LSP-2 still needs a live read-exact loop, response emission, and
-document-store mutation.
+(LSP-2c), and `response_owner.pgy` emits basic response plans (LSP-2d). Full
+LSP-2 still needs a live read-exact loop and document-store mutation.
 `O-LSP` has live diagnostic-dump plumbing, but full vocabulary/session parity
 remains a later LSP-3 concern.

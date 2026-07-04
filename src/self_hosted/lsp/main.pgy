@@ -2,6 +2,7 @@
 
 import "diagnostics_owner.pgy";
 import "request_owner.pgy";
+import "response_owner.pgy";
 import "transport_owner.pgy";
 
 func Main() -> Void with caps env, io_read {
@@ -16,6 +17,10 @@ func Main() -> Void with caps env, io_read {
     }
     if LspRequestDispatchProbeRequested(args) {
         RunLspRequestDispatchProbeFromArgs(args);
+        return;
+    }
+    if LspResponseProbeRequested(args) {
+        RunLspResponseProbeFromArgs(args);
         return;
     }
     RunLspDiagnosticsFromArgs(args);

@@ -1504,7 +1504,8 @@ require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLs
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLspTransportFrameArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLspTransportStreamArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLspRequestDispatchArtifactKind"
-require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindCount() == 14"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLspResponseEmissionArtifactKind"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindCount() == 15"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(0) == CompilerDiagnosticsArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(1) == CompilerAirJsonArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(2) == CompilerMirJsonArtifactKind()"
@@ -1519,6 +1520,7 @@ require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifac
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(11) == CompilerLspTransportFrameArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(12) == CompilerLspTransportStreamArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(13) == CompilerLspRequestDispatchArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(14) == CompilerLspResponseEmissionArtifactKind()"
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(0) == "diagnostics"'
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(1) == "air_json"'
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(2) == "mir_json"'
@@ -1530,6 +1532,7 @@ reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifact
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(11) == "lsp_transport_frame"'
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(12) == "lsp_transport_stream"'
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(13) == "lsp_request_dispatch"'
+reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(14) == "lsp_response_emission"'
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "let args: Array<String> = Args();"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "expected_path = args[0];"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "actual_path = args[1];"
@@ -1737,6 +1740,7 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/p
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/tree_text_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/diagnostics_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/request_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/response_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/squiggle_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/transport_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/main.pgy"'
@@ -1750,8 +1754,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 115 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 115"
+[[ "$selfcheck_count" -eq 116 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 116"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'
@@ -1964,19 +1968,23 @@ require_file "src/self_hosted/lsp/README.md"
 require_file "src/self_hosted/lsp/intent.md"
 require_file "src/self_hosted/lsp/diagnostics_owner.pgy"
 require_file "src/self_hosted/lsp/request_owner.pgy"
+require_file "src/self_hosted/lsp/response_owner.pgy"
 require_file "src/self_hosted/lsp/squiggle_owner.pgy"
 require_file "src/self_hosted/lsp/transport_owner.pgy"
 require_max_lines "src/self_hosted/lsp/diagnostics_owner.pgy" 600
 require_max_lines "src/self_hosted/lsp/request_owner.pgy" 600
+require_max_lines "src/self_hosted/lsp/response_owner.pgy" 600
 require_max_lines "src/self_hosted/lsp/squiggle_owner.pgy" 600
 require_max_lines "src/self_hosted/lsp/transport_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/main.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/diagnostics_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/request_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/response_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/squiggle_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/transport_owner.pgy"
 require_text "src/self_hosted/lsp/main.pgy" 'import "diagnostics_owner.pgy";'
 require_text "src/self_hosted/lsp/main.pgy" 'import "request_owner.pgy";'
+require_text "src/self_hosted/lsp/main.pgy" 'import "response_owner.pgy";'
 require_text "src/self_hosted/lsp/main.pgy" 'import "transport_owner.pgy";'
 require_text "src/self_hosted/lsp/main.pgy" "LspTransportProbeRequested(args)"
 require_text "src/self_hosted/lsp/main.pgy" "RunLspTransportFrameProbeFromArgs(args)"
@@ -1984,12 +1992,22 @@ require_text "src/self_hosted/lsp/main.pgy" "LspTransportStreamProbeRequested(ar
 require_text "src/self_hosted/lsp/main.pgy" "RunLspTransportStreamProbeFromArgs(args)"
 require_text "src/self_hosted/lsp/main.pgy" "LspRequestDispatchProbeRequested(args)"
 require_text "src/self_hosted/lsp/main.pgy" "RunLspRequestDispatchProbeFromArgs(args)"
+require_text "src/self_hosted/lsp/main.pgy" "LspResponseProbeRequested(args)"
+require_text "src/self_hosted/lsp/main.pgy" "RunLspResponseProbeFromArgs(args)"
 require_text "src/self_hosted/lsp/request_owner.pgy" 'import "../lib/json_fact_table.pgy";'
 require_text "src/self_hosted/lsp/request_owner.pgy" 'import "transport_owner.pgy";'
 require_text "src/self_hosted/lsp/request_owner.pgy" "func LspRequestDispatchContractReady"
 require_text "src/self_hosted/lsp/request_owner.pgy" "func LspRequestDispatchStreamJson"
 require_text "src/self_hosted/lsp/request_owner.pgy" "JsonDocumentObjectFactTable(body)"
 require_text "src/self_hosted/lsp/request_owner.pgy" "LspTransportCompleteFrameLength(tail)"
+require_text "src/self_hosted/lsp/response_owner.pgy" 'import "../lib/json_fact_table.pgy";'
+require_text "src/self_hosted/lsp/response_owner.pgy" 'import "request_owner.pgy";'
+require_text "src/self_hosted/lsp/response_owner.pgy" 'import "transport_owner.pgy";'
+require_text "src/self_hosted/lsp/response_owner.pgy" "func LspResponseEmissionContractReady"
+require_text "src/self_hosted/lsp/response_owner.pgy" "func LspResponseEmissionStreamJson"
+require_text "src/self_hosted/lsp/response_owner.pgy" "JsonDocumentObjectFactTable(body)"
+require_text "src/self_hosted/lsp/response_owner.pgy" "LspRequestResponseRequired(method"
+require_text "src/self_hosted/lsp/response_owner.pgy" "LspTransportCompleteFrameLength(tail)"
 require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'import "squiggle_owner.pgy";'
 require_text "src/self_hosted/lsp/transport_owner.pgy" 'import "../lib/json_emit.pgy";'
 require_text "src/self_hosted/lsp/transport_owner.pgy" "func LspTransportFrameContractReady"
@@ -2032,6 +2050,8 @@ require_file "src/self_hosted/lsp/expected/transport_stream.json"
 require_file "src/self_hosted/lsp/expected/transport_stream_partial.json"
 require_file "src/self_hosted/lsp/expected/request_dispatch.json"
 require_file "src/self_hosted/lsp/expected/request_dispatch_missing_method.json"
+require_file "src/self_hosted/lsp/expected/response_emission.json"
+require_file "src/self_hosted/lsp/expected/response_emission_unsupported.json"
 require_text "src/self_hosted/lsp/expected/valid_int_return.json" '"diagnostics":[]'
 require_text "src/self_hosted/lsp/expected/bad_logical_right.json" '"code":"logical_operand_not_bool"'
 require_text "src/self_hosted/lsp/expected/bad_logical_right.json" '"oracleCode":"PGY_SEM_BINOP_TYPE_MISMATCH"'
@@ -2056,6 +2076,9 @@ require_text "src/self_hosted/lsp/expected/transport_stream_partial.json" '"part
 require_text "src/self_hosted/lsp/expected/request_dispatch.json" '"schema":"pgy.selfhost.lsp-request-dispatch-stream.v1"'
 require_text "src/self_hosted/lsp/expected/request_dispatch.json" '"method":"initialize"'
 require_text "src/self_hosted/lsp/expected/request_dispatch_missing_method.json" '"reason":"missing_method"'
+require_text "src/self_hosted/lsp/expected/response_emission.json" '"schema":"pgy.selfhost.lsp-response-emission-stream.v1"'
+require_text "src/self_hosted/lsp/expected/response_emission.json" '"method":"initialize"'
+require_text "src/self_hosted/lsp/expected/response_emission_unsupported.json" '"reason":"unsupported_response"'
 require_text "Makefile" "self-host-lsp-transport-frame-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/lsp_transport_frame_parity.sh"
 require_text "tests/self_hosted/parity/lsp_transport_frame_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
@@ -2068,6 +2091,10 @@ require_text "Makefile" "self-host-lsp-request-dispatch-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/lsp_request_dispatch_parity.sh"
 require_text "tests/self_hosted/parity/lsp_request_dispatch_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/lsp_request_dispatch_parity.sh" '"lsp_request_dispatch"'
+require_text "Makefile" "self-host-lsp-response-emission-parity-test-smoke"
+require_text "Makefile" "tests/self_hosted/parity/lsp_response_emission_parity.sh"
+require_text "tests/self_hosted/parity/lsp_response_emission_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
+require_text "tests/self_hosted/parity/lsp_response_emission_parity.sh" '"lsp_response_emission"'
 require_text "Makefile" "self-host-lsp-diagnostics-parity-test-smoke"
 require_text "Makefile" 'self-host-lsp-diagnostics-parity-test-smoke: $(PGY) $(PGY_LSP)'
 require_text "Makefile" 'self-host-preparation-parity-test-smoke: $(PGY) $(PGY_LSP)'

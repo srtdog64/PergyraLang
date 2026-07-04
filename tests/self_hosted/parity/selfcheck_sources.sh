@@ -38,7 +38,7 @@ fi
 TOOL_SOURCE="$ROOT_DIR/src/self_hosted/semantic/main.pgy"
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/semantic_selfcheck}"
 TOOL="$BUILD_DIR/main.pgy"
-TOOL_BIN="$BUILD_DIR/main_selfcheck.exe"
+RUN_ID="${PGY_SELFHOST_RUN_ID:-$$}"
 
 mkdir -p "$BUILD_DIR"
 cp "$ROOT_DIR/src/self_hosted/semantic/"*.pgy "$BUILD_DIR/"
@@ -93,6 +93,7 @@ SELF_SOURCES=(
     "src/self_hosted/lib/json_fact_table.pgy"
     "src/self_hosted/lsp/diagnostics_owner.pgy"
     "src/self_hosted/lsp/request_owner.pgy"
+    "src/self_hosted/lsp/response_owner.pgy"
     "src/self_hosted/lsp/squiggle_owner.pgy"
     "src/self_hosted/lsp/transport_owner.pgy"
     "src/self_hosted/lsp/main.pgy"
@@ -168,15 +169,18 @@ SELF_SOURCES=(
 )
 
 BACKENDS="${PGY_SELFHOST_SEMANTIC_BACKENDS:-c llvm}"
+self_source_count="${#SELF_SOURCES[@]}"
 for backend in $BACKENDS; do
+    TOOL_BIN="$BUILD_DIR/main_selfcheck_${backend}_${RUN_ID}.exe"
     echo "[self-host-selfcheck] compiling checker backend=$backend..."
+    rm -f "$TOOL_BIN"
     (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$TOOL")" \
         --backend="$backend" -o "$(pgy_path_for_compiler "$PGY" "$TOOL_BIN")" >/dev/null)
 
     source_index=0
     for src in "${SELF_SOURCES[@]}"; do
         source_index=$((source_index + 1))
-        echo "[self-host-selfcheck] backend=$backend checking $source_index/${#SELF_SOURCES[@]} $src"
+        echo "[self-host-selfcheck] backend=$backend checking $source_index/$self_source_count $src"
         out="$(cd "$ROOT_DIR" && "$TOOL_BIN" "$src" 2>/dev/null | tr -d '\r')"
         if ! grep -Fq 'Diagnostic: pgy.selfhost.semantic.v1' <<<"$out"; then
             echo "[self-host-selfcheck] backend=$backend $src: no diagnostic block" >&2
@@ -189,7 +193,7 @@ for backend in $BACKENDS; do
             exit 1
         fi
     done
-    echo "[self-host-selfcheck] backend=$backend ok (${#SELF_SOURCES[@]} real sources accepted)"
+    echo "[self-host-selfcheck] backend=$backend ok: $self_source_count real sources accepted"
 done
 
-echo "[self-host-selfcheck] real-source self-application ok (${#SELF_SOURCES[@]} sources; backends=$BACKENDS)"
+echo "[self-host-selfcheck] real-source self-application ok: $self_source_count sources; backends=$BACKENDS"

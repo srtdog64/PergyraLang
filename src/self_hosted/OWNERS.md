@@ -169,3 +169,5 @@ compiler-stage `.pgy` source to be listed here.
   byte-count stdin substrate.
 - `src/self_hosted/lsp/request_owner.pgy` -- LSP-2c buffered JSON-RPC request
   dispatch plan over transport bodies and JSON fact tables.
+- `src/self_hosted/lsp/response_owner.pgy` -- LSP-2d buffered response body and
+  Content-Length frame emission plan over request bodies.
