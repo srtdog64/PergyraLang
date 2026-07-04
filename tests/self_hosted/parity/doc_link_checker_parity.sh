@@ -31,11 +31,29 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
-PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/doc_link_checker/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/doc_link_checker}"
+HARNESS_PATHS_FILE="$PERGYRA_TOOL_BUILD_DIR/doc_link_checker_harness_paths.txt"
+mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:doc-link-checker" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "doc-link-checker-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 3 ]]; then
+    echo "[self-host-parity:doc-link-checker] TestHarness manifest expected 3 doc-link paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
-EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/doc_link_checker/expected/clean.json"
-INDEX_PATH="docs/INDEX.md"
+EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
+INDEX_PATH="${harness_paths[2]}"
 
 for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$ROOT_DIR/$INDEX_PATH"; do
     if [[ ! -f "$path" ]]; then
@@ -44,14 +62,25 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$ROOT_DIR/$INDEX_PATH"
     fi
 done
 
-mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR/../../lib"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
 cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/../../lib/"
-PERGYRA_TOOL_INPUT="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
+PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
+
+CLEAN_BIN="$PERGYRA_TOOL_BUILD_DIR/doc_link_checker_c.exe"
+CLEAN_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/doc_link_checker_c.compile.log"
+if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" --backend=c \
+    -o "$(pgy_path_for_compiler "$PGY" "$CLEAN_BIN")" >"$CLEAN_COMPILE_LOG" 2>&1); then
+    echo "[self-host-parity:doc-link-checker] C backend compile failed" >&2
+    cat "$CLEAN_COMPILE_LOG" >&2
+    exit 1
+fi
+if ! pgy_require_runnable_binary_here "self-host-parity:doc-link-checker" "$CLEAN_BIN"; then
+    exit 1
+fi
 
 set +e
-PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_INPUT" --run 2>/dev/null)"
+PERGYRA_OUT="$(cd "$ROOT_DIR" && "$CLEAN_BIN" "$INDEX_PATH" 2>/dev/null)"
 P_RC=$?
 set -e
 
@@ -108,7 +137,7 @@ sed 's|](100_beta_readiness_checklist.md)|](XX_NONEXISTENT_FAKE_DRIFT.md)|' \
     "$ROOT_DIR/$INDEX_PATH" > "$NEG_ROOT/$INDEX_PATH"
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_INPUT" --run 2>&1)"
+NEG_OUT="$(cd "$NEG_ROOT" && "$CLEAN_BIN" "$INDEX_PATH" 2>&1)"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then
@@ -127,5 +156,5 @@ if ! grep -Fq 'XX_NONEXISTENT_FAKE_DRIFT.md' <<<"$NEG_OUT"; then
     exit 1
 fi
 
-assert_llvm_leg "self-host-parity:doc-link-checker" "$PERGYRA_TOOL_INPUT" "$PERGYRA_TOOL_BUILD_DIR"
+assert_llvm_leg "self-host-parity:doc-link-checker" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$INDEX_PATH"
 echo "[self-host-parity:doc-link-checker] rung-2 parity ok (total=$SHELL_TOTAL md=$SHELL_MD missing=0; dead-link fixture rc=1)"

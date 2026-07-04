@@ -77,6 +77,12 @@ rows from the compiled Pergyra checker's `--terms` manifest. Shell remains the
 external parity runner, but it no longer owns the runtime-boundary required-term
 list.
 
+TestHarness delta, 2026-07-05: `doc_link_checker_parity.sh` now gets the
+checker source, expected clean JSON, and `docs/INDEX.md` input path through the
+`doc-link-checker-paths` manifest suite. The compiled checker receives that
+input path through `Args()[0]` on both the C and LLVM parity legs, so the path
+fact reaches the tool boundary instead of staying a shell constant.
+
 Artifact Zone delta, 2026-07-04: LSP transport outputs are now tracked as
 their own comparable artifact kinds: `CompilerLspTransportFrameArtifactKind()`
 for LSP-2a single-frame output and `CompilerLspTransportStreamArtifactKind()`

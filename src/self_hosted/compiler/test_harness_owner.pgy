@@ -273,6 +273,47 @@ func CompilerHarnessRuntimeBoundaryReady() -> Bool {
     return CompilerHarnessRuntimeBoundarySuiteName() != "";
 }
 
+func CompilerHarnessDocLinkCheckerSuiteName() -> String {
+    return "doc-link-checker-paths";
+}
+
+func CompilerHarnessDocLinkCheckerToolSourcePath() -> String {
+    return "src/self_hosted/tools/doc_link_checker/main.pgy";
+}
+
+func CompilerHarnessDocLinkCheckerExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/doc_link_checker/expected/clean.json";
+}
+
+func CompilerHarnessDocLinkCheckerIndexPath() -> String {
+    return "docs/INDEX.md";
+}
+
+func CompilerHarnessDocLinkCheckerPathCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessDocLinkCheckerPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessDocLinkCheckerToolSourcePath(); }
+    if index == 1 { return CompilerHarnessDocLinkCheckerExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessDocLinkCheckerIndexPath(); }
+    return "";
+}
+
+func CompilerHarnessDocLinkCheckerReady() -> Bool {
+    if CompilerHarnessDocLinkCheckerPathCount() != 3 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessDocLinkCheckerPathCount() {
+        if CompilerHarnessDocLinkCheckerPathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessDocLinkCheckerSuiteName() != "";
+}
+
 func CompilerHarnessBackendTriSmokeSuiteName() -> String {
     return "backend-tri-smoke";
 }
@@ -388,5 +429,6 @@ func CompilerTestHarnessReady() -> Bool {
         CompilerHarnessModuleManifestResolverReady() &&
         CompilerHarnessStableSubsetSectionReady() &&
         CompilerHarnessRuntimeBoundaryReady() &&
+        CompilerHarnessDocLinkCheckerReady() &&
         CompilerHarnessBackendTriSuiteReady();
 }

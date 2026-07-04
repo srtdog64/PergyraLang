@@ -58,18 +58,18 @@ func IsExternalUrl(path: String) -> Bool {
     return false;
 }
 
-func MissingLinkFinding(path: String) -> String {
+func MissingLinkFinding(path: String, index_path: String) -> String {
     let fields: Array<String> = [
         JsonEmitFieldString("kind", "missing_link"),
         JsonEmitFieldString("path", Concat("docs/", path)),
-        JsonEmitFieldString("location", "docs/INDEX.md")
+        JsonEmitFieldString("location", index_path)
     ];
     return JsonEmitObject(fields);
 }
 
 func InputErrorJson(path: String) -> Option<String> {
     let source_fields: Array<String> = [
-        JsonEmitFieldString("index_owner", "docs/INDEX.md")
+        JsonEmitFieldString("index_owner", path)
     ];
     let counts_fields: Array<String> = [
         JsonEmitFieldNumber("total_links", "0"),
@@ -95,7 +95,11 @@ func InputErrorJson(path: String) -> Option<String> {
 }
 
 func Main() -> Void {
+    let args: Array<String> = Args();
     let index_path: String = "docs/INDEX.md";
+    if ArrayLength(args) > 0 {
+        index_path = args[0];
+    }
     if !FileExists(index_path) {
         Log(UnwrapOption(InputErrorJson(index_path)));
         Exit(1);
@@ -127,7 +131,7 @@ func Main() -> Void {
                     if !FileExists(full_path) {
                         missing_links = missing_links + 1;
                         if ArrayLength(findings) < findings_cap {
-                            ArrayPush(findings, MissingLinkFinding(path));
+                            ArrayPush(findings, MissingLinkFinding(path, index_path));
                         }
                     }
                 }
@@ -145,7 +149,7 @@ func Main() -> Void {
     }
 
     let source_fields: Array<String> = [
-        JsonEmitFieldString("index_owner", "docs/INDEX.md")
+        JsonEmitFieldString("index_owner", index_path)
     ];
     let counts_fields: Array<String> = [
         JsonEmitFieldNumber("total_links", ToString(total_links)),

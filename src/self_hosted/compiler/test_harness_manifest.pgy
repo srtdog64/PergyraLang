@@ -53,6 +53,14 @@ func EmitRuntimeBoundaryPaths() -> Void {
     }
 }
 
+func EmitDocLinkCheckerPaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessDocLinkCheckerPathCount() {
+        Log(CompilerHarnessDocLinkCheckerPathAt(i));
+        i = i + 1;
+    }
+}
+
 func Main() -> Void {
     let args: Array<String> = Args();
     if !CompilerTestHarnessReady() {
@@ -82,6 +90,10 @@ func Main() -> Void {
     }
     if args[0] == CompilerHarnessRuntimeBoundarySuiteName() {
         EmitRuntimeBoundaryPaths();
+        return;
+    }
+    if args[0] == CompilerHarnessDocLinkCheckerSuiteName() {
+        EmitDocLinkCheckerPaths();
         return;
     }
     Log(Concat("HARNESS ERROR: unknown manifest suite: ", args[0]));

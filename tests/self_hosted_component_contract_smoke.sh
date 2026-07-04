@@ -1638,6 +1638,12 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHar
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessRuntimeBoundaryExpectedJsonPath"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessRuntimeBoundaryPathAt"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessRuntimeBoundaryReady"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessDocLinkCheckerSuiteName"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessDocLinkCheckerToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessDocLinkCheckerExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessDocLinkCheckerIndexPath"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessDocLinkCheckerPathAt"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessDocLinkCheckerReady"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeSuiteName"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriExtendedSuiteName"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeCaseCount"
@@ -1657,6 +1663,7 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessL
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessModuleManifestResolverReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessStableSubsetSectionReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessRuntimeBoundaryReady()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessDocLinkCheckerReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendTriSuiteReady()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitBackendTriSmokeCases"
@@ -1672,6 +1679,9 @@ require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarne
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitRuntimeBoundaryPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessRuntimeBoundaryPathAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessRuntimeBoundarySuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitDocLinkCheckerPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessDocLinkCheckerPathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessDocLinkCheckerSuiteName()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriSmokeCaseAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriExtendedCaseAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriSmokeSuiteName()"
@@ -1810,8 +1820,19 @@ require_text "src/self_hosted/tools/linter/main.pgy" "target_path = args[0];"
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "JsonEmitArray(findings)"
+require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "let args: Array<String> = Args();"
+require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "index_path = args[0];"
+require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "JsonEmitFieldString(\"index_owner\", index_path)"
 reject_text "src/self_hosted/tools/doc_link_checker/main.pgy" 'let json_parts: Array<String>'
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'
+require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" '"doc-link-checker-paths"'
+require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'INDEX_PATH="${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" '"$CLEAN_BIN" "$INDEX_PATH"'
+require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'assert_llvm_leg "self-host-parity:doc-link-checker" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$INDEX_PATH"'
+reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/doc_link_checker/main.pgy"'
+reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/doc_link_checker/expected/clean.json"'
+reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'INDEX_PATH="docs/INDEX.md"'
 require_text "src/self_hosted/tools/examples_inventory_checker/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/examples_inventory_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/examples_inventory_checker/main.pgy" "JsonEmitArray(findings)"

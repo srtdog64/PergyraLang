@@ -36,6 +36,18 @@ rewrite history.
   paths from `TestHarnessZone` and reads required-term rows from the compiled
   Pergyra checker instead of carrying a duplicate shell array.
 
+## 2026-07-05 - Doc link checker paths consume TestHarness owner
+
+- Added doc-link checker path facts to `test_harness_owner.pgy`: tool source,
+  expected clean JSON, and `docs/INDEX.md`.
+- Extended `test_harness_manifest.pgy` with the `doc-link-checker-paths` suite.
+- Repointed `doc_link_checker_parity.sh` so shell reads those paths from
+  `TestHarnessZone`, compiles the checker through the C backend, and passes the
+  index path into both C and LLVM parity legs.
+- Updated `doc_link_checker` to consume `Args()[0]` for the index path so the
+  TestHarness path fact reaches the tool boundary instead of remaining a shell
+  constant.
+
 ## 2026-07-05 - Linter parity paths consume TestHarness owner
 
 - Added linter parity path facts to `test_harness_owner.pgy`: tool source,
