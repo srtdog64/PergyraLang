@@ -196,6 +196,47 @@ func CompilerHarnessModuleManifestResolverReady() -> Bool {
     return CompilerHarnessModuleManifestResolverSuiteName() != "";
 }
 
+func CompilerHarnessStableSubsetSectionSuiteName() -> String {
+    return "stable-subset-section-paths";
+}
+
+func CompilerHarnessStableSubsetSectionToolSourcePath() -> String {
+    return "src/self_hosted/tools/stable_subset_section_checker/main.pgy";
+}
+
+func CompilerHarnessStableSubsetSectionExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/stable_subset_section_checker/expected/clean.json";
+}
+
+func CompilerHarnessStableSubsetSectionInputManifestPath() -> String {
+    return "docs/107_beta_stable_subset.md";
+}
+
+func CompilerHarnessStableSubsetSectionPathCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessStableSubsetSectionPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessStableSubsetSectionToolSourcePath(); }
+    if index == 1 { return CompilerHarnessStableSubsetSectionExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessStableSubsetSectionInputManifestPath(); }
+    return "";
+}
+
+func CompilerHarnessStableSubsetSectionReady() -> Bool {
+    if CompilerHarnessStableSubsetSectionPathCount() != 3 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessStableSubsetSectionPathCount() {
+        if CompilerHarnessStableSubsetSectionPathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessStableSubsetSectionSuiteName() != "";
+}
+
 func CompilerHarnessBackendTriSmokeSuiteName() -> String {
     return "backend-tri-smoke";
 }
@@ -309,5 +350,6 @@ func CompilerTestHarnessReady() -> Bool {
         CompilerHarnessFindingCap() > 0 &&
         CompilerHarnessLinterParityReady() &&
         CompilerHarnessModuleManifestResolverReady() &&
+        CompilerHarnessStableSubsetSectionReady() &&
         CompilerHarnessBackendTriSuiteReady();
 }

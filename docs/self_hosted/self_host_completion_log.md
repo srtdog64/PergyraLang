@@ -47,6 +47,18 @@ rewrite history.
 - Extended the shared LLVM-leg parity helper so C/LLVM tool runs preserve
   runtime arguments when a harness-owned input path must flow into the tool.
 
+## 2026-07-05 - Stable subset checker paths consume TestHarness owner
+
+- Added stable subset section checker path facts to `test_harness_owner.pgy`:
+  tool source, expected JSON, and input document path.
+- Extended `test_harness_manifest.pgy` with the
+  `stable-subset-section-paths` suite.
+- Repointed `stable_subset_section_checker_parity.sh` to read those paths from
+  the manifest and run the compiled checker with the stable-subset document
+  path as `Args()[0]`.
+- Updated the checker report source field so the manifest owner reflects the
+  actual input path consumed at runtime.
+
 ## 2026-07-05 - ArtifactZone promoted to ready
 
 - Reclassified `Artifact Zone evidence` from ACTIVE to READY in

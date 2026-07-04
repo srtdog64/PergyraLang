@@ -84,7 +84,7 @@ func BuildMissingFindings(content: String, anchors: Array<String>) -> String {
 
 func InputErrorJson(path: String) -> Option<String> {
     let source_fields: Array<String> = [
-        JsonEmitFieldString("manifest_owner", "docs/107_beta_stable_subset.md")
+        JsonEmitFieldString("manifest_owner", path)
     ];
     let counts_fields: Array<String> = [
         JsonEmitFieldNumber("sections", "0"),
@@ -110,7 +110,11 @@ func InputErrorJson(path: String) -> Option<String> {
 }
 
 func Main() -> Void {
+    let args: Array<String> = Args();
     let manifest_path: String = "docs/107_beta_stable_subset.md";
+    if ArrayLength(args) > 0 {
+        manifest_path = args[0];
+    }
     if !FileExists(manifest_path) {
         Log(UnwrapOption(InputErrorJson(manifest_path)));
         Exit(1);
@@ -123,7 +127,7 @@ func Main() -> Void {
     let missing: Int = CountMissingAnchors(content, anchors);
     let findings: String = BuildMissingFindings(content, anchors);
     let source_fields: Array<String> = [
-        JsonEmitFieldString("manifest_owner", "docs/107_beta_stable_subset.md")
+        JsonEmitFieldString("manifest_owner", manifest_path)
     ];
     let counts_fields: Array<String> = [
         JsonEmitFieldNumber("sections", ToString(sections)),

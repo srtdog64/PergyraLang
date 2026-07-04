@@ -1508,8 +1508,19 @@ reject_text "src/self_hosted/tools/production_header_size_checker/main.pgy" 'let
 require_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" "JsonEmitArray(pieces)"
+require_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" "let args: Array<String> = Args();"
+require_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" "manifest_path = args[0];"
+require_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" 'JsonEmitFieldString("manifest_owner", manifest_path)'
 reject_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" 'let json_parts: Array<String>'
 require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'
+require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" '"stable-subset-section-paths"'
+require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'MANIFEST_PATH="${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" '"$CLEAN_BIN" "$MANIFEST_PATH"'
+require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'assert_llvm_leg "self-host-parity:stable-subset-section" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$MANIFEST_PATH"'
+reject_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/stable_subset_section_checker/main.pgy"'
+reject_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/stable_subset_section_checker/expected/clean.json"'
+reject_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'MANIFEST_PATH="docs/107_beta_stable_subset.md"'
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'import "../../compiler/artifact_zone_owner.pgy";'
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'import "../../compiler/test_harness_owner.pgy";'
@@ -1616,6 +1627,12 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHar
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessModuleManifestResolverInputManifestPath"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessModuleManifestResolverPathAt"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessModuleManifestResolverReady"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessStableSubsetSectionSuiteName"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessStableSubsetSectionToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessStableSubsetSectionExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessStableSubsetSectionInputManifestPath"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessStableSubsetSectionPathAt"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessStableSubsetSectionReady"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeSuiteName"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriExtendedSuiteName"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeCaseCount"
@@ -1633,6 +1650,7 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessC
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessComparableArtifactPathAt(1) == CompilerHarnessActualComparableArtifactPath()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessLinterParityReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessModuleManifestResolverReady()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessStableSubsetSectionReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendTriSuiteReady()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitBackendTriSmokeCases"
@@ -1642,6 +1660,9 @@ require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarne
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitModuleManifestResolverPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessModuleManifestResolverPathAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessModuleManifestResolverSuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitStableSubsetSectionPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessStableSubsetSectionPathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessStableSubsetSectionSuiteName()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriSmokeCaseAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriExtendedCaseAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriSmokeSuiteName()"
