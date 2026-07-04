@@ -73,8 +73,9 @@ They are not optional polish; each one prevents a common fallback shape.
 Artifact Zone delta, 2026-07-04: LSP transport outputs are now tracked as
 their own comparable artifact kinds: `CompilerLspTransportFrameArtifactKind()`
 for LSP-2a single-frame output and `CompilerLspTransportStreamArtifactKind()`
-for LSP-2b buffered stream output. Content-Length transport parity must not
-reuse or alias the LSP diagnostics artifact.
+for LSP-2b buffered stream output. LSP request dispatch output is tracked by
+`CompilerLspRequestDispatchArtifactKind()`. Content-Length transport and
+request-dispatch parity must not reuse or alias the LSP diagnostics artifact.
 
 ## Held Surfaces
 

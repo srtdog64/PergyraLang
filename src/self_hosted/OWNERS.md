@@ -167,3 +167,5 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/lsp/transport_owner.pgy` -- LSP-2a single JSON-RPC
   Content-Length frame boundary and LSP-2b buffered stream consumption over the
   byte-count stdin substrate.
+- `src/self_hosted/lsp/request_owner.pgy` -- LSP-2c buffered JSON-RPC request
+  dispatch plan over transport bodies and JSON fact tables.

@@ -8,6 +8,8 @@ replacement.
   `textDocument/publishDiagnostics`-shaped JSON artifact.
 - `squiggle_owner.pgy` owns the RED/AMBER/BLUE/VIOLET classification policy
   from diagnostic status/severity/stage/code/facts.
+- `request_owner.pgy` classifies buffered JSON-RPC request bodies through the
+  shared JSON fact-table owner.
 - `main.pgy` is the runnable boundary for parity fixtures.
 - `fixture/` and `expected/` are the committed clean/error payload and
   squiggle-policy contracts. Error payloads carry both the self-host lower-case
@@ -16,6 +18,8 @@ replacement.
 The `ReadStdin(n)` substrate for transport framing is present, and
 `transport_owner.pgy` consumes it for one JSON-RPC Content-Length frame
 (LSP-2a) and ordered multi-frame consumption from one stdin buffer (LSP-2b).
-Full LSP-2 still needs a live read-exact loop and request dispatch.
+`request_owner.pgy` consumes those buffered bodies for request dispatch planning
+(LSP-2c). Full LSP-2 still needs a live read-exact loop, response emission, and
+document-store mutation.
 `O-LSP` has live diagnostic-dump plumbing, but full vocabulary/session parity
 remains a later LSP-3 concern.

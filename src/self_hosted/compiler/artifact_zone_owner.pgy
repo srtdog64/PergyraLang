@@ -7,7 +7,7 @@ func CompilerArtifactSchema() -> String {
 }
 
 func CompilerArtifactKindCount() -> Int {
-    return 13;
+    return 14;
 }
 
 func CompilerDiagnosticsArtifactKind() -> String {
@@ -62,6 +62,10 @@ func CompilerLspTransportStreamArtifactKind() -> String {
     return "lsp_transport_stream";
 }
 
+func CompilerLspRequestDispatchArtifactKind() -> String {
+    return "lsp_request_dispatch";
+}
+
 func CompilerArtifactKindAt(index: Int) -> String {
     if index == 0 { return CompilerDiagnosticsArtifactKind(); }
     if index == 1 { return CompilerAirJsonArtifactKind(); }
@@ -76,6 +80,7 @@ func CompilerArtifactKindAt(index: Int) -> String {
     if index == 10 { return CompilerLspDiagnosticsArtifactKind(); }
     if index == 11 { return CompilerLspTransportFrameArtifactKind(); }
     if index == 12 { return CompilerLspTransportStreamArtifactKind(); }
+    if index == 13 { return CompilerLspRequestDispatchArtifactKind(); }
     return "";
 }
 
@@ -91,7 +96,7 @@ func CompilerArtifactKindKnown(kind: String) -> Bool {
 }
 
 func CompilerArtifactZoneReady() -> Bool {
-    return CompilerArtifactKindCount() == 13 &&
+    return CompilerArtifactKindCount() == 14 &&
         CompilerArtifactKindAt(0) == CompilerDiagnosticsArtifactKind() &&
         CompilerArtifactKindAt(1) == CompilerAirJsonArtifactKind() &&
         CompilerArtifactKindAt(2) == CompilerMirJsonArtifactKind() &&
@@ -104,5 +109,6 @@ func CompilerArtifactZoneReady() -> Bool {
         CompilerArtifactKindAt(9) == CompilerAstTextArtifactKind() &&
         CompilerArtifactKindAt(10) == CompilerLspDiagnosticsArtifactKind() &&
         CompilerArtifactKindAt(11) == CompilerLspTransportFrameArtifactKind() &&
-        CompilerArtifactKindAt(12) == CompilerLspTransportStreamArtifactKind();
+        CompilerArtifactKindAt(12) == CompilerLspTransportStreamArtifactKind() &&
+        CompilerArtifactKindAt(13) == CompilerLspRequestDispatchArtifactKind();
 }

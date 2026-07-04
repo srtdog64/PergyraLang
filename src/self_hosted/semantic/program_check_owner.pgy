@@ -143,6 +143,9 @@ func CheckProgram(content: String) -> String {
     ArrayPush(func_names, "ReadFile");
     ArrayPush(func_rets, "String");
     ArrayPush(func_params, "String");
+    ArrayPush(func_names, "ReadStdin");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Int");
     ArrayPush(func_names, "WriteFile");
     ArrayPush(func_rets, "Void");
     ArrayPush(func_params, "String|String");

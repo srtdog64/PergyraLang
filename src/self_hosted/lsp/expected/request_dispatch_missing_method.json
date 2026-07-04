@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.lsp-request-dispatch-stream.v1","ok":false,"frameCount":1,"errors":1,"partialReason":"","requests":[{"schema":"pgy.selfhost.lsp-request-dispatch.v1","ok":false,"reason":"missing_method","method":"","requestKind":"","hasId":false,"id":"","responseRequired":false,"paramsPresent":false}]}

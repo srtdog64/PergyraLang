@@ -11,6 +11,7 @@ payload owner, not an LSP transport loop.
 - **projection_owner**: `src/self_hosted/lsp/diagnostics_owner.pgy`
 - **classification_owner**: `src/self_hosted/lsp/squiggle_owner.pgy`
 - **transport_owner**: `src/self_hosted/lsp/transport_owner.pgy`
+- **request_dispatch_owner**: `src/self_hosted/lsp/request_owner.pgy`
 - **stage_intent**: `ProjectSemanticDiagnostics`
 - **payload_contract**: `LspDiagnosticPayloadContractReady`
 - **policy_contract**: `LspSquigglePolicyContractReady`
@@ -31,6 +32,11 @@ it reads one stdin buffer through `ReadStdin(max_bytes)`, consumes complete
 Content-Length frames in order, and reports the first partial frame reason. It
 is not a live read-exact loop or request dispatch boundary.
 
+The `--request-dispatch-probe <max-bytes>` mode is the LSP-2c input boundary:
+it reads one stdin buffer, consumes complete transport frames through
+`transport_owner.pgy`, and classifies request bodies through the shared JSON
+fact table. It is not a response emitter or document-store boundary.
+
 ## Output Contract
 
 The tool prints one JSON object with schema
@@ -47,6 +53,9 @@ The `--transport-frame-probe` mode prints a
 The `--transport-stream-probe` mode prints a
 `pgy.selfhost.lsp-transport-stream.v1` artifact with frame count, partial
 reason, and frame bodies.
+The `--request-dispatch-probe` mode prints a
+`pgy.selfhost.lsp-request-dispatch-stream.v1` artifact with request dispatch
+plans.
 
 ## Oracle
 
@@ -58,4 +67,6 @@ documented in `docs/150_selfhost_driver_lsp_wiring.md`. LSP-2a single-frame
 transport parity is checked by
 `tests/self_hosted/parity/lsp_transport_frame_parity.sh`; LSP-2b buffered
 stream parity is checked by
-`tests/self_hosted/parity/lsp_transport_stream_parity.sh`.
+`tests/self_hosted/parity/lsp_transport_stream_parity.sh`; LSP-2c request
+dispatch parity is checked by
+`tests/self_hosted/parity/lsp_request_dispatch_parity.sh`.

@@ -21,7 +21,7 @@ rows="$(sed -n '/DRIVER-LSP-RUNG-BEGIN/,/DRIVER-LSP-RUNG-END/p' "$DOC" \
     | grep -E '^\| (driver|lsp) \|')"
 [ -n "$rows" ] || fail "docs/150 rung block has no rows"
 
-expected_rungs="DRV-0 DRV-1 DRV-2 DRV-3 LSP-0 LSP-1 LSP-2a LSP-2b LSP-2 LSP-3"
+expected_rungs="DRV-0 DRV-1 DRV-2 DRV-3 LSP-0 LSP-1 LSP-2a LSP-2b LSP-2c LSP-2 LSP-3"
 for rung in $expected_rungs; do
     printf '%s\n' "$rows" | grep -Fq "| $rung |" ||
         fail "rung table lost row '$rung' (ladder rows may change status, not vanish)"
@@ -96,6 +96,13 @@ if grep -Fq "tests/self_hosted/parity/lsp_transport_stream_parity.sh" "$DOC"; th
         fail "LSP-2b claims transport-stream parity, but the script is missing"
     grep -Fq "self-host-lsp-transport-stream-parity-test-smoke" "$ROOT_DIR/Makefile" ||
         fail "LSP-2b claims transport-stream parity, but the Makefile target is missing"
+fi
+
+if grep -Fq "tests/self_hosted/parity/lsp_request_dispatch_parity.sh" "$DOC"; then
+    [ -e "$ROOT_DIR/tests/self_hosted/parity/lsp_request_dispatch_parity.sh" ] ||
+        fail "LSP-2c claims request-dispatch parity, but the script is missing"
+    grep -Fq "self-host-lsp-request-dispatch-parity-test-smoke" "$ROOT_DIR/Makefile" ||
+        fail "LSP-2c claims request-dispatch parity, but the Makefile target is missing"
 fi
 
 echo "[driver-lsp-wiring] rung ladder honest (landed==exists, blocked==documented, planned==unclaimed, gaps visible)"

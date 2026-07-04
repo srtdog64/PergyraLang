@@ -121,15 +121,21 @@ C LSP 분해: protocol(framing 229L)/diagnostics/hover/features. 페이로드
   reason을 분리한다. 이 rung은 repeated-frame consumption과 partial body
   fail-closed를 C/LLVM-built self-host tool에서 비교한다. **아직 live
   read-exact loop나 request dispatch가 아니다**.
-- **LSP-2 — transport 루프 (planned; G-STDIN/LSP-2a/LSP-2b prerequisite landed)**: JSON-RPC Content-Length
+- **LSP-2c — buffered request dispatch plan (landed)**:
+  `lsp/request_owner.pgy`가 transport owner에서 얻은 JSON-RPC body를
+  self-host JSON fact table로 읽어 method/id/params를 dispatch plan으로
+  분류한다. 이 rung은 `initialize`, notification, missing-method
+  fail-closed를 C/LLVM-built self-host tool에서 비교한다. **아직 live
+  session loop, response emission, document store mutation은 아니다**.
+- **LSP-2 — transport 루프 (planned; G-STDIN/LSP-2a/LSP-2b/LSP-2c prerequisite landed)**: JSON-RPC Content-Length
   프레이밍은 **바이트 단위 stdin 스트리밍**이 필요 — 현 표면의 입력
   builtin이 라인/파일 기반이면 불충분했다. `ReadStdin(n) -> String`
   substrate는 landed/gated(`read-stdin-builtin-test-smoke`, caps: `io_read`;
   `PGY_CAP_INPUT`은 media/input device 계열이라 stdin byte stream의 SoT가
-  아니다). LSP-2a/2b가 frame/stream 소비자를 열었으므로 남은 일은
-  `G-LSP-STREAM`: live read-exact loop, request dispatch boundary, and
-  session-script parity다. 그 전까지 LSP-0/1/2a/2b는 파일-입출력/단일-buffer
-  도구로 검증한다(오라클엔 충분).
+  아니다). LSP-2a/2b/2c가 frame/stream/request-plan 소비자를 열었으므로
+  남은 일은 `G-LSP-STREAM`: live read-exact loop, response emission,
+  document-store mutation, and session-script parity다. 그 전까지
+  LSP-0/1/2a/2b/2c는 파일-입출력/단일-buffer 도구로 검증한다(오라클엔 충분).
 - **LSP-3 — 플래그 뒤 교체**: hover/features까지 포함해 C LSP와
   세션-스크립트 parity.
 
@@ -139,7 +145,7 @@ C LSP 분해: protocol(framing 229L)/diagnostics/hover/features. 페이로드
 |---|---|---|---|
 | **G-EXEC** | 프로세스 spawn builtin + process capability. world.pgy의 Subprocess 계약 어휘(env_allowlist/timeout/exit_code)를 런타임 fact로 | 표면 결정(BDFL) + 양 백엔드 lowering + caps 게이트 | DRV-2 |
 | **G-STDIN** | `ReadStdin(n) -> String` byte-count stdin substrate, caps: `io_read`; C/LLVM/runtime/self-host codegen symbol owner landed and consumed by LSP-2a single-frame transport | `tests/read_stdin_builtin_smoke.sh` | LSP-2a |
-| **G-LSP-STREAM** | live JSON-RPC session loop: repeated read-exact body consumption from stdin, request dispatch boundary, session-script parity | planned surface/runtime owner | LSP-2 |
+| **G-LSP-STREAM** | live JSON-RPC session loop: repeated read-exact body consumption from stdin, response emission, document-store mutation, session-script parity | planned surface/runtime owner | LSP-2 |
 | **O-LSP** | C LSP 진단 페이로드 덤프 플래그 `pgy-lsp --dump-diagnostics <src>` + canonical event compare | C-측 landed 배관 | LSP-0 live oracle 보강; full vocabulary/session parity는 LSP-3 전 후속 |
 
 ## 4. Rung 표 (selfhost-driver-lsp-wiring-test-smoke가 잠금)
@@ -161,14 +167,15 @@ planned로 둔다. 착지 시 같은 커밋에서 행을 갱신한다.
 | lsp | LSP-1 | landed | src/self_hosted/lsp/squiggle_owner.pgy | tests/self_hosted/parity/lsp_diagnostics_parity.sh |
 | lsp | LSP-2a | landed | src/self_hosted/lsp/transport_owner.pgy | tests/self_hosted/parity/lsp_transport_frame_parity.sh |
 | lsp | LSP-2b | landed | src/self_hosted/lsp/transport_owner.pgy | tests/self_hosted/parity/lsp_transport_stream_parity.sh |
+| lsp | LSP-2c | landed | src/self_hosted/lsp/request_owner.pgy | tests/self_hosted/parity/lsp_request_dispatch_parity.sh |
 | lsp | LSP-2 | planned | - | - |
 | lsp | LSP-3 | planned | - | - |
 <!-- DRIVER-LSP-RUNG-END -->
 
 ## 5. 순서 권고
 
-DRV-0(조립 — Stage 5 직결) ≻ LSP-0/1(고가성비, thesis 전시) ≻ LSP-2a/2b
-transport buffer owners ≻ G-EXEC/G-LSP-STREAM 표면 결정 ≻ DRV-2/LSP-2.
+DRV-0(조립 — Stage 5 직결) ≻ LSP-0/1(고가성비, thesis 전시) ≻ LSP-2a/2b/2c
+transport/request buffer owners ≻ G-EXEC/G-LSP-STREAM 표면 결정 ≻ DRV-2/LSP-2.
 DRV-0과 LSP-0은 상호 독립이라 병행
 가능. 어느 쪽도 runtime 커널 치환을 전제하지 않는다(런타임 C 잔류는
 기존 설계 결정).
