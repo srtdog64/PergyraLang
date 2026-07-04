@@ -10,7 +10,8 @@ replacement.
   from diagnostic status/severity/stage/code/facts.
 - `main.pgy` is the runnable boundary for parity fixtures.
 - `fixture/` and `expected/` are the committed clean/error payload and
-  squiggle-policy contracts.
+  squiggle-policy contracts. Error payloads carry both the self-host lower-case
+  code and the C-oracle root code in `data.oracleCode`.
 
 Transport parity stays blocked on the `G-STDIN` and `O-LSP` gaps documented in
 `docs/150_selfhost_driver_lsp_wiring.md`.

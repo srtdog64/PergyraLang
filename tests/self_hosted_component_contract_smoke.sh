@@ -1976,15 +1976,27 @@ require_text "src/self_hosted/lsp/squiggle_owner.pgy" "pin_escape"
 require_file "src/self_hosted/lsp/fixture/valid_int_return.pgy"
 require_file "src/self_hosted/lsp/fixture/bad_logical_right.pgy"
 require_file "src/self_hosted/lsp/fixture/bad_undefined_return.pgy"
+require_file "src/self_hosted/lsp/fixture/bad_return_type.pgy"
+require_file "src/self_hosted/lsp/fixture/bad_while_condition.pgy"
+require_file "src/self_hosted/lsp/fixture/bad_not_operand.pgy"
 require_file "src/self_hosted/lsp/expected/valid_int_return.json"
 require_file "src/self_hosted/lsp/expected/bad_logical_right.json"
 require_file "src/self_hosted/lsp/expected/bad_undefined_return.json"
+require_file "src/self_hosted/lsp/expected/bad_return_type.json"
+require_file "src/self_hosted/lsp/expected/bad_while_condition.json"
+require_file "src/self_hosted/lsp/expected/bad_not_operand.json"
 require_file "src/self_hosted/lsp/expected/squiggle_policy.json"
 require_text "src/self_hosted/lsp/expected/valid_int_return.json" '"diagnostics":[]'
 require_text "src/self_hosted/lsp/expected/bad_logical_right.json" '"code":"logical_operand_not_bool"'
 require_text "src/self_hosted/lsp/expected/bad_logical_right.json" '"oracleCode":"PGY_SEM_BINOP_TYPE_MISMATCH"'
 require_text "src/self_hosted/lsp/expected/bad_undefined_return.json" '"code":"undefined_symbol"'
 require_text "src/self_hosted/lsp/expected/bad_undefined_return.json" '"oracleCode":"PGY_SEM_UNDEFINED_SYMBOL"'
+require_text "src/self_hosted/lsp/expected/bad_return_type.json" '"code":"return_type_mismatch"'
+require_text "src/self_hosted/lsp/expected/bad_return_type.json" '"oracleCode":"PGY_SEM_TYPE_MISMATCH"'
+require_text "src/self_hosted/lsp/expected/bad_while_condition.json" '"code":"condition_not_bool"'
+require_text "src/self_hosted/lsp/expected/bad_while_condition.json" '"oracleCode":"PGY_SEM_TYPE_MISMATCH"'
+require_text "src/self_hosted/lsp/expected/bad_not_operand.json" '"code":"not_operand_not_bool"'
+require_text "src/self_hosted/lsp/expected/bad_not_operand.json" '"oracleCode":"PGY_SEM_UNOP_TYPE_MISMATCH"'
 require_text "src/self_hosted/lsp/expected/squiggle_policy.json" '"class":"red"'
 require_text "src/self_hosted/lsp/expected/squiggle_policy.json" '"class":"amber"'
 require_text "src/self_hosted/lsp/expected/squiggle_policy.json" '"class":"blue"'

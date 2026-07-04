@@ -1,0 +1,4 @@
+func Main() -> Bool {
+    let b: Bool = !5;
+    return b;
+}

@@ -49,6 +49,9 @@ FIXTURES=(
     "valid_int_return"
     "bad_logical_right"
     "bad_undefined_return"
+    "bad_return_type"
+    "bad_while_condition"
+    "bad_not_operand"
 )
 
 mkdir -p "$BUILD_DIR"
@@ -232,6 +235,45 @@ lsp_canonical_event_artifact() {
         return 0
     fi
 
+    if grep -Fq '"code":"return_type_mismatch"' "$json_file" \
+        && grep -Fq '"oracleCode":"PGY_SEM_TYPE_MISMATCH"' "$json_file"; then
+        {
+            echo "method=textDocument/publishDiagnostics"
+            echo "uri=$uri"
+            echo "diagnostic_count=1"
+            echo "event=type_mismatch"
+            echo "severity=1"
+            echo "squiggle=red"
+        } > "$out_file"
+        return 0
+    fi
+
+    if grep -Fq '"code":"condition_not_bool"' "$json_file" \
+        && grep -Fq '"oracleCode":"PGY_SEM_TYPE_MISMATCH"' "$json_file"; then
+        {
+            echo "method=textDocument/publishDiagnostics"
+            echo "uri=$uri"
+            echo "diagnostic_count=1"
+            echo "event=condition_not_bool"
+            echo "severity=1"
+            echo "squiggle=red"
+        } > "$out_file"
+        return 0
+    fi
+
+    if grep -Fq '"code":"not_operand_not_bool"' "$json_file" \
+        && grep -Fq '"oracleCode":"PGY_SEM_UNOP_TYPE_MISMATCH"' "$json_file"; then
+        {
+            echo "method=textDocument/publishDiagnostics"
+            echo "uri=$uri"
+            echo "diagnostic_count=1"
+            echo "event=not_operand_not_bool"
+            echo "severity=1"
+            echo "squiggle=red"
+        } > "$out_file"
+        return 0
+    fi
+
     if grep -Fq '"code":"PGY_SEM_BINOP_TYPE_MISMATCH"' "$json_file" \
         && grep -Fq '"cause_ir":"semantic:binop:operand_types"' "$json_file" \
         && grep -Fq "Logical operator requires Bool operands" "$json_file"; then
@@ -254,6 +296,45 @@ lsp_canonical_event_artifact() {
             echo "uri=$uri"
             echo "diagnostic_count=1"
             echo "event=undefined_symbol"
+            echo "severity=1"
+            echo "squiggle=red"
+        } > "$out_file"
+        return 0
+    fi
+
+    if grep -Fq '"code":"PGY_SEM_TYPE_MISMATCH"' "$json_file" \
+        && grep -Fq '"cause_ir":"semantic:assignability_check"' "$json_file"; then
+        {
+            echo "method=textDocument/publishDiagnostics"
+            echo "uri=$uri"
+            echo "diagnostic_count=1"
+            echo "event=type_mismatch"
+            echo "severity=1"
+            echo "squiggle=red"
+        } > "$out_file"
+        return 0
+    fi
+
+    if grep -Fq '"code":"PGY_SEM_TYPE_MISMATCH"' "$json_file" \
+        && grep -Fq '"cause_ir":"semantic:condition:non_bool"' "$json_file"; then
+        {
+            echo "method=textDocument/publishDiagnostics"
+            echo "uri=$uri"
+            echo "diagnostic_count=1"
+            echo "event=condition_not_bool"
+            echo "severity=1"
+            echo "squiggle=red"
+        } > "$out_file"
+        return 0
+    fi
+
+    if grep -Fq '"code":"PGY_SEM_UNOP_TYPE_MISMATCH"' "$json_file" \
+        && grep -Fq '"cause_ir":"semantic:unary_operator:operand"' "$json_file"; then
+        {
+            echo "method=textDocument/publishDiagnostics"
+            echo "uri=$uri"
+            echo "diagnostic_count=1"
+            echo "event=not_operand_not_bool"
             echo "severity=1"
             echo "squiggle=red"
         } > "$out_file"
@@ -350,6 +431,57 @@ check_c_lsp_oracle() {
             }
             grep -Fq '"squiggleClass":"red"' "$out_file" || {
                 echo "[self-host-parity:lsp-diagnostics] C LSP oracle undefined fixture lost red squiggle class" >&2
+                cat "$out_file" >&2
+                exit 1
+            }
+            ;;
+        bad_return_type)
+            grep -Fq '"code":"PGY_SEM_TYPE_MISMATCH"' "$out_file" || {
+                echo "[self-host-parity:lsp-diagnostics] C LSP oracle return-type fixture lost type mismatch code" >&2
+                cat "$out_file" >&2
+                exit 1
+            }
+            grep -Fq '"cause_ir":"semantic:assignability_check"' "$out_file" || {
+                echo "[self-host-parity:lsp-diagnostics] C LSP oracle return-type fixture lost assignability cause" >&2
+                cat "$out_file" >&2
+                exit 1
+            }
+            grep -Fq '"squiggleClass":"red"' "$out_file" || {
+                echo "[self-host-parity:lsp-diagnostics] C LSP oracle return-type fixture lost red squiggle class" >&2
+                cat "$out_file" >&2
+                exit 1
+            }
+            ;;
+        bad_while_condition)
+            grep -Fq '"code":"PGY_SEM_TYPE_MISMATCH"' "$out_file" || {
+                echo "[self-host-parity:lsp-diagnostics] C LSP oracle condition fixture lost type mismatch code" >&2
+                cat "$out_file" >&2
+                exit 1
+            }
+            grep -Fq '"cause_ir":"semantic:condition:non_bool"' "$out_file" || {
+                echo "[self-host-parity:lsp-diagnostics] C LSP oracle condition fixture lost condition cause" >&2
+                cat "$out_file" >&2
+                exit 1
+            }
+            grep -Fq '"squiggleClass":"red"' "$out_file" || {
+                echo "[self-host-parity:lsp-diagnostics] C LSP oracle condition fixture lost red squiggle class" >&2
+                cat "$out_file" >&2
+                exit 1
+            }
+            ;;
+        bad_not_operand)
+            grep -Fq '"code":"PGY_SEM_UNOP_TYPE_MISMATCH"' "$out_file" || {
+                echo "[self-host-parity:lsp-diagnostics] C LSP oracle not-operand fixture lost unary mismatch code" >&2
+                cat "$out_file" >&2
+                exit 1
+            }
+            grep -Fq '"cause_ir":"semantic:unary_operator:operand"' "$out_file" || {
+                echo "[self-host-parity:lsp-diagnostics] C LSP oracle not-operand fixture lost unary cause" >&2
+                cat "$out_file" >&2
+                exit 1
+            }
+            grep -Fq '"squiggleClass":"red"' "$out_file" || {
+                echo "[self-host-parity:lsp-diagnostics] C LSP oracle not-operand fixture lost red squiggle class" >&2
                 cat "$out_file" >&2
                 exit 1
             }

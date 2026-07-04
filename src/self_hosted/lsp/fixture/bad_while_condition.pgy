@@ -1,0 +1,6 @@
+func Main() -> Void {
+    while 5 {
+        return;
+    }
+    return;
+}

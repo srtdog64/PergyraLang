@@ -27,12 +27,15 @@ The tool prints one JSON object with schema
 `pgy.selfhost.lsp-diagnostics.v1`, method
 `textDocument/publishDiagnostics`, URI, and diagnostics. A clean source emits
 an empty diagnostics array. An error source emits one diagnostic with code,
-reason-as-message, fix, span, facts, severity, and `data.squiggleClass`.
+reason-as-message, fix, span, facts, severity, `data.squiggleClass`, and
+`data.oracleCode`.
 The `--squiggle-policy` mode prints the executable LSP-1 classification snapshot
 used by the parity gate.
 
 ## Oracle
 
-The LSP-0 parity gate compares committed clean/error JSON fixtures and compiles
-the tool through C and LLVM. C-side LSP transport parity remains blocked on the
-O-LSP dump flag documented in `docs/150_selfhost_driver_lsp_wiring.md`.
+The LSP-0 parity gate compares committed clean/error JSON fixtures, compiles the
+tool through C and LLVM, and compares each fixture against the live C LSP
+`--dump-diagnostics` oracle through canonical diagnostic events. C-side LSP
+transport parity remains blocked on the O-LSP session gap documented in
+`docs/150_selfhost_driver_lsp_wiring.md`.
