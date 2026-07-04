@@ -1374,6 +1374,11 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/l
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/json_fact_table.pgy"'
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" "JsonStringLiteral(path)"
+require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "pgy_selfhost_compare_expected_text_artifact_with_owner"
+require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" '"run_output"'
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"'
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'EXPECTED_MISSING_JSON="$(cat "$EXPECTED_MISSING_JSON_FILE")"'
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'EXPECTED_INPUT_ERROR_JSON="$(cat "$EXPECTED_INPUT_ERROR_JSON_FILE")"'
 require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" "JsonEmitArray("
@@ -1710,6 +1715,10 @@ reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'cmp -s'
 reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" '$(cat "$c_out")'
 reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'c_out="$(cd "$ROOT_DIR"'
 reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'llvm_out="$(cd "$ROOT_DIR"'
+require_text "tests/self_hosted/parity/linter_parity.sh" "pgy_selfhost_compare_expected_text_artifact_with_owner"
+require_text "tests/self_hosted/parity/linter_parity.sh" '"diagnostics"'
+reject_text "tests/self_hosted/parity/linter_parity.sh" 'EXPECTED_JSON="$(tr -d'
+reject_text "tests/self_hosted/parity/linter_parity.sh" 'if [[ "$LLVM_JSON" != "$C_JSON" ]]'
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "JsonEmitArray(findings)"

@@ -3,7 +3,7 @@
 #
 # The C diagnostic registry smoke remains the oracle while the Pergyra tool is
 # a partial implementation. This script asserts exit-code agreement, stable
-# counter parity, and exact clean-baseline JSON shape. See
+# counter parity, and ArtifactZone-owned report JSON shape. See
 # tests/self_hosted/parity/README.md.
 
 set -euo pipefail
@@ -157,13 +157,14 @@ fi
 PERGYRA_JSON="$(printf '%s\n' "$PERGYRA_OUT" \
     | grep -F 'pgy.selfhost.diagnostic-catalog.v1' \
     | tail -n 1)"
-EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"
-if [[ "$PERGYRA_JSON" != "$EXPECTED_JSON" ]]; then
-    echo "[self-host-parity:diagnostic-catalog] clean JSON parity FAIL" >&2
-    echo "expected: $EXPECTED_JSON" >&2
-    echo "actual:   $PERGYRA_JSON" >&2
-    exit 1
-fi
+# Clean JSON parity is a run-output artifact verdict owned by the Pergyra
+# backend-output comparator, not a shell string compare.
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:diagnostic-catalog" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$EXPECTED_JSON_FILE" \
+    "$PERGYRA_JSON" \
+    "run_output"
 
 NEG_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/pgy-selfhost-diag.XXXXXX")"
 cleanup_neg_root() {
@@ -190,13 +191,12 @@ fi
 NEG_JSON="$(printf '%s\n' "$NEG_OUT" \
     | grep -F 'pgy.selfhost.diagnostic-catalog.v1' \
     | tail -n 1)"
-EXPECTED_MISSING_JSON="$(cat "$EXPECTED_MISSING_JSON_FILE")"
-if [[ "$NEG_JSON" != "$EXPECTED_MISSING_JSON" ]]; then
-    echo "[self-host-parity:diagnostic-catalog] missing-code JSON parity FAIL" >&2
-    echo "expected: $EXPECTED_MISSING_JSON" >&2
-    echo "actual:   $NEG_JSON" >&2
-    exit 1
-fi
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:diagnostic-catalog:missing-code" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$EXPECTED_MISSING_JSON_FILE" \
+    "$NEG_JSON" \
+    "run_output"
 
 INPUT_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/pgy-selfhost-diag-input.XXXXXX")"
 cleanup_input_root() {
@@ -219,13 +219,12 @@ fi
 INPUT_JSON="$(printf '%s\n' "$INPUT_OUT" \
     | grep -F 'pgy.selfhost.diagnostic-catalog.v1' \
     | tail -n 1)"
-EXPECTED_INPUT_ERROR_JSON="$(cat "$EXPECTED_INPUT_ERROR_JSON_FILE")"
-if [[ "$INPUT_JSON" != "$EXPECTED_INPUT_ERROR_JSON" ]]; then
-    echo "[self-host-parity:diagnostic-catalog] missing-input JSON parity FAIL" >&2
-    echo "expected: $EXPECTED_INPUT_ERROR_JSON" >&2
-    echo "actual:   $INPUT_JSON" >&2
-    exit 1
-fi
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:diagnostic-catalog:missing-input" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$EXPECTED_INPUT_ERROR_JSON_FILE" \
+    "$INPUT_JSON" \
+    "run_output"
 
 assert_llvm_leg "self-host-parity:diagnostic-catalog" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR"
 echo "[self-host-parity:diagnostic-catalog] rung-1 exit-code + rung-2 count/json parity ok (c=$C_RC pergyra=$P_RC codes=$SHELL_CODES documented=$SHELL_DOCUMENTED missing=0 duplicates=$SHELL_DUPLICATES orphans=$SHELL_ORPHANS; missing-fixture rc=$NEG_RC input-fixture rc=$INPUT_RC)"

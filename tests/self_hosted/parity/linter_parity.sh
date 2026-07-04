@@ -9,6 +9,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -57,8 +58,6 @@ normalize_json_line() {
     tr -d '\r' | grep -F '[{"range"' | tail -n 1
 }
 
-EXPECTED_JSON="$(tr -d '\r' < "$EXPECTED_JSON_FILE")"
-
 set +e
 C_OUT="$(run_linter_backend c)"
 C_RC=$?
@@ -69,12 +68,12 @@ if [[ "$C_RC" -ne 0 ]]; then
     exit 1
 fi
 C_JSON="$(printf '%s\n' "$C_OUT" | normalize_json_line)"
-if [[ "$C_JSON" != "$EXPECTED_JSON" ]]; then
-    echo "[self-host-parity:linter] C JSON parity FAIL" >&2
-    echo "expected: $EXPECTED_JSON" >&2
-    echo "actual:   $C_JSON" >&2
-    exit 1
-fi
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:linter:c" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$EXPECTED_JSON_FILE" \
+    "$C_JSON" \
+    "diagnostics"
 
 set +e
 LLVM_OUT="$(run_linter_backend llvm)"
@@ -91,17 +90,11 @@ if [[ "$LLVM_RC" -ne 0 ]]; then
     exit 1
 fi
 LLVM_JSON="$(printf '%s\n' "$LLVM_OUT" | normalize_json_line)"
-if [[ "$LLVM_JSON" != "$EXPECTED_JSON" ]]; then
-    echo "[self-host-parity:linter] LLVM JSON parity FAIL" >&2
-    echo "expected: $EXPECTED_JSON" >&2
-    echo "actual:   $LLVM_JSON" >&2
-    exit 1
-fi
-if [[ "$LLVM_JSON" != "$C_JSON" ]]; then
-    echo "[self-host-parity:linter] C/LLVM output drift" >&2
-    echo "c:    $C_JSON" >&2
-    echo "llvm: $LLVM_JSON" >&2
-    exit 1
-fi
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:linter:llvm" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$EXPECTED_JSON_FILE" \
+    "$LLVM_JSON" \
+    "diagnostics"
 
-echo "[self-host-parity:linter] rung-1 parity ok (c rc=0; llvm rc=0; byte-identical)"
+echo "[self-host-parity:linter] rung-1 parity ok (c rc=0; llvm rc=0; diagnostics artifact-equal)"

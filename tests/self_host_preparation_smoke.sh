@@ -326,7 +326,8 @@ require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "pg
 require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "counts.documented parity"
 require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "counts.missing parity"
 require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "counts.orphans parity"
-require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "clean JSON parity"
+require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "pgy_selfhost_compare_expected_text_artifact_with_owner"
+require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" '"run_output"'
 require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "missing-code fixture"
 require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "missing-input fixture"
 require_text "Makefile" "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh"

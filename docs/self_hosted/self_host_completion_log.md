@@ -3423,6 +3423,21 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-air-graph-consumer-parity-test-smoke`; the latter exercised the
   live-drift path with `live-drift=ok`.
 
+### 2026-07-05 -- Diagnostic report parity uses ArtifactZone
+
+- Repointed `diagnostic_catalog_checker_parity.sh` clean, missing-code, and
+  missing-input report JSON equality from shell string comparison to
+  `pgy_selfhost_compare_expected_text_artifact_with_owner(...)` with artifact
+  kind `run_output`.
+- Repointed `linter_parity.sh` C and LLVM diagnostic JSON payload equality from
+  direct shell string comparison to the same comparator with artifact kind
+  `diagnostics`.
+- Tightened `self_hosted_component_contract_smoke.sh` so those parity scripts
+  cannot reintroduce local expected-JSON string reads or C/LLVM string drift
+  checks.
+- Verified with `self-host-diagnostic-catalog-parity-test-smoke` and
+  `self-host-linter-parity-test-smoke`.
+
 ### 2026-07-04 -- Codegen bootstrap corpus consumes emitted-self-hosted artifact owner
 
 - Added `CompilerEmittedSelfHostedArtifactKind()` to the self-host ArtifactZone
