@@ -9836,9 +9836,9 @@ docs만 읽고 착수할 수 있어야 한다. 각 WO는 목표/현재 상태/�
 | Beta closure (§0a) | strict ~83%; full-suite 증거 재신선화 필요 | WO-B1 → WO-B2 |
 | Red-team 잔여 (docs/137) | R6 닫힘; D1/D3 열림, D2/D4 결정 대기 | WO-B4, WO-B5 |
 | Self-host typed AST | payload 커밋 스트림 활성(동시 세션 가능성) | WO-S1/WO-S2 |
-| Formal corpus (docs/semantics/19) | 10 .v coqc green, 0 admits | WO-F1 |
-| Machine-neutral | projection GREEN, test-all 미승격 | WO-A1 |
-| AIR erasure dashboard | 실측 landed, CI 게이트 미승격 | WO-A2 |
+| Formal corpus (docs/semantics/19) | 24 .v coqc 24/24, 0 admits; ✅WO-F1 닫힘(2026-07-04) | WO-F3/F4 후보 |
+| Machine-neutral | ✅WO-A1 닫힘(2026-07-04): test-all 상시 게이트 승격 | — |
+| AIR erasure dashboard | ✅WO-A2 닫힘(2026-07-04): air-erasure-gate CI화+substrate floor 고정 | — |
 | SEA / ExecutionLane | runtime facade landed; precise producer coverage/AIR lane matrix 남음 | A-3 |
 | String perf | fused builtins+StrView 런타임 landed | WO-P1 |
 | Guard amortization (docs/142) | 첫 슬라이스 landed | WO-P2 |
@@ -10030,9 +10030,16 @@ replacement 0%를 뒤집는 수치가 아니다.
 
 ### Formal 트랙 (docs/semantics/19 corpus — 현재 10 .v, 0 admits/0 axioms)
 
-#### WO-F1 — AxisOwnership 후속: reading-confluence + binary-adequacy
+#### WO-F1 — AxisOwnership 후속: reading-confluence + binary-adequacy — ✅ CLOSED (2026-07-04)
 
-- **목표**: docs/42 직교성 기계화의 남은 두 정리 —
+- **닫힘**: `ReadingConfluence.v`(read_order_irrelevant + 불완전 읽기 발산
+  witness) + `BinaryAdequacy.v`(accept_adequate/reject_adequate/
+  guard_decidable — AIRBinding guard의 2진 판정 충실성) coqc green
+  (0 admits/0 axioms), formal smoke require+coqc 배선(24/24),
+  docs/semantics/19 corpus 절 갱신. 보너스: 같은 계보로
+  `GuardWitnessBinding.v`(docs/155 §3의 GuardCalculus↔구현 항목) —
+  op class↔panic-class 명명 결속 + smoke 어휘 잠금.
+- **목표(원문)**: docs/42 직교성 기계화의 남은 두 정리 —
   (a) reading-confluence: 서로 다른 축 읽기 순서가 같은 판정에 수렴,
   (b) binary-adequacy: 표면 구문 2진 판정(수용/거절)이 calculus 판정과 일치.
 - **현재**: `AxisOwnership.v` 세션 1+2 전부 coqc PASS. 신규 파일 컨벤션은
@@ -10067,8 +10074,10 @@ replacement 0%를 뒤집는 수치가 아니다.
 
 #### 형식화 지도 (2026-07-03 재실측) + 신규 후보
 
-**corpus = 20 .v, coqc 루프 20/20** (누락이던 GuardCalculus/WholeProgramCore/
-AIRBinding 3파일을 루프에 복구 — require_terms만 있고 컴파일이 안 돌던 갭).
+**corpus = 24 .v, coqc 루프 24/24** (2026-07-04 갱신: +GenericAxisCarriage
++ReadingConfluence+BinaryAdequacy+GuardWitnessBinding; 그 전 2026-07-03에
+누락이던 GuardCalculus/WholeProgramCore/AIRBinding 3파일을 루프에 복구 —
+require_terms만 있고 컴파일이 안 돌던 갭).
 커버 영역: slot/zone/effect-authority/delegation/intent-step/compensation/
 coordination/whole-program/AIR-binding/witness-race/checked-arith/IR-최소성/
 axis-직교성/guard-calculus/proof-spine/methodology + **OptionTry(신규)**.
@@ -10088,8 +10097,9 @@ axis-직교성/guard-calculus/proof-spine/methodology + **OptionTry(신규)**.
   who≠approval **구분** 자체는 미기계화. 어제 authority 뼈대와 직결.
 - **WO-F4 (후보·소형)** — StringInterp.v: 보간 render(segments) =
   Concat fold 동치(+호출-hole 합성성). 채택 3파의 프로브 논증 승격.
-- **WO-F1 (기존 잔여)** — reading-confluence + binary-adequacy
-  (AxisOwnership 후속).
+- ✅ **WO-F1 (2026-07-04 닫힘)** — ReadingConfluence.v + BinaryAdequacy.v
+  (+같은 날 GuardWitnessBinding.v — guard 정책↔panic-class 레지스트리
+  결속, smoke 어휘 잠금). 위 WO-F1 블록 참조.
 - **비후보 판정**: ratchet 단조성(셸 메트릭 — 증명 대상 아님),
   subset⊆C-수용 건전성(현 시점 과대 — bounded subset이 안정된 후).
 
@@ -10097,10 +10107,15 @@ axis-직교성/guard-calculus/proof-spine/methodology + **OptionTry(신규)**.
 
 ### AIR / Machine-neutral 트랙
 
-#### WO-A1 — machine-neutral projection 게이트 test-all 승격
+#### WO-A1 — machine-neutral projection 게이트 test-all 승격 — ✅ CLOSED (2026-07-04)
 
-- **목표**: `make machine-neutral-status`(Makefile ~1813행, 현재 "progress
-  marker, NOT in test-all")를 상시 게이트로 승격.
+- **닫힘**: 5회 연속 byte-identical 결정성 실측 → test-all 편입(test-air
+  직후; ci-linux/ci-windows 둘 다 test-all 경유 전파, 중복 스텝 없음).
+  기동 실패(DLL PATH 부재 등)도 checklist RED = fail-closed 확인, python
+  부재 fallback 셸 게이트 hard-fail 확인. Makefile 주석·python docstring·
+  docs/semantics/18 승격 기록 갱신.
+- **목표(원문)**: `make machine-neutral-status`(Makefile ~1813행, 당시
+  "progress marker, NOT in test-all")를 상시 게이트로 승격.
 - **현재**: capability-machine projection이 AIR-only fact로 GREEN
   (task #45). 승격 조건인 안정성 검증이 남음.
 - **단계**:
@@ -10114,9 +10129,20 @@ axis-직교성/guard-calculus/proof-spine/methodology + **OptionTry(신규)**.
 - **게이트**: `machine-neutral-status` + `test-all` 통과.
 - **DoD**: CI 배선 커밋 + 문서 갱신.
 
-#### WO-A2 — AIR erasure dashboard CI 게이트화
+#### WO-A2 — AIR erasure dashboard CI 게이트화 — ✅ CLOSED (2026-07-04)
 
-- **목표**: `tests/air_erasure/`(baseline.json + measure/parity/gate.ps1)를
+- **닫힘**: `make air-erasure-gate`(재실측 measure.ps1 → gate.ps1, PGY_BIN
+  전달) + ci-windows runnable 블록 배선. ★승격 중 게이트가 진짜 드리프트
+  적발: R6 wall-time 워치독(task #41, pgy_budget_wall_watchdog)이 전
+  프로그램 기저를 Sync+2/Abort+1로 — 소거 회귀 아님(phys_Axis=0 유지),
+  설계된 bucket-B 기저. → **substrate floor 신설**: baseline.json에 심볼
+  이름(abort/pthread_create/pthread_detach)으로 고정, control fixture
+  (00_pure_value)가 floor와 정확 일치해야 GREEN, floor 성장=RED(명시
+  baseline 커밋 필요). provable 계약은 "floor 초과분 0"으로 정밀화.
+  RED 양방향 실증(축 심볼/floor 심볼 주입) + 복원 GREEN.
+  results.csv 리프레시(04_channel A_inh 4→3 declared-side 기록 포함),
+  docs/semantics/14 §2a + air_erasure README 갱신.
+- **목표(원문)**: `tests/air_erasure/`(baseline.json + measure/parity/gate.ps1)를
   수동 계기판에서 CI 게이트로 승격 — "축 어휘 100% 소거, 잔여는
   bounded·measured·attributed" 주장의 상시 증거화.
 - **단계**:
@@ -10578,10 +10604,12 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
 - 착지점 원칙 적용: 게이트/문서에만 있는 경계는 무착지 — 폴더/이름이
   경계의 물리 착지점. 순서는 등기부(잠금)→정정→이사로 확정됨.
 
-#### A-15. 조합 안전성 (진입 조건: 검증 완성 — docs/155 §3 체크리스트)
+#### A-15. 조합 안전성 — ★진입 조건 성립 (2026-07-04, §3 전 항목 닫힘)
 
-- **BDFL 시퀀스(2026-07-04, docs/155 §2)**: ① 검증 프로그램 완성(WO-F1
-  + WO-A1 + WO-A2 + GuardCalculus↔구현 연결 확장 + G-검증 잔여 green)
+- **★진입 가능**: docs/155 §3 체크리스트 5항목 전부 닫힘(2026-07-04 —
+  WO-F1 ✅ + WO-A1 ✅ + WO-A2 ✅ + GuardWitnessBinding.v ✅ + matrix-lock
+  green 재확인). BDFL 시퀀스상 ②가 다음 착수 대상.
+- **BDFL 시퀀스(2026-07-04, docs/155 §2)**: ① 검증 프로그램 완성(닫힘)
   → ② 조합 안전성 → 핵심 목적지=self-host/자기 부트스트랩(North Star
   유지). 상태 인식: **언어는 C로써 이미 돈다** — 열린 것은 SoT 잔여
   닫힘과 자기 컴파일 능력이지 작동이 아니다.

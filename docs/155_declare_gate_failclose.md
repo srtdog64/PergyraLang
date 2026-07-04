@@ -61,19 +61,35 @@ Status: `canon`. BDFL 채택 2026-07-04 (메타 평가 대화에서 정식화·�
 ## 3. "검증 완성"의 조작적 정의 (분위기 금지 — 체크리스트)
 
 아래 전부가 닫혀야 ①이 완성이고 ②(조합 안전성)에 진입한다. 각 항목은
-보드의 실존 WO다:
+보드의 실존 WO다. **2026-07-04 전 항목 닫힘 — ②(A-15) 진입 조건 성립.**
 
-- [ ] **WO-F1** — AxisOwnership 후속 두 정리(reading-confluence,
-  binary-adequacy) coqc green + smoke 배선.
-- [ ] **WO-A1** — machine-neutral 게이트의 test-all 승격(진행 마커 →
-  상시 게이트).
-- [ ] **WO-A2** — erasure dashboard의 CI 게이트화(실측 계기판 →
-  회귀 방지).
-- [ ] **GuardCalculus↔구현 연결 확장** — AIRBinding 계보로 guard
-  판정과 실제 방출 검사의 대응을 넓힘(모델≠구현 갭의 축소, 제거 주장
-  금지).
-- [ ] **G-rung 중 검증 성격 잔여** — G-2L(LLVM 구현)은 제외, 단
-  반증 배터리·probe·matrix-lock의 green 유지가 조건.
+- [x] **WO-F1** — AxisOwnership 후속 두 정리 닫힘(2026-07-04):
+  `ReadingConfluence.v`(read_order_irrelevant — 완전한 읽기는 순서 무관
+  수렴, 불완전 읽기는 발산 가능 witness 포함) + `BinaryAdequacy.v`
+  (accept_adequate/reject_adequate/guard_decidable — 2진 표면 판정이
+  calculus guard와 정확히 일치, 제3상태 없음). coqc green(0 admits/
+  0 axioms) + formal smoke 배선 + docs/semantics/19 corpus 표 갱신.
+- [x] **WO-A1** — machine-neutral 게이트 test-all 승격(2026-07-04):
+  5회 연속 byte-identical 결정성 실측 후 test-all 편입(ci-linux/
+  ci-windows 양쪽 전파). 기동 실패도 RED(무음 skip 없음), python 부재
+  fallback 셸 게이트도 hard-fail 확인.
+- [x] **WO-A2** — erasure dashboard CI 게이트화(2026-07-04):
+  `make air-erasure-gate`(재실측+판정) + ci-windows 배선. 승격 과정에서
+  게이트가 진짜 드리프트를 적발 — R6 워치독이 전 프로그램 기저를
+  Sync+2/Abort+1로 올림 → **substrate floor를 심볼 이름으로 baseline에
+  고정**(floor 성장도 RED). RED 양방향 실증(축 심볼 주입/floor 심볼
+  주입) + 복원 GREEN.
+- [x] **GuardCalculus↔구현 연결 확장**(2026-07-04):
+  `GuardWitnessBinding.v` — guard 정책의 op class를 런타임 panic-class
+  레지스트리(pgy_runtime_panic_contract.h)의 명명 witness에 결속.
+  can_be_bad_has_witness(Proven인 OpSlotRelease도 backstop 보유 —
+  always-on defense-in-depth 기계화) + witness_disjoint(진단가능성 1:1).
+  smoke가 모델·코드 양쪽에서 같은 class 문자열을 요구 — 어휘 드리프트
+  무음 불가. 갭 축소이지 제거 아님(guard 발화 정확성=failclosed 픽스처,
+  방출 커버리지=twin parity 소관 — negative scope 명기).
+- [x] **G-rung 중 검증 성격 잔여** — 상시 조건. 2026-07-04 기준
+  matrix-lock green 재확인(반증 배터리·probe는 landing 커밋 게이트로
+  잠김; 이후 회귀는 해당 스모크가 RED로 표면화).
 
 ## 4. 조합 안전성 스코프 (②, A-15로 등재)
 
