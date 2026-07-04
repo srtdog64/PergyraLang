@@ -14,26 +14,35 @@
 SlotError
 SlotManagerEnableSecurity(SlotManager *manager, SecurityLevel level)
 {
+    SecurityContext *context;
+
     if (manager == NULL)
         return SLOT_ERROR_INVALID_HANDLE;
 
     if (!SecurityLevelIsValid(level))
         return SLOT_ERROR_INVALID_HANDLE;
 
+    pthread_mutex_lock(manager_mutex(manager));
     if (manager->securityContext == NULL) {
-        manager->securityContext = SecurityContextCreate(level);
-        if (manager->securityContext == NULL)
+        context = SecurityContextCreate(level);
+        if (context == NULL) {
+            pthread_mutex_unlock(manager_mutex(manager));
             return SLOT_ERROR_OUT_OF_MEMORY;
+        }
+        manager->securityContext = context;
     }
 
     manager->securityEnabled = true;
     manager->defaultSecurityLevel = level;
+    manager->securityContext->defaultLevel = level;
+    pthread_mutex_unlock(manager_mutex(manager));
     return SLOT_SUCCESS;
 }
 
 SlotError
 SlotManagerDisableSecurity(SlotManager *manager)
 {
+    SecurityContext *context;
     size_t i;
 
     if (manager == NULL)
@@ -50,22 +59,30 @@ SlotManagerDisableSecurity(SlotManager *manager)
         entry->securityLevel = SECURITY_LEVEL_BASIC;
         memset(&entry->securityPolicy, 0, sizeof(entry->securityPolicy));
     }
+    context = manager->securityContext;
+    manager->securityContext = NULL;
+    manager->securityEnabled = false;
     pthread_mutex_unlock(manager_mutex(manager));
 
-    if (manager->securityContext != NULL) {
-        SecurityContextDestroy(manager->securityContext);
-        manager->securityContext = NULL;
-    }
-
-    manager->securityEnabled = false;
+    if (context != NULL)
+        SecurityContextDestroy(context);
     return SLOT_SUCCESS;
 }
 
 bool
 SlotManagerIsSecurityEnabled(const SlotManager *manager)
 {
-    return manager != NULL && manager->securityEnabled &&
-           manager->securityContext != NULL;
+    pthread_mutex_t *mutex;
+    bool enabled;
+
+    if (manager == NULL || manager->mutex == NULL)
+        return false;
+
+    mutex = (pthread_mutex_t *)manager->mutex;
+    pthread_mutex_lock(mutex);
+    enabled = manager->securityEnabled && manager->securityContext != NULL;
+    pthread_mutex_unlock(mutex);
+    return enabled;
 }
 
 SlotError
@@ -77,9 +94,11 @@ SlotManagerSetDefaultSecurityLevel(SlotManager *manager, SecurityLevel level)
     if (!SecurityLevelIsValid(level))
         return SLOT_ERROR_INVALID_HANDLE;
 
+    pthread_mutex_lock(manager_mutex(manager));
     manager->defaultSecurityLevel = level;
     if (manager->securityContext != NULL)
         manager->securityContext->defaultLevel = level;
+    pthread_mutex_unlock(manager_mutex(manager));
     return SLOT_SUCCESS;
 }
 
@@ -101,7 +120,7 @@ store_slot_token(SlotManager *manager, SlotEntry *entry,
     return SLOT_SUCCESS;
 }
 
-static bool
+bool
 slot_token_valid_for_entry_locked(SlotManager *manager,
                                   const SlotHandle *handle,
                                   const TokenCapability *token,
@@ -144,25 +163,27 @@ SlotClaimSecure(SlotManager *manager, TypeTag type, SecurityLevel level,
     if (!SecurityLevelIsValid(level))
         return SLOT_ERROR_INVALID_HANDLE;
 
-    if (!SlotManagerIsSecurityEnabled(manager))
-        return SLOT_ERROR_PERMISSION_DENIED;
-
     result = SlotClaim(manager, type, handle);
     if (result != SLOT_SUCCESS)
         return result;
-
-    secResult = TokenGenerate(manager->securityContext, handle->slotId, level, token);
-    if (secResult != SECURITY_SUCCESS) {
-        SlotRelease(manager, handle);
-        return SLOT_ERROR_PERMISSION_DENIED;
-    }
 
     pthread_mutex_lock(manager_mutex(manager));
     entry = find_slot_entry_locked(manager, handle);
     if (entry == NULL) {
         pthread_mutex_unlock(manager_mutex(manager));
-        SlotRelease(manager, handle);
         return SLOT_ERROR_SLOT_NOT_FOUND;
+    }
+    if (!manager->securityEnabled || manager->securityContext == NULL) {
+        result = slot_release_entry_locked(manager, entry, false);
+        pthread_mutex_unlock(manager_mutex(manager));
+        return result == SLOT_SUCCESS ? SLOT_ERROR_PERMISSION_DENIED : result;
+    }
+    secResult = TokenGenerate(manager->securityContext, handle->slotId, level, token);
+    if (secResult != SECURITY_SUCCESS) {
+        result = slot_release_entry_locked(manager, entry, false);
+        (void)result;
+        pthread_mutex_unlock(manager_mutex(manager));
+        return SLOT_ERROR_PERMISSION_DENIED;
     }
 
     entry->securityEnabled = true;
@@ -291,15 +312,15 @@ SlotReadSecure(SlotManager *manager, const SlotHandle *handle,
                                         &usedShadowRecovery);
     if (usedShadowRecovery) {
         manager->securityViolations++;
-        SlotManagerLogSecurityEvent(manager, "SHADOW_RECOVERY_SUCCESS",
-                                    handle->slotId,
-                                    "Recovered secure slot payload from shadow copy");
+        slot_manager_log_security_event_locked(
+            manager, "SHADOW_RECOVERY_SUCCESS", handle->slotId,
+            "Recovered secure slot payload from shadow copy");
     }
     if (secResult != SECURITY_SUCCESS) {
         manager->securityViolations++;
-        SlotManagerLogSecurityEvent(manager, "SEALED_PAYLOAD_VERIFY_FAILED",
-                                    handle->slotId,
-                                    "Secure sealed payload verification failed");
+        slot_manager_log_security_event_locked(
+            manager, "SEALED_PAYLOAD_VERIFY_FAILED", handle->slotId,
+            "Secure sealed payload verification failed");
         pthread_mutex_unlock(manager_mutex(manager));
         return SLOT_ERROR_PERMISSION_DENIED;
     }

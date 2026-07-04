@@ -19,6 +19,7 @@ PergyraSlotPin(SlotManager *manager, const SlotHandle *handle,
     SlotEntry *entry;
     SlotError result = SLOT_SUCCESS;
     uintptr_t tid = current_thread_id();
+    bool recordTokenViolation = false;
 
     if (manager == NULL || handle == NULL || outView == NULL)
         return SLOT_ERROR_INVALID_HANDLE;
@@ -32,14 +33,6 @@ PergyraSlotPin(SlotManager *manager, const SlotHandle *handle,
     if (token != NULL && mode == PGY_SLOT_PIN_WRITE
         && (!token->canRead || !token->canWrite))
         return SLOT_ERROR_PERMISSION_DENIED;
-
-    if (token != NULL && !SlotValidateToken(manager, handle, token)) {
-        slot_manager_record_security_violation(manager,
-                                               "PIN_TOKEN_VALIDATION_FAILED",
-                                               handle->slotId,
-                                               "Pin denied because token validation failed");
-        return SLOT_ERROR_PERMISSION_DENIED;
-    }
 
     pthread_mutex_lock(manager_mutex(manager));
     entry = find_slot_entry_locked(manager, handle);
@@ -68,6 +61,12 @@ PergyraSlotPin(SlotManager *manager, const SlotHandle *handle,
         result = SLOT_ERROR_PERMISSION_DENIED;
         goto done;
     }
+    if (entry->securityEnabled
+        && !slot_token_valid_for_entry_locked(manager, handle, token, entry)) {
+        recordTokenViolation = true;
+        result = SLOT_ERROR_PERMISSION_DENIED;
+        goto done;
+    }
 
     if (entry->securityEnabled) {
         SecurityError secResult;
@@ -87,15 +86,15 @@ PergyraSlotPin(SlotManager *manager, const SlotHandle *handle,
                                             &usedShadowRecovery);
         if (usedShadowRecovery) {
             manager->securityViolations++;
-            SlotManagerLogSecurityEvent(manager, "PIN_SHADOW_RECOVERY_SUCCESS",
-                                        handle->slotId,
-                                        "Recovered secure slot payload while pinning");
+            slot_manager_log_security_event_locked(
+                manager, "PIN_SHADOW_RECOVERY_SUCCESS", handle->slotId,
+                "Recovered secure slot payload while pinning");
         }
         if (secResult != SECURITY_SUCCESS) {
             manager->securityViolations++;
-            SlotManagerLogSecurityEvent(manager, "PIN_SEALED_PAYLOAD_VERIFY_FAILED",
-                                        handle->slotId,
-                                        "Secure sealed payload verification failed while pinning");
+            slot_manager_log_security_event_locked(
+                manager, "PIN_SEALED_PAYLOAD_VERIFY_FAILED", handle->slotId,
+                "Secure sealed payload verification failed while pinning");
             result = SLOT_ERROR_PERMISSION_DENIED;
             goto done;
         }
@@ -119,6 +118,11 @@ PergyraSlotPin(SlotManager *manager, const SlotHandle *handle,
 
 done:
     pthread_mutex_unlock(manager_mutex(manager));
+    if (recordTokenViolation) {
+        slot_manager_record_security_violation(
+            manager, "PIN_TOKEN_VALIDATION_FAILED", handle->slotId,
+            "Pin denied because token validation failed");
+    }
     return result;
 }
 

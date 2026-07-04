@@ -52,6 +52,11 @@ require_term "src/runtime/slot_manager_secure_ops.c" "slot_token_valid_for_entry
 require_term "src/runtime/slot_manager_secure_ops.c" "TokenDecrypt(manager->securityContext"
 require_term "src/runtime/slot_manager_secure_ops.c" "TokenCompareSecure(&storedToken, &token->token)"
 require_term "src/runtime/slot_manager_secure_ops.c" "tokenValid = slot_token_valid_for_entry_locked(manager, handle, token, entry)"
+require_term "src/runtime/slot_manager_secure_ops.c" "SecurityContext *context;"
+require_term "src/runtime/slot_manager_secure_ops.c" "manager->securityContext = NULL;"
+require_term "src/runtime/slot_manager_secure_ops.c" "SecurityContextDestroy(context)"
+require_term "src/runtime/slot_manager_pin.c" "slot_token_valid_for_entry_locked(manager, handle, token, entry)"
+forbid_term "src/runtime/slot_manager_pin.c" "SlotValidateToken(manager, handle, token)"
 require_term "src/runtime/pgy_runtime_lib_file_path_core.h" "pgy_runtime_path_is_symlink"
 require_term "src/runtime/pgy_runtime_lib_file_path_core.h" "for_write && pgy_runtime_path_is_symlink(candidate)"
 require_term "src/runtime/pgy_runtime_platform_io_core.h" "pgy_runtime_path_is_symlink"
@@ -66,6 +71,9 @@ require_term "src/runtime/slot_security.c" 'component\":\"slot-security'
 require_term "src/runtime/slot_security_sealed_payload.c" 'component\":\"slot-security'
 require_term "src/runtime/slot_manager_core_ops.c" 'component\":\"slot'
 require_term "src/runtime/slot_manager_security_stats.c" 'component\":\"slot-security'
+require_term "src/runtime/slot_manager_security_stats.c" "fputs(\"{\\\"component\\\":\\\"slot-security\\\",\\\"timestamp\\\":\", stderr)"
+require_term "src/runtime/slot_manager_security_stats.c" "slot_manager_log_security_event_locked"
+require_term "src/runtime/slot_manager_security_stats.c" "pthread_mutex_lock(manager_mutex(manager))"
 require_term "src/runtime/slot_security_context_ops.h" 'component\":\"slot-security-audit'
 require_term "src/runtime/pgy_runtime_security_log.h" 'component\":\"authority'
 require_term "src/runtime/pgy_runtime_lib_authority_file_core.h" "pgy_runtime_log_authority_failure"

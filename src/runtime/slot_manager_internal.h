@@ -10,6 +10,10 @@ void slot_manager_record_security_violation(SlotManager *manager,
                                             const char *event,
                                             uint32_t slotId,
                                             const char *details);
+void slot_manager_log_security_event_locked(SlotManager *manager,
+                                            const char *event,
+                                            uint32_t slotId,
+                                            const char *details);
 uint64_t slot_now_us(void);
 uintptr_t current_thread_id(void);
 uint32_t slot_checksum_bytes(const void *ptr, size_t size);
@@ -20,6 +24,10 @@ void slot_free_buffers(SlotEntry *entry);
 bool slot_reserve_storage(SlotEntry *entry, size_t size);
 bool slot_store_plain_payload(SlotEntry *entry, const void *data, size_t size);
 bool slot_is_expired_locked(const SlotEntry *entry);
+bool slot_token_valid_for_entry_locked(SlotManager *manager,
+                                       const SlotHandle *handle,
+                                       const TokenCapability *token,
+                                       SlotEntry *entry);
 SlotError slot_release_entry_locked(SlotManager *manager, SlotEntry *entry,
                                     bool allowSecure);
 

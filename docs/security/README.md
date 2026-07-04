@@ -1,6 +1,6 @@
 # Pergyra Security Audit Folder
 
-Last updated: 2026-06-13
+Last updated: 2026-07-05
 
 This folder is the home for **adversarial counterexample-search audits** of
 Pergyra runtime safety contracts. It uses AI as a *Validator* (static
@@ -87,6 +87,9 @@ For Pergyra specifically:
 - [`audits/`](audits/) — Audit run logs (date-stamped), one per run.
 - [`findings/`](findings/) — Confirmed bugs and false positives, each
   with regression-test reference. Filed:
+  - `2026-07-05_slot_secure_toctou_audit.md` - secure slot check/use
+    atomicity audit, **Fixed** for pin/context lifecycle; the original
+    read/write claim was stale.
   - `2026-07-05_symlink_toctou_write.md` — sandbox write check→open TOCTOU
     symlink window, **Fixed** (O_NOFOLLOW at open time, verified on Linux).
   - `2026-07-05_fingerprint_not_attestation.md` — software fingerprint
