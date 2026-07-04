@@ -1,0 +1,33 @@
+// axis-carriage probe — 중 스케일, value-typed arm (deep laundering leg).
+// A field-identical ForgedToken enters the 3-hop chain from the top.
+// Nominal typing catches at HOP 1 (the earliest catch point of the three
+// arms): the forgery never travels.
+object AdminToken {
+    holder: String;
+}
+
+object ForgedToken {
+    holder: String;
+}
+
+object Order {
+    amount: Int;
+}
+
+func ExecuteRefund(t: AdminToken, o: Order) -> Int {
+    return o.amount;
+}
+
+func ReviewRefund(t: AdminToken, o: Order) -> Int {
+    return ExecuteRefund(t, o);
+}
+
+func RequestRefund(t: AdminToken, o: Order) -> Int {
+    return ReviewRefund(t, o);
+}
+
+func Main() -> Void {
+    let mallory = ForgedToken("mallory");
+    let order = Order(30);
+    Log(RequestRefund(mallory, order));
+}

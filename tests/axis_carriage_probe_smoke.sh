@@ -118,4 +118,37 @@ grep -Fq "missing declared capabilities" "$OUT_DIR/cap_manifest_violation.pgy.lo
     fail "caps violation lost its diagnostic"
 if cap manifest_interproc.pgy; then fail "caps interprocedural laundering must fire"; fi
 
-echo "[axis-carriage] measured verdicts locked (c/llvm): cap=STATIC+interproc, world=STATIC no-silent-copy, zone=SILENT-COPY isolation, per-type=STATIC, tag=RUNTIME"
+# ---- 중(medium) scale: one refund domain, three carriage arms, 3-hop ----
+# Same domain logic and identical happy-path output per arm; what differs is
+# WHERE the violation is caught (hop-1 static / analysis-time static at
+# depth 3 / hop-3 runtime) and what each arm costs in the signatures.
+for backend in c llvm; do
+    expect_runs   "$backend" medium_pos/main.pgy "30"
+    expect_reject "$backend" medium_pos/vio_deep.pgy "missing declared capabilities"
+    expect_runs   "$backend" medium_val/main.pgy "30"
+    expect_reject "$backend" medium_val/forged_deep.pgy "to accept 'ForgedToken'"
+    expect_runs   "$backend" medium_tag/main.pgy $'30\ndeep-denied'
+done
+
+# Cost census over the three medium arms (informative, not asserted —
+# these numbers feed docs/151 §2.2's cost table).
+arm_loc() { grep -cv '^\s*//' "$FIXTURES/$1/main.pgy"; }
+code_count() { grep -v '^\s*//' "$FIXTURES/$1/main.pgy" | grep -c "$2" || true; }
+pos_caps="$(code_count medium_pos "with caps")"
+val_thread="$(code_count medium_val "t: AdminToken")"
+tag_plumb="$(code_count medium_tag "Result<Int>")"
+echo "[axis-carriage] medium cost: pos loc=$(arm_loc medium_pos) caps-decl=$pos_caps | val loc=$(arm_loc medium_val) token-threading=$val_thread/3 sigs | tag loc=$(arm_loc medium_tag) result-plumbing=$tag_plumb/3 sigs"
+
+# ---- 대(corpus) scale: what the largest real Pergyra program (self-host)
+# already reaches for, by natural selection. Print-only census + existence
+# floor (the corpus keeps growing; exact counts belong in the doc snapshot).
+SH="$ROOT_DIR/src/self_hosted"
+n_caps="$(grep -rE "with caps" "$SH" --include='*.pgy' | wc -l | tr -d ' ')"
+n_authority="$(grep -rE "^\s*(authority |authorized by:)" "$SH" --include='*.pgy' | wc -l | tr -d ' ')"
+n_errgate="$(grep -rE "return Err\(" "$SH" --include='*.pgy' | wc -l | tr -d ' ')"
+echo "[axis-carriage] corpus census (self_hosted): positional caps=$n_caps, authority/step=$n_authority, runtime Result-gates=$n_errgate, value-typed token threading=0 (observed none)"
+[ "$n_caps" -ge 1 ] || fail "corpus census: expected at least one with-caps site"
+[ "$n_authority" -ge 1 ] || fail "corpus census: expected at least one authority site"
+[ "$n_errgate" -ge 1 ] || fail "corpus census: expected at least one Err gate"
+
+echo "[axis-carriage] measured verdicts locked (c/llvm): cap=STATIC+interproc(depth3), world=STATIC no-silent-copy, zone=SILENT-COPY isolation, per-type=STATIC(hop-1), tag=RUNTIME(hop-3)"

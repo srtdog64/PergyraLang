@@ -1,0 +1,29 @@
+// axis-carriage probe — 중 스케일, value-typed arm (legit leg).
+// Same refund domain. Authority is a NOMINAL TOKEN TYPE: it must thread
+// through EVERY signature on the path (the virality cost, measurable as
+// 3/3 signatures carrying the token parameter).
+object AdminToken {
+    holder: String;
+}
+
+object Order {
+    amount: Int;
+}
+
+func ExecuteRefund(t: AdminToken, o: Order) -> Int {
+    return o.amount;
+}
+
+func ReviewRefund(t: AdminToken, o: Order) -> Int {
+    return ExecuteRefund(t, o);
+}
+
+func RequestRefund(t: AdminToken, o: Order) -> Int {
+    return ReviewRefund(t, o);
+}
+
+func Main() -> Void {
+    let admin = AdminToken("root");
+    let order = Order(30);
+    Log(RequestRefund(admin, order));
+}

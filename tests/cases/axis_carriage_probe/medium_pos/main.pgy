@@ -1,0 +1,27 @@
+// axis-carriage probe — 중 스케일, positional arm (legit leg).
+// Refund domain, 3-hop chain. Authority is POSITIONAL: one `with caps`
+// declaration at the entry covers the whole call path; nothing threads
+// through the signatures below it.
+object Order {
+    amount: Int;
+}
+
+func ExecuteRefund(o: Order) -> Int {
+    // Explicit annotation: un-annotated `let stamp = Now();` trips a C-backend
+    // MIR typing gap (registered as a separate defect; not this probe's target).
+    let stamp: Int = Now();
+    return o.amount;
+}
+
+func ReviewRefund(o: Order) -> Int {
+    return ExecuteRefund(o);
+}
+
+func RequestRefund(o: Order) -> Int with caps clock {
+    return ReviewRefund(o);
+}
+
+func Main() -> Void {
+    let order = Order(30);
+    Log(RequestRefund(order));
+}

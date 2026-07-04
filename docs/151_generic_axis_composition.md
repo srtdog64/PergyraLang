@@ -134,6 +134,41 @@ positional 기본, value-typed 승격은 zone(WO-B4)처럼 축별 증거로만.*
 후의 **정책**을 잠그고, 이것은 오늘 컴파일러의 **측정된 현행**을
 잠근다.
 
+### §2.2 스케일 사다리 — 대조군 3방식 × 소·중·대 (2026-07-04)
+
+BDFL 프레임: carriage 3방식을 **대조군**으로 두고 스케일을 소-중-대로
+올리며 실행. 스케일마다 묻는 질문이 다르다:
+
+| 스케일 | 질문 | 실험체 | 결과 |
+|---|---|---|---|
+| 소 | 기제가 존재하고 위반을 잡는가 | §2.1 커널 매트릭스 | STATIC/RUNTIME/SILENT 판정표 |
+| 중 | 같은 도메인을 3방식으로 짜면 비용·포착시점이 어떻게 갈리는가 | 환불 도메인 3-arm, 3-hop 체인 (medium_*) | 아래 비용·시점 표 |
+| 대 | 실전 최대 코퍼스가 자연선택으로 뭘 쓰는가 | src/self_hosted 센서스 | positional 지배 |
+
+**중 — 같은 환불 도메인(동일 happy-path 출력), 방식만 교체:**
+
+| arm | LOC(비주석) | 선언 부담 | 위반 포착 시점 |
+|---|---|---|---|
+| positional (caps) | **21** | `with caps` **1곳**(entry) — 경로 전체 커버 | 분석 시점 STATIC — depth-3 callee의 clock 사용을 entry 선언과 대조해 잡음 |
+| value-typed (nominal token) | 25 | 토큰 파라미터 **3/3 서명** 오염(virality 실측) | **hop-1 STATIC** — 최조기, 위조가 여행 자체를 못 함 |
+| runtime-tag (tag+Result) | 38 | Result 배관 **3/3 서명** + 소비부 | **hop-3 RUNTIME** — 최말기, 단 유일하게 증거가 **값과 함께 여행** |
+
+읽는 법: positional이 최저 비용·전 경로 커버(단 값이 아니라 경로에
+붙음), value-typed는 최조기 포착이나 서명 오염이 홉 수에 비례(Swift
+Sendable·Pony의 비용 모델 실측 재현), runtime-tag는 최고 비용·최말기
+포착이나 값-동반 증거가 필요할 때의 유일한 답(= GATE 판정값의 자리).
+
+**대 — self-host 코퍼스 센서스 (probe가 존재-바닥만 assert, 수치는
+스냅샷):** positional caps 3 + authority/step 23 = **positional 26
+사이트 지배**, runtime Result-게이트 4, value-typed 토큰 스레딩 **0**.
+언어의 최대 실전 프로그램이 아무 강제 없이 positional로 수렴해 있다 —
+Decision-0 positional-기본의 자연선택 증거.
+
+부수 발견(별도 결함 등록): 주석 없는 `let stamp = Now();`가 semantic은
+통과하나 C emitter에서 "cannot determine C type for MIR local" 실패 —
+docs/147 발견-1과 같은 lowering-시점 타입 fact 계열로 추정. probe는
+명시 주석으로 우회, 수정은 별도 태스크.
+
 ## 3. 판정값 — 초안 4값 채택 + 1값 제안 (GATE, OPEN)
 
 | 판정 | 의미 | 실물 선례 |

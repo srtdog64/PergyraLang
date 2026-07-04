@@ -1,0 +1,43 @@
+// axis-carriage probe — 중 스케일, runtime-tag arm (both legs, one run).
+// Same refund domain. Authority is a TAG FIELD riding the value; the gate
+// is a Result check at the innermost hop. Catches at HOP 3 (the LATEST
+// catch point of the three arms) — but it is the only arm whose evidence
+// travels WITH the value. Cost: Result plumbing on 3/3 signatures.
+object GateToken {
+    level: Int;
+}
+
+object Order {
+    amount: Int;
+}
+
+func ExecuteRefund(t: GateToken, o: Order) -> Result<Int> {
+    if t.level != 7 {
+        return Err("denied");
+    }
+    return Ok(o.amount);
+}
+
+func ReviewRefund(t: GateToken, o: Order) -> Result<Int> {
+    return ExecuteRefund(t, o);
+}
+
+func RequestRefund(t: GateToken, o: Order) -> Result<Int> {
+    return ReviewRefund(t, o);
+}
+
+func Main() -> Void {
+    let admin = GateToken(7);
+    let intruder = GateToken(1);
+    let order = Order(30);
+
+    let a = RequestRefund(admin, order);
+    if IsOk(a) {
+        Log(Unwrap(a));
+    }
+
+    let b = RequestRefund(intruder, order);
+    if IsErr(b) {
+        Log("deep-denied");
+    }
+}

@@ -10490,6 +10490,12 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
   ForgedToken 거절) / runtime-tag=RUNTIME(GATE 판정값 라이브 데모).
   → positional-기본 권고가 실측으로 강화됨. probe=현행 잠금(정책 잠금
   아님, §7 구분).
+- ✅ 스케일 사다리 확장 landed(2026-07-04, docs/151 §2.2): 대조군
+  3방식 × 소·중·대. 중=같은 환불 도메인 3-arm 3-hop — pos 21LOC/선언
+  1곳/분석시점 vs val 25LOC/서명오염 3/3/hop-1 최조기 vs tag 38LOC/배관
+  3/3/hop-3 최말기(값-동반 증거 유일). 대=self-host 센서스 positional
+  26 사이트 지배, 토큰 스레딩 0(자연선택 증거). 부수 결함 발견: 주석
+  없는 `let x = Now();` C emitter MIR 타이핑 실패(별도 태스크 칩).
 
 #### A-11. TPU/MLIR — post-beta 설계 여지만
 

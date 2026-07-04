@@ -1,0 +1,25 @@
+// axis-carriage probe — 중 스케일, positional arm (deep laundering leg).
+// Entry declares io_read, but the DEPTH-3 callee touches the clock. The
+// declared>=used check must catch the under-declaration through two
+// intermediate hops (interprocedural propagation at depth).
+object Order {
+    amount: Int;
+}
+
+func ExecuteRefund(o: Order) -> Int {
+    let stamp: Int = Now();
+    return o.amount;
+}
+
+func ReviewRefund(o: Order) -> Int {
+    return ExecuteRefund(o);
+}
+
+func RequestRefund(o: Order) -> Int with caps io_read {
+    return ReviewRefund(o);
+}
+
+func Main() -> Void {
+    let order = Order(30);
+    Log(RequestRefund(order));
+}
