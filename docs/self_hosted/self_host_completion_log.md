@@ -2625,7 +2625,7 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `artifact_zone_owner.pgy`, `test_harness_owner.pgy`, and
   `subprocess_runner_owner.pgy` alongside the JSON owner.
 - The comparator report now records `artifact_kind:"run_output"` from
-  `CompilerArtifactKindAt(6)` and C/LLVM projection rows from
+  a positional artifact-kind accessor and C/LLVM projection rows from
   `CompilerHarnessProjectionAt(0/1)`, plus the `oracle_compare`
   stdout/stderr and exit-code facts from `CompilerSubprocess*`, instead of
   carrying those facts as local shell/test vocabulary.
@@ -3244,6 +3244,18 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Updated the pre-self-host expansion ledger and codegen intent doc to say
   this closes the self-host C run-boundary omission, while native C/LLVM
   target-specific consumers remain active work.
+- No executable cases were run for this slice; validation was limited to static
+  owner/ratchet inspection under the validation isolation policy.
+
+### 2026-07-04 -- Backend comparator rejects positional artifact kind
+
+- Tightened `self_hosted_component_contract_smoke.sh` so
+  `backend_output_comparator` must consume `CompilerRunOutputArtifactKind()`
+  and `CompilerArtifactKindKnown(CompilerRunOutputArtifactKind())` instead of a
+  positional `CompilerArtifactKindAt(...)` row.
+- The artifact-zone owner still pins the exact vocabulary order internally,
+  including `CompilerArtifactKindAt(8) == CompilerRunOutputArtifactKind()`, but
+  the comparator consumer is now ratcheted to the named run-output artifact.
 - No executable cases were run for this slice; validation was limited to static
   owner/ratchet inspection under the validation isolation policy.
 
