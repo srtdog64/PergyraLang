@@ -33,6 +33,7 @@ PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/par
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 FIXTURE_DIR="$ROOT_DIR/src/self_hosted/parser/fixture"
 EXPECTED_FILE="$ROOT_DIR/src/self_hosted/parser/expected/clean.txt"
+ARTIFACT_COMPARE_BUILD_DIR="$PERGYRA_TOOL_BUILD_DIR/artifact_owner"
 
 if [[ ! -f "$PERGYRA_TOOL_SOURCE" ]]; then
     echo "[self-host-parity:parser] missing Pergyra tool: $PERGYRA_TOOL_SOURCE" >&2
@@ -48,6 +49,38 @@ cp "$ROOT_DIR/src/self_hosted/parser/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"
 LIB_BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/lib"
 mkdir -p "$LIB_BUILD_DIR"
 cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
+source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
+pgy_selfhost_compile_backend_output_comparator \
+    "self-host-parity:parser" "$ARTIFACT_COMPARE_BUILD_DIR"
+AST_COMPARATOR_BIN="$(pgy_selfhost_backend_output_comparator_bin "$ARTIFACT_COMPARE_BUILD_DIR")"
+
+compare_parser_ast_with_owner() {
+    local label="$1"
+    local expected_file="$2"
+    local actual_file="$3"
+    local expected_norm="$ARTIFACT_COMPARE_BUILD_DIR/${label//[^A-Za-z0-9_]/_}_expected.txt"
+    local actual_norm="$ARTIFACT_COMPARE_BUILD_DIR/${label//[^A-Za-z0-9_]/_}_actual.txt"
+    local cmp_out="$ARTIFACT_COMPARE_BUILD_DIR/${label//[^A-Za-z0-9_]/_}.compare.out"
+    local cmp_err="$ARTIFACT_COMPARE_BUILD_DIR/${label//[^A-Za-z0-9_]/_}.compare.err"
+    local expected_text
+    local actual_text
+    local expected_rel
+    local actual_rel
+
+    expected_text="$(tr -d '\r' < "$expected_file")"
+    actual_text="$(tr -d '\r' < "$actual_file")"
+    printf '%s' "$expected_text" > "$expected_norm"
+    printf '%s' "$actual_text" > "$actual_norm"
+    expected_rel="$(pgy_selfhost_path_relative_to_root "$expected_norm")"
+    actual_rel="$(pgy_selfhost_path_relative_to_root "$actual_norm")"
+
+    if ! (cd "$ROOT_DIR" && "$AST_COMPARATOR_BIN" "$expected_rel" "$actual_rel" 0 2 ast_text \
+        >"$cmp_out" 2>"$cmp_err"); then
+        echo "[self-host-parity:parser] $label: AST artifact parity FAIL" >&2
+        cat "$cmp_out" "$cmp_err" >&2
+        exit 1
+    fi
+}
 
 # Sources: each pair is "<source.pgy path relative to repo root>:<fixture base>"
 # where fixture base resolves to fixture/<base>_ast.txt.
@@ -257,22 +290,17 @@ check_live_fixture_drift() {
             exit 1
         fi
 
-        local expected_norm
-        expected_norm="$(tr -d '\r' < "$expected_fixture")"
-        local live_out
+        local live_out="$PERGYRA_TOOL_BUILD_DIR/live_${base}_ast.txt"
+        local live_err="$PERGYRA_TOOL_BUILD_DIR/live_${base}_ast.err"
+        local live_text
         local live_rc
         set +e
-            live_out="$(cd "$ROOT_DIR" && "$PGY_EXEC" --ast "$src" 2>/dev/null)"
+            live_text="$(cd "$ROOT_DIR" && "$PGY_EXEC" --ast "$src" 2>"$live_err")"
         live_rc=$?
         set -e
-        if [[ "$live_rc" -eq 0 && -n "$live_out" ]]; then
-            local live_norm
-            live_norm="$(printf '%s' "$live_out" | tr -d '\r')"
-            if [[ "$live_norm" != "$expected_norm" ]]; then
-                echo "[self-host-parity:parser] $src: committed AST fixture drifted from live pgy --ast" >&2
-                echo "regenerate: pgy --ast $src > $expected_fixture" >&2
-                exit 1
-            fi
+        printf '%s' "$live_text" > "$live_out"
+        if [[ "$live_rc" -eq 0 && -n "$live_text" ]]; then
+            compare_parser_ast_with_owner "live:$base" "$expected_fixture" "$live_out"
             any_drift_guard_ran="yes"
         fi
     done
@@ -299,28 +327,25 @@ run_parser_backend() {
         local src="${pair%%:*}"
         local base="${pair##*:}"
         local expected_fixture="$FIXTURE_DIR/${base}_ast.txt"
-        local pergyra_out
+        local pergyra_out="$PERGYRA_TOOL_BUILD_DIR/parser_${backend}_${base}.out"
+        local pergyra_err="$PERGYRA_TOOL_BUILD_DIR/parser_${backend}_${base}.err"
+        local pergyra_text
         local p_rc
 
         set +e
-        pergyra_out="$(cd "$ROOT_DIR" && "$tool_bin" "$src" 2>/dev/null \
-            | tr -d '\r')"
+        pergyra_text="$(cd "$ROOT_DIR" && "$tool_bin" "$src" 2>"$pergyra_err")"
         p_rc=$?
         set -e
+        printf '%s' "$pergyra_text" > "$pergyra_out"
 
         if [[ "$p_rc" -ne 0 ]]; then
             echo "[self-host-parity:parser] backend=$backend $src: exit-code FAIL (pergyra=$p_rc)" >&2
-            printf '%s\n' "$pergyra_out" >&2
+            cat "$pergyra_out" "$pergyra_err" >&2
             exit 1
         fi
 
-        local expected_norm
-        expected_norm="$(tr -d '\r' < "$expected_fixture")"
-        if [[ "$pergyra_out" != "$expected_norm" ]]; then
-            echo "[self-host-parity:parser] backend=$backend $src: BYTE-DRIFT vs $expected_fixture" >&2
-            diff <(printf '%s\n' "$expected_norm") <(printf '%s\n' "$pergyra_out") | head -30 >&2
-            exit 1
-        fi
+        compare_parser_ast_with_owner "backend:$backend:$base" \
+            "$expected_fixture" "$pergyra_out"
     done
 
     echo "[self-host-parity:parser] backend=$backend byte-equal (${#SOURCE_PAIRS[@]} sources)"

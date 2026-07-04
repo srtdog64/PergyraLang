@@ -25,6 +25,18 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-05 - Parser AST parity consumes ArtifactZone verdicts
+
+- Repointed `tests/self_hosted/parity/parser_parity.sh` so committed AST fixture
+  drift checks and self-host parser backend output checks compare `ast_text`
+  artifacts through the Pergyra `backend_output_comparator` owner.
+- The parser parity harness now builds the comparator once per run and feeds
+  normalized expected/actual artifact files to it, instead of letting shell
+  string comparison and `diff` own the final verdict.
+- Tightened `self_hosted_component_contract_smoke.sh` so parser parity must keep
+  the comparator owner path and cannot reintroduce the old local `diff <(...)`
+  / `BYTE-DRIFT` verdict.
+
 ## 2026-07-05 - Self-host generated C consumes secure host-IO open fact
 
 - Added `HostIORuntimeCSecureFileOpenFn()` to the self-host host-IO runtime ABI

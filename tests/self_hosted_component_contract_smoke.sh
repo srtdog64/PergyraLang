@@ -477,6 +477,11 @@ reject_text "src/self_hosted/parser/main.pgy" 'import "decl_nominal_owner.pgy";'
 reject_text "src/self_hosted/parser/main.pgy" 'import "decl_dispatch_owner.pgy";'
 require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" "ParserImportGraphSeen(import_paths, imp_path)"
 require_text "tests/self_hosted/parity/parser_parity.sh" "import_dedup_graph"
+require_text "tests/self_hosted/parity/parser_parity.sh" "pgy_selfhost_compile_backend_output_comparator"
+require_text "tests/self_hosted/parity/parser_parity.sh" "compare_parser_ast_with_owner"
+require_text "tests/self_hosted/parity/parser_parity.sh" "ast_text"
+reject_text "tests/self_hosted/parity/parser_parity.sh" "diff <("
+reject_text "tests/self_hosted/parity/parser_parity.sh" "BYTE-DRIFT"
 require_owner_surface semantic \
     "semantic_run_owner.pgy"
 require_file "src/self_hosted/semantic/text_scan_owner.pgy"
