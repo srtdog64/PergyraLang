@@ -1,0 +1,56 @@
+// (World x Intent) composition probe — CROSS-WORLD leg.
+// The distributed-design principle says cross-World movement is
+// Channel-only. This kernel asks: can an intent transfer step be aimed
+// at zones owned by two DIFFERENT worlds, bypassing Channel?
+// Verdict space (all informative):
+//   static reject at w.zone access -> world encapsulates its zones
+//   static reject at transfer      -> transfer checks world membership
+//   runs                           -> zones detach as copies; measure output
+subject Buyer {
+    let mut hp: Int;
+    action Promote(self) -> Void {
+        self.hp = self.hp + 1;
+    }
+}
+
+zone CartZone {
+    subject slot buyer: Buyer
+}
+
+zone PaymentZone {
+    subject slot buyer: Buyer
+}
+
+world CartWorld {
+    zone cart: CartZone
+
+    func Hp(self) -> Int {
+        return cart.buyer.hp;
+    }
+}
+
+world PayWorld {
+    zone payment: PaymentZone
+
+    func Hp(self) -> Int {
+        return payment.buyer.hp;
+    }
+}
+
+intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
+    step Promote {
+        transfer: cart -> payment;
+        on: buyer.Promote();
+        expect: true;
+    }
+}
+
+func Main() -> Void {
+    let w1 = CartWorld(CartZone(Buyer(1)));
+    let w2 = PayWorld(PaymentZone(Buyer(1)));
+    let buyer = Buyer(1);
+    Checkout(w1.cart, w2.payment, buyer);
+    Log(buyer.hp);
+    Log(w1.Hp());
+    Log(w2.Hp());
+}

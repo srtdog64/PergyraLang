@@ -1,0 +1,46 @@
+// (Actor x Intent) composition probe — who-swap leg B.
+// Identical to who_a.pgy except `who: observer;`. See who_a.pgy header.
+ability Payable {
+    func CanPay() -> Bool;
+}
+
+subject Buyer {
+    let mut total: Int;
+    action Promote(self) -> Void
+        requires Payable
+        authorized by self
+    {
+        self.total = self.total + 1;
+    }
+}
+
+role BuyerPayable for Buyer {
+    impl ability Payable {
+        func CanPay() -> Bool {
+            return true;
+        }
+    }
+}
+
+zone PayZone {
+    subject slot buyer: Buyer
+    authority buyer requires Payable
+}
+
+intent Checkout(pay: PayZone, buyer: Buyer, observer: Buyer) {
+    step Promote {
+        who: observer;
+        using: pay;
+        on: buyer.Promote();
+        expect: true;
+    }
+}
+
+func Main() -> Void {
+    let buyer = Buyer(1);
+    let observer = Buyer(100);
+    let pay = PayZone(buyer);
+    Checkout(pay, buyer, observer);
+    Log(buyer.total);
+    Log(observer.total);
+}

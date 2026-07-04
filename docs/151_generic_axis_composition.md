@@ -266,11 +266,22 @@ exactly-one-owner를 지키려면 축 목록만이 아니라 **사인된 cross-a
 | 간선 | 의미 | 실물 |
 |---|---|---|
 | cap ⊇ effect | capability가 effect를 게이트 | declared⊇used semantic error |
-| authority ⊢ step | authority가 intent step을 승인 | world.pgy `authorized by:` |
+| authority ⊢ step | authority가 intent step을 승인 | world.pgy `authorized by:` + AIR strict-evidence(참여자 대조) |
 | zone ⊃ slot | zone이 자리(slot)를 수용 | zone-bound handle |
 | world ⊃ zone | world가 zone을 소유-임베드 — implicit copy 정적 거절 + `Clone` 명시 요구 | §2.1 world_pos_share 실측 진단 |
-| intent ⊨ transfer | intent step이 zone 간 이동을 매개·승인 | handoff step `transfer: A -> B` + `authorized by:` |
+| intent ⊨ transfer | intent step이 zone(+slot) 간 이동을 매개·승인 | handoff step `transfer: A -> B` + `authorized by:` + 관측 from_zone/from_slot |
+| cap ⊢ zone-cross | zone 경계 통과가 capability로 게이트 | AIRBinding.air_zone_gate(SCross) + ZoneCrossingCore.v + authority-mismatch panic |
+| cap ⊢ slot-op | slot 획득/조작이 capability로 게이트 | AIRBinding.air_acquire_gate + SecureSlot 항상-on GATE(invalid-secure-token) + AIR slot_capability_retain_count |
+| effect ⊸ comp-slots | effect가 보상(롤백) 대상 slot들과 결합 | AIRBinding.air_comp_targets + CompensationCore.v |
+| role ⊨ ability | role 구현이 ability 계약을 만족 (Actor→Auth 정적 통로) | witness 만족 검사(docs/semantics/10) + role-impl 전파 진단(G-6 배터리) |
 | ERASE ⊒ * | 모든 축-사실은 소거 단계를 갖는다 (판정 codomain, 舊 Phase) | erasure dashboard |
+
+— **A-15 정합 감사(2026-07-04, docs/156 §3):** 기계-측 게이트 인터페이스
+(AIRBinding 5족)와 이 등록부를 처음 대조, **검사 실존·등재 부재 간선
+4개**(cap⊢zone-cross, cap⊢slot-op, effect⊸comp-slots, role⊨ability)를
+등재로 정정 — world⊃zone 감사(위)의 반복 사례. 표면 등록부와 기계
+인터페이스가 독립적으로 자라며 벌어진 어긋남이었고, 이제
+`axis-composition-test-smoke`가 등재를 잠근다.
 
 간선을 타는 검사(예: declared⊇used)는 두 축의 합성으로 기록하고, 한
 축 칸에 몰아넣지 않는다. 간선 등록부에 없는 cross-axis 검사가

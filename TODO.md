@@ -10604,11 +10604,23 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
 - 착지점 원칙 적용: 게이트/문서에만 있는 경계는 무착지 — 폴더/이름이
   경계의 물리 착지점. 순서는 등기부(잠금)→정정→이사로 확정됨.
 
-#### A-15. 조합 안전성 — ★진입 조건 성립 (2026-07-04, §3 전 항목 닫힘)
+#### A-15. 조합 안전성 — ★AC-0/AC-1 LANDED (2026-07-04, 같은 날 진입+착수)
 
-- **★진입 가능**: docs/155 §3 체크리스트 5항목 전부 닫힘(2026-07-04 —
+- **★착수분(2026-07-04, docs/156 + `axis-composition-test-smoke`)**:
+  15쌍 전수 배치 완료(무배정 0 — 간선 8 / 커널 2 / 소유권+부재 5) +
+  **등록부 정합 감사**: AIRBinding 5족(기계-측 간선 목록)과 docs/151 §4를
+  처음 대조 → 검사 실존·등재 부재 간선 4개 등재(cap⊢zone-cross,
+  cap⊢slot-op, effect⊸comp-slots, role⊨ability). 커널 실측(C==LLVM):
+  **★발견 — cross-world transfer SILENT WRITE-THROUGH**(w.zone 멤버읽기→
+  transfer 경로가 진단 0으로 데스트 world 내부 상태를 변이, 소스는 불변
+  비대칭 `2/1/2` — Channel-only의 측정된 우회, 방향 결정=AC-3 BDFL 셀,
+  zone SILENT-COPY와 같은 배치) / **who-swap 완전 비간섭**(통과·거절
+  양방향 — who는 승인 아님, WO-F3 실측판; 기계화=AC-4). AC-rung:
+  AC-0/1 landed, AC-2(부재쌍 커널)·AC-3(발견 방향)·AC-4(WO-F3 Coq)·
+  AC-5(G-4 합류) planned.
+- **진입 근거**: docs/155 §3 체크리스트 5항목 전부 닫힘(2026-07-04 —
   WO-F1 ✅ + WO-A1 ✅ + WO-A2 ✅ + GuardWitnessBinding.v ✅ + matrix-lock
-  green 재확인). BDFL 시퀀스상 ②가 다음 착수 대상.
+  green 재확인).
 - **BDFL 시퀀스(2026-07-04, docs/155 §2)**: ① 검증 프로그램 완성(닫힘)
   → ② 조합 안전성 → 핵심 목적지=self-host/자기 부트스트랩(North Star
   유지). 상태 인식: **언어는 C로써 이미 돈다** — 열린 것은 SoT 잔여

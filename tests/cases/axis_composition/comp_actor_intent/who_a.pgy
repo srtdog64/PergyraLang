@@ -1,0 +1,51 @@
+// (Actor x Intent) composition probe — who-swap leg A.
+// who_a.pgy and who_b.pgy are IDENTICAL except the step's `who:` line.
+// The pair's safety statement is who != approval (docs/42 SS2.2.1):
+// `who` is descriptive participation on the Intent axis; authorization
+// comes from `authorized by` / requires only. If swapping `who` changes
+// the program's verdict or output, the Actor axis is leaking into the
+// authorization path through an unregistered edge.
+ability Payable {
+    func CanPay() -> Bool;
+}
+
+subject Buyer {
+    let mut total: Int;
+    action Promote(self) -> Void
+        requires Payable
+        authorized by self
+    {
+        self.total = self.total + 1;
+    }
+}
+
+role BuyerPayable for Buyer {
+    impl ability Payable {
+        func CanPay() -> Bool {
+            return true;
+        }
+    }
+}
+
+zone PayZone {
+    subject slot buyer: Buyer
+    authority buyer requires Payable
+}
+
+intent Checkout(pay: PayZone, buyer: Buyer, observer: Buyer) {
+    step Promote {
+        who: buyer;
+        using: pay;
+        on: buyer.Promote();
+        expect: true;
+    }
+}
+
+func Main() -> Void {
+    let buyer = Buyer(1);
+    let observer = Buyer(100);
+    let pay = PayZone(buyer);
+    Checkout(pay, buyer, observer);
+    Log(buyer.total);
+    Log(observer.total);
+}

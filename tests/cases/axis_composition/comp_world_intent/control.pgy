@@ -1,0 +1,35 @@
+// (World x Intent) composition probe — CONTROL leg.
+// A transfer step between two free-standing zones (no world ownership)
+// must compile and run: this is the intent⊨transfer edge working inside
+// a single world-less scope. The cross.pgy leg then asks what happens
+// when the zones are owned by two DIFFERENT worlds.
+subject Buyer {
+    let mut hp: Int;
+    action Promote(self) -> Void {
+        self.hp = self.hp + 1;
+    }
+}
+
+zone CartZone {
+    subject slot buyer: Buyer
+}
+
+zone PaymentZone {
+    subject slot buyer: Buyer
+}
+
+intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
+    step Promote {
+        transfer: cart -> payment;
+        on: buyer.Promote();
+        expect: true;
+    }
+}
+
+func Main() -> Void {
+    let buyer = Buyer(1);
+    let cart = CartZone(buyer);
+    let payment = PaymentZone(buyer);
+    Checkout(cart, payment, buyer);
+    Log(buyer.hp);
+}
