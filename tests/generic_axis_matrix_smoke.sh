@@ -86,4 +86,12 @@ done < <(printf '%s\n' "$rows")
 # ERASE duty survives (every future ERASE cell must name its docs/14 bucket)
 require "docs/14 버킷 명명 의무"
 
+# concept-audit locks (2026-07-04): measured edges registered, DEFER duty,
+# advisory-is-not-a-verdict firewall
+require "world ⊃ zone"
+require "intent ⊨ transfer"
+require "DEFER 명명 의무"
+require "advisory는 판정값이 아니다"
+require "저장-매개 흐름"
+
 echo "[generic-axis-matrix] contract locked (decisions closed, rows stable, rungs honest)"

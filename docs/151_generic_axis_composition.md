@@ -96,10 +96,11 @@ sandbox 경계(PGY_CAP_GRANT, capability envelope)가 "선언된 하강"의
 
 **축 입장 조건(재심 2건의 일반화):** 축은 **표면 착지점**(키워드/
 구문)이 실존해야 한다. 착지점 없는 후보는 축이 아니라 sketch(§6) 또는
-메타(판정 codomain)다. 재심 후 6축은 표면 키워드와 전단사를 이룬다 —
+메타(판정 codomain)다. 재심 후 6축은 **전부 표면 키워드에 착지하고
+(전사), 각 착지 키워드는 정확히 한 축에 속한다(키워드-측 단사)** —
 World↔`world`, Zone↔`zone`, Actor↔`role`/`subject`, Auth↔`authority`/
 `with caps`, Intent/Effect↔`intent`/effect, slot↔`slot`. Site는 이
-전단사를 깨는 유일한 무착지 축명이었고, Phase 제거도 같은 기준의
+사상을 깨는 유일한 무착지 축명이었고, Phase 제거도 같은 기준의
 귀결이다(착지 구문 부재 → 축 아님 → ERASE codomain). 미래의 신규 축
 제안은 이 조건을 먼저 통과해야 한다.
 
@@ -177,7 +178,10 @@ positional 기본, value-typed 승격은 zone(WO-B4)처럼 축별 증거로만.*
 
 주의: 이 probe는 §7의 matrix-lock 게이트가 아니다 — 그것은 결정 닫힘
 후의 **정책**을 잠그고, 이것은 오늘 컴파일러의 **측정된 현행**을
-잠근다.
+잠근다. 범위 주석: 커널의 Actor→Auth 병합은 **기제 최소화**(토큰
+기제 공유)지 축 동일성 주장이 아니다 — Actor×positional의 실물은
+ability/role impl 만족 검사(witness 시스템)로 별도 실존하며, 축은
+§1대로 분리 유지된다.
 
 ### §2.2 스케일 사다리 — 대조군 3방식 × 소·중·대 (2026-07-04)
 
@@ -241,6 +245,14 @@ MIR-only×generics seam(TODO 보드 stdlib 스트림 발견-1, 2026-07-03)과
   dashboard에 실린다. **ERASE가 이 표의 진짜 신규성이다** — Swift는
   이 판정값이 없어서 "P인 값"이 세 철자(`<T:P>`/`some P`/`any P`)로
   갈라졌다. 소거를 판정값으로 가지면 표기가 갈라질 이유가 없다.
+- **DEFER 명명 의무(감사 2026-07-04, ERASE와 대칭)**: 모든 DEFER 셀은
+  유예를 회수할 검증 지점(AIR pass/게이트 이름)을 명명해야 한다.
+  **무명 DEFER는 위장 ALLOW다** — 회수 지점 없는 정적 유예는 영원한
+  유예와 구별 불가능하다.
+- **advisory는 판정값이 아니다**: 판정값은 *차단 여부*의 어휘다.
+  semantic squiggle 4색(docs/140)의 advisory는 진단 차원으로 직교하며
+  어느 판정과도 병기 가능 — "WARN 판정값 추가" 류 제안은 이 구분으로
+  거절한다.
 
 ## 4. 간선 등록부 — 축만으로는 표가 닫히지 않는다
 
@@ -255,11 +267,16 @@ exactly-one-owner를 지키려면 축 목록만이 아니라 **사인된 cross-a
 | cap ⊇ effect | capability가 effect를 게이트 | declared⊇used semantic error |
 | authority ⊢ step | authority가 intent step을 승인 | world.pgy `authorized by:` |
 | zone ⊃ slot | zone이 자리(slot)를 수용 | zone-bound handle |
+| world ⊃ zone | world가 zone을 소유-임베드 — implicit copy 정적 거절 + `Clone` 명시 요구 | §2.1 world_pos_share 실측 진단 |
+| intent ⊨ transfer | intent step이 zone 간 이동을 매개·승인 | handoff step `transfer: A -> B` + `authorized by:` |
 | ERASE ⊒ * | 모든 축-사실은 소거 단계를 갖는다 (판정 codomain, 舊 Phase) | erasure dashboard |
 
 간선을 타는 검사(예: declared⊇used)는 두 축의 합성으로 기록하고, 한
 축 칸에 몰아넣지 않는다. 간선 등록부에 없는 cross-axis 검사가
-생기면 그것이 곧 설계 드리프트 신호다.
+생기면 그것이 곧 설계 드리프트 신호다. — 감사 기록(2026-07-04):
+world⊃zone·intent⊨transfer 두 간선이 **검사는 실존하는데 등록은 안 된
+상태**로 발견됐다(등록부 자신의 규칙 위반). §2.1이 실측한 최강 진단이
+미등록 간선 위에 있었다 — 본 감사에서 등록으로 정정.
 
 ## 5. 1층 표 — 실존 생성자 (출발점 = 전-REJECT 래칫)
 
@@ -273,7 +290,7 @@ Decision-0 닫힘·seam 해소는 §7에 이행 기록).
 |---|---|---|---|---|---|---|---|
 | `Option<T>`/`Result<T,E>` | 보존 | 보존 | 보존 | 보존 | 보존 | 약 | **G-1 OPEN**: return+body-local run-parity / param REJECT(G-2) / per-type 우회 유지 |
 | `List<T>` | 보존 | 보존+T제약 | 보존 | 보존 | — | 약 | REJECT |
-| `Slot<T>` | 보존 | 강 | — | **승격**: T가 auth-bearing이면 Slot도 auth-aware | 강 | 강 | REJECT + 런타임 GATE(항상-on) |
+| `Slot<T>` | 보존 | 강 | — | **승격**: T가 auth-bearing(=nominal 토큰, §2.1 auth_val 실증 한정)이면 Slot도 auth-aware — G-4 생성자 경계 검사로, 값 태깅 아님(Decision-0 준수) | 강 | 강 | REJECT + 런타임 GATE(항상-on) |
 | **`Channel<T>`** | **유일 합법 cross-World 운반체** | 경계 통과=증거 | — | 위임 위험 | send/recv | 강 | REJECT |
 | `own`/`ref T` | 보존 | 이동 기본 거절 | — | **위임**(ocap: 참조 전달=권한 위임) | — | 강 | 현행 own/ref 규칙 |
 | `StrView` | 보존 | 차용 | — | 축소 | inspect | 표시 | WO-P1 = 첫 소거-시점 fact |
@@ -288,6 +305,18 @@ Decision-0 닫힘·seam 해소는 §7에 이행 기록).
   참조를 건네는 것은 권한을 위임하는 것이다. `Slot<T>` 행과 최소
   동급 위험으로 캘리브레이션. own/ref 명시 증거가 완화 요인이지
   면제 사유가 아니다.
+
+개념 노트(감사 2026-07-04):
+
+- **positional carriage의 세탁 채널 = 저장-매개 흐름**(A 자리에서
+  넣고 B 자리에서 읽기). 호출-경로는 interproc 분석이 커버하지만
+  저장을 경유하면 경로가 끊긴다 — §2.1의 zone SILENT-COPY가 그 실측
+  사례다. `Channel<T>`은 이 흐름의 **유일 합법화**(선언된 저장-매개
+  경계 통과)이고, 그래서 이 표에서 가장 하중이 큰 행이다. G-4의
+  생성자 경계 검사는 곧 "저장-매개 흐름의 입구 검사"다.
+- **`List<T>` 행은 컬렉션 패밀리 대표**다(Array/Queue/Map/Set —
+  specialization 레지스트리 실물). 패밀리 전체가 같은 carriage 행동
+  (보존, T 제약 유지)을 공유하므로 행을 늘리지 않는다.
 
 ## 6. 2층 — 사변 생성자 (판정 금지, 어휘 선점만)
 
@@ -324,7 +353,7 @@ status ∈ {planned, landed}. landed = artifact와 gate 실존, planned =
 | rung | cell | status | artifact | gate |
 | --- | --- | --- | --- | --- |
 | G-1 | return-position + body-local constructed-over-T, C==LLVM run-parity | landed | src/codegen/transpiler_specialization_registry.c | tests/generic_nested_failclosed_smoke.sh |
-| G-2 | param-position constructed-over-T (양 백엔드 — LLVM 인자 metadata + C 바인딩 추론 확장) | planned | - | - |
+| G-2 | param-position constructed-over-T (양 백엔드 — LLVM 인자 metadata + C 바인딩 추론 확장 + **다중-param 바인딩 단일화**: 불일치 = 정적 거절) | planned | - | - |
 | G-3 | 중첩·다중 파라미터 (Option<Option<T>>, Result<T,E> 양-파라미터, List<T> 요소) | planned | - | - |
 | G-4 | generic × 축 합성 셀 개방 (§5 표의 Slot/Channel 행 — Decision-0 carriage 규칙 적용) | planned | - | - |
 | G-5 | class-generic × constructed-field/method 개방 (LLVM aggregate lowering) | planned | - | - |
