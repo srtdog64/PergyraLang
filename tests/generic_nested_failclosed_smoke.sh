@@ -2,16 +2,18 @@
 #
 # generic_nested_failclosed_smoke.sh — generic functions over constructed
 # types must never reach the native compiler as broken source. This locks
-# BOTH backends' voices on the same fixtures (measured 2026-07-03):
+# BOTH backends' voices on the same fixtures (G-1 landed 2026-07-04,
+# docs/151 §8; original asymmetry measured 2026-07-03):
 #
-#   - C: signature guard rejects Option<T> in param AND return position with
-#     "uses type parameter ... inside a constructed type".
-#   - LLVM: rejects Option<T> PARAMS ("requires concrete argument ... type
-#     metadata"), but genuinely supports Option<T> RETURNS and body-locals —
-#     that capability asymmetry is asserted here so it cannot drift silently.
-#   - C body-local Option<T> (bare-T signature) is a known diagnostic-quality
-#     gap: pgy still fails (rc!=0, native stage), never a silent bad binary.
-#     Real nested substitution is the separate feature decision on the board.
+#   - RETURN position and body-locals (Option<T> over a bare-T-inferable
+#     binding) now RUN on BOTH backends — C substitutes bindings at the
+#     type-require/expr-infer choke points and the specialization registry
+#     skips unbound type-parameter scans (G-1).
+#   - PARAM position stays fail-closed on BOTH backends (G-2 owns it):
+#     C "inside a constructed type", LLVM "requires concrete argument".
+#     Binding inference reads call-site arg types and gives up on
+#     constructed-over-T params; opening returns without opening params is
+#     safe because bindings then always come from bare-T params.
 #   - bare-T generics must keep compiling AND running on both backends
 #     (no-false-positive leg).
 
@@ -74,21 +76,19 @@ expect_runs() {
     [ "$got" = "$want" ] || fail "$backend/$fixture printed '$got', expected '$want'"
 }
 
-# C guard: constructed-over-T rejected in both positions, with the diagnostic.
-expect_reject c nested_param.pgy  "inside a constructed type"
-expect_reject c nested_return.pgy "inside a constructed type"
-
-# LLVM voice: params need concrete metadata; returns genuinely work.
+# Param position: fail-closed on BOTH backends (G-2 cell, not open).
+expect_reject c    nested_param.pgy "inside a constructed type"
 expect_reject llvm nested_param.pgy "requires concrete argument"
-expect_runs   llvm nested_return.pgy "7"
-expect_runs   llvm body_local.pgy    "9"
 
-# C body-local: known diagnostic-quality gap — must still FAIL, never emit
-# a silent bad binary. (Real substitution = board feature decision.)
-expect_reject_any c body_local.pgy
+# G-1 cell: return position + body-locals run with identical output on
+# both backends (run-equal parity).
+expect_runs c    nested_return.pgy "7"
+expect_runs llvm nested_return.pgy "7"
+expect_runs c    body_local.pgy    "9"
+expect_runs llvm body_local.pgy    "9"
 
 # No false positives: bare-T generics stay green on both backends.
 expect_runs c    bare_ok.pgy "42"
 expect_runs llvm bare_ok.pgy "42"
 
-echo "[generic-nested] fail-closed + capability asymmetry locked (c/llvm)"
+echo "[generic-nested] G-1 open cells run-parity + param fail-closed locked (c/llvm)"

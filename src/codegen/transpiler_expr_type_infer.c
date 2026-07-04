@@ -31,6 +31,8 @@
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
 
+#include "transpiler_type_require.h"
+
 #include "codegen_slot_type_policy.h"
 #include "../parser/ast_api.h"
 
@@ -340,5 +342,21 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
 const char *
 transpiler_expr_infer_type_name(TranspilerCtx *ctx, ASTNode *expr)
 {
-    return infer_expression_type_name(ctx, expr);
+    const char *name = infer_expression_type_name(ctx, expr);
+
+    /* Inside a generic specialization window, inferred names may still be
+     * spelled in the declaration's type parameters ("T", "Option<T>").
+     * Every suffix derivation downstream (Some_/IsSome_/UnwrapOption_)
+     * consumes this result, so substitute the active bindings HERE — the
+     * one choke point — instead of at each consumer. */
+    if (ctx == NULL || ctx->generic_binding_count <= 0 || name == NULL)
+        return name;
+    {
+        char subst[256];
+        const char *applied = transpiler_type_name_apply_generic_bindings(
+            ctx, name, subst, sizeof(subst));
+        if (applied == name)
+            return name;
+        return transpiler_infer_arena_copy_type_name(ctx, applied);
+    }
 }

@@ -81,6 +81,29 @@ transpiler_subst_generics_in_type_name(TranspilerCtx *ctx, const char *in,
     return true;
 }
 
+/* Public entry for the token-wise substitution above: returns `buf` with
+ * active generic bindings applied when that changes the text, or the
+ * original pointer otherwise. Lets non-require consumers (expression type
+ * inference feeding Some_/IsSome_ suffix derivation) share the one
+ * substitution owner instead of growing private copies. */
+const char *
+transpiler_type_name_apply_generic_bindings(TranspilerCtx *ctx,
+                                            const char *type_name,
+                                            char *buf,
+                                            size_t buf_size)
+{
+    if (ctx == NULL || type_name == NULL || buf == NULL || buf_size == 0)
+        return type_name;
+    if (ctx->generic_binding_count <= 0)
+        return type_name;
+    if (!transpiler_subst_generics_in_type_name(ctx, type_name, buf,
+            buf_size))
+        return type_name;
+    if (strcmp(buf, type_name) == 0)
+        return type_name;
+    return buf;
+}
+
 bool
 transpiler_require_ast_c_type_copy(TranspilerCtx *ctx,
                                    ASTNode *type_ast,

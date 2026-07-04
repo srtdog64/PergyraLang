@@ -189,8 +189,12 @@ transpiler_mir_signature_nested_param(TranspilerCtx *ctx,
         return false;
     }
 
-    nested = transpiler_mir_type_name_nested_generic_param(
-        transpiler_mir_routine_return_type_name(routine), header);
+    /* G-1 (docs/151 §8): constructed-over-T is OPEN in return position —
+     * emission substitutes bindings through the type-require and
+     * expr-infer choke points. PARAM position stays fail-closed: binding
+     * inference reads call-site argument types and gives up on
+     * constructed-over-T params (G-2 owns that cell). */
+    nested = NULL;
     for (size_t i = 0; nested == NULL
          && i < transpiler_mir_routine_param_count(routine); i++) {
         nested = transpiler_mir_type_name_nested_generic_param(
@@ -220,8 +224,8 @@ transpiler_generic_signature_nested_param(TranspilerCtx *ctx,
 
     gparams = ast_declaration_generic_params(decl);
     param_count = ast_func_param_count(decl);
-    nested = transpiler_type_nested_generic_param(
-        ast_func_return_type(decl), gparams, true);
+    /* Mirror of the MIR-path G-1 rule: return position open, params guarded. */
+    nested = NULL;
     for (size_t i = 0; nested == NULL && i < param_count; i++) {
         FuncParam *param = ast_func_param(decl, i);
         nested = transpiler_type_nested_generic_param(

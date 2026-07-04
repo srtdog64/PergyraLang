@@ -75,11 +75,41 @@ transpiler_specialization_spec_name_too_long(TranspilerCtx *ctx,
         surface != NULL ? surface : "collection specialization");
 }
 
+/* A generic declaration's types reach this registry twice: once from the
+ * eager declaration scan (no bindings active — inner still spelled "T")
+ * and once from inside a specialization window (bindings active). Emitting
+ * PGY_*_DEFINE(T, ...) from the eager pass hands gcc an unknown type, so:
+ * substitute active bindings if any, then skip when the inner is still a
+ * bare single-capital-letter name (the type-parameter spelling; the
+ * require path already rejects user types named that way). The bound
+ * re-scan inside the window owns the real emission. */
+static bool
+transpiler_specialization_inner_is_unbound_param(TranspilerCtx *ctx,
+                                                 const char **inner_io,
+                                                 char *buf,
+                                                 size_t buf_size)
+{
+    const char *applied;
+
+    if (ctx == NULL || inner_io == NULL || *inner_io == NULL)
+        return false;
+    applied = transpiler_type_name_apply_generic_bindings(
+        ctx, *inner_io, buf, buf_size);
+    *inner_io = applied;
+    return applied[0] >= 'A' && applied[0] <= 'Z' && applied[1] == '\0';
+}
+
 void
 ensure_option_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
                                 const char *inner_type)
 {
+    char inner_subst[128];
+
     if (ctx == NULL || dst == NULL || inner_type == NULL)
+        return;
+
+    if (transpiler_specialization_inner_is_unbound_param(
+            ctx, &inner_type, inner_subst, sizeof(inner_subst)))
         return;
 
     if (strcmp(inner_type, "Void") == 0) {
@@ -157,7 +187,17 @@ void
 ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
                                 const char *ok_type, const char *err_type)
 {
+    char ok_subst[128];
+    char err_subst[128];
+
     if (ctx == NULL || dst == NULL || ok_type == NULL || err_type == NULL)
+        return;
+
+    if (transpiler_specialization_inner_is_unbound_param(
+            ctx, &ok_type, ok_subst, sizeof(ok_subst)))
+        return;
+    if (transpiler_specialization_inner_is_unbound_param(
+            ctx, &err_type, err_subst, sizeof(err_subst)))
         return;
 
     if (strcmp(ok_type, "Void") == 0) {
@@ -269,9 +309,14 @@ ensure_collection_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
 {
     char suffix[128];
     char ctype_buf[128];
+    char inner_subst[128];
     const char *ctype = ctype_buf;
 
     if (ctx == NULL || dst == NULL || kind == NULL || inner_type == NULL)
+        return;
+
+    if (transpiler_specialization_inner_is_unbound_param(
+            ctx, &inner_type, inner_subst, sizeof(inner_subst)))
         return;
 
     if ((strcmp(kind, "List") == 0 || strcmp(kind, "Queue") == 0)
