@@ -27,6 +27,41 @@ A CI failure list is triage input, not a dependency graph. First inspect the
 failed log tail, identify the owner surface, and then choose the smallest gate
 that proves that owner did not drift.
 
+## CI Runner Modes
+
+Pergyra has two different validation modes, and they must not be confused.
+
+**Owner validation mode** is the normal source-of-truth work loop. It starts
+from the changed owner, chooses one artifact, and runs either no case, a static
+contract gate, or the narrowest executable gate for that artifact. This is the
+mode to use during AST/MIR/AIR/ABI/self-host closure.
+
+**Release collection mode** is what the platform CI step lists do. The runner in
+`scripts/ci_step_runner.sh` defaults to collect mode: after one step fails, it
+keeps executing independent steps and prints a final summary. That is useful for
+expensive CI because one run exposes every red surface. It is not an impact
+selector and it is not evidence that the first failed owner affected every later
+failed owner.
+
+`PGY_CI_FAIL_FAST=1` can turn the runner back into first-failure mode, but that
+only changes reporting. It still does not infer the changed owner. The owner
+must be named by reading the diff and the failed log tail.
+
+Platform step lists such as `scripts/ci_linux_steps.sh`,
+`scripts/ci_windows_steps.sh`, and `scripts/ci_macos_steps.sh` are release
+surface enumerations. They intentionally run many unrelated owners:
+
+- build/source inventory and shell policy;
+- frontend, semantic, AIR, MIR, ABI, runtime, and backend gates;
+- self-host contract and parity bundles;
+- broad C/LLVM backend compare shards.
+
+That shape is acceptable for release confidence. It is not the default local
+response to an isolated SoT edit. If a change touches only MIR declaration
+metadata, a later macOS slot-contract failure is an independent owner failure
+until the log proves that the MIR declaration fact crossed into the slot
+artifact.
+
 ## Isolation Surfaces
 
 | Surface | Owned Artifact | Narrow Evidence | Escalate Only When |
@@ -44,6 +79,53 @@ that proves that owner did not drift.
 | Self-host rung | Pergyra implementation artifact compared to oracle | the rung's contract smoke or focused parity fixture | the rung is being promoted or a shared compiler-world owner changed |
 | Docs/proofs | documented contract, proof model, methodology binding | documentation/proof smoke for the touched document family | implementation code also changed the contract being documented |
 
+## Isolation Face Audit
+
+This is the current judgment after rechecking the Makefile targets, platform CI
+step lists, self-host gates, and runner behavior.
+
+| Isolation Face | Current Judgment | What It Means |
+|---|---|---|
+| Owner/fact isolation | Good direction, still discipline-dependent | The repo has the SoT spine and this policy, but the CI summary cannot infer ownership. Every change still needs an explicit owner sentence before execution. |
+| Build artifact isolation | Mostly sound | `BUILD_DIR`/`BIN_DIR` are threaded through platform executable gates. Text/static gates deliberately ignore build dirs because they own repository text, not build products. |
+| Source inventory isolation | Global hygiene, not impact-local | `build-source-inventory-test-smoke` checks Makefile lists, shell policy, tracked artifacts, and portable scripts. Its cross-platform failure is expected because it owns repo-wide build surface. Do not run it for a pure MIR/AIR/semantic owner edit unless source lists or CI scripts changed. |
+| Fixture/case isolation | Needs explicit selection | Backend compare and AIR nonimpact can run named fixtures, limits, or shards, but broad defaults still scan committed case sets. For local SoT work, use named fixtures only when the changed owner reaches that fixture's artifact. |
+| Backend projection isolation | Conditionally shared | C and LLVM are isolated projections only after MIR/AIR/type/ABI facts are fixed. A backend-local emitter edit should start with that backend's gate. A shared fact edit may require C/LLVM parity. |
+| AIR nonimpact isolation | Heavy by design | The nonimpact smoke proves strict AIR evidence does not perturb selected backend outputs. It is not a cheap AIR owner gate and should not run after unrelated docs, self-host, or MIR declaration edits. |
+| Self-host isolation | Split correctly, but the wrapper is heavy | `self-host-preparation-contract-test-smoke` is the structural path. `self-host-preparation-parity-test-smoke` is the oracle comparison path. `self-host-preparation-test-smoke` runs both and should be treated as release/development evidence, not the first local step for a single owner edit. |
+| Platform isolation | Release-only | Linux, Windows, and macOS step lists enumerate platform confidence surfaces. A platform CI summary groups independent owner failures; it does not mean the current patch touched all those owners. |
+| Runtime/materialization isolation | Evidence-bound | Runtime calls or retained world/zone/slot artifacts are acceptable only when AIR/MIR/ABI retaining facts explain them. If a change touches materialization classification, use the runtime/materialization gate; otherwise runtime gates are independent. |
+| Docs/proof isolation | Text-contract only | A doc/proof smoke proves wording and model alignment. It does not prove implementation erasure or self-host substitution unless paired with the owner implementation gate. |
+
+The weak spot is not that unrelated surfaces exist. The weak spot is treating a
+release CI collection as an owner dependency graph. The fix is procedural:
+classify each red step by owner before deciding whether it belongs to the
+current patch.
+
+## CI Failure Classification
+
+When a CI summary reports multiple failures, classify each failed step before
+running more code:
+
+| Class | Meaning | Default Action |
+|---|---|---|
+| A. Impacted owner failure | The changed owner emits, mutates, or verifies the artifact that failed. | Debug it in the current patch with the narrow owner gate. |
+| B. Independent owner failure | The failed gate owns a different artifact and the log tail shows no crossed owner fact. | Record it as separate work; do not expand the current validation scope. |
+| C. Aggregate wrapper failure | A target failed only because it calls another failed target, such as `test-all`, platform CI, or a preparation wrapper. | Follow the child failure, not the wrapper name. |
+| D. Environment/toolchain failure | The log tail names missing tools, path conversion, compiler executable discovery, or platform runtime mismatch. | Route to build/toolchain ownership; do not infer language or backend drift. |
+
+Examples:
+
+- `build-source-inventory-test-smoke` failing on every platform is one global
+  build/source-inventory failure, not three unrelated language regressions.
+- `self-host-preparation-test-smoke` failing because a parity child failed
+  belongs to that child rung; the wrapper is class C.
+- `llvm-test-backend-compare` failing only one named case belongs to the
+  projection owner for that case. It does not justify rerunning every unrelated
+  semantic, runtime, and self-host gate.
+- `air-strict-backend-compare-test-smoke` is relevant only when the changed
+  owner can change AIR evidence or a backend artifact under strict AIR.
+
 ## Protocol
 
 For every source-of-truth change:
@@ -57,6 +139,9 @@ For every source-of-truth change:
    fact reaches that fixture's artifact.
 6. Escalate to full backend compare, `test-all`, platform CI wrappers, or shard
    sweeps only after explicit user approval or a release checkpoint.
+7. If a release CI summary is already red, classify each failure as A/B/C/D
+   before adding it to the current patch. Do not let an aggregate summary expand
+   an isolated owner edit by default.
 
 The same rule applies when fixing CI. A failing target outside the touched
 surface is not automatically part of the current change. It is a separate owner
@@ -95,4 +180,3 @@ Hard self-hosting does not loosen this policy. A self-hosted rung must still
 name its owner, oracle, artifact, and narrow evidence. A parity bundle is
 load-bearing only for the rung it owns. It must not become a habit of rerunning
 unrelated compiler surfaces after every isolated SoT edit.
-

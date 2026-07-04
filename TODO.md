@@ -74,7 +74,12 @@ English anchor for tooling/doc gates:
   or explicit user approval. The policy classifies build inventory,
   lexer/parser, semantic/DAG, AIR, MIR body, MIR declaration inventory,
   ABI/runtime, C projection, LLVM projection, backend compare, self-host rungs,
-  and docs/proofs as separate validation surfaces.
+  and docs/proofs as separate validation surfaces. It also separates owner
+  validation mode from release CI collection mode: `scripts/ci_step_runner.sh`
+  may continue after a failure to surface every red owner, but that summary is
+  not an impact graph. Failed steps must be classified as impacted owner,
+  independent owner, aggregate wrapper, or environment/toolchain before they
+  expand the current SoT patch.
 - MIR declaration generic metadata source-of-truth: `MIRDeclGenericParam`
   no longer reuses raw AST storage field names for bound/default metadata.
   Bound/default type names are captured as MIR declaration-header facts at
