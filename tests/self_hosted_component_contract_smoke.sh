@@ -1424,6 +1424,15 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHar
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessFindingCap"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareTimeoutMs"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareEnvAllowlist"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareTimeoutMsValue"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "return ToString(CompilerSubprocessOracleCompareTimeoutMsValue())"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareEnvAllowlistCount"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareEnvAllowlistAt"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareEnvAllowlistKnown"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "CompilerSubprocessOracleCompareEnvAllowlistCount() == 4"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "CompilerSubprocessOracleCompareEnvAllowlistAt(0) == \"PATH\""
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "CompilerSubprocessOracleCompareEnvAllowlistKnown(\"PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS\")"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "StringJoin(names, \",\")"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessExecutablePathFact"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessArgvFact"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessCwdFact"
@@ -1456,6 +1465,8 @@ reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'if index == 
 reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'if index == 2 { return "artifact_probe"; }'
 reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'CompilerSubprocessUseCaseAt(1) == "fixture_build"'
 reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'CompilerSubprocessUseCaseAt(2) == "artifact_probe"'
+reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'return "30000";'
+reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'return "PATH,PGY_BIN,PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS,PGY_SELFHOST_BUILD_DIR";'
 require_text "src/self_hosted/tools/backend_output_comparator/expected/clean.json" '"subprocess_timeout_ms":"30000"'
 require_text "src/self_hosted/tools/backend_output_comparator/expected/clean.json" '"subprocess_env_allowlist":"PATH,PGY_BIN,PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS,PGY_SELFHOST_BUILD_DIR"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'

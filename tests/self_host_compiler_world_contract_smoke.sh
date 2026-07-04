@@ -465,7 +465,11 @@ for term in \
     "CompilerSubprocessExitFact" \
     "oracle_compare" \
     "artifact_probe" \
+    "CompilerSubprocessOracleCompareTimeoutMsValue" \
     "CompilerSubprocessOracleCompareTimeoutMs" \
+    "CompilerSubprocessOracleCompareEnvAllowlistCount" \
+    "CompilerSubprocessOracleCompareEnvAllowlistAt" \
+    "CompilerSubprocessOracleCompareEnvAllowlistKnown" \
     "CompilerSubprocessOracleCompareEnvAllowlist" \
     "CompilerSubprocessOracleComparePlanReady"; do
     require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "$term"

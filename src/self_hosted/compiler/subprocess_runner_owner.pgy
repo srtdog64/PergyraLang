@@ -89,12 +89,41 @@ func CompilerSubprocessUseCaseKnown(use_case: String) -> Bool {
         use_case == CompilerSubprocessArtifactProbeUseCase();
 }
 
+func CompilerSubprocessOracleCompareTimeoutMsValue() -> Int {
+    return 30000;
+}
+
 func CompilerSubprocessOracleCompareTimeoutMs() -> String {
-    return "30000";
+    return ToString(CompilerSubprocessOracleCompareTimeoutMsValue());
+}
+
+func CompilerSubprocessOracleCompareEnvAllowlistCount() -> Int {
+    return 4;
+}
+
+func CompilerSubprocessOracleCompareEnvAllowlistAt(index: Int) -> String {
+    if index == 0 { return "PATH"; }
+    if index == 1 { return "PGY_BIN"; }
+    if index == 2 { return "PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS"; }
+    if index == 3 { return "PGY_SELFHOST_BUILD_DIR"; }
+    return "";
+}
+
+func CompilerSubprocessOracleCompareEnvAllowlistKnown(name: String) -> Bool {
+    return name == CompilerSubprocessOracleCompareEnvAllowlistAt(0) ||
+        name == CompilerSubprocessOracleCompareEnvAllowlistAt(1) ||
+        name == CompilerSubprocessOracleCompareEnvAllowlistAt(2) ||
+        name == CompilerSubprocessOracleCompareEnvAllowlistAt(3);
 }
 
 func CompilerSubprocessOracleCompareEnvAllowlist() -> String {
-    return "PATH,PGY_BIN,PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS,PGY_SELFHOST_BUILD_DIR";
+    let names: Array<String> = [
+        CompilerSubprocessOracleCompareEnvAllowlistAt(0),
+        CompilerSubprocessOracleCompareEnvAllowlistAt(1),
+        CompilerSubprocessOracleCompareEnvAllowlistAt(2),
+        CompilerSubprocessOracleCompareEnvAllowlistAt(3)
+    ];
+    return StringJoin(names, ",");
 }
 
 func CompilerSubprocessOracleComparePlanReady() -> Bool {
@@ -120,6 +149,13 @@ func CompilerSubprocessOracleComparePlanReady() -> Bool {
         CompilerSubprocessFactKnown(CompilerSubprocessTimeoutMsFact()) &&
         CompilerSubprocessFactKnown(CompilerSubprocessStreamFact()) &&
         CompilerSubprocessFactKnown(CompilerSubprocessExitFact()) &&
+        CompilerSubprocessOracleCompareTimeoutMsValue() > 0 &&
+        CompilerSubprocessOracleCompareTimeoutMs() == ToString(CompilerSubprocessOracleCompareTimeoutMsValue()) &&
+        CompilerSubprocessOracleCompareEnvAllowlistCount() == 4 &&
+        CompilerSubprocessOracleCompareEnvAllowlistAt(0) == "PATH" &&
+        CompilerSubprocessOracleCompareEnvAllowlistAt(1) == "PGY_BIN" &&
+        CompilerSubprocessOracleCompareEnvAllowlistKnown("PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS") &&
+        CompilerSubprocessOracleCompareEnvAllowlistKnown("PGY_SELFHOST_BUILD_DIR") &&
         CompilerSubprocessOracleCompareTimeoutMs() != "" &&
         CompilerSubprocessOracleCompareEnvAllowlist() != "";
 }

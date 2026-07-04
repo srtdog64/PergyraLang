@@ -50,8 +50,11 @@ JSON document on stdout, conforming to schema
     "expected_projection": "c_oracle",
     "actual_projection": "llvm_oracle",
     "subprocess_schema": "pgy.selfhost.subprocess-runner.v1",
+    "subprocess_use_case": "oracle_compare",
     "subprocess_timeout_ms": "30000",
-    "subprocess_env_allowlist": "PATH,PGY_BIN,PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS,PGY_SELFHOST_BUILD_DIR"
+    "subprocess_env_allowlist": "PATH,PGY_BIN,PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS,PGY_SELFHOST_BUILD_DIR",
+    "subprocess_stream_fact": "stdout_stderr",
+    "subprocess_exit_fact": "exit_code"
   },
   "counts": {
     "expected_lines": 0,
@@ -70,6 +73,10 @@ JSON document on stdout, conforming to schema
   `{ "kind": "mismatch" | "extra" | "missing" | "input_error",
      "line": <int>, "location": "..." }`.
   The cap is `CompilerHarnessFindingCap()`.
+- Subprocess source fields are projections of
+  `compiler/subprocess_runner_owner.pgy`: timeout is derived from
+  `CompilerSubprocessOracleCompareTimeoutMsValue()`, and the env allowlist is
+  derived from `CompilerSubprocessOracleCompareEnvAllowlistAt(...)` rows.
 
 Exit code: `0` on `ok:true`, `1` on `ok:false`. Missing input reports
 `input_error` and exits `1`.
