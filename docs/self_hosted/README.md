@@ -134,6 +134,11 @@ Fast and heavy self-host checks are split. Use
 work, and use `make self-host-preparation-test-smoke` when developing or
 validating a full rung because it also runs the heavy C/LLVM/Pergyra parity
 bundle. A normal compiler build must not imply the full self-host parity suite.
+For isolated SoT edits, follow
+[`../152_validation_isolation_policy.md`](../152_validation_isolation_policy.md)
+before running the wrapper: name the rung owner, artifact, and oracle first,
+then run only the contract or focused parity evidence for that owner unless a
+shared compiler-world fact crossed the boundary.
 
 ## First Self-Host Rule
 

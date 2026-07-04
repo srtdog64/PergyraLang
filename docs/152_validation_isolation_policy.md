@@ -143,6 +143,31 @@ release CI collection as an owner dependency graph. The fix is procedural:
 classify each red step by owner before deciding whether it belongs to the
 current patch.
 
+## Per-Face Trigger Contract
+
+This table is the operational form of the audit. It answers: if this face is
+red, what can it prove, and what must it not pull into the current patch by
+default?
+
+| Isolation Face | First Proof To Inspect | Belongs To Current Patch When | Must Stay Isolated From |
+|---|---|---|---|
+| Source/build inventory | changed Makefile/source-list/shell term and the inventory log tail | the diff changed source registration, shell selection, generated-file policy, or tracked fixture inventory | semantic, runtime, backend, and self-host failures that do not name a source-list or script fact |
+| Semantic/type shape | diagnostic/type/resolver owner named by the failing fixture | the diff changed that semantic owner or changed a fact consumed by it | backend compare and runtime gates until emitted IR/type facts are shown to change |
+| Checked arithmetic | arithmetic semantic/lowering owner and the checked-arith fixture tail | the diff touched checked-arith syntax, semantic facts, or lowering/runtime exports | general semantic-core or backend shards that are not checked-arith consumers |
+| AIR evidence/nonimpact | AIR schema/evidence/materialization fact named in the log | the diff changed AIR evidence, AIR strictness, or a backend artifact under strict AIR | self-host, slot, parser, and broad backend compare failures without an AIR fact crossing |
+| MIR CFG/body | MIR body/source-shape/local-type owner and named fixture | the diff changed CFG/body facts or a backend-visible MIR body consumer | declaration inventory, ABI/runtime, and semantic-core gates unless the log names the crossed fact |
+| MIR declaration inventory | declaration header/routine signature/binding-row owner | the diff changed declaration metadata or a backend-visible declaration consumer | CFG/body, slot/runtime, and unrelated semantic fixtures |
+| Slot/runtime/materialization | ABI/slot/runtime-frontier/materialization owner | the diff changed slot layout, retained-runtime policy, runtime ABI exports, or materialization evidence | parser/frontend/self-host gates unless they consume that exact runtime fact |
+| Backend projection | the named C or LLVM emitter/lowering fixture | the diff changed that projection owner, or a shared MIR/AIR/ABI fact that projection consumes | the other backend's full shard set until a shared fact or parity drift is named |
+| Backend compare | the single failing case and its projection owner | the changed owner reaches that case's emitted artifact or run output | unrelated backend-compare shards, semantic sweeps, and self-host parity bundles |
+| Self-host contract | the rung owner, declared oracle, artifact kind, and focused contract/parity tail | the diff changed that rung, a shared compiler-world owner, or its artifact/test-harness owner | platform CI wrappers and unrelated compiler-stage rungs |
+| Platform CI | failed child step plus platform/toolchain tail | the diff changed platform scripts, toolchain discovery, path conversion, or a platform-only runtime boundary | treating all later red steps as current-patch regressions |
+| Docs/proofs | touched doc/proof family and any matching doc smoke | the patch changes the contract text or model for that owner | implementation gates unless implementation files also changed |
+
+If a face is red but the "Belongs To Current Patch" column is false, record it
+as an independent owner failure. Do not keep executing adjacent cases just
+because the release runner would have collected them.
+
 ## Stop Conditions
 
 Stop expanding validation when any of these is true:

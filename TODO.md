@@ -79,7 +79,9 @@ English anchor for tooling/doc gates:
   may continue after a failure to surface every red owner, but that summary is
   not an impact graph. Failed steps must be classified as impacted owner,
   independent owner, aggregate wrapper, or environment/toolchain before they
-  expand the current SoT patch.
+  expand the current SoT patch. The per-face trigger contract now records the
+  first proof to inspect for each isolation face and the surfaces that must stay
+  isolated unless a crossed fact is named.
 - MIR declaration generic metadata source-of-truth: `MIRDeclGenericParam`
   no longer reuses raw AST storage field names for bound/default metadata.
   Bound/default type names are captured as MIR declaration-header facts at
