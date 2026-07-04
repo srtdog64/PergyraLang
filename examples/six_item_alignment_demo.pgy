@@ -107,7 +107,7 @@ func Describe(state: CheckoutState) -> String {
 
 func Main() -> Void {
     let buyer = Buyer("Mina", 2);
-    let payment = PaymentZone(buyer);
+    let payment = PaymentZone(Clone(buyer));
     let world = PaymentWorld(Clone(payment));
 
     Checkout(payment, buyer);

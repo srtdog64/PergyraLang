@@ -23,7 +23,7 @@ intent DriveCar(cockpit: CockpitZone, driver: Driver) {
 }
 func Main() -> Void {
     let driver = Driver(false);
-    let cockpit = CockpitZone(driver);
+    let cockpit = CockpitZone(Driver(false));
     Log(DriveCar(cockpit, driver));
     Log(ToString(StringLength(IntentLastTrace()) > 0));
     Log(ToString(StringLength(IntentLastFailure()) > 0));

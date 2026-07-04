@@ -50,7 +50,7 @@ func Main() -> Void
     // --- Phase 1: EDA (탐색) ---
     Log("");
     Log("--- EDA: Explore Orders ---");
-    let analysisZone = AnalysisZone(batch);
+    let analysisZone = AnalysisZone(Clone(batch));
     let edaOk = ExploreOrders(analysisZone, batch);
     Log("eda intent ok=${edaOk}");
 
@@ -64,7 +64,7 @@ func Main() -> Void
     // --- Phase 2: ETL (정제 + 적재) ---
     Log("");
     Log("--- ETL: Load Clean Orders ---");
-    let etlZone = EtlZone(batch);
+    let etlZone = EtlZone(Clone(batch));
     let etlOk = LoadCleanOrders(etlZone, batch);
     Log("etl intent ok=${etlOk}");
 

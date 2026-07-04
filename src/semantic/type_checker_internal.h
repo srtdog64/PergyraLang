@@ -183,6 +183,9 @@ bool semantic_reject_lambda_unsupported_captures(ASTNode *lambda,
                                                  bool allow_copy_capture);
 Type *type_check_lambda_expression(ASTNode *expr, SemanticContext *ctx);
 void mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx);
+void semantic_reject_zone_subject_embedding(ASTNode *call, ASTNode *zone_decl,
+                                            const char *zone_name,
+                                            SemanticContext *ctx);
 bool expr_is_class_constructor_call(const ASTNode *expr, SemanticContext *ctx);
 bool expr_is_qubit_claim(const ASTNode *expr);
 bool expr_is_device_slot_claim(const ASTNode *expr);

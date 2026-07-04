@@ -10617,17 +10617,20 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
   zone SILENT-COPY와 같은 배치) / **who-swap 완전 비간섭**(통과·거절
   양방향 — who는 승인 아님, WO-F3 실측판; 기계화=AC-4). AC-rung:
   AC-0/1 landed, AC-2(부재쌍 커널)·AC-4(WO-F3 Coq)·AC-5(G-4 합류)
-  planned. **AC-3 = 연역 도출 완료(docs/157, 2026-07-04) — BDFL 비준
-  대기**: 전제 P1–P7(전부 기존 canon, 신규 가정 0) + 실측 보강 P-A
-  (Clone이 zone 생성 자리에서 이미 동작)·P-B(w.zone은 let-init에선
-  copy, transfer-인자에선 alias — 위치별 우연 의미론이 S2의 정체) →
-  **정리 T(경계-포크 선언 규칙)**: containment 경계를 가로지르는 live
-  binding은 Clone(선언된 복사)/Channel(선언된 통과) 요구, 무선언=
-  REJECT. S1=zone 생성자 REJECT+Clone, S2=world 멤버 유출 REJECT+Clone
-  (write-through·의미분기 동시 소멸, Channel-only 구문 강제 복원).
-  무음-합법화 방향은 P1·P3·P4·P7 중 둘 이상 철회 필요 = 불가.
-  비준 시 구현은 docs/157 §4 스케치(semantic 2지점 + 실측 잠금 갱신
-  같은 커밋 의무).
+  planned. **AC-3(docs/157) = 정리 T 비준(2026-07-04) → S1 LANDED
+  (2026-07-05) / S2 범위 재심 대기**: 연역(전제 P1–P7 신규가정 0 +
+  실측 P-A/P-B) → 정리 T(경계-포크 선언 규칙: 경계 횡단 live binding
+  = Clone/Channel 요구, 무선언 REJECT). **S1 착지**: zone 생성자
+  live subject = STATIC 거절+Clone(중첩 World(Zone(subj)) 인자 하강
+  포함), corpus 28사이트 개종(행동 보존 — logistics golden diff 공백
+  실측), zone_pos_share leg는 예고대로 REJECT 잠금 전환, docs/151
+  §2.1 발견-2 닫힘. **S2 회수·재심**: 전면 유출금지가 플래그십
+  same-world 관용구(shopping_mall 7·logistics 3·abi 8파일이 world
+  zone을 plain func API층으로 통과)와 정면 충돌 — 측정이 L1 "무선언"
+  전제를 재개방. 선택지 (A)전면 T(플래그십 개종+golden 재생성) vs
+  (B)cross-world-mix만 REJECT + same-world = 사인 face(간선 후보
+  world⊢orchestration). cross 커널 2/1/2는 smoke가 계속 고정.
+  부수: S2 진단 위치 0:0 강등·중첩 base 미커버 — 구현 시 함께.
 - **진입 근거**: docs/155 §3 체크리스트 5항목 전부 닫힘(2026-07-04 —
   WO-F1 ✅ + WO-A1 ✅ + WO-A2 ✅ + GuardWitnessBinding.v ✅ + matrix-lock
   green 재확인).

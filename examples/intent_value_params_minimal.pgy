@@ -22,7 +22,7 @@ intent Checkout(checkout: CheckoutZone, buyer: Buyer, price: Int, adjustments: A
 
 func Main() -> Void {
     let buyer: Buyer = Buyer(3);
-    let checkout: CheckoutZone = CheckoutZone(buyer);
+    let checkout: CheckoutZone = CheckoutZone(Clone(buyer));
     Log("intent value params minimal");
     Log(Checkout(checkout, buyer, 7, [1, 2]));
 }

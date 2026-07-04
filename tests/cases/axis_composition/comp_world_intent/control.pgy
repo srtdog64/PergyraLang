@@ -28,8 +28,8 @@ intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
 
 func Main() -> Void {
     let buyer = Buyer(1);
-    let cart = CartZone(buyer);
-    let payment = PaymentZone(buyer);
+    let cart = CartZone(Clone(buyer));
+    let payment = PaymentZone(Clone(buyer));
     Checkout(cart, payment, buyer);
     Log(buyer.hp);
 }

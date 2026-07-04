@@ -47,7 +47,7 @@ update-commutation)만 기계화했다. 열려 있던 것은 **전 쌍별 축-�
 | 6 | Zone×Actor | 매개 — zone `authority <subject-slot>` 선언이 actor를 **Auth축 경유**로 지명 (직접 검사 없음) | authority⊢step의 zone-측 바인딩; 05_zone_intent |
 | 7 | Zone×Authority | **간선 `cap ⊢ zone-cross` (본 감사 신규 등재)** | AIRBinding.air_zone_gate + ZoneCrossingCore.v + authority-mismatch panic + 05_zone_intent |
 | 8 | Zone×Intent | 간선 `intent ⊨ transfer` (기등재) | transfer 구문 + 관측 from_zone/to_zone + comp_world_intent control leg |
-| 9 | Zone×slot | 간선 `zone ⊃ slot` (기등재) + **SILENT-COPY 열림 셀**(docs/151 §2.1 발견) | zone-bound handle(WO-B4) + zone_pos_share probe 잠금 |
+| 9 | Zone×slot | 간선 `zone ⊃ slot` (기등재) + ~~SILENT-COPY~~ **CLOSED(2026-07-05, AC-3 S1)**: live subject→zone 생성자 = STATIC 거절+Clone | zone-bound handle(WO-B4) + zone_pos_share REJECT 잠금 전환 |
 | 10 | Actor×Authority | **간선 `role ⊨ ability` (본 감사 신규 등재)** + 형식 잔여=WO-F3(who≠approval 기계화) | witness 시스템(docs/semantics/10), G-6 반증 배터리 role-전파 진단 |
 | 11 | Actor×Intent | **커널 실측 — who-swap 완전 비간섭 (양방향)** (§4) | comp_actor_intent, 본 smoke가 출력-동일성 자체를 assert |
 | 12 | Actor×slot | 소유권 정리(FWho≠FResourceHeld) + 부재(subject slot은 타입 수용이지 actor-조건 검사 아님) | AxisOwnership; AC-2 |
@@ -121,7 +121,7 @@ status ∈ {planned, landed}. landed = artifact+gate 실존.
 | AC-0 | 15쌍 전수 배치 + 간선 등록부 정합(신규 4) + matrix-lock | landed | docs/156 §2–3 | tests/axis_composition_smoke.sh |
 | AC-1 | 커널 2쌍 실측(W×I 발견 + A×I 비간섭) C==LLVM | landed | tests/cases/axis_composition | tests/axis_composition_smoke.sh |
 | AC-2 | 부재-쌍 커널(W×Actor, W×Auth, Actor×slot, Z×Actor 직접-잔여) | planned | - | - |
-| AC-3 | W×I write-through 방향 BDFL 결정 + 닫힘 구현 (zone SILENT-COPY 방향과 같은 배치) | planned | - | - |
+| AC-3 | SILENT 2건 닫힘: **S1(zone 생성자) landed 2026-07-05** — 정리 T 비준분, corpus 28사이트 Clone 개종(행동 보존 실측); **S2(world 유출)는 범위 재심 대기**(docs/157 §5 — 전면 T vs cross-world-mix만; 플래그십 same-world 관용구 충돌 증거) | S1 landed | src/semantic/type_checker_world_embedding.c | tests/axis_carriage_probe_smoke.sh (zone_pos_share REJECT leg) |
 | AC-4 | WO-F3 who≠approval 기계화 + role⊨ability Coq 조각 | planned | - | - |
 | AC-5 | G-4 합류 — 생성자 경계 검사(Slot/Channel 행) 개방의 전제 충족 | planned | - | - |
 

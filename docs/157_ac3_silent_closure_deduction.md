@@ -1,9 +1,10 @@
 # 157. AC-3 — 두 SILENT 발견의 닫힘 방향, 연역 도출
 
-Status: `derived, ratification-pending (BDFL)`. 방법은 BDFL 지시
-(2026-07-04): "무음 쪽은 최소 논증으로 연역법으로 올라간다" — 선호
-비교가 아니라, 이미 canon인 전제들에서 결론을 **도출**하고, 결론을
-뒤집으려면 어느 전제를 부정해야 하는지까지 명시한다.
+Status: `T ratified (2026-07-04); S1 LANDED (2026-07-05); S2 scope
+re-ratification pending — §5`. 방법은 BDFL 지시(2026-07-04): "무음 쪽은
+최소 논증으로 연역법으로 올라간다" — 선호 비교가 아니라, 이미 canon인
+전제들에서 결론을 **도출**하고, 결론을 뒤집으려면 어느 전제를 부정해야
+하는지까지 명시한다.
 
 대상 사례 2건 (둘 다 실측·게이트 고정 상태):
 
@@ -132,6 +133,43 @@ live binding은 선언을 요구"를 생성자 위치에 인스턴스화한 것.
 - premise probe 2건(probe_clone_zone/probe_world_member)은 구현 후
   신규 진단의 회귀 픽스처로 승격(P-A는 합법 유지 leg, P-B는 REJECT
   leg로 전환).
+
+## 5. 구현 기록 + corpus 재심 (2026-07-05)
+
+**S1 — LANDED.** zone 생성자의 live subject binding = STATIC 거절
+("implicitly copies subject binding" + Clone fix), world 검사와 같은
+family. 구현 = `type_checker_world_embedding.c`(경계-포크 파일로 확장)
++ 생성자 검사 훅(중첩 `World(Zone(subject))` 인자 하강 포함 — 첫
+구현이 놓쳐 sweep이 잡음). corpus 전수 sweep: **188 컴파일 통과, S1
+개종 28사이트**(examples 11파일 + abi/backend_compare/커널), 전부
+행동 보존(Clone = 기존 암시 복사의 선언형; logistics golden diff 공백
+실측). `zone_pos_share`는 예고대로 같은 커밋에서 REJECT 잠금 전환 —
+docs/151 §2.1 발견 2 닫힘.
+
+**S2 — 구현 후 회수, 범위 재심 대기.** 전면 유출 금지(값-위치의
+`w.zone` 전부)를 구현하고 sweep하자 **플래그십 관용구와 정면 충돌**:
+shopping_mall(7사이트)·logistics(3)·abi_pipeline(8파일)·
+backend_compare(2파일)가 world 소유 zone을 **plain API-layer func**로
+통과시키는 same-world 오케스트레이션 패턴을 지배적으로 쓴다
+(`HandleCheckoutIntent(cart:…)`는 intent가 아니라 func — intent-한정
+사면으로도 구제 불가). 이는 L1의 "무선언" 분류가 same-world 매개
+사용에 대해 corpus와 어긋난다는 신호다(측정이 전제를 재개방 — 반증
+규율). 훅은 회수했고 측정 상태로 복귀: cross 커널의 write-through
+(`2/1/2`)는 `axis_composition_smoke`가 계속 고정한다. 재심 선택지:
+
+- **(A) 정리 T 전면**: 모든 값-위치 유출 = Clone 요구. 플래그십 전
+  사이트 개종 + write-through 의존 데모는 행동 변화 → golden 재생성
+  + 후속 리라이트(world 메서드/Channel화) 필요. 원칙 최대 일관.
+- **(B) cross-world-mix만 REJECT**: 한 호출의 world-멤버 zone 인자들이
+  **서로 다른 world base**를 섞으면 거절(= 커널이 실측한 Channel-only
+  우회의 정확한 닫힘), same-world 매개 사용은 **사인된 face**로 등록
+  (간선 후보: world ⊢ orchestration — world가 자기 zone을 자기
+  스코프의 호출에 빌려준다). P-B의 copy/alias 비일관은 face 계약으로
+  명명·문서화 + 의미 통일은 후속 rung. corpus churn 0.
+
+부수 등록: S2 진단의 위치정보가 일부 인자 노드에서 0:0으로 강등
+(member-access 노드 line 소실) / 중첩 base(`w.zone.subject`)는 양
+방향 모두 미커버 — 어느 방향이든 구현 시 함께 조일 것.
 
 ## Related
 

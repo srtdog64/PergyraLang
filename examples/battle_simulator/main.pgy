@@ -99,8 +99,8 @@ func Main() -> Void {
     let slime = Fighter("Slime", 3, Health(12, 12));
     let knight = Fighter("Knight", 6, Health(22, 22));
     let goblin = Fighter("Goblin", 4, Health(14, 14));
-    let arena = BattleZone(hero, slime);
-    let rematch = BattleZone(knight, goblin);
+    let arena = BattleZone(Clone(Clone(hero)), Clone(Clone(slime)));
+    let rematch = BattleZone(Clone(Clone(knight)), Clone(Clone(goblin)));
     let battleWorld = BattleWorld(Clone(arena), Clone(rematch));
 
     battleWorld.Run();

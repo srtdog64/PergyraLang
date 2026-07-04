@@ -170,9 +170,9 @@ intent ProcessOrder(order: OrderZone, payment: PaymentZone, shipping: ShippingZo
 func Main() -> Void
 {
     let clerk = Clerk(0, 0, 0);
-    let order = OrderZone(clerk);
-    let payment = PaymentZone(clerk);
-    let shipping = ShippingZone(clerk);
+    let order = OrderZone(Clone(clerk));
+    let payment = PaymentZone(Clone(clerk));
+    let shipping = ShippingZone(Clone(clerk));
 
     let ok = ProcessOrder(order, payment, shipping, clerk);
     Log("composite-orchestration-explicit");

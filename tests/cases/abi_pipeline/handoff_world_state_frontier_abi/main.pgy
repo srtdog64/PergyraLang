@@ -39,6 +39,10 @@ world CheckoutWorld {
         Log(HasZoneProjection(payment, receipt));
         Log(payment.receipt.hp);
     }
+
+    func Run(self) -> Bool {
+        return Checkout(cart, payment, cart.buyer);
+    }
 }
 
 intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
@@ -62,7 +66,7 @@ func Main() -> Void {
         PaymentZone(Buyer(0), BuyerView(0)));
 
     world.Report();
-    let ok = Checkout(world.cart, world.payment, world.cart.buyer);
+    let ok = world.Run();
     Log(ok);
     world.Report();
 }

@@ -44,7 +44,7 @@ intent Checkout(pay: PayZone, buyer: Buyer, observer: Buyer) {
 func Main() -> Void {
     let buyer = Buyer(1);
     let observer = Buyer(100);
-    let pay = PayZone(buyer);
+    let pay = PayZone(Clone(buyer));
     Checkout(pay, buyer, observer);
     Log(buyer.total);
     Log(observer.total);

@@ -35,8 +35,8 @@ func BuildCartZone() -> CartZone
         "idle"
     );
     return CartZone(
-        buyer,
-        merchant,
+        Clone(buyer),
+        Clone(merchant),
         BuildBuyerZoneView(buyer),
         BuildMerchantZonePacket(merchant),
         "/cart",
@@ -73,8 +73,8 @@ func BuildPaymentZone() -> PaymentZone
         "idle"
     );
     return PaymentZone(
-        buyer,
-        merchant,
+        Clone(buyer),
+        Clone(merchant),
         BuildBuyerZoneView(buyer),
         BuildMerchantZonePacket(merchant),
         "/checkout",
@@ -112,8 +112,8 @@ func BuildRefundZone() -> RefundZone
         "idle"
     );
     return RefundZone(
-        buyer,
-        merchant,
+        Clone(buyer),
+        Clone(merchant),
         BuildBuyerZoneView(buyer),
         BuildMerchantZonePacket(merchant),
         "/refund",
@@ -142,7 +142,7 @@ func BuildAccountZone() -> AccountZone
         "idle"
     );
     return AccountZone(
-        buyer,
+        Clone(buyer),
         "/account/profile",
         "view",
         0
@@ -176,8 +176,8 @@ func OpenCommerceWorld() -> CommerceWorld
         "idle"
     );
     let cart = CartZone(
-        buyer,
-        merchant,
+        Clone(buyer),
+        Clone(merchant),
         BuildBuyerZoneView(buyer),
         BuildMerchantZonePacket(merchant),
         "/cart",
@@ -186,8 +186,8 @@ func OpenCommerceWorld() -> CommerceWorld
         0
     );
     let payment = PaymentZone(
-        buyer,
-        merchant,
+        Clone(buyer),
+        Clone(merchant),
         BuildBuyerZoneView(buyer),
         BuildMerchantZonePacket(merchant),
         "/checkout",
@@ -197,8 +197,8 @@ func OpenCommerceWorld() -> CommerceWorld
         "pending"
     );
     let refund = RefundZone(
-        buyer,
-        merchant,
+        Clone(buyer),
+        Clone(merchant),
         BuildBuyerZoneView(buyer),
         BuildMerchantZonePacket(merchant),
         "/refund",
@@ -207,7 +207,7 @@ func OpenCommerceWorld() -> CommerceWorld
         "idle"
     );
     let account = AccountZone(
-        buyer,
+        Clone(buyer),
         "/account/profile",
         "view",
         0

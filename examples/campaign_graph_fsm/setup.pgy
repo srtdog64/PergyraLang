@@ -135,8 +135,8 @@ func BuildSector(captainSpec: AdventurerSpec, wingSpec: AdventurerSpec,
     );
 
     return SectorZone(
-        captain,
-        wing,
+        Clone(captain),
+        Clone(wing),
         BuildAdventurerView(captain),
         BuildAdventurerPacket(wing),
         sectorId,

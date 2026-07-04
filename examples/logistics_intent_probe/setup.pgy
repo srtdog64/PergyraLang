@@ -15,8 +15,8 @@ func BuildLoadingZone() -> LoadingZone
         "idle"
     );
     return LoadingZone(
-        courier,
-        dispatcher,
+        Clone(courier),
+        Clone(dispatcher),
         CourierView(courier.name, courier.prepared, courier.delivered, courier.lastPhase),
         DispatchPacket(dispatcher.name, dispatcher.lane, dispatcher.ledger.approved, dispatcher.ledger.shipped),
         "loading",
@@ -42,8 +42,8 @@ func BuildDeliveryZone() -> DeliveryZone
         "idle"
     );
     return DeliveryZone(
-        courier,
-        dispatcher,
+        Clone(courier),
+        Clone(dispatcher),
         CourierView(courier.name, courier.prepared, courier.delivered, courier.lastPhase),
         DispatchPacket(dispatcher.name, dispatcher.lane, dispatcher.ledger.approved, dispatcher.ledger.shipped),
         "delivery",
@@ -69,8 +69,8 @@ func OpenLogisticsWorld() -> LogisticsWorld
         "idle"
     );
     let loading = LoadingZone(
-        courier,
-        dispatcher,
+        Clone(courier),
+        Clone(dispatcher),
         CourierView(courier.name, courier.prepared, courier.delivered, courier.lastPhase),
         DispatchPacket(dispatcher.name, dispatcher.lane, dispatcher.ledger.approved, dispatcher.ledger.shipped),
         "loading",
@@ -78,8 +78,8 @@ func OpenLogisticsWorld() -> LogisticsWorld
         0
     );
     let delivery = DeliveryZone(
-        courier,
-        dispatcher,
+        Clone(courier),
+        Clone(dispatcher),
         CourierView(courier.name, courier.prepared, courier.delivered, courier.lastPhase),
         DispatchPacket(dispatcher.name, dispatcher.lane, dispatcher.ledger.approved, dispatcher.ledger.shipped),
         "delivery",

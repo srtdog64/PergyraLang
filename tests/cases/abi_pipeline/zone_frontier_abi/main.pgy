@@ -20,7 +20,7 @@ zone BattleZone {
 
 func Main() -> Void {
     let player: Player = Player(5);
-    let battle: BattleZone = BattleZone(player);
+    let battle: BattleZone = BattleZone(Player(5));
     battle.Show();
     battle.Show();
 }

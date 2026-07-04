@@ -22,7 +22,7 @@ intent Checkout(checkout: CheckoutZone, buyer: Buyer, price: Int, adjustments: A
 
 func Main() -> Void {
     let buyer: Buyer = Buyer(5);
-    let checkout: CheckoutZone = CheckoutZone(buyer);
+let checkout: CheckoutZone = CheckoutZone(Buyer(5));
     Log(Checkout(checkout, buyer, 9, [2, 7]));
     Log(ToString(IntentRecentCount()));
     Log(IntentRecentName(0));

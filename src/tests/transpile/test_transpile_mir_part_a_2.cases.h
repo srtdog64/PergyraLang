@@ -83,7 +83,7 @@
             "}\n"
             "func Main() -> Void {\n"
             "    let buyer: Buyer = Buyer(1);\n"
-            "    let checkout: CheckoutZone = CheckoutZone(buyer);\n"
+            "    let checkout: CheckoutZone = CheckoutZone(Buyer(1));\n"
             "    let ok: Bool = Charge(checkout, buyer);\n"
             "    Log(ok);\n"
             "}\n";

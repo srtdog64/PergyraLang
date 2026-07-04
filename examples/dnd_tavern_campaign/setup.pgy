@@ -208,10 +208,10 @@ func BuildJourneyZone() -> JourneyZone
     let mage = Adventurer(mageSpec.name, mageSpec.className, mageSpec.background, mageSpec.intro, mageSpec.crest, mageSpec.signature, mageSpec.seat, mageSpec.recruited, mageSpec.weapon, mageSpec.sheet, mageSpec.stats, mageSpec.bond, mageSpec.pack, mageSpec.effects, mageSpec.quest);
 
     return JourneyZone(
-        fighter,
-        cleric,
-        rogue,
-        mage,
+        Clone(fighter),
+        Clone(cleric),
+        Clone(rogue),
+        Clone(mage),
         BuildHeroView(fighter),
         BuildHeroView(rogue),
         BuildHeroPacket(cleric),

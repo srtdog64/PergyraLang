@@ -14,20 +14,23 @@
 #   Auth x runtime-tag        : tag field + Result gate — catches at RUNTIME
 #                               through a wrapper hop, identical C/LLVM voice
 #                               (the GATE verdict of docs/151 §3, live).
-#   Zone x positional         : one subject bound into two zones COMPILES and
-#                               COPY-ISOLATES (5 5 / 7 5) — isolation without
-#                               a diagnostic. SILENT-COPY.
+#   Zone x positional         : CLOSED 2026-07-05 (AC-3 S1, docs/157) — a
+#                               live subject binding into a zone constructor
+#                               is now a STATIC reject demanding Clone(...);
+#                               the declared form (probe_clone_zone in
+#                               tests/cases/axis_composition) preserves the
+#                               old copy-isolation behavior exactly.
 #   World x positional        : embedding a named zone binding is a STATIC
 #                               reject ("implicitly copies zone binding",
 #                               Clone demanded) — no-silent-override enforced.
 #   Zone/World x value-typed  : per-type subject boundary — STATIC ctor
 #                               field-type reject.
 #
-# Registered finding (docs/151 실측 부록): the zone level allows the implicit
+# Registered finding (docs/151 실측 부록): the zone level allowed the implicit
 # copy the world level statically forbids — a cross-level inconsistency in
-# no-silent-override discipline. If a later change closes it (zone-level
-# diagnostic), the zone_pos_share leg here FAILS and the table must be
-# updated in the same commit. That is intended: measurement lock, not policy.
+# no-silent-override discipline. CLOSED 2026-07-05 exactly as this header
+# demanded: the zone-level diagnostic landed (AC-3 S1) and this leg was
+# updated in the same commit. Measurement lock did its job.
 #
 # This is NOT the docs/151 §7 matrix-lock gate (that one locks the DECISION
 # table after Decision-0/GATE close); this locks today's measured behavior.
@@ -92,8 +95,9 @@ for backend in c llvm; do
     # Auth x runtime-tag: three legs, one program, one voice.
     expect_runs "$backend" auth_tag/main.pgy $'42\ndirect-denied\nlaundered-denied'
 
-    # Zone x positional: silent copy-isolation (the registered finding).
-    expect_runs "$backend" zone_pos_share/main.pgy $'5\n5\n7\n5'
+    # Zone x positional: the silent copy is CLOSED — live subject bindings
+    # into zone constructors fail closed, demanding the declared Clone form.
+    expect_reject "$backend" zone_pos_share/main.pgy "implicitly copies subject binding"
 
     # World x positional: implicit copy of a named zone binding fails closed.
     expect_reject "$backend" world_pos_share/main.pgy "implicitly copies zone binding"
@@ -151,4 +155,4 @@ echo "[axis-carriage] corpus census (self_hosted): positional caps=$n_caps, auth
 [ "$n_authority" -ge 1 ] || fail "corpus census: expected at least one authority site"
 [ "$n_errgate" -ge 1 ] || fail "corpus census: expected at least one Err gate"
 
-echo "[axis-carriage] measured verdicts locked (c/llvm): cap=STATIC+interproc(depth3), world=STATIC no-silent-copy, zone=SILENT-COPY isolation, per-type=STATIC(hop-1), tag=RUNTIME(hop-3)"
+echo "[axis-carriage] measured verdicts locked (c/llvm): cap=STATIC+interproc(depth3), world=STATIC no-silent-copy, zone=STATIC no-silent-copy (closed 2026-07-05), per-type=STATIC(hop-1), tag=RUNTIME(hop-3)"

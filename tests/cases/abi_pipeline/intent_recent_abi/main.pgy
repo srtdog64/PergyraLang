@@ -30,7 +30,7 @@ intent Confirm(checkout: CheckoutZone, buyer: Buyer) {
 }
 func Main() -> Void {
     let buyer: Buyer = Buyer(1);
-    let checkout: CheckoutZone = CheckoutZone(buyer);
+let checkout: CheckoutZone = CheckoutZone(Buyer(1));
     Log(Charge(checkout, buyer));
     Log(Confirm(checkout, buyer));
     Log(ToString(IntentRecentCount()));

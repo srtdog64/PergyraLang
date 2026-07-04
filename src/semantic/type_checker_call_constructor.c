@@ -352,6 +352,36 @@ type_check_constructor_symbol_call(ASTNode *expr,
                 }
             }
         }
+        if (sym->kind == SYMBOL_ZONE && ctx != NULL) {
+            ASTNode *zone_decl = semantic_constructor_decl_for_symbol_kind(ctx,
+                sym->kind, display_name);
+            if (zone_decl != NULL && zone_decl->type == AST_ZONE_DECL)
+                semantic_reject_zone_subject_embedding(expr, zone_decl,
+                    display_name, ctx);
+        }
+        if (sym->kind == SYMBOL_WORLD && ctx != NULL) {
+            /* Nested constructor arguments (World(Zone(subject), ...)) are
+             * not descended by the field loop above when the world slot has
+             * no field metadata, so the zone-level boundary-fork check is
+             * applied to each zone-constructor argument here. */
+            for (size_t ai = 0; ai < ast_call_arg_count(expr); ai++) {
+                ASTNode *warg = ast_call_argument(expr, ai);
+                ASTNode *wcallee;
+                const char *zname;
+                ASTNode *zdecl;
+
+                if (warg == NULL || warg->type != AST_CALL)
+                    continue;
+                wcallee = ast_call_callee(warg);
+                if (wcallee == NULL || wcallee->type != AST_IDENTIFIER)
+                    continue;
+                zname = ast_identifier_name(wcallee);
+                zdecl = semantic_find_zone_decl_by_name(ctx, zname);
+                if (zdecl != NULL && zdecl->type == AST_ZONE_DECL)
+                    semantic_reject_zone_subject_embedding(warg, zdecl,
+                        zname, ctx);
+            }
+        }
         sym->is_used = true;
         if (type_out != NULL)
             *type_out = sym->type;
