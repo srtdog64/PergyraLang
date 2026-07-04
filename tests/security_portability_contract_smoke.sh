@@ -75,8 +75,13 @@ require_term "src/runtime/slot_security_platform.c" "SecureHashSHA256((const uin
 require_term "src/runtime/slot_security_context_ops.h" "SecureHashSHA256((const uint8_t *)fingerprint"
 require_term "src/runtime/pgy_runtime_security_log.h" "pgy_runtime_fprint_json_string"
 require_term "src/runtime/slot_security.c" 'component\":\"slot-security'
+require_term "src/runtime/slot_security.c" "pgy_runtime_fprint_json_string(stderr, op != NULL ? op : \"<op>\")"
+require_term "src/runtime/slot_security.c" "pgy_runtime_fprint_json_string(stderr, reason != NULL ? reason : \"unknown\")"
 require_term "src/runtime/slot_security_sealed_payload.c" 'component\":\"slot-security'
 require_term "src/runtime/slot_manager_core_ops.c" 'component\":\"slot'
+require_term "src/runtime/slot_manager_core_ops.c" "SlotFailure failure = SlotFailureFromError(err, op, handle)"
+require_term "src/runtime/slot_manager_core_ops.c" "pgy_runtime_fprint_json_string(stderr, failure.operation)"
+require_term "src/runtime/slot_manager_core_ops.c" "pgy_runtime_fprint_json_string(stderr, failure.name)"
 require_term "src/runtime/slot_manager_security_stats.c" 'component\":\"slot-security'
 require_term "src/runtime/slot_manager_security_stats.c" "fputs(\"{\\\"component\\\":\\\"slot-security\\\",\\\"timestamp\\\":\", stderr)"
 require_term "src/runtime/slot_manager_security_stats.c" "slot_manager_log_security_event_locked"
@@ -88,6 +93,8 @@ require_term "src/runtime/pgy_runtime_zone_result_option_inline.h" "pgy_runtime_
 forbid_term "src/runtime/pgy_runtime_authority_contract.h" "[pgy][authority]"
 forbid_term "src/runtime/pgy_runtime_lib_authority_file_core.h" "[pgy][authority]"
 forbid_term "src/runtime/pgy_runtime_zone_result_option_inline.h" "[pgy][authority]"
+forbid_term "src/runtime/slot_security.c" "[pgy][slot-security]"
+forbid_term "src/runtime/slot_manager_core_ops.c" "[pgy][slot]"
 forbid_term "src/runtime/slot_security_sealed_payload.c" "[pgy][slot-security]"
 forbid_term "src/runtime/slot_security.c" "SecurityChecksumBytes"
 forbid_term "src/runtime/slot_security_sealed_payload.c" "SecureDeriveMaskBlock"
@@ -125,6 +132,10 @@ require_term "docs/security/README.md" "Windows uses CNG/BCrypt"
 require_term "docs/security/README.md" "non-Windows"
 require_term "docs/security/README.md" "OpenSSL EVP/HMAC/RAND"
 require_term "docs/security/README.md" "do not describe BASIC/HARDWARE/ENCRYPTED as active"
+require_term "docs/security/audits/2026-07-05_residual_risk_triage.md" "Windows symlink TOCTOU residual: closed"
+require_term "docs/security/audits/2026-07-05_residual_risk_triage.md" "Cited free-text slot logs: stale"
+require_term "docs/security/audits/2026-07-05_residual_risk_triage.md" "Scratch-to-cache lifetime drift: partially open"
+require_term "docs/security/audits/2026-07-05_residual_risk_triage.md" "System-tier raw pointer escape: intentionally out of beta"
 
 require_term "docs/security/contracts/secure_slot_token_unforgeability.md" "Scope Note"
 require_term "docs/security/contracts/secure_slot_token_unforgeability.md" 'Generated `PgySecureSlot_*` ABI'

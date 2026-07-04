@@ -3396,9 +3396,9 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Repointed `tests/self_hosted/parity/air_graph_json_validator_parity.sh` clean
   expected-vs-actual JSON equality to the Pergyra
   `backend_output_comparator` instead of direct shell string comparison.
-- Kept shell grep as count ground truth and live AIR fixture drift detection;
-  only the artifact equality verdict moved behind ArtifactZone/TestHarness
-  owner rows.
+- Kept shell grep as count ground truth and left live AIR fixture drift
+  detection for a later slice; only the clean artifact equality verdict moved
+  behind ArtifactZone/TestHarness owner rows in this slice.
 - Tightened `self_hosted_component_contract_smoke.sh` and
   `self_host_preparation_smoke.sh` so this parity leg must keep
   `compare_clean_json_with_owner` and the shared comparator helper calls.
@@ -3406,6 +3406,22 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   JSON parity as another ArtifactZone/TestHarness consumer.
 - No executable cases were run for this slice; validation was limited to static
   owner/ratchet inspection under the validation isolation policy.
+
+### 2026-07-05 -- AIR graph live drift uses AIR artifact owner
+
+- Repointed the two live `pgy --air-json` fixture drift checks in
+  `tests/self_hosted/parity/air_graph_json_validator_parity.sh` from shell
+  `diff -q` to `backend_output_comparator` with artifact kind `air_json`.
+- Preserved the existing `PGY_AIR_GRAPH_JSON_SKIP_DRIFT=1` escape hatch for
+  C-only lanes whose committed fixtures are pinned against an LLVM-enabled
+  shape; the verdict path is still the Pergyra artifact owner when the drift
+  rung is active.
+- Tightened `self_hosted_component_contract_smoke.sh` so the validator parity
+  script must keep `compare_air_json_file_with_owner`, must name `air_json`, and
+  cannot reintroduce `diff -q`.
+- Verified with `self-host-component-contract-test-smoke` and
+  `self-host-air-graph-consumer-parity-test-smoke`; the latter exercised the
+  live-drift path with `live-drift=ok`.
 
 ### 2026-07-04 -- Codegen bootstrap corpus consumes emitted-self-hosted artifact owner
 

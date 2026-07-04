@@ -4,7 +4,7 @@
 # Pergyra is the origin
 # (src/self_hosted/tools/air_graph_json_validator/main.pgy).
 # Shell grep supplies count ground truth; the Pergyra backend-output comparator
-# owns clean JSON artifact equality vs expected/clean.json. The script also
+# owns clean and live AIR JSON artifact equality. The script also
 # checks a synthetic missing-key fixture (strip "summary" key, expect rc=1).
 #
 # Also asserts that the committed fixture still matches the live `pgy --air-json`
@@ -85,6 +85,34 @@ compare_clean_json_with_owner() {
         cat "$cmp_out" "$cmp_err" >&2
         exit 1
     fi
+}
+
+AIR_JSON_COMPARE_OUT=""
+AIR_JSON_COMPARE_ERR=""
+
+compare_air_json_file_with_owner() {
+    local label="$1"
+    local expected_file="$2"
+    local actual_file="$3"
+    local safe_label="${label//[^A-Za-z0-9_]/_}"
+    local expected_norm="$PERGYRA_TOOL_BUILD_DIR/${safe_label}.expected.norm.json"
+    local actual_norm="$PERGYRA_TOOL_BUILD_DIR/${safe_label}.actual.norm.json"
+    local comparator_bin
+    local expected_rel
+    local actual_rel
+
+    AIR_JSON_COMPARE_OUT="$PERGYRA_TOOL_BUILD_DIR/${safe_label}.compare.out"
+    AIR_JSON_COMPARE_ERR="$PERGYRA_TOOL_BUILD_DIR/${safe_label}.compare.err"
+
+    pgy_selfhost_compile_backend_output_comparator "self-host-parity:air-graph-json" "$PERGYRA_TOOL_BUILD_DIR"
+    comparator_bin="$(pgy_selfhost_backend_output_comparator_bin "$PERGYRA_TOOL_BUILD_DIR")"
+    pgy_selfhost_normalize_text_artifact < "$expected_file" > "$expected_norm"
+    pgy_selfhost_normalize_text_artifact < "$actual_file" > "$actual_norm"
+    expected_rel="$(pgy_selfhost_path_relative_to_root "$expected_norm")"
+    actual_rel="$(pgy_selfhost_path_relative_to_root "$actual_norm")"
+
+    (cd "$ROOT_DIR" && "$comparator_bin" "$expected_rel" "$actual_rel" 0 2 air_json \
+        >"$AIR_JSON_COMPARE_OUT" 2>"$AIR_JSON_COMPARE_ERR")
 }
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
@@ -184,14 +212,7 @@ LIVE_CAP_RC=$?
 set -e
 DRIFT_GUARD="skipped"
 if [[ "$LIVE_RC" -eq 0 && -s "$LIVE_AIR_JSON" ]]; then
-    # Normalize trailing CR/LF before diff -- Windows pgy emits CRLF,
-    # the committed fixture has no trailing newline. Both are byte-equivalent
-    # JSON; we only care that the JSON content matches.
-    LIVE_NORM="$LIVE_AIR_JSON.norm"
-    FIXTURE_NORM="$LIVE_AIR_JSON_DIR/fixture.norm"
-    tr -d '\r\n' < "$LIVE_AIR_JSON" > "$LIVE_NORM"
-    tr -d '\r\n' < "$FIXTURE_FILE" > "$FIXTURE_NORM"
-    if ! diff -q "$LIVE_NORM" "$FIXTURE_NORM" >/dev/null 2>&1; then
+    if ! compare_air_json_file_with_owner "live_fixture_drift" "$FIXTURE_FILE" "$LIVE_AIR_JSON"; then
         # PGY_AIR_GRAPH_JSON_SKIP_DRIFT escape hatch: the committed
         # fixture is pinned against an LLVM-enabled build. Builds that
         # toggle structural compile flags (e.g. LLVM_ENABLED=0 on the
@@ -205,6 +226,7 @@ if [[ "$LIVE_RC" -eq 0 && -s "$LIVE_AIR_JSON" ]]; then
         else
             echo "[self-host-parity:air-graph-json] committed fixture drifted from live pgy --air-json output" >&2
             echo "regenerate via: pgy --air-json $AIR_SOURCE > $FIXTURE_FILE" >&2
+            cat "$AIR_JSON_COMPARE_OUT" "$AIR_JSON_COMPARE_ERR" >&2
             exit 1
         fi
     else
@@ -212,16 +234,13 @@ if [[ "$LIVE_RC" -eq 0 && -s "$LIVE_AIR_JSON" ]]; then
     fi
 fi
 if [[ "$LIVE_CAP_RC" -eq 0 && -s "$LIVE_CAP_AIR_JSON" ]]; then
-    LIVE_CAP_NORM="$LIVE_CAP_AIR_JSON.norm"
-    CAP_FIXTURE_NORM="$LIVE_AIR_JSON_DIR/cap_fixture.norm"
-    tr -d '\r\n' < "$LIVE_CAP_AIR_JSON" > "$LIVE_CAP_NORM"
-    tr -d '\r\n' < "$CAP_FIXTURE_FILE" > "$CAP_FIXTURE_NORM"
-    if ! diff -q "$LIVE_CAP_NORM" "$CAP_FIXTURE_NORM" >/dev/null 2>&1; then
+    if ! compare_air_json_file_with_owner "live_cap_fixture_drift" "$CAP_FIXTURE_FILE" "$LIVE_CAP_AIR_JSON"; then
         if [[ "${PGY_AIR_GRAPH_JSON_SKIP_DRIFT:-0}" == "1" ]]; then
             DRIFT_GUARD="skipped-by-env"
         else
             echo "[self-host-parity:air-graph-json] committed cap_env fixture drifted from live pgy --air-json output" >&2
             echo "regenerate via: pgy --air-json $AIR_CAP_SOURCE > $CAP_FIXTURE_FILE" >&2
+            cat "$AIR_JSON_COMPARE_OUT" "$AIR_JSON_COMPARE_ERR" >&2
             exit 1
         fi
     elif [[ "$DRIFT_GUARD" != "skipped-by-env" ]]; then
