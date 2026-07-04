@@ -81,7 +81,10 @@ English anchor for tooling/doc gates:
   independent owner, aggregate wrapper, or environment/toolchain before they
   expand the current SoT patch. The per-face trigger contract now records the
   first proof to inspect for each isolation face and the surfaces that must stay
-  isolated unless a crossed fact is named.
+  isolated unless a crossed fact is named. The 2026-07-04 step-list recheck
+  pins the platform lists as release collection lists, not local impact
+  selectors, and separates semantic fixture-state isolation from validation
+  impact isolation.
 - MIR declaration generic metadata source-of-truth: `MIRDeclGenericParam`
   no longer reuses raw AST storage field names for bound/default metadata.
   Bound/default type names are captured as MIR declaration-header facts at
@@ -10469,12 +10472,19 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
   ALLOW/REJECT/DEFER/ERASE) + 레드팀 병합 완료. 핵심 프레임: **현행 =
   전-REJECT(fail-closed 가드)에서 증거로 셀을 여는 래칫** — 위시리스트
   아님.
-- **미결정 2건(BDFL)**: Decision-0(축별 carriage ∈ positional/
-  value-typed/runtime-tag — 레드팀 권고: positional 기본, 승격은 WO-B4
-  zone 선례처럼 축별 증거로만) + GATE 5번째 판정값 채택 여부.
-- **착수 조건(엄수)**: 셀 개방은 MIR type-text seam(docs/147 발견-1)
-  해소 후. 게이트(matrix-lock smoke)는 미결정 2건 닫힌 후 — 열린
-  결정을 게이트로 잠그는 것 금지.
+- ✅ **미결정 2건 CLOSED(BDFL 2026-07-04)**: Decision-0=positional 기본
+  (value-typed 승격은 축별 증거로만, 승인분=WO-B4 zone handle) + GATE
+  5번째 판정값 채택(**남용 금지 조항**: Rice-잔차 한정, 미구현-정적은
+  DEFER/REJECT — 배열-공변성 방지). matrix-lock 게이트 생성:
+  `generic-axis-matrix-test-smoke`(닫힘 기록·행·rung 사다리 잠금).
+- ✅ **G-1 landed(54613ca2)**: return-position+body-local
+  constructed-over-T가 C에서 실행 — LLVM과 run-parity(nested_return 7/
+  body_local 9). 치환 초크포인트=type-require·expr-infer + 레지스트리
+  unbound-param 스킵(eager 스캔의 PGY_OPTION_DEFINE(T,T)가 진짜 파열
+  이었음). param=REJECT 유지(G-2). 회귀: option/result parity·caps·
+  probe 전부 green. **다음 rung: G-2(param, LLVM metadata+C 추론 확장)
+  → G-3(중첩·다중) → G-4(§5 Slot/Channel 행 — 생성자 경계 검사로,
+  값 태깅 표류 금지)**.
 - ✅ 법칙 기계화 landed(2026-07-04): `GenericAxisCarriage.v` coqc green
   0 admits/0 axioms, 5정리(carriage_monotone / descent_is_declared /
   erase_declared_scope / carriage_no_conjuring /

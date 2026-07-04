@@ -2264,6 +2264,11 @@ selfhost-driver-lsp-wiring-test-smoke:
 axis-carriage-probe-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/axis_carriage_probe_smoke.sh
 
+# docs/151 matrix-lock: closed decisions (Decision-0/GATE), constructor
+# rows, sketch tier, and the G-rung ladder are a contract.
+generic-axis-matrix-test-smoke:
+	"$(BASH)" tests/generic_axis_matrix_smoke.sh
+
 secure-token-reuse-test-smoke:
 	"$(BASH)" tests/secure_token_reuse_failclosed_smoke.sh
 

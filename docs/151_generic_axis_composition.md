@@ -1,9 +1,10 @@
 # 151. Generic 의미축 합성 결정표 (Generic Semantic Composition Matrix)
 
-Status: `design-draft, decision-gated`. BDFL 초안(2026-07-04 대화)과
-레드팀 판정을 병합한 문서. **게이트 없음** — 두 미결정(§2 Decision-0,
-§3 GATE 판정값)이 닫히기 전에는 이 표는 계약이 아니라 설계 초안이다.
-게이트 조건은 §7. 배경: Swift 제네릭 교훈 — 원칙의 단순함이 아니라
+Status: `decisions-closed, rung-gated`. BDFL 초안(2026-07-04 대화)과
+레드팀 판정을 병합했고, **두 결정(§2 Decision-0, §3 GATE)은 BDFL로
+닫혔다(2026-07-04)** — 표는 이제 계약이며 `generic-axis-matrix-test-smoke`
+가 §2/§3 닫힘 기록·§5 행·§8 rung 사다리를 잠근다. 구현은 §8의 G-rung을
+따른다(G-1 landed). 배경: Swift 제네릭 교훈 — 원칙의 단순함이 아니라
 **원칙과 언어 나머지의 합성**이 실패 지점이다. 제네릭이 만날 모든
 축과의 조약을 제네릭보다 먼저 체결한다.
 
@@ -68,7 +69,17 @@ Phase는 표의 열이 아니라 **판정의 codomain**이다 — 각 셀에서 
 ERASE 판정의 파라미터(어느 IR 단계에서, 어느 버킷으로 소거되는가)로
 나타나고, erasure dashboard(docs/14)가 그 실측 장부다.
 
-## 2. Decision-0 — 축의 운반 방식 (OPEN, BDFL 결정 대기)
+## 2. Decision-0 — 축의 운반 방식 (CLOSED, BDFL 2026-07-04)
+
+> **닫힘 기록:** carriage 기본값 = **positional**. value-typed 승격은
+> 축별 증거로만(현재 승인분 = zone-bound handle, WO-B4). runtime-tag는
+> authority 토큰·slot 안전 태그의 현행 지위 유지. 근거 4층 — 선례
+> (Erlang/Ada/ocap/seL4, 반례 Pony·Sendable·JEP 411) + 기계증명
+> (GenericAxisCarriage.v: 법칙은 방식과 독립) + 실측 소·중·대(§2.1–§2.2:
+> 중 스케일 비용/포착시점, 대 스케일 positional 26사이트 자연선택·토큰
+> 스레딩 0).
+
+이하는 결정에 이른 분석(보존):
 
 초안 전문("T may carry: World membership, Zone locality, …")은 축이
 **값에 실린다(value-carried)**를 전제한다. 현행 언어의 실물은 다르다:
@@ -169,7 +180,14 @@ Decision-0 positional-기본의 자연선택 증거.
 docs/147 발견-1과 같은 lowering-시점 타입 fact 계열로 추정. probe는
 명시 주석으로 우회, 수정은 별도 태스크.
 
-## 3. 판정값 — 초안 4값 채택 + 1값 제안 (GATE, OPEN)
+## 3. 판정값 — 5값 (CLOSED, BDFL 2026-07-04)
+
+> **닫힘 기록:** 초안 4값(ALLOW/REJECT/DEFER/ERASE) + GATE = **5값
+> 채택**. **GATE 남용 금지 조항(배열-공변성 방지):** GATE는 정적 판정이
+> *불가능한* 곳(Rice 잔차 — 동적 디스패치, FFI, generation 신선도)에만
+> 허용한다. 정적 판정이 *아직 안 만들어진* 곳은 GATE가 아니라 DEFER
+> 또는 REJECT다. 선례: Rust bounds/RefCell·Vale 세대참조·Wasm trap(정),
+> Java/C# 배열 공변성(반).
 
 | 판정 | 의미 | 실물 선례 |
 |---|---|---|
@@ -218,7 +236,7 @@ exactly-one-owner를 지키려면 축 목록만이 아니라 **사인된 cross-a
 
 | 생성자 | World | Zone | Actor | Auth | Intent/Eff | Site | 현행 판정 |
 |---|---|---|---|---|---|---|---|
-| `Option<T>`/`Result<T,E>` | 보존 | 보존 | 보존 | 보존 | 보존 | 약 | REJECT(중첩 generic), per-type 우회(stdlib/option) |
+| `Option<T>`/`Result<T,E>` | 보존 | 보존 | 보존 | 보존 | 보존 | 약 | **G-1 OPEN**: return+body-local run-parity / param REJECT(G-2) / per-type 우회 유지 |
 | `List<T>` | 보존 | 보존+T제약 | 보존 | 보존 | — | 약 | REJECT |
 | `Slot<T>` | 보존 | 강 | — | **승격**: T가 auth-bearing이면 Slot도 auth-aware | 강 | 강 | REJECT + 런타임 GATE(항상-on) |
 | **`Channel<T>`** | **유일 합법 cross-World 운반체** | 경계 통과=증거 | — | 위임 위험 | send/recv | 강 | REJECT |
@@ -252,16 +270,41 @@ docs/148 원장 규율대로 **sketch tier**: 판정 셀을 가질 수 없고
 - `View<T>` — 첫 실물은 이미 1층에 있다: **StrView**. 일반화는
   StrView의 Phase fact(WO-P1) 증거가 쌓인 뒤에.
 
-## 7. 착수 조건 & 게이트 조건
+## 7. 착수 조건 & 게이트 조건 — 상태: 충족·이행됨 (2026-07-04)
 
-- **셀 개방 작업 착수**: MIR type-text seam(docs/147 발견-1 —
-  generic 특수화가 lowering-시점 타입 텍스트 fact를 소비하는 구조)
-  해소 이후. 그 전의 셀 개방은 기계 부채 위에 의미 부채를 쌓는 것.
-- **표의 계약 승격(게이트 생성)**: §2 Decision-0과 §3 GATE 채택이
-  BDFL로 닫힌 뒤 — docs/148/150 계열의 matrix-lock smoke(판정 어휘
-  5값 잠금, ERASE 셀의 버킷 명명 의무, 2층 행 판정 금지, 행 소실
-  금지). **그 전에는 게이트를 만들지 않는다** — 열린 결정을 게이트로
-  잠그는 것은 가짜 확정이다.
+- ~~셀 개방은 MIR type-text seam 해소 후~~ → **seam은 rung 단위로
+  해소한다**: G-1이 return/body-local 절반을 해소했다(치환 초크포인트
+  = type-require·expr-infer + 레지스트리 unbound-param 스킵). param
+  절반은 G-2 소관(바인딩 추론이 call-site 인자 타입을 읽는 구조).
+- 두 결정이 닫혔으므로 matrix-lock 게이트 생성:
+  `generic-axis-matrix-test-smoke`(§2/§3 닫힘 기록·GATE 남용 조항·§5
+  행 소실 금지·§6 판정 금지 문구·§8 rung 정직성 잠금).
+
+## 8. 구현 사다리 (G-rung, smoke가 잠금)
+
+status ∈ {planned, landed}. landed = artifact와 gate 실존, planned =
+`-`만 허용. docs/150 규율과 동일 — 가짜 진척 차단.
+
+<!-- GENERIC-RUNG-BEGIN -->
+| rung | cell | status | artifact | gate |
+| --- | --- | --- | --- | --- |
+| G-1 | return-position + body-local constructed-over-T, C==LLVM run-parity | landed | src/codegen/transpiler_specialization_registry.c | tests/generic_nested_failclosed_smoke.sh |
+| G-2 | param-position constructed-over-T (양 백엔드 — LLVM 인자 metadata + C 바인딩 추론 확장) | planned | - | - |
+| G-3 | 중첩·다중 파라미터 (Option<Option<T>>, Result<T,E> 양-파라미터, List<T> 요소) | planned | - | - |
+| G-4 | generic × 축 합성 셀 개방 (§5 표의 Slot/Channel 행 — Decision-0 carriage 규칙 적용) | planned | - | - |
+<!-- GENERIC-RUNG-END -->
+
+- **G-1 실측(2026-07-04)**: nested_return 7 / body_local 9, C==LLVM
+  동일 출력. param 거절 유지("inside a constructed type" / "requires
+  concrete argument"). 회귀: try_operator_option·stdlib_option_bridges
+  parity green, caps manifest green, axis-carriage probe green.
+- **G-1 안전 논거**: param이 닫혀 있는 한 바인딩은 항상 bare-T param에서
+  추론되므로, return/body-local 치환은 바인딩 완전성에 의존해도 된다.
+  바인딩 추론이 실패하는 경로는 raw-name 방출이 native 단계에서 실패
+  (silent bad binary 없음) — 진단 품질 개선은 G-2와 함께.
+- G-4 전 금지: §5의 Slot/Channel 행 개방은 Decision-0의 carriage 규칙
+  (positional 기본)에 따라 **생성자 경계 검사**로 설계한다 — 값 태깅
+  으로의 표류 금지.
 
 ## Related
 
