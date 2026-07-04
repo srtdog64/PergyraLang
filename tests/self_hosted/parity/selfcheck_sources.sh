@@ -92,6 +92,7 @@ SELF_SOURCES=(
     "src/self_hosted/lib/json.pgy"
     "src/self_hosted/lib/json_fact_table.pgy"
     "src/self_hosted/lsp/diagnostics_owner.pgy"
+    "src/self_hosted/lsp/document_store_owner.pgy"
     "src/self_hosted/lsp/request_owner.pgy"
     "src/self_hosted/lsp/response_owner.pgy"
     "src/self_hosted/lsp/session_owner.pgy"

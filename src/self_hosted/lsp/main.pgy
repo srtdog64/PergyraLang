@@ -1,6 +1,7 @@
 // Self-host LSP diagnostic payload entrypoint.
 
 import "diagnostics_owner.pgy";
+import "document_store_owner.pgy";
 import "request_owner.pgy";
 import "response_owner.pgy";
 import "session_owner.pgy";
@@ -26,6 +27,10 @@ func Main() -> Void with caps env, io_read {
     }
     if LspSessionReplayProbeRequested(args) {
         RunLspSessionReplayProbeFromArgs(args);
+        return;
+    }
+    if LspDocumentStoreProbeRequested(args) {
+        RunLspDocumentStoreProbeFromArgs(args);
         return;
     }
     RunLspDiagnosticsFromArgs(args);

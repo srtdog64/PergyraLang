@@ -10,6 +10,7 @@ payload owner, not an LSP transport loop.
 - **stage_resource**: `SemanticVerdictZone`
 - **projection_owner**: `src/self_hosted/lsp/diagnostics_owner.pgy`
 - **classification_owner**: `src/self_hosted/lsp/squiggle_owner.pgy`
+- **document_store_owner**: `src/self_hosted/lsp/document_store_owner.pgy`
 - **transport_owner**: `src/self_hosted/lsp/transport_owner.pgy`
 - **request_dispatch_owner**: `src/self_hosted/lsp/request_owner.pgy`
 - **response_emission_owner**: `src/self_hosted/lsp/response_owner.pgy`
@@ -50,6 +51,12 @@ response frame wire string for requests whose response is already owned by
 `response_owner.pgy`. It is still not a live read-exact loop, document-store
 boundary, or textDocument feature handler.
 
+The `--document-store-probe <max-bytes>` mode is the LSP-2f input boundary: it
+reads one stdin buffer, consumes complete transport frames, and projects
+`textDocument/didOpen` plus `textDocument/didChange` into a single-document
+state artifact. It is still not a live read-exact loop, multi-document map, or
+feature handler.
+
 ## Output Contract
 
 The tool prints one JSON object with schema
@@ -75,6 +82,9 @@ plans.
 The `--session-replay-probe` mode prints a
 `pgy.selfhost.lsp-session-replay.v1` artifact with the emitted response frame
 wire string and per-frame list.
+The `--document-store-probe` mode prints a
+`pgy.selfhost.lsp-document-store.v1` artifact with mutation count, final URI,
+final version, final text, and event rows.
 
 ## Oracle
 
@@ -92,4 +102,5 @@ dispatch parity is checked by
 emission parity is checked by
 `tests/self_hosted/parity/lsp_response_emission_parity.sh`; LSP-2e session
 replay parity is checked by
-`tests/self_hosted/parity/lsp_session_replay_parity.sh`.
+`tests/self_hosted/parity/lsp_session_replay_parity.sh`; LSP-2f document-store
+parity is checked by `tests/self_hosted/parity/lsp_document_store_parity.sh`.

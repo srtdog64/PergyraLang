@@ -137,15 +137,20 @@ C LSP 분해: protocol(framing 229L)/diagnostics/hover/features. 페이로드
   이미 증명된 response frames의 wire string으로 replay한다. 이 rung은
   session-script parity의 첫 self-host owner지만, 아직 live read-exact
   loop, document-store mutation, textDocument feature response는 아니다.
-- **LSP-2 — transport 루프 (planned; G-STDIN/LSP-2a/LSP-2b/LSP-2c/LSP-2d/LSP-2e prerequisite landed)**: JSON-RPC Content-Length
+- **LSP-2f — buffered document-store projection (landed)**:
+  `lsp/document_store_owner.pgy`가 한 stdin buffer 안의 `didOpen`/`didChange`
+  request들을 single-document state artifact로 투영한다. 이 rung은
+  document-store mutation의 첫 self-host owner지만, 아직 live read-exact
+  loop, multi-document map, feature response는 아니다.
+- **LSP-2 — transport 루프 (planned; G-STDIN/LSP-2a/LSP-2b/LSP-2c/LSP-2d/LSP-2e/LSP-2f prerequisite landed)**: JSON-RPC Content-Length
   프레이밍은 **바이트 단위 stdin 스트리밍**이 필요 — 현 표면의 입력
   builtin이 라인/파일 기반이면 불충분했다. `ReadStdin(n) -> String`
   substrate는 landed/gated(`read-stdin-builtin-test-smoke`, caps: `io_read`;
   `PGY_CAP_INPUT`은 media/input device 계열이라 stdin byte stream의 SoT가
-  아니다). LSP-2a/2b/2c/2d/2e가 frame/stream/request-plan/response-plan/
-  buffered-session 소비자를 열었으므로 남은 일은 `G-LSP-STREAM`: live
-  read-exact loop, document-store mutation, feature responses, and live
-  session-script parity다. 그 전까지 LSP-0/1/2a/2b/2c/2d/2e는
+  아니다). LSP-2a/2b/2c/2d/2e/2f가 frame/stream/request-plan/response-plan/
+  buffered-session/document-state 소비자를 열었으므로 남은 일은
+  `G-LSP-STREAM`: live read-exact loop, multi-document store integration,
+  feature responses, and live session-script parity다. 그 전까지 LSP-0/1/2a/2b/2c/2d/2e/2f는
   파일-입출력/단일-buffer 도구로 검증한다(오라클엔 충분).
 - **LSP-3 — 플래그 뒤 교체**: hover/features까지 포함해 C LSP와
   세션-스크립트 parity.
@@ -181,14 +186,15 @@ planned로 둔다. 착지 시 같은 커밋에서 행을 갱신한다.
 | lsp | LSP-2c | landed | src/self_hosted/lsp/request_owner.pgy | tests/self_hosted/parity/lsp_request_dispatch_parity.sh |
 | lsp | LSP-2d | landed | src/self_hosted/lsp/response_owner.pgy | tests/self_hosted/parity/lsp_response_emission_parity.sh |
 | lsp | LSP-2e | landed | src/self_hosted/lsp/session_owner.pgy | tests/self_hosted/parity/lsp_session_replay_parity.sh |
+| lsp | LSP-2f | landed | src/self_hosted/lsp/document_store_owner.pgy | tests/self_hosted/parity/lsp_document_store_parity.sh |
 | lsp | LSP-2 | planned | - | - |
 | lsp | LSP-3 | planned | - | - |
 <!-- DRIVER-LSP-RUNG-END -->
 
 ## 5. 순서 권고
 
-DRV-0(조립 — Stage 5 직결) ≻ LSP-0/1(고가성비, thesis 전시) ≻ LSP-2a/2b/2c/2d/2e
-transport/request/response/session buffer owners ≻ G-EXEC/G-LSP-STREAM 표면 결정 ≻ DRV-2/LSP-2.
+DRV-0(조립 — Stage 5 직결) ≻ LSP-0/1(고가성비, thesis 전시) ≻ LSP-2a/2b/2c/2d/2e/2f
+transport/request/response/session/document-state buffer owners ≻ G-EXEC/G-LSP-STREAM 표면 결정 ≻ DRV-2/LSP-2.
 DRV-0과 LSP-0은 상호 독립이라 병행
 가능. 어느 쪽도 runtime 커널 치환을 전제하지 않는다(런타임 C 잔류는
 기존 설계 결정).

@@ -6,6 +6,8 @@ replacement.
 
 - `diagnostics_owner.pgy` projects self-host semantic diagnostic blocks into a
   `textDocument/publishDiagnostics`-shaped JSON artifact.
+- `document_store_owner.pgy` projects buffered `didOpen`/`didChange` request
+  bodies into single-document state.
 - `squiggle_owner.pgy` owns the RED/AMBER/BLUE/VIOLET classification policy
   from diagnostic status/severity/stage/code/facts.
 - `request_owner.pgy` classifies buffered JSON-RPC request bodies through the
@@ -23,9 +25,11 @@ The `ReadStdin(n)` substrate for transport framing is present, and
 `transport_owner.pgy` consumes it for one JSON-RPC Content-Length frame
 (LSP-2a) and ordered multi-frame consumption from one stdin buffer (LSP-2b).
 `request_owner.pgy` consumes those buffered bodies for request dispatch planning
-(LSP-2c), `response_owner.pgy` emits basic response plans (LSP-2d), and
+(LSP-2c), `response_owner.pgy` emits basic response plans (LSP-2d),
 `session_owner.pgy` replays emitted response frames from one buffered request
-stream (LSP-2e). Full LSP-2 still needs a live read-exact loop,
-document-store mutation, and feature responses.
+stream (LSP-2e), and `document_store_owner.pgy` projects buffered
+`didOpen`/`didChange` into single-document state (LSP-2f). Full LSP-2 still
+needs a live read-exact loop, multi-document store integration, and feature
+responses.
 `O-LSP` has live diagnostic-dump plumbing, but full vocabulary/session parity
 remains a later LSP-3 concern.
