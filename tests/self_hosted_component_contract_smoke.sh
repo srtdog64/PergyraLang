@@ -1473,6 +1473,16 @@ require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonDocu
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonObjectFactArrayObjectTable(root_facts, \"modules\")"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectFactTableReady(modules_facts)"
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "nested-modules fixture"
+for report_output_parity in \
+    tests/self_hosted/parity/ast_read_surface_checker_parity.sh \
+    tests/self_hosted/parity/doc_link_checker_parity.sh \
+    tests/self_hosted/parity/examples_inventory_checker_parity.sh \
+    tests/self_hosted/parity/module_manifest_resolver_parity.sh; do
+    require_text "$report_output_parity" "pgy_selfhost_compare_expected_text_artifact_with_owner"
+    require_text "$report_output_parity" '"run_output"'
+    reject_text "$report_output_parity" 'EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"'
+    reject_text "$report_output_parity" "clean JSON parity FAIL"
+done
 reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "let doc_end_opt: Option<Int> = JsonDocumentObjectEnd(content)"
 reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonFieldArrayBounds(content, 0, UnwrapOption(doc_end_opt), \"modules\", module_bounds)"
 reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectCount(content, modules_open, modules_end)"

@@ -3366,3 +3366,20 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"` clean JSON verdicts.
 - No executable cases were run for this slice; validation was limited to static
   owner/ratchet inspection under the validation isolation policy.
+
+### 2026-07-04 -- General self-host report JSON parity uses ArtifactZone
+
+- Repointed clean report JSON equality in `ast_read_surface_checker`,
+  `doc_link_checker`, `examples_inventory_checker`, and
+  `module_manifest_resolver` parity scripts from local shell string comparison
+  to `pgy_selfhost_compare_expected_text_artifact_with_owner(...)`.
+- Used artifact kind `run_output` for these reports because the compared
+  artifact is the tool's stdout JSON report, not AIR/MIR source JSON.
+- Kept the script-local shell grep/count checks as ground truth for each
+  tool-specific invariant; only the committed-expected vs live-report equality
+  verdict moved behind ArtifactZone/TestHarness.
+- Tightened `self_hosted_component_contract_smoke.sh` so these scripts cannot
+  reintroduce local `EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"` clean JSON
+  verdicts.
+- No executable cases were run for this slice; validation was limited to static
+  owner/ratchet inspection under the validation isolation policy.
