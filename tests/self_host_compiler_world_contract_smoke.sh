@@ -411,12 +411,14 @@ done
 for term in \
     "func CompilerArtifactSchema" \
     "CompilerArtifactZoneReady" \
+    "CompilerArtifactKindCount() == 9" \
     "diagnostics" \
     "air_json" \
     "mir_json" \
     "abi_layout" \
     "runtime_materialization" \
     "CompilerRunOutputArtifactKind" \
+    "CompilerArtifactKindAt(8) == CompilerRunOutputArtifactKind()" \
     "emitted_self_hosted" \
     "run_output"; do
     require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "$term"
@@ -425,11 +427,14 @@ done
 for term in \
     "func CompilerTestHarnessSchema" \
     "CompilerTestHarnessReady" \
+    "CompilerHarnessRowCount() == 8" \
     "source_path" \
     "expected_diagnostic" \
     "expected_air_json" \
     "expected_mir_json" \
     "expected_abi_layout" \
+    "CompilerHarnessProjectionCount() == 3" \
+    "CompilerHarnessComparableArtifactPathCount() == 2" \
     "c_oracle" \
     "llvm_oracle" \
     "self_hosted"; do

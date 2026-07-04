@@ -63,14 +63,23 @@ func CompilerHarnessFindingCap() -> Int {
 }
 
 func CompilerTestHarnessReady() -> Bool {
-    return CompilerHarnessRowAt(0) == "source_path" &&
+    return CompilerHarnessRowCount() == 8 &&
+        CompilerHarnessRowAt(0) == "source_path" &&
+        CompilerHarnessRowAt(1) == "expected_diagnostic" &&
+        CompilerHarnessRowAt(2) == "expected_air_json" &&
+        CompilerHarnessRowAt(3) == "expected_mir_json" &&
+        CompilerHarnessRowAt(4) == "expected_abi_layout" &&
+        CompilerHarnessRowAt(5) == "expected_stdout" &&
+        CompilerHarnessRowAt(6) == "expected_exit" &&
         CompilerHarnessRowAt(7) == "projection" &&
+        CompilerHarnessProjectionCount() == 3 &&
         CompilerHarnessProjectionAt(0) == "c_oracle" &&
         CompilerHarnessProjectionAt(1) == "llvm_oracle" &&
         CompilerHarnessProjectionAt(2) == "self_hosted" &&
         CompilerHarnessProjectionIndexKnown(0) &&
         CompilerHarnessProjectionIndexKnown(1) &&
         CompilerHarnessProjectionIndexKnown(2) &&
+        CompilerHarnessComparableArtifactPathCount() == 2 &&
         CompilerHarnessComparableArtifactPathAt(0) != "" &&
         CompilerHarnessComparableArtifactPathAt(1) != "" &&
         CompilerHarnessFindingCap() > 0;

@@ -39,13 +39,14 @@ func CompilerRunOutputArtifactKind() -> String {
 }
 
 func CompilerArtifactZoneReady() -> Bool {
-    return CompilerArtifactKindKnown("diagnostics") &&
-        CompilerArtifactKindKnown("air_json") &&
-        CompilerArtifactKindKnown("mir_json") &&
-        CompilerArtifactKindKnown("abi_layout") &&
-        CompilerArtifactKindKnown("runtime_materialization") &&
-        CompilerArtifactKindKnown("emitted_c") &&
-        CompilerArtifactKindKnown("emitted_llvm") &&
-        CompilerArtifactKindKnown("emitted_self_hosted") &&
-        CompilerArtifactKindKnown(CompilerRunOutputArtifactKind());
+    return CompilerArtifactKindCount() == 9 &&
+        CompilerArtifactKindAt(0) == "diagnostics" &&
+        CompilerArtifactKindAt(1) == "air_json" &&
+        CompilerArtifactKindAt(2) == "mir_json" &&
+        CompilerArtifactKindAt(3) == "abi_layout" &&
+        CompilerArtifactKindAt(4) == "runtime_materialization" &&
+        CompilerArtifactKindAt(5) == "emitted_c" &&
+        CompilerArtifactKindAt(6) == "emitted_llvm" &&
+        CompilerArtifactKindAt(7) == "emitted_self_hosted" &&
+        CompilerArtifactKindAt(8) == CompilerRunOutputArtifactKind();
 }
