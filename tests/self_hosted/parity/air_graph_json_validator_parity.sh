@@ -3,9 +3,9 @@
 #
 # Pergyra is the origin
 # (src/self_hosted/tools/air_graph_json_validator/main.pgy).
-# Shell grep is the parity backend. Asserts: clean exit, JSON byte-equal vs
-# expected/clean.json, count parity vs shell grep on the fixture, and a
-# synthetic missing-key fixture (strip "summary" key, expect rc=1).
+# Shell grep supplies count ground truth; the Pergyra backend-output comparator
+# owns clean JSON artifact equality vs expected/clean.json. The script also
+# checks a synthetic missing-key fixture (strip "summary" key, expect rc=1).
 #
 # Also asserts that the committed fixture still matches the live `pgy --air-json`
 # output for the canonical AIR-producing test source, so the validator does not
@@ -60,6 +60,31 @@ pgy_selfhost_tmp_root() {
     esac
     mkdir -p "$tmp_root"
     printf '%s\n' "$tmp_root"
+}
+
+compare_clean_json_with_owner() {
+    local actual_json="$1"
+    local expected_norm="$PERGYRA_TOOL_BUILD_DIR/expected.clean.norm.json"
+    local actual_norm="$PERGYRA_TOOL_BUILD_DIR/actual.clean.norm.json"
+    local cmp_out="$PERGYRA_TOOL_BUILD_DIR/clean_json_compare.out"
+    local cmp_err="$PERGYRA_TOOL_BUILD_DIR/clean_json_compare.err"
+    local comparator_bin
+    local expected_rel
+    local actual_rel
+
+    pgy_selfhost_compile_backend_output_comparator "self-host-parity:air-graph-json" "$PERGYRA_TOOL_BUILD_DIR"
+    comparator_bin="$(pgy_selfhost_backend_output_comparator_bin "$PERGYRA_TOOL_BUILD_DIR")"
+    pgy_selfhost_normalize_text_artifact < "$EXPECTED_JSON_FILE" > "$expected_norm"
+    printf '%s\n' "$actual_json" | pgy_selfhost_normalize_text_artifact > "$actual_norm"
+    expected_rel="$(pgy_selfhost_path_relative_to_root "$expected_norm")"
+    actual_rel="$(pgy_selfhost_path_relative_to_root "$actual_norm")"
+
+    if ! (cd "$ROOT_DIR" && "$comparator_bin" "$expected_rel" "$actual_rel" 0 2 \
+        >"$cmp_out" 2>"$cmp_err"); then
+        echo "[self-host-parity:air-graph-json] clean JSON parity FAIL" >&2
+        cat "$cmp_out" "$cmp_err" >&2
+        exit 1
+    fi
 }
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
@@ -136,13 +161,7 @@ fi
 PERGYRA_JSON="$(printf '%s\n' "$PERGYRA_OUT" \
     | grep -F 'pgy.selfhost.air-graph-validator.v1' \
     | tail -n 1)"
-EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"
-if [[ "$PERGYRA_JSON" != "$EXPECTED_JSON" ]]; then
-    echo "[self-host-parity:air-graph-json] clean JSON parity FAIL" >&2
-    echo "expected: $EXPECTED_JSON" >&2
-    echo "actual:   $PERGYRA_JSON" >&2
-    exit 1
-fi
+compare_clean_json_with_owner "$PERGYRA_JSON"
 
 # Drift guard - committed fixture must still match live pgy --air-json output.
 # Some sandboxed shells (MSYS / Git-Bash) cannot launch the pgy subprocess

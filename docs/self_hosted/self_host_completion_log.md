@@ -3264,3 +3264,19 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   remains active work.
 - No executable cases were run for this slice; validation was limited to static
   owner/ratchet inspection under the validation isolation policy.
+
+### 2026-07-04 -- AIR graph clean JSON parity uses artifact comparator
+
+- Repointed `tests/self_hosted/parity/air_graph_json_validator_parity.sh` clean
+  expected-vs-actual JSON equality to the Pergyra
+  `backend_output_comparator` instead of direct shell string comparison.
+- Kept shell grep as count ground truth and live AIR fixture drift detection;
+  only the artifact equality verdict moved behind ArtifactZone/TestHarness
+  owner rows.
+- Tightened `self_hosted_component_contract_smoke.sh` and
+  `self_host_preparation_smoke.sh` so this parity leg must keep
+  `compare_clean_json_with_owner` and the shared comparator helper calls.
+- Updated the pre-self-host expansion ledger to list AIR graph validator clean
+  JSON parity as another ArtifactZone/TestHarness consumer.
+- No executable cases were run for this slice; validation was limited to static
+  owner/ratchet inspection under the validation isolation policy.

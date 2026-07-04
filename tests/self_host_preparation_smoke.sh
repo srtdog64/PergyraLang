@@ -318,6 +318,7 @@ require_text "src/self_hosted/tools/air_graph_json_validator/fixture/cap_env.jso
 require_text "src/self_hosted/tools/air_graph_json_validator/expected/clean.json" "\"env_effect_sites\":1"
 require_text "tests/self_hosted/parity/README.md" "Compiler-core self-host migration from this folder is allowed only as a verified"
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "counts.env_effect_sites parity"
+require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "compare_clean_json_with_owner"
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "cap_env fixture drifted"
 require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "Rung 2 parity"
 require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "tests/diagnostic_registry_smoke.sh"

@@ -1295,6 +1295,11 @@ require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" "Req
 require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" "CountMissingGraphFeatureKeys(content, feature_keys)"
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "AIR_EVIDENCE_OWNER"
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "compiler/air_evidence_owner.pgy"
+require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "compare_clean_json_with_owner"
+require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "pgy_selfhost_compile_backend_output_comparator"
+require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "pgy_selfhost_backend_output_comparator_bin"
+require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "pgy_selfhost_path_relative_to_root"
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"'
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'StringContains(content, "\"schema\":\"pgy.air.graph.v1\"")'
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "let doc_end: Int = JsonDocumentObjectEnd(content)"
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonObjectFieldValueBounds(content, 0, UnwrapOption(doc_end_opt), \"summary\", summary_bounds)"
