@@ -60,6 +60,20 @@ coqc 0 admits/0 axioms, 2026-07-04, `formal-semantics-smoke` 배선):
   Ubiquitous language 우선 — 같은 도메인 개념에 두 번째 단어를 들여
   오는 비용이 충돌 비용보다 크다. 충돌은 표기 규약으로 해소:
   **축은 소문자 slot, 타입은 항상 `Slot<T>`(각괄호 동반)**로 쓴다.
+  **근본 근거(BDFL): Site가 되면 뿌리내릴 최소 착지점이 사라진다** —
+  Site는 문서용 산문 단어라 컴파일러에 대응물이 없고, slot은 구현
+  골격(slot 선언·`Slot<T>`·slot id·안전 태그·own/ref)이 이미 서 있는
+  자리다. G-4에서 축-합성 검사가 붙을 hook을 slot 이름이 공짜로
+  상속한다.
+
+**축 입장 조건(이번 재심에서 일반화):** 축은 **표면 착지점**(키워드/
+구문)이 실존해야 한다. 착지점 없는 후보는 축이 아니라 sketch(§6) 또는
+메타(판정 codomain)다. 재심 후 6축은 표면 키워드와 전단사를 이룬다 —
+World↔`world`, Zone↔`zone`, Actor↔`role`/`subject`, Auth↔`authority`/
+`with caps`, Intent/Effect↔`intent`/effect, slot↔`slot`. Site는 이
+전단사를 깨는 유일한 무착지 축명이었고, Phase 제거도 같은 기준의
+귀결이다(착지 구문 부재 → 축 아님 → ERASE codomain). 미래의 신규 축
+제안은 이 조건을 먼저 통과해야 한다.
 - **Phase 축 제거.** "이 의미는 어느 단계까지 살아 있는가"는 값의
   축이 아니라 **축-사실 자체에 대한 메타 질문**이고, 그 답의 자리는
   이미 둘 다 있다: 런타임-생존 절반은 Decision-0의 carriage

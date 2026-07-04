@@ -40,6 +40,8 @@ require "정적 판정이 *아직 안 만들어진* 곳은 GATE가 아니라 DEF
 require "6축 — 재심(BDFL 2026-07-04): 7축 → 6축"
 require "축은 소문자 slot, 타입은 항상"
 require "**Phase 축 제거.**"
+require "축 입장 조건"
+require "표면 착지점"
 if grep -Fq "| **GATE** (제안)" "$DOC"; then
     fail "docs/151 still marks closed GATE verdict as a proposal"
 fi
