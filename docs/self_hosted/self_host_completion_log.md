@@ -3465,6 +3465,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   parity script cannot reintroduce `files_equal`, `show_diff`, `cmp -s`, or
   `diff -u` verdict paths.
 
+### 2026-07-05 -- Scale probes consume ArtifactZone comparisons
+
+- Repointed `lexer_scale_probe.sh` and `parser_scale_probe.sh` byte-equality
+  checks from local `cmp -s` to a non-fatal `backend_output_comparator` verdict.
+- The lexer probe records token text as `run_output`; the parser probe records
+  AST text as `ast_text`. The probes remain coverage measurements rather than
+  hard parity gates, so mismatch still increments the drift counters instead of
+  aborting the run.
+- Tightened `self_hosted_component_contract_smoke.sh` so these probes cannot
+  reintroduce direct `cmp -s` verdicts.
+
 ### 2026-07-04 -- Codegen bootstrap corpus consumes emitted-self-hosted artifact owner
 
 - Added `CompilerEmittedSelfHostedArtifactKind()` to the self-host ArtifactZone

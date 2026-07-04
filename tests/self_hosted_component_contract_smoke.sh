@@ -2286,6 +2286,14 @@ reject_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" '
 reject_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'diff -u'
 reject_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'show_diff'
 reject_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'files_equal'
+require_text "tests/self_hosted/parity/lexer_scale_probe.sh" "pgy_selfhost_compile_backend_output_comparator"
+require_text "tests/self_hosted/parity/lexer_scale_probe.sh" "artifact_files_equal"
+require_text "tests/self_hosted/parity/lexer_scale_probe.sh" "run_output"
+reject_text "tests/self_hosted/parity/lexer_scale_probe.sh" 'cmp -s'
+require_text "tests/self_hosted/parity/parser_scale_probe.sh" "pgy_selfhost_compile_backend_output_comparator"
+require_text "tests/self_hosted/parity/parser_scale_probe.sh" "artifact_files_equal"
+require_text "tests/self_hosted/parity/parser_scale_probe.sh" "ast_text"
+reject_text "tests/self_hosted/parity/parser_scale_probe.sh" 'cmp -s'
 reject_text "tests/self_hosted/parity/codegen_parity.sh" "MINGW BYPASS"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$oracle_raw" "$oracle_err" "$oracle_exe" "${run_args[@]}"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$run_raw" "$run_err" "$self_exe" "${run_args[@]}"'

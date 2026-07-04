@@ -9,6 +9,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -24,6 +25,7 @@ fi
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/parser/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/parser_scale}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
+COMPARATOR_LABEL="self-host-parity:parser-scale"
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 rm -f "$PERGYRA_TOOL_BUILD_DIR/main.exe"
@@ -38,6 +40,7 @@ if [[ ! -x "$PERGYRA_TOOL_BUILD_DIR/main.exe" ]]; then
     echo "[scale-probe] parser compile did not produce $PERGYRA_TOOL_BUILD_DIR/main.exe" >&2
     exit 1
 fi
+pgy_selfhost_compile_backend_output_comparator "$COMPARATOR_LABEL" "$PERGYRA_TOOL_BUILD_DIR"
 
 shopt -s nullglob
 TOTAL=0
@@ -53,6 +56,21 @@ PERGYRA_FILE="$PERGYRA_TOOL_BUILD_DIR/pergyra.ast"
 normalize_ast_file() {
     local path="$1"
     sed -i '${/^$/d;}' "$path"
+}
+
+artifact_files_equal() {
+    local left="$1"
+    local right="$2"
+    local left_rel
+    local right_rel
+    local comparator_bin
+
+    left_rel="$(pgy_selfhost_path_relative_to_root "$left")"
+    right_rel="$(pgy_selfhost_path_relative_to_root "$right")"
+    comparator_bin="$(pgy_selfhost_backend_output_comparator_bin "$PERGYRA_TOOL_BUILD_DIR")"
+    (cd "$ROOT_DIR" && "$comparator_bin" "$left_rel" "$right_rel" 0 2 ast_text \
+        > "$PERGYRA_TOOL_BUILD_DIR/scale_compare.out" \
+        2> "$PERGYRA_TOOL_BUILD_DIR/scale_compare.err")
 }
 
 for src in "$ROOT_DIR"/examples/*.pgy; do
@@ -77,7 +95,7 @@ for src in "$ROOT_DIR"/examples/*.pgy; do
     fi
     normalize_ast_file "$PERGYRA_FILE"
 
-    if cmp -s "$PERGYRA_FILE" "$LIVE_FILE"; then
+    if artifact_files_equal "$PERGYRA_FILE" "$LIVE_FILE"; then
         MATCH=$((MATCH + 1))
         MATCH_LIST+=("$rel")
     else
