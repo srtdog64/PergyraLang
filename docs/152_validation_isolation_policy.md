@@ -168,6 +168,47 @@ If a face is red but the "Belongs To Current Patch" column is false, record it
 as an independent owner failure. Do not keep executing adjacent cases just
 because the release runner would have collected them.
 
+## CI Summary Reading Example
+
+The 2026-07-04 red summaries are a good example of why release collection must
+not become the local work loop. A platform summary can list many red targets,
+but the validation decision is still per isolation face:
+
+| Reported Failure | Face | Default Classification | Local Response |
+|---|---|---|---|
+| `build-source-inventory-test-smoke` on Linux/macOS/Windows | Source/build inventory | one global hygiene owner, not three language regressions | inspect source-list/shell-policy drift; do not run semantic/backend/self-host cases unless the source inventory log names them |
+| `checkedarith-failclosed-test-smoke` | Checked arithmetic | impacted only if checked-arith syntax, semantic fact, lowering, or runtime export changed | use the checked-arith owner log first; do not expand to semantic-core or backend shards by target adjacency |
+| `semantic-core-shape-test-smoke` | Semantic/type shape | independent unless the current diff changed semantic/type facts | inspect the failing diagnostic/type owner; backend compare is not implied until emitted IR/type facts cross |
+| `self-host-preparation-test-smoke` | Self-host wrapper | aggregate wrapper over contract/parity rungs | follow the child rung, usually `contract` or one parity script; do not treat the wrapper as a reason to run every self-hosted tool |
+| `slot-contract-test-smoke` | Slot/runtime/materialization | independent unless slot ABI/materialization facts changed | inspect slot owner terms; do not connect it to parser/self-host/backend failures without a named retained-runtime fact |
+| `llvm-test-backend-compare` | Backend compare | named projection failure | identify the single case and projection owner; do not rerun all shards unless a shared MIR/AIR/ABI fact is implicated |
+| `air-strict-backend-compare-test-smoke` | AIR evidence plus backend projection | shared only when strict AIR facts can change output | inspect AIR fact crossing; otherwise treat as a separate release-confidence failure |
+| `test-all` or platform `ci-*` | Aggregate wrapper | class C wrapper | ignore the wrapper name after the child failure is identified |
+
+This example is intentionally procedural. It does not say those failures are
+unimportant. It says they are not automatically part of the same patch. Each
+one needs an owner/fact sentence before any case family is executed.
+
+## Execution Budget For Isolated Work
+
+When the user asks to stop case execution, the allowed local actions are:
+
+- read diffs, docs, and gate scripts;
+- inspect log snippets already supplied by CI;
+- update contracts, docs, or static ratchets;
+- run formatting/static text checks only when they do not execute fixtures,
+  compiler outputs, or platform wrappers.
+
+Disallowed by default in that mode:
+
+- `test-all`, `ci-*`, backend compare shard sweeps, and AIR nonimpact sweeps;
+- any smoke that compiles or runs committed fixture programs;
+- repeating a platform summary locally just to see whether unrelated faces are
+  still red.
+
+The escape hatch is explicit: name the owner, name the artifact, name the
+crossed fact, and get approval for the narrow executable gate.
+
 ## Stop Conditions
 
 Stop expanding validation when any of these is true:
