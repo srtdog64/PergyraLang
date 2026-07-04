@@ -16,6 +16,12 @@ rediscover or reinterpret it.
 Smoke tests are not source of truth. A smoke test only prevents a frozen owner
 contract from drifting.
 
+Validation scope follows the same ownership rule. A gate is valid evidence only
+when the changed owner can affect the artifact that gate owns. Full backend
+compare, `test-all`, platform CI wrappers, and shard sweeps are escalation
+evidence, not the default response to an isolated SoT edit. The detailed matrix
+lives in `docs/152_validation_isolation_policy.md`.
+
 Current beta closure snapshot:
 
 - `src/semantic/type_checker.c` is a narrow statement/program dispatch owner,

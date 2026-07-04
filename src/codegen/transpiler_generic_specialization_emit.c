@@ -7,6 +7,7 @@
 
 #include <string.h>
 
+#include "../compiler/mir_decl_headers.h"
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
@@ -15,6 +16,8 @@
 #include "transpiler_func_forward_helpers.h"
 #include "transpiler_generic_binding_query.h"
 #include "transpiler_mangled_name.h"
+#include "transpiler_mir_inventory_intent_collect.h"
+#include "transpiler_inventory_view.h"
 
 static bool
 transpiler_generic_specialization_copy_name(char *out, size_t out_size,
@@ -86,13 +89,137 @@ transpiler_type_nested_generic_param(const ASTNode *type,
     return NULL;
 }
 
-static const char *
-transpiler_generic_signature_nested_param(ASTNode *decl)
+static bool
+transpiler_type_name_boundary(char ch)
 {
-    GenericParams *gparams = ast_func_generic_params(decl);
-    size_t param_count = ast_func_param_count(decl);
+    return !((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z')
+             || (ch >= '0' && ch <= '9') || ch == '_');
+}
+
+static bool
+transpiler_type_name_angle_arg_mentions_generic_param(const char *type_name,
+                                                      const char *param_name)
+{
+    size_t param_len;
+    int depth = 0;
+
+    if (type_name == NULL || param_name == NULL || param_name[0] == '\0')
+        return false;
+
+    param_len = strlen(param_name);
+    for (const char *p = type_name; *p != '\0'; p++) {
+        if (*p == '<') {
+            depth++;
+            continue;
+        }
+        if (*p == '>') {
+            if (depth > 0)
+                depth--;
+            continue;
+        }
+        if (depth <= 0 || strncmp(p, param_name, param_len) != 0)
+            continue;
+        {
+            char before = p == type_name ? '\0' : p[-1];
+            char after = p[param_len];
+            if ((p == type_name || transpiler_type_name_boundary(before))
+                && (after == '\0' || transpiler_type_name_boundary(after)))
+                return true;
+        }
+    }
+    return false;
+}
+
+static const char *
+transpiler_mir_type_name_nested_generic_param(
+    const char *type_name,
+    const MIRDeclHeader *header)
+{
+    size_t generic_count;
+
+    if (type_name == NULL || header == NULL)
+        return NULL;
+
+    generic_count = mir_decl_header_generic_param_count(header);
+    for (size_t i = 0; i < generic_count; i++) {
+        const MIRDeclGenericParam *param =
+            mir_decl_header_generic_param(header, i);
+        const char *param_name = mir_decl_generic_param_name(param);
+        if (transpiler_type_name_angle_arg_mentions_generic_param(
+                type_name, param_name)) {
+            return param_name;
+        }
+    }
+    return NULL;
+}
+
+static bool
+transpiler_mir_signature_nested_param(TranspilerCtx *ctx,
+                                      ASTNode *decl,
+                                      const char **nested_out)
+{
+    const char *decl_name;
+    const char *diagnostic_name;
+    const MIRDeclHeader *header;
+    const MIRRoutine *routine;
     const char *nested;
 
+    if (nested_out != NULL)
+        *nested_out = NULL;
+    if (ctx == NULL || decl == NULL || nested_out == NULL)
+        return true;
+
+    routine = transpiler_find_mir_function(ctx, decl);
+    decl_name = routine != NULL
+        ? transpiler_mir_routine_name(routine)
+        : NULL;
+    header = decl_name != NULL
+        ? transpiler_active_decl_header_of_type(ctx, AST_FUNC_DECL, decl_name)
+        : NULL;
+
+    if (header == NULL || routine == NULL
+        || !transpiler_mir_routine_has_signature(routine)) {
+        diagnostic_name = decl_name != NULL
+            ? decl_name
+            : ast_declaration_name(decl);
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing generic function specialization metadata for '%s'",
+            diagnostic_name != NULL ? diagnostic_name : "(anonymous)");
+        return false;
+    }
+
+    nested = transpiler_mir_type_name_nested_generic_param(
+        transpiler_mir_routine_return_type_name(routine), header);
+    for (size_t i = 0; nested == NULL
+         && i < transpiler_mir_routine_param_count(routine); i++) {
+        nested = transpiler_mir_type_name_nested_generic_param(
+            transpiler_mir_routine_param_type_name(routine, i), header);
+    }
+
+    *nested_out = nested;
+    return true;
+}
+
+static bool
+transpiler_generic_signature_nested_param(TranspilerCtx *ctx,
+                                          ASTNode *decl,
+                                          const char **nested_out)
+{
+    GenericParams *gparams;
+    size_t param_count;
+    const char *nested;
+
+    if (nested_out != NULL)
+        *nested_out = NULL;
+    if (ctx == NULL || decl == NULL || nested_out == NULL)
+        return true;
+
+    if (transpiler_active_has_mir(ctx))
+        return transpiler_mir_signature_nested_param(ctx, decl, nested_out);
+
+    gparams = ast_declaration_generic_params(decl);
+    param_count = ast_func_param_count(decl);
     nested = transpiler_type_nested_generic_param(
         ast_func_return_type(decl), gparams, true);
     for (size_t i = 0; nested == NULL && i < param_count; i++) {
@@ -100,7 +227,8 @@ transpiler_generic_signature_nested_param(ASTNode *decl)
         nested = transpiler_type_nested_generic_param(
             param != NULL ? param->type : NULL, gparams, true);
     }
-    return nested;
+    *nested_out = nested;
+    return true;
 }
 
 const char *
@@ -125,7 +253,9 @@ ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
      * caller fall back to the silent raw-name emission this guard exists
      * to prevent. */
     {
-        const char *nested = transpiler_generic_signature_nested_param(decl);
+        const char *nested = NULL;
+        if (!transpiler_generic_signature_nested_param(ctx, decl, &nested))
+            return NULL;
         if (nested != NULL) {
             transpiler_set_backend_error_with_hints(
                 ctx,

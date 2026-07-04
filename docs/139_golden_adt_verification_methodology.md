@@ -203,3 +203,14 @@ Before accepting a new compiler or runtime slice, ask:
 
 If any answer is missing, the work is not ready to be cited as hard
 self-hosted or proof-aligned.
+
+## Validation Isolation
+
+Evidence must also be scoped to the owner being changed. A golden fixture,
+smoke gate, differential oracle, or proof check is relevant only when the
+changed owner can affect the artifact that method observes. The isolation matrix
+is `docs/152_validation_isolation_policy.md`.
+
+Before running a broad gate, record why the changed owner crosses into that
+gate's artifact. Without that crossing, broad execution is noise: it can reveal
+independent failures, but it does not prove the current SoT edit.

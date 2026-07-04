@@ -67,6 +67,14 @@ English anchor for tooling/doc gates:
   bash runtime and fail-fasts if a Windows-hosted MinGW build is routed through
   Git Bash. `build-source-inventory-test-smoke` gates the MSYS2-first Makefile
   terms so this does not regress into silent first-`gcc` failures.
+- Validation isolation policy: `docs/152_validation_isolation_policy.md` now
+  makes owner-scoped validation the default. A CI failure list is triage input,
+  not a dependency graph; broad backend compare, shard sweeps, `test-all`, and
+  platform CI wrappers require a crossed owner artifact, a release checkpoint,
+  or explicit user approval. The policy classifies build inventory,
+  lexer/parser, semantic/DAG, AIR, MIR body, MIR declaration inventory,
+  ABI/runtime, C projection, LLVM projection, backend compare, self-host rungs,
+  and docs/proofs as separate validation surfaces.
 - MIR declaration generic metadata source-of-truth: `MIRDeclGenericParam`
   no longer reuses raw AST storage field names for bound/default metadata.
   Bound/default type names are captured as MIR declaration-header facts at

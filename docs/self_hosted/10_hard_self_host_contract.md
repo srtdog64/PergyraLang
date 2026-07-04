@@ -160,3 +160,8 @@ The Makefile keeps the fast and heavy paths separate:
 Normal compiler builds must not imply the heavy self-host parity bundle. Test
 included verification is opt-in locally and mandatory only for the full
 preparation gate.
+
+Hard self-host validation also follows the repository validation isolation
+policy in `../152_validation_isolation_policy.md`. A self-hosted rung may run
+only the contract/parity evidence for the owner it substitutes unless a broader
+compiler-world owner changed or the user explicitly asks for broad parity.
