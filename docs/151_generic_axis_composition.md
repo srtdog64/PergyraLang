@@ -86,6 +86,16 @@ World↔`world`, Zone↔`zone`, Actor↔`role`/`subject`, Auth↔`authority`/
   slot/zone/handle primitive 소관이고 수명 주석 영구금지(docs/118
   §2.1)가 그 방화벽이므로, 이 개념을 규범 어휘로 lifetime이라 부르지
   않는다. 축이 사라졌으니 명명 논쟁도 소멸한다.
+  **존재론적 근거(BDFL): lifetime은 존재를 스코프로 근사하는 정적
+  개념인데, world의 시간성은 스코프-모양이 아니라 이벤트-모양이다**
+  (Vessel의 Filled는 중괄호가 아니라 이벤트 사이를 산다). 모든 것을
+  정적으로 표기하면 세계를 표기할 수 없다 — 그래서 이 언어의 절단선은
+  Rust의 스코프 vs 힙이 아니라 **정적 경계 vs 런타임 존재**
+  (docs/semantics/00 canonical split)다: 경계(zone/world/authority)는
+  도메인-안정이라 정적 선언, 존재(slot 생존/state)는 도메인-휘발이라
+  런타임 증거 fail-closed(generation·state tag·GATE). 6축이 전부 정적
+  선언인 이유, 그리고 시간성이 축이 아니라 판정(ERASE)·런타임(GATE)
+  층에 사는 이유가 이것이다.
 
 ## 2. Decision-0 — 축의 운반 방식 (CLOSED, BDFL 2026-07-04)
 

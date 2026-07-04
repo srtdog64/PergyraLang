@@ -42,6 +42,7 @@ require "축은 소문자 slot, 타입은 항상"
 require "**Phase 축 제거.**"
 require "축 입장 조건"
 require "표면 착지점"
+require "정적 경계 vs 런타임 존재"
 if grep -Fq "| **GATE** (제안)" "$DOC"; then
     fail "docs/151 still marks closed GATE verdict as a proposal"
 fi
