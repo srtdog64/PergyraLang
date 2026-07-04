@@ -36,6 +36,17 @@ rewrite history.
 - Repointed `linter_parity.sh` to read those paths from the manifest and pass
   the fixture path into the compiled linter through `Args()[0]`.
 
+## 2026-07-05 - Module manifest resolver paths consume TestHarness owner
+
+- Added module manifest resolver path facts to `test_harness_owner.pgy`: tool
+  source, expected JSON, and input manifest path.
+- Extended `test_harness_manifest.pgy` with the
+  `module-manifest-resolver-paths` suite.
+- Repointed `module_manifest_resolver_parity.sh` to read those paths from the
+  manifest and run the compiled resolver with the manifest path as `Args()[0]`.
+- Extended the shared LLVM-leg parity helper so C/LLVM tool runs preserve
+  runtime arguments when a harness-owned input path must flow into the tool.
+
 ## 2026-07-05 - ArtifactZone promoted to ready
 
 - Reclassified `Artifact Zone evidence` from ACTIVE to READY in

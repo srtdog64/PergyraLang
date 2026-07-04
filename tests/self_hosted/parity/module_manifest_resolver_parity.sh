@@ -32,11 +32,29 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
-PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/module_manifest_resolver/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/module_manifest_resolver}"
+HARNESS_PATHS_FILE="$PERGYRA_TOOL_BUILD_DIR/module_manifest_resolver_harness_paths.txt"
+mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:module-manifest-resolver" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "module-manifest-resolver-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 3 ]]; then
+    echo "[self-host-parity:module-manifest-resolver] TestHarness manifest expected 3 module-manifest paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
-EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/module_manifest_resolver/expected/clean.json"
-MANIFEST_PATH="docs/language_module_manifest.json"
+EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
+MANIFEST_PATH="${harness_paths[2]}"
 
 for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$ROOT_DIR/$MANIFEST_PATH"; do
     if [[ ! -f "$path" ]]; then
@@ -45,7 +63,6 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$ROOT_DIR/$MANIFEST_PA
     fi
 done
 
-mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
 PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
 
@@ -60,8 +77,20 @@ LIB_BUILD_DIR="$ROOT_DIR/.tmp/lib"
 mkdir -p "$LIB_BUILD_DIR"
 cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
 
+CLEAN_BIN="$PERGYRA_TOOL_BUILD_DIR/module_manifest_resolver_c.exe"
+CLEAN_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/module_manifest_resolver_c.compile.log"
+if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" --backend=c \
+    -o "$(pgy_path_for_compiler "$PGY" "$CLEAN_BIN")" >"$CLEAN_COMPILE_LOG" 2>&1); then
+    echo "[self-host-parity:module-manifest-resolver] C backend compile failed" >&2
+    cat "$CLEAN_COMPILE_LOG" >&2
+    exit 1
+fi
+if ! pgy_require_runnable_binary_here "self-host-parity:module-manifest-resolver" "$CLEAN_BIN"; then
+    exit 1
+fi
+
 set +e
-PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>/dev/null)"
+PERGYRA_OUT="$(cd "$ROOT_DIR" && "$CLEAN_BIN" "$MANIFEST_PATH" 2>/dev/null)"
 P_RC=$?
 set -e
 
@@ -121,7 +150,7 @@ sed 's/"modules":/"NOTMODULES":/' "$ROOT_DIR/$MANIFEST_PATH" \
     > "$NEG_ROOT/$MANIFEST_PATH"
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>&1)"
+NEG_OUT="$(cd "$NEG_ROOT" && "$CLEAN_BIN" "$MANIFEST_PATH" 2>&1)"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then
@@ -148,7 +177,7 @@ cat > "$NEG_ROOT/$MANIFEST_PATH" <<'JSON'
 JSON
 
 set +e
-NESTED_MODULES_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>&1)"
+NESTED_MODULES_OUT="$(cd "$NEG_ROOT" && "$CLEAN_BIN" "$MANIFEST_PATH" 2>&1)"
 NESTED_MODULES_RC=$?
 set -e
 if [[ "$NESTED_MODULES_RC" -ne 1 ]]; then
@@ -182,7 +211,7 @@ cat > "$NEG_ROOT/$MANIFEST_PATH" <<'JSON'
 JSON
 
 set +e
-NESTED_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>&1)"
+NESTED_OUT="$(cd "$NEG_ROOT" && "$CLEAN_BIN" "$MANIFEST_PATH" 2>&1)"
 NESTED_RC=$?
 set -e
 if [[ "$NESTED_RC" -ne 1 ]]; then
@@ -197,5 +226,5 @@ if ! grep -Fq '"kind":"field_count_mismatch"' <<<"$NESTED_OUT" ||
     exit 1
 fi
 
-assert_llvm_leg "self-host-parity:module-manifest-resolver" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR"
+assert_llvm_leg "self-host-parity:module-manifest-resolver" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$MANIFEST_PATH"
 echo "[self-host-parity:module-manifest-resolver] rung-2 parity ok (modules=$SHELL_MODULES blockers=$SHELL_BLOCKERS stable=$SHELL_STABLE; missing-modules-key rc=1; nested-modules rc=1; nested-field rc=1)"

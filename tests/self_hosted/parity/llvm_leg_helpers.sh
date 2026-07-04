@@ -196,6 +196,8 @@ assert_llvm_leg() {
     local label="$1"
     local tool_arg="$2"
     local build_dir="$3"
+    shift 3
+    local run_args=("$@")
     local c_bin="$build_dir/main_c_leg.exe"
     local llvm_bin="$build_dir/main_llvm_leg.exe"
     local c_compile_log="$build_dir/main_c_leg.compile.log"
@@ -223,7 +225,7 @@ assert_llvm_leg() {
     fi
 
     set +e
-    (cd "$ROOT_DIR" && "$c_bin" 2>"$c_err" | pgy_selfhost_normalize_text_artifact >"$c_out")
+    (cd "$ROOT_DIR" && "$c_bin" "${run_args[@]}" 2>"$c_err" | pgy_selfhost_normalize_text_artifact >"$c_out")
     local c_rc=$?
     set -e
     if [[ "$c_rc" -ne 0 ]]; then
@@ -233,7 +235,7 @@ assert_llvm_leg() {
     fi
 
     set +e
-    (cd "$ROOT_DIR" && "$llvm_bin" 2>"$llvm_err" | pgy_selfhost_normalize_text_artifact >"$llvm_out")
+    (cd "$ROOT_DIR" && "$llvm_bin" "${run_args[@]}" 2>"$llvm_err" | pgy_selfhost_normalize_text_artifact >"$llvm_out")
     local llvm_rc=$?
     set -e
     if [[ "$llvm_rc" -ne 0 ]]; then

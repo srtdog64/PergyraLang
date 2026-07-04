@@ -155,6 +155,47 @@ func CompilerHarnessLinterParityReady() -> Bool {
     return CompilerHarnessLinterParitySuiteName() != "";
 }
 
+func CompilerHarnessModuleManifestResolverSuiteName() -> String {
+    return "module-manifest-resolver-paths";
+}
+
+func CompilerHarnessModuleManifestResolverToolSourcePath() -> String {
+    return "src/self_hosted/tools/module_manifest_resolver/main.pgy";
+}
+
+func CompilerHarnessModuleManifestResolverExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/module_manifest_resolver/expected/clean.json";
+}
+
+func CompilerHarnessModuleManifestResolverInputManifestPath() -> String {
+    return "docs/language_module_manifest.json";
+}
+
+func CompilerHarnessModuleManifestResolverPathCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessModuleManifestResolverPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessModuleManifestResolverToolSourcePath(); }
+    if index == 1 { return CompilerHarnessModuleManifestResolverExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessModuleManifestResolverInputManifestPath(); }
+    return "";
+}
+
+func CompilerHarnessModuleManifestResolverReady() -> Bool {
+    if CompilerHarnessModuleManifestResolverPathCount() != 3 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessModuleManifestResolverPathCount() {
+        if CompilerHarnessModuleManifestResolverPathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessModuleManifestResolverSuiteName() != "";
+}
+
 func CompilerHarnessBackendTriSmokeSuiteName() -> String {
     return "backend-tri-smoke";
 }
@@ -267,5 +308,6 @@ func CompilerTestHarnessReady() -> Bool {
         CompilerHarnessComparableArtifactPathAt(1) == CompilerHarnessActualComparableArtifactPath() &&
         CompilerHarnessFindingCap() > 0 &&
         CompilerHarnessLinterParityReady() &&
+        CompilerHarnessModuleManifestResolverReady() &&
         CompilerHarnessBackendTriSuiteReady();
 }

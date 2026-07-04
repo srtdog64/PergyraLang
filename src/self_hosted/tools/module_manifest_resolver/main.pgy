@@ -75,11 +75,15 @@ func InputErrorJson(path: String) -> Option<String> {
     let findings: Array<String> = [
         JsonEmitObject(finding_fields)
     ];
-    return Some(ModuleManifestReportJson(false, "docs/language_module_manifest.json", 0, 0, 0, 0, findings));
+    return Some(ModuleManifestReportJson(false, path, 0, 0, 0, 0, findings));
 }
 
 func Main() -> Void {
+    let args: Array<String> = Args();
     let manifest_path: String = "docs/language_module_manifest.json";
+    if ArrayLength(args) > 0 {
+        manifest_path = args[0];
+    }
     if !FileExists(manifest_path) {
         Log(UnwrapOption(InputErrorJson(manifest_path)));
         Exit(1);

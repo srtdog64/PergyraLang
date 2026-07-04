@@ -1610,6 +1610,12 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHar
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessLinterFixturePath"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessLinterPathAt"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessLinterParityReady"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessModuleManifestResolverSuiteName"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessModuleManifestResolverToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessModuleManifestResolverExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessModuleManifestResolverInputManifestPath"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessModuleManifestResolverPathAt"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessModuleManifestResolverReady"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeSuiteName"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriExtendedSuiteName"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeCaseCount"
@@ -1626,12 +1632,16 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessP
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessComparableArtifactPathAt(0) == CompilerHarnessExpectedComparableArtifactPath()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessComparableArtifactPathAt(1) == CompilerHarnessActualComparableArtifactPath()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessLinterParityReady()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessModuleManifestResolverReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendTriSuiteReady()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitBackendTriSmokeCases"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitLinterParityPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLinterPathAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLinterParitySuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitModuleManifestResolverPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessModuleManifestResolverPathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessModuleManifestResolverSuiteName()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriSmokeCaseAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriExtendedCaseAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriSmokeSuiteName()"
@@ -1743,6 +1753,9 @@ require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "backend_output_comp
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "pgy_selfhost_compare_expected_text_artifact_with_owner"
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'assert_llvm_leg_with_artifact_owner "$label" "$build_dir" "$c_out" "$llvm_out"'
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'local run_args=("$@")'
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" '"$c_bin" "${run_args[@]}"'
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" '"$llvm_bin" "${run_args[@]}"'
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" '"$comparator_bin" "$c_rel" "$llvm_rel" 0 1'
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "artifact-equal"
 reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" ".tmp/self_hosted/shared"
@@ -1783,6 +1796,14 @@ require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonDocu
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonObjectFactArrayObjectTable(root_facts, \"modules\")"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectFactTableReady(modules_facts)"
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "nested-modules fixture"
+require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" '"module-manifest-resolver-paths"'
+require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'MANIFEST_PATH="${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" '"$CLEAN_BIN" "$MANIFEST_PATH"'
+require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'assert_llvm_leg "self-host-parity:module-manifest-resolver" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$MANIFEST_PATH"'
+reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/module_manifest_resolver/main.pgy"'
+reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/module_manifest_resolver/expected/clean.json"'
+reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'MANIFEST_PATH="docs/language_module_manifest.json"'
 for report_output_parity in \
     tests/self_hosted/parity/ast_read_surface_checker_parity.sh \
     tests/self_hosted/parity/doc_link_checker_parity.sh \
@@ -1805,6 +1826,8 @@ reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArray
 reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonObjectHasField(content, object_bounds[0], object_bounds[1], \"layer\")"
 reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectBoolFieldEqualsCount(content, modules_open, modules_end, \"beta_blocker\", true)"
 reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectStringFieldEqualsCount(content, modules_open, modules_end, \"status\", \"stable-subset\")"
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "let args: Array<String> = Args();"
+require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "manifest_path = args[0];"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectFactCount(modules_facts)"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectFactFieldCount(modules_facts, \"layer\")"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectFactBoolFieldEqualsCount(modules_facts, \"beta_blocker\", true)"
