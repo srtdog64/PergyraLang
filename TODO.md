@@ -10616,8 +10616,18 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
   비대칭 `2/1/2` — Channel-only의 측정된 우회, 방향 결정=AC-3 BDFL 셀,
   zone SILENT-COPY와 같은 배치) / **who-swap 완전 비간섭**(통과·거절
   양방향 — who는 승인 아님, WO-F3 실측판; 기계화=AC-4). AC-rung:
-  AC-0/1 landed, AC-2(부재쌍 커널)·AC-3(발견 방향)·AC-4(WO-F3 Coq)·
-  AC-5(G-4 합류) planned.
+  AC-0/1 landed, AC-2(부재쌍 커널)·AC-4(WO-F3 Coq)·AC-5(G-4 합류)
+  planned. **AC-3 = 연역 도출 완료(docs/157, 2026-07-04) — BDFL 비준
+  대기**: 전제 P1–P7(전부 기존 canon, 신규 가정 0) + 실측 보강 P-A
+  (Clone이 zone 생성 자리에서 이미 동작)·P-B(w.zone은 let-init에선
+  copy, transfer-인자에선 alias — 위치별 우연 의미론이 S2의 정체) →
+  **정리 T(경계-포크 선언 규칙)**: containment 경계를 가로지르는 live
+  binding은 Clone(선언된 복사)/Channel(선언된 통과) 요구, 무선언=
+  REJECT. S1=zone 생성자 REJECT+Clone, S2=world 멤버 유출 REJECT+Clone
+  (write-through·의미분기 동시 소멸, Channel-only 구문 강제 복원).
+  무음-합법화 방향은 P1·P3·P4·P7 중 둘 이상 철회 필요 = 불가.
+  비준 시 구현은 docs/157 §4 스케치(semantic 2지점 + 실측 잠금 갱신
+  같은 커밋 의무).
 - **진입 근거**: docs/155 §3 체크리스트 5항목 전부 닫힘(2026-07-04 —
   WO-F1 ✅ + WO-A1 ✅ + WO-A2 ✅ + GuardWitnessBinding.v ✅ + matrix-lock
   green 재확인).

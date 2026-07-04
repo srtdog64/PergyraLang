@@ -1,0 +1,57 @@
+// AC-3 premise probe P-A: does `Clone` work at zone-construction position
+// today? If yes, the deduced verdict "zone construction from a live binding
+// demands declared copy" has its escape hatch already in the surface —
+// closing the silence costs one word, not a new mechanism.
+// Expected shape if Clone works: same output as zone_pos_share (5 5 / 7 5)
+// but with the fork DECLARED at both construction sites.
+subject Buyer {
+    let hp: Int;
+    action Promote(self) -> Void {
+        hp = hp + 2;
+    }
+}
+
+object BuyerView {
+    hp: Int;
+}
+
+zone CartZone {
+    subject slot buyer: Buyer
+    object slot mirror: BuyerView = BuyerView(0)
+    authority buyer
+    bind mirror from buyer by buyer
+}
+
+zone PaymentZone {
+    subject slot buyer: Buyer
+    object slot receipt: BuyerView = BuyerView(0)
+    authority buyer
+    bind receipt from buyer by buyer
+}
+
+world TwoZoneWorld {
+    zone cart: CartZone
+    zone payment: PaymentZone
+    activate cart
+    activate payment
+
+    func Poke(self) -> Void {
+        cart.buyer.Promote();
+    }
+
+    func Report(self) -> Void {
+        Log(cart.buyer.hp);
+        Log(payment.buyer.hp);
+    }
+}
+
+func Main() -> Void {
+    let sb = Buyer(5);
+    let w = TwoZoneWorld(
+        CartZone(Clone(sb), BuyerView(0)),
+        PaymentZone(Clone(sb), BuyerView(0)));
+
+    w.Report();
+    w.Poke();
+    w.Report();
+}

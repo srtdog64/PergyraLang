@@ -1,0 +1,34 @@
+// AC-3 premise probe P-B: what does `w.zone` member read actually hand out?
+// The write-through finding showed a transfer DEST wrote into the world
+// interior. This probe characterizes the read itself, without transfer:
+// read w.cart into a local, mutate THROUGH the local, then ask the world.
+//   world mutated too   -> member read = live reference into the interior
+//                          (the escape itself is the breach; close there)
+//   world unchanged     -> member read detaches a copy; the write-through
+//                          is transfer-arg-specific (close at arg binding)
+subject Buyer {
+    let mut hp: Int;
+    action Promote(self) -> Void {
+        self.hp = self.hp + 1;
+    }
+}
+
+zone CartZone {
+    subject slot buyer: Buyer
+}
+
+world CartWorld {
+    zone cart: CartZone
+
+    func Hp(self) -> Int {
+        return cart.buyer.hp;
+    }
+}
+
+func Main() -> Void {
+    let w = CartWorld(CartZone(Buyer(1)));
+    let escaped = w.cart;
+    escaped.buyer.Promote();
+    Log(escaped.buyer.hp);
+    Log(w.Hp());
+}
