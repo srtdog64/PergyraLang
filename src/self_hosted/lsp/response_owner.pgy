@@ -2,11 +2,12 @@
 //
 // LSP-2d consumes buffered request bodies and emits response body/frame plans.
 // It deliberately stops before the live read-exact loop and document-store
-// mutation. textDocument feature responses remain out of scope.
+// mutation. LSP-2g feature response shapes are delegated to feature_owner.
 
 import "../lib/json_emit.pgy";
 import "../lib/json_fact_table.pgy";
 import "../lib/json_scan.pgy";
+import "feature_owner.pgy";
 import "request_owner.pgy";
 import "transport_owner.pgy";
 
@@ -58,14 +59,6 @@ func LspResponseFrameForBody(body: String) -> Option<String> {
     return Some(Concat("Content-Length: ", Concat(ToString(StringLength(body)), Concat("\r\n\r\n", body))));
 }
 
-func LspResponseTextDocumentFeature(method: String) -> Bool {
-    let prefix: String = "textDocument/";
-    if StringLength(method) < StringLength(prefix) {
-        return false;
-    }
-    return Substring(method, 0, StringLength(prefix)) == prefix;
-}
-
 func LspResponseResultForMethod(method: String) -> Option<String> {
     if method == "initialize" {
         return Some(LspResponseInitializeResultJson());
@@ -76,7 +69,11 @@ func LspResponseResultForMethod(method: String) -> Option<String> {
     if method == "initialized" || method == "exit" {
         return None;
     }
-    if LspResponseTextDocumentFeature(method) {
+    let feature_result: Option<String> = LspFeatureResultForMethod(method);
+    if IsSome(feature_result) {
+        return feature_result;
+    }
+    if LspFeatureTextDocumentMethod(method) {
         return None;
     }
     return Some("null");
@@ -221,6 +218,10 @@ func LspResponseEmissionContractReady() -> Bool {
         return false;
     }
     if StringIndexOf(plan, "\"Content-Length:") < 0 {
+        return false;
+    }
+    let hover: String = UnwrapOption(LspResponsePlanJson("{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"textDocument/hover\",\"params\":{}}"));
+    if StringIndexOf(hover, "\"emitted\":true") < 0 {
         return false;
     }
     let notify: String = UnwrapOption(LspResponsePlanJson("{\"jsonrpc\":\"2.0\",\"method\":\"initialized\"}"));

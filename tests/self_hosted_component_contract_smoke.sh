@@ -1746,6 +1746,7 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/p
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/tree_text_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/diagnostics_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/document_store_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/feature_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/request_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/response_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/session_owner.pgy"'
@@ -1762,8 +1763,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 118 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 118"
+[[ "$selfcheck_count" -eq 119 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 119"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'
@@ -1976,6 +1977,7 @@ require_file "src/self_hosted/lsp/README.md"
 require_file "src/self_hosted/lsp/intent.md"
 require_file "src/self_hosted/lsp/diagnostics_owner.pgy"
 require_file "src/self_hosted/lsp/document_store_owner.pgy"
+require_file "src/self_hosted/lsp/feature_owner.pgy"
 require_file "src/self_hosted/lsp/request_owner.pgy"
 require_file "src/self_hosted/lsp/response_owner.pgy"
 require_file "src/self_hosted/lsp/session_owner.pgy"
@@ -1983,6 +1985,7 @@ require_file "src/self_hosted/lsp/squiggle_owner.pgy"
 require_file "src/self_hosted/lsp/transport_owner.pgy"
 require_max_lines "src/self_hosted/lsp/diagnostics_owner.pgy" 600
 require_max_lines "src/self_hosted/lsp/document_store_owner.pgy" 600
+require_max_lines "src/self_hosted/lsp/feature_owner.pgy" 600
 require_max_lines "src/self_hosted/lsp/request_owner.pgy" 600
 require_max_lines "src/self_hosted/lsp/response_owner.pgy" 600
 require_max_lines "src/self_hosted/lsp/session_owner.pgy" 600
@@ -1991,6 +1994,7 @@ require_max_lines "src/self_hosted/lsp/transport_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/main.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/diagnostics_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/document_store_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/feature_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/request_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/response_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/session_owner.pgy"
@@ -2014,6 +2018,15 @@ require_text "src/self_hosted/lsp/main.pgy" "LspSessionReplayProbeRequested(args
 require_text "src/self_hosted/lsp/main.pgy" "RunLspSessionReplayProbeFromArgs(args)"
 require_text "src/self_hosted/lsp/main.pgy" "LspDocumentStoreProbeRequested(args)"
 require_text "src/self_hosted/lsp/main.pgy" "RunLspDocumentStoreProbeFromArgs(args)"
+require_text "src/self_hosted/lsp/feature_owner.pgy" 'import "../lib/json_emit.pgy";'
+require_text "src/self_hosted/lsp/feature_owner.pgy" "func LspFeatureContractReady"
+require_text "src/self_hosted/lsp/feature_owner.pgy" "func LspFeatureResultForMethod"
+require_text "src/self_hosted/lsp/feature_owner.pgy" "func LspFeatureTextDocumentMethod"
+require_text "src/self_hosted/lsp/feature_owner.pgy" "textDocument/hover"
+require_text "src/self_hosted/lsp/feature_owner.pgy" "textDocument/completion"
+require_text "src/self_hosted/lsp/response_owner.pgy" 'import "feature_owner.pgy";'
+require_text "src/self_hosted/lsp/response_owner.pgy" "LspFeatureResultForMethod(method)"
+require_text "src/self_hosted/lsp/response_owner.pgy" "LspFeatureTextDocumentMethod(method)"
 require_text "src/self_hosted/lsp/document_store_owner.pgy" 'import "../lib/json_fact_table.pgy";'
 require_text "src/self_hosted/lsp/document_store_owner.pgy" 'import "transport_owner.pgy";'
 require_text "src/self_hosted/lsp/document_store_owner.pgy" "func LspDocumentStoreContractReady"
@@ -2084,8 +2097,10 @@ require_file "src/self_hosted/lsp/expected/transport_stream_partial.json"
 require_file "src/self_hosted/lsp/expected/request_dispatch.json"
 require_file "src/self_hosted/lsp/expected/request_dispatch_missing_method.json"
 require_file "src/self_hosted/lsp/expected/response_emission.json"
+require_file "src/self_hosted/lsp/expected/response_emission_feature.json"
 require_file "src/self_hosted/lsp/expected/response_emission_unsupported.json"
 require_file "src/self_hosted/lsp/expected/session_replay.json"
+require_file "src/self_hosted/lsp/expected/session_replay_feature.json"
 require_file "src/self_hosted/lsp/expected/session_replay_unsupported.json"
 require_file "src/self_hosted/lsp/expected/document_store.json"
 require_file "src/self_hosted/lsp/expected/document_store_multi_uri.json"
@@ -2115,9 +2130,15 @@ require_text "src/self_hosted/lsp/expected/request_dispatch.json" '"method":"ini
 require_text "src/self_hosted/lsp/expected/request_dispatch_missing_method.json" '"reason":"missing_method"'
 require_text "src/self_hosted/lsp/expected/response_emission.json" '"schema":"pgy.selfhost.lsp-response-emission-stream.v1"'
 require_text "src/self_hosted/lsp/expected/response_emission.json" '"method":"initialize"'
+require_text "src/self_hosted/lsp/expected/response_emission_feature.json" '"method":"textDocument/hover"'
+require_text "src/self_hosted/lsp/expected/response_emission_feature.json" '\"result\":null'
+require_text "src/self_hosted/lsp/expected/response_emission_feature.json" '\"items\":[]'
 require_text "src/self_hosted/lsp/expected/response_emission_unsupported.json" '"reason":"unsupported_response"'
+require_text "src/self_hosted/lsp/expected/response_emission_unsupported.json" '"method":"textDocument/semanticTokens/full"'
 require_text "src/self_hosted/lsp/expected/session_replay.json" '"schema":"pgy.selfhost.lsp-session-replay.v1"'
 require_text "src/self_hosted/lsp/expected/session_replay.json" '"wire":"Content-Length: 490'
+require_text "src/self_hosted/lsp/expected/session_replay_feature.json" '\"result\":null'
+require_text "src/self_hosted/lsp/expected/session_replay_feature.json" '\"items\":[]'
 require_text "src/self_hosted/lsp/expected/session_replay_unsupported.json" '"errors":1'
 require_text "src/self_hosted/lsp/expected/document_store.json" '"schema":"pgy.selfhost.lsp-document-store.v1"'
 require_text "src/self_hosted/lsp/expected/document_store.json" '"finalText":"Log(2);"'

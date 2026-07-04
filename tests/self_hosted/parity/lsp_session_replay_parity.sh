@@ -106,8 +106,11 @@ body_initialize='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}'
 body_initialized='{"jsonrpc":"2.0","method":"initialized"}'
 body_shutdown='{"jsonrpc":"2.0","id":2,"method":"shutdown"}'
 body_hover='{"jsonrpc":"2.0","id":3,"method":"textDocument/hover","params":{}}'
+body_completion='{"jsonrpc":"2.0","id":4,"method":"textDocument/completion","params":{}}'
+body_unknown_feature='{"jsonrpc":"2.0","id":5,"method":"textDocument/semanticTokens/full","params":{}}'
 input_session="$(frame_for_body "$body_initialize")$(frame_for_body "$body_initialized")$(frame_for_body "$body_shutdown")"
-input_unsupported="$(frame_for_body "$body_hover")"
+input_feature="$(frame_for_body "$body_hover")$(frame_for_body "$body_completion")"
+input_unsupported="$(frame_for_body "$body_unknown_feature")"
 
 for backend in $BACKENDS; do
     lsp_bin="$BUILD_DIR/main_${backend}.exe"
@@ -128,6 +131,10 @@ for backend in $BACKENDS; do
         "session_replay" \
         "$input_session" \
         "$ROOT_DIR/src/self_hosted/lsp/expected/session_replay.json"
+    capture_session_output "$backend" "$lsp_bin" \
+        "session_replay_feature" \
+        "$input_feature" \
+        "$ROOT_DIR/src/self_hosted/lsp/expected/session_replay_feature.json"
     capture_session_output "$backend" "$lsp_bin" \
         "session_replay_unsupported" \
         "$input_unsupported" \

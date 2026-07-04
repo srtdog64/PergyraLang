@@ -11,6 +11,7 @@ payload owner, not an LSP transport loop.
 - **projection_owner**: `src/self_hosted/lsp/diagnostics_owner.pgy`
 - **classification_owner**: `src/self_hosted/lsp/squiggle_owner.pgy`
 - **document_store_owner**: `src/self_hosted/lsp/document_store_owner.pgy`
+- **feature_response_owner**: `src/self_hosted/lsp/feature_owner.pgy`
 - **transport_owner**: `src/self_hosted/lsp/transport_owner.pgy`
 - **request_dispatch_owner**: `src/self_hosted/lsp/request_owner.pgy`
 - **response_emission_owner**: `src/self_hosted/lsp/response_owner.pgy`
@@ -40,16 +41,18 @@ it reads one stdin buffer, consumes complete transport frames through
 `transport_owner.pgy`, and classifies request bodies through the shared JSON
 fact table. It is not a response emitter or document-store boundary.
 
-The `--response-probe <max-bytes>` mode is the LSP-2d input boundary: it reads
+The `--response-probe <max-bytes>` mode is the LSP-2d/LSP-2g input boundary: it reads
 one stdin buffer, consumes complete transport frames, and projects response
-required request bodies into response body/frame plans. It is not a live
-read-exact loop or document-store boundary.
+required request bodies into response body/frame plans. LSP-2g adds valid
+no-index response shapes for advertised `textDocument/*` features through
+`feature_owner.pgy`. It is not a live read-exact loop or document-store
+boundary.
 
 The `--session-replay-probe <max-bytes>` mode is the LSP-2e input boundary: it
 reads one stdin buffer, consumes complete transport frames, and emits the
 response frame wire string for requests whose response is already owned by
-`response_owner.pgy`. It is still not a live read-exact loop, document-store
-boundary, or textDocument feature handler.
+`response_owner.pgy`. It is still not a live read-exact loop or document-store
+boundary.
 
 The `--document-store-probe <max-bytes>` mode is the LSP-2f input boundary: it
 reads one stdin buffer, consumes complete transport frames, and projects
@@ -78,7 +81,7 @@ The `--request-dispatch-probe` mode prints a
 plans.
 The `--response-probe` mode prints a
 `pgy.selfhost.lsp-response-emission-stream.v1` artifact with response body/frame
-plans.
+plans, including no-index feature response shapes.
 The `--session-replay-probe` mode prints a
 `pgy.selfhost.lsp-session-replay.v1` artifact with the emitted response frame
 wire string and per-frame list.
@@ -104,3 +107,6 @@ emission parity is checked by
 replay parity is checked by
 `tests/self_hosted/parity/lsp_session_replay_parity.sh`; LSP-2f document-store
 parity is checked by `tests/self_hosted/parity/lsp_document_store_parity.sh`.
+LSP-2g feature-shape parity is checked by the response-emission and
+session-replay parity gates because those are the artifact owners that consume
+`feature_owner.pgy`.

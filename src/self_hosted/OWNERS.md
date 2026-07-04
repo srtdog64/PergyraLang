@@ -164,6 +164,8 @@ compiler-stage `.pgy` source to be listed here.
   `publishDiagnostics` JSON payload projection.
 - `src/self_hosted/lsp/document_store_owner.pgy` -- LSP-2f buffered
   didOpen/didChange single-document state projection.
+- `src/self_hosted/lsp/feature_owner.pgy` -- LSP-2g advertised textDocument
+  no-index response shapes.
 - `src/self_hosted/lsp/squiggle_owner.pgy` -- LSP-1 diagnostic code/fact to
   squiggle-class policy.
 - `src/self_hosted/lsp/transport_owner.pgy` -- LSP-2a single JSON-RPC

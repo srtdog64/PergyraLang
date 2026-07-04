@@ -2,7 +2,7 @@
 //
 // LSP-2e consumes one buffered JSON-RPC request stream and emits the response
 // frames that can already be proven by the response owner. It still stops
-// before a live read-exact loop, document-store mutation, and feature handlers.
+// before a live read-exact loop and document-store mutation.
 
 import "../lib/json_emit.pgy";
 import "response_owner.pgy";
@@ -91,8 +91,8 @@ func LspSessionReplayContractReady() -> Bool {
         return false;
     }
     let hover: String = "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"textDocument/hover\",\"params\":{}}";
-    let rejected: String = UnwrapOption(LspResponsePlanJson(hover));
-    return LspSessionResponsePlanFailed(rejected);
+    let hover_frame: Option<String> = LspResponseFrameForRequestBody(hover);
+    return IsSome(hover_frame);
 }
 
 func RunLspSessionReplayProbeFromArgs(args: Array<String>) -> Void with caps io_read {

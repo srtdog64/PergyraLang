@@ -1,0 +1,86 @@
+// Self-host LSP textDocument feature response owner.
+//
+// LSP-2g owns valid no-index response shapes for advertised textDocument
+// features. Semantic hover/indexed symbol content still belongs to the later
+// live document/session replacement rung.
+
+import "../lib/json_emit.pgy";
+
+func LspFeatureHoverResultJson() -> String {
+    return "null";
+}
+
+func LspFeatureCompletionResultJson() -> String {
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldBool("isIncomplete", false));
+    ArrayPush(fields, JsonEmitFieldRaw("items", "[]"));
+    return JsonEmitObject(fields);
+}
+
+func LspFeatureDocumentSymbolResultJson() -> String {
+    return "[]";
+}
+
+func LspFeatureDefinitionResultJson() -> String {
+    return "null";
+}
+
+func LspFeatureReferencesResultJson() -> String {
+    return "[]";
+}
+
+func LspFeatureRenameResultJson() -> String {
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldRaw("changes", "{}"));
+    return JsonEmitObject(fields);
+}
+
+func LspFeatureTextDocumentMethod(method: String) -> Bool {
+    let prefix: String = "textDocument/";
+    if StringLength(method) < StringLength(prefix) {
+        return false;
+    }
+    return Substring(method, 0, StringLength(prefix)) == prefix;
+}
+
+func LspFeatureResultForMethod(method: String) -> Option<String> {
+    if method == "textDocument/hover" {
+        return Some(LspFeatureHoverResultJson());
+    }
+    if method == "textDocument/completion" {
+        return Some(LspFeatureCompletionResultJson());
+    }
+    if method == "textDocument/documentSymbol" {
+        return Some(LspFeatureDocumentSymbolResultJson());
+    }
+    if method == "textDocument/definition" {
+        return Some(LspFeatureDefinitionResultJson());
+    }
+    if method == "textDocument/references" {
+        return Some(LspFeatureReferencesResultJson());
+    }
+    if method == "textDocument/rename" {
+        return Some(LspFeatureRenameResultJson());
+    }
+    return None;
+}
+
+func LspFeatureContractReady() -> Bool {
+    let hover: Option<String> = LspFeatureResultForMethod("textDocument/hover");
+    if !IsSome(hover) {
+        return false;
+    }
+    let hover_result: String = UnwrapOption(hover);
+    if hover_result != "null" {
+        return false;
+    }
+    let completion: Option<String> = LspFeatureResultForMethod("textDocument/completion");
+    if !IsSome(completion) {
+        return false;
+    }
+    let completion_result: String = UnwrapOption(completion);
+    if StringIndexOf(completion_result, "\"items\":[]") < 0 {
+        return false;
+    }
+    return !IsSome(LspFeatureResultForMethod("textDocument/semanticTokens/full"));
+}

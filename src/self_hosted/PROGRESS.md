@@ -68,7 +68,7 @@ for C-emission action participants. That keeps
 resource owners visible. Parameter-mode facts (`inout` / `own` / `ref`) now
 survive `pgy --ast`; the self-host C codegen consumes `inout` from function-env
 `pm` facts and lowers it as value-result copy-in/copy-out instead of guessing
-from `ArrayPush` or other statement text. The real-source semantic selfcheck now accepts 118
+from `ArrayPush` or other statement text. The real-source semantic selfcheck now accepts 119
 self-host owner/source files through both C and LLVM, including the codegen
 run boundary, emission action owners, type-fact owner, MIR-lower fact owners,
 and SEA execution-lane mirror. The AST-text bridge's root/body/block/then
@@ -76,8 +76,9 @@ structural marker checks now consume owner-owned `kind` facts rather than raw
 line-text equality. The rest of codegen,
 runtime and released/native compiler driver/LSP substitution are still 0%;
 the compiler driver now has DRV-0/DRV-1 artifact rungs, and LSP has LSP-0
-diagnostic payload, LSP-1 squiggle-policy projection, and LSP-2a..LSP-2f
-buffered transport/request/response/session/document-state rungs (docs/150).
+diagnostic payload, LSP-1 squiggle-policy projection, and LSP-2a..LSP-2g
+buffered transport/request/response/session/document-state/feature-shape rungs
+(docs/150).
 C LSP also exposes `pgy-lsp --dump-diagnostics <src>` as a live oracle
 plumbing path for LSP diagnostics shape checks and fixture-level canonical
 event comparison across clean plus logical/undefined/type/condition/unary
@@ -307,7 +308,7 @@ only observe text artifacts the C compiler produces. Their LOC is
 | `src/codegen/`  |  107123 |        4821 | rung-0..20 | **C-emit rung-0..20 (2026-06-24).** Pergyra emitter consumes `pgy --ast` text and emits standalone C for the supported scalar/string/array/result/option/struct/defer/file/stdin/argv/random/float subset. `ast_input_owner.pgy` owns AST path selection, `ast_text_inventory_owner.pgy` owns the typed `CodegenAstTextNode` bridge inventory, program-level declaration routing, declaration collector prepasses, function signature/header facts, `inout`/`own`/`ref` parameter-mode preservation, and cursor expectations, `ast_text_statement_owner.pgy` owns statement-row facts, `codegen_run_owner.pgy` owns CLI-to-output orchestration, `type_facts/` owns type routing, `compiler/symbol_table_owner.pgy` owns function/method/operator/enum emitted-symbol rows and namespace-qualified call spelling, `compiler/abi_layout_row_owner.pgy` owns supported concrete ABI rows and `abi_layout/abi_layout_owner.pgy` consumes those rows for parameter/return/local/field C ABI spelling before user-struct lookup, `runtime_abi/collection_runtime_owner.pgy` owns supported array runtime helper call spelling including the bootstrap `Array<CodegenAstTextNode>` lane, `runtime_abi/math_runtime_owner.pgy` owns supported math/random helper and target-library call spelling, `runtime_abi/host_io_runtime_owner.pgy` owns supported host file/stdin/argv/process helper and target-library call spelling, `runtime_abi/option_result_runtime_owner.pgy` owns supported `Option<Int>` / `Option<String>` / `Result<Int>` runtime helper call spelling and Option `?` propagation, `runtime_abi/string_runtime_owner.pgy` owns supported string/text helper and conversion target-library call spelling, and `emission/` contains action participants. `lib/json_scan.pgy` owns JSON cursor/string scan primitives, `lib/json.pgy` owns JSON read/string/number fact access including `Option<String>` string/number field facts, `lib/json_fact_table.pgy` owns bounded object and array-object boundary facts now consumed by `module_manifest_resolver` for root `modules` discovery plus module-row count/field/equality facts, by `mir_lower/json_fact_read.pgy` for MIR root `decls`/`routines` discovery, and by `air_graph_json_validator` for AIR root required-key checks plus nested `summary` count rows through `JsonObjectFactObjectTable` / `JsonObjectFactNumberFieldOpt`; AIR feature requirements remain graph-wide scalar facts consumed through `AirGraphScalarFieldValues`. `lib/json_emit.pgy` owns JSON string escaping plus field/object/array emission consumed through direct imports; schema object shape remains tool-owned. **65 fixtures run-stdout equal** to the C/LLVM oracle on tools built through both backends; bootstrap fixpoint is `gen2 == gen3`. Gate: `parity/codegen_parity.sh` (`make self-host-codegen-parity-test-smoke`) and `parity/codegen_bootstrap.sh` (`make self-host-codegen-bootstrap-test-smoke`). Out-of-subset input is an observable `Exit(1)`. |
 | `src/runtime/`  |   29627 |           0 | 0%       | native runtime kernel stays C; portable runtime policy libraries may move later |
 | `src/compiler/` |   43304 |           0 | 0%       | released/native compiler driver replacement remains 0%; DRV-0 in-process parser→codegen assembly and DRV-1 CLI artifact rungs exist under `src/self_hosted/compiler/` and are tracked by docs/150, but are not counted as shipped driver substitution |
-| `src/lsp/`      |    1037 |           0 | 0%       | released/native LSP replacement remains 0%; LSP-0 diagnostic `publishDiagnostics` payload projection, LSP-1 squiggle policy, LSP-2a single-frame Content-Length transport owner, LSP-2b buffered frame-stream owner, LSP-2c buffered request dispatch owner, LSP-2d buffered response emission owner, LSP-2e buffered session replay owner, and LSP-2f buffered document-store owner exist under `src/self_hosted/lsp/` and are tracked by docs/150. Full transport/session replacement has not landed |
+| `src/lsp/`      |    1037 |           0 | 0%       | released/native LSP replacement remains 0%; LSP-0 diagnostic `publishDiagnostics` payload projection, LSP-1 squiggle policy, LSP-2a single-frame Content-Length transport owner, LSP-2b buffered frame-stream owner, LSP-2c buffered request dispatch owner, LSP-2d buffered response emission owner, LSP-2e buffered session replay owner, LSP-2f buffered document-store owner, and LSP-2g no-index feature response shape owner exist under `src/self_hosted/lsp/` and are tracked by docs/150. Full transport/session replacement has not landed |
 | **Total**       | **248794** |  **16341**  | **~6.57% source-tree LOC-scale** | lexer/parser/semantic + codegen rung-0..20; MIR JSON lowering and compiler-world contracts are tracked separately above |
 
 Notes:
@@ -389,7 +390,7 @@ The realistic incremental path toward genuine self-host:
    oracle. Recursive import expansion is now owned by `source_bundle_owner.pgy`,
    and the import-backed call fixture proves signatures are consumed from the
   source bundle instead of from a hidden single-file `main` assumption. The
-  real-source selfcheck now feeds 118 accepted self-host owner/source files
+  real-source selfcheck now feeds 119 accepted self-host owner/source files
    through that source-bundle owner rather than a generated import-stripped
    unit. The accepted manifest spans lexer/parser/mir-lower/codegen/compiler-world
   entrypoints, the compiler path manifest owner, target-capability envelope
