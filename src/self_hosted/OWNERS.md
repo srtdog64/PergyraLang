@@ -165,4 +165,5 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/lsp/squiggle_owner.pgy` -- LSP-1 diagnostic code/fact to
   squiggle-class policy.
 - `src/self_hosted/lsp/transport_owner.pgy` -- LSP-2a single JSON-RPC
-  Content-Length frame boundary over the byte-count stdin substrate.
+  Content-Length frame boundary and LSP-2b buffered stream consumption over the
+  byte-count stdin substrate.

@@ -9,5 +9,9 @@ func Main() -> Void with caps env, io_read {
         RunLspTransportFrameProbeFromArgs(args);
         return;
     }
+    if LspTransportStreamProbeRequested(args) {
+        RunLspTransportStreamProbeFromArgs(args);
+        return;
+    }
     RunLspDiagnosticsFromArgs(args);
 }
