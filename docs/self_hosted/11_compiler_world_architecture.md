@@ -17,8 +17,8 @@ compiler flow.
 - `CompilePergyraProgram` is the root compiler intent.
 - `SelfHostCompiler` is the closed compiler state for one source unit plus its
   C/LLVM oracle pair.
-- `ProgramEmitter` is the emission participant that drives writes into
-  `EmissionZone`; it is not a resource zone.
+- `ProgramEmitter` is the current C-emission participant that drives writes
+  into `EmissionZone`; it is not a resource zone.
 - `SourceIntakeZone`, `TokenStreamZone`, `AstTreeZone`,
   `SemanticVerdictZone`, `MirFactGraphZone`, `TypeEnvZone`, `AbiLayoutZone`,
   `TargetCapabilityZone`, `EmissionZone`, and `ParityZone` are the derived
@@ -32,9 +32,12 @@ compiler flow.
   `LowerProgramFacts`, `PlanTargetProjection`, `EmitProgramArtifact`, and
   `ProveSelfHostedParity` are the derived stage intents.
 - Codegen is the projection nerve bundle from the compiler world into backend
-  artifacts. It is grouped by resource zones such as `EmissionZone`,
-  `TypeEnvZone`, and `AbiLayoutZone`, not by pretending every emitter file owns
-  a zone.
+  artifacts. Today it is still represented by the generic `EmissionZone` and
+  the C-emission `ProgramEmitter`; target architecture splits that into peer
+  C, LLVM, and SelfHosted emission zones only after all three projections can
+  consume the same MIR/type/ABI rows. It is grouped by resource zones such as
+  `EmissionZone`, `TypeEnvZone`, and `AbiLayoutZone`, not by pretending every
+  emitter file owns a zone.
 - `LexerStage`, `ParserStage`, `SemanticStage`, and `MirLowerStage` are
   distinct actors. The world does not use a generic `StageOwner.Consume()`
   alias because lexing, parsing, semantic checking, and MIR lowering own
@@ -68,8 +71,10 @@ For compiler self-hosting that means:
 - `AbiLayoutZone` owns ABI/layout facts consumed by backend emitters.
 - `TargetCapabilityZone` owns target acceptance, loss/fallback, and
   materialization-reason facts consumed before backend emission.
-- `EmissionZone` owns the emitted C text buffer and admits writes through the
-  `ProgramEmitter` participant.
+- `EmissionZone` currently owns the emitted C text buffer and admits writes
+  through the `ProgramEmitter` participant. It is a current-state owner, not
+  the final claim that C, LLVM, and SelfHosted emissions have already been
+  separated as peer projection zones.
 - `ParityZone` owns C/LLVM/Pergyra comparison evidence.
 
 `program_emit`, `function_emit`, `stmt_emit`, `expr_rewrite`, and
@@ -77,7 +82,7 @@ For compiler self-hosting that means:
 codegen action graph. They may live in separate files for review size, but they
 do not become zones unless they own a distinct resource.
 
-For codegen this is the concrete split:
+For current codegen this is the concrete split:
 
 - `EmissionZone`: `object slot c_output: EmittedC`, driven by
   `subject slot emitter: ProgramEmitter`.
@@ -89,12 +94,17 @@ For codegen this is the concrete split:
   driven by `subject slot planner: TargetProjectionPlanner`.
 - Future symbol/name-mangling state may become a separate zone only if it owns
   mutable symbol facts. A new emitter file is not enough.
+- Future `CEmissionZone`, `LLVMEmissionZone`, and `SelfHostedEmissionZone`
+  become real zones only when they each own a comparable artifact resource and
+  consume the same `TypeEnvZone`, `AbiLayoutZone`, `TargetCapabilityZone`,
+  symbol rows, and MIR/AIR evidence facts. Until then, the target split remains
+  an architecture direction, not a status claim.
 
 That makes codegen a backend resource cluster, not a folder taxonomy. The
-cluster has output state, type facts, and ABI layout facts; `program_emit`, `function_emit`,
-`stmt_emit`, `expr_rewrite`, and `struct_value_emit` are actions over those
-resources. Splitting those actions into files can keep review size under
-control, but the split is not a semantic zone split.
+cluster has output state, type facts, and ABI layout facts; `program_emit`,
+`function_emit`, `stmt_emit`, `expr_rewrite`, and `struct_value_emit` are
+actions over those resources. Splitting those actions into files can keep
+review size under control, but the split is not a semantic zone split.
 
 ## Why This Exists
 
@@ -135,7 +145,8 @@ The split unit is a resource-owned intent cluster:
 - token/AST clusters: token stream and AST tree facts;
 - middle-end clusters: semantic verdict and MIR fact flow;
 - backend clusters: type environment, ABI layout facts, target capability
-  envelope, emission buffer, and codegen handoff facts;
+  envelope, current C emission buffer, future peer projection buffers, and
+  codegen handoff facts;
 - parity cluster: C/LLVM/Pergyra oracle comparison facts.
 
 This is deliberately not "one file per small intent." Too many tiny files would

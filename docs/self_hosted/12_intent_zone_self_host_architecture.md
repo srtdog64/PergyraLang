@@ -64,14 +64,17 @@ Self-hosted codegen is a backend resource cluster:
   kind, tag/niche policy, and payload offsets.
 - `TargetCapabilityZone` owns the projection envelope: accepted target facts,
   loss/quantization budget, materialization reason, and fallback reason.
-- `EmissionZone` owns the emitted C text buffer.
+- `EmissionZone` currently owns the emitted C text buffer.
 - `ProgramEmitter` is the participant that writes through `EmissionZone`.
 - `program_emit`, `function_emit`, `stmt_emit`, `expr_rewrite`, and
   `struct_value_emit` are action participants over those resources.
 
 The mental model is a projection nerve bundle. `PgyCompilerWorld` is the
 visible compiler body; codegen is where MIR/type/ABI facts leave that body as
-backend projections. The bundle is grouped by resource zones, not by syntactic
+backend projections. The current bundle has one C-emission resource owner. The
+target bundle splits that owner into C, LLVM, and SelfHosted emission zones
+only when each projection consumes the same fact envelope and produces a
+comparable artifact. The bundle is grouped by resource zones, not by syntactic
 helper categories. `EmissionZone`, `TypeEnvZone`, and `AbiLayoutZone` are
 zones; `stmt_emit` and `expr_rewrite` are nerves inside the emission action.
 
@@ -83,7 +86,7 @@ The filesystem split under `src/self_hosted/codegen/` follows owner visibility:
 - `type_facts/`: type evidence.
 - `abi_layout/`: self-host C ABI type spelling facts now; broader ABI/layout
   fact projection from MIR ABI rows remains the cross-backend target.
-- `emission/`: C emission participants.
+- `emission/`: current C emission participants.
 
 That split is not a semantic claim that every folder is a zone.
 

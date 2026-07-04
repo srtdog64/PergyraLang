@@ -36,8 +36,12 @@ a participant in the emission action graph; it is not a zone merely because it
 is a file. A zone appears when there is a distinct owned resource such as token
 facts, AST facts, semantic verdicts, MIR facts, type bindings, an emitted-C
 buffer, ABI layout facts, target-capability facts, or parity evidence.
-`EmissionZone` owns the emitted-C buffer; `ProgramEmitter` is the participant
-that drives writes into that buffer.
+`EmissionZone` currently owns the emitted-C buffer; `ProgramEmitter` is the
+participant that drives writes into that buffer. The target compiler world
+splits this into peer C, LLVM, and SelfHosted emission zones only when those
+projections consume the same MIR/type/ABI/target-capability facts and produce
+comparable artifacts. Until then, the peer-emission split is a migration target,
+not a status claim.
 
 `TargetCapabilityZone` owns the projection envelope consumed before backend
 emission. `target_capability_owner.pgy` names the accepted projection facts and

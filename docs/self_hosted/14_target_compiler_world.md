@@ -116,7 +116,10 @@ The migration order is:
 1. Name AIR evidence as a first-class fact zone in the self-hosted compiler
    world.
 2. Split the generic `EmissionZone` target into peer C, LLVM, and SelfHosted
-   emission zones when the self-hosted compiler driver can carry them.
+   emission zones when each projection owns a comparable artifact resource and
+   consumes the same MIR/type/ABI/target-capability rows. Until that condition
+   is met, `EmissionZone` remains a current C-emission owner rather than a
+   final peer-projection status claim.
 3. Move backend-specific layout guesses behind `ABI Layout`.
 4. Move backend-specific symbol spelling behind a symbol/mangle fact owner.
 5. Promote parity from run-output checks to artifact-zone evidence that includes

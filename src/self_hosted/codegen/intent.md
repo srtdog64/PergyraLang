@@ -28,7 +28,7 @@ The one-line test is: does this boundary own a distinct resource that others
 must access through a view, fact, or intent boundary? If not, it is an action
 participant, not a zone.
 
-- `EmissionZone` owns the emitted C text buffer.
+- `EmissionZone` currently owns the emitted C text buffer.
 - `TypeEnvZone` owns type binding facts consumed by emitters as read-mostly
   evidence.
 - `AbiLayoutZone` owns ABI/layout facts consumed by emitters as read-only
@@ -84,6 +84,11 @@ Projection-nerve rule: codegen is the bundle that carries compiler-world facts
 into backend artifacts. It does not own a second semantic truth. `TypeEnvZone`
 and `AbiLayoutZone` feed the bundle; `EmissionZone` owns the outgoing artifact;
 the emitter files are nerves inside that bundle.
+
+Target split rule: this rung is still the C-emission owner. It must not be
+described as a peer C/LLVM/SelfHosted backend replacement until the LLVM and
+SelfHosted emission zones consume the same fact rows and feed the same
+ArtifactZone comparison contract.
 
 Concrete split for the current codegen cluster:
 
