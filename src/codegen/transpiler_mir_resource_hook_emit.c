@@ -14,7 +14,7 @@
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_effective_type.h"
 #include "transpiler_mir_expr_ssa.h"
-#include "transpiler_mir_resource_name_helpers.h"
+#include "codegen_mir_resource_name_helpers.h"
 #include "transpiler_mir_resource_op_core.h"
 #include "transpiler_mir_ssa_map.h"
 #include "transpiler_mir_stmt_emit.h"

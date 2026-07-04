@@ -17,7 +17,7 @@
 #include "transpiler_decl_lookup.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_inventory_view.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_render.h"
 
 static bool

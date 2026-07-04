@@ -1,6 +1,0 @@
-#ifndef PERGYRA_TRANSPILER_BUILTIN_TYPE_TABLE_H
-#define PERGYRA_TRANSPILER_BUILTIN_TYPE_TABLE_H
-
-#include "../common/pgy_builtin_type_table.h"
-
-#endif /* PERGYRA_TRANSPILER_BUILTIN_TYPE_TABLE_H */

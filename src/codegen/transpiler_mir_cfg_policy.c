@@ -5,7 +5,7 @@
 
 #include "transpiler_mir_cfg_policy.h"
 
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 
 const char *
 transpiler_mir_for_in_length_field(const char *collection_type)

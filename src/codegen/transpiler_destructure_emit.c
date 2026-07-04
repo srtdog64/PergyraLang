@@ -5,7 +5,7 @@
 #include "transpiler_destructure_emit.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_symbols.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_require.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"

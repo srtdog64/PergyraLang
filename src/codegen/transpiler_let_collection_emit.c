@@ -17,7 +17,7 @@
 #include "transpiler_format.h"
 #include "transpiler_specialization_registry.h"
 #include "transpiler_symbols.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_require.h"
 #include "transpiler_type_render.h"
 

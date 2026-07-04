@@ -16,7 +16,7 @@
 #include "transpiler_context.h"
 #include "transpiler_expr_stdlib_collection_support.h"
 #include "transpiler_format.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 
 typedef enum {
     TRANSPILER_CHANNEL_OP_NONE = 0,

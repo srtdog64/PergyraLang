@@ -18,7 +18,7 @@
 #include "codegen/transpiler_let_type_register_emit.h"
 #include "codegen/transpiler_symbols.h"
 #include "codegen/transpiler_type_declarator.h"
-#include "codegen/transpiler_type_mapping.h"
+#include "codegen/codegen_type_mapping.h"
 #include "codegen/transpiler_type_render.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"

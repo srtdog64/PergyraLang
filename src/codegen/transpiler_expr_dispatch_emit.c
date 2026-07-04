@@ -33,7 +33,7 @@
 #include "transpiler_slot_target.h"
 #include "transpiler_spawn_channel_emit.h"
 #include "transpiler_symbols.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_require.h"
 #include "transpiler_mir_local_binding.h"
 

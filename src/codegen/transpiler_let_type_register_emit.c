@@ -12,7 +12,7 @@
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_future_type_query.h"
 #include "transpiler_symbols.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 
 static void
 register_let_type_fact_if_concrete(TranspilerCtx *ctx,

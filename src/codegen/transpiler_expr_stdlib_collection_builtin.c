@@ -22,7 +22,7 @@
 #include "transpiler_projection.h"
 #include "transpiler_symbols.h"
 #include "transpiler_expr_stdlib_collection_support.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_render.h"
 
 #define infer_expression_type_name \

@@ -15,7 +15,7 @@
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_inventory_view.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
 

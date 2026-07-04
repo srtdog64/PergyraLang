@@ -10,7 +10,7 @@
 #include "llvm_mir_resource_view.h"
 
 #include "llvm_internal.h"
-#include "transpiler_mir_resource_name_helpers.h"
+#include "codegen_mir_resource_name_helpers.h"
 
 #include <stdio.h>
 #include <string.h>

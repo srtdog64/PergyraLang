@@ -18,7 +18,7 @@
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_mir_emit_state.h"
 #include "transpiler_match_bindings.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_require.h"
 
 static char *

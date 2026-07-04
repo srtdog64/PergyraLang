@@ -12,7 +12,7 @@
 #include <string.h>
 
 #include "codegen_match_variant_policy.h"
-#include "transpiler_builtin_type_table.h"
+#include "codegen_builtin_type_table.h"
 #include "transpiler_channel_type_query.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
@@ -28,7 +28,7 @@
 #include "transpiler_nominal.h"
 #include "transpiler_option_context.h"
 #include "transpiler_symbols.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_render.h"
 
 #include "transpiler_type_require.h"

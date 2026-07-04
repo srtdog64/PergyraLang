@@ -17,7 +17,7 @@
 #include "transpiler_mir_signature.h"
 #include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_symbols.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_render.h"
 
 static const char *

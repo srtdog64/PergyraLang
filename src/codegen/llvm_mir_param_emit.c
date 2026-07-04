@@ -20,7 +20,7 @@
 #include "codegen_slot_type_policy.h"
 #include "llvm_backend_type_map_internal.h"
 #include "parser/ast_api.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "../compiler/mir_decl_headers.h"
 #include "../common/string_compat.h"
 

@@ -8,7 +8,7 @@
 
 #include "llvm_backend_type_map_internal.h"
 #include "llvm_internal_api.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 
 static const char *
 llvm_spawn_worker_storage_kind(LLVMGenCtx *ctx, const char *name)

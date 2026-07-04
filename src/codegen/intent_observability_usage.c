@@ -4,7 +4,7 @@
  */
 
 #include "intent_observability_usage.h"
-#include "transpiler_builtin_type_table.h"
+#include "codegen_builtin_type_table.h"
 
 #include "../compiler/mir.h"
 #include "../compiler/mir_surface_usage.h"

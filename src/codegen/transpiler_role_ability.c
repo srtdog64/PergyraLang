@@ -10,7 +10,7 @@
 #include "transpiler_decl_lookup.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_role_ability_helpers.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_render.h"
 
 bool

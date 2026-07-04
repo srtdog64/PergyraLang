@@ -496,7 +496,7 @@ for required_codegen_storage_policy_shape in \
     "\"Array/Slice\", true, true" \
     "\"Array/Slice\", false, true"; do
     if ! grep -Fq "$required_codegen_storage_policy_shape" \
-        "$ROOT_DIR/src/codegen/transpiler_type_mapping.h" \
+        "$ROOT_DIR/src/codegen/codegen_type_mapping.h" \
         "$ROOT_DIR/src/codegen/transpiler_type_mapping.c" \
         "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c" \
         "$ROOT_DIR/src/codegen/llvm_expr_spawn_worker_boundary.c" \

@@ -26,10 +26,10 @@
 #include "transpiler_projection_method_invalidation.h"
 #include "transpiler_projection_sync.h"
 #include "transpiler_specialization_registry.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_role_ability_helpers.h"
 #include "transpiler_symbols.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_require.h"
 #include "transpiler_type_render.h"
 

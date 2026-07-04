@@ -19,7 +19,7 @@
 #include "transpiler_nominal.h"
 #include "transpiler_projection.h"
 #include "transpiler_symbols.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_render.h"
 
 static const char *

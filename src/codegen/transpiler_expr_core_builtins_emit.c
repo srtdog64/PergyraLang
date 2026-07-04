@@ -16,7 +16,7 @@
 #include "transpiler_expr_stdlib_collection_support.h"
 #include "transpiler_format.h"
 #include "transpiler_symbols.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 
 static const char *
 lookup_wrapped_inner_type(TranspilerCtx *ctx, ASTNode *arg, const char *wrapper,

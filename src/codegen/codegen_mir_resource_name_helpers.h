@@ -1,5 +1,5 @@
-#ifndef PGY_SRC_CODEGEN_TRANSPILER_MIR_RESOURCE_NAME_HELPERS_H
-#define PGY_SRC_CODEGEN_TRANSPILER_MIR_RESOURCE_NAME_HELPERS_H
+#ifndef PGY_SRC_CODEGEN_CODEGEN_MIR_RESOURCE_NAME_HELPERS_H
+#define PGY_SRC_CODEGEN_CODEGEN_MIR_RESOURCE_NAME_HELPERS_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -25,4 +25,4 @@ bool transpiler_format_slot_runtime_fn(const char *op_name,
                                        const char *inner_name,
                                        char *out,
                                        size_t out_size);
-#endif /* PGY_SRC_CODEGEN_TRANSPILER_MIR_RESOURCE_NAME_HELPERS_H */
+#endif /* PGY_SRC_CODEGEN_CODEGEN_MIR_RESOURCE_NAME_HELPERS_H */

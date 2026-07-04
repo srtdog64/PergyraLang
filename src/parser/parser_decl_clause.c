@@ -1,4 +1,8 @@
 #include "parser_internal.h"
+/* Sanctioned cross-stage face (border registry): the effect-clause parser
+ * consumes the EFFECT_* mask vocabulary that type_system.h owns. Not a
+ * dead include — a narrow symbol grep once misjudged it and the build
+ * test caught it (dead-include methodology). */
 #include "../semantic/type_system.h"
 #include "../runtime/pgy_runtime_capability.h"
 

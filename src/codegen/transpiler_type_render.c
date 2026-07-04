@@ -8,7 +8,7 @@
 #include "../common/string_compat.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 
 static const char *
 transpiler_type_render_lookup_generic_binding(TranspilerCtx *ctx,

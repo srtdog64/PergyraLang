@@ -7,7 +7,7 @@
 
 #include <string.h>
 
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 
 bool
 collection_runtime_suffix_copy(const char *inner_type,

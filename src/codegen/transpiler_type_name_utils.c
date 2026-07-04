@@ -1,7 +1,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 
 static bool
 slot_inner_type_name_write(const char *slot_type_name,

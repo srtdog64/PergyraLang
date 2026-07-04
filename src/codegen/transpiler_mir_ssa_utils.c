@@ -6,7 +6,7 @@
 #include <string.h>
 
 #include "codegen_slot_type_policy.h"
-#include "transpiler_mir_resource_name_helpers.h"
+#include "codegen_mir_resource_name_helpers.h"
 #include "transpiler_mir_ssa_utils.h"
 
 bool

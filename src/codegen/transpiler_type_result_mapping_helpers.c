@@ -8,7 +8,7 @@
 #include <string.h>
 
 #include "transpiler_specialization_registry.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 
 static bool
 transpiler_result_type_ident_char(char c)

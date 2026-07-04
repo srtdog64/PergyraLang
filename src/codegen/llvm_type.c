@@ -9,7 +9,7 @@
 
 #include "llvm_internal.h"
 #include "codegen_slot_type_policy.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 
 bool
 llvm_nominal_uses_immutable_projection_storage(NominalDeclKind kind)

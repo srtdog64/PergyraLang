@@ -15,7 +15,7 @@
 #include "transpiler_mir_cfg_policy.h"
 #include "transpiler_mir_match_condition_emit.h"
 #include "transpiler_symbols.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_require.h"
 
 static void

@@ -10,7 +10,7 @@
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_pin_emit.h"
 #include "transpiler_mir_reason.h"
-#include "transpiler_mir_resource_name_helpers.h"
+#include "codegen_mir_resource_name_helpers.h"
 #include "transpiler_mir_resource_hook_emit.h"
 #include "transpiler_mir_ssa_lookup.h"
 #include "transpiler_mir_ssa_utils.h"

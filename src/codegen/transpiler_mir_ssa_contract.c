@@ -14,7 +14,7 @@
 #include "transpiler_mir_ssa_lookup.h"
 #include "transpiler_mir_ssa_utils.h"
 #include "transpiler_symbols.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "../parser/ast_api.h"
 
 bool

@@ -8,7 +8,7 @@
 #include "transpiler_context.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 
 static char *
 transpiler_array_access_emit_operand(TranspilerCtx *ctx,

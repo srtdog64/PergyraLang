@@ -11,7 +11,7 @@
 #include "transpiler_symbols.h"
 #include "transpiler_parallel_capture.h"
 #include "transpiler_type_declarator.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_require.h"
 
 static bool

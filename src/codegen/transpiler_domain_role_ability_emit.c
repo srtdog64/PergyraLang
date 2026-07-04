@@ -17,7 +17,7 @@
 #include "transpiler_generic_binding_query.h"
 #include "transpiler_host_self_policy.h"
 #include "transpiler_role_ability_helpers.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_require.h"
 #include "transpiler_type_render.h"
 

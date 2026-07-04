@@ -1,7 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 #include "llvm_stmt_parallel_names.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "../common/execution_lane_kind.h"
 #include "../parser/ast_analysis.h"
 #include "../parser/ast_api.h"

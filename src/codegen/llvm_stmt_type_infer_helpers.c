@@ -2,7 +2,7 @@
 #include "llvm_stmt_type_infer_helpers.h"
 #include "codegen_slot_type_policy.h"
 #include "llvm_mir_signature.h"
-#include "transpiler_builtin_type_table.h"
+#include "codegen_builtin_type_table.h"
 
 #include <stdlib.h>
 

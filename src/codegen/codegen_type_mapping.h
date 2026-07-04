@@ -1,5 +1,5 @@
-#ifndef PERGYRA_TRANSPILER_TYPE_MAPPING_H
-#define PERGYRA_TRANSPILER_TYPE_MAPPING_H
+#ifndef PERGYRA_CODEGEN_TYPE_MAPPING_H
+#define PERGYRA_CODEGEN_TYPE_MAPPING_H
 
 #include <stdbool.h>
 
@@ -43,4 +43,4 @@ const char *codegen_worker_boundary_storage_kind_from_constructor_name(
 const char *codegen_worker_boundary_storage_kind_from_type_name(
     const char *type_name, bool include_channel);
 
-#endif /* PERGYRA_TRANSPILER_TYPE_MAPPING_H */
+#endif /* PERGYRA_CODEGEN_TYPE_MAPPING_H */

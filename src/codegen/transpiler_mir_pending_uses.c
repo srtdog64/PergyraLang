@@ -12,7 +12,7 @@
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_mir_ssa_utils.h"
 #include "transpiler_symbols.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 
 typedef struct TranspilerMirPendingBinding {
     ASTNode *initializer;

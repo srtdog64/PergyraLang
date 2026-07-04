@@ -7,7 +7,7 @@
 
 #include "transpiler_context.h"
 #include "transpiler_format.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_require.h"
 
 #include "../semantic/diag_codes.h"

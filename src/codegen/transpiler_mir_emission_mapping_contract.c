@@ -9,7 +9,7 @@
 #include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_mir_local_binding.h"
 #include "transpiler_mir_pending_uses.h"
-#include "transpiler_mir_resource_name_helpers.h"
+#include "codegen_mir_resource_name_helpers.h"
 #include "transpiler_mir_ssa_contract.h"
 #include "transpiler_mir_ssa_entry.h"
 #include "transpiler_mir_ssa_lookup.h"

@@ -333,7 +333,7 @@ fi
 raw_c_type_copy_consumers="$(
     pgy_scan_ch_E 'pergyra_type_to_c_copy\(' src/codegen \
         | grep -v '^src/codegen/transpiler\.h:' \
-        | grep -v '^src/codegen/transpiler_type_mapping\.[ch]:' \
+        | grep -v '^src/codegen/\(transpiler_type_mapping\.c\|codegen_type_mapping\.h\):' \
         | grep -v '^src/codegen/transpiler_type_render\.c:' \
         | grep -v '^src/codegen/transpiler_type_require\.c:' || true
 )"

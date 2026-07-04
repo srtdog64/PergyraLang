@@ -9,7 +9,7 @@
 #include "transpiler_format.h"
 #include "transpiler_mir_match_pattern_emit.h"
 #include "transpiler_symbols.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
 

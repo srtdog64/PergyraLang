@@ -16,7 +16,7 @@
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_expr_stdlib_builtin_policy.h"
 #include "transpiler_expr_stdlib_channel_builtin.h"
 #include "transpiler_expr_stdlib_collection_builtin.h"
@@ -26,7 +26,7 @@
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
 #include "transpiler_inventory_view.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
 

@@ -9,7 +9,7 @@
 #include <string.h>
 
 #include "codegen_slot_type_policy.h"
-#include "transpiler_builtin_type_table.h"
+#include "codegen_builtin_type_table.h"
 #include "transpiler_channel_type_query.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
@@ -22,7 +22,7 @@
 #include "transpiler_mir_signature.h"
 #include "transpiler_nominal.h"
 #include "transpiler_option_context.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_render.h"
 
 #include "../parser/ast_api.h"

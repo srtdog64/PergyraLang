@@ -18,7 +18,7 @@
 #include "transpiler_mir_signature.h"
 #include "transpiler_nominal.h"
 #include "transpiler_symbols.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_render.h"
 
 /* Consumed from transpiler_mir_ssa_names.h. Keep slot claim vocabulary in the

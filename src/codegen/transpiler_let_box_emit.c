@@ -16,7 +16,7 @@
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
 #include "transpiler_symbols.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_render.h"
 
 typedef enum TranspilerBoxLetOp {

@@ -9,7 +9,7 @@
 #include "codegen_channel_runtime_abi.h"
 #include "codegen_slot_type_policy.h"
 #include "transpiler.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 
 static bool
 transpiler_type_name_join_fits(int written, size_t out_size)

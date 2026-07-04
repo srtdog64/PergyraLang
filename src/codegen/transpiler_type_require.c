@@ -14,7 +14,7 @@
 #include "codegen_channel_runtime_abi.h"
 #include "transpiler_context.h"
 #include "transpiler_specialization_registry.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_render.h"
 
 static const char *

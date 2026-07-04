@@ -10,7 +10,7 @@
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_expr_stdlib_collection_support.h"
 #include "transpiler_format.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_collection_runtime_suffix.h"
 #include "transpiler_type_require.h"
 #include "codegen_hashmap_key_policy.h"

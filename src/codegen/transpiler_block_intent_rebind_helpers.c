@@ -10,7 +10,7 @@
 #include "transpiler_intent_context.h"
 #include "transpiler_intent_participant.h"
 #include "transpiler_intent_zone_slot.h"
-#include "transpiler_type_mapping.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_type_require.h"
 
 bool

@@ -10,7 +10,7 @@
 
 #include "../compiler/mir_cfg_contract_pin.h"
 #include "transpiler_context.h"
-#include "transpiler_mir_resource_name_helpers.h"
+#include "codegen_mir_resource_name_helpers.h"
 #include "transpiler_mir_reason.h"
 #include "transpiler_mir_ssa_map.h"
 
