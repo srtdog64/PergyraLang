@@ -2294,6 +2294,12 @@ require_text "tests/self_hosted/parity/parser_scale_probe.sh" "pgy_selfhost_comp
 require_text "tests/self_hosted/parity/parser_scale_probe.sh" "artifact_files_equal"
 require_text "tests/self_hosted/parity/parser_scale_probe.sh" "ast_text"
 reject_text "tests/self_hosted/parity/parser_scale_probe.sh" 'cmp -s'
+require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" '| Artifact Zone evidence | `src/self_hosted/compiler/artifact_zone_owner.pgy`, `ArtifactZone` | `self-host-component-contract-test-smoke`, parity artifact gates |'
+require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" 'only direct shell comparison left under `tests/self_hosted/parity` is `backend_output_comparator_parity.sh`'
+require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "where shell is the comparator's own external oracle rather than a consumer fallback"
+reject_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "It remains active until all parity artifacts are written and compared from this owner."
+reject_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "AIR evidence, Artifact Zone, and TestHarness"
+require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'Shell `diff -q` is the parity backend'
 reject_text "tests/self_hosted/parity/codegen_parity.sh" "MINGW BYPASS"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$oracle_raw" "$oracle_err" "$oracle_exe" "${run_args[@]}"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$run_raw" "$run_err" "$self_exe" "${run_args[@]}"'

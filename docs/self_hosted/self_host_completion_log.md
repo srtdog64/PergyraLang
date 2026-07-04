@@ -25,6 +25,19 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-05 - ArtifactZone promoted to ready
+
+- Reclassified `Artifact Zone evidence` from ACTIVE to READY in
+  `15_pre_self_host_expansion_ledger.md`.
+- The measured remaining direct shell comparison under `tests/self_hosted/parity`
+  is `backend_output_comparator_parity.sh`, where shell is the comparator's own
+  external oracle rather than a consumer fallback.
+- Kept `TestHarnessZone` ACTIVE because shell parity scripts are still the
+  primary harness owner; only the artifact equality verdict surface is ready.
+- Tightened `self_hosted_component_contract_smoke.sh` so the ledger must keep
+  the READY row, the comparator self-test exception, and the updated work-order
+  wording.
+
 ## 2026-07-05 - MIR JSON run-output parity consumes ArtifactZone verdicts
 
 - Repointed `tests/self_hosted/parity/mir_json_parity.sh` so the final
