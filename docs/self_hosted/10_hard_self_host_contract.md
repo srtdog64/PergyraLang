@@ -17,9 +17,9 @@ A hard self-host rung is active only when all are true:
 - LLVM remains the second oracle whenever the current build enables it;
 - the Pergyra implementation is the third value in the comparison, never the
   tie-breaker between C and LLVM;
-- diagnostics, IR JSON, emitted ABI shape, generated C, run stdout, or another
-  declared owned artifact is compared byte-for-byte or by a documented stable
-  schema;
+- diagnostics, AIR JSON, MIR JSON, emitted ABI shape, runtime materialization
+  classification, generated C, run stdout, or another declared owned artifact
+  is compared byte-for-byte or by a documented stable schema;
 - the rung is wired into `make self-host-preparation-test-smoke` or a named
   focused target that the preparation gate calls.
 

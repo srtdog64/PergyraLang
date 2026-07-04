@@ -77,8 +77,8 @@ or `ABI Layout`.
    correct until parity has promoted that slice.
 4. **Artifact Zone is the parity sink.** The emitted C artifact, LLVM artifact,
    and self-hosted artifact flow into one parity owner. That owner compares
-   diagnostics, IR JSON, ABI/layout facts, emitted text where stable, and run
-   behavior.
+   diagnostics, AIR JSON, MIR JSON, ABI/layout facts, runtime materialization
+   classification, emitted text where stable, and run behavior.
 5. **AIR Evidence is a fact zone.** AIR is not an ornamental dump and not a
    hidden codegen fallback. It owns proof-carrying evidence that can be measured
    by erasure/materialization gates and consumed by verifier/parity paths.
@@ -123,8 +123,8 @@ The migration order is:
 3. Move backend-specific layout guesses behind `ABI Layout`.
 4. Move backend-specific symbol spelling behind a symbol/mangle fact owner.
 5. Promote parity from run-output checks to artifact-zone evidence that includes
-   diagnostics, IR JSON, ABI/layout, runtime materialization classification,
-   emitted artifacts, and behavior.
+   diagnostics, AIR JSON, MIR JSON, ABI/layout, runtime materialization
+   classification, emitted artifacts, and behavior.
 
 ## What This Rejects
 

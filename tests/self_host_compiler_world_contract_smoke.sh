@@ -412,8 +412,11 @@ for term in \
     "func CompilerArtifactSchema" \
     "CompilerArtifactZoneReady" \
     "diagnostics" \
-    "ir_json" \
+    "air_json" \
+    "mir_json" \
     "abi_layout" \
+    "runtime_materialization" \
+    "CompilerRunOutputArtifactKind" \
     "emitted_self_hosted" \
     "run_output"; do
     require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "$term"
@@ -424,6 +427,8 @@ for term in \
     "CompilerTestHarnessReady" \
     "source_path" \
     "expected_diagnostic" \
+    "expected_air_json" \
+    "expected_mir_json" \
     "expected_abi_layout" \
     "c_oracle" \
     "llvm_oracle" \

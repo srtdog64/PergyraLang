@@ -7,17 +7,19 @@ func CompilerArtifactSchema() -> String {
 }
 
 func CompilerArtifactKindCount() -> Int {
-    return 7;
+    return 9;
 }
 
 func CompilerArtifactKindAt(index: Int) -> String {
     if index == 0 { return "diagnostics"; }
-    if index == 1 { return "ir_json"; }
-    if index == 2 { return "abi_layout"; }
-    if index == 3 { return "emitted_c"; }
-    if index == 4 { return "emitted_llvm"; }
-    if index == 5 { return "emitted_self_hosted"; }
-    if index == 6 { return "run_output"; }
+    if index == 1 { return "air_json"; }
+    if index == 2 { return "mir_json"; }
+    if index == 3 { return "abi_layout"; }
+    if index == 4 { return "runtime_materialization"; }
+    if index == 5 { return "emitted_c"; }
+    if index == 6 { return "emitted_llvm"; }
+    if index == 7 { return "emitted_self_hosted"; }
+    if index == 8 { return "run_output"; }
     return "";
 }
 
@@ -32,12 +34,18 @@ func CompilerArtifactKindKnown(kind: String) -> Bool {
     return false;
 }
 
+func CompilerRunOutputArtifactKind() -> String {
+    return "run_output";
+}
+
 func CompilerArtifactZoneReady() -> Bool {
     return CompilerArtifactKindKnown("diagnostics") &&
-        CompilerArtifactKindKnown("ir_json") &&
+        CompilerArtifactKindKnown("air_json") &&
+        CompilerArtifactKindKnown("mir_json") &&
         CompilerArtifactKindKnown("abi_layout") &&
+        CompilerArtifactKindKnown("runtime_materialization") &&
         CompilerArtifactKindKnown("emitted_c") &&
         CompilerArtifactKindKnown("emitted_llvm") &&
         CompilerArtifactKindKnown("emitted_self_hosted") &&
-        CompilerArtifactKindKnown("run_output");
+        CompilerArtifactKindKnown(CompilerRunOutputArtifactKind());
 }

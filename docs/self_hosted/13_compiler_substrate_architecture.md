@@ -129,8 +129,8 @@ The root flow is:
 9. `SymbolFactTableZone`: cross-backend symbol rows.
 10. `AbiRowProjectionZone`: cross-backend ABI/layout rows.
 11. `EmissionZone`: emitted artifact buffer.
-12. `ArtifactZone`: comparable diagnostic, IR, ABI/layout, emitted, and run
-    artifacts.
+12. `ArtifactZone`: comparable diagnostic, AIR JSON, MIR JSON, ABI/layout,
+    runtime-materialization, emitted, and run artifacts.
 13. `TestHarnessZone`: fixture/result row vocabulary.
 14. `SubprocessRunnerZone`: capability envelope for oracle processes.
 15. `ParityZone`: C/LLVM/Pergyra comparison evidence.
@@ -177,7 +177,7 @@ compiler replacement.
 | cross-backend ABI rows | `abi_layout_row_owner.pgy` plus `AbiRowProjectionZone` | makes field order, tag, niche, ownership, size/align, and materialization policy one table |
 | cross-backend symbol rows | `symbol_table_owner.pgy` plus `SymbolFactTableZone` | makes C/LLVM/self-hosted spelling rows one table |
 | emission buffer | `EmissionZone` | gives output writes one owner |
-| artifact evidence | `artifact_zone_owner.pgy` plus `ArtifactZone` | keeps diagnostics, IR JSON, ABI/layout, emitted artifacts, and run output comparable |
+| artifact evidence | `artifact_zone_owner.pgy` plus `ArtifactZone` | keeps diagnostics, AIR JSON, MIR JSON, ABI/layout, runtime materialization, emitted artifacts, and run output comparable |
 | parity evidence | `ParityZone`, `test_harness_owner.pgy`, and `subprocess_runner_owner.pgy` | proves substitution against the C/LLVM oracle pair without giving the shell a permanent SoT role |
 | runtime materialization policy | runtime/frontier owner | distinguishes erased hot paths from explicit managed boundaries |
 | target capability envelope | projection fact owner | keeps CPU, self-hosted, and future accelerator acceptance/reject/fallback decisions visible |
@@ -487,7 +487,7 @@ self-hosting can close:
 5. Backend facts: ABI/layout rows, symbol/mangle rows, emitted-artifact owner,
    runtime materialization policy, target acceptance/fallback facts.
 6. Proof facts: C/LLVM/Pergyra parity verdicts, run-output equality, diagnostic
-   equality, IR JSON equality, and layout equality.
+   equality, AIR JSON equality, MIR JSON equality, and layout equality.
 
 The rule is the same for every substrate: if the fact is required and missing,
 add it to the owner or reject the program. Do not locally reconstruct it from an
