@@ -52,11 +52,11 @@ func ComparatorSourceFields(
         JsonEmitFieldString("expected_projection", expected_projection),
         JsonEmitFieldString("actual_projection", actual_projection),
         JsonEmitFieldString("subprocess_schema", CompilerSubprocessSchema()),
-        JsonEmitFieldString("subprocess_use_case", CompilerSubprocessUseCaseAt(0)),
+        JsonEmitFieldString("subprocess_use_case", CompilerSubprocessOracleCompareUseCase()),
         JsonEmitFieldString("subprocess_timeout_ms", CompilerSubprocessOracleCompareTimeoutMs()),
         JsonEmitFieldString("subprocess_env_allowlist", CompilerSubprocessOracleCompareEnvAllowlist()),
-        JsonEmitFieldString("subprocess_stream_fact", CompilerSubprocessFactAt(5)),
-        JsonEmitFieldString("subprocess_exit_fact", CompilerSubprocessFactAt(6))
+        JsonEmitFieldString("subprocess_stream_fact", CompilerSubprocessStreamFact()),
+        JsonEmitFieldString("subprocess_exit_fact", CompilerSubprocessExitFact())
     ];
     return fields;
 }

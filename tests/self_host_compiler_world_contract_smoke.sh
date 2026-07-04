@@ -444,10 +444,15 @@ done
 for term in \
     "func CompilerSubprocessSchema" \
     "CompilerSubprocessRunnerReady" \
+    "CompilerSubprocessFactCount() == 7" \
+    "CompilerSubprocessUseCaseCount() == 3" \
     "executable_path" \
     "argv" \
     "env_allowlist" \
     "timeout_ms" \
+    "CompilerSubprocessOracleCompareUseCase" \
+    "CompilerSubprocessStreamFact" \
+    "CompilerSubprocessExitFact" \
     "oracle_compare" \
     "artifact_probe" \
     "CompilerSubprocessOracleCompareTimeoutMs" \

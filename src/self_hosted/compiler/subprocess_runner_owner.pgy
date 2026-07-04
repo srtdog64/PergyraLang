@@ -33,6 +33,18 @@ func CompilerSubprocessUseCaseAt(index: Int) -> String {
     return "";
 }
 
+func CompilerSubprocessOracleCompareUseCase() -> String {
+    return "oracle_compare";
+}
+
+func CompilerSubprocessStreamFact() -> String {
+    return "stdout_stderr";
+}
+
+func CompilerSubprocessExitFact() -> String {
+    return "exit_code";
+}
+
 func CompilerSubprocessOracleCompareTimeoutMs() -> String {
     return "30000";
 }
@@ -42,14 +54,18 @@ func CompilerSubprocessOracleCompareEnvAllowlist() -> String {
 }
 
 func CompilerSubprocessOracleComparePlanReady() -> Bool {
-    return CompilerSubprocessUseCaseAt(0) == "oracle_compare" &&
+    return CompilerSubprocessFactCount() == 7 &&
+        CompilerSubprocessUseCaseCount() == 3 &&
+        CompilerSubprocessUseCaseAt(0) == CompilerSubprocessOracleCompareUseCase() &&
+        CompilerSubprocessUseCaseAt(1) == "fixture_build" &&
+        CompilerSubprocessUseCaseAt(2) == "artifact_probe" &&
         CompilerSubprocessFactAt(0) == "executable_path" &&
         CompilerSubprocessFactAt(1) == "argv" &&
         CompilerSubprocessFactAt(2) == "cwd" &&
         CompilerSubprocessFactAt(3) == "env_allowlist" &&
         CompilerSubprocessFactAt(4) == "timeout_ms" &&
-        CompilerSubprocessFactAt(5) == "stdout_stderr" &&
-        CompilerSubprocessFactAt(6) == "exit_code" &&
+        CompilerSubprocessFactAt(5) == CompilerSubprocessStreamFact() &&
+        CompilerSubprocessFactAt(6) == CompilerSubprocessExitFact() &&
         CompilerSubprocessOracleCompareTimeoutMs() != "" &&
         CompilerSubprocessOracleCompareEnvAllowlist() != "";
 }
@@ -58,6 +74,6 @@ func CompilerSubprocessRunnerReady() -> Bool with caps env {
     return CompilerSubprocessFactAt(0) == "executable_path" &&
         CompilerSubprocessFactAt(1) == "argv" &&
         CompilerSubprocessFactAt(3) == "env_allowlist" &&
-        CompilerSubprocessFactAt(6) == "exit_code" &&
+        CompilerSubprocessFactAt(6) == CompilerSubprocessExitFact() &&
         CompilerSubprocessOracleComparePlanReady();
 }
