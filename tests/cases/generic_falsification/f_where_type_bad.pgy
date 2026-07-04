@@ -1,0 +1,12 @@
+// F4 — 반증 대상 논거 B3a: "where T:<type-bound>는 강제된다".
+// String은 UserId(=Int alias)가 아니다 — 컴파일되어 실행되면 반증 성공
+// (= where type-bound가 장식품).
+type UserId = Int;
+
+func Wrap<T = UserId>(value: T) -> T where T: UserId {
+    return value;
+}
+
+func Main() -> Void {
+    Log(Wrap("mallory"));
+}

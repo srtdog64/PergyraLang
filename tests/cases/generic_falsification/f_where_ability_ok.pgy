@@ -1,0 +1,19 @@
+// F5a — 논거 B3b의 정상 leg: func-level ability-bound, 만족 케이스.
+ability Sortable { }
+
+subject Card {
+    let v: Int;
+}
+
+role CardSortable for Card {
+    impl ability Sortable { }
+}
+
+func Rank<T>(x: T) -> Int where T: Sortable {
+    return 1;
+}
+
+func Main() -> Void {
+    let c = Card(1);
+    Log(Rank(c));
+}

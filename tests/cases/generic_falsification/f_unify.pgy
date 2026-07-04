@@ -1,0 +1,9 @@
+// F2 — 반증 대상 논거 A4: "다중 param 바인딩 불일치는 잡힌다".
+// Pick(1, "x")가 무음으로 first-wins 되면 반증 성공(= 실결함).
+func Pick<T>(a: T, b: T) -> T {
+    return a;
+}
+
+func Main() -> Void {
+    Log(Pick(1, "x"));
+}

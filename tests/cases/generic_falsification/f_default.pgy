@@ -1,0 +1,12 @@
+// F8 — 논거 B6: "default type arg는 추론 불가 자리를 구원한다"의 실측.
+// F3(return-only, 추론 불가)의 쌍둥이 — default가 있으면 달라지는가.
+func Fresh<T = Int>() -> Option<T> {
+    return None;
+}
+
+func Main() -> Void {
+    let x: Option<Int> = Fresh();
+    if !IsSome(x) {
+        Log("fresh-none");
+    }
+}

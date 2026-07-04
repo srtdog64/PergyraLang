@@ -76,8 +76,9 @@ expect_runs() {
     [ "$got" = "$want" ] || fail "$backend/$fixture printed '$got', expected '$want'"
 }
 
-# Param position: fail-closed on BOTH backends (G-2 cell, not open).
-expect_reject c    nested_param.pgy "inside a constructed type"
+# Param position (G-2): C binds structurally and RUNS; LLVM still needs
+# argument type metadata (G-2L cluster) — asymmetry locked.
+expect_runs   c    nested_param.pgy "1"
 expect_reject llvm nested_param.pgy "requires concrete argument"
 
 # G-1 cell: return position + body-locals run with identical output on

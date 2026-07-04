@@ -353,11 +353,12 @@ status ∈ {planned, landed}. landed = artifact와 gate 실존, planned =
 | rung | cell | status | artifact | gate |
 | --- | --- | --- | --- | --- |
 | G-1 | return-position + body-local constructed-over-T, C==LLVM run-parity | landed | src/codegen/transpiler_specialization_registry.c | tests/generic_nested_failclosed_smoke.sh |
-| G-2 | param-position constructed-over-T (양 백엔드 — LLVM 인자 metadata + C 바인딩 추론 확장 + **다중-param 바인딩 단일화**: 불일치 = 정적 거절) | planned | - | - |
+| G-2 | param-position constructed-over-T, **C-측**: 구조 매칭 + 단일화(불일치=정적 거절) + 미바인딩 진단 + default-arg 바인딩 | landed | src/codegen/transpiler_generic_binding_query.c | tests/generic_falsification_smoke.sh |
+| G-2L | LLVM 인자 타입 metadata 군집: constructed param + subject-타입 인자 + default-arg 바인딩 (현행 전부 fail-closed 거절로 잠김) | planned | - | - |
 | G-3 | 중첩·다중 파라미터 (Option<Option<T>>, Result<T,E> 양-파라미터, List<T> 요소) | planned | - | - |
 | G-4 | generic × 축 합성 셀 개방 (§5 표의 Slot/Channel 행 — Decision-0 carriage 규칙 적용) | planned | - | - |
 | G-5 | class-generic × constructed-field/method 개방 (LLVM aggregate lowering) | planned | - | - |
-| G-6 | bounded generics(`where T: Ability`, 다중 bound, default type args) × 결정표 통합 — **표면·양백엔드 실존**(forward_ability_order/generic_multi_bound_defaults 픽스처)인데 조약 미편입 | planned | - | - |
+| G-6 | bounded generics(`where T: Ability`, 다중 bound, default args) × 결정표 편입 — **반증으로 검증 완료**: 제약=semantic STATIC 강제 | landed | tests/cases/generic_falsification | tests/generic_falsification_smoke.sh |
 <!-- GENERIC-RUNG-END -->
 
 - **G-1 실측(2026-07-04)**: nested_return 7 / body_local 9, C==LLVM
@@ -381,9 +382,21 @@ status ∈ {planned, landed}. landed = artifact와 gate 실존, planned =
   개념적으로 제약은 **축이 T를 통과해 운반되는 유일한 정적 통로**다
   (예: `where T: FactProving`은 Actor/Auth축 요구를 T에 싣는다 —
   Decision-0의 "value-typed 승격은 축별 증거로만" 조항이 적용되는
-  바로 그 자리). 통합 전까지 제약-축 합성 셀은 판정 불가(미편입 상태
-  자체를 이 행이 기록). ability 계약의 형식 소유자 = docs/semantics/03
+  바로 그 자리). ability 계약의 형식 소유자 = docs/semantics/03
   (Generic Contract Soundness).
+- **G-2/G-6 반증 배터리(BDFL 방법, 2026-07-04,
+  `generic-falsification-test-smoke`)**: 두 rung의 논거 8개에 각각
+  깨뜨리는 커널을 만들어 실행. **반증 실패 4** = 제약 시스템은 진짜다
+  — where type-bound·func-level ability-bound·ability 다중 bound 전부
+  semantic **STATIC** 거절(제약명 명명, role-impl 전파 포함), where ×
+  G-1 합성은 C에서 실행(비-builtin payload `Option<Card>` 포함).
+  **반증 성공 3** = 그대로 구현 좌표가 됨: ① 단일화 위반·미바인딩이
+  native/verify 층 무진단 낙하 → C에 "cannot bind generic parameter(s)"
+  진단 신설, ② default type arg가 call-site 바인딩에 죽어 있던 것 →
+  C-측 바인딩 연결(f_default 실행), ③ generic body의 `return None;`이
+  None_T 방출 → option 컨텍스트 치환 연결. 부수 발견: **LLVM은
+  subject-타입 인자 generic 호출 자체를 거절**(metadata) — G-2L 군집에
+  등재, 전 거절 목소리 잠김.
 - **전-rung 상시 조항(닫힘 서명의 부칙): 제네릭 × caps는 post-mono
   재검사로 합성한다.** effect/caps 다형성 표기를 도입하지 않고, 특수화
   단위로 declared⊇used를 재검사한다(mono-only 백엔드의 배당금 — Java

@@ -1,0 +1,12 @@
+// F3 — 반증 대상 논거 A5: "추론 불가 경로는 절대 무음 바이너리가 아니다".
+// T가 param에 없어 추론 불가 — 무음으로 잘못 실행되면 반증 성공.
+func Make<T>() -> Option<T> {
+    return None;
+}
+
+func Main() -> Void {
+    let x: Option<Int> = Make();
+    if !IsSome(x) {
+        Log("made-none");
+    }
+}

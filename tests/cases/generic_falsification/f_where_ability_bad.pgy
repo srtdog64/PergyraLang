@@ -1,0 +1,24 @@
+// F5b — 반증 대상 논거 B3b: "func-level ability-bound는 강제된다".
+// Dice는 Sortable role이 없다 — 컴파일·실행되면 반증 성공(장식품).
+ability Sortable { }
+
+subject Card {
+    let v: Int;
+}
+
+role CardSortable for Card {
+    impl ability Sortable { }
+}
+
+subject Dice {
+    let v: Int;
+}
+
+func Rank<T>(x: T) -> Int where T: Sortable {
+    return 1;
+}
+
+func Main() -> Void {
+    let d = Dice(2);
+    Log(Rank(d));
+}

@@ -1,0 +1,23 @@
+// F6 — 반증 대상 논거 B4: "where-bound와 G-1(constructed return)은 합성된다".
+// 동시에 G-1의 비-builtin payload 경계도 반증(Option<Card> 특수화).
+ability Sortable { }
+
+subject Card {
+    let v: Int;
+}
+
+role CardSortable for Card {
+    impl ability Sortable { }
+}
+
+func Hold<T>(x: T) -> Option<T> where T: Sortable {
+    return Some(x);
+}
+
+func Main() -> Void {
+    let c = Card(9);
+    let h: Option<Card> = Hold(c);
+    if IsSome(h) {
+        Log("held");
+    }
+}

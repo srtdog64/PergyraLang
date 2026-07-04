@@ -2269,6 +2269,12 @@ axis-carriage-probe-test-smoke: $(PGY)
 generic-axis-matrix-test-smoke:
 	"$(BASH)" tests/generic_axis_matrix_smoke.sh
 
+# docs/151 §8 falsification battery: constraint enforcement, unification/
+# unbound diagnostics, default-arg binding, where x G-1 composition —
+# measured voices locked on both backends.
+generic-falsification-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/generic_falsification_smoke.sh
+
 secure-token-reuse-test-smoke:
 	"$(BASH)" tests/secure_token_reuse_failclosed_smoke.sh
 

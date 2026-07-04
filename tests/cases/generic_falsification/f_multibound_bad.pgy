@@ -1,0 +1,32 @@
+// F7 — 반증 대상 논거 B5: "ability-where 다중 bound는 강제된다".
+// Widget은 Cloneable이 없다 — 컴파일되면 반증 성공(다중 bound 장식품).
+ability Comparable { }
+ability Cloneable { }
+
+subject Widget {
+    let v: Int;
+}
+
+role WidgetComparable for Widget {
+    impl ability Comparable { }
+}
+
+ability Packable<T = Widget> where T: Comparable + Cloneable {
+    func Accept(value: T) -> Void;
+}
+
+subject Bag {
+    let count: Int;
+}
+
+role BagPackable for Bag {
+    impl ability Packable {
+        func Accept(value: Widget) -> Void {
+            return;
+        }
+    }
+}
+
+func Main() -> Void {
+    Log("should-not-compile");
+}
