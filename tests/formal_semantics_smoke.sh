@@ -334,6 +334,64 @@ Negative scope: this file proves the carriage LAW, not the carriage MODE.
 0 admits / 0 axioms
 TERMS
 
+# WO-F1 (a): reading confluence -- complete axis readings converge.
+READING_CONFLUENCE_COQ="$PROOF_DIR/proofs/ReadingConfluence.v"
+require_file "$READING_CONFLUENCE_COQ" "docs/semantics/proofs/ReadingConfluence.v"
+require_terms "$READING_CONFLUENCE_COQ" "docs/semantics/proofs/ReadingConfluence.v" <<'TERMS'
+Theorem reading_reads_owner
+Theorem reading_silent_iff_owner_missing
+Theorem read_order_irrelevant
+Corollary complete_reading_total
+Theorem incomplete_readings_can_disagree
+0 admits / 0 axioms
+Negative scope
+TERMS
+
+# WO-F1 (b): binary adequacy -- the two-valued surface verdict decides
+# exactly the calculus guard (accept iff guard, reject iff not-guard).
+BINARY_ADEQUACY_COQ="$PROOF_DIR/proofs/BinaryAdequacy.v"
+require_file "$BINARY_ADEQUACY_COQ" "docs/semantics/proofs/BinaryAdequacy.v"
+require_terms "$BINARY_ADEQUACY_COQ" "docs/semantics/proofs/BinaryAdequacy.v" <<'TERMS'
+Theorem accept_adequate
+Corollary reject_adequate
+Corollary guard_decidable
+Corollary verdict_is_binary
+0 admits / 0 axioms
+Negative scope
+TERMS
+
+# GuardCalculus <-> implementation binding (docs/155 SS3): each op class's
+# fail-close is witnessed by a NAMED runtime panic class, and the SAME
+# vocabulary must exist in the runtime registry -- renaming either side
+# turns this smoke RED (the model<->code correspondence cannot drift
+# silently). This locks vocabulary, not guard-firing correctness (that is
+# the failclosed gate fixtures' job).
+GUARD_WITNESS_COQ="$PROOF_DIR/proofs/GuardWitnessBinding.v"
+PANIC_CONTRACT_PATH="$ROOT_DIR/src/runtime/pgy_runtime_panic_contract.h"
+require_file "$GUARD_WITNESS_COQ" "docs/semantics/proofs/GuardWitnessBinding.v"
+require_file "$PANIC_CONTRACT_PATH" "src/runtime/pgy_runtime_panic_contract.h"
+require_terms "$GUARD_WITNESS_COQ" "docs/semantics/proofs/GuardWitnessBinding.v" <<'TERMS'
+Theorem guarded_ops_witnessed
+Theorem can_be_bad_has_witness
+Theorem witness_disjoint
+Theorem unwitnessed_cannot_be_bad
+Corollary unwitnessed_is_proven
+pgy_runtime_panic_contract.h
+0 admits / 0 axioms
+Negative scope
+TERMS
+for pc_row in \
+    "divide-by-zero" \
+    "arithmetic-overflow" \
+    "out-of-bounds" \
+    "invalid-secure-token" \
+    "invalid-lifecycle-state" \
+    "released-slot" \
+    "double-release"; do
+    require_term "$GUARD_WITNESS_COQ" "docs/semantics/proofs/GuardWitnessBinding.v" "\"$pc_row\""
+    require_term "$PANIC_CONTRACT_PATH" "src/runtime/pgy_runtime_panic_contract.h" "\"$pc_row\""
+done
+
 TRINITY_DOC="$ROOT_DIR/docs/155_declare_gate_failclose.md"
 require_file "$TRINITY_DOC" "docs/155_declare_gate_failclose.md"
 require_terms "$TRINITY_DOC" "docs/155_declare_gate_failclose.md" <<'TERMS'
@@ -657,7 +715,10 @@ if command -v coqc >/dev/null 2>&1; then
         docs/semantics/proofs/WholeProgramCore.v \
         docs/semantics/proofs/AIRBinding.v \
         docs/semantics/proofs/OptionTry.v \
-        docs/semantics/proofs/GenericAxisCarriage.v; do
+        docs/semantics/proofs/GenericAxisCarriage.v \
+        docs/semantics/proofs/ReadingConfluence.v \
+        docs/semantics/proofs/BinaryAdequacy.v \
+        docs/semantics/proofs/GuardWitnessBinding.v; do
         if command -v timeout >/dev/null 2>&1; then
             (cd "$ROOT_DIR" && timeout "$coq_timeout" coqc "$coq_proof")
         else

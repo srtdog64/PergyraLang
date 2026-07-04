@@ -263,3 +263,32 @@ correctly -- that remains the `air-json-schema` smoke plus the
 Core-calculus corpus is now **10 `coqc`-checked files** (the 7 corners/facets +
 `GuardCalculus` + `WholeProgramCore` + `AIRBinding`), all wired into
 `formal_semantics_smoke`.
+
+### WO-F1 closed + guard-witness binding (2026-07-04, docs/155 §3 items)
+
+Three additions, all `coqc`-checked (0 admits / 0 axioms) and smoke-wired:
+
+1. **`ReadingConfluence.v`** (WO-F1a) — the READ side of axis ownership.
+   A reading = the order a reader visits the axes to assemble the judgment.
+   `read_order_irrelevant`: ANY two complete readings (each axis visited at
+   least once — subsumes permutations) assemble the same judgment, because
+   ownership is functional. `incomplete_readings_can_disagree` witnesses that
+   the completeness hypothesis is load-bearing.
+2. **`BinaryAdequacy.v`** (WO-F1b) — the surface's two-valued verdict is
+   faithful to the calculus: a computable `accept` decides EXACTLY the
+   AIRBinding guard (`accept_adequate`), rejection is exactly guard failure
+   (`reject_adequate`), and the guard is decidable (`guard_decidable`) — so a
+   binary surface loses nothing against the calculus, by construction.
+3. **`GuardWitnessBinding.v`** (GuardCalculus↔implementation, AIRBinding
+   lineage) — binds each guard-policy op class to the NAMED runtime panic
+   class(es) of `src/runtime/pgy_runtime_panic_contract.h`:
+   `can_be_bad_has_witness` (every UB-capable class carries a named witness,
+   including the Proven `OpSlotRelease` — the always-on backstop, mechanized)
+   and `witness_disjoint` (a panic class attributes to exactly one op family —
+   diagnosability). The smoke's `GUARD_WITNESS_BINDING` block requires the
+   same class strings in BOTH the proof and the runtime header, so the
+   model↔code vocabulary cannot drift silently. Not claimed: guard-firing
+   correctness (failclosed fixtures) or emission coverage (twin parity).
+
+The `formal_semantics_smoke` coqc loop now compiles **24/24 proof files** —
+the full `docs/semantics/proofs/` corpus.
