@@ -1742,7 +1742,12 @@ for report_output_parity in \
     tests/self_hosted/parity/ast_read_surface_checker_parity.sh \
     tests/self_hosted/parity/doc_link_checker_parity.sh \
     tests/self_hosted/parity/examples_inventory_checker_parity.sh \
-    tests/self_hosted/parity/module_manifest_resolver_parity.sh; do
+    tests/self_hosted/parity/module_manifest_resolver_parity.sh \
+    tests/self_hosted/parity/production_c_size_checker_parity.sh \
+    tests/self_hosted/parity/production_header_size_checker_parity.sh \
+    tests/self_hosted/parity/runtime_boundary_checker_parity.sh \
+    tests/self_hosted/parity/stable_subset_section_checker_parity.sh \
+    tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh; do
     require_text "$report_output_parity" "pgy_selfhost_compare_expected_text_artifact_with_owner"
     require_text "$report_output_parity" '"run_output"'
     reject_text "$report_output_parity" 'EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"'

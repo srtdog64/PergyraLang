@@ -103,23 +103,23 @@ PERGYRA_JSON="$(printf '%s\n' "$PERGYRA_OUT" \
     | grep -F 'pgy.selfhost.production-header-size.v1' \
     | tail -n 1)"
 PERGYRA_JSON="${PERGYRA_JSON%$'\r'}"
-EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"
 # Tolerance (mirrors production_c_size_checker_parity.sh 37f3216e):
 # the exact max_lines number shifts every refactor; the cap_lines
 # check above plus the SHELL_MAX gate already guarantee the
 # semantic invariant. Normalize "max_lines":N to "max_lines":<NORM>
 # before comparing so an off-by-one bytes-against-fixture drift
 # doesn't gate every refactor.
+EXPECTED_JSON_NORM_FILE="$PERGYRA_TOOL_BUILD_DIR/expected.clean.normalized.json"
 PERGYRA_JSON_NORM="$(printf '%s' "$PERGYRA_JSON" \
     | sed -E 's/"max_lines":[0-9]+/"max_lines":<NORM>/')"
-EXPECTED_JSON_NORM="$(printf '%s' "$EXPECTED_JSON" \
-    | sed -E 's/"max_lines":[0-9]+/"max_lines":<NORM>/')"
-if [[ "$PERGYRA_JSON_NORM" != "$EXPECTED_JSON_NORM" ]]; then
-    echo "[self-host-parity:production-header-size] clean JSON parity FAIL" >&2
-    echo "expected: $EXPECTED_JSON" >&2
-    echo "actual:   $PERGYRA_JSON" >&2
-    exit 1
-fi
+sed -E 's/"max_lines":[0-9]+/"max_lines":<NORM>/' \
+    "$EXPECTED_JSON_FILE" > "$EXPECTED_JSON_NORM_FILE"
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:production-header-size" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$EXPECTED_JSON_NORM_FILE" \
+    "$PERGYRA_JSON_NORM" \
+    "run_output"
 
 # Synthetic over-cap fixture - a 701-line synthetic header under src/runtime.
 NEG_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/pgy-selfhost-phs.XXXXXX")"

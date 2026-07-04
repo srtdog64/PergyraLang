@@ -3438,6 +3438,22 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Verified with `self-host-diagnostic-catalog-parity-test-smoke` and
   `self-host-linter-parity-test-smoke`.
 
+### 2026-07-05 -- More report parity uses ArtifactZone
+
+- Repointed clean report JSON equality in `runtime_boundary_checker`,
+  `stable_subset_section_checker`, `stdlib_dispatch_inventory_checker`,
+  `production_c_size_checker`, and `production_header_size_checker` parity
+  scripts from local shell string comparison to
+  `pgy_selfhost_compare_expected_text_artifact_with_owner(...)`.
+- Used artifact kind `run_output` for these reports; script-local grep/count
+  checks still provide each tool's domain-specific ground truth. The production
+  size checks keep their existing `max_lines` normalization by comparing a
+  normalized expected artifact against normalized live output through the same
+  owner.
+- Tightened `self_hosted_component_contract_smoke.sh` so those scripts cannot
+  reintroduce local `EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"` verdicts or
+  `clean JSON parity FAIL` branches.
+
 ### 2026-07-04 -- Codegen bootstrap corpus consumes emitted-self-hosted artifact owner
 
 - Added `CompilerEmittedSelfHostedArtifactKind()` to the self-host ArtifactZone

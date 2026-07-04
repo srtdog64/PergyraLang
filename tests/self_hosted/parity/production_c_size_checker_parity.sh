@@ -105,7 +105,6 @@ PERGYRA_JSON="$(printf '%s\n' "$PERGYRA_OUT" \
     | grep -F 'pgy.selfhost.production-c-size.v1' \
     | tail -n 1)"
 PERGYRA_JSON="${PERGYRA_JSON%$'\r'}"
-EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"
 # Tolerance: replace `"max_lines":N` in both expected and actual with
 # `"max_lines":<NORM>` before comparing. The exact maximum line count
 # legitimately shifts every time a production .c file grows or shrinks
@@ -114,16 +113,17 @@ EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"
 # check above plus the SHELL_MAX parity gate at the top still guarantee
 # the tracked semantic (max_lines <= cap_lines, and shell vs Pergyra
 # agree on whatever the current number is).
+EXPECTED_JSON_NORM_FILE="$PERGYRA_TOOL_BUILD_DIR/expected.clean.normalized.json"
 PERGYRA_JSON_NORM="$(printf '%s' "$PERGYRA_JSON" \
     | sed -E 's/"max_lines":[0-9]+/"max_lines":<NORM>/')"
-EXPECTED_JSON_NORM="$(printf '%s' "$EXPECTED_JSON" \
-    | sed -E 's/"max_lines":[0-9]+/"max_lines":<NORM>/')"
-if [[ "$PERGYRA_JSON_NORM" != "$EXPECTED_JSON_NORM" ]]; then
-    echo "[self-host-parity:production-c-size] clean JSON parity FAIL" >&2
-    echo "expected: $EXPECTED_JSON" >&2
-    echo "actual:   $PERGYRA_JSON" >&2
-    exit 1
-fi
+sed -E 's/"max_lines":[0-9]+/"max_lines":<NORM>/' \
+    "$EXPECTED_JSON_FILE" > "$EXPECTED_JSON_NORM_FILE"
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:production-c-size" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$EXPECTED_JSON_NORM_FILE" \
+    "$PERGYRA_JSON_NORM" \
+    "run_output"
 
 # Synthetic over-cap fixture - 1001-line .c under src/runtime.
 NEG_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/pgy-selfhost-pcs.XXXXXX")"

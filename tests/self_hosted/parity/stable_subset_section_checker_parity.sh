@@ -91,13 +91,12 @@ fi
 PERGYRA_JSON="$(printf '%s\n' "$PERGYRA_OUT" \
     | grep -F 'pgy.selfhost.stable-subset-section.v1' \
     | tail -n 1)"
-EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"
-if [[ "$PERGYRA_JSON" != "$EXPECTED_JSON" ]]; then
-    echo "[self-host-parity:stable-subset-section] clean JSON parity FAIL" >&2
-    echo "expected: $EXPECTED_JSON" >&2
-    echo "actual:   $PERGYRA_JSON" >&2
-    exit 1
-fi
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:stable-subset-section" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$EXPECTED_JSON_FILE" \
+    "$PERGYRA_JSON" \
+    "run_output"
 
 # Synthetic missing-section fixture: strip one canonical anchor, expect rc=1.
 NEG_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/pgy-selfhost-stable.XXXXXX")"

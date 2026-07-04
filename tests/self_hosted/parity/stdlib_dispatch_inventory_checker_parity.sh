@@ -109,13 +109,12 @@ PERGYRA_JSON="$(printf '%s\n' "$PERGYRA_OUT" \
     | tr -d '\r' \
     | grep -F 'pgy.selfhost.stdlib-dispatch-inventory.v1' \
     | tail -n 1)"
-EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"
-if [[ "$PERGYRA_JSON" != "$EXPECTED_JSON" ]]; then
-    echo "[self-host-parity:stdlib-dispatch-inventory] clean JSON parity FAIL" >&2
-    echo "expected: $EXPECTED_JSON" >&2
-    echo "actual:   $PERGYRA_JSON" >&2
-    exit 1
-fi
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:stdlib-dispatch-inventory" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$EXPECTED_JSON_FILE" \
+    "$PERGYRA_JSON" \
+    "run_output"
 
 # Synthetic drift fixture - strip multiple LLVM entries to exceed the
 # tolerance band, expect rc=1.
