@@ -93,6 +93,7 @@ SELF_SOURCES=(
     "src/self_hosted/lib/json_fact_table.pgy"
     "src/self_hosted/lsp/diagnostics_owner.pgy"
     "src/self_hosted/lsp/squiggle_owner.pgy"
+    "src/self_hosted/lsp/transport_owner.pgy"
     "src/self_hosted/lsp/main.pgy"
     "src/self_hosted/lexer/main.pgy"
     "src/self_hosted/lexer/scan_owner.pgy"

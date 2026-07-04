@@ -164,3 +164,5 @@ compiler-stage `.pgy` source to be listed here.
   `publishDiagnostics` JSON payload projection.
 - `src/self_hosted/lsp/squiggle_owner.pgy` -- LSP-1 diagnostic code/fact to
   squiggle-class policy.
+- `src/self_hosted/lsp/transport_owner.pgy` -- LSP-2a single JSON-RPC
+  Content-Length frame boundary over the byte-count stdin substrate.

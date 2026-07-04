@@ -1,0 +1,189 @@
+// Self-host LSP transport frame owner.
+//
+// LSP-2a owns a single JSON-RPC Content-Length frame boundary. It consumes the
+// byte-count stdin substrate but deliberately stops before the full LSP session
+// loop, request dispatch, hover, or completion surfaces.
+
+import "../lib/json_emit.pgy";
+
+func LspTransportSchema() -> String {
+    return "pgy.selfhost.lsp-transport-frame.v1";
+}
+
+func LspTransportProbeMode() -> String {
+    return "--transport-frame-probe";
+}
+
+func LspTransportProbeRequested(args: Array<String>) -> Bool {
+    return ArrayLength(args) > 0 && args[0] == LspTransportProbeMode();
+}
+
+func LspTransportDigitValue(c: String) -> Int {
+    if c == "0" { return 0; }
+    if c == "1" { return 1; }
+    if c == "2" { return 2; }
+    if c == "3" { return 3; }
+    if c == "4" { return 4; }
+    if c == "5" { return 5; }
+    if c == "6" { return 6; }
+    if c == "7" { return 7; }
+    if c == "8" { return 8; }
+    if c == "9" { return 9; }
+    return -1;
+}
+
+func LspParseNonNegativeInt(raw: String) -> Option<Int> {
+    let s: String = StringTrim(raw);
+    if StringLength(s) == 0 {
+        return None;
+    }
+    let value: Int = 0;
+    let i: Int = 0;
+    while i < StringLength(s) {
+        let d: Int = LspTransportDigitValue(CharAt(s, i));
+        if d < 0 {
+            return None;
+        }
+        value = (value * 10) + d;
+        i = i + 1;
+    }
+    return Some(value);
+}
+
+func LspTransportHeaderEnd(frame: String) -> Option<Int> {
+    let crlf: Int = StringIndexOf(frame, "\r\n\r\n");
+    if crlf >= 0 {
+        return Some(crlf);
+    }
+    let lf: Int = StringIndexOf(frame, "\n\n");
+    if lf >= 0 {
+        return Some(lf);
+    }
+    return None;
+}
+
+func LspTransportBodyStart(frame: String) -> Option<Int> {
+    let crlf: Int = StringIndexOf(frame, "\r\n\r\n");
+    if crlf >= 0 {
+        return Some(crlf + 4);
+    }
+    let lf: Int = StringIndexOf(frame, "\n\n");
+    if lf >= 0 {
+        return Some(lf + 2);
+    }
+    return None;
+}
+
+func LspTransportHeaderLineEnd(header: String, value_start: Int) -> Int {
+    let tail: String = Substring(header, value_start, StringLength(header) - value_start);
+    let cr: Int = StringIndexOf(tail, "\r");
+    let lf: Int = StringIndexOf(tail, "\n");
+    if cr >= 0 && (lf < 0 || cr < lf) {
+        return value_start + cr;
+    }
+    if lf >= 0 {
+        return value_start + lf;
+    }
+    return StringLength(header);
+}
+
+func LspTransportContentLength(frame: String) -> Option<Int> {
+    let header_end_opt: Option<Int> = LspTransportHeaderEnd(frame);
+    if !IsSome(header_end_opt) {
+        return None;
+    }
+    let header_end: Int = UnwrapOption(header_end_opt);
+    let header: String = Substring(frame, 0, header_end);
+    let marker: String = "Content-Length:";
+    let marker_pos: Int = StringIndexOf(header, marker);
+    if marker_pos < 0 {
+        return None;
+    }
+    let value_start: Int = marker_pos + StringLength(marker);
+    let value_end: Int = LspTransportHeaderLineEnd(header, value_start);
+    return LspParseNonNegativeInt(Substring(header, value_start, value_end - value_start));
+}
+
+func LspTransportFrameBody(frame: String) -> Option<String> {
+    let body_start_opt: Option<Int> = LspTransportBodyStart(frame);
+    if !IsSome(body_start_opt) {
+        return None;
+    }
+    let len_opt: Option<Int> = LspTransportContentLength(frame);
+    if !IsSome(len_opt) {
+        return None;
+    }
+    let body_start: Int = UnwrapOption(body_start_opt);
+    let len: Int = UnwrapOption(len_opt);
+    if body_start + len > StringLength(frame) {
+        return None;
+    }
+    return Some(Substring(frame, body_start, len));
+}
+
+func LspTransportFrameJsonError(reason: String, content_length: Int) -> String {
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldString("schema", LspTransportSchema()));
+    ArrayPush(fields, JsonEmitFieldBool("ok", false));
+    ArrayPush(fields, JsonEmitFieldString("reason", reason));
+    ArrayPush(fields, JsonEmitFieldNumber("contentLength", ToString(content_length)));
+    ArrayPush(fields, JsonEmitFieldNumber("bodyLength", "0"));
+    ArrayPush(fields, JsonEmitFieldString("body", ""));
+    return JsonEmitObject(fields);
+}
+
+func LspTransportFrameJson(frame: String) -> String {
+    let header_end_opt: Option<Int> = LspTransportHeaderEnd(frame);
+    if !IsSome(header_end_opt) {
+        return LspTransportFrameJsonError("missing_header_end", -1);
+    }
+    let len_opt: Option<Int> = LspTransportContentLength(frame);
+    if !IsSome(len_opt) {
+        return LspTransportFrameJsonError("missing_content_length", -1);
+    }
+    let body_opt: Option<String> = LspTransportFrameBody(frame);
+    let len: Int = UnwrapOption(len_opt);
+    if !IsSome(body_opt) {
+        return LspTransportFrameJsonError("body_incomplete", len);
+    }
+    let body: String = UnwrapOption(body_opt);
+
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldString("schema", LspTransportSchema()));
+    ArrayPush(fields, JsonEmitFieldBool("ok", true));
+    ArrayPush(fields, JsonEmitFieldNumber("contentLength", ToString(len)));
+    ArrayPush(fields, JsonEmitFieldNumber("bodyLength", ToString(StringLength(body))));
+    ArrayPush(fields, JsonEmitFieldString("body", body));
+    return JsonEmitObject(fields);
+}
+
+func LspTransportFrameContractReady() -> Bool {
+    let ok: String = LspTransportFrameJson("Content-Length: 2\r\n\r\n{}");
+    if StringIndexOf(ok, LspTransportSchema()) < 0 {
+        return false;
+    }
+    if StringIndexOf(ok, "\"ok\":true") < 0 {
+        return false;
+    }
+    if StringIndexOf(ok, "\"contentLength\":2") < 0 {
+        return false;
+    }
+    if StringIndexOf(ok, "\"body\":\"{}\"") < 0 {
+        return false;
+    }
+
+    let bad: String = LspTransportFrameJson("Content-Length: 5\r\n\r\n{}");
+    if StringIndexOf(bad, "\"ok\":false") < 0 {
+        return false;
+    }
+    return StringIndexOf(bad, "\"reason\":\"body_incomplete\"") >= 0;
+}
+
+func RunLspTransportFrameProbeFromArgs(args: Array<String>) -> Void with caps io_read {
+    let max_bytes: Int = 4096;
+    if ArrayLength(args) > 1 {
+        max_bytes = ToInt(args[1]);
+    }
+    let frame: String = ReadStdin(max_bytes);
+    Log(LspTransportFrameJson(frame));
+}

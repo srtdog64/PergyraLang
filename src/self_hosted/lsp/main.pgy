@@ -1,8 +1,13 @@
 // Self-host LSP diagnostic payload entrypoint.
 
 import "diagnostics_owner.pgy";
+import "transport_owner.pgy";
 
 func Main() -> Void with caps env, io_read {
     let args: Array<String> = Args();
+    if LspTransportProbeRequested(args) {
+        RunLspTransportFrameProbeFromArgs(args);
+        return;
+    }
     RunLspDiagnosticsFromArgs(args);
 }

@@ -13,7 +13,8 @@ replacement.
   squiggle-policy contracts. Error payloads carry both the self-host lower-case
   code and the C-oracle root code in `data.oracleCode`.
 
-The `ReadStdin(n)` substrate for transport framing is present, but transport
-parity still needs an LSP-2 owner to consume it for the JSON-RPC
-Content-Length loop. `O-LSP` has live diagnostic-dump plumbing, but full
-vocabulary/session parity remains a later LSP-3 concern.
+The `ReadStdin(n)` substrate for transport framing is present, and
+`transport_owner.pgy` consumes it for one JSON-RPC Content-Length frame. That
+is LSP-2a only. Full LSP-2 still needs repeated frame buffering and dispatch.
+`O-LSP` has live diagnostic-dump plumbing, but full vocabulary/session parity
+remains a later LSP-3 concern.
