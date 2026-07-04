@@ -6,6 +6,7 @@
 
 import "../lib/json_emit.pgy";
 import "../semantic/source_bundle_owner.pgy";
+import "../semantic/diagnostic_code_owner.pgy";
 import "../semantic/diagnostic_owner.pgy";
 import "../semantic/program_check_owner.pgy";
 import "squiggle_owner.pgy";
@@ -73,8 +74,10 @@ func LspZeroRangeJson() -> String {
 
 func LspDiagnosticDataJson(block: String, squiggle: String) -> String {
     let fields: Array<String> = [];
+    let code: String = LspDiagnosticField(block, "Code");
     ArrayPush(fields, JsonEmitFieldString("stage", LspDiagnosticField(block, "Stage")));
     ArrayPush(fields, JsonEmitFieldString("squiggleClass", squiggle));
+    ArrayPush(fields, JsonEmitFieldString("oracleCode", SemanticDiagnosticOracleCode(code)));
     ArrayPush(fields, JsonEmitFieldString("fix", LspDiagnosticField(block, "Fix")));
     ArrayPush(fields, JsonEmitFieldString("span", LspDiagnosticField(block, "Span")));
     ArrayPush(fields, JsonEmitFieldString("facts", LspDiagnosticFacts(block)));
@@ -154,6 +157,9 @@ func LspDiagnosticPayloadContractReady() -> Bool {
         return false;
     }
     if StringIndexOf(err_json, "\"code\":\"undefined_symbol\"") < 0 {
+        return false;
+    }
+    if StringIndexOf(err_json, "\"oracleCode\":\"PGY_SEM_UNDEFINED_SYMBOL\"") < 0 {
         return false;
     }
 

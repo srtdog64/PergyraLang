@@ -10453,9 +10453,10 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
   manifest와 frame budget으로 projection한 뒤에만 올린다. 최소 budget row:
   fuel, host-call count, command-buffer count, memory, stream bytes, input queue,
   storage ops, wall-clock. WASM/WASI 자체를 안전성 증거로 광고하지 않는다.
-- 참고자료 (docs/149 §2): **WASI 0.3.0**(2026-06-11 — async가
-  component-native: `future<T>`/`stream<u8>`; 착수 시 0.2 pollable 패턴이
-  아니라 0.3 기준) · **Wasmtime fuel vs epoch interruption**(fuel=결정적/
+- 참고자료 (docs/149 §2): **WASIp3/WASI 0.3 async 방향**(component-native
+  `future<T>`/`stream<u8>` 계열; 리뷰 제공 날짜/버전명은 착수 시 공식
+  WASI/WIT 자료로 재검증. 0.2 pollable 패턴 고정 대신 0.3 async 방향을
+  기준 후보로 둔다) · **Wasmtime fuel vs epoch interruption**(fuel=결정적/
   계측비용, epoch=저렴한 협조 timeslice; blocking host-call timeout은 별도
   설계 — 기존 wall-time watchdog과 상보) · **WASM 격리 공격 연구**
   (arXiv 2509.11242 — WASI 경유 host 자원고갈 실증 = "WASM≠자동 안전"

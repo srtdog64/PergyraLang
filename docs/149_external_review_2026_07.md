@@ -39,7 +39,7 @@ frontier와 수렴한다** — 리스크 모델이 옳다는 재확인.
 | # | 신호 | 등록처 | 비고 |
 |---|---|---|---|
 | N1 | **frame-budget quota족** — perFrameFuel/HostCallCount/DrawCommands/AudioCommands/StorageOps/StreamBytes/QueuedEvents. guest는 command-buffer로 배치, host는 flush 시 검증. "진짜 병목은 guest 산술이 아니라 host boundary" | 보드 A-7 확장 (R6 정량축의 프레임-단위 후속) | 기존 R6 5축(alloc/spawn/channel/wall)은 프로세스-수명 단위 — 프레임 단위는 새 축이 맞다 |
-| N2 | **WASI 0.3.0 (2026-06-11)** — async가 component-native로: `future<T>`/`stream<u8>`/`async func`. SEA async와 sandbox ABI에 직결 | 보드 A-7 참고자료 | WASM lane 착수 시 0.2 pollable 패턴 대신 0.3 기준으로 |
+| N2 | **WASIp3/WASI 0.3 async 방향** — component-native async(`future<T>`/`stream<u8>`/`async func`)가 SEA async와 sandbox ABI에 직결 | 보드 A-7 참고자료 | 리뷰 제공 날짜/버전명은 착수 시 공식 WASI/WIT 자료로 재검증. WASM lane은 0.2 pollable 패턴 고정 대신 0.3 async 방향을 기준 후보로 둔다 |
 | N3 | **Wasmtime fuel vs epoch interruption** — fuel=결정적이나 instrumentation 비용, epoch=협조적 timeslice로 저렴. blocking host-call timeout은 별도 설계 필요 | 보드 A-7 참고자료 | 우리 wall-time watchdog과 상보 — epoch 방식은 R6 확장 시 검토 |
 | N4 | **WASM 격리 과신 금지 근거(arXiv 2509.11242)** — WASI/WASIX 경유 host 자원고갈·인스턴스 간 성능저하 실증 연구 | docs/15 R6 절 각주 후보 | 우리 "WASM ≠ 자동 안전" 입장의 외부 실증 — 방향 일치 |
 | N5 | **AIR relation-table export + Datalog/Soufflé CI verifier** — boundary/capture/effect/authority/lane/compression을 관계로 내보내고 위반 규칙을 관계 질의로 | 보드 신규 P2 | 컴파일러 본체 아님, **CI verifier 한정** — AIR-as-truth 재개방 금지 조건부 |
@@ -73,7 +73,7 @@ frontier와 수렴한다** — 리스크 모델이 옳다는 재확인.
 ## 5. 참고문헌 원장 (리뷰 제공, 우선순위 보존)
 
 P0: MLIR LangRef(owner-fact discipline만 차용) · WIT/Component Model ·
-WASI 0.3.0 · Wasmtime fuel/epoch · WASM isolation attacks(2509.11242)
+WASIp3/WASI 0.3 async 방향 · Wasmtime fuel/epoch · WASM isolation attacks(2509.11242)
 P1: Swift SE-0304 · Luau telemetry(2403.02409) · SES/HardenedJS ·
 AAM(1105.1743)
 P2: Pony refcaps · Dala(2109.07541) · RefCaps for Safe Parallel Arrays

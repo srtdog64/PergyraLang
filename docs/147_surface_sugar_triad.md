@@ -1,6 +1,7 @@
 # 147. Surface Sugar Triad — `?` / 문자열 보간 / tuple 반환
 
-Status: `?`+보간 = **landed & gated**, tuple = **design-deferred (WO-U3)**.
+Status: `?`+보간 = **landed & fixture-gated**, tuple =
+**design-deferred (WO-U3)**.
 Owner doc for the top-3 user pain points measured on the largest real Pergyra
 corpus (`src/self_hosted/`, ~20k lines, 2026-07-03 감사).
 
@@ -55,9 +56,12 @@ func Doubled(x: Int) -> Option<Int> {
 (2-field None 재구성 분기 + 3-field 가드). `llvm_stmt_type_infer.c`는 구조적이라
 무변경 호환.
 
-게이트: fixture `try_operator_option`(값/전파/cross-type/문자열 payload 4-leg,
-C==LLVM), semantic 케이스 2종(수용 + `5?` 거절 메시지), 기존 Result fixture
-무회귀, self-hosted parser/semantic/codegen subset fixtures.
+게이트: backend-compare fixture `try_operator_option`(값/전파/cross-type/
+문자열 payload 4-leg, C==LLVM), semantic 케이스 2종(수용 + `5?` 거절
+메시지), 기존 Result fixture 무회귀, self-hosted parser/semantic/codegen
+subset fixtures. 이 문서는 docs/148/150/151처럼 별도 표-lock smoke를
+갖는 wiring-doc이 아니다; `landed` 주장은 위 fixture와 TODO WO-U1 닫힘
+기록에 묶인다.
 
 ## 3. 보간 — 결정 기록 (구현 변경 없음)
 

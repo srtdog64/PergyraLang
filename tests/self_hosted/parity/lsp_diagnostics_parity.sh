@@ -206,7 +206,8 @@ lsp_canonical_event_artifact() {
         exit 1
     fi
 
-    if grep -Fq '"code":"logical_operand_not_bool"' "$json_file"; then
+    if grep -Fq '"code":"logical_operand_not_bool"' "$json_file" \
+        && grep -Fq '"oracleCode":"PGY_SEM_BINOP_TYPE_MISMATCH"' "$json_file"; then
         {
             echo "method=textDocument/publishDiagnostics"
             echo "uri=$uri"
@@ -218,7 +219,8 @@ lsp_canonical_event_artifact() {
         return 0
     fi
 
-    if grep -Fq '"code":"undefined_symbol"' "$json_file"; then
+    if grep -Fq '"code":"undefined_symbol"' "$json_file" \
+        && grep -Fq '"oracleCode":"PGY_SEM_UNDEFINED_SYMBOL"' "$json_file"; then
         {
             echo "method=textDocument/publishDiagnostics"
             echo "uri=$uri"

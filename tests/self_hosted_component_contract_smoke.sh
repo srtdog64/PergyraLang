@@ -1960,6 +1960,7 @@ require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/squiggle_owner.pgy
 require_text "src/self_hosted/lsp/main.pgy" 'import "diagnostics_owner.pgy";'
 require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'import "squiggle_owner.pgy";'
 require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'import "../lib/json_emit.pgy";'
+require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'import "../semantic/diagnostic_code_owner.pgy";'
 require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'import "../semantic/source_bundle_owner.pgy";'
 require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'import "../semantic/diagnostic_owner.pgy";'
 require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'import "../semantic/program_check_owner.pgy";'
@@ -1981,7 +1982,9 @@ require_file "src/self_hosted/lsp/expected/bad_undefined_return.json"
 require_file "src/self_hosted/lsp/expected/squiggle_policy.json"
 require_text "src/self_hosted/lsp/expected/valid_int_return.json" '"diagnostics":[]'
 require_text "src/self_hosted/lsp/expected/bad_logical_right.json" '"code":"logical_operand_not_bool"'
+require_text "src/self_hosted/lsp/expected/bad_logical_right.json" '"oracleCode":"PGY_SEM_BINOP_TYPE_MISMATCH"'
 require_text "src/self_hosted/lsp/expected/bad_undefined_return.json" '"code":"undefined_symbol"'
+require_text "src/self_hosted/lsp/expected/bad_undefined_return.json" '"oracleCode":"PGY_SEM_UNDEFINED_SYMBOL"'
 require_text "src/self_hosted/lsp/expected/squiggle_policy.json" '"class":"red"'
 require_text "src/self_hosted/lsp/expected/squiggle_policy.json" '"class":"amber"'
 require_text "src/self_hosted/lsp/expected/squiggle_policy.json" '"class":"blue"'

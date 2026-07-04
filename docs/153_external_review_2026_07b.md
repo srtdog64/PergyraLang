@@ -15,9 +15,10 @@ Status: `judged`. docs/137(#1)·docs/149(#2)에 이은 같은 계열 리뷰의
   value-capture producer coverage)가 내부 보드 frontier와 세 번 연속
   일치했다. 관측이 독립적이지 않다는 할인(우리 문서를 읽는다)을
   적용해도, 우선순위 산정 로직의 수렴은 유효한 건강 신호다.
-- **신규 신호 ≈ 0.** 참고문헌·P0 목록이 #2와 동일 계열(MLIR/WIT/WASI
-  0.3.0/fuel·epoch/WASM isolation/SE-0304/Luau×2/SES/AAM — 전부
-  docs/149에서 등재 완료, relation export는 A-12로 이미 보드행).
+- **신규 신호 ≈ 0.** 참고문헌·P0 목록이 #2와 동일 계열: MLIR/WIT,
+  WASIp3/WASI 0.3 async 방향, fuel·epoch, WASM isolation, SE-0304,
+  Luau×2, SES/AAM — 전부 docs/149에서 등재 완료, relation export는
+  A-12로 이미 보드행.
 
 ## 1. Stale 정정 2건
 
