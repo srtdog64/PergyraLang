@@ -9814,6 +9814,11 @@ docs만 읽고 착수할 수 있어야 한다. 각 WO는 목표/현재 상태/�
 - 문서 번호 정정: closure capture 설계=**docs/141**, guard amortization=
   **docs/142**, 외부 레드팀 리뷰=**docs/137** (메모리의 135/136/134 인용은
   stale).
+- (2026-07-04 추가) **GuardCalculus "CI coqc 전" 서술은 stale**: 외부
+  리뷰 #3(docs/153)이 이 주장을 반복했으나, `formal-semantics-test-smoke`
+  는 ci-linux 레시피에 포함되고 ci.yml이 coq를 설치하며 coqc 루프가
+  증명 21파일(0 admits)을 컴파일한다. 모델≠구현 라벨만 유지(그건 우리
+  스스로의 정리 — VerificationMethodology.v).
 - (2026-07-03 추가, 2026-07-04 정정) **surface sugar "없다" 전제 금지**:
   `?`는 Result+Option에 대해, 문자열 보간(`${}`/`f"`/`$"`)은 전면적으로
   **이미 언어에 있다**(docs/147 §1 감사 표). 같은 날 `?`의 Option<T>
@@ -9981,9 +9986,11 @@ docs만 읽고 착수할 수 있어야 한다. 각 WO는 목표/현재 상태/�
 
 #### Self-host Driver/LSP 트랙 (배선도 = docs/150, 2026-07-04)
 
-두 0% 트랙의 rung 사다리 고정. §4 rung 표를
+두 released/native replacement 0% 트랙의 rung 사다리 고정. §4 rung 표를
 `selfhost-driver-lsp-wiring-test-smoke`가 잠금(landed=artifact+gate 실존,
 planned=주장 불가, 갭 등록부 가시성 강제 — RED/GREEN 검증 完).
+DRV-0 artifact rung은 driver 치환 착수 artifact이지, released driver
+replacement 0%를 뒤집는 수치가 아니다.
 
 - **WO-DRV-0 — in-process 스테이지 조립 (landed, Stage 5 직결)**:
   `compiler/driver_rung0_owner.pgy`가 self-parser(→AST text)와
@@ -10297,9 +10304,10 @@ owner가 들어왔다.
   재기저 — lib 이탈로 result_use 대폭 하락 예상, 재기저 사유 명문화).
   트리-밖 import는 WO-L2 fixture로 실증 완료. **+④ (docs/148 계약)**:
   승격분은 namespace 블록 + docs/148 §4 inventory 행(core/active).
-- **WO-L3 — `std:` import 별칭 resolver**: 상대경로(`../../../../stdlib/`)는
-  실증된 차단막-아님 상태 — 별칭은 편의 개선. C resolver + self-host
-  source_bundle 양쪽. 소형.
+- **WO-L3 — `std:` 정본 stdlib import namespace resolver**:
+  상대경로(`../../../../stdlib/`)는 실증된 차단막-아님 상태다. `std:`는
+  두 번째 이름을 만들지 않고, stdlib의 정본 import 표면이다.
+  C resolver + self-host source_bundle 양쪽. 소형.
 - **WO-L4 — domain 모듈 doctrine-pass (sketch→active)**: docs/148 §4 사유
   3종 해소가 모듈당 계약 — ① `with caps` 선언(http=NETWORK,
   storage/timer/device_adapter=io/clock), ② 도메인 fail-closed(표본:
