@@ -82,13 +82,12 @@ PERGYRA_JSON="$(printf '%s\n' "$PERGYRA_OUT" \
     | tr -d '\r' \
     | grep -F 'pgy.selfhost.air-id-uniqueness.v1' \
     | tail -n 1)"
-EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"
-if [[ "$PERGYRA_JSON" != "$EXPECTED_JSON" ]]; then
-    echo "[self-host-parity:air-id-uniqueness] clean JSON parity FAIL" >&2
-    echo "expected: $EXPECTED_JSON" >&2
-    echo "actual:   $PERGYRA_JSON" >&2
-    exit 1
-fi
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:air-id-uniqueness" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$EXPECTED_JSON_FILE" \
+    "$PERGYRA_JSON" \
+    "air_json"
 
 # Shell ground truth: count duplicate id tokens on the clean fixture (expect 0).
 SHELL_DUPS="$(grep -oE '"id":[^,}]*' "$FIXTURE_FILE" | sort | uniq -d | wc -l | tr -d '[:space:]')"
@@ -135,4 +134,4 @@ if ! grep -Fq '"kind":"duplicate_id"' <<<"$NEG_OUT"; then
 fi
 
 assert_llvm_leg "self-host-parity:air-id-uniqueness" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR"
-echo "[self-host-parity:air-id-uniqueness] rung-1 parity ok (clean dups=0 byte-equal; dup fixture rc=1)"
+echo "[self-host-parity:air-id-uniqueness] rung-1 parity ok (clean dups=0 artifact-equal; dup fixture rc=1)"

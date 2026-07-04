@@ -82,13 +82,12 @@ PERGYRA_JSON="$(printf '%s\n' "$PERGYRA_OUT" \
     | tr -d '\r' \
     | grep -F 'pgy.selfhost.air-ref-integrity.v1' \
     | tail -n 1)"
-EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"
-if [[ "$PERGYRA_JSON" != "$EXPECTED_JSON" ]]; then
-    echo "[self-host-parity:air-ref-integrity] clean JSON parity FAIL" >&2
-    echo "expected: $EXPECTED_JSON" >&2
-    echo "actual:   $PERGYRA_JSON" >&2
-    exit 1
-fi
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:air-ref-integrity" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$EXPECTED_JSON_FILE" \
+    "$PERGYRA_JSON" \
+    "air_json"
 
 # Shell ground truth: endpoints not present in the node-id set (expect none).
 ids_of() { grep -oE '"id":[0-9]+' "$1" | grep -oE '[0-9]+' | sort -u; }
@@ -137,4 +136,4 @@ if ! grep -Fq '"kind":"dangling_edge_endpoint"' <<<"$NEG_OUT"; then
 fi
 
 assert_llvm_leg "self-host-parity:air-ref-integrity" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR"
-echo "[self-host-parity:air-ref-integrity] rung-1 parity ok (clean dangling=0 byte-equal; dangling fixture rc=1)"
+echo "[self-host-parity:air-ref-integrity] rung-1 parity ok (clean dangling=0 artifact-equal; dangling fixture rc=1)"

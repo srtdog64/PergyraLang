@@ -1353,6 +1353,10 @@ for air_graph_parity in \
     tests/self_hosted/parity/air_graph_ref_live_parity.sh; do
     require_text "$air_graph_parity" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"'
     require_text "$air_graph_parity" 'cp "$AIR_GRAPH_SCAN_OWNER" "$AIR_SCAN_BUILD_DIR/scan_owner.pgy"'
+    require_text "$air_graph_parity" "pgy_selfhost_compare_expected_text_artifact_with_owner"
+    require_text "$air_graph_parity" '"air_json"'
+    reject_text "$air_graph_parity" 'EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"'
+    reject_text "$air_graph_parity" "clean JSON parity FAIL"
 done
 require_make_target_recipe_line \
     "self-host-air-graph-consumer-parity-test-smoke" \
@@ -1439,6 +1443,7 @@ require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "assert_llvm_leg_wit
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "comparator artifact path escapes repo root"
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "comparator artifact path must be repo-relative"
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "backend_output_comparator_\$\$.exe"
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "pgy_selfhost_compare_expected_text_artifact_with_owner"
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'assert_llvm_leg_with_artifact_owner "$label" "$build_dir" "$c_out" "$llvm_out"'
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" '"$comparator_bin" "$c_rel" "$llvm_rel" 0 1'
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "artifact-equal"

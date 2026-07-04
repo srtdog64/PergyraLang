@@ -82,13 +82,12 @@ PERGYRA_JSON="$(printf '%s\n' "$PERGYRA_OUT" \
     | tr -d '\r' \
     | grep -F 'pgy.selfhost.air-reachability.v1' \
     | tail -n 1)"
-EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"
-if [[ "$PERGYRA_JSON" != "$EXPECTED_JSON" ]]; then
-    echo "[self-host-parity:air-reachability] clean JSON parity FAIL" >&2
-    echo "expected: $EXPECTED_JSON" >&2
-    echo "actual:   $PERGYRA_JSON" >&2
-    exit 1
-fi
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:air-reachability" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$EXPECTED_JSON_FILE" \
+    "$PERGYRA_JSON" \
+    "air_json"
 
 # Shell ground truth: node count; clean fixture has every node reachable.
 SHELL_NODES="$(grep -oE '"id":[0-9]+' "$FIXTURE_FILE" | wc -l | tr -d '[:space:]')"
@@ -136,4 +135,4 @@ if ! grep -Fq '"kind":"orphan_node"' <<<"$NEG_OUT"; then
 fi
 
 assert_llvm_leg "self-host-parity:air-reachability" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR"
-echo "[self-host-parity:air-reachability] rung-1 parity ok (clean orphans=0 byte-equal; orphan fixture rc=1)"
+echo "[self-host-parity:air-reachability] rung-1 parity ok (clean orphans=0 artifact-equal; orphan fixture rc=1)"

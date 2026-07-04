@@ -3348,3 +3348,21 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `show_file_delta`, `cmp -s`, or `diff -u`.
 - No executable cases were run for this slice; validation was limited to static
   owner/ratchet inspection under the validation isolation policy.
+
+### 2026-07-04 -- AIR graph consumers compare clean JSON through ArtifactZone
+
+- Added `pgy_selfhost_compare_expected_text_artifact_with_owner()` to the shared
+  self-host parity helper. The helper normalizes an expected text artifact and
+  a live text artifact, then asks `backend_output_comparator` for the verdict
+  with an explicit artifact kind.
+- Repointed the AIR graph id-uniqueness, node-count, reachability,
+  ref-integrity, and ref-live clean JSON equality checks from local shell
+  string comparison to the shared helper with artifact kind `air_json`.
+- Kept shell grep/count checks as local ground truth for the specific graph
+  invariant; only the JSON artifact equality verdict moved behind
+  ArtifactZone/TestHarness.
+- Tightened `self_hosted_component_contract_smoke.sh` so those AIR graph
+  consumer parity scripts must call the helper and cannot reintroduce local
+  `EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"` clean JSON verdicts.
+- No executable cases were run for this slice; validation was limited to static
+  owner/ratchet inspection under the validation isolation policy.
