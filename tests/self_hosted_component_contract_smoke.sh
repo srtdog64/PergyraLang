@@ -1633,6 +1633,11 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHar
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessStableSubsetSectionInputManifestPath"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessStableSubsetSectionPathAt"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessStableSubsetSectionReady"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessRuntimeBoundarySuiteName"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessRuntimeBoundaryToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessRuntimeBoundaryExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessRuntimeBoundaryPathAt"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessRuntimeBoundaryReady"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeSuiteName"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriExtendedSuiteName"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeCaseCount"
@@ -1651,6 +1656,7 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessC
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessLinterParityReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessModuleManifestResolverReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessStableSubsetSectionReady()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessRuntimeBoundaryReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendTriSuiteReady()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitBackendTriSmokeCases"
@@ -1663,6 +1669,9 @@ require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarne
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitStableSubsetSectionPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessStableSubsetSectionPathAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessStableSubsetSectionSuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitRuntimeBoundaryPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessRuntimeBoundaryPathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessRuntimeBoundarySuiteName()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriSmokeCaseAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriExtendedCaseAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriSmokeSuiteName()"
@@ -1847,6 +1856,23 @@ reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArray
 reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonObjectHasField(content, object_bounds[0], object_bounds[1], \"layer\")"
 reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectBoolFieldEqualsCount(content, modules_open, modules_end, \"beta_blocker\", true)"
 reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectStringFieldEqualsCount(content, modules_open, modules_end, \"status\", \"stable-subset\")"
+require_text "src/self_hosted/tools/runtime_boundary_checker/main.pgy" "func RuntimeBoundaryRequiredTermCount"
+require_text "src/self_hosted/tools/runtime_boundary_checker/main.pgy" "func RuntimeBoundaryRequiredPathAt"
+require_text "src/self_hosted/tools/runtime_boundary_checker/main.pgy" "func RuntimeBoundaryRequiredTermAt"
+require_text "src/self_hosted/tools/runtime_boundary_checker/main.pgy" "func EmitRuntimeBoundaryTermManifest"
+require_text "src/self_hosted/tools/runtime_boundary_checker/main.pgy" 'args[0] == "--terms"'
+reject_text "src/self_hosted/tools/runtime_boundary_checker/main.pgy" 'ArrayPush(paths, "src/self_hosted/runtime/README.md")'
+reject_text "src/self_hosted/tools/runtime_boundary_checker/main.pgy" 'ArrayPush(terms, "The native runtime kernel remains C")'
+require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" '"runtime-boundary-paths"'
+require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" '"$CLEAN_BIN" --terms'
+require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "TERMS_FILE="
+require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "required_count="
+require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "strip_pair="
+reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/runtime_boundary_checker/main.pgy"'
+reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/runtime_boundary_checker/expected/clean.json"'
+reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'required_terms=('
+reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'Portable runtime policy can move to Pergyra'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "let args: Array<String> = Args();"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "manifest_path = args[0];"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectFactCount(modules_facts)"

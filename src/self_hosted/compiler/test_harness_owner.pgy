@@ -237,6 +237,42 @@ func CompilerHarnessStableSubsetSectionReady() -> Bool {
     return CompilerHarnessStableSubsetSectionSuiteName() != "";
 }
 
+func CompilerHarnessRuntimeBoundarySuiteName() -> String {
+    return "runtime-boundary-paths";
+}
+
+func CompilerHarnessRuntimeBoundaryToolSourcePath() -> String {
+    return "src/self_hosted/tools/runtime_boundary_checker/main.pgy";
+}
+
+func CompilerHarnessRuntimeBoundaryExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/runtime_boundary_checker/expected/clean.json";
+}
+
+func CompilerHarnessRuntimeBoundaryPathCount() -> Int {
+    return 2;
+}
+
+func CompilerHarnessRuntimeBoundaryPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessRuntimeBoundaryToolSourcePath(); }
+    if index == 1 { return CompilerHarnessRuntimeBoundaryExpectedJsonPath(); }
+    return "";
+}
+
+func CompilerHarnessRuntimeBoundaryReady() -> Bool {
+    if CompilerHarnessRuntimeBoundaryPathCount() != 2 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessRuntimeBoundaryPathCount() {
+        if CompilerHarnessRuntimeBoundaryPathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessRuntimeBoundarySuiteName() != "";
+}
+
 func CompilerHarnessBackendTriSmokeSuiteName() -> String {
     return "backend-tri-smoke";
 }
@@ -351,5 +387,6 @@ func CompilerTestHarnessReady() -> Bool {
         CompilerHarnessLinterParityReady() &&
         CompilerHarnessModuleManifestResolverReady() &&
         CompilerHarnessStableSubsetSectionReady() &&
+        CompilerHarnessRuntimeBoundaryReady() &&
         CompilerHarnessBackendTriSuiteReady();
 }

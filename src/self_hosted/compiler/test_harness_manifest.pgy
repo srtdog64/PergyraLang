@@ -45,6 +45,14 @@ func EmitStableSubsetSectionPaths() -> Void {
     }
 }
 
+func EmitRuntimeBoundaryPaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessRuntimeBoundaryPathCount() {
+        Log(CompilerHarnessRuntimeBoundaryPathAt(i));
+        i = i + 1;
+    }
+}
+
 func Main() -> Void {
     let args: Array<String> = Args();
     if !CompilerTestHarnessReady() {
@@ -70,6 +78,10 @@ func Main() -> Void {
     }
     if args[0] == CompilerHarnessStableSubsetSectionSuiteName() {
         EmitStableSubsetSectionPaths();
+        return;
+    }
+    if args[0] == CompilerHarnessRuntimeBoundarySuiteName() {
+        EmitRuntimeBoundaryPaths();
         return;
     }
     Log(Concat("HARNESS ERROR: unknown manifest suite: ", args[0]));

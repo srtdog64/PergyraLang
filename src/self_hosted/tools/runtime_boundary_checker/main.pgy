@@ -26,34 +26,61 @@ func InputError(path: String) -> String {
     return StringJoin(parts, "");
 }
 
+func RuntimeBoundaryRequiredTermCount() -> Int {
+    return 8;
+}
+
+func RuntimeBoundaryRequiredPathAt(index: Int) -> String {
+    if index == 0 { return "src/self_hosted/runtime/README.md"; }
+    if index == 1 { return "src/self_hosted/runtime/README.md"; }
+    if index == 2 { return "src/self_hosted/runtime/README.md"; }
+    if index == 3 { return "src/self_hosted/PROGRESS.md"; }
+    if index == 4 { return "src/self_hosted/PROGRESS.md"; }
+    if index == 5 { return "src/self_hosted/README.md"; }
+    if index == 6 { return "docs/self_hosted/05_compiler_core_gap_analysis.md"; }
+    if index == 7 { return "docs/self_hosted/05_compiler_core_gap_analysis.md"; }
+    return "";
+}
+
+func RuntimeBoundaryRequiredTermAt(index: Int) -> String {
+    if index == 0 { return "The native runtime kernel remains C"; }
+    if index == 1 { return "Portable runtime policy can move to Pergyra"; }
+    if index == 2 { return "full runtime replacement"; }
+    if index == 3 { return "native runtime kernel stays C"; }
+    if index == 4 { return "Runtime-adjacent Pergyra tools count as soft self-host evidence"; }
+    if index == 5 { return "runtime/                        -- native runtime kernel stays C"; }
+    if index == 6 { return "runtime in one jump"; }
+    if index == 7 { return "runtime replacement"; }
+    return "";
+}
+
+func EmitRuntimeBoundaryTermManifest() -> Void {
+    let i: Int = 0;
+    let n: Int = RuntimeBoundaryRequiredTermCount();
+    while i < n {
+        let pair: Array<String> = [
+            RuntimeBoundaryRequiredPathAt(i),
+            "|",
+            RuntimeBoundaryRequiredTermAt(i)
+        ];
+        Log(StringJoin(pair, ""));
+        i = i + 1;
+    }
+}
+
 func Main() -> Void {
-    let paths: Array<String> = [];
-    let terms: Array<String> = [];
-
-    ArrayPush(paths, "src/self_hosted/runtime/README.md");
-    ArrayPush(terms, "The native runtime kernel remains C");
-    ArrayPush(paths, "src/self_hosted/runtime/README.md");
-    ArrayPush(terms, "Portable runtime policy can move to Pergyra");
-    ArrayPush(paths, "src/self_hosted/runtime/README.md");
-    ArrayPush(terms, "full runtime replacement");
-    ArrayPush(paths, "src/self_hosted/PROGRESS.md");
-    ArrayPush(terms, "native runtime kernel stays C");
-    ArrayPush(paths, "src/self_hosted/PROGRESS.md");
-    ArrayPush(terms, "Runtime-adjacent Pergyra tools count as soft self-host evidence");
-    ArrayPush(paths, "src/self_hosted/README.md");
-    ArrayPush(terms, "runtime/                        -- native runtime kernel stays C");
-    ArrayPush(paths, "docs/self_hosted/05_compiler_core_gap_analysis.md");
-    ArrayPush(terms, "runtime in one jump");
-    ArrayPush(paths, "docs/self_hosted/05_compiler_core_gap_analysis.md");
-    ArrayPush(terms, "runtime replacement");
-
+    let args: Array<String> = Args();
+    if ArrayLength(args) > 0 && args[0] == "--terms" {
+        EmitRuntimeBoundaryTermManifest();
+        return;
+    }
     let missing: Int = 0;
     let findings: Array<String> = [];
     let i: Int = 0;
-    let n: Int = ArrayLength(paths);
+    let n: Int = RuntimeBoundaryRequiredTermCount();
     while i < n {
-        let path: String = paths[i];
-        let term: String = terms[i];
+        let path: String = RuntimeBoundaryRequiredPathAt(i);
+        let term: String = RuntimeBoundaryRequiredTermAt(i);
         if !FileExists(path) {
             Log(InputError(path));
             Exit(1);

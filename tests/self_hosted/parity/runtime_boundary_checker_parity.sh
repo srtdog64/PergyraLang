@@ -27,21 +27,28 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
-PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/runtime_boundary_checker/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/runtime_boundary_checker}"
-PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
-EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/runtime_boundary_checker/expected/clean.json"
+HARNESS_PATHS_FILE="$PERGYRA_TOOL_BUILD_DIR/runtime_boundary_harness_paths.txt"
+mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:runtime-boundary" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "runtime-boundary-paths" \
+    "$HARNESS_PATHS_FILE"
 
-required_terms=(
-    "src/self_hosted/runtime/README.md|The native runtime kernel remains C"
-    "src/self_hosted/runtime/README.md|Portable runtime policy can move to Pergyra"
-    "src/self_hosted/runtime/README.md|full runtime replacement"
-    "src/self_hosted/PROGRESS.md|native runtime kernel stays C"
-    "src/self_hosted/PROGRESS.md|Runtime-adjacent Pergyra tools count as soft self-host evidence"
-    "src/self_hosted/README.md|runtime/                        -- native runtime kernel stays C"
-    "docs/self_hosted/05_compiler_core_gap_analysis.md|runtime in one jump"
-    "docs/self_hosted/05_compiler_core_gap_analysis.md|runtime replacement"
-)
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 2 ]]; then
+    echo "[self-host-parity:runtime-boundary] TestHarness manifest expected 2 runtime-boundary paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
+PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
+EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
 
 if [[ ! -f "$PERGYRA_TOOL_SOURCE" ]]; then
     echo "[self-host-parity:runtime-boundary] missing Pergyra tool: $PERGYRA_TOOL_SOURCE" >&2
@@ -52,12 +59,34 @@ if [[ ! -f "$EXPECTED_JSON_FILE" ]]; then
     exit 1
 fi
 
-mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
 PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
 
+CLEAN_BIN="$PERGYRA_TOOL_BUILD_DIR/runtime_boundary_checker_c.exe"
+CLEAN_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/runtime_boundary_checker_c.compile.log"
+if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" --backend=c \
+    -o "$(pgy_path_for_compiler "$PGY" "$CLEAN_BIN")" >"$CLEAN_COMPILE_LOG" 2>&1); then
+    echo "[self-host-parity:runtime-boundary] C backend compile failed" >&2
+    cat "$CLEAN_COMPILE_LOG" >&2
+    exit 1
+fi
+if ! pgy_require_runnable_binary_here "self-host-parity:runtime-boundary" "$CLEAN_BIN"; then
+    exit 1
+fi
+
+TERMS_FILE="$PERGYRA_TOOL_BUILD_DIR/runtime_boundary_required_terms.txt"
+if ! (cd "$ROOT_DIR" && "$CLEAN_BIN" --terms >"$TERMS_FILE"); then
+    echo "[self-host-parity:runtime-boundary] required-term manifest failed" >&2
+    exit 1
+fi
+tr -d '\r' < "$TERMS_FILE" > "$TERMS_FILE.norm"
+mv "$TERMS_FILE.norm" "$TERMS_FILE"
+
 missing=0
-for pair in "${required_terms[@]}"; do
+required_count=0
+while IFS= read -r pair; do
+    [[ -n "$pair" ]] || continue
+    required_count=$((required_count + 1))
     rel="${pair%%|*}"
     term="${pair#*|}"
     if [[ ! -f "$ROOT_DIR/$rel" ]]; then
@@ -68,13 +97,17 @@ for pair in "${required_terms[@]}"; do
         echo "[self-host-parity:runtime-boundary] shell missing term in $rel: $term" >&2
         missing=$((missing + 1))
     fi
-done
+done <"$TERMS_FILE"
+if [[ "$required_count" -eq 0 ]]; then
+    echo "[self-host-parity:runtime-boundary] required-term manifest is empty" >&2
+    exit 1
+fi
 if [[ "$missing" -ne 0 ]]; then
     exit 1
 fi
 
 set +e
-PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>/dev/null | tr -d '\r')"
+PERGYRA_OUT="$(cd "$ROOT_DIR" && "$CLEAN_BIN" 2>/dev/null | tr -d '\r')"
 P_RC=$?
 set -e
 
@@ -105,16 +138,29 @@ cleanup_neg_root() {
 }
 trap cleanup_neg_root EXIT
 
-mkdir -p "$NEG_ROOT/src/self_hosted/runtime" "$NEG_ROOT/src/self_hosted" "$NEG_ROOT/docs/self_hosted"
-cp "$ROOT_DIR/src/self_hosted/PROGRESS.md" "$NEG_ROOT/src/self_hosted/PROGRESS.md"
-cp "$ROOT_DIR/src/self_hosted/README.md" "$NEG_ROOT/src/self_hosted/README.md"
-cp "$ROOT_DIR/docs/self_hosted/05_compiler_core_gap_analysis.md" "$NEG_ROOT/docs/self_hosted/05_compiler_core_gap_analysis.md"
-grep -v 'Portable runtime policy can move to Pergyra' \
-    "$ROOT_DIR/src/self_hosted/runtime/README.md" \
-    > "$NEG_ROOT/src/self_hosted/runtime/README.md"
+strip_pair=""
+while IFS= read -r pair; do
+    [[ -n "$pair" ]] || continue
+    rel="${pair%%|*}"
+    term="${pair#*|}"
+    mkdir -p "$NEG_ROOT/$(dirname "$rel")"
+    if [[ ! -f "$NEG_ROOT/$rel" ]]; then
+        cp "$ROOT_DIR/$rel" "$NEG_ROOT/$rel"
+    fi
+    if [[ -z "$strip_pair" && "$rel" == "src/self_hosted/runtime/README.md" ]]; then
+        strip_pair="$pair"
+    fi
+done <"$TERMS_FILE"
+if [[ -z "$strip_pair" ]]; then
+    echo "[self-host-parity:runtime-boundary] term manifest missing runtime README fixture row" >&2
+    exit 1
+fi
+strip_rel="${strip_pair%%|*}"
+strip_term="${strip_pair#*|}"
+grep -Fv "$strip_term" "$ROOT_DIR/$strip_rel" > "$NEG_ROOT/$strip_rel"
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>&1 | tr -d '\r')"
+NEG_OUT="$(cd "$NEG_ROOT" && "$CLEAN_BIN" 2>&1 | tr -d '\r')"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then
@@ -132,11 +178,11 @@ if ! grep -Fq '"missing":1' <<<"$NEG_OUT"; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq 'Portable runtime policy can move to Pergyra' <<<"$NEG_OUT"; then
+if ! grep -Fq "$strip_term" <<<"$NEG_OUT"; then
     echo "[self-host-parity:runtime-boundary] missing-term fixture expected stripped term in findings" >&2
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
 
 assert_llvm_leg "self-host-parity:runtime-boundary" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR"
-echo "[self-host-parity:runtime-boundary] rung-2 parity ok (required=${#required_terms[@]} missing-fixture rc=1)"
+echo "[self-host-parity:runtime-boundary] rung-2 parity ok (required=${required_count} missing-fixture rc=1)"

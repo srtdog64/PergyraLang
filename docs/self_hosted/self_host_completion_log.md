@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-05 - Runtime boundary checker terms consume Pergyra owner
+
+- Added runtime boundary path facts to `test_harness_owner.pgy`: tool source
+  and expected clean JSON.
+- Extended `test_harness_manifest.pgy` with the `runtime-boundary-paths` suite.
+- Added `--terms` manifest mode to `runtime_boundary_checker`, so the checker
+  owns the required `(path, term)` rows it enforces.
+- Repointed `runtime_boundary_checker_parity.sh` so shell reads tool/expected
+  paths from `TestHarnessZone` and reads required-term rows from the compiled
+  Pergyra checker instead of carrying a duplicate shell array.
+
 ## 2026-07-05 - Linter parity paths consume TestHarness owner
 
 - Added linter parity path facts to `test_harness_owner.pgy`: tool source,
