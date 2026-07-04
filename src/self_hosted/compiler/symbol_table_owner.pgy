@@ -4,20 +4,41 @@ func CompilerSymbolTableSchema() -> String {
 func CompilerSymbolTableRowCount() -> Int {
     return 7;
 }
+func CompilerSymbolSourceOwnerRow() -> String {
+    return "source_owner";
+}
+func CompilerSymbolSourceNameRow() -> String {
+    return "source_name";
+}
+func CompilerSymbolNamespacePathRow() -> String {
+    return "namespace_path";
+}
+func CompilerSymbolCSymbolRow() -> String {
+    return "c_symbol";
+}
+func CompilerSymbolLlvmSymbolRow() -> String {
+    return "llvm_symbol";
+}
+func CompilerSymbolSelfHostedSymbolRow() -> String {
+    return "self_hosted_symbol";
+}
+func CompilerSymbolCollisionPolicyRow() -> String {
+    return "collision_policy";
+}
 func CompilerSymbolTableRowAt(index: Int) -> String {
-    if index == 0 { return "source_owner"; }
-    if index == 1 { return "source_name"; }
-    if index == 2 { return "namespace_path"; }
-    if index == 3 { return "c_symbol"; }
-    if index == 4 { return "llvm_symbol"; }
-    if index == 5 { return "self_hosted_symbol"; }
-    if index == 6 { return "collision_policy"; }
+    if index == 0 { return CompilerSymbolSourceOwnerRow(); }
+    if index == 1 { return CompilerSymbolSourceNameRow(); }
+    if index == 2 { return CompilerSymbolNamespacePathRow(); }
+    if index == 3 { return CompilerSymbolCSymbolRow(); }
+    if index == 4 { return CompilerSymbolLlvmSymbolRow(); }
+    if index == 5 { return CompilerSymbolSelfHostedSymbolRow(); }
+    if index == 6 { return CompilerSymbolCollisionPolicyRow(); }
     return "";
 }
 func CompilerSymbolProjectionAt(index: Int) -> String {
-    if index == 0 { return "c_symbol"; }
-    if index == 1 { return "llvm_symbol"; }
-    if index == 2 { return "self_hosted_symbol"; }
+    if index == 0 { return CompilerSymbolCSymbolRow(); }
+    if index == 1 { return CompilerSymbolLlvmSymbolRow(); }
+    if index == 2 { return CompilerSymbolSelfHostedSymbolRow(); }
     return "";
 }
 func CompilerSymbolRequireTable() -> Void {
@@ -106,14 +127,14 @@ func CompilerSymbolCEnumVariantName(enum_name: String, variant_name: String) -> 
 }
 func CompilerSymbolTableReady() -> Bool {
     return CompilerSymbolTableRowCount() == 7 &&
-        CompilerSymbolTableRowAt(0) == "source_owner" &&
-        CompilerSymbolTableRowAt(1) == "source_name" &&
-        CompilerSymbolTableRowAt(2) == "namespace_path" &&
-        CompilerSymbolTableRowAt(3) == "c_symbol" &&
-        CompilerSymbolTableRowAt(4) == "llvm_symbol" &&
-        CompilerSymbolTableRowAt(5) == "self_hosted_symbol" &&
-        CompilerSymbolTableRowAt(6) == "collision_policy" &&
-        CompilerSymbolProjectionAt(0) == "c_symbol" &&
-        CompilerSymbolProjectionAt(1) == "llvm_symbol" &&
-        CompilerSymbolProjectionAt(2) == "self_hosted_symbol";
+        CompilerSymbolTableRowAt(0) == CompilerSymbolSourceOwnerRow() &&
+        CompilerSymbolTableRowAt(1) == CompilerSymbolSourceNameRow() &&
+        CompilerSymbolTableRowAt(2) == CompilerSymbolNamespacePathRow() &&
+        CompilerSymbolTableRowAt(3) == CompilerSymbolCSymbolRow() &&
+        CompilerSymbolTableRowAt(4) == CompilerSymbolLlvmSymbolRow() &&
+        CompilerSymbolTableRowAt(5) == CompilerSymbolSelfHostedSymbolRow() &&
+        CompilerSymbolTableRowAt(6) == CompilerSymbolCollisionPolicyRow() &&
+        CompilerSymbolProjectionAt(0) == CompilerSymbolCSymbolRow() &&
+        CompilerSymbolProjectionAt(1) == CompilerSymbolLlvmSymbolRow() &&
+        CompilerSymbolProjectionAt(2) == CompilerSymbolSelfHostedSymbolRow();
 }

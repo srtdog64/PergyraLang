@@ -588,6 +588,25 @@ reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTarg
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCQualifiedName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolRequireTable"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "CompilerSymbolRequireTable();"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolSourceOwnerRow"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolSourceNameRow"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolNamespacePathRow"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCSymbolRow"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolLlvmSymbolRow"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolSelfHostedSymbolRow"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCollisionPolicyRow"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "CompilerSymbolTableRowAt(0) == CompilerSymbolSourceOwnerRow()"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "CompilerSymbolProjectionAt(0) == CompilerSymbolCSymbolRow()"
+reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolTableRowAt(0) == "source_owner"'
+reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolTableRowAt(1) == "source_name"'
+reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolTableRowAt(2) == "namespace_path"'
+reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolTableRowAt(3) == "c_symbol"'
+reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolTableRowAt(4) == "llvm_symbol"'
+reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolTableRowAt(5) == "self_hosted_symbol"'
+reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolTableRowAt(6) == "collision_policy"'
+reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolProjectionAt(0) == "c_symbol"'
+reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolProjectionAt(1) == "llvm_symbol"'
+reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolProjectionAt(2) == "self_hosted_symbol"'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCQualifiedName"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "SymbolMangle"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(owner, Concat("_",'
@@ -609,8 +628,25 @@ require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerA
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutRowCValueTypeAt"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutFieldAllowed"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutRowMaterializationAt"
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'if index == 9 { return "Option<String>"; }'
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'if index == 9 { return "pgy_option_string"; }'
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutDeclNameFact"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutMaterializationPolicyFact"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutOptionStringTypeName"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutOptionStringCValueType"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutOptionStringExplicitTypeName"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutFieldAllowedMaterialization"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutRuntimeValueOnlyMaterialization"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLayoutRowFactAt(0) == CompilerAbiLayoutDeclNameFact()"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLayoutRowTypeNameAt(9) == CompilerAbiLayoutOptionStringTypeName()"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLayoutRowCValueTypeAt(9) == CompilerAbiLayoutOptionStringCValueType()"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLayoutRowMaterializationAt(9) == CompilerAbiLayoutRuntimeValueOnlyMaterialization()"
+reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'CompilerAbiLayoutRowFactAt(0) == "decl_name"'
+reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'CompilerAbiLayoutRowFactAt(7) == "materialization_policy"'
+reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'CompilerAbiLayoutRowTypeNameAt(0) == "Int"'
+reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'CompilerAbiLayoutRowTypeNameAt(9) == "Option<String>"'
+reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'CompilerAbiLayoutRowCValueTypeAt(0) == "long long"'
+reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'CompilerAbiLayoutRowCValueTypeAt(9) == "pgy_option_string"'
+reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'CompilerAbiLayoutRowMaterializationAt(0) == "field_allowed"'
+reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'CompilerAbiLayoutRowMaterializationAt(9) == "runtime_value_only"'
 reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'StringIndexOf(type_name, "Int")'
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIndentOf"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "struct CodegenAstTextNode"
