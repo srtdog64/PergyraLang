@@ -10466,12 +10466,14 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
 - 장기 참고: AAM(abstract machines에서 sound 정적분석 유도) — ad-hoc walker
   누적을 피하는 방향타.
 
-#### A-13. Generic × 7축 합성 결정표 (docs/151, 2026-07-04)
+#### A-13. Generic × 6축 합성 결정표 (docs/151, 2026-07-04)
 
-- BDFL 초안(7축: World/Zone/Actor/Auth/Intent·Eff/Site/Phase + 판정
-  ALLOW/REJECT/DEFER/ERASE) + 레드팀 병합 완료. 핵심 프레임: **현행 =
-  전-REJECT(fail-closed 가드)에서 증거로 셀을 여는 래칫** — 위시리스트
-  아님.
+- BDFL 초안 + 레드팀 병합 + **재심(2026-07-04): 7축 → 6축**(World/Zone/
+  Actor/Auth/Intent·Eff/**slot** — 레드팀 Site 개명 파기·초안 복원, 표기
+  규약: 축=소문자 slot/타입=`Slot<T>`; **Phase 축 제거**=ERASE codomain
+  +carriage 이중 등재 해소, lifetime 명명은 값-수명 방화벽 docs/118
+  §2.1 때문에 규범 어휘로 불채택). 핵심 프레임: **현행 = 전-REJECT
+  (fail-closed 가드)에서 증거로 셀을 여는 래칫** — 위시리스트 아님.
 - ✅ **미결정 2건 CLOSED(BDFL 2026-07-04)**: Decision-0=positional 기본
   (value-typed 승격은 축별 증거로만, 승인분=WO-B4 zone handle) + GATE
   5번째 판정값 채택(**남용 금지 조항**: Rice-잔차 한정, 미구현-정적은

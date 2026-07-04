@@ -41,33 +41,37 @@ coqc 0 admits/0 axioms, 2026-07-04, `formal-semantics-smoke` 배선):
 어느 carriage 방식 위에서도 성립하므로 Decision-0이 열린 지금도
 증명 가능했다. §4 간선/컴파일러 구현 일치는 미래 matrix-lock 몫.
 
-## 1. 7축 (초안 대비 개명 2건)
+## 1. 6축 — 재심(BDFL 2026-07-04): 7축 → 6축
 
-| # | 축 | 핵심 질문 | 초안 대비 |
+| # | 축 | 핵심 질문 | 이력 |
 |---|---|---|---|
 | 1 | World | 어느 세계/도메인 모델의 값인가 | 유지 |
 | 2 | Zone | 어느 실행/보안 경계 안의 값인가 | 유지 |
 | 3 | Actor/Role | 누가 어떤 자격으로 다루는가 | 유지 |
 | 4 | Authority/Capability | 이 값으로 무엇을 할 수 있는가 | 유지 |
 | 5 | Intent/Effect | 어떤 목적·작용으로 쓰이는가 | 경계는 §4 간선으로 |
-| 6 | **Site** | 어디에 꽂히는가 (field/param/handle/channel) | **개명** (초안 "Slot") |
-| 7 | **Phase** | 이 의미는 어느 단계까지 살아 있는가 | **개명** (초안 "Phase/Lifetime") |
+| 6 | **slot(자리)** | 어디에 꽂히는가 (field/param/handle/channel) | 레드팀 "Site" 개명 **파기, 초안 복원** |
 
-개명 사유:
+재심 기록 2건:
 
-- **Site**: 축 이름 Slot은 타입 `Slot<T>`와 같은 문서 안에서 충돌한다
-  ("`Slot<T>`의 Slot축 판정은 Slot이 강함" 같은 문장이 성립 불가).
-  자리-민감성 축은 Site로 부르고, Slot은 primitive 이름으로 보존한다.
-- **Phase**: "Lifetime" 단어는 수명 주석 영구금지 결정(docs/118 §2.1,
-  BDFL 2026-06-29)이 차단한 프레임을 문서 제목에 초대한다. 이 축의
-  실제 의미는 값 수명이 아니라 **의미의 소거 시점**(compile-proof →
-  MIR/AIR marker → erase/compress)이므로 Phase 단독 명명. 값-수명
-  갭은 여전히 slot/zone/handle primitive 소관이다.
-
-Phase의 위상(초안의 "Phase가 전체를 감싼다" 직관, 채택·구체화):
-Phase는 표의 열이 아니라 **판정의 codomain**이다 — 각 셀에서 Phase는
-ERASE 판정의 파라미터(어느 IR 단계에서, 어느 버킷으로 소거되는가)로
-나타나고, erasure dashboard(docs/14)가 그 실측 장부다.
+- **축6 = slot (초안 복원).** 레드팀은 타입 `Slot<T>`와의 충돌을
+  이유로 Site로 개명했으나, 언어 표면 문법 자체가 자리를 slot으로
+  쓴다(`subject slot buyer`, `object slot mirror`, world의 zone slot).
+  Ubiquitous language 우선 — 같은 도메인 개념에 두 번째 단어를 들여
+  오는 비용이 충돌 비용보다 크다. 충돌은 표기 규약으로 해소:
+  **축은 소문자 slot, 타입은 항상 `Slot<T>`(각괄호 동반)**로 쓴다.
+- **Phase 축 제거.** "이 의미는 어느 단계까지 살아 있는가"는 값의
+  축이 아니라 **축-사실 자체에 대한 메타 질문**이고, 그 답의 자리는
+  이미 둘 다 있다: 런타임-생존 절반은 Decision-0의 carriage
+  (runtime-tag 여부)가, 컴파일-파이프라인 절반은 ERASE(bucket, IR
+  단계) 판정이 소유한다. 축으로 두면 이중 등재다. 초안의 "Phase가
+  전체를 감싼다" 직관이 정확히 이것이었다 — 감싸는 것은 축이 아니라
+  **판정의 codomain**이며, erasure dashboard(docs/14)가 그 실측
+  장부다. "결국 lifetime 아닌가"에 대한 답: 맞다, 단 **사실의
+  수명**(컴파일 파이프라인)이지 값의 수명(런타임)이 아니다 — 값-수명은
+  slot/zone/handle primitive 소관이고 수명 주석 영구금지(docs/118
+  §2.1)가 그 방화벽이므로, 이 개념을 규범 어휘로 lifetime이라 부르지
+  않는다. 축이 사라졌으니 명명 논쟁도 소멸한다.
 
 ## 2. Decision-0 — 축의 운반 방식 (CLOSED, BDFL 2026-07-04)
 
@@ -219,8 +223,8 @@ exactly-one-owner를 지키려면 축 목록만이 아니라 **사인된 cross-a
 |---|---|---|
 | cap ⊇ effect | capability가 effect를 게이트 | declared⊇used semantic error |
 | authority ⊢ step | authority가 intent step을 승인 | world.pgy `authorized by:` |
-| zone ⊃ site | zone이 site를 수용 | zone-bound handle |
-| phase ⊒ * | 모든 축은 소거 단계를 갖는다 | erasure dashboard |
+| zone ⊃ slot | zone이 자리(slot)를 수용 | zone-bound handle |
+| ERASE ⊒ * | 모든 축-사실은 소거 단계를 갖는다 (판정 codomain, 舊 Phase) | erasure dashboard |
 
 간선을 타는 검사(예: declared⊇used)는 두 축의 합성으로 기록하고, 한
 축 칸에 몰아넣지 않는다. 간선 등록부에 없는 cross-axis 검사가
@@ -234,14 +238,14 @@ exactly-one-owner를 지키려면 축 목록만이 아니라 **사인된 cross-a
 래칫**이다. 셀 개방의 전제: Decision-0 닫힘 + 해당 축 carriage 결정
 + MIR type-text seam 해소(§7).
 
-| 생성자 | World | Zone | Actor | Auth | Intent/Eff | Site | 현행 판정 |
+| 생성자 | World | Zone | Actor | Auth | Intent/Eff | slot | 현행 판정 |
 |---|---|---|---|---|---|---|---|
 | `Option<T>`/`Result<T,E>` | 보존 | 보존 | 보존 | 보존 | 보존 | 약 | **G-1 OPEN**: return+body-local run-parity / param REJECT(G-2) / per-type 우회 유지 |
 | `List<T>` | 보존 | 보존+T제약 | 보존 | 보존 | — | 약 | REJECT |
 | `Slot<T>` | 보존 | 강 | — | **승격**: T가 auth-bearing이면 Slot도 auth-aware | 강 | 강 | REJECT + 런타임 GATE(항상-on) |
 | **`Channel<T>`** | **유일 합법 cross-World 운반체** | 경계 통과=증거 | — | 위임 위험 | send/recv | 강 | REJECT |
 | `own`/`ref T` | 보존 | 이동 기본 거절 | — | **위임**(ocap: 참조 전달=권한 위임) | — | 강 | 현행 own/ref 규칙 |
-| `StrView` | 보존 | 차용 | — | 축소 | inspect | 표시 | WO-P1 lifetime fact = 첫 Phase fact |
+| `StrView` | 보존 | 차용 | — | 축소 | inspect | 표시 | WO-P1 = 첫 소거-시점 fact |
 
 초안 대비 수정 2건:
 
@@ -268,7 +272,7 @@ docs/148 원장 규율대로 **sketch tier**: 판정 셀을 가질 수 없고
 - `Command<T>` — intent의 값-재화(reification). intent는 현행
   선언 블록이지 1급 값이 아니다. 별도 결정.
 - `View<T>` — 첫 실물은 이미 1층에 있다: **StrView**. 일반화는
-  StrView의 Phase fact(WO-P1) 증거가 쌓인 뒤에.
+  StrView의 소거-시점 fact(WO-P1) 증거가 쌓인 뒤에.
 
 ## 7. 착수 조건 & 게이트 조건 — 상태: 충족·이행됨 (2026-07-04)
 
@@ -313,5 +317,5 @@ docs/121(타입=도메인 매체 — §0의 뿌리) · docs/42 + AxisOwnership.v
 — ERASE 버킷) · docs/15(caps=effect refinement — GATE 판정의 선례) ·
 docs/12(typestate 거절 — Decision-0의 선례) · docs/147(surface sugar
 감사 + MIR seam) · docs/146(SEA lane fact — Future 행이 요구하는
-승격) · docs/118 §2.1(수명 주석 영구금지 — Phase 개명 사유) ·
+승격) · docs/118 §2.1(수명 주석 영구금지 — §1 재심의 값-수명 방화벽) ·
 docs/148·150(wiring-doc 규율 선례) · TODO 보드 A-13

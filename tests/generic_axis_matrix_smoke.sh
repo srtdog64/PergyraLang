@@ -32,6 +32,14 @@ fi
 # 2) GATE anti-abuse clause (array-covariance firewall)
 require "GATE 남용 금지 조항"
 require "정적 판정이 *아직 안 만들어진* 곳은 GATE가 아니라 DEFER"
+
+# 2b) axis-set revision record (BDFL 2026-07-04): 6 axes — axis-6 is
+# spelled lowercase `slot` (type stays Slot<T>), and Phase is NOT an
+# axis (it is the ERASE codomain). A silent revert to 7 axes or to the
+# "Site" spelling must trip this gate.
+require "6축 — 재심(BDFL 2026-07-04): 7축 → 6축"
+require "축은 소문자 slot, 타입은 항상"
+require "**Phase 축 제거.**"
 if grep -Fq "| **GATE** (제안)" "$DOC"; then
     fail "docs/151 still marks closed GATE verdict as a proposal"
 fi
