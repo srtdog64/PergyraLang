@@ -231,7 +231,7 @@ MIR-only×generics seam(TODO 보드 stdlib 스트림 발견-1, 2026-07-03)과
 | 판정 | 의미 | 실물 선례 |
 |---|---|---|
 | ALLOW | 그대로 허용 | — |
-| REJECT | 정적 거절 | generic-over-constructed **param** 가드 (G-1이 return/body-local 개방 후의 잔여 = G-2 소관) |
+| REJECT | 정적 거절 | LLVM generic-over-constructed **param** 거절(G-2L), G-2C 단일화 실패·미바인딩 진단 |
 | DEFER | MIR/AIR 증명까지 **정적** 유예 | AIR off-path 검증, machine-neutral facts |
 | ERASE(bucket) | 검증 후 의미 소거 — docs/14 버킷 명명 의무 | 축 어휘 100% 소거 실측 |
 | **GATE** | 허용하되 런타임 fail-closed 검사를 pin | caps의 동적디스패치/FFI backstop(docs/15), slot 검사 항상-on |
@@ -288,7 +288,7 @@ Decision-0 닫힘·seam 해소는 §7에 이행 기록).
 
 | 생성자 | World | Zone | Actor | Auth | Intent/Eff | slot | 현행 판정 |
 |---|---|---|---|---|---|---|---|
-| `Option<T>`/`Result<T,E>` | 보존 | 보존 | 보존 | 보존 | 보존 | 약 | **G-1 OPEN**: return+body-local run-parity / param REJECT(G-2) / per-type 우회 유지 |
+| `Option<T>`/`Result<T,E>` | 보존 | 보존 | 보존 | 보존 | 보존 | 약 | **G-1 OPEN**: return+body-local run-parity / C param OPEN(G-2) / LLVM param REJECT(G-2L) / per-type 우회 축소 |
 | `List<T>` | 보존 | 보존+T제약 | 보존 | 보존 | — | 약 | REJECT |
 | `Slot<T>` | 보존 | 강 | — | **승격**: T가 auth-bearing(=nominal 토큰, §2.1 auth_val 실증 한정)이면 Slot도 auth-aware — G-4 생성자 경계 검사로, 값 태깅 아님(Decision-0 준수) | 강 | 강 | REJECT + 런타임 GATE(항상-on) |
 | **`Channel<T>`** | **유일 합법 cross-World 운반체** | 경계 통과=증거 | — | 위임 위험 | send/recv | 강 | REJECT |
@@ -339,7 +339,8 @@ docs/148 원장 규율대로 **sketch tier**: 판정 셀을 가질 수 없고
 - ~~셀 개방은 MIR type-text seam 해소 후~~ → **seam은 rung 단위로
   해소한다**: G-1이 return/body-local 절반을 해소했다(치환 초크포인트
   = type-require·expr-infer + 레지스트리 unbound-param 스킵). param
-  절반은 G-2 소관(바인딩 추론이 call-site 인자 타입을 읽는 구조).
+  절반은 다시 쪼개졌다: C는 G-2에서 구조 매칭·단일화·default binding을
+  열었고, LLVM은 인자 타입 metadata 군집(G-2L)이 남아 fail-closed다.
 - 두 결정이 닫혔으므로 matrix-lock 게이트 생성:
   `generic-axis-matrix-test-smoke`(§2/§3 닫힘 기록·GATE 남용 조항·§5
   행 소실 금지·§6 판정 금지 문구·§8 rung 정직성 잠금).
@@ -362,13 +363,14 @@ status ∈ {planned, landed}. landed = artifact와 gate 실존, planned =
 <!-- GENERIC-RUNG-END -->
 
 - **G-1 실측(2026-07-04)**: nested_return 7 / body_local 9, C==LLVM
-  동일 출력. param 거절 유지("inside a constructed type" / "requires
-  concrete argument"). 회귀: try_operator_option·stdlib_option_bridges
-  parity green, caps manifest green, axis-carriage probe green.
-- **G-1 안전 논거**: param이 닫혀 있는 한 바인딩은 항상 bare-T param에서
-  추론되므로, return/body-local 치환은 바인딩 완전성에 의존해도 된다.
-  바인딩 추론이 실패하는 경로는 raw-name 방출이 native 단계에서 실패
-  (silent bad binary 없음) — 진단 품질 개선은 G-2와 함께.
+  동일 출력. 당시 param은 양 백엔드 fail-closed였고, 그 잔여가 G-2로
+  분리됐다. 회귀: try_operator_option·stdlib_option_bridges parity green,
+  caps manifest green, axis-carriage probe green.
+- **G-2 실측(2026-07-04)**: C param은 구조 매칭으로 실행
+  (`nested_param` = 1), 단일화·미바인딩·default type arg는
+  `generic-falsification-test-smoke`가 진단/실행 목소리를 잠근다. LLVM은
+  `requires concrete argument` 계열로 거절 유지 — G-2L이 닫기 전까지 이
+  비대칭은 의도된 상태다.
 - G-4 전 금지: §5의 Slot/Channel 행 개방은 Decision-0의 carriage 규칙
   (positional 기본)에 따라 **생성자 경계 검사**로 설계한다 — 값 태깅
   으로의 표류 금지.

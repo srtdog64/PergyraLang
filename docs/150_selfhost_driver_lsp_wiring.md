@@ -41,9 +41,11 @@ HIR/DIR/RIR/MIR→AIR verify→backend emit→cc 호출→link. 치환은 관측
   stage fact를 실행 경로에서 소비 — world가 장식으로 남지 않게.
   **현재 scaffold**: `src/self_hosted/compiler/driver_rung0_owner.pgy`가
   source path → self-parser AST text → self-codegen C text 조립을 소유하고
-  path/stage/target readiness facts를 먼저 소비한다. 단 §4 rung 표는 아직
-  `planned`다 — AST/C artifact 비교 gate가 실존하기 전에는 DRV-0 landed가
-  아니다.
+  path/stage/target readiness facts를 먼저 소비한다. `CompileSourceToAst`,
+  `CompileAstToC`, `CompileSourceToC`가 AST/C artifact boundary를 각각
+  노출하고, `RunDriverRung0FromArgs`는 `--emit-ast` / `--emit-c` artifact
+  mode를 받는다. 단 §4 rung 표는 아직 `planned`다 — AST/C artifact 비교
+  gate가 실존하기 전에는 DRV-0 landed가 아니다.
 - **DRV-1 — CLI 표면**: `Args()`(존재, PGY_CAP_ENV 게이트)로
   `driver <src> [--emit-ast|--emit-c] [-o out]` 파싱. CLI entrypoint는
   DRV-1 소유이며, DRV-0 owner는 조립 책임만 소유한다. 오라클: 산출물

@@ -28,15 +28,38 @@ func CompilerDriverRung0Ready() -> Bool with caps io_read {
     return true;
 }
 
-func CompileSourceToC(source_path: String) -> String with caps io_read {
+func CompileSourceToAst(source_path: String) -> String with caps io_read {
     if !CompilerDriverRung0Ready() {
         Die("driver rung-0 compiler-world facts are not ready");
     }
-    let ast_text: String = ParseRootProgram(source_path);
+    return ParseRootProgram(source_path);
+}
+
+func CompileAstToC(ast_text: String) -> String {
     return GenerateC(ast_text);
+}
+
+func CompileSourceToC(source_path: String) -> String with caps io_read {
+    let ast_text: String = CompileSourceToAst(source_path);
+    return CompileAstToC(ast_text);
+}
+
+func DriverRung0ArtifactMode(args: Array<String>) -> String {
+    if ArrayLength(args) > 1 {
+        return args[1];
+    }
+    return "--emit-c";
 }
 
 func RunDriverRung0FromArgs(args: Array<String>) -> Void with caps io_read {
     let source_path: String = ParserDefaultSourcePath(args);
+    let mode: String = DriverRung0ArtifactMode(args);
+    if mode == "--emit-ast" {
+        Log(CompileSourceToAst(source_path));
+        return;
+    }
+    if mode != "--emit-c" {
+        Die(Concat("unknown driver rung-0 artifact mode: ", mode));
+    }
     Log(CompileSourceToC(source_path));
 }

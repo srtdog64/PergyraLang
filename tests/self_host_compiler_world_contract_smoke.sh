@@ -112,9 +112,16 @@ require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CompilerStagePat
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CompilerAstTreeFactReady()"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CompilerEmissionFactReady()"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CompilerTargetCapabilityEnvelopeReady()"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func CompileSourceToAst"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "return ParseRootProgram(source_path)"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func CompileAstToC"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "return GenerateC(ast_text)"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func CompileSourceToC"
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "ParseRootProgram(source_path)"
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "GenerateC(ast_text)"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CompileSourceToAst(source_path)"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CompileAstToC(ast_text)"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func DriverRung0ArtifactMode"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"--emit-ast"'
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"--emit-c"'
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func RunDriverRung0FromArgs"
 
 # Authority skeleton locks: sensitive-boundary abilities/roles plus the zone

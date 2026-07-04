@@ -9,11 +9,9 @@
 #     binding) now RUN on BOTH backends — C substitutes bindings at the
 #     type-require/expr-infer choke points and the specialization registry
 #     skips unbound type-parameter scans (G-1).
-#   - PARAM position stays fail-closed on BOTH backends (G-2 owns it):
-#     C "inside a constructed type", LLVM "requires concrete argument".
-#     Binding inference reads call-site arg types and gives up on
-#     constructed-over-T params; opening returns without opening params is
-#     safe because bindings then always come from bare-T params.
+#   - PARAM position is split after G-2: C structurally binds constructed
+#     params and runs; LLVM still fail-closes on the G-2L argument-metadata
+#     cluster. This asymmetry is intentional and documented in docs/151.
 #   - bare-T generics must keep compiling AND running on both backends
 #     (no-false-positive leg).
 
@@ -98,4 +96,4 @@ expect_reject llvm class_field.pgy "movable handle lowering"
 expect_runs c    bare_ok.pgy "42"
 expect_runs llvm bare_ok.pgy "42"
 
-echo "[generic-nested] G-1 open cells run-parity + param fail-closed locked (c/llvm)"
+echo "[generic-nested] G-1 run-parity + G-2 C param open / LLVM G-2L reject locked"
