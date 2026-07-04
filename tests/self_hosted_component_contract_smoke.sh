@@ -1604,12 +1604,29 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHar
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessSelfHostedProjection"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessExpectedComparableArtifactPath"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessActualComparableArtifactPath"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeSuiteName"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriExtendedSuiteName"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeCaseCount"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeCaseAt"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriExtendedCaseCount"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriExtendedCaseAt"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeCasesReady"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriExtendedCasesReady"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSuiteReady"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessRowAt(0) == CompilerHarnessSourcePathRow()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessRowAt(7) == CompilerHarnessProjectionRow()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessProjectionAt(0) == CompilerHarnessCOracleProjection()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessProjectionAt(2) == CompilerHarnessSelfHostedProjection()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessComparableArtifactPathAt(0) == CompilerHarnessExpectedComparableArtifactPath()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessComparableArtifactPathAt(1) == CompilerHarnessActualComparableArtifactPath()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendTriSuiteReady()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitBackendTriSmokeCases"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriSmokeCaseAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriExtendedCaseAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriSmokeSuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriExtendedSuiteName()"
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_manifest.pgy"'
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(0) == "source_path"'
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(1) == "expected_diagnostic"'
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(2) == "expected_air_json"'
@@ -1688,6 +1705,13 @@ require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/artifact_zone_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/subprocess_runner_owner.pgy"'
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'HARNESS_MANIFEST_SOURCE="$ROOT_DIR/src/self_hosted/compiler/test_harness_manifest.pgy"'
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "compile_harness_manifest"
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "append_cases_from_harness_manifest"
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'append_cases_from_harness_manifest "backend-tri-smoke"'
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'append_cases_from_harness_manifest "backend-tri-extended"'
+reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" '"tests/cases/backend_compare/basic"'
+reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" '"tests/cases/backend_compare/zone_host_method_abi_combo"'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'timeout "$RUN_TIMEOUT_SECONDS"s "$bin" "$@"'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'run_windows_fallback "$bin" "$out" "$err" "$@"'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" '$(pgy_quote_ps "$bin_native")${ps_args}'
@@ -1804,8 +1828,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 121 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 121"
+[[ "$selfcheck_count" -eq 122 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 122"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'

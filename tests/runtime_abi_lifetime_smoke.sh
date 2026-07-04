@@ -200,6 +200,7 @@ concat_runtime_text "$llvm_text" \
     "src/runtime/pgy_runtime_lib_authority_file_core.h"
 
 concat_runtime_text "$inline_string_text" \
+    "src/runtime/pgy_runtime_string_builtin_inline.h" \
     "src/runtime/pgy_runtime_io_qubit_inline.h"
 
 concat_runtime_text "$llvm_string_text" \
@@ -377,7 +378,7 @@ for term in \
         fail "raw array export backing-storage guard missing: $term"
 done
 if grep -Fq "pgy_array_push_String(&result, s)" \
-    "$ROOT_DIR/src/runtime/pgy_runtime_io_qubit_inline.h" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_string_builtin_inline.h" \
     "$ROOT_DIR/src/runtime/pgy_runtime_lib_io_string_exports.h"; then
     fail "StringSplit must not push borrowed input strings into result-owned arrays"
 fi
@@ -385,7 +386,7 @@ for term in \
     "PgyArray_String result = pgy_array_new_String(8)" \
     "pgy_array_push_String(&result, pgy_runtime_strdup(s))" \
     "pgy_array_push_String(&result, pgy_runtime_strdup(p))"; do
-    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_io_qubit_inline.h" ||
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_string_builtin_inline.h" ||
         fail "inline StringSplit must match result-owned LLVM runtime contract; missing $term"
 done
 for term in \
@@ -515,7 +516,7 @@ for term in \
     "if (la > ((size_t)-1) - lb || la + lb > ((size_t)-1) - 1)"; do
     grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_io_string_exports.h" ||
         fail "LLVM string helper missing overflow/lifetime guard: $term"
-    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_io_qubit_inline.h" ||
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_string_builtin_inline.h" ||
         fail "inline string helper missing overflow/lifetime guard: $term"
 done
 
@@ -523,7 +524,7 @@ grep -Fq "if (item_len > ((size_t)-1) - total)" \
     "$ROOT_DIR/src/runtime/pgy_runtime_lib_std_exports.h" ||
     fail "LLVM StringJoin must guard result length overflow"
 grep -Fq "if (sl > ((size_t)-1) - total)" \
-    "$ROOT_DIR/src/runtime/pgy_runtime_io_qubit_inline.h" ||
+    "$ROOT_DIR/src/runtime/pgy_runtime_string_builtin_inline.h" ||
     fail "inline StringJoin must guard result length overflow"
 grep -Fq "static PGY_RUNTIME_NOINLINE char *pgy_runtime_strdup" \
     "$ROOT_DIR/src/runtime/pgy_runtime_platform_io_core.h" ||

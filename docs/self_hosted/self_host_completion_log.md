@@ -38,6 +38,16 @@ rewrite history.
   the READY row, the comparator self-test exception, and the updated work-order
   wording.
 
+## 2026-07-05 - Backend tri-compare suite uses TestHarness owner
+
+- Added backend tri-compare smoke/extended case-suite facts to
+  `test_harness_owner.pgy`.
+- Added `test_harness_manifest.pgy` as a Pergyra projection over those facts.
+- Repointed `backend_output_tri_compare_parity.sh` so the default smoke and
+  extended case lists come from the manifest instead of shell-owned arrays.
+- Kept explicit CLI case arguments as an override for one-off debugging; the
+  default CI suite now consumes `TestHarnessZone` for case selection.
+
 ## 2026-07-05 - MIR JSON run-output parity consumes ArtifactZone verdicts
 
 - Repointed `tests/self_hosted/parity/mir_json_parity.sh` so the final

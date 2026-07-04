@@ -81,6 +81,7 @@ SELF_SOURCES=(
     "src/self_hosted/compiler/abi_layout_row_owner.pgy"
     "src/self_hosted/compiler/symbol_table_owner.pgy"
     "src/self_hosted/compiler/stage_artifact_owner.pgy"
+    "src/self_hosted/compiler/test_harness_manifest.pgy"
     "src/self_hosted/compiler/world.pgy"
     "src/self_hosted/fuzz/backend_parity_generator/main.pgy"
     "src/self_hosted/lexer/char_owner.pgy"

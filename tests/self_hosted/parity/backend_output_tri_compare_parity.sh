@@ -31,6 +31,8 @@ WORK_ROOT="$ROOT_DIR/.tmp"
 mkdir -p "$WORK_ROOT"
 WORK_DIR="$(mktemp -d "$WORK_ROOT/pgy_selfhost_tri_compare.XXXXXX")"
 RUN_TIMEOUT_SECONDS="${PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS:-30}"
+HARNESS_MANIFEST_SOURCE="$ROOT_DIR/src/self_hosted/compiler/test_harness_manifest.pgy"
+HARNESS_MANIFEST_BIN="$WORK_DIR/test_harness_manifest.exe"
 
 cleanup() {
     rm -rf "$WORK_DIR"
@@ -271,45 +273,55 @@ run_tri_case() {
         "$tri_root" "$tri_bin"
 }
 
+compile_harness_manifest() {
+    local compile_log="$WORK_DIR/test_harness_manifest.compile.log"
+
+    if [[ ! -f "$HARNESS_MANIFEST_SOURCE" ]]; then
+        echo "[self-host-parity:backend-tri-compare] missing TestHarness manifest: $HARNESS_MANIFEST_SOURCE" >&2
+        exit 1
+    fi
+
+    if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$HARNESS_MANIFEST_SOURCE")" \
+        --backend=c -o "$(pgy_path_for_compiler "$PGY" "$HARNESS_MANIFEST_BIN")" \
+        >"$compile_log" 2>&1); then
+        echo "[self-host-parity:backend-tri-compare] TestHarness manifest compile failed" >&2
+        cat "$compile_log" >&2
+        exit 1
+    fi
+}
+
+append_cases_from_harness_manifest() {
+    local suite="$1"
+    local manifest_out="$WORK_DIR/${suite}.cases"
+    local manifest_err="$WORK_DIR/${suite}.cases.err"
+    local manifest_rc
+    local line
+
+    set +e
+    run_native_bin "$HARNESS_MANIFEST_BIN" "$manifest_out" "$manifest_err" "$suite"
+    manifest_rc=$?
+    set -e
+    if [[ "$manifest_rc" -ne 0 ]]; then
+        echo "[self-host-parity:backend-tri-compare] TestHarness manifest failed for suite=$suite" >&2
+        cat "$manifest_out" "$manifest_err" >&2
+        exit 1
+    fi
+
+    while IFS= read -r line; do
+        line="${line%$'\r'}"
+        [[ -n "$line" ]] || continue
+        cases+=("$line")
+    done <"$manifest_out"
+}
+
 if [[ "$#" -gt 0 ]]; then
     cases=("$@")
 else
-    cases=(
-        "tests/cases/backend_compare/basic"
-        "tests/cases/backend_compare/arith_grand_total"
-        "tests/cases/backend_compare/array_builtins"
-        "tests/cases/backend_compare/allocator_lane_boxarray"
-        "tests/cases/backend_compare/allocator_defer_cleanup"
-        "tests/cases/backend_compare/class_factory_field_method"
-        "tests/cases/backend_compare/channel_send_recv_basic"
-        "tests/cases/backend_compare/async_spawn_await"
-        "tests/cases/backend_compare/slice_surface"
-        "tests/cases/backend_compare/slice_copy"
-        "tests/cases/backend_compare/string_interpolation"
-        "tests/cases/backend_compare/pin_write_view_block"
-        "tests/cases/backend_compare/secure_slot_view"
-        "tests/cases/backend_compare/intent_zone_binding"
-    )
+    cases=()
+    compile_harness_manifest
+    append_cases_from_harness_manifest "backend-tri-smoke"
     if [[ "${PGY_BACKEND_TRI_COMPARE_SUITE:-smoke}" == "extended" ]]; then
-        cases+=(
-            "tests/cases/backend_compare/file_handle_io"
-            "tests/cases/backend_compare/io_string_negative_paths"
-            "tests/cases/backend_compare/rc_weak_lifecycle"
-            "tests/cases/backend_compare/hashmap_basic_ops"
-            "tests/cases/backend_compare/list_mutation_ops"
-            "tests/cases/backend_compare/queue_state_ops"
-            "tests/cases/backend_compare/set_membership_ops"
-            "tests/cases/backend_compare/try_operator_result"
-            "tests/cases/backend_compare/future_cancel_state"
-            "tests/cases/backend_compare/select_single_ready"
-            "tests/cases/backend_compare/unsafe_lexical_boundary"
-            "tests/cases/backend_compare/top_level_visibility_decl"
-            "tests/cases/backend_compare/event_system"
-            "tests/cases/backend_compare/generic_future_spawn_multi_arg"
-            "tests/cases/backend_compare/runtime_seeded_random"
-            "tests/cases/backend_compare/map_ops"
-            "tests/cases/backend_compare/zone_host_method_abi_combo"
-        )
+        append_cases_from_harness_manifest "backend-tri-extended"
     fi
 fi
 
