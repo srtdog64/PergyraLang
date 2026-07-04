@@ -53,8 +53,10 @@ frontier와 수렴한다** — 리스크 모델이 옳다는 재확인.
 - **등급표(A-/B+/...)**: 외부 관점 스냅샷으로 기록만. 우리 내부 계기판은
   게이트/ratchet 수치이지 문자 등급이 아니다 — 등급을 목표로 삼지 않는다.
 - **"Self-host trajectory B+"**: 리뷰 시점보다 이미 전진(22/22 자기-빌드,
-  §0). 착시 경고 자체는 유효 — LOC 6.57%/runtime·driver·LSP 0% 명시는
-  우리 문서가 원 출처.
+  §0). 착시 경고 자체는 유효 — LOC 6.57%와 runtime kernel·released
+  compiler driver replacement·LSP 0% 명시는 우리 문서가 원 출처다.
+  DRV-0 artifact rung(docs/150)은 이 0%를 뒤집는 수치가 아니라, driver
+  치환을 시작하기 위한 조립 artifact다.
 - 사실 오류: **발견되지 않음.** (docs/137 때의 R4류 반박 필요 항목 없음.)
 
 ## 4. 실행 반영 — 보드 diff 요약

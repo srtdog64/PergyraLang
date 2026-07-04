@@ -1,11 +1,17 @@
 # 150. Self-Host Driver & LSP — 설계 배선도
 
-Status: `wiring-doc, rung-gated`. PROGRESS.md의 두 0% 트랙(compiler
-driver, LSP)의 치환 사다리를 고정한다. docs/148(stdlib)과 같은 규율:
+Status: `wiring-doc, rung-gated`. PROGRESS.md의 released/native replacement
+0% 트랙(compiler driver, LSP)의 치환 사다리를 고정한다. docs/148(stdlib)과 같은 규율:
 **문서가 rung을 약속하고, `selfhost-driver-lsp-wiring-test-smoke`가 §4
 rung 표를 문다** — landed 주장에는 실존 artifact+gate가 있어야 하고,
 planned rung은 artifact를 주장할 수 없다. 가짜 진척 차단이 이 문서의
 절반이다.
+
+주의: 여기서 DRV-0 `landed`는 **released compiler driver replacement가
+0%를 벗어났다는 뜻이 아니다**. 뜻은 더 좁다: self-host parser와
+self-host codegen을 한 Pergyra owner boundary에서 조립하는 artifact와
+그 artifact를 검증할 gate가 등록됐다는 뜻이다. 실제 driver 교체율은
+DRV-3 플래그 뒤 parity 전까지 PROGRESS.md에서 0%로 남긴다.
 
 ## 0. 두 트랙의 위상 (왜 이 순서인가)
 

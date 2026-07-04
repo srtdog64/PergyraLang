@@ -68,8 +68,8 @@ Status: `wiring-doc, inventory-gated`. docs/138이 **무엇을**(scope ledger)
    선례대로 namespace 블록. 2026-07-04 시점의 13개는 grandfather 명단으로
    유예(스모크에 명단 고정), 그 밖의 모든 신규/승격 파일은 G3가 거절.
 4. **import 경로** — 상대경로 import는 실증됨(`stdlib_option_bridges`가
-   `../../../../stdlib/` 관통). `std:` 별칭 resolver = WO-L3 (편의지
-   차단막 아님). [gate 불요 — 경로 형태는 자유]
+   `../../../../stdlib/` 관통). `std:` resolver = WO-L3, 단 두 번째 이름이
+   아니라 정본 stdlib import namespace다. [gate 불요 — 현재 경로 형태는 자유]
 5. **게이트 의무** `[gate: inventory + G4-lite]` — `active` 모듈 = ①
    backend_compare fixture 또는 전용 smoke ≥1(inventory leg가 실존 검사),
    ② docs/138 행(G4-lite가 이름-수준 검사), ③ 본 문서 §4 행(inventory
@@ -113,7 +113,7 @@ fail-closed(불변식 위반 = 거절/패닉) + fixture, 킬러-유즈케이스 
 ## 5. WO 훅 (TODO 보드와 상호참조)
 
 - **WO-L1** json* 승격 (조건부 대기 — 보드 참조)
-- **WO-L3** `std:` import 별칭 resolver
+- **WO-L3** `std:` 정본 stdlib import namespace resolver
 - **WO-L4** domain 모듈 doctrine-pass (sketch→active, 견인 순서 §4)
 - 콤비네이터의 callable 반쪽(map/andThen)은 stdlib 소관이 아니라
   docs/141 Stage B + F1의 소관 — 그쪽이 닫히면 §3-1 아래에서 입고.

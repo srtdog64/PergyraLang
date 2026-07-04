@@ -62,7 +62,7 @@ C==LLVM), semantic 케이스 2종(수용 + `5?` 거절 메시지), 기존 Result
 ## 3. 보간 — 결정 기록 (구현 변경 없음)
 
 - 정본 형태: 일반 문자열 내 `${expr}`. `f"..."`(bare `{expr}`), `$"..."` 는
-  수용되는 별칭 (lineage: C# `$`, Python `f`).
+  기존 호환 표기다 (lineage: C# `$`, Python `f`).
 - format specifier(폭/정밀도)는 **비도입** — 필요 시 별도 결정.
 
 ## 4. tuple 반환 — 의도적 보류 (WO-U3)
