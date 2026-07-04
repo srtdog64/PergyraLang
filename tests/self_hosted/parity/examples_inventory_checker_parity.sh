@@ -27,10 +27,28 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
-PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/examples_inventory_checker/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/examples_inventory_checker}"
+HARNESS_PATHS_FILE="$PERGYRA_TOOL_BUILD_DIR/examples_inventory_harness_paths.txt"
+mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:examples-inventory" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "examples-inventory-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 2 ]]; then
+    echo "[self-host-parity:examples-inventory] TestHarness manifest expected 2 examples-inventory paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
-EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/examples_inventory_checker/expected/clean.json"
+EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
 
 for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE"; do
     if [[ ! -f "$path" ]]; then
@@ -39,7 +57,6 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE"; do
     fi
 done
 
-mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
 
 # Mirror src/self_hosted/lib/ -> .tmp/lib/ for the tool's
@@ -47,10 +64,22 @@ cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
 LIB_BUILD_DIR="$ROOT_DIR/.tmp/lib"
 mkdir -p "$LIB_BUILD_DIR"
 cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
-PERGYRA_TOOL_INPUT="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
+PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
+
+CLEAN_BIN="$PERGYRA_TOOL_BUILD_DIR/examples_inventory_c.exe"
+CLEAN_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/examples_inventory_c.compile.log"
+if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" --backend=c \
+    -o "$(pgy_path_for_compiler "$PGY" "$CLEAN_BIN")" >"$CLEAN_COMPILE_LOG" 2>&1); then
+    echo "[self-host-parity:examples-inventory] C backend compile failed" >&2
+    cat "$CLEAN_COMPILE_LOG" >&2
+    exit 1
+fi
+if ! pgy_require_runnable_binary_here "self-host-parity:examples-inventory" "$CLEAN_BIN"; then
+    exit 1
+fi
 
 set +e
-PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_INPUT" --run 2>/dev/null)"
+PERGYRA_OUT="$(cd "$ROOT_DIR" && "$CLEAN_BIN" 2>/dev/null)"
 P_RC=$?
 set -e
 
@@ -97,7 +126,7 @@ while IFS= read -r source; do
 done < <(find "$ROOT_DIR/examples" -maxdepth 1 -type f -name '*.pgy' | sort)
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_INPUT" --run 2>&1)"
+NEG_OUT="$(cd "$NEG_ROOT" && "$CLEAN_BIN" 2>&1)"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then
@@ -111,7 +140,7 @@ if ! grep -Fq '"kind":"inventory_count_drift"' <<<"$NEG_OUT"; then
     exit 1
 fi
 
-assert_llvm_leg "self-host-parity:examples-inventory" "$PERGYRA_TOOL_INPUT" "$PERGYRA_TOOL_BUILD_DIR"
+assert_llvm_leg "self-host-parity:examples-inventory" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR"
 CLEAN_EXAMPLES="$(sed -n 's/.*"examples":\([0-9][0-9]*\).*/\1/p' <<<"$PERGYRA_JSON")"
 CLEAN_MISSING="$(sed -n 's/.*"missing":\([0-9][0-9]*\).*/\1/p' <<<"$PERGYRA_JSON")"
 CLEAN_EMPTY="$(sed -n 's/.*"empty":\([0-9][0-9]*\).*/\1/p' <<<"$PERGYRA_JSON")"

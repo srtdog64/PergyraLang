@@ -1,0 +1,241 @@
+// TestHarness tool-path owner.
+//
+// Owns concrete tool, expected artifact, and fixture/input path suites for
+// self-host parity scripts. Shell may execute these rows, but must not own
+// them.
+
+func CompilerHarnessLinterParitySuiteName() -> String {
+    return "linter-parity-paths";
+}
+
+func CompilerHarnessLinterToolSourcePath() -> String {
+    return "src/self_hosted/tools/linter/main.pgy";
+}
+
+func CompilerHarnessLinterExpectedDiagnosticsPath() -> String {
+    return "src/self_hosted/tools/linter/expected/diagnostics.json";
+}
+
+func CompilerHarnessLinterFixturePath() -> String {
+    return "src/self_hosted/tools/linter/fixture.pgy";
+}
+
+func CompilerHarnessLinterPathCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessLinterPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessLinterToolSourcePath(); }
+    if index == 1 { return CompilerHarnessLinterExpectedDiagnosticsPath(); }
+    if index == 2 { return CompilerHarnessLinterFixturePath(); }
+    return "";
+}
+
+func CompilerHarnessLinterParityReady() -> Bool {
+    if CompilerHarnessLinterPathCount() != 3 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessLinterPathCount() {
+        if CompilerHarnessLinterPathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessLinterParitySuiteName() != "";
+}
+
+func CompilerHarnessModuleManifestResolverSuiteName() -> String {
+    return "module-manifest-resolver-paths";
+}
+
+func CompilerHarnessModuleManifestResolverToolSourcePath() -> String {
+    return "src/self_hosted/tools/module_manifest_resolver/main.pgy";
+}
+
+func CompilerHarnessModuleManifestResolverExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/module_manifest_resolver/expected/clean.json";
+}
+
+func CompilerHarnessModuleManifestResolverInputManifestPath() -> String {
+    return "docs/language_module_manifest.json";
+}
+
+func CompilerHarnessModuleManifestResolverPathCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessModuleManifestResolverPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessModuleManifestResolverToolSourcePath(); }
+    if index == 1 { return CompilerHarnessModuleManifestResolverExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessModuleManifestResolverInputManifestPath(); }
+    return "";
+}
+
+func CompilerHarnessModuleManifestResolverReady() -> Bool {
+    if CompilerHarnessModuleManifestResolverPathCount() != 3 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessModuleManifestResolverPathCount() {
+        if CompilerHarnessModuleManifestResolverPathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessModuleManifestResolverSuiteName() != "";
+}
+
+func CompilerHarnessStableSubsetSectionSuiteName() -> String {
+    return "stable-subset-section-paths";
+}
+
+func CompilerHarnessStableSubsetSectionToolSourcePath() -> String {
+    return "src/self_hosted/tools/stable_subset_section_checker/main.pgy";
+}
+
+func CompilerHarnessStableSubsetSectionExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/stable_subset_section_checker/expected/clean.json";
+}
+
+func CompilerHarnessStableSubsetSectionInputManifestPath() -> String {
+    return "docs/107_beta_stable_subset.md";
+}
+
+func CompilerHarnessStableSubsetSectionPathCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessStableSubsetSectionPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessStableSubsetSectionToolSourcePath(); }
+    if index == 1 { return CompilerHarnessStableSubsetSectionExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessStableSubsetSectionInputManifestPath(); }
+    return "";
+}
+
+func CompilerHarnessStableSubsetSectionReady() -> Bool {
+    if CompilerHarnessStableSubsetSectionPathCount() != 3 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessStableSubsetSectionPathCount() {
+        if CompilerHarnessStableSubsetSectionPathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessStableSubsetSectionSuiteName() != "";
+}
+
+func CompilerHarnessRuntimeBoundarySuiteName() -> String {
+    return "runtime-boundary-paths";
+}
+
+func CompilerHarnessRuntimeBoundaryToolSourcePath() -> String {
+    return "src/self_hosted/tools/runtime_boundary_checker/main.pgy";
+}
+
+func CompilerHarnessRuntimeBoundaryExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/runtime_boundary_checker/expected/clean.json";
+}
+
+func CompilerHarnessRuntimeBoundaryPathCount() -> Int {
+    return 2;
+}
+
+func CompilerHarnessRuntimeBoundaryPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessRuntimeBoundaryToolSourcePath(); }
+    if index == 1 { return CompilerHarnessRuntimeBoundaryExpectedJsonPath(); }
+    return "";
+}
+
+func CompilerHarnessRuntimeBoundaryReady() -> Bool {
+    if CompilerHarnessRuntimeBoundaryPathCount() != 2 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessRuntimeBoundaryPathCount() {
+        if CompilerHarnessRuntimeBoundaryPathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessRuntimeBoundarySuiteName() != "";
+}
+
+func CompilerHarnessDocLinkCheckerSuiteName() -> String {
+    return "doc-link-checker-paths";
+}
+
+func CompilerHarnessDocLinkCheckerToolSourcePath() -> String {
+    return "src/self_hosted/tools/doc_link_checker/main.pgy";
+}
+
+func CompilerHarnessDocLinkCheckerExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/doc_link_checker/expected/clean.json";
+}
+
+func CompilerHarnessDocLinkCheckerIndexPath() -> String {
+    return "docs/INDEX.md";
+}
+
+func CompilerHarnessDocLinkCheckerPathCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessDocLinkCheckerPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessDocLinkCheckerToolSourcePath(); }
+    if index == 1 { return CompilerHarnessDocLinkCheckerExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessDocLinkCheckerIndexPath(); }
+    return "";
+}
+
+func CompilerHarnessDocLinkCheckerReady() -> Bool {
+    if CompilerHarnessDocLinkCheckerPathCount() != 3 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessDocLinkCheckerPathCount() {
+        if CompilerHarnessDocLinkCheckerPathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessDocLinkCheckerSuiteName() != "";
+}
+
+func CompilerHarnessExamplesInventorySuiteName() -> String {
+    return "examples-inventory-paths";
+}
+
+func CompilerHarnessExamplesInventoryToolSourcePath() -> String {
+    return "src/self_hosted/tools/examples_inventory_checker/main.pgy";
+}
+
+func CompilerHarnessExamplesInventoryExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/examples_inventory_checker/expected/clean.json";
+}
+
+func CompilerHarnessExamplesInventoryPathCount() -> Int {
+    return 2;
+}
+
+func CompilerHarnessExamplesInventoryPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessExamplesInventoryToolSourcePath(); }
+    if index == 1 { return CompilerHarnessExamplesInventoryExpectedJsonPath(); }
+    return "";
+}
+
+func CompilerHarnessExamplesInventoryReady() -> Bool {
+    if CompilerHarnessExamplesInventoryPathCount() != 2 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessExamplesInventoryPathCount() {
+        if CompilerHarnessExamplesInventoryPathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessExamplesInventorySuiteName() != "";
+}

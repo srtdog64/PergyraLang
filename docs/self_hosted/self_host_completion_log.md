@@ -48,6 +48,21 @@ rewrite history.
   TestHarness path fact reaches the tool boundary instead of remaining a shell
   constant.
 
+## 2026-07-05 - TestHarness tool paths split and examples inventory paths consume owner
+
+- Split concrete parity tool/input path suites out of `test_harness_owner.pgy`
+  into `test_harness_tool_paths_owner.pgy`, keeping the core TestHarness owner
+  focused on row/projection/artifact vocabulary and readiness composition.
+- Added examples-inventory path facts to the new owner: tool source and
+  expected clean JSON.
+- Extended `test_harness_manifest.pgy` with the `examples-inventory-paths`
+  suite.
+- Repointed `examples_inventory_checker_parity.sh` so shell reads tool/expected
+  paths from the manifest, runs the compiled C checker for clean and drift
+  fixtures, and keeps the LLVM leg on the same Pergyra-origin tool.
+- Added the new path owner to the real-source selfcheck list so the self-hosted
+  subset checks the owner it now relies on.
+
 ## 2026-07-05 - Linter parity paths consume TestHarness owner
 
 - Added linter parity path facts to `test_harness_owner.pgy`: tool source,

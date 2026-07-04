@@ -4,6 +4,7 @@
 // parity scripts may execute these records, but must not own the suite list.
 
 import "test_harness_owner.pgy";
+import "test_harness_tool_paths_owner.pgy";
 
 func EmitBackendTriSmokeCases() -> Void {
     let i: Int = 0;
@@ -61,6 +62,14 @@ func EmitDocLinkCheckerPaths() -> Void {
     }
 }
 
+func EmitExamplesInventoryPaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessExamplesInventoryPathCount() {
+        Log(CompilerHarnessExamplesInventoryPathAt(i));
+        i = i + 1;
+    }
+}
+
 func Main() -> Void {
     let args: Array<String> = Args();
     if !CompilerTestHarnessReady() {
@@ -94,6 +103,10 @@ func Main() -> Void {
     }
     if args[0] == CompilerHarnessDocLinkCheckerSuiteName() {
         EmitDocLinkCheckerPaths();
+        return;
+    }
+    if args[0] == CompilerHarnessExamplesInventorySuiteName() {
+        EmitExamplesInventoryPaths();
         return;
     }
     Log(Concat("HARNESS ERROR: unknown manifest suite: ", args[0]));
