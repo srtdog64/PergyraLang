@@ -75,10 +75,10 @@ and SEA execution-lane mirror. The AST-text bridge's root/body/block/then
 structural marker checks now consume owner-owned `kind` facts rather than raw
 line-text equality. The rest of codegen,
 runtime and released/native compiler driver/LSP substitution are still 0%;
-the compiler driver now has DRV-0/DRV-1 artifact rungs and LSP has an LSP-0
-diagnostic payload projection rung (docs/150), but those are not counted as
-released driver/LSP replacement. The MIR-lowering substitution has now *started*
-(see below).
+the compiler driver now has DRV-0/DRV-1 artifact rungs and LSP has LSP-0
+diagnostic payload plus LSP-1 squiggle-policy projection rungs (docs/150), but
+those are not counted as released driver/LSP replacement. The MIR-lowering
+substitution has now *started* (see below).
 
 **MIR-lowering substitution started (2026-06-18, path (a) rung-0b):** the C
 compiler now emits MIR JSON (`pgy --mir-json`, schema `pgy.mir.v1`) with the CFG
@@ -189,9 +189,9 @@ This is the codegen *component* self-hosting, not the whole compiler: the
 self-host codegen is a standalone AST->C emitter for the supported subset, not a
 replacement of the C backend's MIR-lowering. HIR/MIR, the rest of codegen,
 runtime and released/native compiler driver/LSP replacement remain 0%.
-The compiler driver has DRV-0/DRV-1 artifact rungs, and LSP has an LSP-0
-diagnostic payload projection rung, but neither is a shipped replacement
-(docs/150).
+The compiler driver has DRV-0/DRV-1 artifact rungs, and LSP has LSP-0
+diagnostic payload plus LSP-1 squiggle-policy rungs, but neither is a shipped
+replacement (docs/150).
 
 **Real-example round-trip (2026-06-17):** beyond the 35 hand-written parity
 fixtures, the codegen tool was surveyed against all 118 `examples/*.pgy`. It
@@ -298,7 +298,7 @@ only observe text artifacts the C compiler produces. Their LOC is
 | `src/codegen/`  |  107123 |        4821 | rung-0..20 | **C-emit rung-0..20 (2026-06-24).** Pergyra emitter consumes `pgy --ast` text and emits standalone C for the supported scalar/string/array/result/option/struct/defer/file/argv/random/float subset. `ast_input_owner.pgy` owns AST path selection, `ast_text_inventory_owner.pgy` owns the typed `CodegenAstTextNode` bridge inventory, program-level declaration routing, declaration collector prepasses, function signature/header facts, `inout`/`own`/`ref` parameter-mode preservation, and cursor expectations, `ast_text_statement_owner.pgy` owns statement-row facts, `codegen_run_owner.pgy` owns CLI-to-output orchestration, `type_facts/` owns type routing, `compiler/symbol_table_owner.pgy` owns function/method/operator/enum emitted-symbol rows and namespace-qualified call spelling, `compiler/abi_layout_row_owner.pgy` owns supported concrete ABI rows and `abi_layout/abi_layout_owner.pgy` consumes those rows for parameter/return/local/field C ABI spelling before user-struct lookup, `runtime_abi/collection_runtime_owner.pgy` owns supported array runtime helper call spelling including the bootstrap `Array<CodegenAstTextNode>` lane, `runtime_abi/math_runtime_owner.pgy` owns supported math/random helper and target-library call spelling, `runtime_abi/host_io_runtime_owner.pgy` owns supported host file/argv/process helper and target-library call spelling, `runtime_abi/option_result_runtime_owner.pgy` owns supported `Option<Int>` / `Option<String>` / `Result<Int>` runtime helper call spelling and Option `?` propagation, `runtime_abi/string_runtime_owner.pgy` owns supported string/text helper and conversion target-library call spelling, and `emission/` contains action participants. `lib/json_scan.pgy` owns JSON cursor/string scan primitives, `lib/json.pgy` owns JSON read/string/number fact access including `Option<String>` string/number field facts, `lib/json_fact_table.pgy` owns bounded object and array-object boundary facts now consumed by `module_manifest_resolver` for root `modules` discovery plus module-row count/field/equality facts, by `mir_lower/json_fact_read.pgy` for MIR root `decls`/`routines` discovery, and by `air_graph_json_validator` for AIR root required-key checks plus nested `summary` count rows through `JsonObjectFactObjectTable` / `JsonObjectFactNumberFieldOpt`; AIR feature requirements remain graph-wide scalar facts consumed through `AirGraphScalarFieldValues`. `lib/json_emit.pgy` owns JSON string escaping plus field/object/array emission consumed through direct imports; schema object shape remains tool-owned. **65 fixtures run-stdout equal** to the C/LLVM oracle on tools built through both backends; bootstrap fixpoint is `gen2 == gen3`. Gate: `parity/codegen_parity.sh` (`make self-host-codegen-parity-test-smoke`) and `parity/codegen_bootstrap.sh` (`make self-host-codegen-bootstrap-test-smoke`). Out-of-subset input is an observable `Exit(1)`. |
 | `src/runtime/`  |   29627 |           0 | 0%       | native runtime kernel stays C; portable runtime policy libraries may move later |
 | `src/compiler/` |   43304 |           0 | 0%       | released/native compiler driver replacement remains 0%; DRV-0 in-process parser→codegen assembly and DRV-1 CLI artifact rungs exist under `src/self_hosted/compiler/` and are tracked by docs/150, but are not counted as shipped driver substitution |
-| `src/lsp/`      |    1037 |           0 | 0%       | released/native LSP replacement remains 0%; LSP-0 diagnostic `publishDiagnostics` payload projection exists under `src/self_hosted/lsp/` and is tracked by docs/150, but no transport/session replacement has landed |
+| `src/lsp/`      |    1037 |           0 | 0%       | released/native LSP replacement remains 0%; LSP-0 diagnostic `publishDiagnostics` payload projection and LSP-1 squiggle policy exist under `src/self_hosted/lsp/` and are tracked by docs/150, but no transport/session replacement has landed |
 | **Total**       | **248794** |  **16341**  | **~6.57% source-tree LOC-scale** | lexer/parser/semantic + codegen rung-0..20; MIR JSON lowering and compiler-world contracts are tracked separately above |
 
 Notes:

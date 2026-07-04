@@ -8,6 +8,7 @@ import "../lib/json_emit.pgy";
 import "../semantic/source_bundle_owner.pgy";
 import "../semantic/diagnostic_owner.pgy";
 import "../semantic/program_check_owner.pgy";
+import "squiggle_owner.pgy";
 
 func LspDiagnosticsSchema() -> String {
     return "pgy.selfhost.lsp-diagnostics.v1";
@@ -56,16 +57,6 @@ func LspDiagnosticSeverityNumber(severity: String) -> String {
     return "3";
 }
 
-func LspDiagnosticSquiggleClass(severity: String) -> String {
-    if severity == "error" {
-        return "red";
-    }
-    if severity == "warning" {
-        return "amber";
-    }
-    return "blue";
-}
-
 func LspPositionJson(line: Int, character: Int) -> String {
     let fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldNumber("line", ToString(line)));
@@ -91,12 +82,16 @@ func LspDiagnosticDataJson(block: String, squiggle: String) -> String {
 }
 
 func LspDiagnosticJson(block: String) -> String {
+    let status: String = LspDiagnosticField(block, "Status");
     let severity: String = LspDiagnosticField(block, "Severity");
-    let squiggle: String = LspDiagnosticSquiggleClass(severity);
+    let stage: String = LspDiagnosticField(block, "Stage");
+    let code: String = LspDiagnosticField(block, "Code");
+    let facts: String = LspDiagnosticFacts(block);
+    let squiggle: String = LspSquiggleClassForDiagnostic(status, severity, stage, code, facts);
     let fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldRaw("range", LspZeroRangeJson()));
     ArrayPush(fields, JsonEmitFieldNumber("severity", LspDiagnosticSeverityNumber(severity)));
-    ArrayPush(fields, JsonEmitFieldString("code", LspDiagnosticField(block, "Code")));
+    ArrayPush(fields, JsonEmitFieldString("code", code));
     ArrayPush(fields, JsonEmitFieldString("source", LspDiagnosticsSource()));
     ArrayPush(fields, JsonEmitFieldString("message", LspDiagnosticField(block, "Reason")));
     ArrayPush(fields, JsonEmitFieldRaw("data", LspDiagnosticDataJson(block, squiggle)));
@@ -141,6 +136,9 @@ func LspUriForPath(path: String) -> String {
 }
 
 func LspDiagnosticPayloadContractReady() -> Bool {
+    if !LspSquigglePolicyContractReady() {
+        return false;
+    }
     let err: String = SemanticError1("undefined_symbol", "name", "x");
     let err_json: String = LspPublishDiagnosticsJson("file://fixture", err);
     if StringIndexOf(err_json, LspDiagnosticsSchema()) < 0 {
@@ -178,6 +176,10 @@ func RunLspDiagnosticsFromArgs(args: Array<String>) -> Void with caps io_read {
     }
 
     let source_path: String = args[0];
+    if source_path == "--squiggle-policy" {
+        Log(LspSquigglePolicySnapshotJson());
+        return;
+    }
     let content: String = LoadSemanticSourceBundle(source_path);
     let error: String = CheckProgram(content);
     let block: String = SemanticOk();

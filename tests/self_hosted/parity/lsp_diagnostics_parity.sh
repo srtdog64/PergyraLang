@@ -115,6 +115,41 @@ capture_lsp_output() {
         "lsp_diagnostics"
 }
 
+capture_policy_output() {
+    local backend="$1"
+    local bin="$2"
+    local out_file="$BUILD_DIR/squiggle_policy_${backend}.json"
+    local err_file="$BUILD_DIR/squiggle_policy_${backend}.err"
+    local rc
+
+    set +e
+    (cd "$ROOT_DIR" && "$bin" --squiggle-policy >"$out_file.raw" 2>"$err_file")
+    rc=$?
+    set -e
+    tr -d '\r' < "$out_file.raw" > "$out_file"
+    rm -f "$out_file.raw"
+
+    if [[ "$rc" -ne 0 ]]; then
+        echo "[self-host-parity:lsp-diagnostics] backend=$backend squiggle policy failed rc=$rc" >&2
+        cat "$out_file" "$err_file" >&2
+        exit 1
+    fi
+    for cls in '"class":"red"' '"class":"amber"' '"class":"blue"' '"class":"violet"'; do
+        if ! grep -Fq "$cls" "$out_file"; then
+            echo "[self-host-parity:lsp-diagnostics] backend=$backend squiggle policy lost $cls" >&2
+            cat "$out_file" >&2
+            exit 1
+        fi
+    done
+
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "lsp-diagnostics:$backend:squiggle_policy" \
+        "$BUILD_DIR" \
+        "$ROOT_DIR/src/self_hosted/lsp/expected/squiggle_policy.json" \
+        "$out_file" \
+        "lsp_diagnostics"
+}
+
 BACKENDS="${PGY_SELFHOST_LSP_BACKENDS:-c llvm}"
 RAN_BACKENDS=()
 SKIPPED_BACKENDS=()
@@ -147,6 +182,12 @@ for backend in $BACKENDS; do
         }
         capture_lsp_output "$backend" "$lsp_bin" "$fixture_base"
     done
+    require_policy="$ROOT_DIR/src/self_hosted/lsp/expected/squiggle_policy.json"
+    [[ -f "$require_policy" ]] || {
+        echo "[self-host-parity:lsp-diagnostics] missing expected: $require_policy" >&2
+        exit 1
+    }
+    capture_policy_output "$backend" "$lsp_bin"
     RAN_BACKENDS+=("$backend")
 done
 

@@ -10015,8 +10015,10 @@ replacement 0%를 뒤집는 수치가 아니다.
   C/LLVM-built self-host tool과 committed JSON artifact로 비교한다.
   **오라클 배관 O-LSP**: C LSP 페이로드 덤프 플래그 필요(소형) — 그 전엔
   golden 승인 기반 parity.
-- **WO-LSP-1** squiggle 4색 분류기(docs/140 로직의 Pergyra화, BLUE는
-  A-4 noise policy 확정분만) → **WO-LSP-2** transport(**차단: G-STDIN** —
+- **WO-LSP-1 — squiggle 4색 분류기 (landed)**: `squiggle_owner.pgy`가
+  RED/AMBER/BLUE/VIOLET policy를 소유하고 `--squiggle-policy` parity snapshot이
+  4색 모두를 C/LLVM-built self-host tool에서 비교한다. BLUE 생산자 noise
+  policy 확장은 A-4 소관. → **WO-LSP-2** transport(**차단: G-STDIN** —
   바이트 단위 stdin builtin 표면 결정) → **WO-LSP-3** C LSP parity.
 - **순서 권고**: DRV-0 ≻ LSP-0/1(병행 가능) ≻ G-EXEC/G-STDIN 표면 결정 ≻
   DRV-2/LSP-2. runtime 커널 치환은 전제 아님(C 잔류 결정 유지).

@@ -1,15 +1,18 @@
 # Intent
 
 LSP-0 projects the self-host semantic diagnostic block into a
-`textDocument/publishDiagnostics` JSON payload. It is a payload owner, not an
-LSP transport loop.
+`textDocument/publishDiagnostics` JSON payload. LSP-1 owns the four-color
+squiggle classification policy consumed by that payload. This directory is a
+payload owner, not an LSP transport loop.
 
 ## Compiler World Binding
 
 - **stage_resource**: `SemanticVerdictZone`
 - **projection_owner**: `src/self_hosted/lsp/diagnostics_owner.pgy`
+- **classification_owner**: `src/self_hosted/lsp/squiggle_owner.pgy`
 - **stage_intent**: `ProjectSemanticDiagnostics`
 - **payload_contract**: `LspDiagnosticPayloadContractReady`
+- **policy_contract**: `LspSquigglePolicyContractReady`
 
 ## Input Contract
 
@@ -25,6 +28,8 @@ The tool prints one JSON object with schema
 `textDocument/publishDiagnostics`, URI, and diagnostics. A clean source emits
 an empty diagnostics array. An error source emits one diagnostic with code,
 reason-as-message, fix, span, facts, severity, and `data.squiggleClass`.
+The `--squiggle-policy` mode prints the executable LSP-1 classification snapshot
+used by the parity gate.
 
 ## Oracle
 

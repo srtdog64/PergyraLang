@@ -162,3 +162,5 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/lsp/main.pgy` -- LSP-0 runnable artifact boundary.
 - `src/self_hosted/lsp/diagnostics_owner.pgy` -- semantic diagnostic block to
   `publishDiagnostics` JSON payload projection.
+- `src/self_hosted/lsp/squiggle_owner.pgy` -- LSP-1 diagnostic code/fact to
+  squiggle-class policy.

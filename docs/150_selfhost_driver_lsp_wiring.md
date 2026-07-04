@@ -92,10 +92,14 @@ C LSP 분해: protocol(framing 229L)/diagnostics/hover/features. 페이로드
   **O-LSP**는 이 rung의 후속 오라클 승격용 gap이다: C LSP에
   `pgy --lsp-dump-diagnostics <src>`류 페이로드 덤프 플래그가 생기면
   committed golden을 C-side oracle로 교체/보강한다.
-- **LSP-1 — squiggle 4색 분류기**: RED/AMBER/BLUE/VIOLET 판정
-  (docs/140의 색 결정 로직)을 Pergyra 분류기로. 입력 = 진단 코드 +
-  AIR advisory fact(JSON — validator가 이미 읽는 그 표면). BLUE는
-  noise policy(A-4) 확정분만.
+- **LSP-1 — squiggle 4색 분류기 (landed)**: RED/AMBER/BLUE/VIOLET
+  판정(docs/140의 색 결정 로직)을 `lsp/squiggle_owner.pgy`가 소유한다.
+  입력 = 진단 상태/severity/stage/code/fact. Payload owner는 더 이상
+  severity-only로 색을 추정하지 않고 이 policy owner를 소비한다. 현재
+  gate는 `--squiggle-policy` 실행 snapshot으로 4색 모두를 C/LLVM-built
+  self-host tool에서 비교한다. BLUE는 AIR erasable fact(`SUMMARIZE` /
+  `PGY_AIR_MEANING_ERASABLE`) vocabulary까지 열었고, 생산자 noise policy
+  확장은 A-4 소관이다.
 - **LSP-2 — transport 루프 (차단: G-STDIN)**: JSON-RPC Content-Length
   프레이밍은 **바이트 단위 stdin 스트리밍**이 필요 — 현 표면의 입력
   builtin이 라인/파일 기반이면 불충분. 필요물 = `ReadStdin(n) ->
@@ -128,7 +132,7 @@ planned로 둔다. 착지 시 같은 커밋에서 행을 갱신한다.
 | driver | DRV-2 | planned | - | - |
 | driver | DRV-3 | planned | - | - |
 | lsp | LSP-0 | landed | src/self_hosted/lsp/main.pgy | tests/self_hosted/parity/lsp_diagnostics_parity.sh |
-| lsp | LSP-1 | planned | - | - |
+| lsp | LSP-1 | landed | src/self_hosted/lsp/squiggle_owner.pgy | tests/self_hosted/parity/lsp_diagnostics_parity.sh |
 | lsp | LSP-2 | planned | - | - |
 | lsp | LSP-3 | planned | - | - |
 <!-- DRIVER-LSP-RUNG-END -->

@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.lsp-squiggle-policy.v1","ok":true,"cases":[{"name":"red-blocking-type","code":"logical_operand_not_bool","class":"red"},{"name":"amber-axis","code":"subject_identity_shadowed","class":"amber"},{"name":"blue-erasure","code":"PGY_AIR_MEANING_ERASABLE","class":"blue"},{"name":"violet-authority","code":"pin_escape","class":"violet"}]}

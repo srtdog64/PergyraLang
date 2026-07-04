@@ -1727,6 +1727,7 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/p
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/stmt_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/tree_text_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/diagnostics_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/squiggle_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/main.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/main.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/fuzz/backend_parity_generator/main.pgy"'
@@ -1738,8 +1739,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 112 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 112"
+[[ "$selfcheck_count" -eq 113 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 113"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'
@@ -1950,10 +1951,14 @@ require_file "src/self_hosted/lsp/main.pgy"
 require_file "src/self_hosted/lsp/README.md"
 require_file "src/self_hosted/lsp/intent.md"
 require_file "src/self_hosted/lsp/diagnostics_owner.pgy"
+require_file "src/self_hosted/lsp/squiggle_owner.pgy"
 require_max_lines "src/self_hosted/lsp/diagnostics_owner.pgy" 600
+require_max_lines "src/self_hosted/lsp/squiggle_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/main.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/diagnostics_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/squiggle_owner.pgy"
 require_text "src/self_hosted/lsp/main.pgy" 'import "diagnostics_owner.pgy";'
+require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'import "squiggle_owner.pgy";'
 require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'import "../lib/json_emit.pgy";'
 require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'import "../semantic/source_bundle_owner.pgy";'
 require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'import "../semantic/diagnostic_owner.pgy";'
@@ -1961,18 +1966,31 @@ require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'import "../semantic/pr
 require_text "src/self_hosted/lsp/diagnostics_owner.pgy" "func LspDiagnosticPayloadContractReady"
 require_text "src/self_hosted/lsp/diagnostics_owner.pgy" "func LspUriForPath"
 require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'if c == "\\"'
+require_text "src/self_hosted/lsp/squiggle_owner.pgy" "func LspSquigglePolicyContractReady"
+require_text "src/self_hosted/lsp/squiggle_owner.pgy" "func LspSquiggleClassForDiagnostic"
+require_text "src/self_hosted/lsp/squiggle_owner.pgy" "func LspSquigglePolicySnapshotJson"
+require_text "src/self_hosted/lsp/squiggle_owner.pgy" '"pgy.selfhost.lsp-squiggle-policy.v1"'
+require_text "src/self_hosted/lsp/squiggle_owner.pgy" "PGY_AIR_MEANING_ERASABLE"
+require_text "src/self_hosted/lsp/squiggle_owner.pgy" "pin_escape"
 require_file "src/self_hosted/lsp/fixture/valid_int_return.pgy"
 require_file "src/self_hosted/lsp/fixture/bad_logical_right.pgy"
 require_file "src/self_hosted/lsp/expected/valid_int_return.json"
 require_file "src/self_hosted/lsp/expected/bad_logical_right.json"
+require_file "src/self_hosted/lsp/expected/squiggle_policy.json"
 require_text "src/self_hosted/lsp/expected/valid_int_return.json" '"diagnostics":[]'
 require_text "src/self_hosted/lsp/expected/bad_logical_right.json" '"code":"logical_operand_not_bool"'
+require_text "src/self_hosted/lsp/expected/squiggle_policy.json" '"class":"red"'
+require_text "src/self_hosted/lsp/expected/squiggle_policy.json" '"class":"amber"'
+require_text "src/self_hosted/lsp/expected/squiggle_policy.json" '"class":"blue"'
+require_text "src/self_hosted/lsp/expected/squiggle_policy.json" '"class":"violet"'
 require_text "Makefile" "self-host-lsp-diagnostics-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/lsp_diagnostics_parity.sh"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "lsp-diagnostics"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" '"lsp_diagnostics"'
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "pgy_reject_wsl_windows_pgy_parity_mix"
+require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "--squiggle-policy"
+require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" '"class":"violet"'
 reject_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" 'cmp -s'
 reject_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" 'diff -u'
 require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:fuzz-generator" "$PGY"'

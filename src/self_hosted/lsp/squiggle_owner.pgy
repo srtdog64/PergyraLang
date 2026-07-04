@@ -1,0 +1,205 @@
+// Self-host LSP squiggle classification owner.
+//
+// LSP-1 owns the policy that maps diagnostic code/facts to the four editor
+// recognition classes. Payload rendering consumes this owner; it must not infer
+// colors from LSP severity alone.
+
+import "../lib/json_emit.pgy";
+
+func LspSquiggleSchema() -> String {
+    return "pgy.selfhost.lsp-squiggle-policy.v1";
+}
+
+func LspSquiggleRed() -> String {
+    return "red";
+}
+
+func LspSquiggleAmber() -> String {
+    return "amber";
+}
+
+func LspSquiggleBlue() -> String {
+    return "blue";
+}
+
+func LspSquiggleViolet() -> String {
+    return "violet";
+}
+
+func LspTextContains(text: String, needle: String) -> Bool {
+    return StringIndexOf(text, needle) >= 0;
+}
+
+func LspSquiggleCodeIsBlue(code: String, facts: String) -> Bool {
+    if code == "PGY_AIR_MEANING_ERASABLE" {
+        return true;
+    }
+    if code == "meaning_erasable" {
+        return true;
+    }
+    if LspTextContains(facts, "compression: SUMMARIZE") {
+        return true;
+    }
+    if LspTextContains(facts, "erasure: erasable") {
+        return true;
+    }
+    return false;
+}
+
+func LspSquiggleCodeIsViolet(code: String, facts: String) -> Bool {
+    if LspTextContains(code, "AUTHORITY") {
+        return true;
+    }
+    if LspTextContains(code, "authority") {
+        return true;
+    }
+    if LspTextContains(code, "CAPABILITY") {
+        return true;
+    }
+    if LspTextContains(code, "capability") {
+        return true;
+    }
+    if LspTextContains(code, "PIN_") {
+        return true;
+    }
+    if LspTextContains(code, "pin_") {
+        return true;
+    }
+    if LspTextContains(code, "TOKEN") {
+        return true;
+    }
+    if LspTextContains(code, "token") {
+        return true;
+    }
+    if LspTextContains(code, "WORLD_CONTRACT") {
+        return true;
+    }
+    if LspTextContains(code, "world_contract") {
+        return true;
+    }
+    if LspTextContains(code, "ZONE_CONTRACT") {
+        return true;
+    }
+    if LspTextContains(code, "zone_contract") {
+        return true;
+    }
+    if LspTextContains(code, "VISIBILITY_BOUNDARY") {
+        return true;
+    }
+    if LspTextContains(code, "visibility_boundary") {
+        return true;
+    }
+    if LspTextContains(code, "EFFECT_CONFLICT") {
+        return true;
+    }
+    if LspTextContains(code, "effect_conflict") {
+        return true;
+    }
+    if LspTextContains(facts, "axis: authority") {
+        return true;
+    }
+    return false;
+}
+
+func LspSquiggleCodeIsAmber(code: String, facts: String) -> Bool {
+    if LspTextContains(code, "INTENT_") {
+        return true;
+    }
+    if LspTextContains(code, "intent_") {
+        return true;
+    }
+    if LspTextContains(code, "ROLE_") {
+        return true;
+    }
+    if LspTextContains(code, "role_") {
+        return true;
+    }
+    if LspTextContains(code, "AXIS_") {
+        return true;
+    }
+    if LspTextContains(code, "axis_") {
+        return true;
+    }
+    if code == "subject_identity_shadowed" {
+        return true;
+    }
+    if code == "value_param_collection_mutation" {
+        return true;
+    }
+    if LspTextContains(facts, "axis: world") {
+        return true;
+    }
+    if LspTextContains(facts, "axis: zone") {
+        return true;
+    }
+    if LspTextContains(facts, "axis: role") {
+        return true;
+    }
+    if LspTextContains(facts, "axis: intent") {
+        return true;
+    }
+    return false;
+}
+
+func LspSquiggleClassForDiagnostic(status: String, severity: String, stage: String, code: String, facts: String) -> String {
+    if status == "error" {
+        return LspSquiggleRed();
+    }
+    if severity == "error" {
+        return LspSquiggleRed();
+    }
+    if LspSquiggleCodeIsBlue(code, facts) {
+        return LspSquiggleBlue();
+    }
+    if LspSquiggleCodeIsViolet(code, facts) {
+        return LspSquiggleViolet();
+    }
+    if LspSquiggleCodeIsAmber(code, facts) {
+        return LspSquiggleAmber();
+    }
+    if severity == "warning" {
+        return LspSquiggleAmber();
+    }
+    if stage == "air" {
+        return LspSquiggleBlue();
+    }
+    return LspSquiggleAmber();
+}
+
+func LspSquigglePolicyCaseJson(name: String, status: String, severity: String, stage: String, code: String, facts: String) -> String {
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldString("name", name));
+    ArrayPush(fields, JsonEmitFieldString("code", code));
+    ArrayPush(fields, JsonEmitFieldString("class", LspSquiggleClassForDiagnostic(status, severity, stage, code, facts)));
+    return JsonEmitObject(fields);
+}
+
+func LspSquigglePolicySnapshotJson() -> String {
+    let cases: Array<String> = [];
+    ArrayPush(cases, LspSquigglePolicyCaseJson("red-blocking-type", "error", "error", "semantic", "logical_operand_not_bool", ""));
+    ArrayPush(cases, LspSquigglePolicyCaseJson("amber-axis", "ok", "advisory", "semantic", "subject_identity_shadowed", "- axis: role"));
+    ArrayPush(cases, LspSquigglePolicyCaseJson("blue-erasure", "ok", "advisory", "air", "PGY_AIR_MEANING_ERASABLE", "- compression: SUMMARIZE"));
+    ArrayPush(cases, LspSquigglePolicyCaseJson("violet-authority", "ok", "advisory", "semantic", "pin_escape", "- axis: authority"));
+
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldString("schema", LspSquiggleSchema()));
+    ArrayPush(fields, JsonEmitFieldBool("ok", LspSquigglePolicyContractReady()));
+    ArrayPush(fields, JsonEmitFieldRaw("cases", JsonEmitArray(cases)));
+    return JsonEmitObject(fields);
+}
+
+func LspSquigglePolicyContractReady() -> Bool {
+    if LspSquiggleClassForDiagnostic("error", "error", "semantic", "logical_operand_not_bool", "") != LspSquiggleRed() {
+        return false;
+    }
+    if LspSquiggleClassForDiagnostic("ok", "advisory", "semantic", "subject_identity_shadowed", "- axis: role") != LspSquiggleAmber() {
+        return false;
+    }
+    if LspSquiggleClassForDiagnostic("ok", "advisory", "air", "PGY_AIR_MEANING_ERASABLE", "- compression: SUMMARIZE") != LspSquiggleBlue() {
+        return false;
+    }
+    if LspSquiggleClassForDiagnostic("ok", "advisory", "semantic", "pin_escape", "- axis: authority") != LspSquiggleViolet() {
+        return false;
+    }
+    return true;
+}
