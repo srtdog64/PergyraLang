@@ -447,6 +447,12 @@ for term in \
     "CompilerSubprocessRunnerReady" \
     "CompilerSubprocessFactCount() == 7" \
     "CompilerSubprocessUseCaseCount() == 3" \
+    "CompilerSubprocessExecutablePathFact" \
+    "CompilerSubprocessArgvFact" \
+    "CompilerSubprocessCwdFact" \
+    "CompilerSubprocessEnvAllowlistFact" \
+    "CompilerSubprocessTimeoutMsFact" \
+    "CompilerSubprocessFactKnown" \
     "executable_path" \
     "argv" \
     "env_allowlist" \

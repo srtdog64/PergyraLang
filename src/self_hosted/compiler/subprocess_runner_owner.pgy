@@ -11,14 +11,52 @@ func CompilerSubprocessFactCount() -> Int {
     return 7;
 }
 
+func CompilerSubprocessExecutablePathFact() -> String {
+    return "executable_path";
+}
+
+func CompilerSubprocessArgvFact() -> String {
+    return "argv";
+}
+
+func CompilerSubprocessCwdFact() -> String {
+    return "cwd";
+}
+
+func CompilerSubprocessEnvAllowlistFact() -> String {
+    return "env_allowlist";
+}
+
+func CompilerSubprocessTimeoutMsFact() -> String {
+    return "timeout_ms";
+}
+
+func CompilerSubprocessStreamFact() -> String {
+    return "stdout_stderr";
+}
+
+func CompilerSubprocessExitFact() -> String {
+    return "exit_code";
+}
+
+func CompilerSubprocessFactKnown(fact: String) -> Bool {
+    return fact == CompilerSubprocessExecutablePathFact() ||
+        fact == CompilerSubprocessArgvFact() ||
+        fact == CompilerSubprocessCwdFact() ||
+        fact == CompilerSubprocessEnvAllowlistFact() ||
+        fact == CompilerSubprocessTimeoutMsFact() ||
+        fact == CompilerSubprocessStreamFact() ||
+        fact == CompilerSubprocessExitFact();
+}
+
 func CompilerSubprocessFactAt(index: Int) -> String {
-    if index == 0 { return "executable_path"; }
-    if index == 1 { return "argv"; }
-    if index == 2 { return "cwd"; }
-    if index == 3 { return "env_allowlist"; }
-    if index == 4 { return "timeout_ms"; }
-    if index == 5 { return "stdout_stderr"; }
-    if index == 6 { return "exit_code"; }
+    if index == 0 { return CompilerSubprocessExecutablePathFact(); }
+    if index == 1 { return CompilerSubprocessArgvFact(); }
+    if index == 2 { return CompilerSubprocessCwdFact(); }
+    if index == 3 { return CompilerSubprocessEnvAllowlistFact(); }
+    if index == 4 { return CompilerSubprocessTimeoutMsFact(); }
+    if index == 5 { return CompilerSubprocessStreamFact(); }
+    if index == 6 { return CompilerSubprocessExitFact(); }
     return "";
 }
 
@@ -27,9 +65,9 @@ func CompilerSubprocessUseCaseCount() -> Int {
 }
 
 func CompilerSubprocessUseCaseAt(index: Int) -> String {
-    if index == 0 { return "oracle_compare"; }
-    if index == 1 { return "fixture_build"; }
-    if index == 2 { return "artifact_probe"; }
+    if index == 0 { return CompilerSubprocessOracleCompareUseCase(); }
+    if index == 1 { return CompilerSubprocessFixtureBuildUseCase(); }
+    if index == 2 { return CompilerSubprocessArtifactProbeUseCase(); }
     return "";
 }
 
@@ -51,14 +89,6 @@ func CompilerSubprocessUseCaseKnown(use_case: String) -> Bool {
         use_case == CompilerSubprocessArtifactProbeUseCase();
 }
 
-func CompilerSubprocessStreamFact() -> String {
-    return "stdout_stderr";
-}
-
-func CompilerSubprocessExitFact() -> String {
-    return "exit_code";
-}
-
 func CompilerSubprocessOracleCompareTimeoutMs() -> String {
     return "30000";
 }
@@ -76,21 +106,28 @@ func CompilerSubprocessOracleComparePlanReady() -> Bool {
         CompilerSubprocessUseCaseKnown(CompilerSubprocessOracleCompareUseCase()) &&
         CompilerSubprocessUseCaseKnown(CompilerSubprocessFixtureBuildUseCase()) &&
         CompilerSubprocessUseCaseKnown(CompilerSubprocessArtifactProbeUseCase()) &&
-        CompilerSubprocessFactAt(0) == "executable_path" &&
-        CompilerSubprocessFactAt(1) == "argv" &&
-        CompilerSubprocessFactAt(2) == "cwd" &&
-        CompilerSubprocessFactAt(3) == "env_allowlist" &&
-        CompilerSubprocessFactAt(4) == "timeout_ms" &&
+        CompilerSubprocessFactAt(0) == CompilerSubprocessExecutablePathFact() &&
+        CompilerSubprocessFactAt(1) == CompilerSubprocessArgvFact() &&
+        CompilerSubprocessFactAt(2) == CompilerSubprocessCwdFact() &&
+        CompilerSubprocessFactAt(3) == CompilerSubprocessEnvAllowlistFact() &&
+        CompilerSubprocessFactAt(4) == CompilerSubprocessTimeoutMsFact() &&
         CompilerSubprocessFactAt(5) == CompilerSubprocessStreamFact() &&
         CompilerSubprocessFactAt(6) == CompilerSubprocessExitFact() &&
+        CompilerSubprocessFactKnown(CompilerSubprocessExecutablePathFact()) &&
+        CompilerSubprocessFactKnown(CompilerSubprocessArgvFact()) &&
+        CompilerSubprocessFactKnown(CompilerSubprocessCwdFact()) &&
+        CompilerSubprocessFactKnown(CompilerSubprocessEnvAllowlistFact()) &&
+        CompilerSubprocessFactKnown(CompilerSubprocessTimeoutMsFact()) &&
+        CompilerSubprocessFactKnown(CompilerSubprocessStreamFact()) &&
+        CompilerSubprocessFactKnown(CompilerSubprocessExitFact()) &&
         CompilerSubprocessOracleCompareTimeoutMs() != "" &&
         CompilerSubprocessOracleCompareEnvAllowlist() != "";
 }
 
 func CompilerSubprocessRunnerReady() -> Bool with caps env {
-    return CompilerSubprocessFactAt(0) == "executable_path" &&
-        CompilerSubprocessFactAt(1) == "argv" &&
-        CompilerSubprocessFactAt(3) == "env_allowlist" &&
+    return CompilerSubprocessFactAt(0) == CompilerSubprocessExecutablePathFact() &&
+        CompilerSubprocessFactAt(1) == CompilerSubprocessArgvFact() &&
+        CompilerSubprocessFactAt(3) == CompilerSubprocessEnvAllowlistFact() &&
         CompilerSubprocessFactAt(6) == CompilerSubprocessExitFact() &&
         CompilerSubprocessOracleComparePlanReady();
 }

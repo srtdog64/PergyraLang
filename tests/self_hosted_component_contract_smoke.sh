@@ -1424,12 +1424,36 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHar
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessFindingCap"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareTimeoutMs"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareEnvAllowlist"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessExecutablePathFact"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessArgvFact"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessCwdFact"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessEnvAllowlistFact"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessTimeoutMsFact"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessFactKnown"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessFixtureBuildUseCase"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessArtifactProbeUseCase"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessUseCaseKnown"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "CompilerSubprocessFactAt(0) == CompilerSubprocessExecutablePathFact()"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "CompilerSubprocessFactAt(1) == CompilerSubprocessArgvFact()"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "CompilerSubprocessFactAt(2) == CompilerSubprocessCwdFact()"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "CompilerSubprocessFactAt(3) == CompilerSubprocessEnvAllowlistFact()"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "CompilerSubprocessFactAt(4) == CompilerSubprocessTimeoutMsFact()"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "CompilerSubprocessFactAt(5) == CompilerSubprocessStreamFact()"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "CompilerSubprocessFactAt(6) == CompilerSubprocessExitFact()"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "CompilerSubprocessUseCaseAt(0) == CompilerSubprocessOracleCompareUseCase()"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "CompilerSubprocessUseCaseAt(1) == CompilerSubprocessFixtureBuildUseCase()"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "CompilerSubprocessUseCaseAt(2) == CompilerSubprocessArtifactProbeUseCase()"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleComparePlanReady"
+reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'CompilerSubprocessFactAt(0) == "executable_path"'
+reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'CompilerSubprocessFactAt(1) == "argv"'
+reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'CompilerSubprocessFactAt(2) == "cwd"'
+reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'CompilerSubprocessFactAt(3) == "env_allowlist"'
+reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'CompilerSubprocessFactAt(4) == "timeout_ms"'
+reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'if index == 5 { return "stdout_stderr"; }'
+reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'if index == 6 { return "exit_code"; }'
+reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'if index == 0 { return "oracle_compare"; }'
+reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'if index == 1 { return "fixture_build"; }'
+reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'if index == 2 { return "artifact_probe"; }'
 reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'CompilerSubprocessUseCaseAt(1) == "fixture_build"'
 reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'CompilerSubprocessUseCaseAt(2) == "artifact_probe"'
 require_text "src/self_hosted/tools/backend_output_comparator/expected/clean.json" '"subprocess_timeout_ms":"30000"'
