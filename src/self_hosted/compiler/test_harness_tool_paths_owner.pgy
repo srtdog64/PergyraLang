@@ -281,6 +281,57 @@ func CompilerHarnessAstReadSurfaceReady() -> Bool {
     return CompilerHarnessAstReadSurfaceSuiteName() != "";
 }
 
+func CompilerHarnessStdlibDispatchInventorySuiteName() -> String {
+    return "stdlib-dispatch-inventory-paths";
+}
+
+func CompilerHarnessStdlibDispatchInventoryToolSourcePath() -> String {
+    return "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy";
+}
+
+func CompilerHarnessStdlibDispatchInventoryExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/stdlib_dispatch_inventory_checker/expected/clean.json";
+}
+
+func CompilerHarnessStdlibDispatchInventoryCDispatchPath() -> String {
+    return "src/codegen/transpiler_expr_stdlib_scalar_builtin.c";
+}
+
+func CompilerHarnessStdlibDispatchInventoryCUnaryDispatchPath() -> String {
+    return "src/codegen/transpiler_expr_stdlib_scalar_unary.c";
+}
+
+func CompilerHarnessStdlibDispatchInventoryLlvmDispatchPath() -> String {
+    return "src/codegen/llvm_expr_stdlib_scalar_io_calls.c";
+}
+
+func CompilerHarnessStdlibDispatchInventoryPathCount() -> Int {
+    return 5;
+}
+
+func CompilerHarnessStdlibDispatchInventoryPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessStdlibDispatchInventoryToolSourcePath(); }
+    if index == 1 { return CompilerHarnessStdlibDispatchInventoryExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessStdlibDispatchInventoryCDispatchPath(); }
+    if index == 3 { return CompilerHarnessStdlibDispatchInventoryCUnaryDispatchPath(); }
+    if index == 4 { return CompilerHarnessStdlibDispatchInventoryLlvmDispatchPath(); }
+    return "";
+}
+
+func CompilerHarnessStdlibDispatchInventoryReady() -> Bool {
+    if CompilerHarnessStdlibDispatchInventoryPathCount() != 5 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessStdlibDispatchInventoryPathCount() {
+        if CompilerHarnessStdlibDispatchInventoryPathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessStdlibDispatchInventorySuiteName() != "";
+}
+
 func CompilerHarnessProductionCSizeSuiteName() -> String {
     return "production-c-size-paths";
 }

@@ -1665,6 +1665,14 @@ require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func 
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceRatchetPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfacePathAt"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceReady"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventorySuiteName"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryCDispatchPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryCUnaryDispatchPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryLlvmDispatchPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryPathAt"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryReady"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizeSuiteName"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizeToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizeExpectedJsonPath"
@@ -1697,6 +1705,7 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessR
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessDocLinkCheckerReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessExamplesInventoryReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessAstReadSurfaceReady()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessStdlibDispatchInventoryReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessProductionCSizeReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessProductionHeaderSizeReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendTriSuiteReady()"
@@ -1724,6 +1733,9 @@ require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarne
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitAstReadSurfacePaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessAstReadSurfacePathAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessAstReadSurfaceSuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitStdlibDispatchInventoryPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessStdlibDispatchInventoryPathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessStdlibDispatchInventorySuiteName()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitProductionCSizePaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessProductionCSizePathAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessProductionCSizeSuiteName()"
@@ -1911,6 +1923,19 @@ require_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" 
 require_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" "JsonEmitArray(findings)"
 reject_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" 'let json_parts: Array<String>'
+require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" '"stdlib-dispatch-inventory-paths"'
+require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'C_DISPATCH="${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'C_UNARY_DISPATCH="${harness_paths[3]}"'
+require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'LLVM_DISPATCH="${harness_paths[4]}"'
+require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" '"$CLEAN_BIN"'
+reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy"'
+reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/stdlib_dispatch_inventory_checker/expected/clean.json"'
+reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'C_DISPATCH="src/codegen/transpiler_expr_stdlib_scalar_builtin.c"'
+reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'C_UNARY_DISPATCH="src/codegen/transpiler_expr_stdlib_scalar_unary.c"'
+reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'LLVM_DISPATCH="src/codegen/llvm_expr_stdlib_scalar_io_calls.c"'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'import "../../lib/json_fact_table.pgy";'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonDocumentObjectFactTable(content)"

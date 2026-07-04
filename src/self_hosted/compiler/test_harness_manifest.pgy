@@ -78,6 +78,14 @@ func EmitAstReadSurfacePaths() -> Void {
     }
 }
 
+func EmitStdlibDispatchInventoryPaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessStdlibDispatchInventoryPathCount() {
+        Log(CompilerHarnessStdlibDispatchInventoryPathAt(i));
+        i = i + 1;
+    }
+}
+
 func EmitProductionCSizePaths() -> Void {
     let i: Int = 0;
     while i < CompilerHarnessProductionCSizePathCount() {
@@ -135,6 +143,10 @@ func Main() -> Void {
     }
     if args[0] == CompilerHarnessAstReadSurfaceSuiteName() {
         EmitAstReadSurfacePaths();
+        return;
+    }
+    if args[0] == CompilerHarnessStdlibDispatchInventorySuiteName() {
+        EmitStdlibDispatchInventoryPaths();
         return;
     }
     if args[0] == CompilerHarnessProductionCSizeSuiteName() {

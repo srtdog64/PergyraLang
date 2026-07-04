@@ -100,6 +100,12 @@ clean JSON through `production-c-size-paths` and `production-header-size-paths`
 manifest suites, then run compiled checker binaries for clean and over-cap
 fixtures.
 
+TestHarness delta, 2026-07-05: `stdlib_dispatch_inventory_checker_parity.sh`
+now gets the checker source, expected clean JSON, C scalar dispatch, C unary
+dispatch, and LLVM scalar/IO dispatch owner paths through the
+`stdlib-dispatch-inventory-paths` manifest suite, then runs the compiled
+checker binary for clean and dispatch-drift fixtures.
+
 Artifact Zone delta, 2026-07-04: LSP transport outputs are now tracked as
 their own comparable artifact kinds: `CompilerLspTransportFrameArtifactKind()`
 for LSP-2a single-frame output and `CompilerLspTransportStreamArtifactKind()`

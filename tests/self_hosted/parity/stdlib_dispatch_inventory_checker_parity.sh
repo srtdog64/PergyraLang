@@ -33,13 +33,31 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
-PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/stdlib_dispatch_inventory_checker}"
+HARNESS_PATHS_FILE="$PERGYRA_TOOL_BUILD_DIR/stdlib_dispatch_inventory_harness_paths.txt"
+mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:stdlib-dispatch-inventory" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "stdlib-dispatch-inventory-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 5 ]]; then
+    echo "[self-host-parity:stdlib-dispatch-inventory] TestHarness manifest expected 5 stdlib-dispatch paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
-EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/stdlib_dispatch_inventory_checker/expected/clean.json"
-C_DISPATCH="src/codegen/transpiler_expr_stdlib_scalar_builtin.c"
-C_UNARY_DISPATCH="src/codegen/transpiler_expr_stdlib_scalar_unary.c"
-LLVM_DISPATCH="src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
+EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
+C_DISPATCH="${harness_paths[2]}"
+C_UNARY_DISPATCH="${harness_paths[3]}"
+LLVM_DISPATCH="${harness_paths[4]}"
 
 for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$ROOT_DIR/$C_DISPATCH" "$ROOT_DIR/$C_UNARY_DISPATCH" "$ROOT_DIR/$LLVM_DISPATCH"; do
     if [[ ! -f "$path" ]]; then
@@ -48,7 +66,6 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$ROOT_DIR/$C_DISPATCH"
     fi
 done
 
-mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
 
 # Mirror src/self_hosted/lib/ -> .tmp/lib/ so the tool's
@@ -58,8 +75,20 @@ mkdir -p "$LIB_BUILD_DIR"
 cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
 PERGYRA_TOOL_INPUT="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
 
+CLEAN_BIN="$PERGYRA_TOOL_BUILD_DIR/stdlib_dispatch_inventory_c.exe"
+CLEAN_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/stdlib_dispatch_inventory_c.compile.log"
+if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_INPUT" --backend=c \
+    -o "$(pgy_path_for_compiler "$PGY" "$CLEAN_BIN")" >"$CLEAN_COMPILE_LOG" 2>&1); then
+    echo "[self-host-parity:stdlib-dispatch-inventory] C backend compile failed" >&2
+    cat "$CLEAN_COMPILE_LOG" >&2
+    exit 1
+fi
+if ! pgy_require_runnable_binary_here "self-host-parity:stdlib-dispatch-inventory" "$CLEAN_BIN"; then
+    exit 1
+fi
+
 set +e
-PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_INPUT" --run 2>/dev/null)"
+PERGYRA_OUT="$(cd "$ROOT_DIR" && "$CLEAN_BIN" 2>/dev/null)"
 P_RC=$?
 set -e
 
@@ -133,7 +162,7 @@ awk 'BEGIN{stripped=0} /"stdlib /{ if(stripped<12){stripped++; next} } {print}' 
     "$ROOT_DIR/$LLVM_DISPATCH" > "$NEG_ROOT/$LLVM_DISPATCH"
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_INPUT" --run 2>&1)"
+NEG_OUT="$(cd "$NEG_ROOT" && "$CLEAN_BIN" 2>&1)"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then

@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-05 - Stdlib dispatch inventory paths consume TestHarness owner
+
+- Added stdlib dispatch inventory path facts to
+  `test_harness_tool_paths_owner.pgy`: checker source, expected clean JSON,
+  C scalar dispatch, C unary dispatch, and LLVM scalar/IO dispatch.
+- Extended `test_harness_manifest.pgy` with the
+  `stdlib-dispatch-inventory-paths` suite.
+- Repointed `stdlib_dispatch_inventory_checker_parity.sh` so shell reads those
+  paths from the manifest and runs the compiled C checker binary for clean and
+  dispatch-drift fixtures before the LLVM parity leg.
+
 ## 2026-07-05 - AST read surface checker paths consume TestHarness owner
 
 - Added AST read surface checker path facts to
