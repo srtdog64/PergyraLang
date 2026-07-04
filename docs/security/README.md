@@ -86,7 +86,12 @@ For Pergyra specifically:
   governed source files, known regression coverage, adversarial inputs.
 - [`audits/`](audits/) — Audit run logs (date-stamped), one per run.
 - [`findings/`](findings/) — Confirmed bugs and false positives, each
-  with regression-test reference.
+  with regression-test reference. Filed:
+  - `2026-07-05_symlink_toctou_write.md` — sandbox write check→open TOCTOU
+    symlink window, **Fixed** (O_NOFOLLOW at open time, verified on Linux).
+  - `2026-07-05_fingerprint_not_attestation.md` — software fingerprint
+    fallback is spoofable by design (tier A5 inherent limit), **Wontfix**;
+    the fingerprint is a binding hint, never an attestation.
 - [`templates/`](templates/) — Audit log and finding templates.
 
 - [`02_red_team_threat_model.md`](02_red_team_threat_model.md) - Attacker

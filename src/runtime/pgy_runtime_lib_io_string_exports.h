@@ -13,6 +13,7 @@ pgy_runtime_lib_strdup(const char *src)
 #include "pgy_runtime_io_status.h"
 #include "pgy_runtime_process_exit.h"
 #include "pgy_runtime_strview_inline.h"
+#include "pgy_runtime_secure_open.h"
 /* =================================================================
  * File I/O and string helpers needed by LLVM backend
  * ================================================================= */
@@ -45,7 +46,7 @@ PgyRuntimeIoIntResult pgy_try_file_open_result(const char *path,
     if (resolved == NULL)
         return pgy_runtime_io_int_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_RESOLVE_FAILED, "io-boundary", "file-open"));
-    FILE *fp = fopen(resolved, mode);
+    FILE *fp = pgy_runtime_secure_fopen(resolved, mode);
     free(resolved);
     if (fp == NULL)
         return pgy_runtime_io_int_err(pgy_runtime_io_failure_from_status(
@@ -272,7 +273,7 @@ PgyRuntimeIoVoidResult pgy_try_write_file_result(const char *path,
     if (resolved == NULL)
         return pgy_runtime_io_void_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_RESOLVE_FAILED, "io-boundary", "write-file"));
-    FILE *fp = fopen(resolved, "wb");
+    FILE *fp = pgy_runtime_secure_fopen(resolved, "wb");
     if (fp == NULL) {
         free(resolved);
         return pgy_runtime_io_void_err(pgy_runtime_io_failure_from_status(

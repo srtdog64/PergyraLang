@@ -1,5 +1,6 @@
 #include "pgy_runtime_process_exit.h"
 #include "pgy_runtime_strview_inline.h"
+#include "pgy_runtime_secure_open.h"
 #define PGY_MAX_OPEN_FILES 256
 static FILE *_pgy_ftable[PGY_MAX_OPEN_FILES];
 static pthread_mutex_t _pgy_ftable_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -268,7 +269,7 @@ pgy_try_write_file_result(const char *path, const char *data)
     if (resolved == NULL)
         return pgy_runtime_io_void_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_RESOLVE_FAILED, "io-boundary", "write-file"));
-    FILE *fp = fopen(resolved, "wb");
+    FILE *fp = pgy_runtime_secure_fopen(resolved, "wb");
     if (fp == NULL) {
         free(resolved);
         return pgy_runtime_io_void_err(pgy_runtime_io_failure_from_status(

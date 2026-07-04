@@ -51,6 +51,16 @@ SecurityHashString64(const char *text)
 }
 #endif
 
+/*
+ * Fill missing fingerprint fields from software-derived identity when the
+ * hardware identifiers are unavailable (VM / container). Every source here
+ * (machine-id, hostname, uname) is software-settable, so this fallback is
+ * SPOOFABLE BY DESIGN: the fingerprint is a best-effort binding HINT, not a
+ * hardware attestation. Attesting hardware identity would need a hardware
+ * root of trust (TPM / secure enclave), which the runtime does not require.
+ * See docs/security/findings/2026-07-05_fingerprint_not_attestation.md
+ * (threat model tier A5).
+ */
 static void
 SecurityFillFallbackIdentity(HardwareFingerprint *fingerprint)
 {

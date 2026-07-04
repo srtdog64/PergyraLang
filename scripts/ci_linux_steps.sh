@@ -48,6 +48,9 @@ run 'make self-host-preparation-test-smoke'
 run 'make debug-hygiene-test-smoke'
 run 'make memory-string-safety-test-smoke'
 run 'make security-portability-contract-test-smoke'
+# Sandbox symlink escape (finding 2026-07-05-001): POSIX-only, so Linux is its
+# CI home; the O_NOFOLLOW open-time refusal is exercised here for real.
+run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" sandbox-symlink-nofollow-test-smoke'
 run 'make beta-readiness-checklist-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" dogfood-webgl-test-smoke'
 # wasm-backend parity (web / Android-browser coverage). zig is a single pip
