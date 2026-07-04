@@ -89,6 +89,12 @@ gets its checker source and expected clean JSON through the
 `examples-inventory-paths` manifest suite and runs the compiled checker for
 both clean and drift fixtures.
 
+TestHarness delta, 2026-07-05: `production_c_size_checker_parity.sh` and
+`production_header_size_checker_parity.sh` now get checker source and expected
+clean JSON through `production-c-size-paths` and `production-header-size-paths`
+manifest suites, then run compiled checker binaries for clean and over-cap
+fixtures.
+
 Artifact Zone delta, 2026-07-04: LSP transport outputs are now tracked as
 their own comparable artifact kinds: `CompilerLspTransportFrameArtifactKind()`
 for LSP-2a single-frame output and `CompilerLspTransportStreamArtifactKind()`

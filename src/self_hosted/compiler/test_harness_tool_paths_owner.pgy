@@ -239,3 +239,75 @@ func CompilerHarnessExamplesInventoryReady() -> Bool {
     }
     return CompilerHarnessExamplesInventorySuiteName() != "";
 }
+
+func CompilerHarnessProductionCSizeSuiteName() -> String {
+    return "production-c-size-paths";
+}
+
+func CompilerHarnessProductionCSizeToolSourcePath() -> String {
+    return "src/self_hosted/tools/production_c_size_checker/main.pgy";
+}
+
+func CompilerHarnessProductionCSizeExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/production_c_size_checker/expected/clean.json";
+}
+
+func CompilerHarnessProductionCSizePathCount() -> Int {
+    return 2;
+}
+
+func CompilerHarnessProductionCSizePathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessProductionCSizeToolSourcePath(); }
+    if index == 1 { return CompilerHarnessProductionCSizeExpectedJsonPath(); }
+    return "";
+}
+
+func CompilerHarnessProductionCSizeReady() -> Bool {
+    if CompilerHarnessProductionCSizePathCount() != 2 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessProductionCSizePathCount() {
+        if CompilerHarnessProductionCSizePathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessProductionCSizeSuiteName() != "";
+}
+
+func CompilerHarnessProductionHeaderSizeSuiteName() -> String {
+    return "production-header-size-paths";
+}
+
+func CompilerHarnessProductionHeaderSizeToolSourcePath() -> String {
+    return "src/self_hosted/tools/production_header_size_checker/main.pgy";
+}
+
+func CompilerHarnessProductionHeaderSizeExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/production_header_size_checker/expected/clean.json";
+}
+
+func CompilerHarnessProductionHeaderSizePathCount() -> Int {
+    return 2;
+}
+
+func CompilerHarnessProductionHeaderSizePathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessProductionHeaderSizeToolSourcePath(); }
+    if index == 1 { return CompilerHarnessProductionHeaderSizeExpectedJsonPath(); }
+    return "";
+}
+
+func CompilerHarnessProductionHeaderSizeReady() -> Bool {
+    if CompilerHarnessProductionHeaderSizePathCount() != 2 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessProductionHeaderSizePathCount() {
+        if CompilerHarnessProductionHeaderSizePathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessProductionHeaderSizeSuiteName() != "";
+}

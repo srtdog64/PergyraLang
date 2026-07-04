@@ -25,6 +25,18 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-05 - Production size checker paths consume TestHarness owner
+
+- Added production C/header size checker path facts to
+  `test_harness_tool_paths_owner.pgy`: tool source and expected clean JSON for
+  each checker.
+- Extended `test_harness_manifest.pgy` with `production-c-size-paths` and
+  `production-header-size-paths` suites.
+- Repointed `production_c_size_checker_parity.sh` and
+  `production_header_size_checker_parity.sh` so shell reads tool/expected paths
+  from the manifest and runs compiled C checker binaries for clean and
+  over-cap fixtures.
+
 ## 2026-07-05 - Runtime boundary checker terms consume Pergyra owner
 
 - Added runtime boundary path facts to `test_harness_owner.pgy`: tool source

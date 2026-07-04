@@ -1650,6 +1650,16 @@ require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func 
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventoryExpectedJsonPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventoryPathAt"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventoryReady"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizeSuiteName"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizeToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizeExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizePathAt"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizeReady"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeSuiteName"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizePathAt"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeReady"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeSuiteName"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriExtendedSuiteName"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeCaseCount"
@@ -1671,6 +1681,8 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessS
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessRuntimeBoundaryReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessDocLinkCheckerReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessExamplesInventoryReady()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessProductionCSizeReady()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessProductionHeaderSizeReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendTriSuiteReady()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_tool_paths_owner.pgy";'
@@ -1693,6 +1705,12 @@ require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarne
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitExamplesInventoryPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessExamplesInventoryPathAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessExamplesInventorySuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitProductionCSizePaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessProductionCSizePathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessProductionCSizeSuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitProductionHeaderSizePaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessProductionHeaderSizePathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessProductionHeaderSizeSuiteName()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriSmokeCaseAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriExtendedCaseAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriSmokeSuiteName()"
@@ -1856,6 +1874,20 @@ require_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" 'EX
 require_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" '"$CLEAN_BIN"'
 reject_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/examples_inventory_checker/main.pgy"'
 reject_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/examples_inventory_checker/expected/clean.json"'
+require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" '"production-c-size-paths"'
+require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" '"$CLEAN_BIN"'
+reject_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/production_c_size_checker/main.pgy"'
+reject_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/production_c_size_checker/expected/clean.json"'
+require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" '"production-header-size-paths"'
+require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" '"$CLEAN_BIN"'
+reject_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/production_header_size_checker/main.pgy"'
+reject_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/production_header_size_checker/expected/clean.json"'
 require_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" "JsonEmitArray(findings)"
