@@ -10013,8 +10013,11 @@ replacement 0%를 뒤집는 수치가 아니다.
   `publishDiagnostics` JSON(lib/json_emit 재사용). `src/self_hosted/lsp/main.pgy`
   와 `tests/self_hosted/parity/lsp_diagnostics_parity.sh`가 clean/error payload를
   C/LLVM-built self-host tool과 committed JSON artifact로 비교한다.
-  **오라클 배관 O-LSP**: C LSP 페이로드 덤프 플래그 필요(소형) — 그 전엔
-  golden 승인 기반 parity.
+  **오라클 배관 O-LSP landed**: `pgy-lsp --dump-diagnostics <src>`가 C LSP
+  live `publishDiagnostics` payload를 덤프하고 같은 parity gate가 JSON-RPC
+  shape, URI normalization, C-side code/cause, red squiggle class를 확인한다.
+  남은 갭은 C/self-host diagnostic vocabulary를 정규화해 committed golden을
+  live C oracle equality로 완전히 교체하는 것.
 - **WO-LSP-1 — squiggle 4색 분류기 (landed)**: `squiggle_owner.pgy`가
   RED/AMBER/BLUE/VIOLET policy를 소유하고 `--squiggle-policy` parity snapshot이
   4색 모두를 C/LLVM-built self-host tool에서 비교한다. BLUE 생산자 noise
@@ -10573,6 +10576,23 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
   대기**(동시세션 Makefile 정리 후 — smoke는 bash 직접 실행 가능).
 - 착지점 원칙 적용: 게이트/문서에만 있는 경계는 무착지 — 폴더/이름이
   경계의 물리 착지점. 순서는 등기부(잠금)→정정→이사로 확정됨.
+
+#### A-15. 조합 안전성 (진입 조건: 검증 완성 — docs/155 §3 체크리스트)
+
+- **BDFL 시퀀스(2026-07-04, docs/155 §2)**: ① 검증 프로그램 완성(WO-F1
+  + WO-A1 + WO-A2 + GuardCalculus↔구현 연결 확장 + G-검증 잔여 green)
+  → ② 조합 안전성 → 핵심 목적지=self-host/자기 부트스트랩(North Star
+  유지). 상태 인식: **언어는 C로써 이미 돈다** — 열린 것은 SoT 잔여
+  닫힘과 자기 컴파일 능력이지 작동이 아니다.
+- **스코프 = R4 잔여의 정확한 정의**: AxisOwnership.v는 축-소유권만
+  기계화 — **전 쌍별 축-조합(6축→15쌍) 안전 미증명**. 방법=이번 주
+  검증된 것 재적용: 등재 간선(151 §4/154)은 간선 정리/커널, 미등재
+  쌍은 비간섭 실측 커널(axis-carriage probe의 축×축 판)+필요 시 Coq
+  조각. 산출물=15쌍×{정리|커널|간선} 매트릭스+matrix-lock 계보 잠금.
+  G-4(생성자 경계 검사)와 합류 — 조합 안전이 서야 축-합성 셀 개방.
+- **삼률 canon = docs/155** ("의미를 선언하라, 드리프트를 게이트하라,
+  잔차는 fail-close하라") — formal-semantics-smoke가 삼률 문구·§3
+  정의 잠금.
 
 #### A-11. TPU/MLIR — post-beta 설계 여지만
 

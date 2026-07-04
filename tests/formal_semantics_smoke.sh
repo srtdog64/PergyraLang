@@ -334,6 +334,17 @@ Negative scope: this file proves the carriage LAW, not the carriage MODE.
 0 admits / 0 axioms
 TERMS
 
+TRINITY_DOC="$ROOT_DIR/docs/155_declare_gate_failclose.md"
+require_file "$TRINITY_DOC" "docs/155_declare_gate_failclose.md"
+require_terms "$TRINITY_DOC" "docs/155_declare_gate_failclose.md" <<'TERMS'
+의미를 선언하라. 드리프트를 게이트하라. 잔차는 fail-close하라.
+자기적용
+BDFL 시퀀스 결정 (2026-07-04)
+"검증 완성"의 조작적 정의 (분위기 금지 — 체크리스트)
+조합 안전성 스코프
+fail-close는 결정-불가능의 짝이지 미구현의 변명이 아니다
+TERMS
+
 require_terms "$MINIMAL_POSITION_DOC" "docs/semantics/20_minimal_verification_position.md" <<'TERMS'
 UB-Completeness As The Proof Obligation
 Status: `beta-proof-obligation`
@@ -472,6 +483,14 @@ Theorem axis_update_idempotent
 Definition keyword_axis
 Definition keyword_fact
 Theorem keyword_axis_sound
+Inductive Register
+Definition keyword_register
+Definition KeywordCombinationWellFormed
+Theorem keyword_register_axis_sound
+Theorem any_keyword_subset_well_formed
+Theorem surface_union_preserves_well_formed
+Theorem bounded_surface_axis_allowed
+Theorem same_fact_keywords_share_axis
 Remaining obligations
 TERMS
 
