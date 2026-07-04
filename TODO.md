@@ -10492,10 +10492,11 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
   constructed-over-T가 C에서 실행 — LLVM과 run-parity(nested_return 7/
   body_local 9). 치환 초크포인트=type-require·expr-infer + 레지스트리
   unbound-param 스킵(eager 스캔의 PGY_OPTION_DEFINE(T,T)가 진짜 파열
-  이었음). param=REJECT 유지(G-2). 회귀: option/result parity·caps·
-  probe 전부 green. **다음 rung: G-2(param, LLVM metadata+C 추론 확장)
-  → G-3(중첩·다중) → G-4(§5 Slot/Channel 행 — 생성자 경계 검사로,
-  값 태깅 표류 금지)**.
+  이었음). 이후 G-2는 **C param 구조 매칭/단일화/default binding**으로
+  열렸고, LLVM은 G-2L(argument metadata 군집)로 fail-closed 유지.
+  회귀: option/result parity·caps·probe 전부 green. **다음 rung:
+  G-2L(LLVM metadata) → G-3(중첩·다중) → G-4(§5 Slot/Channel 행 —
+  생성자 경계 검사로, 값 태깅 표류 금지)**.
 - ✅ 법칙 기계화 landed(2026-07-04): `GenericAxisCarriage.v` coqc green
   0 admits/0 axioms, 5정리(carriage_monotone / descent_is_declared /
   erase_declared_scope / carriage_no_conjuring /
@@ -10511,6 +10512,14 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
   ForgedToken 거절) / runtime-tag=RUNTIME(GATE 판정값 라이브 데모).
   → positional-기본 권고가 실측으로 강화됨. probe=현행 잠금(정책 잠금
   아님, §7 구분).
+- ✅ **반증 배터리 → G-2(C-측)+G-6 landed**(2026-07-04, bcc34cff+
+  bce44588, `generic-falsification-test-smoke`): 논거 8개 반증 시도 —
+  실패 4(제약=semantic STATIC 강제: type/ability/다중bound+role 전파,
+  where×G-1 합성 C 실행·Option<Card> 포함), 성공 3=구현좌표(단일화·
+  미바인딩 "cannot bind" 진단 신설 / default type-arg call-site 바인딩
+  연결 / generic body `return None;` 컨텍스트 치환). nested_param C
+  실행(구조 매칭). **G-2L 신설**(LLVM metadata 군집: constructed param+
+  subject 인자+default — 전부 fail-closed 잠김). 사다리 3/7 landed.
 - ✅ 스케일 사다리 확장 landed(2026-07-04, docs/151 §2.2): 대조군
   3방식 × 소·중·대. 중=같은 환불 도메인 3-arm 3-hop — pos 21LOC/선언
   1곳/분석시점 vs val 25LOC/서명오염 3/3/hop-1 최조기 vs tag 38LOC/배관
