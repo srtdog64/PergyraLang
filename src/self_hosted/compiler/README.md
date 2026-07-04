@@ -90,10 +90,10 @@ It composes the self-host parser's `ParseRootProgram` output with the
 self-host codegen `GenerateC` input only after consuming compiler-world path,
 stage-artifact, and target-capability readiness facts. The AST and C artifact
 edges are named separately (`CompileSourceToAst`, `CompileAstToC`, and
-`CompileSourceToC`) and the runner accepts `--emit-ast` / `--emit-c` modes for
-the future parity gate. It is not a second driver graph and it does not make
-DRV-0 landed by itself; the rung lands only when an artifact and gate compare
-the assembled AST/C outputs against the C oracle.
+`CompileSourceToC`). `driver_rung0_main.pgy` is the runnable boundary for those
+facts, and `tests/self_hosted/parity/driver_rung0_parity.sh` compares the
+assembled AST/C outputs against the C oracle. It is not a second driver graph;
+the owner still only assembles parser and codegen facts.
 
 `world.pgy` is the current scaffold. It is parse-gated by
 `make self-host-compiler-world-contract-test-smoke` and wired into

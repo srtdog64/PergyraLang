@@ -4,7 +4,8 @@ Status: `decisions-closed, rung-gated`. BDFL 초안(2026-07-04 대화)과
 레드팀 판정을 병합했고, **두 결정(§2 Decision-0, §3 GATE)은 BDFL로
 닫혔다(2026-07-04)** — 표는 이제 계약이며 `generic-axis-matrix-test-smoke`
 가 §2/§3 닫힘 기록·§5 행·§8 rung 사다리를 잠근다. 구현은 §8의 G-rung을
-따른다(G-1 landed). 배경: Swift 제네릭 교훈 — 원칙의 단순함이 아니라
+따른다(현재 G-1, G-2(C-side), G-6 landed; G-2L은 planned).
+배경: Swift 제네릭 교훈 — 원칙의 단순함이 아니라
 **원칙과 언어 나머지의 합성**이 실패 지점이다. 제네릭이 만날 모든
 축과의 조약을 제네릭보다 먼저 체결한다.
 

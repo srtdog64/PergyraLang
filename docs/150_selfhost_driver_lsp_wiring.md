@@ -29,7 +29,7 @@ C driver가 하는 일: CLI → source read → lexer→parser→semantic→
 HIR/DIR/RIR/MIR→AIR verify→backend emit→cc 호출→link. 치환은 관측
 가능한 이음새(파일/텍스트 artifact)부터 안쪽으로 진행한다.
 
-- **DRV-0 — in-process 스테이지 조립 (첫 rung, 착수 가능)**
+- **DRV-0 — in-process 스테이지 조립 (첫 landed rung)**
   `compiler/driver_rung0_owner.pgy`가 self-parser owner들(→ AST text)과
   self-codegen owner들(→ C text)을 **한 프로세스에서 import로 체이닝**.
   오늘의 셸
@@ -39,13 +39,14 @@ HIR/DIR/RIR/MIR→AIR verify→backend emit→cc 호출→link. 치환은 관측
   oracle-빌드 codegen 산출, (c) gcc/실행은 기존 하니스가 마무리.
   **world 소비 의무**: rung-0부터 `CompilerStagePathManifestReady()` 등
   stage fact를 실행 경로에서 소비 — world가 장식으로 남지 않게.
-  **현재 scaffold**: `src/self_hosted/compiler/driver_rung0_owner.pgy`가
+  **현재 landed**: `src/self_hosted/compiler/driver_rung0_owner.pgy`가
   source path → self-parser AST text → self-codegen C text 조립을 소유하고
   path/stage/target readiness facts를 먼저 소비한다. `CompileSourceToAst`,
   `CompileAstToC`, `CompileSourceToC`가 AST/C artifact boundary를 각각
-  노출하고, `RunDriverRung0FromArgs`는 `--emit-ast` / `--emit-c` artifact
-  mode를 받는다. 단 §4 rung 표는 아직 `planned`다 — AST/C artifact 비교
-  gate가 실존하기 전에는 DRV-0 landed가 아니다.
+  노출하고, `driver_rung0_main.pgy`가 `RunDriverRung0FromArgs`의 runnable
+  boundary를 제공한다. `tests/self_hosted/parity/driver_rung0_parity.sh`가
+  같은 소스에 대해 AST text와 emitted C를 각각 oracle artifact와
+  비교하므로 DRV-0은 §4 rung 표에서 landed다.
 - **DRV-1 — CLI 표면**: `Args()`(존재, PGY_CAP_ENV 게이트)로
   `driver <src> [--emit-ast|--emit-c] [-o out]` 파싱. CLI entrypoint는
   DRV-1 소유이며, DRV-0 owner는 조립 책임만 소유한다. 오라클: 산출물
@@ -106,7 +107,7 @@ planned는 artifact/gate에 `-`만 허용된다. 착지 시 같은 커밋에서 
 <!-- DRIVER-LSP-RUNG-BEGIN -->
 | track | rung | status | artifact | gate |
 | --- | --- | --- | --- | --- |
-| driver | DRV-0 | planned | - | - |
+| driver | DRV-0 | landed | src/self_hosted/compiler/driver_rung0_main.pgy | tests/self_hosted/parity/driver_rung0_parity.sh |
 | driver | DRV-1 | planned | - | - |
 | driver | DRV-2 | planned | - | - |
 | driver | DRV-3 | planned | - | - |

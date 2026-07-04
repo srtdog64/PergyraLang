@@ -1,0 +1,11 @@
+// DRV-0 artifact tool entrypoint.
+//
+// The assembly owner stays in driver_rung0_owner.pgy. This file only exposes a
+// runnable boundary for the parity gate.
+
+import "driver_rung0_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let run_args: Array<String> = Args();
+    RunDriverRung0FromArgs(run_args);
+}

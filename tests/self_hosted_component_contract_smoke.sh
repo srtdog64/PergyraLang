@@ -1487,6 +1487,7 @@ require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerEm
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerDiagnosticsArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerAirJsonArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerMirJsonArtifactKind"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerAstTextArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerAbiLayoutArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerRuntimeMaterializationArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerEmittedLlvmArtifactKind"
@@ -1500,12 +1501,14 @@ require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifac
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(6) == CompilerEmittedLlvmArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(7) == CompilerEmittedSelfHostedArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(8) == CompilerRunOutputArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(9) == CompilerAstTextArtifactKind()"
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(0) == "diagnostics"'
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(1) == "air_json"'
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(2) == "mir_json"'
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(3) == "abi_layout"'
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(4) == "runtime_materialization"'
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(6) == "emitted_llvm"'
+reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(9) == "ast_text"'
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "let args: Array<String> = Args();"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "expected_path = args[0];"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "actual_path = args[1];"
@@ -1909,6 +1912,13 @@ reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" "files_equal_text"
 reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" "show_file_delta"
 reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'cmp -s'
 reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'diff -u'
+require_text "Makefile" "self-host-driver-rung0-parity-test-smoke"
+require_text "Makefile" "tests/self_hosted/parity/driver_rung0_parity.sh"
+require_text "tests/self_hosted/parity/driver_rung0_parity.sh" "pgy_selfhost_compare_expected_text_artifact_with_owner"
+require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"ast_text"'
+require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"emitted_c"'
+reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'cmp -s'
+reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'diff -u'
 require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:fuzz-generator" "$PGY"'
 reject_text "tests/self_hosted/parity/codegen_parity.sh" "MINGW BYPASS"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$oracle_raw" "$oracle_err" "$oracle_exe" "${run_args[@]}"'

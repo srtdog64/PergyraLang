@@ -72,6 +72,7 @@ require_file "src/self_hosted/compiler/symbol_table_owner.pgy"
 require_file "src/self_hosted/compiler/stage_artifact_owner.pgy"
 require_file "src/self_hosted/compiler/authority_owner.pgy"
 require_file "src/self_hosted/compiler/driver_rung0_owner.pgy"
+require_file "src/self_hosted/compiler/driver_rung0_main.pgy"
 require_file "docs/self_hosted/11_compiler_world_architecture.md"
 require_file "docs/self_hosted/12_intent_zone_self_host_architecture.md"
 require_file "docs/self_hosted/13_compiler_substrate_architecture.md"
@@ -79,10 +80,12 @@ require_file "docs/self_hosted/14_target_compiler_world.md"
 require_file "docs/self_hosted/15_pre_self_host_expansion_ledger.md"
 require_file "tests/self_host_compiler_world_contract_smoke.sh"
 require_file "tests/self_hosted/compiler_world_manifest.sh"
+require_file "tests/self_hosted/parity/driver_rung0_parity.sh"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_PATH_MANIFEST_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_STAGE_ARTIFACT_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_AUTHORITY_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_DRIVER_RUNG0_PATH"
+require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_DRIVER_RUNG0_MAIN_PATH"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "### Pergyra-Style Self-Host Test"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "C, LLVM, and self-hosted outputs are peer projections over the same facts"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "stage_artifact_owner.pgy"
@@ -105,6 +108,7 @@ require_max_lines "src/self_hosted/compiler/symbol_table_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/stage_artifact_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/authority_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/driver_rung0_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/driver_rung0_main.pgy" 600
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'import "../parser/program_parse_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'import "../codegen/emission/program_emit.pgy";'
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func CompilerDriverRung0Ready"
@@ -123,6 +127,10 @@ require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func DriverRung0
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"--emit-ast"'
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"--emit-c"'
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func RunDriverRung0FromArgs"
+require_text "src/self_hosted/compiler/driver_rung0_main.pgy" 'import "driver_rung0_owner.pgy";'
+require_text "src/self_hosted/compiler/driver_rung0_main.pgy" "func Main()"
+require_text "src/self_hosted/compiler/driver_rung0_main.pgy" "Args()"
+require_text "src/self_hosted/compiler/driver_rung0_main.pgy" "RunDriverRung0FromArgs(run_args)"
 
 # Authority skeleton locks: sensitive-boundary abilities/roles plus the zone
 # and intent-step clauses that consume them. These keep the authority axis
@@ -299,6 +307,8 @@ for term in \
     "func CompilerSymbolTableOwnerPath" \
     "func CompilerStageArtifactOwnerPath" \
     "func CompilerDriverRung0OwnerPath" \
+    "func CompilerDriverRung0MainPath" \
+    "func CompilerDriverRung0ParityPath" \
     "func CompilerOwnerManifestPath" \
     "func CompilerStagePathManifestReady" \
     "func CompilerStagePathAt" \
@@ -319,11 +329,15 @@ for term in \
     "return CompilerSymbolTableOwnerPath();" \
     "return CompilerStageArtifactOwnerPath();" \
     "return CompilerDriverRung0OwnerPath();" \
+    "return CompilerDriverRung0MainPath();" \
+    "return CompilerDriverRung0ParityPath();" \
     "return CompilerOwnerManifestPath();" \
+    "CompilerParityPathCount() != 7" \
+    "CompilerWorldManifestPathCount() != 27" \
     "CompilerStagePathManifestReady" \
     "if index < 17" \
     "CompilerStagePathAt(index - 12)" \
-    "if index < 23" \
+    "if index < 24" \
     "CompilerParityPathAt(index - 17)" \
     "lexer|TokenStreamZone|LexerStage|LexSource|LexerTokenPayloadContractReady" \
     "parser|AstTreeZone|ParserStage|ParseTokens|ParserAstTreePayloadContractReady" \
@@ -435,14 +449,17 @@ done
 for term in \
     "func CompilerArtifactSchema" \
     "CompilerArtifactZoneReady" \
-    "CompilerArtifactKindCount() == 9" \
+    "CompilerArtifactKindCount() == 10" \
     "diagnostics" \
     "air_json" \
     "mir_json" \
+    "ast_text" \
+    "CompilerAstTextArtifactKind" \
     "abi_layout" \
     "runtime_materialization" \
     "CompilerRunOutputArtifactKind" \
     "CompilerArtifactKindAt(8) == CompilerRunOutputArtifactKind()" \
+    "CompilerArtifactKindAt(9) == CompilerAstTextArtifactKind()" \
     "emitted_self_hosted" \
     "run_output"; do
     require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "$term"
@@ -649,6 +666,7 @@ require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/subprocess_ru
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/abi_layout_row_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/symbol_table_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/stage_artifact_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/driver_rung0_main.pgy"
 require_text "src/self_hosted/README.md" "compiler/world.pgy"
 require_text "docs/self_hosted/README.md" "11_compiler_world_architecture.md"
 require_text "docs/self_hosted/README.md" "12_intent_zone_self_host_architecture.md"

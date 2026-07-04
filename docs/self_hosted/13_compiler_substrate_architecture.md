@@ -101,6 +101,7 @@ compiler/
   path_manifest_owner.pgy   -- path facts
   stage_artifact_owner.pgy  -- stage artifact envelope facts
   driver_rung0_owner.pgy    -- source -> AST text -> emitted C assembly owner
+  driver_rung0_main.pgy     -- DRV-0 runnable artifact boundary
 
 lexer/                      -- token facts
 parser/                     -- AST/tree facts
@@ -130,8 +131,8 @@ The root flow is:
 9. `SymbolFactTableZone`: cross-backend symbol rows.
 10. `AbiRowProjectionZone`: cross-backend ABI/layout rows.
 11. `EmissionZone`: emitted artifact buffer.
-12. `ArtifactZone`: comparable diagnostic, AIR JSON, MIR JSON, ABI/layout,
-    runtime-materialization, emitted, and run artifacts.
+12. `ArtifactZone`: comparable diagnostic, AST text, AIR JSON, MIR JSON,
+    ABI/layout, runtime-materialization, emitted, and run artifacts.
 13. `TestHarnessZone`: fixture/result row vocabulary.
 14. `SubprocessRunnerZone`: capability envelope for oracle processes.
 15. `ParityZone`: C/LLVM/Pergyra comparison evidence.
@@ -222,13 +223,14 @@ replacement for the old stage `return true` scaffolding.
 `src/self_hosted/compiler/driver_rung0_owner.pgy` is the current DRV-0 assembly
 owner. It consumes the path manifest, stage artifact readiness, and target
 capability envelope before composing `ParseRootProgram(source)` with
-`GenerateC(ast_text)`. The owner now exposes that boundary as three artifact
-functions: `CompileSourceToAst`, `CompileAstToC`, and `CompileSourceToC`, with
-`--emit-ast` / `--emit-c` runner modes reserved for the parity gate. It
-deliberately does not own parser facts or codegen emission facts; those remain
-in their stage owners. This is a scaffold for the DRV-0 rung, not a landed rung
-claim until a gate compares the assembled AST and C artifacts against the C
-oracle.
+`GenerateC(ast_text)`. The owner exposes that boundary as three artifact
+functions: `CompileSourceToAst`, `CompileAstToC`, and `CompileSourceToC`.
+`src/self_hosted/compiler/driver_rung0_main.pgy` is only the runnable artifact
+boundary for those facts. `tests/self_hosted/parity/driver_rung0_parity.sh`
+compares assembled AST text against `pgy --ast` and assembled emitted C against
+the current codegen oracle, so DRV-0 is a landed artifact rung. It deliberately
+does not own parser facts or codegen emission facts; those remain in their stage
+owners.
 
 ## Codegen Architecture
 

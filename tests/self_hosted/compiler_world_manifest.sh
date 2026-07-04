@@ -19,6 +19,7 @@ PGY_SELFHOST_COMPILER_SYMBOL_TABLE_PATH="src/self_hosted/compiler/symbol_table_o
 PGY_SELFHOST_COMPILER_STAGE_ARTIFACT_PATH="src/self_hosted/compiler/stage_artifact_owner.pgy"
 PGY_SELFHOST_COMPILER_AUTHORITY_PATH="src/self_hosted/compiler/authority_owner.pgy"
 PGY_SELFHOST_COMPILER_DRIVER_RUNG0_PATH="src/self_hosted/compiler/driver_rung0_owner.pgy"
+PGY_SELFHOST_COMPILER_DRIVER_RUNG0_MAIN_PATH="src/self_hosted/compiler/driver_rung0_main.pgy"
 
 PGY_SELFHOST_STAGE_PATHS=(
     "src/self_hosted/lexer/main.pgy"
@@ -35,6 +36,7 @@ PGY_SELFHOST_PARITY_PATHS=(
     "tests/self_hosted/parity/mir_json_parity.sh"
     "tests/self_hosted/parity/codegen_parity.sh"
     "tests/self_hosted/parity/codegen_bootstrap.sh"
+    "tests/self_hosted/parity/driver_rung0_parity.sh"
 )
 
 PGY_SELFHOST_COMPILER_WORLD_MANIFEST_PATHS=(
@@ -51,6 +53,7 @@ PGY_SELFHOST_COMPILER_WORLD_MANIFEST_PATHS=(
     "$PGY_SELFHOST_COMPILER_STAGE_ARTIFACT_PATH"
     "$PGY_SELFHOST_COMPILER_AUTHORITY_PATH"
     "$PGY_SELFHOST_COMPILER_DRIVER_RUNG0_PATH"
+    "$PGY_SELFHOST_COMPILER_DRIVER_RUNG0_MAIN_PATH"
     "src/self_hosted/OWNERS.md"
     "${PGY_SELFHOST_STAGE_PATHS[@]}"
     "${PGY_SELFHOST_PARITY_PATHS[@]}"

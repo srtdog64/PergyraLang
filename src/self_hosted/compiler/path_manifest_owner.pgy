@@ -64,6 +64,10 @@ func CompilerDriverRung0OwnerPath() -> String {
     return "src/self_hosted/compiler/driver_rung0_owner.pgy";
 }
 
+func CompilerDriverRung0MainPath() -> String {
+    return "src/self_hosted/compiler/driver_rung0_main.pgy";
+}
+
 func CompilerAuthorityOwnerPath() -> String {
     return "src/self_hosted/compiler/authority_owner.pgy";
 }
@@ -114,8 +118,12 @@ func CompilerStageWorldBindingAt(index: Int) -> String {
     return "";
 }
 
+func CompilerDriverRung0ParityPath() -> String {
+    return "tests/self_hosted/parity/driver_rung0_parity.sh";
+}
+
 func CompilerParityPathCount() -> Int {
-    return 6;
+    return 7;
 }
 
 func CompilerParityPathAt(index: Int) -> String {
@@ -137,11 +145,14 @@ func CompilerParityPathAt(index: Int) -> String {
     if index == 5 {
         return "tests/self_hosted/parity/codegen_bootstrap.sh";
     }
+    if index == 6 {
+        return CompilerDriverRung0ParityPath();
+    }
     return "";
 }
 
 func CompilerWorldManifestPathCount() -> Int {
-    return 25;
+    return 27;
 }
 
 func CompilerWorldManifestPathAt(index: Int) -> String {
@@ -160,18 +171,19 @@ func CompilerWorldManifestPathAt(index: Int) -> String {
     if index < 17 {
         return CompilerStagePathAt(index - 12);
     }
-    if index < 23 {
+    if index < 24 {
         return CompilerParityPathAt(index - 17);
     }
-    if index == 23 { return CompilerAuthorityOwnerPath(); }
-    if index == 24 { return CompilerDriverRung0OwnerPath(); }
+    if index == 24 { return CompilerAuthorityOwnerPath(); }
+    if index == 25 { return CompilerDriverRung0OwnerPath(); }
+    if index == 26 { return CompilerDriverRung0MainPath(); }
     return "";
 }
 
 func CompilerStagePathManifestReady() -> Bool with caps io_read {
     if CompilerStagePathCount() != 5 { return false; }
-    if CompilerParityPathCount() != 6 { return false; }
-    if CompilerWorldManifestPathCount() != 25 { return false; }
+    if CompilerParityPathCount() != 7 { return false; }
+    if CompilerWorldManifestPathCount() != 27 { return false; }
     if SelfHostSourceDir() == "" { return false; }
     if CompilerWorldPath() == "" { return false; }
     if CompilerStagePathAt(0) == "" { return false; }
@@ -179,8 +191,8 @@ func CompilerStagePathManifestReady() -> Bool with caps io_read {
     if CompilerStageWorldBindingAt(0) == "" { return false; }
     if CompilerStageWorldBindingAt(4) == "" { return false; }
     if CompilerParityPathAt(0) == "" { return false; }
-    if CompilerParityPathAt(5) == "" { return false; }
+    if CompilerParityPathAt(6) == "" { return false; }
     if CompilerWorldManifestPathAt(0) == "" { return false; }
-    if CompilerWorldManifestPathAt(24) == "" { return false; }
+    if CompilerWorldManifestPathAt(26) == "" { return false; }
     return true;
 }
