@@ -1397,10 +1397,28 @@ require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'JsonEmi
 reject_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'JsonEmitFieldString("artifact_kind", CompilerRunOutputArtifactKind())'
 reject_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerArtifactKindAt(6)"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerEmittedCArtifactKind"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerDiagnosticsArtifactKind"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerAirJsonArtifactKind"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerMirJsonArtifactKind"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerAbiLayoutArtifactKind"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerRuntimeMaterializationArtifactKind"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerEmittedLlvmArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerEmittedSelfHostedArtifactKind"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(0) == CompilerDiagnosticsArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(1) == CompilerAirJsonArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(2) == CompilerMirJsonArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(3) == CompilerAbiLayoutArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(4) == CompilerRuntimeMaterializationArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(5) == CompilerEmittedCArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(6) == CompilerEmittedLlvmArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(7) == CompilerEmittedSelfHostedArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(8) == CompilerRunOutputArtifactKind()"
+reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(0) == "diagnostics"'
+reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(1) == "air_json"'
+reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(2) == "mir_json"'
+reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(3) == "abi_layout"'
+reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(4) == "runtime_materialization"'
+reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(6) == "emitted_llvm"'
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "let args: Array<String> = Args();"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "expected_path = args[0];"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "actual_path = args[1];"
@@ -1422,6 +1440,36 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHar
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessProjectionOrExit"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessComparableArtifactPathAt"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessFindingCap"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessSourcePathRow"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessExpectedDiagnosticRow"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessExpectedAirJsonRow"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessExpectedMirJsonRow"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessExpectedAbiLayoutRow"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessExpectedStdoutRow"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessExpectedExitRow"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessProjectionRow"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessCOracleProjection"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessLlvmOracleProjection"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessSelfHostedProjection"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessExpectedComparableArtifactPath"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessActualComparableArtifactPath"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessRowAt(0) == CompilerHarnessSourcePathRow()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessRowAt(7) == CompilerHarnessProjectionRow()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessProjectionAt(0) == CompilerHarnessCOracleProjection()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessProjectionAt(2) == CompilerHarnessSelfHostedProjection()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessComparableArtifactPathAt(0) == CompilerHarnessExpectedComparableArtifactPath()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessComparableArtifactPathAt(1) == CompilerHarnessActualComparableArtifactPath()"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(0) == "source_path"'
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(1) == "expected_diagnostic"'
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(2) == "expected_air_json"'
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(3) == "expected_mir_json"'
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(4) == "expected_abi_layout"'
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(5) == "expected_stdout"'
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(6) == "expected_exit"'
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(7) == "projection"'
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessProjectionAt(0) == "c_oracle"'
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessProjectionAt(1) == "llvm_oracle"'
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessProjectionAt(2) == "self_hosted"'
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareTimeoutMs"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareEnvAllowlist"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareTimeoutMsValue"

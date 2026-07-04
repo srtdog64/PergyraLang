@@ -10,15 +10,47 @@ func CompilerHarnessRowCount() -> Int {
     return 8;
 }
 
+func CompilerHarnessSourcePathRow() -> String {
+    return "source_path";
+}
+
+func CompilerHarnessExpectedDiagnosticRow() -> String {
+    return "expected_diagnostic";
+}
+
+func CompilerHarnessExpectedAirJsonRow() -> String {
+    return "expected_air_json";
+}
+
+func CompilerHarnessExpectedMirJsonRow() -> String {
+    return "expected_mir_json";
+}
+
+func CompilerHarnessExpectedAbiLayoutRow() -> String {
+    return "expected_abi_layout";
+}
+
+func CompilerHarnessExpectedStdoutRow() -> String {
+    return "expected_stdout";
+}
+
+func CompilerHarnessExpectedExitRow() -> String {
+    return "expected_exit";
+}
+
+func CompilerHarnessProjectionRow() -> String {
+    return "projection";
+}
+
 func CompilerHarnessRowAt(index: Int) -> String {
-    if index == 0 { return "source_path"; }
-    if index == 1 { return "expected_diagnostic"; }
-    if index == 2 { return "expected_air_json"; }
-    if index == 3 { return "expected_mir_json"; }
-    if index == 4 { return "expected_abi_layout"; }
-    if index == 5 { return "expected_stdout"; }
-    if index == 6 { return "expected_exit"; }
-    if index == 7 { return "projection"; }
+    if index == 0 { return CompilerHarnessSourcePathRow(); }
+    if index == 1 { return CompilerHarnessExpectedDiagnosticRow(); }
+    if index == 2 { return CompilerHarnessExpectedAirJsonRow(); }
+    if index == 3 { return CompilerHarnessExpectedMirJsonRow(); }
+    if index == 4 { return CompilerHarnessExpectedAbiLayoutRow(); }
+    if index == 5 { return CompilerHarnessExpectedStdoutRow(); }
+    if index == 6 { return CompilerHarnessExpectedExitRow(); }
+    if index == 7 { return CompilerHarnessProjectionRow(); }
     return "";
 }
 
@@ -26,10 +58,22 @@ func CompilerHarnessProjectionCount() -> Int {
     return 3;
 }
 
+func CompilerHarnessCOracleProjection() -> String {
+    return "c_oracle";
+}
+
+func CompilerHarnessLlvmOracleProjection() -> String {
+    return "llvm_oracle";
+}
+
+func CompilerHarnessSelfHostedProjection() -> String {
+    return "self_hosted";
+}
+
 func CompilerHarnessProjectionAt(index: Int) -> String {
-    if index == 0 { return "c_oracle"; }
-    if index == 1 { return "llvm_oracle"; }
-    if index == 2 { return "self_hosted"; }
+    if index == 0 { return CompilerHarnessCOracleProjection(); }
+    if index == 1 { return CompilerHarnessLlvmOracleProjection(); }
+    if index == 2 { return CompilerHarnessSelfHostedProjection(); }
     return "";
 }
 
@@ -52,9 +96,17 @@ func CompilerHarnessComparableArtifactPathCount() -> Int {
     return 2;
 }
 
+func CompilerHarnessExpectedComparableArtifactPath() -> String {
+    return "src/self_hosted/tools/backend_output_comparator/fixture/expected.txt";
+}
+
+func CompilerHarnessActualComparableArtifactPath() -> String {
+    return "src/self_hosted/tools/backend_output_comparator/fixture/actual.txt";
+}
+
 func CompilerHarnessComparableArtifactPathAt(index: Int) -> String {
-    if index == 0 { return "src/self_hosted/tools/backend_output_comparator/fixture/expected.txt"; }
-    if index == 1 { return "src/self_hosted/tools/backend_output_comparator/fixture/actual.txt"; }
+    if index == 0 { return CompilerHarnessExpectedComparableArtifactPath(); }
+    if index == 1 { return CompilerHarnessActualComparableArtifactPath(); }
     return "";
 }
 
@@ -64,23 +116,23 @@ func CompilerHarnessFindingCap() -> Int {
 
 func CompilerTestHarnessReady() -> Bool {
     return CompilerHarnessRowCount() == 8 &&
-        CompilerHarnessRowAt(0) == "source_path" &&
-        CompilerHarnessRowAt(1) == "expected_diagnostic" &&
-        CompilerHarnessRowAt(2) == "expected_air_json" &&
-        CompilerHarnessRowAt(3) == "expected_mir_json" &&
-        CompilerHarnessRowAt(4) == "expected_abi_layout" &&
-        CompilerHarnessRowAt(5) == "expected_stdout" &&
-        CompilerHarnessRowAt(6) == "expected_exit" &&
-        CompilerHarnessRowAt(7) == "projection" &&
+        CompilerHarnessRowAt(0) == CompilerHarnessSourcePathRow() &&
+        CompilerHarnessRowAt(1) == CompilerHarnessExpectedDiagnosticRow() &&
+        CompilerHarnessRowAt(2) == CompilerHarnessExpectedAirJsonRow() &&
+        CompilerHarnessRowAt(3) == CompilerHarnessExpectedMirJsonRow() &&
+        CompilerHarnessRowAt(4) == CompilerHarnessExpectedAbiLayoutRow() &&
+        CompilerHarnessRowAt(5) == CompilerHarnessExpectedStdoutRow() &&
+        CompilerHarnessRowAt(6) == CompilerHarnessExpectedExitRow() &&
+        CompilerHarnessRowAt(7) == CompilerHarnessProjectionRow() &&
         CompilerHarnessProjectionCount() == 3 &&
-        CompilerHarnessProjectionAt(0) == "c_oracle" &&
-        CompilerHarnessProjectionAt(1) == "llvm_oracle" &&
-        CompilerHarnessProjectionAt(2) == "self_hosted" &&
+        CompilerHarnessProjectionAt(0) == CompilerHarnessCOracleProjection() &&
+        CompilerHarnessProjectionAt(1) == CompilerHarnessLlvmOracleProjection() &&
+        CompilerHarnessProjectionAt(2) == CompilerHarnessSelfHostedProjection() &&
         CompilerHarnessProjectionIndexKnown(0) &&
         CompilerHarnessProjectionIndexKnown(1) &&
         CompilerHarnessProjectionIndexKnown(2) &&
         CompilerHarnessComparableArtifactPathCount() == 2 &&
-        CompilerHarnessComparableArtifactPathAt(0) != "" &&
-        CompilerHarnessComparableArtifactPathAt(1) != "" &&
+        CompilerHarnessComparableArtifactPathAt(0) == CompilerHarnessExpectedComparableArtifactPath() &&
+        CompilerHarnessComparableArtifactPathAt(1) == CompilerHarnessActualComparableArtifactPath() &&
         CompilerHarnessFindingCap() > 0;
 }

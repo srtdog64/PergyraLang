@@ -10,16 +10,52 @@ func CompilerArtifactKindCount() -> Int {
     return 9;
 }
 
+func CompilerDiagnosticsArtifactKind() -> String {
+    return "diagnostics";
+}
+
+func CompilerAirJsonArtifactKind() -> String {
+    return "air_json";
+}
+
+func CompilerMirJsonArtifactKind() -> String {
+    return "mir_json";
+}
+
+func CompilerAbiLayoutArtifactKind() -> String {
+    return "abi_layout";
+}
+
+func CompilerRuntimeMaterializationArtifactKind() -> String {
+    return "runtime_materialization";
+}
+
+func CompilerEmittedCArtifactKind() -> String {
+    return "emitted_c";
+}
+
+func CompilerEmittedLlvmArtifactKind() -> String {
+    return "emitted_llvm";
+}
+
+func CompilerEmittedSelfHostedArtifactKind() -> String {
+    return "emitted_self_hosted";
+}
+
+func CompilerRunOutputArtifactKind() -> String {
+    return "run_output";
+}
+
 func CompilerArtifactKindAt(index: Int) -> String {
-    if index == 0 { return "diagnostics"; }
-    if index == 1 { return "air_json"; }
-    if index == 2 { return "mir_json"; }
-    if index == 3 { return "abi_layout"; }
-    if index == 4 { return "runtime_materialization"; }
-    if index == 5 { return "emitted_c"; }
-    if index == 6 { return "emitted_llvm"; }
-    if index == 7 { return "emitted_self_hosted"; }
-    if index == 8 { return "run_output"; }
+    if index == 0 { return CompilerDiagnosticsArtifactKind(); }
+    if index == 1 { return CompilerAirJsonArtifactKind(); }
+    if index == 2 { return CompilerMirJsonArtifactKind(); }
+    if index == 3 { return CompilerAbiLayoutArtifactKind(); }
+    if index == 4 { return CompilerRuntimeMaterializationArtifactKind(); }
+    if index == 5 { return CompilerEmittedCArtifactKind(); }
+    if index == 6 { return CompilerEmittedLlvmArtifactKind(); }
+    if index == 7 { return CompilerEmittedSelfHostedArtifactKind(); }
+    if index == 8 { return CompilerRunOutputArtifactKind(); }
     return "";
 }
 
@@ -34,27 +70,15 @@ func CompilerArtifactKindKnown(kind: String) -> Bool {
     return false;
 }
 
-func CompilerRunOutputArtifactKind() -> String {
-    return "run_output";
-}
-
-func CompilerEmittedCArtifactKind() -> String {
-    return "emitted_c";
-}
-
-func CompilerEmittedSelfHostedArtifactKind() -> String {
-    return "emitted_self_hosted";
-}
-
 func CompilerArtifactZoneReady() -> Bool {
     return CompilerArtifactKindCount() == 9 &&
-        CompilerArtifactKindAt(0) == "diagnostics" &&
-        CompilerArtifactKindAt(1) == "air_json" &&
-        CompilerArtifactKindAt(2) == "mir_json" &&
-        CompilerArtifactKindAt(3) == "abi_layout" &&
-        CompilerArtifactKindAt(4) == "runtime_materialization" &&
+        CompilerArtifactKindAt(0) == CompilerDiagnosticsArtifactKind() &&
+        CompilerArtifactKindAt(1) == CompilerAirJsonArtifactKind() &&
+        CompilerArtifactKindAt(2) == CompilerMirJsonArtifactKind() &&
+        CompilerArtifactKindAt(3) == CompilerAbiLayoutArtifactKind() &&
+        CompilerArtifactKindAt(4) == CompilerRuntimeMaterializationArtifactKind() &&
         CompilerArtifactKindAt(5) == CompilerEmittedCArtifactKind() &&
-        CompilerArtifactKindAt(6) == "emitted_llvm" &&
+        CompilerArtifactKindAt(6) == CompilerEmittedLlvmArtifactKind() &&
         CompilerArtifactKindAt(7) == CompilerEmittedSelfHostedArtifactKind() &&
         CompilerArtifactKindAt(8) == CompilerRunOutputArtifactKind();
 }
