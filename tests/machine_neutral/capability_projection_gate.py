@@ -18,9 +18,11 @@ it needs, per program:
 
 As of 2026-06-22, AIR carries these fact families for the canonical capability
 fixtures (`effects`, `effects_by_op`, `slots`, and boundary
-`required_abilities`). The gate stays outside `test-all` as a falsification
-marker: when Python is available it proves the projection remains AIR-only, and
-any future regression turns the checklist RED.
+`required_abilities`). Promoted into `test-all` 2026-07-04 (WO-A1) after a
+5-run byte-identical determinism check: it proves the projection remains
+AIR-only on every run, and any regression turns the checklist RED. A compiler
+that cannot launch or emit AIR JSON also goes RED (fail-closed, no silent
+skip).
 
   RED  (exit 1) = the AIR-only projection is incomplete or regressed.
   GREEN(exit 0) = AIR owns the capability-machine facts; the bet survived a round.

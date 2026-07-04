@@ -39,13 +39,26 @@ declares `C_unprov=1` and exactly one `phys_Abort` survives — they match.
 
 ## The gate (`gate.ps1` + `baseline.json`)
 
-1. **Erasure contract (hard):** provable fixtures must hold `phys_Axis=0,
-   phys_Abort=0`. Regression = build failure.
+0. **Substrate-floor pin (hard):** every emitted program carries a runtime
+   substrate independent of axis use — since the R6 wall-time watchdog
+   (task #41, `pgy_budget_wall_watchdog`) that floor is
+   `abort + pthread_create + pthread_detach` (Sync=2, Abort=1). The control
+   fixture `00_pure_value` must match `baseline.substrate_floor` exactly, by
+   count AND by named symbol list. Floor growth = RED until a human commits a
+   new attributed baseline.
+1. **Erasure contract (hard):** provable fixtures must hold `phys_Axis=0` and
+   carry **nothing beyond the substrate floor**. Regression = build failure.
 2. **Bucket-C monotonicity (hard):** total `C_unprov` must not exceed
    `baseline.json`. C may only shrink. Lower the baseline when analysis improves.
 3. **Drift:** a `compression_residue_mismatch` (AIR declares nothing yet residue
-   survives) is **hard-failed if new**, or reported if listed in
-   `baseline.json` `expected_drifts` (a documented modeling gap).
+   survives beyond the floor) is **hard-failed if new**, or reported if listed
+   in `baseline.json` `expected_drifts` (a documented modeling gap).
+
+Promoted to CI 2026-07-04 (WO-A2): `make air-erasure-gate` re-measures and
+gates, wired into ci-windows' runnable block (the instrumentation is
+powershell + mingw `nm`, so Windows CI is its home). RED verified both ways:
+an injected axis symbol on a provable fixture and an injected floor symbol
+both fail the gate. Baseline updates are explicit commits only.
 
 `Axis (phys) == 0` everywhere = the axis vocabulary is fully compiled out. What
 survives is the irreducible primitive the axis stood for (a `pthread_mutex` for a
@@ -70,5 +83,20 @@ channel, an `abort` path for a fail-closed guard, nothing for a provable slot).
 > A program using only statically-provable value-Slots emits **zero surviving
 > axis calls and zero slot-safety abort paths** in its `-O2` object.
 
-Rows `01`, `02`, `07` satisfy it today. The intended end state is a CI gate that
-fails the build if a provable-axis fixture regresses to a surviving axis call.
+Rows `01`, `02`, `07` satisfy it today, modulo the program-wide substrate floor
+(the watchdog is not slot-safety machinery — it is the R6 DoS bound every
+program carries). That end state is now real: `make air-erasure-gate` fails the
+build if a provable-axis fixture regresses to a surviving axis call.
+
+## 2026-07-04 refresh (floor change record)
+
+Between the 2026-06 snapshot and this refresh, every fixture gained
+`phys_Sync +2, phys_Abort +1`: the R6 wall-time watchdog (task #41) inlined
+`pthread_create`/`pthread_detach` + a fail-close `abort` into every emitted
+program. That is designed bucket-B substrate, not an erasure regression —
+`phys_Axis` stayed 0 everywhere. Encoded as `substrate_floor` in
+`baseline.json` (named symbols, change-gated). Declared-side deltas in the same
+window: `04_channel_parallel` `A_inh 4→3` and `Sync 11→13` (the +2 is the
+floor; the boundary count moved during the SEA execution-lane / AIR ownership
+work, 2026-06-22→07-04 — declared counts are compiler-owned snapshot values,
+and the hard rule C-monotone was never violated).

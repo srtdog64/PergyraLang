@@ -218,13 +218,14 @@ Rule below. It consumes only `--air-json` and reports a four-row checklist:
 [OK] authority_contract_binding
 ```
 
-The gate remains a falsification marker rather than a must-pass CI target until
-at least one real machine-neutral projection consumes the facts. It still fails
-when run manually: Python runs the structured checker when available, and the
-shell fallback checks the load-bearing AIR JSON fields when Python is absent.
-Until a backend exists, "AIR owns the capability-machine facts" means the facts
-are present, validator-backed, and projectable from `--air-json`; it does not
-mean a production capability-machine backend exists.
+Promoted to a must-pass member of `test-all` on 2026-07-04 (WO-A1), after a
+5-run byte-identical determinism check. Python runs the structured checker when
+available, and the shell fallback checks the load-bearing AIR JSON fields when
+Python is absent; both paths are fail-closed — a compiler that cannot launch or
+emit AIR JSON turns the checklist RED rather than skipping. Until a backend
+exists, "AIR owns the capability-machine facts" means the facts are present,
+validator-backed, and projectable from `--air-json`; it does not mean a
+production capability-machine backend exists.
 
 ## Out Of Scope
 

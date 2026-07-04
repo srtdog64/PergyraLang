@@ -83,6 +83,35 @@ survivors after `-O2`.
 | `06_lifecycle_branch` | 2 | **0** | 0 | 0 | 1 | 0 |
 | `07_lifecycle_linear` | 0 | **0** | 0 | 0 | 0 | 0 |
 
+## 2a. 2026-07-04 refresh — substrate floor + CI promotion (WO-A2)
+
+The table above is the 2026-06 snapshot. The 2026-07-04 re-measurement found
+every fixture (including `00_pure_value`) gained `Sync +2, Abort +1`:
+the **R6 wall-time watchdog** (task #41, `pgy_budget_wall_watchdog` in
+`pgy_runtime_budget.h`) now inlines `pthread_create`/`pthread_detach` plus a
+fail-close `abort` into every emitted program. That is designed bucket-B
+substrate — the quantitative sandbox axis every program carries — not an
+erasure regression: **`Axis (phys)` stayed 0 in every fixture.**
+
+Consequences, encoded in the gate (`tests/air_erasure/gate.ps1`):
+
+- **Substrate-floor pin (contract 0, hard):** `baseline.json` names the floor
+  symbols (`abort`, `pthread_create`, `pthread_detach`) and the control fixture
+  must match them exactly. Floor growth is RED until a human commits a new
+  attributed baseline — the floor itself is now bounded·measured·attributed.
+- **Floor-adjusted erasure contract:** provable fixtures must carry *nothing
+  beyond the floor*. The §3 claim "the always-on slot check is DCE'd" survives
+  in floor-adjusted form: the provable slot fixtures measure **identical** to
+  the no-slot control, so slot machinery contributed zero physical residue.
+- **CI promotion:** `make air-erasure-gate` re-measures and gates on every run,
+  wired into ci-windows' runnable block (instrumentation = powershell + mingw
+  `nm`, so Windows CI is its home). RED verified in both directions (injected
+  axis symbol / injected floor symbol). Baseline updates are explicit commits.
+
+Declared-side deltas in the same window: `04_channel_parallel` `A_inh 4→3`
+(boundary modeling moved during the SEA execution-lane / AIR ownership work);
+the hard C-monotone rule was never violated (`C_unprov` total stable at 1).
+
 ## 3. Headline reading
 
 1. **The axis vocabulary is 100% compiled out.** `Axis (phys) = 0` in **every**

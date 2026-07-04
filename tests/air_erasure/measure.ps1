@@ -27,7 +27,8 @@ $ErrorActionPreference = 'Continue'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Set-Location $repo
 [Environment]::CurrentDirectory = $repo
-$pgy = Join-Path $repo 'bin\pgy.exe'
+# PGY_BIN override lets CI point at its own BIN_DIR build instead of bin\pgy.exe.
+$pgy = if ($env:PGY_BIN) { $env:PGY_BIN } else { Join-Path $repo 'bin\pgy.exe' }
 
 $AXIS = 'pgy_(channel|chan_|world|spawn|zone|intent|write|read|release|claim|slot|secure_|pin|unpin|device_|runtime_lifecycle)'
 $catsPhys = [ordered]@{
@@ -61,6 +62,13 @@ foreach ($f in $fix) {
   $o = [ordered]@{ Fixture = $name; 'A_inh' = $A; 'B_pol' = $B; 'C_unprov' = $C }
   foreach ($c in $catsPhys.Keys) { $o["phys_$c"] = (($u | Where-Object { $_ -match $catsPhys[$c] }) | Measure-Object).Count }
   $rows += [pscustomobject]$o
+  # The control fixture defines the runtime substrate floor: the named Sync/Abort
+  # symbols every emitted program carries regardless of axis use (e.g. the R6
+  # wall-time watchdog). gate.ps1 pins this list against baseline.json.
+  if ($name -eq '00_pure_value') {
+    $floorSyms = @($u | Where-Object { $_ -match $catsPhys['Sync'] -or $_ -match $catsPhys['Abort'] }) | Sort-Object -Unique
+    $floorSyms | Set-Content ".tmp\air_erasure_floor_symbols.txt"
+  }
 }
 $rows | Format-Table -AutoSize
 $rows | ConvertTo-Csv -NoTypeInformation | Set-Content "tests\air_erasure\results.csv"

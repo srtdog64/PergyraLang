@@ -1,5 +1,5 @@
 {
-  "_comment": "Baselines for the AIR erasure gate. total_unproven_retain = bucket-C ceiling (C must never grow). provable_fixtures_must_be_clean = programs that must compile to zero surviving axis calls / abort paths. expected_drifts = fixtures whose declared-vs-measured mismatch is a KNOWN, documented modeling gap (AIR does not yet declare that residue); a drift OUTSIDE this list is a regression to investigate.",
+  "_comment": "Baselines for the AIR erasure gate. total_unproven_retain = bucket-C ceiling (C must never grow). provable_fixtures_must_be_clean = programs that must carry zero axis calls and nothing beyond the substrate floor. substrate_floor = the named Sync/Abort symbols EVERY emitted program carries regardless of axis use; the gate pins the control fixture (00_pure_value) to exactly this set, so floor growth is RED until a human commits a new baseline with attribution. expected_drifts = fixtures whose declared-vs-measured mismatch is a KNOWN, documented modeling gap; a drift OUTSIDE this list is a regression to investigate.",
   "total_unproven_retain": 1,
   "provable_fixtures_must_be_clean": [
     "00_pure_value",
@@ -8,6 +8,12 @@
     "03_secure_slot",
     "07_lifecycle_linear"
   ],
+  "substrate_floor": {
+    "Sync": 2,
+    "Abort": 1,
+    "symbols": ["abort", "pthread_create", "pthread_detach"],
+    "attribution": "R6 wall-time budget watchdog (pgy_budget_wall_watchdog, src/runtime/pgy_runtime_budget.h): pthread_create+pthread_detach spawn the watchdog thread, abort is the wall-budget fail-close. Bucket-B substrate (designed fail-closed enforcement, always-on), landed with task #41; floor moved 0->(Sync 2, Abort 1) at the 2026-07-04 dashboard refresh."
+  },
   "expected_drifts": {},
   "llvm_unsupported": {}
 }

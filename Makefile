@@ -1809,19 +1809,41 @@ test-capability-runtime: $(PGY)
 	@echo "=== Sandbox Runtime-Enforcement Gate (C/LLVM parity) ==="
 	PGY_BIN="$(abspath $(PGY))" $(BASH) tests/capability/run_runtime_enforce.sh
 
-# Machine-neutral falsification marker (docs/semantics/18 Acceptance Rule,
+# Machine-neutral falsification gate (docs/semantics/18 Acceptance Rule,
 # first exercise). The capability-machine projection consumes AIR-only facts:
 # effect inventory, per-op capability masks, slot identity, and authority
-# contract requirements. NOT in test-all -- it remains a progress marker until
-# the projection is promoted, but local RED must still fail this target.
+# contract requirements. Promoted into test-all 2026-07-04 (WO-A1) after a
+# 5-run byte-identical determinism check. Fail-closed either way: a compiler
+# that cannot launch or emit AIR JSON turns the checklist RED (no silent
+# skip), and the python-absent fallback is the shell gate, which hard-fails
+# on any missing field or binary.
 machine-neutral-status: $(PGY)
-	@echo "=== Machine-Neutral Projection Status (AIR-only fact projection marker) ==="
+	@echo "=== Machine-Neutral Projection Status (AIR-only fact projection) ==="
 	@{ command -v python3 >/dev/null 2>&1 && py=python3 || py=python; } ; \
 	if command -v "$$py" >/dev/null 2>&1; then \
 		"$$py" tests/machine_neutral/capability_projection_gate.py --pgy "$(abspath $(PGY))"; \
 	else \
 		PGY_BIN="$(abspath $(PGY))" $(BASH) tests/machine_neutral/capability_projection_shell_gate.sh; \
 	fi
+
+# AIR erasure dashboard gate (docs/semantics/14, WO-A2). Re-measures every
+# fixture (AIR-declared A/B/C joined with gcc -O2 + nm physical residue) and
+# enforces: substrate-floor pin (named symbols -- floor growth is RED until a
+# human commits an attributed baseline), provable-fixture erasure (zero axis
+# calls, nothing beyond the floor), bucket-C monotone non-increase, and
+# no-new-drift. Windows-only instrumentation (powershell + mingw nm); wired
+# into ci-windows' runnable block.
+air-erasure-gate: $(PGY)
+	@echo "=== AIR Erasure Dashboard Gate (declared A/B/C vs physical residue) ==="
+	PGY_BIN="$(abspath $(PGY))" powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/air_erasure/measure.ps1
+	powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/air_erasure/gate.ps1
+
+# Codebase border registry (docs/154, B-0/B-1): pure-text include-edge checks
+# locking the 8 compartment faces (backend twins, parser->semantic sanctioned
+# faces, runtime upstream-zero, codegen->AIR zero). No compiler needed.
+border-registry-test-smoke:
+	@echo "=== Border Registry Include-Edge Smoke (docs/154) ==="
+	$(BASH) tests/border_registry_smoke.sh
 
 # Source-level SoT guard: the budget charge for a metered kind must appear in
 # BOTH the C-inline and LLVM-export twin of each allocation path, or the backends
@@ -1959,6 +1981,7 @@ test-all:
 	$(MAKE) test-concurrency
 	$(MAKE) test-dir
 	$(MAKE) test-air
+	$(MAKE) machine-neutral-status
 	$(MAKE) test-rir
 	$(MAKE) test-mir
 	$(MAKE) test-hir
@@ -2746,6 +2769,7 @@ lsp: $(PGY_LSP)
 llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir backend-compare-inventory-test-smoke backend-compare-llvm-coverage-test-smoke llvm-test-backend-compare llvm-test-all llvm-test-smoke llvm-runtime-aggregate-return-abi-test-smoke tooling-conformance-test-smoke stdlib-test-smoke stage4-determinism-test-smoke filesystem-directory-walk-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke build-source-inventory-test-smoke ci-step-runner-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke documentation-quality-test-smoke backend-wasm-pointer-closure-test-smoke language-surface-hygiene-test-smoke grammar-cheatsheet-contract-test-smoke language-contract-golden-test-smoke verification-methodology-test-smoke proof-spine-test-smoke self-host-preparation-test-smoke self-host-preparation-contract-test-smoke self-host-preparation-parity-test-smoke self-host-runtime-boundary-parity-test-smoke self-host-air-graph-consumer-parity-test-smoke self-host-diagnostic-catalog-parity-test-smoke self-host-ast-read-surface-parity-test-smoke self-host-semantic-parity-test-smoke self-host-semantic-selfcheck-test-smoke self-host-linter-parity-test-smoke self-host-backend-tri-compare-test-smoke self-host-backend-tri-compare-extended-test-smoke self-host-lexer-parity-test-smoke self-host-parser-parity-test-smoke self-host-codegen-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-mir-json-parity-test-smoke self-host-fuzz-backend-generator-parity-test-smoke fuzz-backend-parity-test-smoke fuzz-backend-parity-matrix-test-smoke self-host-component-contract-test-smoke self-host-substrate-contract-test-smoke self-host-hard-contract-test-smoke self-host-compiler-world-contract-test-smoke self-host-lex-minimal-parity-test-smoke debug-hygiene-test-smoke memory-string-safety-test-smoke security-portability-contract-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke dogfood-webgl-test-smoke wasm-backend-parity-test-smoke formal-semantics-test-smoke proof-carrying-pipeline-test-smoke proof-carrying-adequacy-test-smoke abstraction-loss-contract-test-smoke ast-to-mir-loss-contract-test-smoke air-drift-test-smoke air-json-schema-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke production-c-size-test-smoke examples-inventory-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke transpile-strict-source-test-smoke source-test-harness-compile-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke layered-diagnostics-contract-test-smoke intent-compression-contract-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke slot-contract-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke abi-ownership-shape-test-smoke runtime-frontier-contract-test-smoke runtime-frontier-policy-test-smoke runtime-intent-observability-contract-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke backend-fail-closed-test-smoke worker-boundary-ub-test-smoke perf-c-baseline-test-smoke evidence-guard-amortization-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-build-tools check-security-toolchain check-linux-toolchain check-macos-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 .PHONY: self-host-driver-rung0-parity-test-smoke self-host-driver-rung1-parity-test-smoke self-host-lsp-diagnostics-parity-test-smoke
+.PHONY: machine-neutral-status air-erasure-gate border-registry-test-smoke axis-carriage-probe-test-smoke generic-axis-matrix-test-smoke generic-falsification-test-smoke generic-nested-failclosed-test-smoke
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)
 -include $(ALL_DEP_FILES)
