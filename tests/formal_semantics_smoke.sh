@@ -321,6 +321,19 @@ Theorem try_result_err_carries
 0 admits / 0 axioms
 TERMS
 
+GENERIC_CARRIAGE_COQ="$PROOF_DIR/proofs/GenericAxisCarriage.v"
+require_file "$GENERIC_CARRIAGE_COQ" "docs/semantics/proofs/GenericAxisCarriage.v"
+require_terms "$GENERIC_CARRIAGE_COQ" "docs/semantics/proofs/GenericAxisCarriage.v" <<'TERMS'
+Target: docs/151
+Theorem carriage_monotone
+Theorem descent_is_declared
+Theorem erase_declared_scope
+Theorem carriage_no_conjuring
+Corollary hiding_requires_declaration
+Negative scope: this file proves the carriage LAW, not the carriage MODE.
+0 admits / 0 axioms
+TERMS
+
 require_terms "$MINIMAL_POSITION_DOC" "docs/semantics/20_minimal_verification_position.md" <<'TERMS'
 UB-Completeness As The Proof Obligation
 Status: `beta-proof-obligation`
@@ -624,7 +637,8 @@ if command -v coqc >/dev/null 2>&1; then
         docs/semantics/proofs/GuardCalculus.v \
         docs/semantics/proofs/WholeProgramCore.v \
         docs/semantics/proofs/AIRBinding.v \
-        docs/semantics/proofs/OptionTry.v; do
+        docs/semantics/proofs/OptionTry.v \
+        docs/semantics/proofs/GenericAxisCarriage.v; do
         if command -v timeout >/dev/null 2>&1; then
             (cd "$ROOT_DIR" && timeout "$coq_timeout" coqc "$coq_proof")
         else

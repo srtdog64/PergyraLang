@@ -10473,8 +10473,12 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
 - **착수 조건(엄수)**: 셀 개방은 MIR type-text seam(docs/147 발견-1)
   해소 후. 게이트(matrix-lock smoke)는 미결정 2건 닫힌 후 — 열린
   결정을 게이트로 잠그는 것 금지.
-- 파생 Coq 후보: GenericAxisCarriage.v(운반 단조성 + erase-soundness)
-  — WO-F 계보.
+- ✅ 법칙 기계화 landed(2026-07-04): `GenericAxisCarriage.v` coqc green
+  0 admits/0 axioms, 5정리(carriage_monotone / descent_is_declared /
+  erase_declared_scope / carriage_no_conjuring /
+  hiding_requires_declaration) + formal-semantics-smoke 어휘·coqc 배선.
+  증명 범위 = 운반 **법칙**만(운반 **방식** Decision-0과 독립이라 지금
+  증명 가능했음). 잔여 = 미결정 2건 + matrix-lock(§7 순서 엄수).
 
 #### A-11. TPU/MLIR — post-beta 설계 여지만
 

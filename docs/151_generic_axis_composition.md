@@ -21,11 +21,24 @@ Status: `design-draft, decision-gated`. BDFL 초안(2026-07-04 대화)과
   (docs/semantics/19 §✦: 의미를 구문 선언으로 끌어내려 결정가능화,
   잔차는 fail-close)에 맞춰 증명 주체를 컴파일러로 명시한다.
 
-형식형(후속 Coq 후보, OptionTry.v 계보): **운반 단조성** — 축-운반은
-기본 상향 단조(Generic<T>는 T의 축을 최소한 보존한다), 유일하게
-허용되는 하강은 ERASE 판정 지점뿐. `GenericAxisCarriage.v` 후보 정리:
-carriage-monotonicity + erase-soundness(ERASE 지점을 우회하는 하강
-경로 부재).
+형식형 — **기계화 완료** (`docs/semantics/proofs/GenericAxisCarriage.v`,
+coqc 0 admits/0 axioms, 2026-07-04, `formal-semantics-smoke` 배선):
+축-운반은 기본 상향 단조, 유일하게 허용되는 하강은 ERASE 판정 지점뿐.
+
+- `carriage_monotone` — erase-free spine에서 leaf 축 전부 생존
+  (wrapper가 실수로 축을 잃을 수 없다)
+- `descent_is_declared` — root에서 사라진 leaf 축은 반드시 어느 ERASE
+  layer의 선언 집합에 있다 (**무음 하강 불가** = 세탁 불가)
+- `erase_declared_scope` — ERASE는 선언한 것만 지운다 (미선언 축 생존)
+- `carriage_no_conjuring` — root의 모든 축은 leaf 또는 생성자 자신의
+  마크에서 온다 (출처 전수 — 축이 무에서 안 생긴다)
+- `hiding_requires_declaration` — §0 문장 그 자체: 숨김 ⇒ 선언한
+  ERASE layer 실존 ∧ spine은 erase-free가 아님
+
+주의(negative scope, AIRBinding.v 전통): 이 파일이 증명하는 것은
+운반 **법칙**이지 운반 **방식**(§2 Decision-0)이 아니다 — 법칙은
+어느 carriage 방식 위에서도 성립하므로 Decision-0이 열린 지금도
+증명 가능했다. §4 간선/컴파일러 구현 일치는 미래 matrix-lock 몫.
 
 ## 1. 7축 (초안 대비 개명 2건)
 
