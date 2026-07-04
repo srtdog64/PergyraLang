@@ -3232,3 +3232,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-preparation` (including bootstrap `SELF-HOSTING OK`),
   `llvm-test-backend-compare`, and `air-strict-backend-compare-test-smoke`
   (885/885 backend-compare fixtures each).
+
+### 2026-07-04 -- Self-host C codegen consumes target capability envelope
+
+- Repointed `src/self_hosted/codegen/run/codegen_run_owner.pgy` to consume
+  `CompilerTargetCapabilityEnvelopeReady()` before `GenerateC`. The
+  `TargetCapabilityZone` is now load-bearing for the self-host C codegen run
+  boundary instead of being only a compiler-world vocabulary fact.
+- Tightened `tests/self_hosted_component_contract_smoke.sh` so the run owner
+  must import `target_capability_owner.pgy` and call the readiness predicate.
+- Updated the pre-self-host expansion ledger and codegen intent doc to say
+  this closes the self-host C run-boundary omission, while native C/LLVM
+  target-specific consumers remain active work.
+- No executable cases were run for this slice; validation was limited to static
+  owner/ratchet inspection under the validation isolation policy.

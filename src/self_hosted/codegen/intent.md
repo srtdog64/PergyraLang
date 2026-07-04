@@ -90,6 +90,11 @@ described as a peer C/LLVM/SelfHosted backend replacement until the LLVM and
 SelfHosted emission zones consume the same fact rows and feed the same
 ArtifactZone comparison contract.
 
+Run-boundary rule: `run/codegen_run_owner.pgy` must consume
+`CompilerTargetCapabilityEnvelopeReady()` before `GenerateC`. The target
+capability envelope is not documentation-only for this rung; unsupported target
+fallback must fail before C emission starts.
+
 Concrete split for the current codegen cluster:
 
 | Candidate | Zone? | Owner reason |

@@ -6,8 +6,12 @@
 
 import "../input/ast_input_owner.pgy";
 import "../emission/program_emit.pgy";
+import "../../compiler/target_capability_owner.pgy";
 
 func RunCodegenFromArgs(args: Array<String>) -> Void {
+    if !CompilerTargetCapabilityEnvelopeReady() {
+        Die("target capability envelope is not ready for self-host C codegen");
+    }
     let ast_path: String = CodegenDefaultAstPath(args);
     let tree_text: String = CodegenReadAst(ast_path);
     let c_source: String = GenerateC(tree_text);
