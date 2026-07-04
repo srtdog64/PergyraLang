@@ -38,7 +38,7 @@ func ParseEffectDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if i >= n { Exit(1); }
-        if CharAt(content, i) == "}" {
+        if ParserCharAt(content, i) == "}" {
             i = i + 1;
             break;
         }
@@ -124,7 +124,7 @@ func ParseRelationDecl(content: String, start: Int, inout cursor_out: Array<Int>
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if i >= n { Exit(1); }
-        if CharAt(content, i) == "}" {
+        if ParserCharAt(content, i) == "}" {
             i = i + 1;
             break;
         }

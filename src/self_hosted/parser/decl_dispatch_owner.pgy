@@ -43,7 +43,7 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
             if i >= n {
                 Exit(1);
             }
-            if CharAt(content, i) == "}" {
+            if ParserCharAt(content, i) == "}" {
                 i = i + 1;
                 ArraySet(cursor_out, 0, i);
                 return AppendImplicitMain(out, script_body);
@@ -64,7 +64,7 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
         if MatchKeyword(content, i, "import") {
             i = i + 6;
             i = SkipWhitespaceAndComments(content, i);
-            if CharAt(content, i) != "\"" {
+            if ParserCharAt(content, i) != "\"" {
                 Exit(1);
             }
             ArraySet(cursor_out, 0, i);

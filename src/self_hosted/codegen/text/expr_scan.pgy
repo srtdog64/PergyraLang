@@ -17,7 +17,7 @@ func ReplaceAll(s: String, from: String, to: String) -> String {
             out = Concat(out, to);
             i = i + fl;
         } else {
-            out = Concat(out, CharAt(s, i));
+            out = Concat(out, CodegenCharAt(s, i));
             i = i + 1;
         }
     }
@@ -38,11 +38,11 @@ func ReplaceAllOutsideStrings(s: String, from: String, to: String) -> String {
     let i: Int = 0;
     let in_str: Bool = false;
     while i < n {
-        let c: String = CharAt(s, i);
+        let c: String = CodegenCharAt(s, i);
         if in_str {
             out = Concat(out, c);
             if c == "\\" && i + 1 < n {
-                out = Concat(out, CharAt(s, i + 1));
+                out = Concat(out, CodegenCharAt(s, i + 1));
                 i = i + 2;
                 continue;
             }
@@ -62,7 +62,7 @@ func ReplaceAllOutsideStrings(s: String, from: String, to: String) -> String {
         // of a longer identifier (e.g. don't rewrite `Args(` inside
         // `CompareCallArgs(`). The previous output char must not be ident-ish.
         let ol: Int = StringLength(out);
-        let boundary_ok: Bool = ol == 0 || !IsIdentChar(CharAt(out, ol - 1));
+        let boundary_ok: Bool = ol == 0 || !IsIdentChar(CodegenCharAt(out, ol - 1));
         if boundary_ok && i + fl <= n && Substring(s, i, fl) == from {
             out = Concat(out, to);
             i = i + fl;
@@ -82,11 +82,11 @@ func RewriteArrayLengthEnv(e: String, env: String) -> String {
     let i: Int = 0;
     let in_str: Bool = false;
     while i < n {
-        let c: String = CharAt(e, i);
+        let c: String = CodegenCharAt(e, i);
         if in_str {
             out = Concat(out, c);
             if c == "\\" && i + 1 < n {
-                out = Concat(out, CharAt(e, i + 1));
+                out = Concat(out, CodegenCharAt(e, i + 1));
                 i = i + 2;
                 continue;
             }
@@ -130,17 +130,17 @@ func RewriteIndexing(e: String, env: String) -> String {
     let out: String = "";
     let i: Int = 0;
     while i < n {
-        let c: String = CharAt(e, i);
+        let c: String = CodegenCharAt(e, i);
         if c == "\"" {
             out = Concat(out, c);
             i = i + 1;
             while i < n {
-                let d: String = CharAt(e, i);
+                let d: String = CodegenCharAt(e, i);
                 out = Concat(out, d);
                 i = i + 1;
                 if d == "\\" {
                     if i < n {
-                        out = Concat(out, CharAt(e, i));
+                        out = Concat(out, CodegenCharAt(e, i));
                         i = i + 1;
                     }
                 } else if d == "\"" {
@@ -150,11 +150,11 @@ func RewriteIndexing(e: String, env: String) -> String {
             }
         } else if IsIdentStart(c) {
             let j: Int = i;
-            while j < n && IsIdentChar(CharAt(e, j)) {
+            while j < n && IsIdentChar(CodegenCharAt(e, j)) {
                 j = j + 1;
             }
             let ident: String = Substring(e, i, j - i);
-            if j < n && CharAt(e, j) == "[" {
+            if j < n && CodegenCharAt(e, j) == "[" {
                 let close_opt: Option<Int> = FindMatchingBracket(e, j);
                 if !IsSome(close_opt) {
                     Die(Concat("unmatched index bracket: ", e));
@@ -188,7 +188,7 @@ func FindTopLevelOp2(s: String, op: String) -> Option<Int> {
     let depth: Int = 0;
     let in_str: Bool = false;
     while i < n {
-        let c: String = CharAt(s, i);
+        let c: String = CodegenCharAt(s, i);
         if in_str {
             if c == "\\" {
                 i = i + 2;
@@ -235,7 +235,7 @@ func RewriteBool(e: String, env: String) -> String {
     }
     // Fully parenthesized group -> recurse inside, keep the parens.
     let close_opt: Option<Int> = FindMatchingParen(s, 0);
-    if CharAt(s, 0) == "(" && IsSome(close_opt) && UnwrapOption(close_opt) == n - 1 {
+    if CodegenCharAt(s, 0) == "(" && IsSome(close_opt) && UnwrapOption(close_opt) == n - 1 {
         return Concat("(", Concat(RewriteBool(Substring(s, 1, n - 2), env), ")"));
     }
     // Lowest precedence first: `||`, then `&&`.

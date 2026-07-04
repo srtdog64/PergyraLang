@@ -6,13 +6,13 @@ func ParseParallelStmt(content: String, after_head: Int, inout cursor_out: Array
     if MatchKeyword(content, parallel_probe, "on") {
         i = parallel_probe + 2;
         i = SkipWhitespaceAndComments(content, i);
-        if CharAt(content, i) == "(" {
+        if ParserCharAt(content, i) == "(" {
             let on_depth: Int = 1;
             i = i + 1;
             while i < StringLength(content) && on_depth > 0 {
-                if CharAt(content, i) == "(" {
+                if ParserCharAt(content, i) == "(" {
                     on_depth = on_depth + 1;
-                } else if CharAt(content, i) == ")" {
+                } else if ParserCharAt(content, i) == ")" {
                     on_depth = on_depth - 1;
                 }
                 i = i + 1;
@@ -39,13 +39,13 @@ func ParseParallelStmt(content: String, after_head: Int, inout cursor_out: Array
                 i = i + 5;
             }
             i = SkipWhitespaceAndComments(content, i);
-            if is_every_wrapper && CharAt(content, i) == "(" {
+            if is_every_wrapper && ParserCharAt(content, i) == "(" {
                 let every_depth: Int = 1;
                 i = i + 1;
                 while i < StringLength(content) && every_depth > 0 {
-                    if CharAt(content, i) == "(" {
+                    if ParserCharAt(content, i) == "(" {
                         every_depth = every_depth + 1;
-                    } else if CharAt(content, i) == ")" {
+                    } else if ParserCharAt(content, i) == ")" {
                         every_depth = every_depth - 1;
                     }
                     i = i + 1;
@@ -65,7 +65,7 @@ func ParseParallelStmt(content: String, after_head: Int, inout cursor_out: Array
             let direct_out: String = "";
             while true {
                 i = SkipWhitespaceAndComments(content, i);
-                if CharAt(content, i) == "}" {
+                if ParserCharAt(content, i) == "}" {
                     i = i + 1;
                     break;
                 }
@@ -92,13 +92,13 @@ func ParseParallelStmt(content: String, after_head: Int, inout cursor_out: Array
     // directly under it at stmt_indent + 2 (no intermediate `Block:`
     // wrapper).
     i = SkipWhitespaceAndComments(content, i);
-    if CharAt(content, i) == "(" {
+    if ParserCharAt(content, i) == "(" {
         let ptarget_depth: Int = 1;
         i = i + 1;
         while i < StringLength(content) && ptarget_depth > 0 {
-            if CharAt(content, i) == "(" {
+            if ParserCharAt(content, i) == "(" {
                 ptarget_depth = ptarget_depth + 1;
-            } else if CharAt(content, i) == ")" {
+            } else if ParserCharAt(content, i) == ")" {
                 ptarget_depth = ptarget_depth - 1;
             }
             i = i + 1;
@@ -106,7 +106,7 @@ func ParseParallelStmt(content: String, after_head: Int, inout cursor_out: Array
         if ptarget_depth != 0 {
             Exit(1);
         }
-        while i < StringLength(content) && CharAt(content, i) != "\n" && CharAt(content, i) != ";" && CharAt(content, i) != "}" {
+        while i < StringLength(content) && ParserCharAt(content, i) != "\n" && ParserCharAt(content, i) != ";" && ParserCharAt(content, i) != "}" {
             i = i + 1;
         }
         i = ConsumeStmtTerminator(content, i);

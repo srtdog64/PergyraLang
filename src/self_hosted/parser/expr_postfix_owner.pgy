@@ -8,7 +8,7 @@ func ApplyPostfixExpr(content: String, base_start: String, after_base: Int, inou
     // leading turbofish that is consumed only when it belongs to a call.
     while true {
         let after_ws: Int = SkipWhitespaceAndComments(content, i);
-        let nc: String = CharAt(content, after_ws);
+        let nc: String = ParserCharAt(content, after_ws);
         if nc == "<" {
             // Tentatively skip a nested `<...>` type-argument list and only
             // commit if the char after the matching `>` is `(`. Otherwise
@@ -17,16 +17,16 @@ func ApplyPostfixExpr(content: String, base_start: String, after_base: Int, inou
             let tf_depth: Int = 1;
             let tf_ok: Bool = false;
             while tf < StringLength(content) && tf_depth > 0 {
-                if CharAt(content, tf) == "<" {
+                if ParserCharAt(content, tf) == "<" {
                     tf_depth = tf_depth + 1;
-                } else if CharAt(content, tf) == ">" {
+                } else if ParserCharAt(content, tf) == ">" {
                     tf_depth = tf_depth - 1;
                 }
                 tf = tf + 1;
             }
             if tf_depth == 0 {
                 let after_gt: Int = SkipWhitespaceAndComments(content, tf);
-                if CharAt(content, after_gt) == "(" {
+                if ParserCharAt(content, after_gt) == "(" {
                     tf_ok = true;
                     i = tf;
                 }
@@ -40,18 +40,18 @@ func ApplyPostfixExpr(content: String, base_start: String, after_base: Int, inou
         if nc == "{" {
             let field_probe: Int = SkipWhitespaceAndComments(content, after_ws + 1);
             let probe: Int = field_probe;
-            while IsAlphaNum(CharAt(content, probe)) {
+            while IsAlphaNum(ParserCharAt(content, probe)) {
                 probe = probe + 1;
             }
             let after_field_probe: Int = SkipWhitespaceAndComments(content, probe);
-            if !IsAlpha(CharAt(content, field_probe)) || CharAt(content, after_field_probe) != ":" {
+            if !IsAlpha(ParserCharAt(content, field_probe)) || ParserCharAt(content, after_field_probe) != ":" {
                 ArraySet(cursor_out, 0, i);
                 break;
             }
             i = after_ws + 1;
             let init_args: String = "";
             i = SkipWhitespaceAndComments(content, i);
-            if CharAt(content, i) != "}" {
+            if ParserCharAt(content, i) != "}" {
                 while true {
                     i = SkipWhitespaceAndComments(content, i);
                     ArraySet(cursor_out, 0, i);
@@ -74,7 +74,7 @@ func ApplyPostfixExpr(content: String, base_start: String, after_base: Int, inou
                         init_args = Concat(init_args, Concat(", ", init_pair));
                     }
                     i = SkipWhitespaceAndComments(content, i);
-                    if CharAt(content, i) == "," {
+                    if ParserCharAt(content, i) == "," {
                         i = i + 1;
                         continue;
                     }
@@ -92,7 +92,7 @@ func ApplyPostfixExpr(content: String, base_start: String, after_base: Int, inou
             i = after_ws + 1;
             let arg_text: String = "";
             i = SkipWhitespaceAndComments(content, i);
-            if CharAt(content, i) != ")" {
+            if ParserCharAt(content, i) != ")" {
                 while true {
                     ArraySet(cursor_out, 0, i);
                     let a: String = ParseExpr(content, i, cursor_out);
@@ -103,7 +103,7 @@ func ApplyPostfixExpr(content: String, base_start: String, after_base: Int, inou
                         arg_text = Concat(arg_text, Concat(", ", a));
                     }
                     i = SkipWhitespaceAndComments(content, i);
-                    if CharAt(content, i) == "," {
+                    if ParserCharAt(content, i) == "," {
                         i = i + 1;
                         continue;
                     }
@@ -134,7 +134,7 @@ func ApplyPostfixExpr(content: String, base_start: String, after_base: Int, inou
             base = Concat("(?", Concat(base, ")"));
             continue;
         }
-        if nc == "." && CharAt(content, after_ws + 1) != "." {
+        if nc == "." && ParserCharAt(content, after_ws + 1) != "." {
             i = after_ws + 1;
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);

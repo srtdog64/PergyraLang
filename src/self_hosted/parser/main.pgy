@@ -15,4 +15,5 @@ func Main() -> Void with caps env, io_read {
     let run_args: Array<String> = Args();
     let source_path: String = ParserDefaultSourcePath(run_args);
     Log(ParseRootProgram(source_path));
+    Log("");
 }

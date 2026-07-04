@@ -2,7 +2,8 @@
 #
 # selfhost_driver_lsp_wiring_smoke.sh — docs/150's rung ladder is a CONTRACT.
 # A rung marked `landed` must name an artifact and a gate that exist on disk;
-# a rung marked `planned` must claim neither. This blocks fake self-host
+# a rung marked `blocked` must name both plus an explicit blocker; a rung
+# marked `planned` must claim neither. This blocks fake self-host
 # progress in either direction: claiming what does not exist, and building
 # what the ladder never registered.
 
@@ -45,6 +46,16 @@ while IFS='|' read -r _ track rung status artifact gate _; do
             [ -e "$ROOT_DIR/$gate" ] ||
                 fail "$rung: landed gate '$gate' does not exist"
             ;;
+        blocked)
+            [ "$artifact" != "-" ] || fail "$rung is blocked but names no artifact"
+            [ "$gate" != "-" ] || fail "$rung is blocked but names no gate"
+            [ -e "$ROOT_DIR/$artifact" ] ||
+                fail "$rung: blocked artifact '$artifact' does not exist"
+            [ -e "$ROOT_DIR/$gate" ] ||
+                fail "$rung: blocked gate '$gate' does not exist"
+            grep -Fq "$rung blocker" "$DOC" ||
+                fail "$rung is blocked but its blocker is not documented"
+            ;;
         planned)
             [ "$artifact" = "-" ] && [ "$gate" = "-" ] ||
                 fail "$rung is planned but claims artifact/gate (land it or clear the claim)"
@@ -63,4 +74,4 @@ if printf '%s\n' "$rows" | grep -Fq "| LSP-2 | planned |"; then
     grep -Fq "G-STDIN" "$DOC" || fail "LSP-2 is planned but the G-STDIN gap entry vanished"
 fi
 
-echo "[driver-lsp-wiring] rung ladder honest (landed==exists, planned==unclaimed, gaps visible)"
+echo "[driver-lsp-wiring] rung ladder honest (landed==exists, blocked==documented, planned==unclaimed, gaps visible)"

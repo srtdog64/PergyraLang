@@ -18,7 +18,7 @@ func ParseAbilityDecl(content: String, start: Int, inout cursor_out: Array<Int>,
         Exit(1);
     }
     let after_ab_ws: Int = SkipWhitespaceAndComments(content, i);
-    if CharAt(content, after_ab_ws) == "<" {
+    if ParserCharAt(content, after_ab_ws) == "<" {
         i = after_ab_ws + 1;
         let gp_list: String = "";
         while true {
@@ -35,13 +35,13 @@ func ParseAbilityDecl(content: String, start: Int, inout cursor_out: Array<Int>,
                 gp_list = Concat(gp_list, Concat(", ", gp));
             }
             i = SkipWhitespaceAndComments(content, i);
-            if CharAt(content, i) == "," {
+            if ParserCharAt(content, i) == "," {
                 i = i + 1;
                 continue;
             }
             break;
         }
-        if CharAt(content, i) != ">" {
+        if ParserCharAt(content, i) != ">" {
             Exit(1);
         }
         i = i + 1;
@@ -57,7 +57,7 @@ func ParseAbilityDecl(content: String, start: Int, inout cursor_out: Array<Int>,
         if i >= n {
             Exit(1);
         }
-        if CharAt(content, i) == "}" {
+        if ParserCharAt(content, i) == "}" {
             i = i + 1;
             break;
         }

@@ -14,7 +14,7 @@ func JsonArrayEnd(json: String, open: Int, limit: Int) -> Option<Int> {
     let in_string: Bool = false;
     let escape: Bool = false;
     while i < n && i < limit {
-        let c: String = CharAt(json, i);
+        let c: String = JsonCharAt(json, i);
         if in_string {
             if escape {
                 escape = false;
@@ -45,7 +45,7 @@ func JsonObjectEnd(json: String, open: Int, limit: Int) -> Option<Int> {
     let in_string: Bool = false;
     let escape: Bool = false;
     while i < n && i < limit {
-        let c: String = CharAt(json, i);
+        let c: String = JsonCharAt(json, i);
         if in_string {
             if escape {
                 escape = false;
@@ -74,7 +74,7 @@ func ReadJsonString(json: String, open: Int, inout end: Array<Int>) -> String {
     let i: Int = open + 1;
     let out: String = "";
     while i < n {
-        let c: String = CharAt(json, i);
+        let c: String = JsonCharAt(json, i);
         if c == "\"" {
             ArraySet(end, 0, i + 1);
             return out;
@@ -83,7 +83,7 @@ func ReadJsonString(json: String, open: Int, inout end: Array<Int>) -> String {
             if i + 1 >= n {
                 return "";
             }
-            let e: String = CharAt(json, i + 1);
+            let e: String = JsonCharAt(json, i + 1);
             if e == "n" {
                 out = Concat(out, "\n");
             } else if e == "r" {
@@ -120,7 +120,7 @@ func JsonFieldString(json: String, start: Int, end: Int, key: String) -> String 
         return "";
     }
     vstart = JsonSkipWhitespace(json, vstart, end);
-    if vstart >= end || CharAt(json, vstart) != "\"" {
+    if vstart >= end || JsonCharAt(json, vstart) != "\"" {
         return "";
     }
     let e: Array<Int> = [0];
@@ -136,7 +136,7 @@ func JsonDocumentObjectEnd(json: String) -> Option<Int> {
     if n <= 0 {
         return None;
     }
-    if CharAt(json, 0) != "{" {
+    if JsonCharAt(json, 0) != "{" {
         return None;
     }
     return JsonObjectEnd(json, 0, n);
@@ -194,7 +194,7 @@ func JsonFieldNumber(json: String, start: Int, end: Int, key: String) -> String 
     let n: Int = StringLength(json);
     let out: String = "";
     while i < n && i < end {
-        let c: String = CharAt(json, i);
+        let c: String = JsonCharAt(json, i);
         if !JsonIsDigitChar(c) {
             if StringLength(out) > 0 {
                 return out;
@@ -212,7 +212,7 @@ func JsonValueEnd(json: String, value_start: Int, end: Int) -> Option<Int> {
     if i >= end {
         return None;
     }
-    let c: String = CharAt(json, i);
+    let c: String = JsonCharAt(json, i);
     if c == "\"" {
         let string_end: Array<Int> = [0];
         let ignored: String = ReadJsonString(json, i, string_end);
@@ -229,7 +229,7 @@ func JsonValueEnd(json: String, value_start: Int, end: Int) -> Option<Int> {
         return Some(array_close + 1);
     }
     while i < end {
-        let d: String = CharAt(json, i);
+        let d: String = JsonCharAt(json, i);
         if d == "," || d == "}" || d == "]" {
             return Some(i);
         }
@@ -242,7 +242,7 @@ func JsonObjectFieldValueBounds(json: String, start: Int, end: Int, field: Strin
     if start < 0 || end <= start {
         return false;
     }
-    if CharAt(json, start) != "{" {
+    if JsonCharAt(json, start) != "{" {
         return false;
     }
     let i: Int = start + 1;
@@ -251,7 +251,7 @@ func JsonObjectFieldValueBounds(json: String, start: Int, end: Int, field: Strin
         if i >= end {
             return false;
         }
-        let c: String = CharAt(json, i);
+        let c: String = JsonCharAt(json, i);
         if c == "}" {
             return false;
         }
@@ -268,7 +268,7 @@ func JsonObjectFieldValueBounds(json: String, start: Int, end: Int, field: Strin
             return false;
         }
         i = JsonSkipWhitespace(json, key_end[0], end);
-        if i >= end || CharAt(json, i) != ":" {
+        if i >= end || JsonCharAt(json, i) != ":" {
             return false;
         }
         i = JsonSkipWhitespace(json, i + 1, end);
@@ -300,7 +300,7 @@ func JsonObjectStringFieldOpt(json: String, start: Int, end: Int, field: String)
     if !JsonObjectFieldValueBounds(json, start, end, field, bounds) {
         return None;
     }
-    if bounds[0] >= bounds[1] || CharAt(json, bounds[0]) != "\"" {
+    if bounds[0] >= bounds[1] || JsonCharAt(json, bounds[0]) != "\"" {
         return None;
     }
     let string_end: Array<Int> = [0];
@@ -327,7 +327,7 @@ func JsonObjectNumberFieldOpt(json: String, start: Int, end: Int, field: String)
     let i: Int = bounds[0];
     let out: String = "";
     while i < bounds[1] {
-        let c: String = CharAt(json, i);
+        let c: String = JsonCharAt(json, i);
         if !JsonIsDigitChar(c) {
             if StringLength(out) > 0 {
                 return Some(out);
@@ -384,7 +384,7 @@ func JsonArrayObjectBoundsAt(json: String, array_open: Int, array_end: Int, targ
         if i >= array_end {
             return false;
         }
-        let c: String = CharAt(json, i);
+        let c: String = JsonCharAt(json, i);
         if c == "]" {
             return false;
         }
@@ -470,7 +470,7 @@ func JsonArrayStringAt(json: String, array_open: Int, array_end: Int, target_ind
         if i >= array_end {
             return "";
         }
-        let c: String = CharAt(json, i);
+        let c: String = JsonCharAt(json, i);
         if c == "]" {
             return "";
         }
@@ -500,14 +500,14 @@ func JsonArrayStringCount(json: String, array_open: Int, array_end: Int) -> Int 
     let i: Int = array_open + 1;
     while i < array_end {
         i = JsonSkipWhitespace(json, i, array_end);
-        if i >= array_end || CharAt(json, i) == "]" {
+        if i >= array_end || JsonCharAt(json, i) == "]" {
             return count;
         }
-        if CharAt(json, i) == "," {
+        if JsonCharAt(json, i) == "," {
             i = i + 1;
             continue;
         }
-        if CharAt(json, i) != "\"" {
+        if JsonCharAt(json, i) != "\"" {
             return count;
         }
         let value_end: Array<Int> = [0];
@@ -526,7 +526,7 @@ func JsonObjectArrayStringAt(json: String, start: Int, end: Int, field: String, 
     if !JsonObjectFieldValueBounds(json, start, end, field, bounds) {
         return "";
     }
-    if bounds[0] >= bounds[1] || CharAt(json, bounds[0]) != "[" {
+    if bounds[0] >= bounds[1] || JsonCharAt(json, bounds[0]) != "[" {
         return "";
     }
     return JsonArrayStringAt(json, bounds[0], bounds[1], target_index);

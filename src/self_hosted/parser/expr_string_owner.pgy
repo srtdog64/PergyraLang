@@ -10,7 +10,7 @@ func DesugarStringInterpolation(s: String) -> String {
     let expr: String = "";
     let content_end: Int = n - 1;
     while i < content_end {
-        if CharAt(s, i) == "$" && CharAt(s, i + 1) == "{" {
+        if ParserCharAt(s, i) == "$" && ParserCharAt(s, i + 1) == "{" {
             if i > segment_start {
                 let part: String = Substring(s, segment_start, i - segment_start);
                 let part_lit: String = Concat("\"", Concat(part, "\""));
@@ -22,7 +22,7 @@ func DesugarStringInterpolation(s: String) -> String {
             }
             i = i + 2;
             let var_start: Int = i;
-            while i < content_end && CharAt(s, i) != "}" {
+            while i < content_end && ParserCharAt(s, i) != "}" {
                 i = i + 1;
             }
             if i >= content_end {
@@ -66,7 +66,7 @@ func DesugarDollarStringInterpolation(s: String) -> String {
     let expr: String = "";
     let content_end: Int = n - 1;
     while i < content_end {
-        if CharAt(s, i) == "{" {
+        if ParserCharAt(s, i) == "{" {
             if i > segment_start {
                 let part: String = Substring(s, segment_start, i - segment_start);
                 let part_lit: String = Concat("\"", Concat(part, "\""));
@@ -78,7 +78,7 @@ func DesugarDollarStringInterpolation(s: String) -> String {
             }
             i = i + 1;
             let var_start: Int = i;
-            while i < content_end && CharAt(s, i) != "}" {
+            while i < content_end && ParserCharAt(s, i) != "}" {
                 i = i + 1;
             }
             if i >= content_end {

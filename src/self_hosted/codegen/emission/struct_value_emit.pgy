@@ -20,7 +20,7 @@ func EmitStructValue(expr: String, sname: String, env: String) -> String {
 func EmitStructLit(expr: String, env: String) -> String {
     let e: String = StringTrim(expr);
     let op: Int = StringIndexOf(e, "(");
-    if op <= 0 || CharAt(e, StringLength(e) - 1) != ")" {
+    if op <= 0 || CodegenCharAt(e, StringLength(e) - 1) != ")" {
         Die(Concat("malformed struct literal: ", expr));
     }
     let sname: String = Substring(e, 0, op);

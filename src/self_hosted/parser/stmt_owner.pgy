@@ -72,14 +72,14 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
         }
         i = i + 4;
         i = SkipWhitespaceAndComments(content, i);
-        if CharAt(content, i) != "<" {
+        if ParserCharAt(content, i) != "<" {
             Exit(1);
         }
         i = i + 1;
         ArraySet(cursor_out, 0, i);
         let with_type: String = ReadType(content, i, cursor_out);
         i = cursor_out[0];
-        if CharAt(content, i) != ">" {
+        if ParserCharAt(content, i) != ">" {
             Exit(1);
         }
         i = i + 1;
@@ -127,7 +127,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
             if i >= n_tx {
                 Exit(1);
             }
-            if CharAt(content, i) == "}" {
+            if ParserCharAt(content, i) == "}" {
                 i = i + 1;
                 break;
             }
@@ -199,11 +199,11 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
         // only when it begins on the same source line.
         let fail_cursor: Int = i;
         let reason_start: Int = i;
-        while CharAt(content, reason_start) == " " || CharAt(content, reason_start) == "\t" || CharAt(content, reason_start) == "\r" {
+        while ParserCharAt(content, reason_start) == " " || ParserCharAt(content, reason_start) == "\t" || ParserCharAt(content, reason_start) == "\r" {
             reason_start = reason_start + 1;
         }
         let fail_out: String = Concat(IndentStr(stmt_indent), "Fail:");
-        if CharAt(content, reason_start) == "\n" || CharAt(content, reason_start) == ";" || CharAt(content, reason_start) == "}" {
+        if ParserCharAt(content, reason_start) == "\n" || ParserCharAt(content, reason_start) == ";" || ParserCharAt(content, reason_start) == "}" {
             i = ConsumeStmtTerminator(content, fail_cursor);
             if i < 0 {
                 Exit(1);
@@ -233,7 +233,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
     if head == "return" {
         // `return ;`  or  `return EXPR ;`
         i = SkipWhitespaceAndComments(content, i);
-        if CharAt(content, i) == ";" {
+        if ParserCharAt(content, i) == ";" {
             i = i + 1;
             ArraySet(cursor_out, 0, i);
             return Concat(IndentStr(stmt_indent), "Return");
@@ -258,7 +258,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
         // emitted by `pgy --ast` as the literal placeholder text
         // `AST node type 6` (the C printer has no print form for
         // destructuring pattern nodes). Consume and emit that bytes.
-        if CharAt(content, i) == "(" {
+        if ParserCharAt(content, i) == "(" {
             i = i + 1;
             while true {
                 i = SkipWhitespaceAndComments(content, i);
@@ -269,7 +269,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
                     Exit(1);
                 }
                 i = SkipWhitespaceAndComments(content, i);
-                if CharAt(content, i) == "," {
+                if ParserCharAt(content, i) == "," {
                     i = i + 1;
                     continue;
                 }
@@ -308,7 +308,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
         i = SkipWhitespaceAndComments(content, i);
         let var_type: String = "";
         let has_type: Bool = false;
-        if CharAt(content, i) == ":" {
+        if ParserCharAt(content, i) == ":" {
             i = i + 1;
             ArraySet(cursor_out, 0, i);
             var_type = ReadType(content, i, cursor_out);
@@ -355,7 +355,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
     // at the statement indent. The C parser uses this shape for
     // `event += handler` registration; non-event `+=` is a parse error
     // upstream so we don't need to reject misuse here.
-    if CharAt(content, peek) == "+" && CharAt(content, peek + 1) == "=" {
+    if ParserCharAt(content, peek) == "+" && ParserCharAt(content, peek + 1) == "=" {
         i = peek + 2;
         ArraySet(cursor_out, 0, i);
         let rhs: String = ParseExpr(content, i, cursor_out);
@@ -370,7 +370,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
     }
     // Event unsubscription: `LHS -= RHS ;` emits
     //   EventUnsubscribe: LHS -= RHS
-    if CharAt(content, peek) == "-" && CharAt(content, peek + 1) == "=" {
+    if ParserCharAt(content, peek) == "-" && ParserCharAt(content, peek + 1) == "=" {
         i = peek + 2;
         ArraySet(cursor_out, 0, i);
         let unsub_rhs: String = ParseExpr(content, i, cursor_out);
@@ -386,7 +386,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
     // Channel send statement: `LHS <- RHS ;` emits
     //   ChannelSend: LHS <- RHS
     // at the statement indent.
-    if CharAt(content, peek) == "<" && CharAt(content, peek + 1) == "-" {
+    if ParserCharAt(content, peek) == "<" && ParserCharAt(content, peek + 1) == "-" {
         i = peek + 2;
         ArraySet(cursor_out, 0, i);
         let send_rhs: String = ParseExpr(content, i, cursor_out);
@@ -399,7 +399,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
         let send_text: String = Concat("ChannelSend: ", Concat(lhs, Concat(" <- ", send_rhs)));
         return Concat(IndentStr(stmt_indent), send_text);
     }
-    if CharAt(content, peek) == "=" && CharAt(content, peek + 1) != "=" {
+    if ParserCharAt(content, peek) == "=" && ParserCharAt(content, peek + 1) != "=" {
         i = peek + 1;
         ArraySet(cursor_out, 0, i);
         let rhs: String = ParseExpr(content, i, cursor_out);
@@ -440,7 +440,7 @@ func ParseBlock(content: String, start: Int, inout cursor_out: Array<Int>, stmt_
         if i >= n {
             Exit(1);
         }
-        if CharAt(content, i) == "}" {
+        if ParserCharAt(content, i) == "}" {
             i = i + 1;
             ArraySet(cursor_out, 0, i);
             return out;

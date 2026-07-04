@@ -5,11 +5,15 @@
 // native runtime IO path resolver.
 
 namespace SelfHostPath {
+    func PathCharAt(path: String, index: Int) -> String {
+        return Substring(path, index, 1);
+    }
+
     export func Dirname(path: String) -> String {
         let last_slash: Int = -1;
         let i: Int = 0;
         while i < StringLength(path) {
-            if CharAt(path, i) == "/" {
+            if PathCharAt(path, i) == "/" {
                 last_slash = i;
             }
             i = i + 1;
@@ -24,10 +28,10 @@ namespace SelfHostPath {
         if StringLength(path) == 0 {
             return false;
         }
-        if CharAt(path, 0) == "/" {
+        if PathCharAt(path, 0) == "/" {
             return true;
         }
-        if StringLength(path) > 1 && CharAt(path, 1) == ":" {
+        if StringLength(path) > 1 && PathCharAt(path, 1) == ":" {
             return true;
         }
         return false;

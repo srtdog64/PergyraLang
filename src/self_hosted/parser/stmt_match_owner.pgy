@@ -27,7 +27,7 @@ func ParseMatchStmt(content: String, after_head: Int, inout cursor_out: Array<In
         if i >= n_m {
             Exit(1);
         }
-        if CharAt(content, i) == "}" {
+        if ParserCharAt(content, i) == "}" {
             i = i + 1;
             break;
         }
@@ -60,7 +60,7 @@ func ParseMatchStmt(content: String, after_head: Int, inout cursor_out: Array<In
             if i >= n_m {
                 Exit(1);
             }
-            if CharAt(content, i) == "}" || MatchKeyword(content, i, "case") || MatchKeyword(content, i, "default") {
+            if ParserCharAt(content, i) == "}" || MatchKeyword(content, i, "case") || MatchKeyword(content, i, "default") {
                 break;
             }
             ArraySet(cursor_out, 0, i);

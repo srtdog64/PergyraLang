@@ -11,12 +11,12 @@ func MirFactObjectStart(json: String, start: Int) -> Int {
     if start < 0 {
         return start;
     }
-    if CharAt(json, start) == "{" {
+    if JsonCharAt(json, start) == "{" {
         return start;
     }
     let i: Int = start - 1;
     while i >= 0 {
-        let c: String = CharAt(json, i);
+        let c: String = JsonCharAt(json, i);
         if c == "{" {
             return i;
         }
@@ -83,7 +83,7 @@ func MirObjectArrayBounds(json: String, start: Int, end: Int, field: String, ino
     if bounds[0] >= bounds[1] {
         return false;
     }
-    return CharAt(json, bounds[0]) == "[";
+    return JsonCharAt(json, bounds[0]) == "[";
 }
 
 func MirObjectArrayObjectBoundsAt(

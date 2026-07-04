@@ -58,10 +58,10 @@ func EmitLet(node: CodegenAstTextNode, inout env_box: Array<String>) -> String {
         ArraySet(env_box, 0, Concat(env_box[0], Concat(name, Concat("=v:", Concat(array_kind, "|")))));
         // Non-literal initializer (e.g. `Args()` or an array-returning call):
         // bind the array value directly.
-        if exn < 1 || CharAt(ex, 0) != "[" {
+        if exn < 1 || CodegenCharAt(ex, 0) != "[" {
             return Concat(c_type, Concat(" ", Concat(name, Concat(" = ", Concat(RewriteExpr(ex, env_box[0]), ";")))));
         }
-        if CharAt(ex, exn - 1) != "]" {
+        if CodegenCharAt(ex, exn - 1) != "]" {
             Die(Concat("malformed array literal initializer: ", expr));
         }
         let out: String = Concat(c_type, Concat(" ", Concat(name, Concat(" = ", Concat(new_fn, "();")))));
@@ -115,7 +115,7 @@ func EmitLet(node: CodegenAstTextNode, inout env_box: Array<String>) -> String {
 func TryExprInner(expr: String) -> String {
     let e: String = StringTrim(expr);
     let n: Int = StringLength(e);
-    if n < 4 || CharAt(e, 0) != "(" || CharAt(e, 1) != "?" || CharAt(e, n - 1) != ")" {
+    if n < 4 || CodegenCharAt(e, 0) != "(" || CodegenCharAt(e, 1) != "?" || CodegenCharAt(e, n - 1) != ")" {
         return "";
     }
     let close_opt: Option<Int> = FindMatchingParen(e, 0);
@@ -180,7 +180,7 @@ func EmitAssign(node: CodegenAstTextNode, env_box: Array<String>) -> String {
     let name: String = CodegenAstTextAssignTarget(node);
     let expr: String = CodegenAstTextAssignValue(node);
     let lb: Int = StringIndexOf(name, "[");
-    if lb > 0 && CharAt(name, StringLength(name) - 1) == "]" {
+    if lb > 0 && CodegenCharAt(name, StringLength(name) - 1) == "]" {
         let arr_name: String = Substring(name, 0, lb);
         let idx_expr: String = Substring(name, lb + 1, StringLength(name) - lb - 2);
         let arr_kind: String = LookupKindType(env_box[0], arr_name, "v");
@@ -216,7 +216,7 @@ func EmitAssign(node: CodegenAstTextNode, env_box: Array<String>) -> String {
 func EmitLog(inner: String, env: String) -> String {
     if StartsWith(inner, "ToString(") {
         let n: Int = StringLength(inner);
-        if CharAt(inner, n - 1) != ")" {
+        if CodegenCharAt(inner, n - 1) != ")" {
             Die(Concat("malformed ToString(...): ", inner));
         }
         let arg: String = Substring(inner, 9, n - 9 - 1);

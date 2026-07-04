@@ -22,7 +22,9 @@ func ParseRootProgram(source_path: String) -> String {
     let import_paths: Array<String> = [source_path];
     let decls: String = ParseDecls(content, i, cursor, "", false, src_dir, false, "", involve_types, import_paths);
     if StringLength(decls) == 0 {
-        return "Program:";
+        let empty_program: String = "Program:";
+        return Concat(empty_program, "\n");
     }
-    return Concat("Program:\n", decls);
+    let program_text: String = Concat("Program:\n", decls);
+    return Concat(program_text, "\n");
 }

@@ -36,7 +36,7 @@ func ParseZoneDecl(content: String, start: Int, inout cursor_out: Array<Int>, de
         if i >= n {
             Exit(1);
         }
-        if CharAt(content, i) == "}" {
+        if ParserCharAt(content, i) == "}" {
             i = i + 1;
             break;
         }
@@ -140,7 +140,7 @@ func ParseZoneDecl(content: String, start: Int, inout cursor_out: Array<Int>, de
             if i < 0 { Exit(1); }
             i = SkipWhitespaceAndComments(content, i);
             let st_start: Int = i;
-            while i < n && CharAt(content, i) != ";" {
+            while i < n && ParserCharAt(content, i) != ";" {
                 i = i + 1;
             }
             let st_val: String = Substring(content, st_start, i - st_start);
@@ -152,7 +152,7 @@ func ParseZoneDecl(content: String, start: Int, inout cursor_out: Array<Int>, de
             i = i + 4;
             i = SkipWhitespaceAndComments(content, i);
             let list_start: Int = i;
-            if CharAt(content, i) == "[" {
+            if ParserCharAt(content, i) == "[" {
                 i = i + 1;
                 while true {
                     i = SkipWhitespaceAndComments(content, i);
@@ -161,7 +161,7 @@ func ParseZoneDecl(content: String, start: Int, inout cursor_out: Array<Int>, de
                     i = cursor_out[0];
                     if StringLength(dummy) == 0 { Exit(1); }
                     i = SkipWhitespaceAndComments(content, i);
-                    if CharAt(content, i) == "," {
+                    if ParserCharAt(content, i) == "," {
                         i = i + 1;
                         continue;
                     }
@@ -183,13 +183,13 @@ func ParseZoneDecl(content: String, start: Int, inout cursor_out: Array<Int>, de
             let from_name: String = ReadIdent(content, i, cursor_out);
             i = cursor_out[0];
             i = SkipWhitespaceAndComments(content, i);
-            if CharAt(content, i) == ";" {
+            if ParserCharAt(content, i) == ";" {
                 i = i + 1;
             }
             ArraySet(cursor_out, 0, i);
 
             let k: Int = list_start;
-            if CharAt(content, k) == "[" {
+            if ParserCharAt(content, k) == "[" {
                 k = k + 1;
                 while true {
                     k = SkipWhitespaceAndComments(content, k);
@@ -198,7 +198,7 @@ func ParseZoneDecl(content: String, start: Int, inout cursor_out: Array<Int>, de
                     k = cursor_out[0];
                     bind_accum = AppendLine(bind_accum, Concat("    Bind: ", Concat(t_name, Concat(" from ", from_name))));
                     k = SkipWhitespaceAndComments(content, k);
-                    if CharAt(content, k) == "," {
+                    if ParserCharAt(content, k) == "," {
                         k = k + 1;
                         continue;
                     }
@@ -222,7 +222,7 @@ func ParseZoneDecl(content: String, start: Int, inout cursor_out: Array<Int>, de
             i = i + ref_pub_kw_len;
             i = SkipWhitespaceAndComments(content, i);
             let list_start: Int = i;
-            if CharAt(content, i) == "[" {
+            if ParserCharAt(content, i) == "[" {
                 i = i + 1;
                 while true {
                     i = SkipWhitespaceAndComments(content, i);
@@ -231,7 +231,7 @@ func ParseZoneDecl(content: String, start: Int, inout cursor_out: Array<Int>, de
                     i = cursor_out[0];
                     if StringLength(dummy) == 0 { Exit(1); }
                     i = SkipWhitespaceAndComments(content, i);
-                    if CharAt(content, i) == "," {
+                    if ParserCharAt(content, i) == "," {
                         i = i + 1;
                         continue;
                     }
@@ -267,14 +267,14 @@ func ParseZoneDecl(content: String, start: Int, inout cursor_out: Array<Int>, de
                 if i < 0 { Exit(1); }
                 while true {
                     i = SkipWhitespaceAndComments(content, i);
-                    if CharAt(content, i) == "}" {
+                    if ParserCharAt(content, i) == "}" {
                         i = i + 1;
                         break;
                     }
-                    while i < n && CharAt(content, i) != ";" && CharAt(content, i) != "}" {
+                    while i < n && ParserCharAt(content, i) != ";" && ParserCharAt(content, i) != "}" {
                         i = i + 1;
                     }
-                    if CharAt(content, i) == ";" {
+                    if ParserCharAt(content, i) == ";" {
                         i = i + 1;
                     } else {
                         Exit(1);
@@ -282,13 +282,13 @@ func ParseZoneDecl(content: String, start: Int, inout cursor_out: Array<Int>, de
                 }
             } else {
                 i = SkipWhitespaceAndComments(content, i);
-                if CharAt(content, i) == ";" {
+                if ParserCharAt(content, i) == ";" {
                     i = i + 1;
                 }
             }
 
             let k: Int = list_start;
-            if CharAt(content, k) == "[" {
+            if ParserCharAt(content, k) == "[" {
                 k = k + 1;
                 while true {
                     k = SkipWhitespaceAndComments(content, k);
@@ -297,7 +297,7 @@ func ParseZoneDecl(content: String, start: Int, inout cursor_out: Array<Int>, de
                     k = cursor_out[0];
                     bind_accum = AppendLine(bind_accum, Concat("    ", Concat(ref_pub_label, Concat(": ", Concat(t_name, Concat(" from ", Concat(from_name, Concat(" by ", by_name))))))));
                     k = SkipWhitespaceAndComments(content, k);
-                    if CharAt(content, k) == "," {
+                    if ParserCharAt(content, k) == "," {
                         k = k + 1;
                         continue;
                     }
@@ -334,7 +334,7 @@ func ParseZoneDecl(content: String, start: Int, inout cursor_out: Array<Int>, de
                 i = cursor_out[0];
                 while true {
                     i = SkipWhitespaceAndComments(content, i);
-                    if CharAt(content, i) == "," {
+                    if ParserCharAt(content, i) == "," {
                         i = i + 1;
                         i = SkipWhitespaceAndComments(content, i);
                         ArraySet(cursor_out, 0, i);
@@ -347,7 +347,7 @@ func ParseZoneDecl(content: String, start: Int, inout cursor_out: Array<Int>, de
                 }
             }
             i = SkipWhitespaceAndComments(content, i);
-            if CharAt(content, i) == ";" {
+            if ParserCharAt(content, i) == ";" {
                 i = i + 1;
             }
             auth_accum = AppendLine(auth_accum, Concat("    Authority: ", auth_name));
@@ -377,7 +377,7 @@ func ParseZoneDecl(content: String, start: Int, inout cursor_out: Array<Int>, de
                 Exit(1);
             }
             i = SkipWhitespaceAndComments(content, i);
-            if CharAt(content, i) == ";" {
+            if ParserCharAt(content, i) == ";" {
                 i = i + 1;
             }
             slot_accum = AppendLine(slot_accum, Concat("    ", Concat(slot_label, Concat(": ", Concat(s_name, Concat(": ", s_type))))));

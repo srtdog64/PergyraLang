@@ -35,7 +35,7 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
     // a `    Generic params: <T, U>` line after `Function: NAME`.
     let generic_params: String = "";
     let after_name_ws: Int = SkipWhitespaceAndComments(content, i);
-    if CharAt(content, after_name_ws) == "<" {
+    if ParserCharAt(content, after_name_ws) == "<" {
         i = after_name_ws + 1;
         let gp_list: String = "";
         while true {
@@ -52,13 +52,13 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
                 gp_list = Concat(gp_list, Concat(", ", gp));
             }
             i = SkipWhitespaceAndComments(content, i);
-            if CharAt(content, i) == "," {
+            if ParserCharAt(content, i) == "," {
                 i = i + 1;
                 continue;
             }
             break;
         }
-        if CharAt(content, i) != ">" {
+        if ParserCharAt(content, i) != ">" {
             Exit(1);
         }
         i = i + 1;
@@ -70,7 +70,7 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
     }
     let param_lines: Array<String> = [];
     i = SkipWhitespaceAndComments(content, i);
-    if CharAt(content, i) != ")" {
+    if ParserCharAt(content, i) != ")" {
         while true {
             i = SkipWhitespaceAndComments(content, i);
             let param_mode_prefix: String = "";
@@ -86,7 +86,7 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
                 param_mode_prefix = "ref ";
                 i = i + 3;
                 i = SkipWhitespaceAndComments(content, i);
-            } else if CharAt(content, i) == "&" {
+            } else if ParserCharAt(content, i) == "&" {
                 param_mode_prefix = "ref ";
                 i = i + 1;
                 i = SkipWhitespaceAndComments(content, i);
@@ -101,10 +101,10 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
             // `self` row when the name is `self` and the next char is
             // not `:`.
             let after_pname: Int = SkipWhitespaceAndComments(content, i);
-            if p_name == "self" && CharAt(content, after_pname) != ":" {
+            if p_name == "self" && ParserCharAt(content, after_pname) != ":" {
                 ArrayPush(param_lines, Concat(IndentStr(base_indent + 4), Concat(param_mode_prefix, "self")));
                 i = after_pname;
-                if CharAt(content, i) == "," {
+                if ParserCharAt(content, i) == "," {
                     i = i + 1;
                     continue;
                 }
@@ -122,7 +122,7 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
             }
             ArrayPush(param_lines, Concat(IndentStr(base_indent + 4), Concat(param_mode_prefix, Concat(p_name, Concat(": ", p_type)))));
             i = SkipWhitespaceAndComments(content, i);
-            if CharAt(content, i) == "," {
+            if ParserCharAt(content, i) == "," {
                 i = i + 1;
                 continue;
             }
@@ -136,10 +136,10 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
     let signature_done: Bool = false;
     if is_signature {
         let sig_probe: Int = i;
-        while CharAt(content, sig_probe) == " " || CharAt(content, sig_probe) == "\t" || CharAt(content, sig_probe) == "\r" {
+        while ParserCharAt(content, sig_probe) == " " || ParserCharAt(content, sig_probe) == "\t" || ParserCharAt(content, sig_probe) == "\r" {
             sig_probe = sig_probe + 1;
         }
-        if CharAt(content, sig_probe) == "\n" || CharAt(content, sig_probe) == ";" || CharAt(content, sig_probe) == "}" {
+        if ParserCharAt(content, sig_probe) == "\n" || ParserCharAt(content, sig_probe) == ";" || ParserCharAt(content, sig_probe) == "}" {
             i = ConsumeStmtTerminator(content, i);
             if i < 0 {
                 Exit(1);
@@ -155,7 +155,7 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
     let constraint_clause: String = "";
     if !signature_done {
     i = SkipWhitespaceAndComments(content, i);
-    if CharAt(content, i) == "-" && CharAt(content, i + 1) == ">" {
+    if ParserCharAt(content, i) == "-" && ParserCharAt(content, i + 1) == ">" {
         i = i + 2;
         i = SkipWhitespaceAndComments(content, i);
         ArraySet(cursor_out, 0, i);
@@ -164,10 +164,10 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
     }
     if is_signature {
         let ret_term_probe: Int = i;
-        while CharAt(content, ret_term_probe) == " " || CharAt(content, ret_term_probe) == "\t" || CharAt(content, ret_term_probe) == "\r" {
+        while ParserCharAt(content, ret_term_probe) == " " || ParserCharAt(content, ret_term_probe) == "\t" || ParserCharAt(content, ret_term_probe) == "\r" {
             ret_term_probe = ret_term_probe + 1;
         }
-        if CharAt(content, ret_term_probe) == "\n" || CharAt(content, ret_term_probe) == ";" || CharAt(content, ret_term_probe) == "}" {
+        if ParserCharAt(content, ret_term_probe) == "\n" || ParserCharAt(content, ret_term_probe) == ";" || ParserCharAt(content, ret_term_probe) == "}" {
             i = ConsumeStmtTerminator(content, i);
             if i < 0 {
                 Exit(1);
@@ -186,7 +186,7 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
             i = cursor_out[0];
             while true {
                 i = SkipWhitespaceAndComments(content, i);
-                if CharAt(content, i) == "," {
+                if ParserCharAt(content, i) == "," {
                     i = i + 1;
                     i = SkipWhitespaceAndComments(content, i);
                     ArraySet(cursor_out, 0, i);
@@ -225,7 +225,7 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
                 i = cursor_out[0];
                 while true {
                     i = SkipWhitespaceAndComments(content, i);
-                    if CharAt(content, i) == "," {
+                    if ParserCharAt(content, i) == "," {
                         i = i + 1;
                         i = SkipWhitespaceAndComments(content, i);
                         ArraySet(cursor_out, 0, i);
@@ -249,7 +249,7 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
                     let dummy: String = ReadIdent(content, i, cursor_out);
                     i = cursor_out[0];
                     i = SkipWhitespaceAndComments(content, i);
-                    if CharAt(content, i) == "," {
+                    if ParserCharAt(content, i) == "," {
                         i = i + 1;
                         continue;
                     }
@@ -265,7 +265,7 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
                     let cap_dummy: String = ReadIdent(content, i, cursor_out);
                     i = cursor_out[0];
                     i = SkipWhitespaceAndComments(content, i);
-                    if CharAt(content, i) == "," {
+                    if ParserCharAt(content, i) == "," {
                         i = i + 1;
                         continue;
                     }
@@ -278,7 +278,7 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
             let where_start: Int = i;
             i = i + 5;
             let n_content: Int = StringLength(content);
-            while i < n_content && CharAt(content, i) != "{" && CharAt(content, i) != ";" {
+            while i < n_content && ParserCharAt(content, i) != "{" && ParserCharAt(content, i) != ";" {
                 i = i + 1;
             }
             constraint_clause = StringTrim(Substring(content, where_start, i - where_start));

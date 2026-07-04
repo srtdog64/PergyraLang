@@ -56,6 +56,7 @@ func RunDriverRung0FromArgs(args: Array<String>) -> Void with caps io_read {
     let mode: String = DriverRung0ArtifactMode(args);
     if mode == "--emit-ast" {
         Log(CompileSourceToAst(source_path));
+        Log("");
         return;
     }
     if mode != "--emit-c" {

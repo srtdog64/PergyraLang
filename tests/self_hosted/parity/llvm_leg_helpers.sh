@@ -94,6 +94,35 @@ pgy_selfhost_compare_expected_text_artifact_with_owner() {
     fi
 }
 
+pgy_selfhost_compare_expected_text_artifact_file_with_owner() {
+    local label="$1"
+    local build_dir="$2"
+    local expected_file="$3"
+    local actual_file="$4"
+    local artifact_kind="$5"
+    local expected_norm="$build_dir/artifact_owner_expected_$$.txt"
+    local actual_norm="$build_dir/artifact_owner_actual_$$.txt"
+    local cmp_out="$build_dir/artifact_owner_compare_$$.out"
+    local cmp_err="$build_dir/artifact_owner_compare_$$.err"
+    local comparator_bin
+    local expected_rel
+    local actual_rel
+
+    pgy_selfhost_compile_backend_output_comparator "$label" "$build_dir"
+    comparator_bin="$(pgy_selfhost_backend_output_comparator_bin "$build_dir")"
+    pgy_selfhost_normalize_text_artifact < "$expected_file" > "$expected_norm"
+    pgy_selfhost_normalize_text_artifact < "$actual_file" > "$actual_norm"
+    expected_rel="$(pgy_selfhost_path_relative_to_root "$expected_norm")"
+    actual_rel="$(pgy_selfhost_path_relative_to_root "$actual_norm")"
+
+    if ! (cd "$ROOT_DIR" && "$comparator_bin" "$expected_rel" "$actual_rel" 0 2 "$artifact_kind" \
+        >"$cmp_out" 2>"$cmp_err"); then
+        echo "[$label] $artifact_kind artifact parity FAIL" >&2
+        cat "$cmp_out" "$cmp_err" >&2
+        exit 1
+    fi
+}
+
 assert_llvm_leg_with_artifact_owner() {
     local label="$1"
     local build_dir="$2"

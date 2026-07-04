@@ -25,7 +25,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
     let involves_lines: Array<String> = [];
     let value_lines: Array<String> = [];
     i = SkipWhitespaceAndComments(content, i);
-    if CharAt(content, i) != ")" {
+    if ParserCharAt(content, i) != ")" {
         while true {
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
@@ -68,7 +68,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
                 ArrayPush(value_lines, row);
             }
             i = SkipWhitespaceAndComments(content, i);
-            if CharAt(content, i) == "," {
+            if ParserCharAt(content, i) == "," {
                 i = i + 1;
                 continue;
             }
@@ -118,7 +118,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
         if i >= n {
             Exit(1);
         }
-        if CharAt(content, i) == "}" {
+        if ParserCharAt(content, i) == "}" {
             i = i + 1;
             break;
         }
@@ -201,7 +201,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
                 if i >= n {
                     Exit(1);
                 }
-                if CharAt(content, i) == "}" {
+                if ParserCharAt(content, i) == "}" {
                     i = i + 1;
                     break;
                 }
@@ -217,7 +217,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
                     is_transfer = true;
                 } else if clause == "transfer" {
                     let peek_colon: Int = SkipWhitespaceAndComments(content, i);
-                    if CharAt(content, peek_colon) != ":" {
+                    if ParserCharAt(content, peek_colon) != ":" {
                         is_transfer = true;
                     }
                 }
@@ -258,7 +258,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
                 if clause == "transfer" {
                     i = SkipWhitespaceAndComments(content, i);
                     let t_start: Int = i;
-                    while i < n && CharAt(content, i) != ";" {
+                    while i < n && ParserCharAt(content, i) != ";" {
                         i = i + 1;
                     }
                     val = Substring(content, t_start, i - t_start);

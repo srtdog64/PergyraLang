@@ -36,7 +36,7 @@ func JsonValueKindAt(json: String, start: Int, end: Int) -> String {
     if i >= end {
         return "invalid";
     }
-    let c: String = CharAt(json, i);
+    let c: String = JsonCharAt(json, i);
     if c == "\"" {
         return "string";
     }
@@ -62,7 +62,7 @@ func JsonObjectFactTableFromBounds(json: String, start: Int, end: Int) -> JsonOb
     if start < 0 || end <= start {
         return EmptyJsonObjectFactTable();
     }
-    if CharAt(json, start) != "{" {
+    if JsonCharAt(json, start) != "{" {
         return EmptyJsonObjectFactTable();
     }
     let object_end_opt: Option<Int> = JsonObjectEnd(json, start, end);
@@ -99,7 +99,7 @@ func JsonObjectFactCount(table: JsonObjectFactTable) -> Int {
         if i >= table.end {
             return 0;
         }
-        let c: String = CharAt(table.json, i);
+        let c: String = JsonCharAt(table.json, i);
         if c == "}" {
             return count;
         }
@@ -116,7 +116,7 @@ func JsonObjectFactCount(table: JsonObjectFactTable) -> Int {
             return 0;
         }
         i = JsonSkipWhitespace(table.json, key_end[0], table.end);
-        if i >= table.end || CharAt(table.json, i) != ":" {
+        if i >= table.end || JsonCharAt(table.json, i) != ":" {
             return 0;
         }
         i = JsonSkipWhitespace(table.json, i + 1, table.end);
@@ -141,7 +141,7 @@ func JsonObjectFactIndex(table: JsonObjectFactTable, field: String) -> Option<In
         if cursor >= table.end {
             return None;
         }
-        let c: String = CharAt(table.json, cursor);
+        let c: String = JsonCharAt(table.json, cursor);
         if c == "}" {
             return None;
         }
@@ -158,7 +158,7 @@ func JsonObjectFactIndex(table: JsonObjectFactTable, field: String) -> Option<In
             return None;
         }
         cursor = JsonSkipWhitespace(table.json, key_end[0], table.end);
-        if cursor >= table.end || CharAt(table.json, cursor) != ":" {
+        if cursor >= table.end || JsonCharAt(table.json, cursor) != ":" {
             return None;
         }
         cursor = JsonSkipWhitespace(table.json, cursor + 1, table.end);
@@ -252,7 +252,7 @@ func JsonArrayObjectFactTableFromBounds(json: String, start: Int, end: Int) -> J
     if start < 0 || end <= start {
         return EmptyJsonArrayObjectFactTable();
     }
-    if CharAt(json, start) != "[" {
+    if JsonCharAt(json, start) != "[" {
         return EmptyJsonArrayObjectFactTable();
     }
     let array_end_opt: Option<Int> = JsonArrayEnd(json, start, end);
@@ -320,7 +320,7 @@ func JsonArrayObjectFactStringFieldEqualsCount(
     while JsonObjectFactTableReady(row_fact) {
         let value_bounds: Array<Int> = [0, 0];
         if JsonObjectFactValueBounds(row_fact, field, value_bounds) {
-            if value_bounds[0] < value_bounds[1] && CharAt(table.json, value_bounds[0]) == "\"" {
+            if value_bounds[0] < value_bounds[1] && JsonCharAt(table.json, value_bounds[0]) == "\"" {
                 let value_end: Array<Int> = [0];
                 let actual: String = ReadJsonString(table.json, value_bounds[0], value_end);
                 if value_end[0] > value_bounds[0] && actual == expected {

@@ -2,7 +2,7 @@
 //
 // Text and delimiter scanning primitives owned by the self-host codegen front boundary.
 
-func CharAt(s: String, i: Int) -> String {
+func CodegenCharAt(s: String, i: Int) -> String {
     let n: Int = StringLength(s);
     if i < 0 {
         return "";
@@ -18,7 +18,7 @@ func NextNewline(s: String, start: Int) -> Int {
     let n: Int = StringLength(s);
     let i: Int = start;
     while i < n {
-        if CharAt(s, i) == "\n" {
+        if CodegenCharAt(s, i) == "\n" {
             return i;
         }
         i = i + 1;
@@ -63,7 +63,7 @@ func ContainsCallOutsideStrings(text: String, callee: String) -> Bool {
     let i: Int = 0;
     let in_str: Bool = false;
     while i < n {
-        let c: String = CharAt(text, i);
+        let c: String = CodegenCharAt(text, i);
         if in_str {
             if c == "\\" {
                 i = i + 2;
@@ -81,7 +81,7 @@ func ContainsCallOutsideStrings(text: String, callee: String) -> Bool {
             continue;
         }
         if m > 0 && i + m <= n && Substring(text, i, m) == needle {
-            if i == 0 || !IsIdentChar(CharAt(text, i - 1)) {
+            if i == 0 || !IsIdentChar(CodegenCharAt(text, i - 1)) {
                 return true;
             }
         }
@@ -96,7 +96,7 @@ func ContainsOutsideStrings(text: String, needle: String) -> Bool {
     let i: Int = 0;
     let in_str: Bool = false;
     while i < n {
-        let c: String = CharAt(text, i);
+        let c: String = CodegenCharAt(text, i);
         if in_str {
             if c == "\\" {
                 i = i + 2;
@@ -157,12 +157,12 @@ func IsIdentifier(e: String) -> Bool {
         return false;
     }
     let digits: String = "0123456789";
-    if StringIndexOf(digits, CharAt(e, 0)) >= 0 {
+    if StringIndexOf(digits, CodegenCharAt(e, 0)) >= 0 {
         return false;
     }
     let i: Int = 0;
     while i < n {
-        if !IsIdentChar(CharAt(e, i)) {
+        if !IsIdentChar(CodegenCharAt(e, i)) {
             return false;
         }
         i = i + 1;
@@ -186,7 +186,7 @@ func FindMatchingBracket(s: String, open_idx: Int) -> Option<Int> {
     let depth: Int = 0;
     let in_str: Bool = false;
     while i < n {
-        let c: String = CharAt(s, i);
+        let c: String = CodegenCharAt(s, i);
         if in_str {
             if c == "\\" {
                 i = i + 2;
@@ -221,7 +221,7 @@ func FindMatchingParen(s: String, open_idx: Int) -> Option<Int> {
     let depth: Int = 0;
     let in_str: Bool = false;
     while i < n {
-        let c: String = CharAt(s, i);
+        let c: String = CodegenCharAt(s, i);
         if in_str {
             if c == "\\" {
                 i = i + 2;
@@ -252,7 +252,7 @@ func FindMatchingParen(s: String, open_idx: Int) -> Option<Int> {
 // last character (so it is one call, not `f() + g()`).
 func IsSingleCall(e: String) -> Bool {
     let n: Int = StringLength(e);
-    if n == 0 || CharAt(e, n - 1) != ")" {
+    if n == 0 || CodegenCharAt(e, n - 1) != ")" {
         return false;
     }
     let op: Int = StringIndexOf(e, "(");
@@ -272,7 +272,7 @@ func IsSingleCall(e: String) -> Bool {
 // operators behind depth > 0. Removes one wrapping layer at a time.
 func StripOuterParens(e: String) -> String {
     let s: String = StringTrim(e);
-    while StringLength(s) >= 2 && CharAt(s, 0) == "(" {
+    while StringLength(s) >= 2 && CodegenCharAt(s, 0) == "(" {
         let close: Option<Int> = FindMatchingParen(s, 0);
         if !IsSome(close) || UnwrapOption(close) != StringLength(s) - 1 {
             return s;
@@ -291,7 +291,7 @@ func FindTopLevelPlus(s: String) -> Option<Int> {
     let depth: Int = 0;
     let in_str: Bool = false;
     while i < n {
-        let c: String = CharAt(s, i);
+        let c: String = CodegenCharAt(s, i);
         if in_str {
             if c == "\\" {
                 i = i + 2;
@@ -335,7 +335,7 @@ func FindTopLevelComma(s: String) -> Option<Int> {
     let depth: Int = 0;
     let in_str: Bool = false;
     while i < n {
-        let c: String = CharAt(s, i);
+        let c: String = CodegenCharAt(s, i);
         if in_str {
             if c == "\\" {
                 i = i + 2;

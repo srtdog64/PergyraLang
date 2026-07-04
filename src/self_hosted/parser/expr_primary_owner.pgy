@@ -9,19 +9,19 @@
 // `(...)` form for binary subtrees.
 func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
     let i: Int = SkipWhitespaceAndComments(content, start);
-    let c: String = CharAt(content, i);
+    let c: String = ParserCharAt(content, i);
     let base: String = "";
     if c == "|" {
         i = i + 1;
         i = SkipWhitespaceAndComments(content, i);
         let lam_params: String = "";
-        if CharAt(content, i) == "(" {
+        if ParserCharAt(content, i) == "(" {
             let pipe_pat_depth: Int = 1;
             i = i + 1;
             while i < StringLength(content) && pipe_pat_depth > 0 {
-                if CharAt(content, i) == "(" {
+                if ParserCharAt(content, i) == "(" {
                     pipe_pat_depth = pipe_pat_depth + 1;
-                } else if CharAt(content, i) == ")" {
+                } else if ParserCharAt(content, i) == ")" {
                     pipe_pat_depth = pipe_pat_depth - 1;
                 }
                 i = i + 1;
@@ -45,7 +45,7 @@ func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> 
                     lam_params = Concat(lam_params, Concat(", ", pipe_name));
                 }
                 i = SkipWhitespaceAndComments(content, i);
-                if CharAt(content, i) == "," {
+                if ParserCharAt(content, i) == "," {
                     i = i + 1;
                     continue;
                 }
@@ -53,18 +53,18 @@ func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> 
             }
         }
         i = SkipWhitespaceAndComments(content, i);
-        if CharAt(content, i) != "|" {
+        if ParserCharAt(content, i) != "|" {
             Exit(1);
         }
         i = i + 1;
         i = SkipWhitespaceAndComments(content, i);
-        if CharAt(content, i) == "{" {
+        if ParserCharAt(content, i) == "{" {
             let pipe_body_depth: Int = 1;
             i = i + 1;
             while i < StringLength(content) && pipe_body_depth > 0 {
-                if CharAt(content, i) == "{" {
+                if ParserCharAt(content, i) == "{" {
                     pipe_body_depth = pipe_body_depth + 1;
-                } else if CharAt(content, i) == "}" {
+                } else if ParserCharAt(content, i) == "}" {
                     pipe_body_depth = pipe_body_depth - 1;
                 }
                 i = i + 1;
@@ -85,41 +85,41 @@ func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> 
         // `IDENT :` (typed param) or `)` followed by `=>`.
         let after_open: Int = SkipWhitespaceAndComments(content, i + 1);
         let is_lambda: Bool = false;
-        if CharAt(content, after_open) == ")" {
+        if ParserCharAt(content, after_open) == ")" {
             let after_close: Int = SkipWhitespaceAndComments(content, after_open + 1);
-            if CharAt(content, after_close) == "=" && CharAt(content, after_close + 1) == ">" {
+            if ParserCharAt(content, after_close) == "=" && ParserCharAt(content, after_close + 1) == ">" {
                 is_lambda = true;
             }
-        } else if IsAlpha(CharAt(content, after_open)) {
+        } else if IsAlpha(ParserCharAt(content, after_open)) {
             let probe: Int = after_open;
-            while IsAlphaNum(CharAt(content, probe)) {
+            while IsAlphaNum(ParserCharAt(content, probe)) {
                 probe = probe + 1;
             }
             let after_id: Int = SkipWhitespaceAndComments(content, probe);
-            if CharAt(content, after_id) == ":" {
+            if ParserCharAt(content, after_id) == ":" {
                 is_lambda = true;
             } else {
                 let list_probe: Int = after_open;
                 let list_ok: Bool = true;
                 while true {
                     list_probe = SkipWhitespaceAndComments(content, list_probe);
-                    if !IsAlpha(CharAt(content, list_probe)) {
+                    if !IsAlpha(ParserCharAt(content, list_probe)) {
                         list_ok = false;
                         break;
                     }
-                    while IsAlphaNum(CharAt(content, list_probe)) {
+                    while IsAlphaNum(ParserCharAt(content, list_probe)) {
                         list_probe = list_probe + 1;
                     }
                     list_probe = SkipWhitespaceAndComments(content, list_probe);
-                    if CharAt(content, list_probe) == "," {
+                    if ParserCharAt(content, list_probe) == "," {
                         list_probe = list_probe + 1;
                         continue;
                     }
                     break;
                 }
-                if list_ok && CharAt(content, list_probe) == ")" {
+                if list_ok && ParserCharAt(content, list_probe) == ")" {
                     let after_list_close: Int = SkipWhitespaceAndComments(content, list_probe + 1);
-                    if CharAt(content, after_list_close) == "=" && CharAt(content, after_list_close + 1) == ">" {
+                    if ParserCharAt(content, after_list_close) == "=" && ParserCharAt(content, after_list_close + 1) == ">" {
                         is_lambda = true;
                     }
                 }
@@ -133,7 +133,7 @@ func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> 
             i = i + 1;
             let lam_params: String = "";
             i = SkipWhitespaceAndComments(content, i);
-            if CharAt(content, i) != ")" {
+            if ParserCharAt(content, i) != ")" {
                 while true {
                     i = SkipWhitespaceAndComments(content, i);
                     ArraySet(cursor_out, 0, i);
@@ -144,7 +144,7 @@ func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> 
                     }
                     let pair_text: String = lp_name;
                     let after_lp_name: Int = SkipWhitespaceAndComments(content, i);
-                    if CharAt(content, after_lp_name) == ":" {
+                    if ParserCharAt(content, after_lp_name) == ":" {
                         i = after_lp_name + 1;
                         ArraySet(cursor_out, 0, i);
                         let lp_type: String = ReadType(content, i, cursor_out);
@@ -162,7 +162,7 @@ func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> 
                         lam_params = Concat(lam_params, Concat(", ", pair_text));
                     }
                     i = SkipWhitespaceAndComments(content, i);
-                    if CharAt(content, i) == "," {
+                    if ParserCharAt(content, i) == "," {
                         i = i + 1;
                         continue;
                     }
@@ -174,7 +174,7 @@ func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> 
                 Exit(1);
             }
             i = SkipWhitespaceAndComments(content, i);
-            if CharAt(content, i) != "=" || CharAt(content, i + 1) != ">" {
+            if ParserCharAt(content, i) != "=" || ParserCharAt(content, i + 1) != ">" {
                 Exit(1);
             }
             i = i + 2;
@@ -184,12 +184,12 @@ func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> 
             // committed examples don't, so naive counting is fine).
             // A non-brace body is parsed as a single expression and
             // discarded.
-            if CharAt(content, i) == "{" {
+            if ParserCharAt(content, i) == "{" {
                 let n_in: Int = StringLength(content);
                 let depth: Int = 1;
                 i = i + 1;
                 while i < n_in && depth > 0 {
-                    let ch: String = CharAt(content, i);
+                    let ch: String = ParserCharAt(content, i);
                     if ch == "{" {
                         depth = depth + 1;
                     } else if ch == "}" {
@@ -209,7 +209,7 @@ func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> 
             }
             base = Concat("lambda(", Concat(lam_params, ")"));
         } else {
-            if CharAt(content, after_open) == ")" {
+            if ParserCharAt(content, after_open) == ")" {
                 i = after_open + 1;
                 base = "<node:26>";
             } else {
@@ -217,7 +217,7 @@ func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> 
                 let tuple_depth: Int = 1;
                 let is_tuple_lit: Bool = false;
                 while tuple_probe < StringLength(content) && tuple_depth > 0 {
-                    let tuple_ch: String = CharAt(content, tuple_probe);
+                    let tuple_ch: String = ParserCharAt(content, tuple_probe);
                     if tuple_ch == "(" {
                         tuple_depth = tuple_depth + 1;
                     } else if tuple_ch == ")" {
@@ -244,7 +244,7 @@ func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> 
                 }
             }
         }
-    } else if c == "$" && CharAt(content, i + 1) == "\"" {
+    } else if c == "$" && ParserCharAt(content, i + 1) == "\"" {
         let raw_interp: String = ReadString(content, i + 1, cursor_out);
         base = DesugarDollarStringInterpolation(raw_interp);
         i = cursor_out[0];
@@ -255,7 +255,7 @@ func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> 
     } else if IsDigit(c) {
         base = ReadNumber(content, i, cursor_out);
         i = cursor_out[0];
-        while IsAlpha(CharAt(content, i)) {
+        while IsAlpha(ParserCharAt(content, i)) {
             i = i + 1;
         }
         ArraySet(cursor_out, 0, i);
@@ -264,13 +264,13 @@ func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> 
         i = cursor_out[0];
         if base == "parallel" {
             i = SkipWhitespaceAndComments(content, i);
-            if CharAt(content, i) == "(" {
+            if ParserCharAt(content, i) == "(" {
                 let pexpr_depth: Int = 1;
                 i = i + 1;
                 while i < StringLength(content) && pexpr_depth > 0 {
-                    if CharAt(content, i) == "(" {
+                    if ParserCharAt(content, i) == "(" {
                         pexpr_depth = pexpr_depth + 1;
-                    } else if CharAt(content, i) == ")" {
+                    } else if ParserCharAt(content, i) == ")" {
                         pexpr_depth = pexpr_depth - 1;
                     }
                     i = i + 1;
@@ -281,17 +281,17 @@ func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> 
             }
             i = SkipWhitespaceAndComments(content, i);
             if MatchKeyword(content, i, "join") {
-                while i < StringLength(content) && CharAt(content, i) != "{" {
+                while i < StringLength(content) && ParserCharAt(content, i) != "{" {
                     i = i + 1;
                 }
             }
-            if CharAt(content, i) == "{" {
+            if ParserCharAt(content, i) == "{" {
                 let pbody_depth: Int = 1;
                 i = i + 1;
                 while i < StringLength(content) && pbody_depth > 0 {
-                    if CharAt(content, i) == "{" {
+                    if ParserCharAt(content, i) == "{" {
                         pbody_depth = pbody_depth + 1;
-                    } else if CharAt(content, i) == "}" {
+                    } else if ParserCharAt(content, i) == "}" {
                         pbody_depth = pbody_depth - 1;
                     }
                     i = i + 1;
@@ -305,13 +305,13 @@ func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> 
         }
         if base == "async" {
             i = SkipWhitespaceAndComments(content, i);
-            if CharAt(content, i) == "{" {
+            if ParserCharAt(content, i) == "{" {
                 let async_depth: Int = 1;
                 i = i + 1;
                 while i < StringLength(content) && async_depth > 0 {
-                    if CharAt(content, i) == "{" {
+                    if ParserCharAt(content, i) == "{" {
                         async_depth = async_depth + 1;
-                    } else if CharAt(content, i) == "}" {
+                    } else if ParserCharAt(content, i) == "}" {
                         async_depth = async_depth - 1;
                     }
                     i = i + 1;
@@ -336,7 +336,7 @@ func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> 
         i = i + 1;
         let elems: String = "";
         i = SkipWhitespaceAndComments(content, i);
-        if CharAt(content, i) != "]" {
+        if ParserCharAt(content, i) != "]" {
             while true {
                 ArraySet(cursor_out, 0, i);
                 let e: String = ParseExpr(content, i, cursor_out);
@@ -347,7 +347,7 @@ func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> 
                     elems = Concat(elems, Concat(", ", e));
                 }
                 i = SkipWhitespaceAndComments(content, i);
-                if CharAt(content, i) == "," {
+                if ParserCharAt(content, i) == "," {
                     i = i + 1;
                     continue;
                 }

@@ -57,7 +57,7 @@ func ParseNominalDecl(content: String, start: Int, inout cursor_out: Array<Int>,
         // before `Fields:` / `Methods:`.
         let decl_generic: String = "";
         let after_decl_name: Int = SkipWhitespaceAndComments(content, i);
-        if CharAt(content, after_decl_name) == "<" {
+        if ParserCharAt(content, after_decl_name) == "<" {
             i = after_decl_name + 1;
             let gpl: String = "";
             while true {
@@ -74,13 +74,13 @@ func ParseNominalDecl(content: String, start: Int, inout cursor_out: Array<Int>,
                     gpl = Concat(gpl, Concat(", ", g));
                 }
                 i = SkipWhitespaceAndComments(content, i);
-                if CharAt(content, i) == "," {
+                if ParserCharAt(content, i) == "," {
                     i = i + 1;
                     continue;
                 }
                 break;
             }
-            if CharAt(content, i) != ">" {
+            if ParserCharAt(content, i) != ">" {
                 Exit(1);
             }
             i = i + 1;
@@ -101,7 +101,7 @@ func ParseNominalDecl(content: String, start: Int, inout cursor_out: Array<Int>,
         }
         i = SkipWhitespaceAndComments(content, i);
         if MatchKeyword(content, i, "where") {
-            while i < n && CharAt(content, i) != "{" {
+            while i < n && ParserCharAt(content, i) != "{" {
                 i = i + 1;
             }
         }
@@ -126,7 +126,7 @@ func ParseNominalDecl(content: String, start: Int, inout cursor_out: Array<Int>,
             if i >= n {
                 Exit(1);
             }
-            if CharAt(content, i) == "}" {
+            if ParserCharAt(content, i) == "}" {
                 i = i + 1;
                 break;
             }
@@ -222,7 +222,7 @@ func ParseNominalDecl(content: String, start: Int, inout cursor_out: Array<Int>,
                 i = SkipWhitespaceAndComments(content, i);
                 is_shared = true;
             }
-            if CharAt(content, i) == "(" {
+            if ParserCharAt(content, i) == "(" {
                 i = i + 1;
                 let destructure_fields: Array<String> = [];
                 while true {
@@ -235,7 +235,7 @@ func ParseNominalDecl(content: String, start: Int, inout cursor_out: Array<Int>,
                     }
                     ArrayPush(destructure_fields, df_name);
                     i = SkipWhitespaceAndComments(content, i);
-                    if CharAt(content, i) == "," {
+                    if ParserCharAt(content, i) == "," {
                         i = i + 1;
                         continue;
                     }
@@ -254,10 +254,10 @@ func ParseNominalDecl(content: String, start: Int, inout cursor_out: Array<Int>,
                 i = cursor_out[0];
                 df_init = df_init;
                 let df_end: Int = i;
-                while CharAt(content, df_end) == " " || CharAt(content, df_end) == "\t" || CharAt(content, df_end) == "\r" {
+                while ParserCharAt(content, df_end) == " " || ParserCharAt(content, df_end) == "\t" || ParserCharAt(content, df_end) == "\r" {
                     df_end = df_end + 1;
                 }
-                if CharAt(content, df_end) == "," {
+                if ParserCharAt(content, df_end) == "," {
                     i = df_end + 1;
                 } else {
                     i = ConsumeStmtTerminator(content, df_end);
@@ -291,10 +291,10 @@ func ParseNominalDecl(content: String, start: Int, inout cursor_out: Array<Int>,
             }
             let default_text: String = "";
             let after_type: Int = i;
-            while CharAt(content, after_type) == " " || CharAt(content, after_type) == "\t" || CharAt(content, after_type) == "\r" {
+            while ParserCharAt(content, after_type) == " " || ParserCharAt(content, after_type) == "\t" || ParserCharAt(content, after_type) == "\r" {
                 after_type = after_type + 1;
             }
-            if CharAt(content, after_type) == "=" {
+            if ParserCharAt(content, after_type) == "=" {
                 i = after_type + 1;
                 ArraySet(cursor_out, 0, i);
                 let default_expr: String = ParseExpr(content, i, cursor_out);
@@ -304,10 +304,10 @@ func ParseNominalDecl(content: String, start: Int, inout cursor_out: Array<Int>,
                 i = after_type;
             }
             let field_end: Int = i;
-            while CharAt(content, field_end) == " " || CharAt(content, field_end) == "\t" || CharAt(content, field_end) == "\r" {
+            while ParserCharAt(content, field_end) == " " || ParserCharAt(content, field_end) == "\t" || ParserCharAt(content, field_end) == "\r" {
                 field_end = field_end + 1;
             }
-            if CharAt(content, field_end) == "," {
+            if ParserCharAt(content, field_end) == "," {
                 i = field_end + 1;
             } else {
                 i = ConsumeStmtTerminator(content, field_end);

@@ -45,11 +45,11 @@ func RewriteMemberCalls(e: String, env: String) -> String {
     let i: Int = 0;
     let in_str: Bool = false;
     while i < n {
-        let c: String = CharAt(e, i);
+        let c: String = CodegenCharAt(e, i);
         if in_str {
             out = Concat(out, c);
             if c == "\\" && i + 1 < n {
-                out = Concat(out, CharAt(e, i + 1));
+                out = Concat(out, CodegenCharAt(e, i + 1));
                 i = i + 2;
                 continue;
             }
@@ -69,15 +69,15 @@ func RewriteMemberCalls(e: String, env: String) -> String {
             let ol: Int = StringLength(out);
             let end: Int = ol;
             let start: Int = ol;
-            while start > 0 && IsIdentChar(CharAt(out, start - 1)) {
+            while start > 0 && IsIdentChar(CodegenCharAt(out, start - 1)) {
                 start = start - 1;
             }
-            if start < end && i + 1 < n && IsIdentStart(CharAt(e, i + 1)) {
+            if start < end && i + 1 < n && IsIdentStart(CodegenCharAt(e, i + 1)) {
                 let j: Int = i + 1;
-                while j < n && IsIdentChar(CharAt(e, j)) {
+                while j < n && IsIdentChar(CodegenCharAt(e, j)) {
                     j = j + 1;
                 }
-                if j < n && CharAt(e, j) == "(" {
+                if j < n && CodegenCharAt(e, j) == "(" {
                     let receiver: String = Substring(out, start, end - start);
                     let recv_type: String = LookupKindType(env, receiver, "v");
                     let method: String = Substring(e, i + 1, j - (i + 1));
@@ -115,11 +115,11 @@ func RewriteEnumRefs(e: String, env: String) -> String {
     let i: Int = 0;
     let in_str: Bool = false;
     while i < n {
-        let c: String = CharAt(e, i);
+        let c: String = CodegenCharAt(e, i);
         if in_str {
             out = Concat(out, c);
             if c == "\\" && i + 1 < n {
-                out = Concat(out, CharAt(e, i + 1));
+                out = Concat(out, CodegenCharAt(e, i + 1));
                 i = i + 2;
                 continue;
             }
@@ -139,12 +139,12 @@ func RewriteEnumRefs(e: String, env: String) -> String {
             let ol: Int = StringLength(out);
             let end: Int = ol;
             let start: Int = ol;
-            while start > 0 && IsIdentChar(CharAt(out, start - 1)) {
+            while start > 0 && IsIdentChar(CodegenCharAt(out, start - 1)) {
                 start = start - 1;
             }
-            if start < end && i + 1 < n && IsIdentStart(CharAt(e, i + 1)) {
+            if start < end && i + 1 < n && IsIdentStart(CodegenCharAt(e, i + 1)) {
                 let j: Int = i + 1;
-                while j < n && IsIdentChar(CharAt(e, j)) {
+                while j < n && IsIdentChar(CodegenCharAt(e, j)) {
                     j = j + 1;
                 }
                 let receiver: String = Substring(out, start, end - start);
@@ -176,11 +176,11 @@ func RewriteQualifiedCalls(e: String) -> String {
     let i: Int = 0;
     let in_str: Bool = false;
     while i < n {
-        let c: String = CharAt(e, i);
+        let c: String = CodegenCharAt(e, i);
         if in_str {
             out = Concat(out, c);
             if c == "\\" && i + 1 < n {
-                out = Concat(out, CharAt(e, i + 1));
+                out = Concat(out, CodegenCharAt(e, i + 1));
                 i = i + 2;
                 continue;
             }
@@ -198,16 +198,16 @@ func RewriteQualifiedCalls(e: String) -> String {
         }
         if c == "." {
             let ol: Int = StringLength(out);
-            let prev_ok: Bool = ol > 0 && IsIdentChar(CharAt(out, ol - 1));
-            let next_ok: Bool = i + 1 < n && IsIdentStart(CharAt(e, i + 1));
+            let prev_ok: Bool = ol > 0 && IsIdentChar(CodegenCharAt(out, ol - 1));
+            let next_ok: Bool = i + 1 < n && IsIdentStart(CodegenCharAt(e, i + 1));
             if prev_ok && next_ok {
                 let j: Int = i + 1;
-                while j < n && IsIdentChar(CharAt(e, j)) {
+                while j < n && IsIdentChar(CodegenCharAt(e, j)) {
                     j = j + 1;
                 }
-                if j < n && CharAt(e, j) == "(" {
+                if j < n && CodegenCharAt(e, j) == "(" {
                     let start: Int = ol;
-                    while start > 0 && (IsIdentChar(CharAt(out, start - 1)) || CharAt(out, start - 1) == ".") {
+                    while start > 0 && (IsIdentChar(CodegenCharAt(out, start - 1)) || CodegenCharAt(out, start - 1) == ".") {
                         start = start - 1;
                     }
                     let owner: String = Substring(out, start, ol - start);
@@ -231,11 +231,11 @@ func RewriteBoolLiterals(e: String) -> String {
     let i: Int = 0;
     let in_str: Bool = false;
     while i < n {
-        let c: String = CharAt(e, i);
+        let c: String = CodegenCharAt(e, i);
         if in_str {
             out = Concat(out, c);
             if c == "\\" && i + 1 < n {
-                out = Concat(out, CharAt(e, i + 1));
+                out = Concat(out, CodegenCharAt(e, i + 1));
                 i = i + 2;
                 continue;
             }
@@ -251,9 +251,9 @@ func RewriteBoolLiterals(e: String) -> String {
             i = i + 1;
             continue;
         }
-        let prev_ok: Bool = i == 0 || !IsIdentChar(CharAt(e, i - 1));
+        let prev_ok: Bool = i == 0 || !IsIdentChar(CodegenCharAt(e, i - 1));
         if prev_ok && i + 4 <= n && Substring(e, i, 4) == "true" {
-            let next_true_ok: Bool = i + 4 == n || !IsIdentChar(CharAt(e, i + 4));
+            let next_true_ok: Bool = i + 4 == n || !IsIdentChar(CodegenCharAt(e, i + 4));
             if next_true_ok {
                 out = Concat(out, "1");
                 i = i + 4;
@@ -261,7 +261,7 @@ func RewriteBoolLiterals(e: String) -> String {
             }
         }
         if prev_ok && i + 5 <= n && Substring(e, i, 5) == "false" {
-            let next_false_ok: Bool = i + 5 == n || !IsIdentChar(CharAt(e, i + 5));
+            let next_false_ok: Bool = i + 5 == n || !IsIdentChar(CodegenCharAt(e, i + 5));
             if next_false_ok {
                 out = Concat(out, "0");
                 i = i + 5;
@@ -280,11 +280,11 @@ func RewriteNoneLiteral(e: String) -> String {
     let i: Int = 0;
     let in_str: Bool = false;
     while i < n {
-        let c: String = CharAt(e, i);
+        let c: String = CodegenCharAt(e, i);
         if in_str {
             out = Concat(out, c);
             if c == "\\" && i + 1 < n {
-                out = Concat(out, CharAt(e, i + 1));
+                out = Concat(out, CodegenCharAt(e, i + 1));
                 i = i + 2;
                 continue;
             }
@@ -300,9 +300,9 @@ func RewriteNoneLiteral(e: String) -> String {
             i = i + 1;
             continue;
         }
-        let prev_ok: Bool = i == 0 || (!IsIdentChar(CharAt(e, i - 1)) && CharAt(e, i - 1) != ".");
+        let prev_ok: Bool = i == 0 || (!IsIdentChar(CodegenCharAt(e, i - 1)) && CodegenCharAt(e, i - 1) != ".");
         if prev_ok && i + 4 <= n && Substring(e, i, 4) == "None" {
-            let next_ok: Bool = i + 4 == n || !IsIdentChar(CharAt(e, i + 4));
+            let next_ok: Bool = i + 4 == n || !IsIdentChar(CodegenCharAt(e, i + 4));
             if next_ok {
                 out = Concat(out, Concat(OptionResultRuntimeCOptionNoneFn(), "()"));
                 i = i + 4;
@@ -357,11 +357,11 @@ func RewriteInoutCallArgs(e: String, env: String, strict: Bool) -> String {
     let i: Int = 0;
     let in_str: Bool = false;
     while i < n {
-        let c: String = CharAt(e, i);
+        let c: String = CodegenCharAt(e, i);
         if in_str {
             out = Concat(out, c);
             if c == "\\" && i + 1 < n {
-                out = Concat(out, CharAt(e, i + 1));
+                out = Concat(out, CodegenCharAt(e, i + 1));
                 i = i + 2;
                 continue;
             }
@@ -379,11 +379,11 @@ func RewriteInoutCallArgs(e: String, env: String, strict: Bool) -> String {
         }
         if IsIdentStart(c) {
             let j: Int = i;
-            while j < n && IsIdentChar(CharAt(e, j)) {
+            while j < n && IsIdentChar(CodegenCharAt(e, j)) {
                 j = j + 1;
             }
             let ident: String = Substring(e, i, j - i);
-            if j < n && CharAt(e, j) == "(" {
+            if j < n && CodegenCharAt(e, j) == "(" {
                 let modes: String = LookupKindType(env, ident, "pm");
                 if StringLength(modes) > 0 {
                     let close_opt: Option<Int> = FindMatchingParen(e, j);
@@ -423,11 +423,11 @@ func RewriteTokens(e: String, env: String) -> String {
     let some_scan_i: Int = 0;
     let some_scan_in_str: Bool = false;
     while some_scan_i < some_scan_len {
-        let some_scan_char: String = CharAt(a, some_scan_i);
+        let some_scan_char: String = CodegenCharAt(a, some_scan_i);
         if some_scan_in_str {
             optioned = Concat(optioned, some_scan_char);
             if some_scan_char == "\\" && some_scan_i + 1 < some_scan_len {
-                optioned = Concat(optioned, CharAt(a, some_scan_i + 1));
+                optioned = Concat(optioned, CodegenCharAt(a, some_scan_i + 1));
                 some_scan_i = some_scan_i + 2;
                 continue;
             }
@@ -445,11 +445,11 @@ func RewriteTokens(e: String, env: String) -> String {
         }
         if IsIdentStart(some_scan_char) {
             let some_ident_end: Int = some_scan_i;
-            while some_ident_end < some_scan_len && IsIdentChar(CharAt(a, some_ident_end)) {
+            while some_ident_end < some_scan_len && IsIdentChar(CodegenCharAt(a, some_ident_end)) {
                 some_ident_end = some_ident_end + 1;
             }
             let some_ident: String = Substring(a, some_scan_i, some_ident_end - some_scan_i);
-            if some_ident == "Some" && some_ident_end < some_scan_len && CharAt(a, some_ident_end) == "(" {
+            if some_ident == "Some" && some_ident_end < some_scan_len && CodegenCharAt(a, some_ident_end) == "(" {
                 let some_close_opt: Option<Int> = FindMatchingParen(a, some_ident_end);
                 if !IsSome(some_close_opt) {
                     Die(Concat("malformed Some(...) expression: ", a));
@@ -548,7 +548,7 @@ func StrEval(expr: String, env: String) -> String {
     }
     if StartsWith(e, "ToString(") {
         let n: Int = StringLength(e);
-        if CharAt(e, n - 1) != ")" {
+        if CodegenCharAt(e, n - 1) != ")" {
             Die(Concat("malformed ToString(...): ", e));
         }
         let arg: String = StringTrim(Substring(e, 9, n - 9 - 1));
@@ -566,7 +566,7 @@ func WrapCond(cond: String, env: String) -> String {
     let c: String = StringTrim(cond);
     let n: Int = StringLength(c);
     let close_opt: Option<Int> = FindMatchingParen(c, 0);
-    if n >= 2 && CharAt(c, 0) == "(" && CharAt(c, n - 1) == ")" &&
+    if n >= 2 && CodegenCharAt(c, 0) == "(" && CodegenCharAt(c, n - 1) == ")" &&
         IsSome(close_opt) && UnwrapOption(close_opt) == n - 1 {
         return RewriteExpr(c, env);
     }

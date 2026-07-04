@@ -251,6 +251,8 @@ reject_text "src/self_hosted/lib/json_fact_table.pgy" "let keys: Array<String>;"
 reject_text "src/self_hosted/lib/json_fact_table.pgy" "let value_starts: Array<Int>;"
 reject_text "src/self_hosted/lib/json.pgy" 'import "json_emit.pgy";'
 require_text "src/self_hosted/lib/json.pgy" 'import "json_scan.pgy";'
+require_text "src/self_hosted/lib/json_scan.pgy" "func JsonCharAt"
+reject_text "src/self_hosted/lib/json_scan.pgy" "func CharAt"
 require_text "src/self_hosted/lib/json_scan.pgy" "func FindFrom(hay: String, needle: String, start: Int) -> Option<Int>"
 reject_text "src/self_hosted/lib/json_scan.pgy" "func FindFrom(hay: String, needle: String, start: Int) -> Int"
 require_text "src/self_hosted/lib/json.pgy" "func ReadJsonString"
@@ -414,6 +416,8 @@ require_text "src/self_hosted/parser/tree_text_owner.pgy" "ParserAstTreePayloadF
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../parser/tree_text_owner.pgy";'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "ParserAstTreePayloadContractReady()"
 require_text "src/self_hosted/parser/cursor_owner.pgy" 'import "error_owner.pgy";'
+require_text "src/self_hosted/parser/cursor_owner.pgy" "func ParserCharAt"
+reject_text "src/self_hosted/parser/cursor_owner.pgy" "func CharAt"
 require_text "src/self_hosted/parser/cursor_owner.pgy" "func ExpectOpt"
 require_text "src/self_hosted/parser/cursor_owner.pgy" "func ConsumeStmtTerminatorOpt"
 reject_text "src/self_hosted/parser/cursor_owner.pgy" "return -1"
@@ -447,6 +451,8 @@ reject_text "src/self_hosted/parser/stmt_owner.pgy" "func ParseForStmt"
 require_text "src/self_hosted/parser/source_path_owner.pgy" "func ParserImportGraphSeen"
 require_text "src/self_hosted/parser/program_parse_owner.pgy" 'import "decl_dispatch_owner.pgy";'
 require_text "src/self_hosted/parser/program_parse_owner.pgy" 'import "../lib/path.pgy";'
+require_text "src/self_hosted/lib/path.pgy" "func PathCharAt"
+reject_text "src/self_hosted/lib/path.pgy" "func CharAt"
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'import "stmt_owner.pgy";'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'import "expr_owner.pgy";'
 require_text "src/self_hosted/parser/decl_ability_owner.pgy" 'import "function_decl_owner.pgy";'
@@ -1100,6 +1106,8 @@ require_text "src/self_hosted/codegen/text/text_owner.pgy" "func FindMatchingBra
 require_text "src/self_hosted/codegen/text/text_owner.pgy" "func FindMatchingParen(s: String, open_idx: Int) -> Option<Int>"
 require_text "src/self_hosted/codegen/text/text_owner.pgy" "func FindTopLevelPlus(s: String) -> Option<Int>"
 require_text "src/self_hosted/codegen/text/text_owner.pgy" "func FindTopLevelComma(s: String) -> Option<Int>"
+require_text "src/self_hosted/codegen/text/text_owner.pgy" "func CodegenCharAt"
+reject_text "src/self_hosted/codegen/text/text_owner.pgy" "func CharAt"
 reject_text "src/self_hosted/codegen/text/text_owner.pgy" "return -1"
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "CollectionRuntimeCLenFn"
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "CollectionRuntimeCGetFn"
@@ -1643,6 +1651,7 @@ require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "comparator artifact
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "comparator artifact path must be repo-relative"
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "backend_output_comparator_\$\$.exe"
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "pgy_selfhost_compare_expected_text_artifact_with_owner"
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'assert_llvm_leg_with_artifact_owner "$label" "$build_dir" "$c_out" "$llvm_out"'
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" '"$comparator_bin" "$c_rel" "$llvm_rel" 0 1'
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "artifact-equal"
@@ -1729,6 +1738,8 @@ selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirFactObjectStart"
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "JsonCharAt"
+reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func CharAt"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectStringFact"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectStringFactOpt"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectNumberFact"
@@ -1914,7 +1925,7 @@ reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'cmp -s'
 reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'diff -u'
 require_text "Makefile" "self-host-driver-rung0-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/driver_rung0_parity.sh"
-require_text "tests/self_hosted/parity/driver_rung0_parity.sh" "pgy_selfhost_compare_expected_text_artifact_with_owner"
+require_text "tests/self_hosted/parity/driver_rung0_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"ast_text"'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"emitted_c"'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'cmp -s'

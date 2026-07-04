@@ -99,11 +99,9 @@ compare_artifact() {
     local expected_file="$2"
     local actual_file="$3"
     local artifact_kind="$4"
-    local actual_text
 
-    actual_text="$(cat "$actual_file")"
-    pgy_selfhost_compare_expected_text_artifact_with_owner \
-        "$label" "$BUILD_DIR" "$expected_file" "$actual_text" "$artifact_kind"
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "$label" "$BUILD_DIR" "$expected_file" "$actual_file" "$artifact_kind"
 }
 
 CODEGEN_BIN="$BUILD_DIR/codegen_oracle.exe"

@@ -15,7 +15,7 @@ func ParseEventDecl(content: String, start: Int, inout cursor_out: Array<Int>, d
         Exit(1);
     }
     i = SkipWhitespaceAndComments(content, i);
-    if CharAt(content, i) == ":" {
+    if ParserCharAt(content, i) == ":" {
         i = i + 1;
     }
     i = Expect(content, i, "(");
@@ -24,7 +24,7 @@ func ParseEventDecl(content: String, start: Int, inout cursor_out: Array<Int>, d
     }
     let ev_params: Array<String> = [];
     i = SkipWhitespaceAndComments(content, i);
-    if CharAt(content, i) != ")" {
+    if ParserCharAt(content, i) != ")" {
         while true {
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
@@ -45,7 +45,7 @@ func ParseEventDecl(content: String, start: Int, inout cursor_out: Array<Int>, d
             }
             ArrayPush(ev_params, Concat("      Let: ", Concat(p_name, Concat(" : ", Concat(p_type, " = (null)")))));
             i = SkipWhitespaceAndComments(content, i);
-            if CharAt(content, i) == "," {
+            if ParserCharAt(content, i) == "," {
                 i = i + 1;
                 continue;
             }

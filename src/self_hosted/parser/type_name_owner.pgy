@@ -27,7 +27,7 @@ func IsPrimitiveType(base_type: String) -> Bool {
 // type argument as `Label: FullType`, so we mirror that quirk exactly.
 func ReadType(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
     let i: Int = SkipWhitespaceAndComments(content, start);
-    if CharAt(content, i) == "(" && CharAt(content, i + 1) == ")" {
+    if ParserCharAt(content, i) == "(" && ParserCharAt(content, i + 1) == ")" {
         ArraySet(cursor_out, 0, i + 2);
         return "Void";
     }
@@ -48,7 +48,7 @@ func ReadType(content: String, start: Int, inout cursor_out: Array<Int>) -> Stri
     }
     let type_text: String = base;
     let after_ws: Int = SkipWhitespaceAndComments(content, i);
-    if CharAt(content, after_ws) == "<" {
+    if ParserCharAt(content, after_ws) == "<" {
         i = after_ws + 1;
         let args: String = "";
         while true {
@@ -65,8 +65,8 @@ func ReadType(content: String, start: Int, inout cursor_out: Array<Int>) -> Stri
             }
             let label: String = "";
             let label_i: Int = 0;
-            while label_i < StringLength(arg) && CharAt(arg, label_i) != "<" {
-                label = Concat(label, CharAt(arg, label_i));
+            while label_i < StringLength(arg) && ParserCharAt(arg, label_i) != "<" {
+                label = Concat(label, ParserCharAt(arg, label_i));
                 label_i = label_i + 1;
             }
             let printed: String = Concat(label, Concat(": ", arg));
@@ -76,20 +76,20 @@ func ReadType(content: String, start: Int, inout cursor_out: Array<Int>) -> Stri
                 args = Concat(args, Concat(", ", printed));
             }
             i = SkipWhitespaceAndComments(content, i);
-            if CharAt(content, i) == "," {
+            if ParserCharAt(content, i) == "," {
                 i = i + 1;
                 continue;
             }
             break;
         }
-        if CharAt(content, i) != ">" {
+        if ParserCharAt(content, i) != ">" {
             Exit(1);
         }
         i = i + 1;
         type_text = Concat(base, Concat("<", Concat(args, ">")));
     }
     let arrow_i: Int = SkipWhitespaceAndComments(content, i);
-    if CharAt(content, arrow_i) == "-" && CharAt(content, arrow_i + 1) == ">" {
+    if ParserCharAt(content, arrow_i) == "-" && ParserCharAt(content, arrow_i + 1) == ">" {
         i = arrow_i + 2;
         ArraySet(cursor_out, 0, i);
         let ret_type: String = ReadType(content, i, cursor_out);
@@ -100,7 +100,7 @@ func ReadType(content: String, start: Int, inout cursor_out: Array<Int>) -> Stri
         type_text = Concat("func(", Concat(type_text, Concat(") -> ", ret_type)));
     }
     let intersection_i: Int = SkipWhitespaceAndComments(content, i);
-    while CharAt(content, intersection_i) == "&" && CharAt(content, intersection_i + 1) != "&" {
+    while ParserCharAt(content, intersection_i) == "&" && ParserCharAt(content, intersection_i + 1) != "&" {
         i = intersection_i + 1;
         ArraySet(cursor_out, 0, i);
         let rhs_type: String = ReadType(content, i, cursor_out);

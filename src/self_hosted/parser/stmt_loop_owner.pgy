@@ -51,7 +51,7 @@ func ParseForStmt(content: String, after_head: Int, inout cursor_out: Array<Int>
     i = cursor_out[0];
     let range_text: String = "";
     let after_lower: Int = SkipWhitespaceAndComments(content, i);
-    if CharAt(content, after_lower) == "." && CharAt(content, after_lower + 1) == "." {
+    if ParserCharAt(content, after_lower) == "." && ParserCharAt(content, after_lower + 1) == "." {
         i = after_lower + 2;
         ArraySet(cursor_out, 0, i);
         let upper: String = ParseExpr(content, i, cursor_out);

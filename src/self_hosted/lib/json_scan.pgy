@@ -3,7 +3,7 @@
 // This owner deliberately stops at cursor/string scanning. JSON object shape
 // and field semantics stay in json.pgy; emission stays in json_emit.pgy.
 
-func CharAt(s: String, i: Int) -> String {
+func JsonCharAt(s: String, i: Int) -> String {
     return Substring(s, i, 1);
 }
 
@@ -26,7 +26,7 @@ func FindFrom(hay: String, needle: String, start: Int) -> Option<Int> {
 func JsonSkipWhitespace(json: String, index: Int, end: Int) -> Int {
     let i: Int = index;
     while i < end {
-        let c: String = CharAt(json, i);
+        let c: String = JsonCharAt(json, i);
         if c != " " && c != "\n" && c != "\r" && c != "\t" {
             return i;
         }
