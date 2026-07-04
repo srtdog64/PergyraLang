@@ -171,3 +171,5 @@ compiler-stage `.pgy` source to be listed here.
   dispatch plan over transport bodies and JSON fact tables.
 - `src/self_hosted/lsp/response_owner.pgy` -- LSP-2d buffered response body and
   Content-Length frame emission plan over request bodies.
+- `src/self_hosted/lsp/session_owner.pgy` -- LSP-2e buffered session replay
+  over transport bodies and response frames.

@@ -12,6 +12,8 @@ replacement.
   shared JSON fact-table owner.
 - `response_owner.pgy` projects response-required request bodies into response
   body/frame plans.
+- `session_owner.pgy` replays one buffered request stream into response frames
+  for the subset already owned by `response_owner.pgy`.
 - `main.pgy` is the runnable boundary for parity fixtures.
 - `fixture/` and `expected/` are the committed clean/error payload and
   squiggle-policy contracts. Error payloads carry both the self-host lower-case
@@ -21,7 +23,9 @@ The `ReadStdin(n)` substrate for transport framing is present, and
 `transport_owner.pgy` consumes it for one JSON-RPC Content-Length frame
 (LSP-2a) and ordered multi-frame consumption from one stdin buffer (LSP-2b).
 `request_owner.pgy` consumes those buffered bodies for request dispatch planning
-(LSP-2c), and `response_owner.pgy` emits basic response plans (LSP-2d). Full
-LSP-2 still needs a live read-exact loop and document-store mutation.
+(LSP-2c), `response_owner.pgy` emits basic response plans (LSP-2d), and
+`session_owner.pgy` replays emitted response frames from one buffered request
+stream (LSP-2e). Full LSP-2 still needs a live read-exact loop,
+document-store mutation, and feature responses.
 `O-LSP` has live diagnostic-dump plumbing, but full vocabulary/session parity
 remains a later LSP-3 concern.

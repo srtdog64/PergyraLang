@@ -94,6 +94,7 @@ SELF_SOURCES=(
     "src/self_hosted/lsp/diagnostics_owner.pgy"
     "src/self_hosted/lsp/request_owner.pgy"
     "src/self_hosted/lsp/response_owner.pgy"
+    "src/self_hosted/lsp/session_owner.pgy"
     "src/self_hosted/lsp/squiggle_owner.pgy"
     "src/self_hosted/lsp/transport_owner.pgy"
     "src/self_hosted/lsp/main.pgy"

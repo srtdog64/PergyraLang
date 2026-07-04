@@ -139,6 +139,32 @@ func LspResponsePlanJson(body: String) -> Option<String> {
     return Some(JsonEmitObject(fields));
 }
 
+func LspResponseFrameForRequestBody(body: String) -> Option<String> {
+    let root: JsonObjectFactTable = JsonDocumentObjectFactTable(body);
+    if !JsonObjectFactTableReady(root) {
+        return None;
+    }
+    if !JsonObjectFactStringFieldEquals(root, "jsonrpc", "2.0") {
+        return None;
+    }
+    let method_opt: Option<String> = JsonObjectFactStringFieldOpt(root, "method");
+    if !IsSome(method_opt) {
+        return None;
+    }
+
+    let method: String = UnwrapOption(method_opt);
+    let id: String = LspRequestIdText(root);
+    if !LspRequestResponseRequired(method, StringLength(id) > 0) {
+        return None;
+    }
+    let result_opt: Option<String> = LspResponseResultForMethod(method);
+    if !IsSome(result_opt) {
+        return None;
+    }
+    let response_body: String = UnwrapOption(LspResponseBodyJson(id, UnwrapOption(result_opt)));
+    return LspResponseFrameForBody(response_body);
+}
+
 func LspResponseEmissionStreamJson(buffer: String) -> Option<String> {
     let responses: Array<String> = [];
     let cursor: Int = 0;

@@ -21,7 +21,7 @@ rows="$(sed -n '/DRIVER-LSP-RUNG-BEGIN/,/DRIVER-LSP-RUNG-END/p' "$DOC" \
     | grep -E '^\| (driver|lsp) \|')"
 [ -n "$rows" ] || fail "docs/150 rung block has no rows"
 
-expected_rungs="DRV-0 DRV-1 DRV-2 DRV-3 LSP-0 LSP-1 LSP-2a LSP-2b LSP-2c LSP-2d LSP-2 LSP-3"
+expected_rungs="DRV-0 DRV-1 DRV-2 DRV-3 LSP-0 LSP-1 LSP-2a LSP-2b LSP-2c LSP-2d LSP-2e LSP-2 LSP-3"
 for rung in $expected_rungs; do
     printf '%s\n' "$rows" | grep -Fq "| $rung |" ||
         fail "rung table lost row '$rung' (ladder rows may change status, not vanish)"
@@ -110,6 +110,13 @@ if grep -Fq "tests/self_hosted/parity/lsp_response_emission_parity.sh" "$DOC"; t
         fail "LSP-2d claims response-emission parity, but the script is missing"
     grep -Fq "self-host-lsp-response-emission-parity-test-smoke" "$ROOT_DIR/Makefile" ||
         fail "LSP-2d claims response-emission parity, but the Makefile target is missing"
+fi
+
+if grep -Fq "tests/self_hosted/parity/lsp_session_replay_parity.sh" "$DOC"; then
+    [ -e "$ROOT_DIR/tests/self_hosted/parity/lsp_session_replay_parity.sh" ] ||
+        fail "LSP-2e claims session-replay parity, but the script is missing"
+    grep -Fq "self-host-lsp-session-replay-parity-test-smoke" "$ROOT_DIR/Makefile" ||
+        fail "LSP-2e claims session-replay parity, but the Makefile target is missing"
 fi
 
 echo "[driver-lsp-wiring] rung ladder honest (landed==exists, blocked==documented, planned==unclaimed, gaps visible)"

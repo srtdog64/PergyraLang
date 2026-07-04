@@ -13,6 +13,7 @@ payload owner, not an LSP transport loop.
 - **transport_owner**: `src/self_hosted/lsp/transport_owner.pgy`
 - **request_dispatch_owner**: `src/self_hosted/lsp/request_owner.pgy`
 - **response_emission_owner**: `src/self_hosted/lsp/response_owner.pgy`
+- **session_replay_owner**: `src/self_hosted/lsp/session_owner.pgy`
 - **stage_intent**: `ProjectSemanticDiagnostics`
 - **payload_contract**: `LspDiagnosticPayloadContractReady`
 - **policy_contract**: `LspSquigglePolicyContractReady`
@@ -43,6 +44,12 @@ one stdin buffer, consumes complete transport frames, and projects response
 required request bodies into response body/frame plans. It is not a live
 read-exact loop or document-store boundary.
 
+The `--session-replay-probe <max-bytes>` mode is the LSP-2e input boundary: it
+reads one stdin buffer, consumes complete transport frames, and emits the
+response frame wire string for requests whose response is already owned by
+`response_owner.pgy`. It is still not a live read-exact loop, document-store
+boundary, or textDocument feature handler.
+
 ## Output Contract
 
 The tool prints one JSON object with schema
@@ -65,6 +72,9 @@ plans.
 The `--response-probe` mode prints a
 `pgy.selfhost.lsp-response-emission-stream.v1` artifact with response body/frame
 plans.
+The `--session-replay-probe` mode prints a
+`pgy.selfhost.lsp-session-replay.v1` artifact with the emitted response frame
+wire string and per-frame list.
 
 ## Oracle
 
@@ -80,4 +90,6 @@ stream parity is checked by
 dispatch parity is checked by
 `tests/self_hosted/parity/lsp_request_dispatch_parity.sh`; LSP-2d response
 emission parity is checked by
-`tests/self_hosted/parity/lsp_response_emission_parity.sh`.
+`tests/self_hosted/parity/lsp_response_emission_parity.sh`; LSP-2e session
+replay parity is checked by
+`tests/self_hosted/parity/lsp_session_replay_parity.sh`.

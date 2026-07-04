@@ -1,0 +1,105 @@
+// Self-host LSP buffered session replay owner.
+//
+// LSP-2e consumes one buffered JSON-RPC request stream and emits the response
+// frames that can already be proven by the response owner. It still stops
+// before a live read-exact loop, document-store mutation, and feature handlers.
+
+import "../lib/json_emit.pgy";
+import "response_owner.pgy";
+import "transport_owner.pgy";
+
+func LspSessionReplaySchema() -> String {
+    return "pgy.selfhost.lsp-session-replay.v1";
+}
+
+func LspSessionReplayProbeMode() -> String {
+    return "--session-replay-probe";
+}
+
+func LspSessionReplayProbeRequested(args: Array<String>) -> Bool {
+    return ArrayLength(args) > 0 && args[0] == LspSessionReplayProbeMode();
+}
+
+func LspSessionResponsePlanFailed(plan: String) -> Bool {
+    return StringIndexOf(plan, "\"ok\":false") >= 0;
+}
+
+func LspSessionReplayJson(buffer: String) -> Option<String> {
+    let frames: Array<String> = [];
+    let wire: String = "";
+    let cursor: Int = 0;
+    let request_count: Int = 0;
+    let emitted_count: Int = 0;
+    let errors: Int = 0;
+    let partial_reason: Option<String> = None;
+
+    while cursor < StringLength(buffer) {
+        let tail: String = Substring(buffer, cursor, StringLength(buffer) - cursor);
+        let complete_opt: Option<Int> = LspTransportCompleteFrameLength(tail);
+        if !IsSome(complete_opt) {
+            partial_reason = LspTransportPartialReason(tail);
+            cursor = StringLength(buffer);
+        } else {
+            let body_opt: Option<String> = LspTransportFrameBody(tail);
+            if !IsSome(body_opt) {
+                partial_reason = Some("body_incomplete");
+                cursor = StringLength(buffer);
+            } else {
+                let body: String = UnwrapOption(body_opt);
+                request_count = request_count + 1;
+                let response_plan: String = UnwrapOption(LspResponsePlanJson(body));
+                if LspSessionResponsePlanFailed(response_plan) {
+                    errors = errors + 1;
+                }
+                let frame_opt: Option<String> = LspResponseFrameForRequestBody(body);
+                if IsSome(frame_opt) {
+                    let frame: String = UnwrapOption(frame_opt);
+                    ArrayPush(frames, JsonStringLiteral(frame));
+                    wire = Concat(wire, frame);
+                    emitted_count = emitted_count + 1;
+                }
+                cursor = cursor + UnwrapOption(complete_opt);
+            }
+        }
+    }
+
+    let partial_reason_text: String = "";
+    if IsSome(partial_reason) {
+        partial_reason_text = UnwrapOption(partial_reason);
+    }
+
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldString("schema", LspSessionReplaySchema()));
+    ArrayPush(fields, JsonEmitFieldBool("ok", errors == 0 && !IsSome(partial_reason)));
+    ArrayPush(fields, JsonEmitFieldNumber("requestCount", ToString(request_count)));
+    ArrayPush(fields, JsonEmitFieldNumber("emittedCount", ToString(emitted_count)));
+    ArrayPush(fields, JsonEmitFieldNumber("errors", ToString(errors)));
+    ArrayPush(fields, JsonEmitFieldString("partialReason", partial_reason_text));
+    ArrayPush(fields, JsonEmitFieldString("wire", wire));
+    ArrayPush(fields, JsonEmitFieldRaw("frames", JsonEmitArray(frames)));
+    return Some(JsonEmitObject(fields));
+}
+
+func LspSessionReplayContractReady() -> Bool {
+    let body: String = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{}}";
+    let frame_opt: Option<String> = LspResponseFrameForRequestBody(body);
+    if !IsSome(frame_opt) {
+        return false;
+    }
+    let frame: String = UnwrapOption(frame_opt);
+    if StringIndexOf(frame, "Content-Length:") < 0 {
+        return false;
+    }
+    let hover: String = "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"textDocument/hover\",\"params\":{}}";
+    let rejected: String = UnwrapOption(LspResponsePlanJson(hover));
+    return LspSessionResponsePlanFailed(rejected);
+}
+
+func RunLspSessionReplayProbeFromArgs(args: Array<String>) -> Void with caps io_read {
+    let max_bytes: Int = 4096;
+    if ArrayLength(args) > 1 {
+        max_bytes = ToInt(args[1]);
+    }
+    let buffer: String = ReadStdin(max_bytes);
+    Log(UnwrapOption(LspSessionReplayJson(buffer)));
+}

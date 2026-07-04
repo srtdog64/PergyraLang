@@ -2182,6 +2182,8 @@ self-host-preparation-parity-test-smoke: $(PGY) $(PGY_LSP)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_request_dispatch_parity.sh
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_response_emission_parity.sh
+	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_session_replay_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_json_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/module_manifest_resolver_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/production_c_size_checker_parity.sh
@@ -2268,6 +2270,10 @@ self-host-lsp-request-dispatch-parity-test-smoke: $(PGY)
 self-host-lsp-response-emission-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_response_emission_parity.sh
+
+self-host-lsp-session-replay-parity-test-smoke: $(PGY)
+	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_session_replay_parity.sh
 
 self-host-mir-json-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_json_parity.sh
