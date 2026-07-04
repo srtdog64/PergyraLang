@@ -26,6 +26,7 @@ forbid_literal() {
 run_literal_contract_smoke() {
     local required_files=(
         "src/runtime/pgy_runtime_authority_contract.h"
+        "src/runtime/pgy_runtime_security_log.h"
         "src/runtime/pgy_runtime_zone_result_option_inline.h"
         "src/runtime/pgy_runtime_lib_authority_file_core.h"
         "src/runtime/pgy_runtime_platform_io_core.h"
@@ -41,9 +42,6 @@ run_literal_contract_smoke() {
         "PGY_ZONE_AUTHORITY_REASON_MISSING_ZONE"
         "PGY_ZONE_AUTHORITY_REASON_MISSING_PARTICIPANT"
         "PGY_ZONE_AUTHORITY_REASON_TOKEN_MISMATCH"
-        "PGY_ZONE_AUTHORITY_STDERR_MISSING_ZONE"
-        "PGY_ZONE_AUTHORITY_STDERR_MISSING_PARTICIPANT"
-        "PGY_ZONE_AUTHORITY_STDERR_TOKEN_MISMATCH"
     )
 
     for rel in "${required_files[@]}"; do
@@ -63,6 +61,10 @@ run_literal_contract_smoke() {
     require_literal "src/runtime/pgy_runtime_authority_contract.h" "missing-participant"
     require_literal "src/runtime/pgy_runtime_authority_contract.h" "authority-token-mismatch"
     require_literal "src/runtime/pgy_runtime_lib_authority_file_core.h" "pgy_runtime_authority_contract.h"
+    require_literal "src/runtime/pgy_runtime_security_log.h" "pgy_runtime_log_authority_failure"
+    require_literal "src/runtime/pgy_runtime_security_log.h" '"component\":\"authority\"'
+    require_literal "src/runtime/pgy_runtime_zone_result_option_inline.h" "pgy_runtime_log_authority_failure"
+    require_literal "src/runtime/pgy_runtime_lib_authority_file_core.h" "pgy_runtime_log_authority_failure"
     require_literal "src/runtime/pgy_runtime_platform_io_core.h" "pgy_runtime_authority_contract.h"
     require_literal "src/codegen/llvm_runtime_core_builtin_decl.c" "pgy_zone_authority_check_token_export"
     require_literal "src/codegen/llvm_runtime_core_builtin_decl.c" "pgy_zone_authority_validate_token_flags_export"
@@ -73,6 +75,9 @@ run_literal_contract_smoke() {
     forbid_literal "src/runtime/pgy_runtime_lib_authority_file_core.h" "\"missing-zone\""
     forbid_literal "src/runtime/pgy_runtime_lib_authority_file_core.h" "\"missing-participant\""
     forbid_literal "src/runtime/pgy_runtime_lib_authority_file_core.h" "\"authority-token-mismatch\""
+    forbid_literal "src/runtime/pgy_runtime_authority_contract.h" "[pgy][authority]"
+    forbid_literal "src/runtime/pgy_runtime_zone_result_option_inline.h" "[pgy][authority]"
+    forbid_literal "src/runtime/pgy_runtime_lib_authority_file_core.h" "[pgy][authority]"
 
     echo "[runtime-authority-contract] authority failure surface is contract-backed (literal fallback)"
 }
@@ -96,6 +101,7 @@ import sys
 
 root = pathlib.Path(sys.argv[1])
 header = root / "src" / "runtime" / "pgy_runtime_authority_contract.h"
+security_log = root / "src" / "runtime" / "pgy_runtime_security_log.h"
 inline_part = root / "src" / "runtime" / "pgy_runtime_zone_result_option_inline.h"
 lib_part = root / "src" / "runtime" / "pgy_runtime_lib_authority_file_core.h"
 top_part = root / "src" / "runtime" / "pgy_runtime_platform_io_core.h"
@@ -109,9 +115,6 @@ required_macros = {
     "PGY_ZONE_AUTHORITY_REASON_MISSING_ZONE": "zone authority validation failed: null zone self",
     "PGY_ZONE_AUTHORITY_REASON_MISSING_PARTICIPANT": "zone authority validation failed: null authority participant",
     "PGY_ZONE_AUTHORITY_REASON_TOKEN_MISMATCH": "zone authority validation failed: authority token mismatch",
-    "PGY_ZONE_AUTHORITY_STDERR_MISSING_ZONE": "[pgy][authority] zone '%s' entered with null self while validating '%s'\\n",
-    "PGY_ZONE_AUTHORITY_STDERR_MISSING_PARTICIPANT": "[pgy][authority] zone '%s' has null authority participant '%s'\\n",
-    "PGY_ZONE_AUTHORITY_STDERR_TOKEN_MISMATCH": "[pgy][authority] zone '%s' rejected authority token for '%s'\\n",
 }
 
 if not header.exists():
@@ -123,6 +126,14 @@ for macro, literal in required_macros.items():
         raise SystemExit(f"runtime authority contract missing macro {macro}")
     if literal not in header_text:
         raise SystemExit(f"runtime authority contract missing literal for {macro}: {literal}")
+if "[pgy][authority]" in header_text:
+    raise SystemExit("runtime authority contract contains raw authority stderr text")
+
+security_log_text = security_log.read_text(encoding="utf-8")
+if "pgy_runtime_log_authority_failure" not in security_log_text:
+    raise SystemExit("security log owner missing authority failure emitter")
+if '"component\\":\\"authority' not in security_log_text and '"component\":\"authority' not in security_log_text:
+    raise SystemExit("security log owner missing authority component")
 
 implementation_files = [lib_part, top_part]
 for path in implementation_files:
@@ -141,9 +152,7 @@ for path in [inline_part, lib_part]:
         "PGY_ZONE_AUTHORITY_REASON_MISSING_ZONE",
         "PGY_ZONE_AUTHORITY_REASON_MISSING_PARTICIPANT",
         "PGY_ZONE_AUTHORITY_REASON_TOKEN_MISMATCH",
-        "PGY_ZONE_AUTHORITY_STDERR_MISSING_ZONE",
-        "PGY_ZONE_AUTHORITY_STDERR_MISSING_PARTICIPANT",
-        "PGY_ZONE_AUTHORITY_STDERR_TOKEN_MISMATCH",
+        "pgy_runtime_log_authority_failure",
     ]
     missing = [macro for macro in required_uses if macro not in text]
     if missing:
@@ -159,6 +168,7 @@ for path in [inline_part, lib_part]:
         '"zone authority validation failed: null authority participant"',
         '"zone authority validation failed: authority token mismatch"',
         '"[pgy][authority] zone',
+        "[pgy][authority]",
     ]
     offenders = [literal for literal in raw_literals if literal in text]
     if offenders:

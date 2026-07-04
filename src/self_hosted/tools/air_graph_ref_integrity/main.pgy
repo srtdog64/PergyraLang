@@ -37,15 +37,15 @@ func AppendAll(dest: Array<String>, src: Array<String>) -> Array<String> {
     return out;
 }
 
-func DanglingFinding(id_val: String) -> String {
+func DanglingFinding(id_val: String) -> Option<String> {
     let fields: Array<String> = [
         JsonEmitFieldString("kind", "dangling_edge_endpoint"),
         JsonEmitFieldString("id", id_val)
     ];
-    return JsonEmitObject(fields);
+    return Some(JsonEmitObject(fields));
 }
 
-func InputErrorJson(path: String) -> String {
+func InputErrorJson(path: String) -> Option<String> {
     let source_fields: Array<String> = [
         JsonEmitFieldString("input_schema", "pgy.air.graph.v1"),
         JsonEmitFieldString("fixture_owner", path)
@@ -70,13 +70,13 @@ func InputErrorJson(path: String) -> String {
         JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
         JsonEmitFieldRaw("findings", JsonEmitArray(findings))
     ];
-    return JsonEmitObject(report_fields);
+    return Some(JsonEmitObject(report_fields));
 }
 
 func Main() -> Void {
     let fixture_path: String = "src/self_hosted/tools/air_graph_ref_integrity/fixture/graph_edges.json";
     if !FileExists(fixture_path) {
-        Log(InputErrorJson(fixture_path));
+        Log(UnwrapOption(InputErrorJson(fixture_path)));
         Exit(1);
     }
 
@@ -97,7 +97,7 @@ func Main() -> Void {
         let ep: String = endpoints[i];
         if !ArrayContainsString(node_ids, ep) {
             dangling = dangling + 1;
-            ArrayPush(findings_list, DanglingFinding(ep));
+            ArrayPush(findings_list, UnwrapOption(DanglingFinding(ep)));
         }
         i = i + 1;
     }

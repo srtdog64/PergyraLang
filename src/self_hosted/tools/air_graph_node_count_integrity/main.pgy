@@ -33,7 +33,7 @@ func FindingsForNC(mismatch: Bool, ids: Int, declared: Int) -> Array<String> {
     return findings;
 }
 
-func InputErrorJson(path: String) -> String {
+func InputErrorJson(path: String) -> Option<String> {
     let source_fields: Array<String> = [
         JsonEmitFieldString("input_schema", "pgy.air.graph.v1"),
         JsonEmitFieldString("fixture_owner", path)
@@ -60,13 +60,13 @@ func InputErrorJson(path: String) -> String {
         JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
         JsonEmitFieldRaw("findings", JsonEmitArray(findings))
     ];
-    return JsonEmitObject(report_fields);
+    return Some(JsonEmitObject(report_fields));
 }
 
 func Main() -> Void {
     let fixture_path: String = "src/self_hosted/tools/air_graph_json_validator/fixture/sample.json";
     if !FileExists(fixture_path) {
-        Log(InputErrorJson(fixture_path));
+        Log(UnwrapOption(InputErrorJson(fixture_path)));
         Exit(1);
     }
 

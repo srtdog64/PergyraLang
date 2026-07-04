@@ -40,7 +40,7 @@ func Main() -> Void
     world.Broadcast("merge.true=" + ToString(mergeA));
     world.Broadcast("merge.false=" + ToString(mergeB));
 
-    let ok = RouteCargo(world.loading, world.delivery, world.loading.courier, world.loading.dispatcher);
+    let ok = RouteCargo(Clone(world.loading), Clone(world.delivery), world.loading.courier, world.loading.dispatcher);
     if ok
     {
         world.completed = 1;
@@ -56,7 +56,7 @@ func Main() -> Void
     world.Broadcast("  [HistoryCount] " + ToString(IntentHistoryCount()));
     world.Blank();
 
-    world.Broadcast(AuditHandles(world, world.loading, world.delivery.route, world.delivery.seal));
+    world.Broadcast(AuditHandles(world, Clone(world.loading), world.delivery.route, world.delivery.seal));
     world.FinalSnapshot();
     world.Blank();
 

@@ -186,6 +186,8 @@ void mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx);
 void semantic_reject_zone_subject_embedding(ASTNode *call, ASTNode *zone_decl,
                                             const char *zone_name,
                                             SemanticContext *ctx);
+void semantic_reject_world_zone_member_escape(ASTNode *node,
+                                              SemanticContext *ctx);
 bool expr_is_class_constructor_call(const ASTNode *expr, SemanticContext *ctx);
 bool expr_is_qubit_claim(const ASTNode *expr);
 bool expr_is_device_slot_claim(const ASTNode *expr);

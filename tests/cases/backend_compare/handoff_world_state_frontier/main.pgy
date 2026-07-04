@@ -62,7 +62,9 @@ func Main() -> Void {
         PaymentZone(Buyer(0), BuyerView(0)));
 
     world.Report();
-    let ok = Checkout(world.cart, world.payment, world.cart.buyer);
+    let cartCopy = Clone(world.cart);
+    let paymentCopy = Clone(world.payment);
+    let ok = Checkout(cartCopy, paymentCopy, world.cart.buyer);
     Log("ok=" + ToString(ok));
     world.Report();
 }

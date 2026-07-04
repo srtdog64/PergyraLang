@@ -61,32 +61,37 @@ transpiler_mir_generic_metadata_present(TranspilerCtx *ctx, ASTNode *decl)
     const char *diagnostic_name;
     const MIRDeclHeader *header;
     const MIRRoutine *routine;
+    bool mir_active;
 
     if (ctx == NULL || decl == NULL)
         return false;
-    if (!transpiler_active_has_mir(ctx))
+
+    mir_active = transpiler_active_has_mir(ctx);
+    routine = NULL;
+    decl_name = NULL;
+    header = NULL;
+    if (mir_active) {
+        routine = transpiler_find_mir_function(ctx, decl);
+        decl_name = routine != NULL
+            ? transpiler_mir_routine_name(routine)
+            : NULL;
+        header = decl_name != NULL
+            ? transpiler_active_decl_header_of_type(ctx, AST_FUNC_DECL, decl_name)
+            : NULL;
+    }
+
+    if (mir_active && header != NULL && routine != NULL
+        && transpiler_mir_routine_has_signature(routine))
         return true;
 
-    routine = transpiler_find_mir_function(ctx, decl);
-    decl_name = routine != NULL
-        ? transpiler_mir_routine_name(routine)
-        : NULL;
-    header = decl_name != NULL
-        ? transpiler_active_decl_header_of_type(ctx, AST_FUNC_DECL, decl_name)
-        : NULL;
-
-    if (header == NULL || routine == NULL
-        || !transpiler_mir_routine_has_signature(routine)) {
-        diagnostic_name = decl_name != NULL
-            ? decl_name
-            : ast_declaration_name(decl);
-        transpiler_set_mir_inventory_missing(
-            ctx,
-            "MIR-only C path missing generic function specialization metadata for '%s'",
-            diagnostic_name != NULL ? diagnostic_name : "(anonymous)");
-        return false;
-    }
-    return true;
+    diagnostic_name = decl_name != NULL
+        ? decl_name
+        : ast_declaration_name(decl);
+    transpiler_set_mir_inventory_missing(
+        ctx,
+        "MIR-only C path missing generic function specialization metadata for '%s'",
+        diagnostic_name != NULL ? diagnostic_name : "(anonymous)");
+    return false;
 }
 
 const char *

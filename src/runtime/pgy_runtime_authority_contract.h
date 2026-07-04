@@ -14,11 +14,4 @@
 #define PGY_ZONE_AUTHORITY_REASON_TOKEN_MISMATCH \
     "zone authority validation failed: authority token mismatch"
 
-#define PGY_ZONE_AUTHORITY_STDERR_MISSING_ZONE \
-    "[pgy][authority] zone '%s' entered with null self while validating '%s'\n"
-#define PGY_ZONE_AUTHORITY_STDERR_MISSING_PARTICIPANT \
-    "[pgy][authority] zone '%s' has null authority participant '%s'\n"
-#define PGY_ZONE_AUTHORITY_STDERR_TOKEN_MISMATCH \
-    "[pgy][authority] zone '%s' rejected authority token for '%s'\n"
-
 #endif /* PGY_RUNTIME_AUTHORITY_CONTRACT_H */

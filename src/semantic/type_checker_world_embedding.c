@@ -2,11 +2,11 @@
  * a live binding crossing a containment boundary (world > zone) forks or
  * exposes identity and must declare it -- Clone is the declared copy,
  * Channel the declared passage; undeclared crossings fail closed.
- * Two enforced faces live here:
+ * Three enforced faces live here:
  *   - world constructor embedding of a live zone binding   (original check)
  *   - zone constructor embedding of a live subject binding (S1, AC-3)
- * The S2 face (world member escape) is measured but deliberately not
- * enforced yet -- see the note at the end of this file.
+ *   - world member zone escaping as a live binding         (S2, AC-3,
+ *     full theorem T -- re-ratified 2026-07-05)
  */
 #include "type_checker_internal.h"
 #include "diag_codes.h"
@@ -203,12 +203,95 @@ semantic_reject_zone_subject_embedding(ASTNode *call, ASTNode *zone_decl,
     }
 }
 
-/* S2 (AC-3, world member escape) is intentionally NOT enforced yet.
- * The corpus audit (2026-07-05) found the flagship examples' dominant
- * idiom passes world-owned zones through plain API-layer functions
- * (shopping_mall 7 sites, logistics 3, abi_pipeline/backend_compare
- * fixtures) -- blanket escape rejection would convert them all and shift
- * write-through-dependent goldens. The enforcement scope (full theorem-T
- * escape rule vs cross-world-mix-only) is a BDFL re-ratification cell;
- * see docs/157 and the axis-composition smoke, which keeps the measured
- * silent write-through (2/1/2) pinned until the direction lands. */
+/* S2 (AC-3, full theorem T -- BDFL re-ratified 2026-07-05, docs/157 §5
+ * option A): a world-owned zone binding read out of the world as a live
+ * value. Measured (docs/157 P-B + docs/156 S2): the same expression is a
+ * copy in let-init position but a live alias in transfer-argument
+ * position, where it silently writes through into the world interior --
+ * an undeclared Channel-only bypass. Escape therefore demands the
+ * declared copy, in every value position. The corpus (flagship examples
+ * included) was converted in the landing commit. */
+static bool
+world_zone_member_escape_error(ASTNode *ma, SemanticContext *ctx)
+{
+    ASTNode *base;
+    const char *member_name;
+    const char *base_name;
+    Symbol *base_sym;
+    ASTNode *world_decl;
+    size_t zone_count = 0;
+    ASTNode **zones;
+
+    if (ma == NULL || ma->type != AST_MEMBER_ACCESS || ctx == NULL)
+        return false;
+    base = ast_member_object(ma);
+    member_name = ast_member_name(ma);
+    if (base == NULL || base->type != AST_IDENTIFIER || member_name == NULL)
+        return false;
+    base_name = ast_identifier_name(base);
+    base_sym = scope_lookup(ctx->scope, base_name);
+    if (base_sym == NULL || base_sym->kind != SYMBOL_VARIABLE
+        || base_sym->type == NULL || base_sym->type->name == NULL)
+        return false;
+    world_decl = semantic_find_world_decl_by_name(ctx, base_sym->type->name);
+    if (world_decl == NULL || world_decl->type != AST_WORLD_DECL)
+        return false;
+    zones = ast_world_zones(world_decl, &zone_count);
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *slot = zones[i];
+        const char *slot_name;
+
+        if (slot == NULL || slot->type != AST_WORLD_ZONE)
+            continue;
+        slot_name = ast_world_zone_slot_name(slot);
+        if (slot_name == NULL || strcmp(slot_name, member_name) != 0)
+            continue;
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_ANCHORED_HANDLE_COPY,
+            PGY_CAUSE_ANCHORED_HANDLE_COPY_ATTEMPT,
+            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+            ma,
+            "World-owned zone binding '%s.%s' cannot escape as a live binding.\n"
+            "Reason:\n"
+            "- reading a zone out of world '%s' exposes world-interior state without a declaration\n"
+            "- measured: a transfer aimed at an escaped zone silently writes through into the world interior (docs/157)\n"
+            "- cross-World movement is Channel-only; an escaped live zone bypasses it\n"
+            "Fix:\n"
+            "- use Clone(%s.%s) for a declared, detached copy\n"
+            "- or mutate through the owning world's methods\n"
+            "- or pass values across worlds through a Channel",
+            base_name != NULL ? base_name : "<world>",
+            member_name,
+            base_sym->type->name,
+            base_name != NULL ? base_name : "<world>",
+            member_name);
+        return true;
+    }
+    return false;
+}
+
+void
+semantic_reject_world_zone_member_escape(ASTNode *node, SemanticContext *ctx)
+{
+    if (node == NULL || ctx == NULL)
+        return;
+    if (node->type == AST_MEMBER_ACCESS) {
+        (void) world_zone_member_escape_error(node, ctx);
+        return;
+    }
+    if (node->type != AST_CALL)
+        return;
+    {
+        ASTNode *callee = ast_call_callee(node);
+        if (callee != NULL && callee->type == AST_IDENTIFIER) {
+            const char *callee_name = ast_identifier_name(callee);
+            /* Clone is the declared-copy channel for exactly this read. */
+            if (callee_name != NULL
+                && (strcmp(callee_name, "Clone") == 0
+                    || strcmp(callee_name, "RcClone") == 0))
+                return;
+        }
+    }
+    for (size_t i = 0; i < ast_call_arg_count(node); i++)
+        (void) world_zone_member_escape_error(ast_call_argument(node, i), ctx);
+}

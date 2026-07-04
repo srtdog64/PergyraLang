@@ -42,7 +42,7 @@ update-commutation)만 기계화했다. 열려 있던 것은 **전 쌍별 축-�
 | 1 | World×Zone | 간선 `world ⊃ zone` (기등재) | world_pos_share STATIC("implicitly copies zone binding"+Clone 요구), probe 잠금 |
 | 2 | World×Actor | 소유권 정리(FWhere≠FWho) + 표면 결합 구문 부재 | AxisOwnership; 커널은 AC-2 |
 | 3 | World×Authority | 간접 — world⊃zone 진단의 authority 근거 문구 경유, 직접 간선 없음 | 동 진단 실측; AC-2 |
-| 4 | World×Intent | **커널 실측 — 등록 발견: SILENT WRITE-THROUGH** (§4) | comp_world_intent, 본 smoke 잠금; 방향 닫기=AC-3(BDFL 셀) |
+| 4 | World×Intent | ~~SILENT WRITE-THROUGH~~ → **CLOSED(2026-07-05, 전면 T — 2회 재비준)**: world 소유 zone의 값-위치 유출 = STATIC 거절+Clone(cross-world 우회 소멸) | comp_world_intent/cross + probe_world_member = REJECT 회귀 픽스처, 본 smoke 잠금 |
 | 5 | World×slot | 합성 경유(`world⊃zone` ∘ `zone⊃slot`) — 직접 간선 없음 | 두 기등재 간선의 합성; 우회 경로는 §4 발견이 커버 |
 | 6 | Zone×Actor | 매개 — zone `authority <subject-slot>` 선언이 actor를 **Auth축 경유**로 지명 (직접 검사 없음) | authority⊢step의 zone-측 바인딩; 05_zone_intent |
 | 7 | Zone×Authority | **간선 `cap ⊢ zone-cross` (본 감사 신규 등재)** | AIRBinding.air_zone_gate + ZoneCrossingCore.v + authority-mismatch panic + 05_zone_intent |
@@ -82,7 +82,7 @@ update-commutation)만 기계화했다. 열려 있던 것은 **전 쌍별 축-�
 
 ## 4. 커널 실측 (2026-07-04, C==LLVM 동일 목소리)
 
-### World×Intent — 등록 발견: cross-world transfer SILENT WRITE-THROUGH
+### World×Intent — 등록 발견: cross-world transfer SILENT WRITE-THROUGH — ★CLOSED (2026-07-05, 전면 T)
 
 `transfer: cart -> payment`를 **서로 다른 두 world가 소유한 zone**에
 겨냥하면(월드 멤버 접근 `w1.cart`, `w2.payment`): 진단 0으로 컴파일·
@@ -92,10 +92,17 @@ update-commutation)만 기계화했다. 열려 있던 것은 **전 쌍별 축-�
 (cross-World = Channel-only)의 측정된 우회 경로이며, world 생성자
 경로가 정적으로 거절하는 것(world_pos_share)을 **저장-매개 읽기 →
 transfer 경로가 우회**한다 — docs/151 §5 개념 노트의 "저장-매개 흐름"
-세탁 채널의 world-급 실측 사례. 닫는 방향(정적 거절 vs transfer를
-선언된 Channel-급 경계로 승격)은 BDFL 결정 셀 = **AC-3**, zone
-SILENT-COPY 방향 결정과 같은 배치. 그때까지 본 smoke가 이 판정을
-고정한다(변경 시 leg FAIL → 같은 커밋에서 행 갱신 의무).
+세탁 채널의 world-급 실측 사례.
+
+**닫힘(2026-07-05, docs/157 §5 — 전면 정리 T, BDFL 2회 재비준):**
+world 소유 zone binding의 값-위치 유출(call 인자·let-init) 전부 STATIC
+거절 + `Clone(w.zone)` 요구. cross 커널과 probe_world_member는 REJECT
+회귀 픽스처로 전환(본 smoke 잠금), handoff 픽스처·플래그십 예제는
+Clone 개종 + 행동 변화분 golden 재생성. 재비준 과정에서 corpus가 두
+번 반증 증거를 냈고(플래그십 plain-func 관용구 / handoff=설계 기능 +
+frontier 관측 기계) BDFL이 두 번 모두 전면 T를 재확인 — **handoff
+기능의 live-mutation 형태는 재설계 트랙으로 보드 등재**(모순을 안고
+가는 결정의 명시적 기록).
 
 ### Actor×Intent — who-swap 완전 비간섭 (양방향 측정)
 
@@ -121,7 +128,7 @@ status ∈ {planned, landed}. landed = artifact+gate 실존.
 | AC-0 | 15쌍 전수 배치 + 간선 등록부 정합(신규 4) + matrix-lock | landed | docs/156 §2–3 | tests/axis_composition_smoke.sh |
 | AC-1 | 커널 2쌍 실측(W×I 발견 + A×I 비간섭) C==LLVM | landed | tests/cases/axis_composition | tests/axis_composition_smoke.sh |
 | AC-2 | 부재-쌍 커널(W×Actor, W×Auth, Actor×slot, Z×Actor 직접-잔여) | planned | - | - |
-| AC-3 | SILENT 2건 닫힘: **S1(zone 생성자) landed 2026-07-05** — 정리 T 비준분, corpus 28사이트 Clone 개종(행동 보존 실측); **S2(world 유출)는 범위 재심 대기**(docs/157 §5 — 전면 T vs cross-world-mix만; 플래그십 same-world 관용구 충돌 증거) | S1 landed | src/semantic/type_checker_world_embedding.c | tests/axis_carriage_probe_smoke.sh (zone_pos_share REJECT leg) |
+| AC-3 | SILENT 2건 닫힘 — **전면 정리 T landed(2026-07-05)**: S1(zone 생성자, corpus 28사이트)+S2(world 유출 — call 인자·let-init, 플래그십·handoff 픽스처 개종). 재비준 2회(플래그십 관용구/handoff 설계기능 증거에도 전면 유지). 잔여=중첩 base(`w.zone.subject`) 미커버·S2 진단 위치 0:0(명명 잔여) + handoff 재설계 트랙 | landed | src/semantic/type_checker_world_embedding.c | axis_carriage(zone_pos_share REJECT) + axis_composition(cross/member REJECT) |
 | AC-4 | WO-F3 who≠approval 기계화 + role⊨ability Coq 조각 | planned | - | - |
 | AC-5 | G-4 합류 — 생성자 경계 검사(Slot/Channel 행) 개방의 전제 충족 | planned | - | - |
 

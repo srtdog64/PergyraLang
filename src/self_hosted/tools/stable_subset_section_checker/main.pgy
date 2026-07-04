@@ -82,7 +82,7 @@ func BuildMissingFindings(content: String, anchors: Array<String>) -> String {
     return JsonEmitArray(pieces);
 }
 
-func InputErrorJson(path: String) -> String {
+func InputErrorJson(path: String) -> Option<String> {
     let source_fields: Array<String> = [
         JsonEmitFieldString("manifest_owner", "docs/107_beta_stable_subset.md")
     ];
@@ -106,13 +106,13 @@ func InputErrorJson(path: String) -> String {
         JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
         JsonEmitFieldRaw("findings", JsonEmitArray(findings))
     ];
-    return JsonEmitObject(report_fields);
+    return Some(JsonEmitObject(report_fields));
 }
 
 func Main() -> Void {
     let manifest_path: String = "docs/107_beta_stable_subset.md";
     if !FileExists(manifest_path) {
-        Log(InputErrorJson(manifest_path));
+        Log(UnwrapOption(InputErrorJson(manifest_path)));
         Exit(1);
     }
 

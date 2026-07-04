@@ -49,7 +49,7 @@ func FindingsJsonFromFacts(facts: String) -> String {
     return findings;
 }
 
-func InputErrorJson(path: String) -> String {
+func InputErrorJson(path: String) -> Option<String> {
     let parts: Array<String> = [
         "{\"schema\":\"pgy.selfhost.diagnostic-catalog.v1\",\"ok\":false,\"source\":{\"code_owner\":\"src/semantic/diag_codes.h\",\"docs_owner\":\"docs/72_diagnostic_codes.md\"},\"counts\":{\"codes\":0,\"documented\":0,\"missing\":0,\"duplicates\":0,\"orphans\":0},\"findings\":[{\"kind\":\"input_error\",\"code\":",
         JsonStringLiteral(path),
@@ -57,7 +57,7 @@ func InputErrorJson(path: String) -> String {
         JsonStringLiteral(path),
         "}]}"
     ];
-    return StringJoin(parts, "");
+    return Some(StringJoin(parts, ""));
 }
 
 func DiagnosticCatalogJson(codes: Int, documented: Int, missing: Int, duplicates: Int, orphans: Int, findings: String) -> String {

@@ -1,0 +1,322 @@
+// Self-host LSP hover content owner.
+//
+// LSP-2i owns bounded semantic hover content over a buffered document snapshot.
+// It mirrors the C LSP keyword/builtin hover table shape without owning the
+// live read-exact loop or indexed symbol database.
+
+import "../lib/json_emit.pgy";
+import "../lib/json_fact_table.pgy";
+import "document_store_owner.pgy";
+import "request_owner.pgy";
+import "transport_owner.pgy";
+
+func LspHoverContentSchema() -> String {
+    return "pgy.selfhost.lsp-hover-content.v1";
+}
+
+func LspHoverContentProbeMode() -> String {
+    return "--hover-content-probe";
+}
+
+func LspHoverContentProbeRequested(args: Array<String>) -> Bool {
+    return ArrayLength(args) > 0 && args[0] == LspHoverContentProbeMode();
+}
+
+func LspHoverIsLower(c: String) -> Bool {
+    return c == "a" || c == "b" || c == "c" || c == "d" ||
+        c == "e" || c == "f" || c == "g" || c == "h" ||
+        c == "i" || c == "j" || c == "k" || c == "l" ||
+        c == "m" || c == "n" || c == "o" || c == "p" ||
+        c == "q" || c == "r" || c == "s" || c == "t" ||
+        c == "u" || c == "v" || c == "w" || c == "x" ||
+        c == "y" || c == "z";
+}
+
+func LspHoverIsUpper(c: String) -> Bool {
+    return c == "A" || c == "B" || c == "C" || c == "D" ||
+        c == "E" || c == "F" || c == "G" || c == "H" ||
+        c == "I" || c == "J" || c == "K" || c == "L" ||
+        c == "M" || c == "N" || c == "O" || c == "P" ||
+        c == "Q" || c == "R" || c == "S" || c == "T" ||
+        c == "U" || c == "V" || c == "W" || c == "X" ||
+        c == "Y" || c == "Z";
+}
+
+func LspHoverIsDigit(c: String) -> Bool {
+    return c == "0" || c == "1" || c == "2" || c == "3" ||
+        c == "4" || c == "5" || c == "6" || c == "7" ||
+        c == "8" || c == "9";
+}
+
+func LspHoverIsWordChar(c: String) -> Bool {
+    return LspHoverIsLower(c) || LspHoverIsUpper(c) ||
+        LspHoverIsDigit(c) || c == "_";
+}
+
+func LspHoverLineAt(source: String, line: Int) -> Option<String> {
+    let current: Int = 0;
+    let start: Int = 0;
+    let i: Int = 0;
+    while i <= StringLength(source) {
+        if i == StringLength(source) || CharAt(source, i) == "\n" {
+            if current == line {
+                return Some(Substring(source, start, i - start));
+            }
+            current = current + 1;
+            start = i + 1;
+        }
+        i = i + 1;
+    }
+    return None;
+}
+
+func LspHoverWordAt(source: String, line: Int, character: Int) -> Option<String> {
+    let line_text_opt: Option<String> = LspHoverLineAt(source, line);
+    if !IsSome(line_text_opt) {
+        return None;
+    }
+    let line_text: String = UnwrapOption(line_text_opt);
+    if character < 0 || character >= StringLength(line_text) {
+        return None;
+    }
+    if !LspHoverIsWordChar(CharAt(line_text, character)) {
+        return None;
+    }
+    let start: Int = character;
+    while start > 0 && LspHoverIsWordChar(CharAt(line_text, start - 1)) {
+        start = start - 1;
+    }
+    let end: Int = character;
+    while end < StringLength(line_text) && LspHoverIsWordChar(CharAt(line_text, end)) {
+        end = end + 1;
+    }
+    return Some(Substring(line_text, start, end - start));
+}
+
+func LspHoverTextForWord(word: String) -> Option<String> {
+    if word == "func" { return Some("**func** - Function declaration"); }
+    if word == "let" { return Some("**let** - Variable declaration"); }
+    if word == "struct" { return Some("**struct** - Value type (passed by value)"); }
+    if word == "object" { return Some("**object** - Passive state-bearing object type; can react but does not initiate intent"); }
+    if word == "tobject" { return Some("**tobject** - Transfer object. Boundary transfer data type"); }
+    if word == "roster" { return Some("**roster** - Party container with capacity constraints. Groups multiple parties (e.g., 4-party dungeon raid)"); }
+    if word == "party" { return Some("**party** - Authority-bearing participant declaration"); }
+    if word == "class" { return Some("**class** - Passive nominal host type (value semantics)"); }
+    if word == "subject" { return Some("**subject** - Identity-bearing host type\\n- subject values are anchored handles, not plain copied values\\n- subject actions can carry contract clauses like `requires`, `within`, `authorized by`, `causes`"); }
+    if word == "action" { return Some("**action** - Subject-host contract-bearing operation\\n- carries an action contract pack: `within`, `requires`, `authorized by`, `causes`\\n- matching intent steps may reuse this contract pack instead of repeating every clause"); }
+    if word == "where" { return Some("**where** - Contract/location clause\\n- in generics: type constraint surface\\n- in intent steps: current zone contract surface"); }
+    if word == "who" { return Some("**who** - Intent step participant clause\\n- names which intent participant performs the step\\n- may be inherited from a unique matching subject action"); }
+    if word == "using" { return Some("**using** - Intent step bound-zone alias clause\\n- binds the step to a specific zone participant alias\\n- may be derived from the `transfer` target contract"); }
+    if word == "transfer" { return Some("**transfer** - Cross-zone handoff clause\\n- `transfer: from -> to` can derive the step `where` and `using` contract from the target zone\\n- diagnostics should explain both current contract and the derived target contract"); }
+    if word == "authority" { return Some("**authority** - Zone mutation authority declaration\\n- `authority subjectSlot requires Ability` declares which participant may mutate authority-bearing zone state\\n- this often overlaps with action/step `requires`, so diagnostics should explain when the requirement was inherited rather than written twice"); }
+    if word == "requires" { return Some("**requires** - Ability contract clause\\n- on `action`: part of the action contract pack\\n- on `step`: explicit override or restatement of ability requirements"); }
+    if word == "within" { return Some("**within** - Action zone contract clause\\n- fixes which zone type the action runs inside\\n- matching intent steps may reuse this zone contract"); }
+    if word == "causes" { return Some("**causes** - Effect contract clause\\n- declares which effect layer/state transition the action or step drives\\n- matching intent steps may reuse this from the action contract"); }
+    if word == "authorized" { return Some("**authorized by** - Authority contract clause\\n- required when a step/action mutates authority-bearing zone state or runs secure/effectful work inside an authority boundary\\n- matching intent steps may reuse this from the action contract"); }
+    if word == "by" { return Some("**by** - Authority clause tail\\n- used in `authorized by` and domain lifecycle commands to name the approving participant"); }
+    if word == "with" { return Some("**with** - Two different surfaces share this word\\n- `with slot ... as ...` is a scoped binding/resource surface\\n- `with effects ...` is a declaration-local effect contract\\n- `with effects` is not part of the action -> step contract pack"); }
+    if word == "effects" { return Some("**effects** - Declaration-local effect contract tail\\n- used in `with effects ...`\\n- currently stays on the function/action declaration surface\\n- not reused as part of the intent step contract pack"); }
+    if word == "match" { return Some("**match** - Pattern matching expression"); }
+    if word == "parallel" { return Some("**parallel** - Parallel execution block"); }
+    if word == "import" { return Some("**import** - Import module"); }
+    if word == "Log" { return Some("**Log(value)** - Print value with newline\\n- If argument is multiline string, it is normalized and emitted via banner-style output"); }
+    if word == "LogBlock" { return Some("**LogBlock(text)** - Print multiline block text with banner-style normalization"); }
+    if word == "LogBanner" { return Some("**LogBanner(text)** - Print banner text with indentation-normalized output"); }
+    if word == "LogRaw" { return Some("**LogRaw(value)** - Print raw string value including embedded escapes/newlines"); }
+    if word == "Ok" { return Some("**Ok(value)** - Create success Result"); }
+    if word == "Err" { return Some("**Err(message)** - Create error Result"); }
+    if word == "Unwrap" { return Some("**Unwrap(result)** - Extract value or panic"); }
+    return None;
+}
+
+func LspHoverResultForTextPosition(source: String, line: Int, character: Int) -> Option<String> {
+    let word_opt: Option<String> = LspHoverWordAt(source, line, character);
+    if !IsSome(word_opt) {
+        return None;
+    }
+    let text_opt: Option<String> = LspHoverTextForWord(UnwrapOption(word_opt));
+    if !IsSome(text_opt) {
+        return None;
+    }
+    let content_fields: Array<String> = [];
+    ArrayPush(content_fields, JsonEmitFieldString("kind", "markdown"));
+    ArrayPush(content_fields, JsonEmitFieldString("value", UnwrapOption(text_opt)));
+
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldRaw("contents", JsonEmitObject(content_fields)));
+    return Some(JsonEmitObject(fields));
+}
+
+func LspHoverPositionLine(body: String) -> Option<Int> {
+    let root: JsonObjectFactTable = JsonDocumentObjectFactTable(body);
+    let params: JsonObjectFactTable = JsonObjectFactObjectTable(root, "params");
+    let position: JsonObjectFactTable = JsonObjectFactObjectTable(params, "position");
+    let line_opt: Option<String> = JsonObjectFactNumberFieldOpt(position, "line");
+    if !IsSome(line_opt) {
+        return None;
+    }
+    return Some(ToInt(UnwrapOption(line_opt)));
+}
+
+func LspHoverPositionCharacter(body: String) -> Option<Int> {
+    let root: JsonObjectFactTable = JsonDocumentObjectFactTable(body);
+    let params: JsonObjectFactTable = JsonObjectFactObjectTable(root, "params");
+    let position: JsonObjectFactTable = JsonObjectFactObjectTable(params, "position");
+    let character_opt: Option<String> = JsonObjectFactNumberFieldOpt(position, "character");
+    if !IsSome(character_opt) {
+        return None;
+    }
+    return Some(ToInt(UnwrapOption(character_opt)));
+}
+
+func LspHoverResultForRequest(source: String, body: String) -> Option<String> {
+    let line_opt: Option<Int> = LspHoverPositionLine(body);
+    let character_opt: Option<Int> = LspHoverPositionCharacter(body);
+    if !IsSome(line_opt) || !IsSome(character_opt) {
+        return None;
+    }
+    return LspHoverResultForTextPosition(source, UnwrapOption(line_opt), UnwrapOption(character_opt));
+}
+
+func LspHoverContentEventJson(
+    method: String,
+    id: String,
+    has_document: Bool,
+    result: String,
+    reason: String
+) -> String {
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldString("method", method));
+    ArrayPush(fields, JsonEmitFieldString("id", id));
+    ArrayPush(fields, JsonEmitFieldBool("hasDocument", has_document));
+    ArrayPush(fields, JsonEmitFieldRaw("result", result));
+    ArrayPush(fields, JsonEmitFieldString("reason", reason));
+    return JsonEmitObject(fields);
+}
+
+func LspHoverContentJson(buffer: String) -> Option<String> {
+    let events: Array<String> = [];
+    let cursor: Int = 0;
+    let frame_count: Int = 0;
+    let hover_count: Int = 0;
+    let document_mutations: Int = 0;
+    let errors: Int = 0;
+    let has_document: Bool = false;
+    let current_text: String = "";
+    let partial_reason: Option<String> = None;
+
+    while cursor < StringLength(buffer) {
+        let tail: String = Substring(buffer, cursor, StringLength(buffer) - cursor);
+        let complete_opt: Option<Int> = LspTransportCompleteFrameLength(tail);
+        if !IsSome(complete_opt) {
+            partial_reason = LspTransportPartialReason(tail);
+            cursor = StringLength(buffer);
+        } else {
+            let body_opt: Option<String> = LspTransportFrameBody(tail);
+            if !IsSome(body_opt) {
+                partial_reason = Some("body_incomplete");
+                cursor = StringLength(buffer);
+            } else {
+                frame_count = frame_count + 1;
+                let body: String = UnwrapOption(body_opt);
+                let root: JsonObjectFactTable = JsonDocumentObjectFactTable(body);
+                if !JsonObjectFactTableReady(root) {
+                    errors = errors + 1;
+                } else {
+                    let applied_text: Option<String> = LspDocumentStoreApplyText(body);
+                    if IsSome(applied_text) {
+                        current_text = UnwrapOption(applied_text);
+                        has_document = true;
+                        document_mutations = document_mutations + 1;
+                    }
+
+                    let method_opt: Option<String> = JsonObjectFactStringFieldOpt(root, "method");
+                    if IsSome(method_opt) {
+                        let method: String = UnwrapOption(method_opt);
+                        if method == "textDocument/hover" {
+                            hover_count = hover_count + 1;
+                            let result: String = "null";
+                            let reason: String = "";
+                            if !has_document {
+                                reason = "no_document";
+                            } else {
+                                let hover_result: Option<String> = LspHoverResultForRequest(current_text, body);
+                                if IsSome(hover_result) {
+                                    result = UnwrapOption(hover_result);
+                                } else {
+                                    reason = "no_hover";
+                                }
+                            }
+                            ArrayPush(events, LspHoverContentEventJson(
+                                method,
+                                LspRequestIdText(root),
+                                has_document,
+                                result,
+                                reason
+                            ));
+                        }
+                    }
+                }
+                cursor = cursor + UnwrapOption(complete_opt);
+            }
+        }
+    }
+
+    let partial_reason_text: String = "";
+    if IsSome(partial_reason) {
+        partial_reason_text = UnwrapOption(partial_reason);
+    }
+
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldString("schema", LspHoverContentSchema()));
+    ArrayPush(fields, JsonEmitFieldBool("ok", errors == 0 && !IsSome(partial_reason)));
+    ArrayPush(fields, JsonEmitFieldNumber("frameCount", ToString(frame_count)));
+    ArrayPush(fields, JsonEmitFieldNumber("hoverCount", ToString(hover_count)));
+    ArrayPush(fields, JsonEmitFieldNumber("documentMutations", ToString(document_mutations)));
+    ArrayPush(fields, JsonEmitFieldNumber("errors", ToString(errors)));
+    ArrayPush(fields, JsonEmitFieldString("partialReason", partial_reason_text));
+    ArrayPush(fields, JsonEmitFieldRaw("events", JsonEmitArray(events)));
+    return Some(JsonEmitObject(fields));
+}
+
+func LspHoverContentContractReady() -> Bool {
+    let source: String = "func Main() -> Void {}";
+    let hover: Option<String> = LspHoverResultForTextPosition(source, 0, 1);
+    if !IsSome(hover) {
+        return false;
+    }
+    let result: String = UnwrapOption(hover);
+    if StringIndexOf(result, "\"kind\":\"markdown\"") < 0 {
+        return false;
+    }
+    if StringIndexOf(result, "**func**") < 0 {
+        return false;
+    }
+    if IsSome(LspHoverResultForTextPosition(source, 0, 8)) {
+        return false;
+    }
+
+    let open_body: String = "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/didOpen\",\"params\":{\"textDocument\":{\"uri\":\"file:///main.pgy\",\"version\":1,\"text\":\"func Main() -> Void {}\"}}}";
+    let hover_body: String = "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"textDocument/hover\",\"params\":{\"textDocument\":{\"uri\":\"file:///main.pgy\"},\"position\":{\"line\":0,\"character\":1}}}";
+    let buffer: String = Concat(
+        Concat("Content-Length: ", Concat(ToString(StringLength(open_body)), Concat("\r\n\r\n", open_body))),
+        Concat("Content-Length: ", Concat(ToString(StringLength(hover_body)), Concat("\r\n\r\n", hover_body)))
+    );
+    let stream: String = UnwrapOption(LspHoverContentJson(buffer));
+    if StringIndexOf(stream, LspHoverContentSchema()) < 0 {
+        return false;
+    }
+    if StringIndexOf(stream, "\"hoverCount\":1") < 0 {
+        return false;
+    }
+    return StringIndexOf(stream, "**func**") >= 0;
+}
+
+func RunLspHoverContentProbeFromArgs(args: Array<String>) -> Void with caps io_read {
+    let max_bytes: Int = 4096;
+    if ArrayLength(args) > 1 {
+        max_bytes = ToInt(args[1]);
+    }
+    let buffer: String = ReadStdin(max_bytes);
+    Log(UnwrapOption(LspHoverContentJson(buffer)));
+}

@@ -2,6 +2,7 @@
 
 import "diagnostics_owner.pgy";
 import "document_store_owner.pgy";
+import "hover_content_owner.pgy";
 import "request_owner.pgy";
 import "response_owner.pgy";
 import "session_owner.pgy";
@@ -36,6 +37,10 @@ func Main() -> Void with caps env, io_read {
     }
     if LspSessionStateProbeRequested(args) {
         RunLspSessionStateProbeFromArgs(args);
+        return;
+    }
+    if LspHoverContentProbeRequested(args) {
+        RunLspHoverContentProbeFromArgs(args);
         return;
     }
     RunLspDiagnosticsFromArgs(args);

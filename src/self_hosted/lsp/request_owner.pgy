@@ -71,7 +71,7 @@ func LspRequestResponseRequired(method: String, has_id: Bool) -> Bool {
     return true;
 }
 
-func LspRequestPlanJsonError(reason: String) -> String {
+func LspRequestPlanJsonError(reason: String) -> Option<String> {
     let fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldString("schema", LspRequestDispatchSchema()));
     ArrayPush(fields, JsonEmitFieldBool("ok", false));
@@ -82,7 +82,7 @@ func LspRequestPlanJsonError(reason: String) -> String {
     ArrayPush(fields, JsonEmitFieldString("id", ""));
     ArrayPush(fields, JsonEmitFieldBool("responseRequired", false));
     ArrayPush(fields, JsonEmitFieldBool("paramsPresent", false));
-    return JsonEmitObject(fields);
+    return Some(JsonEmitObject(fields));
 }
 
 func LspRequestPlanOk(body: String) -> Bool {
@@ -97,7 +97,7 @@ func LspRequestPlanOk(body: String) -> Bool {
     return IsSome(method_opt);
 }
 
-func LspRequestPlanJson(body: String) -> String {
+func LspRequestPlanJson(body: String) -> Option<String> {
     let root: JsonObjectFactTable = JsonDocumentObjectFactTable(body);
     if !JsonObjectFactTableReady(root) {
         return LspRequestPlanJsonError("invalid_json");
@@ -123,10 +123,10 @@ func LspRequestPlanJson(body: String) -> String {
     ArrayPush(fields, JsonEmitFieldString("id", id));
     ArrayPush(fields, JsonEmitFieldBool("responseRequired", LspRequestResponseRequired(method, has_id)));
     ArrayPush(fields, JsonEmitFieldBool("paramsPresent", JsonObjectFactHasField(root, "params")));
-    return JsonEmitObject(fields);
+    return Some(JsonEmitObject(fields));
 }
 
-func LspRequestDispatchStreamJson(buffer: String) -> String {
+func LspRequestDispatchStreamJson(buffer: String) -> Option<String> {
     let requests: Array<String> = [];
     let cursor: Int = 0;
     let partial_reason: Option<String> = None;
@@ -147,7 +147,7 @@ func LspRequestDispatchStreamJson(buffer: String) -> String {
                 if !LspRequestPlanOk(body) {
                     errors = errors + 1;
                 }
-                ArrayPush(requests, LspRequestPlanJson(body));
+                ArrayPush(requests, UnwrapOption(LspRequestPlanJson(body)));
                 cursor = cursor + UnwrapOption(complete_opt);
             }
         }
@@ -164,12 +164,12 @@ func LspRequestDispatchStreamJson(buffer: String) -> String {
     ArrayPush(fields, JsonEmitFieldNumber("errors", ToString(errors)));
     ArrayPush(fields, JsonEmitFieldString("partialReason", partial_reason_text));
     ArrayPush(fields, JsonEmitFieldRaw("requests", JsonEmitArray(requests)));
-    return JsonEmitObject(fields);
+    return Some(JsonEmitObject(fields));
 }
 
 func LspRequestDispatchContractReady() -> Bool {
     let body: String = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{}}";
-    let plan: String = LspRequestPlanJson(body);
+    let plan: String = UnwrapOption(LspRequestPlanJson(body));
     if StringIndexOf(plan, LspRequestDispatchSchema()) < 0 {
         return false;
     }
@@ -179,7 +179,7 @@ func LspRequestDispatchContractReady() -> Bool {
     if StringIndexOf(plan, "\"responseRequired\":true") < 0 {
         return false;
     }
-    let bad: String = LspRequestPlanJson("{\"jsonrpc\":\"2.0\",\"id\":2}");
+    let bad: String = UnwrapOption(LspRequestPlanJson("{\"jsonrpc\":\"2.0\",\"id\":2}"));
     return StringIndexOf(bad, "\"reason\":\"missing_method\"") >= 0;
 }
 
@@ -189,5 +189,5 @@ func RunLspRequestDispatchProbeFromArgs(args: Array<String>) -> Void with caps i
         max_bytes = ToInt(args[1]);
     }
     let buffer: String = ReadStdin(max_bytes);
-    Log(LspRequestDispatchStreamJson(buffer));
+    Log(UnwrapOption(LspRequestDispatchStreamJson(buffer)));
 }

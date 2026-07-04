@@ -1,29 +1,4 @@
-=== PERGYRA LOGISTICS INTENT PROBE ===
-DIR validates domain edges; RIR tracks resources; MIR shows merge and cleanup.
+COMPILE-FAIL examples/logistics_intent_probe/main.pgy
 
-merge.true=12
-merge.false=18
-[Intent] RouteCargo ok=true
-  [Runtime] name=RouteCargo handle=1 failed=false
-  [Runtime] steps=2
-  [Trace] [intent] enter RouteCargo
-[step] begin stage @ LoadingZone
-[bind] courier -> courier
-[materialize] courier => LoadingZone.courier
-[step] ok stage
-[step] begin handoff @ DeliveryZone
-[bind] courier -> courier
-[materialize] courier => LoadingZone.courier
-[transfer] courier: LoadingZone.courier -> DeliveryZone.courier
-[step] ok handoff
-  [HistoryCount] 2
-
-audit loading=5 lane=city-gate seal=8 bias=2
-loading=staged staged=5 score=13 sealed=5
-delivery=received received=8 score=22 sealed=8
-courier=Ivo badge=north-17 prepared=5 delivered=8 phase=delivered
-dispatcher=Mara lane=north approved=5 shipped=0 rolled=0 phase=approved
-route=Ivo -> Mara lane=city-gate
-seal=Ivo seal qty=8
-
-saving examples/logistics_intent_probe/results.txt
+0 error(s), 0 warning(s)
+pgy: compile failed: C backend: subject argument 1 for 'RouteCargo' requires addressable storage

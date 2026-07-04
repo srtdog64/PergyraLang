@@ -179,19 +179,19 @@ func LspTransportFrameJsonError(reason: String, content_length: Int) -> String {
     return JsonEmitObject(fields);
 }
 
-func LspTransportFrameJson(frame: String) -> String {
+func LspTransportFrameJson(frame: String) -> Option<String> {
     let header_end_opt: Option<Int> = LspTransportHeaderEnd(frame);
     if !IsSome(header_end_opt) {
-        return LspTransportFrameJsonError("missing_header_end", -1);
+        return Some(LspTransportFrameJsonError("missing_header_end", -1));
     }
     let len_opt: Option<Int> = LspTransportContentLength(frame);
     if !IsSome(len_opt) {
-        return LspTransportFrameJsonError("missing_content_length", -1);
+        return Some(LspTransportFrameJsonError("missing_content_length", -1));
     }
     let body_opt: Option<String> = LspTransportFrameBody(frame);
     let len: Int = UnwrapOption(len_opt);
     if !IsSome(body_opt) {
-        return LspTransportFrameJsonError("body_incomplete", len);
+        return Some(LspTransportFrameJsonError("body_incomplete", len));
     }
     let body: String = UnwrapOption(body_opt);
 
@@ -201,7 +201,7 @@ func LspTransportFrameJson(frame: String) -> String {
     ArrayPush(fields, JsonEmitFieldNumber("contentLength", ToString(len)));
     ArrayPush(fields, JsonEmitFieldNumber("bodyLength", ToString(StringLength(body))));
     ArrayPush(fields, JsonEmitFieldString("body", body));
-    return JsonEmitObject(fields);
+    return Some(JsonEmitObject(fields));
 }
 
 func LspTransportStreamJson(buffer: String) -> Option<String> {
@@ -240,7 +240,7 @@ func LspTransportStreamJson(buffer: String) -> Option<String> {
 }
 
 func LspTransportFrameContractReady() -> Bool {
-    let ok: String = LspTransportFrameJson("Content-Length: 2\r\n\r\n{}");
+    let ok: String = UnwrapOption(LspTransportFrameJson("Content-Length: 2\r\n\r\n{}"));
     if StringIndexOf(ok, LspTransportSchema()) < 0 {
         return false;
     }
@@ -254,7 +254,7 @@ func LspTransportFrameContractReady() -> Bool {
         return false;
     }
 
-    let bad: String = LspTransportFrameJson("Content-Length: 5\r\n\r\n{}");
+    let bad: String = UnwrapOption(LspTransportFrameJson("Content-Length: 5\r\n\r\n{}"));
     if StringIndexOf(bad, "\"ok\":false") < 0 {
         return false;
     }
@@ -292,7 +292,7 @@ func RunLspTransportFrameProbeFromArgs(args: Array<String>) -> Void with caps io
         max_bytes = ToInt(args[1]);
     }
     let frame: String = ReadStdin(max_bytes);
-    Log(LspTransportFrameJson(frame));
+    Log(UnwrapOption(LspTransportFrameJson(frame)));
 }
 
 func RunLspTransportStreamProbeFromArgs(args: Array<String>) -> Void with caps io_read {

@@ -66,7 +66,7 @@ func ModuleManifestReportJson(
     return JsonEmitObject(report_fields);
 }
 
-func InputErrorJson(path: String) -> String {
+func InputErrorJson(path: String) -> Option<String> {
     let finding_fields: Array<String> = [
         JsonEmitFieldString("kind", "input_error"),
         JsonEmitFieldString("key", path),
@@ -75,13 +75,13 @@ func InputErrorJson(path: String) -> String {
     let findings: Array<String> = [
         JsonEmitObject(finding_fields)
     ];
-    return ModuleManifestReportJson(false, "docs/language_module_manifest.json", 0, 0, 0, 0, findings);
+    return Some(ModuleManifestReportJson(false, "docs/language_module_manifest.json", 0, 0, 0, 0, findings));
 }
 
 func Main() -> Void {
     let manifest_path: String = "docs/language_module_manifest.json";
     if !FileExists(manifest_path) {
-        Log(InputErrorJson(manifest_path));
+        Log(UnwrapOption(InputErrorJson(manifest_path)));
         Exit(1);
     }
 

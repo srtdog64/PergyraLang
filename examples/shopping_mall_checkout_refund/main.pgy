@@ -34,27 +34,27 @@ func Main() -> Void
     world.Blank();
 
     world.flowState = "checkout";
-    let checkoutReq = BuildCheckoutIntentRequest(world.cart, 6);
+    let checkoutReq = BuildCheckoutIntentRequest(Clone(world.cart), 6);
     world.Broadcast(RenderHttpRequest(checkoutReq.transport.request));
-    let checkoutRes = HandleCheckoutIntent(world.cart, world.payment, world.cart.buyer, world.cart.merchant, checkoutReq);
+    let checkoutRes = HandleCheckoutIntent(Clone(world.cart), Clone(world.payment), world.cart.buyer, world.cart.merchant, checkoutReq);
     world.BroadcastIntentApi(checkoutRes);
     world.BroadcastIntentHistory();
     world.ShowCheckout();
     world.Blank();
 
     world.flowState = "refund";
-    let refundReq = BuildRefundIntentRequest(world.payment, 8831);
+    let refundReq = BuildRefundIntentRequest(Clone(world.payment), 8831);
     world.Broadcast(RenderHttpRequest(refundReq.transport.request));
-    let refundRes = HandleRefundIntent(world.payment, world.refund, world.cart.buyer, world.cart.merchant, refundReq);
+    let refundRes = HandleRefundIntent(Clone(world.payment), Clone(world.refund), world.cart.buyer, world.cart.merchant, refundReq);
     world.BroadcastIntentApi(refundRes);
     world.BroadcastIntentHistory();
     world.ShowRefund();
     world.Blank();
 
     world.flowState = "account";
-    let profileReq = BuildProfileSyncRequest(world.refund, 1);
+    let profileReq = BuildProfileSyncRequest(Clone(world.refund), 1);
     world.Broadcast(RenderHttpRequest(profileReq.transport.request));
-    let profileRes = HandleProfileSyncIntent(world.refund, world.account, world.cart.buyer, profileReq);
+    let profileRes = HandleProfileSyncIntent(Clone(world.refund), Clone(world.account), world.cart.buyer, profileReq);
     world.BroadcastIntentApi(profileRes);
     world.BroadcastIntentHistory();
     world.ShowProfile();
@@ -69,10 +69,10 @@ func Main() -> Void
         world.transcript,
         world.cart.buyer,
         world.cart.merchant,
-        world.cart,
-        world.payment,
-        world.refund,
-        world.account
+        Clone(world.cart),
+        Clone(world.payment),
+        Clone(world.refund),
+        Clone(world.account)
     );
     world.Broadcast(RenderStorageWrite(saved));
 }

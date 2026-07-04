@@ -5,6 +5,7 @@
 // the output JSON schema or filesystem/exit policy.
 
 import "../../lib/json.pgy";
+import "../../lib/json_scan.pgy";
 import "../../lib/json_fact_table.pgy";
 
 func AirGraphSummaryIntField(content: String, field: String, inout value_out: Array<Int>) -> Bool {
@@ -27,7 +28,7 @@ func AirGraphScalarToken(content: String, start: Int, end: Int) -> String {
     if value_start >= end {
         return "";
     }
-    if CharAt(content, value_start) == "\"" {
+    if JsonCharAt(content, value_start) == "\"" {
         let string_end: Array<Int> = [0];
         return ReadJsonString(content, value_start, string_end);
     }
@@ -38,19 +39,19 @@ func AirGraphCollectScalarFieldValues(content: String, start: Int, end: Int, fie
     if start < 0 || end <= start {
         return;
     }
-    let open: String = CharAt(content, start);
+    let open: String = JsonCharAt(content, start);
     if open == "{" {
         let i: Int = start + 1;
         while i < end {
             i = JsonSkipWhitespace(content, i, end);
-            if i >= end || CharAt(content, i) == "}" {
+            if i >= end || JsonCharAt(content, i) == "}" {
                 return;
             }
-            if CharAt(content, i) == "," {
+            if JsonCharAt(content, i) == "," {
                 i = i + 1;
                 continue;
             }
-            if CharAt(content, i) != "\"" {
+            if JsonCharAt(content, i) != "\"" {
                 return;
             }
             let key_end: Array<Int> = [0];
@@ -59,7 +60,7 @@ func AirGraphCollectScalarFieldValues(content: String, start: Int, end: Int, fie
                 return;
             }
             i = JsonSkipWhitespace(content, key_end[0], end);
-            if i >= end || CharAt(content, i) != ":" {
+            if i >= end || JsonCharAt(content, i) != ":" {
                 return;
             }
             i = JsonSkipWhitespace(content, i + 1, end);
@@ -71,7 +72,7 @@ func AirGraphCollectScalarFieldValues(content: String, start: Int, end: Int, fie
             if key == field {
                 ArrayPush(values, AirGraphScalarToken(content, i, value_end));
             }
-            let value_open: String = CharAt(content, i);
+            let value_open: String = JsonCharAt(content, i);
             if value_open == "{" || value_open == "[" {
                 AirGraphCollectScalarFieldValues(content, i, value_end, field, values);
             }
@@ -83,10 +84,10 @@ func AirGraphCollectScalarFieldValues(content: String, start: Int, end: Int, fie
         let j: Int = start + 1;
         while j < end {
             j = JsonSkipWhitespace(content, j, end);
-            if j >= end || CharAt(content, j) == "]" {
+            if j >= end || JsonCharAt(content, j) == "]" {
                 return;
             }
-            if CharAt(content, j) == "," {
+            if JsonCharAt(content, j) == "," {
                 j = j + 1;
                 continue;
             }
@@ -95,7 +96,7 @@ func AirGraphCollectScalarFieldValues(content: String, start: Int, end: Int, fie
                 return;
             }
             let item_end: Int = UnwrapOption(item_end_opt);
-            let item_open: String = CharAt(content, j);
+            let item_open: String = JsonCharAt(content, j);
             if item_open == "{" || item_open == "[" {
                 AirGraphCollectScalarFieldValues(content, j, item_end, field, values);
             }

@@ -1,6 +1,6 @@
 # Pergyra Keyword Orthogonality
 
-Last updated: 2026-06-21
+Last updated: 2026-07-04
 
 This document fixes the semantic question answered by each Pergyra keyword
 family. The goal is not to reduce the number of keywords mechanically. The
@@ -31,6 +31,62 @@ That is the keyword adequacy rule:
 
 So the target is not fewer keywords by default. The target is one keyword per
 semantic axis, and no duplicate truth path for the same axis.
+
+## 0.1 Human Cognition: Bounded Activation
+
+Pergyra's keyword count is not judged by the rule "a beginner must memorize the
+whole vocabulary before writing a program." That would be the wrong cognitive
+model. The intended model is **bounded activation**:
+
+```text
+human load =
+  active semantic registers in this program
+  + cross-register conflicts
+  + omission recovery cost
+  + diagnostic recovery cost
+```
+
+The full keyword set is a catalog. A specific program activates only the subset
+of registers its world needs. This is the same reason large card games,
+tabletop systems, and legal/medical rulebooks remain learnable despite large
+vocabularies: users do not keep the whole rulebook active. They learn a small
+active register, then add adjacent registers when their domain needs them.
+
+Pergyra therefore has two vocabulary layers:
+
+- **global language catalog**: every orthogonal keyword the compiler can
+  understand as a semantic coordinate;
+- **program-local register**: the small subset a concrete program activates.
+
+The learning contract is:
+
+```text
+core programming        -> let / func / if / for / while / match / return
+resource register       -> slot / own / ref / pin / unsafe / extern
+execution register      -> parallel / spawn / async / await / select / channel
+domain topology register-> subject / intent / zone / world / relation / effect
+contract register       -> class / struct / object / tobject / ability / role
+```
+
+This makes keyword count a secondary metric. The primary metric is whether a
+keyword has one stable semantic role and whether that role composes with the
+other active registers without hidden owner drift.
+
+The compiler-facing rule is stricter than the human rule:
+
+- a program may activate only a subset of registers;
+- composing two subsets must not create a new hidden fact;
+- if two keywords introduce the same semantic fact, the fact must have the same
+  owner axis;
+- compact syntax may omit text only when the omitted fact is recovered from one
+  declared owner; ambiguous recovery fails closed.
+
+Coq can model this structural part. It cannot prove "humans find the language
+easy." It can prove the preconditions that make chunked learning possible:
+register membership is explicit, keyword subsets are closed under composition,
+and shared facts cannot silently cross to another owner axis. That model lives
+in `docs/semantics/proofs/AxisOwnership.v` alongside the existing keyword
+orthogonality proof.
 
 ## 1. Four Top-Level Axes
 

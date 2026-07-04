@@ -19,9 +19,11 @@
 #include <pthread.h>
 #ifndef _WIN32
 #include <unistd.h>
+#include <sys/stat.h>
 #ifndef PATH_MAX
 #define PATH_MAX 4096
 #endif
+extern int lstat(const char *path, struct stat *buf);
 #ifndef CLOCK_REALTIME
 #define CLOCK_REALTIME 0
 extern int clock_gettime(int clk_id, struct timespec *tp);
@@ -48,6 +50,7 @@ extern void pgy_budget_charge_export(int kind, uint64_t amount, const char *op);
 #include "runtime/pgy_runtime_panic_contract.h"
 #include "runtime/pgy_runtime_capability.h"
 #include "runtime/pgy_runtime_budget.h"
+#include "runtime/pgy_runtime_security_log.h"
 
 static char *pgy_runtime_lib_strdup(const char *src);
 static pthread_mutex_t pgy_runtime_lib_rng_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -99,7 +102,9 @@ pgy_runtime_zone_authority_validate_core(void *zone_ptr, void *participant_ptr,
             PGY_ZONE_AUTHORITY_CODE_MISSING_ZONE,
             PGY_ZONE_AUTHORITY_REASON_MISSING_ZONE);
         if (emit_stderr) {
-            fprintf(stderr, PGY_ZONE_AUTHORITY_STDERR_MISSING_ZONE,
+            pgy_runtime_log_authority_failure(stderr,
+                PGY_ZONE_AUTHORITY_CODE_MISSING_ZONE,
+                PGY_ZONE_AUTHORITY_REASON_MISSING_ZONE,
                 resolved_zone, resolved_participant);
         }
         return false;
@@ -109,7 +114,9 @@ pgy_runtime_zone_authority_validate_core(void *zone_ptr, void *participant_ptr,
             PGY_ZONE_AUTHORITY_CODE_MISSING_PARTICIPANT,
             PGY_ZONE_AUTHORITY_REASON_MISSING_PARTICIPANT);
         if (emit_stderr) {
-            fprintf(stderr, PGY_ZONE_AUTHORITY_STDERR_MISSING_PARTICIPANT,
+            pgy_runtime_log_authority_failure(stderr,
+                PGY_ZONE_AUTHORITY_CODE_MISSING_PARTICIPANT,
+                PGY_ZONE_AUTHORITY_REASON_MISSING_PARTICIPANT,
                 resolved_zone, resolved_participant);
         }
         return false;
@@ -144,7 +151,9 @@ pgy_runtime_zone_authority_validate_token_core(void *zone_ptr,
             resolved_participant, PGY_ZONE_AUTHORITY_CODE_TOKEN_MISMATCH,
             PGY_ZONE_AUTHORITY_REASON_TOKEN_MISMATCH);
         if (emit_stderr) {
-            fprintf(stderr, PGY_ZONE_AUTHORITY_STDERR_TOKEN_MISMATCH,
+            pgy_runtime_log_authority_failure(stderr,
+                PGY_ZONE_AUTHORITY_CODE_TOKEN_MISMATCH,
+                PGY_ZONE_AUTHORITY_REASON_TOKEN_MISMATCH,
                 resolved_zone, resolved_participant);
         }
         return false;

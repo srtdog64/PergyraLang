@@ -71,7 +71,7 @@ func InputErrorJson(
     expected_projection: String,
     actual_projection: String,
     artifact_kind: String
-) -> String {
+) -> Option<String> {
     let source_fields: Array<String> = ComparatorSourceFields(
         expected_path,
         actual_path,
@@ -94,7 +94,7 @@ func InputErrorJson(
         JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
         JsonEmitFieldRaw("findings", JsonEmitArray(findings))
     ];
-    return JsonEmitObject(report_fields);
+    return Some(JsonEmitObject(report_fields));
 }
 
 func Main() -> Void {
@@ -121,11 +121,11 @@ func Main() -> Void {
     }
 
     if !FileExists(expected_path) {
-        Log(InputErrorJson(expected_path, expected_path, actual_path, expected_projection, actual_projection, artifact_kind));
+        Log(UnwrapOption(InputErrorJson(expected_path, expected_path, actual_path, expected_projection, actual_projection, artifact_kind)));
         Exit(1);
     }
     if !FileExists(actual_path) {
-        Log(InputErrorJson(actual_path, expected_path, actual_path, expected_projection, actual_projection, artifact_kind));
+        Log(UnwrapOption(InputErrorJson(actual_path, expected_path, actual_path, expected_projection, actual_projection, artifact_kind)));
         Exit(1);
     }
 

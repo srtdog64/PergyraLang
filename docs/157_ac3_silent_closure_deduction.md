@@ -1,7 +1,7 @@
 # 157. AC-3 — 두 SILENT 발견의 닫힘 방향, 연역 도출
 
-Status: `T ratified (2026-07-04); S1 LANDED (2026-07-05); S2 scope
-re-ratification pending — §5`. 방법은 BDFL 지시(2026-07-04): "무음 쪽은
+Status: `FULL THEOREM T LANDED (2026-07-05) — S1+S2, twice re-ratified
+(§5)`. 방법은 BDFL 지시(2026-07-04): "무음 쪽은
 최소 논증으로 연역법으로 올라간다" — 선호 비교가 아니라, 이미 canon인
 전제들에서 결론을 **도출**하고, 결론을 뒤집으려면 어느 전제를 부정해야
 하는지까지 명시한다.
@@ -146,7 +146,27 @@ family. 구현 = `type_checker_world_embedding.c`(경계-포크 파일로 확장
 실측). `zone_pos_share`는 예고대로 같은 커밋에서 REJECT 잠금 전환 —
 docs/151 §2.1 발견 2 닫힘.
 
-**S2 — 구현 후 회수, 범위 재심 대기.** 전면 유출 금지(값-위치의
+**S2 — 재심 2회 후 전면 T로 착지(2026-07-05).** 재심 경위와 최종 결정:
+
+- **재심 1(플래그십 관용구)**: 아래 원문대로 — 전면 유출 금지가
+  shopping_mall·logistics·abi의 plain-func API층 통과 패턴과 충돌.
+  BDFL 판정: **(A) 전면 T 유지**.
+- **재심 2(handoff = 설계 기능)**: backend_compare의
+  `handoff_*_state_frontier` 픽스처가 이것이 우연이 아님을 증명 —
+  intent `step Handoff` + `transfer:` + `expect: payment.buyer.hp == 7`
+  (데스트 zone의 사후 상태를 계약으로 읽음) + world의 frontier state
+  기계(`state paymentLayer: zone payment layer charged`)가 정확히 이
+  write-through의 효과를 관측하도록 설계돼 있다. 즉 same-world 절반의
+  선언은 이미 존재했다(intent 계약) — 정리 T의 선언 집합 {Clone,
+  Channel}이 불완전했다는 반증. BDFL 판정: **그래도 (A) 전면 T** —
+  handoff 기능 자체를 재설계 대상으로 안고 간다(모순의 명시적 수용,
+  보드 등재).
+- **착지 내용**: S2 훅(call 인자 + let-init) 강제, cross 커널·
+  probe_world_member = REJECT 회귀 픽스처, handoff 픽스처 2건·
+  logistics 3사이트·shopping_mall 11사이트 Clone 개종, 행동 변화분
+  golden 재생성, semantic 유닛 2791/0.
+
+(재심 1 시점의 원문 기록, 보존:) 전면 유출 금지(값-위치의
 `w.zone` 전부)를 구현하고 sweep하자 **플래그십 관용구와 정면 충돌**:
 shopping_mall(7사이트)·logistics(3)·abi_pipeline(8파일)·
 backend_compare(2파일)가 world 소유 zone을 **plain API-layer func**로

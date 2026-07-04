@@ -3,6 +3,8 @@
  * Parallel Support (OpenMP or Sequential Fallback)
  * ================================================================= */
 
+#include "pgy_runtime_security_log.h"
+
 #ifdef _OPENMP
 #  include <omp.h>
 #  define PGY_PARALLEL_BEGIN \
@@ -179,7 +181,9 @@ pgy_zone_authority_validate_impl(void *zone_ptr, void *participant_ptr,
             PGY_ZONE_AUTHORITY_CODE_MISSING_ZONE,
             PGY_ZONE_AUTHORITY_REASON_MISSING_ZONE);
         if (emit_stderr) {
-            fprintf(stderr, PGY_ZONE_AUTHORITY_STDERR_MISSING_ZONE,
+            pgy_runtime_log_authority_failure(stderr,
+                PGY_ZONE_AUTHORITY_CODE_MISSING_ZONE,
+                PGY_ZONE_AUTHORITY_REASON_MISSING_ZONE,
                 resolved_zone, resolved_participant);
         }
         return false;
@@ -189,7 +193,9 @@ pgy_zone_authority_validate_impl(void *zone_ptr, void *participant_ptr,
             PGY_ZONE_AUTHORITY_CODE_MISSING_PARTICIPANT,
             PGY_ZONE_AUTHORITY_REASON_MISSING_PARTICIPANT);
         if (emit_stderr) {
-            fprintf(stderr, PGY_ZONE_AUTHORITY_STDERR_MISSING_PARTICIPANT,
+            pgy_runtime_log_authority_failure(stderr,
+                PGY_ZONE_AUTHORITY_CODE_MISSING_PARTICIPANT,
+                PGY_ZONE_AUTHORITY_REASON_MISSING_PARTICIPANT,
                 resolved_zone, resolved_participant);
         }
         return false;
@@ -223,7 +229,9 @@ pgy_zone_authority_validate_token_impl(void *zone_ptr,
             resolved_participant, PGY_ZONE_AUTHORITY_CODE_TOKEN_MISMATCH,
             PGY_ZONE_AUTHORITY_REASON_TOKEN_MISMATCH);
         if (emit_stderr) {
-            fprintf(stderr, PGY_ZONE_AUTHORITY_STDERR_TOKEN_MISMATCH,
+            pgy_runtime_log_authority_failure(stderr,
+                PGY_ZONE_AUTHORITY_CODE_TOKEN_MISMATCH,
+                PGY_ZONE_AUTHORITY_REASON_TOKEN_MISMATCH,
                 resolved_zone, resolved_participant);
         }
         return false;

@@ -6,6 +6,7 @@
  */
 
 #include "slot_manager_internal.h"
+#include "pgy_runtime_security_log.h"
 
 #include <pthread.h>
 #include <stdint.h>
@@ -91,10 +92,15 @@ slot_manager_warn(const char *op, const SlotHandle *handle, SlotError err)
 {
     SlotFailure failure = SlotFailureFromError(err, op, handle);
 
+    fputs("{\"component\":\"slot\",\"operation\":", stderr);
+    pgy_runtime_fprint_json_string(stderr, failure.operation);
+    fputs(",\"event\":\"operation_failed\",\"error\":", stderr);
+    pgy_runtime_fprint_json_string(stderr, failure.name);
     fprintf(stderr,
-            "[pgy][slot] %s failed: %s (slot=%u type=%u gen=%u)\n",
-            failure.operation,
-            failure.name,
+            ",\"runtimeStatus\":%d,\"recoverable\":%s,"
+            "\"slot\":%u,\"type\":%u,\"generation\":%u}\n",
+            (int)failure.runtimeStatus,
+            failure.recoverable ? "true" : "false",
             failure.slotId,
             failure.typeTag,
             failure.generation);

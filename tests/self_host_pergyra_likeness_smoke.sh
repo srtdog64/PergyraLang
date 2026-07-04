@@ -75,7 +75,22 @@ SENTINEL_MAX=8
 # move AIR summary count reads behind typed absence facts.
 # 278 -> 280 (2026-07-04): AST text row facts now consume a typed row input and
 # keep Let name/type absence as first-class Option checks.
-RESULT_USE_MIN=280
+# 280 -> 306 (2026-07-04): self-host tool input-error/finding artifacts now
+# carry typed Option<String> output facts instead of plain text-in/text-out
+# helpers.
+# 306 -> 347 (2026-07-04): LSP transport digit parsing and self-host tool
+# finding artifacts now consume Option facts instead of -1/text artifacts.
+# 347 -> 369 (2026-07-04): LSP transport stream parsing now carries partial
+# reasons and stream artifacts as Option facts instead of empty-string facts.
+# 369 -> 389 (2026-07-04): LSP request/transport artifact renderers now return
+# Option<String> facts instead of plain text artifacts.
+# 389 -> 463 (2026-07-04): LSP response/session and self-host artifact
+# renderers continue the Option<String> cutover across request/response lanes.
+# 463 -> 482 (2026-07-04): LSP document-store rows and URI lookup now carry
+# typed Option facts instead of text-only/sentinel artifacts.
+# 482 -> 488 (2026-07-04): LSP session/hover artifacts extend typed
+# Option-result evidence across the remaining LSP artifact lane.
+RESULT_USE_MIN=488
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=17
 COMPILER_WORLD_MEMBERS_EXACT=17

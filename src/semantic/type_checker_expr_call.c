@@ -91,6 +91,13 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
         }
     }
 
+    /* Boundary-fork rule, full theorem T (docs/157 §5, option A): a
+     * world-owned zone binding cannot be handed to any callee as a live
+     * argument -- measured, the transfer path writes through into the
+     * world interior. Clone(...) is the declared copy and is exempted
+     * inside the helper. */
+    semantic_reject_world_zone_member_escape(expr, ctx);
+
     if (callee->type == AST_IDENTIFIER) {
         const char *name = ast_identifier_name(callee);
         bool user_class_overrides_builtin =

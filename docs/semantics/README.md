@@ -55,6 +55,10 @@ Mechanized artifacts:
 - [proofs/AxisOwnership.v](proofs/AxisOwnership.v): Coq proof sketch for axis
   fact-ownership, no-silent-override, independent axis commutation,
   idempotent same-axis update, and projection non-writing invariants. The
+  same model now also covers the human-facing keyword-register composition
+  rule from `docs/42`: programs activate bounded keyword subsets, subset
+  unions preserve well-formedness, and same-fact keywords share one owner
+  axis. The
   companion adequacy smoke binds the model to named compiler/source symbols,
   not to a full extracted verifier.
 - [proofs/IntentStepSoundness.v](proofs/IntentStepSoundness.v): Coq proof

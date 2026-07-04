@@ -101,6 +101,35 @@ store_slot_token(SlotManager *manager, SlotEntry *entry,
     return SLOT_SUCCESS;
 }
 
+static bool
+slot_token_valid_for_entry_locked(SlotManager *manager,
+                                  const SlotHandle *handle,
+                                  const TokenCapability *token,
+                                  SlotEntry *entry)
+{
+    SecureToken storedToken;
+    bool valid = false;
+
+    if (manager == NULL || handle == NULL || token == NULL || entry == NULL)
+        return false;
+    if (!manager->securityEnabled || manager->securityContext == NULL)
+        return false;
+    if (!entry->securityEnabled ||
+        entry->securityLevel != token->level ||
+        entry->tokenGeneration == 0 ||
+        entry->tokenGeneration != token->token.generation)
+        return false;
+    if (TokenValidate(manager->securityContext, handle->slotId, token) !=
+        SECURITY_SUCCESS)
+        return false;
+    if (TokenDecrypt(manager->securityContext, &entry->writeToken,
+                     &storedToken) == SECURITY_SUCCESS) {
+        valid = TokenCompareSecure(&storedToken, &token->token);
+        SecureMemoryWipe(&storedToken, sizeof(storedToken));
+    }
+    return valid;
+}
+
 SlotError
 SlotClaimSecure(SlotManager *manager, TypeTag type, SecurityLevel level,
                 SlotHandle *handle, TokenCapability *token)
@@ -151,7 +180,6 @@ SlotValidateToken(SlotManager *manager, const SlotHandle *handle,
                   const TokenCapability *token)
 {
     SlotEntry *entry;
-    SecureToken storedToken;
     bool valid = false;
 
     if (manager == NULL || handle == NULL || token == NULL)
@@ -160,21 +188,9 @@ SlotValidateToken(SlotManager *manager, const SlotHandle *handle,
     if (!SlotManagerIsSecurityEnabled(manager))
         return false;
 
-    if (TokenValidate(manager->securityContext, handle->slotId, token) !=
-        SECURITY_SUCCESS)
-        return false;
-
     pthread_mutex_lock(manager_mutex(manager));
     entry = find_slot_entry_locked(manager, handle);
-    if (entry != NULL && entry->securityEnabled &&
-        entry->securityLevel == token->level &&
-        entry->tokenGeneration != 0 &&
-        entry->tokenGeneration == token->token.generation &&
-        TokenDecrypt(manager->securityContext, &entry->writeToken,
-                     &storedToken) == SECURITY_SUCCESS) {
-        valid = TokenCompareSecure(&storedToken, &token->token);
-        SecureMemoryWipe(&storedToken, sizeof(storedToken));
-    }
+    valid = slot_token_valid_for_entry_locked(manager, handle, token, entry);
     pthread_mutex_unlock(manager_mutex(manager));
     return valid;
 }
@@ -186,6 +202,7 @@ SlotWriteSecure(SlotManager *manager, const SlotHandle *handle,
 {
     SlotEntry *entry;
     SecurityError secResult;
+    bool tokenValid;
 
     if (manager == NULL || handle == NULL || data == NULL || token == NULL)
         return SLOT_ERROR_INVALID_HANDLE;
@@ -193,18 +210,19 @@ SlotWriteSecure(SlotManager *manager, const SlotHandle *handle,
     if (!token->canWrite)
         return SLOT_ERROR_PERMISSION_DENIED;
 
-    if (!SlotValidateToken(manager, handle, token)) {
-        slot_manager_record_security_violation(manager, "TOKEN_VALIDATION_FAILED",
-                                               handle->slotId,
-                                               "Write denied because token validation failed");
-        return SLOT_ERROR_PERMISSION_DENIED;
-    }
-
     pthread_mutex_lock(manager_mutex(manager));
     entry = find_slot_entry_locked(manager, handle);
     if (entry == NULL) {
         pthread_mutex_unlock(manager_mutex(manager));
         return SLOT_ERROR_SLOT_NOT_FOUND;
+    }
+    tokenValid = slot_token_valid_for_entry_locked(manager, handle, token, entry);
+    if (!tokenValid) {
+        pthread_mutex_unlock(manager_mutex(manager));
+        slot_manager_record_security_violation(manager, "TOKEN_VALIDATION_FAILED",
+                                               handle->slotId,
+                                               "Write denied because token validation failed");
+        return SLOT_ERROR_PERMISSION_DENIED;
     }
     if (entry->pinCount > 0) {
         pthread_mutex_unlock(manager_mutex(manager));
@@ -237,6 +255,7 @@ SlotReadSecure(SlotManager *manager, const SlotHandle *handle,
     SlotEntry *entry;
     SecurityError secResult;
     bool usedShadowRecovery = false;
+    bool tokenValid;
 
     if (manager == NULL || handle == NULL || buffer == NULL || token == NULL)
         return SLOT_ERROR_INVALID_HANDLE;
@@ -244,18 +263,19 @@ SlotReadSecure(SlotManager *manager, const SlotHandle *handle,
     if (!token->canRead)
         return SLOT_ERROR_PERMISSION_DENIED;
 
-    if (!SlotValidateToken(manager, handle, token)) {
-        slot_manager_record_security_violation(manager, "TOKEN_VALIDATION_FAILED",
-                                               handle->slotId,
-                                               "Read denied because token validation failed");
-        return SLOT_ERROR_PERMISSION_DENIED;
-    }
-
     pthread_mutex_lock(manager_mutex(manager));
     entry = find_slot_entry_locked(manager, handle);
     if (entry == NULL) {
         pthread_mutex_unlock(manager_mutex(manager));
         return SLOT_ERROR_SLOT_NOT_FOUND;
+    }
+    tokenValid = slot_token_valid_for_entry_locked(manager, handle, token, entry);
+    if (!tokenValid) {
+        pthread_mutex_unlock(manager_mutex(manager));
+        slot_manager_record_security_violation(manager, "TOKEN_VALIDATION_FAILED",
+                                               handle->slotId,
+                                               "Read denied because token validation failed");
+        return SLOT_ERROR_PERMISSION_DENIED;
     }
     if (entry->pinCount > 0) {
         pthread_mutex_unlock(manager_mutex(manager));
@@ -296,11 +316,20 @@ SlotReleaseSecure(SlotManager *manager, const SlotHandle *handle,
 {
     SlotEntry *entry;
     SlotError result;
+    bool tokenValid;
 
     if (manager == NULL || handle == NULL || token == NULL)
         return SLOT_ERROR_INVALID_HANDLE;
 
-    if (!SlotValidateToken(manager, handle, token)) {
+    pthread_mutex_lock(manager_mutex(manager));
+    entry = find_slot_entry_locked(manager, handle);
+    if (entry == NULL) {
+        pthread_mutex_unlock(manager_mutex(manager));
+        return SLOT_ERROR_SLOT_NOT_FOUND;
+    }
+    tokenValid = slot_token_valid_for_entry_locked(manager, handle, token, entry);
+    if (!tokenValid) {
+        pthread_mutex_unlock(manager_mutex(manager));
         slot_manager_record_security_violation(manager,
                                                "RELEASE_TOKEN_VALIDATION_FAILED",
                                                handle->slotId,
@@ -308,8 +337,6 @@ SlotReleaseSecure(SlotManager *manager, const SlotHandle *handle,
         return SLOT_ERROR_PERMISSION_DENIED;
     }
 
-    pthread_mutex_lock(manager_mutex(manager));
-    entry = find_slot_entry_locked(manager, handle);
     result = slot_release_entry_locked(manager, entry, true);
     pthread_mutex_unlock(manager_mutex(manager));
     return result;
@@ -321,22 +348,27 @@ SlotRefreshToken(SlotManager *manager, const SlotHandle *handle,
 {
     SlotEntry *entry;
     SecurityError secResult;
+    bool tokenValid;
 
     if (manager == NULL || handle == NULL || token == NULL)
         return SLOT_ERROR_INVALID_HANDLE;
-
-    if (!SlotValidateToken(manager, handle, token))
-        return SLOT_ERROR_PERMISSION_DENIED;
-
-    secResult = TokenRefresh(manager->securityContext, token);
-    if (secResult != SECURITY_SUCCESS)
-        return SLOT_ERROR_PERMISSION_DENIED;
 
     pthread_mutex_lock(manager_mutex(manager));
     entry = find_slot_entry_locked(manager, handle);
     if (entry == NULL) {
         pthread_mutex_unlock(manager_mutex(manager));
         return SLOT_ERROR_SLOT_NOT_FOUND;
+    }
+    tokenValid = slot_token_valid_for_entry_locked(manager, handle, token, entry);
+    if (!tokenValid) {
+        pthread_mutex_unlock(manager_mutex(manager));
+        return SLOT_ERROR_PERMISSION_DENIED;
+    }
+
+    secResult = TokenRefresh(manager->securityContext, token);
+    if (secResult != SECURITY_SUCCESS) {
+        pthread_mutex_unlock(manager_mutex(manager));
+        return SLOT_ERROR_PERMISSION_DENIED;
     }
 
     store_slot_token(manager, entry, token);

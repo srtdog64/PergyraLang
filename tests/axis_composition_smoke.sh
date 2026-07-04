@@ -10,24 +10,21 @@
 #      2026-07-04 (C==LLVM identical voice):
 #
 #      (World x Intent)  control : same-scope transfer runs ("2").
-#      (World x Intent)  cross   : REGISTERED FINDING — an intent transfer
-#                                  aimed at zones owned by two DIFFERENT
-#                                  worlds compiles and runs with NO
-#                                  diagnostic, and ASYMMETRICALLY writes
-#                                  through into the destination world's
-#                                  interior ("2\n1\n2": main buyer 2,
-#                                  source world UNTOUCHED at 1, dest world
-#                                  MUTATED to 2). Cross-world state changed
-#                                  without a Channel — the Channel-only
-#                                  principle has a measured bypass on this
-#                                  path. Closing it (static reject like
-#                                  world_pos_share, or making transfer a
-#                                  declared Channel-equivalent boundary) is
-#                                  a BDFL decision cell (AC-3, same batch
-#                                  as the zone SILENT-COPY direction). If a
-#                                  change closes it, this leg FAILS and the
-#                                  docs/156 row must be updated in the SAME
-#                                  commit. Measurement lock, not policy.
+#      (World x Intent)  cross   : FINDING CLOSED (2026-07-05, full
+#                                  theorem T — docs/157 §5, BDFL twice
+#                                  re-ratified option A). The measured
+#                                  silent write-through ("2\n1\n2": dest
+#                                  world interior mutated without a
+#                                  Channel) is now a STATIC reject: a
+#                                  world-owned zone binding cannot escape
+#                                  as a live value into any call argument
+#                                  or let-init; Clone(w.zone) is the
+#                                  declared detached copy. The handoff
+#                                  fixtures and flagship examples were
+#                                  converted in the landing commit; the
+#                                  handoff feature's live-mutation form is
+#                                  registered as a redesign track on the
+#                                  board (BDFL accepted the tension).
 #      (Actor x Intent)  who-swap: who_a (who: buyer) and who_b
 #                                  (who: observer) print IDENTICAL output —
 #                                  `who` is descriptive participation, not
@@ -102,9 +99,25 @@ for backend in c llvm; do
     got="$(run_kernel "$backend" comp_world_intent/control.pgy)"
     [ "$got" = "2" ] || fail "$backend control: got '$got', expected '2'"
 
-    got="$(run_kernel "$backend" comp_world_intent/cross.pgy)"
-    [ "$got" = $'2\n1\n2' ] ||
-        fail "$backend cross-world transfer verdict CHANGED (got '$got', measured '2 1 2') — update docs/156 World×Intent row in this same commit"
+    tag="rej_${backend}_cross.exe"
+    src="$(pgy_path_for_compiler "$PGY" "$FIXTURES/comp_world_intent/cross.pgy")"
+    out="$(pgy_path_for_compiler "$PGY" "$OUT_DIR/$tag")"
+    if (cd "$ROOT_DIR" && "$PGY" "$src" --backend="$backend" -o "$out") \
+        >"$OUT_DIR/$tag.log" 2>&1; then
+        fail "$backend cross-world transfer COMPILED — the write-through closure (docs/157 §5, full theorem T) regressed"
+    fi
+    grep -Fq "cannot escape as a live binding" "$OUT_DIR/$tag.log" ||
+        fail "$backend cross-world transfer rejected without the boundary-fork diagnostic"
+
+    tag="rej_${backend}_member.exe"
+    src="$(pgy_path_for_compiler "$PGY" "$FIXTURES/probe_world_member/main.pgy")"
+    out="$(pgy_path_for_compiler "$PGY" "$OUT_DIR/$tag")"
+    if (cd "$ROOT_DIR" && "$PGY" "$src" --backend="$backend" -o "$out") \
+        >"$OUT_DIR/$tag.log" 2>&1; then
+        fail "$backend let-init world-zone escape COMPILED — S2 regressed"
+    fi
+    grep -Fq "cannot escape as a live binding" "$OUT_DIR/$tag.log" ||
+        fail "$backend let-init escape rejected without the boundary-fork diagnostic"
 
     got_a="$(run_kernel "$backend" comp_actor_intent/who_a.pgy)"
     got_b="$(run_kernel "$backend" comp_actor_intent/who_b.pgy)"
@@ -113,4 +126,4 @@ for backend in c llvm; do
         fail "$backend who-swap NON-INTERFERENCE BROKEN: who_a '$got_a' != who_b '$got_b' — the Actor axis is leaking into the Intent step"
 done
 
-echo "[axis-composition] 15-pair matrix locked; kernels green (c/llvm): who-swap non-interference, cross-world write-through finding pinned"
+echo "[axis-composition] 15-pair matrix locked; kernels green (c/llvm): who-swap non-interference, boundary-fork escapes fail closed (write-through finding CLOSED 2026-07-05)"

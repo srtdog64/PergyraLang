@@ -11,9 +11,11 @@
 #include <pthread.h>
 #ifndef _WIN32
 #include <unistd.h>
+#include <sys/stat.h>
 #ifndef PATH_MAX
 #define PATH_MAX 4096
 #endif
+extern int lstat(const char *path, struct stat *buf);
 #ifndef CLOCK_REALTIME
 #define CLOCK_REALTIME 0
 extern int clock_gettime(int clk_id, struct timespec *tp);
@@ -310,6 +312,23 @@ pgy_runtime_normalize_full_path_dup(const char *path)
 #endif
 }
 
+#ifndef _WIN32
+static inline bool
+pgy_runtime_path_is_symlink(const char *path)
+{
+    struct stat st;
+
+    if (path == NULL || path[0] == '\0')
+        return true;
+    if (lstat(path, &st) != 0) {
+        if (errno == ENOENT)
+            return false;
+        return true;
+    }
+    return S_ISLNK(st.st_mode);
+}
+#endif
+
 #ifdef _WIN32
 static inline bool
 pgy_runtime_path_has_reparse_component(const char *path)
@@ -393,7 +412,8 @@ pgy_runtime_resolve_file_path(const char *path, bool for_write)
             : NULL;
 
         if (check_real == NULL
-            || !pgy_runtime_prefix_match_path(root_real, check_real)) {
+            || !pgy_runtime_prefix_match_path(root_real, check_real)
+            || (for_write && pgy_runtime_path_is_symlink(candidate))) {
             free(check_path);
             free(check_real);
             free(root_real);

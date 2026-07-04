@@ -250,31 +250,63 @@ for term in \
 done
 
 grep() {
-    if [ "${1:-}" = "-R" ] && [ "$#" -ge 3 ]; then
-        local pattern="$2"
-        shift 2
-        case "$pattern" in
-            *"data\\."*|"resolve_type_node(")
-                local line
-                local target
-                local matched=1
-                ensure_shape_scan_cache
-                while IFS= read -r line; do
-                    for target in "$@"; do
-                        case "$line" in
-                            "$target":*|"$target"/*)
-                                printf '%s\n' "$line"
-                                matched=0
-                                break
-                                ;;
-                        esac
-                    done
-                done < <(command grep "$pattern" "$shape_scan_cache")
-                return "$matched"
-                ;;
-        esac
+    local original=("$@")
+
+    if [ "${1:-}" = "-R" ]; then
+        shift
+
+        local grep_opts=()
+        local quiet=0
+        while [ "$#" -gt 0 ]; do
+            case "$1" in
+                --)
+                    shift
+                    break
+                    ;;
+                -*)
+                    case "$1" in
+                        *q*) quiet=1 ;;
+                    esac
+                    grep_opts+=("$1")
+                    shift
+                    ;;
+                *)
+                    break
+                    ;;
+            esac
+        done
+
+        if [ "$#" -ge 2 ]; then
+            local pattern="$1"
+            shift
+            case "$pattern" in
+                *"data\\."*|"resolve_type_node(")
+                    local line
+                    local target
+                    local matched=1
+                    ensure_shape_scan_cache
+                    while IFS= read -r line; do
+                        for target in "$@"; do
+                            case "$line" in
+                                "$target":*|"$target"/*)
+                                    if [ "$quiet" -eq 0 ]; then
+                                        printf '%s\n' "$line"
+                                    fi
+                                    matched=0
+                                    break
+                                    ;;
+                            esac
+                        done
+                        if [ "$quiet" -eq 1 ] && [ "$matched" -eq 0 ]; then
+                            break
+                        fi
+                    done < <(command grep "${grep_opts[@]}" "$pattern" "$shape_scan_cache")
+                    return "$matched"
+                    ;;
+            esac
+        fi
     fi
-    command grep "$@"
+    command grep "${original[@]}"
 }
 
 type_checker_loc="$(wc -l < src/semantic/type_checker.c | tr -d '[:space:]')"

@@ -27,21 +27,29 @@
 #include <netpacket/packet.h>
 #endif
 
-#ifdef _WIN32
 static uint64_t
 slot_security_platform_hash_bytes64(const void *data, size_t size)
 {
-    const uint8_t *bytes = (const uint8_t *)data;
-    uint64_t hash = 1469598103934665603ULL;
+    uint8_t digest[32];
+    uint64_t hash;
 
-    for (size_t i = 0; i < size; i++) {
-        hash ^= (uint64_t)bytes[i];
-        hash *= 1099511628211ULL;
-    }
+    if (data == NULL && size > 0)
+        return 0ULL;
+    if (SecureHashSHA256((const uint8_t *)data, size, digest) !=
+        SECURITY_SUCCESS)
+        return 0ULL;
 
+    hash = ((uint64_t)digest[0] << 56) |
+           ((uint64_t)digest[1] << 48) |
+           ((uint64_t)digest[2] << 40) |
+           ((uint64_t)digest[3] << 32) |
+           ((uint64_t)digest[4] << 24) |
+           ((uint64_t)digest[5] << 16) |
+           ((uint64_t)digest[6] << 8) |
+           (uint64_t)digest[7];
+    SecureMemoryWipe(digest, sizeof(digest));
     return hash;
 }
-#endif
 
 #if defined(__linux__)
 static bool
@@ -129,9 +137,7 @@ HardwareGetBoardIdLinux(uint64_t *boardId)
 
     char buffer[256];
     if (fgets(buffer, sizeof(buffer), fp) != NULL) {
-        *boardId = 0;
-        for (char *p = buffer; *p; p++)
-            *boardId = (*boardId << 1) ^ *p;
+        *boardId = slot_security_platform_hash_bytes64(buffer, strlen(buffer));
     }
 
     fclose(fp);

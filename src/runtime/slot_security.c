@@ -9,6 +9,7 @@
  */
 
 #include "slot_security.h"
+#include "pgy_runtime_security_log.h"
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -33,11 +34,11 @@
 static void
 slot_security_warn(const char *op, SecurityError err, const char *reason)
 {
-    fprintf(stderr,
-            "[pgy][slot-security] %s failed: %s (err=%d)\n",
-            op != NULL ? op : "<op>",
-            reason != NULL ? reason : "unknown",
-            (int)err);
+    fputs("{\"component\":\"slot-security\",\"operation\":", stderr);
+    pgy_runtime_fprint_json_string(stderr, op != NULL ? op : "<op>");
+    fputs(",\"event\":\"operation_failed\",\"reason\":", stderr);
+    pgy_runtime_fprint_json_string(stderr, reason != NULL ? reason : "unknown");
+    fprintf(stderr, ",\"err\":%d}\n", (int)err);
 }
 
 /*

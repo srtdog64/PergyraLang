@@ -1,11 +1,10 @@
 // AC-3 premise probe P-B: what does `w.zone` member read actually hand out?
-// The write-through finding showed a transfer DEST wrote into the world
-// interior. This probe characterizes the read itself, without transfer:
-// read w.cart into a local, mutate THROUGH the local, then ask the world.
-//   world mutated too   -> member read = live reference into the interior
-//                          (the escape itself is the breach; close there)
-//   world unchanged     -> member read detaches a copy; the write-through
-//                          is transfer-arg-specific (close at arg binding)
+// MEASURED 2026-07-04: let-init detached a copy (2/1) while transfer-arg
+// position aliased — per-position accidental semantics. CLOSED 2026-07-05
+// (full theorem T, docs/157 §5): any live escape of a world-owned zone is
+// a STATIC reject — this file is now the let-init REJECT regression
+// fixture ("cannot escape as a live binding"), locked by
+// tests/axis_composition_smoke.sh. The declared form is Clone(w.cart).
 subject Buyer {
     let mut hp: Int;
     action Promote(self) -> Void {

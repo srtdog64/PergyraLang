@@ -17,9 +17,21 @@ OUT="$(mktemp -d)/checked_arith.exe"
 COMPILE_LOG="$OUT.compile.log"
 read -r -a PLATFORM_CFLAG_ARGS <<< "${PLATFORM_CFLAGS:-}"
 read -r -a THREAD_LINK_ARGS <<< "${THREAD_LINK_LIB:-}"
-INCLUDE_DIR_CC="$(pgy_path_for_windows_tool "$ROOT_DIR/src/runtime")"
-SOURCE_CC="$(pgy_path_for_windows_tool "$ROOT_DIR/src/tests/checked_arith_test.c")"
-OUT_CC="$(pgy_path_for_windows_tool "$OUT")"
+
+path_for_c_compiler() {
+    case "$(uname -s 2>/dev/null || echo unknown)" in
+        MINGW*|MSYS*|CYGWIN*)
+            pgy_path_for_windows_tool "$1"
+            ;;
+        *)
+            printf '%s\n' "$1"
+            ;;
+    esac
+}
+
+INCLUDE_DIR_CC="$(path_for_c_compiler "$ROOT_DIR/src/runtime")"
+SOURCE_CC="$(path_for_c_compiler "$ROOT_DIR/src/tests/checked_arith_test.c")"
+OUT_CC="$(path_for_c_compiler "$OUT")"
 
 fail() { echo "[checked-arith] FAIL: $*" >&2; exit 1; }
 

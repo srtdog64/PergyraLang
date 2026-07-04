@@ -2,10 +2,12 @@
 // The distributed-design principle says cross-World movement is
 // Channel-only. This kernel asks: can an intent transfer step be aimed
 // at zones owned by two DIFFERENT worlds, bypassing Channel?
-// Verdict space (all informative):
-//   static reject at w.zone access -> world encapsulates its zones
-//   static reject at transfer      -> transfer checks world membership
-//   runs                           -> zones detach as copies; measure output
+// MEASURED HISTORY: 2026-07-04 it RAN silently with asymmetric
+// write-through (2/1/2 — dest world interior mutated without a Channel).
+// CLOSED 2026-07-05 (full theorem T, docs/157 §5): world-owned zone
+// bindings cannot escape as live values — this file is now the REJECT
+// regression fixture ("cannot escape as a live binding"), locked by
+// tests/axis_composition_smoke.sh.
 subject Buyer {
     let mut hp: Int;
     action Promote(self) -> Void {

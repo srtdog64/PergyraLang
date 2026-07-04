@@ -31,6 +31,10 @@ PGY_SELFHOST_STAGE_PATHS=(
     "src/self_hosted/codegen/main.pgy"
 )
 
+PGY_SELFHOST_COMPONENT_MAIN_PATHS=(
+    "src/self_hosted/lsp/main.pgy"
+)
+
 PGY_SELFHOST_PARITY_PATHS=(
     "tests/self_hosted/parity/lexer_parity.sh"
     "tests/self_hosted/parity/parser_parity.sh"
@@ -77,12 +81,25 @@ pgy_compiler_world_require_manifest_paths() {
     done
 }
 
+pgy_compiler_world_path_in_list() {
+    local needle="$1"
+    shift
+    local item
+
+    for item in "$@"; do
+        [[ "$item" == "$needle" ]] && return 0
+    done
+    return 1
+}
+
 # Conformance: bind the compiler world to the on-disk stage owners so the
 # architecture manifest cannot silently drift from reality.
 #  - forward: every manifest stage owns a real dir with .pgy facts AND is named
 #    as a `<stage>: String` field in StagePathManifest (world.pgy);
 #  - reverse: every src/self_hosted/<stage>/main.pgy is a named manifest stage,
-#    so a new stage dir cannot appear without the world naming it.
+#    unless it is an explicitly registered non-compiler runnable component.
+#    This lets LSP remain a self-hosted component without pretending it is part
+#    of the compile pipeline stage spine.
 pgy_compiler_world_require_stage_conformance() {
     local root="$1"
     local world="$root/$PGY_SELFHOST_COMPILER_WORLD_PATH"
@@ -102,7 +119,12 @@ pgy_compiler_world_require_stage_conformance() {
 
     while IFS= read -r main_pgy; do
         name="$(basename "$(dirname "$main_pgy")")"
-        printf '%s\n' "${stage_names[@]}" | grep -qx -- "$name" || return 1
+        if printf '%s\n' "${stage_names[@]}" | grep -qx -- "$name"; then
+            continue
+        fi
+        main_pgy="${main_pgy#"$root/"}"
+        pgy_compiler_world_path_in_list "$main_pgy" "${PGY_SELFHOST_COMPONENT_MAIN_PATHS[@]}" ||
+            return 1
     done < <(find "$root/$PGY_SELFHOST_SOURCE_DIR" -mindepth 2 -maxdepth 2 \
                  -name main.pgy)
 }

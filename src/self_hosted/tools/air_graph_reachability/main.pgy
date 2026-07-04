@@ -30,15 +30,15 @@ func ArrayContainsString(arr: Array<String>, target: String) -> Bool {
     return false;
 }
 
-func OrphanFinding(id_val: String) -> String {
+func OrphanFinding(id_val: String) -> Option<String> {
     let fields: Array<String> = [
         JsonEmitFieldString("kind", "orphan_node"),
         JsonEmitFieldString("id", id_val)
     ];
-    return JsonEmitObject(fields);
+    return Some(JsonEmitObject(fields));
 }
 
-func InputErrorJson(path: String) -> String {
+func InputErrorJson(path: String) -> Option<String> {
     let source_fields: Array<String> = [
         JsonEmitFieldString("input_schema", "pgy.air.graph.v1"),
         JsonEmitFieldString("fixture_owner", path)
@@ -63,7 +63,7 @@ func InputErrorJson(path: String) -> String {
         JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
         JsonEmitFieldRaw("findings", JsonEmitArray(findings))
     ];
-    return JsonEmitObject(report_fields);
+    return Some(JsonEmitObject(report_fields));
 }
 
 // BFS over edges (froms[i] -> tos[i]) starting from every root; returns the
@@ -102,7 +102,7 @@ func Reachable(roots: Array<String>, froms: Array<String>, tos: Array<String>) -
 func Main() -> Void {
     let fixture_path: String = "src/self_hosted/tools/air_graph_reachability/fixture/graph_rooted.json";
     if !FileExists(fixture_path) {
-        Log(InputErrorJson(fixture_path));
+        Log(UnwrapOption(InputErrorJson(fixture_path)));
         Exit(1);
     }
 
@@ -122,7 +122,7 @@ func Main() -> Void {
         let nid: String = node_ids[i];
         if !ArrayContainsString(visited, nid) {
             orphans = orphans + 1;
-            ArrayPush(findings_list, OrphanFinding(nid));
+            ArrayPush(findings_list, UnwrapOption(OrphanFinding(nid)));
         }
         i = i + 1;
     }

@@ -6,7 +6,6 @@
     /* Cleanup */
     pergyra_slot_release_secure(slot);
     pergyra_scope_end(pscope);
-    free(scopedSlot); /* Manual cleanup for test - normally handled by scope */
 
     SlotManagerDestroySecure(manager);
 
@@ -224,6 +223,7 @@ void test_runtime_file_io_policy()
     const char *outside_dir = "pgy_security_outside";
     const char *root_file = "inside.txt";
     const char *escape_link = "pgy_security_root/escape";
+    const char *final_link = "pgy_security_root/final_link.txt";
     char rooted_path[256];
     char outside_path[256];
     char *content;
@@ -235,6 +235,7 @@ void test_runtime_file_io_policy()
     unlink(abs_path);
     unlink(escape_path);
     unlink(escape_link);
+    unlink(final_link);
     unlink("pgy_security_root/inside.txt");
     rmdir(root_dir);
     rmdir(outside_dir);
@@ -292,12 +293,21 @@ void test_runtime_file_io_policy()
     pgy_write_file("escape/blocked.txt", "blocked");
     TEST_SECURITY_VIOLATION(access(outside_path, F_OK) != 0,
                             "Symlink escape outside PGY_IO_ROOT is denied");
+    TEST_ASSERT(symlink("../pgy_security_outside/blocked.txt", final_link) == 0,
+                "Final symlink escape test fixture can be created");
+    pgy_write_file("final_link.txt", "blocked");
+    TEST_SECURITY_VIOLATION(access(outside_path, F_OK) != 0,
+                            "Final symlink writes outside PGY_IO_ROOT are denied");
+    fd = pgy_file_open("final_link.txt", "w");
+    TEST_SECURITY_VIOLATION(fd < 0,
+                            "Final symlink FileOpen writes outside PGY_IO_ROOT are denied");
 #endif
 
     pgy_security_test_unsetenv("PGY_IO_ROOT");
     unlink(rooted_path);
     unlink(outside_path);
     unlink(escape_link);
+    unlink(final_link);
     rmdir(root_dir);
     rmdir(outside_dir);
 }

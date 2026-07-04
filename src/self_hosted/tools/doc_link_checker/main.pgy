@@ -67,7 +67,7 @@ func MissingLinkFinding(path: String) -> String {
     return JsonEmitObject(fields);
 }
 
-func InputErrorJson(path: String) -> String {
+func InputErrorJson(path: String) -> Option<String> {
     let source_fields: Array<String> = [
         JsonEmitFieldString("index_owner", "docs/INDEX.md")
     ];
@@ -91,13 +91,13 @@ func InputErrorJson(path: String) -> String {
         JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
         JsonEmitFieldRaw("findings", JsonEmitArray(findings))
     ];
-    return JsonEmitObject(report_fields);
+    return Some(JsonEmitObject(report_fields));
 }
 
 func Main() -> Void {
     let index_path: String = "docs/INDEX.md";
     if !FileExists(index_path) {
-        Log(InputErrorJson(index_path));
+        Log(UnwrapOption(InputErrorJson(index_path)));
         Exit(1);
     }
 

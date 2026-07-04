@@ -520,7 +520,112 @@ Theorem projection_preserves_all :
 Proof. intros. reflexivity. Qed.
 
 (* ========================================== *)
-(* 12. Remaining obligations (future sessions) *)
+(* 12. Human-facing keyword registers -- bounded activation               *)
+(* docs/42 SS0.1: users learn program-local semantic registers, not the    *)
+(* whole keyword catalog at once. This section does NOT prove human         *)
+(* learnability; it proves the structural preconditions that make such      *)
+(* chunking honest: register membership is explicit, any keyword subset is  *)
+(* well-formed, and subset composition cannot create hidden owner drift.    *)
+(* ========================================== *)
+
+Inductive Register : Type :=
+  | RegResource
+  | RegExecution
+  | RegDomain
+  | RegTypeContract.
+
+Definition keyword_register (k : Keyword) : Register :=
+  match k with
+  | KwSubject   => RegDomain
+  | KwIntentWho => RegDomain
+  | KwZone      => RegDomain
+  | KwAuthority => RegDomain
+  | KwEffect    => RegDomain
+  | KwAbility   => RegTypeContract
+  | KwSlot      => RegResource
+  | KwParallel  => RegExecution
+  end.
+
+Definition register_allows_axis (r : Register) (a : Axis) : Prop :=
+  match r, a with
+  | RegResource, AxResource => True
+  | RegExecution, AxExecution => True
+  | RegDomain, AxDomain => True
+  | RegTypeContract, AxTypeContract => True
+  | _, _ => False
+  end.
+
+Theorem keyword_register_axis_sound :
+  forall k, register_allows_axis (keyword_register k) (keyword_axis k).
+Proof.
+  intros k; destruct k; simpl; exact I.
+Qed.
+
+Definition KeywordSurface := Keyword -> Prop.
+
+Definition KeywordCombinationWellFormed (s : KeywordSurface) : Prop :=
+  forall k,
+    s k ->
+    register_allows_axis (keyword_register k) (keyword_axis k) /\
+    Owns (keyword_axis k) (keyword_fact k).
+
+Theorem any_keyword_subset_well_formed :
+  forall s, KeywordCombinationWellFormed s.
+Proof.
+  unfold KeywordCombinationWellFormed.
+  intros s k _.
+  split.
+  - apply keyword_register_axis_sound.
+  - apply keyword_axis_sound.
+Qed.
+
+Definition SurfaceUnion (s1 s2 : KeywordSurface) : KeywordSurface :=
+  fun k => s1 k \/ s2 k.
+
+Theorem surface_union_preserves_well_formed :
+  forall s1 s2,
+    KeywordCombinationWellFormed s1 ->
+    KeywordCombinationWellFormed s2 ->
+    KeywordCombinationWellFormed (SurfaceUnion s1 s2).
+Proof.
+  unfold KeywordCombinationWellFormed, SurfaceUnion.
+  intros s1 s2 H1 H2 k Hk.
+  destruct Hk as [Hk | Hk].
+  - apply H1. exact Hk.
+  - apply H2. exact Hk.
+Qed.
+
+Definition SurfaceBoundedToRegister (s : KeywordSurface) (r : Register) : Prop :=
+  forall k, s k -> keyword_register k = r.
+
+Definition SurfaceActivatesAxis (s : KeywordSurface) (a : Axis) : Prop :=
+  exists k, s k /\ keyword_axis k = a.
+
+Theorem bounded_surface_axis_allowed :
+  forall s r a,
+    SurfaceBoundedToRegister s r ->
+    SurfaceActivatesAxis s a ->
+    register_allows_axis r a.
+Proof.
+  intros s r a Hbound [k [Hactive Haxis]].
+  rewrite <- Haxis.
+  rewrite <- (Hbound k Hactive).
+  apply keyword_register_axis_sound.
+Qed.
+
+Theorem same_fact_keywords_share_axis :
+  forall k1 k2,
+    keyword_fact k1 = keyword_fact k2 ->
+    keyword_axis k1 = keyword_axis k2.
+Proof.
+  intros k1 k2 Hsame.
+  apply (ownership_unique (keyword_fact k1)).
+  - apply keyword_axis_sound.
+  - rewrite Hsame. apply keyword_axis_sound.
+Qed.
+
+(* ========================================== *)
+(* 13. Remaining obligations (future sessions) *)
 (* ------------------------------------------- *)
 (* The keyword/clause/AIR-runtime layers are bound (Check A-D), the Append       *)
 (* entry-point signature is bound (Check E: it forces a provider, matching the   *)

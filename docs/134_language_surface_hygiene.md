@@ -8,6 +8,12 @@ not to reduce Pergyra's domain vocabulary. `intent`, `zone`, `world`, `subject`,
 because they answer distinct ownership questions. Keyword count is not the
 debt; duplicated truth paths are the debt.
 
+The human-cognition model is documented in
+[`docs/42_keyword_orthogonality.md`](42_keyword_orthogonality.md): Pergyra is
+not a language where every keyword is globally active at all times. Programs
+activate bounded semantic registers, and learning follows those subsets rather
+than the whole catalog.
+
 ## Non-Goal: Flattening Orthogonal Terms
 
 The goal is not to reduce the number of keywords mechanically. The accepted

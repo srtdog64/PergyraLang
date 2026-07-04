@@ -22,15 +22,25 @@ extern int gethostname(char *name, size_t len);
 static uint64_t
 SecurityHashBytes64(const void *data, size_t size)
 {
-    const uint8_t *bytes = (const uint8_t *)data;
-    uint64_t hash = 1469598103934665603ULL;
+    uint8_t digest[32];
+    uint64_t word;
 
-    for (size_t i = 0; i < size; i++) {
-        hash ^= (uint64_t)bytes[i];
-        hash *= 1099511628211ULL;
-    }
+    if (data == NULL && size > 0)
+        return 0ULL;
+    if (SecureHashSHA256((const uint8_t *)data, size, digest) !=
+        SECURITY_SUCCESS)
+        return 0ULL;
 
-    return hash;
+    word = ((uint64_t)digest[0] << 56) |
+           ((uint64_t)digest[1] << 48) |
+           ((uint64_t)digest[2] << 40) |
+           ((uint64_t)digest[3] << 32) |
+           ((uint64_t)digest[4] << 24) |
+           ((uint64_t)digest[5] << 16) |
+           ((uint64_t)digest[6] << 8) |
+           (uint64_t)digest[7];
+    SecureMemoryWipe(digest, sizeof(digest));
+    return word;
 }
 
 #if defined(__linux__)
@@ -162,13 +172,20 @@ HardwareFingerprintGenerate(HardwareFingerprint *fingerprint)
 
     SecurityFillFallbackIdentity(fingerprint);
 
-    uint32_t checksum = 0;
-    uint8_t *data = (uint8_t *)fingerprint;
-    for (size_t i = 0; i < sizeof(HardwareFingerprint) - sizeof(uint32_t); i++) {
-        checksum ^= data[i];
-        checksum = (checksum << 1) | (checksum >> 31);
+    {
+        uint8_t digest[32];
+        result = SecureHashSHA256(
+            (const uint8_t *)fingerprint,
+            sizeof(HardwareFingerprint) - sizeof(uint32_t),
+            digest);
+        if (result != SECURITY_SUCCESS)
+            return result;
+        fingerprint->checksum = ((uint32_t)digest[0] << 24) |
+                                ((uint32_t)digest[1] << 16) |
+                                ((uint32_t)digest[2] << 8) |
+                                (uint32_t)digest[3];
+        SecureMemoryWipe(digest, sizeof(digest));
     }
-    fingerprint->checksum = checksum;
 
     return SECURITY_SUCCESS;
 }

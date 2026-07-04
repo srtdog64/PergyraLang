@@ -99,6 +99,11 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     ctx->capture_allowed_let_init = saved_capture_allowed;
     if (init != NULL)
         mark_world_embedded_zone_arguments(init, ctx);
+    /* Boundary-fork rule, full theorem T (docs/157 §5): `let x = w.zone`
+     * escapes a world-owned zone as a live binding. Call-shaped
+     * initializers are covered by the hook in type_check_call. */
+    if (init != NULL && init->type == AST_MEMBER_ACCESS)
+        semantic_reject_world_zone_member_escape(init, ctx);
 
     /* Type inference: if no annotation, infer from initializer */
     if (ann != NULL) {

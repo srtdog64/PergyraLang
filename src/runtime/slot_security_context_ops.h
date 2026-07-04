@@ -7,17 +7,21 @@
 uint32_t
 HardwareFingerprintHash(const HardwareFingerprint *fingerprint)
 {
+    uint8_t digest[32];
+    uint32_t hash;
+
     if (fingerprint == NULL)
         return 0;
 
-    uint32_t hash = 0x12345678;
-    const uint8_t *data = (const uint8_t *)fingerprint;
-
-    for (size_t i = 0; i < sizeof(HardwareFingerprint); i++) {
-        hash ^= data[i];
-        hash = (hash << 1) | (hash >> 31);
-    }
-
+    if (SecureHashSHA256((const uint8_t *)fingerprint,
+                         sizeof(HardwareFingerprint),
+                         digest) != SECURITY_SUCCESS)
+        return 0;
+    hash = ((uint32_t)digest[0] << 24) |
+           ((uint32_t)digest[1] << 16) |
+           ((uint32_t)digest[2] << 8) |
+           (uint32_t)digest[3];
+    SecureMemoryWipe(digest, sizeof(digest));
     return hash;
 }
 
@@ -138,9 +142,11 @@ void
 SecurityAuditLog(SecurityContext *context, const char *event, const char *details)
 {
     (void)context;
-    fprintf(stderr, "[SECURITY-AUDIT] event=%s details=%s\n",
-            event != NULL ? event : "n/a",
-            details != NULL ? details : "n/a");
+    fputs("{\"component\":\"slot-security-audit\",\"event\":", stderr);
+    pgy_runtime_fprint_json_string(stderr, event != NULL ? event : "n/a");
+    fputs(",\"details\":", stderr);
+    pgy_runtime_fprint_json_string(stderr, details != NULL ? details : "n/a");
+    fputs("}\n", stderr);
 }
 
 void

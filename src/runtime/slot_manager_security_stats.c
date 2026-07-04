@@ -6,6 +6,7 @@
  */
 
 #include "slot_manager.h"
+#include "pgy_runtime_security_log.h"
 
 #include <stdio.h>
 #include <time.h>
@@ -47,8 +48,13 @@ SlotManagerLogSecurityEvent(SlotManager *manager, const char *event,
     else
         snprintf(timestamp, sizeof(timestamp), "time-unavailable");
 
-    printf("[SECURITY] %s slot=%u event=%s details=%s\n",
-           timestamp, slotId, event, details != NULL ? details : "n/a");
+    fputs("{\"component\":\"slot-security\",\"timestamp\":", stdout);
+    pgy_runtime_fprint_json_string(stdout, timestamp);
+    fprintf(stdout, ",\"slot\":%u,\"event\":", slotId);
+    pgy_runtime_fprint_json_string(stdout, event);
+    fputs(",\"details\":", stdout);
+    pgy_runtime_fprint_json_string(stdout, details != NULL ? details : "n/a");
+    fputs("}\n", stdout);
 
     if (manager->securityContext != NULL)
         SecurityAuditLog(manager->securityContext, event, details);

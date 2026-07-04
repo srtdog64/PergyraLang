@@ -7,17 +7,17 @@ import "../../compiler/air_evidence_owner.pgy";
 
 func RunAirGraphJsonValidation() -> Void {
     if !CompilerAirEvidenceEnvelopeReady() {
-        Log(InputErrorJson("compiler AIR evidence envelope"));
+        Log(UnwrapOption(InputErrorJson("compiler AIR evidence envelope")));
         Exit(1);
     }
     let fixture_path: String = "src/self_hosted/tools/air_graph_json_validator/fixture/sample.json";
     let cap_fixture_path: String = "src/self_hosted/tools/air_graph_json_validator/fixture/cap_env.json";
     if !FileExists(fixture_path) {
-        Log(InputErrorJson(fixture_path));
+        Log(UnwrapOption(InputErrorJson(fixture_path)));
         Exit(1);
     }
     if !FileExists(cap_fixture_path) {
-        Log(InputErrorJson(cap_fixture_path));
+        Log(UnwrapOption(InputErrorJson(cap_fixture_path)));
         Exit(1);
     }
 

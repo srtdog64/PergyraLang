@@ -35,7 +35,7 @@ func DriftFinding(c_entries: Int, llvm_entries: Int) -> String {
     return JsonEmitObject(fields);
 }
 
-func InputErrorJson(path: String) -> String {
+func InputErrorJson(path: String) -> Option<String> {
     let source_fields: Array<String> = [
         JsonEmitFieldString("c_dispatch_owner", "src/codegen/transpiler_expr_stdlib_scalar_builtin.c"),
         JsonEmitFieldString("c_unary_dispatch_owner", "src/codegen/transpiler_expr_stdlib_scalar_unary.c"),
@@ -61,7 +61,7 @@ func InputErrorJson(path: String) -> String {
         JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
         JsonEmitFieldRaw("findings", JsonEmitArray(findings))
     ];
-    return JsonEmitObject(report_fields);
+    return Some(JsonEmitObject(report_fields));
 }
 
 func Main() -> Void {
@@ -70,15 +70,15 @@ func Main() -> Void {
     let llvm_path: String = "src/codegen/llvm_expr_stdlib_scalar_io_calls.c";
 
     if !FileExists(c_path) {
-        Log(InputErrorJson(c_path));
+        Log(UnwrapOption(InputErrorJson(c_path)));
         Exit(1);
     }
     if !FileExists(c_unary_path) {
-        Log(InputErrorJson(c_unary_path));
+        Log(UnwrapOption(InputErrorJson(c_unary_path)));
         Exit(1);
     }
     if !FileExists(llvm_path) {
-        Log(InputErrorJson(llvm_path));
+        Log(UnwrapOption(InputErrorJson(llvm_path)));
         Exit(1);
     }
 

@@ -22,7 +22,7 @@ func SurfaceFinding(kind: String, reads: Int, ceiling: Int, scope: String) -> St
     return JsonEmitObject(fields);
 }
 
-func InputErrorJson(error_kind: String, key: String, location: String) -> String {
+func InputErrorJson(error_kind: String, key: String, location: String) -> Option<String> {
     let source_fields: Array<String> = [
         JsonEmitFieldString("ratchet_owner", "tests/ast_read_surface_ratchet.txt"),
         JsonEmitFieldString("inventory_owner", "DirWalk(scope)")
@@ -51,7 +51,7 @@ func InputErrorJson(error_kind: String, key: String, location: String) -> String
         JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
         JsonEmitFieldRaw("findings", JsonEmitArray(findings))
     ];
-    return JsonEmitObject(report_fields);
+    return Some(JsonEmitObject(report_fields));
 }
 
 func EndsWith(text: String, suffix: String) -> Bool {
@@ -82,7 +82,7 @@ func Main() -> Void {
     let ratchet_path: String = "tests/ast_read_surface_ratchet.txt";
 
     if !FileExists(ratchet_path) {
-        Log(InputErrorJson("missing_ratchet", ratchet_path, ratchet_path));
+        Log(UnwrapOption(InputErrorJson("missing_ratchet", ratchet_path, ratchet_path)));
         Exit(1);
     }
 
@@ -109,7 +109,7 @@ func Main() -> Void {
         if StringLength(line) > 0 {
             let parts: Array<String> = Split(line, "|");
             if ArrayLength(parts) < 4 {
-                Log(InputErrorJson("malformed_ratchet", line, ratchet_path));
+                Log(UnwrapOption(InputErrorJson("malformed_ratchet", line, ratchet_path)));
                 Exit(1);
             }
 
@@ -157,7 +157,7 @@ func Main() -> Void {
             }
 
             if known == 0 {
-                Log(InputErrorJson("unknown_metric", kind, scope));
+                Log(UnwrapOption(InputErrorJson("unknown_metric", kind, scope)));
                 Exit(1);
             }
         }
