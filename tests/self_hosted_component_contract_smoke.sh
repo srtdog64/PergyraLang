@@ -550,6 +550,41 @@ require_owner_surface codegen \
 require_text "src/self_hosted/codegen/main.pgy" 'import "../compiler/symbol_table_owner.pgy";'
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" 'import "../../compiler/target_capability_owner.pgy";'
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "CompilerTargetCapabilityEnvelopeReady()"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetCpuCProjection"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetCpuLlvmProjection"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetSelfHostedProjection"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetIntentGraphFact"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetEffectSetFact"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetAuthorityEvidenceFact"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetCoordinationFact"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetSlotOwnershipFact"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetLayoutShapeFact"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetLossBudgetFact"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetMaterializationReasonFact"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetUnsupportedShapeFallbackReason"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetForbiddenLossBudgetFallbackReason"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetRetainedEffectFallbackReason"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetMissingAuthorityEvidenceFallbackReason"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetHostOnlySlotBoundaryFallbackReason"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetProjectionAt(0) == CompilerTargetCpuCProjection()"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetFactAt(0) == CompilerTargetIntentGraphFact()"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetFallbackReasonAt(0) == CompilerTargetUnsupportedShapeFallbackReason()"
+reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetProjectionAt(0) == "cpu-c"'
+reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetProjectionAt(1) == "cpu-llvm"'
+reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetProjectionAt(2) == "self-hosted"'
+reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetFactAt(0) == "intent_graph"'
+reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetFactAt(1) == "effect_set"'
+reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetFactAt(2) == "authority_evidence"'
+reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetFactAt(3) == "coordination"'
+reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetFactAt(4) == "slot_ownership"'
+reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetFactAt(5) == "layout_shape"'
+reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetFactAt(6) == "loss_budget"'
+reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetFactAt(7) == "materialization_reason"'
+reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetFallbackReasonAt(0) == "unsupported_shape"'
+reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetFallbackReasonAt(1) == "forbidden_loss_budget"'
+reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetFallbackReasonAt(2) == "retained_effect"'
+reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetFallbackReasonAt(3) == "missing_authority_evidence"'
+reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetFallbackReasonAt(4) == "host_only_slot_boundary"'
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCQualifiedName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolRequireTable"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "CompilerSymbolRequireTable();"
@@ -1298,6 +1333,22 @@ require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" '"e
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" '"boundary_capture"'
 require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" 'import "../../compiler/air_evidence_owner.pgy";'
 require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" "CompilerAirEvidenceEnvelopeReady()"
+require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "func CompilerAirEvidenceIntentGraphFact"
+require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "func CompilerAirEvidenceEffectSetFact"
+require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "func CompilerAirEvidenceAuthorityEvidenceFact"
+require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "func CompilerAirEvidenceCoordinationFact"
+require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "func CompilerAirEvidenceSlotOwnershipFact"
+require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "func CompilerAirEvidenceMaterializationReasonFact"
+require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "func CompilerAirEvidenceLossBudgetFact"
+require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "CompilerAirEvidenceFactAt(0) == CompilerAirEvidenceIntentGraphFact()"
+require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "CompilerAirEvidenceFactAt(6) == CompilerAirEvidenceLossBudgetFact()"
+reject_text "src/self_hosted/compiler/air_evidence_owner.pgy" 'CompilerAirEvidenceFactAt(0) == "intent_graph"'
+reject_text "src/self_hosted/compiler/air_evidence_owner.pgy" 'CompilerAirEvidenceFactAt(1) == "effect_set"'
+reject_text "src/self_hosted/compiler/air_evidence_owner.pgy" 'CompilerAirEvidenceFactAt(2) == "authority_evidence"'
+reject_text "src/self_hosted/compiler/air_evidence_owner.pgy" 'CompilerAirEvidenceFactAt(3) == "coordination"'
+reject_text "src/self_hosted/compiler/air_evidence_owner.pgy" 'CompilerAirEvidenceFactAt(4) == "slot_ownership"'
+reject_text "src/self_hosted/compiler/air_evidence_owner.pgy" 'CompilerAirEvidenceFactAt(5) == "materialization_reason"'
+reject_text "src/self_hosted/compiler/air_evidence_owner.pgy" 'CompilerAirEvidenceFactAt(6) == "loss_budget"'
 require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" "RequiredGraphFeatureKeys()"
 require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" "CountMissingGraphFeatureKeys(content, feature_keys)"
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "AIR_EVIDENCE_OWNER"

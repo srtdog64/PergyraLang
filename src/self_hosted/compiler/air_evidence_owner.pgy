@@ -11,24 +11,52 @@ func CompilerAirEvidenceFactCount() -> Int {
     return 7;
 }
 
+func CompilerAirEvidenceIntentGraphFact() -> String {
+    return "intent_graph";
+}
+
+func CompilerAirEvidenceEffectSetFact() -> String {
+    return "effect_set";
+}
+
+func CompilerAirEvidenceAuthorityEvidenceFact() -> String {
+    return "authority_evidence";
+}
+
+func CompilerAirEvidenceCoordinationFact() -> String {
+    return "coordination";
+}
+
+func CompilerAirEvidenceSlotOwnershipFact() -> String {
+    return "slot_ownership";
+}
+
+func CompilerAirEvidenceMaterializationReasonFact() -> String {
+    return "materialization_reason";
+}
+
+func CompilerAirEvidenceLossBudgetFact() -> String {
+    return "loss_budget";
+}
+
 func CompilerAirEvidenceFactAt(index: Int) -> String {
-    if index == 0 { return "intent_graph"; }
-    if index == 1 { return "effect_set"; }
-    if index == 2 { return "authority_evidence"; }
-    if index == 3 { return "coordination"; }
-    if index == 4 { return "slot_ownership"; }
-    if index == 5 { return "materialization_reason"; }
-    if index == 6 { return "loss_budget"; }
+    if index == 0 { return CompilerAirEvidenceIntentGraphFact(); }
+    if index == 1 { return CompilerAirEvidenceEffectSetFact(); }
+    if index == 2 { return CompilerAirEvidenceAuthorityEvidenceFact(); }
+    if index == 3 { return CompilerAirEvidenceCoordinationFact(); }
+    if index == 4 { return CompilerAirEvidenceSlotOwnershipFact(); }
+    if index == 5 { return CompilerAirEvidenceMaterializationReasonFact(); }
+    if index == 6 { return CompilerAirEvidenceLossBudgetFact(); }
     return "";
 }
 
 func CompilerAirEvidenceEnvelopeReady() -> Bool {
     return CompilerAirEvidenceFactCount() == 7 &&
-        CompilerAirEvidenceFactAt(0) == "intent_graph" &&
-        CompilerAirEvidenceFactAt(1) == "effect_set" &&
-        CompilerAirEvidenceFactAt(2) == "authority_evidence" &&
-        CompilerAirEvidenceFactAt(3) == "coordination" &&
-        CompilerAirEvidenceFactAt(4) == "slot_ownership" &&
-        CompilerAirEvidenceFactAt(5) == "materialization_reason" &&
-        CompilerAirEvidenceFactAt(6) == "loss_budget";
+        CompilerAirEvidenceFactAt(0) == CompilerAirEvidenceIntentGraphFact() &&
+        CompilerAirEvidenceFactAt(1) == CompilerAirEvidenceEffectSetFact() &&
+        CompilerAirEvidenceFactAt(2) == CompilerAirEvidenceAuthorityEvidenceFact() &&
+        CompilerAirEvidenceFactAt(3) == CompilerAirEvidenceCoordinationFact() &&
+        CompilerAirEvidenceFactAt(4) == CompilerAirEvidenceSlotOwnershipFact() &&
+        CompilerAirEvidenceFactAt(5) == CompilerAirEvidenceMaterializationReasonFact() &&
+        CompilerAirEvidenceFactAt(6) == CompilerAirEvidenceLossBudgetFact();
 }

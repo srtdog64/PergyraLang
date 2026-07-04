@@ -11,15 +11,27 @@ func CompilerTargetProjectionCount() -> Int {
     return 3;
 }
 
+func CompilerTargetCpuCProjection() -> String {
+    return "cpu-c";
+}
+
+func CompilerTargetCpuLlvmProjection() -> String {
+    return "cpu-llvm";
+}
+
+func CompilerTargetSelfHostedProjection() -> String {
+    return "self-hosted";
+}
+
 func CompilerTargetProjectionAt(index: Int) -> String {
     if index == 0 {
-        return "cpu-c";
+        return CompilerTargetCpuCProjection();
     }
     if index == 1 {
-        return "cpu-llvm";
+        return CompilerTargetCpuLlvmProjection();
     }
     if index == 2 {
-        return "self-hosted";
+        return CompilerTargetSelfHostedProjection();
     }
     return "";
 }
@@ -28,30 +40,62 @@ func CompilerTargetFactCount() -> Int {
     return 8;
 }
 
+func CompilerTargetIntentGraphFact() -> String {
+    return "intent_graph";
+}
+
+func CompilerTargetEffectSetFact() -> String {
+    return "effect_set";
+}
+
+func CompilerTargetAuthorityEvidenceFact() -> String {
+    return "authority_evidence";
+}
+
+func CompilerTargetCoordinationFact() -> String {
+    return "coordination";
+}
+
+func CompilerTargetSlotOwnershipFact() -> String {
+    return "slot_ownership";
+}
+
+func CompilerTargetLayoutShapeFact() -> String {
+    return "layout_shape";
+}
+
+func CompilerTargetLossBudgetFact() -> String {
+    return "loss_budget";
+}
+
+func CompilerTargetMaterializationReasonFact() -> String {
+    return "materialization_reason";
+}
+
 func CompilerTargetFactAt(index: Int) -> String {
     if index == 0 {
-        return "intent_graph";
+        return CompilerTargetIntentGraphFact();
     }
     if index == 1 {
-        return "effect_set";
+        return CompilerTargetEffectSetFact();
     }
     if index == 2 {
-        return "authority_evidence";
+        return CompilerTargetAuthorityEvidenceFact();
     }
     if index == 3 {
-        return "coordination";
+        return CompilerTargetCoordinationFact();
     }
     if index == 4 {
-        return "slot_ownership";
+        return CompilerTargetSlotOwnershipFact();
     }
     if index == 5 {
-        return "layout_shape";
+        return CompilerTargetLayoutShapeFact();
     }
     if index == 6 {
-        return "loss_budget";
+        return CompilerTargetLossBudgetFact();
     }
     if index == 7 {
-        return "materialization_reason";
+        return CompilerTargetMaterializationReasonFact();
     }
     return "";
 }
@@ -60,43 +104,63 @@ func CompilerTargetFallbackReasonCount() -> Int {
     return 5;
 }
 
+func CompilerTargetUnsupportedShapeFallbackReason() -> String {
+    return "unsupported_shape";
+}
+
+func CompilerTargetForbiddenLossBudgetFallbackReason() -> String {
+    return "forbidden_loss_budget";
+}
+
+func CompilerTargetRetainedEffectFallbackReason() -> String {
+    return "retained_effect";
+}
+
+func CompilerTargetMissingAuthorityEvidenceFallbackReason() -> String {
+    return "missing_authority_evidence";
+}
+
+func CompilerTargetHostOnlySlotBoundaryFallbackReason() -> String {
+    return "host_only_slot_boundary";
+}
+
 func CompilerTargetFallbackReasonAt(index: Int) -> String {
     if index == 0 {
-        return "unsupported_shape";
+        return CompilerTargetUnsupportedShapeFallbackReason();
     }
     if index == 1 {
-        return "forbidden_loss_budget";
+        return CompilerTargetForbiddenLossBudgetFallbackReason();
     }
     if index == 2 {
-        return "retained_effect";
+        return CompilerTargetRetainedEffectFallbackReason();
     }
     if index == 3 {
-        return "missing_authority_evidence";
+        return CompilerTargetMissingAuthorityEvidenceFallbackReason();
     }
     if index == 4 {
-        return "host_only_slot_boundary";
+        return CompilerTargetHostOnlySlotBoundaryFallbackReason();
     }
     return "";
 }
 
 func CompilerTargetCapabilityEnvelopeReady() -> Bool {
     return CompilerTargetProjectionCount() == 3 &&
-        CompilerTargetProjectionAt(0) == "cpu-c" &&
-        CompilerTargetProjectionAt(1) == "cpu-llvm" &&
-        CompilerTargetProjectionAt(2) == "self-hosted" &&
+        CompilerTargetProjectionAt(0) == CompilerTargetCpuCProjection() &&
+        CompilerTargetProjectionAt(1) == CompilerTargetCpuLlvmProjection() &&
+        CompilerTargetProjectionAt(2) == CompilerTargetSelfHostedProjection() &&
         CompilerTargetFactCount() == 8 &&
-        CompilerTargetFactAt(0) == "intent_graph" &&
-        CompilerTargetFactAt(1) == "effect_set" &&
-        CompilerTargetFactAt(2) == "authority_evidence" &&
-        CompilerTargetFactAt(3) == "coordination" &&
-        CompilerTargetFactAt(4) == "slot_ownership" &&
-        CompilerTargetFactAt(5) == "layout_shape" &&
-        CompilerTargetFactAt(6) == "loss_budget" &&
-        CompilerTargetFactAt(7) == "materialization_reason" &&
+        CompilerTargetFactAt(0) == CompilerTargetIntentGraphFact() &&
+        CompilerTargetFactAt(1) == CompilerTargetEffectSetFact() &&
+        CompilerTargetFactAt(2) == CompilerTargetAuthorityEvidenceFact() &&
+        CompilerTargetFactAt(3) == CompilerTargetCoordinationFact() &&
+        CompilerTargetFactAt(4) == CompilerTargetSlotOwnershipFact() &&
+        CompilerTargetFactAt(5) == CompilerTargetLayoutShapeFact() &&
+        CompilerTargetFactAt(6) == CompilerTargetLossBudgetFact() &&
+        CompilerTargetFactAt(7) == CompilerTargetMaterializationReasonFact() &&
         CompilerTargetFallbackReasonCount() == 5 &&
-        CompilerTargetFallbackReasonAt(0) == "unsupported_shape" &&
-        CompilerTargetFallbackReasonAt(1) == "forbidden_loss_budget" &&
-        CompilerTargetFallbackReasonAt(2) == "retained_effect" &&
-        CompilerTargetFallbackReasonAt(3) == "missing_authority_evidence" &&
-        CompilerTargetFallbackReasonAt(4) == "host_only_slot_boundary";
+        CompilerTargetFallbackReasonAt(0) == CompilerTargetUnsupportedShapeFallbackReason() &&
+        CompilerTargetFallbackReasonAt(1) == CompilerTargetForbiddenLossBudgetFallbackReason() &&
+        CompilerTargetFallbackReasonAt(2) == CompilerTargetRetainedEffectFallbackReason() &&
+        CompilerTargetFallbackReasonAt(3) == CompilerTargetMissingAuthorityEvidenceFallbackReason() &&
+        CompilerTargetFallbackReasonAt(4) == CompilerTargetHostOnlySlotBoundaryFallbackReason();
 }
