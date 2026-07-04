@@ -10558,14 +10558,21 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
   semantic인 게 부정확)+`parser_decl_clause.c`→`type_system.h`(**유일
   진짜 위반 후보, 조사 필요**). (c) codegen→semantic 101은 실은 좁은
   face 3헤더(diag 95/builtin_kind 8/lifecycle 1).
-- **rung 설계**: B-0=등기부 문서+include-edge smoke(twin-parity gate
-  스타일 순수 텍스트, faces 선언·미등재 교차=FAIL) → B-1=무명 face
-  정정(공유 유틸 3헤더 backend-중립 소속/접두사, diag_codes 소속 결정,
-  parser→type_system 조사) → B-2=폴더 구획(경계별 opportunistic;
-  Makefile/게이트 path 결합 주의 — MIR allowlist 2곳·twin parity 목록·
-  cache deps 등 이사 시 갱신 목록 필수).
+- ✅ **B-0+B-1 landed(2026-07-04)**: 등기부=docs/154 + include-edge
+  smoke=`tests/border_registry_smoke.sh`(순수 텍스트, 미등재 교차=FAIL,
+  8경계 전부 green). B-1 수술: 공유 유틸 3헤더 개명
+  (transpiler_type_mapping/builtin_type_table/mir_resource_name_helpers
+  → codegen_* — llvm→transpiler include 6→0), 게이트 경로 결합 6종
+  갱신·재실행 green. **parser→type_system은 死include가 아니었음** —
+  좁은 심볼 grep 오판을 빌드 테스트가 잡음(EFFECT_* mask 어휘 소비,
+  dead-include 규율 재확인) → 사인된 face로 등재+사유 주석.
+  `.c`/`.h` 쌍 분기(type_mapping)는 Makefile 동시세션 비접촉 위해 B-2로.
+- **잔여**: B-2=폴더 구획+쌍 정렬(경계별 opportunistic; 이사 시 갱신
+  목록: Makefile 소스 목록·MIR allowlist 2곳·twin parity·cache deps·
+  게이트 경로) + **Makefile `border-registry-test-smoke` 타깃 추가
+  대기**(동시세션 Makefile 정리 후 — smoke는 bash 직접 실행 가능).
 - 착지점 원칙 적용: 게이트/문서에만 있는 경계는 무착지 — 폴더/이름이
-  경계의 물리 착지점. 단 현 시점 순서는 등기부(잠금)→정정→이사.
+  경계의 물리 착지점. 순서는 등기부(잠금)→정정→이사로 확정됨.
 
 #### A-11. TPU/MLIR — post-beta 설계 여지만
 
