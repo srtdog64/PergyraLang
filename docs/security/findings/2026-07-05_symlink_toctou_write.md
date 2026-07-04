@@ -78,6 +78,11 @@ through `pgy_runtime_secure_fopen`; the C inline runtime still had a direct
   list (Linux is its real CI home).
 - **Backend-compare**: both runtime surfaces consume the hardened open owner:
   the C inline runtime and the LLVM runtime export.
+- **Self-host codegen follow-up**: the standalone C emitted by the Pergyra
+  self-host codegen rung now routes `ReadFile`, `WriteFile`, and handle-based
+  `FileOpen` through a generated `pgy_secure_fopen` helper. On POSIX that
+  helper uses `open(..., O_NOFOLLOW)` plus `fdopen`, and the helper name is
+  owned by `HostIORuntimeOwner` instead of being a backend-local spelling.
 - **Verified on real Linux**: a standalone harness of `pgy_runtime_secure_fopen`
   compiled with the project's exact Linux `PLATFORM_CFLAGS`
   (`-std=c11 -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 -D_DEFAULT_SOURCE
@@ -92,6 +97,8 @@ through `pgy_runtime_secure_fopen`; the C inline runtime still had a direct
 
 - C backend: fixed ✓ (inline runtime open path)
 - LLVM backend: fixed ✓ (runtime export open path)
+- Self-host C-emission rung: fixed for generated standalone C file helpers
+  (POSIX nofollow helper, C/LLVM-built codegen parity)
 - Backend-compare regression added: ✓ (POSIX-gated smoke)
 
 ## Residual (not closed here)

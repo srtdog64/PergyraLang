@@ -25,6 +25,24 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-05 - Self-host generated C consumes secure host-IO open fact
+
+- Added `HostIORuntimeCSecureFileOpenFn()` to the self-host host-IO runtime ABI
+  owner and repointed generated standalone C helpers for `ReadFile`,
+  `WriteFile`, and handle-based `FileOpen` through that owner fact.
+- The emitted POSIX helper now opens files with `O_NOFOLLOW` at open time and
+  then `fdopen`s the descriptor. Windows keeps the existing `fopen` path, so
+  this is a POSIX hardening slice rather than a Windows atomic-open claim.
+- Tightened `self_hosted_component_contract_smoke.sh` so `program_emit.pgy`
+  must consume the secure-open owner and must not reintroduce direct
+  `fopen(path, mode)` / `fopen(path, "wb")` write paths.
+- Verified `self-host-component-contract-test-smoke` and
+  `self-host-codegen-parity-test-smoke`; the codegen parity gate passed 65
+  fixtures on codegen tools built through both C and LLVM.
+- Also compiled the emitted `file_handle` and `write_file` C artifacts under
+  WSL gcc with POSIX feature macros and probed symlink targets; both generated
+  executables left the outside file unchanged.
+
 ## 2026-07-05 - LSP hover owner is load-bearing and likeness ratchet tightened
 
 - Made the LSP-2i hover-content owner visible to the driver/LSP rung ladder,

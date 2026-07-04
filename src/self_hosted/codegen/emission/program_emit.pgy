@@ -6,6 +6,7 @@ import "../text/text_owner.pgy";
 import "../input/ast_text_inventory_owner.pgy";
 import "../input/ast_text_statement_owner.pgy";
 import "../input/ast_usage_owner.pgy";
+import "../runtime_abi/host_io_runtime_owner.pgy";
 import "function_emit.pgy";
 
 func GenerateC(tree_text: String) -> String {
@@ -146,8 +147,8 @@ func GenerateC(tree_text: String) -> String {
     if uses_str || uses_io || uses_fhandle {
         header = Concat(header, "#include <string.h>\n");
     }
-    if uses_io {
-        header = Concat(header, "#ifdef _WIN32\n#include <fcntl.h>\n#include <io.h>\n#endif\n");
+    if uses_io || uses_fhandle {
+        header = Concat(header, "#ifdef _WIN32\n#include <fcntl.h>\n#include <io.h>\n#else\n#include <fcntl.h>\n#include <sys/stat.h>\n#include <unistd.h>\n#endif\n");
     }
     if uses_float {
         header = Concat(header, "#include <math.h>\n");
@@ -208,6 +209,21 @@ func GenerateC(tree_text: String) -> String {
         header = Concat(header, "    const char *allow = getenv(\"PGY_IO_ALLOW_ABSOLUTE\");\n");
         header = Concat(header, "    return allow != NULL && allow[0] == '1' && allow[1] == '\\0';\n");
         header = Concat(header, "}\n\n");
+        let secure_fopen_fn: String = HostIORuntimeCSecureFileOpenFn();
+        header = Concat(header, "static FILE *");
+        header = Concat(header, secure_fopen_fn);
+        header = Concat(header, "(const char *path, const char *mode)\n{\n");
+        header = Concat(header, "#ifdef _WIN32\n    return fopen(path, mode);\n#else\n");
+        header = Concat(header, "    if (mode == NULL || mode[0] == '\\0') { return NULL; }\n");
+        header = Concat(header, "    int plus = strchr(mode, '+') != NULL;\n");
+        header = Concat(header, "    int flags = O_RDONLY;\n");
+        header = Concat(header, "    if (mode[0] == 'r') { flags = plus ? O_RDWR : O_RDONLY; }\n");
+        header = Concat(header, "    else if (mode[0] == 'w') { flags = (plus ? O_RDWR : O_WRONLY) | O_CREAT | O_TRUNC; }\n");
+        header = Concat(header, "    else if (mode[0] == 'a') { flags = (plus ? O_RDWR : O_WRONLY) | O_CREAT | O_APPEND; }\n");
+        header = Concat(header, "    else { return NULL; }\n");
+        header = Concat(header, "#ifdef O_NOFOLLOW\n    flags |= O_NOFOLLOW;\n#endif\n");
+        header = Concat(header, "    int fd = open(path, flags, 0666);\n    if (fd < 0) { return NULL; }\n");
+        header = Concat(header, "    FILE *f = fdopen(fd, mode);\n    if (!f) { close(fd); return NULL; }\n    return f;\n#endif\n}\n\n");
     }
     if uses_fhandle {
         // File-handle API: an int handle indexes a small static FILE* table.
@@ -216,7 +232,7 @@ func GenerateC(tree_text: String) -> String {
         header = Concat(header, "static FILE *pgy_fh[256];\nstatic long long pgy_fh_n = 0;\n");
         header = Concat(header, "static long long pgy_fopen(const char *path, const char *mode)\n{\n");
         header = Concat(header, "    if (!pgy_path_allowed(path)) { return -1; }\n");
-        header = Concat(header, "    FILE *f = fopen(path, mode);\n    if (!f) { return -1; }\n");
+        header = Concat(header, "    FILE *f = pgy_secure_fopen(path, mode);\n    if (!f) { return -1; }\n");
         header = Concat(header, "    if (pgy_fh_n >= 256) { fclose(f); return -1; }\n");
         header = Concat(header, "    pgy_fh[pgy_fh_n] = f;\n    return pgy_fh_n++;\n}\n\n");
         header = Concat(header, "static int pgy_fh_valid(long long fd)\n{\n");
@@ -404,11 +420,11 @@ func GenerateC(tree_text: String) -> String {
     if uses_io {
         header = Concat(header, "static int pgy_fexists(const char *path)\n{\n");
         header = Concat(header, "    if (!pgy_path_allowed(path)) { return 0; }\n");
-        header = Concat(header, "    FILE *f = fopen(path, \"rb\");\n");
+        header = Concat(header, "    FILE *f = pgy_secure_fopen(path, \"rb\");\n");
         header = Concat(header, "    if (f) { fclose(f); return 1; }\n    return 0;\n}\n\n");
         header = Concat(header, "static char *pgy_readfile(const char *path)\n{\n");
         header = Concat(header, "    if (!pgy_path_allowed(path)) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
-        header = Concat(header, "    FILE *f = fopen(path, \"rb\");\n");
+        header = Concat(header, "    FILE *f = pgy_secure_fopen(path, \"rb\");\n");
         header = Concat(header, "    if (!f) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
         header = Concat(header, "    fseek(f, 0, SEEK_END);\n    long sz = ftell(f);\n    fseek(f, 0, SEEK_SET);\n");
         header = Concat(header, "    if (sz < 0) { sz = 0; }\n");
@@ -425,7 +441,7 @@ func GenerateC(tree_text: String) -> String {
         header = Concat(header, "    buf[rd] = '\\0';\n    return buf;\n}\n\n");
         header = Concat(header, "static int pgy_writefile(const char *path, const char *content)\n{\n");
         header = Concat(header, "    if (!pgy_path_allowed(path)) { return 0; }\n");
-        header = Concat(header, "    FILE *f = fopen(path, \"wb\");\n");
+        header = Concat(header, "    FILE *f = pgy_secure_fopen(path, \"wb\");\n");
         header = Concat(header, "    if (!f) { return 0; }\n");
         header = Concat(header, "    size_t n = strlen(content);\n");
         header = Concat(header, "    size_t wr = fwrite(content, 1, n, f);\n");

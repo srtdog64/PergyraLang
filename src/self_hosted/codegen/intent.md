@@ -61,7 +61,10 @@ participant, not a zone.
   `Floor` / `Ceil` / `SeedRandom` / `Random` subset.
 - `HostIORuntimeOwner` owns self-host C host file/stdin/argv/process runtime
   helper and target-library symbol spelling for the supported file,
-  byte-count stdin, directory-walk, `Args()`, and `Exit(Int)` subset.
+  byte-count stdin, directory-walk, `Args()`, and `Exit(Int)` subset. The
+  generated helper definitions in `program_emit.pgy` consume its secure-open
+  symbol fact so `ReadFile`, `WriteFile`, and handle-based `FileOpen` use one
+  POSIX open-time nofollow boundary instead of local direct `fopen` calls.
 - `OptionResultRuntimeOwner` owns self-host C Option/Result runtime helper
   symbol spelling for the supported `Option<Int>` / `Result<Int>` subset. The
   helper definitions stay in `program_emit`; expression and statement emitters

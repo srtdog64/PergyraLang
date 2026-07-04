@@ -883,6 +883,7 @@ require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "ref "'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "own "'
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "GenerateC(tree_text: String)"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" 'import "../runtime_abi/host_io_runtime_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "RejectUnsupportedCodegenBuiltins(tree_text)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextNodeInventory(tree_text, nodes, node_count_box)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenTypedAstBridgeReady(nodes, count)"
@@ -1082,8 +1083,15 @@ require_text "src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy" "func 
 require_text "src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy" "func MathRuntimeCCeilFn"
 require_text "src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy" "func MathRuntimeCRandomFn"
 require_text "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy" "func HostIORuntimeCFileExistsFn"
+require_text "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy" "func HostIORuntimeCSecureFileOpenFn"
 require_text "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy" "func HostIORuntimeCArgsFn"
 require_text "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy" "func HostIORuntimeCExitFn"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "HostIORuntimeCSecureFileOpenFn()"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "O_NOFOLLOW"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "pgy_secure_fopen(path, mode)"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" 'pgy_secure_fopen(path, \"wb\")'
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "FILE *f = fopen(path, mode);"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" 'FILE *f = fopen(path, \"wb\");'
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCConcatFn"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCStringLengthFn"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCStringJoinFn"
