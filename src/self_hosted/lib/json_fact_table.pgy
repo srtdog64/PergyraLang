@@ -228,6 +228,19 @@ func JsonObjectFactStringFieldOpt(table: JsonObjectFactTable, field: String) -> 
     return JsonObjectStringFieldOpt(table.json, table.start, table.end, field);
 }
 
+func JsonObjectFactStringFieldEquals(table: JsonObjectFactTable, field: String, expected: String) -> Bool {
+    let actual: Option<String> = JsonObjectFactStringFieldOpt(table, field);
+    if !IsSome(actual) {
+        return false;
+    }
+    return UnwrapOption(actual) == expected;
+}
+
+func JsonDocumentFactStringFieldEquals(json: String, field: String, expected: String) -> Bool {
+    let root: JsonObjectFactTable = JsonDocumentObjectFactTable(json);
+    return JsonObjectFactStringFieldEquals(root, field, expected);
+}
+
 func JsonObjectFactNumberFieldOpt(table: JsonObjectFactTable, field: String) -> Option<String> {
     if !JsonObjectFactTableReady(table) {
         return None;

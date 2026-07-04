@@ -2,9 +2,11 @@
 
 **Status:** *rung-2 minimal* (2026-05-27). Reads stable AIR-graph JSON
 dumps (`pgy.air.graph.v1`) from fixture paths relative to cwd, validates the
-schema field and required top-level keys, extracts summary counts, and checks
-one capability/effect residual trace (`Args -> ENV -> 0x20`). No JSON parser;
-substring-anchored scan only.
+schema field and required top-level keys through the shared JSON fact-table
+owner, extracts summary counts, and checks one capability/effect residual trace
+(`Args -> ENV -> 0x20`). Graph-wide feature discovery still uses a bounded
+scan-owner traversal until the shared JSON owner grows a complete DOM/fact
+table.
 The required-key set includes `compression_budget`, `compression_reason`, and
 `execution_lane` because proof-gated erasure and SEA lane classification are
 now part of the stable AIR graph contract.
@@ -31,10 +33,11 @@ shape.
   both live `pgy --air-json` outputs still byte-match the committed fixtures.
 
 The path is fixed relative to repository root; no CLI argument surface yet.
-`main.pgy` is entrypoint-only. `scan_owner.pgy` owns summary/count extraction
-through `AirGraphSummaryIntField` plus ordered finding fact rows; downstream
-AIR graph tools must consume that owner rather than inventing local summary
-number scanners. `report_owner.pgy` owns the emitted JSON schema, and
+`main.pgy` is entrypoint-only. `scan_owner.pgy` owns schema checks through
+`JsonDocumentFactStringFieldEquals`, summary/count extraction through
+`AirGraphSummaryIntField`, and ordered finding fact rows; downstream AIR graph
+tools must consume that owner rather than inventing local schema or summary
+scanners. `report_owner.pgy` owns the emitted JSON schema, and
 `run_owner.pgy` owns fixture paths, file input, logging, and exit policy. The
 run owner also consumes `CompilerAirEvidenceEnvelopeReady()` before reading AIR
 fixtures, so the compiler-world AIR evidence vocabulary is load-bearing for the
@@ -99,16 +102,17 @@ The parity rung (`tests/self_hosted/parity/`) asserts:
 
 This is the *third* soft self-host tool. The first two operated on Markdown
 inputs; this one operates on stable JSON output of the compiler itself.
-It validates that the Pergyra-origin surface
-(`ReadFile` + `StringContains` + `StringIndexOf` + `Substring` + `ToInt` +
-`StringJoin`) is sufficient to read structured compiler output without a
-full JSON parser. If a future tool needs nested array iteration or
-`{...}` block walking, that gap surfaces here first.
+It validates that the Pergyra-origin surface can read structured compiler
+output through shared JSON fact owners for document schema, root keys, and
+summary rows, while leaving graph-wide feature search as an explicit bounded
+scan-owner responsibility. If a future tool needs full nested array iteration
+or `{...}` block walking as shared infrastructure, that gap surfaces here
+first.
 
 ## Not In Scope
 
-- Full JSON parsing (quoted strings with escapes, nested objects, arrays of
-  objects with mixed types).
+- Full JSON DOM ownership (nested objects, arrays of objects with mixed types,
+  and shared graph-wide field iteration).
 - Validating *contents* of `intents[]`, `boundaries[]`, `evidence[]` beyond
   count and required schema-key presence. The only content-level residual trace
   currently checked is `Args -> ENV -> 0x20`.

@@ -253,7 +253,7 @@ func BuildMissingGraphFeatureFindingFacts(content: String, keys: Array<String>, 
 }
 
 func HasExpectedSchema(content: String) -> Bool {
-    return JsonDocumentStringFieldEquals(content, "schema", "pgy.air.graph.v1");
+    return JsonDocumentFactStringFieldEquals(content, "schema", "pgy.air.graph.v1");
 }
 
 func CountEffectSites(content: String, cap_content: String) -> Int {

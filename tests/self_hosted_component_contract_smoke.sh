@@ -245,6 +245,8 @@ require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonObjectFactArray
 require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonObjectFactArrayObjectTable"
 require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonArrayObjectFactAt"
 require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonArrayObjectFactFieldCount"
+require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonObjectFactStringFieldEquals"
+require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonDocumentFactStringFieldEquals"
 reject_text "src/self_hosted/lib/json_fact_table.pgy" "let keys: Array<String>;"
 reject_text "src/self_hosted/lib/json_fact_table.pgy" "let value_starts: Array<Int>;"
 reject_text "src/self_hosted/lib/json.pgy" 'import "json_emit.pgy";'
@@ -1279,7 +1281,7 @@ require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "fu
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "func RequiredGraphFeatureKeys"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "func CountMissingGraphFeatureKeys"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "func BuildMissingGraphFeatureFindingFacts"
-require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonDocumentStringFieldEquals(content, \"schema\", \"pgy.air.graph.v1\")"
+require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonDocumentFactStringFieldEquals(content, \"schema\", \"pgy.air.graph.v1\")"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonDocumentObjectFactTable(content)"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonObjectFactObjectTable(root, \"summary\")"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonObjectFactNumberFieldOpt(summary, field)"
@@ -1301,6 +1303,7 @@ require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "pgy_
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "pgy_selfhost_path_relative_to_root"
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"'
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'StringContains(content, "\"schema\":\"pgy.air.graph.v1\"")'
+reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonDocumentStringFieldEquals(content, \"schema\", \"pgy.air.graph.v1\")"
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "let doc_end: Int = JsonDocumentObjectEnd(content)"
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonObjectFieldValueBounds(content, 0, UnwrapOption(doc_end_opt), \"summary\", summary_bounds)"
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonObjectFactValueBounds(root, \"summary\", summary_bounds)"
