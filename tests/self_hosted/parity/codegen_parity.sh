@@ -200,6 +200,58 @@ compare_run_output_with_owner() {
     fi
 }
 
+generated_secure_open_probe_supported() {
+    case "$(uname -s 2>/dev/null || echo unknown)" in
+        MINGW*|MSYS*|CYGWIN*) return 1 ;;
+    esac
+    command -v ln >/dev/null 2>&1 || return 1
+    command -v mktemp >/dev/null 2>&1 || return 1
+    return 0
+}
+
+run_generated_secure_open_probe() {
+    local backend="$1"
+    local base="$2"
+    local exe="$3"
+    local target=""
+
+    generated_secure_open_probe_supported || return 0
+
+    case "$base" in
+        write_file)
+            target=".tmp/wf_fixture_test.txt"
+            ;;
+        file_handle)
+            target=".tmp/fh_fixture.txt"
+            ;;
+        *)
+            return 0
+            ;;
+    esac
+
+    local probe_dir
+    probe_dir="$(mktemp -d "$ABS_BUILD/${base}_${backend}_nofollow.XXXXXX")"
+    mkdir -p "$probe_dir/.tmp"
+    printf 'outside' >"$probe_dir/outside.txt"
+    ln -s "../outside.txt" "$probe_dir/$target"
+
+    local probe_out="$probe_dir/stdout.txt"
+    local probe_err="$probe_dir/stderr.txt"
+    if ! run_native_capture "$probe_dir" "$probe_out" "$probe_err" "$exe"; then
+        echo "[self-host-parity:codegen] backend=$backend $base: secure-open symlink probe executable failed" >&2
+        cat "$probe_err" >&2
+        exit 1
+    fi
+
+    local outside_content
+    outside_content="$(cat "$probe_dir/outside.txt")"
+    if [[ "$outside_content" != "outside" ]]; then
+        echo "[self-host-parity:codegen] backend=$backend $base: generated C followed a symlink write target" >&2
+        echo "outside content: $outside_content" >&2
+        exit 1
+    fi
+}
+
 # Fixture base names; each resolves to fixture/<base>.pgy and
 # expected/<base>_stdout.txt.
 FIXTURES=(
@@ -427,6 +479,7 @@ run_tool_backend() {
         # The verdict is owned by the Pergyra backend-output comparator so
         # run-output artifact parity consumes ArtifactZone/TestHarness rows.
         compare_run_output_with_owner "$backend" "$base" "$expected_file" "$run_norm" 2
+        run_generated_secure_open_probe "$backend" "$base" "$self_exe"
     done
 
     echo "[self-host-parity:codegen] backend=$backend run-stdout equal (${#FIXTURES[@]} fixtures)"

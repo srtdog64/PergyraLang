@@ -2256,6 +2256,9 @@ require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" "compile_backend_output_comparator"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'compare_run_output_with_owner "$backend" "$base" "$expected_file" "$run_norm" 2'
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_generated_secure_open_probe "$backend" "$base" "$self_exe"'
+require_text "tests/self_hosted/parity/codegen_parity.sh" "generated_secure_open_probe_supported"
+require_text "tests/self_hosted/parity/codegen_parity.sh" "generated C followed a symlink write target"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'compare_run_output_with_owner "c-oracle" "$base" "$expected_file" "$oracle_norm" 0'
 require_text "tests/self_hosted/parity/codegen_parity.sh" '"$expected_rel" "$actual_rel" 0 "$actual_projection"'
 reject_text "tests/self_hosted/parity/codegen_parity.sh" 'self_out="$(cat "$run_norm")"'

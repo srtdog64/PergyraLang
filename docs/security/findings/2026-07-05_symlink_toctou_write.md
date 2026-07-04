@@ -82,7 +82,9 @@ through `pgy_runtime_secure_fopen`; the C inline runtime still had a direct
   self-host codegen rung now routes `ReadFile`, `WriteFile`, and handle-based
   `FileOpen` through a generated `pgy_secure_fopen` helper. On POSIX that
   helper uses `open(..., O_NOFOLLOW)` plus `fdopen`, and the helper name is
-  owned by `HostIORuntimeOwner` instead of being a backend-local spelling.
+  owned by `HostIORuntimeOwner` instead of being a backend-local spelling. The
+  self-host codegen parity gate now runs POSIX symlink probes for the generated
+  `write_file` and `file_handle` artifacts.
 - **Verified on real Linux**: a standalone harness of `pgy_runtime_secure_fopen`
   compiled with the project's exact Linux `PLATFORM_CFLAGS`
   (`-std=c11 -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 -D_DEFAULT_SOURCE
@@ -98,7 +100,8 @@ through `pgy_runtime_secure_fopen`; the C inline runtime still had a direct
 - C backend: fixed ✓ (inline runtime open path)
 - LLVM backend: fixed ✓ (runtime export open path)
 - Self-host C-emission rung: fixed for generated standalone C file helpers
-  (POSIX nofollow helper, C/LLVM-built codegen parity)
+  (POSIX nofollow helper, C/LLVM-built codegen parity plus generated-artifact
+  symlink probes)
 - Backend-compare regression added: ✓ (POSIX-gated smoke)
 
 ## Residual (not closed here)

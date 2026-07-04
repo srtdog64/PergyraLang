@@ -42,6 +42,10 @@ rewrite history.
 - Also compiled the emitted `file_handle` and `write_file` C artifacts under
   WSL gcc with POSIX feature macros and probed symlink targets; both generated
   executables left the outside file unchanged.
+- Follow-up gate tightening: `codegen_parity.sh` now runs that symlink
+  nofollow executable probe for generated `write_file` and `file_handle`
+  artifacts on POSIX platforms, and the component contract requires the probe
+  call so the behavioral check cannot silently fall out of the parity rung.
 
 ## 2026-07-05 - LSP hover owner is load-bearing and likeness ratchet tightened
 
