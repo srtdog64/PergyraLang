@@ -48,6 +48,7 @@ BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/lsp_diagnostics}
 FIXTURES=(
     "valid_int_return"
     "bad_logical_right"
+    "bad_undefined_return"
 )
 
 mkdir -p "$BUILD_DIR"
@@ -217,6 +218,18 @@ lsp_canonical_event_artifact() {
         return 0
     fi
 
+    if grep -Fq '"code":"undefined_symbol"' "$json_file"; then
+        {
+            echo "method=textDocument/publishDiagnostics"
+            echo "uri=$uri"
+            echo "diagnostic_count=1"
+            echo "event=undefined_symbol"
+            echo "severity=1"
+            echo "squiggle=red"
+        } > "$out_file"
+        return 0
+    fi
+
     if grep -Fq '"code":"PGY_SEM_BINOP_TYPE_MISMATCH"' "$json_file" \
         && grep -Fq '"cause_ir":"semantic:binop:operand_types"' "$json_file" \
         && grep -Fq "Logical operator requires Bool operands" "$json_file"; then
@@ -225,6 +238,20 @@ lsp_canonical_event_artifact() {
             echo "uri=$uri"
             echo "diagnostic_count=1"
             echo "event=logical_operand_not_bool"
+            echo "severity=1"
+            echo "squiggle=red"
+        } > "$out_file"
+        return 0
+    fi
+
+    if grep -Fq '"code":"PGY_SEM_UNDEFINED_SYMBOL"' "$json_file" \
+        && grep -Fq '"cause_ir":"semantic:symbol:undefined"' "$json_file" \
+        && grep -Fq "Undefined symbol" "$json_file"; then
+        {
+            echo "method=textDocument/publishDiagnostics"
+            echo "uri=$uri"
+            echo "diagnostic_count=1"
+            echo "event=undefined_symbol"
             echo "severity=1"
             echo "squiggle=red"
         } > "$out_file"
@@ -304,6 +331,23 @@ check_c_lsp_oracle() {
             }
             grep -Fq '"squiggleClass":"red"' "$out_file" || {
                 echo "[self-host-parity:lsp-diagnostics] C LSP oracle error fixture lost red squiggle class" >&2
+                cat "$out_file" >&2
+                exit 1
+            }
+            ;;
+        bad_undefined_return)
+            grep -Fq '"code":"PGY_SEM_UNDEFINED_SYMBOL"' "$out_file" || {
+                echo "[self-host-parity:lsp-diagnostics] C LSP oracle undefined fixture lost symbol code" >&2
+                cat "$out_file" >&2
+                exit 1
+            }
+            grep -Fq '"cause_ir":"semantic:symbol:undefined"' "$out_file" || {
+                echo "[self-host-parity:lsp-diagnostics] C LSP oracle undefined fixture lost symbol cause" >&2
+                cat "$out_file" >&2
+                exit 1
+            }
+            grep -Fq '"squiggleClass":"red"' "$out_file" || {
+                echo "[self-host-parity:lsp-diagnostics] C LSP oracle undefined fixture lost red squiggle class" >&2
                 cat "$out_file" >&2
                 exit 1
             }

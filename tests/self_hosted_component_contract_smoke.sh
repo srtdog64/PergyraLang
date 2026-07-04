@@ -1974,11 +1974,14 @@ require_text "src/self_hosted/lsp/squiggle_owner.pgy" "PGY_AIR_MEANING_ERASABLE"
 require_text "src/self_hosted/lsp/squiggle_owner.pgy" "pin_escape"
 require_file "src/self_hosted/lsp/fixture/valid_int_return.pgy"
 require_file "src/self_hosted/lsp/fixture/bad_logical_right.pgy"
+require_file "src/self_hosted/lsp/fixture/bad_undefined_return.pgy"
 require_file "src/self_hosted/lsp/expected/valid_int_return.json"
 require_file "src/self_hosted/lsp/expected/bad_logical_right.json"
+require_file "src/self_hosted/lsp/expected/bad_undefined_return.json"
 require_file "src/self_hosted/lsp/expected/squiggle_policy.json"
 require_text "src/self_hosted/lsp/expected/valid_int_return.json" '"diagnostics":[]'
 require_text "src/self_hosted/lsp/expected/bad_logical_right.json" '"code":"logical_operand_not_bool"'
+require_text "src/self_hosted/lsp/expected/bad_undefined_return.json" '"code":"undefined_symbol"'
 require_text "src/self_hosted/lsp/expected/squiggle_policy.json" '"class":"red"'
 require_text "src/self_hosted/lsp/expected/squiggle_policy.json" '"class":"amber"'
 require_text "src/self_hosted/lsp/expected/squiggle_policy.json" '"class":"blue"'
@@ -1998,9 +2001,12 @@ require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "PGY_LSP_BIN"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "--dump-diagnostics"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "PGY_SEM_BINOP_TYPE_MISMATCH"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "semantic:binop:operand_types"
+require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "PGY_SEM_UNDEFINED_SYMBOL"
+require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "semantic:symbol:undefined"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "lsp_canonical_event_artifact"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "lsp-diagnostics:normalized"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "event=logical_operand_not_bool"
+require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "event=undefined_symbol"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "pgy_reject_wsl_windows_pgy_parity_mix"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "--squiggle-policy"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" '"class":"violet"'

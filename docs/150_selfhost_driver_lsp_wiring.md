@@ -94,9 +94,10 @@ C LSP 분해: protocol(framing 229L)/diagnostics/hover/features. 페이로드
   덤프하고, 같은 gate가 clean/error fixture의 JSON-RPC shape, URI
   normalization, C-side diagnostic code/cause, red squiggle class를 확인한 뒤
   C/self-host payload를 canonical diagnostic event로 투영해 Pergyra artifact
-  comparator로 비교한다. 아직 전체 diagnostic vocabulary와 LSP session parity는
-  남아 있으므로 LSP-3 전 후속 작업은 fixture 두 개를 넘어선 normalization
-  coverage 확장이다.
+  comparator로 비교한다. 현재 clean/logical/undefined fixture가 live C oracle과
+  canonical event parity를 갖고, 아직 전체 diagnostic vocabulary와 LSP
+  session parity는 남아 있으므로 LSP-3 전 후속 작업은 vocabulary coverage
+  확장이다.
 - **LSP-1 — squiggle 4색 분류기 (landed)**: RED/AMBER/BLUE/VIOLET
   판정(docs/140의 색 결정 로직)을 `lsp/squiggle_owner.pgy`가 소유한다.
   입력 = 진단 상태/severity/stage/code/fact. Payload owner는 더 이상
