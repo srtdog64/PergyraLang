@@ -91,7 +91,8 @@ For Pergyra specifically:
     atomicity audit, **Fixed** for pin/context lifecycle; the original
     read/write claim was stale.
   - `2026-07-05_symlink_toctou_write.md` — sandbox write check→open TOCTOU
-    symlink window, **Fixed** (O_NOFOLLOW at open time, verified on Linux).
+    symlink window, **Fixed** (POSIX `O_NOFOLLOW`; Windows `CreateFileA`
+    reparse-point handle rejection).
   - `2026-07-05_fingerprint_not_attestation.md` — software fingerprint
     fallback is spoofable by design (tier A5 inherent limit), **Wontfix**;
     the fingerprint is a binding hint, never an attestation.
