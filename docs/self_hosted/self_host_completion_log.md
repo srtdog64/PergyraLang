@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-05 - Linter parity paths consume TestHarness owner
+
+- Added linter parity path facts to `test_harness_owner.pgy`: tool source,
+  expected diagnostics, and fixture path.
+- Extended `test_harness_manifest.pgy` with the `linter-parity-paths` suite.
+- Added a shared manifest reader to `llvm_leg_helpers.sh` so parity scripts can
+  consume `TestHarnessZone` path projections without each owning local shell
+  constants.
+- Repointed `linter_parity.sh` to read those paths from the manifest and pass
+  the fixture path into the compiled linter through `Args()[0]`.
+
 ## 2026-07-05 - ArtifactZone promoted to ready
 
 - Reclassified `Artifact Zone evidence` from ACTIVE to READY in

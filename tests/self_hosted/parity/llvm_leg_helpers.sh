@@ -45,6 +45,51 @@ pgy_selfhost_backend_output_comparator_bin() {
     printf '%s\n' "$build_dir/backend_output_comparator_$$.exe"
 }
 
+pgy_selfhost_test_harness_manifest_bin() {
+    local build_dir="$1"
+    printf '%s\n' "$build_dir/test_harness_manifest_$$.exe"
+}
+
+pgy_selfhost_compile_test_harness_manifest() {
+    local label="$1"
+    local build_dir="$2"
+    local manifest_source="$ROOT_DIR/src/self_hosted/compiler/test_harness_manifest.pgy"
+    local manifest_bin
+    local compile_log
+
+    manifest_bin="$(pgy_selfhost_test_harness_manifest_bin "$build_dir")"
+    mkdir -p "$build_dir"
+
+    compile_log="$build_dir/test_harness_manifest_$$.compile.log"
+    if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$manifest_source")" \
+        --backend=c -o "$(pgy_path_for_compiler "$PGY" "$manifest_bin")" \
+        >"$compile_log" 2>&1); then
+        echo "[$label] test harness manifest failed to build" >&2
+        cat "$compile_log" >&2
+        exit 1
+    fi
+}
+
+pgy_selfhost_read_test_harness_manifest() {
+    local label="$1"
+    local build_dir="$2"
+    local suite="$3"
+    local out_file="$4"
+    local manifest_bin
+    local raw_out="$build_dir/test_harness_manifest_$$.out"
+    local raw_err="$build_dir/test_harness_manifest_$$.err"
+
+    pgy_selfhost_compile_test_harness_manifest "$label" "$build_dir"
+    manifest_bin="$(pgy_selfhost_test_harness_manifest_bin "$build_dir")"
+
+    if ! (cd "$ROOT_DIR" && "$manifest_bin" "$suite" >"$raw_out" 2>"$raw_err"); then
+        echo "[$label] test harness manifest suite failed: $suite" >&2
+        cat "$raw_out" "$raw_err" >&2
+        exit 1
+    fi
+    tr -d '\r' < "$raw_out" > "$out_file"
+}
+
 pgy_selfhost_compile_backend_output_comparator() {
     local label="$1"
     local build_dir="$2"

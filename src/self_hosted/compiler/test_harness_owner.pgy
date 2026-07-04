@@ -114,6 +114,47 @@ func CompilerHarnessFindingCap() -> Int {
     return 8;
 }
 
+func CompilerHarnessLinterParitySuiteName() -> String {
+    return "linter-parity-paths";
+}
+
+func CompilerHarnessLinterToolSourcePath() -> String {
+    return "src/self_hosted/tools/linter/main.pgy";
+}
+
+func CompilerHarnessLinterExpectedDiagnosticsPath() -> String {
+    return "src/self_hosted/tools/linter/expected/diagnostics.json";
+}
+
+func CompilerHarnessLinterFixturePath() -> String {
+    return "src/self_hosted/tools/linter/fixture.pgy";
+}
+
+func CompilerHarnessLinterPathCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessLinterPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessLinterToolSourcePath(); }
+    if index == 1 { return CompilerHarnessLinterExpectedDiagnosticsPath(); }
+    if index == 2 { return CompilerHarnessLinterFixturePath(); }
+    return "";
+}
+
+func CompilerHarnessLinterParityReady() -> Bool {
+    if CompilerHarnessLinterPathCount() != 3 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessLinterPathCount() {
+        if CompilerHarnessLinterPathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessLinterParitySuiteName() != "";
+}
+
 func CompilerHarnessBackendTriSmokeSuiteName() -> String {
     return "backend-tri-smoke";
 }
@@ -225,5 +266,6 @@ func CompilerTestHarnessReady() -> Bool {
         CompilerHarnessComparableArtifactPathAt(0) == CompilerHarnessExpectedComparableArtifactPath() &&
         CompilerHarnessComparableArtifactPathAt(1) == CompilerHarnessActualComparableArtifactPath() &&
         CompilerHarnessFindingCap() > 0 &&
+        CompilerHarnessLinterParityReady() &&
         CompilerHarnessBackendTriSuiteReady();
 }

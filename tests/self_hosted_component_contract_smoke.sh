@@ -1604,6 +1604,12 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHar
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessSelfHostedProjection"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessExpectedComparableArtifactPath"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessActualComparableArtifactPath"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessLinterParitySuiteName"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessLinterToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessLinterExpectedDiagnosticsPath"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessLinterFixturePath"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessLinterPathAt"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessLinterParityReady"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeSuiteName"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriExtendedSuiteName"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeCaseCount"
@@ -1619,9 +1625,13 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessP
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessProjectionAt(2) == CompilerHarnessSelfHostedProjection()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessComparableArtifactPathAt(0) == CompilerHarnessExpectedComparableArtifactPath()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessComparableArtifactPathAt(1) == CompilerHarnessActualComparableArtifactPath()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessLinterParityReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendTriSuiteReady()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitBackendTriSmokeCases"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitLinterParityPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLinterPathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLinterParitySuiteName()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriSmokeCaseAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriExtendedCaseAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriSmokeSuiteName()"
@@ -1723,6 +1733,9 @@ reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "sho
 reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cmp -s'
 reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'diff -u'
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "pgy_selfhost_compile_backend_output_comparator"
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "pgy_selfhost_compile_test_harness_manifest"
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "test_harness_manifest_\$\$.exe"
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "assert_llvm_leg_with_artifact_owner"
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "comparator artifact path escapes repo root"
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "comparator artifact path must be repo-relative"
@@ -1740,9 +1753,17 @@ reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" '$(cat "$c_out")'
 reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'c_out="$(cd "$ROOT_DIR"'
 reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'llvm_out="$(cd "$ROOT_DIR"'
 require_text "tests/self_hosted/parity/linter_parity.sh" "pgy_selfhost_compare_expected_text_artifact_with_owner"
+require_text "tests/self_hosted/parity/linter_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/linter_parity.sh" '"linter-parity-paths"'
+require_text "tests/self_hosted/parity/linter_parity.sh" 'FIXTURE_REL="${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/linter_parity.sh" '"diagnostics"'
+reject_text "tests/self_hosted/parity/linter_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/linter/main.pgy"'
+reject_text "tests/self_hosted/parity/linter_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/linter/expected/diagnostics.json"'
+reject_text "tests/self_hosted/parity/linter_parity.sh" 'FIXTURE_FILE="$ROOT_DIR/src/self_hosted/tools/linter/fixture.pgy"'
 reject_text "tests/self_hosted/parity/linter_parity.sh" 'EXPECTED_JSON="$(tr -d'
 reject_text "tests/self_hosted/parity/linter_parity.sh" 'if [[ "$LLVM_JSON" != "$C_JSON" ]]'
+require_text "src/self_hosted/tools/linter/main.pgy" "let args: Array<String> = Args();"
+require_text "src/self_hosted/tools/linter/main.pgy" "target_path = args[0];"
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "JsonEmitArray(findings)"

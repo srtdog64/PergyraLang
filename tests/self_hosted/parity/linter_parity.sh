@@ -28,11 +28,30 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
-PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/linter/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/linter}"
+HARNESS_PATHS_FILE="$PERGYRA_TOOL_BUILD_DIR/linter_harness_paths.txt"
+mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:linter" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "linter-parity-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 3 ]]; then
+    echo "[self-host-parity:linter] TestHarness manifest expected 3 linter paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
-EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/linter/expected/diagnostics.json"
-FIXTURE_FILE="$ROOT_DIR/src/self_hosted/tools/linter/fixture.pgy"
+EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
+FIXTURE_REL="${harness_paths[2]}"
+FIXTURE_FILE="$ROOT_DIR/$FIXTURE_REL"
 
 for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$FIXTURE_FILE"; do
     if [[ ! -f "$path" ]]; then
@@ -41,17 +60,29 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$FIXTURE_FILE"; do
     fi
 done
 
-mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
 
 run_linter_backend() {
     local backend="$1"
-    local out_bin="$PERGYRA_TOOL_BUILD_DIR/linter-$backend"
+    local out_bin="$PERGYRA_TOOL_BUILD_DIR/linter-$backend.exe"
+    local compile_log="$PERGYRA_TOOL_BUILD_DIR/linter-$backend.compile.log"
+    local run_err="$PERGYRA_TOOL_BUILD_DIR/linter-$backend.err"
     local source_arg
     local out_arg
     source_arg="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
     out_arg="$(pgy_path_for_compiler "$PGY" "$out_bin")"
-    (cd "$ROOT_DIR" && "$PGY" "$source_arg" --backend="$backend" --run -o "$out_arg" 2>&1)
+    if ! (cd "$ROOT_DIR" && "$PGY" "$source_arg" --backend="$backend" -o "$out_arg" \
+        >"$compile_log" 2>&1); then
+        cat "$compile_log"
+        return 1
+    fi
+    if ! pgy_require_runnable_binary_here "self-host-parity:linter" "$out_bin"; then
+        return 1
+    fi
+    if ! (cd "$ROOT_DIR" && "$out_bin" "$FIXTURE_REL" 2>"$run_err"); then
+        cat "$run_err"
+        return 1
+    fi
 }
 
 normalize_json_line() {

@@ -136,7 +136,12 @@ func ScanStructure(content: String, inout diags: Array<String>) -> Void {
 }
 
 func Main() -> Void {
-    let content: String = ReadFile("src/self_hosted/tools/linter/fixture.pgy");
+    let args: Array<String> = Args();
+    let target_path: String = "src/self_hosted/tools/linter/fixture.pgy";
+    if ArrayLength(args) > 0 {
+        target_path = args[0];
+    }
+    let content: String = ReadFile(target_path);
     let n: Int = StringLength(content);
 
     let diags: Array<String> = [];
