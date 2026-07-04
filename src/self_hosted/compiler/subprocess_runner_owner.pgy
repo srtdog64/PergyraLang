@@ -101,11 +101,27 @@ func CompilerSubprocessOracleCompareEnvAllowlistCount() -> Int {
     return 4;
 }
 
+func CompilerSubprocessEnvPathName() -> String {
+    return "PATH";
+}
+
+func CompilerSubprocessEnvPgyBinName() -> String {
+    return "PGY_BIN";
+}
+
+func CompilerSubprocessEnvBackendRunTimeoutName() -> String {
+    return "PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS";
+}
+
+func CompilerSubprocessEnvSelfHostBuildDirName() -> String {
+    return "PGY_SELFHOST_BUILD_DIR";
+}
+
 func CompilerSubprocessOracleCompareEnvAllowlistAt(index: Int) -> String {
-    if index == 0 { return "PATH"; }
-    if index == 1 { return "PGY_BIN"; }
-    if index == 2 { return "PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS"; }
-    if index == 3 { return "PGY_SELFHOST_BUILD_DIR"; }
+    if index == 0 { return CompilerSubprocessEnvPathName(); }
+    if index == 1 { return CompilerSubprocessEnvPgyBinName(); }
+    if index == 2 { return CompilerSubprocessEnvBackendRunTimeoutName(); }
+    if index == 3 { return CompilerSubprocessEnvSelfHostBuildDirName(); }
     return "";
 }
 
@@ -152,10 +168,10 @@ func CompilerSubprocessOracleComparePlanReady() -> Bool {
         CompilerSubprocessOracleCompareTimeoutMsValue() > 0 &&
         CompilerSubprocessOracleCompareTimeoutMs() == ToString(CompilerSubprocessOracleCompareTimeoutMsValue()) &&
         CompilerSubprocessOracleCompareEnvAllowlistCount() == 4 &&
-        CompilerSubprocessOracleCompareEnvAllowlistAt(0) == "PATH" &&
-        CompilerSubprocessOracleCompareEnvAllowlistAt(1) == "PGY_BIN" &&
-        CompilerSubprocessOracleCompareEnvAllowlistKnown("PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS") &&
-        CompilerSubprocessOracleCompareEnvAllowlistKnown("PGY_SELFHOST_BUILD_DIR") &&
+        CompilerSubprocessOracleCompareEnvAllowlistAt(0) == CompilerSubprocessEnvPathName() &&
+        CompilerSubprocessOracleCompareEnvAllowlistAt(1) == CompilerSubprocessEnvPgyBinName() &&
+        CompilerSubprocessOracleCompareEnvAllowlistKnown(CompilerSubprocessEnvBackendRunTimeoutName()) &&
+        CompilerSubprocessOracleCompareEnvAllowlistKnown(CompilerSubprocessEnvSelfHostBuildDirName()) &&
         CompilerSubprocessOracleCompareTimeoutMs() != "" &&
         CompilerSubprocessOracleCompareEnvAllowlist() != "";
 }

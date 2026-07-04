@@ -1427,11 +1427,15 @@ require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func Compil
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareTimeoutMsValue"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "return ToString(CompilerSubprocessOracleCompareTimeoutMsValue())"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareEnvAllowlistCount"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessEnvPathName"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessEnvPgyBinName"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessEnvBackendRunTimeoutName"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessEnvSelfHostBuildDirName"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareEnvAllowlistAt"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareEnvAllowlistKnown"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "CompilerSubprocessOracleCompareEnvAllowlistCount() == 4"
-require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "CompilerSubprocessOracleCompareEnvAllowlistAt(0) == \"PATH\""
-require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "CompilerSubprocessOracleCompareEnvAllowlistKnown(\"PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS\")"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "CompilerSubprocessOracleCompareEnvAllowlistAt(0) == CompilerSubprocessEnvPathName()"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "CompilerSubprocessOracleCompareEnvAllowlistKnown(CompilerSubprocessEnvBackendRunTimeoutName())"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "StringJoin(names, \",\")"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessExecutablePathFact"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessArgvFact"
@@ -1467,6 +1471,12 @@ reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'CompilerSubp
 reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'CompilerSubprocessUseCaseAt(2) == "artifact_probe"'
 reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'return "30000";'
 reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'return "PATH,PGY_BIN,PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS,PGY_SELFHOST_BUILD_DIR";'
+reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'if index == 0 { return "PATH"; }'
+reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'if index == 1 { return "PGY_BIN"; }'
+reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'if index == 2 { return "PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS"; }'
+reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'if index == 3 { return "PGY_SELFHOST_BUILD_DIR"; }'
+reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'CompilerSubprocessOracleCompareEnvAllowlistAt(0) == "PATH"'
+reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'CompilerSubprocessOracleCompareEnvAllowlistKnown("PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS")'
 require_text "src/self_hosted/tools/backend_output_comparator/expected/clean.json" '"subprocess_timeout_ms":"30000"'
 require_text "src/self_hosted/tools/backend_output_comparator/expected/clean.json" '"subprocess_env_allowlist":"PATH,PGY_BIN,PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS,PGY_SELFHOST_BUILD_DIR"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'

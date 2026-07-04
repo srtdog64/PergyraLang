@@ -468,6 +468,10 @@ for term in \
     "CompilerSubprocessOracleCompareTimeoutMsValue" \
     "CompilerSubprocessOracleCompareTimeoutMs" \
     "CompilerSubprocessOracleCompareEnvAllowlistCount" \
+    "CompilerSubprocessEnvPathName" \
+    "CompilerSubprocessEnvPgyBinName" \
+    "CompilerSubprocessEnvBackendRunTimeoutName" \
+    "CompilerSubprocessEnvSelfHostBuildDirName" \
     "CompilerSubprocessOracleCompareEnvAllowlistAt" \
     "CompilerSubprocessOracleCompareEnvAllowlistKnown" \
     "CompilerSubprocessOracleCompareEnvAllowlist" \
