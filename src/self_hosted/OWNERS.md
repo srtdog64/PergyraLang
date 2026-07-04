@@ -179,3 +179,5 @@ compiler-stage `.pgy` source to be listed here.
   over transport bodies and response frames.
 - `src/self_hosted/lsp/session_state_owner.pgy` -- LSP-2h buffered session
   state projection over response replay plus document-store facts.
+- `src/self_hosted/lsp/hover_content_owner.pgy` -- LSP-2i bounded hover
+  content over buffered document snapshots and hover requests.

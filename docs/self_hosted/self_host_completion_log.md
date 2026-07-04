@@ -25,6 +25,19 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-05 - LSP hover owner is load-bearing and likeness ratchet tightened
+
+- Made the LSP-2i hover-content owner visible to the driver/LSP rung ladder,
+  component contract, owner manifest, LSP intent docs, and progress notes so it
+  is a real self-hosted component rung rather than an orphaned parity script.
+- Verified the hover-content rung with the driver/LSP wiring smoke, component
+  contract smoke, and C/LLVM hover-content parity gate.
+- Re-ran the self-host preparation contract layer. The contract gate reported
+  `result_use=562`, above the previous `488` floor, so the Pergyra-likeness
+  ratchet now requires at least 562 Result/Option/try-use markers.
+- Verified `self-host-pergyra-likeness-test-smoke` after tightening the
+  baseline. The metric now passes without the "tighten the baseline" warning.
+
 ## 2026-07-04 - Let row facts consume typed row input
 
 - Added `CodegenAstTextRowFactInput` as the typed input contract for

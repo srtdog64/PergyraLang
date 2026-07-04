@@ -17,6 +17,7 @@ payload owner, not an LSP transport loop.
 - **response_emission_owner**: `src/self_hosted/lsp/response_owner.pgy`
 - **session_replay_owner**: `src/self_hosted/lsp/session_owner.pgy`
 - **session_state_owner**: `src/self_hosted/lsp/session_state_owner.pgy`
+- **hover_content_owner**: `src/self_hosted/lsp/hover_content_owner.pgy`
 - **stage_intent**: `ProjectSemanticDiagnostics`
 - **payload_contract**: `LspDiagnosticPayloadContractReady`
 - **policy_contract**: `LspSquigglePolicyContractReady`
@@ -66,6 +67,11 @@ reads one stdin buffer and projects both the response replay artifact and the
 multi-document store artifact into one session-state artifact. It is still not
 a live read-exact loop or semantic feature content.
 
+The `--hover-content-probe <max-bytes>` mode is the LSP-2i input boundary: it
+reads one stdin buffer, consumes a buffered document snapshot plus
+`textDocument/hover` requests, and projects bounded markdown hover content. It
+is still not a live read-exact loop or indexed symbol database.
+
 ## Output Contract
 
 The tool prints one JSON object with schema
@@ -97,6 +103,9 @@ final version, final text, deterministic document rows, and event rows.
 The `--session-state-probe` mode prints a
 `pgy.selfhost.lsp-session-state.v1` artifact with raw `session` and
 `documentStore` fact objects.
+The `--hover-content-probe` mode prints a
+`pgy.selfhost.lsp-hover-content.v1` artifact with hover request events and
+markdown/null hover results over the buffered document snapshot.
 
 ## Oracle
 
@@ -121,3 +130,5 @@ session-replay parity gates because those are the artifact owners that consume
 `feature_owner.pgy`.
 LSP-2h session-state parity is checked by
 `tests/self_hosted/parity/lsp_session_state_parity.sh`.
+LSP-2i hover-content parity is checked by
+`tests/self_hosted/parity/lsp_hover_content_parity.sh`.

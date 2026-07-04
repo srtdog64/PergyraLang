@@ -2186,6 +2186,10 @@ self-host-preparation-parity-test-smoke: $(PGY) $(PGY_LSP)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_session_replay_parity.sh
 	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_document_store_parity.sh
+	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_session_state_parity.sh
+	PGY_SELFHOST_LSP_BACKENDS="$${PGY_SELFHOST_LSP_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/lsp_hover_content_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/mir_json_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/module_manifest_resolver_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/production_c_size_checker_parity.sh

@@ -30,7 +30,7 @@ pgy_try_file_open_result(const char *path, const char *mode)
     if (resolved == NULL)
         return pgy_runtime_io_int_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_RESOLVE_FAILED, "io-boundary", "file-open"));
-    FILE *fp = fopen(resolved, mode);
+    FILE *fp = pgy_runtime_secure_fopen(resolved, mode);
     free(resolved);
     if (fp == NULL)
         return pgy_runtime_io_int_err(pgy_runtime_io_failure_from_status(

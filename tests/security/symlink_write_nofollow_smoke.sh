@@ -41,16 +41,25 @@ SANDBOX="$WORK/sandbox"
 OUTSIDE="$WORK/outside"
 mkdir -p "$SANDBOX" "$OUTSIDE"
 printf 'ORIGINAL-SECRET\n' > "$OUTSIDE/secret.txt"
+printf 'ORIGINAL-HANDLE-SECRET\n' > "$OUTSIDE/handle_secret.txt"
 
 # Plant a symlink AT the write target, pointing out of the sandbox.
 if ! ln -s "$OUTSIDE/secret.txt" "$SANDBOX/results.txt" 2>/dev/null; then
     skip "ln -s unavailable on this filesystem"
 fi
+ln -s "$OUTSIDE/handle_secret.txt" "$SANDBOX/handle.txt" 2>/dev/null \
+    || skip "ln -s unavailable on this filesystem"
 
-# A minimal program that writes to the (symlinked) sandbox target.
+# A minimal program that writes to symlinked sandbox targets through both whole-file
+# and handle-based I/O. Both paths must route through the secure open owner.
 cat > "$WORK/writer.pgy" <<'PGY'
 func Main() -> Void {
     WriteFile("results.txt", "PWNED-BY-SANDBOX-WRITE\n");
+    let fd: Int = FileOpen("handle.txt", "w");
+    if fd >= 0 {
+        FileWrite(fd, "PWNED-BY-HANDLE-OPEN\n");
+        FileClose(fd);
+    }
     Log("write returned");
 }
 PGY
@@ -68,6 +77,12 @@ if grep -q 'PWNED-BY-SANDBOX-WRITE' "$OUTSIDE/secret.txt"; then
 fi
 if [[ "$(cat "$OUTSIDE/secret.txt")" != "ORIGINAL-SECRET" ]]; then
     fail "outside file was modified through the symlinked sandbox target"
+fi
+if grep -q 'PWNED-BY-HANDLE-OPEN' "$OUTSIDE/handle_secret.txt"; then
+    fail "sandbox FileOpen followed the symlink and clobbered an outside file (O_NOFOLLOW regression)"
+fi
+if [[ "$(cat "$OUTSIDE/handle_secret.txt")" != "ORIGINAL-HANDLE-SECRET" ]]; then
+    fail "outside handle file was modified through the symlinked sandbox target"
 fi
 
 echo "[symlink-nofollow] ok: sandbox write refused to follow a symlink out of PGY_IO_ROOT"

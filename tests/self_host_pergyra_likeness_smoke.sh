@@ -90,7 +90,9 @@ SENTINEL_MAX=8
 # typed Option facts instead of text-only/sentinel artifacts.
 # 482 -> 488 (2026-07-04): LSP session/hover artifacts extend typed
 # Option-result evidence across the remaining LSP artifact lane.
-RESULT_USE_MIN=488
+# 488 -> 562 (2026-07-05): current tracked self-host source after the LSP and
+# compiler-world owner wiring wave; keep the errors-as-data surface load-bearing.
+RESULT_USE_MIN=562
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=17
 COMPILER_WORLD_MEMBERS_EXACT=17

@@ -39,10 +39,11 @@ export PGY_IO_ROOT="$sandbox"
 # program: WriteFile("results.txt", "...")       # followed the symlink pre-fix
 ```
 
-Regression fixture: `tests/security/symlink_write_nofollow_smoke.sh` plants a
-symlink AT the resolved target (the stronger, non-racy form of the same escape:
-if a symlink already sits at the target, the write must still refuse) and
-asserts the write fails.
+Regression fixture: `tests/security/symlink_write_nofollow_smoke.sh` plants
+symlinks AT the resolved targets for both `WriteFile` and handle-based
+`FileOpen(..., "w")` (the stronger, non-racy form of the same escape: if a
+symlink already sits at the target, the write must still refuse) and asserts
+both writes fail.
 
 ## Expected vs Actual
 
@@ -54,8 +55,10 @@ asserts the write fails.
 ## Root Cause
 
 Two-syscall check-then-use: `pgy_runtime_resolve_file_path` (`lstat`) followed
-by `fopen(resolved, "wb")` in `pgy_runtime_lib_io_string_exports.h:275` and its
-twin `pgy_runtime_io_qubit_inline.h:271`.
+by write-capable `fopen` calls in the whole-file write path and the
+handle-based `FileOpen` path. The LLVM runtime export was already routed
+through `pgy_runtime_secure_fopen`; the C inline runtime still had a direct
+`fopen(resolved, mode)` in `pgy_runtime_io_qubit_inline.h`.
 
 ## Fix
 
@@ -66,14 +69,15 @@ twin `pgy_runtime_io_qubit_inline.h:271`.
   open time, atomically, with no window. Read modes keep plain `fopen` (their
   resolve realpath-resolves the FULL candidate, so a symlink out of the sandbox
   already fails resolution). Every sandbox write-open site now routes through
-  this helper. The `lstat` pre-check stays as a first, cheap gate — this is
+  this helper, including the C inline `FileOpen` path and the LLVM runtime
+  export path. The `lstat` pre-check stays as a first, cheap gate — this is
   layered on top, not a replacement.
 - **Regression test added**: `tests/security/symlink_write_nofollow_smoke.sh`
   (POSIX-gated; SKIPs where symlink creation is unavailable, e.g. Windows),
   wired to `make sandbox-symlink-nofollow-test-smoke` and the ci-linux step
   list (Linux is its real CI home).
-- **Backend-compare**: the runtime library is shared by the C and LLVM
-  backends, so both consume the hardened open path identically.
+- **Backend-compare**: both runtime surfaces consume the hardened open owner:
+  the C inline runtime and the LLVM runtime export.
 - **Verified on real Linux**: a standalone harness of `pgy_runtime_secure_fopen`
   compiled with the project's exact Linux `PLATFORM_CFLAGS`
   (`-std=c11 -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 -D_DEFAULT_SOURCE
@@ -86,9 +90,9 @@ twin `pgy_runtime_io_qubit_inline.h:271`.
 
 ## Backend Parity Status
 
-- C backend: fixed ✓ (shared runtime)
-- LLVM backend: fixed ✓ (shared runtime)
-- Backend-compare regression added: ✓ (shared-runtime smoke, POSIX-gated)
+- C backend: fixed ✓ (inline runtime open path)
+- LLVM backend: fixed ✓ (runtime export open path)
+- Backend-compare regression added: ✓ (POSIX-gated smoke)
 
 ## Residual (not closed here)
 

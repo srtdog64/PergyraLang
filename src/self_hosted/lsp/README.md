@@ -20,6 +20,8 @@ or C LSP session replacement.
   for the subset already owned by `response_owner.pgy`.
 - `session_state_owner.pgy` combines buffered response replay and
   multi-document store state into one session-state artifact.
+- `hover_content_owner.pgy` projects bounded hover content from a buffered
+  document snapshot and hover requests.
 - `main.pgy` is the runnable boundary for parity fixtures.
 - `fixture/` and `expected/` are the committed clean/error payload and
   squiggle-policy contracts. Error payloads carry both the self-host lower-case
@@ -36,7 +38,8 @@ stream (LSP-2e), and `document_store_owner.pgy` projects buffered
 provides valid no-index hover/completion/document-symbol/definition/references/
 rename response shapes consumed by response/session replay (LSP-2g).
 `session_state_owner.pgy` consumes response replay plus multi-document state
-into one buffered session-state artifact (LSP-2h). Full LSP-2 still needs a
-live read-exact loop and semantic feature content.
+into one buffered session-state artifact (LSP-2h). `hover_content_owner.pgy`
+adds bounded hover content over the buffered document snapshot (LSP-2i). Full
+LSP-2 still needs a live read-exact loop and indexed semantic feature content.
 `O-LSP` has live diagnostic-dump plumbing, but full vocabulary/session parity
 remains a later LSP-3 concern.
