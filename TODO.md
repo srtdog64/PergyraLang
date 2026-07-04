@@ -10537,6 +10537,31 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
   26 사이트 지배, 토큰 스레딩 0(자연선택 증거). 부수 결함 발견: 주석
   없는 `let x = Now();` C emitter MIR 타이핑 실패(별도 태스크 칩).
 
+#### A-14. BORDER 등기부 — 코드베이스 구획면 (BDFL 제기 2026-07-04, census 完)
+
+- **프레임(BDFL)**: 프로세스(파이프라인 단계)가 아니라 **구획면(border)**
+  으로 src/를 조직 — docs/151 §4 간선 등록부의 코드베이스 판. 조약
+  먼저, 이사는 rung (big-bang 금지).
+- **census 실측(2026-07-04, .tmp/probe/border_census*.sh)**: 경계는
+  이미 ~95% 깨끗 — semantic→codegen 0, parser→codegen 0, runtime→상류
+  0, 런타임 twin 상호 0, codegen→AIR 0. 더러운 곳 전수:
+  (a) **llvm_*→transpiler_* 6건 = 전부 무명 공유 face** —
+  `transpiler_type_mapping.h`(×4)/`transpiler_builtin_type_table.h`/
+  `transpiler_mir_resource_name_helpers.h`는 실체가 백엔드-중립 유틸인데
+  이름이 transpiler_라 위반처럼 보임. (b) **parser→semantic 2건**:
+  diag_codes.h(전-스테이지 공유 registry — codegen도 95회, 소속이
+  semantic인 게 부정확)+`parser_decl_clause.c`→`type_system.h`(**유일
+  진짜 위반 후보, 조사 필요**). (c) codegen→semantic 101은 실은 좁은
+  face 3헤더(diag 95/builtin_kind 8/lifecycle 1).
+- **rung 설계**: B-0=등기부 문서+include-edge smoke(twin-parity gate
+  스타일 순수 텍스트, faces 선언·미등재 교차=FAIL) → B-1=무명 face
+  정정(공유 유틸 3헤더 backend-중립 소속/접두사, diag_codes 소속 결정,
+  parser→type_system 조사) → B-2=폴더 구획(경계별 opportunistic;
+  Makefile/게이트 path 결합 주의 — MIR allowlist 2곳·twin parity 목록·
+  cache deps 등 이사 시 갱신 목록 필수).
+- 착지점 원칙 적용: 게이트/문서에만 있는 경계는 무착지 — 폴더/이름이
+  경계의 물리 착지점. 단 현 시점 순서는 등기부(잠금)→정정→이사.
+
 #### A-11. TPU/MLIR — post-beta 설계 여지만
 
 - 베타 중 직접 작업 금지. LLVM → MLIR/StableHLO 경로 후보 메모만 유지.
