@@ -25,6 +25,18 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-05 - Semantic parity fixture inventory consumes semantic owner
+
+- Added semantic fixture manifest ownership to `diagnostic_owner.pgy`: the
+  owner walks `src/self_hosted/semantic/fixture`, reads each paired
+  `expected/*.diag` status, and emits `name:ok|error` rows.
+- Exposed the manifest through `semantic_run_owner.pgy` as
+  `--fixture-manifest`.
+- Repointed `semantic_parity.sh` so shell no longer owns the 108-row
+  `SOURCE_PAIRS` list; it compiles the semantic owner, reads that manifest, and
+  then runs the C oracle plus C/LLVM-built semantic verdict parity over the
+  manifest rows.
+
 ## 2026-07-05 - Stdlib dispatch inventory paths consume TestHarness owner
 
 - Added stdlib dispatch inventory path facts to

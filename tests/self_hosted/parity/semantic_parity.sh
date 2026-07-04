@@ -53,118 +53,10 @@ PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 FIXTURE_DIR="$ROOT_DIR/src/self_hosted/semantic/fixture"
 EXPECTED_DIR="$ROOT_DIR/src/self_hosted/semantic/expected"
 ARTIFACT_COMPARE_BUILD_DIR="$PERGYRA_TOOL_BUILD_DIR/artifact_owner"
+SEMANTIC_FIXTURE_MANIFEST_FILE="$PERGYRA_TOOL_BUILD_DIR/semantic_fixture_manifest.txt"
 SEMANTIC_COMPARATOR_BIN=""
 
-SOURCE_PAIRS=(
-    "valid_int_return:ok"
-    "valid_string_return:ok"
-    "valid_arith_int:ok"
-    "valid_long_arith:ok"
-    "valid_float_arith:ok"
-    "valid_string_plus:ok"
-    "valid_string_scalar_plus:ok"
-    "valid_bool_arith:ok"
-    "valid_compare_bool:ok"
-    "valid_call_int:ok"
-    "bad_let_type:error"
-    "bad_return_type:error"
-    "bad_arith_assign:error"
-    "bad_compare_return:error"
-    "bad_call_assign:error"
-    "bad_builtin_arg:error"
-    "bad_user_arg:error"
-    "valid_user_call:ok"
-    "valid_import_call:ok"
-    "valid_escaped_quote:ok"
-    "bad_arity_too_few:error"
-    "bad_arity_too_many:error"
-    "bad_arity_builtin:error"
-    "bad_undefined_return:error"
-    "bad_undefined_let:error"
-    "bad_undefined_arg:error"
-    "bad_undefined_assign:error"
-    "bad_undefined_assign_lhs:error"
-    "bad_undefined_compound_return:error"
-    "bad_undefined_compound_arg:error"
-    "valid_compound_local:ok"
-    "valid_toint_int:ok"
-    "bad_toint_assign:error"
-    "valid_fileexists_bool:ok"
-    "bad_fileexists_assign:error"
-    "valid_writefile_builtin:ok"
-    "bad_writefile_arg:error"
-    "valid_scalar_math_builtins:ok"
-    "bad_sqrt_arg:error"
-    "bad_random_arg:error"
-    "valid_seedrandom_builtin:ok"
-    "bad_seedrandom_arg:error"
-    "valid_scalar_utility_int:ok"
-    "valid_scalar_utility_float:ok"
-    "bad_min_mixed:error"
-    "bad_max_mixed:error"
-    "valid_clamp_int:ok"
-    "valid_clamp_float:ok"
-    "bad_clamp_assign:error"
-    "valid_scalar_trig_log_builtins:ok"
-    "bad_sin_arg:error"
-    "bad_atan2_arg:error"
-    "valid_string_alias_builtins:ok"
-    "bad_string_contains_arg:error"
-    "bad_split_arg:error"
-    "bad_join_sep:error"
-    "valid_tostring_string:ok"
-    "bad_tostring_assign:error"
-    "valid_string_builtins:ok"
-    "bad_tolower_assign:error"
-    "bad_undefined_call:error"
-    "valid_print_builtin:ok"
-    "valid_logical_bool:ok"
-    "bad_logical_int:error"
-    "valid_literal_compare:ok"
-    "valid_option_none_literal:ok"
-    "valid_option_unwrap_payload:ok"
-    "valid_option_try_payload:ok"
-    "bad_option_payload_return:error"
-    "bad_option_payload_let:error"
-    "bad_issome_non_option:error"
-    "bad_unwrap_non_option:error"
-    "valid_option_none_call:ok"
-    "bad_issome_none_literal:error"
-    "bad_issome_none_call:error"
-    "bad_unwrap_none_literal:error"
-    "bad_unwrap_none_call:error"
-    "bad_arith_operand:error"
-    "bad_compare_operand:error"
-    "bad_logical_return:error"
-    "bad_compare_condition:error"
-    "bad_binop_assign:error"
-    "valid_compare_condition:ok"
-    "bad_assign_type:error"
-    "bad_condition_not_bool:error"
-    "bad_logical_right:error"
-    "bad_logical_condition:error"
-    "bad_logical_assign:error"
-    "bad_binop_return:error"
-    "bad_compare_assign:error"
-    "bad_binop_condition:error"
-    "bad_not_operand:error"
-    "valid_array_builtins:ok"
-    "bad_value_param_arraypush:error"
-    "valid_for_loop:ok"
-    "bad_for_undefined_iter:error"
-    "bad_for_body:error"
-    "valid_while_loop:ok"
-    "bad_while_condition:error"
-    "bad_while_body:error"
-    "bad_block_scope_leak:error"
-    "bad_else_scope_leak:error"
-    "valid_outer_block_assign:ok"
-    "valid_let_mut_reassign:ok"
-    "bad_inner_let_type:error"
-    "bad_condition_undefined:error"
-    "valid_comment_brace_scope:ok"
-    "valid_generated_source_string_literal:ok"
-)
+SOURCE_PAIRS=()
 
 known_semantic_codes() {
     awk '
@@ -386,6 +278,40 @@ compile_semantic_backend() {
         -o "$(semantic_compiler_path "$tool_bin")" >/dev/null)
 }
 
+read_semantic_fixture_manifest() {
+    local manifest_bin="$PERGYRA_TOOL_BUILD_DIR/main_manifest.exe"
+    local line
+
+    compile_semantic_backend c "$manifest_bin"
+    if ! (cd "$ROOT_DIR" && "$manifest_bin" --fixture-manifest >"$SEMANTIC_FIXTURE_MANIFEST_FILE"); then
+        echo "[self-host-parity:semantic] fixture manifest emission failed" >&2
+        exit 1
+    fi
+
+    SOURCE_PAIRS=()
+    while IFS= read -r line; do
+        line="${line%$'\r'}"
+        [[ -n "$line" ]] || continue
+        if [[ "$line" != *:* ]]; then
+            echo "[self-host-parity:semantic] malformed fixture manifest row: $line" >&2
+            exit 1
+        fi
+        case "${line##*:}" in
+            ok|error) ;;
+            *)
+                echo "[self-host-parity:semantic] unknown fixture expectation in row: $line" >&2
+                exit 1
+                ;;
+        esac
+        SOURCE_PAIRS+=("$line")
+    done <"$SEMANTIC_FIXTURE_MANIFEST_FILE"
+
+    if [[ "${#SOURCE_PAIRS[@]}" -ne 108 ]]; then
+        echo "[self-host-parity:semantic] fixture manifest count drifted: ${#SOURCE_PAIRS[@]} != 108" >&2
+        exit 1
+    fi
+}
+
 run_semantic_backend() {
     local backend="$1"
     local tool_bin="$2"
@@ -453,6 +379,7 @@ run_semantic_backend() {
     echo "[self-host-parity:semantic] backend=$backend verdicts ok (${#SOURCE_PAIRS[@]} fixtures)"
 }
 
+read_semantic_fixture_manifest
 check_semantic_diagnostic_code_surface
 
 for pair in "${SOURCE_PAIRS[@]}"; do

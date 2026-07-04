@@ -13,6 +13,10 @@ func RunSemanticFromArgs(args: Array<String>) -> Void {
         Exit(1);
         return;
     }
+    if args[0] == "--fixture-manifest" {
+        EmitSemanticVerdictPayloadFixtureManifest();
+        return;
+    }
 
     let content: String = LoadSemanticSourceBundle(args[0]);
     let error: String = CheckProgram(content);

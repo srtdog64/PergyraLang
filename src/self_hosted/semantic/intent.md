@@ -83,6 +83,11 @@ the diagnostic-code vocabulary so new self-hosted semantic codes cannot appear
 as fixture-only or call-site-only aliases, and it checks that invalid fixtures
 are rejected with the mapped C oracle JSON diagnostic code.
 
+Fixture inventory is owned by the semantic tool, not by the shell runner.
+`diagnostic_owner.pgy` walks `src/self_hosted/semantic/fixture`, reads the paired
+`expected/*.diag` status, and `semantic_run_owner.pgy --fixture-manifest` emits
+the `name:ok|error` rows consumed by the parity script.
+
 `tests/self_hosted/parity/selfcheck_sources.sh` is the real-source rung. It
 compiles this checker through C and LLVM and requires 56 curated self-host
 owner/source files to produce `Status: ok`, including the parser entrypoint

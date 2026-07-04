@@ -537,6 +537,11 @@ require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdi
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadSchema"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "pgy.selfhost.semantic.v1"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticVerdictPayloadFixtureCount() != 108"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadFixtureManifestRows"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func EmitSemanticVerdictPayloadFixtureManifest"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "DirWalk(SemanticVerdictPayloadFixtureDir())"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticVerdictPayloadExpectedStatus(base)"
+require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--fixture-manifest"'
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticDiagnosticCodeCount() != 17"
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../semantic/diagnostic_owner.pgy";'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "SemanticVerdictPayloadContractReady()"
@@ -544,7 +549,11 @@ require_text "tests/self_hosted/parity/semantic_parity.sh" "check_semantic_diagn
 require_text "tests/self_hosted/parity/semantic_parity.sh" "semantic_oracle_code_for"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "pgy_selfhost_compile_backend_output_comparator"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "compare_semantic_verdict_with_owner"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "read_semantic_fixture_manifest"
+require_text "tests/self_hosted/parity/semantic_parity.sh" '"$manifest_bin" --fixture-manifest'
 require_text "tests/self_hosted/parity/semantic_parity.sh" "diagnostics"
+reject_text "tests/self_hosted/parity/semantic_parity.sh" '"valid_int_return:ok"'
+reject_text "tests/self_hosted/parity/semantic_parity.sh" '"bad_logical_right:error"'
 reject_text "tests/self_hosted/parity/semantic_parity.sh" "diff <("
 require_owner_surface codegen \
     "input/ast_input_owner.pgy" \
@@ -2117,32 +2126,33 @@ reject_text "src/self_hosted/mir_lower/stmt_render.pgy" 'FindFrom(json, "\"destr
 reject_text "src/self_hosted/mir_lower/stmt_render.pgy" 'FindFrom(json, "\"defer_body\":['
 reject_text "src/self_hosted/mir_lower/stmt_render.pgy" "ReadJsonString(json,"
 
-semantic_items="$(extract_shell_array_items "$PARITY_DIR/semantic_parity.sh" SOURCE_PAIRS | sed 's/:.*//')"
-[[ -n "$semantic_items" ]] || fail "semantic parity SOURCE_PAIRS is empty"
-semantic_count="$(printf '%s\n' "$semantic_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$semantic_count" -eq 108 ]] ||
-    fail "semantic parity fixture count drifted: $semantic_count != 108"
+semantic_fixture_count="$(find "$SELF_HOST_DIR/semantic/fixture" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
+semantic_expected_count="$(find "$SELF_HOST_DIR/semantic/expected" -maxdepth 1 -type f -name '*.diag' | wc -l | tr -d ' ')"
+[[ "$semantic_fixture_count" -eq 108 ]] ||
+    fail "semantic fixture count drifted: $semantic_fixture_count != 108"
+[[ "$semantic_expected_count" -eq 108 ]] ||
+    fail "semantic expected count drifted: $semantic_expected_count != 108"
 require_text "src/self_hosted/PROGRESS.md" "across 108 fixtures"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_scalar_math_builtins"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_string_plus"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_string_scalar_plus"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_bool_arith"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_seedrandom_builtin"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_writefile_builtin"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_let_mut_reassign"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_generated_source_string_literal"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_scalar_utility_int"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_option_unwrap_payload"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_option_try_payload"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_option_payload_return"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_option_payload_let"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_issome_non_option"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_unwrap_non_option"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_option_none_call"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_issome_none_literal"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_issome_none_call"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_unwrap_none_literal"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_unwrap_none_call"
+require_file "src/self_hosted/semantic/fixture/valid_scalar_math_builtins.pgy"
+require_file "src/self_hosted/semantic/fixture/valid_string_plus.pgy"
+require_file "src/self_hosted/semantic/fixture/valid_string_scalar_plus.pgy"
+require_file "src/self_hosted/semantic/fixture/valid_bool_arith.pgy"
+require_file "src/self_hosted/semantic/fixture/valid_seedrandom_builtin.pgy"
+require_file "src/self_hosted/semantic/fixture/valid_writefile_builtin.pgy"
+require_file "src/self_hosted/semantic/fixture/valid_let_mut_reassign.pgy"
+require_file "src/self_hosted/semantic/fixture/valid_generated_source_string_literal.pgy"
+require_file "src/self_hosted/semantic/fixture/valid_scalar_utility_int.pgy"
+require_file "src/self_hosted/semantic/fixture/valid_option_unwrap_payload.pgy"
+require_file "src/self_hosted/semantic/fixture/valid_option_try_payload.pgy"
+require_file "src/self_hosted/semantic/fixture/bad_option_payload_return.pgy"
+require_file "src/self_hosted/semantic/fixture/bad_option_payload_let.pgy"
+require_file "src/self_hosted/semantic/fixture/bad_issome_non_option.pgy"
+require_file "src/self_hosted/semantic/fixture/bad_unwrap_non_option.pgy"
+require_file "src/self_hosted/semantic/fixture/valid_option_none_call.pgy"
+require_file "src/self_hosted/semantic/fixture/bad_issome_none_literal.pgy"
+require_file "src/self_hosted/semantic/fixture/bad_issome_none_call.pgy"
+require_file "src/self_hosted/semantic/fixture/bad_unwrap_none_literal.pgy"
+require_file "src/self_hosted/semantic/fixture/bad_unwrap_none_call.pgy"
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" "func OptionCallReturnType"
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" "func TryOperandBounds"
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" "TryOperandBounds(text, try_bounds)"
@@ -2180,19 +2190,15 @@ require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func ExpectLiteral(
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "return None"
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "return Some(i + tl)"
 reject_text "src/self_hosted/semantic/text_scan_owner.pgy" "return -1"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_comment_brace_scope"
+require_file "src/self_hosted/semantic/fixture/valid_comment_brace_scope.pgy"
 
 while IFS= read -r fixture; do
     base="$(basename "$fixture" .pgy)"
-    contains_line "$semantic_items" "$base" ||
-        fail "semantic fixture not listed in SOURCE_PAIRS: $base"
     require_file "src/self_hosted/semantic/expected/${base}.diag"
 done < <(find "$SELF_HOST_DIR/semantic/fixture" -maxdepth 1 -type f -name '*.pgy' | sort)
 
 while IFS= read -r expected; do
     base="$(basename "$expected" .diag)"
-    contains_line "$semantic_items" "$base" ||
-        fail "semantic expected not listed in SOURCE_PAIRS: $base"
     require_file "src/self_hosted/semantic/fixture/${base}.pgy"
 done < <(find "$SELF_HOST_DIR/semantic/expected" -maxdepth 1 -type f -name '*.diag' | sort)
 

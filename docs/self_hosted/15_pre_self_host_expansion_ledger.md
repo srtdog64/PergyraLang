@@ -106,6 +106,12 @@ dispatch, and LLVM scalar/IO dispatch owner paths through the
 `stdlib-dispatch-inventory-paths` manifest suite, then runs the compiled
 checker binary for clean and dispatch-drift fixtures.
 
+TestHarness delta, 2026-07-05: `semantic_parity.sh` no longer owns the
+108-row `SOURCE_PAIRS` fixture inventory. The compiled semantic owner emits
+`--fixture-manifest` rows from `DirWalk("src/self_hosted/semantic/fixture")`
+plus paired `expected/*.diag` statuses, and the shell runner consumes those rows
+before invoking the C oracle and C/LLVM-built semantic tools.
+
 Artifact Zone delta, 2026-07-04: LSP transport outputs are now tracked as
 their own comparable artifact kinds: `CompilerLspTransportFrameArtifactKind()`
 for LSP-2a single-frame output and `CompilerLspTransportStreamArtifactKind()`

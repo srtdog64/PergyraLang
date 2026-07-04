@@ -120,7 +120,90 @@ func SemanticVerdictPayloadSchema() -> String {
 }
 
 func SemanticVerdictPayloadFixtureCount() -> Int {
-    return 108;
+    return ArrayLength(SemanticVerdictPayloadFixtureManifestRows());
+}
+
+func SemanticVerdictPayloadFixtureDir() -> String {
+    return "src/self_hosted/semantic/fixture";
+}
+
+func SemanticVerdictPayloadExpectedDir() -> String {
+    return "src/self_hosted/semantic/expected";
+}
+
+func SemanticVerdictPayloadPathEndsWith(path: String, suffix: String) -> Bool {
+    let path_len: Int = StringLength(path);
+    let suffix_len: Int = StringLength(suffix);
+    if suffix_len > path_len {
+        return false;
+    }
+    return Substring(path, path_len - suffix_len, suffix_len) == suffix;
+}
+
+func SemanticVerdictPayloadBaseName(path: String, suffix: String) -> String {
+    if !SemanticVerdictPayloadPathEndsWith(path, suffix) {
+        return "";
+    }
+    let last_slash: Int = -1;
+    let i: Int = 0;
+    while i < StringLength(path) {
+        if Substring(path, i, 1) == "/" {
+            last_slash = i;
+        }
+        i = i + 1;
+    }
+    let start: Int = last_slash + 1;
+    let len: Int = StringLength(path) - start - StringLength(suffix);
+    if len <= 0 {
+        return "";
+    }
+    return Substring(path, start, len);
+}
+
+func SemanticVerdictPayloadExpectedPath(base: String) -> String {
+    return Concat(Concat(SemanticVerdictPayloadExpectedDir(), "/"), Concat(base, ".diag"));
+}
+
+func SemanticVerdictPayloadExpectedStatus(base: String) -> String {
+    let expected_path: String = SemanticVerdictPayloadExpectedPath(base);
+    if !FileExists(expected_path) {
+        return "";
+    }
+    let content: String = ReadFile(expected_path);
+    if StringIndexOf(content, "Status: ok") >= 0 {
+        return "ok";
+    }
+    if StringIndexOf(content, "Status: error") >= 0 {
+        return "error";
+    }
+    return "";
+}
+
+func SemanticVerdictPayloadFixtureManifestRows() -> Array<String> {
+    let entries: Array<String> = DirWalk(SemanticVerdictPayloadFixtureDir());
+    let rows: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(entries) {
+        let path: String = entries[i];
+        if SemanticVerdictPayloadPathEndsWith(path, ".pgy") {
+            let base: String = SemanticVerdictPayloadBaseName(path, ".pgy");
+            let status: String = SemanticVerdictPayloadExpectedStatus(base);
+            if StringLength(base) > 0 && StringLength(status) > 0 {
+                ArrayPush(rows, Concat(Concat(base, ":"), status));
+            }
+        }
+        i = i + 1;
+    }
+    return rows;
+}
+
+func EmitSemanticVerdictPayloadFixtureManifest() -> Void {
+    let rows: Array<String> = SemanticVerdictPayloadFixtureManifestRows();
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        Log(rows[i]);
+        i = i + 1;
+    }
 }
 
 func SemanticVerdictPayloadStatusReady() -> Bool {
