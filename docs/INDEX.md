@@ -45,6 +45,7 @@ and follow-up debt over older design notes.
 | [`self_hosted/13_compiler_substrate_architecture.md`](self_hosted/13_compiler_substrate_architecture.md) | Self-hosted compiler architecture stack: codegen resources, compiler-world fact owners, import graph, deterministic facts, runtime materialization, caching, and parity promotion |
 | [`self_hosted/14_target_compiler_world.md`](self_hosted/14_target_compiler_world.md) | Target compiler world: fact zones -> single Codegen Projection intent -> C/LLVM/SelfHosted emission peers -> Artifact Zone parity sink |
 | [`self_hosted/15_pre_self_host_expansion_ledger.md`](self_hosted/15_pre_self_host_expansion_ledger.md) | Pre-self-host expansion ledger: READY/ACTIVE/HOLD substrate classification, active blockers, held surfaces, and no-hidden-fallback rule |
+| [`150_selfhost_driver_lsp_wiring.md`](150_selfhost_driver_lsp_wiring.md) | Self-host driver and LSP replacement ladders with honest planned/landed rung gates |
 
 ## Historical Snapshots
 
@@ -117,6 +118,8 @@ and follow-up debt over older design notes.
 | [`04_generic_design.md`](04_generic_design.md) | Generic design |
 | [`07_error_handling.md`](07_error_handling.md) | Error handling model |
 | [`08_module_system.md`](08_module_system.md) | Module system design |
+| [`147_surface_sugar_triad.md`](147_surface_sugar_triad.md) | Surface sugar triad: `?`, string interpolation, tuple-return deferral, and self-host subset adoption state |
+| [`151_generic_axis_composition.md`](151_generic_axis_composition.md) | Generic semantic-axis composition matrix and gated rung ladder |
 | [`21_slot_relation_model.md`](21_slot_relation_model.md) | Slot relation model |
 | [`22_ownership_model.md`](22_ownership_model.md) | Ownership model |
 | [`22_class_object_model.md`](22_class_object_model.md) | Class/object model |
@@ -135,6 +138,7 @@ and follow-up debt over older design notes.
 | [`language_module_manifest.json`](language_module_manifest.json) | Machine-readable module taxonomy |
 | [`language_module_cases.json`](language_module_cases.json) | Module-layer case manifest |
 | [`108_stdlib_beta_freeze.md`](108_stdlib_beta_freeze.md) | Stdlib beta freeze list |
+| [`148_stdlib_architecture.md`](148_stdlib_architecture.md) | Stdlib architecture wiring: layers, contracts, inventory, and active/sketch policy |
 | [`109_package_module_resolver_contract.md`](109_package_module_resolver_contract.md) | Seashell package/module resolver contract: `pgy.toml` remains a fail-closed TOML subset while `pgy.seashell.v1` owns local package/build declaration |
 | [`29_stdlib_design.md`](29_stdlib_design.md) | Stdlib design |
 | [`67_layered_stdlib_and_domain_kits.md`](67_layered_stdlib_and_domain_kits.md) | Layered stdlib and domain kit policy |
@@ -160,6 +164,7 @@ and follow-up debt over older design notes.
 | [`130_c_backend_owner_migration_map.md`](130_c_backend_owner_migration_map.md) | C backend owner migration map and guardrails for avoiding mechanical helper/header churn |
 | [`131_ai_coding_atomic_units.md`](131_ai_coding_atomic_units.md) | AI-coding thesis: verifiable intent atoms, pattern-context units, and specification gradients |
 | [`134_language_surface_hygiene.md`](134_language_surface_hygiene.md) | Language surface hygiene: keep orthogonal terms, close alias/fallback source-of-truth seams |
+| [`149_external_review_2026_07.md`](149_external_review_2026_07.md) | External technical review judgment: accepted signals, rejected claims, and board routing |
 
 ## Implementation Guides
 

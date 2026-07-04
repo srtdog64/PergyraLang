@@ -9814,11 +9814,12 @@ docs만 읽고 착수할 수 있어야 한다. 각 WO는 목표/현재 상태/�
 - 문서 번호 정정: closure capture 설계=**docs/141**, guard amortization=
   **docs/142**, 외부 레드팀 리뷰=**docs/137** (메모리의 135/136/134 인용은
   stale).
-- (2026-07-03 추가) **surface sugar "없다" 전제 금지**: `?`는 Result에 한해,
-  문자열 보간(`${}`/`f"`/`$"`)은 전면적으로 **이미 언어에 있었다**
-  (docs/147 §1 감사 표). 같은 날 `?`의 Option<T> 확장이 landed —
-  fixture `try_operator_option` + semantic 2791/0 + transpile 916/0.
-  남은 진짜 갭 = subset lag(WO-U2)와 tuple ABI(WO-U3).
+- (2026-07-03 추가, 2026-07-04 정정) **surface sugar "없다" 전제 금지**:
+  `?`는 Result+Option에 대해, 문자열 보간(`${}`/`f"`/`$"`)은 전면적으로
+  **이미 언어에 있다**(docs/147 §1 감사 표). 같은 날 `?`의 Option<T>
+  확장이 landed — fixture `try_operator_option` + semantic/transpile
+  회귀 green. 남은 진짜 갭 = subset adoption/parity hardening(WO-U2)와
+  tuple ABI(WO-U3).
 - (2026-07-03 추가) authority+caps 뼈대 landed(`37e46252`): compiler world의
   민감 경계 4곳에 ability/role/zone-authority/step-clause + with caps 2좌석.
   부산물로 self-checker의 태초 off-by-one(ReadTypeName with-절 break 불발) 수정.
@@ -9837,7 +9838,7 @@ docs만 읽고 착수할 수 있어야 한다. 각 WO는 목표/현재 상태/�
 | String perf | fused builtins+StrView 런타임 landed | WO-P1 |
 | Guard amortization (docs/142) | 첫 슬라이스 landed | WO-P2 |
 | Closure capture (docs/141) | Stage A 完 | WO-C1→C3 |
-| Surface sugar (docs/147) | `?`+보간 C-측 完; subset lag | WO-U2 → WO-U3 |
+| Surface sugar (docs/147) | `?`+보간 landed; subset adoption/parity hardening | WO-U2 → WO-U3 |
 | Intent-Compress (§0c) | post-beta prio 0; 32-param 실증 확보 | A-6 (설계만) |
 
 ---
@@ -10191,20 +10192,23 @@ Stage 순서는 B→C→D 고정(각 stage는 이전 stage 거절 경로를 허�
 ### Surface-sugar 트랙 (docs/147 — 사용자 pain 상위 3 실측 기반)
 
 착수 전 docs/147 §1 감사 표 필독: **"sugar가 없다" 전제 금지.** `?`(Result+
-Option)와 보간(`${}`/`f"`/`$"`)은 C 컴파일러에 full end-to-end로 존재한다.
+Option)와 보간(`${}`/`f"`/`$"`)은 주 컴파일러 양 백엔드에 full
+end-to-end로 존재하고, self-hosted subset에도 parser/semantic/codegen
+owner가 들어왔다.
 
 #### WO-U1 — `?` Option<T> 확장 ✅ CLOSED (2026-07-03)
 
 - semantic 수용 + C 트윈 2좌석 + LLVM 2-field None 재구성 분기(+3-field 가드로
   혼합-kind panic parity). cross-type None 전파 포함. fixture
-  `try_operator_option` C==LLVM, semantic 케이스 2종, 2791/0 + 916/0.
+  `try_operator_option` C==LLVM, semantic 케이스 2종, landing-time
+  semantic/transpile 회귀 green.
   계약 상세 = docs/147 §2.
 
-#### WO-U2 — subset lag 해소: self-호스트가 자기 sugar를 쓰게 (진행 중)
+#### WO-U2 — subset adoption/parity hardening: self-호스트가 자기 sugar를 쓰게 (진행 중)
 
-- **목표**: self-호스트 parser/checker(bounded subset)에 `?` + 보간 교육 →
-  self_hosted 코드가 채택 가능해짐 → ratchet(sentinel/munge) 하향의 구조적
-  뚜껑 제거.
+- **목표**: 이미 들어온 self-호스트 parser/semantic/codegen sugar owner를
+  최대 self_hosted 코퍼스에 넓게 채택하고, selfcheck/codegen parity를
+  유지하면서 ratchet(sentinel/munge) 하향의 구조적 뚜껑을 제거.
 - **진행 (2026-07-03)**:
   - ✅ 단계 1-2 (`?` 교육): `36f008ff` — ExprType TryOperandBounds + Option
     unwrap 규칙 + body/validation + **self-codegen emission**(stmt_emit) +
