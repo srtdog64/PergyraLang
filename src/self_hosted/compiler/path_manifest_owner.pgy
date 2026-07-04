@@ -60,6 +60,10 @@ func CompilerStageArtifactOwnerPath() -> String {
     return "src/self_hosted/compiler/stage_artifact_owner.pgy";
 }
 
+func CompilerDriverRung0OwnerPath() -> String {
+    return "src/self_hosted/compiler/driver_rung0_owner.pgy";
+}
+
 func CompilerAuthorityOwnerPath() -> String {
     return "src/self_hosted/compiler/authority_owner.pgy";
 }
@@ -137,7 +141,7 @@ func CompilerParityPathAt(index: Int) -> String {
 }
 
 func CompilerWorldManifestPathCount() -> Int {
-    return 24;
+    return 25;
 }
 
 func CompilerWorldManifestPathAt(index: Int) -> String {
@@ -160,13 +164,14 @@ func CompilerWorldManifestPathAt(index: Int) -> String {
         return CompilerParityPathAt(index - 17);
     }
     if index == 23 { return CompilerAuthorityOwnerPath(); }
+    if index == 24 { return CompilerDriverRung0OwnerPath(); }
     return "";
 }
 
 func CompilerStagePathManifestReady() -> Bool with caps io_read {
     if CompilerStagePathCount() != 5 { return false; }
     if CompilerParityPathCount() != 6 { return false; }
-    if CompilerWorldManifestPathCount() != 24 { return false; }
+    if CompilerWorldManifestPathCount() != 25 { return false; }
     if SelfHostSourceDir() == "" { return false; }
     if CompilerWorldPath() == "" { return false; }
     if CompilerStagePathAt(0) == "" { return false; }
@@ -176,6 +181,6 @@ func CompilerStagePathManifestReady() -> Bool with caps io_read {
     if CompilerParityPathAt(0) == "" { return false; }
     if CompilerParityPathAt(5) == "" { return false; }
     if CompilerWorldManifestPathAt(0) == "" { return false; }
-    if CompilerWorldManifestPathAt(23) == "" { return false; }
+    if CompilerWorldManifestPathAt(24) == "" { return false; }
     return true;
 }

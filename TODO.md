@@ -9986,10 +9986,15 @@ docs만 읽고 착수할 수 있어야 한다. 각 WO는 목표/현재 상태/�
 planned=주장 불가, 갭 등록부 가시성 강제 — RED/GREEN 검증 完).
 
 - **WO-DRV-0 — in-process 스테이지 조립 (착수 가능, Stage 5 직결)**:
-  driver .pgy가 self-parser(→AST text)와 self-codegen(→C text)을 한
-  프로세스에서 import 체이닝 — 셸 조립공(`codegen_bootstrap.sh`)의
-  `pgy --ast` 좌석을 self-parser로 치환(byte-equal 실증 근거). world
-  fact 소비 의무 포함 — `PgyCompilerWorld`가 실행형으로 승격되는 자리.
+  `compiler/driver_rung0_owner.pgy`가 self-parser(→AST text)와
+  self-codegen(→C text)을 한 프로세스에서 import 체이닝 — 셸
+  조립공(`codegen_bootstrap.sh`)의 `pgy --ast` 좌석을 self-parser로
+  치환(byte-equal 실증 근거). world fact 소비 의무 포함 —
+  `PgyCompilerWorld`가 실행형으로 승격되는 자리.
+  **진행(2026-07-04)**: `src/self_hosted/compiler/driver_rung0_owner.pgy`
+  scaffold landed — source path → `ParseRootProgram` → `GenerateC` 조립과
+  path/stage/target readiness fact 소비를 한 owner로 묶음. 아직 §4 rung은
+  planned: AST/C artifact 비교 gate가 생겨야 landed.
   **소유권 주의**: codegen/emission owner들은 typed-AST 동시 스트림
   활성 영역 — import만, 수정 금지.
 - **WO-DRV-1** CLI 표면(Args) → **WO-DRV-2** cc 호출(**차단: G-EXEC** —

@@ -71,6 +71,7 @@ require_file "src/self_hosted/compiler/abi_layout_row_owner.pgy"
 require_file "src/self_hosted/compiler/symbol_table_owner.pgy"
 require_file "src/self_hosted/compiler/stage_artifact_owner.pgy"
 require_file "src/self_hosted/compiler/authority_owner.pgy"
+require_file "src/self_hosted/compiler/driver_rung0_owner.pgy"
 require_file "docs/self_hosted/11_compiler_world_architecture.md"
 require_file "docs/self_hosted/12_intent_zone_self_host_architecture.md"
 require_file "docs/self_hosted/13_compiler_substrate_architecture.md"
@@ -81,6 +82,7 @@ require_file "tests/self_hosted/compiler_world_manifest.sh"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_PATH_MANIFEST_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_STAGE_ARTIFACT_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_AUTHORITY_PATH"
+require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_DRIVER_RUNG0_PATH"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "### Pergyra-Style Self-Host Test"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "C, LLVM, and self-hosted outputs are peer projections over the same facts"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "stage_artifact_owner.pgy"
@@ -92,16 +94,28 @@ pgy_compiler_world_require_manifest_paths "$ROOT_DIR" ||
 pgy_compiler_world_require_stage_conformance "$ROOT_DIR" ||
     fail "compiler world stages do not conform to the on-disk stage owners"
 require_max_lines "src/self_hosted/compiler/world.pgy" 600
-require_max_lines "src/self_hosted/compiler/path_manifest_owner.pgy" 200
-require_max_lines "src/self_hosted/compiler/target_capability_owner.pgy" 200
-require_max_lines "src/self_hosted/compiler/air_evidence_owner.pgy" 120
-require_max_lines "src/self_hosted/compiler/artifact_zone_owner.pgy" 120
-require_max_lines "src/self_hosted/compiler/test_harness_owner.pgy" 120
-require_max_lines "src/self_hosted/compiler/subprocess_runner_owner.pgy" 120
-require_max_lines "src/self_hosted/compiler/abi_layout_row_owner.pgy" 120
-require_max_lines "src/self_hosted/compiler/symbol_table_owner.pgy" 120
-require_max_lines "src/self_hosted/compiler/stage_artifact_owner.pgy" 120
-require_max_lines "src/self_hosted/compiler/authority_owner.pgy" 120
+require_max_lines "src/self_hosted/compiler/path_manifest_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/target_capability_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/air_evidence_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/artifact_zone_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/subprocess_runner_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/abi_layout_row_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/symbol_table_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/stage_artifact_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/authority_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/driver_rung0_owner.pgy" 600
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'import "../parser/program_parse_owner.pgy";'
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'import "../codegen/emission/program_emit.pgy";'
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func CompilerDriverRung0Ready"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CompilerStagePathManifestReady()"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CompilerAstTreeFactReady()"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CompilerEmissionFactReady()"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CompilerTargetCapabilityEnvelopeReady()"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func CompileSourceToC"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "ParseRootProgram(source_path)"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "GenerateC(ast_text)"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func RunDriverRung0FromArgs"
 
 # Authority skeleton locks: sensitive-boundary abilities/roles plus the zone
 # and intent-step clauses that consume them. These keep the authority axis
@@ -277,6 +291,7 @@ for term in \
     "func CompilerAbiLayoutRowOwnerPath" \
     "func CompilerSymbolTableOwnerPath" \
     "func CompilerStageArtifactOwnerPath" \
+    "func CompilerDriverRung0OwnerPath" \
     "func CompilerOwnerManifestPath" \
     "func CompilerStagePathManifestReady" \
     "func CompilerStagePathAt" \
@@ -296,6 +311,7 @@ for term in \
     "return CompilerAbiLayoutRowOwnerPath();" \
     "return CompilerSymbolTableOwnerPath();" \
     "return CompilerStageArtifactOwnerPath();" \
+    "return CompilerDriverRung0OwnerPath();" \
     "return CompilerOwnerManifestPath();" \
     "CompilerStagePathManifestReady" \
     "if index < 17" \

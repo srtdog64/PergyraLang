@@ -30,16 +30,23 @@ HIR/DIR/RIR/MIR→AIR verify→backend emit→cc 호출→link. 치환은 관측
 가능한 이음새(파일/텍스트 artifact)부터 안쪽으로 진행한다.
 
 - **DRV-0 — in-process 스테이지 조립 (첫 rung, 착수 가능)**
-  `driver/main.pgy`가 self-parser owner들(→ AST text)과 self-codegen
-  owner들(→ C text)을 **한 프로세스에서 import로 체이닝**. 오늘의 셸
+  `compiler/driver_rung0_owner.pgy`가 self-parser owner들(→ AST text)과
+  self-codegen owner들(→ C text)을 **한 프로세스에서 import로 체이닝**.
+  오늘의 셸
   조립과 동일 산출물을 내되, `pgy --ast` 좌석을 self-parser로 치환
   (byte-equal 실증 완료라 정당). 산출 = C 텍스트 파일 + AST 텍스트.
   **오라클**: 같은 소스에 대해 (a) AST text == `pgy --ast`, (b) C text ==
   oracle-빌드 codegen 산출, (c) gcc/실행은 기존 하니스가 마무리.
   **world 소비 의무**: rung-0부터 `CompilerStagePathManifestReady()` 등
   stage fact를 실행 경로에서 소비 — world가 장식으로 남지 않게.
+  **현재 scaffold**: `src/self_hosted/compiler/driver_rung0_owner.pgy`가
+  source path → self-parser AST text → self-codegen C text 조립을 소유하고
+  path/stage/target readiness facts를 먼저 소비한다. 단 §4 rung 표는 아직
+  `planned`다 — AST/C artifact 비교 gate가 실존하기 전에는 DRV-0 landed가
+  아니다.
 - **DRV-1 — CLI 표면**: `Args()`(존재, PGY_CAP_ENV 게이트)로
-  `driver <src> [--emit-ast|--emit-c] [-o out]` 파싱. 오라클: 산출물
+  `driver <src> [--emit-ast|--emit-c] [-o out]` 파싱. CLI entrypoint는
+  DRV-1 소유이며, DRV-0 owner는 조립 책임만 소유한다. 오라클: 산출물
   경로/내용 동일성.
 - **DRV-2 — 네이티브 컴파일 호출 (차단: G-EXEC)**: cc/gcc 호출은
   프로세스 spawn builtin이 **없다**(2026-07-04 확인). 필요물 =

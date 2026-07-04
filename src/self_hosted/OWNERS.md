@@ -144,6 +144,9 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/compiler/stage_artifact_owner.pgy` -- stage artifact
   envelope facts that bind token, AST, semantic, and MIR stage actors to the
   compiler-world path manifest rows.
+- `src/self_hosted/compiler/driver_rung0_owner.pgy` -- DRV-0 in-process
+  assembly owner that composes self-parser AST text and self-codegen C emission
+  after consuming compiler-world readiness facts.
 - `src/self_hosted/compiler/authority_owner.pgy` -- authority contracts
   (abilities + roles) for the sensitive compiler-world boundaries: semantic
   verdict, C emission, subprocess planning, and parity judgement.

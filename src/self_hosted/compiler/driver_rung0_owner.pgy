@@ -1,0 +1,42 @@
+// DRV-0 in-process self-host driver owner.
+//
+// Owns the first driver assembly seam: source path -> self-parser AST text ->
+// self-codegen emitted C text. Stage-local parsing and emission facts remain in
+// their stage owners; this owner only consumes compiler-world readiness facts
+// and composes the already-owned stage entry functions.
+
+import "path_manifest_owner.pgy";
+import "stage_artifact_owner.pgy";
+import "target_capability_owner.pgy";
+import "../parser/source_path_owner.pgy";
+import "../parser/program_parse_owner.pgy";
+import "../codegen/emission/program_emit.pgy";
+
+func CompilerDriverRung0Ready() -> Bool with caps io_read {
+    if !CompilerStagePathManifestReady() {
+        return false;
+    }
+    if !CompilerAstTreeFactReady() {
+        return false;
+    }
+    if !CompilerEmissionFactReady() {
+        return false;
+    }
+    if !CompilerTargetCapabilityEnvelopeReady() {
+        return false;
+    }
+    return true;
+}
+
+func CompileSourceToC(source_path: String) -> String with caps io_read {
+    if !CompilerDriverRung0Ready() {
+        Die("driver rung-0 compiler-world facts are not ready");
+    }
+    let ast_text: String = ParseRootProgram(source_path);
+    return GenerateC(ast_text);
+}
+
+func RunDriverRung0FromArgs(args: Array<String>) -> Void with caps io_read {
+    let source_path: String = ParserDefaultSourcePath(args);
+    Log(CompileSourceToC(source_path));
+}

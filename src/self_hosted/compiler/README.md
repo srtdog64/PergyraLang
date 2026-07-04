@@ -85,6 +85,14 @@ by the gates. That gives future hard-substitution code a way to consume paths,
 compiler-world placement, and stage payload ownership as facts instead of
 rediscovering them with recursive scans or folder names.
 
+`driver_rung0_owner.pgy` is the first in-process assembly owner for that rule.
+It composes the self-host parser's `ParseRootProgram` output with the
+self-host codegen `GenerateC` input only after consuming compiler-world path,
+stage-artifact, and target-capability readiness facts. It is not a second
+driver graph and it does not make DRV-0 landed by itself; the rung lands only
+when an artifact and gate compare the assembled AST/C outputs against the C
+oracle.
+
 `world.pgy` is the current scaffold. It is parse-gated by
 `make self-host-compiler-world-contract-test-smoke` and wired into
 `make self-host-preparation-test-smoke`. That gate also enforces

@@ -100,6 +100,7 @@ compiler/
   stage_intents.pgy         -- compiler action clusters
   path_manifest_owner.pgy   -- path facts
   stage_artifact_owner.pgy  -- stage artifact envelope facts
+  driver_rung0_owner.pgy    -- source -> AST text -> emitted C assembly owner
 
 lexer/                      -- token facts
 parser/                     -- AST/tree facts
@@ -217,6 +218,14 @@ and the readiness function delegates to that owner for the stage: lexer token
 facts, parser AST-tree text facts, semantic verdict facts, MIR fact graph rows,
 or the codegen typed-AST arena migration contract. That is the load-bearing
 replacement for the old stage `return true` scaffolding.
+
+`src/self_hosted/compiler/driver_rung0_owner.pgy` is the current DRV-0 assembly
+owner. It consumes the path manifest, stage artifact readiness, and target
+capability envelope before composing `ParseRootProgram(source)` with
+`GenerateC(ast_text)`. It deliberately does not own parser facts or codegen
+emission facts; those remain in their stage owners. This is a scaffold for the
+DRV-0 rung, not a landed rung claim until a gate compares the assembled AST and
+C artifacts against the C oracle.
 
 ## Codegen Architecture
 
