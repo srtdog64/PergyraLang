@@ -55,8 +55,9 @@ frontier와 수렴한다** — 리스크 모델이 옳다는 재확인.
 - **"Self-host trajectory B+"**: 리뷰 시점보다 이미 전진(22/22 자기-빌드,
   §0). 착시 경고 자체는 유효 — LOC 6.57%와 runtime kernel·released
   compiler driver replacement·LSP 0% 명시는 우리 문서가 원 출처다.
-  DRV-0 artifact rung(docs/150)은 이 0%를 뒤집는 수치가 아니라, driver
-  치환을 시작하기 위한 조립 artifact다.
+  DRV-0/DRV-1 artifact rung과 LSP-0 payload rung(docs/150)은 이 0%를
+  뒤집는 수치가 아니라, released replacement 전에 치환 경로를 검증하는
+  artifact 사다리다.
 - 사실 오류: **발견되지 않음.** (docs/137 때의 R4류 반박 필요 항목 없음.)
 
 ## 4. 실행 반영 — 보드 diff 요약

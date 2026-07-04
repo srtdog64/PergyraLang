@@ -8,11 +8,11 @@ rung 표를 문다** — landed 주장에는 실존 artifact+gate와 green parit
 하며, planned rung은 artifact를 주장할 수 없다. 가짜 진척 차단이 이 문서의
 절반이다.
 
-주의: 여기서 DRV-0 `blocked` 또는 이후 `landed`는 **released compiler
-driver replacement가 0%를 벗어났다는 뜻이 아니다**. 뜻은 더 좁다:
-self-host parser와 self-host codegen을 한 Pergyra owner boundary에서
-조립하는 artifact와 그 artifact를 검증할 gate가 등록됐다는 뜻이다. 실제
-driver 교체율은 DRV-3 플래그 뒤 parity 전까지 PROGRESS.md에서 0%로 남긴다.
+주의: 여기서 DRV/LSP rung의 `landed`는 **released compiler driver/LSP
+replacement가 0%를 벗어났다는 뜻이 아니다**. 뜻은 더 좁다: self-host
+parser/codegen/LSP payload를 Pergyra owner boundary에서 조립·투영하는
+artifact와 그 artifact를 검증할 gate가 등록됐다는 뜻이다. 실제 driver/LSP
+교체율은 DRV-3/LSP-3 플래그 뒤 parity 전까지 PROGRESS.md에서 0%로 남긴다.
 
 ## 0. 두 트랙의 위상 (왜 이 순서인가)
 
@@ -81,14 +81,17 @@ HIR/DIR/RIR/MIR→AIR verify→backend emit→cc 호출→link. 치환은 관측
 C LSP 분해: protocol(framing 229L)/diagnostics/hover/features. 페이로드
 계층부터 치환하고 transport는 마지막(차단막 있음).
 
-- **LSP-0 — 진단 페이로드 투영 (첫 rung, 착수 가능)**
+- **LSP-0 — 진단 페이로드 투영 (첫 landed rung)**
   `lsp/diagnostics_owner.pgy`: self-checker 진단(verdict/diag 블록 —
   `SelfHostDiagnostic` 렌더러의 소비자 반대편)을 LSP
   `publishDiagnostics` JSON으로 투영. lib/json_emit 재사용.
-  **오라클 배관 필요(O-LSP)**: C LSP에 페이로드 덤프 모드가 없으면
-  비교 불가 — `pgy --lsp-dump-diagnostics <src>`류 C-측 덤프 플래그를
-  먼저 뚫거나(소형), 초기엔 golden fixture 수동 승인으로 시작하고
-  덤프 플래그 착지 시 오라클로 승격.
+  **현재 landed**: `src/self_hosted/lsp/main.pgy`가 runnable boundary를
+  제공하고, `tests/self_hosted/parity/lsp_diagnostics_parity.sh`가 clean/error
+  source fixture를 C/LLVM-built self-host tool로 실행해 committed JSON
+  artifact와 비교한다. C LSP transport와의 세션 parity는 아직 아니다.
+  **O-LSP**는 이 rung의 후속 오라클 승격용 gap이다: C LSP에
+  `pgy --lsp-dump-diagnostics <src>`류 페이로드 덤프 플래그가 생기면
+  committed golden을 C-side oracle로 교체/보강한다.
 - **LSP-1 — squiggle 4색 분류기**: RED/AMBER/BLUE/VIOLET 판정
   (docs/140의 색 결정 로직)을 Pergyra 분류기로. 입력 = 진단 코드 +
   AIR advisory fact(JSON — validator가 이미 읽는 그 표면). BLUE는
@@ -107,14 +110,15 @@ C LSP 분해: protocol(framing 229L)/diagnostics/hover/features. 페이로드
 |---|---|---|---|
 | **G-EXEC** | 프로세스 spawn builtin + process capability. world.pgy의 Subprocess 계약 어휘(env_allowlist/timeout/exit_code)를 런타임 fact로 | 표면 결정(BDFL) + 양 백엔드 lowering + caps 게이트 | DRV-2 |
 | **G-STDIN** | 바이트-단위 stdin 읽기 builtin (Content-Length 프레이밍용), caps: input | 표면 결정 + 양 백엔드 | LSP-2 |
-| **O-LSP** | C LSP 진단 페이로드 덤프 플래그(오라클 배관) | C-측 소형 | LSP-0 오라클 승격 |
+| **O-LSP** | C LSP 진단 페이로드 덤프 플래그(오라클 배관) | C-측 소형 | LSP-0 오라클 승격(landed rung 보강) |
 
 ## 4. Rung 표 (selfhost-driver-lsp-wiring-test-smoke가 잠금)
 
 status ∈ {planned, blocked, landed}. landed = artifact와 gate가 실존하고
 parity가 green이어야 한다. blocked = artifact와 gate가 실존하지만 known
 blocker가 문서에 드러난 상태다. planned는 artifact/gate에 `-`만 허용된다.
-착지 시 같은 커밋에서 행을 갱신한다.
+초안 또는 in-flight 파일이 트리에 있어도 parity gate가 같이 착지하기 전에는
+planned로 둔다. 착지 시 같은 커밋에서 행을 갱신한다.
 
 <!-- DRIVER-LSP-RUNG-BEGIN -->
 | track | rung | status | artifact | gate |
@@ -123,7 +127,7 @@ blocker가 문서에 드러난 상태다. planned는 artifact/gate에 `-`만 허
 | driver | DRV-1 | landed | src/self_hosted/compiler/driver_rung1_main.pgy | tests/self_hosted/parity/driver_rung1_parity.sh |
 | driver | DRV-2 | planned | - | - |
 | driver | DRV-3 | planned | - | - |
-| lsp | LSP-0 | planned | - | - |
+| lsp | LSP-0 | landed | src/self_hosted/lsp/main.pgy | tests/self_hosted/parity/lsp_diagnostics_parity.sh |
 | lsp | LSP-1 | planned | - | - |
 | lsp | LSP-2 | planned | - | - |
 | lsp | LSP-3 | planned | - | - |

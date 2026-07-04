@@ -10009,9 +10009,12 @@ replacement 0%를 뒤집는 수치가 아니다.
 - **WO-DRV-1** CLI 표면(Args) → **WO-DRV-2** cc 호출(**차단: G-EXEC** —
   process spawn builtin+capability 표면 결정 필요; world.pgy Subprocess
   계약이 어휘를 이미 파둠) → **WO-DRV-3** `--self-driver` 플래그 parity.
-- **WO-LSP-0 — 진단 페이로드 투영 (착수 가능, 고가성비)**: checker 진단 →
-  `publishDiagnostics` JSON(lib/json_emit 재사용). **오라클 배관 O-LSP**:
-  C LSP 페이로드 덤프 플래그 필요(소형) — 그 전엔 golden 수동 승인.
+- **WO-LSP-0 — 진단 페이로드 투영 (landed, 고가성비)**: checker 진단 →
+  `publishDiagnostics` JSON(lib/json_emit 재사용). `src/self_hosted/lsp/main.pgy`
+  와 `tests/self_hosted/parity/lsp_diagnostics_parity.sh`가 clean/error payload를
+  C/LLVM-built self-host tool과 committed JSON artifact로 비교한다.
+  **오라클 배관 O-LSP**: C LSP 페이로드 덤프 플래그 필요(소형) — 그 전엔
+  golden 승인 기반 parity.
 - **WO-LSP-1** squiggle 4색 분류기(docs/140 로직의 Pergyra화, BLUE는
   A-4 noise policy 확정분만) → **WO-LSP-2** transport(**차단: G-STDIN** —
   바이트 단위 stdin builtin 표면 결정) → **WO-LSP-3** C LSP parity.

@@ -156,3 +156,9 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/compiler/authority_owner.pgy` -- authority contracts
   (abilities + roles) for the sensitive compiler-world boundaries: semantic
   verdict, C emission, subprocess planning, and parity judgement.
+
+## LSP
+
+- `src/self_hosted/lsp/main.pgy` -- LSP-0 runnable artifact boundary.
+- `src/self_hosted/lsp/diagnostics_owner.pgy` -- semantic diagnostic block to
+  `publishDiagnostics` JSON payload projection.

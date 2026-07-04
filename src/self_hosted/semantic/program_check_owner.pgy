@@ -314,6 +314,9 @@ func CheckProgram(content: String) -> String {
     ArrayPush(func_names, "CharCode");
     ArrayPush(func_rets, "Int");
     ArrayPush(func_params, "String|Int|Int");
+    ArrayPush(func_names, "CharAt");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "String|Int");
     ArrayPush(func_names, "CharAtN");
     ArrayPush(func_rets, "String");
     ArrayPush(func_params, "String|Int|Int");

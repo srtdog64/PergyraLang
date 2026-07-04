@@ -7,7 +7,7 @@ func CompilerArtifactSchema() -> String {
 }
 
 func CompilerArtifactKindCount() -> Int {
-    return 10;
+    return 11;
 }
 
 func CompilerDiagnosticsArtifactKind() -> String {
@@ -50,6 +50,10 @@ func CompilerRunOutputArtifactKind() -> String {
     return "run_output";
 }
 
+func CompilerLspDiagnosticsArtifactKind() -> String {
+    return "lsp_diagnostics";
+}
+
 func CompilerArtifactKindAt(index: Int) -> String {
     if index == 0 { return CompilerDiagnosticsArtifactKind(); }
     if index == 1 { return CompilerAirJsonArtifactKind(); }
@@ -61,6 +65,7 @@ func CompilerArtifactKindAt(index: Int) -> String {
     if index == 7 { return CompilerEmittedSelfHostedArtifactKind(); }
     if index == 8 { return CompilerRunOutputArtifactKind(); }
     if index == 9 { return CompilerAstTextArtifactKind(); }
+    if index == 10 { return CompilerLspDiagnosticsArtifactKind(); }
     return "";
 }
 
@@ -76,7 +81,7 @@ func CompilerArtifactKindKnown(kind: String) -> Bool {
 }
 
 func CompilerArtifactZoneReady() -> Bool {
-    return CompilerArtifactKindCount() == 10 &&
+    return CompilerArtifactKindCount() == 11 &&
         CompilerArtifactKindAt(0) == CompilerDiagnosticsArtifactKind() &&
         CompilerArtifactKindAt(1) == CompilerAirJsonArtifactKind() &&
         CompilerArtifactKindAt(2) == CompilerMirJsonArtifactKind() &&
@@ -86,5 +91,6 @@ func CompilerArtifactZoneReady() -> Bool {
         CompilerArtifactKindAt(6) == CompilerEmittedLlvmArtifactKind() &&
         CompilerArtifactKindAt(7) == CompilerEmittedSelfHostedArtifactKind() &&
         CompilerArtifactKindAt(8) == CompilerRunOutputArtifactKind() &&
-        CompilerArtifactKindAt(9) == CompilerAstTextArtifactKind();
+        CompilerArtifactKindAt(9) == CompilerAstTextArtifactKind() &&
+        CompilerArtifactKindAt(10) == CompilerLspDiagnosticsArtifactKind();
 }

@@ -1500,6 +1500,8 @@ require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerAb
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerRuntimeMaterializationArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerEmittedLlvmArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerEmittedSelfHostedArtifactKind"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLspDiagnosticsArtifactKind"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindCount() == 11"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(0) == CompilerDiagnosticsArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(1) == CompilerAirJsonArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(2) == CompilerMirJsonArtifactKind()"
@@ -1510,6 +1512,7 @@ require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifac
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(7) == CompilerEmittedSelfHostedArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(8) == CompilerRunOutputArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(9) == CompilerAstTextArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(10) == CompilerLspDiagnosticsArtifactKind()"
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(0) == "diagnostics"'
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(1) == "air_json"'
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(2) == "mir_json"'
@@ -1517,6 +1520,7 @@ reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifact
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(4) == "runtime_materialization"'
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(6) == "emitted_llvm"'
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(9) == "ast_text"'
+reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(10) == "lsp_diagnostics"'
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "let args: Array<String> = Args();"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "expected_path = args[0];"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "actual_path = args[1];"
@@ -1722,6 +1726,8 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/p
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/program_parse_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/stmt_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/tree_text_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/diagnostics_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/main.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/main.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/fuzz/backend_parity_generator/main.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy"'
@@ -1732,8 +1738,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 110 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 110"
+[[ "$selfcheck_count" -eq 112 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 112"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'
@@ -1867,6 +1873,7 @@ require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_
 require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "Log2")'
 require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "Join")'
 require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "StringSplit")'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "CharAt")'
 require_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "Print")'
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func SkipLineComment"
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func SkipBlockComment"
@@ -1939,6 +1946,35 @@ require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"ast_text"'
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"emitted_c"'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" 'cmp -s'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" 'diff -u'
+require_file "src/self_hosted/lsp/main.pgy"
+require_file "src/self_hosted/lsp/README.md"
+require_file "src/self_hosted/lsp/intent.md"
+require_file "src/self_hosted/lsp/diagnostics_owner.pgy"
+require_max_lines "src/self_hosted/lsp/diagnostics_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/main.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/diagnostics_owner.pgy"
+require_text "src/self_hosted/lsp/main.pgy" 'import "diagnostics_owner.pgy";'
+require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'import "../lib/json_emit.pgy";'
+require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'import "../semantic/source_bundle_owner.pgy";'
+require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'import "../semantic/diagnostic_owner.pgy";'
+require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'import "../semantic/program_check_owner.pgy";'
+require_text "src/self_hosted/lsp/diagnostics_owner.pgy" "func LspDiagnosticPayloadContractReady"
+require_text "src/self_hosted/lsp/diagnostics_owner.pgy" "func LspUriForPath"
+require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'if c == "\\"'
+require_file "src/self_hosted/lsp/fixture/valid_int_return.pgy"
+require_file "src/self_hosted/lsp/fixture/bad_logical_right.pgy"
+require_file "src/self_hosted/lsp/expected/valid_int_return.json"
+require_file "src/self_hosted/lsp/expected/bad_logical_right.json"
+require_text "src/self_hosted/lsp/expected/valid_int_return.json" '"diagnostics":[]'
+require_text "src/self_hosted/lsp/expected/bad_logical_right.json" '"code":"logical_operand_not_bool"'
+require_text "Makefile" "self-host-lsp-diagnostics-parity-test-smoke"
+require_text "Makefile" "tests/self_hosted/parity/lsp_diagnostics_parity.sh"
+require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "lsp-diagnostics"
+require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
+require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" '"lsp_diagnostics"'
+require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "pgy_reject_wsl_windows_pgy_parity_mix"
+reject_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" 'cmp -s'
+reject_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" 'diff -u'
 require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:fuzz-generator" "$PGY"'
 reject_text "tests/self_hosted/parity/codegen_parity.sh" "MINGW BYPASS"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$oracle_raw" "$oracle_err" "$oracle_exe" "${run_args[@]}"'

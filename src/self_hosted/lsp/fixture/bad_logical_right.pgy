@@ -1,0 +1,5 @@
+func Main() -> Bool {
+    let a: Bool = true;
+    let b: Int = 1;
+    return a && b;
+}

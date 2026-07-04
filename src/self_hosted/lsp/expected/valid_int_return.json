@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.lsp-diagnostics.v1","jsonrpc":"2.0","method":"textDocument/publishDiagnostics","ok":true,"params":{"uri":"file://src/self_hosted/lsp/fixture/valid_int_return.pgy","diagnostics":[]}}

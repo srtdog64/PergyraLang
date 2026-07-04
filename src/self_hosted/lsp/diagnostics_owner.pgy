@@ -1,0 +1,188 @@
+// Self-host LSP diagnostic payload owner.
+//
+// LSP-0 owns only diagnostic payload projection. It consumes the semantic
+// diagnostic block owner and renders a publishDiagnostics-shaped JSON artifact.
+// Transport, stdin framing, hover, and editor decoration stay out of this rung.
+
+import "../lib/json_emit.pgy";
+import "../semantic/source_bundle_owner.pgy";
+import "../semantic/diagnostic_owner.pgy";
+import "../semantic/program_check_owner.pgy";
+
+func LspDiagnosticsSchema() -> String {
+    return "pgy.selfhost.lsp-diagnostics.v1";
+}
+
+func LspDiagnosticsSource() -> String {
+    return "pergyra-selfhost-semantic";
+}
+
+func LspDiagnosticsMethod() -> String {
+    return "textDocument/publishDiagnostics";
+}
+
+func LspDiagnosticField(block: String, label: String) -> String {
+    let marker: String = Concat(label, ": ");
+    let idx: Int = StringIndexOf(block, marker);
+    if idx < 0 {
+        return "";
+    }
+    let start: Int = idx + StringLength(marker);
+    let tail: String = Substring(block, start, StringLength(block) - start);
+    let end: Int = StringIndexOf(tail, "\n");
+    if end < 0 {
+        return tail;
+    }
+    return Substring(tail, 0, end);
+}
+
+func LspDiagnosticFacts(block: String) -> String {
+    let marker: String = "Facts:\n";
+    let idx: Int = StringIndexOf(block, marker);
+    if idx < 0 {
+        return "";
+    }
+    let start: Int = idx + StringLength(marker);
+    return Substring(block, start, StringLength(block) - start);
+}
+
+func LspDiagnosticSeverityNumber(severity: String) -> String {
+    if severity == "error" {
+        return "1";
+    }
+    if severity == "warning" {
+        return "2";
+    }
+    return "3";
+}
+
+func LspDiagnosticSquiggleClass(severity: String) -> String {
+    if severity == "error" {
+        return "red";
+    }
+    if severity == "warning" {
+        return "amber";
+    }
+    return "blue";
+}
+
+func LspPositionJson(line: Int, character: Int) -> String {
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldNumber("line", ToString(line)));
+    ArrayPush(fields, JsonEmitFieldNumber("character", ToString(character)));
+    return JsonEmitObject(fields);
+}
+
+func LspZeroRangeJson() -> String {
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldRaw("start", LspPositionJson(0, 0)));
+    ArrayPush(fields, JsonEmitFieldRaw("end", LspPositionJson(0, 0)));
+    return JsonEmitObject(fields);
+}
+
+func LspDiagnosticDataJson(block: String, squiggle: String) -> String {
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldString("stage", LspDiagnosticField(block, "Stage")));
+    ArrayPush(fields, JsonEmitFieldString("squiggleClass", squiggle));
+    ArrayPush(fields, JsonEmitFieldString("fix", LspDiagnosticField(block, "Fix")));
+    ArrayPush(fields, JsonEmitFieldString("span", LspDiagnosticField(block, "Span")));
+    ArrayPush(fields, JsonEmitFieldString("facts", LspDiagnosticFacts(block)));
+    return JsonEmitObject(fields);
+}
+
+func LspDiagnosticJson(block: String) -> String {
+    let severity: String = LspDiagnosticField(block, "Severity");
+    let squiggle: String = LspDiagnosticSquiggleClass(severity);
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldRaw("range", LspZeroRangeJson()));
+    ArrayPush(fields, JsonEmitFieldNumber("severity", LspDiagnosticSeverityNumber(severity)));
+    ArrayPush(fields, JsonEmitFieldString("code", LspDiagnosticField(block, "Code")));
+    ArrayPush(fields, JsonEmitFieldString("source", LspDiagnosticsSource()));
+    ArrayPush(fields, JsonEmitFieldString("message", LspDiagnosticField(block, "Reason")));
+    ArrayPush(fields, JsonEmitFieldRaw("data", LspDiagnosticDataJson(block, squiggle)));
+    return JsonEmitObject(fields);
+}
+
+func LspDiagnosticsArrayJson(block: String) -> String {
+    let diagnostics: Array<String> = [];
+    if LspDiagnosticField(block, "Status") == "error" {
+        ArrayPush(diagnostics, LspDiagnosticJson(block));
+    }
+    return JsonEmitArray(diagnostics);
+}
+
+func LspPublishDiagnosticsJson(uri: String, block: String) -> String {
+    let params_fields: Array<String> = [];
+    ArrayPush(params_fields, JsonEmitFieldString("uri", uri));
+    ArrayPush(params_fields, JsonEmitFieldRaw("diagnostics", LspDiagnosticsArrayJson(block)));
+
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldString("schema", LspDiagnosticsSchema()));
+    ArrayPush(fields, JsonEmitFieldString("jsonrpc", "2.0"));
+    ArrayPush(fields, JsonEmitFieldString("method", LspDiagnosticsMethod()));
+    ArrayPush(fields, JsonEmitFieldBool("ok", LspDiagnosticField(block, "Status") != "error"));
+    ArrayPush(fields, JsonEmitFieldRaw("params", JsonEmitObject(params_fields)));
+    return JsonEmitObject(fields);
+}
+
+func LspUriForPath(path: String) -> String {
+    let out: String = "";
+    let i: Int = 0;
+    while i < StringLength(path) {
+        let c: String = CharAt(path, i);
+        if c == "\\" {
+            out = Concat(out, "/");
+        } else {
+            out = Concat(out, c);
+        }
+        i = i + 1;
+    }
+    return Concat("file://", out);
+}
+
+func LspDiagnosticPayloadContractReady() -> Bool {
+    let err: String = SemanticError1("undefined_symbol", "name", "x");
+    let err_json: String = LspPublishDiagnosticsJson("file://fixture", err);
+    if StringIndexOf(err_json, LspDiagnosticsSchema()) < 0 {
+        return false;
+    }
+    if StringIndexOf(err_json, LspDiagnosticsMethod()) < 0 {
+        return false;
+    }
+    if StringIndexOf(err_json, "\"severity\":1") < 0 {
+        return false;
+    }
+    if StringIndexOf(err_json, "\"squiggleClass\":\"red\"") < 0 {
+        return false;
+    }
+    if StringIndexOf(err_json, "\"code\":\"undefined_symbol\"") < 0 {
+        return false;
+    }
+
+    let ok_json: String = LspPublishDiagnosticsJson("file://fixture", SemanticOk());
+    if StringIndexOf(ok_json, "\"ok\":true") < 0 {
+        return false;
+    }
+    if StringIndexOf(ok_json, "\"diagnostics\":[]") < 0 {
+        return false;
+    }
+    return true;
+}
+
+func RunLspDiagnosticsFromArgs(args: Array<String>) -> Void with caps io_read {
+    if ArrayLength(args) < 1 {
+        let missing: String = SemanticError2("input_missing", "expected", "source", "actual", "none");
+        Log(LspPublishDiagnosticsJson("file://", missing));
+        Exit(1);
+        return;
+    }
+
+    let source_path: String = args[0];
+    let content: String = LoadSemanticSourceBundle(source_path);
+    let error: String = CheckProgram(content);
+    let block: String = SemanticOk();
+    if StringLength(error) > 0 {
+        block = error;
+    }
+    Log(LspPublishDiagnosticsJson(LspUriForPath(source_path), block));
+}

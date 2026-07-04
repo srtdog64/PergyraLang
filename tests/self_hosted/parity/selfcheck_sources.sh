@@ -91,6 +91,8 @@ SELF_SOURCES=(
     "src/self_hosted/lib/json_emit.pgy"
     "src/self_hosted/lib/json.pgy"
     "src/self_hosted/lib/json_fact_table.pgy"
+    "src/self_hosted/lsp/diagnostics_owner.pgy"
+    "src/self_hosted/lsp/main.pgy"
     "src/self_hosted/lexer/main.pgy"
     "src/self_hosted/lexer/scan_owner.pgy"
     "src/self_hosted/lexer/source_input_owner.pgy"

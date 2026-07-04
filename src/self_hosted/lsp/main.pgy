@@ -1,0 +1,8 @@
+// Self-host LSP diagnostic payload entrypoint.
+
+import "diagnostics_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    RunLspDiagnosticsFromArgs(args);
+}

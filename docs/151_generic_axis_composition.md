@@ -24,7 +24,7 @@ Status: `decisions-closed, rung-gated`. BDFL 초안(2026-07-04 대화)과
   잔차는 fail-close)에 맞춰 증명 주체를 컴파일러로 명시한다.
 
 형식형 — **기계화 완료** (`docs/semantics/proofs/GenericAxisCarriage.v`,
-coqc 0 admits/0 axioms, 2026-07-04, `formal-semantics-smoke` 배선):
+coqc 0 admits/0 axioms, 2026-07-04, `formal-semantics-test-smoke` 배선):
 축-운반은 기본 상향 단조, 유일하게 허용되는 하강은 ERASE 판정 지점뿐.
 
 - `carriage_monotone` — erase-free spine에서 leaf 축 전부 생존
