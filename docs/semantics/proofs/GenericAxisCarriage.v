@@ -37,11 +37,15 @@
 
   Negative scope: this file proves the carriage LAW, not the carriage MODE.
   Decision-0 of docs/151 §2 (positional / value-typed / runtime-tag) chooses
-  where carriage physically lives; the law here holds over whichever mode is
-  chosen, which is exactly why it is provable while Decision-0 is still open.
-  Nor does this model cross-axis edges (docs/151 §4) or prove that the C and
-  LLVM emitters implement the law -- that is the future matrix-lock gate's
-  job, in the AIRBinding.v negative-scope tradition.
+  where carriage physically lives; the law holds over whichever mode is
+  chosen -- which is why it was provable before Decision-0 closed (it has
+  since closed on positional-default, 2026-07-04, changing nothing here).
+  Reading under positional carriage: the spine is the call/containment
+  path -- interprocedural caps propagation is monotone carriage in the
+  flesh, and grant/sandbox boundaries are the declared descents. This file
+  still does not model cross-axis edges (docs/151 §4) or prove that the C
+  and LLVM emitters implement the law -- the current matrix-lock gate locks
+  the document contract only, in the AIRBinding.v negative-scope tradition.
 *)
 
 Require Import Coq.Lists.List.

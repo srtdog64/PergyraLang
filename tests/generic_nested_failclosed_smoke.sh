@@ -72,7 +72,7 @@ expect_runs() {
     compile "$backend" "$fixture" "$exe" ||
         fail "$backend/$fixture must compile: $(tail -2 "$OUT_DIR/$exe.log")"
     local got
-    got="$("$OUT_DIR/$exe")" || fail "$backend/$fixture crashed at runtime"
+    got="$("$OUT_DIR/$exe" | tr -d '\r')" || fail "$backend/$fixture crashed at runtime"
     [ "$got" = "$want" ] || fail "$backend/$fixture printed '$got', expected '$want'"
 }
 
@@ -86,6 +86,12 @@ expect_runs c    nested_return.pgy "7"
 expect_runs llvm nested_return.pgy "7"
 expect_runs c    body_local.pgy    "9"
 expect_runs llvm body_local.pgy    "9"
+
+# Class-generic constructed-over-T FIELD (measured 2026-07-04): C
+# substitutes and runs; LLVM fails closed on aggregate lowering — the
+# REVERSE of the pre-G-1 function asymmetry. G-5 owns closing it.
+expect_runs   c    class_field.pgy $'7\n7'
+expect_reject llvm class_field.pgy "movable handle lowering"
 
 # No false positives: bare-T generics stay green on both backends.
 expect_runs c    bare_ok.pgy "42"

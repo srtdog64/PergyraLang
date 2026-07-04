@@ -37,9 +37,14 @@ coqc 0 admits/0 axioms, 2026-07-04, `formal-semantics-smoke` 배선):
   ERASE layer 실존 ∧ spine은 erase-free가 아님
 
 주의(negative scope, AIRBinding.v 전통): 이 파일이 증명하는 것은
-운반 **법칙**이지 운반 **방식**(§2 Decision-0)이 아니다 — 법칙은
-어느 carriage 방식 위에서도 성립하므로 Decision-0이 열린 지금도
-증명 가능했다. §4 간선/컴파일러 구현 일치는 미래 matrix-lock 몫.
+운반 **법칙**이지 운반 **방식**(§2 Decision-0)이 아니다 — 법칙이
+방식과 독립이라 **증명 당시 Decision-0이 아직 열려 있었는데도 가능**
+했고, 닫힌 지금도 그대로 유효하다. 해석 규약: spine은 value-typed
+carriage에서는 래퍼 중첩으로, **positional carriage에서는 호출·포함
+경로로 읽는다** — caps interproc 전파가 단조 운반의 실물이고, grant/
+sandbox 경계(PGY_CAP_GRANT, capability envelope)가 "선언된 하강"의
+실물이다. 현 matrix-lock은 이 **문서 계약**을 잠글 뿐, §4 간선의
+컴파일러-구현 일치 검증은 여전히 미래 몫이다.
 
 ## 1. 6축 — 재심(BDFL 2026-07-04): 7축 → 6축
 
@@ -66,14 +71,6 @@ coqc 0 admits/0 axioms, 2026-07-04, `formal-semantics-smoke` 배선):
   자리다. G-4에서 축-합성 검사가 붙을 hook을 slot 이름이 공짜로
   상속한다.
 
-**축 입장 조건(이번 재심에서 일반화):** 축은 **표면 착지점**(키워드/
-구문)이 실존해야 한다. 착지점 없는 후보는 축이 아니라 sketch(§6) 또는
-메타(판정 codomain)다. 재심 후 6축은 표면 키워드와 전단사를 이룬다 —
-World↔`world`, Zone↔`zone`, Actor↔`role`/`subject`, Auth↔`authority`/
-`with caps`, Intent/Effect↔`intent`/effect, slot↔`slot`. Site는 이
-전단사를 깨는 유일한 무착지 축명이었고, Phase 제거도 같은 기준의
-귀결이다(착지 구문 부재 → 축 아님 → ERASE codomain). 미래의 신규 축
-제안은 이 조건을 먼저 통과해야 한다.
 - **Phase 축 제거.** "이 의미는 어느 단계까지 살아 있는가"는 값의
   축이 아니라 **축-사실 자체에 대한 메타 질문**이고, 그 답의 자리는
   이미 둘 다 있다: 런타임-생존 절반은 Decision-0의 carriage
@@ -96,6 +93,15 @@ World↔`world`, Zone↔`zone`, Actor↔`role`/`subject`, Auth↔`authority`/
   런타임 증거 fail-closed(generation·state tag·GATE). 6축이 전부 정적
   선언인 이유, 그리고 시간성이 축이 아니라 판정(ERASE)·런타임(GATE)
   층에 사는 이유가 이것이다.
+
+**축 입장 조건(재심 2건의 일반화):** 축은 **표면 착지점**(키워드/
+구문)이 실존해야 한다. 착지점 없는 후보는 축이 아니라 sketch(§6) 또는
+메타(판정 codomain)다. 재심 후 6축은 표면 키워드와 전단사를 이룬다 —
+World↔`world`, Zone↔`zone`, Actor↔`role`/`subject`, Auth↔`authority`/
+`with caps`, Intent/Effect↔`intent`/effect, slot↔`slot`. Site는 이
+전단사를 깨는 유일한 무착지 축명이었고, Phase 제거도 같은 기준의
+귀결이다(착지 구문 부재 → 축 아님 → ERASE codomain). 미래의 신규 축
+제안은 이 조건을 먼저 통과해야 한다.
 
 ## 2. Decision-0 — 축의 운반 방식 (CLOSED, BDFL 2026-07-04)
 
@@ -205,8 +211,9 @@ Decision-0 positional-기본의 자연선택 증거.
 
 부수 발견(별도 결함 등록): 주석 없는 `let stamp = Now();`가 semantic은
 통과하나 C emitter에서 "cannot determine C type for MIR local" 실패 —
-docs/147 발견-1과 같은 lowering-시점 타입 fact 계열로 추정. probe는
-명시 주석으로 우회, 수정은 별도 태스크.
+MIR-only×generics seam(TODO 보드 stdlib 스트림 발견-1, 2026-07-03)과
+같은 lowering-시점 타입 fact 계열로 추정. probe는 명시 주석으로 우회,
+수정은 별도 태스크.
 
 ## 3. 판정값 — 5값 (CLOSED, BDFL 2026-07-04)
 
@@ -220,7 +227,7 @@ docs/147 발견-1과 같은 lowering-시점 타입 fact 계열로 추정. probe�
 | 판정 | 의미 | 실물 선례 |
 |---|---|---|
 | ALLOW | 그대로 허용 | — |
-| REJECT | 정적 거절 | generic-over-constructed fail-closed 가드 (**현행**) |
+| REJECT | 정적 거절 | generic-over-constructed **param** 가드 (G-1이 return/body-local 개방 후의 잔여 = G-2 소관) |
 | DEFER | MIR/AIR 증명까지 **정적** 유예 | AIR off-path 검증, machine-neutral facts |
 | ERASE(bucket) | 검증 후 의미 소거 — docs/14 버킷 명명 의무 | 축 어휘 100% 소거 실측 |
 | **GATE** | 허용하되 런타임 fail-closed 검사를 pin | caps의 동적디스패치/FFI backstop(docs/15), slot 검사 항상-on |
@@ -256,11 +263,11 @@ exactly-one-owner를 지키려면 축 목록만이 아니라 **사인된 cross-a
 
 ## 5. 1층 표 — 실존 생성자 (출발점 = 전-REJECT 래칫)
 
-**현행 컴파일러의 실제 판정은 이미 존재한다: 구성타입 위 generic은
-전부 REJECT다** (fail-closed 서명 가드, docs/147 발견-1). 따라서 이
-표는 위시리스트가 아니라 **REJECT에서 시작해 증거로 셀을 여는
-래칫**이다. 셀 개방의 전제: Decision-0 닫힘 + 해당 축 carriage 결정
-+ MIR type-text seam 해소(§7).
+**래칫의 0점은 전-REJECT였다** (2026-07-03 fail-closed 서명 가드,
+TODO 보드 stdlib 스트림 발견-1) — 이 표는 위시리스트가 아니라
+**REJECT에서 시작해 증거로 셀을 여는 래칫**이고, G-1(2026-07-04)이
+첫 셀을 열었다. 이후의 셀 개방은 §8 rung 사다리를 따른다(전제였던
+Decision-0 닫힘·seam 해소는 §7에 이행 기록).
 
 | 생성자 | World | Zone | Actor | Auth | Intent/Eff | slot | 현행 판정 |
 |---|---|---|---|---|---|---|---|
@@ -320,6 +327,7 @@ status ∈ {planned, landed}. landed = artifact와 gate 실존, planned =
 | G-2 | param-position constructed-over-T (양 백엔드 — LLVM 인자 metadata + C 바인딩 추론 확장) | planned | - | - |
 | G-3 | 중첩·다중 파라미터 (Option<Option<T>>, Result<T,E> 양-파라미터, List<T> 요소) | planned | - | - |
 | G-4 | generic × 축 합성 셀 개방 (§5 표의 Slot/Channel 행 — Decision-0 carriage 규칙 적용) | planned | - | - |
+| G-5 | class-generic × constructed-field/method 개방 (LLVM aggregate lowering) | planned | - | - |
 <!-- GENERIC-RUNG-END -->
 
 - **G-1 실측(2026-07-04)**: nested_return 7 / body_local 9, C==LLVM
@@ -333,6 +341,18 @@ status ∈ {planned, landed}. landed = artifact와 gate 실존, planned =
 - G-4 전 금지: §5의 Slot/Channel 행 개방은 Decision-0의 carriage 규칙
   (positional 기본)에 따라 **생성자 경계 검사**로 설계한다 — 값 태깅
   으로의 표류 금지.
+- **G-5 실측(감사 probe, 2026-07-04)**: `class Holder<T>`의
+  `cache: Option<T>` 필드 — **C는 치환·실행(7/7), LLVM은 fail-closed
+  거절**("aggregate construction type mismatch ... movable handle
+  lowering"). 함수 때(G-1 이전)와 **역방향 비대칭**, 무음 없음. 두
+  목소리는 `generic_nested_failclosed_smoke`의 class_field leg가 잠금.
+- **전-rung 상시 조항(닫힘 서명의 부칙): 제네릭 × caps는 post-mono
+  재검사로 합성한다.** effect/caps 다형성 표기를 도입하지 않고, 특수화
+  단위로 declared⊇used를 재검사한다(mono-only 백엔드의 배당금 — Java
+  checked-exceptions의 무다형성 실패와 Koka row 다형성 기계를 동시에
+  우회). 현행은 공허하게 성립(제네릭 body의 caps 사용이 T-독립)이며,
+  T-의존 caps가 가능해지는 rung(ability-메서드 호출 등)부터 실검사가
+  된다.
 
 ## Related
 
@@ -340,6 +360,7 @@ docs/121(타입=도메인 매체 — §0의 뿌리) · docs/42 + AxisOwnership.v
 (축 소유권 exactly-one-owner — §4 간선의 근거) · docs/14(소거 계기판
 — ERASE 버킷) · docs/15(caps=effect refinement — GATE 판정의 선례) ·
 docs/12(typestate 거절 — Decision-0의 선례) · docs/147(surface sugar
-감사 + MIR seam) · docs/146(SEA lane fact — Future 행이 요구하는
+감사 — sugar 한정; MIR-only×generics seam의 원 기록은 TODO 보드
+stdlib 스트림 발견-1) · docs/146(SEA lane fact — Future 행이 요구하는
 승격) · docs/118 §2.1(수명 주석 영구금지 — §1 재심의 값-수명 방화벽) ·
 docs/148·150(wiring-doc 규율 선례) · TODO 보드 A-13

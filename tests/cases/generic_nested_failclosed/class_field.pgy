@@ -1,0 +1,25 @@
+// class generic with a constructed-over-T FIELD (audit probe 2026-07-04).
+// Measured voices: C substitutes and RUNS (7/7); LLVM fails closed with
+// "movable handle lowering" — the reverse of the pre-G-1 function
+// asymmetry. Locked here so neither voice drifts silently.
+class Holder<T> {
+    let item: T;
+    let cache: Option<T>;
+
+    func Get(self) -> T {
+        return self.item;
+    }
+
+    func Cached(self) -> Option<T> {
+        return self.cache;
+    }
+}
+
+func Main() -> Void {
+    let h: Holder<Int> = Holder(7, Some(7));
+    Log(h.Get());
+    let c: Option<Int> = h.Cached();
+    if IsSome(c) {
+        Log(UnwrapOption(c));
+    }
+}
