@@ -1410,6 +1410,7 @@ require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "Compile
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerHarnessComparableArtifactPathAt(1)"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerHarnessFindingCap()"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerSubprocessUseCaseAt(0)"
+require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerSubprocessUseCaseKnown(CompilerSubprocessOracleCompareUseCase())"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerSubprocessSchema()"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerSubprocessOracleCompareTimeoutMs()"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerSubprocessOracleCompareEnvAllowlist()"
@@ -1423,7 +1424,14 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHar
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessFindingCap"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareTimeoutMs"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareEnvAllowlist"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessFixtureBuildUseCase"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessArtifactProbeUseCase"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessUseCaseKnown"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "CompilerSubprocessUseCaseAt(1) == CompilerSubprocessFixtureBuildUseCase()"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "CompilerSubprocessUseCaseAt(2) == CompilerSubprocessArtifactProbeUseCase()"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleComparePlanReady"
+reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'CompilerSubprocessUseCaseAt(1) == "fixture_build"'
+reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'CompilerSubprocessUseCaseAt(2) == "artifact_probe"'
 require_text "src/self_hosted/tools/backend_output_comparator/expected/clean.json" '"subprocess_timeout_ms":"30000"'
 require_text "src/self_hosted/tools/backend_output_comparator/expected/clean.json" '"subprocess_env_allowlist":"PATH,PGY_BIN,PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS,PGY_SELFHOST_BUILD_DIR"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'

@@ -37,6 +37,20 @@ func CompilerSubprocessOracleCompareUseCase() -> String {
     return "oracle_compare";
 }
 
+func CompilerSubprocessFixtureBuildUseCase() -> String {
+    return "fixture_build";
+}
+
+func CompilerSubprocessArtifactProbeUseCase() -> String {
+    return "artifact_probe";
+}
+
+func CompilerSubprocessUseCaseKnown(use_case: String) -> Bool {
+    return use_case == CompilerSubprocessOracleCompareUseCase() ||
+        use_case == CompilerSubprocessFixtureBuildUseCase() ||
+        use_case == CompilerSubprocessArtifactProbeUseCase();
+}
+
 func CompilerSubprocessStreamFact() -> String {
     return "stdout_stderr";
 }
@@ -57,8 +71,11 @@ func CompilerSubprocessOracleComparePlanReady() -> Bool {
     return CompilerSubprocessFactCount() == 7 &&
         CompilerSubprocessUseCaseCount() == 3 &&
         CompilerSubprocessUseCaseAt(0) == CompilerSubprocessOracleCompareUseCase() &&
-        CompilerSubprocessUseCaseAt(1) == "fixture_build" &&
-        CompilerSubprocessUseCaseAt(2) == "artifact_probe" &&
+        CompilerSubprocessUseCaseAt(1) == CompilerSubprocessFixtureBuildUseCase() &&
+        CompilerSubprocessUseCaseAt(2) == CompilerSubprocessArtifactProbeUseCase() &&
+        CompilerSubprocessUseCaseKnown(CompilerSubprocessOracleCompareUseCase()) &&
+        CompilerSubprocessUseCaseKnown(CompilerSubprocessFixtureBuildUseCase()) &&
+        CompilerSubprocessUseCaseKnown(CompilerSubprocessArtifactProbeUseCase()) &&
         CompilerSubprocessFactAt(0) == "executable_path" &&
         CompilerSubprocessFactAt(1) == "argv" &&
         CompilerSubprocessFactAt(2) == "cwd" &&

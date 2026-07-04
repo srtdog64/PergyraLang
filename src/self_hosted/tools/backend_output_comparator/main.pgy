@@ -42,7 +42,8 @@ func ComparatorSourceFields(
 ) -> Array<String> {
     if !CompilerArtifactKindKnown(artifact_kind) ||
         !CompilerTestHarnessReady() ||
-        !CompilerSubprocessRunnerReady() {
+        !CompilerSubprocessRunnerReady() ||
+        !CompilerSubprocessUseCaseKnown(CompilerSubprocessOracleCompareUseCase()) {
         Log("BACKEND COMPARATOR OWNER ERROR artifact/test-harness/subprocess rows not ready");
         Exit(1);
     }

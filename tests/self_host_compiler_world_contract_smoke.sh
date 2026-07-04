@@ -452,6 +452,9 @@ for term in \
     "env_allowlist" \
     "timeout_ms" \
     "CompilerSubprocessOracleCompareUseCase" \
+    "CompilerSubprocessFixtureBuildUseCase" \
+    "CompilerSubprocessArtifactProbeUseCase" \
+    "CompilerSubprocessUseCaseKnown" \
     "CompilerSubprocessStreamFact" \
     "CompilerSubprocessExitFact" \
     "oracle_compare" \
