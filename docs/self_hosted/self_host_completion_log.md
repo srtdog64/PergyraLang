@@ -25,6 +25,16 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-05 - AST read surface checker paths consume TestHarness owner
+
+- Added AST read surface checker path facts to
+  `test_harness_tool_paths_owner.pgy`: tool source, expected clean JSON, and
+  `tests/ast_read_surface_ratchet.txt`.
+- Extended `test_harness_manifest.pgy` with the `ast-read-surface-paths` suite.
+- Repointed `ast_read_surface_checker_parity.sh` so shell reads tool/expected
+  paths and the ratchet path from the manifest, then runs the compiled C
+  checker binary for clean and growth fixtures before the LLVM parity leg.
+
 ## 2026-07-05 - Production size checker paths consume TestHarness owner
 
 - Added production C/header size checker path facts to

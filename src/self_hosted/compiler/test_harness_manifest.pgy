@@ -70,6 +70,14 @@ func EmitExamplesInventoryPaths() -> Void {
     }
 }
 
+func EmitAstReadSurfacePaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessAstReadSurfacePathCount() {
+        Log(CompilerHarnessAstReadSurfacePathAt(i));
+        i = i + 1;
+    }
+}
+
 func EmitProductionCSizePaths() -> Void {
     let i: Int = 0;
     while i < CompilerHarnessProductionCSizePathCount() {
@@ -123,6 +131,10 @@ func Main() -> Void {
     }
     if args[0] == CompilerHarnessExamplesInventorySuiteName() {
         EmitExamplesInventoryPaths();
+        return;
+    }
+    if args[0] == CompilerHarnessAstReadSurfaceSuiteName() {
+        EmitAstReadSurfacePaths();
         return;
     }
     if args[0] == CompilerHarnessProductionCSizeSuiteName() {

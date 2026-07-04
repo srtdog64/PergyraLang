@@ -233,6 +233,7 @@ func CompilerTestHarnessReady() -> Bool {
         CompilerHarnessRuntimeBoundaryReady() &&
         CompilerHarnessDocLinkCheckerReady() &&
         CompilerHarnessExamplesInventoryReady() &&
+        CompilerHarnessAstReadSurfaceReady() &&
         CompilerHarnessProductionCSizeReady() &&
         CompilerHarnessProductionHeaderSizeReady() &&
         CompilerHarnessBackendTriSuiteReady();

@@ -240,6 +240,47 @@ func CompilerHarnessExamplesInventoryReady() -> Bool {
     return CompilerHarnessExamplesInventorySuiteName() != "";
 }
 
+func CompilerHarnessAstReadSurfaceSuiteName() -> String {
+    return "ast-read-surface-paths";
+}
+
+func CompilerHarnessAstReadSurfaceToolSourcePath() -> String {
+    return "src/self_hosted/tools/ast_read_surface_checker/main.pgy";
+}
+
+func CompilerHarnessAstReadSurfaceExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/ast_read_surface_checker/expected/clean.json";
+}
+
+func CompilerHarnessAstReadSurfaceRatchetPath() -> String {
+    return "tests/ast_read_surface_ratchet.txt";
+}
+
+func CompilerHarnessAstReadSurfacePathCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessAstReadSurfacePathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessAstReadSurfaceToolSourcePath(); }
+    if index == 1 { return CompilerHarnessAstReadSurfaceExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessAstReadSurfaceRatchetPath(); }
+    return "";
+}
+
+func CompilerHarnessAstReadSurfaceReady() -> Bool {
+    if CompilerHarnessAstReadSurfacePathCount() != 3 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessAstReadSurfacePathCount() {
+        if CompilerHarnessAstReadSurfacePathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessAstReadSurfaceSuiteName() != "";
+}
+
 func CompilerHarnessProductionCSizeSuiteName() -> String {
     return "production-c-size-paths";
 }

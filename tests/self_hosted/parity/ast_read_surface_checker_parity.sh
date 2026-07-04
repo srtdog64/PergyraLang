@@ -28,12 +28,30 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
-PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/ast_read_surface_checker/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/ast_read_surface_checker}"
+HARNESS_PATHS_FILE="$PERGYRA_TOOL_BUILD_DIR/ast_read_surface_harness_paths.txt"
+mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:ast-read-surface" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "ast-read-surface-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 3 ]]; then
+    echo "[self-host-parity:ast-read-surface] TestHarness manifest expected 3 ast-read-surface paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
-EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/ast_read_surface_checker/expected/clean.json"
-RATCHET_FILE="$ROOT_DIR/tests/ast_read_surface_ratchet.txt"
-RATCHET_REL="tests/ast_read_surface_ratchet.txt"
+EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
+RATCHET_REL="${harness_paths[2]}"
+RATCHET_FILE="$ROOT_DIR/$RATCHET_REL"
 
 for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$RATCHET_FILE"; do
     if [[ ! -f "$path" ]]; then
@@ -44,7 +62,6 @@ done
 
 bash "$ROOT_DIR/tests/ast_read_surface_smoke.sh" >/dev/null
 
-mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
 
 LIB_BUILD_DIR="$ROOT_DIR/.tmp/lib"
@@ -53,8 +70,20 @@ cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
 
 PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
 
+CLEAN_BIN="$PERGYRA_TOOL_BUILD_DIR/ast_read_surface_c.exe"
+CLEAN_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/ast_read_surface_c.compile.log"
+if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" --backend=c \
+    -o "$(pgy_path_for_compiler "$PGY" "$CLEAN_BIN")" >"$CLEAN_COMPILE_LOG" 2>&1); then
+    echo "[self-host-parity:ast-read-surface] C backend compile failed" >&2
+    cat "$CLEAN_COMPILE_LOG" >&2
+    exit 1
+fi
+if ! pgy_require_runnable_binary_here "self-host-parity:ast-read-surface" "$CLEAN_BIN"; then
+    exit 1
+fi
+
 set +e
-PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>/dev/null)"
+PERGYRA_OUT="$(cd "$ROOT_DIR" && "$CLEAN_BIN" 2>/dev/null)"
 P_RC=$?
 set -e
 
@@ -157,7 +186,7 @@ mkdir -p "$NEG_ROOT/tests"
 echo "source_ast_codegen|source_ast|0|src/codegen" > "$NEG_ROOT/$RATCHET_REL"
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>&1)"
+NEG_OUT="$(cd "$NEG_ROOT" && "$CLEAN_BIN" 2>&1)"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then
