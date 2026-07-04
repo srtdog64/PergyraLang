@@ -56,8 +56,8 @@ boundary.
 
 The `--document-store-probe <max-bytes>` mode is the LSP-2f input boundary: it
 reads one stdin buffer, consumes complete transport frames, and projects
-`textDocument/didOpen` plus `textDocument/didChange` into a single-document
-state artifact. It is still not a live read-exact loop, multi-document map, or
+`textDocument/didOpen` plus `textDocument/didChange` into a deterministic
+multi-document state artifact. It is still not a live read-exact loop or
 feature handler.
 
 ## Output Contract
@@ -87,7 +87,7 @@ The `--session-replay-probe` mode prints a
 wire string and per-frame list.
 The `--document-store-probe` mode prints a
 `pgy.selfhost.lsp-document-store.v1` artifact with mutation count, final URI,
-final version, final text, and event rows.
+final version, final text, deterministic document rows, and event rows.
 
 ## Oracle
 

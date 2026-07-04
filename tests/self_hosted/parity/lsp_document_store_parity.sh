@@ -106,9 +106,10 @@ body_initialized='{"jsonrpc":"2.0","method":"initialized"}'
 body_open='{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///main.pgy","version":1,"text":"Log(1);"}}}'
 body_change='{"jsonrpc":"2.0","method":"textDocument/didChange","params":{"textDocument":{"uri":"file:///main.pgy","version":2},"contentChanges":[{"text":"Log(2);"}]}}'
 body_open_a='{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///a.pgy","version":1,"text":"A"}}}'
+body_open_b='{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///b.pgy","version":1,"text":"B0"}}}'
 body_change_b='{"jsonrpc":"2.0","method":"textDocument/didChange","params":{"textDocument":{"uri":"file:///b.pgy","version":2},"contentChanges":[{"text":"B"}]}}'
 input_document="$(frame_for_body "$body_initialized")$(frame_for_body "$body_open")$(frame_for_body "$body_change")"
-input_multi_uri="$(frame_for_body "$body_open_a")$(frame_for_body "$body_change_b")"
+input_multi_uri="$(frame_for_body "$body_open_a")$(frame_for_body "$body_open_b")$(frame_for_body "$body_change_b")"
 
 for backend in $BACKENDS; do
     lsp_bin="$BUILD_DIR/main_${backend}.exe"

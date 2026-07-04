@@ -1,8 +1,8 @@
 // Self-host LSP buffered document-store owner.
 //
 // LSP-2f consumes didOpen/didChange request bodies from one buffered stream and
-// projects the resulting single-document state. It deliberately stops before a
-// live read-exact loop, multi-document map, and feature handlers.
+// projects the resulting deterministic document states. It deliberately stops
+// before a live read-exact loop and feature handlers.
 
 import "../lib/json_emit.pgy";
 import "../lib/json_fact_table.pgy";
@@ -38,6 +38,39 @@ func LspDocumentStoreEventJson(
     return JsonEmitObject(fields);
 }
 
+func LspDocumentStoreStateRowJson(uri: String, version: String, text: String) -> String {
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldString("uri", uri));
+    ArrayPush(fields, JsonEmitFieldString("version", version));
+    ArrayPush(fields, JsonEmitFieldString("text", text));
+    return JsonEmitObject(fields);
+}
+
+func LspDocumentStoreStateRowsJson(
+    uris: Array<String>,
+    versions: Array<String>,
+    texts: Array<String>
+) -> String {
+    let rows: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(uris) {
+        ArrayPush(rows, LspDocumentStoreStateRowJson(uris[i], versions[i], texts[i]));
+        i = i + 1;
+    }
+    return JsonEmitArray(rows);
+}
+
+func LspDocumentStoreFindUri(uris: Array<String>, uri: String) -> Int {
+    let i: Int = 0;
+    while i < ArrayLength(uris) {
+        if uris[i] == uri {
+            return i;
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
 func LspDocumentStoreOpenText(table: JsonObjectFactTable) -> Option<String> {
     let params: JsonObjectFactTable = JsonObjectFactObjectTable(table, "params");
     let text_document: JsonObjectFactTable = JsonObjectFactObjectTable(params, "textDocument");
@@ -56,7 +89,7 @@ func LspDocumentStoreTextDocument(table: JsonObjectFactTable) -> JsonObjectFactT
     return JsonObjectFactObjectTable(params, "textDocument");
 }
 
-func LspDocumentStoreEventForBody(body: String, current_uri: String) -> Option<String> {
+func LspDocumentStoreEventForBody(body: String) -> Option<String> {
     let root: JsonObjectFactTable = JsonDocumentObjectFactTable(body);
     if !JsonObjectFactTableReady(root) {
         return Some(LspDocumentStoreEventJson("", "", "", "error", false, "invalid_json"));
@@ -77,9 +110,6 @@ func LspDocumentStoreEventForBody(body: String, current_uri: String) -> Option<S
         return Some(LspDocumentStoreEventJson(method, "", "", "error", false, "missing_uri"));
     }
     let uri: String = UnwrapOption(uri_opt);
-    if StringLength(current_uri) > 0 && current_uri != uri {
-        return Some(LspDocumentStoreEventJson(method, uri, "", "error", false, "multiple_documents"));
-    }
     let version: String = "";
     if IsSome(version_opt) {
         version = UnwrapOption(version_opt);
@@ -125,6 +155,9 @@ func LspDocumentStoreJson(buffer: String) -> Option<String> {
     let frame_count: Int = 0;
     let mutations: Int = 0;
     let errors: Int = 0;
+    let uris: Array<String> = [];
+    let versions: Array<String> = [];
+    let texts: Array<String> = [];
     let final_uri: String = "";
     let final_version: String = "";
     let final_text: String = "";
@@ -144,13 +177,25 @@ func LspDocumentStoreJson(buffer: String) -> Option<String> {
             } else {
                 frame_count = frame_count + 1;
                 let body: String = UnwrapOption(body_opt);
-                let event: String = UnwrapOption(LspDocumentStoreEventForBody(body, final_uri));
+                let event: String = UnwrapOption(LspDocumentStoreEventForBody(body));
+                let root: JsonObjectFactTable = JsonDocumentObjectFactTable(body);
+                let action_open: Bool = StringIndexOf(event, "\"action\":\"open\"") >= 0;
+                let action_change: Bool = StringIndexOf(event, "\"action\":\"change\"") >= 0;
+                if action_change && JsonObjectFactTableReady(root) {
+                    let text_document: JsonObjectFactTable = LspDocumentStoreTextDocument(root);
+                    let uri_opt: Option<String> = JsonObjectFactStringFieldOpt(text_document, "uri");
+                    if IsSome(uri_opt) {
+                        let uri: String = UnwrapOption(uri_opt);
+                        if LspDocumentStoreFindUri(uris, uri) < 0 {
+                            event = LspDocumentStoreEventJson("textDocument/didChange", uri, "", "error", false, "unknown_document");
+                        }
+                    }
+                }
                 ArrayPush(events, event);
                 if StringIndexOf(event, "\"ok\":false") >= 0 {
                     errors = errors + 1;
                 }
-                if StringIndexOf(event, "\"action\":\"open\"") >= 0 ||
-                    StringIndexOf(event, "\"action\":\"change\"") >= 0 {
+                if StringIndexOf(event, "\"ok\":true") >= 0 && (action_open || action_change) {
                     let text_document: JsonObjectFactTable = LspDocumentStoreTextDocument(JsonDocumentObjectFactTable(body));
                     final_uri = UnwrapOption(JsonObjectFactStringFieldOpt(text_document, "uri"));
                     let version_opt: Option<String> = JsonObjectFactNumberFieldOpt(text_document, "version");
@@ -158,6 +203,15 @@ func LspDocumentStoreJson(buffer: String) -> Option<String> {
                         final_version = UnwrapOption(version_opt);
                     }
                     final_text = UnwrapOption(LspDocumentStoreApplyText(body));
+                    let existing: Int = LspDocumentStoreFindUri(uris, final_uri);
+                    if existing >= 0 {
+                        ArraySet(versions, existing, final_version);
+                        ArraySet(texts, existing, final_text);
+                    } else {
+                        ArrayPush(uris, final_uri);
+                        ArrayPush(versions, final_version);
+                        ArrayPush(texts, final_text);
+                    }
                     mutations = mutations + 1;
                 }
                 cursor = cursor + UnwrapOption(complete_opt);
@@ -180,20 +234,28 @@ func LspDocumentStoreJson(buffer: String) -> Option<String> {
     ArrayPush(fields, JsonEmitFieldString("finalUri", final_uri));
     ArrayPush(fields, JsonEmitFieldString("finalVersion", final_version));
     ArrayPush(fields, JsonEmitFieldString("finalText", final_text));
+    ArrayPush(fields, JsonEmitFieldNumber("documentCount", ToString(ArrayLength(uris))));
+    ArrayPush(fields, JsonEmitFieldRaw("documents", LspDocumentStoreStateRowsJson(uris, versions, texts)));
     ArrayPush(fields, JsonEmitFieldRaw("events", JsonEmitArray(events)));
     return Some(JsonEmitObject(fields));
 }
 
 func LspDocumentStoreContractReady() -> Bool {
     let body: String = "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/didOpen\",\"params\":{\"textDocument\":{\"uri\":\"file:///a.pgy\",\"version\":1,\"text\":\"Log(1);\"}}}";
-    let event: String = UnwrapOption(LspDocumentStoreEventForBody(body, ""));
+    let event: String = UnwrapOption(LspDocumentStoreEventForBody(body));
     if StringIndexOf(event, "\"action\":\"open\"") < 0 {
         return false;
     }
     if StringIndexOf(event, "\"uri\":\"file:///a.pgy\"") < 0 {
         return false;
     }
-    let ignored: String = UnwrapOption(LspDocumentStoreEventForBody("{\"jsonrpc\":\"2.0\",\"method\":\"initialized\"}", ""));
+    let multi_body: String = "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/didOpen\",\"params\":{\"textDocument\":{\"uri\":\"file:///a.pgy\",\"version\":1,\"text\":\"A\"}}}";
+    let multi_frame: String = Concat("Content-Length: ", Concat(ToString(StringLength(multi_body)), Concat("\r\n\r\n", multi_body)));
+    let multi: String = UnwrapOption(LspDocumentStoreJson(multi_frame));
+    if StringIndexOf(multi, "\"documentCount\":1") < 0 {
+        return false;
+    }
+    let ignored: String = UnwrapOption(LspDocumentStoreEventForBody("{\"jsonrpc\":\"2.0\",\"method\":\"initialized\"}"));
     return StringIndexOf(ignored, "\"action\":\"ignored\"") >= 0;
 }
 

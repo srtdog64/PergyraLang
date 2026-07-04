@@ -2142,7 +2142,10 @@ require_text "src/self_hosted/lsp/expected/session_replay_feature.json" '\"items
 require_text "src/self_hosted/lsp/expected/session_replay_unsupported.json" '"errors":1'
 require_text "src/self_hosted/lsp/expected/document_store.json" '"schema":"pgy.selfhost.lsp-document-store.v1"'
 require_text "src/self_hosted/lsp/expected/document_store.json" '"finalText":"Log(2);"'
-require_text "src/self_hosted/lsp/expected/document_store_multi_uri.json" '"reason":"multiple_documents"'
+require_text "src/self_hosted/lsp/expected/document_store.json" '"documentCount":1'
+require_text "src/self_hosted/lsp/expected/document_store_multi_uri.json" '"documentCount":2'
+require_text "src/self_hosted/lsp/expected/document_store_multi_uri.json" '"uri":"file:///a.pgy"'
+require_text "src/self_hosted/lsp/expected/document_store_multi_uri.json" '"uri":"file:///b.pgy"'
 require_text "Makefile" "self-host-lsp-transport-frame-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/lsp_transport_frame_parity.sh"
 require_text "tests/self_hosted/parity/lsp_transport_frame_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
