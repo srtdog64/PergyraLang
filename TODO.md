@@ -10664,6 +10664,24 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
 - **부수 잔여(같은 트랙에서 조임)**: S2 진단 위치 0:0 강등(member-access
   노드 line 소실), 중첩 base(`w.zone.subject`) 유출 미커버.
 
+#### A-17. Self-bootstrap + Stdlib 실행 설계도 (docs/158, docs/159 — 2026-07-05)
+
+- **배경**: 2일 시간창 대비 durable 실행 설계도 2건 착지. 나 없이 집행
+  가능한 정밀도(파일·rung·결정점 단위).
+- **docs/158 self-bootstrap**: 실측 정정 — 코드젠 fixed-point(gen2==gen3)는
+  **이미 달성(M1)**, 전체 컴파일러는 6.57%(M2, semantic 46k LOC 중 6%만).
+  **G-EXEC는 fixed-point 벽 아님**(셸 하니스가 외부 gcc로 이미 작동) —
+  driver 순도(DRV-2)만 게이트. 진짜 벽 = **완전성**(semantic/parser 포팅).
+  최근 66/120 self-host 커밋이 전부 LSP(0% core)라 M2% 정체.
+  **★§4 분기(미결 BDFL): M1 선언+thesis 전환 vs M2 완주(수개월).**
+- **docs/159 stdlib**: active 2/sketch 11. per-module doctrine-pass 7항
+  템플릿 + money/datetime 완전 diff 스펙 + 11모듈 표(불변식/fail-closed/
+  caps/견인). MoneyAdd 통화무검사 반례를 Result Err로 닫는 게 thesis 실증.
+  M1 분기 택 시 이 트랙이 근시일 본체.
+- **★ 선행 결정: docs/158 §4 분기.** 이거 없이 착수하면 에너지가 임계
+  경로 밖으로 샌다(지난 수개월 LSP처럼). WO 후보: WO-SH-COMPLETE/SEM/
+  TYPEDAST/GEXEC(158), WO-L4-DATETIME/MONEY/PAGE-SPRAY(159).
+
 #### A-11. TPU/MLIR — post-beta 설계 여지만
 
 - 베타 중 직접 작업 금지. LLVM → MLIR/StableHLO 경로 후보 메모만 유지.
