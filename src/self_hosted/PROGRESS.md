@@ -76,8 +76,10 @@ structural marker checks now consume owner-owned `kind` facts rather than raw
 line-text equality. The rest of codegen,
 runtime and released/native compiler driver/LSP substitution are still 0%;
 the compiler driver now has DRV-0/DRV-1 artifact rungs and LSP has LSP-0
-diagnostic payload plus LSP-1 squiggle-policy projection rungs (docs/150), but
-those are not counted as released driver/LSP replacement. The MIR-lowering
+diagnostic payload plus LSP-1 squiggle-policy projection rungs (docs/150).
+C LSP also exposes `pgy-lsp --dump-diagnostics <src>` as a live oracle
+plumbing path for LSP diagnostics shape checks, but those are not counted as
+released driver/LSP replacement. The MIR-lowering
 substitution has now *started* (see below).
 
 **MIR-lowering substitution started (2026-06-18, path (a) rung-0b):** the C
@@ -190,8 +192,9 @@ self-host codegen is a standalone AST->C emitter for the supported subset, not a
 replacement of the C backend's MIR-lowering. HIR/MIR, the rest of codegen,
 runtime and released/native compiler driver/LSP replacement remain 0%.
 The compiler driver has DRV-0/DRV-1 artifact rungs, and LSP has LSP-0
-diagnostic payload plus LSP-1 squiggle-policy rungs, but neither is a shipped
-replacement (docs/150).
+diagnostic payload plus LSP-1 squiggle-policy rungs. The C LSP dump flag
+`pgy-lsp --dump-diagnostics <src>` provides live oracle plumbing for the LSP
+payload gate, but neither LSP rung is a shipped replacement (docs/150).
 
 **Real-example round-trip (2026-06-17):** beyond the 35 hand-written parity
 fixtures, the codegen tool was surveyed against all 118 `examples/*.pgy`. It

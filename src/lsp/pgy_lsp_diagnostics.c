@@ -130,16 +130,21 @@ lsp_append_erasure_diagnostics(ASTNode *ast, char *diag_buf, size_t buf_size,
     free(error);
 }
 
-void
-publish_diagnostics(const char *uri, const char *source_text)
+bool
+lsp_build_diagnostics_params(const char *uri, const char *source_text,
+                             char *params, size_t params_size)
 {
+    if (params == NULL || params_size == 0)
+        return false;
+    params[0] = '\0';
     Lexer *lexer = lexer_create(source_text);
-    if (lexer == NULL) return;
+    if (lexer == NULL)
+        return false;
 
     Parser *parser = parser_create(lexer);
     if (parser == NULL) {
         lexer_destroy(lexer);
-        return;
+        return false;
     }
 
     ASTNode *ast = parser_parse_program(parser);
@@ -246,12 +251,21 @@ publish_diagnostics(const char *uri, const char *source_text)
     char escaped_uri[2048];
     json_escape_copy(escaped_uri, sizeof(escaped_uri), uri);
 
-    char params[16384];
-    snprintf(params, sizeof(params),
+    snprintf(params, params_size,
         "{\"uri\":\"%s\",\"diagnostics\":[%s]}", escaped_uri, diag_buf);
-    lsp_notify("textDocument/publishDiagnostics", params);
 
     ast_destroy(ast);
     parser_destroy(parser);
     lexer_destroy(lexer);
+    return true;
+}
+
+void
+publish_diagnostics(const char *uri, const char *source_text)
+{
+    char params[16384];
+    if (!lsp_build_diagnostics_params(uri, source_text, params,
+                                      sizeof(params)))
+        return;
+    lsp_notify("textDocument/publishDiagnostics", params);
 }

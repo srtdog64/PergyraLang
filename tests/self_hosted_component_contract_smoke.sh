@@ -1984,10 +1984,20 @@ require_text "src/self_hosted/lsp/expected/squiggle_policy.json" '"class":"amber
 require_text "src/self_hosted/lsp/expected/squiggle_policy.json" '"class":"blue"'
 require_text "src/self_hosted/lsp/expected/squiggle_policy.json" '"class":"violet"'
 require_text "Makefile" "self-host-lsp-diagnostics-parity-test-smoke"
+require_text "Makefile" 'self-host-lsp-diagnostics-parity-test-smoke: $(PGY) $(PGY_LSP)'
+require_text "Makefile" 'self-host-preparation-parity-test-smoke: $(PGY) $(PGY_LSP)'
+require_text "Makefile" 'PGY_LSP_BIN="$(abspath $(PGY_LSP))"'
+require_text "src/lsp/pgy_lsp.c" "--dump-diagnostics"
+require_text "src/lsp/pgy_lsp_diagnostics.c" "lsp_build_diagnostics_params"
+require_text "src/lsp/pgy_lsp_internal.h" "lsp_build_diagnostics_params"
 require_text "Makefile" "tests/self_hosted/parity/lsp_diagnostics_parity.sh"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "lsp-diagnostics"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" '"lsp_diagnostics"'
+require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "PGY_LSP_BIN"
+require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "--dump-diagnostics"
+require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "PGY_SEM_BINOP_TYPE_MISMATCH"
+require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "semantic:binop:operand_types"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "pgy_reject_wsl_windows_pgy_parity_mix"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "--squiggle-policy"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" '"class":"violet"'

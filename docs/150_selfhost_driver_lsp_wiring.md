@@ -89,9 +89,12 @@ C LSP 분해: protocol(framing 229L)/diagnostics/hover/features. 페이로드
   제공하고, `tests/self_hosted/parity/lsp_diagnostics_parity.sh`가 clean/error
   source fixture를 C/LLVM-built self-host tool로 실행해 committed JSON
   artifact와 비교한다. C LSP transport와의 세션 parity는 아직 아니다.
-  **O-LSP**는 이 rung의 후속 오라클 승격용 gap이다: C LSP에
-  `pgy --lsp-dump-diagnostics <src>`류 페이로드 덤프 플래그가 생기면
-  committed golden을 C-side oracle로 교체/보강한다.
+  **O-LSP 배관 landed**: C LSP 바이너리의
+  `pgy-lsp --dump-diagnostics <src>`가 live `publishDiagnostics` payload를
+  덤프하고, 같은 gate가 clean/error fixture의 JSON-RPC shape, URI
+  normalization, C-side diagnostic code/cause, red squiggle class를 확인한다.
+  아직 self-host code vocabulary와 C diagnostic code vocabulary가 다르므로
+  exact normalized C-vs-self-host LSP equality는 LSP-3 전 후속 작업이다.
 - **LSP-1 — squiggle 4색 분류기 (landed)**: RED/AMBER/BLUE/VIOLET
   판정(docs/140의 색 결정 로직)을 `lsp/squiggle_owner.pgy`가 소유한다.
   입력 = 진단 상태/severity/stage/code/fact. Payload owner는 더 이상
@@ -114,7 +117,7 @@ C LSP 분해: protocol(framing 229L)/diagnostics/hover/features. 페이로드
 |---|---|---|---|
 | **G-EXEC** | 프로세스 spawn builtin + process capability. world.pgy의 Subprocess 계약 어휘(env_allowlist/timeout/exit_code)를 런타임 fact로 | 표면 결정(BDFL) + 양 백엔드 lowering + caps 게이트 | DRV-2 |
 | **G-STDIN** | 바이트-단위 stdin 읽기 builtin (Content-Length 프레이밍용), caps: input | 표면 결정 + 양 백엔드 | LSP-2 |
-| **O-LSP** | C LSP 진단 페이로드 덤프 플래그(오라클 배관) | C-측 소형 | LSP-0 오라클 승격(landed rung 보강) |
+| **O-LSP** | C LSP 진단 페이로드 덤프 플래그 `pgy-lsp --dump-diagnostics <src>` | C-측 landed 배관 | LSP-0 live oracle 보강; normalized equality는 LSP-3 전 후속 |
 
 ## 4. Rung 표 (selfhost-driver-lsp-wiring-test-smoke가 잠금)
 

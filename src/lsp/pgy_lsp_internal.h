@@ -36,6 +36,8 @@ void respond_references(int id, const char *uri, const char *source_text,
 void respond_rename(int id, const char *uri, const char *source_text,
                     int line, int character, const char *new_name);
 void respond_hover(int id, const char *source_text, int line, int character);
+bool lsp_build_diagnostics_params(const char *uri, const char *source_text,
+                                  char *params, size_t params_size);
 void publish_diagnostics(const char *uri, const char *source_text);
 
 #endif /* PERGYRA_PGY_LSP_INTERNAL_H */

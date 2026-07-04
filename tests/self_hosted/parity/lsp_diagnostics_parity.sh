@@ -25,6 +25,11 @@ fi
 PGY_EXPLICIT=0
 [[ -n "${PGY_BIN:-}" ]] && PGY_EXPLICIT=1
 
+PGY_LSP="${PGY_LSP_BIN:-$ROOT_DIR/bin/pgy-lsp}"
+if [[ "$PGY_LSP" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY_LSP}.exe"; then
+    PGY_LSP="${PGY_LSP}.exe"
+fi
+
 if [[ ! -x "$PGY" ]]; then
     if [[ "$PGY_EXPLICIT" -eq 0 ]]; then
         echo "[self-host-parity:lsp-diagnostics] SKIP missing compiler binary: $PGY"
@@ -34,6 +39,9 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:lsp-diagnostics" "$PGY"
+if [[ -x "$PGY_LSP" ]]; then
+    pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:lsp-diagnostics:c-lsp-oracle" "$PGY_LSP"
+fi
 
 LSP_SOURCE="$ROOT_DIR/src/self_hosted/lsp/main.pgy"
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/lsp_diagnostics}"
@@ -150,6 +158,81 @@ capture_policy_output() {
         "lsp_diagnostics"
 }
 
+c_lsp_runtime_arg_for_binary() {
+    local bin="$1"
+    local rel="$2"
+
+    if pgy_binary_expects_windows_paths "$bin"; then
+        printf '%s\n' "${rel//\//\\}"
+        return 0
+    fi
+    printf '%s\n' "$rel"
+}
+
+check_c_lsp_oracle() {
+    local fixture_base="$1"
+    local fixture_rel="src/self_hosted/lsp/fixture/${fixture_base}.pgy"
+    local out_file="$BUILD_DIR/${fixture_base}_c_lsp_oracle.json"
+    local err_file="$BUILD_DIR/${fixture_base}_c_lsp_oracle.err"
+    local arg
+    local rc
+
+    if [[ ! -x "$PGY_LSP" ]]; then
+        echo "[self-host-parity:lsp-diagnostics] missing C LSP oracle binary: $PGY_LSP" >&2
+        exit 1
+    fi
+
+    arg="$(c_lsp_runtime_arg_for_binary "$PGY_LSP" "$fixture_rel")"
+    set +e
+    (cd "$ROOT_DIR" && "$PGY_LSP" --dump-diagnostics "$arg" >"$out_file.raw" 2>"$err_file")
+    rc=$?
+    set -e
+    tr -d '\r' < "$out_file.raw" > "$out_file"
+    rm -f "$out_file.raw"
+
+    if [[ "$rc" -ne 0 ]]; then
+        echo "[self-host-parity:lsp-diagnostics] C LSP oracle fixture=$fixture_base failed rc=$rc" >&2
+        cat "$out_file" "$err_file" >&2
+        exit 1
+    fi
+    if ! grep -Fq '"method":"textDocument/publishDiagnostics"' "$out_file"; then
+        echo "[self-host-parity:lsp-diagnostics] C LSP oracle fixture=$fixture_base missing publishDiagnostics method" >&2
+        cat "$out_file" >&2
+        exit 1
+    fi
+    if grep -Eq '"uri":"[^"]*\\' "$out_file"; then
+        echo "[self-host-parity:lsp-diagnostics] C LSP oracle fixture=$fixture_base leaked backslash path" >&2
+        cat "$out_file" >&2
+        exit 1
+    fi
+    case "$fixture_base" in
+        valid_int_return)
+            grep -Fq '"diagnostics":[]' "$out_file" || {
+                echo "[self-host-parity:lsp-diagnostics] C LSP oracle clean fixture emitted diagnostics" >&2
+                cat "$out_file" >&2
+                exit 1
+            }
+            ;;
+        bad_logical_right)
+            grep -Fq '"code":"PGY_SEM_BINOP_TYPE_MISMATCH"' "$out_file" || {
+                echo "[self-host-parity:lsp-diagnostics] C LSP oracle error fixture lost logical operand code" >&2
+                cat "$out_file" >&2
+                exit 1
+            }
+            grep -Fq '"cause_ir":"semantic:binop:operand_types"' "$out_file" || {
+                echo "[self-host-parity:lsp-diagnostics] C LSP oracle error fixture lost binop cause" >&2
+                cat "$out_file" >&2
+                exit 1
+            }
+            grep -Fq '"squiggleClass":"red"' "$out_file" || {
+                echo "[self-host-parity:lsp-diagnostics] C LSP oracle error fixture lost red squiggle class" >&2
+                cat "$out_file" >&2
+                exit 1
+            }
+            ;;
+    esac
+}
+
 BACKENDS="${PGY_SELFHOST_LSP_BACKENDS:-c llvm}"
 RAN_BACKENDS=()
 SKIPPED_BACKENDS=()
@@ -195,5 +278,9 @@ if [[ "${#RAN_BACKENDS[@]}" -eq 0 ]]; then
     echo "[self-host-parity:lsp-diagnostics] no requested backend ran" >&2
     exit 1
 fi
+
+for fixture_base in "${FIXTURES[@]}"; do
+    check_c_lsp_oracle "$fixture_base"
+done
 
 echo "[self-host-parity:lsp-diagnostics] payload parity ok (backends=${RAN_BACKENDS[*]}; skipped=${SKIPPED_BACKENDS[*]:-none})"

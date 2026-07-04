@@ -16,6 +16,7 @@
 
 #include "../common/numeric_parse.h"
 #include "../common/string_compat.h"
+#include "../compiler/path_utils.h"
 #include "../runtime/pgy_runtime_observability_schema.h"
 #include "pgy_lsp_internal.h"
 
@@ -25,6 +26,29 @@ static void
 lsp_copy_string(char *dst, size_t dst_size, const char *src)
 {
     pergyra_str_copy(dst, dst_size, src);
+}
+
+static void
+lsp_uri_from_path(char *dst, size_t dst_size, const char *path)
+{
+    size_t off = 0;
+
+    if (dst == NULL || dst_size == 0)
+        return;
+    dst[0] = '\0';
+    if (path == NULL)
+        return;
+
+    off = (size_t)snprintf(dst, dst_size, "file://");
+    if (off >= dst_size) {
+        dst[dst_size - 1] = '\0';
+        return;
+    }
+
+    for (const char *p = path; *p != '\0' && off < dst_size - 1; p++) {
+        dst[off++] = (*p == '\\') ? '/' : *p;
+    }
+    dst[off] = '\0';
 }
 
 static char *
@@ -104,6 +128,33 @@ store_document_text(char *doc_uri, size_t doc_uri_size, char **doc_content,
     }
 }
 
+static int
+dump_diagnostics_file(const char *path)
+{
+    char *source = path_read_file(path);
+    char uri[2048];
+    char params[16384];
+
+    if (source == NULL) {
+        fprintf(stderr, "pgy-lsp: failed to read source '%s'\n",
+                path != NULL ? path : "(null)");
+        return 1;
+    }
+
+    lsp_uri_from_path(uri, sizeof(uri), path);
+    if (!lsp_build_diagnostics_params(uri, source, params, sizeof(params))) {
+        free(source);
+        fprintf(stderr, "pgy-lsp: failed to build diagnostics for '%s'\n",
+                path != NULL ? path : "(null)");
+        return 1;
+    }
+
+    printf("{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/publishDiagnostics\",\"params\":%s}\n",
+           params);
+    free(source);
+    return 0;
+}
+
 static void
 dispatch_text_position_request(const char *method, int id, const char *msg,
                                const char *doc_uri, const char *doc_content)
@@ -133,11 +184,18 @@ dispatch_text_position_request(const char *method, int id, const char *msg,
 }
 
 int
-main(void)
+main(int argc, char **argv)
 {
     char doc_uri[2048] = "";
     char *doc_content = NULL;
     char *msg_buf = malloc(PGY_LSP_MESSAGE_BUFFER_SIZE);
+
+    if (argc == 3 && strcmp(argv[1], "--dump-diagnostics") == 0)
+        return dump_diagnostics_file(argv[2]);
+    if (argc > 1) {
+        fprintf(stderr, "usage: pgy-lsp [--dump-diagnostics <source.pgy>]\n");
+        return 1;
+    }
 
     if (msg_buf == NULL)
         return 1;

@@ -54,7 +54,7 @@ Status: `wiring-doc, inventory-gated`. docs/138이 **무엇을**(scope ledger)
 문서가 약속하고 스모크가 문다 — 전 leg RED/GREEN 검증(2026-07-04).
 
 1. **per-type 우선** `[gate: G1]` — generic 함수의 구성-타입 단형화
-   seam(MIR 타입-텍스트 fact, docs/147 · TODO 발견-1)이 닫히기 전까지
+   seam(MIR 타입-텍스트 fact, docs/151 §8 G-rung · TODO 발견-1)이 닫히기 전까지
    stdlib에 `<T>` 시그니처 금지 — G1이 stdlib 소스에서 직접 거절.
    (컴파일러 측 동작은 `generic-nested-failclosed-test-smoke`가 별도
    잠금.) Go-1 시대가 이 형태의 10년 선례다. 명명: `<동사구><Type>`
@@ -122,5 +122,5 @@ fail-closed(불변식 위반 = 거절/패닉) + fixture, 킬러-유즈케이스 
 
 - docs/138 (scope ledger — 무엇을) · docs/12 (domain-lifecycle doctrine)
 - docs/15 (capability sandbox — L2의 caps 의무 근거)
-- docs/119 (계보 — C# CoreLib/BCL 경계) · docs/147 (per-type 근거 발견)
+- docs/119 (계보 — C# CoreLib/BCL 경계) · docs/151 (generic G-rung 결정표)
 - TODO 보드 Stdlib-먹기 트랙
