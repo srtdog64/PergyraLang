@@ -158,6 +158,84 @@ capture_policy_output() {
         "lsp_diagnostics"
 }
 
+lsp_json_uri() {
+    local file="$1"
+    sed -n 's/.*"uri":"\([^"]*\)".*/\1/p' "$file" | sed -n '1p'
+}
+
+lsp_canonical_event_artifact() {
+    local label="$1"
+    local json_file="$2"
+    local out_file="$3"
+    local uri
+
+    if ! grep -Fq '"method":"textDocument/publishDiagnostics"' "$json_file"; then
+        echo "[self-host-parity:lsp-diagnostics] $label missing publishDiagnostics method" >&2
+        cat "$json_file" >&2
+        exit 1
+    fi
+
+    uri="$(lsp_json_uri "$json_file")"
+    if [[ -z "$uri" ]]; then
+        echo "[self-host-parity:lsp-diagnostics] $label missing URI" >&2
+        cat "$json_file" >&2
+        exit 1
+    fi
+
+    if grep -Fq '"diagnostics":[]' "$json_file"; then
+        {
+            echo "method=textDocument/publishDiagnostics"
+            echo "uri=$uri"
+            echo "diagnostic_count=0"
+            echo "event=ok"
+            echo "severity=none"
+            echo "squiggle=none"
+        } > "$out_file"
+        return 0
+    fi
+
+    if ! grep -Fq '"severity":1' "$json_file"; then
+        echo "[self-host-parity:lsp-diagnostics] $label expected severity 1" >&2
+        cat "$json_file" >&2
+        exit 1
+    fi
+    if ! grep -Fq '"squiggleClass":"red"' "$json_file"; then
+        echo "[self-host-parity:lsp-diagnostics] $label expected red squiggle" >&2
+        cat "$json_file" >&2
+        exit 1
+    fi
+
+    if grep -Fq '"code":"logical_operand_not_bool"' "$json_file"; then
+        {
+            echo "method=textDocument/publishDiagnostics"
+            echo "uri=$uri"
+            echo "diagnostic_count=1"
+            echo "event=logical_operand_not_bool"
+            echo "severity=1"
+            echo "squiggle=red"
+        } > "$out_file"
+        return 0
+    fi
+
+    if grep -Fq '"code":"PGY_SEM_BINOP_TYPE_MISMATCH"' "$json_file" \
+        && grep -Fq '"cause_ir":"semantic:binop:operand_types"' "$json_file" \
+        && grep -Fq "Logical operator requires Bool operands" "$json_file"; then
+        {
+            echo "method=textDocument/publishDiagnostics"
+            echo "uri=$uri"
+            echo "diagnostic_count=1"
+            echo "event=logical_operand_not_bool"
+            echo "severity=1"
+            echo "squiggle=red"
+        } > "$out_file"
+        return 0
+    fi
+
+    echo "[self-host-parity:lsp-diagnostics] $label has no known canonical event" >&2
+    cat "$json_file" >&2
+    exit 1
+}
+
 c_lsp_runtime_arg_for_binary() {
     local bin="$1"
     local rel="$2"
@@ -231,6 +309,20 @@ check_c_lsp_oracle() {
             }
             ;;
     esac
+
+    local oracle_canon="$BUILD_DIR/${fixture_base}_c_lsp_oracle.canon"
+    lsp_canonical_event_artifact "c-lsp-oracle:$fixture_base" "$out_file" "$oracle_canon"
+    for backend in "${RAN_BACKENDS[@]}"; do
+        local self_out="$BUILD_DIR/${fixture_base}_${backend}.json"
+        local self_canon="$BUILD_DIR/${fixture_base}_${backend}.canon"
+        lsp_canonical_event_artifact "self-host:$backend:$fixture_base" "$self_out" "$self_canon"
+        pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+            "lsp-diagnostics:normalized:$backend:$fixture_base" \
+            "$BUILD_DIR" \
+            "$oracle_canon" \
+            "$self_canon" \
+            "lsp_diagnostics"
+    done
 }
 
 BACKENDS="${PGY_SELFHOST_LSP_BACKENDS:-c llvm}"
