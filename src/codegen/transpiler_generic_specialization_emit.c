@@ -15,6 +15,7 @@
 #include "transpiler_context.h"
 #include "transpiler_func_forward_helpers.h"
 #include "transpiler_generic_binding_query.h"
+#include "transpiler_generic_param_query.h"
 #include "transpiler_mangled_name.h"
 #include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_inventory_view.h"
@@ -47,126 +48,23 @@ transpiler_generic_specialization_name_too_long(TranspilerCtx *ctx,
         decl_name != NULL ? decl_name : "(anonymous)");
 }
 
-/* Current C specialization substitutes bare type parameters only; a type
- * parameter nested inside a constructed type (Option<T>, Array<T>, ...)
- * would be rendered literally and produce broken C source. Detect that
- * shape in the signature so the call fails closed with a diagnostic,
- * mirroring the LLVM backend's concrete-metadata error. Returns the
- * offending type-parameter name, or NULL when the signature is safe. */
-static const char *
-transpiler_type_nested_generic_param(const ASTNode *type,
-                                     GenericParams *gparams,
-                                     bool at_top_level)
-{
-    GenericParams *args;
-    size_t count;
-
-    if (type == NULL || gparams == NULL)
-        return NULL;
-    if (!at_top_level) {
-        const char *tname = ast_type_name(type);
-        size_t gcount = ast_generic_param_count(gparams);
-        for (size_t i = 0; i < gcount; i++) {
-            const char *gname = ast_generic_param_name(
-                ast_generic_param_at(gparams, i));
-            if (gname != NULL && tname != NULL
-                && strcmp(gname, tname) == 0)
-                return gname;
-        }
-    }
-    args = ast_type_generic_args(type);
-    if (args == NULL)
-        return NULL;
-    count = ast_generic_param_count(args);
-    for (size_t i = 0; i < count; i++) {
-        ASTNode *arg_type = ast_generic_param_constraint(
-            ast_generic_param_at(args, i));
-        const char *hit = transpiler_type_nested_generic_param(
-            arg_type, gparams, false);
-        if (hit != NULL)
-            return hit;
-    }
-    return NULL;
-}
-
+/* MIR-only discipline: generic specialization emission consumes MIR
+ * signature metadata; a generic decl without it must fail loudly, never
+ * fall back to AST-shape emission. (The former nested-param signature
+ * guard lived here until G-2 opened param position — binding inference
+ * now performs structural matching, so the guard's job moved to the
+ * post-inference diagnostic in ensure_generic_specialization.) */
 static bool
-transpiler_type_name_boundary(char ch)
-{
-    return !((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z')
-             || (ch >= '0' && ch <= '9') || ch == '_');
-}
-
-static bool
-transpiler_type_name_angle_arg_mentions_generic_param(const char *type_name,
-                                                      const char *param_name)
-{
-    size_t param_len;
-    int depth = 0;
-
-    if (type_name == NULL || param_name == NULL || param_name[0] == '\0')
-        return false;
-
-    param_len = strlen(param_name);
-    for (const char *p = type_name; *p != '\0'; p++) {
-        if (*p == '<') {
-            depth++;
-            continue;
-        }
-        if (*p == '>') {
-            if (depth > 0)
-                depth--;
-            continue;
-        }
-        if (depth <= 0 || strncmp(p, param_name, param_len) != 0)
-            continue;
-        {
-            char before = p == type_name ? '\0' : p[-1];
-            char after = p[param_len];
-            if ((p == type_name || transpiler_type_name_boundary(before))
-                && (after == '\0' || transpiler_type_name_boundary(after)))
-                return true;
-        }
-    }
-    return false;
-}
-
-static const char *
-transpiler_mir_type_name_nested_generic_param(
-    const char *type_name,
-    const MIRDeclHeader *header)
-{
-    size_t generic_count;
-
-    if (type_name == NULL || header == NULL)
-        return NULL;
-
-    generic_count = mir_decl_header_generic_param_count(header);
-    for (size_t i = 0; i < generic_count; i++) {
-        const MIRDeclGenericParam *param =
-            mir_decl_header_generic_param(header, i);
-        const char *param_name = mir_decl_generic_param_name(param);
-        if (transpiler_type_name_angle_arg_mentions_generic_param(
-                type_name, param_name)) {
-            return param_name;
-        }
-    }
-    return NULL;
-}
-
-static bool
-transpiler_mir_signature_nested_param(TranspilerCtx *ctx,
-                                      ASTNode *decl,
-                                      const char **nested_out)
+transpiler_mir_generic_metadata_present(TranspilerCtx *ctx, ASTNode *decl)
 {
     const char *decl_name;
     const char *diagnostic_name;
     const MIRDeclHeader *header;
     const MIRRoutine *routine;
-    const char *nested;
 
-    if (nested_out != NULL)
-        *nested_out = NULL;
-    if (ctx == NULL || decl == NULL || nested_out == NULL)
+    if (ctx == NULL || decl == NULL)
+        return false;
+    if (!transpiler_active_has_mir(ctx))
         return true;
 
     routine = transpiler_find_mir_function(ctx, decl);
@@ -188,50 +86,6 @@ transpiler_mir_signature_nested_param(TranspilerCtx *ctx,
             diagnostic_name != NULL ? diagnostic_name : "(anonymous)");
         return false;
     }
-
-    /* G-1 (docs/151 §8): constructed-over-T is OPEN in return position —
-     * emission substitutes bindings through the type-require and
-     * expr-infer choke points. PARAM position stays fail-closed: binding
-     * inference reads call-site argument types and gives up on
-     * constructed-over-T params (G-2 owns that cell). */
-    nested = NULL;
-    for (size_t i = 0; nested == NULL
-         && i < transpiler_mir_routine_param_count(routine); i++) {
-        nested = transpiler_mir_type_name_nested_generic_param(
-            transpiler_mir_routine_param_type_name(routine, i), header);
-    }
-
-    *nested_out = nested;
-    return true;
-}
-
-static bool
-transpiler_generic_signature_nested_param(TranspilerCtx *ctx,
-                                          ASTNode *decl,
-                                          const char **nested_out)
-{
-    GenericParams *gparams;
-    size_t param_count;
-    const char *nested;
-
-    if (nested_out != NULL)
-        *nested_out = NULL;
-    if (ctx == NULL || decl == NULL || nested_out == NULL)
-        return true;
-
-    if (transpiler_active_has_mir(ctx))
-        return transpiler_mir_signature_nested_param(ctx, decl, nested_out);
-
-    gparams = ast_declaration_generic_params(decl);
-    param_count = ast_func_param_count(decl);
-    /* Mirror of the MIR-path G-1 rule: return position open, params guarded. */
-    nested = NULL;
-    for (size_t i = 0; nested == NULL && i < param_count; i++) {
-        FuncParam *param = ast_func_param(decl, i);
-        nested = transpiler_type_nested_generic_param(
-            param != NULL ? param->type : NULL, gparams, true);
-    }
-    *nested_out = nested;
     return true;
 }
 
@@ -251,30 +105,31 @@ ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
     decl_name = ast_declaration_name(decl);
     if (decl_name == NULL)
         return NULL;
-    /* The signature guard needs no bindings, and binding inference itself
-     * gives up on constructed-over-T params -- so it must run FIRST, or an
-     * inference failure would return NULL before the guard and let the
-     * caller fall back to the silent raw-name emission this guard exists
-     * to prevent. */
-    {
-        const char *nested = NULL;
-        if (!transpiler_generic_signature_nested_param(ctx, decl, &nested))
-            return NULL;
-        if (nested != NULL) {
-            transpiler_set_backend_error_with_hints(
-                ctx,
-                PGY_CODE_C_TYPE_UNSUPPORTED,
-                PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
-                "C backend: generic function '%s' uses type parameter '%s' inside a constructed type; C specialization does not substitute nested type parameters yet -- use a per-type function",
-                decl_name, nested);
-            return NULL;
-        }
-    }
-
-    if (!transpiler_infer_generic_call_bindings(ctx, decl, call, bindings,
-            &binding_count))
+    /* Non-generic decls simply don't specialize (callers rely on NULL to
+     * mean "use the original name"). Everything past this point is a
+     * genuine generic call site, where silence is forbidden. */
+    if (!transpiler_func_has_generic_params(decl))
         return NULL;
+
+    if (!transpiler_mir_generic_metadata_present(ctx, decl))
+        return NULL;
+
+    /* G-2: binding inference performs structural matching (bare T and
+     * constructed-over-T params) with unification. A failure here means
+     * the call site cannot bind every type parameter (conflict or unbound
+     * without a default) -- fail closed with a diagnostic instead of the
+     * old silent raw-name fallback that died at the native stage. */
+    if (!transpiler_infer_generic_call_bindings(ctx, decl, call, bindings,
+            &binding_count)) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "C backend: cannot bind generic parameter(s) of '%s' from the call site -- argument types conflict or leave a parameter unbound (bind it via an argument or a default type argument)",
+            decl_name);
+        return NULL;
+    }
 
     name_buf = codebuf_create();
     if (name_buf == NULL)

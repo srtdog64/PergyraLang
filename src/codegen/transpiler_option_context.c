@@ -8,6 +8,7 @@
 #include "transpiler_context.h"
 #include "transpiler_format.h"
 #include "transpiler_type_mapping.h"
+#include "transpiler_type_require.h"
 
 #include "../semantic/diag_codes.h"
 
@@ -33,12 +34,19 @@ transpiler_contextual_option_inner_type_copy(TranspilerCtx *ctx,
                                              size_t out_size)
 {
     const char *option_type = transpiler_contextual_option_type_name(ctx);
+    char subst_buf[256];
 
     if (out == NULL || out_size == 0)
         return false;
     out[0] = '\0';
     if (option_type == NULL)
         return false;
+    /* Inside a generic specialization window the contextual return type
+     * may still read "Option<T>" — substitute active bindings so the
+     * derived None_/Some_ suffix is concrete (bare `return None;` in a
+     * generic body was the escapee; Some(x) flows through expr-infer). */
+    option_type = transpiler_type_name_apply_generic_bindings(
+        ctx, option_type, subst_buf, sizeof(subst_buf));
     return slot_inner_type_name_copy(option_type, out, out_size);
 }
 
