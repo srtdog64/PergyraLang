@@ -32,6 +32,9 @@ fi
 # 2) GATE anti-abuse clause (array-covariance firewall)
 require "GATE 남용 금지 조항"
 require "정적 판정이 *아직 안 만들어진* 곳은 GATE가 아니라 DEFER"
+if grep -Fq "| **GATE** (제안)" "$DOC"; then
+    fail "docs/151 still marks closed GATE verdict as a proposal"
+fi
 
 # 3) §5 constructor rows may change verdicts, never vanish
 for row in 'Option<T>' 'List<T>' 'Slot<T>' 'Channel<T>' 'own' 'StrView'; do

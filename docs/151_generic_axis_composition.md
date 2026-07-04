@@ -195,7 +195,7 @@ docs/147 발견-1과 같은 lowering-시점 타입 fact 계열로 추정. probe�
 | REJECT | 정적 거절 | generic-over-constructed fail-closed 가드 (**현행**) |
 | DEFER | MIR/AIR 증명까지 **정적** 유예 | AIR off-path 검증, machine-neutral facts |
 | ERASE(bucket) | 검증 후 의미 소거 — docs/14 버킷 명명 의무 | 축 어휘 100% 소거 실측 |
-| **GATE** (제안) | 허용하되 런타임 fail-closed 검사를 pin | caps의 동적디스패치/FFI backstop(docs/15), slot 검사 항상-on |
+| **GATE** | 허용하되 런타임 fail-closed 검사를 pin | caps의 동적디스패치/FFI backstop(docs/15), slot 검사 항상-on |
 
 - **GATE가 필요한 이유**: 현행 강제 체계는 이미 2층이다 — 정적
   declared⊇used + 런타임 게이트 backstop. 이 판정값이 없으면 그
