@@ -357,6 +357,7 @@ status ∈ {planned, landed}. landed = artifact와 gate 실존, planned =
 | G-3 | 중첩·다중 파라미터 (Option<Option<T>>, Result<T,E> 양-파라미터, List<T> 요소) | planned | - | - |
 | G-4 | generic × 축 합성 셀 개방 (§5 표의 Slot/Channel 행 — Decision-0 carriage 규칙 적용) | planned | - | - |
 | G-5 | class-generic × constructed-field/method 개방 (LLVM aggregate lowering) | planned | - | - |
+| G-6 | bounded generics(`where T: Ability`, 다중 bound, default type args) × 결정표 통합 — **표면·양백엔드 실존**(forward_ability_order/generic_multi_bound_defaults 픽스처)인데 조약 미편입 | planned | - | - |
 <!-- GENERIC-RUNG-END -->
 
 - **G-1 실측(2026-07-04)**: nested_return 7 / body_local 9, C==LLVM
@@ -375,6 +376,14 @@ status ∈ {planned, landed}. landed = artifact와 gate 실존, planned =
   거절**("aggregate construction type mismatch ... movable handle
   lowering"). 함수 때(G-1 이전)와 **역방향 비대칭**, 무음 없음. 두
   목소리는 `generic_nested_failclosed_smoke`의 class_field leg가 잠금.
+- **G-6 등재 사유(감사 3차, 2026-07-04)**: `where T: Ability` 제약은
+  이미 구현된 기능인데 이 결정표가 다루는 T는 무제약뿐이었다.
+  개념적으로 제약은 **축이 T를 통과해 운반되는 유일한 정적 통로**다
+  (예: `where T: FactProving`은 Actor/Auth축 요구를 T에 싣는다 —
+  Decision-0의 "value-typed 승격은 축별 증거로만" 조항이 적용되는
+  바로 그 자리). 통합 전까지 제약-축 합성 셀은 판정 불가(미편입 상태
+  자체를 이 행이 기록). ability 계약의 형식 소유자 = docs/semantics/03
+  (Generic Contract Soundness).
 - **전-rung 상시 조항(닫힘 서명의 부칙): 제네릭 × caps는 post-mono
   재검사로 합성한다.** effect/caps 다형성 표기를 도입하지 않고, 특수화
   단위로 declared⊇used를 재검사한다(mono-only 백엔드의 배당금 — Java

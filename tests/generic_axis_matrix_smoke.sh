@@ -59,7 +59,7 @@ require "판정 금지, 어휘 선점만"
 rows="$(sed -n '/GENERIC-RUNG-BEGIN/,/GENERIC-RUNG-END/p' "$DOC" \
     | grep -E '^\| G-[0-9]')"
 [ -n "$rows" ] || fail "docs/151 §8 rung block has no rows"
-for rung in G-1 G-2 G-3 G-4 G-5; do
+for rung in G-1 G-2 G-3 G-4 G-5 G-6; do
     printf '%s\n' "$rows" | grep -Fq "| $rung " ||
         fail "rung table lost row '$rung' (rows change status, not vanish)"
 done
