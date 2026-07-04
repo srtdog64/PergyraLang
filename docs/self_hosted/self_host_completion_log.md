@@ -25,6 +25,18 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-05 - MIR JSON run-output parity consumes ArtifactZone verdicts
+
+- Repointed `tests/self_hosted/parity/mir_json_parity.sh` so the final
+  `pgy --mir-json | mir_lower | codegen | gcc` run-output comparison against
+  the C oracle is a `run_output` artifact comparison through the Pergyra
+  `backend_output_comparator` owner.
+- The MIR JSON gate still owns MIR fact-presence checks, reconstructed AST
+  shape checks, generated-C compile checks, and C-oracle execution; the final
+  run-output verdict no longer belongs to shell string equality or `diff <(...)`.
+- Tightened `self_hosted_component_contract_smoke.sh` so the MIR JSON parity
+  gate must keep the comparator owner path and cannot reintroduce `diff <(...)`.
+
 ## 2026-07-05 - Semantic verdict parity consumes ArtifactZone verdicts
 
 - Repointed `tests/self_hosted/parity/semantic_parity.sh` so expected

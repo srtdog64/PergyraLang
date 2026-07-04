@@ -23,6 +23,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
 PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix_from_current_path)"
 
@@ -75,7 +76,35 @@ FIXTURE_DIR="$ROOT_DIR/src/self_hosted/mir_lower/fixture"
 CODEGEN_FIXTURE_DIR="$ROOT_DIR/src/self_hosted/codegen/fixture"
 EXAMPLE_FIXTURE_DIR="$ROOT_DIR/examples"
 B="$ROOT_DIR/.tmp/self_hosted/mir_lower/parity"
+ARTIFACT_COMPARE_BUILD_DIR="$B/artifact_owner"
+MIR_RUN_COMPARATOR_BIN=""
 mkdir -p "$B"
+
+compare_mir_run_output_with_owner() {
+    local base="$1"
+    local via_text="$2"
+    local oracle_text="$3"
+    local safe_label="${base//[^A-Za-z0-9_]/_}"
+    local oracle_norm="$ARTIFACT_COMPARE_BUILD_DIR/${safe_label}_oracle.out"
+    local via_norm="$ARTIFACT_COMPARE_BUILD_DIR/${safe_label}_via_mir.out"
+    local cmp_out="$ARTIFACT_COMPARE_BUILD_DIR/${safe_label}.compare.out"
+    local cmp_err="$ARTIFACT_COMPARE_BUILD_DIR/${safe_label}.compare.err"
+    local oracle_rel
+    local via_rel
+
+    printf '%s' "$oracle_text" | pgy_selfhost_normalize_text_artifact > "$oracle_norm"
+    printf '%s' "$via_text" | pgy_selfhost_normalize_text_artifact > "$via_norm"
+    oracle_rel="$(pgy_selfhost_path_relative_to_root "$oracle_norm")"
+    via_rel="$(pgy_selfhost_path_relative_to_root "$via_norm")"
+
+    if ! (cd "$ROOT_DIR" && "$MIR_RUN_COMPARATOR_BIN" \
+        "$oracle_rel" "$via_rel" 0 2 run_output \
+        >"$cmp_out" 2>"$cmp_err"); then
+        echo "[self-host-parity:mir-json] $base: MIR->C run-output artifact parity FAIL" >&2
+        cat "$cmp_out" "$cmp_err" >&2
+        exit 1
+    fi
+}
 
 if grep -Fq 'JsonFieldString(json, kp, inst_end, "\"ast\":")' "$MIR_LOWER_SRC" \
     || grep -Fq "StringLength(ast)" "$MIR_LOWER_SRC"; then
@@ -88,6 +117,9 @@ fi
     --backend=c -o "$(pgy_path_for_compiler "$PGY" "$B/mir_lower.exe")" >/dev/null)
 (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$CODEGEN_SRC")" \
     --backend=c -o "$(pgy_path_for_compiler "$PGY" "$B/codegen.exe")" >/dev/null)
+pgy_selfhost_compile_backend_output_comparator \
+    "self-host-parity:mir-json" "$ARTIFACT_COMPARE_BUILD_DIR"
+MIR_RUN_COMPARATOR_BIN="$(pgy_selfhost_backend_output_comparator_bin "$ARTIFACT_COMPARE_BUILD_DIR")"
 
 # Fail loud at the source if the self-host tool rebuild did not produce runnable
 # binaries (CLAUDE.md s1.1). `pgy --backend=c -o` shells out to gcc; in a shell
@@ -598,11 +630,7 @@ for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}" "${EXAMPLE_FI
 
     via="$(cd "$ROOT_DIR" && "$B/${base}_via_mir.exe" 2>/dev/null | tr -d '\r')"
     orc="$(cd "$ROOT_DIR" && "$B/${base}_oracle.exe" 2>/dev/null | tr -d '\r')"
-    if [[ "$via" != "$orc" ]]; then
-        echo "[self-host-parity:mir-json] $base: MIR->C run-stdout differs from oracle" >&2
-        diff <(printf '%s' "$via") <(printf '%s' "$orc") | head -10 >&2
-        exit 1
-    fi
+    compare_mir_run_output_with_owner "$base" "$via" "$orc"
     pass=$((pass + 1))
 done
 

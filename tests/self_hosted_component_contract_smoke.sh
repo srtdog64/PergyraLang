@@ -339,6 +339,10 @@ for anchor in '## Intent' '## Compiler World Binding' '## Input Contract' '## Ou
     require_text "src/self_hosted/mir_lower/intent.md" "$anchor"
 done
 require_text "tests/self_hosted/parity/mir_json_parity.sh" "set -euo pipefail"
+require_text "tests/self_hosted/parity/mir_json_parity.sh" "pgy_selfhost_compile_backend_output_comparator"
+require_text "tests/self_hosted/parity/mir_json_parity.sh" "compare_mir_run_output_with_owner"
+require_text "tests/self_hosted/parity/mir_json_parity.sh" "run_output"
+reject_text "tests/self_hosted/parity/mir_json_parity.sh" "diff <("
 require_text "Makefile" "self-host-mir-json-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/mir_json_parity.sh"
 require_entrypoint_only_main "mir_lower"
