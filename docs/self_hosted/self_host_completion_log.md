@@ -3246,3 +3246,21 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   target-specific consumers remain active work.
 - No executable cases were run for this slice; validation was limited to static
   owner/ratchet inspection under the validation isolation policy.
+
+### 2026-07-04 -- AIR graph validator consumes compiler AIR evidence envelope
+
+- Repointed `src/self_hosted/tools/air_graph_json_validator/run_owner.pgy` to
+  consume `CompilerAirEvidenceEnvelopeReady()` before reading AIR fixtures. This
+  makes the compiler-world AIR evidence vocabulary load-bearing for the first
+  self-host AIR JSON consumer.
+- Updated `tests/self_hosted/parity/air_graph_json_validator_parity.sh` so the
+  isolated tool build copies `air_evidence_owner.pgy` into the compiler owner
+  slot required by the new import.
+- Tightened `self_hosted_component_contract_smoke.sh` and
+  `self_host_preparation_smoke.sh` so the AIR graph validator run boundary
+  cannot return to a fixture-only AIR scan without the compiler evidence owner.
+- Updated the AIR graph validator intent and pre-self-host expansion ledger.
+  This closes the run-boundary omission, but live AIR evidence-row consumption
+  remains active work.
+- No executable cases were run for this slice; validation was limited to static
+  owner/ratchet inspection under the validation isolation policy.

@@ -308,6 +308,8 @@ require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "Co
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'JsonObjectFactHasField(root, key)'
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" '"execution_lane"'
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" '"boundary_capture"'
+require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" 'import "../../compiler/air_evidence_owner.pgy";'
+require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" "CompilerAirEvidenceEnvelopeReady()"
 require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" "AirGraphValidatorJson"
 require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" "FindingsJsonFromFacts"
 require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" "ReadFile(fixture_path)"

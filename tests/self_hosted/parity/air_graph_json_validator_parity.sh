@@ -38,13 +38,14 @@ PERGYRA_TOOL_SOURCE_DIR="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validato
 PERGYRA_TOOL_SOURCE="$PERGYRA_TOOL_SOURCE_DIR/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/air_graph_json_validator}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
+AIR_EVIDENCE_OWNER="$ROOT_DIR/src/self_hosted/compiler/air_evidence_owner.pgy"
 EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator/expected/clean.json"
 FIXTURE_FILE="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator/fixture/sample.json"
 CAP_FIXTURE_FILE="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator/fixture/cap_env.json"
 AIR_SOURCE="$ROOT_DIR/tests/cases/backend_compare/intent_zone_binding/main.pgy"
 AIR_CAP_SOURCE="$ROOT_DIR/tests/capability/cap_env_demo.pgy"
 
-for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$FIXTURE_FILE" "$CAP_FIXTURE_FILE" "$AIR_SOURCE" "$AIR_CAP_SOURCE"; do
+for path in "$PERGYRA_TOOL_SOURCE" "$AIR_EVIDENCE_OWNER" "$EXPECTED_JSON_FILE" "$FIXTURE_FILE" "$CAP_FIXTURE_FILE" "$AIR_SOURCE" "$AIR_CAP_SOURCE"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:air-graph-json] missing input: $path" >&2
         exit 1
@@ -65,6 +66,8 @@ mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$PERGYRA_TOOL_SOURCE_DIR"/*.pgy "$PERGYRA_TOOL_BUILD_DIR"/
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR/../../lib"
 cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/../../lib/"
+mkdir -p "$PERGYRA_TOOL_BUILD_DIR/../../compiler"
+cp "$AIR_EVIDENCE_OWNER" "$PERGYRA_TOOL_BUILD_DIR/../../compiler/air_evidence_owner.pgy"
 PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
 
 set +e

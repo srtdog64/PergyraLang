@@ -35,7 +35,10 @@ The path is fixed relative to repository root; no CLI argument surface yet.
 through `AirGraphSummaryIntField` plus ordered finding fact rows; downstream
 AIR graph tools must consume that owner rather than inventing local summary
 number scanners. `report_owner.pgy` owns the emitted JSON schema, and
-`run_owner.pgy` owns fixture paths, file input, logging, and exit policy.
+`run_owner.pgy` owns fixture paths, file input, logging, and exit policy. The
+run owner also consumes `CompilerAirEvidenceEnvelopeReady()` before reading AIR
+fixtures, so the compiler-world AIR evidence vocabulary is load-bearing for the
+validator rung rather than only documented in `PgyCompilerWorld`.
 
 ## Output Contract
 

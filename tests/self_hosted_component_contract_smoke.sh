@@ -1289,8 +1289,12 @@ require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "le
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "let item_end_opt: Option<Int> = JsonValueEnd(content,"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" '"execution_lane"'
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" '"boundary_capture"'
+require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" 'import "../../compiler/air_evidence_owner.pgy";'
+require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" "CompilerAirEvidenceEnvelopeReady()"
 require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" "RequiredGraphFeatureKeys()"
 require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" "CountMissingGraphFeatureKeys(content, feature_keys)"
+require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "AIR_EVIDENCE_OWNER"
+require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "compiler/air_evidence_owner.pgy"
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'StringContains(content, "\"schema\":\"pgy.air.graph.v1\"")'
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "let doc_end: Int = JsonDocumentObjectEnd(content)"
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonObjectFieldValueBounds(content, 0, UnwrapOption(doc_end_opt), \"summary\", summary_bounds)"
