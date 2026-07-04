@@ -3281,6 +3281,23 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - No executable cases were run for this slice; validation was limited to static
   owner/ratchet inspection under the validation isolation policy.
 
+### 2026-07-04 -- Codegen bootstrap fixpoint consumes emitted-C artifact owner
+
+- Added `CompilerEmittedCArtifactKind()` to the self-host ArtifactZone owner and
+  changed `backend_output_comparator` so callers can pass an explicit
+  artifact-kind row value. The comparator still defaults to `run_output`, but
+  validates every provided artifact kind through `CompilerArtifactKindKnown(...)`
+  before writing the report.
+- Repointed the codegen bootstrap fixpoint check (`gen2.c == gen3.c`) from
+  shell `cmp` / `diff` ownership to the Pergyra
+  `backend_output_comparator` with artifact kind `emitted_c` and self-hosted
+  projection rows.
+- Tightened `self_hosted_component_contract_smoke.sh` so comparator artifact
+  kind reporting cannot regress to hardcoded `run_output`, and so bootstrap
+  must compile/use the shared comparator for the emitted-C fixpoint artifact.
+- No executable cases were run for this slice; validation was limited to static
+  owner/ratchet inspection under the validation isolation policy.
+
 ### 2026-07-04 -- AIR graph validator consumes compiler AIR evidence envelope
 
 - Repointed `src/self_hosted/tools/air_graph_json_validator/run_owner.pgy` to

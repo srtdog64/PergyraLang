@@ -38,6 +38,10 @@ func CompilerRunOutputArtifactKind() -> String {
     return "run_output";
 }
 
+func CompilerEmittedCArtifactKind() -> String {
+    return "emitted_c";
+}
+
 func CompilerArtifactZoneReady() -> Bool {
     return CompilerArtifactKindCount() == 9 &&
         CompilerArtifactKindAt(0) == "diagnostics" &&
@@ -45,7 +49,7 @@ func CompilerArtifactZoneReady() -> Bool {
         CompilerArtifactKindAt(2) == "mir_json" &&
         CompilerArtifactKindAt(3) == "abi_layout" &&
         CompilerArtifactKindAt(4) == "runtime_materialization" &&
-        CompilerArtifactKindAt(5) == "emitted_c" &&
+        CompilerArtifactKindAt(5) == CompilerEmittedCArtifactKind() &&
         CompilerArtifactKindAt(6) == "emitted_llvm" &&
         CompilerArtifactKindAt(7) == "emitted_self_hosted" &&
         CompilerArtifactKindAt(8) == CompilerRunOutputArtifactKind();

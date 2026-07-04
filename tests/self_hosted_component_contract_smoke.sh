@@ -1379,8 +1379,13 @@ require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'import 
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'import "../../compiler/test_harness_owner.pgy";'
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'import "../../compiler/subprocess_runner_owner.pgy";'
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerRunOutputArtifactKind()"
-require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerArtifactKindKnown(CompilerRunOutputArtifactKind())"
+require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerArtifactKindKnown(artifact_kind)"
+require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "artifact_kind = args[4];"
+require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'JsonEmitFieldString("artifact_kind", artifact_kind)'
+reject_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'JsonEmitFieldString("artifact_kind", CompilerRunOutputArtifactKind())'
 reject_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerArtifactKindAt(6)"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerEmittedCArtifactKind"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(5) == CompilerEmittedCArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(8) == CompilerRunOutputArtifactKind()"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "let args: Array<String> = Args();"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "expected_path = args[0];"
@@ -1678,6 +1683,10 @@ require_text "tests/self_hosted/parity/codegen_parity.sh" 'pgy_binary_is_runnabl
 require_text "tests/pgy_binary_path_helpers.sh" "pgy_reject_wsl_windows_pgy_parity_mix()"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:codegen" "$PGY"'
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'pgy_reject_wsl_windows_pgy_parity_mix "self-host-bootstrap" "$PGY"'
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"'
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "pgy_selfhost_compile_backend_output_comparator"
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'compare_emitted_c_with_owner "fixpoint_gen2_gen3" "$B/gen2.c" "$B/gen3.c"'
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" '"emitted_c"'
 require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:fuzz-generator" "$PGY"'
 reject_text "tests/self_hosted/parity/codegen_parity.sh" "MINGW BYPASS"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$oracle_raw" "$oracle_err" "$oracle_exe" "${run_args[@]}"'

@@ -28,6 +28,7 @@ fi
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
 PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix_from_current_path)"
 
@@ -53,6 +54,7 @@ fi
 TOOL_SOURCE="$ROOT_DIR/src/self_hosted/codegen/main.pgy"
 B="$ROOT_DIR/.tmp/self_hosted/codegen/bootstrap"
 mkdir -p "$B"
+COMPARATOR_BIN=""
 
 run_native_capture() {
     local cwd="$1"
@@ -157,6 +159,35 @@ emit() {  # emit <tool-exe> <out.c>
     run_native_to_file "emit_$(basename "$2")" "$1" "$2" "$AST_REL"
 }
 
+compile_artifact_comparator() {
+    pgy_selfhost_compile_backend_output_comparator "self-host-bootstrap" "$B"
+    COMPARATOR_BIN="$(pgy_selfhost_backend_output_comparator_bin "$B")"
+}
+
+compare_emitted_c_with_owner() {
+    local label="$1"
+    local expected="$2"
+    local actual="$3"
+    local cmp_out="$B/${label}.compare.out"
+    local cmp_err="$B/${label}.compare.err"
+    local expected_rel
+    local actual_rel
+
+    if [[ -z "$COMPARATOR_BIN" ]]; then
+        echo "[self-host-bootstrap] comparator was not built before $label" >&2
+        exit 1
+    fi
+
+    expected_rel="$(pgy_selfhost_path_relative_to_root "$expected")"
+    actual_rel="$(pgy_selfhost_path_relative_to_root "$actual")"
+    if ! run_native_capture "$ROOT_DIR" "$cmp_out" "$cmp_err" "$COMPARATOR_BIN" \
+        "$expected_rel" "$actual_rel" 2 2 "emitted_c"; then
+        echo "[self-host-bootstrap] $label: emitted C artifact drift" >&2
+        cat "$cmp_out" "$cmp_err" >&2
+        exit 1
+    fi
+}
+
 files_equal_text() {
     local left="$1"
     local right="$2"
@@ -221,11 +252,8 @@ emit "$B/gen1.exe" "$B/gen2.c"
 
 emit "$B/gen2.exe" "$B/gen3.c"
 
-if ! files_equal_text "$B/gen2.c" "$B/gen3.c"; then
-    echo "[self-host-bootstrap] FIXPOINT BROKEN: gen2 != gen3" >&2
-    show_file_delta "$B/gen2.c" "$B/gen3.c" >&2
-    exit 1
-fi
+compile_artifact_comparator
+compare_emitted_c_with_owner "fixpoint_gen2_gen3" "$B/gen2.c" "$B/gen3.c"
 echo "[self-host-bootstrap] fixpoint ok: gen2 == gen3 ($(wc -l < "$B/gen2.c") lines)"
 
 # Sample: the Pergyra-built tool must emit identical C to the oracle-built tool.
