@@ -97,6 +97,43 @@ carriage(axis) ∈ { positional, value-typed, runtime-tag }
 후자가 현행 언어의 결(경계에서 증거)과 맞다. **레드팀 권고:
 positional 기본, value-typed 승격은 zone(WO-B4)처럼 축별 증거로만.**
 
+### §2.1 실측 부록 — 최소 커널 매트릭스 (2026-07-04, `axis-carriage-probe-test-smoke`)
+
+권고를 종이 논증으로 두지 않고 **작은 커널들로 실행해 실측**했다
+(BDFL 지시: 최소 조합론 커널 실행). 축×방식별 커널
+(tests/cases/axis_carriage_probe/ + tests/capability 재사용), 각 커널에
+3-leg(정상 / 직접 위반 / **세탁**: 래퍼 한 홉 통과) 표준 시나리오.
+판정 전부 C==LLVM 동일 목소리.
+
+| 축 × 방식 | 커널 | 실측 판정 |
+|---|---|---|
+| Effect/Auth × positional | tests/capability 3픽스처 재사용 (§4 cap⊇effect 간선의 실물) | **STATIC** — declared⊇used가 interproc 세탁 홉까지 잡음 |
+| Auth × value-typed | auth_val (nominal 토큰 + 필드동형 ForgedToken) | 정상 실행 / 위조는 **STATIC** ("to accept 'ForgedToken'") — nominal 실증 |
+| Auth × runtime-tag | auth_tag (tag 필드 + Result 게이트, 3-leg 한 프로그램) | **RUNTIME** — 세탁 홉 뒤에도 잡음, 양 백엔드 동일 (= §3 GATE 판정값의 라이브 데모) |
+| Zone × positional | zone_pos_share (한 subject를 두 zone slot에) | **SILENT-COPY** — 컴파일·실행되며 zone마다 독립 사본(5 5 / 7 5). 격리는 되나 **무진단** |
+| World × positional | world_pos_share (한 zone 값을 두 world에) | **STATIC** — "implicitly copies zone binding" + Clone 명시 요구 + authority 소유이동 근거의 전용 진단 |
+| Zone/World × value-typed | boundary_val (zone별 고유 subject 타입) | **STATIC** — 생성자 field 타입 불일치 거절 |
+
+실측이 권고에 주는 것:
+
+1. **positional-기본이 강화된다.** 세 축 모두 positional 기제가 이미
+   실존하고, 둘(cap/world)은 세탁까지 정적으로 잡는다. value-typed는
+   "승격"이 아니라 nominal typing이 이미 공짜로 주는 것의 명명이다
+   (비용 = 타입 중복, per-type 교리와 동일한 비용 구조).
+2. **발견(등록): zone/world 간 no-silent-override 비일관.** world는
+   named binding의 implicit copy를 정적 거절하며 Clone을 요구하는데,
+   zone은 같은 모양(한 subject → 두 zone slot)을 **무음 복사**한다.
+   격리 자체는 복사로 성립하나 규율이 레벨마다 다르다. 닫는 방향
+   (zone도 동일 진단 vs "zone slot은 world 소유라 무음 복사가 계약")은
+   BDFL 결정 — 어느 쪽이든 결정표의 셀이다. probe가 이 무음을
+   **잠갔으므로** 무의식적 변경은 게이트가 알린다.
+3. **GATE 판정값의 실물 증거.** auth_tag가 정확히 GATE 모양(허용 +
+   런타임 fail-closed pin)으로 양 백엔드에서 동작한다.
+
+주의: 이 probe는 §7의 matrix-lock 게이트가 아니다 — 그것은 결정 닫힘
+후의 **정책**을 잠그고, 이것은 오늘 컴파일러의 **측정된 현행**을
+잠근다.
+
 ## 3. 판정값 — 초안 4값 채택 + 1값 제안 (GATE, OPEN)
 
 | 판정 | 의미 | 실물 선례 |

@@ -1,0 +1,39 @@
+// axis-carriage probe — Authority x runtime-tag, all three legs in one
+// runnable program (both backends must speak identically = durable voice).
+// The tag lives in a field; the check is a Result-first runtime gate.
+object GateToken {
+    level: Int;
+}
+
+func Privileged(t: GateToken) -> Result<Int> {
+    if t.level != 7 {
+        return Err("denied");
+    }
+    return Ok(42);
+}
+
+// Laundering hop: an innocent wrapper between caller and gate. The tag
+// travels with the value, so the hop must change nothing.
+func Relay(t: GateToken) -> Result<Int> {
+    return Privileged(t);
+}
+
+func Main() -> Void {
+    let root: GateToken = GateToken(7);
+    let mallory: GateToken = GateToken(1);
+
+    let a: Result<Int> = Privileged(root);
+    if IsOk(a) {
+        Log(Unwrap(a));
+    }
+
+    let b: Result<Int> = Privileged(mallory);
+    if IsErr(b) {
+        Log("direct-denied");
+    }
+
+    let c: Result<Int> = Relay(mallory);
+    if IsErr(c) {
+        Log("laundered-denied");
+    }
+}

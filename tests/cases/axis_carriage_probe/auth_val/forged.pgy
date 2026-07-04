@@ -1,0 +1,19 @@
+// axis-carriage probe — Authority x value-typed, laundering leg.
+// ForgedToken is field-for-field identical to AdminToken; if typing is
+// nominal this must be a static reject, if structural it slips through.
+object AdminToken {
+    holder: String;
+}
+
+object ForgedToken {
+    holder: String;
+}
+
+func PrivilegedOp(t: AdminToken) -> Int {
+    return 7;
+}
+
+func Main() -> Void {
+    let f: ForgedToken = ForgedToken("mallory");
+    Log(PrivilegedOp(f));
+}

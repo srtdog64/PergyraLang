@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+#
+# axis_carriage_probe_smoke.sh — empirical kernels for docs/151 Decision-0
+# (axis carriage: positional / value-typed / runtime-tag), measured 2026-07-04.
+# Minimal-combination kernel matrix; every verdict below is a MEASURED fact
+# about today's compiler, locked so it cannot drift silently:
+#
+#   Effect/Auth x positional  : caps declared>=used is STATIC and catches the
+#                               interprocedural laundering hop (reused
+#                               tests/capability fixtures — the cap>=effect
+#                               edge of docs/151 §4 in the flesh).
+#   Auth x value-typed        : nominal per-type token — legit leg runs;
+#                               field-identical ForgedToken is a STATIC reject.
+#   Auth x runtime-tag        : tag field + Result gate — catches at RUNTIME
+#                               through a wrapper hop, identical C/LLVM voice
+#                               (the GATE verdict of docs/151 §3, live).
+#   Zone x positional         : one subject bound into two zones COMPILES and
+#                               COPY-ISOLATES (5 5 / 7 5) — isolation without
+#                               a diagnostic. SILENT-COPY.
+#   World x positional        : embedding a named zone binding is a STATIC
+#                               reject ("implicitly copies zone binding",
+#                               Clone demanded) — no-silent-override enforced.
+#   Zone/World x value-typed  : per-type subject boundary — STATIC ctor
+#                               field-type reject.
+#
+# Registered finding (docs/151 실측 부록): the zone level allows the implicit
+# copy the world level statically forbids — a cross-level inconsistency in
+# no-silent-override discipline. If a later change closes it (zone-level
+# diagnostic), the zone_pos_share leg here FAILS and the table must be
+# updated in the same commit. That is intended: measurement lock, not policy.
+#
+# This is NOT the docs/151 §7 matrix-lock gate (that one locks the DECISION
+# table after Decision-0/GATE close); this locks today's measured behavior.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
+
+PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
+if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
+    PGY="${PGY}.exe"
+fi
+[[ -x "$PGY" ]] || { echo "[axis-carriage] SKIP: pgy binary not found at $PGY" >&2; exit 0; }
+
+FIXTURES="$ROOT_DIR/tests/cases/axis_carriage_probe"
+OUT_DIR="$(mktemp -d)"
+trap 'rm -rf "$OUT_DIR"' EXIT
+
+fail() { echo "[axis-carriage] FAIL: $*" >&2; exit 1; }
+
+compile() {
+    local backend="$1" fixture="$2" out_name="$3"
+    local src out rc
+    src="$(pgy_path_for_compiler "$PGY" "$FIXTURES/$fixture")"
+    out="$(pgy_path_for_compiler "$PGY" "$OUT_DIR/$out_name")"
+    set +e
+    (cd "$ROOT_DIR" && "$PGY" "$src" --backend="$backend" -o "$out") \
+        >"$OUT_DIR/$out_name.log" 2>&1
+    rc=$?
+    set -e
+    return $rc
+}
+
+expect_reject() {
+    local backend="$1" fixture="$2" needle="$3"
+    local tag="rej_${backend}_$(echo "$fixture" | tr '/.' '__').exe"
+    if compile "$backend" "$fixture" "$tag"; then
+        fail "$backend/$fixture compiled but the measured verdict is a static reject"
+    fi
+    grep -Fq "$needle" "$OUT_DIR/$tag.log" ||
+        fail "$backend/$fixture rejected without the measured diagnostic: $needle"
+}
+
+expect_runs() {
+    local backend="$1" fixture="$2" want="$3"
+    local tag="run_${backend}_$(echo "$fixture" | tr '/.' '__').exe"
+    compile "$backend" "$fixture" "$tag" ||
+        fail "$backend/$fixture must compile: $(tail -2 "$OUT_DIR/$tag.log")"
+    local got
+    got="$("$OUT_DIR/$tag" | tr -d '\r')" || fail "$backend/$fixture crashed at runtime"
+    [ "$got" = "$want" ] || fail "$backend/$fixture printed '$got', expected '$want'"
+}
+
+for backend in c llvm; do
+    # Auth x value-typed: nominal token accepts holder, rejects the forgery.
+    expect_runs   "$backend" auth_val/main.pgy "7"
+    expect_reject "$backend" auth_val/forged.pgy "to accept 'ForgedToken'"
+
+    # Auth x runtime-tag: three legs, one program, one voice.
+    expect_runs "$backend" auth_tag/main.pgy $'42\ndirect-denied\nlaundered-denied'
+
+    # Zone x positional: silent copy-isolation (the registered finding).
+    expect_runs "$backend" zone_pos_share/main.pgy $'5\n5\n7\n5'
+
+    # World x positional: implicit copy of a named zone binding fails closed.
+    expect_reject "$backend" world_pos_share/main.pgy "implicitly copies zone binding"
+
+    # Zone/World x value-typed: per-type subject boundary is static.
+    expect_reject "$backend" boundary_val/mismatch.pgy "got 'CartBuyer'"
+done
+
+# Effect/Auth x positional: reuse the capability fixtures (semantic layer,
+# backend-independent) — legit clean, direct + interprocedural laundering fire.
+cap() {
+    set +e
+    (cd "$ROOT_DIR" && "$PGY" --capability-manifest "tests/capability/$1") \
+        >"$OUT_DIR/cap_$1.log" 2>&1
+    local rc=$?
+    set -e
+    return $rc
+}
+cap manifest_declared_ok.pgy || fail "caps declared_ok must stay clean"
+if cap manifest_violation.pgy; then fail "caps direct violation must fire"; fi
+grep -Fq "missing declared capabilities" "$OUT_DIR/cap_manifest_violation.pgy.log" ||
+    fail "caps violation lost its diagnostic"
+if cap manifest_interproc.pgy; then fail "caps interprocedural laundering must fire"; fi
+
+echo "[axis-carriage] measured verdicts locked (c/llvm): cap=STATIC+interproc, world=STATIC no-silent-copy, zone=SILENT-COPY isolation, per-type=STATIC, tag=RUNTIME"

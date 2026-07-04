@@ -1,0 +1,14 @@
+// axis-carriage probe — Authority x value-typed, legit leg.
+// Nominal per-type token: holding the type IS the authority.
+object AdminToken {
+    holder: String;
+}
+
+func PrivilegedOp(t: AdminToken) -> Int {
+    return 7;
+}
+
+func Main() -> Void {
+    let t: AdminToken = AdminToken("root");
+    Log(PrivilegedOp(t));
+}

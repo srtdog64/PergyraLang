@@ -1,0 +1,33 @@
+// axis-carriage probe — Zone/World x value-typed (joint row), reject leg.
+// Per-type boundary simulation: each zone declares its OWN subject type,
+// so planting a CartBuyer into PaymentZone must be a static type error.
+// (Nominal typing is world/zone-blind: the catch comes from the type.)
+subject CartBuyer {
+    let hp: Int;
+    action Promote(self) -> Void {
+        hp = hp + 2;
+    }
+}
+
+subject PaymentBuyer {
+    let hp: Int;
+    action Promote(self) -> Void {
+        hp = hp + 2;
+    }
+}
+
+object BuyerView {
+    hp: Int;
+}
+
+zone PaymentZone {
+    subject slot buyer: PaymentBuyer
+    object slot receipt: BuyerView = BuyerView(0)
+    authority buyer
+    bind receipt from buyer by buyer
+}
+
+func Main() -> Void {
+    let z = PaymentZone(CartBuyer(5), BuyerView(0));
+    Log(z.buyer.hp);
+}

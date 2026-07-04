@@ -1,0 +1,57 @@
+// axis-carriage probe — Zone x positional, sharing/laundering leg.
+// One subject value is planted into TWO zones' subject slots at
+// construction. Three possible verdicts, all informative:
+//   static reject          -> a zone membership boundary exists today
+//   runs 5 5 / 7 5         -> copy semantics (Erlang-style isolation)
+//   runs 5 5 / 7 7         -> alias: zone boundary is silent for values
+subject Buyer {
+    let hp: Int;
+    action Promote(self) -> Void {
+        hp = hp + 2;
+    }
+}
+
+object BuyerView {
+    hp: Int;
+}
+
+zone CartZone {
+    subject slot buyer: Buyer
+    object slot mirror: BuyerView = BuyerView(0)
+    authority buyer
+    bind mirror from buyer by buyer
+}
+
+zone PaymentZone {
+    subject slot buyer: Buyer
+    object slot receipt: BuyerView = BuyerView(0)
+    authority buyer
+    bind receipt from buyer by buyer
+}
+
+world TwoZoneWorld {
+    zone cart: CartZone
+    zone payment: PaymentZone
+    activate cart
+    activate payment
+
+    func Poke(self) -> Void {
+        cart.buyer.Promote();
+    }
+
+    func Report(self) -> Void {
+        Log(cart.buyer.hp);
+        Log(payment.buyer.hp);
+    }
+}
+
+func Main() -> Void {
+    let sb = Buyer(5);
+    let w = TwoZoneWorld(
+        CartZone(sb, BuyerView(0)),
+        PaymentZone(sb, BuyerView(0)));
+
+    w.Report();
+    w.Poke();
+    w.Report();
+}

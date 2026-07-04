@@ -10481,6 +10481,15 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
   hiding_requires_declaration) + formal-semantics-smoke 어휘·coqc 배선.
   증명 범위 = 운반 **법칙**만(운반 **방식** Decision-0과 독립이라 지금
   증명 가능했음). 잔여 = 미결정 2건 + matrix-lock(§7 순서 엄수).
+- ✅ Decision-0 실측 커널 매트릭스 landed(2026-07-04, docs/151 §2.1 +
+  `axis-carriage-probe-test-smoke`): 축×방식 최소 커널 3-leg(정상/직접/
+  세탁) 실측, 전부 C==LLVM. cap-positional=STATIC(interproc 세탁까지) /
+  world-positional=STATIC("implicitly copies zone binding"+Clone 요구) /
+  **zone-positional=SILENT-COPY(격리는 되나 무진단 — zone/world 간
+  no-silent-override 비일관 발견, BDFL 셀)** / per-type=STATIC(nominal
+  ForgedToken 거절) / runtime-tag=RUNTIME(GATE 판정값 라이브 데모).
+  → positional-기본 권고가 실측으로 강화됨. probe=현행 잠금(정책 잠금
+  아님, §7 구분).
 
 #### A-11. TPU/MLIR — post-beta 설계 여지만
 
