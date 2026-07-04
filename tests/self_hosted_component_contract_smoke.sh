@@ -1157,15 +1157,20 @@ require_owner_surface mir_lower \
     "routine_lower.pgy" \
     "decl_lower.pgy" \
     "program_lower.pgy"
-require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'import "../lib/json.pgy";'
-require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'JsonDocumentStringFieldEquals(json, "schema", "pgy.mir.v1")'
+require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'import "json_fact_read.pgy";'
+require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'MirDocumentSchemaEquals(json, "pgy.mir.v1")'
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "func MirFactGraphPayloadContractReady"
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "func MirFactGraphPayloadSchema"
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "pgy.mir.v1"
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirFactGraphPayloadFixtureCount() != 86"
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirDocumentSchemaEquals"
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "JsonDocumentFactStringFieldEquals(json, \"schema\", expected)"
+require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirDocumentSchemaEquals(json, MirFactGraphPayloadSchema())"
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../mir_lower/mir_fact_graph_contract_owner.pgy";'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "MirFactGraphPayloadContractReady()"
+reject_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'import "../lib/json.pgy";'
 reject_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'StringIndexOf(json, "\"schema\":\"pgy.mir.v1\"")'
+reject_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'JsonDocumentStringFieldEquals(json, "schema", "pgy.mir.v1")'
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func FindRoutine(json: String, from: Int) -> Option<Int>"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineObjectEnd(json: String, rpos: Int) -> Option<Int>"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineNameEnd(json: String, rpos: Int) -> Option<Int>"
@@ -1573,6 +1578,8 @@ reject_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "JsonO
 reject_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "JsonFieldArrayBounds(json,"
 reject_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "JsonArrayObjectBoundsAt(json,"
 reject_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "JsonObjectFieldValueBounds(json,"
+reject_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "JsonDocumentStringFieldEquals(json,"
+reject_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" "MirDeclObjectBoundsAt(json, row, decl_bounds)"
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" "MirObjectArrayObjectBoundsAt(json, decl_start, decl_end, \"fields\", row, field_bounds)"
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" "MirObjectStringFact(json, decl_bounds[0], decl_bounds[1], \"kind\")"

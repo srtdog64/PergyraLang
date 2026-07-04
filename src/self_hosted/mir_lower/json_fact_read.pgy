@@ -28,6 +28,10 @@ func MirFactObjectStart(json: String, start: Int) -> Int {
     return start;
 }
 
+func MirDocumentSchemaEquals(json: String, expected: String) -> Bool {
+    return JsonDocumentFactStringFieldEquals(json, "schema", expected);
+}
+
 func MirObjectStringFact(json: String, start: Int, end: Int, field: String) -> String {
     let value: Option<String> = MirObjectStringFactOpt(json, start, end, field);
     if !IsSome(value) {

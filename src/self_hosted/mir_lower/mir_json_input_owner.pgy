@@ -4,7 +4,7 @@
 // the MIR JSON document consumed by the lowering owners.
 
 import "error_owner.pgy";
-import "../lib/json.pgy";
+import "json_fact_read.pgy";
 
 func MirJsonInputPath(args: Array<String>) -> String {
     if ArrayLength(args) < 1 {
@@ -18,7 +18,7 @@ func MirJsonReadInput(path: String) -> String {
     if StringLength(json) == 0 {
         Die(Concat("empty or unreadable MIR-JSON file: ", path));
     }
-    if !JsonDocumentStringFieldEquals(json, "schema", "pgy.mir.v1") {
+    if !MirDocumentSchemaEquals(json, "pgy.mir.v1") {
         Die("input is not a pgy.mir.v1 MIR-JSON document");
     }
     return json;

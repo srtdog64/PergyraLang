@@ -1,6 +1,5 @@
 // MIR fact graph payload contract owner.
 
-import "../lib/json.pgy";
 import "json_fact_read.pgy";
 
 func MirFactGraphPayloadSchema() -> String {
@@ -13,7 +12,7 @@ func MirFactGraphPayloadFixtureCount() -> Int {
 
 func MirFactGraphPayloadRootReady() -> Bool {
     let json: String = "{\"schema\":\"pgy.mir.v1\",\"decls\":[],\"routines\":[{\"name\":\"Main\",\"source_locals\":[],\"body\":[{\"source_type\":\"AST_LOG_CALL\",\"expr0\":\"1\"}]}]}";
-    if !JsonDocumentStringFieldEquals(json, "schema", MirFactGraphPayloadSchema()) {
+    if !MirDocumentSchemaEquals(json, MirFactGraphPayloadSchema()) {
         return false;
     }
 
