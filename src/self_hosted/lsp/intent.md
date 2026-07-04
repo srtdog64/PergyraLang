@@ -16,6 +16,7 @@ payload owner, not an LSP transport loop.
 - **request_dispatch_owner**: `src/self_hosted/lsp/request_owner.pgy`
 - **response_emission_owner**: `src/self_hosted/lsp/response_owner.pgy`
 - **session_replay_owner**: `src/self_hosted/lsp/session_owner.pgy`
+- **session_state_owner**: `src/self_hosted/lsp/session_state_owner.pgy`
 - **stage_intent**: `ProjectSemanticDiagnostics`
 - **payload_contract**: `LspDiagnosticPayloadContractReady`
 - **policy_contract**: `LspSquigglePolicyContractReady`
@@ -60,6 +61,11 @@ reads one stdin buffer, consumes complete transport frames, and projects
 multi-document state artifact. It is still not a live read-exact loop or
 feature handler.
 
+The `--session-state-probe <max-bytes>` mode is the LSP-2h input boundary: it
+reads one stdin buffer and projects both the response replay artifact and the
+multi-document store artifact into one session-state artifact. It is still not
+a live read-exact loop or semantic feature content.
+
 ## Output Contract
 
 The tool prints one JSON object with schema
@@ -88,6 +94,9 @@ wire string and per-frame list.
 The `--document-store-probe` mode prints a
 `pgy.selfhost.lsp-document-store.v1` artifact with mutation count, final URI,
 final version, final text, deterministic document rows, and event rows.
+The `--session-state-probe` mode prints a
+`pgy.selfhost.lsp-session-state.v1` artifact with raw `session` and
+`documentStore` fact objects.
 
 ## Oracle
 
@@ -110,3 +119,5 @@ parity is checked by `tests/self_hosted/parity/lsp_document_store_parity.sh`.
 LSP-2g feature-shape parity is checked by the response-emission and
 session-replay parity gates because those are the artifact owners that consume
 `feature_owner.pgy`.
+LSP-2h session-state parity is checked by
+`tests/self_hosted/parity/lsp_session_state_parity.sh`.

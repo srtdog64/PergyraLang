@@ -163,7 +163,7 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/lsp/diagnostics_owner.pgy` -- semantic diagnostic block to
   `publishDiagnostics` JSON payload projection.
 - `src/self_hosted/lsp/document_store_owner.pgy` -- LSP-2f buffered
-  didOpen/didChange single-document state projection.
+  didOpen/didChange multi-document state projection.
 - `src/self_hosted/lsp/feature_owner.pgy` -- LSP-2g advertised textDocument
   no-index response shapes.
 - `src/self_hosted/lsp/squiggle_owner.pgy` -- LSP-1 diagnostic code/fact to
@@ -177,3 +177,5 @@ compiler-stage `.pgy` source to be listed here.
   Content-Length frame emission plan over request bodies.
 - `src/self_hosted/lsp/session_owner.pgy` -- LSP-2e buffered session replay
   over transport bodies and response frames.
+- `src/self_hosted/lsp/session_state_owner.pgy` -- LSP-2h buffered session
+  state projection over response replay plus document-store facts.

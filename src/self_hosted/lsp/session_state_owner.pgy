@@ -1,0 +1,72 @@
+// Self-host LSP buffered session-state owner.
+//
+// LSP-2h consumes one buffered JSON-RPC request stream through the existing
+// response replay and document-store owners. It still stops before a live
+// read-exact loop and semantic feature content.
+
+import "../lib/json_emit.pgy";
+import "document_store_owner.pgy";
+import "session_owner.pgy";
+
+func LspSessionStateSchema() -> String {
+    return "pgy.selfhost.lsp-session-state.v1";
+}
+
+func LspSessionStateProbeMode() -> String {
+    return "--session-state-probe";
+}
+
+func LspSessionStateProbeRequested(args: Array<String>) -> Bool {
+    return ArrayLength(args) > 0 && args[0] == LspSessionStateProbeMode();
+}
+
+func LspSessionStateArtifactOk(session: String, document_store: String) -> Bool {
+    return StringIndexOf(session, "\"ok\":true") >= 0 &&
+        StringIndexOf(document_store, "\"ok\":true") >= 0;
+}
+
+func LspSessionStateJson(buffer: String) -> Option<String> {
+    let session_opt: Option<String> = LspSessionReplayJson(buffer);
+    if !IsSome(session_opt) {
+        return None;
+    }
+    let document_store_opt: Option<String> = LspDocumentStoreJson(buffer);
+    if !IsSome(document_store_opt) {
+        return None;
+    }
+
+    let session: String = UnwrapOption(session_opt);
+    let document_store: String = UnwrapOption(document_store_opt);
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldString("schema", LspSessionStateSchema()));
+    ArrayPush(fields, JsonEmitFieldBool("ok", LspSessionStateArtifactOk(session, document_store)));
+    ArrayPush(fields, JsonEmitFieldRaw("session", session));
+    ArrayPush(fields, JsonEmitFieldRaw("documentStore", document_store));
+    return Some(JsonEmitObject(fields));
+}
+
+func LspSessionStateContractReady() -> Bool {
+    let open_body: String = "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/didOpen\",\"params\":{\"textDocument\":{\"uri\":\"file:///main.pgy\",\"version\":1,\"text\":\"Log(1);\"}}}";
+    let hover_body: String = "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"textDocument/hover\",\"params\":{}}";
+    let buffer: String = Concat(
+        Concat("Content-Length: ", Concat(ToString(StringLength(open_body)), Concat("\r\n\r\n", open_body))),
+        Concat("Content-Length: ", Concat(ToString(StringLength(hover_body)), Concat("\r\n\r\n", hover_body)))
+    );
+    let state: String = UnwrapOption(LspSessionStateJson(buffer));
+    if StringIndexOf(state, LspSessionStateSchema()) < 0 {
+        return false;
+    }
+    if StringIndexOf(state, "\"documentCount\":1") < 0 {
+        return false;
+    }
+    return StringIndexOf(state, "\"result\":null") >= 0;
+}
+
+func RunLspSessionStateProbeFromArgs(args: Array<String>) -> Void with caps io_read {
+    let max_bytes: Int = 4096;
+    if ArrayLength(args) > 1 {
+        max_bytes = ToInt(args[1]);
+    }
+    let buffer: String = ReadStdin(max_bytes);
+    Log(UnwrapOption(LspSessionStateJson(buffer)));
+}
