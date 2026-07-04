@@ -1,0 +1,111 @@
+// DRV-1 driver CLI owner.
+//
+// Owns the replacement driver's argv surface: source path, artifact mode, and
+// optional output path. The compiler-stage artifact generation still lives in
+// driver_rung0_owner.pgy.
+
+import "driver_rung0_owner.pgy";
+
+func DriverCliDefaultMode() -> String {
+    return "--emit-c";
+}
+
+func DriverCliIsArtifactMode(arg: String) -> Bool {
+    return arg == "--emit-ast" || arg == "--emit-c";
+}
+
+func DriverCliSourcePath(args: Array<String>) -> String {
+    if ArrayLength(args) == 0 {
+        return ParserDefaultSourcePath(args);
+    }
+    if StartsWith(args[0], "-") {
+        Die("driver source path must be the first argument");
+    }
+    return args[0];
+}
+
+func DriverCliArtifactMode(args: Array<String>) -> String {
+    let mode: String = DriverCliDefaultMode();
+    let saw_mode: Bool = false;
+    let i: Int = 1;
+    while i < ArrayLength(args) {
+        let arg: String = args[i];
+        if arg == "-o" {
+            if i + 1 >= ArrayLength(args) {
+                Die("driver -o requires an output path");
+            }
+            i = i + 2;
+        } else if DriverCliIsArtifactMode(arg) {
+            if saw_mode && mode != arg {
+                Die("driver artifact mode specified more than once");
+            }
+            mode = arg;
+            saw_mode = true;
+            i = i + 1;
+        } else {
+            Die(Concat("unknown driver CLI argument: ", arg));
+        }
+    }
+    return mode;
+}
+
+func DriverCliOutputPath(args: Array<String>) -> String {
+    let out_path: String = "";
+    let saw_output: Bool = false;
+    let i: Int = 1;
+    while i < ArrayLength(args) {
+        let arg: String = args[i];
+        if arg == "-o" {
+            if saw_output {
+                Die("driver output path specified more than once");
+            }
+            if i + 1 >= ArrayLength(args) {
+                Die("driver -o requires an output path");
+            }
+            out_path = args[i + 1];
+            saw_output = true;
+            i = i + 2;
+        } else if DriverCliIsArtifactMode(arg) {
+            i = i + 1;
+        } else {
+            Die(Concat("unknown driver CLI argument: ", arg));
+        }
+    }
+    return out_path;
+}
+
+func DriverCliArtifact(source_path: String, mode: String) -> String with caps io_read {
+    if mode == "--emit-ast" {
+        return CompileSourceToAst(source_path);
+    }
+    if mode == "--emit-c" {
+        return CompileSourceToC(source_path);
+    }
+    Die(Concat("unknown driver artifact mode: ", mode));
+    return "";
+}
+
+func DriverCliWriteArtifact(out_path: String, mode: String, artifact: String) -> Void {
+    if mode == "--emit-ast" {
+        WriteFile(out_path, Concat(artifact, "\n"));
+        return;
+    }
+    WriteFile(out_path, artifact);
+}
+
+func RunDriverRung1FromArgs(args: Array<String>) -> Void with caps io_read, io_write {
+    let source_path: String = DriverCliSourcePath(args);
+    let mode: String = DriverCliArtifactMode(args);
+    let out_path: String = DriverCliOutputPath(args);
+    let artifact: String = DriverCliArtifact(source_path, mode);
+    if out_path != "" {
+        DriverCliWriteArtifact(out_path, mode, artifact);
+        return;
+    }
+    if mode == "--emit-ast" {
+        Log(artifact);
+        Log("");
+        return;
+    }
+    Log(artifact);
+}

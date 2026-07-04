@@ -79,6 +79,8 @@ or `ABI Layout`.
    and self-hosted artifact flow into one parity owner. That owner compares
    diagnostics, AIR JSON, MIR JSON, ABI/layout facts, runtime materialization
    classification, emitted text where stable, and run behavior.
+   The runtime materialization classification is an artifact-zone fact, not a
+   backend-local note.
 5. **AIR Evidence is a fact zone.** AIR is not an ornamental dump and not a
    hidden codegen fallback. It owns proof-carrying evidence that can be measured
    by erasure/materialization gates and consumed by verifier/parity paths.

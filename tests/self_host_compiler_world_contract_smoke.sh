@@ -73,6 +73,8 @@ require_file "src/self_hosted/compiler/stage_artifact_owner.pgy"
 require_file "src/self_hosted/compiler/authority_owner.pgy"
 require_file "src/self_hosted/compiler/driver_rung0_owner.pgy"
 require_file "src/self_hosted/compiler/driver_rung0_main.pgy"
+require_file "src/self_hosted/compiler/driver_cli_owner.pgy"
+require_file "src/self_hosted/compiler/driver_rung1_main.pgy"
 require_file "docs/self_hosted/11_compiler_world_architecture.md"
 require_file "docs/self_hosted/12_intent_zone_self_host_architecture.md"
 require_file "docs/self_hosted/13_compiler_substrate_architecture.md"
@@ -81,11 +83,14 @@ require_file "docs/self_hosted/15_pre_self_host_expansion_ledger.md"
 require_file "tests/self_host_compiler_world_contract_smoke.sh"
 require_file "tests/self_hosted/compiler_world_manifest.sh"
 require_file "tests/self_hosted/parity/driver_rung0_parity.sh"
+require_file "tests/self_hosted/parity/driver_rung1_parity.sh"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_PATH_MANIFEST_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_STAGE_ARTIFACT_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_AUTHORITY_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_DRIVER_RUNG0_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_DRIVER_RUNG0_MAIN_PATH"
+require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_DRIVER_CLI_PATH"
+require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_DRIVER_RUNG1_MAIN_PATH"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "### Pergyra-Style Self-Host Test"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "C, LLVM, and self-hosted outputs are peer projections over the same facts"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "stage_artifact_owner.pgy"
@@ -109,6 +114,8 @@ require_max_lines "src/self_hosted/compiler/stage_artifact_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/authority_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/driver_rung0_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/driver_rung0_main.pgy" 600
+require_max_lines "src/self_hosted/compiler/driver_cli_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/driver_rung1_main.pgy" 600
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'import "../parser/program_parse_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'import "../codegen/emission/program_emit.pgy";'
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func CompilerDriverRung0Ready"
@@ -131,6 +138,18 @@ require_text "src/self_hosted/compiler/driver_rung0_main.pgy" 'import "driver_ru
 require_text "src/self_hosted/compiler/driver_rung0_main.pgy" "func Main()"
 require_text "src/self_hosted/compiler/driver_rung0_main.pgy" "Args()"
 require_text "src/self_hosted/compiler/driver_rung0_main.pgy" "RunDriverRung0FromArgs(run_args)"
+require_text "src/self_hosted/compiler/driver_cli_owner.pgy" 'import "driver_rung0_owner.pgy";'
+require_text "src/self_hosted/compiler/driver_cli_owner.pgy" "func DriverCliSourcePath"
+require_text "src/self_hosted/compiler/driver_cli_owner.pgy" "func DriverCliArtifactMode"
+require_text "src/self_hosted/compiler/driver_cli_owner.pgy" "func DriverCliOutputPath"
+require_text "src/self_hosted/compiler/driver_cli_owner.pgy" "func DriverCliWriteArtifact"
+require_text "src/self_hosted/compiler/driver_cli_owner.pgy" "func RunDriverRung1FromArgs"
+require_text "src/self_hosted/compiler/driver_cli_owner.pgy" 'WriteFile(out_path, Concat(artifact, "\n"))'
+require_text "src/self_hosted/compiler/driver_cli_owner.pgy" "DriverCliWriteArtifact(out_path, mode, artifact)"
+require_text "src/self_hosted/compiler/driver_rung1_main.pgy" 'import "driver_cli_owner.pgy";'
+require_text "src/self_hosted/compiler/driver_rung1_main.pgy" "func Main()"
+require_text "src/self_hosted/compiler/driver_rung1_main.pgy" "Args()"
+require_text "src/self_hosted/compiler/driver_rung1_main.pgy" "RunDriverRung1FromArgs(run_args)"
 
 # Authority skeleton locks: sensitive-boundary abilities/roles plus the zone
 # and intent-step clauses that consume them. These keep the authority axis
@@ -308,7 +327,10 @@ for term in \
     "func CompilerStageArtifactOwnerPath" \
     "func CompilerDriverRung0OwnerPath" \
     "func CompilerDriverRung0MainPath" \
+    "func CompilerDriverCliOwnerPath" \
+    "func CompilerDriverRung1MainPath" \
     "func CompilerDriverRung0ParityPath" \
+    "func CompilerDriverRung1ParityPath" \
     "func CompilerOwnerManifestPath" \
     "func CompilerStagePathManifestReady" \
     "func CompilerStagePathAt" \
@@ -330,14 +352,17 @@ for term in \
     "return CompilerStageArtifactOwnerPath();" \
     "return CompilerDriverRung0OwnerPath();" \
     "return CompilerDriverRung0MainPath();" \
+    "return CompilerDriverCliOwnerPath();" \
+    "return CompilerDriverRung1MainPath();" \
     "return CompilerDriverRung0ParityPath();" \
+    "return CompilerDriverRung1ParityPath();" \
     "return CompilerOwnerManifestPath();" \
-    "CompilerParityPathCount() != 7" \
-    "CompilerWorldManifestPathCount() != 27" \
+    "CompilerParityPathCount() != 8" \
+    "CompilerWorldManifestPathCount() != 30" \
     "CompilerStagePathManifestReady" \
     "if index < 17" \
     "CompilerStagePathAt(index - 12)" \
-    "if index < 24" \
+    "if index < 25" \
     "CompilerParityPathAt(index - 17)" \
     "lexer|TokenStreamZone|LexerStage|LexSource|LexerTokenPayloadContractReady" \
     "parser|AstTreeZone|ParserStage|ParseTokens|ParserAstTreePayloadContractReady" \
@@ -556,9 +581,15 @@ for term in \
     "func CompilerTargetCapabilitySchema" \
     "pgy.selfhost.target-capability-envelope.v1" \
     "func CompilerTargetProjectionAt" \
-    "CompilerTargetProjectionAt(0) == \"cpu-c\"" \
-    "CompilerTargetProjectionAt(1) == \"cpu-llvm\"" \
-    "CompilerTargetProjectionAt(2) == \"self-hosted\"" \
+    "func CompilerTargetCpuCProjection" \
+    "func CompilerTargetCpuLlvmProjection" \
+    "func CompilerTargetSelfHostedProjection" \
+    "return \"cpu-c\"" \
+    "return \"cpu-llvm\"" \
+    "return \"self-hosted\"" \
+    "CompilerTargetProjectionAt(0) == CompilerTargetCpuCProjection()" \
+    "CompilerTargetProjectionAt(1) == CompilerTargetCpuLlvmProjection()" \
+    "CompilerTargetProjectionAt(2) == CompilerTargetSelfHostedProjection()" \
     "func CompilerTargetFactAt" \
     "CompilerTargetFactCount() == 8" \
     "func CompilerTargetFallbackReasonAt" \
@@ -667,6 +698,8 @@ require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/abi_layout_ro
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/symbol_table_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/stage_artifact_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/driver_rung0_main.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/driver_cli_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/driver_rung1_main.pgy"
 require_text "src/self_hosted/README.md" "compiler/world.pgy"
 require_text "docs/self_hosted/README.md" "11_compiler_world_architecture.md"
 require_text "docs/self_hosted/README.md" "12_intent_zone_self_host_architecture.md"

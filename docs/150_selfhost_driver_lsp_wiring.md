@@ -58,6 +58,10 @@ HIR/DIR/RIR/MIR→AIR verify→backend emit→cc 호출→link. 치환은 관측
   `driver <src> [--emit-ast|--emit-c] [-o out]` 파싱. CLI entrypoint는
   DRV-1 소유이며, DRV-0 owner는 조립 책임만 소유한다. 오라클: 산출물
   경로/내용 동일성.
+  **현재 landed**: `driver_cli_owner.pgy`가 source path, artifact mode,
+  `-o` output path를 소유하고 `driver_rung1_main.pgy`가 runnable boundary를
+  제공한다. `driver_rung1_parity.sh`는 stdout과 파일 산출 양쪽을
+  artifact owner comparator로 비교하므로 DRV-1은 §4 rung 표에서 landed다.
 - **DRV-2 — 네이티브 컴파일 호출 (차단: G-EXEC)**: cc/gcc 호출은
   프로세스 spawn builtin이 **없다**(2026-07-04 확인). 필요물 =
   `Exec(argv) -> Result<Int>`류 gated builtin + 신규 process capability
@@ -116,7 +120,7 @@ blocker가 문서에 드러난 상태다. planned는 artifact/gate에 `-`만 허
 | track | rung | status | artifact | gate |
 | --- | --- | --- | --- | --- |
 | driver | DRV-0 | landed | src/self_hosted/compiler/driver_rung0_main.pgy | tests/self_hosted/parity/driver_rung0_parity.sh |
-| driver | DRV-1 | planned | - | - |
+| driver | DRV-1 | landed | src/self_hosted/compiler/driver_rung1_main.pgy | tests/self_hosted/parity/driver_rung1_parity.sh |
 | driver | DRV-2 | planned | - | - |
 | driver | DRV-3 | planned | - | - |
 | lsp | LSP-0 | planned | - | - |

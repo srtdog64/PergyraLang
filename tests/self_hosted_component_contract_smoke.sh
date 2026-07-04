@@ -1930,6 +1930,15 @@ require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"ast_text"'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"emitted_c"'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'cmp -s'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'diff -u'
+require_text "Makefile" "self-host-driver-rung1-parity-test-smoke"
+require_text "Makefile" "tests/self_hosted/parity/driver_rung1_parity.sh"
+require_text "tests/self_hosted/parity/driver_rung1_parity.sh" "driver-rung1"
+require_text "tests/self_hosted/parity/driver_rung1_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
+require_text "tests/self_hosted/parity/driver_rung1_parity.sh" "-o"
+require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"ast_text"'
+require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"emitted_c"'
+reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" 'cmp -s'
+reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" 'diff -u'
 require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:fuzz-generator" "$PGY"'
 reject_text "tests/self_hosted/parity/codegen_parity.sh" "MINGW BYPASS"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$oracle_raw" "$oracle_err" "$oracle_exe" "${run_args[@]}"'

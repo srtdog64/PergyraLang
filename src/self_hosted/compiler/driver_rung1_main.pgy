@@ -1,0 +1,11 @@
+// DRV-1 driver CLI artifact tool entrypoint.
+//
+// The CLI surface lives in driver_cli_owner.pgy; this file only exposes a
+// runnable boundary for the DRV-1 parity gate.
+
+import "driver_cli_owner.pgy";
+
+func Main() -> Void with caps env, io_read, io_write {
+    let run_args: Array<String> = Args();
+    RunDriverRung1FromArgs(run_args);
+}

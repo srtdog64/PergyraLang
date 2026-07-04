@@ -149,6 +149,10 @@ compiler-stage `.pgy` source to be listed here.
   after consuming compiler-world readiness facts.
 - `src/self_hosted/compiler/driver_rung0_main.pgy` -- DRV-0 runnable artifact
   boundary; ownership remains in `driver_rung0_owner.pgy`.
+- `src/self_hosted/compiler/driver_cli_owner.pgy` -- DRV-1 CLI surface owner
+  for source path, artifact mode, and optional output path.
+- `src/self_hosted/compiler/driver_rung1_main.pgy` -- DRV-1 runnable artifact
+  boundary; ownership remains in `driver_cli_owner.pgy`.
 - `src/self_hosted/compiler/authority_owner.pgy` -- authority contracts
   (abilities + roles) for the sensitive compiler-world boundaries: semantic
   verdict, C emission, subprocess planning, and parity judgement.
