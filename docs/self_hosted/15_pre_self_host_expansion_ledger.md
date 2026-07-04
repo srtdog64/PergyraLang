@@ -112,6 +112,12 @@ TestHarness delta, 2026-07-05: `semantic_parity.sh` no longer owns the
 plus paired `expected/*.diag` statuses, and the shell runner consumes those rows
 before invoking the C oracle and C/LLVM-built semantic tools.
 
+TestHarness delta, 2026-07-05: `codegen_parity.sh` no longer owns the 65-row
+`FIXTURES` inventory. The compiled codegen owner emits `--fixture-manifest`
+rows from `DirWalk("src/self_hosted/codegen/fixture")` plus paired
+`expected/*_stdout.txt` existence, and the shell runner consumes those rows
+before invoking the C oracle and C/LLVM-built codegen tools.
+
 Artifact Zone delta, 2026-07-04: LSP transport outputs are now tracked as
 their own comparable artifact kinds: `CompilerLspTransportFrameArtifactKind()`
 for LSP-2a single-frame output and `CompilerLspTransportStreamArtifactKind()`

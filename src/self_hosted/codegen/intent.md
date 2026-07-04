@@ -158,7 +158,9 @@ and `ref` until their ABI and ownership facts have owners.
 This is a transitional text bridge; the mixed AST-like tagged-node owner remains
 an active expansion surface.
 `run/codegen_run_owner.pgy` owns the CLI-to-output orchestration that feeds the
-owned input into `GenerateC`; `main.pgy` only calls that run owner.
+owned input into `GenerateC`; it also owns the codegen parity fixture manifest
+by walking `src/self_hosted/codegen/fixture` and retaining only rows with paired
+`expected/*_stdout.txt` outputs. `main.pgy` only calls that run owner.
 `emission/struct_value_emit.pgy` owns struct-valued expression lowering for the
 statement paths that need it. That AST must come from the live compiler's
 `pgy --ast` output for committed codegen fixtures. The accepted subset is:
@@ -188,7 +190,8 @@ or arbitrary nested/mixed struct layout.
 ## Oracle
 
 `tests/self_hosted/parity/codegen_parity.sh` builds this tool through the C and
-LLVM backends, derives `pgy --ast` text from the live compiler, runs this tool to
-emit C, compiles the emitted C, and compares the resulting program stdout with
-the committed expected output. The expected output is guarded against drift by
-re-running the original fixture through the C backend oracle.
+LLVM backends, gets the active fixture rows from the compiled tool's
+`--fixture-manifest` mode, derives `pgy --ast` text from the live compiler, runs
+this tool to emit C, compiles the emitted C, and compares the resulting program
+stdout with the committed expected output. The expected output is guarded
+against drift by re-running the original fixture through the C backend oracle.

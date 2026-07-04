@@ -1169,8 +1169,6 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "OptionResultRunti
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "OptionResultRuntimeCOptionNoneFnForPayloadKind(return_option_payload_kind)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "OptionResultRuntimeOptionValueTypeForPayloadKind(operand_payload_kind)"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" 'return "OptionString";'
-require_text "tests/self_hosted/parity/codegen_parity.sh" "option_string_core"
-require_text "tests/self_hosted/parity/codegen_parity.sh" "option_try"
 require_file "src/self_hosted/codegen/fixture/option_string_core.pgy"
 require_file "src/self_hosted/codegen/expected/option_string_core_stdout.txt"
 require_file "src/self_hosted/codegen/fixture/option_try.pgy"
@@ -2206,19 +2204,28 @@ if find "$SELF_HOST_DIR/semantic/expected" -maxdepth 1 -type f -name '*.json' -p
     fail "semantic verdict fixtures must stay diagnostic blocks (*.diag), not JSON"
 fi
 
-codegen_items="$(extract_shell_array_items "$PARITY_DIR/codegen_parity.sh" FIXTURES)"
-[[ -n "$codegen_items" ]] || fail "codegen parity FIXTURES is empty"
-contains_line "$codegen_items" "hello" ||
-    fail "codegen no-argument golden fixture must stay listed: hello"
-contains_line "$codegen_items" "seed_random" ||
-    fail "codegen SeedRandom replay fixture must stay listed: seed_random"
-contains_line "$codegen_items" "array_index_assign" ||
-    fail "codegen indexed array assignment fixture must stay listed: array_index_assign"
-contains_line "$codegen_items" "string_array_index_return" ||
-    fail "codegen Array<String> index return fixture must stay listed: string_array_index_return"
+codegen_fixture_count="$(find "$SELF_HOST_DIR/codegen/fixture" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
+codegen_expected_count="$(find "$SELF_HOST_DIR/codegen/expected" -maxdepth 1 -type f -name '*_stdout.txt' | wc -l | tr -d ' ')"
+[[ "$codegen_fixture_count" -eq 65 ]] ||
+    fail "codegen fixture count drifted: $codegen_fixture_count != 65"
+[[ "$codegen_expected_count" -eq 65 ]] ||
+    fail "codegen expected count drifted: $codegen_expected_count != 65"
+require_file "src/self_hosted/codegen/fixture/hello.pgy"
+require_file "src/self_hosted/codegen/fixture/seed_random.pgy"
+require_file "src/self_hosted/codegen/fixture/array_index_assign.pgy"
+require_file "src/self_hosted/codegen/fixture/string_array_index_return.pgy"
 require_text "src/self_hosted/codegen/README.md" "Golden/platform contract"
 require_text "src/self_hosted/codegen/README.md" "PGY_SELFHOST_CODEGEN_BACKENDS=c"
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "func CodegenParityFixtureManifestRows"
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "func EmitCodegenParityFixtureManifest"
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "DirWalk(CodegenParityFixtureDir())"
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "CodegenParityExpectedPath(base)"
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" '"--fixture-manifest"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture()'
+require_text "tests/self_hosted/parity/codegen_parity.sh" "read_codegen_fixture_manifest"
+require_text "tests/self_hosted/parity/codegen_parity.sh" '"$manifest_bin" --fixture-manifest'
+reject_text "tests/self_hosted/parity/codegen_parity.sh" "    hello"
+reject_text "tests/self_hosted/parity/codegen_parity.sh" "    seed_random"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'pgy_binary_is_runnable_here "$bin"'
 require_text "tests/pgy_binary_path_helpers.sh" "pgy_reject_wsl_windows_pgy_parity_mix()"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:codegen" "$PGY"'
@@ -2554,8 +2561,6 @@ reject_text "tests/self_hosted/parity/codegen_parity.sh" 'oracle_out="$(tr -d'
 
 while IFS= read -r fixture; do
     base="$(basename "$fixture" .pgy)"
-    contains_line "$codegen_items" "$base" ||
-        fail "codegen fixture not listed in FIXTURES: $base"
     require_file "src/self_hosted/codegen/expected/${base}_stdout.txt"
 done < <(find "$SELF_HOST_DIR/codegen/fixture" -maxdepth 1 -type f -name '*.pgy' | sort)
 
@@ -2563,8 +2568,6 @@ while IFS= read -r expected; do
     name="$(basename "$expected")"
     base="${name%_stdout.txt}"
     [[ "$name" != "$base" ]] || fail "codegen expected must end with _stdout.txt: $name"
-    contains_line "$codegen_items" "$base" ||
-        fail "codegen expected not listed in FIXTURES: $base"
     require_file "src/self_hosted/codegen/fixture/${base}.pgy"
 done < <(find "$SELF_HOST_DIR/codegen/expected" -maxdepth 1 -type f -name '*_stdout.txt' | sort)
 

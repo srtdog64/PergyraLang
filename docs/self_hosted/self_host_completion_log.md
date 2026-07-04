@@ -25,6 +25,16 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-05 - Codegen parity fixture inventory consumes codegen owner
+
+- Added codegen fixture manifest ownership to `run/codegen_run_owner.pgy`: the
+  owner walks `src/self_hosted/codegen/fixture`, checks each paired
+  `expected/*_stdout.txt`, and emits fixture base rows.
+- Exposed the manifest through `RunCodegenFromArgs --fixture-manifest`.
+- Repointed `codegen_parity.sh` so shell no longer owns the 65-row `FIXTURES`
+  list; it compiles the codegen owner, reads that manifest, and then runs the C
+  oracle plus C/LLVM-built codegen parity over the manifest rows.
+
 ## 2026-07-05 - Semantic parity fixture inventory consumes semantic owner
 
 - Added semantic fixture manifest ownership to `diagnostic_owner.pgy`: the

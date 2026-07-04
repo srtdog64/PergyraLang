@@ -72,6 +72,7 @@ EXPECTED_DIR="$ROOT_DIR/src/self_hosted/codegen/expected"
 # parser_parity.sh). gcc/run paths use the absolute form.
 REL_BUILD=".tmp/self_hosted/codegen"
 ABS_BUILD="$ROOT_DIR/$REL_BUILD"
+CODEGEN_FIXTURE_MANIFEST_FILE="$ABS_BUILD/codegen_fixture_manifest.txt"
 
 if [[ ! -f "$TOOL_SOURCE" ]]; then
     echo "[self-host-parity:codegen] missing Pergyra tool: $TOOL_SOURCE" >&2
@@ -252,75 +253,8 @@ run_generated_secure_open_probe() {
     fi
 }
 
-# Fixture base names; each resolves to fixture/<base>.pgy and
-# expected/<base>_stdout.txt.
-FIXTURES=(
-    hello
-    two_logs
-    concat
-    defer_scope
-    nested_concat
-    int_arith
-    int_subdiv
-    mixed_int_str
-    int_neg
-    while_sum
-    if_else
-    nested_ctrl
-    option_int_core
-    option_string_core
-    option_try
-    func_call
-    func_recursive
-    result_int_core
-    result_try
-    str_greet
-    str_reassign
-    for_sum
-    for_continue
-    while_break
-    bool_logic
-    array_reverse
-    str_builtins
-    array_sum
-    array_max
-    array_combinators
-    str_array
-    str_array_concat
-    str_indexof
-    exit_guard
-    array_push
-    str_array_push
-    str_trim
-    io_probe
-    args_probe
-    struct_point
-    struct_param
-    struct_mixed_fields
-    struct_nested_fields
-    array_param
-    log_int_direct
-    else_if_chain
-    builtin_name_literal
-    string_equality
-    str_builtins2
-    string_utils_core
-    dir_walk
-    for_each
-    array_pop
-    str_case_math
-    string_concat_op
-    write_file
-    log_trailing_newline
-    file_handle
-    io_absolute_policy
-    float_math
-    float_signature
-    seed_random
-    array_index_assign
-    string_array_index_return
-    string_equality_concat
-)
+# Fixture base names are emitted by the compiled codegen owner.
+FIXTURES=()
 
 # Per-fixture runtime arguments. The same argv snapshot is passed to both the
 # oracle and the self-host executable.
@@ -402,6 +336,31 @@ compile_tool_backend() {
     fi
     cat "$compile_out" "$compile_err" > "$compile_log"
     return 0
+}
+
+read_codegen_fixture_manifest() {
+    local manifest_bin="$ABS_BUILD/tool_manifest.exe"
+    local line
+
+    compile_tool_backend c "$manifest_bin"
+    FIXTURES=()
+    if ! run_native_capture "$ROOT_DIR" "$CODEGEN_FIXTURE_MANIFEST_FILE" "$ABS_BUILD/codegen_fixture_manifest.err" \
+        "$manifest_bin" --fixture-manifest; then
+        echo "[self-host-parity:codegen] fixture manifest emission failed" >&2
+        cat "$ABS_BUILD/codegen_fixture_manifest.err" >&2
+        exit 1
+    fi
+
+    while IFS= read -r line; do
+        line="${line%$'\r'}"
+        [[ -n "$line" ]] || continue
+        FIXTURES+=("$line")
+    done <"$CODEGEN_FIXTURE_MANIFEST_FILE"
+
+    if [[ "${#FIXTURES[@]}" -ne 65 ]]; then
+        echo "[self-host-parity:codegen] fixture manifest count drifted: ${#FIXTURES[@]} != 65" >&2
+        exit 1
+    fi
 }
 
 run_tool_backend() {
@@ -486,6 +445,7 @@ run_tool_backend() {
 }
 
 compile_backend_output_comparator
+read_codegen_fixture_manifest
 for base in "${FIXTURES[@]}"; do
     check_oracle_drift "$base"
 done
