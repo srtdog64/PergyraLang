@@ -164,10 +164,11 @@ compile_artifact_comparator() {
     COMPARATOR_BIN="$(pgy_selfhost_backend_output_comparator_bin "$B")"
 }
 
-compare_emitted_c_with_owner() {
+compare_artifact_with_owner() {
     local label="$1"
     local expected="$2"
     local actual="$3"
+    local artifact_kind="$4"
     local cmp_out="$B/${label}.compare.out"
     local cmp_err="$B/${label}.compare.err"
     local expected_rel
@@ -181,50 +182,11 @@ compare_emitted_c_with_owner() {
     expected_rel="$(pgy_selfhost_path_relative_to_root "$expected")"
     actual_rel="$(pgy_selfhost_path_relative_to_root "$actual")"
     if ! run_native_capture "$ROOT_DIR" "$cmp_out" "$cmp_err" "$COMPARATOR_BIN" \
-        "$expected_rel" "$actual_rel" 2 2 "emitted_c"; then
-        echo "[self-host-bootstrap] $label: emitted C artifact drift" >&2
+        "$expected_rel" "$actual_rel" 2 2 "$artifact_kind"; then
+        echo "[self-host-bootstrap] $label: $artifact_kind artifact drift" >&2
         cat "$cmp_out" "$cmp_err" >&2
         exit 1
     fi
-}
-
-files_equal_text() {
-    local left="$1"
-    local right="$2"
-    local left_text
-    local right_text
-
-    if command -v git >/dev/null 2>&1; then
-        git diff --no-index --quiet -- "$left" "$right"
-        return $?
-    fi
-    if command -v cmp >/dev/null 2>&1; then
-        cmp -s "$left" "$right"
-        return $?
-    fi
-
-    left_text="$(<"$left")"
-    right_text="$(<"$right")"
-    [[ "$left_text" == "$right_text" ]]
-}
-
-show_file_delta() {
-    local left="$1"
-    local right="$2"
-
-    if command -v git >/dev/null 2>&1; then
-        git --no-pager diff --no-index --no-prefix -- "$left" "$right" || true
-        return 0
-    fi
-    if command -v diff >/dev/null 2>&1; then
-        diff -u "$left" "$right" || true
-        return 0
-    fi
-
-    echo "--- $left ---"
-    head -20 "$left" || true
-    echo "--- $right ---"
-    head -20 "$right" || true
 }
 
 # gen0: oracle-built tool
@@ -253,7 +215,7 @@ emit "$B/gen1.exe" "$B/gen2.c"
 emit "$B/gen2.exe" "$B/gen3.c"
 
 compile_artifact_comparator
-compare_emitted_c_with_owner "fixpoint_gen2_gen3" "$B/gen2.c" "$B/gen3.c"
+compare_artifact_with_owner "fixpoint_gen2_gen3" "$B/gen2.c" "$B/gen3.c" "emitted_c"
 echo "[self-host-bootstrap] fixpoint ok: gen2 == gen3 ($(wc -l < "$B/gen2.c") lines)"
 
 # Sample: the Pergyra-built tool must emit identical C to the oracle-built tool.
@@ -407,17 +369,15 @@ if [[ -f "$FUZZ_SOURCE" ]]; then
         echo "[self-host-bootstrap] fuzz generator: codegen-built stdout differs from oracle-built" >&2
         exit 1
     fi
-    if ! files_equal_text "$B/fuzz_codegen_corpus/manifest.jsonl" "$B/fuzz_oracle_corpus/manifest.jsonl"; then
-        echo "[self-host-bootstrap] fuzz generator: manifest differs from oracle-built" >&2
-        show_file_delta "$B/fuzz_codegen_corpus/manifest.jsonl" "$B/fuzz_oracle_corpus/manifest.jsonl" >&2
-        exit 1
-    fi
+    compare_artifact_with_owner "fuzz_generator_manifest" \
+        "$B/fuzz_codegen_corpus/manifest.jsonl" \
+        "$B/fuzz_oracle_corpus/manifest.jsonl" \
+        "emitted_self_hosted"
     for fuzz_i in 0 1 2 3 4 5 6 7; do
-        if ! files_equal_text "$B/fuzz_codegen_corpus/f${fuzz_i}.pgy" "$B/fuzz_oracle_corpus/f${fuzz_i}.pgy"; then
-            echo "[self-host-bootstrap] fuzz generator: f${fuzz_i}.pgy differs from oracle-built" >&2
-            show_file_delta "$B/fuzz_codegen_corpus/f${fuzz_i}.pgy" "$B/fuzz_oracle_corpus/f${fuzz_i}.pgy" >&2
-            exit 1
-        fi
+        compare_artifact_with_owner "fuzz_generator_f${fuzz_i}" \
+            "$B/fuzz_codegen_corpus/f${fuzz_i}.pgy" \
+            "$B/fuzz_oracle_corpus/f${fuzz_i}.pgy" \
+            "emitted_self_hosted"
     done
     echo "[self-host-bootstrap] codegen compiles fuzz backend parity generator -> matches oracle-built corpus"
 fi

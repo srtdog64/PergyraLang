@@ -42,6 +42,10 @@ func CompilerEmittedCArtifactKind() -> String {
     return "emitted_c";
 }
 
+func CompilerEmittedSelfHostedArtifactKind() -> String {
+    return "emitted_self_hosted";
+}
+
 func CompilerArtifactZoneReady() -> Bool {
     return CompilerArtifactKindCount() == 9 &&
         CompilerArtifactKindAt(0) == "diagnostics" &&
@@ -51,6 +55,6 @@ func CompilerArtifactZoneReady() -> Bool {
         CompilerArtifactKindAt(4) == "runtime_materialization" &&
         CompilerArtifactKindAt(5) == CompilerEmittedCArtifactKind() &&
         CompilerArtifactKindAt(6) == "emitted_llvm" &&
-        CompilerArtifactKindAt(7) == "emitted_self_hosted" &&
+        CompilerArtifactKindAt(7) == CompilerEmittedSelfHostedArtifactKind() &&
         CompilerArtifactKindAt(8) == CompilerRunOutputArtifactKind();
 }

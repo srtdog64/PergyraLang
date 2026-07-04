@@ -3331,3 +3331,20 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   JSON parity as another ArtifactZone/TestHarness consumer.
 - No executable cases were run for this slice; validation was limited to static
   owner/ratchet inspection under the validation isolation policy.
+
+### 2026-07-04 -- Codegen bootstrap corpus consumes emitted-self-hosted artifact owner
+
+- Added `CompilerEmittedSelfHostedArtifactKind()` to the self-host ArtifactZone
+  owner and made `CompilerArtifactZoneReady()` check the emitted-self-hosted
+  row through the named owner function.
+- Repointed codegen bootstrap fuzz-generator manifest and generated `f*.pgy`
+  corpus comparisons from shell-owned `cmp` / `diff` helpers to the shared
+  `backend_output_comparator` with artifact kind `emitted_self_hosted`.
+- Generalized the bootstrap comparator helper so the emitted-C fixpoint and
+  emitted-self-hosted corpus checks use the same ArtifactZone/TestHarness
+  verdict path.
+- Tightened `self_hosted_component_contract_smoke.sh` so the bootstrap script
+  cannot reintroduce `compare_emitted_c_with_owner`, `files_equal_text`,
+  `show_file_delta`, `cmp -s`, or `diff -u`.
+- No executable cases were run for this slice; validation was limited to static
+  owner/ratchet inspection under the validation isolation policy.
