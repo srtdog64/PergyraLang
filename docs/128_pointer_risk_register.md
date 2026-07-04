@@ -97,6 +97,12 @@ ownership model. The beta contract is intentionally narrow: stable
 `Array<String>` mutation APIs remain pointer-storage and must not silently
 deep-copy.
 
+Do not reopen this as a generic security bug without changing the ABI
+contract. A producer that returns borrowed strings in a result-owned array is a
+bug. Generic `ArrayPush` / `ArraySet` remaining pointer-storage is the beta
+policy. The current residual-risk triage is
+`docs/security/audits/2026-07-05_residual_risk_triage.md`.
+
 Option B remains a beta+ ABI proposal, not a silent runtime tweak. To make
 `Array<String>` globally own payloads, the language would need string-specific
 `ArrayPush` / `ArraySet` / `ArrayDrop` semantics, generated C/LLVM parity,
@@ -214,6 +220,11 @@ Required direction:
 The compiler has scratch, persistent, result-owned, and runtime-owned lanes.
 The unsafe pattern is caching a pointer from a shorter-lived lane in a
 longer-lived structure.
+
+This remains real residual debt at the proof level. Existing smoke gates cover
+known static-scratch and runtime ABI seams, but they are not a complete
+whole-program proof that every scratch pointer cannot enter persistent
+metadata, diagnostics, or ABI inventories.
 
 Required direction:
 

@@ -4,6 +4,12 @@ This note checks the beta-closure residual-risk review against the current
 tree. It separates stale findings from real residual debt so security status
 does not drift from code reality.
 
+Re-run rule: a residual review must be checked against the current source and
+gates before it is copied into beta status. Closed implementation findings stay
+closed unless the owner code or gate regresses. Policy decisions such as
+`Array<String>` Option A must not be rewritten as emergency security fixes
+without an ABI migration plan.
+
 ## Verdicts
 
 | Claim | Current verdict | Evidence owner |
@@ -15,6 +21,26 @@ does not drift from code reality.
 | `Array<String>` ownership: beta policy closed | Generic `Array<String>` remains pointer-storage for beta. Stable result-producing APIs such as `StringSplit` and `MapKeys` must duplicate payloads before returning a result-owned array. Global deep-copy push/set/drop remains a beta+ ABI proposal, not a silent security patch. | `docs/128_pointer_risk_register.md`, `runtime-abi-lifetime-test-smoke` |
 | Scratch-to-cache lifetime drift: partially open | Many historical static scratch seams are removed or ratcheted, but there is not yet a complete whole-program static analyzer proving every scratch pointer cannot be cached in a longer-lived lane. This remains real residual debt. | `docs/128_pointer_risk_register.md`, `perf-contract-test-smoke`, `runtime-abi-lifetime-test-smoke` |
 | System-tier raw pointer escape: intentionally out of beta | `unsafe {}` is a lexical boundary, not permission for raw pointers, MMIO, or inline assembly. Raw escape is rejected until a scoped capability contract has diagnostics, AIR evidence, ABI lowering, and runtime-none semantics. | `docs/132_unsafe_capability_scope.md`, `raw-escape-contract-test-smoke` |
+
+## Current Five-Point Residual Review
+
+The 2026-07-05 five-point beta residual review resolves as follows against the
+current tree:
+
+1. Windows symlink write TOCTOU: closed by secure-open owner and gated.
+2. `Array<String>` ownership: beta policy closed as Option A; Option B is a
+   beta+ ABI proposal, not a silent patch.
+3. Cited slot security logs: stale; cited owners emit JSONL with escaped
+   fields.
+4. Scratch-to-cache lifetime drift: real residual; current gates cover known
+   seams, not a whole-program lifetime proof.
+5. System-tier raw pointer escape: intentionally out of beta; `unsafe {}` is
+   only a lexical marker until scoped unsafe capability evidence exists.
+
+This means the action list is not "fix all five in code". The action list is:
+preserve closed gates for 1 and 3, preserve the explicit beta policy for 2,
+track 4 as the real remaining lifetime-analysis debt, and keep 5 out of the
+stable surface until its capability contract is implemented.
 
 ## Residual Work That Remains Real
 
