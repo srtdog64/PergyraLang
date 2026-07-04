@@ -25,6 +25,22 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-05 - Semantic verdict parity consumes ArtifactZone verdicts
+
+- Repointed `tests/self_hosted/parity/semantic_parity.sh` so expected
+  diagnostic verdicts and C/LLVM-built semantic checker output compare as
+  `diagnostics` artifacts through the Pergyra `backend_output_comparator`
+  owner.
+- The semantic parity harness still keeps its semantic-specific shape checks
+  (`Diagnostic: pgy.selfhost.semantic.v1`, `Status`, `Code`) and C-oracle
+  diagnostic-code mapping, but the final expected-vs-actual verdict is no
+  longer a shell string/diff decision.
+- Tightened `self_hosted_component_contract_smoke.sh` so semantic parity must
+  keep the comparator owner path and cannot reintroduce `diff <(...)`.
+- Verified `self-host-component-contract-test-smoke` and
+  `self-host-semantic-parity-test-smoke`; the semantic rung passed 108 fixtures
+  through both C and LLVM.
+
 ## 2026-07-05 - Parser AST parity consumes ArtifactZone verdicts
 
 - Repointed `tests/self_hosted/parity/parser_parity.sh` so committed AST fixture

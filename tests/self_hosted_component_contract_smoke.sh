@@ -538,6 +538,10 @@ require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../sem
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "SemanticVerdictPayloadContractReady()"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "check_semantic_diagnostic_code_surface"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "semantic_oracle_code_for"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "pgy_selfhost_compile_backend_output_comparator"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "compare_semantic_verdict_with_owner"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "diagnostics"
+reject_text "tests/self_hosted/parity/semantic_parity.sh" "diff <("
 require_owner_surface codegen \
     "input/ast_input_owner.pgy" \
     "input/ast_text_inventory_owner.pgy" \

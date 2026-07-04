@@ -14,6 +14,7 @@ fi
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -51,6 +52,8 @@ PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/sem
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 FIXTURE_DIR="$ROOT_DIR/src/self_hosted/semantic/fixture"
 EXPECTED_DIR="$ROOT_DIR/src/self_hosted/semantic/expected"
+ARTIFACT_COMPARE_BUILD_DIR="$PERGYRA_TOOL_BUILD_DIR/artifact_owner"
+SEMANTIC_COMPARATOR_BIN=""
 
 SOURCE_PAIRS=(
     "valid_int_return:ok"
@@ -222,6 +225,33 @@ json_code_from_output() {
         sed -E 's/.*"code"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/'
 }
 
+compare_semantic_verdict_with_owner() {
+    local backend="$1"
+    local base="$2"
+    local expected_file="$3"
+    local actual_text="$4"
+    local safe_label="${base//[^A-Za-z0-9_]/_}_${backend}"
+    local expected_norm="$ARTIFACT_COMPARE_BUILD_DIR/${safe_label}_expected.diag"
+    local actual_norm="$ARTIFACT_COMPARE_BUILD_DIR/${safe_label}_actual.diag"
+    local cmp_out="$ARTIFACT_COMPARE_BUILD_DIR/${safe_label}.compare.out"
+    local cmp_err="$ARTIFACT_COMPARE_BUILD_DIR/${safe_label}.compare.err"
+    local expected_rel
+    local actual_rel
+
+    pgy_selfhost_normalize_text_artifact < "$expected_file" > "$expected_norm"
+    printf '%s' "$actual_text" | pgy_selfhost_normalize_text_artifact > "$actual_norm"
+    expected_rel="$(pgy_selfhost_path_relative_to_root "$expected_norm")"
+    actual_rel="$(pgy_selfhost_path_relative_to_root "$actual_norm")"
+
+    if ! (cd "$ROOT_DIR" && "$SEMANTIC_COMPARATOR_BIN" \
+        "$expected_rel" "$actual_rel" 0 2 diagnostics \
+        >"$cmp_out" 2>"$cmp_err"); then
+        echo "[self-host-parity:semantic] backend=$backend $base: diagnostics artifact parity FAIL" >&2
+        cat "$cmp_out" "$cmp_err" >&2
+        exit 1
+    fi
+}
+
 check_semantic_diagnostic_code_surface() {
     local owner="$ROOT_DIR/src/self_hosted/semantic/diagnostic_code_owner.pgy"
     local renderer="$ROOT_DIR/src/self_hosted/semantic/diagnostic_owner.pgy"
@@ -295,6 +325,9 @@ cp "$ROOT_DIR/src/self_hosted/semantic/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"
 LIB_BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/lib"
 mkdir -p "$LIB_BUILD_DIR"
 cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
+pgy_selfhost_compile_backend_output_comparator \
+    "self-host-parity:semantic" "$ARTIFACT_COMPARE_BUILD_DIR"
+SEMANTIC_COMPARATOR_BIN="$(pgy_selfhost_backend_output_comparator_bin "$ARTIFACT_COMPARE_BUILD_DIR")"
 
 check_c_oracle() {
     local base="$1"
@@ -414,13 +447,7 @@ run_semantic_backend() {
             fi
         fi
 
-        local expected
-        expected="$(tr -d '\r' < "$expected_file")"
-        if [[ "$pergyra_out" != "$expected" ]]; then
-            echo "[self-host-parity:semantic] backend=$backend $base: verdict drift" >&2
-            diff <(printf '%s\n' "$expected") <(printf '%s\n' "$pergyra_out") | head -30 >&2
-            exit 1
-        fi
+        compare_semantic_verdict_with_owner "$backend" "$base" "$expected_file" "$pergyra_out"
     done
 
     echo "[self-host-parity:semantic] backend=$backend verdicts ok (${#SOURCE_PAIRS[@]} fixtures)"
