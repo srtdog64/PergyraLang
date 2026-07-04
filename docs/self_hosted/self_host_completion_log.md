@@ -3259,6 +3259,28 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - No executable cases were run for this slice; validation was limited to static
   owner/ratchet inspection under the validation isolation policy.
 
+### 2026-07-04 -- Tri-compare verdict owned by artifact comparator
+
+- Removed the duplicate shell `files_equal` / `show_diff` veto from
+  `backend_output_tri_compare_parity.sh`. The script still builds C and LLVM
+  outputs, but the stdout/stderr equality verdict is now the
+  `backend_output_comparator` JSON report with the expected schema and
+  `ok:true`.
+- Fixed the tri-compare native runner so comparator argv is forwarded to the
+  generated comparator binary on both the normal path and the Windows fallback.
+  The comparator now receives the expected/actual artifact paths and projection
+  row indexes instead of silently running its default fixture while shell
+  comparison carried the real verdict.
+- Tightened `self_hosted_component_contract_smoke.sh` so the tri-compare script
+  must keep comparator argv forwarding, schema/`ok:true` checks, and cannot
+  reintroduce local `cmp -s`, `diff -u`, `files_equal`, or `show_diff` verdict
+  ownership.
+- Updated the pre-self-host expansion ledger to record tri-compare as a
+  TestHarness/ArtifactZone consumer instead of a shell-owned comparison with a
+  Pergyra advisory check.
+- No executable cases were run for this slice; validation was limited to static
+  owner/ratchet inspection under the validation isolation policy.
+
 ### 2026-07-04 -- AIR graph validator consumes compiler AIR evidence envelope
 
 - Repointed `src/self_hosted/tools/air_graph_json_validator/run_owner.pgy` to

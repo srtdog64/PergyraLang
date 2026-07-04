@@ -1417,7 +1417,16 @@ require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/artifact_zone_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/subprocess_runner_owner.pgy"'
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'timeout "$RUN_TIMEOUT_SECONDS"s "$bin" "$@"'
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'run_windows_fallback "$bin" "$out" "$err" "$@"'
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" '$(pgy_quote_ps "$bin_native")${ps_args}'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'run_native_bin "$tri_bin" "$tri_stdout" "$tri_stderr" "$expected_arg" "$actual_arg" 0 1'
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" '"schema":"pgy.selfhost.backend-output-comparator.v1"'
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" '"ok":true'
+reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "files_equal"
+reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "show_diff"
+reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cmp -s'
+reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'diff -u'
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "pgy_selfhost_compile_backend_output_comparator"
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "assert_llvm_leg_with_artifact_owner"
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "comparator artifact path escapes repo root"

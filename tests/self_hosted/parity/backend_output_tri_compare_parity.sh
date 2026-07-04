@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Tri-parity smoke for backend outputs:
-#   C backend output == LLVM backend output, and the Pergyra-origin
-#   backend_output_comparator independently reports ok:true for that pair.
+#   C and LLVM backend outputs are compared by the Pergyra-origin
+#   backend_output_comparator. That ArtifactZone/TestHarness report is the
+#   verdict owner for stdout/stderr equality.
 
 set -euo pipefail
 
@@ -30,45 +31,6 @@ WORK_ROOT="$ROOT_DIR/.tmp"
 mkdir -p "$WORK_ROOT"
 WORK_DIR="$(mktemp -d "$WORK_ROOT/pgy_selfhost_tri_compare.XXXXXX")"
 RUN_TIMEOUT_SECONDS="${PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS:-30}"
-
-files_equal() {
-    local left="$1"
-    local right="$2"
-
-    if command -v git >/dev/null 2>&1; then
-        git diff --no-index --quiet -- "$left" "$right"
-        return $?
-    fi
-
-    if command -v cmp >/dev/null 2>&1; then
-        cmp -s "$left" "$right"
-        return $?
-    fi
-
-    [[ "$(cat "$left")" == "$(cat "$right")" ]]
-}
-
-show_diff() {
-    local left="$1"
-    local right="$2"
-
-    if command -v git >/dev/null 2>&1; then
-        git --no-pager diff --no-index --no-prefix -- "$left" "$right" \
-            || true
-        return 0
-    fi
-
-    if command -v diff >/dev/null 2>&1; then
-        diff -u "$left" "$right" || true
-        return 0
-    fi
-
-    echo "--- left ---"
-    cat "$left"
-    echo "--- right ---"
-    cat "$right"
-    return 0
-}
 
 cleanup() {
     rm -rf "$WORK_DIR"
@@ -110,11 +72,13 @@ run_windows_fallback() {
     local bin="$1"
     local out="$2"
     local err="$3"
+    shift 3
     local bin_native
     local out_native
     local err_native
     local cwd_native
-    local timeout_ms
+    local ps_args=""
+    local arg
 
     case "$(uname -s 2>/dev/null || echo unknown)" in
         MINGW*|MSYS*|CYGWIN*) ;;
@@ -126,10 +90,13 @@ run_windows_fallback() {
     out_native="$(pgy_path_for_windows_tool "$out")"
     err_native="$(pgy_path_for_windows_tool "$err")"
     cwd_native="$(pgy_path_for_windows_tool "$PWD")"
-    timeout_ms=$((RUN_TIMEOUT_SECONDS * 1000))
+
+    for arg in "$@"; do
+        ps_args="${ps_args} $(pgy_quote_ps "$arg")"
+    done
 
     powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
-        "\$env:PATH='${PGY_WINDOWS_PS_PATH_PREFIX}' + \$env:PATH; Set-Location -LiteralPath $(pgy_quote_ps "$cwd_native"); \$p = Start-Process -FilePath $(pgy_quote_ps "$bin_native") -NoNewWindow -PassThru -RedirectStandardOutput $(pgy_quote_ps "$out_native") -RedirectStandardError $(pgy_quote_ps "$err_native"); if (\$p -eq \$null) { exit 127 }; if (-not \$p.WaitForExit(${timeout_ms})) { Stop-Process -Id \$p.Id -Force; exit 124 }; exit \$p.ExitCode"
+        "\$env:PATH='${PGY_WINDOWS_PS_PATH_PREFIX}' + \$env:PATH; Set-Location -LiteralPath $(pgy_quote_ps "$cwd_native"); & $(pgy_quote_ps "$bin_native")${ps_args} > $(pgy_quote_ps "$out_native") 2> $(pgy_quote_ps "$err_native"); exit \$LASTEXITCODE"
 }
 
 run_pgy_windows_capture() {
@@ -168,17 +135,18 @@ run_native_bin() {
     local bin="$1"
     local out="$2"
     local err="$3"
+    shift 3
     local rc
 
     if command -v timeout >/dev/null 2>&1; then
-        timeout "$RUN_TIMEOUT_SECONDS"s "$bin" >"$out" 2>"$err"
+        timeout "$RUN_TIMEOUT_SECONDS"s "$bin" "$@" >"$out" 2>"$err"
         rc=$?
     else
-        "$bin" >"$out" 2>"$err"
+        "$bin" "$@" >"$out" 2>"$err"
         rc=$?
     fi
     if [[ "$rc" -eq 126 || "$rc" -eq 127 ]]; then
-        run_windows_fallback "$bin" "$out" "$err"
+        run_windows_fallback "$bin" "$out" "$err" "$@"
         return $?
     fi
     return "$rc"
@@ -217,12 +185,6 @@ run_pergyra_output_compare() {
     if ! grep -Fq '"schema":"pgy.selfhost.backend-output-comparator.v1"' <<<"$tri_out" \
         || ! grep -Fq '"ok":true' <<<"$tri_out"; then
         echo "[self-host-parity:backend-tri-compare] comparator output missing ok:true schema for ${stream_label} in $source_rel" >&2
-        printf '%s\n' "$tri_out" >&2
-        exit 1
-    fi
-    if ! files_equal "$expected" "$actual"; then
-        echo "[self-host-parity:backend-tri-compare] shell sanity disagrees with self-host comparator for ${stream_label} in $source_rel" >&2
-        show_diff "$expected" "$actual" >&2
         printf '%s\n' "$tri_out" >&2
         exit 1
     fi
