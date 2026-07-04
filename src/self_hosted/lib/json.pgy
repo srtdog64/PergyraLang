@@ -142,23 +142,6 @@ func JsonDocumentObjectEnd(json: String) -> Option<Int> {
     return JsonObjectEnd(json, 0, n);
 }
 
-func JsonDocumentStringFieldEquals(json: String, field: String, expected: String) -> Bool {
-    let end_opt: Option<Int> = JsonDocumentObjectEnd(json);
-    if !IsSome(end_opt) {
-        return false;
-    }
-    let actual: String = JsonObjectStringField(json, 0, UnwrapOption(end_opt), field);
-    return actual == expected;
-}
-
-func JsonDocumentHasField(json: String, field: String) -> Bool {
-    let end_opt: Option<Int> = JsonDocumentObjectEnd(json);
-    if !IsSome(end_opt) {
-        return false;
-    }
-    return JsonObjectHasField(json, 0, UnwrapOption(end_opt), field);
-}
-
 func JsonFieldArrayBounds(json: String, start: Int, end: Int, field: String, inout bounds: Array<Int>) -> Bool {
     let p_opt: Option<Int> = FindFrom(json, JsonFieldKey(field), start);
     if !IsSome(p_opt) {
