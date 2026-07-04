@@ -105,8 +105,10 @@ func CompilerSymbolCEnumVariantName(enum_name: String, variant_name: String) -> 
     return CompilerSymbolCQualifiedName(enum_name, variant_name);
 }
 func CompilerSymbolTableReady() -> Bool {
-    return CompilerSymbolTableRowAt(0) == "source_owner" &&
+    return CompilerSymbolTableRowCount() == 7 &&
+        CompilerSymbolTableRowAt(0) == "source_owner" &&
         CompilerSymbolTableRowAt(1) == "source_name" &&
+        CompilerSymbolTableRowAt(2) == "namespace_path" &&
         CompilerSymbolTableRowAt(3) == "c_symbol" &&
         CompilerSymbolTableRowAt(4) == "llvm_symbol" &&
         CompilerSymbolTableRowAt(5) == "self_hosted_symbol" &&

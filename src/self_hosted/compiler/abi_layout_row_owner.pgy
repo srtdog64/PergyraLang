@@ -20,14 +20,22 @@ func CompilerAbiLayoutRowFactAt(index: Int) -> String {
     return "";
 }
 func CompilerAbiLayoutRowsReady() -> Bool {
-    return CompilerAbiLayoutRowFactAt(0) == "decl_name" &&
+    return CompilerAbiLayoutRowFactCount() == 8 &&
+        CompilerAbiLayoutRowFactAt(0) == "decl_name" &&
         CompilerAbiLayoutRowFactAt(1) == "field_order" &&
         CompilerAbiLayoutRowFactAt(2) == "tag_kind" &&
         CompilerAbiLayoutRowFactAt(3) == "niche" &&
         CompilerAbiLayoutRowFactAt(4) == "ownership_shape" &&
         CompilerAbiLayoutRowFactAt(5) == "target_abi" &&
         CompilerAbiLayoutRowFactAt(6) == "size_align" &&
-        CompilerAbiLayoutRowFactAt(7) == "materialization_policy";
+        CompilerAbiLayoutRowFactAt(7) == "materialization_policy" &&
+        CompilerAbiLayoutConcreteRowCount() == 10 &&
+        CompilerAbiLayoutRowTypeNameAt(0) == "Int" &&
+        CompilerAbiLayoutRowCValueTypeAt(0) == "long long" &&
+        CompilerAbiLayoutRowMaterializationAt(0) == "field_allowed" &&
+        CompilerAbiLayoutRowTypeNameAt(9) == "Option<String>" &&
+        CompilerAbiLayoutRowCValueTypeAt(9) == "pgy_option_string" &&
+        CompilerAbiLayoutRowMaterializationAt(9) == "runtime_value_only";
 }
 func CompilerAbiLayoutConcreteRowCount() -> Int {
     return 10;

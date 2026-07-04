@@ -464,7 +464,9 @@ done
 for term in \
     "func CompilerAbiLayoutRowSchema" \
     "CompilerAbiLayoutRowsReady" \
+    "CompilerAbiLayoutRowFactCount() == 8" \
     "CompilerAbiLayoutConcreteRowCount" \
+    "CompilerAbiLayoutConcreteRowCount() == 10" \
     "CompilerAbiLayoutRowIndex" \
     "CompilerAbiLayoutRowCValueTypeAt" \
     "CompilerAbiLayoutFieldAllowed" \
@@ -480,6 +482,7 @@ done
 for term in \
     "func CompilerSymbolTableSchema" \
     "CompilerSymbolTableReady" \
+    "CompilerSymbolTableRowCount() == 7" \
     "CompilerSymbolProjectionAt" \
     "CompilerSymbolCQualifiedName" \
     "source_owner" \
