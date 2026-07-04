@@ -107,6 +107,7 @@ emit_call_builtin_dispatch(ASTNode *call,
     case BUILTIN_FILE_WRITE:
     case BUILTIN_FILE_CLOSE:
     case BUILTIN_READ_FILE:
+    case BUILTIN_READ_STDIN:
     case BUILTIN_WRITE_FILE:
     case BUILTIN_INPUT:
     case BUILTIN_ARGS:

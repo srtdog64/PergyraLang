@@ -117,6 +117,7 @@ static const BuiltinEntry k_builtin_entries[] = {
     {"Read", BUILTIN_READ},
     {"ReadFile", BUILTIN_READ_FILE},
     {"ReadLine", BUILTIN_READ_LINE},
+    {"ReadStdin", BUILTIN_READ_STDIN},
     {"Release", BUILTIN_RELEASE},
     {"ReleaseDeviceSlot", BUILTIN_RELEASE_DEVICE_SLOT},
     {"ReleaseQubit", BUILTIN_NOT_BUILTIN},

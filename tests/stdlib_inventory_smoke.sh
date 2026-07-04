@@ -34,7 +34,7 @@ storage.pgy timer.pgy versioning.pgy"
 
 # Ambient builtins whose use demands a `with caps` declaration (maps to the
 # runtime capability gates: io_read/io_write/clock/random/env/input).
-AMBIENT_RE='ReadFile\(|WriteFile\(|FileOpen\(|FileExists\(|DirWalk\(|Now\(|Random\(|Args\(|Input\('
+AMBIENT_RE='ReadFile\(|ReadStdin\(|WriteFile\(|FileOpen\(|FileExists\(|DirWalk\(|Now\(|Random\(|Args\(|Input\('
 
 fail() { echo "[stdlib-inventory] FAIL: $*" >&2; exit 1; }
 

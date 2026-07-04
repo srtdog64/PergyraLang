@@ -222,6 +222,9 @@ func ExprKind(expr: String, env: String) -> String {
     if StartsWith(e, "ReadFile(") {
         return "String";
     }
+    if StartsWith(e, "ReadStdin(") {
+        return "String";
+    }
     if StartsWith(e, "DirWalk(") {
         return "ArrayString";
     }

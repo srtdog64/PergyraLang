@@ -137,6 +137,7 @@ llvm_stdlib_string_file_runtime_call_lookup(const char *callee_name)
         { "Pow", "stdlib scalar", "Pow", 2 },
         { "Random", "stdlib scalar", "Random", 1 },
         { "ReadFile", "stdlib io", "pgy_read_file", 1 },
+        { "ReadStdin", "stdlib io", "pgy_read_stdin", 1 },
         { "Replace", "stdlib string", "StringReplace", 3 },
         { "Round", "stdlib scalar", "Round", 1 },
         { "Sin", "stdlib scalar", "Sin", 1 },

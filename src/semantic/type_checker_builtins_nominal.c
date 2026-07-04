@@ -168,6 +168,15 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         semantic_record_effect(ctx, EFFECT_IO);
         semantic_record_capability(ctx, PGY_CAP_IO_READ);
         return TYPE_STRING;
+    case BUILTIN_READ_STDIN:
+        if (check_call_arity(call, 1, "ReadStdin", ctx)) {
+            require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),
+                TYPE_INT, ast_call_argument(call, 0), ctx);
+        }
+        semantic_record_effect(ctx, EFFECT_IO);
+        semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
+        semantic_record_capability(ctx, PGY_CAP_IO_READ);
+        return TYPE_STRING;
     case BUILTIN_WRITE_FILE:
         if (check_call_arity(call, 2, "WriteFile", ctx)) {
             require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),

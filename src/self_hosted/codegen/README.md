@@ -195,8 +195,9 @@ locally spelling `pgy_ai_*` / `pgy_as_*` helper names.
 `runtime_abi/math_runtime_owner.pgy` owns C math/random helper and
 target-library symbol spelling for the supported `Abs` / `Min` / `Max` /
 `Sqrt` / `Pow` / `Floor` / `Ceil` / `SeedRandom` / `Random` subset.
-`runtime_abi/host_io_runtime_owner.pgy` owns C host file/argv runtime helper
-symbol spelling for the supported file, directory-walk, and `Args()` subset.
+`runtime_abi/host_io_runtime_owner.pgy` owns C host file/stdin/argv runtime helper
+symbol spelling for the supported file, byte-count stdin, directory-walk, and
+`Args()` subset.
 `runtime_abi/option_result_runtime_owner.pgy` owns C Option/Result runtime
 helper symbol spelling for the supported `Option<Int>` / `Option<String>` /
 `Result<Int>` subset.

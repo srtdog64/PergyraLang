@@ -203,6 +203,39 @@ pgy_read_file(const char *path)
         ? result.ok
         : pgy_runtime_strdup("");
 }
+static inline PgyRuntimeIoStringResult
+pgy_try_read_stdin_result(int32_t max_bytes)
+{
+    pgy_cap_require_export(PGY_CAP_IO_READ, "read-stdin");
+    if (max_bytes <= 0)
+        return pgy_runtime_io_string_ok(pgy_runtime_strdup(""));
+    if ((uint32_t)max_bytes > PGY_RUNTIME_MAX_FILE_BYTES)
+        return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_TOO_LARGE, "io-boundary", "read-stdin"));
+    char *buf = (char *)malloc((size_t)max_bytes + 1);
+    if (buf == NULL)
+        return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_ALLOC_FAILED, "io-boundary", "read-stdin"));
+#ifdef _WIN32
+    (void)_setmode(_fileno(stdin), _O_BINARY);
+#endif
+    size_t read_len = fread(buf, 1, (size_t)max_bytes, stdin);
+    if (read_len == 0 && ferror(stdin)) {
+        free(buf);
+        return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_READ_FAILED, "io-boundary", "read-stdin"));
+    }
+    buf[read_len] = '\0';
+    return pgy_runtime_io_string_ok(buf);
+}
+static inline char *
+pgy_read_stdin(int32_t max_bytes)
+{
+    PgyRuntimeIoStringResult result = pgy_try_read_stdin_result(max_bytes);
+    return result.tag == PGY_RUNTIME_IO_RESULT_OK
+        ? result.ok
+        : pgy_runtime_strdup("");
+}
 static inline PgyRuntimeIoIntResult
 pgy_try_file_exists_result(const char *path)
 {

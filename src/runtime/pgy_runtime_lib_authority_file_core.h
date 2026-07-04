@@ -30,6 +30,8 @@ extern int nanosleep(const struct timespec *req, struct timespec *rem);
 extern char *realpath(const char *path, char *resolved_path);
 #endif
 #ifdef _WIN32
+#include <fcntl.h>
+#include <io.h>
 #include <windows.h>
 #endif
 /* The spawn primitives in pgy_parallel.h charge the resource budget (SPAWN_COUNT).

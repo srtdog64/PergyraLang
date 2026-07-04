@@ -13,5 +13,7 @@ replacement.
   squiggle-policy contracts. Error payloads carry both the self-host lower-case
   code and the C-oracle root code in `data.oracleCode`.
 
-Transport parity stays blocked on the `G-STDIN` and `O-LSP` gaps documented in
-`docs/150_selfhost_driver_lsp_wiring.md`.
+The `ReadStdin(n)` substrate for transport framing is present, but transport
+parity still needs an LSP-2 owner to consume it for the JSON-RPC
+Content-Length loop. `O-LSP` has live diagnostic-dump plumbing, but full
+vocabulary/session parity remains a later LSP-3 concern.

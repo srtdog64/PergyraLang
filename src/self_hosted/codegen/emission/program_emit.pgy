@@ -412,6 +412,13 @@ func GenerateC(tree_text: String) -> String {
         header = Concat(header, "    char *buf = (char *)malloc((size_t)sz + 1);\n");
         header = Concat(header, "    size_t rd = fread(buf, 1, (size_t)sz, f);\n");
         header = Concat(header, "    buf[rd] = '\\0';\n    fclose(f);\n    return buf;\n}\n\n");
+        header = Concat(header, "static char *pgy_readstdin(long long max_bytes)\n{\n");
+        header = Concat(header, "    if (max_bytes <= 0 || max_bytes > 67108864LL) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
+        header = Concat(header, "    char *buf = (char *)malloc((size_t)max_bytes + 1);\n");
+        header = Concat(header, "    if (!buf) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
+        header = Concat(header, "    size_t rd = fread(buf, 1, (size_t)max_bytes, stdin);\n");
+        header = Concat(header, "    if (rd == 0 && ferror(stdin)) { free(buf); char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
+        header = Concat(header, "    buf[rd] = '\\0';\n    return buf;\n}\n\n");
         header = Concat(header, "static int pgy_writefile(const char *path, const char *content)\n{\n");
         header = Concat(header, "    if (!pgy_path_allowed(path)) { return 0; }\n");
         header = Concat(header, "    FILE *f = fopen(path, \"wb\");\n");

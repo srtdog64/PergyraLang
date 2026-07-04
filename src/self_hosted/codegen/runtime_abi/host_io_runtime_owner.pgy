@@ -30,6 +30,10 @@ func HostIORuntimeCReadFileFn() -> String {
     return "pgy_readfile";
 }
 
+func HostIORuntimeCReadStdinFn() -> String {
+    return "pgy_readstdin";
+}
+
 func HostIORuntimeCDirWalkFn() -> String {
     return "pgy_dirwalk";
 }

@@ -59,8 +59,8 @@ Status: `wiring-doc, inventory-gated`. docs/138이 **무엇을**(scope ledger)
    (컴파일러 측 동작은 `generic-nested-failclosed-test-smoke`가 별도
    잠금.) Go-1 시대가 이 형태의 10년 선례다. 명명: `<동사구><Type>`
    (`OptionOrInt`). seam이 닫히는 날 G1 제거가 곧 해금 선언이다.
-2. **caps 의무** `[gate: G2]` — ambient 빌트인(ReadFile/WriteFile/Now/
-   Random/Args/DirWalk/Input…)에 닿는 **active** 모듈은 `with caps` 선언
+2. **caps 의무** `[gate: G2]` — ambient 빌트인(ReadFile/ReadStdin/
+   WriteFile/Now/Random/Args/DirWalk/Input…)에 닿는 **active** 모듈은 `with caps` 선언
    의무 — G2가 사용-감지 기반으로 검사(모듈 명단 하드코딩이 아니라
    행동 기반이라 자기-유지). sketch는 유예; WO-L4가 active로 올리는
    순간 G2가 무장된다. **stdlib이 capability showcase다**(docs/15).

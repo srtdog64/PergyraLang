@@ -106,6 +106,7 @@ func CodegenRuntimeUsageFactsFromNodes(nodes: Array<CodegenAstTextNode>, count: 
         || uses_args;
     let uses_ast_text_node_array: Bool = CodegenAstTextContains(nodes, count, "Array<CodegenAstTextNode");
     let uses_io: Bool = CodegenAstTextContains(nodes, count, "ReadFile(")
+        || CodegenAstTextContains(nodes, count, "ReadStdin(")
         || CodegenAstTextContains(nodes, count, "FileExists(")
         || CodegenAstTextContains(nodes, count, "WriteFile(");
     let uses_join: Bool = CodegenAstTextContains(nodes, count, "StringJoin(")

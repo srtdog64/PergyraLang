@@ -2278,6 +2278,9 @@ stdlib-inventory-test-smoke:
 selfhost-driver-lsp-wiring-test-smoke:
 	"$(BASH)" tests/selfhost_driver_lsp_wiring_smoke.sh
 
+read-stdin-builtin-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/read_stdin_builtin_smoke.sh
+
 # docs/151 Decision-0 empirical kernels: measured carriage verdicts per
 # axis x mode (STATIC / RUNTIME / SILENT-COPY), locked on both backends.
 axis-carriage-probe-test-smoke: $(PGY)

@@ -14,6 +14,7 @@ static const char *kPgyCompilerIOBoundaryBuiltinNames[] = {
     "Now",
     "ReadFile",
     "ReadLine",
+    "ReadStdin",
     "Sleep",
     "WriteFile",
 };

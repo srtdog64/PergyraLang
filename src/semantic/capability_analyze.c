@@ -44,6 +44,7 @@ capability_for_builtin(const char *name)
         {"SeedRandom", PGY_CAP_RANDOM},
         {"Now",        PGY_CAP_CLOCK},
         {"ReadFile",   PGY_CAP_IO_READ},
+        {"ReadStdin",  PGY_CAP_IO_READ},
         {"Input",      PGY_CAP_IO_READ},
         {"DirWalk",    PGY_CAP_IO_READ},
         {"WriteFile",  PGY_CAP_IO_WRITE},

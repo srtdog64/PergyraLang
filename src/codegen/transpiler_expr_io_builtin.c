@@ -175,6 +175,22 @@ emit_builtin_read_file(ASTNode *call, TranspilerCtx *ctx)
 }
 
 static char *
+emit_builtin_read_stdin(ASTNode *call, TranspilerCtx *ctx)
+{
+    if (ast_call_arg_count(call) < 1)
+        return io_builtin_unsupported(ctx,
+            "C backend: ReadStdin requires max byte count");
+
+    char *max_bytes = io_builtin_emit_arg(ctx, ast_call_argument(call, 0),
+        "ReadStdin", "max byte count");
+    if (max_bytes == NULL)
+        return NULL;
+    char *result = io_builtin_heap_fmt(ctx, "pgy_read_stdin(%s)", max_bytes);
+    free(max_bytes);
+    return result;
+}
+
+static char *
 emit_builtin_file_exists(ASTNode *call, TranspilerCtx *ctx)
 {
     if (ast_call_arg_count(call) < 1)
@@ -292,6 +308,8 @@ emit_builtin_io(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx)
         return emit_builtin_file_close(call, ctx);
     case BUILTIN_READ_FILE:
         return emit_builtin_read_file(call, ctx);
+    case BUILTIN_READ_STDIN:
+        return emit_builtin_read_stdin(call, ctx);
     case BUILTIN_WRITE_FILE:
         return emit_builtin_write_file(call, ctx);
     case BUILTIN_INPUT:

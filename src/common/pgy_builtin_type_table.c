@@ -156,6 +156,7 @@ pgy_builtin_entries(size_t *count)
         { "QueueSize", "Int", PGY_BUILTIN_FLAG_NONE },
         { "Random", "Int", PGY_BUILTIN_FLAG_NONE },
         { "ReadFile", "String", PGY_BUILTIN_FLAG_NONE },
+        { "ReadStdin", "String", PGY_BUILTIN_FLAG_NONE },
         { "Replace", "String", PGY_BUILTIN_FLAG_NONE },
         { "Round", "Float", PGY_BUILTIN_FLAG_NONE },
         { "SeedRandom", "Void", PGY_BUILTIN_FLAG_NONE },

@@ -59,9 +59,9 @@ participant, not a zone.
 - `MathRuntimeOwner` owns self-host C math/random helper and target-library
   symbol spelling for the supported `Abs` / `Min` / `Max` / `Sqrt` / `Pow` /
   `Floor` / `Ceil` / `SeedRandom` / `Random` subset.
-- `HostIORuntimeOwner` owns self-host C host file/argv/process runtime helper
-  and target-library symbol spelling for the supported file, directory-walk,
-  `Args()`, and `Exit(Int)` subset.
+- `HostIORuntimeOwner` owns self-host C host file/stdin/argv/process runtime
+  helper and target-library symbol spelling for the supported file,
+  byte-count stdin, directory-walk, `Args()`, and `Exit(Int)` subset.
 - `OptionResultRuntimeOwner` owns self-host C Option/Result runtime helper
   symbol spelling for the supported `Option<Int>` / `Result<Int>` subset. The
   helper definitions stay in `program_emit`; expression and statement emitters

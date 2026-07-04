@@ -74,4 +74,11 @@ if printf '%s\n' "$rows" | grep -Fq "| LSP-2 | planned |"; then
     grep -Fq "G-STDIN" "$DOC" || fail "LSP-2 is planned but the G-STDIN gap entry vanished"
 fi
 
+if grep -Fq "tests/read_stdin_builtin_smoke.sh" "$DOC"; then
+    [ -e "$ROOT_DIR/tests/read_stdin_builtin_smoke.sh" ] ||
+        fail "G-STDIN claims read-stdin substrate smoke, but the script is missing"
+    grep -Fq "read-stdin-builtin-test-smoke" "$ROOT_DIR/Makefile" ||
+        fail "G-STDIN claims read-stdin substrate smoke, but the Makefile target is missing"
+fi
+
 echo "[driver-lsp-wiring] rung ladder honest (landed==exists, blocked==documented, planned==unclaimed, gaps visible)"

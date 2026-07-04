@@ -496,7 +496,8 @@ func RewriteTokens(e: String, env: String) -> String {
     let gr: String = ReplaceAllOutsideStrings(gc, "FileRead(", Concat(HostIORuntimeCFileReadFn(), "("));
     let gp: String = ReplaceAllOutsideStrings(gr, "Print(", Concat(StringRuntimeCPrintFn(), "("));
     let h0: String = ReplaceAllOutsideStrings(gp, "ReadFile(", Concat(HostIORuntimeCReadFileFn(), "("));
-    let h: String = ReplaceAllOutsideStrings(h0, "DirWalk(", Concat(HostIORuntimeCDirWalkFn(), "("));
+    let hstdin: String = ReplaceAllOutsideStrings(h0, "ReadStdin(", Concat(HostIORuntimeCReadStdinFn(), "("));
+    let h: String = ReplaceAllOutsideStrings(hstdin, "DirWalk(", Concat(HostIORuntimeCDirWalkFn(), "("));
     let k: String = ReplaceAllOutsideStrings(h, "Args(", Concat(HostIORuntimeCArgsFn(), "("));
     let mc: String = ReplaceAllOutsideStrings(k, "CharCode(", Concat(StringRuntimeCCharCodeFn(), "("));
     let m0: String = ReplaceAllOutsideStrings(mc, "CharAtN(", Concat(StringRuntimeCCharAtNFn(), "("));
