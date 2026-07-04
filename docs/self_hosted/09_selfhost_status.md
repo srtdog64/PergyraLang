@@ -1,7 +1,7 @@
 # Self-Host Status (verified snapshot)
 
-Branch main. This snapshot records what is verified to self-host right now,
-measured by building pgy and running
+Branch main. This is a dated evidence snapshot, not a live CI assertion for
+the current commit. It records what was verified by building pgy and running
 `make self-host-preparation-test-smoke` on 2026-06-21. The lexer/parser scale
 figures below were refreshed on 2026-06-23 with
 `make self-host-lexer-parity-test-smoke self-host-parser-parity-test-smoke`
@@ -12,6 +12,10 @@ backend, LLVM. `LLVM_ENABLED=0` jobs still prove the C leg and require an
 explicit LLVM-leg skip instead of treating the build configuration as a tool
 failure. The C compiler remains the oracle.
 
+For work after this snapshot, follow `docs/152_validation_isolation_policy.md`:
+rerun only the owner gate for the touched self-host rung unless a broader
+compiler-world owner changed or broad parity is explicitly requested.
+
 ## Verified
 
 Front-end self-hosts on both backends in LLVM-enabled builds.
@@ -20,7 +24,7 @@ Front-end self-hosts on both backends in LLVM-enabled builds.
   the entrypoint; character/codepoint handling, token classification/output
   formatting, and scan-loop state are owned by separate modules. Token output
   is byte-identical to `pgy --tokens` across the 7 committed source fixtures,
-  and the live drift guard confirms those fixtures still match the current
+  and the live drift guard confirmed those fixtures matched the then-current
   oracle. The broader lexer scale probe now measures 993 of 993 examples +
   backend_compare sources byte-equal.
 - Parser (src/self_hosted/parser/): compiles on C and LLVM and compares
@@ -36,7 +40,7 @@ Front-end self-hosts on both backends in LLVM-enabled builds.
   role/intent/nominal-domain declaration parsing, and compact AST text formatting
   are owned by separate parser modules; `main.pgy` is entrypoint orchestration
   only. Parser tool input is single-sourced through `Args()[0]`; the previous
-  probe-only source override is retired. The current examples scale probe is
+  probe-only source override is retired. The last examples scale probe was
   120 of 121 byte-equal against live `pgy --ast`, with zero byte-drift, zero
   self-host parser exits, and 1 C-oracle skip (`secure_slots`).
 - Backend parity: the parser compiled by the C backend and by the LLVM backend
@@ -228,12 +232,12 @@ Substrate progress.
   AST-read-surface checker, diagnostics catalog checker, doc/example inventory
   checkers, module manifest resolver, production size checkers, AIR graph JSON
   validator, AIR graph consumer checkers, stable subset checker, stdlib
-  dispatch inventory checker, and runtime boundary checker all pass their
-  current self-host preparation parity gates.
-- `make self-host-preparation-test-smoke` is green on the current LLVM-enabled
-  Windows build: lexer, parser, semantic, codegen parity, codegen bootstrap,
-  backend tri-compare, MIR JSON lowering, production size/header checkers, and
-  the self-hosted audit tools all pass their C/LLVM legs.
+  dispatch inventory checker, and runtime boundary checker all passed their
+  self-host preparation parity gates in the dated snapshot.
+- `make self-host-preparation-test-smoke` was green on the last verified
+  LLVM-enabled Windows build: lexer, parser, semantic, codegen parity, codegen
+  bootstrap, backend tri-compare, MIR JSON lowering, production size/header
+  checkers, and the self-hosted audit tools all passed their C/LLVM legs.
 - Every one of the 22 self-host tool parity gates now exercises both backends
   when the compiler build includes LLVM.
   Previously 12 of them built and ran their Pergyra tool only with the default

@@ -7,6 +7,14 @@ audit tools exist.
 
 Last updated: 2026-07-04
 
+Evidence currency: this file is the canonical progress ledger, but individual
+green claims remain dated to the gate runs named in each section. Updating this
+ledger or touching an isolated SoT owner does not imply a fresh
+`self-host-preparation-test-smoke` run. New validation should follow
+`docs/152_validation_isolation_policy.md`: run the owner-scoped self-host rung
+gate first, and escalate to the heavy preparation/parity bundle only when a
+broader compiler-world artifact changed or broad parity is explicitly requested.
+
 ## Headline Number
 
 **Hard self-host contract (2026-06-22):** hard self-host is now gated as

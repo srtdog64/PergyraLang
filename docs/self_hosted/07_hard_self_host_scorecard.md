@@ -1,10 +1,16 @@
 # Hard Self-Host Readiness Scorecard
 
 This scorecard measures the ten non-negotiable capabilities from the gap
-analysis (05) against the current tree. Each capability is gated by a smoke
-test; tests/self_host_readiness_scorecard.sh verifies the gates are present and
+analysis (05). Each capability has a named smoke gate;
+tests/self_host_readiness_scorecard.sh verifies the gates are present and
 prints the tier without a build. This document records the reasoning behind
 each tier and the work that remains.
+
+The scorecard is not a live full-suite CI result. After an isolated SoT edit,
+use `docs/152_validation_isolation_policy.md`: rerun the narrow owner gate
+first, and treat broad self-host preparation or backend parity as escalation
+evidence only when a broader owner artifact changed or broad parity is
+explicitly requested.
 
 ## Verdict
 
