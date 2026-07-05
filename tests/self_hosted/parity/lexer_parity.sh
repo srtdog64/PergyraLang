@@ -33,6 +33,7 @@ PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/lex
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 COMPARATOR_BIN="$PERGYRA_TOOL_BUILD_DIR/backend_output_comparator.exe"
 FIXTURE_DIR="$ROOT_DIR/src/self_hosted/lexer/fixture"
+LEXER_FIXTURE_MANIFEST_FILE="$PERGYRA_TOOL_BUILD_DIR/lexer_fixture_manifest.txt"
 
 if [[ ! -f "$PERGYRA_TOOL_SOURCE" ]]; then
     echo "[self-host-parity:lexer] missing Pergyra tool: $PERGYRA_TOOL_SOURCE" >&2
@@ -67,6 +68,30 @@ compile_backend_output_comparator() {
         >"$compile_log" 2>&1); then
         echo "[self-host-parity:lexer] backend output comparator failed to build" >&2
         cat "$compile_log" >&2
+        exit 1
+    fi
+}
+
+read_lexer_fixture_manifest() {
+    local line
+
+    SOURCE_PAIRS=()
+    if ! (cd "$ROOT_DIR" && "$PERGYRA_TOOL_BUILD_DIR/main.exe" --fixture-manifest \
+        >"$LEXER_FIXTURE_MANIFEST_FILE" \
+        2>"$PERGYRA_TOOL_BUILD_DIR/lexer_fixture_manifest.err"); then
+        echo "[self-host-parity:lexer] fixture manifest emission failed" >&2
+        cat "$PERGYRA_TOOL_BUILD_DIR/lexer_fixture_manifest.err" >&2
+        exit 1
+    fi
+
+    while IFS= read -r line; do
+        line="${line%$'\r'}"
+        [[ -n "$line" ]] || continue
+        SOURCE_PAIRS+=("$line")
+    done <"$LEXER_FIXTURE_MANIFEST_FILE"
+
+    if [[ "${#SOURCE_PAIRS[@]}" -ne 7 ]]; then
+        echo "[self-host-parity:lexer] fixture manifest count drifted: ${#SOURCE_PAIRS[@]} != 7" >&2
         exit 1
     fi
 }
@@ -124,20 +149,13 @@ fi
 
 compile_backend_output_comparator
 
-# Sources to lex + their committed fixtures. Each entry is
-# "<source path relative to repo root>:<fixture filename>". The Pergyra
-# binary reads the source path from Args()[0].
-SOURCE_PAIRS=(
-    "examples/hello.pgy:hello_tokens.txt"
-    "examples/array_literal.pgy:array_literal_tokens.txt"
-    "examples/break_continue.pgy:break_continue_tokens.txt"
-    "examples/basic.pgy:basic_tokens.txt"
-    "examples/heap.pgy:heap_tokens.txt"
-    "examples/binary_search.pgy:binary_search_tokens.txt"
-    "tests/cases/backend_compare/string_escape_sequences/main.pgy:string_escape_sequences_tokens.txt"
-)
+# Sources to lex + their committed fixtures are emitted by the compiled lexer
+# owner as "<source path relative to repo root>:<fixture filename>" rows.
+SOURCE_PAIRS=()
 
 ANY_DRIFT_GUARD_RAN="no"
+
+read_lexer_fixture_manifest
 
 for pair in "${SOURCE_PAIRS[@]}"; do
     src="${pair%%:*}"

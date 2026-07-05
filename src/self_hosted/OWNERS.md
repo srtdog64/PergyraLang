@@ -27,6 +27,10 @@ compiler-stage `.pgy` source to be listed here.
 
 - `src/self_hosted/lexer/main.pgy` -- entrypoint only.
 - `src/self_hosted/lexer/char_owner.pgy` -- character/codepoint predicates.
+- `src/self_hosted/lexer/fixture_manifest_owner.pgy` -- lexer parity
+  source/fixture manifest rows.
+- `src/self_hosted/lexer/run_owner.pgy` -- lexer CLI run boundary and mode
+  selection.
 - `src/self_hosted/lexer/source_input_owner.pgy` -- source path and file input.
 - `src/self_hosted/lexer/scan_owner.pgy` -- token scan loop state.
 - `src/self_hosted/lexer/token_owner.pgy` -- token classification, rendering,

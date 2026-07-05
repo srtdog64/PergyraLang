@@ -1,0 +1,63 @@
+// Lexer fixture-manifest owner.
+//
+// The lexer parity row maps an external source path to the committed
+// token-baseline file that proves byte-equal output. The shell runner may
+// consume this manifest, but it must not own the source/fixture mapping.
+
+func LexerFixtureManifestCount() -> Int {
+    return 7;
+}
+
+func LexerFixtureSourceAt(index: Int) -> String {
+    if index == 0 { return "examples/hello.pgy"; }
+    if index == 1 { return "examples/array_literal.pgy"; }
+    if index == 2 { return "examples/break_continue.pgy"; }
+    if index == 3 { return "examples/basic.pgy"; }
+    if index == 4 { return "examples/heap.pgy"; }
+    if index == 5 { return "examples/binary_search.pgy"; }
+    if index == 6 { return "tests/cases/backend_compare/string_escape_sequences/main.pgy"; }
+    return "";
+}
+
+func LexerFixtureExpectedAt(index: Int) -> String {
+    if index == 0 { return "hello_tokens.txt"; }
+    if index == 1 { return "array_literal_tokens.txt"; }
+    if index == 2 { return "break_continue_tokens.txt"; }
+    if index == 3 { return "basic_tokens.txt"; }
+    if index == 4 { return "heap_tokens.txt"; }
+    if index == 5 { return "binary_search_tokens.txt"; }
+    if index == 6 { return "string_escape_sequences_tokens.txt"; }
+    return "";
+}
+
+func LexerFixtureExpectedPath(expected: String) -> String {
+    return Concat("src/self_hosted/lexer/fixture/", expected);
+}
+
+func LexerFixtureManifestReady() -> Bool {
+    let i: Int = 0;
+    while i < LexerFixtureManifestCount() {
+        let source: String = LexerFixtureSourceAt(i);
+        let expected: String = LexerFixtureExpectedAt(i);
+        if StringLength(source) == 0 || StringLength(expected) == 0 {
+            return false;
+        }
+        if !FileExists(source) || !FileExists(LexerFixtureExpectedPath(expected)) {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func EmitLexerFixtureManifest() -> Void {
+    if !LexerFixtureManifestReady() {
+        Exit(1);
+    }
+
+    let i: Int = 0;
+    while i < LexerFixtureManifestCount() {
+        Log(Concat(Concat(LexerFixtureSourceAt(i), ":"), LexerFixtureExpectedAt(i)));
+        i = i + 1;
+    }
+}

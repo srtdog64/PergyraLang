@@ -386,16 +386,25 @@ reject_text "tests/self_hosted/parity/parser_parity.sh" "walrus_"
 reject_text "src/self_hosted/PROGRESS.md" "walrus surface"
 
 require_owner_surface lexer \
-    "scan_owner.pgy" \
-    "source_input_owner.pgy"
+    "run_owner.pgy"
 require_file "src/self_hosted/lexer/char_owner.pgy"
+require_file "src/self_hosted/lexer/source_input_owner.pgy"
 require_file "src/self_hosted/lexer/token_owner.pgy"
+require_file "src/self_hosted/lexer/fixture_manifest_owner.pgy"
+require_text "src/self_hosted/lexer/run_owner.pgy" 'import "scan_owner.pgy";'
+require_text "src/self_hosted/lexer/run_owner.pgy" 'import "source_input_owner.pgy";'
+require_text "src/self_hosted/lexer/run_owner.pgy" 'import "fixture_manifest_owner.pgy";'
 require_text "src/self_hosted/lexer/scan_owner.pgy" 'import "char_owner.pgy";'
 require_text "src/self_hosted/lexer/scan_owner.pgy" 'import "token_owner.pgy";'
 require_text "src/self_hosted/lexer/token_owner.pgy" "func LexerTokenPayloadContractReady"
 require_text "src/self_hosted/lexer/token_owner.pgy" "func LexerTokenPayloadSchema"
 require_text "src/self_hosted/lexer/token_owner.pgy" "pgy.selfhost.lexer-token-stream.v1"
 require_text "src/self_hosted/lexer/token_owner.pgy" "LexerTokenPayloadFixtureCount() != 7"
+require_text "src/self_hosted/lexer/fixture_manifest_owner.pgy" "func LexerFixtureManifestCount() -> Int"
+require_text "src/self_hosted/lexer/fixture_manifest_owner.pgy" "func EmitLexerFixtureManifest"
+require_text "src/self_hosted/lexer/fixture_manifest_owner.pgy" "LexerFixtureManifestCount()"
+require_text "src/self_hosted/lexer/main.pgy" "RunLexerFromArgs(Args())"
+require_text "src/self_hosted/lexer/run_owner.pgy" '"--fixture-manifest"'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../lexer/token_owner.pgy";'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "LexerTokenPayloadContractReady()"
 reject_text "src/self_hosted/lexer/main.pgy" 'import "char_owner.pgy";'
@@ -403,9 +412,13 @@ reject_text "src/self_hosted/lexer/main.pgy" 'import "token_owner.pgy";'
 require_text "tests/self_hosted/parity/lexer_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy"'
 require_text "tests/self_hosted/parity/lexer_parity.sh" "normalize_text_artifact"
 require_text "tests/self_hosted/parity/lexer_parity.sh" "compile_backend_output_comparator"
+require_text "tests/self_hosted/parity/lexer_parity.sh" "read_lexer_fixture_manifest"
+require_text "tests/self_hosted/parity/lexer_parity.sh" '"$PERGYRA_TOOL_BUILD_DIR/main.exe" --fixture-manifest'
 require_text "tests/self_hosted/parity/lexer_parity.sh" 'compare_lexer_output_with_owner "c" "$label" "$expected_file" "$c_out" 2'
 require_text "tests/self_hosted/parity/lexer_parity.sh" 'compare_lexer_output_with_owner "llvm" "$label" "$expected_file" "$llvm_out" 2'
 require_text "tests/self_hosted/parity/lexer_parity.sh" 'compare_lexer_output_with_owner "live-tokens" "$label" "$expected_file" "$live_out" 0'
+reject_text "tests/self_hosted/parity/lexer_parity.sh" "examples/hello.pgy:hello_tokens.txt"
+reject_text "tests/self_hosted/parity/lexer_parity.sh" "string_escape_sequences_tokens.txt"
 reject_text "tests/self_hosted/parity/lexer_parity.sh" 'EXPECTED_OUT="$(tr -d'
 reject_text "tests/self_hosted/parity/lexer_parity.sh" 'PERGYRA_OUT="$(cd'
 reject_text "tests/self_hosted/parity/lexer_parity.sh" 'LLVM_LEX_OUT="$(cd'
@@ -1335,6 +1348,8 @@ reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" ',"kind":"me
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/main.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lexer/main.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lexer/scan_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lexer/fixture_manifest_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lexer/run_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/path_manifest_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/stage_intents.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/target_capability_owner.pgy"'
@@ -2042,8 +2057,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 123 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 123"
+[[ "$selfcheck_count" -eq 125 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 125"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'

@@ -1,7 +1,7 @@
 // src/self_hosted/lexer/main.pgy
 //
 // Status: rung-1 parity (2026-06-18). Pergyra-written lexer that substitutes
-// a bounded subset of src/lexer/lexer.c. Current gate: 6 committed source
+// a bounded subset of src/lexer/lexer.c. Current gate: 7 committed source
 // fixtures byte-equal to `pgy --tokens` on both C and LLVM-generated binaries,
 // with a live oracle drift guard.
 //
@@ -13,12 +13,8 @@
 //
 // Contract: see intent.md in the same directory.
 
-import "scan_owner.pgy";
-import "source_input_owner.pgy";
+import "run_owner.pgy";
 
 func Main() -> Void {
-    let run_args: Array<String> = Args();
-    let source_path: String = LexerDefaultSourcePath(run_args);
-    let content: String = LexerReadSource(source_path);
-    Log(LexContent(source_path, content));
+    RunLexerFromArgs(Args());
 }

@@ -4,9 +4,13 @@ Pergyra-written lexer that emits the same text `pgy --tokens` produces,
 byte-for-byte. Mirrors C-side `src/lexer/`. The goal is byte-equal output,
 not a full compiler rewrite.
 
-- `main.pgy` - entry point orchestration only. Delegates argv/default source
-  path selection and file-read failure policy to `source_input_owner.pgy`, and
-  lexing to `scan_owner.pgy`. It must not import scan-loop internals directly.
+- `main.pgy` - entry point only. Calls `RunLexerFromArgs(Args())`.
+- `run_owner.pgy` - CLI mode selection. Delegates argv/default source path
+  selection and file-read failure policy to `source_input_owner.pgy`, fixture
+  manifest emission to `fixture_manifest_owner.pgy`, and lexing to
+  `scan_owner.pgy`.
+- `fixture_manifest_owner.pgy` - parity source/fixture row SoT. Emits the
+  `--fixture-manifest` consumed by the shell runner.
 - `scan_owner.pgy` - scan-loop SoT. Imports `char_owner.pgy` and
   `token_owner.pgy` because it consumes character classification and token
   formatting/classification facts.
@@ -14,7 +18,7 @@ not a full compiler rewrite.
   source file read boundary consumed by `scan_owner.pgy`.
 - `fixture/` - committed `<base>_tokens.txt` baselines for the 7-source
   parity harness (`hello`, `array_literal`, `break_continue`, `basic`,
-  `heap`, `binary_search`).
+  `heap`, `binary_search`, `string_escape_sequences`).
 - `expected/clean.txt` - expected stdout when run on the default source.
 - `intent.md` - contract.
 

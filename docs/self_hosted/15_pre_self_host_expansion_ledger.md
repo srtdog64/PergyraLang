@@ -118,6 +118,12 @@ rows from `DirWalk("src/self_hosted/codegen/fixture")` plus paired
 `expected/*_stdout.txt` existence, and the shell runner consumes those rows
 before invoking the C oracle and C/LLVM-built codegen tools.
 
+TestHarness delta, 2026-07-05: `lexer_parity.sh` no longer owns the seven-row
+`SOURCE_PAIRS` source/fixture inventory. The compiled lexer owner emits
+`--fixture-manifest` rows from `fixture_manifest_owner.pgy`, and the shell
+runner consumes those rows before invoking C/LLVM lexer parity and live
+`pgy --tokens` drift checks.
+
 Artifact Zone delta, 2026-07-04: LSP transport outputs are now tracked as
 their own comparable artifact kinds: `CompilerLspTransportFrameArtifactKind()`
 for LSP-2a single-frame output and `CompilerLspTransportStreamArtifactKind()`

@@ -1,0 +1,19 @@
+// Lexer run-boundary owner.
+//
+// Owns CLI mode selection for normal lexing vs fixture-manifest emission.
+// `main.pgy` remains entrypoint-only.
+
+import "scan_owner.pgy";
+import "source_input_owner.pgy";
+import "fixture_manifest_owner.pgy";
+
+func RunLexerFromArgs(args: Array<String>) -> Void {
+    if ArrayLength(args) > 0 && args[0] == "--fixture-manifest" {
+        EmitLexerFixtureManifest();
+        return;
+    }
+
+    let source_path: String = LexerDefaultSourcePath(args);
+    let content: String = LexerReadSource(source_path);
+    Log(LexContent(source_path, content));
+}
