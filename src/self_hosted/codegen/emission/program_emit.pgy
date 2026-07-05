@@ -9,7 +9,7 @@ import "../input/ast_usage_owner.pgy";
 import "../runtime_abi/host_io_runtime_owner.pgy";
 import "function_emit.pgy";
 
-func GenerateC(tree_text: String) -> String {
+func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
     RejectUnsupportedCodegenBuiltins(tree_text);
 
     let nodes: Array<CodegenAstTextNode> = [];
@@ -36,8 +36,14 @@ func GenerateC(tree_text: String) -> String {
         }
         main_scan = main_scan + 1;
     }
-    if main_count != 1 {
-        Die(Concat("exactly one `Main` function is required; saw count=", ToString(main_count)));
+    if require_entrypoint {
+        if main_count != 1 {
+            Die(Concat("exactly one `Main` function is required; saw count=", ToString(main_count)));
+        }
+    } else {
+        if main_count > 1 {
+            Die(Concat("at most one `Main` function is allowed in a codegen unit; saw count=", ToString(main_count)));
+        }
     }
 
     let first_fn: Int = -1;
@@ -46,14 +52,20 @@ func GenerateC(tree_text: String) -> String {
         if CodegenAstTextIsMainFunction(nodes[scan]) {
             first_fn = scan;
             scan = count;
+        } else if !require_entrypoint && first_fn < 0 && CodegenAstTextIsFunction(nodes[scan]) {
+            first_fn = scan;
+            scan = scan + 1;
         } else {
             scan = scan + 1;
         }
     }
-    if first_fn < 0 {
+    if require_entrypoint && first_fn < 0 {
         Die("no function found in AST");
     }
-    let f_indent: Int = nodes[first_fn].indent;
+    let f_indent: Int = 2;
+    if first_fn >= 0 {
+        f_indent = nodes[first_fn].indent;
+    }
     let env_acc: Array<String> = [BuildFunctionEnv(nodes, count)];
     let enum_block: String = CollectEnums(nodes, count, env_acc);
     let typedef_block: String = CollectStructs(nodes, count, env_acc);
@@ -469,4 +481,8 @@ func GenerateC(tree_text: String) -> String {
         header = Concat(header, "    return a;\n}\n\n");
     }
     return Concat(header, Concat(enum_block, Concat(typedef_block, Concat(record_array_block, Concat(proto_block, defs)))));
+}
+
+func GenerateC(tree_text: String) -> String {
+    return GenerateCUnit(tree_text, true);
 }

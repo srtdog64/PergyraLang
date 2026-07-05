@@ -112,6 +112,12 @@ func RewriteArrayLengthEnv(e: String, env: String) -> String {
             let close: Int = UnwrapOption(close_opt);
             let arg: String = StringTrim(Substring(e, open + 1, close - open - 1));
             let kind: String = LookupKindType(env, arg, "v");
+            if StringLength(kind) == 0 {
+                kind = ExprKind(arg, env);
+            }
+            if StartsWith(kind, "Array<") {
+                kind = CollectionRuntimeKindFromTypeName(kind);
+            }
             let fn: String = CollectionRuntimeCLenFn(kind);
             out = Concat(out, Concat(fn, Concat("(", Concat(arg, ")"))));
             i = close + 1;

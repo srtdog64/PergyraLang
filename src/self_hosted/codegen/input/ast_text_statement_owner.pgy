@@ -69,6 +69,18 @@ func CodegenAstTextIsElseStmt(node: CodegenAstTextNode) -> Bool {
     return node.kind == 25;
 }
 
+func CodegenAstTextIsMatchStmt(node: CodegenAstTextNode) -> Bool {
+    return node.kind == 34;
+}
+
+func CodegenAstTextIsMatchCaseStmt(node: CodegenAstTextNode) -> Bool {
+    return node.kind == 35;
+}
+
+func CodegenAstTextIsMatchDefaultStmt(node: CodegenAstTextNode) -> Bool {
+    return node.kind == 36;
+}
+
 func CodegenAstTextIsBareCallStmt(node: CodegenAstTextNode) -> Bool {
     return node.kind == 29;
 }
@@ -307,6 +319,20 @@ func CodegenAstTextWhileCondition(node: CodegenAstTextNode) -> String {
 func CodegenAstTextIfCondition(node: CodegenAstTextNode) -> String {
     if !CodegenAstTextIsIfStmt(node) || node.payload == "" {
         Die(Concat("malformed If statement AST line: ", node.text));
+    }
+    return node.payload;
+}
+
+func CodegenAstTextMatchSubject(node: CodegenAstTextNode) -> String {
+    if !CodegenAstTextIsMatchStmt(node) || node.payload == "" {
+        Die(Concat("malformed Match statement AST line: ", node.text));
+    }
+    return node.payload;
+}
+
+func CodegenAstTextMatchCasePattern(node: CodegenAstTextNode) -> String {
+    if !CodegenAstTextIsMatchCaseStmt(node) || node.payload == "" {
+        Die(Concat("malformed Case statement AST line: ", node.text));
     }
     return node.payload;
 }

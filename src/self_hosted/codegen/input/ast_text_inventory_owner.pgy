@@ -104,6 +104,15 @@ func CodegenAstTextKindOf(text: String) -> Int {
     if text == "Else:" {
         return 25;
     }
+    if StartsWith(text, "Match: ") {
+        return 34;
+    }
+    if StartsWith(text, "Case: ") {
+        return 35;
+    }
+    if text == "Default:" {
+        return 36;
+    }
     if text == "Defer:" {
         return 26;
     }
@@ -206,6 +215,12 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
     }
     if kind == 24 {
         return Substring(text, 4, StringLength(text) - 4);
+    }
+    if kind == 34 {
+        return Substring(text, 7, StringLength(text) - 7);
+    }
+    if kind == 35 {
+        return Substring(text, 6, StringLength(text) - 6);
     }
     if kind == 29 {
         return text;

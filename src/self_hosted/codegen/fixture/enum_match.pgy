@@ -1,0 +1,16 @@
+enum Direction { North, East, South }
+
+func Label(d: Direction) -> String {
+    match d {
+        case North: return "N";
+        case East: return "E";
+        case South: return "S";
+    }
+    return "?";
+}
+
+func Main() -> Void {
+    Log(Label(North));
+    Log(Label(East));
+    Log(Label(South));
+}

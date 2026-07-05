@@ -65,6 +65,20 @@ func RewriteMemberCalls(e: String, env: String) -> String {
             i = i + 1;
             continue;
         }
+        if IsIdentStart(c) {
+            let direct_j: Int = i;
+            while direct_j < n && IsIdentChar(CodegenCharAt(e, direct_j)) {
+                direct_j = direct_j + 1;
+            }
+            let direct_ident: String = Substring(e, i, direct_j - i);
+            let local_type: String = LookupKindType(env, direct_ident, "v");
+            let direct_value: String = LookupKindType(env, direct_ident, "e");
+            if StringLength(local_type) == 0 && StringLength(direct_value) > 0 {
+                out = Concat(out, direct_value);
+                i = direct_j;
+                continue;
+            }
+        }
         if c == "." {
             let ol: Int = StringLength(out);
             let end: Int = ol;

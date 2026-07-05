@@ -77,24 +77,28 @@ self-semantic 각각에 `--check <file>` 모드(pass/fail + 실패 사유) 추�
 4. **Monotone baseline + identity.** `source_min`, `lexer_pass_min`,
    `parser_pass_min`, `semantic_pass_min`, `codegen_pass_min`은 오르기만 한다. 또한
    누적 pipeline 수치 `lex_parse_pass_min`, `lex_parse_semantic_pass_min`,
-   `full_pipeline_pass_min`과 그 baseline 파일 목록도 함께 잠긴다. 기존에 pipeline을
-   통과하던 파일이 빠지면 새 파일이 대신 들어와 count를 보존해도 실패한다. pass
+   `full_pipeline_pass_min`도 함께 잠긴다. pipeline baseline manifest는 source
+   inventory owner를 소비하므로, current production source가 빠지면 count를
+   보존해도 실패한다. pass
    count를 올릴 때는 C/LLVM oracle parity 또는 stage fixture가 같이 있어야 하며,
    C oracle의 silent fallback을 그대로 따라간 결과는 pass 상승 근거가 아니다.
 
-**착지된 M2 ledger baseline(2026-07-05):** `self-host-completeness-smoke`가
+**착지된 M2 ledger baseline(2026-07-05, tightened):** `self-host-completeness-smoke`가
 production self-host source 147개를 측정한다. locked minima:
 `source_min=147`, `lexer_pass_min=147`, `parser_pass_min=147`,
-`semantic_pass_min=134`, `codegen_pass_min=23`,
-`lex_parse_pass_min=147`, `lex_parse_semantic_pass_min=134`,
-`full_pipeline_pass_min=23`. 세 pipeline 수치는 committed baseline 파일 목록과 함께
-잠긴다. 이 숫자는 낮출 수 없고, parser나 semantic/codegen rung이 열릴 때만
-증가한다.
+`semantic_pass_min=147`, `codegen_pass_min=147`,
+`lex_parse_pass_min=147`, `lex_parse_semantic_pass_min=147`,
+`full_pipeline_pass_min=147`. 세 pipeline baseline manifest는 별도 복사본이 아니라
+`CompilerCompletenessSourceInventory()`가 방출하는 source inventory를 소비한다.
+따라서 새 production self-host source가 추가되면 source scope와 pipeline identity가
+같은 owner에서 함께 확장된다. 이 숫자는 낮출 수 없고, source inventory가 바뀌는
+커밋은 같은 게이트에서 새 source의 stage 통과도 증명해야 한다.
 
-주의: `full_pipeline_pass_min=23`은 아직 self-parser AST가 codegen으로 들어가는
-완전 pipeline이 아니다. 현재 codegen stage check는 `pgy --ast`로 얻은 C-oracle AST
-텍스트를 self-host codegen에 넣는다. 이 수치는 stage별 통과 파일의 교집합을
-정직하게 보여주는 계기판이며, DRV/parser flip 이후 별도 수치로 승격해야 한다.
+주의: `full_pipeline_pass_min=147`은 아직 self-parser AST가 codegen으로 들어가는
+완전 bootstrap pipeline이 아니다. 현재 codegen stage check는 `pgy --ast`로 얻은
+C-oracle AST 텍스트를 self-host codegen에 넣는다. 이 수치는 stage별 통과 파일의
+교집합을 정직하게 보여주는 계기판이며, DRV/parser flip 이후 별도 수치로
+승격해야 한다.
 
 **Red-team 보정(2026-07-05): source identity != semantic check unit.** source
 inventory는 계속 147개가 정본이다. 다만 parser expression/statement처럼 순환 문법

@@ -41,20 +41,23 @@ manifests:
 | production self-host sources | 147 |
 | lexer pass | 147 |
 | parser pass | 147 |
-| semantic pass | 134 |
-| codegen pass | 23 |
+| semantic pass | 147 |
+| codegen pass | 147 |
 | lex+parse pass | 147 |
-| lex+parse+semantic pass | 134 |
-| full stage intersection | 23 |
+| lex+parse+semantic pass | 147 |
+| full stage intersection | 147 |
 
 Interpretation: parser is no longer the dominant blocker. The next real
-completeness wall is semantic owner coverage, then codegen pipeline identity
-without C-oracle AST text.
+completeness wall is no longer source breadth. It is pipeline ownership:
+codegen still consumes C-oracle AST text (`pgy --ast`) for the stage check, so
+the remaining hard-self-host blocker is replacing that bridge with
+self-parser/self-semantic owned facts without adding hidden fallbacks.
 
-Focused follow-up evidence after this red-team pass: semantic-only completeness
-now reports `147/147` (`PGY_SELFHOST_COMPLETENESS_STAGES=semantic`). The
-committed monotone baseline remains `134` until the unfiltered completeness
-ledger proves the full stage identity and pipeline intersections.
+The monotone ledger is now tightened at `147/147` for lexer, parser, semantic,
+codegen, lex+parse, lex+parse+semantic, and full stage intersection. The three
+pipeline baselines are emitted from the same source inventory owner rather than
+from copied path lists, so new production self-host sources must pass all
+selected stages in the same gate.
 
 The 600-line owner cap is currently respected for self-hosted `.pgy` files. The
 largest observed files are under the cap:
@@ -200,8 +203,8 @@ must remain fatal infrastructure failures, not pass-count failures.
 | Self-host contract | Strong | honest definition, bridge/fallback split, CI owner named |
 | M2 completeness measurement | Medium-high | monotone source identity is right; stage check-unit ownership must stay explicit |
 | Parser self-host | Strong | 147/147 in completeness; parity fixture surface broad |
-| Semantic self-host | Medium-low | 134/147 sources pass, but deep semantic layers remain mostly unported |
-| Codegen self-host | Medium | fixed-point exists for subset; full ledger only 23 sources |
+| Semantic self-host | Medium | 147/147 source-stage checks pass, but deep semantic parity is still bounded by the current subset |
+| Codegen self-host | Medium | fixed-point exists for subset; 147/147 source-stage checks pass via C-oracle AST text |
 | CompilerWorld shape | Medium | vocabulary present; live fact consumption still needs negative evidence |
 | Typed AST | Medium-low | bridge is controlled, but still line-text backed |
 | JSON facts | Medium | shared owners exist; not yet a full schema/fact substrate |
@@ -216,13 +219,10 @@ or backend architecture complete.
 
 ## Next Work Order
 
-1. Close the semantic completeness ledger by separating source identity from
-   semantic check-unit ownership, then investigate the remaining driver rows
-   without adding compatibility stubs.
-2. Promote semantic pass count only with the unfiltered completeness ledger.
-   Focused mode remains local-only evidence.
-3. Split `READY for subset` from `ACTIVE global` in the expansion ledger.
-4. Start typed AST replacement at the top codegen consumers:
+1. Replace the codegen stage's C-oracle AST text bridge with self-parser /
+   self-semantic owned facts, then keep the 147/147 ledger green.
+2. Split `READY for subset` from `ACTIVE global` in the expansion ledger.
+3. Start typed AST replacement at the top codegen consumers:
    `expr_rewrite`, `decl_lower`, and `routine_lower`.
 5. Add retained-runtime attribution to erasure/materialization scans.
 6. Execute Target #4 shared MIR consumption only after the M2 semantic/codegen
