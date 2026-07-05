@@ -1,0 +1,100 @@
+// Self-host codegen bootstrap path owner.
+//
+// Owns the codegen fixed-point runner inputs and breadth rows. The runner may
+// execute these rows, but it must not synthesize self-host source paths.
+
+import "test_harness_codegen_paths_owner.pgy";
+import "test_harness_mir_json_paths_owner.pgy";
+
+func CompilerHarnessCodegenBootstrapPathSuiteName() -> String {
+    return "codegen-bootstrap-paths";
+}
+
+func CompilerHarnessCodegenBootstrapComponentSuiteName() -> String {
+    return "codegen-bootstrap-components";
+}
+
+func CompilerHarnessCodegenBootstrapToolSuiteName() -> String {
+    return "codegen-bootstrap-tools";
+}
+
+func CompilerHarnessCodegenBootstrapMirFixtureDirPath() -> String {
+    return "src/self_hosted/mir_lower/fixture";
+}
+
+func CompilerHarnessCodegenBootstrapFuzzGeneratorSourcePath() -> String {
+    return "src/self_hosted/fuzz/backend_parity_generator/main.pgy";
+}
+
+func CompilerHarnessCodegenBootstrapSampleSourcePath() -> String {
+    return "examples/hello.pgy";
+}
+
+func CompilerHarnessCodegenBootstrapPathCount() -> Int {
+    return 8;
+}
+
+func CompilerHarnessCodegenBootstrapPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessCodegenToolSourcePath(); }
+    if index == 1 { return CompilerHarnessCodegenParserSourcePath(); }
+    if index == 2 { return CompilerHarnessCodegenComparatorSourcePath(); }
+    if index == 3 { return CompilerHarnessCodegenFixtureDirPath(); }
+    if index == 4 { return CompilerHarnessMirJsonMirLowerSourcePath(); }
+    if index == 5 { return CompilerHarnessCodegenBootstrapMirFixtureDirPath(); }
+    if index == 6 { return CompilerHarnessCodegenBootstrapFuzzGeneratorSourcePath(); }
+    if index == 7 { return CompilerHarnessCodegenBootstrapSampleSourcePath(); }
+    return "";
+}
+
+func CompilerHarnessCodegenBootstrapComponentCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessCodegenBootstrapComponentRowAt(index: Int) -> String {
+    if index == 0 { return "lexer|src/self_hosted/lexer/main.pgy"; }
+    if index == 1 { return "parser|src/self_hosted/parser/main.pgy"; }
+    if index == 2 { return "semantic|src/self_hosted/semantic/main.pgy"; }
+    return "";
+}
+
+func CompilerHarnessCodegenBootstrapToolCount() -> Int {
+    return 13;
+}
+
+func CompilerHarnessCodegenBootstrapToolRowAt(index: Int) -> String {
+    if index == 0 { return "air_graph_id_uniqueness|src/self_hosted/tools/air_graph_id_uniqueness/main.pgy"; }
+    if index == 1 { return "module_manifest_resolver|src/self_hosted/tools/module_manifest_resolver/main.pgy"; }
+    if index == 2 { return "doc_link_checker|src/self_hosted/tools/doc_link_checker/main.pgy"; }
+    if index == 3 { return "backend_output_comparator|src/self_hosted/tools/backend_output_comparator/main.pgy"; }
+    if index == 4 { return "runtime_boundary_checker|src/self_hosted/tools/runtime_boundary_checker/main.pgy"; }
+    if index == 5 { return "examples_inventory_checker|src/self_hosted/tools/examples_inventory_checker/main.pgy"; }
+    if index == 6 { return "diagnostic_catalog_checker|src/self_hosted/tools/diagnostic_catalog_checker/main.pgy"; }
+    if index == 7 { return "linter|src/self_hosted/tools/linter/main.pgy"; }
+    if index == 8 { return "stable_subset_section_checker|src/self_hosted/tools/stable_subset_section_checker/main.pgy"; }
+    if index == 9 { return "production_header_size_checker|src/self_hosted/tools/production_header_size_checker/main.pgy"; }
+    if index == 10 { return "stdlib_dispatch_inventory_checker|src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy"; }
+    if index == 11 { return "ast_read_surface_checker|src/self_hosted/tools/ast_read_surface_checker/main.pgy"; }
+    if index == 12 { return "production_c_size_checker|src/self_hosted/tools/production_c_size_checker/main.pgy"; }
+    return "";
+}
+
+func CompilerHarnessCodegenBootstrapRowsReady() -> Bool {
+    let i: Int = 0;
+    while i < CompilerHarnessCodegenBootstrapPathCount() {
+        if CompilerHarnessCodegenBootstrapPathAt(i) == "" { return false; }
+        i = i + 1;
+    }
+    let c: Int = 0;
+    while c < CompilerHarnessCodegenBootstrapComponentCount() {
+        if CompilerHarnessCodegenBootstrapComponentRowAt(c) == "" { return false; }
+        c = c + 1;
+    }
+    let t: Int = 0;
+    while t < CompilerHarnessCodegenBootstrapToolCount() {
+        if CompilerHarnessCodegenBootstrapToolRowAt(t) == "" { return false; }
+        t = t + 1;
+    }
+    return CompilerHarnessCodegenBootstrapPathSuiteName() != "" &&
+        CompilerHarnessCodegenBootstrapComponentSuiteName() != "" &&
+        CompilerHarnessCodegenBootstrapToolSuiteName() != "";
+}

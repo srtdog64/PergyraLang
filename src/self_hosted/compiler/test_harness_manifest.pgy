@@ -11,6 +11,7 @@ import "test_harness_codegen_paths_owner.pgy";
 import "test_harness_parser_paths_owner.pgy";
 import "test_harness_semantic_paths_owner.pgy";
 import "test_harness_mir_json_paths_owner.pgy";
+import "test_harness_codegen_bootstrap_paths_owner.pgy";
 import "completeness_ledger_owner.pgy";
 
 func EmitBackendTriSmokeCases() -> Void {
@@ -113,6 +114,30 @@ func EmitMirJsonParityPaths() -> Void {
     let i: Int = 0;
     while i < CompilerHarnessMirJsonPathCount() {
         Log(CompilerHarnessMirJsonPathAt(i));
+        i = i + 1;
+    }
+}
+
+func EmitCodegenBootstrapPaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessCodegenBootstrapPathCount() {
+        Log(CompilerHarnessCodegenBootstrapPathAt(i));
+        i = i + 1;
+    }
+}
+
+func EmitCodegenBootstrapComponents() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessCodegenBootstrapComponentCount() {
+        Log(CompilerHarnessCodegenBootstrapComponentRowAt(i));
+        i = i + 1;
+    }
+}
+
+func EmitCodegenBootstrapTools() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessCodegenBootstrapToolCount() {
+        Log(CompilerHarnessCodegenBootstrapToolRowAt(i));
         i = i + 1;
     }
 }
@@ -314,6 +339,18 @@ func Main() -> Void {
     }
     if args[0] == CompilerHarnessMirJsonParitySuiteName() {
         EmitMirJsonParityPaths();
+        return;
+    }
+    if args[0] == CompilerHarnessCodegenBootstrapPathSuiteName() {
+        EmitCodegenBootstrapPaths();
+        return;
+    }
+    if args[0] == CompilerHarnessCodegenBootstrapComponentSuiteName() {
+        EmitCodegenBootstrapComponents();
+        return;
+    }
+    if args[0] == CompilerHarnessCodegenBootstrapToolSuiteName() {
+        EmitCodegenBootstrapTools();
         return;
     }
     if args[0] == CompilerHarnessBackendOutputComparatorSuiteName() {

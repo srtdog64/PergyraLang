@@ -51,17 +51,89 @@ if ! command -v "$CC" >/dev/null 2>&1; then
     exit 0
 fi
 
-TOOL_SOURCE="$ROOT_DIR/src/self_hosted/codegen/main.pgy"
-PARSER_SOURCE="$ROOT_DIR/src/self_hosted/parser/main.pgy"
 B="$ROOT_DIR/.tmp/self_hosted/codegen/bootstrap"
+HARNESS_PATHS_FILE="$B/codegen_bootstrap_paths.txt"
+HARNESS_COMPONENTS_FILE="$B/codegen_bootstrap_components.txt"
+HARNESS_TOOLS_FILE="$B/codegen_bootstrap_tools.txt"
 mkdir -p "$B"
 COMPARATOR_BIN=""
 PARSER_BIN="$B/parser_ast_producer.exe"
+TOOL_SOURCE=""
+PARSER_SOURCE=""
+COMPARATOR_SOURCE=""
+CODEGEN_FIXTURE_DIR=""
+MIR_LOWER_SOURCE=""
+MIR_FIXTURE_DIR=""
+FUZZ_SOURCE=""
+SAMPLE_SRC=""
+BOOTSTRAP_COMPONENT_ROWS=()
+BOOTSTRAP_TOOL_ROWS=()
 
-if [[ ! -f "$PARSER_SOURCE" ]]; then
-    echo "[self-host-bootstrap] missing Pergyra parser: $PARSER_SOURCE" >&2
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-bootstrap" \
+    "$B" \
+    "codegen-bootstrap-paths" \
+    "$HARNESS_PATHS_FILE"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-bootstrap" \
+    "$B" \
+    "codegen-bootstrap-components" \
+    "$HARNESS_COMPONENTS_FILE"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-bootstrap" \
+    "$B" \
+    "codegen-bootstrap-tools" \
+    "$HARNESS_TOOLS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 8 ]]; then
+    echo "[self-host-bootstrap] TestHarness manifest expected 8 bootstrap paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
+
+TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
+PARSER_SOURCE="$ROOT_DIR/${harness_paths[1]}"
+COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[2]}"
+CODEGEN_FIXTURE_DIR="$ROOT_DIR/${harness_paths[3]}"
+MIR_LOWER_SOURCE="$ROOT_DIR/${harness_paths[4]}"
+MIR_FIXTURE_DIR="$ROOT_DIR/${harness_paths[5]}"
+FUZZ_SOURCE="$ROOT_DIR/${harness_paths[6]}"
+SAMPLE_SRC="${harness_paths[7]}"
+
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    BOOTSTRAP_COMPONENT_ROWS+=("$line")
+done <"$HARNESS_COMPONENTS_FILE"
+if [[ "${#BOOTSTRAP_COMPONENT_ROWS[@]}" -ne 3 ]]; then
+    echo "[self-host-bootstrap] TestHarness manifest expected 3 bootstrap component rows, got ${#BOOTSTRAP_COMPONENT_ROWS[@]}" >&2
+    exit 1
+fi
+
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    BOOTSTRAP_TOOL_ROWS+=("$line")
+done <"$HARNESS_TOOLS_FILE"
+if [[ "${#BOOTSTRAP_TOOL_ROWS[@]}" -ne 13 ]]; then
+    echo "[self-host-bootstrap] TestHarness manifest expected 13 bootstrap tool rows, got ${#BOOTSTRAP_TOOL_ROWS[@]}" >&2
+    exit 1
+fi
+
+for path in "$TOOL_SOURCE" "$PARSER_SOURCE" "$COMPARATOR_SOURCE" "$MIR_LOWER_SOURCE" "$FUZZ_SOURCE" "$ROOT_DIR/$SAMPLE_SRC"; do
+    if [[ ! -f "$path" ]]; then
+        echo "[self-host-bootstrap] missing TestHarness input: $path" >&2
+        exit 1
+    fi
+done
+for path in "$CODEGEN_FIXTURE_DIR" "$MIR_FIXTURE_DIR"; do
+    if [[ ! -d "$path" ]]; then
+        echo "[self-host-bootstrap] missing TestHarness fixture dir: $path" >&2
+        exit 1
+    fi
+done
 
 run_native_capture() {
     local cwd="$1"
@@ -167,7 +239,7 @@ emit() {  # emit <tool-exe> <out.c>
 }
 
 compile_artifact_comparator() {
-    pgy_selfhost_compile_backend_output_comparator "self-host-bootstrap" "$B"
+    pgy_selfhost_compile_backend_output_comparator "self-host-bootstrap" "$B" "$COMPARATOR_SOURCE"
     COMPARATOR_BIN="$(pgy_selfhost_backend_output_comparator_bin "$B")"
 }
 
@@ -262,7 +334,7 @@ echo "[self-host-bootstrap] fixpoint ok: gen2 == gen3 ($(wc -l < "$B/gen2.c") li
 SAMPLE="hello func_recursive struct_param array_push str_indexof else_if_chain string_equality io_probe"
 for base in $SAMPLE; do
     fa="$B/${base}_ast.txt"
-    emit_self_parser_ast "$ROOT_DIR/src/self_hosted/codegen/fixture/${base}.pgy" "${fa#$ROOT_DIR/}"
+    emit_self_parser_ast "$CODEGEN_FIXTURE_DIR/${base}.pgy" "${fa#$ROOT_DIR/}"
     o="$(run_native_stdout "sample_${base}_oracle" "$B/gen0.exe" "${fa#$ROOT_DIR/}")"
     g="$(run_native_stdout "sample_${base}_self" "$B/gen2.exe" "${fa#$ROOT_DIR/}")"
     if [[ "$o" != "$g" ]]; then
@@ -275,9 +347,14 @@ echo "[self-host-bootstrap] Pergyra-built tool emits identical C to oracle-built
 # Breadth: the Pergyra-built codegen (gen2) also compiles the OTHER self-host
 # components. Build each via gen2, gcc it, and check it produces the same output
 # as the oracle-built component on a sample source.
-SAMPLE_SRC="examples/hello.pgy"
-for comp in lexer parser semantic; do
-    csrc="$ROOT_DIR/src/self_hosted/$comp/main.pgy"
+for row in "${BOOTSTRAP_COMPONENT_ROWS[@]}"; do
+    comp="${row%%|*}"
+    rel="${row#*|}"
+    if [[ "$comp" == "$row" || -z "$comp" || -z "$rel" ]]; then
+        echo "[self-host-bootstrap] malformed component row: $row" >&2
+        exit 1
+    fi
+    csrc="$ROOT_DIR/$rel"
     [[ -f "$csrc" ]] || continue
     crel=".tmp/self_hosted/codegen/bootstrap/${comp}_ast.txt"
     emit_self_parser_ast "$csrc" "$crel"
@@ -304,9 +381,16 @@ done
 
 # Wider breadth: audit tools (including namespace-imported ones) that read fixed
 # files and take no args. The gen2-built binary must match the oracle-built.
-TOOLS="air_graph_id_uniqueness module_manifest_resolver doc_link_checker backend_output_comparator runtime_boundary_checker examples_inventory_checker diagnostic_catalog_checker linter stable_subset_section_checker production_header_size_checker stdlib_dispatch_inventory_checker ast_read_surface_checker production_c_size_checker"
-for name in $TOOLS; do
-    tsrc="$ROOT_DIR/src/self_hosted/tools/$name/main.pgy"
+TOOL_NAMES=()
+for row in "${BOOTSTRAP_TOOL_ROWS[@]}"; do
+    name="${row%%|*}"
+    rel="${row#*|}"
+    if [[ "$name" == "$row" || -z "$name" || -z "$rel" ]]; then
+        echo "[self-host-bootstrap] malformed tool row: $row" >&2
+        exit 1
+    fi
+    TOOL_NAMES+=("$name")
+    tsrc="$ROOT_DIR/$rel"
     [[ -f "$tsrc" ]] || continue
     trel=".tmp/self_hosted/codegen/bootstrap/tool_${name}_ast.txt"
     emit_self_parser_ast "$tsrc" "$trel"
@@ -342,7 +426,6 @@ done
 # lowering tool itself. Compare several fact surfaces against the C oracle-built
 # mir_lower binary so this is a real compiler-stage substitution check, not just
 # a successful C compile.
-MIR_LOWER_SOURCE="$ROOT_DIR/src/self_hosted/mir_lower/main.pgy"
 if [[ -f "$MIR_LOWER_SOURCE" ]]; then
     mir_ast_rel=".tmp/self_hosted/codegen/bootstrap/mir_lower_ast.txt"
     emit_self_parser_ast "$MIR_LOWER_SOURCE" "$mir_ast_rel"
@@ -363,7 +446,7 @@ if [[ -f "$MIR_LOWER_SOURCE" ]]; then
     for mir_base in $MIR_BOOTSTRAP_FIXTURES; do
         mir_json_rel=".tmp/self_hosted/codegen/bootstrap/mir_${mir_base}.json"
         (cd "$ROOT_DIR" && "$PGY" --mir-json \
-            "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/src/self_hosted/mir_lower/fixture/${mir_base}.pgy")" \
+            "$(pgy_path_for_compiler "$PGY" "$MIR_FIXTURE_DIR/${mir_base}.pgy")" \
             2>/dev/null | tr -d '\r' > "$mir_json_rel")
         mir_via="$(run_native_stdout "mir_${mir_base}_self_run" "$B/mir_lower_self.exe" "$mir_json_rel")"
         mir_orc="$(run_native_stdout "mir_${mir_base}_oracle_run" "$B/mir_lower_oracle.exe" "$mir_json_rel")"
@@ -378,7 +461,6 @@ fi
 # Fuzz-generator breadth: this is not an argless audit tool; it writes a
 # deterministic corpus from argv. A Pergyra-built codegen (gen2) must compile it
 # into a binary that emits the same stdout and generated files as the C oracle.
-FUZZ_SOURCE="$ROOT_DIR/src/self_hosted/fuzz/backend_parity_generator/main.pgy"
 if [[ -f "$FUZZ_SOURCE" ]]; then
     fuzz_ast_rel=".tmp/self_hosted/codegen/bootstrap/fuzz_generator_ast.txt"
     emit_self_parser_ast "$FUZZ_SOURCE" "$fuzz_ast_rel"
@@ -416,4 +498,5 @@ if [[ -f "$FUZZ_SOURCE" ]]; then
     echo "[self-host-bootstrap] codegen compiles fuzz backend parity generator -> matches oracle-built corpus"
 fi
 
-echo "[self-host-bootstrap] SELF-HOSTING OK (codegen self-hosts + builds lexer/parser/semantic/mir_lower + ${TOOLS// /, } + fuzz backend parity generator)"
+TOOL_SUMMARY="$(IFS=', '; printf '%s' "${TOOL_NAMES[*]}")"
+echo "[self-host-bootstrap] SELF-HOSTING OK (codegen self-hosts + builds lexer/parser/semantic/mir_lower + $TOOL_SUMMARY + fuzz backend parity generator)"

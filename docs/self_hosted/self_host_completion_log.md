@@ -37,6 +37,18 @@ rewrite history.
 - Tightened the component contract so direct MIR-lower/codegen path constants
   cannot return to the MIR JSON parity runner.
 
+## 2026-07-06 - Codegen bootstrap breadth consumes TestHarness owner rows
+
+- Added `test_harness_codegen_bootstrap_paths_owner.pgy` for the
+  `codegen-bootstrap-paths`, `codegen-bootstrap-components`, and
+  `codegen-bootstrap-tools` suites.
+- Repointed `codegen_bootstrap.sh` so the fixed-point runner consumes codegen,
+  parser, comparator, mir-lower, fixture, fuzz-generator, sample-source, and
+  breadth rows from `test_harness_manifest.pgy` instead of constructing
+  `src/self_hosted/.../main.pgy` paths in shell.
+- Kept codegen/comparator/mir-lower aliases unified by reusing the existing
+  codegen and MIR JSON path owner facts.
+
 ## 2026-07-06 - Semantic parity paths consume dedicated TestHarness owner
 
 - Added `test_harness_semantic_paths_owner.pgy` for the
