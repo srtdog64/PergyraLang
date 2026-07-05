@@ -6,6 +6,7 @@
 import "test_harness_owner.pgy";
 import "test_harness_tool_paths_owner.pgy";
 import "test_harness_air_graph_paths_owner.pgy";
+import "test_harness_driver_paths_owner.pgy";
 import "completeness_ledger_owner.pgy";
 
 func EmitBackendTriSmokeCases() -> Void {
@@ -176,6 +177,22 @@ func EmitProductionHeaderSizePaths() -> Void {
     }
 }
 
+func EmitDriverRung0Paths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessDriverRungPathCount() {
+        Log(CompilerHarnessDriverRung0PathAt(i));
+        i = i + 1;
+    }
+}
+
+func EmitDriverRung1Paths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessDriverRungPathCount() {
+        Log(CompilerHarnessDriverRung1PathAt(i));
+        i = i + 1;
+    }
+}
+
 func EmitSelfHostCompletenessSources() -> Void {
     EmitCompilerCompletenessSourceInventory();
 }
@@ -293,6 +310,14 @@ func Main() -> Void {
     }
     if args[0] == CompilerHarnessProductionHeaderSizeSuiteName() {
         EmitProductionHeaderSizePaths();
+        return;
+    }
+    if args[0] == CompilerHarnessDriverRung0SuiteName() {
+        EmitDriverRung0Paths();
+        return;
+    }
+    if args[0] == CompilerHarnessDriverRung1SuiteName() {
+        EmitDriverRung1Paths();
         return;
     }
     if args[0] == CompilerCompletenessSourcesSuiteName() {

@@ -42,14 +42,38 @@ if [[ ! -x "$PGY" ]]; then
 fi
 pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:driver-rung0" "$PGY"
 
-DRIVER_SOURCE="$ROOT_DIR/src/self_hosted/compiler/driver_rung0_main.pgy"
-PARSER_SOURCE="$ROOT_DIR/src/self_hosted/parser/main.pgy"
-CODEGEN_SOURCE="$ROOT_DIR/src/self_hosted/codegen/main.pgy"
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver_rung0}"
+HARNESS_PATHS_FILE="$BUILD_DIR/driver_rung0_harness_paths.txt"
 DRIVER_FIXTURE_MANIFEST_FILE="$BUILD_DIR/driver_fixture_manifest.txt"
 FIXTURES=()
 
 mkdir -p "$BUILD_DIR"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:driver-rung0" \
+    "$BUILD_DIR" \
+    "driver-rung0-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 3 ]]; then
+    echo "[self-host-parity:driver-rung0] TestHarness manifest expected 3 driver paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+DRIVER_SOURCE="$ROOT_DIR/${harness_paths[0]}"
+PARSER_SOURCE="$ROOT_DIR/${harness_paths[1]}"
+CODEGEN_SOURCE="$ROOT_DIR/${harness_paths[2]}"
+
+for path in "$DRIVER_SOURCE" "$PARSER_SOURCE" "$CODEGEN_SOURCE"; do
+    if [[ ! -f "$path" ]]; then
+        echo "[self-host-parity:driver-rung0] missing TestHarness input: $path" >&2
+        exit 1
+    fi
+done
 
 compile_tool() {
     local label="$1"

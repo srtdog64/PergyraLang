@@ -4,6 +4,7 @@
 
 import "test_harness_tool_paths_owner.pgy";
 import "test_harness_air_graph_paths_owner.pgy";
+import "test_harness_driver_paths_owner.pgy";
 import "completeness_ledger_owner.pgy";
 
 func CompilerTestHarnessSchema() -> String {
@@ -283,5 +284,6 @@ func CompilerTestHarnessReady() -> Bool {
         CompilerHarnessProductionCSizeReady() &&
         CompilerHarnessProductionHeaderSizeReady() &&
         CompilerHarnessAirGraphConsumersReady() &&
+        CompilerHarnessDriverPathsReady() &&
         CompilerHarnessBackendTriSuiteReady();
 }

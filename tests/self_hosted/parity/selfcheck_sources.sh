@@ -85,6 +85,7 @@ SELF_SOURCES=(
     "src/self_hosted/compiler/stage_artifact_owner.pgy"
     "src/self_hosted/compiler/test_harness_manifest.pgy"
     "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy"
+    "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy"
     "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy"
     "src/self_hosted/compiler/world.pgy"
     "src/self_hosted/fuzz/backend_parity_generator/main.pgy"

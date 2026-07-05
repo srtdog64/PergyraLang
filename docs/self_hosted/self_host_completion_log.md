@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Driver parity tool paths consume TestHarness owner
+
+- Added `test_harness_driver_paths_owner.pgy` for DRV-0/DRV-1 driver, parser,
+  and codegen source path suites instead of extending the already-large generic
+  tool-path owner.
+- Repointed `driver_rung0_parity.sh` and `driver_rung1_parity.sh` so shell
+  reads those tool paths from `test_harness_manifest.pgy`; fixture inventories
+  remain owned by the compiled driver fixture manifest.
+- Tightened the component contract so direct driver/parser/codegen path
+  constants cannot return to the driver parity runners.
+
 ## 2026-07-06 - SEA value-capture producer enters self-host mirror
 
 - Added the conservative MIR value-capture producer mirror to

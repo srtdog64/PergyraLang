@@ -1759,6 +1759,7 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHar
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorReady"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_tool_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_air_graph_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_driver_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphScanOwnerPath"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphIdUniquenessSuiteName"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphIdUniquenessPathAt"
@@ -1771,6 +1772,11 @@ require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefLiveSuiteName"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefLivePathAt"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphConsumersReady"
+require_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "func CompilerHarnessDriverRung0SuiteName"
+require_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "func CompilerHarnessDriverRung1SuiteName"
+require_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "func CompilerHarnessDriverRung0PathAt"
+require_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "func CompilerHarnessDriverRung1PathAt"
+require_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "func CompilerHarnessDriverPathsReady"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLinterParitySuiteName"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLinterToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLinterExpectedDiagnosticsPath"
@@ -1889,6 +1895,7 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessB
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_tool_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_air_graph_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_driver_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitBackendTriSmokeCases"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitLinterParityPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLinterPathAt(i)"
@@ -1932,6 +1939,12 @@ require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarne
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitProductionHeaderSizePaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessProductionHeaderSizePathAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessProductionHeaderSizeSuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitDriverRung0Paths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitDriverRung1Paths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessDriverRung0PathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessDriverRung1PathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessDriverRung0SuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessDriverRung1SuiteName()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitAirGraphIdUniquenessPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessAirGraphIdUniquenessPathAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessAirGraphIdUniquenessSuiteName()"
@@ -1953,6 +1966,7 @@ require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarne
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriExtendedSuiteName()"
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_manifest.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_driver_paths_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_tool_paths_owner.pgy"'
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(0) == "source_path"'
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(1) == "expected_diagnostic"'
@@ -2027,6 +2041,7 @@ require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp 
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_tool_paths_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy"'
+require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_driver_paths_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/subprocess_runner_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" '"backend-output-comparator-paths"'
@@ -2264,8 +2279,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 134 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 134"
+[[ "$selfcheck_count" -eq 135 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 135"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'
@@ -2484,8 +2499,12 @@ require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'args[0] == "--fi
 require_text "src/self_hosted/compiler/driver_cli_owner.pgy" 'args[0] == "--fixture-manifest"'
 require_text "src/self_hosted/compiler/driver_cli_owner.pgy" "EmitDriverParityFixtureManifest()"
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
+require_text "tests/self_hosted/parity/driver_rung0_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"driver-rung0-paths"'
+require_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'DRIVER_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'PARSER_SOURCE="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'CODEGEN_SOURCE="$ROOT_DIR/${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" "read_driver_fixture_manifest"
-require_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'PARSER_SOURCE="$ROOT_DIR/src/self_hosted/parser/main.pgy"'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"$PARSER_BIN" "$fixture_rel"'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"$manifest_bin" --fixture-manifest'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"ast_text"'
@@ -2493,6 +2512,9 @@ require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"emitted_c"'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "examples/hello.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "src/self_hosted/codegen/fixture/func_call.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "src/self_hosted/codegen/fixture/struct_param.pgy"'
+reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'DRIVER_SOURCE="$ROOT_DIR/src/self_hosted/compiler/driver_rung0_main.pgy"'
+reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'PARSER_SOURCE="$ROOT_DIR/src/self_hosted/parser/main.pgy"'
+reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'CODEGEN_SOURCE="$ROOT_DIR/src/self_hosted/codegen/main.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'pgy --ast'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'cmp -s'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'diff -u'
@@ -2500,8 +2522,12 @@ require_text "Makefile" "self-host-driver-rung1-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/driver_rung1_parity.sh"
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" "driver-rung1"
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
+require_text "tests/self_hosted/parity/driver_rung1_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"driver-rung1-paths"'
+require_text "tests/self_hosted/parity/driver_rung1_parity.sh" 'DRIVER_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/driver_rung1_parity.sh" 'PARSER_SOURCE="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_hosted/parity/driver_rung1_parity.sh" 'CODEGEN_SOURCE="$ROOT_DIR/${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" "read_driver_fixture_manifest"
-require_text "tests/self_hosted/parity/driver_rung1_parity.sh" 'PARSER_SOURCE="$ROOT_DIR/src/self_hosted/parser/main.pgy"'
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"$PARSER_BIN" "$fixture_rel"'
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"$manifest_bin" --fixture-manifest'
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" "-o"
@@ -2510,6 +2536,9 @@ require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"emitted_c"'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "examples/hello.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "src/self_hosted/codegen/fixture/func_call.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "src/self_hosted/codegen/fixture/struct_param.pgy"'
+reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" 'DRIVER_SOURCE="$ROOT_DIR/src/self_hosted/compiler/driver_rung1_main.pgy"'
+reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" 'PARSER_SOURCE="$ROOT_DIR/src/self_hosted/parser/main.pgy"'
+reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" 'CODEGEN_SOURCE="$ROOT_DIR/src/self_hosted/codegen/main.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" 'pgy --ast'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" 'cmp -s'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" 'diff -u'

@@ -148,6 +148,8 @@ compiler-stage `.pgy` source to be listed here.
   kinds consumed by C/LLVM/self-hosted parity.
 - `src/self_hosted/compiler/test_harness_owner.pgy` -- fixture/result row
   vocabulary for Pergyra-owned parity harness work.
+- `src/self_hosted/compiler/test_harness_driver_paths_owner.pgy` -- DRV-0/DRV-1
+  driver, parser, and codegen source path suites consumed by parity runners.
 - `src/self_hosted/compiler/subprocess_runner_owner.pgy` -- capability envelope
   for oracle subprocess execution without raw shell escape.
 - `src/self_hosted/compiler/abi_layout_row_owner.pgy` -- cross-backend ABI row

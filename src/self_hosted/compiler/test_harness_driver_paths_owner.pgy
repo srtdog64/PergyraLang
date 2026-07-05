@@ -1,0 +1,87 @@
+// TestHarness driver-rung path owner.
+//
+// Owns the driver/parser/codegen source paths used by the DRV parity runners.
+// Fixture rows remain owned by driver_rung0_owner.pgy.
+
+func CompilerHarnessDriverRung0SuiteName() -> String {
+    return "driver-rung0-paths";
+}
+
+func CompilerHarnessDriverRung1SuiteName() -> String {
+    return "driver-rung1-paths";
+}
+
+func CompilerHarnessDriverRung0SourcePath() -> String {
+    return "src/self_hosted/compiler/driver_rung0_main.pgy";
+}
+
+func CompilerHarnessDriverRung1SourcePath() -> String {
+    return "src/self_hosted/compiler/driver_rung1_main.pgy";
+}
+
+func CompilerHarnessDriverParserSourcePath() -> String {
+    return "src/self_hosted/parser/main.pgy";
+}
+
+func CompilerHarnessDriverCodegenSourcePath() -> String {
+    return "src/self_hosted/codegen/main.pgy";
+}
+
+func CompilerHarnessDriverRungPathCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessDriverRung0PathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessDriverRung0SourcePath(); }
+    if index == 1 { return CompilerHarnessDriverParserSourcePath(); }
+    if index == 2 { return CompilerHarnessDriverCodegenSourcePath(); }
+    return "";
+}
+
+func CompilerHarnessDriverRung1PathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessDriverRung1SourcePath(); }
+    if index == 1 { return CompilerHarnessDriverParserSourcePath(); }
+    if index == 2 { return CompilerHarnessDriverCodegenSourcePath(); }
+    return "";
+}
+
+func CompilerHarnessDriverRung0Ready() -> Bool {
+    if CompilerHarnessDriverRungPathCount() != 3 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessDriverRungPathCount() {
+        if CompilerHarnessDriverRung0PathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessDriverRung0SuiteName() != "";
+}
+
+func CompilerHarnessDriverRung1Ready() -> Bool {
+    if CompilerHarnessDriverRungPathCount() != 3 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessDriverRungPathCount() {
+        if CompilerHarnessDriverRung1PathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessDriverRung1SuiteName() != "";
+}
+
+func CompilerHarnessDriverPathsReady() -> Bool {
+    return CompilerHarnessDriverRung0Ready() &&
+        CompilerHarnessDriverRung1Ready() &&
+        CompilerHarnessDriverParserSourcePath() ==
+            CompilerHarnessDriverRung0PathAt(1) &&
+        CompilerHarnessDriverParserSourcePath() ==
+            CompilerHarnessDriverRung1PathAt(1) &&
+        CompilerHarnessDriverCodegenSourcePath() ==
+            CompilerHarnessDriverRung0PathAt(2) &&
+        CompilerHarnessDriverCodegenSourcePath() ==
+            CompilerHarnessDriverRung1PathAt(2);
+}
