@@ -12,9 +12,10 @@ Status: `execution-plan`. 작성 2026-07-05. **BDFL 결정(2026-07-05): M2 완�
 
 - 전체 컴파일러 self-host: **~6.57%**. semantic 계층은 **6.4%**(3,276 Pergyra LOC /
   51,283 C LOC). 나머지 ~48k LOC가 M2의 대부분.
-- **코드젠은 이미 self-host fixed-point**(gen2==gen3, docs/158 M1). 단 현
-  fixpoint는 AST를 `pgy --ast`(C 파서)에서 받는다 — 진짜 M2는 self-parser가
-  AST를 만들고 self-semantic이 검사해야 한다.
+- **코드젠은 이미 self-host fixed-point**(gen2==gen3, docs/158 M1). 현
+  fixpoint의 AST 입력은 self-parser AST producer가 만든다. `pgy --ast`는
+  parser parity의 C oracle로만 남고, 진짜 M2는 self-semantic이 그 산출물을
+  검사해야 한다.
 - self-semantic 현 경계(rung-2): Layer 0–2 부분(타입 표현·심볼테이블·표현식
   추론·call arity·body skeleton·진단). **미포팅: flow/decl/ability/domain/
   ownership/lifecycle/capability/builtin/DAG/orchestration.**
@@ -244,11 +245,13 @@ mechanical, semantic은 48k LOC 설계. parser는 M2의 병목이 아니다.
 ## 5. Fixed-point 재실행 (각 rung의 검증 상시화)
 
 현 fixpoint(`codegen_bootstrap.sh`): gen0(C-oracle) → gen1 → gen2 → gen3,
-**gen2==gen3 byte-identical**. 단 AST는 `pgy --ast`(C 파서)에서. M2가 전진할수록
-파이프라인을 확장:
+**gen2==gen3 byte-identical**. AST 입력은 C oracle이 빌드한 self-parser AST
+producer에서 온다. `pgy --ast`는 parser parity oracle이지 bootstrap AST producer가
+아니다. M2가 전진할수록 파이프라인을 확장:
 
-1. **DRV-0 확장:** `pgy --ast`를 self-parser로 치환(이미 landed, fixture 한정).
-   parser 완전성(§4)이 오르면 self-parser가 전체 소스 AST 생산.
+1. **AST producer 확장:** DRV-0/DRV-1과 `codegen_bootstrap.sh`는 self-parser
+   AST producer를 사용한다. parser parity는 계속 `pgy --ast`와 byte-equal을
+   비교해 C parser oracle drift를 잡는다.
 2. **semantic 삽입:** self-semantic을 파이프라인에 넣어 gen 각 단계가 self-check를
    통과하게. SEM rung이 오를수록 fixpoint가 그 검사까지 포함.
 3. **최종 fixpoint:** self-lexer → self-parser → self-semantic → self-codegen이

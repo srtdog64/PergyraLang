@@ -217,10 +217,21 @@ func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> 
             } else {
                 let tuple_probe: Int = i + 1;
                 let tuple_depth: Int = 1;
+                let tuple_in_str: Bool = false;
                 let is_tuple_lit: Bool = false;
                 while tuple_probe < StringLength(content) && tuple_depth > 0 {
                     let tuple_ch: String = ParserCharAt(content, tuple_probe);
-                    if tuple_ch == "(" {
+                    if tuple_in_str {
+                        if tuple_ch == "\\" {
+                            tuple_probe = tuple_probe + 2;
+                            continue;
+                        }
+                        if tuple_ch == "\"" {
+                            tuple_in_str = false;
+                        }
+                    } else if tuple_ch == "\"" {
+                        tuple_in_str = true;
+                    } else if tuple_ch == "(" {
                         tuple_depth = tuple_depth + 1;
                     } else if tuple_ch == ")" {
                         tuple_depth = tuple_depth - 1;

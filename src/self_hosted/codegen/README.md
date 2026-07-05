@@ -32,9 +32,9 @@ resource-shaped subdirectories:
 - `emission/` owns participants in the C-emission action graph.
 
 These folders are not a copy of the native C backend topology. `program_emit`,
-`function_emit`, `stmt_emit`, `expr_rewrite`, and `struct_value_emit` are
-participants over the same output/type resources, not separate zones. Together
-they consume
+`function_emit`, `stmt_emit`, `expr_rewrite`, `literal_rewrite`, and
+`struct_value_emit` are participants over the same output/type resources, not
+separate zones. Together they consume
 self-parser AST text for an `Int` / `Bool` / `String` / `Array<Int>` /
 `Array<String>` / `Option<Int>` / `Option<String>` / `Void` function subset and emit a
 self-contained C program

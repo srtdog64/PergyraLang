@@ -11,6 +11,7 @@ import "../runtime_abi/host_io_runtime_owner.pgy";
 import "../runtime_abi/math_runtime_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
+import "literal_rewrite.pgy";
 
 func RewriteExpr(e: String, env: String) -> String {
     return RewriteRoleOperators(e, env);
@@ -239,97 +240,83 @@ func RewriteQualifiedCalls(e: String) -> String {
     return out;
 }
 
-func RewriteBoolLiterals(e: String) -> String {
-    let n: Int = StringLength(e);
-    let out: String = "";
-    let i: Int = 0;
-    let in_str: Bool = false;
-    while i < n {
-        let c: String = CodegenCharAt(e, i);
-        if in_str {
-            out = Concat(out, c);
-            if c == "\\" && i + 1 < n {
-                out = Concat(out, CodegenCharAt(e, i + 1));
-                i = i + 2;
-                continue;
-            }
-            if c == "\"" {
-                in_str = false;
-            }
-            i = i + 1;
-            continue;
-        }
-        if c == "\"" {
-            in_str = true;
-            out = Concat(out, c);
-            i = i + 1;
-            continue;
-        }
-        let prev_ok: Bool = i == 0 || !IsIdentChar(CodegenCharAt(e, i - 1));
-        if prev_ok && i + 4 <= n && Substring(e, i, 4) == "true" {
-            let next_true_ok: Bool = i + 4 == n || !IsIdentChar(CodegenCharAt(e, i + 4));
-            if next_true_ok {
-                out = Concat(out, "1");
-                i = i + 4;
-                continue;
-            }
-        }
-        if prev_ok && i + 5 <= n && Substring(e, i, 5) == "false" {
-            let next_false_ok: Bool = i + 5 == n || !IsIdentChar(CodegenCharAt(e, i + 5));
-            if next_false_ok {
-                out = Concat(out, "0");
-                i = i + 5;
-                continue;
-            }
-        }
-        out = Concat(out, c);
-        i = i + 1;
+func RewriteStructLiteralCallArg(expr: String, expected_type: String, env: String) -> String {
+    let e: String = StringTrim(expr);
+    if LookupKindType(env, expected_type, "s") != "struct" ||
+        !StartsWith(e, Concat(expected_type, "(")) {
+        return RewriteExpr(expr, env);
     }
-    return out;
+    let op: Int = StringIndexOf(e, "(");
+    let close_opt: Option<Int> = FindMatchingParen(e, op);
+    if op <= 0 || !IsSome(close_opt) || UnwrapOption(close_opt) != StringLength(e) - 1 {
+        Die(Concat("malformed struct argument literal: ", expr));
+    }
+    let close: Int = UnwrapOption(close_opt);
+    let rem: String = StringTrim(Substring(e, op + 1, close - op - 1));
+    let out: String = Concat("(", Concat(expected_type, "){ "));
+    let first: Bool = true;
+    let field_pos: Int = 0;
+    let field_names: String = LookupKindType(env, expected_type, "fields");
+    while StringLength(rem) > 0 {
+        let comma_opt: Option<Int> = FindTopLevelComma(rem);
+        let part: String = "";
+        if !IsSome(comma_opt) {
+            part = StringTrim(rem);
+            rem = "";
+        } else {
+            let comma: Int = UnwrapOption(comma_opt);
+            part = StringTrim(Substring(rem, 0, comma));
+            rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
+        }
+        if StringLength(part) > 0 {
+            let cp: Int = StringIndexOf(part, ": ");
+            let fld: String = "";
+            let val: String = "";
+            if cp >= 0 {
+                fld = Substring(part, 0, cp);
+                val = Substring(part, cp + 2, StringLength(part) - (cp + 2));
+            } else {
+                fld = CsvAt(field_names, field_pos);
+                val = part;
+                if StringLength(fld) == 0 {
+                    Die(Concat("struct argument positional initializer has no field fact: ", part));
+                }
+            }
+            if !first {
+                out = Concat(out, ", ");
+            }
+            let ftype: String = LookupFieldType(env, expected_type, fld);
+            if StringLength(ftype) == 0 {
+                Die(Concat("struct argument initializer field lacks type fact: ", Concat(expected_type, Concat(".", fld))));
+            }
+            let cval: String = "";
+            if ftype == "String" {
+                cval = StrEval(val, env);
+            } else if ftype == "Float" {
+                cval = RewriteExpr(val, env);
+            } else if ftype == "Int" || ftype == "Bool" {
+                cval = IntEval(val, env);
+            } else if LookupKindType(env, ftype, "s") == "struct" {
+                cval = RewriteStructLiteralCallArg(val, ftype, env);
+            } else {
+                Die(Concat("unsupported struct argument field type: ", ftype));
+            }
+            out = Concat(out, Concat(".", Concat(fld, Concat(" = (", Concat(cval, ")")))));
+            first = false;
+            field_pos = field_pos + 1;
+        }
+    }
+    return Concat(out, " }");
 }
 
-func RewriteNoneLiteral(e: String) -> String {
-    let n: Int = StringLength(e);
-    let out: String = "";
-    let i: Int = 0;
-    let in_str: Bool = false;
-    while i < n {
-        let c: String = CodegenCharAt(e, i);
-        if in_str {
-            out = Concat(out, c);
-            if c == "\\" && i + 1 < n {
-                out = Concat(out, CodegenCharAt(e, i + 1));
-                i = i + 2;
-                continue;
-            }
-            if c == "\"" {
-                in_str = false;
-            }
-            i = i + 1;
-            continue;
-        }
-        if c == "\"" {
-            in_str = true;
-            out = Concat(out, c);
-            i = i + 1;
-            continue;
-        }
-        let prev_ok: Bool = i == 0 || (!IsIdentChar(CodegenCharAt(e, i - 1)) && CodegenCharAt(e, i - 1) != ".");
-        if prev_ok && i + 4 <= n && Substring(e, i, 4) == "None" {
-            let next_ok: Bool = i + 4 == n || !IsIdentChar(CodegenCharAt(e, i + 4));
-            if next_ok {
-                out = Concat(out, Concat(OptionResultRuntimeCOptionNoneFn(), "()"));
-                i = i + 4;
-                continue;
-            }
-        }
-        out = Concat(out, c);
-        i = i + 1;
+func RewriteCallArgForExpectedType(part: String, expected_type: String, env: String) -> String {
+    if StringLength(expected_type) > 0 && LookupKindType(env, expected_type, "s") == "struct" {
+        return RewriteStructLiteralCallArg(part, expected_type, env);
     }
-    return out;
+    return RewriteExpr(part, env);
 }
 
-func RewriteCallArgsWithModes(inner: String, modes: String, env: String, mode_count: Int) -> String {
+func RewriteCallArgsWithModes(inner: String, modes: String, param_types: String, env: String, mode_count: Int) -> String {
     let rem: String = StringTrim(inner);
     let out: String = "";
     let arg_index: Int = 0;
@@ -348,7 +335,8 @@ func RewriteCallArgsWithModes(inner: String, modes: String, env: String, mode_co
         if arg_index < mode_count {
             mode = ParamModeCsvAt(modes, arg_index);
         }
-        let rendered: String = RewriteExpr(part, env);
+        let expected_type: String = CsvAt(param_types, arg_index);
+        let rendered: String = RewriteCallArgForExpectedType(part, expected_type, env);
         if mode == "inout" {
             if !IsIdentifier(part) {
                 Die(Concat("inout argument must be a variable: ", part));
@@ -398,8 +386,10 @@ func RewriteInoutCallArgs(e: String, env: String, strict: Bool) -> String {
             }
             let ident: String = Substring(e, i, j - i);
             if j < n && CodegenCharAt(e, j) == "(" {
-                let modes: String = LookupKindType(env, ident, "pm");
+                let call_symbol: String = ResolveCallSymbol(env, ident);
+                let modes: String = LookupKindType(env, call_symbol, "pm");
                 if StringLength(modes) > 0 {
+                    let param_types: String = LookupKindType(env, call_symbol, "pt");
                     let close_opt: Option<Int> = FindMatchingParen(e, j);
                     if !IsSome(close_opt) {
                         if strict {
@@ -411,8 +401,13 @@ func RewriteInoutCallArgs(e: String, env: String, strict: Bool) -> String {
                     }
                     let close: Int = UnwrapOption(close_opt);
                     let inner: String = Substring(e, j + 1, close - j - 1);
-                    out = Concat(out, Concat(ident, Concat("(", Concat(RewriteCallArgsWithModes(inner, modes, env, ParamModeCsvCount(modes)), ")"))));
+                    out = Concat(out, Concat(call_symbol, Concat("(", Concat(RewriteCallArgsWithModes(inner, modes, param_types, env, ParamModeCsvCount(modes)), ")"))));
                     i = close + 1;
+                    continue;
+                }
+                if call_symbol != ident {
+                    out = Concat(out, call_symbol);
+                    i = j;
                     continue;
                 }
             }

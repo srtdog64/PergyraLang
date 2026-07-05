@@ -128,6 +128,7 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy` -- self-host C string/text runtime symbol facts.
 - `src/self_hosted/codegen/emission/expr_rewrite.pgy` -- expression rewrite/lowering.
 - `src/self_hosted/codegen/emission/function_emit.pgy` -- function emission.
+- `src/self_hosted/codegen/emission/literal_rewrite.pgy` -- source literal lowering.
 - `src/self_hosted/codegen/emission/program_emit.pgy` -- program emission and prepasses.
 - `src/self_hosted/codegen/emission/stmt_emit.pgy` -- statement emission.
 - `src/self_hosted/codegen/emission/struct_value_emit.pgy` -- struct value emission.

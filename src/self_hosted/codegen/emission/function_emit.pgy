@@ -18,6 +18,58 @@ func ParamModeCsvAppend(csv: String, mode: Int) -> String {
     return Concat(csv, Concat(",", next));
 }
 
+func ParamTypeCsvAppend(csv: String, type_name: String) -> String {
+    if StringLength(csv) == 0 {
+        return type_name;
+    }
+    return Concat(csv, Concat(",", type_name));
+}
+
+func FunctionCallProjectionSourceName(c_symbol: String) -> String {
+    let n: Int = StringLength(c_symbol);
+    let start: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        if CodegenCharAt(c_symbol, i) == "_" {
+            start = i + 1;
+        }
+        i = i + 1;
+    }
+    if start <= 0 || start >= n {
+        return c_symbol;
+    }
+    return Substring(c_symbol, start, n - start);
+}
+
+func FunctionCallProjectionIndex(names: Array<String>, source_name: String) -> Int {
+    let i: Int = 0;
+    while i < ArrayLength(names) {
+        if names[i] == source_name {
+            return i;
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
+func FunctionCallProjectionRecord(inout names: Array<String>, inout targets: Array<String>,
+                                  inout counts: Array<Int>, source_name: String,
+                                  c_symbol: String) -> Void {
+    if StringLength(source_name) == 0 || source_name == c_symbol {
+        return;
+    }
+    let idx: Int = FunctionCallProjectionIndex(names, source_name);
+    if idx < 0 {
+        ArrayPush(names, source_name);
+        ArrayPush(targets, c_symbol);
+        ArrayPush(counts, 1);
+        return;
+    }
+    if targets[idx] != c_symbol {
+        ArraySet(counts, idx, 2);
+    }
+}
+
 // Emit one function definition starting at the `Function: <Name>` line at
 // cur[0]. `base_env` carries the global function return-type bindings.
 func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int,
@@ -153,11 +205,14 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int) -> String {
                 if CodegenAstTextIsParameters(nodes[j]) {
                     j = j + 1;
                     let modes: String = "";
+                    let param_types: String = "";
                     while j < count && nodes[j].indent == indent + 4 {
                         modes = ParamModeCsvAppend(modes, CodegenAstTextParamMode(nodes[j]));
+                        param_types = ParamTypeCsvAppend(param_types, CodegenAstTextParamType(nodes[j], owner));
                         j = j + 1;
                     }
                     env = Concat(env, Concat(cname, Concat("=pm:", Concat(modes, "|"))));
+                    env = Concat(env, Concat(cname, Concat("=pt:", Concat(param_types, "|"))));
                     continue;
                 }
                 if CodegenAstTextIsReturns(nodes[j]) {
@@ -170,6 +225,61 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int) -> String {
             env = Concat(env, Concat(cname, Concat("=f:", Concat(rtype, "|"))));
         }
         i = i + 1;
+    }
+    let projection_names: Array<String> = [];
+    let projection_targets: Array<String> = [];
+    let projection_counts: Array<Int> = [];
+    i = 0;
+    owner = "";
+    owner_indent = -1;
+    skip_indent = -1;
+    while i < count {
+        let indent: Int = nodes[i].indent;
+        if skip_indent >= 0 {
+            if indent > skip_indent {
+                i = i + 1;
+                continue;
+            }
+            skip_indent = -1;
+        }
+        if StringLength(owner) > 0 && indent <= owner_indent {
+            owner = "";
+            owner_indent = -1;
+        }
+        if CodegenAstTextIsZeroArtifactDecl(nodes[i]) {
+            skip_indent = indent;
+            i = i + 1;
+            continue;
+        }
+        if CodegenAstTextIsNominalDecl(nodes[i]) {
+            owner = CodegenAstTextNominalName(nodes[i]);
+            owner_indent = indent;
+        }
+        if CodegenAstTextIsRoleDecl(nodes[i]) {
+            owner = CodegenAstTextRoleName(nodes[i]);
+            owner_indent = indent;
+        }
+        if CodegenAstTextIsFunction(nodes[i]) {
+            let fname: String = CodegenAstTextFunctionName(nodes[i]);
+            let cname: String = CompilerSymbolCQualifiedName("", fname);
+            if StringLength(owner) > 0 && indent > owner_indent {
+                cname = CompilerSymbolCQualifiedName(owner, fname);
+            }
+            let source_call_name: String = FunctionCallProjectionSourceName(cname);
+            if LookupKindType(env, source_call_name, "f") == "" {
+                FunctionCallProjectionRecord(projection_names, projection_targets,
+                    projection_counts, source_call_name, cname);
+            }
+        }
+        i = i + 1;
+    }
+    let projection_i: Int = 0;
+    while projection_i < ArrayLength(projection_names) {
+        if projection_counts[projection_i] == 1 {
+            env = Concat(env, Concat(projection_names[projection_i],
+                Concat("=cf:", Concat(projection_targets[projection_i], "|"))));
+        }
+        projection_i = projection_i + 1;
     }
     return env;
 }
@@ -249,7 +359,6 @@ func CollectEnums(nodes: Array<CodegenAstTextNode>, count: Int, inout env_box: A
                 let part: String = CodegenAstTextEnumVariantNameAt(nodes[i], value);
                 let cname: String = CompilerSymbolCEnumVariantName(ename, part);
                 enum_c = Concat(enum_c, Concat("    ", Concat(cname, Concat(" = ", Concat(ToString(value), ",\n")))));
-                ArraySet(env_box, 0, Concat(env_box[0], Concat(part, Concat("=e:", Concat(ToString(value), "|")))));
                 ArraySet(env_box, 0, Concat(env_box[0], Concat(ename, Concat(".", Concat(part, Concat("=e:", Concat(ToString(value), "|")))))));
                 value = value + 1;
             }

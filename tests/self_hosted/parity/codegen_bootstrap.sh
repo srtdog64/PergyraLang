@@ -52,9 +52,16 @@ if ! command -v "$CC" >/dev/null 2>&1; then
 fi
 
 TOOL_SOURCE="$ROOT_DIR/src/self_hosted/codegen/main.pgy"
+PARSER_SOURCE="$ROOT_DIR/src/self_hosted/parser/main.pgy"
 B="$ROOT_DIR/.tmp/self_hosted/codegen/bootstrap"
 mkdir -p "$B"
 COMPARATOR_BIN=""
+PARSER_BIN="$B/parser_ast_producer.exe"
+
+if [[ ! -f "$PARSER_SOURCE" ]]; then
+    echo "[self-host-bootstrap] missing Pergyra parser: $PARSER_SOURCE" >&2
+    exit 1
+fi
 
 run_native_capture() {
     local cwd="$1"
@@ -164,6 +171,39 @@ compile_artifact_comparator() {
     COMPARATOR_BIN="$(pgy_selfhost_backend_output_comparator_bin "$B")"
 }
 
+compile_parser_ast_producer() {
+    local compile_log="$B/parser_ast_producer.compile.log"
+
+    echo "[self-host-bootstrap] building self parser AST producer..."
+    if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$PARSER_SOURCE")" \
+        --backend=c -o "$(pgy_path_for_compiler "$PGY" "$PARSER_BIN")" \
+        >"$compile_log" 2>&1); then
+        echo "[self-host-bootstrap] parser AST producer failed to build" >&2
+        cat "$compile_log" >&2
+        exit 1
+    fi
+}
+
+emit_self_parser_ast() {
+    local source_abs="$1"
+    local out_rel="$2"
+    local source_rel
+    local out_abs
+    local raw
+    local err
+
+    source_rel="$(pgy_selfhost_path_relative_to_root "$source_abs")"
+    out_abs="$ROOT_DIR/$out_rel"
+    raw="${out_abs}.raw"
+    err="${out_abs}.err"
+    if ! run_native_capture "$ROOT_DIR" "$raw" "$err" "$PARSER_BIN" "$source_rel"; then
+        echo "[self-host-bootstrap] self parser AST failed for $source_rel" >&2
+        cat "$err" >&2 || true
+        exit 1
+    fi
+    tr -d '\r' < "$raw" > "$out_abs"
+}
+
 compare_artifact_with_owner() {
     local label="$1"
     local expected="$2"
@@ -193,11 +233,11 @@ compare_artifact_with_owner() {
 echo "[self-host-bootstrap] building oracle tool (gen0)..."
 (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$TOOL_SOURCE")" \
     --backend=c -o "$(pgy_path_for_compiler "$PGY" "$B/gen0.exe")" >/dev/null)
+compile_parser_ast_producer
 
 # main.pgy's own AST (repo-relative path so the native tool resolves it from cwd)
 AST_REL=".tmp/self_hosted/codegen/bootstrap/main_ast.txt"
-(cd "$ROOT_DIR" && "$PGY" --ast \
-    "$(pgy_path_for_compiler "$PGY" "$TOOL_SOURCE")" 2>/dev/null | tr -d '\r' > "$AST_REL")
+emit_self_parser_ast "$TOOL_SOURCE" "$AST_REL"
 
 emit "$B/gen0.exe" "$B/gen1.c"
 if grep -q '^CODEGEN ERROR' "$B/gen1.c"; then
@@ -222,9 +262,7 @@ echo "[self-host-bootstrap] fixpoint ok: gen2 == gen3 ($(wc -l < "$B/gen2.c") li
 SAMPLE="hello func_recursive struct_param array_push str_indexof else_if_chain string_equality io_probe"
 for base in $SAMPLE; do
     fa="$B/${base}_ast.txt"
-    (cd "$ROOT_DIR" && "$PGY" --ast \
-        "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/src/self_hosted/codegen/fixture/${base}.pgy")" \
-        2>/dev/null | tr -d '\r' > "${fa#$ROOT_DIR/}") || true
+    emit_self_parser_ast "$ROOT_DIR/src/self_hosted/codegen/fixture/${base}.pgy" "${fa#$ROOT_DIR/}"
     o="$(run_native_stdout "sample_${base}_oracle" "$B/gen0.exe" "${fa#$ROOT_DIR/}")"
     g="$(run_native_stdout "sample_${base}_self" "$B/gen2.exe" "${fa#$ROOT_DIR/}")"
     if [[ "$o" != "$g" ]]; then
@@ -242,8 +280,7 @@ for comp in lexer parser semantic; do
     csrc="$ROOT_DIR/src/self_hosted/$comp/main.pgy"
     [[ -f "$csrc" ]] || continue
     crel=".tmp/self_hosted/codegen/bootstrap/${comp}_ast.txt"
-    (cd "$ROOT_DIR" && "$PGY" --ast "$(pgy_path_for_compiler "$PGY" "$csrc")" 2>/dev/null \
-        | tr -d '\r' > "$crel")
+    emit_self_parser_ast "$csrc" "$crel"
     run_native_to_file "${comp}_via_codegen" "$B/gen2.exe" "$B/${comp}_via_codegen.c" "$crel"
     if grep -q '^CODEGEN ERROR' "$B/${comp}_via_codegen.c"; then
         echo "[self-host-bootstrap] $comp: out of codegen subset (skip breadth check)"
@@ -272,8 +309,7 @@ for name in $TOOLS; do
     tsrc="$ROOT_DIR/src/self_hosted/tools/$name/main.pgy"
     [[ -f "$tsrc" ]] || continue
     trel=".tmp/self_hosted/codegen/bootstrap/tool_${name}_ast.txt"
-    (cd "$ROOT_DIR" && "$PGY" --ast "$(pgy_path_for_compiler "$PGY" "$tsrc")" 2>/dev/null \
-        | tr -d '\r' > "$trel")
+    emit_self_parser_ast "$tsrc" "$trel"
     run_native_to_file "tool_${name}_emit" "$B/gen2.exe" "$B/tool_${name}.c" "$trel"
     if grep -q '^CODEGEN ERROR' "$B/tool_${name}.c"; then
         echo "[self-host-bootstrap] tool $name out of codegen subset (skip)"
@@ -309,8 +345,7 @@ done
 MIR_LOWER_SOURCE="$ROOT_DIR/src/self_hosted/mir_lower/main.pgy"
 if [[ -f "$MIR_LOWER_SOURCE" ]]; then
     mir_ast_rel=".tmp/self_hosted/codegen/bootstrap/mir_lower_ast.txt"
-    (cd "$ROOT_DIR" && "$PGY" --ast "$(pgy_path_for_compiler "$PGY" "$MIR_LOWER_SOURCE")" 2>/dev/null \
-        | tr -d '\r' > "$mir_ast_rel")
+    emit_self_parser_ast "$MIR_LOWER_SOURCE" "$mir_ast_rel"
     run_native_to_file "mir_lower_emit" "$B/gen2.exe" "$B/mir_lower_via_codegen.c" "$mir_ast_rel"
     if grep -q '^CODEGEN ERROR' "$B/mir_lower_via_codegen.c"; then
         echo "[self-host-bootstrap] mir_lower out of codegen subset" >&2
@@ -346,8 +381,7 @@ fi
 FUZZ_SOURCE="$ROOT_DIR/src/self_hosted/fuzz/backend_parity_generator/main.pgy"
 if [[ -f "$FUZZ_SOURCE" ]]; then
     fuzz_ast_rel=".tmp/self_hosted/codegen/bootstrap/fuzz_generator_ast.txt"
-    (cd "$ROOT_DIR" && "$PGY" --ast "$(pgy_path_for_compiler "$PGY" "$FUZZ_SOURCE")" 2>/dev/null \
-        | tr -d '\r' > "$fuzz_ast_rel")
+    emit_self_parser_ast "$FUZZ_SOURCE" "$fuzz_ast_rel"
     run_native_to_file "fuzz_generator_emit" "$B/gen2.exe" "$B/fuzz_generator_via_codegen.c" "$fuzz_ast_rel"
     if grep -q '^CODEGEN ERROR' "$B/fuzz_generator_via_codegen.c"; then
         echo "[self-host-bootstrap] fuzz generator out of codegen subset" >&2

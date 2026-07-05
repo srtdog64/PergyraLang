@@ -19,6 +19,14 @@ func LookupKindType(env: String, name: String, kind: String) -> String {
     return Substring(rest, 0, bar);
 }
 
+func ResolveCallSymbol(env: String, source_name: String) -> String {
+    let projected: String = LookupKindType(env, source_name, "cf");
+    if StringLength(projected) > 0 {
+        return projected;
+    }
+    return source_name;
+}
+
 func CsvAt(csv: String, want: Int) -> String {
     let i: Int = 0;
     let idx: Int = 0;
@@ -300,7 +308,8 @@ func ExprKind(expr: String, env: String) -> String {
     if IsSingleCall(e) {
         let op: Int = StringIndexOf(e, "(");
         let fname: String = Substring(e, 0, op);
-        let ft: String = LookupKindType(env, fname, "f");
+        let call_symbol: String = ResolveCallSymbol(env, fname);
+        let ft: String = LookupKindType(env, call_symbol, "f");
         if StringLength(ft) > 0 {
             return ft;
         }

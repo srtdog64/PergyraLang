@@ -991,6 +991,8 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTex
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextEnumVariantCount(nodes[i])"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextEnumVariantNameAt(nodes[i], value)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=enum:payload_free|"'
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(ename, Concat(".", Concat(part, Concat("=e:"'
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(env_box[0], Concat(part, Concat("=e:"'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextNominalName(nodes[i])"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextRoleName(nodes[i])"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextRoleForType(nodes[i])"
@@ -1120,7 +1122,17 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func ExpectText"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitCollectionElementValue"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitStructValue(value_expr, elem_type, env)"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "func RewriteInoutCallArgs"
-require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'LookupKindType(env, ident, "pm")'
+require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func ResolveCallSymbol"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func ParamTypeCsvAppend"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func FunctionCallProjectionRecord"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=cf:"'
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=pt:"'
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "ResolveCallSymbol(env, ident)"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'LookupKindType(env, call_symbol, "pm")'
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'LookupKindType(env, call_symbol, "pt")'
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "func RewriteCallArgForExpectedType"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "func RewriteStructLiteralCallArg"
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'LookupKindType(env, ident, "pm")'
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func ParamModeCsvCount"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func ParamModeCsvAt"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "ParamModeCsvCount(modes)"
@@ -2444,10 +2456,14 @@ require_text "tests/self_hosted/parity/codegen_parity.sh" 'pgy_reject_wsl_window
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'pgy_reject_wsl_windows_pgy_parity_mix "self-host-bootstrap" "$PGY"'
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"'
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "pgy_selfhost_compile_backend_output_comparator"
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'PARSER_SOURCE="$ROOT_DIR/src/self_hosted/parser/main.pgy"'
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "compile_parser_ast_producer"
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "emit_self_parser_ast"
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'compare_artifact_with_owner "fixpoint_gen2_gen3" "$B/gen2.c" "$B/gen3.c" "emitted_c"'
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'compare_artifact_with_owner "fuzz_generator_manifest"'
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" '"emitted_c"'
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" '"emitted_self_hosted"'
+reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'pgy --ast'
 reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" "compare_emitted_c_with_owner"
 reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" "files_equal_text"
 reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" "show_file_delta"
