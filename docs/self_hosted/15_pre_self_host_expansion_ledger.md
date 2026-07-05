@@ -130,6 +130,12 @@ TestHarness delta, 2026-07-05: `parser_parity.sh` no longer owns the 186-row
 runner consumes those rows before invoking C/LLVM parser parity and live
 `pgy --ast` drift checks.
 
+TestHarness delta, 2026-07-05: `driver_rung0_parity.sh` and
+`driver_rung1_parity.sh` no longer own the three driver fixture paths. The
+compiled driver owners emit `--fixture-manifest` rows from
+`driver_rung0_owner.pgy`, and both shell runners consume that shared manifest
+before comparing AST text and emitted C artifacts.
+
 Artifact Zone delta, 2026-07-04: LSP transport outputs are now tracked as
 their own comparable artifact kinds: `CompilerLspTransportFrameArtifactKind()`
 for LSP-2a single-frame output and `CompilerLspTransportStreamArtifactKind()`

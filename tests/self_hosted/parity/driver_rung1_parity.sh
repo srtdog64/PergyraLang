@@ -42,12 +42,8 @@ pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:driver-rung1" "$PGY"
 DRIVER_SOURCE="$ROOT_DIR/src/self_hosted/compiler/driver_rung1_main.pgy"
 CODEGEN_SOURCE="$ROOT_DIR/src/self_hosted/codegen/main.pgy"
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver_rung1}"
-
-FIXTURES=(
-    "examples/hello.pgy"
-    "src/self_hosted/codegen/fixture/func_call.pgy"
-    "src/self_hosted/codegen/fixture/struct_param.pgy"
-)
+DRIVER_FIXTURE_MANIFEST_FILE="$BUILD_DIR/driver_fixture_manifest.txt"
+FIXTURES=()
 
 mkdir -p "$BUILD_DIR"
 
@@ -67,6 +63,34 @@ compile_tool() {
         fi
         echo "[self-host-parity:driver-rung1] $label backend=$backend compile failed" >&2
         cat "$compile_log" >&2
+        exit 1
+    fi
+}
+
+read_driver_fixture_manifest() {
+    local manifest_bin="$BUILD_DIR/driver_rung1_manifest.exe"
+    local manifest_err="$BUILD_DIR/driver_rung1_manifest.err"
+    local line
+
+    compile_tool "driver-rung1-manifest" "$DRIVER_SOURCE" c "$manifest_bin"
+
+    FIXTURES=()
+    if ! (cd "$ROOT_DIR" && "$manifest_bin" --fixture-manifest \
+        >"$DRIVER_FIXTURE_MANIFEST_FILE" \
+        2>"$manifest_err"); then
+        echo "[self-host-parity:driver-rung1] fixture manifest emission failed" >&2
+        cat "$manifest_err" >&2
+        exit 1
+    fi
+
+    while IFS= read -r line; do
+        line="${line%$'\r'}"
+        [[ -n "$line" ]] || continue
+        FIXTURES+=("$line")
+    done <"$DRIVER_FIXTURE_MANIFEST_FILE"
+
+    if [[ "${#FIXTURES[@]}" -ne 3 ]]; then
+        echo "[self-host-parity:driver-rung1] fixture manifest count drifted: ${#FIXTURES[@]} != 3" >&2
         exit 1
     fi
 }
@@ -103,6 +127,7 @@ compare_artifact() {
 
 CODEGEN_BIN="$BUILD_DIR/codegen_oracle.exe"
 compile_tool "codegen-oracle" "$CODEGEN_SOURCE" c "$CODEGEN_BIN"
+read_driver_fixture_manifest
 
 BACKENDS="${PGY_SELFHOST_DRIVER_BACKENDS:-c llvm}"
 RAN_BACKENDS=()

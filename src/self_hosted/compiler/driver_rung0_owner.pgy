@@ -44,6 +44,40 @@ func CompileSourceToC(source_path: String) -> String with caps io_read {
     return CompileAstToC(ast_text);
 }
 
+func DriverParityFixtureCount() -> Int {
+    return 3;
+}
+
+func DriverParityFixtureAt(index: Int) -> String {
+    if index == 0 { return "examples/hello.pgy"; }
+    if index == 1 { return "src/self_hosted/codegen/fixture/func_call.pgy"; }
+    if index == 2 { return "src/self_hosted/codegen/fixture/struct_param.pgy"; }
+    return "";
+}
+
+func DriverParityFixtureManifestReady() -> Bool with caps io_read {
+    let i: Int = 0;
+    while i < DriverParityFixtureCount() {
+        let fixture: String = DriverParityFixtureAt(i);
+        if fixture == "" || !FileExists(fixture) {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func EmitDriverParityFixtureManifest() -> Void with caps io_read {
+    if !DriverParityFixtureManifestReady() {
+        Exit(1);
+    }
+    let i: Int = 0;
+    while i < DriverParityFixtureCount() {
+        Log(DriverParityFixtureAt(i));
+        i = i + 1;
+    }
+}
+
 func DriverRung0ArtifactMode(args: Array<String>) -> String {
     if ArrayLength(args) > 1 {
         return args[1];
@@ -52,6 +86,10 @@ func DriverRung0ArtifactMode(args: Array<String>) -> String {
 }
 
 func RunDriverRung0FromArgs(args: Array<String>) -> Void with caps io_read {
+    if ArrayLength(args) > 0 && args[0] == "--fixture-manifest" {
+        EmitDriverParityFixtureManifest();
+        return;
+    }
     let source_path: String = ParserDefaultSourcePath(args);
     let mode: String = DriverRung0ArtifactMode(args);
     if mode == "--emit-ast" {

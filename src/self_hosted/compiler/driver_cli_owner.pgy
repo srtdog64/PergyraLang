@@ -94,6 +94,10 @@ func DriverCliWriteArtifact(out_path: String, mode: String, artifact: String) ->
 }
 
 func RunDriverRung1FromArgs(args: Array<String>) -> Void with caps io_read, io_write {
+    if ArrayLength(args) > 0 && args[0] == "--fixture-manifest" {
+        EmitDriverParityFixtureManifest();
+        return;
+    }
     let source_path: String = DriverCliSourcePath(args);
     let mode: String = DriverCliArtifactMode(args);
     let out_path: String = DriverCliOutputPath(args);

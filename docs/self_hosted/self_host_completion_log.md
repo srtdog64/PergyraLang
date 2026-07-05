@@ -45,6 +45,16 @@ rewrite history.
   the compiled parser owner's manifest before running C/LLVM parser parity and
   live `pgy --ast` drift checks.
 
+## 2026-07-05 - Driver parity fixture inventory consumes driver owner
+
+- Added driver fixture manifest ownership to `driver_rung0_owner.pgy` for the
+  three DRV artifact fixtures.
+- Exposed the manifest through DRV-0 and DRV-1 entrypoints as
+  `--fixture-manifest`.
+- Repointed `driver_rung0_parity.sh` and `driver_rung1_parity.sh` so shell no
+  longer owns `FIXTURES`; both runners read the compiled driver owner's
+  manifest before checking AST text and emitted C artifacts.
+
 ## 2026-07-05 - Lexer parity fixture inventory consumes lexer owner
 
 - Added `fixture_manifest_owner.pgy` to own the seven lexer source/fixture
