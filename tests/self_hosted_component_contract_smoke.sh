@@ -598,10 +598,24 @@ require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "SemanticVerdic
 require_text "tests/self_hosted/parity/semantic_parity.sh" "check_semantic_diagnostic_code_surface"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "semantic_oracle_code_for"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "pgy_selfhost_compile_backend_output_comparator"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/semantic_parity.sh" '"semantic-parity-paths"'
+require_text "tests/self_hosted/parity/semantic_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/semantic_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_hosted/parity/semantic_parity.sh" 'FIXTURE_DIR="$ROOT_DIR/${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/semantic_parity.sh" 'EXPECTED_DIR="$ROOT_DIR/${harness_paths[3]}"'
+require_text "tests/self_hosted/parity/semantic_parity.sh" 'DIAGNOSTIC_CODE_OWNER="$ROOT_DIR/${harness_paths[4]}"'
+require_text "tests/self_hosted/parity/semantic_parity.sh" 'DIAGNOSTIC_RENDERER_OWNER="$ROOT_DIR/${harness_paths[5]}"'
+require_text "tests/self_hosted/parity/semantic_parity.sh" 'SEMANTIC_SOURCE_DIR="$ROOT_DIR/${harness_paths[6]}"'
 require_text "tests/self_hosted/parity/semantic_parity.sh" "compare_semantic_verdict_with_owner"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "read_semantic_fixture_manifest"
 require_text "tests/self_hosted/parity/semantic_parity.sh" '"$manifest_bin" --fixture-manifest'
 require_text "tests/self_hosted/parity/semantic_parity.sh" "diagnostics"
+reject_text "tests/self_hosted/parity/semantic_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/semantic/main.pgy"'
+reject_text "tests/self_hosted/parity/semantic_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy"'
+reject_text "tests/self_hosted/parity/semantic_parity.sh" 'FIXTURE_DIR="$ROOT_DIR/src/self_hosted/semantic/fixture"'
+reject_text "tests/self_hosted/parity/semantic_parity.sh" 'EXPECTED_DIR="$ROOT_DIR/src/self_hosted/semantic/expected"'
+reject_text "tests/self_hosted/parity/semantic_parity.sh" '"src/self_hosted/semantic/fixture/${base}.pgy"'
 reject_text "tests/self_hosted/parity/semantic_parity.sh" '"valid_int_return:ok"'
 reject_text "tests/self_hosted/parity/semantic_parity.sh" '"bad_logical_right:error"'
 reject_text "tests/self_hosted/parity/semantic_parity.sh" "diff <("
@@ -1774,6 +1788,7 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_har
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_driver_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_codegen_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_parser_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_semantic_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphScanOwnerPath"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphIdUniquenessSuiteName"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphIdUniquenessPathAt"
@@ -1846,6 +1861,16 @@ require_text "src/self_hosted/compiler/test_harness_parser_paths_owner.pgy" "fun
 require_text "src/self_hosted/compiler/test_harness_parser_paths_owner.pgy" "func CompilerHarnessParserExpectedCleanPath"
 require_text "src/self_hosted/compiler/test_harness_parser_paths_owner.pgy" "func CompilerHarnessParserPathAt"
 require_text "src/self_hosted/compiler/test_harness_parser_paths_owner.pgy" "func CompilerHarnessParserParityReady"
+require_text "src/self_hosted/compiler/test_harness_semantic_paths_owner.pgy" "func CompilerHarnessSemanticParitySuiteName"
+require_text "src/self_hosted/compiler/test_harness_semantic_paths_owner.pgy" "func CompilerHarnessSemanticToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_semantic_paths_owner.pgy" "func CompilerHarnessSemanticComparatorSourcePath"
+require_text "src/self_hosted/compiler/test_harness_semantic_paths_owner.pgy" "func CompilerHarnessSemanticFixtureDirPath"
+require_text "src/self_hosted/compiler/test_harness_semantic_paths_owner.pgy" "func CompilerHarnessSemanticExpectedDirPath"
+require_text "src/self_hosted/compiler/test_harness_semantic_paths_owner.pgy" "func CompilerHarnessSemanticDiagnosticCodeOwnerPath"
+require_text "src/self_hosted/compiler/test_harness_semantic_paths_owner.pgy" "func CompilerHarnessSemanticDiagnosticRendererPath"
+require_text "src/self_hosted/compiler/test_harness_semantic_paths_owner.pgy" "func CompilerHarnessSemanticSourceDirPath"
+require_text "src/self_hosted/compiler/test_harness_semantic_paths_owner.pgy" "func CompilerHarnessSemanticPathAt"
+require_text "src/self_hosted/compiler/test_harness_semantic_paths_owner.pgy" "func CompilerHarnessSemanticParityReady"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorSuiteName"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorAirEvidenceOwnerPath"
@@ -1927,6 +1952,7 @@ require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_driver_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_codegen_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_parser_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_semantic_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitBackendTriSmokeCases"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitLinterParityPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLinterPathAt(i)"
@@ -1955,6 +1981,9 @@ require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarne
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitParserParityPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessParserPathAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessParserParitySuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitSemanticParityPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessSemanticPathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessSemanticParitySuiteName()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitBackendOutputComparatorPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendOutputComparatorPathAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendOutputComparatorSuiteName()"
@@ -2006,6 +2035,7 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/c
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_driver_paths_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_parser_paths_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_semantic_paths_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_tool_paths_owner.pgy"'
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(0) == "source_path"'
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(1) == "expected_diagnostic"'
@@ -2083,6 +2113,7 @@ require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp 
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_driver_paths_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_parser_paths_owner.pgy"'
+require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_semantic_paths_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/subprocess_runner_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "pgy_selfhost_read_test_harness_manifest"
@@ -2322,8 +2353,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 137 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 137"
+[[ "$selfcheck_count" -eq 138 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 138"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'

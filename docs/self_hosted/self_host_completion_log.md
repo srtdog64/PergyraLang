@@ -25,6 +25,18 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Semantic parity paths consume dedicated TestHarness owner
+
+- Added `test_harness_semantic_paths_owner.pgy` for the
+  `semantic-parity-paths` suite: semantic tool source, backend comparator
+  source, fixture directory, expected diagnostic directory, diagnostic code
+  owner, diagnostic renderer owner, and semantic source directory.
+- Repointed `semantic_parity.sh` so shell reads those paths from
+  `test_harness_manifest.pgy`; the compiled semantic owner remains the source
+  of the 108-row fixture/status manifest through `--fixture-manifest`.
+- Kept the diagnostic code vocabulary checks in the runner, but moved their
+  file inputs behind the same TestHarness path suite.
+
 ## 2026-07-06 - Parser parity paths consume dedicated TestHarness owner
 
 - Added `test_harness_parser_paths_owner.pgy` for the `parser-parity-paths`

@@ -1,0 +1,65 @@
+// Self-host semantic parity path owner.
+//
+// The semantic runner executes shell/C-oracle work, but path ownership belongs
+// to TestHarness so the runner does not become another source of truth.
+
+func CompilerHarnessSemanticParitySuiteName() -> String {
+    return "semantic-parity-paths";
+}
+
+func CompilerHarnessSemanticToolSourcePath() -> String {
+    return "src/self_hosted/semantic/main.pgy";
+}
+
+func CompilerHarnessSemanticComparatorSourcePath() -> String {
+    return "src/self_hosted/tools/backend_output_comparator/main.pgy";
+}
+
+func CompilerHarnessSemanticFixtureDirPath() -> String {
+    return "src/self_hosted/semantic/fixture";
+}
+
+func CompilerHarnessSemanticExpectedDirPath() -> String {
+    return "src/self_hosted/semantic/expected";
+}
+
+func CompilerHarnessSemanticDiagnosticCodeOwnerPath() -> String {
+    return "src/self_hosted/semantic/diagnostic_code_owner.pgy";
+}
+
+func CompilerHarnessSemanticDiagnosticRendererPath() -> String {
+    return "src/self_hosted/semantic/diagnostic_owner.pgy";
+}
+
+func CompilerHarnessSemanticSourceDirPath() -> String {
+    return "src/self_hosted/semantic";
+}
+
+func CompilerHarnessSemanticPathCount() -> Int {
+    return 7;
+}
+
+func CompilerHarnessSemanticPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessSemanticToolSourcePath(); }
+    if index == 1 { return CompilerHarnessSemanticComparatorSourcePath(); }
+    if index == 2 { return CompilerHarnessSemanticFixtureDirPath(); }
+    if index == 3 { return CompilerHarnessSemanticExpectedDirPath(); }
+    if index == 4 { return CompilerHarnessSemanticDiagnosticCodeOwnerPath(); }
+    if index == 5 { return CompilerHarnessSemanticDiagnosticRendererPath(); }
+    if index == 6 { return CompilerHarnessSemanticSourceDirPath(); }
+    return "";
+}
+
+func CompilerHarnessSemanticParityReady() -> Bool {
+    if CompilerHarnessSemanticPathCount() != 7 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessSemanticPathCount() {
+        if CompilerHarnessSemanticPathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessSemanticParitySuiteName() != "";
+}

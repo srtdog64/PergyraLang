@@ -9,6 +9,7 @@ import "test_harness_air_graph_paths_owner.pgy";
 import "test_harness_driver_paths_owner.pgy";
 import "test_harness_codegen_paths_owner.pgy";
 import "test_harness_parser_paths_owner.pgy";
+import "test_harness_semantic_paths_owner.pgy";
 import "completeness_ledger_owner.pgy";
 
 func EmitBackendTriSmokeCases() -> Void {
@@ -95,6 +96,14 @@ func EmitParserParityPaths() -> Void {
     let i: Int = 0;
     while i < CompilerHarnessParserPathCount() {
         Log(CompilerHarnessParserPathAt(i));
+        i = i + 1;
+    }
+}
+
+func EmitSemanticParityPaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessSemanticPathCount() {
+        Log(CompilerHarnessSemanticPathAt(i));
         i = i + 1;
     }
 }
@@ -288,6 +297,10 @@ func Main() -> Void {
     }
     if args[0] == CompilerHarnessParserParitySuiteName() {
         EmitParserParityPaths();
+        return;
+    }
+    if args[0] == CompilerHarnessSemanticParitySuiteName() {
+        EmitSemanticParityPaths();
         return;
     }
     if args[0] == CompilerHarnessBackendOutputComparatorSuiteName() {

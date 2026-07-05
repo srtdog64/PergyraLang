@@ -47,14 +47,20 @@ semantic_compiler_path() {
     printf '%s\n' "$path"
 }
 
-PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/semantic/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/semantic}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
-FIXTURE_DIR="$ROOT_DIR/src/self_hosted/semantic/fixture"
-EXPECTED_DIR="$ROOT_DIR/src/self_hosted/semantic/expected"
 ARTIFACT_COMPARE_BUILD_DIR="$PERGYRA_TOOL_BUILD_DIR/artifact_owner"
+HARNESS_PATHS_FILE="$PERGYRA_TOOL_BUILD_DIR/semantic_harness_paths.txt"
 SEMANTIC_FIXTURE_MANIFEST_FILE="$PERGYRA_TOOL_BUILD_DIR/semantic_fixture_manifest.txt"
 SEMANTIC_COMPARATOR_BIN=""
+PERGYRA_TOOL_SOURCE=""
+COMPARATOR_SOURCE=""
+FIXTURE_DIR=""
+FIXTURE_DIR_REL=""
+EXPECTED_DIR=""
+DIAGNOSTIC_CODE_OWNER=""
+DIAGNOSTIC_RENDERER_OWNER=""
+SEMANTIC_SOURCE_DIR=""
 
 SOURCE_PAIRS=()
 
@@ -71,7 +77,7 @@ known_semantic_codes() {
                 $0=substr($0, RSTART + RLENGTH)
             }
         }
-    ' "$ROOT_DIR/src/self_hosted/semantic/diagnostic_code_owner.pgy" |
+    ' "$DIAGNOSTIC_CODE_OWNER" |
         sort
 }
 
@@ -107,7 +113,7 @@ semantic_oracle_code_for() {
             print value
             exit
         }
-    ' "$ROOT_DIR/src/self_hosted/semantic/diagnostic_code_owner.pgy"
+    ' "$DIAGNOSTIC_CODE_OWNER"
 }
 
 json_code_from_output() {
@@ -145,8 +151,8 @@ compare_semantic_verdict_with_owner() {
 }
 
 check_semantic_diagnostic_code_surface() {
-    local owner="$ROOT_DIR/src/self_hosted/semantic/diagnostic_code_owner.pgy"
-    local renderer="$ROOT_DIR/src/self_hosted/semantic/diagnostic_owner.pgy"
+    local owner="$DIAGNOSTIC_CODE_OWNER"
+    local renderer="$DIAGNOSTIC_RENDERER_OWNER"
     local known total unique declared_count
 
     if [[ ! -f "$owner" ]]; then
@@ -204,7 +210,7 @@ check_semantic_diagnostic_code_surface() {
         fi
     done < <(
         grep -RhoE 'SemanticError[A-Za-z0-9_]*\("[a-z0-9_]+"' \
-            "$ROOT_DIR/src/self_hosted/semantic" |
+            "$SEMANTIC_SOURCE_DIR" |
             sed -E 's/.*"([^"]+)".*/\1/' |
             sort -u
     )
@@ -213,12 +219,50 @@ check_semantic_diagnostic_code_surface() {
 }
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
-cp "$ROOT_DIR/src/self_hosted/semantic/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:semantic" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "semantic-parity-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 7 ]]; then
+    echo "[self-host-parity:semantic] TestHarness manifest expected 7 semantic paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
+COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[1]}"
+FIXTURE_DIR="$ROOT_DIR/${harness_paths[2]}"
+FIXTURE_DIR_REL="${harness_paths[2]}"
+EXPECTED_DIR="$ROOT_DIR/${harness_paths[3]}"
+DIAGNOSTIC_CODE_OWNER="$ROOT_DIR/${harness_paths[4]}"
+DIAGNOSTIC_RENDERER_OWNER="$ROOT_DIR/${harness_paths[5]}"
+SEMANTIC_SOURCE_DIR="$ROOT_DIR/${harness_paths[6]}"
+
+for path in "$PERGYRA_TOOL_SOURCE" "$COMPARATOR_SOURCE" "$DIAGNOSTIC_CODE_OWNER" "$DIAGNOSTIC_RENDERER_OWNER"; do
+    if [[ ! -f "$path" ]]; then
+        echo "[self-host-parity:semantic] missing TestHarness input: $path" >&2
+        exit 1
+    fi
+done
+for dir in "$FIXTURE_DIR" "$EXPECTED_DIR" "$SEMANTIC_SOURCE_DIR"; do
+    if [[ ! -d "$dir" ]]; then
+        echo "[self-host-parity:semantic] missing TestHarness directory: $dir" >&2
+        exit 1
+    fi
+done
+
+cp "$SEMANTIC_SOURCE_DIR/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"
 LIB_BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/lib"
 mkdir -p "$LIB_BUILD_DIR"
 cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
 pgy_selfhost_compile_backend_output_comparator \
-    "self-host-parity:semantic" "$ARTIFACT_COMPARE_BUILD_DIR"
+    "self-host-parity:semantic" "$ARTIFACT_COMPARE_BUILD_DIR" "$COMPARATOR_SOURCE"
 SEMANTIC_COMPARATOR_BIN="$(pgy_selfhost_backend_output_comparator_bin "$ARTIFACT_COMPARE_BUILD_DIR")"
 
 check_c_oracle() {
@@ -334,7 +378,7 @@ run_semantic_backend() {
 
         set +e
         pergyra_out="$(cd "$ROOT_DIR" && "$tool_bin" \
-            "src/self_hosted/semantic/fixture/${base}.pgy" 2>/dev/null \
+            "${FIXTURE_DIR_REL}/${base}.pgy" 2>/dev/null \
             | tr -d '\r')"
         rc=$?
         set -e
