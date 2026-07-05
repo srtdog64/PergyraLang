@@ -49,6 +49,17 @@ fi
 "$PGY" --air-json "$(pgy_path_for_compiler "$PGY" "$FIXTURE")" > "$JSON" 2>"$WORK/err" \
     || { cat "$WORK/err" >&2; fail "pgy --air-json failed"; }
 
+grep -Fq '"schema":"pgy.air.graph.v1"' "$JSON" \
+    || fail "AIR JSON golden must consume the public graph schema"
+grep -Fq '"hir_input":true' "$JSON" \
+    || fail "AIR JSON golden must flow through HIR evidence"
+grep -Fq '"rir_input":true' "$JSON" \
+    || fail "AIR JSON golden must flow through RIR evidence"
+grep -Fq '"mir_input":true' "$JSON" \
+    || fail "AIR JSON golden must flow through MIR evidence"
+grep -Fq '"location":{"line":' "$JSON" \
+    || fail "AIR JSON golden must be source-gated, not synthetic AIR state"
+
 if [ -n "$PY_BIN" ]; then
     "$PY_BIN" - "$JSON" > "$GOT" <<'PY'
 import json
@@ -56,6 +67,13 @@ import sys
 
 with open(sys.argv[1], "r", encoding="utf-8") as fh:
     graph = json.load(fh)
+
+if graph.get("schema") != "pgy.air.graph.v1":
+    raise SystemExit("unexpected AIR graph schema")
+summary = graph.get("summary", {})
+for key in ("hir_input", "rir_input", "mir_input"):
+    if summary.get(key) is not True:
+        raise SystemExit(f"missing required source pipeline evidence: {key}")
 
 fields = [
     ("pin", "captures_pin"),
@@ -74,7 +92,14 @@ fields = [
 def bool_text(value):
     return "true" if value is True else "false"
 
-for boundary in graph.get("boundaries", []):
+boundaries = graph.get("boundaries", [])
+if not boundaries:
+    raise SystemExit("expected at least one real source boundary")
+
+for boundary in boundaries:
+    location = boundary.get("location", {})
+    if not isinstance(location, dict) or location.get("line", 0) <= 0:
+        raise SystemExit("boundary lacks source location; refusing synthetic AIR row")
     capture = boundary.get("boundary_capture", {})
     parts = [
         boundary.get("kind", ""),

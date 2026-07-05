@@ -2,6 +2,8 @@
 
 Status: BoundaryCaptureFact/ExecutionLane contract landed, source-kind and
 boundary-kind pin lane evidence removed from AIR classification (2026-07-02).
+The first conservative MIR value-capture producer and self-host parity mirror
+are landed (2026-07-06); full closure-capture precision remains the frontier.
 Sister doc to
 `docs/114_async_model_positioning.md` (the async positioning) — this one names
 the execution layer below it.
@@ -103,10 +105,12 @@ strictly underneath.
   program, synthesises AIR, and pins the per-boundary lanes plus the
   serialized `boundary_capture` bits for the clean AIR boundary kinds currently
   reachable from valid intent clauses (valid RIR zone evidence produces
-  `zone -> PinnedZone`; `world -> LocalAsync`). It has a regression guard that
-  a classified boundary
-  is never left at the fail-closed zero (`Reject`). The AIR JSON schema smoke
-  also requires the `boundary_capture` object.
+  `zone -> PinnedZone`; `world -> LocalAsync`). The smoke now requires the
+  public AIR graph schema, HIR/RIR/MIR inputs, and source locations, so it
+  cannot be satisfied by manufacturing synthetic AIR rows. It also has a
+  regression guard that a classified boundary is never left at the fail-closed
+  zero (`Reject`). The AIR JSON schema smoke also requires the
+  `boundary_capture` object.
 
 **Landed — runtime facade + self-host mirror (2026-06-27):**
 - `PgyLaneScheduler` (`src/runtime/pgy_lane_scheduler.c`) consumes the fact:
@@ -121,7 +125,7 @@ strictly underneath.
   struct consumed by a typed `ExecutionLane` return, `Reject` as a first-class
   variant, zero `-1` sentinels). A cross-language / cross-backend parity smoke
   (`self-host-execution-lane-parity-test-smoke`) diffs it against the C policy
-  table plus AIR evidence-shape rows on both C and LLVM (29/29 each). The
+  table plus AIR evidence-shape rows on both C and LLVM (31/31 each). The
   self-host mirror is forbidden to reintroduce `BoundarySourceKind`,
   `source_kind`, or source-string lane APIs.
 
@@ -204,8 +208,10 @@ strictly underneath.
   every row: valid intent clauses reject control-transfer expressions such as
   `spawn`/`await`, and `MovableScheduler`/`Reject` require precise
   raw-vs-value/movability facts not yet threaded onto AIR. The JSON golden
-  therefore pins the reachable clean AIR rows now and must expand as precise
-  capture plumbing lands, rather than manufacturing synthetic AIR state.
+  therefore pins the reachable clean AIR rows now and must expand only when a
+  valid source fixture produces the new row through HIR/RIR/MIR evidence and a
+  source location. Synthetic AIR state is reserved for unit tests and must not
+  be used to claim AIR JSON lane coverage.
 - **Executor depth.** The Worker/Blocking/LocalAsync/Movable lanes currently
   share one worker-thread executor; backing them with the fiber scheduler /
   work-stealing pool / dedicated blocking pool is refinement under the same
