@@ -2432,6 +2432,9 @@ require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "CodegenParityE
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" '"--fixture-manifest"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture()'
 require_text "tests/self_hosted/parity/codegen_parity.sh" "read_codegen_fixture_manifest"
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'PARSER_SOURCE="$ROOT_DIR/src/self_hosted/parser/main.pgy"'
+require_text "tests/self_hosted/parity/codegen_parity.sh" "compile_parser_ast_producer"
+require_text "tests/self_hosted/parity/codegen_parity.sh" '"$PARSER_BIN" "$src_rel"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" '"$manifest_bin" --fixture-manifest'
 reject_text "tests/self_hosted/parity/codegen_parity.sh" "    hello"
 reject_text "tests/self_hosted/parity/codegen_parity.sh" "    seed_random"
@@ -2787,6 +2790,7 @@ require_text "tests/self_hosted/parity/codegen_parity.sh" "generated_secure_open
 require_text "tests/self_hosted/parity/codegen_parity.sh" "generated C followed a symlink write target"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'compare_run_output_with_owner "c-oracle" "$base" "$expected_file" "$oracle_norm" 0'
 require_text "tests/self_hosted/parity/codegen_parity.sh" '"$expected_rel" "$actual_rel" 0 "$actual_projection"'
+reject_text "tests/self_hosted/parity/codegen_parity.sh" '--ast "$(pgy_path_for_compiler "$PGY" "$src")"'
 reject_text "tests/self_hosted/parity/codegen_parity.sh" 'self_out="$(cat "$run_norm")"'
 reject_text "tests/self_hosted/parity/codegen_parity.sh" 'expected_norm="$(tr -d'
 reject_text "tests/self_hosted/parity/codegen_parity.sh" 'oracle_out="$(tr -d'

@@ -35,7 +35,7 @@ These folders are not a copy of the native C backend topology. `program_emit`,
 `function_emit`, `stmt_emit`, `expr_rewrite`, and `struct_value_emit` are
 participants over the same output/type resources, not separate zones. Together
 they consume
-`pgy --ast` text for an `Int` / `Bool` / `String` / `Array<Int>` /
+self-parser AST text for an `Int` / `Bool` / `String` / `Array<Int>` /
 `Array<String>` / `Option<Int>` / `Option<String>` / `Void` function subset and emit a
 self-contained C program
 whose **run-stdout** matches the C/LLVM oracle.
@@ -78,7 +78,7 @@ recursion are free. `Main` lowers to `int main(void)`, or to
 - `Result<Int>` param/return -> value-passed `pgy_result_int`
 - `Option<Int>` param/return -> value-passed `pgy_option_int`
 - `Option<String>` param/return -> value-passed `pgy_option_string`
-- `inout` parameters are preserved by `pgy --ast`, recorded as per-function
+- `inout` parameters are preserved by the parser AST text, recorded as per-function
   `pm` facts, lowered as C pointer parameters with local copy-in/copy-out, and
   call arguments are rewritten to `&name` only from that recorded mode fact.
   `own` and `ref` are preserved by the parser but fail closed in this bounded
@@ -215,13 +215,14 @@ names or supported target-library call names. `sqrt`, `pow`, `floor`, `ceil`,
 `atof`, and `exit` are owner facts consumed by emission participants.
 
 Parity gate: `tests/self_hosted/parity/codegen_parity.sh` builds `main.pgy`
-through the requested backend set, asks `RunCodegenFromArgs --fixture-manifest`
-for the active codegen fixture inventory, runs it on each committed fixture's
-`pgy --ast` output, gcc-compiles the emitted C, runs it, and compares
-run-stdout against the committed expected output. A live-drift guard re-derives
-that expected output from the C-backend oracle executable. LLVM is mandatory
-when the compiler build supports LLVM and explicitly skipped for C-only
-platform CI. Run `make self-host-codegen-parity-test-smoke`.
+through the requested backend set, builds the self-host parser as the AST text
+producer, asks `RunCodegenFromArgs --fixture-manifest` for the active codegen
+fixture inventory, runs codegen on each parser-produced AST text artifact,
+gcc-compiles the emitted C, runs it, and compares run-stdout against the
+committed expected output. A live-drift guard re-derives that expected output
+from the C-backend oracle executable. LLVM is mandatory when the compiler build
+supports LLVM and explicitly skipped for C-only platform CI. Run
+`make self-host-codegen-parity-test-smoke`.
 
 The run-output equivalence criterion, not byte-equal C, follows
 `src/self_hosted/PROGRESS.md` roadmap step 6: the oracle emits MIR-lowered C with

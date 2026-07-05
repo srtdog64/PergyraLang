@@ -3,8 +3,8 @@
 ## Intent
 
 Provide the first Pergyra-written code generation slice for compiler-internal
-substitution. The slice is deliberately bounded: it consumes stable `pgy --ast`
-text for a small `Int` / `Bool` / `String` / growable `Array<Int>` /
+substitution. The slice is deliberately bounded: it consumes stable self-parser
+AST text for a small `Int` / `Bool` / `String` / growable `Array<Int>` /
 `Array<String>` function subset and emits standalone C whose observable stdout
 matches the C/LLVM oracle.
 
@@ -105,7 +105,7 @@ Concrete split for the current codegen cluster:
 | emitted C text buffer | yes | single mutable output resource |
 | type environment | yes | separate read-mostly type-fact resource |
 | ABI layout facts | yes | separate read-only layout/ownership-shape fact resource |
-| AST text node inventory | bridge owner, not final zone | transitional `pgy --ast` node rows until a tagged AST owner replaces line text |
+| AST text node inventory | bridge owner, not final zone | transitional self-parser AST-text node rows until a tagged AST owner replaces line text |
 | AST text statement rows | bridge owner, not final zone | statement facts are consumed from one owner while the text bridge remains active |
 | self-host C ABI type spelling | owner, not zone yet | canonical C spelling for supported signatures, locals, and fields |
 | symbol/name-mangling facts | compiler-world owner, not codegen zone | read-only canonical spelling rows for supported self-host emission |
@@ -150,7 +150,7 @@ contract before emission.
 `ArrayPush`, `Exit`, `Break`, `Continue`, `For`, `While`, `If`, `Else`
 routing, and bare call statements. `GenerateC` and statement emission consume
 those owners and must not recover those facts locally.
-Parameter mode is part of that input contract: `pgy --ast` must preserve
+Parameter mode is part of that input contract: the parser AST text must preserve
 `inout`, `own`, and `ref` parameter rows. This codegen rung consumes `inout`
 through function-env `pm` facts, lowers it as value-result copy-in/copy-out, and
 rewrites call arguments from those facts. It preserves but fail-closes on `own`
@@ -162,8 +162,8 @@ owned input into `GenerateC`; it also owns the codegen parity fixture manifest
 by walking `src/self_hosted/codegen/fixture` and retaining only rows with paired
 `expected/*_stdout.txt` outputs. `main.pgy` only calls that run owner.
 `emission/struct_value_emit.pgy` owns struct-valued expression lowering for the
-statement paths that need it. That AST must come from the live compiler's
-`pgy --ast` output for committed codegen fixtures. The accepted subset is:
+statement paths that need it. That AST comes from the self-host parser for
+committed codegen fixtures. The accepted subset is:
 
 - one or more `func` declarations with exactly one `Main`;
 - `Int`, `Bool`, `String`, `Void`, growable `Array<Int>` / `Array<String>`
@@ -190,8 +190,9 @@ or arbitrary nested/mixed struct layout.
 ## Oracle
 
 `tests/self_hosted/parity/codegen_parity.sh` builds this tool through the C and
-LLVM backends, gets the active fixture rows from the compiled tool's
-`--fixture-manifest` mode, derives `pgy --ast` text from the live compiler, runs
-this tool to emit C, compiles the emitted C, and compares the resulting program
-stdout with the committed expected output. The expected output is guarded
-against drift by re-running the original fixture through the C backend oracle.
+LLVM backends, builds the self-host parser as the AST producer, gets the active
+fixture rows from the compiled tool's `--fixture-manifest` mode, derives AST
+text with that parser, runs this tool to emit C, compiles the emitted C, and
+compares the resulting program stdout with the committed expected output. The
+expected output is guarded against drift by re-running the original fixture
+through the C backend oracle.
