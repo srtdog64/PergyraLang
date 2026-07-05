@@ -71,6 +71,14 @@ func EmitExamplesInventoryPaths() -> Void {
     }
 }
 
+func EmitLexerParityPaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessLexerPathCount() {
+        Log(CompilerHarnessLexerPathAt(i));
+        i = i + 1;
+    }
+}
+
 func EmitBackendOutputComparatorPaths() -> Void {
     let i: Int = 0;
     while i < CompilerHarnessBackendOutputComparatorPathCount() {
@@ -204,6 +212,10 @@ func Main() -> Void {
     }
     if args[0] == CompilerHarnessExamplesInventorySuiteName() {
         EmitExamplesInventoryPaths();
+        return;
+    }
+    if args[0] == CompilerHarnessLexerParitySuiteName() {
+        EmitLexerParityPaths();
         return;
     }
     if args[0] == CompilerHarnessBackendOutputComparatorSuiteName() {

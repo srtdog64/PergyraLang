@@ -25,6 +25,15 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-05 - Lexer parity paths consume TestHarness owner
+
+- Added a `lexer-parity-paths` manifest suite to `test_harness_tool_paths_owner.pgy`
+  for the lexer source, backend comparator source, and lexer fixture directory.
+- Repointed `lexer_parity.sh` so shell reads those path facts from the compiled
+  TestHarness manifest before compiling the lexer and comparator.
+- Left fixture row ownership in the compiled lexer owner; shell still executes
+  the parity loop but no longer owns the lexer path constants.
+
 ## 2026-07-05 - Backend comparator self-test paths consume TestHarness owner
 
 - Added a `backend-output-comparator-paths` manifest suite owned by

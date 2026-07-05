@@ -416,7 +416,7 @@ require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../lex
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "LexerTokenPayloadContractReady()"
 reject_text "src/self_hosted/lexer/main.pgy" 'import "char_owner.pgy";'
 reject_text "src/self_hosted/lexer/main.pgy" 'import "token_owner.pgy";'
-require_text "tests/self_hosted/parity/lexer_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy"'
+require_text "tests/self_hosted/parity/lexer_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[1]}"'
 require_text "tests/self_hosted/parity/lexer_parity.sh" "normalize_text_artifact"
 require_text "tests/self_hosted/parity/lexer_parity.sh" "compile_backend_output_comparator"
 require_text "tests/self_hosted/parity/lexer_parity.sh" "read_lexer_fixture_manifest"
@@ -1790,6 +1790,12 @@ require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func 
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventoryExpectedJsonPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventoryPathAt"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventoryReady"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLexerParitySuiteName"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLexerToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLexerComparatorSourcePath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLexerFixtureDirPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLexerPathAt"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLexerParityReady"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorSuiteName"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorAirEvidenceOwnerPath"
@@ -1855,6 +1861,7 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessS
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessRuntimeBoundaryReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessDocLinkCheckerReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessExamplesInventoryReady()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessLexerParityReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendOutputComparatorReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessAirGraphJsonValidatorReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessDiagnosticCatalogReady()"
@@ -1886,6 +1893,9 @@ require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarne
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitExamplesInventoryPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessExamplesInventoryPathAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessExamplesInventorySuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitLexerParityPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLexerPathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLexerParitySuiteName()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitBackendOutputComparatorPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendOutputComparatorPathAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendOutputComparatorSuiteName()"
@@ -2098,6 +2108,14 @@ require_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" 'EX
 require_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" '"$CLEAN_BIN"'
 reject_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/examples_inventory_checker/main.pgy"'
 reject_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/examples_inventory_checker/expected/clean.json"'
+require_text "tests/self_hosted/parity/lexer_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/lexer_parity.sh" '"lexer-parity-paths"'
+require_text "tests/self_hosted/parity/lexer_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/lexer_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_hosted/parity/lexer_parity.sh" 'FIXTURE_DIR="$ROOT_DIR/${harness_paths[2]}"'
+reject_text "tests/self_hosted/parity/lexer_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/lexer/main.pgy"'
+reject_text "tests/self_hosted/parity/lexer_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy"'
+reject_text "tests/self_hosted/parity/lexer_parity.sh" 'FIXTURE_DIR="$ROOT_DIR/src/self_hosted/lexer/fixture"'
 require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" '"production-c-size-paths"'
 require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
@@ -2751,6 +2769,7 @@ require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" '| Artifact
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" 'only direct shell comparison left under `tests/self_hosted/parity` is `backend_output_comparator_parity.sh`'
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "where shell is the comparator's own external oracle rather than a consumer fallback"
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "backend_output_comparator_parity.sh now consumes its source, expected JSON, and comparable artifact paths from TestHarness"
+require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "lexer_parity.sh now consumes its lexer source, backend comparator source, and lexer fixture directory from TestHarness"
 reject_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "It remains active until all parity artifacts are written and compared from this owner."
 reject_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "AIR evidence, Artifact Zone, and TestHarness"
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "Shell text equivalence is the parity backend"

@@ -27,12 +27,29 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
-PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/lexer/main.pgy"
-COMPARATOR_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/lexer}"
+HARNESS_PATHS_FILE="$PERGYRA_TOOL_BUILD_DIR/lexer_harness_paths.txt"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:lexer" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "lexer-parity-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 3 ]]; then
+    echo "[self-host-parity:lexer] TestHarness manifest expected 3 lexer paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
+COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[1]}"
+FIXTURE_DIR="$ROOT_DIR/${harness_paths[2]}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 COMPARATOR_BIN="$PERGYRA_TOOL_BUILD_DIR/backend_output_comparator.exe"
-FIXTURE_DIR="$ROOT_DIR/src/self_hosted/lexer/fixture"
 LEXER_FIXTURE_MANIFEST_FILE="$PERGYRA_TOOL_BUILD_DIR/lexer_fixture_manifest.txt"
 
 if [[ ! -f "$PERGYRA_TOOL_SOURCE" ]]; then

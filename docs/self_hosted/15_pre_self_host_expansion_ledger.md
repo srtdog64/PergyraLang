@@ -81,6 +81,8 @@ checkers receive the selected fixture path through `Args()[0]`.
 
 TestHarness delta, 2026-07-05: backend_output_comparator_parity.sh now consumes its source, expected JSON, and comparable artifact paths from TestHarness through the `backend-output-comparator-paths` manifest suite. Shell is still the comparator's own external text-equivalence oracle, but it no longer owns the comparator input path constants.
 
+TestHarness delta, 2026-07-05: lexer_parity.sh now consumes its lexer source, backend comparator source, and lexer fixture directory from TestHarness through the `lexer-parity-paths` manifest suite. The compiled lexer owner still emits the fixture source/expected row inventory, so shell executes the parity loop without owning either the tool path constants or the fixture mapping.
+
 TestHarness delta, 2026-07-05: `runtime_boundary_checker_parity.sh` now gets
 the checker source and expected clean JSON through the
 `runtime-boundary-paths` manifest suite, and it gets the required `(path, term)`
