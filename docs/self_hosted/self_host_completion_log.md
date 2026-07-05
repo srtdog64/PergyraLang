@@ -25,6 +25,18 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - MIR JSON parity paths consume dedicated TestHarness owner
+
+- Added `test_harness_mir_json_paths_owner.pgy` for the
+  `mir-json-parity-paths` suite: mir-lower tool source, codegen tool source,
+  and backend comparator source. The codegen/comparator rows reuse the codegen
+  path owner facts so those path strings do not fork.
+- Repointed `mir_json_parity.sh` so shell reads those paths from
+  `test_harness_manifest.pgy`; the compiled `mir_lower` owner remains the
+  source of the 86-row fixture manifest through `--fixture-manifest`.
+- Tightened the component contract so direct MIR-lower/codegen path constants
+  cannot return to the MIR JSON parity runner.
+
 ## 2026-07-06 - Semantic parity paths consume dedicated TestHarness owner
 
 - Added `test_harness_semantic_paths_owner.pgy` for the

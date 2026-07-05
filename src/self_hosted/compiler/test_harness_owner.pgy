@@ -8,6 +8,7 @@ import "test_harness_driver_paths_owner.pgy";
 import "test_harness_codegen_paths_owner.pgy";
 import "test_harness_parser_paths_owner.pgy";
 import "test_harness_semantic_paths_owner.pgy";
+import "test_harness_mir_json_paths_owner.pgy";
 import "completeness_ledger_owner.pgy";
 
 func CompilerTestHarnessSchema() -> String {
@@ -281,6 +282,7 @@ func CompilerTestHarnessReady() -> Bool {
         CompilerHarnessCodegenParityReady() &&
         CompilerHarnessParserParityReady() &&
         CompilerHarnessSemanticParityReady() &&
+        CompilerHarnessMirJsonParityReady() &&
         CompilerCompletenessLedgerReady() &&
         CompilerHarnessBackendOutputComparatorReady() &&
         CompilerHarnessAirGraphJsonValidatorReady() &&

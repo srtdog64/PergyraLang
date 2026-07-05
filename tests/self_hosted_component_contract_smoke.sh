@@ -344,9 +344,16 @@ require_text "tests/self_hosted/parity/mir_json_parity.sh" "compare_mir_run_outp
 require_text "tests/self_hosted/parity/mir_json_parity.sh" "run_output"
 require_text "tests/self_hosted/parity/mir_json_parity.sh" "read_mir_fixture_manifest"
 require_text "tests/self_hosted/parity/mir_json_parity.sh" '"$B/mir_lower.exe" --fixture-manifest'
+require_text "tests/self_hosted/parity/mir_json_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/mir_json_parity.sh" '"mir-json-parity-paths"'
+require_text "tests/self_hosted/parity/mir_json_parity.sh" 'MIR_LOWER_SRC="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/mir_json_parity.sh" 'CODEGEN_SRC="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_hosted/parity/mir_json_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[2]}"'
 reject_text "tests/self_hosted/parity/mir_json_parity.sh" "MIR_FIXTURES=("
 reject_text "tests/self_hosted/parity/mir_json_parity.sh" "CODEGEN_FIXTURES=("
 reject_text "tests/self_hosted/parity/mir_json_parity.sh" "EXAMPLE_FIXTURES=("
+reject_text "tests/self_hosted/parity/mir_json_parity.sh" 'MIR_LOWER_SRC="$ROOT_DIR/src/self_hosted/mir_lower/main.pgy"'
+reject_text "tests/self_hosted/parity/mir_json_parity.sh" 'CODEGEN_SRC="$ROOT_DIR/src/self_hosted/codegen/main.pgy"'
 reject_text "tests/self_hosted/parity/mir_json_parity.sh" "diff <("
 require_text "Makefile" "self-host-mir-json-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/mir_json_parity.sh"
@@ -1789,6 +1796,7 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_har
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_codegen_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_parser_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_semantic_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_mir_json_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphScanOwnerPath"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphIdUniquenessSuiteName"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphIdUniquenessPathAt"
@@ -1871,6 +1879,12 @@ require_text "src/self_hosted/compiler/test_harness_semantic_paths_owner.pgy" "f
 require_text "src/self_hosted/compiler/test_harness_semantic_paths_owner.pgy" "func CompilerHarnessSemanticSourceDirPath"
 require_text "src/self_hosted/compiler/test_harness_semantic_paths_owner.pgy" "func CompilerHarnessSemanticPathAt"
 require_text "src/self_hosted/compiler/test_harness_semantic_paths_owner.pgy" "func CompilerHarnessSemanticParityReady"
+require_text "src/self_hosted/compiler/test_harness_mir_json_paths_owner.pgy" "func CompilerHarnessMirJsonParitySuiteName"
+require_text "src/self_hosted/compiler/test_harness_mir_json_paths_owner.pgy" "func CompilerHarnessMirJsonMirLowerSourcePath"
+require_text "src/self_hosted/compiler/test_harness_mir_json_paths_owner.pgy" "func CompilerHarnessMirJsonCodegenSourcePath"
+require_text "src/self_hosted/compiler/test_harness_mir_json_paths_owner.pgy" "func CompilerHarnessMirJsonComparatorSourcePath"
+require_text "src/self_hosted/compiler/test_harness_mir_json_paths_owner.pgy" "func CompilerHarnessMirJsonPathAt"
+require_text "src/self_hosted/compiler/test_harness_mir_json_paths_owner.pgy" "func CompilerHarnessMirJsonParityReady"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorSuiteName"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorAirEvidenceOwnerPath"
@@ -1953,6 +1967,7 @@ require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_codegen_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_parser_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_semantic_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_mir_json_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitBackendTriSmokeCases"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitLinterParityPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLinterPathAt(i)"
@@ -2036,6 +2051,7 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/c
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_parser_paths_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_semantic_paths_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_mir_json_paths_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_tool_paths_owner.pgy"'
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(0) == "source_path"'
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(1) == "expected_diagnostic"'
@@ -2114,6 +2130,7 @@ require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp 
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_parser_paths_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_semantic_paths_owner.pgy"'
+require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_mir_json_paths_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/subprocess_runner_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "pgy_selfhost_read_test_harness_manifest"
@@ -2353,8 +2370,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 138 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 138"
+[[ "$selfcheck_count" -eq 139 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 139"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'

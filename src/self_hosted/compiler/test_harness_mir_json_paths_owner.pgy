@@ -1,0 +1,47 @@
+// Self-host MIR JSON parity path owner.
+//
+// Keeps the MIR JSON parity runner's executable input paths behind TestHarness.
+// Fixture inventory stays owned by mir_lower/fixture_manifest_owner.pgy.
+
+import "test_harness_codegen_paths_owner.pgy";
+
+func CompilerHarnessMirJsonParitySuiteName() -> String {
+    return "mir-json-parity-paths";
+}
+
+func CompilerHarnessMirJsonMirLowerSourcePath() -> String {
+    return "src/self_hosted/mir_lower/main.pgy";
+}
+
+func CompilerHarnessMirJsonCodegenSourcePath() -> String {
+    return CompilerHarnessCodegenToolSourcePath();
+}
+
+func CompilerHarnessMirJsonComparatorSourcePath() -> String {
+    return CompilerHarnessCodegenComparatorSourcePath();
+}
+
+func CompilerHarnessMirJsonPathCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessMirJsonPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessMirJsonMirLowerSourcePath(); }
+    if index == 1 { return CompilerHarnessMirJsonCodegenSourcePath(); }
+    if index == 2 { return CompilerHarnessMirJsonComparatorSourcePath(); }
+    return "";
+}
+
+func CompilerHarnessMirJsonParityReady() -> Bool {
+    if CompilerHarnessMirJsonPathCount() != 3 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessMirJsonPathCount() {
+        if CompilerHarnessMirJsonPathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessMirJsonParitySuiteName() != "";
+}

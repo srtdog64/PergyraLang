@@ -70,14 +70,43 @@ compile_c_to_exe() {
     "$CC" "$src" -o "$out" 2>"$log"
 }
 
-MIR_LOWER_SRC="$ROOT_DIR/src/self_hosted/mir_lower/main.pgy"
-CODEGEN_SRC="$ROOT_DIR/src/self_hosted/codegen/main.pgy"
 B="$ROOT_DIR/.tmp/self_hosted/mir_lower/parity"
+HARNESS_PATHS_FILE="$B/mir_json_harness_paths.txt"
 ARTIFACT_COMPARE_BUILD_DIR="$B/artifact_owner"
 MIR_FIXTURE_MANIFEST_FILE="$B/mir_fixture_manifest.txt"
 MIR_RUN_COMPARATOR_BIN=""
+MIR_LOWER_SRC=""
+CODEGEN_SRC=""
+COMPARATOR_SOURCE=""
 FIXTURES=()
 mkdir -p "$B"
+
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:mir-json" \
+    "$B" \
+    "mir-json-parity-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 3 ]]; then
+    echo "[self-host-parity:mir-json] TestHarness manifest expected 3 MIR JSON paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+MIR_LOWER_SRC="$ROOT_DIR/${harness_paths[0]}"
+CODEGEN_SRC="$ROOT_DIR/${harness_paths[1]}"
+COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[2]}"
+
+for path in "$MIR_LOWER_SRC" "$CODEGEN_SRC" "$COMPARATOR_SOURCE"; do
+    if [[ ! -f "$path" ]]; then
+        echo "[self-host-parity:mir-json] missing TestHarness input: $path" >&2
+        exit 1
+    fi
+done
 
 compare_mir_run_output_with_owner() {
     local base="$1"
@@ -142,7 +171,7 @@ fi
 (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$CODEGEN_SRC")" \
     --backend=c -o "$(pgy_path_for_compiler "$PGY" "$B/codegen.exe")" >/dev/null)
 pgy_selfhost_compile_backend_output_comparator \
-    "self-host-parity:mir-json" "$ARTIFACT_COMPARE_BUILD_DIR"
+    "self-host-parity:mir-json" "$ARTIFACT_COMPARE_BUILD_DIR" "$COMPARATOR_SOURCE"
 MIR_RUN_COMPARATOR_BIN="$(pgy_selfhost_backend_output_comparator_bin "$ARTIFACT_COMPARE_BUILD_DIR")"
 
 # Fail loud at the source if the self-host tool rebuild did not produce runnable
