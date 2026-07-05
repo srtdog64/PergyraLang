@@ -2799,8 +2799,14 @@ require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" 'only direc
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "where shell is the comparator's own external oracle rather than a consumer fallback"
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "backend_output_comparator_parity.sh now consumes its source, expected JSON, and comparable artifact paths from TestHarness"
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "lexer_parity.sh now consumes its lexer source, backend comparator source, and lexer fixture directory from TestHarness"
+require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "When a surface is ready only for the current self-host C subset"
+require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" 'one `READY` row with the subset scope'
+require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" '`ACTIVE` row with the global scope'
+require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" '| Target capability envelope (self-host C subset) |'
+require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" '| Target capability envelope (native/global consumers) |'
 reject_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "It remains active until all parity artifacts are written and compared from this owner."
 reject_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "AIR evidence, Artifact Zone, and TestHarness"
+reject_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" 'Native C/LLVM target-specific consumers still need to read the same envelope before this surface can leave `ACTIVE`'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "Shell text equivalence is the parity backend"
 reject_text "tests/self_hosted/parity/codegen_parity.sh" "MINGW BYPASS"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$oracle_raw" "$oracle_err" "$oracle_exe" "${run_args[@]}"'

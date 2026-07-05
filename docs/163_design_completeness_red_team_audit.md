@@ -221,11 +221,13 @@ or backend architecture complete.
 
 1. Replace the codegen stage's AST text bridge with typed self-parser /
    self-semantic owned facts, then keep the 148/148 ledger green.
-2. Split `READY for subset` from `ACTIVE global` in the expansion ledger.
+2. Keep applying the `READY for subset` / `ACTIVE global` split whenever a
+   ledger surface mixes hard-rung readiness with native/global completion.
+   `Target capability envelope` is the first gated split.
 3. Start typed AST replacement at the top codegen consumers:
    `expr_rewrite`, `decl_lower`, and `routine_lower`.
-5. Add retained-runtime attribution to erasure/materialization scans.
-6. Execute Target #4 shared MIR consumption only after the M2 semantic/codegen
+4. Add retained-runtime attribution to erasure/materialization scans.
+5. Execute Target #4 shared MIR consumption only after the M2 semantic/codegen
    ledger stops yielding cheap wins.
 
 ## Non-Goals
