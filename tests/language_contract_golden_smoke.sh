@@ -54,7 +54,12 @@ for rel in \
     tests/self_hosted/parity/semantic_parity.sh \
     tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh \
     tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh \
+    src/self_hosted/semantic/diagnostic_owner.pgy \
+    src/self_hosted/semantic/fixture/valid_logical_bool.pgy \
+    src/self_hosted/semantic/expected/valid_logical_bool.diag \
+    src/self_hosted/semantic/fixture/bad_logical_int.pgy \
     src/self_hosted/semantic/expected/bad_logical_int.diag \
+    src/self_hosted/semantic/fixture/bad_logical_right.pgy \
     src/self_hosted/semantic/expected/bad_logical_right.diag \
     src/self_hosted/semantic/fixture/bad_value_param_arraypush.pgy \
     src/self_hosted/semantic/expected/bad_value_param_arraypush.diag \
@@ -169,11 +174,14 @@ require_text "src/semantic/type_checker_assignment.c" "array index assignment"
 
 # Logical Bool anchors: self-hosted semantic parity has exact diagnostics for
 # the same contract the C compiler rejects.
-require_text "tests/self_hosted/parity/semantic_parity.sh" "valid_logical_bool:ok"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_logical_int:error"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_logical_right:error"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "bad_value_param_arraypush:error"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "EmitSemanticVerdictPayloadFixtureManifest"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticVerdictPayloadFixtureManifestRows"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" 'Concat(Concat(base, ":"), status)'
+require_text "src/self_hosted/semantic/fixture/valid_logical_bool.pgy" "let r: Bool = true && false"
+require_text "src/self_hosted/semantic/expected/valid_logical_bool.diag" "Status: ok"
+require_text "src/self_hosted/semantic/fixture/bad_logical_int.pgy" "let r: Bool = 1 && 2"
 require_text "src/self_hosted/semantic/expected/bad_logical_int.diag" "Code: logical_operand_not_bool"
+require_text "src/self_hosted/semantic/fixture/bad_logical_right.pgy" "let r: Bool = true && 3"
 require_text "src/self_hosted/semantic/expected/bad_logical_right.diag" "Reason: logical operators require Bool operands"
 require_text "src/self_hosted/semantic/fixture/bad_value_param_arraypush.pgy" "func Grow(xs: Array<Int>) -> Void"
 require_text "src/self_hosted/semantic/fixture/bad_value_param_arraypush.pgy" "ArrayPush(xs, 9)"
@@ -192,8 +200,10 @@ require_text "docs/145_bit_layout_boundary_matrix.md" "Language Comparison And P
 require_text "docs/124_syntax_pattern_matrix.md" "Hidden logical-bit cast defaults"
 
 # Self-hosting starts with verifier/tool parity, not a second compiler claim.
-require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "clean JSON parity"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "verdict drift"
+require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "Clean JSON parity is a run-output artifact verdict owned by the Pergyra"
+require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "pgy_selfhost_compare_expected_text_artifact_with_owner"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "compare_semantic_verdict_with_owner"
+require_text "tests/self_hosted/parity/semantic_parity.sh" "C oracle code drift"
 require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" "PGY_FUZZ_BACKEND_RUN_ORACLE"
 
 require_text "Makefile" "language-contract-golden-test-smoke:"
