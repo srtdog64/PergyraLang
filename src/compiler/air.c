@@ -294,6 +294,19 @@ air_boundary_node_mut_at(AIRProgram *air, size_t index)
     return &air->boundaries[index];
 }
 
+void
+air_refresh_execution_lane_facts(AIRProgram *air)
+{
+    if (air == NULL)
+        return;
+    for (size_t i = 0; i < air->boundary_count; i++) {
+        air->boundaries[i].boundary_capture =
+            air_boundary_capture_fact(&air->boundaries[i]);
+        air->boundaries[i].execution_lane =
+            pgy_classify_execution_lane(&air->boundaries[i].boundary_capture);
+    }
+}
+
 size_t
 air_drift_count(const AIRProgram *air)
 {
@@ -534,15 +547,10 @@ air_synthesize(const HIRProgram *hir,
     }
 
     /* SEA finalization: every boundary, however it was built, gets its
-       ExecutionLane classified once here — after all evidence (kind, authority,
-       required abilities) is set (docs/146). Single chokepoint so no builder is
-       missed; replaces per-construction classification. */
-    for (size_t i = 0; i < air->boundary_count; i++) {
-        air->boundaries[i].boundary_capture =
-            air_boundary_capture_fact(&air->boundaries[i]);
-        air->boundaries[i].execution_lane =
-            pgy_classify_execution_lane(&air->boundaries[i].boundary_capture);
-    }
+       ExecutionLane classified through one owner. Later evidence stages call
+       the same chokepoint after adding MIR facts, so JSON cannot expose stale
+       lane facts. */
+    air_refresh_execution_lane_facts(air);
 
     return air;
 }

@@ -55,6 +55,89 @@ test_air_collects_mir_terminator_evidence(void)
 }
 
 static bool
+test_air_collects_mir_value_capture_lane_evidence(void)
+{
+    AIRProgram *movable_air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
+    AIRProgram *raw_air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
+    MIRProgram mir;
+    MIRRoutine routine;
+    char *error = NULL;
+    bool ok;
+
+    if (movable_air == NULL || raw_air == NULL) {
+        air_destroy(movable_air);
+        air_destroy(raw_air);
+        return false;
+    }
+
+    movable_air->boundaries =
+        (AIRBoundaryNode *)calloc(1, sizeof(AIRBoundaryNode));
+    raw_air->boundaries =
+        (AIRBoundaryNode *)calloc(1, sizeof(AIRBoundaryNode));
+    if (movable_air->boundaries == NULL || raw_air->boundaries == NULL) {
+        air_destroy(movable_air);
+        air_destroy(raw_air);
+        return false;
+    }
+    movable_air->boundary_count = 1;
+    raw_air->boundary_count = 1;
+
+    movable_air->boundaries[0].kind = AIR_BOUNDARY_PARALLEL;
+    movable_air->boundaries[0].authority_required = true;
+    movable_air->boundaries[0].authority_names =
+        (const char **)calloc(1, sizeof(char *));
+    if (movable_air->boundaries[0].authority_names == NULL) {
+        air_destroy(movable_air);
+        air_destroy(raw_air);
+        return false;
+    }
+    movable_air->boundaries[0].authority_names[0] = "driver";
+    movable_air->boundaries[0].authority_name_count = 1;
+    movable_air->boundaries[0].has_rir_movability_requirement_evidence = true;
+
+    raw_air->boundaries[0].kind = AIR_BOUNDARY_PARALLEL;
+    raw_air->boundaries[0].authority_required = true;
+    raw_air->boundaries[0].authority_names =
+        (const char **)calloc(1, sizeof(char *));
+    if (raw_air->boundaries[0].authority_names == NULL) {
+        air_destroy(movable_air);
+        air_destroy(raw_air);
+        return false;
+    }
+    raw_air->boundaries[0].authority_names[0] = "driver";
+    raw_air->boundaries[0].authority_name_count = 1;
+    raw_air->boundaries[0].has_rir_movability_requirement_evidence = true;
+    raw_air->boundaries[0].has_rir_raw_slot_capture_evidence = true;
+
+    memset(&routine, 0, sizeof(routine));
+    routine.name = "spawn_owner";
+    memset(&mir, 0, sizeof(mir));
+    mir.routines = &routine;
+    mir.routine_count = 1;
+
+    ok = air_collect_mir_evidence(movable_air, &mir, &error)
+        && movable_air->has_mir_input
+        && movable_air->boundaries[0].has_mir_value_capture_evidence
+        && movable_air->boundaries[0].boundary_capture.captures_value_only
+        && movable_air->boundaries[0].execution_lane
+            == PGY_LANE_MOVABLE_SCHEDULER;
+    free(error);
+    error = NULL;
+
+    ok = ok
+        && air_collect_mir_evidence(raw_air, &mir, &error)
+        && raw_air->has_mir_input
+        && !raw_air->boundaries[0].has_mir_value_capture_evidence
+        && !raw_air->boundaries[0].boundary_capture.captures_value_only
+        && raw_air->boundaries[0].boundary_capture.captures_raw_slot
+        && raw_air->boundaries[0].execution_lane == PGY_LANE_REJECT;
+    free(error);
+    air_destroy(movable_air);
+    air_destroy(raw_air);
+    return ok;
+}
+
+static bool
 test_air_rejects_empty_mir_terminator_evidence(void)
 {
     AIREvidenceNode evidence_nodes[] = {

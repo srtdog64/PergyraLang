@@ -124,6 +124,7 @@ bool        air_collect_mir_pin_block_evidence(AIRProgram *air,
                                                const MIRBasicBlock *block,
                                                const char *routine_name,
                                                char **error_message);
+void        air_refresh_execution_lane_facts(AIRProgram *air);
 const char *air_rir_scope_provider_name(const RIRScope *scope);
 bool        air_require_rir_scope_provider(const RIRScope *scope,
                                            char **error_message);

@@ -7,7 +7,7 @@
  * value-capture shape comes from boundary-local evidence, not source spelling
  * or routine-level guesses.
  */
-#include "air.h"
+#include "air_internal.h"
 
 BoundaryCaptureFact
 air_boundary_capture_fact(const AIRBoundaryNode *boundary)

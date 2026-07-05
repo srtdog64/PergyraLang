@@ -110,6 +110,22 @@ grep -Fq "boundary->has_mir_value_capture_evidence" \
 # Naming-layer contract (docs/146 §1): SEA is the semantic model/contract, never
 # the name of a scheduler. The runtime scheduler is PgyLaneScheduler. Forbid
 # collapsing the layers by naming a scheduler "SEA*".
+grep -Fq "air_collect_mir_value_capture_evidence" \
+    "$ROOT_DIR/src/compiler/air_evidence_mir.c" ||
+    fail "AIR MIR evidence must produce value-only capture evidence"
+grep -Fq "boundary->has_rir_movability_requirement_evidence" \
+    "$ROOT_DIR/src/compiler/air_evidence_mir.c" ||
+    fail "AIR MIR value-capture producer must require movability evidence"
+grep -Fq "air_boundary_has_resource_capture_evidence" \
+    "$ROOT_DIR/src/compiler/air_evidence_mir.c" ||
+    fail "AIR MIR value-capture producer must reject resource captures"
+grep -Fq "air_refresh_execution_lane_facts(air)" \
+    "$ROOT_DIR/src/compiler/air_evidence_mir.c" ||
+    fail "AIR MIR evidence must refresh boundary capture and lane facts"
+grep -Fq "AIR collects MIR value-capture lane evidence" \
+    "$ROOT_DIR/src/test_air.c" ||
+    fail "AIR tests must cover MIR value-capture lane evidence"
+
 if git -C "$ROOT_DIR" grep -InE 'SEA[_ ]?[Ss]cheduler|sea_scheduler' \
         -- 'src/**' 'docs/**' >/dev/null 2>&1; then
     git -C "$ROOT_DIR" grep -InE 'SEA[_ ]?[Ss]cheduler|sea_scheduler' -- 'src/**' 'docs/**' >&2 || true

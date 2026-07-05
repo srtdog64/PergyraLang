@@ -420,6 +420,9 @@ main(void)
     TEST("AIR collects MIR terminator evidence");
     EXPECT(test_air_collects_mir_terminator_evidence());
 
+    TEST("AIR collects MIR value-capture lane evidence");
+    EXPECT(test_air_collects_mir_value_capture_lane_evidence());
+
     TEST("AIR rejects empty MIR terminator evidence");
     EXPECT(test_air_rejects_empty_mir_terminator_evidence());
 

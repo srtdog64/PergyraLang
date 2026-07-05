@@ -33,6 +33,37 @@ air_collect_mir_requires_routine_inventory(const MIRRoutine *routine,
     return true;
 }
 
+static bool
+air_boundary_has_resource_capture_evidence(const AIRBoundaryNode *boundary)
+{
+    return boundary != NULL
+        && (boundary->has_rir_raw_slot_capture_evidence
+            || boundary->has_rir_live_view_capture_evidence
+            || boundary->has_rir_raw_channel_capture_evidence
+            || boundary->has_rir_zone_pin_evidence
+            || boundary->has_mir_pin_cleanup_evidence);
+}
+
+static void
+air_collect_mir_value_capture_evidence(AIRProgram *air)
+{
+    if (air == NULL)
+        return;
+
+    for (size_t i = 0; i < air_boundary_node_count(air); i++) {
+        AIRBoundaryNode *boundary = air_boundary_node_mut_at(air, i);
+        if (boundary == NULL)
+            continue;
+        if (boundary->kind != AIR_BOUNDARY_PARALLEL)
+            continue;
+        if (!boundary->has_rir_movability_requirement_evidence)
+            continue;
+        if (air_boundary_has_resource_capture_evidence(boundary))
+            continue;
+        boundary->has_mir_value_capture_evidence = true;
+    }
+}
+
 bool
 air_collect_mir_evidence(AIRProgram *air,
                          const MIRProgram *mir,
@@ -204,5 +235,7 @@ air_collect_mir_evidence(AIRProgram *air,
             }
         }
     }
+    air_collect_mir_value_capture_evidence(air);
+    air_refresh_execution_lane_facts(air);
     return true;
 }

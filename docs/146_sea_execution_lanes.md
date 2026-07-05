@@ -169,11 +169,19 @@ strictly underneath.
   `src/compiler/air_evidence_mir_pin.c` are the current producers for the
   boundary-local RIR/MIR evidence summary. Routine-level correlation was
   rejected because it over-pins unrelated work in the same routine.
+- `src/compiler/air_evidence_mir.c` now produces the first conservative
+  value-only capture slice during MIR evidence collection: a parallel boundary
+  with RIR movability evidence and no raw slot, live view, raw channel,
+  zone-pin, or MIR pin-cleanup evidence is promoted to `captures_value_only`.
+  The same MIR evidence stage refreshes `boundary_capture` and `execution_lane`
+  through `air_refresh_execution_lane_facts`, so AIR JSON cannot expose stale
+  lane facts after MIR evidence is attached.
 
 **Remaining — Precise capture plumbing (deep fill, not a quick slice):**
 - **Precise value-capture producer coverage.** `has_mir_value_capture_evidence`
-  is part of the classifier contract and parity matrix, but the MIR
-  closure-capture producer still needs full end-to-end coverage for all
+  is part of the classifier contract and parity matrix, and the MIR evidence
+  stage now covers the conservative `movability + no resource capture` slice.
+  The remaining work is full end-to-end closure-capture coverage for all
   boundary shapes. Missing evidence must leave the lane conservative and must
   not be recovered from source text or boundary kind. A coarse routine-level correlation
   (does the boundary's routine hold any slot/effect anywhere) was rejected: it
