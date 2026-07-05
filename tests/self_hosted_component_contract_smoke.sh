@@ -2251,13 +2251,17 @@ require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "let args: Array<
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "index_path = args[0];"
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "JsonEmitFieldString(\"index_owner\", index_path)"
 reject_text "src/self_hosted/tools/doc_link_checker/main.pgy" 'let json_parts: Array<String>'
-require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" '"doc-link-checker-paths"'
+require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'INDEX_PATH="${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" '"$CLEAN_BIN" "$INDEX_PATH"'
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'assert_llvm_leg "self-host-parity:doc-link-checker" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$INDEX_PATH"'
 reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/doc_link_checker/main.pgy"'
+reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
+reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"'
+reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'
 reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/doc_link_checker/expected/clean.json"'
 reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'INDEX_PATH="docs/INDEX.md"'
 require_text "src/self_hosted/tools/examples_inventory_checker/main.pgy" 'import "../../lib/json.pgy";'
