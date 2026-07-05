@@ -28,6 +28,9 @@ BUILD_DIR="${PGY_SELFHOST_COMPLETENESS_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/com
 SOURCE_MANIFEST="$BUILD_DIR/sources.txt"
 STAGE_MANIFEST="$BUILD_DIR/stages.txt"
 BASELINE_MANIFEST="$BUILD_DIR/baseline.txt"
+LEX_PARSE_BASELINE_MANIFEST="$BUILD_DIR/lex_parse_baseline.txt"
+LEX_PARSE_SEMANTIC_BASELINE_MANIFEST="$BUILD_DIR/lex_parse_semantic_baseline.txt"
+FULL_PIPELINE_BASELINE_MANIFEST="$BUILD_DIR/full_pipeline_baseline.txt"
 CHECK_TIMEOUT_SEC="${PGY_SELFHOST_COMPLETENESS_TIMEOUT_SEC:-60}"
 TIMEOUT_EXIT_CODE=124
 mkdir -p "$BUILD_DIR"
@@ -45,6 +48,9 @@ read_manifest() {
 read_manifest "self-host-completeness-sources" "$SOURCE_MANIFEST"
 read_manifest "self-host-completeness-stages" "$STAGE_MANIFEST"
 read_manifest "self-host-completeness-baseline" "$BASELINE_MANIFEST"
+read_manifest "self-host-completeness-lex-parse-baseline" "$LEX_PARSE_BASELINE_MANIFEST"
+read_manifest "self-host-completeness-lex-parse-semantic-baseline" "$LEX_PARSE_SEMANTIC_BASELINE_MANIFEST"
+read_manifest "self-host-completeness-full-pipeline-baseline" "$FULL_PIPELINE_BASELINE_MANIFEST"
 
 SOURCES=()
 while IFS= read -r line; do
@@ -81,6 +87,9 @@ LEXER_PASS_MIN="$(baseline_value lexer_pass_min)"
 PARSER_PASS_MIN="$(baseline_value parser_pass_min)"
 SEMANTIC_PASS_MIN="$(baseline_value semantic_pass_min)"
 CODEGEN_PASS_MIN="$(baseline_value codegen_pass_min)"
+LEX_PARSE_PASS_MIN="$(baseline_value lex_parse_pass_min)"
+LEX_PARSE_SEMANTIC_PASS_MIN="$(baseline_value lex_parse_semantic_pass_min)"
+FULL_PIPELINE_PASS_MIN="$(baseline_value full_pipeline_pass_min)"
 
 compile_tool() {
     local label="$1"
@@ -183,11 +192,13 @@ count_stage() {
     local fail=0
     local src
     local failure_manifest="$BUILD_DIR/${stage}_failures.txt"
+    local pass_manifest="$BUILD_DIR/${stage}_passes.txt"
 
     local index=0
     local total="${#SOURCES[@]}"
 
     : >"$failure_manifest"
+    : >"$pass_manifest"
     for src in "${SOURCES[@]}"; do
         index=$((index + 1))
         echo "[self-host-completeness] $stage checking $index/$total $src" >&2
@@ -195,6 +206,7 @@ count_stage() {
             lexer)
                 if run_source_check lexer "$LEXER_BIN" "$src"; then
                     pass=$((pass + 1))
+                    printf '%s\n' "$src" >>"$pass_manifest"
                 else
                     local rc="$?"
                     if [[ "$rc" -eq 2 ]]; then
@@ -207,6 +219,7 @@ count_stage() {
             parser)
                 if run_source_check parser "$PARSER_BIN" "$src"; then
                     pass=$((pass + 1))
+                    printf '%s\n' "$src" >>"$pass_manifest"
                 else
                     local rc="$?"
                     if [[ "$rc" -eq 2 ]]; then
@@ -219,6 +232,7 @@ count_stage() {
             semantic)
                 if run_source_check semantic "$SEMANTIC_BIN" "$src"; then
                     pass=$((pass + 1))
+                    printf '%s\n' "$src" >>"$pass_manifest"
                 else
                     local rc="$?"
                     if [[ "$rc" -eq 2 ]]; then
@@ -231,6 +245,7 @@ count_stage() {
             codegen)
                 if run_codegen_check "$src"; then
                     pass=$((pass + 1))
+                    printf '%s\n' "$src" >>"$pass_manifest"
                 else
                     local rc="$?"
                     if [[ "$rc" -eq 2 ]]; then
@@ -277,10 +292,59 @@ stage_pass() {
     grep -E "^${stage}[[:space:]]" "$LEDGER" | sed -E 's/.*pass=([0-9]+).*/\1/'
 }
 
+pipeline_count() {
+    local manifest="$1"
+    if [[ ! -s "$manifest" ]]; then
+        printf '0\n'
+        return
+    fi
+    wc -l <"$manifest" | tr -d '[:space:]'
+}
+
+write_pipeline_manifests() {
+    sort -u "$BUILD_DIR/lexer_passes.txt" >"$BUILD_DIR/lexer_passes.sorted"
+    sort -u "$BUILD_DIR/parser_passes.txt" >"$BUILD_DIR/parser_passes.sorted"
+    sort -u "$BUILD_DIR/semantic_passes.txt" >"$BUILD_DIR/semantic_passes.sorted"
+    sort -u "$BUILD_DIR/codegen_passes.txt" >"$BUILD_DIR/codegen_passes.sorted"
+
+    comm -12 "$BUILD_DIR/lexer_passes.sorted" "$BUILD_DIR/parser_passes.sorted" \
+        >"$BUILD_DIR/lex_parse_passes.txt"
+    comm -12 "$BUILD_DIR/lex_parse_passes.txt" "$BUILD_DIR/semantic_passes.sorted" \
+        >"$BUILD_DIR/lex_parse_semantic_passes.txt"
+    comm -12 "$BUILD_DIR/lex_parse_semantic_passes.txt" "$BUILD_DIR/codegen_passes.sorted" \
+        >"$BUILD_DIR/full_pipeline_passes.txt"
+}
+
+check_pipeline_identity() {
+    local label="$1"
+    local baseline="$2"
+    local current="$3"
+    local missing="$BUILD_DIR/${label}_identity_missing.txt"
+    local line
+
+    : >"$missing"
+    while IFS= read -r line; do
+        [[ -n "$line" ]] || continue
+        if ! grep -Fxq -- "$line" "$current"; then
+            printf '%s\n' "$line" >>"$missing"
+        fi
+    done <"$baseline"
+
+    if [[ -s "$missing" ]]; then
+        echo "[self-host-completeness] $label pipeline identity regressed:" >&2
+        sed 's/^/  - /' "$missing" >&2
+        exit 1
+    fi
+}
+
 LEXER_PASS="$(stage_pass lexer)"
 PARSER_PASS="$(stage_pass parser)"
 SEMANTIC_PASS="$(stage_pass semantic)"
 CODEGEN_PASS="$(stage_pass codegen)"
+write_pipeline_manifests
+LEX_PARSE_PASS="$(pipeline_count "$BUILD_DIR/lex_parse_passes.txt")"
+LEX_PARSE_SEMANTIC_PASS="$(pipeline_count "$BUILD_DIR/lex_parse_semantic_passes.txt")"
+FULL_PIPELINE_PASS="$(pipeline_count "$BUILD_DIR/full_pipeline_passes.txt")"
 
 if (( LEXER_PASS < LEXER_PASS_MIN )); then
     echo "[self-host-completeness] lexer pass count regressed: $LEXER_PASS < $LEXER_PASS_MIN" >&2
@@ -302,6 +366,22 @@ if (( CODEGEN_PASS < CODEGEN_PASS_MIN )); then
     print_stage_failures codegen
     exit 1
 fi
+if (( LEX_PARSE_PASS < LEX_PARSE_PASS_MIN )); then
+    echo "[self-host-completeness] lex+parse pipeline pass count regressed: $LEX_PARSE_PASS < $LEX_PARSE_PASS_MIN" >&2
+    exit 1
+fi
+if (( LEX_PARSE_SEMANTIC_PASS < LEX_PARSE_SEMANTIC_PASS_MIN )); then
+    echo "[self-host-completeness] lex+parse+semantic pipeline pass count regressed: $LEX_PARSE_SEMANTIC_PASS < $LEX_PARSE_SEMANTIC_PASS_MIN" >&2
+    exit 1
+fi
+if (( FULL_PIPELINE_PASS < FULL_PIPELINE_PASS_MIN )); then
+    echo "[self-host-completeness] full pipeline pass count regressed: $FULL_PIPELINE_PASS < $FULL_PIPELINE_PASS_MIN" >&2
+    exit 1
+fi
+check_pipeline_identity "lex_parse" "$LEX_PARSE_BASELINE_MANIFEST" "$BUILD_DIR/lex_parse_passes.txt"
+check_pipeline_identity "lex_parse_semantic" "$LEX_PARSE_SEMANTIC_BASELINE_MANIFEST" "$BUILD_DIR/lex_parse_semantic_passes.txt"
+check_pipeline_identity "full_pipeline" "$FULL_PIPELINE_BASELINE_MANIFEST" "$BUILD_DIR/full_pipeline_passes.txt"
 
-echo "[self-host-completeness] ledger ok: sources=$SOURCE_COUNT lexer=$LEXER_PASS parser=$PARSER_PASS semantic=$SEMANTIC_PASS codegen=$CODEGEN_PASS"
+echo "[self-host-completeness] ledger ok: sources=$SOURCE_COUNT lexer=$LEXER_PASS parser=$PARSER_PASS semantic=$SEMANTIC_PASS codegen=$CODEGEN_PASS lex_parse=$LEX_PARSE_PASS lex_parse_semantic=$LEX_PARSE_SEMANTIC_PASS full_pipeline=$FULL_PIPELINE_PASS"
 echo "[self-host-completeness] failure manifests: $BUILD_DIR/{lexer,parser,semantic,codegen}_failures.txt"
+echo "[self-host-completeness] pipeline manifests: $BUILD_DIR/{lex_parse,lex_parse_semantic,full_pipeline}_passes.txt"

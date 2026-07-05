@@ -188,6 +188,18 @@ func EmitSelfHostCompletenessBaseline() -> Void {
     EmitCompilerCompletenessBaseline();
 }
 
+func EmitSelfHostCompletenessLexParseBaseline() -> Void {
+    EmitCompilerCompletenessLexParseBaseline();
+}
+
+func EmitSelfHostCompletenessLexParseSemanticBaseline() -> Void {
+    EmitCompilerCompletenessLexParseSemanticBaseline();
+}
+
+func EmitSelfHostCompletenessFullPipelineBaseline() -> Void {
+    EmitCompilerCompletenessFullPipelineBaseline();
+}
+
 func Main() -> Void {
     let args: Array<String> = Args();
     if !CompilerTestHarnessReady() {
@@ -289,6 +301,18 @@ func Main() -> Void {
     }
     if args[0] == CompilerCompletenessBaselineSuiteName() {
         EmitSelfHostCompletenessBaseline();
+        return;
+    }
+    if args[0] == CompilerCompletenessLexParseBaselineSuiteName() {
+        EmitSelfHostCompletenessLexParseBaseline();
+        return;
+    }
+    if args[0] == CompilerCompletenessLexParseSemanticBaselineSuiteName() {
+        EmitSelfHostCompletenessLexParseSemanticBaseline();
+        return;
+    }
+    if args[0] == CompilerCompletenessFullPipelineBaselineSuiteName() {
+        EmitSelfHostCompletenessFullPipelineBaseline();
         return;
     }
     Log(Concat("HARNESS ERROR: unknown manifest suite: ", args[0]));

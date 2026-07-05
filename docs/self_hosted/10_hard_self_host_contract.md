@@ -156,8 +156,14 @@ The Makefile keeps the fast and heavy paths separate:
   parity bundle.
 - `self-host-completeness-smoke` is the M2 completeness ledger: it counts the
   production self-host source inventory through lexer, parser, semantic, and
-  codegen stage checks. Unsupported codegen input is reported as a measured
-  failure count, not as a successful skip.
+  codegen stage checks. It also records cumulative pipeline intersections
+  (`lex_parse`, `lex_parse_semantic`, and `full_pipeline`) and committed
+  baseline source identities, so a previously passing pipeline file cannot
+  disappear behind a count-preserving replacement. Unsupported codegen input is
+  reported as a measured failure count, not as a successful skip. The current
+  codegen stage still consumes C-oracle AST text from `pgy --ast`; the
+  `full_pipeline` number is therefore a stage-check intersection, not a claim
+  that self-parser AST already feeds codegen end to end.
 - `self-host-preparation-test-smoke` is the development/CI wrapper that runs
   both.
 

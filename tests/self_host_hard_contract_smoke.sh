@@ -110,10 +110,24 @@ require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" \
     "CompilerCompletenessLedgerSchema"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" \
     "CompilerCompletenessSourceInventory"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" \
+    "CompilerCompletenessLexParsePassMin"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" \
+    "CompilerCompletenessLexParseSemanticPassMin"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" \
+    "CompilerCompletenessFullPipelinePassMin"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" \
+    "EmitCompilerCompletenessFullPipelineBaseline"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" \
     "EmitSelfHostCompletenessSources"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" \
+    "EmitSelfHostCompletenessFullPipelineBaseline"
 require_text "tests/self_hosted/parity/completeness_ledger.sh" \
     "Out-of-subset codegen is a measured failure, not a skip."
+require_text "tests/self_hosted/parity/completeness_ledger.sh" \
+    "pipeline identity regressed"
+require_text "tests/self_hosted/parity/completeness_ledger.sh" \
+    "lex_parse_semantic"
 
 active_stages=(lexer parser semantic codegen)
 for stage in "${active_stages[@]}"; do

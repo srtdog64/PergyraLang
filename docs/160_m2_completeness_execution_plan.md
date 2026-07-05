@@ -32,14 +32,20 @@ parity로 검증하며, fixpoint를 그 pass까지 확장하는 것.
 되는지 안 준다.
 
 **설계:** self-host 자기 소스 전수(`src/self_hosted/**/*.pgy`, ~18k LOC)를
-**3단 파이프라인에 먹여 각 단계의 파일별·구문별 통과/실패를 집계**:
+각 stage에 먹여 파일별·구문별 통과/실패를 집계하고, 별도로 **누적 pipeline
+교집합**을 잠근다:
 
 ```
 각 self-host .pgy 파일 →
-  [1] self-lexer 토큰화 통과?      (현 993/993 = 사실상 완결)
-  [2] self-parser 파싱 통과?        (현 ~52% — 구문별 갭 목록)
-  [3] self-semantic 검사 통과?      (현 ~6% — 최대 갭, rung별로 열림)
-  [4] self-codegen C 방출 통과?     (현 rung-20, gen2==gen3 on subset)
+  [1] self-lexer 토큰화 통과?
+  [2] self-parser 파싱 통과?
+  [3] self-semantic 검사 통과?
+  [4] self-codegen C 방출 통과?     (현 codegen check는 C-oracle AST를 입력으로 사용)
+
+누적 교집합 →
+  [1+2] lexer와 parser를 둘 다 통과한 파일
+  [1+2+3] lexer/parser/semantic을 모두 통과한 파일
+  [1+2+3+4] 현 stage check를 모두 통과한 파일
 ```
 
 산출 = **완전성 원장**: 파일 N개 중 각 단계 통과 수 + 실패 시 미지원 구문/검사의
@@ -68,16 +74,27 @@ self-semantic 각각에 `--check <file>` 모드(pass/fail + 실패 사유) 추�
    검사는 모두 fail count로 남는다. `skip`은 toolchain 부재 같은 환경 조건에만
    허용되고, M2 완전성 갭에는 허용되지 않는다. Per-file timeout은 completeness
    fail이 아니라 실행 인프라 실패로 즉시 red 처리한다.
-4. **Monotone baseline.** `source_min`, `lexer_pass_min`, `parser_pass_min`,
-   `semantic_pass_min`, `codegen_pass_min`은 오르기만 한다. pass count를 올릴 때는
-   C/LLVM oracle parity 또는 stage fixture가 같이 있어야 하며, C oracle의 silent
-   fallback을 그대로 따라간 결과는 pass 상승 근거가 아니다.
+4. **Monotone baseline + identity.** `source_min`, `lexer_pass_min`,
+   `parser_pass_min`, `semantic_pass_min`, `codegen_pass_min`은 오르기만 한다. 또한
+   누적 pipeline 수치 `lex_parse_pass_min`, `lex_parse_semantic_pass_min`,
+   `full_pipeline_pass_min`과 그 baseline 파일 목록도 함께 잠긴다. 기존에 pipeline을
+   통과하던 파일이 빠지면 새 파일이 대신 들어와 count를 보존해도 실패한다. pass
+   count를 올릴 때는 C/LLVM oracle parity 또는 stage fixture가 같이 있어야 하며,
+   C oracle의 silent fallback을 그대로 따라간 결과는 pass 상승 근거가 아니다.
 
 **착지된 M2 ledger baseline(2026-07-05):** `self-host-completeness-smoke`가
-production self-host source 147개를 측정한다. 최초 locked minima:
+production self-host source 147개를 측정한다. locked minima:
 `source_min=147`, `lexer_pass_min=147`, `parser_pass_min=43`,
-`semantic_pass_min=134`, `codegen_pass_min=23`. 이 숫자는 낮출 수 없고, parser나
-semantic/codegen rung이 열릴 때만 증가한다.
+`semantic_pass_min=134`, `codegen_pass_min=23`,
+`lex_parse_pass_min=43`, `lex_parse_semantic_pass_min=37`,
+`full_pipeline_pass_min=1`. 세 pipeline 수치는 committed baseline 파일 목록과 함께
+잠긴다. 이 숫자는 낮출 수 없고, parser나 semantic/codegen rung이 열릴 때만
+증가한다.
+
+주의: `full_pipeline_pass_min=1`은 아직 self-parser AST가 codegen으로 들어가는
+완전 pipeline이 아니다. 현재 codegen stage check는 `pgy --ast`로 얻은 C-oracle AST
+텍스트를 self-host codegen에 넣는다. 이 수치는 stage별 통과 파일의 교집합을
+정직하게 보여주는 계기판이며, DRV/parser flip 이후 별도 수치로 승격해야 한다.
 
 ---
 

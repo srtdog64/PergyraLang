@@ -23,6 +23,18 @@ func CompilerCompletenessBaselineSuiteName() -> String {
     return "self-host-completeness-baseline";
 }
 
+func CompilerCompletenessLexParseBaselineSuiteName() -> String {
+    return "self-host-completeness-lex-parse-baseline";
+}
+
+func CompilerCompletenessLexParseSemanticBaselineSuiteName() -> String {
+    return "self-host-completeness-lex-parse-semantic-baseline";
+}
+
+func CompilerCompletenessFullPipelineBaselineSuiteName() -> String {
+    return "self-host-completeness-full-pipeline-baseline";
+}
+
 func CompilerCompletenessPathEndsWith(path: String, suffix: String) -> Bool {
     let path_len: Int = StringLength(path);
     let suffix_len: Int = StringLength(suffix);
@@ -118,6 +130,129 @@ func CompilerCompletenessCodegenPassMin() -> Int {
     return 23;
 }
 
+func CompilerCompletenessLexParsePassMin() -> Int {
+    return 43;
+}
+
+func CompilerCompletenessLexParseSemanticPassMin() -> Int {
+    return 37;
+}
+
+func CompilerCompletenessFullPipelinePassMin() -> Int {
+    return 1;
+}
+
+func EmitCompilerCompletenessLexParseBaseline() -> Void {
+    let rows: Array<String> = [
+        "src/self_hosted/codegen/input/ast_input_owner.pgy",
+        "src/self_hosted/codegen/input/ast_usage_owner.pgy",
+        "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy",
+        "src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy",
+        "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy",
+        "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy",
+        "src/self_hosted/codegen/typed_ast_node_skeleton.pgy",
+        "src/self_hosted/compiler/abi_layout_row_owner.pgy",
+        "src/self_hosted/compiler/air_evidence_owner.pgy",
+        "src/self_hosted/compiler/artifact_zone_owner.pgy",
+        "src/self_hosted/compiler/authority_owner.pgy",
+        "src/self_hosted/compiler/completeness_ledger_owner.pgy",
+        "src/self_hosted/compiler/path_manifest_owner.pgy",
+        "src/self_hosted/compiler/stage_intents.pgy",
+        "src/self_hosted/compiler/subprocess_runner_owner.pgy",
+        "src/self_hosted/compiler/symbol_table_owner.pgy",
+        "src/self_hosted/compiler/target_capability_owner.pgy",
+        "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy",
+        "src/self_hosted/compiler/test_harness_manifest.pgy",
+        "src/self_hosted/compiler/test_harness_owner.pgy",
+        "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy",
+        "src/self_hosted/lexer/char_owner.pgy",
+        "src/self_hosted/lexer/fixture_manifest_owner.pgy",
+        "src/self_hosted/lexer/source_input_owner.pgy",
+        "src/self_hosted/lib/diagnostic.pgy",
+        "src/self_hosted/lib/json_scan.pgy",
+        "src/self_hosted/lib/path.pgy",
+        "src/self_hosted/lib/text_scan.pgy",
+        "src/self_hosted/mir_lower/error_owner.pgy",
+        "src/self_hosted/mir_lower/fixture_manifest_owner.pgy",
+        "src/self_hosted/parser/error_owner.pgy",
+        "src/self_hosted/parser/expr_postfix_owner.pgy",
+        "src/self_hosted/parser/expr_precedence_owner.pgy",
+        "src/self_hosted/parser/fixture_manifest_owner.pgy",
+        "src/self_hosted/parser/source_path_owner.pgy",
+        "src/self_hosted/parser/stmt_if_owner.pgy",
+        "src/self_hosted/parser/stmt_loop_owner.pgy",
+        "src/self_hosted/parser/stmt_match_owner.pgy",
+        "src/self_hosted/parser/stmt_parallel_owner.pgy",
+        "src/self_hosted/sea/execution_lane.pgy",
+        "src/self_hosted/semantic/diagnostic_code_owner.pgy",
+        "src/self_hosted/semantic/diagnostic_owner.pgy",
+        "src/self_hosted/semantic/env_owner.pgy"
+    ];
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        Log(rows[i]);
+        i = i + 1;
+    }
+}
+
+func EmitCompilerCompletenessLexParseSemanticBaseline() -> Void {
+    let rows: Array<String> = [
+        "src/self_hosted/codegen/input/ast_input_owner.pgy",
+        "src/self_hosted/codegen/input/ast_usage_owner.pgy",
+        "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy",
+        "src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy",
+        "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy",
+        "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy",
+        "src/self_hosted/codegen/typed_ast_node_skeleton.pgy",
+        "src/self_hosted/compiler/abi_layout_row_owner.pgy",
+        "src/self_hosted/compiler/air_evidence_owner.pgy",
+        "src/self_hosted/compiler/artifact_zone_owner.pgy",
+        "src/self_hosted/compiler/authority_owner.pgy",
+        "src/self_hosted/compiler/completeness_ledger_owner.pgy",
+        "src/self_hosted/compiler/path_manifest_owner.pgy",
+        "src/self_hosted/compiler/stage_intents.pgy",
+        "src/self_hosted/compiler/subprocess_runner_owner.pgy",
+        "src/self_hosted/compiler/symbol_table_owner.pgy",
+        "src/self_hosted/compiler/target_capability_owner.pgy",
+        "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy",
+        "src/self_hosted/compiler/test_harness_manifest.pgy",
+        "src/self_hosted/compiler/test_harness_owner.pgy",
+        "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy",
+        "src/self_hosted/lexer/char_owner.pgy",
+        "src/self_hosted/lexer/fixture_manifest_owner.pgy",
+        "src/self_hosted/lexer/source_input_owner.pgy",
+        "src/self_hosted/lib/diagnostic.pgy",
+        "src/self_hosted/lib/json_scan.pgy",
+        "src/self_hosted/lib/path.pgy",
+        "src/self_hosted/lib/text_scan.pgy",
+        "src/self_hosted/mir_lower/error_owner.pgy",
+        "src/self_hosted/mir_lower/fixture_manifest_owner.pgy",
+        "src/self_hosted/parser/error_owner.pgy",
+        "src/self_hosted/parser/fixture_manifest_owner.pgy",
+        "src/self_hosted/parser/source_path_owner.pgy",
+        "src/self_hosted/sea/execution_lane.pgy",
+        "src/self_hosted/semantic/diagnostic_code_owner.pgy",
+        "src/self_hosted/semantic/diagnostic_owner.pgy",
+        "src/self_hosted/semantic/env_owner.pgy"
+    ];
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        Log(rows[i]);
+        i = i + 1;
+    }
+}
+
+func EmitCompilerCompletenessFullPipelineBaseline() -> Void {
+    let rows: Array<String> = [
+        "src/self_hosted/compiler/test_harness_manifest.pgy"
+    ];
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        Log(rows[i]);
+        i = i + 1;
+    }
+}
+
 func EmitCompilerCompletenessBaseline() -> Void {
     Log(Concat("schema=", CompilerCompletenessLedgerSchema()));
     Log(Concat("source_min=", ToString(CompilerCompletenessSourceMin())));
@@ -125,6 +260,9 @@ func EmitCompilerCompletenessBaseline() -> Void {
     Log(Concat("parser_pass_min=", ToString(CompilerCompletenessParserPassMin())));
     Log(Concat("semantic_pass_min=", ToString(CompilerCompletenessSemanticPassMin())));
     Log(Concat("codegen_pass_min=", ToString(CompilerCompletenessCodegenPassMin())));
+    Log(Concat("lex_parse_pass_min=", ToString(CompilerCompletenessLexParsePassMin())));
+    Log(Concat("lex_parse_semantic_pass_min=", ToString(CompilerCompletenessLexParseSemanticPassMin())));
+    Log(Concat("full_pipeline_pass_min=", ToString(CompilerCompletenessFullPipelinePassMin())));
 }
 
 func CompilerCompletenessLedgerReady() -> Bool {
@@ -134,5 +272,8 @@ func CompilerCompletenessLedgerReady() -> Bool {
         CompilerCompletenessStageAt(2) == "semantic" &&
         CompilerCompletenessStageAt(3) == "codegen" &&
         StringLength(CompilerCompletenessLedgerSchema()) > 0 &&
-        StringLength(CompilerCompletenessSourceRoot()) > 0;
+        StringLength(CompilerCompletenessSourceRoot()) > 0 &&
+        StringLength(CompilerCompletenessLexParseBaselineSuiteName()) > 0 &&
+        StringLength(CompilerCompletenessLexParseSemanticBaselineSuiteName()) > 0 &&
+        StringLength(CompilerCompletenessFullPipelineBaselineSuiteName()) > 0;
 }
