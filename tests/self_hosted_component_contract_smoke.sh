@@ -962,7 +962,9 @@ require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstText
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextNominalName(nodes[cur[0]])"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextRoleName(nodes[cur[0]])"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" 'StartsWith(main_line, "Event:")'
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let f_indent: Int = nodes[first_fn].indent"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let f_indent: Int = 2"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "if first_fn >= 0"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "f_indent = nodes[first_fn].indent"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let record_array_block: String = \"\""
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "pgy_CodegenAstTextNode_array_get"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "NominalDeclName(cur_line)"
@@ -2413,10 +2415,10 @@ fi
 
 codegen_fixture_count="$(find "$SELF_HOST_DIR/codegen/fixture" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
 codegen_expected_count="$(find "$SELF_HOST_DIR/codegen/expected" -maxdepth 1 -type f -name '*_stdout.txt' | wc -l | tr -d ' ')"
-[[ "$codegen_fixture_count" -eq 65 ]] ||
-    fail "codegen fixture count drifted: $codegen_fixture_count != 65"
-[[ "$codegen_expected_count" -eq 65 ]] ||
-    fail "codegen expected count drifted: $codegen_expected_count != 65"
+[[ "$codegen_fixture_count" -eq 66 ]] ||
+    fail "codegen fixture count drifted: $codegen_fixture_count != 66"
+[[ "$codegen_expected_count" -eq 66 ]] ||
+    fail "codegen expected count drifted: $codegen_expected_count != 66"
 require_file "src/self_hosted/codegen/fixture/hello.pgy"
 require_file "src/self_hosted/codegen/fixture/seed_random.pgy"
 require_file "src/self_hosted/codegen/fixture/array_index_assign.pgy"
