@@ -136,6 +136,12 @@ compiled driver owners emit `--fixture-manifest` rows from
 `driver_rung0_owner.pgy`, and both shell runners consume that shared manifest
 before comparing AST text and emitted C artifacts.
 
+TestHarness delta, 2026-07-05: `mir_json_parity.sh` no longer owns the
+86-row positive fixture inventory. The compiled `mir_lower` owner emits
+`--fixture-manifest` rows from `fixture_manifest_owner.pgy`, and the shell
+runner consumes those rows before invoking `pgy --mir-json`, `mir_lower`,
+`codegen`, and the C oracle.
+
 Artifact Zone delta, 2026-07-04: LSP transport outputs are now tracked as
 their own comparable artifact kinds: `CompilerLspTransportFrameArtifactKind()`
 for LSP-2a single-frame output and `CompilerLspTransportStreamArtifactKind()`

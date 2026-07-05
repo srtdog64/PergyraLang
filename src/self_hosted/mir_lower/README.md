@@ -8,8 +8,11 @@ not C-side AST accessors.
 `main.pgy` is only the CLI/orchestration boundary. Semantic decisions are owned
 by the sibling modules:
 
+- `run_owner.pgy` owns CLI mode selection and output orchestration.
 - `mir_json_input_owner.pgy` owns argv path selection, file reads, and schema
   gating for MIR JSON input.
+- `fixture_manifest_owner.pgy` owns the curated MIR parity source fixture
+  manifest consumed by the shell runner.
 - `json_fact_read.pgy` owns bounded JSON fact access, including MIR
   declaration row/object/array bounds.
 - `decl_lower.pgy` owns declaration fact reconstruction and consumes MIR

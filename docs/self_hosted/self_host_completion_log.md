@@ -25,6 +25,18 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-05 - MIR JSON parity fixture inventory consumes mir_lower owner
+
+- Added `fixture_manifest_owner.pgy` to own the 86 positive MIR parity source
+  fixture rows spanning mir_lower fixtures, supported codegen fixtures, and the
+  binary-search example.
+- Added `run_owner.pgy` so the `mir_lower` entrypoint stays entrypoint-only,
+  then exposed the manifest through that run owner as `--fixture-manifest`.
+- Repointed `mir_json_parity.sh` so shell no longer owns `MIR_FIXTURES`,
+  `CODEGEN_FIXTURES`, or `EXAMPLE_FIXTURES`; it reads the compiled mir_lower
+  owner's manifest before invoking `pgy --mir-json`, `mir_lower`, `codegen`,
+  and the C oracle.
+
 ## 2026-07-05 - Codegen parity fixture inventory consumes codegen owner
 
 - Added codegen fixture manifest ownership to `run/codegen_run_owner.pgy`: the

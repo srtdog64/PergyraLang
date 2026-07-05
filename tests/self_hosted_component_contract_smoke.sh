@@ -342,6 +342,11 @@ require_text "tests/self_hosted/parity/mir_json_parity.sh" "set -euo pipefail"
 require_text "tests/self_hosted/parity/mir_json_parity.sh" "pgy_selfhost_compile_backend_output_comparator"
 require_text "tests/self_hosted/parity/mir_json_parity.sh" "compare_mir_run_output_with_owner"
 require_text "tests/self_hosted/parity/mir_json_parity.sh" "run_output"
+require_text "tests/self_hosted/parity/mir_json_parity.sh" "read_mir_fixture_manifest"
+require_text "tests/self_hosted/parity/mir_json_parity.sh" '"$B/mir_lower.exe" --fixture-manifest'
+reject_text "tests/self_hosted/parity/mir_json_parity.sh" "MIR_FIXTURES=("
+reject_text "tests/self_hosted/parity/mir_json_parity.sh" "CODEGEN_FIXTURES=("
+reject_text "tests/self_hosted/parity/mir_json_parity.sh" "EXAMPLE_FIXTURES=("
 reject_text "tests/self_hosted/parity/mir_json_parity.sh" "diff <("
 require_text "Makefile" "self-host-mir-json-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/mir_json_parity.sh"
@@ -354,15 +359,17 @@ require_stage_world_binding "semantic" "SemanticVerdictZone" "SemanticStage" "Ch
 require_stage_world_binding "mir_lower" "MirFactGraphZone" "MirLowerStage" "LowerProgramFacts" "MiddleEndPipeline" "MirFactGraphPayloadContractReady"
 require_stage_world_binding "codegen" "EmissionZone" "ProgramEmitter" "EmitProgramArtifact" "BackendPipeline" "TypedAstArenaPayloadContractReady"
 
-mir_positive_count="$(
-    {
-        extract_shell_array_items "$PARITY_DIR/mir_json_parity.sh" MIR_FIXTURES
-        extract_shell_array_items "$PARITY_DIR/mir_json_parity.sh" CODEGEN_FIXTURES
-        extract_shell_array_items "$PARITY_DIR/mir_json_parity.sh" EXAMPLE_FIXTURES
-    } | wc -l | tr -d ' '
-)"
-[[ "$mir_positive_count" -eq 86 ]] ||
-    fail "mir_json_parity positive fixture count drifted: $mir_positive_count != 86"
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityFixtureCount"
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityFixtureAt"
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func EmitMirParityFixtureManifest"
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "MirParityFixtureCount()"
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityFixtureCount() -> Int"
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "return 86;"
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/mir_lower/fixture/let_log.pgy"'
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/codegen/fixture/write_file.pgy"'
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"examples/binary_search.pgy"'
+require_text "src/self_hosted/mir_lower/run_owner.pgy" 'args[0] == "--fixture-manifest"'
+require_text "src/self_hosted/mir_lower/run_owner.pgy" "EmitMirParityFixtureManifest()"
 mir_clean_reject_count="$(grep -Ec '^base="unsupported_' "$PARITY_DIR/mir_json_parity.sh" || true)"
 [[ "$mir_clean_reject_count" -eq 0 ]] ||
     fail "mir_json_parity clean reject count drifted: $mir_clean_reject_count != 0"
@@ -1288,21 +1295,29 @@ reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" '"pgy_args("'
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "func EmitStructValue"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitStructValue"
 require_owner_surface mir_lower \
+    "run_owner.pgy"
+for mir_owner in \
     "error_owner.pgy" \
     "mir_fact_graph_contract_owner.pgy" \
     "mir_json_input_owner.pgy" \
+    "fixture_manifest_owner.pgy" \
     "json_fact_read.pgy" \
     "stmt_render.pgy" \
     "routine_inventory_owner.pgy" \
     "routine_lower.pgy" \
     "decl_lower.pgy" \
-    "program_lower.pgy"
+    "program_lower.pgy"; do
+    require_text "src/self_hosted/mir_lower/run_owner.pgy" "import \"$mir_owner\";"
+done
 require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'import "json_fact_read.pgy";'
 require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'MirDocumentSchemaEquals(json, "pgy.mir.v1")'
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "func MirFactGraphPayloadContractReady"
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "func MirFactGraphPayloadSchema"
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "pgy.mir.v1"
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirFactGraphPayloadFixtureCount() != 86"
+require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirParityFixtureCount() != MirFactGraphPayloadFixtureCount()"
+require_text "src/self_hosted/mir_lower/main.pgy" "RunMirLowerFromArgs(Args())"
+require_text "src/self_hosted/mir_lower/run_owner.pgy" "func RunMirLowerFromArgs"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirDocumentSchemaEquals"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "JsonDocumentFactStringFieldEquals(json, \"schema\", expected)"
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirDocumentSchemaEquals(json, MirFactGraphPayloadSchema())"
@@ -1401,6 +1416,7 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/c
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/text/text_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/type_facts/type_env.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/json_fact_read.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/fixture_manifest_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/mir_json_input_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/routine_inventory_owner.pgy"'
@@ -1408,6 +1424,7 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/m
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/stmt_render.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/routine_lower.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/program_lower.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/run_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/sea/execution_lane.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/path.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/json.pgy"'
@@ -2079,8 +2096,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 127 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 127"
+[[ "$selfcheck_count" -eq 129 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 129"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'

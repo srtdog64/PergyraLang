@@ -1,6 +1,7 @@
 // MIR fact graph payload contract owner.
 
 import "json_fact_read.pgy";
+import "fixture_manifest_owner.pgy";
 
 func MirFactGraphPayloadSchema() -> String {
     return "pgy.mir.v1";
@@ -55,6 +56,9 @@ func MirFactGraphPayloadContractReady() -> Bool {
         return false;
     }
     if MirFactGraphPayloadFixtureCount() != 86 {
+        return false;
+    }
+    if MirParityFixtureCount() != MirFactGraphPayloadFixtureCount() {
         return false;
     }
     if !MirFactGraphPayloadRootReady() {

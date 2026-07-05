@@ -72,12 +72,11 @@ compile_c_to_exe() {
 
 MIR_LOWER_SRC="$ROOT_DIR/src/self_hosted/mir_lower/main.pgy"
 CODEGEN_SRC="$ROOT_DIR/src/self_hosted/codegen/main.pgy"
-FIXTURE_DIR="$ROOT_DIR/src/self_hosted/mir_lower/fixture"
-CODEGEN_FIXTURE_DIR="$ROOT_DIR/src/self_hosted/codegen/fixture"
-EXAMPLE_FIXTURE_DIR="$ROOT_DIR/examples"
 B="$ROOT_DIR/.tmp/self_hosted/mir_lower/parity"
 ARTIFACT_COMPARE_BUILD_DIR="$B/artifact_owner"
+MIR_FIXTURE_MANIFEST_FILE="$B/mir_fixture_manifest.txt"
 MIR_RUN_COMPARATOR_BIN=""
+FIXTURES=()
 mkdir -p "$B"
 
 compare_mir_run_output_with_owner() {
@@ -102,6 +101,31 @@ compare_mir_run_output_with_owner() {
         >"$cmp_out" 2>"$cmp_err"); then
         echo "[self-host-parity:mir-json] $base: MIR->C run-output artifact parity FAIL" >&2
         cat "$cmp_out" "$cmp_err" >&2
+        exit 1
+    fi
+}
+
+read_mir_fixture_manifest() {
+    local manifest_err="$B/mir_fixture_manifest.err"
+    local line
+
+    FIXTURES=()
+    if ! (cd "$ROOT_DIR" && "$B/mir_lower.exe" --fixture-manifest \
+        >"$MIR_FIXTURE_MANIFEST_FILE" \
+        2>"$manifest_err"); then
+        echo "[self-host-parity:mir-json] fixture manifest emission failed" >&2
+        cat "$manifest_err" >&2
+        exit 1
+    fi
+
+    while IFS= read -r line; do
+        line="${line%$'\r'}"
+        [[ -n "$line" ]] || continue
+        FIXTURES+=("$line")
+    done <"$MIR_FIXTURE_MANIFEST_FILE"
+
+    if [[ "${#FIXTURES[@]}" -ne 86 ]]; then
+        echo "[self-host-parity:mir-json] fixture manifest count drifted: ${#FIXTURES[@]} != 86" >&2
         exit 1
     fi
 }
@@ -135,114 +159,14 @@ for tool in mir_lower codegen; do
         exit 1
     fi
 done
-
-MIR_FIXTURES=(
-    let_log
-    multilet
-    arith
-    strlog
-    funcparam
-    multi_func_void
-    break_after_stmt
-    random_inferred_let
-    class_decl
-    class_method
-    nominal_subject
-    nominal_object
-    nominal_tobject
-    nominal_vessel
-    ability_decl
-    enum_simple
-    match_case_int
-    nested_if_in_loop
-    option_match
-    array_destructure
-    role_operator_dispatch
-    ifelse
-    nestedif
-    reassign_block
-    whileloop
-    forloop
-)
-
-CODEGEN_FIXTURES=(
-    args_probe
-    array_combinators
-    array_max
-    array_param
-    array_pop
-    array_push
-    array_reverse
-    array_sum
-    bool_logic
-    builtin_name_literal
-    concat
-    defer_scope
-    dir_walk
-    else_if_chain
-    exit_guard
-    file_handle
-    io_absolute_policy
-    float_math
-    for_each
-    for_continue
-    for_sum
-    func_call
-    func_recursive
-    hello
-    if_else
-    int_arith
-    int_neg
-    int_subdiv
-    io_probe
-    log_int_direct
-    log_trailing_newline
-    mixed_int_str
-    nested_concat
-    nested_ctrl
-    option_int_core
-    option_string_core
-    result_int_core
-    result_try
-    str_array
-    str_array_concat
-    str_array_push
-    str_builtins
-    str_builtins2
-    str_case_math
-    str_greet
-    str_indexof
-    str_reassign
-    str_trim
-    struct_mixed_fields
-    struct_nested_fields
-    struct_param
-    struct_point
-    string_concat_op
-    string_equality
-    string_utils_core
-    two_logs
-    while_break
-    while_sum
-    write_file
-)
-
-EXAMPLE_FIXTURES=(
-    binary_search
-)
+read_mir_fixture_manifest
 
 pass=0
-for fixture_entry in "${MIR_FIXTURES[@]}" "${CODEGEN_FIXTURES[@]}" "${EXAMPLE_FIXTURES[@]}"; do
-    base="$fixture_entry"
-    src="$FIXTURE_DIR/$base.pgy"
+for fixture_entry in "${FIXTURES[@]}"; do
+    base="$(basename "$fixture_entry" .pgy)"
+    src="$ROOT_DIR/$fixture_entry"
     if [[ ! -f "$src" ]]; then
-        src="$CODEGEN_FIXTURE_DIR/$base.pgy"
-    fi
-    if [[ ! -f "$src" ]]; then
-        src="$EXAMPLE_FIXTURE_DIR/$base.pgy"
-    fi
-    if [[ ! -f "$src" ]]; then
-        echo "[self-host-parity:mir-json] missing fixture: $src" >&2
+        echo "[self-host-parity:mir-json] missing fixture: $fixture_entry" >&2
         exit 1
     fi
     mj="$B/$base.mirjson"

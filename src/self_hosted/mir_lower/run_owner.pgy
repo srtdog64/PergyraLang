@@ -1,0 +1,22 @@
+// MIR-lower CLI run boundary owner.
+
+import "error_owner.pgy";
+import "mir_fact_graph_contract_owner.pgy";
+import "mir_json_input_owner.pgy";
+import "fixture_manifest_owner.pgy";
+import "json_fact_read.pgy";
+import "stmt_render.pgy";
+import "routine_inventory_owner.pgy";
+import "routine_lower.pgy";
+import "decl_lower.pgy";
+import "program_lower.pgy";
+
+func RunMirLowerFromArgs(args: Array<String>) -> Void with caps io_read {
+    if ArrayLength(args) > 0 && args[0] == "--fixture-manifest" {
+        EmitMirParityFixtureManifest();
+        return;
+    }
+    let path: String = MirJsonInputPath(args);
+    let json: String = MirJsonReadInput(path);
+    Print(EmitMirProgramTree(json));
+}

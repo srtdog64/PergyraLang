@@ -20,11 +20,14 @@ payloads for semantic answers.
 ## Input Contract
 
 The input is a path to a `pgy.mir.v1` JSON document emitted by `pgy --mir-json`.
+`run_owner.pgy` owns CLI mode selection and output orchestration;
 `mir_json_input_owner.pgy` owns path selection, file reads, and schema gating;
+`fixture_manifest_owner.pgy` owns the curated parity source fixture rows exposed
+through `--fixture-manifest` for the shell runner;
 `json_fact_read.pgy` owns bounded JSON/MIR fact reads including declaration
 row, object, and array bounds; `routine_inventory_owner.pgy` owns routine
-discovery plus bounded routine header facts, and `main.pgy` only wires the
-validated document into the lowering owners. Owner-qualified method routine
+discovery plus bounded routine header facts, and `main.pgy` only calls the run
+owner with `Args()`. Owner-qualified method routine
 lookup is exposed as an `Option<Int>` fact so declaration lowering consumes
 presence explicitly instead of using a `-1` sentinel. Routine discovery,
 routine-name end, and routine block-start facts are also exposed as
@@ -45,5 +48,7 @@ rescans, or default type guesses.
 
 `tests/self_hosted/parity/mir_json_parity.sh` compares reconstructed output
 against the C compiler's `pgy --ast` output for supported fixtures and checks
-that unsupported fixtures fail closed. The Makefile entry is
+that unsupported fixtures fail closed. Supported fixture paths come from the
+compiled `fixture_manifest_owner.pgy` manifest, not from shell-owned arrays. The
+Makefile entry is
 `self-host-mir-json-parity-test-smoke`.

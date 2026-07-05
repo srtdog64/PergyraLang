@@ -393,10 +393,10 @@ The realistic incremental path toward genuine self-host:
    oracle. Recursive import expansion is now owned by `source_bundle_owner.pgy`,
    and the import-backed call fixture proves signatures are consumed from the
   source bundle instead of from a hidden single-file `main` assumption. The
-  real-source selfcheck now feeds 125 accepted self-host owner/source files
+  real-source selfcheck now feeds 129 accepted self-host owner/source files
    through that source-bundle owner rather than a generated import-stripped
    unit. The accepted manifest spans lexer/parser/mir-lower/codegen/compiler-world
-  entrypoints, the lexer run/fixture-manifest owners, the compiler path manifest
+  entrypoints, the lexer and mir_lower run/fixture-manifest owners, the compiler path manifest
   owner, target-capability envelope owner, stage-artifact envelope owner, hard-rung
   AIR/artifact/test-harness/subprocess/ABI-row/symbol-row
   compiler-world envelopes, codegen symbol-mangle, ABI-layout, collection-runtime,

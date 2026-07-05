@@ -93,11 +93,15 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/mir_lower/main.pgy` -- entrypoint only.
 - `src/self_hosted/mir_lower/decl_lower.pgy` -- declaration reconstruction.
 - `src/self_hosted/mir_lower/error_owner.pgy` -- MIR-lower diagnostics.
+- `src/self_hosted/mir_lower/fixture_manifest_owner.pgy` -- MIR parity
+  source fixture manifest rows.
 - `src/self_hosted/mir_lower/json_fact_read.pgy` -- bounded MIR JSON fact reads.
 - `src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy` -- MIR fact
   graph payload contract facts.
 - `src/self_hosted/mir_lower/mir_json_input_owner.pgy` -- MIR JSON input boundary.
 - `src/self_hosted/mir_lower/program_lower.pgy` -- document-order program assembly.
+- `src/self_hosted/mir_lower/run_owner.pgy` -- MIR-lower CLI run boundary and
+  manifest mode selection.
 - `src/self_hosted/mir_lower/routine_inventory_owner.pgy` -- routine inventory facts.
 - `src/self_hosted/mir_lower/routine_lower.pgy` -- routine CFG/body reconstruction.
 - `src/self_hosted/mir_lower/stmt_render.pgy` -- instruction fact to AST text rendering.
