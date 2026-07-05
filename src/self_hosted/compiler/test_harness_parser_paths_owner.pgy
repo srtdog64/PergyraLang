@@ -1,0 +1,50 @@
+// Self-host parser parity path owner.
+//
+// Keeps parser parity executable/input paths behind TestHarness while the
+// parser owner remains responsible for fixture row inventory.
+
+func CompilerHarnessParserParitySuiteName() -> String {
+    return "parser-parity-paths";
+}
+
+func CompilerHarnessParserToolSourcePath() -> String {
+    return "src/self_hosted/parser/main.pgy";
+}
+
+func CompilerHarnessParserComparatorSourcePath() -> String {
+    return "src/self_hosted/tools/backend_output_comparator/main.pgy";
+}
+
+func CompilerHarnessParserFixtureDirPath() -> String {
+    return "src/self_hosted/parser/fixture";
+}
+
+func CompilerHarnessParserExpectedCleanPath() -> String {
+    return "src/self_hosted/parser/expected/clean.txt";
+}
+
+func CompilerHarnessParserPathCount() -> Int {
+    return 4;
+}
+
+func CompilerHarnessParserPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessParserToolSourcePath(); }
+    if index == 1 { return CompilerHarnessParserComparatorSourcePath(); }
+    if index == 2 { return CompilerHarnessParserFixtureDirPath(); }
+    if index == 3 { return CompilerHarnessParserExpectedCleanPath(); }
+    return "";
+}
+
+func CompilerHarnessParserParityReady() -> Bool {
+    if CompilerHarnessParserPathCount() != 4 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessParserPathCount() {
+        if CompilerHarnessParserPathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessParserParitySuiteName() != "";
+}

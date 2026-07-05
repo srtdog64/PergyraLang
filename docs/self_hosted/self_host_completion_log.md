@@ -25,6 +25,18 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Parser parity paths consume dedicated TestHarness owner
+
+- Added `test_harness_parser_paths_owner.pgy` for the `parser-parity-paths`
+  suite: parser tool source, backend comparator source, fixture directory, and
+  expected clean fixture path.
+- Repointed `parser_parity.sh` so shell reads those paths from
+  `test_harness_manifest.pgy`; the compiled parser owner remains the source of
+  the 188-row source/fixture manifest through `--fixture-manifest`.
+- Let the shared backend-output comparator compile helper accept an explicit
+  comparator source path while preserving the old default for existing parity
+  scripts.
+
 ## 2026-07-06 - Codegen parity paths consume dedicated TestHarness owner
 
 - Added `test_harness_codegen_paths_owner.pgy` for the `codegen-parity-paths`

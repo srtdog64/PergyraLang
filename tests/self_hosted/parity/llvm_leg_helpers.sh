@@ -93,7 +93,7 @@ pgy_selfhost_read_test_harness_manifest() {
 pgy_selfhost_compile_backend_output_comparator() {
     local label="$1"
     local build_dir="$2"
-    local comparator_source="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy"
+    local comparator_source="${3:-$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy}"
     local comparator_bin
     local compile_log
 
