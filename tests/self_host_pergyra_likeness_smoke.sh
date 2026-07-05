@@ -67,7 +67,7 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SH_DIR="$ROOT_DIR/src/self_hosted"
 
 # ---- ratchet baselines (tighten on improvement, never loosen) ----
-CORE_STRING_MUNGE_SIG_MAX=116
+CORE_STRING_MUNGE_SIG_MAX=115
 AST_STRING_SURFACE_MAX=0
 SENTINEL_MAX=8
 # 249 -> 246 (2026-07-03): first '?'-adoption wave (3 sites) converted 4-line
@@ -98,7 +98,10 @@ SENTINEL_MAX=8
 # compiler-world owner wiring wave; keep the errors-as-data surface load-bearing.
 # 562 -> 563 (2026-07-05): completeness ledger owner adds one more typed
 # absence/result surface; keep the improvement load-bearing.
-RESULT_USE_MIN=563
+# 563 -> 569 (2026-07-06): function-call projection lookup now returns
+# Option<Int> instead of a -1 sentinel; ABI layout/literal rewrite are classified
+# as explicit text-resource owners, not core AST-text bridge debt.
+RESULT_USE_MIN=569
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=17
 COMPILER_WORLD_MEMBERS_EXACT=17
@@ -112,12 +115,22 @@ COMPILER_STAGE_ENVELOPE_ONLY_MAX=0
 TYPED_AST_CONTRACT_MIN=1
 
 TEXT_DOMAIN_EXCLUDE_RE='^src/self_hosted/lib/(json(_emit)?|diagnostic)\.pgy$'
-CORE_STRING_MUNGE_EXCLUDE_RE='^src/self_hosted/(tools|lsp|fuzz)/|^src/self_hosted/lib/(json(_emit)?|diagnostic|path)\.pgy$|/(fixture_manifest|source_path)_owner\.pgy$|^src/self_hosted/compiler/(test_harness.*|path_manifest_owner|driver_cli_owner)\.pgy$|^src/self_hosted/(lexer|parser|semantic|codegen)/.*run_owner\.pgy$|^src/self_hosted/lexer/source_input_owner\.pgy$|^src/self_hosted/codegen/input/ast_input_owner\.pgy$'
+CORE_STRING_MUNGE_EXCLUDE_RE='^src/self_hosted/(tools|lsp|fuzz)/|^src/self_hosted/lib/(json(_emit)?|diagnostic|path)\.pgy$|^src/self_hosted/codegen/abi_layout/|^src/self_hosted/codegen/emission/literal_rewrite\.pgy$|/(fixture_manifest|source_path)_owner\.pgy$|^src/self_hosted/compiler/(test_harness.*|path_manifest_owner|driver_cli_owner)\.pgy$|^src/self_hosted/(lexer|parser|semantic|codegen)/.*run_owner\.pgy$|^src/self_hosted/lexer/source_input_owner\.pgy$|^src/self_hosted/codegen/input/ast_input_owner\.pgy$'
 
 fail() {
     echo "[self-host-likeness] FAIL" >&2
     echo "  - $*" >&2
     exit 1
+}
+
+self_host_source_files() {
+    if command -v git >/dev/null 2>&1 \
+        && git -C "$ROOT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        git -C "$ROOT_DIR" ls-files src/self_hosted
+        return
+    fi
+
+    (cd "$ROOT_DIR" && find src/self_hosted -type f -name '*.pgy' | sort)
 }
 
 count() {
@@ -128,7 +141,7 @@ count() {
     local exclude_re="${2:-}"
     local matches
     matches="$(
-        git -C "$ROOT_DIR" ls-files src/self_hosted \
+        self_host_source_files \
             | grep '\.pgy$' \
             | grep -Ev '/fixture(s)?/' \
             | {

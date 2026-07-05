@@ -41,15 +41,15 @@ func FunctionCallProjectionSourceName(c_symbol: String) -> String {
     return Substring(c_symbol, start, n - start);
 }
 
-func FunctionCallProjectionIndex(names: Array<String>, source_name: String) -> Int {
+func FunctionCallProjectionIndex(names: Array<String>, source_name: String) -> Option<Int> {
     let i: Int = 0;
     while i < ArrayLength(names) {
         if names[i] == source_name {
-            return i;
+            return Some(i);
         }
         i = i + 1;
     }
-    return -1;
+    return None;
 }
 
 func FunctionCallProjectionRecord(inout names: Array<String>, inout targets: Array<String>,
@@ -58,13 +58,14 @@ func FunctionCallProjectionRecord(inout names: Array<String>, inout targets: Arr
     if StringLength(source_name) == 0 || source_name == c_symbol {
         return;
     }
-    let idx: Int = FunctionCallProjectionIndex(names, source_name);
-    if idx < 0 {
+    let idx_opt: Option<Int> = FunctionCallProjectionIndex(names, source_name);
+    if !IsSome(idx_opt) {
         ArrayPush(names, source_name);
         ArrayPush(targets, c_symbol);
         ArrayPush(counts, 1);
         return;
     }
+    let idx: Int = UnwrapOption(idx_opt);
     if targets[idx] != c_symbol {
         ArraySet(counts, idx, 2);
     }
