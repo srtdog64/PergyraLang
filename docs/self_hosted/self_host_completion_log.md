@@ -25,6 +25,20 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Backend tri-compare consumes shared TestHarness/Artifact owners
+
+- Repointed `backend_output_tri_compare_parity.sh` so the runner compiles the
+  TestHarness manifest through the shared self-host helper, reads smoke/extended
+  case suites from that manifest, and reads the backend-output comparator source
+  from the `backend-output-comparator-paths` suite instead of owning a local
+  source path.
+- Removed the per-case temporary comparator source/lib/compiler copy. The
+  runner now compiles the Pergyra comparator once through the shared
+  ArtifactZone/TestHarness helper and reuses that binary for all C/LLVM
+  stdout/stderr comparisons.
+- Tightened the component contract so the old direct manifest source and
+  comparator copy path cannot return to the tri-compare parity runner.
+
 ## 2026-07-06 - Real-source semantic selfcheck consumes completeness owner
 
 - Repointed `tests/self_hosted/parity/selfcheck_sources.sh` away from its

@@ -2160,15 +2160,26 @@ reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'PERG
 reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/expected/clean.json"'
 reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'FIXTURE_EXPECTED="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/fixture/expected.txt"'
 reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'FIXTURE_ACTUAL="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/fixture/actual.txt"'
-require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'
-require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/artifact_zone_owner.pgy"'
-require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_owner.pgy"'
-require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/subprocess_runner_owner.pgy"'
-require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'HARNESS_MANIFEST_SOURCE="$ROOT_DIR/src/self_hosted/compiler/test_harness_manifest.pgy"'
-require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "compile_harness_manifest"
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"'
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "compile_harness_manifest_once"
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "pgy_selfhost_compile_test_harness_manifest"
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "pgy_selfhost_test_harness_manifest_bin"
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "read_harness_manifest_suite"
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "compile_tri_comparator"
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" '"backend-output-comparator-paths"'
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'comparator_source="$ROOT_DIR/${comparator_paths[0]}"'
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "pgy_selfhost_compile_backend_output_comparator"
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'TRI_COMPARE_BIN="$(pgy_selfhost_backend_output_comparator_bin "$WORK_DIR")"'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "append_cases_from_harness_manifest"
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'append_cases_from_harness_manifest "backend-tri-smoke"'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'append_cases_from_harness_manifest "backend-tri-extended"'
+reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'
+reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/artifact_zone_owner.pgy"'
+reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_owner.pgy"'
+reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/subprocess_runner_owner.pgy"'
+reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'HARNESS_MANIFEST_SOURCE="$ROOT_DIR/src/self_hosted/compiler/test_harness_manifest.pgy"'
+reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'tri_tool="$tri_root/src/self_hosted/tools/backend_output_comparator/main.pgy"'
+reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy"'
 reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" '"tests/cases/backend_compare/basic"'
 reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" '"tests/cases/backend_compare/zone_host_method_abi_combo"'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'timeout "$RUN_TIMEOUT_SECONDS"s "$bin" "$@"'

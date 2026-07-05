@@ -145,6 +145,14 @@ consumes the fuzz backend generator source through the
 `test_harness_codegen_bootstrap_paths_owner.pgy`. The generator still produces
 its corpus rows at runtime, but shell no longer owns the generator source path.
 
+TestHarness delta, 2026-07-06: `backend_output_tri_compare_parity.sh` now
+reuses the shared self-host TestHarness manifest compiler and reads the
+backend-output comparator source through the `backend-output-comparator-paths`
+suite before compiling the comparator through the shared ArtifactZone/TestHarness
+helper. The runner still owns process orchestration for C/LLVM binaries, but it
+no longer owns the TestHarness manifest source path or per-case comparator
+source/lib/compiler copy.
+
 TestHarness delta, 2026-07-05: `runtime_boundary_checker_parity.sh` now gets
 the checker source and expected clean JSON through the
 `runtime-boundary-paths` manifest suite, and it gets the required `(path, term)`

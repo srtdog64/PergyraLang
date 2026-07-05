@@ -15,6 +15,7 @@ fi
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
 PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix)"
 
@@ -31,8 +32,8 @@ WORK_ROOT="$ROOT_DIR/.tmp"
 mkdir -p "$WORK_ROOT"
 WORK_DIR="$(mktemp -d "$WORK_ROOT/pgy_selfhost_tri_compare.XXXXXX")"
 RUN_TIMEOUT_SECONDS="${PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS:-30}"
-HARNESS_MANIFEST_SOURCE="$ROOT_DIR/src/self_hosted/compiler/test_harness_manifest.pgy"
-HARNESS_MANIFEST_BIN="$WORK_DIR/test_harness_manifest.exe"
+HARNESS_MANIFEST_BIN=""
+TRI_COMPARE_BIN=""
 
 cleanup() {
     rm -rf "$WORK_DIR"
@@ -205,9 +206,6 @@ run_tri_case() {
     local c_rc
     local llvm_rc
     local tri_root
-    local tri_tool
-    local tri_bin
-    local tri_compile_log
 
     case_name="$(basename "$case_dir")"
     source_rel="$case_dir/main.pgy"
@@ -243,69 +241,78 @@ run_tri_case() {
     fi
 
     tri_root="$WORK_DIR/${case_name}_tri_root"
-    tri_tool="$tri_root/src/self_hosted/tools/backend_output_comparator/main.pgy"
-    tri_bin="$tri_root/.tmp/backend_output_comparator.exe"
-    tri_compile_log="$tri_root/.tmp/backend_output_comparator.compile.log"
-    mkdir -p "$(dirname "$tri_tool")"
-    mkdir -p "$tri_root/src/self_hosted/lib"
-    mkdir -p "$tri_root/src/self_hosted/compiler"
     mkdir -p "$tri_root/.tmp"
-    cp "$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy" "$tri_tool"
-    cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$tri_root/src/self_hosted/lib/"
-    cp "$ROOT_DIR/src/self_hosted/compiler/artifact_zone_owner.pgy" \
-        "$tri_root/src/self_hosted/compiler/artifact_zone_owner.pgy"
-    cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_owner.pgy" \
-        "$tri_root/src/self_hosted/compiler/test_harness_owner.pgy"
-    cp "$ROOT_DIR/src/self_hosted/compiler/subprocess_runner_owner.pgy" \
-        "$tri_root/src/self_hosted/compiler/subprocess_runner_owner.pgy"
-
-    if ! (cd "$tri_root" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$tri_tool")" \
-        --backend=c -o "$(pgy_path_for_compiler "$PGY" "$tri_bin")" \
-        >"$tri_compile_log" 2>&1); then
-        echo "[self-host-parity:backend-tri-compare] comparator compile failed for $source_rel" >&2
-        cat "$tri_compile_log" >&2
-        exit 1
-    fi
 
     run_pergyra_output_compare "$source_rel" "stdout" "$c_out" "$llvm_out" \
-        "$tri_root" "$tri_bin"
+        "$tri_root" "$TRI_COMPARE_BIN"
     run_pergyra_output_compare "$source_rel" "stderr" "$c_err" "$llvm_err" \
-        "$tri_root" "$tri_bin"
+        "$tri_root" "$TRI_COMPARE_BIN"
 }
 
-compile_harness_manifest() {
-    local compile_log="$WORK_DIR/test_harness_manifest.compile.log"
+compile_harness_manifest_once() {
+    pgy_selfhost_compile_test_harness_manifest \
+        "self-host-parity:backend-tri-compare" \
+        "$WORK_DIR"
+    HARNESS_MANIFEST_BIN="$(pgy_selfhost_test_harness_manifest_bin "$WORK_DIR")"
+}
 
-    if [[ ! -f "$HARNESS_MANIFEST_SOURCE" ]]; then
-        echo "[self-host-parity:backend-tri-compare] missing TestHarness manifest: $HARNESS_MANIFEST_SOURCE" >&2
+read_harness_manifest_suite() {
+    local suite="$1"
+    local out_file="$2"
+    local err_file="$WORK_DIR/${suite}.manifest.err"
+
+    if [[ -z "$HARNESS_MANIFEST_BIN" ]]; then
+        echo "[self-host-parity:backend-tri-compare] TestHarness manifest binary not compiled" >&2
         exit 1
     fi
 
-    if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$HARNESS_MANIFEST_SOURCE")" \
-        --backend=c -o "$(pgy_path_for_compiler "$PGY" "$HARNESS_MANIFEST_BIN")" \
-        >"$compile_log" 2>&1); then
-        echo "[self-host-parity:backend-tri-compare] TestHarness manifest compile failed" >&2
-        cat "$compile_log" >&2
+    if ! run_native_bin "$HARNESS_MANIFEST_BIN" "$out_file" "$err_file" "$suite"; then
+        echo "[self-host-parity:backend-tri-compare] TestHarness manifest failed for suite=$suite" >&2
+        cat "$out_file" "$err_file" >&2
         exit 1
     fi
+}
+
+compile_tri_comparator() {
+    local comparator_paths_file="$WORK_DIR/backend_output_comparator_paths.txt"
+    local comparator_paths=()
+    local line
+    local comparator_source
+
+    read_harness_manifest_suite \
+        "backend-output-comparator-paths" \
+        "$comparator_paths_file"
+
+    while IFS= read -r line; do
+        line="${line%$'\r'}"
+        [[ -n "$line" ]] || continue
+        comparator_paths+=("$line")
+    done <"$comparator_paths_file"
+
+    if [[ "${#comparator_paths[@]}" -ne 4 ]]; then
+        echo "[self-host-parity:backend-tri-compare] TestHarness manifest expected 4 comparator paths, got ${#comparator_paths[@]}" >&2
+        exit 1
+    fi
+
+    comparator_source="$ROOT_DIR/${comparator_paths[0]}"
+    if [[ ! -f "$comparator_source" ]]; then
+        echo "[self-host-parity:backend-tri-compare] missing TestHarness comparator source: $comparator_source" >&2
+        exit 1
+    fi
+
+    pgy_selfhost_compile_backend_output_comparator \
+        "self-host-parity:backend-tri-compare" \
+        "$WORK_DIR" \
+        "$comparator_source"
+    TRI_COMPARE_BIN="$(pgy_selfhost_backend_output_comparator_bin "$WORK_DIR")"
 }
 
 append_cases_from_harness_manifest() {
     local suite="$1"
     local manifest_out="$WORK_DIR/${suite}.cases"
-    local manifest_err="$WORK_DIR/${suite}.cases.err"
-    local manifest_rc
     local line
 
-    set +e
-    run_native_bin "$HARNESS_MANIFEST_BIN" "$manifest_out" "$manifest_err" "$suite"
-    manifest_rc=$?
-    set -e
-    if [[ "$manifest_rc" -ne 0 ]]; then
-        echo "[self-host-parity:backend-tri-compare] TestHarness manifest failed for suite=$suite" >&2
-        cat "$manifest_out" "$manifest_err" >&2
-        exit 1
-    fi
+    read_harness_manifest_suite "$suite" "$manifest_out"
 
     while IFS= read -r line; do
         line="${line%$'\r'}"
@@ -318,12 +325,17 @@ if [[ "$#" -gt 0 ]]; then
     cases=("$@")
 else
     cases=()
-    compile_harness_manifest
+    compile_harness_manifest_once
     append_cases_from_harness_manifest "backend-tri-smoke"
     if [[ "${PGY_BACKEND_TRI_COMPARE_SUITE:-smoke}" == "extended" ]]; then
         append_cases_from_harness_manifest "backend-tri-extended"
     fi
 fi
+
+if [[ -z "$HARNESS_MANIFEST_BIN" ]]; then
+    compile_harness_manifest_once
+fi
+compile_tri_comparator
 
 for case_dir in "${cases[@]}"; do
     run_tri_case "$case_dir"
