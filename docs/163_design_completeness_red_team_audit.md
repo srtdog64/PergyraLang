@@ -48,10 +48,10 @@ manifests:
 | full stage intersection | 147 |
 
 Interpretation: parser is no longer the dominant blocker. The next real
-completeness wall is no longer source breadth. It is pipeline ownership:
-codegen still consumes C-oracle AST text (`pgy --ast`) for the stage check, so
-the remaining hard-self-host blocker is replacing that bridge with
-self-parser/self-semantic owned facts without adding hidden fallbacks.
+completeness wall is no longer source breadth. The codegen stage check now
+consumes AST text emitted by the self-host parser, not C-oracle `pgy --ast`.
+The remaining hard-self-host blocker is replacing that AST-text bridge with
+typed self-parser/self-semantic owned facts without adding hidden fallbacks.
 
 The monotone ledger is now tightened at `147/147` for lexer, parser, semantic,
 codegen, lex+parse, lex+parse+semantic, and full stage intersection. The three
@@ -204,7 +204,7 @@ must remain fatal infrastructure failures, not pass-count failures.
 | M2 completeness measurement | Medium-high | monotone source identity is right; stage check-unit ownership must stay explicit |
 | Parser self-host | Strong | 147/147 in completeness; parity fixture surface broad |
 | Semantic self-host | Medium | 147/147 source-stage checks pass, but deep semantic parity is still bounded by the current subset |
-| Codegen self-host | Medium | fixed-point exists for subset; 147/147 source-stage checks pass via C-oracle AST text |
+| Codegen self-host | Medium | fixed-point exists for subset; 147/147 source-stage checks pass via self-parser AST text |
 | CompilerWorld shape | Medium | vocabulary present; live fact consumption still needs negative evidence |
 | Typed AST | Medium-low | bridge is controlled, but still line-text backed |
 | JSON facts | Medium | shared owners exist; not yet a full schema/fact substrate |
@@ -219,7 +219,7 @@ or backend architecture complete.
 
 ## Next Work Order
 
-1. Replace the codegen stage's C-oracle AST text bridge with self-parser /
+1. Replace the codegen stage's AST text bridge with typed self-parser /
    self-semantic owned facts, then keep the 147/147 ledger green.
 2. Split `READY for subset` from `ACTIVE global` in the expansion ledger.
 3. Start typed AST replacement at the top codegen consumers:

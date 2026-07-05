@@ -189,6 +189,13 @@ if stage_selected semantic; then
     SEMANTIC_BIN="$(compile_tool semantic "$BUILD_DIR/semantic/main.pgy" semantic "src/self_hosted/semantic")"
 fi
 if stage_selected codegen; then
+    # Codegen completeness consumes AST text emitted by the self-host parser.
+    # `pgy --ast` remains a separate oracle/parity target, not this stage's
+    # producer.
+    if [[ -z "$PARSER_BIN" ]]; then
+        copy_lib parser
+        PARSER_BIN="$(compile_tool parser "$BUILD_DIR/parser/main.pgy" parser "src/self_hosted/parser")"
+    fi
     CODEGEN_BIN="$(compile_tool codegen "$ROOT_DIR/src/self_hosted/codegen/main.pgy" codegen "")"
 fi
 
@@ -236,7 +243,7 @@ run_codegen_check() {
     local err="$BUILD_DIR/codegen_${safe}.err"
 
     mkdir -p "$ROOT_DIR/.tmp/self_hosted/completeness/ast"
-    (cd "$ROOT_DIR" && timeout "$CHECK_TIMEOUT_SEC" "$PGY" --ast "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/$src")" \
+    (cd "$ROOT_DIR" && timeout "$CHECK_TIMEOUT_SEC" "$PARSER_BIN" "$src" \
         >"$ast_abs" 2>"$ast_err")
     local ast_rc="$?"
     if [[ "$ast_rc" -eq 0 ]]; then

@@ -161,9 +161,10 @@ The Makefile keeps the fast and heavy paths separate:
   baseline source identities, so a previously passing pipeline file cannot
   disappear behind a count-preserving replacement. Unsupported codegen input is
   reported as a measured failure count, not as a successful skip. The current
-  codegen stage still consumes C-oracle AST text from `pgy --ast`; the
-  `full_pipeline` number is therefore a stage-check intersection, not a claim
-  that self-parser AST already feeds codegen end to end.
+  codegen stage consumes AST text emitted by the self-host parser, not
+  C-oracle `pgy --ast`. The `full_pipeline` number is still a stage-check
+  intersection, not a claim that typed self-semantic facts already feed codegen
+  end to end.
 - For focused local validation, `PGY_SELFHOST_COMPLETENESS_STAGES` may name one
   or more stages such as `parser` or `semantic,codegen`. Focused mode compiles
   and checks only those stage owners and enforces only their stage minima. It

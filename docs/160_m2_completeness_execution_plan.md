@@ -40,7 +40,7 @@ parity로 검증하며, fixpoint를 그 pass까지 확장하는 것.
   [1] self-lexer 토큰화 통과?
   [2] self-parser 파싱 통과?
   [3] self-semantic 검사 통과?
-  [4] self-codegen C 방출 통과?     (현 codegen check는 C-oracle AST를 입력으로 사용)
+  [4] self-codegen C 방출 통과?     (self-parser AST 텍스트를 입력으로 사용)
 
 누적 교집합 →
   [1+2] lexer와 parser를 둘 다 통과한 파일
@@ -94,11 +94,12 @@ production self-host source 147개를 측정한다. locked minima:
 같은 owner에서 함께 확장된다. 이 숫자는 낮출 수 없고, source inventory가 바뀌는
 커밋은 같은 게이트에서 새 source의 stage 통과도 증명해야 한다.
 
-주의: `full_pipeline_pass_min=147`은 아직 self-parser AST가 codegen으로 들어가는
-완전 bootstrap pipeline이 아니다. 현재 codegen stage check는 `pgy --ast`로 얻은
-C-oracle AST 텍스트를 self-host codegen에 넣는다. 이 수치는 stage별 통과 파일의
-교집합을 정직하게 보여주는 계기판이며, DRV/parser flip 이후 별도 수치로
-승격해야 한다.
+주의: `full_pipeline_pass_min=147`은 이제 lexer/parser/semantic/codegen stage가
+같은 production source inventory 위에서 닫혔고, codegen stage는 self-parser가
+방출한 AST 텍스트를 입력으로 사용한다. 다만 이것은 아직 최종 bootstrap
+pipeline이 아니다. self-semantic의 typed facts가 codegen 입력으로 연결된 것이
+아니라, stage별 통과 파일의 교집합을 정직하게 보여주는 계기판이다. 다음 승격은
+AST 텍스트 브리지를 typed self-parser/self-semantic facts로 줄이는 것이다.
 
 **Red-team 보정(2026-07-05): source identity != semantic check unit.** source
 inventory는 계속 147개가 정본이다. 다만 parser expression/statement처럼 순환 문법
