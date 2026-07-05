@@ -10664,9 +10664,19 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
 - **부수 잔여(같은 트랙에서 조임)**: S2 진단 위치 0:0 강등(member-access
   노드 line 소실), 중첩 base(`w.zone.subject`) 유출 미커버.
 
-#### A-17. Self-bootstrap + Stdlib 실행 설계도 (docs/158, docs/159 — 2026-07-05)
+#### A-17. 실행 설계도 세트 (docs/158–162 — 2026-07-05, 5문서)
 
-- **배경**: 2일 시간창 대비 durable 실행 설계도 2건 착지. 나 없이 집행
+- **인덱스(나 없이 집행 가능한 파일·rung·결정점 정밀도)**:
+  - **docs/158** self-bootstrap 전략 (M1 달성/M2 6.57%/G-EXEC 정정/§4 분기→M2)
+  - **docs/159** stdlib 승격 (doctrine-pass 7항 + money/datetime diff)
+  - **docs/160** M2 완전성 (semantic 8-rung SEM-3..11 + typed-AST strangler
+    + parser 잔여 3종 + ★STEP 0 래칫 red)
+  - **docs/161** WASM/미디어 (벽은 WASM 아님 — W-2 실백엔드/W-3 렌더러=159
+    page·spray/W-4 서명로더)
+  - **docs/162** target #4 (양 백엔드 통합 MIR — 분리 소비자 transpiler_mir_*
+    vs llvm_mir_*가 divergence 원천, T4-2 공유 소비자 추출. 최저-사용자가치라
+    후순위, T4-0 측정만 먼저)
+- **배경**: 2일 시간창 대비 durable 실행 설계도 5건 착지. 나 없이 집행
   가능한 정밀도(파일·rung·결정점 단위).
 - **docs/158 self-bootstrap**: 실측 정정 — 코드젠 fixed-point(gen2==gen3)는
   **이미 달성(M1)**, 전체 컴파일러는 6.57%(M2, semantic 46k LOC 중 6%만).
