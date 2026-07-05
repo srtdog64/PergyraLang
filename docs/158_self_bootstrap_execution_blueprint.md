@@ -45,7 +45,7 @@ self-hosting 선언으로 받고 레버리지를 thesis(던전크롤러)로 돌�
 | 컴포넌트 | C LOC | Pergyra LOC | 실질 커버리지 | 임계 경로? |
 |---|---:|---:|---|---|
 | lexer | 921 | 677 | 993/993 예제 byte-equal (**subset 완결**) | 사실상 완료 |
-| parser | 20,579 | 8,127 | ~52% (186 fixture, 120/121 예제) | **YES — 완전성 필요** |
+| parser | 20,579 | 8,127 | ~52% (187 fixture, 120/121 예제) | **YES — 완전성 필요** |
 | semantic | 46,203 | 2,716 | rung-2 subset(bounded body check만) = **6%** | **YES — 최대 벽** |
 | codegen | 107,123 | 4,821 | rung-0..20, **gen2==gen3 self-host** | subset 자기부트 완료 |
 | mir_lower | — | — | fact-only 86 PASS / 0 gap (rung-0b CFG subset) | 부분 |
@@ -150,7 +150,7 @@ generic 바인딩 — 이 언어를 이 언어답게 만드는 검사 전부. **
 
 ### 3.4 parser 완전성 (52% → 100% on 자기 소스)
 
-parser는 이미 120/121 예제·186 fixture byte-equal. 남은 48% LOC = 자기 소스가
+parser는 이미 120/121 예제·187 fixture byte-equal. 남은 48% LOC = 자기 소스가
 쓰는 구문 중 아직 self-parser가 못 읽는 것. §3.1 완전성 하니스가 정확한 목록을
 준다. 이건 semantic보다 훨씬 작은 잔여(구문 추가는 mechanical, semantic 검사는
 설계).
@@ -163,7 +163,7 @@ parser는 이미 120/121 예제·186 fixture byte-equal. 남은 48% LOC = 자기
 
 | 옵션 | 내용 | 비용 | 상태 |
 |---|---|---|---|
-| **M1 선언** | "코드젠이 self-host한다(gen2==gen3)"를 방어 가능한 self-hosting 마일스�τον으로 받고, 레버리지를 thesis(던전크롤러)로 | 이미 달성. 문서화·홍보만 | ✅ 지금 가능 |
+| **M1 선언** | "코드젠이 self-host한다(gen2==gen3)"를 방어 가능한 self-hosting 마일스톤으로 받고, 레버리지를 thesis(던전크롤러)로 | 이미 달성. 문서화·홍보만 | ✅ 지금 가능 |
 | **M2 완주** | 전체 컴파일러(semantic 46k LOC 포팅 + parser 완전성 + typed-AST 교체)를 Pergyra로, 전체 소스 B==C | 수개월(semantic dominant) | ~6.57% |
 
 **로드맵 자신의 입장(docs/self_hosted/01 Stage 5):** "이 종착지 도달은 substrate
@@ -175,7 +175,7 @@ parser는 이미 120/121 예제·186 fixture byte-equal. 남은 48% LOC = 자기
 당신의 killer usecase(안전한 new Flash / 던전크롤러)는 WASM+미디어+서명로더가
 남았지 semantic self-host가 남은 게 아니다.
 
-**권고(제 판단, BDFL이 뒤집을 수 있음):** **M1을 self-hosting 마일스�τον으로
+**권고(제 판단, BDFL이 뒤집을 수 있음):** **M1을 self-hosting 마일스톤으로
 선언하고, 레버리지를 thesis로 돌려라.** 근거 3층:
 1. M1은 진짜다(gen2==gen3, 22/22 컴포넌트). "코드젠이 자기를 컴파일한다"는
    정직한 방어 가능 주장이고, 웹사이트 헤드라인으로도 충분하다.
@@ -253,9 +253,9 @@ budget wall-time과의 상호작용(spawn된 자식도 wall budget에 계상?). 
 
 ## 6. M1 선언 경로 (분기에서 M1 택할 시)
 
-M2를 미루고 M1을 self-hosting 마일스�τον으로 받기로 하면:
+M2를 미루고 M1을 self-hosting 마일스톤으로 받기로 하면:
 1. PROGRESS.md에 "codegen self-host fixed-point 달성(gen2==gen3)"을 headline
-   마일스�τον으로 승격(현재 % 원장에 묻혀 있음).
+   마일스톤으로 승격(현재 % 원장에 묻혀 있음).
 2. 정직 경계 명문화: "**코드젠**이 self-host한다. 전체 컴파일러는 아니다
    (semantic 6%)." — 오버클레임 방지(marketing drift 메모리).
 3. 웹사이트/발표에서 쓸 방어 가능 문장: "The Pergyra code generator compiles

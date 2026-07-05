@@ -84,14 +84,14 @@ self-semantic 각각에 `--check <file>` 모드(pass/fail + 실패 사유) 추�
 
 **착지된 M2 ledger baseline(2026-07-05):** `self-host-completeness-smoke`가
 production self-host source 147개를 측정한다. locked minima:
-`source_min=147`, `lexer_pass_min=147`, `parser_pass_min=43`,
+`source_min=147`, `lexer_pass_min=147`, `parser_pass_min=147`,
 `semantic_pass_min=134`, `codegen_pass_min=23`,
-`lex_parse_pass_min=43`, `lex_parse_semantic_pass_min=37`,
-`full_pipeline_pass_min=1`. 세 pipeline 수치는 committed baseline 파일 목록과 함께
+`lex_parse_pass_min=147`, `lex_parse_semantic_pass_min=134`,
+`full_pipeline_pass_min=23`. 세 pipeline 수치는 committed baseline 파일 목록과 함께
 잠긴다. 이 숫자는 낮출 수 없고, parser나 semantic/codegen rung이 열릴 때만
 증가한다.
 
-주의: `full_pipeline_pass_min=1`은 아직 self-parser AST가 codegen으로 들어가는
+주의: `full_pipeline_pass_min=23`은 아직 self-parser AST가 codegen으로 들어가는
 완전 pipeline이 아니다. 현재 codegen stage check는 `pgy --ast`로 얻은 C-oracle AST
 텍스트를 self-host codegen에 넣는다. 이 수치는 stage별 통과 파일의 교집합을
 정직하게 보여주는 계기판이며, DRV/parser flip 이후 별도 수치로 승격해야 한다.
@@ -199,7 +199,7 @@ tools/·lsp/·path-harness의 정당한 텍스트 소유까지 core debt로 세�
 ## 4. Parser 완전성 (실측: 생각보다 완성됨 — 잔여 3종)
 
 **정정(Agent 실측):** self-parser는 LOC로 52%지만 **기능 커버리지는 훨씬 높다.**
-30 owner 파일, 120/121 예제·186 fixture byte-equal(1 skip은 secure_slots C-oracle
+30 owner 파일, 120/121 예제·187 fixture byte-equal(1 skip은 secure_slots C-oracle
 graceful, parser 실패 아님, self-parser exit 0/drift 0). **이미 처리**: generics
 (중첩 `func<T,U>`/`impl T`/`any T`) · lambdas(`(p)=>body`) · Option destructure
 (`if let Some`) · match(case/default) · array literal · postfix `?` try · closures.

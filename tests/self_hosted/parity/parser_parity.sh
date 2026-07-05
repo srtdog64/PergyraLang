@@ -117,8 +117,8 @@ read_parser_fixture_manifest() {
         SOURCE_PAIRS+=("$line")
     done <"$PARSER_FIXTURE_MANIFEST_FILE"
 
-    if [[ "${#SOURCE_PAIRS[@]}" -ne 186 ]]; then
-        echo "[self-host-parity:parser] fixture manifest count drifted: ${#SOURCE_PAIRS[@]} != 186" >&2
+    if [[ "${#SOURCE_PAIRS[@]}" -ne 187 ]]; then
+        echo "[self-host-parity:parser] fixture manifest count drifted: ${#SOURCE_PAIRS[@]} != 187" >&2
         exit 1
     fi
 }

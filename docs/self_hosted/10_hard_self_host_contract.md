@@ -164,6 +164,12 @@ The Makefile keeps the fast and heavy paths separate:
   codegen stage still consumes C-oracle AST text from `pgy --ast`; the
   `full_pipeline` number is therefore a stage-check intersection, not a claim
   that self-parser AST already feeds codegen end to end.
+- For focused local validation, `PGY_SELFHOST_COMPLETENESS_STAGES` may name one
+  or more stages such as `parser` or `semantic,codegen`. Focused mode compiles
+  and checks only those stage owners and enforces only their stage minima. It
+  does not update or prove the cumulative pipeline identity ratchet; the
+  unfiltered completeness smoke remains the CI/load-bearing proof. Makefile and
+  platform CI step lists must not set this variable directly.
 - `self-host-preparation-test-smoke` is the development/CI wrapper that runs
   both.
 

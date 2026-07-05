@@ -71,7 +71,7 @@
   검증**: Set<Int>/Set<String>/dedup/empty + backend-compare fixture
   `set_literal_basic`(BDFL 병행 작성, `3/true/false/0/2/true` 양 leg 일치).
   무회귀: map/array 리터럴 불변, self-host parity 전 게이트 green
-  (ast-read-surface/lexer/parser 186/codegen 48/mir-json 9).
+  (ast-read-surface/lexer/parser 187/codegen 48/mir-json 9).
 - **증분 2 — 다형 시퀀스 `[...]`→Array/List/Queue: 완료** (커밋 `f9a96a16`).
   type-directed: 바인딩 어노테이션이 concrete 생성자 결정. semantic은
   `SemanticContext.expected_collection_type`(let checker가 lambda 패턴처럼 전파)

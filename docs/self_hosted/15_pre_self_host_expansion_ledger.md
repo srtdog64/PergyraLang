@@ -152,7 +152,7 @@ TestHarness delta, 2026-07-05: `lexer_parity.sh` no longer owns the seven-row
 runner consumes those rows before invoking C/LLVM lexer parity and live
 `pgy --tokens` drift checks.
 
-TestHarness delta, 2026-07-05: `parser_parity.sh` no longer owns the 186-row
+TestHarness delta, 2026-07-05: `parser_parity.sh` no longer owns the 187-row
 `SOURCE_PAIRS` source/fixture inventory. The compiled parser owner emits
 `--fixture-manifest` rows from `fixture_manifest_owner.pgy`, and the shell
 runner consumes those rows before invoking C/LLVM parser parity and live

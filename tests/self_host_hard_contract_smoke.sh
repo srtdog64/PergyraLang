@@ -128,6 +128,20 @@ require_text "tests/self_hosted/parity/completeness_ledger.sh" \
     "pipeline identity regressed"
 require_text "tests/self_hosted/parity/completeness_ledger.sh" \
     "lex_parse_semantic"
+require_text "tests/self_hosted/parity/completeness_ledger.sh" \
+    "PGY_SELFHOST_COMPLETENESS_STAGES"
+require_text "tests/self_hosted/parity/completeness_ledger.sh" \
+    "focused ledger ok"
+require_text "docs/self_hosted/10_hard_self_host_contract.md" \
+    "platform CI step lists must not set this variable directly."
+for rel in \
+    "Makefile" \
+    "scripts/ci_linux_steps.sh" \
+    "scripts/ci_windows_steps.sh" \
+    "scripts/ci_macos_steps.sh"; do
+    require_file "$rel"
+    forbid_text "$rel" "PGY_SELFHOST_COMPLETENESS_STAGES"
+done
 
 active_stages=(lexer parser semantic codegen)
 for stage in "${active_stages[@]}"; do

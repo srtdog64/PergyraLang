@@ -1,0 +1,11 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: json : String = "{\"kind\":\"demo\",\"body\":{\"ok\":true}}"
+        Let: quoted : String = "say \"hi\""
+        Log(json)
+        Log(quoted)
+

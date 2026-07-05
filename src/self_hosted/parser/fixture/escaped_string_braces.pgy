@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let json: String = "{\"kind\":\"demo\",\"body\":{\"ok\":true}}";
+    let quoted: String = "say \"hi\"";
+    Log(json);
+    Log(quoted);
+}

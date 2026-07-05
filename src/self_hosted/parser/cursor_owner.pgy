@@ -159,7 +159,17 @@ func ReadNumber(content: String, start: Int, inout cursor_out: Array<Int>) -> St
 func ReadString(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
     let n: Int = StringLength(content);
     let i: Int = start + 1;
-    while i < n && ParserCharAt(content, i) != "\"" {
+    while i < n {
+        if ParserCharAt(content, i) == "\\" {
+            i = i + 1;
+            if i < n {
+                i = i + 1;
+            }
+            continue;
+        }
+        if ParserCharAt(content, i) == "\"" {
+            break;
+        }
         i = i + 1;
     }
     if i < n {
