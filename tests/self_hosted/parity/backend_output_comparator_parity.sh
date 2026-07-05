@@ -81,6 +81,10 @@ cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" \
     "$PERGYRA_TOOL_BUILD_DIR/../../compiler/test_harness_air_graph_paths_owner.pgy"
 cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" \
     "$PERGYRA_TOOL_BUILD_DIR/../../compiler/test_harness_driver_paths_owner.pgy"
+cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" \
+    "$PERGYRA_TOOL_BUILD_DIR/../../compiler/test_harness_codegen_paths_owner.pgy"
+cp "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" \
+    "$PERGYRA_TOOL_BUILD_DIR/../../compiler/completeness_ledger_owner.pgy"
 cp "$ROOT_DIR/src/self_hosted/compiler/subprocess_runner_owner.pgy" \
     "$PERGYRA_TOOL_BUILD_DIR/../../compiler/subprocess_runner_owner.pgy"
 PERGYRA_TOOL_INPUT="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"

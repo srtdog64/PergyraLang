@@ -62,34 +62,52 @@ if ! command -v "$CC" >/dev/null 2>&1; then
     exit 0
 fi
 
-TOOL_SOURCE="$ROOT_DIR/src/self_hosted/codegen/main.pgy"
-PARSER_SOURCE="$ROOT_DIR/src/self_hosted/parser/main.pgy"
-COMPARATOR_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy"
-FIXTURE_DIR="$ROOT_DIR/src/self_hosted/codegen/fixture"
-EXPECTED_DIR="$ROOT_DIR/src/self_hosted/codegen/expected"
 # Build artifacts live under a repo-relative dir. The Pergyra codegen tool is a
 # native binary that resolves its AST-path argument relative to cwd, so it is
 # always invoked from ROOT_DIR with a repo-relative path (mirrors
 # parser_parity.sh). gcc/run paths use the absolute form.
 REL_BUILD=".tmp/self_hosted/codegen"
 ABS_BUILD="$ROOT_DIR/$REL_BUILD"
+HARNESS_PATHS_FILE="$ABS_BUILD/codegen_harness_paths.txt"
 CODEGEN_FIXTURE_MANIFEST_FILE="$ABS_BUILD/codegen_fixture_manifest.txt"
 PARSER_BIN="$ABS_BUILD/parser_ast_producer.exe"
 
-if [[ ! -f "$TOOL_SOURCE" ]]; then
-    echo "[self-host-parity:codegen] missing Pergyra tool: $TOOL_SOURCE" >&2
-    exit 1
-fi
-if [[ ! -f "$PARSER_SOURCE" ]]; then
-    echo "[self-host-parity:codegen] missing Pergyra parser: $PARSER_SOURCE" >&2
-    exit 1
-fi
-if [[ ! -f "$COMPARATOR_SOURCE" ]]; then
-    echo "[self-host-parity:codegen] missing Pergyra comparator: $COMPARATOR_SOURCE" >&2
+mkdir -p "$ABS_BUILD"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:codegen" \
+    "$ABS_BUILD" \
+    "codegen-parity-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 5 ]]; then
+    echo "[self-host-parity:codegen] TestHarness manifest expected 5 codegen paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
-mkdir -p "$ABS_BUILD"
+TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
+PARSER_SOURCE="$ROOT_DIR/${harness_paths[1]}"
+COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[2]}"
+FIXTURE_DIR="$ROOT_DIR/${harness_paths[3]}"
+EXPECTED_DIR="$ROOT_DIR/${harness_paths[4]}"
+
+for path in "$TOOL_SOURCE" "$PARSER_SOURCE" "$COMPARATOR_SOURCE"; do
+    if [[ ! -f "$path" ]]; then
+        echo "[self-host-parity:codegen] missing TestHarness input: $path" >&2
+        exit 1
+    fi
+done
+for dir in "$FIXTURE_DIR" "$EXPECTED_DIR"; do
+    if [[ ! -d "$dir" ]]; then
+        echo "[self-host-parity:codegen] missing TestHarness directory: $dir" >&2
+        exit 1
+    fi
+done
+
 COMPARATOR_BIN="$ABS_BUILD/backend_output_comparator.exe"
 
 run_native_capture() {

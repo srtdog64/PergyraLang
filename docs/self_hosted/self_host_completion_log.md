@@ -25,6 +25,19 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Codegen parity paths consume dedicated TestHarness owner
+
+- Added `test_harness_codegen_paths_owner.pgy` for the `codegen-parity-paths`
+  suite so the codegen tool, parser AST producer, backend comparator, fixture
+  directory, and expected-output directory do not grow the generic tool-path
+  owner past the 600-line cap.
+- Repointed `codegen_parity.sh` so shell reads those paths from
+  `test_harness_manifest.pgy`; the compiled codegen run owner remains the
+  source of fixture/expected row inventory through `--fixture-manifest`.
+- Tightened the component contract so direct codegen/parser/comparator path
+  constants and fixture directory constants cannot return to the codegen parity
+  runner.
+
 ## 2026-07-06 - Driver parity tool paths consume TestHarness owner
 
 - Added `test_harness_driver_paths_owner.pgy` for DRV-0/DRV-1 driver, parser,

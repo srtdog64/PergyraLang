@@ -1,0 +1,55 @@
+// Self-host codegen parity path owner.
+//
+// Keeps the codegen parity runner's executable/input paths behind TestHarness
+// without growing the generic tool path owner past the source-size cap.
+
+func CompilerHarnessCodegenParitySuiteName() -> String {
+    return "codegen-parity-paths";
+}
+
+func CompilerHarnessCodegenToolSourcePath() -> String {
+    return "src/self_hosted/codegen/main.pgy";
+}
+
+func CompilerHarnessCodegenParserSourcePath() -> String {
+    return "src/self_hosted/parser/main.pgy";
+}
+
+func CompilerHarnessCodegenComparatorSourcePath() -> String {
+    return "src/self_hosted/tools/backend_output_comparator/main.pgy";
+}
+
+func CompilerHarnessCodegenFixtureDirPath() -> String {
+    return "src/self_hosted/codegen/fixture";
+}
+
+func CompilerHarnessCodegenExpectedDirPath() -> String {
+    return "src/self_hosted/codegen/expected";
+}
+
+func CompilerHarnessCodegenPathCount() -> Int {
+    return 5;
+}
+
+func CompilerHarnessCodegenPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessCodegenToolSourcePath(); }
+    if index == 1 { return CompilerHarnessCodegenParserSourcePath(); }
+    if index == 2 { return CompilerHarnessCodegenComparatorSourcePath(); }
+    if index == 3 { return CompilerHarnessCodegenFixtureDirPath(); }
+    if index == 4 { return CompilerHarnessCodegenExpectedDirPath(); }
+    return "";
+}
+
+func CompilerHarnessCodegenParityReady() -> Bool {
+    if CompilerHarnessCodegenPathCount() != 5 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessCodegenPathCount() {
+        if CompilerHarnessCodegenPathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessCodegenParitySuiteName() != "";
+}

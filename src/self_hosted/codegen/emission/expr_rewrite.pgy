@@ -315,6 +315,15 @@ func RewriteCallArgForExpectedType(part: String, expected_type: String, env: Str
     if StringLength(expected_type) > 0 && LookupKindType(env, expected_type, "s") == "struct" {
         return RewriteStructLiteralCallArg(part, expected_type, env);
     }
+    if StringLength(expected_type) > 0 && LookupKindType(env, expected_type, "enum") == "payload_free" {
+        let p: String = StringTrim(part);
+        if IsIdentifier(p) {
+            let enum_key: String = Concat(expected_type, Concat(".", p));
+            if StringLength(LookupKindType(env, enum_key, "e")) > 0 {
+                return CompilerSymbolCEnumVariantName(expected_type, p);
+            }
+        }
+    }
     return RewriteExpr(part, env);
 }
 
