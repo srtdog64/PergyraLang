@@ -9,5 +9,5 @@ import "report_owner.pgy";
 import "run_owner.pgy";
 
 func Main() -> Void {
-    RunDiagnosticCatalogCheck();
+    RunDiagnosticCatalogCheckFromArgs(Args());
 }

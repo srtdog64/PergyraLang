@@ -169,6 +169,7 @@ SELF_SOURCES=(
     "src/self_hosted/tools/backend_output_comparator/main.pgy"
     "src/self_hosted/tools/diagnostic_catalog_checker/main.pgy"
     "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy"
+    "src/self_hosted/tools/diagnostic_catalog_checker/run_owner.pgy"
     "src/self_hosted/tools/diagnostic_catalog_checker/scan_owner.pgy"
     "src/self_hosted/tools/doc_link_checker/main.pgy"
     "src/self_hosted/tools/examples_inventory_checker/main.pgy"

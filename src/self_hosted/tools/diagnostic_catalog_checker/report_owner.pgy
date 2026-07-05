@@ -49,9 +49,22 @@ func FindingsJsonFromFacts(facts: String) -> String {
     return findings;
 }
 
-func InputErrorJson(path: String) -> Option<String> {
+func DiagnosticCatalogSourceJson(code_owner: String, docs_owner: String) -> String {
     let parts: Array<String> = [
-        "{\"schema\":\"pgy.selfhost.diagnostic-catalog.v1\",\"ok\":false,\"source\":{\"code_owner\":\"src/semantic/diag_codes.h\",\"docs_owner\":\"docs/72_diagnostic_codes.md\"},\"counts\":{\"codes\":0,\"documented\":0,\"missing\":0,\"duplicates\":0,\"orphans\":0},\"findings\":[{\"kind\":\"input_error\",\"code\":",
+        "\"source\":{\"code_owner\":",
+        JsonStringLiteral(code_owner),
+        ",\"docs_owner\":",
+        JsonStringLiteral(docs_owner),
+        "}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func InputErrorJsonForOwners(path: String, code_owner: String, docs_owner: String) -> Option<String> {
+    let parts: Array<String> = [
+        "{\"schema\":\"pgy.selfhost.diagnostic-catalog.v1\",\"ok\":false,",
+        DiagnosticCatalogSourceJson(code_owner, docs_owner),
+        ",\"counts\":{\"codes\":0,\"documented\":0,\"missing\":0,\"duplicates\":0,\"orphans\":0},\"findings\":[{\"kind\":\"input_error\",\"code\":",
         JsonStringLiteral(path),
         ",\"location\":",
         JsonStringLiteral(path),
@@ -60,13 +73,26 @@ func InputErrorJson(path: String) -> Option<String> {
     return Some(StringJoin(parts, ""));
 }
 
-func DiagnosticCatalogJson(codes: Int, documented: Int, missing: Int, duplicates: Int, orphans: Int, findings: String) -> String {
+func InputErrorJson(path: String) -> Option<String> {
+    return InputErrorJsonForOwners(path, "src/semantic/diag_codes.h", "docs/72_diagnostic_codes.md");
+}
+
+func DiagnosticCatalogJsonForOwners(
+    codes: Int,
+    documented: Int,
+    missing: Int,
+    duplicates: Int,
+    orphans: Int,
+    findings: String,
+    code_owner: String,
+    docs_owner: String
+) -> String {
     let ok_text: String = "true";
     if missing > 0 || duplicates > 0 || orphans > 0 {
         ok_text = "false";
     }
     let prefix: String = "{\"schema\":\"pgy.selfhost.diagnostic-catalog.v1\",\"ok\":";
-    let source_prefix: String = ",\"source\":{\"code_owner\":\"src/semantic/diag_codes.h\",\"docs_owner\":\"docs/72_diagnostic_codes.md\"},\"counts\":{\"codes\":";
+    let source_prefix: String = Concat(Concat(",", DiagnosticCatalogSourceJson(code_owner, docs_owner)), ",\"counts\":{\"codes\":");
     let mid_doc: String = ",\"documented\":";
     let mid_missing: String = ",\"missing\":";
     let mid_dup: String = ",\"duplicates\":";
@@ -80,4 +106,17 @@ func DiagnosticCatalogJson(codes: Int, documented: Int, missing: Int, duplicates
     let s4: String = Concat(Concat(s3, mid_dup), ToString(duplicates));
     let s5: String = Concat(Concat(s4, mid_orphan), ToString(orphans));
     return Concat(Concat(Concat(s5, findings_prefix), findings), suffix);
+}
+
+func DiagnosticCatalogJson(codes: Int, documented: Int, missing: Int, duplicates: Int, orphans: Int, findings: String) -> String {
+    return DiagnosticCatalogJsonForOwners(
+        codes,
+        documented,
+        missing,
+        duplicates,
+        orphans,
+        findings,
+        "src/semantic/diag_codes.h",
+        "docs/72_diagnostic_codes.md"
+    );
 }

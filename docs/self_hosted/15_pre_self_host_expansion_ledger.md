@@ -83,6 +83,13 @@ checker source, expected clean JSON, and `docs/INDEX.md` input path through the
 input path through `Args()[0]` on both the C and LLVM parity legs, so the path
 fact reaches the tool boundary instead of staying a shell constant.
 
+TestHarness delta, 2026-07-05: `diagnostic_catalog_checker_parity.sh` now gets
+the checker source, clean/missing expected JSON paths, diagnostic code owner,
+docs owner, and C oracle path through the `diagnostic-catalog-paths` manifest
+suite. The compiled checker receives the code/docs owner paths through
+`Args()`, so the diagnostic catalog input boundary consumes the same Pergyra
+path facts that the parity runner executes.
+
 TestHarness delta, 2026-07-05: concrete tool/input path suites now live in
 `test_harness_tool_paths_owner.pgy`. `examples_inventory_checker_parity.sh`
 gets its checker source and expected clean JSON through the

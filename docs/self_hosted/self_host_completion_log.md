@@ -3719,3 +3719,20 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   verdicts.
 - No executable cases were run for this slice; validation was limited to static
   owner/ratchet inspection under the validation isolation policy.
+
+### 2026-07-05 -- Diagnostic catalog parity consumes TestHarness path owner
+
+- Added the `diagnostic-catalog-paths` suite to the self-host TestHarness tool
+  path owner. The suite owns the checker source, clean/missing expected JSON
+  artifacts, diagnostic code owner, docs owner, and C oracle path.
+- Repointed `diagnostic_catalog_checker_parity.sh` so those paths come from the
+  compiled Pergyra manifest instead of shell constants.
+- Extended the diagnostic catalog run boundary so code/docs owner paths can be
+  passed through `Args()`. The no-arg defaults remain the same, but hard parity
+  now proves the input boundary consumes owner-supplied paths.
+- Tightened `self_hosted_component_contract_smoke.sh` so the manifest suite,
+  path-arg consumption, and source/expected/oracle shell-constant removal cannot
+  regress.
+- Promoted `diagnostic_catalog_checker/run_owner.pgy` into the real-source
+  semantic selfcheck manifest, raising the accepted self-host owner/source count
+  to 130.

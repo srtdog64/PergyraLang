@@ -1433,8 +1433,23 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/l
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/json_fact_table.pgy"'
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" "JsonStringLiteral(path)"
+require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" "DiagnosticCatalogJsonForOwners"
+require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" "InputErrorJsonForOwners"
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/tools/diagnostic_catalog_checker/run_owner.pgy"'
+require_text "src/self_hosted/tools/diagnostic_catalog_checker/run_owner.pgy" 'import "scan_owner.pgy";'
+require_text "src/self_hosted/tools/diagnostic_catalog_checker/run_owner.pgy" 'import "report_owner.pgy";'
+require_text "src/self_hosted/tools/diagnostic_catalog_checker/run_owner.pgy" "func RunDiagnosticCatalogCheckFromArgs"
+require_text "src/self_hosted/tools/diagnostic_catalog_checker/run_owner.pgy" "DiagnosticCatalogHeaderPathFromArgs(args)"
+require_text "src/self_hosted/tools/diagnostic_catalog_checker/run_owner.pgy" "DiagnosticCatalogDocsPathFromArgs(args)"
+require_text "src/self_hosted/tools/diagnostic_catalog_checker/main.pgy" "RunDiagnosticCatalogCheckFromArgs(Args())"
 require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "pgy_selfhost_compare_expected_text_artifact_with_owner"
+require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" '"diagnostic-catalog-paths"'
+require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" '"$HEADER_REL" "$DOCS_REL"'
 require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" '"run_output"'
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'C_ORACLE="$ROOT_DIR/tests/diagnostic_registry_smoke.sh"'
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'PERGYRA_TOOL_SOURCE_DIR="$ROOT_DIR/src/self_hosted/tools/diagnostic_catalog_checker"'
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/diagnostic_catalog_checker/expected/clean.json"'
 reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"'
 reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'EXPECTED_MISSING_JSON="$(cat "$EXPECTED_MISSING_JSON_FILE")"'
 reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'EXPECTED_INPUT_ERROR_JSON="$(cat "$EXPECTED_INPUT_ERROR_JSON_FILE")"'
@@ -1718,6 +1733,16 @@ require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func 
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventoryExpectedJsonPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventoryPathAt"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventoryReady"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDiagnosticCatalogSuiteName"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDiagnosticCatalogToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDiagnosticCatalogExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDiagnosticCatalogMissingCodeJsonPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDiagnosticCatalogMissingInputJsonPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDiagnosticCatalogCodeOwnerPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDiagnosticCatalogDocsOwnerPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDiagnosticCatalogCOraclePath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDiagnosticCatalogPathAt"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDiagnosticCatalogReady"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceSuiteName"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceExpectedJsonPath"
@@ -1763,6 +1788,7 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessS
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessRuntimeBoundaryReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessDocLinkCheckerReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessExamplesInventoryReady()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessDiagnosticCatalogReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessAstReadSurfaceReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessStdlibDispatchInventoryReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessProductionCSizeReady()"
@@ -1789,6 +1815,9 @@ require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarne
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitExamplesInventoryPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessExamplesInventoryPathAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessExamplesInventorySuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitDiagnosticCatalogPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessDiagnosticCatalogPathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessDiagnosticCatalogSuiteName()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitAstReadSurfacePaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessAstReadSurfacePathAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessAstReadSurfaceSuiteName()"
@@ -2096,8 +2125,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 129 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 129"
+[[ "$selfcheck_count" -eq 130 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 130"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'

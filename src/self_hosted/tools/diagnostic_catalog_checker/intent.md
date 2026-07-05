@@ -39,8 +39,11 @@ that the docs contain no orphan codes.
   for `PGY_CODE_*` / `PGY_CAUSE_*` / `PGY_FIX_*` literals).
 - **docs_owner**: `docs/72_diagnostic_codes.md` (text, UTF-8, Markdown).
 
-Both paths are passed relative to the repository root. The checker does not
-load compiler internals -- it reads these two files as text.
+Both paths are passed relative to the repository root. The default no-arg run
+uses the two paths above; parity runs pass them through `Args()` from the
+compiled TestHarness manifest so the shell runner does not own the input path
+facts. The checker does not load compiler internals -- it reads these two files
+as text.
 
 ## Output Contract
 

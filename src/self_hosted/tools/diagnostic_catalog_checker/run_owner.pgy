@@ -3,15 +3,30 @@
 // Input boundary and exit policy owner. This is the only layer that touches
 // filesystem paths or decides process success/failure for the catalog checker.
 
-func RunDiagnosticCatalogCheck() -> Void {
-    let header_path: String = "src/semantic/diag_codes.h";
-    let docs_path: String = "docs/72_diagnostic_codes.md";
+import "scan_owner.pgy";
+import "report_owner.pgy";
+
+func DiagnosticCatalogHeaderPathFromArgs(args: Array<String>) -> String {
+    if ArrayLength(args) > 0 {
+        return args[0];
+    }
+    return "src/semantic/diag_codes.h";
+}
+
+func DiagnosticCatalogDocsPathFromArgs(args: Array<String>) -> String {
+    if ArrayLength(args) > 1 {
+        return args[1];
+    }
+    return "docs/72_diagnostic_codes.md";
+}
+
+func RunDiagnosticCatalogCheckWithPaths(header_path: String, docs_path: String) -> Void {
     if !FileExists(header_path) {
-        Log(UnwrapOption(InputErrorJson(header_path)));
+        Log(UnwrapOption(InputErrorJsonForOwners(header_path, header_path, docs_path)));
         Exit(1);
     }
     if !FileExists(docs_path) {
-        Log(UnwrapOption(InputErrorJson(docs_path)));
+        Log(UnwrapOption(InputErrorJsonForOwners(docs_path, header_path, docs_path)));
         Exit(1);
     }
     let header: String = ReadFile(header_path);
@@ -23,8 +38,31 @@ func RunDiagnosticCatalogCheck() -> Void {
     let orphans: Int = CountOrphanDocs(docs, header);
     let finding_facts: String = BuildDiagnosticFindingFacts(header, docs);
     let findings: String = FindingsJsonFromFacts(finding_facts);
-    Log(DiagnosticCatalogJson(codes, documented, missing, duplicates, orphans, findings));
+    Log(DiagnosticCatalogJsonForOwners(
+        codes,
+        documented,
+        missing,
+        duplicates,
+        orphans,
+        findings,
+        header_path,
+        docs_path
+    ));
     if missing > 0 || duplicates > 0 || orphans > 0 {
         Exit(1);
     }
+}
+
+func RunDiagnosticCatalogCheckFromArgs(args: Array<String>) -> Void {
+    RunDiagnosticCatalogCheckWithPaths(
+        DiagnosticCatalogHeaderPathFromArgs(args),
+        DiagnosticCatalogDocsPathFromArgs(args)
+    );
+}
+
+func RunDiagnosticCatalogCheck() -> Void {
+    RunDiagnosticCatalogCheckWithPaths(
+        "src/semantic/diag_codes.h",
+        "docs/72_diagnostic_codes.md"
+    );
 }

@@ -29,14 +29,36 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
-C_ORACLE="$ROOT_DIR/tests/diagnostic_registry_smoke.sh"
-PERGYRA_TOOL_SOURCE_DIR="$ROOT_DIR/src/self_hosted/tools/diagnostic_catalog_checker"
-PERGYRA_TOOL_SOURCE="$PERGYRA_TOOL_SOURCE_DIR/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/diagnostic_catalog_checker}"
+HARNESS_PATHS_FILE="$PERGYRA_TOOL_BUILD_DIR/diagnostic_catalog_harness_paths.txt"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
-EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/diagnostic_catalog_checker/expected/clean.json"
-EXPECTED_MISSING_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/diagnostic_catalog_checker/expected/missing_code.json"
-EXPECTED_INPUT_ERROR_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/diagnostic_catalog_checker/expected/missing_input.json"
+mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:diagnostic-catalog" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "diagnostic-catalog-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 7 ]]; then
+    echo "[self-host-parity:diagnostic-catalog] TestHarness manifest expected 7 diagnostic-catalog paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
+PERGYRA_TOOL_SOURCE_DIR="$(dirname "$PERGYRA_TOOL_SOURCE")"
+EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
+EXPECTED_MISSING_JSON_FILE="$ROOT_DIR/${harness_paths[2]}"
+EXPECTED_INPUT_ERROR_JSON_FILE="$ROOT_DIR/${harness_paths[3]}"
+HEADER_REL="${harness_paths[4]}"
+DOCS_REL="${harness_paths[5]}"
+C_ORACLE="$ROOT_DIR/${harness_paths[6]}"
+HEADER_PATH="$ROOT_DIR/$HEADER_REL"
+DOCS_PATH="$ROOT_DIR/$DOCS_REL"
 
 if [[ ! -x "$C_ORACLE" ]]; then
     echo "[self-host-parity:diagnostic-catalog] missing C oracle: $C_ORACLE" >&2
@@ -58,12 +80,31 @@ if [[ ! -f "$EXPECTED_INPUT_ERROR_JSON_FILE" ]]; then
     echo "[self-host-parity:diagnostic-catalog] missing input-error expected JSON: $EXPECTED_INPUT_ERROR_JSON_FILE" >&2
     exit 1
 fi
+if [[ ! -f "$HEADER_PATH" ]]; then
+    echo "[self-host-parity:diagnostic-catalog] missing code owner: $HEADER_PATH" >&2
+    exit 1
+fi
+if [[ ! -f "$DOCS_PATH" ]]; then
+    echo "[self-host-parity:diagnostic-catalog] missing docs owner: $DOCS_PATH" >&2
+    exit 1
+fi
 
-mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$PERGYRA_TOOL_SOURCE_DIR"/*.pgy "$PERGYRA_TOOL_BUILD_DIR"/
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR/../../lib"
 cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/../../lib/"
 PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
+
+CLEAN_BIN="$PERGYRA_TOOL_BUILD_DIR/diagnostic_catalog_c.exe"
+CLEAN_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/diagnostic_catalog_c.compile.log"
+if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" --backend=c \
+    -o "$(pgy_path_for_compiler "$PGY" "$CLEAN_BIN")" >"$CLEAN_COMPILE_LOG" 2>&1); then
+    echo "[self-host-parity:diagnostic-catalog] C backend compile failed" >&2
+    cat "$CLEAN_COMPILE_LOG" >&2
+    exit 1
+fi
+if ! pgy_require_runnable_binary_here "self-host-parity:diagnostic-catalog" "$CLEAN_BIN"; then
+    exit 1
+fi
 
 set +e
 (cd "$ROOT_DIR" && bash "$C_ORACLE") >/dev/null 2>&1
@@ -71,7 +112,7 @@ C_RC=$?
 set -e
 
 set +e
-(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" --run) >/dev/null 2>&1
+(cd "$ROOT_DIR" && "$CLEAN_BIN" "$HEADER_REL" "$DOCS_REL") >/dev/null 2>&1
 P_RC=$?
 set -e
 
@@ -82,7 +123,7 @@ fi
 
 # Capture Pergyra stdout for header check and minimal count parity (rung 2).
 set +e
-PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>/dev/null)"
+PERGYRA_OUT="$(cd "$ROOT_DIR" && "$CLEAN_BIN" "$HEADER_REL" "$DOCS_REL" 2>/dev/null)"
 set -e
 if ! grep -Fq 'pgy.selfhost.diagnostic-catalog.v1' <<<"$PERGYRA_OUT"; then
     echo "[self-host-parity:diagnostic-catalog] schema header missing from Pergyra stdout" >&2
@@ -92,7 +133,7 @@ fi
 # Rung 2 minimal - count parity against shell grep ground truth.
 # The C/shell side remains the oracle; shell grep is a drift detector for the
 # macro count while the Pergyra side is still a candidate implementation.
-SHELL_CODES="$(grep -c '#define PGY_CODE_' "$ROOT_DIR/src/semantic/diag_codes.h" || true)"
+SHELL_CODES="$(grep -c '#define PGY_CODE_' "$HEADER_PATH" || true)"
 if [[ -z "$SHELL_CODES" || "$SHELL_CODES" -eq 0 ]]; then
     echo "[self-host-parity:diagnostic-catalog] shell grep ground truth empty for diag_codes.h" >&2
     exit 1
@@ -104,7 +145,7 @@ if ! grep -Fq "\"codes\":${SHELL_CODES}," <<<"$PERGYRA_OUT"; then
     exit 1
 fi
 
-SHELL_DOCUMENTED="$(grep -c '^#### `PGY_' "$ROOT_DIR/docs/72_diagnostic_codes.md" || true)"
+SHELL_DOCUMENTED="$(grep -c '^#### `PGY_' "$DOCS_PATH" || true)"
 if [[ -z "$SHELL_DOCUMENTED" || "$SHELL_DOCUMENTED" -eq 0 ]]; then
     echo "[self-host-parity:diagnostic-catalog] shell grep ground truth empty for docs catalog" >&2
     exit 1
@@ -123,8 +164,8 @@ if ! grep -Fq '"missing":0,' <<<"$PERGYRA_OUT"; then
 fi
 
 # duplicates parity - shell ground truth via sort -u on emitted literal strings.
-SHELL_DUP_TOTAL="$(grep -oE '"PGY_[A-Z0-9_]+"' "$ROOT_DIR/src/semantic/diag_codes.h" | grep -v '^"PGY_CAUSE_\|^"PGY_FIX_' | wc -l | tr -d ' ')"
-SHELL_DUP_UNIQUE="$(grep -oE '"PGY_[A-Z0-9_]+"' "$ROOT_DIR/src/semantic/diag_codes.h" | grep -v '^"PGY_CAUSE_\|^"PGY_FIX_' | sort -u | wc -l | tr -d ' ')"
+SHELL_DUP_TOTAL="$(grep -oE '"PGY_[A-Z0-9_]+"' "$HEADER_PATH" | grep -v '^"PGY_CAUSE_\|^"PGY_FIX_' | wc -l | tr -d ' ')"
+SHELL_DUP_UNIQUE="$(grep -oE '"PGY_[A-Z0-9_]+"' "$HEADER_PATH" | grep -v '^"PGY_CAUSE_\|^"PGY_FIX_' | sort -u | wc -l | tr -d ' ')"
 if [[ -z "$SHELL_DUP_TOTAL" || -z "$SHELL_DUP_UNIQUE" ]]; then
     echo "[self-host-parity:diagnostic-catalog] shell duplicates ground truth empty" >&2
     exit 1
@@ -140,11 +181,11 @@ fi
 SHELL_ORPHANS=0
 while IFS= read -r doc_code; do
     [[ -n "$doc_code" ]] || continue
-    if ! grep -Fq "\"${doc_code}\"" "$ROOT_DIR/src/semantic/diag_codes.h"; then
+    if ! grep -Fq "\"${doc_code}\"" "$HEADER_PATH"; then
         SHELL_ORPHANS=$((SHELL_ORPHANS + 1))
     fi
 done < <(
-    grep '^#### `PGY_' "$ROOT_DIR/docs/72_diagnostic_codes.md" \
+    grep '^#### `PGY_' "$DOCS_PATH" \
         | sed -E 's/^#### `([^`]+)`.*/\1/'
 )
 
@@ -173,14 +214,15 @@ cleanup_neg_root() {
 trap cleanup_neg_root EXIT
 mkdir -p "$NEG_ROOT/src/semantic" "$NEG_ROOT/docs"
 mkdir -p "$NEG_ROOT/.tmp"
-cp "$ROOT_DIR/src/semantic/diag_codes.h" "$NEG_ROOT/src/semantic/diag_codes.h"
-cp "$ROOT_DIR/docs/72_diagnostic_codes.md" "$NEG_ROOT/docs/72_diagnostic_codes.md"
-cat >> "$NEG_ROOT/src/semantic/diag_codes.h" <<'EOF'
+mkdir -p "$NEG_ROOT/$(dirname "$HEADER_REL")" "$NEG_ROOT/$(dirname "$DOCS_REL")"
+cp "$HEADER_PATH" "$NEG_ROOT/$HEADER_REL"
+cp "$DOCS_PATH" "$NEG_ROOT/$DOCS_REL"
+cat >> "$NEG_ROOT/$HEADER_REL" <<'EOF'
 #define PGY_CODE_FAKE_DRIFT_FOR_SELFHOST "PGY_FAKE_DRIFT_FOR_SELFHOST"
 EOF
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>&1)"
+NEG_OUT="$(cd "$NEG_ROOT" && "$CLEAN_BIN" "$HEADER_REL" "$DOCS_REL" 2>&1)"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then
@@ -205,10 +247,11 @@ cleanup_input_root() {
 trap 'cleanup_neg_root; cleanup_input_root' EXIT
 mkdir -p "$INPUT_ROOT/src/semantic" "$INPUT_ROOT/docs"
 mkdir -p "$INPUT_ROOT/.tmp"
-cp "$ROOT_DIR/docs/72_diagnostic_codes.md" "$INPUT_ROOT/docs/72_diagnostic_codes.md"
+mkdir -p "$INPUT_ROOT/$(dirname "$DOCS_REL")"
+cp "$DOCS_PATH" "$INPUT_ROOT/$DOCS_REL"
 
 set +e
-INPUT_OUT="$(cd "$INPUT_ROOT" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>&1)"
+INPUT_OUT="$(cd "$INPUT_ROOT" && "$CLEAN_BIN" "$HEADER_REL" "$DOCS_REL" 2>&1)"
 INPUT_RC=$?
 set -e
 if [[ "$INPUT_RC" -ne 1 ]]; then
@@ -226,5 +269,5 @@ pgy_selfhost_compare_expected_text_artifact_with_owner \
     "$INPUT_JSON" \
     "run_output"
 
-assert_llvm_leg "self-host-parity:diagnostic-catalog" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR"
+assert_llvm_leg "self-host-parity:diagnostic-catalog" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$HEADER_REL" "$DOCS_REL"
 echo "[self-host-parity:diagnostic-catalog] rung-1 exit-code + rung-2 count/json parity ok (c=$C_RC pergyra=$P_RC codes=$SHELL_CODES documented=$SHELL_DOCUMENTED missing=0 duplicates=$SHELL_DUPLICATES orphans=$SHELL_ORPHANS; missing-fixture rc=$NEG_RC input-fixture rc=$INPUT_RC)"
