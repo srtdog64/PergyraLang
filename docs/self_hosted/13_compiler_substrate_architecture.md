@@ -227,10 +227,10 @@ capability envelope before composing `ParseRootProgram(source)` with
 functions: `CompileSourceToAst`, `CompileAstToC`, and `CompileSourceToC`.
 `src/self_hosted/compiler/driver_rung0_main.pgy` is only the runnable artifact
 boundary for those facts. `tests/self_hosted/parity/driver_rung0_parity.sh`
-compares assembled AST text against `pgy --ast` and assembled emitted C against
-the current codegen oracle, so DRV-0 is a landed artifact rung. It deliberately
-does not own parser facts or codegen emission facts; those remain in their stage
-owners.
+compares assembled AST text against a separately built self-parser AST producer
+and assembled emitted C against the current codegen oracle, so DRV-0 is a
+landed artifact rung. It deliberately does not own parser facts or codegen
+emission facts; those remain in their stage owners.
 
 ## Codegen Architecture
 
@@ -241,7 +241,7 @@ Self-hosted codegen is a backend resource cluster:
 - `EmissionZone` owns emitted C.
 - `ProgramEmitter` is the participant that writes through `EmissionZone`.
 - `input/` owns AST path/read boundaries and the AST-text line inventory while
-  the rung still consumes `pgy --ast`.
+  the rung still consumes transitional parser AST text.
 - `run/` owns CLI-to-output orchestration.
 - `text/` owns text and expression scanning facts for the compatibility bridge.
 - `type_facts/` owns the type environment consumed by emitters.
@@ -338,7 +338,7 @@ The long-term codegen shape is resource-first:
 | type bindings | `TypeEnvZone` / `type_facts/` | expression, statement, return, log routing | emitters consume type facts and parameter-mode rows instead of re-inferring from source text |
 | symbol and mangle facts | `compiler/symbol_table_owner.pgy`; cross-backend owner still active beyond the self-host C consumer | C, LLVM, and self-hosted emission | emitters consume canonical spelling facts; no owner/member string concatenation in local emission |
 | self-host C ABI type spelling | `compiler/abi_layout_row_owner.pgy` for supported concrete rows, consumed by `abi_layout/abi_layout_owner.pgy` for self-host C subset; cross-backend native row projection still active | self-hosted C emission | signature, local, and field declarations consume canonical C ABI rows before user-struct lookup |
-| self-host typed AST-text bridge | `input/ast_text_inventory_owner.pgy` for raw `pgy --ast` lines, `CodegenAstTextNode`, indentation, parent edge, coarse kind, marker predicates, blank filtering, `[export]` normalization, declaration payload accessors, cursor expectations, and `CodegenTypedAstBridgeReady`; `input/ast_text_row_fact_owner.pgy` for `CodegenAstTextRowFactInput` plus function/return/role/nominal/enum-name/field/parameter/`Let` name, type, and mode rows; `input/ast_text_statement_owner.pgy` for statement-row facts; `typed_ast_node_skeleton.pgy` for the typed AST arena payload contract that will replace the bridge | self-hosted C emission today; parser/codegen cutover later | `program_emit`, declaration collectors, function signature emission, and statement body emission consume typed bridge nodes for program-level routing, prepasses, marker rows, function/return/role/nominal/enum-name/enum-variant/field/parameter/statement payloads, statement facts, function body-marker reads, and remaining expression payload reads; `GenerateC` now consumes `CodegenTypedAstBridgeReady(nodes, count)` before emission; `Let` name/type consumers read row facts instead of reparsing statement payload text; `inout` signatures/calls consume recorded `pm` facts; no emission participant may re-split AST text or consume parallel `indents`/`texts` arrays |
+| self-host typed AST-text bridge | `input/ast_text_inventory_owner.pgy` for parser AST-text lines, `CodegenAstTextNode`, indentation, parent edge, coarse kind, marker predicates, blank filtering, `[export]` normalization, declaration payload accessors, cursor expectations, and `CodegenTypedAstBridgeReady`; `input/ast_text_row_fact_owner.pgy` for `CodegenAstTextRowFactInput` plus function/return/role/nominal/enum-name/field/parameter/`Let` name, type, and mode rows; `input/ast_text_statement_owner.pgy` for statement-row facts; `typed_ast_node_skeleton.pgy` for the typed AST arena payload contract that will replace the bridge | self-hosted C emission today; parser/codegen cutover later | `program_emit`, declaration collectors, function signature emission, and statement body emission consume typed bridge nodes for program-level routing, prepasses, marker rows, function/return/role/nominal/enum-name/enum-variant/field/parameter/statement payloads, statement facts, function body-marker reads, and remaining expression payload reads; `GenerateC` now consumes `CodegenTypedAstBridgeReady(nodes, count)` before emission; `Let` name/type consumers read row facts instead of reparsing statement payload text; `inout` signatures/calls consume recorded `pm` facts; no emission participant may re-split AST text or consume parallel `indents`/`texts` arrays |
 | self-host C collection runtime symbols | `runtime_abi/collection_runtime_owner.pgy` for `Array<Int>` / `Array<String>` helper calls plus the `Array<CodegenAstTextNode>` bootstrap bridge | self-hosted C emission | expression/statement emitters consume canonical helper-name facts; generated helper definitions stay in one definition host |
 | self-host C math/random symbols | `runtime_abi/math_runtime_owner.pgy` for `Abs` / `Min` / `Max` / `Sqrt` / `Pow` / `Floor` / `Ceil` / `SeedRandom` / `Random` helper or target-library calls | self-hosted C emission | expression emitters consume canonical symbol facts; generated helper definitions stay in one definition host |
 | self-host C host I/O/process symbols | `runtime_abi/host_io_runtime_owner.pgy` for file, directory-walk, `Args()`, and `Exit(Int)` helper or target-library calls | self-hosted C emission | expression/statement emitters consume canonical symbol facts; generated helper definitions stay in one definition host |
@@ -351,7 +351,7 @@ The long-term codegen shape is resource-first:
 The current `input/`, `run/`, `text/`, `type_facts/`, `abi_layout/`,
 `runtime_abi/`, and `emission/` directories are an intermediate
 resource split. `text/` exists because the current rung still consumes
-`pgy --ast` text as a compatibility bridge. As MIR facts replace that bridge,
+parser AST text as a compatibility bridge. As MIR facts replace that bridge,
 text scanning should shrink; it must not become a second parser or a place to
 recover semantic truth.
 

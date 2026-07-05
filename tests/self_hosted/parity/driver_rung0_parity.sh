@@ -2,7 +2,7 @@
 # DRV-0 parity: one Pergyra process assembles source -> AST text -> emitted C.
 #
 # Oracle shape:
-#   - AST text: live `pgy --ast <source>`
+#   - AST text: self-parser <source>
 #   - emitted C: current self-host codegen tool compiled by the C oracle and fed
 #     the same AST text
 #
@@ -43,6 +43,7 @@ fi
 pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:driver-rung0" "$PGY"
 
 DRIVER_SOURCE="$ROOT_DIR/src/self_hosted/compiler/driver_rung0_main.pgy"
+PARSER_SOURCE="$ROOT_DIR/src/self_hosted/parser/main.pgy"
 CODEGEN_SOURCE="$ROOT_DIR/src/self_hosted/codegen/main.pgy"
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver_rung0}"
 DRIVER_FIXTURE_MANIFEST_FILE="$BUILD_DIR/driver_fixture_manifest.txt"
@@ -129,6 +130,8 @@ compare_artifact() {
 }
 
 CODEGEN_BIN="$BUILD_DIR/codegen_oracle.exe"
+PARSER_BIN="$BUILD_DIR/parser_ast_producer.exe"
+compile_tool "parser-ast-producer" "$PARSER_SOURCE" c "$PARSER_BIN"
 compile_tool "codegen-oracle" "$CODEGEN_SOURCE" c "$CODEGEN_BIN"
 read_driver_fixture_manifest
 
@@ -164,8 +167,8 @@ for backend in $BACKENDS; do
             exit 1
         fi
 
-        capture_tool "pgy --ast $fixture_rel" "$expected_ast" "$BUILD_DIR/${base}_expected_ast.err" \
-            "$PGY" --ast "$(pgy_path_for_compiler "$PGY" "$fixture_abs")"
+        capture_tool "self-parser AST $fixture_rel" "$expected_ast" "$BUILD_DIR/${base}_expected_ast.err" \
+            "$PARSER_BIN" "$fixture_rel"
         capture_tool "driver $backend --emit-ast $fixture_rel" "$driver_ast" "$BUILD_DIR/${base}_${backend}_driver_ast.err" \
             "$DRIVER_BIN" "$fixture_rel" --emit-ast
         compare_artifact "driver-rung0:ast:$backend:$base" "$expected_ast" "$driver_ast" "ast_text"

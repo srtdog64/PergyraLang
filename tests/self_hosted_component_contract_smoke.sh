@@ -2468,12 +2468,15 @@ require_text "src/self_hosted/compiler/driver_cli_owner.pgy" 'args[0] == "--fixt
 require_text "src/self_hosted/compiler/driver_cli_owner.pgy" "EmitDriverParityFixtureManifest()"
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" "read_driver_fixture_manifest"
+require_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'PARSER_SOURCE="$ROOT_DIR/src/self_hosted/parser/main.pgy"'
+require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"$PARSER_BIN" "$fixture_rel"'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"$manifest_bin" --fixture-manifest'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"ast_text"'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"emitted_c"'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "examples/hello.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "src/self_hosted/codegen/fixture/func_call.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "src/self_hosted/codegen/fixture/struct_param.pgy"'
+reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'pgy --ast'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'cmp -s'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" 'diff -u'
 require_text "Makefile" "self-host-driver-rung1-parity-test-smoke"
@@ -2481,6 +2484,8 @@ require_text "Makefile" "tests/self_hosted/parity/driver_rung1_parity.sh"
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" "driver-rung1"
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" "read_driver_fixture_manifest"
+require_text "tests/self_hosted/parity/driver_rung1_parity.sh" 'PARSER_SOURCE="$ROOT_DIR/src/self_hosted/parser/main.pgy"'
+require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"$PARSER_BIN" "$fixture_rel"'
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"$manifest_bin" --fixture-manifest'
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" "-o"
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"ast_text"'
@@ -2488,6 +2493,7 @@ require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"emitted_c"'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "examples/hello.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "src/self_hosted/codegen/fixture/func_call.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "src/self_hosted/codegen/fixture/struct_param.pgy"'
+reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" 'pgy --ast'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" 'cmp -s'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" 'diff -u'
 require_file "src/self_hosted/lsp/main.pgy"
