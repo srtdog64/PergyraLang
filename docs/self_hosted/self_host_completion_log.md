@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Backend comparator parity uses source owner in place
+
+- Repointed `backend_output_comparator_parity.sh` so the comparator source row
+  from the `backend-output-comparator-paths` TestHarness suite is the compiler
+  input directly.
+- Removed the build-dir `main.pgy` alias and the copied `lib`/`compiler` owner
+  tree from this parity runner; imports now resolve from the manifest-projected
+  source location instead of a local shell-created shadow tree.
+- Tightened the component contract so the old local source/dependency copy path
+  cannot return to the comparator parity runner.
+
 ## 2026-07-06 - Shared comparator helper consumes TestHarness source row
 
 - Repointed `llvm_leg_helpers.sh` so

@@ -53,7 +53,6 @@ if [[ "${#harness_paths[@]}" -ne 4 ]]; then
 fi
 
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
-PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
 FIXTURE_EXPECTED_REL="${harness_paths[2]}"
 FIXTURE_ACTUAL_REL="${harness_paths[3]}"
@@ -67,37 +66,7 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$FIXTURE_EXPECTED" "$F
     fi
 done
 
-mkdir -p "$PERGYRA_TOOL_BUILD_DIR/../../lib"
-mkdir -p "$PERGYRA_TOOL_BUILD_DIR/../../compiler"
-cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
-cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/../../lib/"
-cp "$ROOT_DIR/src/self_hosted/compiler/artifact_zone_owner.pgy" \
-    "$PERGYRA_TOOL_BUILD_DIR/../../compiler/artifact_zone_owner.pgy"
-cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_owner.pgy" \
-    "$PERGYRA_TOOL_BUILD_DIR/../../compiler/test_harness_owner.pgy"
-cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" \
-    "$PERGYRA_TOOL_BUILD_DIR/../../compiler/test_harness_tool_paths_owner.pgy"
-cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" \
-    "$PERGYRA_TOOL_BUILD_DIR/../../compiler/test_harness_air_graph_paths_owner.pgy"
-cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" \
-    "$PERGYRA_TOOL_BUILD_DIR/../../compiler/test_harness_driver_paths_owner.pgy"
-cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" \
-    "$PERGYRA_TOOL_BUILD_DIR/../../compiler/test_harness_codegen_paths_owner.pgy"
-cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_parser_paths_owner.pgy" \
-    "$PERGYRA_TOOL_BUILD_DIR/../../compiler/test_harness_parser_paths_owner.pgy"
-cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_semantic_paths_owner.pgy" \
-    "$PERGYRA_TOOL_BUILD_DIR/../../compiler/test_harness_semantic_paths_owner.pgy"
-cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_mir_json_paths_owner.pgy" \
-    "$PERGYRA_TOOL_BUILD_DIR/../../compiler/test_harness_mir_json_paths_owner.pgy"
-cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" \
-    "$PERGYRA_TOOL_BUILD_DIR/../../compiler/test_harness_codegen_bootstrap_paths_owner.pgy"
-cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" \
-    "$PERGYRA_TOOL_BUILD_DIR/../../compiler/test_harness_lsp_paths_owner.pgy"
-cp "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" \
-    "$PERGYRA_TOOL_BUILD_DIR/../../compiler/completeness_ledger_owner.pgy"
-cp "$ROOT_DIR/src/self_hosted/compiler/subprocess_runner_owner.pgy" \
-    "$PERGYRA_TOOL_BUILD_DIR/../../compiler/subprocess_runner_owner.pgy"
-PERGYRA_TOOL_INPUT="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
+PERGYRA_TOOL_INPUT="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
 
 # Phase 1 - clean (match) fixture.
 set +e
