@@ -85,6 +85,10 @@ For Pergyra specifically:
 - [`contracts/`](contracts/) — Invariant statements per contract,
   governed source files, known regression coverage, adversarial inputs.
 - [`audits/`](audits/) — Audit run logs (date-stamped), one per run.
+  - [`audits/2026-07-05_residual_risk_triage.md`](audits/2026-07-05_residual_risk_triage.md)
+    is the current five-point residual-risk triage. It separates stale
+    imported findings from real beta debt before they are copied into status
+    docs.
 - [`findings/`](findings/) — Confirmed bugs and false positives, each
   with regression-test reference. Filed:
   - `2026-07-05_slot_secure_toctou_audit.md` - secure slot check/use

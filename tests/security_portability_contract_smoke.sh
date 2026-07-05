@@ -128,6 +128,8 @@ require_term "docs/03_security_mode_design.md" '`SECURITY_LEVEL_*` arguments are
 require_term "docs/security/README.md" "Current Security Source Of Truth"
 require_term "docs/security/README.md" "historical/imported"
 require_term "docs/security/README.md" "02_red_team_threat_model.md"
+require_term "docs/security/README.md" "audits/2026-07-05_residual_risk_triage.md"
+require_term "docs/security/README.md" "separates stale"
 require_term "docs/security/README.md" "Windows uses CNG/BCrypt"
 require_term "docs/security/README.md" "non-Windows"
 require_term "docs/security/README.md" "OpenSSL EVP/HMAC/RAND"
