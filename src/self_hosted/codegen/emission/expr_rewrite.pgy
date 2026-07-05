@@ -298,6 +298,8 @@ func RewriteStructLiteralCallArg(expr: String, expected_type: String, env: Strin
                 cval = IntEval(val, env);
             } else if LookupKindType(env, ftype, "s") == "struct" {
                 cval = RewriteStructLiteralCallArg(val, ftype, env);
+            } else if LookupKindType(env, ftype, "enum") == "payload_free" {
+                cval = RewriteExpr(val, env);
             } else {
                 Die(Concat("unsupported struct argument field type: ", ftype));
             }

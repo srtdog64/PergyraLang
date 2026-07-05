@@ -38,14 +38,14 @@ manifests:
 
 | Metric | Current |
 |---|---:|
-| production self-host sources | 147 |
-| lexer pass | 147 |
-| parser pass | 147 |
-| semantic pass | 147 |
-| codegen pass | 147 |
-| lex+parse pass | 147 |
-| lex+parse+semantic pass | 147 |
-| full stage intersection | 147 |
+| production self-host sources | 148 |
+| lexer pass | 148 |
+| parser pass | 148 |
+| semantic pass | 148 |
+| codegen pass | 148 |
+| lex+parse pass | 148 |
+| lex+parse+semantic pass | 148 |
+| full stage intersection | 148 |
 
 Interpretation: parser is no longer the dominant blocker. The next real
 completeness wall is no longer source breadth. The codegen stage check now
@@ -53,7 +53,7 @@ consumes AST text emitted by the self-host parser, not C-oracle `pgy --ast`.
 The remaining hard-self-host blocker is replacing that AST-text bridge with
 typed self-parser/self-semantic owned facts without adding hidden fallbacks.
 
-The monotone ledger is now tightened at `147/147` for lexer, parser, semantic,
+The monotone ledger is now tightened at `148/148` for lexer, parser, semantic,
 codegen, lex+parse, lex+parse+semantic, and full stage intersection. The three
 pipeline baselines are emitted from the same source inventory owner rather than
 from copied path lists, so new production self-host sources must pass all
@@ -174,7 +174,7 @@ Risk: forcing every split participant to check standalone pushes the codebase
 toward circular imports, duplicate stubs, or fake compatibility wrappers. That
 would make the ledger greener while making the architecture less true.
 
-Required fix: keep source identity at 147, but let
+Required fix: keep source identity at 148, but let
 `CompilerCompletenessLedger` emit the stage-specific semantic check target for
 internal participants. Shell runners may execute that mapping, but must not own
 it. A source passes semantic completeness only when its declared owner check
@@ -202,9 +202,9 @@ must remain fatal infrastructure failures, not pass-count failures.
 |---|---|---|
 | Self-host contract | Strong | honest definition, bridge/fallback split, CI owner named |
 | M2 completeness measurement | Medium-high | monotone source identity is right; stage check-unit ownership must stay explicit |
-| Parser self-host | Strong | 147/147 in completeness; parity fixture surface broad |
-| Semantic self-host | Medium | 147/147 source-stage checks pass, but deep semantic parity is still bounded by the current subset |
-| Codegen self-host | Medium | fixed-point exists for subset; 147/147 source-stage checks pass via self-parser AST text |
+| Parser self-host | Strong | 148/148 in completeness; parity fixture surface broad |
+| Semantic self-host | Medium | 148/148 source-stage checks pass, but deep semantic parity is still bounded by the current subset |
+| Codegen self-host | Medium | fixed-point exists for subset; 148/148 source-stage checks pass via self-parser AST text |
 | CompilerWorld shape | Medium | vocabulary present; live fact consumption still needs negative evidence |
 | Typed AST | Medium-low | bridge is controlled, but still line-text backed |
 | JSON facts | Medium | shared owners exist; not yet a full schema/fact substrate |
@@ -220,7 +220,7 @@ or backend architecture complete.
 ## Next Work Order
 
 1. Replace the codegen stage's AST text bridge with typed self-parser /
-   self-semantic owned facts, then keep the 147/147 ledger green.
+   self-semantic owned facts, then keep the 148/148 ledger green.
 2. Split `READY for subset` from `ACTIVE global` in the expansion ledger.
 3. Start typed AST replacement at the top codegen consumers:
    `expr_rewrite`, `decl_lower`, and `routine_lower`.

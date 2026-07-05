@@ -84,18 +84,18 @@ self-semantic 각각에 `--check <file>` 모드(pass/fail + 실패 사유) 추�
    count를 올릴 때는 C/LLVM oracle parity 또는 stage fixture가 같이 있어야 하며,
    C oracle의 silent fallback을 그대로 따라간 결과는 pass 상승 근거가 아니다.
 
-**착지된 M2 ledger baseline(2026-07-05, tightened):** `self-host-completeness-smoke`가
-production self-host source 147개를 측정한다. locked minima:
-`source_min=147`, `lexer_pass_min=147`, `parser_pass_min=147`,
-`semantic_pass_min=147`, `codegen_pass_min=147`,
-`lex_parse_pass_min=147`, `lex_parse_semantic_pass_min=147`,
-`full_pipeline_pass_min=147`. 세 pipeline baseline manifest는 별도 복사본이 아니라
+**착지된 M2 ledger baseline(2026-07-06, tightened):** `self-host-completeness-smoke`가
+production self-host source 148개를 측정한다. locked minima:
+`source_min=148`, `lexer_pass_min=148`, `parser_pass_min=148`,
+`semantic_pass_min=148`, `codegen_pass_min=148`,
+`lex_parse_pass_min=148`, `lex_parse_semantic_pass_min=148`,
+`full_pipeline_pass_min=148`. 세 pipeline baseline manifest는 별도 복사본이 아니라
 `CompilerCompletenessSourceInventory()`가 방출하는 source inventory를 소비한다.
 따라서 새 production self-host source가 추가되면 source scope와 pipeline identity가
 같은 owner에서 함께 확장된다. 이 숫자는 낮출 수 없고, source inventory가 바뀌는
 커밋은 같은 게이트에서 새 source의 stage 통과도 증명해야 한다.
 
-주의: `full_pipeline_pass_min=147`은 이제 lexer/parser/semantic/codegen stage가
+주의: `full_pipeline_pass_min=148`은 이제 lexer/parser/semantic/codegen stage가
 같은 production source inventory 위에서 닫혔고, codegen stage는 self-parser가
 방출한 AST 텍스트를 입력으로 사용한다. 다만 이것은 아직 최종 bootstrap
 pipeline이 아니다. self-semantic의 typed facts가 codegen 입력으로 연결된 것이
@@ -103,7 +103,7 @@ pipeline이 아니다. self-semantic의 typed facts가 codegen 입력으로 연�
 AST 텍스트 브리지를 typed self-parser/self-semantic facts로 줄이는 것이다.
 
 **Red-team 보정(2026-07-05): source identity != semantic check unit.** source
-inventory는 계속 147개가 정본이다. 다만 parser expression/statement처럼 순환 문법
+inventory는 계속 148개가 정본이다. 다만 parser expression/statement처럼 순환 문법
 클러스터인 파일은 standalone semantic check 대상이 아니다. 그 파일의 source
 identity는 유지하되, semantic stage는 `CompilerCompletenessLedger`가 선언한 owner
 check target(`expr_owner.pgy`, `stmt_owner.pgy`, `expr_rewrite.pgy` 등)을 실행한다.

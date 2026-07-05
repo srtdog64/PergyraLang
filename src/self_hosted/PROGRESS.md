@@ -5,7 +5,7 @@ The number that matters is *how much of the C/LLVM compiler has been
 substituted by Pergyra-written equivalents* -- not how many peripheral
 audit tools exist.
 
-Last updated: 2026-07-04
+Last updated: 2026-07-06
 
 Evidence currency: this file is the canonical progress ledger, but individual
 green claims remain dated to the gate runs named in each section. Updating this
@@ -68,10 +68,13 @@ for C-emission action participants. That keeps
 resource owners visible. Parameter-mode facts (`inout` / `own` / `ref`) now
 survive `pgy --ast`; the self-host C codegen consumes `inout` from function-env
 `pm` facts and lowers it as value-result copy-in/copy-out instead of guessing
-from `ArrayPush` or other statement text. The real-source semantic selfcheck now accepts 147
-self-host owner/source files through both C and LLVM, including the codegen
-run boundary, lexer run/fixture-manifest owners, emission action owners,
-type-fact owner, MIR-lower fact owners, and SEA execution-lane mirror. The
+from `ArrayPush` or other statement text. The M2 completeness ledger now checks
+148 production self-host source files across lexer, parser, semantic, codegen,
+and full-pipeline identity. The real-source semantic selfcheck remains a
+separate 134-source C/LLVM gate over the current accepted semantic subset,
+including the codegen run boundary, lexer run/fixture-manifest owners, emission
+action owners, type-fact owner, MIR-lower fact owners, and SEA execution-lane
+mirror. The
 AST-text bridge's root/body/block/then
 structural marker checks now consume owner-owned `kind` facts rather than raw
 line-text equality. The rest of codegen,
@@ -394,7 +397,7 @@ The realistic incremental path toward genuine self-host:
    oracle. Recursive import expansion is now owned by `source_bundle_owner.pgy`,
    and the import-backed call fixture proves signatures are consumed from the
   source bundle instead of from a hidden single-file `main` assumption. The
-  real-source selfcheck now feeds 147 accepted self-host owner/source files
+  real-source selfcheck now feeds 134 accepted self-host owner/source files
    through that source-bundle owner rather than a generated import-stripped
    unit. The accepted manifest spans lexer/parser/mir-lower/codegen/compiler-world
   entrypoints, the lexer and mir_lower run/fixture-manifest owners, the compiler path manifest
@@ -464,7 +467,7 @@ The realistic incremental path toward genuine self-host:
    object/field counts from the JSON owner instead of global substring counts.
    Round-trip C-emit-by-Pergyra -> gcc -> run -> stdout matches the C/LLVM oracle
    on 66 committed fixtures, with the emitter built through both backends.
-   The M2 completeness ledger also now checks all 147 production self-host
+   The M2 completeness ledger also now checks all 148 production self-host
    source files through the codegen `--check` path; that path still consumes
    C-oracle `pgy --ast` text, so it is a source-breadth ratchet rather than the
    final self-parser-to-codegen bootstrap. Next rungs: string freeing / block

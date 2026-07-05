@@ -76,6 +76,8 @@ func EmitStructLit(expr: String, env: String) -> String {
                 cval = IntEval(val, env);
             } else if LookupKindType(env, ftype, "s") == "struct" {
                 cval = EmitStructValue(val, ftype, env);
+            } else if LookupKindType(env, ftype, "enum") == "payload_free" {
+                cval = RewriteExpr(val, env);
             } else {
                 Die(Concat("unsupported struct initializer field type: ", ftype));
             }
