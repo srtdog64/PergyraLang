@@ -1427,63 +1427,18 @@ reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" 'Substring(j
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" ',"kind":"function"'
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" ',"kind":"method"'
 
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/main.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lexer/main.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lexer/scan_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lexer/fixture_manifest_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lexer/run_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/path_manifest_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/stage_intents.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/target_capability_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/air_evidence_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/artifact_zone_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/subprocess_runner_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/abi_layout_row_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/symbol_table_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/stage_artifact_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/world.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/main.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/emission/expr_rewrite.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/emission/function_emit.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/emission/literal_rewrite.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/emission/program_emit.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/emission/stmt_emit.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/emission/struct_value_emit.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/run/codegen_run_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/input/ast_usage_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/typed_ast_node_skeleton.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/input/ast_text_inventory_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/input/ast_text_statement_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/text/text_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/codegen/type_facts/type_env.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/json_fact_read.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/fixture_manifest_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/mir_json_input_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/routine_inventory_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/decl_lower.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/stmt_render.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/routine_lower.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/program_lower.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/run_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/sea/execution_lane.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/path.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/json.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/json_emit.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/json_scan.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lib/json_fact_table.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" 'source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"semantic-parity-paths"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"self-host-completeness-semantic-targets"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" 'TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" 'SELF_TARGET_ROWS=()'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" 'SEMANTIC_TARGET_MANIFEST'
+reject_text "tests/self_hosted/parity/selfcheck_sources.sh" 'SELF_SOURCES=('
+reject_text "tests/self_hosted/parity/selfcheck_sources.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/semantic/main.pgy"'
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" "JsonStringLiteral(path)"
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" "DiagnosticCatalogJsonForOwners"
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" "InputErrorJsonForOwners"
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/tools/diagnostic_catalog_checker/run_owner.pgy"'
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/run_owner.pgy" 'import "scan_owner.pgy";'
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/run_owner.pgy" 'import "report_owner.pgy";'
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/run_owner.pgy" "func RunDiagnosticCatalogCheckFromArgs"
@@ -2054,15 +2009,8 @@ require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarne
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriExtendedCaseAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriSmokeSuiteName()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriExtendedSuiteName()"
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_manifest.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_driver_paths_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_parser_paths_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_semantic_paths_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_mir_json_paths_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_tool_paths_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "CompilerCompletenessSemanticTargetsSuiteName"
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(0) == "source_path"'
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(1) == "expected_diagnostic"'
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(2) == "expected_air_json"'
@@ -2344,45 +2292,18 @@ reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'let json_
 reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'StringContains(content, "\"modules\":")'
 reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "TextScan.CountOccurrences"
 reject_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonFieldArrayBounds(content, 0, JsonDocumentObjectEnd(content)"
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/source_bundle_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/body_check_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/call_check_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/expr_type_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/expr_validation_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/program_check_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/semantic_run_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/main.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/expr_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/fixture_manifest_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/function_decl_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/decl_dispatch_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/program_parse_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/run_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/stmt_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/tree_text_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/diagnostics_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/document_store_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/feature_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/request_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/response_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/session_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/session_state_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/squiggle_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/transport_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/main.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/main.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/fuzz/backend_parity_generator/main.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/completeness_ledger_owner.pgy"'
-require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy"'
 require_text "Makefile" "self-host-semantic-selfcheck-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/selfcheck_sources.sh"
 reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "lexer_selfcheck_unit"
 reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import '"
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
-selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
-selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 140 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 140"
+reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "SELF_SOURCES"
+reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 148;"
+completeness_min_count="$(grep -F "return 154;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
+    wc -l |
+    tr -d ' ')"
+[[ "$completeness_min_count" -ge 8 ]] ||
+    fail "self-host completeness minima drifted below the 154-source closed slice"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'

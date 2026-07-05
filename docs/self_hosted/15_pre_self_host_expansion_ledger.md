@@ -127,6 +127,12 @@ It also consumes component and audit-tool breadth rows through
 runner executes Pergyra-owned rows instead of synthesizing self-host source
 paths in shell.
 
+TestHarness delta, 2026-07-06: `selfcheck_sources.sh` now consumes the semantic
+checker source through `semantic-parity-paths` and the real-source
+source-to-semantic-target rows through `self-host-completeness-semantic-targets`.
+The selfcheck runner no longer owns a shell `SELF_SOURCES` array; it executes
+the 154-source completeness inventory projected by `completeness_ledger_owner.pgy`.
+
 TestHarness delta, 2026-07-05: `runtime_boundary_checker_parity.sh` now gets
 the checker source and expected clean JSON through the
 `runtime-boundary-paths` manifest suite, and it gets the required `(path, term)`

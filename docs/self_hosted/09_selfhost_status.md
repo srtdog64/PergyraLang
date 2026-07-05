@@ -319,13 +319,14 @@ Substrate progress.
   absent from the local environment. It also checks scoped `if` / `while`
   bodies without leaking block-local `let` bindings into the parent
   environment. The parity set now includes an import-backed fixture, and
-  `tests/self_hosted/parity/selfcheck_sources.sh` now compiles the checker
-  through C and LLVM and accepts 87 real self-host owner/source files. The
-  manifest includes lexer/parser/mir-lower/codegen/compiler-world entrypoints,
-  the compiler path manifest owner, semantic run/program/body/call/expression
-  owner files, the deterministic backend fuzz generator, and audit-tool slices
-  that are inside the current subset; sources stay out until their import,
-  local-binding, and call surfaces are covered without semantic fallbacks.
+  `tests/self_hosted/parity/selfcheck_sources.sh` now consumes the
+  `self-host-completeness-semantic-targets` manifest from TestHarness instead
+  of owning a shell source list. The current completeness-owned inventory
+  accepts 154 real self-host production source rows through the semantic
+  checker; split parser/codegen files use the semantic target selected by
+  `completeness_ledger_owner.pgy`. This is still source-stage acceptance, not a
+  claim that typed self-semantic facts already drive the native backends end to
+  end.
 - Building the signature table reproduced the array value-semantics finding from
   the linter: a helper that `ArrayPush`es into an `Array<T>` parameter mutates a
   copy, so the table is built inline in the owning function until `inout Array<T>`

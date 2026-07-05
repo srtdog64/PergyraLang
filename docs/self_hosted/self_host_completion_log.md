@@ -25,6 +25,18 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Real-source semantic selfcheck consumes completeness owner
+
+- Repointed `tests/self_hosted/parity/selfcheck_sources.sh` away from its
+  shell-owned `SELF_SOURCES` array. The runner now reads `semantic-parity-paths`
+  for the semantic checker source and `self-host-completeness-semantic-targets`
+  for the source-to-semantic-target rows from `test_harness_manifest.pgy`.
+- Tightened `completeness_ledger_owner.pgy` monotone minima from 148 to 154
+  after `self-host-completeness-smoke` proved 154/154 lexer, parser, semantic,
+  codegen, lex+parse, lex+parse+semantic, and full-pipeline stage checks.
+- Updated the component contract so direct selfcheck source arrays and direct
+  semantic tool-source constants cannot return.
+
 ## 2026-07-06 - MIR JSON parity paths consume dedicated TestHarness owner
 
 - Added `test_harness_mir_json_paths_owner.pgy` for the
