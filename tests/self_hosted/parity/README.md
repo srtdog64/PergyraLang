@@ -42,8 +42,11 @@ The parity set currently covers:
   generator; `make self-host-fuzz-backend-generator-parity-test-smoke` checks
   generator C/LLVM byte-identical corpus output, while
   `make fuzz-backend-parity-test-smoke` additionally runs the generated corpus
-  through C/LLVM; `make fuzz-backend-parity-matrix-test-smoke` repeats that
-  oracle over a bounded seed matrix)
+  through C/LLVM and treats generated nonzero exits as invariant failures;
+  `make fuzz-backend-parity-matrix-test-smoke` repeats that oracle over a
+  bounded seed matrix. The generated corpus includes predicate-driven cursor
+  updates so branch-style and predicate-value-style state transitions stay
+  equivalent across backends)
 - `lexer` (rung-1 compiler-internal lexer substitution)
 - `parser` (rung-1 compiler-internal parser substitution)
 - `semantic` (rung-2 compiler-internal semantic verdict substitution)

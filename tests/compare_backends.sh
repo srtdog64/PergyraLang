@@ -601,6 +601,7 @@ main() {
         "tests/cases/backend_compare/int_mod_div_signed"
         "tests/cases/backend_compare/mod_branch_arith"
         "tests/cases/backend_compare/bool_negate_branch"
+        "tests/cases/backend_compare/bool_cursor_equivalence"
         "tests/cases/backend_compare/nested_if_returns"
         "tests/cases/backend_compare/to_string_signed_numbers"
         "tests/cases/backend_compare/string_escape_sequences"

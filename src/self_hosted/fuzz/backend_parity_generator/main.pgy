@@ -245,6 +245,58 @@ func RenderArrayParamCase(index: Int, base: Int, twist: Int) -> String {
     return Concat(StringJoin(lines, "\n"), "\n");
 }
 
+func RenderPredicateCursorCase(index: Int, base: Int, twist: Int) -> String {
+    let lines: Array<String> = [];
+    ArrayPush(lines, "func TokenAt(pos: Int) -> Int {");
+    ArrayPush(lines, "    let normalized: Int = pos % 6;");
+    ArrayPush(lines, "    if normalized == 0 { return 4; }");
+    ArrayPush(lines, "    if normalized == 1 { return 8; }");
+    ArrayPush(lines, "    if normalized == 2 { return 4; }");
+    ArrayPush(lines, "    if normalized == 3 { return 3; }");
+    ArrayPush(lines, "    if normalized == 4 { return 4; }");
+    ArrayPush(lines, "    return 9;");
+    ArrayPush(lines, "}");
+    ArrayPush(lines, "");
+    ArrayPush(lines, "func ConsumeBranch(pos: Int, expected: Int) -> Int {");
+    ArrayPush(lines, "    if TokenAt(pos) == expected {");
+    ArrayPush(lines, "        return pos + 1;");
+    ArrayPush(lines, "    }");
+    ArrayPush(lines, "    return pos;");
+    ArrayPush(lines, "}");
+    ArrayPush(lines, "");
+    ArrayPush(lines, "func ConsumePredicated(pos: Int, expected: Int) -> Int {");
+    ArrayPush(lines, "    let hit: Bool = TokenAt(pos) == expected;");
+    ArrayPush(lines, "    let delta: Int = 0;");
+    ArrayPush(lines, "    if hit {");
+    ArrayPush(lines, "        delta = 1;");
+    ArrayPush(lines, "    }");
+    ArrayPush(lines, "    return pos + delta;");
+    ArrayPush(lines, "}");
+    ArrayPush(lines, "");
+    ArrayPush(lines, "func RunCursor(expected: Int, rounds: Int) -> Int {");
+    ArrayPush(lines, "    let branch_pos: Int = 0;");
+    ArrayPush(lines, "    let pred_pos: Int = 0;");
+    ArrayPush(lines, "    let i: Int = 0;");
+    ArrayPush(lines, "    while i < rounds {");
+    ArrayPush(lines, "        branch_pos = ConsumeBranch(branch_pos, expected);");
+    ArrayPush(lines, "        pred_pos = ConsumePredicated(pred_pos, expected);");
+    ArrayPush(lines, "        if branch_pos != pred_pos {");
+    ArrayPush(lines, "            Log(\"FUZZ_MISMATCH predicate-cursor\");");
+    ArrayPush(lines, "            Exit(1);");
+    ArrayPush(lines, "        }");
+    ArrayPush(lines, "        i = i + 1;");
+    ArrayPush(lines, "    }");
+    ArrayPush(lines, "    return pred_pos;");
+    ArrayPush(lines, "}");
+    ArrayPush(lines, "");
+    ArrayPush(lines, "func Main() -> Void {");
+    ArrayPush(lines, Concat("    let rounds: Int = ", Concat(ToString(4 + twist % 5), ";")));
+    ArrayPush(lines, "    Log(Concat(\"predicate-cursor:\", ToString(RunCursor(4, rounds))));");
+    ArrayPush(lines, "    Log(Concat(\"predicate-cursor:\", ToString(RunCursor(8, rounds + 1))));");
+    ArrayPush(lines, "}");
+    return Concat(StringJoin(lines, "\n"), "\n");
+}
+
 func RenderProgram(index: Int, variant: Int) -> String {
     let base: Int = 1 + Random(17);
     let twist: Int = 1 + Random(9);
@@ -269,6 +321,9 @@ func RenderProgram(index: Int, variant: Int) -> String {
     if variant == 6 {
         return RenderStringWindowCase(index, base, twist);
     }
+    if variant == 7 {
+        return RenderPredicateCursorCase(index, base, twist);
+    }
     return RenderArrayParamCase(index, base, twist);
 }
 
@@ -292,7 +347,10 @@ func Main() -> Void {
 
     let mut i: Int = 0;
     while i < count {
-        let variant: Int = Random(8);
+        let variant: Int = Random(9);
+        if i == 0 {
+            variant = 7;
+        }
         let name: String = Concat("f", Concat(ToString(i), ".pgy"));
         let source: String = RenderProgram(i, variant);
         WriteFile(JoinPath(out_dir, name), source);

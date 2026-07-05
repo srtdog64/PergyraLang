@@ -227,6 +227,14 @@ run_backend_case() {
         echo "[self-host-parity:fuzz-generator] generated case $index exit mismatch C=$c_rc LLVM=$llvm_rc" >&2
         exit 1
     fi
+    if [[ "$c_rc" -ne 0 ]]; then
+        echo "[self-host-parity:fuzz-generator] generated case $index failed invariant rc=$c_rc" >&2
+        echo "[self-host-parity:fuzz-generator] C stdout:" >&2
+        cat "$c_stdout" >&2 || true
+        echo "[self-host-parity:fuzz-generator] C stderr:" >&2
+        cat "$c_stderr" >&2 || true
+        exit 1
+    fi
 
     normalize_output "$c_stdout" "$c_stdout_norm"
     normalize_output "$llvm_stdout" "$llvm_stdout_norm"

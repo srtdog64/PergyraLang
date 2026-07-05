@@ -1,0 +1,57 @@
+func TokenAt(pos: Int) -> Int {
+    let normalized: Int = pos % 6;
+    if normalized == 0 {
+        return 4;
+    }
+    if normalized == 1 {
+        return 8;
+    }
+    if normalized == 2 {
+        return 4;
+    }
+    if normalized == 3 {
+        return 3;
+    }
+    if normalized == 4 {
+        return 4;
+    }
+    return 9;
+}
+
+func ConsumeBranch(pos: Int, expected: Int) -> Int {
+    if TokenAt(pos) == expected {
+        return pos + 1;
+    }
+    return pos;
+}
+
+func ConsumePredicated(pos: Int, expected: Int) -> Int {
+    let hit: Bool = TokenAt(pos) == expected;
+    let delta: Int = 0;
+    if hit {
+        delta = 1;
+    }
+    return pos + delta;
+}
+
+func RunCursor(expected: Int, rounds: Int) -> Int {
+    let branch_pos: Int = 0;
+    let pred_pos: Int = 0;
+    let i: Int = 0;
+    while i < rounds {
+        branch_pos = ConsumeBranch(branch_pos, expected);
+        pred_pos = ConsumePredicated(pred_pos, expected);
+        if branch_pos != pred_pos {
+            Log("cursor-mismatch");
+            Exit(1);
+        }
+        i = i + 1;
+    }
+    return pred_pos;
+}
+
+func Main() -> Void {
+    Log(Concat("cursor:", ToString(RunCursor(4, 8))));
+    Log(Concat("cursor:", ToString(RunCursor(8, 5))));
+    Log(Concat("cursor:", ToString(RunCursor(7, 3))));
+}

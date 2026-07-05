@@ -258,6 +258,29 @@ test_type_checker_slot_rules(void)
         ast_destroy(bad_expr);
     }
 
+    TEST("Bool cannot be cast to numeric cursor delta");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let delta: Int = (1 == 1) as Int;\n"
+            "    Log(delta);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Cast to Int requires a numeric operand"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("ClaimSlot<T> let inference preserves generic payload type");
     {
         const char *source =
