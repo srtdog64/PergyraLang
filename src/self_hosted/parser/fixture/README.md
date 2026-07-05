@@ -1,10 +1,12 @@
 # Parser Parity Fixtures
 
 This directory holds inputs and baselines for
-`tests/self_hosted/parity/parser_parity.sh`. Each row in that script's
-`SOURCE_PAIRS` array is `"<source path>:<base name>"` and the parity test
-asserts that running the Pergyra-written parser on `<source>` produces output
-byte-equal to `fixture/<base>_ast.txt`.
+`tests/self_hosted/parity/parser_parity.sh`. The source/fixture row inventory
+is owned by `../fixture_manifest_owner.pgy`, emitted through
+`--fixture-manifest`, and consumed by the shell runner. Each row is
+`"<source path>:<base name>"`; the parity test asserts that running the
+Pergyra-written parser on `<source>` produces output byte-equal to
+`fixture/<base>_ast.txt`.
 
 ## File Roles
 
@@ -21,13 +23,16 @@ To add a new test pair:
 1. Write the `.pgy` source.
 2. Generate the baseline: `pgy --ast <path>.pgy > <base>_ast.txt`
    (LF-normalized; the parity script `tr -d '\r'`s on both sides).
-3. Append `"<src path>:<base>"` to the parity script `SOURCE_PAIRS`.
+3. Ensure `fixture_manifest_owner.pgy` can discover the pair. Ordinary
+   in-directory pairs are discovered automatically; external-source baselines
+   need an explicit owner row.
 
 ### 2. External-Source Baseline
 
 `<base>_ast.txt` only, no companion `.pgy`. The source lives outside this
-directory, typically under `examples/`, and the `SOURCE_PAIRS` row points at
-it. Example: `hello_ast.txt` is the baseline for `examples/hello.pgy:hello`.
+directory, typically under `examples/`, and the manifest owner emits its row.
+Example: `hello_ast.txt` is the baseline for `examples/hello.pgy:hello`, which
+is emitted by `fixture_manifest_owner.pgy`.
 
 ### 3. Support File
 

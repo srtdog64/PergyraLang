@@ -5,9 +5,10 @@ produces, byte-for-byte. Mirrors C-side `src/parser/`. The goal is byte-equal
 AST output for a growing source subset, so parity can be checked without
 inventing a second AST serialization format.
 
-- `main.pgy` - entry point orchestration only. It delegates source path/default
-  selection to `source_path_owner.pgy` and shared path string facts to
-  `../lib/path.pgy`.
+- `main.pgy` - entrypoint only. It delegates all CLI mode selection to
+  `run_owner.pgy`.
+- `run_owner.pgy` - parser run-boundary owner. It selects normal parse mode
+  vs `--fixture-manifest`, then delegates source selection and parsing.
 - `program_parse_owner.pgy` - root Program SoT. Owns root source reads, root
   cursor initialization, top-level declaration parse invocation, and final
   compact AST `Program:` assembly.
@@ -15,6 +16,9 @@ inventing a second AST serialization format.
   source path, imported-source read marker, and import graph membership fact.
   Source dirname and import joins consume `SelfHostPath` instead of
   reimplementing path facts locally.
+- `fixture_manifest_owner.pgy` - parser parity source/fixture inventory owner.
+  The shell runner consumes its `--fixture-manifest` output instead of owning
+  source/fixture rows.
 - `expr_primary_owner.pgy` - primary expression root owner. Owns literals,
   identifiers, lambdas, grouped expressions, array literals, and expression
   block shims before postfix consumption.
@@ -27,7 +31,7 @@ inventing a second AST serialization format.
 - `stmt_loop_owner.pgy` - loop statement syntax owner. Owns `while`, `loop`,
   and `for` compact AST header/block emission.
 - `fixture/` - committed `<base>.pgy` sources and `<base>_ast.txt` baselines
-  used by the 189-source parity harness.
+  used by the 186-source parity harness.
 - `expected/clean.txt` - expected stdout when run on the default source.
 - `intent.md` - contract, current grammar surface, and latest fixture/scale
   coverage result.

@@ -8,12 +8,8 @@
 //
 // Contract: see intent.md in the same directory.
 
-import "source_path_owner.pgy";
-import "program_parse_owner.pgy";
+import "run_owner.pgy";
 
 func Main() -> Void with caps env, io_read {
-    let run_args: Array<String> = Args();
-    let source_path: String = ParserDefaultSourcePath(run_args);
-    Log(ParseRootProgram(source_path));
-    Log("");
+    RunParserFromArgs(Args());
 }

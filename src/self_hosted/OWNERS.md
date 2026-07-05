@@ -56,8 +56,12 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/parser/expr_precedence_owner.pgy` -- precedence expression parsing.
 - `src/self_hosted/parser/expr_primary_owner.pgy` -- primary expression parsing.
 - `src/self_hosted/parser/expr_string_owner.pgy` -- string literal expression parsing.
+- `src/self_hosted/parser/fixture_manifest_owner.pgy` -- parser parity
+  source/fixture manifest rows.
 - `src/self_hosted/parser/function_decl_owner.pgy` -- function signatures and bodies.
 - `src/self_hosted/parser/program_parse_owner.pgy` -- program-root assembly.
+- `src/self_hosted/parser/run_owner.pgy` -- parser CLI run boundary and mode
+  selection.
 - `src/self_hosted/parser/source_path_owner.pgy` -- source path/default and import read input.
 - `src/self_hosted/parser/stmt_if_owner.pgy` -- if/if-let statements.
 - `src/self_hosted/parser/stmt_loop_owner.pgy` -- loop statements.

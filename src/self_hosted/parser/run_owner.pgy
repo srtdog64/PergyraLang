@@ -1,0 +1,19 @@
+// Parser run-boundary owner.
+//
+// Owns CLI mode selection for normal parsing vs fixture-manifest emission.
+// `main.pgy` remains entrypoint-only.
+
+import "source_path_owner.pgy";
+import "program_parse_owner.pgy";
+import "fixture_manifest_owner.pgy";
+
+func RunParserFromArgs(args: Array<String>) -> Void with caps env, io_read {
+    if ArrayLength(args) > 0 && args[0] == "--fixture-manifest" {
+        EmitParserFixtureManifest();
+        return;
+    }
+
+    let source_path: String = ParserDefaultSourcePath(args);
+    Log(ParseRootProgram(source_path));
+    Log("");
+}

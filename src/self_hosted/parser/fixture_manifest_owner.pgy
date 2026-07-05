@@ -1,0 +1,107 @@
+// Parser fixture-manifest owner.
+//
+// The parser parity row maps a source path to the committed compact-AST
+// baseline base name. The shell runner may consume this manifest, but it must
+// not own the source/fixture mapping.
+
+func ParserFixtureDir() -> String {
+    return "src/self_hosted/parser/fixture";
+}
+
+func ParserFixtureExpectedPath(base: String) -> String {
+    return Concat(Concat(ParserFixtureDir(), "/"), Concat(base, "_ast.txt"));
+}
+
+func ParserFixturePathEndsWith(path: String, suffix: String) -> Bool {
+    let path_len: Int = StringLength(path);
+    let suffix_len: Int = StringLength(suffix);
+    if suffix_len > path_len {
+        return false;
+    }
+    return Substring(path, path_len - suffix_len, suffix_len) == suffix;
+}
+
+func ParserFixtureBaseName(path: String, suffix: String) -> String {
+    if !ParserFixturePathEndsWith(path, suffix) {
+        return "";
+    }
+
+    let last_slash: Int = -1;
+    let i: Int = 0;
+    while i < StringLength(path) {
+        if Substring(path, i, 1) == "/" {
+            last_slash = i;
+        }
+        i = i + 1;
+    }
+
+    let start: Int = last_slash + 1;
+    let len: Int = StringLength(path) - start - StringLength(suffix);
+    if len <= 0 {
+        return "";
+    }
+    return Substring(path, start, len);
+}
+
+func ParserFixtureSourcePath(base: String) -> String {
+    return Concat(Concat(ParserFixtureDir(), "/"), Concat(base, ".pgy"));
+}
+
+func ParserFixtureManifestRows() -> Array<String> {
+    let entries: Array<String> = DirWalk(ParserFixtureDir());
+    let rows: Array<String> = [];
+    let i: Int = 0;
+
+    ArrayPush(rows, "examples/hello.pgy:hello");
+
+    while i < ArrayLength(entries) {
+        let path: String = entries[i];
+        if ParserFixturePathEndsWith(path, ".pgy") {
+            let base: String = ParserFixtureBaseName(path, ".pgy");
+            if StringLength(base) > 0 && FileExists(ParserFixtureExpectedPath(base)) {
+                ArrayPush(rows, Concat(Concat(ParserFixtureSourcePath(base), ":"), base));
+            }
+        }
+        i = i + 1;
+    }
+
+    if FileExists(ParserFixtureSourcePath("generic_class")) && FileExists(ParserFixtureExpectedPath("generic_class")) {
+        ArrayPush(rows, "src/self_hosted/parser/fixture/generic_class.pgy:generic_class");
+    }
+    return rows;
+}
+
+func ParserFixtureManifestReady() -> Bool {
+    let rows: Array<String> = ParserFixtureManifestRows();
+    let i: Int = 0;
+    if ArrayLength(rows) != 186 {
+        return false;
+    }
+    while i < ArrayLength(rows) {
+        let row: String = rows[i];
+        let sep: Int = StringIndexOf(row, ":");
+        if sep < 1 {
+            return false;
+        }
+        let source: String = Substring(row, 0, sep);
+        let base: String = Substring(row, sep + 1, StringLength(row) - sep - 1);
+        if !FileExists(source) || !FileExists(ParserFixtureExpectedPath(base)) {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func EmitParserFixtureManifest() -> Void {
+    if !ParserFixtureManifestReady() {
+        Exit(1);
+    }
+
+    let rows: Array<String> = ParserFixtureManifestRows();
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        Log(rows[i]);
+        i = i + 1;
+    }
+}

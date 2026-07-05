@@ -28,7 +28,7 @@ Front-end self-hosts on both backends in LLVM-enabled builds.
   oracle. The broader lexer scale probe now measures 993 of 993 examples +
   backend_compare sources byte-equal.
 - Parser (src/self_hosted/parser/): compiles on C and LLVM and compares
-  byte-identical against `pgy --ast` on 189 committed source fixtures. It parses
+  byte-identical against `pgy --ast` on 186 committed source/fixture rows. It parses
   the domain grammar, not just generic constructs: it dispatches on zone, world,
   party, role, and intent keywords, plus bind, if, within-zone, and intent
   steps, intent retry declaration metadata, with full expression precedence.
@@ -38,8 +38,9 @@ Front-end self-hosts on both backends in LLVM-enabled builds.
   statement/block parsing, function declaration/signature rendering,
   recursive declaration dispatch, type/ability/event/enum/zone/effect/relation/
   role/intent/nominal-domain declaration parsing, and compact AST text formatting
-  are owned by separate parser modules; `main.pgy` is entrypoint orchestration
-  only. Parser tool input is single-sourced through `Args()[0]`; the previous
+  are owned by separate parser modules; `main.pgy` is entrypoint-only and
+  delegates parser CLI mode selection to `run_owner.pgy`. Parser tool input is
+  single-sourced through `Args()[0]`; the previous
   probe-only source override is retired. The last examples scale probe was
   120 of 121 byte-equal against live `pgy --ast`, with zero byte-drift, zero
   self-host parser exits, and 1 C-oracle skip (`secure_slots`).

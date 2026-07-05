@@ -424,8 +424,25 @@ reject_text "tests/self_hosted/parity/lexer_parity.sh" 'PERGYRA_OUT="$(cd'
 reject_text "tests/self_hosted/parity/lexer_parity.sh" 'LLVM_LEX_OUT="$(cd'
 reject_text "tests/self_hosted/parity/lexer_parity.sh" "diff <(printf"
 require_owner_surface parser \
-    "source_path_owner.pgy" \
-    "program_parse_owner.pgy"
+    "run_owner.pgy"
+require_file "src/self_hosted/parser/source_path_owner.pgy"
+require_file "src/self_hosted/parser/program_parse_owner.pgy"
+require_file "src/self_hosted/parser/fixture_manifest_owner.pgy"
+require_text "src/self_hosted/parser/run_owner.pgy" 'import "source_path_owner.pgy";'
+require_text "src/self_hosted/parser/run_owner.pgy" 'import "program_parse_owner.pgy";'
+require_text "src/self_hosted/parser/run_owner.pgy" 'import "fixture_manifest_owner.pgy";'
+require_text "src/self_hosted/parser/run_owner.pgy" 'args[0] == "--fixture-manifest"'
+require_text "src/self_hosted/parser/run_owner.pgy" "EmitParserFixtureManifest()"
+require_text "src/self_hosted/parser/run_owner.pgy" "ParserDefaultSourcePath(args)"
+require_text "src/self_hosted/parser/run_owner.pgy" "ParseRootProgram(source_path)"
+reject_text "src/self_hosted/parser/main.pgy" 'import "source_path_owner.pgy";'
+reject_text "src/self_hosted/parser/main.pgy" 'import "program_parse_owner.pgy";'
+require_text "src/self_hosted/parser/main.pgy" "RunParserFromArgs(Args())"
+require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "func ParserFixtureManifestRows"
+require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "func EmitParserFixtureManifest"
+require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "DirWalk(ParserFixtureDir())"
+require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "ParserFixtureExpectedPath(base)"
+require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "ArrayLength(rows) != 186"
 require_text "src/self_hosted/parser/tree_text_owner.pgy" "func ParserAstTreePayloadContractReady"
 require_text "src/self_hosted/parser/tree_text_owner.pgy" "func ParserAstTreePayloadSchema"
 require_text "src/self_hosted/parser/tree_text_owner.pgy" "pgy.selfhost.parser-ast-tree.v1"
@@ -493,10 +510,13 @@ reject_text "src/self_hosted/parser/main.pgy" 'import "decl_intent_owner.pgy";'
 reject_text "src/self_hosted/parser/main.pgy" 'import "decl_nominal_owner.pgy";'
 reject_text "src/self_hosted/parser/main.pgy" 'import "decl_dispatch_owner.pgy";'
 require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" "ParserImportGraphSeen(import_paths, imp_path)"
-require_text "tests/self_hosted/parity/parser_parity.sh" "import_dedup_graph"
 require_text "tests/self_hosted/parity/parser_parity.sh" "pgy_selfhost_compile_backend_output_comparator"
 require_text "tests/self_hosted/parity/parser_parity.sh" "compare_parser_ast_with_owner"
+require_text "tests/self_hosted/parity/parser_parity.sh" "read_parser_fixture_manifest"
+require_text "tests/self_hosted/parity/parser_parity.sh" '"$manifest_bin" --fixture-manifest'
 require_text "tests/self_hosted/parity/parser_parity.sh" "ast_text"
+reject_text "tests/self_hosted/parity/parser_parity.sh" "examples/hello.pgy:hello"
+reject_text "tests/self_hosted/parity/parser_parity.sh" "src/self_hosted/parser/fixture/import_dedup_graph.pgy:import_dedup_graph"
 reject_text "tests/self_hosted/parity/parser_parity.sh" "diff <("
 reject_text "tests/self_hosted/parity/parser_parity.sh" "BYTE-DRIFT"
 require_owner_surface semantic \
@@ -2032,9 +2052,11 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/s
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/semantic/semantic_run_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/main.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/expr_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/fixture_manifest_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/function_decl_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/decl_dispatch_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/program_parse_owner.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/run_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/stmt_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/parser/tree_text_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/diagnostics_owner.pgy"'
@@ -2057,8 +2079,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 125 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 125"
+[[ "$selfcheck_count" -eq 127 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 127"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'

@@ -35,6 +35,16 @@ rewrite history.
   list; it compiles the codegen owner, reads that manifest, and then runs the C
   oracle plus C/LLVM-built codegen parity over the manifest rows.
 
+## 2026-07-05 - Parser parity fixture inventory consumes parser owner
+
+- Added `fixture_manifest_owner.pgy` to own the 186 parser source/fixture
+  parity rows.
+- Added `run_owner.pgy` so parser CLI mode selection lives outside the
+  entrypoint, and exposed the manifest through `--fixture-manifest`.
+- Repointed `parser_parity.sh` so shell no longer owns `SOURCE_PAIRS`; it reads
+  the compiled parser owner's manifest before running C/LLVM parser parity and
+  live `pgy --ast` drift checks.
+
 ## 2026-07-05 - Lexer parity fixture inventory consumes lexer owner
 
 - Added `fixture_manifest_owner.pgy` to own the seven lexer source/fixture

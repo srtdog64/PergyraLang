@@ -25,13 +25,18 @@ parity and the examples scale probe.
 
 ## Input Contract
 
-- **source_owner**: `examples/hello.pgy` by default. The parity harness and
+- **source_owner**: `source_path_owner.pgy`; `examples/hello.pgy` is the
+  default path. The parity harness and
   scale probe pass the source path through `Args()[0]`; there is no side-channel
   source override.
+- **run_owner**: `run_owner.pgy` owns parser CLI mode selection. `main.pgy` is
+  entrypoint-only and calls `RunParserFromArgs(Args())`.
+- **fixture_manifest_owner**: `fixture_manifest_owner.pgy` owns the committed
+  source/fixture row inventory. `parser_parity.sh` consumes
+  `--fixture-manifest` output and must not carry its own row list.
 - **program_owner**: `program_parse_owner.pgy` owns the root source read, root
   cursor initialization, top-level declaration parse invocation, and final
-  compact AST `Program:` assembly. `main.pgy` only wires the selected source
-  path into this owner.
+  compact AST `Program:` assembly.
 - **declaration_owner**: `decl_dispatch_owner.pgy` is the public boundary for
   top-level declarations. It owns declaration dispatch, import graph
   materialization, script-body collection, and branch owner imports. `main.pgy`
@@ -86,8 +91,10 @@ cannot launch the pgy subprocess).
 
 Current measured coverage:
 
-- `parser_parity.sh`: 189 committed sources byte-equal on both generated C and
-  LLVM parser binaries, including duplicate import graph materialization.
+- `parser_parity.sh`: 186 committed source/fixture rows byte-equal on both
+  generated C and LLVM parser binaries. The compiled parser owner emits the
+  manifest, including external `examples/hello.pgy` and duplicate
+  `generic_class` coverage.
 - `parser_scale_probe.sh --failing`: 120 of 121 `examples/*.pgy` byte-equal
   against live `pgy --ast`; zero byte-drift, zero self-host parser exits, and 1
   C-oracle skip (`secure_slots`).
