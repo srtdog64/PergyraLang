@@ -10685,8 +10685,18 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
   마지막, 착지 스켈레톤 typed_ast_node_skeleton.pgy 21 kind), parser 잔여
   3종(match brace/중첩배열/payload enum)만. 비용 지배=SEM-7 ownership 4.8k
   +SEM-6 domain 3.6k+SEM-10 builtin 3.9k+SEM-11 DAG/orch 9k=수개월.
-  ★착수 전 likeness 래칫 green 확인(현재 166 vs 156 red 추정 — LSP scaffolding
-  regression). Layer 8 lifecycle는 CFG/MIR SoT라 축소 가능.
+  ★STEP 0=래칫 green 회복. **래칫 red 확정(2026-07-05 실측: string_munge_sig
+  166 vs baseline 156, exit 1)** + 게이트가 ci_linux:47/windows:71에 있는데도
+  드리프트=**CI 미강제 신호**. +10 원인=owner-routing 파동(tools/lsp/path
+  주변부, AST-코어 아님). STEP 0=래칫 재범위화(코어만)+re-baseline↓+게이트
+  강제 확인. Layer 8 lifecycle는 CFG/MIR SoT라 축소 가능.
+- **docs/161 WASM/미디어 substrate(킬러 유즈케이스)**: ★벽은 WASM 아님 —
+  C→wasm32-wasi transport 이미 검증(docs/135 §2), 미디어 API 표면 stub 완료
+  (7 엔트리 capability-gated). 남은 3벽=**W-2** 실 미디어 백엔드(canvas/WebGL/
+  WebAudio + JS glue, stub이 계약 oracle)/**W-3** 렌더러 표면(=docs/159
+  page·spray doctrine-pass 합류)/**W-4** 서명 로더(manifest+서명+content cap
+  render/audio/input만 제한+budget). W-5=던전크롤러 미디어 버전 통합 데모.
+  "안전한 Flash"의 안전 절반=W-4. 오버클레임 금지(docs/135 forbidden wording).
 
 #### A-11. TPU/MLIR — post-beta 설계 여지만
 
