@@ -1476,7 +1476,14 @@ require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "le
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" '"execution_lane"'
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" '"boundary_capture"'
 require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" 'import "../../compiler/air_evidence_owner.pgy";'
+require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" 'import "scan_owner.pgy";'
+require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" 'import "report_owner.pgy";'
 require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" "CompilerAirEvidenceEnvelopeReady()"
+require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" "func AirGraphFixturePathFromArgs"
+require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" "func AirGraphCapabilityFixturePathFromArgs"
+require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" "func RunAirGraphJsonValidationFromArgs"
+require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" "RunAirGraphJsonValidationWithPaths("
+require_text "src/self_hosted/tools/air_graph_json_validator/main.pgy" "RunAirGraphJsonValidationFromArgs(Args())"
 require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "func CompilerAirEvidenceIntentGraphFact"
 require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "func CompilerAirEvidenceEffectSetFact"
 require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "func CompilerAirEvidenceAuthorityEvidenceFact"
@@ -1497,6 +1504,12 @@ require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" "Req
 require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" "CountMissingGraphFeatureKeys(content, feature_keys)"
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "AIR_EVIDENCE_OWNER"
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "compiler/air_evidence_owner.pgy"
+require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" '"air-graph-json-validator-paths"'
+require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'FIXTURE_REL="${harness_paths[3]}"'
+require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'CAP_FIXTURE_REL="${harness_paths[4]}"'
+require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" '"$CLEAN_BIN" "$FIXTURE_REL" "$CAP_FIXTURE_REL"'
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "compare_clean_json_with_owner"
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "compare_air_json_file_with_owner"
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "pgy_selfhost_compile_backend_output_comparator"
@@ -1504,6 +1517,10 @@ require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "pgy_
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "pgy_selfhost_path_relative_to_root"
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "air_json"
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"'
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'PERGYRA_TOOL_SOURCE_DIR="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator"'
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator/expected/clean.json"'
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'FIXTURE_FILE="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator/fixture/sample.json"'
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'CAP_FIXTURE_FILE="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator/fixture/cap_env.json"'
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "diff -q"
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'StringContains(content, "\"schema\":\"pgy.air.graph.v1\"")'
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonDocumentStringFieldEquals(content, \"schema\", \"pgy.air.graph.v1\")"
@@ -1733,6 +1750,16 @@ require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func 
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventoryExpectedJsonPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventoryPathAt"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventoryReady"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorSuiteName"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorAirEvidenceOwnerPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorFixturePath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorCapabilityFixturePath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorLiveSourcePath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorCapabilityLiveSourcePath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorPathAt"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorReady"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDiagnosticCatalogSuiteName"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDiagnosticCatalogToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDiagnosticCatalogExpectedJsonPath"
@@ -1788,6 +1815,7 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessS
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessRuntimeBoundaryReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessDocLinkCheckerReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessExamplesInventoryReady()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessAirGraphJsonValidatorReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessDiagnosticCatalogReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessAstReadSurfaceReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessStdlibDispatchInventoryReady()"
@@ -1815,6 +1843,9 @@ require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarne
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitExamplesInventoryPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessExamplesInventoryPathAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessExamplesInventorySuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitAirGraphJsonValidatorPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessAirGraphJsonValidatorPathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessAirGraphJsonValidatorSuiteName()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitDiagnosticCatalogPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessDiagnosticCatalogPathAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessDiagnosticCatalogSuiteName()"
@@ -2125,8 +2156,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 130 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 130"
+[[ "$selfcheck_count" -eq 131 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 131"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'

@@ -240,6 +240,67 @@ func CompilerHarnessExamplesInventoryReady() -> Bool {
     return CompilerHarnessExamplesInventorySuiteName() != "";
 }
 
+func CompilerHarnessAirGraphJsonValidatorSuiteName() -> String {
+    return "air-graph-json-validator-paths";
+}
+
+func CompilerHarnessAirGraphJsonValidatorToolSourcePath() -> String {
+    return "src/self_hosted/tools/air_graph_json_validator/main.pgy";
+}
+
+func CompilerHarnessAirGraphJsonValidatorAirEvidenceOwnerPath() -> String {
+    return "src/self_hosted/compiler/air_evidence_owner.pgy";
+}
+
+func CompilerHarnessAirGraphJsonValidatorExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/air_graph_json_validator/expected/clean.json";
+}
+
+func CompilerHarnessAirGraphJsonValidatorFixturePath() -> String {
+    return "src/self_hosted/tools/air_graph_json_validator/fixture/sample.json";
+}
+
+func CompilerHarnessAirGraphJsonValidatorCapabilityFixturePath() -> String {
+    return "src/self_hosted/tools/air_graph_json_validator/fixture/cap_env.json";
+}
+
+func CompilerHarnessAirGraphJsonValidatorLiveSourcePath() -> String {
+    return "tests/cases/backend_compare/intent_zone_binding/main.pgy";
+}
+
+func CompilerHarnessAirGraphJsonValidatorCapabilityLiveSourcePath() -> String {
+    return "tests/capability/cap_env_demo.pgy";
+}
+
+func CompilerHarnessAirGraphJsonValidatorPathCount() -> Int {
+    return 7;
+}
+
+func CompilerHarnessAirGraphJsonValidatorPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessAirGraphJsonValidatorToolSourcePath(); }
+    if index == 1 { return CompilerHarnessAirGraphJsonValidatorAirEvidenceOwnerPath(); }
+    if index == 2 { return CompilerHarnessAirGraphJsonValidatorExpectedJsonPath(); }
+    if index == 3 { return CompilerHarnessAirGraphJsonValidatorFixturePath(); }
+    if index == 4 { return CompilerHarnessAirGraphJsonValidatorCapabilityFixturePath(); }
+    if index == 5 { return CompilerHarnessAirGraphJsonValidatorLiveSourcePath(); }
+    if index == 6 { return CompilerHarnessAirGraphJsonValidatorCapabilityLiveSourcePath(); }
+    return "";
+}
+
+func CompilerHarnessAirGraphJsonValidatorReady() -> Bool {
+    if CompilerHarnessAirGraphJsonValidatorPathCount() != 7 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessAirGraphJsonValidatorPathCount() {
+        if CompilerHarnessAirGraphJsonValidatorPathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessAirGraphJsonValidatorSuiteName() != "";
+}
+
 func CompilerHarnessDiagnosticCatalogSuiteName() -> String {
     return "diagnostic-catalog-paths";
 }

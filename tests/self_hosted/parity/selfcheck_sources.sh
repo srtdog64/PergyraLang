@@ -160,6 +160,7 @@ SELF_SOURCES=(
     "src/self_hosted/tools/air_graph_id_uniqueness/main.pgy"
     "src/self_hosted/tools/air_graph_json_validator/main.pgy"
     "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy"
+    "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy"
     "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy"
     "src/self_hosted/tools/air_graph_node_count_integrity/main.pgy"
     "src/self_hosted/tools/air_graph_reachability/main.pgy"

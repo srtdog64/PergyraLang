@@ -70,6 +70,14 @@ func EmitExamplesInventoryPaths() -> Void {
     }
 }
 
+func EmitAirGraphJsonValidatorPaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessAirGraphJsonValidatorPathCount() {
+        Log(CompilerHarnessAirGraphJsonValidatorPathAt(i));
+        i = i + 1;
+    }
+}
+
 func EmitDiagnosticCatalogPaths() -> Void {
     let i: Int = 0;
     while i < CompilerHarnessDiagnosticCatalogPathCount() {
@@ -147,6 +155,10 @@ func Main() -> Void {
     }
     if args[0] == CompilerHarnessExamplesInventorySuiteName() {
         EmitExamplesInventoryPaths();
+        return;
+    }
+    if args[0] == CompilerHarnessAirGraphJsonValidatorSuiteName() {
+        EmitAirGraphJsonValidatorPaths();
         return;
     }
     if args[0] == CompilerHarnessDiagnosticCatalogSuiteName() {

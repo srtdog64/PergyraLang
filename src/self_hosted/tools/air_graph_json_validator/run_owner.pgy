@@ -4,14 +4,28 @@
 // paths, filesystem reads, logging, and process exit policy.
 
 import "../../compiler/air_evidence_owner.pgy";
+import "scan_owner.pgy";
+import "report_owner.pgy";
 
-func RunAirGraphJsonValidation() -> Void {
+func AirGraphFixturePathFromArgs(args: Array<String>) -> String {
+    if ArrayLength(args) > 0 {
+        return args[0];
+    }
+    return "src/self_hosted/tools/air_graph_json_validator/fixture/sample.json";
+}
+
+func AirGraphCapabilityFixturePathFromArgs(args: Array<String>) -> String {
+    if ArrayLength(args) > 1 {
+        return args[1];
+    }
+    return "src/self_hosted/tools/air_graph_json_validator/fixture/cap_env.json";
+}
+
+func RunAirGraphJsonValidationWithPaths(fixture_path: String, cap_fixture_path: String) -> Void {
     if !CompilerAirEvidenceEnvelopeReady() {
         Log(UnwrapOption(InputErrorJson("compiler AIR evidence envelope")));
         Exit(1);
     }
-    let fixture_path: String = "src/self_hosted/tools/air_graph_json_validator/fixture/sample.json";
-    let cap_fixture_path: String = "src/self_hosted/tools/air_graph_json_validator/fixture/cap_env.json";
     if !FileExists(fixture_path) {
         Log(UnwrapOption(InputErrorJson(fixture_path)));
         Exit(1);
@@ -72,4 +86,18 @@ func RunAirGraphJsonValidation() -> Void {
     if !ok {
         Exit(1);
     }
+}
+
+func RunAirGraphJsonValidationFromArgs(args: Array<String>) -> Void {
+    RunAirGraphJsonValidationWithPaths(
+        AirGraphFixturePathFromArgs(args),
+        AirGraphCapabilityFixturePathFromArgs(args)
+    );
+}
+
+func RunAirGraphJsonValidation() -> Void {
+    RunAirGraphJsonValidationWithPaths(
+        "src/self_hosted/tools/air_graph_json_validator/fixture/sample.json",
+        "src/self_hosted/tools/air_graph_json_validator/fixture/cap_env.json"
+    );
 }

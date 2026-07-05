@@ -3736,3 +3736,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Promoted `diagnostic_catalog_checker/run_owner.pgy` into the real-source
   semantic selfcheck manifest, raising the accepted self-host owner/source count
   to 130.
+
+### 2026-07-05 -- AIR graph validator consumes TestHarness path owner
+
+- Added the `air-graph-json-validator-paths` suite to the self-host TestHarness
+  tool path owner. The suite owns the validator source, AIR evidence owner,
+  expected clean JSON, committed AIR fixtures, and live AIR source paths.
+- Repointed `air_graph_json_validator_parity.sh` so those paths come from the
+  compiled Pergyra manifest instead of shell constants.
+- Extended the AIR graph validator run boundary so fixture paths can be passed
+  through `Args()`. The no-arg defaults remain the same, but hard parity now
+  proves the input boundary consumes owner-supplied fixture paths.
+- Promoted `air_graph_json_validator/run_owner.pgy` into the real-source
+  semantic selfcheck manifest, raising the accepted self-host owner/source count
+  to 131.

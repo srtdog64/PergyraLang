@@ -34,16 +34,38 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
-PERGYRA_TOOL_SOURCE_DIR="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator"
-PERGYRA_TOOL_SOURCE="$PERGYRA_TOOL_SOURCE_DIR/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/air_graph_json_validator}"
+HARNESS_PATHS_FILE="$PERGYRA_TOOL_BUILD_DIR/air_graph_json_validator_harness_paths.txt"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
-AIR_EVIDENCE_OWNER="$ROOT_DIR/src/self_hosted/compiler/air_evidence_owner.pgy"
-EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator/expected/clean.json"
-FIXTURE_FILE="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator/fixture/sample.json"
-CAP_FIXTURE_FILE="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator/fixture/cap_env.json"
-AIR_SOURCE="$ROOT_DIR/tests/cases/backend_compare/intent_zone_binding/main.pgy"
-AIR_CAP_SOURCE="$ROOT_DIR/tests/capability/cap_env_demo.pgy"
+mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:air-graph-json" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "air-graph-json-validator-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 7 ]]; then
+    echo "[self-host-parity:air-graph-json] TestHarness manifest expected 7 air-graph-json paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
+PERGYRA_TOOL_SOURCE_DIR="$(dirname "$PERGYRA_TOOL_SOURCE")"
+AIR_EVIDENCE_OWNER="$ROOT_DIR/${harness_paths[1]}"
+EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[2]}"
+FIXTURE_REL="${harness_paths[3]}"
+CAP_FIXTURE_REL="${harness_paths[4]}"
+AIR_SOURCE_REL="${harness_paths[5]}"
+AIR_CAP_SOURCE_REL="${harness_paths[6]}"
+FIXTURE_FILE="$ROOT_DIR/$FIXTURE_REL"
+CAP_FIXTURE_FILE="$ROOT_DIR/$CAP_FIXTURE_REL"
+AIR_SOURCE="$ROOT_DIR/$AIR_SOURCE_REL"
+AIR_CAP_SOURCE="$ROOT_DIR/$AIR_CAP_SOURCE_REL"
 
 for path in "$PERGYRA_TOOL_SOURCE" "$AIR_EVIDENCE_OWNER" "$EXPECTED_JSON_FILE" "$FIXTURE_FILE" "$CAP_FIXTURE_FILE" "$AIR_SOURCE" "$AIR_CAP_SOURCE"; do
     if [[ ! -f "$path" ]]; then
@@ -115,7 +137,6 @@ compare_air_json_file_with_owner() {
         >"$AIR_JSON_COMPARE_OUT" 2>"$AIR_JSON_COMPARE_ERR")
 }
 
-mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$PERGYRA_TOOL_SOURCE_DIR"/*.pgy "$PERGYRA_TOOL_BUILD_DIR"/
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR/../../lib"
 cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/../../lib/"
@@ -123,11 +144,22 @@ mkdir -p "$PERGYRA_TOOL_BUILD_DIR/../../compiler"
 cp "$AIR_EVIDENCE_OWNER" "$PERGYRA_TOOL_BUILD_DIR/../../compiler/air_evidence_owner.pgy"
 PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
 
+CLEAN_BIN="$PERGYRA_TOOL_BUILD_DIR/air_graph_json_validator_c.exe"
+CLEAN_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/air_graph_json_validator_c.compile.log"
+if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" --backend=c \
+    -o "$(pgy_path_for_compiler "$PGY" "$CLEAN_BIN")" >"$CLEAN_COMPILE_LOG" 2>&1); then
+    echo "[self-host-parity:air-graph-json] C backend compile failed" >&2
+    cat "$CLEAN_COMPILE_LOG" >&2
+    exit 1
+fi
+if ! pgy_require_runnable_binary_here "self-host-parity:air-graph-json" "$CLEAN_BIN"; then
+    exit 1
+fi
+
 set +e
-PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>/dev/null | tr -d '\r')"
+PERGYRA_OUT="$(cd "$ROOT_DIR" && "$CLEAN_BIN" "$FIXTURE_REL" "$CAP_FIXTURE_REL" 2>/dev/null | tr -d '\r')"
 P_RC=$?
 set -e
-
 if [[ "$P_RC" -ne 0 ]]; then
     echo "[self-host-parity:air-graph-json] clean exit-code FAIL (pergyra=$P_RC)" >&2
     printf '%s\n' "$PERGYRA_OUT" >&2
@@ -225,7 +257,7 @@ if [[ "$LIVE_RC" -eq 0 && -s "$LIVE_AIR_JSON" ]]; then
             DRIFT_GUARD="skipped-by-env"
         else
             echo "[self-host-parity:air-graph-json] committed fixture drifted from live pgy --air-json output" >&2
-            echo "regenerate via: pgy --air-json $AIR_SOURCE > $FIXTURE_FILE" >&2
+            echo "regenerate via: pgy --air-json $AIR_SOURCE_REL > $FIXTURE_REL" >&2
             cat "$AIR_JSON_COMPARE_OUT" "$AIR_JSON_COMPARE_ERR" >&2
             exit 1
         fi
@@ -239,7 +271,7 @@ if [[ "$LIVE_CAP_RC" -eq 0 && -s "$LIVE_CAP_AIR_JSON" ]]; then
             DRIFT_GUARD="skipped-by-env"
         else
             echo "[self-host-parity:air-graph-json] committed cap_env fixture drifted from live pgy --air-json output" >&2
-            echo "regenerate via: pgy --air-json $AIR_CAP_SOURCE > $CAP_FIXTURE_FILE" >&2
+            echo "regenerate via: pgy --air-json $AIR_CAP_SOURCE_REL > $CAP_FIXTURE_REL" >&2
             cat "$AIR_JSON_COMPARE_OUT" "$AIR_JSON_COMPARE_ERR" >&2
             exit 1
         fi
@@ -255,16 +287,15 @@ cleanup_neg_root() {
     cleanup_live_air
 }
 trap cleanup_neg_root EXIT
-mkdir -p "$NEG_ROOT/src/self_hosted/tools/air_graph_json_validator/fixture"
+mkdir -p "$NEG_ROOT/$(dirname "$FIXTURE_REL")" "$NEG_ROOT/$(dirname "$CAP_FIXTURE_REL")"
 mkdir -p "$NEG_ROOT/.tmp"
 # Strip the "summary":{...}, segment - simple sed that matches the live shape.
 sed -E 's/"summary":\{[^}]*\},//' "$FIXTURE_FILE" \
-    > "$NEG_ROOT/src/self_hosted/tools/air_graph_json_validator/fixture/sample.json"
-cp "$CAP_FIXTURE_FILE" \
-    "$NEG_ROOT/src/self_hosted/tools/air_graph_json_validator/fixture/cap_env.json"
+    > "$NEG_ROOT/$FIXTURE_REL"
+cp "$CAP_FIXTURE_FILE" "$NEG_ROOT/$CAP_FIXTURE_REL"
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>&1 | tr -d '\r')"
+NEG_OUT="$(cd "$NEG_ROOT" && "$CLEAN_BIN" "$FIXTURE_REL" "$CAP_FIXTURE_REL" 2>&1 | tr -d '\r')"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then
@@ -283,5 +314,5 @@ if ! grep -Fq '"missing_keys":1' <<<"$NEG_OUT"; then
     exit 1
 fi
 
-assert_llvm_leg "self-host-parity:air-graph-json" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR"
+assert_llvm_leg "self-host-parity:air-graph-json" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$FIXTURE_REL" "$CAP_FIXTURE_REL"
 echo "[self-host-parity:air-graph-json] rung-2 parity ok (intents=$SHELL_INTENTS boundaries=$SHELL_BOUNDARIES evidence=$SHELL_EVIDENCE drifts=$SHELL_DRIFTS effect_sites=$SHELL_EFFECT_SITES env_effect_sites=$SHELL_ENV_EFFECT_SITES; missing-key rc=1; live-drift=$DRIFT_GUARD)"

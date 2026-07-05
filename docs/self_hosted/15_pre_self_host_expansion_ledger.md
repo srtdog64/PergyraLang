@@ -101,6 +101,14 @@ the checker source, expected clean JSON, and `tests/ast_read_surface_ratchet.txt
 through the `ast-read-surface-paths` manifest suite, then runs the compiled
 checker binary for clean and growth fixtures.
 
+TestHarness delta, 2026-07-05: `air_graph_json_validator_parity.sh` now gets
+the checker source, AIR evidence owner, expected clean JSON, committed AIR
+fixtures, and live AIR source paths through the
+`air-graph-json-validator-paths` manifest suite. The compiled checker receives
+the committed fixture paths through `Args()`, so the AIR evidence validation
+input boundary consumes the same Pergyra path facts that the parity runner
+executes.
+
 TestHarness delta, 2026-07-05: `production_c_size_checker_parity.sh` and
 `production_header_size_checker_parity.sh` now get checker source and expected
 clean JSON through `production-c-size-paths` and `production-header-size-paths`
