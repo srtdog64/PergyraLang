@@ -30,14 +30,33 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
-TOOL_DIR="$ROOT_DIR/src/self_hosted/tools/air_graph_ref_integrity"
-PERGYRA_TOOL_SOURCE="$TOOL_DIR/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/air_graph_ref_integrity}"
+HARNESS_PATHS_FILE="$PERGYRA_TOOL_BUILD_DIR/air_graph_ref_integrity_harness_paths.txt"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
-AIR_GRAPH_SCAN_OWNER="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy"
-EXPECTED_JSON_FILE="$TOOL_DIR/expected/clean.json"
-FIXTURE_FILE="$TOOL_DIR/fixture/graph_edges.json"
-DANGLING_FIXTURE_FILE="$TOOL_DIR/fixture/graph_edges_dangling.json"
+mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:air-ref-integrity" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "air-graph-ref-integrity-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 5 ]]; then
+    echo "[self-host-parity:air-ref-integrity] TestHarness manifest expected 5 paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
+AIR_GRAPH_SCAN_OWNER="$ROOT_DIR/${harness_paths[1]}"
+EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[2]}"
+FIXTURE_REL="${harness_paths[3]}"
+DANGLING_FIXTURE_REL="${harness_paths[4]}"
+FIXTURE_FILE="$ROOT_DIR/$FIXTURE_REL"
+DANGLING_FIXTURE_FILE="$ROOT_DIR/$DANGLING_FIXTURE_REL"
 
 for path in "$PERGYRA_TOOL_SOURCE" "$AIR_GRAPH_SCAN_OWNER" "$EXPECTED_JSON_FILE" "$FIXTURE_FILE" "$DANGLING_FIXTURE_FILE"; do
     if [[ ! -f "$path" ]]; then
@@ -46,17 +65,6 @@ for path in "$PERGYRA_TOOL_SOURCE" "$AIR_GRAPH_SCAN_OWNER" "$EXPECTED_JSON_FILE"
     fi
 done
 
-pgy_selfhost_tmp_root() {
-    local tmp_root="${TMPDIR:-/tmp}"
-    case "$tmp_root" in
-        /*|[A-Za-z]:/*) ;;
-        *) tmp_root="$ROOT_DIR/$tmp_root" ;;
-    esac
-    mkdir -p "$tmp_root"
-    printf '%s\n' "$tmp_root"
-}
-
-mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
 AIR_SCAN_BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/air_graph_json_validator"
 mkdir -p "$AIR_SCAN_BUILD_DIR"
@@ -65,10 +73,21 @@ LIB_BUILD_DIR="$ROOT_DIR/.tmp/lib"
 mkdir -p "$LIB_BUILD_DIR"
 cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
 PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
+CLEAN_BIN="$PERGYRA_TOOL_BUILD_DIR/air_graph_ref_integrity_c.exe"
+CLEAN_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/air_graph_ref_integrity_c.compile.log"
+if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" --backend=c \
+    -o "$(pgy_path_for_compiler "$PGY" "$CLEAN_BIN")" >"$CLEAN_COMPILE_LOG" 2>&1); then
+    echo "[self-host-parity:air-ref-integrity] C backend compile failed" >&2
+    cat "$CLEAN_COMPILE_LOG" >&2
+    exit 1
+fi
+if ! pgy_require_runnable_binary_here "self-host-parity:air-ref-integrity" "$CLEAN_BIN"; then
+    exit 1
+fi
 
 # Clean run.
 set +e
-PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>/dev/null)"
+PERGYRA_OUT="$(cd "$ROOT_DIR" && "$CLEAN_BIN" "$FIXTURE_REL" 2>/dev/null)"
 P_RC=$?
 set -e
 
@@ -103,20 +122,9 @@ if ! grep -Fq '"dangling":0' <<<"$PERGYRA_OUT"; then
     exit 1
 fi
 
-# Negative fixture: one dangling endpoint, run in a temp root, expect rc=1.
-SELFHOST_TMP_ROOT="$(pgy_selfhost_tmp_root)"
-NEG_ROOT="$(mktemp -d "$SELFHOST_TMP_ROOT/pgy-selfhost-ref-neg.XXXXXX")"
-cleanup_neg_root() {
-    rm -rf "$NEG_ROOT"
-}
-trap cleanup_neg_root EXIT
-mkdir -p "$NEG_ROOT/src/self_hosted/tools/air_graph_ref_integrity/fixture"
-mkdir -p "$NEG_ROOT/.tmp"
-cp "$DANGLING_FIXTURE_FILE" \
-    "$NEG_ROOT/src/self_hosted/tools/air_graph_ref_integrity/fixture/graph_edges.json"
-
+# Negative fixture: one dangling endpoint, expect rc=1.
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>&1)"
+NEG_OUT="$(cd "$ROOT_DIR" && "$CLEAN_BIN" "$DANGLING_FIXTURE_REL" 2>&1)"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then
@@ -135,5 +143,5 @@ if ! grep -Fq '"kind":"dangling_edge_endpoint"' <<<"$NEG_OUT"; then
     exit 1
 fi
 
-assert_llvm_leg "self-host-parity:air-ref-integrity" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR"
+assert_llvm_leg "self-host-parity:air-ref-integrity" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$FIXTURE_REL"
 echo "[self-host-parity:air-ref-integrity] rung-1 parity ok (clean dangling=0 artifact-equal; dangling fixture rc=1)"

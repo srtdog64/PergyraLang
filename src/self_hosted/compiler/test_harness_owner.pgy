@@ -3,6 +3,7 @@
 // Owns the fixture/result row vocabulary for hard self-host parity.
 
 import "test_harness_tool_paths_owner.pgy";
+import "test_harness_air_graph_paths_owner.pgy";
 
 func CompilerTestHarnessSchema() -> String {
     return "pgy.selfhost.test-harness.v1";
@@ -239,5 +240,6 @@ func CompilerTestHarnessReady() -> Bool {
         CompilerHarnessStdlibDispatchInventoryReady() &&
         CompilerHarnessProductionCSizeReady() &&
         CompilerHarnessProductionHeaderSizeReady() &&
+        CompilerHarnessAirGraphConsumersReady() &&
         CompilerHarnessBackendTriSuiteReady();
 }

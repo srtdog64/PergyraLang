@@ -1552,6 +1552,8 @@ for air_graph_fact_consumer in \
     src/self_hosted/tools/air_graph_ref_integrity/main.pgy \
     src/self_hosted/tools/air_graph_ref_live/main.pgy; do
     require_text "$air_graph_fact_consumer" 'import "../air_graph_json_validator/scan_owner.pgy";'
+    require_text "$air_graph_fact_consumer" "func FixturePathFromArgs"
+    require_text "$air_graph_fact_consumer" "let args: Array<String> = Args();"
     require_text "$air_graph_fact_consumer" "AirGraphScalarFieldValues(content,"
     reject_text "$air_graph_fact_consumer" "func ExtractIds"
     reject_text "$air_graph_fact_consumer" "func ExtractByKey"
@@ -1574,13 +1576,33 @@ for air_graph_parity in \
     tests/self_hosted/parity/air_graph_reachability_parity.sh \
     tests/self_hosted/parity/air_graph_ref_integrity_parity.sh \
     tests/self_hosted/parity/air_graph_ref_live_parity.sh; do
+    require_text "$air_graph_parity" "pgy_selfhost_read_test_harness_manifest"
+    require_text "$air_graph_parity" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+    require_text "$air_graph_parity" 'AIR_GRAPH_SCAN_OWNER="$ROOT_DIR/${harness_paths[1]}"'
+    require_text "$air_graph_parity" 'EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[2]}"'
+    require_text "$air_graph_parity" 'FIXTURE_REL="${harness_paths[3]}"'
+    require_text "$air_graph_parity" '"$CLEAN_BIN" "$FIXTURE_REL"'
     require_text "$air_graph_parity" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"'
     require_text "$air_graph_parity" 'cp "$AIR_GRAPH_SCAN_OWNER" "$AIR_SCAN_BUILD_DIR/scan_owner.pgy"'
     require_text "$air_graph_parity" "pgy_selfhost_compare_expected_text_artifact_with_owner"
     require_text "$air_graph_parity" '"air_json"'
+    require_text "$air_graph_parity" 'assert_llvm_leg "self-host-parity:air-'
+    require_text "$air_graph_parity" '"$FIXTURE_REL"'
     reject_text "$air_graph_parity" 'EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"'
     reject_text "$air_graph_parity" "clean JSON parity FAIL"
+    reject_text "$air_graph_parity" 'TOOL_DIR="$ROOT_DIR/src/self_hosted/tools/air_graph'
+    reject_text "$air_graph_parity" 'PERGYRA_TOOL_SOURCE="$TOOL_DIR/main.pgy"'
+    reject_text "$air_graph_parity" 'AIR_GRAPH_SCAN_OWNER="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy"'
+    reject_text "$air_graph_parity" '--run'
 done
+require_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" '"air-graph-id-uniqueness-paths"'
+require_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" 'DUP_FIXTURE_REL="${harness_paths[4]}"'
+require_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" '"air-graph-node-count-paths"'
+require_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" '"air-graph-reachability-paths"'
+require_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" 'ORPHAN_FIXTURE_REL="${harness_paths[4]}"'
+require_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" '"air-graph-ref-integrity-paths"'
+require_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" 'DANGLING_FIXTURE_REL="${harness_paths[4]}"'
+require_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" '"air-graph-ref-live-paths"'
 require_make_target_recipe_line \
     "self-host-air-graph-consumer-parity-test-smoke" \
     'PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_json_validator_parity.sh'
@@ -1716,6 +1738,19 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHar
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessExpectedComparableArtifactPath"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessActualComparableArtifactPath"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_tool_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_air_graph_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphScanOwnerPath"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphIdUniquenessSuiteName"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphIdUniquenessPathAt"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphNodeCountSuiteName"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphNodeCountPathAt"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphReachabilitySuiteName"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphReachabilityPathAt"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefIntegritySuiteName"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefIntegrityPathAt"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefLiveSuiteName"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefLivePathAt"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphConsumersReady"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLinterParitySuiteName"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLinterToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLinterExpectedDiagnosticsPath"
@@ -1821,9 +1856,11 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessA
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessStdlibDispatchInventoryReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessProductionCSizeReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessProductionHeaderSizeReady()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessAirGraphConsumersReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendTriSuiteReady()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_tool_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_air_graph_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitBackendTriSmokeCases"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitLinterParityPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLinterPathAt(i)"
@@ -1861,11 +1898,27 @@ require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarne
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitProductionHeaderSizePaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessProductionHeaderSizePathAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessProductionHeaderSizeSuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitAirGraphIdUniquenessPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessAirGraphIdUniquenessPathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessAirGraphIdUniquenessSuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitAirGraphNodeCountPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessAirGraphNodeCountPathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessAirGraphNodeCountSuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitAirGraphReachabilityPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessAirGraphReachabilityPathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessAirGraphReachabilitySuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitAirGraphRefIntegrityPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessAirGraphRefIntegrityPathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessAirGraphRefIntegritySuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitAirGraphRefLivePaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessAirGraphRefLivePathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessAirGraphRefLiveSuiteName()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriSmokeCaseAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriExtendedCaseAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriSmokeSuiteName()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendTriExtendedSuiteName()"
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_manifest.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/test_harness_tool_paths_owner.pgy"'
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(0) == "source_path"'
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(1) == "expected_diagnostic"'
@@ -2156,8 +2209,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 131 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 131"
+[[ "$selfcheck_count" -eq 132 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 132"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'

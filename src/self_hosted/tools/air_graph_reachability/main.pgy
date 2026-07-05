@@ -99,8 +99,16 @@ func Reachable(roots: Array<String>, froms: Array<String>, tos: Array<String>) -
     return visited;
 }
 
+func FixturePathFromArgs(args: Array<String>) -> String {
+    if ArrayLength(args) > 0 {
+        return args[0];
+    }
+    return "src/self_hosted/tools/air_graph_reachability/fixture/graph_rooted.json";
+}
+
 func Main() -> Void {
-    let fixture_path: String = "src/self_hosted/tools/air_graph_reachability/fixture/graph_rooted.json";
+    let args: Array<String> = Args();
+    let fixture_path: String = FixturePathFromArgs(args);
     if !FileExists(fixture_path) {
         Log(UnwrapOption(InputErrorJson(fixture_path)));
         Exit(1);

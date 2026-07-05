@@ -25,6 +25,18 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-05 - AIR graph consumer paths consume TestHarness owner
+
+- Added `test_harness_air_graph_paths_owner.pgy` to own the AIR graph
+  id-uniqueness, node-count, reachability, ref-integrity, and ref-live path
+  suites outside the generic tool-path owner.
+- Repointed the five AIR graph consumer parity scripts so shell reads tool
+  source, shared scan owner, expected JSON, and fixture paths from
+  `test_harness_manifest.pgy`; clean and negative runs pass fixture paths into
+  compiled checkers through `Args()[0]`.
+- Promoted the new path owner into real-source semantic selfcheck, raising the
+  accepted self-host owner/source count to 132.
+
 ## 2026-07-05 - MIR JSON parity fixture inventory consumes mir_lower owner
 
 - Added `fixture_manifest_owner.pgy` to own the 86 positive MIR parity source

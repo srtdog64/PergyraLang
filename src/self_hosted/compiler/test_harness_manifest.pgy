@@ -5,6 +5,7 @@
 
 import "test_harness_owner.pgy";
 import "test_harness_tool_paths_owner.pgy";
+import "test_harness_air_graph_paths_owner.pgy";
 
 func EmitBackendTriSmokeCases() -> Void {
     let i: Int = 0;
@@ -74,6 +75,46 @@ func EmitAirGraphJsonValidatorPaths() -> Void {
     let i: Int = 0;
     while i < CompilerHarnessAirGraphJsonValidatorPathCount() {
         Log(CompilerHarnessAirGraphJsonValidatorPathAt(i));
+        i = i + 1;
+    }
+}
+
+func EmitAirGraphIdUniquenessPaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessAirGraphIdUniquenessPathCount() {
+        Log(CompilerHarnessAirGraphIdUniquenessPathAt(i));
+        i = i + 1;
+    }
+}
+
+func EmitAirGraphNodeCountPaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessAirGraphNodeCountPathCount() {
+        Log(CompilerHarnessAirGraphNodeCountPathAt(i));
+        i = i + 1;
+    }
+}
+
+func EmitAirGraphReachabilityPaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessAirGraphReachabilityPathCount() {
+        Log(CompilerHarnessAirGraphReachabilityPathAt(i));
+        i = i + 1;
+    }
+}
+
+func EmitAirGraphRefIntegrityPaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessAirGraphRefIntegrityPathCount() {
+        Log(CompilerHarnessAirGraphRefIntegrityPathAt(i));
+        i = i + 1;
+    }
+}
+
+func EmitAirGraphRefLivePaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessAirGraphRefLivePathCount() {
+        Log(CompilerHarnessAirGraphRefLivePathAt(i));
         i = i + 1;
     }
 }
@@ -159,6 +200,26 @@ func Main() -> Void {
     }
     if args[0] == CompilerHarnessAirGraphJsonValidatorSuiteName() {
         EmitAirGraphJsonValidatorPaths();
+        return;
+    }
+    if args[0] == CompilerHarnessAirGraphIdUniquenessSuiteName() {
+        EmitAirGraphIdUniquenessPaths();
+        return;
+    }
+    if args[0] == CompilerHarnessAirGraphNodeCountSuiteName() {
+        EmitAirGraphNodeCountPaths();
+        return;
+    }
+    if args[0] == CompilerHarnessAirGraphReachabilitySuiteName() {
+        EmitAirGraphReachabilityPaths();
+        return;
+    }
+    if args[0] == CompilerHarnessAirGraphRefIntegritySuiteName() {
+        EmitAirGraphRefIntegrityPaths();
+        return;
+    }
+    if args[0] == CompilerHarnessAirGraphRefLiveSuiteName() {
+        EmitAirGraphRefLivePaths();
         return;
     }
     if args[0] == CompilerHarnessDiagnosticCatalogSuiteName() {

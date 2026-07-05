@@ -61,8 +61,16 @@ func InputErrorJson(path: String) -> Option<String> {
     return Some(JsonEmitObject(report_fields));
 }
 
+func FixturePathFromArgs(args: Array<String>) -> String {
+    if ArrayLength(args) > 0 {
+        return args[0];
+    }
+    return "src/self_hosted/tools/air_graph_id_uniqueness/fixture/graph_ids.json";
+}
+
 func Main() -> Void {
-    let fixture_path: String = "src/self_hosted/tools/air_graph_id_uniqueness/fixture/graph_ids.json";
+    let args: Array<String> = Args();
+    let fixture_path: String = FixturePathFromArgs(args);
     if !FileExists(fixture_path) {
         Log(UnwrapOption(InputErrorJson(fixture_path)));
         Exit(1);

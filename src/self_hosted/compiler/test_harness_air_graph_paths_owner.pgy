@@ -1,0 +1,135 @@
+// TestHarness AIR graph consumer path owner.
+//
+// Keeps AIR graph consumer parity suites out of the generic tool-path owner.
+// Shell may execute these rows, but path ownership lives here.
+
+func CompilerHarnessAirGraphScanOwnerPath() -> String {
+    return "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy";
+}
+
+func CompilerHarnessAirGraphIdUniquenessSuiteName() -> String {
+    return "air-graph-id-uniqueness-paths";
+}
+
+func CompilerHarnessAirGraphIdUniquenessPathCount() -> Int {
+    return 5;
+}
+
+func CompilerHarnessAirGraphIdUniquenessPathAt(index: Int) -> String {
+    if index == 0 { return "src/self_hosted/tools/air_graph_id_uniqueness/main.pgy"; }
+    if index == 1 { return CompilerHarnessAirGraphScanOwnerPath(); }
+    if index == 2 { return "src/self_hosted/tools/air_graph_id_uniqueness/expected/clean.json"; }
+    if index == 3 { return "src/self_hosted/tools/air_graph_id_uniqueness/fixture/graph_ids.json"; }
+    if index == 4 { return "src/self_hosted/tools/air_graph_id_uniqueness/fixture/graph_ids_dup.json"; }
+    return "";
+}
+
+func CompilerHarnessAirGraphIdUniquenessReady() -> Bool {
+    return CompilerHarnessAirGraphIdUniquenessSuiteName() != "" &&
+        CompilerHarnessAirGraphIdUniquenessPathCount() == 5 &&
+        CompilerHarnessAirGraphIdUniquenessPathAt(0) != "" &&
+        CompilerHarnessAirGraphIdUniquenessPathAt(4) != "";
+}
+
+func CompilerHarnessAirGraphNodeCountSuiteName() -> String {
+    return "air-graph-node-count-paths";
+}
+
+func CompilerHarnessAirGraphNodeCountPathCount() -> Int {
+    return 4;
+}
+
+func CompilerHarnessAirGraphNodeCountPathAt(index: Int) -> String {
+    if index == 0 { return "src/self_hosted/tools/air_graph_node_count_integrity/main.pgy"; }
+    if index == 1 { return CompilerHarnessAirGraphScanOwnerPath(); }
+    if index == 2 { return "src/self_hosted/tools/air_graph_node_count_integrity/expected/clean.json"; }
+    if index == 3 { return "src/self_hosted/tools/air_graph_json_validator/fixture/sample.json"; }
+    return "";
+}
+
+func CompilerHarnessAirGraphNodeCountReady() -> Bool {
+    return CompilerHarnessAirGraphNodeCountSuiteName() != "" &&
+        CompilerHarnessAirGraphNodeCountPathCount() == 4 &&
+        CompilerHarnessAirGraphNodeCountPathAt(0) != "" &&
+        CompilerHarnessAirGraphNodeCountPathAt(3) != "";
+}
+
+func CompilerHarnessAirGraphReachabilitySuiteName() -> String {
+    return "air-graph-reachability-paths";
+}
+
+func CompilerHarnessAirGraphReachabilityPathCount() -> Int {
+    return 5;
+}
+
+func CompilerHarnessAirGraphReachabilityPathAt(index: Int) -> String {
+    if index == 0 { return "src/self_hosted/tools/air_graph_reachability/main.pgy"; }
+    if index == 1 { return CompilerHarnessAirGraphScanOwnerPath(); }
+    if index == 2 { return "src/self_hosted/tools/air_graph_reachability/expected/clean.json"; }
+    if index == 3 { return "src/self_hosted/tools/air_graph_reachability/fixture/graph_rooted.json"; }
+    if index == 4 { return "src/self_hosted/tools/air_graph_reachability/fixture/graph_orphan.json"; }
+    return "";
+}
+
+func CompilerHarnessAirGraphReachabilityReady() -> Bool {
+    return CompilerHarnessAirGraphReachabilitySuiteName() != "" &&
+        CompilerHarnessAirGraphReachabilityPathCount() == 5 &&
+        CompilerHarnessAirGraphReachabilityPathAt(0) != "" &&
+        CompilerHarnessAirGraphReachabilityPathAt(4) != "";
+}
+
+func CompilerHarnessAirGraphRefIntegritySuiteName() -> String {
+    return "air-graph-ref-integrity-paths";
+}
+
+func CompilerHarnessAirGraphRefIntegrityPathCount() -> Int {
+    return 5;
+}
+
+func CompilerHarnessAirGraphRefIntegrityPathAt(index: Int) -> String {
+    if index == 0 { return "src/self_hosted/tools/air_graph_ref_integrity/main.pgy"; }
+    if index == 1 { return CompilerHarnessAirGraphScanOwnerPath(); }
+    if index == 2 { return "src/self_hosted/tools/air_graph_ref_integrity/expected/clean.json"; }
+    if index == 3 { return "src/self_hosted/tools/air_graph_ref_integrity/fixture/graph_edges.json"; }
+    if index == 4 { return "src/self_hosted/tools/air_graph_ref_integrity/fixture/graph_edges_dangling.json"; }
+    return "";
+}
+
+func CompilerHarnessAirGraphRefIntegrityReady() -> Bool {
+    return CompilerHarnessAirGraphRefIntegritySuiteName() != "" &&
+        CompilerHarnessAirGraphRefIntegrityPathCount() == 5 &&
+        CompilerHarnessAirGraphRefIntegrityPathAt(0) != "" &&
+        CompilerHarnessAirGraphRefIntegrityPathAt(4) != "";
+}
+
+func CompilerHarnessAirGraphRefLiveSuiteName() -> String {
+    return "air-graph-ref-live-paths";
+}
+
+func CompilerHarnessAirGraphRefLivePathCount() -> Int {
+    return 4;
+}
+
+func CompilerHarnessAirGraphRefLivePathAt(index: Int) -> String {
+    if index == 0 { return "src/self_hosted/tools/air_graph_ref_live/main.pgy"; }
+    if index == 1 { return CompilerHarnessAirGraphScanOwnerPath(); }
+    if index == 2 { return "src/self_hosted/tools/air_graph_ref_live/expected/clean.json"; }
+    if index == 3 { return "src/self_hosted/tools/air_graph_json_validator/fixture/sample.json"; }
+    return "";
+}
+
+func CompilerHarnessAirGraphRefLiveReady() -> Bool {
+    return CompilerHarnessAirGraphRefLiveSuiteName() != "" &&
+        CompilerHarnessAirGraphRefLivePathCount() == 4 &&
+        CompilerHarnessAirGraphRefLivePathAt(0) != "" &&
+        CompilerHarnessAirGraphRefLivePathAt(3) != "";
+}
+
+func CompilerHarnessAirGraphConsumersReady() -> Bool {
+    return CompilerHarnessAirGraphScanOwnerPath() != "" &&
+        CompilerHarnessAirGraphIdUniquenessReady() &&
+        CompilerHarnessAirGraphNodeCountReady() &&
+        CompilerHarnessAirGraphReachabilityReady() &&
+        CompilerHarnessAirGraphRefIntegrityReady() &&
+        CompilerHarnessAirGraphRefLiveReady();
+}
