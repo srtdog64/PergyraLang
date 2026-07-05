@@ -76,6 +76,7 @@ SELF_SOURCES=(
     "src/self_hosted/compiler/target_capability_owner.pgy"
     "src/self_hosted/compiler/air_evidence_owner.pgy"
     "src/self_hosted/compiler/artifact_zone_owner.pgy"
+    "src/self_hosted/compiler/completeness_ledger_owner.pgy"
     "src/self_hosted/compiler/test_harness_owner.pgy"
     "src/self_hosted/compiler/subprocess_runner_owner.pgy"
     "src/self_hosted/compiler/abi_layout_row_owner.pgy"

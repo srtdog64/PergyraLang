@@ -54,9 +54,11 @@ self-hosting 선언으로 받고 레버리지를 thesis(던전크롤러)로 돌�
 | lsp | 1,037 | 0 | LSP-0..2i landed(별도 집계, **0% core**) | 임계경로 **아님** |
 
 **진짜 metric(likeness 래칫, `self_host_pergyra_likeness_smoke.sh`):**
-`string_munge_sig` = 156(이전 168에서 하강 = 개선 중), `ast: String` 아직 dominant,
-`TYPED_AST_CONTRACT_MIN` = 1(typed-AST 스켈레톤만 착지). **AST가 아직 string으로
-운반됨** = text→text munging 코어. 이걸 typed-AST로 교체하는 게 linchpin(§3.3).
+`string_munge_sig` **현재 166 vs baseline 156 = RED(exit 1, 2026-07-05 실측)** —
+최근 owner-routing 리팩터링이 +10 유발, `ast: String` 표면은 0(잠김), typed-AST
+스켈레톤 1 착지. **래칫이 red이고 CI(ci_linux/windows)에 있는데도 드리프트했다 =
+게이트 미강제 신호**(docs/160 §3 STEP 0). AST를 typed-AST로 교체하는 게 linchpin
+(§3.3)이고, **그 전제로 래칫을 먼저 green으로** 되돌려야 진척 측정이 가능하다.
 
 **해석:** 언어의 "쉬운 절반"(lexer, 그리고 codegen을 subset에서 self-host)은
 됐다. "어려운 절반"(semantic 46k LOC, parser의 나머지 48%, typed-AST 교체)이

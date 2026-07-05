@@ -17,6 +17,22 @@ func RunSemanticFromArgs(args: Array<String>) -> Void {
         EmitSemanticVerdictPayloadFixtureManifest();
         return;
     }
+    if args[0] == "--check" {
+        if ArrayLength(args) < 2 {
+            Log(SemanticError2("input_missing", "expected", "source", "actual", "none"));
+            Exit(1);
+            return;
+        }
+        let check_content: String = LoadSemanticSourceBundle(args[1]);
+        let check_error: String = CheckProgram(check_content);
+        if StringLength(check_error) > 0 {
+            Log(check_error);
+            Exit(1);
+            return;
+        }
+        Log(SemanticOk());
+        return;
+    }
 
     let content: String = LoadSemanticSourceBundle(args[0]);
     let error: String = CheckProgram(content);

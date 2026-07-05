@@ -6,6 +6,7 @@
 import "test_harness_owner.pgy";
 import "test_harness_tool_paths_owner.pgy";
 import "test_harness_air_graph_paths_owner.pgy";
+import "completeness_ledger_owner.pgy";
 
 func EmitBackendTriSmokeCases() -> Void {
     let i: Int = 0;
@@ -175,6 +176,18 @@ func EmitProductionHeaderSizePaths() -> Void {
     }
 }
 
+func EmitSelfHostCompletenessSources() -> Void {
+    EmitCompilerCompletenessSourceInventory();
+}
+
+func EmitSelfHostCompletenessStages() -> Void {
+    EmitCompilerCompletenessStages();
+}
+
+func EmitSelfHostCompletenessBaseline() -> Void {
+    EmitCompilerCompletenessBaseline();
+}
+
 func Main() -> Void {
     let args: Array<String> = Args();
     if !CompilerTestHarnessReady() {
@@ -264,6 +277,18 @@ func Main() -> Void {
     }
     if args[0] == CompilerHarnessProductionHeaderSizeSuiteName() {
         EmitProductionHeaderSizePaths();
+        return;
+    }
+    if args[0] == CompilerCompletenessSourcesSuiteName() {
+        EmitSelfHostCompletenessSources();
+        return;
+    }
+    if args[0] == CompilerCompletenessStagesSuiteName() {
+        EmitSelfHostCompletenessStages();
+        return;
+    }
+    if args[0] == CompilerCompletenessBaselineSuiteName() {
+        EmitSelfHostCompletenessBaseline();
         return;
     }
     Log(Concat("HARNESS ERROR: unknown manifest suite: ", args[0]));

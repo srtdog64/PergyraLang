@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-05 - M2 completeness ledger lands
+
+- Added `CompilerCompletenessLedger` as the self-host owner for production source
+  inventory scope, stage names, and monotone baseline minima.
+- Added `self-host-completeness-smoke`, wired into self-host preparation parity,
+  to count lexer/parser/semantic/codegen `--check` results over production
+  `src/self_hosted/**/*.pgy` excluding `fixture/` and `expected/`.
+- Locked the first measured baseline: sources 147, lexer 147, parser 43,
+  semantic 134, codegen 23. Codegen out-of-subset is now a measured fail count,
+  not a quiet skip.
+
 ## 2026-07-05 - Lexer parity paths consume TestHarness owner
 
 - Added a `lexer-parity-paths` manifest suite to `test_harness_tool_paths_owner.pgy`

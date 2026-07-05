@@ -80,6 +80,27 @@ func RunCodegenFromArgs(args: Array<String>) -> Void {
         EmitCodegenParityFixtureManifest();
         return;
     }
+    if ArrayLength(args) > 0 && args[0] == "--check" {
+        if ArrayLength(args) < 2 {
+            Log("Diagnostic: pgy.selfhost.stage-check.v1");
+            Log("Stage: codegen");
+            Log("Status: error");
+            Log("Reason: input_missing");
+            Exit(1);
+            return;
+        }
+        if !CompilerTargetCapabilityEnvelopeReady() {
+            Die("target capability envelope is not ready for self-host C codegen");
+        }
+        let check_tree_text: String = CodegenReadAst(args[1]);
+        let check_c_source: String = GenerateC(check_tree_text);
+        if StringLength(check_c_source) >= 0 {
+            Log("Diagnostic: pgy.selfhost.stage-check.v1");
+            Log("Stage: codegen");
+            Log("Status: ok");
+        }
+        return;
+    }
     if !CompilerTargetCapabilityEnvelopeReady() {
         Die("target capability envelope is not ready for self-host C codegen");
     }

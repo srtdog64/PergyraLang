@@ -154,6 +154,10 @@ The Makefile keeps the fast and heavy paths separate:
   documentation, owner shape, and compiler-world parsing.
 - `self-host-preparation-parity-test-smoke` runs the heavy C/LLVM/Pergyra
   parity bundle.
+- `self-host-completeness-smoke` is the M2 completeness ledger: it counts the
+  production self-host source inventory through lexer, parser, semantic, and
+  codegen stage checks. Unsupported codegen input is reported as a measured
+  failure count, not as a successful skip.
 - `self-host-preparation-test-smoke` is the development/CI wrapper that runs
   both.
 

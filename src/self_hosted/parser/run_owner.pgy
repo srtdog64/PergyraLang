@@ -12,6 +12,23 @@ func RunParserFromArgs(args: Array<String>) -> Void with caps env, io_read {
         EmitParserFixtureManifest();
         return;
     }
+    if ArrayLength(args) > 0 && args[0] == "--check" {
+        if ArrayLength(args) < 2 {
+            Log("Diagnostic: pgy.selfhost.stage-check.v1");
+            Log("Stage: parser");
+            Log("Status: error");
+            Log("Reason: input_missing");
+            Exit(1);
+            return;
+        }
+        let parse_text: String = ParseRootProgram(args[1]);
+        if StringLength(parse_text) >= 0 {
+            Log("Diagnostic: pgy.selfhost.stage-check.v1");
+            Log("Stage: parser");
+            Log("Status: ok");
+        }
+        return;
+    }
 
     let source_path: String = ParserDefaultSourcePath(args);
     Log(ParseRootProgram(source_path));

@@ -54,6 +54,31 @@ self-semantic 각각에 `--check <file>` 모드(pass/fail + 실패 사유) 추�
 **왜 최우선:** 이거 없이 semantic을 포팅하면 진척을 못 잰다(지난 수개월 LSP가
 "활동은 많은데 진척 불명"이었던 이유). WO-SH-COMPLETE가 M2의 계기판이다.
 
+**레드팀 보강(2026-07-05):** 단순 shell report는 완전성 원장이 아니다. 다음 네
+조건을 동시에 만족해야 M2 계기판으로 인정한다.
+
+1. **Source scope is owned.** 대상은 production self-host source다:
+   `src/self_hosted/**/*.pgy` 중 `fixture/`와 `expected/` 아래를 제외한 파일.
+   이 scope와 stage 이름은 `CompilerCompletenessLedger` owner가 내고, shell은
+   그 manifest를 실행만 한다. 대상 파일 수 자체도 단조 baseline에 포함된다.
+2. **Stage check is explicit.** lexer/parser/semantic/codegen은 `--check` 계약으로
+   `Status: ok`를 내거나 nonzero/structured error로 실패한다. ledger가 일반
+   stdout을 임의 grep해서 의미를 복원하면 self-host 내부 fallback이다.
+3. **No silent skip.** codegen out-of-subset, parser 미지원 구문, semantic 미구현
+   검사는 모두 fail count로 남는다. `skip`은 toolchain 부재 같은 환경 조건에만
+   허용되고, M2 완전성 갭에는 허용되지 않는다. Per-file timeout은 completeness
+   fail이 아니라 실행 인프라 실패로 즉시 red 처리한다.
+4. **Monotone baseline.** `source_min`, `lexer_pass_min`, `parser_pass_min`,
+   `semantic_pass_min`, `codegen_pass_min`은 오르기만 한다. pass count를 올릴 때는
+   C/LLVM oracle parity 또는 stage fixture가 같이 있어야 하며, C oracle의 silent
+   fallback을 그대로 따라간 결과는 pass 상승 근거가 아니다.
+
+**착지된 M2 ledger baseline(2026-07-05):** `self-host-completeness-smoke`가
+production self-host source 147개를 측정한다. 최초 locked minima:
+`source_min=147`, `lexer_pass_min=147`, `parser_pass_min=43`,
+`semantic_pass_min=134`, `codegen_pass_min=23`. 이 숫자는 낮출 수 없고, parser나
+semantic/codegen rung이 열릴 때만 증가한다.
+
 ---
 
 ## 2. ★ Semantic 포팅 사다리 (M2의 본체 — 실측 C 파일 매핑)
@@ -129,12 +154,37 @@ Option<String>`.
 먼저 arena화 → expr_type_owner가 typed expr 소비 → string_munge↓. rung ↔ 노드
 family를 짝지어 전진하면 semantic 48k를 un-Pergyra로 안 쌓는다.
 
-**⚠️ 착수 전 확인(Agent 실측 경고):** 래칫 `STRING_MUNGE_SIG_MAX` baseline 156인데
-현재 카운트가 **166(+10)일 수 있음** — 최근 LSP/compiler-world scaffolding이
-string-munging 시그니처를 늘렸을 가능성. **typed-AST 착수 전 `make ... likeness`가
-green인지 먼저 확인**하고, red면 그 +10을 typed화(또는 정당한 텍스트 도메인이면
-제외 규칙 갱신)하는 게 첫 작업. 래칫이 red인 채 시작하면 진척을 못 잰다.
-(`json.pgy`·`diagnostic_owner.pgy`는 정당한 텍스트 도메인 — 래칫 압력에서 제외.)
+**⚠️ ★M2 STEP 0 — 래칫 red 확정(2026-07-05 실측, 추정 아님):**
+`self_host_pergyra_likeness_smoke.sh` 실행 결과 `string_munge_sig = 166`
+(baseline `STRING_MUNGE_SIG_MAX=156`, **+10 초과, exit 1, FAIL**). 카운트 방식:
+`: String) -> String` 시그니처를 세되 `lib/{json,json_emit,diagnostic}.pgy`만 제외.
+- **원인**: 최근 **"Route X through owner" 리팩터링 파동**(TestHarness owner, parity
+  fixture/path routing — 예 `32be6fac`/`4a6b9e45`/`87c756be`)이 경로·하니스 변환
+  `String->String` 시그니처를 늘림. (당초 "LSP scaffolding" 추정은 부정확 —
+  실제는 owner-routing 파동.)
+- **★메타 finding — 게이트 존재 ≠ 강제**: 이 래칫은 `self-host-preparation-
+  contract-test-smoke` 안에 있고 그건 **ci_linux(47행)·ci_windows(71행) 둘 다
+  실행**한다. 그런데도 166까지 드리프트했다 = **CI가 red인데 커밋을 안 막고
+  있다**(솔로 repo에서 CI 미강제 또는 red 방치). **M2 전체가 이 위험을 안는다**:
+  WO-SH-COMPLETE 완전성 원장(§1)도 강제 안 되면 무의미. → **M2 STEP 0의 절반은
+  self-host 게이트를 실제로 강제(commit-blocking)로 만드는 것.**
+- **+10의 성격(실측 규명)**: AST-munging **코어가 아니다**. 상위 집중은
+  `codegen/emission/expr_rewrite.pgy`(11) · `mir_lower/decl_lower.pgy`(10) ·
+  `mir_lower/routine_lower.pgy`(9) — 이건 **오래된 코어**(baseline에 이미 포함,
+  §3 strangler의 typed-fix 대상). 최근 +10은 **주변부**: `tools/*/scan_owner.pgy`
+  (audit 도구 — 컴파일러 코어 아님) · `lsp/diagnostics_owner.pgy`(별도 트랙) ·
+  `path.pgy`/`source_path_owner.pgy`/`fixture_manifest_owner.pgy`(경로/하니스 텍스트).
+- **진단: 래칫의 제외 범위가 좁다.** 현재 `lib/{json,diagnostic}`만 제외하는데,
+  **linchpin 질문은 "컴파일러 코어(lexer/parser/semantic/codegen)가 idiomatic한가"**
+  이지 tools/·lsp/·path-harness의 텍스트 처리가 아니다. 그것들이 metric을 희석.
+- **첫 작업(STEP 0):** ① **래칫 재범위화** — 제외를 컴파일러-코어 self-host로
+  좁혀 tools/·lsp/·path·fixture·harness 텍스트 라우팅을 metric에서 제외(원칙:
+  "코어가 idiomatic한가"만 압박). 그 뒤 **낮아진 코어 카운트로 re-baseline**
+  (내리는 re-baseline은 정당 — tighten). **절대 166으로 올려 통과시키지 말 것**
+  (규율 위반). ② 남는 코어 munging(expr_rewrite/decl_lower/routine_lower)은
+  §3 strangler로 typed화. ③ **게이트 강제 확인** — CI(ci_linux:47/windows:71)에
+  있는데도 red 드리프트했으니, commit-blocking으로 실제 작동하는지 점검.
+  래칫이 red인 채 typed-AST를 시작하면 진척(string_munge↓)을 못 잰다.
 
 **결정점(BDFL, 로드맵 허용):** typed-AST를 fixpoint **전 완주** vs **후 끌어올림**.
 권고: **rung과 짝지어 병행**(각 SEM rung이 그 노드 family만 typed) — un-Pergyra

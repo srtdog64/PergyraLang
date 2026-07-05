@@ -1,0 +1,138 @@
+// Self-host completeness ledger owner.
+//
+// Owns the M2 source inventory scope, stage names, and monotone baseline
+// minima. Shell runners may execute the rows, but must not redefine them.
+
+func CompilerCompletenessLedgerSchema() -> String {
+    return "pgy.selfhost.completeness-ledger.v1";
+}
+
+func CompilerCompletenessSourceRoot() -> String {
+    return "src/self_hosted";
+}
+
+func CompilerCompletenessSourcesSuiteName() -> String {
+    return "self-host-completeness-sources";
+}
+
+func CompilerCompletenessStagesSuiteName() -> String {
+    return "self-host-completeness-stages";
+}
+
+func CompilerCompletenessBaselineSuiteName() -> String {
+    return "self-host-completeness-baseline";
+}
+
+func CompilerCompletenessPathEndsWith(path: String, suffix: String) -> Bool {
+    let path_len: Int = StringLength(path);
+    let suffix_len: Int = StringLength(suffix);
+    if suffix_len > path_len {
+        return false;
+    }
+    return Substring(path, path_len - suffix_len, suffix_len) == suffix;
+}
+
+func CompilerCompletenessPathContains(path: String, needle: String) -> Bool {
+    return StringIndexOf(path, needle) >= 0;
+}
+
+func CompilerCompletenessIsProductionSource(path: String) -> Bool {
+    if !CompilerCompletenessPathEndsWith(path, ".pgy") {
+        return false;
+    }
+    if CompilerCompletenessPathContains(path, "/fixture/") {
+        return false;
+    }
+    if CompilerCompletenessPathContains(path, "/expected/") {
+        return false;
+    }
+    if path == "src/self_hosted/tools/linter/fixture.pgy" {
+        return false;
+    }
+    if path == "src/self_hosted/tools/linter/fixture_structural.pgy" {
+        return false;
+    }
+    return true;
+}
+
+func CompilerCompletenessSourceInventory() -> Array<String> {
+    let entries: Array<String> = DirWalk(CompilerCompletenessSourceRoot());
+    let rows: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(entries) {
+        let path: String = entries[i];
+        if CompilerCompletenessIsProductionSource(path) {
+            ArrayPush(rows, path);
+        }
+        i = i + 1;
+    }
+    return rows;
+}
+
+func EmitCompilerCompletenessSourceInventory() -> Void {
+    let rows: Array<String> = CompilerCompletenessSourceInventory();
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        Log(rows[i]);
+        i = i + 1;
+    }
+}
+
+func CompilerCompletenessStageCount() -> Int {
+    return 4;
+}
+
+func CompilerCompletenessStageAt(index: Int) -> String {
+    if index == 0 { return "lexer"; }
+    if index == 1 { return "parser"; }
+    if index == 2 { return "semantic"; }
+    if index == 3 { return "codegen"; }
+    return "";
+}
+
+func EmitCompilerCompletenessStages() -> Void {
+    let i: Int = 0;
+    while i < CompilerCompletenessStageCount() {
+        Log(CompilerCompletenessStageAt(i));
+        i = i + 1;
+    }
+}
+
+func CompilerCompletenessSourceMin() -> Int {
+    return 147;
+}
+
+func CompilerCompletenessLexerPassMin() -> Int {
+    return 147;
+}
+
+func CompilerCompletenessParserPassMin() -> Int {
+    return 43;
+}
+
+func CompilerCompletenessSemanticPassMin() -> Int {
+    return 134;
+}
+
+func CompilerCompletenessCodegenPassMin() -> Int {
+    return 23;
+}
+
+func EmitCompilerCompletenessBaseline() -> Void {
+    Log(Concat("schema=", CompilerCompletenessLedgerSchema()));
+    Log(Concat("source_min=", ToString(CompilerCompletenessSourceMin())));
+    Log(Concat("lexer_pass_min=", ToString(CompilerCompletenessLexerPassMin())));
+    Log(Concat("parser_pass_min=", ToString(CompilerCompletenessParserPassMin())));
+    Log(Concat("semantic_pass_min=", ToString(CompilerCompletenessSemanticPassMin())));
+    Log(Concat("codegen_pass_min=", ToString(CompilerCompletenessCodegenPassMin())));
+}
+
+func CompilerCompletenessLedgerReady() -> Bool {
+    return CompilerCompletenessStageCount() == 4 &&
+        CompilerCompletenessStageAt(0) == "lexer" &&
+        CompilerCompletenessStageAt(1) == "parser" &&
+        CompilerCompletenessStageAt(2) == "semantic" &&
+        CompilerCompletenessStageAt(3) == "codegen" &&
+        StringLength(CompilerCompletenessLedgerSchema()) > 0 &&
+        StringLength(CompilerCompletenessSourceRoot()) > 0;
+}

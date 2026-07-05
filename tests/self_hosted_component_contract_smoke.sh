@@ -2240,6 +2240,7 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/l
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/lsp/main.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/mir_lower/main.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/fuzz/backend_parity_generator/main.pgy"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/compiler/completeness_ledger_owner.pgy"'
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" '"src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy"'
 require_text "Makefile" "self-host-semantic-selfcheck-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/selfcheck_sources.sh"
@@ -2248,8 +2249,8 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 selfcheck_items="$(extract_shell_array_items "$PARITY_DIR/selfcheck_sources.sh" SELF_SOURCES)"
 selfcheck_count="$(printf '%s\n' "$selfcheck_items" | sed '/^$/d' | wc -l | tr -d ' ')"
-[[ "$selfcheck_count" -eq 132 ]] ||
-    fail "real-source selfcheck count drifted: $selfcheck_count != 132"
+[[ "$selfcheck_count" -eq 133 ]] ||
+    fail "real-source selfcheck count drifted: $selfcheck_count != 133"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'

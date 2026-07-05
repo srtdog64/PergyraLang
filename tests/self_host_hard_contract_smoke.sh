@@ -95,11 +95,25 @@ require_text "Makefile" "self-host-hard-contract-test-smoke"
 require_text "Makefile" "self-host-compiler-world-contract-test-smoke"
 require_text "Makefile" "self-host-preparation-contract-test-smoke"
 require_text "Makefile" "self-host-preparation-parity-test-smoke"
+require_text "Makefile" "self-host-completeness-smoke"
 require_text "Makefile" "tests/self_host_hard_contract_smoke.sh"
 require_text "Makefile" "tests/self_host_compiler_world_contract_smoke.sh"
+require_text "Makefile" "tests/self_hosted/parity/completeness_ledger.sh"
 require_text "Makefile" "self-host-preparation-test-smoke:"
 require_text "docs/self_hosted/10_hard_self_host_contract.md" \
     "Normal compiler builds must not imply the heavy self-host parity bundle."
+require_text "docs/self_hosted/10_hard_self_host_contract.md" \
+    "self-host-completeness-smoke"
+require_file "src/self_hosted/compiler/completeness_ledger_owner.pgy"
+require_file "tests/self_hosted/parity/completeness_ledger.sh"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" \
+    "CompilerCompletenessLedgerSchema"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" \
+    "CompilerCompletenessSourceInventory"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" \
+    "EmitSelfHostCompletenessSources"
+require_text "tests/self_hosted/parity/completeness_ledger.sh" \
+    "Out-of-subset codegen is a measured failure, not a skip."
 
 active_stages=(lexer parser semantic codegen)
 for stage in "${active_stages[@]}"; do

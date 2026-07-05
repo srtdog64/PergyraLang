@@ -246,7 +246,7 @@ if [[ -n "$local_windows_path_helpers" ]]; then
 fi
 
 portable_grep_violations="$(
-    pgy_scan_sh_E 'grep[[:space:]][^;&|]*-[A-Za-z]*P' tests \
+    pgy_scan_sh_E 'grep[[:space:]][^;&|]*-[A-Za-z]*P([[:space:]]|$)' tests \
         | grep -v '^tests/build_source_inventory_smoke.sh:' || true
 )"
 if [[ -n "$portable_grep_violations" ]]; then

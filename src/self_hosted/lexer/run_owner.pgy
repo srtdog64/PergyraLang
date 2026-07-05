@@ -12,6 +12,25 @@ func RunLexerFromArgs(args: Array<String>) -> Void {
         EmitLexerFixtureManifest();
         return;
     }
+    if ArrayLength(args) > 0 && args[0] == "--check" {
+        if ArrayLength(args) < 2 {
+            Log("Diagnostic: pgy.selfhost.stage-check.v1");
+            Log("Stage: lexer");
+            Log("Status: error");
+            Log("Reason: input_missing");
+            Exit(1);
+            return;
+        }
+        let check_path: String = args[1];
+        let check_content: String = LexerReadSource(check_path);
+        let check_tokens: String = LexContent(check_path, check_content);
+        if StringLength(check_tokens) >= 0 {
+            Log("Diagnostic: pgy.selfhost.stage-check.v1");
+            Log("Stage: lexer");
+            Log("Status: ok");
+        }
+        return;
+    }
 
     let source_path: String = LexerDefaultSourcePath(args);
     let content: String = LexerReadSource(source_path);

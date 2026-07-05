@@ -1,0 +1,307 @@
+#!/usr/bin/env bash
+# M2 self-host completeness ledger.
+#
+# Counts real self-host production sources through the staged self-host tools.
+# Out-of-subset codegen is a measured failure, not a skip.
+
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
+pgy_prepend_windows_runtime_paths
+
+PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
+if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
+    PGY="${PGY}.exe"
+fi
+if [[ ! -x "$PGY" ]]; then
+    if [[ -z "${PGY_BIN:-}" ]]; then
+        echo "[self-host-completeness] SKIP missing compiler binary: $PGY"
+        exit 0
+    fi
+    echo "[self-host-completeness] missing compiler binary: $PGY" >&2
+    exit 1
+fi
+
+BUILD_DIR="${PGY_SELFHOST_COMPLETENESS_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/completeness}"
+SOURCE_MANIFEST="$BUILD_DIR/sources.txt"
+STAGE_MANIFEST="$BUILD_DIR/stages.txt"
+BASELINE_MANIFEST="$BUILD_DIR/baseline.txt"
+CHECK_TIMEOUT_SEC="${PGY_SELFHOST_COMPLETENESS_TIMEOUT_SEC:-60}"
+TIMEOUT_EXIT_CODE=124
+mkdir -p "$BUILD_DIR"
+
+read_manifest() {
+    local suite="$1"
+    local out_file="$2"
+    pgy_selfhost_read_test_harness_manifest \
+        "self-host-completeness" \
+        "$BUILD_DIR/manifest" \
+        "$suite" \
+        "$out_file"
+}
+
+read_manifest "self-host-completeness-sources" "$SOURCE_MANIFEST"
+read_manifest "self-host-completeness-stages" "$STAGE_MANIFEST"
+read_manifest "self-host-completeness-baseline" "$BASELINE_MANIFEST"
+
+SOURCES=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    SOURCES+=("$line")
+done < <(grep -E '[.]pgy$' "$SOURCE_MANIFEST" | sort)
+
+STAGES=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    STAGES+=("$line")
+done < <(grep -E '^(lexer|parser|semantic|codegen)$' "$STAGE_MANIFEST")
+
+if [[ "${#STAGES[@]}" -ne 4 ]]; then
+    echo "[self-host-completeness] expected 4 stage rows, got ${#STAGES[@]}" >&2
+    cat "$STAGE_MANIFEST" >&2
+    exit 1
+fi
+
+baseline_value() {
+    local key="$1"
+    local value
+    value="$(grep -E "^${key}=" "$BASELINE_MANIFEST" | tail -1 | cut -d= -f2-)"
+    if [[ -z "$value" ]]; then
+        echo "[self-host-completeness] missing baseline key: $key" >&2
+        cat "$BASELINE_MANIFEST" >&2
+        exit 1
+    fi
+    printf '%s\n' "$value"
+}
+
+SOURCE_MIN="$(baseline_value source_min)"
+LEXER_PASS_MIN="$(baseline_value lexer_pass_min)"
+PARSER_PASS_MIN="$(baseline_value parser_pass_min)"
+SEMANTIC_PASS_MIN="$(baseline_value semantic_pass_min)"
+CODEGEN_PASS_MIN="$(baseline_value codegen_pass_min)"
+
+compile_tool() {
+    local label="$1"
+    local source="$2"
+    local build_subdir="$3"
+    local copy_dir="$4"
+    local bin="$BUILD_DIR/$build_subdir/main.exe"
+    local log="$BUILD_DIR/$build_subdir/compile.log"
+
+    mkdir -p "$BUILD_DIR/$build_subdir"
+    if [[ -n "$copy_dir" ]]; then
+        cp "$ROOT_DIR/$copy_dir/"*.pgy "$BUILD_DIR/$build_subdir/"
+    fi
+
+    if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$source")" \
+        --backend=c -o "$(pgy_path_for_compiler "$PGY" "$bin")" >"$log" 2>&1); then
+        echo "[self-host-completeness] $label build failed" >&2
+        cat "$log" >&2
+        exit 1
+    fi
+    printf '%s\n' "$bin"
+}
+
+copy_lib() {
+    local build_subdir="$1"
+    mkdir -p "$ROOT_DIR/.tmp/self_hosted/lib"
+    cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$ROOT_DIR/.tmp/self_hosted/lib/"
+    mkdir -p "$BUILD_DIR/$build_subdir/../lib"
+    cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$BUILD_DIR/$build_subdir/../lib/" 2>/dev/null || true
+}
+
+LEXER_BIN="$(compile_tool lexer "$BUILD_DIR/lexer/main.pgy" lexer "src/self_hosted/lexer")"
+copy_lib parser
+PARSER_BIN="$(compile_tool parser "$BUILD_DIR/parser/main.pgy" parser "src/self_hosted/parser")"
+copy_lib semantic
+SEMANTIC_BIN="$(compile_tool semantic "$BUILD_DIR/semantic/main.pgy" semantic "src/self_hosted/semantic")"
+CODEGEN_BIN="$(compile_tool codegen "$ROOT_DIR/src/self_hosted/codegen/main.pgy" codegen "")"
+
+run_source_check() {
+    local stage="$1"
+    local bin="$2"
+    local src="$3"
+    local out="$BUILD_DIR/${stage}_${src//[^A-Za-z0-9_]/_}.out"
+    local err="$BUILD_DIR/${stage}_${src//[^A-Za-z0-9_]/_}.err"
+
+    if (cd "$ROOT_DIR" && timeout "$CHECK_TIMEOUT_SEC" "$bin" --check "$src" >"$out" 2>"$err"); then
+        if grep -Fq 'Status: ok' "$out"; then
+            return 0
+        fi
+        return 1
+    fi
+    local rc="$?"
+    if [[ "$rc" -eq "$TIMEOUT_EXIT_CODE" ]]; then
+        echo "[self-host-completeness] $stage timed out after ${CHECK_TIMEOUT_SEC}s: $src" >&2
+        return 2
+    fi
+    return 1
+}
+
+run_codegen_check() {
+    local src="$1"
+    local safe="${src//[^A-Za-z0-9_]/_}"
+    local ast_rel=".tmp/self_hosted/completeness/ast/${safe}.ast.txt"
+    local ast_abs="$ROOT_DIR/$ast_rel"
+    local ast_err="$BUILD_DIR/ast/${safe}.err"
+    local out="$BUILD_DIR/codegen_${safe}.out"
+    local err="$BUILD_DIR/codegen_${safe}.err"
+
+    mkdir -p "$ROOT_DIR/.tmp/self_hosted/completeness/ast"
+    if (cd "$ROOT_DIR" && timeout "$CHECK_TIMEOUT_SEC" "$PGY" --ast "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/$src")" \
+        >"$ast_abs" 2>"$ast_err"); then
+        :
+    else
+        local rc="$?"
+        if [[ "$rc" -eq "$TIMEOUT_EXIT_CODE" ]]; then
+            echo "[self-host-completeness] ast export timed out after ${CHECK_TIMEOUT_SEC}s: $src" >&2
+            return 2
+        fi
+        return 1
+    fi
+    if (cd "$ROOT_DIR" && timeout "$CHECK_TIMEOUT_SEC" "$CODEGEN_BIN" --check "$ast_rel" >"$out" 2>"$err"); then
+        :
+    else
+        local rc="$?"
+        if [[ "$rc" -eq "$TIMEOUT_EXIT_CODE" ]]; then
+            echo "[self-host-completeness] codegen timed out after ${CHECK_TIMEOUT_SEC}s: $src" >&2
+            return 2
+        fi
+        return 1
+    fi
+    if grep -Fq 'Status: ok' "$out"; then
+        return 0
+    fi
+    return 1
+}
+
+count_stage() {
+    local stage="$1"
+    local pass=0
+    local fail=0
+    local src
+    local failure_manifest="$BUILD_DIR/${stage}_failures.txt"
+
+    local index=0
+    local total="${#SOURCES[@]}"
+
+    : >"$failure_manifest"
+    for src in "${SOURCES[@]}"; do
+        index=$((index + 1))
+        echo "[self-host-completeness] $stage checking $index/$total $src" >&2
+        case "$stage" in
+            lexer)
+                if run_source_check lexer "$LEXER_BIN" "$src"; then
+                    pass=$((pass + 1))
+                else
+                    local rc="$?"
+                    if [[ "$rc" -eq 2 ]]; then
+                        exit 1
+                    fi
+                    fail=$((fail + 1))
+                    printf '%s\n' "$src" >>"$failure_manifest"
+                fi
+                ;;
+            parser)
+                if run_source_check parser "$PARSER_BIN" "$src"; then
+                    pass=$((pass + 1))
+                else
+                    local rc="$?"
+                    if [[ "$rc" -eq 2 ]]; then
+                        exit 1
+                    fi
+                    fail=$((fail + 1))
+                    printf '%s\n' "$src" >>"$failure_manifest"
+                fi
+                ;;
+            semantic)
+                if run_source_check semantic "$SEMANTIC_BIN" "$src"; then
+                    pass=$((pass + 1))
+                else
+                    local rc="$?"
+                    if [[ "$rc" -eq 2 ]]; then
+                        exit 1
+                    fi
+                    fail=$((fail + 1))
+                    printf '%s\n' "$src" >>"$failure_manifest"
+                fi
+                ;;
+            codegen)
+                if run_codegen_check "$src"; then
+                    pass=$((pass + 1))
+                else
+                    local rc="$?"
+                    if [[ "$rc" -eq 2 ]]; then
+                        exit 1
+                    fi
+                    fail=$((fail + 1))
+                    printf '%s\n' "$src" >>"$failure_manifest"
+                fi
+                ;;
+            *)
+                echo "[self-host-completeness] unknown stage: $stage" >&2
+                exit 1
+                ;;
+        esac
+    done
+    printf '%s\tpass=%s\tfail=%s\n' "$stage" "$pass" "$fail"
+}
+
+print_stage_failures() {
+    local stage="$1"
+    local failure_manifest="$BUILD_DIR/${stage}_failures.txt"
+
+    if [[ ! -s "$failure_manifest" ]]; then
+        return 0
+    fi
+    echo "[self-host-completeness] $stage failures:" >&2
+    sed 's/^/  - /' "$failure_manifest" >&2
+}
+
+SOURCE_COUNT="${#SOURCES[@]}"
+if (( SOURCE_COUNT < SOURCE_MIN )); then
+    echo "[self-host-completeness] source count regressed: $SOURCE_COUNT < $SOURCE_MIN" >&2
+    exit 1
+fi
+
+LEDGER="$BUILD_DIR/ledger.tsv"
+: >"$LEDGER"
+for stage in "${STAGES[@]}"; do
+    count_stage "$stage" | tee -a "$LEDGER"
+done
+
+stage_pass() {
+    local stage="$1"
+    grep -E "^${stage}[[:space:]]" "$LEDGER" | sed -E 's/.*pass=([0-9]+).*/\1/'
+}
+
+LEXER_PASS="$(stage_pass lexer)"
+PARSER_PASS="$(stage_pass parser)"
+SEMANTIC_PASS="$(stage_pass semantic)"
+CODEGEN_PASS="$(stage_pass codegen)"
+
+if (( LEXER_PASS < LEXER_PASS_MIN )); then
+    echo "[self-host-completeness] lexer pass count regressed: $LEXER_PASS < $LEXER_PASS_MIN" >&2
+    print_stage_failures lexer
+    exit 1
+fi
+if (( PARSER_PASS < PARSER_PASS_MIN )); then
+    echo "[self-host-completeness] parser pass count regressed: $PARSER_PASS < $PARSER_PASS_MIN" >&2
+    print_stage_failures parser
+    exit 1
+fi
+if (( SEMANTIC_PASS < SEMANTIC_PASS_MIN )); then
+    echo "[self-host-completeness] semantic pass count regressed: $SEMANTIC_PASS < $SEMANTIC_PASS_MIN" >&2
+    print_stage_failures semantic
+    exit 1
+fi
+if (( CODEGEN_PASS < CODEGEN_PASS_MIN )); then
+    echo "[self-host-completeness] codegen pass count regressed: $CODEGEN_PASS < $CODEGEN_PASS_MIN" >&2
+    print_stage_failures codegen
+    exit 1
+fi
+
+echo "[self-host-completeness] ledger ok: sources=$SOURCE_COUNT lexer=$LEXER_PASS parser=$PARSER_PASS semantic=$SEMANTIC_PASS codegen=$CODEGEN_PASS"
+echo "[self-host-completeness] failure manifests: $BUILD_DIR/{lexer,parser,semantic,codegen}_failures.txt"
