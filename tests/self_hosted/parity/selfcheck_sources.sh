@@ -60,6 +60,7 @@ SELF_SOURCES=(
     "src/self_hosted/codegen/typed_ast_node_skeleton.pgy"
     "src/self_hosted/codegen/emission/expr_rewrite.pgy"
     "src/self_hosted/codegen/emission/function_emit.pgy"
+    "src/self_hosted/codegen/emission/literal_rewrite.pgy"
     "src/self_hosted/codegen/emission/program_emit.pgy"
     "src/self_hosted/codegen/emission/stmt_emit.pgy"
     "src/self_hosted/codegen/emission/struct_value_emit.pgy"
