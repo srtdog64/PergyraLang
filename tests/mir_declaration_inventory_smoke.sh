@@ -4032,6 +4032,8 @@ require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
 require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR captures owner method call return types for source locals"
 require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
+    "MIR captures self method call return types for source locals"
+require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR captures callable return source-local facts"
 require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR captures select receive source-local types"

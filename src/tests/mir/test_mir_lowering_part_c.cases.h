@@ -517,6 +517,37 @@ test_mir_lowering_part_c(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR captures self method call return types for source locals");
+    {
+        const char *src =
+            "world LocalSelfMethodOwner {\n"
+            "    func Pick(self, seed: Int) -> Int { return seed + 1; }\n"
+            "    func Run(self) -> Int {\n"
+            "        let choice = self.Pick(4);\n"
+            "        return choice;\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *routine = NULL;
+        const char *choice_type = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine(mir, "Run", MIR_SCOPE_METHOD);
+        if (routine != NULL)
+            choice_type = mir_routine_source_local_type_name(routine,
+                "choice");
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && routine != NULL
+               && choice_type != NULL
+               && strcmp(choice_type, "Int") == 0);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR captures select receive source-local types");
     {
         const char *src =

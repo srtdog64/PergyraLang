@@ -356,6 +356,11 @@ mir_source_local_identifier_type_name(const MIRProgram *program,
     type_name = mir_source_local_param_type_name(routine, name);
     if (type_name != NULL)
         return type_name;
+    if (name != NULL && strcmp(name, "self") == 0) {
+        const char *owner_name = mir_source_local_routine_owner_name(routine);
+        if (owner_name != NULL && owner_name[0] != '\0')
+            return owner_name;
+    }
     type_name = mir_routine_source_local_type_name(routine, name);
     if (type_name != NULL)
         return type_name;
