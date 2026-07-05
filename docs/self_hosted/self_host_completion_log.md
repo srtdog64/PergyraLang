@@ -25,6 +25,16 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - SEA value-capture producer enters self-host mirror
+
+- Added the conservative MIR value-capture producer mirror to
+  `src/self_hosted/sea/execution_lane.pgy`: a parallel boundary with movability
+  evidence and no raw slot/live view/raw channel/zone-pin/MIR pin evidence is
+  promoted to value-only; resource captures remain pinned/rejected.
+- Extended the self-host execution-lane parity golden from 29 to 31 rows so C,
+  LLVM, and the Pergyra mirror all cover the value-only producer positive case
+  and the raw-slot negative case.
+
 ## 2026-07-05 - Likeness ratchet scopes compiler-core text munging
 
 - Split the Pergyra-likeness text-munging metric into blocking

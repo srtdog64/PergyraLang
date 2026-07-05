@@ -122,8 +122,53 @@ func CaptureFactFromBoundaryFact(fact: BoundaryLaneInputFact) -> BoundaryCapture
     }
 }
 
+func BoundaryKindIsParallel(kind: BoundaryKind) -> Bool {
+    match kind {
+        case BoundaryKindParallel: return true;
+        case BoundaryKindUnknown: return false;
+        case BoundaryKindZone: return false;
+        case BoundaryKindWorld: return false;
+        case BoundaryKindIO: return false;
+        case BoundaryKindChannel: return false;
+        case BoundaryKindExecution: return false;
+    }
+}
+
+func BoundaryHasResourceCaptureEvidence(fact: BoundaryLaneInputFact) -> Bool {
+    return fact.has_rir_raw_slot_capture_evidence ||
+        fact.has_rir_live_view_capture_evidence ||
+        fact.has_rir_raw_channel_capture_evidence ||
+        fact.has_rir_zone_pin_evidence ||
+        fact.has_mir_pin_cleanup_evidence;
+}
+
+func BoundaryFactWithMirValueCaptureEvidence(fact: BoundaryLaneInputFact) -> BoundaryLaneInputFact {
+    let has_value_capture: Bool = fact.has_mir_value_capture_evidence ||
+        (BoundaryKindIsParallel(fact.kind) &&
+         fact.has_rir_movability_requirement_evidence &&
+         !BoundaryHasResourceCaptureEvidence(fact));
+    return BoundaryLaneInputFact(
+        fact.kind,
+        fact.authority_required,
+        fact.authority_count,
+        fact.has_rir_await_local_evidence,
+        fact.has_rir_movability_requirement_evidence,
+        fact.has_rir_deterministic_fork_join_evidence,
+        fact.has_rir_raw_channel_capture_evidence,
+        fact.has_rir_raw_slot_capture_evidence,
+        fact.has_rir_live_view_capture_evidence,
+        fact.has_mir_pin_cleanup_evidence,
+        has_value_capture,
+        fact.has_rir_zone_pin_evidence
+    );
+}
+
 func LaneFromBoundaryFact(fact: BoundaryLaneInputFact) -> ExecutionLane {
     return ClassifyLane(CaptureFactFromBoundaryFact(fact));
+}
+
+func LaneFromProducedBoundaryFact(fact: BoundaryLaneInputFact) -> ExecutionLane {
+    return LaneFromBoundaryFact(BoundaryFactWithMirValueCaptureEvidence(fact));
 }
 
 // The 10 decision-table cases, in the same order as the C proof
@@ -158,4 +203,6 @@ func Main() -> Void {
     Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindChannel, false, 0, false, false, false, false, false, false, false, false, false))));
     Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindExecution, false, 0, false, false, false, false, false, false, false, false, false))));
     Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindExecution, false, 0, false, false, false, false, false, false, true, false, false))));
+    Log(LaneName(LaneFromProducedBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, true, 1, false, true, false, false, false, false, false, false, false))));
+    Log(LaneName(LaneFromProducedBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, true, 1, false, true, false, false, true, false, false, false, false))));
 }
