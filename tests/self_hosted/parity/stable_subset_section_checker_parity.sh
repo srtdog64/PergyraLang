@@ -50,7 +50,6 @@ if [[ "${#harness_paths[@]}" -ne 3 ]]; then
 fi
 
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
-PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
 MANIFEST_PATH="${harness_paths[2]}"
 
@@ -67,10 +66,7 @@ if [[ ! -f "$ROOT_DIR/$MANIFEST_PATH" ]]; then
     exit 1
 fi
 
-cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
-mkdir -p "$PERGYRA_TOOL_BUILD_DIR/../../lib"
-cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/../../lib/"
-PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
+PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
 
 CLEAN_BIN="$PERGYRA_TOOL_BUILD_DIR/stable_subset_section_c.exe"
 CLEAN_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/stable_subset_section_c.compile.log"

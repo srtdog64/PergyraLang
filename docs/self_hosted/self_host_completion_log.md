@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Stable subset checker parity uses source owner in place
+
+- Repointed `stable_subset_section_checker_parity.sh` so the
+  `stable-subset-section-paths` TestHarness source row is passed to the
+  compiler directly.
+- Removed the build-dir `main.pgy` alias and copied `lib` tree from the parity
+  runner; the tool now resolves imports from its manifest-projected source
+  location.
+- Tightened the component contract so the local source/lib copy path cannot
+  return to this runner.
+
 ## 2026-07-06 - Backend comparator parity uses source owner in place
 
 - Repointed `backend_output_comparator_parity.sh` so the comparator source row
