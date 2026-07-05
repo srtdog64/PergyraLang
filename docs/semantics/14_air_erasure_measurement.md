@@ -282,13 +282,14 @@ its own erasure is not evidence.
 
 | Fixture | AIR: A_inh | AIR: B_pol | AIR: C_unprov | phys Sync | phys Abort | reading |
 |---|---:|---:|---:|---:|---:|---|
-| `lifecycle_branch` | 0 | 0 | **1** | 0 | **1** | declared C=1 **matches** measured abort=1 |
-| `zone_intent` | **2** | 0 | 0 | 2 | 1 | inherent boundaries declare runtime sync residue |
-| `channel_parallel` | **4** | 0 | 0 | **11** | 1 | bare concurrency is declared program-wide |
-| `secure_slot_method` | 0 | **2** | 0 | 0 | **1** | secure/device capability residue is declared as policy |
+| `lifecycle_branch` | 0 | 0 | **1** | 2 | **1** | declared C=1; current symbol oracle has no abort excess beyond floor |
+| `zone_intent` | **2** | 0 | 0 | 4 | 1 | inherent boundaries declare runtime sync residue; floor-excess Sync=2 |
+| `channel_parallel` | **3** | 0 | 0 | **13** | 1 | bare concurrency is declared program-wide; floor-excess Sync=11 |
+| `secure_slot_method` | 0 | **2** | 0 | 2 | 1 | secure/device capability residue is declared as policy |
 
 The `lifecycle_branch` row is the load-bearing bucket-C result: AIR *declares*
-exactly one unproven retain and exactly one abort path *physically survives*.
+exactly one unproven retain. The current `nm -u` oracle is symbol-level, so the
+abort symbol is pinned by the substrate floor rather than counted per callsite.
 The `channel_parallel` and `secure_slot_method` rows are the bucket-A/B closure
 points: residue can remain physical, but it is now declared by AIR instead of
 appearing as an undeclared compression mismatch.
@@ -299,8 +300,13 @@ appearing as an undeclared compression mismatch.
    `phys_Axis = 0, phys_Abort = 0`. A regression is a build failure.
 2. **Bucket-C monotonicity (hard):** total `unproven_retain` must not exceed the
    committed baseline. C may only shrink — growth means the analysis weakened.
-3. **Drift (reported):** `compression_residue_mismatch` rows are surfaced, not
-   failed (a modeling gap, not a correctness break).
+3. **Declared-vs-measured drift (hard unless expected):** a new
+   `compression_residue_mismatch` fails the gate; only rows listed in
+   `expected_drifts` are reported as documented modeling gaps.
+4. **Retained-runtime attribution (hard):** every fixture with a nonzero A/B/C
+   retain declaration or physical residue beyond the substrate floor must match
+   `baseline.json` `retained_runtime_attribution` exactly, including the human
+   reason.
 
 ## 8. Gaps closed
 
@@ -310,14 +316,14 @@ The three gaps §6/§7 recorded are now filled:
   parallel/async/spawn blocks and channel send/recv as inherent concurrency
   retains (`inherent_concurrency_count`, `air_mir_routine_inherent_concurrency_fact_count`),
   so a bare `parallel{}`/`channel` — not an intent-step boundary — still declares
-  its irreducible residue. `04_channel_parallel` now reports `A_inh = 4`, and the
+  its irreducible residue. `04_channel_parallel` now reports `A_inh = 3`, and the
   `compression_residue_mismatch` drift it used to raise is gone.
-- **Runtime-authority fixture (bucket B physically survives).**
-  `08_secure_slot_method` reads a secure-slot token across a method boundary; the
-  authority check cannot be folded and **survives `-O2`** (`phys_Abort = 1`),
-  unlike the straight-line `03` where the token folds. AIR now declares this via
-  `slot_capability_retain_count`, computed from MIR resource-op type-layout facts;
-  `08` is no longer an `expected_drift`.
+- **Runtime-authority fixture (bucket B is declared).**
+  `08_secure_slot_method` reads a secure-slot token across a method boundary.
+  AIR declares the policy retain via `slot_capability_retain_count`, computed
+  from MIR resource-op type-layout facts. The current physical oracle reports no
+  floor-excess abort for this row, so the retained semantic fact is pinned in
+  `retained_runtime_attribution` rather than inferred from raw symbol count.
   Findings: a slot whose release is behind a runtime branch is **statically
   rejected** (fail-closed at compile time), not deferred to runtime — so the
   always-on slot check rarely survives `-O2` in compilable code.

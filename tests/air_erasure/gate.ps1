@@ -1,5 +1,5 @@
 # AIR erasure CI gate. Consumes tests/air_erasure/results.csv (produced by
-# measure.ps1) plus baseline.json, and enforces four contracts:
+# measure.ps1) plus baseline.json, and enforces five contracts:
 #
 #   0. Substrate-floor pin (hard): every emitted program carries a runtime
 #      substrate (today: the R6 wall-time watchdog = pthread_create/detach +
@@ -18,6 +18,10 @@
 #      compressed (A+B+C == 0) yet shows physical residue BEYOND the floor is
 #      an AIR_DRIFT_COMPRESSION_RESIDUE_MISMATCH -- hard-failed if new,
 #      reported if listed in expected_drifts (a documented modeling gap).
+#   4. Retained-runtime attribution: every fixture with declared retain facts
+#      or physical residue beyond the substrate floor must be listed in
+#      baseline.retained_runtime_attribution with exact A/B/C and floor-excess
+#      physical counts plus a human reason.
 #
 # Exit non-zero on any hard-contract violation. Run measure.ps1 first.
 $ErrorActionPreference = 'Stop'
@@ -94,6 +98,59 @@ foreach ($r in $rows) {
       Write-Output "[air-gate] drift (expected): '$($r.Fixture)' declared 0, physical excess=$excess (documented modeling gap)"
     } else {
       Write-Output "[air-gate] FAIL drift (NEW): '$($r.Fixture)' declared 0 but physical excess over floor=$excess -- unexpected compression_residue_mismatch, investigate"
+      $fail++
+    }
+  }
+}
+
+# 4. retained-runtime attribution: declared retains and physical residue must be
+# named in the baseline so retained cost cannot appear as an unowned side effect.
+$attribution = $base.retained_runtime_attribution
+if (-not $attribution) {
+  Write-Output "[air-gate] FAIL attribution: baseline.retained_runtime_attribution missing"
+  $fail++
+} else {
+  $measuredNames = @($rows | ForEach-Object { $_.Fixture })
+  foreach ($r in $rows) {
+    $declared = [int]$r.A_inh + [int]$r.B_pol + [int]$r.C_unprov
+    $axisExcess = [int]$r.phys_Axis
+    $syncExcess = [int]$r.phys_Sync - $floorSync
+    $abortExcess = [int]$r.phys_Abort - $floorAbort
+    $positiveExcess = $axisExcess
+    if ($syncExcess -gt 0) { $positiveExcess += $syncExcess }
+    if ($abortExcess -gt 0) { $positiveExcess += $abortExcess }
+    $needsAttribution = ($declared -gt 0 -or $positiveExcess -gt 0)
+    $prop = $attribution.PSObject.Properties | Where-Object { $_.Name -eq $r.Fixture } | Select-Object -First 1
+    if ($needsAttribution -and -not $prop) {
+      Write-Output "[air-gate] FAIL attribution: '$($r.Fixture)' has declared=$declared physical_excess=$positiveExcess but no retained_runtime_attribution row"
+      $fail++
+      continue
+    }
+    if (-not $prop) { continue }
+    $a = $prop.Value
+    $reason = [string]$a.reason
+    if (-not $reason) {
+      Write-Output "[air-gate] FAIL attribution: '$($r.Fixture)' has an empty reason"
+      $fail++
+    }
+    $checks = @(
+      @('A_inh', [int]$r.A_inh, [int]$a.A_inh),
+      @('B_pol', [int]$r.B_pol, [int]$a.B_pol),
+      @('C_unprov', [int]$r.C_unprov, [int]$a.C_unprov),
+      @('phys_Axis', [int]$r.phys_Axis, [int]$a.phys_Axis),
+      @('phys_Sync_excess', $syncExcess, [int]$a.phys_Sync_excess),
+      @('phys_Abort_excess', $abortExcess, [int]$a.phys_Abort_excess)
+    )
+    foreach ($check in $checks) {
+      if ($check[1] -ne $check[2]) {
+        Write-Output "[air-gate] FAIL attribution: '$($r.Fixture)' $($check[0]) measured=$($check[1]) baseline=$($check[2])"
+        $fail++
+      }
+    }
+  }
+  foreach ($prop in $attribution.PSObject.Properties) {
+    if ($measuredNames -notcontains $prop.Name) {
+      Write-Output "[air-gate] FAIL attribution: baseline row '$($prop.Name)' has no measured fixture"
       $fail++
     }
   }

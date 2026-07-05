@@ -226,7 +226,9 @@ or backend architecture complete.
    `Target capability envelope` is the first gated split.
 3. Start typed AST replacement at the top codegen consumers:
    `expr_rewrite`, `decl_lower`, and `routine_lower`.
-4. Add retained-runtime attribution to erasure/materialization scans.
+4. Extend retained-runtime attribution from fixture-level A/B/C and floor-excess
+   symbols toward finer callsite/materialization-owner rows where the physical
+   oracle can distinguish them.
 5. Execute Target #4 shared MIR consumption only after the M2 semantic/codegen
    ledger stops yielding cheap wins.
 
