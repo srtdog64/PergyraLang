@@ -113,6 +113,44 @@ func CompilerHarnessComparableArtifactPathAt(index: Int) -> String {
     return "";
 }
 
+func CompilerHarnessBackendOutputComparatorSuiteName() -> String {
+    return "backend-output-comparator-paths";
+}
+
+func CompilerHarnessBackendOutputComparatorToolSourcePath() -> String {
+    return "src/self_hosted/tools/backend_output_comparator/main.pgy";
+}
+
+func CompilerHarnessBackendOutputComparatorExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/backend_output_comparator/expected/clean.json";
+}
+
+func CompilerHarnessBackendOutputComparatorPathCount() -> Int {
+    return 4;
+}
+
+func CompilerHarnessBackendOutputComparatorPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessBackendOutputComparatorToolSourcePath(); }
+    if index == 1 { return CompilerHarnessBackendOutputComparatorExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessExpectedComparableArtifactPath(); }
+    if index == 3 { return CompilerHarnessActualComparableArtifactPath(); }
+    return "";
+}
+
+func CompilerHarnessBackendOutputComparatorReady() -> Bool {
+    if CompilerHarnessBackendOutputComparatorPathCount() != 4 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessBackendOutputComparatorPathCount() {
+        if CompilerHarnessBackendOutputComparatorPathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessBackendOutputComparatorSuiteName() != "";
+}
+
 func CompilerHarnessFindingCap() -> Int {
     return 8;
 }
@@ -234,6 +272,7 @@ func CompilerTestHarnessReady() -> Bool {
         CompilerHarnessRuntimeBoundaryReady() &&
         CompilerHarnessDocLinkCheckerReady() &&
         CompilerHarnessExamplesInventoryReady() &&
+        CompilerHarnessBackendOutputComparatorReady() &&
         CompilerHarnessAirGraphJsonValidatorReady() &&
         CompilerHarnessDiagnosticCatalogReady() &&
         CompilerHarnessAstReadSurfaceReady() &&

@@ -3,7 +3,7 @@
 #
 # Pergyra is the origin
 # (src/self_hosted/tools/backend_output_comparator/main.pgy).
-# Shell `diff -q` is the parity backend. Asserts:
+# Shell text equivalence is the parity backend. Asserts:
 #   - clean fixture (expected == actual): rc=0, JSON byte-equal vs
 #     expected/clean.json
 #   - synthetic mismatch fixture: rc=1, mismatch_lines >= 1, ok:false
@@ -33,12 +33,32 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
-PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/backend_output_comparator}"
+HARNESS_PATHS_FILE="$PERGYRA_TOOL_BUILD_DIR/backend_output_comparator_harness_paths.txt"
+mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:backend-output-comparator" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "backend-output-comparator-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 4 ]]; then
+    echo "[self-host-parity:backend-output-comparator] TestHarness manifest expected 4 comparator paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
-EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/expected/clean.json"
-FIXTURE_EXPECTED="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/fixture/expected.txt"
-FIXTURE_ACTUAL="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/fixture/actual.txt"
+EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
+FIXTURE_EXPECTED_REL="${harness_paths[2]}"
+FIXTURE_ACTUAL_REL="${harness_paths[3]}"
+FIXTURE_EXPECTED="$ROOT_DIR/$FIXTURE_EXPECTED_REL"
+FIXTURE_ACTUAL="$ROOT_DIR/$FIXTURE_ACTUAL_REL"
 
 for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$FIXTURE_EXPECTED" "$FIXTURE_ACTUAL"; do
     if [[ ! -f "$path" ]]; then
@@ -47,7 +67,6 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$FIXTURE_EXPECTED" "$F
     fi
 done
 
-mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR/../../lib"
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR/../../compiler"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
@@ -56,6 +75,10 @@ cp "$ROOT_DIR/src/self_hosted/compiler/artifact_zone_owner.pgy" \
     "$PERGYRA_TOOL_BUILD_DIR/../../compiler/artifact_zone_owner.pgy"
 cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_owner.pgy" \
     "$PERGYRA_TOOL_BUILD_DIR/../../compiler/test_harness_owner.pgy"
+cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" \
+    "$PERGYRA_TOOL_BUILD_DIR/../../compiler/test_harness_tool_paths_owner.pgy"
+cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" \
+    "$PERGYRA_TOOL_BUILD_DIR/../../compiler/test_harness_air_graph_paths_owner.pgy"
 cp "$ROOT_DIR/src/self_hosted/compiler/subprocess_runner_owner.pgy" \
     "$PERGYRA_TOOL_BUILD_DIR/../../compiler/subprocess_runner_owner.pgy"
 PERGYRA_TOOL_INPUT="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
@@ -87,8 +110,8 @@ fi
 # Args() instead of relying only on fixed fixture owner paths.
 ARG_BIN="$PERGYRA_TOOL_BUILD_DIR/main_args.exe"
 ARG_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/main_args.compile.log"
-ARG_EXPECTED_PATH="${FIXTURE_EXPECTED#"$ROOT_DIR/"}"
-ARG_ACTUAL_PATH="${FIXTURE_ACTUAL#"$ROOT_DIR/"}"
+ARG_EXPECTED_PATH="$FIXTURE_EXPECTED_REL"
+ARG_ACTUAL_PATH="$FIXTURE_ACTUAL_REL"
 if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_INPUT" --backend=c \
     -o "$(pgy_path_for_compiler "$PGY" "$ARG_BIN")" >"$ARG_COMPILE_LOG" 2>&1); then
     echo "[self-host-parity:backend-output-comparator] argv-mode C compile failed" >&2
@@ -175,11 +198,12 @@ cleanup_neg_root() {
     rm -rf "$NEG_ROOT"
 }
 trap cleanup_neg_root EXIT
-mkdir -p "$NEG_ROOT/src/self_hosted/tools/backend_output_comparator/fixture"
+mkdir -p "$NEG_ROOT/$(dirname "$FIXTURE_EXPECTED_REL")" \
+    "$NEG_ROOT/$(dirname "$FIXTURE_ACTUAL_REL")"
 mkdir -p "$NEG_ROOT/.tmp"
-cp "$FIXTURE_EXPECTED" "$NEG_ROOT/src/self_hosted/tools/backend_output_comparator/fixture/expected.txt"
+cp "$FIXTURE_EXPECTED" "$NEG_ROOT/$FIXTURE_EXPECTED_REL"
 sed 's/gamma/GAMMA-DRIFT/' "$FIXTURE_ACTUAL" \
-    > "$NEG_ROOT/src/self_hosted/tools/backend_output_comparator/fixture/actual.txt"
+    > "$NEG_ROOT/$FIXTURE_ACTUAL_REL"
 
 set +e
 NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_INPUT" --run 2>&1)"
@@ -209,9 +233,9 @@ fi
 # Phase 3 - synthetic missing-input fixture (delete actual.txt).
 MISS_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/pgy-selfhost-cmp-miss.XXXXXX")"
 trap "rm -rf '$NEG_ROOT' '$MISS_ROOT'" EXIT
-mkdir -p "$MISS_ROOT/src/self_hosted/tools/backend_output_comparator/fixture"
+mkdir -p "$MISS_ROOT/$(dirname "$FIXTURE_EXPECTED_REL")"
 mkdir -p "$MISS_ROOT/.tmp"
-cp "$FIXTURE_EXPECTED" "$MISS_ROOT/src/self_hosted/tools/backend_output_comparator/fixture/expected.txt"
+cp "$FIXTURE_EXPECTED" "$MISS_ROOT/$FIXTURE_EXPECTED_REL"
 
 set +e
 MISS_OUT="$(cd "$MISS_ROOT" && "$PGY" "$PERGYRA_TOOL_INPUT" --run 2>&1)"

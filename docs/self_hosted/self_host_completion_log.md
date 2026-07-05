@@ -25,6 +25,18 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-05 - Backend comparator self-test paths consume TestHarness owner
+
+- Added a `backend-output-comparator-paths` manifest suite owned by
+  `test_harness_owner.pgy`, because the comparator's default comparable
+  artifact paths are core TestHarness facts rather than generic tool-path rows.
+- Repointed `backend_output_comparator_parity.sh` so shell reads the comparator
+  source, expected clean JSON, and expected/actual comparable artifacts from the
+  compiled TestHarness manifest before running clean, argv, mismatch, missing,
+  and LLVM parity legs.
+- Kept shell as the comparator's own external text-equivalence oracle while
+  removing the old shell-owned path constants from that self-test.
+
 ## 2026-07-05 - AIR graph consumer paths consume TestHarness owner
 
 - Added `test_harness_air_graph_paths_owner.pgy` to own the AIR graph
