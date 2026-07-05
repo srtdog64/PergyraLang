@@ -1,0 +1,50 @@
+// Syntax unit: intent and step.
+//
+// What this grammar is:
+// `intent` is Pergyra's orchestration grammar. It describes a goal-shaped flow
+// as named steps. Each step can point at a zone instance (`using`) and an action
+// (`on`) while the compiler derives or checks the authority/effect facts.
+//
+// Shapes:
+//   intent Name(zone_value: ZoneType, actor: SubjectType) {
+//       step Label {
+//           using: zone_value;
+//           on: actor.Action();
+//           expect: true;
+//       }
+//   }
+//
+// Meaning:
+// - `intent` is the orchestration declaration.
+// - `step` is one named action in the orchestration.
+// - `using:` selects the zone instance.
+// - `on:` is the action call.
+// - `expect:` is the expected condition.
+
+subject Actor {
+    let mut score: Int;
+
+    action Mark(self) -> Void
+        within ArenaZone
+        authorized by self
+    {
+        self.score = self.score + 1;
+    }
+}
+
+zone ArenaZone {
+    subject slot actor: Actor
+    authority actor
+}
+
+intent MarkActor(arena: ArenaZone, actor: Actor) {
+    step Mark {
+        using: arena;
+        on: actor.Mark();
+        expect: true;
+    }
+}
+
+func Main() -> Void {
+    Log("intent-step");
+}

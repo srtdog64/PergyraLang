@@ -1,0 +1,44 @@
+// Syntax unit: ability, role, impl, requires.
+//
+// What this grammar is:
+// This is behavioral contract grammar. `ability` names a capability, `role`
+// attaches an implementation to a concrete type, and `requires` lets actions or
+// boundaries say they need that capability before they are valid.
+//
+// Shapes:
+//   ability Name { func Required(...) -> Type; }
+//   role RoleName for Type { impl ability Name { ... } }
+//   action Verb(self) requires Name { ... }
+//
+// Meaning:
+// - `ability` names a behavioral contract.
+// - `role` implements that contract for a concrete type.
+// - `requires AbilityName` declares that an action needs that contract.
+
+ability Ready {
+    func IsReady() -> Bool;
+}
+
+subject Worker {
+    let mut jobs: Int;
+
+    action Work(self) -> Void
+        requires Ready
+        authorized by self
+    {
+        self.jobs = self.jobs + 1;
+    }
+}
+
+role WorkerReady for Worker {
+    impl ability Ready {
+        func IsReady() -> Bool {
+            return true;
+        }
+    }
+}
+
+func Main() -> Void {
+    let worker: Worker = Worker(0);
+    Log(ToString(worker.jobs));
+}

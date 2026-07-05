@@ -16,9 +16,9 @@ not a full compiler rewrite.
   formatting/classification facts.
 - `source_input_owner.pgy` - lexer input SoT. Owns the source path contract and
   source file read boundary consumed by `scan_owner.pgy`.
-- `fixture/` - committed `<base>_tokens.txt` baselines for the 7-source
+- `fixture/` - committed `<base>_tokens.txt` baselines for the 8-source
   parity harness (`hello`, `array_literal`, `break_continue`, `basic`,
-  `heap`, `binary_search`, `string_escape_sequences`).
+  `heap`, `binary_search`, `string_escape_sequences`, `block_comment`).
 - `expected/clean.txt` - expected stdout when run on the default source.
 - `intent.md` - contract.
 

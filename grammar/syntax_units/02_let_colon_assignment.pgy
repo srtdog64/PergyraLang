@@ -1,0 +1,25 @@
+// Syntax unit: local declaration, type annotation, assignment, semicolon.
+//
+// What this grammar is:
+// This is the local value-binding grammar. It tells the compiler that a name
+// exists in the current function body and what type that name has. It is not a
+// domain slot or authority declaration; it is just local computation state.
+//
+// Shapes:
+//   let name: Type = expression;
+//   name = expression;
+//
+// Meaning:
+// - `let` introduces a local binding.
+// - `name: Type` says the binding has that type.
+// - `=` gives an initial value or assigns a new value.
+// - `;` ends ordinary statements inside function bodies.
+
+func Main() -> Void {
+    let count: Int = 1;
+    let label: String = "count=";
+
+    count = count + 2;
+
+    Log(Concat(label, ToString(count)));
+}

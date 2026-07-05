@@ -1,0 +1,72 @@
+// Zone + effect + intent.
+//
+// This is the core Pergyra layer:
+// - `zone` owns resource slots and authority requirements.
+// - `effect` names a domain fact caused by an action.
+// - `intent` orchestrates action steps and consumes the action contract.
+//
+// The important feature here is compression: the intent step does not repeat
+// `who`, `where`, `requires`, `authorized by`, and `causes` when they can be
+// derived from the action and zone facts.
+
+// Ability required by the action and by the zone authority rule.
+ability Prepared {
+    func Ready() -> Bool;
+}
+
+// The domain actor.
+subject Hero {
+    let mut hp: Int;
+
+    // Action contract:
+    // - requires Prepared
+    // - runs within BattleZone
+    // - must be authorized by self
+    // - causes the Guarded effect
+    action Guard(self) -> Void
+        requires Prepared
+        within BattleZone
+        authorized by self
+        causes Guarded
+    {
+        self.hp = self.hp + 1;
+    }
+}
+
+// The concrete implementation that makes Hero satisfy Prepared.
+role HeroPrepared for Hero {
+    impl ability Prepared {
+        func Ready() -> Bool {
+            return true;
+        }
+    }
+}
+
+// Effects are named facts in the domain model.
+effect Guarded for bearer: Hero {
+}
+
+// A zone owns slots. Slot lines intentionally do not end with `;`; this is the
+// declaration/topology layer, not ordinary statement syntax.
+zone BattleZone {
+    subject slot hero: Hero
+    effect slot guarded: Guarded
+
+    // The zone states that its `hero` authority must satisfy Prepared.
+    authority hero requires Prepared
+}
+
+// Intent is the orchestration surface.
+intent Patrol(battle: BattleZone, hero: Hero) {
+    // This step is compressed. It gives the zone instance through `using` and
+    // calls the action through `on`; the action contract supplies the rest.
+    step Guard {
+        using: battle;
+        on: hero.Guard();
+        expect: true;
+    }
+}
+
+func Main() -> Void {
+    Log("zone-intent-authority");
+}

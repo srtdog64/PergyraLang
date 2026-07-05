@@ -1,0 +1,34 @@
+// Syntax unit: generic array type, array literal, indexing.
+//
+// What this grammar is:
+// `Array<T>` is generic collection syntax. The angle-bracket part says what
+// type the collection contains. This is ordinary data structure syntax, not a
+// zone slot; ownership only becomes domain-visible when a collection is placed
+// behind a boundary such as a slot or explicit parameter contract.
+//
+// Shapes:
+//   Array<T>
+//   [a, b, c]
+//   values[index]
+//
+// Meaning:
+// - `Array<Int>` is an array whose elements are Int.
+// - Array literals must have one element type.
+// - Indexing returns the element at that position.
+
+func Sum(values: Array<Int>) -> Int {
+    let i: Int = 0;
+    let total: Int = 0;
+
+    while i < ArrayLength(values) {
+        total = total + values[i];
+        i = i + 1;
+    }
+
+    return total;
+}
+
+func Main() -> Void {
+    let values: Array<Int> = [1, 2, 3];
+    Log(ToString(Sum(values)));
+}

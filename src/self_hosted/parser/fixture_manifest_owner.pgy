@@ -74,7 +74,7 @@ func ParserFixtureManifestRows() -> Array<String> {
 func ParserFixtureManifestReady() -> Bool {
     let rows: Array<String> = ParserFixtureManifestRows();
     let i: Int = 0;
-    if ArrayLength(rows) != 187 {
+    if ArrayLength(rows) != 188 {
         return false;
     }
     while i < ArrayLength(rows) {

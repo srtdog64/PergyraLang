@@ -1,0 +1,8 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: x : Int = (1 + 2)
+        Log(x)

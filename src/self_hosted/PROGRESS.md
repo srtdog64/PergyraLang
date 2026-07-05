@@ -68,7 +68,7 @@ for C-emission action participants. That keeps
 resource owners visible. Parameter-mode facts (`inout` / `own` / `ref`) now
 survive `pgy --ast`; the self-host C codegen consumes `inout` from function-env
 `pm` facts and lowers it as value-result copy-in/copy-out instead of guessing
-from `ArrayPush` or other statement text. The real-source semantic selfcheck now accepts 132
+from `ArrayPush` or other statement text. The real-source semantic selfcheck now accepts 147
 self-host owner/source files through both C and LLVM, including the codegen
 run boundary, lexer run/fixture-manifest owners, emission action owners,
 type-fact owner, MIR-lower fact owners, and SEA execution-lane mirror. The
@@ -179,7 +179,7 @@ the codegen tool *self-hosts*. A Pergyra-built copy of the owner graph emits C
 that gcc-compiles and **reproduces its own source-compilation exactly** --
 `gen2 == gen3` byte-identical (last observed 5484 generated-C lines) -- and the
 Pergyra-built tool emits byte-identical C to the oracle-built tool on the sample
-fixtures. Breadth: the same codegen also compiles the lexer (587 lines) and parser (3338 lines); each codegen-built binary matches its oracle-built counterpart on a sample source -- three real self-host components self-built. Wider survey: the codegen compiles **all 22 of 22** committed self-host components/tools to valid C, each verified run-equivalent to the oracle-built binary on a sample -- the entire committed self-host toolchain (lexer, parser, semantic, codegen itself, + 18 audit tools) is self-built by the Pergyra-written codegen. This includes namespace-imported audit tools (`TextScan::` qualified calls, flattened to `NS_Func` -- import/namespace + DirWalk support added). The earlier 18/22 ceiling was a `pgy --ast` bug (for-each `for x in lines` rendered as `For: x in (null)..(null)`, dropping the collection); FIXED in src/parser/ast_print.c (emit the iterable) + the self-host parser, regenerated 5 parser fixtures, and added for-each lowering + bare-void-return + word-boundary builtin matching to the codegen. The latest hard gap was the typed AST arena fixture exposing that the self-host codegen only knew `Option<Int>` ABI/runtime facts. FIXED by adding `Option<String>` to compiler ABI rows, runtime ABI owner symbols, expression kind facts, and typed `Some`/`None` emission. Parser parity (187 manifest rows) stays byte-equal. The bootstrap gate verifies codegen self-hosts (gen2==gen3) + builds lexer + parser + semantic + mir_lower + 13 audit tools and the backend fuzz generator, all matching oracle-built. Gated by `parity/codegen_bootstrap.sh`
+fixtures. Breadth: the same codegen also compiles the lexer (587 lines) and parser (3338 lines); each codegen-built binary matches its oracle-built counterpart on a sample source -- three real self-host components self-built. Wider survey: the codegen compiles **all 22 of 22** committed self-host components/tools to valid C, each verified run-equivalent to the oracle-built binary on a sample -- the entire committed self-host toolchain (lexer, parser, semantic, codegen itself, + 18 audit tools) is self-built by the Pergyra-written codegen. This includes namespace-imported audit tools (`TextScan::` qualified calls, flattened to `NS_Func` -- import/namespace + DirWalk support added). The earlier 18/22 ceiling was a `pgy --ast` bug (for-each `for x in lines` rendered as `For: x in (null)..(null)`, dropping the collection); FIXED in src/parser/ast_print.c (emit the iterable) + the self-host parser, regenerated 5 parser fixtures, and added for-each lowering + bare-void-return + word-boundary builtin matching to the codegen. The latest hard gap was the typed AST arena fixture exposing that the self-host codegen only knew `Option<Int>` ABI/runtime facts. FIXED by adding `Option<String>` to compiler ABI rows, runtime ABI owner symbols, expression kind facts, and typed `Some`/`None` emission. Parser parity (188 manifest rows) stays byte-equal. The bootstrap gate verifies codegen self-hosts (gen2==gen3) + builds lexer + parser + semantic + mir_lower + 13 audit tools and the backend fuzz generator, all matching oracle-built. Gated by `parity/codegen_bootstrap.sh`
 (`make self-host-codegen-bootstrap-test-smoke`).
 
 Reaching the fixpoint drove out and fixed real gaps: `else if` chains,
@@ -222,9 +222,10 @@ separately.
 
 **Lexer parity (2026-06-23):** the committed lexer gate compiles the
 Pergyra-origin lexer through both C and LLVM, then proves byte-equal token
-output and live `pgy --tokens` drift on 7 source fixtures:
+output and live `pgy --tokens` drift on 8 source fixtures:
 `hello`, `array_literal`, `break_continue`, `basic`, `heap`, and
-`binary_search`, plus backend-compare `string_escape_sequences`. `main.pgy` is
+`binary_search`, plus backend-compare `string_escape_sequences` and
+`block_comment`. `main.pgy` is
 now only the entrypoint; character/codepoint classification, token keyword/line
 rendering, and the scan loop live in `char_owner.pgy`, `token_owner.pgy`, and
 `scan_owner.pgy`; lexer tool input is only `Args()[0]` or the no-arg
@@ -252,7 +253,7 @@ Refresh:
 `bash tests/self_hosted/parity/parser_scale_probe.sh --failing`.
 
 **Rung-1 parity (2026-06-16):** the committed
-`parser_parity.sh` now consumes a **187-row** source/fixture manifest emitted
+`parser_parity.sh` now consumes a **188-row** source/fixture manifest emitted
 by `fixture_manifest_owner.pgy` vs `pgy --ast` on both generated C and LLVM parser binaries
 (was 83 on 2026-05-29; +103 overall). The added fixture surface covers Option/Result
 destructure, slot sugar, transfer short syntax, array literal,
@@ -306,9 +307,9 @@ only observe text artifacts the C compiler produces. Their LOC is
 | Component       | C LOC   | Pergyra LOC | Coverage | Status            |
 |-----------------|---------|-------------|----------|-------------------|
 | `src/lexer/`    |     921 |         677 | measured corpus parity | **993 of 993 sources byte-equal** (examples + backend_compare). `main.pgy` is entrypoint-only; run-boundary, fixture manifest, source input, character/codepoint handling, token classification/output formatting, and scan-loop state are separate SoT owner modules. `scan_owner.pgy` declares its real owner dependencies (`char_owner.pgy`, `token_owner.pgy`), and the lexer run/fixture-manifest owners are part of the real-source semantic selfcheck set. Escaped strings, interpolation, and doc/block comments are covered by the measured corpus. 7 representative sources are committed as parity fixtures. |
-| `src/parser/`   |   20579 |        8127 | ~52%     | `src/self_hosted/parser/` parses 187 committed source/fixture rows byte-equal `pgy --ast` on both C and LLVM parser binaries, and **120 of 121** `examples/*.pgy` byte-equal at scale (2026-06-22; zero byte-drift, zero self-host parser exits, 1 C-skip). Parser ownership is now split into declaration, expression, statement, import/source, cursor, type-name, diagnostic, tree-text, run-boundary, and fixture-manifest owners; `main.pgy` is parser-tool entrypoint only. |
+| `src/parser/`   |   20579 |        8127 | ~52%     | `src/self_hosted/parser/` parses 188 source/fixture rows byte-equal `pgy --ast` on both C and LLVM parser binaries, and **120 of 121** `examples/*.pgy` byte-equal at scale (2026-06-22; zero byte-drift, zero self-host parser exits, 1 C-skip). Parser ownership is now split into declaration, expression, statement, import/source, cursor, type-name, diagnostic, tree-text, run-boundary, and fixture-manifest owners; `main.pgy` is parser-tool entrypoint only. |
 | `src/semantic/` |   46203 |        2716 | rung-2 subset | Checks a bounded function-body subset against the C compiler oracle on C/LLVM-generated binaries across 108 fixtures, including Option `?` payload propagation. `main.pgy` is orchestration only; CLI diagnostic/run boundary, diagnostic-code vocabulary, C oracle code mapping, source-bundle/import expansion, source scanning, diagnostic rendering, local environment lookup, expression typing, expression diagnostics, call checking, body/function checking, and program checking live in named owner modules. |
-| `src/codegen/`  |  107123 |        4821 | rung-0..20 | **C-emit rung-0..20 (2026-06-24).** Pergyra emitter consumes `pgy --ast` text and emits standalone C for the supported scalar/string/array/result/option/struct/defer/file/stdin/argv/random/float subset. `ast_input_owner.pgy` owns AST path selection, `ast_text_inventory_owner.pgy` owns the typed `CodegenAstTextNode` bridge inventory, program-level declaration routing, declaration collector prepasses, function signature/header facts, `inout`/`own`/`ref` parameter-mode preservation, and cursor expectations, `ast_text_statement_owner.pgy` owns statement-row facts, `codegen_run_owner.pgy` owns CLI-to-output orchestration, `type_facts/` owns type routing, `compiler/symbol_table_owner.pgy` owns function/method/operator/enum emitted-symbol rows and namespace-qualified call spelling, `compiler/abi_layout_row_owner.pgy` owns supported concrete ABI rows and `abi_layout/abi_layout_owner.pgy` consumes those rows for parameter/return/local/field C ABI spelling before user-struct lookup, `runtime_abi/collection_runtime_owner.pgy` owns supported array runtime helper call spelling including the bootstrap `Array<CodegenAstTextNode>` lane, `runtime_abi/math_runtime_owner.pgy` owns supported math/random helper and target-library call spelling, `runtime_abi/host_io_runtime_owner.pgy` owns supported host file/stdin/argv/process helper and target-library call spelling, `runtime_abi/option_result_runtime_owner.pgy` owns supported `Option<Int>` / `Option<String>` / `Result<Int>` runtime helper call spelling and Option `?` propagation, `runtime_abi/string_runtime_owner.pgy` owns supported string/text helper and conversion target-library call spelling, and `emission/` contains action participants. `lib/json_scan.pgy` owns JSON cursor/string scan primitives, `lib/json.pgy` owns JSON read/string/number fact access including `Option<String>` string/number field facts, `lib/json_fact_table.pgy` owns bounded object and array-object boundary facts now consumed by `module_manifest_resolver` for root `modules` discovery plus module-row count/field/equality facts, by `mir_lower/json_fact_read.pgy` for MIR root `decls`/`routines` discovery, and by `air_graph_json_validator` for AIR root required-key checks plus nested `summary` count rows through `JsonObjectFactObjectTable` / `JsonObjectFactNumberFieldOpt`; AIR feature requirements remain graph-wide scalar facts consumed through `AirGraphScalarFieldValues`. `lib/json_emit.pgy` owns JSON string escaping plus field/object/array emission consumed through direct imports; schema object shape remains tool-owned. **65 fixtures run-stdout equal** to the C/LLVM oracle on tools built through both backends; bootstrap fixpoint is `gen2 == gen3`. Gate: `parity/codegen_parity.sh` (`make self-host-codegen-parity-test-smoke`) and `parity/codegen_bootstrap.sh` (`make self-host-codegen-bootstrap-test-smoke`). Out-of-subset input is an observable `Exit(1)`. |
+| `src/codegen/`  |  107123 |        4821 | rung-0..20 | **C-emit rung-0..20 (2026-06-24).** Pergyra emitter consumes `pgy --ast` text and emits standalone C for the supported scalar/string/array/result/option/struct/defer/file/stdin/argv/random/float subset. `ast_input_owner.pgy` owns AST path selection, `ast_text_inventory_owner.pgy` owns the typed `CodegenAstTextNode` bridge inventory, program-level declaration routing, declaration collector prepasses, function signature/header facts, `inout`/`own`/`ref` parameter-mode preservation, and cursor expectations, `ast_text_statement_owner.pgy` owns statement-row facts, `codegen_run_owner.pgy` owns CLI-to-output orchestration, `type_facts/` owns type routing, `compiler/symbol_table_owner.pgy` owns function/method/operator/enum emitted-symbol rows and namespace-qualified call spelling, `compiler/abi_layout_row_owner.pgy` owns supported concrete ABI rows and `abi_layout/abi_layout_owner.pgy` consumes those rows for parameter/return/local/field C ABI spelling before user-struct lookup, `runtime_abi/collection_runtime_owner.pgy` owns supported array runtime helper call spelling including the bootstrap `Array<CodegenAstTextNode>` lane, `runtime_abi/math_runtime_owner.pgy` owns supported math/random helper and target-library call spelling, `runtime_abi/host_io_runtime_owner.pgy` owns supported host file/stdin/argv/process helper and target-library call spelling, `runtime_abi/option_result_runtime_owner.pgy` owns supported `Option<Int>` / `Option<String>` / `Result<Int>` runtime helper call spelling and Option `?` propagation, `runtime_abi/string_runtime_owner.pgy` owns supported string/text helper and conversion target-library call spelling, and `emission/` contains action participants. `lib/json_scan.pgy` owns JSON cursor/string scan primitives, `lib/json.pgy` owns JSON read/string/number fact access including `Option<String>` string/number field facts, `lib/json_fact_table.pgy` owns bounded object and array-object boundary facts now consumed by `module_manifest_resolver` for root `modules` discovery plus module-row count/field/equality facts, by `mir_lower/json_fact_read.pgy` for MIR root `decls`/`routines` discovery, and by `air_graph_json_validator` for AIR root required-key checks plus nested `summary` count rows through `JsonObjectFactObjectTable` / `JsonObjectFactNumberFieldOpt`; AIR feature requirements remain graph-wide scalar facts consumed through `AirGraphScalarFieldValues`. `lib/json_emit.pgy` owns JSON string escaping plus field/object/array emission consumed through direct imports; schema object shape remains tool-owned. **66 fixtures run-stdout equal** to the C/LLVM oracle on tools built through both backends; bootstrap fixpoint is `gen2 == gen3`. Gate: `parity/codegen_parity.sh` (`make self-host-codegen-parity-test-smoke`) and `parity/codegen_bootstrap.sh` (`make self-host-codegen-bootstrap-test-smoke`). Out-of-subset input is an observable `Exit(1)`. |
 | `src/runtime/`  |   29627 |           0 | 0%       | native runtime kernel stays C; portable runtime policy libraries may move later |
 | `src/compiler/` |   43304 |           0 | 0%       | released/native compiler driver replacement remains 0%; DRV-0 in-process parser→codegen assembly and DRV-1 CLI artifact rungs exist under `src/self_hosted/compiler/` and are tracked by docs/150, but are not counted as shipped driver substitution |
 | `src/lsp/`      |    1037 |           0 | 0%       | released/native LSP replacement remains 0%; LSP-0 diagnostic `publishDiagnostics` payload projection, LSP-1 squiggle policy, LSP-2a single-frame Content-Length transport owner, LSP-2b buffered frame-stream owner, LSP-2c buffered request dispatch owner, LSP-2d buffered response emission owner, LSP-2e buffered session replay owner, LSP-2f buffered multi-document store owner, LSP-2g no-index feature response shape owner, LSP-2h buffered session-state owner, and LSP-2i bounded hover-content owner exist under `src/self_hosted/lsp/` and are tracked by docs/150. Full transport/session replacement has not landed |
@@ -367,7 +368,7 @@ The realistic incremental path toward genuine self-host:
 1. **Lexer expansion** -- *substantially done* (2026-06-16). Handles
    common keywords, line + block comments, integer + float literals, string
    literals, and common operators. The committed executable gate is the
-   7-source C/LLVM parity harness; the broader scale number below is a
+   8-source C/LLVM parity harness; the broader scale number below is a
    historical measurement and should not be treated as a committed scale gate.
 2. **Lexer at scale** -- *historical measurement refreshed* (2026-06-23).
    Pergyra lexer was measured against `examples/*.pgy` plus
@@ -375,7 +376,7 @@ The realistic incremental path toward genuine self-host:
    `pgy --tokens`. String interpolation, escaped strings, and doc/block comment
    lexing are now in the measured surface. Coverage target met for this corpus.
 3. **Parser bootstrap** -- *expanding* (2026-06-22). `src/self_hosted/parser/`
-   parses 187 manifest rows byte-equal `pgy --ast` on parser binaries
+   parses 188 manifest rows byte-equal `pgy --ast` on parser binaries
    generated by both C and LLVM, and **120 of 121** `examples/*.pgy` files at
    scale with zero byte drift and zero self-host parser exits. It now covers the domain declaration surface (`subject`, `object`,
    `tobject`, `vessel`, `ability`, `role`/`impl`, `zone`, `world`, `party`,
@@ -393,7 +394,7 @@ The realistic incremental path toward genuine self-host:
    oracle. Recursive import expansion is now owned by `source_bundle_owner.pgy`,
    and the import-backed call fixture proves signatures are consumed from the
   source bundle instead of from a hidden single-file `main` assumption. The
-  real-source selfcheck now feeds 132 accepted self-host owner/source files
+  real-source selfcheck now feeds 147 accepted self-host owner/source files
    through that source-bundle owner rather than a generated import-stripped
    unit. The accepted manifest spans lexer/parser/mir-lower/codegen/compiler-world
   entrypoints, the lexer and mir_lower run/fixture-manifest owners, the compiler path manifest
@@ -450,7 +451,7 @@ The realistic incremental path toward genuine self-host:
    `Array<Int>` `ArraySort`/`ArrayReverse`/`ArrayMap`/`ArrayFilter`, `Result<Int>`
    `Ok`/`Err`/`IsOk`/`IsErr`/`Unwrap`/`UnwrapOr`, `Option<Int>`
    `Some`/`None`/`IsSome`/`UnwrapOption`, block-local `defer`,
-   `Exit(n)`,
+   enum `match` on supported enum facts, `Exit(n)`,
    `FileExists`/`ReadFile` file I/O, `Args()` snapshots, and
    value-passed `Int` / `Bool` / `Float` / `String` field structs plus nested struct-valued fields with
    literals/member reads/params/returns,
@@ -462,8 +463,12 @@ The realistic incremental path toward genuine self-host:
    resolver. The module manifest resolver now consumes bounded module-array
    object/field counts from the JSON owner instead of global substring counts.
    Round-trip C-emit-by-Pergyra -> gcc -> run -> stdout matches the C/LLVM oracle
-   on 59 committed fixtures, with the emitter built through both backends. Next
-   rungs: string freeing / block scoping, broader nested AST-node shapes, then round-trip
+   on 66 committed fixtures, with the emitter built through both backends.
+   The M2 completeness ledger also now checks all 147 production self-host
+   source files through the codegen `--check` path; that path still consumes
+   C-oracle `pgy --ast` text, so it is a source-breadth ratchet rather than the
+   final self-parser-to-codegen bootstrap. Next rungs: string freeing / block
+   scoping, typed AST-node facts replacing text rows, then round-trip
    self-compilation.
 7. **Bootstrap loop** -- the Pergyra-written compiler subset compiles
    itself, output runs.

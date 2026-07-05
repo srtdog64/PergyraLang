@@ -91,9 +91,9 @@ cannot launch the pgy subprocess).
 
 Current measured coverage:
 
-- `parser_parity.sh`: 186 committed source/fixture rows byte-equal on both
-  generated C and LLVM parser binaries. The compiled parser owner emits the
-  manifest, including external `examples/hello.pgy` and duplicate
+- `parser_parity.sh`: 188 source/fixture rows byte-equal on both generated C
+  and LLVM parser binaries. The compiled parser owner emits the manifest,
+  including external `examples/hello.pgy` and duplicate
   `generic_class` coverage.
 - `parser_scale_probe.sh --failing`: 120 of 121 `examples/*.pgy` byte-equal
   against live `pgy --ast`; zero byte-drift, zero self-host parser exits, and 1

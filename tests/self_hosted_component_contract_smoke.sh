@@ -406,7 +406,7 @@ require_text "src/self_hosted/lexer/scan_owner.pgy" 'import "token_owner.pgy";'
 require_text "src/self_hosted/lexer/token_owner.pgy" "func LexerTokenPayloadContractReady"
 require_text "src/self_hosted/lexer/token_owner.pgy" "func LexerTokenPayloadSchema"
 require_text "src/self_hosted/lexer/token_owner.pgy" "pgy.selfhost.lexer-token-stream.v1"
-require_text "src/self_hosted/lexer/token_owner.pgy" "LexerTokenPayloadFixtureCount() != 7"
+require_text "src/self_hosted/lexer/token_owner.pgy" "LexerTokenPayloadFixtureCount() != 8"
 require_text "src/self_hosted/lexer/fixture_manifest_owner.pgy" "func LexerFixtureManifestCount() -> Int"
 require_text "src/self_hosted/lexer/fixture_manifest_owner.pgy" "func EmitLexerFixtureManifest"
 require_text "src/self_hosted/lexer/fixture_manifest_owner.pgy" "LexerFixtureManifestCount()"
@@ -449,11 +449,11 @@ require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "func ParserFix
 require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "func EmitParserFixtureManifest"
 require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "DirWalk(ParserFixtureDir())"
 require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "ParserFixtureExpectedPath(base)"
-require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "ArrayLength(rows) != 187"
+require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "ArrayLength(rows) != 188"
 require_text "src/self_hosted/parser/tree_text_owner.pgy" "func ParserAstTreePayloadContractReady"
 require_text "src/self_hosted/parser/tree_text_owner.pgy" "func ParserAstTreePayloadSchema"
 require_text "src/self_hosted/parser/tree_text_owner.pgy" "pgy.selfhost.parser-ast-tree.v1"
-require_text "src/self_hosted/parser/tree_text_owner.pgy" "ParserAstTreePayloadFixtureCount() != 186"
+require_text "src/self_hosted/parser/tree_text_owner.pgy" "ParserAstTreePayloadFixtureCount() != 187"
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../parser/tree_text_owner.pgy";'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "ParserAstTreePayloadContractReady()"
 require_text "src/self_hosted/parser/cursor_owner.pgy" 'import "error_owner.pgy";'

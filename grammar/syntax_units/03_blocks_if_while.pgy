@@ -1,0 +1,34 @@
+// Syntax unit: blocks, if, while.
+//
+// What this grammar is:
+// This is control-flow grammar. It decides which ordinary statements execute
+// and how many times they execute. It gives Turing-complete computation, but it
+// does not explain domain authority or resource ownership; those come from
+// zone/intent syntax later.
+//
+// Shapes:
+//   if condition { statements }
+//   while condition { statements }
+//
+// Meaning:
+// - Conditions must be Bool.
+// - `{ ... }` groups a block.
+// - Assignments inside the block remain ordinary statements.
+
+func CountUp(limit: Int) -> Int {
+    let i: Int = 0;
+    let total: Int = 0;
+
+    while i < limit {
+        if i < 3 {
+            total = total + i;
+        }
+        i = i + 1;
+    }
+
+    return total;
+}
+
+func Main() -> Void {
+    Log(ToString(CountUp(5)));
+}

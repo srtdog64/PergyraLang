@@ -146,13 +146,13 @@ rows from `DirWalk("src/self_hosted/codegen/fixture")` plus paired
 `expected/*_stdout.txt` existence, and the shell runner consumes those rows
 before invoking the C oracle and C/LLVM-built codegen tools.
 
-TestHarness delta, 2026-07-05: `lexer_parity.sh` no longer owns the seven-row
+TestHarness delta, 2026-07-05: `lexer_parity.sh` no longer owns the eight-row
 `SOURCE_PAIRS` source/fixture inventory. The compiled lexer owner emits
 `--fixture-manifest` rows from `fixture_manifest_owner.pgy`, and the shell
 runner consumes those rows before invoking C/LLVM lexer parity and live
 `pgy --tokens` drift checks.
 
-TestHarness delta, 2026-07-05: `parser_parity.sh` no longer owns the 187-row
+TestHarness delta, 2026-07-05: `parser_parity.sh` no longer owns the 188-row
 `SOURCE_PAIRS` source/fixture inventory. The compiled parser owner emits
 `--fixture-manifest` rows from `fixture_manifest_owner.pgy`, and the shell
 runner consumes those rows before invoking C/LLVM parser parity and live

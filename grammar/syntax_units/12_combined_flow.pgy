@@ -1,0 +1,57 @@
+// Combined flow: value syntax + subject + ability + zone + intent.
+//
+// What this grammar is:
+// This is the first small "Pergyra-shaped" program in the sequence. It combines
+// ordinary value grammar with domain actor syntax, behavior contracts, a zone
+// boundary, and an intent step. The point is to show how the earlier syntax
+// units stack without making a large application.
+//
+// This file intentionally mixes the previous units:
+// - ordinary `func` and `let`
+// - `subject` state
+// - `ability` and `role`
+// - `zone` authority
+// - compressed `intent` step
+
+ability Prepared {
+    func Ready() -> Bool;
+}
+
+subject Hero {
+    let mut hp: Int;
+
+    action Guard(self) -> Void
+        requires Prepared
+        within BattleZone
+        authorized by self
+    {
+        self.hp = self.hp + 1;
+    }
+}
+
+role HeroPrepared for Hero {
+    impl ability Prepared {
+        func Ready() -> Bool {
+            return true;
+        }
+    }
+}
+
+zone BattleZone {
+    subject slot hero: Hero
+    authority hero requires Prepared
+}
+
+intent Patrol(battle: BattleZone, hero: Hero) {
+    step Guard {
+        using: battle;
+        on: hero.Guard();
+        expect: true;
+    }
+}
+
+func Main() -> Void {
+    let hero: Hero = Hero(10);
+    let battle: BattleZone = BattleZone(Clone(hero));
+    Log("combined-flow");
+}

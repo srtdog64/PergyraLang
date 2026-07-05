@@ -1,0 +1,50 @@
+// Projection shapes.
+//
+// Pergyra separates actor/state, internal projection, and boundary projection:
+// - `subject` is the state-bearing actor/domain entity.
+// - `object` is an internal value/projection shape.
+// - `tobject` is a transfer-facing shape for packets, messages, or protocols.
+
+// A subject can carry mutable domain state.
+// `let mut` marks fields that are meant to be changed by actions or helpers.
+subject Buyer {
+    let mut name: String;
+    let mut balance: Int;
+}
+
+// An object is a passive internal projection. It is useful for views or local
+// data snapshots that are not themselves authority-bearing actors.
+object BuyerView {
+    name: String;
+    balance: Int;
+}
+
+// A tobject is the shape that crosses an external or transfer boundary.
+// Keeping it separate avoids pretending that every view is safe to transmit.
+tobject CheckoutRequest {
+    buyer_name: String;
+    amount: Int;
+}
+
+// Plain functions can convert between these shapes explicitly.
+func BuildBuyerView(buyer: Buyer) -> BuyerView {
+    return BuyerView(buyer.name, buyer.balance);
+}
+
+// This function decides what leaves the internal object layer.
+func BuildCheckoutRequest(view: BuyerView, amount: Int) -> CheckoutRequest {
+    return CheckoutRequest(view.name, amount);
+}
+
+func Main() -> Void {
+    // Subject construction also follows field order.
+    let buyer: Buyer = Buyer("Ada", 120);
+
+    // The projection is explicit: Buyer -> BuyerView.
+    let view: BuyerView = BuildBuyerView(buyer);
+
+    // The boundary packet is explicit: BuyerView -> CheckoutRequest.
+    let request: CheckoutRequest = BuildCheckoutRequest(view, 35);
+
+    Log(Concat(request.buyer_name, Concat(":", ToString(request.amount))));
+}

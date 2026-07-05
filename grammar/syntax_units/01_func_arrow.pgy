@@ -1,0 +1,28 @@
+// Syntax unit: function declaration and return arrow.
+//
+// What this grammar is:
+// A function declaration names ordinary reusable computation. `func` is the
+// keyword that opens that declaration, and `->` is the return-type marker.
+// This is the same layer as functions in TypeScript/C/Rust-like languages:
+// it computes values, but it does not by itself create a zone, authority, or
+// intent contract.
+//
+// Shape:
+//   func Name(param: Type, other: Type) -> ReturnType {
+//       return expression;
+//   }
+//
+// Meaning:
+// - `func` starts a function declaration.
+// - `(left: Int, right: Int)` is the parameter list.
+// - `:` means "has type".
+// - `-> Int` means "this function returns Int".
+// - `-> Void` means "this function does not return a useful value".
+
+func Add(left: Int, right: Int) -> Int {
+    return left + right;
+}
+
+func Main() -> Void {
+    Log(ToString(Add(2, 3)));
+}

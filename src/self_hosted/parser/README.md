@@ -31,7 +31,7 @@ inventing a second AST serialization format.
 - `stmt_loop_owner.pgy` - loop statement syntax owner. Owns `while`, `loop`,
   and `for` compact AST header/block emission.
 - `fixture/` - committed `<base>.pgy` sources and `<base>_ast.txt` baselines
-  used by the 186-source parity harness.
+  used by the 187-fixture parity harness.
 - `expected/clean.txt` - expected stdout when run on the default source.
 - `intent.md` - contract, current grammar surface, and latest fixture/scale
   coverage result.

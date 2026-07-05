@@ -1,0 +1,31 @@
+// Syntax unit: struct, constructor call, field access.
+//
+// What this grammar is:
+// A `struct` is a passive data shape. It groups fields into one value, like a
+// plain record. It is intentionally weaker than `subject`: a struct does not
+// carry actor identity, authority, or action contracts.
+//
+// Shapes:
+//   struct Name { field: Type; }
+//   let value: Name = Name(arg);
+//   value.field
+//
+// Meaning:
+// - `struct` is a passive value shape.
+// - Fields in `struct` bodies end with `;`.
+// - Constructor arguments follow field order.
+// - `.` reads a field or member.
+
+struct Point {
+    x: Int;
+    y: Int;
+}
+
+func SumPoint(point: Point) -> Int {
+    return point.x + point.y;
+}
+
+func Main() -> Void {
+    let point: Point = Point(2, 5);
+    Log(ToString(SumPoint(point)));
+}

@@ -1,0 +1,34 @@
+// Syntax unit: world embedding and explicit Clone.
+//
+// What this grammar is:
+// `world` is topology grammar. It composes zones into a larger owner. Because
+// that composition changes ownership paths, `Clone(...)` is used to make the
+// value fork explicit instead of hiding a copy at the boundary.
+//
+// Shapes:
+//   world Name { zone field: ZoneType }
+//   WorldName(Clone(zone_value))
+//
+// Meaning:
+// - `world` owns larger topology.
+// - Embedding a live zone into a world is a containment boundary.
+// - `Clone(...)` makes the copy/fork explicit at that boundary.
+
+subject Actor {
+    let mut score: Int;
+}
+
+zone ArenaZone {
+    subject slot actor: Actor
+}
+
+world GameWorld {
+    zone arena: ArenaZone
+}
+
+func Main() -> Void {
+    let actor: Actor = Actor(10);
+    let arena: ArenaZone = ArenaZone(Clone(actor));
+    let world: GameWorld = GameWorld(Clone(arena));
+    Log("world-embedding");
+}

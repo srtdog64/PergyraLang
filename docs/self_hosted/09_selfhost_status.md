@@ -23,12 +23,12 @@ Front-end self-hosts on both backends in LLVM-enabled builds.
 - Lexer (src/self_hosted/lexer/): compiles on C and LLVM. `main.pgy` is only
   the entrypoint; character/codepoint handling, token classification/output
   formatting, and scan-loop state are owned by separate modules. Token output
-  is byte-identical to `pgy --tokens` across the 7 committed source fixtures,
+  is byte-identical to `pgy --tokens` across the 8 committed source fixtures,
   and the live drift guard confirmed those fixtures matched the then-current
   oracle. The broader lexer scale probe now measures 993 of 993 examples +
   backend_compare sources byte-equal.
 - Parser (src/self_hosted/parser/): compiles on C and LLVM and compares
-  byte-identical against `pgy --ast` on 187 committed source/fixture rows. It parses
+  byte-identical against `pgy --ast` on 188 committed source/fixture rows. It parses
   the domain grammar, not just generic constructs: it dispatches on zone, world,
   party, role, and intent keywords, plus bind, if, within-zone, and intent
   steps, intent retry declaration metadata, with full expression precedence.

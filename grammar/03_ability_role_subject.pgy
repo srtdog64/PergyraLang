@@ -1,0 +1,45 @@
+// Ability + role + subject.
+//
+// This is the behavioral-contract layer:
+// - `ability` names a contract.
+// - `subject` owns state and actions.
+// - `role ... for ...` implements an ability for a concrete subject/type.
+
+// An ability declares behavior the compiler can refer to by name.
+// This file uses a small method contract so the role surface is visible.
+ability Spendable {
+    func CanSpend(amount: Int) -> Bool;
+}
+
+// A subject is the actor/state-bearing side of the domain.
+subject Wallet {
+    let mut balance: Int;
+
+    // Actions are domain operations. This one says:
+    // - it requires the `Spendable` ability,
+    // - it is authorized by the same subject (`self`),
+    // - and then mutates the subject's state.
+    action Spend(self, amount: Int) -> Void
+        requires Spendable
+        authorized by self
+    {
+        self.balance = self.balance - amount;
+    }
+}
+
+// A role attaches the ability implementation to the concrete type.
+// This keeps "what Wallet is" separate from "what Wallet can do".
+role WalletSpendable for Wallet {
+    impl ability Spendable {
+        func CanSpend(amount: Int) -> Bool {
+            return amount >= 0;
+        }
+    }
+}
+
+func Main() -> Void {
+    // This example only constructs the subject. The contract wiring above is
+    // the syntax being demonstrated.
+    let wallet: Wallet = Wallet(50);
+    Log(Concat("wallet=", ToString(wallet.balance)));
+}

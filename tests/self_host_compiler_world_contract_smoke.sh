@@ -418,7 +418,7 @@ for term in \
     "func ParserAstTreePayloadFixtureCount" \
     "func ParserAstTreePayloadRootReady" \
     "func ParserAstTreePayloadContractReady" \
-    "ParserAstTreePayloadFixtureCount() != 186" \
+    "ParserAstTreePayloadFixtureCount() != 187" \
     "AppendImplicitMain(\"\", body)" \
     "StringIndexOf(tree_text, \"  Function: Main\")"; do
     require_text "src/self_hosted/parser/tree_text_owner.pgy" "$term"

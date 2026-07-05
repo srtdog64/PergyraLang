@@ -5,7 +5,7 @@
 // consume this manifest, but it must not own the source/fixture mapping.
 
 func LexerFixtureManifestCount() -> Int {
-    return 7;
+    return 8;
 }
 
 func LexerFixtureSourceAt(index: Int) -> String {
@@ -16,6 +16,7 @@ func LexerFixtureSourceAt(index: Int) -> String {
     if index == 4 { return "examples/heap.pgy"; }
     if index == 5 { return "examples/binary_search.pgy"; }
     if index == 6 { return "tests/cases/backend_compare/string_escape_sequences/main.pgy"; }
+    if index == 7 { return "src/self_hosted/parser/fixture/block_comment.pgy"; }
     return "";
 }
 
@@ -27,6 +28,7 @@ func LexerFixtureExpectedAt(index: Int) -> String {
     if index == 4 { return "heap_tokens.txt"; }
     if index == 5 { return "binary_search_tokens.txt"; }
     if index == 6 { return "string_escape_sequences_tokens.txt"; }
+    if index == 7 { return "block_comment_tokens.txt"; }
     return "";
 }
 

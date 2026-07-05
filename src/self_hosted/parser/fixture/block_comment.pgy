@@ -1,0 +1,10 @@
+/* ordinary block comment before the first declaration
+   includes braces { } and line-comment text // that must be ignored.
+*/
+func Main() -> Void {
+    let /**/ x: Int = 1 /* inline block comment */ + 2;
+    /*
+       block comments may span lines and contain } without closing a block.
+    */
+    Log(x);
+}

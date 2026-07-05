@@ -2,7 +2,7 @@
 //
 // Status: rung-1 expanding (2026-06-18). Pergyra-origin parser substitute.
 // Emits the same compact text tree that `pgy --ast` produces, byte-equal, for
-// the committed parity fixture set. Current gate: 186 sources byte-equal on C
+// the committed parity fixture set. Current gate: 188 rows byte-equal on C
 // and LLVM parser binaries; scale probe: 120 of 121 examples byte-equal
 // (zero drift, zero self-host parser exits, 1 C-oracle skip).
 //

@@ -1,0 +1,25 @@
+=== tokens: src/self_hosted/parser/fixture/block_comment.pgy ===
+   1  Token{type: FUNC, text: "func", line: 4, col: 1}
+   2  Token{type: IDENTIFIER, text: "Main", line: 4, col: 6}
+   3  Token{type: (, text: "(", line: 4, col: 10}
+   4  Token{type: ), text: ")", line: 4, col: 11}
+   5  Token{type: ->, text: "->", line: 4, col: 13}
+   6  Token{type: IDENTIFIER, text: "Void", line: 4, col: 16}
+   7  Token{type: {, text: "{", line: 4, col: 21}
+   8  Token{type: LET, text: "let", line: 5, col: 5}
+   9  Token{type: IDENTIFIER, text: "x", line: 5, col: 14}
+  10  Token{type: :, text: ":", line: 5, col: 15}
+  11  Token{type: IDENTIFIER, text: "Int", line: 5, col: 17}
+  12  Token{type: =, text: "=", line: 5, col: 21}
+  13  Token{type: NUMBER, text: "1", line: 5, col: 23}
+  14  Token{type: +, text: "+", line: 5, col: 52}
+  15  Token{type: NUMBER, text: "2", line: 5, col: 54}
+  16  Token{type: ;, text: ";", line: 5, col: 55}
+  17  Token{type: IDENTIFIER, text: "Log", line: 9, col: 5}
+  18  Token{type: (, text: "(", line: 9, col: 8}
+  19  Token{type: IDENTIFIER, text: "x", line: 9, col: 9}
+  20  Token{type: ), text: ")", line: 9, col: 10}
+  21  Token{type: ;, text: ";", line: 9, col: 11}
+  22  Token{type: }, text: "}", line: 10, col: 1}
+  23  Token{type: EOF, text: "", line: 11, col: 1}
+  23 tokens total

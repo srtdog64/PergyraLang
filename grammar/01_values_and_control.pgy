@@ -1,0 +1,67 @@
+// Ordinary value syntax.
+//
+// This file is the "not special yet" layer of Pergyra:
+// - `struct` declares a passive value shape.
+// - `func` declares ordinary callable code.
+// - `let name: Type = value` declares a typed local.
+// - `if`, `while`, array literals, indexing, and `match` are intentionally
+//   familiar so the domain syntax can carry the unusual meaning elsewhere.
+
+// A passive product type. Field declarations end with `;` because this is the
+// function/value layer, not the world/zone declaration layer.
+struct ScorePair {
+    left: Int;
+    right: Int;
+}
+
+// Function syntax is `func Name(args...) -> ReturnType`.
+// Blocks use braces; statements inside function bodies are semicolon-terminated.
+func ClampScore(value: Int) -> Int {
+    // `if` requires a Bool condition. Comparisons such as `<` return Bool.
+    if value < 0 {
+        return 0;
+    }
+    if value > 100 {
+        return 100;
+    }
+    return value;
+}
+
+func SumScores(scores: Array<Int>) -> Int {
+    // Locals are mutable by rebinding in the currently supported surface.
+    // `let mut` also exists, but ordinary examples keep the older stable form.
+    let total: Int = 0;
+    let i: Int = 0;
+
+    // Arrays use `Array<T>`, `ArrayLength(xs)`, and `xs[index]`.
+    while i < ArrayLength(scores) {
+        total = total + scores[i];
+        i = i + 1;
+    }
+    return total;
+}
+
+func Grade(score: Int) -> String {
+    // `match` is statement-like here: each case contains a statement.
+    // `default` covers the remaining values.
+    match score {
+        case 100: return "perfect";
+        case 90: return "great";
+        case 80: return "good";
+        default: return "open";
+    }
+}
+
+func Main() -> Void {
+    // Constructor syntax follows the declared field order.
+    let pair: ScorePair = ScorePair(70, 20);
+
+    // Array literal elements must infer to one element type.
+    let scores: Array<Int> = [pair.left, pair.right, 10];
+
+    // Calls compose normally. There is no domain evidence involved here.
+    let total: Int = ClampScore(SumScores(scores));
+
+    // String assembly is currently explicit through `Concat`/`ToString`.
+    Log(Concat("grade=", Grade(total)));
+}

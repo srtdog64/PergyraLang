@@ -1,0 +1,29 @@
+// Syntax unit: match statement.
+//
+// What this grammar is:
+// `match` is value-dispatch grammar. It is a clearer multi-branch alternative
+// to a chain of `if value == ...` checks. It does not pattern-own resources in
+// this small example; it only picks a branch by value.
+//
+// Shape:
+//   match expression {
+//       case value: statement;
+//       default: statement;
+//   }
+//
+// Meaning:
+// - `match` chooses a case by value.
+// - `case` labels one value.
+// - `default` handles the remaining values.
+
+func Label(value: Int) -> String {
+    match value {
+        case 1: return "one";
+        case 2: return "two";
+        default: return "many";
+    }
+}
+
+func Main() -> Void {
+    Log(Label(2));
+}

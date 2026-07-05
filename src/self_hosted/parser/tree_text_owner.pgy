@@ -40,7 +40,7 @@ func ParserAstTreePayloadSchema() -> String {
 }
 
 func ParserAstTreePayloadFixtureCount() -> Int {
-    return 186;
+    return 187;
 }
 
 func ParserAstTreePayloadRootReady() -> Bool {
@@ -62,7 +62,7 @@ func ParserAstTreePayloadContractReady() -> Bool {
     if ParserAstTreePayloadSchema() == "" {
         return false;
     }
-    if ParserAstTreePayloadFixtureCount() != 186 {
+    if ParserAstTreePayloadFixtureCount() != 187 {
         return false;
     }
     if !ParserAstTreePayloadRootReady() {

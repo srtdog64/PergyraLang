@@ -1,0 +1,31 @@
+// Syntax unit: subject, action, self.
+//
+// What this grammar is:
+// `subject` is where Pergyra stops being just TypeScript-like value syntax. A
+// subject is a domain actor with state. An `action` is behavior owned by that
+// actor, and `self` is the actor instance being acted on.
+//
+// Shapes:
+//   subject Name { let mut field: Type; action Verb(self) -> Void { ... } }
+//   self.field
+//
+// Meaning:
+// - `subject` is a state-bearing domain actor.
+// - `let mut` marks mutable subject state.
+// - `action` is a domain operation owned by the subject.
+// - `self` is the receiver being acted on.
+
+subject Counter {
+    let mut value: Int;
+
+    action Increment(self) -> Void
+        authorized by self
+    {
+        self.value = self.value + 1;
+    }
+}
+
+func Main() -> Void {
+    let counter: Counter = Counter(0);
+    Log(ToString(counter.value));
+}

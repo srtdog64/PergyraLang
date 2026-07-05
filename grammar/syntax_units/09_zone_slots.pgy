@@ -1,0 +1,32 @@
+// Syntax unit: zone slots and authority.
+//
+// What this grammar is:
+// `zone` is a resource and authority boundary. A slot inside a zone is not just
+// a field; it is a place owned by the zone. `authority` marks the slot that can
+// provide authorization evidence for domain actions.
+//
+// Shapes:
+//   zone Name {
+//       subject slot field: SubjectType
+//       authority field
+//   }
+//
+// Meaning:
+// - `zone` owns resource slots.
+// - Slot declarations are topology declarations, so they have no `;`.
+// - `authority field` says that slot participates in authority evidence.
+
+subject Actor {
+    let mut score: Int;
+}
+
+zone ArenaZone {
+    subject slot actor: Actor
+    authority actor
+}
+
+func Main() -> Void {
+    let actor: Actor = Actor(10);
+    let arena: ArenaZone = ArenaZone(Clone(actor));
+    Log("zone-slots");
+}
