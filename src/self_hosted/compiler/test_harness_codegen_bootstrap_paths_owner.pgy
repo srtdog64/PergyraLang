@@ -18,6 +18,10 @@ func CompilerHarnessCodegenBootstrapToolSuiteName() -> String {
     return "codegen-bootstrap-tools";
 }
 
+func CompilerHarnessFuzzBackendGeneratorSuiteName() -> String {
+    return "fuzz-backend-generator-paths";
+}
+
 func CompilerHarnessCodegenBootstrapMirFixtureDirPath() -> String {
     return "src/self_hosted/mir_lower/fixture";
 }
@@ -43,6 +47,15 @@ func CompilerHarnessCodegenBootstrapPathAt(index: Int) -> String {
     if index == 5 { return CompilerHarnessCodegenBootstrapMirFixtureDirPath(); }
     if index == 6 { return CompilerHarnessCodegenBootstrapFuzzGeneratorSourcePath(); }
     if index == 7 { return CompilerHarnessCodegenBootstrapSampleSourcePath(); }
+    return "";
+}
+
+func CompilerHarnessFuzzBackendGeneratorPathCount() -> Int {
+    return 1;
+}
+
+func CompilerHarnessFuzzBackendGeneratorPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessCodegenBootstrapFuzzGeneratorSourcePath(); }
     return "";
 }
 
@@ -96,5 +109,8 @@ func CompilerHarnessCodegenBootstrapRowsReady() -> Bool {
     }
     return CompilerHarnessCodegenBootstrapPathSuiteName() != "" &&
         CompilerHarnessCodegenBootstrapComponentSuiteName() != "" &&
-        CompilerHarnessCodegenBootstrapToolSuiteName() != "";
+        CompilerHarnessCodegenBootstrapToolSuiteName() != "" &&
+        CompilerHarnessFuzzBackendGeneratorSuiteName() != "" &&
+        CompilerHarnessFuzzBackendGeneratorPathCount() == 1 &&
+        CompilerHarnessFuzzBackendGeneratorPathAt(0) == CompilerHarnessCodegenBootstrapFuzzGeneratorSourcePath();
 }

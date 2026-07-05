@@ -1845,7 +1845,9 @@ require_text "src/self_hosted/compiler/test_harness_mir_json_paths_owner.pgy" "f
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapPathSuiteName"
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapComponentSuiteName"
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapToolSuiteName"
+require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessFuzzBackendGeneratorSuiteName"
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapPathAt"
+require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessFuzzBackendGeneratorPathAt"
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapComponentRowAt"
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapToolRowAt"
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapRowsReady"
@@ -2001,6 +2003,9 @@ require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarne
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitStdlibDispatchInventoryPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessStdlibDispatchInventoryPathAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessStdlibDispatchInventorySuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitFuzzBackendGeneratorPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessFuzzBackendGeneratorPathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessFuzzBackendGeneratorSuiteName()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitLspDiagnosticsPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLspDiagnosticsPathAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLspDiagnosticsSuiteName()"
@@ -2934,8 +2939,12 @@ for lsp_script in \
     reject_text "$lsp_script" '$ROOT_DIR/src/self_hosted/lsp/expected/'
 done
 require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:fuzz-generator" "$PGY"'
+require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" '"fuzz-backend-generator-paths"'
+require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
 require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" '"emitted_self_hosted"'
+reject_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/fuzz/backend_parity_generator/main.pgy"'
 reject_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'cmp -s'
 reject_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'diff -u'
 reject_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'show_diff'

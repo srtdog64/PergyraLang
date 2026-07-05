@@ -48,6 +48,17 @@ rewrite history.
 - Raised the M2 completeness minima to 155 so the new owner is included in the
   hard self-host production-source ratchet.
 
+## 2026-07-06 - Fuzz generator parity consumes TestHarness source row
+
+- Added the `fuzz-backend-generator-paths` manifest suite to
+  `test_harness_codegen_bootstrap_paths_owner.pgy`, reusing the existing
+  fuzz-generator source path fact instead of introducing another alias.
+- Repointed `fuzz_backend_parity_generator_parity.sh` so shell compiles the
+  generator source from `test_harness_manifest.pgy` rather than owning the
+  `src/self_hosted/fuzz/backend_parity_generator/main.pgy` literal.
+- Tightened the component contract so the direct generator source path cannot
+  return to the parity runner.
+
 ## 2026-07-06 - MIR JSON parity paths consume dedicated TestHarness owner
 
 - Added `test_harness_mir_json_paths_owner.pgy` for the

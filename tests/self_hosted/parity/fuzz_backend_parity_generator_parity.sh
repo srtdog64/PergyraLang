@@ -39,12 +39,6 @@ if [[ ! -x "$PGY" ]]; then
 fi
 pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:fuzz-generator" "$PGY"
 
-TOOL_SOURCE="$ROOT_DIR/src/self_hosted/fuzz/backend_parity_generator/main.pgy"
-if [[ ! -f "$TOOL_SOURCE" ]]; then
-    echo "[self-host-parity:fuzz-generator] missing generator source: $TOOL_SOURCE" >&2
-    exit 1
-fi
-
 SEED="${PGY_FUZZ_SEED:-1001}"
 COUNT="${PGY_FUZZ_COUNT:-8}"
 RUN_ORACLE="${PGY_FUZZ_BACKEND_RUN_ORACLE:-0}"
@@ -52,6 +46,31 @@ RUN_TIMEOUT_SECONDS="${PGY_FUZZ_RUN_TIMEOUT_SECONDS:-30}"
 
 WORK_ROOT="$ROOT_DIR/.tmp/self_hosted"
 mkdir -p "$WORK_ROOT"
+HARNESS_PATHS_DIR="$WORK_ROOT/fuzz_backend_generator_paths"
+HARNESS_PATHS_FILE="$HARNESS_PATHS_DIR/fuzz_backend_generator_harness_paths.txt"
+mkdir -p "$HARNESS_PATHS_DIR"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:fuzz-generator" \
+    "$HARNESS_PATHS_DIR" \
+    "fuzz-backend-generator-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 1 ]]; then
+    echo "[self-host-parity:fuzz-generator] TestHarness manifest expected 1 path, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
+if [[ ! -f "$TOOL_SOURCE" ]]; then
+    echo "[self-host-parity:fuzz-generator] missing generator source: $TOOL_SOURCE" >&2
+    exit 1
+fi
+
 WORK_DIR="$(mktemp -d "$WORK_ROOT/fuzz_backend_parity.XXXXXX")"
 WORK_REL="${WORK_DIR#"$ROOT_DIR"/}"
 

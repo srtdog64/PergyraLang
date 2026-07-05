@@ -143,6 +143,14 @@ func EmitCodegenBootstrapTools() -> Void {
     }
 }
 
+func EmitFuzzBackendGeneratorPaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessFuzzBackendGeneratorPathCount() {
+        Log(CompilerHarnessFuzzBackendGeneratorPathAt(i));
+        i = i + 1;
+    }
+}
+
 func EmitBackendOutputComparatorPaths() -> Void {
     let i: Int = 0;
     while i < CompilerHarnessBackendOutputComparatorPathCount() {
@@ -424,6 +432,10 @@ func Main() -> Void {
     }
     if args[0] == CompilerHarnessCodegenBootstrapToolSuiteName() {
         EmitCodegenBootstrapTools();
+        return;
+    }
+    if args[0] == CompilerHarnessFuzzBackendGeneratorSuiteName() {
+        EmitFuzzBackendGeneratorPaths();
         return;
     }
     if args[0] == CompilerHarnessBackendOutputComparatorSuiteName() {
