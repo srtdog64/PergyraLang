@@ -1,5 +1,7 @@
 // Self-host parser postfix expression owner.
 
+import "cursor_owner.pgy";
+
 func ApplyPostfixExpr(content: String, base_start: String, after_base: Int, inout cursor_out: Array<Int>) -> String {
     let base: String = base_start;
     let i: Int = after_base;

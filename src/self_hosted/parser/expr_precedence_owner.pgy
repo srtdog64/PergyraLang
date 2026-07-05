@@ -1,5 +1,7 @@
 // Self-host parser expression precedence owner.
 
+import "cursor_owner.pgy";
+
 // Unary level: `!` and `-`, right-associative; output wraps the whole
 // `OP EXPR` form in `(...)` to match `pgy --ast`. Unary `-` only fires
 // when `-` is in primary position (after whitespace) because binary

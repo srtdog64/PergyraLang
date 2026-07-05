@@ -27,6 +27,7 @@ fi
 BUILD_DIR="${PGY_SELFHOST_COMPLETENESS_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/completeness}"
 SOURCE_MANIFEST="$BUILD_DIR/sources.txt"
 STAGE_MANIFEST="$BUILD_DIR/stages.txt"
+SEMANTIC_TARGET_MANIFEST="$BUILD_DIR/semantic_targets.txt"
 BASELINE_MANIFEST="$BUILD_DIR/baseline.txt"
 LEX_PARSE_BASELINE_MANIFEST="$BUILD_DIR/lex_parse_baseline.txt"
 LEX_PARSE_SEMANTIC_BASELINE_MANIFEST="$BUILD_DIR/lex_parse_semantic_baseline.txt"
@@ -47,6 +48,7 @@ read_manifest() {
 
 read_manifest "self-host-completeness-sources" "$SOURCE_MANIFEST"
 read_manifest "self-host-completeness-stages" "$STAGE_MANIFEST"
+read_manifest "self-host-completeness-semantic-targets" "$SEMANTIC_TARGET_MANIFEST"
 read_manifest "self-host-completeness-baseline" "$BASELINE_MANIFEST"
 read_manifest "self-host-completeness-lex-parse-baseline" "$LEX_PARSE_BASELINE_MANIFEST"
 read_manifest "self-host-completeness-lex-parse-semantic-baseline" "$LEX_PARSE_SEMANTIC_BASELINE_MANIFEST"
@@ -194,21 +196,34 @@ run_source_check() {
     local stage="$1"
     local bin="$2"
     local src="$3"
+    local check_src="${4:-$src}"
     local out="$BUILD_DIR/${stage}_${src//[^A-Za-z0-9_]/_}.out"
     local err="$BUILD_DIR/${stage}_${src//[^A-Za-z0-9_]/_}.err"
 
-    if (cd "$ROOT_DIR" && timeout "$CHECK_TIMEOUT_SEC" "$bin" --check "$src" >"$out" 2>"$err"); then
+    (cd "$ROOT_DIR" && timeout "$CHECK_TIMEOUT_SEC" "$bin" --check "$check_src" >"$out" 2>"$err")
+    local rc="$?"
+    if [[ "$rc" -eq 0 ]]; then
         if grep -Fq 'Status: ok' "$out"; then
             return 0
         fi
         return 1
     fi
-    local rc="$?"
     if [[ "$rc" -eq "$TIMEOUT_EXIT_CODE" ]]; then
         echo "[self-host-completeness] $stage timed out after ${CHECK_TIMEOUT_SEC}s: $src" >&2
         return 2
     fi
     return 1
+}
+
+semantic_check_target_for() {
+    local src="$1"
+    local target
+    target="$(awk -F '\t' -v src="$src" '$1 == src { print $2; exit }' "$SEMANTIC_TARGET_MANIFEST")"
+    if [[ -z "$target" ]]; then
+        printf '%s\n' "$src"
+        return
+    fi
+    printf '%s\n' "$target"
 }
 
 run_codegen_check() {
@@ -221,22 +236,24 @@ run_codegen_check() {
     local err="$BUILD_DIR/codegen_${safe}.err"
 
     mkdir -p "$ROOT_DIR/.tmp/self_hosted/completeness/ast"
-    if (cd "$ROOT_DIR" && timeout "$CHECK_TIMEOUT_SEC" "$PGY" --ast "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/$src")" \
-        >"$ast_abs" 2>"$ast_err"); then
+    (cd "$ROOT_DIR" && timeout "$CHECK_TIMEOUT_SEC" "$PGY" --ast "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/$src")" \
+        >"$ast_abs" 2>"$ast_err")
+    local ast_rc="$?"
+    if [[ "$ast_rc" -eq 0 ]]; then
         :
     else
-        local rc="$?"
-        if [[ "$rc" -eq "$TIMEOUT_EXIT_CODE" ]]; then
+        if [[ "$ast_rc" -eq "$TIMEOUT_EXIT_CODE" ]]; then
             echo "[self-host-completeness] ast export timed out after ${CHECK_TIMEOUT_SEC}s: $src" >&2
             return 2
         fi
         return 1
     fi
-    if (cd "$ROOT_DIR" && timeout "$CHECK_TIMEOUT_SEC" "$CODEGEN_BIN" --check "$ast_rel" >"$out" 2>"$err"); then
+    (cd "$ROOT_DIR" && timeout "$CHECK_TIMEOUT_SEC" "$CODEGEN_BIN" --check "$ast_rel" >"$out" 2>"$err")
+    local codegen_rc="$?"
+    if [[ "$codegen_rc" -eq 0 ]]; then
         :
     else
-        local rc="$?"
-        if [[ "$rc" -eq "$TIMEOUT_EXIT_CODE" ]]; then
+        if [[ "$codegen_rc" -eq "$TIMEOUT_EXIT_CODE" ]]; then
             echo "[self-host-completeness] codegen timed out after ${CHECK_TIMEOUT_SEC}s: $src" >&2
             return 2
         fi
@@ -292,7 +309,9 @@ count_stage() {
                 fi
                 ;;
             semantic)
-                if run_source_check semantic "$SEMANTIC_BIN" "$src"; then
+                local semantic_target
+                semantic_target="$(semantic_check_target_for "$src")"
+                if run_source_check semantic "$SEMANTIC_BIN" "$src" "$semantic_target"; then
                     pass=$((pass + 1))
                     printf '%s\n' "$src" >>"$pass_manifest"
                 else

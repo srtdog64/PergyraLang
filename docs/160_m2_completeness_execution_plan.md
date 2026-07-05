@@ -96,6 +96,22 @@ production self-host source 147개를 측정한다. locked minima:
 텍스트를 self-host codegen에 넣는다. 이 수치는 stage별 통과 파일의 교집합을
 정직하게 보여주는 계기판이며, DRV/parser flip 이후 별도 수치로 승격해야 한다.
 
+**Red-team 보정(2026-07-05): source identity != semantic check unit.** source
+inventory는 계속 147개가 정본이다. 다만 parser expression/statement처럼 순환 문법
+클러스터인 파일은 standalone semantic check 대상이 아니다. 그 파일의 source
+identity는 유지하되, semantic stage는 `CompilerCompletenessLedger`가 선언한 owner
+check target(`expr_owner.pgy`, `stmt_owner.pgy`, `expr_rewrite.pgy` 등)을 실행한다.
+shell은 이 매핑을 소유하지 않는다. 이 보정 없이 각 split participant를 억지로
+standalone 통과시키면 순환 import나 fake wrapper가 늘어 M2 원장이 더 푸르게 보여도
+SoT는 후퇴한다.
+
+**Red-team 보정 2(2026-07-05): import body 재검사 금지.** semantic `--check`는
+root source identity의 body를 검사한다. imports는 transitive signature/nominal fact
+stub로만 seed하고, imported body는 그 파일의 source identity에서 따로 검사한다. 이
+규칙이 없으면 driver root가 parser+codegen 전체 body를 다시 검사해 timeout-shaped
+fail을 만들고, 원장은 실제 미지원 semantic이 아니라 하니스 비용을 측정하게 된다.
+timeout은 일반 fail count가 아니라 실행 인프라 red다.
+
 ---
 
 ## 2. ★ Semantic 포팅 사다리 (M2의 본체 — 실측 C 파일 매핑)

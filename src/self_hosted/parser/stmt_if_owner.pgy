@@ -1,5 +1,7 @@
 // Self-host parser statement branch owner.
 
+import "cursor_owner.pgy";
+
 func ParseIfLetPayload(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
     let i: Int = SkipWhitespaceAndComments(content, start);
     if ParserCharAt(content, i) == "(" {

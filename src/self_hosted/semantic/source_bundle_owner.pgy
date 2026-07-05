@@ -6,6 +6,14 @@
 import "../lib/path.pgy";
 import "text_scan_owner.pgy";
 
+struct SemanticSourceText {
+    let value: String;
+}
+
+struct SemanticSourceBundle {
+    let content: String;
+}
+
 func SourceBundleSeen(paths: Array<String>, path: String) -> Bool {
     let i: Int = 0;
     while i < ArrayLength(paths) {
@@ -86,6 +94,125 @@ func LoadSemanticSourceBundleVisit(path: String, inout seen_paths: Array<String>
         i = i + 1;
     }
     return out;
+}
+
+func SemanticSourceSignatureStubText(source: SemanticSourceText) -> SemanticSourceText {
+    let content: String = source.value;
+    let n: Int = StringLength(content);
+    let out: String = "";
+    let i: Int = 0;
+    let chunk_start: Int = 0;
+    while i < n {
+        if CharAt(content, i) == "\"" {
+            i = SourceBundleSkipString(content, i);
+            continue;
+        }
+        if CharAt(content, i) == "/" && CharAt(content, i + 1) == "/" {
+            i = SkipLineComment(content, i, n);
+            continue;
+        }
+        if CharAt(content, i) == "/" && CharAt(content, i + 1) == "*" {
+            i = SkipBlockComment(content, i, n);
+            continue;
+        }
+        if MatchKeyword(content, i, "func") {
+            let block_open: Int = FindBlockOpen(content, i, n);
+            if block_open < n && CharAt(content, block_open) == "{" {
+                out = Concat(out, Substring(content, chunk_start, i - chunk_start));
+                out = Concat(out, Substring(content, i, block_open + 1 - i));
+                out = Concat(out, "}\n");
+                i = FindMatchingBraceWithin(content, block_open, n) + 1;
+                chunk_start = i;
+                continue;
+            }
+        }
+        i = i + 1;
+    }
+    if chunk_start < n {
+        out = Concat(out, Substring(content, chunk_start, n - chunk_start));
+    }
+    return SemanticSourceText(out);
+}
+
+func LoadSemanticSourceSignatureBundleVisit(path: String, inout seen_paths: Array<String>) -> SemanticSourceBundle {
+    if SourceBundleSeen(seen_paths, path) {
+        return SemanticSourceBundle("");
+    }
+    if !FileExists(path) {
+        Exit(1);
+        return SemanticSourceBundle("");
+    }
+    ArrayPush(seen_paths, path);
+
+    let content: String = ReadFile(path);
+    let base_dir: String = SelfHostPath.Dirname(path);
+    let stub: SemanticSourceText = SemanticSourceSignatureStubText(SemanticSourceText(content));
+    let out: String = Concat(stub.value, "\n");
+    let cursor: Array<Int> = [0];
+    let i: Int = 0;
+    while i < StringLength(content) {
+        i = SkipWhitespaceAndComments(content, i);
+        if i >= StringLength(content) {
+            break;
+        }
+        if CharAt(content, i) == "\"" {
+            i = SourceBundleSkipString(content, i);
+            continue;
+        }
+        if MatchKeyword(content, i, "import") {
+            let rel_path: String = SourceBundleReadImportPath(content, i + 6, cursor);
+            i = cursor[0];
+            if StringLength(rel_path) > 0 {
+                let imp_path: String = SelfHostPath.NormalizeImportRelative(base_dir, rel_path);
+                let imp_bundle: SemanticSourceBundle = LoadSemanticSourceSignatureBundleVisit(imp_path, seen_paths);
+                if StringLength(imp_bundle.content) > 0 {
+                    out = Concat(imp_bundle.content, out);
+                }
+            }
+            continue;
+        }
+        i = i + 1;
+    }
+    return SemanticSourceBundle(out);
+}
+
+func LoadSemanticSourceCheckBundle(root_path: String) -> SemanticSourceBundle {
+    if !FileExists(root_path) {
+        Exit(1);
+        return SemanticSourceBundle("");
+    }
+    let seen_paths: Array<String> = [];
+    ArrayPush(seen_paths, root_path);
+
+    let content: String = ReadFile(root_path);
+    let base_dir: String = SelfHostPath.Dirname(root_path);
+    let imports: String = "";
+    let cursor: Array<Int> = [0];
+    let i: Int = 0;
+    while i < StringLength(content) {
+        i = SkipWhitespaceAndComments(content, i);
+        if i >= StringLength(content) {
+            break;
+        }
+        if CharAt(content, i) == "\"" {
+            i = SourceBundleSkipString(content, i);
+            continue;
+        }
+        if MatchKeyword(content, i, "import") {
+            let rel_path: String = SourceBundleReadImportPath(content, i + 6, cursor);
+            i = cursor[0];
+            if StringLength(rel_path) > 0 {
+                let imp_path: String = SelfHostPath.NormalizeImportRelative(base_dir, rel_path);
+                let imp_bundle: SemanticSourceBundle = LoadSemanticSourceSignatureBundleVisit(imp_path, seen_paths);
+                if StringLength(imp_bundle.content) > 0 {
+                    imports = Concat(imports, imp_bundle.content);
+                }
+            }
+            continue;
+        }
+        i = i + 1;
+    }
+    return SemanticSourceBundle(Concat(imports, Concat("\n/*PGY_SEMANTIC_ROOT_START*/\n", content)));
 }
 
 func LoadSemanticSourceBundle(root_path: String) -> String {

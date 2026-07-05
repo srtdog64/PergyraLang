@@ -3,6 +3,10 @@
 // Owns the M2 source inventory scope, stage names, and monotone baseline
 // minima. Shell runners may execute the rows, but must not redefine them.
 
+struct CompilerCompletenessCheckTarget {
+    let path: String;
+}
+
 func CompilerCompletenessLedgerSchema() -> String {
     return "pgy.selfhost.completeness-ledger.v1";
 }
@@ -17,6 +21,10 @@ func CompilerCompletenessSourcesSuiteName() -> String {
 
 func CompilerCompletenessStagesSuiteName() -> String {
     return "self-host-completeness-stages";
+}
+
+func CompilerCompletenessSemanticTargetsSuiteName() -> String {
+    return "self-host-completeness-semantic-targets";
 }
 
 func CompilerCompletenessBaselineSuiteName() -> String {
@@ -106,6 +114,48 @@ func EmitCompilerCompletenessStages() -> Void {
     let i: Int = 0;
     while i < CompilerCompletenessStageCount() {
         Log(CompilerCompletenessStageAt(i));
+        i = i + 1;
+    }
+}
+
+func CompilerCompletenessSemanticCheckTarget(path: String) -> CompilerCompletenessCheckTarget {
+    if path == "src/self_hosted/parser/expr_postfix_owner.pgy" {
+        return CompilerCompletenessCheckTarget("src/self_hosted/parser/expr_owner.pgy");
+    }
+    if path == "src/self_hosted/parser/expr_precedence_owner.pgy" {
+        return CompilerCompletenessCheckTarget("src/self_hosted/parser/expr_owner.pgy");
+    }
+    if path == "src/self_hosted/parser/expr_primary_owner.pgy" {
+        return CompilerCompletenessCheckTarget("src/self_hosted/parser/expr_owner.pgy");
+    }
+    if path == "src/self_hosted/parser/expr_string_owner.pgy" {
+        return CompilerCompletenessCheckTarget("src/self_hosted/parser/expr_owner.pgy");
+    }
+    if path == "src/self_hosted/parser/stmt_if_owner.pgy" {
+        return CompilerCompletenessCheckTarget("src/self_hosted/parser/stmt_owner.pgy");
+    }
+    if path == "src/self_hosted/parser/stmt_loop_owner.pgy" {
+        return CompilerCompletenessCheckTarget("src/self_hosted/parser/stmt_owner.pgy");
+    }
+    if path == "src/self_hosted/parser/stmt_match_owner.pgy" {
+        return CompilerCompletenessCheckTarget("src/self_hosted/parser/stmt_owner.pgy");
+    }
+    if path == "src/self_hosted/parser/stmt_parallel_owner.pgy" {
+        return CompilerCompletenessCheckTarget("src/self_hosted/parser/stmt_owner.pgy");
+    }
+    if path == "src/self_hosted/codegen/text/expr_scan.pgy" {
+        return CompilerCompletenessCheckTarget("src/self_hosted/codegen/emission/expr_rewrite.pgy");
+    }
+    return CompilerCompletenessCheckTarget(path);
+}
+
+func EmitCompilerCompletenessSemanticTargets() -> Void {
+    let rows: Array<String> = CompilerCompletenessSourceInventory();
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        let path: String = rows[i];
+        let target: CompilerCompletenessCheckTarget = CompilerCompletenessSemanticCheckTarget(path);
+        Log(Concat(path, Concat("\t", target.path)));
         i = i + 1;
     }
 }
@@ -496,6 +546,7 @@ func CompilerCompletenessLedgerReady() -> Bool {
         CompilerCompletenessStageAt(3) == "codegen" &&
         StringLength(CompilerCompletenessLedgerSchema()) > 0 &&
         StringLength(CompilerCompletenessSourceRoot()) > 0 &&
+        StringLength(CompilerCompletenessSemanticTargetsSuiteName()) > 0 &&
         StringLength(CompilerCompletenessLexParseBaselineSuiteName()) > 0 &&
         StringLength(CompilerCompletenessLexParseSemanticBaselineSuiteName()) > 0 &&
         StringLength(CompilerCompletenessFullPipelineBaselineSuiteName()) > 0;

@@ -1,5 +1,7 @@
 // Self-host parser primary expression owner.
 
+import "cursor_owner.pgy";
+
 // Forward-declared mutual recursion: ParsePrimary may recurse into
 // ParseAdditive via `( EXPR )`. Pergyra mutual recursion is fine (see
 // recur_probe), so the four parsers below are written top-down.

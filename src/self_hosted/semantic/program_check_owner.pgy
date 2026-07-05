@@ -388,7 +388,12 @@ func CheckProgram(content: String) -> String {
         }
         scan = k;
     }
+    let root_marker: String = "/*PGY_SEMANTIC_ROOT_START*/";
+    let root_pos: Int = StringIndexOf(content, root_marker);
     let i: Int = 0;
+    if root_pos >= 0 {
+        i = root_pos + StringLength(root_marker);
+    }
     while i < n {
         i = SkipWhitespaceAndComments(content, i);
         if i >= n {

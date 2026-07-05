@@ -3,6 +3,7 @@
 // Expression token scanning and first-pass rewrites for self-host C emission.
 
 import "../runtime_abi/collection_runtime_owner.pgy";
+import "../type_facts/type_env.pgy";
 
 func ReplaceAll(s: String, from: String, to: String) -> String {
     let fl: Int = StringLength(from);

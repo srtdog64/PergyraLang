@@ -23,7 +23,8 @@ func RunSemanticFromArgs(args: Array<String>) -> Void {
             Exit(1);
             return;
         }
-        let check_content: String = LoadSemanticSourceBundle(args[1]);
+        let check_bundle: SemanticSourceBundle = LoadSemanticSourceCheckBundle(args[1]);
+        let check_content: String = check_bundle.content;
         let check_error: String = CheckProgram(check_content);
         if StringLength(check_error) > 0 {
             Log(check_error);

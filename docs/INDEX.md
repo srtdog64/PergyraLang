@@ -46,6 +46,9 @@ and follow-up debt over older design notes.
 | [`self_hosted/14_target_compiler_world.md`](self_hosted/14_target_compiler_world.md) | Target compiler world: fact zones -> single Codegen Projection intent -> C/LLVM/SelfHosted emission peers -> Artifact Zone parity sink |
 | [`self_hosted/15_pre_self_host_expansion_ledger.md`](self_hosted/15_pre_self_host_expansion_ledger.md) | Pre-self-host expansion ledger: READY/ACTIVE/HOLD substrate classification, active blockers, held surfaces, and no-hidden-fallback rule |
 | [`150_selfhost_driver_lsp_wiring.md`](150_selfhost_driver_lsp_wiring.md) | Self-host driver and LSP replacement ladders with honest planned/landed rung gates |
+| [`158_self_bootstrap_execution_blueprint.md`](158_self_bootstrap_execution_blueprint.md) | Self-eating bootstrap execution blueprint: M1 fixed-point, M2 whole-compiler path, critical rungs, and cost split |
+| [`160_m2_completeness_execution_plan.md`](160_m2_completeness_execution_plan.md) | Whole-compiler M2 completeness plan: source inventory, stage intersections, semantic rung map, typed-AST migration, and fixpoint expansion |
+| [`163_design_completeness_red_team_audit.md`](163_design_completeness_red_team_audit.md) | Red-team audit of design completeness across hard self-host, SoT closure, M2 ledger, runtime materialization, ABI, and backend parity |
 
 ## Historical Snapshots
 
@@ -107,6 +110,7 @@ and follow-up debt over older design notes.
 | [`142_evidence_driven_guard_amortization.md`](142_evidence_driven_guard_amortization.md) | Evidence-driven guard amortization: measured preflight-view gate for slot-style hot paths |
 | [`143_evidence_parameter_attributes.md`](143_evidence_parameter_attributes.md) | Evidence-projected LLVM parameter attributes: ownership evidence lowered to backend optimization facts |
 | [`145_bit_layout_boundary_matrix.md`](145_bit_layout_boundary_matrix.md) | Bit/layout boundary matrix: explicit bit-order value conversion, world-bound reinterpretation, and language-by-language gap tracking |
+| [`162_target4_unified_mir_consumption_blueprint.md`](162_target4_unified_mir_consumption_blueprint.md) | Target #4 blueprint for unifying C/LLVM MIR consumption so backend parity becomes structural, not only output-differential |
 
 ## Language Surface
 

@@ -1,5 +1,7 @@
 // Self-host parser expression string/interpolation owner.
 
+import "cursor_owner.pgy";
+
 func DesugarStringInterpolation(s: String) -> String {
     let n: Int = StringLength(s);
     if StringIndexOf(s, "${") < 0 {

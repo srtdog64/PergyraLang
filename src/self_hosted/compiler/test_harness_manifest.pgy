@@ -184,6 +184,10 @@ func EmitSelfHostCompletenessStages() -> Void {
     EmitCompilerCompletenessStages();
 }
 
+func EmitSelfHostCompletenessSemanticTargets() -> Void {
+    EmitCompilerCompletenessSemanticTargets();
+}
+
 func EmitSelfHostCompletenessBaseline() -> Void {
     EmitCompilerCompletenessBaseline();
 }
@@ -297,6 +301,10 @@ func Main() -> Void {
     }
     if args[0] == CompilerCompletenessStagesSuiteName() {
         EmitSelfHostCompletenessStages();
+        return;
+    }
+    if args[0] == CompilerCompletenessSemanticTargetsSuiteName() {
+        EmitSelfHostCompletenessSemanticTargets();
         return;
     }
     if args[0] == CompilerCompletenessBaselineSuiteName() {

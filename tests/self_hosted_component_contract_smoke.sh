@@ -449,7 +449,7 @@ require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "func ParserFix
 require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "func EmitParserFixtureManifest"
 require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "DirWalk(ParserFixtureDir())"
 require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "ParserFixtureExpectedPath(base)"
-require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "ArrayLength(rows) != 186"
+require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "ArrayLength(rows) != 187"
 require_text "src/self_hosted/parser/tree_text_owner.pgy" "func ParserAstTreePayloadContractReady"
 require_text "src/self_hosted/parser/tree_text_owner.pgy" "func ParserAstTreePayloadSchema"
 require_text "src/self_hosted/parser/tree_text_owner.pgy" "pgy.selfhost.parser-ast-tree.v1"

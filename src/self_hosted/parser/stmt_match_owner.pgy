@@ -1,5 +1,7 @@
 // Self-host parser statement branch owner.
 
+import "cursor_owner.pgy";
+
 func ParseMatchStmt(content: String, after_head: Int, inout cursor_out: Array<Int>, stmt_indent: Int) -> String {
     let i: Int = after_head;
     // `match EXPR { (case EXPR : STMT | default : STMT)* }`. Each
