@@ -19,7 +19,11 @@ slot_inner_type_name_write(const char *slot_type_name,
         return false;
     open = strchr(slot_type_name, '<');
     if (open == NULL) {
-        copy_capped_string(out, out_size, slot_type_name);
+        /* Bare name: exact-or-fail. A truncated copy is reported as failure so
+         * slot_inner_type_name_copy substitutes the "Unknown" sentinel and the
+         * caller rejects the type instead of emitting a shortened identifier. */
+        if (!copy_capped_string(out, out_size, slot_type_name))
+            return false;
         return out[0] != '\0';
     }
     open++;
@@ -30,7 +34,7 @@ slot_inner_type_name_write(const char *slot_type_name,
 
     len = (size_t)(close - open);
     if (len >= out_size)
-        len = out_size - 1;
+        return false;
     memcpy(out, open, len);
     out[len] = '\0';
     return out[0] != '\0';
@@ -50,21 +54,22 @@ slot_inner_type_name_copy(const char *slot_type_name,
     return true;
 }
 
-void
+bool
 sanitize_c_suffix(const char *type_name, char *buf, size_t buf_size)
 {
     size_t out = 0;
+    size_t i = 0;
     bool last_was_underscore = false;
 
     if (buf_size == 0)
-        return;
+        return false;
 
     if (type_name == NULL || *type_name == '\0') {
         copy_capped_string(buf, buf_size, "Int");
-        return;
+        return true;
     }
 
-    for (size_t i = 0; type_name[i] != '\0' && out + 1 < buf_size; i++) {
+    for (i = 0; type_name[i] != '\0' && out + 1 < buf_size; i++) {
         unsigned char ch = (unsigned char)type_name[i];
         if ((ch >= 'a' && ch <= 'z')
             || (ch >= 'A' && ch <= 'Z')
@@ -78,42 +83,57 @@ sanitize_c_suffix(const char *type_name, char *buf, size_t buf_size)
             last_was_underscore = true;
         }
     }
+    if (type_name[i] != '\0') {
+        /* Ran out of buffer before the whole name was mangled: fail closed so
+         * the caller rejects the type instead of joining a truncated suffix. */
+        buf[0] = '\0';
+        return false;
+    }
     while (out > 0 && buf[out - 1] == '_')
         out--;
     if (out == 0) {
         copy_capped_string(buf, buf_size, "Int");
-        return;
+        return true;
     }
     if (buf[0] >= '0' && buf[0] <= '9') {
-        if (out + 2 >= buf_size)
-            out = buf_size > 3 ? buf_size - 3 : 0;
-        if (out > 0)
-            memmove(buf + 2, buf, out);
+        if (out + 2 >= buf_size) {
+            buf[0] = '\0';
+            return false;
+        }
+        memmove(buf + 2, buf, out);
         buf[0] = 'T';
         buf[1] = '_';
         out += 2;
     }
     buf[out] = '\0';
+    return true;
 }
 
-void
+bool
 copy_capped_string(char *dst, size_t dst_size, const char *src)
 {
     size_t len;
 
     if (dst == NULL || dst_size == 0)
-        return;
+        return false;
 
     if (src == NULL) {
         dst[0] = '\0';
-        return;
+        return false;
     }
 
     len = strlen(src);
-    if (len >= dst_size)
-        len = dst_size - 1;
+    if (len >= dst_size) {
+        /* Preserve the historical truncated write for callers that ignore the
+         * fit status, but report the truncation so type-name renderers can
+         * fail closed instead of emitting a silently shortened C type name. */
+        memcpy(dst, src, dst_size - 1);
+        dst[dst_size - 1] = '\0';
+        return false;
+    }
     memcpy(dst, src, len);
     dst[len] = '\0';
+    return true;
 }
 
 static bool
@@ -139,16 +159,26 @@ constructed_arg_name_write(const char *type_name, int arg_index,
     for (const char *p = lt; *p != '\0'; p++) {
         char ch = *p;
         if (ch == '<') {
-            if (current == arg_index && out + 1 < buf_size)
+            if (current == arg_index) {
+                if (out + 1 >= buf_size) {
+                    buf[0] = '\0';
+                    return false;
+                }
                 buf[out++] = ch;
+            }
             depth++;
             continue;
         }
         if (ch == '>') {
             if (depth == 0)
                 break;
-            if (current == arg_index && out + 1 < buf_size)
+            if (current == arg_index) {
+                if (out + 1 >= buf_size) {
+                    buf[0] = '\0';
+                    return false;
+                }
                 buf[out++] = ch;
+            }
             depth--;
             continue;
         }
@@ -159,8 +189,13 @@ constructed_arg_name_write(const char *type_name, int arg_index,
             continue;
         }
         if (current == arg_index) {
-            if (!(out == 0 && ch == ' ') && out + 1 < buf_size)
+            if (!(out == 0 && ch == ' ')) {
+                if (out + 1 >= buf_size) {
+                    buf[0] = '\0';
+                    return false;
+                }
                 buf[out++] = ch;
+            }
         }
     }
 
@@ -188,6 +223,7 @@ generic_args_to_c_suffix_write(const char *inner_body,
 {
     size_t pos = 0;
     bool prev_was_sep = false;
+    const char *p;
 
     if (buf == NULL || buf_size == 0)
         return false;
@@ -196,7 +232,7 @@ generic_args_to_c_suffix_write(const char *inner_body,
         return false;
     }
 
-    for (const char *p = inner_body; *p != '\0' && pos + 1 < buf_size; p++) {
+    for (p = inner_body; *p != '\0' && pos + 1 < buf_size; p++) {
         char c = *p;
         bool is_sep = (c == ',' || c == '<' || c == '>' || c == ' ' || c == '\t');
         if (is_sep) {
@@ -208,6 +244,11 @@ generic_args_to_c_suffix_write(const char *inner_body,
             buf[pos++] = c;
             prev_was_sep = false;
         }
+    }
+    if (*p != '\0') {
+        /* Buffer filled before the whole argument list was mangled. */
+        buf[0] = '\0';
+        return false;
     }
     while (pos > 0 && buf[pos - 1] == '_')
         pos--;

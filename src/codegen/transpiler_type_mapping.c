@@ -338,15 +338,14 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
 
     mapped = transpiler_lookup_type_name_map(name, builtin_alias_maps,
         sizeof(builtin_alias_maps) / sizeof(builtin_alias_maps[0]));
-    if (mapped != NULL) {
-        copy_capped_string(out, out_size, mapped);
-        return out[0] != '\0';
-    }
+    if (mapped != NULL)
+        return copy_capped_string(out, out_size, mapped);
     if (transpiler_type_name_is_list(name)) {
         if (constructed_single_arg_is_unknown(name))
             return false;
         slot_inner_type_name_copy(name, inner, sizeof(inner));
-        sanitize_c_suffix(inner, suffix, sizeof(suffix));
+        if (!sanitize_c_suffix(inner, suffix, sizeof(suffix)))
+            return false;
         return transpiler_type_name_join(out, out_size, "PgyList_", suffix);
     }
     if (transpiler_type_name_is_hashmap(name)) {
@@ -354,35 +353,32 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
             || constructed_arg_name_is_unknown(name, 1))
             return false;
         copy_constructed_arg_name_at(name, 1, value, sizeof(value));
-        sanitize_c_suffix(value, suffix, sizeof(suffix));
+        if (!sanitize_c_suffix(value, suffix, sizeof(suffix)))
+            return false;
         return transpiler_type_name_join(out, out_size, "PgyHashMap_", suffix);
     }
     if (transpiler_type_name_is_queue(name)) {
         if (constructed_single_arg_is_unknown(name))
             return false;
         slot_inner_type_name_copy(name, inner, sizeof(inner));
-        sanitize_c_suffix(inner, suffix, sizeof(suffix));
+        if (!sanitize_c_suffix(inner, suffix, sizeof(suffix)))
+            return false;
         return transpiler_type_name_join(out, out_size, "PgyQueue_", suffix);
     }
     if (transpiler_type_name_is_set(name)) {
         slot_inner_type_name_copy(name, inner, sizeof(inner));
         if (type_arg_name_is_unknown(inner))
             return false;
-        if (strcmp(inner, "String") == 0) {
-            copy_capped_string(out, out_size, "PgySet_String");
-            return out[0] != '\0';
-        }
-        if (strcmp(inner, "Int") == 0) {
-            copy_capped_string(out, out_size, "PgySet_int");
-            return out[0] != '\0';
-        }
-        sanitize_c_suffix(inner, suffix, sizeof(suffix));
+        if (strcmp(inner, "String") == 0)
+            return copy_capped_string(out, out_size, "PgySet_String");
+        if (strcmp(inner, "Int") == 0)
+            return copy_capped_string(out, out_size, "PgySet_int");
+        if (!sanitize_c_suffix(inner, suffix, sizeof(suffix)))
+            return false;
         return transpiler_type_name_join(out, out_size, "PgySet_", suffix);
     }
-    if (transpiler_type_name_is_any_future(name)) {
-        copy_capped_string(out, out_size, "PgyTaskHandle");
-        return out[0] != '\0';
-    }
+    if (transpiler_type_name_is_any_future(name))
+        return copy_capped_string(out, out_size, "PgyTaskHandle");
     if (transpiler_type_name_is_channel(name)) {
         const PgyChannelRuntimePayloadAbi *abi;
 
@@ -412,7 +408,7 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
         const char *close = strstr(body, ">>");
         size_t len = close != NULL ? (size_t)(close - body) : strlen(body);
         if (len >= sizeof(inner))
-            len = sizeof(inner) - 1;
+            return false;
         memcpy(inner, body, len);
         inner[len] = '\0';
         if (type_arg_name_is_unknown(inner))
@@ -433,7 +429,8 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
          * inner type name may itself be a constructed type (e.g. "Array<Int>")
          * whose angle brackets must collapse to underscores so the C type
          * matches the runtime instantiation exactly. */
-        sanitize_c_suffix(inner, suffix, sizeof(suffix));
+        if (!sanitize_c_suffix(inner, suffix, sizeof(suffix)))
+            return false;
         return transpiler_type_name_join(out, out_size, "PgySlice_", suffix);
     }
     if (transpiler_type_name_is_array(name)) {
@@ -443,7 +440,8 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
         /* Recursive mangle: Array<Array<Int>> -> PgyArray_Array_Int,
          * Array<Int> -> PgyArray_Int. sanitize_c_suffix is the identity on a
          * bare scalar ("Int" -> "Int") so single-level arrays are unaffected. */
-        sanitize_c_suffix(inner, suffix, sizeof(suffix));
+        if (!sanitize_c_suffix(inner, suffix, sizeof(suffix)))
+            return false;
         return transpiler_type_name_join(out, out_size, "PgyArray_", suffix);
     }
     if (strncmp(name, "SecureSlot<", 11) == 0) {
@@ -514,6 +512,14 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
         size_t n = strlen(name);
         bool first = true;
 
+        /* Each element is mangled through elem[96]/sane[96]; a tuple name
+         * shorter than that bound cannot overflow an element buffer, and the
+         * joined result (<= n plus a short fixed prefix/suffix) stays inside
+         * out. Reject longer tuples closed rather than emit a truncated name. */
+        if (n >= 96) {
+            out[0] = '\0';
+            return false;
+        }
         out[0] = '\0';
         off = pergyra_str_append(out, out_size, "PgyTuple_");
         while (i < n && name[i] != ')') {
@@ -563,12 +569,19 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
             if (base_len > 0 && base_len + 1 < out_size) {
                 char inner_args[160];
                 char sane[160];
+                /* Exact-or-fail: the args must fit inner_args and the mangled
+                 * "Base_Args" must fit out; reject rather than silently drop or
+                 * truncate the argument list. */
+                if (args_len >= sizeof(inner_args)
+                    || base_len + 1 + args_len >= out_size)
+                    return false;
                 memcpy(out, name, base_len);
                 out[base_len] = '\0';
-                if (args_len > 0 && args_len < sizeof(inner_args)) {
+                if (args_len > 0) {
                     memcpy(inner_args, lt + 1, args_len);
                     inner_args[args_len] = '\0';
-                    sanitize_c_suffix(inner_args, sane, sizeof(sane));
+                    if (!sanitize_c_suffix(inner_args, sane, sizeof(sane)))
+                        return false;
                     pergyra_str_append(out, out_size, "_");
                     pergyra_str_append(out, out_size, sane);
                 }

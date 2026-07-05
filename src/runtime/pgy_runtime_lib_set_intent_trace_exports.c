@@ -226,7 +226,18 @@ pgy_intent_handle_is_current_ancestor_export(int32_t handle)
 {
     int32_t cursor = pgy_intent_current_handle_export();
 
-    while (cursor != 0) {
+    /* Bounded walk. At most PGY_INTENT_ACTIVE_MAX intents are live, so a
+     * genuine parent chain never visits more than that many distinct handles.
+     * A longer walk means the parent_handle links formed a cycle in handle
+     * VALUE space -- unreachable under normal nesting (fresh handles + a
+     * parent that is always an older live incarnation), but constructible via
+     * handle-value recycling (counter wrap) combined with non-LIFO leave. The
+     * self-parent case (parent_handle == cursor) is caught below; this bound
+     * additionally catches multi-node cycles (A->B->A) so the loop can never
+     * spin at 100% CPU while holding pgy_intent_registry_mutex (DoS). */
+    for (int32_t steps = 0;
+         cursor != 0 && steps < PGY_INTENT_ACTIVE_MAX;
+         steps++) {
         PgyIntentActiveEntry *entry;
 
         if (cursor == handle)
