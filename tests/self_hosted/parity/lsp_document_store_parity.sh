@@ -35,9 +35,34 @@ if [[ ! -x "$PGY" ]]; then
 fi
 pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:lsp-document-store" "$PGY"
 
-LSP_SOURCE="$ROOT_DIR/src/self_hosted/lsp/main.pgy"
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/lsp_document_store}"
+HARNESS_PATHS_FILE="$BUILD_DIR/lsp_document_store_harness_paths.txt"
 mkdir -p "$BUILD_DIR"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:lsp-document-store" \
+    "$BUILD_DIR" \
+    "lsp-document-store-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 3 ]]; then
+    echo "[self-host-parity:lsp-document-store] TestHarness manifest expected 3 paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+LSP_SOURCE="$ROOT_DIR/${harness_paths[0]}"
+EXPECTED_DOCUMENT_STORE="$ROOT_DIR/${harness_paths[1]}"
+EXPECTED_DOCUMENT_STORE_MULTI_URI="$ROOT_DIR/${harness_paths[2]}"
+for path in "$LSP_SOURCE" "$EXPECTED_DOCUMENT_STORE" "$EXPECTED_DOCUMENT_STORE_MULTI_URI"; do
+    if [[ ! -f "$path" ]]; then
+        echo "[self-host-parity:lsp-document-store] missing TestHarness input: $path" >&2
+        exit 1
+    fi
+done
 
 compile_lsp_backend() {
     local backend="$1"
@@ -129,11 +154,11 @@ for backend in $BACKENDS; do
     capture_document_output "$backend" "$lsp_bin" \
         "document_store" \
         "$input_document" \
-        "$ROOT_DIR/src/self_hosted/lsp/expected/document_store.json"
+        "$EXPECTED_DOCUMENT_STORE"
     capture_document_output "$backend" "$lsp_bin" \
         "document_store_multi_uri" \
         "$input_multi_uri" \
-        "$ROOT_DIR/src/self_hosted/lsp/expected/document_store_multi_uri.json"
+        "$EXPECTED_DOCUMENT_STORE_MULTI_URI"
     RAN_BACKENDS+=("$backend")
 done
 

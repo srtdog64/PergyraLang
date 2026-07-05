@@ -322,7 +322,7 @@ Substrate progress.
   `tests/self_hosted/parity/selfcheck_sources.sh` now consumes the
   `self-host-completeness-semantic-targets` manifest from TestHarness instead
   of owning a shell source list. The current completeness-owned inventory
-  accepts 154 real self-host production source rows through the semantic
+  accepts 155 real self-host production source rows through the semantic
   checker; split parser/codegen files use the semantic target selected by
   `completeness_ledger_owner.pgy`. This is still source-stage acceptance, not a
   claim that typed self-semantic facts already drive the native backends end to

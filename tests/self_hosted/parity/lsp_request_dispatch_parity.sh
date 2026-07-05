@@ -35,9 +35,34 @@ if [[ ! -x "$PGY" ]]; then
 fi
 pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:lsp-request-dispatch" "$PGY"
 
-LSP_SOURCE="$ROOT_DIR/src/self_hosted/lsp/main.pgy"
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/lsp_request_dispatch}"
+HARNESS_PATHS_FILE="$BUILD_DIR/lsp_request_dispatch_harness_paths.txt"
 mkdir -p "$BUILD_DIR"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:lsp-request-dispatch" \
+    "$BUILD_DIR" \
+    "lsp-request-dispatch-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 3 ]]; then
+    echo "[self-host-parity:lsp-request-dispatch] TestHarness manifest expected 3 paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+LSP_SOURCE="$ROOT_DIR/${harness_paths[0]}"
+EXPECTED_REQUEST_DISPATCH="$ROOT_DIR/${harness_paths[1]}"
+EXPECTED_REQUEST_DISPATCH_MISSING_METHOD="$ROOT_DIR/${harness_paths[2]}"
+for path in "$LSP_SOURCE" "$EXPECTED_REQUEST_DISPATCH" "$EXPECTED_REQUEST_DISPATCH_MISSING_METHOD"; do
+    if [[ ! -f "$path" ]]; then
+        echo "[self-host-parity:lsp-request-dispatch] missing TestHarness input: $path" >&2
+        exit 1
+    fi
+done
 
 compile_lsp_backend() {
     local backend="$1"
@@ -126,11 +151,11 @@ for backend in $BACKENDS; do
     capture_dispatch_output "$backend" "$lsp_bin" \
         "request_dispatch" \
         "$input_dispatch" \
-        "$ROOT_DIR/src/self_hosted/lsp/expected/request_dispatch.json"
+        "$EXPECTED_REQUEST_DISPATCH"
     capture_dispatch_output "$backend" "$lsp_bin" \
         "request_dispatch_missing_method" \
         "$input_missing_method" \
-        "$ROOT_DIR/src/self_hosted/lsp/expected/request_dispatch_missing_method.json"
+        "$EXPECTED_REQUEST_DISPATCH_MISSING_METHOD"
     RAN_BACKENDS+=("$backend")
 done
 

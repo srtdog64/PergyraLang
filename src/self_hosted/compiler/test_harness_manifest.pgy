@@ -12,6 +12,7 @@ import "test_harness_parser_paths_owner.pgy";
 import "test_harness_semantic_paths_owner.pgy";
 import "test_harness_mir_json_paths_owner.pgy";
 import "test_harness_codegen_bootstrap_paths_owner.pgy";
+import "test_harness_lsp_paths_owner.pgy";
 import "completeness_ledger_owner.pgy";
 
 func EmitBackendTriSmokeCases() -> Void {
@@ -254,6 +255,78 @@ func EmitDriverRung1Paths() -> Void {
     }
 }
 
+func EmitLspDiagnosticsPaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessLspDiagnosticsPathCount() {
+        Log(CompilerHarnessLspDiagnosticsPathAt(i));
+        i = i + 1;
+    }
+}
+
+func EmitLspTransportFramePaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessLspTransportFramePathCount() {
+        Log(CompilerHarnessLspTransportFramePathAt(i));
+        i = i + 1;
+    }
+}
+
+func EmitLspTransportStreamPaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessLspTransportStreamPathCount() {
+        Log(CompilerHarnessLspTransportStreamPathAt(i));
+        i = i + 1;
+    }
+}
+
+func EmitLspRequestDispatchPaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessLspRequestDispatchPathCount() {
+        Log(CompilerHarnessLspRequestDispatchPathAt(i));
+        i = i + 1;
+    }
+}
+
+func EmitLspResponseEmissionPaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessLspResponseEmissionPathCount() {
+        Log(CompilerHarnessLspResponseEmissionPathAt(i));
+        i = i + 1;
+    }
+}
+
+func EmitLspSessionReplayPaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessLspSessionReplayPathCount() {
+        Log(CompilerHarnessLspSessionReplayPathAt(i));
+        i = i + 1;
+    }
+}
+
+func EmitLspDocumentStorePaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessLspDocumentStorePathCount() {
+        Log(CompilerHarnessLspDocumentStorePathAt(i));
+        i = i + 1;
+    }
+}
+
+func EmitLspSessionStatePaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessLspSessionStatePathCount() {
+        Log(CompilerHarnessLspSessionStatePathAt(i));
+        i = i + 1;
+    }
+}
+
+func EmitLspHoverContentPaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessLspHoverContentPathCount() {
+        Log(CompilerHarnessLspHoverContentPathAt(i));
+        i = i + 1;
+    }
+}
+
 func EmitSelfHostCompletenessSources() -> Void {
     EmitCompilerCompletenessSourceInventory();
 }
@@ -407,6 +480,42 @@ func Main() -> Void {
     }
     if args[0] == CompilerHarnessDriverRung1SuiteName() {
         EmitDriverRung1Paths();
+        return;
+    }
+    if args[0] == CompilerHarnessLspDiagnosticsSuiteName() {
+        EmitLspDiagnosticsPaths();
+        return;
+    }
+    if args[0] == CompilerHarnessLspTransportFrameSuiteName() {
+        EmitLspTransportFramePaths();
+        return;
+    }
+    if args[0] == CompilerHarnessLspTransportStreamSuiteName() {
+        EmitLspTransportStreamPaths();
+        return;
+    }
+    if args[0] == CompilerHarnessLspRequestDispatchSuiteName() {
+        EmitLspRequestDispatchPaths();
+        return;
+    }
+    if args[0] == CompilerHarnessLspResponseEmissionSuiteName() {
+        EmitLspResponseEmissionPaths();
+        return;
+    }
+    if args[0] == CompilerHarnessLspSessionReplaySuiteName() {
+        EmitLspSessionReplayPaths();
+        return;
+    }
+    if args[0] == CompilerHarnessLspDocumentStoreSuiteName() {
+        EmitLspDocumentStorePaths();
+        return;
+    }
+    if args[0] == CompilerHarnessLspSessionStateSuiteName() {
+        EmitLspSessionStatePaths();
+        return;
+    }
+    if args[0] == CompilerHarnessLspHoverContentSuiteName() {
+        EmitLspHoverContentPaths();
         return;
     }
     if args[0] == CompilerCompletenessSourcesSuiteName() {

@@ -1,0 +1,239 @@
+// TestHarness LSP path owner.
+//
+// Owns LSP parity tool, fixture, and expected artifact paths. Shell parity
+// runners may execute these rows, but must not own the path constants.
+
+func CompilerHarnessLspToolSourcePath() -> String {
+    return "src/self_hosted/lsp/main.pgy";
+}
+
+func CompilerHarnessLspDiagnosticsSuiteName() -> String {
+    return "lsp-diagnostics-paths";
+}
+
+func CompilerHarnessLspDiagnosticsFixtureCount() -> Int {
+    return 6;
+}
+
+func CompilerHarnessLspDiagnosticsFixtureBaseAt(index: Int) -> String {
+    if index == 0 { return "valid_int_return"; }
+    if index == 1 { return "bad_logical_right"; }
+    if index == 2 { return "bad_undefined_return"; }
+    if index == 3 { return "bad_return_type"; }
+    if index == 4 { return "bad_while_condition"; }
+    if index == 5 { return "bad_not_operand"; }
+    return "";
+}
+
+func CompilerHarnessLspDiagnosticsFixturePathAt(index: Int) -> String {
+    let base: String = CompilerHarnessLspDiagnosticsFixtureBaseAt(index);
+    if base == "" { return ""; }
+    return Concat(Concat("src/self_hosted/lsp/fixture/", base), ".pgy");
+}
+
+func CompilerHarnessLspDiagnosticsExpectedPathAt(index: Int) -> String {
+    let base: String = CompilerHarnessLspDiagnosticsFixtureBaseAt(index);
+    if base == "" { return ""; }
+    return Concat(Concat("src/self_hosted/lsp/expected/", base), ".json");
+}
+
+func CompilerHarnessLspSquigglePolicyExpectedPath() -> String {
+    return "src/self_hosted/lsp/expected/squiggle_policy.json";
+}
+
+func CompilerHarnessLspDiagnosticsPathCount() -> Int {
+    return 2 + CompilerHarnessLspDiagnosticsFixtureCount() * 2;
+}
+
+func CompilerHarnessLspDiagnosticsPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessLspToolSourcePath(); }
+    if index == 1 { return CompilerHarnessLspSquigglePolicyExpectedPath(); }
+    let shifted: Int = index - 2;
+    let fixture_count: Int = CompilerHarnessLspDiagnosticsFixtureCount();
+    if shifted >= 0 && shifted < fixture_count {
+        return CompilerHarnessLspDiagnosticsFixturePathAt(shifted);
+    }
+    if shifted >= fixture_count && shifted < fixture_count * 2 {
+        return CompilerHarnessLspDiagnosticsExpectedPathAt(shifted - fixture_count);
+    }
+    return "";
+}
+
+func CompilerHarnessLspDiagnosticsReady() -> Bool {
+    if CompilerHarnessLspDiagnosticsSuiteName() == "" {
+        return false;
+    }
+    if CompilerHarnessLspDiagnosticsPathCount() != 14 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessLspDiagnosticsPathCount() {
+        if CompilerHarnessLspDiagnosticsPathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func CompilerHarnessLspTransportFrameSuiteName() -> String {
+    return "lsp-transport-frame-paths";
+}
+
+func CompilerHarnessLspTransportFramePathCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessLspTransportFramePathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessLspToolSourcePath(); }
+    if index == 1 { return "src/self_hosted/lsp/expected/transport_frame.json"; }
+    if index == 2 { return "src/self_hosted/lsp/expected/transport_frame_incomplete.json"; }
+    return "";
+}
+
+func CompilerHarnessLspTransportStreamSuiteName() -> String {
+    return "lsp-transport-stream-paths";
+}
+
+func CompilerHarnessLspTransportStreamPathCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessLspTransportStreamPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessLspToolSourcePath(); }
+    if index == 1 { return "src/self_hosted/lsp/expected/transport_stream.json"; }
+    if index == 2 { return "src/self_hosted/lsp/expected/transport_stream_partial.json"; }
+    return "";
+}
+
+func CompilerHarnessLspRequestDispatchSuiteName() -> String {
+    return "lsp-request-dispatch-paths";
+}
+
+func CompilerHarnessLspRequestDispatchPathCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessLspRequestDispatchPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessLspToolSourcePath(); }
+    if index == 1 { return "src/self_hosted/lsp/expected/request_dispatch.json"; }
+    if index == 2 { return "src/self_hosted/lsp/expected/request_dispatch_missing_method.json"; }
+    return "";
+}
+
+func CompilerHarnessLspResponseEmissionSuiteName() -> String {
+    return "lsp-response-emission-paths";
+}
+
+func CompilerHarnessLspResponseEmissionPathCount() -> Int {
+    return 4;
+}
+
+func CompilerHarnessLspResponseEmissionPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessLspToolSourcePath(); }
+    if index == 1 { return "src/self_hosted/lsp/expected/response_emission.json"; }
+    if index == 2 { return "src/self_hosted/lsp/expected/response_emission_feature.json"; }
+    if index == 3 { return "src/self_hosted/lsp/expected/response_emission_unsupported.json"; }
+    return "";
+}
+
+func CompilerHarnessLspSessionReplaySuiteName() -> String {
+    return "lsp-session-replay-paths";
+}
+
+func CompilerHarnessLspSessionReplayPathCount() -> Int {
+    return 4;
+}
+
+func CompilerHarnessLspSessionReplayPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessLspToolSourcePath(); }
+    if index == 1 { return "src/self_hosted/lsp/expected/session_replay.json"; }
+    if index == 2 { return "src/self_hosted/lsp/expected/session_replay_feature.json"; }
+    if index == 3 { return "src/self_hosted/lsp/expected/session_replay_unsupported.json"; }
+    return "";
+}
+
+func CompilerHarnessLspDocumentStoreSuiteName() -> String {
+    return "lsp-document-store-paths";
+}
+
+func CompilerHarnessLspDocumentStorePathCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessLspDocumentStorePathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessLspToolSourcePath(); }
+    if index == 1 { return "src/self_hosted/lsp/expected/document_store.json"; }
+    if index == 2 { return "src/self_hosted/lsp/expected/document_store_multi_uri.json"; }
+    return "";
+}
+
+func CompilerHarnessLspSessionStateSuiteName() -> String {
+    return "lsp-session-state-paths";
+}
+
+func CompilerHarnessLspSessionStatePathCount() -> Int {
+    return 2;
+}
+
+func CompilerHarnessLspSessionStatePathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessLspToolSourcePath(); }
+    if index == 1 { return "src/self_hosted/lsp/expected/session_state.json"; }
+    return "";
+}
+
+func CompilerHarnessLspHoverContentSuiteName() -> String {
+    return "lsp-hover-content-paths";
+}
+
+func CompilerHarnessLspHoverContentPathCount() -> Int {
+    return 2;
+}
+
+func CompilerHarnessLspHoverContentPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessLspToolSourcePath(); }
+    if index == 1 { return "src/self_hosted/lsp/expected/hover_content.json"; }
+    return "";
+}
+
+func CompilerHarnessLspPathSuiteReady(count: Int, last_path: String) -> Bool {
+    return count >= 2 &&
+        CompilerHarnessLspToolSourcePath() != "" &&
+        last_path != "";
+}
+
+func CompilerHarnessLspPathsReady() -> Bool {
+    return CompilerHarnessLspDiagnosticsReady() &&
+        CompilerHarnessLspPathSuiteReady(
+            CompilerHarnessLspTransportFramePathCount(),
+            CompilerHarnessLspTransportFramePathAt(2)
+        ) &&
+        CompilerHarnessLspPathSuiteReady(
+            CompilerHarnessLspTransportStreamPathCount(),
+            CompilerHarnessLspTransportStreamPathAt(2)
+        ) &&
+        CompilerHarnessLspPathSuiteReady(
+            CompilerHarnessLspRequestDispatchPathCount(),
+            CompilerHarnessLspRequestDispatchPathAt(2)
+        ) &&
+        CompilerHarnessLspPathSuiteReady(
+            CompilerHarnessLspResponseEmissionPathCount(),
+            CompilerHarnessLspResponseEmissionPathAt(3)
+        ) &&
+        CompilerHarnessLspPathSuiteReady(
+            CompilerHarnessLspSessionReplayPathCount(),
+            CompilerHarnessLspSessionReplayPathAt(3)
+        ) &&
+        CompilerHarnessLspPathSuiteReady(
+            CompilerHarnessLspDocumentStorePathCount(),
+            CompilerHarnessLspDocumentStorePathAt(2)
+        ) &&
+        CompilerHarnessLspPathSuiteReady(
+            CompilerHarnessLspSessionStatePathCount(),
+            CompilerHarnessLspSessionStatePathAt(1)
+        ) &&
+        CompilerHarnessLspPathSuiteReady(
+            CompilerHarnessLspHoverContentPathCount(),
+            CompilerHarnessLspHoverContentPathAt(1)
+        );
+}

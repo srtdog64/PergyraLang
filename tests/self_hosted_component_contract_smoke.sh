@@ -1753,6 +1753,7 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_har
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_semantic_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_mir_json_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_codegen_bootstrap_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_lsp_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphScanOwnerPath"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphIdUniquenessSuiteName"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphIdUniquenessPathAt"
@@ -1848,6 +1849,26 @@ require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owne
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapComponentRowAt"
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapToolRowAt"
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapRowsReady"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspDiagnosticsSuiteName"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspDiagnosticsPathAt"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspTransportFrameSuiteName"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspTransportFramePathAt"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspTransportStreamSuiteName"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspTransportStreamPathAt"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspRequestDispatchSuiteName"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspRequestDispatchPathAt"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspResponseEmissionSuiteName"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspResponseEmissionPathAt"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspSessionReplaySuiteName"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspSessionReplayPathAt"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspDocumentStoreSuiteName"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspDocumentStorePathAt"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspSessionStateSuiteName"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspSessionStatePathAt"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspHoverContentSuiteName"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspHoverContentPathAt"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspPathsReady"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorSuiteName"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorAirEvidenceOwnerPath"
@@ -1922,6 +1943,7 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessS
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessProductionCSizeReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessProductionHeaderSizeReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessAirGraphConsumersReady()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessLspPathsReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendTriSuiteReady()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_tool_paths_owner.pgy";'
@@ -1932,6 +1954,7 @@ require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_semantic_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_mir_json_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_codegen_bootstrap_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_lsp_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitBackendTriSmokeCases"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitLinterParityPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLinterPathAt(i)"
@@ -1978,6 +2001,33 @@ require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarne
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitStdlibDispatchInventoryPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessStdlibDispatchInventoryPathAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessStdlibDispatchInventorySuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitLspDiagnosticsPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLspDiagnosticsPathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLspDiagnosticsSuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitLspTransportFramePaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLspTransportFramePathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLspTransportFrameSuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitLspTransportStreamPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLspTransportStreamPathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLspTransportStreamSuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitLspRequestDispatchPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLspRequestDispatchPathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLspRequestDispatchSuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitLspResponseEmissionPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLspResponseEmissionPathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLspResponseEmissionSuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitLspSessionReplayPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLspSessionReplayPathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLspSessionReplaySuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitLspDocumentStorePaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLspDocumentStorePathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLspDocumentStoreSuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitLspSessionStatePaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLspSessionStatePathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLspSessionStateSuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitLspHoverContentPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLspHoverContentPathAt(i)"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessLspHoverContentSuiteName()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitProductionCSizePaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessProductionCSizePathAt(i)"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessProductionCSizeSuiteName()"
@@ -2090,6 +2140,7 @@ require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp 
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_semantic_paths_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_mir_json_paths_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy"'
+require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/subprocess_runner_owner.pgy"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "pgy_selfhost_read_test_harness_manifest"
@@ -2299,11 +2350,12 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "grep -h -v '^import
 reject_text "src/self_hosted/lexer/main.pgy" "fixture/source.txt"
 reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "SELF_SOURCES"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 148;"
-completeness_min_count="$(grep -F "return 154;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
+reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 154;"
+completeness_min_count="$(grep -F "return 155;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
     wc -l |
     tr -d ' ')"
 [[ "$completeness_min_count" -ge 8 ]] ||
-    fail "self-host completeness minima drifted below the 154-source closed slice"
+    fail "self-host completeness minima drifted below the 155-source closed slice"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'
@@ -2804,34 +2856,42 @@ require_text "Makefile" "self-host-lsp-transport-frame-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/lsp_transport_frame_parity.sh"
 require_text "tests/self_hosted/parity/lsp_transport_frame_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/lsp_transport_frame_parity.sh" '"lsp_transport_frame"'
+require_text "tests/self_hosted/parity/lsp_transport_frame_parity.sh" '"lsp-transport-frame-paths"'
 require_text "Makefile" "self-host-lsp-transport-stream-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/lsp_transport_stream_parity.sh"
 require_text "tests/self_hosted/parity/lsp_transport_stream_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/lsp_transport_stream_parity.sh" '"lsp_transport_stream"'
+require_text "tests/self_hosted/parity/lsp_transport_stream_parity.sh" '"lsp-transport-stream-paths"'
 require_text "Makefile" "self-host-lsp-request-dispatch-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/lsp_request_dispatch_parity.sh"
 require_text "tests/self_hosted/parity/lsp_request_dispatch_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/lsp_request_dispatch_parity.sh" '"lsp_request_dispatch"'
+require_text "tests/self_hosted/parity/lsp_request_dispatch_parity.sh" '"lsp-request-dispatch-paths"'
 require_text "Makefile" "self-host-lsp-response-emission-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/lsp_response_emission_parity.sh"
 require_text "tests/self_hosted/parity/lsp_response_emission_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/lsp_response_emission_parity.sh" '"lsp_response_emission"'
+require_text "tests/self_hosted/parity/lsp_response_emission_parity.sh" '"lsp-response-emission-paths"'
 require_text "Makefile" "self-host-lsp-session-replay-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/lsp_session_replay_parity.sh"
 require_text "tests/self_hosted/parity/lsp_session_replay_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/lsp_session_replay_parity.sh" '"lsp_session_replay"'
+require_text "tests/self_hosted/parity/lsp_session_replay_parity.sh" '"lsp-session-replay-paths"'
 require_text "Makefile" "self-host-lsp-document-store-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/lsp_document_store_parity.sh"
 require_text "tests/self_hosted/parity/lsp_document_store_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/lsp_document_store_parity.sh" '"lsp_document_store"'
+require_text "tests/self_hosted/parity/lsp_document_store_parity.sh" '"lsp-document-store-paths"'
 require_text "Makefile" "self-host-lsp-session-state-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/lsp_session_state_parity.sh"
 require_text "tests/self_hosted/parity/lsp_session_state_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/lsp_session_state_parity.sh" '"lsp_session_state"'
+require_text "tests/self_hosted/parity/lsp_session_state_parity.sh" '"lsp-session-state-paths"'
 require_text "Makefile" "self-host-lsp-hover-content-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/lsp_hover_content_parity.sh"
 require_text "tests/self_hosted/parity/lsp_hover_content_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/lsp_hover_content_parity.sh" '"lsp_hover_content"'
+require_text "tests/self_hosted/parity/lsp_hover_content_parity.sh" '"lsp-hover-content-paths"'
 require_text "Makefile" "self-host-lsp-diagnostics-parity-test-smoke"
 require_text "Makefile" 'self-host-lsp-diagnostics-parity-test-smoke: $(PGY) $(PGY_LSP)'
 require_text "Makefile" 'self-host-preparation-parity-test-smoke: $(PGY) $(PGY_LSP)'
@@ -2841,6 +2901,7 @@ require_text "src/lsp/pgy_lsp_diagnostics.c" "lsp_build_diagnostics_params"
 require_text "src/lsp/pgy_lsp_internal.h" "lsp_build_diagnostics_params"
 require_text "Makefile" "tests/self_hosted/parity/lsp_diagnostics_parity.sh"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "lsp-diagnostics"
+require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" '"lsp-diagnostics-paths"'
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" '"lsp_diagnostics"'
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "PGY_LSP_BIN"
@@ -2858,6 +2919,20 @@ require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "--squiggle-po
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" '"class":"violet"'
 reject_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" 'cmp -s'
 reject_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" 'diff -u'
+for lsp_script in \
+    tests/self_hosted/parity/lsp_diagnostics_parity.sh \
+    tests/self_hosted/parity/lsp_transport_frame_parity.sh \
+    tests/self_hosted/parity/lsp_transport_stream_parity.sh \
+    tests/self_hosted/parity/lsp_request_dispatch_parity.sh \
+    tests/self_hosted/parity/lsp_response_emission_parity.sh \
+    tests/self_hosted/parity/lsp_session_replay_parity.sh \
+    tests/self_hosted/parity/lsp_document_store_parity.sh \
+    tests/self_hosted/parity/lsp_session_state_parity.sh \
+    tests/self_hosted/parity/lsp_hover_content_parity.sh; do
+    require_text "$lsp_script" "pgy_selfhost_read_test_harness_manifest"
+    reject_text "$lsp_script" 'LSP_SOURCE="$ROOT_DIR/src/self_hosted/lsp/main.pgy"'
+    reject_text "$lsp_script" '$ROOT_DIR/src/self_hosted/lsp/expected/'
+done
 require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:fuzz-generator" "$PGY"'
 require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" '"emitted_self_hosted"'

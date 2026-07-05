@@ -43,18 +43,46 @@ if [[ -x "$PGY_LSP" ]]; then
     pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:lsp-diagnostics:c-lsp-oracle" "$PGY_LSP"
 fi
 
-LSP_SOURCE="$ROOT_DIR/src/self_hosted/lsp/main.pgy"
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/lsp_diagnostics}"
-FIXTURES=(
-    "valid_int_return"
-    "bad_logical_right"
-    "bad_undefined_return"
-    "bad_return_type"
-    "bad_while_condition"
-    "bad_not_operand"
-)
+HARNESS_PATHS_FILE="$BUILD_DIR/lsp_diagnostics_harness_paths.txt"
 
 mkdir -p "$BUILD_DIR"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:lsp-diagnostics" \
+    "$BUILD_DIR" \
+    "lsp-diagnostics-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 14 ]]; then
+    echo "[self-host-parity:lsp-diagnostics] TestHarness manifest expected 14 paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+LSP_SOURCE="$ROOT_DIR/${harness_paths[0]}"
+EXPECTED_SQUIGGLE_POLICY="$ROOT_DIR/${harness_paths[1]}"
+FIXTURES=()
+FIXTURE_RELS=()
+FIXTURE_EXPECTEDS=()
+for ((i = 0; i < 6; i++)); do
+    fixture_rel="${harness_paths[$((2 + i))]}"
+    fixture_base="${fixture_rel##*/}"
+    fixture_base="${fixture_base%.pgy}"
+    FIXTURES+=("$fixture_base")
+    FIXTURE_RELS+=("$fixture_rel")
+    FIXTURE_EXPECTEDS+=("$ROOT_DIR/${harness_paths[$((8 + i))]}")
+done
+
+for path in "$LSP_SOURCE" "$EXPECTED_SQUIGGLE_POLICY"; do
+    if [[ ! -f "$path" ]]; then
+        echo "[self-host-parity:lsp-diagnostics] missing TestHarness input: $path" >&2
+        exit 1
+    fi
+done
 
 compile_lsp_backend() {
     local backend="$1"
@@ -89,7 +117,8 @@ capture_lsp_output() {
     local backend="$1"
     local bin="$2"
     local fixture_base="$3"
-    local fixture_rel="src/self_hosted/lsp/fixture/${fixture_base}.pgy"
+    local fixture_rel="$4"
+    local expected_path="$5"
     local out_file="$BUILD_DIR/${fixture_base}_${backend}.json"
     local err_file="$BUILD_DIR/${fixture_base}_${backend}.err"
     local arg
@@ -122,7 +151,7 @@ capture_lsp_output() {
     pgy_selfhost_compare_expected_text_artifact_file_with_owner \
         "lsp-diagnostics:$backend:$fixture_base" \
         "$BUILD_DIR" \
-        "$ROOT_DIR/src/self_hosted/lsp/expected/${fixture_base}.json" \
+        "$expected_path" \
         "$out_file" \
         "lsp_diagnostics"
 }
@@ -157,7 +186,7 @@ capture_policy_output() {
     pgy_selfhost_compare_expected_text_artifact_file_with_owner \
         "lsp-diagnostics:$backend:squiggle_policy" \
         "$BUILD_DIR" \
-        "$ROOT_DIR/src/self_hosted/lsp/expected/squiggle_policy.json" \
+        "$EXPECTED_SQUIGGLE_POLICY" \
         "$out_file" \
         "lsp_diagnostics"
 }
@@ -359,7 +388,7 @@ c_lsp_runtime_arg_for_binary() {
 
 check_c_lsp_oracle() {
     local fixture_base="$1"
-    local fixture_rel="src/self_hosted/lsp/fixture/${fixture_base}.pgy"
+    local fixture_rel="$2"
     local out_file="$BUILD_DIR/${fixture_base}_c_lsp_oracle.json"
     local err_file="$BUILD_DIR/${fixture_base}_c_lsp_oracle.err"
     local arg
@@ -522,9 +551,10 @@ for backend in $BACKENDS; do
         exit "$compile_rc"
     fi
 
-    for fixture_base in "${FIXTURES[@]}"; do
-        require_fixture="$ROOT_DIR/src/self_hosted/lsp/fixture/${fixture_base}.pgy"
-        require_expected="$ROOT_DIR/src/self_hosted/lsp/expected/${fixture_base}.json"
+    for ((i = 0; i < ${#FIXTURES[@]}; i++)); do
+        fixture_base="${FIXTURES[$i]}"
+        require_fixture="$ROOT_DIR/${FIXTURE_RELS[$i]}"
+        require_expected="${FIXTURE_EXPECTEDS[$i]}"
         [[ -f "$require_fixture" ]] || {
             echo "[self-host-parity:lsp-diagnostics] missing fixture: $require_fixture" >&2
             exit 1
@@ -533,9 +563,9 @@ for backend in $BACKENDS; do
             echo "[self-host-parity:lsp-diagnostics] missing expected: $require_expected" >&2
             exit 1
         }
-        capture_lsp_output "$backend" "$lsp_bin" "$fixture_base"
+        capture_lsp_output "$backend" "$lsp_bin" "$fixture_base" "${FIXTURE_RELS[$i]}" "$require_expected"
     done
-    require_policy="$ROOT_DIR/src/self_hosted/lsp/expected/squiggle_policy.json"
+    require_policy="$EXPECTED_SQUIGGLE_POLICY"
     [[ -f "$require_policy" ]] || {
         echo "[self-host-parity:lsp-diagnostics] missing expected: $require_policy" >&2
         exit 1
@@ -549,8 +579,8 @@ if [[ "${#RAN_BACKENDS[@]}" -eq 0 ]]; then
     exit 1
 fi
 
-for fixture_base in "${FIXTURES[@]}"; do
-    check_c_lsp_oracle "$fixture_base"
+for ((i = 0; i < ${#FIXTURES[@]}; i++)); do
+    check_c_lsp_oracle "${FIXTURES[$i]}" "${FIXTURE_RELS[$i]}"
 done
 
 echo "[self-host-parity:lsp-diagnostics] payload parity ok (backends=${RAN_BACKENDS[*]}; skipped=${SKIPPED_BACKENDS[*]:-none})"

@@ -35,9 +35,33 @@ if [[ ! -x "$PGY" ]]; then
 fi
 pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:lsp-session-state" "$PGY"
 
-LSP_SOURCE="$ROOT_DIR/src/self_hosted/lsp/main.pgy"
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/lsp_session_state}"
+HARNESS_PATHS_FILE="$BUILD_DIR/lsp_session_state_harness_paths.txt"
 mkdir -p "$BUILD_DIR"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:lsp-session-state" \
+    "$BUILD_DIR" \
+    "lsp-session-state-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 2 ]]; then
+    echo "[self-host-parity:lsp-session-state] TestHarness manifest expected 2 paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+LSP_SOURCE="$ROOT_DIR/${harness_paths[0]}"
+EXPECTED_SESSION_STATE="$ROOT_DIR/${harness_paths[1]}"
+for path in "$LSP_SOURCE" "$EXPECTED_SESSION_STATE"; do
+    if [[ ! -f "$path" ]]; then
+        echo "[self-host-parity:lsp-session-state] missing TestHarness input: $path" >&2
+        exit 1
+    fi
+done
 
 compile_lsp_backend() {
     local backend="$1"
@@ -124,7 +148,7 @@ for backend in $BACKENDS; do
     capture_session_state_output "$backend" "$lsp_bin" \
         "session_state" \
         "$input_session_state" \
-        "$ROOT_DIR/src/self_hosted/lsp/expected/session_state.json"
+        "$EXPECTED_SESSION_STATE"
     RAN_BACKENDS+=("$backend")
 done
 

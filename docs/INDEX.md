@@ -1,6 +1,6 @@
 # PergyraLang Documentation Index
 
-Last updated: 2026-07-04
+Last updated: 2026-07-06
 
 Anti-hype update: 2026-04-29
 
@@ -169,7 +169,7 @@ and follow-up debt over older design notes.
 | [`131_ai_coding_atomic_units.md`](131_ai_coding_atomic_units.md) | AI-coding thesis: verifiable intent atoms, pattern-context units, and specification gradients |
 | [`134_language_surface_hygiene.md`](134_language_surface_hygiene.md) | Language surface hygiene: keep orthogonal terms, close alias/fallback source-of-truth seams |
 | [`149_external_review_2026_07.md`](149_external_review_2026_07.md) | External technical review judgment: accepted signals, rejected claims, and board routing |
-| [`165_external_review_2026_07c.md`](165_external_review_2026_07c.md) | External review #4 judgment: intent/evidence compiler thesis, SEA P0 routing, and non-overclaiming rules |
+| [`165_external_review_2026_07c.md`](165_external_review_2026_07c.md) | External review #4 judgment: intent/evidence compiler thesis, SEA P0 routing, freshness rules, and non-overclaiming rules |
 
 ## Implementation Guides
 

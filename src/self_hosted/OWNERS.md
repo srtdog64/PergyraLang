@@ -148,10 +148,32 @@ compiler-stage `.pgy` source to be listed here.
   kinds consumed by C/LLVM/self-hosted parity.
 - `src/self_hosted/compiler/test_harness_owner.pgy` -- fixture/result row
   vocabulary for Pergyra-owned parity harness work.
+- `src/self_hosted/compiler/test_harness_tool_paths_owner.pgy` -- shared
+  parity tool/input path suites consumed by test harness manifests.
+- `src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy` -- AIR
+  graph consumer path suites consumed by parity runners.
 - `src/self_hosted/compiler/test_harness_driver_paths_owner.pgy` -- DRV-0/DRV-1
   driver, parser, and codegen source path suites consumed by parity runners.
+- `src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy` -- codegen
+  parity tool, parser, comparator, fixture, and expected-output path suites.
+- `src/self_hosted/compiler/test_harness_parser_paths_owner.pgy` -- parser
+  parity tool, comparator, fixture, and expected clean fixture path suites.
+- `src/self_hosted/compiler/test_harness_semantic_paths_owner.pgy` -- semantic
+  parity tool, comparator, fixture, diagnostic, and source-directory path
+  suites.
+- `src/self_hosted/compiler/test_harness_mir_json_paths_owner.pgy` -- MIR JSON
+  mir-lower, codegen, and comparator source path suites.
+- `src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy` --
+  fixed-point bootstrap source paths plus component/tool breadth rows.
+- `src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy` -- LSP
+  diagnostics, transport, request, response, session, document, state, and
+  hover path suites.
+- `src/self_hosted/compiler/test_harness_manifest.pgy` -- runnable manifest
+  projection over TestHarnessZone path and completeness suites.
 - `src/self_hosted/compiler/subprocess_runner_owner.pgy` -- capability envelope
   for oracle subprocess execution without raw shell escape.
+- `src/self_hosted/compiler/completeness_ledger_owner.pgy` -- M2 source
+  inventory, semantic target mapping, and monotone stage-pass minima.
 - `src/self_hosted/compiler/abi_layout_row_owner.pgy` -- cross-backend ABI row
   fact vocabulary for field order, niche, tags, ownership, and layout.
 - `src/self_hosted/compiler/symbol_table_owner.pgy` -- cross-backend symbol row

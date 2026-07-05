@@ -37,6 +37,17 @@ rewrite history.
 - Updated the component contract so direct selfcheck source arrays and direct
   semantic tool-source constants cannot return.
 
+## 2026-07-06 - LSP parity paths consume dedicated TestHarness owner
+
+- Added `test_harness_lsp_paths_owner.pgy` for LSP diagnostics, transport,
+  request, response, session, document-store, session-state, and hover-content
+  path suites.
+- Repointed the nine LSP parity runners so shell consumes
+  `test_harness_manifest.pgy` rows instead of owning the LSP tool source or
+  expected-artifact path constants.
+- Raised the M2 completeness minima to 155 so the new owner is included in the
+  hard self-host production-source ratchet.
+
 ## 2026-07-06 - MIR JSON parity paths consume dedicated TestHarness owner
 
 - Added `test_harness_mir_json_paths_owner.pgy` for the

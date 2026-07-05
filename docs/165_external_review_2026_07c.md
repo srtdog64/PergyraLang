@@ -6,6 +6,30 @@ This note records the latest external review observation set. It is not a
 release verdict and not a new feature board. It separates accepted signals from
 claims that still need repository gates or official-source revalidation.
 
+## Repository Check
+
+The attached review is accepted as a directional audit, not as a live status
+source. Current numbers and gate status must still be read from the owning
+ledgers:
+
+- Self-host substitution percentage and rung descriptions:
+  `src/self_hosted/PROGRESS.md`.
+- Whole-compiler M2 completeness ledger and semantic rung plan:
+  `docs/160_m2_completeness_execution_plan.md`.
+- SEA lane fact status and remaining precise-capture frontier:
+  `docs/146_sea_execution_lanes.md`.
+- Guard-amortization measured fixture and scope limits:
+  `docs/142_evidence_driven_guard_amortization.md`.
+- Self-host substrate state split into `READY`, `ACTIVE`, and `HOLD`:
+  `docs/self_hosted/15_pre_self_host_expansion_ledger.md`.
+
+Any review text that quotes a percentage, fixture count, tool count, release
+version, or paper date is stale-by-default unless the owning document or an
+official source is rechecked in the same change. The stable signal from this
+review is the architecture judgement: keep AIR verification-only, keep C/LLVM
+as oracles, complete precise `BoundaryCaptureFact` production, and avoid hidden
+runtime materialization.
+
 ## Accepted Signals
 
 - Pergyra is not a game DSL. The accurate identity is an
@@ -44,9 +68,22 @@ claims that still need repository gates or official-source revalidation.
 | Precise value-capture coverage | `docs/146_sea_execution_lanes.md`, `src/compiler/air_evidence_mir.c`, future closure-capture producer |
 | AIR JSON lane matrix must use real source rows | `tests/sea_execution_lane_golden_smoke.sh` |
 | Self-host M1/M2 split | `docs/160_m2_completeness_execution_plan.md`, `docs/self_hosted/` |
-| Guard amortization framing | `docs/142_evidence_guard_amortization.md` |
+| Guard amortization framing | `docs/142_evidence_driven_guard_amortization.md` |
 | Materialization visibility | AIR retain/summarize/erase/reject facts and future relation export |
 | Sandbox/frame budget | sandbox board and future host-call quota fixtures |
+
+## Trimmed Or Rejected From The Raw Review
+
+- Do not cite "about 83%" or any self-host percentage from the review as a
+  current verdict. The docs may mention dated snapshots, but the live claim
+  lives in the owning ledgers named above.
+- Do not claim native WASM, NPU, GPU, or dataflow readiness from the projection
+  argument. These remain projection contracts until backend parity, host ABI,
+  and quota gates exist.
+- Do not treat "runtime executor depth is shallow" as a language-contract
+  failure. It is an implementation-depth issue under `ExecutionLaneFact`.
+- Do not promote stdlib L2 domain modules from sketch to active capability
+  without the doctrine-pass gates in `docs/148_stdlib_architecture.md`.
 
 ## Immediate Closure From This Review
 

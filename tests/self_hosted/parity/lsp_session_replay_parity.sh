@@ -35,9 +35,35 @@ if [[ ! -x "$PGY" ]]; then
 fi
 pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:lsp-session-replay" "$PGY"
 
-LSP_SOURCE="$ROOT_DIR/src/self_hosted/lsp/main.pgy"
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/lsp_session_replay}"
+HARNESS_PATHS_FILE="$BUILD_DIR/lsp_session_replay_harness_paths.txt"
 mkdir -p "$BUILD_DIR"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-parity:lsp-session-replay" \
+    "$BUILD_DIR" \
+    "lsp-session-replay-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 4 ]]; then
+    echo "[self-host-parity:lsp-session-replay] TestHarness manifest expected 4 paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+LSP_SOURCE="$ROOT_DIR/${harness_paths[0]}"
+EXPECTED_SESSION_REPLAY="$ROOT_DIR/${harness_paths[1]}"
+EXPECTED_SESSION_REPLAY_FEATURE="$ROOT_DIR/${harness_paths[2]}"
+EXPECTED_SESSION_REPLAY_UNSUPPORTED="$ROOT_DIR/${harness_paths[3]}"
+for path in "$LSP_SOURCE" "$EXPECTED_SESSION_REPLAY" "$EXPECTED_SESSION_REPLAY_FEATURE" "$EXPECTED_SESSION_REPLAY_UNSUPPORTED"; do
+    if [[ ! -f "$path" ]]; then
+        echo "[self-host-parity:lsp-session-replay] missing TestHarness input: $path" >&2
+        exit 1
+    fi
+done
 
 compile_lsp_backend() {
     local backend="$1"
@@ -130,15 +156,15 @@ for backend in $BACKENDS; do
     capture_session_output "$backend" "$lsp_bin" \
         "session_replay" \
         "$input_session" \
-        "$ROOT_DIR/src/self_hosted/lsp/expected/session_replay.json"
+        "$EXPECTED_SESSION_REPLAY"
     capture_session_output "$backend" "$lsp_bin" \
         "session_replay_feature" \
         "$input_feature" \
-        "$ROOT_DIR/src/self_hosted/lsp/expected/session_replay_feature.json"
+        "$EXPECTED_SESSION_REPLAY_FEATURE"
     capture_session_output "$backend" "$lsp_bin" \
         "session_replay_unsupported" \
         "$input_unsupported" \
-        "$ROOT_DIR/src/self_hosted/lsp/expected/session_replay_unsupported.json"
+        "$EXPECTED_SESSION_REPLAY_UNSUPPORTED"
     RAN_BACKENDS+=("$backend")
 done
 
