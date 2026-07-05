@@ -411,13 +411,16 @@ the code should read as `PgyCompilerWorld` plus intent-driven resource
 ownership, not as a C folder graph translated into Pergyra syntax.
 
 `tests/self_host_pergyra_likeness_smoke.sh` now reports both sides of that
-claim. The negative smell metrics (`string_munge_sig`, `ast_string_surface`,
-`sentinel`) must trend down as typed facts replace text bridges, and
-`compiler_world_stub_actions` must stay at zero now that stage actors consume
-owned facts instead of scaffold `true`. `stage_envelope_only` is the next
-payload-depth ratchet: it counts stage readiness functions that only prove
-path/world-binding envelopes. It started at four; the lexer stage moved to a
-token payload contract owned by `lexer/token_owner.pgy`, the parser stage
+claim. The blocking negative smell metrics (`core_string_munge_sig`,
+`ast_string_surface`, `sentinel`) must trend down as typed facts replace text
+bridges. The broad `total_string_munge_sig` remains informational so
+tools/LSP/fuzz/path/harness text domains stay visible without diluting the
+compiler-core ratchet. `compiler_world_stub_actions` must stay at zero now that
+stage actors consume owned facts instead of scaffold `true`.
+`stage_envelope_only` is the next payload-depth ratchet: it counts stage
+readiness functions that only prove path/world-binding envelopes. It started at
+four; the lexer stage moved to a token payload contract owned by
+`lexer/token_owner.pgy`, the parser stage
 consumes the compact-AST text contract owned by `parser/tree_text_owner.pgy`,
 and the semantic stage consumes the verdict contract owned by
 `semantic/diagnostic_owner.pgy`. The MIR stage now consumes the MIR fact graph

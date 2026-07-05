@@ -4,7 +4,7 @@
 # The C diagnostic registry smoke remains the oracle while the Pergyra tool is
 # a partial implementation. This script asserts exit-code agreement, stable
 # counter parity, and ArtifactZone-owned report JSON shape. See
-# tests/self_hosted/parity/README.md.
+# tests/diagnostic_registry_smoke.sh and tests/self_hosted/parity/README.md.
 
 set -euo pipefail
 

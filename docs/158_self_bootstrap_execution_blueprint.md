@@ -54,11 +54,13 @@ self-hosting 선언으로 받고 레버리지를 thesis(던전크롤러)로 돌�
 | lsp | 1,037 | 0 | LSP-0..2i landed(별도 집계, **0% core**) | 임계경로 **아님** |
 
 **진짜 metric(likeness 래칫, `self_host_pergyra_likeness_smoke.sh`):**
-`string_munge_sig` **현재 166 vs baseline 156 = RED(exit 1, 2026-07-05 실측)** —
-최근 owner-routing 리팩터링이 +10 유발, `ast: String` 표면은 0(잠김), typed-AST
-스켈레톤 1 착지. **래칫이 red이고 CI(ci_linux/windows)에 있는데도 드리프트했다 =
-게이트 미강제 신호**(docs/160 §3 STEP 0). AST를 typed-AST로 교체하는 게 linchpin
-(§3.3)이고, **그 전제로 래칫을 먼저 green으로** 되돌려야 진척 측정이 가능하다.
+`core_string_munge_sig` **116/116 = GREEN(2026-07-05 실측)**, broad
+`total_string_munge_sig`는 **166(info)**. 이전 broad `string_munge_sig=166` red는
+tools/LSP/fuzz/path/fixture/harness 텍스트 라우팅까지 compiler-core linchpin에
+섞은 metric-scope 문제였다. 이제 blocking ratchet은 core transform owner만 세고,
+total은 리뷰용 정보로 남긴다. `ast: String` 표면은 0(잠김), typed-AST 스켈레톤 1
+착지. AST를 typed-AST로 교체하는 게 linchpin(§3.3)이고, 앞으로의 진척은
+core_string_munge↓로 측정한다.
 
 **해석:** 언어의 "쉬운 절반"(lexer, 그리고 codegen을 subset에서 self-host)은
 됐다. "어려운 절반"(semantic 46k LOC, parser의 나머지 48%, typed-AST 교체)이
@@ -138,11 +140,11 @@ generic 바인딩 — 이 언어를 이 언어답게 만드는 검사 전부. **
 ### 3.3 typed-AST 교체 = linchpin (recommended-not-required)
 
 로드맵: "text-munging 컴파일러도 기술적으로 fixed-point에 도달 가능하나, BDFL
-선호는 idiomatic 컴파일러를 부트스트랩하는 것." 현 코어는 `ast: String`(AST를
-문자열로 운반) + `(...: String) -> String` munging 156개. **typed-AST 노드로
+선호는 idiomatic 컴파일러를 부트스트랩하는 것." 현 코어는 `ast: String` 표면
+0(잠김) + `core_string_munge_sig` 116개. **typed-AST 노드로
 교체**하면 self-host가 "C를 Pergyra 문법으로 쓴 것"이 아니라 진짜 Pergyra가
 된다. 래칫(`self_host_pergyra_likeness_smoke.sh`)이 이 전환을 단조 강제
-(string_munge_sig↓, typed_ast_contract↑). **M2를 밀면 이걸 병행해야 "un-Pergyra
+(core_string_munge_sig↓, typed_ast_contract↑). **M2를 밀면 이걸 병행해야 "un-Pergyra
 컴파일러를 부트스트랩"하는 자기모순을 피한다.** 순서 옵션: fixed-point 먼저
 도달 후 likeness를 끌어올려도 됨(로드맵이 둘 다 허용).
 

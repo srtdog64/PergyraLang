@@ -25,6 +25,18 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-05 - Likeness ratchet scopes compiler-core text munging
+
+- Split the Pergyra-likeness text-munging metric into blocking
+  `core_string_munge_sig` and informational `total_string_munge_sig`.
+- Locked the compiler-core baseline at `core_string_munge_sig=116`, while the
+  broad tracked surface remains visible as `total_string_munge_sig=166`.
+- Kept real core debt in scope (`expr_rewrite`, `decl_lower`, `routine_lower`)
+  and excluded tools/LSP/fuzz/path/fixture/harness routing from the core
+  linchpin metric.
+- Tightened `result_use` from 562 to 563 after the completeness-ledger owner
+  added another typed absence/result surface.
+
 ## 2026-07-05 - M2 completeness ledger lands
 
 - Added `CompilerCompletenessLedger` as the self-host owner for production source

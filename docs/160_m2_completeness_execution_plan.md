@@ -143,9 +143,10 @@ Option<String>`.
 표준 strangler:
 1. **어댑터**: AST 텍스트 → `AstArena` 파서(기존 텍스트를 arena로 읽는 브리지).
    consumer가 parser를 안 건드리고 typed 노드 사용 시작 가능.
-2. **소비자 typed화**(밀도순 top-3): `codegen/emission/expr_rewrite.pgy`(13 sig)
-   → `semantic/expr_type_owner.pgy`(10) → `mir_lower/decl_lower.pgy`(10). 각각
-   `(String)->String`을 `(AstNode, AstArena)->...`로. 이게 string_munge_sig를
+2. **소비자 typed화**(현재 core 밀도순 top-3): `codegen/emission/expr_rewrite.pgy`
+   (11 sig) → `mir_lower/decl_lower.pgy`(10) → `mir_lower/routine_lower.pgy`(9).
+   각각 `(String)->String`을 `(AstNode, AstArena)->...`로. 이게
+   core_string_munge_sig를
    내린다.
 3. **parser flip**: 모든 소비자가 typed면 parser를 `AstArena` 빌더로 전환,
    어댑터·텍스트 포맷 삭제. **이게 가장 큰 수술이고 마지막.**
@@ -154,37 +155,23 @@ Option<String>`.
 먼저 arena화 → expr_type_owner가 typed expr 소비 → string_munge↓. rung ↔ 노드
 family를 짝지어 전진하면 semantic 48k를 un-Pergyra로 안 쌓는다.
 
-**⚠️ ★M2 STEP 0 — 래칫 red 확정(2026-07-05 실측, 추정 아님):**
-`self_host_pergyra_likeness_smoke.sh` 실행 결과 `string_munge_sig = 166`
-(baseline `STRING_MUNGE_SIG_MAX=156`, **+10 초과, exit 1, FAIL**). 카운트 방식:
-`: String) -> String` 시그니처를 세되 `lib/{json,json_emit,diagnostic}.pgy`만 제외.
-- **원인**: 최근 **"Route X through owner" 리팩터링 파동**(TestHarness owner, parity
-  fixture/path routing — 예 `32be6fac`/`4a6b9e45`/`87c756be`)이 경로·하니스 변환
-  `String->String` 시그니처를 늘림. (당초 "LSP scaffolding" 추정은 부정확 —
-  실제는 owner-routing 파동.)
-- **★메타 finding — 게이트 존재 ≠ 강제**: 이 래칫은 `self-host-preparation-
-  contract-test-smoke` 안에 있고 그건 **ci_linux(47행)·ci_windows(71행) 둘 다
-  실행**한다. 그런데도 166까지 드리프트했다 = **CI가 red인데 커밋을 안 막고
-  있다**(솔로 repo에서 CI 미강제 또는 red 방치). **M2 전체가 이 위험을 안는다**:
-  WO-SH-COMPLETE 완전성 원장(§1)도 강제 안 되면 무의미. → **M2 STEP 0의 절반은
-  self-host 게이트를 실제로 강제(commit-blocking)로 만드는 것.**
-- **+10의 성격(실측 규명)**: AST-munging **코어가 아니다**. 상위 집중은
-  `codegen/emission/expr_rewrite.pgy`(11) · `mir_lower/decl_lower.pgy`(10) ·
-  `mir_lower/routine_lower.pgy`(9) — 이건 **오래된 코어**(baseline에 이미 포함,
-  §3 strangler의 typed-fix 대상). 최근 +10은 **주변부**: `tools/*/scan_owner.pgy`
-  (audit 도구 — 컴파일러 코어 아님) · `lsp/diagnostics_owner.pgy`(별도 트랙) ·
-  `path.pgy`/`source_path_owner.pgy`/`fixture_manifest_owner.pgy`(경로/하니스 텍스트).
-- **진단: 래칫의 제외 범위가 좁다.** 현재 `lib/{json,diagnostic}`만 제외하는데,
-  **linchpin 질문은 "컴파일러 코어(lexer/parser/semantic/codegen)가 idiomatic한가"**
-  이지 tools/·lsp/·path-harness의 텍스트 처리가 아니다. 그것들이 metric을 희석.
-- **첫 작업(STEP 0):** ① **래칫 재범위화** — 제외를 컴파일러-코어 self-host로
-  좁혀 tools/·lsp/·path·fixture·harness 텍스트 라우팅을 metric에서 제외(원칙:
-  "코어가 idiomatic한가"만 압박). 그 뒤 **낮아진 코어 카운트로 re-baseline**
-  (내리는 re-baseline은 정당 — tighten). **절대 166으로 올려 통과시키지 말 것**
-  (규율 위반). ② 남는 코어 munging(expr_rewrite/decl_lower/routine_lower)은
-  §3 strangler로 typed화. ③ **게이트 강제 확인** — CI(ci_linux:47/windows:71)에
-  있는데도 red 드리프트했으니, commit-blocking으로 실제 작동하는지 점검.
-  래칫이 red인 채 typed-AST를 시작하면 진척(string_munge↓)을 못 잰다.
+**★M2 STEP 0 — likeness 래칫 범위 재정의 착지(2026-07-05 실측):**
+`self_host_pergyra_likeness_smoke.sh`는 이제 두 숫자를 분리한다.
+
+- `core_string_munge_sig = 116 / max 116` — **blocking GREEN**. 이 값만
+  compiler-core linchpin이다. `codegen/emission/expr_rewrite.pgy`(11),
+  `mir_lower/decl_lower.pgy`(10), `mir_lower/routine_lower.pgy`(9) 같은 오래된
+  core text transform은 계속 포함하고, §3 strangler의 typed-fix 대상이다.
+- `total_string_munge_sig = 166` — **info only**. tools/LSP/fuzz/path/fixture/
+  harness 텍스트 라우팅까지 포함한 broad surface다. 이 값은 숨기지 않고 출력하되,
+  compiler-core idiom ratchet을 흔드는 blocking metric으로 쓰지 않는다.
+
+이전 broad `string_munge_sig=166 > 156` red는 실제 drift라기보다 metric-scope
+오염이었다. `lib/{json,json_emit,diagnostic}`만 제외하던 기준은 너무 좁아서
+tools/·lsp/·path-harness의 정당한 텍스트 소유까지 core debt로 세었다. 지금 기준은
+"코어가 idiomatic한가"만 압박하고, 주변 텍스트 도메인은 별도 owner/gate가 소유한다.
+절대 166으로 baseline을 올려 통과시키지 않았고, core 기준을 116으로 tighten했다.
+앞으로 typed-AST 진척은 `core_string_munge_sig↓`, `typed_ast_contract↑`로 측정한다.
 
 **결정점(BDFL, 로드맵 허용):** typed-AST를 fixpoint **전 완주** vs **후 끌어올림**.
 권고: **rung과 짝지어 병행**(각 SEM rung이 그 노드 family만 typed) — un-Pergyra
