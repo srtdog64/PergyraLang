@@ -90,12 +90,52 @@ pgy_selfhost_read_test_harness_manifest() {
     tr -d '\r' < "$raw_out" > "$out_file"
 }
 
+pgy_selfhost_backend_output_comparator_source() {
+    local label="$1"
+    local build_dir="$2"
+    local paths_file="$build_dir/backend_output_comparator_paths_$$.txt"
+    local source_rel
+    local source_path
+
+    pgy_selfhost_read_test_harness_manifest \
+        "$label" \
+        "$build_dir" \
+        "backend-output-comparator-paths" \
+        "$paths_file"
+
+    source_rel="$(sed -n '1p' "$paths_file")"
+    source_rel="${source_rel%$'\r'}"
+    if [[ -z "$source_rel" ]]; then
+        echo "[$label] TestHarness backend-output comparator source row is empty" >&2
+        cat "$paths_file" >&2
+        exit 1
+    fi
+    case "$source_rel" in
+        /*|[A-Za-z]:*|*\\*)
+            echo "[$label] TestHarness backend-output comparator source must be repo-relative: $source_rel" >&2
+            exit 1
+            ;;
+    esac
+
+    source_path="$ROOT_DIR/$source_rel"
+    if [[ ! -f "$source_path" ]]; then
+        echo "[$label] TestHarness backend-output comparator source is missing: $source_rel" >&2
+        exit 1
+    fi
+
+    printf '%s\n' "$source_path"
+}
+
 pgy_selfhost_compile_backend_output_comparator() {
     local label="$1"
     local build_dir="$2"
-    local comparator_source="${3:-$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy}"
+    local comparator_source="${3:-}"
     local comparator_bin
     local compile_log
+
+    if [[ -z "$comparator_source" ]]; then
+        comparator_source="$(pgy_selfhost_backend_output_comparator_source "$label" "$build_dir")"
+    fi
 
     comparator_bin="$(pgy_selfhost_backend_output_comparator_bin "$build_dir")"
     mkdir -p "$build_dir"

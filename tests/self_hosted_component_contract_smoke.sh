@@ -2197,7 +2197,12 @@ reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "sho
 reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cmp -s'
 reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'diff -u'
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "pgy_selfhost_compile_backend_output_comparator"
-require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'local comparator_source="${3:-$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy}"'
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "pgy_selfhost_backend_output_comparator_source"
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" '"backend-output-comparator-paths"'
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'local comparator_source="${3:-}"'
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'comparator_source="$(pgy_selfhost_backend_output_comparator_source "$label" "$build_dir")"'
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "TestHarness backend-output comparator source must be repo-relative"
+reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'local comparator_source="${3:-$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy}"'
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "pgy_selfhost_compile_test_harness_manifest"
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "test_harness_manifest_\$\$.exe"

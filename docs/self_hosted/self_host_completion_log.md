@@ -25,6 +25,19 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Shared comparator helper consumes TestHarness source row
+
+- Repointed `llvm_leg_helpers.sh` so
+  `pgy_selfhost_compile_backend_output_comparator` no longer defaults to a
+  direct `src/self_hosted/tools/backend_output_comparator/main.pgy` source path.
+  When callers omit the source, the helper reads the first row from the
+  `backend-output-comparator-paths` TestHarness manifest suite.
+- Kept explicit comparator-source arguments valid for runners that already read
+  a dedicated suite; the default path is now owner-projected rather than
+  shell-owned.
+- Tightened the component contract so the old direct comparator default cannot
+  return to the shared LLVM/artifact helper.
+
 ## 2026-07-06 - Completeness ledger consumes TestHarness codegen source
 
 - Repointed `completeness_ledger.sh` so the codegen stage reads the codegen tool
