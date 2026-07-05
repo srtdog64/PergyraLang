@@ -32,6 +32,7 @@ BASELINE_MANIFEST="$BUILD_DIR/baseline.txt"
 LEX_PARSE_BASELINE_MANIFEST="$BUILD_DIR/lex_parse_baseline.txt"
 LEX_PARSE_SEMANTIC_BASELINE_MANIFEST="$BUILD_DIR/lex_parse_semantic_baseline.txt"
 FULL_PIPELINE_BASELINE_MANIFEST="$BUILD_DIR/full_pipeline_baseline.txt"
+CODEGEN_PATH_MANIFEST="$BUILD_DIR/codegen_paths.txt"
 CHECK_TIMEOUT_SEC="${PGY_SELFHOST_COMPLETENESS_TIMEOUT_SEC:-60}"
 TIMEOUT_EXIT_CODE=124
 mkdir -p "$BUILD_DIR"
@@ -53,6 +54,7 @@ read_manifest "self-host-completeness-baseline" "$BASELINE_MANIFEST"
 read_manifest "self-host-completeness-lex-parse-baseline" "$LEX_PARSE_BASELINE_MANIFEST"
 read_manifest "self-host-completeness-lex-parse-semantic-baseline" "$LEX_PARSE_SEMANTIC_BASELINE_MANIFEST"
 read_manifest "self-host-completeness-full-pipeline-baseline" "$FULL_PIPELINE_BASELINE_MANIFEST"
+read_manifest "codegen-parity-paths" "$CODEGEN_PATH_MANIFEST"
 
 SOURCES=()
 while IFS= read -r line; do
@@ -142,6 +144,21 @@ LEX_PARSE_PASS_MIN="$(baseline_value lex_parse_pass_min)"
 LEX_PARSE_SEMANTIC_PASS_MIN="$(baseline_value lex_parse_semantic_pass_min)"
 FULL_PIPELINE_PASS_MIN="$(baseline_value full_pipeline_pass_min)"
 
+codegen_tool_source_path() {
+    local source_rel
+    source_rel="$(sed -n '1p' "$CODEGEN_PATH_MANIFEST")"
+    if [[ -z "$source_rel" ]]; then
+        echo "[self-host-completeness] missing codegen source row from TestHarness" >&2
+        cat "$CODEGEN_PATH_MANIFEST" >&2
+        exit 1
+    fi
+    if [[ ! -f "$ROOT_DIR/$source_rel" ]]; then
+        echo "[self-host-completeness] missing codegen source from TestHarness: $source_rel" >&2
+        exit 1
+    fi
+    printf '%s\n' "$ROOT_DIR/$source_rel"
+}
+
 compile_tool() {
     local label="$1"
     local source="$2"
@@ -196,7 +213,7 @@ if stage_selected codegen; then
         copy_lib parser
         PARSER_BIN="$(compile_tool parser "$BUILD_DIR/parser/main.pgy" parser "src/self_hosted/parser")"
     fi
-    CODEGEN_BIN="$(compile_tool codegen "$ROOT_DIR/src/self_hosted/codegen/main.pgy" codegen "")"
+    CODEGEN_BIN="$(compile_tool codegen "$(codegen_tool_source_path)" codegen "")"
 fi
 
 run_source_check() {

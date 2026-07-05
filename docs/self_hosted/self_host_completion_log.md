@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Completeness ledger consumes TestHarness codegen source
+
+- Repointed `completeness_ledger.sh` so the codegen stage reads the codegen tool
+  source from the `codegen-parity-paths` manifest suite instead of owning
+  `src/self_hosted/codegen/main.pgy` locally.
+- Kept the completeness owner as the source for source/stage/baseline rows; this
+  change only closes the remaining codegen tool-source identity seam in the
+  runner.
+- Tightened the component contract so the direct codegen source literal cannot
+  return to the completeness ledger.
+
 ## 2026-07-06 - Backend tri-compare consumes shared TestHarness/Artifact owners
 
 - Repointed `backend_output_tri_compare_parity.sh` so the runner compiles the

@@ -133,6 +133,11 @@ source-to-semantic-target rows through `self-host-completeness-semantic-targets`
 The selfcheck runner no longer owns a shell `SELF_SOURCES` array; it executes
 the 155-source completeness inventory projected by `completeness_ledger_owner.pgy`.
 
+TestHarness delta, 2026-07-06: `completeness_ledger.sh` now consumes the codegen
+tool source through `codegen-parity-paths` before running the codegen stage.
+The completeness owner still owns source, stage, and baseline rows; the runner
+no longer owns the concrete `src/self_hosted/codegen/main.pgy` source identity.
+
 TestHarness delta, 2026-07-06: the LSP parity runners now consume LSP tool,
 fixture, and expected-output paths from `test_harness_lsp_paths_owner.pgy`
 through `test_harness_manifest.pgy`. Shell still executes the C/LLVM parity
