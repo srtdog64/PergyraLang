@@ -10678,9 +10678,15 @@ WO보다 큰 단위거나 결정 대기인 구조 작업. 착수 시 이 항목�
   템플릿 + money/datetime 완전 diff 스펙 + 11모듈 표(불변식/fail-closed/
   caps/견인). MoneyAdd 통화무검사 반례를 Result Err로 닫는 게 thesis 실증.
   M1 분기 택 시 이 트랙이 근시일 본체.
-- **★ 선행 결정: docs/158 §4 분기.** 이거 없이 착수하면 에너지가 임계
-  경로 밖으로 샌다(지난 수개월 LSP처럼). WO 후보: WO-SH-COMPLETE/SEM/
-  TYPEDAST/GEXEC(158), WO-L4-DATETIME/MONEY/PAGE-SPRAY(159).
+- **★ 분기 결정(2026-07-05 BDFL): M2 완주 채택.** → **docs/160 M2 완전성
+  실행 계획** 착지: semantic 46k LOC를 실측 10레이어→8 포팅 rung(SEM-3..11,
+  각 C 파일 그룹+LOC+oracle parity 매핑)으로, WO-SH-COMPLETE(완전성 원장
+  하니스, skip→count) 최우선, typed-AST strangler(consumer 먼저 parser
+  마지막, 착지 스켈레톤 typed_ast_node_skeleton.pgy 21 kind), parser 잔여
+  3종(match brace/중첩배열/payload enum)만. 비용 지배=SEM-7 ownership 4.8k
+  +SEM-6 domain 3.6k+SEM-10 builtin 3.9k+SEM-11 DAG/orch 9k=수개월.
+  ★착수 전 likeness 래칫 green 확인(현재 166 vs 156 red 추정 — LSP scaffolding
+  regression). Layer 8 lifecycle는 CFG/MIR SoT라 축소 가능.
 
 #### A-11. TPU/MLIR — post-beta 설계 여지만
 
