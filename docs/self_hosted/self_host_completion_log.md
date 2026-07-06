@@ -25,6 +25,15 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Runtime boundary clean verdict stops shell re-grep
+
+- Removed the runtime-boundary parity runner's clean-path shell `grep` oracle
+  over the required-term manifest.
+- Kept the compiled checker's `--terms` manifest only as scratch fixture setup
+  input for the missing-term negative case.
+- Tightened the intent/ledger wording so the clean and missing runtime-boundary
+  verdicts are owned by the Pergyra checker JSON plus committed artifacts.
+
 ## 2026-07-06 - Backend comparator argv verdict consumes artifact
 
 - Added a TestHarness-owned expected JSON artifact for the comparator argv-mode

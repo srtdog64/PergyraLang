@@ -24,6 +24,10 @@ missing.
 
 ## Oracle
 
-`tests/self_hosted/parity/runtime_boundary_checker_parity.sh` compares the
-Pergyra result against shell `grep` checks for the same required terms, verifies
-the committed clean JSON, and checks a synthetic missing-term fixture.
+`tests/self_hosted/parity/runtime_boundary_checker_parity.sh` treats the
+Pergyra checker JSON as the oracle: the clean verdict byte-matches
+`expected/clean.json`, and a synthetic missing-term fixture byte-matches
+`expected/missing_term.json`. Shell may execute the compiled tool, read its
+`--terms` manifest to construct the scratch fixture, and assert the negative
+fixture exits `1`; it must not re-grep the clean documents as a second semantic
+implementation.

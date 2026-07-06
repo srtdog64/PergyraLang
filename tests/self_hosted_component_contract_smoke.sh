@@ -2805,9 +2805,13 @@ require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "requ
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "strip_pair_found="
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "expected-json clean+missing"
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'pgy_selfhost_compare_expected_text_artifact_with_owner'
+require_text "src/self_hosted/tools/runtime_boundary_checker/intent.md" "must not re-grep the clean documents"
 reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'MISSING_FINDING_FIELD="${harness_paths[4]}"'
 reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'MISSING_FINDING_VALUE="${harness_paths[5]}"'
 reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "missing-term fixture expected ok:false"
+reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "shell missing term in"
+reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'grep -Fq "$term"'
+reject_text "src/self_hosted/tools/runtime_boundary_checker/intent.md" "against shell grep checks"
 reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/runtime_boundary_checker/main.pgy"'
 reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
 reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"'

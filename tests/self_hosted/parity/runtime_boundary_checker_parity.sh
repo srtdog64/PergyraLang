@@ -3,8 +3,8 @@
 #
 # Pergyra is the origin (src/self_hosted/tools/runtime_boundary_checker/main.pgy).
 # TestHarness-projected expected artifacts own the clean and missing-term JSON
-# oracles. Shell only runs the process, builds the scratch missing-term fixture,
-# and checks rc=1.
+# oracles. Shell only runs the process, uses the compiled tool's term manifest
+# to build the scratch missing-term fixture, and checks rc=1.
 
 set -euo pipefail
 
@@ -93,27 +93,18 @@ fi
 tr -d '\r' < "$TERMS_FILE" > "$TERMS_FILE.norm"
 mv "$TERMS_FILE.norm" "$TERMS_FILE"
 
-missing=0
 required_count=0
 while IFS= read -r pair; do
     [[ -n "$pair" ]] || continue
     required_count=$((required_count + 1))
     rel="${pair%%|*}"
-    term="${pair#*|}"
     if [[ ! -f "$ROOT_DIR/$rel" ]]; then
         echo "[self-host-parity:runtime-boundary] missing input: $rel" >&2
         exit 1
     fi
-    if ! grep -Fq "$term" "$ROOT_DIR/$rel"; then
-        echo "[self-host-parity:runtime-boundary] shell missing term in $rel: $term" >&2
-        missing=$((missing + 1))
-    fi
 done <"$TERMS_FILE"
 if [[ "$required_count" -eq 0 ]]; then
     echo "[self-host-parity:runtime-boundary] required-term manifest is empty" >&2
-    exit 1
-fi
-if [[ "$missing" -ne 0 ]]; then
     exit 1
 fi
 

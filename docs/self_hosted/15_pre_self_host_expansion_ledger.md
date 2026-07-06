@@ -446,9 +446,10 @@ TestHarness delta, 2026-07-06: `runtime_boundary_checker_parity.sh` now gets
 the checker source, expected clean JSON, and the missing-term fixture
 `(path, term)`, plus the expected missing-term JSON artifact through the
 `runtime-boundary-paths` manifest suite. It still gets the full required-term
-list from the compiled Pergyra checker's `--terms` manifest. Shell remains the
-external parity runner, scratch mutator, and missing-fixture `rc=1` checker, but
-no longer owns `ok:false`, `missing:1`, or stripped-term verdict interpretation.
+list from the compiled Pergyra checker's `--terms` manifest, but only to set up
+the scratch fixture. Shell remains the external parity runner, scratch mutator,
+and missing-fixture `rc=1` checker; it no longer re-greps the clean documents or
+owns `ok:false`, `missing:1`, or stripped-term verdict interpretation.
 
 Plane note, 2026-07-06: this is repository-authoring guard work, not
 Fortran-derived data-parallel language work. The former keeps future
