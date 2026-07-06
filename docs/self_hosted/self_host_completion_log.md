@@ -25,6 +25,16 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Stable subset negative anchor consumes TestHarness owner
+
+- Extended `stable-subset-section-paths` with the missing-section anchor used
+  by the negative fixture.
+- Repointed `stable_subset_section_checker_parity.sh` so the shell runner
+  removes the TestHarness-projected anchor instead of hardcoding the
+  `Ownership Stable Subset` section title.
+- Tightened the component contract against reintroducing the hardcoded section
+  regex in shell.
+
 ## 2026-07-06 - Module manifest negative fixtures consume TestHarness owner
 
 - Extended `test_harness_tool_paths_owner.pgy` so

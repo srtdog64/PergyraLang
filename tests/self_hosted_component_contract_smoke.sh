@@ -1765,6 +1765,8 @@ require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 
 require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
 require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'MANIFEST_PATH="${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'MISSING_SECTION_ANCHOR="${harness_paths[3]}"'
+require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" "TestHarness manifest expected 4 stable-subset rows"
 require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" '"$CLEAN_BIN" "$MANIFEST_PATH"'
 require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'assert_llvm_leg "self-host-parity:stable-subset-section" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$MANIFEST_PATH"'
 require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" "expected-json clean"
@@ -1776,6 +1778,7 @@ reject_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" '
 reject_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'
 reject_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/stable_subset_section_checker/expected/clean.json"'
 reject_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'MANIFEST_PATH="docs/107_beta_stable_subset.md"'
+reject_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" "grep -v '^## 3\\. Ownership Stable Subset$'"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'import "../../compiler/artifact_zone_owner.pgy";'
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'import "../../compiler/test_harness_owner.pgy";'
@@ -1922,6 +1925,7 @@ require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func 
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionExpectedJsonPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionInputManifestPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionMissingAnchor"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionPathAt"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionReady"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundarySuiteName"

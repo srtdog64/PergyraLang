@@ -117,19 +117,24 @@ func CompilerHarnessStableSubsetSectionInputManifestPath() -> String {
     return "docs/107_beta_stable_subset.md";
 }
 
+func CompilerHarnessStableSubsetSectionMissingAnchor() -> String {
+    return "## 3. Ownership Stable Subset";
+}
+
 func CompilerHarnessStableSubsetSectionPathCount() -> Int {
-    return 3;
+    return 4;
 }
 
 func CompilerHarnessStableSubsetSectionPathAt(index: Int) -> String {
     if index == 0 { return CompilerHarnessStableSubsetSectionToolSourcePath(); }
     if index == 1 { return CompilerHarnessStableSubsetSectionExpectedJsonPath(); }
     if index == 2 { return CompilerHarnessStableSubsetSectionInputManifestPath(); }
+    if index == 3 { return CompilerHarnessStableSubsetSectionMissingAnchor(); }
     return "";
 }
 
 func CompilerHarnessStableSubsetSectionReady() -> Bool {
-    if CompilerHarnessStableSubsetSectionPathCount() != 3 {
+    if CompilerHarnessStableSubsetSectionPathCount() != 4 {
         return false;
     }
     let i: Int = 0;

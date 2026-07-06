@@ -44,14 +44,15 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 3 ]]; then
-    echo "[self-host-parity:stable-subset-section] TestHarness manifest expected 3 stable-subset paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 4 ]]; then
+    echo "[self-host-parity:stable-subset-section] TestHarness manifest expected 4 stable-subset rows, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
 MANIFEST_PATH="${harness_paths[2]}"
+MISSING_SECTION_ANCHOR="${harness_paths[3]}"
 
 if [[ ! -f "$PERGYRA_TOOL_SOURCE" ]]; then
     echo "[self-host-parity:stable-subset-section] missing Pergyra tool: $PERGYRA_TOOL_SOURCE" >&2
@@ -114,8 +115,8 @@ cleanup_neg_root() {
 trap cleanup_neg_root EXIT
 mkdir -p "$NEG_ROOT/docs"
 mkdir -p "$NEG_ROOT/.tmp"
-# Drop the "## 3. Ownership Stable Subset" anchor and its trailing space.
-grep -v '^## 3\. Ownership Stable Subset$' \
+# Drop the TestHarness-owned anchor.
+grep -Fv -- "$MISSING_SECTION_ANCHOR" \
     "$ROOT_DIR/$MANIFEST_PATH" > "$NEG_ROOT/$MANIFEST_PATH"
 
 set +e
@@ -137,7 +138,7 @@ if ! grep -Fq '"missing":1' <<<"$NEG_OUT"; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq 'Ownership Stable Subset' <<<"$NEG_OUT"; then
+if ! grep -Fq "$MISSING_SECTION_ANCHOR" <<<"$NEG_OUT"; then
     echo "[self-host-parity:stable-subset-section] missing-section fixture expected stripped anchor in findings" >&2
     printf '%s\n' "$NEG_OUT" >&2
     exit 1

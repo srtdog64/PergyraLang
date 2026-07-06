@@ -178,6 +178,11 @@ bodies from `test_harness_tool_paths_owner.pgy`. Shell writes those rows into
 scratch files for execution, but no longer mutates or authors the JSON fixture
 semantics.
 
+TestHarness delta, 2026-07-06: `stable_subset_section_checker_parity.sh` now
+gets its missing-section negative anchor from `test_harness_tool_paths_owner.pgy`
+instead of hardcoding the `Ownership Stable Subset` line in shell. Shell still
+constructs the scratch copy, but the fixture meaning is a TestHarness row.
+
 ArtifactZone delta, 2026-07-06: `module_manifest_resolver_parity.sh` no longer
 recomputes clean module, beta-blocker, or stable-subset counts with shell
 `grep`. The clean output oracle is the TestHarness-projected
