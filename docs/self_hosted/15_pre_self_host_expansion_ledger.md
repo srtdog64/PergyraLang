@@ -373,11 +373,13 @@ helper. The runner still owns process orchestration for C/LLVM binaries, but it
 no longer owns the TestHarness manifest source path or per-case comparator
 source/lib/compiler copy.
 
-TestHarness delta, 2026-07-06: `llvm_leg_helpers.sh` now resolves the default
-backend-output comparator source through the `backend-output-comparator-paths`
-suite when callers omit an explicit comparator source. This keeps explicit
-source arguments for already-manifested runners, but removes the shared helper's
-direct comparator source default.
+TestHarness delta, 2026-07-06: `llvm_leg_helpers.sh` now resolves the
+TestHarness manifest source through the compiler-world path projection and
+resolves the default backend-output comparator source through the
+`backend-output-comparator-paths` suite when callers omit an explicit comparator
+source. This keeps explicit source arguments for already-manifested runners, but
+removes the shared helper's direct TestHarness manifest and comparator source
+defaults.
 
 TestHarness delta, 2026-07-06: `runtime_boundary_checker_parity.sh` now gets
 the checker source, expected clean JSON, and the missing-term fixture

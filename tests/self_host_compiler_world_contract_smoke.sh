@@ -66,6 +66,7 @@ require_file "src/self_hosted/compiler/target_capability_owner.pgy"
 require_file "src/self_hosted/compiler/air_evidence_owner.pgy"
 require_file "src/self_hosted/compiler/artifact_zone_owner.pgy"
 require_file "src/self_hosted/compiler/test_harness_owner.pgy"
+require_file "src/self_hosted/compiler/test_harness_manifest.pgy"
 require_file "src/self_hosted/compiler/subprocess_runner_owner.pgy"
 require_file "src/self_hosted/compiler/abi_layout_row_owner.pgy"
 require_file "src/self_hosted/compiler/symbol_table_owner.pgy"
@@ -86,6 +87,7 @@ require_file "tests/self_hosted/parity/driver_rung0_parity.sh"
 require_file "tests/self_hosted/parity/driver_rung1_parity.sh"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_PATH_MANIFEST_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_STAGE_ARTIFACT_PATH"
+require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_TEST_HARNESS_MANIFEST_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_AUTHORITY_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_DRIVER_RUNG0_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_DRIVER_RUNG0_MAIN_PATH"
@@ -321,6 +323,7 @@ for term in \
     "func CompilerAirEvidenceOwnerPath" \
     "func CompilerArtifactZoneOwnerPath" \
     "func CompilerTestHarnessOwnerPath" \
+    "func CompilerTestHarnessManifestPath" \
     "func CompilerSubprocessRunnerOwnerPath" \
     "func CompilerAbiLayoutRowOwnerPath" \
     "func CompilerSymbolTableOwnerPath" \
@@ -348,6 +351,7 @@ for term in \
     "return CompilerAirEvidenceOwnerPath();" \
     "return CompilerArtifactZoneOwnerPath();" \
     "return CompilerTestHarnessOwnerPath();" \
+    "return CompilerTestHarnessManifestPath();" \
     "return CompilerSubprocessRunnerOwnerPath();" \
     "return CompilerAbiLayoutRowOwnerPath();" \
     "return CompilerSymbolTableOwnerPath();" \
@@ -360,14 +364,14 @@ for term in \
     "return CompilerDriverRung1ParityPath();" \
     "return CompilerOwnerManifestPath();" \
     "CompilerParityPathCount() != 8" \
-    "CompilerWorldManifestPathCount() != 30" \
-    "CompilerWorldProjectionPathCount() != 33" \
+    "CompilerWorldManifestPathCount() != 31" \
+    "CompilerWorldProjectionPathCount() != 34" \
     "compiler-world-paths" \
     "CompilerStagePathManifestReady" \
-    "if index < 17" \
-    "CompilerStagePathAt(index - 12)" \
-    "if index < 25" \
-    "CompilerParityPathAt(index - 17)" \
+    "if index < 18" \
+    "CompilerStagePathAt(index - 13)" \
+    "if index < 26" \
+    "CompilerParityPathAt(index - 18)" \
     "lexer|TokenStreamZone|LexerStage|LexSource|LexerTokenPayloadContractReady" \
     "parser|AstTreeZone|ParserStage|ParseTokens|ParserAstTreePayloadContractReady" \
     "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics|SemanticVerdictPayloadContractReady" \
@@ -874,7 +878,7 @@ manifest_err="$tmp_dir/test_harness_manifest.err"
 } | sort -u >"$shell_paths"
 
 (cd "$ROOT_DIR" && "$pgy_bin" \
-    "$(pgy_path_for_compiler "$pgy_bin" "$ROOT_DIR/src/self_hosted/compiler/test_harness_manifest.pgy")" \
+    "$(pgy_path_for_compiler "$pgy_bin" "$ROOT_DIR/${PGY_SELFHOST_COMPILER_TEST_HARNESS_MANIFEST_PATH}")" \
     --backend=c \
     -o "$(pgy_path_for_compiler "$pgy_bin" "$manifest_bin")") \
     >"$manifest_compile_log" 2>&1 ||

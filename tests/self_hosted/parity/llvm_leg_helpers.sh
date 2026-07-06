@@ -50,13 +50,47 @@ pgy_selfhost_test_harness_manifest_bin() {
     printf '%s\n' "$build_dir/test_harness_manifest_$$.exe"
 }
 
+pgy_selfhost_test_harness_manifest_source() {
+    local label="$1"
+    local manifest_projection="$ROOT_DIR/tests/self_hosted/compiler_world_manifest.sh"
+    local source_rel
+    local source_path
+
+    if [[ ! -f "$manifest_projection" ]]; then
+        echo "[$label] compiler world manifest projection is missing" >&2
+        exit 1
+    fi
+
+    source "$manifest_projection"
+    source_rel="${PGY_SELFHOST_COMPILER_TEST_HARNESS_MANIFEST_PATH:-}"
+    if [[ -z "$source_rel" ]]; then
+        echo "[$label] TestHarness manifest source row is empty" >&2
+        exit 1
+    fi
+    case "$source_rel" in
+        /*|[A-Za-z]:*|*\\*)
+            echo "[$label] TestHarness manifest source must be repo-relative: $source_rel" >&2
+            exit 1
+            ;;
+    esac
+
+    source_path="$ROOT_DIR/$source_rel"
+    if [[ ! -f "$source_path" ]]; then
+        echo "[$label] TestHarness manifest source is missing: $source_rel" >&2
+        exit 1
+    fi
+
+    printf '%s\n' "$source_path"
+}
+
 pgy_selfhost_compile_test_harness_manifest() {
     local label="$1"
     local build_dir="$2"
-    local manifest_source="$ROOT_DIR/src/self_hosted/compiler/test_harness_manifest.pgy"
+    local manifest_source
     local manifest_bin
     local compile_log
 
+    manifest_source="$(pgy_selfhost_test_harness_manifest_source "$label")"
     manifest_bin="$(pgy_selfhost_test_harness_manifest_bin "$build_dir")"
     mkdir -p "$build_dir"
 

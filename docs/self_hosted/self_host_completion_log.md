@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - TestHarness manifest source consumes path owner projection
+
+- Added `CompilerTestHarnessManifestPath()` to the compiler path manifest and
+  shell projection so the bootstrap TestHarness manifest source path is a
+  compiler-world fact, not a shared helper literal.
+- Repointed `llvm_leg_helpers.sh` so it compiles the TestHarness manifest from
+  `PGY_SELFHOST_COMPILER_TEST_HARNESS_MANIFEST_PATH` projected by
+  `compiler_world_manifest.sh`.
+- Tightened compiler-world and component contracts against reintroducing the old
+  direct `test_harness_manifest.pgy` source literal in the shared LLVM helper.
+
 ## 2026-07-06 - Inventory and size finding rows split from tool paths
 
 - Split `test_harness_tool_paths_owner.pgy` by responsibility: inventory
