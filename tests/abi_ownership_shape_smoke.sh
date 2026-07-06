@@ -105,6 +105,13 @@ reject_term "src/compiler/mir_abi_layout.c" "mir_abi_lookup_runtime_fmt"
 reject_term "src/compiler/mir_abi_layout.c" "mir_extract_inner_type_suffix_owned"
 reject_term "src/compiler/mir_abi_layout.c" "runtime function name pattern"
 require_term "src/compiler/mir_abi_layout.c" "Runtime function spelling is payload carried"
+require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_fn"
+require_term "src/compiler/mir_abi_layout.c" "MIRResourceRuntimeFnRow"
+require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("Slot<Int>"'
+require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("SecureSlot<Int>"'
+require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("DeviceSlot<Int>"'
+require_term "src/codegen/transpiler_mir_resource_op_core.c" "mir_abi_resource_runtime_fn(effective_layout, op_name)"
+reject_term "src/codegen/transpiler_mir_resource_op_core.c" "transpiler_format_slot_runtime_fn"
 require_term "src/test_abi_spec.c" "runtime size matches checked ABI"
 reject_term "src/test_abi_spec.c" "PGY_RUNTIME_SLOT_MODE_CHECKED"
 reject_term "src/test_abi_spec.c" "raw slot mode"

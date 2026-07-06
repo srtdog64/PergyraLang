@@ -12,6 +12,7 @@
 #include "codegen_type_mapping.h"
 #include "transpiler_type_require.h"
 
+#include "../compiler/mir_abi_layout.h"
 #include "../semantic/diag_codes.h"
 
 #include <stdio.h>
@@ -53,7 +54,6 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
     const char *fn = NULL;
     const char *suffix = NULL;
     const MIRTypeLayout *effective_layout = layout;
-    char runtime_fn_buf[160];
     char inner_name_buf[128];
     const char *slot_anchor;
     const char *effective_abi_type_name = NULL;
@@ -86,19 +86,13 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
     }
 
     if (effective_layout != NULL && effective_layout->runtime_fn != NULL) {
-        const char *layout_fn = effective_layout->runtime_fn;
+        const char *layout_fn = mir_abi_resource_runtime_fn(effective_layout, op_name);
         if (effective_layout->abi_type_name != NULL)
             effective_abi_type_name = effective_layout->abi_type_name;
-        suffix = transpiler_extract_type_suffix_from_fn(layout_fn);
-        if (strncmp(layout_fn, "pgy_claim_secure_", 17) == 0
-            || strncmp(layout_fn, "pgy_secure_", 11) == 0) {
-            is_secure_slot = true;
-        } else if (strncmp(layout_fn, "pgy_claim_device_", 17) == 0
-                   || strncmp(layout_fn, "pgy_device_", 11) == 0) {
-            is_device_slot = true;
-        }
-        if (op == TRANS_MIR_RESOURCE_OP_CLAIM)
+        if (layout_fn != NULL) {
             fn = layout_fn;
+            suffix = transpiler_extract_type_suffix_from_fn(layout_fn);
+        }
         if (inner_name == NULL
             && effective_layout->abi_type_name != NULL
             && (strncmp(effective_layout->abi_type_name, "Slot<", 5) == 0
@@ -142,14 +136,16 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
             if (fn == NULL
                 && effective_layout != NULL
                 && effective_layout->runtime_fn != NULL) {
-                fn = effective_layout->runtime_fn;
-                suffix = transpiler_extract_type_suffix_from_fn(fn);
-                if (strncmp(fn, "pgy_claim_secure_", 17) == 0
-                    || strncmp(fn, "pgy_secure_", 11) == 0) {
-                    is_secure_slot = true;
-                } else if (strncmp(fn, "pgy_claim_device_", 17) == 0
-                           || strncmp(fn, "pgy_device_", 11) == 0) {
-                    is_device_slot = true;
+                fn = mir_abi_resource_runtime_fn(effective_layout, op_name);
+                if (fn != NULL) {
+                    suffix = transpiler_extract_type_suffix_from_fn(fn);
+                    if (strncmp(fn, "pgy_claim_secure_", 17) == 0
+                        || strncmp(fn, "pgy_secure_", 11) == 0) {
+                        is_secure_slot = true;
+                    } else if (strncmp(fn, "pgy_claim_device_", 17) == 0
+                               || strncmp(fn, "pgy_device_", 11) == 0) {
+                        is_device_slot = true;
+                    }
                 }
             }
             if (strncmp(typed_name, "SecureSlot<", 11) == 0) {
@@ -197,14 +193,6 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                 "MIR resource operation payload", inner_c_buf,
                 sizeof(inner_c_buf))) {
             inner_c = inner_c_buf;
-        }
-        if (inner_c != NULL && inner_c[0] != '\0') {
-            if (transpiler_format_slot_runtime_fn(
-                    op_name, is_secure_slot, is_device_slot, inner_name,
-                    runtime_fn_buf, sizeof(runtime_fn_buf))) {
-                fn = runtime_fn_buf;
-                suffix = inner_name;
-            }
         }
     }
 

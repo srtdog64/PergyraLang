@@ -116,6 +116,13 @@ grep -Fq "C backend: slot builtin expression allocation failed" \
     "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
 grep -Fq "MIR resource op '%s' is missing runtime ABI layout metadata" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
+grep -Fq "mir_abi_resource_runtime_fn(effective_layout, op_name)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
+if grep -F 'transpiler_format_slot_runtime_fn(' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c" >/dev/null; then
+    echo "[backend-fail-closed] C MIR resource op must consume MIR ABI runtime function rows" >&2
+    exit 1
+fi
 grep -Fq "if (fn == NULL)" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
 grep -Fq "if (mir_active)" \

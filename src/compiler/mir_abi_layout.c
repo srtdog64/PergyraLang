@@ -197,6 +197,53 @@ static const MIRTypeLayout k_abi_type_table[] = {
 #undef ABI_FIELD_STRUCT
 #undef ABI_FIELD_SCALAR
 
+typedef struct
+{
+    const char *abi_type_name;
+    const char *resource_op_name;
+    const char *runtime_fn;
+} MIRResourceRuntimeFnRow;
+
+#define ABI_RESOURCE_OPS(type_name, claim_fn, read_fn, write_fn, release_fn) \
+    { (type_name), "Claim", (claim_fn) }, \
+    { (type_name), "Read", (read_fn) }, \
+    { (type_name), "Release", (release_fn) }, \
+    { (type_name), "Write", (write_fn) }
+
+static const MIRResourceRuntimeFnRow k_abi_resource_runtime_fn_table[] = {
+    ABI_RESOURCE_OPS("Slot<Int>", "pgy_claim_Int", "pgy_read_Int",
+                     "pgy_write_Int", "pgy_release_Int"),
+    ABI_RESOURCE_OPS("Slot<Long>", "pgy_claim_Long", "pgy_read_Long",
+                     "pgy_write_Long", "pgy_release_Long"),
+    ABI_RESOURCE_OPS("Slot<Float>", "pgy_claim_Float", "pgy_read_Float",
+                     "pgy_write_Float", "pgy_release_Float"),
+    ABI_RESOURCE_OPS("Slot<Double>", "pgy_claim_Double", "pgy_read_Double",
+                     "pgy_write_Double", "pgy_release_Double"),
+    ABI_RESOURCE_OPS("Slot<Bool>", "pgy_claim_Bool", "pgy_read_Bool",
+                     "pgy_write_Bool", "pgy_release_Bool"),
+    ABI_RESOURCE_OPS("Slot<String>", "pgy_claim_String", "pgy_read_String",
+                     "pgy_write_String", "pgy_release_String"),
+
+    ABI_RESOURCE_OPS("SecureSlot<Int>", "pgy_claim_secure_Int",
+                     "pgy_secure_read_Int", "pgy_secure_write_Int",
+                     "pgy_secure_release_Int"),
+    ABI_RESOURCE_OPS("SecureSlot<String>", "pgy_claim_secure_String",
+                     "pgy_secure_read_String", "pgy_secure_write_String",
+                     "pgy_secure_release_String"),
+
+    ABI_RESOURCE_OPS("DeviceSlot<Int>", "pgy_claim_device_Int",
+                     "pgy_device_read_Int", "pgy_device_write_Int",
+                     "pgy_release_device_Int"),
+    ABI_RESOURCE_OPS("DeviceSlot<String>", "pgy_claim_device_String",
+                     "pgy_device_read_String", "pgy_device_write_String",
+                     "pgy_release_device_String"),
+};
+
+#define PGY_ABI_RESOURCE_RUNTIME_FN_COUNT \
+    (sizeof(k_abi_resource_runtime_fn_table) / sizeof(k_abi_resource_runtime_fn_table[0]))
+
+#undef ABI_RESOURCE_OPS
+
 static const MIRTypeLayout *
 abi_type_lookup_by_name(const char *pergyra_type_name)
 {
@@ -227,6 +274,24 @@ mir_abi_lookup(const char *pergyra_type_name)
         return NULL;
 
     return abi_type_lookup_by_name(pergyra_type_name);
+}
+
+const char *
+mir_abi_resource_runtime_fn(const MIRTypeLayout *layout,
+                            const char *resource_op_name)
+{
+    if (layout == NULL || layout->abi_type_name == NULL ||
+        resource_op_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < PGY_ABI_RESOURCE_RUNTIME_FN_COUNT; i++) {
+        const MIRResourceRuntimeFnRow *row = &k_abi_resource_runtime_fn_table[i];
+        if (strcmp(row->abi_type_name, layout->abi_type_name) == 0 &&
+            strcmp(row->resource_op_name, resource_op_name) == 0) {
+            return row->runtime_fn;
+        }
+    }
+    return NULL;
 }
 
 void
