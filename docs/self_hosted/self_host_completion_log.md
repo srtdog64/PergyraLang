@@ -25,6 +25,16 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - AIR graph JSON missing-key fixture consumes TestHarness owner
+
+- Extended `air-graph-json-validator-paths` with the missing top-level key
+  name, expected finding field, and expected finding value.
+- Repointed `air_graph_json_validator_parity.sh` so shell still writes the
+  scratch missing-key fixture, but the removed key and expected finding counter
+  come from `test_harness_tool_paths_owner.pgy`.
+- Tightened the component contract against reintroducing the hardcoded
+  `summary` strip pattern or `"missing_keys":1` assertion in shell.
+
 ## 2026-07-06 - AIR ref-live corrupt fixture consumes TestHarness owner
 
 - Extended `air-graph-ref-live-paths` with the negative fixture path, reference

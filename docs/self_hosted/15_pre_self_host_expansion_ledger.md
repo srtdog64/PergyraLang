@@ -98,6 +98,12 @@ target value from `test_harness_air_graph_paths_owner.pgy`. Shell remains the
 scratch file writer, but no longer owns which live AIR back-reference is
 corrupted to prove the fail-closed `dangling_reference` path.
 
+TestHarness delta, 2026-07-06: `air_graph_json_validator_parity.sh` now gets
+the missing top-level key name, expected finding field, and expected finding
+value from `test_harness_tool_paths_owner.pgy`. Shell remains the scratch file
+writer, but no longer owns which AIR graph root key is stripped or which finding
+counter proves the fail-closed missing-key path.
+
 TestHarness delta, 2026-07-06: the five AIR graph consumer parity runners now
 compile and run their manifest-projected checker sources in place. They no
 longer create build-dir `main.pgy` aliases or copy `scan_owner.pgy` and the

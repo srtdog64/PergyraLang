@@ -353,8 +353,20 @@ func CompilerHarnessAirGraphJsonValidatorCapabilityLiveSourcePath() -> String {
     return "tests/capability/cap_env_demo.pgy";
 }
 
+func CompilerHarnessAirGraphJsonValidatorMissingKeyName() -> String {
+    return "summary";
+}
+
+func CompilerHarnessAirGraphJsonValidatorMissingKeyFindingField() -> String {
+    return "missing_keys";
+}
+
+func CompilerHarnessAirGraphJsonValidatorMissingKeyFindingValue() -> String {
+    return "1";
+}
+
 func CompilerHarnessAirGraphJsonValidatorPathCount() -> Int {
-    return 7;
+    return 10;
 }
 
 func CompilerHarnessAirGraphJsonValidatorPathAt(index: Int) -> String {
@@ -365,11 +377,14 @@ func CompilerHarnessAirGraphJsonValidatorPathAt(index: Int) -> String {
     if index == 4 { return CompilerHarnessAirGraphJsonValidatorCapabilityFixturePath(); }
     if index == 5 { return CompilerHarnessAirGraphJsonValidatorLiveSourcePath(); }
     if index == 6 { return CompilerHarnessAirGraphJsonValidatorCapabilityLiveSourcePath(); }
+    if index == 7 { return CompilerHarnessAirGraphJsonValidatorMissingKeyName(); }
+    if index == 8 { return CompilerHarnessAirGraphJsonValidatorMissingKeyFindingField(); }
+    if index == 9 { return CompilerHarnessAirGraphJsonValidatorMissingKeyFindingValue(); }
     return "";
 }
 
 func CompilerHarnessAirGraphJsonValidatorReady() -> Bool {
-    if CompilerHarnessAirGraphJsonValidatorPathCount() != 7 {
+    if CompilerHarnessAirGraphJsonValidatorPathCount() != 10 {
         return false;
     }
     let i: Int = 0;

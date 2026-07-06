@@ -49,8 +49,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 7 ]]; then
-    echo "[self-host-parity:air-graph-json] TestHarness manifest expected 7 air-graph-json paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 10 ]]; then
+    echo "[self-host-parity:air-graph-json] TestHarness manifest expected 10 air-graph-json paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -61,10 +61,18 @@ FIXTURE_REL="${harness_paths[3]}"
 CAP_FIXTURE_REL="${harness_paths[4]}"
 AIR_SOURCE_REL="${harness_paths[5]}"
 AIR_CAP_SOURCE_REL="${harness_paths[6]}"
+MISSING_KEY_NAME="${harness_paths[7]}"
+MISSING_KEY_FINDING_FIELD="${harness_paths[8]}"
+MISSING_KEY_FINDING_VALUE="${harness_paths[9]}"
 FIXTURE_FILE="$ROOT_DIR/$FIXTURE_REL"
 CAP_FIXTURE_FILE="$ROOT_DIR/$CAP_FIXTURE_REL"
 AIR_SOURCE="$ROOT_DIR/$AIR_SOURCE_REL"
 AIR_CAP_SOURCE="$ROOT_DIR/$AIR_CAP_SOURCE_REL"
+
+if [[ -z "$MISSING_KEY_NAME" || -z "$MISSING_KEY_FINDING_FIELD" || -z "$MISSING_KEY_FINDING_VALUE" ]]; then
+    echo "[self-host-parity:air-graph-json] invalid TestHarness missing-key row" >&2
+    exit 1
+fi
 
 for path in "$PERGYRA_TOOL_SOURCE" "$AIR_EVIDENCE_OWNER" "$EXPECTED_JSON_FILE" "$FIXTURE_FILE" "$CAP_FIXTURE_FILE" "$AIR_SOURCE" "$AIR_CAP_SOURCE"; do
     if [[ ! -f "$path" ]]; then
@@ -238,8 +246,8 @@ cleanup_neg_root() {
 trap cleanup_neg_root EXIT
 mkdir -p "$NEG_ROOT/$(dirname "$FIXTURE_REL")" "$NEG_ROOT/$(dirname "$CAP_FIXTURE_REL")"
 mkdir -p "$NEG_ROOT/.tmp"
-# Strip the "summary":{...}, segment - simple sed that matches the live shape.
-sed -E 's/"summary":\{[^}]*\},//' "$FIXTURE_FILE" \
+# Strip the owner-selected top-level object segment from the live shape.
+sed -E "s/\"${MISSING_KEY_NAME}\":\{[^}]*\},//" "$FIXTURE_FILE" \
     > "$NEG_ROOT/$FIXTURE_REL"
 cp "$CAP_FIXTURE_FILE" "$NEG_ROOT/$CAP_FIXTURE_REL"
 
@@ -257,8 +265,8 @@ if ! grep -Fq '"ok":false' <<<"$NEG_OUT"; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq '"missing_keys":1' <<<"$NEG_OUT"; then
-    echo "[self-host-parity:air-graph-json] missing-key fixture expected missing_keys:1" >&2
+if ! grep -Fq "\"${MISSING_KEY_FINDING_FIELD}\":${MISSING_KEY_FINDING_VALUE}" <<<"$NEG_OUT"; then
+    echo "[self-host-parity:air-graph-json] missing-key fixture expected ${MISSING_KEY_FINDING_FIELD}:${MISSING_KEY_FINDING_VALUE}" >&2
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
