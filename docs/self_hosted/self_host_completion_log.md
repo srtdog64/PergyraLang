@@ -4912,3 +4912,19 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-compiler-world-contract-test-smoke`, and
   `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
   7127 generated-C lines).
+
+### 2026-07-07 -- Let name/type emission consumes typed arena rows
+
+- Repointed `EmitLet(...)` and `EmitTryLet(...)` so the local name and declared
+  type consume `CodegenAstArenaAtomOrDie(...)` and
+  `CodegenAstArenaTypeNameOrDie(...)`.
+- Left `CodegenAstTextLetInitializer(...)` in the statement owner deliberately:
+  initializer text is still a compound expression payload and needs a separate
+  typed expression row before it can leave the bridge.
+- Tightened `self_hosted_component_contract_smoke.sh` so `stmt_emit.pgy` cannot
+  return to `CodegenAstTextLetName(node)` or
+  `CodegenAstTextLetTypeName(node)`.
+- Verified with `self-host-component-contract-test-smoke`,
+  `self-host-compiler-world-contract-test-smoke`, and
+  `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
+  7127 generated-C lines).

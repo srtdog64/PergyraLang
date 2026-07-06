@@ -86,8 +86,10 @@ consumes typed arena atom/type-name/mode rows for signatures, role targets, enum
 names, and fields instead of reading `CodegenAstTextNode.name`, `type_name`, or
 `mode` directly. Statement emission also consumes typed arena atom rows for
 single-payload statements (`Log`, value `Return`, `ArrayPop`, `Exit`, `While`,
-`If`, `Match`, match cases, and bare calls); compound statement payloads remain
-bridge-owned until their multi-field payloads have row-shaped typed arena facts.
+`If`, `Match`, match cases, and bare calls), and `Let` emission consumes arena
+atom/type-name rows for the local name and declared type; initializer and other
+compound statement payloads remain bridge-owned until their multi-field payloads
+have row-shaped typed arena facts.
 The rest of codegen,
 runtime and released/native compiler driver/LSP substitution are still 0%;
 the compiler driver now has DRV-0/DRV-1 artifact rungs, and LSP has LSP-0

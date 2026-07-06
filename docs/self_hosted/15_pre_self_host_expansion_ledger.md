@@ -132,6 +132,11 @@ types, parameter signatures, role target types, enum names, and field rows. The
 blocker remains ACTIVE because expression and statement payload strings still
 flow through transitional AST-text facts.
 
+TypedAst delta, 2026-07-07: `EmitLet(...)` and `EmitTryLet(...)` now consume
+typed arena atom/type-name rows for the local name and declared type. The
+initializer remains bridge-owned through `CodegenAstTextLetInitializer(...)`
+until expression payloads have typed rows.
+
 TypedAst delta, 2026-07-07: single-payload statement emission now consumes
 typed arena atom rows for `Log`, value `Return`, `ArrayPop`, `Exit`, `While`,
 `If`, `Match`, match cases, and bare calls. The component contract rejects the
