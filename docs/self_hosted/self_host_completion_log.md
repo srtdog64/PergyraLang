@@ -45,6 +45,16 @@ rewrite history.
 - Kept the duplicate-id negative fixture as the live behavioral check and
   tightened the component ratchet so the shell duplicate count cannot reappear.
 
+## 2026-07-06 - AIR reachability clean oracle uses expected artifact only
+
+- Removed the redundant shell node-count oracle from
+  `air_graph_reachability_parity.sh`.
+- Clean node, reachable, and orphan counts now have one source of truth: the
+  TestHarness-projected `expected/clean.json` compared through
+  `backend_output_comparator`.
+- Kept the orphan-node negative fixture as the live behavioral check and
+  tightened the component ratchet so the shell node count cannot reappear.
+
 ## 2026-07-06 - Doc-link clean oracle uses expected artifact only
 
 - Removed the redundant shell `grep -oE` / `wc -l` clean-count oracle from

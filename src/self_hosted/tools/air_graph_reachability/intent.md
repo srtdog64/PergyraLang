@@ -55,18 +55,16 @@ Exit code: `0` on `ok:true`, `1` on `ok:false`.
 
 ## Oracle
 
-The shell ground truth on the clean fixture is the node count (`grep -oE
-'"id":[0-9]+' | wc -l`); the Pergyra origin must report `reachable == nodes` and
-`orphans == 0`. The negative fixture must yield `rc=1` with an `orphan_node`
-finding. A full shell BFS is intentionally not reimplemented; the byte-equal
-committed `expected/clean.json` plus the negative fixture pin the behavior.
+The clean-output oracle is the TestHarness-projected `expected/clean.json`
+artifact compared through the shared backend output comparator. That artifact
+pins `nodes`, `reachable`, and `orphans` for the clean graph. The negative
+fixture must yield `rc=1` with an `orphan_node` finding. A full shell BFS is
+intentionally not reimplemented.
 
 The parity rung asserts:
 
 - Pergyra origin exits `0` on the clean fixture and emits JSON byte-matching
   `expected/clean.json`.
-- `reachable` equals the shell node count and `orphans` is 0 on the clean
-  fixture.
 - The orphan fixture yields `rc=1`, `ok:false`, and an `orphan_node` finding.
 - The C-compiled and LLVM-compiled Pergyra tool produce byte-identical output.
 

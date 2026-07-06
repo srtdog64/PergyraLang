@@ -1669,7 +1669,10 @@ reject_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" "SHELL_
 reject_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" "grep -oE '\"id\":[^,}]*'"
 require_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" '"air-graph-node-count-paths"'
 require_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" '"air-graph-reachability-paths"'
+require_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" "expected-json clean"
 require_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" 'ORPHAN_FIXTURE_REL="${harness_paths[4]}"'
+reject_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" "SHELL_NODES="
+reject_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" "grep -oE '\"id\":[0-9]+'"
 require_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" '"air-graph-ref-integrity-paths"'
 require_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" 'DANGLING_FIXTURE_REL="${harness_paths[4]}"'
 require_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" '"air-graph-ref-live-paths"'

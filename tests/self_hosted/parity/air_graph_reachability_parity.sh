@@ -3,9 +3,9 @@
 #
 # Pergyra is the origin
 # (src/self_hosted/tools/air_graph_reachability/main.pgy).
-# Shell grep is the parity backend. Asserts: clean exit, JSON byte-equal vs
-# expected/clean.json, reachable==node-count and orphans==0 on the clean
-# fixture, and an orphan fixture (one unreachable node, rc=1).
+# The TestHarness-projected expected artifact is the clean-output oracle.
+# Asserts: clean exit, JSON byte-equal vs expected/clean.json, and an orphan
+# fixture (one unreachable node, rc=1).
 
 set -euo pipefail
 
@@ -100,19 +100,6 @@ pgy_selfhost_compare_expected_text_artifact_with_owner \
     "$PERGYRA_JSON" \
     "air_json"
 
-# Shell ground truth: node count; clean fixture has every node reachable.
-SHELL_NODES="$(grep -oE '"id":[0-9]+' "$FIXTURE_FILE" | wc -l | tr -d '[:space:]')"
-if ! grep -Fq "\"reachable\":${SHELL_NODES}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:air-reachability] counts.reachable parity FAIL (shell nodes=${SHELL_NODES})" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq '"orphans":0' <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:air-reachability] counts.orphans parity FAIL (expected 0)" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-
 # Negative fixture: one orphan node, expect rc=1.
 set +e
 NEG_OUT="$(cd "$ROOT_DIR" && "$CLEAN_BIN" "$ORPHAN_FIXTURE_REL" 2>&1)"
@@ -135,4 +122,4 @@ if ! grep -Fq '"kind":"orphan_node"' <<<"$NEG_OUT"; then
 fi
 
 assert_llvm_leg "self-host-parity:air-reachability" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$FIXTURE_REL"
-echo "[self-host-parity:air-reachability] rung-1 parity ok (clean orphans=0 artifact-equal; orphan fixture rc=1)"
+echo "[self-host-parity:air-reachability] rung-1 parity ok (expected-json clean; orphan fixture rc=1)"
