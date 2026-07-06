@@ -34,6 +34,15 @@ rewrite history.
 - Tightened the component contract to reject reintroduced shell-owned bootstrap
   sample or MIR fixture lists.
 
+## 2026-07-06 - Stable subset clean oracle uses expected artifact only
+
+- Removed the redundant shell `grep -c '^## '` clean-count oracle from
+  `stable_subset_section_checker_parity.sh`.
+- Clean output now has one source of truth: the TestHarness-projected
+  `expected/clean.json` compared through `backend_output_comparator`.
+- Tightened the component contract so the shell section-count oracle cannot
+  reappear in that runner.
+
 ## 2026-07-06 - Scratch growth bounded for self-host bootstrap
 
 - Measured local build/test scratch and found `.tmp` dominating disk use, with

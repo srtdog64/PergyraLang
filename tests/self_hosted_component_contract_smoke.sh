@@ -1708,6 +1708,9 @@ require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 
 require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'MANIFEST_PATH="${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" '"$CLEAN_BIN" "$MANIFEST_PATH"'
 require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'assert_llvm_leg "self-host-parity:stable-subset-section" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$MANIFEST_PATH"'
+require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" "expected-json clean"
+reject_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" "SHELL_SECTIONS="
+reject_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" "grep -c '^## '"
 reject_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/stable_subset_section_checker/main.pgy"'
 reject_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
 reject_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"'

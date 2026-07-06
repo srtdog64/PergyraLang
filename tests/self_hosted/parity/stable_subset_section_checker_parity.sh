@@ -2,9 +2,9 @@
 # Rung 2 parity for the stable subset section checker (2026-05-27).
 #
 # Pergyra is the origin (src/self_hosted/tools/stable_subset_section_checker/main.pgy).
-# Shell grep + canonical anchor list is the parity backend (drift detector).
-# This script asserts exit-code parity, JSON shape parity against
-# expected/clean.json, and a synthetic missing-section fixture.
+# The Pergyra expected JSON artifact is the clean-output oracle. This script
+# asserts exit-code parity, JSON shape parity against expected/clean.json, and a
+# synthetic missing-section fixture.
 # See tests/self_hosted/parity/README.md.
 
 set -euo pipefail
@@ -95,24 +95,6 @@ if ! grep -Fq 'pgy.selfhost.stable-subset-section.v1' <<<"$PERGYRA_OUT"; then
     exit 1
 fi
 
-# Shell drift detector - count `^## ` lines.
-SHELL_SECTIONS="$(grep -c '^## ' "$ROOT_DIR/$MANIFEST_PATH" || true)"
-if [[ -z "$SHELL_SECTIONS" || "$SHELL_SECTIONS" -eq 0 ]]; then
-    echo "[self-host-parity:stable-subset-section] shell grep ground truth empty" >&2
-    exit 1
-fi
-
-if ! grep -Fq "\"sections\":${SHELL_SECTIONS}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:stable-subset-section] counts.sections parity FAIL (shell=${SHELL_SECTIONS})" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq '"missing":0' <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:stable-subset-section] counts.missing parity FAIL (expected 0)" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-
 # Clean JSON shape parity.
 PERGYRA_JSON="$(printf '%s\n' "$PERGYRA_OUT" \
     | grep -F 'pgy.selfhost.stable-subset-section.v1' \
@@ -162,4 +144,4 @@ if ! grep -Fq 'Ownership Stable Subset' <<<"$NEG_OUT"; then
 fi
 
 assert_llvm_leg "self-host-parity:stable-subset-section" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$MANIFEST_PATH"
-echo "[self-host-parity:stable-subset-section] rung-2 parity ok (sections=$SHELL_SECTIONS missing-fixture rc=1)"
+echo "[self-host-parity:stable-subset-section] rung-2 parity ok (expected-json clean; missing-fixture rc=1)"
