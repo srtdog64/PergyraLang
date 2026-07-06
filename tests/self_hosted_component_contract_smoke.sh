@@ -595,9 +595,11 @@ require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'import "env_owner.p
 require_text "src/self_hosted/semantic/expr_validation_owner.pgy" "func CheckUndefinedIdentifiers"
 reject_text "src/self_hosted/semantic/expr_type_owner.pgy" "func CheckUndefinedIdentifiers"
 require_text "src/self_hosted/semantic/diagnostic_code_owner.pgy" "func SemanticDiagnosticCodeKnown"
+require_text "src/self_hosted/semantic/diagnostic_code_owner.pgy" "func SemanticDiagnosticCodes"
 require_text "src/self_hosted/semantic/diagnostic_code_owner.pgy" "func SemanticDiagnosticCodeCount"
 require_text "src/self_hosted/semantic/diagnostic_code_owner.pgy" "func SemanticDiagnosticOracleCode"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticDiagnosticCodeKnown(code)"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func EmitSemanticDiagnosticVocabularyManifest"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadContractReady"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadSchema"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "pgy.selfhost.semantic.v1"
@@ -607,6 +609,7 @@ require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func EmitSemanticV
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "DirWalk(SemanticVerdictPayloadFixtureDir())"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticVerdictPayloadExpectedStatus(base)"
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--fixture-manifest"'
+require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-vocabulary"'
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticDiagnosticCodeCount() != 17"
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../semantic/diagnostic_owner.pgy";'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "SemanticVerdictPayloadContractReady()"
@@ -626,7 +629,10 @@ require_text "tests/self_hosted/parity/semantic_parity.sh" 'SEMANTIC_SOURCE_DIR=
 require_text "tests/self_hosted/parity/semantic_parity.sh" "compare_semantic_verdict_with_owner"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "read_semantic_fixture_manifest"
 require_text "tests/self_hosted/parity/semantic_parity.sh" '"$manifest_bin" --fixture-manifest'
+require_text "tests/self_hosted/parity/semantic_parity.sh" '"$manifest_bin" --diagnostic-vocabulary'
 require_text "tests/self_hosted/parity/semantic_parity.sh" "diagnostics"
+reject_text "tests/self_hosted/parity/semantic_parity.sh" '/^func SemanticDiagnosticCodeKnown'
+reject_text "tests/self_hosted/parity/semantic_parity.sh" '/^func SemanticDiagnosticOracleCode'
 reject_text "tests/self_hosted/parity/semantic_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/semantic/main.pgy"'
 reject_text "tests/self_hosted/parity/semantic_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy"'
 reject_text "tests/self_hosted/parity/semantic_parity.sh" 'FIXTURE_DIR="$ROOT_DIR/src/self_hosted/semantic/fixture"'

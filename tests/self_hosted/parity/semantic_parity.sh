@@ -51,6 +51,7 @@ PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/sem
 ARTIFACT_COMPARE_BUILD_DIR="$PERGYRA_TOOL_BUILD_DIR/artifact_owner"
 HARNESS_PATHS_FILE="$PERGYRA_TOOL_BUILD_DIR/semantic_harness_paths.txt"
 SEMANTIC_FIXTURE_MANIFEST_FILE="$PERGYRA_TOOL_BUILD_DIR/semantic_fixture_manifest.txt"
+SEMANTIC_DIAGNOSTIC_VOCABULARY_FILE="$PERGYRA_TOOL_BUILD_DIR/semantic_diagnostic_vocabulary.txt"
 SEMANTIC_COMPARATOR_BIN=""
 PERGYRA_TOOL_SOURCE=""
 PERGYRA_TOOL_ARG=""
@@ -65,19 +66,9 @@ SEMANTIC_SOURCE_DIR=""
 SOURCE_PAIRS=()
 
 known_semantic_codes() {
-    awk '
-        /^func SemanticDiagnosticCodeKnown\(/ { inside=1; next }
-        inside && /^func[[:space:]]/ { inside=0 }
-        inside {
-            while (match($0, /code == "[a-z0-9_]+"/)) {
-                code=substr($0, RSTART, RLENGTH)
-                sub(/^code == "/, "", code)
-                sub(/"$/, "", code)
-                print code
-                $0=substr($0, RSTART + RLENGTH)
-            }
-        }
-    ' "$DIAGNOSTIC_CODE_OWNER" |
+    [[ -f "$SEMANTIC_DIAGNOSTIC_VOCABULARY_FILE" ]] || return 0
+    awk -F '|' 'NF >= 1 && $1 != "" { print $1 }' \
+        "$SEMANTIC_DIAGNOSTIC_VOCABULARY_FILE" |
         sort
 }
 
@@ -100,20 +91,25 @@ semantic_code_known() {
     contains_line "$known" "$code"
 }
 
+semantic_vocabulary_field_for() {
+    local code="$1"
+    local field="$2"
+
+    awk -F '|' -v target="$code" -v field="$field" \
+        '$1 == target { print $field; exit }' \
+        "$SEMANTIC_DIAGNOSTIC_VOCABULARY_FILE"
+}
+
 semantic_oracle_code_for() {
     local code="$1"
-    awk -v target="$code" '
-        /^func SemanticDiagnosticOracleCode\(/ { inside=1; next }
-        inside && /^func[[:space:]]/ { inside=0 }
-        inside && $0 ~ "code == \"" target "\"" { found=1; next }
-        inside && found && match($0, /return "[^"]*"/) {
-            value=substr($0, RSTART, RLENGTH)
-            sub(/^return "/, "", value)
-            sub(/"$/, "", value)
-            print value
-            exit
-        }
-    ' "$DIAGNOSTIC_CODE_OWNER"
+
+    semantic_vocabulary_field_for "$code" 2
+}
+
+semantic_renderer_status_for() {
+    local code="$1"
+
+    semantic_vocabulary_field_for "$code" 3
 }
 
 json_code_from_output() {
@@ -152,11 +148,14 @@ compare_semantic_verdict_with_owner() {
 
 check_semantic_diagnostic_code_surface() {
     local owner="$DIAGNOSTIC_CODE_OWNER"
-    local renderer="$DIAGNOSTIC_RENDERER_OWNER"
-    local known total unique declared_count
+    local known total unique
 
     if [[ ! -f "$owner" ]]; then
         echo "[self-host-parity:semantic] missing diagnostic code owner: $owner" >&2
+        exit 1
+    fi
+    if [[ ! -s "$SEMANTIC_DIAGNOSTIC_VOCABULARY_FILE" ]]; then
+        echo "[self-host-parity:semantic] missing diagnostic vocabulary manifest" >&2
         exit 1
     fi
 
@@ -174,22 +173,18 @@ check_semantic_diagnostic_code_surface() {
         exit 1
     fi
 
-    declared_count="$(grep -oE 'return[[:space:]]+[0-9]+;' "$owner" |
-        tail -n 1 |
-        grep -oE '[0-9]+' || true)"
-    if [[ "$declared_count" != "$unique" ]]; then
-        echo "[self-host-parity:semantic] diagnostic code count drift (declared=$declared_count actual=$unique)" >&2
-        exit 1
-    fi
+    while IFS= read -r code; do
+        [[ -n "$code" ]] || continue
+        if [[ "$(semantic_renderer_status_for "$code")" != "rendered" ]]; then
+            echo "[self-host-parity:semantic] diagnostic code lacks reason/fix renderer branch: $code" >&2
+            exit 1
+        fi
+    done <<<"$known"
 
     while IFS= read -r code; do
         [[ -n "$code" ]] || continue
         if ! semantic_code_known "$code"; then
             echo "[self-host-parity:semantic] expected fixture uses unregistered diagnostic code: $code" >&2
-            exit 1
-        fi
-        if ! grep -Fq "code == \"$code\"" "$renderer"; then
-            echo "[self-host-parity:semantic] diagnostic code lacks reason/fix renderer branch: $code" >&2
             exit 1
         fi
         if [[ -z "$(semantic_oracle_code_for "$code")" ]]; then
@@ -326,6 +321,10 @@ read_semantic_fixture_manifest() {
     compile_semantic_backend c "$manifest_bin"
     if ! (cd "$ROOT_DIR" && "$manifest_bin" --fixture-manifest >"$SEMANTIC_FIXTURE_MANIFEST_FILE"); then
         echo "[self-host-parity:semantic] fixture manifest emission failed" >&2
+        exit 1
+    fi
+    if ! (cd "$ROOT_DIR" && "$manifest_bin" --diagnostic-vocabulary >"$SEMANTIC_DIAGNOSTIC_VOCABULARY_FILE"); then
+        echo "[self-host-parity:semantic] diagnostic vocabulary manifest emission failed" >&2
         exit 1
     fi
 

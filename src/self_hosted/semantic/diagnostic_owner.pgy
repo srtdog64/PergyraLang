@@ -206,6 +206,46 @@ func EmitSemanticVerdictPayloadFixtureManifest() -> Void {
     }
 }
 
+func SemanticDiagnosticCodeRendered(code: String) -> Bool {
+    if SemanticReason(code) == "semantic checker rejected the source" {
+        return false;
+    }
+    if SemanticFix(code) == "fix the semantic mismatch reported by the diagnostic code" {
+        return false;
+    }
+    return true;
+}
+
+func SemanticDiagnosticVocabularyRow(code: String) -> String {
+    let oracle: String = SemanticDiagnosticOracleCode(code);
+    let rendered: String = "missing-renderer";
+    if SemanticDiagnosticCodeRendered(code) {
+        rendered = "rendered";
+    }
+    let left: String = Concat(Concat(code, "|"), oracle);
+    return Concat(Concat(left, "|"), rendered);
+}
+
+func SemanticDiagnosticVocabularyRows() -> Array<String> {
+    let codes: Array<String> = SemanticDiagnosticCodes();
+    let rows: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(codes) {
+        ArrayPush(rows, SemanticDiagnosticVocabularyRow(codes[i]));
+        i = i + 1;
+    }
+    return rows;
+}
+
+func EmitSemanticDiagnosticVocabularyManifest() -> Void {
+    let rows: Array<String> = SemanticDiagnosticVocabularyRows();
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        Log(rows[i]);
+        i = i + 1;
+    }
+}
+
 func SemanticVerdictPayloadStatusReady() -> Bool {
     let ok: String = SemanticOk();
     if StringIndexOf(ok, "Diagnostic: pgy.selfhost.semantic.v1") != 0 {
@@ -236,6 +276,9 @@ func SemanticVerdictPayloadContractReady() -> Bool {
         return false;
     }
     if SemanticDiagnosticCodeCount() != 17 {
+        return false;
+    }
+    if ArrayLength(SemanticDiagnosticVocabularyRows()) != SemanticDiagnosticCodeCount() {
         return false;
     }
     if !SemanticVerdictPayloadStatusReady() {

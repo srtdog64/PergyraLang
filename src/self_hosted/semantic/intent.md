@@ -73,15 +73,19 @@ self-hosted code; the parity harness rejects an invalid fixture when the C
 oracle falls through to a backend-native error or reports a different root code.
 `diagnostic_owner.pgy` imports both the shared renderer and code vocabulary;
 the entrypoint must not import either implementation detail directly.
+`semantic_run_owner.pgy --diagnostic-vocabulary` emits the compiled vocabulary
+rows consumed by the parity harness, so shell code compares an artifact from
+the self-hosted owner rather than re-parsing owner source text.
 
 ## Oracle
 
 `tests/self_hosted/parity/semantic_parity.sh` compiles this tool through the
 available C/LLVM backends, runs it on committed fixtures, and checks the same
 fixtures against the C compiler accept/reject oracle. The same gate also checks
-the diagnostic-code vocabulary so new self-hosted semantic codes cannot appear
-as fixture-only or call-site-only aliases, and it checks that invalid fixtures
-are rejected with the mapped C oracle JSON diagnostic code.
+the diagnostic-code vocabulary emitted by `--diagnostic-vocabulary` so new
+self-hosted semantic codes cannot appear as fixture-only or call-site-only
+aliases, and it checks that invalid fixtures are rejected with the mapped C
+oracle JSON diagnostic code.
 
 Fixture inventory is owned by the semantic tool, not by the shell runner.
 `diagnostic_owner.pgy` walks `src/self_hosted/semantic/fixture`, reads the paired

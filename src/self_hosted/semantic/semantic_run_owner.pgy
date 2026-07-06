@@ -17,6 +17,10 @@ func RunSemanticFromArgs(args: Array<String>) -> Void {
         EmitSemanticVerdictPayloadFixtureManifest();
         return;
     }
+    if args[0] == "--diagnostic-vocabulary" {
+        EmitSemanticDiagnosticVocabularyManifest();
+        return;
+    }
     if args[0] == "--check" {
         if ArrayLength(args) < 2 {
             Log(SemanticError2("input_missing", "expected", "source", "actual", "none"));
