@@ -3,9 +3,9 @@
 #
 # Pergyra is the origin
 # (src/self_hosted/tools/air_graph_ref_integrity/main.pgy).
-# Shell grep is the parity backend. Asserts: clean exit, JSON byte-equal vs
-# expected/clean.json, dangling-count parity vs a shell set-difference on the
-# fixture, and a dangling fixture (one endpoint with no matching node, rc=1).
+# The TestHarness-projected expected artifact is the clean-output oracle.
+# Asserts: clean exit, JSON byte-equal vs expected/clean.json, and a dangling
+# fixture (one endpoint with no matching node, rc=1).
 
 set -euo pipefail
 
@@ -100,20 +100,6 @@ pgy_selfhost_compare_expected_text_artifact_with_owner \
     "$PERGYRA_JSON" \
     "air_json"
 
-# Shell ground truth: endpoints not present in the node-id set (expect none).
-ids_of() { grep -oE '"id":[0-9]+' "$1" | grep -oE '[0-9]+' | sort -u; }
-endpoints_of() { grep -oE '"(from|to)":[0-9]+' "$1" | grep -oE '[0-9]+' | sort -u; }
-SHELL_DANGLING="$(comm -23 <(endpoints_of "$FIXTURE_FILE") <(ids_of "$FIXTURE_FILE") | grep -c . || true)"
-if [[ "$SHELL_DANGLING" != "0" ]]; then
-    echo "[self-host-parity:air-ref-integrity] shell ground truth expected 0 dangling on clean fixture, got $SHELL_DANGLING" >&2
-    exit 1
-fi
-if ! grep -Fq '"dangling":0' <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:air-ref-integrity] counts.dangling parity FAIL (shell=0)" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-
 # Negative fixture: one dangling endpoint, expect rc=1.
 set +e
 NEG_OUT="$(cd "$ROOT_DIR" && "$CLEAN_BIN" "$DANGLING_FIXTURE_REL" 2>&1)"
@@ -136,4 +122,4 @@ if ! grep -Fq '"kind":"dangling_edge_endpoint"' <<<"$NEG_OUT"; then
 fi
 
 assert_llvm_leg "self-host-parity:air-ref-integrity" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$FIXTURE_REL"
-echo "[self-host-parity:air-ref-integrity] rung-1 parity ok (clean dangling=0 artifact-equal; dangling fixture rc=1)"
+echo "[self-host-parity:air-ref-integrity] rung-1 parity ok (expected-json clean; dangling fixture rc=1)"

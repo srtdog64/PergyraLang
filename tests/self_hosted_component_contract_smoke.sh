@@ -1674,7 +1674,10 @@ require_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" 'ORPHAN
 reject_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" "SHELL_NODES="
 reject_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" "grep -oE '\"id\":[0-9]+'"
 require_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" '"air-graph-ref-integrity-paths"'
+require_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" "expected-json clean"
 require_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" 'DANGLING_FIXTURE_REL="${harness_paths[4]}"'
+reject_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" "SHELL_DANGLING="
+reject_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" "comm -23"
 require_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" '"air-graph-ref-live-paths"'
 require_make_target_recipe_line \
     "self-host-air-graph-consumer-parity-test-smoke" \

@@ -55,6 +55,17 @@ rewrite history.
 - Kept the orphan-node negative fixture as the live behavioral check and
   tightened the component ratchet so the shell node count cannot reappear.
 
+## 2026-07-06 - AIR ref-integrity clean oracle uses expected artifact only
+
+- Removed the redundant shell set-difference oracle from
+  `air_graph_ref_integrity_parity.sh`.
+- Clean node, endpoint, and dangling counts now have one source of truth: the
+  TestHarness-projected `expected/clean.json` compared through
+  `backend_output_comparator`.
+- Kept the dangling-endpoint negative fixture as the live behavioral check and
+  tightened the component ratchet so the shell set-difference oracle cannot
+  reappear.
+
 ## 2026-07-06 - Doc-link clean oracle uses expected artifact only
 
 - Removed the redundant shell `grep -oE` / `wc -l` clean-count oracle from

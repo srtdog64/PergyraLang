@@ -51,17 +51,15 @@ Exit code: `0` on `ok:true`, `1` on `ok:false`.
 
 ## Oracle
 
-The shell ground truth extracts node ids and edge endpoints with `grep`, then
-uses `comm` set difference to count endpoints missing from the node-id set. The
-Pergyra origin must report zero dangling endpoints on the clean fixture and a
-`dangling_edge_endpoint` finding on the negative fixture.
+The clean-output oracle is the TestHarness-projected `expected/clean.json`
+artifact compared through the shared backend output comparator. That artifact
+pins `nodes`, `endpoints`, and `dangling` for the clean graph. The negative
+fixture must yield `rc=1` with a `dangling_edge_endpoint` finding.
 
 The parity rung asserts:
 
 - Pergyra origin exits `0` on the clean fixture and emits JSON byte-matching
   `expected/clean.json`.
-- The clean fixture has zero dangling endpoints according to both shell and
-  Pergyra.
 - The dangling fixture yields `rc=1`, `ok:false`, and a
   `dangling_edge_endpoint` finding.
 - The C-compiled and LLVM-compiled Pergyra tool produce byte-identical output.
