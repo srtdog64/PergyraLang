@@ -86,6 +86,12 @@ tool-path owner. `air_graph_id_uniqueness_parity.sh`,
 JSON, and fixture paths from `test_harness_manifest.pgy`; the compiled
 checkers receive the selected fixture path through `Args()[0]`.
 
+TestHarness delta, 2026-07-06: `air_graph_node_count_integrity_parity.sh`
+now gets the corrupted negative fixture path, summary field name, and corrupt
+summary value from `test_harness_air_graph_paths_owner.pgy`. Shell remains the
+scratch file writer, but no longer owns which AIR summary fact is corrupted to
+prove the fail-closed `node_count_mismatch` path.
+
 TestHarness delta, 2026-07-06: the five AIR graph consumer parity runners now
 compile and run their manifest-projected checker sources in place. They no
 longer create build-dir `main.pgy` aliases or copy `scan_owner.pgy` and the

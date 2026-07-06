@@ -36,7 +36,19 @@ func CompilerHarnessAirGraphNodeCountSuiteName() -> String {
 }
 
 func CompilerHarnessAirGraphNodeCountPathCount() -> Int {
-    return 4;
+    return 7;
+}
+
+func CompilerHarnessAirGraphNodeCountNegativeFixturePath() -> String {
+    return ".tmp/self_hosted/air_graph_node_count_integrity/negative/sample.json";
+}
+
+func CompilerHarnessAirGraphNodeCountCorruptFieldName() -> String {
+    return "evidence_count";
+}
+
+func CompilerHarnessAirGraphNodeCountCorruptValue() -> String {
+    return "99";
 }
 
 func CompilerHarnessAirGraphNodeCountPathAt(index: Int) -> String {
@@ -44,14 +56,18 @@ func CompilerHarnessAirGraphNodeCountPathAt(index: Int) -> String {
     if index == 1 { return CompilerHarnessAirGraphScanOwnerPath(); }
     if index == 2 { return "src/self_hosted/tools/air_graph_node_count_integrity/expected/clean.json"; }
     if index == 3 { return "src/self_hosted/tools/air_graph_json_validator/fixture/sample.json"; }
+    if index == 4 { return CompilerHarnessAirGraphNodeCountNegativeFixturePath(); }
+    if index == 5 { return CompilerHarnessAirGraphNodeCountCorruptFieldName(); }
+    if index == 6 { return CompilerHarnessAirGraphNodeCountCorruptValue(); }
     return "";
 }
 
 func CompilerHarnessAirGraphNodeCountReady() -> Bool {
     return CompilerHarnessAirGraphNodeCountSuiteName() != "" &&
-        CompilerHarnessAirGraphNodeCountPathCount() == 4 &&
+        CompilerHarnessAirGraphNodeCountPathCount() == 7 &&
         CompilerHarnessAirGraphNodeCountPathAt(0) != "" &&
-        CompilerHarnessAirGraphNodeCountPathAt(3) != "";
+        CompilerHarnessAirGraphNodeCountPathAt(3) != "" &&
+        CompilerHarnessAirGraphNodeCountPathAt(6) != "";
 }
 
 func CompilerHarnessAirGraphReachabilitySuiteName() -> String {

@@ -1692,11 +1692,15 @@ reject_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" "SHELL_
 reject_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" "grep -oE '\"id\":[^,}]*'"
 require_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" '"air-graph-node-count-paths"'
 require_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" "expected-json clean"
+require_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" 'NEG_FIXTURE_REL="${harness_paths[4]}"'
+require_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" 'CORRUPT_FIELD="${harness_paths[5]}"'
+require_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" 'CORRUPT_VALUE="${harness_paths[6]}"'
 reject_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" "SHELL_IDS="
 reject_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" "SHELL_DECLARED="
 reject_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" "counts.ids parity FAIL"
 reject_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" "counts.declared parity FAIL"
 reject_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" "grep -oE '\"id\":'"
+reject_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" '"evidence_count":99'
 require_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" '"air-graph-reachability-paths"'
 require_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" "expected-json clean"
 require_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" 'ORPHAN_FIXTURE_REL="${harness_paths[4]}"'
@@ -1894,6 +1898,9 @@ require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphIdUniquenessPathAt"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphNodeCountSuiteName"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphNodeCountPathAt"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphNodeCountNegativeFixturePath"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphNodeCountCorruptFieldName"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphNodeCountCorruptValue"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphReachabilitySuiteName"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphReachabilityPathAt"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefIntegritySuiteName"

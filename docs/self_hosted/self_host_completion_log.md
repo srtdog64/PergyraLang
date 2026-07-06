@@ -25,6 +25,16 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - AIR node-count corrupt fixture consumes TestHarness owner
+
+- Extended `air-graph-node-count-paths` with the negative fixture path,
+  corrupted summary field name, and corrupted summary value.
+- Repointed `air_graph_node_count_integrity_parity.sh` so shell still creates
+  the mutated JSON file, but the corruption target and value come from the
+  Pergyra TestHarness owner.
+- Tightened the component contract against reintroducing the hardcoded
+  `"evidence_count":99` mutation in shell.
+
 ## 2026-07-06 - AST read surface growth fixture consumes TestHarness owner
 
 - Extended `ast-read-surface-paths` with the synthetic growth source path,
