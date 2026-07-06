@@ -429,6 +429,12 @@ helper. The runner still owns process orchestration for C/LLVM binaries, but it
 no longer owns the TestHarness manifest source path or per-case comparator
 source/lib/compiler copy.
 
+ArtifactZone delta, 2026-07-06: `backend_output_tri_compare_parity.sh` now
+expects the current seven-row backend-output comparator path suite and treats the
+comparator process exit code plus schema emission as the dynamic C/LLVM artifact
+equality boundary. It no longer re-reads the comparator JSON `ok:true` field in
+shell for each stdout/stderr pair.
+
 TestHarness delta, 2026-07-06: `llvm_leg_helpers.sh` now resolves the
 TestHarness manifest source through the compiler-world path projection and
 resolves the default backend-output comparator source through the

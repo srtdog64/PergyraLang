@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Backend tri-compare consumes current comparator path suite
+
+- Updated `backend_output_tri_compare_parity.sh` to consume the seven-row
+  `backend-output-comparator-paths` manifest after the comparator argv artifact
+  row landed.
+- Stopped re-reading comparator JSON `ok:true` in shell for dynamic C/LLVM
+  stdout/stderr comparisons; the comparator exit code plus schema emission is
+  the runner boundary.
+- Tightened the component contract against reopening the old six-row path count
+  or shell-owned `ok:true` verdict check.
+
 ## 2026-07-06 - Runtime boundary clean verdict stops shell re-grep
 
 - Removed the runtime-boundary parity runner's clean-path shell `grep` oracle

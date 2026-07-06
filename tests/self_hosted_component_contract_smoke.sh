@@ -2468,7 +2468,7 @@ require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "pg
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "read_harness_manifest_suite"
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "compile_tri_comparator"
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" '"backend-output-comparator-paths"'
-require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "expected 6 comparator paths"
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "expected 7 comparator paths"
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'comparator_source="$ROOT_DIR/${comparator_paths[0]}"'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "pgy_selfhost_compile_backend_output_comparator"
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'TRI_COMPARE_BIN="$(pgy_selfhost_backend_output_comparator_bin "$WORK_DIR")"'
@@ -2489,7 +2489,8 @@ require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'ru
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" '$(pgy_quote_ps "$bin_native")${ps_args}'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'run_native_bin "$tri_bin" "$tri_stdout" "$tri_stderr" "$expected_arg" "$actual_arg" 0 1'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" '"schema":"pgy.selfhost.backend-output-comparator.v1"'
-require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" '"ok":true'
+reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" '"ok":true'
+reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "ok:true schema"
 reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "files_equal"
 reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "show_diff"
 reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cmp -s'

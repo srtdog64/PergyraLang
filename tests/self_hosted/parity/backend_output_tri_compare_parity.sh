@@ -185,9 +185,8 @@ run_pergyra_output_compare() {
         printf '%s\n' "$tri_out" >&2
         exit 1
     fi
-    if ! grep -Fq '"schema":"pgy.selfhost.backend-output-comparator.v1"' <<<"$tri_out" \
-        || ! grep -Fq '"ok":true' <<<"$tri_out"; then
-        echo "[self-host-parity:backend-tri-compare] comparator output missing ok:true schema for ${stream_label} in $source_rel" >&2
+    if ! grep -Fq '"schema":"pgy.selfhost.backend-output-comparator.v1"' <<<"$tri_out"; then
+        echo "[self-host-parity:backend-tri-compare] comparator output missing schema for ${stream_label} in $source_rel" >&2
         printf '%s\n' "$tri_out" >&2
         exit 1
     fi
@@ -289,8 +288,8 @@ compile_tri_comparator() {
         comparator_paths+=("$line")
     done <"$comparator_paths_file"
 
-    if [[ "${#comparator_paths[@]}" -ne 6 ]]; then
-        echo "[self-host-parity:backend-tri-compare] TestHarness manifest expected 6 comparator paths, got ${#comparator_paths[@]}" >&2
+    if [[ "${#comparator_paths[@]}" -ne 7 ]]; then
+        echo "[self-host-parity:backend-tri-compare] TestHarness manifest expected 7 comparator paths, got ${#comparator_paths[@]}" >&2
         exit 1
     fi
 
