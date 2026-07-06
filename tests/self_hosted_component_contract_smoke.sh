@@ -2643,6 +2643,10 @@ reject_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" 'cp 
 reject_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/examples_inventory_checker/expected/clean.json"'
 reject_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" '"kind":"inventory_count_drift"'
 reject_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" "DRIFT_FINDING_KIND"
+reject_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" '"examples":\([0-9][0-9]*\)'
+reject_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" '"missing":\([0-9][0-9]*\)'
+reject_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" '"empty":\([0-9][0-9]*\)'
+reject_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" '"max_lines":\([0-9][0-9]*\)'
 reject_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "CompilerHarnessExamplesInventoryDriftFindingKind"
 require_text "tests/self_hosted/parity/lexer_parity.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/lexer_parity.sh" '"lexer-parity-paths"'

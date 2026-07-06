@@ -59,7 +59,8 @@ Exit code: `0` on `ok:true`, `1` on `ok:false`.
 The Pergyra origin is the inventory owner: `DirWalk("examples")` supplies the
 sorted file snapshot and `TextScan.CountLines` supplies line counts. The shell
 harness only builds the tool, checks byte-equal clean JSON, and constructs a
-negative fixture; it no longer owns the clean inventory list.
+negative fixture; it no longer owns the clean inventory list or extracts
+`examples` / `missing` / `empty` / `max_lines` counts from the clean JSON.
 
 The parity rung (`tests/self_hosted/parity/`) asserts:
 
