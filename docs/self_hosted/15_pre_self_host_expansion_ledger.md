@@ -59,7 +59,7 @@ rule for pre-self-host expansion.
 | Self-host C string/text symbols | `src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy` | component contract, real-source selfcheck, codegen parity | supported string/text helper and conversion target-library call names are consumed from one owner inside the current self-host C subset |
 | Basic nominal-record arrays | LLVM array registry `elem_name` facts plus raw record-array runtime exports | `backend_compare/record_array_basic` through C and LLVM | `Array<NominalRecord>` can be created, passed as a parameter, pushed, set, popped, indexed, and used for member access without reopening AST type guessing |
 | DRV-0 artifact gate | `src/self_hosted/compiler/driver_rung0_owner.pgy`, `src/self_hosted/compiler/driver_rung0_main.pgy` | `self-host-driver-rung0-parity-test-smoke` | source path -> self-parser AST text -> self-codegen emitted C is assembled in one Pergyra owner boundary and compared against `pgy --ast` plus the current codegen oracle |
-| Artifact Zone evidence | `src/self_hosted/compiler/artifact_zone_owner.pgy`, `ArtifactZone` | `self-host-component-contract-test-smoke`, parity artifact gates | Comparable diagnostics, LSP, AST text, AIR/MIR JSON, ABI/layout, materialization, emitted C/LLVM/self-hosted, and run-output artifacts now route equality verdicts through `backend_output_comparator` with explicit artifact kinds. The only direct shell comparison left under `tests/self_hosted/parity` is `backend_output_comparator_parity.sh`, where shell is the comparator's own external oracle rather than a consumer fallback. |
+| Artifact Zone evidence | `src/self_hosted/compiler/artifact_zone_owner.pgy`, `ArtifactZone` | `self-host-component-contract-test-smoke`, parity artifact gates | Comparable diagnostics, LSP, AST text, AIR/MIR JSON, ABI/layout, materialization, emitted C/LLVM/self-hosted, and run-output artifacts now route equality verdicts through `backend_output_comparator` with explicit artifact kinds. Consumer parity scripts must not recompute artifact equality in shell; the comparator's own parity rung is limited to expected-JSON bootstrap comparison plus mismatch and missing-input fixtures. |
 
 ## Active Blockers
 
@@ -109,7 +109,12 @@ output oracle is the TestHarness-projected `expected/clean.json` compared
 through `backend_output_comparator`; shell remains only the process runner and
 negative-fixture executor for the dangling-endpoint case.
 
-TestHarness delta, 2026-07-05: backend_output_comparator_parity.sh now consumes its source, expected JSON, and comparable artifact paths from TestHarness through the `backend-output-comparator-paths` manifest suite. Shell is still the comparator's own external text-equivalence oracle, but it no longer owns the comparator input path constants.
+TestHarness delta, 2026-07-05: backend_output_comparator_parity.sh now consumes its source, expected JSON, and comparable artifact paths from TestHarness through the `backend-output-comparator-paths` manifest suite. Shell no longer owns the comparator input path constants.
+
+ArtifactZone delta, 2026-07-06: `backend_output_comparator_parity.sh` no longer
+performs a separate shell text-equivalence check over the clean fixture pair.
+The comparator owns artifact equality; its own parity rung keeps only the
+expected-JSON bootstrap comparison and the mismatch/missing-input fixtures.
 
 TestHarness delta, 2026-07-06: `backend_output_comparator_parity.sh` now
 compiles and runs the manifest-projected comparator source in place. It no

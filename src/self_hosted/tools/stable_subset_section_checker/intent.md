@@ -1,6 +1,6 @@
 # Stable Subset Section Checker -- Intent / Contract
 
-**Status:** *rung-2 minimal* (2026-05-27). Reads
+**Status:** *rung-2 minimal* (2026-07-06). Reads
 [`docs/107_beta_stable_subset.md`](../../../../docs/107_beta_stable_subset.md),
 counts `^## ` section headings, and emits the schema document with a real
 `counts.sections` value. `findings[]` lists missing canonical anchors.
@@ -54,17 +54,22 @@ Exit code: `0` on `ok:true`, `1` on `ok:false`. Missing manifest reports an
 
 ## Oracle
 
-The shell drift detector is the in-script `grep -c '^## '` ground truth plus a
-canonical anchor list defined alongside it. There is no existing C-side smoke
-that gates this contract today, so the Pergyra candidate is currently the
-*primary* implementation and the shell grep is the auxiliary parity backend.
+The clean oracle is the committed expected JSON artifact
+`expected/clean.json`, compared through the shared ArtifactZone/TestHarness
+path. There is no existing C-side smoke that gates this contract today, so the
+Pergyra checker owns the section count, canonical anchor list, and missing
+anchor verdict.
 
 The parity rung (`tests/self_hosted/parity/`) asserts:
 
 - The Pergyra origin exits `0` on the clean repo.
-- `counts.sections` and `counts.missing` agree with the shell grep + canonical
-  anchor list ground truth.
 - The emitted JSON byte-matches `expected/clean.json` on the clean repo.
+- A synthetic missing-section fixture exits `1` and reports the stripped
+  canonical anchor.
+- Both C and LLVM legs compile the same self-hosted checker.
+
+Do not add shell `grep -c '^## '` reconstruction as a second clean oracle; fix
+the self-hosted owner or add a negative fixture instead.
 
 ## Negative Fixture
 

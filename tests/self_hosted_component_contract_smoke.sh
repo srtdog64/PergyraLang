@@ -1757,6 +1757,9 @@ require_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" "let
 require_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" "manifest_path = args[0];"
 require_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" 'JsonEmitFieldString("manifest_owner", manifest_path)'
 reject_text "src/self_hosted/tools/stable_subset_section_checker/main.pgy" 'let json_parts: Array<String>'
+require_text "src/self_hosted/tools/stable_subset_section_checker/intent.md" "Pergyra checker owns the section count"
+reject_text "src/self_hosted/tools/stable_subset_section_checker/intent.md" "shell grep is the auxiliary parity backend"
+reject_text "src/self_hosted/tools/stable_subset_section_checker/intent.md" "grep -c '^## ' ground truth"
 require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" '"stable-subset-section-paths"'
 require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
@@ -3221,8 +3224,8 @@ require_text "tests/self_hosted/parity/mir_json_coverage_probe.sh" 'CODEGEN_SRC=
 reject_text "tests/self_hosted/parity/mir_json_coverage_probe.sh" 'MIR_LOWER_SRC="$ROOT_DIR/src/self_hosted/mir_lower/main.pgy"'
 reject_text "tests/self_hosted/parity/mir_json_coverage_probe.sh" 'CODEGEN_SRC="$ROOT_DIR/src/self_hosted/codegen/main.pgy"'
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" '| Artifact Zone evidence | `src/self_hosted/compiler/artifact_zone_owner.pgy`, `ArtifactZone` | `self-host-component-contract-test-smoke`, parity artifact gates |'
-require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" 'only direct shell comparison left under `tests/self_hosted/parity` is `backend_output_comparator_parity.sh`'
-require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "where shell is the comparator's own external oracle rather than a consumer fallback"
+require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "Consumer parity scripts must not recompute artifact equality in shell"
+require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "expected-JSON bootstrap comparison plus mismatch and missing-input fixtures"
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "backend_output_comparator_parity.sh now consumes its source, expected JSON, and comparable artifact paths from TestHarness"
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "lexer_parity.sh now consumes its lexer source, backend comparator source, and lexer fixture directory from TestHarness"
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "When a surface is ready only for the current self-host C subset"
@@ -3239,7 +3242,14 @@ require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "single evi
 reject_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "It remains active until all parity artifacts are written and compared from this owner."
 reject_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "AIR evidence, Artifact Zone, and TestHarness"
 reject_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" 'Native C/LLVM target-specific consumers still need to read the same envelope before this surface can leave `ACTIVE`'
-require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "Shell text equivalence is the parity backend"
+require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "expected-json clean"
+reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "Shell text equivalence is the parity backend"
+reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "Shell drift detector"
+reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "shell drift detector disagrees"
+reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'EXPECTED_CONTENT_RAW="$(<"$FIXTURE_EXPECTED")"'
+reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'ACTUAL_CONTENT_RAW="$(<"$FIXTURE_ACTUAL")"'
+reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "EXPECTED_CONTENT_NORM"
+reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "ACTUAL_CONTENT_NORM"
 reject_text "tests/self_hosted/parity/codegen_parity.sh" "MINGW BYPASS"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$oracle_raw" "$oracle_err" "$oracle_exe" "${run_args[@]}"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$run_raw" "$run_err" "$self_exe" "${run_args[@]}"'

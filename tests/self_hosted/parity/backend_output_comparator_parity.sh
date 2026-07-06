@@ -3,7 +3,7 @@
 #
 # Pergyra is the origin
 # (src/self_hosted/tools/backend_output_comparator/main.pgy).
-# Shell text equivalence is the parity backend. Asserts:
+# Asserts:
 #   - clean fixture (expected == actual): rc=0, JSON byte-equal vs
 #     expected/clean.json
 #   - synthetic mismatch fixture: rc=1, mismatch_lines >= 1, ok:false
@@ -142,41 +142,6 @@ else
     fi
 fi
 
-# Shell drift detector for clean -- diff -q must agree. MSYS2 /
-# Git-for-Windows checkouts can land text fixtures with CRLF endings
-# depending on autocrlf and .gitattributes ordering (we saw
-# --strip-trailing-cr still disagree in one Windows run, which means
-# at least one byte is escaping that flag's normalization). The
-# Pergyra tool already compares line-by-line after its own
-# normalization, so we mirror that more aggressively here: strip all
-# CRs (not just trailing-CR-per-line) from both files via tr before
-# the shell diff. That matches what the Pergyra tool's
-# line-iteration accepts.
-# Shell drift detector for clean -- the previous run on ci-windows
-# returned rc=127 (command not found) on `diff -q`. MSYS2's minimal
-# Pergyra build environment doesn't ship GNU diff in the search PATH,
-# so we can't rely on that binary. Switch to a pure-bash equivalence
-# check via `$(<file)`: read both fixtures into shell strings after
-# CR normalization (still required because the on-disk bytes can
-# differ even when the rendered text is the same), then compare with
-# `[[ == ]]`. No external binary, no rc=127 / rc=2 misreporting.
-EXPECTED_CONTENT_RAW="$(<"$FIXTURE_EXPECTED")"
-ACTUAL_CONTENT_RAW="$(<"$FIXTURE_ACTUAL")"
-EXPECTED_CONTENT_NORM="${EXPECTED_CONTENT_RAW//$'\r'/}"
-ACTUAL_CONTENT_NORM="${ACTUAL_CONTENT_RAW//$'\r'/}"
-if [[ "$EXPECTED_CONTENT_NORM" != "$ACTUAL_CONTENT_NORM" ]]; then
-    echo "[self-host-parity:backend-output-comparator] shell drift detector disagrees with Pergyra (clean)" >&2
-    # Surface the exact bytes that diverged so a future run has a
-    # concrete trace instead of just the error line.
-    {
-        echo "--- expected (size=$(wc -c <"$FIXTURE_EXPECTED")) ---"
-        od -c "$FIXTURE_EXPECTED" | head -5
-        echo "--- actual   (size=$(wc -c <"$FIXTURE_ACTUAL")) ---"
-        od -c "$FIXTURE_ACTUAL" | head -5
-    } >&2
-    exit 1
-fi
-
 # Phase 2 - synthetic mismatch fixture (different middle line in actual.txt).
 NEG_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/pgy-selfhost-cmp.XXXXXX")"
 cleanup_neg_root() {
@@ -237,4 +202,4 @@ if ! grep -Fq '"kind":"input_error"' <<<"$MISS_OUT"; then
     exit 1
 fi
 
-echo "[self-host-parity:backend-output-comparator] rung-2 parity ok (clean rc=0; mismatch rc=1; missing-input rc=1; $LLVM_BACKEND_LABEL)"
+echo "[self-host-parity:backend-output-comparator] rung-2 parity ok (expected-json clean; mismatch rc=1; missing-input rc=1; $LLVM_BACKEND_LABEL)"

@@ -551,8 +551,9 @@ rewrite history.
   source, expected clean JSON, and expected/actual comparable artifacts from the
   compiled TestHarness manifest before running clean, argv, mismatch, missing,
   and LLVM parity legs.
-- Kept shell as the comparator's own external text-equivalence oracle while
-  removing the old shell-owned path constants from that self-test.
+- At the time, shell still acted as the comparator self-test's text-equivalence
+  oracle while path constants moved behind TestHarness. This exception was
+  later retired by the 2026-07-06 Backend Output Comparator entry below.
 
 ## 2026-07-05 - AIR graph consumer paths consume TestHarness owner
 
@@ -739,9 +740,10 @@ rewrite history.
 
 - Reclassified `Artifact Zone evidence` from ACTIVE to READY in
   `15_pre_self_host_expansion_ledger.md`.
-- The measured remaining direct shell comparison under `tests/self_hosted/parity`
-  is `backend_output_comparator_parity.sh`, where shell is the comparator's own
-  external oracle rather than a consumer fallback.
+- At the time, the measured remaining comparator self-test exception under
+  `tests/self_hosted/parity` was `backend_output_comparator_parity.sh`; that
+  shell text-equivalence exception was later retired by the 2026-07-06 Backend
+  Output Comparator entry below.
 - Kept `TestHarnessZone` ACTIVE because shell parity scripts are still the
   primary harness owner; only the artifact equality verdict surface is ready.
 - Tightened `self_hosted_component_contract_smoke.sh` so the ledger must keep
@@ -4353,3 +4355,25 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   proof for the report owner and run boundary, and kept the C/LLVM leg parity.
 - Tightened `self_hosted_component_contract_smoke.sh` so shell diagnostic
   counter oracles cannot return to this parity rung.
+
+### 2026-07-06 -- Stable subset section docs align with self-host oracle
+
+- Updated `stable_subset_section_checker/intent.md` to match the already-landed
+  parity script: clean truth is the self-hosted checker JSON compared through
+  ArtifactZone/TestHarness, plus a synthetic missing-section fixture.
+- Removed stale wording that described shell `grep -c '^## '` as the auxiliary
+  clean oracle.
+- Tightened `self_hosted_component_contract_smoke.sh` so the stale shell-oracle
+  wording cannot return to the intent contract.
+
+### 2026-07-06 -- Backend output comparator removes shell text oracle
+
+- Removed the final clean-fixture shell text-equivalence block from
+  `backend_output_comparator_parity.sh`. The comparator now owns artifact
+  equality even in its own parity rung.
+- Kept the comparator bootstrap expected-JSON check plus the synthetic mismatch
+  and missing-input fixtures as the proof surface.
+- Updated the pre-self-host expansion ledger so ArtifactZone evidence no longer
+  describes `backend_output_comparator_parity.sh` as a shell external oracle.
+- Tightened `self_hosted_component_contract_smoke.sh` so the shell text
+  equivalence block and stale wording cannot return.
