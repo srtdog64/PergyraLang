@@ -459,19 +459,34 @@ func CompilerHarnessAstReadSurfaceRatchetPath() -> String {
     return "tests/ast_read_surface_ratchet.txt";
 }
 
+func CompilerHarnessAstReadSurfaceGrowthFixturePath() -> String {
+    return "src/codegen/synthetic_source_ast.c";
+}
+
+func CompilerHarnessAstReadSurfaceGrowthSourceLine() -> String {
+    return "source_ast /* synthetic growth */";
+}
+
+func CompilerHarnessAstReadSurfaceGrowthRatchetRow() -> String {
+    return "source_ast_codegen|source_ast|0|src/codegen";
+}
+
 func CompilerHarnessAstReadSurfacePathCount() -> Int {
-    return 3;
+    return 6;
 }
 
 func CompilerHarnessAstReadSurfacePathAt(index: Int) -> String {
     if index == 0 { return CompilerHarnessAstReadSurfaceToolSourcePath(); }
     if index == 1 { return CompilerHarnessAstReadSurfaceExpectedJsonPath(); }
     if index == 2 { return CompilerHarnessAstReadSurfaceRatchetPath(); }
+    if index == 3 { return CompilerHarnessAstReadSurfaceGrowthFixturePath(); }
+    if index == 4 { return CompilerHarnessAstReadSurfaceGrowthSourceLine(); }
+    if index == 5 { return CompilerHarnessAstReadSurfaceGrowthRatchetRow(); }
     return "";
 }
 
 func CompilerHarnessAstReadSurfaceReady() -> Bool {
-    if CompilerHarnessAstReadSurfacePathCount() != 3 {
+    if CompilerHarnessAstReadSurfacePathCount() != 6 {
         return false;
     }
     let i: Int = 0;

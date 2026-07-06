@@ -379,6 +379,12 @@ compiles and runs the manifest-projected checker source in place. It no longer
 creates a build-dir `main.pgy` alias or copies the self-hosted `lib` tree
 beside that alias before invoking the compiler.
 
+TestHarness delta, 2026-07-06: `ast_read_surface_checker_parity.sh` now gets
+the synthetic growth source path, growth source line, and growth ratchet row
+through `test_harness_tool_paths_owner.pgy`. Shell still creates the scratch
+growth fixture, but no longer owns the `source_ast` surface payload or ratchet
+row used to prove fail-closed growth detection.
+
 TestHarness delta, 2026-07-05: `air_graph_json_validator_parity.sh` now gets
 the checker source, AIR evidence owner, expected clean JSON, committed AIR
 fixtures, and live AIR source paths through the

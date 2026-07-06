@@ -2042,6 +2042,9 @@ require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func 
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceExpectedJsonPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceRatchetPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceGrowthFixturePath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceGrowthSourceLine"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceGrowthRatchetRow"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfacePathAt"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceReady"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventorySuiteName"
@@ -2408,6 +2411,10 @@ require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'PERG
 require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"'
 require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'RATCHET_REL="${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'GROWTH_SOURCE_REL="${harness_paths[3]}"'
+require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'GROWTH_SOURCE_LINE="${harness_paths[4]}"'
+require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'GROWTH_RATCHET_ROW="${harness_paths[5]}"'
+require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" "TestHarness manifest expected 6 ast-read-surface rows"
 require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" '"$CLEAN_BIN"'
 reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/ast_read_surface_checker/main.pgy"'
 reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
@@ -2415,6 +2422,9 @@ reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'cp "$
 reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'
 reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/ast_read_surface_checker/expected/clean.json"'
 reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'RATCHET_REL="tests/ast_read_surface_ratchet.txt"'
+reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" "src/codegen/synthetic_source_ast.c"
+reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" "source_ast_codegen|source_ast|0|src/codegen"
+reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" "seq 1 1"
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "JsonEmitArray(findings)"

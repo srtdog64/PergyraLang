@@ -42,14 +42,17 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 3 ]]; then
-    echo "[self-host-parity:ast-read-surface] TestHarness manifest expected 3 ast-read-surface paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 6 ]]; then
+    echo "[self-host-parity:ast-read-surface] TestHarness manifest expected 6 ast-read-surface rows, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
 RATCHET_REL="${harness_paths[2]}"
+GROWTH_SOURCE_REL="${harness_paths[3]}"
+GROWTH_SOURCE_LINE="${harness_paths[4]}"
+GROWTH_RATCHET_ROW="${harness_paths[5]}"
 RATCHET_FILE="$ROOT_DIR/$RATCHET_REL"
 
 for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$RATCHET_FILE"; do
@@ -58,6 +61,10 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$RATCHET_FILE"; do
         exit 1
     fi
 done
+if [[ -z "$GROWTH_SOURCE_REL" || -z "$GROWTH_SOURCE_LINE" || -z "$GROWTH_RATCHET_ROW" ]]; then
+    echo "[self-host-parity:ast-read-surface] invalid TestHarness growth fixture row" >&2
+    exit 1
+fi
 
 PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
 
@@ -104,14 +111,10 @@ cleanup_neg_root() {
     rm -rf "$NEG_ROOT"
 }
 trap cleanup_neg_root EXIT
-mkdir -p "$NEG_ROOT/src/codegen"
-mkdir -p "$NEG_ROOT/tests"
-{
-    for k in $(seq 1 1); do
-        echo "source_ast /* synthetic growth $k */"
-    done
-} > "$NEG_ROOT/src/codegen/synthetic_source_ast.c"
-echo "source_ast_codegen|source_ast|0|src/codegen" > "$NEG_ROOT/$RATCHET_REL"
+mkdir -p "$NEG_ROOT/$(dirname "$GROWTH_SOURCE_REL")"
+mkdir -p "$NEG_ROOT/$(dirname "$RATCHET_REL")"
+printf '%s\n' "$GROWTH_SOURCE_LINE" > "$NEG_ROOT/$GROWTH_SOURCE_REL"
+printf '%s\n' "$GROWTH_RATCHET_ROW" > "$NEG_ROOT/$RATCHET_REL"
 
 set +e
 NEG_OUT="$(cd "$NEG_ROOT" && "$CLEAN_BIN" 2>&1)"

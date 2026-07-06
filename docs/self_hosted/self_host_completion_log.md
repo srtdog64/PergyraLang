@@ -25,6 +25,16 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - AST read surface growth fixture consumes TestHarness owner
+
+- Extended `ast-read-surface-paths` with the synthetic growth source path,
+  growth source line, and growth ratchet row.
+- Repointed `ast_read_surface_checker_parity.sh` so shell creates the scratch
+  source-growth fixture from TestHarness-projected rows instead of owning the
+  synthetic `source_ast` payload and ratchet line.
+- Tightened the component contract against reintroducing the hardcoded
+  `source_ast_codegen` growth fixture in shell.
+
 ## 2026-07-06 - Stdlib dispatch drift fixture consumes TestHarness owner
 
 - Extended `stdlib-dispatch-inventory-paths` with the synthetic drift fixture's
