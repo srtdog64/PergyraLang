@@ -59,17 +59,16 @@ Exit code: `0` on `ok:true`, `1` on `ok:false`. Missing manifest reports
 
 ## Oracle
 
-The shell drift detector is `grep -c` against the manifest for `"name":`,
-`"beta_blocker": true`, `"status": "stable-subset"`. There is no existing
-C-side smoke today that emits this structured JSON; the Pergyra origin is
-the primary implementation and the shell grep is the auxiliary parity
-backend.
+The TestHarness-projected `expected/clean.json` artifact is the clean-output
+oracle. There is no separate shell count oracle for `"name":`,
+`"beta_blocker": true`, or `"status": "stable-subset"`; those counts are owned
+by the Pergyra JSON fact-table implementation and compared through the
+ArtifactZone comparator.
 
 The parity rung (`tests/self_hosted/parity/`) asserts:
 
 - The Pergyra origin exits `0` on the live manifest.
 - Emitted JSON byte-matches `expected/clean.json` on the live manifest.
-- Counts match shell grep ground truth on the live manifest.
 - A synthetic missing-modules-key fixture (strip the `"modules":` key) is
   detected via `missing_modules_key` finding and `rc=1`.
 

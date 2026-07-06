@@ -3,9 +3,9 @@
 #
 # Pergyra is the origin
 # (src/self_hosted/tools/module_manifest_resolver/main.pgy).
-# Shell grep is the parity backend. Asserts:
+# The TestHarness-projected expected JSON artifact is the clean-output oracle.
+# Asserts:
 #   - clean repo: rc=0, JSON byte-equal vs expected/clean.json
-#   - count parity vs shell grep on docs/language_module_manifest.json
 #   - synthetic missing-modules-key fixture: rc=1, missing_modules_key finding
 # See tests/self_hosted/parity/README.md.
 
@@ -88,29 +88,6 @@ if [[ "$P_RC" -ne 0 ]]; then
 fi
 if ! grep -Fq 'pgy.selfhost.module-manifest-resolver.v1' <<<"$PERGYRA_OUT"; then
     echo "[self-host-parity:module-manifest-resolver] schema header missing" >&2
-    exit 1
-fi
-
-# Shell drift detector.
-SHELL_MODULES="$(grep -c '"name":' "$ROOT_DIR/$MANIFEST_PATH" || true)"
-SHELL_BLOCKERS="$(grep -c '"beta_blocker": true' "$ROOT_DIR/$MANIFEST_PATH" || true)"
-SHELL_STABLE="$(grep -c '"status": "stable-subset"' "$ROOT_DIR/$MANIFEST_PATH" || true)"
-if [[ -z "$SHELL_MODULES" || "$SHELL_MODULES" -eq 0 ]]; then
-    echo "[self-host-parity:module-manifest-resolver] shell ground truth empty" >&2
-    exit 1
-fi
-
-if ! grep -Fq "\"modules\":${SHELL_MODULES}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:module-manifest-resolver] counts.modules parity FAIL (shell=${SHELL_MODULES})" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "\"beta_blockers\":${SHELL_BLOCKERS}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:module-manifest-resolver] counts.beta_blockers parity FAIL (shell=${SHELL_BLOCKERS})" >&2
-    exit 1
-fi
-if ! grep -Fq "\"stable_subset\":${SHELL_STABLE}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:module-manifest-resolver] counts.stable_subset parity FAIL (shell=${SHELL_STABLE})" >&2
     exit 1
 fi
 
@@ -214,4 +191,4 @@ if ! grep -Fq '"kind":"field_count_mismatch"' <<<"$NESTED_OUT" ||
 fi
 
 assert_llvm_leg "self-host-parity:module-manifest-resolver" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$MANIFEST_PATH"
-echo "[self-host-parity:module-manifest-resolver] rung-2 parity ok (modules=$SHELL_MODULES blockers=$SHELL_BLOCKERS stable=$SHELL_STABLE; missing-modules-key rc=1; nested-modules rc=1; nested-field rc=1)"
+echo "[self-host-parity:module-manifest-resolver] rung-2 parity ok (expected-json clean; missing-modules-key rc=1; nested-modules rc=1; nested-field rc=1)"

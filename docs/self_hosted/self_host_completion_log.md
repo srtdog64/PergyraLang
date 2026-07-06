@@ -25,6 +25,16 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Module manifest clean oracle uses expected artifact only
+
+- Removed the redundant shell `grep -c` clean-count oracle from
+  `module_manifest_resolver_parity.sh`.
+- Clean module, beta-blocker, and stable-subset counts now have one source of
+  truth: the TestHarness-projected `expected/clean.json` compared through
+  `backend_output_comparator`.
+- Updated the module manifest resolver intent contract and component ratchet so
+  the shell count oracle cannot reappear in that runner.
+
 ## 2026-07-06 - Codegen bootstrap breadth rows move behind TestHarness
 
 - Extended `test_harness_codegen_bootstrap_paths_owner.pgy` with

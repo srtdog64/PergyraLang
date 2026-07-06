@@ -136,6 +136,12 @@ manifest-projected checker sources in place. They no longer create build-dir
 `main.pgy` aliases or copy the self-hosted `lib` tree beside those aliases
 before invoking the compiler.
 
+ArtifactZone delta, 2026-07-06: `module_manifest_resolver_parity.sh` no longer
+recomputes clean module, beta-blocker, or stable-subset counts with shell
+`grep`. The clean output oracle is the TestHarness-projected
+`expected/clean.json` compared through `backend_output_comparator`; shell
+remains only the process runner and negative-fixture mutator.
+
 TestHarness delta, 2026-07-05: lexer_parity.sh now consumes its lexer source, backend comparator source, and lexer fixture directory from TestHarness through the `lexer-parity-paths` manifest suite. The compiled lexer owner still emits the fixture source/expected row inventory, so shell executes the parity loop without owning either the tool path constants or the fixture mapping.
 
 TestHarness delta, 2026-07-06: `codegen_parity.sh` now consumes its codegen

@@ -2427,6 +2427,9 @@ require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'PERG
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'MANIFEST_PATH="${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" '"$CLEAN_BIN" "$MANIFEST_PATH"'
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'assert_llvm_leg "self-host-parity:module-manifest-resolver" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$MANIFEST_PATH"'
+require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "expected-json clean"
+reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "SHELL_MODULES="
+reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "grep -c '\"name\":'"
 reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/module_manifest_resolver/main.pgy"'
 reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
 reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"'
