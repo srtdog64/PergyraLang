@@ -503,10 +503,12 @@ beyond the lexer:
   arena vocabulary, explicit child lookup, atom lookup, and a small traversal
   payload fixture. `PgyCompilerWorld` now requires that contract through
   `CompilerEmissionFactReady()` before `ProgramEmitter` can claim emission
-  readiness, and `GenerateC` now consumes `CodegenTypedAstBridgeReady` over the
-  owned `CodegenAstTextNode` inventory before emitting. Current parser and
-  codegen rungs still consume text AST artifacts; the next closure is making
-  those passes consume the typed arena with oracle parity.
+  readiness. `GenerateC` now consumes `CodegenTypedAstBridgeReady` over the
+  owned `CodegenAstTextNode` inventory before emitting, and that guard projects
+  the real inventory into `AstArena` rows with node-count, kind, atom, and root
+  child-edge checks. Current parser and codegen rungs still consume text AST
+  artifacts; the next closure is repointing emission consumers to typed arena
+  `NodeId` facts with oracle parity.
 - **Raw pointer / FFI** -- if a Pergyra component needs to call into
   the C compiler's runtime (e.g. share the diagnostic emitter), there
   is no stable FFI today. This is intentional for the current compiler-pass

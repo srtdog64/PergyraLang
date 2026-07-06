@@ -90,6 +90,15 @@ remains ACTIVE because codegen still receives `pgy --ast` line text through the
 bridge; this slice only makes the replacement arena concrete enough for later
 parser and codegen cutovers.
 
+TypedAst delta, 2026-07-07: the AST-text bridge now projects the real
+`CodegenAstTextNode` inventory into an `AstArena` with row-aligned kind, atom,
+and child-edge facts. `CodegenTypedAstBridgeReady(...)` no longer proves only
+the standalone fixture: it builds `CodegenAstTextTypedArenaFromNodes(...)`,
+checks node count and per-row kind/atom lookup through the typed arena
+accessors, and verifies that a non-empty program has a root child edge. This
+keeps the mixed AST blocker ACTIVE, but it makes the bridge's typed arena
+projection load-bearing on every self-host C emission path.
+
 TestHarness delta, 2026-07-05: `test_harness_air_graph_paths_owner.pgy`
 now owns the five AIR graph consumer path suites separately from the generic
 tool-path owner. `air_graph_id_uniqueness_parity.sh`,

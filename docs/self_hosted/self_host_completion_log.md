@@ -4784,3 +4784,23 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Verified with `self-host-component-contract-test-smoke`,
   `self-host-compiler-world-contract-test-smoke`, and
   `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`).
+
+### 2026-07-07 -- Typed AST arena projection becomes bridge-load-bearing
+
+- Added `CodegenAstTextTypedArenaFromNodes(...)`, which projects the real
+  `CodegenAstTextNode` inventory into the `AstArena` row contract instead of
+  leaving the typed arena as a standalone fixture.
+- Added `CodegenAstTextTypedArenaProjectionReady(...)` and made
+  `CodegenTypedAstBridgeReady(...)` consume it. The bridge now checks node
+  count, per-row kind facts, atom lookup facts, and a root child edge through
+  typed arena accessors before codegen emission can proceed.
+- Tightened `self_hosted_component_contract_smoke.sh` so the bridge readiness
+  path cannot regress to fixture-only proof.
+- The mixed AST-like tree blocker remains ACTIVE: emission still consumes the
+  transitional AST-text node inventory. The next cutover is repointing specific
+  emission consumers from `CodegenAstTextNode` payload/provenance to `NodeId`
+  arena facts under oracle parity.
+- Verified with `self-host-component-contract-test-smoke`,
+  `self-host-compiler-world-contract-test-smoke`, and
+  `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
+  6906 generated-C lines).

@@ -110,7 +110,7 @@ compiler-stage `.pgy` source to be listed here.
 
 - `src/self_hosted/codegen/main.pgy` -- entrypoint only.
 - `src/self_hosted/codegen/input/ast_input_owner.pgy` -- AST path and read boundary.
-- `src/self_hosted/codegen/input/ast_text_inventory_owner.pgy` -- AST text line inventory, kind row facts, and cursor expectation boundary.
+- `src/self_hosted/codegen/input/ast_text_inventory_owner.pgy` -- AST text line inventory, kind row facts, typed arena projection, and cursor expectation boundary.
 - `src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy` -- AST text name/type/mode row facts derived from inventory payloads.
 - `src/self_hosted/codegen/input/ast_text_statement_owner.pgy` -- AST text statement-row fact accessors for the transitional bridge.
 - `src/self_hosted/codegen/input/ast_usage_owner.pgy` -- runtime/header usage facts derived from the AST text node inventory.
