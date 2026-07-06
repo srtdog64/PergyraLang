@@ -35,6 +35,16 @@ rewrite history.
 - Updated the module manifest resolver intent contract and component ratchet so
   the shell count oracle cannot reappear in that runner.
 
+## 2026-07-06 - Doc-link clean oracle uses expected artifact only
+
+- Removed the redundant shell `grep -oE` / `wc -l` clean-count oracle from
+  `doc_link_checker_parity.sh`.
+- Clean total-link, markdown-link, and missing-link counts now have one source
+  of truth: the TestHarness-projected `expected/clean.json` compared through
+  `backend_output_comparator`.
+- Updated the doc-link checker intent contract and component ratchet so the
+  shell count oracle cannot reappear in that runner.
+
 ## 2026-07-06 - Codegen bootstrap breadth rows move behind TestHarness
 
 - Extended `test_harness_codegen_bootstrap_paths_owner.pgy` with

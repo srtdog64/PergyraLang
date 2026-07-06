@@ -2341,7 +2341,10 @@ require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'PERGYRA_TOOL
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'INDEX_PATH="${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" '"$CLEAN_BIN" "$INDEX_PATH"'
+require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" "expected-json clean"
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'assert_llvm_leg "self-host-parity:doc-link-checker" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$INDEX_PATH"'
+reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" "SHELL_TOTAL="
+reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" "grep -oE '\\]\\('"
 reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/doc_link_checker/main.pgy"'
 reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
 reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"'

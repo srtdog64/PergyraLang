@@ -114,6 +114,12 @@ runs the manifest-projected doc-link checker source in place. It no longer
 creates a build-dir `main.pgy` alias or copies the self-hosted `lib` tree
 beside that alias before invoking the compiler.
 
+ArtifactZone delta, 2026-07-06: `doc_link_checker_parity.sh` no longer
+recomputes clean total-link or markdown-link counts with shell `grep`/`wc`.
+The clean output oracle is the TestHarness-projected `expected/clean.json`
+compared through `backend_output_comparator`; shell remains only the process
+runner and negative-fixture mutator for the dead-link case.
+
 TestHarness delta, 2026-07-06: `examples_inventory_checker_parity.sh` now
 compiles and runs the manifest-projected examples-inventory checker source in
 place. It no longer creates a build-dir `main.pgy` alias or copies the

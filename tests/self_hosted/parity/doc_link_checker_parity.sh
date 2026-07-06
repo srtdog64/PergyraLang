@@ -2,9 +2,8 @@
 # Rung 2 parity for the doc link checker (2026-05-27).
 #
 # Pergyra is the origin (src/self_hosted/tools/doc_link_checker/main.pgy).
-# Shell grep is the parity backend. Asserts:
+# The TestHarness-projected expected artifact is the clean-output oracle. Asserts:
 #   - clean repo: rc=0, JSON byte-equal vs expected/clean.json
-#   - total/md link count parity vs `grep -oE`
 #   - synthetic dead-link fixture: rc=1, missing_link finding
 # See tests/self_hosted/parity/README.md.
 
@@ -90,24 +89,6 @@ if ! grep -Fq 'pgy.selfhost.doc-link-checker.v1' <<<"$PERGYRA_OUT"; then
     exit 1
 fi
 
-# Shell drift detector.
-SHELL_TOTAL="$(grep -oE '\]\(' "$ROOT_DIR/$INDEX_PATH" | wc -l | tr -d ' ')"
-SHELL_MD="$(grep -oE '\]\([^)]+\.md\)' "$ROOT_DIR/$INDEX_PATH" | wc -l | tr -d ' ')"
-if [[ -z "$SHELL_TOTAL" || "$SHELL_TOTAL" -eq 0 ]]; then
-    echo "[self-host-parity:doc-link-checker] shell ground truth empty" >&2
-    exit 1
-fi
-
-if ! grep -Fq "\"total_links\":${SHELL_TOTAL}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:doc-link-checker] total_links parity FAIL (shell=${SHELL_TOTAL})" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "\"md_links\":${SHELL_MD}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:doc-link-checker] md_links parity FAIL (shell=${SHELL_MD})" >&2
-    exit 1
-fi
-
 PERGYRA_JSON="$(printf '%s\n' "$PERGYRA_OUT" \
     | tr -d '\r' \
     | grep -F 'pgy.selfhost.doc-link-checker.v1' \
@@ -153,4 +134,4 @@ if ! grep -Fq 'XX_NONEXISTENT_FAKE_DRIFT.md' <<<"$NEG_OUT"; then
 fi
 
 assert_llvm_leg "self-host-parity:doc-link-checker" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$INDEX_PATH"
-echo "[self-host-parity:doc-link-checker] rung-2 parity ok (total=$SHELL_TOTAL md=$SHELL_MD missing=0; dead-link fixture rc=1)"
+echo "[self-host-parity:doc-link-checker] rung-2 parity ok (expected-json clean; dead-link fixture rc=1)"

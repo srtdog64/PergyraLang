@@ -55,16 +55,16 @@ Exit code: `0` on `ok:true`, `1` on `ok:false`. Missing input reports
 
 ## Oracle
 
-The shell drift detector is `grep -c '](' docs/INDEX.md` for total link
-count and a per-target `[[ -f docs/$path ]]` for liveness. There is no
-existing C-side doc-link smoke today; the Pergyra origin is the primary
-implementation and the shell loop is the auxiliary parity backend.
+The clean-output oracle is the TestHarness-projected
+`expected/clean.json` artifact compared through the shared backend output
+comparator. There is no existing C-side doc-link smoke today; the Pergyra
+origin is the primary implementation, and shell only executes the compiled
+tool plus constructs the synthetic dead-link fixture.
 
 The parity rung (`tests/self_hosted/parity/`) asserts:
 
 - The Pergyra origin exits `0` on the clean repo (no dead links).
 - Emitted JSON byte-matches `expected/clean.json`.
-- The `md_links` count matches a shell-side `.md` link count.
 - A synthetic dead-link fixture (rewrite one link target to a path that
   does not exist) yields `rc=1` with a `"kind":"missing_link"` finding.
 
