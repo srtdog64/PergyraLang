@@ -53,7 +53,6 @@ if [[ "${#harness_paths[@]}" -ne 5 ]]; then
 fi
 
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
-PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
 C_DISPATCH="${harness_paths[2]}"
 C_UNARY_DISPATCH="${harness_paths[3]}"
@@ -66,14 +65,7 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$ROOT_DIR/$C_DISPATCH"
     fi
 done
 
-cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
-
-# Mirror src/self_hosted/lib/ -> .tmp/lib/ so the tool's
-# `import "../../lib/..."` resolves under the copied source.
-LIB_BUILD_DIR="$ROOT_DIR/.tmp/lib"
-mkdir -p "$LIB_BUILD_DIR"
-cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
-PERGYRA_TOOL_INPUT="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
+PERGYRA_TOOL_INPUT="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
 
 CLEAN_BIN="$PERGYRA_TOOL_BUILD_DIR/stdlib_dispatch_inventory_c.exe"
 CLEAN_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/stdlib_dispatch_inventory_c.compile.log"

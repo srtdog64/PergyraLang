@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Module manifest and stdlib dispatch parity use source owners
+
+- Repointed `module_manifest_resolver_parity.sh` and
+  `stdlib_dispatch_inventory_checker_parity.sh` so their TestHarness source rows
+  are passed to the compiler directly.
+- Removed the build-dir `main.pgy` aliases and copied `lib` trees from both
+  parity runners; imports now resolve from the manifest-projected source
+  locations.
+- Tightened the component contract so the local source/lib copy paths cannot
+  return to these runners.
+
 ## 2026-07-06 - Linter and runtime-boundary parity use source owners in place
 
 - Repointed `linter_parity.sh` and `runtime_boundary_checker_parity.sh` so their
