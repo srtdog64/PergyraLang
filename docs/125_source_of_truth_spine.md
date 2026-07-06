@@ -408,6 +408,8 @@ Current beta closure snapshot:
   assertions in `src/runtime/pgy_abi_spec_asserts.h` and MIR consumer facts in
   `src/compiler/mir_abi_layout.c`. `Option<T>` is currently an explicit tagged
   layout (`MIR_ABI_REPR_EXPLICIT_TAG`) with `niche_none_pattern == NULL`.
+  `mir_abi_lookup(...)` accepts exact ABI row names only; runtime function
+  names are payloads on those rows, not a fallback source of layout truth.
   Debug/release is a build policy, not a second ABI type-name dimension:
   canonical runtime ABI names must not grow `_dbg` or `_rel` typedef aliases.
   Checked/raw mode differences are represented by policy macros and MIR ABI

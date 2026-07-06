@@ -469,14 +469,6 @@ require_literal "src/compiler/mir_type_helpers.c" \
     "mir_type_append_owned"
 require_literal "src/compiler/mir_type_helpers.c" \
     "written < 0 || written != length"
-require_literal "src/compiler/mir_abi_layout.c" \
-    "mir_extract_inner_type_suffix_owned"
-require_literal "src/compiler/mir_abi_layout.c" \
-    "mir_abi_lookup_runtime_fmt"
-require_literal "src/compiler/mir_abi_layout.c" \
-    "written < 0 || written != needed"
-require_literal "src/compiler/mir_abi_layout.c" \
-    "free(suffix)"
 require_literal "src/compiler/mir_base_helpers.c" \
     "written < 0 || written != length"
 require_literal "src/compiler/mir_lifecycle.c" \

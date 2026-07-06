@@ -101,6 +101,10 @@ require_term "src/compiler/mir_abi_layout.c" 'ABI_FIELD_STRUCT("occupied", pgy_a
 require_term "src/compiler/mir_abi_layout.c" 'ABI_FIELD_STRUCT("token", pgy_abi_secure_slot_int, token)'
 reject_term "src/compiler/mir_abi_layout.c" "Slot<Int>_rel"
 reject_term "src/compiler/mir_abi_layout.c" 'mir_abi_format_owned("%s_rel"'
+reject_term "src/compiler/mir_abi_layout.c" "mir_abi_lookup_runtime_fmt"
+reject_term "src/compiler/mir_abi_layout.c" "mir_extract_inner_type_suffix_owned"
+reject_term "src/compiler/mir_abi_layout.c" "runtime function name pattern"
+require_term "src/compiler/mir_abi_layout.c" "Runtime function spelling is payload carried"
 require_term "src/test_abi_spec.c" "runtime size matches checked ABI"
 reject_term "src/test_abi_spec.c" "PGY_RUNTIME_SLOT_MODE_CHECKED"
 reject_term "src/test_abi_spec.c" "raw slot mode"
@@ -179,7 +183,7 @@ require_term "src/runtime/slot_manager.h" "uintptr_t pinThreadAffinity;"
 if grep -Fq "0xffffffffu" "$ROOT_DIR/src/runtime/slot_manager.c"; then
     fail "slot pin thread affinity must not truncate pthread_self to 32 bits"
 fi
-require_term "src/runtime/slot_manager_pin.c" "SlotValidateToken(manager, handle, token)"
+require_term "src/runtime/slot_manager_pin.c" "slot_token_valid_for_entry_locked(manager, handle, token, entry)"
 require_term "src/runtime/slot_manager.c" "if (entry->pinCount > 0)"
 require_term "src/runtime/slot_manager.c" "return SLOT_ERROR_PINNED"
 require_term "src/runtime/slot_manager.c" "slot_reset_entry_locked(entry)"

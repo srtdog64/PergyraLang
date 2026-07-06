@@ -52,6 +52,9 @@ runtime ABI into `MIRTypeLayout` facts. This means:
   `discriminant_field_name = "tag"`, `primary_tag_value = 0`, and
   `secondary_tag_value = 1`.
 - `niche_none_pattern` is `NULL` for the current ABI.
+- ABI lookup is exact-row only. Runtime function spelling is payload carried by
+  a `MIRTypeLayout` row, not an alternate key that can reconstruct or select a
+  layout.
 
 Rust-style niche encoding such as `Option<NonZeroU32>` fitting in 32 bits is
 not implemented.
@@ -95,7 +98,8 @@ The current contract is executable:
   `mir_abi_lookup("Option<String>")` expose explicit-tag MIR facts, not niche
   facts.
 - `make abi-ownership-shape-test-smoke` keeps this document, the runtime ABI
-  header, and the MIR ABI fact wording tied together.
+  header, and the MIR ABI fact wording tied together, and rejects runtime-symbol
+  fallback lookup inside the MIR ABI owner.
 
 ## Niche Optimization Gate
 
