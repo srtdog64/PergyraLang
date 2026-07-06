@@ -4340,3 +4340,16 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `count_drift`, and kept the C/LLVM leg parity.
 - Tightened `self_hosted_component_contract_smoke.sh` so shell dispatch-count
   oracles cannot return to this parity rung.
+
+### 2026-07-06 -- Diagnostic catalog parity removes shell clean counters
+
+- Repointed `diagnostic_catalog_checker_parity.sh` so the clean structured
+  counter verdict is the self-hosted checker JSON compared through
+  ArtifactZone/TestHarness.
+- Kept `tests/diagnostic_registry_smoke.sh` as the C exit-class bridge, but
+  removed shell `grep`/`sort`/`sed` reconstruction of `codes`, `documented`,
+  `duplicates`, and `orphans`.
+- Kept the synthetic missing-code and missing-input fixtures as fail-closed
+  proof for the report owner and run boundary, and kept the C/LLVM leg parity.
+- Tightened `self_hosted_component_contract_smoke.sh` so shell diagnostic
+  counter oracles cannot return to this parity rung.

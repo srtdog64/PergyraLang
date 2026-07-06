@@ -1,6 +1,6 @@
 # Diagnostic Catalog Checker -- Intent / Contract
 
-**Status:** *rung-2 complete* (2026-05-26). All five counters
+**Status:** *rung-2 complete* (2026-07-06). All five counters
 (`codes`, `documented`, `missing`, `duplicates`, `orphans`) are **live**: the
 Pergyra candidate reads `src/semantic/diag_codes.h` and
 `docs/72_diagnostic_codes.md`, scans `#define PGY_CODE_` macros, counts
@@ -8,11 +8,11 @@ documented `PGY_*` catalog headings, checks every code literal for a docs
 entry, detects duplicate header literal strings via a delimited seen-set, and
 checks docs headings for orphan entries.
 
-Rung-2 parity asserts agreement on all five counters against shell-grep
-drift detectors. The C-side reference logic still lives in
+Rung-2 parity asserts the emitted JSON against committed expected artifacts and
+negative fixtures. The C-side reference logic still lives in
 [`tests/diagnostic_registry_smoke.sh`](../../../../tests/diagnostic_registry_smoke.sh)
-and remains the C parity backend; the Pergyra side under
-this directory is the candidate implementation.
+and remains the clean exit-class bridge; the Pergyra side under this directory
+owns the structured counters and findings.
 
 `main.pgy` is entrypoint-only. Source-of-truth responsibilities are split by
 owner:
@@ -81,8 +81,8 @@ surface before `ReadFile(...)` is called.
 
 ## Oracle
 
-`tests/diagnostic_registry_smoke.sh` is the C oracle for this rung-2 candidate.
-The Pergyra implementation directory is authoritative only for its emitted
+`tests/diagnostic_registry_smoke.sh` is the C exit-class bridge for this
+rung-2 candidate. The Pergyra implementation directory owns the emitted
 JSON/counter contract; it does not replace the C oracle until rung-3 three-way
 agreement is shipped.
 
@@ -90,13 +90,14 @@ The parity rung (`tests/self_hosted/parity/`) re-runs the catalog walk against t
 same clean-repo inputs from both implementations and asserts:
 
 - The C oracle exits `0` and the Pergyra tool exits `0` on the clean repo.
-- `counts.missing`, `counts.duplicates`, and `counts.orphans` agree with the
-  shell drift detectors.
+- The Pergyra JSON byte-matches the committed clean expected artifact.
+- Synthetic missing-code and missing-input fixtures byte-match their committed
+  expected artifacts and fail closed with exit code `1`.
+- Both C and LLVM legs compile the same self-hosted checker.
 
-The C oracle does not emit JSON today. The active parity rung compares exit
-class on the clean repo, validates the Pergyra JSON shape against
-`expected/clean.json`, checks live counters against shell drift detectors, and
-runs a synthetic missing-code fixture that must emit `ok:false` and exit `1`.
+The C oracle does not emit JSON today. Do not add shell `grep`/`sort`/`sed`
+counter reconstruction as a second clean oracle; fix the self-hosted scan owner
+or add a negative fixture instead.
 
 ## Negative Fixture
 

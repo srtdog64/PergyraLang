@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Rung 2 parity for the diagnostic catalog checker.
 #
-# The C diagnostic registry smoke remains the oracle while the Pergyra tool is
-# a partial implementation. This script asserts exit-code agreement, stable
-# counter parity, and ArtifactZone-owned report JSON shape. See
+# The C diagnostic registry smoke remains the clean exit-class bridge while the
+# Pergyra tool owns the structured report. This script asserts exit-code
+# agreement, ArtifactZone-owned report JSON shape, and negative fixtures. See
 # tests/diagnostic_registry_smoke.sh and tests/self_hosted/parity/README.md.
 
 set -euo pipefail
@@ -116,7 +116,7 @@ if [[ "$C_RC" -ne "$P_RC" ]]; then
     exit 1
 fi
 
-# Capture Pergyra stdout for header check and minimal count parity (rung 2).
+# Capture Pergyra stdout for schema and ArtifactZone-owned JSON comparison.
 set +e
 PERGYRA_OUT="$(cd "$ROOT_DIR" && "$CLEAN_BIN" "$HEADER_REL" "$DOCS_REL" 2>/dev/null)"
 set -e
@@ -125,67 +125,8 @@ if ! grep -Fq 'pgy.selfhost.diagnostic-catalog.v1' <<<"$PERGYRA_OUT"; then
     exit 1
 fi
 
-# Rung 2 minimal - count parity against shell grep ground truth.
-# The C/shell side remains the oracle; shell grep is a drift detector for the
-# macro count while the Pergyra side is still a candidate implementation.
-SHELL_CODES="$(grep -c '#define PGY_CODE_' "$HEADER_PATH" || true)"
-if [[ -z "$SHELL_CODES" || "$SHELL_CODES" -eq 0 ]]; then
-    echo "[self-host-parity:diagnostic-catalog] shell grep ground truth empty for diag_codes.h" >&2
-    exit 1
-fi
-
-if ! grep -Fq "\"codes\":${SHELL_CODES}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:diagnostic-catalog] counts.codes parity FAIL (shell=${SHELL_CODES})" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-
-SHELL_DOCUMENTED="$(grep -c '^#### `PGY_' "$DOCS_PATH" || true)"
-if [[ -z "$SHELL_DOCUMENTED" || "$SHELL_DOCUMENTED" -eq 0 ]]; then
-    echo "[self-host-parity:diagnostic-catalog] shell grep ground truth empty for docs catalog" >&2
-    exit 1
-fi
-
-if ! grep -Fq "\"documented\":${SHELL_DOCUMENTED}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:diagnostic-catalog] counts.documented parity FAIL (shell=${SHELL_DOCUMENTED})" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-
 if ! grep -Fq '"missing":0,' <<<"$PERGYRA_OUT"; then
     echo "[self-host-parity:diagnostic-catalog] counts.missing parity FAIL (expected 0)" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-
-# duplicates parity - shell ground truth via sort -u on emitted literal strings.
-SHELL_DUP_TOTAL="$(grep -oE '"PGY_[A-Z0-9_]+"' "$HEADER_PATH" | grep -v '^"PGY_CAUSE_\|^"PGY_FIX_' | wc -l | tr -d ' ')"
-SHELL_DUP_UNIQUE="$(grep -oE '"PGY_[A-Z0-9_]+"' "$HEADER_PATH" | grep -v '^"PGY_CAUSE_\|^"PGY_FIX_' | sort -u | wc -l | tr -d ' ')"
-if [[ -z "$SHELL_DUP_TOTAL" || -z "$SHELL_DUP_UNIQUE" ]]; then
-    echo "[self-host-parity:diagnostic-catalog] shell duplicates ground truth empty" >&2
-    exit 1
-fi
-SHELL_DUPLICATES=$((SHELL_DUP_TOTAL - SHELL_DUP_UNIQUE))
-
-if ! grep -Fq "\"duplicates\":${SHELL_DUPLICATES}" <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:diagnostic-catalog] counts.duplicates parity FAIL (shell=${SHELL_DUPLICATES})" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-
-SHELL_ORPHANS=0
-while IFS= read -r doc_code; do
-    [[ -n "$doc_code" ]] || continue
-    if ! grep -Fq "\"${doc_code}\"" "$HEADER_PATH"; then
-        SHELL_ORPHANS=$((SHELL_ORPHANS + 1))
-    fi
-done < <(
-    grep '^#### `PGY_' "$DOCS_PATH" \
-        | sed -E 's/^#### `([^`]+)`.*/\1/'
-)
-
-if ! grep -Fq "\"orphans\":${SHELL_ORPHANS}" <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:diagnostic-catalog] counts.orphans parity FAIL (shell=${SHELL_ORPHANS})" >&2
     printf '%s\n' "$PERGYRA_OUT" >&2
     exit 1
 fi
@@ -265,4 +206,4 @@ pgy_selfhost_compare_expected_text_artifact_with_owner \
     "run_output"
 
 assert_llvm_leg "self-host-parity:diagnostic-catalog" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$HEADER_REL" "$DOCS_REL"
-echo "[self-host-parity:diagnostic-catalog] rung-1 exit-code + rung-2 count/json parity ok (c=$C_RC pergyra=$P_RC codes=$SHELL_CODES documented=$SHELL_DOCUMENTED missing=0 duplicates=$SHELL_DUPLICATES orphans=$SHELL_ORPHANS; missing-fixture rc=$NEG_RC input-fixture rc=$INPUT_RC)"
+echo "[self-host-parity:diagnostic-catalog] rung-1 exit-code + rung-2 json parity ok (c=$C_RC pergyra=$P_RC expected-json clean; missing-fixture rc=$NEG_RC input-fixture rc=$INPUT_RC)"

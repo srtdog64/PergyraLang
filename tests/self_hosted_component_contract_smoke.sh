@@ -1498,6 +1498,7 @@ require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'PE
 require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" '"$HEADER_REL" "$DOCS_REL"'
 require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" '"run_output"'
+require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "expected-json clean"
 reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'C_ORACLE="$ROOT_DIR/tests/diagnostic_registry_smoke.sh"'
 reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'PERGYRA_TOOL_SOURCE_DIR="$ROOT_DIR/src/self_hosted/tools/diagnostic_catalog_checker"'
 reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
@@ -1509,6 +1510,18 @@ reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'EXP
 reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"'
 reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'EXPECTED_MISSING_JSON="$(cat "$EXPECTED_MISSING_JSON_FILE")"'
 reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'EXPECTED_INPUT_ERROR_JSON="$(cat "$EXPECTED_INPUT_ERROR_JSON_FILE")"'
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "SHELL_CODES="
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "SHELL_DOCUMENTED="
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "SHELL_DUP_TOTAL="
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "SHELL_DUP_UNIQUE="
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "SHELL_DUPLICATES"
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "SHELL_ORPHANS"
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "counts.codes parity FAIL"
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "counts.documented parity FAIL"
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "counts.duplicates parity FAIL"
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "counts.orphans parity FAIL"
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "shell grep ground truth"
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "shell duplicates ground truth"
 require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" "JsonEmitArray("
