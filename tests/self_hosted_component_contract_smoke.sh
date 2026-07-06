@@ -1805,12 +1805,15 @@ require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 
 require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'MANIFEST_PATH="${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'MISSING_SECTION_ANCHOR="${harness_paths[3]}"'
-require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'MISSING_FINDING_FIELD="${harness_paths[4]}"'
-require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'MISSING_FINDING_VALUE="${harness_paths[5]}"'
-require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" "TestHarness manifest expected 6 stable-subset rows"
+require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'EXPECTED_MISSING_JSON_FILE="$ROOT_DIR/${harness_paths[4]}"'
+require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" "TestHarness manifest expected 5 stable-subset rows"
 require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" '"$CLEAN_BIN" "$MANIFEST_PATH"'
 require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'assert_llvm_leg "self-host-parity:stable-subset-section" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$MANIFEST_PATH"'
-require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" "expected-json clean"
+require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" "expected-json clean+missing"
+require_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'pgy_selfhost_compare_expected_text_artifact_with_owner'
+reject_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'MISSING_FINDING_FIELD="${harness_paths[4]}"'
+reject_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'MISSING_FINDING_VALUE="${harness_paths[5]}"'
+reject_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" "missing-section fixture expected ok:false"
 reject_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" "SHELL_SECTIONS="
 reject_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" "grep -c '^## '"
 reject_text "tests/self_hosted/parity/stable_subset_section_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/stable_subset_section_checker/main.pgy"'
@@ -1996,8 +1999,10 @@ require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func 
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionExpectedJsonPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionInputManifestPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionMissingAnchor"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionMissingFindingField"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionMissingFindingValue"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionMissingJsonPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "src/self_hosted/tools/stable_subset_section_checker/expected/missing_section.json"
+reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionMissingFindingField"
+reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionMissingFindingValue"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionPathAt"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionReady"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundarySuiteName"
@@ -2005,8 +2010,10 @@ require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func 
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryExpectedJsonPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryMissingTermFixturePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryMissingTermFixtureTerm"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryMissingFindingField"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryMissingFindingValue"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryMissingJsonPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "src/self_hosted/tools/runtime_boundary_checker/expected/missing_term.json"
+reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryMissingFindingField"
+reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryMissingFindingValue"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryPathAt"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryReady"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerSuiteName"
@@ -2731,14 +2738,18 @@ require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" '"run
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'MISSING_TERM_FIXTURE_PATH="${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'MISSING_TERM_FIXTURE_TERM="${harness_paths[3]}"'
-require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'MISSING_FINDING_FIELD="${harness_paths[4]}"'
-require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'MISSING_FINDING_VALUE="${harness_paths[5]}"'
-require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "TestHarness manifest expected 6 runtime-boundary rows"
+require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'EXPECTED_MISSING_JSON_FILE="$ROOT_DIR/${harness_paths[4]}"'
+require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "TestHarness manifest expected 5 runtime-boundary rows"
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" '"$CLEAN_BIN" --terms'
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "TERMS_FILE="
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "required_count="
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "strip_pair_found="
+require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "expected-json clean+missing"
+require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'pgy_selfhost_compare_expected_text_artifact_with_owner'
+reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'MISSING_FINDING_FIELD="${harness_paths[4]}"'
+reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'MISSING_FINDING_VALUE="${harness_paths[5]}"'
+reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "missing-term fixture expected ok:false"
 reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/runtime_boundary_checker/main.pgy"'
 reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
 reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"'

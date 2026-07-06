@@ -2,9 +2,9 @@
 # Rung 2 parity for the stable subset section checker (2026-05-27).
 #
 # Pergyra is the origin (src/self_hosted/tools/stable_subset_section_checker/main.pgy).
-# The Pergyra expected JSON artifact is the clean-output oracle. This script
-# asserts exit-code parity, JSON shape parity against expected/clean.json, and a
-# synthetic missing-section fixture.
+# TestHarness-projected expected artifacts own the clean and missing-section
+# JSON oracles. Shell only runs the process, strips the selected anchor, and
+# checks rc=1.
 # See tests/self_hosted/parity/README.md.
 
 set -euo pipefail
@@ -44,8 +44,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 6 ]]; then
-    echo "[self-host-parity:stable-subset-section] TestHarness manifest expected 6 stable-subset rows, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 5 ]]; then
+    echo "[self-host-parity:stable-subset-section] TestHarness manifest expected 5 stable-subset rows, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -53,10 +53,9 @@ PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
 MANIFEST_PATH="${harness_paths[2]}"
 MISSING_SECTION_ANCHOR="${harness_paths[3]}"
-MISSING_FINDING_FIELD="${harness_paths[4]}"
-MISSING_FINDING_VALUE="${harness_paths[5]}"
+EXPECTED_MISSING_JSON_FILE="$ROOT_DIR/${harness_paths[4]}"
 
-if [[ -z "$MISSING_SECTION_ANCHOR" || -z "$MISSING_FINDING_FIELD" || -z "$MISSING_FINDING_VALUE" ]]; then
+if [[ -z "$MISSING_SECTION_ANCHOR" || -z "${harness_paths[4]}" ]]; then
     echo "[self-host-parity:stable-subset-section] invalid TestHarness missing-section row" >&2
     exit 1
 fi
@@ -67,6 +66,10 @@ if [[ ! -f "$PERGYRA_TOOL_SOURCE" ]]; then
 fi
 if [[ ! -f "$EXPECTED_JSON_FILE" ]]; then
     echo "[self-host-parity:stable-subset-section] missing expected JSON: $EXPECTED_JSON_FILE" >&2
+    exit 1
+fi
+if [[ ! -f "$EXPECTED_MISSING_JSON_FILE" ]]; then
+    echo "[self-host-parity:stable-subset-section] missing expected missing-section JSON: $EXPECTED_MISSING_JSON_FILE" >&2
     exit 1
 fi
 if [[ ! -f "$ROOT_DIR/$MANIFEST_PATH" ]]; then
@@ -135,21 +138,16 @@ if [[ "$NEG_RC" -ne 1 ]]; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq '"ok":false' <<<"$NEG_OUT"; then
-    echo "[self-host-parity:stable-subset-section] missing-section fixture expected ok:false" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "\"${MISSING_FINDING_FIELD}\":${MISSING_FINDING_VALUE}" <<<"$NEG_OUT"; then
-    echo "[self-host-parity:stable-subset-section] missing-section fixture expected ${MISSING_FINDING_FIELD}:${MISSING_FINDING_VALUE}" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "$MISSING_SECTION_ANCHOR" <<<"$NEG_OUT"; then
-    echo "[self-host-parity:stable-subset-section] missing-section fixture expected stripped anchor in findings" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
+NEG_JSON="$(printf '%s\n' "$NEG_OUT" \
+    | tr -d '\r' \
+    | grep -F 'pgy.selfhost.stable-subset-section.v1' \
+    | tail -n 1)"
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:stable-subset-section" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$EXPECTED_MISSING_JSON_FILE" \
+    "$NEG_JSON" \
+    "run_output"
 
 assert_llvm_leg "self-host-parity:stable-subset-section" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$MANIFEST_PATH"
-echo "[self-host-parity:stable-subset-section] rung-2 parity ok (expected-json clean; missing-fixture rc=1)"
+echo "[self-host-parity:stable-subset-section] rung-2 parity ok (expected-json clean+missing; missing-fixture rc=1)"

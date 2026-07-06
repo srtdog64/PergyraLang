@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Document checker negative verdicts consume artifact owner
+
+- Added TestHarness-owned missing-section and missing-term expected JSON
+  artifacts for the stable-subset and runtime-boundary checkers.
+- Repointed both parity runners so shell only handles process execution,
+  scratch mutation, and `rc=1`; the full negative verdict shape is compared
+  through `backend_output_comparator` as `run_output`.
+- Removed the missing field/value rows from `test_harness_tool_paths_owner.pgy`,
+  and tightened the component contract against reintroducing shell-owned
+  `ok:false` or `missing:1` interpretation for these runners.
+
 ## 2026-07-06 - AIR graph negative verdicts consume artifact owner
 
 - Added TestHarness-owned negative expected JSON artifacts for AIR graph

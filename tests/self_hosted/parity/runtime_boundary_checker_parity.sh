@@ -2,7 +2,9 @@
 # Rung 2 parity for the runtime boundary checker (2026-06-16).
 #
 # Pergyra is the origin (src/self_hosted/tools/runtime_boundary_checker/main.pgy).
-# Shell grep over the same required terms is the parity backend.
+# TestHarness-projected expected artifacts own the clean and missing-term JSON
+# oracles. Shell only runs the process, builds the scratch missing-term fixture,
+# and checks rc=1.
 
 set -euo pipefail
 
@@ -41,8 +43,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 6 ]]; then
-    echo "[self-host-parity:runtime-boundary] TestHarness manifest expected 6 runtime-boundary rows, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 5 ]]; then
+    echo "[self-host-parity:runtime-boundary] TestHarness manifest expected 5 runtime-boundary rows, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -50,8 +52,7 @@ PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
 MISSING_TERM_FIXTURE_PATH="${harness_paths[2]}"
 MISSING_TERM_FIXTURE_TERM="${harness_paths[3]}"
-MISSING_FINDING_FIELD="${harness_paths[4]}"
-MISSING_FINDING_VALUE="${harness_paths[5]}"
+EXPECTED_MISSING_JSON_FILE="$ROOT_DIR/${harness_paths[4]}"
 
 if [[ ! -f "$PERGYRA_TOOL_SOURCE" ]]; then
     echo "[self-host-parity:runtime-boundary] missing Pergyra tool: $PERGYRA_TOOL_SOURCE" >&2
@@ -61,8 +62,12 @@ if [[ ! -f "$EXPECTED_JSON_FILE" ]]; then
     echo "[self-host-parity:runtime-boundary] missing expected JSON: $EXPECTED_JSON_FILE" >&2
     exit 1
 fi
-if [[ -z "$MISSING_TERM_FIXTURE_PATH" || -z "$MISSING_TERM_FIXTURE_TERM" || -z "$MISSING_FINDING_FIELD" || -z "$MISSING_FINDING_VALUE" ]]; then
+if [[ -z "$MISSING_TERM_FIXTURE_PATH" || -z "$MISSING_TERM_FIXTURE_TERM" || -z "${harness_paths[4]}" ]]; then
     echo "[self-host-parity:runtime-boundary] missing negative fixture row from TestHarness manifest" >&2
+    exit 1
+fi
+if [[ ! -f "$EXPECTED_MISSING_JSON_FILE" ]]; then
+    echo "[self-host-parity:runtime-boundary] missing expected missing-term JSON: $EXPECTED_MISSING_JSON_FILE" >&2
     exit 1
 fi
 
@@ -172,21 +177,16 @@ if [[ "$NEG_RC" -ne 1 ]]; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq '"ok":false' <<<"$NEG_OUT"; then
-    echo "[self-host-parity:runtime-boundary] missing-term fixture expected ok:false" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "\"${MISSING_FINDING_FIELD}\":${MISSING_FINDING_VALUE}" <<<"$NEG_OUT"; then
-    echo "[self-host-parity:runtime-boundary] missing-term fixture expected ${MISSING_FINDING_FIELD}:${MISSING_FINDING_VALUE}" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "$MISSING_TERM_FIXTURE_TERM" <<<"$NEG_OUT"; then
-    echo "[self-host-parity:runtime-boundary] missing-term fixture expected stripped term in findings" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
+NEG_JSON="$(printf '%s\n' "$NEG_OUT" \
+    | tr -d '\r' \
+    | grep -F 'pgy.selfhost.runtime-boundary.v1' \
+    | tail -n 1)"
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:runtime-boundary" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$EXPECTED_MISSING_JSON_FILE" \
+    "$NEG_JSON" \
+    "run_output"
 
 assert_llvm_leg "self-host-parity:runtime-boundary" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR"
-echo "[self-host-parity:runtime-boundary] rung-2 parity ok (required=${required_count} missing-fixture rc=1)"
+echo "[self-host-parity:runtime-boundary] rung-2 parity ok (required=${required_count} expected-json clean+missing; missing-fixture rc=1)"

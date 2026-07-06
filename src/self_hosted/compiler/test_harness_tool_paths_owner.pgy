@@ -65,16 +65,12 @@ func CompilerHarnessStableSubsetSectionMissingAnchor() -> String {
     return "## 3. Ownership Stable Subset";
 }
 
-func CompilerHarnessStableSubsetSectionMissingFindingField() -> String {
-    return "missing";
-}
-
-func CompilerHarnessStableSubsetSectionMissingFindingValue() -> String {
-    return "1";
+func CompilerHarnessStableSubsetSectionMissingJsonPath() -> String {
+    return "src/self_hosted/tools/stable_subset_section_checker/expected/missing_section.json";
 }
 
 func CompilerHarnessStableSubsetSectionPathCount() -> Int {
-    return 6;
+    return 5;
 }
 
 func CompilerHarnessStableSubsetSectionPathAt(index: Int) -> String {
@@ -82,13 +78,12 @@ func CompilerHarnessStableSubsetSectionPathAt(index: Int) -> String {
     if index == 1 { return CompilerHarnessStableSubsetSectionExpectedJsonPath(); }
     if index == 2 { return CompilerHarnessStableSubsetSectionInputManifestPath(); }
     if index == 3 { return CompilerHarnessStableSubsetSectionMissingAnchor(); }
-    if index == 4 { return CompilerHarnessStableSubsetSectionMissingFindingField(); }
-    if index == 5 { return CompilerHarnessStableSubsetSectionMissingFindingValue(); }
+    if index == 4 { return CompilerHarnessStableSubsetSectionMissingJsonPath(); }
     return "";
 }
 
 func CompilerHarnessStableSubsetSectionReady() -> Bool {
-    if CompilerHarnessStableSubsetSectionPathCount() != 6 {
+    if CompilerHarnessStableSubsetSectionPathCount() != 5 {
         return false;
     }
     let i: Int = 0;
@@ -121,16 +116,12 @@ func CompilerHarnessRuntimeBoundaryMissingTermFixtureTerm() -> String {
     return "The native runtime kernel remains C";
 }
 
-func CompilerHarnessRuntimeBoundaryMissingFindingField() -> String {
-    return "missing";
-}
-
-func CompilerHarnessRuntimeBoundaryMissingFindingValue() -> String {
-    return "1";
+func CompilerHarnessRuntimeBoundaryMissingJsonPath() -> String {
+    return "src/self_hosted/tools/runtime_boundary_checker/expected/missing_term.json";
 }
 
 func CompilerHarnessRuntimeBoundaryPathCount() -> Int {
-    return 6;
+    return 5;
 }
 
 func CompilerHarnessRuntimeBoundaryPathAt(index: Int) -> String {
@@ -138,13 +129,12 @@ func CompilerHarnessRuntimeBoundaryPathAt(index: Int) -> String {
     if index == 1 { return CompilerHarnessRuntimeBoundaryExpectedJsonPath(); }
     if index == 2 { return CompilerHarnessRuntimeBoundaryMissingTermFixturePath(); }
     if index == 3 { return CompilerHarnessRuntimeBoundaryMissingTermFixtureTerm(); }
-    if index == 4 { return CompilerHarnessRuntimeBoundaryMissingFindingField(); }
-    if index == 5 { return CompilerHarnessRuntimeBoundaryMissingFindingValue(); }
+    if index == 4 { return CompilerHarnessRuntimeBoundaryMissingJsonPath(); }
     return "";
 }
 
 func CompilerHarnessRuntimeBoundaryReady() -> Bool {
-    if CompilerHarnessRuntimeBoundaryPathCount() != 6 {
+    if CompilerHarnessRuntimeBoundaryPathCount() != 5 {
         return false;
     }
     let i: Int = 0;

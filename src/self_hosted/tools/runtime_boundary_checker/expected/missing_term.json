@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.runtime-boundary.v1","ok":false,"counts":{"documents":4,"required":8,"missing":1},"findings":[{"kind":"missing_term","path":"src/self_hosted/runtime/README.md","term":"The native runtime kernel remains C"}]}

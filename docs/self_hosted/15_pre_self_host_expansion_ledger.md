@@ -197,9 +197,11 @@ It no longer creates a build-dir `main.pgy` alias or copies the self-hosted
 
 ArtifactZone delta, 2026-07-06: `stable_subset_section_checker_parity.sh` no
 longer recomputes the clean section count with shell `grep`. The clean output
-oracle is the TestHarness-projected `expected/clean.json` compared through
-`backend_output_comparator`; shell remains only the process runner and the
-negative-fixture mutator for the missing-section case.
+oracle is the TestHarness-projected `expected/clean.json`, and the
+missing-section negative verdict is the TestHarness-projected
+`expected/missing_section.json`; both are compared through
+`backend_output_comparator`. Shell remains only the process runner, scratch
+mutator, and missing-fixture `rc=1` checker.
 
 TestHarness delta, 2026-07-06: `doc_link_checker_parity.sh` now compiles and
 runs the manifest-projected doc-link checker source in place. It no longer
@@ -407,11 +409,11 @@ keeps the manifest itself under the 600-line owner cap.
 
 TestHarness delta, 2026-07-06: `runtime_boundary_checker_parity.sh` now gets
 the checker source, expected clean JSON, and the missing-term fixture
-`(path, term)` through the `runtime-boundary-paths` manifest suite. It still
-gets the full required-term list from the compiled Pergyra checker's `--terms`
-manifest. Shell remains the external parity runner and scratch mutator, but it
-no longer decides which runtime-boundary term is stripped for the negative
-fixture.
+`(path, term)`, plus the expected missing-term JSON artifact through the
+`runtime-boundary-paths` manifest suite. It still gets the full required-term
+list from the compiled Pergyra checker's `--terms` manifest. Shell remains the
+external parity runner, scratch mutator, and missing-fixture `rc=1` checker, but
+no longer owns `ok:false`, `missing:1`, or stripped-term verdict interpretation.
 
 Plane note, 2026-07-06: this is repository-authoring guard work, not
 Fortran-derived data-parallel language work. The former keeps future

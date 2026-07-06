@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.stable-subset-section.v1","ok":false,"source":{"manifest_owner":"docs/107_beta_stable_subset.md"},"counts":{"sections":5,"expected":6,"missing":1},"findings":[{"kind":"missing_section","title":"## 3. Ownership Stable Subset","location":"docs/107_beta_stable_subset.md"}]}
