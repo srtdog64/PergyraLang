@@ -148,6 +148,12 @@ negative-fixture executor for the dangling-endpoint case.
 
 TestHarness delta, 2026-07-05: backend_output_comparator_parity.sh now consumes its source, expected JSON, and comparable artifact paths from TestHarness through the `backend-output-comparator-paths` manifest suite. Shell no longer owns the comparator input path constants.
 
+TestHarness delta, 2026-07-06: `backend_output_comparator_parity.sh` now gets
+the expected mismatch and missing-input finding kinds from
+`test_harness_owner.pgy`. Shell still creates the negative artifact fixtures,
+but no longer owns which comparator finding kind proves the mismatch or
+missing-input fail-closed paths.
+
 ArtifactZone delta, 2026-07-06: `backend_output_comparator_parity.sh` no longer
 performs a separate shell text-equivalence check over the clean fixture pair.
 The comparator owns artifact equality; its own parity rung keeps only the

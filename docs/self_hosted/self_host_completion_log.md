@@ -25,6 +25,16 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Comparator finding kinds consume TestHarness owner
+
+- Extended `backend-output-comparator-paths` with the expected mismatch and
+  missing-input finding kinds.
+- Repointed `backend_output_comparator_parity.sh` so shell still creates the
+  negative mismatch and missing-input fixtures, but the finding-kind
+  expectations come from `test_harness_owner.pgy`.
+- Tightened the component contract against reintroducing hardcoded
+  `mismatch` / `input_error` finding-kind assertions in shell.
+
 ## 2026-07-06 - AIR graph finding kinds consume TestHarness owner
 
 - Extended the five AIR graph consumer path suites with their expected

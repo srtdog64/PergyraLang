@@ -289,8 +289,8 @@ compile_tri_comparator() {
         comparator_paths+=("$line")
     done <"$comparator_paths_file"
 
-    if [[ "${#comparator_paths[@]}" -ne 4 ]]; then
-        echo "[self-host-parity:backend-tri-compare] TestHarness manifest expected 4 comparator paths, got ${#comparator_paths[@]}" >&2
+    if [[ "${#comparator_paths[@]}" -ne 6 ]]; then
+        echo "[self-host-parity:backend-tri-compare] TestHarness manifest expected 6 comparator paths, got ${#comparator_paths[@]}" >&2
         exit 1
     fi
 

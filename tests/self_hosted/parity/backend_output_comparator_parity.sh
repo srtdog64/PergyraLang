@@ -47,8 +47,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 4 ]]; then
-    echo "[self-host-parity:backend-output-comparator] TestHarness manifest expected 4 comparator paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 6 ]]; then
+    echo "[self-host-parity:backend-output-comparator] TestHarness manifest expected 6 comparator paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -56,8 +56,15 @@ PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
 FIXTURE_EXPECTED_REL="${harness_paths[2]}"
 FIXTURE_ACTUAL_REL="${harness_paths[3]}"
+MISMATCH_FINDING_KIND="${harness_paths[4]}"
+INPUT_ERROR_FINDING_KIND="${harness_paths[5]}"
 FIXTURE_EXPECTED="$ROOT_DIR/$FIXTURE_EXPECTED_REL"
 FIXTURE_ACTUAL="$ROOT_DIR/$FIXTURE_ACTUAL_REL"
+
+if [[ -z "$MISMATCH_FINDING_KIND" || -z "$INPUT_ERROR_FINDING_KIND" ]]; then
+    echo "[self-host-parity:backend-output-comparator] missing expected finding kind rows" >&2
+    exit 1
+fi
 
 for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$FIXTURE_EXPECTED" "$FIXTURE_ACTUAL"; do
     if [[ ! -f "$path" ]]; then
@@ -174,8 +181,8 @@ if ! grep -Eq '"mismatch_lines":[1-9]' <<<"$NEG_OUT"; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq '"kind":"mismatch"' <<<"$NEG_OUT"; then
-    echo "[self-host-parity:backend-output-comparator] mismatch fixture expected a mismatch finding" >&2
+if ! grep -Fq "\"kind\":\"${MISMATCH_FINDING_KIND}\"" <<<"$NEG_OUT"; then
+    echo "[self-host-parity:backend-output-comparator] mismatch fixture expected a ${MISMATCH_FINDING_KIND} finding" >&2
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
@@ -196,8 +203,8 @@ if [[ "$MISS_RC" -ne 1 ]]; then
     printf '%s\n' "$MISS_OUT" >&2
     exit 1
 fi
-if ! grep -Fq '"kind":"input_error"' <<<"$MISS_OUT"; then
-    echo "[self-host-parity:backend-output-comparator] missing-input fixture expected input_error finding" >&2
+if ! grep -Fq "\"kind\":\"${INPUT_ERROR_FINDING_KIND}\"" <<<"$MISS_OUT"; then
+    echo "[self-host-parity:backend-output-comparator] missing-input fixture expected ${INPUT_ERROR_FINDING_KIND} finding" >&2
     printf '%s\n' "$MISS_OUT" >&2
     exit 1
 fi
