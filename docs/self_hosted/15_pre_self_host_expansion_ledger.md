@@ -417,6 +417,13 @@ gets its checker source and expected clean JSON through the
 `examples-inventory-paths` manifest suite and runs the compiled checker for
 both clean and drift fixtures.
 
+TestHarness delta, 2026-07-06: `examples_inventory_checker_parity.sh` now also
+gets the expected `inventory_count_drift` finding kind through the
+`examples-inventory-paths` manifest suite. Shell remains the synthetic fixture
+mutator, but it no longer owns the semantic finding-kind string. This is a
+repository-authoring/LLM guard, not the Fortran-derived data-parallel language
+plane.
+
 TestHarness delta, 2026-07-05: `ast_read_surface_checker_parity.sh` now gets
 the checker source, expected clean JSON, and `tests/ast_read_surface_ratchet.txt`
 through the `ast-read-surface-paths` manifest suite, then runs the compiled

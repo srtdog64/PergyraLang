@@ -41,13 +41,14 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 2 ]]; then
-    echo "[self-host-parity:examples-inventory] TestHarness manifest expected 2 examples-inventory paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 3 ]]; then
+    echo "[self-host-parity:examples-inventory] TestHarness manifest expected 3 examples-inventory paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
+DRIFT_FINDING_KIND="${harness_paths[2]}"
 
 for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE"; do
     if [[ ! -f "$path" ]]; then
@@ -55,6 +56,10 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE"; do
         exit 1
     fi
 done
+if [[ -z "$DRIFT_FINDING_KIND" ]]; then
+    echo "[self-host-parity:examples-inventory] missing TestHarness drift finding kind" >&2
+    exit 1
+fi
 
 PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
 
@@ -126,8 +131,8 @@ if [[ "$NEG_RC" -ne 1 ]]; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq '"kind":"inventory_count_drift"' <<<"$NEG_OUT"; then
-    echo "[self-host-parity:examples-inventory] count-drift fixture expected inventory_count_drift finding" >&2
+if ! grep -Fq "\"kind\":\"${DRIFT_FINDING_KIND}\"" <<<"$NEG_OUT"; then
+    echo "[self-host-parity:examples-inventory] count-drift fixture expected ${DRIFT_FINDING_KIND} finding" >&2
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi

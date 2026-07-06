@@ -281,18 +281,23 @@ func CompilerHarnessExamplesInventoryExpectedJsonPath() -> String {
     return "src/self_hosted/tools/examples_inventory_checker/expected/clean.json";
 }
 
+func CompilerHarnessExamplesInventoryDriftFindingKind() -> String {
+    return "inventory_count_drift";
+}
+
 func CompilerHarnessExamplesInventoryPathCount() -> Int {
-    return 2;
+    return 3;
 }
 
 func CompilerHarnessExamplesInventoryPathAt(index: Int) -> String {
     if index == 0 { return CompilerHarnessExamplesInventoryToolSourcePath(); }
     if index == 1 { return CompilerHarnessExamplesInventoryExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessExamplesInventoryDriftFindingKind(); }
     return "";
 }
 
 func CompilerHarnessExamplesInventoryReady() -> Bool {
-    if CompilerHarnessExamplesInventoryPathCount() != 2 {
+    if CompilerHarnessExamplesInventoryPathCount() != 3 {
         return false;
     }
     let i: Int = 0;

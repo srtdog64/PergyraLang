@@ -1992,6 +1992,7 @@ require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func 
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventorySuiteName"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventoryToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventoryExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventoryDriftFindingKind"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventoryPathAt"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventoryReady"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLexerParitySuiteName"
@@ -2521,12 +2522,14 @@ require_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" '"e
 require_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
 require_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 require_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" 'DRIFT_FINDING_KIND="${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" '"$CLEAN_BIN"'
 reject_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/examples_inventory_checker/main.pgy"'
 reject_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
 reject_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" 'cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"'
 reject_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'
 reject_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/examples_inventory_checker/expected/clean.json"'
+reject_text "tests/self_hosted/parity/examples_inventory_checker_parity.sh" '"kind":"inventory_count_drift"'
 require_text "tests/self_hosted/parity/lexer_parity.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/lexer_parity.sh" '"lexer-parity-paths"'
 require_text "tests/self_hosted/parity/lexer_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'

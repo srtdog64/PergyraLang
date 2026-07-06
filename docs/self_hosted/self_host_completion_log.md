@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Examples inventory drift finding consumes TestHarness owner
+
+- Extended `examples-inventory-paths` with the expected
+  `inventory_count_drift` finding kind.
+- Repointed `examples_inventory_checker_parity.sh` so shell still creates the
+  synthetic missing-example fixture, but the finding-kind expectation comes from
+  `test_harness_tool_paths_owner.pgy`.
+- Kept this in the repository-authoring guard plane: it prevents future
+  LLM-written parity code from owning a TestHarness decision, while
+  Fortran-derived parallel evidence remains separate language/projection work.
+
 ## 2026-07-06 - Doc-link missing finding consumes TestHarness owner
 
 - Extended `doc-link-checker-paths` with the expected `missing_link` finding
