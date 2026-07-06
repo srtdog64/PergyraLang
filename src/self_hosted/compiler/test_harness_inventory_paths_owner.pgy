@@ -1,0 +1,178 @@
+// TestHarness inventory-checker path owner.
+//
+// Owns inventory checker source/input paths plus their negative finding
+// vocabulary. Shell runners may mutate scratch fixtures, but must not own the
+// semantic finding strings.
+
+func CompilerHarnessModuleManifestResolverSuiteName() -> String {
+    return "module-manifest-resolver-paths";
+}
+
+func CompilerHarnessModuleManifestResolverToolSourcePath() -> String {
+    return "src/self_hosted/tools/module_manifest_resolver/main.pgy";
+}
+
+func CompilerHarnessModuleManifestResolverExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/module_manifest_resolver/expected/clean.json";
+}
+
+func CompilerHarnessModuleManifestResolverInputManifestPath() -> String {
+    return "docs/language_module_manifest.json";
+}
+
+func CompilerHarnessModuleManifestResolverMissingModulesFixtureJson() -> String {
+    return "{\"schema\":1,\"NOTMODULES\":[]}";
+}
+
+func CompilerHarnessModuleManifestResolverNestedModulesFixtureJson() -> String {
+    return "{\"schema\":1,\"metadata\":{\"modules\":[]}}";
+}
+
+func CompilerHarnessModuleManifestResolverNestedFieldFixtureJson() -> String {
+    return "{\"schema\":1,\"modules\":[{\"name\":\"pgy.synthetic\",\"status\":\"stable-subset\",\"beta_blocker\":true,\"surfaces\":[{\"layer\":\"not-a-module-layer\"}]}]}";
+}
+
+func CompilerHarnessModuleManifestResolverMissingModulesFindingKind() -> String {
+    return "missing_modules_key";
+}
+
+func CompilerHarnessModuleManifestResolverFieldCountFindingKind() -> String {
+    return "field_count_mismatch";
+}
+
+func CompilerHarnessModuleManifestResolverPathCount() -> Int {
+    return 8;
+}
+
+func CompilerHarnessModuleManifestResolverPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessModuleManifestResolverToolSourcePath(); }
+    if index == 1 { return CompilerHarnessModuleManifestResolverExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessModuleManifestResolverInputManifestPath(); }
+    if index == 3 { return CompilerHarnessModuleManifestResolverMissingModulesFixtureJson(); }
+    if index == 4 { return CompilerHarnessModuleManifestResolverNestedModulesFixtureJson(); }
+    if index == 5 { return CompilerHarnessModuleManifestResolverNestedFieldFixtureJson(); }
+    if index == 6 { return CompilerHarnessModuleManifestResolverMissingModulesFindingKind(); }
+    if index == 7 { return CompilerHarnessModuleManifestResolverFieldCountFindingKind(); }
+    return "";
+}
+
+func CompilerHarnessModuleManifestResolverReady() -> Bool {
+    if CompilerHarnessModuleManifestResolverPathCount() != 8 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessModuleManifestResolverPathCount() {
+        if CompilerHarnessModuleManifestResolverPathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessModuleManifestResolverSuiteName() != "";
+}
+
+func CompilerHarnessExamplesInventorySuiteName() -> String {
+    return "examples-inventory-paths";
+}
+
+func CompilerHarnessExamplesInventoryToolSourcePath() -> String {
+    return "src/self_hosted/tools/examples_inventory_checker/main.pgy";
+}
+
+func CompilerHarnessExamplesInventoryExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/examples_inventory_checker/expected/clean.json";
+}
+
+func CompilerHarnessExamplesInventoryDriftFindingKind() -> String {
+    return "inventory_count_drift";
+}
+
+func CompilerHarnessExamplesInventoryPathCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessExamplesInventoryPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessExamplesInventoryToolSourcePath(); }
+    if index == 1 { return CompilerHarnessExamplesInventoryExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessExamplesInventoryDriftFindingKind(); }
+    return "";
+}
+
+func CompilerHarnessExamplesInventoryReady() -> Bool {
+    if CompilerHarnessExamplesInventoryPathCount() != 3 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessExamplesInventoryPathCount() {
+        if CompilerHarnessExamplesInventoryPathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessExamplesInventorySuiteName() != "";
+}
+
+func CompilerHarnessStdlibDispatchInventorySuiteName() -> String {
+    return "stdlib-dispatch-inventory-paths";
+}
+
+func CompilerHarnessStdlibDispatchInventoryToolSourcePath() -> String {
+    return "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy";
+}
+
+func CompilerHarnessStdlibDispatchInventoryExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/stdlib_dispatch_inventory_checker/expected/clean.json";
+}
+
+func CompilerHarnessStdlibDispatchInventoryCDispatchPath() -> String {
+    return "src/codegen/transpiler_expr_stdlib_scalar_builtin.c";
+}
+
+func CompilerHarnessStdlibDispatchInventoryCUnaryDispatchPath() -> String {
+    return "src/codegen/transpiler_expr_stdlib_scalar_unary.c";
+}
+
+func CompilerHarnessStdlibDispatchInventoryLlvmDispatchPath() -> String {
+    return "src/codegen/llvm_expr_stdlib_scalar_io_calls.c";
+}
+
+func CompilerHarnessStdlibDispatchInventoryDriftStripPattern() -> String {
+    return "\"stdlib ";
+}
+
+func CompilerHarnessStdlibDispatchInventoryDriftStripCount() -> Int {
+    return 12;
+}
+
+func CompilerHarnessStdlibDispatchInventoryDriftFindingKind() -> String {
+    return "count_drift";
+}
+
+func CompilerHarnessStdlibDispatchInventoryPathCount() -> Int {
+    return 8;
+}
+
+func CompilerHarnessStdlibDispatchInventoryPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessStdlibDispatchInventoryToolSourcePath(); }
+    if index == 1 { return CompilerHarnessStdlibDispatchInventoryExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessStdlibDispatchInventoryCDispatchPath(); }
+    if index == 3 { return CompilerHarnessStdlibDispatchInventoryCUnaryDispatchPath(); }
+    if index == 4 { return CompilerHarnessStdlibDispatchInventoryLlvmDispatchPath(); }
+    if index == 5 { return CompilerHarnessStdlibDispatchInventoryDriftStripPattern(); }
+    if index == 6 { return ToString(CompilerHarnessStdlibDispatchInventoryDriftStripCount()); }
+    if index == 7 { return CompilerHarnessStdlibDispatchInventoryDriftFindingKind(); }
+    return "";
+}
+
+func CompilerHarnessStdlibDispatchInventoryReady() -> Bool {
+    if CompilerHarnessStdlibDispatchInventoryPathCount() != 8 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessStdlibDispatchInventoryPathCount() {
+        if CompilerHarnessStdlibDispatchInventoryPathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessStdlibDispatchInventorySuiteName() != "";
+}

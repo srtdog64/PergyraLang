@@ -1,0 +1,106 @@
+// TestHarness production-size path owner.
+//
+// Owns production size checker source/input paths plus over-cap finding
+// vocabulary. Shell runners create the scratch oversized file only.
+
+func CompilerHarnessProductionCSizeSuiteName() -> String {
+    return "production-c-size-paths";
+}
+
+func CompilerHarnessProductionCSizeToolSourcePath() -> String {
+    return "src/self_hosted/tools/production_c_size_checker/main.pgy";
+}
+
+func CompilerHarnessProductionCSizeExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/production_c_size_checker/expected/clean.json";
+}
+
+func CompilerHarnessProductionCSizeOverCapFixturePath() -> String {
+    return "src/runtime/pgy_runtime_synthetic_c_drift.c";
+}
+
+func CompilerHarnessProductionCSizeOverCapFixtureLineCount() -> Int {
+    return 1001;
+}
+
+func CompilerHarnessProductionCSizeOverCapFindingKind() -> String {
+    return "c_over_cap";
+}
+
+func CompilerHarnessProductionCSizePathCount() -> Int {
+    return 5;
+}
+
+func CompilerHarnessProductionCSizePathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessProductionCSizeToolSourcePath(); }
+    if index == 1 { return CompilerHarnessProductionCSizeExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessProductionCSizeOverCapFixturePath(); }
+    if index == 3 { return ToString(CompilerHarnessProductionCSizeOverCapFixtureLineCount()); }
+    if index == 4 { return CompilerHarnessProductionCSizeOverCapFindingKind(); }
+    return "";
+}
+
+func CompilerHarnessProductionCSizeReady() -> Bool {
+    if CompilerHarnessProductionCSizePathCount() != 5 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessProductionCSizePathCount() {
+        if CompilerHarnessProductionCSizePathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessProductionCSizeSuiteName() != "";
+}
+
+func CompilerHarnessProductionHeaderSizeSuiteName() -> String {
+    return "production-header-size-paths";
+}
+
+func CompilerHarnessProductionHeaderSizeToolSourcePath() -> String {
+    return "src/self_hosted/tools/production_header_size_checker/main.pgy";
+}
+
+func CompilerHarnessProductionHeaderSizeExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/production_header_size_checker/expected/clean.json";
+}
+
+func CompilerHarnessProductionHeaderSizeOverCapFixturePath() -> String {
+    return "src/runtime/pgy_runtime_synthetic_drift.h";
+}
+
+func CompilerHarnessProductionHeaderSizeOverCapFixtureLineCount() -> Int {
+    return 701;
+}
+
+func CompilerHarnessProductionHeaderSizeOverCapFindingKind() -> String {
+    return "header_over_cap";
+}
+
+func CompilerHarnessProductionHeaderSizePathCount() -> Int {
+    return 5;
+}
+
+func CompilerHarnessProductionHeaderSizePathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessProductionHeaderSizeToolSourcePath(); }
+    if index == 1 { return CompilerHarnessProductionHeaderSizeExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessProductionHeaderSizeOverCapFixturePath(); }
+    if index == 3 { return ToString(CompilerHarnessProductionHeaderSizeOverCapFixtureLineCount()); }
+    if index == 4 { return CompilerHarnessProductionHeaderSizeOverCapFindingKind(); }
+    return "";
+}
+
+func CompilerHarnessProductionHeaderSizeReady() -> Bool {
+    if CompilerHarnessProductionHeaderSizePathCount() != 5 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessProductionHeaderSizePathCount() {
+        if CompilerHarnessProductionHeaderSizePathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessProductionHeaderSizeSuiteName() != "";
+}

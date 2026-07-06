@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Inventory and size finding rows split from tool paths
+
+- Split `test_harness_tool_paths_owner.pgy` by responsibility: inventory
+  checker suites moved to `test_harness_inventory_paths_owner.pgy`, and
+  production size suites moved to `test_harness_size_paths_owner.pgy`.
+- Repointed module-manifest, stdlib-dispatch, production-C-size, and
+  production-header-size parity runners so their negative finding-kind
+  assertions consume TestHarness-projected rows instead of shell literals.
+- Tightened the component contract with explicit 600-line caps for these
+  TestHarness owners and hardcoded-finding rejection for the four runners.
+
 ## 2026-07-06 - Examples inventory drift finding consumes TestHarness owner
 
 - Extended `examples-inventory-paths` with the expected

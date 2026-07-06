@@ -1910,6 +1910,8 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHar
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorPathAt"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorReady"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_tool_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_inventory_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_size_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_air_graph_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_driver_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_codegen_paths_owner.pgy";'
@@ -1918,6 +1920,11 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_har
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_mir_json_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_codegen_bootstrap_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_lsp_paths_owner.pgy";'
+require_max_lines "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_size_paths_owner.pgy"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphScanOwnerPath"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphIdUniquenessSuiteName"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphIdUniquenessPathAt"
@@ -1953,15 +1960,17 @@ require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func 
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLinterFixturePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLinterPathAt"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLinterParityReady"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverSuiteName"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverToolSourcePath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverExpectedJsonPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverInputManifestPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverMissingModulesFixtureJson"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverNestedModulesFixtureJson"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverNestedFieldFixtureJson"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverPathAt"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverReady"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverSuiteName"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverInputManifestPath"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverMissingModulesFixtureJson"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverNestedModulesFixtureJson"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverNestedFieldFixtureJson"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverMissingModulesFindingKind"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverFieldCountFindingKind"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverPathAt"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverReady"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionSuiteName"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionExpectedJsonPath"
@@ -1989,12 +1998,12 @@ require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func 
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerMissingLinkFindingKind"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerPathAt"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerReady"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventorySuiteName"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventoryToolSourcePath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventoryExpectedJsonPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventoryDriftFindingKind"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventoryPathAt"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventoryReady"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessExamplesInventorySuiteName"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessExamplesInventoryToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessExamplesInventoryExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessExamplesInventoryDriftFindingKind"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessExamplesInventoryPathAt"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessExamplesInventoryReady"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLexerParitySuiteName"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLexerToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLexerComparatorSourcePath"
@@ -2098,30 +2107,33 @@ require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func 
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceGrowthFindingKind"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfacePathAt"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceReady"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventorySuiteName"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryToolSourcePath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryExpectedJsonPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryCDispatchPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryCUnaryDispatchPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryLlvmDispatchPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryDriftStripPattern"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryDriftStripCount"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryPathAt"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryReady"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizeSuiteName"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizeToolSourcePath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizeExpectedJsonPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizeOverCapFixturePath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizeOverCapFixtureLineCount"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizePathAt"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizeReady"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeSuiteName"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeToolSourcePath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeExpectedJsonPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeOverCapFixturePath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeOverCapFixtureLineCount"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizePathAt"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeReady"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventorySuiteName"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryCDispatchPath"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryCUnaryDispatchPath"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryLlvmDispatchPath"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryDriftStripPattern"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryDriftStripCount"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryDriftFindingKind"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryPathAt"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryReady"
+require_text "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" "func CompilerHarnessProductionCSizeSuiteName"
+require_text "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" "func CompilerHarnessProductionCSizeToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" "func CompilerHarnessProductionCSizeExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" "func CompilerHarnessProductionCSizeOverCapFixturePath"
+require_text "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" "func CompilerHarnessProductionCSizeOverCapFixtureLineCount"
+require_text "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" "func CompilerHarnessProductionCSizeOverCapFindingKind"
+require_text "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" "func CompilerHarnessProductionCSizePathAt"
+require_text "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" "func CompilerHarnessProductionCSizeReady"
+require_text "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeSuiteName"
+require_text "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeOverCapFixturePath"
+require_text "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeOverCapFixtureLineCount"
+require_text "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeOverCapFindingKind"
+require_text "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizePathAt"
+require_text "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeReady"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeSuiteName"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriExtendedSuiteName"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeCaseCount"
@@ -2156,6 +2168,8 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessL
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendTriSuiteReady()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_tool_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_inventory_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_size_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_air_graph_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_driver_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_codegen_paths_owner.pgy";'
@@ -2545,7 +2559,8 @@ require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" 'PER
 require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"'
 require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" 'OVER_CAP_FIXTURE_PATH="${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" 'OVER_CAP_LINE_COUNT="${harness_paths[3]}"'
-require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" "TestHarness manifest expected 4 production-c-size rows"
+require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" 'OVER_CAP_FINDING_KIND="${harness_paths[4]}"'
+require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" "TestHarness manifest expected 5 production-c-size rows"
 require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" '"$CLEAN_BIN"'
 require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" "expected-json clean"
 reject_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/production_c_size_checker/main.pgy"'
@@ -2562,6 +2577,7 @@ reject_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" "viol
 reject_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" "max_lines parity FAIL"
 reject_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" "seq 1 1001"
 reject_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" "pgy_runtime_synthetic_c_drift.c'"
+reject_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" '"kind":"c_over_cap"'
 require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" '"production-header-size-paths"'
 require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
@@ -2569,7 +2585,8 @@ require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh"
 require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"'
 require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" 'OVER_CAP_FIXTURE_PATH="${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" 'OVER_CAP_LINE_COUNT="${harness_paths[3]}"'
-require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" "TestHarness manifest expected 4 production-header-size rows"
+require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" 'OVER_CAP_FINDING_KIND="${harness_paths[4]}"'
+require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" "TestHarness manifest expected 5 production-header-size rows"
 require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" '"$CLEAN_BIN"'
 require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" "expected-json clean"
 reject_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/production_header_size_checker/main.pgy"'
@@ -2586,6 +2603,7 @@ reject_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" 
 reject_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" "max_lines parity FAIL"
 reject_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" "seq 1 701"
 reject_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" "pgy_runtime_synthetic_drift.h'"
+reject_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" '"kind":"header_over_cap"'
 require_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" "JsonEmitArray(findings)"
@@ -2600,7 +2618,8 @@ require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.
 require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'LLVM_DISPATCH="${harness_paths[4]}"'
 require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'DRIFT_STRIP_PATTERN="${harness_paths[5]}"'
 require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'DRIFT_STRIP_COUNT="${harness_paths[6]}"'
-require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "TestHarness manifest expected 7 stdlib-dispatch rows"
+require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'COUNT_DRIFT_FINDING_KIND="${harness_paths[7]}"'
+require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "TestHarness manifest expected 8 stdlib-dispatch rows"
 require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" '"$CLEAN_BIN"'
 require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "expected-json clean"
 reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy"'
@@ -2621,6 +2640,7 @@ reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.s
 reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "llvm_entries parity FAIL"
 reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'stripped<12'
 reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" '/"stdlib /'
+reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" '"kind":"count_drift"'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'import "../../lib/json_fact_table.pgy";'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonDocumentObjectFactTable(content)"
@@ -2635,7 +2655,9 @@ require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'MANI
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'MISSING_MODULES_FIXTURE_JSON="${harness_paths[3]}"'
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'NESTED_MODULES_FIXTURE_JSON="${harness_paths[4]}"'
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'NESTED_FIELD_FIXTURE_JSON="${harness_paths[5]}"'
-require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "TestHarness manifest expected 6 module-manifest rows"
+require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'MISSING_MODULES_FINDING_KIND="${harness_paths[6]}"'
+require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'FIELD_COUNT_MISMATCH_FINDING_KIND="${harness_paths[7]}"'
+require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "TestHarness manifest expected 8 module-manifest rows"
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" '"$CLEAN_BIN" "$MANIFEST_PATH"'
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'assert_llvm_leg "self-host-parity:module-manifest-resolver" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$MANIFEST_PATH"'
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "expected-json clean"
@@ -2649,6 +2671,8 @@ reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'EXPEC
 reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'MANIFEST_PATH="docs/language_module_manifest.json"'
 reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "sed 's/\"modules\":"
 reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "cat > \"\$NEG_ROOT/\$MANIFEST_PATH\" <<'JSON'"
+reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" '"kind":"missing_modules_key"'
+reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" '"kind":"field_count_mismatch"'
 for report_output_parity in \
     tests/self_hosted/parity/ast_read_surface_checker_parity.sh \
     tests/self_hosted/parity/doc_link_checker_parity.sh \

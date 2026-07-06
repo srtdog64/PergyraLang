@@ -46,8 +46,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 6 ]]; then
-    echo "[self-host-parity:module-manifest-resolver] TestHarness manifest expected 6 module-manifest rows, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 8 ]]; then
+    echo "[self-host-parity:module-manifest-resolver] TestHarness manifest expected 8 module-manifest rows, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -57,6 +57,8 @@ MANIFEST_PATH="${harness_paths[2]}"
 MISSING_MODULES_FIXTURE_JSON="${harness_paths[3]}"
 NESTED_MODULES_FIXTURE_JSON="${harness_paths[4]}"
 NESTED_FIELD_FIXTURE_JSON="${harness_paths[5]}"
+MISSING_MODULES_FINDING_KIND="${harness_paths[6]}"
+FIELD_COUNT_MISMATCH_FINDING_KIND="${harness_paths[7]}"
 
 for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$ROOT_DIR/$MANIFEST_PATH"; do
     if [[ ! -f "$path" ]]; then
@@ -64,6 +66,10 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$ROOT_DIR/$MANIFEST_PA
         exit 1
     fi
 done
+if [[ -z "$MISSING_MODULES_FINDING_KIND" || -z "$FIELD_COUNT_MISMATCH_FINDING_KIND" ]]; then
+    echo "[self-host-parity:module-manifest-resolver] invalid TestHarness finding-kind rows" >&2
+    exit 1
+fi
 
 PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
 
@@ -123,8 +129,8 @@ if [[ "$NEG_RC" -ne 1 ]]; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq '"kind":"missing_modules_key"' <<<"$NEG_OUT"; then
-    echo "[self-host-parity:module-manifest-resolver] missing-modules-key fixture expected missing_modules_key finding" >&2
+if ! grep -Fq "\"kind\":\"${MISSING_MODULES_FINDING_KIND}\"" <<<"$NEG_OUT"; then
+    echo "[self-host-parity:module-manifest-resolver] missing-modules-key fixture expected ${MISSING_MODULES_FINDING_KIND} finding" >&2
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
@@ -143,8 +149,8 @@ if [[ "$NESTED_MODULES_RC" -ne 1 ]]; then
     printf '%s\n' "$NESTED_MODULES_OUT" >&2
     exit 1
 fi
-if ! grep -Fq '"kind":"missing_modules_key"' <<<"$NESTED_MODULES_OUT"; then
-    echo "[self-host-parity:module-manifest-resolver] nested-modules fixture expected missing_modules_key finding" >&2
+if ! grep -Fq "\"kind\":\"${MISSING_MODULES_FINDING_KIND}\"" <<<"$NESTED_MODULES_OUT"; then
+    echo "[self-host-parity:module-manifest-resolver] nested-modules fixture expected ${MISSING_MODULES_FINDING_KIND} finding" >&2
     printf '%s\n' "$NESTED_MODULES_OUT" >&2
     exit 1
 fi
@@ -163,9 +169,9 @@ if [[ "$NESTED_RC" -ne 1 ]]; then
     printf '%s\n' "$NESTED_OUT" >&2
     exit 1
 fi
-if ! grep -Fq '"kind":"field_count_mismatch"' <<<"$NESTED_OUT" ||
+if ! grep -Fq "\"kind\":\"${FIELD_COUNT_MISMATCH_FINDING_KIND}\"" <<<"$NESTED_OUT" ||
    ! grep -Fq '"key":"layer"' <<<"$NESTED_OUT"; then
-    echo "[self-host-parity:module-manifest-resolver] nested-field fixture expected layer field_count_mismatch" >&2
+    echo "[self-host-parity:module-manifest-resolver] nested-field fixture expected layer ${FIELD_COUNT_MISMATCH_FINDING_KIND}" >&2
     printf '%s\n' "$NESTED_OUT" >&2
     exit 1
 fi

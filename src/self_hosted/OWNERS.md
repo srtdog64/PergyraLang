@@ -150,6 +150,10 @@ compiler-stage `.pgy` source to be listed here.
   vocabulary for Pergyra-owned parity harness work.
 - `src/self_hosted/compiler/test_harness_tool_paths_owner.pgy` -- shared
   parity tool/input path suites consumed by test harness manifests.
+- `src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy` --
+  inventory checker path and negative-finding rows consumed by TestHarness.
+- `src/self_hosted/compiler/test_harness_size_paths_owner.pgy` -- production
+  size checker path and over-cap finding rows consumed by TestHarness.
 - `src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy` -- AIR
   graph consumer path suites consumed by parity runners.
 - `src/self_hosted/compiler/test_harness_driver_paths_owner.pgy` -- DRV-0/DRV-1

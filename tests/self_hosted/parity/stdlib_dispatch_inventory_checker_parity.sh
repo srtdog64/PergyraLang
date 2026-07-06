@@ -46,8 +46,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 7 ]]; then
-    echo "[self-host-parity:stdlib-dispatch-inventory] TestHarness manifest expected 7 stdlib-dispatch rows, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 8 ]]; then
+    echo "[self-host-parity:stdlib-dispatch-inventory] TestHarness manifest expected 8 stdlib-dispatch rows, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -58,6 +58,7 @@ C_UNARY_DISPATCH="${harness_paths[3]}"
 LLVM_DISPATCH="${harness_paths[4]}"
 DRIFT_STRIP_PATTERN="${harness_paths[5]}"
 DRIFT_STRIP_COUNT="${harness_paths[6]}"
+COUNT_DRIFT_FINDING_KIND="${harness_paths[7]}"
 
 for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$ROOT_DIR/$C_DISPATCH" "$ROOT_DIR/$C_UNARY_DISPATCH" "$ROOT_DIR/$LLVM_DISPATCH"; do
     if [[ ! -f "$path" ]]; then
@@ -65,7 +66,7 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$ROOT_DIR/$C_DISPATCH"
         exit 1
     fi
 done
-if [[ -z "$DRIFT_STRIP_PATTERN" || ! "$DRIFT_STRIP_COUNT" =~ ^[0-9]+$ ]]; then
+if [[ -z "$DRIFT_STRIP_PATTERN" || ! "$DRIFT_STRIP_COUNT" =~ ^[0-9]+$ || -z "$COUNT_DRIFT_FINDING_KIND" ]]; then
     echo "[self-host-parity:stdlib-dispatch-inventory] invalid TestHarness drift fixture row" >&2
     exit 1
 fi
@@ -135,8 +136,8 @@ if [[ "$NEG_RC" -ne 1 ]]; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq '"kind":"count_drift"' <<<"$NEG_OUT"; then
-    echo "[self-host-parity:stdlib-dispatch-inventory] drift fixture expected count_drift finding" >&2
+if ! grep -Fq "\"kind\":\"${COUNT_DRIFT_FINDING_KIND}\"" <<<"$NEG_OUT"; then
+    echo "[self-host-parity:stdlib-dispatch-inventory] drift fixture expected ${COUNT_DRIFT_FINDING_KIND} finding" >&2
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi

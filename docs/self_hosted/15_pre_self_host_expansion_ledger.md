@@ -393,6 +393,13 @@ LLM-written changes from drifting across owner boundaries; the latter remains a
 Pergyra semantics/projection competitiveness axis in
 `docs/168_fortran_parallel_evidence.md`.
 
+TestHarness split, 2026-07-06: inventory checker suites now live in
+`test_harness_inventory_paths_owner.pgy`, and production size checker suites
+now live in `test_harness_size_paths_owner.pgy`. This keeps
+`test_harness_tool_paths_owner.pgy` below the 600-line review cap and gives
+negative finding-kind rows a responsibility owner rather than adding more shell
+literal checks.
+
 TestHarness delta, 2026-07-05: `doc_link_checker_parity.sh` now gets the
 checker source, expected clean JSON, and `docs/INDEX.md` input path through the
 `doc-link-checker-paths` manifest suite. The compiled checker receives that
@@ -423,6 +430,15 @@ gets the expected `inventory_count_drift` finding kind through the
 mutator, but it no longer owns the semantic finding-kind string. This is a
 repository-authoring/LLM guard, not the Fortran-derived data-parallel language
 plane.
+
+TestHarness delta, 2026-07-06: `module_manifest_resolver_parity.sh`,
+`stdlib_dispatch_inventory_checker_parity.sh`,
+`production_c_size_checker_parity.sh`, and
+`production_header_size_checker_parity.sh` now consume their negative
+finding-kind expectations from TestHarness owner rows. Shell still constructs
+scratch fixtures, but the semantic labels (`missing_modules_key`,
+`field_count_mismatch`, `count_drift`, `c_over_cap`, `header_over_cap`) are no
+longer shell-owned.
 
 TestHarness delta, 2026-07-05: `ast_read_surface_checker_parity.sh` now gets
 the checker source, expected clean JSON, and `tests/ast_read_surface_ratchet.txt`

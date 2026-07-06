@@ -45,8 +45,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 4 ]]; then
-    echo "[self-host-parity:production-header-size] TestHarness manifest expected 4 production-header-size rows, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 5 ]]; then
+    echo "[self-host-parity:production-header-size] TestHarness manifest expected 5 production-header-size rows, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -54,6 +54,7 @@ PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
 OVER_CAP_FIXTURE_PATH="${harness_paths[2]}"
 OVER_CAP_LINE_COUNT="${harness_paths[3]}"
+OVER_CAP_FINDING_KIND="${harness_paths[4]}"
 
 for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE"; do
     if [[ ! -f "$path" ]]; then
@@ -61,7 +62,7 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE"; do
         exit 1
     fi
 done
-if [[ -z "$OVER_CAP_FIXTURE_PATH" || ! "$OVER_CAP_LINE_COUNT" =~ ^[0-9]+$ ]]; then
+if [[ -z "$OVER_CAP_FIXTURE_PATH" || ! "$OVER_CAP_LINE_COUNT" =~ ^[0-9]+$ || -z "$OVER_CAP_FINDING_KIND" ]]; then
     echo "[self-host-parity:production-header-size] invalid TestHarness over-cap fixture row" >&2
     exit 1
 fi
@@ -138,8 +139,8 @@ if [[ "$NEG_RC" -ne 1 ]]; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq '"kind":"header_over_cap"' <<<"$NEG_OUT"; then
-    echo "[self-host-parity:production-header-size] over-cap fixture expected header_over_cap finding" >&2
+if ! grep -Fq "\"kind\":\"${OVER_CAP_FINDING_KIND}\"" <<<"$NEG_OUT"; then
+    echo "[self-host-parity:production-header-size] over-cap fixture expected ${OVER_CAP_FINDING_KIND} finding" >&2
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi

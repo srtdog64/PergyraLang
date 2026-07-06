@@ -3,6 +3,8 @@
 // Owns the fixture/result row vocabulary for hard self-host parity.
 
 import "test_harness_tool_paths_owner.pgy";
+import "test_harness_inventory_paths_owner.pgy";
+import "test_harness_size_paths_owner.pgy";
 import "test_harness_air_graph_paths_owner.pgy";
 import "test_harness_driver_paths_owner.pgy";
 import "test_harness_codegen_paths_owner.pgy";
