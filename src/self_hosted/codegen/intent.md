@@ -146,11 +146,11 @@ signature/header facts, and cursor expectation checks.
 `input/ast_text_typed_arena_owner.pgy` owns parent/indent/child projection into
 the typed `AstArena` and the `CodegenTypedAstBridgeReady` guard that consumes
 the typed AST arena payload contract before emission.
-`input/ast_text_statement_owner.pgy` owns statement-row facts, including
-`Let`, `Assign`, `Log`, `Return`, `Defer`, `ArrayPop`, `ArraySet`,
-`ArrayPush`, `Exit`, `Break`, `Continue`, `For`, `While`, `If`, `Else`
-routing, and bare call statements. `GenerateC` and statement emission consume
-those owners and must not recover those facts locally.
+Statement-row facts for `Let`, `Assign`, `Log`, `Return`, `Defer`, `ArrayPop`,
+`ArraySet`, `ArrayPush`, `Exit`, `Break`, `Continue`, `For`, `While`, `If`,
+`Else` routing, and bare call statements live in the row-fact owner plus typed
+arena projection. `GenerateC` and statement emission consume those owners and
+must not recover those facts locally.
 Parameter mode is part of that input contract: the parser AST text must preserve
 `inout`, `own`, and `ref` parameter rows. This codegen rung consumes `inout`
 through function-env `pm` facts, lowers it as value-result copy-in/copy-out, and

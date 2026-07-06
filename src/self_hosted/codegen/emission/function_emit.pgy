@@ -4,7 +4,6 @@
 
 import "../text/text_owner.pgy";
 import "../input/ast_text_inventory_owner.pgy";
-import "../input/ast_text_statement_owner.pgy";
 import "../input/ast_text_typed_arena_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";

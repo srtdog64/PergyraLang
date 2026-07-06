@@ -13,7 +13,6 @@ import "runtime_abi/string_runtime_owner.pgy";
 import "input/ast_text_inventory_owner.pgy";
 import "input/ast_text_typed_arena_owner.pgy";
 import "input/ast_text_row_fact_owner.pgy";
-import "input/ast_text_statement_owner.pgy";
 import "input/ast_usage_owner.pgy";
 import "emission/expr_rewrite.pgy";
 import "emission/struct_value_emit.pgy";

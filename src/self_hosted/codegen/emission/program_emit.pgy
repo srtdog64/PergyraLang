@@ -5,7 +5,6 @@
 import "../text/text_owner.pgy";
 import "../input/ast_text_inventory_owner.pgy";
 import "../input/ast_text_typed_arena_owner.pgy";
-import "../input/ast_text_statement_owner.pgy";
 import "../input/ast_usage_owner.pgy";
 import "../runtime_abi/host_io_runtime_owner.pgy";
 import "function_emit.pgy";

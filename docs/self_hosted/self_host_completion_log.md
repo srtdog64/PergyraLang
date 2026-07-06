@@ -5110,3 +5110,19 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-compiler-world-contract-test-smoke`, and
   `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
   7710 generated-C lines).
+
+### 2026-07-07 -- Retire dead AST-text statement owner
+
+- Deleted `src/self_hosted/codegen/input/ast_text_statement_owner.pgy` after
+  statement dispatch and payload reads moved to typed arena row facts.
+- Removed the dead imports from `codegen/main.pgy`, `program_emit.pgy`,
+  `function_emit.pgy`, and `stmt_emit.pgy`.
+- Tightened `self_hosted_component_contract_smoke.sh` so the retired file and
+  its imports cannot return.
+- Updated the self-host architecture, owner registry, and expansion ledger so
+  statement facts are attributed to `ast_text_row_fact_owner.pgy` plus the typed
+  arena projection instead of the deleted alias owner.
+- Verified with `self-host-component-contract-test-smoke`,
+  `self-host-compiler-world-contract-test-smoke`, and
+  `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
+  7247 generated-C lines).

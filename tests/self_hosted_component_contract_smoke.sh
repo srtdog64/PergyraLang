@@ -681,7 +681,6 @@ require_owner_surface codegen \
     "input/ast_text_inventory_owner.pgy" \
     "input/ast_text_typed_arena_owner.pgy" \
     "input/ast_text_row_fact_owner.pgy" \
-    "input/ast_text_statement_owner.pgy" \
     "input/ast_usage_owner.pgy" \
     "run/codegen_run_owner.pgy" \
     "text/text_owner.pgy" \
@@ -1030,97 +1029,16 @@ require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../cod
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "func CompilerEmissionFactReady"
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact"
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "TypedAstArenaPayloadContractReady()"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'import "ast_text_inventory_owner.pgy";'
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsLetStmt"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsAssignStmt"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsLogStmt"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsBareReturnStmt"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsValueReturnStmt"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsDeferStmt"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsArrayPopStmt"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsArraySetStmt"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsArrayPushStmt"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsExitStmt"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsBreakStmt"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsContinueStmt"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsForStmt"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsWhileStmt"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsIfStmt"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsElseStmt"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsBareCallStmt"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 13"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 14"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 15"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 16"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 17"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 18"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 19"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 20"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 21"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 22"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 23"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 24"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 25"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 26"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 27"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 28"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.kind == 29"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLetName"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLetTypeName"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLetInitializer"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.name"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.type_name"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextAssignTarget"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextAssignValue"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLogInner"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextReturnValue"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextArrayPopTarget"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextArraySetTarget"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextArraySetIndex"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextArraySetValue"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextArrayPushTarget"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextArrayPushValue"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextExitValue"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextForLoopVar"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextForIsRange"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextForRangeStart"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextForRangeEnd"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextForEachCollection"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextWhileCondition"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIfCondition"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextHasElseAt"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextIsElseIfAt"
-require_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextBareCallExpr"
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'StartsWith(node.text, "Log(")'
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'StartsWith(node.text, "Let: ")'
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'StartsWith(node.text, "Assign: ")'
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'StartsWith(node.text, "Return:")'
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'StartsWith(node.text, "ArrayPop(")'
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'StartsWith(node.text, "ArraySet(")'
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'StartsWith(node.text, "ArrayPush(")'
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'StartsWith(node.text, "Exit(")'
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'StartsWith(node.text, "For: ")'
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'StartsWith(node.text, "While: ")'
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'StartsWith(node.text, "If: ")'
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'node.text == "Return"'
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'node.text == "Defer:"'
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'node.text == "Break"'
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'node.text == "Continue"'
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'node.text == "Else:"'
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "IsSingleCall(node.text)"
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "return node.text"
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'Substring(node.text, 4'
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'Substring(node.text, 9'
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'Substring(node.text, 10'
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'Substring(node.text, 5'
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" 'CodegenAstTextPayloadAfter('
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLetNameEnd"
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLetAfterName"
-reject_text "src/self_hosted/codegen/input/ast_text_statement_owner.pgy" "func CodegenAstTextLetInitializerPos"
+if [[ -f "$ROOT_DIR/src/self_hosted/codegen/input/ast_text_statement_owner.pgy" ]]; then
+    fail "retired AST-text statement owner returned"
+fi
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "if IsSingleCall(text)"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIsLetStmt"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextLetName"
-require_text "src/self_hosted/codegen/main.pgy" 'import "input/ast_text_statement_owner.pgy";'
+reject_text "src/self_hosted/codegen/main.pgy" 'import "input/ast_text_statement_owner.pgy";'
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" 'import "../input/ast_text_statement_owner.pgy";'
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/ast_text_statement_owner.pgy";'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/ast_text_statement_owner.pgy";'
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextInventory(ast: String, inout indents:"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "CodegenAstTextNodeInventory(ast: String"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "CodegenAstTextPayloadAfter(node, \"Function: \""

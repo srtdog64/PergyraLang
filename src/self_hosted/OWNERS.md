@@ -112,9 +112,8 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/codegen/input/ast_input_owner.pgy` -- AST path and read boundary.
 - `src/self_hosted/codegen/input/ast_text_inventory_owner.pgy` -- AST text line inventory, kind row facts, and cursor expectation boundary.
 - `src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy` -- AST text inventory to typed arena projection, including parent and indent rows.
-- `src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy` -- AST text name/type/mode row facts derived from inventory payloads.
-- `src/self_hosted/codegen/input/ast_text_statement_owner.pgy` -- AST text statement-row fact accessors for the transitional bridge.
-- `src/self_hosted/codegen/input/ast_usage_owner.pgy` -- runtime/header usage facts derived from the AST text node inventory.
+- `src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy` -- AST text name/type/value/aux-value/mode row facts derived from inventory payloads.
+- `src/self_hosted/codegen/input/ast_usage_owner.pgy` -- runtime/header usage facts derived from typed arena rows.
 - `src/self_hosted/codegen/typed_ast_node_skeleton.pgy` -- typed AST arena
   payload contract, `NodeId` lookup facts, and migration target for retiring
   the AST text bridge.
