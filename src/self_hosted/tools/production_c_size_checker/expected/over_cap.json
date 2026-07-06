@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.production-c-size.v1","ok":false,"source":{"dirwalk_owner":"src","filter":"test_inc_size_production_c_scope","cap_lines":699},"counts":{"c_files":1,"violations":1,"max_lines":1001},"findings":[{"kind":"c_over_cap","path":"src/runtime/pgy_runtime_synthetic_c_drift.c","lines":1001,"location":"src/runtime/pgy_runtime_synthetic_c_drift.c"}]}

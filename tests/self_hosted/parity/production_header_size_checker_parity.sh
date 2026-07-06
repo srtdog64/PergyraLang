@@ -5,7 +5,8 @@
 # (src/self_hosted/tools/production_header_size_checker/main.pgy).
 # Asserts:
 #   - clean repo: rc=0, JSON byte-equal vs expected/clean.json
-#   - synthetic over-cap fixture (701-line .h under src/runtime): rc=1
+#   - synthetic over-cap fixture (701-line .h under src/runtime): rc=1,
+#     JSON byte-equal vs expected/over_cap.json
 # See tests/self_hosted/parity/README.md.
 
 set -euo pipefail
@@ -54,15 +55,15 @@ PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
 OVER_CAP_FIXTURE_PATH="${harness_paths[2]}"
 OVER_CAP_LINE_COUNT="${harness_paths[3]}"
-OVER_CAP_FINDING_KIND="${harness_paths[4]}"
+EXPECTED_OVER_CAP_JSON_FILE="$ROOT_DIR/${harness_paths[4]}"
 
-for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE"; do
+for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$EXPECTED_OVER_CAP_JSON_FILE"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:production-header-size] missing input: $path" >&2
         exit 1
     fi
 done
-if [[ -z "$OVER_CAP_FIXTURE_PATH" || ! "$OVER_CAP_LINE_COUNT" =~ ^[0-9]+$ || -z "$OVER_CAP_FINDING_KIND" ]]; then
+if [[ -z "$OVER_CAP_FIXTURE_PATH" || ! "$OVER_CAP_LINE_COUNT" =~ ^[0-9]+$ ]]; then
     echo "[self-host-parity:production-header-size] invalid TestHarness over-cap fixture row" >&2
     exit 1
 fi
@@ -139,16 +140,16 @@ if [[ "$NEG_RC" -ne 1 ]]; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq "\"kind\":\"${OVER_CAP_FINDING_KIND}\"" <<<"$NEG_OUT"; then
-    echo "[self-host-parity:production-header-size] over-cap fixture expected ${OVER_CAP_FINDING_KIND} finding" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "$(basename "$OVER_CAP_FIXTURE_PATH")" <<<"$NEG_OUT"; then
-    echo "[self-host-parity:production-header-size] over-cap fixture expected synthetic header path in findings" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
+NEG_JSON="$(printf '%s\n' "$NEG_OUT" \
+    | tr -d '\r' \
+    | grep -F 'pgy.selfhost.production-header-size.v1' \
+    | tail -n 1)"
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:production-header-size" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$EXPECTED_OVER_CAP_JSON_FILE" \
+    "$NEG_JSON" \
+    "run_output"
 
 assert_llvm_leg "self-host-parity:production-header-size" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR"
 echo "[self-host-parity:production-header-size] rung-2 parity ok (expected-json clean; over-cap fixture rc=1)"

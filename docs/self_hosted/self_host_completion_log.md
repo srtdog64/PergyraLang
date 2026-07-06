@@ -115,6 +115,18 @@ rewrite history.
   `test_harness_inventory_paths_owner.pgy`, and tightened the component
   contract against reintroducing shell-owned `count_drift` interpretation.
 
+## 2026-07-06 - Production size over-cap verdicts consume artifact owner
+
+- Added TestHarness-owned expected JSON artifacts for the synthetic production
+  `.c` and `.h` over-cap fixtures.
+- Repointed `production_c_size_checker_parity.sh` and
+  `production_header_size_checker_parity.sh` so shell only handles scratch file
+  creation and `rc=1`; the full over-cap verdicts are compared through
+  `backend_output_comparator` as `run_output`.
+- Removed the production size finding-kind rows from
+  `test_harness_size_paths_owner.pgy`, and tightened the component contract
+  against reintroducing shell-owned over-cap finding/path interpretation.
+
 ## 2026-07-06 - TestHarness manifest source consumes path owner projection
 
 - Added `CompilerTestHarnessManifestPath()` to the compiler path manifest and

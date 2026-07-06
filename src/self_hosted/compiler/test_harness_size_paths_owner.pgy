@@ -1,7 +1,7 @@
 // TestHarness production-size path owner.
 //
-// Owns production size checker source/input paths plus over-cap finding
-// vocabulary. Shell runners create the scratch oversized file only.
+// Owns production size checker source/input paths plus over-cap verdict
+// artifacts. Shell runners create the scratch oversized file only.
 
 func CompilerHarnessProductionCSizeSuiteName() -> String {
     return "production-c-size-paths";
@@ -23,8 +23,8 @@ func CompilerHarnessProductionCSizeOverCapFixtureLineCount() -> Int {
     return 1001;
 }
 
-func CompilerHarnessProductionCSizeOverCapFindingKind() -> String {
-    return "c_over_cap";
+func CompilerHarnessProductionCSizeOverCapExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/production_c_size_checker/expected/over_cap.json";
 }
 
 func CompilerHarnessProductionCSizePathCount() -> Int {
@@ -36,7 +36,7 @@ func CompilerHarnessProductionCSizePathAt(index: Int) -> String {
     if index == 1 { return CompilerHarnessProductionCSizeExpectedJsonPath(); }
     if index == 2 { return CompilerHarnessProductionCSizeOverCapFixturePath(); }
     if index == 3 { return ToString(CompilerHarnessProductionCSizeOverCapFixtureLineCount()); }
-    if index == 4 { return CompilerHarnessProductionCSizeOverCapFindingKind(); }
+    if index == 4 { return CompilerHarnessProductionCSizeOverCapExpectedJsonPath(); }
     return "";
 }
 
@@ -74,8 +74,8 @@ func CompilerHarnessProductionHeaderSizeOverCapFixtureLineCount() -> Int {
     return 701;
 }
 
-func CompilerHarnessProductionHeaderSizeOverCapFindingKind() -> String {
-    return "header_over_cap";
+func CompilerHarnessProductionHeaderSizeOverCapExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/production_header_size_checker/expected/over_cap.json";
 }
 
 func CompilerHarnessProductionHeaderSizePathCount() -> Int {
@@ -87,7 +87,7 @@ func CompilerHarnessProductionHeaderSizePathAt(index: Int) -> String {
     if index == 1 { return CompilerHarnessProductionHeaderSizeExpectedJsonPath(); }
     if index == 2 { return CompilerHarnessProductionHeaderSizeOverCapFixturePath(); }
     if index == 3 { return ToString(CompilerHarnessProductionHeaderSizeOverCapFixtureLineCount()); }
-    if index == 4 { return CompilerHarnessProductionHeaderSizeOverCapFindingKind(); }
+    if index == 4 { return CompilerHarnessProductionHeaderSizeOverCapExpectedJsonPath(); }
     return "";
 }
 

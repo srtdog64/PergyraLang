@@ -67,7 +67,7 @@ The parity rung (`tests/self_hosted/parity/`) asserts:
 - Emitted JSON byte-matches `expected/clean.json` with `max_lines` normalized
   to avoid fixture churn on ordinary line-count drift.
 - A synthetic over-cap fixture (a 701-line `.h` under `src/runtime`) yields
-  `rc=1` with a `"kind":"header_over_cap"` finding.
+  `rc=1` and byte-matches `expected/over_cap.json`.
 - Both C and LLVM legs compile the same self-hosted checker.
 
 If clean inventory semantics drift, update the committed expected artifact or

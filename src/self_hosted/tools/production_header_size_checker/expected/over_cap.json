@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.production-header-size.v1","ok":false,"source":{"dirwalk_owner":"src","filter":"production_header_smoke_scope","cap_lines":600},"counts":{"headers":1,"violations":1,"max_lines":701},"findings":[{"kind":"header_over_cap","path":"src/runtime/pgy_runtime_synthetic_drift.h","lines":701,"location":"src/runtime/pgy_runtime_synthetic_drift.h"}]}

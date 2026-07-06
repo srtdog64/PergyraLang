@@ -251,6 +251,13 @@ fixture path and line-count rows from `test_harness_tool_paths_owner.pgy`.
 Shell still creates the scratch files, but no longer owns which production
 artifact path or LOC boundary proves the fail-closed fixture.
 
+ArtifactZone delta, 2026-07-06: `production_c_size_checker_parity.sh` and
+`production_header_size_checker_parity.sh` now get their synthetic over-cap
+expected JSON artifacts from `test_harness_size_paths_owner.pgy` and compare
+the full negative verdicts through `backend_output_comparator`. Shell still
+creates the oversized scratch files and checks `rc=1`, but no longer owns the
+`c_over_cap` / `header_over_cap` finding-kind or path interpretation.
+
 TestHarness delta, 2026-07-06: `linter_parity.sh` and
 `runtime_boundary_checker_parity.sh` now compile and run their
 manifest-projected checker sources in place. They no longer create build-dir
@@ -483,9 +490,9 @@ TestHarness delta, 2026-07-06: `module_manifest_resolver_parity.sh` now consumes
 negative JSON fixture bodies and expected verdict artifacts from TestHarness,
 `stdlib_dispatch_inventory_checker_parity.sh` now consumes its count-drift
 expected verdict artifact from TestHarness, and the production size checkers
-still consume their negative finding-kind expectations from TestHarness owner
-rows. Shell still constructs scratch fixtures, but the module-manifest and
-stdlib-dispatch negative verdict shapes are no longer shell-owned.
+now consume their over-cap expected verdict artifacts from TestHarness. Shell
+still constructs scratch fixtures, but the module-manifest, stdlib-dispatch,
+and production size negative verdict shapes are no longer shell-owned.
 
 TestHarness delta, 2026-07-05: `ast_read_surface_checker_parity.sh` now gets
 the checker source, expected clean JSON, and `tests/ast_read_surface_ratchet.txt`
