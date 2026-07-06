@@ -201,6 +201,45 @@ func CodegenAstArenaAuxValueOrDie(arena: AstArena, node_id: Int) -> String {
     return UnwrapOption(value);
 }
 
+func CodegenAstArenaKindIs(arena: AstArena, node_id: Int, expected_kind: Int) -> Bool {
+    let kind: Option<Int> = TypedAstArenaNodeKind(arena, node_id);
+    if !IsSome(kind) {
+        return false;
+    }
+    return UnwrapOption(kind) == expected_kind;
+}
+
+func CodegenAstArenaIsFunction(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 6);
+}
+
+func CodegenAstArenaIsMainFunction(arena: AstArena, node_id: Int) -> Bool {
+    if !CodegenAstArenaIsFunction(arena, node_id) {
+        return false;
+    }
+    let atom: Option<String> = TypedAstArenaAtomText(arena, node_id);
+    if !IsSome(atom) {
+        return false;
+    }
+    return UnwrapOption(atom) == "Main";
+}
+
+func CodegenAstArenaIsRoleDecl(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 7);
+}
+
+func CodegenAstArenaIsNominalDecl(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 8);
+}
+
+func CodegenAstArenaIsEventDecl(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 10);
+}
+
+func CodegenAstArenaIsZeroArtifactDecl(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 11);
+}
+
 func CodegenAstArenaEnumVariantPayload(arena: AstArena, node_id: Int) -> String {
     let value: Option<String> = TypedAstArenaAuxValueText(arena, node_id);
     if IsSome(value) {

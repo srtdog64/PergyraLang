@@ -5022,3 +5022,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-compiler-world-contract-test-smoke`, and
   `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
   7421 generated-C lines).
+
+### 2026-07-07 -- Program routing consumes typed arena kind predicates
+
+- Added typed arena declaration predicates for function, Main function, event,
+  zero-artifact, nominal, and role nodes.
+- Repointed `program_emit.pgy` so declaration routing, Main counting, event
+  rejection, and top-level function selection consume `AstArena` kind/atom facts
+  instead of `CodegenAstTextIs*` predicates over transitional text nodes.
+- Tightened `self_hosted_component_contract_smoke.sh` so those old declaration
+  predicates cannot return in `program_emit.pgy`.
+- Verified with `self-host-component-contract-test-smoke`,
+  `self-host-compiler-world-contract-test-smoke`, and
+  `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
+  7474 generated-C lines).
