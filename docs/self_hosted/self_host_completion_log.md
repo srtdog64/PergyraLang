@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - AIR id uniqueness negative verdict consumes artifact owner
+
+- Added a TestHarness-owned duplicate expected JSON artifact for the AIR graph
+  id uniqueness checker.
+- Repointed `air_graph_id_uniqueness_parity.sh` so shell only checks the
+  duplicate fixture process boundary (`rc=1`); the duplicate verdict shape is
+  compared through `backend_output_comparator` as an `air_json` artifact.
+- Removed the TestHarness row that exposed only the `duplicate_id` finding
+  string, and tightened the component contract against reintroducing shell-owned
+  `ok:false` or finding-kind interpretation for this parity runner.
+
 ## 2026-07-06 - TestHarness manifest source consumes path owner projection
 
 - Added `CompilerTestHarnessManifestPath()` to the compiler path manifest and

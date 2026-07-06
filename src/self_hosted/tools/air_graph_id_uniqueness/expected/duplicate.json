@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.air-id-uniqueness.v1","ok":false,"source":{"input_schema":"pgy.air.graph.v1","fixture_owner":"src/self_hosted/tools/air_graph_id_uniqueness/fixture/graph_ids_dup.json"},"counts":{"ids":3,"distinct":2,"duplicates":1},"findings":[{"kind":"duplicate_id","id":"1"}]}

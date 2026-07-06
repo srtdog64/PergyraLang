@@ -130,9 +130,10 @@ live-reference fail-closed behavior.
 
 ArtifactZone delta, 2026-07-06: `air_graph_id_uniqueness_parity.sh` no longer
 recomputes the clean duplicate-id count with shell `grep`/`sort`/`uniq`.
-The clean output oracle is the TestHarness-projected `expected/clean.json`
-compared through `backend_output_comparator`; shell remains only the process
-runner and negative-fixture executor for the duplicate-id case.
+The clean output oracle is the TestHarness-projected `expected/clean.json`, and
+the duplicate negative verdict is the TestHarness-projected
+`expected/duplicate.json`; both are compared through `backend_output_comparator`.
+Shell remains only the process runner and duplicate-fixture `rc=1` checker.
 
 ArtifactZone delta, 2026-07-06: `air_graph_reachability_parity.sh` no longer
 recomputes the clean node count with shell `grep`/`wc`. The clean output oracle

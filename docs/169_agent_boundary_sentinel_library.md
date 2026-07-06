@@ -45,6 +45,12 @@ If a change needs SIMD, NPU, tensor, worker-pool, or Fortran-class bulk lowering
 evidence, it belongs to the language plane. If a change needs "when this pattern
 appears, stop and turn toward this owner/gate", it belongs here.
 
+The split is intentional: Fortran-derived parallel evidence is part of the
+language's competitive design. This catalog is not. It is a repository-level
+ratchet for code that future LLM or agent sessions may write, so the codebase
+does not drift back into alias buckets, duplicate semantic readers, or hidden
+fallbacks.
+
 The failure mode this file prevents is not slow parallel code. It is
 LLM-authored code that reintroduces aliases, fallback paths, local parsers, or
 wrong owners after the project has already named the source-of-truth boundary.

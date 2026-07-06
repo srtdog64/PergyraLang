@@ -27,6 +27,13 @@ There are two separate planes:
   gates that steer future LLM-written code away from wrong source-of-truth
   boundaries.
 
+The Fortran-derived plane is where Pergyra competes as a programming language:
+it should let users express ownership, independence, layout, and reductions in a
+way that later CPU, GPU, tensor, NPU, or dataflow backends can consume. The
+sentinel plane is not that feature. It is a guardrail for this repository so
+future LLM-authored patches do not recreate C-style fragmentation, local
+fallbacks, or wrong-owner aliases.
+
 The language plane may later become syntax, compiler facts, optimizations, and
 non-CPU projections. The repository-authoring plane must never be presented as a
 Pergyra program feature, and this document must never become the owner for

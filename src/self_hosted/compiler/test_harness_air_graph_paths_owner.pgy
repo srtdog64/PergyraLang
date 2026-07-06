@@ -15,17 +15,13 @@ func CompilerHarnessAirGraphIdUniquenessPathCount() -> Int {
     return 6;
 }
 
-func CompilerHarnessAirGraphIdUniquenessExpectedFindingKind() -> String {
-    return "duplicate_id";
-}
-
 func CompilerHarnessAirGraphIdUniquenessPathAt(index: Int) -> String {
     if index == 0 { return "src/self_hosted/tools/air_graph_id_uniqueness/main.pgy"; }
     if index == 1 { return CompilerHarnessAirGraphScanOwnerPath(); }
     if index == 2 { return "src/self_hosted/tools/air_graph_id_uniqueness/expected/clean.json"; }
     if index == 3 { return "src/self_hosted/tools/air_graph_id_uniqueness/fixture/graph_ids.json"; }
     if index == 4 { return "src/self_hosted/tools/air_graph_id_uniqueness/fixture/graph_ids_dup.json"; }
-    if index == 5 { return CompilerHarnessAirGraphIdUniquenessExpectedFindingKind(); }
+    if index == 5 { return "src/self_hosted/tools/air_graph_id_uniqueness/expected/duplicate.json"; }
     return "";
 }
 

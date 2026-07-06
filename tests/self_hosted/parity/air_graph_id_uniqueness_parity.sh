@@ -3,9 +3,9 @@
 #
 # Pergyra is the origin
 # (src/self_hosted/tools/air_graph_id_uniqueness/main.pgy).
-# The TestHarness-projected expected artifact is the clean-output oracle.
-# Asserts: clean exit, JSON byte-equal vs expected/clean.json, and a duplicate
-# fixture (one repeated id, expect rc=1).
+# The TestHarness-projected expected artifacts are the clean and duplicate
+# output oracles. Shell only runs the process and checks the duplicate fixture
+# exits with rc=1; JSON meaning is compared through ArtifactZone.
 
 set -euo pipefail
 
@@ -54,16 +54,16 @@ AIR_GRAPH_SCAN_OWNER="$ROOT_DIR/${harness_paths[1]}"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[2]}"
 FIXTURE_REL="${harness_paths[3]}"
 DUP_FIXTURE_REL="${harness_paths[4]}"
-EXPECTED_FINDING_KIND="${harness_paths[5]}"
+EXPECTED_DUP_JSON_FILE="$ROOT_DIR/${harness_paths[5]}"
 FIXTURE_FILE="$ROOT_DIR/$FIXTURE_REL"
 DUP_FIXTURE_FILE="$ROOT_DIR/$DUP_FIXTURE_REL"
 
-if [[ -z "$EXPECTED_FINDING_KIND" ]]; then
-    echo "[self-host-parity:air-id-uniqueness] missing expected finding kind row" >&2
+if [[ -z "${harness_paths[5]}" ]]; then
+    echo "[self-host-parity:air-id-uniqueness] missing expected duplicate JSON row" >&2
     exit 1
 fi
 
-for path in "$PERGYRA_TOOL_SOURCE" "$AIR_GRAPH_SCAN_OWNER" "$EXPECTED_JSON_FILE" "$FIXTURE_FILE" "$DUP_FIXTURE_FILE"; do
+for path in "$PERGYRA_TOOL_SOURCE" "$AIR_GRAPH_SCAN_OWNER" "$EXPECTED_JSON_FILE" "$EXPECTED_DUP_JSON_FILE" "$FIXTURE_FILE" "$DUP_FIXTURE_FILE"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:air-id-uniqueness] missing input: $path" >&2
         exit 1
@@ -106,7 +106,8 @@ pgy_selfhost_compare_expected_text_artifact_with_owner \
     "$PERGYRA_JSON" \
     "air_json"
 
-# Negative fixture: one repeated id, expect rc=1, ok:false.
+# Negative fixture: one repeated id, expect rc=1 and compare the emitted JSON
+# against the TestHarness-owned duplicate expected artifact.
 set +e
 NEG_OUT="$(cd "$ROOT_DIR" && "$CLEAN_BIN" "$DUP_FIXTURE_REL" 2>&1)"
 NEG_RC=$?
@@ -116,16 +117,16 @@ if [[ "$NEG_RC" -ne 1 ]]; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq '"ok":false' <<<"$NEG_OUT"; then
-    echo "[self-host-parity:air-id-uniqueness] dup fixture expected ok:false" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "\"kind\":\"${EXPECTED_FINDING_KIND}\"" <<<"$NEG_OUT"; then
-    echo "[self-host-parity:air-id-uniqueness] dup fixture expected a ${EXPECTED_FINDING_KIND} finding" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
+NEG_JSON="$(printf '%s\n' "$NEG_OUT" \
+    | tr -d '\r' \
+    | grep -F 'pgy.selfhost.air-id-uniqueness.v1' \
+    | tail -n 1)"
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:air-id-uniqueness" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$EXPECTED_DUP_JSON_FILE" \
+    "$NEG_JSON" \
+    "air_json"
 
 assert_llvm_leg "self-host-parity:air-id-uniqueness" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$FIXTURE_REL"
-echo "[self-host-parity:air-id-uniqueness] rung-1 parity ok (expected-json clean; dup fixture rc=1)"
+echo "[self-host-parity:air-id-uniqueness] rung-1 parity ok (expected-json clean+duplicate; dup fixture rc=1)"

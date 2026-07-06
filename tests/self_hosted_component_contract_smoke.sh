@@ -1691,9 +1691,12 @@ for air_graph_parity in \
     reject_text "$air_graph_parity" '--run'
 done
 require_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" '"air-graph-id-uniqueness-paths"'
-require_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" "expected-json clean"
+require_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" "expected-json clean+duplicate"
 require_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" 'DUP_FIXTURE_REL="${harness_paths[4]}"'
-require_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" 'EXPECTED_FINDING_KIND="${harness_paths[5]}"'
+require_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" 'EXPECTED_DUP_JSON_FILE="$ROOT_DIR/${harness_paths[5]}"'
+require_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" 'pgy_selfhost_compare_expected_text_artifact_with_owner'
+reject_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" 'EXPECTED_FINDING_KIND="${harness_paths[5]}"'
+reject_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" "dup fixture expected ok:false"
 reject_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" "SHELL_DUPS="
 reject_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" "grep -oE '\"id\":[^,}]*'"
 reject_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" '"kind":"duplicate_id"'
@@ -1928,7 +1931,8 @@ require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphScanOwnerPath"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphIdUniquenessSuiteName"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphIdUniquenessPathAt"
-require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphIdUniquenessExpectedFindingKind"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "src/self_hosted/tools/air_graph_id_uniqueness/expected/duplicate.json"
+reject_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphIdUniquenessExpectedFindingKind"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphNodeCountSuiteName"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphNodeCountPathAt"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphNodeCountNegativeFixturePath"
