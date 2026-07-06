@@ -5,22 +5,21 @@
 
 import "../type_facts/type_env.pgy";
 
-func StructLiteralFieldNameOrDie(part: String, field_names: String, field_index: Int, context: String) -> String {
+struct StructLiteralFieldEntryFact {
+    let field_name: String;
+    let value: String;
+}
+
+func StructLiteralFieldEntryFactOrDie(part: String, field_names: String, field_index: Int, context: String) -> StructLiteralFieldEntryFact {
     let cp: Int = StringIndexOf(part, ": ");
     if cp >= 0 {
-        return StringTrim(Substring(part, 0, cp));
+        return StructLiteralFieldEntryFact(
+            StringTrim(Substring(part, 0, cp)),
+            Substring(part, cp + 2, StringLength(part) - (cp + 2)));
     }
     let field_name: String = CsvAt(field_names, field_index);
     if StringLength(field_name) == 0 {
         Die(Concat(context, Concat(" positional initializer has no field fact: ", part)));
     }
-    return field_name;
-}
-
-func StructLiteralFieldValue(part: String) -> String {
-    let cp: Int = StringIndexOf(part, ": ");
-    if cp >= 0 {
-        return Substring(part, cp + 2, StringLength(part) - (cp + 2));
-    }
-    return part;
+    return StructLiteralFieldEntryFact(field_name, part);
 }

@@ -151,8 +151,10 @@ shape and top-level element facts while expression payloads remain string-backed
 `text/expr_sequence_owner.pgy` owns top-level comma-separated expression
 sequence facts for array literals, call arguments, and struct literal field
 lists while expression payloads remain string-backed.
-`text/struct_literal_field_owner.pgy` owns struct literal field-name/value
-entry facts while struct literal payloads remain string-backed.
+`text/struct_literal_call_owner.pgy` owns struct literal call-envelope facts:
+`Name(...)` recognition plus the typed type-name/inner-payload fact row.
+`text/struct_literal_field_owner.pgy` owns the typed struct literal field-entry
+fact row while struct literal payloads remain string-backed.
 Statement-row facts for `Let`, `Assign`, `Log`, `Return`, `Defer`, `ArrayPop`,
 `ArraySet`, `ArrayPush`, `Exit`, `Break`, `Continue`, `For`, `While`, `If`,
 `Else` routing, and bare call statements live in the row-fact owner plus typed

@@ -1,0 +1,41 @@
+// Struct literal call-envelope facts.
+//
+// This owner keeps `Name(...)` recognition, type-name extraction, and inner
+// payload extraction out of emission participants while struct literal payloads
+// are still text-backed.
+
+import "text_owner.pgy";
+
+struct StructLiteralCallFact {
+    let type_name: String;
+    let inner: String;
+}
+
+func StructLiteralCallMatchesType(expr: String, type_name: String) -> Bool {
+    let e: String = StringTrim(expr);
+    return StartsWith(e, Concat(type_name, "("));
+}
+
+func StructLiteralCallOpenParenOpt(expr: String) -> Option<Int> {
+    let e: String = StringTrim(expr);
+    let op: Int = StringIndexOf(e, "(");
+    if op <= 0 {
+        return None;
+    }
+    return Some(op);
+}
+
+func StructLiteralCallFactOrDie(expr: String, context: String) -> StructLiteralCallFact {
+    let e: String = StringTrim(expr);
+    let op_opt: Option<Int> = StructLiteralCallOpenParenOpt(e);
+    if !IsSome(op_opt) || StringLength(e) == 0 || CodegenCharAt(e, StringLength(e) - 1) != ")" {
+        Die(Concat("malformed ", Concat(context, Concat(": ", expr))));
+    }
+    let op: Int = UnwrapOption(op_opt);
+    let close_opt: Option<Int> = FindMatchingParen(e, op);
+    if !IsSome(close_opt) || UnwrapOption(close_opt) != StringLength(e) - 1 {
+        Die(Concat("malformed ", Concat(context, Concat(": ", expr))));
+    }
+    let close: Int = UnwrapOption(close_opt);
+    return StructLiteralCallFact(Substring(e, 0, op), Substring(e, op + 1, close - op - 1));
+}

@@ -3,6 +3,7 @@
 import "../text/text_owner.pgy";
 import "../text/expr_scan.pgy";
 import "../text/expr_sequence_owner.pgy";
+import "../text/struct_literal_call_owner.pgy";
 import "../text/struct_literal_field_owner.pgy";
 import "../type_facts/type_env.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
@@ -12,7 +13,7 @@ import "expr_rewrite.pgy";
 // compound literal; anything else (e.g. a struct-returning call) passes through.
 func EmitStructValue(expr: String, sname: String, env: String) -> String {
     let e: String = StringTrim(expr);
-    if StartsWith(e, Concat(sname, "(")) {
+    if StructLiteralCallMatchesType(e, sname) {
         return EmitStructLit(e, env);
     }
     return RewriteExpr(e, env);
@@ -22,17 +23,9 @@ func EmitStructValue(expr: String, sname: String, env: String) -> String {
 // `(Name){ .f = (v), ... }`, routing each field by the collected field type.
 func EmitStructLit(expr: String, env: String) -> String {
     let e: String = StringTrim(expr);
-    let op: Int = StringIndexOf(e, "(");
-    if op <= 0 || CodegenCharAt(e, StringLength(e) - 1) != ")" {
-        Die(Concat("malformed struct literal: ", expr));
-    }
-    let sname: String = Substring(e, 0, op);
-    let close_opt: Option<Int> = FindMatchingParen(e, op);
-    if !IsSome(close_opt) {
-        Die(Concat("malformed struct literal: ", expr));
-    }
-    let close: Int = UnwrapOption(close_opt);
-    let inner: String = Substring(e, op + 1, close - op - 1);
+    let call_fact: StructLiteralCallFact = StructLiteralCallFactOrDie(e, "struct literal");
+    let sname: String = call_fact.type_name;
+    let inner: String = call_fact.inner;
     let out: String = Concat("(", Concat(sname, "){ "));
     let first: Bool = true;
     let field_pos: Int = 0;
@@ -42,8 +35,9 @@ func EmitStructLit(expr: String, env: String) -> String {
         let part_opt: Option<String> = ExprSequenceItemAt(inner, field_pos);
         if IsSome(part_opt) {
             let part: String = UnwrapOption(part_opt);
-            let fld: String = StructLiteralFieldNameOrDie(part, field_names, field_pos, "struct");
-            let val: String = StructLiteralFieldValue(part);
+            let field_fact: StructLiteralFieldEntryFact = StructLiteralFieldEntryFactOrDie(part, field_names, field_pos, "struct");
+            let fld: String = field_fact.field_name;
+            let val: String = field_fact.value;
             if !first {
                 out = Concat(out, ", ");
             }

@@ -172,8 +172,10 @@ initializer text locally.
 `text/expr_sequence_owner.pgy` owns top-level comma-separated expression
 sequence facts used by array literals, call arguments, and struct literal field
 lists so emission participants do not reimplement list splitting.
-`text/struct_literal_field_owner.pgy` owns struct literal field-name/value entry
-facts, including positional field fallback from collected field rows.
+`text/struct_literal_call_owner.pgy` owns struct literal call-envelope facts:
+`Name(...)` recognition plus the typed type-name/inner-payload fact row.
+`text/struct_literal_field_owner.pgy` owns the typed struct literal field-entry
+fact row, including positional field fallback from collected field rows.
 Function signature and statement body emission now
 consume this typed node owner for function headers, parameters, return lines,
 body markers, and statement reads. Parameter mode spelling (`inout`, `own`,

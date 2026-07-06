@@ -110,7 +110,10 @@ SENTINEL_MAX=3
 # Option-returning owner accessors instead of local emission loops.
 # 681 -> 686 (2026-07-07): struct literal field entries now flow through
 # owner-owned field-name/value facts instead of local emission parsing.
-RESULT_USE_MIN=686
+# 686 -> 689 (2026-07-07): struct literal call envelopes now carry Option-
+# checked typed fact rows, while field entries consume a typed row instead of
+# adding string-to-string compiler-core surface.
+RESULT_USE_MIN=689
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=17
 COMPILER_WORLD_MEMBERS_EXACT=17

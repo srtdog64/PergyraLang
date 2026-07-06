@@ -690,6 +690,7 @@ require_owner_surface codegen \
     "type_facts/type_env.pgy" \
     "text/expr_scan.pgy" \
     "text/expr_sequence_owner.pgy" \
+    "text/struct_literal_call_owner.pgy" \
     "text/struct_literal_field_owner.pgy" \
     "abi_layout/abi_layout_owner.pgy" \
     "runtime_abi/collection_runtime_owner.pgy" \
@@ -1382,17 +1383,40 @@ require_text "src/self_hosted/codegen/text/expr_sequence_owner.pgy" "func ExprSe
 require_text "src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" 'import "../text/expr_sequence_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'import "../text/expr_sequence_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'import "../text/expr_sequence_owner.pgy";'
-require_text "src/self_hosted/codegen/text/struct_literal_field_owner.pgy" "func StructLiteralFieldNameOrDie"
-require_text "src/self_hosted/codegen/text/struct_literal_field_owner.pgy" "func StructLiteralFieldValue"
+require_text "src/self_hosted/codegen/text/struct_literal_call_owner.pgy" "struct StructLiteralCallFact"
+require_text "src/self_hosted/codegen/text/struct_literal_call_owner.pgy" "func StructLiteralCallMatchesType"
+require_text "src/self_hosted/codegen/text/struct_literal_call_owner.pgy" "func StructLiteralCallOpenParenOpt"
+require_text "src/self_hosted/codegen/text/struct_literal_call_owner.pgy" "func StructLiteralCallFactOrDie"
+require_text "src/self_hosted/codegen/text/struct_literal_field_owner.pgy" "struct StructLiteralFieldEntryFact"
+require_text "src/self_hosted/codegen/text/struct_literal_field_owner.pgy" "func StructLiteralFieldEntryFactOrDie"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'import "../text/struct_literal_call_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'import "../text/struct_literal_call_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'import "../text/struct_literal_field_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'import "../text/struct_literal_field_owner.pgy";'
-require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'StructLiteralFieldNameOrDie(part, field_names, field_pos, "struct argument")'
-require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'StructLiteralFieldNameOrDie(part, field_names, field_pos, "struct")'
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'StructLiteralCallMatchesType(e, expected_type)'
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'StructLiteralCallFactOrDie(e, "struct argument literal")'
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "StringTrim(call_fact.inner)"
+require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'StructLiteralCallMatchesType(e, sname)'
+require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'StructLiteralCallFactOrDie(e, "struct literal")'
+require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "call_fact.type_name"
+require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "call_fact.inner"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'StructLiteralFieldEntryFactOrDie(part, field_names, field_pos, "struct argument")'
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "field_fact.field_name"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "field_fact.value"
+require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'StructLiteralFieldEntryFactOrDie(part, field_names, field_pos, "struct")'
+require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "field_fact.field_name"
+require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "field_fact.value"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "ExprSequenceItemCount(inner)"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "ExprSequenceItemAt(inner, arg_index)"
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "ExprSequenceItemCount(inner)"
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "FindTopLevelComma(rem)"
 reject_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "FindTopLevelComma(rem)"
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'StartsWith(e, Concat(expected_type, "("))'
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "FindMatchingParen(e, op)"
+reject_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'StartsWith(e, Concat(sname, "("))'
+reject_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'StringIndexOf(e, "(")'
+reject_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "FindMatchingParen(e, op)"
+reject_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "CodegenCharAt(e, StringLength(e) - 1)"
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'StringIndexOf(part, ": ")'
 reject_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'StringIndexOf(part, ": ")'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CsvAt(field_names, field_pos)"
@@ -1477,6 +1501,7 @@ reject_text "src/self_hosted/codegen/text/text_owner.pgy" "return -1"
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "CollectionRuntimeCLenFn"
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "CollectionRuntimeCGetFn"
 require_text "src/self_hosted/codegen/text/expr_sequence_owner.pgy" "FindTopLevelComma(rem)"
+require_text "src/self_hosted/codegen/text/struct_literal_call_owner.pgy" "FindMatchingParen(e, op)"
 require_text "src/self_hosted/codegen/text/struct_literal_field_owner.pgy" 'StringIndexOf(part, ": ")'
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "func FindTopLevelOp2(s: String, op: String) -> Option<Int>"
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "return None"

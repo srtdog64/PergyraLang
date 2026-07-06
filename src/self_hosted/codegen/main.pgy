@@ -4,6 +4,7 @@ import "text/text_owner.pgy";
 import "type_facts/type_env.pgy";
 import "text/expr_scan.pgy";
 import "text/expr_sequence_owner.pgy";
+import "text/struct_literal_call_owner.pgy";
 import "text/struct_literal_field_owner.pgy";
 import "../compiler/symbol_table_owner.pgy";
 import "abi_layout/abi_layout_owner.pgy";

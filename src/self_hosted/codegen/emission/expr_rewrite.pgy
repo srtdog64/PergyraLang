@@ -1,6 +1,7 @@
 import "../text/text_owner.pgy";
 import "../text/expr_scan.pgy";
 import "../text/expr_sequence_owner.pgy";
+import "../text/struct_literal_call_owner.pgy";
 import "../text/struct_literal_field_owner.pgy";
 import "../type_facts/type_env.pgy";
 import "../../compiler/symbol_table_owner.pgy";
@@ -241,16 +242,11 @@ func RewriteQualifiedCalls(e: String) -> String {
 func RewriteStructLiteralCallArg(expr: String, expected_type: String, env: String) -> String {
     let e: String = StringTrim(expr);
     if LookupKindType(env, expected_type, "s") != "struct" ||
-        !StartsWith(e, Concat(expected_type, "(")) {
+        !StructLiteralCallMatchesType(e, expected_type) {
         return RewriteExpr(expr, env);
     }
-    let op: Int = StringIndexOf(e, "(");
-    let close_opt: Option<Int> = FindMatchingParen(e, op);
-    if op <= 0 || !IsSome(close_opt) || UnwrapOption(close_opt) != StringLength(e) - 1 {
-        Die(Concat("malformed struct argument literal: ", expr));
-    }
-    let close: Int = UnwrapOption(close_opt);
-    let inner: String = StringTrim(Substring(e, op + 1, close - op - 1));
+    let call_fact: StructLiteralCallFact = StructLiteralCallFactOrDie(e, "struct argument literal");
+    let inner: String = StringTrim(call_fact.inner);
     let out: String = Concat("(", Concat(expected_type, "){ "));
     let first: Bool = true;
     let field_pos: Int = 0;
@@ -260,8 +256,9 @@ func RewriteStructLiteralCallArg(expr: String, expected_type: String, env: Strin
         let part_opt: Option<String> = ExprSequenceItemAt(inner, field_pos);
         if IsSome(part_opt) {
             let part: String = UnwrapOption(part_opt);
-            let fld: String = StructLiteralFieldNameOrDie(part, field_names, field_pos, "struct argument");
-            let val: String = StructLiteralFieldValue(part);
+            let field_fact: StructLiteralFieldEntryFact = StructLiteralFieldEntryFactOrDie(part, field_names, field_pos, "struct argument");
+            let fld: String = field_fact.field_name;
+            let val: String = field_fact.value;
             if !first {
                 out = Concat(out, ", ");
             }

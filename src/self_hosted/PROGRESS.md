@@ -70,8 +70,9 @@ survive `pgy --ast`; the self-host C codegen consumes `inout` from function-env
 from `ArrayPush` or other statement text. Top-level comma-separated expression
 sequences for array literals, call arguments, and struct literal field lists now
 route through `text/expr_sequence_owner.pgy` instead of local emission loops,
-and struct literal field-entry name/value facts route through
-`text/struct_literal_field_owner.pgy`.
+struct literal call-envelope facts route through
+`text/struct_literal_call_owner.pgy`, and typed struct literal field-entry row
+facts route through `text/struct_literal_field_owner.pgy`.
 The M2 completeness ledger now checks
 148 production self-host source files across lexer, parser, semantic, codegen,
 and full-pipeline identity. The real-source semantic selfcheck remains a

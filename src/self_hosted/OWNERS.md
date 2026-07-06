@@ -122,6 +122,7 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/codegen/text/text_owner.pgy` -- text/token scanning primitives.
 - `src/self_hosted/codegen/text/expr_scan.pgy` -- expression text scanning.
 - `src/self_hosted/codegen/text/expr_sequence_owner.pgy` -- top-level comma-separated expression sequence facts.
+- `src/self_hosted/codegen/text/struct_literal_call_owner.pgy` -- struct literal call-envelope facts.
 - `src/self_hosted/codegen/text/struct_literal_field_owner.pgy` -- struct literal field-name/value entry facts.
 - `src/self_hosted/codegen/type_facts/type_env.pgy` -- type environment facts.
 - `src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy` -- self-host C ABI type spelling facts.
