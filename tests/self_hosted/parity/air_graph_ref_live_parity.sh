@@ -44,8 +44,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 4 ]]; then
-    echo "[self-host-parity:air-ref-live] TestHarness manifest expected 4 paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 8 ]]; then
+    echo "[self-host-parity:air-ref-live] TestHarness manifest expected 8 paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -54,6 +54,15 @@ AIR_GRAPH_SCAN_OWNER="$ROOT_DIR/${harness_paths[1]}"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[2]}"
 FIXTURE_REL="${harness_paths[3]}"
 FIXTURE_FILE="$ROOT_DIR/$FIXTURE_REL"
+NEG_FIXTURE_REL="${harness_paths[4]}"
+CORRUPT_FIELD="${harness_paths[5]}"
+CORRUPT_FROM_VALUE="${harness_paths[6]}"
+CORRUPT_TO_VALUE="${harness_paths[7]}"
+
+if [[ -z "$NEG_FIXTURE_REL" || -z "$CORRUPT_FIELD" || -z "$CORRUPT_FROM_VALUE" || -z "$CORRUPT_TO_VALUE" ]]; then
+    echo "[self-host-parity:air-ref-live] invalid TestHarness corrupt fixture row" >&2
+    exit 1
+fi
 
 for path in "$PERGYRA_TOOL_SOURCE" "$AIR_GRAPH_SCAN_OWNER" "$EXPECTED_JSON_FILE" "$FIXTURE_FILE"; do
     if [[ ! -f "$path" ]]; then
@@ -97,10 +106,9 @@ pgy_selfhost_compare_expected_text_artifact_with_owner \
     "$PERGYRA_JSON" \
     "air_json"
 
-NEG_FIXTURE_REL=".tmp/self_hosted/air_graph_ref_live/negative/sample.json"
 NEG_FIXTURE_FILE="$ROOT_DIR/$NEG_FIXTURE_REL"
 mkdir -p "$(dirname "$NEG_FIXTURE_FILE")"
-sed -E 's/"boundary":0/"boundary":99/' "$FIXTURE_FILE" \
+sed -E "s/\"${CORRUPT_FIELD}\":${CORRUPT_FROM_VALUE}/\"${CORRUPT_FIELD}\":${CORRUPT_TO_VALUE}/" "$FIXTURE_FILE" \
     > "$NEG_FIXTURE_FILE"
 
 set +e

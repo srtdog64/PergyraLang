@@ -123,7 +123,23 @@ func CompilerHarnessAirGraphRefLiveSuiteName() -> String {
 }
 
 func CompilerHarnessAirGraphRefLivePathCount() -> Int {
-    return 4;
+    return 8;
+}
+
+func CompilerHarnessAirGraphRefLiveNegativeFixturePath() -> String {
+    return ".tmp/self_hosted/air_graph_ref_live/negative/sample.json";
+}
+
+func CompilerHarnessAirGraphRefLiveCorruptFieldName() -> String {
+    return "boundary";
+}
+
+func CompilerHarnessAirGraphRefLiveCorruptFromValue() -> String {
+    return "0";
+}
+
+func CompilerHarnessAirGraphRefLiveCorruptToValue() -> String {
+    return "99";
 }
 
 func CompilerHarnessAirGraphRefLivePathAt(index: Int) -> String {
@@ -131,14 +147,19 @@ func CompilerHarnessAirGraphRefLivePathAt(index: Int) -> String {
     if index == 1 { return CompilerHarnessAirGraphScanOwnerPath(); }
     if index == 2 { return "src/self_hosted/tools/air_graph_ref_live/expected/clean.json"; }
     if index == 3 { return "src/self_hosted/tools/air_graph_json_validator/fixture/sample.json"; }
+    if index == 4 { return CompilerHarnessAirGraphRefLiveNegativeFixturePath(); }
+    if index == 5 { return CompilerHarnessAirGraphRefLiveCorruptFieldName(); }
+    if index == 6 { return CompilerHarnessAirGraphRefLiveCorruptFromValue(); }
+    if index == 7 { return CompilerHarnessAirGraphRefLiveCorruptToValue(); }
     return "";
 }
 
 func CompilerHarnessAirGraphRefLiveReady() -> Bool {
     return CompilerHarnessAirGraphRefLiveSuiteName() != "" &&
-        CompilerHarnessAirGraphRefLivePathCount() == 4 &&
+        CompilerHarnessAirGraphRefLivePathCount() == 8 &&
         CompilerHarnessAirGraphRefLivePathAt(0) != "" &&
-        CompilerHarnessAirGraphRefLivePathAt(3) != "";
+        CompilerHarnessAirGraphRefLivePathAt(3) != "" &&
+        CompilerHarnessAirGraphRefLivePathAt(7) != "";
 }
 
 func CompilerHarnessAirGraphConsumersReady() -> Bool {

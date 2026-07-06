@@ -25,6 +25,16 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - AIR ref-live corrupt fixture consumes TestHarness owner
+
+- Extended `air-graph-ref-live-paths` with the negative fixture path, reference
+  field name, source value, and corrupted target value.
+- Repointed `air_graph_ref_live_parity.sh` so shell still writes the scratch
+  JSON mutation, but the dangling-reference mutation shape comes from
+  `test_harness_air_graph_paths_owner.pgy`.
+- Tightened the component contract against reintroducing the hardcoded
+  `"boundary":99` mutation in shell.
+
 ## 2026-07-06 - AIR node-count corrupt fixture consumes TestHarness owner
 
 - Extended `air-graph-node-count-paths` with the negative fixture path,

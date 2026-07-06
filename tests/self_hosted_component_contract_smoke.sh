@@ -1713,6 +1713,10 @@ reject_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" "SHELL_
 reject_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" "comm -23"
 require_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" '"air-graph-ref-live-paths"'
 require_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" "expected-json clean"
+require_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" 'NEG_FIXTURE_REL="${harness_paths[4]}"'
+require_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" 'CORRUPT_FIELD="${harness_paths[5]}"'
+require_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" 'CORRUPT_FROM_VALUE="${harness_paths[6]}"'
+require_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" 'CORRUPT_TO_VALUE="${harness_paths[7]}"'
 reject_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" "SHELL_INTENTS="
 reject_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" "SHELL_BOUNDARIES="
 reject_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" "SHELL_BOUNDARY_DANGLING="
@@ -1720,6 +1724,7 @@ reject_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" "SHELL_INTEN
 reject_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" "SHELL_DANGLING="
 reject_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" "count_dangling_refs()"
 reject_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" "counts.dangling parity FAIL"
+reject_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" '"boundary":99'
 require_make_target_recipe_line \
     "self-host-air-graph-consumer-parity-test-smoke" \
     'PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_json_validator_parity.sh'
@@ -1907,6 +1912,10 @@ require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefIntegrityPathAt"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefLiveSuiteName"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefLivePathAt"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefLiveNegativeFixturePath"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefLiveCorruptFieldName"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefLiveCorruptFromValue"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefLiveCorruptToValue"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphConsumersReady"
 require_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "func CompilerHarnessDriverRung0SuiteName"
 require_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "func CompilerHarnessDriverRung1SuiteName"

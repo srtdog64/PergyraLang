@@ -92,6 +92,12 @@ summary value from `test_harness_air_graph_paths_owner.pgy`. Shell remains the
 scratch file writer, but no longer owns which AIR summary fact is corrupted to
 prove the fail-closed `node_count_mismatch` path.
 
+TestHarness delta, 2026-07-06: `air_graph_ref_live_parity.sh` now gets the
+corrupted negative fixture path, reference field name, source value, and corrupt
+target value from `test_harness_air_graph_paths_owner.pgy`. Shell remains the
+scratch file writer, but no longer owns which live AIR back-reference is
+corrupted to prove the fail-closed `dangling_reference` path.
+
 TestHarness delta, 2026-07-06: the five AIR graph consumer parity runners now
 compile and run their manifest-projected checker sources in place. They no
 longer create build-dir `main.pgy` aliases or copy `scan_owner.pgy` and the
