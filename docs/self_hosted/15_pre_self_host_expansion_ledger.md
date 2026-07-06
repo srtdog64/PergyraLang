@@ -108,6 +108,12 @@ compiles and runs the manifest-projected examples-inventory checker source in
 place. It no longer creates a build-dir `main.pgy` alias or copies the
 self-hosted `lib` tree beside that alias before invoking the compiler.
 
+TestHarness delta, 2026-07-06: `production_c_size_checker_parity.sh` and
+`production_header_size_checker_parity.sh` now compile and run their
+manifest-projected checker sources in place. They no longer create build-dir
+`main.pgy` aliases or copy the self-hosted `lib` tree beside those aliases
+before invoking the compiler.
+
 TestHarness delta, 2026-07-05: lexer_parity.sh now consumes its lexer source, backend comparator source, and lexer fixture directory from TestHarness through the `lexer-parity-paths` manifest suite. The compiled lexer owner still emits the fixture source/expected row inventory, so shell executes the parity loop without owning either the tool path constants or the fixture mapping.
 
 TestHarness delta, 2026-07-06: `codegen_parity.sh` now consumes its codegen

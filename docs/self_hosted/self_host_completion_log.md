@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Production size parity uses source owners in place
+
+- Repointed `production_c_size_checker_parity.sh` and
+  `production_header_size_checker_parity.sh` so their TestHarness source rows
+  are passed to the compiler directly.
+- Removed the build-dir `main.pgy` aliases and copied `lib` trees from both
+  parity runners; each checker now resolves imports from its manifest-projected
+  source location.
+- Tightened the component contract so the local source/lib copy paths cannot
+  return to these runners.
+
 ## 2026-07-06 - Examples inventory parity uses source owner in place
 
 - Repointed `examples_inventory_checker_parity.sh` so the
