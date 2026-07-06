@@ -1,9 +1,21 @@
 {
   "schema": "pgy.agent.boundary-sentinels.v1",
   "owner_doc": "docs/169_agent_boundary_sentinel_library.md",
+  "plane": "repository-authoring-gate",
+  "not_language_feature": true,
+  "separate_from": "docs/168_fortran_parallel_evidence.md",
   "status": "repository-gate",
   "updated": "2026-07-06",
   "sentinels": [
+    {
+      "id": "fortran-parallel-plane-confusion",
+      "if_pattern": "agent boundary sentinel work is described as Fortran-derived parallel semantics, stdlib surface, or target projection evidence",
+      "wrong_boundary": "repository authoring gate is confused with language/compiler capability",
+      "why_wrong": "Fortran-derived data parallelism is a Pergyra language competitiveness axis; sentinel rows are repository guardrails for future generated code",
+      "turn_toward": "docs/168_fortran_parallel_evidence.md for data-parallel facts, or this JSON catalog for agent boundary warnings",
+      "owner": "documentation plane owner",
+      "gate_candidate": "agent-boundary-sentinel-test-smoke"
+    },
     {
       "id": "semantic-source-reread",
       "if_pattern": "backend, verifier, or self-hosted code rereads source text or AST to recover a semantic fact",

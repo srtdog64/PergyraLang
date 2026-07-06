@@ -2,8 +2,8 @@
 
 Status: `repository-gate`, agent-facing guidance (2026-07-06)
 
-This document is not a language feature and not part of the Fortran-derived
-data-parallel evidence work. Fortran-derived parallel evidence is a Pergyra
+This document is not a language feature and not a stdlib package. It is not part of the Fortran-derived data-parallel evidence work. "Library" here means a
+repository sentinel catalog. Fortran-derived parallel evidence is a Pergyra
 language/compiler competitiveness axis; this file is a codebase gate for future
 LLM-written and agent-written changes.
 
@@ -25,6 +25,20 @@ The sentinel library is the opposite of a style guide. It is a steering table:
 ```text
 pattern -> wrong_boundary -> turn_toward -> owner -> gate
 ```
+
+## Plane Split
+
+Do not merge this catalog with data-parallel language work:
+
+- `docs/168_fortran_parallel_evidence.md` owns language semantics for
+  no-alias, disjoint iteration, reductions, layout, projection replacement, and
+  visible fallback facts.
+- This document owns repository authoring sentinels for future agents. It warns
+  when a code pattern is drifting toward the wrong owner boundary.
+
+If a change needs SIMD, NPU, tensor, worker-pool, or Fortran-class bulk lowering
+evidence, it belongs to the language plane. If a change needs "when this pattern
+appears, stop and turn toward this owner/gate", it belongs here.
 
 ## Contract
 

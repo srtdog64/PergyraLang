@@ -8,8 +8,20 @@ implicit compiler trust. The target is the evidence shape that lets a compiler
 lower array-heavy code aggressively without guessing.
 
 This is a language/compiler capability contract. It belongs to Pergyra program
-semantics and target projection, not to repository authoring guidance or
-LLM/agent guardrails.
+semantics and target projection, not to repository authoring guidance,
+LLM/agent guardrails, or stdlib cataloging.
+
+There are two separate planes:
+
+- **Language plane**: Fortran-derived data-parallel evidence, owned by Pergyra
+  semantics, AIR/MIR/ABI facts, and target projection.
+- **Repository-authoring plane**: agent boundary sentinels, owned by repository
+  gates that steer future LLM-written code away from wrong source-of-truth
+  boundaries.
+
+The language plane may later become syntax, compiler facts, optimizations, and
+non-CPU projections. The repository-authoring plane must never be presented as a
+Pergyra program feature.
 
 Fortran's useful effect is that array programs often give the compiler strong
 facts:

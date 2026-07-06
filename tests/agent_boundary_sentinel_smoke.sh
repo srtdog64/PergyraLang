@@ -24,13 +24,19 @@ for rel in "$DOC_REL" "$JSON_REL" "$FORTRAN_REL" "$INDEX_REL"; do
 done
 
 require_text "$DOC_REL" "not a language feature"
+require_text "$DOC_REL" "not a stdlib package"
 require_text "$DOC_REL" "not part of the Fortran-derived"
+require_text "$DOC_REL" "repository sentinel catalog"
 require_text "$DOC_REL" "language/compiler competitiveness axis"
 require_text "$DOC_REL" "codebase gate for future"
 require_text "$DOC_REL" "pattern -> wrong_boundary -> turn_toward -> owner -> gate"
+require_text "$DOC_REL" "Plane Split"
 require_text "$DOC_REL" "machine-readable source"
 require_text "$DOC_REL" "Adding a sentinel is allowed only when it names a real owner boundary."
 require_text "$FORTRAN_REL" "language/compiler capability contract"
+require_text "$FORTRAN_REL" "There are two separate planes"
+require_text "$FORTRAN_REL" "Language plane"
+require_text "$FORTRAN_REL" "Repository-authoring plane"
 require_text "$INDEX_REL" "169_agent_boundary_sentinel_library.md"
 require_text "$INDEX_REL" "LLM/agent boundary sentinel library"
 
@@ -60,7 +66,16 @@ path = sys.argv[1]
 with open(path, "r", encoding="utf-8") as fh:
     data = json.load(fh)
 
-required_top = {"schema", "owner_doc", "status", "updated", "sentinels"}
+required_top = {
+    "schema",
+    "owner_doc",
+    "plane",
+    "not_language_feature",
+    "separate_from",
+    "status",
+    "updated",
+    "sentinels",
+}
 missing_top = required_top - set(data)
 if missing_top:
     raise SystemExit("missing top-level fields: " + ", ".join(sorted(missing_top)))
@@ -68,6 +83,12 @@ if data["schema"] != "pgy.agent.boundary-sentinels.v1":
     raise SystemExit("unexpected schema")
 if data["owner_doc"] != "docs/169_agent_boundary_sentinel_library.md":
     raise SystemExit("owner_doc drift")
+if data["plane"] != "repository-authoring-gate":
+    raise SystemExit("plane drift")
+if data["not_language_feature"] is not True:
+    raise SystemExit("not_language_feature drift")
+if data["separate_from"] != "docs/168_fortran_parallel_evidence.md":
+    raise SystemExit("separate_from drift")
 if data["status"] != "repository-gate":
     raise SystemExit("status drift")
 
@@ -98,6 +119,7 @@ for item in sentinels:
             raise SystemExit(f"{item['id']} has empty {key}")
 
 required_ids = {
+    "fortran-parallel-plane-confusion",
     "semantic-source-reread",
     "backend-compat-fallback",
     "selfhost-main-artifact-parse",
