@@ -3056,11 +3056,19 @@ reject_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" '
 require_text "tests/self_hosted/parity/lexer_scale_probe.sh" "pgy_selfhost_compile_backend_output_comparator"
 require_text "tests/self_hosted/parity/lexer_scale_probe.sh" "artifact_files_equal"
 require_text "tests/self_hosted/parity/lexer_scale_probe.sh" "run_output"
+require_text "tests/self_hosted/parity/lexer_scale_probe.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 reject_text "tests/self_hosted/parity/lexer_scale_probe.sh" 'cmp -s'
+reject_text "tests/self_hosted/parity/lexer_scale_probe.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
+reject_text "tests/self_hosted/parity/lexer_scale_probe.sh" 'cp "$ROOT_DIR/src/self_hosted/lexer/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"'
 require_text "tests/self_hosted/parity/parser_scale_probe.sh" "pgy_selfhost_compile_backend_output_comparator"
 require_text "tests/self_hosted/parity/parser_scale_probe.sh" "artifact_files_equal"
 require_text "tests/self_hosted/parity/parser_scale_probe.sh" "ast_text"
+require_text "tests/self_hosted/parity/parser_scale_probe.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 reject_text "tests/self_hosted/parity/parser_scale_probe.sh" 'cmp -s'
+reject_text "tests/self_hosted/parity/parser_scale_probe.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
+reject_text "tests/self_hosted/parity/parser_scale_probe.sh" 'cp "$ROOT_DIR/src/self_hosted/parser/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"'
+reject_text "tests/self_hosted/parity/parser_scale_probe.sh" 'LIB_BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/lib"'
+reject_text "tests/self_hosted/parity/parser_scale_probe.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"'
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" '| Artifact Zone evidence | `src/self_hosted/compiler/artifact_zone_owner.pgy`, `ArtifactZone` | `self-host-component-contract-test-smoke`, parity artifact gates |'
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" 'only direct shell comparison left under `tests/self_hosted/parity` is `backend_output_comparator_parity.sh`'
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "where shell is the comparator's own external oracle rather than a consumer fallback"

@@ -159,6 +159,12 @@ manifest-projected semantic source in place. It no longer creates a build-dir
 `main.pgy` alias or copies the semantic source tree and self-hosted `lib` tree
 beside that alias before invoking the compiler.
 
+TestHarness delta, 2026-07-06: `lexer_scale_probe.sh` and
+`parser_scale_probe.sh` now compile their source-owner entrypoints in place.
+They are still coverage probes rather than parity gates, but they no longer
+create build-dir `main.pgy` aliases or copy lexer/parser/lib source trees before
+invoking the compiler.
+
 TestHarness delta, 2026-07-06: `mir_json_parity.sh` now consumes its mir-lower
 tool source, codegen tool source, and backend comparator source from
 TestHarness through the `mir-json-parity-paths` manifest suite. The compiled

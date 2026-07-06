@@ -26,15 +26,14 @@ if [[ ! -x "$PGY" ]]; then
 fi
 
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/lexer/main.pgy"
+PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/lexer_scale}"
-PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 COMPARATOR_LABEL="self-host-parity:lexer-scale"
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
-cp "$ROOT_DIR/src/self_hosted/lexer/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"
 
 echo "[scale-probe] compiling lexer..."
-(cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")" -o "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_BUILD_DIR/main.exe")" >/dev/null)
+(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" -o "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_BUILD_DIR/main.exe")" >/dev/null)
 pgy_selfhost_compile_backend_output_comparator "$COMPARATOR_LABEL" "$PERGYRA_TOOL_BUILD_DIR"
 
 artifact_files_equal() {

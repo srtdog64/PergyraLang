@@ -35,6 +35,16 @@ rewrite history.
 - Tightened the component contract so the local semantic/lib source-copy paths
   cannot return to this runner.
 
+## 2026-07-06 - Lexer/parser scale probes use source owners in place
+
+- Repointed `lexer_scale_probe.sh` and `parser_scale_probe.sh` so their
+  self-hosted tool sources are passed to the compiler directly.
+- Removed the build-dir `main.pgy` aliases plus local lexer/parser/lib source
+  copies from those coverage probes. They remain probes, not parity gates, but
+  they no longer manufacture shadow source trees before compiling.
+- Tightened the component contract so these scale probes cannot reintroduce
+  copied source aliases.
+
 ## 2026-07-06 - Parser parity uses source owner in place
 
 - Repointed `parser_parity.sh` so the `parser-parity-paths` TestHarness source

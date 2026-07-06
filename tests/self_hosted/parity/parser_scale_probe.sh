@@ -23,19 +23,15 @@ if [[ ! -x "$PGY" ]]; then
 fi
 
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/parser/main.pgy"
+PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/parser_scale}"
-PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 COMPARATOR_LABEL="self-host-parity:parser-scale"
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 rm -f "$PERGYRA_TOOL_BUILD_DIR/main.exe"
-cp "$ROOT_DIR/src/self_hosted/parser/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"
-LIB_BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/lib"
-mkdir -p "$LIB_BUILD_DIR"
-cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
 
 echo "[scale-probe] compiling parser..."
-(cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")" -o "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_BUILD_DIR/main.exe")" >/dev/null)
+(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" -o "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_BUILD_DIR/main.exe")" >/dev/null)
 if [[ ! -x "$PERGYRA_TOOL_BUILD_DIR/main.exe" ]]; then
     echo "[scale-probe] parser compile did not produce $PERGYRA_TOOL_BUILD_DIR/main.exe" >&2
     exit 1
