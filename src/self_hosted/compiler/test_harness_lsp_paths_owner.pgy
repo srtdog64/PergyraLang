@@ -158,13 +158,19 @@ func CompilerHarnessLspDocumentStoreSuiteName() -> String {
 }
 
 func CompilerHarnessLspDocumentStorePathCount() -> Int {
-    return 3;
+    return 9;
 }
 
 func CompilerHarnessLspDocumentStorePathAt(index: Int) -> String {
     if index == 0 { return CompilerHarnessLspToolSourcePath(); }
     if index == 1 { return "src/self_hosted/lsp/expected/document_store.json"; }
     if index == 2 { return "src/self_hosted/lsp/expected/document_store_multi_uri.json"; }
+    if index == 3 { return "{\"jsonrpc\":\"2.0\",\"method\":\"initialized\"}"; }
+    if index == 4 { return "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/didOpen\",\"params\":{\"textDocument\":{\"uri\":\"file:///main.pgy\",\"version\":1,\"text\":\"Log(1);\"}}}"; }
+    if index == 5 { return "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/didChange\",\"params\":{\"textDocument\":{\"uri\":\"file:///main.pgy\",\"version\":2},\"contentChanges\":[{\"text\":\"Log(2);\"}]}}"; }
+    if index == 6 { return "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/didOpen\",\"params\":{\"textDocument\":{\"uri\":\"file:///a.pgy\",\"version\":1,\"text\":\"A\"}}}"; }
+    if index == 7 { return "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/didOpen\",\"params\":{\"textDocument\":{\"uri\":\"file:///b.pgy\",\"version\":1,\"text\":\"B0\"}}}"; }
+    if index == 8 { return "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/didChange\",\"params\":{\"textDocument\":{\"uri\":\"file:///b.pgy\",\"version\":2},\"contentChanges\":[{\"text\":\"B\"}]}}"; }
     return "";
 }
 
@@ -173,12 +179,14 @@ func CompilerHarnessLspSessionStateSuiteName() -> String {
 }
 
 func CompilerHarnessLspSessionStatePathCount() -> Int {
-    return 2;
+    return 4;
 }
 
 func CompilerHarnessLspSessionStatePathAt(index: Int) -> String {
     if index == 0 { return CompilerHarnessLspToolSourcePath(); }
     if index == 1 { return "src/self_hosted/lsp/expected/session_state.json"; }
+    if index == 2 { return "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/didOpen\",\"params\":{\"textDocument\":{\"uri\":\"file:///main.pgy\",\"version\":1,\"text\":\"Log(1);\"}}}"; }
+    if index == 3 { return "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"textDocument/hover\",\"params\":{}}"; }
     return "";
 }
 
@@ -187,12 +195,15 @@ func CompilerHarnessLspHoverContentSuiteName() -> String {
 }
 
 func CompilerHarnessLspHoverContentPathCount() -> Int {
-    return 2;
+    return 5;
 }
 
 func CompilerHarnessLspHoverContentPathAt(index: Int) -> String {
     if index == 0 { return CompilerHarnessLspToolSourcePath(); }
     if index == 1 { return "src/self_hosted/lsp/expected/hover_content.json"; }
+    if index == 2 { return "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/didOpen\",\"params\":{\"textDocument\":{\"uri\":\"file:///main.pgy\",\"version\":1,\"text\":\"func Main() -> Void {}\"}}}"; }
+    if index == 3 { return "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"textDocument/hover\",\"params\":{\"textDocument\":{\"uri\":\"file:///main.pgy\"},\"position\":{\"line\":0,\"character\":1}}}"; }
+    if index == 4 { return "{\"jsonrpc\":\"2.0\",\"id\":8,\"method\":\"textDocument/hover\",\"params\":{\"textDocument\":{\"uri\":\"file:///main.pgy\"},\"position\":{\"line\":0,\"character\":8}}}"; }
     return "";
 }
 

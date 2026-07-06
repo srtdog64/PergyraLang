@@ -283,6 +283,11 @@ through `test_harness_manifest.pgy`. Shell still executes the C/LLVM parity
 loops, but diagnostics, transport, request, response, session, document,
 state, and hover path constants are no longer shell-owned.
 
+TestHarness delta, 2026-07-06: LSP document-store, session-state, and
+hover-content request bodies now live in `test_harness_lsp_paths_owner.pgy`
+rows as well. The shell parity scripts frame and compare those rows, but no
+longer own the JSON-RPC body literals for the LSP stateful fixtures.
+
 TestHarness delta, 2026-07-06: `fuzz_backend_parity_generator_parity.sh` now
 consumes the fuzz backend generator source through the
 `fuzz-backend-generator-paths` suite projected from

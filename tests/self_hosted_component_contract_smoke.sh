@@ -3132,16 +3132,33 @@ require_text "Makefile" "tests/self_hosted/parity/lsp_document_store_parity.sh"
 require_text "tests/self_hosted/parity/lsp_document_store_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/lsp_document_store_parity.sh" '"lsp_document_store"'
 require_text "tests/self_hosted/parity/lsp_document_store_parity.sh" '"lsp-document-store-paths"'
+require_text "tests/self_hosted/parity/lsp_document_store_parity.sh" "TestHarness manifest expected 9 rows"
+require_text "tests/self_hosted/parity/lsp_document_store_parity.sh" 'body_initialized="${harness_paths[3]}"'
+require_text "tests/self_hosted/parity/lsp_document_store_parity.sh" 'body_change_b="${harness_paths[8]}"'
+reject_text "tests/self_hosted/parity/lsp_document_store_parity.sh" "body_initialized='{\"jsonrpc\""
 require_text "Makefile" "self-host-lsp-session-state-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/lsp_session_state_parity.sh"
 require_text "tests/self_hosted/parity/lsp_session_state_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/lsp_session_state_parity.sh" '"lsp_session_state"'
 require_text "tests/self_hosted/parity/lsp_session_state_parity.sh" '"lsp-session-state-paths"'
+require_text "tests/self_hosted/parity/lsp_session_state_parity.sh" "TestHarness manifest expected 4 rows"
+require_text "tests/self_hosted/parity/lsp_session_state_parity.sh" 'body_open="${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/lsp_session_state_parity.sh" 'body_hover="${harness_paths[3]}"'
+reject_text "tests/self_hosted/parity/lsp_session_state_parity.sh" "body_open='{\"jsonrpc\""
 require_text "Makefile" "self-host-lsp-hover-content-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/lsp_hover_content_parity.sh"
 require_text "tests/self_hosted/parity/lsp_hover_content_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/lsp_hover_content_parity.sh" '"lsp_hover_content"'
 require_text "tests/self_hosted/parity/lsp_hover_content_parity.sh" '"lsp-hover-content-paths"'
+require_text "tests/self_hosted/parity/lsp_hover_content_parity.sh" "TestHarness manifest expected 5 rows"
+require_text "tests/self_hosted/parity/lsp_hover_content_parity.sh" 'body_open="${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/lsp_hover_content_parity.sh" 'body_hover_nohit="${harness_paths[4]}"'
+reject_text "tests/self_hosted/parity/lsp_hover_content_parity.sh" "body_hover_func='{\"jsonrpc\""
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspDocumentStorePathCount() -> Int"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspSessionStatePathCount() -> Int"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspHoverContentPathCount() -> Int"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "if index == 8"
+require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "if index == 4"
 require_text "Makefile" "self-host-lsp-diagnostics-parity-test-smoke"
 require_text "Makefile" 'self-host-lsp-diagnostics-parity-test-smoke: $(PGY) $(PGY_LSP)'
 require_text "Makefile" 'self-host-preparation-parity-test-smoke: $(PGY) $(PGY_LSP)'

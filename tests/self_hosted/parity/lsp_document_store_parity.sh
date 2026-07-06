@@ -49,14 +49,20 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 3 ]]; then
-    echo "[self-host-parity:lsp-document-store] TestHarness manifest expected 3 paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 9 ]]; then
+    echo "[self-host-parity:lsp-document-store] TestHarness manifest expected 9 rows, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
 LSP_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_DOCUMENT_STORE="$ROOT_DIR/${harness_paths[1]}"
 EXPECTED_DOCUMENT_STORE_MULTI_URI="$ROOT_DIR/${harness_paths[2]}"
+body_initialized="${harness_paths[3]}"
+body_open="${harness_paths[4]}"
+body_change="${harness_paths[5]}"
+body_open_a="${harness_paths[6]}"
+body_open_b="${harness_paths[7]}"
+body_change_b="${harness_paths[8]}"
 for path in "$LSP_SOURCE" "$EXPECTED_DOCUMENT_STORE" "$EXPECTED_DOCUMENT_STORE_MULTI_URI"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:lsp-document-store] missing TestHarness input: $path" >&2
@@ -127,12 +133,6 @@ BACKENDS="${PGY_SELFHOST_LSP_BACKENDS:-c llvm}"
 RAN_BACKENDS=()
 SKIPPED_BACKENDS=()
 
-body_initialized='{"jsonrpc":"2.0","method":"initialized"}'
-body_open='{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///main.pgy","version":1,"text":"Log(1);"}}}'
-body_change='{"jsonrpc":"2.0","method":"textDocument/didChange","params":{"textDocument":{"uri":"file:///main.pgy","version":2},"contentChanges":[{"text":"Log(2);"}]}}'
-body_open_a='{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///a.pgy","version":1,"text":"A"}}}'
-body_open_b='{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///b.pgy","version":1,"text":"B0"}}}'
-body_change_b='{"jsonrpc":"2.0","method":"textDocument/didChange","params":{"textDocument":{"uri":"file:///b.pgy","version":2},"contentChanges":[{"text":"B"}]}}'
 input_document="$(frame_for_body "$body_initialized")$(frame_for_body "$body_open")$(frame_for_body "$body_change")"
 input_multi_uri="$(frame_for_body "$body_open_a")$(frame_for_body "$body_open_b")$(frame_for_body "$body_change_b")"
 

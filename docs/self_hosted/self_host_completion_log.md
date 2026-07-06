@@ -414,6 +414,9 @@ rewrite history.
 - Repointed the nine LSP parity runners so shell consumes
   `test_harness_manifest.pgy` rows instead of owning the LSP tool source or
   expected-artifact path constants.
+- Moved the stateful LSP document-store, session-state, and hover-content
+  JSON-RPC request bodies into the same owner rows, so parity shell can frame
+  requests but cannot own the fixture body semantics.
 - Raised the M2 completeness minima to 155 so the new owner is included in the
   hard self-host production-source ratchet.
 

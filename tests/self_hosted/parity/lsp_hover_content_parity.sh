@@ -49,13 +49,16 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 2 ]]; then
-    echo "[self-host-parity:lsp-hover-content] TestHarness manifest expected 2 paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 5 ]]; then
+    echo "[self-host-parity:lsp-hover-content] TestHarness manifest expected 5 rows, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
 LSP_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_HOVER_CONTENT="$ROOT_DIR/${harness_paths[1]}"
+body_open="${harness_paths[2]}"
+body_hover_func="${harness_paths[3]}"
+body_hover_nohit="${harness_paths[4]}"
 for path in "$LSP_SOURCE" "$EXPECTED_HOVER_CONTENT"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:lsp-hover-content] missing TestHarness input: $path" >&2
@@ -126,9 +129,6 @@ BACKENDS="${PGY_SELFHOST_LSP_BACKENDS:-c llvm}"
 RAN_BACKENDS=()
 SKIPPED_BACKENDS=()
 
-body_open='{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///main.pgy","version":1,"text":"func Main() -> Void {}"}}}'
-body_hover_func='{"jsonrpc":"2.0","id":7,"method":"textDocument/hover","params":{"textDocument":{"uri":"file:///main.pgy"},"position":{"line":0,"character":1}}}'
-body_hover_nohit='{"jsonrpc":"2.0","id":8,"method":"textDocument/hover","params":{"textDocument":{"uri":"file:///main.pgy"},"position":{"line":0,"character":8}}}'
 input_hover_content="$(frame_for_body "$body_open")$(frame_for_body "$body_hover_func")$(frame_for_body "$body_hover_nohit")"
 
 for backend in $BACKENDS; do
