@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Semantic expected regen uses path owner
+
+- Repointed `regen_expected.sh` so expected diagnostic regeneration consumes
+  `semantic-parity-paths` from the TestHarness manifest before compiling.
+- Removed the support script's build-dir `main.pgy` alias and copied
+  `.tmp/self_hosted/lib` tree. Regeneration now compiles the manifest-projected
+  semantic source in place and writes the manifest-projected expected directory.
+- Tightened the component contract so the fixture regeneration path cannot
+  reintroduce hardcoded semantic source/fixture/expected paths or local lib
+  copies.
+
 ## 2026-07-06 - Semantic parity uses source owner in place
 
 - Repointed `semantic_parity.sh` so the `semantic-parity-paths` TestHarness

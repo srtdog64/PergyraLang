@@ -382,8 +382,11 @@ assignment, if/while body, if/while condition, bare call), and the fixture
     make self-host-preparation-test-smoke
 
 After changing diagnostic rendering, the `SemanticReason` / `SemanticFix`
-tables, or fixtures, regenerate the expected verdict blocks from the tool itself
-(the checker is the single source of truth for its own output) and review the
-diff before committing:
+tables, or fixtures, regenerate the expected verdict blocks from the tool
+itself. The regeneration script reads `semantic-parity-paths` from the
+TestHarness manifest, compiles the manifest-projected semantic source in place,
+and writes the manifest-projected expected directory, so the checker remains
+the single source of truth for its own output. Review the diff before
+committing:
 
     tests/self_hosted/parity/regen_expected.sh

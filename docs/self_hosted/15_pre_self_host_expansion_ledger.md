@@ -159,6 +159,13 @@ manifest-projected semantic source in place. It no longer creates a build-dir
 `main.pgy` alias or copies the semantic source tree and self-hosted `lib` tree
 beside that alias before invoking the compiler.
 
+TestHarness delta, 2026-07-06: `regen_expected.sh` now uses the same
+`semantic-parity-paths` manifest suite before regenerating committed semantic
+diagnostics. It compiles the manifest-projected semantic source in place and
+writes the manifest-projected expected directory, so fixture maintenance no
+longer has a separate hardcoded source/fixture/expected path owner or copied
+`lib` tree.
+
 TestHarness delta, 2026-07-06: `lexer_scale_probe.sh` and
 `parser_scale_probe.sh` now compile their source-owner entrypoints in place.
 They are still coverage probes rather than parity gates, but they no longer

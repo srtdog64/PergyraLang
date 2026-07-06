@@ -639,6 +639,20 @@ reject_text "tests/self_hosted/parity/semantic_parity.sh" 'PERGYRA_TOOL="$PERGYR
 reject_text "tests/self_hosted/parity/semantic_parity.sh" 'cp "$SEMANTIC_SOURCE_DIR/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"'
 reject_text "tests/self_hosted/parity/semantic_parity.sh" 'LIB_BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/lib"'
 reject_text "tests/self_hosted/parity/semantic_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"'
+require_text "tests/self_hosted/parity/regen_expected.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/regen_expected.sh" '"semantic-parity-paths"'
+require_text "tests/self_hosted/parity/regen_expected.sh" 'TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/regen_expected.sh" 'TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$TOOL_SOURCE")"'
+require_text "tests/self_hosted/parity/regen_expected.sh" 'FIXTURE_DIR="$ROOT_DIR/${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/regen_expected.sh" 'FIXTURE_DIR_REL="${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/regen_expected.sh" 'EXPECTED_DIR="$ROOT_DIR/${harness_paths[3]}"'
+reject_text "tests/self_hosted/parity/regen_expected.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/semantic/main.pgy"'
+reject_text "tests/self_hosted/parity/regen_expected.sh" 'FIXTURE_DIR="$ROOT_DIR/src/self_hosted/semantic/fixture"'
+reject_text "tests/self_hosted/parity/regen_expected.sh" 'EXPECTED_DIR="$ROOT_DIR/src/self_hosted/semantic/expected"'
+reject_text "tests/self_hosted/parity/regen_expected.sh" 'TOOL="$BUILD_DIR/main.pgy"'
+reject_text "tests/self_hosted/parity/regen_expected.sh" 'cp "$TOOL_SOURCE" "$TOOL"'
+reject_text "tests/self_hosted/parity/regen_expected.sh" 'LIB_BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/lib"'
+reject_text "tests/self_hosted/parity/regen_expected.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"'
 require_owner_surface codegen \
     "input/ast_input_owner.pgy" \
     "input/ast_text_inventory_owner.pgy" \
