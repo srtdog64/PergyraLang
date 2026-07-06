@@ -66,12 +66,14 @@ Minimum parity contract for each tool:
 - compare exit class first;
 - compare the owned stable output shape incrementally while the Pergyra tool
   remains a partial implementation.
-- compile/run copied Pergyra tool sources from an ignored build scratch
-  directory such as `.tmp/self_hosted/...`; parity harnesses must not leave
-  `.exe`, `.o`, `.d`, or probe artifacts beside `src/self_hosted/tools/*/main.pgy`.
-- mirror shared Pergyra helper libraries such as `src/self_hosted/lib/*.pgy` into
-  the scratch layout expected by relative `import "../../lib/..."` paths before
-  running a copied tool.
+- compile/run the TestHarness-manifest-projected Pergyra source owner directly;
+  scratch directories such as `.tmp/self_hosted/...` are for binaries, logs, and
+  comparable artifacts, not copied source trees.
+- keep full-corpus probes and campaigns opt-in or bounded by default, so routine
+  self-host verification does not accumulate a campaign's worth of scratch
+  output.
+- never leave `.exe`, `.o`, `.d`, or probe artifacts beside
+  `src/self_hosted/tools/*/main.pgy`.
 
 Compiler-core self-host migration from this folder is allowed only as a verified
 rung with its own intent contract and C/LLVM/Pergyra parity gate.

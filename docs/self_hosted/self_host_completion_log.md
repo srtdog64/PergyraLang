@@ -25,6 +25,21 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Coverage probes consume path owners
+
+- Repointed `lexer_scale_probe.sh` and `parser_scale_probe.sh` so their tool
+  source and backend comparator source come from `lexer-parity-paths` and
+  `parser-parity-paths` instead of hardcoded self-host source constants.
+- Repointed `mir_json_coverage_probe.sh` so its mir-lower and codegen tool
+  sources come from `mir-json-parity-paths` instead of direct stage paths.
+- Added bounded probe execution: lexer/parser scale probes default to
+  `PGY_SCALE_PROBE_LIMIT=20` and require `--full` or
+  `PGY_SCALE_PROBE_LIMIT=0` for the historical full corpus; MIR coverage accepts
+  `PGY_MIR_COVERAGE_LIMIT` for quick source-owner wiring checks.
+- Tightened the component contract so these coverage probes cannot become
+  separate stage-source path owners again, and so the default scale probes do
+  not accidentally behave like long-running corpus campaigns.
+
 ## 2026-07-06 - Semantic expected regen uses path owner
 
 - Repointed `regen_expected.sh` so expected diagnostic regeneration consumes

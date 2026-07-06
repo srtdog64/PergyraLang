@@ -3083,21 +3083,45 @@ reject_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" '
 reject_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'show_diff'
 reject_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'files_equal'
 require_text "tests/self_hosted/parity/lexer_scale_probe.sh" "pgy_selfhost_compile_backend_output_comparator"
+require_text "tests/self_hosted/parity/lexer_scale_probe.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/lexer_scale_probe.sh" '"lexer-parity-paths"'
+require_text "tests/self_hosted/parity/lexer_scale_probe.sh" 'SCALE_LIMIT="${PGY_SCALE_PROBE_LIMIT:-20}"'
+require_text "tests/self_hosted/parity/lexer_scale_probe.sh" "--full"
+require_text "tests/self_hosted/parity/lexer_scale_probe.sh" "--limit=*"
 require_text "tests/self_hosted/parity/lexer_scale_probe.sh" "artifact_files_equal"
 require_text "tests/self_hosted/parity/lexer_scale_probe.sh" "run_output"
+require_text "tests/self_hosted/parity/lexer_scale_probe.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
 require_text "tests/self_hosted/parity/lexer_scale_probe.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
+require_text "tests/self_hosted/parity/lexer_scale_probe.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[1]}"'
 reject_text "tests/self_hosted/parity/lexer_scale_probe.sh" 'cmp -s'
+reject_text "tests/self_hosted/parity/lexer_scale_probe.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/lexer/main.pgy"'
 reject_text "tests/self_hosted/parity/lexer_scale_probe.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
 reject_text "tests/self_hosted/parity/lexer_scale_probe.sh" 'cp "$ROOT_DIR/src/self_hosted/lexer/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"'
 require_text "tests/self_hosted/parity/parser_scale_probe.sh" "pgy_selfhost_compile_backend_output_comparator"
+require_text "tests/self_hosted/parity/parser_scale_probe.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/parser_scale_probe.sh" '"parser-parity-paths"'
+require_text "tests/self_hosted/parity/parser_scale_probe.sh" 'SCALE_LIMIT="${PGY_SCALE_PROBE_LIMIT:-20}"'
+require_text "tests/self_hosted/parity/parser_scale_probe.sh" "--full"
+require_text "tests/self_hosted/parity/parser_scale_probe.sh" "--limit=*"
 require_text "tests/self_hosted/parity/parser_scale_probe.sh" "artifact_files_equal"
 require_text "tests/self_hosted/parity/parser_scale_probe.sh" "ast_text"
+require_text "tests/self_hosted/parity/parser_scale_probe.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
 require_text "tests/self_hosted/parity/parser_scale_probe.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
+require_text "tests/self_hosted/parity/parser_scale_probe.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[1]}"'
 reject_text "tests/self_hosted/parity/parser_scale_probe.sh" 'cmp -s'
+reject_text "tests/self_hosted/parity/parser_scale_probe.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/parser/main.pgy"'
 reject_text "tests/self_hosted/parity/parser_scale_probe.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
 reject_text "tests/self_hosted/parity/parser_scale_probe.sh" 'cp "$ROOT_DIR/src/self_hosted/parser/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"'
 reject_text "tests/self_hosted/parity/parser_scale_probe.sh" 'LIB_BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/lib"'
 reject_text "tests/self_hosted/parity/parser_scale_probe.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"'
+require_text "tests/self_hosted/parity/mir_json_coverage_probe.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/mir_json_coverage_probe.sh" '"mir-json-parity-paths"'
+require_text "tests/self_hosted/parity/mir_json_coverage_probe.sh" 'COVERAGE_LIMIT="${PGY_MIR_COVERAGE_LIMIT:-0}"'
+require_text "tests/self_hosted/parity/mir_json_coverage_probe.sh" "--limit=*"
+require_text "tests/self_hosted/parity/mir_json_coverage_probe.sh" 'MIR_LOWER_SRC="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/mir_json_coverage_probe.sh" 'CODEGEN_SRC="$ROOT_DIR/${harness_paths[1]}"'
+reject_text "tests/self_hosted/parity/mir_json_coverage_probe.sh" 'MIR_LOWER_SRC="$ROOT_DIR/src/self_hosted/mir_lower/main.pgy"'
+reject_text "tests/self_hosted/parity/mir_json_coverage_probe.sh" 'CODEGEN_SRC="$ROOT_DIR/src/self_hosted/codegen/main.pgy"'
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" '| Artifact Zone evidence | `src/self_hosted/compiler/artifact_zone_owner.pgy`, `ArtifactZone` | `self-host-component-contract-test-smoke`, parity artifact gates |'
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" 'only direct shell comparison left under `tests/self_hosted/parity` is `backend_output_comparator_parity.sh`'
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "where shell is the comparator's own external oracle rather than a consumer fallback"

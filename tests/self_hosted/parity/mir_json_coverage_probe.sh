@@ -18,8 +18,18 @@
 
 set -euo pipefail
 
+if ! command -v dirname >/dev/null 2>&1 \
+    || ! command -v grep >/dev/null 2>&1 \
+    || ! command -v mkdir >/dev/null 2>&1 \
+    || ! command -v tr >/dev/null 2>&1 \
+    || ! command -v pwd >/dev/null 2>&1; then
+    PATH="/usr/bin:/bin:$PATH"
+    export PATH
+fi
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -28,11 +38,56 @@ if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
 fi
 [[ -x "$PGY" ]] || { echo "missing pgy: $PGY" >&2; exit 1; }
 CC="${CC:-gcc}"
+COVERAGE_LIMIT="${PGY_MIR_COVERAGE_LIMIT:-0}"
+COVERAGE_COUNT=0
 
-MIR_LOWER_SRC="$ROOT_DIR/src/self_hosted/mir_lower/main.pgy"
-CODEGEN_SRC="$ROOT_DIR/src/self_hosted/codegen/main.pgy"
+for arg in "$@"; do
+    case "$arg" in
+        --full)
+            COVERAGE_LIMIT=0
+            ;;
+        --limit=*)
+            COVERAGE_LIMIT="${arg#--limit=}"
+            ;;
+        *)
+            echo "[coverage] unknown option: $arg" >&2
+            exit 1
+            ;;
+    esac
+done
+if ! [[ "$COVERAGE_LIMIT" =~ ^[0-9]+$ ]]; then
+    echo "[coverage] limit must be a non-negative integer: $COVERAGE_LIMIT" >&2
+    exit 1
+fi
+
 B="$ROOT_DIR/.tmp/self_hosted/mir_lower/coverage"
+HARNESS_PATHS_FILE="$B/mir_json_coverage_harness_paths.txt"
+MIR_LOWER_SRC=""
+CODEGEN_SRC=""
 mkdir -p "$B"
+
+pgy_selfhost_read_test_harness_manifest \
+    "mir-json-coverage" \
+    "$B" \
+    "mir-json-parity-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 3 ]]; then
+    echo "[coverage] TestHarness manifest expected 3 MIR JSON paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+MIR_LOWER_SRC="$ROOT_DIR/${harness_paths[0]}"
+CODEGEN_SRC="$ROOT_DIR/${harness_paths[1]}"
+if [[ ! -f "$MIR_LOWER_SRC" || ! -f "$CODEGEN_SRC" ]]; then
+    echo "[coverage] missing TestHarness mir-lower/codegen source" >&2
+    exit 1
+fi
 
 echo "[coverage] building gen0 mir_lower + codegen..."
 rm -f "$B/mir_lower.exe" "$B/codegen.exe"
@@ -94,9 +149,20 @@ classify() {
     else printf '  %-18s STDOUT-diff\n' "$name"; fi
 }
 
-probe() { local name="$1"; local f="$B/src_$name.pgy"; cat > "$f"; classify "$name" "$f"; }
+probe() {
+    local name="$1"
+    local f="$B/src_$name.pgy"
 
-echo "[coverage] self-host MIR->C lowering subset boundary:"
+    if [[ "$COVERAGE_LIMIT" -gt 0 && "$COVERAGE_COUNT" -ge "$COVERAGE_LIMIT" ]]; then
+        cat >/dev/null
+        return
+    fi
+    COVERAGE_COUNT=$((COVERAGE_COUNT + 1))
+    cat > "$f"
+    classify "$name" "$f"
+}
+
+echo "[coverage] self-host MIR->C lowering subset boundary (limit=$COVERAGE_LIMIT):"
 
 probe if_else <<'EOF'
 func Main() -> Void {
@@ -152,4 +218,4 @@ func Bye() -> Void { Log("bye"); }
 func Main() -> Void { Greet(); Bye(); }
 EOF
 
-echo "[coverage] done. PASS = covered; *-gap = the empty parts (stage attributed)."
+echo "[coverage] done. probes=$COVERAGE_COUNT PASS = covered; *-gap = the empty parts (stage attributed)."

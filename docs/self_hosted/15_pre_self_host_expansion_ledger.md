@@ -167,10 +167,15 @@ longer has a separate hardcoded source/fixture/expected path owner or copied
 `lib` tree.
 
 TestHarness delta, 2026-07-06: `lexer_scale_probe.sh` and
-`parser_scale_probe.sh` now compile their source-owner entrypoints in place.
-They are still coverage probes rather than parity gates, but they no longer
-create build-dir `main.pgy` aliases or copy lexer/parser/lib source trees before
-invoking the compiler.
+`parser_scale_probe.sh` now compile their manifest-projected source-owner
+entrypoints in place, and they compile the backend comparator source named by
+the same TestHarness path suite. They are still coverage probes rather than
+parity gates, but they no longer create build-dir `main.pgy` aliases, copy
+lexer/parser/lib source trees, or own hardcoded lexer/parser source paths before
+invoking the compiler. They also default to bounded execution
+(`PGY_SCALE_PROBE_LIMIT=20`) so ordinary verification does not produce a full
+corpus worth of scratch artifacts; use `--full` or `PGY_SCALE_PROBE_LIMIT=0`
+for the historical full examples/backend-compare measurement.
 
 TestHarness delta, 2026-07-06: `mir_json_parity.sh` now consumes its mir-lower
 tool source, codegen tool source, and backend comparator source from
@@ -178,6 +183,20 @@ TestHarness through the `mir-json-parity-paths` manifest suite. The compiled
 `mir_lower` owner still emits the 86-row fixture inventory through
 `--fixture-manifest`, so path ownership and MIR fixture ownership remain
 separate.
+
+TestHarness delta, 2026-07-06: `mir_json_coverage_probe.sh` now consumes its
+mir-lower and codegen tool sources from the same `mir-json-parity-paths`
+manifest suite. The probe still owns its synthetic coverage cases, but it no
+longer owns the executable stage-source paths it compiles for the measurement.
+It accepts `PGY_MIR_COVERAGE_LIMIT` / `--limit=N` for quick source-owner wiring
+checks while keeping the existing full nine-case coverage map as the default.
+
+TestHarness scratch policy, 2026-07-06: `.tmp` remains the only writable scratch
+zone for parity binaries, logs, and comparable artifacts. Source ownership must
+come from TestHarness path suites or compiled fixture manifests, not from copied
+source trees. Long-running campaign artifacts such as `pgy_backend_compare.*`
+must stay opt-in or be cleaned by their owning runner; they are not evidence for
+the default self-host path unless a gate explicitly names them.
 
 TestHarness delta, 2026-07-06: `codegen_bootstrap.sh` now consumes codegen,
 parser, comparator, mir-lower, codegen fixture, MIR fixture, fuzz-generator,

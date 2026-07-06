@@ -10,6 +10,14 @@
 
 set -uo pipefail
 
+if ! command -v dirname >/dev/null 2>&1 \
+    || ! command -v mkdir >/dev/null 2>&1 \
+    || ! command -v tr >/dev/null 2>&1 \
+    || ! command -v pwd >/dev/null 2>&1; then
+    PATH="/usr/bin:/bin:$PATH"
+    export PATH
+fi
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
@@ -25,16 +33,65 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
-PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/lexer/main.pgy"
-PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/lexer_scale}"
+HARNESS_PATHS_FILE="$PERGYRA_TOOL_BUILD_DIR/lexer_scale_harness_paths.txt"
 COMPARATOR_LABEL="self-host-parity:lexer-scale"
+PERGYRA_TOOL_SOURCE=""
+PERGYRA_TOOL_ARG=""
+COMPARATOR_SOURCE=""
+SCALE_LIMIT="${PGY_SCALE_PROBE_LIMIT:-20}"
+SHOW_FAILING=0
+
+for arg in "$@"; do
+    case "$arg" in
+        --failing)
+            SHOW_FAILING=1
+            ;;
+        --full)
+            SCALE_LIMIT=0
+            ;;
+        --limit=*)
+            SCALE_LIMIT="${arg#--limit=}"
+            ;;
+        *)
+            echo "[scale-probe] unknown option: $arg" >&2
+            exit 1
+            ;;
+    esac
+done
+if ! [[ "$SCALE_LIMIT" =~ ^[0-9]+$ ]]; then
+    echo "[scale-probe] limit must be a non-negative integer: $SCALE_LIMIT" >&2
+    exit 1
+fi
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
+pgy_selfhost_read_test_harness_manifest \
+    "$COMPARATOR_LABEL" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "lexer-parity-paths" \
+    "$HARNESS_PATHS_FILE"
+
+harness_paths=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    harness_paths+=("$line")
+done <"$HARNESS_PATHS_FILE"
+if [[ "${#harness_paths[@]}" -ne 3 ]]; then
+    echo "[scale-probe] TestHarness manifest expected 3 lexer paths, got ${#harness_paths[@]}" >&2
+    exit 1
+fi
+
+PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
+PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
+COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[1]}"
+if [[ ! -f "$PERGYRA_TOOL_SOURCE" || ! -f "$COMPARATOR_SOURCE" ]]; then
+    echo "[scale-probe] missing TestHarness lexer/comparator source" >&2
+    exit 1
+fi
 
 echo "[scale-probe] compiling lexer..."
 (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" -o "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_BUILD_DIR/main.exe")" >/dev/null)
-pgy_selfhost_compile_backend_output_comparator "$COMPARATOR_LABEL" "$PERGYRA_TOOL_BUILD_DIR"
+pgy_selfhost_compile_backend_output_comparator "$COMPARATOR_LABEL" "$PERGYRA_TOOL_BUILD_DIR" "$COMPARATOR_SOURCE"
 
 artifact_files_equal() {
     local left="$1"
@@ -93,10 +150,13 @@ for src in "$ROOT_DIR"/examples/*.pgy "$ROOT_DIR"/tests/cases/backend_compare/**
         cp "$PERGYRA_FILE" "$PERGYRA_TOOL_BUILD_DIR/fail_pergyra.tokens"
         printf '%s\n' "$rel" > "$PERGYRA_TOOL_BUILD_DIR/fail_source.txt"
     fi
+    if [[ "$SCALE_LIMIT" -gt 0 && "$TOTAL" -ge "$SCALE_LIMIT" ]]; then
+        break
+    fi
 done
 
-echo "[scale-probe] total=$TOTAL match=$MATCH differ=$DIFFER pergyra-fail=$P_FAIL c-skip=$C_SKIP"
-if [[ "${1:-}" == "--failing" ]]; then
+echo "[scale-probe] total=$TOTAL match=$MATCH differ=$DIFFER pergyra-fail=$P_FAIL c-skip=$C_SKIP limit=$SCALE_LIMIT"
+if [[ "$SHOW_FAILING" -eq 1 ]]; then
     for f in "${FAIL_LIST[@]}"; do echo "  - $f"; done
 elif [[ ${#MATCH_LIST[@]} -gt 0 ]]; then
     echo "[scale-probe] matching files:"
