@@ -67,7 +67,10 @@ for C-emission action participants. That keeps
 resource owners visible. Parameter-mode facts (`inout` / `own` / `ref`) now
 survive `pgy --ast`; the self-host C codegen consumes `inout` from function-env
 `pm` facts and lowers it as value-result copy-in/copy-out instead of guessing
-from `ArrayPush` or other statement text. The M2 completeness ledger now checks
+from `ArrayPush` or other statement text. Top-level comma-separated expression
+sequences for array literals, call arguments, and struct literal field lists now
+route through `text/expr_sequence_owner.pgy` instead of local emission loops.
+The M2 completeness ledger now checks
 148 production self-host source files across lexer, parser, semantic, codegen,
 and full-pipeline identity. The real-source semantic selfcheck remains a
 separate 134-source C/LLVM gate over the current accepted semantic subset,

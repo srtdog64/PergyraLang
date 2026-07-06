@@ -689,6 +689,7 @@ require_owner_surface codegen \
     "text/text_owner.pgy" \
     "type_facts/type_env.pgy" \
     "text/expr_scan.pgy" \
+    "text/expr_sequence_owner.pgy" \
     "abi_layout/abi_layout_owner.pgy" \
     "runtime_abi/collection_runtime_owner.pgy" \
     "runtime_abi/host_io_runtime_owner.pgy" \
@@ -1375,6 +1376,16 @@ require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'LookupKindType
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'LookupKindType(env, call_symbol, "pt")'
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "func RewriteCallArgForExpectedType"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "func RewriteStructLiteralCallArg"
+require_text "src/self_hosted/codegen/text/expr_sequence_owner.pgy" "func ExprSequenceItemCount"
+require_text "src/self_hosted/codegen/text/expr_sequence_owner.pgy" "func ExprSequenceItemAt"
+require_text "src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" 'import "../text/expr_sequence_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'import "../text/expr_sequence_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'import "../text/expr_sequence_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "ExprSequenceItemCount(inner)"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "ExprSequenceItemAt(inner, arg_index)"
+require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "ExprSequenceItemCount(inner)"
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "FindTopLevelComma(rem)"
+reject_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "FindTopLevelComma(rem)"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CollectionRuntimeKindFromTypeName(ftype)"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "array struct argument field must consume a named array value"
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'import "../runtime_abi/collection_runtime_owner.pgy";'
@@ -1454,6 +1465,7 @@ reject_text "src/self_hosted/codegen/text/text_owner.pgy" "func CharAt"
 reject_text "src/self_hosted/codegen/text/text_owner.pgy" "return -1"
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "CollectionRuntimeCLenFn"
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "CollectionRuntimeCGetFn"
+require_text "src/self_hosted/codegen/text/expr_sequence_owner.pgy" "FindTopLevelComma(rem)"
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "func FindTopLevelOp2(s: String, op: String) -> Option<Int>"
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "return None"
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "return Some(i)"

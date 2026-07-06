@@ -148,6 +148,9 @@ the typed `AstArena` and the `CodegenTypedAstBridgeReady` guard that consumes
 the typed AST arena payload contract before emission.
 `input/ast_text_array_literal_owner.pgy` owns transitional `Let` array literal
 shape and top-level element facts while expression payloads remain string-backed.
+`text/expr_sequence_owner.pgy` owns top-level comma-separated expression
+sequence facts for array literals, call arguments, and struct literal field
+lists while expression payloads remain string-backed.
 Statement-row facts for `Let`, `Assign`, `Log`, `Return`, `Defer`, `ArrayPop`,
 `ArraySet`, `ArrayPush`, `Exit`, `Break`, `Continue`, `For`, `While`, `If`,
 `Else` routing, and bare call statements live in the row-fact owner plus typed

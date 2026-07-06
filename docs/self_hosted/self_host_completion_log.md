@@ -5217,3 +5217,22 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   structs were seeded as 0-arity constructors despite having field rows.
 - Tightened the component contract so the old mandatory-`let` nominal field
   scan cannot return.
+
+### 2026-07-07 -- Expression sequence facts move behind text owner
+
+- Added `text/expr_sequence_owner.pgy` for top-level comma-separated expression
+  sequence count/index facts.
+- Repointed `RewriteCallArgsWithModes(...)`,
+  `RewriteStructLiteralCallArg(...)`, `EmitStructLit(...)`, and the
+  array-literal input owner to consume `ExprSequenceItemCount(...)` /
+  `ExprSequenceItemAt(...)` instead of each reimplementing top-level comma
+  splitting.
+- Tightened the component contract so `expr_rewrite.pgy` and
+  `struct_value_emit.pgy` cannot reintroduce local `FindTopLevelComma(rem)`
+  loops.
+- Tightened `self_host_pergyra_likeness_smoke` result/option evidence from
+  678 to 681 because sequence items now flow through `Option<String>` owner
+  accessors.
+- This reduces the mixed AST-like tree blocker by moving another expression
+  payload shape behind a named owner; it does not close the blocker because the
+  payload values themselves remain transitional expression text.

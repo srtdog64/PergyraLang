@@ -106,7 +106,9 @@ SENTINEL_MAX=3
 # sentinels; keep the typed-fact cutover load-bearing.
 # 591 -> 678 (2026-07-07): collection runtime helper selection now consumes
 # kind-code facts instead of helper-name lookup by string kind.
-RESULT_USE_MIN=678
+# 678 -> 681 (2026-07-07): top-level expression sequence facts now flow through
+# Option-returning owner accessors instead of local emission loops.
+RESULT_USE_MIN=681
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=17
 COMPILER_WORLD_MEMBERS_EXACT=17

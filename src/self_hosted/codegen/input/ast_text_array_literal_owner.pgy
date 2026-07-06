@@ -4,6 +4,7 @@
 // emission participants while the codegen rung still consumes AST text payloads.
 
 import "ast_text_typed_arena_owner.pgy";
+import "../text/expr_sequence_owner.pgy";
 
 func CodegenAstArenaLetInitializerStartsArrayLiteral(arena: AstArena, node_id: Int) -> Bool {
     if !CodegenAstArenaIsLetStmt(arena, node_id) {
@@ -30,48 +31,11 @@ func CodegenAstArenaLetArrayLiteralBodyOrDie(arena: AstArena, node_id: Int) -> S
 }
 
 func CodegenAstArenaArrayLiteralElementCount(body: String) -> Int {
-    let rem: String = StringTrim(body);
-    let count: Int = 0;
-    while StringLength(rem) > 0 {
-        let comma_opt: Option<Int> = FindTopLevelComma(rem);
-        let elem: String = "";
-        if !IsSome(comma_opt) {
-            elem = StringTrim(rem);
-            rem = "";
-        } else {
-            let comma: Int = UnwrapOption(comma_opt);
-            elem = StringTrim(Substring(rem, 0, comma));
-            rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
-        }
-        if StringLength(elem) > 0 {
-            count = count + 1;
-        }
-    }
-    return count;
+    return ExprSequenceItemCount(body);
 }
 
 func CodegenAstArenaArrayLiteralElementAt(body: String, index: Int) -> Option<String> {
-    let rem: String = StringTrim(body);
-    let pos: Int = 0;
-    while StringLength(rem) > 0 {
-        let comma_opt: Option<Int> = FindTopLevelComma(rem);
-        let elem: String = "";
-        if !IsSome(comma_opt) {
-            elem = StringTrim(rem);
-            rem = "";
-        } else {
-            let comma: Int = UnwrapOption(comma_opt);
-            elem = StringTrim(Substring(rem, 0, comma));
-            rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
-        }
-        if StringLength(elem) > 0 {
-            if pos == index {
-                return Some(elem);
-            }
-            pos = pos + 1;
-        }
-    }
-    return None;
+    return ExprSequenceItemAt(body, index);
 }
 
 func CodegenAstArenaLetArrayLiteralElementCount(arena: AstArena, node_id: Int) -> Int {

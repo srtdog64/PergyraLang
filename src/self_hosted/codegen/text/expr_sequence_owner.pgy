@@ -1,0 +1,51 @@
+// Top-level comma-separated expression sequence facts.
+//
+// This owner keeps argument/list splitting out of emission participants while
+// expression payloads are still carried as text.
+
+import "text_owner.pgy";
+
+func ExprSequenceItemCount(seq: String) -> Int {
+    let rem: String = StringTrim(seq);
+    let count: Int = 0;
+    while StringLength(rem) > 0 {
+        let comma_opt: Option<Int> = FindTopLevelComma(rem);
+        let item: String = "";
+        if !IsSome(comma_opt) {
+            item = StringTrim(rem);
+            rem = "";
+        } else {
+            let comma: Int = UnwrapOption(comma_opt);
+            item = StringTrim(Substring(rem, 0, comma));
+            rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
+        }
+        if StringLength(item) > 0 {
+            count = count + 1;
+        }
+    }
+    return count;
+}
+
+func ExprSequenceItemAt(seq: String, index: Int) -> Option<String> {
+    let rem: String = StringTrim(seq);
+    let pos: Int = 0;
+    while StringLength(rem) > 0 {
+        let comma_opt: Option<Int> = FindTopLevelComma(rem);
+        let item: String = "";
+        if !IsSome(comma_opt) {
+            item = StringTrim(rem);
+            rem = "";
+        } else {
+            let comma: Int = UnwrapOption(comma_opt);
+            item = StringTrim(Substring(rem, 0, comma));
+            rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
+        }
+        if StringLength(item) > 0 {
+            if pos == index {
+                return Some(item);
+            }
+            pos = pos + 1;
+        }
+    }
+    return None;
+}

@@ -2,6 +2,7 @@
 
 import "../text/text_owner.pgy";
 import "../text/expr_scan.pgy";
+import "../text/expr_sequence_owner.pgy";
 import "../type_facts/type_env.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "expr_rewrite.pgy";
@@ -32,22 +33,14 @@ func EmitStructLit(expr: String, env: String) -> String {
     let close: Int = UnwrapOption(close_opt);
     let inner: String = Substring(e, op + 1, close - op - 1);
     let out: String = Concat("(", Concat(sname, "){ "));
-    let rem: String = StringTrim(inner);
     let first: Bool = true;
     let field_pos: Int = 0;
     let field_names: String = LookupKindType(env, sname, "fields");
-    while StringLength(rem) > 0 {
-        let comma_opt: Option<Int> = FindTopLevelComma(rem);
-        let part: String = "";
-        if !IsSome(comma_opt) {
-            part = StringTrim(rem);
-            rem = "";
-        } else {
-            let comma: Int = UnwrapOption(comma_opt);
-            part = StringTrim(Substring(rem, 0, comma));
-            rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
-        }
-        if StringLength(part) > 0 {
+    let field_count: Int = ExprSequenceItemCount(inner);
+    while field_pos < field_count {
+        let part_opt: Option<String> = ExprSequenceItemAt(inner, field_pos);
+        if IsSome(part_opt) {
+            let part: String = UnwrapOption(part_opt);
             let cp: Int = StringIndexOf(part, ": ");
             let fld: String = "";
             let val: String = "";
@@ -94,8 +87,8 @@ func EmitStructLit(expr: String, env: String) -> String {
             }
             out = Concat(out, Concat(".", Concat(fld, Concat(" = (", Concat(cval, ")")))));
             first = false;
-            field_pos = field_pos + 1;
         }
+        field_pos = field_pos + 1;
     }
     return Concat(out, " }");
 }
