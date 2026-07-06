@@ -101,7 +101,10 @@ SENTINEL_MAX=8
 # 563 -> 569 (2026-07-06): function-call projection lookup now returns
 # Option<Int> instead of a -1 sentinel; ABI layout/literal rewrite are classified
 # as explicit text-resource owners, not core AST-text bridge debt.
-RESULT_USE_MIN=569
+# 569 -> 591 (2026-07-06): semantic diagnostic payload paths and C-oracle JSON
+# code extraction now carry Option<String> absence instead of empty-string
+# sentinels; keep the typed-fact cutover load-bearing.
+RESULT_USE_MIN=591
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=17
 COMPILER_WORLD_MEMBERS_EXACT=17
