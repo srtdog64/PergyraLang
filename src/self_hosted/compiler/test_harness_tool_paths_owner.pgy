@@ -199,19 +199,29 @@ func CompilerHarnessDocLinkCheckerIndexPath() -> String {
     return "docs/INDEX.md";
 }
 
+func CompilerHarnessDocLinkCheckerDeadLinkSourcePath() -> String {
+    return "100_beta_readiness_checklist.md";
+}
+
+func CompilerHarnessDocLinkCheckerDeadLinkTargetPath() -> String {
+    return "XX_NONEXISTENT_FAKE_DRIFT.md";
+}
+
 func CompilerHarnessDocLinkCheckerPathCount() -> Int {
-    return 3;
+    return 5;
 }
 
 func CompilerHarnessDocLinkCheckerPathAt(index: Int) -> String {
     if index == 0 { return CompilerHarnessDocLinkCheckerToolSourcePath(); }
     if index == 1 { return CompilerHarnessDocLinkCheckerExpectedJsonPath(); }
     if index == 2 { return CompilerHarnessDocLinkCheckerIndexPath(); }
+    if index == 3 { return CompilerHarnessDocLinkCheckerDeadLinkSourcePath(); }
+    if index == 4 { return CompilerHarnessDocLinkCheckerDeadLinkTargetPath(); }
     return "";
 }
 
 func CompilerHarnessDocLinkCheckerReady() -> Bool {
-    if CompilerHarnessDocLinkCheckerPathCount() != 3 {
+    if CompilerHarnessDocLinkCheckerPathCount() != 5 {
         return false;
     }
     let i: Int = 0;

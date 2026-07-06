@@ -44,14 +44,16 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 3 ]]; then
-    echo "[self-host-parity:doc-link-checker] TestHarness manifest expected 3 doc-link paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 5 ]]; then
+    echo "[self-host-parity:doc-link-checker] TestHarness manifest expected 5 doc-link rows, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
 INDEX_PATH="${harness_paths[2]}"
+DEAD_LINK_SOURCE_PATH="${harness_paths[3]}"
+DEAD_LINK_TARGET_PATH="${harness_paths[4]}"
 
 for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$ROOT_DIR/$INDEX_PATH"; do
     if [[ ! -f "$path" ]]; then
@@ -110,7 +112,7 @@ mkdir -p "$NEG_ROOT/docs"
 mkdir -p "$NEG_ROOT/.tmp"
 # Mirror the docs subtree minimally - we only need INDEX.md + at least one
 # real doc to exist so the tool sees a mix of live + dead links.
-sed 's|](100_beta_readiness_checklist.md)|](XX_NONEXISTENT_FAKE_DRIFT.md)|' \
+sed "s|]($DEAD_LINK_SOURCE_PATH)|]($DEAD_LINK_TARGET_PATH)|" \
     "$ROOT_DIR/$INDEX_PATH" > "$NEG_ROOT/$INDEX_PATH"
 
 set +e
@@ -127,7 +129,7 @@ if ! grep -Fq '"kind":"missing_link"' <<<"$NEG_OUT"; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq 'XX_NONEXISTENT_FAKE_DRIFT.md' <<<"$NEG_OUT"; then
+if ! grep -Fq "$DEAD_LINK_TARGET_PATH" <<<"$NEG_OUT"; then
     echo "[self-host-parity:doc-link-checker] dead-link fixture expected drift path in findings" >&2
     printf '%s\n' "$NEG_OUT" >&2
     exit 1

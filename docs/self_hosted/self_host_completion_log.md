@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Doc-link dead-link fixture consumes TestHarness owner
+
+- Extended `doc-link-checker-paths` with the live doc-link target and the
+  synthetic missing target used by the dead-link negative fixture.
+- Repointed `doc_link_checker_parity.sh` so shell rewrites the scratch
+  `INDEX.md` using TestHarness-projected rows instead of hardcoding the broken
+  link pair.
+- Tightened the component contract against reintroducing the hardcoded
+  `100_beta_readiness_checklist.md -> XX_NONEXISTENT_FAKE_DRIFT.md` pair in
+  shell.
+
 ## 2026-07-06 - Stable subset negative anchor consumes TestHarness owner
 
 - Extended `stable-subset-section-paths` with the missing-section anchor used

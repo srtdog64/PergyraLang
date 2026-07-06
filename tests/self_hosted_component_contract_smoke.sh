@@ -1937,6 +1937,8 @@ require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func 
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerExpectedJsonPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerIndexPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerDeadLinkSourcePath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerDeadLinkTargetPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerPathAt"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerReady"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExamplesInventorySuiteName"
@@ -2417,6 +2419,9 @@ require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" '"doc-link-ch
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'INDEX_PATH="${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'DEAD_LINK_SOURCE_PATH="${harness_paths[3]}"'
+require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'DEAD_LINK_TARGET_PATH="${harness_paths[4]}"'
+require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" "TestHarness manifest expected 5 doc-link rows"
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" '"$CLEAN_BIN" "$INDEX_PATH"'
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" "expected-json clean"
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'assert_llvm_leg "self-host-parity:doc-link-checker" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$INDEX_PATH"'
@@ -2428,6 +2433,7 @@ reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'cp "$PERGYRA_
 reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'
 reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/doc_link_checker/expected/clean.json"'
 reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'INDEX_PATH="docs/INDEX.md"'
+reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" "100_beta_readiness_checklist.md)|](XX_NONEXISTENT_FAKE_DRIFT.md"
 require_text "src/self_hosted/tools/examples_inventory_checker/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/examples_inventory_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/examples_inventory_checker/main.pgy" "JsonEmitArray(findings)"
