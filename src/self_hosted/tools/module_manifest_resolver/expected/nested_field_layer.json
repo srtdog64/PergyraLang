@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.module-manifest-resolver.v1","ok":false,"source":{"manifest_owner":"docs/language_module_manifest.json"},"counts":{"modules":1,"beta_blockers":1,"stable_subset":1,"missing_fields":1},"findings":[{"kind":"field_count_mismatch","key":"layer","expected":1,"actual":0,"location":"docs/language_module_manifest.json"}]}

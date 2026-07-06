@@ -3,10 +3,12 @@
 #
 # Pergyra is the origin
 # (src/self_hosted/tools/module_manifest_resolver/main.pgy).
-# The TestHarness-projected expected JSON artifact is the clean-output oracle.
+# The TestHarness-projected expected JSON artifacts are the clean and negative
+# verdict oracles.
 # Asserts:
 #   - clean repo: rc=0, JSON byte-equal vs expected/clean.json
-#   - synthetic missing-modules-key fixture: rc=1, missing_modules_key finding
+#   - synthetic missing-modules-key, nested-modules, and nested-field fixtures:
+#     rc=1 with JSON byte-equal to their expected verdict artifacts
 # See tests/self_hosted/parity/README.md.
 
 set -euo pipefail
@@ -46,8 +48,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 8 ]]; then
-    echo "[self-host-parity:module-manifest-resolver] TestHarness manifest expected 8 module-manifest rows, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 9 ]]; then
+    echo "[self-host-parity:module-manifest-resolver] TestHarness manifest expected 9 module-manifest rows, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -57,17 +59,24 @@ MANIFEST_PATH="${harness_paths[2]}"
 MISSING_MODULES_FIXTURE_JSON="${harness_paths[3]}"
 NESTED_MODULES_FIXTURE_JSON="${harness_paths[4]}"
 NESTED_FIELD_FIXTURE_JSON="${harness_paths[5]}"
-MISSING_MODULES_FINDING_KIND="${harness_paths[6]}"
-FIELD_COUNT_MISMATCH_FINDING_KIND="${harness_paths[7]}"
+MISSING_MODULES_EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[6]}"
+NESTED_MODULES_EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[7]}"
+NESTED_FIELD_EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[8]}"
 
-for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$ROOT_DIR/$MANIFEST_PATH"; do
+for path in \
+    "$PERGYRA_TOOL_SOURCE" \
+    "$EXPECTED_JSON_FILE" \
+    "$MISSING_MODULES_EXPECTED_JSON_FILE" \
+    "$NESTED_MODULES_EXPECTED_JSON_FILE" \
+    "$NESTED_FIELD_EXPECTED_JSON_FILE" \
+    "$ROOT_DIR/$MANIFEST_PATH"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:module-manifest-resolver] missing input: $path" >&2
         exit 1
     fi
 done
-if [[ -z "$MISSING_MODULES_FINDING_KIND" || -z "$FIELD_COUNT_MISMATCH_FINDING_KIND" ]]; then
-    echo "[self-host-parity:module-manifest-resolver] invalid TestHarness finding-kind rows" >&2
+if [[ -z "$MISSING_MODULES_FIXTURE_JSON" || -z "$NESTED_MODULES_FIXTURE_JSON" || -z "$NESTED_FIELD_FIXTURE_JSON" ]]; then
+    echo "[self-host-parity:module-manifest-resolver] invalid TestHarness negative fixture rows" >&2
     exit 1
 fi
 
@@ -129,11 +138,16 @@ if [[ "$NEG_RC" -ne 1 ]]; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq "\"kind\":\"${MISSING_MODULES_FINDING_KIND}\"" <<<"$NEG_OUT"; then
-    echo "[self-host-parity:module-manifest-resolver] missing-modules-key fixture expected ${MISSING_MODULES_FINDING_KIND} finding" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
+NEG_JSON="$(printf '%s\n' "$NEG_OUT" \
+    | tr -d '\r' \
+    | grep -F 'pgy.selfhost.module-manifest-resolver.v1' \
+    | tail -n 1)"
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:module-manifest-resolver" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$MISSING_MODULES_EXPECTED_JSON_FILE" \
+    "$NEG_JSON" \
+    "run_output"
 
 # Synthetic nested-modules fixture: a nested object may contain `modules`, but
 # the document root itself does not. The JSON fact-table owner must not let a
@@ -149,11 +163,16 @@ if [[ "$NESTED_MODULES_RC" -ne 1 ]]; then
     printf '%s\n' "$NESTED_MODULES_OUT" >&2
     exit 1
 fi
-if ! grep -Fq "\"kind\":\"${MISSING_MODULES_FINDING_KIND}\"" <<<"$NESTED_MODULES_OUT"; then
-    echo "[self-host-parity:module-manifest-resolver] nested-modules fixture expected ${MISSING_MODULES_FINDING_KIND} finding" >&2
-    printf '%s\n' "$NESTED_MODULES_OUT" >&2
-    exit 1
-fi
+NESTED_MODULES_JSON="$(printf '%s\n' "$NESTED_MODULES_OUT" \
+    | tr -d '\r' \
+    | grep -F 'pgy.selfhost.module-manifest-resolver.v1' \
+    | tail -n 1)"
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:module-manifest-resolver" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$NESTED_MODULES_EXPECTED_JSON_FILE" \
+    "$NESTED_MODULES_JSON" \
+    "run_output"
 
 # Synthetic nested-field fixture: a nested object may contain `layer`, but the
 # module row itself does not. The JSON owner must not let recursive text search
@@ -169,12 +188,16 @@ if [[ "$NESTED_RC" -ne 1 ]]; then
     printf '%s\n' "$NESTED_OUT" >&2
     exit 1
 fi
-if ! grep -Fq "\"kind\":\"${FIELD_COUNT_MISMATCH_FINDING_KIND}\"" <<<"$NESTED_OUT" ||
-   ! grep -Fq '"key":"layer"' <<<"$NESTED_OUT"; then
-    echo "[self-host-parity:module-manifest-resolver] nested-field fixture expected layer ${FIELD_COUNT_MISMATCH_FINDING_KIND}" >&2
-    printf '%s\n' "$NESTED_OUT" >&2
-    exit 1
-fi
+NESTED_JSON="$(printf '%s\n' "$NESTED_OUT" \
+    | tr -d '\r' \
+    | grep -F 'pgy.selfhost.module-manifest-resolver.v1' \
+    | tail -n 1)"
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:module-manifest-resolver" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$NESTED_FIELD_EXPECTED_JSON_FILE" \
+    "$NESTED_JSON" \
+    "run_output"
 
 assert_llvm_leg "self-host-parity:module-manifest-resolver" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$MANIFEST_PATH"
-echo "[self-host-parity:module-manifest-resolver] rung-2 parity ok (expected-json clean; missing-modules-key rc=1; nested-modules rc=1; nested-field rc=1)"
+echo "[self-host-parity:module-manifest-resolver] rung-2 parity ok (expected-json clean+negative; missing-modules-key rc=1; nested-modules rc=1; nested-field rc=1)"

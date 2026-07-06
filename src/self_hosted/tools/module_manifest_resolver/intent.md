@@ -1,11 +1,11 @@
 # Module Manifest Resolver -- Intent / Contract
 
-**Status:** *rung-2 minimal* (2026-05-27). Reads
+**Status:** *rung-2 fact-table owned* (2026-07-06). Reads
 [`docs/language_module_manifest.json`](../../../../docs/language_module_manifest.json)
-from a fixed path, counts modules, beta_blocker entries, and stable-subset
+from the default manifest path or an explicit runner argument, counts modules,
+beta_blocker entries, and stable-subset
 modules, validates that every module has a complete required-field set
-via parallel substring counts (no JSON parser), and emits the validator
-schema.
+through the shared JSON fact-table owner, and emits the validator schema.
 
 ## Intent
 
@@ -19,12 +19,14 @@ caught at the manifest level, not at consumer level.
 
 ## Input Contract
 
-- **manifest_owner**: `docs/language_module_manifest.json` (text, UTF-8,
-  pretty-printed JSON with one field per line). The manifest is
+- **manifest_owner**: `docs/language_module_manifest.json` by default, or
+  `Args()[0]` when supplied by a TestHarness parity runner. The manifest is
   source-of-truth for the module roadmap and is hand-edited by the BDFL
   on roadmap changes.
 
-The path is fixed relative to repository root; no CLI argument surface yet.
+The path is relative to the runner's cwd. Parity runners pass the manifest path
+explicitly so scratch negative fixtures can reuse the same tool without copying
+or aliasing the source.
 
 ## Output Contract
 
@@ -60,17 +62,19 @@ Exit code: `0` on `ok:true`, `1` on `ok:false`. Missing manifest reports
 ## Oracle
 
 The TestHarness-projected `expected/clean.json` artifact is the clean-output
-oracle. There is no separate shell count oracle for `"name":`,
-`"beta_blocker": true`, or `"status": "stable-subset"`; those counts are owned
-by the Pergyra JSON fact-table implementation and compared through the
-ArtifactZone comparator.
+oracle. The missing-modules, nested-modules, and nested-field negative verdicts
+also have TestHarness-projected expected JSON artifacts. There is no separate
+shell count oracle for `"name":`, `"beta_blocker": true`, or
+`"status": "stable-subset"`, and shell does not own the negative finding
+kind/key checks; those verdicts are owned by the Pergyra JSON fact-table
+implementation and compared through the ArtifactZone comparator.
 
 The parity rung (`tests/self_hosted/parity/`) asserts:
 
 - The Pergyra origin exits `0` on the live manifest.
 - Emitted JSON byte-matches `expected/clean.json` on the live manifest.
-- A synthetic missing-modules-key fixture (strip the `"modules":` key) is
-  detected via `missing_modules_key` finding and `rc=1`.
+- Synthetic missing-modules-key, nested-modules, and nested-field fixtures exit
+  `1` and byte-match their expected negative JSON artifacts.
 
 ## Why Now
 
@@ -83,7 +87,6 @@ tooling is written.
 
 ## Not In Scope
 
-- Full JSON parsing (nested objects walked individually).
 - Validating module name patterns / dependency graph cycles.
 - `surfaces[]` inner element schema checks (string array contents).
 - Manifest schema migration (`schema: 2` etc.).

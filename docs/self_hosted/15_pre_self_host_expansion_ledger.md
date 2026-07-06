@@ -105,16 +105,16 @@ writer, but no longer owns which AIR graph root key is stripped or which finding
 counter proves the fail-closed missing-key path.
 
 TestHarness delta, 2026-07-06: `stable_subset_section_checker_parity.sh` now
-gets the missing-section finding field and expected finding value from
+gets the missing-section anchor and expected missing-section JSON artifact from
 `test_harness_tool_paths_owner.pgy`. Shell still strips the TestHarness-owned
 anchor from a scratch document, but no longer owns the `"missing":1` diagnostic
-shape that proves the fail-closed path.
+shape or any other negative verdict field.
 
 TestHarness delta, 2026-07-06: `runtime_boundary_checker_parity.sh` now gets
-the missing-term finding field and expected finding value from
+the missing-term fixture pair and expected missing-term JSON artifact from
 `test_harness_tool_paths_owner.pgy`. Shell still strips the TestHarness-owned
 runtime term from a scratch document, but no longer owns the `"missing":1`
-diagnostic shape that proves the fail-closed path.
+diagnostic shape or any other negative verdict field.
 
 TestHarness delta, 2026-07-06: the five AIR graph consumer parity runners now
 compile and run their manifest-projected checker sources in place. They no
@@ -255,9 +255,10 @@ before invoking the compiler.
 
 TestHarness delta, 2026-07-06: `module_manifest_resolver_parity.sh` now also
 gets its missing-modules, nested-modules, and nested-field negative fixture JSON
-bodies from `test_harness_tool_paths_owner.pgy`. Shell writes those rows into
+bodies plus their expected negative verdict JSON artifacts from
+`test_harness_inventory_paths_owner.pgy`. Shell writes those fixture rows into
 scratch files for execution, but no longer mutates or authors the JSON fixture
-semantics.
+semantics and no longer interprets the resulting finding kind/key.
 
 TestHarness delta, 2026-07-06: `stable_subset_section_checker_parity.sh` now
 gets its missing-section negative anchor from `test_harness_tool_paths_owner.pgy`
@@ -267,8 +268,10 @@ constructs the scratch copy, but the fixture meaning is a TestHarness row.
 ArtifactZone delta, 2026-07-06: `module_manifest_resolver_parity.sh` no longer
 recomputes clean module, beta-blocker, or stable-subset counts with shell
 `grep`. The clean output oracle is the TestHarness-projected
-`expected/clean.json` compared through `backend_output_comparator`; shell
-remains only the process runner and negative-fixture mutator.
+`expected/clean.json`, and the three negative verdicts are
+TestHarness-projected expected artifacts compared through
+`backend_output_comparator`; shell remains only the process runner,
+negative-fixture mutator, and `rc=1` checker.
 
 TestHarness delta, 2026-07-05: lexer_parity.sh now consumes its lexer source, backend comparator source, and lexer fixture directory from TestHarness through the `lexer-parity-paths` manifest suite. The compiled lexer owner still emits the fixture source/expected row inventory, so shell executes the parity loop without owning either the tool path constants or the fixture mapping.
 

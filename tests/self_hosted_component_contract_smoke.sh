@@ -1990,8 +1990,14 @@ require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "
 require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverMissingModulesFixtureJson"
 require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverNestedModulesFixtureJson"
 require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverNestedFieldFixtureJson"
-require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverMissingModulesFindingKind"
-require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverFieldCountFindingKind"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverMissingModulesExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverNestedModulesExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverNestedFieldExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "src/self_hosted/tools/module_manifest_resolver/expected/missing_modules_key.json"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "src/self_hosted/tools/module_manifest_resolver/expected/nested_modules_key.json"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "src/self_hosted/tools/module_manifest_resolver/expected/nested_field_layer.json"
+reject_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverMissingModulesFindingKind"
+reject_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverFieldCountFindingKind"
 require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverPathAt"
 require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverReady"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionSuiteName"
@@ -2686,12 +2692,16 @@ require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'MANI
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'MISSING_MODULES_FIXTURE_JSON="${harness_paths[3]}"'
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'NESTED_MODULES_FIXTURE_JSON="${harness_paths[4]}"'
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'NESTED_FIELD_FIXTURE_JSON="${harness_paths[5]}"'
-require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'MISSING_MODULES_FINDING_KIND="${harness_paths[6]}"'
-require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'FIELD_COUNT_MISMATCH_FINDING_KIND="${harness_paths[7]}"'
-require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "TestHarness manifest expected 8 module-manifest rows"
+require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'MISSING_MODULES_EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[6]}"'
+require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'NESTED_MODULES_EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[7]}"'
+require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'NESTED_FIELD_EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[8]}"'
+require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "TestHarness manifest expected 9 module-manifest rows"
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" '"$CLEAN_BIN" "$MANIFEST_PATH"'
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'assert_llvm_leg "self-host-parity:module-manifest-resolver" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$MANIFEST_PATH"'
-require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "expected-json clean"
+require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "expected-json clean+negative"
+require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'pgy_selfhost_compare_expected_text_artifact_with_owner'
+reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'MISSING_MODULES_FINDING_KIND="${harness_paths[6]}"'
+reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'FIELD_COUNT_MISMATCH_FINDING_KIND="${harness_paths[7]}"'
 reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "SHELL_MODULES="
 reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "grep -c '\"name\":'"
 reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/module_manifest_resolver/main.pgy"'

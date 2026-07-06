@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Module manifest negative verdicts consume artifact owner
+
+- Added TestHarness-owned expected JSON artifacts for the module-manifest
+  missing-modules, nested-modules, and nested-field negative fixtures.
+- Repointed `module_manifest_resolver_parity.sh` so shell only handles process
+  execution, scratch fixture writes, and `rc=1`; the full negative verdict
+  shapes are compared through `backend_output_comparator` as `run_output`.
+- Removed the missing/failure finding-kind rows from
+  `test_harness_inventory_paths_owner.pgy`, and tightened the component
+  contract against reintroducing shell-owned module-manifest finding checks.
+
 ## 2026-07-06 - Document checker negative verdicts consume artifact owner
 
 - Added TestHarness-owned missing-section and missing-term expected JSON

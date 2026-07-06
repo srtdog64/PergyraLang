@@ -32,16 +32,20 @@ func CompilerHarnessModuleManifestResolverNestedFieldFixtureJson() -> String {
     return "{\"schema\":1,\"modules\":[{\"name\":\"pgy.synthetic\",\"status\":\"stable-subset\",\"beta_blocker\":true,\"surfaces\":[{\"layer\":\"not-a-module-layer\"}]}]}";
 }
 
-func CompilerHarnessModuleManifestResolverMissingModulesFindingKind() -> String {
-    return "missing_modules_key";
+func CompilerHarnessModuleManifestResolverMissingModulesExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/module_manifest_resolver/expected/missing_modules_key.json";
 }
 
-func CompilerHarnessModuleManifestResolverFieldCountFindingKind() -> String {
-    return "field_count_mismatch";
+func CompilerHarnessModuleManifestResolverNestedModulesExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/module_manifest_resolver/expected/nested_modules_key.json";
+}
+
+func CompilerHarnessModuleManifestResolverNestedFieldExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/module_manifest_resolver/expected/nested_field_layer.json";
 }
 
 func CompilerHarnessModuleManifestResolverPathCount() -> Int {
-    return 8;
+    return 9;
 }
 
 func CompilerHarnessModuleManifestResolverPathAt(index: Int) -> String {
@@ -51,13 +55,14 @@ func CompilerHarnessModuleManifestResolverPathAt(index: Int) -> String {
     if index == 3 { return CompilerHarnessModuleManifestResolverMissingModulesFixtureJson(); }
     if index == 4 { return CompilerHarnessModuleManifestResolverNestedModulesFixtureJson(); }
     if index == 5 { return CompilerHarnessModuleManifestResolverNestedFieldFixtureJson(); }
-    if index == 6 { return CompilerHarnessModuleManifestResolverMissingModulesFindingKind(); }
-    if index == 7 { return CompilerHarnessModuleManifestResolverFieldCountFindingKind(); }
+    if index == 6 { return CompilerHarnessModuleManifestResolverMissingModulesExpectedJsonPath(); }
+    if index == 7 { return CompilerHarnessModuleManifestResolverNestedModulesExpectedJsonPath(); }
+    if index == 8 { return CompilerHarnessModuleManifestResolverNestedFieldExpectedJsonPath(); }
     return "";
 }
 
 func CompilerHarnessModuleManifestResolverReady() -> Bool {
-    if CompilerHarnessModuleManifestResolverPathCount() != 8 {
+    if CompilerHarnessModuleManifestResolverPathCount() != 9 {
         return false;
     }
     let i: Int = 0;
