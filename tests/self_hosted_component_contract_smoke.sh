@@ -1573,7 +1573,17 @@ require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "pgy_
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "pgy_selfhost_backend_output_comparator_bin"
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "pgy_selfhost_path_relative_to_root"
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "air_json"
+require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "expected-json clean"
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"'
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "SHELL_INTENTS="
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "SHELL_BOUNDARIES="
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "SHELL_EVIDENCE="
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "SHELL_DRIFTS="
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "SHELL_EFFECT_SITES="
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "SHELL_ENV_EFFECT_SITES="
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "counts.intents parity FAIL"
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "counts.env_effect_sites parity FAIL"
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "shell grep ground truth"
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'PERGYRA_TOOL_SOURCE_DIR="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator"'
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'PERGYRA_TOOL_SOURCE_DIR='

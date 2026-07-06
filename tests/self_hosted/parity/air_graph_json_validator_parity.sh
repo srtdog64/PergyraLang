@@ -3,9 +3,10 @@
 #
 # Pergyra is the origin
 # (src/self_hosted/tools/air_graph_json_validator/main.pgy).
-# Shell grep supplies count ground truth; the Pergyra backend-output comparator
-# owns clean and live AIR JSON artifact equality. The script also
-# checks a synthetic missing-key fixture (strip "summary" key, expect rc=1).
+# The Pergyra backend-output comparator owns clean and live AIR JSON artifact
+# equality. Shell only runs the process, derives live `pgy --air-json` drift
+# artifacts, and mutates a synthetic missing-key fixture (strip "summary" key,
+# expect rc=1).
 #
 # Also asserts that the committed fixture still matches the live `pgy --air-json`
 # output for the canonical AIR-producing test source, so the validator does not
@@ -163,53 +164,6 @@ if ! grep -Fq 'pgy.selfhost.air-graph-validator.v1' <<<"$PERGYRA_OUT"; then
     exit 1
 fi
 
-# Shell drift detector - extract counts from fixture.
-extract_int() {
-    local field="$1"
-    grep -oE "\"${field}\":[0-9]+" "$FIXTURE_FILE" | head -n 1 | grep -oE '[0-9]+' || true
-}
-SHELL_INTENTS="$(extract_int intent_count)"
-SHELL_BOUNDARIES="$(extract_int boundary_count)"
-SHELL_EVIDENCE="$(extract_int evidence_count)"
-SHELL_DRIFTS="$(extract_int drift_count)"
-SHELL_EFFECT_SITES="$( (grep -ho '"capability_mask":"0x[0-9a-fA-F]*"' "$FIXTURE_FILE" "$CAP_FIXTURE_FILE" || true) | wc -l | tr -d '[:space:]')"
-SHELL_ENV_EFFECT_SITES="$( (grep -ho '"op":"Args","effect":"ENV","capability_mask":"0x20"' "$CAP_FIXTURE_FILE" || true) | wc -l | tr -d '[:space:]')"
-
-if [[ -z "$SHELL_INTENTS" || -z "$SHELL_BOUNDARIES" || -z "$SHELL_EVIDENCE" || -z "$SHELL_DRIFTS" ]]; then
-    echo "[self-host-parity:air-graph-json] shell grep ground truth missing from fixture" >&2
-    exit 1
-fi
-if [[ "$SHELL_ENV_EFFECT_SITES" -le 0 ]]; then
-    echo "[self-host-parity:air-graph-json] shell grep ground truth missing Args/ENV effect site" >&2
-    exit 1
-fi
-
-if ! grep -Fq "\"intents\":${SHELL_INTENTS}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:air-graph-json] counts.intents parity FAIL (shell=${SHELL_INTENTS})" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "\"boundaries\":${SHELL_BOUNDARIES}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:air-graph-json] counts.boundaries parity FAIL (shell=${SHELL_BOUNDARIES})" >&2
-    exit 1
-fi
-if ! grep -Fq "\"evidence\":${SHELL_EVIDENCE}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:air-graph-json] counts.evidence parity FAIL (shell=${SHELL_EVIDENCE})" >&2
-    exit 1
-fi
-if ! grep -Fq "\"drifts\":${SHELL_DRIFTS}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:air-graph-json] counts.drifts parity FAIL (shell=${SHELL_DRIFTS})" >&2
-    exit 1
-fi
-if ! grep -Fq "\"effect_sites\":${SHELL_EFFECT_SITES}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:air-graph-json] counts.effect_sites parity FAIL (shell=${SHELL_EFFECT_SITES})" >&2
-    exit 1
-fi
-if ! grep -Fq "\"env_effect_sites\":${SHELL_ENV_EFFECT_SITES}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:air-graph-json] counts.env_effect_sites parity FAIL (shell=${SHELL_ENV_EFFECT_SITES})" >&2
-    exit 1
-fi
-
 # Clean JSON shape parity.
 PERGYRA_JSON="$(printf '%s\n' "$PERGYRA_OUT" \
     | grep -F 'pgy.selfhost.air-graph-validator.v1' \
@@ -308,4 +262,4 @@ if ! grep -Fq '"missing_keys":1' <<<"$NEG_OUT"; then
 fi
 
 assert_llvm_leg "self-host-parity:air-graph-json" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$FIXTURE_REL" "$CAP_FIXTURE_REL"
-echo "[self-host-parity:air-graph-json] rung-2 parity ok (intents=$SHELL_INTENTS boundaries=$SHELL_BOUNDARIES evidence=$SHELL_EVIDENCE drifts=$SHELL_DRIFTS effect_sites=$SHELL_EFFECT_SITES env_effect_sites=$SHELL_ENV_EFFECT_SITES; missing-key rc=1; live-drift=$DRIFT_GUARD)"
+echo "[self-host-parity:air-graph-json] rung-2 parity ok (expected-json clean; missing-key rc=1; live-drift=$DRIFT_GUARD)"

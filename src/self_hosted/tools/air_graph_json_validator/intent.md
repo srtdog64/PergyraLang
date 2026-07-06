@@ -79,20 +79,18 @@ schema-field drift reports findings and exits `1`.
 
 ## Oracle
 
-The shell drift detector is `grep -F` against the live AIR JSON for the
-required keys plus `grep -oE` for `"id":` occurrences. The Pergyra origin
-extracts the summary counts directly from the JSON and the parity script
-asserts they match. There is no existing C-side AIR-graph-JSON validator
-smoke today, so the Pergyra side is currently the primary implementation and
-the shell grep is the auxiliary parity backend.
+The clean-output oracle is the TestHarness-projected `expected/clean.json`,
+compared through `backend_output_comparator`. Shell does not recompute summary
+counts or capability/effect residual trace counts for the clean fixture. It
+remains only the process runner, the live `pgy --air-json` drift-artifact
+producer, and the negative-fixture mutator. There is no existing C-side
+AIR-graph-JSON validator smoke today, so the Pergyra side is currently the
+primary implementation and the committed expected artifact is the clean oracle.
 
 The parity rung (`tests/self_hosted/parity/`) asserts:
 
 - The Pergyra origin exits `0` on the committed fixture.
 - Emitted JSON byte-matches `expected/clean.json`.
-- Counts match shell ground truth.
-- Capability/effect residual trace count matches shell ground truth
-  (`Args` operation, `ENV` effect, `0x20` capability mask).
 - Synthetic missing-key fixture (`summary` key stripped) yields `rc=1` and
   `ok:false`.
 - Live `pgy --air-json` re-derived output still matches both committed

@@ -46,6 +46,18 @@ rewrite history.
   and tightened the component ratchet so the shell dangling-count oracle cannot
   reappear.
 
+## 2026-07-06 - AIR graph validator clean oracle uses expected artifact only
+
+- Removed the redundant shell summary-count and capability/effect residual
+  count oracle from `air_graph_json_validator_parity.sh`.
+- Clean `intents`, `boundaries`, `evidence`, `drifts`, `effect_sites`,
+  `env_effect_sites`, and `missing_keys` counts now have one source of truth:
+  the TestHarness-projected `expected/clean.json` compared through
+  `backend_output_comparator`.
+- Kept the live `pgy --air-json` drift artifact comparison and missing-key
+  negative fixture, and tightened the component ratchet so the shell clean
+  count oracle cannot reappear.
+
 ## 2026-07-06 - Module manifest clean oracle uses expected artifact only
 
 - Removed the redundant shell `grep -c` clean-count oracle from
