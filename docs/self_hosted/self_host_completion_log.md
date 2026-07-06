@@ -127,6 +127,18 @@ rewrite history.
   `test_harness_size_paths_owner.pgy`, and tightened the component contract
   against reintroducing shell-owned over-cap finding/path interpretation.
 
+## 2026-07-06 - Backend comparator negative verdicts consume artifacts
+
+- Added TestHarness-owned expected JSON artifacts for the comparator's
+  mismatch and missing-input self-test fixtures.
+- Repointed `backend_output_comparator_parity.sh` so shell still mutates the
+  scratch fixtures and checks `rc=1`, but compares the full negative verdicts
+  against committed expected artifacts instead of grepping `ok:false`,
+  `mismatch_lines`, or finding kinds.
+- Removed the comparator finding-kind rows from `test_harness_owner.pgy`, and
+  tightened the component contract against reintroducing shell-owned comparator
+  negative verdict interpretation.
+
 ## 2026-07-06 - TestHarness manifest source consumes path owner projection
 
 - Added `CompilerTestHarnessManifestPath()` to the compiler path manifest and

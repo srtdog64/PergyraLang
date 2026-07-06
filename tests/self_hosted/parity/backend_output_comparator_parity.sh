@@ -6,8 +6,8 @@
 # Asserts:
 #   - clean fixture (expected == actual): rc=0, JSON byte-equal vs
 #     expected/clean.json
-#   - synthetic mismatch fixture: rc=1, mismatch_lines >= 1, ok:false
-#   - synthetic missing-input fixture: rc=1, input_error finding
+#   - synthetic mismatch fixture: rc=1, JSON byte-equal vs expected/mismatch.json
+#   - synthetic missing-input fixture: rc=1, JSON byte-equal vs expected/missing_input.json
 # See tests/self_hosted/parity/README.md.
 
 set -euo pipefail
@@ -56,17 +56,12 @@ PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
 FIXTURE_EXPECTED_REL="${harness_paths[2]}"
 FIXTURE_ACTUAL_REL="${harness_paths[3]}"
-MISMATCH_FINDING_KIND="${harness_paths[4]}"
-INPUT_ERROR_FINDING_KIND="${harness_paths[5]}"
+EXPECTED_MISMATCH_JSON_FILE="$ROOT_DIR/${harness_paths[4]}"
+EXPECTED_INPUT_ERROR_JSON_FILE="$ROOT_DIR/${harness_paths[5]}"
 FIXTURE_EXPECTED="$ROOT_DIR/$FIXTURE_EXPECTED_REL"
 FIXTURE_ACTUAL="$ROOT_DIR/$FIXTURE_ACTUAL_REL"
 
-if [[ -z "$MISMATCH_FINDING_KIND" || -z "$INPUT_ERROR_FINDING_KIND" ]]; then
-    echo "[self-host-parity:backend-output-comparator] missing expected finding kind rows" >&2
-    exit 1
-fi
-
-for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$FIXTURE_EXPECTED" "$FIXTURE_ACTUAL"; do
+for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$EXPECTED_MISMATCH_JSON_FILE" "$EXPECTED_INPUT_ERROR_JSON_FILE" "$FIXTURE_EXPECTED" "$FIXTURE_ACTUAL"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:backend-output-comparator] missing input: $path" >&2
         exit 1
@@ -171,19 +166,15 @@ if [[ "$NEG_RC" -ne 1 ]]; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq '"ok":false' <<<"$NEG_OUT"; then
-    echo "[self-host-parity:backend-output-comparator] mismatch fixture expected ok:false" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
-if ! grep -Eq '"mismatch_lines":[1-9]' <<<"$NEG_OUT"; then
-    echo "[self-host-parity:backend-output-comparator] mismatch fixture expected mismatch_lines >= 1" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "\"kind\":\"${MISMATCH_FINDING_KIND}\"" <<<"$NEG_OUT"; then
-    echo "[self-host-parity:backend-output-comparator] mismatch fixture expected a ${MISMATCH_FINDING_KIND} finding" >&2
-    printf '%s\n' "$NEG_OUT" >&2
+NEG_JSON="$(printf '%s\n' "$NEG_OUT" \
+    | tr -d '\r' \
+    | grep -F 'pgy.selfhost.backend-output-comparator.v1' \
+    | tail -n 1)"
+EXPECTED_NEG_JSON="$(cat "$EXPECTED_MISMATCH_JSON_FILE")"
+if [[ "$NEG_JSON" != "$EXPECTED_NEG_JSON" ]]; then
+    echo "[self-host-parity:backend-output-comparator] mismatch JSON parity FAIL" >&2
+    echo "expected: $EXPECTED_NEG_JSON" >&2
+    echo "actual:   $NEG_JSON" >&2
     exit 1
 fi
 
@@ -203,9 +194,15 @@ if [[ "$MISS_RC" -ne 1 ]]; then
     printf '%s\n' "$MISS_OUT" >&2
     exit 1
 fi
-if ! grep -Fq "\"kind\":\"${INPUT_ERROR_FINDING_KIND}\"" <<<"$MISS_OUT"; then
-    echo "[self-host-parity:backend-output-comparator] missing-input fixture expected ${INPUT_ERROR_FINDING_KIND} finding" >&2
-    printf '%s\n' "$MISS_OUT" >&2
+MISS_JSON="$(printf '%s\n' "$MISS_OUT" \
+    | tr -d '\r' \
+    | grep -F 'pgy.selfhost.backend-output-comparator.v1' \
+    | tail -n 1)"
+EXPECTED_MISS_JSON="$(cat "$EXPECTED_INPUT_ERROR_JSON_FILE")"
+if [[ "$MISS_JSON" != "$EXPECTED_MISS_JSON" ]]; then
+    echo "[self-host-parity:backend-output-comparator] missing-input JSON parity FAIL" >&2
+    echo "expected: $EXPECTED_MISS_JSON" >&2
+    echo "actual:   $MISS_JSON" >&2
     exit 1
 fi
 

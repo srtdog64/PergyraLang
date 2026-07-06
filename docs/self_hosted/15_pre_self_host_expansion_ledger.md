@@ -168,15 +168,17 @@ scratch mutator, and corrupted-fixture `rc=1` checker.
 TestHarness delta, 2026-07-05: backend_output_comparator_parity.sh now consumes its source, expected JSON, and comparable artifact paths from TestHarness through the `backend-output-comparator-paths` manifest suite. Shell no longer owns the comparator input path constants.
 
 TestHarness delta, 2026-07-06: `backend_output_comparator_parity.sh` now gets
-the expected mismatch and missing-input finding kinds from
-`test_harness_owner.pgy`. Shell still creates the negative artifact fixtures,
-but no longer owns which comparator finding kind proves the mismatch or
-missing-input fail-closed paths.
+the expected mismatch and missing-input verdict artifacts from
+`test_harness_owner.pgy`. Shell still creates the negative artifact fixtures and
+does direct byte comparison because this is the comparator's own self-test, but
+it no longer owns which comparator finding kind, `ok:false` flag, or mismatch
+counter proves the mismatch or missing-input fail-closed paths.
 
 ArtifactZone delta, 2026-07-06: `backend_output_comparator_parity.sh` no longer
 performs a separate shell text-equivalence check over the clean fixture pair.
 The comparator owns artifact equality; its own parity rung keeps only the
-expected-JSON bootstrap comparison and the mismatch/missing-input fixtures.
+expected-JSON bootstrap comparison and the committed mismatch/missing-input
+verdict artifacts.
 
 SubprocessRunner delta, 2026-07-06: `backend_output_comparator` now embeds the
 `pgy.selfhost.subprocess-plan.v1` plan emitted by

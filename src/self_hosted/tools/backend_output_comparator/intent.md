@@ -113,9 +113,9 @@ The parity rung (`tests/self_hosted/parity/`) asserts:
 - The compiled comparator accepts an explicit artifact kind argument and records
   it only after `ArtifactZone` validation.
 - A synthetic mismatch fixture (`actual.txt` replaced with a 1-line drift)
-  yields `rc=1` and `ok:false` with `counts.mismatch_lines >= 1`.
+  yields `rc=1` and byte-matches `expected/mismatch.json`.
 - A synthetic missing-input fixture (delete `actual.txt`) yields `rc=1`
-  and `ok:false` with `input_error` finding.
+  and byte-matches `expected/missing_input.json`.
 
 ## Why Now
 

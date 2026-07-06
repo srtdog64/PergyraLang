@@ -1923,10 +1923,12 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHar
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorSuiteName"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorExpectedJsonPath"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorMismatchFindingKind"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorInputErrorFindingKind"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorMismatchExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorInputErrorExpectedJsonPath"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorPathAt"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorReady"
+require_file "src/self_hosted/tools/backend_output_comparator/expected/mismatch.json"
+require_file "src/self_hosted/tools/backend_output_comparator/expected/missing_input.json"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_tool_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_inventory_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_size_paths_owner.pgy";'
@@ -2413,12 +2415,20 @@ require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'PER
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'FIXTURE_EXPECTED_REL="${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'FIXTURE_ACTUAL_REL="${harness_paths[3]}"'
-require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'MISMATCH_FINDING_KIND="${harness_paths[4]}"'
-require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'INPUT_ERROR_FINDING_KIND="${harness_paths[5]}"'
+require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'EXPECTED_MISMATCH_JSON_FILE="$ROOT_DIR/${harness_paths[4]}"'
+require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'EXPECTED_INPUT_ERROR_JSON_FILE="$ROOT_DIR/${harness_paths[5]}"'
+require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "mismatch JSON parity FAIL"
+require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "missing-input JSON parity FAIL"
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" '"$ARG_BIN" "$ARG_EXPECTED_PATH" "$ARG_ACTUAL_PATH" 0 2'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" '"actual_projection":"self_hosted"'
 reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" '"kind":"mismatch"'
 reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" '"kind":"input_error"'
+reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "MISMATCH_FINDING_KIND"
+reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "INPUT_ERROR_FINDING_KIND"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendOutputComparatorMismatchFindingKind"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendOutputComparatorInputErrorFindingKind"
+reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" '"ok":false'
+reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "mismatch_lines"
 reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy"'
 reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
 reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"'
