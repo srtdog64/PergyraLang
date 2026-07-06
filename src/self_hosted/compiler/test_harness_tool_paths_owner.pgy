@@ -121,8 +121,16 @@ func CompilerHarnessStableSubsetSectionMissingAnchor() -> String {
     return "## 3. Ownership Stable Subset";
 }
 
+func CompilerHarnessStableSubsetSectionMissingFindingField() -> String {
+    return "missing";
+}
+
+func CompilerHarnessStableSubsetSectionMissingFindingValue() -> String {
+    return "1";
+}
+
 func CompilerHarnessStableSubsetSectionPathCount() -> Int {
-    return 4;
+    return 6;
 }
 
 func CompilerHarnessStableSubsetSectionPathAt(index: Int) -> String {
@@ -130,11 +138,13 @@ func CompilerHarnessStableSubsetSectionPathAt(index: Int) -> String {
     if index == 1 { return CompilerHarnessStableSubsetSectionExpectedJsonPath(); }
     if index == 2 { return CompilerHarnessStableSubsetSectionInputManifestPath(); }
     if index == 3 { return CompilerHarnessStableSubsetSectionMissingAnchor(); }
+    if index == 4 { return CompilerHarnessStableSubsetSectionMissingFindingField(); }
+    if index == 5 { return CompilerHarnessStableSubsetSectionMissingFindingValue(); }
     return "";
 }
 
 func CompilerHarnessStableSubsetSectionReady() -> Bool {
-    if CompilerHarnessStableSubsetSectionPathCount() != 4 {
+    if CompilerHarnessStableSubsetSectionPathCount() != 6 {
         return false;
     }
     let i: Int = 0;

@@ -104,6 +104,12 @@ value from `test_harness_tool_paths_owner.pgy`. Shell remains the scratch file
 writer, but no longer owns which AIR graph root key is stripped or which finding
 counter proves the fail-closed missing-key path.
 
+TestHarness delta, 2026-07-06: `stable_subset_section_checker_parity.sh` now
+gets the missing-section finding field and expected finding value from
+`test_harness_tool_paths_owner.pgy`. Shell still strips the TestHarness-owned
+anchor from a scratch document, but no longer owns the `"missing":1` diagnostic
+shape that proves the fail-closed path.
+
 TestHarness delta, 2026-07-06: the five AIR graph consumer parity runners now
 compile and run their manifest-projected checker sources in place. They no
 longer create build-dir `main.pgy` aliases or copy `scan_owner.pgy` and the

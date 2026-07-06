@@ -25,6 +25,16 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Stable subset missing finding consumes TestHarness owner
+
+- Extended `stable-subset-section-paths` with the missing-section finding field
+  and expected finding value.
+- Repointed `stable_subset_section_checker_parity.sh` so shell still strips the
+  TestHarness-owned section anchor, but the `"missing":1` expectation is
+  projected by `test_harness_tool_paths_owner.pgy`.
+- Tightened the component contract against reintroducing the hardcoded
+  `"missing":1` assertion in shell.
+
 ## 2026-07-06 - AIR graph JSON missing-key fixture consumes TestHarness owner
 
 - Extended `air-graph-json-validator-paths` with the missing top-level key

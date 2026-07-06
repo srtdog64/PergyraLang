@@ -44,8 +44,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 4 ]]; then
-    echo "[self-host-parity:stable-subset-section] TestHarness manifest expected 4 stable-subset rows, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 6 ]]; then
+    echo "[self-host-parity:stable-subset-section] TestHarness manifest expected 6 stable-subset rows, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -53,6 +53,13 @@ PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
 MANIFEST_PATH="${harness_paths[2]}"
 MISSING_SECTION_ANCHOR="${harness_paths[3]}"
+MISSING_FINDING_FIELD="${harness_paths[4]}"
+MISSING_FINDING_VALUE="${harness_paths[5]}"
+
+if [[ -z "$MISSING_SECTION_ANCHOR" || -z "$MISSING_FINDING_FIELD" || -z "$MISSING_FINDING_VALUE" ]]; then
+    echo "[self-host-parity:stable-subset-section] invalid TestHarness missing-section row" >&2
+    exit 1
+fi
 
 if [[ ! -f "$PERGYRA_TOOL_SOURCE" ]]; then
     echo "[self-host-parity:stable-subset-section] missing Pergyra tool: $PERGYRA_TOOL_SOURCE" >&2
@@ -133,8 +140,8 @@ if ! grep -Fq '"ok":false' <<<"$NEG_OUT"; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq '"missing":1' <<<"$NEG_OUT"; then
-    echo "[self-host-parity:stable-subset-section] missing-section fixture expected missing:1" >&2
+if ! grep -Fq "\"${MISSING_FINDING_FIELD}\":${MISSING_FINDING_VALUE}" <<<"$NEG_OUT"; then
+    echo "[self-host-parity:stable-subset-section] missing-section fixture expected ${MISSING_FINDING_FIELD}:${MISSING_FINDING_VALUE}" >&2
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
