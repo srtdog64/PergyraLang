@@ -25,6 +25,16 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Doc-link missing finding consumes TestHarness owner
+
+- Extended `doc-link-checker-paths` with the expected `missing_link` finding
+  kind.
+- Repointed `doc_link_checker_parity.sh` so shell still rewrites the scratch
+  dead-link fixture, but the finding-kind expectation comes from
+  `test_harness_tool_paths_owner.pgy`.
+- Tightened the component contract against reintroducing the hardcoded
+  `missing_link` assertion in shell.
+
 ## 2026-07-06 - AST surface growth finding consumes TestHarness owner
 
 - Extended `ast-read-surface-paths` with the expected `surface_growth` finding

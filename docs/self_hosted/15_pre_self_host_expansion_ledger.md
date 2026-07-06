@@ -199,6 +199,11 @@ dead-link fixture's live source target and missing replacement target from
 `INDEX.md`, but no longer owns which doc-link is broken for the negative
 fixture.
 
+TestHarness delta, 2026-07-06: `doc_link_checker_parity.sh` now also gets the
+expected dead-link finding kind from `test_harness_tool_paths_owner.pgy`. Shell
+still executes the negative fixture, but no longer owns the `missing_link`
+diagnostic shape that proves the fail-closed path.
+
 TestHarness delta, 2026-07-06: `examples_inventory_checker_parity.sh` now
 compiles and runs the manifest-projected examples-inventory checker source in
 place. It no longer creates a build-dir `main.pgy` alias or copies the
