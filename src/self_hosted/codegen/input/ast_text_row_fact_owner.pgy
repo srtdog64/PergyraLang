@@ -75,6 +75,13 @@ func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput) -> String {
         }
         return "";
     }
+    if kind == 19 {
+        let push_comma: Option<Int> = FindTopLevelComma(payload);
+        if IsSome(push_comma) {
+            return StringTrim(Substring(payload, 0, UnwrapOption(push_comma)));
+        }
+        return "";
+    }
     if kind == 5 {
         let colon2: Int = StringIndexOf(payload, ": ");
         if colon2 >= 0 {
@@ -101,6 +108,14 @@ func CodegenAstTextValueFactFor(input: CodegenAstTextRowFactInput) -> String {
         if IsSome(pos2) {
             let start2: Int = UnwrapOption(pos2) + 3;
             return Substring(payload, start2, StringLength(payload) - start2);
+        }
+        return "";
+    }
+    if kind == 19 {
+        let comma: Option<Int> = FindTopLevelComma(payload);
+        if IsSome(comma) {
+            let start3: Int = UnwrapOption(comma) + 1;
+            return StringTrim(Substring(payload, start3, StringLength(payload) - start3));
         }
         return "";
     }

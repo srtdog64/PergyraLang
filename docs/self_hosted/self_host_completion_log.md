@@ -4944,3 +4944,20 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-compiler-world-contract-test-smoke`, and
   `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
   7211 generated-C lines).
+
+### 2026-07-07 -- ArrayPush consumes typed arena target/value rows
+
+- Extended `CodegenAstTextNameFactFor(...)` and
+  `CodegenAstTextValueFactFor(...)` for `ArrayPush(receiver, value)`.
+- Repointed `stmt_emit.pgy` so `ArrayPush` statement emission consumes
+  `CodegenAstArenaAtomOrDie(...)` for the receiver and
+  `CodegenAstArenaValueOrDie(...)` for the pushed expression.
+- Tightened `self_hosted_component_contract_smoke.sh` so
+  `CodegenAstTextArrayPushTarget(...)` and
+  `CodegenAstTextArrayPushValue(...)` cannot return in `stmt_emit.pgy`.
+- `ArraySet` and `For` remain in the statement owner because they need more than
+  the existing atom/value row pair.
+- Verified with `self-host-component-contract-test-smoke`,
+  `self-host-compiler-world-contract-test-smoke`, and
+  `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
+  7226 generated-C lines, including the `array_push` fixture).
