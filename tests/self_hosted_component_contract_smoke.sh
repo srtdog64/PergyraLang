@@ -758,6 +758,20 @@ reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolPro
 reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolProjectionAt(1) == "llvm_symbol"'
 reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolProjectionAt(2) == "self_hosted_symbol"'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCQualifiedName"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/ast_text_typed_arena_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextTypedArenaFromNodes(nodes, count)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIndentOrDie(arena, i)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIndentOrDie(arena, j)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsDescendantOf(arena, j, i)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "nodes[i].indent"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "nodes[j].indent"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "nodes[cur[0]].indent"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/ast_text_typed_arena_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextTypedArenaFromNodes(nodes, count)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIndentOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIndentOrDie(arena, cur[0])"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "nodes[idx].indent"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "nodes[cur[0]].indent"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "SymbolMangle"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(owner, Concat("_",'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(owner_name, Concat("_",'

@@ -201,7 +201,10 @@ The current self-host codegen consumes that substrate for the bootstrap-owned
 `Array<CodegenAstTextNode>` bridge and now has a typed AST arena payload
 contract in `codegen/typed_ast_node_skeleton.pgy`. The contract proves the
 flat node vocabulary and traversal idiom; it is not yet a claim that parser or
-codegen consumes typed AST nodes for emission.
+codegen has replaced the transitional AST-text payload. The current codegen does
+consume typed arena indent/parent facts for program, function, and statement
+emission-depth traversal, so new depth decisions must be added to the arena
+projection owner rather than reading raw text-node indentation.
 
 `src/self_hosted/compiler/path_manifest_owner.pgy` is the current path owner.
 It owns the Pergyra source/test/parity path values for `StagePathManifest` and

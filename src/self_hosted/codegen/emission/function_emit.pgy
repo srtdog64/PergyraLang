@@ -5,6 +5,7 @@
 import "../text/text_owner.pgy";
 import "../input/ast_text_inventory_owner.pgy";
 import "../input/ast_text_statement_owner.pgy";
+import "../input/ast_text_typed_arena_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
@@ -76,6 +77,7 @@ func FunctionCallProjectionRecord(inout names: Array<String>, inout targets: Arr
 func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int,
                   inout cur: Array<Int>, f_indent: Int,
                   base_env: String, uses_args: Bool, owner_name: String) -> String {
+    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
     let name: String = CodegenAstTextFunctionName(nodes[cur[0]]);
     let c_name: String = CompilerSymbolCQualifiedName(owner_name, name);
     ArraySet(cur, 0, cur[0] + 1);
@@ -86,7 +88,7 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int,
     let env_box: Array<String> = [base_env];
     let prologue: String = "";
     let copyout: String = "";
-    while cur[0] < count && nodes[cur[0]].indent == f_indent + 4 {
+    while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == f_indent + 4 {
         let p_mode: Int = CodegenAstTextParamMode(nodes[cur[0]]);
         if p_mode == 2 || p_mode == 3 {
             Die(Concat("unsupported self-host codegen parameter mode: ", CodegenAstTextProvenance(nodes[cur[0]])));
@@ -163,13 +165,14 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int,
 // Build the global environment: `|Name=f:RetType|...` for every function, by
 // pairing each `Function: Name` line with the next `Returns:` line.
 func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int) -> String {
+    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
     let env: String = "|";
     let i: Int = 0;
     let owner: String = "";
     let owner_indent: Int = -1;
     let skip_indent: Int = -1;
     while i < count {
-        let indent: Int = nodes[i].indent;
+        let indent: Int = CodegenAstArenaIndentOrDie(arena, i);
         if skip_indent >= 0 {
             if indent > skip_indent {
                 i = i + 1;
@@ -207,7 +210,7 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int) -> String {
                     j = j + 1;
                     let modes: String = "";
                     let param_types: String = "";
-                    while j < count && nodes[j].indent == indent + 4 {
+                    while j < count && CodegenAstArenaIndentOrDie(arena, j) == indent + 4 {
                         modes = ParamModeCsvAppend(modes, CodegenAstTextParamMode(nodes[j]));
                         param_types = ParamTypeCsvAppend(param_types, CodegenAstTextParamType(nodes[j], owner));
                         j = j + 1;
@@ -235,7 +238,7 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int) -> String {
     owner_indent = -1;
     skip_indent = -1;
     while i < count {
-        let indent: Int = nodes[i].indent;
+        let indent: Int = CodegenAstArenaIndentOrDie(arena, i);
         if skip_indent >= 0 {
             if indent > skip_indent {
                 i = i + 1;
@@ -286,14 +289,14 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int) -> String {
 }
 
 func CollectRoleOperators(nodes: Array<CodegenAstTextNode>, count: Int, inout env_box: Array<String>) -> String {
+    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
     let i: Int = 0;
     while i < count {
         if CodegenAstTextIsRoleDecl(nodes[i]) {
             let role_name: String = CodegenAstTextRoleName(nodes[i]);
             let for_type: String = CodegenAstTextRoleForType(nodes[i]);
-            let role_indent: Int = nodes[i].indent;
             let j: Int = i + 1;
-            while j < count && nodes[j].indent > role_indent {
+            while j < count && CodegenAstArenaIsDescendantOf(arena, j, i) {
                 if CodegenAstTextIsFunction(nodes[j]) {
                     let mname: String = CodegenAstTextFunctionName(nodes[j]);
                     if for_type == "Int" && mname == "Add" {
@@ -312,19 +315,20 @@ func CollectRoleOperators(nodes: Array<CodegenAstTextNode>, count: Int, inout en
 // Scan top-level nominal declarations into C typedefs, and append
 // `Name=s:struct|Name=fields:a,b|Name.field=field:Type|` entries to env_box[0].
 func CollectStructs(nodes: Array<CodegenAstTextNode>, count: Int, inout env_box: Array<String>) -> String {
+    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
     let typedefs: String = "";
     let i: Int = 0;
     while i < count {
         if CodegenAstTextIsNominalDecl(nodes[i]) {
             let sname: String = CodegenAstTextNominalName(nodes[i]);
-            let s_indent: Int = nodes[i].indent;
+            let s_indent: Int = CodegenAstArenaIndentOrDie(arena, i);
             let j: Int = i + 1;
             if j < count && CodegenAstTextIsFieldsHeader(nodes[j]) {
                 j = j + 1;
             }
             let fields_c: String = "";
             let field_names: String = "";
-            while j < count && nodes[j].indent == s_indent + 4 {
+            while j < count && CodegenAstArenaIndentOrDie(arena, j) == s_indent + 4 {
                 let fname: String = CodegenAstTextFieldName(nodes[j]);
                 let ftype: String = CodegenAstTextFieldType(nodes[j]);
                 let cfield_type: String = AbiLayoutCFieldType(ftype, env_box[0]);
@@ -377,13 +381,14 @@ func CollectEnums(nodes: Array<CodegenAstTextNode>, count: Int, inout env_box: A
 // but `ArrayPush` growth does not -- so a callee cannot append to the caller's
 // `protos`. Emitting prototypes here makes forward references compile.)
 func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, struct_env: String) -> String {
+    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
     let block: String = "";
     let i: Int = 0;
     let owner: String = "";
     let owner_indent: Int = -1;
     let skip_indent: Int = -1;
     while i < count {
-        let indent: Int = nodes[i].indent;
+        let indent: Int = CodegenAstArenaIndentOrDie(arena, i);
         if skip_indent >= 0 {
             if indent > skip_indent {
                 i = i + 1;
@@ -419,7 +424,7 @@ func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, struct_env: Str
                 }
                 let params: String = "";
                 let pn: Int = 0;
-                while j < count && nodes[j].indent == f_indent + 4 {
+                while j < count && CodegenAstArenaIndentOrDie(arena, j) == f_indent + 4 {
                     let p_mode: Int = CodegenAstTextParamMode(nodes[j]);
                     if p_mode == 2 || p_mode == 3 {
                         Die(Concat("unsupported self-host codegen parameter mode: ", CodegenAstTextProvenance(nodes[j])));

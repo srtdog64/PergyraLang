@@ -4836,3 +4836,24 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - The mixed AST-like tree blocker remains ACTIVE: function and statement
   emission still consume transitional text-node rows. This slice moves one
   program-level structural traversal seam behind the typed arena owner.
+
+### 2026-07-07 -- Function and statement emission consume typed arena depth facts
+
+- Repointed `function_emit.pgy` declaration collectors and signature emission so
+  parameter rows, owner-depth checks, role operator scans, struct field scans,
+  and prototype scans consume `CodegenAstArenaIndentOrDie(...)` or
+  `CodegenAstArenaIsDescendantOf(...)` from
+  `ast_text_typed_arena_owner.pgy` instead of direct
+  `CodegenAstTextNode.indent` reads.
+- Repointed `stmt_emit.pgy` statement-list depth checks, else-if nested depth,
+  and match-case depth scans to the same typed arena projection owner.
+- Tightened `self_hosted_component_contract_smoke.sh` so direct
+  `nodes[i].indent`, `nodes[j].indent`, `nodes[idx].indent`, and
+  `nodes[cur[0]].indent` reads cannot return in the function/statement emitters.
+- The mixed AST-like tree blocker remains ACTIVE because statement payloads and
+  declaration payloads still come from transitional AST-text rows. This slice
+  closes the emission-depth traversal SoT seam, not the full text bridge.
+- Verified with `self-host-component-contract-test-smoke`,
+  `self-host-compiler-world-contract-test-smoke`, and
+  `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
+  7025 generated-C lines).
