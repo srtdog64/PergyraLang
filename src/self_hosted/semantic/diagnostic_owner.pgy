@@ -179,6 +179,51 @@ func SemanticVerdictPayloadExpectedStatus(base: String) -> String {
     return "";
 }
 
+func SemanticDiagnosticLineStartsWith(line: String, prefix: String) -> Bool {
+    if StringLength(line) < StringLength(prefix) {
+        return false;
+    }
+    return Substring(line, 0, StringLength(prefix)) == prefix;
+}
+
+func SemanticDiagnosticTrimCR(text: String) -> String {
+    if StringLength(text) > 0 && Substring(text, StringLength(text) - 1, 1) == "\r" {
+        return Substring(text, 0, StringLength(text) - 1);
+    }
+    return text;
+}
+
+func SemanticExpectedDiagnosticCode(base: String) -> String {
+    let expected_path: String = SemanticVerdictPayloadExpectedPath(base);
+    if !FileExists(expected_path) {
+        return "";
+    }
+    let lines: Array<String> = Split(ReadFile(expected_path), "\n");
+    let prefix: String = "Code: ";
+    let i: Int = 0;
+    while i < ArrayLength(lines) {
+        let line: String = lines[i];
+        if SemanticDiagnosticLineStartsWith(line, prefix) {
+            let value: String = Substring(line, StringLength(prefix), StringLength(line) - StringLength(prefix));
+            return SemanticDiagnosticTrimCR(value);
+        }
+        i = i + 1;
+    }
+    return "";
+}
+
+func SemanticVerdictPayloadFixtureManifestRow(base: String, status: String) -> String {
+    let code: String = "";
+    let oracle: String = "";
+    if status == "error" {
+        code = SemanticExpectedDiagnosticCode(base);
+        oracle = SemanticDiagnosticOracleCode(code);
+    }
+    let left: String = Concat(Concat(base, ":"), status);
+    let right: String = Concat(Concat(code, ":"), oracle);
+    return Concat(Concat(left, ":"), right);
+}
+
 func SemanticVerdictPayloadFixtureManifestRows() -> Array<String> {
     let entries: Array<String> = DirWalk(SemanticVerdictPayloadFixtureDir());
     let rows: Array<String> = [];
@@ -189,7 +234,7 @@ func SemanticVerdictPayloadFixtureManifestRows() -> Array<String> {
             let base: String = SemanticVerdictPayloadBaseName(path, ".pgy");
             let status: String = SemanticVerdictPayloadExpectedStatus(base);
             if StringLength(base) > 0 && StringLength(status) > 0 {
-                ArrayPush(rows, Concat(Concat(base, ":"), status));
+                ArrayPush(rows, SemanticVerdictPayloadFixtureManifestRow(base, status));
             }
         }
         i = i + 1;
@@ -246,6 +291,133 @@ func EmitSemanticDiagnosticVocabularyManifest() -> Void {
     }
 }
 
+func SemanticDiagnosticCodeDuplicate(code: String, codes: Array<String>, end: Int) -> Bool {
+    let seen: Bool = false;
+    let i: Int = 0;
+    while i < end {
+        if codes[i] == code {
+            return true;
+        }
+        i = i + 1;
+    }
+    return seen;
+}
+
+func SemanticDiagnosticCallCodesFromContent(content: String) -> Array<String> {
+    let codes: Array<String> = [];
+    let rest: String = content;
+    while StringLength(rest) > 0 {
+        let mark: Int = StringIndexOf(rest, "SemanticError");
+        if mark < 0 {
+            return codes;
+        }
+        let after: String = Substring(rest, mark, StringLength(rest) - mark);
+        let open: Int = StringIndexOf(after, "(");
+        if open < 0 {
+            return codes;
+        }
+        if open + 1 < StringLength(after) && Substring(after, open + 1, 1) == "\"" {
+            let literal_tail: String = Substring(after, open + 2, StringLength(after) - open - 2);
+            let close: Int = StringIndexOf(literal_tail, "\"");
+            if close > 0 {
+                ArrayPush(codes, Substring(literal_tail, 0, close));
+            }
+        }
+        let next: Int = mark + open + 1;
+        if next >= StringLength(rest) {
+            return codes;
+        }
+        rest = Substring(rest, next, StringLength(rest) - next);
+    }
+    return codes;
+}
+
+func SemanticSourceDiagnosticCallCodes() -> Array<String> {
+    let entries: Array<String> = DirWalk("src/self_hosted/semantic");
+    let codes: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(entries) {
+        let path: String = entries[i];
+        if SemanticVerdictPayloadPathEndsWith(path, ".pgy") {
+            let found: Array<String> = SemanticDiagnosticCallCodesFromContent(ReadFile(path));
+            let j: Int = 0;
+            while j < ArrayLength(found) {
+                ArrayPush(codes, found[j]);
+                j = j + 1;
+            }
+        }
+        i = i + 1;
+    }
+    return codes;
+}
+
+func SemanticExpectedDiagnosticCodes() -> Array<String> {
+    let rows: Array<String> = SemanticVerdictPayloadFixtureManifestRows();
+    let codes: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        let parts: Array<String> = Split(rows[i], ":");
+        if ArrayLength(parts) >= 4 && parts[1] == "error" {
+            ArrayPush(codes, parts[2]);
+        }
+        i = i + 1;
+    }
+    return codes;
+}
+
+func SemanticDiagnosticSurfaceAuditFindings() -> Array<String> {
+    let findings: Array<String> = [];
+    let codes: Array<String> = SemanticDiagnosticCodes();
+    let i: Int = 0;
+    while i < ArrayLength(codes) {
+        let code: String = codes[i];
+        if SemanticDiagnosticCodeDuplicate(code, codes, i) {
+            ArrayPush(findings, Concat("duplicate-code|", code));
+        }
+        if !SemanticDiagnosticCodeRendered(code) {
+            ArrayPush(findings, Concat("missing-renderer|", code));
+        }
+        i = i + 1;
+    }
+
+    let expected_codes: Array<String> = SemanticExpectedDiagnosticCodes();
+    i = 0;
+    while i < ArrayLength(expected_codes) {
+        let expected_code: String = expected_codes[i];
+        if !SemanticDiagnosticCodeKnown(expected_code) {
+            ArrayPush(findings, Concat("fixture-unregistered|", expected_code));
+        } else if StringLength(SemanticDiagnosticOracleCode(expected_code)) == 0 {
+            ArrayPush(findings, Concat("fixture-missing-oracle|", expected_code));
+        }
+        i = i + 1;
+    }
+
+    let call_codes: Array<String> = SemanticSourceDiagnosticCallCodes();
+    i = 0;
+    while i < ArrayLength(call_codes) {
+        let call_code: String = call_codes[i];
+        if !SemanticDiagnosticCodeKnown(call_code) {
+            ArrayPush(findings, Concat("callsite-unregistered|", call_code));
+        }
+        i = i + 1;
+    }
+    return findings;
+}
+
+func EmitSemanticDiagnosticSurfaceAudit() -> Void {
+    let findings: Array<String> = SemanticDiagnosticSurfaceAuditFindings();
+    if ArrayLength(findings) == 0 {
+        Log("ok");
+        return;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(findings) {
+        Log(findings[i]);
+        i = i + 1;
+    }
+    Exit(1);
+}
+
 func SemanticVerdictPayloadStatusReady() -> Bool {
     let ok: String = SemanticOk();
     if StringIndexOf(ok, "Diagnostic: pgy.selfhost.semantic.v1") != 0 {
@@ -279,6 +451,9 @@ func SemanticVerdictPayloadContractReady() -> Bool {
         return false;
     }
     if ArrayLength(SemanticDiagnosticVocabularyRows()) != SemanticDiagnosticCodeCount() {
+        return false;
+    }
+    if ArrayLength(SemanticDiagnosticSurfaceAuditFindings()) != 0 {
         return false;
     }
     if !SemanticVerdictPayloadStatusReady() {

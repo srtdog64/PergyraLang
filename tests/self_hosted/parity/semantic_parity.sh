@@ -52,6 +52,7 @@ ARTIFACT_COMPARE_BUILD_DIR="$PERGYRA_TOOL_BUILD_DIR/artifact_owner"
 HARNESS_PATHS_FILE="$PERGYRA_TOOL_BUILD_DIR/semantic_harness_paths.txt"
 SEMANTIC_FIXTURE_MANIFEST_FILE="$PERGYRA_TOOL_BUILD_DIR/semantic_fixture_manifest.txt"
 SEMANTIC_DIAGNOSTIC_VOCABULARY_FILE="$PERGYRA_TOOL_BUILD_DIR/semantic_diagnostic_vocabulary.txt"
+SEMANTIC_DIAGNOSTIC_SURFACE_AUDIT_FILE="$PERGYRA_TOOL_BUILD_DIR/semantic_diagnostic_surface_audit.txt"
 SEMANTIC_COMPARATOR_BIN=""
 PERGYRA_TOOL_SOURCE=""
 PERGYRA_TOOL_ARG=""
@@ -64,53 +65,6 @@ DIAGNOSTIC_RENDERER_OWNER=""
 SEMANTIC_SOURCE_DIR=""
 
 SOURCE_PAIRS=()
-
-known_semantic_codes() {
-    [[ -f "$SEMANTIC_DIAGNOSTIC_VOCABULARY_FILE" ]] || return 0
-    awk -F '|' 'NF >= 1 && $1 != "" { print $1 }' \
-        "$SEMANTIC_DIAGNOSTIC_VOCABULARY_FILE" |
-        sort
-}
-
-contains_line() {
-    local haystack="$1"
-    local needle="$2"
-    local line
-
-    while IFS= read -r line; do
-        [[ "$line" == "$needle" ]] && return 0
-    done <<<"$haystack"
-    return 1
-}
-
-semantic_code_known() {
-    local code="$1"
-    local known
-
-    known="$(known_semantic_codes)"
-    contains_line "$known" "$code"
-}
-
-semantic_vocabulary_field_for() {
-    local code="$1"
-    local field="$2"
-
-    awk -F '|' -v target="$code" -v field="$field" \
-        '$1 == target { print $field; exit }' \
-        "$SEMANTIC_DIAGNOSTIC_VOCABULARY_FILE"
-}
-
-semantic_oracle_code_for() {
-    local code="$1"
-
-    semantic_vocabulary_field_for "$code" 2
-}
-
-semantic_renderer_status_for() {
-    local code="$1"
-
-    semantic_vocabulary_field_for "$code" 3
-}
 
 json_code_from_output() {
     tr -d '\r' |
@@ -148,7 +102,6 @@ compare_semantic_verdict_with_owner() {
 
 check_semantic_diagnostic_code_surface() {
     local owner="$DIAGNOSTIC_CODE_OWNER"
-    local known total unique
 
     if [[ ! -f "$owner" ]]; then
         echo "[self-host-parity:semantic] missing diagnostic code owner: $owner" >&2
@@ -158,59 +111,17 @@ check_semantic_diagnostic_code_surface() {
         echo "[self-host-parity:semantic] missing diagnostic vocabulary manifest" >&2
         exit 1
     fi
-
-    known="$(known_semantic_codes)"
-    if [[ -z "$known" ]]; then
-        echo "[self-host-parity:semantic] diagnostic code owner has no codes" >&2
+    if [[ ! -s "$SEMANTIC_DIAGNOSTIC_SURFACE_AUDIT_FILE" ]]; then
+        echo "[self-host-parity:semantic] missing diagnostic surface audit artifact" >&2
+        exit 1
+    fi
+    if [[ "$(tr -d '\r\n' < "$SEMANTIC_DIAGNOSTIC_SURFACE_AUDIT_FILE")" != "ok" ]]; then
+        echo "[self-host-parity:semantic] diagnostic surface audit failed" >&2
+        cat "$SEMANTIC_DIAGNOSTIC_SURFACE_AUDIT_FILE" >&2
         exit 1
     fi
 
-    total="$(printf '%s\n' "$known" | sed '/^$/d' | wc -l | tr -d ' ')"
-    unique="$(printf '%s\n' "$known" | sed '/^$/d' | sort -u | wc -l | tr -d ' ')"
-    if [[ "$total" -ne "$unique" ]]; then
-        echo "[self-host-parity:semantic] duplicate diagnostic code in owner" >&2
-        printf '%s\n' "$known" >&2
-        exit 1
-    fi
-
-    while IFS= read -r code; do
-        [[ -n "$code" ]] || continue
-        if [[ "$(semantic_renderer_status_for "$code")" != "rendered" ]]; then
-            echo "[self-host-parity:semantic] diagnostic code lacks reason/fix renderer branch: $code" >&2
-            exit 1
-        fi
-    done <<<"$known"
-
-    while IFS= read -r code; do
-        [[ -n "$code" ]] || continue
-        if ! semantic_code_known "$code"; then
-            echo "[self-host-parity:semantic] expected fixture uses unregistered diagnostic code: $code" >&2
-            exit 1
-        fi
-        if [[ -z "$(semantic_oracle_code_for "$code")" ]]; then
-            echo "[self-host-parity:semantic] diagnostic code lacks C oracle mapping: $code" >&2
-            exit 1
-        fi
-    done < <(
-        grep -h '^Code: ' "$EXPECTED_DIR"/*.diag |
-            tr -d '\r' |
-            sed -E 's/^Code: //'
-    )
-
-    while IFS= read -r code; do
-        [[ -n "$code" ]] || continue
-        if ! semantic_code_known "$code"; then
-            echo "[self-host-parity:semantic] call site emits unregistered diagnostic code: $code" >&2
-            exit 1
-        fi
-    done < <(
-        grep -RhoE 'SemanticError[A-Za-z0-9_]*\("[a-z0-9_]+"' \
-            "$SEMANTIC_SOURCE_DIR" |
-            sed -E 's/.*"([^"]+)".*/\1/' |
-            sort -u
-    )
-
-    echo "[self-host-parity:semantic] diagnostic code vocabulary ok ($unique codes)"
+    echo "[self-host-parity:semantic] diagnostic surface audit ok"
 }
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
@@ -260,6 +171,8 @@ SEMANTIC_COMPARATOR_BIN="$(pgy_selfhost_backend_output_comparator_bin "$ARTIFACT
 check_c_oracle() {
     local base="$1"
     local expected_class="$2"
+    local expected_self_code="$3"
+    local expected_oracle_code="$4"
     local source="$FIXTURE_DIR/${base}.pgy"
     local exe="$PERGYRA_TOOL_BUILD_DIR/${base}.c-oracle.exe"
     local output
@@ -282,13 +195,7 @@ check_c_oracle() {
         exit 1
     fi
     if [[ "$expected_class" == "error" ]]; then
-        local expected_self_code
-        local expected_oracle_code
         local actual_oracle_code
-        expected_self_code="$(sed -n 's/^Code: //p' "$EXPECTED_DIR/${base}.diag" |
-            tr -d '\r' |
-            head -n 1)"
-        expected_oracle_code="$(semantic_oracle_code_for "$expected_self_code")"
         actual_oracle_code="$(printf '%s\n' "$output" | json_code_from_output)"
         if [[ -z "$actual_oracle_code" ]]; then
             echo "[self-host-parity:semantic] C oracle emitted no JSON code for invalid fixture: $base" >&2
@@ -327,22 +234,37 @@ read_semantic_fixture_manifest() {
         echo "[self-host-parity:semantic] diagnostic vocabulary manifest emission failed" >&2
         exit 1
     fi
+    if ! (cd "$ROOT_DIR" && "$manifest_bin" --diagnostic-surface-audit >"$SEMANTIC_DIAGNOSTIC_SURFACE_AUDIT_FILE"); then
+        echo "[self-host-parity:semantic] diagnostic surface audit failed" >&2
+        cat "$SEMANTIC_DIAGNOSTIC_SURFACE_AUDIT_FILE" >&2
+        exit 1
+    fi
 
     SOURCE_PAIRS=()
     while IFS= read -r line; do
+        local base
+        local status
+        local self_code
+        local oracle_code
+        local extra
         line="${line%$'\r'}"
         [[ -n "$line" ]] || continue
-        if [[ "$line" != *:* ]]; then
+        IFS=':' read -r base status self_code oracle_code extra <<<"$line"
+        if [[ -z "$base" || -z "$status" || -n "${extra:-}" ]]; then
             echo "[self-host-parity:semantic] malformed fixture manifest row: $line" >&2
             exit 1
         fi
-        case "${line##*:}" in
+        case "$status" in
             ok|error) ;;
             *)
                 echo "[self-host-parity:semantic] unknown fixture expectation in row: $line" >&2
                 exit 1
                 ;;
         esac
+        if [[ "$status" == "error" && ( -z "$self_code" || -z "$oracle_code" ) ]]; then
+            echo "[self-host-parity:semantic] invalid fixture row lacks diagnostic mapping: $line" >&2
+            exit 1
+        fi
         SOURCE_PAIRS+=("$line")
     done <"$SEMANTIC_FIXTURE_MANIFEST_FILE"
 
@@ -357,7 +279,11 @@ run_semantic_backend() {
     local tool_bin="$2"
 
     for pair in "${SOURCE_PAIRS[@]}"; do
-        local base="${pair%%:*}"
+        local base
+        local expected_class
+        local expected_self_code
+        local expected_oracle_code
+        IFS=':' read -r base expected_class expected_self_code expected_oracle_code <<<"$pair"
         local source="$FIXTURE_DIR/${base}.pgy"
         local expected_file="$EXPECTED_DIR/${base}.diag"
         local pergyra_out
@@ -399,7 +325,7 @@ run_semantic_backend() {
             printf '%s\n' "$pergyra_out" >&2
             exit 1
         fi
-        if [[ "${pair##*:}" == "ok" ]]; then
+        if [[ "$expected_class" == "ok" ]]; then
             if ! grep -Fq 'Status: ok' <<<"$pergyra_out"; then
                 echo "[self-host-parity:semantic] backend=$backend $base: ok status missing" >&2
                 printf '%s\n' "$pergyra_out" >&2
@@ -423,7 +349,8 @@ read_semantic_fixture_manifest
 check_semantic_diagnostic_code_surface
 
 for pair in "${SOURCE_PAIRS[@]}"; do
-    check_c_oracle "${pair%%:*}" "${pair##*:}"
+    IFS=':' read -r base expected_class expected_self_code expected_oracle_code <<<"$pair"
+    check_c_oracle "$base" "$expected_class" "$expected_self_code" "$expected_oracle_code"
 done
 
 BACKENDS="${PGY_SELFHOST_SEMANTIC_BACKENDS:-c llvm}"

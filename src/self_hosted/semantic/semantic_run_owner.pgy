@@ -21,6 +21,10 @@ func RunSemanticFromArgs(args: Array<String>) -> Void {
         EmitSemanticDiagnosticVocabularyManifest();
         return;
     }
+    if args[0] == "--diagnostic-surface-audit" {
+        EmitSemanticDiagnosticSurfaceAudit();
+        return;
+    }
     if args[0] == "--check" {
         if ArrayLength(args) < 2 {
             Log(SemanticError2("input_missing", "expected", "source", "actual", "none"));

@@ -76,6 +76,10 @@ the entrypoint must not import either implementation detail directly.
 `semantic_run_owner.pgy --diagnostic-vocabulary` emits the compiled vocabulary
 rows consumed by the parity harness, so shell code compares an artifact from
 the self-hosted owner rather than re-parsing owner source text.
+`semantic_run_owner.pgy --diagnostic-surface-audit` checks fixture `Code:`
+fields, renderer coverage, duplicate vocabulary entries, and semantic
+`SemanticError...("code")` call sites inside the compiled owner; shell code must
+not re-own that audit with `grep` over expected files or source trees.
 
 ## Oracle
 
@@ -89,8 +93,8 @@ oracle JSON diagnostic code.
 
 Fixture inventory is owned by the semantic tool, not by the shell runner.
 `diagnostic_owner.pgy` walks `src/self_hosted/semantic/fixture`, reads the paired
-`expected/*.diag` status, and `semantic_run_owner.pgy --fixture-manifest` emits
-the `name:ok|error` rows consumed by the parity script.
+`expected/*.diag` status and code, and `semantic_run_owner.pgy --fixture-manifest`
+emits `name:status:self-code:c-oracle-code` rows consumed by the parity script.
 
 `tests/self_hosted/parity/selfcheck_sources.sh` is the real-source rung. It
 compiles this checker through C and LLVM and requires 56 curated self-host

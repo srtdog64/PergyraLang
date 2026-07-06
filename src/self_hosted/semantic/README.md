@@ -26,16 +26,18 @@ together.
 `expr_validation_owner.pgy`, and `expr_type_owner.pgy` declare their direct
 fact-owner imports instead of relying on `main.pgy` as a dependency aggregator.
 The run owner emits deterministic diagnostic verdicts plus owner-projected
-manifests for committed fixtures and diagnostic vocabulary. The parity harness
-keeps the C compiler as the accept/reject oracle, but it consumes the compiled
-semantic tool's `--diagnostic-vocabulary` artifact instead of re-parsing
-`diagnostic_code_owner.pgy`. Do not broaden this into declaration-heavy
-semantic owners until expression-operator and diagnostic-code parity are gated.
-The diagnostic-code gate checks committed fixture `Code:` fields and
-self-hosted semantic call sites against that emitted vocabulary, then checks
-invalid fixtures against the mapped C oracle JSON code. `selfcheck_sources.sh`
+manifests for committed fixtures, diagnostic vocabulary, and diagnostic surface
+audit. The parity harness keeps the C compiler as the accept/reject oracle, but
+it consumes the compiled semantic tool's `--diagnostic-vocabulary` and
+`--diagnostic-surface-audit` artifacts instead of re-parsing
+`diagnostic_code_owner.pgy`, expected `.diag` files, or semantic source call
+sites. Do not broaden this into declaration-heavy semantic owners until
+expression-operator and diagnostic-code parity are gated. The diagnostic-code
+gate checks committed fixture `Code:` fields and self-hosted semantic call
+sites inside the emitted surface audit, then checks invalid fixtures against
+the C oracle JSON code carried by the fixture manifest. `selfcheck_sources.sh`
 is the real-source gate: it compiles this checker through C and LLVM and runs
-it on 56 accepted self-host owner/source files, including lexer/parser/
+it on 157 accepted self-host owner/source files, including lexer/parser/
 mir_lower/codegen/compiler-world, the compiler path manifest owner, semantic
 run/program/body/call/expression owner files, the deterministic backend fuzz
 generator, and audit-tool slices that are inside the current semantic subset.
