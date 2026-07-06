@@ -36,7 +36,6 @@ fi
 
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/air_graph_json_validator}"
 HARNESS_PATHS_FILE="$PERGYRA_TOOL_BUILD_DIR/air_graph_json_validator_harness_paths.txt"
-PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 pgy_selfhost_read_test_harness_manifest \
     "self-host-parity:air-graph-json" \
@@ -55,7 +54,6 @@ if [[ "${#harness_paths[@]}" -ne 7 ]]; then
 fi
 
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
-PERGYRA_TOOL_SOURCE_DIR="$(dirname "$PERGYRA_TOOL_SOURCE")"
 AIR_EVIDENCE_OWNER="$ROOT_DIR/${harness_paths[1]}"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[2]}"
 FIXTURE_REL="${harness_paths[3]}"
@@ -137,12 +135,7 @@ compare_air_json_file_with_owner() {
         >"$AIR_JSON_COMPARE_OUT" 2>"$AIR_JSON_COMPARE_ERR")
 }
 
-cp "$PERGYRA_TOOL_SOURCE_DIR"/*.pgy "$PERGYRA_TOOL_BUILD_DIR"/
-mkdir -p "$PERGYRA_TOOL_BUILD_DIR/../../lib"
-cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/../../lib/"
-mkdir -p "$PERGYRA_TOOL_BUILD_DIR/../../compiler"
-cp "$AIR_EVIDENCE_OWNER" "$PERGYRA_TOOL_BUILD_DIR/../../compiler/air_evidence_owner.pgy"
-PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
+PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
 
 CLEAN_BIN="$PERGYRA_TOOL_BUILD_DIR/air_graph_json_validator_c.exe"
 CLEAN_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/air_graph_json_validator_c.compile.log"

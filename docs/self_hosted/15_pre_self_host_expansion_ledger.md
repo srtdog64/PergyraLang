@@ -255,6 +255,12 @@ the committed fixture paths through `Args()`, so the AIR evidence validation
 input boundary consumes the same Pergyra path facts that the parity runner
 executes.
 
+TestHarness delta, 2026-07-06: `air_graph_json_validator_parity.sh` now
+compiles and runs the manifest-projected validator source in place. It no
+longer creates a build-dir `main.pgy` alias or copies validator owner files,
+self-hosted `lib`, or `compiler/air_evidence_owner.pgy` beside that alias
+before invoking the compiler.
+
 TestHarness delta, 2026-07-05: `production_c_size_checker_parity.sh` and
 `production_header_size_checker_parity.sh` now get checker source and expected
 clean JSON through `production-c-size-paths` and `production-header-size-paths`

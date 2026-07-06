@@ -1517,10 +1517,11 @@ reject_text "src/self_hosted/compiler/air_evidence_owner.pgy" 'CompilerAirEviden
 require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" "RequiredGraphFeatureKeys()"
 require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" "CountMissingGraphFeatureKeys(content, feature_keys)"
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "AIR_EVIDENCE_OWNER"
-require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "compiler/air_evidence_owner.pgy"
+require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'AIR_EVIDENCE_OWNER="$ROOT_DIR/${harness_paths[1]}"'
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" '"air-graph-json-validator-paths"'
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'FIXTURE_REL="${harness_paths[3]}"'
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'CAP_FIXTURE_REL="${harness_paths[4]}"'
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" '"$CLEAN_BIN" "$FIXTURE_REL" "$CAP_FIXTURE_REL"'
@@ -1532,6 +1533,13 @@ require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "pgy_
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "air_json"
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"'
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'PERGYRA_TOOL_SOURCE_DIR="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator"'
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'PERGYRA_TOOL_SOURCE_DIR='
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'cp "$PERGYRA_TOOL_SOURCE_DIR"/*.pgy "$PERGYRA_TOOL_BUILD_DIR"/'
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'mkdir -p "$PERGYRA_TOOL_BUILD_DIR/../../lib"'
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'mkdir -p "$PERGYRA_TOOL_BUILD_DIR/../../compiler"'
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'cp "$AIR_EVIDENCE_OWNER" "$PERGYRA_TOOL_BUILD_DIR/../../compiler/air_evidence_owner.pgy"'
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator/expected/clean.json"'
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'FIXTURE_FILE="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator/fixture/sample.json"'
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'CAP_FIXTURE_FILE="$ROOT_DIR/src/self_hosted/tools/air_graph_json_validator/fixture/cap_env.json"'

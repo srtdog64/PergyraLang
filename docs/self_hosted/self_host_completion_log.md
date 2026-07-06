@@ -25,6 +25,18 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - AIR graph validator parity uses source owner in place
+
+- Repointed `air_graph_json_validator_parity.sh` so the
+  `air-graph-json-validator-paths` TestHarness source row is passed to the
+  compiler directly.
+- Removed the build-dir `main.pgy` alias, copied validator-owner files, copied
+  `lib` tree, and copied `compiler/air_evidence_owner.pgy` shim from the parity
+  runner; the validator now resolves sibling owners, shared libs, and AIR
+  evidence from its manifest-projected source location.
+- Tightened the component contract so the local source/lib/compiler copy paths
+  cannot return to this runner.
+
 ## 2026-07-06 - Diagnostic catalog parity uses source owner in place
 
 - Repointed `diagnostic_catalog_checker_parity.sh` so the
