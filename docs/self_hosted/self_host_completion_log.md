@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Examples inventory parity uses source owner in place
+
+- Repointed `examples_inventory_checker_parity.sh` so the
+  `examples-inventory-paths` TestHarness source row is passed to the compiler
+  directly.
+- Removed the build-dir `main.pgy` alias and copied `lib` tree from the parity
+  runner; the checker now resolves imports from its manifest-projected source
+  location.
+- Tightened the component contract so the local source/lib copy path cannot
+  return to this runner.
+
 ## 2026-07-06 - Doc link checker parity uses source owner in place
 
 - Repointed `doc_link_checker_parity.sh` so the `doc-link-checker-paths`
