@@ -2028,7 +2028,9 @@ require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func 
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerIndexPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerDeadLinkSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerDeadLinkTargetPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerMissingLinkFindingKind"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerDeadLinkExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "src/self_hosted/tools/doc_link_checker/expected/dead_link.json"
+reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerMissingLinkFindingKind"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerPathAt"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerReady"
 require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessExamplesInventorySuiteName"
@@ -2554,11 +2556,14 @@ require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'PERGYRA_TOOL
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'INDEX_PATH="${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'DEAD_LINK_SOURCE_PATH="${harness_paths[3]}"'
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'DEAD_LINK_TARGET_PATH="${harness_paths[4]}"'
-require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'MISSING_LINK_FINDING_KIND="${harness_paths[5]}"'
+require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'DEAD_LINK_EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[5]}"'
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" "TestHarness manifest expected 6 doc-link rows"
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" '"$CLEAN_BIN" "$INDEX_PATH"'
-require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" "expected-json clean"
+require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" "expected-json clean+dead-link"
 require_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'assert_llvm_leg "self-host-parity:doc-link-checker" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$INDEX_PATH"'
+reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'MISSING_LINK_FINDING_KIND="${harness_paths[5]}"'
+reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" "dead-link fixture expected \${MISSING_LINK_FINDING_KIND} finding"
+reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" "dead-link fixture expected drift path in findings"
 reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" "SHELL_TOTAL="
 reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" "grep -oE '\\]\\('"
 reject_text "tests/self_hosted/parity/doc_link_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/doc_link_checker/main.pgy"'

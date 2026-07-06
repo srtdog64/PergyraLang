@@ -171,8 +171,8 @@ func CompilerHarnessDocLinkCheckerDeadLinkTargetPath() -> String {
     return "XX_NONEXISTENT_FAKE_DRIFT.md";
 }
 
-func CompilerHarnessDocLinkCheckerMissingLinkFindingKind() -> String {
-    return "missing_link";
+func CompilerHarnessDocLinkCheckerDeadLinkExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/doc_link_checker/expected/dead_link.json";
 }
 
 func CompilerHarnessDocLinkCheckerPathCount() -> Int {
@@ -185,7 +185,7 @@ func CompilerHarnessDocLinkCheckerPathAt(index: Int) -> String {
     if index == 2 { return CompilerHarnessDocLinkCheckerIndexPath(); }
     if index == 3 { return CompilerHarnessDocLinkCheckerDeadLinkSourcePath(); }
     if index == 4 { return CompilerHarnessDocLinkCheckerDeadLinkTargetPath(); }
-    if index == 5 { return CompilerHarnessDocLinkCheckerMissingLinkFindingKind(); }
+    if index == 5 { return CompilerHarnessDocLinkCheckerDeadLinkExpectedJsonPath(); }
     return "";
 }
 

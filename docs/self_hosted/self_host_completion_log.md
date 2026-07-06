@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Doc-link dead-link verdict consumes artifact owner
+
+- Added a TestHarness-owned expected JSON artifact for the doc-link synthetic
+  dead-link fixture.
+- Repointed `doc_link_checker_parity.sh` so shell only handles scratch
+  `INDEX.md` mutation and `rc=1`; the full dead-link verdict is compared
+  through `backend_output_comparator` as `run_output`.
+- Removed the `missing_link` finding-kind row from
+  `test_harness_tool_paths_owner.pgy`, and tightened the component contract
+  against reintroducing shell-owned dead-link finding/path checks.
+
 ## 2026-07-06 - AST-read growth verdict consumes artifact owner
 
 - Added a TestHarness-owned expected JSON artifact for the synthetic

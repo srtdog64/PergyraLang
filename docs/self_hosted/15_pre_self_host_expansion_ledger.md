@@ -210,9 +210,11 @@ beside that alias before invoking the compiler.
 
 ArtifactZone delta, 2026-07-06: `doc_link_checker_parity.sh` no longer
 recomputes clean total-link or markdown-link counts with shell `grep`/`wc`.
-The clean output oracle is the TestHarness-projected `expected/clean.json`
-compared through `backend_output_comparator`; shell remains only the process
-runner and negative-fixture mutator for the dead-link case.
+The clean output oracle is the TestHarness-projected `expected/clean.json`,
+and the dead-link negative verdict is the TestHarness-projected
+`expected/dead_link.json`; both are compared through
+`backend_output_comparator`. Shell remains only the process runner,
+negative-fixture mutator, and `rc=1` checker for the dead-link case.
 
 TestHarness delta, 2026-07-06: `doc_link_checker_parity.sh` now gets the
 dead-link fixture's live source target and missing replacement target from
@@ -221,9 +223,9 @@ dead-link fixture's live source target and missing replacement target from
 fixture.
 
 TestHarness delta, 2026-07-06: `doc_link_checker_parity.sh` now also gets the
-expected dead-link finding kind from `test_harness_tool_paths_owner.pgy`. Shell
-still executes the negative fixture, but no longer owns the `missing_link`
-diagnostic shape that proves the fail-closed path.
+expected dead-link verdict JSON artifact from `test_harness_tool_paths_owner.pgy`.
+Shell still executes the negative fixture, but no longer owns the `missing_link`
+diagnostic shape or drift path interpretation that proves the fail-closed path.
 
 TestHarness delta, 2026-07-06: `examples_inventory_checker_parity.sh` now
 compiles and runs the manifest-projected examples-inventory checker source in

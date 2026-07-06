@@ -2,9 +2,10 @@
 # Rung 2 parity for the doc link checker (2026-05-27).
 #
 # Pergyra is the origin (src/self_hosted/tools/doc_link_checker/main.pgy).
-# The TestHarness-projected expected artifact is the clean-output oracle. Asserts:
+# The TestHarness-projected expected artifacts are the clean and dead-link
+# verdict oracles. Asserts:
 #   - clean repo: rc=0, JSON byte-equal vs expected/clean.json
-#   - synthetic dead-link fixture: rc=1, missing_link finding
+#   - synthetic dead-link fixture: rc=1, JSON byte-equal vs expected/dead_link.json
 # See tests/self_hosted/parity/README.md.
 
 set -euo pipefail
@@ -54,16 +55,16 @@ EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
 INDEX_PATH="${harness_paths[2]}"
 DEAD_LINK_SOURCE_PATH="${harness_paths[3]}"
 DEAD_LINK_TARGET_PATH="${harness_paths[4]}"
-MISSING_LINK_FINDING_KIND="${harness_paths[5]}"
+DEAD_LINK_EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[5]}"
 
-for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$ROOT_DIR/$INDEX_PATH"; do
+for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$DEAD_LINK_EXPECTED_JSON_FILE" "$ROOT_DIR/$INDEX_PATH"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:doc-link-checker] missing input: $path" >&2
         exit 1
     fi
 done
-if [[ -z "$MISSING_LINK_FINDING_KIND" ]]; then
-    echo "[self-host-parity:doc-link-checker] missing expected finding kind row" >&2
+if [[ -z "$DEAD_LINK_SOURCE_PATH" || -z "$DEAD_LINK_TARGET_PATH" || -z "${harness_paths[5]}" ]]; then
+    echo "[self-host-parity:doc-link-checker] missing dead-link fixture row" >&2
     exit 1
 fi
 
@@ -129,16 +130,16 @@ if [[ "$NEG_RC" -ne 1 ]]; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq "\"kind\":\"${MISSING_LINK_FINDING_KIND}\"" <<<"$NEG_OUT"; then
-    echo "[self-host-parity:doc-link-checker] dead-link fixture expected ${MISSING_LINK_FINDING_KIND} finding" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "$DEAD_LINK_TARGET_PATH" <<<"$NEG_OUT"; then
-    echo "[self-host-parity:doc-link-checker] dead-link fixture expected drift path in findings" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
+NEG_JSON="$(printf '%s\n' "$NEG_OUT" \
+    | tr -d '\r' \
+    | grep -F 'pgy.selfhost.doc-link-checker.v1' \
+    | tail -n 1)"
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:doc-link-checker" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$DEAD_LINK_EXPECTED_JSON_FILE" \
+    "$NEG_JSON" \
+    "run_output"
 
 assert_llvm_leg "self-host-parity:doc-link-checker" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$INDEX_PATH"
-echo "[self-host-parity:doc-link-checker] rung-2 parity ok (expected-json clean; dead-link fixture rc=1)"
+echo "[self-host-parity:doc-link-checker] rung-2 parity ok (expected-json clean+dead-link; dead-link fixture rc=1)"

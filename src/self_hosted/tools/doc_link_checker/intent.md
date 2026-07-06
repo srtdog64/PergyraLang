@@ -1,6 +1,6 @@
 # Doc Link Checker -- Intent / Contract
 
-**Status:** *rung-2 minimal* (2026-05-27). Reads
+**Status:** *rung-2 artifact-owned* (2026-07-06). Reads
 [`docs/INDEX.md`](../../../../docs/INDEX.md), extracts every Markdown link
 target via substring scan (`](...)` pattern), and verifies each `.md`
 target exists relative to the `docs/` directory.
@@ -14,15 +14,18 @@ they ship.
 
 ## Input Contract
 
-- **index_owner**: `docs/INDEX.md` (text, UTF-8, Markdown index with
-  bracket-label plus parenthesized path links).
+- **index_owner**: `docs/INDEX.md` by default, or `Args()[0]` when supplied by
+  a TestHarness parity runner. The input is text, UTF-8 Markdown index with
+  bracket-label plus parenthesized path links.
 - Targets are resolved relative to `docs/` (since `INDEX.md` itself lives
   in `docs/`).
 - Non-`.md` targets (URLs, anchors) are intentionally ignored: this tool
   only gates *internal documentation cohesion*, not external link
   liveness.
 
-The path is fixed relative to repository root.
+The path is relative to the runner's cwd. Parity runners pass the index path
+explicitly so scratch negative fixtures can reuse the same tool without source
+copying or aliasing.
 
 ## Output Contract
 
@@ -55,18 +58,19 @@ Exit code: `0` on `ok:true`, `1` on `ok:false`. Missing input reports
 
 ## Oracle
 
-The clean-output oracle is the TestHarness-projected
-`expected/clean.json` artifact compared through the shared backend output
-comparator. There is no existing C-side doc-link smoke today; the Pergyra
-origin is the primary implementation, and shell only executes the compiled
-tool plus constructs the synthetic dead-link fixture.
+The clean-output oracle is the TestHarness-projected `expected/clean.json`
+artifact; the dead-link oracle is the TestHarness-projected
+`expected/dead_link.json` artifact. Both are compared through the shared
+backend output comparator. There is no existing C-side doc-link smoke today;
+the Pergyra origin is the primary implementation, and shell only executes the
+compiled tool, constructs the synthetic dead-link fixture, and checks `rc=1`.
 
 The parity rung (`tests/self_hosted/parity/`) asserts:
 
 - The Pergyra origin exits `0` on the clean repo (no dead links).
 - Emitted JSON byte-matches `expected/clean.json`.
 - A synthetic dead-link fixture (rewrite one link target to a path that
-  does not exist) yields `rc=1` with a `"kind":"missing_link"` finding.
+  does not exist) yields `rc=1` and byte-matches `expected/dead_link.json`.
 
 ## Why Now
 
