@@ -109,7 +109,7 @@ The parity rung (`tests/self_hosted/parity/`) asserts:
 - The Pergyra origin exits `0` when the committed fixture matches.
 - The emitted JSON byte-matches `expected/clean.json`.
 - The compiled comparator accepts explicit artifact path arguments and reports
-  a `self_hosted` projection row when passed projection index `2`.
+  byte-matches `expected/arg_self_hosted.json` when passed projection index `2`.
 - The compiled comparator accepts an explicit artifact kind argument and records
   it only after `ArtifactZone` validation.
 - A synthetic mismatch fixture (`actual.txt` replaced with a 1-line drift)

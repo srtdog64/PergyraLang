@@ -6,6 +6,7 @@
 # Asserts:
 #   - clean fixture (expected == actual): rc=0, JSON byte-equal vs
 #     expected/clean.json
+#   - argv fixture: rc=0, JSON byte-equal vs expected/arg_self_hosted.json
 #   - synthetic mismatch fixture: rc=1, JSON byte-equal vs expected/mismatch.json
 #   - synthetic missing-input fixture: rc=1, JSON byte-equal vs expected/missing_input.json
 # See tests/self_hosted/parity/README.md.
@@ -47,8 +48,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 6 ]]; then
-    echo "[self-host-parity:backend-output-comparator] TestHarness manifest expected 6 comparator paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 7 ]]; then
+    echo "[self-host-parity:backend-output-comparator] TestHarness manifest expected 7 comparator paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -58,10 +59,11 @@ FIXTURE_EXPECTED_REL="${harness_paths[2]}"
 FIXTURE_ACTUAL_REL="${harness_paths[3]}"
 EXPECTED_MISMATCH_JSON_FILE="$ROOT_DIR/${harness_paths[4]}"
 EXPECTED_INPUT_ERROR_JSON_FILE="$ROOT_DIR/${harness_paths[5]}"
+EXPECTED_ARG_JSON_FILE="$ROOT_DIR/${harness_paths[6]}"
 FIXTURE_EXPECTED="$ROOT_DIR/$FIXTURE_EXPECTED_REL"
 FIXTURE_ACTUAL="$ROOT_DIR/$FIXTURE_ACTUAL_REL"
 
-for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$EXPECTED_MISMATCH_JSON_FILE" "$EXPECTED_INPUT_ERROR_JSON_FILE" "$FIXTURE_EXPECTED" "$FIXTURE_ACTUAL"; do
+for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$EXPECTED_MISMATCH_JSON_FILE" "$EXPECTED_INPUT_ERROR_JSON_FILE" "$EXPECTED_ARG_JSON_FILE" "$FIXTURE_EXPECTED" "$FIXTURE_ACTUAL"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:backend-output-comparator] missing input: $path" >&2
         exit 1
@@ -109,11 +111,11 @@ ARG_OUT="$(cd "$ROOT_DIR" && "$ARG_BIN" "$ARG_EXPECTED_PATH" "$ARG_ACTUAL_PATH" 
 ARG_JSON="$(printf '%s\n' "$ARG_OUT" \
     | grep -F 'pgy.selfhost.backend-output-comparator.v1' \
     | tail -n 1)"
-if ! grep -Fq '"expected_projection":"c_oracle"' <<<"$ARG_JSON" \
-    || ! grep -Fq '"actual_projection":"self_hosted"' <<<"$ARG_JSON" \
-    || ! grep -Fq '"ok":true' <<<"$ARG_JSON"; then
-    echo "[self-host-parity:backend-output-comparator] argv-mode projection parity FAIL" >&2
-    printf '%s\n' "$ARG_OUT" >&2
+EXPECTED_ARG_JSON="$(cat "$EXPECTED_ARG_JSON_FILE")"
+if [[ "$ARG_JSON" != "$EXPECTED_ARG_JSON" ]]; then
+    echo "[self-host-parity:backend-output-comparator] argv-mode JSON parity FAIL" >&2
+    echo "expected: $EXPECTED_ARG_JSON" >&2
+    echo "actual:   $ARG_JSON" >&2
     exit 1
 fi
 

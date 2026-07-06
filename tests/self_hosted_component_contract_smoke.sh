@@ -2414,7 +2414,7 @@ require_text "src/self_hosted/tools/backend_output_comparator/expected/clean.jso
 require_text "src/self_hosted/tools/backend_output_comparator/expected/clean.json" '"executable_path":"backend_output_comparator"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" '"backend-output-comparator-paths"'
-require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "expected 6 comparator paths"
+require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "expected 7 comparator paths"
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'PERGYRA_TOOL_INPUT="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"'
@@ -2422,10 +2422,14 @@ require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'FIX
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'FIXTURE_ACTUAL_REL="${harness_paths[3]}"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'EXPECTED_MISMATCH_JSON_FILE="$ROOT_DIR/${harness_paths[4]}"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'EXPECTED_INPUT_ERROR_JSON_FILE="$ROOT_DIR/${harness_paths[5]}"'
+require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'EXPECTED_ARG_JSON_FILE="$ROOT_DIR/${harness_paths[6]}"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "mismatch JSON parity FAIL"
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "missing-input JSON parity FAIL"
+require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "argv-mode JSON parity FAIL"
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" '"$ARG_BIN" "$ARG_EXPECTED_PATH" "$ARG_ACTUAL_PATH" 0 2'
-require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" '"actual_projection":"self_hosted"'
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorArgExpectedJsonPath"
+require_file "src/self_hosted/tools/backend_output_comparator/expected/arg_self_hosted.json"
+require_text "src/self_hosted/tools/backend_output_comparator/expected/arg_self_hosted.json" '"actual_projection":"self_hosted"'
 reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" '"kind":"mismatch"'
 reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" '"kind":"input_error"'
 reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "MISMATCH_FINDING_KIND"
@@ -2433,6 +2437,9 @@ reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "INPU
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendOutputComparatorMismatchFindingKind"
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendOutputComparatorInputErrorFindingKind"
 reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" '"ok":false'
+reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" '"ok":true'
+reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" '"expected_projection":"c_oracle"'
+reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" '"actual_projection":"self_hosted"'
 reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "mismatch_lines"
 reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy"'
 reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'

@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Backend comparator argv verdict consumes artifact
+
+- Added a TestHarness-owned expected JSON artifact for the comparator argv-mode
+  fixture.
+- Repointed `backend_output_comparator_parity.sh` so shell still passes
+  explicit artifact/projection arguments, but compares the full argv verdict
+  against the committed artifact instead of grepping projection rows or
+  `ok:true`.
+- Tightened the component contract against reintroducing shell-owned comparator
+  argv verdict interpretation.
+
 ## 2026-07-06 - AIR graph missing-key verdict consumes artifact
 
 - Added a TestHarness-owned expected JSON artifact for the AIR graph

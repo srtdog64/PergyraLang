@@ -143,8 +143,12 @@ func CompilerHarnessBackendOutputComparatorInputErrorExpectedJsonPath() -> Strin
     return "src/self_hosted/tools/backend_output_comparator/expected/missing_input.json";
 }
 
+func CompilerHarnessBackendOutputComparatorArgExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/backend_output_comparator/expected/arg_self_hosted.json";
+}
+
 func CompilerHarnessBackendOutputComparatorPathCount() -> Int {
-    return 6;
+    return 7;
 }
 
 func CompilerHarnessBackendOutputComparatorPathAt(index: Int) -> String {
@@ -154,11 +158,12 @@ func CompilerHarnessBackendOutputComparatorPathAt(index: Int) -> String {
     if index == 3 { return CompilerHarnessActualComparableArtifactPath(); }
     if index == 4 { return CompilerHarnessBackendOutputComparatorMismatchExpectedJsonPath(); }
     if index == 5 { return CompilerHarnessBackendOutputComparatorInputErrorExpectedJsonPath(); }
+    if index == 6 { return CompilerHarnessBackendOutputComparatorArgExpectedJsonPath(); }
     return "";
 }
 
 func CompilerHarnessBackendOutputComparatorReady() -> Bool {
-    if CompilerHarnessBackendOutputComparatorPathCount() != 6 {
+    if CompilerHarnessBackendOutputComparatorPathCount() != 7 {
         return false;
     }
     let i: Int = 0;

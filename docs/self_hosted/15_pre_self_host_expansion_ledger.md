@@ -187,6 +187,13 @@ so the blocker remains ACTIVE, but executable path, argv, cwd, env allowlist,
 timeout, stream, and exit-code facts are now a structured Pergyra-owned plan
 instead of free fields owned by the parity runner.
 
+TestHarness delta, 2026-07-06: `backend_output_comparator_parity.sh` now gets
+the argv-mode expected verdict artifact from `test_harness_owner.pgy`. Shell
+still passes explicit artifact/projection arguments into the compiled
+comparator, but it compares the full argv verdict against
+`expected/arg_self_hosted.json` instead of grepping projection rows or
+`ok:true`.
+
 TestHarness delta, 2026-07-06: `backend_output_comparator_parity.sh` now
 compiles and runs the manifest-projected comparator source in place. It no
 longer creates a build-dir `main.pgy` alias or copies the self-hosted `lib` and
