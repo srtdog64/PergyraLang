@@ -215,7 +215,12 @@ target/RHS, `ArrayPush` target/value, and `ArraySet` target/index/value now
 consume arena atom/value rows; `For` loop-var/start/end/collection payloads do
 the same. Program runtime/header usage facts are also consumed from the same
 arena projection instead of re-reading raw `CodegenAstTextNode` payload/kind
-rows; builtin-name string detection remains an active expression-usage seam.
+rows. Those facts are now lane-specific: type/header requirements read
+`type_name` rows, builtin-call requirements scan only expression-bearing rows
+with string-literal-aware call matching, and statement-only requirements use
+kind facts. This still leaves expression payload strings inside the transitional
+bridge; it removes the whole-arena usage scan, not the final expression-row
+blocker.
 
 `src/self_hosted/compiler/path_manifest_owner.pgy` is the current path owner.
 It owns the Pergyra source/test/parity path values for `StagePathManifest` and

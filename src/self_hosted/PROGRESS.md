@@ -91,8 +91,12 @@ targets, and RHS expressions. `ArrayPush` emission consumes arena atom/value row
 for the receiver and pushed expression; `ArraySet` consumes arena atom/value/
 aux-value rows for receiver, index, and assigned value; `For` consumes arena
 atom/value/aux-value rows for loop variable plus range start/end or foreach
-collection. Program/function/statement routing and marker checks consume arena kind facts.
-Runtime/header usage facts now consume arena atom/type/value/aux/kind facts instead of raw node payload scans.
+collection. Program/function/statement routing and marker checks consume arena
+kind facts. Runtime/header usage facts now consume lane-specific arena facts:
+type/header requirements read typed arena `type_name` rows, builtin-call
+requirements scan only expression-bearing arena rows with string-literal-aware
+call matching, and statement-only requirements continue to consume arena kind
+facts. The deleted raw-node usage bridge cannot return.
 The rest of codegen,
 runtime and released/native compiler driver/LSP substitution are still 0%;
 the compiler driver now has DRV-0/DRV-1 artifact rungs, and LSP has LSP-0
@@ -526,8 +530,8 @@ beyond the lexer:
   indent, and root child-edge checks. `program_emit` now consumes those arena
   facts for first-function indent and owner-body descendant traversal. Current
   parser and most codegen rungs still consume text AST artifacts; the next
-  closure is moving expression/builtin usage to dedicated typed rows with
-  oracle parity.
+  closure is replacing the remaining string-backed expression payloads with
+  dedicated expression rows under oracle parity.
 - **Raw pointer / FFI** -- if a Pergyra component needs to call into
   the C compiler's runtime (e.g. share the diagnostic emitter), there
   is no stable FFI today. This is intentional for the current compiler-pass

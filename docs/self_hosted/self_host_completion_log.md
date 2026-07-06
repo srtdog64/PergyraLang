@@ -5126,3 +5126,18 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-compiler-world-contract-test-smoke`, and
   `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
   7247 generated-C lines).
+
+### 2026-07-07 -- Runtime usage facts split typed arena lanes
+
+- Replaced the generic `CodegenAstArenaContains(...)` runtime/header usage scan
+  with lane-specific predicates in `ast_usage_owner.pgy`.
+- Type/header requirements now read only typed arena `type_name` rows; builtin
+  call requirements scan only expression-bearing atom/value/aux rows through
+  `ContainsCallOutsideStrings(...)`; `None` uses a token-boundary expression
+  scan; statement-only needs continue to use arena kind facts.
+- Tightened `self_hosted_component_contract_smoke.sh` so the old whole-arena
+  usage predicate cannot return and the new type/call/token usage owners must
+  exist.
+- This narrows the transitional AST-text bridge but does not close the mixed
+  AST-like tree blocker: expression payloads are still strings until dedicated
+  expression rows replace them.

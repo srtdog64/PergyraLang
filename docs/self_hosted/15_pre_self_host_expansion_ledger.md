@@ -180,6 +180,13 @@ The old raw-node usage bridge is deleted, and `ast_usage_owner.pgy` is ratcheted
 against direct `nodes[i].payload` / `nodes[i].aux_payload` scans. Builtin-name detection remains string-based over
 arena atom/type/value/aux rows until expression usage rows exist.
 
+TypedAst delta, 2026-07-07: runtime/header usage facts now split by arena lane.
+Type/header requirements consume typed arena `type_name` rows, builtin-call
+requirements consume only expression-bearing atom/value/aux rows through
+string-literal-aware call matching, `None` uses a token-boundary expression
+scan, and statement-only needs remain kind facts. The component contract rejects
+the old generic `CodegenAstArenaContains(...)` whole-arena usage predicate.
+
 TestHarness delta, 2026-07-05: `test_harness_air_graph_paths_owner.pgy`
 now owns the five AIR graph consumer path suites separately from the generic
 tool-path owner. `air_graph_id_uniqueness_parity.sh`,
