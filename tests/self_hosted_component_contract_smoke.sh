@@ -424,6 +424,7 @@ require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "LexerTokenPayl
 reject_text "src/self_hosted/lexer/main.pgy" 'import "char_owner.pgy";'
 reject_text "src/self_hosted/lexer/main.pgy" 'import "token_owner.pgy";'
 require_text "tests/self_hosted/parity/lexer_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_hosted/parity/lexer_parity.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 require_text "tests/self_hosted/parity/lexer_parity.sh" "normalize_text_artifact"
 require_text "tests/self_hosted/parity/lexer_parity.sh" "compile_backend_output_comparator"
 require_text "tests/self_hosted/parity/lexer_parity.sh" "read_lexer_fixture_manifest"
@@ -433,6 +434,8 @@ require_text "tests/self_hosted/parity/lexer_parity.sh" 'compare_lexer_output_wi
 require_text "tests/self_hosted/parity/lexer_parity.sh" 'compare_lexer_output_with_owner "live-tokens" "$label" "$expected_file" "$live_out" 0'
 reject_text "tests/self_hosted/parity/lexer_parity.sh" "examples/hello.pgy:hello_tokens.txt"
 reject_text "tests/self_hosted/parity/lexer_parity.sh" "string_escape_sequences_tokens.txt"
+reject_text "tests/self_hosted/parity/lexer_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
+reject_text "tests/self_hosted/parity/lexer_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lexer/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"'
 reject_text "tests/self_hosted/parity/lexer_parity.sh" 'EXPECTED_OUT="$(tr -d'
 reject_text "tests/self_hosted/parity/lexer_parity.sh" 'PERGYRA_OUT="$(cd'
 reject_text "tests/self_hosted/parity/lexer_parity.sh" 'LLVM_LEX_OUT="$(cd'

@@ -48,7 +48,7 @@ fi
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[1]}"
 FIXTURE_DIR="$ROOT_DIR/${harness_paths[2]}"
-PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
+PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
 COMPARATOR_BIN="$PERGYRA_TOOL_BUILD_DIR/backend_output_comparator.exe"
 LEXER_FIXTURE_MANIFEST_FILE="$PERGYRA_TOOL_BUILD_DIR/lexer_fixture_manifest.txt"
 
@@ -62,7 +62,6 @@ if [[ ! -f "$COMPARATOR_SOURCE" ]]; then
 fi
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
-cp "$ROOT_DIR/src/self_hosted/lexer/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"
 
 path_relative_to_root() {
     local path="$1"
@@ -143,7 +142,7 @@ C_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/main.compile.log"
 LLVM_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/main_llvm.compile.log"
 LLVM_LEX_AVAILABLE=1
 
-if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")" \
+if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" \
     --backend=c -o "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_BUILD_DIR/main.exe")" \
     >"$C_COMPILE_LOG" 2>&1); then
     echo "[self-host-parity:lexer] C-compiled lexer failed to build" >&2
@@ -151,7 +150,7 @@ if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
     exit 1
 fi
 
-if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")" \
+if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" \
     --backend=llvm -o "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_BUILD_DIR/main_llvm.exe")" \
     >"$LLVM_COMPILE_LOG" 2>&1); then
     if pgy_selfhost_log_reports_no_llvm "$LLVM_COMPILE_LOG"; then
