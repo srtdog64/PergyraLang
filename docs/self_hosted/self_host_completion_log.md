@@ -5067,3 +5067,16 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-compiler-world-contract-test-smoke`, and
   `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
   7505 generated-C lines).
+
+### 2026-07-07 -- Statement dispatch consumes typed arena kind predicates
+
+- Added typed arena statement predicates for supported self-host codegen
+  statements, plus else-if and match-case/default routing helpers.
+- Repointed `stmt_emit.pgy` so statement dispatch consumes `AstArena` kind facts
+  instead of `CodegenAstTextIs*Stmt` predicates over transitional text nodes.
+- Tightened `self_hosted_component_contract_smoke.sh` so the old statement-kind
+  predicates cannot return in `stmt_emit.pgy`.
+- Verified with `self-host-component-contract-test-smoke`,
+  `self-host-compiler-world-contract-test-smoke`, and
+  `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
+  7637 generated-C lines).

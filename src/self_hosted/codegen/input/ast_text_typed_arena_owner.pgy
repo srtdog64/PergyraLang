@@ -225,6 +225,74 @@ func CodegenAstArenaIsFieldsHeader(arena: AstArena, node_id: Int) -> Bool {
     return CodegenAstArenaKindIs(arena, node_id, 4);
 }
 
+func CodegenAstArenaIsLogStmt(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 13);
+}
+
+func CodegenAstArenaIsBareReturnStmt(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 14);
+}
+
+func CodegenAstArenaIsValueReturnStmt(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 15);
+}
+
+func CodegenAstArenaIsArrayPopStmt(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 16);
+}
+
+func CodegenAstArenaIsExitStmt(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 17);
+}
+
+func CodegenAstArenaIsArraySetStmt(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 18);
+}
+
+func CodegenAstArenaIsArrayPushStmt(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 19);
+}
+
+func CodegenAstArenaIsLetStmt(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 20);
+}
+
+func CodegenAstArenaIsAssignStmt(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 21);
+}
+
+func CodegenAstArenaIsForStmt(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 22);
+}
+
+func CodegenAstArenaIsWhileStmt(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 23);
+}
+
+func CodegenAstArenaIsIfStmt(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 24);
+}
+
+func CodegenAstArenaIsElseStmt(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 25);
+}
+
+func CodegenAstArenaIsDeferStmt(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 26);
+}
+
+func CodegenAstArenaIsBreakStmt(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 27);
+}
+
+func CodegenAstArenaIsContinueStmt(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 28);
+}
+
+func CodegenAstArenaIsBareCallStmt(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 29);
+}
+
 func CodegenAstArenaIsFunction(arena: AstArena, node_id: Int) -> Bool {
     return CodegenAstArenaKindIs(arena, node_id, 6);
 }
@@ -258,6 +326,27 @@ func CodegenAstArenaIsEventDecl(arena: AstArena, node_id: Int) -> Bool {
 
 func CodegenAstArenaIsZeroArtifactDecl(arena: AstArena, node_id: Int) -> Bool {
     return CodegenAstArenaKindIs(arena, node_id, 11);
+}
+
+func CodegenAstArenaIsMatchStmt(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 34);
+}
+
+func CodegenAstArenaIsMatchCaseStmt(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 35);
+}
+
+func CodegenAstArenaIsMatchDefaultStmt(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 36);
+}
+
+func CodegenAstArenaHasElseAt(arena: AstArena, count: Int, index: Int, if_indent: Int) -> Bool {
+    return index < count && CodegenAstArenaIsElseStmt(arena, index)
+        && CodegenAstArenaIndentOrDie(arena, index) == if_indent + 2;
+}
+
+func CodegenAstArenaIsElseIfAt(arena: AstArena, count: Int, index: Int) -> Bool {
+    return index < count && CodegenAstArenaIsIfStmt(arena, index);
 }
 
 func CodegenAstArenaEnumVariantPayload(arena: AstArena, node_id: Int) -> String {
