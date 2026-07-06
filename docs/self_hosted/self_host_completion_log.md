@@ -5141,3 +5141,15 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This narrows the transitional AST-text bridge but does not close the mixed
   AST-like tree blocker: expression payloads are still strings until dedicated
   expression rows replace them.
+
+### 2026-07-07 -- Let try detection moves behind typed arena owner
+
+- Added `CodegenAstArenaLetInitializerHasTry(...)` so the typed arena/input
+  owner decides whether a `Let` initializer contains the supported `(?...)`
+  try surface.
+- Repointed `stmt_emit.pgy` to consume that predicate instead of directly
+  calling `ContainsOutsideStrings(CodegenAstArenaValueOrDie(...), "(?")`.
+- Tightened the component contract so the local emission-side try scan cannot
+  return.
+- This is still a transitional string-backed expression fact, not final typed
+  expression ownership.

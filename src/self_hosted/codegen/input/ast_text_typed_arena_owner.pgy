@@ -295,6 +295,17 @@ func CodegenAstArenaIsLetStmt(arena: AstArena, node_id: Int) -> Bool {
     return CodegenAstArenaKindIs(arena, node_id, 20);
 }
 
+func CodegenAstArenaLetInitializerHasTry(arena: AstArena, node_id: Int) -> Bool {
+    if !CodegenAstArenaIsLetStmt(arena, node_id) {
+        return false;
+    }
+    let value: Option<String> = TypedAstArenaValueText(arena, node_id);
+    if !IsSome(value) {
+        return false;
+    }
+    return ContainsOutsideStrings(UnwrapOption(value), "(?");
+}
+
 func CodegenAstArenaIsAssignStmt(arena: AstArena, node_id: Int) -> Bool {
     return CodegenAstArenaKindIs(arena, node_id, 21);
 }

@@ -1211,7 +1211,9 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIs
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let name: String = CodegenAstArenaAtomOrDie(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let type_name: String = CodegenAstArenaTypeNameOrDie(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let expr: String = CodegenAstArenaValueOrDie(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'ContainsOutsideStrings(CodegenAstArenaValueOrDie(arena, idx), "(?")'
+require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaLetInitializerHasTry"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaLetInitializerHasTry(arena, idx)"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'ContainsOutsideStrings(CodegenAstArenaValueOrDie(arena, idx), "(?")'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsLogStmt(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let log_inner: String = CodegenAstArenaAtomOrDie(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsBareReturnStmt(arena, idx)"

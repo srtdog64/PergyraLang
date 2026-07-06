@@ -309,7 +309,7 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
             Die(Concat("unexpected over-indented AST line: ", CodegenAstTextProvenance(nodes[idx])));
         }
         if CodegenAstArenaIsLetStmt(arena, idx) {
-            if ContainsOutsideStrings(CodegenAstArenaValueOrDie(arena, idx), "(?") {
+            if CodegenAstArenaLetInitializerHasTry(arena, idx) {
                 result = Concat(result, Concat(pad, Concat(EmitTryLet(nodes[idx], arena, idx, env_box, cur_fn_ret, pad, Concat(deferred, active_defers)), "\n")));
             } else {
                 result = Concat(result, Concat(pad, Concat(EmitLet(arena, idx, env_box), "\n")));
