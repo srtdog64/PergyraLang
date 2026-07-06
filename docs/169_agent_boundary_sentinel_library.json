@@ -1,0 +1,116 @@
+{
+  "schema": "pgy.agent.boundary-sentinels.v1",
+  "owner_doc": "docs/169_agent_boundary_sentinel_library.md",
+  "status": "repository-gate",
+  "updated": "2026-07-06",
+  "sentinels": [
+    {
+      "id": "semantic-source-reread",
+      "if_pattern": "backend, verifier, or self-hosted code rereads source text or AST to recover a semantic fact",
+      "wrong_boundary": "source recovery after typed fact ownership",
+      "why_wrong": "semantic truth must be owned by MIR, AIR, DAG/type metadata, ABI/layout, or an explicit verifier fact",
+      "turn_toward": "the typed owner fact, or a fail-closed verifier when the fact is missing",
+      "owner": "MIR/AIR/DAG/ABI source-of-truth owner",
+      "gate_candidate": "backend-fail-closed-test-smoke or owner-specific inventory smoke"
+    },
+    {
+      "id": "backend-compat-fallback",
+      "if_pattern": "C or LLVM backend accepts a missing fact through i32, empty string, zero, or best-effort fallback",
+      "wrong_boundary": "backend compatibility path becomes hidden semantics",
+      "why_wrong": "backend output must consume MIR or ABI facts, not guess a valid program shape",
+      "turn_toward": "typed MIR/ABI fact plus fail-closed diagnostic",
+      "owner": "MIR/ABI fact owner and backend parity owner",
+      "gate_candidate": "backend-fail-closed-test-smoke"
+    },
+    {
+      "id": "thin-helper-wrapper",
+      "if_pattern": "a helper only renames a local standard operation or hides a one-off branch",
+      "wrong_boundary": "owner vocabulary dilution",
+      "why_wrong": "helpers are allowed only when they name a real owner responsibility or repeated contract",
+      "turn_toward": "inline code or owner-named responsibility module",
+      "owner": "local module owner",
+      "gate_candidate": "review sentinel"
+    },
+    {
+      "id": "generic-helper-bucket",
+      "if_pattern": "a generic *_helpers file grows because an owner is too large",
+      "wrong_boundary": "responsibility split postponed behind a bucket name",
+      "why_wrong": "large owners should split by responsibility, not by helper dumping ground",
+      "turn_toward": "owner-named module split",
+      "owner": "responsibility owner",
+      "gate_candidate": "inc-sentinel-test-smoke or shape smoke"
+    },
+    {
+      "id": "selfhost-main-artifact-parse",
+      "if_pattern": "main.pgy parses JSON, text, or emitted artifacts to reconstruct compiler stage facts",
+      "wrong_boundary": "self-hosted entrypoint becomes a second fact owner",
+      "why_wrong": "entrypoints should orchestrate; shared stage facts belong in self-hosted owner libraries",
+      "turn_toward": "src/self_hosted owner module for the fact type",
+      "owner": "self-hosted compiler-world fact owner",
+      "gate_candidate": "self-host-component-contract-test-smoke"
+    },
+    {
+      "id": "hidden-runtime-materialization",
+      "if_pattern": "a runtime call appears on a path documented as erased or hot without a retain/materialize fact",
+      "wrong_boundary": "hidden physicalization",
+      "why_wrong": "runtime materialization is acceptable only when evidence says retain or materialize",
+      "turn_toward": "AIR/MIR materialization fact and visible artifact evidence",
+      "owner": "AIR abstraction compression and runtime materialization owner",
+      "gate_candidate": "air-erasure-gate or runtime-none-contract-test-smoke"
+    },
+    {
+      "id": "parallel-growable-raw-pointer",
+      "if_pattern": "parallel, async, or worker code passes growable Array, Slice, List, Queue, Set, or HashMap storage by raw pointer",
+      "wrong_boundary": "concurrency boundary leaks mutable storage",
+      "why_wrong": "rehash or grow plus concurrent read can become undefined behavior",
+      "turn_toward": "channel/result handoff, explicit copy, or pinned read-only view owner",
+      "owner": "memory concurrency and SEA lane owner",
+      "gate_candidate": "worker-boundary-ub-test-smoke"
+    },
+    {
+      "id": "lane-as-vector-proof",
+      "if_pattern": "ExecutionLaneFact or lane selection is reused as proof that a loop can be vectorized, fused, or projected",
+      "wrong_boundary": "execution safety confused with data independence",
+      "why_wrong": "SEA says where work may run; data-parallel evidence says how it may be split",
+      "turn_toward": "separate data-parallel evidence fact",
+      "owner": "SEA owner plus future data-parallel evidence owner",
+      "gate_candidate": "future data-parallel evidence smoke"
+    },
+    {
+      "id": "backend-local-layout",
+      "if_pattern": "backend code hardcodes layout, bit order, endianness, stride, or address-space policy",
+      "wrong_boundary": "backend-local layout source of truth",
+      "why_wrong": "layout and reinterpretation must be explicit facts or world-boundary conversions",
+      "turn_toward": "ABI/layout row, ArrayLayoutFact, or explicit bits/reinterpret boundary",
+      "owner": "ABI/layout owner and target projection owner",
+      "gate_candidate": "abi-ownership-shape-test-smoke"
+    },
+    {
+      "id": "security-free-text-log",
+      "if_pattern": "security or runtime audit path emits free-text logs for machine-audited events",
+      "wrong_boundary": "observability boundary becomes unstructured",
+      "why_wrong": "security events need stable machine fields for audit and red-team replay",
+      "turn_toward": "structured diagnostic or structured log event",
+      "owner": "diagnostics and observability schema owner",
+      "gate_candidate": "diagnostics-json-test-smoke or observability-schema-test-smoke"
+    },
+    {
+      "id": "shell-semantic-oracle",
+      "if_pattern": "shell script computes semantic truth that a self-hosted tool claims to own",
+      "wrong_boundary": "test oracle hides a second implementation",
+      "why_wrong": "parity scripts may compare artifacts, but the self-hosted owner must compute the semantic verdict",
+      "turn_toward": "self-hosted tool JSON output plus negative fixture",
+      "owner": "self-hosted tool owner",
+      "gate_candidate": "self-host-component-contract-test-smoke"
+    },
+    {
+      "id": "validation-impact-escape",
+      "if_pattern": "a broad CI target is run or required for an isolated owner edit without impact classification",
+      "wrong_boundary": "validation ignores isolation",
+      "why_wrong": "isolated owner edits should run narrow gates first and broaden only on real dependency evidence",
+      "turn_toward": "docs/152_validation_isolation_policy.md owner-impact decision",
+      "owner": "validation isolation policy",
+      "gate_candidate": "ci-step-runner-test-smoke"
+    }
+  ]
+}

@@ -37,6 +37,14 @@ Semantic analysis rejects ownership-bearing conflicts across parallel tasks,
 including `own`/`own`, `ref`/`own`, and `WriteView<T>` conflicts. Shared
 copy-only reads and accepted `ref`/`ref` reads remain valid.
 
+Data-parallel optimization is a separate evidence layer. `parallel` answers
+which work may run concurrently; data-parallel facts answer whether a loop or
+bulk collection operation can be split, vectorized, fused, or projected to a
+non-CPU backend. The post-beta contract for importing the useful Fortran
+lessons - no arbitrary aliasing, disjoint iteration, elemental purity, layout
+facts, reductions, and visible fallback reasons - lives in
+[`168_fortran_parallel_evidence.md`](168_fortran_parallel_evidence.md).
+
 ## 2. Named `spawn` And `Future<T>`
 
 Named `spawn` is the stable beta task-producing surface:

@@ -82,6 +82,7 @@ and follow-up debt over older design notes.
 | [`53_parallel_core_policy.md`](53_parallel_core_policy.md) | Parallel core policy |
 | [`54_parallel_execution_relayout_board.md`](54_parallel_execution_relayout_board.md) | Parallel execution implementation board |
 | [`74_slot_pinning_caching.md`](74_slot_pinning_caching.md) | Slot pinning / lease / view rules |
+| [`168_fortran_parallel_evidence.md`](168_fortran_parallel_evidence.md) | Fortran-derived data-parallel evidence contract: no-alias, disjoint iteration, elemental purity, layout, reduction, and visible fallback facts |
 
 ## Runtime, ABI, And Backend
 
@@ -171,6 +172,7 @@ and follow-up debt over older design notes.
 | [`149_external_review_2026_07.md`](149_external_review_2026_07.md) | External technical review judgment: accepted signals, rejected claims, and board routing |
 | [`165_external_review_2026_07c.md`](165_external_review_2026_07c.md) | External review #4 judgment: intent/evidence compiler thesis, SEA P0 routing, freshness rules, and non-overclaiming rules |
 | [`166_production_bar_review_2026_07.md`](166_production_bar_review_2026_07.md) | Production-bar review contract: gate-less claims fail, partial coverage stays partial, and P0 production blockers are routed |
+| [`169_agent_boundary_sentinel_library.md`](169_agent_boundary_sentinel_library.md) | LLM/agent boundary sentinel library: pattern -> wrong boundary -> owner fact -> gate steering rules |
 
 ## Implementation Guides
 

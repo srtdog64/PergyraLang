@@ -49,6 +49,11 @@ Current evidence:
 Remaining proof obligation:
 
 - Tie `parallel` conflict checks directly to the relation/effect proof vocabulary beyond the current slot/resource/effect-adjacent regression names.
+- Add data-parallel evidence obligations before claiming Fortran-class or
+  accelerator-class lowering: no-alias views, disjoint iteration writes,
+  elemental purity, layout/stride facts, explicit reductions, and visible
+  fallback reasons. See
+  [`../168_fortran_parallel_evidence.md`](../168_fortran_parallel_evidence.md).
 
 ## Theorem: Execution Backend Parity
 
@@ -62,3 +67,6 @@ Current evidence:
 Remaining proof obligation:
 
 - Add more execution edge cases around cancellation, channel readiness, and resource conflict.
+- Add C/LLVM parity and negative fixtures for data-parallel evidence once the
+  owner facts exist; until then, eligible loops must not silently become a
+  different backend projection.

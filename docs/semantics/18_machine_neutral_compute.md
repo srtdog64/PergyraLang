@@ -132,6 +132,13 @@ This table is a projection contract, not a support matrix. It says what the
 language must preserve so that these backends can be added later without
 changing source semantics.
 
+The data-parallel row is governed by
+[`docs/168_fortran_parallel_evidence.md`](../168_fortran_parallel_evidence.md).
+That document imports the useful Fortran lesson as evidence facts: no arbitrary
+aliasing, explicit iteration independence, elemental purity, layout/stride
+facts, reductions, and visible fallback reasons. It does not claim current NPU,
+tensor, GPU, or Fortran-class vectorization support.
+
 ## Non-Negotiable Rules
 
 1. AIR/MIR/ABI facts own execution meaning.
