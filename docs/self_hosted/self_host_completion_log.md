@@ -36,6 +36,17 @@ rewrite history.
 - Tightened compiler-world and component contracts against reintroducing the old
   direct `test_harness_manifest.pgy` source literal in the shared LLVM helper.
 
+## 2026-07-06 - TestHarness manifest removes completeness forwarding wrappers
+
+- Removed the `EmitSelfHostCompleteness*` forwarding wrappers from
+  `test_harness_manifest.pgy`; the manifest dispatch now calls the concrete
+  `completeness_ledger_owner.pgy` emitters directly.
+- Re-enabled the compiler-world 600-line cap for
+  `test_harness_manifest.pgy` after reducing it to 534 lines.
+- Tightened the hard self-host contract against reintroducing the wrapper names,
+  and verified the real completeness dispatch with `self-host-completeness-smoke`
+  over 157 self-hosted sources.
+
 ## 2026-07-06 - Inventory and size finding rows split from tool paths
 
 - Split `test_harness_tool_paths_owner.pgy` by responsibility: inventory

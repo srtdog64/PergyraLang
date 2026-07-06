@@ -362,34 +362,6 @@ func EmitLspHoverContentPaths() -> Void {
     }
 }
 
-func EmitSelfHostCompletenessSources() -> Void {
-    EmitCompilerCompletenessSourceInventory();
-}
-
-func EmitSelfHostCompletenessStages() -> Void {
-    EmitCompilerCompletenessStages();
-}
-
-func EmitSelfHostCompletenessSemanticTargets() -> Void {
-    EmitCompilerCompletenessSemanticTargets();
-}
-
-func EmitSelfHostCompletenessBaseline() -> Void {
-    EmitCompilerCompletenessBaseline();
-}
-
-func EmitSelfHostCompletenessLexParseBaseline() -> Void {
-    EmitCompilerCompletenessLexParseBaseline();
-}
-
-func EmitSelfHostCompletenessLexParseSemanticBaseline() -> Void {
-    EmitCompilerCompletenessLexParseSemanticBaseline();
-}
-
-func EmitSelfHostCompletenessFullPipelineBaseline() -> Void {
-    EmitCompilerCompletenessFullPipelineBaseline();
-}
-
 func Main() -> Void {
     let args: Array<String> = Args();
     if !CompilerTestHarnessReady() {
@@ -575,31 +547,31 @@ func Main() -> Void {
         return;
     }
     if args[0] == CompilerCompletenessSourcesSuiteName() {
-        EmitSelfHostCompletenessSources();
+        EmitCompilerCompletenessSourceInventory();
         return;
     }
     if args[0] == CompilerCompletenessStagesSuiteName() {
-        EmitSelfHostCompletenessStages();
+        EmitCompilerCompletenessStages();
         return;
     }
     if args[0] == CompilerCompletenessSemanticTargetsSuiteName() {
-        EmitSelfHostCompletenessSemanticTargets();
+        EmitCompilerCompletenessSemanticTargets();
         return;
     }
     if args[0] == CompilerCompletenessBaselineSuiteName() {
-        EmitSelfHostCompletenessBaseline();
+        EmitCompilerCompletenessBaseline();
         return;
     }
     if args[0] == CompilerCompletenessLexParseBaselineSuiteName() {
-        EmitSelfHostCompletenessLexParseBaseline();
+        EmitCompilerCompletenessLexParseBaseline();
         return;
     }
     if args[0] == CompilerCompletenessLexParseSemanticBaselineSuiteName() {
-        EmitSelfHostCompletenessLexParseSemanticBaseline();
+        EmitCompilerCompletenessLexParseSemanticBaseline();
         return;
     }
     if args[0] == CompilerCompletenessFullPipelineBaselineSuiteName() {
-        EmitSelfHostCompletenessFullPipelineBaseline();
+        EmitCompilerCompletenessFullPipelineBaseline();
         return;
     }
     Log(Concat("HARNESS ERROR: unknown manifest suite: ", args[0]));

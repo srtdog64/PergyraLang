@@ -381,6 +381,11 @@ source. This keeps explicit source arguments for already-manifested runners, but
 removes the shared helper's direct TestHarness manifest and comparator source
 defaults.
 
+TestHarness delta, 2026-07-06: `test_harness_manifest.pgy` no longer owns
+`EmitSelfHostCompleteness*` forwarding wrappers. Its completeness suites dispatch
+directly to `completeness_ledger_owner.pgy`, and the compiler-world contract now
+keeps the manifest itself under the 600-line owner cap.
+
 TestHarness delta, 2026-07-06: `runtime_boundary_checker_parity.sh` now gets
 the checker source, expected clean JSON, and the missing-term fixture
 `(path, term)` through the `runtime-boundary-paths` manifest suite. It still

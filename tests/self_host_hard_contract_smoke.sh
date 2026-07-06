@@ -119,8 +119,12 @@ require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" \
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" \
     "EmitCompilerCompletenessFullPipelineBaseline"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" \
-    "EmitSelfHostCompletenessSources"
+    "EmitCompilerCompletenessSourceInventory();"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" \
+    "EmitCompilerCompletenessFullPipelineBaseline();"
+forbid_text "src/self_hosted/compiler/test_harness_manifest.pgy" \
+    "EmitSelfHostCompletenessSources"
+forbid_text "src/self_hosted/compiler/test_harness_manifest.pgy" \
     "EmitSelfHostCompletenessFullPipelineBaseline"
 require_text "tests/self_hosted/parity/completeness_ledger.sh" \
     "Out-of-subset codegen is a measured failure, not a skip."

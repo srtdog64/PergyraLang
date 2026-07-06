@@ -109,6 +109,7 @@ require_max_lines "src/self_hosted/compiler/target_capability_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/air_evidence_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/artifact_zone_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/test_harness_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness_manifest.pgy" 600
 require_max_lines "src/self_hosted/compiler/subprocess_runner_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/abi_layout_row_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/symbol_table_owner.pgy" 600
