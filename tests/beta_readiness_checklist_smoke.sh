@@ -79,6 +79,7 @@ required_files=(
     "docs/112_observability_trace_schema.md"
     "docs/113_memory_concurrency_model.md"
     "docs/114_async_model_positioning.md"
+    "docs/166_production_bar_review_2026_07.md"
     "docs/self_hosted/05_compiler_core_gap_analysis.md"
     "README.md"
     "docs/74_slot_pinning_caching.md"
@@ -228,7 +229,25 @@ EOF
 
 require_text "TODO.md" "strict beta readiness is now about 83%"
 require_text "TODO.md" "Historical note: this old 60% readiness anchor is superseded"
+require_text "TODO.md" "Production-bar review routing"
 require_text "docs/50_language_completion_board.md" "Strict beta readiness is about 83%"
+require_text "docs/INDEX.md" "166_production_bar_review_2026_07.md"
+
+require_terms "docs/166_production_bar_review_2026_07.md" <<'EOF'
+Production Bar Review
+Gate-less claim = FAIL
+Partial executable coverage = PARTIAL
+Accepted P0 Blockers
+Compatibility evolution gate
+Obsolete migration gate
+Precise `BoundaryCaptureFact` producer coverage
+`ExecutionLane` negative regression coverage
+AIR/backend access lint
+Stdlib L2 doctrine pass
+Non-Overclaim Rules
+Do not claim native WASM, WIT, NPU, GPU, or dataflow backend readiness
+Remaining shadow-source aliases
+EOF
 
 require_terms "docs/19_design_philosophy.md" <<'EOF'
 Pergyra is a systems language with domain extensions

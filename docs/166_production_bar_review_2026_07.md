@@ -1,0 +1,105 @@
+# 166. Production Bar Review - Gate-First Status
+
+Status: `accepted, routed`. Date: 2026-07-06.
+
+This note records the production-bar review as an engineering contract, not as a
+release verdict. The review uses a stricter rule than the beta checklist: every
+capability claim must name the executable gate that blocks regression.
+
+## Production-Bar Rule
+
+- Gate-less claim = FAIL.
+- Partial executable coverage = PARTIAL.
+- A claim can move toward PASS only when a smoke, golden, parity, verifier, or
+  negative regression gate blocks the old path from returning.
+- A document-only assertion is useful routing, but it is not production
+  evidence.
+
+## Current Verdict
+
+| Surface | Verdict | Reason |
+|---|---|---|
+| Language identity | PASS | The systems-language-with-domain-extensions identity is explicit and gated by beta docs. |
+| AIR verification-only role | PASS | AIR is treated as evidence, not as a second codegen truth. |
+| IR architecture | PASS/PARTIAL | The source-of-truth spine is correct, but several consumer paths still need hard gates. |
+| C/LLVM backend parity | PARTIAL | Many parity rows are gated; whole-backend equivalence is still fixture and shard dependent. |
+| Compatibility evolution | PARTIAL | Stable-subset docs exist, but source/API/ABI/diagnostic evolution is not one gate yet. |
+| Concurrency semantics | PARTIAL | Execution lane facts exist; precise producer coverage and negative rows remain P0. |
+| Runtime executor | FAIL | The production executor split is not proven by lane-specific implementation gates. |
+| Sandbox/runtime safety | FAIL/PARTIAL | Several guards exist, but capability manifests and platform-specific atomicity are incomplete. |
+| Performance maturity | PARTIAL | Guard amortization has evidence; a continuous dashboard and frame-budget contract are not closed. |
+| Stdlib discipline | PARTIAL | Layering docs exist; L2/domain-module doctrine gates are not complete. |
+| Tooling/LSP | PARTIAL | Useful tooling exists, but diagnostic golden and latency contracts are incomplete. |
+| Release maturity | FAIL | This is not production-ready and must not be described as such. |
+
+## Accepted P0 Blockers
+
+The review adds these P0 production-bar closures. They augment the existing
+beta-closure targets; they do not replace them.
+
+1. Compatibility evolution gate:
+   source, ABI/binary, behavior, diagnostic, AIR, MIR, runtime trace,
+   capability profile, and stdlib-module compatibility must have one owner.
+2. Obsolete migration gate:
+   every obsolete surface needs `diagnosticId`, replacement, migration URL,
+   warning version, error version, removal version, and codefix status.
+3. Precise `BoundaryCaptureFact` producer coverage:
+   boundary facts must distinguish value-only, pin, live view, raw slot, raw
+   channel, authority crossing, and movability requirements.
+4. `ExecutionLane` negative regression coverage:
+   Inline, PinnedZone, BlockingPool, LocalAsync, WorkerPool,
+   MovableScheduler, and Reject need positive and negative fixture rows.
+5. AIR/backend access lint:
+   backend code must not consume AIR as a codegen source of truth.
+6. Stdlib L2 doctrine pass:
+   L2/domain modules must remain sketch or pass their layer doctrine gate before
+   being presented as active language capability.
+
+## Compatibility Surfaces
+
+The compatibility gate must cover these surfaces together:
+
+- source syntax,
+- semantic behavior,
+- diagnostics and LSP squiggles,
+- MIR JSON,
+- AIR evidence,
+- ABI/binary layout,
+- runtime trace,
+- capability profile,
+- stdlib module surface.
+
+## Non-Overclaim Rules
+
+- Do not claim native WASM, WIT, NPU, GPU, or dataflow backend readiness from
+  projection architecture alone.
+- Do not claim a production runtime executor until lane-specific executors and
+  negative lane rows are gated.
+- Do not claim L2/domain stdlib capability until `docs/148_stdlib_architecture.md`
+  doctrine gates mark it active.
+- Do not call self-hosting complete beyond named parity rungs and replacement
+  gates.
+- Do not call C/LLVM parity production-complete until backend output, ABI shape,
+  diagnostics, and IR artifacts are covered by the same compatibility owner.
+
+## Owner Routing
+
+| Production-bar item | Owner or next source of truth |
+|---|---|
+| Compatibility evolution | New compatibility-evolution gate under beta closure |
+| Obsolete migration | Diagnostic registry plus migration metadata gate |
+| Boundary capture | `docs/146_sea_execution_lanes.md` and MIR/RIR producer code |
+| Execution lane negatives | `tests/sea_execution_lane_golden_smoke.sh` and self-host SEA parity |
+| AIR/backend access lint | `docs/104_air_compiler_architecture.md` plus backend-access smoke |
+| Stdlib L2 doctrine | `docs/148_stdlib_architecture.md` and stdlib conformance gates |
+| Self-host replacement | `docs/self_hosted/10_hard_self_host_contract.md`, `docs/self_hosted/15_pre_self_host_expansion_ledger.md`, and `docs/160_m2_completeness_execution_plan.md` |
+
+## Immediate Closure
+
+The current self-host source-owner work is aligned with this review but does
+not close production readiness by itself. The latest closed slices compile the
+lexer and parser parity tools from their real source-owner manifest rows instead
+of copying them into a hidden `main.pgy` staging file. Parser parity currently
+checks C and LLVM output over 188 sources. Remaining shadow-source aliases are
+still present in the scale probes and semantic parity path, so the production
+bar remains PARTIAL.

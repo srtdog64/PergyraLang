@@ -29,6 +29,13 @@ English anchor for tooling/doc gates:
   CFG/body safety source-of-truth, AIR abstraction-boundary verification,
   DAG recursive compatibility seam removal, MIR/LLVM declaration bootstrap parity,
   and ABI/Slot/Pin ownership freeze.
+- Production-bar review routing: no surface is PASS unless an executable gate
+  blocks regression. Gate-less claims are FAIL; partial executable coverage is
+  PARTIAL. New P0 production-bar closures are compatibility evolution,
+  obsolete/migration metadata, precise `BoundaryCaptureFact` producers,
+  `ExecutionLane` negative regressions, AIR/backend access lint, and stdlib L2
+  doctrine pass. These augment the five closure targets above and do not make
+  beta complete.
 - Self-host real-source selfcheck frontier: codegen `type_facts/type_env.pgy`,
   MIR-lower JSON fact/input/inventory/decl/statement/routine/program owners, and
   the SEA `execution_lane.pgy` mirror now declare their direct imports and enter
