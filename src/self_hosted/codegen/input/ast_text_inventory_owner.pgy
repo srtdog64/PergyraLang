@@ -483,14 +483,15 @@ func CodegenAstTextNodeInventory(tree_text: String, inout nodes: Array<CodegenAs
                 kind = 5;
             }
             let payload: String = CodegenAstTextPayloadFor(trimmed, kind);
+            let aux_payload: String = CodegenAstTextAuxPayloadFor(trimmed, kind);
             let mode: Int = CodegenAstTextParamModeForPayload(kind, payload);
-            let row_input: CodegenAstTextRowFactInput = CodegenAstTextRowFactInput(kind, payload, mode);
+            let row_input: CodegenAstTextRowFactInput = CodegenAstTextRowFactInput(kind, payload, aux_payload, mode);
             ArrayPush(nodes, CodegenAstTextNode(
                 indent,
                 trimmed,
                 kind,
                 payload,
-                CodegenAstTextAuxPayloadFor(trimmed, kind),
+                aux_payload,
                 CodegenAstTextNameFactFor(row_input),
                 CodegenAstTextTypeNameFactFor(row_input),
                 CodegenAstTextValueFactFor(row_input),

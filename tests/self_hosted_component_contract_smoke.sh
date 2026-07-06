@@ -885,6 +885,7 @@ require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func 
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextParamType"
 require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" 'import "../text/text_owner.pgy";'
 require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" "struct CodegenAstTextRowFactInput"
+require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" "let aux_payload: String"
 require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" "func CodegenAstTextParamModeForPayload"
 require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" "func CodegenAstTextParamPayloadForMode"
 require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" "func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput)"
@@ -899,6 +900,7 @@ require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" 'FindTe
 require_text "src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy" 'FindTextFrom(payload, " in ", 0)'
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return node.mode"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let row_input: CodegenAstTextRowFactInput"
+require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let aux_payload: String = CodegenAstTextAuxPayloadFor(trimmed, kind)"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "CodegenAstTextNameFactFor(row_input)"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "CodegenAstTextTypeNameFactFor(row_input)"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "CodegenAstTextValueFactFor(row_input)"
@@ -934,6 +936,8 @@ require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "fun
 require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaTypeNameOrDie"
 require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaValueOrDie"
 require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaAuxValueOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaEnumVariantCount"
+require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaEnumVariantNameAt"
 require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaModeOrDie"
 require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaParamTypeOrDie"
 require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "return CodegenAstTextTypedArenaProjectionReady(nodes, count)"
@@ -1150,8 +1154,8 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTex
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsParameters(nodes[j])"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsFieldsHeader(nodes[j])"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaAtomOrDie(arena, i)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextEnumVariantCount(nodes[i])"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextEnumVariantNameAt(nodes[i], value)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaEnumVariantCount(arena, i)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaEnumVariantNameAt(arena, i, value)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=enum:payload_free|"'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(ename, Concat(".", Concat(part, Concat("=e:"'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(env_box[0], Concat(part, Concat("=e:"'
@@ -1194,6 +1198,8 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstText
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextFieldName("
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextFieldType("
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextEnumName("
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextEnumVariantCount(nodes[i])"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextEnumVariantNameAt(nodes[i], value)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv(indents:"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectRoleOperators(indents:"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectStructs(indents:"

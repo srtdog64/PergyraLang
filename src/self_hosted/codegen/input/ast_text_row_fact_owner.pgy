@@ -7,6 +7,7 @@ import "../text/text_owner.pgy";
 struct CodegenAstTextRowFactInput {
     let kind: Int;
     let payload: String;
+    let aux_payload: String;
     let mode: Int;
 }
 
@@ -164,6 +165,9 @@ func CodegenAstTextValueFactFor(input: CodegenAstTextRowFactInput) -> String {
 func CodegenAstTextAuxValueFactFor(input: CodegenAstTextRowFactInput) -> String {
     let kind: Int = input.kind;
     let payload: String = input.payload;
+    if kind == 9 {
+        return input.aux_payload;
+    }
     if kind == 18 {
         let comma: Option<Int> = FindTopLevelComma(payload);
         if IsSome(comma) {

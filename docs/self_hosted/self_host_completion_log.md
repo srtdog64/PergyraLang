@@ -5003,3 +5003,22 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-compiler-world-contract-test-smoke`, and
   `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
   7353 generated-C lines).
+
+### 2026-07-07 -- Enum variant lists consume typed arena aux rows
+
+- Extended `CodegenAstTextRowFactInput` with `aux_payload` so enum variant
+  lists are captured once during AST-text inventory construction and projected
+  into `AstArena` aux-value rows.
+- Added `CodegenAstArenaEnumVariantCount(...)` and
+  `CodegenAstArenaEnumVariantNameAt(...)`.
+- Repointed `CollectEnums(...)` so payload-free enum variant emission consumes
+  typed arena facts instead of `CodegenAstTextEnumVariant*` accessors.
+- Tightened `self_hosted_component_contract_smoke.sh` so
+  `CodegenAstTextEnumVariantCount(nodes[i])` and
+  `CodegenAstTextEnumVariantNameAt(nodes[i], value)` cannot return in
+  `function_emit.pgy`.
+- Payload-bearing enum variants remain a fail-closed frontier.
+- Verified with `self-host-component-contract-test-smoke`,
+  `self-host-compiler-world-contract-test-smoke`, and
+  `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
+  7421 generated-C lines).
