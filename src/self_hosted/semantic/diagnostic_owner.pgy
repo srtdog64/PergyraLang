@@ -1,6 +1,7 @@
 // Self-host semantic diagnostic rendering owner.
 
 import "../lib/diagnostic.pgy";
+import "../lib/json_fact_table.pgy";
 import "diagnostic_code_owner.pgy";
 
 func SemanticReason(code: String) -> String {
@@ -415,6 +416,49 @@ func EmitSemanticDiagnosticSurfaceAudit() -> Void {
         Log(findings[i]);
         i = i + 1;
     }
+    Exit(1);
+}
+
+func SemanticOracleJsonRootFact(content: String) -> JsonObjectFactTable {
+    let i: Int = 0;
+    let n: Int = StringLength(content);
+    while i < n {
+        if Substring(content, i, 1) == "{" {
+            let candidate: String = Substring(content, i, n - i);
+            let root: JsonObjectFactTable = JsonDocumentObjectFactTable(candidate);
+            if JsonObjectFactTableReady(root) {
+                return root;
+            }
+        }
+        i = i + 1;
+    }
+    return EmptyJsonObjectFactTable();
+}
+
+func SemanticOracleJsonCodeFromContent(content: String) -> String {
+    let root: JsonObjectFactTable = SemanticOracleJsonRootFact(content);
+    if !JsonObjectFactTableReady(root) {
+        return "";
+    }
+    let code_opt: Option<String> = JsonObjectFactStringFieldOpt(root, "code");
+    if !IsSome(code_opt) {
+        return "";
+    }
+    return UnwrapOption(code_opt);
+}
+
+func EmitSemanticOracleJsonCodeMatch(path: String, expected: String) -> Void {
+    if !FileExists(path) {
+        Log(Concat("input-error|", path));
+        Exit(1);
+        return;
+    }
+    let actual: String = SemanticOracleJsonCodeFromContent(ReadFile(path));
+    if actual == expected {
+        Log("ok");
+        return;
+    }
+    Log(Concat(Concat(Concat("code-mismatch|expected=", expected), "|actual="), actual));
     Exit(1);
 }
 

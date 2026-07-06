@@ -612,9 +612,13 @@ require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdi
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func EmitSemanticDiagnosticSurfaceAudit"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticDiagnosticSurfaceAuditFindings"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticSourceDiagnosticCallCodes()"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" 'import "../lib/json_fact_table.pgy";'
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticOracleJsonCodeFromContent"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func EmitSemanticOracleJsonCodeMatch"
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--fixture-manifest"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-vocabulary"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-surface-audit"'
+require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--oracle-json-code-match"'
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticDiagnosticCodeCount() != 17"
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../semantic/diagnostic_owner.pgy";'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "SemanticVerdictPayloadContractReady()"
@@ -635,10 +639,14 @@ require_text "tests/self_hosted/parity/semantic_parity.sh" "read_semantic_fixtur
 require_text "tests/self_hosted/parity/semantic_parity.sh" '"$manifest_bin" --fixture-manifest'
 require_text "tests/self_hosted/parity/semantic_parity.sh" '"$manifest_bin" --diagnostic-vocabulary'
 require_text "tests/self_hosted/parity/semantic_parity.sh" '"$manifest_bin" --diagnostic-surface-audit'
+require_text "tests/self_hosted/parity/semantic_parity.sh" "--oracle-json-code-match"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "diagnostics"
 reject_text "tests/self_hosted/parity/semantic_parity.sh" '/^func SemanticDiagnosticCodeKnown'
 reject_text "tests/self_hosted/parity/semantic_parity.sh" '/^func SemanticDiagnosticOracleCode'
 reject_text "tests/self_hosted/parity/semantic_parity.sh" "semantic_oracle_code_for"
+reject_text "tests/self_hosted/parity/semantic_parity.sh" "json_code_from_output"
+reject_text "tests/self_hosted/parity/semantic_parity.sh" "grep -oE '\"code\""
+reject_text "tests/self_hosted/parity/semantic_parity.sh" "sed -E 's/.*\"code\""
 reject_text "tests/self_hosted/parity/semantic_parity.sh" "grep -h '^Code: '"
 reject_text "tests/self_hosted/parity/semantic_parity.sh" "grep -RhoE 'SemanticError"
 reject_text "tests/self_hosted/parity/semantic_parity.sh" "sed -n 's/^Code: //p'"

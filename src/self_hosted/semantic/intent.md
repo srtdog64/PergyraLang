@@ -80,6 +80,10 @@ the self-hosted owner rather than re-parsing owner source text.
 fields, renderer coverage, duplicate vocabulary entries, and semantic
 `SemanticError...("code")` call sites inside the compiled owner; shell code must
 not re-own that audit with `grep` over expected files or source trees.
+`semantic_run_owner.pgy --oracle-json-code-match` parses C oracle JSON
+diagnostic artifacts through the shared JSON fact table and compares the root
+`code` field to the expected oracle code from the fixture manifest; shell code
+must not extract that field with `grep` or `sed`.
 
 ## Oracle
 
@@ -95,6 +99,9 @@ Fixture inventory is owned by the semantic tool, not by the shell runner.
 `diagnostic_owner.pgy` walks `src/self_hosted/semantic/fixture`, reads the paired
 `expected/*.diag` status and code, and `semantic_run_owner.pgy --fixture-manifest`
 emits `name:status:self-code:c-oracle-code` rows consumed by the parity script.
+The parity script writes each C oracle diagnostic artifact to a file and asks
+`--oracle-json-code-match` to validate it, keeping JSON field ownership inside
+the self-hosted semantic tool.
 
 `tests/self_hosted/parity/selfcheck_sources.sh` is the real-source rung. It
 compiles this checker through C and LLVM and requires 56 curated self-host

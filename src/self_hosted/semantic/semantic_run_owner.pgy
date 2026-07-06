@@ -25,6 +25,15 @@ func RunSemanticFromArgs(args: Array<String>) -> Void {
         EmitSemanticDiagnosticSurfaceAudit();
         return;
     }
+    if args[0] == "--oracle-json-code-match" {
+        if ArrayLength(args) < 3 {
+            Log(SemanticError2("input_missing", "expected", "oracle-json-and-code", "actual", "none"));
+            Exit(1);
+            return;
+        }
+        EmitSemanticOracleJsonCodeMatch(args[1], args[2]);
+        return;
+    }
     if args[0] == "--check" {
         if ArrayLength(args) < 2 {
             Log(SemanticError2("input_missing", "expected", "source", "actual", "none"));

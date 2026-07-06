@@ -54,6 +54,7 @@ SEMANTIC_FIXTURE_MANIFEST_FILE="$PERGYRA_TOOL_BUILD_DIR/semantic_fixture_manifes
 SEMANTIC_DIAGNOSTIC_VOCABULARY_FILE="$PERGYRA_TOOL_BUILD_DIR/semantic_diagnostic_vocabulary.txt"
 SEMANTIC_DIAGNOSTIC_SURFACE_AUDIT_FILE="$PERGYRA_TOOL_BUILD_DIR/semantic_diagnostic_surface_audit.txt"
 SEMANTIC_COMPARATOR_BIN=""
+SEMANTIC_OWNER_BIN=""
 PERGYRA_TOOL_SOURCE=""
 PERGYRA_TOOL_ARG=""
 COMPARATOR_SOURCE=""
@@ -65,13 +66,6 @@ DIAGNOSTIC_RENDERER_OWNER=""
 SEMANTIC_SOURCE_DIR=""
 
 SOURCE_PAIRS=()
-
-json_code_from_output() {
-    tr -d '\r' |
-        grep -oE '"code"[[:space:]]*:[[:space:]]*"[^"]*"' |
-        head -n 1 |
-        sed -E 's/.*"code"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/'
-}
 
 compare_semantic_verdict_with_owner() {
     local backend="$1"
@@ -175,19 +169,22 @@ check_c_oracle() {
     local expected_oracle_code="$4"
     local source="$FIXTURE_DIR/${base}.pgy"
     local exe="$PERGYRA_TOOL_BUILD_DIR/${base}.c-oracle.exe"
-    local output
+    local output_file="$PERGYRA_TOOL_BUILD_DIR/${base}.c-oracle.out"
+    local output_rel
+    local match_out="$PERGYRA_TOOL_BUILD_DIR/${base}.c-oracle-code.out"
+    local match_err="$PERGYRA_TOOL_BUILD_DIR/${base}.c-oracle-code.err"
     local rc
 
     set +e
-    output="$(cd "$ROOT_DIR" && "$PGY" "$(semantic_compiler_path "$source")" \
+    (cd "$ROOT_DIR" && "$PGY" "$(semantic_compiler_path "$source")" \
         --backend=c --error-format=json \
-        -o "$(semantic_compiler_path "$exe")" 2>&1)"
+        -o "$(semantic_compiler_path "$exe")" >"$output_file" 2>&1)
     rc=$?
     set -e
 
     if [[ "$expected_class" == "ok" && "$rc" -ne 0 ]]; then
         echo "[self-host-parity:semantic] C oracle rejected valid fixture: $base" >&2
-        printf '%s\n' "$output" | sed -n '1,40p' >&2
+        sed -n '1,40p' "$output_file" >&2
         exit 1
     fi
     if [[ "$expected_class" == "error" && "$rc" -eq 0 ]]; then
@@ -195,16 +192,13 @@ check_c_oracle() {
         exit 1
     fi
     if [[ "$expected_class" == "error" ]]; then
-        local actual_oracle_code
-        actual_oracle_code="$(printf '%s\n' "$output" | json_code_from_output)"
-        if [[ -z "$actual_oracle_code" ]]; then
-            echo "[self-host-parity:semantic] C oracle emitted no JSON code for invalid fixture: $base" >&2
-            printf '%s\n' "$output" | sed -n '1,40p' >&2
-            exit 1
-        fi
-        if [[ "$actual_oracle_code" != "$expected_oracle_code" ]]; then
-            echo "[self-host-parity:semantic] C oracle code drift for $base (expected=$expected_oracle_code actual=$actual_oracle_code self=$expected_self_code)" >&2
-            printf '%s\n' "$output" | sed -n '1,40p' >&2
+        output_rel="$(pgy_selfhost_path_relative_to_root "$output_file")"
+        if ! (cd "$ROOT_DIR" && "$SEMANTIC_OWNER_BIN" \
+            --oracle-json-code-match "$output_rel" "$expected_oracle_code" \
+            >"$match_out" 2>"$match_err"); then
+            echo "[self-host-parity:semantic] C oracle code drift for $base (expected=$expected_oracle_code self=$expected_self_code)" >&2
+            cat "$match_out" "$match_err" >&2
+            sed -n '1,40p' "$output_file" >&2
             exit 1
         fi
     fi
@@ -226,6 +220,7 @@ read_semantic_fixture_manifest() {
     local line
 
     compile_semantic_backend c "$manifest_bin"
+    SEMANTIC_OWNER_BIN="$manifest_bin"
     if ! (cd "$ROOT_DIR" && "$manifest_bin" --fixture-manifest >"$SEMANTIC_FIXTURE_MANIFEST_FILE"); then
         echo "[self-host-parity:semantic] fixture manifest emission failed" >&2
         exit 1

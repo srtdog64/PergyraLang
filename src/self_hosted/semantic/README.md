@@ -31,13 +31,16 @@ audit. The parity harness keeps the C compiler as the accept/reject oracle, but
 it consumes the compiled semantic tool's `--diagnostic-vocabulary` and
 `--diagnostic-surface-audit` artifacts instead of re-parsing
 `diagnostic_code_owner.pgy`, expected `.diag` files, or semantic source call
-sites. Do not broaden this into declaration-heavy semantic owners until
-expression-operator and diagnostic-code parity are gated. The diagnostic-code
-gate checks committed fixture `Code:` fields and self-hosted semantic call
-sites inside the emitted surface audit, then checks invalid fixtures against
-the C oracle JSON code carried by the fixture manifest. `selfcheck_sources.sh`
-is the real-source gate: it compiles this checker through C and LLVM and runs
-it on 157 accepted self-host owner/source files, including lexer/parser/
+sites. It also asks the compiled semantic tool's `--oracle-json-code-match`
+mode to parse C oracle JSON diagnostics, so shell code does not own the
+`"code"` extraction rule. Do not broaden this into declaration-heavy semantic
+owners until expression-operator and diagnostic-code parity are gated. The
+diagnostic-code gate checks committed fixture `Code:` fields and self-hosted
+semantic call sites inside the emitted surface audit, then checks invalid
+fixtures against the C oracle JSON code carried by the fixture manifest.
+`selfcheck_sources.sh` is the real-source gate: it compiles this checker
+through C and LLVM and runs it on 157 accepted self-host owner/source files,
+including lexer/parser/
 mir_lower/codegen/compiler-world, the compiler path manifest owner, semantic
 run/program/body/call/expression owner files, the deterministic backend fuzz
 generator, and audit-tool slices that are inside the current semantic subset.
