@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - AST-read growth verdict consumes artifact owner
+
+- Added a TestHarness-owned expected JSON artifact for the synthetic
+  `source_ast_codegen` growth fixture.
+- Repointed `ast_read_surface_checker_parity.sh` so shell only handles scratch
+  source/ratchet creation and `rc=1`; the full growth verdict is compared
+  through `backend_output_comparator` as `run_output`.
+- Removed the growth finding-kind row from `test_harness_tool_paths_owner.pgy`,
+  and tightened the component contract against reintroducing shell-owned
+  `surface_growth` interpretation.
+
 ## 2026-07-06 - Module manifest negative verdicts consume artifact owner
 
 - Added TestHarness-owned expected JSON artifacts for the module-manifest

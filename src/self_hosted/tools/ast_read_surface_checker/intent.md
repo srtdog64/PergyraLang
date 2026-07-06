@@ -51,13 +51,15 @@ Exit code: `0` on `ok:true`, `1` on `ok:false`.
 ## Oracle
 
 The clean oracle is the committed expected JSON artifact
-`expected/clean.json`. The parity rung asserts:
+`expected/clean.json`; the synthetic growth oracle is the committed expected
+JSON artifact `expected/growth_source_ast_codegen.json`. The parity rung
+asserts:
 
 - the Pergyra tool exits `0` on the clean repo;
 - emitted JSON byte-matches `expected/clean.json` through the shared
   ArtifactZone/TestHarness comparator path;
-- a synthetic source_ast growth fixture exits `1` with a
-  `"kind":"surface_growth"` finding;
+- a synthetic source_ast growth fixture exits `1` and byte-matches
+  `expected/growth_source_ast_codegen.json`;
 - both C and LLVM legs compile the same self-hosted checker.
 
 The parity rung must not recompute the clean counts in shell. If the count

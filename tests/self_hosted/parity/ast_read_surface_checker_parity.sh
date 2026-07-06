@@ -53,16 +53,16 @@ RATCHET_REL="${harness_paths[2]}"
 GROWTH_SOURCE_REL="${harness_paths[3]}"
 GROWTH_SOURCE_LINE="${harness_paths[4]}"
 GROWTH_RATCHET_ROW="${harness_paths[5]}"
-GROWTH_FINDING_KIND="${harness_paths[6]}"
+GROWTH_EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[6]}"
 RATCHET_FILE="$ROOT_DIR/$RATCHET_REL"
 
-for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$RATCHET_FILE"; do
+for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$GROWTH_EXPECTED_JSON_FILE" "$RATCHET_FILE"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:ast-read-surface] missing input: $path" >&2
         exit 1
     fi
 done
-if [[ -z "$GROWTH_SOURCE_REL" || -z "$GROWTH_SOURCE_LINE" || -z "$GROWTH_RATCHET_ROW" || -z "$GROWTH_FINDING_KIND" ]]; then
+if [[ -z "$GROWTH_SOURCE_REL" || -z "$GROWTH_SOURCE_LINE" || -z "$GROWTH_RATCHET_ROW" || -z "${harness_paths[6]}" ]]; then
     echo "[self-host-parity:ast-read-surface] invalid TestHarness growth fixture row" >&2
     exit 1
 fi
@@ -126,11 +126,16 @@ if [[ "$NEG_RC" -ne 1 ]]; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq "\"kind\":\"${GROWTH_FINDING_KIND}\"" <<<"$NEG_OUT"; then
-    echo "[self-host-parity:ast-read-surface] growth fixture expected ${GROWTH_FINDING_KIND} finding" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
+NEG_JSON="$(printf '%s\n' "$NEG_OUT" \
+    | tr -d '\r' \
+    | grep -F 'pgy.selfhost.ast-read-surface.v1' \
+    | tail -n 1)"
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:ast-read-surface" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$GROWTH_EXPECTED_JSON_FILE" \
+    "$NEG_JSON" \
+    "run_output"
 
 assert_llvm_leg "self-host-parity:ast-read-surface" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR"
-echo "[self-host-parity:ast-read-surface] rung-2 parity ok (expected-json clean; growth-fixture rc=1)"
+echo "[self-host-parity:ast-read-surface] rung-2 parity ok (expected-json clean+growth; growth-fixture rc=1)"
