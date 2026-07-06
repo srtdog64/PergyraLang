@@ -80,9 +80,11 @@ transpiler_specialization_spec_name_too_long(TranspilerCtx *ctx,
  * and once from inside a specialization window (bindings active). Emitting
  * PGY_*_DEFINE(T, ...) from the eager pass hands gcc an unknown type, so:
  * substitute active bindings if any, then skip when the inner is still a
- * bare single-capital-letter name (the type-parameter spelling; the
- * require path already rejects user types named that way). The bound
- * re-scan inside the window owns the real emission. */
+ * bare single-capital-letter name and no declaration inventory row owns that
+ * name. Single-letter nominal types are legal fixtures (for example class P or
+ * enum E), so declaration inventory must decide before the type-parameter
+ * spelling heuristic fires. The bound re-scan inside the window owns the real
+ * generic-param emission. */
 static bool
 transpiler_specialization_inner_is_unbound_param(TranspilerCtx *ctx,
                                                  const char **inner_io,
@@ -96,6 +98,10 @@ transpiler_specialization_inner_is_unbound_param(TranspilerCtx *ctx,
     applied = transpiler_type_name_apply_generic_bindings(
         ctx, *inner_io, buf, buf_size);
     *inner_io = applied;
+    if (applied[0] >= 'A' && applied[0] <= 'Z' && applied[1] == '\0'
+        && transpiler_has_known_nominal_type(ctx, applied)) {
+        return false;
+    }
     return applied[0] >= 'A' && applied[0] <= 'Z' && applied[1] == '\0';
 }
 
