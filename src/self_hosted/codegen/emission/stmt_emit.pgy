@@ -112,27 +112,14 @@ func EmitLet(arena: AstArena, idx: Int, inout env_box: Array<String>) -> String 
     return "";
 }
 
-func TryExprInner(expr: String) -> String {
-    let e: String = StringTrim(expr);
-    let n: Int = StringLength(e);
-    if n < 4 || CodegenCharAt(e, 0) != "(" || CodegenCharAt(e, 1) != "?" || CodegenCharAt(e, n - 1) != ")" {
-        return "";
-    }
-    let close_opt: Option<Int> = FindMatchingParen(e, 0);
-    if !IsSome(close_opt) || UnwrapOption(close_opt) != n - 1 {
-        return "";
-    }
-    return StringTrim(Substring(e, 2, n - 3));
-}
-
 func EmitTryLet(node: CodegenAstTextNode, arena: AstArena, idx: Int, inout env_box: Array<String>, cur_fn_ret: String, pad: String, cleanup: String) -> String {
     let name: String = CodegenAstArenaAtomOrDie(arena, idx);
     let type_name: String = CodegenAstArenaTypeNameOrDie(arena, idx);
-    let expr: String = CodegenAstArenaValueOrDie(arena, idx);
-    let inner: String = TryExprInner(expr);
-    if StringLength(inner) == 0 {
+    let inner_opt: Option<String> = CodegenAstArenaLetTryInner(arena, idx);
+    if !IsSome(inner_opt) {
         Die(Concat("unsupported try let shape in self-host codegen subset: ", CodegenAstTextProvenance(node)));
     }
+    let inner: String = UnwrapOption(inner_opt);
     let tmp: String = Concat("_pgy_try_", ToString(idx));
     if StartsWith(cur_fn_ret, "Result<") && StringIndexOf(cur_fn_ret, "Int") >= 0 {
         if type_name != "Int" {

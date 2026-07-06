@@ -5153,3 +5153,15 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   return.
 - This is still a transitional string-backed expression fact, not final typed
   expression ownership.
+
+### 2026-07-07 -- Let try inner extraction moves behind typed arena owner
+
+- Added `CodegenAstArenaLetTryInner(...) -> Option<String>` so the typed
+  arena/input owner owns the supported `(?...)` shape check and inner-expression
+  extraction for `Let` initializers.
+- Removed `TryExprInner(...)` from `stmt_emit.pgy`; `EmitTryLet(...)` now
+  consumes the owner fact and keeps only return-shape/code-emission decisions.
+- Tightened the component contract so emission cannot reintroduce local try
+  expression parsing.
+- This still does not claim full expression-row ownership; it removes one more
+  emission-local parser from the transitional bridge.
