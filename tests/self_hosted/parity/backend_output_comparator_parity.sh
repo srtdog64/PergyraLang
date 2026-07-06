@@ -71,10 +71,20 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$EXPECTED_MISMATCH_JSO
 done
 
 PERGYRA_TOOL_INPUT="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
+ARG_BIN="$PERGYRA_TOOL_BUILD_DIR/main_args.exe"
+ARG_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/main_args.compile.log"
+ARG_EXPECTED_PATH="$FIXTURE_EXPECTED_REL"
+ARG_ACTUAL_PATH="$FIXTURE_ACTUAL_REL"
+if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_INPUT" --backend=c \
+    -o "$(pgy_path_for_compiler "$PGY" "$ARG_BIN")" >"$ARG_COMPILE_LOG" 2>&1); then
+    echo "[self-host-parity:backend-output-comparator] argv-mode C compile failed" >&2
+    cat "$ARG_COMPILE_LOG" >&2
+    exit 1
+fi
 
 # Phase 1 - clean (match) fixture.
 set +e
-CLEAN_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_INPUT" --run 2>/dev/null)"
+CLEAN_OUT="$(cd "$ROOT_DIR" && "$ARG_BIN" 2>/dev/null)"
 CLEAN_RC=$?
 set -e
 if [[ "$CLEAN_RC" -ne 0 ]]; then
@@ -97,16 +107,6 @@ fi
 # Phase 1b - argv-driven pair/projection facts. This is the hard-self-host
 # path: the comparator receives artifact paths and projection rows through
 # Args() instead of relying only on fixed fixture owner paths.
-ARG_BIN="$PERGYRA_TOOL_BUILD_DIR/main_args.exe"
-ARG_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/main_args.compile.log"
-ARG_EXPECTED_PATH="$FIXTURE_EXPECTED_REL"
-ARG_ACTUAL_PATH="$FIXTURE_ACTUAL_REL"
-if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_INPUT" --backend=c \
-    -o "$(pgy_path_for_compiler "$PGY" "$ARG_BIN")" >"$ARG_COMPILE_LOG" 2>&1); then
-    echo "[self-host-parity:backend-output-comparator] argv-mode C compile failed" >&2
-    cat "$ARG_COMPILE_LOG" >&2
-    exit 1
-fi
 ARG_OUT="$(cd "$ROOT_DIR" && "$ARG_BIN" "$ARG_EXPECTED_PATH" "$ARG_ACTUAL_PATH" 0 2 2>/dev/null | tr -d '\r')"
 ARG_JSON="$(printf '%s\n' "$ARG_OUT" \
     | grep -F 'pgy.selfhost.backend-output-comparator.v1' \
@@ -160,7 +160,7 @@ sed 's/gamma/GAMMA-DRIFT/' "$FIXTURE_ACTUAL" \
     > "$NEG_ROOT/$FIXTURE_ACTUAL_REL"
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_INPUT" --run 2>&1)"
+NEG_OUT="$(cd "$NEG_ROOT" && "$ARG_BIN" 2>&1)"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then
@@ -188,7 +188,7 @@ mkdir -p "$MISS_ROOT/.tmp"
 cp "$FIXTURE_EXPECTED" "$MISS_ROOT/$FIXTURE_EXPECTED_REL"
 
 set +e
-MISS_OUT="$(cd "$MISS_ROOT" && "$PGY" "$PERGYRA_TOOL_INPUT" --run 2>&1)"
+MISS_OUT="$(cd "$MISS_ROOT" && "$ARG_BIN" 2>&1)"
 MISS_RC=$?
 set -e
 if [[ "$MISS_RC" -ne 1 ]]; then
