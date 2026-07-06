@@ -108,7 +108,9 @@ SENTINEL_MAX=3
 # kind-code facts instead of helper-name lookup by string kind.
 # 678 -> 681 (2026-07-07): top-level expression sequence facts now flow through
 # Option-returning owner accessors instead of local emission loops.
-RESULT_USE_MIN=681
+# 681 -> 686 (2026-07-07): struct literal field entries now flow through
+# owner-owned field-name/value facts instead of local emission parsing.
+RESULT_USE_MIN=686
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=17
 COMPILER_WORLD_MEMBERS_EXACT=17

@@ -5236,3 +5236,18 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This reduces the mixed AST-like tree blocker by moving another expression
   payload shape behind a named owner; it does not close the blocker because the
   payload values themselves remain transitional expression text.
+
+### 2026-07-07 -- Struct literal field-entry facts move behind text owner
+
+- Added `text/struct_literal_field_owner.pgy` for struct literal field-name and
+  field-value entry facts.
+- Repointed `RewriteStructLiteralCallArg(...)` and `EmitStructLit(...)` so
+  explicit `field: value` entries and positional field fallback consume the new
+  owner rather than parsing `StringIndexOf(part, ": ")` and
+  `CsvAt(field_names, field_pos)` locally in emission participants.
+- Tightened the component contract so expression and struct-value emission
+  cannot reintroduce local struct field-entry parsing.
+- Tightened `self_host_pergyra_likeness_smoke` result/option evidence from
+  681 to 686 because struct field entries now flow through owner-returned facts.
+- This keeps another text-backed expression shape behind a named owner while
+  preserving fail-closed type routing in the emission participants.

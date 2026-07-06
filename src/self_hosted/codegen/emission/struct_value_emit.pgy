@@ -3,6 +3,7 @@
 import "../text/text_owner.pgy";
 import "../text/expr_scan.pgy";
 import "../text/expr_sequence_owner.pgy";
+import "../text/struct_literal_field_owner.pgy";
 import "../type_facts/type_env.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "expr_rewrite.pgy";
@@ -41,19 +42,8 @@ func EmitStructLit(expr: String, env: String) -> String {
         let part_opt: Option<String> = ExprSequenceItemAt(inner, field_pos);
         if IsSome(part_opt) {
             let part: String = UnwrapOption(part_opt);
-            let cp: Int = StringIndexOf(part, ": ");
-            let fld: String = "";
-            let val: String = "";
-            if cp >= 0 {
-                fld = Substring(part, 0, cp);
-                val = Substring(part, cp + 2, StringLength(part) - (cp + 2));
-            } else {
-                fld = CsvAt(field_names, field_pos);
-                val = part;
-                if StringLength(fld) == 0 {
-                    Die(Concat("struct positional initializer has no field fact: ", part));
-                }
-            }
+            let fld: String = StructLiteralFieldNameOrDie(part, field_names, field_pos, "struct");
+            let val: String = StructLiteralFieldValue(part);
             if !first {
                 out = Concat(out, ", ");
             }
