@@ -1,4 +1,5 @@
 import "../text/text_owner.pgy";
+import "../text/enum_literal_owner.pgy";
 import "../text/expr_scan.pgy";
 import "../text/expr_sequence_owner.pgy";
 import "../text/struct_literal_call_owner.pgy";
@@ -302,14 +303,9 @@ func RewriteCallArgForExpectedType(part: String, expected_type: String, env: Str
     if StringLength(expected_type) > 0 && LookupKindType(env, expected_type, "s") == "struct" {
         return RewriteStructLiteralCallArg(part, expected_type, env);
     }
-    if StringLength(expected_type) > 0 && LookupKindType(env, expected_type, "enum") == "payload_free" {
-        let p: String = StringTrim(part);
-        if IsIdentifier(p) {
-            let enum_key: String = Concat(expected_type, Concat(".", p));
-            if StringLength(LookupKindType(env, enum_key, "e")) > 0 {
-                return CompilerSymbolCEnumVariantName(expected_type, p);
-            }
-        }
+    let enum_fact_opt: Option<EnumLiteralProjectionFact> = EnumPayloadFreeArgumentProjectionFactOpt(part, expected_type, env);
+    if IsSome(enum_fact_opt) {
+        return UnwrapOption(enum_fact_opt).c_value;
     }
     return RewriteExpr(part, env);
 }

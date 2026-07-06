@@ -148,6 +148,9 @@ the typed `AstArena` and the `CodegenTypedAstBridgeReady` guard that consumes
 the typed AST arena payload contract before emission.
 `input/ast_text_array_literal_owner.pgy` owns transitional `Let` array literal
 shape and top-level element facts while expression payloads remain string-backed.
+`text/enum_literal_owner.pgy` owns payload-free enum literal projection facts
+for call arguments and match cases so emission participants consume the env
+row instead of rebuilding enum keys or symbols locally.
 `text/expr_sequence_owner.pgy` owns top-level comma-separated expression
 sequence facts for array literals, call arguments, and struct literal field
 lists while expression payloads remain string-backed.

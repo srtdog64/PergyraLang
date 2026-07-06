@@ -169,6 +169,9 @@ guard. This is a compatibility bridge, not the final typed/tagged AST owner.
 `input/ast_text_array_literal_owner.pgy` owns transitional `Let` array literal
 shape and top-level element facts so statement emission does not split array
 initializer text locally.
+`text/enum_literal_owner.pgy` owns payload-free enum literal projection facts
+for call arguments and match cases so emission participants consume the env
+row instead of rebuilding enum keys or symbols locally.
 `text/expr_sequence_owner.pgy` owns top-level comma-separated expression
 sequence facts used by array literals, call arguments, and struct literal field
 lists so emission participants do not reimplement list splitting.

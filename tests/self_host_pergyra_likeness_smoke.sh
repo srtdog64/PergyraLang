@@ -113,7 +113,9 @@ SENTINEL_MAX=3
 # 686 -> 689 (2026-07-07): struct literal call envelopes now carry Option-
 # checked typed fact rows, while field entries consume a typed row instead of
 # adding string-to-string compiler-core surface.
-RESULT_USE_MIN=689
+# 689 -> 698 (2026-07-07): payload-free enum literal projection now consumes
+# Option-returning owner facts instead of local enum-key reconstruction.
+RESULT_USE_MIN=698
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=17
 COMPILER_WORLD_MEMBERS_EXACT=17

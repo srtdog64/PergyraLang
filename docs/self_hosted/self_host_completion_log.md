@@ -5270,3 +5270,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This reduces the mixed AST-like tree blocker by moving another text-backed
   expression envelope behind a named owner; it does not close the blocker
   because expression payloads are still string-backed.
+
+### 2026-07-07 -- Payload-free enum literal projection moves behind text owner
+
+- Added `text/enum_literal_owner.pgy` for payload-free enum literal projection
+  facts.
+- Repointed call-argument enum literal rewriting and match-case value lowering
+  so emission participants consume owner-returned `EnumLiteralProjectionFact`
+  rows instead of locally trimming tokens, rebuilding `Enum.Member` keys, or
+  re-rendering enum symbols.
+- Tightened the component contract so `expr_rewrite.pgy` and `stmt_emit.pgy`
+  cannot reintroduce local enum-key lookup for these paths.
+- This reduces the mixed AST-like tree blocker by moving another expression
+  token projection behind a named owner; it does not close the blocker because
+  expression payloads are still string-backed.

@@ -120,6 +120,7 @@ compiler-stage `.pgy` source to be listed here.
   the AST text bridge.
 - `src/self_hosted/codegen/run/codegen_run_owner.pgy` -- codegen CLI run boundary.
 - `src/self_hosted/codegen/text/text_owner.pgy` -- text/token scanning primitives.
+- `src/self_hosted/codegen/text/enum_literal_owner.pgy` -- payload-free enum literal projection facts.
 - `src/self_hosted/codegen/text/expr_scan.pgy` -- expression text scanning.
 - `src/self_hosted/codegen/text/expr_sequence_owner.pgy` -- top-level comma-separated expression sequence facts.
 - `src/self_hosted/codegen/text/struct_literal_call_owner.pgy` -- struct literal call-envelope facts.

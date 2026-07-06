@@ -688,6 +688,7 @@ require_owner_surface codegen \
     "run/codegen_run_owner.pgy" \
     "text/text_owner.pgy" \
     "type_facts/type_env.pgy" \
+    "text/enum_literal_owner.pgy" \
     "text/expr_scan.pgy" \
     "text/expr_sequence_owner.pgy" \
     "text/struct_literal_call_owner.pgy" \
@@ -1378,6 +1379,15 @@ require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'LookupKindType
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'LookupKindType(env, call_symbol, "pt")'
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "func RewriteCallArgForExpectedType"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "func RewriteStructLiteralCallArg"
+require_text "src/self_hosted/codegen/text/enum_literal_owner.pgy" "struct EnumLiteralProjectionFact"
+require_text "src/self_hosted/codegen/text/enum_literal_owner.pgy" "func EnumLiteralProjectionFactOpt"
+require_text "src/self_hosted/codegen/text/enum_literal_owner.pgy" "func EnumPayloadFreeArgumentProjectionFactOpt"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'import "../text/enum_literal_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../text/enum_literal_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "EnumPayloadFreeArgumentProjectionFactOpt(part, expected_type, env)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EnumLiteralProjectionFactOpt(pattern, subject_type, env)"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "UnwrapOption(enum_fact_opt).c_value"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "UnwrapOption(enum_fact_opt).c_value"
 require_text "src/self_hosted/codegen/text/expr_sequence_owner.pgy" "func ExprSequenceItemCount"
 require_text "src/self_hosted/codegen/text/expr_sequence_owner.pgy" "func ExprSequenceItemAt"
 require_text "src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" 'import "../text/expr_sequence_owner.pgy";'
@@ -1426,8 +1436,10 @@ require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "array struct a
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'import "../runtime_abi/collection_runtime_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "CollectionRuntimeKindFromTypeName(ftype)"
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "array struct initializer field must consume a named array value"
-require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'LookupKindType(env, enum_key, "e")'
-require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CompilerSymbolCEnumVariantName(expected_type, p)"
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'LookupKindType(env, enum_key, "e")'
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CompilerSymbolCEnumVariantName(expected_type, p)"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'LookupKindType(env, p, "e")'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'LookupKindType(env, qualified, "e")'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'LookupKindType(env, ident, "pm")'
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func ParamModeCsvCount"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func ParamModeCsvAt"

@@ -1,0 +1,37 @@
+// Payload-free enum literal projection facts.
+//
+// This owner keeps enum literal token checks and env-backed emitted-value
+// projection out of emission participants.
+
+import "text_owner.pgy";
+import "../type_facts/type_env.pgy";
+
+struct EnumLiteralProjectionFact {
+    let c_value: String;
+}
+
+func EnumLiteralProjectionFactOpt(token: String, owner_type: String, env: String) -> Option<EnumLiteralProjectionFact> {
+    let p: String = StringTrim(token);
+    if !IsIdentifier(p) {
+        return None;
+    }
+    let direct: String = LookupKindType(env, p, "e");
+    if StringLength(direct) > 0 {
+        return Some(EnumLiteralProjectionFact(direct));
+    }
+    if StringLength(owner_type) > 0 {
+        let qualified: String = Concat(owner_type, Concat(".", p));
+        let value: String = LookupKindType(env, qualified, "e");
+        if StringLength(value) > 0 {
+            return Some(EnumLiteralProjectionFact(value));
+        }
+    }
+    return None;
+}
+
+func EnumPayloadFreeArgumentProjectionFactOpt(token: String, expected_type: String, env: String) -> Option<EnumLiteralProjectionFact> {
+    if StringLength(expected_type) == 0 || LookupKindType(env, expected_type, "enum") != "payload_free" {
+        return None;
+    }
+    return EnumLiteralProjectionFactOpt(token, expected_type, env);
+}

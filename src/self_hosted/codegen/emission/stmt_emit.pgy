@@ -3,6 +3,7 @@
 // Statement lowering owner for self-host C emission.
 
 import "../text/text_owner.pgy";
+import "../text/enum_literal_owner.pgy";
 import "../text/expr_scan.pgy";
 import "../type_facts/type_env.pgy";
 import "../input/ast_text_array_literal_owner.pgy";
@@ -249,17 +250,9 @@ func EmitReturn(rexpr: String, cur_fn_ret: String, env: String) -> String {
 }
 
 func EmitMatchCaseValue(pattern: String, subject_type: String, env: String) -> String {
-    let p: String = StringTrim(pattern);
-    let direct: String = LookupKindType(env, p, "e");
-    if StringLength(direct) > 0 {
-        return direct;
-    }
-    if StringLength(subject_type) > 0 {
-        let qualified: String = Concat(subject_type, Concat(".", p));
-        let value: String = LookupKindType(env, qualified, "e");
-        if StringLength(value) > 0 {
-            return value;
-        }
+    let enum_fact_opt: Option<EnumLiteralProjectionFact> = EnumLiteralProjectionFactOpt(pattern, subject_type, env);
+    if IsSome(enum_fact_opt) {
+        return UnwrapOption(enum_fact_opt).c_value;
     }
     Die(Concat("unsupported match case pattern in self-host codegen subset: ", pattern));
     return "0";
