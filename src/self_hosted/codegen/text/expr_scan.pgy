@@ -161,17 +161,38 @@ func RewriteIndexing(e: String, env: String) -> String {
                 j = j + 1;
             }
             let ident: String = Substring(e, i, j - i);
-            if j < n && CodegenCharAt(e, j) == "[" {
-                let close_opt: Option<Int> = FindMatchingBracket(e, j);
+            let path_end: Int = j;
+            let scan: Int = j;
+            while scan + 1 < n && CodegenCharAt(e, scan) == "." && IsIdentStart(CodegenCharAt(e, scan + 1)) {
+                let seg_end: Int = scan + 1;
+                while seg_end < n && IsIdentChar(CodegenCharAt(e, seg_end)) {
+                    seg_end = seg_end + 1;
+                }
+                if seg_end < n && CodegenCharAt(e, seg_end) == "(" {
+                    scan = j;
+                    break;
+                }
+                path_end = seg_end;
+                scan = seg_end;
+            }
+            if path_end < n && CodegenCharAt(e, path_end) == "[" {
+                let close_opt: Option<Int> = FindMatchingBracket(e, path_end);
                 if !IsSome(close_opt) {
                     Die(Concat("unmatched index bracket: ", e));
                 }
                 let close: Int = UnwrapOption(close_opt);
-                let inner: String = Substring(e, j + 1, close - j - 1);
+                let inner: String = Substring(e, path_end + 1, close - path_end - 1);
                 let inner_r: String = RewriteIndexing(inner, env);
-                let kind: String = LookupKindType(env, ident, "v");
+                let receiver: String = Substring(e, i, path_end - i);
+                let kind: String = LookupKindType(env, receiver, "v");
+                if StringLength(kind) == 0 {
+                    kind = ExprMemberFieldType(receiver, env);
+                }
+                if StartsWith(kind, "Array<") {
+                    kind = CollectionRuntimeKindFromTypeName(kind);
+                }
                 let get_fn: String = CollectionRuntimeCGetFn(kind);
-                out = Concat(out, Concat(get_fn, Concat("(", Concat(ident, Concat(", ", Concat(inner_r, ")"))))));
+                out = Concat(out, Concat(get_fn, Concat("(", Concat(receiver, Concat(", ", Concat(inner_r, ")"))))));
                 i = close + 1;
             } else {
                 out = Concat(out, ident);

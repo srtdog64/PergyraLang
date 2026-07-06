@@ -57,9 +57,92 @@ struct AstNode {
 }
 
 struct AstArena {
-    nodes: Array<Int>;        // placeholder until Array<AstNode> field-lowering lands
-    children: Array<Int>;     // flattened child NodeId edges
-    atom_table: Array<String>; // interned identifier/literal text
+    kinds: Array<Int>;
+    atoms: Array<Int>;
+    has_atoms: Array<Int>;
+    first_children: Array<Int>;
+    child_counts: Array<Int>;
+    children: Array<Int>;
+    atom_table: Array<String>;
+}
+
+func TypedAstKindProgramTag() -> Int {
+    return 1;
+}
+
+func TypedAstKindFuncDeclTag() -> Int {
+    return 2;
+}
+
+func TypedAstKindBlockTag() -> Int {
+    return 3;
+}
+
+func TypedAstArenaFixture() -> AstArena {
+    let kinds: Array<Int> = [TypedAstKindProgramTag(), TypedAstKindFuncDeclTag(), TypedAstKindBlockTag()];
+    let atoms: Array<Int> = [0, 1, 0];
+    let has_atoms: Array<Int> = [0, 1, 0];
+    let first_children: Array<Int> = [0, 1, 2];
+    let child_counts: Array<Int> = [1, 1, 0];
+    let children: Array<Int> = [1, 2];
+    let atom_table: Array<String> = ["", "Main"];
+    return AstArena(kinds, atoms, has_atoms, first_children, child_counts, children, atom_table);
+}
+
+func TypedAstArenaNodeCount(arena: AstArena) -> Int {
+    return ArrayLength(arena.kinds);
+}
+
+func TypedAstArenaParallelRowsReady(arena: AstArena) -> Bool {
+    let n: Int = TypedAstArenaNodeCount(arena);
+    return ArrayLength(arena.atoms) == n &&
+        ArrayLength(arena.has_atoms) == n &&
+        ArrayLength(arena.first_children) == n &&
+        ArrayLength(arena.child_counts) == n;
+}
+
+func TypedAstArenaHasNode(arena: AstArena, node_id: Int) -> Bool {
+    return TypedAstArenaParallelRowsReady(arena) &&
+        node_id >= 0 &&
+        node_id < TypedAstArenaNodeCount(arena);
+}
+
+func TypedAstArenaNodeKind(arena: AstArena, node_id: Int) -> Option<Int> {
+    if !TypedAstArenaHasNode(arena, node_id) {
+        return None;
+    }
+    return Some(arena.kinds[node_id]);
+}
+
+func TypedAstArenaChildAt(arena: AstArena, node_id: Int, i: Int) -> Option<Int> {
+    if !TypedAstArenaHasNode(arena, node_id) {
+        return None;
+    }
+    if i < 0 {
+        return None;
+    }
+    if i >= arena.child_counts[node_id] {
+        return None;
+    }
+    let edge: Int = arena.first_children[node_id] + i;
+    if edge < 0 || edge >= ArrayLength(arena.children) {
+        return None;
+    }
+    return Some(arena.children[edge]);
+}
+
+func TypedAstArenaAtomText(arena: AstArena, node_id: Int) -> Option<String> {
+    if !TypedAstArenaHasNode(arena, node_id) {
+        return None;
+    }
+    if arena.has_atoms[node_id] == 0 {
+        return None;
+    }
+    let atom: Int = arena.atoms[node_id];
+    if atom < 0 || atom >= ArrayLength(arena.atom_table) {
+        return None;
+    }
+    return Some(arena.atom_table[atom]);
 }
 
 func ChildAtFromEdges(children: Array<Int>, first_child: Int, child_count: Int, i: Int) -> Option<Int> {
@@ -97,28 +180,52 @@ func TypedAstArenaPayloadFixtureCount() -> Int {
 }
 
 func TypedAstArenaRootTraversalReady() -> Bool {
-    let children: Array<Int> = [1];
-    let atom_table: Array<String> = ["", "Main"];
-
-    let first_child: Option<Int> = ChildAtFromEdges(children, 0, 1, 0);
-    if !IsSome(first_child) {
+    let arena: AstArena = TypedAstArenaFixture();
+    if !TypedAstArenaParallelRowsReady(arena) {
         return false;
     }
-    if UnwrapOption(first_child) != 1 {
-        return false;
-    }
-    if IsSome(ChildAtFromEdges(children, 0, 1, 1)) {
-        return false;
-    }
-    if IsSome(AtomTextFromTable(atom_table, false, 0)) {
+    if TypedAstArenaNodeCount(arena) != 3 {
         return false;
     }
 
-    let atom: Option<String> = AtomTextFromTable(atom_table, true, 1);
-    if !IsSome(atom) {
+    let root_kind: Option<Int> = TypedAstArenaNodeKind(arena, 0);
+    if !IsSome(root_kind) || UnwrapOption(root_kind) != TypedAstKindProgramTag() {
         return false;
     }
-    if UnwrapOption(atom) != "Main" {
+
+    let first_child: Option<Int> = TypedAstArenaChildAt(arena, 0, 0);
+    if !IsSome(first_child) || UnwrapOption(first_child) != 1 {
+        return false;
+    }
+    if IsSome(TypedAstArenaChildAt(arena, 0, 1)) {
+        return false;
+    }
+
+    let func_kind: Option<Int> = TypedAstArenaNodeKind(arena, UnwrapOption(first_child));
+    if !IsSome(func_kind) || UnwrapOption(func_kind) != TypedAstKindFuncDeclTag() {
+        return false;
+    }
+
+    let block_child: Option<Int> = TypedAstArenaChildAt(arena, UnwrapOption(first_child), 0);
+    if !IsSome(block_child) || UnwrapOption(block_child) != 2 {
+        return false;
+    }
+    let block_kind: Option<Int> = TypedAstArenaNodeKind(arena, UnwrapOption(block_child));
+    if !IsSome(block_kind) || UnwrapOption(block_kind) != TypedAstKindBlockTag() {
+        return false;
+    }
+    if IsSome(TypedAstArenaChildAt(arena, UnwrapOption(block_child), 0)) {
+        return false;
+    }
+
+    if IsSome(TypedAstArenaAtomText(arena, 0)) {
+        return false;
+    }
+    let atom: Option<String> = TypedAstArenaAtomText(arena, UnwrapOption(first_child));
+    if !IsSome(atom) || UnwrapOption(atom) != "Main" {
+        return false;
+    }
+    if IsSome(TypedAstArenaAtomText(arena, 99)) {
         return false;
     }
     return true;

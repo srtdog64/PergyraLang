@@ -4760,3 +4760,27 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Verified with `self-host-component-contract-test-smoke`,
   `self-host-compiler-world-contract-test-smoke`, and
   `backend_output_comparator_parity.sh`.
+
+### 2026-07-07 -- Typed AST arena removes placeholder node row
+
+- Replaced the typed AST arena's placeholder `nodes: Array<Int>` field with
+  parallel typed node facts for kind, atom, atom-presence, child spans, child
+  edges, and atom text.
+- Added `NodeId` lookup accessors that return `Option` for node kind, child
+  lookup, and atom text, so later parser/codegen cutovers can consume owned
+  typed rows instead of line-text payloads.
+- Expanded the readiness fixture from raw child/atom arrays to a concrete
+  Program -> FuncDecl(Main) -> Block arena traversal.
+- Opened the matching self-host C-emitter surface for struct fields whose type
+  is `Array<Int>` or `Array<String>` by routing field initializers through the
+  collection runtime owner. Member array reads such as `arena.kinds[i]` now
+  consume field type facts before lowering to collection runtime accessors.
+- Tightened `self_hosted_component_contract_smoke.sh` so the typed AST owner
+  cannot regress to the old placeholder field or local array-field guessing
+  without failing the gate.
+- The mixed AST-like tree blocker remains ACTIVE: codegen still consumes the
+  transitional `pgy --ast` text bridge. This slice makes the replacement owner
+  concrete; it does not claim full AST replacement.
+- Verified with `self-host-component-contract-test-smoke`,
+  `self-host-compiler-world-contract-test-smoke`, and
+  `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`).

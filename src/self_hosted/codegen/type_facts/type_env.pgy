@@ -106,6 +106,21 @@ func ExprMemberFieldType(expr: String, env: String) -> String {
     return owner;
 }
 
+func ExprCollectionElementKind(kind: String) -> String {
+    if kind == "ArrayString" || kind == "Array<String>" || kind == "Array<String: String>" {
+        return "String";
+    }
+    if kind == "ArrayCodegenAstTextNode" ||
+        kind == "Array<CodegenAstTextNode>" ||
+        kind == "Array<CodegenAstTextNode: CodegenAstTextNode>" {
+        return "CodegenAstTextNode";
+    }
+    if kind == "ArrayInt" || kind == "Array<Int>" || kind == "Array<Int: Int>" {
+        return "Int";
+    }
+    return "";
+}
+
 // Classify an expression using the environment.
 func ExprKind(expr: String, env: String) -> String {
     let e: String = StringTrim(expr);
@@ -252,14 +267,12 @@ func ExprKind(expr: String, env: String) -> String {
     if bracket > 0 && CodegenCharAt(e, StringLength(e) - 1) == "]" {
         let arr_name: String = Substring(e, 0, bracket);
         let arr_kind: String = LookupKindType(env, arr_name, "v");
-        if arr_kind == "ArrayString" {
-            return "String";
+        if StringLength(arr_kind) == 0 {
+            arr_kind = ExprMemberFieldType(arr_name, env);
         }
-        if arr_kind == "ArrayInt" {
-            return "Int";
-        }
-        if arr_kind == "ArrayCodegenAstTextNode" {
-            return "CodegenAstTextNode";
+        let elem_kind: String = ExprCollectionElementKind(arr_kind);
+        if StringLength(elem_kind) > 0 {
+            return elem_kind;
         }
     }
     if StartsWith(e, "ToString(") {
@@ -320,14 +333,15 @@ func ExprKind(expr: String, env: String) -> String {
     if ob > 0 {
         let pfx: String = Substring(e, 0, ob);
         let close_opt: Option<Int> = FindMatchingBracket(e, ob);
-        if IsIdentifier(pfx) && IsSome(close_opt) && UnwrapOption(close_opt) == StringLength(e) - 1 {
-            if LookupKindType(env, pfx, "v") == "ArrayString" {
-                return "String";
+        if IsSome(close_opt) && UnwrapOption(close_opt) == StringLength(e) - 1 {
+            let pfx_kind: String = LookupKindType(env, pfx, "v");
+            if StringLength(pfx_kind) == 0 {
+                pfx_kind = ExprMemberFieldType(pfx, env);
             }
-            if LookupKindType(env, pfx, "v") == "ArrayCodegenAstTextNode" {
-                return "CodegenAstTextNode";
+            let pfx_elem_kind: String = ExprCollectionElementKind(pfx_kind);
+            if StringLength(pfx_elem_kind) > 0 {
+                return pfx_elem_kind;
             }
-            return "Int";
         }
     }
     return "Int";

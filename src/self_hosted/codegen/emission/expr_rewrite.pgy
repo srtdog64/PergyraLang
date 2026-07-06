@@ -1,7 +1,3 @@
-// src/self_hosted/codegen/emission/expr_rewrite.pgy
-//
-// Expression lowering owner for self-host C emission.
-
 import "../text/text_owner.pgy";
 import "../text/expr_scan.pgy";
 import "../type_facts/type_env.pgy";
@@ -296,6 +292,16 @@ func RewriteStructLiteralCallArg(expr: String, expected_type: String, env: Strin
                 cval = RewriteExpr(val, env);
             } else if ftype == "Int" || ftype == "Bool" {
                 cval = IntEval(val, env);
+            } else if StartsWith(ftype, "Array<") {
+                let array_kind: String = CollectionRuntimeKindFromTypeName(ftype);
+                let array_val: String = StringTrim(val);
+                if StringLength(array_val) > 0 && CodegenCharAt(array_val, 0) == "[" {
+                    Die(Concat("array struct argument field must consume a named array value: ", ftype));
+                }
+                cval = RewriteExpr(array_val, env);
+                if StringLength(array_kind) == 0 {
+                    Die(Concat("unsupported struct argument array field type: ", ftype));
+                }
             } else if LookupKindType(env, ftype, "s") == "struct" {
                 cval = RewriteStructLiteralCallArg(val, ftype, env);
             } else if LookupKindType(env, ftype, "enum") == "payload_free" {
@@ -543,21 +549,13 @@ func RewriteTokens(e: String, env: String) -> String {
     let runwrap: String = ReplaceAllOutsideStrings(runwrapor, "Unwrap(", Concat(OptionResultRuntimeCResultUnwrapFn(), "("));
     let tf: String = ReplaceAllOutsideStrings(runwrap, "ToFloat(", Concat(StringRuntimeCToFloatFn(), "("));
     let p: String = ReplaceAllOutsideStrings(tf, "ToString(", Concat(StringRuntimeCToStringFn(), "("));
-    // `Concat(a, b)` lowers through the string runtime concat helper.
-    // so it lowers recursively and inside arbitrary call arguments.
     return RewriteBoolLiterals(ReplaceAllOutsideStrings(p, "Concat(", Concat(StringRuntimeCConcatFn(), "(")));
 }
 
-// Emit a C integer-valued (or boolean) expression from the AST's parenthesized
-// infix, with array/builtin rewrites applied.
 func IntEval(expr: String, env: String) -> String {
     return RewriteExpr(expr, env);
 }
 
-// Emit a C string-valued (char*) expression. In a confirmed string context a
-// top-level `+` is the concatenation operator (the operands are strings by
-// construction), so it lowers through the string runtime concat helper. Everything else
-// flows through the token pipeline.
 func StrEval(expr: String, env: String) -> String {
     let e: String = StripOuterParens(expr);
     let p_opt: Option<Int> = FindTopLevelPlus(e);
@@ -580,9 +578,6 @@ func StrEval(expr: String, env: String) -> String {
     return RewriteExpr(StringTrim(expr), env);
 }
 
-// Wrap a condition in C parens unless it is already a single parenthesized
-// group. `(a > b)` stays as-is; `flag` becomes `(flag)`; `(a) && (b)` is
-// wrapped to `((a) && (b))`.
 func WrapCond(cond: String, env: String) -> String {
     let c: String = StringTrim(cond);
     let n: Int = StringLength(c);
@@ -593,8 +588,3 @@ func WrapCond(cond: String, env: String) -> String {
     }
     return Concat("(", Concat(RewriteExpr(c, env), ")"));
 }
-
-// ---- Statement emitters ------------------------------------------------
-
-// `Let: <name> : Int|String = <expr>`. Registers the variable's type into the
-// environment box and emits a typed C declaration.

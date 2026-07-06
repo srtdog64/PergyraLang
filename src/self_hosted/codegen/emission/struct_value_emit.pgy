@@ -3,6 +3,7 @@
 import "../text/text_owner.pgy";
 import "../text/expr_scan.pgy";
 import "../type_facts/type_env.pgy";
+import "../runtime_abi/collection_runtime_owner.pgy";
 import "expr_rewrite.pgy";
 
 // Emit a C struct-valued expression: a `Name(f: v, ...)` literal becomes a
@@ -74,6 +75,16 @@ func EmitStructLit(expr: String, env: String) -> String {
                 cval = RewriteExpr(val, env);
             } else if ftype == "Int" || ftype == "Bool" {
                 cval = IntEval(val, env);
+            } else if StartsWith(ftype, "Array<") {
+                let array_kind: String = CollectionRuntimeKindFromTypeName(ftype);
+                let array_val: String = StringTrim(val);
+                if StringLength(array_val) > 0 && CodegenCharAt(array_val, 0) == "[" {
+                    Die(Concat("array struct initializer field must consume a named array value: ", ftype));
+                }
+                cval = RewriteExpr(array_val, env);
+                if StringLength(array_kind) == 0 {
+                    Die(Concat("unsupported struct initializer array field type: ", ftype));
+                }
             } else if LookupKindType(env, ftype, "s") == "struct" {
                 cval = EmitStructValue(val, ftype, env);
             } else if LookupKindType(env, ftype, "enum") == "payload_free" {
