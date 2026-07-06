@@ -280,16 +280,12 @@ func CompilerHarnessAirGraphJsonValidatorMissingKeyName() -> String {
     return "summary";
 }
 
-func CompilerHarnessAirGraphJsonValidatorMissingKeyFindingField() -> String {
-    return "missing_keys";
-}
-
-func CompilerHarnessAirGraphJsonValidatorMissingKeyFindingValue() -> String {
-    return "1";
+func CompilerHarnessAirGraphJsonValidatorMissingKeyExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/air_graph_json_validator/expected/missing_summary.json";
 }
 
 func CompilerHarnessAirGraphJsonValidatorPathCount() -> Int {
-    return 10;
+    return 9;
 }
 
 func CompilerHarnessAirGraphJsonValidatorPathAt(index: Int) -> String {
@@ -301,13 +297,12 @@ func CompilerHarnessAirGraphJsonValidatorPathAt(index: Int) -> String {
     if index == 5 { return CompilerHarnessAirGraphJsonValidatorLiveSourcePath(); }
     if index == 6 { return CompilerHarnessAirGraphJsonValidatorCapabilityLiveSourcePath(); }
     if index == 7 { return CompilerHarnessAirGraphJsonValidatorMissingKeyName(); }
-    if index == 8 { return CompilerHarnessAirGraphJsonValidatorMissingKeyFindingField(); }
-    if index == 9 { return CompilerHarnessAirGraphJsonValidatorMissingKeyFindingValue(); }
+    if index == 8 { return CompilerHarnessAirGraphJsonValidatorMissingKeyExpectedJsonPath(); }
     return "";
 }
 
 func CompilerHarnessAirGraphJsonValidatorReady() -> Bool {
-    if CompilerHarnessAirGraphJsonValidatorPathCount() != 10 {
+    if CompilerHarnessAirGraphJsonValidatorPathCount() != 9 {
         return false;
     }
     let i: Int = 0;

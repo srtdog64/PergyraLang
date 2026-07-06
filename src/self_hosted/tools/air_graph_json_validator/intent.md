@@ -92,7 +92,7 @@ The parity rung (`tests/self_hosted/parity/`) asserts:
 - The Pergyra origin exits `0` on the committed fixture.
 - Emitted JSON byte-matches `expected/clean.json`.
 - Synthetic missing-key fixture (`summary` key stripped) yields `rc=1` and
-  `ok:false`.
+  byte-matches `expected/missing_summary.json`.
 - Live `pgy --air-json` re-derived output still matches both committed
   fixtures (drift guard).
 

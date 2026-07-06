@@ -49,8 +49,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 10 ]]; then
-    echo "[self-host-parity:air-graph-json] TestHarness manifest expected 10 air-graph-json paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 9 ]]; then
+    echo "[self-host-parity:air-graph-json] TestHarness manifest expected 9 air-graph-json paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -62,19 +62,18 @@ CAP_FIXTURE_REL="${harness_paths[4]}"
 AIR_SOURCE_REL="${harness_paths[5]}"
 AIR_CAP_SOURCE_REL="${harness_paths[6]}"
 MISSING_KEY_NAME="${harness_paths[7]}"
-MISSING_KEY_FINDING_FIELD="${harness_paths[8]}"
-MISSING_KEY_FINDING_VALUE="${harness_paths[9]}"
+EXPECTED_MISSING_KEY_JSON_FILE="$ROOT_DIR/${harness_paths[8]}"
 FIXTURE_FILE="$ROOT_DIR/$FIXTURE_REL"
 CAP_FIXTURE_FILE="$ROOT_DIR/$CAP_FIXTURE_REL"
 AIR_SOURCE="$ROOT_DIR/$AIR_SOURCE_REL"
 AIR_CAP_SOURCE="$ROOT_DIR/$AIR_CAP_SOURCE_REL"
 
-if [[ -z "$MISSING_KEY_NAME" || -z "$MISSING_KEY_FINDING_FIELD" || -z "$MISSING_KEY_FINDING_VALUE" ]]; then
+if [[ -z "$MISSING_KEY_NAME" ]]; then
     echo "[self-host-parity:air-graph-json] invalid TestHarness missing-key row" >&2
     exit 1
 fi
 
-for path in "$PERGYRA_TOOL_SOURCE" "$AIR_EVIDENCE_OWNER" "$EXPECTED_JSON_FILE" "$FIXTURE_FILE" "$CAP_FIXTURE_FILE" "$AIR_SOURCE" "$AIR_CAP_SOURCE"; do
+for path in "$PERGYRA_TOOL_SOURCE" "$AIR_EVIDENCE_OWNER" "$EXPECTED_JSON_FILE" "$EXPECTED_MISSING_KEY_JSON_FILE" "$FIXTURE_FILE" "$CAP_FIXTURE_FILE" "$AIR_SOURCE" "$AIR_CAP_SOURCE"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:air-graph-json] missing input: $path" >&2
         exit 1
@@ -260,16 +259,17 @@ if [[ "$NEG_RC" -ne 1 ]]; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq '"ok":false' <<<"$NEG_OUT"; then
-    echo "[self-host-parity:air-graph-json] missing-key fixture expected ok:false" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "\"${MISSING_KEY_FINDING_FIELD}\":${MISSING_KEY_FINDING_VALUE}" <<<"$NEG_OUT"; then
-    echo "[self-host-parity:air-graph-json] missing-key fixture expected ${MISSING_KEY_FINDING_FIELD}:${MISSING_KEY_FINDING_VALUE}" >&2
-    printf '%s\n' "$NEG_OUT" >&2
+NEG_JSON="$(printf '%s\n' "$NEG_OUT" \
+    | tr -d '\r' \
+    | grep -F 'pgy.selfhost.air-graph-validator.v1' \
+    | tail -n 1)"
+EXPECTED_NEG_JSON="$(cat "$EXPECTED_MISSING_KEY_JSON_FILE")"
+if [[ "$NEG_JSON" != "$EXPECTED_NEG_JSON" ]]; then
+    echo "[self-host-parity:air-graph-json] missing-key JSON parity FAIL" >&2
+    echo "expected: $EXPECTED_NEG_JSON" >&2
+    echo "actual:   $NEG_JSON" >&2
     exit 1
 fi
 
 assert_llvm_leg "self-host-parity:air-graph-json" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$FIXTURE_REL" "$CAP_FIXTURE_REL"
-echo "[self-host-parity:air-graph-json] rung-2 parity ok (expected-json clean; missing-key rc=1; live-drift=$DRIFT_GUARD)"
+echo "[self-host-parity:air-graph-json] rung-2 parity ok (expected-json clean; missing-key expected-json; live-drift=$DRIFT_GUARD)"

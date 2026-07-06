@@ -99,10 +99,10 @@ scratch file writer, but no longer owns which live AIR back-reference is
 corrupted to prove the fail-closed `dangling_reference` path.
 
 TestHarness delta, 2026-07-06: `air_graph_json_validator_parity.sh` now gets
-the missing top-level key name, expected finding field, and expected finding
-value from `test_harness_tool_paths_owner.pgy`. Shell remains the scratch file
-writer, but no longer owns which AIR graph root key is stripped or which finding
-counter proves the fail-closed missing-key path.
+the missing top-level key name and expected missing-key JSON artifact from
+`test_harness_tool_paths_owner.pgy`. Shell remains the scratch file writer, but
+no longer owns which AIR graph root key is stripped, which finding kind appears,
+or which counter proves the fail-closed missing-key path.
 
 TestHarness delta, 2026-07-06: `stable_subset_section_checker_parity.sh` now
 gets the missing-section anchor and expected missing-section JSON artifact from

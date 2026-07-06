@@ -1580,8 +1580,7 @@ require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'PERG
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'FIXTURE_REL="${harness_paths[3]}"'
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'CAP_FIXTURE_REL="${harness_paths[4]}"'
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'MISSING_KEY_NAME="${harness_paths[7]}"'
-require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'MISSING_KEY_FINDING_FIELD="${harness_paths[8]}"'
-require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'MISSING_KEY_FINDING_VALUE="${harness_paths[9]}"'
+require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'EXPECTED_MISSING_KEY_JSON_FILE="$ROOT_DIR/${harness_paths[8]}"'
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" '"$CLEAN_BIN" "$FIXTURE_REL" "$CAP_FIXTURE_REL"'
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "compare_clean_json_with_owner"
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "compare_air_json_file_with_owner"
@@ -1590,9 +1589,15 @@ require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "pgy_
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "pgy_selfhost_path_relative_to_root"
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "air_json"
 require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "expected-json clean"
+require_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "missing-key JSON parity FAIL"
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 'EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"'
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" 's/"summary":\{[^}]*\},//'
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" '"missing_keys":1'
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" '"ok":false'
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "MISSING_KEY_FINDING_FIELD"
+reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "MISSING_KEY_FINDING_VALUE"
+reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessAirGraphJsonValidatorMissingKeyFindingField"
+reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessAirGraphJsonValidatorMissingKeyFindingValue"
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "SHELL_INTENTS="
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "SHELL_BOUNDARIES="
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "SHELL_EVIDENCE="
@@ -2121,10 +2126,10 @@ require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func 
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorLiveSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorCapabilityLiveSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorMissingKeyName"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorMissingKeyFindingField"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorMissingKeyFindingValue"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorMissingKeyExpectedJsonPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorPathAt"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorReady"
+require_file "src/self_hosted/tools/air_graph_json_validator/expected/missing_summary.json"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDiagnosticCatalogSuiteName"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDiagnosticCatalogToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDiagnosticCatalogExpectedJsonPath"

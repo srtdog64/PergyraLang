@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - AIR graph missing-key verdict consumes artifact
+
+- Added a TestHarness-owned expected JSON artifact for the AIR graph
+  validator's synthetic missing-`summary` fixture.
+- Repointed `air_graph_json_validator_parity.sh` so shell still writes the
+  scratch missing-key fixture and checks `rc=1`, but compares the full negative
+  verdict against the committed artifact instead of grepping `ok:false`,
+  `missing_keys`, or finding fields.
+- Tightened the component contract against reintroducing shell-owned AIR graph
+  missing-key verdict interpretation.
+
 ## 2026-07-06 - Doc-link dead-link verdict consumes artifact owner
 
 - Added a TestHarness-owned expected JSON artifact for the doc-link synthetic
