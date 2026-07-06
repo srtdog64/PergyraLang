@@ -25,6 +25,16 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Linter and runtime-boundary parity use source owners in place
+
+- Repointed `linter_parity.sh` and `runtime_boundary_checker_parity.sh` so their
+  TestHarness source rows are passed to the compiler directly.
+- Removed the build-dir `main.pgy` aliases from both parity runners; these
+  single-source tools no longer create shell-owned shadow source files before
+  compilation.
+- Tightened the component contract so the local source-copy paths cannot return
+  to these runners.
+
 ## 2026-07-06 - Production size parity uses source owners in place
 
 - Repointed `production_c_size_checker_parity.sh` and

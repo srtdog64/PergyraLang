@@ -2235,9 +2235,13 @@ reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'llvm_out="$(cd "$ROO
 require_text "tests/self_hosted/parity/linter_parity.sh" "pgy_selfhost_compare_expected_text_artifact_with_owner"
 require_text "tests/self_hosted/parity/linter_parity.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/linter_parity.sh" '"linter-parity-paths"'
+require_text "tests/self_hosted/parity/linter_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/linter_parity.sh" 'source_arg="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 require_text "tests/self_hosted/parity/linter_parity.sh" 'FIXTURE_REL="${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/linter_parity.sh" '"diagnostics"'
 reject_text "tests/self_hosted/parity/linter_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/linter/main.pgy"'
+reject_text "tests/self_hosted/parity/linter_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
+reject_text "tests/self_hosted/parity/linter_parity.sh" 'cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"'
 reject_text "tests/self_hosted/parity/linter_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/linter/expected/diagnostics.json"'
 reject_text "tests/self_hosted/parity/linter_parity.sh" 'FIXTURE_FILE="$ROOT_DIR/src/self_hosted/tools/linter/fixture.pgy"'
 reject_text "tests/self_hosted/parity/linter_parity.sh" 'EXPECTED_JSON="$(tr -d'
@@ -2371,11 +2375,15 @@ reject_text "src/self_hosted/tools/runtime_boundary_checker/main.pgy" 'ArrayPush
 reject_text "src/self_hosted/tools/runtime_boundary_checker/main.pgy" 'ArrayPush(terms, "The native runtime kernel remains C")'
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" '"runtime-boundary-paths"'
+require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" '"$CLEAN_BIN" --terms'
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "TERMS_FILE="
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "required_count="
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "strip_pair="
 reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/runtime_boundary_checker/main.pgy"'
+reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
+reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"'
 reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/runtime_boundary_checker/expected/clean.json"'
 reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'required_terms=('
 reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'Portable runtime policy can move to Pergyra'

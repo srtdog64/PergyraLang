@@ -48,7 +48,6 @@ if [[ "${#harness_paths[@]}" -ne 3 ]]; then
 fi
 
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
-PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
 FIXTURE_REL="${harness_paths[2]}"
 FIXTURE_FILE="$ROOT_DIR/$FIXTURE_REL"
@@ -60,8 +59,6 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$FIXTURE_FILE"; do
     fi
 done
 
-cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
-
 run_linter_backend() {
     local backend="$1"
     local out_bin="$PERGYRA_TOOL_BUILD_DIR/linter-$backend.exe"
@@ -69,7 +66,7 @@ run_linter_backend() {
     local run_err="$PERGYRA_TOOL_BUILD_DIR/linter-$backend.err"
     local source_arg
     local out_arg
-    source_arg="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
+    source_arg="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
     out_arg="$(pgy_path_for_compiler "$PGY" "$out_bin")"
     if ! (cd "$ROOT_DIR" && "$PGY" "$source_arg" --backend="$backend" -o "$out_arg" \
         >"$compile_log" 2>&1); then

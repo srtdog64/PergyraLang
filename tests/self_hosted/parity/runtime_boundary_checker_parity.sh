@@ -47,7 +47,6 @@ if [[ "${#harness_paths[@]}" -ne 2 ]]; then
 fi
 
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
-PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
 
 if [[ ! -f "$PERGYRA_TOOL_SOURCE" ]]; then
@@ -59,8 +58,7 @@ if [[ ! -f "$EXPECTED_JSON_FILE" ]]; then
     exit 1
 fi
 
-cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
-PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
+PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
 
 CLEAN_BIN="$PERGYRA_TOOL_BUILD_DIR/runtime_boundary_checker_c.exe"
 CLEAN_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/runtime_boundary_checker_c.compile.log"
