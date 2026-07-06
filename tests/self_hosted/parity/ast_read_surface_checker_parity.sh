@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Rung 2 parity for the AST read surface checker (2026-06-15).
 #
-# The shell smoke remains the coverage oracle over the shared ratchet spec.
-# The Pergyra tool proves the same literal counts by walking each metric scope
-# through DirWalk.
+# The self-hosted checker owns the clean ratchet report by walking each metric
+# scope through DirWalk. The shell AST-read smoke remains a separate production
+# ratchet gate, not this parity rung's clean oracle.
 
 set -euo pipefail
 
@@ -59,8 +59,6 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$RATCHET_FILE"; do
     fi
 done
 
-bash "$ROOT_DIR/tests/ast_read_surface_smoke.sh" >/dev/null
-
 PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
 
 CLEAN_BIN="$PERGYRA_TOOL_BUILD_DIR/ast_read_surface_c.exe"
@@ -87,69 +85,6 @@ if [[ "$P_RC" -ne 0 ]]; then
 fi
 if ! grep -Fq 'pgy.selfhost.ast-read-surface.v1' <<<"$PERGYRA_OUT"; then
     echo "[self-host-parity:ast-read-surface] schema header missing" >&2
-    exit 1
-fi
-
-SHELL_ENUM=0
-SHELL_CODEGEN=0
-SHELL_COMPILER=0
-SHELL_SOURCE_DECL_CODEGEN=0
-SHELL_SOURCE_DECL_COMPILER=0
-SHELL_ROUTINE_SOURCE_DECL_CODEGEN=0
-while IFS='|' read -r kind pattern ceiling scope; do
-    [[ -n "$kind" ]] || continue
-    n="$((cd "$ROOT_DIR" && grep -R -F -o "$pattern" "$scope" --include='*.c' 2>/dev/null || true) \
-        | wc -l | tr -d ' ')"
-    case "$kind" in
-        enum)
-            SHELL_ENUM=$((SHELL_ENUM + n))
-            ;;
-        source_ast_codegen)
-            SHELL_CODEGEN=$((SHELL_CODEGEN + n))
-            ;;
-        source_ast_compiler)
-            SHELL_COMPILER=$((SHELL_COMPILER + n))
-            ;;
-        source_decl_codegen)
-            SHELL_SOURCE_DECL_CODEGEN=$((SHELL_SOURCE_DECL_CODEGEN + n))
-            ;;
-        source_decl_compiler)
-            SHELL_SOURCE_DECL_COMPILER=$((SHELL_SOURCE_DECL_COMPILER + n))
-            ;;
-        routine_source_decl_codegen)
-            SHELL_ROUTINE_SOURCE_DECL_CODEGEN=$((SHELL_ROUTINE_SOURCE_DECL_CODEGEN + n))
-            ;;
-    esac
-done < "$RATCHET_FILE"
-
-if ! grep -Fq "\"enum\":${SHELL_ENUM}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:ast-read-surface] enum parity FAIL (shell=${SHELL_ENUM})" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "\"source_ast_codegen\":${SHELL_CODEGEN}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:ast-read-surface] source_ast_codegen parity FAIL (shell=${SHELL_CODEGEN})" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "\"source_ast_compiler\":${SHELL_COMPILER}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:ast-read-surface] source_ast_compiler parity FAIL (shell=${SHELL_COMPILER})" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "\"source_decl_codegen\":${SHELL_SOURCE_DECL_CODEGEN}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:ast-read-surface] source_decl_codegen parity FAIL (shell=${SHELL_SOURCE_DECL_CODEGEN})" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "\"source_decl_compiler\":${SHELL_SOURCE_DECL_COMPILER}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:ast-read-surface] source_decl_compiler parity FAIL (shell=${SHELL_SOURCE_DECL_COMPILER})" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "\"routine_source_decl_codegen\":${SHELL_ROUTINE_SOURCE_DECL_CODEGEN}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:ast-read-surface] routine_source_decl_codegen parity FAIL (shell=${SHELL_ROUTINE_SOURCE_DECL_CODEGEN})" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
     exit 1
 fi
 
@@ -194,4 +129,4 @@ if ! grep -Fq '"kind":"surface_growth"' <<<"$NEG_OUT"; then
 fi
 
 assert_llvm_leg "self-host-parity:ast-read-surface" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR"
-echo "[self-host-parity:ast-read-surface] rung-2 parity ok (enum=$SHELL_ENUM codegen=$SHELL_CODEGEN compiler=$SHELL_COMPILER source_decl_codegen=$SHELL_SOURCE_DECL_CODEGEN source_decl_compiler=$SHELL_SOURCE_DECL_COMPILER routine_source_decl_codegen=$SHELL_ROUTINE_SOURCE_DECL_CODEGEN; growth-fixture rc=1)"
+echo "[self-host-parity:ast-read-surface] rung-2 parity ok (expected-json clean; growth-fixture rc=1)"

@@ -4291,3 +4291,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Promoted `air_graph_json_validator/run_owner.pgy` into the real-source
   semantic selfcheck manifest, raising the accepted self-host owner/source count
   to 131.
+
+### 2026-07-06 -- AST read surface parity removes shell clean oracle
+
+- Repointed `ast_read_surface_checker_parity.sh` so the clean report verdict is
+  only the self-hosted checker JSON compared against committed
+  `expected/clean.json` through the shared ArtifactZone/TestHarness comparator.
+- Removed the parity script's duplicate shell `grep`/`wc` clean-count
+  recomputation and stopped invoking `tests/ast_read_surface_smoke.sh` inside
+  the self-hosted parity rung. The shell smoke remains a separate production
+  ratchet gate over the same ratchet spec.
+- Kept the synthetic source_ast growth fixture so the self-hosted owner still
+  proves fail-closed behavior when the measured surface grows.
+- Tightened `self_hosted_component_contract_smoke.sh` so the shell clean-count
+  oracle and embedded shell smoke cannot return to this parity rung.

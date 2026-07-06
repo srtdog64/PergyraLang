@@ -25,9 +25,12 @@ done
 
 require_text "$DOC_REL" "not a language feature"
 require_text "$DOC_REL" "not part of the Fortran-derived"
+require_text "$DOC_REL" "language/compiler competitiveness axis"
+require_text "$DOC_REL" "codebase gate for future"
 require_text "$DOC_REL" "pattern -> wrong_boundary -> turn_toward -> owner -> gate"
 require_text "$DOC_REL" "machine-readable source"
 require_text "$DOC_REL" "Adding a sentinel is allowed only when it names a real owner boundary."
+require_text "$FORTRAN_REL" "language/compiler capability contract"
 require_text "$INDEX_REL" "169_agent_boundary_sentinel_library.md"
 require_text "$INDEX_REL" "LLM/agent boundary sentinel library"
 

@@ -1,8 +1,9 @@
 # AST Read Surface Checker -- Intent / Contract
 
-**Status:** *rung-2 DirWalk-owned* (2026-06-15). This tool mirrors
-`tests/ast_read_surface_smoke.sh` in Pergyra so the CFG/MIR source-of-truth
-ratchet is checked by both the shell gate and a self-hosted audit tool.
+**Status:** *rung-2 DirWalk-owned* (2026-07-06). This tool owns the
+CFG/MIR source-of-truth ratchet report inside Pergyra. The shell
+`tests/ast_read_surface_smoke.sh` remains a separate production ratchet gate,
+not the clean oracle for this self-hosted parity rung.
 
 ## Intent
 
@@ -49,16 +50,19 @@ Exit code: `0` on `ok:true`, `1` on `ok:false`.
 
 ## Oracle
 
-The shell oracle is `tests/ast_read_surface_smoke.sh`. The parity rung asserts:
+The clean oracle is the committed expected JSON artifact
+`expected/clean.json`. The parity rung asserts:
 
-- the shell smoke passes against the shared ratchet spec;
 - the Pergyra tool exits `0` on the clean repo;
-- emitted JSON byte-matches `expected/clean.json`;
-- `enum`, `source_ast_codegen`, `source_ast_compiler`, `source_decl_codegen`,
-  `source_decl_compiler`, and `routine_source_decl_codegen` counts match shell
-  recursive grep over the same metric scopes;
+- emitted JSON byte-matches `expected/clean.json` through the shared
+  ArtifactZone/TestHarness comparator path;
 - a synthetic source_ast growth fixture exits `1` with a
-  `"kind":"surface_growth"` finding.
+  `"kind":"surface_growth"` finding;
+- both C and LLVM legs compile the same self-hosted checker.
+
+The parity rung must not recompute the clean counts in shell. If the count
+algorithm is wrong, fix the self-hosted owner or add a negative fixture that
+forces the owner to fail closed.
 
 ## Not In Scope
 

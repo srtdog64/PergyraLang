@@ -1716,9 +1716,19 @@ require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'PERG
 require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"'
 require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'RATCHET_REL="${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" '"$CLEAN_BIN"'
+require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" "expected-json clean"
 reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/ast_read_surface_checker/main.pgy"'
 reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/ast_read_surface_checker/expected/clean.json"'
 reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'RATCHET_REL="tests/ast_read_surface_ratchet.txt"'
+reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'bash "$ROOT_DIR/tests/ast_read_surface_smoke.sh"'
+reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" "SHELL_ENUM="
+reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" "SHELL_CODEGEN="
+reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" "SHELL_COMPILER="
+reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" "SHELL_SOURCE_DECL_CODEGEN="
+reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" "SHELL_SOURCE_DECL_COMPILER="
+reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" "SHELL_ROUTINE_SOURCE_DECL_CODEGEN="
+reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" "enum parity FAIL"
+reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" "source_ast_codegen parity FAIL"
 require_text "src/self_hosted/tools/production_c_size_checker/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/production_c_size_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/production_c_size_checker/main.pgy" "JsonEmitArray(findings)"

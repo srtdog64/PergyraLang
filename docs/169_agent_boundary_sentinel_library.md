@@ -3,8 +3,9 @@
 Status: `repository-gate`, agent-facing guidance (2026-07-06)
 
 This document is not a language feature and not part of the Fortran-derived
-data-parallel evidence work. It is a repository guard for future LLM-written
-and agent-written changes.
+data-parallel evidence work. Fortran-derived parallel evidence is a Pergyra
+language/compiler competitiveness axis; this file is a codebase gate for future
+LLM-written and agent-written changes.
 
 The rule is simple: when a recognizable code pattern appears, the agent should
 stop treating it as a local implementation detail and turn toward the named
