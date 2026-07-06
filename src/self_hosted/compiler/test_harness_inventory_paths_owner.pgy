@@ -87,8 +87,8 @@ func CompilerHarnessExamplesInventoryExpectedJsonPath() -> String {
     return "src/self_hosted/tools/examples_inventory_checker/expected/clean.json";
 }
 
-func CompilerHarnessExamplesInventoryDriftFindingKind() -> String {
-    return "inventory_count_drift";
+func CompilerHarnessExamplesInventoryCountDriftExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/examples_inventory_checker/expected/count_drift.json";
 }
 
 func CompilerHarnessExamplesInventoryPathCount() -> Int {
@@ -98,7 +98,7 @@ func CompilerHarnessExamplesInventoryPathCount() -> Int {
 func CompilerHarnessExamplesInventoryPathAt(index: Int) -> String {
     if index == 0 { return CompilerHarnessExamplesInventoryToolSourcePath(); }
     if index == 1 { return CompilerHarnessExamplesInventoryExpectedJsonPath(); }
-    if index == 2 { return CompilerHarnessExamplesInventoryDriftFindingKind(); }
+    if index == 2 { return CompilerHarnessExamplesInventoryCountDriftExpectedJsonPath(); }
     return "";
 }
 

@@ -66,7 +66,7 @@ The parity rung (`tests/self_hosted/parity/`) asserts:
 - The Pergyra origin exits `0` on the clean repo.
 - Emitted JSON byte-matches `expected/clean.json`.
 - A synthetic count-drift fixture (copy top-level examples and omit one
-  file) yields `rc=1` with a `"kind":"inventory_count_drift"` finding.
+  file) yields `rc=1` and byte-matches `expected/count_drift.json`.
 
 ## Why Now
 

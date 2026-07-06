@@ -92,6 +92,18 @@ rewrite history.
   string, and tightened the component contract against reintroducing shell-owned
   `ok:false` or finding-kind interpretation for this parity runner.
 
+## 2026-07-06 - Examples inventory drift verdict consumes artifact owner
+
+- Added a TestHarness-owned expected JSON artifact for the synthetic
+  examples-inventory count-drift fixture.
+- Repointed `examples_inventory_checker_parity.sh` so shell only handles
+  scratch example omission and `rc=1`; the full count-drift verdict is compared
+  through `backend_output_comparator` as `run_output`.
+- Removed the examples-inventory finding-kind row from
+  `test_harness_inventory_paths_owner.pgy`, and tightened the component
+  contract against reintroducing shell-owned `inventory_count_drift`
+  interpretation.
+
 ## 2026-07-06 - TestHarness manifest source consumes path owner projection
 
 - Added `CompilerTestHarnessManifestPath()` to the compiler path manifest and

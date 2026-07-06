@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.examples-inventory.v1","ok":false,"source":{"dirwalk_owner":"examples","expected_examples":119},"counts":{"examples":118,"missing":1,"empty":0,"max_lines":544},"findings":[{"kind":"inventory_count_drift","path":"examples","location":"examples"}]}

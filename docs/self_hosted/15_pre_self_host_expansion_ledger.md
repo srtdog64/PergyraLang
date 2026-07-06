@@ -232,6 +232,13 @@ compiles and runs the manifest-projected examples-inventory checker source in
 place. It no longer creates a build-dir `main.pgy` alias or copies the
 self-hosted `lib` tree beside that alias before invoking the compiler.
 
+ArtifactZone delta, 2026-07-06: `examples_inventory_checker_parity.sh` now
+gets the synthetic count-drift expected JSON artifact from
+`test_harness_inventory_paths_owner.pgy` and compares the full negative verdict
+through `backend_output_comparator`. Shell still creates the missing-example
+fixture and checks `rc=1`, but no longer owns the `inventory_count_drift`
+finding-kind interpretation.
+
 TestHarness delta, 2026-07-06: `production_c_size_checker_parity.sh` and
 `production_header_size_checker_parity.sh` now compile and run their
 manifest-projected checker sources in place. They no longer create build-dir
@@ -457,12 +464,13 @@ gets its checker source and expected clean JSON through the
 `examples-inventory-paths` manifest suite and runs the compiled checker for
 both clean and drift fixtures.
 
-TestHarness delta, 2026-07-06: `examples_inventory_checker_parity.sh` now also
-gets the expected `inventory_count_drift` finding kind through the
-`examples-inventory-paths` manifest suite. Shell remains the synthetic fixture
-mutator, but it no longer owns the semantic finding-kind string. This is a
-repository-authoring/LLM guard, not the Fortran-derived data-parallel language
-plane.
+TestHarness delta, 2026-07-06: `examples_inventory_checker_parity.sh` now gets
+the expected `inventory_count_drift` verdict through the
+`examples-inventory-paths` manifest suite as
+`expected/count_drift.json`. Shell remains the synthetic fixture mutator, but
+it no longer owns the semantic finding-kind string or negative verdict shape.
+This is a repository-authoring/LLM guard, not the Fortran-derived
+data-parallel language plane.
 
 TestHarness delta, 2026-07-06: `module_manifest_resolver_parity.sh`,
 `stdlib_dispatch_inventory_checker_parity.sh`,

@@ -48,18 +48,14 @@ fi
 
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
-DRIFT_FINDING_KIND="${harness_paths[2]}"
+EXPECTED_DRIFT_JSON_FILE="$ROOT_DIR/${harness_paths[2]}"
 
-for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE"; do
+for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$EXPECTED_DRIFT_JSON_FILE"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:examples-inventory] missing input: $path" >&2
         exit 1
     fi
 done
-if [[ -z "$DRIFT_FINDING_KIND" ]]; then
-    echo "[self-host-parity:examples-inventory] missing TestHarness drift finding kind" >&2
-    exit 1
-fi
 
 PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
 
@@ -131,11 +127,16 @@ if [[ "$NEG_RC" -ne 1 ]]; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq "\"kind\":\"${DRIFT_FINDING_KIND}\"" <<<"$NEG_OUT"; then
-    echo "[self-host-parity:examples-inventory] count-drift fixture expected ${DRIFT_FINDING_KIND} finding" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
+NEG_JSON="$(printf '%s\n' "$NEG_OUT" \
+    | tr -d '\r' \
+    | grep -F 'pgy.selfhost.examples-inventory.v1' \
+    | tail -n 1)"
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:examples-inventory" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$EXPECTED_DRIFT_JSON_FILE" \
+    "$NEG_JSON" \
+    "run_output"
 
 assert_llvm_leg "self-host-parity:examples-inventory" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR"
 CLEAN_EXAMPLES="$(sed -n 's/.*"examples":\([0-9][0-9]*\).*/\1/p' <<<"$PERGYRA_JSON")"
