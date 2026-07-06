@@ -10,6 +10,8 @@ lower array-heavy code aggressively without guessing.
 This is a language/compiler capability contract and a Pergyra competitiveness
 axis. It belongs to Pergyra program semantics and target projection, not to
 repository authoring guidance, LLM/agent guardrails, or stdlib cataloging.
+It is meant to become user-visible language power after the supporting facts
+exist; it is not a repository hygiene library.
 
 The competitive claim is specific: Pergyra should make data-parallel intent,
 ownership, layout, and projection evidence explicit enough that future CPU,
@@ -27,7 +29,8 @@ There are two separate planes:
 
 The language plane may later become syntax, compiler facts, optimizations, and
 non-CPU projections. The repository-authoring plane must never be presented as a
-Pergyra program feature.
+Pergyra program feature, and this document must never become the owner for
+agent-writing warning rules.
 
 Fortran's useful effect is that array programs often give the compiler strong
 facts:

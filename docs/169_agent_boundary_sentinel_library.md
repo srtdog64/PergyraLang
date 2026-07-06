@@ -2,7 +2,8 @@
 
 Status: `repository-gate`, agent-facing guidance (2026-07-06)
 
-This document is not a language feature and not a stdlib package. It is not part of the Fortran-derived data-parallel evidence work. "Library" here means a
+This document is not a language feature and not a stdlib package. It is not imported by user programs, and it must not be sold as Pergyra parallel semantics.
+It is not part of the Fortran-derived data-parallel evidence work. "Library" here means a
 repository sentinel catalog and codebase-maintenance gate. Fortran-derived
 parallel evidence is a Pergyra language/compiler competitiveness axis; this
 file is a codebase gate for future LLM-written and agent-written changes.
@@ -43,6 +44,10 @@ Do not merge this catalog with data-parallel language work:
 If a change needs SIMD, NPU, tensor, worker-pool, or Fortran-class bulk lowering
 evidence, it belongs to the language plane. If a change needs "when this pattern
 appears, stop and turn toward this owner/gate", it belongs here.
+
+The failure mode this file prevents is not slow parallel code. It is
+LLM-authored code that reintroduces aliases, fallback paths, local parsers, or
+wrong owners after the project has already named the source-of-truth boundary.
 
 ## Contract
 

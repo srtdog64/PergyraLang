@@ -44,8 +44,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 5 ]]; then
-    echo "[self-host-parity:air-ref-integrity] TestHarness manifest expected 5 paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 6 ]]; then
+    echo "[self-host-parity:air-ref-integrity] TestHarness manifest expected 6 paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -54,8 +54,14 @@ AIR_GRAPH_SCAN_OWNER="$ROOT_DIR/${harness_paths[1]}"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[2]}"
 FIXTURE_REL="${harness_paths[3]}"
 DANGLING_FIXTURE_REL="${harness_paths[4]}"
+EXPECTED_FINDING_KIND="${harness_paths[5]}"
 FIXTURE_FILE="$ROOT_DIR/$FIXTURE_REL"
 DANGLING_FIXTURE_FILE="$ROOT_DIR/$DANGLING_FIXTURE_REL"
+
+if [[ -z "$EXPECTED_FINDING_KIND" ]]; then
+    echo "[self-host-parity:air-ref-integrity] missing expected finding kind row" >&2
+    exit 1
+fi
 
 for path in "$PERGYRA_TOOL_SOURCE" "$AIR_GRAPH_SCAN_OWNER" "$EXPECTED_JSON_FILE" "$FIXTURE_FILE" "$DANGLING_FIXTURE_FILE"; do
     if [[ ! -f "$path" ]]; then
@@ -115,8 +121,8 @@ if ! grep -Fq '"ok":false' <<<"$NEG_OUT"; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq '"kind":"dangling_edge_endpoint"' <<<"$NEG_OUT"; then
-    echo "[self-host-parity:air-ref-integrity] dangling fixture expected a dangling_edge_endpoint finding" >&2
+if ! grep -Fq "\"kind\":\"${EXPECTED_FINDING_KIND}\"" <<<"$NEG_OUT"; then
+    echo "[self-host-parity:air-ref-integrity] dangling fixture expected a ${EXPECTED_FINDING_KIND} finding" >&2
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi

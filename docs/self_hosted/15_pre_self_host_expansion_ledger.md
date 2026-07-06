@@ -121,6 +121,13 @@ compile and run their manifest-projected checker sources in place. They no
 longer create build-dir `main.pgy` aliases or copy `scan_owner.pgy` and the
 self-hosted `lib` tree beside those aliases before invoking the compiler.
 
+TestHarness delta, 2026-07-06: the five AIR graph consumer parity runners now
+get their expected negative finding kind from
+`test_harness_air_graph_paths_owner.pgy`. Shell still executes the negative
+fixture path or scratch mutation, but no longer owns which AIR graph finding
+kind proves duplicate-id, node-count, reachability, edge-reference, or
+live-reference fail-closed behavior.
+
 ArtifactZone delta, 2026-07-06: `air_graph_id_uniqueness_parity.sh` no longer
 recomputes the clean duplicate-id count with shell `grep`/`sort`/`uniq`.
 The clean output oracle is the TestHarness-projected `expected/clean.json`

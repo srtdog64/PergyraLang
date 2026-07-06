@@ -44,8 +44,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 8 ]]; then
-    echo "[self-host-parity:air-ref-live] TestHarness manifest expected 8 paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 9 ]]; then
+    echo "[self-host-parity:air-ref-live] TestHarness manifest expected 9 paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -58,8 +58,9 @@ NEG_FIXTURE_REL="${harness_paths[4]}"
 CORRUPT_FIELD="${harness_paths[5]}"
 CORRUPT_FROM_VALUE="${harness_paths[6]}"
 CORRUPT_TO_VALUE="${harness_paths[7]}"
+EXPECTED_FINDING_KIND="${harness_paths[8]}"
 
-if [[ -z "$NEG_FIXTURE_REL" || -z "$CORRUPT_FIELD" || -z "$CORRUPT_FROM_VALUE" || -z "$CORRUPT_TO_VALUE" ]]; then
+if [[ -z "$NEG_FIXTURE_REL" || -z "$CORRUPT_FIELD" || -z "$CORRUPT_FROM_VALUE" || -z "$CORRUPT_TO_VALUE" || -z "$EXPECTED_FINDING_KIND" ]]; then
     echo "[self-host-parity:air-ref-live] invalid TestHarness corrupt fixture row" >&2
     exit 1
 fi
@@ -125,8 +126,8 @@ if ! grep -Fq '"ok":false' <<<"$NEG_OUT"; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq '"kind":"dangling_reference"' <<<"$NEG_OUT"; then
-    echo "[self-host-parity:air-ref-live] corrupted fixture expected dangling_reference finding" >&2
+if ! grep -Fq "\"kind\":\"${EXPECTED_FINDING_KIND}\"" <<<"$NEG_OUT"; then
+    echo "[self-host-parity:air-ref-live] corrupted fixture expected ${EXPECTED_FINDING_KIND} finding" >&2
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi

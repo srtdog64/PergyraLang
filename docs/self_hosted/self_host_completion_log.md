@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - AIR graph finding kinds consume TestHarness owner
+
+- Extended the five AIR graph consumer path suites with their expected
+  negative finding kinds: duplicate ids, node-count mismatch, orphan reachability,
+  dangling edge endpoint, and live dangling reference.
+- Repointed the five AIR graph consumer parity runners so shell still executes
+  the negative fixture, but the finding kind expectation comes from
+  `test_harness_air_graph_paths_owner.pgy`.
+- Tightened the component contract against reintroducing hardcoded AIR graph
+  finding-kind assertions in shell.
+
 ## 2026-07-06 - Runtime boundary missing finding consumes TestHarness owner
 
 - Extended `runtime-boundary-paths` with the missing-term finding field and
