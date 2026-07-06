@@ -325,12 +325,19 @@ suite when callers omit an explicit comparator source. This keeps explicit
 source arguments for already-manifested runners, but removes the shared helper's
 direct comparator source default.
 
-TestHarness delta, 2026-07-05: `runtime_boundary_checker_parity.sh` now gets
-the checker source and expected clean JSON through the
-`runtime-boundary-paths` manifest suite, and it gets the required `(path, term)`
-rows from the compiled Pergyra checker's `--terms` manifest. Shell remains the
-external parity runner, but it no longer owns the runtime-boundary required-term
-list.
+TestHarness delta, 2026-07-06: `runtime_boundary_checker_parity.sh` now gets
+the checker source, expected clean JSON, and the missing-term fixture
+`(path, term)` through the `runtime-boundary-paths` manifest suite. It still
+gets the full required-term list from the compiled Pergyra checker's `--terms`
+manifest. Shell remains the external parity runner and scratch mutator, but it
+no longer decides which runtime-boundary term is stripped for the negative
+fixture.
+
+Plane note, 2026-07-06: this is repository-authoring guard work, not
+Fortran-derived data-parallel language work. The former keeps future
+LLM-written changes from drifting across owner boundaries; the latter remains a
+Pergyra semantics/projection competitiveness axis in
+`docs/168_fortran_parallel_evidence.md`.
 
 TestHarness delta, 2026-07-05: `doc_link_checker_parity.sh` now gets the
 checker source, expected clean JSON, and `docs/INDEX.md` input path through the

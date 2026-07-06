@@ -159,18 +159,28 @@ func CompilerHarnessRuntimeBoundaryExpectedJsonPath() -> String {
     return "src/self_hosted/tools/runtime_boundary_checker/expected/clean.json";
 }
 
+func CompilerHarnessRuntimeBoundaryMissingTermFixturePath() -> String {
+    return "src/self_hosted/runtime/README.md";
+}
+
+func CompilerHarnessRuntimeBoundaryMissingTermFixtureTerm() -> String {
+    return "The native runtime kernel remains C";
+}
+
 func CompilerHarnessRuntimeBoundaryPathCount() -> Int {
-    return 2;
+    return 4;
 }
 
 func CompilerHarnessRuntimeBoundaryPathAt(index: Int) -> String {
     if index == 0 { return CompilerHarnessRuntimeBoundaryToolSourcePath(); }
     if index == 1 { return CompilerHarnessRuntimeBoundaryExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessRuntimeBoundaryMissingTermFixturePath(); }
+    if index == 3 { return CompilerHarnessRuntimeBoundaryMissingTermFixtureTerm(); }
     return "";
 }
 
 func CompilerHarnessRuntimeBoundaryReady() -> Bool {
-    if CompilerHarnessRuntimeBoundaryPathCount() != 2 {
+    if CompilerHarnessRuntimeBoundaryPathCount() != 4 {
         return false;
     }
     let i: Int = 0;

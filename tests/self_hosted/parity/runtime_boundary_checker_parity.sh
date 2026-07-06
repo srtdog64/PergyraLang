@@ -41,13 +41,15 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 2 ]]; then
-    echo "[self-host-parity:runtime-boundary] TestHarness manifest expected 2 runtime-boundary paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 4 ]]; then
+    echo "[self-host-parity:runtime-boundary] TestHarness manifest expected 4 runtime-boundary rows, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
+MISSING_TERM_FIXTURE_PATH="${harness_paths[2]}"
+MISSING_TERM_FIXTURE_TERM="${harness_paths[3]}"
 
 if [[ ! -f "$PERGYRA_TOOL_SOURCE" ]]; then
     echo "[self-host-parity:runtime-boundary] missing Pergyra tool: $PERGYRA_TOOL_SOURCE" >&2
@@ -55,6 +57,10 @@ if [[ ! -f "$PERGYRA_TOOL_SOURCE" ]]; then
 fi
 if [[ ! -f "$EXPECTED_JSON_FILE" ]]; then
     echo "[self-host-parity:runtime-boundary] missing expected JSON: $EXPECTED_JSON_FILE" >&2
+    exit 1
+fi
+if [[ -z "$MISSING_TERM_FIXTURE_PATH" || -z "$MISSING_TERM_FIXTURE_TERM" ]]; then
+    echo "[self-host-parity:runtime-boundary] missing negative fixture row from TestHarness manifest" >&2
     exit 1
 fi
 
@@ -136,7 +142,7 @@ cleanup_neg_root() {
 }
 trap cleanup_neg_root EXIT
 
-strip_pair=""
+strip_pair_found=0
 while IFS= read -r pair; do
     [[ -n "$pair" ]] || continue
     rel="${pair%%|*}"
@@ -145,17 +151,15 @@ while IFS= read -r pair; do
     if [[ ! -f "$NEG_ROOT/$rel" ]]; then
         cp "$ROOT_DIR/$rel" "$NEG_ROOT/$rel"
     fi
-    if [[ -z "$strip_pair" && "$rel" == "src/self_hosted/runtime/README.md" ]]; then
-        strip_pair="$pair"
+    if [[ "$rel" == "$MISSING_TERM_FIXTURE_PATH" && "$term" == "$MISSING_TERM_FIXTURE_TERM" ]]; then
+        strip_pair_found=1
     fi
 done <"$TERMS_FILE"
-if [[ -z "$strip_pair" ]]; then
-    echo "[self-host-parity:runtime-boundary] term manifest missing runtime README fixture row" >&2
+if [[ "$strip_pair_found" -ne 1 ]]; then
+    echo "[self-host-parity:runtime-boundary] term manifest missing TestHarness negative fixture row" >&2
     exit 1
 fi
-strip_rel="${strip_pair%%|*}"
-strip_term="${strip_pair#*|}"
-grep -Fv "$strip_term" "$ROOT_DIR/$strip_rel" > "$NEG_ROOT/$strip_rel"
+grep -Fv "$MISSING_TERM_FIXTURE_TERM" "$ROOT_DIR/$MISSING_TERM_FIXTURE_PATH" > "$NEG_ROOT/$MISSING_TERM_FIXTURE_PATH"
 
 set +e
 NEG_OUT="$(cd "$NEG_ROOT" && "$CLEAN_BIN" 2>&1 | tr -d '\r')"
@@ -176,7 +180,7 @@ if ! grep -Fq '"missing":1' <<<"$NEG_OUT"; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq "$strip_term" <<<"$NEG_OUT"; then
+if ! grep -Fq "$MISSING_TERM_FIXTURE_TERM" <<<"$NEG_OUT"; then
     echo "[self-host-parity:runtime-boundary] missing-term fixture expected stripped term in findings" >&2
     printf '%s\n' "$NEG_OUT" >&2
     exit 1

@@ -313,6 +313,16 @@ rewrite history.
 - Tightened the component contract so the local source/scan-owner/lib copy paths
   cannot return to these consumer runners.
 
+## 2026-07-06 - Runtime boundary missing-term fixture consumes TestHarness owner
+
+- Added TestHarness-owned rows for the runtime-boundary missing-term fixture
+  path and term.
+- Repointed `runtime_boundary_checker_parity.sh` so shell verifies that row
+  against the checker `--terms` manifest and only performs scratch mutation.
+- Recorded the plane split explicitly: this slice is a repository/agent
+  boundary guard, while Fortran-derived parallel evidence remains a separate
+  language semantics and projection axis.
+
 ## 2026-07-06 - Module manifest and stdlib dispatch parity use source owners
 
 - Repointed `module_manifest_resolver_parity.sh` and
