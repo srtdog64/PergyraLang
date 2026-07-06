@@ -2251,6 +2251,19 @@ reject_text "tests/self_hosted/parity/linter_parity.sh" 'EXPECTED_JSON="$(tr -d'
 reject_text "tests/self_hosted/parity/linter_parity.sh" 'if [[ "$LLVM_JSON" != "$C_JSON" ]]'
 require_text "src/self_hosted/tools/linter/main.pgy" "let args: Array<String> = Args();"
 require_text "src/self_hosted/tools/linter/main.pgy" "target_path = args[0];"
+require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" '"ast-read-surface-paths"'
+require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
+require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'RATCHET_REL="${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" '"$CLEAN_BIN"'
+reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/ast_read_surface_checker/main.pgy"'
+reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
+reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"'
+reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'
+reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/ast_read_surface_checker/expected/clean.json"'
+reject_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" 'RATCHET_REL="tests/ast_read_surface_ratchet.txt"'
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/doc_link_checker/main.pgy" "JsonEmitArray(findings)"

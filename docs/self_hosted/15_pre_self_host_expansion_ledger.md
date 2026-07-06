@@ -237,6 +237,11 @@ the checker source, expected clean JSON, and `tests/ast_read_surface_ratchet.txt
 through the `ast-read-surface-paths` manifest suite, then runs the compiled
 checker binary for clean and growth fixtures.
 
+TestHarness delta, 2026-07-06: `ast_read_surface_checker_parity.sh` now
+compiles and runs the manifest-projected checker source in place. It no longer
+creates a build-dir `main.pgy` alias or copies the self-hosted `lib` tree
+beside that alias before invoking the compiler.
+
 TestHarness delta, 2026-07-05: `air_graph_json_validator_parity.sh` now gets
 the checker source, AIR evidence owner, expected clean JSON, committed AIR
 fixtures, and live AIR source paths through the
