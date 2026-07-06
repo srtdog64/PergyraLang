@@ -25,6 +25,16 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Parser parity uses source owner in place
+
+- Repointed `parser_parity.sh` so the `parser-parity-paths` TestHarness source
+  row is passed to the compiler directly.
+- Removed the build-dir `main.pgy` alias, copied parser owner files, and copied
+  `.tmp/self_hosted/lib` tree from the parity runner; fixture manifest emission
+  still comes from the compiled parser owner.
+- Tightened the component contract so the local parser/lib source-copy paths
+  cannot return to this runner.
+
 ## 2026-07-06 - Lexer parity uses source owner in place
 
 - Repointed `lexer_parity.sh` so the `lexer-parity-paths` TestHarness source

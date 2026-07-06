@@ -532,6 +532,7 @@ require_text "tests/self_hosted/parity/parser_parity.sh" "compare_parser_ast_wit
 require_text "tests/self_hosted/parity/parser_parity.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/parser_parity.sh" '"parser-parity-paths"'
 require_text "tests/self_hosted/parity/parser_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/parser_parity.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 require_text "tests/self_hosted/parity/parser_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[1]}"'
 require_text "tests/self_hosted/parity/parser_parity.sh" 'FIXTURE_DIR="$ROOT_DIR/${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/parser_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/${harness_paths[3]}"'
@@ -539,6 +540,10 @@ require_text "tests/self_hosted/parity/parser_parity.sh" "read_parser_fixture_ma
 require_text "tests/self_hosted/parity/parser_parity.sh" '"$manifest_bin" --fixture-manifest'
 require_text "tests/self_hosted/parity/parser_parity.sh" "ast_text"
 reject_text "tests/self_hosted/parity/parser_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/parser/main.pgy"'
+reject_text "tests/self_hosted/parity/parser_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
+reject_text "tests/self_hosted/parity/parser_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/parser/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"'
+reject_text "tests/self_hosted/parity/parser_parity.sh" 'LIB_BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/lib"'
+reject_text "tests/self_hosted/parity/parser_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"'
 reject_text "tests/self_hosted/parity/parser_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy"'
 reject_text "tests/self_hosted/parity/parser_parity.sh" 'FIXTURE_DIR="$ROOT_DIR/src/self_hosted/parser/fixture"'
 reject_text "tests/self_hosted/parity/parser_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/src/self_hosted/parser/expected/clean.txt"'

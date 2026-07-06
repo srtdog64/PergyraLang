@@ -30,7 +30,6 @@ fi
 PGY_EXEC="$(pgy_path_for_bash_tool "$PGY")"
 
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/parser}"
-PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 ARTIFACT_COMPARE_BUILD_DIR="$PERGYRA_TOOL_BUILD_DIR/artifact_owner"
 HARNESS_PATHS_FILE="$PERGYRA_TOOL_BUILD_DIR/parser_harness_paths.txt"
 PARSER_FIXTURE_MANIFEST_FILE="$PERGYRA_TOOL_BUILD_DIR/parser_fixture_manifest.txt"
@@ -53,6 +52,7 @@ if [[ "${#harness_paths[@]}" -ne 4 ]]; then
 fi
 
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
+PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
 COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[1]}"
 FIXTURE_DIR="$ROOT_DIR/${harness_paths[2]}"
 EXPECTED_FILE="$ROOT_DIR/${harness_paths[3]}"
@@ -68,10 +68,6 @@ if [[ ! -d "$FIXTURE_DIR" ]]; then
     exit 1
 fi
 
-cp "$ROOT_DIR/src/self_hosted/parser/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"
-LIB_BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/lib"
-mkdir -p "$LIB_BUILD_DIR"
-cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
 pgy_selfhost_compile_backend_output_comparator \
     "self-host-parity:parser" "$ARTIFACT_COMPARE_BUILD_DIR" "$COMPARATOR_SOURCE"
 AST_COMPARATOR_BIN="$(pgy_selfhost_backend_output_comparator_bin "$ARTIFACT_COMPARE_BUILD_DIR")"
@@ -115,7 +111,7 @@ read_parser_fixture_manifest() {
     local line
 
     if ! (cd "$ROOT_DIR" && "$PGY_EXEC" \
-        "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")" \
+        "$PERGYRA_TOOL_ARG" \
         --backend=c \
         -o "$(pgy_path_for_compiler "$PGY" "$manifest_bin")" >"$manifest_log" 2>&1); then
         echo "[self-host-parity:parser] parser fixture manifest owner failed to build" >&2
@@ -185,7 +181,7 @@ compile_parser_backend() {
 
     echo "[self-host-parity:parser] compiling parser backend=$backend..."
     (cd "$ROOT_DIR" && "$PGY_EXEC" \
-        "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")" \
+        "$PERGYRA_TOOL_ARG" \
         --backend="$backend" \
         -o "$(pgy_path_for_compiler "$PGY" "$tool_bin")" >/dev/null)
 }

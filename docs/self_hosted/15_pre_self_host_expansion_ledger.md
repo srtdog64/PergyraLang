@@ -302,6 +302,11 @@ TestHarness delta, 2026-07-05: `parser_parity.sh` no longer owns the 188-row
 runner consumes those rows before invoking C/LLVM parser parity and live
 `pgy --ast` drift checks.
 
+TestHarness delta, 2026-07-06: `parser_parity.sh` now compiles and runs the
+manifest-projected parser source in place. It no longer creates a build-dir
+`main.pgy` alias or copies parser owner files and the self-hosted `lib` tree
+beside that alias before invoking the compiler.
+
 TestHarness delta, 2026-07-05: `driver_rung0_parity.sh` and
 `driver_rung1_parity.sh` no longer own the three driver fixture paths. The
 compiled driver owners emit `--fixture-manifest` rows from
