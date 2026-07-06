@@ -30,6 +30,9 @@ func CodegenAstTextTypedArenaFromNodes(nodes: Array<CodegenAstTextNode>, count: 
     let kinds: Array<Int> = [];
     let atoms: Array<Int> = [];
     let has_atoms: Array<Int> = [];
+    let type_names: Array<Int> = [];
+    let has_type_names: Array<Int> = [];
+    let modes: Array<Int> = [];
     let first_children: Array<Int> = [];
     let child_counts: Array<Int> = [];
     let parents: Array<Int> = [];
@@ -48,6 +51,15 @@ func CodegenAstTextTypedArenaFromNodes(nodes: Array<CodegenAstTextNode>, count: 
             ArrayPush(atoms, ArrayLength(atom_table) - 1);
             ArrayPush(has_atoms, 1);
         }
+        if nodes[i].type_name == "" {
+            ArrayPush(type_names, 0);
+            ArrayPush(has_type_names, 0);
+        } else {
+            ArrayPush(atom_table, nodes[i].type_name);
+            ArrayPush(type_names, ArrayLength(atom_table) - 1);
+            ArrayPush(has_type_names, 1);
+        }
+        ArrayPush(modes, nodes[i].mode);
         ArrayPush(first_children, ArrayLength(children));
         let direct: Int = 0;
         let j: Int = i + 1;
@@ -63,7 +75,8 @@ func CodegenAstTextTypedArenaFromNodes(nodes: Array<CodegenAstTextNode>, count: 
         ArrayPush(indents, nodes[i].indent);
         i = i + 1;
     }
-    return AstArena(kinds, atoms, has_atoms, first_children, child_counts, parents, indents, children, atom_table);
+    return AstArena(kinds, atoms, has_atoms, type_names, has_type_names, modes,
+        first_children, child_counts, parents, indents, children, atom_table);
 }
 
 func CodegenAstTextTypedArenaProjectionReady(nodes: Array<CodegenAstTextNode>, count: Int) -> Bool {
@@ -93,6 +106,17 @@ func CodegenAstTextTypedArenaProjectionReady(nodes: Array<CodegenAstTextNode>, c
         if atom_text != "" && (!IsSome(atom) || UnwrapOption(atom) != atom_text) {
             return false;
         }
+        let type_name: Option<String> = TypedAstArenaTypeName(arena, i);
+        if nodes[i].type_name == "" && IsSome(type_name) {
+            return false;
+        }
+        if nodes[i].type_name != "" && (!IsSome(type_name) || UnwrapOption(type_name) != nodes[i].type_name) {
+            return false;
+        }
+        let mode: Option<Int> = TypedAstArenaMode(arena, i);
+        if !IsSome(mode) || UnwrapOption(mode) != nodes[i].mode {
+            return false;
+        }
         i = i + 1;
     }
     if count > 1 && !IsSome(TypedAstArenaChildAt(arena, 0, 0)) {
@@ -107,6 +131,42 @@ func CodegenAstArenaIndentOrDie(arena: AstArena, node_id: Int) -> Int {
         Die(Concat("typed AST arena missing indent for node: ", ToString(node_id)));
     }
     return UnwrapOption(indent);
+}
+
+func CodegenAstArenaAtomOrDie(arena: AstArena, node_id: Int) -> String {
+    let atom: Option<String> = TypedAstArenaAtomText(arena, node_id);
+    if !IsSome(atom) {
+        Die(Concat("typed AST arena missing atom for node: ", ToString(node_id)));
+    }
+    return UnwrapOption(atom);
+}
+
+func CodegenAstArenaTypeNameOrDie(arena: AstArena, node_id: Int) -> String {
+    let type_name: Option<String> = TypedAstArenaTypeName(arena, node_id);
+    if !IsSome(type_name) {
+        Die(Concat("typed AST arena missing type name for node: ", ToString(node_id)));
+    }
+    return UnwrapOption(type_name);
+}
+
+func CodegenAstArenaModeOrDie(arena: AstArena, node_id: Int) -> Int {
+    let mode: Option<Int> = TypedAstArenaMode(arena, node_id);
+    if !IsSome(mode) {
+        Die(Concat("typed AST arena missing mode for node: ", ToString(node_id)));
+    }
+    return UnwrapOption(mode);
+}
+
+func CodegenAstArenaParamTypeOrDie(arena: AstArena, node_id: Int, owner_name: String) -> String {
+    let type_name: Option<String> = TypedAstArenaTypeName(arena, node_id);
+    if IsSome(type_name) {
+        return UnwrapOption(type_name);
+    }
+    if StringLength(owner_name) > 0 && CodegenAstArenaAtomOrDie(arena, node_id) == "self" {
+        return owner_name;
+    }
+    Die(Concat("typed AST arena missing parameter type for node: ", ToString(node_id)));
+    return "";
 }
 
 func CodegenAstArenaParentOrDie(arena: AstArena, node_id: Int) -> Int {

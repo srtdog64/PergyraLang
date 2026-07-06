@@ -77,7 +77,7 @@ func FunctionCallProjectionRecord(inout names: Array<String>, inout targets: Arr
 func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
                   inout cur: Array<Int>, f_indent: Int,
                   base_env: String, uses_args: Bool, owner_name: String) -> String {
-    let name: String = CodegenAstTextFunctionName(nodes[cur[0]]);
+    let name: String = CodegenAstArenaAtomOrDie(arena, cur[0]);
     let c_name: String = CompilerSymbolCQualifiedName(owner_name, name);
     ArraySet(cur, 0, cur[0] + 1);
 
@@ -88,12 +88,12 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
     let prologue: String = "";
     let copyout: String = "";
     while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == f_indent + 4 {
-        let p_mode: Int = CodegenAstTextParamMode(nodes[cur[0]]);
+        let p_mode: Int = CodegenAstArenaModeOrDie(arena, cur[0]);
         if p_mode == 2 || p_mode == 3 {
             Die(Concat("unsupported self-host codegen parameter mode: ", CodegenAstTextProvenance(nodes[cur[0]])));
         }
-        let p_name: String = CodegenAstTextParamName(nodes[cur[0]], owner_name);
-        let p_type: String = CodegenAstTextParamType(nodes[cur[0]], owner_name);
+        let p_name: String = CodegenAstArenaAtomOrDie(arena, cur[0]);
+        let p_type: String = CodegenAstArenaParamTypeOrDie(arena, cur[0], owner_name);
         let c_param_type: String = AbiLayoutCParamType(p_type, base_env);
         let c_param: String = Concat(c_param_type, Concat(" ", p_name));
         if p_mode == 1 {
@@ -121,7 +121,7 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
     if cur[0] >= count || !CodegenAstTextIsReturns(nodes[cur[0]]) {
         Die("expected Returns: line after parameters");
     }
-    let ret_type: String = CodegenAstTextReturnType(nodes[cur[0]]);
+    let ret_type: String = CodegenAstArenaTypeNameOrDie(arena, cur[0]);
     ArraySet(cur, 0, cur[0] + 1);
 
     CodegenAstTextExpectNode(nodes, count, cur, "Body:");
@@ -188,15 +188,15 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAr
             continue;
         }
         if CodegenAstTextIsNominalDecl(nodes[i]) {
-            owner = CodegenAstTextNominalName(nodes[i]);
+            owner = CodegenAstArenaAtomOrDie(arena, i);
             owner_indent = indent;
         }
         if CodegenAstTextIsRoleDecl(nodes[i]) {
-            owner = CodegenAstTextRoleName(nodes[i]);
+            owner = CodegenAstArenaAtomOrDie(arena, i);
             owner_indent = indent;
         }
         if CodegenAstTextIsFunction(nodes[i]) {
-            let fname: String = CodegenAstTextFunctionName(nodes[i]);
+            let fname: String = CodegenAstArenaAtomOrDie(arena, i);
             let cname: String = CompilerSymbolCQualifiedName("", fname);
             if StringLength(owner) > 0 && indent > owner_indent {
                 cname = CompilerSymbolCQualifiedName(owner, fname);
@@ -209,8 +209,8 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAr
                     let modes: String = "";
                     let param_types: String = "";
                     while j < count && CodegenAstArenaIndentOrDie(arena, j) == indent + 4 {
-                        modes = ParamModeCsvAppend(modes, CodegenAstTextParamMode(nodes[j]));
-                        param_types = ParamTypeCsvAppend(param_types, CodegenAstTextParamType(nodes[j], owner));
+                        modes = ParamModeCsvAppend(modes, CodegenAstArenaModeOrDie(arena, j));
+                        param_types = ParamTypeCsvAppend(param_types, CodegenAstArenaParamTypeOrDie(arena, j, owner));
                         j = j + 1;
                     }
                     env = Concat(env, Concat(cname, Concat("=pm:", Concat(modes, "|"))));
@@ -218,7 +218,7 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAr
                     continue;
                 }
                 if CodegenAstTextIsReturns(nodes[j]) {
-                    rtype = CodegenAstTextReturnType(nodes[j]);
+                    rtype = CodegenAstArenaTypeNameOrDie(arena, j);
                     j = count;
                 } else {
                     j = j + 1;
@@ -254,15 +254,15 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAr
             continue;
         }
         if CodegenAstTextIsNominalDecl(nodes[i]) {
-            owner = CodegenAstTextNominalName(nodes[i]);
+            owner = CodegenAstArenaAtomOrDie(arena, i);
             owner_indent = indent;
         }
         if CodegenAstTextIsRoleDecl(nodes[i]) {
-            owner = CodegenAstTextRoleName(nodes[i]);
+            owner = CodegenAstArenaAtomOrDie(arena, i);
             owner_indent = indent;
         }
         if CodegenAstTextIsFunction(nodes[i]) {
-            let fname: String = CodegenAstTextFunctionName(nodes[i]);
+            let fname: String = CodegenAstArenaAtomOrDie(arena, i);
             let cname: String = CompilerSymbolCQualifiedName("", fname);
             if StringLength(owner) > 0 && indent > owner_indent {
                 cname = CompilerSymbolCQualifiedName(owner, fname);
@@ -290,12 +290,12 @@ func CollectRoleOperators(nodes: Array<CodegenAstTextNode>, count: Int, arena: A
     let i: Int = 0;
     while i < count {
         if CodegenAstTextIsRoleDecl(nodes[i]) {
-            let role_name: String = CodegenAstTextRoleName(nodes[i]);
-            let for_type: String = CodegenAstTextRoleForType(nodes[i]);
+            let role_name: String = CodegenAstArenaAtomOrDie(arena, i);
+            let for_type: String = CodegenAstArenaTypeNameOrDie(arena, i);
             let j: Int = i + 1;
             while j < count && CodegenAstArenaIsDescendantOf(arena, j, i) {
                 if CodegenAstTextIsFunction(nodes[j]) {
-                    let mname: String = CodegenAstTextFunctionName(nodes[j]);
+                    let mname: String = CodegenAstArenaAtomOrDie(arena, j);
                     if for_type == "Int" && mname == "Add" {
                         let c_name: String = CompilerSymbolCRoleOperatorName(role_name, "Add");
                         ArraySet(env_box, 0, Concat(env_box[0], Concat("Int+=op:", Concat(c_name, "|"))));
@@ -316,7 +316,7 @@ func CollectStructs(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAren
     let i: Int = 0;
     while i < count {
         if CodegenAstTextIsNominalDecl(nodes[i]) {
-            let sname: String = CodegenAstTextNominalName(nodes[i]);
+            let sname: String = CodegenAstArenaAtomOrDie(arena, i);
             let s_indent: Int = CodegenAstArenaIndentOrDie(arena, i);
             let j: Int = i + 1;
             if j < count && CodegenAstTextIsFieldsHeader(nodes[j]) {
@@ -325,8 +325,8 @@ func CollectStructs(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAren
             let fields_c: String = "";
             let field_names: String = "";
             while j < count && CodegenAstArenaIndentOrDie(arena, j) == s_indent + 4 {
-                let fname: String = CodegenAstTextFieldName(nodes[j]);
-                let ftype: String = CodegenAstTextFieldType(nodes[j]);
+                let fname: String = CodegenAstArenaAtomOrDie(arena, j);
+                let ftype: String = CodegenAstArenaTypeNameOrDie(arena, j);
                 let cfield_type: String = AbiLayoutCFieldType(ftype, env_box[0]);
                 if StringLength(field_names) == 0 {
                     field_names = fname;
@@ -346,12 +346,12 @@ func CollectStructs(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAren
     return typedefs;
 }
 
-func CollectEnums(nodes: Array<CodegenAstTextNode>, count: Int, inout env_box: Array<String>) -> String {
+func CollectEnums(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena, inout env_box: Array<String>) -> String {
     let block: String = "";
     let i: Int = 0;
     while i < count {
         if CodegenAstTextIsEnumDecl(nodes[i]) {
-            let ename: String = CodegenAstTextEnumName(nodes[i]);
+            let ename: String = CodegenAstArenaAtomOrDie(arena, i);
             let variant_total: Int = CodegenAstTextEnumVariantCount(nodes[i]);
             let value: Int = 0;
             let enum_c: String = "enum {\n";
@@ -401,15 +401,15 @@ func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
             continue;
         }
         if CodegenAstTextIsNominalDecl(nodes[i]) {
-            owner = CodegenAstTextNominalName(nodes[i]);
+            owner = CodegenAstArenaAtomOrDie(arena, i);
             owner_indent = indent;
         }
         if CodegenAstTextIsRoleDecl(nodes[i]) {
-            owner = CodegenAstTextRoleName(nodes[i]);
+            owner = CodegenAstArenaAtomOrDie(arena, i);
             owner_indent = indent;
         }
         if CodegenAstTextIsFunction(nodes[i]) {
-            let name: String = CodegenAstTextFunctionName(nodes[i]);
+            let name: String = CodegenAstArenaAtomOrDie(arena, i);
             let c_name: String = CompilerSymbolCQualifiedName(owner, name);
             if c_name != "Main" {
                 let f_indent: Int = indent;
@@ -420,12 +420,12 @@ func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
                 let params: String = "";
                 let pn: Int = 0;
                 while j < count && CodegenAstArenaIndentOrDie(arena, j) == f_indent + 4 {
-                    let p_mode: Int = CodegenAstTextParamMode(nodes[j]);
+                    let p_mode: Int = CodegenAstArenaModeOrDie(arena, j);
                     if p_mode == 2 || p_mode == 3 {
                         Die(Concat("unsupported self-host codegen parameter mode: ", CodegenAstTextProvenance(nodes[j])));
                     }
-                    let p_name: String = CodegenAstTextParamName(nodes[j], owner);
-                    let p_type: String = CodegenAstTextParamType(nodes[j], owner);
+                    let p_name: String = CodegenAstArenaAtomOrDie(arena, j);
+                    let p_type: String = CodegenAstArenaParamTypeOrDie(arena, j, owner);
                     let cpt: String = AbiLayoutCParamType(p_type, struct_env);
                     let cp: String = Concat(cpt, Concat(" ", p_name));
                     if p_mode == 1 {
@@ -441,7 +441,7 @@ func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
                 }
                 let rtype: String = "Void";
                 if j < count && CodegenAstTextIsReturns(nodes[j]) {
-                    rtype = CodegenAstTextReturnType(nodes[j]);
+                    rtype = CodegenAstArenaTypeNameOrDie(arena, j);
                 }
                 let plist: String = params;
                 if pn == 0 {

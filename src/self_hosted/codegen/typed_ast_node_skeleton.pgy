@@ -18,8 +18,9 @@
 // Recursive enum payloads are not lowered by the current self-host rungs, so this
 // uses a flat arena: nodes live in arrays indexed by a NodeId (an Int), children
 // are NodeId edges, and textual atoms (identifiers, literals) are interned into
-// a string table. NodeKind is payload-free. Not-found is Option, never a
-// sentinel.
+// a string table. Type-name and parameter-mode rows are parallel facts owned by
+// the arena, not ad hoc reads from the transitional text node. NodeKind is
+// payload-free. Not-found is Option, never a sentinel.
 
 enum NodeKind {
     Program,
@@ -52,6 +53,9 @@ struct AstNode {
     kind: NodeKind;
     atom: Int;
     has_atom: Bool;
+    type_name: Int;
+    has_type_name: Bool;
+    mode: Int;
     first_child: Int;
     child_count: Int;
     parent: Int;
@@ -62,6 +66,9 @@ struct AstArena {
     kinds: Array<Int>;
     atoms: Array<Int>;
     has_atoms: Array<Int>;
+    type_names: Array<Int>;
+    has_type_names: Array<Int>;
+    modes: Array<Int>;
     first_children: Array<Int>;
     child_counts: Array<Int>;
     parents: Array<Int>;
@@ -86,13 +93,17 @@ func TypedAstArenaFixture() -> AstArena {
     let kinds: Array<Int> = [TypedAstKindProgramTag(), TypedAstKindFuncDeclTag(), TypedAstKindBlockTag()];
     let atoms: Array<Int> = [0, 1, 0];
     let has_atoms: Array<Int> = [0, 1, 0];
+    let type_names: Array<Int> = [0, 0, 0];
+    let has_type_names: Array<Int> = [0, 0, 0];
+    let modes: Array<Int> = [0, 0, 0];
     let first_children: Array<Int> = [0, 1, 2];
     let child_counts: Array<Int> = [1, 1, 0];
     let parents: Array<Int> = [-1, 0, 1];
     let indents: Array<Int> = [0, 2, 4];
     let children: Array<Int> = [1, 2];
     let atom_table: Array<String> = ["", "Main"];
-    return AstArena(kinds, atoms, has_atoms, first_children, child_counts, parents, indents, children, atom_table);
+    return AstArena(kinds, atoms, has_atoms, type_names, has_type_names, modes,
+        first_children, child_counts, parents, indents, children, atom_table);
 }
 
 func TypedAstArenaNodeCount(arena: AstArena) -> Int {
@@ -103,6 +114,9 @@ func TypedAstArenaParallelRowsReady(arena: AstArena) -> Bool {
     let n: Int = TypedAstArenaNodeCount(arena);
     return ArrayLength(arena.atoms) == n &&
         ArrayLength(arena.has_atoms) == n &&
+        ArrayLength(arena.type_names) == n &&
+        ArrayLength(arena.has_type_names) == n &&
+        ArrayLength(arena.modes) == n &&
         ArrayLength(arena.first_children) == n &&
         ArrayLength(arena.child_counts) == n &&
         ArrayLength(arena.parents) == n &&
@@ -165,6 +179,27 @@ func TypedAstArenaAtomText(arena: AstArena, node_id: Int) -> Option<String> {
         return None;
     }
     return Some(arena.atom_table[atom]);
+}
+
+func TypedAstArenaTypeName(arena: AstArena, node_id: Int) -> Option<String> {
+    if !TypedAstArenaHasNode(arena, node_id) {
+        return None;
+    }
+    if arena.has_type_names[node_id] == 0 {
+        return None;
+    }
+    let type_atom: Int = arena.type_names[node_id];
+    if type_atom < 0 || type_atom >= ArrayLength(arena.atom_table) {
+        return None;
+    }
+    return Some(arena.atom_table[type_atom]);
+}
+
+func TypedAstArenaMode(arena: AstArena, node_id: Int) -> Option<Int> {
+    if !TypedAstArenaHasNode(arena, node_id) {
+        return None;
+    }
+    return Some(arena.modes[node_id]);
 }
 
 func ChildAtFromEdges(children: Array<Int>, first_child: Int, child_count: Int, i: Int) -> Option<Int> {
@@ -272,6 +307,13 @@ func TypedAstArenaRootTraversalReady() -> Bool {
         return false;
     }
     if IsSome(TypedAstArenaAtomText(arena, 99)) {
+        return false;
+    }
+    if IsSome(TypedAstArenaTypeName(arena, UnwrapOption(first_child))) {
+        return false;
+    }
+    let mode: Option<Int> = TypedAstArenaMode(arena, UnwrapOption(first_child));
+    if !IsSome(mode) || UnwrapOption(mode) != 0 {
         return false;
     }
     return true;

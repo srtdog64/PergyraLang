@@ -4874,3 +4874,23 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-compiler-world-contract-test-smoke`, and
   `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
   7019 generated-C lines).
+
+### 2026-07-07 -- Typed arena owns name, type, and mode rows
+
+- Extended `AstArena` with parallel `type_names`, `has_type_names`, and `modes`
+  rows while keeping identifiers and payload atoms in the existing atom table.
+- Added typed arena accessors for atom, type-name, mode, and parameter type
+  lookup, including the existing `self` parameter owner fallback for methods.
+- Repointed function/declaration emission so function names, return types,
+  parameter names/types/modes, nominal/role/enum names, role target types, field
+  names/types, and prototype signature rows consume typed arena facts instead of
+  `CodegenAstTextNode.name`, `type_name`, or `mode`.
+- Tightened `self_hosted_component_contract_smoke.sh` so the targeted
+  `CodegenAstText*Name/Type/Mode` accessors cannot return in
+  `function_emit.pgy`.
+- The mixed AST-like tree blocker remains ACTIVE because expression and
+  statement payload strings still flow through the transitional AST-text bridge.
+- Verified with `self-host-component-contract-test-smoke`,
+  `self-host-compiler-world-contract-test-smoke`, and
+  `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
+  7127 generated-C lines).

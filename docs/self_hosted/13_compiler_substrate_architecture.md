@@ -207,7 +207,10 @@ emission-depth traversal, so new depth decisions must be added to the arena
 projection owner rather than reading raw text-node indentation. `GenerateCUnit`
 builds that projection once and passes the `AstArena` fact into function and
 statement emission participants; downstream emitters must not rebuild the bridge
-projection locally.
+projection locally. The arena also carries name, type-name, and mode rows for
+function/declaration emission, so signature and field metadata must be consumed
+from the typed arena projection rather than directly from transitional text-node
+fields.
 
 `src/self_hosted/compiler/path_manifest_owner.pgy` is the current path owner.
 It owns the Pergyra source/test/parity path values for `StagePathManifest` and
