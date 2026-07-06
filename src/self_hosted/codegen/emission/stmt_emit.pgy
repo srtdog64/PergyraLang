@@ -397,11 +397,12 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
         } else if CodegenAstTextIsForStmt(nodes[idx]) {
             // `For: i in 0..5` -> a C integer range loop using ABI-owned type spelling.
             // The `..` range is exclusive of the upper bound (matches the oracle).
-            let loop_var: String = CodegenAstTextForLoopVar(nodes[idx]);
-            if CodegenAstTextForIsRange(nodes[idx]) {
+            let loop_var: String = CodegenAstArenaAtomOrDie(arena, idx);
+            let range_end: Option<String> = TypedAstArenaAuxValueText(arena, idx);
+            if IsSome(range_end) {
                 // Range loop `for i in a..b` (exclusive upper bound).
-                let start_v: String = CodegenAstTextForRangeStart(nodes[idx]);
-                let end_v: String = CodegenAstTextForRangeEnd(nodes[idx]);
+                let start_v: String = CodegenAstArenaValueOrDie(arena, idx);
+                let end_v: String = UnwrapOption(range_end);
                 ArraySet(env_box, 0, Concat(env_box[0], Concat(loop_var, "=v:Int|")));
                 let for_hdr: String = Concat("for (", AbiLayoutCLocalType("Int", env_box[0]));
                 for_hdr = Concat(for_hdr, Concat(" ", loop_var));
@@ -414,7 +415,7 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
             } else {
                 // For-each `for x in coll`: evaluate the collection once into a
                 // temp, then index it. Element type follows the array kind.
-                let coll: String = CodegenAstTextForEachCollection(nodes[idx]);
+                let coll: String = CodegenAstArenaValueOrDie(arena, idx);
                 let ck: String = ExprKind(coll, env_box[0]);
                 let arr_c: String = "";
                 let elem_c: String = "";

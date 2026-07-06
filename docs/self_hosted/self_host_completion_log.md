@@ -4982,3 +4982,24 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-compiler-world-contract-test-smoke`, and
   `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
   7319 generated-C lines).
+
+### 2026-07-07 -- For consumes typed arena loop payload rows
+
+- Extended `CodegenAstTextNameFactFor(...)`,
+  `CodegenAstTextValueFactFor(...)`, and
+  `CodegenAstTextAuxValueFactFor(...)` for `For: loop in source` rows.
+- Repointed `stmt_emit.pgy` so range loops consume the loop variable from the
+  arena atom row, range start from the value row, and range end from the
+  aux-value row. Foreach loops consume the loop variable from the atom row and
+  the collection expression from the value row.
+- Tightened `self_hosted_component_contract_smoke.sh` so
+  `CodegenAstTextForLoopVar(...)`, `CodegenAstTextForIsRange(...)`,
+  `CodegenAstTextForRangeStart(...)`, `CodegenAstTextForRangeEnd(...)`, and
+  `CodegenAstTextForEachCollection(...)` cannot return in `stmt_emit.pgy`.
+- Statement emission payloads now route through typed arena rows; the mixed
+  AST-like tree blocker remains ACTIVE because `CodegenAstTextNode.text` is
+  still the bridge provenance/payload inside the input owner.
+- Verified with `self-host-component-contract-test-smoke`,
+  `self-host-compiler-world-contract-test-smoke`, and
+  `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
+  7353 generated-C lines).

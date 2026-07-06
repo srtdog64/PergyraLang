@@ -89,6 +89,13 @@ func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput) -> String {
         }
         return "";
     }
+    if kind == 22 {
+        let in_pos: Option<Int> = FindTextFrom(payload, " in ", 0);
+        if IsSome(in_pos) {
+            return StringTrim(Substring(payload, 0, UnwrapOption(in_pos)));
+        }
+        return "";
+    }
     if kind == 5 {
         let colon2: Int = StringIndexOf(payload, ": ");
         if colon2 >= 0 {
@@ -138,6 +145,19 @@ func CodegenAstTextValueFactFor(input: CodegenAstTextRowFactInput) -> String {
         }
         return "";
     }
+    if kind == 22 {
+        let in_pos: Option<Int> = FindTextFrom(payload, " in ", 0);
+        if IsSome(in_pos) {
+            let iterable_start: Int = UnwrapOption(in_pos) + 4;
+            let iterable: String = StringTrim(Substring(payload, iterable_start, StringLength(payload) - iterable_start));
+            let dot_pos: Option<Int> = FindTextFrom(iterable, "..", 0);
+            if IsSome(dot_pos) {
+                return StringTrim(Substring(iterable, 0, UnwrapOption(dot_pos)));
+            }
+            return iterable;
+        }
+        return "";
+    }
     return "";
 }
 
@@ -153,6 +173,19 @@ func CodegenAstTextAuxValueFactFor(input: CodegenAstTextRowFactInput) -> String 
             if IsSome(second) {
                 let value_start: Int = UnwrapOption(second) + 1;
                 return StringTrim(Substring(rest, value_start, StringLength(rest) - value_start));
+            }
+        }
+        return "";
+    }
+    if kind == 22 {
+        let in_pos: Option<Int> = FindTextFrom(payload, " in ", 0);
+        if IsSome(in_pos) {
+            let iterable_start: Int = UnwrapOption(in_pos) + 4;
+            let iterable: String = StringTrim(Substring(payload, iterable_start, StringLength(payload) - iterable_start));
+            let dot_pos: Option<Int> = FindTextFrom(iterable, "..", 0);
+            if IsSome(dot_pos) {
+                let end_start: Int = UnwrapOption(dot_pos) + 2;
+                return StringTrim(Substring(iterable, end_start, StringLength(iterable) - end_start));
             }
         }
         return "";
