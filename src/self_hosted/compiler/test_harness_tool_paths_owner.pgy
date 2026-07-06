@@ -506,8 +506,12 @@ func CompilerHarnessAstReadSurfaceGrowthRatchetRow() -> String {
     return "source_ast_codegen|source_ast|0|src/codegen";
 }
 
+func CompilerHarnessAstReadSurfaceGrowthFindingKind() -> String {
+    return "surface_growth";
+}
+
 func CompilerHarnessAstReadSurfacePathCount() -> Int {
-    return 6;
+    return 7;
 }
 
 func CompilerHarnessAstReadSurfacePathAt(index: Int) -> String {
@@ -517,11 +521,12 @@ func CompilerHarnessAstReadSurfacePathAt(index: Int) -> String {
     if index == 3 { return CompilerHarnessAstReadSurfaceGrowthFixturePath(); }
     if index == 4 { return CompilerHarnessAstReadSurfaceGrowthSourceLine(); }
     if index == 5 { return CompilerHarnessAstReadSurfaceGrowthRatchetRow(); }
+    if index == 6 { return CompilerHarnessAstReadSurfaceGrowthFindingKind(); }
     return "";
 }
 
 func CompilerHarnessAstReadSurfaceReady() -> Bool {
-    if CompilerHarnessAstReadSurfacePathCount() != 6 {
+    if CompilerHarnessAstReadSurfacePathCount() != 7 {
         return false;
     }
     let i: Int = 0;

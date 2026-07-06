@@ -42,8 +42,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 6 ]]; then
-    echo "[self-host-parity:ast-read-surface] TestHarness manifest expected 6 ast-read-surface rows, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 7 ]]; then
+    echo "[self-host-parity:ast-read-surface] TestHarness manifest expected 7 ast-read-surface rows, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -53,6 +53,7 @@ RATCHET_REL="${harness_paths[2]}"
 GROWTH_SOURCE_REL="${harness_paths[3]}"
 GROWTH_SOURCE_LINE="${harness_paths[4]}"
 GROWTH_RATCHET_ROW="${harness_paths[5]}"
+GROWTH_FINDING_KIND="${harness_paths[6]}"
 RATCHET_FILE="$ROOT_DIR/$RATCHET_REL"
 
 for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$RATCHET_FILE"; do
@@ -61,7 +62,7 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$RATCHET_FILE"; do
         exit 1
     fi
 done
-if [[ -z "$GROWTH_SOURCE_REL" || -z "$GROWTH_SOURCE_LINE" || -z "$GROWTH_RATCHET_ROW" ]]; then
+if [[ -z "$GROWTH_SOURCE_REL" || -z "$GROWTH_SOURCE_LINE" || -z "$GROWTH_RATCHET_ROW" || -z "$GROWTH_FINDING_KIND" ]]; then
     echo "[self-host-parity:ast-read-surface] invalid TestHarness growth fixture row" >&2
     exit 1
 fi
@@ -125,8 +126,8 @@ if [[ "$NEG_RC" -ne 1 ]]; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq '"kind":"surface_growth"' <<<"$NEG_OUT"; then
-    echo "[self-host-parity:ast-read-surface] growth fixture expected surface_growth finding" >&2
+if ! grep -Fq "\"kind\":\"${GROWTH_FINDING_KIND}\"" <<<"$NEG_OUT"; then
+    echo "[self-host-parity:ast-read-surface] growth fixture expected ${GROWTH_FINDING_KIND} finding" >&2
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi

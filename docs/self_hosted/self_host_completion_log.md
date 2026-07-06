@@ -25,6 +25,16 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - AST surface growth finding consumes TestHarness owner
+
+- Extended `ast-read-surface-paths` with the expected `surface_growth` finding
+  kind.
+- Repointed `ast_read_surface_checker_parity.sh` so shell still creates the
+  synthetic source-growth fixture, but the finding-kind expectation comes from
+  `test_harness_tool_paths_owner.pgy`.
+- Tightened the component contract against reintroducing the hardcoded
+  `surface_growth` assertion in shell.
+
 ## 2026-07-06 - Comparator finding kinds consume TestHarness owner
 
 - Extended `backend-output-comparator-paths` with the expected mismatch and
