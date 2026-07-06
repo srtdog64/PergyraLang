@@ -3,9 +3,13 @@
 Status: `repository-gate`, agent-facing guidance (2026-07-06)
 
 This document is not a language feature and not a stdlib package. It is not part of the Fortran-derived data-parallel evidence work. "Library" here means a
-repository sentinel catalog. Fortran-derived parallel evidence is a Pergyra
-language/compiler competitiveness axis; this file is a codebase gate for future
-LLM-written and agent-written changes.
+repository sentinel catalog and codebase-maintenance gate. Fortran-derived
+parallel evidence is a Pergyra language/compiler competitiveness axis; this
+file is a codebase gate for future LLM-written and agent-written changes.
+
+This file does not teach Pergyra parallel programming. It teaches future agents
+which code patterns mean "you are crossing the wrong owner boundary; stop and
+turn toward the named fact, owner, or gate."
 
 The rule is simple: when a recognizable code pattern appears, the agent should
 stop treating it as a local implementation detail and turn toward the named

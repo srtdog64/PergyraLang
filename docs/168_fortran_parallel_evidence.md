@@ -7,9 +7,15 @@ parallel model. The target is not Fortran syntax, column-major defaults, or
 implicit compiler trust. The target is the evidence shape that lets a compiler
 lower array-heavy code aggressively without guessing.
 
-This is a language/compiler capability contract. It belongs to Pergyra program
-semantics and target projection, not to repository authoring guidance,
-LLM/agent guardrails, or stdlib cataloging.
+This is a language/compiler capability contract and a Pergyra competitiveness
+axis. It belongs to Pergyra program semantics and target projection, not to
+repository authoring guidance, LLM/agent guardrails, or stdlib cataloging.
+
+The competitive claim is specific: Pergyra should make data-parallel intent,
+ownership, layout, and projection evidence explicit enough that future CPU,
+GPU, tensor, NPU, or dataflow backends can be swapped in without recovering
+meaning from CPU-shaped code. That is language design, not a maintenance
+warning library.
 
 There are two separate planes:
 
