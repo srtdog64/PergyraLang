@@ -53,11 +53,17 @@ Pergyra의 출처는 이 중 첫째(게임)의 채굴이었다(BDFL 자술). 삼
 | **authority** | server authority/permission ★ | (약: policy) | **institutional power ★** (Jones-Sergot counts-as; Searle 구성 규칙) | social/deontic 범주 | authz 논리(ABLP), ocap(Miller), deontic |
 | **channel** | event bus/netcode channel ★ | domain event | speech act/ACL (FIPA) ★ | — | session types ★ (Honda), π 이름 |
 | **effect** | side effect/script hook | domain event(중복) | action | perdurant/event | effect system ★ (Lucassen-Gifford; Koka) |
+| *(미보유 — docs/174 Gap A)* **관측(who-sees)** | fog of war/interest mgmt ★ | CQRS read model ★ | epistemic logic ★ | (약: 인식론 범주) | IFC/noninterference ★ (Denning; Jif) |
 
 읽는 법: 행마다 ★가 3개 이상이면 그 범주는 다중-독립 수렴. 전 행이 3★ 이상이다.
 가장 약한 행은 **world**(게임·논리에서 강하고 DDD·MAS에서 약함)와 **channel의
 온톨로지 셀**(부재) — 이 둘이 기저에서 가장 "발명"에 가까운 부분이라는 정직한
 지도이기도 하다.
+
+**★누락 교정(2026-07-06, docs/174 감사)**: 마지막 행 — 4★ 수렴이 성립하는데
+Pergyra가 **보유하지 않은** 범주가 하나 발견됐다: **관측(who-sees-what)**. 이
+표가 "가진 축의 수렴"만 재고 "수렴하는데 없는 축"을 안 쟀다는 방법 결함의 교정.
+채택 여부는 기저 수정이므로 BDFL 전결(docs/174 §2, WO-GAP-A).
 
 ---
 
@@ -71,7 +77,8 @@ Pergyra의 출처는 이 중 첫째(게임)의 채굴이었다(BDFL 자술). 삼
 **확립 못 함** (각각의 담당자):
 - **완전성** (빠진 범주가 없다) → M2: 참조 프레임 대비 정리.
   첫 단편 기계화 완료 — `BasisCompleteness.v`(bigraph 정적 단편: 완전성 +
-  보존성 + world-separation, coqc PASS 2026-07-05).
+  보존성 + world-separation, coqc PASS 2026-07-05, formal/proof-spine smoke
+  등록).
 - **최소성/독립성** (군더더기 범주가 없다) → M1: docs/semantics/22.
 - **옳음** — 어떤 방법으로도 증명 불가(BDFL 판정과 일치). 삼각측량은 증거의
   무게지 증명이 아니다.
