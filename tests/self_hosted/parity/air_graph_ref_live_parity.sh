@@ -30,7 +30,6 @@ fi
 
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/air_graph_ref_live}"
 HARNESS_PATHS_FILE="$PERGYRA_TOOL_BUILD_DIR/air_graph_ref_live_harness_paths.txt"
-PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 pgy_selfhost_read_test_harness_manifest \
     "self-host-parity:air-ref-live" \
@@ -77,14 +76,7 @@ count_dangling_refs() {
         '
 }
 
-cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
-AIR_SCAN_BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/air_graph_json_validator"
-mkdir -p "$AIR_SCAN_BUILD_DIR"
-cp "$AIR_GRAPH_SCAN_OWNER" "$AIR_SCAN_BUILD_DIR/scan_owner.pgy"
-LIB_BUILD_DIR="$ROOT_DIR/.tmp/lib"
-mkdir -p "$LIB_BUILD_DIR"
-cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
-PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
+PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
 CLEAN_BIN="$PERGYRA_TOOL_BUILD_DIR/air_graph_ref_live_c.exe"
 CLEAN_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/air_graph_ref_live_c.compile.log"
 if ! (cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" --backend=c \

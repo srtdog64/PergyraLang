@@ -86,6 +86,11 @@ tool-path owner. `air_graph_id_uniqueness_parity.sh`,
 JSON, and fixture paths from `test_harness_manifest.pgy`; the compiled
 checkers receive the selected fixture path through `Args()[0]`.
 
+TestHarness delta, 2026-07-06: the five AIR graph consumer parity runners now
+compile and run their manifest-projected checker sources in place. They no
+longer create build-dir `main.pgy` aliases or copy `scan_owner.pgy` and the
+self-hosted `lib` tree beside those aliases before invoking the compiler.
+
 TestHarness delta, 2026-07-05: backend_output_comparator_parity.sh now consumes its source, expected JSON, and comparable artifact paths from TestHarness through the `backend-output-comparator-paths` manifest suite. Shell is still the comparator's own external text-equivalence oracle, but it no longer owns the comparator input path constants.
 
 TestHarness delta, 2026-07-06: `backend_output_comparator_parity.sh` now

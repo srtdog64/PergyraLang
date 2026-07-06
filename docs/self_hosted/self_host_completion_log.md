@@ -25,6 +25,18 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - AIR graph consumers use source owners in place
+
+- Repointed the AIR graph id-uniqueness, node-count, reachability,
+  referential-integrity, and live-reference parity runners so their TestHarness
+  source rows are passed to the compiler directly.
+- Removed the build-dir `main.pgy` aliases, copied `scan_owner.pgy`, and copied
+  `lib` trees from those five runners; each consumer now resolves
+  `../air_graph_json_validator/scan_owner.pgy` and shared libs from the
+  manifest-projected source location.
+- Tightened the component contract so the local source/scan-owner/lib copy paths
+  cannot return to these consumer runners.
+
 ## 2026-07-06 - Module manifest and stdlib dispatch parity use source owners
 
 - Repointed `module_manifest_resolver_parity.sh` and
