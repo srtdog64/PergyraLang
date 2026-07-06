@@ -166,10 +166,9 @@ func EmitTryLet(node: CodegenAstTextNode, arena: AstArena, idx: Int, inout env_b
 func EmitAssign(arena: AstArena, idx: Int, env_box: Array<String>) -> String {
     let name: String = CodegenAstArenaAtomOrDie(arena, idx);
     let expr: String = CodegenAstArenaValueOrDie(arena, idx);
-    let lb: Int = StringIndexOf(name, "[");
-    if lb > 0 && CodegenCharAt(name, StringLength(name) - 1) == "]" {
-        let arr_name: String = Substring(name, 0, lb);
-        let idx_expr: String = Substring(name, lb + 1, StringLength(name) - lb - 2);
+    if CodegenAstArenaAssignTargetIsIndex(arena, idx) {
+        let arr_name: String = CodegenAstArenaAssignIndexReceiverOrDie(arena, idx);
+        let idx_expr: String = CodegenAstArenaAssignIndexExprOrDie(arena, idx);
         let arr_kind: String = LookupKindType(env_box[0], arr_name, "v");
         let set_fn: String = CollectionRuntimeCSetFn(arr_kind);
         let rhs: String = EmitCollectionElementValue(arr_kind, expr, env_box[0], CollectionRuntimeKindCode(arr_kind));

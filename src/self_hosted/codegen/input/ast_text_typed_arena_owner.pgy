@@ -334,6 +334,33 @@ func CodegenAstArenaIsAssignStmt(arena: AstArena, node_id: Int) -> Bool {
     return CodegenAstArenaKindIs(arena, node_id, 21);
 }
 
+func CodegenAstArenaAssignTargetIsIndex(arena: AstArena, node_id: Int) -> Bool {
+    if !CodegenAstArenaIsAssignStmt(arena, node_id) {
+        return false;
+    }
+    let target: String = CodegenAstArenaAtomOrDie(arena, node_id);
+    let lb: Int = StringIndexOf(target, "[");
+    return lb > 0 && CodegenCharAt(target, StringLength(target) - 1) == "]";
+}
+
+func CodegenAstArenaAssignIndexReceiverOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaAssignTargetIsIndex(arena, node_id) {
+        Die(Concat("expected indexed assignment target at typed AST node: ", ToString(node_id)));
+    }
+    let target: String = CodegenAstArenaAtomOrDie(arena, node_id);
+    let lb: Int = StringIndexOf(target, "[");
+    return Substring(target, 0, lb);
+}
+
+func CodegenAstArenaAssignIndexExprOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaAssignTargetIsIndex(arena, node_id) {
+        Die(Concat("expected indexed assignment target at typed AST node: ", ToString(node_id)));
+    }
+    let target: String = CodegenAstArenaAtomOrDie(arena, node_id);
+    let lb: Int = StringIndexOf(target, "[");
+    return Substring(target, lb + 1, StringLength(target) - lb - 2);
+}
+
 func CodegenAstArenaIsForStmt(arena: AstArena, node_id: Int) -> Bool {
     return CodegenAstArenaKindIs(arena, node_id, 22);
 }

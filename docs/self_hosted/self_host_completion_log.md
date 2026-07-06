@@ -5165,3 +5165,16 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   expression parsing.
 - This still does not claim full expression-row ownership; it removes one more
   emission-local parser from the transitional bridge.
+
+### 2026-07-07 -- Indexed assignment target parsing moves behind typed arena owner
+
+- Added typed arena assignment target facts:
+  `CodegenAstArenaAssignTargetIsIndex(...)`,
+  `CodegenAstArenaAssignIndexReceiverOrDie(...)`, and
+  `CodegenAstArenaAssignIndexExprOrDie(...)`.
+- Repointed `EmitAssign(...)` so indexed assignment lowering consumes those
+  target facts instead of parsing `name` locally with `StringIndexOf(name, "[")`.
+- Tightened the component contract so assignment target parsing cannot return
+  to the emission participant.
+- This keeps array-index assignment shape under the input owner while the
+  expression payload itself remains string-backed.
