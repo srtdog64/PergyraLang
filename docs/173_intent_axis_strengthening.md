@@ -178,6 +178,37 @@ failure/budget; AIRBinding.v가 zone/effect/acquire/comp_target/dep 5-family로
   중복 등록 아님, 같은 일의 두 문서 참조).
 - **WO-INT-5** — `IntentObligations.v`(`checked_intent_guard_free` +
   erasable 따름) + formal/proof-spine smoke 등록.
+
+**2026-07-06 착지 범위 기록**: `IntentObligations.v`의 첫 버전은 전체
+`checked_intent_guard_free` 정리가 아니라 §0-b의 **단위 교정 seed**다. 즉
+source-level `intent`가 atomic formal primitive가 아니라 verification-plane
+fact family binder임을 모델링하고, `IntentPurposeFact`/`IntentTraceFact`는
+비표현성 주장 밖으로 두며, atomic `Intent` fact를 금지하고, WO-INT-0이
+INT-1보다 선행함을 Coq + proof-spine/formal smoke에 묶었다. guard-free/erasure
+정리와 실제 participant/coordination/compensation verifier 구현은 여전히
+WO-INT-1~5의 실작업이다.
+
+**같은 날 상보 착지 — `IntentSpine.v` (coqc PASS, admit/axiom 0)**: 위 잔여의
+**정리 커널 절반**이 착지했다(semantic pass 실구현은 여전히 남음). 내용:
+① 의무-보유 3-family 소형 모델(Participant/Coordination/Compensation — Boundary/
+Authority/Effect는 기존 Core.v들이 소유, 중복 없음) + 정적 술어
+`participants_covered`(INT-1)/`deps_wf`(INT-3)/`comp_covered`(INT-2),
+② 런타임 가드 3종(undeclared/missing-comp/stuck) + coordination-faithful
+스케줄(`sched_ok` = codegen 방출 의무, AIRBinding 계보),
+③ **`checked_intent_guard_free`** — INT-5 목표 정리: checked intent는 어떤
+faithful 스케줄에서도 가드 무발화(= 소거/상각 근거, docs/142) + 비공허성 보조
+정리 2개(unchecked면 가드가 실제로 발화),
+④ **`no_dep_cycle`** — F1(fe70f180) livelock 클래스의 intent-수준 정적 배제,
+⑤ 합성 정리 **`one_intent_from_facts` / `intent_determined_by_facts` /
+`facts_share_spine`** — 분리 방출된 family들이 공유 spine id로 정확히 하나의
+intent로 재조립되고, intent는 family 너머의 숨은 내용이 없다("subfact가 하나의
+intent가 된다"),
+⑥ `library_bucket_obligation_free` — 6/2 버킷의 연산적 얼굴(note payload 변경에
+검사 불변).
+**분업**: IntentObligations.v = §0-b **주장 구조**(binder/family/bucket/금지),
+IntentSpine.v = **연산 커널**(의무→가드-자유→합성). 이 둘이 "intent 정형 커널"의
+1차 완성. 잔여 실작업: INT-1 semantic pass(interproc used-set 계산), INT-4
+(cross-intent, 다중 spine 레지스트리 모델), IntentSpine.v smoke 등록.
 - 시퀀스: INT-1 → INT-3 → INT-2 → INT-5(정리는 의무 셋이 실물이 된 후) →
   INT-4(SEA 트랙과 합류). 전부 self-host M2와 독립(semantic pass 계열이라
   병행 가능하나, 우선순위 경쟁은 BDFL 몫).
