@@ -139,12 +139,13 @@ The tool reads one AST text path from `Args()[0]`, with the no-argument
 `hello_ast.txt` fixture as the default probe. `input/ast_input_owner.pgy` owns
 path selection, the missing-file diagnostic, and the file-read boundary.
 `input/ast_text_inventory_owner.pgy` owns raw AST-text line splitting, typed
-`CodegenAstTextNode` inventory, indent counting, parent edges, coarse node
+`CodegenAstTextNode` inventory, indent counting, coarse node
 kinds, blank-line filtering, `[export]` line normalization, program/function
 declaration routing predicates, declaration collector prepass facts, function
-signature/header facts, cursor expectation checks, and the
-`CodegenTypedAstBridgeReady` guard that consumes the typed AST arena payload
-contract before emission.
+signature/header facts, and cursor expectation checks.
+`input/ast_text_typed_arena_owner.pgy` owns parent/indent/child projection into
+the typed `AstArena` and the `CodegenTypedAstBridgeReady` guard that consumes
+the typed AST arena payload contract before emission.
 `input/ast_text_statement_owner.pgy` owns statement-row facts, including
 `Let`, `Assign`, `Log`, `Return`, `Defer`, `ArrayPop`, `ArraySet`,
 `ArrayPush`, `Exit`, `Break`, `Continue`, `For`, `While`, `If`, `Else`

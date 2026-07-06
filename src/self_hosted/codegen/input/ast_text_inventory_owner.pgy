@@ -3,7 +3,6 @@
 // Owns the transitional AST-text line inventory consumed by self-host C emit.
 
 import "../text/text_owner.pgy";
-import "../typed_ast_node_skeleton.pgy";
 import "ast_text_row_fact_owner.pgy";
 
 struct CodegenAstTextNode {
@@ -498,89 +497,6 @@ func CodegenAstTextNodeInventory(tree_text: String, inout nodes: Array<CodegenAs
         }
         pos = nl + 1;
     }
-}
-
-func CodegenAstTextArenaAtomFor(node: CodegenAstTextNode) -> String {
-    if node.name != "" {
-        return node.name;
-    }
-    return node.payload;
-}
-
-func CodegenAstTextTypedArenaFromNodes(nodes: Array<CodegenAstTextNode>, count: Int) -> AstArena {
-    let kinds: Array<Int> = [];
-    let atoms: Array<Int> = [];
-    let has_atoms: Array<Int> = [];
-    let first_children: Array<Int> = [];
-    let child_counts: Array<Int> = [];
-    let children: Array<Int> = [];
-    let atom_table: Array<String> = [""];
-    let i: Int = 0;
-    while i < count {
-        ArrayPush(kinds, nodes[i].kind);
-        let atom_text: String = CodegenAstTextArenaAtomFor(nodes[i]);
-        if atom_text == "" {
-            ArrayPush(atoms, 0);
-            ArrayPush(has_atoms, 0);
-        } else {
-            ArrayPush(atom_table, atom_text);
-            ArrayPush(atoms, ArrayLength(atom_table) - 1);
-            ArrayPush(has_atoms, 1);
-        }
-        ArrayPush(first_children, ArrayLength(children));
-        let direct: Int = 0;
-        let j: Int = i + 1;
-        while j < count && nodes[j].indent > nodes[i].indent {
-            if nodes[j].indent == nodes[i].indent + 2 {
-                ArrayPush(children, j);
-                direct = direct + 1;
-            }
-            j = j + 1;
-        }
-        ArrayPush(child_counts, direct);
-        i = i + 1;
-    }
-    return AstArena(kinds, atoms, has_atoms, first_children, child_counts, children, atom_table);
-}
-
-func CodegenAstTextTypedArenaProjectionReady(nodes: Array<CodegenAstTextNode>, count: Int) -> Bool {
-    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
-    if !TypedAstArenaParallelRowsReady(arena) || TypedAstArenaNodeCount(arena) != count {
-        return false;
-    }
-    let i: Int = 0;
-    while i < count {
-        let kind: Option<Int> = TypedAstArenaNodeKind(arena, i);
-        if !IsSome(kind) || UnwrapOption(kind) != nodes[i].kind {
-            return false;
-        }
-        let atom_text: String = CodegenAstTextArenaAtomFor(nodes[i]);
-        let atom: Option<String> = TypedAstArenaAtomText(arena, i);
-        if atom_text == "" && IsSome(atom) {
-            return false;
-        }
-        if atom_text != "" && (!IsSome(atom) || UnwrapOption(atom) != atom_text) {
-            return false;
-        }
-        i = i + 1;
-    }
-    if count > 1 && !IsSome(TypedAstArenaChildAt(arena, 0, 0)) {
-        return false;
-    }
-    return true;
-}
-
-func CodegenTypedAstBridgeReady(nodes: Array<CodegenAstTextNode>, count: Int) -> Bool {
-    if !TypedAstArenaPayloadContractReady() {
-        return false;
-    }
-    if count <= 0 {
-        return false;
-    }
-    if !CodegenAstTextIsProgramRoot(nodes[0]) {
-        return false;
-    }
-    return CodegenAstTextTypedArenaProjectionReady(nodes, count);
 }
 
 func CodegenAstTextExpectNode(nodes: Array<CodegenAstTextNode>, count: Int, inout cur: Array<Int>, expected: String) -> Void {

@@ -679,6 +679,7 @@ reject_text "tests/self_hosted/parity/regen_expected.sh" 'cp "$ROOT_DIR/src/self
 require_owner_surface codegen \
     "input/ast_input_owner.pgy" \
     "input/ast_text_inventory_owner.pgy" \
+    "input/ast_text_typed_arena_owner.pgy" \
     "input/ast_text_row_fact_owner.pgy" \
     "input/ast_text_statement_owner.pgy" \
     "input/ast_usage_owner.pgy" \
@@ -892,16 +893,20 @@ require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "Codeg
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let param_indent: Int = -1"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "param_indent = indent + 2"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "kind = 12"
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'import "../typed_ast_node_skeleton.pgy";'
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenTypedAstBridgeReady"
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "TypedAstArenaPayloadContractReady()"
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "CodegenAstTextIsProgramRoot(nodes[0])"
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextTypedArenaFromNodes"
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextTypedArenaProjectionReady"
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "return CodegenAstTextTypedArenaProjectionReady(nodes, count)"
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "TypedAstArenaNodeKind(arena, i)"
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "TypedAstArenaAtomText(arena, i)"
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "TypedAstArenaChildAt(arena, 0, 0)"
+require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" 'import "../typed_ast_node_skeleton.pgy";'
+require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" 'import "ast_text_inventory_owner.pgy";'
+require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenTypedAstBridgeReady"
+require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "TypedAstArenaPayloadContractReady()"
+require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "CodegenAstTextIsProgramRoot(nodes[0])"
+require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstTextTypedArenaFromNodes"
+require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstTextTypedArenaProjectionReady"
+require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstTextParentFor"
+require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "return CodegenAstTextTypedArenaProjectionReady(nodes, count)"
+require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "TypedAstArenaNodeKind(arena, i)"
+require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "TypedAstArenaAtomText(arena, i)"
+require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "TypedAstArenaParentId(arena, i)"
+require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "TypedAstArenaIndent(arena, i)"
+require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "TypedAstArenaChildAt(arena, 0, 0)"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextExpectNode"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let expected_kind: Int = CodegenAstTextKindOf(expected)"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "nodes[cur[0]].kind != expected_kind"
@@ -919,8 +924,12 @@ require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "func TypedAs
 require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "func TypedAstArenaNodeKind"
 require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "func TypedAstArenaChildAt"
 require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "func TypedAstArenaAtomText"
+require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "func TypedAstArenaParentId"
+require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "func TypedAstArenaIndent"
 require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "let kinds: Array<Int>"
-require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "return AstArena(kinds, atoms, has_atoms, first_children, child_counts, children, atom_table)"
+require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "let parents: Array<Int>"
+require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "let indents: Array<Int>"
+require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "return AstArena(kinds, atoms, has_atoms, first_children, child_counts, parents, indents, children, atom_table)"
 require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "let arena: AstArena = TypedAstArenaFixture()"
 reject_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "ArrayGet("
 reject_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "SKELETON"
@@ -1046,6 +1055,7 @@ require_text "src/self_hosted/codegen/emission/program_emit.pgy" 'import "../run
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "RejectUnsupportedCodegenBuiltins(tree_text)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextNodeInventory(tree_text, nodes, node_count_box)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenTypedAstBridgeReady(nodes, count)"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" 'import "../input/ast_text_typed_arena_owner.pgy";'
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "GenerateC(ast: String)"
 reject_text "src/self_hosted/codegen/text/text_owner.pgy" "RejectUnsupportedCodegenBuiltins(ast: String)"
 reject_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "let ast: String"

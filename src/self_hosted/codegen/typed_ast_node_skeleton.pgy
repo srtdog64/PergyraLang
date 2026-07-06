@@ -54,6 +54,8 @@ struct AstNode {
     has_atom: Bool;
     first_child: Int;
     child_count: Int;
+    parent: Int;
+    indent: Int;
 }
 
 struct AstArena {
@@ -62,6 +64,8 @@ struct AstArena {
     has_atoms: Array<Int>;
     first_children: Array<Int>;
     child_counts: Array<Int>;
+    parents: Array<Int>;
+    indents: Array<Int>;
     children: Array<Int>;
     atom_table: Array<String>;
 }
@@ -84,9 +88,11 @@ func TypedAstArenaFixture() -> AstArena {
     let has_atoms: Array<Int> = [0, 1, 0];
     let first_children: Array<Int> = [0, 1, 2];
     let child_counts: Array<Int> = [1, 1, 0];
+    let parents: Array<Int> = [-1, 0, 1];
+    let indents: Array<Int> = [0, 2, 4];
     let children: Array<Int> = [1, 2];
     let atom_table: Array<String> = ["", "Main"];
-    return AstArena(kinds, atoms, has_atoms, first_children, child_counts, children, atom_table);
+    return AstArena(kinds, atoms, has_atoms, first_children, child_counts, parents, indents, children, atom_table);
 }
 
 func TypedAstArenaNodeCount(arena: AstArena) -> Int {
@@ -98,7 +104,9 @@ func TypedAstArenaParallelRowsReady(arena: AstArena) -> Bool {
     return ArrayLength(arena.atoms) == n &&
         ArrayLength(arena.has_atoms) == n &&
         ArrayLength(arena.first_children) == n &&
-        ArrayLength(arena.child_counts) == n;
+        ArrayLength(arena.child_counts) == n &&
+        ArrayLength(arena.parents) == n &&
+        ArrayLength(arena.indents) == n;
 }
 
 func TypedAstArenaHasNode(arena: AstArena, node_id: Int) -> Bool {
@@ -129,6 +137,20 @@ func TypedAstArenaChildAt(arena: AstArena, node_id: Int, i: Int) -> Option<Int> 
         return None;
     }
     return Some(arena.children[edge]);
+}
+
+func TypedAstArenaParentId(arena: AstArena, node_id: Int) -> Option<Int> {
+    if !TypedAstArenaHasNode(arena, node_id) {
+        return None;
+    }
+    return Some(arena.parents[node_id]);
+}
+
+func TypedAstArenaIndent(arena: AstArena, node_id: Int) -> Option<Int> {
+    if !TypedAstArenaHasNode(arena, node_id) {
+        return None;
+    }
+    return Some(arena.indents[node_id]);
 }
 
 func TypedAstArenaAtomText(arena: AstArena, node_id: Int) -> Option<String> {
@@ -197,6 +219,14 @@ func TypedAstArenaRootTraversalReady() -> Bool {
     if !IsSome(first_child) || UnwrapOption(first_child) != 1 {
         return false;
     }
+    let root_parent: Option<Int> = TypedAstArenaParentId(arena, 0);
+    if !IsSome(root_parent) || UnwrapOption(root_parent) != -1 {
+        return false;
+    }
+    let root_indent: Option<Int> = TypedAstArenaIndent(arena, 0);
+    if !IsSome(root_indent) || UnwrapOption(root_indent) != 0 {
+        return false;
+    }
     if IsSome(TypedAstArenaChildAt(arena, 0, 1)) {
         return false;
     }
@@ -210,8 +240,24 @@ func TypedAstArenaRootTraversalReady() -> Bool {
     if !IsSome(block_child) || UnwrapOption(block_child) != 2 {
         return false;
     }
+    let func_parent: Option<Int> = TypedAstArenaParentId(arena, UnwrapOption(first_child));
+    if !IsSome(func_parent) || UnwrapOption(func_parent) != 0 {
+        return false;
+    }
+    let func_indent: Option<Int> = TypedAstArenaIndent(arena, UnwrapOption(first_child));
+    if !IsSome(func_indent) || UnwrapOption(func_indent) != 2 {
+        return false;
+    }
     let block_kind: Option<Int> = TypedAstArenaNodeKind(arena, UnwrapOption(block_child));
     if !IsSome(block_kind) || UnwrapOption(block_kind) != TypedAstKindBlockTag() {
+        return false;
+    }
+    let block_parent: Option<Int> = TypedAstArenaParentId(arena, UnwrapOption(block_child));
+    if !IsSome(block_parent) || UnwrapOption(block_parent) != 1 {
+        return false;
+    }
+    let block_indent: Option<Int> = TypedAstArenaIndent(arena, UnwrapOption(block_child));
+    if !IsSome(block_indent) || UnwrapOption(block_indent) != 4 {
         return false;
     }
     if IsSome(TypedAstArenaChildAt(arena, UnwrapOption(block_child), 0)) {

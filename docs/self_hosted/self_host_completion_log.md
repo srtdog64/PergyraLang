@@ -4804,3 +4804,19 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-compiler-world-contract-test-smoke`, and
   `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
   6906 generated-C lines).
+
+### 2026-07-07 -- Typed AST arena gains parent and indent facts
+
+- Split the AST-text-to-arena projection out of
+  `ast_text_inventory_owner.pgy` into
+  `ast_text_typed_arena_owner.pgy`, keeping the line inventory owner below the
+  600-line cap and naming the projection responsibility directly.
+- Extended `AstArena` with parent and indent rows plus
+  `TypedAstArenaParentId(...)` and `TypedAstArenaIndent(...)` accessors. The
+  fixture now checks Program -> FuncDecl(Main) -> Block parent/indent facts.
+- Updated the real bridge projection so every `CodegenAstTextNode` row maps to
+  row-aligned kind, atom, parent, indent, and child-edge facts before
+  `GenerateC` can emit.
+- The mixed AST-like tree blocker remains ACTIVE: emission still consumes
+  transitional `CodegenAstTextNode` rows. The next cutover can now move
+  traversal decisions from raw `indent` reads to `NodeId` parent/indent facts.

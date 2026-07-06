@@ -159,12 +159,14 @@ explanatory.
 no-argument `hello_ast.txt` fixture), the missing-file diagnostic, and the
 `ReadFile` boundary. `input/ast_text_inventory_owner.pgy` owns the transitional
 AST-text line inventory consumed by `GenerateC`: raw line splitting, typed
-`CodegenAstTextNode` inventory, leading indent counting, parent edges, coarse
+`CodegenAstTextNode` inventory, leading indent counting, coarse
 node kinds, empty-line removal, `[export]` line normalization, program/function
 declaration routing predicates, declaration collector prepass facts, and cursor
 expectation diagnostics live
-there, not in emission participants. This is a compatibility bridge, not the
-final typed/tagged AST owner. Function signature and statement body emission now
+there, not in emission participants. `input/ast_text_typed_arena_owner.pgy`
+owns the parent/indent/child projection into `AstArena` and the bridge readiness
+guard. This is a compatibility bridge, not the final typed/tagged AST owner.
+Function signature and statement body emission now
 consume this typed node owner for function headers, parameters, return lines,
 body markers, and statement reads. Parameter mode spelling (`inout`, `own`,
 `ref`) is a fact preserved by the native and self-host AST printers; codegen
