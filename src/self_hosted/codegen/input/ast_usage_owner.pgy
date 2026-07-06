@@ -4,6 +4,8 @@
 // runtime/header decisions should not rescan the raw AST document. This owner
 // derives those decisions from the typed line inventory.
 
+import "ast_text_typed_arena_owner.pgy";
+
 struct CodegenRuntimeUsageFacts {
     let uses_args: Bool;
     let uses_str: Bool;
@@ -31,11 +33,20 @@ struct CodegenRuntimeUsageFacts {
     let uses_random: Bool;
 }
 
-func CodegenAstTextContains(nodes: Array<CodegenAstTextNode>, count: Int, needle: String) -> Bool {
+func CodegenAstArenaTextPartContains(part: Option<String>, needle: String) -> Bool {
+    if !IsSome(part) {
+        return false;
+    }
+    return StringIndexOf(UnwrapOption(part), needle) >= 0;
+}
+
+func CodegenAstArenaContains(arena: AstArena, count: Int, needle: String) -> Bool {
     let i: Int = 0;
     while i < count {
-        if StringIndexOf(nodes[i].payload, needle) >= 0 ||
-            StringIndexOf(nodes[i].aux_payload, needle) >= 0 {
+        if CodegenAstArenaTextPartContains(TypedAstArenaAtomText(arena, i), needle) ||
+            CodegenAstArenaTextPartContains(TypedAstArenaTypeName(arena, i), needle) ||
+            CodegenAstArenaTextPartContains(TypedAstArenaValueText(arena, i), needle) ||
+            CodegenAstArenaTextPartContains(TypedAstArenaAuxValueText(arena, i), needle) {
             return true;
         }
         i = i + 1;
@@ -43,10 +54,10 @@ func CodegenAstTextContains(nodes: Array<CodegenAstTextNode>, count: Int, needle
     return false;
 }
 
-func CodegenAstTextKindPresent(nodes: Array<CodegenAstTextNode>, count: Int, kind: Int) -> Bool {
+func CodegenAstArenaKindPresent(arena: AstArena, count: Int, kind: Int) -> Bool {
     let i: Int = 0;
     while i < count {
-        if nodes[i].kind == kind {
+        if CodegenAstArenaKindIs(arena, i, kind) {
             return true;
         }
         i = i + 1;
@@ -54,80 +65,80 @@ func CodegenAstTextKindPresent(nodes: Array<CodegenAstTextNode>, count: Int, kin
     return false;
 }
 
-func CodegenRuntimeUsageFactsFromNodes(nodes: Array<CodegenAstTextNode>, count: Int) -> CodegenRuntimeUsageFacts {
-    let uses_args: Bool = CodegenAstTextContains(nodes, count, "Args(");
-    let uses_str: Bool = CodegenAstTextContains(nodes, count, "String")
-        || CodegenAstTextContains(nodes, count, "Concat(")
-        || CodegenAstTextContains(nodes, count, "Substring(")
-        || CodegenAstTextContains(nodes, count, "SubIndexOfWithLen(")
-        || CodegenAstTextContains(nodes, count, "SubEqualsWithLen(")
-        || CodegenAstTextContains(nodes, count, "SubContainsWithLen(")
-        || CodegenAstTextContains(nodes, count, "SubStartsWithLen(")
-        || CodegenAstTextContains(nodes, count, "ToUpper(")
-        || CodegenAstTextContains(nodes, count, "ToLower(");
-    let uses_math: Bool = CodegenAstTextContains(nodes, count, "Abs(")
-        || CodegenAstTextContains(nodes, count, "Min(")
-        || CodegenAstTextContains(nodes, count, "Max(");
-    let uses_array_sort: Bool = CodegenAstTextContains(nodes, count, "ArraySort(");
-    let uses_array_reverse: Bool = CodegenAstTextContains(nodes, count, "ArrayReverse(");
-    let uses_array_map: Bool = CodegenAstTextContains(nodes, count, "ArrayMap(");
-    let uses_array_filter: Bool = CodegenAstTextContains(nodes, count, "ArrayFilter(");
-    let uses_result: Bool = CodegenAstTextContains(nodes, count, "Result<")
-        || CodegenAstTextContains(nodes, count, "Ok(")
-        || CodegenAstTextContains(nodes, count, "Err(")
-        || CodegenAstTextContains(nodes, count, "IsOk(")
-        || CodegenAstTextContains(nodes, count, "IsErr(")
-        || CodegenAstTextContains(nodes, count, "Unwrap(")
-        || CodegenAstTextContains(nodes, count, "UnwrapOr(");
-    let uses_option: Bool = CodegenAstTextContains(nodes, count, "Option<")
-        || CodegenAstTextContains(nodes, count, "Some(")
-        || CodegenAstTextContains(nodes, count, "None")
-        || CodegenAstTextContains(nodes, count, "IsSome(")
-        || CodegenAstTextContains(nodes, count, "UnwrapOption(");
-    let uses_bool: Bool = CodegenAstTextContains(nodes, count, "Bool") || uses_array_filter || uses_result || uses_option;
-    let uses_exit: Bool = CodegenAstTextKindPresent(nodes, count, 17)
-        || CodegenAstTextContains(nodes, count, "Exit(");
-    let uses_array: Bool = CodegenAstTextContains(nodes, count, "Array<")
-        || CodegenAstTextKindPresent(nodes, count, 19)
-        || CodegenAstTextContains(nodes, count, "ArrayPush(")
-        || CodegenAstTextContains(nodes, count, "ArrayLength(")
-        || CodegenAstTextKindPresent(nodes, count, 18)
-        || CodegenAstTextContains(nodes, count, "ArraySet(")
-        || CodegenAstTextKindPresent(nodes, count, 16)
-        || CodegenAstTextContains(nodes, count, "ArrayPop(")
+func CodegenRuntimeUsageFactsFromArena(arena: AstArena, count: Int) -> CodegenRuntimeUsageFacts {
+    let uses_args: Bool = CodegenAstArenaContains(arena, count, "Args(");
+    let uses_str: Bool = CodegenAstArenaContains(arena, count, "String")
+        || CodegenAstArenaContains(arena, count, "Concat(")
+        || CodegenAstArenaContains(arena, count, "Substring(")
+        || CodegenAstArenaContains(arena, count, "SubIndexOfWithLen(")
+        || CodegenAstArenaContains(arena, count, "SubEqualsWithLen(")
+        || CodegenAstArenaContains(arena, count, "SubContainsWithLen(")
+        || CodegenAstArenaContains(arena, count, "SubStartsWithLen(")
+        || CodegenAstArenaContains(arena, count, "ToUpper(")
+        || CodegenAstArenaContains(arena, count, "ToLower(");
+    let uses_math: Bool = CodegenAstArenaContains(arena, count, "Abs(")
+        || CodegenAstArenaContains(arena, count, "Min(")
+        || CodegenAstArenaContains(arena, count, "Max(");
+    let uses_array_sort: Bool = CodegenAstArenaContains(arena, count, "ArraySort(");
+    let uses_array_reverse: Bool = CodegenAstArenaContains(arena, count, "ArrayReverse(");
+    let uses_array_map: Bool = CodegenAstArenaContains(arena, count, "ArrayMap(");
+    let uses_array_filter: Bool = CodegenAstArenaContains(arena, count, "ArrayFilter(");
+    let uses_result: Bool = CodegenAstArenaContains(arena, count, "Result<")
+        || CodegenAstArenaContains(arena, count, "Ok(")
+        || CodegenAstArenaContains(arena, count, "Err(")
+        || CodegenAstArenaContains(arena, count, "IsOk(")
+        || CodegenAstArenaContains(arena, count, "IsErr(")
+        || CodegenAstArenaContains(arena, count, "Unwrap(")
+        || CodegenAstArenaContains(arena, count, "UnwrapOr(");
+    let uses_option: Bool = CodegenAstArenaContains(arena, count, "Option<")
+        || CodegenAstArenaContains(arena, count, "Some(")
+        || CodegenAstArenaContains(arena, count, "None")
+        || CodegenAstArenaContains(arena, count, "IsSome(")
+        || CodegenAstArenaContains(arena, count, "UnwrapOption(");
+    let uses_bool: Bool = CodegenAstArenaContains(arena, count, "Bool") || uses_array_filter || uses_result || uses_option;
+    let uses_exit: Bool = CodegenAstArenaKindPresent(arena, count, 17)
+        || CodegenAstArenaContains(arena, count, "Exit(");
+    let uses_array: Bool = CodegenAstArenaContains(arena, count, "Array<")
+        || CodegenAstArenaKindPresent(arena, count, 19)
+        || CodegenAstArenaContains(arena, count, "ArrayPush(")
+        || CodegenAstArenaContains(arena, count, "ArrayLength(")
+        || CodegenAstArenaKindPresent(arena, count, 18)
+        || CodegenAstArenaContains(arena, count, "ArraySet(")
+        || CodegenAstArenaKindPresent(arena, count, 16)
+        || CodegenAstArenaContains(arena, count, "ArrayPop(")
         || uses_array_sort
         || uses_array_reverse
         || uses_array_map
         || uses_array_filter
-        || CodegenAstTextContains(nodes, count, "StringJoin(")
-        || CodegenAstTextContains(nodes, count, "Join(")
-        || CodegenAstTextContains(nodes, count, "Split(")
-        || CodegenAstTextContains(nodes, count, "DirWalk(")
+        || CodegenAstArenaContains(arena, count, "StringJoin(")
+        || CodegenAstArenaContains(arena, count, "Join(")
+        || CodegenAstArenaContains(arena, count, "Split(")
+        || CodegenAstArenaContains(arena, count, "DirWalk(")
         || uses_args;
-    let uses_ast_text_node_array: Bool = CodegenAstTextContains(nodes, count, "Array<CodegenAstTextNode");
-    let uses_io: Bool = CodegenAstTextContains(nodes, count, "ReadFile(")
-        || CodegenAstTextContains(nodes, count, "ReadStdin(")
-        || CodegenAstTextContains(nodes, count, "FileExists(")
-        || CodegenAstTextContains(nodes, count, "WriteFile(");
-    let uses_join: Bool = CodegenAstTextContains(nodes, count, "StringJoin(")
-        || CodegenAstTextContains(nodes, count, "Join(");
-    let uses_split: Bool = CodegenAstTextContains(nodes, count, "Split(");
-    let uses_dirwalk: Bool = CodegenAstTextContains(nodes, count, "DirWalk(");
-    let uses_log: Bool = CodegenAstTextKindPresent(nodes, count, 13)
-        || CodegenAstTextContains(nodes, count, "Log");
-    let uses_fhandle: Bool = CodegenAstTextContains(nodes, count, "FileOpen(")
-        || CodegenAstTextContains(nodes, count, "FileWrite(")
-        || CodegenAstTextContains(nodes, count, "FileClose(")
-        || CodegenAstTextContains(nodes, count, "FileRead(");
-    let uses_print: Bool = CodegenAstTextContains(nodes, count, "Print(");
-    let uses_float: Bool = CodegenAstTextContains(nodes, count, "Float")
-        || CodegenAstTextContains(nodes, count, "Sqrt(")
-        || CodegenAstTextContains(nodes, count, "Pow(")
-        || CodegenAstTextContains(nodes, count, "Floor(")
-        || CodegenAstTextContains(nodes, count, "Ceil(")
-        || CodegenAstTextContains(nodes, count, "ToFloat(");
-    let uses_random_value: Bool = CodegenAstTextContains(nodes, count, "Random(");
-    let uses_seed_random: Bool = CodegenAstTextContains(nodes, count, "SeedRandom(");
+    let uses_ast_text_node_array: Bool = CodegenAstArenaContains(arena, count, "Array<CodegenAstTextNode");
+    let uses_io: Bool = CodegenAstArenaContains(arena, count, "ReadFile(")
+        || CodegenAstArenaContains(arena, count, "ReadStdin(")
+        || CodegenAstArenaContains(arena, count, "FileExists(")
+        || CodegenAstArenaContains(arena, count, "WriteFile(");
+    let uses_join: Bool = CodegenAstArenaContains(arena, count, "StringJoin(")
+        || CodegenAstArenaContains(arena, count, "Join(");
+    let uses_split: Bool = CodegenAstArenaContains(arena, count, "Split(");
+    let uses_dirwalk: Bool = CodegenAstArenaContains(arena, count, "DirWalk(");
+    let uses_log: Bool = CodegenAstArenaKindPresent(arena, count, 13)
+        || CodegenAstArenaContains(arena, count, "Log");
+    let uses_fhandle: Bool = CodegenAstArenaContains(arena, count, "FileOpen(")
+        || CodegenAstArenaContains(arena, count, "FileWrite(")
+        || CodegenAstArenaContains(arena, count, "FileClose(")
+        || CodegenAstArenaContains(arena, count, "FileRead(");
+    let uses_print: Bool = CodegenAstArenaContains(arena, count, "Print(");
+    let uses_float: Bool = CodegenAstArenaContains(arena, count, "Float")
+        || CodegenAstArenaContains(arena, count, "Sqrt(")
+        || CodegenAstArenaContains(arena, count, "Pow(")
+        || CodegenAstArenaContains(arena, count, "Floor(")
+        || CodegenAstArenaContains(arena, count, "Ceil(")
+        || CodegenAstArenaContains(arena, count, "ToFloat(");
+    let uses_random_value: Bool = CodegenAstArenaContains(arena, count, "Random(");
+    let uses_seed_random: Bool = CodegenAstArenaContains(arena, count, "SeedRandom(");
     let uses_random: Bool = uses_random_value || uses_seed_random;
     return CodegenRuntimeUsageFacts(
         uses_args,
@@ -155,4 +166,9 @@ func CodegenRuntimeUsageFactsFromNodes(nodes: Array<CodegenAstTextNode>, count: 
         uses_seed_random,
         uses_random
     );
+}
+
+func CodegenRuntimeUsageFactsFromNodes(nodes: Array<CodegenAstTextNode>, count: Int) -> CodegenRuntimeUsageFacts {
+    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
+    return CodegenRuntimeUsageFactsFromArena(arena, count);
 }

@@ -73,7 +73,7 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
     let typedef_block: String = CollectStructs(nodes, count, arena, env_acc);
     CollectRoleOperators(nodes, count, arena, env_acc);
     let base_env: String = env_acc[0];
-    let usage: CodegenRuntimeUsageFacts = CodegenRuntimeUsageFactsFromNodes(nodes, count);
+    let usage: CodegenRuntimeUsageFacts = CodegenRuntimeUsageFactsFromArena(arena, count);
     let uses_args: Bool = usage.uses_args;
 
     let defs: String = "";

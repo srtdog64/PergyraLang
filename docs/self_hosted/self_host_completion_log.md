@@ -5093,3 +5093,20 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-compiler-world-contract-test-smoke`, and
   `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
   7701 generated-C lines).
+
+### 2026-07-07 -- Runtime usage facts consume typed arena rows
+
+- Added `CodegenRuntimeUsageFactsFromArena(...)` so runtime/header usage facts
+  consume the already-built `AstArena` atom/type/value/aux-value/kind rows.
+- Repointed `program_emit.pgy` away from the raw-node usage bridge. The
+  compatibility `FromNodes` entrypoint now only rebuilds the arena and delegates
+  to the arena owner path.
+- Tightened `self_hosted_component_contract_smoke.sh` so production emission
+  cannot call `CodegenRuntimeUsageFactsFromNodes(nodes, count)`, and usage facts
+  cannot reintroduce direct `nodes[i].payload` / `nodes[i].aux_payload` scans.
+- Builtin-name usage detection remains string-based over arena rows until a
+  dedicated expression usage row owner exists.
+- Verified with `self-host-component-contract-test-smoke`,
+  `self-host-compiler-world-contract-test-smoke`, and
+  `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
+  7717 generated-C lines).

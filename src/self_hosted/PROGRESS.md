@@ -93,6 +93,7 @@ for the receiver and pushed expression; `ArraySet` consumes arena atom/value/
 aux-value rows for receiver, index, and assigned value; `For` consumes arena
 atom/value/aux-value rows for loop variable plus range start/end or foreach
 collection. Program/function/statement routing and marker checks consume arena kind facts.
+Runtime/header usage facts now consume arena atom/type/value/aux/kind facts instead of raw node payload scans.
 The rest of codegen,
 runtime and released/native compiler driver/LSP substitution are still 0%;
 the compiler driver now has DRV-0/DRV-1 artifact rungs, and LSP has LSP-0
@@ -526,8 +527,8 @@ beyond the lexer:
   indent, and root child-edge checks. `program_emit` now consumes those arena
   facts for first-function indent and owner-body descendant traversal. Current
   parser and most codegen rungs still consume text AST artifacts; the next
-  closure is moving function/statement traversal to typed arena `NodeId` facts
-  with oracle parity.
+  closure is moving expression/builtin usage to dedicated typed rows with
+  oracle parity.
 - **Raw pointer / FFI** -- if a Pergyra component needs to call into
   the C compiler's runtime (e.g. share the diagnostic emitter), there
   is no stable FFI today. This is intentional for the current compiler-pass
