@@ -206,9 +206,11 @@ TestHarness delta, 2026-07-06: `codegen_bootstrap.sh` now consumes codegen,
 parser, comparator, mir-lower, codegen fixture, MIR fixture, fuzz-generator,
 and sample-source paths from TestHarness through `codegen-bootstrap-paths`.
 It also consumes component and audit-tool breadth rows through
-`codegen-bootstrap-components` and `codegen-bootstrap-tools`, so the bootstrap
-runner executes Pergyra-owned rows instead of synthesizing self-host source
-paths in shell.
+`codegen-bootstrap-components` and `codegen-bootstrap-tools`, plus fixed
+codegen sample rows and MIR fixture rows through `codegen-bootstrap-samples`
+and `codegen-bootstrap-mir-fixtures`, so the bootstrap runner executes
+Pergyra-owned rows instead of synthesizing self-host source paths or breadth
+fixture lists in shell.
 
 TestHarness delta, 2026-07-06: `selfcheck_sources.sh` now consumes the semantic
 checker source through `semantic-parity-paths` and the real-source

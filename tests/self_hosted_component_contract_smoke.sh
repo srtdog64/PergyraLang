@@ -1913,11 +1913,15 @@ require_text "src/self_hosted/compiler/test_harness_mir_json_paths_owner.pgy" "f
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapPathSuiteName"
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapComponentSuiteName"
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapToolSuiteName"
+require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapSampleSuiteName"
+require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapMirFixtureSuiteName"
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessFuzzBackendGeneratorSuiteName"
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapPathAt"
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessFuzzBackendGeneratorPathAt"
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapComponentRowAt"
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapToolRowAt"
+require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapSampleAt"
+require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapMirFixtureAt"
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapRowsReady"
 require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspDiagnosticsSuiteName"
@@ -2700,6 +2704,8 @@ require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "pgy_selfhost_read_
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" '"codegen-bootstrap-paths"'
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" '"codegen-bootstrap-components"'
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" '"codegen-bootstrap-tools"'
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" '"codegen-bootstrap-samples"'
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" '"codegen-bootstrap-mir-fixtures"'
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'PARSER_SOURCE="$ROOT_DIR/${harness_paths[1]}"'
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[2]}"'
@@ -2711,6 +2717,8 @@ require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "compile_parser_ast
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "emit_self_parser_ast"
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'compare_artifact_with_owner "fixpoint_gen2_gen3" "$B/gen2.c" "$B/gen3.c" "emitted_c"'
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'compare_artifact_with_owner "fuzz_generator_manifest"'
+reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'SAMPLE="hello func_recursive struct_param array_push str_indexof else_if_chain string_equality io_probe"'
+reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'MIR_BOOTSTRAP_FIXTURES="let_log forloop role_operator_dispatch"'
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" '"emitted_c"'
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" '"emitted_self_hosted"'
 reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'pgy --ast'

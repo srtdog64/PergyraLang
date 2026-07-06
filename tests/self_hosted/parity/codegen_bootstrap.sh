@@ -55,6 +55,8 @@ B="$ROOT_DIR/.tmp/self_hosted/codegen/bootstrap"
 HARNESS_PATHS_FILE="$B/codegen_bootstrap_paths.txt"
 HARNESS_COMPONENTS_FILE="$B/codegen_bootstrap_components.txt"
 HARNESS_TOOLS_FILE="$B/codegen_bootstrap_tools.txt"
+HARNESS_SAMPLES_FILE="$B/codegen_bootstrap_samples.txt"
+HARNESS_MIR_FIXTURES_FILE="$B/codegen_bootstrap_mir_fixtures.txt"
 mkdir -p "$B"
 COMPARATOR_BIN=""
 PARSER_BIN="$B/parser_ast_producer.exe"
@@ -68,6 +70,8 @@ FUZZ_SOURCE=""
 SAMPLE_SRC=""
 BOOTSTRAP_COMPONENT_ROWS=()
 BOOTSTRAP_TOOL_ROWS=()
+BOOTSTRAP_SAMPLE_ROWS=()
+BOOTSTRAP_MIR_FIXTURES=()
 
 pgy_selfhost_read_test_harness_manifest \
     "self-host-bootstrap" \
@@ -84,6 +88,16 @@ pgy_selfhost_read_test_harness_manifest \
     "$B" \
     "codegen-bootstrap-tools" \
     "$HARNESS_TOOLS_FILE"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-bootstrap" \
+    "$B" \
+    "codegen-bootstrap-samples" \
+    "$HARNESS_SAMPLES_FILE"
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-bootstrap" \
+    "$B" \
+    "codegen-bootstrap-mir-fixtures" \
+    "$HARNESS_MIR_FIXTURES_FILE"
 
 harness_paths=()
 while IFS= read -r line; do
@@ -119,6 +133,24 @@ while IFS= read -r line; do
 done <"$HARNESS_TOOLS_FILE"
 if [[ "${#BOOTSTRAP_TOOL_ROWS[@]}" -ne 13 ]]; then
     echo "[self-host-bootstrap] TestHarness manifest expected 13 bootstrap tool rows, got ${#BOOTSTRAP_TOOL_ROWS[@]}" >&2
+    exit 1
+fi
+
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    BOOTSTRAP_SAMPLE_ROWS+=("$line")
+done <"$HARNESS_SAMPLES_FILE"
+if [[ "${#BOOTSTRAP_SAMPLE_ROWS[@]}" -ne 8 ]]; then
+    echo "[self-host-bootstrap] TestHarness manifest expected 8 bootstrap sample rows, got ${#BOOTSTRAP_SAMPLE_ROWS[@]}" >&2
+    exit 1
+fi
+
+while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    BOOTSTRAP_MIR_FIXTURES+=("$line")
+done <"$HARNESS_MIR_FIXTURES_FILE"
+if [[ "${#BOOTSTRAP_MIR_FIXTURES[@]}" -ne 3 ]]; then
+    echo "[self-host-bootstrap] TestHarness manifest expected 3 bootstrap MIR fixture rows, got ${#BOOTSTRAP_MIR_FIXTURES[@]}" >&2
     exit 1
 fi
 
@@ -374,8 +406,7 @@ compare_artifact_with_owner "fixpoint_gen2_gen3" "$B/gen2.c" "$B/gen3.c" "emitte
 echo "[self-host-bootstrap] fixpoint ok: gen2 == gen3 ($(wc -l < "$B/gen2.c") lines)"
 
 # Sample: the Pergyra-built tool must emit identical C to the oracle-built tool.
-SAMPLE="hello func_recursive struct_param array_push str_indexof else_if_chain string_equality io_probe"
-for base in $SAMPLE; do
+for base in "${BOOTSTRAP_SAMPLE_ROWS[@]}"; do
     fa="$B/${base}_ast.txt"
     emit_self_parser_ast "$CODEGEN_FIXTURE_DIR/${base}.pgy" "${fa#$ROOT_DIR/}"
     o="$(run_native_stdout "sample_${base}_oracle" "$B/gen0.exe" "${fa#$ROOT_DIR/}")"
@@ -385,7 +416,8 @@ for base in $SAMPLE; do
         exit 1
     fi
 done
-echo "[self-host-bootstrap] Pergyra-built tool emits identical C to oracle-built on ${SAMPLE// /, }"
+SAMPLE_SUMMARY="$(IFS=', '; printf '%s' "${BOOTSTRAP_SAMPLE_ROWS[*]}")"
+echo "[self-host-bootstrap] Pergyra-built tool emits identical C to oracle-built on $SAMPLE_SUMMARY"
 
 # Breadth: the Pergyra-built codegen (gen2) also compiles the OTHER self-host
 # components. Build each via gen2, gcc it, and check it produces the same output
@@ -485,8 +517,7 @@ if [[ -f "$MIR_LOWER_SOURCE" ]]; then
     fi
     (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$MIR_LOWER_SOURCE")" --backend=c \
         -o "$(pgy_path_for_compiler "$PGY" "$B/mir_lower_oracle.exe")" >/dev/null 2>&1)
-    MIR_BOOTSTRAP_FIXTURES="let_log forloop role_operator_dispatch"
-    for mir_base in $MIR_BOOTSTRAP_FIXTURES; do
+    for mir_base in "${BOOTSTRAP_MIR_FIXTURES[@]}"; do
         mir_json_rel=".tmp/self_hosted/codegen/bootstrap/mir_${mir_base}.json"
         (cd "$ROOT_DIR" && "$PGY" --mir-json \
             "$(pgy_path_for_compiler "$PGY" "$MIR_FIXTURE_DIR/${mir_base}.pgy")" \
@@ -498,7 +529,8 @@ if [[ -f "$MIR_LOWER_SOURCE" ]]; then
             exit 1
         fi
     done
-    echo "[self-host-bootstrap] codegen compiles mir_lower -> matches oracle-built on ${MIR_BOOTSTRAP_FIXTURES// /, }"
+    MIR_SUMMARY="$(IFS=', '; printf '%s' "${BOOTSTRAP_MIR_FIXTURES[*]}")"
+    echo "[self-host-bootstrap] codegen compiles mir_lower -> matches oracle-built on $MIR_SUMMARY"
 fi
 
 # Fuzz-generator breadth: this is not an argless audit tool; it writes a

@@ -152,6 +152,22 @@ func EmitCodegenBootstrapTools() -> Void {
     }
 }
 
+func EmitCodegenBootstrapSamples() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessCodegenBootstrapSampleCount() {
+        Log(CompilerHarnessCodegenBootstrapSampleAt(i));
+        i = i + 1;
+    }
+}
+
+func EmitCodegenBootstrapMirFixtures() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessCodegenBootstrapMirFixtureCount() {
+        Log(CompilerHarnessCodegenBootstrapMirFixtureAt(i));
+        i = i + 1;
+    }
+}
+
 func EmitFuzzBackendGeneratorPaths() -> Void {
     let i: Int = 0;
     while i < CompilerHarnessFuzzBackendGeneratorPathCount() {
@@ -450,6 +466,14 @@ func Main() -> Void {
     }
     if args[0] == CompilerHarnessCodegenBootstrapToolSuiteName() {
         EmitCodegenBootstrapTools();
+        return;
+    }
+    if args[0] == CompilerHarnessCodegenBootstrapSampleSuiteName() {
+        EmitCodegenBootstrapSamples();
+        return;
+    }
+    if args[0] == CompilerHarnessCodegenBootstrapMirFixtureSuiteName() {
+        EmitCodegenBootstrapMirFixtures();
         return;
     }
     if args[0] == CompilerHarnessFuzzBackendGeneratorSuiteName() {

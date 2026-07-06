@@ -25,6 +25,15 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Codegen bootstrap breadth rows move behind TestHarness
+
+- Extended `test_harness_codegen_bootstrap_paths_owner.pgy` with
+  `codegen-bootstrap-samples` and `codegen-bootstrap-mir-fixtures` suites.
+- Repointed `codegen_bootstrap.sh` so the fixed codegen sample list and MIR
+  fixture list are read from TestHarness instead of shell string literals.
+- Tightened the component contract to reject reintroduced shell-owned bootstrap
+  sample or MIR fixture lists.
+
 ## 2026-07-06 - Scratch growth bounded for self-host bootstrap
 
 - Measured local build/test scratch and found `.tmp` dominating disk use, with

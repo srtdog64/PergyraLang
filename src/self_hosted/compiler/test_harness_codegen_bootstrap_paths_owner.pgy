@@ -18,6 +18,14 @@ func CompilerHarnessCodegenBootstrapToolSuiteName() -> String {
     return "codegen-bootstrap-tools";
 }
 
+func CompilerHarnessCodegenBootstrapSampleSuiteName() -> String {
+    return "codegen-bootstrap-samples";
+}
+
+func CompilerHarnessCodegenBootstrapMirFixtureSuiteName() -> String {
+    return "codegen-bootstrap-mir-fixtures";
+}
+
 func CompilerHarnessFuzzBackendGeneratorSuiteName() -> String {
     return "fuzz-backend-generator-paths";
 }
@@ -91,6 +99,33 @@ func CompilerHarnessCodegenBootstrapToolRowAt(index: Int) -> String {
     return "";
 }
 
+func CompilerHarnessCodegenBootstrapSampleCount() -> Int {
+    return 8;
+}
+
+func CompilerHarnessCodegenBootstrapSampleAt(index: Int) -> String {
+    if index == 0 { return "hello"; }
+    if index == 1 { return "func_recursive"; }
+    if index == 2 { return "struct_param"; }
+    if index == 3 { return "array_push"; }
+    if index == 4 { return "str_indexof"; }
+    if index == 5 { return "else_if_chain"; }
+    if index == 6 { return "string_equality"; }
+    if index == 7 { return "io_probe"; }
+    return "";
+}
+
+func CompilerHarnessCodegenBootstrapMirFixtureCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessCodegenBootstrapMirFixtureAt(index: Int) -> String {
+    if index == 0 { return "let_log"; }
+    if index == 1 { return "forloop"; }
+    if index == 2 { return "role_operator_dispatch"; }
+    return "";
+}
+
 func CompilerHarnessCodegenBootstrapRowsReady() -> Bool {
     let i: Int = 0;
     while i < CompilerHarnessCodegenBootstrapPathCount() {
@@ -107,10 +142,24 @@ func CompilerHarnessCodegenBootstrapRowsReady() -> Bool {
         if CompilerHarnessCodegenBootstrapToolRowAt(t) == "" { return false; }
         t = t + 1;
     }
+    let s: Int = 0;
+    while s < CompilerHarnessCodegenBootstrapSampleCount() {
+        if CompilerHarnessCodegenBootstrapSampleAt(s) == "" { return false; }
+        s = s + 1;
+    }
+    let m: Int = 0;
+    while m < CompilerHarnessCodegenBootstrapMirFixtureCount() {
+        if CompilerHarnessCodegenBootstrapMirFixtureAt(m) == "" { return false; }
+        m = m + 1;
+    }
     return CompilerHarnessCodegenBootstrapPathSuiteName() != "" &&
         CompilerHarnessCodegenBootstrapComponentSuiteName() != "" &&
         CompilerHarnessCodegenBootstrapToolSuiteName() != "" &&
+        CompilerHarnessCodegenBootstrapSampleSuiteName() != "" &&
+        CompilerHarnessCodegenBootstrapMirFixtureSuiteName() != "" &&
         CompilerHarnessFuzzBackendGeneratorSuiteName() != "" &&
+        CompilerHarnessCodegenBootstrapSampleCount() == 8 &&
+        CompilerHarnessCodegenBootstrapMirFixtureCount() == 3 &&
         CompilerHarnessFuzzBackendGeneratorPathCount() == 1 &&
         CompilerHarnessFuzzBackendGeneratorPathAt(0) == CompilerHarnessCodegenBootstrapFuzzGeneratorSourcePath();
 }
