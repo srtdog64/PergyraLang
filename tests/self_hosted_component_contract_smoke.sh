@@ -2055,11 +2055,15 @@ require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func 
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizeSuiteName"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizeToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizeExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizeOverCapFixturePath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizeOverCapFixtureLineCount"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizePathAt"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizeReady"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeSuiteName"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeOverCapFixturePath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeOverCapFixtureLineCount"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizePathAt"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeReady"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeSuiteName"
@@ -2464,6 +2468,9 @@ require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" '"pr
 require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
 require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" 'OVER_CAP_FIXTURE_PATH="${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" 'OVER_CAP_LINE_COUNT="${harness_paths[3]}"'
+require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" "TestHarness manifest expected 4 production-c-size rows"
 require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" '"$CLEAN_BIN"'
 require_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" "expected-json clean"
 reject_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/production_c_size_checker/main.pgy"'
@@ -2478,11 +2485,16 @@ reject_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" "SHEL
 reject_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" "c_files parity FAIL"
 reject_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" "violations parity FAIL"
 reject_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" "max_lines parity FAIL"
+reject_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" "seq 1 1001"
+reject_text "tests/self_hosted/parity/production_c_size_checker_parity.sh" "pgy_runtime_synthetic_c_drift.c'"
 require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" '"production-header-size-paths"'
 require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
 require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" 'OVER_CAP_FIXTURE_PATH="${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" 'OVER_CAP_LINE_COUNT="${harness_paths[3]}"'
+require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" "TestHarness manifest expected 4 production-header-size rows"
 require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" '"$CLEAN_BIN"'
 require_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" "expected-json clean"
 reject_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/production_header_size_checker/main.pgy"'
@@ -2497,6 +2509,8 @@ reject_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" 
 reject_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" "headers parity FAIL"
 reject_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" "violations parity FAIL"
 reject_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" "max_lines parity FAIL"
+reject_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" "seq 1 701"
+reject_text "tests/self_hosted/parity/production_header_size_checker_parity.sh" "pgy_runtime_synthetic_drift.h'"
 require_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy" "JsonEmitArray(findings)"

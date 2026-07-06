@@ -167,6 +167,12 @@ manifest-projected checker sources in place. They no longer create build-dir
 `main.pgy` aliases or copy the self-hosted `lib` tree beside those aliases
 before invoking the compiler.
 
+TestHarness delta, 2026-07-06: `production_c_size_checker_parity.sh` and
+`production_header_size_checker_parity.sh` now get their synthetic over-cap
+fixture path and line-count rows from `test_harness_tool_paths_owner.pgy`.
+Shell still creates the scratch files, but no longer owns which production
+artifact path or LOC boundary proves the fail-closed fixture.
+
 TestHarness delta, 2026-07-06: `linter_parity.sh` and
 `runtime_boundary_checker_parity.sh` now compile and run their
 manifest-projected checker sources in place. They no longer create build-dir

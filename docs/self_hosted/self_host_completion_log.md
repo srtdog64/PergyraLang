@@ -25,6 +25,16 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Production LOC negative fixtures consume TestHarness owner
+
+- Extended `production-c-size-paths` and `production-header-size-paths` with
+  synthetic over-cap fixture path and line-count rows.
+- Repointed both production size parity runners so shell creates scratch files
+  from TestHarness-projected rows instead of owning the synthetic filenames and
+  1001/701 line-count boundaries.
+- Tightened the component contract against reintroducing shell-owned synthetic
+  production LOC fixture constants.
+
 ## 2026-07-06 - Doc-link dead-link fixture consumes TestHarness owner
 
 - Extended `doc-link-checker-paths` with the live doc-link target and the

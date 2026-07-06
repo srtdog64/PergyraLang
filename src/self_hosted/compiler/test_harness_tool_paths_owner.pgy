@@ -547,18 +547,28 @@ func CompilerHarnessProductionCSizeExpectedJsonPath() -> String {
     return "src/self_hosted/tools/production_c_size_checker/expected/clean.json";
 }
 
+func CompilerHarnessProductionCSizeOverCapFixturePath() -> String {
+    return "src/runtime/pgy_runtime_synthetic_c_drift.c";
+}
+
+func CompilerHarnessProductionCSizeOverCapFixtureLineCount() -> Int {
+    return 1001;
+}
+
 func CompilerHarnessProductionCSizePathCount() -> Int {
-    return 2;
+    return 4;
 }
 
 func CompilerHarnessProductionCSizePathAt(index: Int) -> String {
     if index == 0 { return CompilerHarnessProductionCSizeToolSourcePath(); }
     if index == 1 { return CompilerHarnessProductionCSizeExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessProductionCSizeOverCapFixturePath(); }
+    if index == 3 { return ToString(CompilerHarnessProductionCSizeOverCapFixtureLineCount()); }
     return "";
 }
 
 func CompilerHarnessProductionCSizeReady() -> Bool {
-    if CompilerHarnessProductionCSizePathCount() != 2 {
+    if CompilerHarnessProductionCSizePathCount() != 4 {
         return false;
     }
     let i: Int = 0;
@@ -583,18 +593,28 @@ func CompilerHarnessProductionHeaderSizeExpectedJsonPath() -> String {
     return "src/self_hosted/tools/production_header_size_checker/expected/clean.json";
 }
 
+func CompilerHarnessProductionHeaderSizeOverCapFixturePath() -> String {
+    return "src/runtime/pgy_runtime_synthetic_drift.h";
+}
+
+func CompilerHarnessProductionHeaderSizeOverCapFixtureLineCount() -> Int {
+    return 701;
+}
+
 func CompilerHarnessProductionHeaderSizePathCount() -> Int {
-    return 2;
+    return 4;
 }
 
 func CompilerHarnessProductionHeaderSizePathAt(index: Int) -> String {
     if index == 0 { return CompilerHarnessProductionHeaderSizeToolSourcePath(); }
     if index == 1 { return CompilerHarnessProductionHeaderSizeExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessProductionHeaderSizeOverCapFixturePath(); }
+    if index == 3 { return ToString(CompilerHarnessProductionHeaderSizeOverCapFixtureLineCount()); }
     return "";
 }
 
 func CompilerHarnessProductionHeaderSizeReady() -> Bool {
-    if CompilerHarnessProductionHeaderSizePathCount() != 2 {
+    if CompilerHarnessProductionHeaderSizePathCount() != 4 {
         return false;
     }
     let i: Int = 0;

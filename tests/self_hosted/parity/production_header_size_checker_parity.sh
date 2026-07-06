@@ -45,13 +45,15 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 2 ]]; then
-    echo "[self-host-parity:production-header-size] TestHarness manifest expected 2 production-header-size paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 4 ]]; then
+    echo "[self-host-parity:production-header-size] TestHarness manifest expected 4 production-header-size rows, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
+OVER_CAP_FIXTURE_PATH="${harness_paths[2]}"
+OVER_CAP_LINE_COUNT="${harness_paths[3]}"
 
 for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE"; do
     if [[ ! -f "$path" ]]; then
@@ -59,6 +61,10 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE"; do
         exit 1
     fi
 done
+if [[ -z "$OVER_CAP_FIXTURE_PATH" || ! "$OVER_CAP_LINE_COUNT" =~ ^[0-9]+$ ]]; then
+    echo "[self-host-parity:production-header-size] invalid TestHarness over-cap fixture row" >&2
+    exit 1
+fi
 
 PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
 
@@ -109,20 +115,19 @@ pgy_selfhost_compare_expected_text_artifact_with_owner \
     "$PERGYRA_JSON_NORM" \
     "run_output"
 
-# Synthetic over-cap fixture - a 701-line synthetic header under src/runtime.
+# Synthetic over-cap fixture from the TestHarness owner row.
 NEG_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/pgy-selfhost-phs.XXXXXX")"
 cleanup_neg_root() {
     rm -rf "$NEG_ROOT"
 }
 trap cleanup_neg_root EXIT
-# Build the synthetic 701-line header at a path that the tool will read.
-mkdir -p "$NEG_ROOT/src/runtime"
+mkdir -p "$NEG_ROOT/$(dirname "$OVER_CAP_FIXTURE_PATH")"
 mkdir -p "$NEG_ROOT/.tmp"
 {
-    for k in $(seq 1 701); do
+    for k in $(seq 1 "$OVER_CAP_LINE_COUNT"); do
         echo "// synthetic line $k"
     done
-} > "$NEG_ROOT/src/runtime/pgy_runtime_synthetic_drift.h"
+} > "$NEG_ROOT/$OVER_CAP_FIXTURE_PATH"
 
 set +e
 NEG_OUT="$(cd "$NEG_ROOT" && "$CLEAN_BIN" 2>&1)"
@@ -138,7 +143,7 @@ if ! grep -Fq '"kind":"header_over_cap"' <<<"$NEG_OUT"; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq 'pgy_runtime_synthetic_drift.h' <<<"$NEG_OUT"; then
+if ! grep -Fq "$(basename "$OVER_CAP_FIXTURE_PATH")" <<<"$NEG_OUT"; then
     echo "[self-host-parity:production-header-size] over-cap fixture expected synthetic header path in findings" >&2
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
