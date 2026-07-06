@@ -4329,3 +4329,14 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   header cap semantics, and kept the C/LLVM leg parity.
 - Tightened `self_hosted_component_contract_smoke.sh` so the shell count oracle
   cannot return to the production header size parity rung.
+
+### 2026-07-06 -- Stdlib dispatch inventory removes shell clean oracle
+
+- Repointed `stdlib_dispatch_inventory_checker_parity.sh` so the clean verdict
+  is the self-hosted checker JSON compared through ArtifactZone/TestHarness.
+- Removed the parity script's duplicate shell `grep` count and drift-tolerance
+  implementation for the C and LLVM stdlib dispatch tables.
+- Kept the synthetic LLVM-entry deletion fixture as the fail-closed proof for
+  `count_drift`, and kept the C/LLVM leg parity.
+- Tightened `self_hosted_component_contract_smoke.sh` so shell dispatch-count
+  oracles cannot return to this parity rung.

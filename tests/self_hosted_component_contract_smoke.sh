@@ -2468,6 +2468,7 @@ require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.
 require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'C_UNARY_DISPATCH="${harness_paths[3]}"'
 require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'LLVM_DISPATCH="${harness_paths[4]}"'
 require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" '"$CLEAN_BIN"'
+require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "expected-json clean"
 reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy"'
 reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
 reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"'
@@ -2476,6 +2477,14 @@ reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.s
 reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'C_DISPATCH="src/codegen/transpiler_expr_stdlib_scalar_builtin.c"'
 reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'C_UNARY_DISPATCH="src/codegen/transpiler_expr_stdlib_scalar_unary.c"'
 reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'LLVM_DISPATCH="src/codegen/llvm_expr_stdlib_scalar_io_calls.c"'
+reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "SHELL_C_MAIN="
+reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "SHELL_C_MATH="
+reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "SHELL_C="
+reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "SHELL_LLVM="
+reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "SHELL_DRIFT_TOLERANCE"
+reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "SHELL_RAW_DRIFT"
+reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "c_entries parity FAIL"
+reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "llvm_entries parity FAIL"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'import "../../lib/json_fact_table.pgy";'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonDocumentObjectFactTable(content)"

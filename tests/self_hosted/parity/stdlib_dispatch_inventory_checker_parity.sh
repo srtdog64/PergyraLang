@@ -3,9 +3,8 @@
 #
 # Pergyra is the origin
 # (src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy).
-# Shell grep is the parity backend. Asserts:
+# Asserts:
 #   - clean repo: rc=0, JSON byte-equal vs expected/clean.json
-#   - count parity vs shell grep on both dispatch tables
 #   - synthetic drift fixture (delete one LLVM entry): rc=1, count_drift
 #     finding
 # See tests/self_hosted/parity/README.md.
@@ -94,38 +93,6 @@ if ! grep -Fq 'pgy.selfhost.stdlib-dispatch-inventory.v1' <<<"$PERGYRA_OUT"; the
     exit 1
 fi
 
-# Shell drift detector. C dispatch is split across the main scalar table and
-# the unary math catalog, so sum both anchor counts to match the Pergyra tool.
-SHELL_C_MAIN="$(grep -c ', TRANSPILER_SCALAR_OP_' "$ROOT_DIR/$C_DISPATCH" || true)"
-SHELL_C_MATH="$(grep -cE '^        \{ \"' "$ROOT_DIR/$C_UNARY_DISPATCH" || true)"
-SHELL_C=$((SHELL_C_MAIN + SHELL_C_MATH))
-SHELL_LLVM="$(grep -c '"stdlib ' "$ROOT_DIR/$LLVM_DISPATCH" || true)"
-if [[ -z "$SHELL_C_MAIN" || -z "$SHELL_LLVM" ]]; then
-    echo "[self-host-parity:stdlib-dispatch-inventory] shell ground truth empty" >&2
-    exit 1
-fi
-# Tolerate small drift (post-beta cleanup). Match Pergyra tool's
-# drift_tolerance band so shell and tool agree on the baseline.
-SHELL_DRIFT_TOLERANCE=5
-SHELL_RAW_DRIFT=$(( SHELL_C - SHELL_LLVM ))
-if [[ "$SHELL_RAW_DRIFT" -lt 0 ]]; then
-    SHELL_RAW_DRIFT=$(( -SHELL_RAW_DRIFT ))
-fi
-if [[ "$SHELL_RAW_DRIFT" -gt "$SHELL_DRIFT_TOLERANCE" ]]; then
-    echo "[self-host-parity:stdlib-dispatch-inventory] shell drift exceeds tolerance (c=$SHELL_C llvm=$SHELL_LLVM diff=$SHELL_RAW_DRIFT tol=$SHELL_DRIFT_TOLERANCE)" >&2
-    exit 1
-fi
-
-if ! grep -Fq "\"c_entries\":${SHELL_C}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:stdlib-dispatch-inventory] c_entries parity FAIL (shell=${SHELL_C})" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "\"llvm_entries\":${SHELL_LLVM}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:stdlib-dispatch-inventory] llvm_entries parity FAIL (shell=${SHELL_LLVM})" >&2
-    exit 1
-fi
-
 PERGYRA_JSON="$(printf '%s\n' "$PERGYRA_OUT" \
     | tr -d '\r' \
     | grep -F 'pgy.selfhost.stdlib-dispatch-inventory.v1' \
@@ -169,4 +136,4 @@ if ! grep -Fq '"kind":"count_drift"' <<<"$NEG_OUT"; then
 fi
 
 assert_llvm_leg "self-host-parity:stdlib-dispatch-inventory" "$PERGYRA_TOOL_INPUT" "$PERGYRA_TOOL_BUILD_DIR"
-echo "[self-host-parity:stdlib-dispatch-inventory] rung-2 parity ok (c=$SHELL_C llvm=$SHELL_LLVM; drift-fixture rc=1)"
+echo "[self-host-parity:stdlib-dispatch-inventory] rung-2 parity ok (expected-json clean; drift-fixture rc=1)"

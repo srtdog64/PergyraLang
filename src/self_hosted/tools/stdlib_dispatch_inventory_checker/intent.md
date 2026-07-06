@@ -1,6 +1,6 @@
 # Stdlib Dispatch Inventory Checker -- Intent / Contract
 
-**Status:** *rung-2 minimal* (2026-05-27). Reads two C-side dispatch tables
+**Status:** *rung-2 minimal* (2026-07-06). Reads two C-side dispatch tables
 that must stay inside the documented stdlib scalar-IO inventory drift
 tolerance, emits the validator schema.
 
@@ -68,18 +68,22 @@ Exit code: `0` on `ok:true`, `1` on `ok:false`.
 
 ## Oracle
 
-The shell drift detector is `grep -cE` against each file with the same
-patterns the Pergyra tool uses. There is no existing C-side smoke that
-gates this two-table parity today; the Pergyra origin is the primary
-implementation and the shell grep is the auxiliary parity backend.
+The clean oracle is the committed expected JSON artifact
+`expected/clean.json`, compared through the shared ArtifactZone/TestHarness
+path. There is no separate C-side smoke that gates this two-table parity today;
+the Pergyra origin owns the count and drift verdict.
 
 The parity rung (`tests/self_hosted/parity/`) asserts:
 
-- The Pergyra origin exits `0` on the live repo with matching counts.
+- The Pergyra origin exits `0` on the live repo.
 - Emitted JSON byte-matches `expected/clean.json`.
-- Counts match shell `grep -cE` ground truth.
 - A synthetic drift fixture (delete one LLVM entry) yields `rc=1` with a
   `"kind":"count_drift"` finding.
+- Both C and LLVM legs compile the same self-hosted checker.
+
+If clean inventory semantics drift, update the committed expected artifact or
+the self-hosted owner. Do not add a shell `grep` implementation as a second
+clean oracle.
 
 ## Why Now
 
