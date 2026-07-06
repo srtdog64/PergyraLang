@@ -72,6 +72,8 @@ Minimum parity contract for each tool:
 - keep full-corpus probes and campaigns opt-in or bounded by default, so routine
   self-host verification does not accumulate a campaign's worth of scratch
   output.
+- use `make clean-scratch` to reset accumulated `.tmp/self_hosted` and
+  backend-compare scratch artifacts without touching build outputs.
 - never leave `.exe`, `.o`, `.d`, or probe artifacts beside
   `src/self_hosted/tools/*/main.pgy`.
 

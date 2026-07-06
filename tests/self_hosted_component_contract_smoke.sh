@@ -3132,6 +3132,10 @@ require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" 'one `READY
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" '`ACTIVE` row with the global scope'
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" '| Target capability envelope (self-host C subset) |'
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" '| Target capability envelope (native/global consumers) |'
+require_text "Makefile" "clean-scratch:"
+require_text "Makefile" ".tmp/self_hosted"
+require_text "Makefile" ".tmp/pgy_backend_compare.*"
+require_text "Makefile" ".tmp/pgy_air_backend_nonimpact.*"
 reject_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "It remains active until all parity artifacts are written and compared from this owner."
 reject_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "AIR evidence, Artifact Zone, and TestHarness"
 reject_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" 'Native C/LLVM target-specific consumers still need to read the same envelope before this surface can leave `ACTIVE`'

@@ -196,7 +196,9 @@ zone for parity binaries, logs, and comparable artifacts. Source ownership must
 come from TestHarness path suites or compiled fixture manifests, not from copied
 source trees. Long-running campaign artifacts such as `pgy_backend_compare.*`
 must stay opt-in or be cleaned by their owning runner; they are not evidence for
-the default self-host path unless a gate explicitly names them.
+the default self-host path unless a gate explicitly names them. `make clean-scratch`
+removes `.tmp/self_hosted`, `.tmp/pgy_backend_compare.*`, and
+`.tmp/pgy_air_backend_nonimpact.*` when local scratch growth needs to be reset.
 
 TestHarness delta, 2026-07-06: `codegen_bootstrap.sh` now consumes codegen,
 parser, comparator, mir-lower, codegen fixture, MIR fixture, fuzz-generator,
