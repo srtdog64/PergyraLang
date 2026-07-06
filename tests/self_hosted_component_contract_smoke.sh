@@ -3133,9 +3133,11 @@ require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" '`ACTIVE` r
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" '| Target capability envelope (self-host C subset) |'
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" '| Target capability envelope (native/global consumers) |'
 require_text "Makefile" "clean-scratch:"
-require_text "Makefile" ".tmp/self_hosted"
-require_text "Makefile" ".tmp/pgy_backend_compare.*"
-require_text "Makefile" ".tmp/pgy_air_backend_nonimpact.*"
+require_text "Makefile" "'\$(PROJECT_ROOT)'/.tmp"
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "compile_c_artifact_with_bounded_log"
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "PGY_SELFHOST_CC_LOG_LIMIT_BYTES"
+require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" 'removes the ignored `.tmp` scratch zone'
+require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "single evidence log into a multi-hundred-megabyte artifact"
 reject_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "It remains active until all parity artifacts are written and compared from this owner."
 reject_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "AIR evidence, Artifact Zone, and TestHarness"
 reject_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" 'Native C/LLVM target-specific consumers still need to read the same envelope before this surface can leave `ACTIVE`'

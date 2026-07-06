@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Scratch growth bounded for self-host bootstrap
+
+- Measured local build/test scratch and found `.tmp` dominating disk use, with
+  a stale self-host codegen bootstrap compiler log alone occupying hundreds of
+  megabytes after a malformed generated C compile.
+- C compiler stderr in `codegen_bootstrap.sh` is now captured through a bounded
+  evidence log (`PGY_SELFHOST_CC_LOG_LIMIT_BYTES`, default 65536 bytes) while
+  still consuming the full compiler stream.
+- `make clean-scratch` now resets the whole ignored `.tmp` scratch zone instead
+  of naming a partial list of known self-host/backend-compare subdirectories.
+
 ## 2026-07-06 - Compiler-world shell projection checked against Pergyra owner
 
 - Added a `compiler-world-paths` projection to `path_manifest_owner.pgy` and
@@ -41,9 +52,8 @@ rewrite history.
 ## 2026-07-06 - Scratch cleanup target owns local artifact reset
 
 - Added `make clean-scratch` for local self-host/backend-compare scratch reset.
-- The target removes `.tmp/self_hosted`, `.tmp/pgy_backend_compare.*`, and
-  `.tmp/pgy_air_backend_nonimpact.*`; ordinary `clean` remains limited to
-  `BUILD_DIR` and `BIN_DIR`.
+- The target now removes the ignored `.tmp` scratch zone; ordinary `clean`
+  remains limited to `BUILD_DIR` and `BIN_DIR`.
 - Tightened the component contract so the cleanup surface stays named in the
   Makefile instead of living as an ad hoc local deletion recipe.
 

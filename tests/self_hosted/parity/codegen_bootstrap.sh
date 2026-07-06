@@ -238,6 +238,49 @@ emit() {  # emit <tool-exe> <out.c>
     run_native_to_file "emit_$(basename "$2")" "$1" "$2" "$AST_REL"
 }
 
+compile_c_artifact_with_bounded_log() {
+    local label="$1"
+    local source="$2"
+    local output="$3"
+    local log="$B/${label}_cc.log"
+    local tmp="$log.tmp"
+    local limit="${PGY_SELFHOST_CC_LOG_LIMIT_BYTES:-65536}"
+    local rc
+
+    set +e
+    "$CC" "$source" -o "$output" 2>&1 | awk -v limit="$limit" '
+        BEGIN {
+            written = 0
+            truncated = 0
+        }
+        {
+            line = $0 "\n"
+            if (written < limit) {
+                remaining = limit - written
+                if (length(line) > remaining) {
+                    printf "%s", substr(line, 1, remaining)
+                    written = limit
+                    truncated = 1
+                } else {
+                    printf "%s", line
+                    written += length(line)
+                }
+            } else {
+                truncated = 1
+            }
+        }
+        END {
+            if (truncated) {
+                printf "\n[self-host-bootstrap] compiler log truncated at %s bytes\n", limit
+            }
+        }
+    ' >"$tmp"
+    rc=${PIPESTATUS[0]}
+    set -e
+    mv "$tmp" "$log"
+    return "$rc"
+}
+
 compile_artifact_comparator() {
     pgy_selfhost_compile_backend_output_comparator "self-host-bootstrap" "$B" "$COMPARATOR_SOURCE"
     COMPARATOR_BIN="$(pgy_selfhost_backend_output_comparator_bin "$B")"
@@ -317,11 +360,11 @@ if grep -q '^CODEGEN ERROR' "$B/gen1.c"; then
     grep '^CODEGEN ERROR' "$B/gen1.c" | head -3 >&2
     exit 1
 fi
-"$CC" "$B/gen1.c" -o "$B/gen1.exe" 2>"$B/gen1_cc.log" || {
+compile_c_artifact_with_bounded_log "gen1" "$B/gen1.c" "$B/gen1.exe" || {
     echo "[self-host-bootstrap] gen1 C failed to compile" >&2; cat "$B/gen1_cc.log" >&2; exit 1; }
 
 emit "$B/gen1.exe" "$B/gen2.c"
-"$CC" "$B/gen2.c" -o "$B/gen2.exe" 2>"$B/gen2_cc.log" || {
+compile_c_artifact_with_bounded_log "gen2" "$B/gen2.c" "$B/gen2.exe" || {
     echo "[self-host-bootstrap] gen2 C failed to compile" >&2; cat "$B/gen2_cc.log" >&2; exit 1; }
 
 emit "$B/gen2.exe" "$B/gen3.c"
@@ -363,7 +406,7 @@ for row in "${BOOTSTRAP_COMPONENT_ROWS[@]}"; do
         echo "[self-host-bootstrap] $comp: out of codegen subset (skip breadth check)"
         continue
     fi
-    if ! "$CC" "$B/${comp}_via_codegen.c" -o "$B/${comp}_via_codegen.exe" 2>"$B/${comp}_cc.log"; then
+    if ! compile_c_artifact_with_bounded_log "$comp" "$B/${comp}_via_codegen.c" "$B/${comp}_via_codegen.exe"; then
         echo "[self-host-bootstrap] $comp: codegen-emitted C failed to compile" >&2
         cat "$B/${comp}_cc.log" >&2
         exit 1
@@ -399,7 +442,7 @@ for row in "${BOOTSTRAP_TOOL_ROWS[@]}"; do
         echo "[self-host-bootstrap] tool $name out of codegen subset (skip)"
         continue
     fi
-    if ! "$CC" "$B/tool_${name}.c" -o "$B/tool_${name}_self.exe" 2>"$B/tool_${name}_cc.log"; then
+    if ! compile_c_artifact_with_bounded_log "tool_${name}" "$B/tool_${name}.c" "$B/tool_${name}_self.exe"; then
         echo "[self-host-bootstrap] tool $name: codegen-emitted C failed to compile" >&2
         cat "$B/tool_${name}_cc.log" >&2; exit 1
     fi
@@ -435,7 +478,7 @@ if [[ -f "$MIR_LOWER_SOURCE" ]]; then
         grep '^CODEGEN ERROR' "$B/mir_lower_via_codegen.c" | head -3 >&2
         exit 1
     fi
-    if ! "$CC" "$B/mir_lower_via_codegen.c" -o "$B/mir_lower_self.exe" 2>"$B/mir_lower_cc.log"; then
+    if ! compile_c_artifact_with_bounded_log "mir_lower" "$B/mir_lower_via_codegen.c" "$B/mir_lower_self.exe"; then
         echo "[self-host-bootstrap] mir_lower: codegen-emitted C failed to compile" >&2
         cat "$B/mir_lower_cc.log" >&2
         exit 1
@@ -470,7 +513,7 @@ if [[ -f "$FUZZ_SOURCE" ]]; then
         grep '^CODEGEN ERROR' "$B/fuzz_generator_via_codegen.c" | head -3 >&2
         exit 1
     fi
-    if ! "$CC" "$B/fuzz_generator_via_codegen.c" -o "$B/fuzz_generator_self.exe" 2>"$B/fuzz_generator_cc.log"; then
+    if ! compile_c_artifact_with_bounded_log "fuzz_generator" "$B/fuzz_generator_via_codegen.c" "$B/fuzz_generator_self.exe"; then
         echo "[self-host-bootstrap] fuzz generator: codegen-emitted C failed to compile" >&2
         cat "$B/fuzz_generator_cc.log" >&2
         exit 1

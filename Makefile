@@ -2804,7 +2804,7 @@ clean-objects:
 	"$(BASH)" -c "rm -f $(BUILD_ARTIFACT_GLOBS)"
 
 clean-scratch:
-	"$(BASH)" -c "rm -rf '$(PROJECT_ROOT)'/.tmp/self_hosted '$(PROJECT_ROOT)'/.tmp/pgy_backend_compare.* '$(PROJECT_ROOT)'/.tmp/pgy_air_backend_nonimpact.*"
+	"$(BASH)" -c "rm -rf '$(PROJECT_ROOT)'/.tmp"
 
 # Force a default compiler/LSP rebuild from scratch. Use when source edits
 # aren't reflected (stale .o, broken .d, CONFIG_STAMP mismatch, etc).

@@ -197,8 +197,10 @@ come from TestHarness path suites or compiled fixture manifests, not from copied
 source trees. Long-running campaign artifacts such as `pgy_backend_compare.*`
 must stay opt-in or be cleaned by their owning runner; they are not evidence for
 the default self-host path unless a gate explicitly names them. `make clean-scratch`
-removes `.tmp/self_hosted`, `.tmp/pgy_backend_compare.*`, and
-`.tmp/pgy_air_backend_nonimpact.*` when local scratch growth needs to be reset.
+removes the ignored `.tmp` scratch zone when local scratch growth needs to be
+reset. Self-host bootstrap C compiler logs are capped by
+`PGY_SELFHOST_CC_LOG_LIMIT_BYTES` so malformed generated C cannot inflate a
+single evidence log into a multi-hundred-megabyte artifact.
 
 TestHarness delta, 2026-07-06: `codegen_bootstrap.sh` now consumes codegen,
 parser, comparator, mir-lower, codegen fixture, MIR fixture, fuzz-generator,
