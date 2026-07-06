@@ -52,10 +52,6 @@ func CompilerHarnessAirGraphNodeCountCorruptValue() -> String {
     return "99";
 }
 
-func CompilerHarnessAirGraphNodeCountExpectedFindingKind() -> String {
-    return "node_count_mismatch";
-}
-
 func CompilerHarnessAirGraphNodeCountPathAt(index: Int) -> String {
     if index == 0 { return "src/self_hosted/tools/air_graph_node_count_integrity/main.pgy"; }
     if index == 1 { return CompilerHarnessAirGraphScanOwnerPath(); }
@@ -64,7 +60,7 @@ func CompilerHarnessAirGraphNodeCountPathAt(index: Int) -> String {
     if index == 4 { return CompilerHarnessAirGraphNodeCountNegativeFixturePath(); }
     if index == 5 { return CompilerHarnessAirGraphNodeCountCorruptFieldName(); }
     if index == 6 { return CompilerHarnessAirGraphNodeCountCorruptValue(); }
-    if index == 7 { return CompilerHarnessAirGraphNodeCountExpectedFindingKind(); }
+    if index == 7 { return "src/self_hosted/tools/air_graph_node_count_integrity/expected/corrupt_summary.json"; }
     return "";
 }
 
@@ -84,17 +80,13 @@ func CompilerHarnessAirGraphReachabilityPathCount() -> Int {
     return 6;
 }
 
-func CompilerHarnessAirGraphReachabilityExpectedFindingKind() -> String {
-    return "orphan_node";
-}
-
 func CompilerHarnessAirGraphReachabilityPathAt(index: Int) -> String {
     if index == 0 { return "src/self_hosted/tools/air_graph_reachability/main.pgy"; }
     if index == 1 { return CompilerHarnessAirGraphScanOwnerPath(); }
     if index == 2 { return "src/self_hosted/tools/air_graph_reachability/expected/clean.json"; }
     if index == 3 { return "src/self_hosted/tools/air_graph_reachability/fixture/graph_rooted.json"; }
     if index == 4 { return "src/self_hosted/tools/air_graph_reachability/fixture/graph_orphan.json"; }
-    if index == 5 { return CompilerHarnessAirGraphReachabilityExpectedFindingKind(); }
+    if index == 5 { return "src/self_hosted/tools/air_graph_reachability/expected/orphan.json"; }
     return "";
 }
 
@@ -113,17 +105,13 @@ func CompilerHarnessAirGraphRefIntegrityPathCount() -> Int {
     return 6;
 }
 
-func CompilerHarnessAirGraphRefIntegrityExpectedFindingKind() -> String {
-    return "dangling_edge_endpoint";
-}
-
 func CompilerHarnessAirGraphRefIntegrityPathAt(index: Int) -> String {
     if index == 0 { return "src/self_hosted/tools/air_graph_ref_integrity/main.pgy"; }
     if index == 1 { return CompilerHarnessAirGraphScanOwnerPath(); }
     if index == 2 { return "src/self_hosted/tools/air_graph_ref_integrity/expected/clean.json"; }
     if index == 3 { return "src/self_hosted/tools/air_graph_ref_integrity/fixture/graph_edges.json"; }
     if index == 4 { return "src/self_hosted/tools/air_graph_ref_integrity/fixture/graph_edges_dangling.json"; }
-    if index == 5 { return CompilerHarnessAirGraphRefIntegrityExpectedFindingKind(); }
+    if index == 5 { return "src/self_hosted/tools/air_graph_ref_integrity/expected/dangling.json"; }
     return "";
 }
 
@@ -158,10 +146,6 @@ func CompilerHarnessAirGraphRefLiveCorruptToValue() -> String {
     return "99";
 }
 
-func CompilerHarnessAirGraphRefLiveExpectedFindingKind() -> String {
-    return "dangling_reference";
-}
-
 func CompilerHarnessAirGraphRefLivePathAt(index: Int) -> String {
     if index == 0 { return "src/self_hosted/tools/air_graph_ref_live/main.pgy"; }
     if index == 1 { return CompilerHarnessAirGraphScanOwnerPath(); }
@@ -171,7 +155,7 @@ func CompilerHarnessAirGraphRefLivePathAt(index: Int) -> String {
     if index == 5 { return CompilerHarnessAirGraphRefLiveCorruptFieldName(); }
     if index == 6 { return CompilerHarnessAirGraphRefLiveCorruptFromValue(); }
     if index == 7 { return CompilerHarnessAirGraphRefLiveCorruptToValue(); }
-    if index == 8 { return CompilerHarnessAirGraphRefLiveExpectedFindingKind(); }
+    if index == 8 { return "src/self_hosted/tools/air_graph_ref_live/expected/corrupt_reference.json"; }
     return "";
 }
 

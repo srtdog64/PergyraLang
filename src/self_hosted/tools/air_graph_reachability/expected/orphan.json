@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.air-reachability.v1","ok":false,"source":{"input_schema":"pgy.air.graph.v1","fixture_owner":"src/self_hosted/tools/air_graph_reachability/fixture/graph_orphan.json"},"counts":{"nodes":3,"reachable":2,"orphans":1},"findings":[{"kind":"orphan_node","id":"3"}]}

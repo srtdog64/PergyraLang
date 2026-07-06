@@ -4,8 +4,9 @@
 # Pergyra is the origin (src/self_hosted/tools/air_graph_ref_live/main.pgy).
 # It consumes the drift-guarded `pgy --air-json` fixture used by the AIR graph
 # validator and checks live-schema back-references against summary counts. The
-# clean oracle is the TestHarness-projected expected artifact; shell only runs
-# the process and mutates the negative fixture.
+# TestHarness-projected expected artifacts own the clean and corrupted-reference
+# JSON oracles; shell only runs the process, mutates the negative fixture, and
+# checks rc=1.
 
 set -euo pipefail
 
@@ -58,14 +59,14 @@ NEG_FIXTURE_REL="${harness_paths[4]}"
 CORRUPT_FIELD="${harness_paths[5]}"
 CORRUPT_FROM_VALUE="${harness_paths[6]}"
 CORRUPT_TO_VALUE="${harness_paths[7]}"
-EXPECTED_FINDING_KIND="${harness_paths[8]}"
+EXPECTED_NEG_JSON_FILE="$ROOT_DIR/${harness_paths[8]}"
 
-if [[ -z "$NEG_FIXTURE_REL" || -z "$CORRUPT_FIELD" || -z "$CORRUPT_FROM_VALUE" || -z "$CORRUPT_TO_VALUE" || -z "$EXPECTED_FINDING_KIND" ]]; then
+if [[ -z "$NEG_FIXTURE_REL" || -z "$CORRUPT_FIELD" || -z "$CORRUPT_FROM_VALUE" || -z "$CORRUPT_TO_VALUE" || -z "${harness_paths[8]}" ]]; then
     echo "[self-host-parity:air-ref-live] invalid TestHarness corrupt fixture row" >&2
     exit 1
 fi
 
-for path in "$PERGYRA_TOOL_SOURCE" "$AIR_GRAPH_SCAN_OWNER" "$EXPECTED_JSON_FILE" "$FIXTURE_FILE"; do
+for path in "$PERGYRA_TOOL_SOURCE" "$AIR_GRAPH_SCAN_OWNER" "$EXPECTED_JSON_FILE" "$EXPECTED_NEG_JSON_FILE" "$FIXTURE_FILE"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:air-ref-live] missing input: $path" >&2
         exit 1
@@ -121,16 +122,16 @@ if [[ "$NEG_RC" -ne 1 ]]; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq '"ok":false' <<<"$NEG_OUT"; then
-    echo "[self-host-parity:air-ref-live] corrupted fixture expected ok:false" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "\"kind\":\"${EXPECTED_FINDING_KIND}\"" <<<"$NEG_OUT"; then
-    echo "[self-host-parity:air-ref-live] corrupted fixture expected ${EXPECTED_FINDING_KIND} finding" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
+NEG_JSON="$(printf '%s\n' "$NEG_OUT" \
+    | tr -d '\r' \
+    | grep -F 'pgy.selfhost.air-ref-live.v1' \
+    | tail -n 1)"
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:air-ref-live" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$EXPECTED_NEG_JSON_FILE" \
+    "$NEG_JSON" \
+    "air_json"
 
 assert_llvm_leg "self-host-parity:air-ref-live" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$FIXTURE_REL"
-echo "[self-host-parity:air-ref-live] rung-1 parity ok (expected-json clean; corrupted fixture rc=1)"
+echo "[self-host-parity:air-ref-live] rung-1 parity ok (expected-json clean+corrupt; corrupted fixture rc=1)"

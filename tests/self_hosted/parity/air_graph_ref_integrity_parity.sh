@@ -3,9 +3,8 @@
 #
 # Pergyra is the origin
 # (src/self_hosted/tools/air_graph_ref_integrity/main.pgy).
-# The TestHarness-projected expected artifact is the clean-output oracle.
-# Asserts: clean exit, JSON byte-equal vs expected/clean.json, and a dangling
-# fixture (one endpoint with no matching node, rc=1).
+# TestHarness-projected expected artifacts own the clean and dangling-output
+# oracles. Shell only runs the process and checks the dangling fixture rc=1.
 
 set -euo pipefail
 
@@ -54,16 +53,16 @@ AIR_GRAPH_SCAN_OWNER="$ROOT_DIR/${harness_paths[1]}"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[2]}"
 FIXTURE_REL="${harness_paths[3]}"
 DANGLING_FIXTURE_REL="${harness_paths[4]}"
-EXPECTED_FINDING_KIND="${harness_paths[5]}"
+EXPECTED_DANGLING_JSON_FILE="$ROOT_DIR/${harness_paths[5]}"
 FIXTURE_FILE="$ROOT_DIR/$FIXTURE_REL"
 DANGLING_FIXTURE_FILE="$ROOT_DIR/$DANGLING_FIXTURE_REL"
 
-if [[ -z "$EXPECTED_FINDING_KIND" ]]; then
-    echo "[self-host-parity:air-ref-integrity] missing expected finding kind row" >&2
+if [[ -z "${harness_paths[5]}" ]]; then
+    echo "[self-host-parity:air-ref-integrity] missing expected dangling JSON row" >&2
     exit 1
 fi
 
-for path in "$PERGYRA_TOOL_SOURCE" "$AIR_GRAPH_SCAN_OWNER" "$EXPECTED_JSON_FILE" "$FIXTURE_FILE" "$DANGLING_FIXTURE_FILE"; do
+for path in "$PERGYRA_TOOL_SOURCE" "$AIR_GRAPH_SCAN_OWNER" "$EXPECTED_JSON_FILE" "$EXPECTED_DANGLING_JSON_FILE" "$FIXTURE_FILE" "$DANGLING_FIXTURE_FILE"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:air-ref-integrity] missing input: $path" >&2
         exit 1
@@ -116,16 +115,16 @@ if [[ "$NEG_RC" -ne 1 ]]; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq '"ok":false' <<<"$NEG_OUT"; then
-    echo "[self-host-parity:air-ref-integrity] dangling fixture expected ok:false" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "\"kind\":\"${EXPECTED_FINDING_KIND}\"" <<<"$NEG_OUT"; then
-    echo "[self-host-parity:air-ref-integrity] dangling fixture expected a ${EXPECTED_FINDING_KIND} finding" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
+NEG_JSON="$(printf '%s\n' "$NEG_OUT" \
+    | tr -d '\r' \
+    | grep -F 'pgy.selfhost.air-ref-integrity.v1' \
+    | tail -n 1)"
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:air-ref-integrity" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$EXPECTED_DANGLING_JSON_FILE" \
+    "$NEG_JSON" \
+    "air_json"
 
 assert_llvm_leg "self-host-parity:air-ref-integrity" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$FIXTURE_REL"
-echo "[self-host-parity:air-ref-integrity] rung-1 parity ok (expected-json clean; dangling fixture rc=1)"
+echo "[self-host-parity:air-ref-integrity] rung-1 parity ok (expected-json clean+dangling; dangling fixture rc=1)"

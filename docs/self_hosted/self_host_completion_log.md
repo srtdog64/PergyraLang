@@ -25,6 +25,18 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - AIR graph negative verdicts consume artifact owner
+
+- Added TestHarness-owned negative expected JSON artifacts for AIR graph
+  node-count, reachability, edge-reference, and live-reference checkers.
+- Repointed those four parity runners so shell only handles process execution,
+  scratch mutation where needed, and `rc=1`; the full negative verdict shape is
+  compared through `backend_output_comparator` as `air_json`.
+- Removed the remaining AIR graph expected-finding-kind rows from
+  `test_harness_air_graph_paths_owner.pgy`, and tightened the component
+  contract against reintroducing shell-owned `ok:false` or finding-kind
+  interpretation for these runners.
+
 ## 2026-07-06 - AIR id uniqueness negative verdict consumes artifact owner
 
 - Added a TestHarness-owned duplicate expected JSON artifact for the AIR graph

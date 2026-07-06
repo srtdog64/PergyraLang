@@ -1701,11 +1701,14 @@ reject_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" "SHELL_
 reject_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" "grep -oE '\"id\":[^,}]*'"
 reject_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" '"kind":"duplicate_id"'
 require_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" '"air-graph-node-count-paths"'
-require_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" "expected-json clean"
+require_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" "expected-json clean+corrupt"
 require_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" 'NEG_FIXTURE_REL="${harness_paths[4]}"'
 require_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" 'CORRUPT_FIELD="${harness_paths[5]}"'
 require_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" 'CORRUPT_VALUE="${harness_paths[6]}"'
-require_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" 'EXPECTED_FINDING_KIND="${harness_paths[7]}"'
+require_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" 'EXPECTED_NEG_JSON_FILE="$ROOT_DIR/${harness_paths[7]}"'
+require_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" 'pgy_selfhost_compare_expected_text_artifact_with_owner'
+reject_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" 'EXPECTED_FINDING_KIND="${harness_paths[7]}"'
+reject_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" "corrupted fixture expected ok:false"
 reject_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" "SHELL_IDS="
 reject_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" "SHELL_DECLARED="
 reject_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" "counts.ids parity FAIL"
@@ -1714,26 +1717,35 @@ reject_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" 
 reject_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" '"evidence_count":99'
 reject_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" '"kind":"node_count_mismatch"'
 require_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" '"air-graph-reachability-paths"'
-require_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" "expected-json clean"
+require_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" "expected-json clean+orphan"
 require_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" 'ORPHAN_FIXTURE_REL="${harness_paths[4]}"'
-require_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" 'EXPECTED_FINDING_KIND="${harness_paths[5]}"'
+require_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" 'EXPECTED_ORPHAN_JSON_FILE="$ROOT_DIR/${harness_paths[5]}"'
+require_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" 'pgy_selfhost_compare_expected_text_artifact_with_owner'
+reject_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" 'EXPECTED_FINDING_KIND="${harness_paths[5]}"'
+reject_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" "orphan fixture expected ok:false"
 reject_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" "SHELL_NODES="
 reject_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" "grep -oE '\"id\":[0-9]+'"
 reject_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" '"kind":"orphan_node"'
 require_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" '"air-graph-ref-integrity-paths"'
-require_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" "expected-json clean"
+require_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" "expected-json clean+dangling"
 require_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" 'DANGLING_FIXTURE_REL="${harness_paths[4]}"'
-require_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" 'EXPECTED_FINDING_KIND="${harness_paths[5]}"'
+require_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" 'EXPECTED_DANGLING_JSON_FILE="$ROOT_DIR/${harness_paths[5]}"'
+require_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" 'pgy_selfhost_compare_expected_text_artifact_with_owner'
+reject_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" 'EXPECTED_FINDING_KIND="${harness_paths[5]}"'
+reject_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" "dangling fixture expected ok:false"
 reject_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" "SHELL_DANGLING="
 reject_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" "comm -23"
 reject_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" '"kind":"dangling_edge_endpoint"'
 require_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" '"air-graph-ref-live-paths"'
-require_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" "expected-json clean"
+require_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" "expected-json clean+corrupt"
 require_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" 'NEG_FIXTURE_REL="${harness_paths[4]}"'
 require_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" 'CORRUPT_FIELD="${harness_paths[5]}"'
 require_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" 'CORRUPT_FROM_VALUE="${harness_paths[6]}"'
 require_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" 'CORRUPT_TO_VALUE="${harness_paths[7]}"'
-require_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" 'EXPECTED_FINDING_KIND="${harness_paths[8]}"'
+require_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" 'EXPECTED_NEG_JSON_FILE="$ROOT_DIR/${harness_paths[8]}"'
+require_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" 'pgy_selfhost_compare_expected_text_artifact_with_owner'
+reject_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" 'EXPECTED_FINDING_KIND="${harness_paths[8]}"'
+reject_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" "corrupted fixture expected ok:false"
 reject_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" "SHELL_INTENTS="
 reject_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" "SHELL_BOUNDARIES="
 reject_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" "SHELL_BOUNDARY_DANGLING="
@@ -1938,20 +1950,24 @@ require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphNodeCountNegativeFixturePath"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphNodeCountCorruptFieldName"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphNodeCountCorruptValue"
-require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphNodeCountExpectedFindingKind"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "src/self_hosted/tools/air_graph_node_count_integrity/expected/corrupt_summary.json"
+reject_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphNodeCountExpectedFindingKind"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphReachabilitySuiteName"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphReachabilityPathAt"
-require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphReachabilityExpectedFindingKind"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "src/self_hosted/tools/air_graph_reachability/expected/orphan.json"
+reject_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphReachabilityExpectedFindingKind"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefIntegritySuiteName"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefIntegrityPathAt"
-require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefIntegrityExpectedFindingKind"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "src/self_hosted/tools/air_graph_ref_integrity/expected/dangling.json"
+reject_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefIntegrityExpectedFindingKind"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefLiveSuiteName"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefLivePathAt"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefLiveNegativeFixturePath"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefLiveCorruptFieldName"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefLiveCorruptFromValue"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefLiveCorruptToValue"
-require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefLiveExpectedFindingKind"
+require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "src/self_hosted/tools/air_graph_ref_live/expected/corrupt_reference.json"
+reject_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphRefLiveExpectedFindingKind"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphConsumersReady"
 require_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "func CompilerHarnessDriverRung0SuiteName"
 require_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "func CompilerHarnessDriverRung1SuiteName"

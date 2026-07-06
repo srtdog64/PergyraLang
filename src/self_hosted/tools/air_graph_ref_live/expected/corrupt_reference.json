@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.air-ref-live.v1","ok":false,"source":{"input_schema":"pgy.air.graph.v1","fixture_owner":".tmp/self_hosted/air_graph_ref_live/negative/sample.json"},"counts":{"boundary_refs_dangling":1,"intent_refs_dangling":0,"dangling":1},"findings":[{"kind":"dangling_reference","boundary_refs":1,"intent_refs":0}]}

@@ -122,10 +122,10 @@ longer create build-dir `main.pgy` aliases or copy `scan_owner.pgy` and the
 self-hosted `lib` tree beside those aliases before invoking the compiler.
 
 TestHarness delta, 2026-07-06: the five AIR graph consumer parity runners now
-get their expected negative finding kind from
+get their expected negative verdict artifacts from
 `test_harness_air_graph_paths_owner.pgy`. Shell still executes the negative
-fixture path or scratch mutation, but no longer owns which AIR graph finding
-kind proves duplicate-id, node-count, reachability, edge-reference, or
+fixture path or scratch mutation, but no longer owns `ok:false` or finding-kind
+interpretation for duplicate-id, node-count, reachability, edge-reference, or
 live-reference fail-closed behavior.
 
 ArtifactZone delta, 2026-07-06: `air_graph_id_uniqueness_parity.sh` no longer
@@ -135,17 +135,35 @@ the duplicate negative verdict is the TestHarness-projected
 `expected/duplicate.json`; both are compared through `backend_output_comparator`.
 Shell remains only the process runner and duplicate-fixture `rc=1` checker.
 
+ArtifactZone delta, 2026-07-06: `air_graph_node_count_integrity_parity.sh` no
+longer interprets the corrupted-summary verdict with shell `ok:false` or
+finding-kind greps. The clean output oracle is the TestHarness-projected
+`expected/clean.json`, and the corrupted-summary negative verdict is the
+TestHarness-projected `expected/corrupt_summary.json`; both are compared
+through `backend_output_comparator`. Shell remains only the process runner,
+scratch mutator, and corrupted-fixture `rc=1` checker.
+
 ArtifactZone delta, 2026-07-06: `air_graph_reachability_parity.sh` no longer
 recomputes the clean node count with shell `grep`/`wc`. The clean output oracle
-is the TestHarness-projected `expected/clean.json` compared through
-`backend_output_comparator`; shell remains only the process runner and
-negative-fixture executor for the orphan-node case.
+is the TestHarness-projected `expected/clean.json`, and the orphan negative
+verdict is the TestHarness-projected `expected/orphan.json`; both are compared
+through `backend_output_comparator`. Shell remains only the process runner and
+orphan-fixture `rc=1` checker.
 
 ArtifactZone delta, 2026-07-06: `air_graph_ref_integrity_parity.sh` no longer
 recomputes clean dangling endpoint counts with shell `grep`/`comm`. The clean
-output oracle is the TestHarness-projected `expected/clean.json` compared
-through `backend_output_comparator`; shell remains only the process runner and
-negative-fixture executor for the dangling-endpoint case.
+output oracle is the TestHarness-projected `expected/clean.json`, and the
+dangling-endpoint negative verdict is the TestHarness-projected
+`expected/dangling.json`; both are compared through `backend_output_comparator`.
+Shell remains only the process runner and dangling-fixture `rc=1` checker.
+
+ArtifactZone delta, 2026-07-06: `air_graph_ref_live_parity.sh` no longer
+interprets the corrupted-reference verdict with shell `ok:false` or
+finding-kind greps. The clean output oracle is the TestHarness-projected
+`expected/clean.json`, and the corrupted-reference negative verdict is the
+TestHarness-projected `expected/corrupt_reference.json`; both are compared
+through `backend_output_comparator`. Shell remains only the process runner,
+scratch mutator, and corrupted-fixture `rc=1` checker.
 
 TestHarness delta, 2026-07-05: backend_output_comparator_parity.sh now consumes its source, expected JSON, and comparable artifact paths from TestHarness through the `backend-output-comparator-paths` manifest suite. Shell no longer owns the comparator input path constants.
 

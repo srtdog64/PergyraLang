@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.air-node-count.v1","ok":false,"source":{"input_schema":"pgy.air.graph.v1","fixture_owner":".tmp/self_hosted/air_graph_node_count_integrity/negative/sample.json"},"counts":{"ids":14,"declared":101,"intents":1,"boundaries":1,"evidence":99},"findings":[{"kind":"node_count_mismatch","ids":14,"declared":101}]}

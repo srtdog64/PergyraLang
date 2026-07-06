@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.air-ref-integrity.v1","ok":false,"source":{"input_schema":"pgy.air.graph.v1","fixture_owner":"src/self_hosted/tools/air_graph_ref_integrity/fixture/graph_edges_dangling.json"},"counts":{"nodes":2,"endpoints":4,"dangling":1},"findings":[{"kind":"dangling_edge_endpoint","id":"9"}]}
