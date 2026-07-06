@@ -25,6 +25,16 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Stdlib dispatch drift fixture consumes TestHarness owner
+
+- Extended `stdlib-dispatch-inventory-paths` with the synthetic drift fixture's
+  strip pattern and deletion count.
+- Repointed `stdlib_dispatch_inventory_checker_parity.sh` so shell mutates the
+  scratch LLVM dispatch file from TestHarness-projected rows instead of owning
+  the `"stdlib ` pattern and `12` deletion count.
+- Tightened the component contract against reintroducing the hardcoded awk
+  drift policy in shell.
+
 ## 2026-07-06 - Production LOC negative fixtures consume TestHarness owner
 
 - Extended `production-c-size-paths` and `production-header-size-paths` with

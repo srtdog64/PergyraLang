@@ -405,6 +405,12 @@ dispatch, and LLVM scalar/IO dispatch owner paths through the
 `stdlib-dispatch-inventory-paths` manifest suite, then runs the compiled
 checker binary for clean and dispatch-drift fixtures.
 
+TestHarness delta, 2026-07-06: `stdlib_dispatch_inventory_checker_parity.sh`
+now also gets its dispatch-drift strip pattern and strip count from
+`test_harness_tool_paths_owner.pgy`. Shell still mutates the scratch LLVM
+dispatch file, but no longer owns which dispatch row shape or deletion count
+proves the drift fixture.
+
 TestHarness delta, 2026-07-05: `semantic_parity.sh` no longer owns the
 108-row `SOURCE_PAIRS` fixture inventory. The compiled semantic owner emits
 `--fixture-manifest` rows from `DirWalk("src/self_hosted/semantic/fixture")`

@@ -508,8 +508,16 @@ func CompilerHarnessStdlibDispatchInventoryLlvmDispatchPath() -> String {
     return "src/codegen/llvm_expr_stdlib_scalar_io_calls.c";
 }
 
+func CompilerHarnessStdlibDispatchInventoryDriftStripPattern() -> String {
+    return "\"stdlib ";
+}
+
+func CompilerHarnessStdlibDispatchInventoryDriftStripCount() -> Int {
+    return 12;
+}
+
 func CompilerHarnessStdlibDispatchInventoryPathCount() -> Int {
-    return 5;
+    return 7;
 }
 
 func CompilerHarnessStdlibDispatchInventoryPathAt(index: Int) -> String {
@@ -518,11 +526,13 @@ func CompilerHarnessStdlibDispatchInventoryPathAt(index: Int) -> String {
     if index == 2 { return CompilerHarnessStdlibDispatchInventoryCDispatchPath(); }
     if index == 3 { return CompilerHarnessStdlibDispatchInventoryCUnaryDispatchPath(); }
     if index == 4 { return CompilerHarnessStdlibDispatchInventoryLlvmDispatchPath(); }
+    if index == 5 { return CompilerHarnessStdlibDispatchInventoryDriftStripPattern(); }
+    if index == 6 { return ToString(CompilerHarnessStdlibDispatchInventoryDriftStripCount()); }
     return "";
 }
 
 func CompilerHarnessStdlibDispatchInventoryReady() -> Bool {
-    if CompilerHarnessStdlibDispatchInventoryPathCount() != 5 {
+    if CompilerHarnessStdlibDispatchInventoryPathCount() != 7 {
         return false;
     }
     let i: Int = 0;

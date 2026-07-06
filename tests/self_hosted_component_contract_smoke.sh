@@ -2050,6 +2050,8 @@ require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func 
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryCDispatchPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryCUnaryDispatchPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryLlvmDispatchPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryDriftStripPattern"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryDriftStripCount"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryPathAt"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryReady"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessProductionCSizeSuiteName"
@@ -2523,6 +2525,9 @@ require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.
 require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'C_DISPATCH="${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'C_UNARY_DISPATCH="${harness_paths[3]}"'
 require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'LLVM_DISPATCH="${harness_paths[4]}"'
+require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'DRIFT_STRIP_PATTERN="${harness_paths[5]}"'
+require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'DRIFT_STRIP_COUNT="${harness_paths[6]}"'
+require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "TestHarness manifest expected 7 stdlib-dispatch rows"
 require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" '"$CLEAN_BIN"'
 require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "expected-json clean"
 reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy"'
@@ -2541,6 +2546,8 @@ reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.s
 reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "SHELL_RAW_DRIFT"
 reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "c_entries parity FAIL"
 reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "llvm_entries parity FAIL"
+reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'stripped<12'
+reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" '/"stdlib /'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'import "../../lib/json_fact_table.pgy";'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonDocumentObjectFactTable(content)"

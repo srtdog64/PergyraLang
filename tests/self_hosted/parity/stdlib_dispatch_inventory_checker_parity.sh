@@ -46,8 +46,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 5 ]]; then
-    echo "[self-host-parity:stdlib-dispatch-inventory] TestHarness manifest expected 5 stdlib-dispatch paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 7 ]]; then
+    echo "[self-host-parity:stdlib-dispatch-inventory] TestHarness manifest expected 7 stdlib-dispatch rows, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -56,6 +56,8 @@ EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
 C_DISPATCH="${harness_paths[2]}"
 C_UNARY_DISPATCH="${harness_paths[3]}"
 LLVM_DISPATCH="${harness_paths[4]}"
+DRIFT_STRIP_PATTERN="${harness_paths[5]}"
+DRIFT_STRIP_COUNT="${harness_paths[6]}"
 
 for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$ROOT_DIR/$C_DISPATCH" "$ROOT_DIR/$C_UNARY_DISPATCH" "$ROOT_DIR/$LLVM_DISPATCH"; do
     if [[ ! -f "$path" ]]; then
@@ -63,6 +65,10 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$ROOT_DIR/$C_DISPATCH"
         exit 1
     fi
 done
+if [[ -z "$DRIFT_STRIP_PATTERN" || ! "$DRIFT_STRIP_COUNT" =~ ^[0-9]+$ ]]; then
+    echo "[self-host-parity:stdlib-dispatch-inventory] invalid TestHarness drift fixture row" >&2
+    exit 1
+fi
 
 PERGYRA_TOOL_INPUT="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
 
@@ -104,8 +110,7 @@ pgy_selfhost_compare_expected_text_artifact_with_owner \
     "$PERGYRA_JSON" \
     "run_output"
 
-# Synthetic drift fixture - strip multiple LLVM entries to exceed the
-# tolerance band, expect rc=1.
+# Synthetic drift fixture from the TestHarness owner row.
 NEG_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/pgy-selfhost-sdi.XXXXXX")"
 cleanup_neg_root() {
     rm -rf "$NEG_ROOT"
@@ -115,9 +120,10 @@ mkdir -p "$NEG_ROOT/src/codegen"
 mkdir -p "$NEG_ROOT/.tmp"
 cp "$ROOT_DIR/$C_DISPATCH" "$NEG_ROOT/$C_DISPATCH"
 cp "$ROOT_DIR/$C_UNARY_DISPATCH" "$NEG_ROOT/$C_UNARY_DISPATCH"
-# Delete enough `"stdlib ` lines in LLVM dispatch to push raw drift above
-# the tool's tolerance band (currently 5). Strip 12 to be safely past.
-awk 'BEGIN{stripped=0} /"stdlib /{ if(stripped<12){stripped++; next} } {print}' \
+# Delete owner-selected LLVM dispatch entries to push raw drift above the
+# tool's tolerance band.
+awk -v pattern="$DRIFT_STRIP_PATTERN" -v limit="$DRIFT_STRIP_COUNT" \
+    'BEGIN{stripped=0} index($0, pattern) > 0 { if(stripped < limit){stripped++; next} } {print}' \
     "$ROOT_DIR/$LLVM_DISPATCH" > "$NEG_ROOT/$LLVM_DISPATCH"
 
 set +e
