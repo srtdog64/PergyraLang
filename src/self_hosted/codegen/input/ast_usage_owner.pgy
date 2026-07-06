@@ -167,8 +167,3 @@ func CodegenRuntimeUsageFactsFromArena(arena: AstArena, count: Int) -> CodegenRu
         uses_random
     );
 }
-
-func CodegenRuntimeUsageFactsFromNodes(nodes: Array<CodegenAstTextNode>, count: Int) -> CodegenRuntimeUsageFacts {
-    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
-    return CodegenRuntimeUsageFactsFromArena(arena, count);
-}

@@ -1127,7 +1127,6 @@ reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "Codege
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextProjectLegacy"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextExpect(texts:"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "struct CodegenRuntimeUsageFacts"
-require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenRuntimeUsageFactsFromNodes"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenRuntimeUsageFactsFromArena"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenAstArenaContains"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenAstArenaKindPresent"
@@ -1141,6 +1140,7 @@ reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "StringIndexOf(n
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "StringIndexOf(nodes[i].aux_payload"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstTextContains"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstTextKindPresent"
+reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenRuntimeUsageFactsFromNodes"
 require_text "src/parser/ast_print.c" "PARAM_MODE_MUT_REF"
 require_text "src/parser/ast_print.c" 'printf("inout ")'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "inout "'
