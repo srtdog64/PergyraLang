@@ -211,8 +211,8 @@ projection locally. The arena also carries name, type-name, and mode rows for
 function/declaration emission, so signature and field metadata must be consumed
 from the typed arena projection rather than directly from transitional text-node
 fields. Single-payload statements, `Let` name/type/initializer, `Assign`
-target/RHS, and `ArrayPush` target/value now consume arena atom/value rows;
-`ArraySet` and `For` remain bridge-owned.
+target/RHS, `ArrayPush` target/value, and `ArraySet` target/index/value now
+consume arena atom/value rows; `For` remains bridge-owned.
 
 `src/self_hosted/compiler/path_manifest_owner.pgy` is the current path owner.
 It owns the Pergyra source/test/parity path values for `StagePathManifest` and
@@ -276,9 +276,9 @@ The current `input/` bridge has three explicit fact owners:
   filtering, `[export]` normalization, marker-node predicates, declaration and
   signature payload accessors, and cursor expectation diagnostics.
 - `ast_text_typed_arena_owner.pgy` owns projection from the text inventory into
-  typed `AstArena` rows, including parent and indent facts.
+  typed `AstArena` rows, including parent, indent, value, and aux-value facts.
 - `ast_text_row_fact_owner.pgy` owns the typed `CodegenAstTextRowFactInput`
-  contract and the name/type/mode rows derived from inventory payloads:
+  contract and the name/type/value/aux-value/mode rows derived from payloads:
   function, return, role, nominal, enum, field, parameter, and `Let`
   name/type row facts are populated once during inventory construction and
   then consumed from `CodegenAstTextNode` fields.
@@ -298,8 +298,8 @@ discovery, struct/enum collection, and prototype emission. The legacy parallel
 `indents`/`texts` projection has been removed; the remaining bridge debt is that
 `CodegenAstTextNode.text` is still a line-text payload inside the input owner
 rather than a tagged AST semantic record. Single-payload statements, `Let`,
-`Assign`, and `ArrayPush` now read arena rows in emission; `ArraySet` and `For`
-remain statement-owner facts until their multi-field payloads move into typed
+`Assign`, `ArrayPush`, and `ArraySet` now read arena rows in emission; `For`
+remains statement-owner facts until its multi-field payloads move into typed
 rows. Parameter mode is part of this bridge contract:
 native and
 self-host AST printers preserve `inout`,
@@ -354,7 +354,7 @@ The long-term codegen shape is resource-first:
 | type bindings | `TypeEnvZone` / `type_facts/` | expression, statement, return, log routing | emitters consume type facts and parameter-mode rows instead of re-inferring from source text |
 | symbol and mangle facts | `compiler/symbol_table_owner.pgy`; cross-backend owner still active beyond the self-host C consumer | C, LLVM, and self-hosted emission | emitters consume canonical spelling facts; no owner/member string concatenation in local emission |
 | self-host C ABI type spelling | `compiler/abi_layout_row_owner.pgy` for supported concrete rows, consumed by `abi_layout/abi_layout_owner.pgy` for self-host C subset; cross-backend native row projection still active | self-hosted C emission | signature, local, and field declarations consume canonical C ABI rows before user-struct lookup |
-| self-host typed AST-text bridge | `input/ast_text_inventory_owner.pgy` for parser AST-text lines, `CodegenAstTextNode`, indentation, coarse kind, marker predicates, blank filtering, `[export]` normalization, declaration payload accessors, and cursor expectations; `input/ast_text_typed_arena_owner.pgy` for parent/indent/child projection into `AstArena` plus `CodegenTypedAstBridgeReady`; `input/ast_text_row_fact_owner.pgy` for `CodegenAstTextRowFactInput` plus function/return/role/nominal/enum-name/field/parameter/statement name, type, value, and mode rows; `input/ast_text_statement_owner.pgy` for statement-row facts; `typed_ast_node_skeleton.pgy` for the typed AST arena payload contract that will replace the bridge | self-hosted C emission today; parser/codegen cutover later | `program_emit` consumes typed arena indent/descendant facts for first-function and owner-body traversal, while declaration collectors, function signature emission, and statement body emission still consume typed bridge nodes for prepasses, marker rows, function/return/role/nominal/enum-name/enum-variant/field/parameter/remaining compound-statement payloads, statement facts, function body-marker reads, and remaining expression payload reads; `GenerateC` consumes `CodegenTypedAstBridgeReady(nodes, count)` before emission and validates row-aligned `AstArena` kind/atom/value/parent/indent/child facts; function/declaration names, `Let` name/type/initializer, `Assign` target/RHS, `ArrayPush` target/value, and single-payload statement payloads consume arena rows; `ArraySet` and `For` remain statement-owner facts; `inout` signatures/calls consume recorded `pm` facts; no emission participant may re-split AST text or consume parallel `indents`/`texts` arrays |
+| self-host typed AST-text bridge | `input/ast_text_inventory_owner.pgy` for parser AST-text lines, `CodegenAstTextNode`, indentation, coarse kind, marker predicates, blank filtering, `[export]` normalization, declaration payload accessors, and cursor expectations; `input/ast_text_typed_arena_owner.pgy` for parent/indent/child projection into `AstArena` plus `CodegenTypedAstBridgeReady`; `input/ast_text_row_fact_owner.pgy` for `CodegenAstTextRowFactInput` plus function/return/role/nominal/enum-name/field/parameter/statement name, type, value, aux-value, and mode rows; `input/ast_text_statement_owner.pgy` for statement-row facts; `typed_ast_node_skeleton.pgy` for the typed AST arena payload contract that will replace the bridge | self-hosted C emission today; parser/codegen cutover later | `program_emit` consumes typed arena indent/descendant facts for first-function and owner-body traversal, while declaration collectors, function signature emission, and statement body emission still consume typed bridge nodes for prepasses, marker rows, function/return/role/nominal/enum-name/enum-variant/field/parameter/remaining compound-statement payloads, statement facts, function body-marker reads, and remaining expression payload reads; `GenerateC` consumes `CodegenTypedAstBridgeReady(nodes, count)` before emission and validates row-aligned `AstArena` kind/atom/value/aux-value/parent/indent/child facts; function/declaration names, `Let` name/type/initializer, `Assign` target/RHS, `ArrayPush` target/value, `ArraySet` target/index/value, and single-payload statement payloads consume arena rows; `For` remains statement-owner facts; `inout` signatures/calls consume recorded `pm` facts; no emission participant may re-split AST text or consume parallel `indents`/`texts` arrays |
 | self-host C collection runtime symbols | `runtime_abi/collection_runtime_owner.pgy` for `Array<Int>` / `Array<String>` helper calls plus the `Array<CodegenAstTextNode>` bootstrap bridge | self-hosted C emission | expression/statement emitters consume canonical helper-name facts; generated helper definitions stay in one definition host |
 | self-host C math/random symbols | `runtime_abi/math_runtime_owner.pgy` for `Abs` / `Min` / `Max` / `Sqrt` / `Pow` / `Floor` / `Ceil` / `SeedRandom` / `Random` helper or target-library calls | self-hosted C emission | expression emitters consume canonical symbol facts; generated helper definitions stay in one definition host |
 | self-host C host I/O/process symbols | `runtime_abi/host_io_runtime_owner.pgy` for file, directory-walk, `Args()`, and `Exit(Int)` helper or target-library calls | self-hosted C emission | expression/statement emitters consume canonical symbol facts; generated helper definitions stay in one definition host |

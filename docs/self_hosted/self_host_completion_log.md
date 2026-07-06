@@ -4961,3 +4961,24 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-compiler-world-contract-test-smoke`, and
   `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
   7226 generated-C lines, including the `array_push` fixture).
+
+### 2026-07-07 -- ArraySet consumes typed arena target/index/value rows
+
+- Extended `CodegenAstTextRowFactInput` projection with an auxiliary value row
+  for `ArraySet(receiver, index, value)`, then threaded that row through
+  `CodegenAstTextNode` and `AstArena` as `aux_value` / `has_aux_value`.
+- Added `TypedAstArenaAuxValueText(...)` and
+  `CodegenAstArenaAuxValueOrDie(...)`.
+- Repointed `stmt_emit.pgy` so `ArraySet` statement emission consumes
+  `CodegenAstArenaAtomOrDie(...)` for the receiver,
+  `CodegenAstArenaValueOrDie(...)` for the index, and
+  `CodegenAstArenaAuxValueOrDie(...)` for the assigned value.
+- Tightened `self_hosted_component_contract_smoke.sh` so
+  `CodegenAstTextArraySetTarget(...)`, `CodegenAstTextArraySetIndex(...)`, and
+  `CodegenAstTextArraySetValue(...)` cannot return in `stmt_emit.pgy`.
+- `For` remains in the statement owner because it still needs multi-field typed
+  rows.
+- Verified with `self-host-component-contract-test-smoke`,
+  `self-host-compiler-world-contract-test-smoke`, and
+  `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
+  7319 generated-C lines).

@@ -58,6 +58,8 @@ struct AstNode {
     has_type_name: Bool;
     value: Int;
     has_value: Bool;
+    aux_value: Int;
+    has_aux_value: Bool;
     mode: Int;
     first_child: Int;
     child_count: Int;
@@ -73,6 +75,8 @@ struct AstArena {
     has_type_names: Array<Int>;
     values: Array<Int>;
     has_values: Array<Int>;
+    aux_values: Array<Int>;
+    has_aux_values: Array<Int>;
     modes: Array<Int>;
     first_children: Array<Int>;
     child_counts: Array<Int>;
@@ -102,6 +106,8 @@ func TypedAstArenaFixture() -> AstArena {
     let has_type_names: Array<Int> = [0, 0, 0];
     let values: Array<Int> = [0, 0, 0];
     let has_values: Array<Int> = [0, 0, 0];
+    let aux_values: Array<Int> = [0, 0, 0];
+    let has_aux_values: Array<Int> = [0, 0, 0];
     let modes: Array<Int> = [0, 0, 0];
     let first_children: Array<Int> = [0, 1, 2];
     let child_counts: Array<Int> = [1, 1, 0];
@@ -110,7 +116,7 @@ func TypedAstArenaFixture() -> AstArena {
     let children: Array<Int> = [1, 2];
     let atom_table: Array<String> = ["", "Main"];
     return AstArena(kinds, atoms, has_atoms, type_names, has_type_names,
-        values, has_values, modes,
+        values, has_values, aux_values, has_aux_values, modes,
         first_children, child_counts, parents, indents, children, atom_table);
 }
 
@@ -126,6 +132,8 @@ func TypedAstArenaParallelRowsReady(arena: AstArena) -> Bool {
         ArrayLength(arena.has_type_names) == n &&
         ArrayLength(arena.values) == n &&
         ArrayLength(arena.has_values) == n &&
+        ArrayLength(arena.aux_values) == n &&
+        ArrayLength(arena.has_aux_values) == n &&
         ArrayLength(arena.modes) == n &&
         ArrayLength(arena.first_children) == n &&
         ArrayLength(arena.child_counts) == n &&
@@ -220,6 +228,20 @@ func TypedAstArenaValueText(arena: AstArena, node_id: Int) -> Option<String> {
         return None;
     }
     let value_atom: Int = arena.values[node_id];
+    if value_atom < 0 || value_atom >= ArrayLength(arena.atom_table) {
+        return None;
+    }
+    return Some(arena.atom_table[value_atom]);
+}
+
+func TypedAstArenaAuxValueText(arena: AstArena, node_id: Int) -> Option<String> {
+    if !TypedAstArenaHasNode(arena, node_id) {
+        return None;
+    }
+    if arena.has_aux_values[node_id] == 0 {
+        return None;
+    }
+    let value_atom: Int = arena.aux_values[node_id];
     if value_atom < 0 || value_atom >= ArrayLength(arena.atom_table) {
         return None;
     }
@@ -337,6 +359,9 @@ func TypedAstArenaRootTraversalReady() -> Bool {
         return false;
     }
     if IsSome(TypedAstArenaValueText(arena, UnwrapOption(first_child))) {
+        return false;
+    }
+    if IsSome(TypedAstArenaAuxValueText(arena, UnwrapOption(first_child))) {
         return false;
     }
     let mode: Option<Int> = TypedAstArenaMode(arena, UnwrapOption(first_child));

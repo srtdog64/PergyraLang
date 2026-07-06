@@ -357,9 +357,9 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
             deferred = Concat(body, deferred);
         } else if CodegenAstTextIsArraySetStmt(nodes[idx]) {
             // `ArraySet(arr, idx, val)` lowers through the collection set helper owner.
-            let a_arr: String = CodegenAstTextArraySetTarget(nodes[idx]);
-            let a_idx: String = CodegenAstTextArraySetIndex(nodes[idx]);
-            let a_val: String = CodegenAstTextArraySetValue(nodes[idx]);
+            let a_arr: String = CodegenAstArenaAtomOrDie(arena, idx);
+            let a_idx: String = CodegenAstArenaValueOrDie(arena, idx);
+            let a_val: String = CodegenAstArenaAuxValueOrDie(arena, idx);
             let a_kind: String = LookupKindType(env_box[0], a_arr, "v");
             let set_fn: String = CollectionRuntimeCSetFn(a_kind);
             let a_rhs: String = EmitCollectionElementValue(a_kind, a_val, env_box[0], CollectionRuntimeKindCode(a_kind));
