@@ -3,8 +3,14 @@
 // Owns the capability envelope for invoking external compiler oracles. It does
 // not grant raw shell escape; a runner must consume this envelope first.
 
+import "../lib/json_emit.pgy";
+
 func CompilerSubprocessSchema() -> String {
     return "pgy.selfhost.subprocess-runner.v1";
+}
+
+func CompilerSubprocessPlanSchema() -> String {
+    return "pgy.selfhost.subprocess-plan.v1";
 }
 
 func CompilerSubprocessFactCount() -> Int {
@@ -142,6 +148,50 @@ func CompilerSubprocessOracleCompareEnvAllowlist() -> String {
     return StringJoin(names, ",");
 }
 
+func CompilerSubprocessPlanJson(
+    use_case: String,
+    executable_path: String,
+    argv_csv: String,
+    cwd: String
+) -> String {
+    let ok: Bool = CompilerSubprocessUseCaseKnown(use_case) &&
+        executable_path != "" &&
+        argv_csv != "" &&
+        cwd != "" &&
+        CompilerSubprocessOracleCompareTimeoutMsValue() > 0 &&
+        CompilerSubprocessOracleCompareEnvAllowlist() != "";
+    let fields: Array<String> = [
+        JsonEmitFieldString("schema", CompilerSubprocessPlanSchema()),
+        JsonEmitFieldBool("ok", ok),
+        JsonEmitFieldString("use_case", use_case),
+        JsonEmitFieldString(CompilerSubprocessExecutablePathFact(), executable_path),
+        JsonEmitFieldString(CompilerSubprocessArgvFact(), argv_csv),
+        JsonEmitFieldString(CompilerSubprocessCwdFact(), cwd),
+        JsonEmitFieldString(CompilerSubprocessEnvAllowlistFact(), CompilerSubprocessOracleCompareEnvAllowlist()),
+        JsonEmitFieldNumber(CompilerSubprocessTimeoutMsFact(), CompilerSubprocessOracleCompareTimeoutMs()),
+        JsonEmitFieldString(CompilerSubprocessStreamFact(), CompilerSubprocessStreamFact()),
+        JsonEmitFieldString(CompilerSubprocessExitFact(), CompilerSubprocessExitFact())
+    ];
+    return JsonEmitObject(fields);
+}
+
+func CompilerSubprocessOracleComparePlanJson(
+    executable_path: String,
+    argv_csv: String,
+    cwd: String
+) -> String {
+    return CompilerSubprocessPlanJson(
+        CompilerSubprocessOracleCompareUseCase(),
+        executable_path,
+        argv_csv,
+        cwd);
+}
+
+func CompilerSubprocessPlanJsonReady() -> Bool {
+    return CompilerSubprocessPlanSchema() == "pgy.selfhost.subprocess-plan.v1" &&
+        CompilerSubprocessOracleComparePlanJson("backend_output_comparator", "expected,actual", ".") != "";
+}
+
 func CompilerSubprocessOracleComparePlanReady() -> Bool {
     return CompilerSubprocessFactCount() == 7 &&
         CompilerSubprocessUseCaseCount() == 3 &&
@@ -173,7 +223,8 @@ func CompilerSubprocessOracleComparePlanReady() -> Bool {
         CompilerSubprocessOracleCompareEnvAllowlistKnown(CompilerSubprocessEnvBackendRunTimeoutName()) &&
         CompilerSubprocessOracleCompareEnvAllowlistKnown(CompilerSubprocessEnvSelfHostBuildDirName()) &&
         CompilerSubprocessOracleCompareTimeoutMs() != "" &&
-        CompilerSubprocessOracleCompareEnvAllowlist() != "";
+        CompilerSubprocessOracleCompareEnvAllowlist() != "" &&
+        CompilerSubprocessPlanJsonReady();
 }
 
 func CompilerSubprocessRunnerReady() -> Bool with caps env {

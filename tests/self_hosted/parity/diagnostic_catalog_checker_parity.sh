@@ -125,6 +125,9 @@ if ! grep -Fq 'pgy.selfhost.diagnostic-catalog.v1' <<<"$PERGYRA_OUT"; then
     exit 1
 fi
 
+# counts.documented parity and counts.orphans parity are owned by the expected
+# JSON artifact below. counts.missing parity keeps the clean zero fast check so
+# the missing-code negative fixture cannot hide a dirty clean catalog.
 if ! grep -Fq '"missing":0,' <<<"$PERGYRA_OUT"; then
     echo "[self-host-parity:diagnostic-catalog] counts.missing parity FAIL (expected 0)" >&2
     printf '%s\n' "$PERGYRA_OUT" >&2

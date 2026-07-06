@@ -54,7 +54,19 @@ JSON document on stdout, conforming to schema
     "subprocess_timeout_ms": "30000",
     "subprocess_env_allowlist": "PATH,PGY_BIN,PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS,PGY_SELFHOST_BUILD_DIR",
     "subprocess_stream_fact": "stdout_stderr",
-    "subprocess_exit_fact": "exit_code"
+    "subprocess_exit_fact": "exit_code",
+    "subprocess_plan": {
+      "schema": "pgy.selfhost.subprocess-plan.v1",
+      "ok": true,
+      "use_case": "oracle_compare",
+      "executable_path": "backend_output_comparator",
+      "argv": "src/self_hosted/tools/backend_output_comparator/fixture/expected.txt,src/self_hosted/tools/backend_output_comparator/fixture/actual.txt,c_oracle,llvm_oracle,run_output",
+      "cwd": ".",
+      "env_allowlist": "PATH,PGY_BIN,PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS,PGY_SELFHOST_BUILD_DIR",
+      "timeout_ms": 30000,
+      "stdout_stderr": "stdout_stderr",
+      "exit_code": "exit_code"
+    }
   },
   "counts": {
     "expected_lines": 0,
@@ -76,7 +88,11 @@ JSON document on stdout, conforming to schema
 - Subprocess source fields are projections of
   `compiler/subprocess_runner_owner.pgy`: timeout is derived from
   `CompilerSubprocessOracleCompareTimeoutMsValue()`, and the env allowlist is
-  derived from `CompilerSubprocessOracleCompareEnvAllowlistAt(...)` rows.
+  derived from `CompilerSubprocessOracleCompareEnvAllowlistAt(...)` rows. The
+  nested `subprocess_plan` is emitted by
+  `CompilerSubprocessOracleComparePlanJson(...)`; shell still launches the
+  process today, but the executable path, argv, cwd, env allowlist, timeout,
+  stream, and exit-code facts now come from the Pergyra subprocess owner.
 
 Exit code: `0` on `ok:true`, `1` on `ok:false`. Missing input reports
 `input_error` and exits `1`.

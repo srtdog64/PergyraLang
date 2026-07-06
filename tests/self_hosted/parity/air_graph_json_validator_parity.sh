@@ -165,6 +165,8 @@ if ! grep -Fq 'pgy.selfhost.air-graph-validator.v1' <<<"$PERGYRA_OUT"; then
 fi
 
 # Clean JSON shape parity.
+# counts.env_effect_sites parity is owned by the expected JSON fixture and the
+# validator output; shell only routes both artifacts through the comparator.
 PERGYRA_JSON="$(printf '%s\n' "$PERGYRA_OUT" \
     | grep -F 'pgy.selfhost.air-graph-validator.v1' \
     | tail -n 1)"

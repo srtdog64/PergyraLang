@@ -4377,3 +4377,20 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   describes `backend_output_comparator_parity.sh` as a shell external oracle.
 - Tightened `self_hosted_component_contract_smoke.sh` so the shell text
   equivalence block and stale wording cannot return.
+
+### 2026-07-06 -- Subprocess runner emits owner-owned plan JSON
+
+- Added `pgy.selfhost.subprocess-plan.v1` emission to
+  `subprocess_runner_owner.pgy`. The plan records use case, executable path,
+  argv, cwd, env allowlist, timeout, stream, and exit-code facts through named
+  owner functions.
+- Repointed `backend_output_comparator` so its `source` object embeds the
+  nested subprocess plan from `CompilerSubprocessOracleComparePlanJson(...)`
+  instead of leaving those execution facts as free fields owned by the parity
+  runner.
+- Kept the subprocess blocker ACTIVE: shell still launches the process today.
+  This slice only makes the future runner's input envelope structured and
+  Pergyra-owned.
+- Verified with `self-host-component-contract-test-smoke`,
+  `self-host-compiler-world-contract-test-smoke`, and
+  `backend_output_comparator_parity.sh`.

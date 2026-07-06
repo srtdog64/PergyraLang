@@ -1849,6 +1849,8 @@ require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "Compile
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerSubprocessSchema()"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerSubprocessOracleCompareTimeoutMs()"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerSubprocessOracleCompareEnvAllowlist()"
+require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerSubprocessOracleComparePlanJson("
+require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'JsonEmitFieldRaw("subprocess_plan", subprocess_plan)'
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "JsonEmitArray(findings)"
 reject_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'let json_parts: Array<String>'
@@ -2213,6 +2215,13 @@ reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessPr
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessProjectionAt(2) == "self_hosted"'
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareTimeoutMs"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareEnvAllowlist"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessPlanSchema"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessPlanJson"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleComparePlanJson"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessPlanJsonReady"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "JsonEmitFieldString(CompilerSubprocessExecutablePathFact(), executable_path)"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "JsonEmitFieldString(CompilerSubprocessArgvFact(), argv_csv)"
+require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "JsonEmitFieldString(CompilerSubprocessCwdFact(), cwd)"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareTimeoutMsValue"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "return ToString(CompilerSubprocessOracleCompareTimeoutMsValue())"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareEnvAllowlistCount"
@@ -2268,6 +2277,8 @@ reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'CompilerSubp
 reject_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" 'CompilerSubprocessOracleCompareEnvAllowlistKnown("PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS")'
 require_text "src/self_hosted/tools/backend_output_comparator/expected/clean.json" '"subprocess_timeout_ms":"30000"'
 require_text "src/self_hosted/tools/backend_output_comparator/expected/clean.json" '"subprocess_env_allowlist":"PATH,PGY_BIN,PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS,PGY_SELFHOST_BUILD_DIR"'
+require_text "src/self_hosted/tools/backend_output_comparator/expected/clean.json" '"subprocess_plan":{"schema":"pgy.selfhost.subprocess-plan.v1"'
+require_text "src/self_hosted/tools/backend_output_comparator/expected/clean.json" '"executable_path":"backend_output_comparator"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" '"backend-output-comparator-paths"'
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'

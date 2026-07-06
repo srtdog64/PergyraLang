@@ -48,6 +48,17 @@ func ComparatorSourceFields(
         Log("BACKEND COMPARATOR OWNER ERROR artifact/test-harness/subprocess rows not ready");
         Exit(1);
     }
+    let subprocess_plan_argv: Array<String> = [
+        expected_path,
+        actual_path,
+        expected_projection,
+        actual_projection,
+        artifact_kind
+    ];
+    let subprocess_plan: String = CompilerSubprocessOracleComparePlanJson(
+        "backend_output_comparator",
+        StringJoin(subprocess_plan_argv, ","),
+        ".");
     let fields: Array<String> = [
         JsonEmitFieldString("expected_owner", expected_path),
         JsonEmitFieldString("actual_owner", actual_path),
@@ -59,7 +70,8 @@ func ComparatorSourceFields(
         JsonEmitFieldString("subprocess_timeout_ms", CompilerSubprocessOracleCompareTimeoutMs()),
         JsonEmitFieldString("subprocess_env_allowlist", CompilerSubprocessOracleCompareEnvAllowlist()),
         JsonEmitFieldString("subprocess_stream_fact", CompilerSubprocessStreamFact()),
-        JsonEmitFieldString("subprocess_exit_fact", CompilerSubprocessExitFact())
+        JsonEmitFieldString("subprocess_exit_fact", CompilerSubprocessExitFact()),
+        JsonEmitFieldRaw("subprocess_plan", subprocess_plan)
     ];
     return fields;
 }
