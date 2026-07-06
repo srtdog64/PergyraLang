@@ -95,7 +95,14 @@ Agda/F*/Idris 같은 의존-타입 호스트나 Racket 같은 매크로 호스�
   합성으로 설명될 수 있다 — 즉 이 축의 *독립* 비표현성 논증은 나머지 두 축보다
   약하고, "authority = cap × zone 위의 표기"라는 반론이 가능하다. 반박하려면
   둘로 환원 안 되는 authority 고유 정적 의무(위임 체인 등 —
-  AuthorityDelegationCore.v가 후보)를 지목해야 한다. **미완**.
+  AuthorityDelegationCore.v가 후보)를 지목해야 한다.
+- **★환원 반론 방출 (2026-07-06)**: `AuthorityIrreducibility.v`(coqc PASS) —
+  cap·zone 사영이 동일하고 위임 체인만 다른 두 구성이 authority 판정을 가름
+  (`delegation_distinguishes`) ⇒ 어떤 (cap, zone)의 함수도 authority 판정을
+  계산할 수 없음(`authority_beyond_cap_zone`). 구별 fact = **위임의 역사**.
+  모델-수준 분리(반례 쌍)지 Felleisen 정리가 아님을 파일 헤더에 명시. 이로써
+  이 절의 판정은 부분→**성립**(★★☆): 고유 fact(위임 체인)의 비표현성 근거
+  확보, 잔여는 위임 체인의 표면 정적 의무(선언 문법) 설계.
 
 ### 1.6 intent — 가장 약함 (명시)
 
@@ -131,7 +138,7 @@ Agda/F*/Idris 같은 의존-타입 호스트나 Racket 같은 매크로 호스�
 | slot/own-ref | 성립 | ★★★ (선형성 — 코어에 부재) |
 | lifecycle/vessel | 성립 | ★★☆ (+소거 관찰) |
 | zone/world | 성립 | ★★☆ (AC-3 거절 + 기계화 그림자) |
-| authority | 부분 | ★☆☆ (cap×zone 환원 반론 미해소) |
+| authority | 성립(2026-07-06 승격) | ★★☆ (AuthorityIrreducibility.v가 cap×zone 환원 반론 방출 — 위임 역사가 구별 fact. 잔여: 위임 표면 의무 설계) |
 | intent | **단위 교정(docs/173 §0-b)**: binder — 6 verifier subfact의 비표현성 상속 | fact별: Participant/Coordination/Compensation 등 6개는 INT-1~3 착지 시 ★★☆+, Purpose/Trace는 library-가능(주장 제외) |
 
 이 표의 낮은 행들은 숨길 것이 아니라 **작업 지시**다: authority 고유 의무 지목,

@@ -342,3 +342,24 @@ Proof.
   unfold intent_checked, participants_covered, deps_wf, comp_covered.
   simpl. tauto.
 Qed.
+
+(* ====================================================== *)
+(* 9. Erasure corollary (docs/173 SS3, docs/142 lineage)   *)
+(* ====================================================== *)
+
+(* For a checked intent, the guarded machine and the unguarded machine
+   accept exactly the same schedules: the guards decide nothing and are
+   erasable/hoistable (the amortization frame of docs/142, extended to
+   the intent axis). *)
+Corollary checked_intent_erasable :
+  forall s, intent_checked s ->
+  forall done acts,
+    sched_ok s done acts <->
+    sched_ok s done acts /\ no_guard_fires s done acts.
+Proof.
+  intros s Hc done acts. split.
+  - intros H. split.
+    + exact H.
+    + eapply checked_intent_guard_free; eauto.
+  - intros [H _]. exact H.
+Qed.

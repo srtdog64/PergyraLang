@@ -209,6 +209,24 @@ intent가 된다"),
 IntentSpine.v = **연산 커널**(의무→가드-자유→합성). 이 둘이 "intent 정형 커널"의
 1차 완성. 잔여 실작업: INT-1 semantic pass(interproc used-set 계산), INT-4
 (cross-intent, 다중 spine 레지스트리 모델), IntentSpine.v smoke 등록.
+
+**Proof Pack 부족분 채움 (2026-07-06, 3건 추가 — 전부 coqc PASS)**:
+① **`IntentConflict.v` — INT-4 커널 착지**: `pgy_intent_enter_export`의
+런타임 admission 규칙(F1에서 읽고 경화한 그 코드)을 `conflict_guard`로 전사,
+정적 분리 증거(subject-서로소 ∨ 정적 nesting ∨ 상호 concurrent 선언; 순서
+증거는 "co-active가 안 됨"으로 암묵 처리)가 그 가드를 무발화로 만듦 —
+`separated_trace_conflict_free`. **설계 정리 `priority_waives_only_one_order`**:
+priority는 한 활성화 순서만 waive하므로 **대칭 분리 증거가 아니다** — docs/167
+B축 충돌그래프 엣지를 priority만으로 지우면 안 된다는 제약이 기계증명됨.
+비공허성 예제 포함. 잔여: 정적 co-activity 계산(semantic pass)은 구현 작업.
+② **`checked_intent_erasable`** (IntentSpine.v §9): §3이 약속한 따름 —
+checked intent에서 guarded/unguarded 머신이 같은 스케줄을 수용 = 가드 소거
+가능(docs/142 상각의 intent 인스턴스).
+③ **`AuthorityIrreducibility.v`** — semantics/22 §1.5의 "authority = cap×zone
+표기" 환원 반론을 모델 수준에서 방출: cap·zone 사영이 동일한 두 구성이 위임
+체인만 달라 authority 판정이 갈림(`delegation_distinguishes`) ⇒ 어떤
+(cap,zone) 함수도 authority를 계산 못 함(`authority_beyond_cap_zone`).
+authority는 스냅샷이 아니라 **grant의 역사**라는 것의 정리화.
 - 시퀀스: INT-1 → INT-3 → INT-2 → INT-5(정리는 의무 셋이 실물이 된 후) →
   INT-4(SEA 트랙과 합류). 전부 self-host M2와 독립(semantic pass 계열이라
   병행 가능하나, 우선순위 경쟁은 BDFL 몫).
