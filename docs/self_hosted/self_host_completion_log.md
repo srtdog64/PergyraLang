@@ -5080,3 +5080,16 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-compiler-world-contract-test-smoke`, and
   `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
   7637 generated-C lines).
+
+### 2026-07-07 -- Emission marker expectations consume typed arena kind facts
+
+- Added typed arena expectation helpers for Parameters, Body, Block, and Then
+  structural markers.
+- Repointed `function_emit.pgy` and `stmt_emit.pgy` so emission participants no
+  longer call `CodegenAstTextExpectNode(...)`.
+- Tightened `self_hosted_component_contract_smoke.sh` so the old expectation
+  call cannot return in emission participants.
+- Verified with `self-host-component-contract-test-smoke`,
+  `self-host-compiler-world-contract-test-smoke`, and
+  `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
+  7701 generated-C lines).

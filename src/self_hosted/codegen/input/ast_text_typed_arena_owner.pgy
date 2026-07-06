@@ -225,6 +225,44 @@ func CodegenAstArenaIsFieldsHeader(arena: AstArena, node_id: Int) -> Bool {
     return CodegenAstArenaKindIs(arena, node_id, 4);
 }
 
+func CodegenAstArenaIsBody(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 31);
+}
+
+func CodegenAstArenaIsBlock(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 32);
+}
+
+func CodegenAstArenaIsThen(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 33);
+}
+
+func CodegenAstArenaExpectKind(arena: AstArena, count: Int, inout cur: Array<Int>, expected_kind: Int, label: String) -> Void {
+    if cur[0] >= count {
+        Die(Concat("expected `", Concat(label, "` but reached end of typed AST arena")));
+    }
+    if !CodegenAstArenaKindIs(arena, cur[0], expected_kind) {
+        Die(Concat("expected `", Concat(label, Concat("` at typed AST node: ", ToString(cur[0])))));
+    }
+    ArraySet(cur, 0, cur[0] + 1);
+}
+
+func CodegenAstArenaExpectParameters(arena: AstArena, count: Int, inout cur: Array<Int>) -> Void {
+    CodegenAstArenaExpectKind(arena, count, cur, 2, "Parameters:");
+}
+
+func CodegenAstArenaExpectBody(arena: AstArena, count: Int, inout cur: Array<Int>) -> Void {
+    CodegenAstArenaExpectKind(arena, count, cur, 31, "Body:");
+}
+
+func CodegenAstArenaExpectBlock(arena: AstArena, count: Int, inout cur: Array<Int>) -> Void {
+    CodegenAstArenaExpectKind(arena, count, cur, 32, "Block:");
+}
+
+func CodegenAstArenaExpectThen(arena: AstArena, count: Int, inout cur: Array<Int>) -> Void {
+    CodegenAstArenaExpectKind(arena, count, cur, 33, "Then:");
+}
+
 func CodegenAstArenaIsLogStmt(arena: AstArena, node_id: Int) -> Bool {
     return CodegenAstArenaKindIs(arena, node_id, 13);
 }

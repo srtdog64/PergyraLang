@@ -350,7 +350,7 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
             ArraySet(cur, 0, idx + 1);
         } else if CodegenAstArenaIsDeferStmt(arena, idx) {
             ArraySet(cur, 0, idx + 1);
-            CodegenAstTextExpectNode(nodes, count, cur, "Block:");
+            CodegenAstArenaExpectBlock(arena, count, cur);
             let defer_env: Array<String> = [env_box[0]];
             let body: String = EmitStmtList(nodes, count, arena, stmt_indent + 4,
                 cur, pad, defer_env, cur_fn_ret, Concat(deferred, active_defers));
@@ -452,22 +452,22 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
                 result = Concat(result, Concat(inner_pad, Concat(elem_c, Concat(" ", Concat(loop_var, Concat(" = ", Concat(get_fn, Concat("(", Concat(tc, Concat(", ", Concat(ti, ");\n")))))))))));
             }
             ArraySet(cur, 0, idx + 1);
-            CodegenAstTextExpectNode(nodes, count, cur, "Block:");
+            CodegenAstArenaExpectBlock(arena, count, cur);
             result = Concat(result, EmitStmtList(nodes, count, arena, stmt_indent + 4, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
             result = Concat(result, Concat(pad, "}\n"));
         } else if CodegenAstArenaIsWhileStmt(arena, idx) {
             let cond: String = WrapCond(CodegenAstArenaAtomOrDie(arena, idx), env_box[0]);
             result = Concat(result, Concat(pad, Concat("while ", Concat(cond, " {\n"))));
             ArraySet(cur, 0, idx + 1);
-            CodegenAstTextExpectNode(nodes, count, cur, "Block:");
+            CodegenAstArenaExpectBlock(arena, count, cur);
             result = Concat(result, EmitStmtList(nodes, count, arena, stmt_indent + 4, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
             result = Concat(result, Concat(pad, "}\n"));
         } else if CodegenAstArenaIsIfStmt(arena, idx) {
             let cond2: String = WrapCond(CodegenAstArenaAtomOrDie(arena, idx), env_box[0]);
             result = Concat(result, Concat(pad, Concat("if ", Concat(cond2, " {\n"))));
             ArraySet(cur, 0, idx + 1);
-            CodegenAstTextExpectNode(nodes, count, cur, "Then:");
-            CodegenAstTextExpectNode(nodes, count, cur, "Block:");
+            CodegenAstArenaExpectThen(arena, count, cur);
+            CodegenAstArenaExpectBlock(arena, count, cur);
             result = Concat(result, EmitStmtList(nodes, count, arena, stmt_indent + 6, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
             if CodegenAstArenaHasElseAt(arena, count, cur[0], stmt_indent) {
                 ArraySet(cur, 0, cur[0] + 1);
@@ -479,7 +479,7 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
                     result = Concat(result, EmitStmtList(nodes, count, arena, CodegenAstArenaIndentOrDie(arena, cur[0]), cur, pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
                 } else {
                     result = Concat(result, Concat(pad, "} else {\n"));
-                    CodegenAstTextExpectNode(nodes, count, cur, "Block:");
+                    CodegenAstArenaExpectBlock(arena, count, cur);
                     result = Concat(result, EmitStmtList(nodes, count, arena, stmt_indent + 6, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
                     result = Concat(result, Concat(pad, "}\n"));
                 }
@@ -505,7 +505,7 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
                         result = Concat(result, Concat(inner_pad, Concat("} else if (", Concat(match_tmp, Concat(" == ", Concat(case_value, ") {\n"))))));
                     }
                     ArraySet(cur, 0, cur[0] + 1);
-                    CodegenAstTextExpectNode(nodes, count, cur, "Block:");
+                    CodegenAstArenaExpectBlock(arena, count, cur);
                     let case_env: Array<String> = [env_box[0]];
                     result = Concat(result, EmitStmtList(nodes, count, arena, stmt_indent + 6, cur, Concat(inner_pad, "    "), case_env, cur_fn_ret, Concat(deferred, active_defers)));
                     match_case_count = match_case_count + 1;

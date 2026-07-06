@@ -81,7 +81,7 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
     let c_name: String = CompilerSymbolCQualifiedName(owner_name, name);
     ArraySet(cur, 0, cur[0] + 1);
 
-    CodegenAstTextExpectNode(nodes, count, cur, "Parameters:");
+    CodegenAstArenaExpectParameters(arena, count, cur);
     let params: String = "";
     let param_n: Int = 0;
     let env_box: Array<String> = [base_env];
@@ -124,8 +124,8 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
     let ret_type: String = CodegenAstArenaTypeNameOrDie(arena, cur[0]);
     ArraySet(cur, 0, cur[0] + 1);
 
-    CodegenAstTextExpectNode(nodes, count, cur, "Body:");
-    CodegenAstTextExpectNode(nodes, count, cur, "Block:");
+    CodegenAstArenaExpectBody(arena, count, cur);
+    CodegenAstArenaExpectBlock(arena, count, cur);
     let stmt_indent: Int = f_indent + 6;
     let is_main: Bool = name == "Main";
     // Main lowers to `int main`, so a bare `return` inside it must be `return 0;`
