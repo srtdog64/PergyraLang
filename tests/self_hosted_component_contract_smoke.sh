@@ -1449,8 +1449,23 @@ require_text "tests/self_hosted/parity/selfcheck_sources.sh" 'SEMANTIC_TARGET_MA
 reject_text "tests/self_hosted/parity/selfcheck_sources.sh" 'SELF_SOURCES=('
 reject_text "tests/self_hosted/parity/selfcheck_sources.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/semantic/main.pgy"'
 require_text "tests/self_hosted/parity/completeness_ledger.sh" '"codegen-parity-paths"'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" '"lexer-parity-paths"'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" '"parser-parity-paths"'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" '"semantic-parity-paths"'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" "LEXER_PATH_MANIFEST"
+require_text "tests/self_hosted/parity/completeness_ledger.sh" "PARSER_PATH_MANIFEST"
+require_text "tests/self_hosted/parity/completeness_ledger.sh" "SEMANTIC_PATH_MANIFEST"
 require_text "tests/self_hosted/parity/completeness_ledger.sh" "CODEGEN_PATH_MANIFEST"
+require_text "tests/self_hosted/parity/completeness_ledger.sh" "lexer_tool_source_path"
+require_text "tests/self_hosted/parity/completeness_ledger.sh" "parser_tool_source_path"
+require_text "tests/self_hosted/parity/completeness_ledger.sh" "semantic_tool_source_path"
 require_text "tests/self_hosted/parity/completeness_ledger.sh" "codegen_tool_source_path"
+reject_text "tests/self_hosted/parity/completeness_ledger.sh" 'copy_lib'
+reject_text "tests/self_hosted/parity/completeness_ledger.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'
+reject_text "tests/self_hosted/parity/completeness_ledger.sh" 'cp "$ROOT_DIR/$copy_dir/"*.pgy'
+reject_text "tests/self_hosted/parity/completeness_ledger.sh" '$BUILD_DIR/lexer/main.pgy'
+reject_text "tests/self_hosted/parity/completeness_ledger.sh" '$BUILD_DIR/parser/main.pgy'
+reject_text "tests/self_hosted/parity/completeness_ledger.sh" '$BUILD_DIR/semantic/main.pgy'
 reject_text "tests/self_hosted/parity/completeness_ledger.sh" 'CODEGEN_BIN="$(compile_tool codegen "$ROOT_DIR/src/self_hosted/codegen/main.pgy" codegen "")"'
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy" "JsonStringLiteral(path)"

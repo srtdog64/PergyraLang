@@ -45,6 +45,16 @@ rewrite history.
 - Tightened the component contract so these scale probes cannot reintroduce
   copied source aliases.
 
+## 2026-07-06 - Completeness ledger uses stage source owners
+
+- Repointed `completeness_ledger.sh` so lexer, parser, semantic, and codegen
+  stage tools are read from TestHarness path-owner rows before compilation.
+- Removed the ledger's local lexer/parser/semantic source copies and shared
+  `lib` tree copies. The M2 ledger now compiles each stage from its
+  source-owner location instead of a build-dir source tree.
+- Tightened the component contract so copied source/lib stage aliases cannot
+  return to the completeness ledger.
+
 ## 2026-07-06 - Parser parity uses source owner in place
 
 - Repointed `parser_parity.sh` so the `parser-parity-paths` TestHarness source

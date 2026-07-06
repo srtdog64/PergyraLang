@@ -32,6 +32,9 @@ BASELINE_MANIFEST="$BUILD_DIR/baseline.txt"
 LEX_PARSE_BASELINE_MANIFEST="$BUILD_DIR/lex_parse_baseline.txt"
 LEX_PARSE_SEMANTIC_BASELINE_MANIFEST="$BUILD_DIR/lex_parse_semantic_baseline.txt"
 FULL_PIPELINE_BASELINE_MANIFEST="$BUILD_DIR/full_pipeline_baseline.txt"
+LEXER_PATH_MANIFEST="$BUILD_DIR/lexer_paths.txt"
+PARSER_PATH_MANIFEST="$BUILD_DIR/parser_paths.txt"
+SEMANTIC_PATH_MANIFEST="$BUILD_DIR/semantic_paths.txt"
 CODEGEN_PATH_MANIFEST="$BUILD_DIR/codegen_paths.txt"
 CHECK_TIMEOUT_SEC="${PGY_SELFHOST_COMPLETENESS_TIMEOUT_SEC:-60}"
 TIMEOUT_EXIT_CODE=124
@@ -54,6 +57,9 @@ read_manifest "self-host-completeness-baseline" "$BASELINE_MANIFEST"
 read_manifest "self-host-completeness-lex-parse-baseline" "$LEX_PARSE_BASELINE_MANIFEST"
 read_manifest "self-host-completeness-lex-parse-semantic-baseline" "$LEX_PARSE_SEMANTIC_BASELINE_MANIFEST"
 read_manifest "self-host-completeness-full-pipeline-baseline" "$FULL_PIPELINE_BASELINE_MANIFEST"
+read_manifest "lexer-parity-paths" "$LEXER_PATH_MANIFEST"
+read_manifest "parser-parity-paths" "$PARSER_PATH_MANIFEST"
+read_manifest "semantic-parity-paths" "$SEMANTIC_PATH_MANIFEST"
 read_manifest "codegen-parity-paths" "$CODEGEN_PATH_MANIFEST"
 
 SOURCES=()
@@ -144,33 +150,47 @@ LEX_PARSE_PASS_MIN="$(baseline_value lex_parse_pass_min)"
 LEX_PARSE_SEMANTIC_PASS_MIN="$(baseline_value lex_parse_semantic_pass_min)"
 FULL_PIPELINE_PASS_MIN="$(baseline_value full_pipeline_pass_min)"
 
-codegen_tool_source_path() {
+tool_source_path_from_manifest() {
+    local label="$1"
+    local manifest="$2"
     local source_rel
-    source_rel="$(sed -n '1p' "$CODEGEN_PATH_MANIFEST")"
+    source_rel="$(sed -n '1p' "$manifest")"
     if [[ -z "$source_rel" ]]; then
-        echo "[self-host-completeness] missing codegen source row from TestHarness" >&2
-        cat "$CODEGEN_PATH_MANIFEST" >&2
+        echo "[self-host-completeness] missing $label source row from TestHarness" >&2
+        cat "$manifest" >&2
         exit 1
     fi
     if [[ ! -f "$ROOT_DIR/$source_rel" ]]; then
-        echo "[self-host-completeness] missing codegen source from TestHarness: $source_rel" >&2
+        echo "[self-host-completeness] missing $label source from TestHarness: $source_rel" >&2
         exit 1
     fi
     printf '%s\n' "$ROOT_DIR/$source_rel"
+}
+
+lexer_tool_source_path() {
+    tool_source_path_from_manifest lexer "$LEXER_PATH_MANIFEST"
+}
+
+parser_tool_source_path() {
+    tool_source_path_from_manifest parser "$PARSER_PATH_MANIFEST"
+}
+
+semantic_tool_source_path() {
+    tool_source_path_from_manifest semantic "$SEMANTIC_PATH_MANIFEST"
+}
+
+codegen_tool_source_path() {
+    tool_source_path_from_manifest codegen "$CODEGEN_PATH_MANIFEST"
 }
 
 compile_tool() {
     local label="$1"
     local source="$2"
     local build_subdir="$3"
-    local copy_dir="$4"
     local bin="$BUILD_DIR/$build_subdir/main.exe"
     local log="$BUILD_DIR/$build_subdir/compile.log"
 
     mkdir -p "$BUILD_DIR/$build_subdir"
-    if [[ -n "$copy_dir" ]]; then
-        cp "$ROOT_DIR/$copy_dir/"*.pgy "$BUILD_DIR/$build_subdir/"
-    fi
 
     if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$source")" \
         --backend=c -o "$(pgy_path_for_compiler "$PGY" "$bin")" >"$log" 2>&1); then
@@ -181,39 +201,28 @@ compile_tool() {
     printf '%s\n' "$bin"
 }
 
-copy_lib() {
-    local build_subdir="$1"
-    mkdir -p "$ROOT_DIR/.tmp/self_hosted/lib"
-    cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$ROOT_DIR/.tmp/self_hosted/lib/"
-    mkdir -p "$BUILD_DIR/$build_subdir/../lib"
-    cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$BUILD_DIR/$build_subdir/../lib/" 2>/dev/null || true
-}
-
 LEXER_BIN=""
 PARSER_BIN=""
 SEMANTIC_BIN=""
 CODEGEN_BIN=""
 
 if stage_selected lexer; then
-    LEXER_BIN="$(compile_tool lexer "$BUILD_DIR/lexer/main.pgy" lexer "src/self_hosted/lexer")"
+    LEXER_BIN="$(compile_tool lexer "$(lexer_tool_source_path)" lexer)"
 fi
 if stage_selected parser; then
-    copy_lib parser
-    PARSER_BIN="$(compile_tool parser "$BUILD_DIR/parser/main.pgy" parser "src/self_hosted/parser")"
+    PARSER_BIN="$(compile_tool parser "$(parser_tool_source_path)" parser)"
 fi
 if stage_selected semantic; then
-    copy_lib semantic
-    SEMANTIC_BIN="$(compile_tool semantic "$BUILD_DIR/semantic/main.pgy" semantic "src/self_hosted/semantic")"
+    SEMANTIC_BIN="$(compile_tool semantic "$(semantic_tool_source_path)" semantic)"
 fi
 if stage_selected codegen; then
     # Codegen completeness consumes AST text emitted by the self-host parser.
     # `pgy --ast` remains a separate oracle/parity target, not this stage's
     # producer.
     if [[ -z "$PARSER_BIN" ]]; then
-        copy_lib parser
-        PARSER_BIN="$(compile_tool parser "$BUILD_DIR/parser/main.pgy" parser "src/self_hosted/parser")"
+        PARSER_BIN="$(compile_tool parser "$(parser_tool_source_path)" parser)"
     fi
-    CODEGEN_BIN="$(compile_tool codegen "$(codegen_tool_source_path)" codegen "")"
+    CODEGEN_BIN="$(compile_tool codegen "$(codegen_tool_source_path)" codegen)"
 fi
 
 run_source_check() {

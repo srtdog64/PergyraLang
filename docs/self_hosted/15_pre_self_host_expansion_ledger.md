@@ -191,6 +191,12 @@ tool source through `codegen-parity-paths` before running the codegen stage.
 The completeness owner still owns source, stage, and baseline rows; the runner
 no longer owns the concrete `src/self_hosted/codegen/main.pgy` source identity.
 
+TestHarness delta, 2026-07-06: `completeness_ledger.sh` now also consumes the
+lexer, parser, and semantic tool sources through `lexer-parity-paths`,
+`parser-parity-paths`, and `semantic-parity-paths` before compiling stage
+tools. It no longer copies lexer/parser/semantic source trees or the shared
+self-hosted `lib` tree into its build directory before invoking the compiler.
+
 TestHarness delta, 2026-07-06: the LSP parity runners now consume LSP tool,
 fixture, and expected-output paths from `test_harness_lsp_paths_owner.pgy`
 through `test_harness_manifest.pgy`. Shell still executes the C/LLVM parity
