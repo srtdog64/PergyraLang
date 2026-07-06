@@ -616,6 +616,7 @@ require_text "tests/self_hosted/parity/semantic_parity.sh" "pgy_selfhost_compile
 require_text "tests/self_hosted/parity/semantic_parity.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/semantic_parity.sh" '"semantic-parity-paths"'
 require_text "tests/self_hosted/parity/semantic_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/semantic_parity.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 require_text "tests/self_hosted/parity/semantic_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[1]}"'
 require_text "tests/self_hosted/parity/semantic_parity.sh" 'FIXTURE_DIR="$ROOT_DIR/${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/semantic_parity.sh" 'EXPECTED_DIR="$ROOT_DIR/${harness_paths[3]}"'
@@ -634,6 +635,10 @@ reject_text "tests/self_hosted/parity/semantic_parity.sh" '"src/self_hosted/sema
 reject_text "tests/self_hosted/parity/semantic_parity.sh" '"valid_int_return:ok"'
 reject_text "tests/self_hosted/parity/semantic_parity.sh" '"bad_logical_right:error"'
 reject_text "tests/self_hosted/parity/semantic_parity.sh" "diff <("
+reject_text "tests/self_hosted/parity/semantic_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
+reject_text "tests/self_hosted/parity/semantic_parity.sh" 'cp "$SEMANTIC_SOURCE_DIR/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"'
+reject_text "tests/self_hosted/parity/semantic_parity.sh" 'LIB_BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/lib"'
+reject_text "tests/self_hosted/parity/semantic_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"'
 require_owner_surface codegen \
     "input/ast_input_owner.pgy" \
     "input/ast_text_inventory_owner.pgy" \

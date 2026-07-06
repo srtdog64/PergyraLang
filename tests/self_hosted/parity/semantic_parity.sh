@@ -48,12 +48,12 @@ semantic_compiler_path() {
 }
 
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/semantic}"
-PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 ARTIFACT_COMPARE_BUILD_DIR="$PERGYRA_TOOL_BUILD_DIR/artifact_owner"
 HARNESS_PATHS_FILE="$PERGYRA_TOOL_BUILD_DIR/semantic_harness_paths.txt"
 SEMANTIC_FIXTURE_MANIFEST_FILE="$PERGYRA_TOOL_BUILD_DIR/semantic_fixture_manifest.txt"
 SEMANTIC_COMPARATOR_BIN=""
 PERGYRA_TOOL_SOURCE=""
+PERGYRA_TOOL_ARG=""
 COMPARATOR_SOURCE=""
 FIXTURE_DIR=""
 FIXTURE_DIR_REL=""
@@ -236,6 +236,7 @@ if [[ "${#harness_paths[@]}" -ne 7 ]]; then
 fi
 
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
+PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
 COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[1]}"
 FIXTURE_DIR="$ROOT_DIR/${harness_paths[2]}"
 FIXTURE_DIR_REL="${harness_paths[2]}"
@@ -257,10 +258,6 @@ for dir in "$FIXTURE_DIR" "$EXPECTED_DIR" "$SEMANTIC_SOURCE_DIR"; do
     fi
 done
 
-cp "$SEMANTIC_SOURCE_DIR/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"
-LIB_BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/lib"
-mkdir -p "$LIB_BUILD_DIR"
-cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
 pgy_selfhost_compile_backend_output_comparator \
     "self-host-parity:semantic" "$ARTIFACT_COMPARE_BUILD_DIR" "$COMPARATOR_SOURCE"
 SEMANTIC_COMPARATOR_BIN="$(pgy_selfhost_backend_output_comparator_bin "$ARTIFACT_COMPARE_BUILD_DIR")"
@@ -317,7 +314,7 @@ compile_semantic_backend() {
 
     echo "[self-host-parity:semantic] compiling semantic backend=$backend..."
     (cd "$ROOT_DIR" && "$PGY" \
-        "$(semantic_compiler_path "$PERGYRA_TOOL")" \
+        "$PERGYRA_TOOL_ARG" \
         --backend="$backend" \
         -o "$(semantic_compiler_path "$tool_bin")" >/dev/null)
 }
