@@ -5,7 +5,8 @@
 cross-summary invariant: the number of `"id":` fields across the
 `intents` / `boundaries` / `evidence` arrays must equal
 `intent_count + boundary_count + evidence_count` from the `summary` block the
-compiler emits. The summary counts are the C-owned oracle.
+compiler emits. The clean-output oracle is the TestHarness-projected
+`expected/clean.json`.
 
 ## Intent
 
@@ -24,8 +25,8 @@ the smallest real consistency check that only the live dump can exercise.
   compiler by the air-graph-json-validator parity rung. This tool reuses that
   drift-guarded fixture rather than maintaining its own copy.
 
-The path is fixed relative to repository root; no CLI argument surface yet.
-Summary counts are read through
+The parity runner passes the fixture path through `Args()[0]`; the default path
+is retained only for local manual execution. Summary counts are read through
 `air_graph_json_validator/scan_owner.pgy::AirGraphSummaryIntField`; this tool
 does not own a second JSON summary-number scanner. Node id fields are read
 through `AirGraphScalarFieldValues`, so this tool also does not own a second
@@ -58,16 +59,15 @@ Exit code: `0` on `ok:true`, `1` on `ok:false`.
 
 ## Oracle
 
-The shell ground truth is `grep -oE '"id":' | wc -l` for the id count and the
-sum of `intent_count + boundary_count + evidence_count` from the same dump. The
-Pergyra origin must report the same `ids` and `declared` values while consuming
-summary counts from the shared AIR graph scan owner.
+The clean-output oracle is the TestHarness-projected `expected/clean.json`,
+compared through `backend_output_comparator`. Shell does not recompute `"id":`
+or summary counts for the clean fixture. It remains only the process runner and
+negative-fixture mutator.
 
 The parity rung asserts:
 
 - Pergyra origin exits `0` on the live dump and emits JSON byte-matching
   `expected/clean.json`.
-- `counts.ids` and `counts.declared` equal the shell ground truth.
 - A corrupted dump (a summary count altered) yields `rc=1`, `ok:false`, and a
   `node_count_mismatch` finding.
 - The C-compiled and LLVM-compiled Pergyra tool produce byte-identical output.

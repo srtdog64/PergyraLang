@@ -25,6 +25,16 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - AIR node-count clean oracle uses expected artifact only
+
+- Removed the redundant shell `grep -oE` / `wc` / `awk` clean-count oracle from
+  `air_graph_node_count_integrity_parity.sh`.
+- Clean `ids`, `declared`, `intents`, `boundaries`, and `evidence` counts now
+  have one source of truth: the TestHarness-projected `expected/clean.json`
+  compared through `backend_output_comparator`.
+- Kept the corrupted-summary negative fixture as the live behavioral check and
+  tightened the component ratchet so the shell count oracle cannot reappear.
+
 ## 2026-07-06 - Module manifest clean oracle uses expected artifact only
 
 - Removed the redundant shell `grep -c` clean-count oracle from

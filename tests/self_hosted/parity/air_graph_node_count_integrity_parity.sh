@@ -4,9 +4,11 @@
 # Pergyra is the origin
 # (src/self_hosted/tools/air_graph_node_count_integrity/main.pgy).
 # This is the first AIR consumer on the live `pgy --air-json` dump (reused from
-# the drift-guarded validator fixture). Shell grep is the parity backend.
-# Asserts: clean exit, JSON byte-equal vs expected/clean.json, ids/declared
-# parity vs shell grep, and a corrupted-summary fixture (rc=1).
+# the drift-guarded validator fixture). The clean oracle is the
+# TestHarness-projected expected artifact; shell only runs the process and
+# mutates the negative fixture.
+# Asserts: clean exit, JSON byte-equal vs expected/clean.json, and a
+# corrupted-summary fixture (rc=1).
 
 set -euo pipefail
 
@@ -99,21 +101,6 @@ pgy_selfhost_compare_expected_text_artifact_with_owner \
     "$PERGYRA_JSON" \
     "air_json"
 
-# Shell ground truth: id count vs sum of declared counts on the live dump.
-SHELL_IDS="$(grep -oE '"id":' "$FIXTURE_FILE" | wc -l | tr -d '[:space:]')"
-SHELL_DECLARED="$(grep -oE '"(intent|boundary|evidence)_count":[0-9]+' "$FIXTURE_FILE" \
-    | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')"
-if ! grep -Fq "\"ids\":${SHELL_IDS}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:air-node-count] counts.ids parity FAIL (shell=${SHELL_IDS})" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "\"declared\":${SHELL_DECLARED}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:air-node-count] counts.declared parity FAIL (shell=${SHELL_DECLARED})" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-
 # Negative fixture: corrupt a summary count so id_count != declared.
 NEG_FIXTURE_REL=".tmp/self_hosted/air_graph_node_count_integrity/negative/sample.json"
 NEG_FIXTURE_FILE="$ROOT_DIR/$NEG_FIXTURE_REL"
@@ -142,4 +129,4 @@ if ! grep -Fq '"kind":"node_count_mismatch"' <<<"$NEG_OUT"; then
 fi
 
 assert_llvm_leg "self-host-parity:air-node-count" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$FIXTURE_REL"
-echo "[self-host-parity:air-node-count] rung-1 parity ok (live dump ids=$SHELL_IDS==declared=$SHELL_DECLARED artifact-equal; corrupted fixture rc=1)"
+echo "[self-host-parity:air-node-count] rung-1 parity ok (expected-json clean; corrupted fixture rc=1)"
