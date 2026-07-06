@@ -81,9 +81,12 @@ entrypoints. `path_manifest_owner.pgy` owns the current string values for those
 paths and the stage-to-world binding rows that map each stage to its resource
 zone, actor, intent, and payload contract.
 `tests/self_hosted/compiler_world_manifest.sh` is the shell-side projection used
-by the gates. That gives future hard-substitution code a way to consume paths,
-compiler-world placement, and stage payload ownership as facts instead of
-rediscovering them with recursive scans or folder names.
+by the gates. The compiler-world contract compiles the Pergyra TestHarness
+manifest and compares its `compiler-world-paths` projection against that shell
+file, so the shell list is a checked projection rather than a second unchecked
+source of truth. That gives future hard-substitution code a way to consume
+paths, compiler-world placement, and stage payload ownership as facts instead
+of rediscovering them with recursive scans or folder names.
 
 `driver_rung0_owner.pgy` is the first in-process assembly owner for that rule.
 It composes the self-host parser's `ParseRootProgram` output with the

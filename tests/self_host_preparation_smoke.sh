@@ -493,7 +493,9 @@ require_text "src/self_hosted/semantic/program_check_owner.pgy" "func CheckProgr
 require_text "tests/self_hosted/parity/semantic_parity.sh" "Rung 2 parity"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "C compiler"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "PGY_SELFHOST_SEMANTIC_BACKENDS"
-require_text "tests/self_hosted/parity/semantic_parity.sh" "src/self_hosted/semantic/\"*.pgy"
+require_text "tests/self_hosted/parity/semantic_parity.sh" '"semantic-parity-paths"'
+require_text "tests/self_hosted/parity/semantic_parity.sh" 'SEMANTIC_SOURCE_DIR="$ROOT_DIR/${harness_paths[6]}"'
+forbid_text "tests/self_hosted/parity/semantic_parity.sh" 'cp "$SEMANTIC_SOURCE_DIR/"*.pgy "$PERGYRA_TOOL_BUILD_DIR/"'
 require_text "tests/self_hosted/parity/semantic_parity.sh" "raw semantic text leaked"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "JSON semantic output leaked"
 require_text "Makefile" 'SELFHOST_CODEGEN_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)'

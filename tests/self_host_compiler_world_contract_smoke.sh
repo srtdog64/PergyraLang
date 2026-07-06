@@ -332,11 +332,13 @@ for term in \
     "func CompilerDriverRung0ParityPath" \
     "func CompilerDriverRung1ParityPath" \
     "func CompilerOwnerManifestPath" \
+    "func CompilerWorldPathProjectionSuiteName" \
     "func CompilerStagePathManifestReady" \
     "func CompilerStagePathAt" \
     "func CompilerStageWorldBindingAt" \
     "func CompilerParityPathAt" \
-    "func CompilerWorldManifestPathAt"; do
+    "func CompilerWorldManifestPathAt" \
+    "func CompilerWorldProjectionPathAt"; do
     require_text "src/self_hosted/compiler/path_manifest_owner.pgy" "$term"
 done
 for term in \
@@ -359,6 +361,8 @@ for term in \
     "return CompilerOwnerManifestPath();" \
     "CompilerParityPathCount() != 8" \
     "CompilerWorldManifestPathCount() != 30" \
+    "CompilerWorldProjectionPathCount() != 33" \
+    "compiler-world-paths" \
     "CompilerStagePathManifestReady" \
     "if index < 17" \
     "CompilerStagePathAt(index - 12)" \
@@ -855,6 +859,35 @@ pgy_require_runnable_binary_here "self-host-compiler-world" "$pgy_bin" ||
 
 tmp_dir="$ROOT_DIR/.tmp/self_hosted/compiler_world"
 mkdir -p "$tmp_dir"
+shell_paths="$tmp_dir/compiler_world_paths.shell.txt"
+pgy_paths="$tmp_dir/compiler_world_paths.pgy.txt"
+manifest_bin="$tmp_dir/test_harness_manifest.exe"
+manifest_compile_log="$tmp_dir/test_harness_manifest.compile.log"
+manifest_out="$tmp_dir/test_harness_manifest.out"
+manifest_err="$tmp_dir/test_harness_manifest.err"
+
+{
+    printf '%s\n' "$PGY_SELFHOST_SOURCE_DIR"
+    printf '%s\n' "$PGY_SELFHOST_TEST_DIR"
+    printf '%s\n' "$PGY_SELFHOST_PARITY_DIR"
+    printf '%s\n' "${PGY_SELFHOST_COMPILER_WORLD_MANIFEST_PATHS[@]}"
+} | sort -u >"$shell_paths"
+
+(cd "$ROOT_DIR" && "$pgy_bin" \
+    "$(pgy_path_for_compiler "$pgy_bin" "$ROOT_DIR/src/self_hosted/compiler/test_harness_manifest.pgy")" \
+    --backend=c \
+    -o "$(pgy_path_for_compiler "$pgy_bin" "$manifest_bin")") \
+    >"$manifest_compile_log" 2>&1 ||
+    { cat "$manifest_compile_log" >&2; fail "compiler world TestHarness manifest failed to build"; }
+
+(cd "$ROOT_DIR" && "$manifest_bin" "compiler-world-paths") \
+    >"$manifest_out" 2>"$manifest_err" ||
+    { cat "$manifest_out" "$manifest_err" >&2; fail "compiler world TestHarness path projection failed"; }
+
+tr -d '\r' <"$manifest_out" | sort -u >"$pgy_paths"
+cmp -s "$shell_paths" "$pgy_paths" ||
+    { diff -u "$shell_paths" "$pgy_paths" >&2 || true; fail "compiler world shell projection drifted from Pergyra path owner"; }
+
 ast_out="$tmp_dir/world.ast.txt"
 (cd "$ROOT_DIR" && "$pgy_bin" --ast \
     "$(pgy_path_for_compiler "$pgy_bin" "$ROOT_DIR/${PGY_SELFHOST_COMPILER_WORLD_PATH}")") >"$ast_out"

@@ -25,6 +25,19 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Compiler-world shell projection checked against Pergyra owner
+
+- Added a `compiler-world-paths` projection to `path_manifest_owner.pgy` and
+  exposed it through the Pergyra TestHarness manifest.
+- Tightened `self-host-compiler-world-contract-test-smoke` so the shell
+  `compiler_world_manifest.sh` projection is sorted and compared against the
+  Pergyra-owned projection before the compiler-world AST shape checks run.
+- Repointed the preparation smoke's semantic parity assertion from the old
+  copied-source glob to `semantic-parity-paths` plus the manifest-projected
+  semantic source directory.
+- Updated the compiler-world docs to state that shell path rows are a checked
+  projection, not an unchecked second source of truth.
+
 ## 2026-07-06 - Scratch cleanup target owns local artifact reset
 
 - Added `make clean-scratch` for local self-host/backend-compare scratch reset.

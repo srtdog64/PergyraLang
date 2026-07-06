@@ -27,7 +27,9 @@ compiler flow.
   test, parity, and stage entrypoint locations.
 - `path_manifest_owner.pgy` owns the current Pergyra string values for those
   paths; `tests/self_hosted/compiler_world_manifest.sh` is the shell projection
-  used by the gates.
+  used by the gates. The compiler-world contract compiles the Pergyra
+  TestHarness manifest, asks the path owner for `compiler-world-paths`, and
+  compares that set against the shell projection.
 - `IntakeSource`, `LexSource`, `ParseTokens`, `CheckProgramSemantics`,
   `LowerProgramFacts`, `PlanTargetProjection`, `EmitProgramArtifact`, and
   `ProveSelfHostedParity` are the derived stage intents.
@@ -130,7 +132,9 @@ owners that make the flow verifiable.
 `make self-host-compiler-world-contract-test-smoke` parses
 `src/self_hosted/compiler/world.pgy` with the current compiler and checks that
 the docs, owner manifest, and Makefile wiring still name `PgyCompilerWorld`.
-The same smoke is called by `make self-host-preparation-test-smoke`.
+It also executes the Pergyra path projection and fails if the shell manifest
+drifts from `path_manifest_owner.pgy`. The same smoke is called by
+`make self-host-preparation-test-smoke`.
 
 ## Growth Rule
 

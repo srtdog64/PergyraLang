@@ -84,6 +84,10 @@ func CompilerOwnerManifestPath() -> String {
     return "src/self_hosted/OWNERS.md";
 }
 
+func CompilerWorldPathProjectionSuiteName() -> String {
+    return "compiler-world-paths";
+}
+
 func CompilerStagePathCount() -> Int {
     return 5;
 }
@@ -197,10 +201,23 @@ func CompilerWorldManifestPathAt(index: Int) -> String {
     return "";
 }
 
+func CompilerWorldProjectionPathCount() -> Int {
+    return CompilerWorldManifestPathCount() + 3;
+}
+
+func CompilerWorldProjectionPathAt(index: Int) -> String {
+    if index == 0 { return SelfHostSourceDir(); }
+    if index == 1 { return SelfHostTestDir(); }
+    if index == 2 { return SelfHostParityDir(); }
+    return CompilerWorldManifestPathAt(index - 3);
+}
+
 func CompilerStagePathManifestReady() -> Bool with caps io_read {
     if CompilerStagePathCount() != 5 { return false; }
     if CompilerParityPathCount() != 8 { return false; }
     if CompilerWorldManifestPathCount() != 30 { return false; }
+    if CompilerWorldProjectionPathCount() != 33 { return false; }
+    if CompilerWorldPathProjectionSuiteName() == "" { return false; }
     if SelfHostSourceDir() == "" { return false; }
     if CompilerWorldPath() == "" { return false; }
     if CompilerStagePathAt(0) == "" { return false; }
@@ -211,5 +228,8 @@ func CompilerStagePathManifestReady() -> Bool with caps io_read {
     if CompilerParityPathAt(7) == "" { return false; }
     if CompilerWorldManifestPathAt(0) == "" { return false; }
     if CompilerWorldManifestPathAt(29) == "" { return false; }
+    if CompilerWorldProjectionPathAt(0) != SelfHostSourceDir() { return false; }
+    if CompilerWorldProjectionPathAt(2) != SelfHostParityDir() { return false; }
+    if CompilerWorldProjectionPathAt(32) != CompilerWorldManifestPathAt(29) { return false; }
     return true;
 }
