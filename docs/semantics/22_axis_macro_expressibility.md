@@ -105,10 +105,16 @@ Agda/F*/Idris 같은 의존-타입 호스트나 Racket 같은 매크로 호스�
 - (c→d) 따라서 오늘 기준 intent의 비표현성 논증은 **성립이 얇다**: 런타임
   레지스트리 라이브러리로 상당 부분 재현 가능하다는 반론을 현재는 못 꺾는다.
   솔직한 상태: intent가 primitive인 근거는 지금은 표현성이 아니라 (i) AIR
-  검증·관측 표면과 (ii) 향후 정적 충돌 분석의 자리라는 것. **보강 경로가 이미
-  설계돼 있다**: docs/167 B축(충돌그래프 정적 성분/채색 → ExecutionLaneFact
-  증거)이 착지하면 intent도 "정적 거절/정적 스케줄 사실"을 갖게 되어 이 논증이
-  1.1급으로 승격된다. 그 전까지 이 절은 **부분-미완으로 정직하게 남긴다**.
+  검증·관측 표면과 (ii) 향후 정적 충돌 분석의 자리라는 것.
+- **승격 설계 확정 (docs/173, 2026-07-05)**: 표면은 이미 전부 선언한다(헤더
+  참여자, step `using:/who:/where:`, `exclusive/priority/rollback`) — 얇은 건
+  어휘가 아니라 **강제**. INT-1(참여자 declared⊇used — capability 경로 이식)
+  + INT-2(보상 커버리지 — exhaustiveness형) + INT-3(step 의존 DAG) 전부
+  본문-전체 의무라 국소 매크로가 원리적으로 강제 불가 → INT-1만으로 ★★☆,
+  1+2+3으로 ★★★. 목표 정리 `checked_intent_guard_free`(IntentObligations.v —
+  정적 의무가 Coordination/CompensationCore 전제를 방출, 가드 소거 따름).
+  표면 분해(원자 쪼개기)는 기각 — match-exhaustiveness 선례 + BDI 번들
+  anchor(Cohen-Levesque). 재론 트리거는 docs/173 §4 반증 조건.
 
 ## 2. 요약 판정표
 
