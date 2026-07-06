@@ -2,7 +2,6 @@
 # Rung 2 parity for the production C size checker (2026-05-27).
 # Sister parity for tool 8. Asserts:
 #   - clean repo: rc=0, JSON byte-equal vs expected/clean.json
-#   - count parity vs shell `wc -l` ground truth
 #   - synthetic over-cap fixture (1001-line .c under src/runtime): rc=1,
 #     c_over_cap finding
 # See tests/self_hosted/parity/README.md.
@@ -88,39 +87,6 @@ if ! grep -Fq 'pgy.selfhost.production-c-size.v1' <<<"$PERGYRA_OUT"; then
     exit 1
 fi
 
-# Shell ground truth: same production C scope as test_inc_size_smoke.
-SHELL_C="$(cd "$ROOT_DIR" && find src -type f -name '*.c' \
-    ! -path 'src/tests/*' \
-    ! -name 'test_*.c' \
-    | wc -l | tr -d ' ')"
-SHELL_STATS="$(cd "$ROOT_DIR" && find src -type f -name '*.c' \
-    ! -path 'src/tests/*' \
-    ! -name 'test_*.c' \
-    -print0 \
-    | xargs -0 wc -l \
-    | awk '$2 != "total" {
-        if ($1 > max)
-            max = $1
-        if ($1 > 699)
-            violations++
-    }
-    END { printf "%d %d\n", violations, max }')"
-read -r SHELL_VIOLATIONS SHELL_MAX <<<"$SHELL_STATS"
-
-if ! grep -Fq "\"c_files\":${SHELL_C}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:production-c-size] c_files parity FAIL (shell=${SHELL_C})" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "\"violations\":${SHELL_VIOLATIONS}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:production-c-size] violations parity FAIL (shell=${SHELL_VIOLATIONS})" >&2
-    exit 1
-fi
-if ! grep -Fq "\"max_lines\":${SHELL_MAX}" <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:production-c-size] max_lines parity FAIL (shell=${SHELL_MAX})" >&2
-    exit 1
-fi
-
 PERGYRA_JSON="$(printf '%s\n' "$PERGYRA_OUT" \
     | grep -F 'pgy.selfhost.production-c-size.v1' \
     | tail -n 1)"
@@ -128,11 +94,10 @@ PERGYRA_JSON="${PERGYRA_JSON%$'\r'}"
 # Tolerance: replace `"max_lines":N` in both expected and actual with
 # `"max_lines":<NORM>` before comparing. The exact maximum line count
 # legitimately shifts every time a production .c file grows or shrinks
-# (a couple of bytes per dev cycle), and chasing it through the fixture
-# on every commit is dev-cost without invariant gain -- the cap_lines
-# check above plus the SHELL_MAX parity gate at the top still guarantee
-# the tracked semantic (max_lines <= cap_lines, and shell vs Pergyra
-# agree on whatever the current number is).
+# (a couple of bytes per dev cycle), and chasing it through the fixture on
+# every commit is dev-cost without invariant gain. The synthetic over-cap
+# fixture below proves the cap semantics without reimplementing the clean
+# count in shell.
 EXPECTED_JSON_NORM_FILE="$PERGYRA_TOOL_BUILD_DIR/expected.clean.normalized.json"
 PERGYRA_JSON_NORM="$(printf '%s' "$PERGYRA_JSON" \
     | sed -E 's/"max_lines":[0-9]+/"max_lines":<NORM>/')"
@@ -180,4 +145,4 @@ if ! grep -Fq 'pgy_runtime_synthetic_c_drift.c' <<<"$NEG_OUT"; then
 fi
 
 assert_llvm_leg "self-host-parity:production-c-size" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR"
-echo "[self-host-parity:production-c-size] rung-2 parity ok (c_files=$SHELL_C violations=$SHELL_VIOLATIONS max=$SHELL_MAX; over-cap fixture rc=1)"
+echo "[self-host-parity:production-c-size] rung-2 parity ok (expected-json clean; over-cap fixture rc=1)"

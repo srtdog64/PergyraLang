@@ -1,6 +1,6 @@
 # Production C Size Checker -- Intent / Contract
 
-**Status:** *rung-2 DirWalk-owned* (2026-06-15). Sister tool to the production
+**Status:** *rung-2 DirWalk-owned* (2026-07-06). Sister tool to the production
 header size checker, but covering production `.c` translation units against
 the 699-LOC hard cap. It enumerates `DirWalk("src")` and filters the same
 production `.c` scope as `tests/test_inc_size_smoke.sh`.
@@ -53,18 +53,24 @@ Exit code: `0` on `ok:true`, `1` on `ok:false`.
 
 ## Oracle
 
-The shell drift detector is `find + wc -l + awk` over the same production `.c`
-filter. The broader C-side cap is also enforced by
-`tests/test_inc_size_smoke.sh`; the Pergyra origin emits the structured
-verdict and the shell path is the auxiliary parity backend.
+The clean oracle is the committed expected JSON artifact
+`expected/clean.json`, compared through the shared ArtifactZone/TestHarness
+path. The broader C-side cap is still enforced separately by
+`tests/test_inc_size_smoke.sh`; this self-hosted parity rung must not recompute
+the clean production C counts in shell.
 
 The parity rung (`tests/self_hosted/parity/`) asserts:
 
 - The Pergyra origin exits `0` on the clean repo.
-- Emitted JSON byte-matches `expected/clean.json`.
-- `c_files / violations / max_lines` match shell ground truth.
+- Emitted JSON byte-matches `expected/clean.json` with `max_lines` normalized
+  to avoid fixture churn on ordinary line-count drift.
 - A synthetic over-cap fixture (1001-line generated `.c` under `src/runtime`)
   yields `rc=1` with a `"kind":"c_over_cap"` finding.
+- Both C and LLVM legs compile the same self-hosted checker.
+
+If clean inventory semantics drift, update the committed expected artifact or
+the self-hosted owner. Do not add a shell `find`/`wc` implementation as a
+second clean oracle.
 
 ## Why Now
 
