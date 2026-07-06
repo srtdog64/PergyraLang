@@ -47,6 +47,75 @@ Status: `design-blueprint` (구현 금지 — rung/게이트/정리 목표만 �
 
 ---
 
+## 0-b. fact-층 정련 (BDFL 2026-07-05) — "약한 게 아니라 두꺼운 이름이었다"
+
+§0의 "표면은 안 쪼갠다"에 BDFL이 결정적 층을 더했다: **표면은 유지하되,
+AIR/MIR/Coq에서 단일 `Intent` fact를 금지하고 subfact로 분해**하며, M1 주장을
+"intent 전체의 비표현성"이 아니라 "**방출된 subfact 중 어느 것의 비표현성**"
+으로 재단위화한다. 감사 판정: **옳다 — 그리고 새 발명이 아니라 기존 canon
+3개가 이미 가리키던 지점이다**:
+
+1. **ability/witness 선례** (표면 폴리모피즘=`ability`, 내부증명=`witness`,
+   IR 전용·표면 누출 금지): 표면 낱말 ≠ IR fact라는 2-평면 규율이 이미 언어에
+   있다. intent/{subfacts}는 그 규율의 두 번째 적용.
+2. **docs/42 §3 "Intent Is Not A Universal Owner"** (AxisOwnership.v로 기계화):
+   단일 Intent fact는 이 원칙을 fact-층에서 위반한다(coordination은 실행 축,
+   authority는 도메인 축 소유 질문). subfact 분해가 그 원칙의 **구현**이다 —
+   intent는 **cross-axis binder**, fact는 축별 single-owner 유지.
+3. **machine-neutral 반증 사이클의 교훈**: 두꺼운 fact는 게이트에 반증당했고
+   (payoff 0), per-operation granular fact(AIREffectSite 등)로 재건해 GREEN.
+   같은 교훈의 intent 적용.
+
+**canonical 문장 (영문, 정본)** — BDFL 초안에 한 단어 정밀화: Felleisen 상
+"macro"는 사용자-평면 전개라 sugar 판정을 부르므로, 전개 대상이 **검증 평면**
+임을 명시하는 *elaborates*로:
+
+```
+intent is not an atomic formal primitive.
+intent is a source-level binder that ELABORATES into coordination, authority,
+effect, boundary, compensation, and trace facts -- the elaboration target is
+the verification plane (AIR owner facts + verifier gates), not user code.
+Its legitimacy comes from the non-library-expressibility of those emitted
+facts, not from the word "intent" itself.
+```
+
+**subfact 버킷 판정 (M1의 새 단위)** — 8개를 전부 비표현이라 주장하지 않는다.
+정직한 2-버킷:
+
+| subfact | 버킷 | 근거 |
+|---|---|---|
+| IntentParticipantFact | **verifier** | INT-1 declared⊇used (capability 이식) |
+| IntentCoordinationFact | **verifier** | INT-3 dep DAG, CoordinationCore 전제 |
+| IntentBoundaryFact | **verifier** | AC-3/ZoneCrossingCore, 구문 경계 사실 |
+| IntentAuthorityFact | **verifier** | witness/guard 결합, authz 계보 |
+| IntentEffectFact | **verifier** | capability 축과 동일 규율 |
+| IntentCompensationFact | **verifier** | INT-2 커버리지, CompensationCore 전제 |
+| IntentPurposeFact | **library-가능** | 문자열 라벨 — 비표현성 주장 제외 |
+| IntentTraceFact | **library-가능** | last/history/trace = 런타임 레지스트리로 재현 가능(이번 세션에 그 코드를 직접 읽고 고쳤다 — F1) — 주장 제외 |
+
+library 버킷의 정당성은 비표현성이 아니라 **표준화 + spine 귀속**이다: 라이브러리도
+trace는 만들 수 있으나, 그 trace를 **검증된 fact들과 같은 identity(선언 등뼈)에
+컴파일러가 귀속**시키는 것은 못 한다 — binder의 환원 불가능한 마지막 기여는
+fact가 아니라 **귀속(attribution)**이다. (과대주장 금지: 이 귀속 논거는 trace를
+verifier 버킷으로 승격시키지 않는다.)
+
+**M1 재서술**: semantics/22의 intent ☆☆☆는 **주장 단위를 잘못 잡은 인공물**
+이었다 — "전체가 라이브러리로 못 내려간다"를 재려 했기 때문. fact-단위로 재면
+6개 verifier fact가 각자 INT-1~3 의무로 ★를 얻고, 2개 library fact는 애초에
+주장 밖이다. 축-수준 요약: **intent(binder)는 6개 verifier fact의 비표현성을
+상속한다.** INT rung들(§2)은 그대로 — 각 rung이 특정 subfact의 의무가 된다
+(INT-1→Participant, INT-2→Compensation, INT-3→Coordination, INT-4→Participant
+교차, INT-5 정리는 per-fact 전제라 오히려 깔끔해짐).
+
+**신규 rung — WO-INT-0 (fact family 명명·라우팅)**: 실측(2026-07-05) —
+AIR는 이미 monolith가 아니다(`AIRIntentNode`=step-단위: owner/step/sync/
+failure/budget; AIRBinding.v가 zone/effect/acquire/comp_target/dep 5-family로
+게이트 locality 증명 보유). 남은 일은 스키마 신축이 아니라 **위 8-family
+이름으로 기존 fact를 명명·라우팅하고, family별 owner를 AxisOwnership 규율에
+등록**하는 것. INT-1~3보다 선행돼야 각 의무가 자기 fact에 물린다.
+
+---
+
 ## 1. 현 상태 정밀 진단 (왜 ☆☆☆인가)
 
 - 런타임: subject-충돌 진입 거절(fingerprint), parent forest(F1 depth-bound),

@@ -115,6 +115,13 @@ Agda/F*/Idris 같은 의존-타입 호스트나 Racket 같은 매크로 호스�
   정적 의무가 Coordination/CompensationCore 전제를 방출, 가드 소거 따름).
   표면 분해(원자 쪼개기)는 기각 — match-exhaustiveness 선례 + BDI 번들
   anchor(Cohen-Levesque). 재론 트리거는 docs/173 §4 반증 조건.
+- **★단위 교정 (docs/173 §0-b, BDFL 2026-07-05)**: 이 절의 ☆☆☆는 주장 단위를
+  "intent 전체"로 잘못 잡은 인공물이다. intent는 원자 primitive가 아니라
+  **선언 등뼈(source-level binder)** — AIR/Coq에서 단일 Intent fact 금지,
+  8-subfact로 분해(6 verifier / 2 library-가능: Purpose·Trace). M1 주장은
+  fact-단위로 재서술: **binder는 6개 verifier fact의 비표현성을 상속**하고,
+  library 버킷은 애초에 주장 밖(정당성=표준화+spine 귀속). ability/witness
+  2-평면 규율 및 docs/42 §3 "Intent Is Not A Universal Owner"의 fact-층 구현.
 
 ## 2. 요약 판정표
 
@@ -125,7 +132,7 @@ Agda/F*/Idris 같은 의존-타입 호스트나 Racket 같은 매크로 호스�
 | lifecycle/vessel | 성립 | ★★☆ (+소거 관찰) |
 | zone/world | 성립 | ★★☆ (AC-3 거절 + 기계화 그림자) |
 | authority | 부분 | ★☆☆ (cap×zone 환원 반론 미해소) |
-| intent | 얇음 | ☆☆☆ (정적 의무 부족 — docs/167 B축이 보강 경로) |
+| intent | **단위 교정(docs/173 §0-b)**: binder — 6 verifier subfact의 비표현성 상속 | fact별: Participant/Coordination/Compensation 등 6개는 INT-1~3 착지 시 ★★☆+, Purpose/Trace는 library-가능(주장 제외) |
 
 이 표의 낮은 행들은 숨길 것이 아니라 **작업 지시**다: authority 고유 의무 지목,
 intent 정적 충돌 분석. 둘 다 기존 설계(AuthorityDelegationCore.v, docs/167)에
