@@ -1959,6 +1959,8 @@ require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func 
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryExpectedJsonPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryMissingTermFixturePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryMissingTermFixtureTerm"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryMissingFindingField"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryMissingFindingValue"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryPathAt"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryReady"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerSuiteName"
@@ -2649,7 +2651,9 @@ require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" '"run
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'MISSING_TERM_FIXTURE_PATH="${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'MISSING_TERM_FIXTURE_TERM="${harness_paths[3]}"'
-require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "TestHarness manifest expected 4 runtime-boundary rows"
+require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'MISSING_FINDING_FIELD="${harness_paths[4]}"'
+require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'MISSING_FINDING_VALUE="${harness_paths[5]}"'
+require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "TestHarness manifest expected 6 runtime-boundary rows"
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" '"$CLEAN_BIN" --terms'
 require_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" "TERMS_FILE="
@@ -2664,6 +2668,7 @@ reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'Porta
 reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'rel" == "src/self_hosted/runtime/README.md"'
 reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'strip_rel="${strip_pair%%|*}"'
 reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" 'strip_term="${strip_pair#*|}"'
+reject_text "tests/self_hosted/parity/runtime_boundary_checker_parity.sh" '"missing":1'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "let args: Array<String> = Args();"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "manifest_path = args[0];"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonArrayObjectFactCount(modules_facts)"

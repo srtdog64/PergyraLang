@@ -177,8 +177,16 @@ func CompilerHarnessRuntimeBoundaryMissingTermFixtureTerm() -> String {
     return "The native runtime kernel remains C";
 }
 
+func CompilerHarnessRuntimeBoundaryMissingFindingField() -> String {
+    return "missing";
+}
+
+func CompilerHarnessRuntimeBoundaryMissingFindingValue() -> String {
+    return "1";
+}
+
 func CompilerHarnessRuntimeBoundaryPathCount() -> Int {
-    return 4;
+    return 6;
 }
 
 func CompilerHarnessRuntimeBoundaryPathAt(index: Int) -> String {
@@ -186,11 +194,13 @@ func CompilerHarnessRuntimeBoundaryPathAt(index: Int) -> String {
     if index == 1 { return CompilerHarnessRuntimeBoundaryExpectedJsonPath(); }
     if index == 2 { return CompilerHarnessRuntimeBoundaryMissingTermFixturePath(); }
     if index == 3 { return CompilerHarnessRuntimeBoundaryMissingTermFixtureTerm(); }
+    if index == 4 { return CompilerHarnessRuntimeBoundaryMissingFindingField(); }
+    if index == 5 { return CompilerHarnessRuntimeBoundaryMissingFindingValue(); }
     return "";
 }
 
 func CompilerHarnessRuntimeBoundaryReady() -> Bool {
-    if CompilerHarnessRuntimeBoundaryPathCount() != 4 {
+    if CompilerHarnessRuntimeBoundaryPathCount() != 6 {
         return false;
     }
     let i: Int = 0;

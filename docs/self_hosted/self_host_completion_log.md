@@ -25,6 +25,16 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Runtime boundary missing finding consumes TestHarness owner
+
+- Extended `runtime-boundary-paths` with the missing-term finding field and
+  expected finding value.
+- Repointed `runtime_boundary_checker_parity.sh` so shell still strips the
+  TestHarness-owned runtime term, but the `"missing":1` expectation is projected
+  by `test_harness_tool_paths_owner.pgy`.
+- Tightened the component contract against reintroducing the hardcoded
+  `"missing":1` assertion in shell.
+
 ## 2026-07-06 - Stable subset missing finding consumes TestHarness owner
 
 - Extended `stable-subset-section-paths` with the missing-section finding field

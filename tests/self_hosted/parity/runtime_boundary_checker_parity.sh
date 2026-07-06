@@ -41,8 +41,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 4 ]]; then
-    echo "[self-host-parity:runtime-boundary] TestHarness manifest expected 4 runtime-boundary rows, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 6 ]]; then
+    echo "[self-host-parity:runtime-boundary] TestHarness manifest expected 6 runtime-boundary rows, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -50,6 +50,8 @@ PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
 MISSING_TERM_FIXTURE_PATH="${harness_paths[2]}"
 MISSING_TERM_FIXTURE_TERM="${harness_paths[3]}"
+MISSING_FINDING_FIELD="${harness_paths[4]}"
+MISSING_FINDING_VALUE="${harness_paths[5]}"
 
 if [[ ! -f "$PERGYRA_TOOL_SOURCE" ]]; then
     echo "[self-host-parity:runtime-boundary] missing Pergyra tool: $PERGYRA_TOOL_SOURCE" >&2
@@ -59,7 +61,7 @@ if [[ ! -f "$EXPECTED_JSON_FILE" ]]; then
     echo "[self-host-parity:runtime-boundary] missing expected JSON: $EXPECTED_JSON_FILE" >&2
     exit 1
 fi
-if [[ -z "$MISSING_TERM_FIXTURE_PATH" || -z "$MISSING_TERM_FIXTURE_TERM" ]]; then
+if [[ -z "$MISSING_TERM_FIXTURE_PATH" || -z "$MISSING_TERM_FIXTURE_TERM" || -z "$MISSING_FINDING_FIELD" || -z "$MISSING_FINDING_VALUE" ]]; then
     echo "[self-host-parity:runtime-boundary] missing negative fixture row from TestHarness manifest" >&2
     exit 1
 fi
@@ -175,8 +177,8 @@ if ! grep -Fq '"ok":false' <<<"$NEG_OUT"; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq '"missing":1' <<<"$NEG_OUT"; then
-    echo "[self-host-parity:runtime-boundary] missing-term fixture expected missing:1" >&2
+if ! grep -Fq "\"${MISSING_FINDING_FIELD}\":${MISSING_FINDING_VALUE}" <<<"$NEG_OUT"; then
+    echo "[self-host-parity:runtime-boundary] missing-term fixture expected ${MISSING_FINDING_FIELD}:${MISSING_FINDING_VALUE}" >&2
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
