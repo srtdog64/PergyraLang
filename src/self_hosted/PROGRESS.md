@@ -5,7 +5,7 @@ The number that matters is *how much of the C/LLVM compiler has been
 substituted by Pergyra-written equivalents* -- not how many peripheral
 audit tools exist.
 
-Last updated: 2026-07-06
+Last updated: 2026-07-07
 
 Evidence currency: this file is the canonical progress ledger, but individual
 green claims remain dated to the gate runs named in each section. Updating this
@@ -84,7 +84,11 @@ the `AstArena` fact through function and statement emission participants instead
 of letting recursive emitters rebuild it. Function/declaration emission also
 consumes typed arena atom/type-name/mode rows for signatures, role targets, enum
 names, and fields instead of reading `CodegenAstTextNode.name`, `type_name`, or
-`mode` directly. The rest of codegen,
+`mode` directly. Statement emission also consumes typed arena atom rows for
+single-payload statements (`Log`, value `Return`, `ArrayPop`, `Exit`, `While`,
+`If`, `Match`, match cases, and bare calls); compound statement payloads remain
+bridge-owned until their multi-field payloads have row-shaped typed arena facts.
+The rest of codegen,
 runtime and released/native compiler driver/LSP substitution are still 0%;
 the compiler driver now has DRV-0/DRV-1 artifact rungs, and LSP has LSP-0
 diagnostic payload, LSP-1 squiggle-policy projection, and LSP-2a..LSP-2i

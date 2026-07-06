@@ -4894,3 +4894,21 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-compiler-world-contract-test-smoke`, and
   `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
   7127 generated-C lines).
+
+### 2026-07-07 -- Statement single-payload reads consume typed arena atoms
+
+- Repointed statement emission for `Log`, value `Return`, `ArrayPop`, `Exit`,
+  `While`, `If`, `Match`, match cases, and bare-call statements so the payload
+  string is consumed from `CodegenAstArenaAtomOrDie(...)`.
+- Tightened `self_hosted_component_contract_smoke.sh` so those statement
+  payloads cannot return to `CodegenAstText*` payload accessors inside
+  `stmt_emit.pgy`.
+- Compound statement payloads (`Let`, `Assign`, `ArraySet`, `ArrayPush`, and
+  `For`) intentionally remain in `ast_text_statement_owner.pgy` until they have
+  row-shaped typed arena facts instead of several ad hoc payload strings.
+- The mixed AST-like tree blocker remains ACTIVE, but the single-atom statement
+  payload seam is no longer owned by statement emission.
+- Verified with `self-host-component-contract-test-smoke`,
+  `self-host-compiler-world-contract-test-smoke`, and
+  `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
+  7127 generated-C lines).
