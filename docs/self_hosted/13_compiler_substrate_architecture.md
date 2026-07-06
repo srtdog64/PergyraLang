@@ -204,7 +204,10 @@ flat node vocabulary and traversal idiom; it is not yet a claim that parser or
 codegen has replaced the transitional AST-text payload. The current codegen does
 consume typed arena indent/parent facts for program, function, and statement
 emission-depth traversal, so new depth decisions must be added to the arena
-projection owner rather than reading raw text-node indentation.
+projection owner rather than reading raw text-node indentation. `GenerateCUnit`
+builds that projection once and passes the `AstArena` fact into function and
+statement emission participants; downstream emitters must not rebuild the bridge
+projection locally.
 
 `src/self_hosted/compiler/path_manifest_owner.pgy` is the current path owner.
 It owns the Pergyra source/test/parity path values for `StagePathManifest` and

@@ -79,7 +79,9 @@ AST-text bridge's root/body/block/then
 structural marker checks now consume owner-owned `kind` facts rather than raw
 line-text equality, and program/function/statement emission-depth traversal now
 consumes typed arena indent/parent facts rather than raw `CodegenAstTextNode`
-indent rows. The rest of codegen,
+indent rows. `GenerateCUnit` builds that typed arena projection once and threads
+the `AstArena` fact through function and statement emission participants instead
+of letting recursive emitters rebuild it. The rest of codegen,
 runtime and released/native compiler driver/LSP substitution are still 0%;
 the compiler driver now has DRV-0/DRV-1 artifact rungs, and LSP has LSP-0
 diagnostic payload, LSP-1 squiggle-policy projection, and LSP-2a..LSP-2i
@@ -182,7 +184,7 @@ compiler fork. See `src/self_hosted/codegen/README.md`.
 **Self-hosting achieved for codegen (2026-06-17, strengthened 2026-07-02):**
 the codegen tool *self-hosts*. A Pergyra-built copy of the owner graph emits C
 that gcc-compiles and **reproduces its own source-compilation exactly** --
-`gen2 == gen3` byte-identical (last observed 7025 generated-C lines) -- and the
+`gen2 == gen3` byte-identical (last observed 7019 generated-C lines) -- and the
 Pergyra-built tool emits byte-identical C to the oracle-built tool on the sample
 fixtures. Breadth: the same codegen also compiles the lexer (587 lines) and parser (3338 lines); each codegen-built binary matches its oracle-built counterpart on a sample source -- three real self-host components self-built. Wider survey: the codegen compiles **all 22 of 22** committed self-host components/tools to valid C, each verified run-equivalent to the oracle-built binary on a sample -- the entire committed self-host toolchain (lexer, parser, semantic, codegen itself, + 18 audit tools) is self-built by the Pergyra-written codegen. This includes namespace-imported audit tools (`TextScan::` qualified calls, flattened to `NS_Func` -- import/namespace + DirWalk support added). The earlier 18/22 ceiling was a `pgy --ast` bug (for-each `for x in lines` rendered as `For: x in (null)..(null)`, dropping the collection); FIXED in src/parser/ast_print.c (emit the iterable) + the self-host parser, regenerated 5 parser fixtures, and added for-each lowering + bare-void-return + word-boundary builtin matching to the codegen. The latest hard gap was the typed AST arena fixture exposing that the self-host codegen only knew `Option<Int>` ABI/runtime facts. FIXED by adding `Option<String>` to compiler ABI rows, runtime ABI owner symbols, expression kind facts, and typed `Some`/`None` emission. Parser parity (188 manifest rows) stays byte-equal. The bootstrap gate verifies codegen self-hosts (gen2==gen3) + builds lexer + parser + semantic + mir_lower + 13 audit tools and the backend fuzz generator, all matching oracle-built. Gated by `parity/codegen_bootstrap.sh`
 (`make self-host-codegen-bootstrap-test-smoke`).

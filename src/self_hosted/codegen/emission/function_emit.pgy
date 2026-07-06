@@ -74,10 +74,9 @@ func FunctionCallProjectionRecord(inout names: Array<String>, inout targets: Arr
 
 // Emit one function definition starting at the `Function: <Name>` line at
 // cur[0]. `base_env` carries the global function return-type bindings.
-func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int,
+func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
                   inout cur: Array<Int>, f_indent: Int,
                   base_env: String, uses_args: Bool, owner_name: String) -> String {
-    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
     let name: String = CodegenAstTextFunctionName(nodes[cur[0]]);
     let c_name: String = CompilerSymbolCQualifiedName(owner_name, name);
     ArraySet(cur, 0, cur[0] + 1);
@@ -135,7 +134,7 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int,
     if is_main {
         body_ret = "Int";
     }
-    let body: String = EmitStmtList(nodes, count, stmt_indent, cur, "    ", env_box, body_ret, copyout);
+    let body: String = EmitStmtList(nodes, count, arena, stmt_indent, cur, "    ", env_box, body_ret, copyout);
 
     let signature: String = "";
     let body_full: String = Concat(prologue, Concat(body, copyout));
@@ -164,8 +163,7 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int,
 
 // Build the global environment: `|Name=f:RetType|...` for every function, by
 // pairing each `Function: Name` line with the next `Returns:` line.
-func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int) -> String {
-    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
+func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena) -> String {
     let env: String = "|";
     let i: Int = 0;
     let owner: String = "";
@@ -288,8 +286,7 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int) -> String {
     return env;
 }
 
-func CollectRoleOperators(nodes: Array<CodegenAstTextNode>, count: Int, inout env_box: Array<String>) -> String {
-    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
+func CollectRoleOperators(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena, inout env_box: Array<String>) -> String {
     let i: Int = 0;
     while i < count {
         if CodegenAstTextIsRoleDecl(nodes[i]) {
@@ -314,8 +311,7 @@ func CollectRoleOperators(nodes: Array<CodegenAstTextNode>, count: Int, inout en
 
 // Scan top-level nominal declarations into C typedefs, and append
 // `Name=s:struct|Name=fields:a,b|Name.field=field:Type|` entries to env_box[0].
-func CollectStructs(nodes: Array<CodegenAstTextNode>, count: Int, inout env_box: Array<String>) -> String {
-    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
+func CollectStructs(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena, inout env_box: Array<String>) -> String {
     let typedefs: String = "";
     let i: Int = 0;
     while i < count {
@@ -380,8 +376,7 @@ func CollectEnums(nodes: Array<CodegenAstTextNode>, count: Int, inout env_box: A
 // value with a shared element buffer: `ArraySet` mutations persist across calls
 // but `ArrayPush` growth does not -- so a callee cannot append to the caller's
 // `protos`. Emitting prototypes here makes forward references compile.)
-func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, struct_env: String) -> String {
-    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
+func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena, struct_env: String) -> String {
     let block: String = "";
     let i: Int = 0;
     let owner: String = "";

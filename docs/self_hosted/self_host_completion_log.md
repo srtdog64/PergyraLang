@@ -4857,3 +4857,20 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-compiler-world-contract-test-smoke`, and
   `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
   7025 generated-C lines).
+
+### 2026-07-07 -- Program-owned typed arena projection flows through emitters
+
+- Kept `GenerateCUnit(...)` as the single builder of the AST-text-to-typed-arena
+  projection and threaded the resulting `AstArena` fact through
+  `BuildFunctionEnv`, `CollectStructs`, `CollectRoleOperators`, `CollectProtos`,
+  `EmitFunction`, and recursive `EmitStmtList` calls.
+- Tightened `self_hosted_component_contract_smoke.sh` so function/statement
+  emitters must accept `arena: AstArena` and must not rebuild
+  `CodegenAstTextTypedArenaFromNodes(nodes, count)` locally.
+- This is a performance and SoT hygiene slice: the typed arena projection now
+  has one program-level owner in the codegen path, while payload semantics still
+  remain inside the transitional AST-text bridge.
+- Verified with `self-host-component-contract-test-smoke`,
+  `self-host-compiler-world-contract-test-smoke`, and
+  `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
+  7019 generated-C lines).

@@ -118,6 +118,13 @@ case scans read `CodegenAstArenaIndentOrDie(...)` or
 `CodegenAstTextNode.indent` reads. The blocker remains ACTIVE because payload
 semantics still come from the transitional AST-text bridge.
 
+TypedAst delta, 2026-07-07: `program_emit.pgy` is the single codegen owner that
+builds the AST-text-to-typed-arena projection for emission. Function and
+statement emitters receive `arena: AstArena` from that owner and are ratcheted
+against rebuilding `CodegenAstTextTypedArenaFromNodes(nodes, count)` locally.
+This keeps traversal facts single-projected even while the transitional
+AST-text payload bridge remains active.
+
 TestHarness delta, 2026-07-05: `test_harness_air_graph_paths_owner.pgy`
 now owns the five AIR graph consumer path suites separately from the generic
 tool-path owner. `air_graph_id_uniqueness_parity.sh`,

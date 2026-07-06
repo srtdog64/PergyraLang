@@ -68,10 +68,10 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
     if first_fn >= 0 {
         f_indent = CodegenAstArenaIndentOrDie(arena, first_fn);
     }
-    let env_acc: Array<String> = [BuildFunctionEnv(nodes, count)];
+    let env_acc: Array<String> = [BuildFunctionEnv(nodes, count, arena)];
     let enum_block: String = CollectEnums(nodes, count, env_acc);
-    let typedef_block: String = CollectStructs(nodes, count, env_acc);
-    CollectRoleOperators(nodes, count, env_acc);
+    let typedef_block: String = CollectStructs(nodes, count, arena, env_acc);
+    CollectRoleOperators(nodes, count, arena, env_acc);
     let base_env: String = env_acc[0];
     let usage: CodegenRuntimeUsageFacts = CodegenRuntimeUsageFactsFromNodes(nodes, count);
     let uses_args: Bool = usage.uses_args;
@@ -94,7 +94,7 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
             while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], owner_node) {
                 if CodegenAstTextIsFunction(nodes[cur[0]]) {
                     let method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
-                    let mdef: String = EmitFunction(nodes, count, cur, method_indent, base_env, uses_args, owner_name);
+                    let mdef: String = EmitFunction(nodes, count, arena, cur, method_indent, base_env, uses_args, owner_name);
                     defs = Concat(defs, Concat(mdef, "\n"));
                 } else {
                     ArraySet(cur, 0, cur[0] + 1);
@@ -107,14 +107,14 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
             while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], role_owner_node) {
                 if CodegenAstTextIsFunction(nodes[cur[0]]) {
                     let role_method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
-                    let role_mdef: String = EmitFunction(nodes, count, cur, role_method_indent, base_env, uses_args, role_owner_name);
+                    let role_mdef: String = EmitFunction(nodes, count, arena, cur, role_method_indent, base_env, uses_args, role_owner_name);
                     defs = Concat(defs, Concat(role_mdef, "\n"));
                 } else {
                     ArraySet(cur, 0, cur[0] + 1);
                 }
             }
         } else if CodegenAstTextIsFunction(nodes[cur[0]]) && cur_indent == f_indent {
-            let def: String = EmitFunction(nodes, count, cur, f_indent, base_env, uses_args, "");
+            let def: String = EmitFunction(nodes, count, arena, cur, f_indent, base_env, uses_args, "");
             defs = Concat(defs, Concat(def, "\n"));
         } else {
             ArraySet(cur, 0, cur[0] + 1);
@@ -122,7 +122,7 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
     }
 
     // Forward declarations come from a GenerateC-scope pre-pass.
-    let proto_block: String = CollectProtos(nodes, count, base_env);
+    let proto_block: String = CollectProtos(nodes, count, arena, base_env);
 
     // String programs need the runtime string helpers; bool programs need
     // <stdbool.h>; array programs need the growable-array structs + stdlib;

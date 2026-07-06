@@ -293,11 +293,10 @@ func EmitMatchCaseValue(pattern: String, subject_type: String, env: String) -> S
 // starting at line cur[0]. `pad` is the C indentation prefix. `env_box` carries
 // the mutable variable type environment; `cur_fn_ret` is the enclosing
 // function's return type. Recurses for `while` / `if` bodies. Advances cur[0].
-func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int,
+func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
                   stmt_indent: Int, inout cur: Array<Int>, pad: String,
                   inout env_box: Array<String>, cur_fn_ret: String,
                   active_defers: String) -> String {
-    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
     let result: String = "";
     let deferred: String = "";
     let inner_pad: String = Concat(pad, "    ");
@@ -353,7 +352,7 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int,
             ArraySet(cur, 0, idx + 1);
             CodegenAstTextExpectNode(nodes, count, cur, "Block:");
             let defer_env: Array<String> = [env_box[0]];
-            let body: String = EmitStmtList(nodes, count, stmt_indent + 4,
+            let body: String = EmitStmtList(nodes, count, arena, stmt_indent + 4,
                 cur, pad, defer_env, cur_fn_ret, Concat(deferred, active_defers));
             deferred = Concat(body, deferred);
         } else if CodegenAstTextIsArraySetStmt(nodes[idx]) {
@@ -453,14 +452,14 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int,
             }
             ArraySet(cur, 0, idx + 1);
             CodegenAstTextExpectNode(nodes, count, cur, "Block:");
-            result = Concat(result, EmitStmtList(nodes, count, stmt_indent + 4, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
+            result = Concat(result, EmitStmtList(nodes, count, arena, stmt_indent + 4, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
             result = Concat(result, Concat(pad, "}\n"));
         } else if CodegenAstTextIsWhileStmt(nodes[idx]) {
             let cond: String = WrapCond(CodegenAstTextWhileCondition(nodes[idx]), env_box[0]);
             result = Concat(result, Concat(pad, Concat("while ", Concat(cond, " {\n"))));
             ArraySet(cur, 0, idx + 1);
             CodegenAstTextExpectNode(nodes, count, cur, "Block:");
-            result = Concat(result, EmitStmtList(nodes, count, stmt_indent + 4, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
+            result = Concat(result, EmitStmtList(nodes, count, arena, stmt_indent + 4, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
             result = Concat(result, Concat(pad, "}\n"));
         } else if CodegenAstTextIsIfStmt(nodes[idx]) {
             let cond2: String = WrapCond(CodegenAstTextIfCondition(nodes[idx]), env_box[0]);
@@ -468,7 +467,7 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int,
             ArraySet(cur, 0, idx + 1);
             CodegenAstTextExpectNode(nodes, count, cur, "Then:");
             CodegenAstTextExpectNode(nodes, count, cur, "Block:");
-            result = Concat(result, EmitStmtList(nodes, count, stmt_indent + 6, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
+            result = Concat(result, EmitStmtList(nodes, count, arena, stmt_indent + 6, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
             if CodegenAstTextHasElseAt(nodes, count, cur[0], stmt_indent) {
                 ArraySet(cur, 0, cur[0] + 1);
                 if CodegenAstTextIsElseIfAt(nodes, count, cur[0]) {
@@ -476,11 +475,11 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int,
                     // (no `Block:`). Emit `} else ` and recurse on that If at its
                     // own indent; the nested if-chain closes itself.
                     result = Concat(result, Concat(pad, "} else "));
-                    result = Concat(result, EmitStmtList(nodes, count, CodegenAstArenaIndentOrDie(arena, cur[0]), cur, pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
+                    result = Concat(result, EmitStmtList(nodes, count, arena, CodegenAstArenaIndentOrDie(arena, cur[0]), cur, pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
                 } else {
                     result = Concat(result, Concat(pad, "} else {\n"));
                     CodegenAstTextExpectNode(nodes, count, cur, "Block:");
-                    result = Concat(result, EmitStmtList(nodes, count, stmt_indent + 6, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
+                    result = Concat(result, EmitStmtList(nodes, count, arena, stmt_indent + 6, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
                     result = Concat(result, Concat(pad, "}\n"));
                 }
             } else {
@@ -507,7 +506,7 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int,
                     ArraySet(cur, 0, cur[0] + 1);
                     CodegenAstTextExpectNode(nodes, count, cur, "Block:");
                     let case_env: Array<String> = [env_box[0]];
-                    result = Concat(result, EmitStmtList(nodes, count, stmt_indent + 6, cur, Concat(inner_pad, "    "), case_env, cur_fn_ret, Concat(deferred, active_defers)));
+                    result = Concat(result, EmitStmtList(nodes, count, arena, stmt_indent + 6, cur, Concat(inner_pad, "    "), case_env, cur_fn_ret, Concat(deferred, active_defers)));
                     match_case_count = match_case_count + 1;
                 } else if CodegenAstTextIsMatchDefaultStmt(nodes[cur[0]]) {
                     Die("match default is not supported in self-host codegen subset");
