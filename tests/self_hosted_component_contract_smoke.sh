@@ -1663,7 +1663,10 @@ for air_graph_parity in \
     reject_text "$air_graph_parity" '--run'
 done
 require_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" '"air-graph-id-uniqueness-paths"'
+require_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" "expected-json clean"
 require_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" 'DUP_FIXTURE_REL="${harness_paths[4]}"'
+reject_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" "SHELL_DUPS="
+reject_text "tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh" "grep -oE '\"id\":[^,}]*'"
 require_text "tests/self_hosted/parity/air_graph_node_count_integrity_parity.sh" '"air-graph-node-count-paths"'
 require_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" '"air-graph-reachability-paths"'
 require_text "tests/self_hosted/parity/air_graph_reachability_parity.sh" 'ORPHAN_FIXTURE_REL="${harness_paths[4]}"'

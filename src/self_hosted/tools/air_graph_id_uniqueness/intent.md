@@ -53,9 +53,10 @@ Exit code: `0` on `ok:true`, `1` on `ok:false`.
 
 ## Oracle
 
-The shell ground truth is `grep -oE '"id":[^,}]*'` over the same fixture, piped
-through `sort | uniq -d` to surface duplicates. The Pergyra origin must agree:
-zero duplicate lines on the clean fixture, exactly one on the dup fixture.
+The clean-output oracle is the TestHarness-projected `expected/clean.json`
+artifact compared through the shared backend output comparator. The duplicate
+fixture remains the explicit negative case: it repeats one id and must fail
+with a `duplicate_id` finding.
 
 The parity rung asserts:
 

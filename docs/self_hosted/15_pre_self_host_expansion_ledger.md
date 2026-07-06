@@ -91,6 +91,12 @@ compile and run their manifest-projected checker sources in place. They no
 longer create build-dir `main.pgy` aliases or copy `scan_owner.pgy` and the
 self-hosted `lib` tree beside those aliases before invoking the compiler.
 
+ArtifactZone delta, 2026-07-06: `air_graph_id_uniqueness_parity.sh` no longer
+recomputes the clean duplicate-id count with shell `grep`/`sort`/`uniq`.
+The clean output oracle is the TestHarness-projected `expected/clean.json`
+compared through `backend_output_comparator`; shell remains only the process
+runner and negative-fixture executor for the duplicate-id case.
+
 TestHarness delta, 2026-07-05: backend_output_comparator_parity.sh now consumes its source, expected JSON, and comparable artifact paths from TestHarness through the `backend-output-comparator-paths` manifest suite. Shell is still the comparator's own external text-equivalence oracle, but it no longer owns the comparator input path constants.
 
 TestHarness delta, 2026-07-06: `backend_output_comparator_parity.sh` now

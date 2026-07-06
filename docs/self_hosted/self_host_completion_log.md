@@ -35,6 +35,16 @@ rewrite history.
 - Updated the module manifest resolver intent contract and component ratchet so
   the shell count oracle cannot reappear in that runner.
 
+## 2026-07-06 - AIR id uniqueness clean oracle uses expected artifact only
+
+- Removed the redundant shell duplicate-id count oracle from
+  `air_graph_id_uniqueness_parity.sh`.
+- Clean id, distinct-id, and duplicate-id counts now have one source of truth:
+  the TestHarness-projected `expected/clean.json` compared through
+  `backend_output_comparator`.
+- Kept the duplicate-id negative fixture as the live behavioral check and
+  tightened the component ratchet so the shell duplicate count cannot reappear.
+
 ## 2026-07-06 - Doc-link clean oracle uses expected artifact only
 
 - Removed the redundant shell `grep -oE` / `wc -l` clean-count oracle from

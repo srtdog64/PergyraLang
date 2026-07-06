@@ -3,9 +3,9 @@
 #
 # Pergyra is the origin
 # (src/self_hosted/tools/air_graph_id_uniqueness/main.pgy).
-# Shell grep is the parity backend. Asserts: clean exit, JSON byte-equal vs
-# expected/clean.json, duplicate count parity vs shell grep on the fixture, and
-# a duplicate fixture (one repeated id, expect rc=1).
+# The TestHarness-projected expected artifact is the clean-output oracle.
+# Asserts: clean exit, JSON byte-equal vs expected/clean.json, and a duplicate
+# fixture (one repeated id, expect rc=1).
 
 set -euo pipefail
 
@@ -100,18 +100,6 @@ pgy_selfhost_compare_expected_text_artifact_with_owner \
     "$PERGYRA_JSON" \
     "air_json"
 
-# Shell ground truth: count duplicate id tokens on the clean fixture (expect 0).
-SHELL_DUPS="$(grep -oE '"id":[^,}]*' "$FIXTURE_FILE" | sort | uniq -d | wc -l | tr -d '[:space:]')"
-if [[ "$SHELL_DUPS" != "0" ]]; then
-    echo "[self-host-parity:air-id-uniqueness] shell ground truth expected 0 dup ids on clean fixture, got $SHELL_DUPS" >&2
-    exit 1
-fi
-if ! grep -Fq '"duplicates":0' <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:air-id-uniqueness] counts.duplicates parity FAIL (shell=0)" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-
 # Negative fixture: one repeated id, expect rc=1, ok:false.
 set +e
 NEG_OUT="$(cd "$ROOT_DIR" && "$CLEAN_BIN" "$DUP_FIXTURE_REL" 2>&1)"
@@ -134,4 +122,4 @@ if ! grep -Fq '"kind":"duplicate_id"' <<<"$NEG_OUT"; then
 fi
 
 assert_llvm_leg "self-host-parity:air-id-uniqueness" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$FIXTURE_REL"
-echo "[self-host-parity:air-id-uniqueness] rung-1 parity ok (clean dups=0 artifact-equal; dup fixture rc=1)"
+echo "[self-host-parity:air-id-uniqueness] rung-1 parity ok (expected-json clean; dup fixture rc=1)"
