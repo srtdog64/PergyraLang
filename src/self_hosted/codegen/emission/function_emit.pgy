@@ -182,20 +182,20 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAr
             owner = "";
             owner_indent = -1;
         }
-        if CodegenAstTextIsZeroArtifactDecl(nodes[i]) {
+        if CodegenAstArenaIsZeroArtifactDecl(arena, i) {
             skip_indent = indent;
             i = i + 1;
             continue;
         }
-        if CodegenAstTextIsNominalDecl(nodes[i]) {
+        if CodegenAstArenaIsNominalDecl(arena, i) {
             owner = CodegenAstArenaAtomOrDie(arena, i);
             owner_indent = indent;
         }
-        if CodegenAstTextIsRoleDecl(nodes[i]) {
+        if CodegenAstArenaIsRoleDecl(arena, i) {
             owner = CodegenAstArenaAtomOrDie(arena, i);
             owner_indent = indent;
         }
-        if CodegenAstTextIsFunction(nodes[i]) {
+        if CodegenAstArenaIsFunction(arena, i) {
             let fname: String = CodegenAstArenaAtomOrDie(arena, i);
             let cname: String = CompilerSymbolCQualifiedName("", fname);
             if StringLength(owner) > 0 && indent > owner_indent {
@@ -203,7 +203,7 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAr
             }
             let j: Int = i + 1;
             let rtype: String = "Void";
-            while j < count && !CodegenAstTextIsFunction(nodes[j]) {
+            while j < count && !CodegenAstArenaIsFunction(arena, j) {
                 if CodegenAstTextIsParameters(nodes[j]) {
                     j = j + 1;
                     let modes: String = "";
@@ -248,20 +248,20 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAr
             owner = "";
             owner_indent = -1;
         }
-        if CodegenAstTextIsZeroArtifactDecl(nodes[i]) {
+        if CodegenAstArenaIsZeroArtifactDecl(arena, i) {
             skip_indent = indent;
             i = i + 1;
             continue;
         }
-        if CodegenAstTextIsNominalDecl(nodes[i]) {
+        if CodegenAstArenaIsNominalDecl(arena, i) {
             owner = CodegenAstArenaAtomOrDie(arena, i);
             owner_indent = indent;
         }
-        if CodegenAstTextIsRoleDecl(nodes[i]) {
+        if CodegenAstArenaIsRoleDecl(arena, i) {
             owner = CodegenAstArenaAtomOrDie(arena, i);
             owner_indent = indent;
         }
-        if CodegenAstTextIsFunction(nodes[i]) {
+        if CodegenAstArenaIsFunction(arena, i) {
             let fname: String = CodegenAstArenaAtomOrDie(arena, i);
             let cname: String = CompilerSymbolCQualifiedName("", fname);
             if StringLength(owner) > 0 && indent > owner_indent {
@@ -289,12 +289,12 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAr
 func CollectRoleOperators(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena, inout env_box: Array<String>) -> String {
     let i: Int = 0;
     while i < count {
-        if CodegenAstTextIsRoleDecl(nodes[i]) {
+        if CodegenAstArenaIsRoleDecl(arena, i) {
             let role_name: String = CodegenAstArenaAtomOrDie(arena, i);
             let for_type: String = CodegenAstArenaTypeNameOrDie(arena, i);
             let j: Int = i + 1;
             while j < count && CodegenAstArenaIsDescendantOf(arena, j, i) {
-                if CodegenAstTextIsFunction(nodes[j]) {
+                if CodegenAstArenaIsFunction(arena, j) {
                     let mname: String = CodegenAstArenaAtomOrDie(arena, j);
                     if for_type == "Int" && mname == "Add" {
                         let c_name: String = CompilerSymbolCRoleOperatorName(role_name, "Add");
@@ -315,7 +315,7 @@ func CollectStructs(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAren
     let typedefs: String = "";
     let i: Int = 0;
     while i < count {
-        if CodegenAstTextIsNominalDecl(nodes[i]) {
+        if CodegenAstArenaIsNominalDecl(arena, i) {
             let sname: String = CodegenAstArenaAtomOrDie(arena, i);
             let s_indent: Int = CodegenAstArenaIndentOrDie(arena, i);
             let j: Int = i + 1;
@@ -350,7 +350,7 @@ func CollectEnums(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
     let block: String = "";
     let i: Int = 0;
     while i < count {
-        if CodegenAstTextIsEnumDecl(nodes[i]) {
+        if CodegenAstArenaIsEnumDecl(arena, i) {
             let ename: String = CodegenAstArenaAtomOrDie(arena, i);
             let variant_total: Int = CodegenAstArenaEnumVariantCount(arena, i);
             let value: Int = 0;
@@ -395,20 +395,20 @@ func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
             owner = "";
             owner_indent = -1;
         }
-        if CodegenAstTextIsZeroArtifactDecl(nodes[i]) {
+        if CodegenAstArenaIsZeroArtifactDecl(arena, i) {
             skip_indent = indent;
             i = i + 1;
             continue;
         }
-        if CodegenAstTextIsNominalDecl(nodes[i]) {
+        if CodegenAstArenaIsNominalDecl(arena, i) {
             owner = CodegenAstArenaAtomOrDie(arena, i);
             owner_indent = indent;
         }
-        if CodegenAstTextIsRoleDecl(nodes[i]) {
+        if CodegenAstArenaIsRoleDecl(arena, i) {
             owner = CodegenAstArenaAtomOrDie(arena, i);
             owner_indent = indent;
         }
-        if CodegenAstTextIsFunction(nodes[i]) {
+        if CodegenAstArenaIsFunction(arena, i) {
             let name: String = CodegenAstArenaAtomOrDie(arena, i);
             let c_name: String = CompilerSymbolCQualifiedName(owner, name);
             if c_name != "Main" {

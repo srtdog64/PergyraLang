@@ -5036,3 +5036,18 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-compiler-world-contract-test-smoke`, and
   `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
   7474 generated-C lines).
+
+### 2026-07-07 -- Declaration collectors consume typed arena kind predicates
+
+- Added a typed arena enum declaration predicate so all declaration collectors
+  can route through the same arena kind/atom owner.
+- Repointed `BuildFunctionEnv(...)`, `CollectRoleOperators(...)`,
+  `CollectStructs(...)`, `CollectEnums(...)`, and `CollectProtos(...)` so
+  function/role/nominal/enum/zero-artifact routing consumes `AstArena` facts
+  instead of `CodegenAstTextIs*` predicates over transitional text nodes.
+- Tightened `self_hosted_component_contract_smoke.sh` so those old declaration
+  predicates cannot return in `function_emit.pgy`.
+- Verified with `self-host-component-contract-test-smoke`,
+  `self-host-compiler-world-contract-test-smoke`, and
+  `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
+  7480 generated-C lines).

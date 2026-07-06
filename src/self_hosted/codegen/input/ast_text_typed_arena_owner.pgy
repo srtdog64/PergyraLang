@@ -232,6 +232,10 @@ func CodegenAstArenaIsNominalDecl(arena: AstArena, node_id: Int) -> Bool {
     return CodegenAstArenaKindIs(arena, node_id, 8);
 }
 
+func CodegenAstArenaIsEnumDecl(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 9);
+}
+
 func CodegenAstArenaIsEventDecl(arena: AstArena, node_id: Int) -> Bool {
     return CodegenAstArenaKindIs(arena, node_id, 10);
 }
