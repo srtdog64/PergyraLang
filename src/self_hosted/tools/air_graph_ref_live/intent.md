@@ -12,7 +12,8 @@ The fixture-shaped `air_graph_ref_integrity` checker proves generic edge
 endpoint checking over `"from"` / `"to"` pairs. The live AIR dump uses a
 different shape: dense per-array ids and back-reference fields. This checker
 closes that schema gap without writing a full JSON parser. It uses the
-compiler-owned summary counts as the bounds for valid references.
+compiler-owned summary counts as the bounds for valid references, then reports
+the clean verdict through the TestHarness-projected `expected/clean.json`.
 
 ## Input Contract
 
@@ -20,8 +21,9 @@ compiler-owned summary counts as the bounds for valid references.
   `src/self_hosted/tools/air_graph_json_validator/fixture/sample.json` -- the
   committed drift-guarded AIR graph fixture produced from `pgy --air-json`.
 
-The path is fixed relative to repository root; no CLI argument surface yet.
-`intent_count` and `boundary_count` are read through
+The parity runner passes the fixture path through `Args()[0]`; the default path
+is retained only for local manual execution. `intent_count` and
+`boundary_count` are read through
 `air_graph_json_validator/scan_owner.pgy::AirGraphSummaryIntField`; this tool
 only owns live-reference validation, not AIR graph summary-number extraction.
 `boundary` and `intent` reference tokens are read through
@@ -58,18 +60,15 @@ Exit code: `0` on `ok:true`, `1` on `ok:false`.
 
 ## Oracle
 
-The shell ground truth extracts `intent_count` and `boundary_count`, then scans
-`"intent":` and `"boundary":` references. A non-null reference is valid iff it
-is in `[0, count)`. The Pergyra origin must get the summary bounds from the
-shared AIR graph scan owner, report zero dangling references on the clean
-fixture, and detect a corrupted reference fixture.
+The clean-output oracle is the TestHarness-projected `expected/clean.json`,
+compared through `backend_output_comparator`. Shell does not recompute summary
+bounds or dangling-reference counts for the clean fixture. It remains only the
+process runner and negative-fixture mutator.
 
 The parity rung asserts:
 
 - Pergyra origin exits `0` on the live dump and emits JSON byte-matching
   `expected/clean.json`.
-- The clean fixture has zero dangling references according to both shell and
-  Pergyra.
 - A corrupted dump yields `rc=1`, `ok:false`, and a `dangling_reference`
   finding.
 - The C-compiled and LLVM-compiled Pergyra tool produce byte-identical output.

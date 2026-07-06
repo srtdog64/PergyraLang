@@ -35,6 +35,17 @@ rewrite history.
 - Kept the corrupted-summary negative fixture as the live behavioral check and
   tightened the component ratchet so the shell count oracle cannot reappear.
 
+## 2026-07-06 - AIR ref-live clean oracle uses expected artifact only
+
+- Removed the redundant shell live-reference count oracle from
+  `air_graph_ref_live_parity.sh`.
+- Clean boundary-reference, intent-reference, and total dangling counts now have
+  one source of truth: the TestHarness-projected `expected/clean.json` compared
+  through `backend_output_comparator`.
+- Kept the corrupted-reference negative fixture as the live behavioral check
+  and tightened the component ratchet so the shell dangling-count oracle cannot
+  reappear.
+
 ## 2026-07-06 - Module manifest clean oracle uses expected artifact only
 
 - Removed the redundant shell `grep -c` clean-count oracle from

@@ -1685,6 +1685,14 @@ require_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" 'DANGL
 reject_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" "SHELL_DANGLING="
 reject_text "tests/self_hosted/parity/air_graph_ref_integrity_parity.sh" "comm -23"
 require_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" '"air-graph-ref-live-paths"'
+require_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" "expected-json clean"
+reject_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" "SHELL_INTENTS="
+reject_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" "SHELL_BOUNDARIES="
+reject_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" "SHELL_BOUNDARY_DANGLING="
+reject_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" "SHELL_INTENT_DANGLING="
+reject_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" "SHELL_DANGLING="
+reject_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" "count_dangling_refs()"
+reject_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" "counts.dangling parity FAIL"
 require_make_target_recipe_line \
     "self-host-air-graph-consumer-parity-test-smoke" \
     'PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_json_validator_parity.sh'

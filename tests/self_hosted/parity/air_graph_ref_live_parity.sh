@@ -3,7 +3,9 @@
 #
 # Pergyra is the origin (src/self_hosted/tools/air_graph_ref_live/main.pgy).
 # It consumes the drift-guarded `pgy --air-json` fixture used by the AIR graph
-# validator and checks live-schema back-references against summary counts.
+# validator and checks live-schema back-references against summary counts. The
+# clean oracle is the TestHarness-projected expected artifact; shell only runs
+# the process and mutates the negative fixture.
 
 set -euo pipefail
 
@@ -60,22 +62,6 @@ for path in "$PERGYRA_TOOL_SOURCE" "$AIR_GRAPH_SCAN_OWNER" "$EXPECTED_JSON_FILE"
     fi
 done
 
-count_dangling_refs() {
-    local file="$1"
-    local field="$2"
-    local limit="$3"
-    grep -oE "\"${field}\":(null|-?[0-9]+)" "$file" \
-        | sed -E "s/\"${field}\"://" \
-        | awk -v limit="$limit" '
-            $0 != "null" {
-                n = $0 + 0
-                if (n < 0 || n >= limit)
-                    bad++
-            }
-            END { print bad + 0 }
-        '
-}
-
 PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"
 CLEAN_BIN="$PERGYRA_TOOL_BUILD_DIR/air_graph_ref_live_c.exe"
 CLEAN_COMPILE_LOG="$PERGYRA_TOOL_BUILD_DIR/air_graph_ref_live_c.compile.log"
@@ -111,21 +97,6 @@ pgy_selfhost_compare_expected_text_artifact_with_owner \
     "$PERGYRA_JSON" \
     "air_json"
 
-SHELL_INTENTS="$(grep -oE '"intent_count":[0-9]+' "$FIXTURE_FILE" | grep -oE '[0-9]+' | head -n 1)"
-SHELL_BOUNDARIES="$(grep -oE '"boundary_count":[0-9]+' "$FIXTURE_FILE" | grep -oE '[0-9]+' | head -n 1)"
-SHELL_BOUNDARY_DANGLING="$(count_dangling_refs "$FIXTURE_FILE" "boundary" "$SHELL_BOUNDARIES")"
-SHELL_INTENT_DANGLING="$(count_dangling_refs "$FIXTURE_FILE" "intent" "$SHELL_INTENTS")"
-SHELL_DANGLING=$((SHELL_BOUNDARY_DANGLING + SHELL_INTENT_DANGLING))
-if [[ "$SHELL_DANGLING" -ne 0 ]]; then
-    echo "[self-host-parity:air-ref-live] shell ground truth expected 0 dangling refs, got $SHELL_DANGLING" >&2
-    exit 1
-fi
-if ! grep -Fq '"dangling":0' <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:air-ref-live] counts.dangling parity FAIL (shell=0)" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-
 NEG_FIXTURE_REL=".tmp/self_hosted/air_graph_ref_live/negative/sample.json"
 NEG_FIXTURE_FILE="$ROOT_DIR/$NEG_FIXTURE_REL"
 mkdir -p "$(dirname "$NEG_FIXTURE_FILE")"
@@ -153,4 +124,4 @@ if ! grep -Fq '"kind":"dangling_reference"' <<<"$NEG_OUT"; then
 fi
 
 assert_llvm_leg "self-host-parity:air-ref-live" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$FIXTURE_REL"
-echo "[self-host-parity:air-ref-live] rung-1 parity ok (live refs dangling=0 artifact-equal; corrupted fixture rc=1)"
+echo "[self-host-parity:air-ref-live] rung-1 parity ok (expected-json clean; corrupted fixture rc=1)"
