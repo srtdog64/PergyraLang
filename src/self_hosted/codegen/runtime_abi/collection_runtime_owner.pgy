@@ -51,67 +51,75 @@ func CollectionRuntimeElementTypeFromKindCode(kind_code: Int) -> String {
     return "Int";
 }
 
-func CollectionRuntimeCNewFn(kind: String) -> String {
-    let checked: String = CollectionRuntimeRequireKind(kind, "array new");
-    if checked == "ArrayString" {
+func CollectionRuntimeKindCodeOrDie(kind_code: Int, context: String) -> Int {
+    if kind_code == 1 || kind_code == 2 || kind_code == 3 {
+        return kind_code;
+    }
+    Die(Concat(context, Concat(" requires collection kind code 1, 2, or 3, got: ", ToString(kind_code))));
+    return 0;
+}
+
+func CollectionRuntimeCNewFn(kind_code: Int) -> String {
+    let checked: Int = CollectionRuntimeKindCodeOrDie(kind_code, "array new");
+    if checked == 2 {
         return "pgy_as_new";
     }
-    if checked == "ArrayCodegenAstTextNode" {
+    if checked == 3 {
         return "pgy_CodegenAstTextNode_array_new";
     }
     return "pgy_ai_new";
 }
 
-func CollectionRuntimeCPushFn(kind: String) -> String {
-    let checked: String = CollectionRuntimeRequireKind(kind, "array push");
-    if checked == "ArrayString" {
+func CollectionRuntimeCPushFn(kind_code: Int) -> String {
+    let checked: Int = CollectionRuntimeKindCodeOrDie(kind_code, "array push");
+    if checked == 2 {
         return "pgy_as_push";
     }
-    if checked == "ArrayCodegenAstTextNode" {
+    if checked == 3 {
         return "pgy_CodegenAstTextNode_array_push";
     }
     return "pgy_ai_push";
 }
 
-func CollectionRuntimeCSetFn(kind: String) -> String {
-    let checked: String = CollectionRuntimeRequireKind(kind, "array set");
-    if checked == "ArrayString" {
+func CollectionRuntimeCSetFn(kind_code: Int) -> String {
+    let checked: Int = CollectionRuntimeKindCodeOrDie(kind_code, "array set");
+    if checked == 2 {
         return "pgy_as_set";
     }
-    if checked == "ArrayCodegenAstTextNode" {
+    if checked == 3 {
         return "pgy_CodegenAstTextNode_array_set";
     }
     return "pgy_ai_set";
 }
 
-func CollectionRuntimeCGetFn(kind: String) -> String {
-    let checked: String = CollectionRuntimeRequireKind(kind, "array get");
-    if checked == "ArrayString" {
+func CollectionRuntimeCGetFn(kind_code: Int) -> String {
+    let checked: Int = CollectionRuntimeKindCodeOrDie(kind_code, "array get");
+    if checked == 2 {
         return "pgy_as_get";
     }
-    if checked == "ArrayCodegenAstTextNode" {
+    if checked == 3 {
         return "pgy_CodegenAstTextNode_array_get";
     }
     return "pgy_ai_get";
 }
 
-func CollectionRuntimeCLenFn(kind: String) -> String {
-    let checked: String = CollectionRuntimeRequireKind(kind, "array length");
-    if checked == "ArrayString" {
+func CollectionRuntimeCLenFn(kind_code: Int) -> String {
+    let checked: Int = CollectionRuntimeKindCodeOrDie(kind_code, "array length");
+    if checked == 2 {
         return "pgy_as_len";
     }
-    if checked == "ArrayCodegenAstTextNode" {
+    if checked == 3 {
         return "pgy_CodegenAstTextNode_array_len";
     }
     return "pgy_ai_len";
 }
 
-func CollectionRuntimeCPopFn(kind: String) -> String {
-    let checked: String = CollectionRuntimeRequireKind(kind, "array pop");
-    if checked == "ArrayString" {
+func CollectionRuntimeCPopFn(kind_code: Int) -> String {
+    let checked: Int = CollectionRuntimeKindCodeOrDie(kind_code, "array pop");
+    if checked == 2 {
         return "pgy_as_pop";
     }
-    if checked == "ArrayCodegenAstTextNode" {
+    if checked == 3 {
         return "pgy_CodegenAstTextNode_array_pop";
     }
     return "pgy_ai_pop";

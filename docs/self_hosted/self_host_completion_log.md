@@ -5178,3 +5178,42 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   to the emission participant.
 - This keeps array-index assignment shape under the input owner while the
   expression payload itself remains string-backed.
+
+### 2026-07-07 -- Array literal element facts move behind input owner
+
+- Added `ast_text_array_literal_owner.pgy` for `Let` array initializer shape
+  and element access:
+  `CodegenAstArenaLetInitializerStartsArrayLiteral(...)`,
+  `CodegenAstArenaLetArrayLiteralElementCount(...)`, and
+  `CodegenAstArenaLetArrayLiteralElementAt(...)`.
+- Repointed `EmitLet(...)` so growable-array initialization consumes those
+  facts instead of locally validating `[`/`]` and splitting elements with
+  `FindTopLevelComma(rem)`.
+- Tightened the component contract so array literal parsing cannot return to
+  `stmt_emit.pgy`.
+- This keeps array literal row-shape ownership in the input layer;
+  element expressions are still string-backed until dedicated expression rows
+  replace the transitional bridge.
+
+### 2026-07-07 -- Runtime collection symbols consume kind-code facts
+
+- Repointed `CollectionRuntimeCNewFn`, `CollectionRuntimeCPushFn`,
+  `CollectionRuntimeCSetFn`, `CollectionRuntimeCGetFn`,
+  `CollectionRuntimeCLenFn`, and `CollectionRuntimeCPopFn` to consume
+  `kind_code: Int` instead of `kind: String`.
+- Emitters now normalize collection type/kind spelling at the owner boundary
+  and pass `CollectionRuntimeKindCode(...)` into helper-symbol selection.
+- Tightened `self_host_pergyra_likeness_smoke`: core text-to-text signatures
+  ratchet from 115 to 111 and result/option evidence ratchets from 591 to 678.
+- Tightened the sentinel metric from 8 to 3 after excluding generated C runtime
+  text in `program_emit.pgy`; the metric now counts self-host control-flow
+  sentinels rather than C ABI sentinel strings embedded in emitted code.
+
+### 2026-07-07 -- Self-host semantic constructor fields accept bare rows
+
+- Fixed `NominalConstructorParams(...)` so self-host semantic constructor
+  seeding accepts both `let field: Type;` and bare `field: Type;` nominal rows.
+- This closes the `AstArena(...)` selfcheck failure where imported typed arena
+  structs were seeded as 0-arity constructors despite having field rows.
+- Tightened the component contract so the old mandatory-`let` nominal field
+  scan cannot return.

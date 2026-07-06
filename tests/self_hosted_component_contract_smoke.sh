@@ -585,6 +585,8 @@ reject_text "src/self_hosted/semantic/main.pgy" 'import "diagnostic_code_owner.p
 require_text "src/self_hosted/semantic/program_check_owner.pgy" 'import "text_scan_owner.pgy";'
 require_text "src/self_hosted/semantic/program_check_owner.pgy" 'import "expr_type_owner.pgy";'
 require_text "src/self_hosted/semantic/program_check_owner.pgy" 'import "body_check_owner.pgy";'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" 'if MatchKeyword(content, i, "let")'
+reject_text "src/self_hosted/semantic/program_check_owner.pgy" 'if !MatchKeyword(content, i, "let")'
 require_text "src/self_hosted/semantic/body_check_owner.pgy" 'import "call_check_owner.pgy";'
 require_text "src/self_hosted/semantic/body_check_owner.pgy" 'import "expr_validation_owner.pgy";'
 require_text "src/self_hosted/semantic/body_check_owner.pgy" 'import "expr_type_owner.pgy";'
@@ -681,6 +683,7 @@ require_owner_surface codegen \
     "input/ast_text_inventory_owner.pgy" \
     "input/ast_text_typed_arena_owner.pgy" \
     "input/ast_text_row_fact_owner.pgy" \
+    "input/ast_text_array_literal_owner.pgy" \
     "input/ast_usage_owner.pgy" \
     "run/codegen_run_owner.pgy" \
     "text/text_owner.pgy" \
@@ -1211,6 +1214,15 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIs
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let name: String = CodegenAstArenaAtomOrDie(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let type_name: String = CodegenAstArenaTypeNameOrDie(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let expr: String = CodegenAstArenaValueOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" "func CodegenAstArenaLetInitializerStartsArrayLiteral"
+require_text "src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" "func CodegenAstArenaLetArrayLiteralElementCount"
+require_text "src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" "func CodegenAstArenaLetArrayLiteralElementAt"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/ast_text_array_literal_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaLetInitializerStartsArrayLiteral(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaLetArrayLiteralElementCount(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaLetArrayLiteralElementAt(arena, idx, element_index)"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "FindTopLevelComma(rem)"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenCharAt(ex"
 require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaLetInitializerHasTry"
 require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaLetTryInner"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaLetInitializerHasTry(arena, idx)"
@@ -1381,11 +1393,15 @@ reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'out = Concat(ou
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "func ModeCsvCount"
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "mode = CsvAt(modes"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "pgy_CodegenAstTextNode_array"
-require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCGetFn"
-require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCLenFn"
-require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCPushFn"
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCGetFn(kind_code: Int)"
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCLenFn(kind_code: Int)"
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCPushFn(kind_code: Int)"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeKindCode"
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeKindCodeOrDie(kind_code: Int"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeElementTypeFromKindCode"
+reject_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCGetFn(kind: String)"
+reject_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCLenFn(kind: String)"
+reject_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCPushFn(kind: String)"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCIntMapFn"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "Array<Int: Int>"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func ExprCollectionElementKind"

@@ -1,0 +1,83 @@
+// Self-host codegen AST-text array literal facts.
+//
+// This owner keeps transitional array literal shape and element splitting out of
+// emission participants while the codegen rung still consumes AST text payloads.
+
+import "ast_text_typed_arena_owner.pgy";
+
+func CodegenAstArenaLetInitializerStartsArrayLiteral(arena: AstArena, node_id: Int) -> Bool {
+    if !CodegenAstArenaIsLetStmt(arena, node_id) {
+        return false;
+    }
+    let value: Option<String> = TypedAstArenaValueText(arena, node_id);
+    if !IsSome(value) {
+        return false;
+    }
+    let expr: String = StringTrim(UnwrapOption(value));
+    return StringLength(expr) > 0 && CodegenCharAt(expr, 0) == "[";
+}
+
+func CodegenAstArenaLetArrayLiteralBodyOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaLetInitializerStartsArrayLiteral(arena, node_id) {
+        Die(Concat("expected array literal initializer at typed AST node: ", ToString(node_id)));
+    }
+    let expr: String = StringTrim(CodegenAstArenaValueOrDie(arena, node_id));
+    let n: Int = StringLength(expr);
+    if n < 2 || CodegenCharAt(expr, n - 1) != "]" {
+        Die(Concat("malformed array literal initializer at typed AST node: ", ToString(node_id)));
+    }
+    return StringTrim(Substring(expr, 1, n - 2));
+}
+
+func CodegenAstArenaArrayLiteralElementCount(body: String) -> Int {
+    let rem: String = StringTrim(body);
+    let count: Int = 0;
+    while StringLength(rem) > 0 {
+        let comma_opt: Option<Int> = FindTopLevelComma(rem);
+        let elem: String = "";
+        if !IsSome(comma_opt) {
+            elem = StringTrim(rem);
+            rem = "";
+        } else {
+            let comma: Int = UnwrapOption(comma_opt);
+            elem = StringTrim(Substring(rem, 0, comma));
+            rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
+        }
+        if StringLength(elem) > 0 {
+            count = count + 1;
+        }
+    }
+    return count;
+}
+
+func CodegenAstArenaArrayLiteralElementAt(body: String, index: Int) -> Option<String> {
+    let rem: String = StringTrim(body);
+    let pos: Int = 0;
+    while StringLength(rem) > 0 {
+        let comma_opt: Option<Int> = FindTopLevelComma(rem);
+        let elem: String = "";
+        if !IsSome(comma_opt) {
+            elem = StringTrim(rem);
+            rem = "";
+        } else {
+            let comma: Int = UnwrapOption(comma_opt);
+            elem = StringTrim(Substring(rem, 0, comma));
+            rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
+        }
+        if StringLength(elem) > 0 {
+            if pos == index {
+                return Some(elem);
+            }
+            pos = pos + 1;
+        }
+    }
+    return None;
+}
+
+func CodegenAstArenaLetArrayLiteralElementCount(arena: AstArena, node_id: Int) -> Int {
+    return CodegenAstArenaArrayLiteralElementCount(CodegenAstArenaLetArrayLiteralBodyOrDie(arena, node_id));
+}
+
+func CodegenAstArenaLetArrayLiteralElementAt(arena: AstArena, node_id: Int, index: Int) -> Option<String> {
+    return CodegenAstArenaArrayLiteralElementAt(CodegenAstArenaLetArrayLiteralBodyOrDie(arena, node_id), index);
+}

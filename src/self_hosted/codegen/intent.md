@@ -146,6 +146,8 @@ signature/header facts, and cursor expectation checks.
 `input/ast_text_typed_arena_owner.pgy` owns parent/indent/child projection into
 the typed `AstArena` and the `CodegenTypedAstBridgeReady` guard that consumes
 the typed AST arena payload contract before emission.
+`input/ast_text_array_literal_owner.pgy` owns transitional `Let` array literal
+shape and top-level element facts while expression payloads remain string-backed.
 Statement-row facts for `Let`, `Assign`, `Log`, `Return`, `Defer`, `ArrayPop`,
 `ArraySet`, `ArrayPush`, `Exit`, `Break`, `Continue`, `For`, `While`, `If`,
 `Else` routing, and bare call statements live in the row-fact owner plus typed

@@ -166,6 +166,9 @@ expectation diagnostics live
 there, not in emission participants. `input/ast_text_typed_arena_owner.pgy`
 owns the parent/indent/child projection into `AstArena` and the bridge readiness
 guard. This is a compatibility bridge, not the final typed/tagged AST owner.
+`input/ast_text_array_literal_owner.pgy` owns transitional `Let` array literal
+shape and top-level element facts so statement emission does not split array
+initializer text locally.
 Function signature and statement body emission now
 consume this typed node owner for function headers, parameters, return lines,
 body markers, and statement reads. Parameter mode spelling (`inout`, `own`,

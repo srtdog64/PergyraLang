@@ -56,11 +56,9 @@ func NominalConstructorParams(content: String, body_open: Int, body_close: Int, 
             i = i + 1;
             continue;
         }
-        if !MatchKeyword(content, i, "let") {
-            i = i + 1;
-            continue;
+        if MatchKeyword(content, i, "let") {
+            i = i + 3;
         }
-        i = i + 3;
         let field_name: String = ReadIdent(content, i, cursor);
         i = cursor[0];
         i = SkipWhitespaceAndComments(content, i);

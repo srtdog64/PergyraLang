@@ -5,6 +5,7 @@
 import "../text/text_owner.pgy";
 import "../text/expr_scan.pgy";
 import "../type_facts/type_env.pgy";
+import "../input/ast_text_array_literal_owner.pgy";
 import "../input/ast_text_typed_arena_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
@@ -50,37 +51,26 @@ func EmitLet(arena: AstArena, idx: Int, inout env_box: Array<String>) -> String 
         // `[a, b, c]` literal lowers to `new()` plus one `push` per element;
         // `[]` is just `new()`. `ArrayPush` later extends the same value.
         let array_kind: String = CollectionRuntimeKindFromTypeName(type_name);
+        let array_kind_code: Int = CollectionRuntimeKindCode(array_kind);
         let c_type: String = AbiLayoutCLocalType(type_name, env_box[0]);
-        let new_fn: String = CollectionRuntimeCNewFn(array_kind);
-        let push_fn: String = CollectionRuntimeCPushFn(array_kind);
-        let ex: String = StringTrim(expr);
-        let exn: Int = StringLength(ex);
+        let new_fn: String = CollectionRuntimeCNewFn(array_kind_code);
+        let push_fn: String = CollectionRuntimeCPushFn(array_kind_code);
         ArraySet(env_box, 0, Concat(env_box[0], Concat(name, Concat("=v:", Concat(array_kind, "|")))));
         // Non-literal initializer (e.g. `Args()` or an array-returning call):
         // bind the array value directly.
-        if exn < 1 || CodegenCharAt(ex, 0) != "[" {
-            return Concat(c_type, Concat(" ", Concat(name, Concat(" = ", Concat(RewriteExpr(ex, env_box[0]), ";")))));
-        }
-        if CodegenCharAt(ex, exn - 1) != "]" {
-            Die(Concat("malformed array literal initializer: ", expr));
+        if !CodegenAstArenaLetInitializerStartsArrayLiteral(arena, idx) {
+            return Concat(c_type, Concat(" ", Concat(name, Concat(" = ", Concat(RewriteExpr(expr, env_box[0]), ";")))));
         }
         let out: String = Concat(c_type, Concat(" ", Concat(name, Concat(" = ", Concat(new_fn, "();")))));
-        let rem: String = StringTrim(Substring(ex, 1, exn - 2));
-        while StringLength(rem) > 0 {
-            let comma_opt: Option<Int> = FindTopLevelComma(rem);
-            let elem: String = "";
-            if !IsSome(comma_opt) {
-                elem = StringTrim(rem);
-                rem = "";
-            } else {
-                let comma: Int = UnwrapOption(comma_opt);
-                elem = StringTrim(Substring(rem, 0, comma));
-                rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
-            }
-            if StringLength(elem) > 0 {
-                let ev: String = EmitCollectionElementValue(array_kind, elem, env_box[0], CollectionRuntimeKindCode(array_kind));
+        let element_count: Int = CodegenAstArenaLetArrayLiteralElementCount(arena, idx);
+        let element_index: Int = 0;
+        while element_index < element_count {
+            let elem_opt: Option<String> = CodegenAstArenaLetArrayLiteralElementAt(arena, idx, element_index);
+            if IsSome(elem_opt) {
+                let ev: String = EmitCollectionElementValue(array_kind, UnwrapOption(elem_opt), env_box[0], array_kind_code);
                 out = Concat(out, Concat(" ", Concat(push_fn, Concat("(&", Concat(name, Concat(", ", Concat(ev, ");")))))));
             }
+            element_index = element_index + 1;
         }
         return out;
     }
@@ -170,8 +160,9 @@ func EmitAssign(arena: AstArena, idx: Int, env_box: Array<String>) -> String {
         let arr_name: String = CodegenAstArenaAssignIndexReceiverOrDie(arena, idx);
         let idx_expr: String = CodegenAstArenaAssignIndexExprOrDie(arena, idx);
         let arr_kind: String = LookupKindType(env_box[0], arr_name, "v");
-        let set_fn: String = CollectionRuntimeCSetFn(arr_kind);
-        let rhs: String = EmitCollectionElementValue(arr_kind, expr, env_box[0], CollectionRuntimeKindCode(arr_kind));
+        let arr_kind_code: Int = CollectionRuntimeKindCode(arr_kind);
+        let set_fn: String = CollectionRuntimeCSetFn(arr_kind_code);
+        let rhs: String = EmitCollectionElementValue(arr_kind, expr, env_box[0], arr_kind_code);
         return Concat(set_fn, Concat("(&", Concat(arr_name, Concat(", ",
             Concat(IntEval(idx_expr, env_box[0]), Concat(", ", Concat(rhs, ");")))))));
     }
@@ -346,8 +337,9 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
             let a_idx: String = CodegenAstArenaValueOrDie(arena, idx);
             let a_val: String = CodegenAstArenaAuxValueOrDie(arena, idx);
             let a_kind: String = LookupKindType(env_box[0], a_arr, "v");
-            let set_fn: String = CollectionRuntimeCSetFn(a_kind);
-            let a_rhs: String = EmitCollectionElementValue(a_kind, a_val, env_box[0], CollectionRuntimeKindCode(a_kind));
+            let a_kind_code: Int = CollectionRuntimeKindCode(a_kind);
+            let set_fn: String = CollectionRuntimeCSetFn(a_kind_code);
+            let a_rhs: String = EmitCollectionElementValue(a_kind, a_val, env_box[0], a_kind_code);
             let set_stmt: String = Concat(set_fn, Concat("(&", Concat(a_arr, Concat(", ", Concat(IntEval(a_idx, env_box[0]), Concat(", ", Concat(a_rhs, ");")))))));
             result = Concat(result, Concat(pad, Concat(set_stmt, "\n")));
             ArraySet(cur, 0, idx + 1);
@@ -356,8 +348,9 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
             let p_arr: String = CodegenAstArenaAtomOrDie(arena, idx);
             let p_val: String = CodegenAstArenaValueOrDie(arena, idx);
             let p_kind: String = LookupKindType(env_box[0], p_arr, "v");
-            let push_fn: String = CollectionRuntimeCPushFn(p_kind);
-            let p_rhs: String = EmitCollectionElementValue(p_kind, p_val, env_box[0], CollectionRuntimeKindCode(p_kind));
+            let p_kind_code: Int = CollectionRuntimeKindCode(p_kind);
+            let push_fn: String = CollectionRuntimeCPushFn(p_kind_code);
+            let p_rhs: String = EmitCollectionElementValue(p_kind, p_val, env_box[0], p_kind_code);
             let push_stmt: String = Concat(push_fn, Concat("(&", Concat(p_arr, Concat(", ", Concat(p_rhs, ");")))));
             result = Concat(result, Concat(pad, Concat(push_stmt, "\n")));
             ArraySet(cur, 0, idx + 1);
@@ -365,7 +358,7 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
             // `ArrayPop(arr)` statement lowers through the collection pop helper owner.
             let q_arr: String = CodegenAstArenaAtomOrDie(arena, idx);
             let q_kind: String = LookupKindType(env_box[0], q_arr, "v");
-            let pop_fn: String = CollectionRuntimeCPopFn(q_kind);
+            let pop_fn: String = CollectionRuntimeCPopFn(CollectionRuntimeKindCode(q_kind));
             result = Concat(result, Concat(pad, Concat(pop_fn, Concat("(&", Concat(q_arr, ");\n")))));
             ArraySet(cur, 0, idx + 1);
         } else if CodegenAstArenaIsExitStmt(arena, idx) {
@@ -410,14 +403,14 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
                 if ck == "ArrayString" {
                     arr_c = AbiLayoutCLocalType("Array<String>", env_box[0]);
                     elem_c = AbiLayoutCLocalType("String", env_box[0]);
-                    get_fn = CollectionRuntimeCGetFn(ck);
-                    len_fn = CollectionRuntimeCLenFn(ck);
+                    get_fn = CollectionRuntimeCGetFn(CollectionRuntimeKindCode(ck));
+                    len_fn = CollectionRuntimeCLenFn(CollectionRuntimeKindCode(ck));
                     elem_kind = "String";
                 } else if ck == "ArrayInt" {
                     arr_c = AbiLayoutCLocalType("Array<Int>", env_box[0]);
                     elem_c = AbiLayoutCLocalType("Int", env_box[0]);
-                    get_fn = CollectionRuntimeCGetFn(ck);
-                    len_fn = CollectionRuntimeCLenFn(ck);
+                    get_fn = CollectionRuntimeCGetFn(CollectionRuntimeKindCode(ck));
+                    len_fn = CollectionRuntimeCLenFn(CollectionRuntimeKindCode(ck));
                     elem_kind = "Int";
                 } else {
                     Die(Concat("for-each requires Array<Int> or Array<String>, got: ", ck));
