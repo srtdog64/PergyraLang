@@ -262,6 +262,13 @@ manifest-projected checker sources in place. They no longer create build-dir
 `main.pgy` aliases or copy the self-hosted `lib` tree beside those aliases
 before invoking the compiler.
 
+ArtifactZone delta, 2026-07-06: `stdlib_dispatch_inventory_checker_parity.sh`
+now gets its synthetic count-drift expected JSON artifact from
+`test_harness_inventory_paths_owner.pgy` and compares the full negative verdict
+through `backend_output_comparator`. Shell still strips owner-selected LLVM
+dispatch rows to construct the fixture and checks `rc=1`, but no longer owns
+the `count_drift` finding-kind interpretation.
+
 TestHarness delta, 2026-07-06: `module_manifest_resolver_parity.sh` now also
 gets its missing-modules, nested-modules, and nested-field negative fixture JSON
 bodies plus their expected negative verdict JSON artifacts from
@@ -472,14 +479,13 @@ it no longer owns the semantic finding-kind string or negative verdict shape.
 This is a repository-authoring/LLM guard, not the Fortran-derived
 data-parallel language plane.
 
-TestHarness delta, 2026-07-06: `module_manifest_resolver_parity.sh`,
-`stdlib_dispatch_inventory_checker_parity.sh`,
-`production_c_size_checker_parity.sh`, and
-`production_header_size_checker_parity.sh` now consume their negative
-finding-kind expectations from TestHarness owner rows. Shell still constructs
-scratch fixtures, but the semantic labels (`missing_modules_key`,
-`field_count_mismatch`, `count_drift`, `c_over_cap`, `header_over_cap`) are no
-longer shell-owned.
+TestHarness delta, 2026-07-06: `module_manifest_resolver_parity.sh` now consumes
+negative JSON fixture bodies and expected verdict artifacts from TestHarness,
+`stdlib_dispatch_inventory_checker_parity.sh` now consumes its count-drift
+expected verdict artifact from TestHarness, and the production size checkers
+still consume their negative finding-kind expectations from TestHarness owner
+rows. Shell still constructs scratch fixtures, but the module-manifest and
+stdlib-dispatch negative verdict shapes are no longer shell-owned.
 
 TestHarness delta, 2026-07-05: `ast_read_surface_checker_parity.sh` now gets
 the checker source, expected clean JSON, and `tests/ast_read_surface_ratchet.txt`

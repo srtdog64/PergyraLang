@@ -2153,9 +2153,10 @@ require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "
 require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryLlvmDispatchPath"
 require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryDriftStripPattern"
 require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryDriftStripCount"
-require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryDriftFindingKind"
+require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryCountDriftExpectedJsonPath"
 require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryPathAt"
 require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryReady"
+require_file "src/self_hosted/tools/stdlib_dispatch_inventory_checker/expected/count_drift.json"
 require_text "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" "func CompilerHarnessProductionCSizeSuiteName"
 require_text "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" "func CompilerHarnessProductionCSizeToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" "func CompilerHarnessProductionCSizeExpectedJsonPath"
@@ -2669,10 +2670,11 @@ require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.
 require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'LLVM_DISPATCH="${harness_paths[4]}"'
 require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'DRIFT_STRIP_PATTERN="${harness_paths[5]}"'
 require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'DRIFT_STRIP_COUNT="${harness_paths[6]}"'
-require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'COUNT_DRIFT_FINDING_KIND="${harness_paths[7]}"'
+require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'EXPECTED_DRIFT_JSON_FILE="$ROOT_DIR/${harness_paths[7]}"'
 require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "TestHarness manifest expected 8 stdlib-dispatch rows"
 require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" '"$CLEAN_BIN"'
 require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "expected-json clean"
+require_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "pgy_selfhost_compare_expected_text_artifact_with_owner"
 reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy"'
 reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
 reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"'
@@ -2692,6 +2694,8 @@ reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.s
 reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" 'stripped<12'
 reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" '/"stdlib /'
 reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" '"kind":"count_drift"'
+reject_text "tests/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh" "COUNT_DRIFT_FINDING_KIND"
+reject_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "CompilerHarnessStdlibDispatchInventoryDriftFindingKind"
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" 'import "../../lib/json_fact_table.pgy";'
 require_text "src/self_hosted/tools/module_manifest_resolver/main.pgy" "JsonDocumentObjectFactTable(content)"

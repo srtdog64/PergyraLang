@@ -104,6 +104,17 @@ rewrite history.
   contract against reintroducing shell-owned `inventory_count_drift`
   interpretation.
 
+## 2026-07-06 - Stdlib dispatch drift verdict consumes artifact owner
+
+- Added a TestHarness-owned expected JSON artifact for the synthetic
+  stdlib-dispatch count-drift fixture.
+- Repointed `stdlib_dispatch_inventory_checker_parity.sh` so shell only
+  handles scratch LLVM row stripping and `rc=1`; the full count-drift verdict
+  is compared through `backend_output_comparator` as `run_output`.
+- Removed the stdlib-dispatch finding-kind row from
+  `test_harness_inventory_paths_owner.pgy`, and tightened the component
+  contract against reintroducing shell-owned `count_drift` interpretation.
+
 ## 2026-07-06 - TestHarness manifest source consumes path owner projection
 
 - Added `CompilerTestHarnessManifestPath()` to the compiler path manifest and

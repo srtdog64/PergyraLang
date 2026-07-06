@@ -148,8 +148,8 @@ func CompilerHarnessStdlibDispatchInventoryDriftStripCount() -> Int {
     return 12;
 }
 
-func CompilerHarnessStdlibDispatchInventoryDriftFindingKind() -> String {
-    return "count_drift";
+func CompilerHarnessStdlibDispatchInventoryCountDriftExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/stdlib_dispatch_inventory_checker/expected/count_drift.json";
 }
 
 func CompilerHarnessStdlibDispatchInventoryPathCount() -> Int {
@@ -164,7 +164,7 @@ func CompilerHarnessStdlibDispatchInventoryPathAt(index: Int) -> String {
     if index == 4 { return CompilerHarnessStdlibDispatchInventoryLlvmDispatchPath(); }
     if index == 5 { return CompilerHarnessStdlibDispatchInventoryDriftStripPattern(); }
     if index == 6 { return ToString(CompilerHarnessStdlibDispatchInventoryDriftStripCount()); }
-    if index == 7 { return CompilerHarnessStdlibDispatchInventoryDriftFindingKind(); }
+    if index == 7 { return CompilerHarnessStdlibDispatchInventoryCountDriftExpectedJsonPath(); }
     return "";
 }
 

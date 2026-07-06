@@ -5,8 +5,8 @@
 # (src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy).
 # Asserts:
 #   - clean repo: rc=0, JSON byte-equal vs expected/clean.json
-#   - synthetic drift fixture (delete one LLVM entry): rc=1, count_drift
-#     finding
+#   - synthetic drift fixture (delete LLVM entries): rc=1, JSON byte-equal vs
+#     expected/count_drift.json
 # See tests/self_hosted/parity/README.md.
 
 set -euo pipefail
@@ -58,15 +58,15 @@ C_UNARY_DISPATCH="${harness_paths[3]}"
 LLVM_DISPATCH="${harness_paths[4]}"
 DRIFT_STRIP_PATTERN="${harness_paths[5]}"
 DRIFT_STRIP_COUNT="${harness_paths[6]}"
-COUNT_DRIFT_FINDING_KIND="${harness_paths[7]}"
+EXPECTED_DRIFT_JSON_FILE="$ROOT_DIR/${harness_paths[7]}"
 
-for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$ROOT_DIR/$C_DISPATCH" "$ROOT_DIR/$C_UNARY_DISPATCH" "$ROOT_DIR/$LLVM_DISPATCH"; do
+for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$EXPECTED_DRIFT_JSON_FILE" "$ROOT_DIR/$C_DISPATCH" "$ROOT_DIR/$C_UNARY_DISPATCH" "$ROOT_DIR/$LLVM_DISPATCH"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:stdlib-dispatch-inventory] missing input: $path" >&2
         exit 1
     fi
 done
-if [[ -z "$DRIFT_STRIP_PATTERN" || ! "$DRIFT_STRIP_COUNT" =~ ^[0-9]+$ || -z "$COUNT_DRIFT_FINDING_KIND" ]]; then
+if [[ -z "$DRIFT_STRIP_PATTERN" || ! "$DRIFT_STRIP_COUNT" =~ ^[0-9]+$ ]]; then
     echo "[self-host-parity:stdlib-dispatch-inventory] invalid TestHarness drift fixture row" >&2
     exit 1
 fi
@@ -136,11 +136,16 @@ if [[ "$NEG_RC" -ne 1 ]]; then
     printf '%s\n' "$NEG_OUT" >&2
     exit 1
 fi
-if ! grep -Fq "\"kind\":\"${COUNT_DRIFT_FINDING_KIND}\"" <<<"$NEG_OUT"; then
-    echo "[self-host-parity:stdlib-dispatch-inventory] drift fixture expected ${COUNT_DRIFT_FINDING_KIND} finding" >&2
-    printf '%s\n' "$NEG_OUT" >&2
-    exit 1
-fi
+NEG_JSON="$(printf '%s\n' "$NEG_OUT" \
+    | tr -d '\r' \
+    | grep -F 'pgy.selfhost.stdlib-dispatch-inventory.v1' \
+    | tail -n 1)"
+pgy_selfhost_compare_expected_text_artifact_with_owner \
+    "self-host-parity:stdlib-dispatch-inventory" \
+    "$PERGYRA_TOOL_BUILD_DIR" \
+    "$EXPECTED_DRIFT_JSON_FILE" \
+    "$NEG_JSON" \
+    "run_output"
 
 assert_llvm_leg "self-host-parity:stdlib-dispatch-inventory" "$PERGYRA_TOOL_INPUT" "$PERGYRA_TOOL_BUILD_DIR"
 echo "[self-host-parity:stdlib-dispatch-inventory] rung-2 parity ok (expected-json clean; drift-fixture rc=1)"

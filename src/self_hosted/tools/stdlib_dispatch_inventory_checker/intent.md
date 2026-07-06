@@ -77,8 +77,8 @@ The parity rung (`tests/self_hosted/parity/`) asserts:
 
 - The Pergyra origin exits `0` on the live repo.
 - Emitted JSON byte-matches `expected/clean.json`.
-- A synthetic drift fixture (delete one LLVM entry) yields `rc=1` with a
-  `"kind":"count_drift"` finding.
+- A synthetic drift fixture (delete owner-selected LLVM entries) yields
+  `rc=1` and byte-matches `expected/count_drift.json`.
 - Both C and LLVM legs compile the same self-hosted checker.
 
 If clean inventory semantics drift, update the committed expected artifact or
