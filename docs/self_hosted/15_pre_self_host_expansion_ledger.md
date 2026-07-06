@@ -100,6 +100,15 @@ that a non-empty program has a root child edge. This keeps the mixed AST blocker
 ACTIVE, but it makes the bridge's typed arena projection load-bearing on every
 self-host C emission path.
 
+TypedAst delta, 2026-07-07: `program_emit.pgy` now consumes the typed arena
+projection for a real traversal decision. First-function indent, zero-artifact
+descendant skipping, nominal method scanning, and role method scanning use
+`CodegenAstArenaIndentOrDie(...)` and
+`CodegenAstArenaIsDescendantOf(...)` from
+`ast_text_typed_arena_owner.pgy` instead of direct raw `nodes[i].indent`
+comparisons. The blocker remains ACTIVE because function/statement emission
+still consumes transitional text-node rows.
+
 TestHarness delta, 2026-07-05: `test_harness_air_graph_paths_owner.pgy`
 now owns the five AIR graph consumer path suites separately from the generic
 tool-path owner. `air_graph_id_uniqueness_parity.sh`,

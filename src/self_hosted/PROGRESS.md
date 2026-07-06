@@ -506,9 +506,11 @@ beyond the lexer:
   readiness. `GenerateC` now consumes `CodegenTypedAstBridgeReady` over the
   owned `CodegenAstTextNode` inventory before emitting, and that guard projects
   the real inventory into `AstArena` rows with node-count, kind, atom, parent,
-  indent, and root child-edge checks. Current parser and codegen rungs still
-  consume text AST artifacts; the next closure is repointing emission consumers
-  to typed arena `NodeId` facts with oracle parity.
+  indent, and root child-edge checks. `program_emit` now consumes those arena
+  facts for first-function indent and owner-body descendant traversal. Current
+  parser and most codegen rungs still consume text AST artifacts; the next
+  closure is moving function/statement traversal to typed arena `NodeId` facts
+  with oracle parity.
 - **Raw pointer / FFI** -- if a Pergyra component needs to call into
   the C compiler's runtime (e.g. share the diagnostic emitter), there
   is no stable FFI today. This is intentional for the current compiler-pass

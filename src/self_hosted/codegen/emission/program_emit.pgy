@@ -21,6 +21,7 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
     if !CodegenTypedAstBridgeReady(nodes, count) {
         Die("codegen AST text bridge failed typed AST arena contract");
     }
+    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
     let main_count: Int = 0;
     let main_scan: Int = 0;
     while main_scan < count {
@@ -65,7 +66,7 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
     }
     let f_indent: Int = 2;
     if first_fn >= 0 {
-        f_indent = nodes[first_fn].indent;
+        f_indent = CodegenAstArenaIndentOrDie(arena, first_fn);
     }
     let env_acc: Array<String> = [BuildFunctionEnv(nodes, count)];
     let enum_block: String = CollectEnums(nodes, count, env_acc);
@@ -78,20 +79,21 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
     let defs: String = "";
     let cur: Array<Int> = [0];
     while cur[0] < count {
-        let cur_indent: Int = nodes[cur[0]].indent;
+        let cur_node: Int = cur[0];
+        let cur_indent: Int = CodegenAstArenaIndentOrDie(arena, cur_node);
         if CodegenAstTextIsZeroArtifactDecl(nodes[cur[0]]) {
-            let decl_indent: Int = cur_indent;
+            let decl_node: Int = cur_node;
             ArraySet(cur, 0, cur[0] + 1);
-            while cur[0] < count && nodes[cur[0]].indent > decl_indent {
+            while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], decl_node) {
                 ArraySet(cur, 0, cur[0] + 1);
             }
         } else if CodegenAstTextIsNominalDecl(nodes[cur[0]]) {
             let owner_name: String = CodegenAstTextNominalName(nodes[cur[0]]);
-            let owner_indent: Int = cur_indent;
+            let owner_node: Int = cur_node;
             ArraySet(cur, 0, cur[0] + 1);
-            while cur[0] < count && nodes[cur[0]].indent > owner_indent {
+            while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], owner_node) {
                 if CodegenAstTextIsFunction(nodes[cur[0]]) {
-                    let method_indent: Int = nodes[cur[0]].indent;
+                    let method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
                     let mdef: String = EmitFunction(nodes, count, cur, method_indent, base_env, uses_args, owner_name);
                     defs = Concat(defs, Concat(mdef, "\n"));
                 } else {
@@ -100,11 +102,11 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
             }
         } else if CodegenAstTextIsRoleDecl(nodes[cur[0]]) {
             let role_owner_name: String = CodegenAstTextRoleName(nodes[cur[0]]);
-            let role_owner_indent: Int = cur_indent;
+            let role_owner_node: Int = cur_node;
             ArraySet(cur, 0, cur[0] + 1);
-            while cur[0] < count && nodes[cur[0]].indent > role_owner_indent {
+            while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], role_owner_node) {
                 if CodegenAstTextIsFunction(nodes[cur[0]]) {
-                    let role_method_indent: Int = nodes[cur[0]].indent;
+                    let role_method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
                     let role_mdef: String = EmitFunction(nodes, count, cur, role_method_indent, base_env, uses_args, role_owner_name);
                     defs = Concat(defs, Concat(role_mdef, "\n"));
                 } else {

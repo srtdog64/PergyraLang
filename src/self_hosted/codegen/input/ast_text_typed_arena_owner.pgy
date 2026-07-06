@@ -101,6 +101,36 @@ func CodegenAstTextTypedArenaProjectionReady(nodes: Array<CodegenAstTextNode>, c
     return true;
 }
 
+func CodegenAstArenaIndentOrDie(arena: AstArena, node_id: Int) -> Int {
+    let indent: Option<Int> = TypedAstArenaIndent(arena, node_id);
+    if !IsSome(indent) {
+        Die(Concat("typed AST arena missing indent for node: ", ToString(node_id)));
+    }
+    return UnwrapOption(indent);
+}
+
+func CodegenAstArenaParentOrDie(arena: AstArena, node_id: Int) -> Int {
+    let parent: Option<Int> = TypedAstArenaParentId(arena, node_id);
+    if !IsSome(parent) {
+        Die(Concat("typed AST arena missing parent for node: ", ToString(node_id)));
+    }
+    return UnwrapOption(parent);
+}
+
+func CodegenAstArenaIsDescendantOf(arena: AstArena, node_id: Int, ancestor_id: Int) -> Bool {
+    if node_id < 0 || ancestor_id < 0 {
+        return false;
+    }
+    let cur: Int = CodegenAstArenaParentOrDie(arena, node_id);
+    while cur >= 0 {
+        if cur == ancestor_id {
+            return true;
+        }
+        cur = CodegenAstArenaParentOrDie(arena, cur);
+    }
+    return false;
+}
+
 func CodegenTypedAstBridgeReady(nodes: Array<CodegenAstTextNode>, count: Int) -> Bool {
     if !TypedAstArenaPayloadContractReady() {
         return false;

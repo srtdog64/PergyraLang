@@ -4820,3 +4820,19 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - The mixed AST-like tree blocker remains ACTIVE: emission still consumes
   transitional `CodegenAstTextNode` rows. The next cutover can now move
   traversal decisions from raw `indent` reads to `NodeId` parent/indent facts.
+
+### 2026-07-07 -- Program emission consumes typed arena traversal facts
+
+- Added `CodegenAstArenaIndentOrDie(...)`,
+  `CodegenAstArenaParentOrDie(...)`, and
+  `CodegenAstArenaIsDescendantOf(...)` to the typed AST projection owner.
+- Repointed `program_emit.pgy` top-level emission traversal so the first
+  function indent, zero-artifact declaration skipping, nominal method body
+  scanning, and role method body scanning consume typed arena indent/descendant
+  facts instead of direct raw `nodes[i].indent` comparisons.
+- Tightened `self_hosted_component_contract_smoke.sh` so the old
+  `nodes[first_fn].indent` and owner-body `nodes[cur].indent > ...` paths cannot
+  return in `program_emit`.
+- The mixed AST-like tree blocker remains ACTIVE: function and statement
+  emission still consume transitional text-node rows. This slice moves one
+  program-level structural traversal seam behind the typed arena owner.
