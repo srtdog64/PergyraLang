@@ -3,9 +3,8 @@
 #
 # Pergyra is the origin
 # (src/self_hosted/tools/production_header_size_checker/main.pgy).
-# Shell `find + wc -l + awk` is the parity backend. Asserts:
+# Asserts:
 #   - clean repo: rc=0, JSON byte-equal vs expected/clean.json
-#   - count parity vs shell on the live header tree
 #   - synthetic over-cap fixture (701-line .h under src/runtime): rc=1
 # See tests/self_hosted/parity/README.md.
 
@@ -90,45 +89,14 @@ if ! grep -Fq 'pgy.selfhost.production-header-size.v1' <<<"$PERGYRA_OUT"; then
     exit 1
 fi
 
-# Shell drift detector: same production header scope as the Pergyra filter.
-SHELL_HEADERS="$(cd "$ROOT_DIR" && find src/codegen src/runtime src/compiler src/semantic src/parser src/lsp \
-    -name '*.h' -type f | wc -l | tr -d ' ')"
-SHELL_STATS="$(cd "$ROOT_DIR" && find src/codegen src/runtime src/compiler src/semantic src/parser src/lsp \
-    -name '*.h' -type f -print0 \
-    | xargs -0 wc -l \
-    | awk '$2 != "total" {
-        if ($1 > max)
-            max = $1
-        if ($1 > 600)
-            violations++
-    }
-    END { printf "%d %d\n", violations, max }')"
-read -r SHELL_VIOLATIONS SHELL_MAX <<<"$SHELL_STATS"
-
-if ! grep -Fq "\"headers\":${SHELL_HEADERS}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:production-header-size] headers parity FAIL (shell=${SHELL_HEADERS})" >&2
-    printf '%s\n' "$PERGYRA_OUT" >&2
-    exit 1
-fi
-if ! grep -Fq "\"violations\":${SHELL_VIOLATIONS}," <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:production-header-size] violations parity FAIL (shell=${SHELL_VIOLATIONS})" >&2
-    exit 1
-fi
-if ! grep -Fq "\"max_lines\":${SHELL_MAX}" <<<"$PERGYRA_OUT"; then
-    echo "[self-host-parity:production-header-size] max_lines parity FAIL (shell=${SHELL_MAX})" >&2
-    exit 1
-fi
-
 PERGYRA_JSON="$(printf '%s\n' "$PERGYRA_OUT" \
     | grep -F 'pgy.selfhost.production-header-size.v1' \
     | tail -n 1)"
 PERGYRA_JSON="${PERGYRA_JSON%$'\r'}"
-# Tolerance (mirrors production_c_size_checker_parity.sh 37f3216e):
-# the exact max_lines number shifts every refactor; the cap_lines
-# check above plus the SHELL_MAX gate already guarantee the
-# semantic invariant. Normalize "max_lines":N to "max_lines":<NORM>
-# before comparing so an off-by-one bytes-against-fixture drift
-# doesn't gate every refactor.
+# Tolerance: the exact max_lines number shifts every refactor. The synthetic
+# over-cap fixture below proves the cap semantics without reimplementing the
+# clean count in shell. Normalize "max_lines":N to "max_lines":<NORM> before
+# comparing so ordinary line-count drift does not gate every refactor.
 EXPECTED_JSON_NORM_FILE="$PERGYRA_TOOL_BUILD_DIR/expected.clean.normalized.json"
 PERGYRA_JSON_NORM="$(printf '%s' "$PERGYRA_JSON" \
     | sed -E 's/"max_lines":[0-9]+/"max_lines":<NORM>/')"
@@ -177,4 +145,4 @@ if ! grep -Fq 'pgy_runtime_synthetic_drift.h' <<<"$NEG_OUT"; then
 fi
 
 assert_llvm_leg "self-host-parity:production-header-size" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR"
-echo "[self-host-parity:production-header-size] rung-2 parity ok (headers=$SHELL_HEADERS violations=$SHELL_VIOLATIONS max=$SHELL_MAX; over-cap fixture rc=1)"
+echo "[self-host-parity:production-header-size] rung-2 parity ok (expected-json clean; over-cap fixture rc=1)"

@@ -1,6 +1,6 @@
 # Production Header Size Checker -- Intent / Contract
 
-**Status:** *rung-2 DirWalk-owned* (2026-06-15). Enumerates production header
+**Status:** *rung-2 DirWalk-owned* (2026-07-06). Enumerates production header
 paths through `DirWalk("src")`, filters the same six owner prefixes as
 `tests/production_header_size_smoke.sh`, reads each file, counts newlines, and
 asserts <= 600 LOC per the BDFL split-review threshold. Reports any over-cap
@@ -55,19 +55,24 @@ Exit code: `0` on `ok:true`, `1` on `ok:false`.
 
 ## Oracle
 
-The shell drift detector is `find + wc -l + awk` over the same prefix filter
-and comparison against the 600-LOC cap. The C-side oracle is
-`tests/production_header_size_smoke.sh` itself; this tool re-derives the
-verdict in Pergyra and the parity script asserts both agree on file count,
-violation count, and max line count.
+The clean oracle is the committed expected JSON artifact
+`expected/clean.json`, compared through the shared ArtifactZone/TestHarness
+path. The C-side header cap remains enforced separately by
+`tests/production_header_size_smoke.sh`; this self-hosted parity rung must not
+recompute clean header counts in shell.
 
 The parity rung (`tests/self_hosted/parity/`) asserts:
 
 - The Pergyra origin exits `0` on the clean repo.
-- Emitted JSON byte-matches `expected/clean.json`.
-- The `headers / violations / max_lines` counts match shell ground truth.
+- Emitted JSON byte-matches `expected/clean.json` with `max_lines` normalized
+  to avoid fixture churn on ordinary line-count drift.
 - A synthetic over-cap fixture (a 701-line `.h` under `src/runtime`) yields
   `rc=1` with a `"kind":"header_over_cap"` finding.
+- Both C and LLVM legs compile the same self-hosted checker.
+
+If clean inventory semantics drift, update the committed expected artifact or
+the self-hosted owner. Do not add a shell `find`/`wc` implementation as a
+second clean oracle.
 
 ## Why Now
 

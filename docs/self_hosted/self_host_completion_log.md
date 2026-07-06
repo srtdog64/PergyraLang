@@ -4317,3 +4317,15 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   cap semantics, and kept the C/LLVM leg parity.
 - Tightened `self_hosted_component_contract_smoke.sh` so the shell count oracle
   cannot return to the production C size parity rung.
+
+### 2026-07-06 -- Production header size parity removes shell clean oracle
+
+- Repointed `production_header_size_checker_parity.sh` so the clean verdict is
+  the self-hosted checker JSON compared through ArtifactZone/TestHarness, with
+  `max_lines` normalized for the same reason as production C size.
+- Removed the parity script's duplicate shell `find`/`wc`/`awk` implementation
+  for production header inventory, violation count, and max-line count.
+- Kept the synthetic 701-line `.h` fixture as the fail-closed proof for the
+  header cap semantics, and kept the C/LLVM leg parity.
+- Tightened `self_hosted_component_contract_smoke.sh` so the shell count oracle
+  cannot return to the production header size parity rung.
