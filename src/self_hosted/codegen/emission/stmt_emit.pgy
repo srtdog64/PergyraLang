@@ -26,10 +26,10 @@ func EmitCollectionElementValue(kind: String, value_expr: String, env: String, k
     return IntEval(value_expr, env);
 }
 
-func EmitLet(node: CodegenAstTextNode, arena: AstArena, idx: Int, inout env_box: Array<String>) -> String {
+func EmitLet(arena: AstArena, idx: Int, inout env_box: Array<String>) -> String {
     let name: String = CodegenAstArenaAtomOrDie(arena, idx);
     let type_name: String = CodegenAstArenaTypeNameOrDie(arena, idx);
-    let expr: String = CodegenAstTextLetInitializer(node);
+    let expr: String = CodegenAstArenaValueOrDie(arena, idx);
     if type_name == "Int" {
         ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:Int|")));
         return Concat(AbiLayoutCLocalType(type_name, env_box[0]), Concat(" ", Concat(name, Concat(" = ", Concat(IntEval(expr, env_box[0]), ";")))));
@@ -129,7 +129,7 @@ func TryExprInner(expr: String) -> String {
 func EmitTryLet(node: CodegenAstTextNode, arena: AstArena, idx: Int, inout env_box: Array<String>, cur_fn_ret: String, pad: String, cleanup: String) -> String {
     let name: String = CodegenAstArenaAtomOrDie(arena, idx);
     let type_name: String = CodegenAstArenaTypeNameOrDie(arena, idx);
-    let expr: String = CodegenAstTextLetInitializer(node);
+    let expr: String = CodegenAstArenaValueOrDie(arena, idx);
     let inner: String = TryExprInner(expr);
     if StringLength(inner) == 0 {
         Die(Concat("unsupported try let shape in self-host codegen subset: ", CodegenAstTextProvenance(node)));
@@ -177,9 +177,9 @@ func EmitTryLet(node: CodegenAstTextNode, arena: AstArena, idx: Int, inout env_b
 }
 
 // `Assign: <name> = <expr>`. Routes by the variable's recorded type.
-func EmitAssign(node: CodegenAstTextNode, env_box: Array<String>) -> String {
-    let name: String = CodegenAstTextAssignTarget(node);
-    let expr: String = CodegenAstTextAssignValue(node);
+func EmitAssign(arena: AstArena, idx: Int, env_box: Array<String>) -> String {
+    let name: String = CodegenAstArenaAtomOrDie(arena, idx);
+    let expr: String = CodegenAstArenaValueOrDie(arena, idx);
     let lb: Int = StringIndexOf(name, "[");
     if lb > 0 && CodegenCharAt(name, StringLength(name) - 1) == "]" {
         let arr_name: String = Substring(name, 0, lb);
@@ -310,14 +310,14 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
             Die(Concat("unexpected over-indented AST line: ", CodegenAstTextProvenance(nodes[idx])));
         }
         if CodegenAstTextIsLetStmt(nodes[idx]) {
-            if ContainsOutsideStrings(CodegenAstTextLetInitializer(nodes[idx]), "(?") {
+            if ContainsOutsideStrings(CodegenAstArenaValueOrDie(arena, idx), "(?") {
                 result = Concat(result, Concat(pad, Concat(EmitTryLet(nodes[idx], arena, idx, env_box, cur_fn_ret, pad, Concat(deferred, active_defers)), "\n")));
             } else {
-                result = Concat(result, Concat(pad, Concat(EmitLet(nodes[idx], arena, idx, env_box), "\n")));
+                result = Concat(result, Concat(pad, Concat(EmitLet(arena, idx, env_box), "\n")));
             }
             ArraySet(cur, 0, idx + 1);
         } else if CodegenAstTextIsAssignStmt(nodes[idx]) {
-            result = Concat(result, Concat(pad, Concat(EmitAssign(nodes[idx], env_box), "\n")));
+            result = Concat(result, Concat(pad, Concat(EmitAssign(arena, idx, env_box), "\n")));
             ArraySet(cur, 0, idx + 1);
         } else if CodegenAstTextIsLogStmt(nodes[idx]) {
             let log_inner: String = CodegenAstArenaAtomOrDie(arena, idx);

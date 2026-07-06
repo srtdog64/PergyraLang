@@ -13,6 +13,7 @@ struct CodegenAstTextNode {
     let aux_payload: String;
     let name: String;
     let type_name: String;
+    let value: String;
     let mode: Int;
 }
 
@@ -491,6 +492,7 @@ func CodegenAstTextNodeInventory(tree_text: String, inout nodes: Array<CodegenAs
                 CodegenAstTextAuxPayloadFor(trimmed, kind),
                 CodegenAstTextNameFactFor(row_input),
                 CodegenAstTextTypeNameFactFor(row_input),
+                CodegenAstTextValueFactFor(row_input),
                 mode
             ));
             ArraySet(count_box, 0, count_box[0] + 1);

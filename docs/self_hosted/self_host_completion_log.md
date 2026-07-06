@@ -4928,3 +4928,19 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-compiler-world-contract-test-smoke`, and
   `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
   7127 generated-C lines).
+
+### 2026-07-07 -- Typed arena owns Let and Assign value rows
+
+- Extended `CodegenAstTextRowFactInput` projection with value facts, then
+  threaded those facts through `CodegenAstTextNode` and `AstArena` as
+  `value`/`has_value` rows backed by the shared atom table.
+- Added `TypedAstArenaValueText(...)` and `CodegenAstArenaValueOrDie(...)`.
+- Repointed `EmitLet(...)`, `EmitTryLet(...)`, and `EmitAssign(...)` so `Let`
+  initializer plus `Assign` target/RHS consume typed arena rows instead of
+  `CodegenAstTextLetInitializer(...)` or `CodegenAstTextAssign*` accessors.
+- Left `ArraySet`, `ArrayPush`, and `For` in the statement owner because their
+  payloads need multi-field typed rows, not a single value row.
+- Verified with `self-host-component-contract-test-smoke`,
+  `self-host-compiler-world-contract-test-smoke`, and
+  `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
+  7211 generated-C lines).

@@ -68,10 +68,39 @@ func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput) -> String {
         }
         return "";
     }
+    if kind == 21 {
+        let assign_sep: Option<Int> = FindTextFrom(payload, " = ", 0);
+        if IsSome(assign_sep) {
+            return Substring(payload, 0, UnwrapOption(assign_sep));
+        }
+        return "";
+    }
     if kind == 5 {
         let colon2: Int = StringIndexOf(payload, ": ");
         if colon2 >= 0 {
             return Substring(payload, 0, colon2);
+        }
+        return "";
+    }
+    return "";
+}
+
+func CodegenAstTextValueFactFor(input: CodegenAstTextRowFactInput) -> String {
+    let kind: Int = input.kind;
+    let payload: String = input.payload;
+    if kind == 20 {
+        let pos: Option<Int> = FindTextFrom(payload, " = ", 0);
+        if IsSome(pos) {
+            let start: Int = UnwrapOption(pos) + 3;
+            return Substring(payload, start, StringLength(payload) - start);
+        }
+        return "";
+    }
+    if kind == 21 {
+        let pos2: Option<Int> = FindTextFrom(payload, " = ", 0);
+        if IsSome(pos2) {
+            let start2: Int = UnwrapOption(pos2) + 3;
+            return Substring(payload, start2, StringLength(payload) - start2);
         }
         return "";
     }

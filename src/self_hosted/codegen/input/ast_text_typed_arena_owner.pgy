@@ -32,6 +32,8 @@ func CodegenAstTextTypedArenaFromNodes(nodes: Array<CodegenAstTextNode>, count: 
     let has_atoms: Array<Int> = [];
     let type_names: Array<Int> = [];
     let has_type_names: Array<Int> = [];
+    let values: Array<Int> = [];
+    let has_values: Array<Int> = [];
     let modes: Array<Int> = [];
     let first_children: Array<Int> = [];
     let child_counts: Array<Int> = [];
@@ -59,6 +61,14 @@ func CodegenAstTextTypedArenaFromNodes(nodes: Array<CodegenAstTextNode>, count: 
             ArrayPush(type_names, ArrayLength(atom_table) - 1);
             ArrayPush(has_type_names, 1);
         }
+        if nodes[i].value == "" {
+            ArrayPush(values, 0);
+            ArrayPush(has_values, 0);
+        } else {
+            ArrayPush(atom_table, nodes[i].value);
+            ArrayPush(values, ArrayLength(atom_table) - 1);
+            ArrayPush(has_values, 1);
+        }
         ArrayPush(modes, nodes[i].mode);
         ArrayPush(first_children, ArrayLength(children));
         let direct: Int = 0;
@@ -75,7 +85,8 @@ func CodegenAstTextTypedArenaFromNodes(nodes: Array<CodegenAstTextNode>, count: 
         ArrayPush(indents, nodes[i].indent);
         i = i + 1;
     }
-    return AstArena(kinds, atoms, has_atoms, type_names, has_type_names, modes,
+    return AstArena(kinds, atoms, has_atoms, type_names, has_type_names,
+        values, has_values, modes,
         first_children, child_counts, parents, indents, children, atom_table);
 }
 
@@ -113,6 +124,13 @@ func CodegenAstTextTypedArenaProjectionReady(nodes: Array<CodegenAstTextNode>, c
         if nodes[i].type_name != "" && (!IsSome(type_name) || UnwrapOption(type_name) != nodes[i].type_name) {
             return false;
         }
+        let value: Option<String> = TypedAstArenaValueText(arena, i);
+        if nodes[i].value == "" && IsSome(value) {
+            return false;
+        }
+        if nodes[i].value != "" && (!IsSome(value) || UnwrapOption(value) != nodes[i].value) {
+            return false;
+        }
         let mode: Option<Int> = TypedAstArenaMode(arena, i);
         if !IsSome(mode) || UnwrapOption(mode) != nodes[i].mode {
             return false;
@@ -147,6 +165,14 @@ func CodegenAstArenaTypeNameOrDie(arena: AstArena, node_id: Int) -> String {
         Die(Concat("typed AST arena missing type name for node: ", ToString(node_id)));
     }
     return UnwrapOption(type_name);
+}
+
+func CodegenAstArenaValueOrDie(arena: AstArena, node_id: Int) -> String {
+    let value: Option<String> = TypedAstArenaValueText(arena, node_id);
+    if !IsSome(value) {
+        Die(Concat("typed AST arena missing value for node: ", ToString(node_id)));
+    }
+    return UnwrapOption(value);
 }
 
 func CodegenAstArenaModeOrDie(arena: AstArena, node_id: Int) -> Int {
