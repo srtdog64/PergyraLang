@@ -209,6 +209,22 @@ func CodegenAstArenaKindIs(arena: AstArena, node_id: Int, expected_kind: Int) ->
     return UnwrapOption(kind) == expected_kind;
 }
 
+func CodegenAstArenaIsProgramRoot(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 30);
+}
+
+func CodegenAstArenaIsParameters(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 2);
+}
+
+func CodegenAstArenaIsReturns(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 3);
+}
+
+func CodegenAstArenaIsFieldsHeader(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 4);
+}
+
 func CodegenAstArenaIsFunction(arena: AstArena, node_id: Int) -> Bool {
     return CodegenAstArenaKindIs(arena, node_id, 6);
 }
@@ -350,7 +366,8 @@ func CodegenTypedAstBridgeReady(nodes: Array<CodegenAstTextNode>, count: Int) ->
     if count <= 0 {
         return false;
     }
-    if !CodegenAstTextIsProgramRoot(nodes[0]) {
+    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
+    if !CodegenAstArenaIsProgramRoot(arena, 0) {
         return false;
     }
     return CodegenAstTextTypedArenaProjectionReady(nodes, count);

@@ -118,7 +118,7 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
         ArraySet(cur, 0, cur[0] + 1);
     }
 
-    if cur[0] >= count || !CodegenAstTextIsReturns(nodes[cur[0]]) {
+    if cur[0] >= count || !CodegenAstArenaIsReturns(arena, cur[0]) {
         Die("expected Returns: line after parameters");
     }
     let ret_type: String = CodegenAstArenaTypeNameOrDie(arena, cur[0]);
@@ -204,7 +204,7 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAr
             let j: Int = i + 1;
             let rtype: String = "Void";
             while j < count && !CodegenAstArenaIsFunction(arena, j) {
-                if CodegenAstTextIsParameters(nodes[j]) {
+                if CodegenAstArenaIsParameters(arena, j) {
                     j = j + 1;
                     let modes: String = "";
                     let param_types: String = "";
@@ -217,7 +217,7 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAr
                     env = Concat(env, Concat(cname, Concat("=pt:", Concat(param_types, "|"))));
                     continue;
                 }
-                if CodegenAstTextIsReturns(nodes[j]) {
+                if CodegenAstArenaIsReturns(arena, j) {
                     rtype = CodegenAstArenaTypeNameOrDie(arena, j);
                     j = count;
                 } else {
@@ -319,7 +319,7 @@ func CollectStructs(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAren
             let sname: String = CodegenAstArenaAtomOrDie(arena, i);
             let s_indent: Int = CodegenAstArenaIndentOrDie(arena, i);
             let j: Int = i + 1;
-            if j < count && CodegenAstTextIsFieldsHeader(nodes[j]) {
+            if j < count && CodegenAstArenaIsFieldsHeader(arena, j) {
                 j = j + 1;
             }
             let fields_c: String = "";
@@ -414,7 +414,7 @@ func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
             if c_name != "Main" {
                 let f_indent: Int = indent;
                 let j: Int = i + 1;
-                if j < count && CodegenAstTextIsParameters(nodes[j]) {
+                if j < count && CodegenAstArenaIsParameters(arena, j) {
                     j = j + 1;
                 }
                 let params: String = "";
@@ -440,7 +440,7 @@ func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
                     j = j + 1;
                 }
                 let rtype: String = "Void";
-                if j < count && CodegenAstTextIsReturns(nodes[j]) {
+                if j < count && CodegenAstArenaIsReturns(arena, j) {
                     rtype = CodegenAstArenaTypeNameOrDie(arena, j);
                 }
                 let plist: String = params;

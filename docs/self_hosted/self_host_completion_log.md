@@ -5051,3 +5051,19 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self-host-compiler-world-contract-test-smoke`, and
   `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
   7480 generated-C lines).
+
+### 2026-07-07 -- Function markers consume typed arena kind predicates
+
+- Added typed arena predicates for Program root, Parameters, Returns, and Fields
+  marker nodes.
+- Repointed `function_emit.pgy` so signature/prototype/struct prepass marker
+  routing consumes `AstArena` kind facts instead of `CodegenAstTextIs*` marker
+  predicates over transitional text nodes.
+- Repointed `CodegenTypedAstBridgeReady(...)` so Program-root validation also
+  consumes the typed arena kind fact.
+- Tightened `self_hosted_component_contract_smoke.sh` so those old marker
+  predicates cannot return at those consumption points.
+- Verified with `self-host-component-contract-test-smoke`,
+  `self-host-compiler-world-contract-test-smoke`, and
+  `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3` at
+  7505 generated-C lines).
