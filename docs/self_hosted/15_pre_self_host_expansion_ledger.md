@@ -172,6 +172,12 @@ manifest-projected checker sources in place. They no longer create build-dir
 `main.pgy` aliases or copy the self-hosted `lib` tree beside those aliases
 before invoking the compiler.
 
+TestHarness delta, 2026-07-06: `module_manifest_resolver_parity.sh` now also
+gets its missing-modules, nested-modules, and nested-field negative fixture JSON
+bodies from `test_harness_tool_paths_owner.pgy`. Shell writes those rows into
+scratch files for execution, but no longer mutates or authors the JSON fixture
+semantics.
+
 ArtifactZone delta, 2026-07-06: `module_manifest_resolver_parity.sh` no longer
 recomputes clean module, beta-blocker, or stable-subset counts with shell
 `grep`. The clean output oracle is the TestHarness-projected

@@ -46,14 +46,17 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 3 ]]; then
-    echo "[self-host-parity:module-manifest-resolver] TestHarness manifest expected 3 module-manifest paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 6 ]]; then
+    echo "[self-host-parity:module-manifest-resolver] TestHarness manifest expected 6 module-manifest rows, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
 PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_JSON_FILE="$ROOT_DIR/${harness_paths[1]}"
 MANIFEST_PATH="${harness_paths[2]}"
+MISSING_MODULES_FIXTURE_JSON="${harness_paths[3]}"
+NESTED_MODULES_FIXTURE_JSON="${harness_paths[4]}"
+NESTED_FIELD_FIXTURE_JSON="${harness_paths[5]}"
 
 for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$ROOT_DIR/$MANIFEST_PATH"; do
     if [[ ! -f "$path" ]]; then
@@ -109,9 +112,7 @@ cleanup_neg_root() {
 trap cleanup_neg_root EXIT
 mkdir -p "$NEG_ROOT/docs"
 mkdir -p "$NEG_ROOT/.tmp"
-# Strip "modules": from the manifest so the tool detects the missing key.
-sed 's/"modules":/"NOTMODULES":/' "$ROOT_DIR/$MANIFEST_PATH" \
-    > "$NEG_ROOT/$MANIFEST_PATH"
+printf '%s\n' "$MISSING_MODULES_FIXTURE_JSON" > "$NEG_ROOT/$MANIFEST_PATH"
 
 set +e
 NEG_OUT="$(cd "$NEG_ROOT" && "$CLEAN_BIN" "$MANIFEST_PATH" 2>&1)"
@@ -131,14 +132,7 @@ fi
 # Synthetic nested-modules fixture: a nested object may contain `modules`, but
 # the document root itself does not. The JSON fact-table owner must not let a
 # recursive text search satisfy the top-level modules field.
-cat > "$NEG_ROOT/$MANIFEST_PATH" <<'JSON'
-{
-  "schema": 1,
-  "metadata": {
-    "modules": []
-  }
-}
-JSON
+printf '%s\n' "$NESTED_MODULES_FIXTURE_JSON" > "$NEG_ROOT/$MANIFEST_PATH"
 
 set +e
 NESTED_MODULES_OUT="$(cd "$NEG_ROOT" && "$CLEAN_BIN" "$MANIFEST_PATH" 2>&1)"
@@ -158,21 +152,7 @@ fi
 # Synthetic nested-field fixture: a nested object may contain `layer`, but the
 # module row itself does not. The JSON owner must not let recursive text search
 # satisfy a top-level required-field check.
-cat > "$NEG_ROOT/$MANIFEST_PATH" <<'JSON'
-{
-  "schema": 1,
-  "modules": [
-    {
-      "name": "pgy.synthetic",
-      "status": "stable-subset",
-      "beta_blocker": true,
-      "surfaces": [
-        { "layer": "not-a-module-layer" }
-      ]
-    }
-  ]
-}
-JSON
+printf '%s\n' "$NESTED_FIELD_FIXTURE_JSON" > "$NEG_ROOT/$MANIFEST_PATH"
 
 set +e
 NESTED_OUT="$(cd "$NEG_ROOT" && "$CLEAN_BIN" "$MANIFEST_PATH" 2>&1)"

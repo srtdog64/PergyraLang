@@ -1913,6 +1913,9 @@ require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func 
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverExpectedJsonPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverInputManifestPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverMissingModulesFixtureJson"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverNestedModulesFixtureJson"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverNestedFieldFixtureJson"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverPathAt"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverReady"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionSuiteName"
@@ -2523,6 +2526,10 @@ require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" '"mod
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'MANIFEST_PATH="${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'MISSING_MODULES_FIXTURE_JSON="${harness_paths[3]}"'
+require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'NESTED_MODULES_FIXTURE_JSON="${harness_paths[4]}"'
+require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'NESTED_FIELD_FIXTURE_JSON="${harness_paths[5]}"'
+require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "TestHarness manifest expected 6 module-manifest rows"
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" '"$CLEAN_BIN" "$MANIFEST_PATH"'
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'assert_llvm_leg "self-host-parity:module-manifest-resolver" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR" "$MANIFEST_PATH"'
 require_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "expected-json clean"
@@ -2534,6 +2541,8 @@ reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'cp "$
 reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'
 reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/module_manifest_resolver/expected/clean.json"'
 reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" 'MANIFEST_PATH="docs/language_module_manifest.json"'
+reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "sed 's/\"modules\":"
+reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" "cat > \"\$NEG_ROOT/\$MANIFEST_PATH\" <<'JSON'"
 for report_output_parity in \
     tests/self_hosted/parity/ast_read_surface_checker_parity.sh \
     tests/self_hosted/parity/doc_link_checker_parity.sh \

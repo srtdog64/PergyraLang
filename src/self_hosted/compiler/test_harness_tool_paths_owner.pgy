@@ -61,19 +61,34 @@ func CompilerHarnessModuleManifestResolverInputManifestPath() -> String {
     return "docs/language_module_manifest.json";
 }
 
+func CompilerHarnessModuleManifestResolverMissingModulesFixtureJson() -> String {
+    return "{\"schema\":1,\"NOTMODULES\":[]}";
+}
+
+func CompilerHarnessModuleManifestResolverNestedModulesFixtureJson() -> String {
+    return "{\"schema\":1,\"metadata\":{\"modules\":[]}}";
+}
+
+func CompilerHarnessModuleManifestResolverNestedFieldFixtureJson() -> String {
+    return "{\"schema\":1,\"modules\":[{\"name\":\"pgy.synthetic\",\"status\":\"stable-subset\",\"beta_blocker\":true,\"surfaces\":[{\"layer\":\"not-a-module-layer\"}]}]}";
+}
+
 func CompilerHarnessModuleManifestResolverPathCount() -> Int {
-    return 3;
+    return 6;
 }
 
 func CompilerHarnessModuleManifestResolverPathAt(index: Int) -> String {
     if index == 0 { return CompilerHarnessModuleManifestResolverToolSourcePath(); }
     if index == 1 { return CompilerHarnessModuleManifestResolverExpectedJsonPath(); }
     if index == 2 { return CompilerHarnessModuleManifestResolverInputManifestPath(); }
+    if index == 3 { return CompilerHarnessModuleManifestResolverMissingModulesFixtureJson(); }
+    if index == 4 { return CompilerHarnessModuleManifestResolverNestedModulesFixtureJson(); }
+    if index == 5 { return CompilerHarnessModuleManifestResolverNestedFieldFixtureJson(); }
     return "";
 }
 
 func CompilerHarnessModuleManifestResolverReady() -> Bool {
-    if CompilerHarnessModuleManifestResolverPathCount() != 3 {
+    if CompilerHarnessModuleManifestResolverPathCount() != 6 {
         return false;
     }
     let i: Int = 0;

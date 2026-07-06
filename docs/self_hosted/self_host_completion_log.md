@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Module manifest negative fixtures consume TestHarness owner
+
+- Extended `test_harness_tool_paths_owner.pgy` so
+  `module-manifest-resolver-paths` also carries the missing-modules,
+  nested-modules, and nested-field negative JSON fixture bodies.
+- Repointed `module_manifest_resolver_parity.sh` to write those owner rows into
+  scratch input files instead of deriving or authoring negative manifests in
+  shell with `sed` or JSON heredocs.
+- Tightened the component contract so the old shell-owned negative fixture
+  construction cannot return.
+
 ## 2026-07-06 - AIR node-count clean oracle uses expected artifact only
 
 - Removed the redundant shell `grep -oE` / `wc` / `awk` clean-count oracle from
