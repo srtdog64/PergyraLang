@@ -226,6 +226,11 @@ suite. The compiled checker receives the code/docs owner paths through
 `Args()`, so the diagnostic catalog input boundary consumes the same Pergyra
 path facts that the parity runner executes.
 
+TestHarness delta, 2026-07-06: `diagnostic_catalog_checker_parity.sh` now
+compiles and runs the manifest-projected checker source in place. It no longer
+creates a build-dir `main.pgy` alias or copies the checker owner files and
+self-hosted `lib` tree beside that alias before invoking the compiler.
+
 TestHarness delta, 2026-07-05: concrete tool/input path suites now live in
 `test_harness_tool_paths_owner.pgy`. `examples_inventory_checker_parity.sh`
 gets its checker source and expected clean JSON through the

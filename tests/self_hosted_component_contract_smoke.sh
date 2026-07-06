@@ -1452,10 +1452,17 @@ require_text "src/self_hosted/tools/diagnostic_catalog_checker/main.pgy" "RunDia
 require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "pgy_selfhost_compare_expected_text_artifact_with_owner"
 require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" '"diagnostic-catalog-paths"'
+require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_SOURCE")"'
 require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" '"$HEADER_REL" "$DOCS_REL"'
 require_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" '"run_output"'
 reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'C_ORACLE="$ROOT_DIR/tests/diagnostic_registry_smoke.sh"'
 reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'PERGYRA_TOOL_SOURCE_DIR="$ROOT_DIR/src/self_hosted/tools/diagnostic_catalog_checker"'
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"'
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'PERGYRA_TOOL_SOURCE_DIR='
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'cp "$PERGYRA_TOOL_SOURCE_DIR"/*.pgy "$PERGYRA_TOOL_BUILD_DIR"/'
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'mkdir -p "$PERGYRA_TOOL_BUILD_DIR/../../lib"'
+reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'
 reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/diagnostic_catalog_checker/expected/clean.json"'
 reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"'
 reject_text "tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh" 'EXPECTED_MISSING_JSON="$(cat "$EXPECTED_MISSING_JSON_FILE")"'

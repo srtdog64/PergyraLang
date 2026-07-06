@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-06 - Diagnostic catalog parity uses source owner in place
+
+- Repointed `diagnostic_catalog_checker_parity.sh` so the
+  `diagnostic-catalog-paths` TestHarness source row is passed to the compiler
+  directly.
+- Removed the build-dir `main.pgy` alias, copied checker-owner files, and
+  copied `lib` tree from the parity runner; the checker now resolves sibling
+  owners and shared libs from its manifest-projected source location.
+- Tightened the component contract so the local source/lib copy paths cannot
+  return to this runner.
+
 ## 2026-07-06 - AST read surface parity uses source owner in place
 
 - Repointed `ast_read_surface_checker_parity.sh` so the
