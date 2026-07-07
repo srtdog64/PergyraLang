@@ -202,6 +202,15 @@ grep -Fq "MIR_RESOURCE_ABI_SECURE_SLOT" \
     "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
 grep -Fq "MIR_RESOURCE_ABI_DEVICE_SLOT" \
     "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
+grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+    "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c"
+grep -Fq "MIR_RESOURCE_ABI_SECURE_SLOT" \
+    "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c"
+if grep -F 'is_secure ? "pgy_secure_read_%s" : "pgy_read_%s"' \
+    "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM slot identifier auto-read must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
 if grep -F 'is_secure ? "pgy_secure_write" : "pgy_write"' \
     "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c" >/dev/null; then
     echo "[backend-fail-closed] LLVM slot Write call emission must consume MIR ABI runtime rows" >&2

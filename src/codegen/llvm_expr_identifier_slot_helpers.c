@@ -7,6 +7,7 @@
 #include "llvm_expr_identifier_slot_helpers.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "../compiler/mir_decl_headers.h"
+#include "../compiler/mir_abi_layout.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -128,10 +129,14 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
             LLVMVarEntry var;
             if (llvm_scope_lookup_snapshot(ctx, name, &var)) {
                 bool is_secure = llvm_lookup_slot_is_secure(ctx, name);
-                char fn_name[64];
-                snprintf(fn_name, sizeof(fn_name),
-                    is_secure ? "pgy_secure_read_%s" : "pgy_read_%s", inner);
-                fn = llvm_lookup_function(ctx, fn_name);
+                const char *runtime_fn =
+                    mir_abi_resource_runtime_fn_by_kind(
+                        is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
+                                  : MIR_RESOURCE_ABI_SLOT,
+                        inner, "Read");
+                fn = runtime_fn != NULL
+                    ? llvm_lookup_function(ctx, runtime_fn)
+                    : NULL;
                 if (fn != NULL) {
                     if (is_secure) {
                         LLVMVarEntry token_var;
@@ -157,8 +162,10 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
                         PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                         PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                         PGY_FIX_INSPECT_MIR_INVENTORY,
-                        "LLVM slot auto-read requires registered runtime function '%s'",
-                        fn_name);
+                        runtime_fn != NULL
+                            ? "LLVM slot auto-read requires registered runtime function '%s'"
+                            : "LLVM slot auto-read requires MIR ABI runtime function row for '%s'",
+                        runtime_fn != NULL ? runtime_fn : inner);
                     return NULL;
                 }
                 if (is_secure)
