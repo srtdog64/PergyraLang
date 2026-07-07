@@ -248,6 +248,10 @@ Option/Result, math, string, and host-I/O call symbols into a runnable
 `runtime_call_abi` artifact. `self-host-runtime-call-abi-row-parity-test-smoke`
 compiles that projection through C and LLVM when available, so runtime helper
 spelling changes are visible as ABI-row diffs instead of backend-local drift.
+`self-host-component-contract-test-smoke` also rejects quoted `pgy_*` runtime
+helper names and supported target-library call names under `emission/`,
+`text/`, and `input/`; new call spellings must enter through `runtime_abi/`
+owners before codegen participants can consume them.
 
 Parity gate: `tests/self_hosted/parity/codegen_parity.sh` builds `main.pgy`
 through the requested backend set, builds the self-host parser as the AST text

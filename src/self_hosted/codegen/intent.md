@@ -139,6 +139,9 @@ a zone:
 - `compiler/runtime_call_abi_row_owner.pgy` projects those runtime call facts
   into a stable row artifact; codegen participants keep consuming the domain
   runtime ABI owners, while parity gates consume the projection.
+- The component contract rejects quoted runtime helper or target-library call
+  spellings in `emission/`, `text/`, and `input/`, so spelling ownership cannot
+  drift back into action participants.
 - `emission/` contains the action participants that write or route emitted C.
 
 ## Input Contract

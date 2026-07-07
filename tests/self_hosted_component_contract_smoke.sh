@@ -1905,6 +1905,12 @@ require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "OptionResultRu
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "OptionResultRuntimeCOptionSomeFnForPayloadKind(some_payload_kind)"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "OptionResultRuntimeCResultOkFn"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "OptionResultRuntimeCResultIsOkFn"
+reject_regex_under "src/self_hosted/codegen/emission" '"pgy_[A-Za-z0-9_]*'
+reject_regex_under "src/self_hosted/codegen/text" '"pgy_[A-Za-z0-9_]*'
+reject_regex_under "src/self_hosted/codegen/input" '"pgy_[A-Za-z0-9_]*'
+reject_regex_under "src/self_hosted/codegen/emission" '"(strcmp|sqrt|pow|floor|ceil|atof|exit)"'
+reject_regex_under "src/self_hosted/codegen/text" '"(strcmp|sqrt|pow|floor|ceil|atof|exit)"'
+reject_regex_under "src/self_hosted/codegen/input" '"(strcmp|sqrt|pow|floor|ceil|atof|exit)"'
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "struct OptionStructRuntimeFact"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "struct OptionStructDefinitionBlockFact"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeStructOptionFact"
