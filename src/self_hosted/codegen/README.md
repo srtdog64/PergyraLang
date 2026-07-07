@@ -86,7 +86,8 @@ recursion are free. `Main` lowers to `int main(void)`, or to
 
 **Body statements:**
 
-- `Log(<strexpr>)` -> `printf("%s\n", ...)`; `Log(ToString(<intexpr>))` -> `printf("%lld\n", ...)`.
+- `Log(<strexpr>)` -> the string runtime log helper; numeric logs consume
+  owner-owned target-library format and ABI cast facts before emitting C.
 - `Let: <name> : Int|Bool|String|Array<Int>|Array<String> = <expr>` -> typed C declaration.
 - `Assign: <name> = <expr>` -> routed by the variable's recorded type.
 - `While: (<cond>) { ... }`, `If: (<cond>) Then { ... } [Else { ... }]`,

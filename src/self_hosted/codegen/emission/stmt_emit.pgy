@@ -231,8 +231,19 @@ func EmitAssign(arena: AstArena, idx: Int, env_box: Array<String>) -> String {
     return Concat(name, Concat(" = ", Concat(IntEval(expr, env_box[0]), ";")));
 }
 
-// `Log(<expr>)`. Integer via `Log(ToString(...))` -> printf %lld; otherwise the
-// argument is a string expression -> printf %s of its StrEval.
+func EmitFormattedScalarLog(c_expr: String, type_name: String, line_format: String, env: String) -> String {
+    let stmt: String = Concat(StringRuntimeCFormattedPrintFn(), "(\"");
+    stmt = Concat(stmt, line_format);
+    stmt = Concat(stmt, "\", (");
+    stmt = Concat(stmt, AbiLayoutCValueType(type_name, env));
+    stmt = Concat(stmt, ")(");
+    stmt = Concat(stmt, c_expr);
+    stmt = Concat(stmt, "));");
+    return stmt;
+}
+
+// `Log(<expr>)`. Numeric logs consume C format/cast facts from owners; string
+// logs route through the string runtime helper.
 func EmitLog(inner: String, env: String) -> String {
     if StartsWith(inner, "ToString(") {
         let n: Int = StringLength(inner);
@@ -243,19 +254,19 @@ func EmitLog(inner: String, env: String) -> String {
         if ExprKind(arg, env) == "String" {
             return Concat(StringRuntimeCLogFn(), Concat("(", Concat(StrEval(arg, env), ");")));
         }
-        return Concat("printf(\"%lld\\n\", (long long)(", Concat(IntEval(arg, env), "));"));
+        return EmitFormattedScalarLog(IntEval(arg, env), "Int", StringRuntimeCIntLineFormat(), env);
     }
     // `Log(x)` may log an Int/Bool value directly (not via ToString). Route by
     // the argument's type so an integer never gets printed with `%s`.
     if ExprKind(inner, env) == "Int" {
-        return Concat("printf(\"%lld\\n\", (long long)(", Concat(IntEval(inner, env), "));"));
+        return EmitFormattedScalarLog(IntEval(inner, env), "Int", StringRuntimeCIntLineFormat(), env);
     }
     if ExprKind(inner, env) == "Float" {
-        return Concat("printf(\"%f\\n\", (double)(", Concat(RewriteExpr(inner, env), "));"));
+        return EmitFormattedScalarLog(RewriteExpr(inner, env), "Float", StringRuntimeCFloatLineFormat(), env);
     }
     // String Log: the oracle strips all trailing newlines from the value and
     // then appends exactly one (`Log("c\n\n")` -> `c\n`), so route through the
-    // string runtime log helper rather than a raw `printf("%s\n", ...)`.
+    // string runtime log helper rather than raw target formatted output.
     return Concat(StringRuntimeCLogFn(), Concat("(", Concat(StrEval(inner, env), ");")));
 }
 
@@ -502,9 +513,17 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
             let match_subject: String = CodegenAstArenaAtomOrDie(arena, idx);
             let match_subject_type: String = ExprKind(match_subject, env_box[0]);
             let match_tmp: String = Concat("_pgy_match_", ToString(idx));
+            let match_tmp_type: String = AbiLayoutCLocalType("Int", env_box[0]);
+            let match_tmp_cast: String = AbiLayoutCValueType("Int", env_box[0]);
             result = Concat(result, Concat(pad, "{\n"));
-            result = Concat(result, Concat(inner_pad, Concat("long long ", Concat(match_tmp,
-                Concat(" = (long long)(", Concat(IntEval(match_subject, env_box[0]), ");\n"))))));
+            let match_tmp_decl: String = Concat(match_tmp_type, " ");
+            match_tmp_decl = Concat(match_tmp_decl, match_tmp);
+            match_tmp_decl = Concat(match_tmp_decl, " = (");
+            match_tmp_decl = Concat(match_tmp_decl, match_tmp_cast);
+            match_tmp_decl = Concat(match_tmp_decl, ")(");
+            match_tmp_decl = Concat(match_tmp_decl, IntEval(match_subject, env_box[0]));
+            match_tmp_decl = Concat(match_tmp_decl, ");\n");
+            result = Concat(result, Concat(inner_pad, match_tmp_decl));
             ArraySet(cur, 0, idx + 1);
             let match_case_count: Int = 0;
             while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == stmt_indent + 2 {

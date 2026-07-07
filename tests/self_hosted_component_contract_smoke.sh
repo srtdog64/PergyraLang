@@ -1681,6 +1681,9 @@ require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "fun
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCStringJoinFn"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCLogFn"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCToFloatFn"
+require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCFormattedPrintFn"
+require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCIntLineFormat"
+require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCFloatLineFormat"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCLogBlock"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCPrintBlock"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCStringCoreBlock"
@@ -1744,6 +1747,9 @@ require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CollectionRunt
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "StringRuntimeCStringLengthFn"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "StringRuntimeCConcatFn"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "StringRuntimeCLogFn"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "StringRuntimeCFormattedPrintFn"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "StringRuntimeCIntLineFormat"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "StringRuntimeCFloatLineFormat"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "MathRuntimeCAbsFn"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "MathRuntimeCSqrtFn"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "MathRuntimeCPowFn"
@@ -1785,6 +1791,10 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'return Concat("lon
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'return Concat("const char* "'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'return Concat("pgy_result_int "'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'return Concat("pgy_option_int "'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"long long "'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '(long long)('
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '(double)('
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"printf('
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'let arr_c: String = "pgy_ai"'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" '"sqrt("'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" '"pow("'
