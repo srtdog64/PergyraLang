@@ -236,106 +236,9 @@ func CodegenAstTextAuxPayloadFor(text: String, kind: Int) -> String {
     return "";
 }
 
-func CodegenAstTextIsFunction(node: CodegenAstTextNode) -> Bool {
-    return node.kind == 6;
-}
-
-func CodegenAstTextIsParameters(node: CodegenAstTextNode) -> Bool {
-    return node.kind == 2;
-}
-
-func CodegenAstTextIsProgramRoot(node: CodegenAstTextNode) -> Bool {
-    return node.kind == 30;
-}
-
-func CodegenAstTextIsParameterRow(node: CodegenAstTextNode) -> Bool {
-    return node.kind == 12;
-}
-
-func CodegenAstTextIsReturns(node: CodegenAstTextNode) -> Bool {
-    return node.kind == 3;
-}
-
-func CodegenAstTextIsFieldsHeader(node: CodegenAstTextNode) -> Bool {
-    return node.kind == 4;
-}
-
-func CodegenAstTextIsMainFunction(node: CodegenAstTextNode) -> Bool {
-    return CodegenAstTextIsFunction(node) && node.name == "Main";
-}
-
-func CodegenAstTextIsRoleDecl(node: CodegenAstTextNode) -> Bool {
-    return node.kind == 7;
-}
-
-func CodegenAstTextIsNominalDecl(node: CodegenAstTextNode) -> Bool {
-    return node.kind == 8;
-}
-
-func CodegenAstTextIsEnumDecl(node: CodegenAstTextNode) -> Bool {
-    return node.kind == 9;
-}
-
-func CodegenAstTextIsEventDecl(node: CodegenAstTextNode) -> Bool {
-    return node.kind == 10;
-}
-
 func CodegenAstTextProvenance(node: CodegenAstTextNode) -> String {
     let provenance: String = node.text;
     return provenance;
-}
-
-func CodegenAstTextIsZeroArtifactDecl(node: CodegenAstTextNode) -> Bool {
-    return node.kind == 11;
-}
-
-func CodegenAstTextFunctionName(node: CodegenAstTextNode) -> String {
-    if !CodegenAstTextIsFunction(node) || node.name == "" {
-        Die(Concat("expected function AST line: ", node.text));
-    }
-    return node.name;
-}
-
-func CodegenAstTextReturnType(node: CodegenAstTextNode) -> String {
-    if !CodegenAstTextIsReturns(node) || node.type_name == "" {
-        Die(Concat("expected return type AST line: ", node.text));
-    }
-    return node.type_name;
-}
-
-func CodegenAstTextEnumName(node: CodegenAstTextNode) -> String {
-    if !CodegenAstTextIsEnumDecl(node) || node.name == "" {
-        Die(Concat("expected enum declaration AST line: ", node.text));
-    }
-    return node.name;
-}
-
-func CodegenAstTextNominalName(node: CodegenAstTextNode) -> String {
-    if !CodegenAstTextIsNominalDecl(node) || node.name == "" {
-        Die(Concat("expected nominal declaration AST line: ", node.text));
-    }
-    return node.name;
-}
-
-func CodegenAstTextRoleName(node: CodegenAstTextNode) -> String {
-    if !CodegenAstTextIsRoleDecl(node) || node.name == "" {
-        Die(Concat("expected role declaration AST line: ", node.text));
-    }
-    return node.name;
-}
-
-func CodegenAstTextRoleForType(node: CodegenAstTextNode) -> String {
-    if !CodegenAstTextIsRoleDecl(node) || node.type_name == "" {
-        Die(Concat("malformed role declaration AST line: ", node.text));
-    }
-    return node.type_name;
-}
-
-func CodegenAstTextParamMode(node: CodegenAstTextNode) -> Int {
-    if !CodegenAstTextIsParameterRow(node) || node.payload == "" {
-        Die(Concat("expected parameter AST line: ", node.text));
-    }
-    return node.mode;
 }
 
 func CodegenAstTextParamModeName(mode: Int) -> String {
@@ -349,37 +252,6 @@ func CodegenAstTextParamModeName(mode: Int) -> String {
         return "ref";
     }
     return "default";
-}
-
-func CodegenAstTextParamName(node: CodegenAstTextNode, owner_name: String) -> String {
-    if !CodegenAstTextIsParameterRow(node) || node.name == "" {
-        Die(Concat("malformed parameter AST line: ", node.text));
-    }
-    return node.name;
-}
-
-func CodegenAstTextParamType(node: CodegenAstTextNode, owner_name: String) -> String {
-    if CodegenAstTextIsParameterRow(node) && node.name == "self" && node.type_name == "" && StringLength(owner_name) > 0 {
-        return owner_name;
-    }
-    if !CodegenAstTextIsParameterRow(node) || node.type_name == "" {
-        Die(Concat("malformed parameter AST line: ", node.text));
-    }
-    return node.type_name;
-}
-
-func CodegenAstTextFieldName(node: CodegenAstTextNode) -> String {
-    if node.kind != 5 || node.name == "" {
-        Die(Concat("expected field AST line: ", node.text));
-    }
-    return node.name;
-}
-
-func CodegenAstTextFieldType(node: CodegenAstTextNode) -> String {
-    if node.kind != 5 || node.type_name == "" {
-        Die(Concat("expected field AST line: ", node.text));
-    }
-    return node.type_name;
 }
 
 func CodegenAstTextIndentOf(raw: String) -> Int {
