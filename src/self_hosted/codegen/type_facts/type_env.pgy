@@ -142,6 +142,10 @@ func ExprKind(expr: String, env: String) -> String {
     if CodegenCharAt(e, 0) == "\"" {
         return "String";
     }
+    if StringIndexOf("0123456789", CodegenCharAt(e, 0)) >= 0 &&
+        CodegenCharAt(e, StringLength(e) - 1) == "L" {
+        return "Long";
+    }
     // A top-level `+` whose left operand is a string is string concatenation.
     let stripped: String = StripOuterParens(e);
     let plus_opt: Option<Int> = FindTopLevelPlus(stripped);
@@ -154,6 +158,9 @@ func ExprKind(expr: String, env: String) -> String {
         }
         if ExprKind(lhs, env) == "Float" || ExprKind(rhs, env) == "Float" {
             return "Float";
+        }
+        if ExprKind(lhs, env) == "Long" || ExprKind(rhs, env) == "Long" {
+            return "Long";
         }
     }
     if StartsWith(e, "Concat(") {

@@ -1,5 +1,5 @@
 schema=pgy.selfhost.abi-layout-row.v2
-count=10
+count=11
 0|Int|long long|value|none|none|plain_value|selfhost-c|target-c-default|field_allowed|0
 1|Bool|bool|value|none|none|plain_value|selfhost-c|target-c-default|field_allowed|0
 2|Float|double|value|none|none|plain_value|selfhost-c|target-c-default|field_allowed|0.0
@@ -10,3 +10,4 @@ count=10
 7|Result<Int>|pgy_result_int|is_ok,value|bool_result|none|tagged_value|selfhost-c|target-c-default|runtime_value_only|unsupported
 8|Option<Int>|pgy_option_int|is_some,value|bool_presence|none|tagged_value|selfhost-c|target-c-default|runtime_value_only|unsupported
 9|Option<String>|pgy_option_string|is_some,value|bool_presence|none|tagged_value|selfhost-c|target-c-default|runtime_value_only|unsupported
+10|Long|long long|value|none|none|plain_value|selfhost-c|target-c-default|field_allowed|0

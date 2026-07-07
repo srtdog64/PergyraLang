@@ -853,6 +853,8 @@ reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'return "v
 reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'return "long long";'
 reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'return type_name;'
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutConcreteRowCount"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutLongTypeName"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutLongCValueType"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutRowIndex"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutRowCValueTypeAt"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutFieldAllowed"
@@ -896,6 +898,8 @@ require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLay
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLayoutRowSizeAlignAt(0) == CompilerAbiLayoutTargetCDefaultSizeAlign()"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLayoutRowTypeNameAt(9) == CompilerAbiLayoutOptionStringTypeName()"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLayoutRowCValueTypeAt(9) == CompilerAbiLayoutOptionStringCValueType()"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLayoutRowTypeNameAt(10) == CompilerAbiLayoutLongTypeName()"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLayoutRowCValueTypeAt(10) == CompilerAbiLayoutLongCValueType()"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLayoutRowMaterializationAt(9) == CompilerAbiLayoutRuntimeValueOnlyMaterialization()"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLayoutRowDefaultReturnValueAt(3) == CompilerAbiLayoutDefaultReturnEmptyString()"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLayoutRowDefaultReturnValueAt(4) == CompilerAbiLayoutDefaultReturnUnsupported()"
@@ -933,6 +937,7 @@ require_text "src/self_hosted/compiler/abi_layout_row_manifest.pgy" "CompilerAbi
 require_text "src/self_hosted/compiler/expected/abi_layout_rows.txt" "schema=pgy.selfhost.abi-layout-row.v2"
 require_text "src/self_hosted/compiler/expected/abi_layout_rows.txt" '3|String|const char*|value|none|none|borrowed_string_view|selfhost-c|target-c-default|field_allowed|""'
 require_text "src/self_hosted/compiler/expected/abi_layout_rows.txt" "9|Option<String>|pgy_option_string|is_some,value|bool_presence|none|tagged_value|selfhost-c|target-c-default|runtime_value_only|unsupported"
+require_text "src/self_hosted/compiler/expected/abi_layout_rows.txt" "10|Long|long long|value|none|none|plain_value|selfhost-c|target-c-default|field_allowed|0"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessAbiLayoutRowsSuiteName"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessAbiLayoutRowsPathAt"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessAbiLayoutRowsReady"
@@ -3671,14 +3676,15 @@ fi
 
 codegen_fixture_count="$(find "$SELF_HOST_DIR/codegen/fixture" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
 codegen_expected_count="$(find "$SELF_HOST_DIR/codegen/expected" -maxdepth 1 -type f -name '*_stdout.txt' | wc -l | tr -d ' ')"
-[[ "$codegen_fixture_count" -eq 67 ]] ||
-    fail "codegen fixture count drifted: $codegen_fixture_count != 67"
-[[ "$codegen_expected_count" -eq 67 ]] ||
-    fail "codegen expected count drifted: $codegen_expected_count != 67"
+[[ "$codegen_fixture_count" -eq 68 ]] ||
+    fail "codegen fixture count drifted: $codegen_fixture_count != 68"
+[[ "$codegen_expected_count" -eq 68 ]] ||
+    fail "codegen expected count drifted: $codegen_expected_count != 68"
 require_file "src/self_hosted/codegen/fixture/hello.pgy"
 require_file "src/self_hosted/codegen/fixture/seed_random.pgy"
 require_file "src/self_hosted/codegen/fixture/array_index_assign.pgy"
 require_file "src/self_hosted/codegen/fixture/c_reserved_binding.pgy"
+require_file "src/self_hosted/codegen/fixture/long_scalar.pgy"
 require_file "src/self_hosted/codegen/fixture/string_array_index_return.pgy"
 require_text "src/self_hosted/codegen/README.md" "Golden/platform contract"
 require_text "src/self_hosted/codegen/README.md" "PGY_SELFHOST_CODEGEN_BACKENDS=c"
@@ -3687,6 +3693,8 @@ require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "func EmitCodeg
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "DirWalk(CodegenParityFixtureDir())"
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "CodegenParityExpectedPath(base)"
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" '"--fixture-manifest"'
+require_text "src/self_hosted/codegen/fixture/long_scalar.pgy" "func AddLong(x: Long, y: Long) -> Long"
+require_text "src/self_hosted/codegen/expected/long_scalar_stdout.txt" "15"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture()'
 require_text "tests/self_hosted/parity/codegen_parity.sh" "read_codegen_fixture_manifest"
 require_text "tests/self_hosted/parity/codegen_parity.sh" "pgy_selfhost_read_test_harness_manifest"

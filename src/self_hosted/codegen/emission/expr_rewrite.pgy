@@ -529,7 +529,8 @@ func RewriteTokens(e: String, env: String) -> String {
     let runwrap: String = ReplaceAllOutsideStrings(runwrapor, "Unwrap(", Concat(OptionResultRuntimeCResultUnwrapFn(), "("));
     let tf: String = ReplaceAllOutsideStrings(runwrap, "ToFloat(", Concat(StringRuntimeCToFloatFn(), "("));
     let p: String = ReplaceAllOutsideStrings(tf, "ToString(", Concat(StringRuntimeCToStringFn(), "("));
-    return RewriteBoolLiterals(ReplaceAllOutsideStrings(p, "Concat(", Concat(StringRuntimeCConcatFn(), "(")));
+    let concat: String = ReplaceAllOutsideStrings(p, "Concat(", Concat(StringRuntimeCConcatFn(), "("));
+    return RewriteLongLiteralSuffixes(RewriteBoolLiterals(concat));
 }
 
 func IntEval(expr: String, env: String) -> String {

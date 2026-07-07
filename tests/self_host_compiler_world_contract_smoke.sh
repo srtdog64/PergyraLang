@@ -488,7 +488,7 @@ done
 for term in \
     "func CompilerArtifactSchema" \
     "CompilerArtifactZoneReady" \
-    "CompilerArtifactKindCount() == 19" \
+    "CompilerArtifactKindCount() == 20" \
     "diagnostics" \
     "air_json" \
     "mir_json" \
@@ -497,8 +497,9 @@ for term in \
     "abi_layout" \
     "runtime_materialization" \
     "CompilerRunOutputArtifactKind" \
-    "CompilerArtifactKindAt(8) == CompilerRunOutputArtifactKind()" \
-    "CompilerArtifactKindAt(9) == CompilerAstTextArtifactKind()" \
+    "CompilerArtifactKindAt(8) == CompilerEmittedSelfHostedArtifactKind()" \
+    "CompilerArtifactKindAt(9) == CompilerRunOutputArtifactKind()" \
+    "CompilerArtifactKindAt(10) == CompilerAstTextArtifactKind()" \
     "CompilerLspDiagnosticsArtifactKind" \
     "CompilerLspTransportFrameArtifactKind" \
     "CompilerLspTransportStreamArtifactKind" \
@@ -508,12 +509,12 @@ for term in \
     "CompilerLspDocumentStoreArtifactKind" \
     "CompilerLspSessionStateArtifactKind" \
     "CompilerLspHoverContentArtifactKind" \
-    "CompilerArtifactKindAt(13) == CompilerLspRequestDispatchArtifactKind()" \
-    "CompilerArtifactKindAt(14) == CompilerLspResponseEmissionArtifactKind()" \
-    "CompilerArtifactKindAt(15) == CompilerLspSessionReplayArtifactKind()" \
-    "CompilerArtifactKindAt(16) == CompilerLspDocumentStoreArtifactKind()" \
-    "CompilerArtifactKindAt(17) == CompilerLspSessionStateArtifactKind()" \
-    "CompilerArtifactKindAt(18) == CompilerLspHoverContentArtifactKind()" \
+    "CompilerArtifactKindAt(14) == CompilerLspRequestDispatchArtifactKind()" \
+    "CompilerArtifactKindAt(15) == CompilerLspResponseEmissionArtifactKind()" \
+    "CompilerArtifactKindAt(16) == CompilerLspSessionReplayArtifactKind()" \
+    "CompilerArtifactKindAt(17) == CompilerLspDocumentStoreArtifactKind()" \
+    "CompilerArtifactKindAt(18) == CompilerLspSessionStateArtifactKind()" \
+    "CompilerArtifactKindAt(19) == CompilerLspHoverContentArtifactKind()" \
     "emitted_self_hosted" \
     "run_output"; do
     require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "$term"
@@ -578,7 +579,7 @@ for term in \
     "CompilerAbiLayoutRowsReady" \
     "CompilerAbiLayoutRowFactCount() == 9" \
     "CompilerAbiLayoutConcreteRowCount" \
-    "CompilerAbiLayoutConcreteRowCount() == 10" \
+    "CompilerAbiLayoutConcreteRowCount() == 11" \
     "CompilerAbiLayoutRowIndex" \
     "CompilerAbiLayoutRowCValueTypeAt" \
     "CompilerAbiLayoutFieldAllowed" \

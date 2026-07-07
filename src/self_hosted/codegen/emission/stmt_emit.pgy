@@ -71,6 +71,10 @@ func EmitLet(arena: AstArena, idx: Int, inout env_box: Array<String>) -> String 
         ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], name, "Int", c_name));
         return Concat(AbiLayoutCLocalType(type_name, env_box[0]), Concat(" ", Concat(c_name, Concat(" = ", Concat(IntEval(expr, env_box[0]), ";")))));
     }
+    if type_name == "Long" {
+        ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], name, "Long", c_name));
+        return Concat(AbiLayoutCLocalType(type_name, env_box[0]), Concat(" ", Concat(c_name, Concat(" = ", Concat(IntEval(expr, env_box[0]), ";")))));
+    }
     if type_name == "Bool" {
         ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], name, "Bool", c_name));
         return Concat(AbiLayoutCLocalType(type_name, env_box[0]), Concat(" ", Concat(c_name, Concat(" = ", Concat(IntEval(expr, env_box[0]), ";")))));
@@ -216,6 +220,9 @@ func EmitAssign(arena: AstArena, idx: Int, env_box: Array<String>) -> String {
     if vt == "Float" {
         return Concat(c_name, Concat(" = ", Concat(RewriteExpr(expr, env_box[0]), ";")));
     }
+    if vt == "Long" {
+        return Concat(c_name, Concat(" = ", Concat(IntEval(expr, env_box[0]), ";")));
+    }
     let assign_option_struct_fact_opt: Option<OptionStructRuntimeFact> = OptionResultRuntimeStructOptionFact(vt, env_box[0]);
     if IsSome(assign_option_struct_fact_opt) {
         let assign_option_expr_fact: OptionExprEmissionFact = EmitOptionExprFactForType(expr, vt, env_box[0]);
@@ -256,8 +263,12 @@ func EmitLog(inner: String, env: String) -> String {
             Die(Concat("malformed ToString(...): ", inner));
         }
         let arg: String = Substring(inner, 9, n - 9 - 1);
-        if ExprKind(arg, env) == "String" {
+        let arg_kind: String = ExprKind(arg, env);
+        if arg_kind == "String" {
             return Concat(StringRuntimeCLogFn(), Concat("(", Concat(StrEval(arg, env), ");")));
+        }
+        if arg_kind == "Long" {
+            return EmitFormattedScalarLog(IntEval(arg, env), "Long", StringRuntimeCIntLineFormat(), env);
         }
         return EmitFormattedScalarLog(IntEval(arg, env), "Int", StringRuntimeCIntLineFormat(), env);
     }
@@ -265,6 +276,9 @@ func EmitLog(inner: String, env: String) -> String {
     // the argument's type so an integer never gets printed with `%s`.
     if ExprKind(inner, env) == "Int" {
         return EmitFormattedScalarLog(IntEval(inner, env), "Int", StringRuntimeCIntLineFormat(), env);
+    }
+    if ExprKind(inner, env) == "Long" {
+        return EmitFormattedScalarLog(IntEval(inner, env), "Long", StringRuntimeCIntLineFormat(), env);
     }
     if ExprKind(inner, env) == "Float" {
         return EmitFormattedScalarLog(RewriteExpr(inner, env), "Float", StringRuntimeCFloatLineFormat(), env);
@@ -285,6 +299,9 @@ func EmitReturn(rexpr: String, cur_fn_ret: String, env: String) -> String {
     }
     if cur_fn_ret == "Float" {
         return Concat("return ", Concat(RewriteExpr(rexpr, env), ";"));
+    }
+    if cur_fn_ret == "Long" {
+        return Concat("return ", Concat(IntEval(rexpr, env), ";"));
     }
     if StartsWith(cur_fn_ret, "Result<") && StringIndexOf(cur_fn_ret, "Int") >= 0 {
         return Concat("return ", Concat(RewriteExpr(rexpr, env), ";"));

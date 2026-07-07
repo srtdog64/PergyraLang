@@ -92,3 +92,50 @@ func RewriteNoneLiteral(e: String) -> String {
     }
     return out;
 }
+
+func RewriteLongLiteralSuffixes(e: String) -> String {
+    let n: Int = StringLength(e);
+    let out: String = "";
+    let i: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CodegenCharAt(e, i);
+        if in_str {
+            out = Concat(out, c);
+            if c == "\\" && i + 1 < n {
+                out = Concat(out, CodegenCharAt(e, i + 1));
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            out = Concat(out, c);
+            i = i + 1;
+            continue;
+        }
+        let prev_ok: Bool = i == 0 || !IsIdentChar(CodegenCharAt(e, i - 1));
+        if prev_ok && StringIndexOf("0123456789", c) >= 0 {
+            let start: Int = i;
+            while i < n && StringIndexOf("0123456789", CodegenCharAt(e, i)) >= 0 {
+                i = i + 1;
+            }
+            if i < n && CodegenCharAt(e, i) == "L" &&
+                (i + 1 == n || !IsIdentChar(CodegenCharAt(e, i + 1))) {
+                out = Concat(out, Concat(Substring(e, start, i - start), "LL"));
+                i = i + 1;
+                continue;
+            }
+            out = Concat(out, Substring(e, start, i - start));
+            continue;
+        }
+        out = Concat(out, c);
+        i = i + 1;
+    }
+    return out;
+}
