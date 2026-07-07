@@ -2,6 +2,8 @@
 //
 // Self-host C Option/Result runtime symbol facts for the supported codegen subset.
 
+import "../type_facts/type_env.pgy";
+
 func OptionResultRuntimeCOptionSomeFn() -> String {
     return "pgy_option_some";
 }
@@ -37,6 +39,32 @@ func OptionResultRuntimeOptionPayloadKindForType(type_name: String) -> Int {
     return 0;
 }
 
+func OptionResultRuntimeOptionInnerTypeName(type_name: String) -> String {
+    let n: Int = StringLength(type_name);
+    if !StartsWith(type_name, "Option<") || n < 9 {
+        return "";
+    }
+    let inner: String = StringTrim(Substring(type_name, 7, n - 8));
+    let colon: Int = StringIndexOf(inner, ":");
+    if colon >= 0 {
+        return StringTrim(Substring(inner, 0, colon));
+    }
+    return inner;
+}
+
+func OptionResultRuntimeOptionIsStructType(type_name: String, env: String) -> Bool {
+    let inner: String = OptionResultRuntimeOptionInnerTypeName(type_name);
+    return StringLength(inner) > 0 && LookupKindType(env, inner, "s") == "struct";
+}
+
+func OptionResultRuntimeCOptionStructType(type_name: String, env: String) -> String {
+    let inner: String = OptionResultRuntimeOptionInnerTypeName(type_name);
+    if StringLength(inner) == 0 || LookupKindType(env, inner, "s") != "struct" {
+        return "";
+    }
+    return Concat("pgy_option_", inner);
+}
+
 func OptionResultRuntimeOptionPayloadKindFromEnvKind(kind: String) -> Int {
     if kind == "OptionString" {
         return OptionResultRuntimeOptionPayloadKindString();
@@ -47,11 +75,31 @@ func OptionResultRuntimeOptionPayloadKindFromEnvKind(kind: String) -> Int {
     return 0;
 }
 
+func OptionResultRuntimeOptionEnvKindForType(type_name: String, env: String) -> String {
+    let payload_kind: Int = OptionResultRuntimeOptionPayloadKindForType(type_name);
+    let env_kind: String = OptionResultRuntimeOptionEnvKindForPayloadKind(payload_kind);
+    if StringLength(env_kind) > 0 {
+        return env_kind;
+    }
+    if OptionResultRuntimeOptionIsStructType(type_name, env) {
+        return type_name;
+    }
+    return "";
+}
+
 func OptionResultRuntimeCOptionSomeFnForPayloadKind(kind: Int) -> String {
     if kind == OptionResultRuntimeOptionPayloadKindString() {
         return "pgy_option_some_string";
     }
     return OptionResultRuntimeCOptionSomeFn();
+}
+
+func OptionResultRuntimeCOptionSomeFnForType(type_name: String, env: String) -> String {
+    if OptionResultRuntimeOptionIsStructType(type_name, env) {
+        return Concat("pgy_option_some_", OptionResultRuntimeOptionInnerTypeName(type_name));
+    }
+    return OptionResultRuntimeCOptionSomeFnForPayloadKind(
+        OptionResultRuntimeOptionPayloadKindForType(type_name));
 }
 
 func OptionResultRuntimeCOptionNoneFn() -> String {
@@ -63,6 +111,14 @@ func OptionResultRuntimeCOptionNoneFnForPayloadKind(kind: Int) -> String {
         return "pgy_option_none_string";
     }
     return OptionResultRuntimeCOptionNoneFn();
+}
+
+func OptionResultRuntimeCOptionNoneFnForType(type_name: String, env: String) -> String {
+    if OptionResultRuntimeOptionIsStructType(type_name, env) {
+        return Concat("pgy_option_none_", OptionResultRuntimeOptionInnerTypeName(type_name));
+    }
+    return OptionResultRuntimeCOptionNoneFnForPayloadKind(
+        OptionResultRuntimeOptionPayloadKindForType(type_name));
 }
 
 func OptionResultRuntimeCOptionIsSomeFn() -> String {
@@ -101,6 +157,57 @@ func OptionResultRuntimeOptionValueTypeForPayloadKind(kind: Int) -> String {
         return "Int";
     }
     return "";
+}
+
+func OptionResultRuntimeOptionValueTypeForType(type_name: String, env: String) -> String {
+    let payload_kind: Int = OptionResultRuntimeOptionPayloadKindForType(type_name);
+    let value_type: String = OptionResultRuntimeOptionValueTypeForPayloadKind(payload_kind);
+    if StringLength(value_type) > 0 {
+        return value_type;
+    }
+    if OptionResultRuntimeOptionIsStructType(type_name, env) {
+        return OptionResultRuntimeOptionInnerTypeName(type_name);
+    }
+    return "";
+}
+
+func OptionResultRuntimeCStructOptionDefinitions(env: String) -> String {
+    let out: String = "";
+    let scan: Int = 0;
+    let marker: String = "=s:struct|";
+    while scan < StringLength(env) {
+        let rest: String = Substring(env, scan, StringLength(env) - scan);
+        let rel: Int = StringIndexOf(rest, marker);
+        if rel < 0 {
+            return out;
+        }
+        let mark: Int = scan + rel;
+        let start: Int = mark - 1;
+        while start >= 0 && CodegenCharAt(env, start) != "|" {
+            start = start - 1;
+        }
+        let name: String = Substring(env, start + 1, mark - start - 1);
+        if StringLength(name) > 0 {
+            let opt_name: String = Concat("pgy_option_", name);
+            let typedef_line: String = Concat("typedef struct { bool is_some; ", name);
+            typedef_line = Concat(typedef_line, Concat(" value; } ", Concat(opt_name, ";\n")));
+            out = Concat(out, typedef_line);
+
+            let some_line: String = Concat("static ", opt_name);
+            some_line = Concat(some_line, Concat(" pgy_option_some_", name));
+            some_line = Concat(some_line, Concat("(", Concat(name, " v) { ")));
+            some_line = Concat(some_line, Concat(opt_name, " o; o.is_some = true; o.value = v; return o; }\n"));
+            out = Concat(out, some_line);
+
+            let none_line: String = Concat("static ", opt_name);
+            none_line = Concat(none_line, Concat(" pgy_option_none_", name));
+            none_line = Concat(none_line, Concat("(void) { ", Concat(name, " z = {0}; ")));
+            none_line = Concat(none_line, Concat(opt_name, " o; o.is_some = false; o.value = z; return o; }\n"));
+            out = Concat(out, none_line);
+        }
+        scan = mark + StringLength(marker);
+    }
+    return out;
 }
 
 func OptionResultRuntimeCResultOkFn() -> String {

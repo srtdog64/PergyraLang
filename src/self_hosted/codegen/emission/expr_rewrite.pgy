@@ -305,7 +305,8 @@ func RewriteCallArgForExpectedType(part: String, expected_type: String, env: Str
     }
     let enum_fact_opt: Option<EnumLiteralProjectionFact> = EnumPayloadFreeArgumentProjectionFactOpt(part, expected_type, env);
     if IsSome(enum_fact_opt) {
-        return UnwrapOption(enum_fact_opt).c_value;
+        let enum_fact: EnumLiteralProjectionFact = UnwrapOption(enum_fact_opt);
+        return enum_fact.c_value;
     }
     return RewriteExpr(part, env);
 }

@@ -7,6 +7,7 @@ import "../input/ast_text_inventory_owner.pgy";
 import "../input/ast_text_typed_arena_owner.pgy";
 import "../input/ast_usage_owner.pgy";
 import "../runtime_abi/host_io_runtime_owner.pgy";
+import "../runtime_abi/option_result_runtime_owner.pgy";
 import "function_emit.pgy";
 
 func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
@@ -122,6 +123,7 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
 
     // Forward declarations come from a GenerateC-scope pre-pass.
     let proto_block: String = CollectProtos(nodes, count, arena, base_env);
+    let option_struct_block: String = OptionResultRuntimeCStructOptionDefinitions(base_env);
 
     // String programs need the runtime string helpers; bool programs need
     // <stdbool.h>; array programs need the growable-array structs + stdlib;
@@ -482,7 +484,7 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
         header = Concat(header, "    qsort(a.data, (size_t)a.len, sizeof(const char *), pgy_str_cmp);\n");
         header = Concat(header, "    return a;\n}\n\n");
     }
-    return Concat(header, Concat(enum_block, Concat(typedef_block, Concat(record_array_block, Concat(proto_block, defs)))));
+    return Concat(header, Concat(enum_block, Concat(typedef_block, Concat(option_struct_block, Concat(record_array_block, Concat(proto_block, defs))))));
 }
 
 func GenerateC(tree_text: String) -> String {

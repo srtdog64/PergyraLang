@@ -4,6 +4,7 @@
 
 import "../text/text_owner.pgy";
 import "../type_facts/type_env.pgy";
+import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../../compiler/abi_layout_row_owner.pgy";
 
 func AbiLayoutRequireCompilerRows() -> Void {
@@ -17,6 +18,10 @@ func AbiLayoutCValueType(type_name: String, struct_env: String) -> String {
     let row: Option<Int> = CompilerAbiLayoutRowIndex(type_name);
     if IsSome(row) {
         return CompilerAbiLayoutRowCValueTypeAt(UnwrapOption(row));
+    }
+    let option_struct_type: String = OptionResultRuntimeCOptionStructType(type_name, struct_env);
+    if StringLength(option_struct_type) > 0 {
+        return option_struct_type;
     }
     if LookupKindType(struct_env, type_name, "s") == "struct" {
         return type_name;
