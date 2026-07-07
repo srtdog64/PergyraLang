@@ -115,7 +115,10 @@ SENTINEL_MAX=3
 # adding string-to-string compiler-core surface.
 # 689 -> 698 (2026-07-07): payload-free enum literal projection now consumes
 # Option-returning owner facts instead of local enum-key reconstruction.
-RESULT_USE_MIN=698
+# 698 -> 710 (2026-07-07): struct Option runtime ABI now flows through
+# Option<OptionStructRuntimeFact> and OptionExprEmissionFact instead of
+# String-returning helper aliases; keep the typed-fact cutover load-bearing.
+RESULT_USE_MIN=710
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=17
 COMPILER_WORLD_MEMBERS_EXACT=17

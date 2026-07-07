@@ -123,7 +123,8 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
 
     // Forward declarations come from a GenerateC-scope pre-pass.
     let proto_block: String = CollectProtos(nodes, count, arena, base_env);
-    let option_struct_block: String = OptionResultRuntimeCStructOptionDefinitions(base_env);
+    let option_struct_block_fact: OptionStructDefinitionBlockFact = OptionResultRuntimeCStructOptionDefinitionBlock(base_env);
+    let option_struct_block: String = option_struct_block_fact.c_block;
 
     // String programs need the runtime string helpers; bool programs need
     // <stdbool.h>; array programs need the growable-array structs + stdlib;

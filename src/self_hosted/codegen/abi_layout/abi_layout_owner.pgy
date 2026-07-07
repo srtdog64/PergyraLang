@@ -19,9 +19,10 @@ func AbiLayoutCValueType(type_name: String, struct_env: String) -> String {
     if IsSome(row) {
         return CompilerAbiLayoutRowCValueTypeAt(UnwrapOption(row));
     }
-    let option_struct_type: String = OptionResultRuntimeCOptionStructType(type_name, struct_env);
-    if StringLength(option_struct_type) > 0 {
-        return option_struct_type;
+    let option_struct_fact_opt: Option<OptionStructRuntimeFact> = OptionResultRuntimeStructOptionFact(type_name, struct_env);
+    if IsSome(option_struct_fact_opt) {
+        let option_struct_fact: OptionStructRuntimeFact = UnwrapOption(option_struct_fact_opt);
+        return option_struct_fact.c_type;
     }
     if LookupKindType(struct_env, type_name, "s") == "struct" {
         return type_name;

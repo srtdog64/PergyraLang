@@ -4,6 +4,17 @@
 
 import "../type_facts/type_env.pgy";
 
+struct OptionStructRuntimeFact {
+    let inner_type_name: String;
+    let c_type: String;
+    let some_fn: String;
+    let none_fn: String;
+}
+
+struct OptionStructDefinitionBlockFact {
+    let c_block: String;
+}
+
 func OptionResultRuntimeCOptionSomeFn() -> String {
     return "pgy_option_some";
 }
@@ -39,30 +50,24 @@ func OptionResultRuntimeOptionPayloadKindForType(type_name: String) -> Int {
     return 0;
 }
 
-func OptionResultRuntimeOptionInnerTypeName(type_name: String) -> String {
+func OptionResultRuntimeStructOptionFact(type_name: String, env: String) -> Option<OptionStructRuntimeFact> {
     let n: Int = StringLength(type_name);
     if !StartsWith(type_name, "Option<") || n < 9 {
-        return "";
+        return None;
     }
     let inner: String = StringTrim(Substring(type_name, 7, n - 8));
     let colon: Int = StringIndexOf(inner, ":");
     if colon >= 0 {
-        return StringTrim(Substring(inner, 0, colon));
+        inner = StringTrim(Substring(inner, 0, colon));
     }
-    return inner;
-}
-
-func OptionResultRuntimeOptionIsStructType(type_name: String, env: String) -> Bool {
-    let inner: String = OptionResultRuntimeOptionInnerTypeName(type_name);
-    return StringLength(inner) > 0 && LookupKindType(env, inner, "s") == "struct";
-}
-
-func OptionResultRuntimeCOptionStructType(type_name: String, env: String) -> String {
-    let inner: String = OptionResultRuntimeOptionInnerTypeName(type_name);
     if StringLength(inner) == 0 || LookupKindType(env, inner, "s") != "struct" {
-        return "";
+        return None;
     }
-    return Concat("pgy_option_", inner);
+    return Some(OptionStructRuntimeFact(
+        inner,
+        Concat("pgy_option_", inner),
+        Concat("pgy_option_some_", inner),
+        Concat("pgy_option_none_", inner)));
 }
 
 func OptionResultRuntimeOptionPayloadKindFromEnvKind(kind: String) -> Int {
@@ -75,31 +80,11 @@ func OptionResultRuntimeOptionPayloadKindFromEnvKind(kind: String) -> Int {
     return 0;
 }
 
-func OptionResultRuntimeOptionEnvKindForType(type_name: String, env: String) -> String {
-    let payload_kind: Int = OptionResultRuntimeOptionPayloadKindForType(type_name);
-    let env_kind: String = OptionResultRuntimeOptionEnvKindForPayloadKind(payload_kind);
-    if StringLength(env_kind) > 0 {
-        return env_kind;
-    }
-    if OptionResultRuntimeOptionIsStructType(type_name, env) {
-        return type_name;
-    }
-    return "";
-}
-
 func OptionResultRuntimeCOptionSomeFnForPayloadKind(kind: Int) -> String {
     if kind == OptionResultRuntimeOptionPayloadKindString() {
         return "pgy_option_some_string";
     }
     return OptionResultRuntimeCOptionSomeFn();
-}
-
-func OptionResultRuntimeCOptionSomeFnForType(type_name: String, env: String) -> String {
-    if OptionResultRuntimeOptionIsStructType(type_name, env) {
-        return Concat("pgy_option_some_", OptionResultRuntimeOptionInnerTypeName(type_name));
-    }
-    return OptionResultRuntimeCOptionSomeFnForPayloadKind(
-        OptionResultRuntimeOptionPayloadKindForType(type_name));
 }
 
 func OptionResultRuntimeCOptionNoneFn() -> String {
@@ -111,14 +96,6 @@ func OptionResultRuntimeCOptionNoneFnForPayloadKind(kind: Int) -> String {
         return "pgy_option_none_string";
     }
     return OptionResultRuntimeCOptionNoneFn();
-}
-
-func OptionResultRuntimeCOptionNoneFnForType(type_name: String, env: String) -> String {
-    if OptionResultRuntimeOptionIsStructType(type_name, env) {
-        return Concat("pgy_option_none_", OptionResultRuntimeOptionInnerTypeName(type_name));
-    }
-    return OptionResultRuntimeCOptionNoneFnForPayloadKind(
-        OptionResultRuntimeOptionPayloadKindForType(type_name));
 }
 
 func OptionResultRuntimeCOptionIsSomeFn() -> String {
@@ -159,19 +136,7 @@ func OptionResultRuntimeOptionValueTypeForPayloadKind(kind: Int) -> String {
     return "";
 }
 
-func OptionResultRuntimeOptionValueTypeForType(type_name: String, env: String) -> String {
-    let payload_kind: Int = OptionResultRuntimeOptionPayloadKindForType(type_name);
-    let value_type: String = OptionResultRuntimeOptionValueTypeForPayloadKind(payload_kind);
-    if StringLength(value_type) > 0 {
-        return value_type;
-    }
-    if OptionResultRuntimeOptionIsStructType(type_name, env) {
-        return OptionResultRuntimeOptionInnerTypeName(type_name);
-    }
-    return "";
-}
-
-func OptionResultRuntimeCStructOptionDefinitions(env: String) -> String {
+func OptionResultRuntimeCStructOptionDefinitionBlock(env: String) -> OptionStructDefinitionBlockFact {
     let out: String = "";
     let scan: Int = 0;
     let marker: String = "=s:struct|";
@@ -179,7 +144,7 @@ func OptionResultRuntimeCStructOptionDefinitions(env: String) -> String {
         let rest: String = Substring(env, scan, StringLength(env) - scan);
         let rel: Int = StringIndexOf(rest, marker);
         if rel < 0 {
-            return out;
+            return OptionStructDefinitionBlockFact(out);
         }
         let mark: Int = scan + rel;
         let start: Int = mark - 1;
@@ -207,7 +172,7 @@ func OptionResultRuntimeCStructOptionDefinitions(env: String) -> String {
         }
         scan = mark + StringLength(marker);
     }
-    return out;
+    return OptionStructDefinitionBlockFact(out);
 }
 
 func OptionResultRuntimeCResultOkFn() -> String {
