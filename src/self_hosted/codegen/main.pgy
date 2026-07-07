@@ -20,6 +20,7 @@ import "input/ast_text_row_fact_owner.pgy";
 import "input/ast_text_array_literal_owner.pgy";
 import "input/ast_text_enum_variant_owner.pgy";
 import "input/ast_text_try_let_owner.pgy";
+import "input/ast_text_indexed_assignment_owner.pgy";
 import "input/ast_usage_owner.pgy";
 import "emission/expr_rewrite.pgy";
 import "emission/struct_value_emit.pgy";

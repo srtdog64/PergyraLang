@@ -686,6 +686,7 @@ require_owner_surface codegen \
     "input/ast_text_array_literal_owner.pgy" \
     "input/ast_text_enum_variant_owner.pgy" \
     "input/ast_text_try_let_owner.pgy" \
+    "input/ast_text_indexed_assignment_owner.pgy" \
     "input/ast_usage_owner.pgy" \
     "run/codegen_run_owner.pgy" \
     "text/text_owner.pgy" \
@@ -1247,9 +1248,13 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaLe
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaLetTryInner(arena, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func TryExprInner"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'ContainsOutsideStrings(CodegenAstArenaValueOrDie(arena, idx), "(?")'
-require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaAssignTargetIsIndex"
-require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaAssignIndexReceiverOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaAssignIndexExprOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaAssignTargetIsIndex"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaAssignIndexReceiverOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaAssignIndexExprOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_indexed_assignment_owner.pgy" "func CodegenAstArenaAssignTargetIsIndex"
+require_text "src/self_hosted/codegen/input/ast_text_indexed_assignment_owner.pgy" "func CodegenAstArenaAssignIndexReceiverOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_indexed_assignment_owner.pgy" "func CodegenAstArenaAssignIndexExprOrDie"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/ast_text_indexed_assignment_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaAssignTargetIsIndex(arena, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'StringIndexOf(name, "[")'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsLogStmt(arena, idx)"
