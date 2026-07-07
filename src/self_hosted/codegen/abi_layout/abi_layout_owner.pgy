@@ -53,6 +53,10 @@ func AbiLayoutCEntrypointBodyReturnType() -> String {
     return CompilerAbiLayoutIntTypeName();
 }
 
+func AbiLayoutCEmptyParameterList() -> String {
+    return CompilerAbiLayoutVoidCValueType();
+}
+
 func AbiLayoutCDefaultReturnValue(type_name: String, struct_env: String) -> String {
     AbiLayoutRequireCompilerRows();
     if type_name == CompilerAbiLayoutStringTypeName() {

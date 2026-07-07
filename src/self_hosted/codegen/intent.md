@@ -35,7 +35,7 @@ participant, not a zone.
   evidence. C, LLVM, and self-hosted codegen must not infer field order, tags,
   niches, or pointer ownership from emitted text or backend-local spelling.
 - `AbiLayoutOwner` owns self-host C ABI type spelling for the supported
-  signature, local declaration, and field subset. It is not the full
+  signature, empty parameter-list, local declaration, and field subset. It is not the full
   cross-backend row projection; that remains an active expansion surface until
   C/LLVM also consume the same ABI rows.
 - `AstTextInventoryOwner` owns the transitional AST-text node inventory and
@@ -46,8 +46,9 @@ participant, not a zone.
   statement truth.
 - `CompilerSymbolTableOwner` owns emitted-symbol spelling rows consumed by the
   self-host C subset. Codegen reads that compiler-world owner directly instead
-  of keeping a second C-only mangle owner. Function/method emission and
-  namespace-qualified call lowering both consume this owner.
+  of keeping a second C-only mangle owner. Function/method emission,
+  `inout` temporary parameter names, and namespace-qualified call lowering all
+  consume this owner.
 - `CollectionRuntimeOwner` owns self-host C collection runtime helper symbol
   spelling for the supported `Array<Int>` / `Array<String>` subset and the
   bootstrap-only `Array<CodegenAstTextNode>` typed AST-line bridge. The helper
@@ -107,8 +108,8 @@ Concrete split for the current codegen cluster:
 | ABI layout facts | yes | separate read-only layout/ownership-shape fact resource |
 | AST text node inventory | bridge owner, not final zone | transitional self-parser AST-text node rows until a tagged AST owner replaces line text |
 | AST text statement rows | bridge owner, not final zone | statement facts are consumed through row-fact owner plus typed arena projection while the text bridge remains active |
-| self-host C ABI type spelling | owner, not zone yet | canonical C spelling for supported signatures, locals, and fields |
-| symbol/name-mangling facts | compiler-world owner, not codegen zone | read-only canonical spelling rows for supported self-host emission |
+| self-host C ABI type spelling | owner, not zone yet | canonical C spelling for supported signatures, empty parameter lists, locals, and fields |
+| symbol/name-mangling facts | compiler-world owner, not codegen zone | read-only canonical spelling rows for supported self-host emission, including `inout` temporary parameter names |
 | collection runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host array runtime calls, including the bootstrap typed AST-line record array |
 | math/random helper and target-library symbols | owner, not zone yet | canonical C names for supported self-host math/random calls |
 | host I/O/process helper, entrypoint, and target-library symbols | owner, not zone yet | canonical C names for supported self-host file/argv/process calls plus the C process entrypoint |

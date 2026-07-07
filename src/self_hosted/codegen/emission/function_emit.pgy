@@ -52,7 +52,7 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
         let c_param_type: String = AbiLayoutCParamType(p_type, base_env);
         let c_param: String = Concat(c_param_type, Concat(" ", p_name));
         if p_mode == 1 {
-            let inout_name: String = Concat("_pgy_inout_", p_name);
+            let inout_name: String = CompilerSymbolCInoutParamName(p_name);
             c_param = Concat(c_param_type, Concat(" *", inout_name));
             prologue = Concat(prologue, Concat("    ", Concat(c_param_type, Concat(" ", Concat(p_name, Concat(" = *", Concat(inout_name, ";\n")))))));
             copyout = Concat(copyout, Concat("    *", Concat(inout_name, Concat(" = ", Concat(p_name, ";\n")))));
@@ -101,7 +101,7 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
     } else {
         let param_list: String = params;
         if param_n == 0 {
-            param_list = "void";
+            param_list = AbiLayoutCEmptyParameterList();
         }
         signature = Concat(AbiLayoutCReturnType(ret_type, base_env), Concat(" ", Concat(c_name, Concat("(", Concat(param_list, ")")))));
     }
@@ -326,7 +326,7 @@ func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
                     let cpt: String = AbiLayoutCParamType(p_type, struct_env);
                     let cp: String = Concat(cpt, Concat(" ", p_name));
                     if p_mode == 1 {
-                        cp = Concat(cpt, Concat(" *_pgy_inout_", p_name));
+                        cp = Concat(cpt, Concat(" *", CompilerSymbolCInoutParamName(p_name)));
                     }
                     if pn == 0 {
                         params = cp;
@@ -342,7 +342,7 @@ func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
                 }
                 let plist: String = params;
                 if pn == 0 {
-                    plist = "void";
+                    plist = AbiLayoutCEmptyParameterList();
                 }
                 let sig: String = Concat(AbiLayoutCReturnType(rtype, struct_env), Concat(" ", Concat(c_name, Concat("(", Concat(plist, ")")))));
                 block = Concat(block, Concat(sig, ";\n"));

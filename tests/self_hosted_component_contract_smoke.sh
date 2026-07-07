@@ -829,6 +829,7 @@ require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func Abi
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCReturnType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCLocalType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCFieldType"
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCEmptyParameterList"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'import "../../compiler/abi_layout_row_owner.pgy";'
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutRowsReady()"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutRowIndex(type_name)"
@@ -1272,7 +1273,9 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstAre
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaAtomOrDie(arena, j)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaTypeNameOrDie(arena, j)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=pm:"'
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"_pgy_inout_"'
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCInoutParamName"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCInoutParamName(p_name)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" '"_pgy_inout_"'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsZeroArtifactDecl(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsNominalDecl(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsRoleDecl(arena, i)"
@@ -1661,6 +1664,7 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" "HostIORuntime
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "HostIORuntimeCEntrypointSignature(uses_args)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "HostIORuntimeCEntrypointSuccessValue()"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCEntrypointBodyReturnType()"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCEmptyParameterList()"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "static int pgy_argc"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "static char **pgy_argv"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "static pgy_as pgy_args"
@@ -1669,6 +1673,8 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "pgy_argv = arg
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "int main(int argc, char **argv)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "int main(void)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'body_ret = "Int";'
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'param_list = "void";'
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'plist = "void";'
 reject_text "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy" " = argc;"
 reject_text "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy" " = argv;"
 require_text "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy" "HostIORuntimeCSecureFileOpenFn()"
@@ -1741,6 +1747,7 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCRet
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCFieldType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutIsVoidReturnType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCEntrypointBodyReturnType"
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCEmptyParameterList"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCDefaultReturnValue"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "AbiLayoutCLocalType"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "AbiLayoutIsVoidReturnType"
