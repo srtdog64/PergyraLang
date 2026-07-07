@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../compiler/mir_abi_layout.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 
@@ -19,6 +20,27 @@
 #include "codegen_type_mapping.h"
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
+
+static const char *
+transpiler_func_flow_slot_runtime_fn(TranspilerCtx *ctx,
+                                     MIRResourceAbiKind kind,
+                                     const char *inner_type,
+                                     const char *operation)
+{
+    const char *runtime_fn =
+        mir_abi_resource_runtime_fn_by_kind(kind, inner_type, operation);
+    if (runtime_fn != NULL)
+        return runtime_fn;
+
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_INSPECT_MIR_INVENTORY,
+        "C source with-slot %s requires MIR ABI runtime function row",
+        operation != NULL ? operation : "<unknown>");
+    return NULL;
+}
 
 void
 emit_func_decl_named(ASTNode *node, const char *emitted_name,
@@ -243,6 +265,9 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
     bool is_secure    = ast_with_is_secure(node);
     int saved_slot_count = ctx->slot_var_count;
     int saved_typed_count = ctx->typed_var_count;
+    MIRResourceAbiKind slot_kind;
+    const char *claim_fn;
+    const char *release_fn;
 
     const char *inner = NULL;
     if (ast_with_slot_type(node) != NULL)
@@ -258,6 +283,12 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
         return;
     }
 
+    slot_kind = is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT : MIR_RESOURCE_ABI_SLOT;
+    claim_fn = transpiler_func_flow_slot_runtime_fn(ctx, slot_kind, inner, "Claim");
+    release_fn = transpiler_func_flow_slot_runtime_fn(ctx, slot_kind, inner, "Release");
+    if (claim_fn == NULL || release_fn == NULL)
+        return;
+
     write_indent(ctx);
     codebuf_write(ctx->out, "{\n");
     ctx->indent++;
@@ -271,15 +302,15 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
             "PgyToken_%s %s_token;\n", inner, alias);
         write_indent(ctx);
         codebuf_write(ctx->out,
-            "PgySecureSlot_%s %s = pgy_claim_secure_%s(&%s_token);\n",
-            inner, alias, inner, alias);
+            "PgySecureSlot_%s %s = %s(&%s_token);\n",
+            inner, alias, claim_fn, alias);
         write_indent(ctx);
         codebuf_write(ctx->out, "(void)%s;\n", alias);
     } else {
         write_indent(ctx);
         codebuf_write(ctx->out,
-            "PgySlot_%s %s = pgy_claim_%s();\n",
-            inner, alias, inner);
+            "PgySlot_%s %s = %s();\n",
+            inner, alias, claim_fn);
         write_indent(ctx);
         codebuf_write(ctx->out, "(void)%s;\n", alias);
     }
@@ -291,11 +322,11 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
     write_indent(ctx);
     if (is_secure) {
         codebuf_write(ctx->out,
-            "pgy_secure_release_%s(&%s, &%s_token);\n",
-            inner, alias, alias);
+            "%s(&%s, &%s_token);\n",
+            release_fn, alias, alias);
     } else {
         codebuf_write(ctx->out,
-            "pgy_release_%s(&%s);\n", inner, alias);
+            "%s(&%s);\n", release_fn, alias);
     }
 
     ctx->indent--;
