@@ -12,6 +12,7 @@
 
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
+#include "codegen_match_variant_policy.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_inventory_view.h"
@@ -110,6 +111,9 @@ ensure_option_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
                                 const char *inner_type)
 {
     char inner_subst[128];
+    const char *some_tag;
+    const char *none_tag;
+    const char *some_field;
 
     if (ctx == NULL || dst == NULL || inner_type == NULL)
         return;
@@ -169,6 +173,15 @@ ensure_option_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
     }
     ctx->option_spec_count++;
 
+    some_tag = pgy_codegen_match_variant_c_option_tag(PGY_MATCH_VARIANT_SOME);
+    none_tag = pgy_codegen_match_variant_c_option_tag(PGY_MATCH_VARIANT_NONE_CTOR);
+    some_field = pgy_codegen_match_variant_c_payload_field(PGY_MATCH_VARIANT_SOME);
+    if (some_tag == NULL || none_tag == NULL || some_field == NULL) {
+        transpiler_set_backend_error(ctx,
+            "C Option<T> specialization requires complete Option variant ABI policy");
+        return;
+    }
+
     codebuf_write(dst,
         "\n/* PGY_OPTION_%s */\n"
         "#pragma GCC diagnostic push\n"
@@ -176,17 +189,17 @@ ensure_option_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
         "PGY_OPTION_DEFINE(%s, %s)\n"
         "#define Some_%s(...)           pgy_option_some_%s(__VA_ARGS__)\n"
         "#define None_%s()              pgy_option_none_%s()\n"
-        "#define IsSome_%s(o)           ((o).tag == PgyOptionSome)\n"
-        "#define IsNone_%s(o)           ((o).tag == PgyOptionNone)\n"
-        "#define UnwrapOption_%s(o)     pgy_option_unwrap_%s(&(PgyOption_%s){(o).tag, (o).value})\n"
+        "#define IsSome_%s(o)           ((o).tag == %s)\n"
+        "#define IsNone_%s(o)           ((o).tag == %s)\n"
+        "#define UnwrapOption_%s(o)     pgy_option_unwrap_%s(&(PgyOption_%s){(o).tag, (o).%s})\n"
         "#pragma GCC diagnostic pop\n",
         suffix,
         suffix, ctype_buf,
         suffix, suffix,
         suffix, suffix,
-        suffix,
-        suffix,
-        suffix, suffix, suffix);
+        suffix, some_tag,
+        suffix, none_tag,
+        suffix, suffix, suffix, some_field);
 }
 
 void
@@ -195,6 +208,9 @@ ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
 {
     char ok_subst[128];
     char err_subst[128];
+    const char *ok_tag;
+    const char *err_tag;
+    const char *ok_field;
 
     if (ctx == NULL || dst == NULL || ok_type == NULL || err_type == NULL)
         return;
@@ -287,6 +303,15 @@ ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
     }
     ctx->result_spec_count++;
 
+    ok_tag = pgy_codegen_match_variant_c_result_tag(PGY_MATCH_VARIANT_OK);
+    err_tag = pgy_codegen_match_variant_c_result_tag(PGY_MATCH_VARIANT_ERR);
+    ok_field = pgy_codegen_match_variant_c_payload_field(PGY_MATCH_VARIANT_OK);
+    if (ok_tag == NULL || err_tag == NULL || ok_field == NULL) {
+        transpiler_set_backend_error(ctx,
+            "C Result<T,E> specialization requires complete Result variant ABI policy");
+        return;
+    }
+
     codebuf_write(dst,
         "\n/* PGY_RESULT_%s */\n"
         "#pragma GCC diagnostic push\n"
@@ -294,19 +319,19 @@ ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
         "PGY_RESULT_DEFINE(%s, %s, %s)\n"
         "#define Ok_%s(...)        pgy_result_ok_%s(__VA_ARGS__)\n"
         "#define Err_%s(...)       pgy_result_err_%s(__VA_ARGS__)\n"
-        "#define IsOk_%s(r)        ((r).tag == PgyResultOk)\n"
-        "#define IsErr_%s(r)       ((r).tag == PgyResultErr)\n"
-        "#define Unwrap_%s(r)      pgy_result_unwrap_%s(&(PgyResult_%s){(r).tag, {.ok=(r).ok}})\n"
-        "#define UnwrapOr_%s(r, f) ((r).tag == PgyResultOk ? (r).ok : (f))\n"
+        "#define IsOk_%s(r)        ((r).tag == %s)\n"
+        "#define IsErr_%s(r)       ((r).tag == %s)\n"
+        "#define Unwrap_%s(r)      pgy_result_unwrap_%s(&(PgyResult_%s){(r).tag, {.%s=(r).%s}})\n"
+        "#define UnwrapOr_%s(r, f) ((r).tag == %s ? (r).%s : (f))\n"
         "#pragma GCC diagnostic pop\n",
         combined,
         combined, ok_ctype, err_ctype,
         combined, combined,
         combined, combined,
-        combined,
-        combined,
-        combined, combined, combined,
-        combined);
+        combined, ok_tag,
+        combined, err_tag,
+        combined, combined, combined, ok_field, ok_field,
+        combined, ok_tag, ok_field);
 }
 
 void
