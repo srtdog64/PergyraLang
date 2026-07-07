@@ -240,9 +240,13 @@ Partial executable coverage = PARTIAL
 Accepted P0 Blockers
 Compatibility evolution gate
 Obsolete migration gate
+MIR-owned ABI layout
+Backend dumb-emitter gate
+LLVM runtime bitcode integration
 Precise `BoundaryCaptureFact` producer coverage
 `ExecutionLane` negative regression coverage
 AIR/backend access lint
+Sandbox capability and frame-budget gate
 Stdlib L2 doctrine pass
 Non-Overclaim Rules
 Do not claim native WASM, WIT, NPU, GPU, or dataflow backend readiness

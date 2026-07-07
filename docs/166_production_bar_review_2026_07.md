@@ -22,6 +22,7 @@ capability claim must name the executable gate that blocks regression.
 | Language identity | PASS | The systems-language-with-domain-extensions identity is explicit and gated by beta docs. |
 | AIR verification-only role | PASS | AIR is treated as evidence, not as a second codegen truth. |
 | IR architecture | PASS/PARTIAL | The source-of-truth spine is correct, but several consumer paths still need hard gates. |
+| ABI ownership | PARTIAL/BLOCKER | Slot/resource rows are increasingly MIR-owned, but aggregate/generic ABI surfaces must keep moving out of backend-local spellings. |
 | C/LLVM backend parity | PARTIAL | Many parity rows are gated; whole-backend equivalence is still fixture and shard dependent. |
 | Compatibility evolution | PARTIAL | Stable-subset docs exist, but source/API/ABI/diagnostic evolution is not one gate yet. |
 | Concurrency semantics | PARTIAL | Execution lane facts exist; precise producer coverage and negative rows remain P0. |
@@ -43,15 +44,30 @@ beta-closure targets; they do not replace them.
 2. Obsolete migration gate:
    every obsolete surface needs `diagnosticId`, replacement, migration URL,
    warning version, error version, removal version, and codefix status.
-3. Precise `BoundaryCaptureFact` producer coverage:
+3. MIR-owned ABI layout:
+   layout rows, runtime function spellings, materialization policy, and
+   target-size/align policy must be facts consumed by C, LLVM, and self-hosted
+   projections rather than backend-local reconstruction.
+4. Backend dumb-emitter gate:
+   backend code must consume MIR/ABI/runtime facts and fail closed when a fact is
+   missing; it must not infer layout, runtime function names, or semantic facts
+   from HIR/AST/AIR fallback paths.
+5. LLVM runtime bitcode integration:
+   runtime primitives that C sees as inline headers must be visible to LLVM
+   before optimization through the runtime bitcode link policy.
+6. Precise `BoundaryCaptureFact` producer coverage:
    boundary facts must distinguish value-only, pin, live view, raw slot, raw
    channel, authority crossing, and movability requirements.
-4. `ExecutionLane` negative regression coverage:
+7. `ExecutionLane` negative regression coverage:
    Inline, PinnedZone, BlockingPool, LocalAsync, WorkerPool,
    MovableScheduler, and Reject need positive and negative fixture rows.
-5. AIR/backend access lint:
+8. AIR/backend access lint:
    backend code must not consume AIR as a codegen source of truth.
-6. Stdlib L2 doctrine pass:
+9. Sandbox capability and frame-budget gate:
+   filesystem, network, clock, random, subprocess, storage, render, input,
+   host-call count, fuel, memory, queues, streams, and blocking calls must be
+   explicit capability/profile facts before sandbox claims become active.
+10. Stdlib L2 doctrine pass:
    L2/domain modules must remain sketch or pass their layer doctrine gate before
    being presented as active language capability.
 
@@ -88,9 +104,13 @@ The compatibility gate must cover these surfaces together:
 |---|---|
 | Compatibility evolution | New compatibility-evolution gate under beta closure |
 | Obsolete migration | Diagnostic registry plus migration metadata gate |
+| MIR-owned ABI layout | `src/compiler/mir_abi_layout.c`, `src/runtime/pgy_abi_spec.h`, `tests/abi_ownership_shape_smoke.sh`, and self-host ABI row parity |
+| Backend dumb emitter | `tests/backend_fail_closed_smoke.sh`, `tests/abi_ownership_shape_smoke.sh`, and MIR/ABI fact consumers |
+| LLVM runtime bitcode | `src/codegen/llvm_api.c`, runtime bitcode strip policy, and performance parity gates |
 | Boundary capture | `docs/146_sea_execution_lanes.md` and MIR/RIR producer code |
 | Execution lane negatives | `tests/sea_execution_lane_golden_smoke.sh` and self-host SEA parity |
 | AIR/backend access lint | `docs/104_air_compiler_architecture.md` plus backend-access smoke |
+| Sandbox capability/frame budget | `docs/semantics/15_capability_sandbox.md`, capability manifest gates, and future frame-budget fixtures |
 | Stdlib L2 doctrine | `docs/148_stdlib_architecture.md` and stdlib conformance gates |
 | Self-host replacement | `docs/self_hosted/10_hard_self_host_contract.md`, `docs/self_hosted/15_pre_self_host_expansion_ledger.md`, and `docs/160_m2_completeness_execution_plan.md` |
 
