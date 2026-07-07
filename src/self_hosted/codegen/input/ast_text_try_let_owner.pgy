@@ -1,0 +1,42 @@
+// Self-host codegen AST-text try-let facts.
+//
+// This owner keeps `let x: T = (?expr)` payload recognition and inner-expression
+// extraction out of typed arena projection and statement emission participants.
+
+import "ast_text_typed_arena_owner.pgy";
+import "../text/text_owner.pgy";
+
+func CodegenAstArenaLetInitializerHasTry(arena: AstArena, node_id: Int) -> Bool {
+    if !CodegenAstArenaIsLetStmt(arena, node_id) {
+        return false;
+    }
+    let value: Option<String> = TypedAstArenaValueText(arena, node_id);
+    if !IsSome(value) {
+        return false;
+    }
+    return ContainsOutsideStrings(UnwrapOption(value), "(?");
+}
+
+func CodegenAstArenaLetTryInner(arena: AstArena, node_id: Int) -> Option<String> {
+    if !CodegenAstArenaIsLetStmt(arena, node_id) {
+        return None;
+    }
+    let value: Option<String> = TypedAstArenaValueText(arena, node_id);
+    if !IsSome(value) {
+        return None;
+    }
+    let e: String = StringTrim(UnwrapOption(value));
+    let n: Int = StringLength(e);
+    if n < 4 || CodegenCharAt(e, 0) != "(" || CodegenCharAt(e, 1) != "?" || CodegenCharAt(e, n - 1) != ")" {
+        return None;
+    }
+    let close_opt: Option<Int> = FindMatchingParen(e, 0);
+    if !IsSome(close_opt) || UnwrapOption(close_opt) != n - 1 {
+        return None;
+    }
+    let inner: String = StringTrim(Substring(e, 2, n - 3));
+    if StringLength(inner) == 0 {
+        return None;
+    }
+    return Some(inner);
+}

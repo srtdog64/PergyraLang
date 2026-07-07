@@ -685,6 +685,7 @@ require_owner_surface codegen \
     "input/ast_text_row_fact_owner.pgy" \
     "input/ast_text_array_literal_owner.pgy" \
     "input/ast_text_enum_variant_owner.pgy" \
+    "input/ast_text_try_let_owner.pgy" \
     "input/ast_usage_owner.pgy" \
     "run/codegen_run_owner.pgy" \
     "text/text_owner.pgy" \
@@ -1235,8 +1236,13 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaLe
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaLetArrayLiteralElementAt(arena, idx, element_index)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "FindTopLevelComma(rem)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenCharAt(ex"
-require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaLetInitializerHasTry"
-require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaLetTryInner"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaLetInitializerHasTry"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaLetTryInner"
+require_text "src/self_hosted/codegen/input/ast_text_try_let_owner.pgy" "func CodegenAstArenaLetInitializerHasTry"
+require_text "src/self_hosted/codegen/input/ast_text_try_let_owner.pgy" "func CodegenAstArenaLetTryInner"
+require_text "src/self_hosted/codegen/input/ast_text_try_let_owner.pgy" "ContainsOutsideStrings(UnwrapOption(value), \"(?\")"
+require_text "src/self_hosted/codegen/input/ast_text_try_let_owner.pgy" "FindMatchingParen(e, 0)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/ast_text_try_let_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaLetInitializerHasTry(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaLetTryInner(arena, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func TryExprInner"

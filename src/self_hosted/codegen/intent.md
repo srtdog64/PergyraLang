@@ -120,7 +120,8 @@ The filesystem mirrors that owner shape without pretending that every action is
 a zone:
 
 - `input/` owns AST path/read boundaries plus the transitional AST-text
-  inventory, row-fact, typed-arena, array-literal, and enum-variant owners.
+  inventory, row-fact, typed-arena, array-literal, enum-variant, and try-let
+  owners.
 - `run/` owns the CLI orchestration boundary.
 - `text/` owns reusable text and expression scanning facts. Top-level boolean
   operator lookup is an `Option<Int>` fact; consumers must not use `-1` as the
@@ -151,6 +152,9 @@ shape and top-level element facts while expression payloads remain string-backed
 `input/ast_text_enum_variant_owner.pgy` owns transitional payload-free enum
 variant-list facts. The typed arena stores the declaration aux payload, but enum
 variant splitting is not a projection responsibility.
+`input/ast_text_try_let_owner.pgy` owns transitional `(?expr)` let-initializer
+facts and inner-expression extraction. The typed arena stores the initializer
+value row; it does not interpret try propagation syntax.
 `text/enum_literal_owner.pgy` owns payload-free enum literal projection facts
 for call arguments and match cases so emission participants consume the env
 row instead of rebuilding enum keys or symbols locally.
