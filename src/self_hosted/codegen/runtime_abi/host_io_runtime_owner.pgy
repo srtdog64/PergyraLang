@@ -60,6 +60,14 @@ func HostIORuntimeCDirWalkFn() -> String {
     return "pgy_dirwalk";
 }
 
+func HostIORuntimeCDirWalkRecFn() -> String {
+    return "pgy_dirwalk_rec";
+}
+
+func HostIORuntimeCStringCompareFn() -> String {
+    return "pgy_str_cmp";
+}
+
 func HostIORuntimeCArgsFn() -> String {
     return "pgy_args";
 }
@@ -180,5 +188,28 @@ func HostIORuntimeCFileIOBlock() -> String {
     block = Concat(block, "    size_t n = strlen(content);\n");
     block = Concat(block, "    size_t wr = fwrite(content, 1, n, f);\n");
     block = Concat(block, "    fclose(f);\n    return (int)wr;\n}\n\n");
+    return block;
+}
+
+func HostIORuntimeCDirWalkBlock() -> String {
+    let block: String = "";
+    block = Concat(block, Concat("static void ", Concat(HostIORuntimeCDirWalkRecFn(), "(const char *dir, pgy_as *out)\n{\n")));
+    block = Concat(block, "    DIR *d = opendir(dir);\n    if (!d) { return; }\n");
+    block = Concat(block, "    struct dirent *e;\n    while ((e = readdir(d)) != NULL) {\n");
+    block = Concat(block, "        if (strcmp(e->d_name, \".\") == 0 || strcmp(e->d_name, \"..\") == 0) { continue; }\n");
+    block = Concat(block, "        char *path = (char *)malloc(strlen(dir) + strlen(e->d_name) + 2);\n");
+    block = Concat(block, "        sprintf(path, \"%s/%s\", dir, e->d_name);\n");
+    block = Concat(block, "        struct stat st;\n");
+    block = Concat(block, "        if (stat(path, &st) == 0) {\n");
+    block = Concat(block, Concat("            if (S_ISDIR(st.st_mode)) { ", Concat(HostIORuntimeCDirWalkRecFn(), "(path, out); free(path); }\n")));
+    block = Concat(block, Concat("            else { ", Concat(CollectionRuntimeCPushFn(2), "(out, path); }\n")));
+    block = Concat(block, "        } else { free(path); }\n    }\n    closedir(d);\n}\n");
+    block = Concat(block, Concat("static int ", Concat(HostIORuntimeCStringCompareFn(), "(const void *a, const void *b)\n{\n")));
+    block = Concat(block, "    return strcmp(*(const char **)a, *(const char **)b);\n}\n");
+    block = Concat(block, Concat("static pgy_as ", Concat(HostIORuntimeCDirWalkFn(), "(const char *dir)\n{\n")));
+    block = Concat(block, Concat("    pgy_as a = ", Concat(CollectionRuntimeCNewFn(2), "();\n")));
+    block = Concat(block, Concat("    ", Concat(HostIORuntimeCDirWalkRecFn(), "(dir, &a);\n")));
+    block = Concat(block, Concat("    qsort(a.data, (size_t)a.len, sizeof(const char *), ", Concat(HostIORuntimeCStringCompareFn(), ");\n")));
+    block = Concat(block, "    return a;\n}\n\n");
     return block;
 }

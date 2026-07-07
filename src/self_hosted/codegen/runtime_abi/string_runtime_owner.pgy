@@ -2,6 +2,8 @@
 //
 // Self-host C string/text runtime symbol facts for the supported codegen subset.
 
+import "collection_runtime_owner.pgy";
+
 func StringRuntimeCConcatFn() -> String {
     return "pgy_concat";
 }
@@ -177,5 +179,39 @@ func StringRuntimeCStringCoreBlock() -> String {
     block = Concat(block, "    char *w = r;\n    const char *q = s;\n");
     block = Concat(block, "    while (*q) {\n        if (strncmp(q, from, fl) == 0) { memcpy(w, to, tl); w += tl; q += fl; }\n");
     block = Concat(block, "        else { *w++ = *q++; }\n    }\n    *w = '\\0';\n    return r;\n}\n\n");
+    return block;
+}
+
+func StringRuntimeCSplitBlock() -> String {
+    let block: String = "";
+    block = Concat(block, Concat("static pgy_as ", Concat(StringRuntimeCSplitFn(), "(const char *s, const char *sep)\n{\n")));
+    block = Concat(block, Concat("    pgy_as a = ", Concat(CollectionRuntimeCNewFn(2), "();\n")));
+    block = Concat(block, "    size_t sl = strlen(sep);\n");
+    block = Concat(block, Concat("    if (sl == 0) { ", Concat(CollectionRuntimeCPushFn(2), "(&a, s); return a; }\n")));
+    block = Concat(block, "    const char *start = s;\n    const char *p;\n");
+    block = Concat(block, "    while ((p = strstr(start, sep)) != NULL) {\n");
+    block = Concat(block, "        size_t len = (size_t)(p - start);\n");
+    block = Concat(block, "        char *part = (char *)malloc(len + 1);\n");
+    block = Concat(block, "        memcpy(part, start, len); part[len] = '\\0';\n");
+    block = Concat(block, Concat("        ", Concat(CollectionRuntimeCPushFn(2), "(&a, part);\n")));
+    block = Concat(block, "        start = p + sl;\n    }\n");
+    block = Concat(block, "    char *last = (char *)malloc(strlen(start) + 1);\n");
+    block = Concat(block, "    strcpy(last, start);\n");
+    block = Concat(block, Concat("    ", Concat(CollectionRuntimeCPushFn(2), "(&a, last);\n")));
+    block = Concat(block, "    return a;\n}\n\n");
+    return block;
+}
+
+func StringRuntimeCStringJoinBlock() -> String {
+    let block: String = "";
+    block = Concat(block, Concat("static char *", Concat(StringRuntimeCStringJoinFn(), "(pgy_as a, const char *sep)\n{\n")));
+    block = Concat(block, "    size_t sl = strlen(sep);\n    size_t total = 0;\n");
+    block = Concat(block, "    for (long long i = 0; i < a.len; i++) { total += strlen(a.data[i]); }\n");
+    block = Concat(block, "    if (a.len > 1) { total += sl * (size_t)(a.len - 1); }\n");
+    block = Concat(block, "    char *r = (char *)malloc(total + 1);\n    char *p = r;\n");
+    block = Concat(block, "    for (long long i = 0; i < a.len; i++) {\n");
+    block = Concat(block, "        if (i > 0) { memcpy(p, sep, sl); p += sl; }\n");
+    block = Concat(block, "        size_t el = strlen(a.data[i]);\n        memcpy(p, a.data[i], el); p += el;\n    }\n");
+    block = Concat(block, "    *p = '\\0';\n    return r;\n}\n\n");
     return block;
 }

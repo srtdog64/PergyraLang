@@ -222,56 +222,17 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
     if uses_math {
         header = Concat(header, MathRuntimeCIntUtilityBlock());
     }
-    // pgy_strjoin needs both the pgy_as struct (uses_array) and string.h
-    // (uses_str); emit it only when StringJoin is actually used so string-only
-    // programs do not reference an undefined pgy_as.
     if uses_split {
-        header = Concat(header, "static pgy_as pgy_split(const char *s, const char *sep)\n{\n");
-        header = Concat(header, Concat("    pgy_as a = ", Concat(CollectionRuntimeCNewFn(2), "();\n    size_t sl = strlen(sep);\n")));
-        header = Concat(header, Concat("    if (sl == 0) { ", Concat(CollectionRuntimeCPushFn(2), "(&a, s); return a; }\n")));
-        header = Concat(header, "    const char *start = s;\n    const char *p;\n");
-        header = Concat(header, "    while ((p = strstr(start, sep)) != NULL) {\n");
-        header = Concat(header, "        size_t len = (size_t)(p - start);\n");
-        header = Concat(header, "        char *part = (char *)malloc(len + 1);\n");
-        header = Concat(header, "        memcpy(part, start, len); part[len] = '\\0';\n");
-        header = Concat(header, Concat("        ", Concat(CollectionRuntimeCPushFn(2), "(&a, part);\n        start = p + sl;\n    }\n")));
-        header = Concat(header, "    char *last = (char *)malloc(strlen(start) + 1);\n");
-        header = Concat(header, Concat("    strcpy(last, start);\n    ", Concat(CollectionRuntimeCPushFn(2), "(&a, last);\n    return a;\n}\n\n")));
+        header = Concat(header, StringRuntimeCSplitBlock());
     }
     if uses_join {
-        header = Concat(header, "static char *pgy_strjoin(pgy_as a, const char *sep)\n{\n");
-        header = Concat(header, "    size_t sl = strlen(sep);\n    size_t total = 0;\n");
-        header = Concat(header, "    for (long long i = 0; i < a.len; i++) { total += strlen(a.data[i]); }\n");
-        header = Concat(header, "    if (a.len > 1) { total += sl * (size_t)(a.len - 1); }\n");
-        header = Concat(header, "    char *r = (char *)malloc(total + 1);\n    char *p = r;\n");
-        header = Concat(header, "    for (long long i = 0; i < a.len; i++) {\n");
-        header = Concat(header, "        if (i > 0) { memcpy(p, sep, sl); p += sl; }\n");
-        header = Concat(header, "        size_t el = strlen(a.data[i]);\n        memcpy(p, a.data[i], el); p += el;\n    }\n");
-        header = Concat(header, "    *p = '\\0';\n    return r;\n}\n\n");
+        header = Concat(header, StringRuntimeCStringJoinBlock());
     }
     if uses_io {
         header = Concat(header, HostIORuntimeCFileIOBlock());
     }
     if uses_dirwalk {
-        // DirWalk: recursive regular-file walk, `/`-joined paths, flat lexical
-        // sort -- matches the oracle's snapshot. Needs pgy_as (uses_array).
-        header = Concat(header, "static void pgy_dirwalk_rec(const char *dir, pgy_as *out)\n{\n");
-        header = Concat(header, "    DIR *d = opendir(dir);\n    if (!d) { return; }\n");
-        header = Concat(header, "    struct dirent *e;\n    while ((e = readdir(d)) != NULL) {\n");
-        header = Concat(header, "        if (strcmp(e->d_name, \".\") == 0 || strcmp(e->d_name, \"..\") == 0) { continue; }\n");
-        header = Concat(header, "        char *path = (char *)malloc(strlen(dir) + strlen(e->d_name) + 2);\n");
-        header = Concat(header, "        sprintf(path, \"%s/%s\", dir, e->d_name);\n");
-        header = Concat(header, "        struct stat st;\n");
-        header = Concat(header, "        if (stat(path, &st) == 0) {\n");
-        header = Concat(header, "            if (S_ISDIR(st.st_mode)) { pgy_dirwalk_rec(path, out); free(path); }\n");
-        header = Concat(header, Concat("            else { ", Concat(CollectionRuntimeCPushFn(2), "(out, path); }\n")));
-        header = Concat(header, "        } else { free(path); }\n    }\n    closedir(d);\n}\n");
-        header = Concat(header, "static int pgy_str_cmp(const void *a, const void *b)\n{\n");
-        header = Concat(header, "    return strcmp(*(const char **)a, *(const char **)b);\n}\n");
-        header = Concat(header, "static pgy_as pgy_dirwalk(const char *dir)\n{\n");
-        header = Concat(header, Concat("    pgy_as a = ", Concat(CollectionRuntimeCNewFn(2), "();\n    pgy_dirwalk_rec(dir, &a);\n")));
-        header = Concat(header, "    qsort(a.data, (size_t)a.len, sizeof(const char *), pgy_str_cmp);\n");
-        header = Concat(header, "    return a;\n}\n\n");
+        header = Concat(header, HostIORuntimeCDirWalkBlock());
     }
     return Concat(header, Concat(enum_block, Concat(typedef_block, Concat(option_struct_block, Concat(record_array_block, Concat(proto_block, defs))))));
 }
