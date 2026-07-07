@@ -59,6 +59,33 @@ reject_text() {
     fi
 }
 
+reject_regex() {
+    local rel="$1"
+    local pattern="$2"
+    local matches
+
+    [[ -f "$ROOT_DIR/$rel" ]] || fail "missing regex input: $rel"
+    matches="$(grep -En "$pattern" "$ROOT_DIR/$rel" || true)"
+    [[ -z "$matches" ]] ||
+        fail "$rel must not match retired regex: $pattern :: $matches"
+}
+
+reject_regex_under() {
+    local rel_dir="$1"
+    local pattern="$2"
+    local file
+    local rel
+    local matches
+
+    [[ -d "$ROOT_DIR/$rel_dir" ]] || fail "missing regex input directory: $rel_dir"
+    while IFS= read -r file; do
+        rel="${file#"$ROOT_DIR/"}"
+        matches="$(grep -En "$pattern" "$file" || true)"
+        [[ -z "$matches" ]] ||
+            fail "$rel must not match retired regex: $pattern :: $matches"
+    done < <(find "$ROOT_DIR/$rel_dir" -type f -name '*.pgy' | sort)
+}
+
 require_make_target_recipe_line() {
     local target="$1"
     local recipe_line="$2"
@@ -706,6 +733,17 @@ require_owner_surface codegen \
     "emission/stmt_emit.pgy" \
     "emission/function_emit.pgy" \
     "emission/program_emit.pgy"
+for codegen_non_runtime_dir in \
+    "src/self_hosted/codegen/emission" \
+    "src/self_hosted/codegen/input" \
+    "src/self_hosted/codegen/text" \
+    "src/self_hosted/codegen/type_facts"
+do
+    reject_regex_under "$codegen_non_runtime_dir" '"pgy_[A-Za-z0-9_]*'
+    reject_regex_under "$codegen_non_runtime_dir" '"(sqrt|pow|floor|ceil|atof|exit)\('
+done
+reject_regex "src/self_hosted/codegen/emission/program_emit.pgy" 'static[[:space:]].*pgy_'
+reject_regex "src/self_hosted/codegen/emission/program_emit.pgy" '#define[[:space:]]+pgy_'
 require_text "src/self_hosted/codegen/main.pgy" 'import "../compiler/symbol_table_owner.pgy";'
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" 'import "../../compiler/target_capability_owner.pgy";'
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "CompilerTargetCapabilityEnvelopeReady()"
