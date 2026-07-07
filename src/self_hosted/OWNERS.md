@@ -114,6 +114,7 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy` -- AST text inventory to typed arena projection, including parent and indent rows.
 - `src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy` -- AST text name/type/value/aux-value/mode row facts derived from inventory payloads.
 - `src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy` -- AST text array-literal initializer shape and top-level element facts.
+- `src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy` -- AST text enum declaration variant-list facts for the supported payload-free enum subset.
 - `src/self_hosted/codegen/input/ast_usage_owner.pgy` -- runtime/header usage facts derived from typed arena rows.
 - `src/self_hosted/codegen/typed_ast_node_skeleton.pgy` -- typed AST arena
   payload contract, `NodeId` lookup facts, and migration target for retiring

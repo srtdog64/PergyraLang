@@ -41,9 +41,9 @@ participant, not a zone.
 - `AstTextInventoryOwner` owns the transitional AST-text node inventory and
   declaration/signature row facts. It is an input fact boundary, not a generic
   parser helper.
-- `AstTextStatementOwner` owns transitional statement-row facts for control flow,
-  bare call statements, and simple/collection mutation statements. Statement
-  emitters consume this owner instead of slicing AST text locally.
+- Statement routing facts live in `AstTextRowFactOwner` plus typed arena
+  projection. The retired `AstTextStatementOwner` must not reappear as a second
+  statement truth.
 - `CompilerSymbolTableOwner` owns emitted-symbol spelling rows consumed by the
   self-host C subset. Codegen reads that compiler-world owner directly instead
   of keeping a second C-only mangle owner. Function/method emission and
@@ -106,7 +106,7 @@ Concrete split for the current codegen cluster:
 | type environment | yes | separate read-mostly type-fact resource |
 | ABI layout facts | yes | separate read-only layout/ownership-shape fact resource |
 | AST text node inventory | bridge owner, not final zone | transitional self-parser AST-text node rows until a tagged AST owner replaces line text |
-| AST text statement rows | bridge owner, not final zone | statement facts are consumed from one owner while the text bridge remains active |
+| AST text statement rows | bridge owner, not final zone | statement facts are consumed through row-fact owner plus typed arena projection while the text bridge remains active |
 | self-host C ABI type spelling | owner, not zone yet | canonical C spelling for supported signatures, locals, and fields |
 | symbol/name-mangling facts | compiler-world owner, not codegen zone | read-only canonical spelling rows for supported self-host emission |
 | collection runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host array runtime calls, including the bootstrap typed AST-line record array |
@@ -120,7 +120,7 @@ The filesystem mirrors that owner shape without pretending that every action is
 a zone:
 
 - `input/` owns AST path/read boundaries plus the transitional AST-text
-  inventory and statement-row fact owners.
+  inventory, row-fact, typed-arena, array-literal, and enum-variant owners.
 - `run/` owns the CLI orchestration boundary.
 - `text/` owns reusable text and expression scanning facts. Top-level boolean
   operator lookup is an `Option<Int>` fact; consumers must not use `-1` as the
@@ -148,6 +148,9 @@ the typed `AstArena` and the `CodegenTypedAstBridgeReady` guard that consumes
 the typed AST arena payload contract before emission.
 `input/ast_text_array_literal_owner.pgy` owns transitional `Let` array literal
 shape and top-level element facts while expression payloads remain string-backed.
+`input/ast_text_enum_variant_owner.pgy` owns transitional payload-free enum
+variant-list facts. The typed arena stores the declaration aux payload, but enum
+variant splitting is not a projection responsibility.
 `text/enum_literal_owner.pgy` owns payload-free enum literal projection facts
 for call arguments and match cases so emission participants consume the env
 row instead of rebuilding enum keys or symbols locally.

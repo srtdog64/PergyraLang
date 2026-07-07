@@ -684,6 +684,7 @@ require_owner_surface codegen \
     "input/ast_text_typed_arena_owner.pgy" \
     "input/ast_text_row_fact_owner.pgy" \
     "input/ast_text_array_literal_owner.pgy" \
+    "input/ast_text_enum_variant_owner.pgy" \
     "input/ast_usage_owner.pgy" \
     "run/codegen_run_owner.pgy" \
     "text/text_owner.pgy" \
@@ -942,8 +943,8 @@ require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "fun
 require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaTypeNameOrDie"
 require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaValueOrDie"
 require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaAuxValueOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaEnumVariantCount"
-require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaEnumVariantNameAt"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaEnumVariantCount"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaEnumVariantNameAt"
 require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaModeOrDie"
 require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaParamTypeOrDie"
 require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaKindIs"
@@ -996,6 +997,12 @@ require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "Typ
 require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "TypedAstArenaParentId(arena, i)"
 require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "TypedAstArenaIndent(arena, i)"
 require_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "TypedAstArenaChildAt(arena, 0, 0)"
+require_text "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" 'import "../text/expr_sequence_owner.pgy";'
+require_text "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" "func CodegenAstArenaEnumVariantPayload"
+require_text "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" "func CodegenAstArenaEnumVariantCount"
+require_text "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" "func CodegenAstArenaEnumVariantNameAt"
+require_text "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" "ExprSequenceItemCount"
+require_text "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" "ExprSequenceItemAt"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextExpectNode"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let expected_kind: Int = CodegenAstTextKindOf(expected)"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "nodes[cur[0]].kind != expected_kind"
@@ -1143,6 +1150,7 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstAre
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaAtomOrDie(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaEnumVariantCount(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaEnumVariantNameAt(arena, i, value)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/ast_text_enum_variant_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=enum:payload_free|"'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(ename, Concat(".", Concat(part, Concat("=e:"'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(env_box[0], Concat(part, Concat("=e:"'

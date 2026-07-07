@@ -1,0 +1,37 @@
+// Self-host codegen AST-text enum variant facts.
+//
+// This owner keeps payload-free enum variant list splitting out of typed arena
+// projection and emission participants while enum declarations still arrive as
+// transitional AST-text payload rows.
+
+import "ast_text_typed_arena_owner.pgy";
+import "../text/expr_sequence_owner.pgy";
+import "../text/text_owner.pgy";
+
+func CodegenAstArenaEnumVariantPayload(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsEnumDecl(arena, node_id) {
+        return "";
+    }
+    let value: Option<String> = TypedAstArenaAuxValueText(arena, node_id);
+    if IsSome(value) {
+        return UnwrapOption(value);
+    }
+    return "";
+}
+
+func CodegenAstArenaEnumVariantCount(arena: AstArena, node_id: Int) -> Int {
+    return ExprSequenceItemCount(CodegenAstArenaEnumVariantPayload(arena, node_id));
+}
+
+func CodegenAstArenaEnumVariantNameAt(arena: AstArena, node_id: Int, index: Int) -> String {
+    let part_opt: Option<String> = ExprSequenceItemAt(CodegenAstArenaEnumVariantPayload(arena, node_id), index);
+    if IsSome(part_opt) {
+        let part: String = UnwrapOption(part_opt);
+        if StringIndexOf(part, "(") >= 0 {
+            Die(Concat("payload enum variants are not supported in self-host codegen subset: ", part));
+        }
+        return part;
+    }
+    Die(Concat("enum variant index out of bounds: ", ToString(index)));
+    return "";
+}
