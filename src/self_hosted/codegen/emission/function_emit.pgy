@@ -9,6 +9,7 @@ import "../input/ast_text_enum_variant_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
+import "../runtime_abi/host_io_runtime_owner.pgy";
 import "stmt_emit.pgy";
 
 func ParamModeCsvAppend(csv: String, mode: Int) -> String {
@@ -94,9 +95,8 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
     let body_full: String = Concat(prologue, Concat(body, copyout));
     if is_main {
         if uses_args {
-            // Capture argv into globals so `Args()` (-> pgy_args) can read them.
             signature = "int main(int argc, char **argv)";
-            body_full = Concat("    pgy_argc = argc;\n    pgy_argv = argv;\n", Concat(prologue, Concat(body, copyout)));
+            body_full = Concat(HostIORuntimeCArgsCapturePrefix(), Concat(prologue, Concat(body, copyout)));
         } else {
             signature = "int main(void)";
         }

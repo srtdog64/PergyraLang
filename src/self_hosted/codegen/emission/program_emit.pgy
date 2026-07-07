@@ -258,13 +258,7 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
         record_array_block = CollectionRuntimeCodegenAstTextNodeArrayBlock();
     }
     if uses_args2 {
-        // `Args()` -> pgy_args(): user args (argv[1..]) as a pgy_as. main() stashes
-        // argc/argv into these globals before any body statement runs.
-        header = Concat(header, "static int pgy_argc = 0;\nstatic char **pgy_argv = NULL;\n");
-        header = Concat(header, "static pgy_as pgy_args(void)\n{\n");
-        header = Concat(header, Concat("    pgy_as a = ", Concat(CollectionRuntimeCNewFn(2), "();\n")));
-        header = Concat(header, Concat("    for (int i = 1; i < pgy_argc; i++) { ", Concat(CollectionRuntimeCPushFn(2), "(&a, pgy_argv[i]); }\n")));
-        header = Concat(header, "    return a;\n}\n\n");
+        header = Concat(header, HostIORuntimeCArgsBlock());
     }
     if uses_str {
         header = Concat(header, StringRuntimeCStringCoreBlock());

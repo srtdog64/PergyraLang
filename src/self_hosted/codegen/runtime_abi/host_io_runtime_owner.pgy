@@ -2,6 +2,8 @@
 //
 // Self-host C host file/argv runtime symbol facts for the supported codegen subset.
 
+import "collection_runtime_owner.pgy";
+
 func HostIORuntimeCFileExistsFn() -> String {
     return "pgy_fexists";
 }
@@ -48,4 +50,30 @@ func HostIORuntimeCArgsFn() -> String {
 
 func HostIORuntimeCExitFn() -> String {
     return "exit";
+}
+
+func HostIORuntimeCArgcGlobal() -> String {
+    return "pgy_argc";
+}
+
+func HostIORuntimeCArgvGlobal() -> String {
+    return "pgy_argv";
+}
+
+func HostIORuntimeCArgsCapturePrefix() -> String {
+    let block: String = "";
+    block = Concat(block, Concat("    ", Concat(HostIORuntimeCArgcGlobal(), " = argc;\n")));
+    block = Concat(block, Concat("    ", Concat(HostIORuntimeCArgvGlobal(), " = argv;\n")));
+    return block;
+}
+
+func HostIORuntimeCArgsBlock() -> String {
+    let block: String = "";
+    block = Concat(block, Concat("static int ", Concat(HostIORuntimeCArgcGlobal(), " = 0;\n")));
+    block = Concat(block, Concat("static char **", Concat(HostIORuntimeCArgvGlobal(), " = NULL;\n")));
+    block = Concat(block, Concat("static pgy_as ", Concat(HostIORuntimeCArgsFn(), "(void)\n{\n")));
+    block = Concat(block, Concat("    pgy_as a = ", Concat(CollectionRuntimeCNewFn(2), "();\n")));
+    block = Concat(block, Concat("    for (int i = 1; i < ", Concat(HostIORuntimeCArgcGlobal(), Concat("; i++) { ", Concat(CollectionRuntimeCPushFn(2), Concat("(&a, ", Concat(HostIORuntimeCArgvGlobal(), "[i]); }\n")))))));
+    block = Concat(block, "    return a;\n}\n\n");
+    return block;
 }
