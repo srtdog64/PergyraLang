@@ -925,6 +925,22 @@ if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*inst->name[[:space:]]*,[[:space:]]*
     echo "[perf-contract] C MIR pin alias seeding reintroduced direct op branch" >&2
     exit 1
 fi
+grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
+grep -Fq '"PinRead"' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
+grep -Fq '"PinWrite"' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
+grep -Fq '"Unpin"' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
+! grep -Fq "pgy_pin_%s_%s" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
+! grep -Fq "pgy_secure_pin_%s_%s" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
+! grep -Fq "pgy_unpin_%s(&%s);" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
+! grep -Fq "pgy_secure_unpin_%s(&%s);" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
 grep -Fq "transpiler_mir_resource_op_lookup(inst->name)" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_hook_emit.c"
 if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*(inst|candidate|emit_inst)->name[[:space:]]*,[[:space:]]*"(Claim|Read|Write|Release|Move|BorrowRead|BorrowWrite)"' \

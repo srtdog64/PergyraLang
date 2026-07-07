@@ -368,6 +368,34 @@ if grep -F 'transpiler_format_slot_runtime_fn(' \
     exit 1
 fi
 grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
+grep -Fq '"PinRead"' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
+grep -Fq '"PinWrite"' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
+grep -Fq '"Unpin"' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
+if grep -F 'pgy_pin_%s_%s' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C MIR pin enter must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'pgy_secure_pin_%s_%s' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C MIR secure pin enter must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'pgy_unpin_%s(&%s);' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C MIR pin cleanup must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'pgy_secure_unpin_%s(&%s);' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C MIR secure pin cleanup must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
     "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c"
 grep -Fq '"PinReadInit"' \
     "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c"

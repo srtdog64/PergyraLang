@@ -60,11 +60,11 @@ runtime ABI into `MIRTypeLayout` facts. This means:
   DeviceSlot claim/read/write/release/submit-read declaration registries, LLVM
   Slot/SecureSlot pin/unpin declaration registries, and LLVM slot builtin
   calls, method calls, assignment writes, initializer writes, with-slot cleanup
-  releases, statement auto-release cleanup, identifier read emission, and
-  secure MIR pin enter/exit cleanup must not synthesize `pgy_read_*`,
-  `pgy_write_*`, `pgy_release_*`, `pgy_pin_*`, or `pgy_unpin_*` names from a
-  type suffix. C direct source emitters remain a separate ABI projection until
-  their rows are cut over.
+  releases, statement auto-release cleanup, identifier read emission, C MIR pin
+  enter/exit cleanup, and secure LLVM MIR pin enter/exit cleanup must not
+  synthesize `pgy_read_*`, `pgy_write_*`, `pgy_release_*`, `pgy_pin_*`, or
+  `pgy_unpin_*` names from a type suffix. C non-MIR direct source emitters
+  remain a separate ABI projection until their rows are cut over.
 
 Rust-style niche encoding such as `Option<NonZeroU32>` fitting in 32 bits is
 not implemented.

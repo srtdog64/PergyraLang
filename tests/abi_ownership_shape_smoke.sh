@@ -288,8 +288,14 @@ require_term "src/runtime/pgy_runtime_lib_secure_slot_exports.h" "pgy_secure_unp
 require_term "src/runtime/pgy_runtime_lib_secure_slot_exports.h" "pgy_secure_pin_read_init_##Suffix"
 require_term "src/runtime/pgy_runtime_lib_secure_slot_exports.h" "pgy_secure_pin_write_init_##Suffix"
 
-require_term "src/codegen/transpiler_mir_pin_emit.c" "pgy_pin_%s_%s"
-require_term "src/codegen/transpiler_mir_pin_emit.c" "pgy_unpin_%s(&%s);"
+require_term "src/codegen/transpiler_mir_pin_emit.c" "mir_abi_resource_runtime_fn_by_kind("
+require_term "src/codegen/transpiler_mir_pin_emit.c" '"PinRead"'
+require_term "src/codegen/transpiler_mir_pin_emit.c" '"PinWrite"'
+require_term "src/codegen/transpiler_mir_pin_emit.c" '"Unpin"'
+reject_term "src/codegen/transpiler_mir_pin_emit.c" "pgy_pin_%s_%s"
+reject_term "src/codegen/transpiler_mir_pin_emit.c" "pgy_secure_pin_%s_%s"
+reject_term "src/codegen/transpiler_mir_pin_emit.c" "pgy_unpin_%s(&%s);"
+reject_term "src/codegen/transpiler_mir_pin_emit.c" "pgy_secure_unpin_%s(&%s);"
 require_term "src/compiler/mir.h" "resource_owner_slot_anchor"
 require_term "src/compiler/mir.h" "resource_owner_requires_metadata"
 require_term "src/compiler/mir_lower_population.c" "MIRResourceBorrowLoweringFact"

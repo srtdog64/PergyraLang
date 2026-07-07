@@ -154,6 +154,12 @@ require_literal "src/codegen/llvm_expr_call_methods_domain_slice.c" \
 require_literal "src/codegen/transpiler_mir_pin_emit.c" \
     "transpiler_mir_slot_address_local"
 require_literal "src/codegen/transpiler_mir_pin_emit.c" \
+    "mir_abi_resource_runtime_fn_by_kind"
+require_literal "src/codegen/transpiler_mir_pin_emit.c" \
+    "\"PinRead\""
+require_literal "src/codegen/transpiler_mir_pin_emit.c" \
+    "\"Unpin\""
+require_literal "src/codegen/transpiler_mir_pin_emit.c" \
     "return written >= 0 && (size_t)written < buf_size"
 require_literal "src/codegen/llvm_mir_pin_region.c" \
     "llvm_mir_pin_local_name"

@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../compiler/mir_abi_layout.h"
 #include "../compiler/mir_cfg_contract_pin.h"
 #include "transpiler_context.h"
 #include "codegen_mir_resource_name_helpers.h"
@@ -186,7 +187,8 @@ transpiler_emit_mir_pin_enter_local(CodeBuf *buf,
     char token_addr[96];
     const char *slot_expr;
     const char *token_expr;
-    const char *mode;
+    const char *pin_op;
+    const char *runtime_fn = NULL;
 
     if (block == NULL || !block->is_pin_region)
         return true;
@@ -220,14 +222,28 @@ transpiler_emit_mir_pin_enter_local(CodeBuf *buf,
             "MIR pin block token address expression is too long");
         return false;
     }
-    mode = block->pin_view_is_write ? "write" : "read";
+    pin_op = block->pin_view_is_write ? "PinWrite" : "PinRead";
+    if (slot->is_secure || !mir_block_has_pin_guard_amortization_region(block)) {
+        runtime_fn = mir_abi_resource_runtime_fn_by_kind(
+            slot->is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
+                            : MIR_RESOURCE_ABI_SLOT,
+            slot->inner_type, pin_op);
+        if (runtime_fn == NULL) {
+            transpiler_mir_reasonf(reason, reason_cap,
+                "C MIR pin enter requires MIR ABI runtime function row for %s<%s> %s",
+                slot->is_secure ? "SecureSlot" : "Slot",
+                slot->inner_type,
+                pin_op);
+            return false;
+        }
+    }
     if (slot->is_secure) {
         transpiler_write_indent_to(buf, ctx->indent);
         codebuf_write(buf,
             "PgyPinnedSecureSlotView_%s %s = "
-            "pgy_secure_pin_%s_%s(%s, %s);\n",
+            "%s(%s, %s);\n",
             slot->inner_type, pin_name,
-            mode, slot->inner_type,
+            runtime_fn,
             slot_expr,
             token_expr);
     } else if (mir_block_has_pin_guard_amortization_region(block)) {
@@ -236,9 +252,9 @@ transpiler_emit_mir_pin_enter_local(CodeBuf *buf,
     } else {
         transpiler_write_indent_to(buf, ctx->indent);
         codebuf_write(buf,
-            "PgyPinnedSlotView_%s %s = pgy_pin_%s_%s(%s);\n",
+            "PgyPinnedSlotView_%s %s = %s(%s);\n",
             slot->inner_type, pin_name,
-            mode, slot->inner_type,
+            runtime_fn,
             slot_expr);
     }
 
@@ -254,6 +270,7 @@ transpiler_emit_mir_pin_exit_local(CodeBuf *buf,
 {
     SlotVarEntry *slot;
     char pin_name[64];
+    const char *runtime_fn = NULL;
 
     if (block == NULL || !block->is_pin_region)
         return true;
@@ -275,10 +292,22 @@ transpiler_emit_mir_pin_exit_local(CodeBuf *buf,
             "MIR pin block local name is too long for exit");
         return false;
     }
+    if (slot->is_secure || !mir_block_has_pin_guard_amortization_region(block)) {
+        runtime_fn = mir_abi_resource_runtime_fn_by_kind(
+            slot->is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
+                            : MIR_RESOURCE_ABI_SLOT,
+            slot->inner_type, "Unpin");
+        if (runtime_fn == NULL) {
+            transpiler_mir_reasonf(reason, reason_cap,
+                "C MIR pin cleanup requires MIR ABI runtime function row for %s<%s>",
+                slot->is_secure ? "SecureSlot" : "Slot",
+                slot->inner_type);
+            return false;
+        }
+    }
     if (slot->is_secure) {
         transpiler_write_indent_to(buf, ctx->indent);
-        codebuf_write(buf, "pgy_secure_unpin_%s(&%s);\n",
-                      slot->inner_type, pin_name);
+        codebuf_write(buf, "%s(&%s);\n", runtime_fn, pin_name);
     } else if (mir_block_has_pin_guard_amortization_region(block)) {
         transpiler_write_indent_to(buf, ctx->indent);
         codebuf_write(buf,
@@ -292,8 +321,7 @@ transpiler_emit_mir_pin_exit_local(CodeBuf *buf,
         codebuf_write(buf, "%s.slot = NULL;\n", pin_name);
     } else {
         transpiler_write_indent_to(buf, ctx->indent);
-        codebuf_write(buf, "pgy_unpin_%s(&%s);\n",
-                      slot->inner_type, pin_name);
+        codebuf_write(buf, "%s(&%s);\n", runtime_fn, pin_name);
     }
 
     return true;
