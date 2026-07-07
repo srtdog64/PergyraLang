@@ -50,6 +50,24 @@ show_log_if_present() {
     fi
 }
 
+require_backend_air_not_consumed() {
+    local forbidden
+    forbidden="$(
+        grep -RInE \
+            '#[[:space:]]*include[[:space:]]+[<"][^>"]*air(_internal)?\.h[>"]|\b(AIRProgram|AIRIntentNode|AIRBoundaryNode|AIREvidenceNode|AIRDrift|AIRSlotSite|AIREffectSite|AIRLifecycleStateSpace)\b' \
+            "$ROOT_DIR/src/codegen" \
+            --include='*.c' \
+            --include='*.h' || true
+    )"
+    if [[ -n "$forbidden" ]]; then
+        echo "air-backend-nonimpact: backend must not consume AIR headers or graph node types" >&2
+        echo "$forbidden" >&2
+        return 1
+    fi
+}
+
+require_backend_air_not_consumed
+
 require_normal_backend_air_mir_gate() {
     local source_rel="tests/cases/backend_compare/intent_zone_binding/main.pgy"
     local out="$WORK_DIR/air_mir_gate.c"

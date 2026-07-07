@@ -89,6 +89,10 @@ is one consumer of that rule, not a special exception to it.
   owns nominal inference separately from expression type inference. AIR must
   treat backend type-inference results as backend evidence only; semantic type
   truth remains in the frontend/DAG pipeline.
+- Backend codegen remains a consumer of MIR/ABI/runtime facts, not AIR graph
+  facts. `air-backend-nonimpact-test-smoke` rejects direct AIR headers or AIR
+  graph node types under `src/codegen`, so a backend cannot turn AIR into a
+  hidden codegen input.
 - LLVM member-call support is similarly split into `llvm_member_call_support.c`
   so backend diagnostic/argument-storage mechanics do not become part of the
   member-call dispatch source of truth.
