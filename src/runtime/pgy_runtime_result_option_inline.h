@@ -124,10 +124,9 @@ PGY_RESULT_DEFINE(String, char*, PgyError)
  * Option Type (Nullable Values)
  * ================================================================= */
 
-typedef enum {
-    PgyOptionSome,
-    PgyOptionNone
-} PgyOptionTag;
+#define PGY_RUNTIME_OPTION_BOOL_ENABLE_UNWRAP
+#include "pgy_runtime_option_bool_inline.h"
+#undef PGY_RUNTIME_OPTION_BOOL_ENABLE_UNWRAP
 
 #define PGY_OPTION_DEFINE(SuffixName, CType) \
 \
@@ -171,7 +170,6 @@ pgy_option_unwrap_##SuffixName(PgyOption_##SuffixName* o) \
 PGY_OPTION_DEFINE(Int, int32_t)
 PGY_OPTION_DEFINE(Float, float)
 PGY_OPTION_DEFINE(Double, double)
-PGY_OPTION_DEFINE(Bool, bool)
 PGY_OPTION_DEFINE(String, char*)
 
 #define Some_Int(...)           pgy_option_some_Int(__VA_ARGS__)
@@ -191,12 +189,6 @@ PGY_OPTION_DEFINE(String, char*)
 #define IsSome_Double(o)        ((o).tag == PgyOptionSome)
 #define IsNone_Double(o)        ((o).tag == PgyOptionNone)
 #define UnwrapOption_Double(o)  pgy_option_unwrap_Double(&(PgyOption_Double){(o).tag, (o).value})
-
-#define Some_Bool(...)          pgy_option_some_Bool(__VA_ARGS__)
-#define None_Bool()             pgy_option_none_Bool()
-#define IsSome_Bool(o)          ((o).tag == PgyOptionSome)
-#define IsNone_Bool(o)          ((o).tag == PgyOptionNone)
-#define UnwrapOption_Bool(o)    pgy_option_unwrap_Bool(&(PgyOption_Bool){(o).tag, (o).value})
 
 #define Some_String(...)        pgy_option_some_String(__VA_ARGS__)
 #define None_String()           pgy_option_none_String()

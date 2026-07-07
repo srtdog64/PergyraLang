@@ -16,12 +16,7 @@
 
 #include <pthread.h>
 #include "pgy_runtime_channel_status.h"
-
-/* PgyOption_Bool is needed by the macro's try_send_status / send_timeout_status
- * ops. Must match PGY_OPTION_DEFINE(Bool, bool) in pgy_runtime.h. */
-typedef struct { int32_t tag; bool value; } PgyOption_Bool;
-static inline PgyOption_Bool Some_Bool(bool v) { return (PgyOption_Bool){ 0, v }; }
-static inline PgyOption_Bool None_Bool(void)   { return (PgyOption_Bool){ 1, false }; }
+#include "pgy_runtime_option_bool_inline.h"
 
 /* The shared macro body uses pgy_timespec_after_ns (the C-inline twin's deadline
  * helper, defined in pgy_runtime_panic_checked_inline.h, which is NOT linked into

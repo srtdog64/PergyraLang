@@ -631,6 +631,7 @@ for token in [
     'PGY_RUNTIME_DIR "/pgy_runtime_scalar_std_inline.h"',
     'PGY_RUNTIME_DIR "/pgy_runtime_map_int_key_inline.h"',
     'PGY_RUNTIME_DIR "/pgy_runtime_queue_inline.h"',
+    'PGY_RUNTIME_DIR "/pgy_runtime_option_bool_inline.h"',
 ]:
     if token not in compiler_text:
         raise SystemExit(f"LLVM runtime cache freshness missing split runtime dependency {token}")

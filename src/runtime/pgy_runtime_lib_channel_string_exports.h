@@ -18,6 +18,7 @@
 
 #include <pthread.h>
 #include "pgy_runtime_channel_status.h"
+#include "pgy_runtime_option_bool_inline.h"
 
 /* The shared String op bodies call pgy_runtime_strdup (the C-inline twin's dup,
  * not linked into this runtime object). The linked runtime exposes the same
@@ -33,8 +34,7 @@ static inline char *pgy_runtime_strdup(const char *src)
 
 /* Reuse the shared String op bodies (main + Result) with extern storage for the
  * linked runtime. PgyOption_Bool / Some_Bool / None_Bool (used by the *_status
- * ops) are already in scope from the Int channel export twin compiled earlier in
- * pgy_runtime_lib.c. */
+ * ops) are owned by pgy_runtime_option_bool_inline.h. */
 #define PGY_CH_STR_STORAGE extern
 #include "pgy_runtime_channel_string_inline.h"
 #undef PGY_CH_STR_STORAGE

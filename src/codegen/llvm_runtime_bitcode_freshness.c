@@ -49,6 +49,7 @@ llvm_runtime_bitcode_is_fresh(const char *bc_path)
         PGY_RUNTIME_DIR "/pgy_runtime_channel_string_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_channel_string_result_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_channel_string_lane_inline.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_option_bool_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_channel_int_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_channel_string_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_panic_contract.h",

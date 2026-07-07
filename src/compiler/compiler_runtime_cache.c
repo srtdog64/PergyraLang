@@ -100,6 +100,7 @@ compiler_runtime_cache_is_fresh(const char *cache_obj_path)
         PGY_RUNTIME_DIR "/pgy_runtime_lib_io_string_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_process_args_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_channel_quantum_exports.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_option_bool_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_channel_int_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_channel_string_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_channel_string_result_exports.h",
