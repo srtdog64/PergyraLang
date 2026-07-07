@@ -48,14 +48,15 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
             Die(Concat("unsupported self-host codegen parameter mode: ", CodegenAstTextProvenance(nodes[cur[0]])));
         }
         let p_name: String = CodegenAstArenaAtomOrDie(arena, cur[0]);
+        let c_p_name: String = CompilerSymbolCBindingName(p_name);
         let p_type: String = CodegenAstArenaParamTypeOrDie(arena, cur[0], owner_name);
         let c_param_type: String = AbiLayoutCParamType(p_type, base_env);
-        let c_param: String = Concat(c_param_type, Concat(" ", p_name));
+        let c_param: String = Concat(c_param_type, Concat(" ", c_p_name));
         if p_mode == 1 {
             let inout_name: String = CompilerSymbolCInoutParamName(p_name);
             c_param = Concat(c_param_type, Concat(" *", inout_name));
-            prologue = Concat(prologue, Concat("    ", Concat(c_param_type, Concat(" ", Concat(p_name, Concat(" = *", Concat(inout_name, ";\n")))))));
-            copyout = Concat(copyout, Concat("    *", Concat(inout_name, Concat(" = ", Concat(p_name, ";\n")))));
+            prologue = Concat(prologue, Concat("    ", Concat(c_param_type, Concat(" ", Concat(c_p_name, Concat(" = *", Concat(inout_name, ";\n")))))));
+            copyout = Concat(copyout, Concat("    *", Concat(inout_name, Concat(" = ", Concat(c_p_name, ";\n")))));
         }
         if param_n == 0 {
             params = c_param;
@@ -324,9 +325,10 @@ func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
                         Die(Concat("unsupported self-host codegen parameter mode: ", CodegenAstTextProvenance(nodes[j])));
                     }
                     let p_name: String = CodegenAstArenaAtomOrDie(arena, j);
+                    let c_p_name: String = CompilerSymbolCBindingName(p_name);
                     let p_type: String = CodegenAstArenaParamTypeOrDie(arena, j, owner);
                     let cpt: String = AbiLayoutCParamType(p_type, struct_env);
-                    let cp: String = Concat(cpt, Concat(" ", p_name));
+                    let cp: String = Concat(cpt, Concat(" ", c_p_name));
                     if p_mode == 1 {
                         cp = Concat(cpt, Concat(" *", CompilerSymbolCInoutParamName(p_name)));
                     }

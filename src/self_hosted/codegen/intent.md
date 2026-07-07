@@ -48,8 +48,9 @@ participant, not a zone.
 - `CompilerSymbolTableOwner` owns emitted-symbol spelling rows consumed by the
   self-host C subset. Codegen reads that compiler-world owner directly instead
   of keeping a second C-only mangle owner. Function/method emission,
-  struct field declaration/literal/access spelling, `inout` temporary parameter
-  names, foreach loop temporary names, try/match emission temporary names, and namespace-qualified call
+  struct field declaration/literal/access spelling, source binding names,
+  `inout` temporary parameter names, foreach loop temporary names,
+  try/match emission temporary names, and namespace-qualified call
   lowering all consume this owner.
 - `CollectionRuntimeOwner` owns self-host C collection runtime helper symbol
   spelling for the supported `Array<Int>` / `Array<String>` subset and the
@@ -111,7 +112,7 @@ Concrete split for the current codegen cluster:
 | AST text node inventory | bridge owner, not final zone | transitional self-parser AST-text node rows until a tagged AST owner replaces line text |
 | AST text statement rows | bridge owner, not final zone | statement facts are consumed through row-fact owner plus typed arena projection while the text bridge remains active |
 | self-host C ABI type spelling | owner, not zone yet | canonical C spelling for supported signatures, empty parameter lists, locals, fields, and nominal struct type names |
-| symbol/name-mangling facts | compiler-world owner, not codegen zone | read-only canonical spelling rows for supported self-host emission, including struct field spellings, `inout`, foreach loop temporaries, and try/match temporary names |
+| symbol/name-mangling facts | compiler-world owner, not codegen zone | read-only canonical spelling rows for supported self-host emission, including source binding names, struct field spellings, `inout`, foreach loop temporaries, and try/match temporary names |
 | collection runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host array runtime calls, including the bootstrap typed AST-line record array |
 | math/random helper and target-library symbols | owner, not zone yet | canonical C names for supported self-host math/random calls |
 | host I/O/process helper, entrypoint, and target-library symbols | owner, not zone yet | canonical C names for supported self-host file/argv/process calls plus the C process entrypoint |
