@@ -3,10 +3,10 @@
 // Owns the row vocabulary every projection must consume before emission.
 
 func CompilerAbiLayoutRowSchema() -> String {
-    return "pgy.selfhost.abi-layout-row.v1";
+    return "pgy.selfhost.abi-layout-row.v2";
 }
 func CompilerAbiLayoutRowFactCount() -> Int {
-    return 8;
+    return 9;
 }
 func CompilerAbiLayoutDeclNameFact() -> String {
     return "decl_name";
@@ -32,6 +32,9 @@ func CompilerAbiLayoutSizeAlignFact() -> String {
 func CompilerAbiLayoutMaterializationPolicyFact() -> String {
     return "materialization_policy";
 }
+func CompilerAbiLayoutDefaultReturnValueFact() -> String {
+    return "default_return_value";
+}
 func CompilerAbiLayoutRowFactAt(index: Int) -> String {
     if index == 0 { return CompilerAbiLayoutDeclNameFact(); }
     if index == 1 { return CompilerAbiLayoutFieldOrderFact(); }
@@ -41,10 +44,11 @@ func CompilerAbiLayoutRowFactAt(index: Int) -> String {
     if index == 5 { return CompilerAbiLayoutTargetAbiFact(); }
     if index == 6 { return CompilerAbiLayoutSizeAlignFact(); }
     if index == 7 { return CompilerAbiLayoutMaterializationPolicyFact(); }
+    if index == 8 { return CompilerAbiLayoutDefaultReturnValueFact(); }
     return "";
 }
 func CompilerAbiLayoutRowsReady() -> Bool {
-    return CompilerAbiLayoutRowFactCount() == 8 &&
+    return CompilerAbiLayoutRowFactCount() == 9 &&
         CompilerAbiLayoutRowFactAt(0) == CompilerAbiLayoutDeclNameFact() &&
         CompilerAbiLayoutRowFactAt(1) == CompilerAbiLayoutFieldOrderFact() &&
         CompilerAbiLayoutRowFactAt(2) == CompilerAbiLayoutTagKindFact() &&
@@ -53,6 +57,7 @@ func CompilerAbiLayoutRowsReady() -> Bool {
         CompilerAbiLayoutRowFactAt(5) == CompilerAbiLayoutTargetAbiFact() &&
         CompilerAbiLayoutRowFactAt(6) == CompilerAbiLayoutSizeAlignFact() &&
         CompilerAbiLayoutRowFactAt(7) == CompilerAbiLayoutMaterializationPolicyFact() &&
+        CompilerAbiLayoutRowFactAt(8) == CompilerAbiLayoutDefaultReturnValueFact() &&
         CompilerAbiLayoutConcreteRowCount() == 10 &&
         CompilerAbiLayoutRowTypeNameAt(0) == CompilerAbiLayoutIntTypeName() &&
         CompilerAbiLayoutRowCValueTypeAt(0) == CompilerAbiLayoutIntCValueType() &&
@@ -68,6 +73,10 @@ func CompilerAbiLayoutRowsReady() -> Bool {
         CompilerAbiLayoutVoidTypeName() != "" &&
         CompilerAbiLayoutVoidCValueType() != "" &&
         CompilerAbiLayoutPayloadFreeEnumCValueType() == CompilerAbiLayoutIntCValueType() &&
+        CompilerAbiLayoutRowDefaultReturnValueAt(0) == CompilerAbiLayoutDefaultReturnZero() &&
+        CompilerAbiLayoutRowDefaultReturnValueAt(2) == CompilerAbiLayoutDefaultReturnFloatZero() &&
+        CompilerAbiLayoutRowDefaultReturnValueAt(3) == CompilerAbiLayoutDefaultReturnEmptyString() &&
+        CompilerAbiLayoutRowDefaultReturnValueAt(4) == CompilerAbiLayoutDefaultReturnUnsupported() &&
         CompilerAbiLayoutRowMaterializationAt(9) == CompilerAbiLayoutRuntimeValueOnlyMaterialization();
 }
 func CompilerAbiLayoutConcreteRowCount() -> Int {
@@ -172,6 +181,9 @@ func CompilerAbiLayoutVoidCValueType() -> String {
 }
 func CompilerAbiLayoutPayloadFreeEnumCValueType() -> String {
     return CompilerAbiLayoutIntCValueType();
+}
+func CompilerAbiLayoutPayloadFreeEnumDefaultReturnValue() -> String {
+    return CompilerAbiLayoutDefaultReturnZero();
 }
 func CompilerAbiLayoutRowCValueTypeAt(index: Int) -> String {
     if index == 0 { return CompilerAbiLayoutIntCValueType(); }
@@ -284,6 +296,38 @@ func CompilerAbiLayoutRuntimeValueOnlyMaterialization() -> String {
 func CompilerAbiLayoutRowMaterializationAt(index: Int) -> String {
     if index >= 0 && index <= 6 { return CompilerAbiLayoutFieldAllowedMaterialization(); }
     if index >= 7 && index <= 9 { return CompilerAbiLayoutRuntimeValueOnlyMaterialization(); }
+    return "";
+}
+
+func CompilerAbiLayoutDefaultReturnUnsupported() -> String {
+    return "unsupported";
+}
+
+func CompilerAbiLayoutDefaultReturnZero() -> String {
+    return "0";
+}
+
+func CompilerAbiLayoutDefaultReturnFloatZero() -> String {
+    return "0.0";
+}
+
+func CompilerAbiLayoutDefaultReturnEmptyString() -> String {
+    return "\"\"";
+}
+
+func CompilerAbiLayoutRowDefaultReturnValueAt(index: Int) -> String {
+    if index == 0 || index == 1 {
+        return CompilerAbiLayoutDefaultReturnZero();
+    }
+    if index == 2 {
+        return CompilerAbiLayoutDefaultReturnFloatZero();
+    }
+    if index == 3 {
+        return CompilerAbiLayoutDefaultReturnEmptyString();
+    }
+    if index >= 4 && index < CompilerAbiLayoutConcreteRowCount() {
+        return CompilerAbiLayoutDefaultReturnUnsupported();
+    }
     return "";
 }
 

@@ -20,7 +20,9 @@ func CompilerAbiLayoutManifestRowAt(index: Int) -> String {
     let row14: String = Concat(row13, "|");
     let row15: String = Concat(row14, CompilerAbiLayoutRowSizeAlignAt(index));
     let row16: String = Concat(row15, "|");
-    return Concat(row16, CompilerAbiLayoutRowMaterializationAt(index));
+    let row17: String = Concat(row16, CompilerAbiLayoutRowMaterializationAt(index));
+    let row18: String = Concat(row17, "|");
+    return Concat(row18, CompilerAbiLayoutRowDefaultReturnValueAt(index));
 }
 
 func Main() -> Void {

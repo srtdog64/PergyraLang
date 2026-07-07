@@ -1,12 +1,12 @@
-schema=pgy.selfhost.abi-layout-row.v1
+schema=pgy.selfhost.abi-layout-row.v2
 count=10
-0|Int|long long|value|none|none|plain_value|selfhost-c|target-c-default|field_allowed
-1|Bool|bool|value|none|none|plain_value|selfhost-c|target-c-default|field_allowed
-2|Float|double|value|none|none|plain_value|selfhost-c|target-c-default|field_allowed
-3|String|const char*|value|none|none|borrowed_string_view|selfhost-c|target-c-default|field_allowed
-4|Array<Int>|pgy_ai|data,len,cap|none|none|shared_buffer_value|selfhost-c|target-c-default|field_allowed
-5|Array<String>|pgy_as|data,len,cap|none|none|shared_buffer_value|selfhost-c|target-c-default|field_allowed
-6|Array<CodegenAstTextNode>|pgy_CodegenAstTextNode_array|data,len,cap|none|none|shared_buffer_value|selfhost-c|target-c-default|field_allowed
-7|Result<Int>|pgy_result_int|is_ok,value|bool_result|none|tagged_value|selfhost-c|target-c-default|runtime_value_only
-8|Option<Int>|pgy_option_int|is_some,value|bool_presence|none|tagged_value|selfhost-c|target-c-default|runtime_value_only
-9|Option<String>|pgy_option_string|is_some,value|bool_presence|none|tagged_value|selfhost-c|target-c-default|runtime_value_only
+0|Int|long long|value|none|none|plain_value|selfhost-c|target-c-default|field_allowed|0
+1|Bool|bool|value|none|none|plain_value|selfhost-c|target-c-default|field_allowed|0
+2|Float|double|value|none|none|plain_value|selfhost-c|target-c-default|field_allowed|0.0
+3|String|const char*|value|none|none|borrowed_string_view|selfhost-c|target-c-default|field_allowed|""
+4|Array<Int>|pgy_ai|data,len,cap|none|none|shared_buffer_value|selfhost-c|target-c-default|field_allowed|unsupported
+5|Array<String>|pgy_as|data,len,cap|none|none|shared_buffer_value|selfhost-c|target-c-default|field_allowed|unsupported
+6|Array<CodegenAstTextNode>|pgy_CodegenAstTextNode_array|data,len,cap|none|none|shared_buffer_value|selfhost-c|target-c-default|field_allowed|unsupported
+7|Result<Int>|pgy_result_int|is_ok,value|bool_result|none|tagged_value|selfhost-c|target-c-default|runtime_value_only|unsupported
+8|Option<Int>|pgy_option_int|is_some,value|bool_presence|none|tagged_value|selfhost-c|target-c-default|runtime_value_only|unsupported
+9|Option<String>|pgy_option_string|is_some,value|bool_presence|none|tagged_value|selfhost-c|target-c-default|runtime_value_only|unsupported

@@ -64,17 +64,15 @@ func AbiLayoutCEmptyParameterList() -> String {
 
 func AbiLayoutCDefaultReturnValue(type_name: String, struct_env: String) -> String {
     AbiLayoutRequireCompilerRows();
-    if type_name == CompilerAbiLayoutStringTypeName() {
-        return "\"\"";
-    }
-    if type_name == CompilerAbiLayoutFloatTypeName() {
-        return "0.0";
-    }
-    if type_name == CompilerAbiLayoutIntTypeName() || type_name == CompilerAbiLayoutBoolTypeName() {
-        return "0";
+    let row: Option<Int> = CompilerAbiLayoutRowIndex(type_name);
+    if IsSome(row) {
+        let default_value: String = CompilerAbiLayoutRowDefaultReturnValueAt(UnwrapOption(row));
+        if default_value != CompilerAbiLayoutDefaultReturnUnsupported() {
+            return default_value;
+        }
     }
     if LookupKindType(struct_env, type_name, "enum") == "payload_free" {
-        return "0";
+        return CompilerAbiLayoutPayloadFreeEnumDefaultReturnValue();
     }
     Die(Concat("unsupported bare return default for C ABI type: ", type_name));
     return "";

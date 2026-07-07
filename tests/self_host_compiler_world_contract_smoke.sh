@@ -576,18 +576,20 @@ done
 for term in \
     "func CompilerAbiLayoutRowSchema" \
     "CompilerAbiLayoutRowsReady" \
-    "CompilerAbiLayoutRowFactCount() == 8" \
+    "CompilerAbiLayoutRowFactCount() == 9" \
     "CompilerAbiLayoutConcreteRowCount" \
     "CompilerAbiLayoutConcreteRowCount() == 10" \
     "CompilerAbiLayoutRowIndex" \
     "CompilerAbiLayoutRowCValueTypeAt" \
     "CompilerAbiLayoutFieldAllowed" \
     "CompilerAbiLayoutRowMaterializationAt" \
+    "CompilerAbiLayoutRowDefaultReturnValueAt" \
     "field_order" \
     "tag_kind" \
     "niche" \
     "ownership_shape" \
-    "materialization_policy"; do
+    "materialization_policy" \
+    "default_return_value"; do
     require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "$term"
 done
 
