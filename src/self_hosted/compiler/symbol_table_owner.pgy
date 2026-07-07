@@ -122,6 +122,12 @@ func CompilerSymbolCQualifiedName(owner_name: String, member_name: String) -> St
 func CompilerSymbolCInoutParamName(param_name: String) -> String {
     return Concat("_pgy_inout_", CompilerSymbolCIdentifier(param_name));
 }
+func CompilerSymbolCTryTempName(node_index: Int) -> String {
+    return Concat("_pgy_try_", ToString(node_index));
+}
+func CompilerSymbolCMatchTempName(node_index: Int) -> String {
+    return Concat("_pgy_match_", ToString(node_index));
+}
 func CompilerSymbolCRoleOperatorName(role_name: String, op_name: String) -> String {
     return CompilerSymbolCQualifiedName(role_name, op_name);
 }

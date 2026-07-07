@@ -816,6 +816,7 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "nodes[i].inden
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "nodes[j].indent"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "nodes[cur[0]].indent"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/ast_text_typed_arena_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../../compiler/symbol_table_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIndentOrDie(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIndentOrDie(arena, cur[0])"
@@ -1274,8 +1275,14 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstAre
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaTypeNameOrDie(arena, j)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=pm:"'
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCInoutParamName"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCTryTempName"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCMatchTempName"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCInoutParamName(p_name)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCTryTempName(idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCMatchTempName(idx)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" '"_pgy_inout_"'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgy_try_"'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgy_match_"'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsZeroArtifactDecl(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsNominalDecl(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsRoleDecl(arena, i)"

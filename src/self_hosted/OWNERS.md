@@ -193,7 +193,7 @@ compiler-stage `.pgy` source to be listed here.
   projection over the ABI layout row owner for parity/golden comparison.
 - `src/self_hosted/compiler/symbol_table_owner.pgy` -- cross-backend symbol row
   fact vocabulary for C/LLVM/self-hosted projections, including inout parameter
-  temporary spelling.
+  and try/match emission temporary spelling.
 - `src/self_hosted/compiler/stage_artifact_owner.pgy` -- stage artifact
   envelope facts that bind token, AST, semantic, and MIR stage actors to the
   compiler-world path manifest rows.

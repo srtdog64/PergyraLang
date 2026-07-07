@@ -11,6 +11,7 @@ import "../input/ast_text_typed_arena_owner.pgy";
 import "../input/ast_text_try_let_owner.pgy";
 import "../input/ast_text_indexed_assignment_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/host_io_runtime_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
@@ -148,7 +149,7 @@ func EmitTryLet(node: CodegenAstTextNode, arena: AstArena, idx: Int, inout env_b
         Die(Concat("unsupported try let shape in self-host codegen subset: ", CodegenAstTextProvenance(node)));
     }
     let inner: String = UnwrapOption(inner_opt);
-    let tmp: String = Concat("_pgy_try_", ToString(idx));
+    let tmp: String = CompilerSymbolCTryTempName(idx);
     if StartsWith(cur_fn_ret, "Result<") && StringIndexOf(cur_fn_ret, "Int") >= 0 {
         if type_name != "Int" {
             Die(Concat("unsupported Result try let payload type in self-host codegen subset: ", CodegenAstTextProvenance(node)));
@@ -506,7 +507,7 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
         } else if CodegenAstArenaIsMatchStmt(arena, idx) {
             let match_subject: String = CodegenAstArenaAtomOrDie(arena, idx);
             let match_subject_type: String = ExprKind(match_subject, env_box[0]);
-            let match_tmp: String = Concat("_pgy_match_", ToString(idx));
+            let match_tmp: String = CompilerSymbolCMatchTempName(idx);
             let match_tmp_type: String = AbiLayoutCLocalType("Int", env_box[0]);
             let match_tmp_cast: String = AbiLayoutCValueType("Int", env_box[0]);
             result = Concat(result, Concat(pad, "{\n"));
