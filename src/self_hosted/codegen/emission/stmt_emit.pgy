@@ -68,19 +68,19 @@ func EmitLet(arena: AstArena, idx: Int, inout env_box: Array<String>) -> String 
     let type_name: String = CodegenAstArenaTypeNameOrDie(arena, idx);
     let expr: String = CodegenAstArenaValueOrDie(arena, idx);
     if type_name == "Int" {
-        ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:Int|")));
+        ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], name, "Int", c_name));
         return Concat(AbiLayoutCLocalType(type_name, env_box[0]), Concat(" ", Concat(c_name, Concat(" = ", Concat(IntEval(expr, env_box[0]), ";")))));
     }
     if type_name == "Bool" {
-        ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:Bool|")));
+        ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], name, "Bool", c_name));
         return Concat(AbiLayoutCLocalType(type_name, env_box[0]), Concat(" ", Concat(c_name, Concat(" = ", Concat(IntEval(expr, env_box[0]), ";")))));
     }
     if type_name == "Float" {
-        ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:Float|")));
+        ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], name, "Float", c_name));
         return Concat(AbiLayoutCLocalType(type_name, env_box[0]), Concat(" ", Concat(c_name, Concat(" = ", Concat(RewriteExpr(expr, env_box[0]), ";")))));
     }
     if type_name == "String" {
-        ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:String|")));
+        ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], name, "String", c_name));
         return Concat(AbiLayoutCLocalType(type_name, env_box[0]), Concat(" ", Concat(c_name, Concat(" = ", Concat(StrEval(expr, env_box[0]), ";")))));
     }
     if StartsWith(type_name, "Array<") {
@@ -92,7 +92,7 @@ func EmitLet(arena: AstArena, idx: Int, inout env_box: Array<String>) -> String 
         let c_type: String = AbiLayoutCLocalType(type_name, env_box[0]);
         let new_fn: String = CollectionRuntimeCNewFn(array_kind_code);
         let push_fn: String = CollectionRuntimeCPushFn(array_kind_code);
-        ArraySet(env_box, 0, Concat(env_box[0], Concat(name, Concat("=v:", Concat(array_kind, "|")))));
+        ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], name, array_kind, c_name));
         // Non-literal initializer (e.g. `Args()` or an array-returning call):
         // bind the array value directly.
         if !CodegenAstArenaLetInitializerStartsArrayLiteral(arena, idx) {
@@ -112,7 +112,7 @@ func EmitLet(arena: AstArena, idx: Int, inout env_box: Array<String>) -> String 
         return out;
     }
     if StartsWith(type_name, "Result<") && StringIndexOf(type_name, "Int") >= 0 {
-        ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:ResultInt|")));
+        ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], name, "ResultInt", c_name));
         return Concat(AbiLayoutCLocalType(type_name, env_box[0]), Concat(" ", Concat(c_name, Concat(" = ", Concat(RewriteExpr(expr, env_box[0]), ";")))));
     }
     if StartsWith(type_name, "Option<") {
@@ -127,7 +127,7 @@ func EmitLet(arena: AstArena, idx: Int, inout env_box: Array<String>) -> String 
         if StringLength(option_kind) == 0 {
             Die(Concat("unsupported option let payload type: ", type_name));
         }
-        ArraySet(env_box, 0, Concat(env_box[0], Concat(name, Concat("=v:", Concat(option_kind, "|")))));
+        ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], name, option_kind, c_name));
         let option_expr_fact: OptionExprEmissionFact = EmitOptionExprFactForType(expr, type_name, env_box[0]);
         let option_expr: String = option_expr_fact.c_expr;
         return Concat(AbiLayoutCLocalType(type_name, env_box[0]), Concat(" ", Concat(c_name, Concat(" = ", Concat(option_expr, ";")))));
@@ -135,7 +135,7 @@ func EmitLet(arena: AstArena, idx: Int, inout env_box: Array<String>) -> String 
     if LookupKindType(env_box[0], type_name, "s") == "struct" {
         // rung-14: struct-typed local from a `Name(f: v, ...)` literal or a
         // struct-returning call.
-        ArraySet(env_box, 0, Concat(env_box[0], Concat(name, Concat("=v:", Concat(type_name, "|")))));
+        ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], name, type_name, c_name));
         return Concat(AbiLayoutCLocalType(type_name, env_box[0]), Concat(" ", Concat(c_name, Concat(" = ", Concat(EmitStructValue(expr, type_name, env_box[0]), ";")))));
     }
     Die(Concat("unsupported let type (only Int/Bool/Float/String/Array/Option/struct): ", type_name));
@@ -156,7 +156,7 @@ func EmitTryLet(node: CodegenAstTextNode, arena: AstArena, idx: Int, inout env_b
         if type_name != "Int" {
             Die(Concat("unsupported Result try let payload type in self-host codegen subset: ", CodegenAstTextProvenance(node)));
         }
-        ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:Int|")));
+        ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], name, "Int", c_name));
         let result_out: String = Concat(AbiLayoutCLocalType("Result<Int>", env_box[0]), Concat(" ", Concat(tmp, Concat(" = ", Concat(RewriteExpr(inner, env_box[0]), ";\n")))));
         result_out = Concat(result_out, Concat(pad, Concat("if (!", Concat(OptionResultRuntimeCResultIsOkFn(), Concat("(", Concat(tmp, ")) {\n"))))));
         result_out = Concat(result_out, cleanup);
@@ -179,7 +179,7 @@ func EmitTryLet(node: CodegenAstTextNode, arena: AstArena, idx: Int, inout env_b
         if StringLength(operand_value_type) == 0 || operand_value_type != type_name {
             Die(Concat("try expression payload type does not match let type: ", CodegenAstTextProvenance(node)));
         }
-        ArraySet(env_box, 0, Concat(env_box[0], Concat(name, Concat("=v:", Concat(type_name, "|")))));
+        ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], name, type_name, c_name));
         let operand_option_type: String = OptionResultRuntimeOptionTypeNameForPayloadKind(operand_payload_kind);
         let option_out: String = Concat(AbiLayoutCLocalType(operand_option_type, env_box[0]), Concat(" ", Concat(tmp, Concat(" = ", Concat(RewriteExpr(inner, env_box[0]), ";\n")))));
         option_out = Concat(option_out, Concat(pad, Concat("if (!", Concat(OptionResultRuntimeCOptionIsSomeFn(), Concat("(", Concat(tmp, ")) {\n"))))));
@@ -429,7 +429,7 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
                 // Range loop `for i in a..b` (exclusive upper bound).
                 let start_v: String = CodegenAstArenaValueOrDie(arena, idx);
                 let end_v: String = UnwrapOption(range_end);
-                ArraySet(env_box, 0, Concat(env_box[0], Concat(loop_var, "=v:Int|")));
+                ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], loop_var, "Int", c_loop_var));
                 let for_hdr: String = Concat("for (", AbiLayoutCLocalType("Int", env_box[0]));
                 for_hdr = Concat(for_hdr, Concat(" ", c_loop_var));
                 for_hdr = Concat(for_hdr, Concat(" = ", IntEval(start_v, env_box[0])));
@@ -465,7 +465,7 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
                 }
                 let tc: String = CompilerSymbolCForEachCollectionTempName(loop_var);
                 let ti: String = CompilerSymbolCForEachIndexTempName(loop_var);
-                ArraySet(env_box, 0, Concat(env_box[0], Concat(loop_var, Concat("=v:", Concat(elem_kind, "|")))));
+                ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], loop_var, elem_kind, c_loop_var));
                 result = Concat(result, Concat(pad, Concat(arr_c, Concat(" ", Concat(tc, Concat(" = ", Concat(RewriteExpr(coll, env_box[0]), ";\n")))))));
                 let foreach_hdr: String = Concat("for (", AbiLayoutCLocalType("Int", env_box[0]));
                 foreach_hdr = Concat(foreach_hdr, Concat(" ", ti));

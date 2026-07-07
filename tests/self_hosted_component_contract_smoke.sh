@@ -1283,20 +1283,32 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstAre
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCFieldName(fname)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=pm:"'
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCBindingName"
-require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "source binding requires a C name-map before emission"
+require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func TypeEnvAppendValueBinding"
+require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func TypeEnvBindingCName"
+require_text "src/self_hosted/codegen/type_facts/type_env.pgy" '"=cbind:"'
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'import "expr_binding_rewrite_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/expr_binding_rewrite_owner.pgy" "func RewriteBindingRefs"
+require_text "src/self_hosted/codegen/emission/expr_binding_rewrite_owner.pgy" "TypeEnvBindingCName(env, ident)"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "let bound: String = RewriteBindingRefs(fielded, env)"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCInoutParamName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCForEachCollectionTempName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCForEachIndexTempName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCTryTempName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCMatchTempName"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCBindingName(p_name)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "TypeEnvAppendValueBinding(env_box[0], p_name, p_kind, c_p_name)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCBindingName(name)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypeEnvAppendValueBinding(env_box[0], name,"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCBindingName(loop_var)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypeEnvAppendValueBinding(env_box[0], loop_var,"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCInoutParamName(p_name)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCForEachCollectionTempName(loop_var)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCForEachIndexTempName(loop_var)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCTryTempName(idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCMatchTempName(idx)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(p_name, Concat("=v:"'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'Concat(name, "=v:'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'Concat(loop_var, "=v:'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(c_param_type, Concat(" ", p_name))'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(cpt, Concat(" ", p_name))'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'Concat(" ", Concat(name, Concat(" = "'
@@ -3600,13 +3612,14 @@ fi
 
 codegen_fixture_count="$(find "$SELF_HOST_DIR/codegen/fixture" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
 codegen_expected_count="$(find "$SELF_HOST_DIR/codegen/expected" -maxdepth 1 -type f -name '*_stdout.txt' | wc -l | tr -d ' ')"
-[[ "$codegen_fixture_count" -eq 66 ]] ||
-    fail "codegen fixture count drifted: $codegen_fixture_count != 66"
-[[ "$codegen_expected_count" -eq 66 ]] ||
-    fail "codegen expected count drifted: $codegen_expected_count != 66"
+[[ "$codegen_fixture_count" -eq 67 ]] ||
+    fail "codegen fixture count drifted: $codegen_fixture_count != 67"
+[[ "$codegen_expected_count" -eq 67 ]] ||
+    fail "codegen expected count drifted: $codegen_expected_count != 67"
 require_file "src/self_hosted/codegen/fixture/hello.pgy"
 require_file "src/self_hosted/codegen/fixture/seed_random.pgy"
 require_file "src/self_hosted/codegen/fixture/array_index_assign.pgy"
+require_file "src/self_hosted/codegen/fixture/c_reserved_binding.pgy"
 require_file "src/self_hosted/codegen/fixture/string_array_index_return.pgy"
 require_text "src/self_hosted/codegen/README.md" "Golden/platform contract"
 require_text "src/self_hosted/codegen/README.md" "PGY_SELFHOST_CODEGEN_BACKENDS=c"

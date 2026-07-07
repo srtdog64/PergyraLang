@@ -1,0 +1,50 @@
+import "../text/text_owner.pgy";
+import "../type_facts/type_env.pgy";
+
+func RewriteBindingRefs(e: String, env: String) -> String {
+    let n: Int = StringLength(e);
+    let out: String = "";
+    let i: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CodegenCharAt(e, i);
+        if in_str {
+            out = Concat(out, c);
+            if c == "\\" && i + 1 < n {
+                out = Concat(out, CodegenCharAt(e, i + 1));
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            out = Concat(out, c);
+            i = i + 1;
+            continue;
+        }
+        if IsIdentStart(c) {
+            let j: Int = i;
+            while j < n && IsIdentChar(CodegenCharAt(e, j)) {
+                j = j + 1;
+            }
+            let ident: String = Substring(e, i, j - i);
+            let prev_is_field: Bool = i > 0 && CodegenCharAt(e, i - 1) == ".";
+            let next_is_call: Bool = j < n && CodegenCharAt(e, j) == "(";
+            if !prev_is_field && !next_is_call {
+                out = Concat(out, TypeEnvBindingCName(env, ident));
+            } else {
+                out = Concat(out, ident);
+            }
+            i = j;
+            continue;
+        }
+        out = Concat(out, c);
+        i = i + 1;
+    }
+    return out;
+}

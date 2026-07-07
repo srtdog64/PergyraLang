@@ -198,14 +198,15 @@ expression lowering used by `let`, assignment, and return paths;
 `emission/stmt_emit.pgy` consumes that boundary instead of owning struct literal
 policy directly. `compiler/symbol_table_owner.pgy` owns emitted-symbol spelling
 rows for function names, owner-qualified methods, role operator names,
-payload-free enum variants, struct fields, source binding names, `inout`
+payload-free enum variants, struct fields, source-to-C binding names, `inout`
 temporary parameter names, foreach loop temporary names, and try/match emission
 temporary names in the supported subset; emitters must
 consume that compiler-world owner instead of locally concatenating owner/member,
-field, binding, or temporary spellings. Source binding names are currently
-fail-closed unless their C spelling is byte-identical; a future name-map owner
-must land before non-identical source/C local names are accepted. Projection
-also fails closed if the symbol row envelope is not ready.
+field, binding, or temporary spellings. Local/parameter/loop declarations record
+source-to-C binding rows in `type_facts/type_env.pgy`, and
+`emission/expr_binding_rewrite_owner.pgy` consumes those rows before expression
+emission so C-reserved source names do not reopen a backend-local spelling path.
+Projection also fails closed if the symbol row envelope is not ready.
 `abi_layout/abi_layout_owner.pgy` owns C ABI type spelling for parameter,
 return, local, struct/class field, nominal struct type, and empty
 parameter-list declarations in the supported subset; emitters must consume that

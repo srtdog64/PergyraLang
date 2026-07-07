@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let inline: Int = 3;
+    let acc: Int = inline + 4;
+    Log(ToString(acc));
+}

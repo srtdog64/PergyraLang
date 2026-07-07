@@ -13,6 +13,7 @@ import "../runtime_abi/host_io_runtime_owner.pgy";
 import "../runtime_abi/math_runtime_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
+import "expr_binding_rewrite_owner.pgy";
 import "literal_rewrite.pgy";
 
 func RewriteExpr(e: String, env: String) -> String {
@@ -474,7 +475,8 @@ func RewriteTokens(e: String, env: String) -> String {
     }
     let b: String = RewriteIndexing(optioned, env);
     let fielded: String = RewriteStructFieldAccess(b, env);
-    let c: String = ReplaceAllOutsideStrings(fielded, "StringLength(", Concat(StringRuntimeCStringLengthFn(), "("));
+    let bound: String = RewriteBindingRefs(fielded, env);
+    let c: String = ReplaceAllOutsideStrings(bound, "StringLength(", Concat(StringRuntimeCStringLengthFn(), "("));
     let d0: String = ReplaceAllOutsideStrings(c, "StringContains(", Concat(StringRuntimeCStringContainsFn(), "("));
     let d: String = ReplaceAllOutsideStrings(d0, "StringIndexOf(", Concat(StringRuntimeCStringIndexOfFn(), "("));
     let f0: String = ReplaceAllOutsideStrings(d, "Split(", Concat(StringRuntimeCSplitFn(), "("));

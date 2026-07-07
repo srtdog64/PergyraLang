@@ -69,7 +69,7 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
         if StartsWith(p_type, "Array<") {
             p_kind = CollectionRuntimeKindFromTypeName(p_type);
         }
-        ArraySet(env_box, 0, Concat(env_box[0], Concat(p_name, Concat("=v:", Concat(p_kind, "|")))));
+        ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], p_name, p_kind, c_p_name));
         param_n = param_n + 1;
         ArraySet(cur, 0, cur[0] + 1);
     }

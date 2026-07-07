@@ -126,14 +126,7 @@ func CompilerSymbolCFieldName(field_name: String) -> String {
     return CompilerSymbolCIdentifier(field_name);
 }
 func CompilerSymbolCBindingName(source_name: String) -> String {
-    let name: String = StringTrim(source_name);
-    let c_name: String = CompilerSymbolCIdentifier(name);
-    if c_name != name {
-        Log(Concat("SYMBOL ERROR: source binding requires a C name-map before emission: ", name));
-        Exit(1);
-        return "";
-    }
-    return c_name;
+    return CompilerSymbolCIdentifier(source_name);
 }
 func CompilerSymbolCInoutParamName(param_name: String) -> String {
     return Concat("_pgy_inout_", CompilerSymbolCIdentifier(param_name));

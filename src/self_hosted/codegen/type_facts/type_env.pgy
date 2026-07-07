@@ -19,6 +19,19 @@ func LookupKindType(env: String, name: String, kind: String) -> String {
     return Substring(rest, 0, bar);
 }
 
+func TypeEnvAppendValueBinding(env: String, source_name: String, value_kind: String, c_name: String) -> String {
+    let with_value: String = Concat(env, Concat(source_name, Concat("=v:", Concat(value_kind, "|"))));
+    return Concat(with_value, Concat(source_name, Concat("=cbind:", Concat(c_name, "|"))));
+}
+
+func TypeEnvBindingCName(env: String, source_name: String) -> String {
+    let c_name: String = LookupKindType(env, source_name, "cbind");
+    if StringLength(c_name) > 0 {
+        return c_name;
+    }
+    return source_name;
+}
+
 func CsvAt(csv: String, want: Int) -> String {
     let i: Int = 0;
     let idx: Int = 0;
