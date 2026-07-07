@@ -1510,5 +1510,29 @@ if grep -F 'pgy_lane_channel_recv_val_%s(PGY_LANE_PINNED_ZONE' \
 fi
 grep -Fq "transpiler_spawn_channel_runtime_symbol" \
     "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+if grep -F 'pgy_lane_channel_try_recv_%s(PGY_LANE_PINNED_ZONE' \
+    "$ROOT_DIR/src/codegen/transpiler_select.c" >/dev/null; then
+    echo "[backend-fail-closed] C select bound receive must consume channel runtime ABI names" >&2
+    exit 1
+fi
+if grep -F 'pgy_lane_channel_ready_%s(PGY_LANE_PINNED_ZONE' \
+    "$ROOT_DIR/src/codegen/transpiler_select.c" >/dev/null; then
+    echo "[backend-fail-closed] C select readiness must consume channel runtime ABI names" >&2
+    exit 1
+fi
+if grep -F 'pgy_lane_channel_recv_val_%s(PGY_LANE_PINNED_ZONE' \
+    "$ROOT_DIR/src/codegen/transpiler_select.c" >/dev/null; then
+    echo "[backend-fail-closed] C select unbound consume must consume channel runtime ABI names" >&2
+    exit 1
+fi
+if grep -F 'pgy_lane_channel_ready_%s(PGY_LANE_PINNED_ZONE' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C MIR select readiness must consume channel runtime ABI names" >&2
+    exit 1
+fi
+grep -Fq "select_channel_runtime_symbol" \
+    "$ROOT_DIR/src/codegen/transpiler_select.c"
+grep -Fq "pgy_lane_channel_runtime_name(runtime_fn, sizeof(runtime_fn)," \
+    "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"
 
 echo "[backend-fail-closed] C/LLVM fail-open fallback guards ok"

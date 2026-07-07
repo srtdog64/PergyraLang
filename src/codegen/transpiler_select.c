@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "codegen_channel_runtime_abi.h"
 #include "transpiler.h"
 #include "transpiler_channel_type_query.h"
 #include "transpiler_context.h"
@@ -82,7 +83,27 @@ select_set_missing_channel_type_error(TranspilerCtx *ctx, ASTNode *channel)
                 : "(anonymous)");
 }
 
-static void
+static bool
+select_channel_runtime_symbol(TranspilerCtx *ctx,
+                              const char *operation,
+                              const char *runtime_op,
+                              const char *inner,
+                              char *out,
+                              size_t out_size)
+{
+    if (pgy_lane_channel_runtime_name(out, out_size, runtime_op, inner))
+        return true;
+
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_INSPECT_MIR_INVENTORY,
+        "C select lowering %s runtime function name is too long",
+        operation != NULL ? operation : "channel operation");
+    return false;
+}
+
+static bool
 select_write_case_guard(TranspilerCtx *ctx, size_t offset, size_t index,
                         ASTNode *channel, const char *bind_name,
                         const char *inner)
@@ -95,19 +116,30 @@ select_write_case_guard(TranspilerCtx *ctx, size_t offset, size_t index,
     if (channel_name == NULL) {
         codebuf_write(ctx->out, "%s (1) { /* select case %zu */\n",
                       prefix, index);
-        return;
+        return true;
     }
 
     if (bind_name != NULL) {
+        char recv_fn[128];
+        if (!select_channel_runtime_symbol(ctx, "bound receive",
+                "try_recv", inner, recv_fn, sizeof(recv_fn)))
+            return false;
         codebuf_write(ctx->out,
-            "%s (pgy_lane_channel_try_recv_%s(PGY_LANE_PINNED_ZONE, &%s, &_sel_recv_%zu)) { /* select case %zu */\n",
-            prefix, inner, channel_name, index, index);
-        return;
+            "%s (%s(PGY_LANE_PINNED_ZONE, &%s, &_sel_recv_%zu)) { /* select case %zu */\n",
+            prefix, recv_fn, channel_name, index, index);
+        return true;
     }
 
-    codebuf_write(ctx->out,
-        "%s (pgy_lane_channel_ready_%s(PGY_LANE_PINNED_ZONE, &%s)) { /* select case %zu */\n",
-        prefix, inner, channel_name, index);
+    {
+        char ready_fn[128];
+        if (!select_channel_runtime_symbol(ctx, "readiness",
+                "ready", inner, ready_fn, sizeof(ready_fn)))
+            return false;
+        codebuf_write(ctx->out,
+            "%s (%s(PGY_LANE_PINNED_ZONE, &%s)) { /* select case %zu */\n",
+            prefix, ready_fn, channel_name, index);
+    }
+    return true;
 }
 
 static bool
@@ -124,9 +156,15 @@ select_emit_unbound_consume(ASTNode *channel, const char *inner,
         return false;
     }
     write_indent(ctx);
+    char recv_fn[128];
+    if (!select_channel_runtime_symbol(ctx, "unbound consume",
+            "recv_val", inner, recv_fn, sizeof(recv_fn))) {
+        free(channel_expr);
+        return false;
+    }
     codebuf_write(ctx->out,
-                  "(void)pgy_lane_channel_recv_val_%s(PGY_LANE_PINNED_ZONE, &%s);\n",
-                  inner, channel_expr);
+                  "(void)%s(PGY_LANE_PINNED_ZONE, &%s);\n",
+                  recv_fn, channel_expr);
     free(channel_expr);
     return true;
 }
@@ -225,8 +263,9 @@ emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
                 }
 
                 write_indent(ctx);
-                select_write_case_guard(ctx, offset, i, channel,
-                                        valid_case ? bind_name : NULL, inner);
+                if (!select_write_case_guard(ctx, offset, i, channel,
+                        valid_case ? bind_name : NULL, inner))
+                    return;
                 ctx->indent++;
                 if (valid_case) {
                     if (bind_name != NULL) {

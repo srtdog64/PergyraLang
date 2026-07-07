@@ -122,9 +122,12 @@ grep -Fq "pgy_lane_channel_runtime_name" \
 grep -Fq "\"try_recv_result\"" \
     "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.c" \
     || fail "C TryRecv lowering does not preserve the pinned channel lane facade op"
-grep -Fq "pgy_lane_channel_ready_%s(PGY_LANE_PINNED_ZONE" \
+grep -Fq "pgy_lane_channel_runtime_name" \
     "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c" \
-    || fail "C MIR select readiness does not consume the pinned channel lane facade"
+    || fail "C MIR select readiness does not consume the channel runtime ABI owner"
+grep -Fq "\"ready\", inner" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c" \
+    || fail "C MIR select readiness does not preserve the pinned channel lane facade op"
 grep -Fq "pgy_lane_spawn_dispatch_export" \
     "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c" \
     || fail "LLVM async/parallel lowering does not consume the lane spawn facade export"

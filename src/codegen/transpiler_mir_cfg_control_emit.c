@@ -8,6 +8,7 @@
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
+#include "codegen_channel_runtime_abi.h"
 #include "transpiler_channel_type_query.h"
 #include "transpiler_context.h"
 #include "transpiler_expr_type_infer.h"
@@ -399,6 +400,7 @@ transpiler_mir_render_channel_ready_condition(
     char inner_buf[64];
     const char *inner;
     char *channel_expr;
+    char runtime_fn[128];
     char *result;
 
     if (channel == NULL || ctx == NULL)
@@ -414,9 +416,19 @@ transpiler_mir_render_channel_ready_condition(
     }
     if (channel_expr == NULL)
         return NULL;
+    if (!pgy_lane_channel_runtime_name(runtime_fn, sizeof(runtime_fn),
+            "ready", inner)) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "C MIR select dispatch runtime function name is too long");
+        free(channel_expr);
+        return NULL;
+    }
     result = strdup_fmt(
-        "pgy_lane_channel_ready_%s(PGY_LANE_PINNED_ZONE, &%s)",
-        inner, channel_expr);
+        "%s(PGY_LANE_PINNED_ZONE, &%s)",
+        runtime_fn, channel_expr);
     free(channel_expr);
     return result;
 }
