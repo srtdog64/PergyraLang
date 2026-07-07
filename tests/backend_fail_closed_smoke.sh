@@ -479,6 +479,31 @@ grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
     "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
 grep -Fq "C expression slot %s requires MIR ABI runtime function row" \
     "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
+grep -Fq "transpiler_emit_nominal_container_runtime_rows" \
+    "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
+grep -Fq "PGY_SLOT_DEFINE(%s, %s)" \
+    "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
+if grep -F "PGY_SLOT_DEFINE(%s, %s)" \
+    "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c" \
+    "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.c" \
+        >/dev/null; then
+    echo "[backend-fail-closed] nominal container runtime rows must be emitted by transpiler_slot_runtime_row" >&2
+    exit 1
+fi
+if grep -F "PGY_SECURE_SLOT_DEFINE(%s, %s)" \
+    "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c" \
+    "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.c" \
+        >/dev/null; then
+    echo "[backend-fail-closed] nominal secure-slot runtime rows must be emitted by transpiler_slot_runtime_row" >&2
+    exit 1
+fi
+if grep -F "PGY_BOX_DEFINE(%s, %s)" \
+    "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c" \
+    "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.c" \
+        >/dev/null; then
+    echo "[backend-fail-closed] nominal box runtime rows must be emitted by transpiler_slot_runtime_row" >&2
+    exit 1
+fi
 grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
     "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"
 grep -Fq "C slot method %s requires MIR ABI runtime function row" \

@@ -19,6 +19,7 @@
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_emit_state.h"
 #include "transpiler_mir_func_emit.h"
+#include "transpiler_slot_runtime_row.h"
 #include "transpiler_specialization_registry.h"
 #include "transpiler_type_require.h"
 #include "transpiler_type_render.h"
@@ -330,18 +331,7 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
     }
 
     codebuf_write(ctx->out, "} %s;\n", name);
-    codebuf_write(ctx->out,
-        "\n/* Auto-generated container types for %s */\n"
-        "#pragma GCC diagnostic push\n"
-        "#pragma GCC diagnostic ignored \"-Wunused-function\"\n"
-        "PGY_SLOT_DEFINE(%s, %s)\n"
-        "PGY_SECURE_SLOT_DEFINE(%s, %s)\n"
-        "PGY_BOX_DEFINE(%s, %s)\n"
-        "#pragma GCC diagnostic pop\n",
-        name,
-        name, name,
-        name, name,
-        name, name);
+    transpiler_emit_nominal_container_runtime_rows(ctx->out, name, true);
 
     emit_class_field_slot_initializer(ctx, node, name);
 

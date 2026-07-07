@@ -26,3 +26,31 @@ transpiler_slot_runtime_fn(TranspilerCtx *ctx,
         operation != NULL ? operation : "<unknown>");
     return NULL;
 }
+
+void
+transpiler_emit_nominal_container_runtime_rows(CodeBuf *dst,
+                                               const char *type_name,
+                                               bool include_intro_comment)
+{
+    if (dst == NULL || type_name == NULL)
+        return;
+
+    if (include_intro_comment) {
+        codebuf_write(dst,
+            "\n/* Auto-generated container types for %s */\n",
+            type_name);
+    } else {
+        codebuf_write(dst, "\n");
+    }
+
+    codebuf_write(dst,
+        "#pragma GCC diagnostic push\n"
+        "#pragma GCC diagnostic ignored \"-Wunused-function\"\n"
+        "PGY_SLOT_DEFINE(%s, %s)\n"
+        "PGY_SECURE_SLOT_DEFINE(%s, %s)\n"
+        "PGY_BOX_DEFINE(%s, %s)\n"
+        "#pragma GCC diagnostic pop\n",
+        type_name, type_name,
+        type_name, type_name,
+        type_name, type_name);
+}

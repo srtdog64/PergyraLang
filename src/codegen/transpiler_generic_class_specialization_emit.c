@@ -16,6 +16,7 @@
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_emit_state.h"
 #include "transpiler_mir_func_emit.h"
+#include "transpiler_slot_runtime_row.h"
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
 
@@ -276,16 +277,8 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     }
     codebuf_write(ctx->helpers, "} %s;\n", spec_name);
 
-    codebuf_write(ctx->helpers,
-        "\n#pragma GCC diagnostic push\n"
-        "#pragma GCC diagnostic ignored \"-Wunused-function\"\n"
-        "PGY_SLOT_DEFINE(%s, %s)\n"
-        "PGY_SECURE_SLOT_DEFINE(%s, %s)\n"
-        "PGY_BOX_DEFINE(%s, %s)\n"
-        "#pragma GCC diagnostic pop\n",
-        spec_name, spec_name,
-        spec_name, spec_name,
-        spec_name, spec_name);
+    transpiler_emit_nominal_container_runtime_rows(ctx->helpers, spec_name,
+        false);
 
     TranspilerHostedMethodView method_view =
         transpiler_hosted_method_view_from_decl(ctx, base_class_name,
