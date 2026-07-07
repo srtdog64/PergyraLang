@@ -1465,5 +1465,12 @@ if grep -F 'llvm_task_channel_format_op_runtime_name' \
     echo "[backend-fail-closed] LLVM task/channel query calls must consume channel runtime ABI names" >&2
     exit 1
 fi
+if grep -F 'snprintf(fn_name, sizeof(fn_name), "pgy_lane_channel_' \
+    "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM MIR CFG channel control must consume channel runtime ABI names" >&2
+    exit 1
+fi
+grep -Fq "pgy_lane_channel_runtime_name(fn_name, sizeof(fn_name)," \
+    "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
 
 echo "[backend-fail-closed] C/LLVM fail-open fallback guards ok"

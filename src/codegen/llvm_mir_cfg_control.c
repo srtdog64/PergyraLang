@@ -7,6 +7,7 @@
 
 #ifdef PGY_LLVM_ENABLED
 
+#include "codegen_channel_runtime_abi.h"
 #include "llvm_internal.h"
 #include "../common/execution_lane_kind.h"
 #include "../parser/ast_api.h"
@@ -57,8 +58,15 @@ llvm_mir_emit_channel_ready_condition(ASTNode *channel, LLVMGenCtx *ctx)
         || target.ptr == NULL)
         return NULL;
 
-    snprintf(fn_name, sizeof(fn_name), "pgy_lane_channel_ready_%s",
-             target.inner);
+    if (!pgy_lane_channel_runtime_name(fn_name, sizeof(fn_name),
+            "ready", target.inner)) {
+        llvm_set_error_at_with_hints(ctx, channel,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM MIR select readiness runtime function name is too long");
+        return NULL;
+    }
     ready_fn = llvm_mir_required_channel_ready_function(channel, ctx, fn_name);
     if (ready_fn == NULL)
         return NULL;
@@ -197,8 +205,15 @@ llvm_mir_emit_channel_receive_def(const MIRInstruction *inst,
         return false;
     }
 
-    snprintf(fn_name, sizeof(fn_name), "pgy_lane_channel_recv_val_%s",
-             channel_target.inner);
+    if (!pgy_lane_channel_runtime_name(fn_name, sizeof(fn_name),
+            "recv_val", channel_target.inner)) {
+        llvm_set_error_at_with_hints(ctx, channel,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM channel receive DEF runtime function name is too long");
+        return false;
+    }
     recv_fn = llvm_lookup_function(ctx, fn_name);
     if (recv_fn == NULL || recv_fn->fn == NULL) {
         llvm_set_error_at_with_hints(ctx, channel,
