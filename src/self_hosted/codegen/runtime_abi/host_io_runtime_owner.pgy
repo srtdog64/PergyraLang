@@ -8,6 +8,10 @@ func HostIORuntimeCFileExistsFn() -> String {
     return "pgy_fexists";
 }
 
+func HostIORuntimeCPathAllowedFn() -> String {
+    return "pgy_path_allowed";
+}
+
 func HostIORuntimeCWriteFileFn() -> String {
     return "pgy_writefile";
 }
@@ -30,6 +34,18 @@ func HostIORuntimeCFileCloseFn() -> String {
 
 func HostIORuntimeCFileReadFn() -> String {
     return "pgy_fread";
+}
+
+func HostIORuntimeCFileHandleTableGlobal() -> String {
+    return "pgy_fh";
+}
+
+func HostIORuntimeCFileHandleCountGlobal() -> String {
+    return "pgy_fh_n";
+}
+
+func HostIORuntimeCFileHandleValidFn() -> String {
+    return "pgy_fh_valid";
 }
 
 func HostIORuntimeCReadFileFn() -> String {
@@ -75,5 +91,94 @@ func HostIORuntimeCArgsBlock() -> String {
     block = Concat(block, Concat("    pgy_as a = ", Concat(CollectionRuntimeCNewFn(2), "();\n")));
     block = Concat(block, Concat("    for (int i = 1; i < ", Concat(HostIORuntimeCArgcGlobal(), Concat("; i++) { ", Concat(CollectionRuntimeCPushFn(2), Concat("(&a, ", Concat(HostIORuntimeCArgvGlobal(), "[i]); }\n")))))));
     block = Concat(block, "    return a;\n}\n\n");
+    return block;
+}
+
+func HostIORuntimeCPathAndSecureOpenBlock() -> String {
+    let block: String = "";
+    block = Concat(block, Concat("static int ", Concat(HostIORuntimeCPathAllowedFn(), "(const char *path)\n{\n")));
+    block = Concat(block, "    if (path == NULL || path[0] == '\\0') { return 0; }\n");
+    block = Concat(block, "    int drive = ((path[0] >= 'A' && path[0] <= 'Z') || (path[0] >= 'a' && path[0] <= 'z')) && path[1] == ':';\n");
+    block = Concat(block, "    int absolute = path[0] == '/' || path[0] == '\\\\' || drive;\n");
+    block = Concat(block, "    if (!absolute) { return 1; }\n");
+    block = Concat(block, "    const char *allow = getenv(\"PGY_IO_ALLOW_ABSOLUTE\");\n");
+    block = Concat(block, "    return allow != NULL && allow[0] == '1' && allow[1] == '\\0';\n");
+    block = Concat(block, "}\n\n");
+    block = Concat(block, Concat("static FILE *", Concat(HostIORuntimeCSecureFileOpenFn(), "(const char *path, const char *mode)\n{\n")));
+    block = Concat(block, "#ifdef _WIN32\n    return fopen(path, mode);\n#else\n");
+    block = Concat(block, "    if (mode == NULL || mode[0] == '\\0') { return NULL; }\n");
+    block = Concat(block, "    int plus = strchr(mode, '+') != NULL;\n");
+    block = Concat(block, "    int flags = O_RDONLY;\n");
+    block = Concat(block, "    if (mode[0] == 'r') { flags = plus ? O_RDWR : O_RDONLY; }\n");
+    block = Concat(block, "    else if (mode[0] == 'w') { flags = (plus ? O_RDWR : O_WRONLY) | O_CREAT | O_TRUNC; }\n");
+    block = Concat(block, "    else if (mode[0] == 'a') { flags = (plus ? O_RDWR : O_WRONLY) | O_CREAT | O_APPEND; }\n");
+    block = Concat(block, "    else { return NULL; }\n");
+    block = Concat(block, "#ifdef O_NOFOLLOW\n    flags |= O_NOFOLLOW;\n#endif\n");
+    block = Concat(block, "    int fd = open(path, flags, 0666);\n    if (fd < 0) { return NULL; }\n");
+    block = Concat(block, "    FILE *f = fdopen(fd, mode);\n    if (!f) { close(fd); return NULL; }\n    return f;\n#endif\n}\n\n");
+    return block;
+}
+
+func HostIORuntimeCFileHandleBlock() -> String {
+    let table: String = HostIORuntimeCFileHandleTableGlobal();
+    let count: String = HostIORuntimeCFileHandleCountGlobal();
+    let valid_fn: String = HostIORuntimeCFileHandleValidFn();
+    let block: String = "";
+    block = Concat(block, Concat("static FILE *", Concat(table, "[256];\n")));
+    block = Concat(block, Concat("static long long ", Concat(count, " = 0;\n")));
+    block = Concat(block, Concat("static long long ", Concat(HostIORuntimeCFileOpenFn(), "(const char *path, const char *mode)\n{\n")));
+    block = Concat(block, Concat("    if (!", Concat(HostIORuntimeCPathAllowedFn(), "(path)) { return -1; }\n")));
+    block = Concat(block, Concat("    FILE *f = ", Concat(HostIORuntimeCSecureFileOpenFn(), "(path, mode);\n    if (!f) { return -1; }\n")));
+    block = Concat(block, Concat("    if (", Concat(count, " >= 256) { fclose(f); return -1; }\n")));
+    block = Concat(block, Concat("    ", Concat(table, Concat("[", Concat(count, "] = f;\n")))));
+    block = Concat(block, Concat("    return ", Concat(count, "++;\n}\n\n")));
+    block = Concat(block, Concat("static int ", Concat(valid_fn, "(long long fd)\n{\n")));
+    block = Concat(block, Concat("    return fd >= 0 && fd < ", Concat(count, Concat(" && ", Concat(table, "[fd] != NULL;\n}\n\n")))));
+    block = Concat(block, Concat("static void ", Concat(HostIORuntimeCFileWriteFn(), "(long long fd, const char *s)\n{\n")));
+    block = Concat(block, Concat("    if (!", Concat(valid_fn, "(fd)) { return; }\n")));
+    block = Concat(block, Concat("    fputs(s, ", Concat(table, "[fd]);\n}\n\n")));
+    block = Concat(block, Concat("static void ", Concat(HostIORuntimeCFileCloseFn(), "(long long fd)\n{\n")));
+    block = Concat(block, Concat("    if (!", Concat(valid_fn, "(fd)) { return; }\n")));
+    block = Concat(block, Concat("    fclose(", Concat(table, "[fd]);\n")));
+    block = Concat(block, Concat("    ", Concat(table, "[fd] = NULL;\n}\n\n")));
+    block = Concat(block, Concat("static char *", Concat(HostIORuntimeCFileReadFn(), "(long long fd)\n{\n")));
+    block = Concat(block, Concat("    if (!", Concat(valid_fn, "(fd)) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n")));
+    block = Concat(block, Concat("    char buf[4096];\n    if (!fgets(buf, (int)sizeof(buf), ", Concat(table, "[fd])) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n")));
+    block = Concat(block, "    long long n = 0;\n    while (buf[n] != '\\0') { n++; }\n");
+    block = Concat(block, "    char *r = (char *)malloc((size_t)n + 1);\n");
+    block = Concat(block, "    long long i = 0;\n    while (i <= n) { r[i] = buf[i]; i++; }\n    return r;\n}\n\n");
+    return block;
+}
+
+func HostIORuntimeCFileIOBlock() -> String {
+    let block: String = "";
+    block = Concat(block, Concat("static int ", Concat(HostIORuntimeCFileExistsFn(), "(const char *path)\n{\n")));
+    block = Concat(block, Concat("    if (!", Concat(HostIORuntimeCPathAllowedFn(), "(path)) { return 0; }\n")));
+    block = Concat(block, Concat("    FILE *f = ", Concat(HostIORuntimeCSecureFileOpenFn(), "(path, \"rb\");\n")));
+    block = Concat(block, "    if (f) { fclose(f); return 1; }\n    return 0;\n}\n\n");
+    block = Concat(block, Concat("static char *", Concat(HostIORuntimeCReadFileFn(), "(const char *path)\n{\n")));
+    block = Concat(block, Concat("    if (!", Concat(HostIORuntimeCPathAllowedFn(), "(path)) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n")));
+    block = Concat(block, Concat("    FILE *f = ", Concat(HostIORuntimeCSecureFileOpenFn(), "(path, \"rb\");\n")));
+    block = Concat(block, "    if (!f) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
+    block = Concat(block, "    fseek(f, 0, SEEK_END);\n    long sz = ftell(f);\n    fseek(f, 0, SEEK_SET);\n");
+    block = Concat(block, "    if (sz < 0) { sz = 0; }\n");
+    block = Concat(block, "    char *buf = (char *)malloc((size_t)sz + 1);\n");
+    block = Concat(block, "    size_t rd = fread(buf, 1, (size_t)sz, f);\n");
+    block = Concat(block, "    buf[rd] = '\\0';\n    fclose(f);\n    return buf;\n}\n\n");
+    block = Concat(block, Concat("static char *", Concat(HostIORuntimeCReadStdinFn(), "(long long max_bytes)\n{\n")));
+    block = Concat(block, "#ifdef _WIN32\n    _setmode(_fileno(stdin), _O_BINARY);\n#endif\n");
+    block = Concat(block, "    if (max_bytes <= 0 || max_bytes > 67108864LL) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
+    block = Concat(block, "    char *buf = (char *)malloc((size_t)max_bytes + 1);\n");
+    block = Concat(block, "    if (!buf) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
+    block = Concat(block, "    size_t rd = fread(buf, 1, (size_t)max_bytes, stdin);\n");
+    block = Concat(block, "    if (rd == 0 && ferror(stdin)) { free(buf); char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
+    block = Concat(block, "    buf[rd] = '\\0';\n    return buf;\n}\n\n");
+    block = Concat(block, Concat("static int ", Concat(HostIORuntimeCWriteFileFn(), "(const char *path, const char *content)\n{\n")));
+    block = Concat(block, Concat("    if (!", Concat(HostIORuntimeCPathAllowedFn(), "(path)) { return 0; }\n")));
+    block = Concat(block, Concat("    FILE *f = ", Concat(HostIORuntimeCSecureFileOpenFn(), "(path, \"wb\");\n")));
+    block = Concat(block, "    if (!f) { return 0; }\n");
+    block = Concat(block, "    size_t n = strlen(content);\n");
+    block = Concat(block, "    size_t wr = fwrite(content, 1, n, f);\n");
+    block = Concat(block, "    fclose(f);\n    return (int)wr;\n}\n\n");
     return block;
 }
