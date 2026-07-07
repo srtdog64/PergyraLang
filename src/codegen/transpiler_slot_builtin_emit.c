@@ -9,6 +9,7 @@
 #include "transpiler_slot_target.h"
 #include "transpiler_symbols.h"
 #include "../common/string_compat.h"
+#include "../compiler/mir_abi_layout.h"
 #include "../semantic/diag_codes.h"
 
 static char *
@@ -46,6 +47,28 @@ slot_builtin_heap_fmt(TranspilerCtx *ctx, const char *fmt, ...)
     vsnprintf(buf, (size_t)needed + 1, fmt, ap2);
     va_end(ap2);
     return buf;
+}
+
+static const char *
+slot_builtin_runtime_fn(TranspilerCtx *ctx,
+                        bool secure,
+                        const char *inner_type,
+                        const char *operation)
+{
+    const char *runtime_fn = mir_abi_resource_runtime_fn_by_kind(
+        secure ? MIR_RESOURCE_ABI_SECURE_SLOT : MIR_RESOURCE_ABI_SLOT,
+        inner_type, operation);
+    if (runtime_fn != NULL)
+        return runtime_fn;
+
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_INSPECT_MIR_INVENTORY,
+        "C source slot builtin %s requires MIR ABI runtime function row",
+        operation != NULL ? operation : "<unknown>");
+    return NULL;
 }
 
 static bool
@@ -163,17 +186,27 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
         /* SecureSlot: Write(slot, value, token) */
         char *token_expr = slot_builtin_emit_operand(ctx,
             ast_call_argument(call, 2), "Write", "token");
+        const char *write_fn;
         if (token_expr == NULL) {
             free(slot_ref);
             free(slot_expr);
             free(value_expr);
             return NULL;
         }
+        write_fn = slot_builtin_runtime_fn(ctx, true, inner, "Write");
+        if (write_fn == NULL) {
+            free(token_expr);
+            free(slot_ref);
+            free(slot_expr);
+            free(value_expr);
+            return NULL;
+        }
         result = slot_builtin_heap_fmt(ctx,
-            "pgy_secure_write_%s(%s, %s, &%s)",
-            inner, slot_ref, value_expr, token_expr);
+            "%s(%s, %s, &%s)",
+            write_fn, slot_ref, value_expr, token_expr);
         free(token_expr);
     } else if (secure && slot_name != NULL) {
+        const char *write_fn;
         const char *token_name = require_slot_token_name(
             ctx, slot_name, "SecureSlot Write");
         if (token_name == NULL) {
@@ -182,14 +215,29 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
             free(value_expr);
             return NULL;
         }
+        write_fn = slot_builtin_runtime_fn(ctx, true, inner, "Write");
+        if (write_fn == NULL) {
+            free(slot_ref);
+            free(slot_expr);
+            free(value_expr);
+            return NULL;
+        }
         result = slot_builtin_heap_fmt(ctx,
-            "pgy_secure_write_%s(%s, %s, &%s)",
-            inner, slot_ref, value_expr, token_name);
+            "%s(%s, %s, &%s)",
+            write_fn, slot_ref, value_expr, token_name);
     } else {
         /* Plain slot: Write(slot, value) */
+        const char *write_fn = slot_builtin_runtime_fn(
+            ctx, false, inner, "Write");
+        if (write_fn == NULL) {
+            free(slot_ref);
+            free(slot_expr);
+            free(value_expr);
+            return NULL;
+        }
         result = slot_builtin_heap_fmt(ctx,
-            "pgy_write_%s(%s, %s)",
-            inner, slot_ref, value_expr);
+            "%s(%s, %s)",
+            write_fn, slot_ref, value_expr);
     }
 
     free(slot_ref);
@@ -243,16 +291,25 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
     if (ast_call_arg_count(call) >= 2) {
         char *token_expr = slot_builtin_emit_operand(ctx,
             ast_call_argument(call, 1), "Read", "token");
+        const char *read_fn;
         if (token_expr == NULL) {
             free(slot_ref);
             free(slot_expr);
             return NULL;
         }
+        read_fn = slot_builtin_runtime_fn(ctx, true, inner, "Read");
+        if (read_fn == NULL) {
+            free(token_expr);
+            free(slot_ref);
+            free(slot_expr);
+            return NULL;
+        }
         result = slot_builtin_heap_fmt(ctx,
-            "pgy_secure_read_%s(%s, &%s)",
-            inner, slot_ref, token_expr);
+            "%s(%s, &%s)",
+            read_fn, slot_ref, token_expr);
         free(token_expr);
     } else if (secure && slot_name != NULL) {
+        const char *read_fn;
         const char *token_name = require_slot_token_name(
             ctx, slot_name, "SecureSlot Read");
         if (token_name == NULL) {
@@ -260,10 +317,23 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
             free(slot_expr);
             return NULL;
         }
-        result = slot_builtin_heap_fmt(ctx, "pgy_secure_read_%s(%s, &%s)",
-            inner, slot_ref, token_name);
+        read_fn = slot_builtin_runtime_fn(ctx, true, inner, "Read");
+        if (read_fn == NULL) {
+            free(slot_ref);
+            free(slot_expr);
+            return NULL;
+        }
+        result = slot_builtin_heap_fmt(ctx, "%s(%s, &%s)",
+            read_fn, slot_ref, token_name);
     } else {
-        result = slot_builtin_heap_fmt(ctx, "pgy_read_%s(%s)", inner, slot_ref);
+        const char *read_fn = slot_builtin_runtime_fn(
+            ctx, false, inner, "Read");
+        if (read_fn == NULL) {
+            free(slot_ref);
+            free(slot_expr);
+            return NULL;
+        }
+        result = slot_builtin_heap_fmt(ctx, "%s(%s)", read_fn, slot_ref);
     }
 
     free(slot_ref);
@@ -303,16 +373,25 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
     if (ast_call_arg_count(call) >= 2) {
         char *token_expr = slot_builtin_emit_operand(ctx,
             ast_call_argument(call, 1), "Release", "token");
+        const char *release_fn;
         if (token_expr == NULL) {
             free(slot_ref);
             free(slot_expr);
             return NULL;
         }
+        release_fn = slot_builtin_runtime_fn(ctx, true, inner, "Release");
+        if (release_fn == NULL) {
+            free(token_expr);
+            free(slot_ref);
+            free(slot_expr);
+            return NULL;
+        }
         result = slot_builtin_heap_fmt(ctx,
-            "pgy_secure_release_%s(%s, &%s)",
-            inner, slot_ref, token_expr);
+            "%s(%s, &%s)",
+            release_fn, slot_ref, token_expr);
         free(token_expr);
     } else if (secure && slot_name != NULL) {
+        const char *release_fn;
         const char *token_name = require_slot_token_name(
             ctx, slot_name, "SecureSlot Release");
         if (token_name == NULL) {
@@ -320,10 +399,23 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
             free(slot_expr);
             return NULL;
         }
-        result = slot_builtin_heap_fmt(ctx, "pgy_secure_release_%s(%s, &%s)",
-            inner, slot_ref, token_name);
+        release_fn = slot_builtin_runtime_fn(ctx, true, inner, "Release");
+        if (release_fn == NULL) {
+            free(slot_ref);
+            free(slot_expr);
+            return NULL;
+        }
+        result = slot_builtin_heap_fmt(ctx, "%s(%s, &%s)",
+            release_fn, slot_ref, token_name);
     } else {
-        result = slot_builtin_heap_fmt(ctx, "pgy_release_%s(%s)", inner, slot_ref);
+        const char *release_fn = slot_builtin_runtime_fn(
+            ctx, false, inner, "Release");
+        if (release_fn == NULL) {
+            free(slot_ref);
+            free(slot_expr);
+            return NULL;
+        }
+        result = slot_builtin_heap_fmt(ctx, "%s(%s)", release_fn, slot_ref);
     }
 
     /* Mark slot as explicitly released -> prevents auto-release at scope exit */
