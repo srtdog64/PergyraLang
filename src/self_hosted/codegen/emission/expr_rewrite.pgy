@@ -376,7 +376,7 @@ func RewriteInoutCallArgs(e: String, env: String, strict: Bool) -> String {
             }
             let ident: String = Substring(e, i, j - i);
             if j < n && CodegenCharAt(e, j) == "(" {
-                let call_symbol: String = ResolveCallSymbol(env, ident);
+                let call_symbol: String = ident;
                 let modes: String = LookupKindType(env, call_symbol, "pm");
                 if StringLength(modes) > 0 {
                     let param_types: String = LookupKindType(env, call_symbol, "pt");

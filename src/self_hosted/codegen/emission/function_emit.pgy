@@ -26,52 +26,6 @@ func ParamTypeCsvAppend(csv: String, type_name: String) -> String {
     return Concat(csv, Concat(",", type_name));
 }
 
-func FunctionCallProjectionSourceName(c_symbol: String) -> String {
-    let n: Int = StringLength(c_symbol);
-    let start: Int = 0;
-    let i: Int = 0;
-    while i < n {
-        if CodegenCharAt(c_symbol, i) == "_" {
-            start = i + 1;
-        }
-        i = i + 1;
-    }
-    if start <= 0 || start >= n {
-        return c_symbol;
-    }
-    return Substring(c_symbol, start, n - start);
-}
-
-func FunctionCallProjectionIndex(names: Array<String>, source_name: String) -> Option<Int> {
-    let i: Int = 0;
-    while i < ArrayLength(names) {
-        if names[i] == source_name {
-            return Some(i);
-        }
-        i = i + 1;
-    }
-    return None;
-}
-
-func FunctionCallProjectionRecord(inout names: Array<String>, inout targets: Array<String>,
-                                  inout counts: Array<Int>, source_name: String,
-                                  c_symbol: String) -> Void {
-    if StringLength(source_name) == 0 || source_name == c_symbol {
-        return;
-    }
-    let idx_opt: Option<Int> = FunctionCallProjectionIndex(names, source_name);
-    if !IsSome(idx_opt) {
-        ArrayPush(names, source_name);
-        ArrayPush(targets, c_symbol);
-        ArrayPush(counts, 1);
-        return;
-    }
-    let idx: Int = UnwrapOption(idx_opt);
-    if targets[idx] != c_symbol {
-        ArraySet(counts, idx, 2);
-    }
-}
-
 // Emit one function definition starting at the `Function: <Name>` line at
 // cur[0]. `base_env` carries the global function return-type bindings.
 func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
@@ -227,61 +181,6 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAr
             env = Concat(env, Concat(cname, Concat("=f:", Concat(rtype, "|"))));
         }
         i = i + 1;
-    }
-    let projection_names: Array<String> = [];
-    let projection_targets: Array<String> = [];
-    let projection_counts: Array<Int> = [];
-    i = 0;
-    owner = "";
-    owner_indent = -1;
-    skip_indent = -1;
-    while i < count {
-        let indent: Int = CodegenAstArenaIndentOrDie(arena, i);
-        if skip_indent >= 0 {
-            if indent > skip_indent {
-                i = i + 1;
-                continue;
-            }
-            skip_indent = -1;
-        }
-        if StringLength(owner) > 0 && indent <= owner_indent {
-            owner = "";
-            owner_indent = -1;
-        }
-        if CodegenAstArenaIsZeroArtifactDecl(arena, i) {
-            skip_indent = indent;
-            i = i + 1;
-            continue;
-        }
-        if CodegenAstArenaIsNominalDecl(arena, i) {
-            owner = CodegenAstArenaAtomOrDie(arena, i);
-            owner_indent = indent;
-        }
-        if CodegenAstArenaIsRoleDecl(arena, i) {
-            owner = CodegenAstArenaAtomOrDie(arena, i);
-            owner_indent = indent;
-        }
-        if CodegenAstArenaIsFunction(arena, i) {
-            let fname: String = CodegenAstArenaAtomOrDie(arena, i);
-            let cname: String = CompilerSymbolCQualifiedName("", fname);
-            if StringLength(owner) > 0 && indent > owner_indent {
-                cname = CompilerSymbolCQualifiedName(owner, fname);
-            }
-            let source_call_name: String = FunctionCallProjectionSourceName(cname);
-            if LookupKindType(env, source_call_name, "f") == "" {
-                FunctionCallProjectionRecord(projection_names, projection_targets,
-                    projection_counts, source_call_name, cname);
-            }
-        }
-        i = i + 1;
-    }
-    let projection_i: Int = 0;
-    while projection_i < ArrayLength(projection_names) {
-        if projection_counts[projection_i] == 1 {
-            env = Concat(env, Concat(projection_names[projection_i],
-                Concat("=cf:", Concat(projection_targets[projection_i], "|"))));
-        }
-        projection_i = projection_i + 1;
     }
     return env;
 }

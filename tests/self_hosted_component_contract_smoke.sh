@@ -1390,12 +1390,14 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func ExpectText"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitCollectionElementValue"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitStructValue(value_expr, elem_type, env)"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "func RewriteInoutCallArgs"
-require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func ResolveCallSymbol"
+reject_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func ResolveCallSymbol"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func ParamTypeCsvAppend"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func FunctionCallProjectionRecord"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=cf:"'
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func FunctionCallProjectionRecord"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=cf:"'
+reject_text "src/self_hosted/codegen/type_facts/type_env.pgy" '"cf"'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=pt:"'
-require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "ResolveCallSymbol(env, ident)"
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "ResolveCallSymbol(env, ident)"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "let call_symbol: String = ident"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'LookupKindType(env, call_symbol, "pm")'
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'LookupKindType(env, call_symbol, "pt")'
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "func RewriteCallArgForExpectedType"
