@@ -1,5 +1,6 @@
 import "path_manifest_owner.pgy";
 import "target_capability_owner.pgy";
+import "compatibility_evolution_owner.pgy";
 import "air_evidence_owner.pgy";
 import "artifact_zone_owner.pgy";
 import "test_harness_owner.pgy";
@@ -65,6 +66,12 @@ subject TargetProjectionPlanner {
     action Plan(self) -> Bool {
         return CompilerTargetCapabilityEnvelopeReady();
     }
+}
+
+subject CompatibilityEvolutionOwner {
+    let name: String;
+
+    action Own(self) -> Bool { return CompilerCompatibilityEvolutionReady(); }
 }
 
 subject AirEvidenceOwner {
@@ -134,6 +141,7 @@ object MirFactGraph { schema: String; }
 object TypeEnvironment { schema: String; }
 object AbiLayoutFacts { schema: String; }
 object TargetCapabilityEnvelope { schema: String; }
+object CompatibilityEvolutionFacts { schema: String; }
 object AirEvidenceFacts { schema: String; }
 object SymbolFactTable { schema: String; }
 object AbiLayoutRows { schema: String; }
@@ -184,6 +192,11 @@ zone AbiLayoutZone {
 zone TargetCapabilityZone {
     subject slot planner: TargetProjectionPlanner
     object slot envelope: TargetCapabilityEnvelope
+}
+
+zone CompatibilityEvolutionZone {
+    subject slot owner: CompatibilityEvolutionOwner
+    object slot facts: CompatibilityEvolutionFacts
 }
 
 zone AirEvidenceZone {
@@ -237,6 +250,7 @@ zone SelfHostCompiler {
     subject slot lowerer: MirLowerStage
     subject slot emitter: ProgramEmitter
     subject slot target_planner: TargetProjectionPlanner
+    subject slot compatibility_owner: CompatibilityEvolutionOwner
     subject slot evidence_owner: AirEvidenceOwner
     subject slot symbol_owner: SymbolTableOwner
     subject slot abi_projector: AbiRowProjector
@@ -253,6 +267,7 @@ zone SelfHostCompiler {
     object slot type_env: TypeEnvironment
     object slot abi_layout: AbiLayoutFacts
     object slot target_capability: TargetCapabilityEnvelope
+    object slot compatibility: CompatibilityEvolutionFacts
     object slot air_evidence: AirEvidenceFacts
     object slot symbols: SymbolFactTable
     object slot abi_rows: AbiLayoutRows
@@ -273,6 +288,7 @@ world PgyCompilerWorld {
     zone type_env: TypeEnvZone
     zone abi_layout: AbiLayoutZone
     zone target_capability: TargetCapabilityZone
+    zone compatibility: CompatibilityEvolutionZone
     zone air_evidence: AirEvidenceZone
     zone symbols: SymbolFactTableZone
     zone abi_rows: AbiRowProjectionZone
@@ -394,12 +410,14 @@ intent PlanTargetProjection(targets: TargetCapabilityZone, planner: TargetProjec
 
 intent ProveHardSelfHostEvidence(
     air: AirEvidenceZone,
+    compatibility: CompatibilityEvolutionZone,
     symbols: SymbolFactTableZone,
     abi_rows: AbiRowProjectionZone,
     artifacts: ArtifactZone,
     harness: TestHarnessZone,
     subprocess: SubprocessRunnerZone,
     evidence_owner: AirEvidenceOwner,
+    compatibility_owner: CompatibilityEvolutionOwner,
     symbol_owner: SymbolTableOwner,
     abi_projector: AbiRowProjector,
     artifact_sink: ArtifactSink,
@@ -413,6 +431,14 @@ intent ProveHardSelfHostEvidence(
         using: air;
         who: evidence_owner;
         on: evidence_owner.Verify();
+        expect: true;
+    }
+
+    step CompatibilityEvolution {
+        where: CompatibilityEvolutionZone;
+        using: compatibility;
+        who: compatibility_owner;
+        on: compatibility_owner.Own();
         expect: true;
     }
 
@@ -489,6 +515,7 @@ intent CompilePergyraProgram(
     types: TypeEnvZone,
     abi_layout: AbiLayoutZone,
     target_capability_zone: TargetCapabilityZone,
+    compatibility_zone: CompatibilityEvolutionZone,
     air_evidence_zone: AirEvidenceZone,
     symbol_zone: SymbolFactTableZone,
     abi_row_zone: AbiRowProjectionZone,
@@ -505,6 +532,7 @@ intent CompilePergyraProgram(
     lowerer: MirLowerStage,
     emitter: ProgramEmitter,
     target_planner: TargetProjectionPlanner,
+    compatibility_owner: CompatibilityEvolutionOwner,
     evidence_owner: AirEvidenceOwner,
     symbol_owner: SymbolTableOwner,
     abi_projector: AbiRowProjector,
@@ -536,8 +564,9 @@ intent CompilePergyraProgram(
         using: air_evidence_zone;
         who: evidence_owner;
         on: ProveHardSelfHostEvidence(
-            air_evidence_zone, symbol_zone, abi_row_zone, artifact_zone,
-            harness_zone, subprocess_zone, evidence_owner, symbol_owner,
+            air_evidence_zone, compatibility_zone, symbol_zone, abi_row_zone,
+            artifact_zone, harness_zone, subprocess_zone, evidence_owner,
+            compatibility_owner, symbol_owner,
             abi_projector, artifact_sink, harness_runner, subprocess_runner);
         expect: true;
     }

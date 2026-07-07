@@ -103,6 +103,7 @@ or `ABI Layout`.
 | AIR graph/checker tools and erasure evidence | `AIR Evidence` |
 | `MirFactGraphZone` | `MIR Fact` |
 | `AbiLayoutZone` | `ABI Layout` |
+| `CompatibilityEvolutionZone`, `compatibility_evolution_owner.pgy` | compatibility evolution surface |
 | `AirEvidenceZone`, `air_evidence_owner.pgy` | `AIR Evidence` |
 | `SymbolFactTableZone`, `symbol_table_owner.pgy` | symbol/mangle fact rows |
 | `AbiRowProjectionZone`, `abi_layout_row_owner.pgy` | ABI/layout row projection |

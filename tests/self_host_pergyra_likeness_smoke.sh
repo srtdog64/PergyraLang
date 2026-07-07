@@ -120,12 +120,12 @@ SENTINEL_MAX=3
 # String-returning helper aliases; keep the typed-fact cutover load-bearing.
 RESULT_USE_MIN=710
 COMPILER_WORLD_SURFACE_MIN=1
-COMPILER_RESOURCE_ZONES_EXACT=17
-COMPILER_WORLD_MEMBERS_EXACT=17
+COMPILER_RESOURCE_ZONES_EXACT=18
+COMPILER_WORLD_MEMBERS_EXACT=18
 COMPILER_INTENT_SURFACE_MIN=14
-COMPILER_ZONE_BOUND_STEPS_MIN=27
+COMPILER_ZONE_BOUND_STEPS_MIN=28
 COMPILER_STAGE_BINDINGS_EXACT=5
-COMPILER_WORLD_FACT_CONSUMERS_MIN=17
+COMPILER_WORLD_FACT_CONSUMERS_MIN=18
 STAGE_PAYLOAD_CONSUMERS_EXACT=5
 COMPILER_WORLD_STUB_ACTIONS_MAX=0
 COMPILER_STAGE_ENVELOPE_ONLY_MAX=0
@@ -375,6 +375,7 @@ require_compiler_world_zone "mir" "MirFactGraphZone"
 require_compiler_world_zone "type_env" "TypeEnvZone"
 require_compiler_world_zone "abi_layout" "AbiLayoutZone"
 require_compiler_world_zone "target_capability" "TargetCapabilityZone"
+require_compiler_world_zone "compatibility" "CompatibilityEvolutionZone"
 require_compiler_world_zone "air_evidence" "AirEvidenceZone"
 require_compiler_world_zone "symbols" "SymbolFactTableZone"
 require_compiler_world_zone "abi_rows" "AbiRowProjectionZone"

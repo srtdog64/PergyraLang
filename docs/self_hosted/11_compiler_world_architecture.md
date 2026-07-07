@@ -21,7 +21,7 @@ compiler flow.
   into `EmissionZone`; it is not a resource zone.
 - `SourceIntakeZone`, `TokenStreamZone`, `AstTreeZone`,
   `SemanticVerdictZone`, `MirFactGraphZone`, `TypeEnvZone`, `AbiLayoutZone`,
-  `TargetCapabilityZone`, `EmissionZone`, and `ParityZone` are the derived
+  `TargetCapabilityZone`, `CompatibilityEvolutionZone`, `EmissionZone`, and `ParityZone` are the derived
   resource zones.
 - `StagePathManifest` is the canonical path fact for the self-hosted source,
   test, parity, and stage entrypoint locations.
@@ -73,6 +73,9 @@ For compiler self-hosting that means:
 - `AbiLayoutZone` owns ABI/layout facts consumed by backend emitters.
 - `TargetCapabilityZone` owns target acceptance, loss/fallback, and
   materialization-reason facts consumed before backend emission.
+- `CompatibilityEvolutionZone` owns source, ABI/binary, behavior, diagnostic,
+  AIR evidence, MIR JSON, runtime trace, capability profile, stdlib module, and
+  obsolete-migration metadata facts.
 - `EmissionZone` currently owns the emitted C text buffer and admits writes
   through the `ProgramEmitter` participant. It is a current-state owner, not
   the final claim that C, LLVM, and SelfHosted emissions have already been
@@ -94,12 +97,15 @@ For current codegen this is the concrete split:
   read-only ABI/layout evidence.
 - `TargetCapabilityZone`: `object slot envelope: TargetCapabilityEnvelope`,
   driven by `subject slot planner: TargetProjectionPlanner`.
+- `CompatibilityEvolutionZone`: `object slot facts:
+  CompatibilityEvolutionFacts`, driven by `subject slot owner:
+  CompatibilityEvolutionOwner`.
 - Future symbol/name-mangling state may become a separate zone only if it owns
   mutable symbol facts. A new emitter file is not enough.
 - Future `CEmissionZone`, `LLVMEmissionZone`, and `SelfHostedEmissionZone`
   become real zones only when they each own a comparable artifact resource and
   consume the same `TypeEnvZone`, `AbiLayoutZone`, `TargetCapabilityZone`,
-  symbol rows, and MIR/AIR evidence facts. Until then, the target split remains
+  `CompatibilityEvolutionZone`, symbol rows, and MIR/AIR evidence facts. Until then, the target split remains
   an architecture direction, not a status claim.
 
 That makes codegen a backend resource cluster, not a folder taxonomy. The

@@ -127,15 +127,17 @@ The root flow is:
    lowering facts.
 6. `TypeEnvZone`: read-mostly type environment consumed by backend emission.
 7. `AbiLayoutZone`: read-only ABI/layout facts consumed by backend emission.
-8. `AirEvidenceZone`: AIR evidence vocabulary for hard-rung proof facts.
-9. `SymbolFactTableZone`: cross-backend symbol rows.
-10. `AbiRowProjectionZone`: cross-backend ABI/layout rows.
-11. `EmissionZone`: emitted artifact buffer.
-12. `ArtifactZone`: comparable diagnostic, AST text, AIR JSON, MIR JSON,
+8. `CompatibilityEvolutionZone`: source/ABI/behavior/diagnostic/AIR/MIR/trace/
+   capability/stdlib compatibility plus obsolete migration metadata.
+9. `AirEvidenceZone`: AIR evidence vocabulary for hard-rung proof facts.
+10. `SymbolFactTableZone`: cross-backend symbol rows.
+11. `AbiRowProjectionZone`: cross-backend ABI/layout rows.
+12. `EmissionZone`: emitted artifact buffer.
+13. `ArtifactZone`: comparable diagnostic, AST text, AIR JSON, MIR JSON,
     ABI/layout, runtime-materialization, emitted, and run artifacts.
-13. `TestHarnessZone`: fixture/result row vocabulary.
-14. `SubprocessRunnerZone`: capability envelope for oracle processes.
-15. `ParityZone`: C/LLVM/Pergyra comparison evidence.
+14. `TestHarnessZone`: fixture/result row vocabulary.
+15. `SubprocessRunnerZone`: capability envelope for oracle processes.
+16. `ParityZone`: C/LLVM/Pergyra comparison evidence.
 
 `CompilePergyraProgram` is the root intent over those resources. The derived
 pipelines in `stage_intents.pgy` are compiler actions, not hidden helper
@@ -175,6 +177,7 @@ compiler replacement.
 | MIR fact graph | `MirFactGraphZone` | gives backend and self-host lowering one fact source |
 | ABI/layout facts | MIR ABI/layout owner | prevents C/LLVM/self-hosted emitters from inventing layout independently |
 | symbol/mangle facts | symbol owner | prevents backend emitters from spelling names independently |
+| compatibility evolution facts | `compatibility_evolution_owner.pgy` plus `CompatibilityEvolutionZone` | prevents source/API/ABI/diagnostic/AIR/MIR/runtime/capability/stdlib compatibility policy from splitting across docs and scripts |
 | AIR evidence rows | `air_evidence_owner.pgy` plus `AirEvidenceZone` | keeps intent/effect/authority/coordination/materialization proof facts consumable |
 | cross-backend ABI rows | `abi_layout_row_owner.pgy` plus `AbiRowProjectionZone` | makes field order, tag, niche, ownership, size/align, and materialization policy one table |
 | cross-backend symbol rows | `symbol_table_owner.pgy` plus `SymbolFactTableZone` | makes C/LLVM/self-hosted spelling rows one table |

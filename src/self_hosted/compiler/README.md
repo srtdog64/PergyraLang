@@ -18,7 +18,7 @@ Pergyra self-hosting should be organized around the language's own surface.
 compiler intent. The source unit flows through derived resource zones
 (`SourceIntakeZone`, `TokenStreamZone`, `AstTreeZone`,
 `SemanticVerdictZone`, `MirFactGraphZone`, `TypeEnvZone`, `AbiLayoutZone`,
-`TargetCapabilityZone`, `AirEvidenceZone`, `SymbolFactTableZone`,
+`TargetCapabilityZone`, `CompatibilityEvolutionZone`, `AirEvidenceZone`, `SymbolFactTableZone`,
 `AbiRowProjectionZone`, `EmissionZone`, `ArtifactZone`, `TestHarnessZone`,
 `SubprocessRunnerZone`, and `ParityZone`), and each zone is driven by a smaller intent. The stage actors
 are named by what they own: `LexerStage`, `ParserStage`, `SemanticStage`, and
@@ -50,9 +50,16 @@ the fallback reasons (`unsupported_shape`, `forbidden_loss_budget`,
 `host_only_slot_boundary`). That keeps CPU fallback or future accelerator
 rejects visible as facts instead of backend-local choices.
 
+`CompatibilityEvolutionZone` owns the versioned compatibility surface envelope:
+source, ABI/binary, behavior, diagnostics, AIR evidence, MIR JSON, runtime
+trace, capability profile, and stdlib module compatibility. It also owns the
+required obsolete-migration fields (`diagnostic_id`, replacement,
+`migration_url`, warning/error/remove versions, and codefix status) so upgrade
+policy does not split between docs, diagnostics, and backend scripts.
+
 The hard-self-host expansion owners live beside the world because they are
 compiler-world facts, not codegen implementation details:
-`air_evidence_owner.pgy`, `symbol_table_owner.pgy`,
+`compatibility_evolution_owner.pgy`, `air_evidence_owner.pgy`, `symbol_table_owner.pgy`,
 `abi_layout_row_owner.pgy`, `artifact_zone_owner.pgy`,
 `test_harness_owner.pgy`, and `subprocess_runner_owner.pgy`. These files own
 vocabulary envelopes only. A surface remains active until C, LLVM, and

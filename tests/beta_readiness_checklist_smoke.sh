@@ -239,6 +239,7 @@ Gate-less claim = FAIL
 Partial executable coverage = PARTIAL
 Accepted P0 Blockers
 Compatibility evolution gate
+compatibility_evolution_owner.pgy
 Obsolete migration gate
 MIR-owned ABI layout
 Backend dumb-emitter gate

@@ -63,6 +63,7 @@ require_file "src/self_hosted/compiler/world.pgy"
 require_file "src/self_hosted/compiler/path_manifest_owner.pgy"
 require_file "src/self_hosted/compiler/stage_intents.pgy"
 require_file "src/self_hosted/compiler/target_capability_owner.pgy"
+require_file "src/self_hosted/compiler/compatibility_evolution_owner.pgy"
 require_file "src/self_hosted/compiler/air_evidence_owner.pgy"
 require_file "src/self_hosted/compiler/artifact_zone_owner.pgy"
 require_file "src/self_hosted/compiler/test_harness_owner.pgy"
@@ -88,6 +89,7 @@ require_file "tests/self_hosted/parity/driver_rung0_parity.sh"
 require_file "tests/self_hosted/parity/driver_rung1_parity.sh"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_PATH_MANIFEST_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_STAGE_ARTIFACT_PATH"
+require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_COMPATIBILITY_EVOLUTION_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_TEST_HARNESS_MANIFEST_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_AUTHORITY_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_ABI_LAYOUT_ROW_MANIFEST_PATH"
@@ -108,6 +110,7 @@ pgy_compiler_world_require_stage_conformance "$ROOT_DIR" ||
 require_max_lines "src/self_hosted/compiler/world.pgy" 600
 require_max_lines "src/self_hosted/compiler/path_manifest_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/target_capability_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/compatibility_evolution_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/air_evidence_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/artifact_zone_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/test_harness_owner.pgy" 600
@@ -185,6 +188,34 @@ require_text "src/self_hosted/compiler/path_manifest_owner.pgy" "with caps io_re
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "with caps env"
 
 for term in \
+    "func CompilerCompatibilityEvolutionSchema" \
+    "func CompilerCompatibilitySurfaceCount" \
+    "func CompilerCompatibilitySurfaceAt" \
+    "func CompilerCompatibilityEvolutionReady" \
+    "CompilerCompatibilitySurfaceCount() == 9" \
+    "source" \
+    "abi_binary" \
+    "behavior" \
+    "diagnostic" \
+    "air_evidence" \
+    "mir_json" \
+    "runtime_trace" \
+    "capability_profile" \
+    "stdlib_module" \
+    "func CompilerObsoleteMigrationFieldCount" \
+    "func CompilerObsoleteMigrationFieldAt" \
+    "CompilerObsoleteMigrationFieldCount() == 7" \
+    "diagnostic_id" \
+    "replacement" \
+    "migration_url" \
+    "warning_from" \
+    "error_from" \
+    "remove_from" \
+    "codefix_status"; do
+    require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "$term"
+done
+
+for term in \
     "world PgyCompilerWorld" \
     "zone SelfHostCompiler" \
     "zone SourceIntakeZone" \
@@ -195,6 +226,7 @@ for term in \
     "zone TypeEnvZone" \
     "zone AbiLayoutZone" \
     "zone TargetCapabilityZone" \
+    "zone CompatibilityEvolutionZone" \
     "zone AirEvidenceZone" \
     "zone SymbolFactTableZone" \
     "zone AbiRowProjectionZone" \
@@ -222,6 +254,7 @@ for term in \
     "intent EmitProgramArtifact" \
     "intent PlanTargetProjection" \
     "intent ProveHardSelfHostEvidence" \
+    "step CompatibilityEvolution" \
     "intent ProveSelfHostedParity" \
     "subject SourceUnit" \
     "action Read" \
@@ -247,6 +280,7 @@ for term in \
     "emitter.Emit(types, abi_layout, target_capability)" \
     "subject TargetProjectionPlanner" \
     "action Plan" \
+    "subject CompatibilityEvolutionOwner" \
     "subject AirEvidenceOwner" \
     "subject SymbolTableOwner" \
     "subject AbiRowProjector" \
@@ -268,6 +302,7 @@ for term in \
     "object TypeEnvironment" \
     "object AbiLayoutFacts" \
     "object TargetCapabilityEnvelope" \
+    "object CompatibilityEvolutionFacts" \
     "object AirEvidenceFacts" \
     "object SymbolFactTable" \
     "object AbiLayoutRows" \
@@ -283,6 +318,7 @@ for term in \
     "subject slot emitter: ProgramEmitter" \
     "object slot abi_layout: AbiLayoutFacts" \
     "object slot target_capability: TargetCapabilityEnvelope" \
+    "object slot compatibility: CompatibilityEvolutionFacts" \
     "object slot air_evidence: AirEvidenceFacts" \
     "object slot symbols: SymbolFactTable" \
     "object slot abi_rows: AbiLayoutRows" \
@@ -291,12 +327,14 @@ for term in \
     "object slot subprocess: SubprocessCapabilityEnvelope" \
     "object slot layouts: AbiLayoutFacts" \
     "object slot envelope: TargetCapabilityEnvelope" \
+    "object slot facts: CompatibilityEvolutionFacts" \
     "object slot facts: AirEvidenceFacts" \
     "object slot symbols: SymbolFactTable" \
     "object slot rows: AbiLayoutRows" \
     "object slot evidence: ArtifactEvidence" \
     "zone abi_layout: AbiLayoutZone" \
     "zone target_capability: TargetCapabilityZone" \
+    "zone compatibility: CompatibilityEvolutionZone" \
     "zone air_evidence: AirEvidenceZone" \
     "zone symbols: SymbolFactTableZone" \
     "zone abi_rows: AbiRowProjectionZone" \
@@ -308,6 +346,7 @@ for term in \
 done
 require_text "src/self_hosted/compiler/world.pgy" 'import "path_manifest_owner.pgy"'
 require_text "src/self_hosted/compiler/world.pgy" 'import "target_capability_owner.pgy"'
+require_text "src/self_hosted/compiler/world.pgy" 'import "compatibility_evolution_owner.pgy"'
 require_text "src/self_hosted/compiler/world.pgy" 'import "air_evidence_owner.pgy"'
 require_text "src/self_hosted/compiler/world.pgy" 'import "artifact_zone_owner.pgy"'
 require_text "src/self_hosted/compiler/world.pgy" 'import "test_harness_owner.pgy"'
@@ -324,6 +363,7 @@ for term in \
     "func CompilerPathManifestPath" \
     "func CompilerStageIntentsPath" \
     "func CompilerTargetCapabilityOwnerPath" \
+    "func CompilerCompatibilityEvolutionOwnerPath" \
     "func CompilerAirEvidenceOwnerPath" \
     "func CompilerArtifactZoneOwnerPath" \
     "func CompilerTestHarnessOwnerPath" \
@@ -353,6 +393,7 @@ for term in \
     "return CompilerPathManifestPath();" \
     "return CompilerStageIntentsPath();" \
     "return CompilerTargetCapabilityOwnerPath();" \
+    "return CompilerCompatibilityEvolutionOwnerPath();" \
     "return CompilerAirEvidenceOwnerPath();" \
     "return CompilerArtifactZoneOwnerPath();" \
     "return CompilerTestHarnessOwnerPath();" \
@@ -370,14 +411,14 @@ for term in \
     "return CompilerDriverRung1ParityPath();" \
     "return CompilerOwnerManifestPath();" \
     "CompilerParityPathCount() != 8" \
-    "CompilerWorldManifestPathCount() != 32" \
-    "CompilerWorldProjectionPathCount() != 35" \
+    "CompilerWorldManifestPathCount() != 33" \
+    "CompilerWorldProjectionPathCount() != 36" \
     "compiler-world-paths" \
     "CompilerStagePathManifestReady" \
-    "if index < 19" \
-    "CompilerStagePathAt(index - 14)" \
-    "if index < 27" \
-    "CompilerParityPathAt(index - 19)" \
+    "if index < 20" \
+    "CompilerStagePathAt(index - 15)" \
+    "if index < 28" \
+    "CompilerParityPathAt(index - 20)" \
     "lexer|TokenStreamZone|LexerStage|LexSource|LexerTokenPayloadContractReady" \
     "parser|AstTreeZone|ParserStage|ParseTokens|ParserAstTreePayloadContractReady" \
     "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics|SemanticVerdictPayloadContractReady" \
@@ -712,6 +753,8 @@ require_text "src/self_hosted/compiler/README.md" "world.pgy"
 require_text "src/self_hosted/compiler/README.md" '`world.pgy` stays under the same 600-line cap'
 require_text "src/self_hosted/compiler/README.md" "resource-owned intent cluster"
 require_text "src/self_hosted/compiler/README.md" "does this boundary own a distinct resource"
+require_text "src/self_hosted/compiler/README.md" "CompatibilityEvolutionZone"
+require_text "src/self_hosted/compiler/README.md" "compatibility_evolution_owner.pgy"
 require_text "src/self_hosted/compiler/README.md" "LexerStage"
 require_text "src/self_hosted/compiler/README.md" 'There is no generic `StageOwner` alias'
 require_text "src/self_hosted/compiler/README.md" "path_manifest_owner.pgy"
@@ -722,6 +765,7 @@ forbid_text "src/self_hosted/compiler/README.md" "??"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/world.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/stage_intents.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/target_capability_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/compatibility_evolution_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/air_evidence_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/artifact_zone_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_owner.pgy"
@@ -746,6 +790,7 @@ require_text "docs/self_hosted/11_compiler_world_architecture.md" "resource owne
 require_text "docs/self_hosted/11_compiler_world_architecture.md" "not a module, folder, phase, or helper"
 require_text "docs/self_hosted/11_compiler_world_architecture.md" "TypeEnvZone"
 require_text "docs/self_hosted/11_compiler_world_architecture.md" "AbiLayoutZone"
+require_text "docs/self_hosted/11_compiler_world_architecture.md" "CompatibilityEvolutionZone"
 require_text "docs/self_hosted/11_compiler_world_architecture.md" "ProgramEmitter"
 require_text "docs/self_hosted/11_compiler_world_architecture.md" "object slot c_output: EmittedC"
 require_text "docs/self_hosted/11_compiler_world_architecture.md" "projection nerve bundle"
@@ -820,6 +865,7 @@ require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "import gr
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "deterministic collections"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "TypeEnvZone"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "AbiLayoutZone"
+require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "compatibility_evolution_owner.pgy"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "EmissionZone"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "ProgramEmitter"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "LexerStage"
@@ -836,6 +882,7 @@ require_text "docs/self_hosted/14_target_compiler_world.md" "Target Compiler Wor
 require_text "docs/self_hosted/14_target_compiler_world.md" "PgyCompilerWorld"
 require_text "docs/self_hosted/14_target_compiler_world.md" "CompilePergyraProgram"
 require_text "docs/self_hosted/14_target_compiler_world.md" "AIR Evidence"
+require_text "docs/self_hosted/14_target_compiler_world.md" "compatibility_evolution_owner.pgy"
 require_text "docs/self_hosted/14_target_compiler_world.md" "MIR Fact"
 require_text "docs/self_hosted/14_target_compiler_world.md" "ABI Layout"
 require_text "docs/self_hosted/14_target_compiler_world.md" "Codegen Projection Intent"
@@ -855,6 +902,7 @@ require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "Held Surfa
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "Mixed AST-like tree owner"
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "Stable JSON parse/emit owner"
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "Subprocess runner"
+require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "Compatibility evolution envelope"
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "Symbol/mangle owner"
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "ABI/layout row projection"
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "AIR evidence zone"
@@ -930,6 +978,8 @@ grep -Fq "Zone: AbiLayoutZone" "$ast_out" ||
     fail "compiler world AST missing AbiLayoutZone zone"
 grep -Fq "Zone: TargetCapabilityZone" "$ast_out" ||
     fail "compiler world AST missing TargetCapabilityZone zone"
+grep -Fq "Zone: CompatibilityEvolutionZone" "$ast_out" ||
+    fail "compiler world AST missing CompatibilityEvolutionZone zone"
 grep -Fq "Zone: AirEvidenceZone" "$ast_out" ||
     fail "compiler world AST missing AirEvidenceZone zone"
 grep -Fq "Zone: SymbolFactTableZone" "$ast_out" ||
@@ -954,6 +1004,8 @@ grep -Fq "Subject: ProgramEmitter" "$ast_out" ||
     fail "compiler world AST missing ProgramEmitter subject"
 grep -Fq "Subject: TargetProjectionPlanner" "$ast_out" ||
     fail "compiler world AST missing TargetProjectionPlanner subject"
+grep -Fq "Subject: CompatibilityEvolutionOwner" "$ast_out" ||
+    fail "compiler world AST missing CompatibilityEvolutionOwner subject"
 grep -Fq "Subject: AirEvidenceOwner" "$ast_out" ||
     fail "compiler world AST missing AirEvidenceOwner subject"
 grep -Fq "Subject: SymbolTableOwner" "$ast_out" ||
@@ -974,6 +1026,8 @@ grep -Fq "Object: AbiLayoutFacts" "$ast_out" ||
     fail "compiler world AST missing AbiLayoutFacts object"
 grep -Fq "Object: TargetCapabilityEnvelope" "$ast_out" ||
     fail "compiler world AST missing TargetCapabilityEnvelope object"
+grep -Fq "Object: CompatibilityEvolutionFacts" "$ast_out" ||
+    fail "compiler world AST missing CompatibilityEvolutionFacts object"
 grep -Fq "Object: AirEvidenceFacts" "$ast_out" ||
     fail "compiler world AST missing AirEvidenceFacts object"
 grep -Fq "Object: SymbolFactTable" "$ast_out" ||

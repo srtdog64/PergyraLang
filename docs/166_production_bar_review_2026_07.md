@@ -102,7 +102,7 @@ The compatibility gate must cover these surfaces together:
 
 | Production-bar item | Owner or next source of truth |
 |---|---|
-| Compatibility evolution | New compatibility-evolution gate under beta closure |
+| Compatibility evolution | `src/self_hosted/compiler/compatibility_evolution_owner.pgy` plus future compatibility-evolution corpus gate |
 | Obsolete migration | Diagnostic registry plus migration metadata gate |
 | MIR-owned ABI layout | `src/compiler/mir_abi_layout.c`, `src/runtime/pgy_abi_spec.h`, `tests/abi_ownership_shape_smoke.sh`, and self-host ABI row parity |
 | Backend dumb emitter | `tests/backend_fail_closed_smoke.sh`, `tests/abi_ownership_shape_smoke.sh`, and MIR/ABI fact consumers |

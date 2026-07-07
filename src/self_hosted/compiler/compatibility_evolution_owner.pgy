@@ -1,0 +1,79 @@
+// Self-host compiler compatibility-evolution owner.
+//
+// Owns the versioned surface vocabulary that hard self-hosted replacement must
+// preserve before a surface can claim compatibility discipline.
+
+func CompilerCompatibilityEvolutionSchema() -> String {
+    return "pgy.selfhost.compatibility-evolution.v1";
+}
+
+func CompilerCompatibilitySurfaceCount() -> Int {
+    return 9;
+}
+
+func CompilerSourceCompatibilitySurface() -> String { return "source"; }
+func CompilerAbiBinaryCompatibilitySurface() -> String { return "abi_binary"; }
+func CompilerBehaviorCompatibilitySurface() -> String { return "behavior"; }
+func CompilerDiagnosticCompatibilitySurface() -> String { return "diagnostic"; }
+func CompilerAirEvidenceCompatibilitySurface() -> String { return "air_evidence"; }
+func CompilerMirJsonCompatibilitySurface() -> String { return "mir_json"; }
+func CompilerRuntimeTraceCompatibilitySurface() -> String { return "runtime_trace"; }
+func CompilerCapabilityProfileCompatibilitySurface() -> String { return "capability_profile"; }
+func CompilerStdlibModuleCompatibilitySurface() -> String { return "stdlib_module"; }
+
+func CompilerCompatibilitySurfaceAt(index: Int) -> String {
+    if index == 0 { return CompilerSourceCompatibilitySurface(); }
+    if index == 1 { return CompilerAbiBinaryCompatibilitySurface(); }
+    if index == 2 { return CompilerBehaviorCompatibilitySurface(); }
+    if index == 3 { return CompilerDiagnosticCompatibilitySurface(); }
+    if index == 4 { return CompilerAirEvidenceCompatibilitySurface(); }
+    if index == 5 { return CompilerMirJsonCompatibilitySurface(); }
+    if index == 6 { return CompilerRuntimeTraceCompatibilitySurface(); }
+    if index == 7 { return CompilerCapabilityProfileCompatibilitySurface(); }
+    if index == 8 { return CompilerStdlibModuleCompatibilitySurface(); }
+    return "";
+}
+
+func CompilerObsoleteMigrationFieldCount() -> Int {
+    return 7;
+}
+
+func CompilerObsoleteDiagnosticIdField() -> String { return "diagnostic_id"; }
+func CompilerObsoleteReplacementField() -> String { return "replacement"; }
+func CompilerObsoleteMigrationUrlField() -> String { return "migration_url"; }
+func CompilerObsoleteWarningFromField() -> String { return "warning_from"; }
+func CompilerObsoleteErrorFromField() -> String { return "error_from"; }
+func CompilerObsoleteRemoveFromField() -> String { return "remove_from"; }
+func CompilerObsoleteCodefixStatusField() -> String { return "codefix_status"; }
+
+func CompilerObsoleteMigrationFieldAt(index: Int) -> String {
+    if index == 0 { return CompilerObsoleteDiagnosticIdField(); }
+    if index == 1 { return CompilerObsoleteReplacementField(); }
+    if index == 2 { return CompilerObsoleteMigrationUrlField(); }
+    if index == 3 { return CompilerObsoleteWarningFromField(); }
+    if index == 4 { return CompilerObsoleteErrorFromField(); }
+    if index == 5 { return CompilerObsoleteRemoveFromField(); }
+    if index == 6 { return CompilerObsoleteCodefixStatusField(); }
+    return "";
+}
+
+func CompilerCompatibilityEvolutionReady() -> Bool {
+    return CompilerCompatibilitySurfaceCount() == 9 &&
+        CompilerCompatibilitySurfaceAt(0) == CompilerSourceCompatibilitySurface() &&
+        CompilerCompatibilitySurfaceAt(1) == CompilerAbiBinaryCompatibilitySurface() &&
+        CompilerCompatibilitySurfaceAt(2) == CompilerBehaviorCompatibilitySurface() &&
+        CompilerCompatibilitySurfaceAt(3) == CompilerDiagnosticCompatibilitySurface() &&
+        CompilerCompatibilitySurfaceAt(4) == CompilerAirEvidenceCompatibilitySurface() &&
+        CompilerCompatibilitySurfaceAt(5) == CompilerMirJsonCompatibilitySurface() &&
+        CompilerCompatibilitySurfaceAt(6) == CompilerRuntimeTraceCompatibilitySurface() &&
+        CompilerCompatibilitySurfaceAt(7) == CompilerCapabilityProfileCompatibilitySurface() &&
+        CompilerCompatibilitySurfaceAt(8) == CompilerStdlibModuleCompatibilitySurface() &&
+        CompilerObsoleteMigrationFieldCount() == 7 &&
+        CompilerObsoleteMigrationFieldAt(0) == CompilerObsoleteDiagnosticIdField() &&
+        CompilerObsoleteMigrationFieldAt(1) == CompilerObsoleteReplacementField() &&
+        CompilerObsoleteMigrationFieldAt(2) == CompilerObsoleteMigrationUrlField() &&
+        CompilerObsoleteMigrationFieldAt(3) == CompilerObsoleteWarningFromField() &&
+        CompilerObsoleteMigrationFieldAt(4) == CompilerObsoleteErrorFromField() &&
+        CompilerObsoleteMigrationFieldAt(5) == CompilerObsoleteRemoveFromField() &&
+        CompilerObsoleteMigrationFieldAt(6) == CompilerObsoleteCodefixStatusField();
+}
