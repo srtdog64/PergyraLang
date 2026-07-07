@@ -1,0 +1,22 @@
+// Runnable runtime-call ABI row projection over runtime_call_abi_row_owner.pgy.
+
+import "runtime_call_abi_row_owner.pgy";
+
+func CompilerRuntimeCallAbiManifestRowAt(index: Int) -> String {
+    return Concat(Concat(ToString(index), "|"), CompilerRuntimeCallAbiRowAt(index));
+}
+
+func Main() -> Void {
+    if !CompilerRuntimeCallAbiRowsReady() {
+        Log("RUNTIME_CALL_ABI ERROR: row owner is not ready");
+        Exit(1);
+        return;
+    }
+    Log(Concat("schema=", CompilerRuntimeCallAbiRowSchema()));
+    Log(Concat("count=", ToString(CompilerRuntimeCallAbiConcreteRowCount())));
+    let i: Int = 0;
+    while i < CompilerRuntimeCallAbiConcreteRowCount() {
+        Log(CompilerRuntimeCallAbiManifestRowAt(i));
+        i = i + 1;
+    }
+}

@@ -176,6 +176,35 @@ func CompilerHarnessAbiLayoutRowsReady() -> Bool {
         CompilerHarnessAbiLayoutRowsPathAt(1) == CompilerHarnessAbiLayoutRowsExpectedPath();
 }
 
+func CompilerHarnessRuntimeCallAbiRowsSuiteName() -> String {
+    return "runtime-call-abi-rows";
+}
+
+func CompilerHarnessRuntimeCallAbiRowsToolSourcePath() -> String {
+    return "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy";
+}
+
+func CompilerHarnessRuntimeCallAbiRowsExpectedPath() -> String {
+    return "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt";
+}
+
+func CompilerHarnessRuntimeCallAbiRowsPathCount() -> Int {
+    return 2;
+}
+
+func CompilerHarnessRuntimeCallAbiRowsPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessRuntimeCallAbiRowsToolSourcePath(); }
+    if index == 1 { return CompilerHarnessRuntimeCallAbiRowsExpectedPath(); }
+    return "";
+}
+
+func CompilerHarnessRuntimeCallAbiRowsReady() -> Bool {
+    return CompilerHarnessRuntimeCallAbiRowsSuiteName() != "" &&
+        CompilerHarnessRuntimeCallAbiRowsPathCount() == 2 &&
+        CompilerHarnessRuntimeCallAbiRowsPathAt(0) == CompilerHarnessRuntimeCallAbiRowsToolSourcePath() &&
+        CompilerHarnessRuntimeCallAbiRowsPathAt(1) == CompilerHarnessRuntimeCallAbiRowsExpectedPath();
+}
+
 func CompilerHarnessBackendOutputComparatorPathCount() -> Int {
     return 7;
 }
@@ -321,6 +350,7 @@ func CompilerTestHarnessReady() -> Bool {
         CompilerHarnessComparableArtifactPathAt(1) == CompilerHarnessActualComparableArtifactPath() &&
         CompilerHarnessFindingCap() > 0 &&
         CompilerHarnessAbiLayoutRowsReady() &&
+        CompilerHarnessRuntimeCallAbiRowsReady() &&
         CompilerHarnessLinterParityReady() &&
         CompilerHarnessModuleManifestResolverReady() &&
         CompilerHarnessStableSubsetSectionReady() &&

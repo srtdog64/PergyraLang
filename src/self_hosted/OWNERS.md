@@ -192,6 +192,10 @@ compiler-stage `.pgy` source to be listed here.
   fact vocabulary for field order, niche, tags, ownership, and layout.
 - `src/self_hosted/compiler/abi_layout_row_manifest.pgy` -- runnable ABI row
   projection over the ABI layout row owner for parity/golden comparison.
+- `src/self_hosted/compiler/runtime_call_abi_row_owner.pgy` -- runtime helper
+  and target-library call ABI row projection over the runtime ABI owners.
+- `src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy` -- runnable
+  runtime call ABI row projection for parity/golden comparison.
 - `src/self_hosted/compiler/symbol_table_owner.pgy` -- cross-backend symbol row
   fact vocabulary for C/LLVM/self-hosted projections, including struct field,
   source-to-C binding, inout parameter, foreach loop temporary, and try/match

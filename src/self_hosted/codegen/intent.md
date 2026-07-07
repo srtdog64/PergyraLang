@@ -136,6 +136,9 @@ a zone:
 - `type_facts/` owns read-mostly type evidence.
 - `abi_layout/` owns self-host C ABI type spelling facts.
 - `runtime_abi/` owns self-host C collection, math/random, host I/O/argv, Option/Result, and string/text runtime helper symbol facts.
+- `compiler/runtime_call_abi_row_owner.pgy` projects those runtime call facts
+  into a stable row artifact; codegen participants keep consuming the domain
+  runtime ABI owners, while parity gates consume the projection.
 - `emission/` contains the action participants that write or route emitted C.
 
 ## Input Contract

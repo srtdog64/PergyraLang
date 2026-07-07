@@ -193,6 +193,7 @@ func EmitAbiLayoutRowsPaths() -> Void {
         i = i + 1;
     }
 }
+func EmitRuntimeCallAbiRowsPaths() -> Void { let i: Int = 0; while i < CompilerHarnessRuntimeCallAbiRowsPathCount() { Log(CompilerHarnessRuntimeCallAbiRowsPathAt(i)); i = i + 1; } }
 
 func EmitAirGraphJsonValidatorPaths() -> Void {
     let i: Int = 0;
@@ -470,6 +471,7 @@ func Main() -> Void {
         EmitAbiLayoutRowsPaths();
         return;
     }
+    if args[0] == CompilerHarnessRuntimeCallAbiRowsSuiteName() { EmitRuntimeCallAbiRowsPaths(); return; }
     if args[0] == CompilerHarnessAirGraphJsonValidatorSuiteName() {
         EmitAirGraphJsonValidatorPaths();
         return;

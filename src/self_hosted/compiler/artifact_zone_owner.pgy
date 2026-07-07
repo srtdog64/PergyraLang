@@ -7,7 +7,7 @@ func CompilerArtifactSchema() -> String {
 }
 
 func CompilerArtifactKindCount() -> Int {
-    return 19;
+    return 20;
 }
 
 func CompilerDiagnosticsArtifactKind() -> String {
@@ -28,6 +28,10 @@ func CompilerAstTextArtifactKind() -> String {
 
 func CompilerAbiLayoutArtifactKind() -> String {
     return "abi_layout";
+}
+
+func CompilerRuntimeCallAbiArtifactKind() -> String {
+    return "runtime_call_abi";
 }
 
 func CompilerRuntimeMaterializationArtifactKind() -> String {
@@ -91,21 +95,22 @@ func CompilerArtifactKindAt(index: Int) -> String {
     if index == 1 { return CompilerAirJsonArtifactKind(); }
     if index == 2 { return CompilerMirJsonArtifactKind(); }
     if index == 3 { return CompilerAbiLayoutArtifactKind(); }
-    if index == 4 { return CompilerRuntimeMaterializationArtifactKind(); }
-    if index == 5 { return CompilerEmittedCArtifactKind(); }
-    if index == 6 { return CompilerEmittedLlvmArtifactKind(); }
-    if index == 7 { return CompilerEmittedSelfHostedArtifactKind(); }
-    if index == 8 { return CompilerRunOutputArtifactKind(); }
-    if index == 9 { return CompilerAstTextArtifactKind(); }
-    if index == 10 { return CompilerLspDiagnosticsArtifactKind(); }
-    if index == 11 { return CompilerLspTransportFrameArtifactKind(); }
-    if index == 12 { return CompilerLspTransportStreamArtifactKind(); }
-    if index == 13 { return CompilerLspRequestDispatchArtifactKind(); }
-    if index == 14 { return CompilerLspResponseEmissionArtifactKind(); }
-    if index == 15 { return CompilerLspSessionReplayArtifactKind(); }
-    if index == 16 { return CompilerLspDocumentStoreArtifactKind(); }
-    if index == 17 { return CompilerLspSessionStateArtifactKind(); }
-    if index == 18 { return CompilerLspHoverContentArtifactKind(); }
+    if index == 4 { return CompilerRuntimeCallAbiArtifactKind(); }
+    if index == 5 { return CompilerRuntimeMaterializationArtifactKind(); }
+    if index == 6 { return CompilerEmittedCArtifactKind(); }
+    if index == 7 { return CompilerEmittedLlvmArtifactKind(); }
+    if index == 8 { return CompilerEmittedSelfHostedArtifactKind(); }
+    if index == 9 { return CompilerRunOutputArtifactKind(); }
+    if index == 10 { return CompilerAstTextArtifactKind(); }
+    if index == 11 { return CompilerLspDiagnosticsArtifactKind(); }
+    if index == 12 { return CompilerLspTransportFrameArtifactKind(); }
+    if index == 13 { return CompilerLspTransportStreamArtifactKind(); }
+    if index == 14 { return CompilerLspRequestDispatchArtifactKind(); }
+    if index == 15 { return CompilerLspResponseEmissionArtifactKind(); }
+    if index == 16 { return CompilerLspSessionReplayArtifactKind(); }
+    if index == 17 { return CompilerLspDocumentStoreArtifactKind(); }
+    if index == 18 { return CompilerLspSessionStateArtifactKind(); }
+    if index == 19 { return CompilerLspHoverContentArtifactKind(); }
     return "";
 }
 
@@ -121,24 +126,25 @@ func CompilerArtifactKindKnown(kind: String) -> Bool {
 }
 
 func CompilerArtifactZoneReady() -> Bool {
-    return CompilerArtifactKindCount() == 19 &&
+    return CompilerArtifactKindCount() == 20 &&
         CompilerArtifactKindAt(0) == CompilerDiagnosticsArtifactKind() &&
         CompilerArtifactKindAt(1) == CompilerAirJsonArtifactKind() &&
         CompilerArtifactKindAt(2) == CompilerMirJsonArtifactKind() &&
         CompilerArtifactKindAt(3) == CompilerAbiLayoutArtifactKind() &&
-        CompilerArtifactKindAt(4) == CompilerRuntimeMaterializationArtifactKind() &&
-        CompilerArtifactKindAt(5) == CompilerEmittedCArtifactKind() &&
-        CompilerArtifactKindAt(6) == CompilerEmittedLlvmArtifactKind() &&
-        CompilerArtifactKindAt(7) == CompilerEmittedSelfHostedArtifactKind() &&
-        CompilerArtifactKindAt(8) == CompilerRunOutputArtifactKind() &&
-        CompilerArtifactKindAt(9) == CompilerAstTextArtifactKind() &&
-        CompilerArtifactKindAt(10) == CompilerLspDiagnosticsArtifactKind() &&
-        CompilerArtifactKindAt(11) == CompilerLspTransportFrameArtifactKind() &&
-        CompilerArtifactKindAt(12) == CompilerLspTransportStreamArtifactKind() &&
-        CompilerArtifactKindAt(13) == CompilerLspRequestDispatchArtifactKind() &&
-        CompilerArtifactKindAt(14) == CompilerLspResponseEmissionArtifactKind() &&
-        CompilerArtifactKindAt(15) == CompilerLspSessionReplayArtifactKind() &&
-        CompilerArtifactKindAt(16) == CompilerLspDocumentStoreArtifactKind() &&
-        CompilerArtifactKindAt(17) == CompilerLspSessionStateArtifactKind() &&
-        CompilerArtifactKindAt(18) == CompilerLspHoverContentArtifactKind();
+        CompilerArtifactKindAt(4) == CompilerRuntimeCallAbiArtifactKind() &&
+        CompilerArtifactKindAt(5) == CompilerRuntimeMaterializationArtifactKind() &&
+        CompilerArtifactKindAt(6) == CompilerEmittedCArtifactKind() &&
+        CompilerArtifactKindAt(7) == CompilerEmittedLlvmArtifactKind() &&
+        CompilerArtifactKindAt(8) == CompilerEmittedSelfHostedArtifactKind() &&
+        CompilerArtifactKindAt(9) == CompilerRunOutputArtifactKind() &&
+        CompilerArtifactKindAt(10) == CompilerAstTextArtifactKind() &&
+        CompilerArtifactKindAt(11) == CompilerLspDiagnosticsArtifactKind() &&
+        CompilerArtifactKindAt(12) == CompilerLspTransportFrameArtifactKind() &&
+        CompilerArtifactKindAt(13) == CompilerLspTransportStreamArtifactKind() &&
+        CompilerArtifactKindAt(14) == CompilerLspRequestDispatchArtifactKind() &&
+        CompilerArtifactKindAt(15) == CompilerLspResponseEmissionArtifactKind() &&
+        CompilerArtifactKindAt(16) == CompilerLspSessionReplayArtifactKind() &&
+        CompilerArtifactKindAt(17) == CompilerLspDocumentStoreArtifactKind() &&
+        CompilerArtifactKindAt(18) == CompilerLspSessionStateArtifactKind() &&
+        CompilerArtifactKindAt(19) == CompilerLspHoverContentArtifactKind();
 }

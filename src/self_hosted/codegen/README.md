@@ -243,6 +243,11 @@ must consume `string_runtime_owner.pgy` instead of locally spelling those
 Expression/statement emitters should not locally spell `pgy_*` runtime helper
 names or supported target-library call names. `strcmp`, `sqrt`, `pow`, `floor`,
 `ceil`, `atof`, and `exit` are owner facts consumed by emission participants.
+`compiler/runtime_call_abi_row_owner.pgy` projects those collection,
+Option/Result, math, string, and host-I/O call symbols into a runnable
+`runtime_call_abi` artifact. `self-host-runtime-call-abi-row-parity-test-smoke`
+compiles that projection through C and LLVM when available, so runtime helper
+spelling changes are visible as ABI-row diffs instead of backend-local drift.
 
 Parity gate: `tests/self_hosted/parity/codegen_parity.sh` builds `main.pgy`
 through the requested backend set, builds the self-host parser as the AST text
