@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "codegen_channel_runtime_abi.h"
 #include "codegen_slot_type_policy.h"
 #include "llvm_internal_api.h"
 #include "llvm_mir_scope_bind.h"
@@ -39,7 +40,6 @@ llvm_mir_try_emit_source_channel_let(const MIRInstruction *inst,
     LLVMValueRef cap;
     LLVMValueRef args[2];
     LLVMTypeRef channel_storage_type;
-    int written;
 
     if (handled != NULL)
         *handled = false;
@@ -60,9 +60,8 @@ llvm_mir_try_emit_source_channel_let(const MIRInstruction *inst,
             inst->result_name != NULL ? inst->result_name : "(anonymous)");
         return false;
     }
-    written = snprintf(init_fn_name, sizeof(init_fn_name),
-        "pgy_channel_init_%s", inner);
-    if (written < 0 || (size_t)written >= sizeof(init_fn_name)) {
+    if (!pgy_channel_runtime_name(init_fn_name, sizeof(init_fn_name),
+            "init", inner)) {
         llvm_set_mir_inventory_missing(ctx,
             "LLVM MIR source-local Channel let runtime symbol is too long for '%s'",
             inner);

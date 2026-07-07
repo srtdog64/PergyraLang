@@ -20,6 +20,7 @@ transpiler_try_emit_channel_let(TranspilerCtx *ctx, const char *name,
         return false;
 
     char inner_buf[128];
+    char init_fn[128];
     const char *inner = NULL;
     char *capacity = pergyra_strdup("16");
     if (slot_inner_type_name_copy(ann_type_name, inner_buf, sizeof(inner_buf)))
@@ -50,6 +51,18 @@ transpiler_try_emit_channel_let(TranspilerCtx *ctx, const char *name,
         *ann_type_name_io = NULL;
         return true;
     }
+    if (!pgy_channel_runtime_name(init_fn, sizeof(init_fn), "init", inner)) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "C backend: Channel binding '%s' runtime init function name is too long",
+            name != NULL ? name : "<binding>");
+        free(capacity);
+        free(ann_type_name);
+        *ann_type_name_io = NULL;
+        return true;
+    }
 
     if (init != NULL && init->type == AST_CALL && ast_call_arg_count(init) > 0) {
         free(capacity);
@@ -59,8 +72,7 @@ transpiler_try_emit_channel_let(TranspilerCtx *ctx, const char *name,
     write_indent(ctx);
     codebuf_write(ctx->out, "PgyChannel_%s %s;\n", inner, name);
     write_indent(ctx);
-    codebuf_write(ctx->out, "pgy_channel_init_%s(&%s, %s);\n",
-        inner, name, capacity);
+    codebuf_write(ctx->out, "%s(&%s, %s);\n", init_fn, name, capacity);
     register_typed_var(ctx, name, ann_type_name);
     free(capacity);
     free(ann_type_name);

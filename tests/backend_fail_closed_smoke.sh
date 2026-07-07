@@ -1484,5 +1484,19 @@ if grep -F 'pgy_lane_channel_%s_%s(PGY_LANE_PINNED_ZONE' \
 fi
 grep -Fq "transpiler_channel_runtime_symbol" \
     "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.c"
+if grep -F 'pgy_channel_init_%s(&%s, %s)' \
+    "$ROOT_DIR/src/codegen/transpiler_let_channel_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C channel let init must consume channel runtime ABI names" >&2
+    exit 1
+fi
+if grep -F 'pgy_channel_init_%s", inner' \
+    "$ROOT_DIR/src/codegen/llvm_mir_source_resource_defs.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM MIR source channel init must consume channel runtime ABI names" >&2
+    exit 1
+fi
+grep -Fq "pgy_channel_runtime_name(init_fn, sizeof(init_fn), \"init\", inner)" \
+    "$ROOT_DIR/src/codegen/transpiler_let_channel_emit.c"
+grep -Fq "pgy_channel_runtime_name(init_fn_name, sizeof(init_fn_name)," \
+    "$ROOT_DIR/src/codegen/llvm_mir_source_resource_defs.c"
 
 echo "[backend-fail-closed] C/LLVM fail-open fallback guards ok"
