@@ -83,22 +83,20 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
     CodegenAstArenaExpectBlock(arena, count, cur);
     let stmt_indent: Int = f_indent + 6;
     let is_main: Bool = name == "Main";
-    // Main lowers to `int main`, so a bare `return` inside it must be `return 0;`
-    // -- emit its body with an Int return type.
+    // Main lowers through the host/process entrypoint ABI. Its body still uses
+    // the Int return lane so bare `Return:` emits the C success value.
     let body_ret: String = ret_type;
     if is_main {
-        body_ret = "Int";
+        body_ret = AbiLayoutCEntrypointBodyReturnType();
     }
     let body: String = EmitStmtList(nodes, count, arena, stmt_indent, cur, "    ", env_box, body_ret, copyout);
 
     let signature: String = "";
     let body_full: String = Concat(prologue, Concat(body, copyout));
     if is_main {
+        signature = HostIORuntimeCEntrypointSignature(uses_args);
         if uses_args {
-            signature = "int main(int argc, char **argv)";
             body_full = Concat(HostIORuntimeCArgsCapturePrefix(), Concat(prologue, Concat(body, copyout)));
-        } else {
-            signature = "int main(void)";
         }
     } else {
         let param_list: String = params;
@@ -110,7 +108,7 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
 
     let tail: String = "}\n";
     if is_main {
-        tail = "    return 0;\n}\n";
+        tail = Concat("    return ", Concat(HostIORuntimeCEntrypointSuccessValue(), ";\n}\n"));
     }
     return Concat(signature, Concat("\n{\n", Concat(body_full, tail)));
 }

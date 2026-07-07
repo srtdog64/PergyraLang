@@ -58,7 +58,7 @@ namespace-qualified call lowering,
 `Array<String>` plus bootstrap `Array<CodegenAstTextNode>` C collection runtime
 helper symbol spelling, supported
 math/random helper and target-library symbol spelling, supported host
-file/stdin/argv/process helper and target-library symbol spelling, supported
+file/stdin/argv/process helper, C process entrypoint ABI, and target-library symbol spelling, supported
 `Option<Int>` / `Option<String>` / `Result<Int>` helper symbol spelling, and supported string/text
 helper and conversion target-library symbol spelling, and `emission/`
 for C-emission action participants. That keeps

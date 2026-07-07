@@ -84,10 +84,46 @@ func HostIORuntimeCArgvGlobal() -> String {
     return "pgy_argv";
 }
 
+func HostIORuntimeCEntrypointName() -> String {
+    return "main";
+}
+
+func HostIORuntimeCEntrypointReturnType() -> String {
+    return "int";
+}
+
+func HostIORuntimeCArgcParam() -> String {
+    return "argc";
+}
+
+func HostIORuntimeCArgvParam() -> String {
+    return "argv";
+}
+
+func HostIORuntimeCEntrypointNoArgsParamList() -> String {
+    return "void";
+}
+
+func HostIORuntimeCEntrypointArgsParamList() -> String {
+    return Concat("int ", Concat(HostIORuntimeCArgcParam(), Concat(", char **", HostIORuntimeCArgvParam())));
+}
+
+func HostIORuntimeCEntrypointSignature(uses_args: Bool) -> String {
+    let params: String = HostIORuntimeCEntrypointNoArgsParamList();
+    if uses_args {
+        params = HostIORuntimeCEntrypointArgsParamList();
+    }
+    return Concat(HostIORuntimeCEntrypointReturnType(), Concat(" ", Concat(HostIORuntimeCEntrypointName(), Concat("(", Concat(params, ")")))));
+}
+
+func HostIORuntimeCEntrypointSuccessValue() -> String {
+    return "0";
+}
+
 func HostIORuntimeCArgsCapturePrefix() -> String {
     let block: String = "";
-    block = Concat(block, Concat("    ", Concat(HostIORuntimeCArgcGlobal(), " = argc;\n")));
-    block = Concat(block, Concat("    ", Concat(HostIORuntimeCArgvGlobal(), " = argv;\n")));
+    block = Concat(block, Concat("    ", Concat(HostIORuntimeCArgcGlobal(), Concat(" = ", Concat(HostIORuntimeCArgcParam(), ";\n")))));
+    block = Concat(block, Concat("    ", Concat(HostIORuntimeCArgvGlobal(), Concat(" = ", Concat(HostIORuntimeCArgvParam(), ";\n")))));
     return block;
 }
 

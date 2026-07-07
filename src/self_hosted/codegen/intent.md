@@ -59,7 +59,7 @@ participant, not a zone.
 - `MathRuntimeOwner` owns self-host C math/random helper and target-library
   symbol spelling for the supported `Abs` / `Min` / `Max` / `Sqrt` / `Pow` /
   `Floor` / `Ceil` / `SeedRandom` / `Random` subset.
-- `HostIORuntimeOwner` owns self-host C host file/stdin/argv/process runtime
+- `HostIORuntimeOwner` owns self-host C host file/stdin/argv/process entrypoint runtime
   helper and target-library symbol spelling for the supported file,
   byte-count stdin, directory-walk, `Args()`, and `Exit(Int)` subset. The
   generated helper definitions in `program_emit.pgy` consume its secure-open
@@ -111,7 +111,7 @@ Concrete split for the current codegen cluster:
 | symbol/name-mangling facts | compiler-world owner, not codegen zone | read-only canonical spelling rows for supported self-host emission |
 | collection runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host array runtime calls, including the bootstrap typed AST-line record array |
 | math/random helper and target-library symbols | owner, not zone yet | canonical C names for supported self-host math/random calls |
-| host I/O/process helper and target-library symbols | owner, not zone yet | canonical C names for supported self-host file/argv/process calls |
+| host I/O/process helper, entrypoint, and target-library symbols | owner, not zone yet | canonical C names for supported self-host file/argv/process calls plus the C process entrypoint |
 | Option/Result runtime helper symbols | owner, not zone yet | canonical C helper names for supported self-host Option/Result runtime calls |
 | string/text helper and conversion target-library symbols | owner, not zone yet | canonical C names for supported self-host string/text builtin calls |
 | program/function/stmt/expr emit files | no | recursive participants over the same output/type resources |

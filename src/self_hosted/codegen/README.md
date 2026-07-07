@@ -66,8 +66,8 @@ member reads, nested member reads, struct parameters, and struct returns.
 
 **Functions:** one or more functions, exactly one named `Main`. Each emits a C
 function; non-`Main` functions get forward declarations, so call order and
-recursion are free. `Main` lowers to `int main(void)`, or to
-`int main(int argc, char **argv)` when the fixture uses `Args()`.
+recursion are free. `Main` lowers through the host/process entrypoint ABI owner,
+including the argv-capable entrypoint when the fixture uses `Args()`.
 
 - `Int` param -> `long long`, return -> `long long`
 - `Bool` param/return -> `bool` (`<stdbool.h>`); `true` / `false` / `!` pass through
