@@ -10,6 +10,8 @@
 #include "llvm_internal.h"
 #include "llvm_runtime_internal.h"
 
+#include "../compiler/mir_abi_layout.h"
+
 static bool
 llvm_runtime_export_name(char *out,
     size_t out_size,
@@ -77,19 +79,21 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
     }
 
     struct {
+        const char *abi_type_name;
         const char *suffix;
         LLVMTypeRef slot_ty;
         LLVMTypeRef val_ty;
     } slot_types[] = {
-        { "Int",    ctx->slot_type_Int,    ctx->type_i32   },
-        { "Long",   ctx->slot_type_Long,   ctx->type_i64   },
-        { "Float",  ctx->slot_type_Float,  ctx->type_f32   },
-        { "Double", ctx->slot_type_Double, ctx->type_f64   },
-        { "Bool",   ctx->slot_type_Bool,   ctx->type_i1    },
-        { "String", ctx->slot_type_String, ctx->type_i8ptr },
+        { "Slot<Int>",    "Int",    ctx->slot_type_Int,    ctx->type_i32   },
+        { "Slot<Long>",   "Long",   ctx->slot_type_Long,   ctx->type_i64   },
+        { "Slot<Float>",  "Float",  ctx->slot_type_Float,  ctx->type_f32   },
+        { "Slot<Double>", "Double", ctx->slot_type_Double, ctx->type_f64   },
+        { "Slot<Bool>",   "Bool",   ctx->slot_type_Bool,   ctx->type_i1    },
+        { "Slot<String>", "String", ctx->slot_type_String, ctx->type_i8ptr },
     };
 
     for (size_t i = 0; i < sizeof(slot_types) / sizeof(slot_types[0]); i++) {
+        const char *abi_type_name = slot_types[i].abi_type_name;
         const char *suffix = slot_types[i].suffix;
         LLVMTypeRef slot_ty = slot_types[i].slot_ty;
         LLVMTypeRef val_ty = slot_types[i].val_ty;
@@ -97,35 +101,43 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
         char fn_name[64];
 
         { LLVMTypeRef ft = LLVMFunctionType(slot_ty, NULL, 0, 0);
-          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "claim", suffix)) {
-              llvm_set_error(ctx, "slot claim runtime name is too long");
+          const char *runtime_fn =
+              mir_abi_resource_runtime_fn_by_type_name(abi_type_name, "Claim");
+          if (runtime_fn == NULL) {
+              llvm_set_error(ctx, "slot claim runtime ABI row is missing");
               return;
           }
-          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, slot_ty); }
         { LLVMTypeRef params[] = { ptr_ty, val_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
-          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "write", suffix)) {
-              llvm_set_error(ctx, "slot write runtime name is too long");
+          const char *runtime_fn =
+              mir_abi_resource_runtime_fn_by_type_name(abi_type_name, "Write");
+          if (runtime_fn == NULL) {
+              llvm_set_error(ctx, "slot write runtime ABI row is missing");
               return;
           }
-          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef params[] = { ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(val_ty, params, 1, 0);
-          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "read", suffix)) {
-              llvm_set_error(ctx, "slot read runtime name is too long");
+          const char *runtime_fn =
+              mir_abi_resource_runtime_fn_by_type_name(abi_type_name, "Read");
+          if (runtime_fn == NULL) {
+              llvm_set_error(ctx, "slot read runtime ABI row is missing");
               return;
           }
-          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, val_ty); }
         { LLVMTypeRef params[] = { ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
-          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "release", suffix)) {
-              llvm_set_error(ctx, "slot release runtime name is too long");
+          const char *runtime_fn =
+              mir_abi_resource_runtime_fn_by_type_name(abi_type_name, "Release");
+          if (runtime_fn == NULL) {
+              llvm_set_error(ctx, "slot release runtime ABI row is missing");
               return;
           }
-          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef pinned_ty = llvm_pinned_slot_struct_type(ctx, suffix);
           LLVMTypeRef params[] = { ptr_ty };

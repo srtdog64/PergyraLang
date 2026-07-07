@@ -106,12 +106,21 @@ reject_term "src/compiler/mir_abi_layout.c" "mir_extract_inner_type_suffix_owned
 reject_term "src/compiler/mir_abi_layout.c" "runtime function name pattern"
 require_term "src/compiler/mir_abi_layout.c" "Runtime function spelling is payload carried"
 require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_fn"
+require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_fn_by_type_name"
 require_term "src/compiler/mir_abi_layout.c" "MIRResourceRuntimeFnRow"
 require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("Slot<Int>"'
 require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("SecureSlot<Int>"'
 require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("DeviceSlot<Int>"'
 require_term "src/codegen/transpiler_mir_resource_op_core.c" "mir_abi_resource_runtime_fn(effective_layout, op_name)"
 reject_term "src/codegen/transpiler_mir_resource_op_core.c" "transpiler_format_slot_runtime_fn"
+require_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")"
+require_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Read\")"
+require_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Write\")"
+require_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Release\")"
+reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "claim", suffix)'
+reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "read", suffix)'
+reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "write", suffix)'
+reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "release", suffix)'
 require_term "src/test_abi_spec.c" "runtime size matches checked ABI"
 reject_term "src/test_abi_spec.c" "PGY_RUNTIME_SLOT_MODE_CHECKED"
 reject_term "src/test_abi_spec.c" "raw slot mode"
@@ -235,7 +244,6 @@ require_term "src/codegen/llvm_mir_resource_view.c" "inst->resource_owner_slot_a
 require_term "src/codegen/llvm_mir_resource_view.c" "inst->resource_owner_requires_metadata"
 require_term "src/codegen/llvm_mir_resource_view.c" "LLVM MIR borrow view alias '%s' is missing owner slot ABI metadata"
 require_term "src/codegen/transpiler_block_emit.c" "__attribute__((cleanup(pgy_unpin_cleanup_%s)))"
-require_term "src/codegen/llvm_runtime.c" "llvm_runtime_slot_name"
 require_term "src/codegen/llvm_runtime.c" "pin_read"
 require_term "src/codegen/llvm_runtime.c" "pin_write"
 require_term "src/codegen/llvm_runtime.c" "pin_read_init"

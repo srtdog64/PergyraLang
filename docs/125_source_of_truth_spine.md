@@ -412,8 +412,10 @@ Current beta closure snapshot:
   names are payloads on those rows, not a fallback source of layout truth.
   Slot-like C MIR resource operations consume
   `mir_abi_resource_runtime_fn(...)` rows for Claim/Read/Write/Release instead
-  of synthesizing those names from type suffixes. LLVM runtime declaration
-  registration is still a separate projection until it consumes the same rows.
+  of synthesizing those names from type suffixes. LLVM plain-Slot runtime
+  declarations consume the same rows through
+  `mir_abi_resource_runtime_fn_by_type_name(...)`; secure/device/pin runtime
+  declarations remain a separate ABI projection until their rows are cut over.
   Debug/release is a build policy, not a second ABI type-name dimension:
   canonical runtime ABI names must not grow `_dbg` or `_rel` typedef aliases.
   Checked/raw mode differences are represented by policy macros and MIR ABI

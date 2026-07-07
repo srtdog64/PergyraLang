@@ -294,6 +294,14 @@ mir_abi_resource_runtime_fn(const MIRTypeLayout *layout,
     return NULL;
 }
 
+const char *
+mir_abi_resource_runtime_fn_by_type_name(const char *abi_type_name,
+                                         const char *resource_op_name)
+{
+    return mir_abi_resource_runtime_fn(mir_abi_lookup(abi_type_name),
+                                      resource_op_name);
+}
+
 void
 mir_abi_table_init(void)
 {

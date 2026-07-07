@@ -118,6 +118,34 @@ grep -Fq "MIR resource op '%s' is missing runtime ABI layout metadata" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
 grep -Fq "mir_abi_resource_runtime_fn(effective_layout, op_name)" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
+grep -Fq "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")" \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+grep -Fq "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Read\")" \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+grep -Fq "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Write\")" \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+grep -Fq "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Release\")" \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+if grep -F 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "claim", suffix)' \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM slot claim declaration must consume MIR ABI runtime function rows" >&2
+    exit 1
+fi
+if grep -F 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "read", suffix)' \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM slot read declaration must consume MIR ABI runtime function rows" >&2
+    exit 1
+fi
+if grep -F 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "write", suffix)' \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM slot write declaration must consume MIR ABI runtime function rows" >&2
+    exit 1
+fi
+if grep -F 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "release", suffix)' \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM slot release declaration must consume MIR ABI runtime function rows" >&2
+    exit 1
+fi
 if grep -F 'transpiler_format_slot_runtime_fn(' \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c" >/dev/null; then
     echo "[backend-fail-closed] C MIR resource op must consume MIR ABI runtime function rows" >&2
