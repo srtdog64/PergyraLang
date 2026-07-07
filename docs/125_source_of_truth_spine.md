@@ -428,10 +428,11 @@ Current beta closure snapshot:
   `with slot` alias claim/release emission consumes the same rows for Claim
   and Release. C MIR destructuring for `ClaimSlot`/`ClaimSecureSlot` consumes
   the Claim rows as well. C class field-claim helpers consume Claim rows from
-  the same ABI owner. C source-level pin block emitters consume row-backed
-  PinRead/PinWrite and UnpinCleanup names; cleanup attributes are not allowed
-  to synthesize `pgy_claim_*`, `pgy_read_*`, `pgy_write_*`, `pgy_device_*`,
-  `pgy_release_*`, or `pgy_unpin_cleanup_*` suffixes locally.
+  the same ABI owner. C stdlib `Clone(Slot<T>)` lowering consumes Claim/Read/
+  Write rows from the same ABI owner. C source-level pin block emitters consume
+  row-backed PinRead/PinWrite and UnpinCleanup names; cleanup attributes are
+  not allowed to synthesize `pgy_claim_*`, `pgy_read_*`, `pgy_write_*`,
+  `pgy_device_*`, `pgy_release_*`, or `pgy_unpin_cleanup_*` suffixes locally.
 - `with slot` scope exit is a resource fact, not a backend fallback. RIR emits
   the scope-exit Release after the with-body resource ops; MIR preserves it as
   an `AST_WITH_STMT`-sourced Release, and C MIR emission materializes that fact

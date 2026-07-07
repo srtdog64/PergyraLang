@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../compiler/mir_abi_layout.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
@@ -45,6 +46,26 @@ transpiler_stdlib_copy_type_name(char *out, size_t out_size,
 
     memcpy(out, type_name, len + 1);
     return true;
+}
+
+static const char *
+transpiler_stdlib_slot_runtime_fn(TranspilerCtx *ctx,
+                                  const char *inner_type,
+                                  const char *operation)
+{
+    const char *runtime_fn = mir_abi_resource_runtime_fn_by_kind(
+        MIR_RESOURCE_ABI_SLOT, inner_type, operation);
+    if (runtime_fn != NULL)
+        return runtime_fn;
+
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_INSPECT_MIR_INVENTORY,
+        "C stdlib Slot<T> Clone %s requires MIR ABI runtime function row",
+        operation != NULL ? operation : "<unknown>");
+    return NULL;
 }
 
 static bool
@@ -453,6 +474,9 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             if (tn != NULL && strncmp(tn, "Slot<", 5) == 0) {
                 char inner_buf[128];
                 const char *inner = NULL;
+                const char *claim_fn;
+                const char *read_fn;
+                const char *write_fn;
                 if (slot_inner_type_name_copy(tn, inner_buf, sizeof(inner_buf)))
                     inner = inner_buf;
                 if (inner == NULL || inner[0] == '\0') {
@@ -464,10 +488,17 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         "C backend: Clone requires concrete Slot<T> metadata");
                     return NULL;
                 }
+                claim_fn = transpiler_stdlib_slot_runtime_fn(ctx, inner, "Claim");
+                read_fn = transpiler_stdlib_slot_runtime_fn(ctx, inner, "Read");
+                write_fn = transpiler_stdlib_slot_runtime_fn(ctx, inner, "Write");
+                if (claim_fn == NULL || read_fn == NULL || write_fn == NULL) {
+                    free(src);
+                    return NULL;
+                }
                 char *result = strdup_fmt(
-                    "({ PgySlot_%s _c = pgy_claim_%s(); "
-                    "pgy_write_%s(&_c, pgy_read_%s(&%s)); _c; })",
-                    inner, inner, inner, inner, src);
+                    "({ PgySlot_%s _c = %s(); "
+                    "%s(&_c, %s(&%s)); _c; })",
+                    inner, claim_fn, write_fn, read_fn, src);
                 free(src);
                 return result;
             }

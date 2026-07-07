@@ -69,7 +69,8 @@ runtime ABI into `MIRTypeLayout` facts. This means:
   `with slot` alias claim/release emission uses those same Claim/Release rows.
   MIR destructuring for `ClaimSlot`/`ClaimSecureSlot` uses the same Claim
   rows. C class field-claim helpers also consume Claim rows from this ABI
-  owner. They must not synthesize `pgy_claim_*`, `pgy_read_*`, `pgy_write_*`,
+  owner, and C stdlib `Clone(Slot<T>)` consumes Claim/Read/Write rows. They
+  must not synthesize `pgy_claim_*`, `pgy_read_*`, `pgy_write_*`,
   `pgy_device_*`, `pgy_release_*`, `pgy_pin_*`, `pgy_unpin_*`, or
   `pgy_unpin_cleanup_*` names from a type suffix.
 

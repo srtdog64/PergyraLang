@@ -184,6 +184,8 @@ require_term "src/codegen/transpiler_mir_destructure_emit.c" "mir_abi_resource_r
 require_term "src/codegen/transpiler_mir_destructure_emit.c" "C MIR destructuring %s requires MIR ABI runtime function row"
 require_term "src/codegen/transpiler_class_decl_emit.c" "mir_abi_resource_runtime_fn_by_kind("
 require_term "src/codegen/transpiler_class_decl_emit.c" "C class field slot Claim requires MIR ABI runtime function row"
+require_term "src/codegen/transpiler_expr_stdlib_builtin.c" "mir_abi_resource_runtime_fn_by_kind("
+require_term "src/codegen/transpiler_expr_stdlib_builtin.c" "C stdlib Slot<T> Clone %s requires MIR ABI runtime function row"
 reject_term "src/codegen/llvm_expr_identifier_slot_helpers.c" 'is_secure ? "pgy_secure_read_%s" : "pgy_read_%s"'
 reject_term "src/codegen/llvm_expr_call_methods_domain_slice.c" "llvm_domain_slot_format_runtime_name"
 reject_term "src/codegen/llvm_expr_call_methods_domain_slice.c" '"pgy_secure_write", inner'
@@ -240,6 +242,8 @@ reject_term "src/codegen/transpiler_mir_destructure_emit.c" "pgy_claim_%s()"
 reject_term "src/codegen/transpiler_mir_destructure_emit.c" "pgy_claim_secure_%s(&%s)"
 reject_term "src/codegen/transpiler_class_decl_emit.c" "pgy_claim_%s()"
 reject_term "src/codegen/transpiler_class_decl_emit.c" "pgy_claim_secure_%s(&self.%s)"
+reject_term "src/codegen/transpiler_expr_stdlib_builtin.c" "PgySlot_%s _c = pgy_claim_%s()"
+reject_term "src/codegen/transpiler_expr_stdlib_builtin.c" "pgy_write_%s(&_c, pgy_read_%s(&%s))"
 require_term "src/test_abi_spec.c" "runtime size matches checked ABI"
 reject_term "src/test_abi_spec.c" "PGY_RUNTIME_SLOT_MODE_CHECKED"
 reject_term "src/test_abi_spec.c" "raw slot mode"

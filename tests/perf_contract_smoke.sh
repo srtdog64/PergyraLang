@@ -2361,6 +2361,10 @@ grep -Fq "slot_inner_type_name_copy(resolved_type, inner_buf" \
 grep -Fq "slot_inner_type_name_copy(arr_type, inner_buf" \
     "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.c"
 grep -Fq "transpiler_require_type_name_c_type_copy(ctx, inner" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.c"
+grep -Fq "mir_abi_resource_runtime_fn_by_kind(" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.c"
+grep -Fq "C stdlib Slot<T> Clone %s requires MIR ABI runtime function row" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.c"
+! grep -Fq "PgySlot_%s _c = pgy_claim_%s()" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.c"
+! grep -Fq "pgy_write_%s(&_c, pgy_read_%s(&%s))" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.c"
 channel_builtin_owner="$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.c"
 grep -Fq "transpiler_channel_require_inner_type(ctx" "$channel_builtin_owner"
 grep -Fq "pgy_channel_runtime_payload_has_abi(inner)" "$ROOT_DIR/src/codegen/transpiler_channel_type_query.c"
