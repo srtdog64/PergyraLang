@@ -1472,5 +1472,17 @@ if grep -F 'snprintf(fn_name, sizeof(fn_name), "pgy_lane_channel_' \
 fi
 grep -Fq "pgy_lane_channel_runtime_name(fn_name, sizeof(fn_name)," \
     "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
+if grep -F 'strdup_fmt("pgy_channel_%s_%s(&%s)"' \
+    "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.c" >/dev/null; then
+    echo "[backend-fail-closed] C channel query builtins must consume channel runtime ABI names" >&2
+    exit 1
+fi
+if grep -F 'pgy_lane_channel_%s_%s(PGY_LANE_PINNED_ZONE' \
+    "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.c" >/dev/null; then
+    echo "[backend-fail-closed] C channel timeout builtins must consume channel runtime ABI names" >&2
+    exit 1
+fi
+grep -Fq "transpiler_channel_runtime_symbol" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.c"
 
 echo "[backend-fail-closed] C/LLVM fail-open fallback guards ok"

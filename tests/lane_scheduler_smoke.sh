@@ -113,9 +113,12 @@ grep -Fq "pgy_lane_channel_send_%s(PGY_LANE_PINNED_ZONE" \
 grep -Fq "pgy_lane_channel_recv_val_%s(PGY_LANE_PINNED_ZONE" \
     "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c" \
     || fail "C channel recv lowering does not consume the pinned channel lane facade"
-grep -Fq "pgy_lane_channel_try_recv_result_%s(PGY_LANE_PINNED_ZONE" \
+grep -Fq "pgy_lane_channel_runtime_name" \
     "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.c" \
-    || fail "C TryRecv lowering does not consume the pinned channel lane facade"
+    || fail "C channel stdlib lowering does not consume the channel runtime ABI owner"
+grep -Fq "\"try_recv_result\"" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.c" \
+    || fail "C TryRecv lowering does not preserve the pinned channel lane facade op"
 grep -Fq "pgy_lane_channel_ready_%s(PGY_LANE_PINNED_ZONE" \
     "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c" \
     || fail "C MIR select readiness does not consume the pinned channel lane facade"
@@ -128,15 +131,21 @@ grep -Fq "PGY_LANE_WORKER_POOL" \
 grep -Fq "PGY_LANE_LOCAL_ASYNC" \
     "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c" \
     || fail "LLVM async block lowering does not emit the LocalAsync lane fact"
-grep -Fq "pgy_lane_channel_send" \
+grep -Fq "pgy_lane_channel_runtime_name" \
     "$ROOT_DIR/src/codegen/llvm_expr_channel.c" \
-    || fail "LLVM channel send lowering does not consume the channel lane facade"
-grep -Fq "pgy_lane_channel_recv_val" \
+    || fail "LLVM channel expression lowering does not consume the channel runtime ABI owner"
+grep -Fq "\"send\", target.inner" \
     "$ROOT_DIR/src/codegen/llvm_expr_channel.c" \
-    || fail "LLVM channel recv lowering does not consume the channel lane facade"
-grep -Fq "pgy_lane_channel_try_recv_result" \
+    || fail "LLVM channel send lowering does not preserve the channel lane facade op"
+grep -Fq "\"recv_val\", target.inner" \
+    "$ROOT_DIR/src/codegen/llvm_expr_channel.c" \
+    || fail "LLVM channel recv lowering does not preserve the channel lane facade op"
+grep -Fq "pgy_lane_channel_runtime_name" \
     "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c" \
-    || fail "LLVM TryRecv lowering does not consume the channel lane facade"
+    || fail "LLVM task/channel lowering does not consume the channel runtime ABI owner"
+grep -Fq "\"try_recv_result\"" \
+    "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c" \
+    || fail "LLVM TryRecv lowering does not preserve the channel lane facade op"
 grep -Fq "pgy_lane_channel_ready_" \
     "$ROOT_DIR/src/codegen/llvm_stmt_select.c" \
     || fail "LLVM select readiness does not consume the channel lane facade"

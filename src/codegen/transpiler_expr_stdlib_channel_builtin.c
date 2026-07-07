@@ -12,6 +12,7 @@
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
+#include "codegen_channel_runtime_abi.h"
 #include "transpiler_channel_type_query.h"
 #include "transpiler_context.h"
 #include "transpiler_expr_stdlib_collection_support.h"
@@ -169,6 +170,31 @@ transpiler_channel_emit_arg(TranspilerCtx *ctx,
     return NULL;
 }
 
+static bool
+transpiler_channel_runtime_symbol(TranspilerCtx *ctx,
+                                  const char *builtin_name,
+                                  bool lane,
+                                  const char *runtime_op,
+                                  const char *inner,
+                                  char *out,
+                                  size_t out_size)
+{
+    bool ok = lane
+        ? pgy_lane_channel_runtime_name(out, out_size, runtime_op, inner)
+        : pgy_channel_runtime_name(out, out_size, runtime_op, inner);
+
+    if (ok)
+        return true;
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_INSPECT_MIR_INVENTORY,
+        "C backend: channel builtin %s runtime function name is too long",
+        builtin_name != NULL ? builtin_name : "(unknown)");
+    return false;
+}
+
 static char *
 emit_call_stdlib_channel_query_builtin(const char *fn, ASTNode *call,
                                        TranspilerCtx *ctx)
@@ -178,6 +204,7 @@ emit_call_stdlib_channel_query_builtin(const char *fn, ASTNode *call,
     char *ch;
     char inner_buf[64];
     const char *inner;
+    char runtime_fn[128];
     char *result;
     ASTNode *channel_arg;
 
@@ -197,9 +224,13 @@ emit_call_stdlib_channel_query_builtin(const char *fn, ASTNode *call,
         free(ch);
         return NULL;
     }
+    if (!transpiler_channel_runtime_symbol(ctx, spec->name, false,
+            spec->runtime_op, inner, runtime_fn, sizeof(runtime_fn))) {
+        free(ch);
+        return NULL;
+    }
 
-    result = strdup_fmt("pgy_channel_%s_%s(&%s)",
-        spec->runtime_op, inner, ch);
+    result = strdup_fmt("%s(&%s)", runtime_fn, ch);
     free(ch);
     return result;
 }
@@ -230,18 +261,24 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
         const char *inner = transpiler_channel_require_inner_type(ctx,
             channel_arg, "TryRecv",
             inner_buf, sizeof(inner_buf));
+        char runtime_fn[128];
         char *result;
 
         if (inner == NULL) {
             free(ch);
             return NULL;
         }
+        if (!transpiler_channel_runtime_symbol(ctx, "TryRecv", true,
+                "try_recv_result", inner, runtime_fn, sizeof(runtime_fn))) {
+            free(ch);
+            return NULL;
+        }
         result = strdup_fmt(
             "({ PgyRuntimeChannel%sResult _pgy_recv_result = "
-            "pgy_lane_channel_try_recv_result_%s(PGY_LANE_PINNED_ZONE, &%s); "
+            "%s(PGY_LANE_PINNED_ZONE, &%s); "
             "_pgy_recv_result.tag == PGY_RUNTIME_CHANNEL_RESULT_OK "
             "? Some_%s(_pgy_recv_result.ok) : None_%s(); })",
-            inner, inner, ch, inner, inner);
+            inner, runtime_fn, ch, inner, inner);
         free(ch);
         return result;
     }
@@ -265,6 +302,7 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
         const char *inner = transpiler_channel_require_inner_type(ctx,
             channel_arg, "RecvTimeout",
             inner_buf, sizeof(inner_buf));
+        char runtime_fn[128];
         char *result;
 
         if (inner == NULL) {
@@ -272,12 +310,19 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
             free(timeout);
             return NULL;
         }
+        if (!transpiler_channel_runtime_symbol(ctx, "RecvTimeout", true,
+                "recv_timeout_result", inner, runtime_fn,
+                sizeof(runtime_fn))) {
+            free(ch);
+            free(timeout);
+            return NULL;
+        }
         result = strdup_fmt(
             "({ PgyRuntimeChannel%sResult _pgy_recv_result = "
-            "pgy_lane_channel_recv_timeout_result_%s(PGY_LANE_PINNED_ZONE, &%s, (uint64_t)(%s)); "
+            "%s(PGY_LANE_PINNED_ZONE, &%s, (uint64_t)(%s)); "
             "_pgy_recv_result.tag == PGY_RUNTIME_CHANNEL_RESULT_OK "
             "? Some_%s(_pgy_recv_result.ok) : None_%s(); })",
-            inner, inner, ch, timeout, inner, inner);
+            inner, runtime_fn, ch, timeout, inner, inner);
         free(ch);
         free(timeout);
         return result;
@@ -301,6 +346,7 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
         const char *inner = transpiler_channel_require_inner_type(ctx,
             channel_arg, "TrySend",
             inner_buf, sizeof(inner_buf));
+        char runtime_fn[128];
         char *result;
 
         if (inner == NULL) {
@@ -308,9 +354,15 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
             free(val);
             return NULL;
         }
+        if (!transpiler_channel_runtime_symbol(ctx, "TrySend", true,
+                "try_send", inner, runtime_fn, sizeof(runtime_fn))) {
+            free(ch);
+            free(val);
+            return NULL;
+        }
         result = strdup_fmt(
-            "pgy_lane_channel_try_send_%s(PGY_LANE_PINNED_ZONE, &%s, %s)",
-            inner, ch, val);
+            "%s(PGY_LANE_PINNED_ZONE, &%s, %s)",
+            runtime_fn, ch, val);
         free(ch);
         free(val);
         return result;
@@ -335,6 +387,7 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
         const char *inner = transpiler_channel_require_inner_type(ctx,
             channel_arg, "TrySendStatus",
             inner_buf, sizeof(inner_buf));
+        char runtime_fn[128];
         char *result;
 
         if (inner == NULL) {
@@ -342,9 +395,15 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
             free(val);
             return NULL;
         }
+        if (!transpiler_channel_runtime_symbol(ctx, "TrySendStatus", true,
+                "try_send_status", inner, runtime_fn, sizeof(runtime_fn))) {
+            free(ch);
+            free(val);
+            return NULL;
+        }
         result = strdup_fmt(
-            "pgy_lane_channel_try_send_status_%s(PGY_LANE_PINNED_ZONE, &%s, %s)",
-            inner, ch, val);
+            "%s(PGY_LANE_PINNED_ZONE, &%s, %s)",
+            runtime_fn, ch, val);
         free(ch);
         free(val);
         return result;
@@ -378,6 +437,7 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
         char inner_buf[64];
         const char *inner = transpiler_channel_require_inner_type(ctx,
             channel_arg, label, inner_buf, sizeof(inner_buf));
+        char runtime_fn[128];
         char *result;
 
         if (inner == NULL) {
@@ -386,9 +446,16 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
             free(timeout);
             return NULL;
         }
+        if (!transpiler_channel_runtime_symbol(ctx, label, true,
+                runtime_op, inner, runtime_fn, sizeof(runtime_fn))) {
+            free(ch);
+            free(val);
+            free(timeout);
+            return NULL;
+        }
         result = strdup_fmt(
-            "pgy_lane_channel_%s_%s(PGY_LANE_PINNED_ZONE, &%s, %s, (uint64_t)(%s))",
-            runtime_op, inner, ch, val, timeout);
+            "%s(PGY_LANE_PINNED_ZONE, &%s, %s, (uint64_t)(%s))",
+            runtime_fn, ch, val, timeout);
         free(ch);
         free(val);
         free(timeout);
@@ -417,13 +484,19 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
         char inner_buf[64];
         const char *inner = transpiler_channel_require_inner_type(ctx,
             channel_arg, "ChannelClose", inner_buf, sizeof(inner_buf));
+        char runtime_fn[128];
         char *result;
 
         if (inner == NULL) {
             free(ch);
             return NULL;
         }
-        result = strdup_fmt("pgy_channel_close_%s(&%s)", inner, ch);
+        if (!transpiler_channel_runtime_symbol(ctx, "ChannelClose", false,
+                "close", inner, runtime_fn, sizeof(runtime_fn))) {
+            free(ch);
+            return NULL;
+        }
+        result = strdup_fmt("%s(&%s)", runtime_fn, ch);
         free(ch);
         return result;
     }
