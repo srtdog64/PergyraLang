@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../compiler/mir_abi_layout.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 
@@ -36,6 +37,28 @@
 #include "codegen_type_mapping.h"
 #include "transpiler_type_require.h"
 #include "transpiler_mir_local_binding.h"
+
+static const char *
+dispatch_slot_runtime_fn(TranspilerCtx *ctx,
+                         bool secure,
+                         const char *inner_type,
+                         const char *operation)
+{
+    const char *runtime_fn = mir_abi_resource_runtime_fn_by_kind(
+        secure ? MIR_RESOURCE_ABI_SECURE_SLOT : MIR_RESOURCE_ABI_SLOT,
+        inner_type, operation);
+    if (runtime_fn != NULL)
+        return runtime_fn;
+
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_INSPECT_MIR_INVENTORY,
+        "C expression slot %s requires MIR ABI runtime function row",
+        operation != NULL ? operation : "<unknown>");
+    return NULL;
+}
 
 char *
 transpiler_emit_assignment_expression_parts(TranspilerCtx *ctx,
@@ -127,6 +150,7 @@ transpiler_emit_assignment_expression_parts(TranspilerCtx *ctx,
                 return NULL;
             }
             if (secure) {
+                const char *write_fn;
                 const char *token_name = require_slot_token_name(
                     ctx, tgt_name, "SecureSlot assignment");
                 if (token_name == NULL) {
@@ -134,11 +158,25 @@ transpiler_emit_assignment_expression_parts(TranspilerCtx *ctx,
                     free(value);
                     return NULL;
                 }
-                result = strdup_fmt("pgy_secure_write_%s(%s, %s, &%s)",
-                    inner, slot_ref, value, token_name);
+                write_fn = dispatch_slot_runtime_fn(
+                    ctx, true, inner, "Write");
+                if (write_fn == NULL) {
+                    free(slot_ref);
+                    free(value);
+                    return NULL;
+                }
+                result = strdup_fmt("%s(%s, %s, &%s)",
+                    write_fn, slot_ref, value, token_name);
             } else {
-                result = strdup_fmt("pgy_write_%s(%s, %s)",
-                    inner, slot_ref, value);
+                const char *write_fn = dispatch_slot_runtime_fn(
+                    ctx, false, inner, "Write");
+                if (write_fn == NULL) {
+                    free(slot_ref);
+                    free(value);
+                    return NULL;
+                }
+                result = strdup_fmt("%s(%s, %s)",
+                    write_fn, slot_ref, value);
             }
             free(slot_ref);
             free(value);
@@ -311,10 +349,16 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                     free(c_ssa_name);
                     return NULL;
                 }
+                const char *read_fn = dispatch_slot_runtime_fn(
+                    ctx, secure, inner, "Read");
+                if (read_fn == NULL) {
+                    free(c_ssa_name);
+                    return NULL;
+                }
                 char *result = secure
-                    ? strdup_fmt("pgy_secure_read_%s(&%s, &%s)",
-                                  inner, c_ssa_name, token_name)
-                    : strdup_fmt("pgy_read_%s(&%s)", inner, c_ssa_name);
+                    ? strdup_fmt("%s(&%s, &%s)",
+                                  read_fn, c_ssa_name, token_name)
+                    : strdup_fmt("%s(&%s)", read_fn, c_ssa_name);
                 free(c_ssa_name);
                 return result;
             }
@@ -351,10 +395,16 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 free(slot_ref);
                 return NULL;
             }
+            const char *read_fn = dispatch_slot_runtime_fn(
+                ctx, secure, inner, "Read");
+            if (read_fn == NULL) {
+                free(slot_ref);
+                return NULL;
+            }
             char *result = secure
-                ? strdup_fmt("pgy_secure_read_%s(%s, &%s)",
-                              inner, slot_ref, token_name)
-                : strdup_fmt("pgy_read_%s(%s)", inner, slot_ref);
+                ? strdup_fmt("%s(%s, &%s)",
+                              read_fn, slot_ref, token_name)
+                : strdup_fmt("%s(%s)", read_fn, slot_ref);
             free(slot_ref);
             return result;
         }
