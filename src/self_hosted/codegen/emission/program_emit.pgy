@@ -198,23 +198,10 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
         header = Concat(header, "    srand((unsigned int)seed);\n}\n\n");
     }
     if uses_result {
-        header = Concat(header, "typedef struct { bool is_ok; long long value; } pgy_result_int;\n");
-        header = Concat(header, "static pgy_result_int pgy_result_ok(long long v) { pgy_result_int r; r.is_ok = true; r.value = v; return r; }\n");
-        header = Concat(header, "static pgy_result_int pgy_result_err(const char *msg) { (void)msg; pgy_result_int r; r.is_ok = false; r.value = 0; return r; }\n");
-        header = Concat(header, "static bool pgy_result_is_ok(pgy_result_int r) { return r.is_ok; }\n");
-        header = Concat(header, "static bool pgy_result_is_err(pgy_result_int r) { return !r.is_ok; }\n");
-        header = Concat(header, "static long long pgy_result_unwrap(pgy_result_int r) { return r.value; }\n");
-        header = Concat(header, "static long long pgy_result_unwrap_or(pgy_result_int r, long long fallback) { return r.is_ok ? r.value : fallback; }\n\n");
+        header = Concat(header, OptionResultRuntimeCResultIntBlock());
     }
     if uses_option {
-        header = Concat(header, "typedef struct { bool is_some; long long value; } pgy_option_int;\n");
-        header = Concat(header, "typedef struct { bool is_some; const char *value; } pgy_option_string;\n");
-        header = Concat(header, "static pgy_option_int pgy_option_some(long long v) { pgy_option_int o; o.is_some = true; o.value = v; return o; }\n");
-        header = Concat(header, "static pgy_option_string pgy_option_some_string(const char *v) { pgy_option_string o; o.is_some = true; o.value = v; return o; }\n");
-        header = Concat(header, "static pgy_option_int pgy_option_none(void) { pgy_option_int o; o.is_some = false; o.value = 0; return o; }\n");
-        header = Concat(header, "static pgy_option_string pgy_option_none_string(void) { pgy_option_string o; o.is_some = false; o.value = \"\"; return o; }\n");
-        header = Concat(header, "#define pgy_option_is_some(o) ((o).is_some)\n");
-        header = Concat(header, "#define pgy_option_unwrap(o) ((o).value)\n\n");
+        header = Concat(header, OptionResultRuntimeCOptionScalarBlock());
     }
     if uses_io || uses_fhandle {
         // Mirror the runtime path-policy default: absolute paths are denied

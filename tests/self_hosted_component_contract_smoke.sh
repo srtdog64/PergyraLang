@@ -1541,8 +1541,18 @@ require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pg
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeOptionPayloadKindForType"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeOptionEnvKindForPayloadKind"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeOptionValueTypeForPayloadKind"
+require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCResultIntBlock"
+require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCOptionScalarBlock"
+require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" 'import "../../compiler/abi_layout_row_owner.pgy";'
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCResultOkFn"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCResultUnwrapFn"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "OptionResultRuntimeCResultIntBlock()"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "OptionResultRuntimeCOptionScalarBlock()"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "typedef struct { bool is_ok"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "typedef struct { bool is_some"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" '"pgy_result_ok'
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" '"pgy_option_some'
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" '"pgy_option_none'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCParamType"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCReturnType"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCFieldType"

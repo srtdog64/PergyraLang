@@ -2,6 +2,7 @@
 //
 // Self-host C Option/Result runtime symbol facts for the supported codegen subset.
 
+import "../../compiler/abi_layout_row_owner.pgy";
 import "../type_facts/type_env.pgy";
 
 struct OptionStructRuntimeFact {
@@ -173,6 +174,44 @@ func OptionResultRuntimeCStructOptionDefinitionBlock(env: String) -> OptionStruc
         scan = mark + StringLength(marker);
     }
     return OptionStructDefinitionBlockFact(out);
+}
+
+func OptionResultRuntimeCResultIntBlock() -> String {
+    let result_type: String = CompilerAbiLayoutResultIntCValueType();
+    let int_type: String = CompilerAbiLayoutIntCValueType();
+    let string_type: String = CompilerAbiLayoutStringCValueType();
+    let block: String = "";
+    block = Concat(block, Concat("typedef struct { bool is_ok; ", Concat(int_type, Concat(" value; } ", Concat(result_type, ";\n")))));
+    block = Concat(block, Concat("static ", Concat(result_type, Concat(" ", Concat(OptionResultRuntimeCResultOkFn(), Concat("(", Concat(int_type, " v) { ")))))));
+    block = Concat(block, Concat(result_type, " r; r.is_ok = true; r.value = v; return r; }\n"));
+    block = Concat(block, Concat("static ", Concat(result_type, Concat(" ", Concat(OptionResultRuntimeCResultErrFn(), Concat("(", Concat(string_type, " msg) { (void)msg; ")))))));
+    block = Concat(block, Concat(result_type, " r; r.is_ok = false; r.value = 0; return r; }\n"));
+    block = Concat(block, Concat("static bool ", Concat(OptionResultRuntimeCResultIsOkFn(), Concat("(", Concat(result_type, " r) { return r.is_ok; }\n")))));
+    block = Concat(block, Concat("static bool ", Concat(OptionResultRuntimeCResultIsErrFn(), Concat("(", Concat(result_type, " r) { return !r.is_ok; }\n")))));
+    block = Concat(block, Concat("static ", Concat(int_type, Concat(" ", Concat(OptionResultRuntimeCResultUnwrapFn(), Concat("(", Concat(result_type, " r) { return r.value; }\n")))))));
+    block = Concat(block, Concat("static ", Concat(int_type, Concat(" ", Concat(OptionResultRuntimeCResultUnwrapOrFn(), Concat("(", Concat(result_type, Concat(" r, ", Concat(int_type, " fallback) { return r.is_ok ? r.value : fallback; }\n\n")))))))));
+    return block;
+}
+
+func OptionResultRuntimeCOptionScalarBlock() -> String {
+    let option_int_type: String = CompilerAbiLayoutOptionIntCValueType();
+    let option_string_type: String = CompilerAbiLayoutOptionStringCValueType();
+    let int_type: String = CompilerAbiLayoutIntCValueType();
+    let string_type: String = CompilerAbiLayoutStringCValueType();
+    let block: String = "";
+    block = Concat(block, Concat("typedef struct { bool is_some; ", Concat(int_type, Concat(" value; } ", Concat(option_int_type, ";\n")))));
+    block = Concat(block, Concat("typedef struct { bool is_some; ", Concat(string_type, Concat(" value; } ", Concat(option_string_type, ";\n")))));
+    block = Concat(block, Concat("static ", Concat(option_int_type, Concat(" ", Concat(OptionResultRuntimeCOptionSomeFn(), Concat("(", Concat(int_type, " v) { ")))))));
+    block = Concat(block, Concat(option_int_type, " o; o.is_some = true; o.value = v; return o; }\n"));
+    block = Concat(block, Concat("static ", Concat(option_string_type, Concat(" ", Concat(OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindString()), Concat("(", Concat(string_type, " v) { ")))))));
+    block = Concat(block, Concat(option_string_type, " o; o.is_some = true; o.value = v; return o; }\n"));
+    block = Concat(block, Concat("static ", Concat(option_int_type, Concat(" ", Concat(OptionResultRuntimeCOptionNoneFn(), "(void) { ")))));
+    block = Concat(block, Concat(option_int_type, " o; o.is_some = false; o.value = 0; return o; }\n"));
+    block = Concat(block, Concat("static ", Concat(option_string_type, Concat(" ", Concat(OptionResultRuntimeCOptionNoneFnForPayloadKind(OptionResultRuntimeOptionPayloadKindString()), "(void) { ")))));
+    block = Concat(block, Concat(option_string_type, " o; o.is_some = false; o.value = \"\"; return o; }\n"));
+    block = Concat(block, Concat("#define ", Concat(OptionResultRuntimeCOptionIsSomeFn(), "(o) ((o).is_some)\n")));
+    block = Concat(block, Concat("#define ", Concat(OptionResultRuntimeCOptionUnwrapFn(), "(o) ((o).value)\n\n")));
+    return block;
 }
 
 func OptionResultRuntimeCResultOkFn() -> String {
