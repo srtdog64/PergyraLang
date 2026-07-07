@@ -9,6 +9,7 @@
 #include "llvm_expr_assignment_projection.h"
 #include "llvm_expr_member_lvalue.h"
 #include "llvm_internal_api.h"
+#include "../compiler/mir_abi_layout.h"
 
 static LLVMValueRef
 llvm_assignment_error(LLVMGenCtx *ctx, ASTNode *node, const char *message)
@@ -242,33 +243,49 @@ llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
         const char *slot_inner = llvm_lookup_slot_inner(ctx, name);
         if (slot_inner != NULL) {
             bool is_secure = llvm_lookup_slot_is_secure(ctx, name);
+            const char *runtime_fn =
+                mir_abi_resource_runtime_fn_by_kind(
+                    is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
+                              : MIR_RESOURCE_ABI_SLOT,
+                    slot_inner, "Write");
+            LLVMFuncEntry *fn = runtime_fn != NULL
+                ? llvm_lookup_function(ctx, runtime_fn)
+                : NULL;
             LLVMValueRef val = llvm_emit_expression(value, ctx);
             if (val == NULL)
                 return llvm_assignment_error(ctx, node,
                     "LLVM slot assignment could not lower value expression");
-            char fn_name[64];
-            snprintf(fn_name, sizeof(fn_name),
-                is_secure ? "pgy_secure_write_%s" : "pgy_write_%s", slot_inner);
-            LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
             if (fn != NULL) {
                 if (is_secure) {
                     LLVMVarEntry token_var;
                     if (!llvm_require_secure_token_var(ctx, node, name,
                             "assignment", &token_var))
                         return NULL;
-                    LLVMValueRef args[] = { var.alloca, val, token_var.alloca };
+                    LLVMValueRef args[] = {
+                        llvm_slot_runtime_arg(ctx, &var),
+                        val,
+                        token_var.alloca
+                    };
                     LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
                 } else {
-                    LLVMValueRef args[] = { var.alloca, val };
+                    LLVMValueRef args[] = {
+                        llvm_slot_runtime_arg(ctx, &var),
+                        val
+                    };
                     LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
                 }
-            } else if (pgy_classify_type(slot_inner) != PGY_TK_UNKNOWN) {
+            } else if (llvm_slot_inner_has_external_runtime_helpers(slot_inner)) {
+                if (runtime_fn != NULL) {
+                    llvm_required_runtime_function(ctx, node,
+                        is_secure ? "secure slot" : "slot",
+                        "assignment", runtime_fn);
+                    return NULL;
+                }
                 llvm_set_error_at_with_hints(ctx, node,
                     PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                     PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                     PGY_FIX_INSPECT_MIR_INVENTORY,
-                    "LLVM slot assignment requires registered runtime function '%s'",
-                    fn_name);
+                    "LLVM slot assignment requires MIR ABI runtime function row");
                 return NULL;
             } else {
                 if (is_secure)

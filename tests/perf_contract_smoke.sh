@@ -894,7 +894,7 @@ if [[ "$llvm_registry_type_names" != "$llvm_registry_type_names_sorted" ]]; then
         <(printf '%s\n' "$llvm_registry_type_names") >&2 || true
     exit 1
 fi
-grep -Fq "slot_runtime_fn_spec_compare" "$ROOT_DIR/src/codegen/transpiler_mir_resource_name.c"
+grep -Fq "transpiler_mir_resource_op_spec_compare" "$ROOT_DIR/src/codegen/transpiler_mir_resource_name.c"
 grep -Fq "transpiler_mir_resource_op_lookup" "$ROOT_DIR/src/codegen/transpiler_mir_resource_name.c"
 grep -Fq "bsearch(op_name" "$ROOT_DIR/src/codegen/transpiler_mir_resource_name.c"
 if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*op_name[[:space:]]*,[[:space:]]*"(Claim|Read|Write|Release|Move)"' \
@@ -1473,7 +1473,7 @@ if [[ "$codegen_hashmap_key_names" != "$codegen_hashmap_key_names_sorted" ]]; th
     exit 1
 fi
 slot_runtime_fn_names="$(
-    sed -n '/SlotRuntimeFnSpec specs\[\]/,/^    };/p' \
+    sed -n '/TranspilerMIRResourceOpSpec specs\[\]/,/^    };/p' \
         "$ROOT_DIR/src/codegen/transpiler_mir_resource_name.c" \
         | grep -o '{ "[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
@@ -4772,7 +4772,7 @@ grep -Fq "llvm_required_runtime_function(ctx, node" "$ROOT_DIR/src/codegen/llvm_
 grep -Fq "\"rc\", callee_name, fn_name" "$ROOT_DIR/src/codegen/llvm_expr_rc_calls.c"
 grep -Fq "\"weak\", callee_name, fn_name" "$ROOT_DIR/src/codegen/llvm_expr_rc_calls.c"
 ! grep -Fq "LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name)" "$ROOT_DIR/src/codegen/llvm_expr_rc_calls.c"
-grep -Fq "\"device slot\", callee_name, fn_name" "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
+grep -Fq "\"device slot\", callee_name, runtime_fn" "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
 grep -Fq "llvm_slot_inner_has_external_runtime_helpers" "$ROOT_DIR/src/codegen/llvm_expr_slot_runtime_utils.c"
 ! grep -A12 -F "llvm_direct_slot_read(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_expr_slot_runtime_utils.c" | \
@@ -4849,7 +4849,9 @@ fi
 grep -Fq "requires at least %zu argument(s)" "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
 grep -Fq "*out = NULL;" "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
 grep -Fq "LLVM slot auto-read requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c"
-grep -Fq "LLVM slot assignment requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
+grep -Fq "LLVM slot assignment requires MIR ABI runtime function row" "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
+grep -Fq "mir_abi_resource_runtime_fn_by_kind(" "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
+! grep -Fq 'is_secure ? "pgy_secure_write_%s" : "pgy_write_%s"' "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
 grep -Fq "indexed array assignment" "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
 grep -Fq "LLVM indexed array assignment requires concrete Array<T> element metadata" "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
 grep -Fq "llvm_stmt_resolve_array_elem_type(ctx, array_node, NULL)" "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
@@ -5301,8 +5303,8 @@ grep -Fq "mir_block_has_pin_guard_amortization_region(block)" "$ROOT_DIR/src/cod
 grep -Fq "llvm_mir_emit_plain_pin_inline_enter" "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c"
 grep -Fq "llvm_mir_emit_plain_pin_inline_exit" "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c"
 grep -Fq "LLVM MIR pin cleanup requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c"
-grep -Fq "\"secure slot\", method_name, fn_name" "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
-grep -Fq "\"slot\", method_name, fn_name" "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
+grep -Fq "\"secure slot\", method_name, runtime_fn" "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
+grep -Fq "\"slot\", method_name, runtime_fn" "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
 ! grep -Fq "llvm_direct_secure_slot_write(ctx, slot_var, val)" "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
 ! grep -Fq "return llvm_direct_secure_slot_read(ctx, slot_var, inner)" "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
 ! grep -Fq "llvm_direct_secure_slot_release(ctx, slot_var)" "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"

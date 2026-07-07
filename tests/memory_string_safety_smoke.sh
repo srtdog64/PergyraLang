@@ -117,7 +117,7 @@ require_literal "src/semantic/type_system_slot.c" \
     "inner_len > ((size_t)-1) - prefix_len - 2"
 require_literal "src/compiler/path_utils.c" \
     "ext_len > ((size_t)-1) - base_len - 1"
-require_literal "src/codegen/transpiler_mir_resource_name.c" \
+require_literal "src/codegen/transpiler_mir_resource_op_core.c" \
     "return written >= 0 && (size_t)written < out_size"
 require_literal "src/codegen/llvm_expr_channel.c" \
     "llvm_channel_format_runtime_name"
@@ -148,9 +148,9 @@ require_literal "src/codegen/llvm_expr_array_calls.c" \
 require_literal "src/codegen/llvm_expr_array_calls.c" \
     "return written >= 0 && (size_t)written < out_size"
 require_literal "src/codegen/llvm_expr_call_methods_domain_slice.c" \
-    "llvm_domain_slot_format_runtime_name"
+    "mir_abi_resource_runtime_fn_by_kind"
 require_literal "src/codegen/llvm_expr_call_methods_domain_slice.c" \
-    "return written >= 0 && (size_t)written < out_size"
+    "MIR_RESOURCE_ABI_SECURE_SLOT"
 require_literal "src/codegen/transpiler_mir_pin_emit.c" \
     "transpiler_mir_slot_address_local"
 require_literal "src/codegen/transpiler_mir_pin_emit.c" \

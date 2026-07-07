@@ -210,6 +210,10 @@ grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
     "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
 grep -Fq "MIR_RESOURCE_ABI_SECURE_SLOT" \
     "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
+grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+    "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
+grep -Fq "MIR_RESOURCE_ABI_SECURE_SLOT" \
+    "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
 if grep -F 'is_secure ? "pgy_secure_read_%s" : "pgy_read_%s"' \
     "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c" >/dev/null; then
     echo "[backend-fail-closed] LLVM slot identifier auto-read must consume MIR ABI runtime rows" >&2
@@ -248,6 +252,11 @@ fi
 if grep -F '"pgy_release", inner' \
     "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c" >/dev/null; then
     echo "[backend-fail-closed] LLVM slot method Release must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'is_secure ? "pgy_secure_write_%s" : "pgy_write_%s"' \
+    "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM slot assignment must consume MIR ABI runtime rows" >&2
     exit 1
 fi
 if grep -F 'is_secure ? "pgy_secure_write" : "pgy_write"' \
