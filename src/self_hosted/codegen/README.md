@@ -229,15 +229,16 @@ helper symbol spelling for the supported `Option<Int>` / `Option<String>` /
 `program_emit.pgy` remains the generated helper definition host; expression and
 statement emitters must consume `option_result_runtime_owner.pgy` instead of
 locally spelling `pgy_option_*` / `pgy_result_*` helper names.
-`runtime_abi/string_runtime_owner.pgy` owns C string/text runtime helper symbol
-spelling for the supported builtin rewrite subset (`Concat`, string length/
-search/trim/replace/case/join/subspan helpers, `ToString`, `ToInt`, `Print`,
-and string `Log`). `program_emit.pgy` remains the generated helper definition
-host; expression and statement emitters must consume `string_runtime_owner.pgy`
-instead of locally spelling those `pgy_*` helper names.
+`runtime_abi/string_runtime_owner.pgy` owns C string/text runtime helper and
+target-library symbol spelling for the supported builtin rewrite subset
+(`Concat`, string length/search/trim/replace/case/join/subspan helpers, string
+comparison, `ToString`, `ToInt`, `Print`, and string `Log`). `program_emit.pgy`
+remains the generated helper definition host; expression and statement emitters
+must consume `string_runtime_owner.pgy` instead of locally spelling those
+`pgy_*` or target-library helper names.
 Expression/statement emitters should not locally spell `pgy_*` runtime helper
-names or supported target-library call names. `sqrt`, `pow`, `floor`, `ceil`,
-`atof`, and `exit` are owner facts consumed by emission participants.
+names or supported target-library call names. `strcmp`, `sqrt`, `pow`, `floor`,
+`ceil`, `atof`, and `exit` are owner facts consumed by emission participants.
 
 Parity gate: `tests/self_hosted/parity/codegen_parity.sh` builds `main.pgy`
 through the requested backend set, builds the self-host parser as the AST text

@@ -75,9 +75,9 @@ participant, not a zone.
   `pgy_result_*` names.
 - `StringRuntimeOwner` owns self-host C string/text runtime helper and
   conversion target-library symbol spelling for the supported builtin rewrite
-  subset, including `ToFloat(String)`. The helper definitions stay in
-  `program_emit`; expression and statement emitters consume this owner instead
-  of locally spelling those `pgy_*` or target-library names.
+  subset, including string comparison and `ToFloat(String)`. The helper
+  definitions stay in `program_emit`; expression and statement emitters consume
+  this owner instead of locally spelling those `pgy_*` or target-library names.
 - `ProgramEmitter` is the emission participant that drives writes into
   `EmissionZone`; it is not a zone.
 

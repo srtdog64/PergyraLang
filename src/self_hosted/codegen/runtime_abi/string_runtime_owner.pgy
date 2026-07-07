@@ -20,6 +20,10 @@ func StringRuntimeCFormattedPrintFn() -> String {
     return "printf";
 }
 
+func StringRuntimeCStringCompareFn() -> String {
+    return "strcmp";
+}
+
 func StringRuntimeCIntLineFormat() -> String {
     return "%lld\\n";
 }

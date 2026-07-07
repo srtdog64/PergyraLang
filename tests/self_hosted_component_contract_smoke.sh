@@ -1737,6 +1737,7 @@ require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "fun
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCLogFn"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCToFloatFn"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCFormattedPrintFn"
+require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCStringCompareFn"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCIntLineFormat"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCFloatLineFormat"
 require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" "func StringRuntimeCLogBlock"
@@ -1812,6 +1813,8 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "StringRuntimeCLog
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "StringRuntimeCFormattedPrintFn"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "StringRuntimeCIntLineFormat"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "StringRuntimeCFloatLineFormat"
+require_text "src/self_hosted/codegen/text/expr_scan.pgy" 'import "../runtime_abi/string_runtime_owner.pgy";'
+require_text "src/self_hosted/codegen/text/expr_scan.pgy" "StringRuntimeCStringCompareFn()"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "MathRuntimeCAbsFn"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "MathRuntimeCSqrtFn"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "MathRuntimeCPowFn"
@@ -1888,6 +1891,7 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"pgy_as_pop"'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" '"pgy_concat"'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" '"pgy_concat("'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" '"pgy_strlen("'
+reject_text "src/self_hosted/codegen/text/expr_scan.pgy" '"strcmp("'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" '"pgy_strcontains("'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" '"pgy_strindexof("'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" '"pgy_split("'
