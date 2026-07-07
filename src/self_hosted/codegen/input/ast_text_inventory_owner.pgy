@@ -319,17 +319,3 @@ func CodegenAstTextNodeInventory(tree_text: String, inout nodes: Array<CodegenAs
         pos = nl + 1;
     }
 }
-
-func CodegenAstTextExpectNode(nodes: Array<CodegenAstTextNode>, count: Int, inout cur: Array<Int>, expected: String) -> Void {
-    if cur[0] >= count {
-        Die(Concat("expected `", Concat(expected, "` but reached end of AST")));
-    }
-    let expected_kind: Int = CodegenAstTextKindOf(expected);
-    if expected_kind == 1 {
-        Die(Concat("unsupported expected AST marker: ", expected));
-    }
-    if nodes[cur[0]].kind != expected_kind {
-        Die(Concat("expected `", Concat(expected, Concat("` but got: ", CodegenAstTextProvenance(nodes[cur[0]])))));
-    }
-    ArraySet(cur, 0, cur[0] + 1);
-}

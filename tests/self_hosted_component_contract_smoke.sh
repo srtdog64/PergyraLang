@@ -1007,9 +1007,9 @@ require_text "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" "fu
 require_text "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" "func CodegenAstArenaEnumVariantNameAt"
 require_text "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" "ExprSequenceItemCount"
 require_text "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" "ExprSequenceItemAt"
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextExpectNode"
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let expected_kind: Int = CodegenAstTextKindOf(expected)"
-require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "nodes[cur[0]].kind != expected_kind"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextExpectNode"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let expected_kind: Int = CodegenAstTextKindOf(expected)"
+reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "nodes[cur[0]].kind != expected_kind"
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" 'nodes[0].text != "Program:"'
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "nodes[cur[0]].text != expected"
 require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "func TypedAstArenaPayloadContractReady"
