@@ -94,8 +94,46 @@ grep -Fq "C backend generic ability binding registry exceeded MAX_GENERIC_BINDIN
     "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_emit.c"
 grep -Fq "C backend ability vtable specialization registry exceeded MAX_ABILITY_VTABLE_SPECIALIZATIONS" \
     "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_emit.c"
-grep -Fq "C backend collection specialization name is too long" \
-    "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_collection_support.c"
+grep -Fq "generated specialization name is too long while lowering %s" \
+    "$ROOT_DIR/src/codegen/transpiler_specialization_registry.c"
+grep -Fq "PGY_LIST_DEFINE(%s, %s)" \
+    "$ROOT_DIR/src/codegen/transpiler_specialization_registry.c"
+grep -Fq "PGY_QUEUE_DEFINE(%s, %s)" \
+    "$ROOT_DIR/src/codegen/transpiler_specialization_registry.c"
+grep -Fq "PGY_HASHMAP_DEFINE(%s, %s)" \
+    "$ROOT_DIR/src/codegen/transpiler_specialization_registry.c"
+grep -Fq "PGY_SET_DEFINE(%s, %s)" \
+    "$ROOT_DIR/src/codegen/transpiler_specialization_registry.c"
+if grep -F "PGY_LIST_DEFINE(%s, %s)" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_collection_support.c" \
+        >/dev/null; then
+    echo "[backend-fail-closed] List runtime rows must be emitted by transpiler_specialization_registry" >&2
+    exit 1
+fi
+if grep -F "PGY_QUEUE_DEFINE(%s, %s)" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_collection_support.c" \
+        >/dev/null; then
+    echo "[backend-fail-closed] Queue runtime rows must be emitted by transpiler_specialization_registry" >&2
+    exit 1
+fi
+if grep -F "PGY_HASHMAP_DEFINE(%s, %s)" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_collection_support.c" \
+        >/dev/null; then
+    echo "[backend-fail-closed] HashMap runtime rows must be emitted by transpiler_specialization_registry" >&2
+    exit 1
+fi
+if grep -F "PGY_SET_DEFINE(%s, %s)" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_collection_support.c" \
+        >/dev/null; then
+    echo "[backend-fail-closed] Set runtime rows must be emitted by transpiler_specialization_registry" >&2
+    exit 1
+fi
+if grep -F "PGY_SET_VALUES_DEFINE(%s, %s, %s)" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_collection_support.c" \
+        >/dev/null; then
+    echo "[backend-fail-closed] Set values runtime rows must be emitted by transpiler_specialization_registry" >&2
+    exit 1
+fi
 grep -Fq "C backend loop registry exceeded TRANSPILE_MAX_LOOP_DEPTH" \
     "$ROOT_DIR/src/codegen/transpiler_control_flow_emit.c"
 grep -Fq "C backend defer registry exceeded TRANSPILE_MAX_DEFER_PER_SCOPE" \
