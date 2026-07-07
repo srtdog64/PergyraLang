@@ -207,7 +207,13 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
                         NULL,
                         node))
                 return false;
-            return rir_walk_node(scope, ast_with_body(node));
+            if (!rir_walk_node(scope, ast_with_body(node)))
+                return false;
+            return add_op(scope, RIR_OP_RELEASE,
+                          ast_with_alias(node),
+                          NULL,
+                          NULL,
+                          node);
 
         case AST_ASSIGNMENT:
             if (!rir_walk_node(scope, ast_assignment_target(node)))

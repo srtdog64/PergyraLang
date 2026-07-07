@@ -303,6 +303,7 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
                 transpiler_mir_resource_has_mirroring_stmt_in_block(
                     owning_block, inst);
             if (is_claim_op
+                || mir_instruction_source_is_with_slot_release(emit_inst)
                 || (has_local_mirror_stmt
                     && (redirected_view_resource
                         || ((op == TRANS_MIR_RESOURCE_OP_WRITE

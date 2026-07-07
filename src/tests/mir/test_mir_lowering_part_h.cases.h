@@ -220,6 +220,71 @@ test_mir_lowering_part_h(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR records with-slot scope-exit Release fact");
+    {
+        const char *src =
+            "func WithReleaseFact() -> Void {\n"
+            "    with slot<Int> as s {\n"
+            "        Write(s, 1);\n"
+            "        Log(Read(s));\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *routine = NULL;
+        const MIRBasicBlock *block = NULL;
+        size_t claim_i = (size_t)-1;
+        size_t write_i = (size_t)-1;
+        size_t read_i = (size_t)-1;
+        size_t release_i = (size_t)-1;
+        bool release_has_layout = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine(mir, "WithReleaseFact",
+                                       MIR_SCOPE_FUNCTION);
+        if (routine != NULL && routine->block_count > routine->entry_block) {
+            block = &routine->blocks[routine->entry_block];
+            for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                const MIRInstruction *inst = &block->instructions[ii];
+                if (inst->kind != MIR_INST_RESOURCE_OP
+                    || inst->name == NULL
+                    || inst->slot_anchor == NULL
+                    || strcmp(inst->slot_anchor, "s") != 0) {
+                    continue;
+                }
+                if (strcmp(inst->name, "Claim") == 0) {
+                    claim_i = ii;
+                } else if (strcmp(inst->name, "Write") == 0) {
+                    write_i = ii;
+                } else if (strcmp(inst->name, "Read") == 0) {
+                    read_i = ii;
+                } else if (strcmp(inst->name, "Release") == 0) {
+                    release_i = ii;
+                    release_has_layout =
+                        inst->type_layout != NULL
+                        && inst->abi_type_name != NULL
+                        && strcmp(inst->abi_type_name, "Slot<Int>") == 0;
+                }
+            }
+        }
+        EXPECT(ok
+               && routine != NULL
+               && block != NULL
+               && claim_i != (size_t)-1
+               && write_i != (size_t)-1
+               && read_i != (size_t)-1
+               && release_i != (size_t)-1
+               && claim_i < write_i
+               && write_i < release_i
+               && read_i < release_i
+               && release_has_layout
+               && mir_validate(mir, NULL));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR validator rejects invalid source-local-decl emit fact");
     {
         const char *src =

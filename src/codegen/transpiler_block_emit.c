@@ -169,6 +169,7 @@ emit_block(ASTNode *node, TranspilerCtx *ctx)
         int saved_slot_count = ctx->slot_var_count;
         int saved_typed_count = ctx->typed_var_count;
         int saved_alias_count = ctx->alias_var_count;
+        bool auto_release_failed = false;
         transpiler_defer_scope_push(ctx);
         for (size_t i = 0; i < ast_block_statement_count(node); i++)
             emit_statement(ast_block_statement(node, i), ctx);
@@ -179,15 +180,40 @@ emit_block(ASTNode *node, TranspilerCtx *ctx)
             SlotVarEntry *e = &ctx->slot_vars[i];
             if (e->released)
                 continue;
+            const char *release_fn = mir_abi_resource_runtime_fn_by_kind(
+                e->is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
+                             : MIR_RESOURCE_ABI_SLOT,
+                e->inner_type, "Release");
+            if (release_fn == NULL) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "C source slot auto-release requires MIR ABI runtime function row");
+                auto_release_failed = true;
+                break;
+            }
             write_indent(ctx);
             if (e->is_secure) {
+                const char *token_name = e->token_name[0] != '\0'
+                    ? e->token_name
+                    : NULL;
+                if (token_name == NULL) {
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_INSPECT_MIR_INVENTORY,
+                        "C secure slot auto-release requires paired token binding");
+                    auto_release_failed = true;
+                    break;
+                }
                 codebuf_write(ctx->out,
-                    "pgy_secure_release_%s(&%s, &%s_token);\n",
-                    e->inner_type, e->name, e->name);
+                    "%s(&%s, &%s);\n",
+                    release_fn, e->name, token_name);
             } else {
                 codebuf_write(ctx->out,
-                    "pgy_release_%s(&%s);\n",
-                    e->inner_type, e->name);
+                    "%s(&%s);\n",
+                    release_fn, e->name);
             }
         }
 
@@ -200,6 +226,8 @@ emit_block(ASTNode *node, TranspilerCtx *ctx)
             write_indent(ctx);
             codebuf_write(ctx->out, "}\n");
         }
+        if (auto_release_failed)
+            return;
     } else {
         emit_statement(node, ctx);
     }

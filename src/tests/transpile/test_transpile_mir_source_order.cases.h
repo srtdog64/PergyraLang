@@ -71,6 +71,7 @@ test_source_order_mir_emit(void)
         const char *claim_pos = NULL;
         const char *write_pos = NULL;
         const char *read_pos = NULL;
+        const char *release_pos = NULL;
         bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
 
         if (ok) {
@@ -84,16 +85,20 @@ test_source_order_mir_emit(void)
                 "PgySlot_Int s = pgy_claim_Int();");
             write_pos = strstr(ctx->out->data, "pgy_write_Int(&s, Cost())");
             read_pos = strstr(ctx->out->data, "pgy_read_Int(&s)");
+            release_pos = strstr(ctx->out->data, "pgy_release_Int(&s)");
         }
 
         EXPECT(ok && ctx != NULL && ctx->out != NULL && ctx->out->data != NULL);
         EXPECT(claim_pos != NULL);
         EXPECT(write_pos != NULL);
         EXPECT(read_pos != NULL);
+        EXPECT(release_pos != NULL);
         if (claim_pos != NULL && write_pos != NULL)
             EXPECT(claim_pos < write_pos);
         if (claim_pos != NULL && read_pos != NULL)
             EXPECT(claim_pos < read_pos);
+        if (read_pos != NULL && release_pos != NULL)
+            EXPECT(read_pos < release_pos);
         if (claim_pos != NULL)
             EXPECT(strstr(claim_pos + 1, "PgySlot_Int s = pgy_claim_Int();")
                    == NULL);

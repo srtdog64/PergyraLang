@@ -364,6 +364,10 @@ require_literal "src/codegen/transpiler_block_emit.c" \
 require_literal "src/codegen/transpiler_block_emit.c" \
     "\"UnpinCleanup\""
 require_literal "src/codegen/transpiler_block_emit.c" \
+    "\"Release\""
+require_literal "src/codegen/transpiler_block_emit.c" \
+    "C secure slot auto-release requires paired token binding"
+require_literal "src/codegen/transpiler_block_emit.c" \
     "written >= 0 && (size_t)written < buf_size"
 require_literal "src/codegen/transpiler_decl_lookup.c" \
     "transpiler_decl_lookup_cache_store"

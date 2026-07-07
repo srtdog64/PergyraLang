@@ -10,6 +10,13 @@ mir_resource_op_matches_source_stmt(const MIRInstruction *inst,
 
     if (inst == NULL || stmt == NULL || inst->kind != MIR_INST_RESOURCE_OP)
         return false;
+    if (stmt->type == AST_WITH_STMT) {
+        anchor = inst->slot_anchor != NULL ? inst->slot_anchor : inst->arg0;
+        return mir_instruction_resource_op_is_claim(inst)
+            && anchor != NULL
+            && ast_with_alias(stmt) != NULL
+            && strcmp(anchor, ast_with_alias(stmt)) == 0;
+    }
     if (mir_instruction_source_location_matches_node(inst, stmt))
         return true;
     if (stmt->type == AST_CALL
@@ -17,14 +24,7 @@ mir_resource_op_matches_source_stmt(const MIRInstruction *inst,
         && mir_instruction_source_line_matches_node(inst, stmt)) {
         return true;
     }
-    if (stmt->type != AST_WITH_STMT
-        || !mir_instruction_resource_op_is_claim(inst)) {
-        return false;
-    }
-    anchor = inst->slot_anchor != NULL ? inst->slot_anchor : inst->arg0;
-    return anchor != NULL
-        && ast_with_alias(stmt) != NULL
-        && strcmp(anchor, ast_with_alias(stmt)) == 0;
+    return false;
 }
 
 bool

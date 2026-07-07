@@ -403,6 +403,10 @@ grep -Fq '"PinWrite"' \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 grep -Fq '"UnpinCleanup"' \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
+grep -Fq '"Release"' \
+    "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
+grep -Fq "C source slot auto-release requires MIR ABI runtime function row" \
+    "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 if grep -F 'pgy_pin_%s_%s' \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c" >/dev/null; then
     echo "[backend-fail-closed] C source pin enter must consume MIR ABI runtime rows" >&2
@@ -421,6 +425,16 @@ fi
 if grep -F 'cleanup(pgy_secure_unpin_cleanup_%s)' \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c" >/dev/null; then
     echo "[backend-fail-closed] C source secure pin cleanup attribute must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'pgy_release_%s(&%s);' \
+    "$ROOT_DIR/src/codegen/transpiler_block_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C source auto-release must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'pgy_secure_release_%s(&%s, &%s_token);' \
+    "$ROOT_DIR/src/codegen/transpiler_block_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C source secure auto-release must consume MIR ABI runtime rows" >&2
     exit 1
 fi
 grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \

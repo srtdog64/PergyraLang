@@ -949,6 +949,10 @@ grep -Fq '"PinWrite"' \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 grep -Fq '"UnpinCleanup"' \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
+grep -Fq '"Release"' \
+    "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
+grep -Fq "C source slot auto-release requires MIR ABI runtime function row" \
+    "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 ! grep -Fq "pgy_pin_%s_%s" \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 ! grep -Fq "pgy_secure_pin_%s_%s" \
@@ -957,8 +961,16 @@ grep -Fq '"UnpinCleanup"' \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 ! grep -Fq "cleanup(pgy_secure_unpin_cleanup_%s)" \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
+! grep -Fq "pgy_release_%s(&%s);" \
+    "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
+! grep -Fq "pgy_secure_release_%s(&%s, &%s_token);" \
+    "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 grep -Fq "transpiler_mir_resource_op_lookup(inst->name)" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_hook_emit.c"
+grep -Fq "mir_instruction_source_is_with_slot_release(emit_inst)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_resource_hook_emit.c"
+grep -Fq "mir_instruction_source_is_with_slot_release" \
+    "$ROOT_DIR/src/compiler/mir_source_shape.c"
 if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*(inst|candidate|emit_inst)->name[[:space:]]*,[[:space:]]*"(Claim|Read|Write|Release|Move|BorrowRead|BorrowWrite)"' \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_hook_emit.c"; then
     echo "[perf-contract] C MIR resource hook reintroduced direct slot op branch" >&2

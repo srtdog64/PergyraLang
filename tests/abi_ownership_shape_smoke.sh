@@ -324,10 +324,14 @@ require_term "src/codegen/transpiler_block_emit.c" "mir_abi_resource_runtime_fn_
 require_term "src/codegen/transpiler_block_emit.c" '"PinRead"'
 require_term "src/codegen/transpiler_block_emit.c" '"PinWrite"'
 require_term "src/codegen/transpiler_block_emit.c" '"UnpinCleanup"'
+require_term "src/codegen/transpiler_block_emit.c" '"Release"'
+require_term "src/codegen/transpiler_block_emit.c" "C source slot auto-release requires MIR ABI runtime function row"
 reject_term "src/codegen/transpiler_block_emit.c" "pgy_pin_%s_%s"
 reject_term "src/codegen/transpiler_block_emit.c" "pgy_secure_pin_%s_%s"
 reject_term "src/codegen/transpiler_block_emit.c" "cleanup(pgy_unpin_cleanup_%s)"
 reject_term "src/codegen/transpiler_block_emit.c" "cleanup(pgy_secure_unpin_cleanup_%s)"
+reject_term "src/codegen/transpiler_block_emit.c" "pgy_release_%s(&%s);"
+reject_term "src/codegen/transpiler_block_emit.c" "pgy_secure_release_%s(&%s, &%s_token);"
 require_term "src/codegen/llvm_runtime.c" '"PinReadInit"'
 require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"PinReadInit"'
 require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"PinWriteInit"'

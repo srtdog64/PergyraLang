@@ -70,6 +70,16 @@ mir_instruction_source_is_with_slot_claim(const MIRInstruction *inst)
 }
 
 bool
+mir_instruction_source_is_with_slot_release(const MIRInstruction *inst)
+{
+    return inst != NULL
+        && inst->kind == MIR_INST_RESOURCE_OP
+        && inst->name != NULL
+        && strcmp(inst->name, "Release") == 0
+        && mir_instruction_source_matches_ast_type(inst, AST_WITH_STMT);
+}
+
+bool
 mir_instruction_has_source_payload(const MIRInstruction *inst)
 {
     return inst != NULL

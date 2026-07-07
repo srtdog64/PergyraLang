@@ -420,9 +420,14 @@ Current beta closure snapshot:
   with-slot cleanup releases, statement auto-release cleanup, slot identifier
   auto-read, C MIR pin enter/exit cleanup, and secure LLVM MIR pin enter/exit
   cleanup consume them through `mir_abi_resource_runtime_fn_by_kind(...)`. C
-  source-level pin block emitters also consume row-backed PinRead/PinWrite and
-  UnpinCleanup names; cleanup attributes are not allowed to synthesize
-  `pgy_unpin_cleanup_*` suffixes locally.
+  source-level block auto-release cleanup also consumes row-backed Release
+  names. C source-level pin block emitters consume row-backed PinRead/PinWrite
+  and UnpinCleanup names; cleanup attributes are not allowed to synthesize
+  `pgy_release_*` or `pgy_unpin_cleanup_*` suffixes locally.
+- `with slot` scope exit is a resource fact, not a backend fallback. RIR emits
+  the scope-exit Release after the with-body resource ops; MIR preserves it as
+  an `AST_WITH_STMT`-sourced Release, and C MIR emission materializes that fact
+  through the same ABI row-backed Release path.
   Debug/release is a build policy, not a second ABI type-name dimension:
   canonical runtime ABI names must not grow `_dbg` or `_rel` typedef aliases.
   Checked/raw mode differences are represented by policy macros and MIR ABI

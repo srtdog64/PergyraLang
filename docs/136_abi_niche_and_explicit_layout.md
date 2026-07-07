@@ -62,9 +62,9 @@ runtime ABI into `MIRTypeLayout` facts. This means:
   calls, method calls, assignment writes, initializer writes, with-slot cleanup
   releases, statement auto-release cleanup, identifier read emission, C MIR pin
   enter/exit cleanup, secure LLVM MIR pin enter/exit cleanup, and C
-  source-level pin block cleanup attributes must not synthesize `pgy_read_*`,
-  `pgy_write_*`, `pgy_release_*`, `pgy_pin_*`, `pgy_unpin_*`, or
-  `pgy_unpin_cleanup_*` names from a type suffix.
+  source-level block auto-release cleanup and pin block cleanup attributes must
+  not synthesize `pgy_read_*`, `pgy_write_*`, `pgy_release_*`, `pgy_pin_*`,
+  `pgy_unpin_*`, or `pgy_unpin_cleanup_*` names from a type suffix.
 
 Rust-style niche encoding such as `Option<NonZeroU32>` fitting in 32 bits is
 not implemented.

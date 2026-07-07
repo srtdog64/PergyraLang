@@ -406,6 +406,8 @@ bool        mir_instruction_is_intent_stmt(const MIRInstruction *inst,
 bool        mir_instruction_is_with_slot_claim(const MIRInstruction *inst);
 bool        mir_instruction_source_is_with_slot_claim(
                 const MIRInstruction *inst);
+bool        mir_instruction_source_is_with_slot_release(
+                const MIRInstruction *inst);
 bool        mir_instruction_resource_op_is_claim(const MIRInstruction *inst);
 bool        mir_instruction_resource_op_is_read(const MIRInstruction *inst);
 bool        mir_instruction_resource_op_is_write(const MIRInstruction *inst);
