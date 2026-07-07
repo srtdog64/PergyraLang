@@ -4127,7 +4127,7 @@ grep -Fq "llvm_domain_slice_error" "$ROOT_DIR/src/codegen/llvm_expr_call_methods
 grep -Fq "LLVM slot Write() could not lower value expression" "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
 grep -Fq "LLVM Slice() receiver did not expose array data storage" "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
 ! grep -Fq "LLVMStructTypeInContext(ctx->context," "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
-grep -Fq '"pgy_channel_init_",' "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+grep -Fq "pgy_channel_runtime_name(init_fn_name, sizeof(init_fn_name)," "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
 grep -Fq '"pgy_array_new_",' "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
 grep -Fq "array literal expression" "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
 grep -Fq "channel send expression" "$ROOT_DIR/src/codegen/llvm_expr_channel.c"

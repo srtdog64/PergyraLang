@@ -1,4 +1,5 @@
 #ifdef PGY_LLVM_ENABLED
+#include "codegen_channel_runtime_abi.h"
 #include "llvm_internal.h"
 #include "llvm_stmt_let_collection_policy.h"
 #include "parser/ast_api.h"
@@ -314,10 +315,17 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
                 LLVM_STMT_COLLECTION_DIAG_TYPE_ARG, name, "Channel", 0, NULL);
         }
 
-        if (!llvm_stmt_collection_runtime_name(ctx, node, init_fn_name,
-                sizeof(init_fn_name), "pgy_channel_init_", channel_inner)) {
+        if (!pgy_channel_runtime_name(init_fn_name, sizeof(init_fn_name),
+                "init", channel_inner)) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_SPEC_LIMIT,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+                "LLVM Channel binding '%s' runtime symbol is too long for type '%s'",
+                name != NULL ? name : "<binding>",
+                channel_inner);
             free(channel_inner);
-            return true;
+            return false;
         }
         LLVMFuncEntry *init_fn = llvm_lookup_function(ctx, init_fn_name);
         if (init_fn == NULL) {
