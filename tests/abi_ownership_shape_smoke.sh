@@ -108,6 +108,11 @@ require_term "src/compiler/mir_abi_layout.c" "Runtime function spelling is paylo
 require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_fn"
 require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_fn_by_type_name"
 require_term "src/compiler/mir_abi_layout.c" "MIRResourceRuntimeFnRow"
+require_term "src/runtime/pgy_abi_spec.h" "allocator provenance as a fourth field"
+require_term "src/compiler/mir_abi_layout.c" 'ABI_TYPE("Array<Long>"'
+require_term "src/compiler/mir_abi_layout.c" 'ABI_FIELD_STRUCT("allocator", pgy_abi_array_int, allocator)'
+reject_term "src/compiler/mir_abi_layout.c" 'ABI_FIELD_STRUCT("len", pgy_abi_array_int, len)'
+reject_term "src/compiler/mir_abi_layout.c" 'ABI_FIELD_STRUCT("cap", pgy_abi_array_int, cap)'
 require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("Slot<Int>"'
 require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("SecureSlot<Int>"'
 require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("SecureSlot<Long>"'
@@ -278,6 +283,9 @@ require_term "src/test_abi_spec.c" "sizeof(PgyPinnedSlotView_Int) == sizeof(pgy_
 require_term "src/test_abi_spec.c" "offsetof(PgyPinnedSecureSlotView_Int, token) == offsetof(pgy_abi_pinned_secure_slot_view_int, token)"
 require_term "src/test_abi_spec.c" "Option<Long>: explicit tag layout is 16 bytes"
 require_term "src/test_abi_spec.c" "Option<String>: explicit tag layout is two words"
+require_term "src/test_abi_spec.c" "Array<Int>: runtime allocator offset matches"
+require_term "src/test_abi_spec.c" "Array<String>: runtime size matches ABI spec"
+require_term "src/test_abi_spec.c" "Slice<String>: runtime size matches ABI spec"
 require_term "src/test_abi_spec.c" "Option<Float>: runtime size matches ABI spec"
 require_term "src/test_abi_spec.c" "Option<Double>: runtime size matches ABI spec"
 

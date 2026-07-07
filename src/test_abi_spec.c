@@ -329,11 +329,41 @@ int main(void) {
     printf("\n[Array<T>]\n");
 
     PRINT_LAYOUT(pgy_abi_array_int);
+    PRINT_LAYOUT(pgy_abi_array_long);
+    PRINT_LAYOUT(pgy_abi_array_float);
+    PRINT_LAYOUT(pgy_abi_array_double);
+    PRINT_LAYOUT(pgy_abi_array_bool);
+    PRINT_LAYOUT(pgy_abi_array_string);
     printf("\n");
 
-    ABI_TEST("Array<Int>: data at 0, size >= 24",
+    ABI_TEST("Array<Int>: data at 0, allocator after capacity",
              offsetof(pgy_abi_array_int, data) == 0 &&
-             sizeof(pgy_abi_array_int) >= 24);
+             offsetof(pgy_abi_array_int, allocator)
+                 > offsetof(pgy_abi_array_int, capacity));
+    ABI_TEST("Array<Int>: runtime size matches ABI spec",
+             sizeof(PgyArray_Int) == sizeof(pgy_abi_array_int));
+    ABI_TEST("Array<Int>: runtime length offset matches",
+             offsetof(PgyArray_Int, length) == offsetof(pgy_abi_array_int, length));
+    ABI_TEST("Array<Int>: runtime capacity offset matches",
+             offsetof(PgyArray_Int, capacity) == offsetof(pgy_abi_array_int, capacity));
+    ABI_TEST("Array<Int>: runtime allocator offset matches",
+             offsetof(PgyArray_Int, allocator) == offsetof(pgy_abi_array_int, allocator));
+    ABI_TEST("Array<Long>: runtime size matches ABI spec",
+             sizeof(PgyArray_Long) == sizeof(pgy_abi_array_long));
+    ABI_TEST("Array<Float>: runtime size matches ABI spec",
+             sizeof(PgyArray_Float) == sizeof(pgy_abi_array_float));
+    ABI_TEST("Array<Double>: runtime size matches ABI spec",
+             sizeof(PgyArray_Double) == sizeof(pgy_abi_array_double));
+    ABI_TEST("Array<Bool>: runtime size matches ABI spec",
+             sizeof(PgyArray_Bool) == sizeof(pgy_abi_array_bool));
+    ABI_TEST("Array<String>: runtime size matches ABI spec",
+             sizeof(PgyArray_String) == sizeof(pgy_abi_array_string));
+    ABI_TEST("Array<String>: runtime allocator offset matches",
+             offsetof(PgyArray_String, allocator) == offsetof(pgy_abi_array_string, allocator));
+    ABI_TEST("Slice<Int>: runtime size matches ABI spec",
+             sizeof(PgySlice_Int) == sizeof(pgy_abi_slice_int));
+    ABI_TEST("Slice<String>: runtime size matches ABI spec",
+             sizeof(PgySlice_String) == sizeof(pgy_abi_slice_string));
 
     /* ================================================================
      * 10. Auxiliary Types

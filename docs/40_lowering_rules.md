@@ -565,7 +565,7 @@ MIR가 사용하는 타입 이름 → pgy_abi_spec.h 매핑:
 | ZoneChannel\<Int> | pgy_abi_zone_channel_handle | 4 | 4 | pgy_zone_channel_create_Int |
 | WorldChannel\<Int> | pgy_abi_world_channel_handle | 4 | 4 | pgy_world_channel_create_Int |
 | Box\<Int> | pgy_abi_box_int | 8 | 8 | pgy_box_new_Int |
-| Array\<Int> | pgy_abi_array_int | 24 | 8 | pgy_array_new_Int |
+| Array\<Int> | pgy_abi_array_int | 32 | 8 | pgy_array_new_Int |
 | Future | pgy_abi_future | 8 | 4 | pgy_spawn |
 | Qubit | pgy_abi_qubit | 12 | 4 | ClaimQubit |
 

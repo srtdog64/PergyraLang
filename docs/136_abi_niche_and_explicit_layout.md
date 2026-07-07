@@ -55,6 +55,10 @@ runtime ABI into `MIRTypeLayout` facts. This means:
 - ABI lookup is exact-row only. Runtime function spelling is payload carried by
   a `MIRTypeLayout` row, not an alternate key that can reconstruct or select a
   layout.
+- `Array<T>` layout includes allocator provenance as a fourth field:
+  `{ data, length, capacity, allocator }`. The ABI owner models the real
+  `PgyArray_*` runtime shape; a backend-local 3-field `{ data, len, cap }`
+  reconstruction is wrong.
 - Slot-like MIR resource operations use `mir_abi_resource_runtime_fn(...)` over
   explicit ABI rows. The C MIR resource-op emitter and LLVM Slot/SecureSlot/
   DeviceSlot claim/read/write/release/submit-read declaration registries, LLVM
@@ -108,7 +112,9 @@ The current contract is executable:
 
 - `make test-abi` compiles `src/test_abi_spec.c` and checks the exact
   `Option<T>` tag/value offsets, tag values, and runtime shape for the active
-  runtime Option specializations.
+  runtime Option specializations. It also checks that `Array<T>` and
+  `Slice<T>` ABI facts match the concrete `PgyArray_*` / `PgySlice_*` runtime
+  shapes, including the `allocator` field on arrays.
 - `src/runtime/pgy_abi_spec_asserts.h` statically rejects an accidental
   shrink from the explicit tagged layout to a backend-local niche layout.
 - `make test-mir` checks that `mir_abi_lookup("Option<Int>")`,

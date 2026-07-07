@@ -1118,6 +1118,12 @@ the same slice fact owner, `llvm_mir_slice_fact_array_type_from_slice_type(...)`
 for the `Slice<T>` to `Array<T>` ABI map instead of repeating a local
 `ctx->slice_type_*` / `ctx->array_type_*` chain.
 
+`Array<T>` itself is a four-field runtime ABI owner:
+`{ data, length, capacity, allocator }`. The allocator pointer is not an
+implementation detail that a backend may omit while inventing a compact local
+layout. `pgy_abi_spec.h`, `mir_abi_layout.c`, and `test_abi_spec.c` must stay
+aligned with the concrete `PgyArray_*` runtime shape.
+
 LLVM backend constructed-type argument parsing has the same rule. A helper that
 returns a static scratch pointer is a parser convenience only; recursive type
 lowering must copy `List<T>`, `Queue<T>`, `HashMap<K,V>`, and `Option<T>`

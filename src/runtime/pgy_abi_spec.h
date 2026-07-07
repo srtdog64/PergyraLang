@@ -304,20 +304,86 @@ typedef struct {
 /* ================================================================
  * 9. Array<T> — Dynamic Array (Heap)
  *
- * Layout: { data: CType*, len: size_t, cap: size_t }
+ * Layout: { data: CType*, length: size_t, capacity: size_t,
+ *           allocator: void* }
+ *
+ * The allocator pointer is part of the stable runtime shape. Earlier ABI rows
+ * treated Array<T> as a 3-field carrier, but the real PgyArray_* runtime type
+ * owns allocator provenance as a fourth field. MIR must model that physical
+ * shape instead of letting C/LLVM rediscover it locally.
  * ================================================================ */
 
 typedef struct {
     int32_t *data;
-    size_t   len;
-    size_t   cap;
+    size_t   length;
+    size_t   capacity;
+    void    *allocator;
 } pgy_abi_array_int;
 
 typedef struct {
+    int64_t *data;
+    size_t   length;
+    size_t   capacity;
+    void    *allocator;
+} pgy_abi_array_long;
+
+typedef struct {
+    float   *data;
+    size_t   length;
+    size_t   capacity;
+    void    *allocator;
+} pgy_abi_array_float;
+
+typedef struct {
+    double  *data;
+    size_t   length;
+    size_t   capacity;
+    void    *allocator;
+} pgy_abi_array_double;
+
+typedef struct {
+    bool    *data;
+    size_t   length;
+    size_t   capacity;
+    void    *allocator;
+} pgy_abi_array_bool;
+
+typedef struct {
     char   **data;
-    size_t   len;
-    size_t   cap;
+    size_t   length;
+    size_t   capacity;
+    void    *allocator;
 } pgy_abi_array_string;
+
+typedef struct {
+    int32_t *data;
+    size_t   length;
+} pgy_abi_slice_int;
+
+typedef struct {
+    int64_t *data;
+    size_t   length;
+} pgy_abi_slice_long;
+
+typedef struct {
+    float   *data;
+    size_t   length;
+} pgy_abi_slice_float;
+
+typedef struct {
+    double  *data;
+    size_t   length;
+} pgy_abi_slice_double;
+
+typedef struct {
+    bool    *data;
+    size_t   length;
+} pgy_abi_slice_bool;
+
+typedef struct {
+    char   **data;
+    size_t   length;
+} pgy_abi_slice_string;
 
 /* ================================================================
  * 10. QubitSlot — Quantum Resource Simulation

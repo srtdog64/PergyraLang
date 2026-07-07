@@ -201,8 +201,27 @@ ABI_STATIC_ASSERT(sizeof(pgy_abi_weak_int) == sizeof(void*),
 
 ABI_STATIC_ASSERT(offsetof(pgy_abi_array_int, data) == 0,
                   array_int_data_at_0);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_array_int) >= 24,
-                  array_int_min_size_24);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_array_int, length) == sizeof(void *),
+                  array_int_length_after_data);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_array_int, allocator)
+                      > offsetof(pgy_abi_array_int, capacity),
+                  array_int_allocator_after_capacity);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_array_int) >= sizeof(void *) * 4,
+                  array_int_min_four_words);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_array_long) == sizeof(pgy_abi_array_int),
+                  array_long_shape_matches_int);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_array_float) == sizeof(pgy_abi_array_int),
+                  array_float_shape_matches_int);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_array_double) == sizeof(pgy_abi_array_int),
+                  array_double_shape_matches_int);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_array_bool) == sizeof(pgy_abi_array_int),
+                  array_bool_shape_matches_int);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_array_string) == sizeof(pgy_abi_array_int),
+                  array_string_shape_matches_int);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_slice_int) == sizeof(void *) + sizeof(size_t),
+                  slice_int_two_word_shape);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_slice_string) == sizeof(pgy_abi_slice_int),
+                  slice_string_shape_matches_int);
 
 /* =================================================================
  * STATIC ASSERTIONS — Miscellaneous
