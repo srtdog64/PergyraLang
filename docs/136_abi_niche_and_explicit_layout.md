@@ -56,9 +56,11 @@ runtime ABI into `MIRTypeLayout` facts. This means:
   a `MIRTypeLayout` row, not an alternate key that can reconstruct or select a
   layout.
 - Slot-like MIR resource operations use `mir_abi_resource_runtime_fn(...)` over
-  explicit ABI rows. The C MIR resource-op emitter and LLVM plain-Slot runtime
-  declaration registry must not synthesize `pgy_read_*`, `pgy_write_*`, or
-  `pgy_release_*` names from a type suffix.
+  explicit ABI rows. The C MIR resource-op emitter and LLVM Slot/SecureSlot/
+  DeviceSlot claim/read/write/release declaration registries must not
+  synthesize `pgy_read_*`, `pgy_write_*`, or `pgy_release_*` names from a type
+  suffix. Pin declarations and async device submit remain separate ABI
+  projections until their rows are cut over.
 
 Rust-style niche encoding such as `Option<NonZeroU32>` fitting in 32 bits is
 not implemented.

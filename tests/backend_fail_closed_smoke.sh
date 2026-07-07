@@ -146,6 +146,56 @@ if grep -F 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "release", suffix)'
     echo "[backend-fail-closed] LLVM slot release declaration must consume MIR ABI runtime function rows" >&2
     exit 1
 fi
+grep -Fq "mir_abi_resource_runtime_fn_by_type_name(device_abi_type_name," \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+if grep -F 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "claim_device", suffix)' \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM device slot claim declaration must consume MIR ABI runtime function rows" >&2
+    exit 1
+fi
+if grep -F 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "device_read", suffix)' \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM device slot read declaration must consume MIR ABI runtime function rows" >&2
+    exit 1
+fi
+if grep -F 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "device_write", suffix)' \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM device slot write declaration must consume MIR ABI runtime function rows" >&2
+    exit 1
+fi
+if grep -F 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "release_device", suffix)' \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM device slot release declaration must consume MIR ABI runtime function rows" >&2
+    exit 1
+fi
+grep -Fq "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")" \
+    "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
+grep -Fq "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Read\")" \
+    "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
+grep -Fq "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Write\")" \
+    "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
+grep -Fq "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Release\")" \
+    "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
+if grep -F 'llvm_runtime_secure_slot_name(fname, sizeof(fname), "claim_secure", suf)' \
+    "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM secure slot claim declaration must consume MIR ABI runtime function rows" >&2
+    exit 1
+fi
+if grep -F 'llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_read", suf)' \
+    "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM secure slot read declaration must consume MIR ABI runtime function rows" >&2
+    exit 1
+fi
+if grep -F 'llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_write", suf)' \
+    "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM secure slot write declaration must consume MIR ABI runtime function rows" >&2
+    exit 1
+fi
+if grep -F 'llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_release", suf)' \
+    "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM secure slot release declaration must consume MIR ABI runtime function rows" >&2
+    exit 1
+fi
 if grep -F 'transpiler_format_slot_runtime_fn(' \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c" >/dev/null; then
     echo "[backend-fail-closed] C MIR resource op must consume MIR ABI runtime function rows" >&2
