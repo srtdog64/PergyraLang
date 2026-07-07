@@ -56,6 +56,12 @@ func CompilerAbiLayoutRowsReady() -> Bool {
         CompilerAbiLayoutConcreteRowCount() == 10 &&
         CompilerAbiLayoutRowTypeNameAt(0) == CompilerAbiLayoutIntTypeName() &&
         CompilerAbiLayoutRowCValueTypeAt(0) == CompilerAbiLayoutIntCValueType() &&
+        CompilerAbiLayoutRowFieldOrderAt(4) == CompilerAbiLayoutFieldOrderArrayBuffer() &&
+        CompilerAbiLayoutRowTagKindAt(8) == CompilerAbiLayoutTagKindBoolPresence() &&
+        CompilerAbiLayoutRowNicheAt(8) == CompilerAbiLayoutNicheNone() &&
+        CompilerAbiLayoutRowOwnershipShapeAt(5) == CompilerAbiLayoutOwnershipSharedBufferValue() &&
+        CompilerAbiLayoutRowTargetAbiAt(0) == CompilerAbiLayoutSelfHostedCAbi() &&
+        CompilerAbiLayoutRowSizeAlignAt(0) == CompilerAbiLayoutTargetCDefaultSizeAlign() &&
         CompilerAbiLayoutRowMaterializationAt(0) == CompilerAbiLayoutFieldAllowedMaterialization() &&
         CompilerAbiLayoutRowTypeNameAt(9) == CompilerAbiLayoutOptionStringTypeName() &&
         CompilerAbiLayoutRowCValueTypeAt(9) == CompilerAbiLayoutOptionStringCValueType() &&
@@ -166,6 +172,92 @@ func CompilerAbiLayoutRowCValueTypeAt(index: Int) -> String {
     if index == 7 { return CompilerAbiLayoutResultIntCValueType(); }
     if index == 8 { return CompilerAbiLayoutOptionIntCValueType(); }
     if index == 9 { return CompilerAbiLayoutOptionStringCValueType(); }
+    return "";
+}
+
+func CompilerAbiLayoutFieldOrderScalarValue() -> String {
+    return "value";
+}
+func CompilerAbiLayoutFieldOrderArrayBuffer() -> String {
+    return "data,len,cap";
+}
+func CompilerAbiLayoutFieldOrderResultInt() -> String {
+    return "is_ok,value";
+}
+func CompilerAbiLayoutFieldOrderOptionValue() -> String {
+    return "is_some,value";
+}
+func CompilerAbiLayoutRowFieldOrderAt(index: Int) -> String {
+    if index >= 0 && index <= 3 { return CompilerAbiLayoutFieldOrderScalarValue(); }
+    if index >= 4 && index <= 6 { return CompilerAbiLayoutFieldOrderArrayBuffer(); }
+    if index == 7 { return CompilerAbiLayoutFieldOrderResultInt(); }
+    if index == 8 || index == 9 { return CompilerAbiLayoutFieldOrderOptionValue(); }
+    return "";
+}
+
+func CompilerAbiLayoutTagKindNone() -> String {
+    return "none";
+}
+func CompilerAbiLayoutTagKindBoolResult() -> String {
+    return "bool_result";
+}
+func CompilerAbiLayoutTagKindBoolPresence() -> String {
+    return "bool_presence";
+}
+func CompilerAbiLayoutRowTagKindAt(index: Int) -> String {
+    if index >= 0 && index <= 6 { return CompilerAbiLayoutTagKindNone(); }
+    if index == 7 { return CompilerAbiLayoutTagKindBoolResult(); }
+    if index == 8 || index == 9 { return CompilerAbiLayoutTagKindBoolPresence(); }
+    return "";
+}
+
+func CompilerAbiLayoutNicheNone() -> String {
+    return "none";
+}
+func CompilerAbiLayoutRowNicheAt(index: Int) -> String {
+    if index >= 0 && index < CompilerAbiLayoutConcreteRowCount() {
+        return CompilerAbiLayoutNicheNone();
+    }
+    return "";
+}
+
+func CompilerAbiLayoutOwnershipPlainValue() -> String {
+    return "plain_value";
+}
+func CompilerAbiLayoutOwnershipBorrowedStringView() -> String {
+    return "borrowed_string_view";
+}
+func CompilerAbiLayoutOwnershipSharedBufferValue() -> String {
+    return "shared_buffer_value";
+}
+func CompilerAbiLayoutOwnershipTaggedValue() -> String {
+    return "tagged_value";
+}
+func CompilerAbiLayoutRowOwnershipShapeAt(index: Int) -> String {
+    if index >= 0 && index <= 2 { return CompilerAbiLayoutOwnershipPlainValue(); }
+    if index == 3 { return CompilerAbiLayoutOwnershipBorrowedStringView(); }
+    if index >= 4 && index <= 6 { return CompilerAbiLayoutOwnershipSharedBufferValue(); }
+    if index >= 7 && index <= 9 { return CompilerAbiLayoutOwnershipTaggedValue(); }
+    return "";
+}
+
+func CompilerAbiLayoutSelfHostedCAbi() -> String {
+    return "selfhost-c";
+}
+func CompilerAbiLayoutRowTargetAbiAt(index: Int) -> String {
+    if index >= 0 && index < CompilerAbiLayoutConcreteRowCount() {
+        return CompilerAbiLayoutSelfHostedCAbi();
+    }
+    return "";
+}
+
+func CompilerAbiLayoutTargetCDefaultSizeAlign() -> String {
+    return "target-c-default";
+}
+func CompilerAbiLayoutRowSizeAlignAt(index: Int) -> String {
+    if index >= 0 && index < CompilerAbiLayoutConcreteRowCount() {
+        return CompilerAbiLayoutTargetCDefaultSizeAlign();
+    }
     return "";
 }
 
