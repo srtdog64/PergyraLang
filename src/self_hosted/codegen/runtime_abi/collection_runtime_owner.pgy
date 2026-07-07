@@ -142,6 +142,58 @@ func CollectionRuntimeCIntFilterFn() -> String {
     return "pgy_ai_filter";
 }
 
+func CollectionRuntimeCArrayBlock(uses_array_sort: Bool, uses_array_reverse: Bool,
+                                  uses_array_map: Bool, uses_array_filter: Bool) -> String {
+    let int_array_type: String = CompilerAbiLayoutArrayIntCValueType();
+    let string_array_type: String = CompilerAbiLayoutArrayStringCValueType();
+    let block: String = "";
+    block = Concat(block, Concat("typedef struct { long long *data; long long len; long long cap; } ", Concat(int_array_type, ";\n")));
+    block = Concat(block, Concat("typedef struct { const char **data; long long len; long long cap; } ", Concat(string_array_type, ";\n\n")));
+    block = Concat(block, Concat("static ", Concat(int_array_type, Concat(" ", Concat(CollectionRuntimeCNewFn(1), Concat("(void) { ", Concat(int_array_type, " a; a.data = NULL; a.len = 0; a.cap = 0; return a; }\n")))))));
+    block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCPushFn(1), Concat("(", Concat(int_array_type, " *a, long long v) {\n")))));
+    block = Concat(block, "    if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (long long *)realloc(a->data, (size_t)a->cap * sizeof(long long)); }\n");
+    block = Concat(block, "    a->data[a->len++] = v;\n}\n");
+    block = Concat(block, Concat("static long long ", Concat(CollectionRuntimeCGetFn(1), Concat("(", Concat(int_array_type, " a, long long i) { return a.data[i]; }\n")))));
+    block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCSetFn(1), Concat("(", Concat(int_array_type, " *a, long long i, long long v) { a->data[i] = v; }\n")))));
+    block = Concat(block, Concat("static long long ", Concat(CollectionRuntimeCLenFn(1), Concat("(", Concat(int_array_type, " a) { return a.len; }\n")))));
+    block = Concat(block, Concat("static long long ", Concat(CollectionRuntimeCPopFn(1), Concat("(", Concat(int_array_type, " *a) { return a->len > 0 ? a->data[--a->len] : 0; }\n\n")))));
+    if uses_array_sort {
+        block = Concat(block, "static int pgy_ai_cmp(const void *pa, const void *pb)\n{\n");
+        block = Concat(block, "    long long a = *(const long long *)pa;\n    long long b = *(const long long *)pb;\n");
+        block = Concat(block, "    return (a > b) - (a < b);\n}\n");
+        block = Concat(block, Concat("static ", Concat(int_array_type, Concat(" ", Concat(CollectionRuntimeCIntSortFn(), Concat("(", Concat(int_array_type, " a)\n{\n")))))));
+        block = Concat(block, "    if (a.len > 1) { qsort(a.data, (size_t)a.len, sizeof(long long), pgy_ai_cmp); }\n");
+        block = Concat(block, "    return a;\n}\n\n");
+    }
+    if uses_array_reverse {
+        block = Concat(block, Concat("static ", Concat(int_array_type, Concat(" ", Concat(CollectionRuntimeCIntReverseFn(), Concat("(", Concat(int_array_type, " a)\n{\n")))))));
+        block = Concat(block, Concat("    ", Concat(int_array_type, Concat(" out = ", Concat(CollectionRuntimeCNewFn(1), "();\n")))));
+        block = Concat(block, Concat("    for (long long i = a.len; i > 0; i--) { ", Concat(CollectionRuntimeCPushFn(1), "(&out, a.data[i - 1]); }\n")));
+        block = Concat(block, "    return out;\n}\n\n");
+    }
+    if uses_array_map {
+        block = Concat(block, Concat("static ", Concat(int_array_type, Concat(" ", Concat(CollectionRuntimeCIntMapFn(), Concat("(", Concat(int_array_type, " a, long long (*fn)(long long))\n{\n")))))));
+        block = Concat(block, Concat("    ", Concat(int_array_type, Concat(" out = ", Concat(CollectionRuntimeCNewFn(1), "();\n")))));
+        block = Concat(block, Concat("    for (long long i = 0; i < a.len; i++) { ", Concat(CollectionRuntimeCPushFn(1), "(&out, fn(a.data[i])); }\n")));
+        block = Concat(block, "    return out;\n}\n\n");
+    }
+    if uses_array_filter {
+        block = Concat(block, Concat("static ", Concat(int_array_type, Concat(" ", Concat(CollectionRuntimeCIntFilterFn(), Concat("(", Concat(int_array_type, " a, bool (*pred)(long long))\n{\n")))))));
+        block = Concat(block, Concat("    ", Concat(int_array_type, Concat(" out = ", Concat(CollectionRuntimeCNewFn(1), "();\n")))));
+        block = Concat(block, Concat("    for (long long i = 0; i < a.len; i++) { if (pred(a.data[i])) { ", Concat(CollectionRuntimeCPushFn(1), "(&out, a.data[i]); } }\n")));
+        block = Concat(block, "    return out;\n}\n\n");
+    }
+    block = Concat(block, Concat("static ", Concat(string_array_type, Concat(" ", Concat(CollectionRuntimeCNewFn(2), Concat("(void) { ", Concat(string_array_type, " a; a.data = NULL; a.len = 0; a.cap = 0; return a; }\n")))))));
+    block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCPushFn(2), Concat("(", Concat(string_array_type, " *a, const char *v) {\n")))));
+    block = Concat(block, "    if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (const char **)realloc(a->data, (size_t)a->cap * sizeof(const char *)); }\n");
+    block = Concat(block, "    a->data[a->len++] = v;\n}\n");
+    block = Concat(block, Concat("static const char *", Concat(CollectionRuntimeCGetFn(2), Concat("(", Concat(string_array_type, " a, long long i) { return a.data[i]; }\n")))));
+    block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCSetFn(2), Concat("(", Concat(string_array_type, " *a, long long i, const char *v) { a->data[i] = v; }\n")))));
+    block = Concat(block, Concat("static long long ", Concat(CollectionRuntimeCLenFn(2), Concat("(", Concat(string_array_type, " a) { return a.len; }\n")))));
+    block = Concat(block, Concat("static const char *", Concat(CollectionRuntimeCPopFn(2), Concat("(", Concat(string_array_type, " *a) { return a->len > 0 ? a->data[--a->len] : \"\"; }\n\n")))));
+    return block;
+}
+
 func CollectionRuntimeCodegenAstTextNodeArrayBlock() -> String {
     let array_type: String = CompilerAbiLayoutArrayCodegenAstTextNodeCValueType();
     let block: String = "";

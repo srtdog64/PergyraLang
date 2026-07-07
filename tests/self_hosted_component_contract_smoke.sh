@@ -1129,7 +1129,13 @@ reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "nodes[cur[0]].i
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "nodes[cur[0]].indent > role_owner_indent"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "nodes[cur[0]].indent > decl_indent"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let record_array_block: String = \"\""
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CollectionRuntimeCArrayBlock("
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CollectionRuntimeCodegenAstTextNodeArrayBlock()"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "typedef struct { long long *data"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "typedef struct { const char **data"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "static pgy_ai"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" '"pgy_as_new"'
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" '"pgy_as_push"'
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "static pgy_CodegenAstTextNode_array"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "pgy_CodegenAstTextNode_array_get"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "NominalDeclName(cur_line)"
@@ -1484,6 +1490,9 @@ reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "func ModeCsvCou
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "mode = CsvAt(modes"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "pgy_CodegenAstTextNode_array"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" 'import "../../compiler/abi_layout_row_owner.pgy";'
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCArrayBlock"
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "CompilerAbiLayoutArrayIntCValueType()"
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "CompilerAbiLayoutArrayStringCValueType()"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCodegenAstTextNodeArrayBlock"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "CompilerAbiLayoutArrayCodegenAstTextNodeCValueType()"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCGetFn(kind_code: Int)"
