@@ -199,7 +199,8 @@ expression lowering used by `let`, assignment, and return paths;
 policy directly. `compiler/symbol_table_owner.pgy` owns emitted-symbol spelling
 rows for function names, owner-qualified methods, role operator names,
 payload-free enum variants, struct fields, `inout` temporary parameter names,
-and try/match emission temporary names in the supported subset; emitters must
+foreach loop temporary names, and try/match emission temporary names in the
+supported subset; emitters must
 consume that compiler-world owner instead of locally concatenating owner/member,
 field, or temporary spellings, and projection fails closed if the symbol row
 envelope is not ready.

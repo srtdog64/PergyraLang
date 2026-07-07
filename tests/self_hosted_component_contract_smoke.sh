@@ -1283,12 +1283,18 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstAre
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCFieldName(fname)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=pm:"'
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCInoutParamName"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCForEachCollectionTempName"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCForEachIndexTempName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCTryTempName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCMatchTempName"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCInoutParamName(p_name)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCForEachCollectionTempName(loop_var)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCForEachIndexTempName(loop_var)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCTryTempName(idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCMatchTempName(idx)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" '"_pgy_inout_"'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgyc_"'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgyi_"'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgy_try_"'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgy_match_"'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsZeroArtifactDecl(arena, i)"

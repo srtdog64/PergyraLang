@@ -128,6 +128,12 @@ func CompilerSymbolCFieldName(field_name: String) -> String {
 func CompilerSymbolCInoutParamName(param_name: String) -> String {
     return Concat("_pgy_inout_", CompilerSymbolCIdentifier(param_name));
 }
+func CompilerSymbolCForEachCollectionTempName(loop_var_name: String) -> String {
+    return Concat("_pgyc_", CompilerSymbolCIdentifier(loop_var_name));
+}
+func CompilerSymbolCForEachIndexTempName(loop_var_name: String) -> String {
+    return Concat("_pgyi_", CompilerSymbolCIdentifier(loop_var_name));
+}
 func CompilerSymbolCTryTempName(node_index: Int) -> String {
     return Concat("_pgy_try_", ToString(node_index));
 }

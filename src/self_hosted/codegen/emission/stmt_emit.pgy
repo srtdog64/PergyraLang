@@ -455,8 +455,8 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
                 } else {
                     Die(Concat("for-each requires Array<Int> or Array<String>, got: ", ck));
                 }
-                let tc: String = Concat("_pgyc_", loop_var);
-                let ti: String = Concat("_pgyi_", loop_var);
+                let tc: String = CompilerSymbolCForEachCollectionTempName(loop_var);
+                let ti: String = CompilerSymbolCForEachIndexTempName(loop_var);
                 ArraySet(env_box, 0, Concat(env_box[0], Concat(loop_var, Concat("=v:", Concat(elem_kind, "|")))));
                 result = Concat(result, Concat(pad, Concat(arr_c, Concat(" ", Concat(tc, Concat(" = ", Concat(RewriteExpr(coll, env_box[0]), ";\n")))))));
                 let foreach_hdr: String = Concat("for (", AbiLayoutCLocalType("Int", env_box[0]));
