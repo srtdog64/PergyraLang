@@ -384,6 +384,41 @@ mir_abi_resource_runtime_fn_by_type_name(const char *abi_type_name,
                                       resource_op_name);
 }
 
+const char *
+mir_abi_resource_runtime_fn_by_kind(MIRResourceAbiKind kind,
+                                    const char *inner_type_name,
+                                    const char *resource_op_name)
+{
+    const char *container_name;
+    char abi_type_name[96];
+    int written;
+
+    if (inner_type_name == NULL || resource_op_name == NULL)
+        return NULL;
+
+    switch (kind) {
+    case MIR_RESOURCE_ABI_SLOT:
+        container_name = "Slot";
+        break;
+    case MIR_RESOURCE_ABI_SECURE_SLOT:
+        container_name = "SecureSlot";
+        break;
+    case MIR_RESOURCE_ABI_DEVICE_SLOT:
+        container_name = "DeviceSlot";
+        break;
+    default:
+        return NULL;
+    }
+
+    written = snprintf(abi_type_name, sizeof(abi_type_name), "%s<%s>",
+                       container_name, inner_type_name);
+    if (written < 0 || (size_t)written >= sizeof(abi_type_name))
+        return NULL;
+
+    return mir_abi_resource_runtime_fn_by_type_name(abi_type_name,
+                                                   resource_op_name);
+}
+
 void
 mir_abi_table_init(void)
 {

@@ -136,6 +136,17 @@ reject_term "src/codegen/llvm_runtime_secure_slot_decl.c" 'llvm_runtime_secure_s
 reject_term "src/codegen/llvm_runtime_secure_slot_decl.c" 'llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_read", suf)'
 reject_term "src/codegen/llvm_runtime_secure_slot_decl.c" 'llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_write", suf)'
 reject_term "src/codegen/llvm_runtime_secure_slot_decl.c" 'llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_release", suf)'
+require_term "src/compiler/mir_abi_layout.h" "MIRResourceAbiKind"
+require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_fn_by_kind"
+require_term "src/codegen/llvm_expr_slot_device_calls.c" "mir_abi_resource_runtime_fn_by_kind("
+require_term "src/codegen/llvm_expr_slot_device_calls.c" "MIR_RESOURCE_ABI_SECURE_SLOT"
+require_term "src/codegen/llvm_expr_slot_device_calls.c" "MIR_RESOURCE_ABI_DEVICE_SLOT"
+reject_term "src/codegen/llvm_expr_slot_device_calls.c" 'is_secure ? "pgy_secure_write" : "pgy_write"'
+reject_term "src/codegen/llvm_expr_slot_device_calls.c" 'is_secure ? "pgy_secure_read" : "pgy_read"'
+reject_term "src/codegen/llvm_expr_slot_device_calls.c" 'is_secure ? "pgy_secure_release" : "pgy_release"'
+reject_term "src/codegen/llvm_expr_slot_device_calls.c" '"pgy_device_write", inner'
+reject_term "src/codegen/llvm_expr_slot_device_calls.c" '"pgy_device_read", inner'
+reject_term "src/codegen/llvm_expr_slot_device_calls.c" '"pgy_release_device", inner'
 require_term "src/test_abi_spec.c" "runtime size matches checked ABI"
 reject_term "src/test_abi_spec.c" "PGY_RUNTIME_SLOT_MODE_CHECKED"
 reject_term "src/test_abi_spec.c" "raw slot mode"

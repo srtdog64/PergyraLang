@@ -196,6 +196,42 @@ if grep -F 'llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_release"
     echo "[backend-fail-closed] LLVM secure slot release declaration must consume MIR ABI runtime function rows" >&2
     exit 1
 fi
+grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+    "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
+grep -Fq "MIR_RESOURCE_ABI_SECURE_SLOT" \
+    "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
+grep -Fq "MIR_RESOURCE_ABI_DEVICE_SLOT" \
+    "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
+if grep -F 'is_secure ? "pgy_secure_write" : "pgy_write"' \
+    "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM slot Write call emission must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'is_secure ? "pgy_secure_read" : "pgy_read"' \
+    "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM slot Read call emission must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'is_secure ? "pgy_secure_release" : "pgy_release"' \
+    "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM slot Release call emission must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F '"pgy_device_write", inner' \
+    "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM DeviceWrite call emission must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F '"pgy_device_read", inner' \
+    "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM DeviceRead call emission must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F '"pgy_release_device", inner' \
+    "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM ReleaseDeviceSlot call emission must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
 if grep -F 'transpiler_format_slot_runtime_fn(' \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c" >/dev/null; then
     echo "[backend-fail-closed] C MIR resource op must consume MIR ABI runtime function rows" >&2
