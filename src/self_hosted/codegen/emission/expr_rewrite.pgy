@@ -6,6 +6,7 @@ import "../text/struct_literal_call_owner.pgy";
 import "../text/struct_literal_field_owner.pgy";
 import "../type_facts/type_env.pgy";
 import "../../compiler/symbol_table_owner.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/host_io_runtime_owner.pgy";
 import "../runtime_abi/math_runtime_owner.pgy";
@@ -248,7 +249,8 @@ func RewriteStructLiteralCallArg(expr: String, expected_type: String, env: Strin
     }
     let call_fact: StructLiteralCallFact = StructLiteralCallFactOrDie(e, "struct argument literal");
     let inner: String = StringTrim(call_fact.inner);
-    let out: String = Concat("(", Concat(expected_type, "){ "));
+    let c_expected_type: String = AbiLayoutCStructTypeName(expected_type);
+    let out: String = Concat("(", Concat(c_expected_type, "){ "));
     let first: Bool = true;
     let field_pos: Int = 0;
     let field_names: String = LookupKindType(env, expected_type, "fields");

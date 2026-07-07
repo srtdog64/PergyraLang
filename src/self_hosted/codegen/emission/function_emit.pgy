@@ -214,6 +214,7 @@ func CollectStructs(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAren
     while i < count {
         if CodegenAstArenaIsNominalDecl(arena, i) {
             let sname: String = CodegenAstArenaAtomOrDie(arena, i);
+            let c_sname: String = AbiLayoutCStructTypeName(sname);
             let s_indent: Int = CodegenAstArenaIndentOrDie(arena, i);
             let j: Int = i + 1;
             if j < count && CodegenAstArenaIsFieldsHeader(arena, j) {
@@ -234,7 +235,7 @@ func CollectStructs(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAren
                 fields_c = Concat(fields_c, Concat("    ", Concat(cfield_type, Concat(" ", Concat(fname, ";\n")))));
                 j = j + 1;
             }
-            typedefs = Concat(typedefs, Concat("typedef struct {\n", Concat(fields_c, Concat("} ", Concat(sname, ";\n\n")))));
+            typedefs = Concat(typedefs, Concat("typedef struct {\n", Concat(fields_c, Concat("} ", Concat(c_sname, ";\n\n")))));
             ArraySet(env_box, 0, Concat(env_box[0], Concat(sname, "=s:struct|")));
             ArraySet(env_box, 0, Concat(env_box[0], Concat(sname, Concat("=fields:", Concat(field_names, "|")))));
         }

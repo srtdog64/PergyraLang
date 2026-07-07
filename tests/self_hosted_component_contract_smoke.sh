@@ -783,6 +783,7 @@ reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTarg
 reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetFallbackReasonAt(3) == "missing_authority_evidence"'
 reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetFallbackReasonAt(4) == "host_only_slot_boundary"'
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCQualifiedName"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCTypeName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolRequireTable"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "CompilerSymbolRequireTable();"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolSourceOwnerRow"
@@ -827,11 +828,13 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "SymbolMangle"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(owner, Concat("_",'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(owner_name, Concat("_",'
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCParamType"
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCStructTypeName"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCReturnType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCLocalType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCFieldType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCEmptyParameterList"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'import "../../compiler/abi_layout_row_owner.pgy";'
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'import "../../compiler/symbol_table_owner.pgy";'
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutRowsReady()"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutRowIndex(type_name)"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutRowCValueTypeAt(UnwrapOption(row))"
@@ -839,12 +842,15 @@ require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "Compiler
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutVoidCValueType()"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutPayloadFreeEnumCValueType()"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutFieldAllowed(type_name)"
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerSymbolCTypeName(type_name)"
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "return AbiLayoutCStructTypeName(type_name);"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'LookupKindType(struct_env, type_name, "enum") == "payload_free"'
 reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CollectionRuntimeKindFromTypeName"
 reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'import "../runtime_abi/collection_runtime_owner.pgy";'
 reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'type_name == "Void"'
 reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'return "void";'
 reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'return "long long";'
+reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'return type_name;'
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutConcreteRowCount"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutRowIndex"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutRowCValueTypeAt"
@@ -1289,6 +1295,7 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstAre
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsEnumDecl(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsFunction(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "!CodegenAstArenaIsFunction(arena, j)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCStructTypeName(sname)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsZeroArtifactDecl(nodes[i])"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsNominalDecl(nodes[i])"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsRoleDecl(nodes[i])"
@@ -1509,6 +1516,10 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func IndentOf"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func ExpectText"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitCollectionElementValue"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitStructValue(value_expr, elem_type, env)"
+require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "AbiLayoutCStructTypeName(sname)"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "AbiLayoutCStructTypeName(expected_type)"
+reject_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'Concat("(", Concat(sname, "){ "))'
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'Concat("(", Concat(expected_type, "){ "))'
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "func RewriteInoutCallArgs"
 reject_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func ResolveCallSymbol"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func ParamTypeCsvAppend"
@@ -1755,6 +1766,7 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCFie
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutIsVoidReturnType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCEntrypointBodyReturnType"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCEmptyParameterList"
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCStructTypeName"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCDefaultReturnValue"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "AbiLayoutCLocalType"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "AbiLayoutIsVoidReturnType"

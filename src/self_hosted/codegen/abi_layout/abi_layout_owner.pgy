@@ -6,6 +6,7 @@ import "../text/text_owner.pgy";
 import "../type_facts/type_env.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../../compiler/abi_layout_row_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
 
 func AbiLayoutRequireCompilerRows() -> Void {
     if !CompilerAbiLayoutRowsReady() {
@@ -25,7 +26,7 @@ func AbiLayoutCValueType(type_name: String, struct_env: String) -> String {
         return option_struct_fact.c_type;
     }
     if LookupKindType(struct_env, type_name, "s") == "struct" {
-        return type_name;
+        return AbiLayoutCStructTypeName(type_name);
     }
     if LookupKindType(struct_env, type_name, "enum") == "payload_free" {
         return CompilerAbiLayoutPayloadFreeEnumCValueType();
@@ -36,6 +37,10 @@ func AbiLayoutCValueType(type_name: String, struct_env: String) -> String {
 
 func AbiLayoutCParamType(type_name: String, struct_env: String) -> String {
     return AbiLayoutCValueType(type_name, struct_env);
+}
+
+func AbiLayoutCStructTypeName(type_name: String) -> String {
+    return CompilerSymbolCTypeName(type_name);
 }
 
 func AbiLayoutCReturnType(type_name: String, struct_env: String) -> String {

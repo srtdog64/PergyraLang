@@ -119,6 +119,9 @@ func CompilerSymbolCQualifiedName(owner_name: String, member_name: String) -> St
     }
     return Concat(CompilerSymbolCIdentifier(owner_name), Concat("_", member_symbol));
 }
+func CompilerSymbolCTypeName(type_name: String) -> String {
+    return CompilerSymbolCIdentifier(type_name);
+}
 func CompilerSymbolCInoutParamName(param_name: String) -> String {
     return Concat("_pgy_inout_", CompilerSymbolCIdentifier(param_name));
 }
