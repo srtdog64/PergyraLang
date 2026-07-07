@@ -67,7 +67,8 @@ runtime ABI into `MIRTypeLayout` facts. This means:
   `let slot` claim/initializer writes, block auto-release cleanup, and pin
   block cleanup attributes consume row-backed runtime names. Source-level
   `with slot` alias claim/release emission uses those same Claim/Release rows.
-  They must not synthesize `pgy_claim_*`, `pgy_read_*`, `pgy_write_*`,
+  MIR destructuring for `ClaimSlot`/`ClaimSecureSlot` uses the same Claim
+  rows. They must not synthesize `pgy_claim_*`, `pgy_read_*`, `pgy_write_*`,
   `pgy_device_*`, `pgy_release_*`, `pgy_pin_*`, `pgy_unpin_*`, or
   `pgy_unpin_cleanup_*` names from a type suffix.
 

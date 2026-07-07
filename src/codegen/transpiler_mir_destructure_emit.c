@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../compiler/mir_abi_layout.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 
@@ -22,6 +23,27 @@
 #include "transpiler_type_require.h"
 
 /* C backend MIR destructuring statement emission owner. */
+static const char *
+transpiler_mir_destructure_slot_runtime_fn(TranspilerCtx *ctx,
+                                           MIRResourceAbiKind kind,
+                                           const char *inner_type,
+                                           const char *operation)
+{
+    const char *runtime_fn =
+        mir_abi_resource_runtime_fn_by_kind(kind, inner_type, operation);
+    if (runtime_fn != NULL)
+        return runtime_fn;
+
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_INSPECT_MIR_INVENTORY,
+        "C MIR destructuring %s requires MIR ABI runtime function row",
+        operation != NULL ? operation : "<unknown>");
+    return NULL;
+}
+
 static bool
 transpiler_mir_destructure_format_type(char *out, size_t out_size,
                                        const char *prefix, const char *inner)
@@ -85,6 +107,7 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
         const char *inner = claim_inner_buf;
         const char *slot_name;
         const char *token_name;
+        const char *claim_fn;
         char typed_tok[64];
         char typed_slot[64];
 
@@ -103,14 +126,18 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
                 "C backend: ClaimSecureSlot destructuring requires concrete SecureSlot<T> metadata");
             return false;
         }
+        claim_fn = transpiler_mir_destructure_slot_runtime_fn(
+            ctx, MIR_RESOURCE_ABI_SECURE_SLOT, inner, "Claim");
+        if (claim_fn == NULL)
+            return false;
         slot_name = mir_instruction_destructure_binding_name_at(inst, 0);
         token_name = mir_instruction_destructure_binding_name_at(inst, 1);
         write_indent_to(buf, ctx->indent);
         codebuf_write(buf, "PgyToken_%s %s;\n", inner, token_name);
         write_indent_to(buf, ctx->indent);
         codebuf_write(buf,
-            "PgySecureSlot_%s %s = pgy_claim_secure_%s(&%s);\n",
-            inner, slot_name, inner, token_name);
+            "PgySecureSlot_%s %s = %s(&%s);\n",
+            inner, slot_name, claim_fn, token_name);
         write_indent_to(buf, ctx->indent);
         codebuf_write(buf, "(void)%s;\n", slot_name);
         register_slot_var(ctx, slot_name, inner, true, false);
@@ -138,6 +165,7 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
         char claim_inner_buf[128];
         const char *inner = claim_inner_buf;
         const char *slot_name;
+        const char *claim_fn;
         char typed_slot[64];
 
         if (!slot_inner_type_name_copy(claim_abi_type_name,
@@ -155,10 +183,14 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
                 "C backend: ClaimSlot destructuring requires concrete Slot<T> metadata");
             return false;
         }
+        claim_fn = transpiler_mir_destructure_slot_runtime_fn(
+            ctx, MIR_RESOURCE_ABI_SLOT, inner, "Claim");
+        if (claim_fn == NULL)
+            return false;
         slot_name = mir_instruction_destructure_binding_name_at(inst, 0);
         write_indent_to(buf, ctx->indent);
-        codebuf_write(buf, "PgySlot_%s %s = pgy_claim_%s();\n",
-                      inner, slot_name, inner);
+        codebuf_write(buf, "PgySlot_%s %s = %s();\n",
+                      inner, slot_name, claim_fn);
         write_indent_to(buf, ctx->indent);
         codebuf_write(buf, "(void)%s;\n", slot_name);
         register_slot_var(ctx, slot_name, inner, false, false);

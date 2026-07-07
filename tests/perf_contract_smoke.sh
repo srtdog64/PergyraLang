@@ -2343,6 +2343,10 @@ grep -Fq "transpiler_require_type_name_c_type_copy(ctx, init_type" "$ROOT_DIR/sr
 grep -Fq "transpiler_require_type_name_c_type_copy(ctx, init_type_name" "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c"
 grep -Fq "const MIRInstruction *inst" "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.h"
 grep -Fq "mir_instruction_destructure_binding_count(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c"
+grep -Fq "mir_abi_resource_runtime_fn_by_kind(" "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c"
+grep -Fq "C MIR destructuring %s requires MIR ABI runtime function row" "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c"
+! grep -Fq "pgy_claim_%s()" "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c"
+! grep -Fq "pgy_claim_secure_%s(&%s)" "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c"
 ! grep -Fq "ast_let_destructure" "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c"
 grep -Fq "char inner_name_buf[128]" "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
 grep -Fq "slot_inner_type_name_copy(effective_layout->abi_type_name" \

@@ -621,6 +621,20 @@ if grep -F 'pgy_claim_secure_%s(&%s_token)' \
     echo "[backend-fail-closed] C source secure with-slot Claim must consume MIR ABI runtime rows" >&2
     exit 1
 fi
+grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c"
+grep -Fq "C MIR destructuring %s requires MIR ABI runtime function row" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c"
+if grep -F 'pgy_claim_%s()' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C MIR ClaimSlot destructuring must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'pgy_claim_secure_%s(&%s)' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C MIR ClaimSecureSlot destructuring must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
 if grep -F 'pgy_release_%s(&%s);' \
     "$ROOT_DIR/src/codegen/transpiler_func_class_flow_emit.c" >/dev/null; then
     echo "[backend-fail-closed] C source with-slot Release must consume MIR ABI runtime rows" >&2
