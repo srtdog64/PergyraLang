@@ -1618,7 +1618,9 @@ require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func ParamModeCs
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "ParamModeCsvCount(modes)"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "ParamModeCsvAt(modes, arg_index)"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'rendered = Concat("&", rendered)'
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CompilerSymbolCQualifiedName(recv_type, method)"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CompilerSymbolCQualifiedName(owner, member)"
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'Concat(recv_type, Concat("_", method))'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'out = Concat(out, "_")'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "func ModeCsvCount"
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "mode = CsvAt(modes"
