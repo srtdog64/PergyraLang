@@ -50,14 +50,13 @@ slot_builtin_heap_fmt(TranspilerCtx *ctx, const char *fmt, ...)
 }
 
 static const char *
-slot_builtin_runtime_fn(TranspilerCtx *ctx,
-                        bool secure,
-                        const char *inner_type,
-                        const char *operation)
+slot_builtin_runtime_fn_by_kind(TranspilerCtx *ctx,
+                                MIRResourceAbiKind kind,
+                                const char *inner_type,
+                                const char *operation)
 {
-    const char *runtime_fn = mir_abi_resource_runtime_fn_by_kind(
-        secure ? MIR_RESOURCE_ABI_SECURE_SLOT : MIR_RESOURCE_ABI_SLOT,
-        inner_type, operation);
+    const char *runtime_fn =
+        mir_abi_resource_runtime_fn_by_kind(kind, inner_type, operation);
     if (runtime_fn != NULL)
         return runtime_fn;
 
@@ -69,6 +68,19 @@ slot_builtin_runtime_fn(TranspilerCtx *ctx,
         "C source slot builtin %s requires MIR ABI runtime function row",
         operation != NULL ? operation : "<unknown>");
     return NULL;
+}
+
+static const char *
+slot_builtin_runtime_fn(TranspilerCtx *ctx,
+                        bool secure,
+                        const char *inner_type,
+                        const char *operation)
+{
+    return slot_builtin_runtime_fn_by_kind(
+        ctx,
+        secure ? MIR_RESOURCE_ABI_SECURE_SLOT : MIR_RESOURCE_ABI_SLOT,
+        inner_type,
+        operation);
 }
 
 static bool
@@ -456,9 +468,16 @@ emit_builtin_device_write(ASTNode *call, TranspilerCtx *ctx)
         return NULL;
     }
     char *result;
+    const char *write_fn = slot_builtin_runtime_fn_by_kind(
+        ctx, MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "Write");
+    if (write_fn == NULL) {
+        free(slot_expr);
+        free(value_expr);
+        return NULL;
+    }
 
     result = slot_builtin_heap_fmt(ctx,
-        "pgy_device_write_%s(&%s, %s)", inner, slot_expr, value_expr);
+        "%s(&%s, %s)", write_fn, slot_expr, value_expr);
     free(slot_expr);
     free(value_expr);
     return result;
@@ -479,8 +498,14 @@ emit_builtin_device_read(ASTNode *call, TranspilerCtx *ctx)
     if (slot_expr == NULL)
         return NULL;
     char *result;
+    const char *read_fn = slot_builtin_runtime_fn_by_kind(
+        ctx, MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "Read");
+    if (read_fn == NULL) {
+        free(slot_expr);
+        return NULL;
+    }
 
-    result = slot_builtin_heap_fmt(ctx, "pgy_device_read_%s(&%s)", inner, slot_expr);
+    result = slot_builtin_heap_fmt(ctx, "%s(&%s)", read_fn, slot_expr);
     free(slot_expr);
     return result;
 }
@@ -501,9 +526,14 @@ emit_builtin_release_device_slot(ASTNode *call, TranspilerCtx *ctx)
     if (slot_expr == NULL)
         return NULL;
     char *result;
+    const char *release_fn = slot_builtin_runtime_fn_by_kind(
+        ctx, MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "Release");
+    if (release_fn == NULL) {
+        free(slot_expr);
+        return NULL;
+    }
 
-    result = slot_builtin_heap_fmt(ctx, "pgy_release_device_%s(&%s)",
-        inner, slot_expr);
+    result = slot_builtin_heap_fmt(ctx, "%s(&%s)", release_fn, slot_expr);
     free(slot_expr);
     return result;
 }
@@ -524,9 +554,14 @@ emit_builtin_submit_device_read(ASTNode *call, TranspilerCtx *ctx)
     if (slot_expr == NULL)
         return NULL;
     char *result;
+    const char *submit_fn = slot_builtin_runtime_fn_by_kind(
+        ctx, MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "SubmitRead");
+    if (submit_fn == NULL) {
+        free(slot_expr);
+        return NULL;
+    }
 
-    result = slot_builtin_heap_fmt(ctx, "pgy_submit_device_read_%s(&%s)",
-        inner, slot_expr);
+    result = slot_builtin_heap_fmt(ctx, "%s(&%s)", submit_fn, slot_expr);
     free(slot_expr);
     return result;
 }

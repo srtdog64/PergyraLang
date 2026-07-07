@@ -517,6 +517,26 @@ if grep -F 'pgy_secure_release_%s(%s, &%s)' \
     echo "[backend-fail-closed] C source secure slot Release must consume MIR ABI runtime rows" >&2
     exit 1
 fi
+if grep -F 'pgy_device_write_%s(&%s, %s)' \
+    "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C source DeviceWrite must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'pgy_device_read_%s(&%s)' \
+    "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C source DeviceRead must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'pgy_release_device_%s(&%s)' \
+    "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C source ReleaseDeviceSlot must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'pgy_submit_device_read_%s(&%s)' \
+    "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C source SubmitDeviceRead must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
 if grep -F 'pgy_write_%s(%s, %s)' \
     "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c" >/dev/null; then
     echo "[backend-fail-closed] C expression slot Write must consume MIR ABI runtime rows" >&2

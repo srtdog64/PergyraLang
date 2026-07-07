@@ -420,13 +420,15 @@ Current beta closure snapshot:
   with-slot cleanup releases, statement auto-release cleanup, slot identifier
   auto-read, C MIR pin enter/exit cleanup, and secure LLVM MIR pin enter/exit
   cleanup consume them through `mir_abi_resource_runtime_fn_by_kind(...)`. C
-  source-level slot builtins (`Read`/`Write`/`Release`), source-level slot
-  method calls, expression-dispatch slot assignment/auto-read, `let slot`
-  claim/initializer writes, and block auto-release cleanup also consume
-  row-backed runtime names. C source-level pin block emitters consume
-  row-backed PinRead/PinWrite and UnpinCleanup names; cleanup attributes are
-  not allowed to synthesize `pgy_claim_*`, `pgy_read_*`, `pgy_write_*`,
-  `pgy_release_*`, or `pgy_unpin_cleanup_*` suffixes locally.
+  source-level slot builtins (`Read`/`Write`/`Release`), source-level
+  DeviceSlot builtins (`DeviceRead`/`DeviceWrite`/`ReleaseDeviceSlot`/
+  `SubmitDeviceRead`), source-level slot method calls, expression-dispatch
+  slot assignment/auto-read, `let slot` claim/initializer writes, and block
+  auto-release cleanup also consume row-backed runtime names. C source-level
+  pin block emitters consume row-backed PinRead/PinWrite and UnpinCleanup
+  names; cleanup attributes are not allowed to synthesize `pgy_claim_*`,
+  `pgy_read_*`, `pgy_write_*`, `pgy_device_*`, `pgy_release_*`, or
+  `pgy_unpin_cleanup_*` suffixes locally.
 - `with slot` scope exit is a resource fact, not a backend fallback. RIR emits
   the scope-exit Release after the with-body resource ops; MIR preserves it as
   an `AST_WITH_STMT`-sourced Release, and C MIR emission materializes that fact
