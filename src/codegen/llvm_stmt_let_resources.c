@@ -1,8 +1,10 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 #include "codegen_slot_type_policy.h"
+#include "llvm_internal_api.h"
 #include "llvm_stmt_let_names.h"
 #include "parser/ast_api.h"
+#include "../compiler/mir_abi_layout.h"
 
 #include <string.h>
 
@@ -231,13 +233,14 @@ llvm_stmt_emit_slot_sugar_let(ASTNode *node, LLVMGenCtx *ctx)
     if (init != NULL) {
         LLVMValueRef val = llvm_emit_expression(init, ctx);
         if (val != NULL) {
-            char fn_name[64];
-            if (!llvm_let_with_slot_write_name(ctx, init, fn_name,
-                    sizeof(fn_name), inner, is_secure)) {
-                free(inner);
-                return true;
-            }
-            LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+            const char *runtime_fn =
+                mir_abi_resource_runtime_fn_by_kind(
+                    is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
+                              : MIR_RESOURCE_ABI_SLOT,
+                    inner, "Write");
+            LLVMFuncEntry *fn = runtime_fn != NULL
+                ? llvm_lookup_function(ctx, runtime_fn)
+                : NULL;
             if (fn != NULL) {
                 if (is_secure) {
                     char token_name[256];
@@ -261,12 +264,17 @@ llvm_stmt_emit_slot_sugar_let(ASTNode *node, LLVMGenCtx *ctx)
                         args, 2, "");
                 }
             } else if (pgy_classify_type(inner) != PGY_TK_UNKNOWN) {
-                llvm_set_error_at_with_hints(ctx, init,
-                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                    PGY_FIX_INSPECT_MIR_INVENTORY,
-                    "LLVM slot initializer requires registered runtime function '%s'",
-                    fn_name);
+                if (runtime_fn != NULL) {
+                    llvm_required_runtime_function(ctx, init,
+                        is_secure ? "secure slot" : "slot",
+                        "initializer", runtime_fn);
+                } else {
+                    llvm_set_error_at_with_hints(ctx, init,
+                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_FIX_INSPECT_MIR_INVENTORY,
+                        "LLVM slot initializer requires MIR ABI runtime function row");
+                }
             } else {
                 LLVMValueRef value_ptr = LLVMBuildStructGEP2(ctx->builder,
                     slot_ty, alloca_val, 0, llvm_tmp_name(ctx));

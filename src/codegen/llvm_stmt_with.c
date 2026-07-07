@@ -1,5 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+#include "llvm_internal_api.h"
+#include "../compiler/mir_abi_layout.h"
 
 static bool
 llvm_with_token_name(LLVMGenCtx *ctx, ASTNode *node,
@@ -22,33 +24,6 @@ llvm_with_token_name(LLVMGenCtx *ctx, ASTNode *node,
             PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
             "LLVM with-slot token name is too long for alias '%s'",
             alias != NULL ? alias : "<alias>");
-    }
-    return false;
-}
-
-static bool
-llvm_with_release_name(LLVMGenCtx *ctx, ASTNode *node,
-                       char *out, size_t out_size,
-                       const char *inner, bool is_secure)
-{
-    int written;
-
-    if (out == NULL || out_size == 0)
-        return false;
-
-    written = snprintf(out, out_size,
-        is_secure ? "pgy_secure_release_%s" : "pgy_release_%s",
-        inner != NULL ? inner : "");
-    if (written >= 0 && (size_t)written < out_size)
-        return true;
-
-    if (ctx != NULL && !ctx->has_error) {
-        llvm_set_error_at_with_hints(ctx, node,
-            PGY_CODE_LLVM_SPEC_LIMIT,
-            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-            PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
-            "LLVM with-slot cleanup runtime symbol is too long for type '%s'",
-            inner != NULL ? inner : "<type>");
     }
     return false;
 }
@@ -79,7 +54,6 @@ llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx)
         : llvm_slot_struct_type(ctx, inner);
     LLVMValueRef alloca_val = llvm_stmt_create_slot_alloca(ctx, slot_ty, alias);
 
-    char fn_name[64];
     LLVMBuildStore(ctx->builder, LLVMConstNull(slot_ty), alloca_val);
     LLVMValueRef claimed_ptr = LLVMBuildStructGEP2(ctx->builder,
         slot_ty, alloca_val, 1, llvm_tmp_name(ctx));
@@ -134,10 +108,12 @@ llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx)
         llvm_emit_block(ast_with_body(node), ctx);
 
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL) {
+        const char *runtime_fn = mir_abi_resource_runtime_fn_by_kind(
+            is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT : MIR_RESOURCE_ABI_SLOT,
+            inner, "Release");
         LLVMFuncEntry *release_fn = NULL;
-        if (llvm_with_release_name(ctx, node, fn_name, sizeof(fn_name),
-                inner, is_secure))
-            release_fn = llvm_lookup_function(ctx, fn_name);
+        if (runtime_fn != NULL)
+            release_fn = llvm_lookup_function(ctx, runtime_fn);
         if (release_fn != NULL) {
             if (is_secure) {
                 LLVMVarEntry token_var;
@@ -159,12 +135,17 @@ llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx)
                                release_fn->fn, args, 1, "");
             }
         } else if (!ctx->has_error && pgy_classify_type(inner) != PGY_TK_UNKNOWN) {
-            llvm_set_error_at_with_hints(ctx, node,
-                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                PGY_FIX_INSPECT_MIR_INVENTORY,
-                "LLVM with-slot cleanup requires registered runtime function '%s'",
-                fn_name);
+            if (runtime_fn != NULL) {
+                llvm_required_runtime_function(ctx, node,
+                    is_secure ? "secure slot" : "slot",
+                    "with-cleanup", runtime_fn);
+            } else {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM with-slot cleanup requires MIR ABI runtime function row");
+            }
         } else {
             LLVMValueRef occupied_ptr = LLVMBuildStructGEP2(ctx->builder,
                 slot_ty, alloca_val, 1, llvm_tmp_name(ctx));

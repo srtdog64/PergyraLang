@@ -12,11 +12,5 @@ bool llvm_let_with_token_name(LLVMGenCtx *ctx,
                               char *out,
                               size_t out_size,
                               const char *binding_name);
-bool llvm_let_with_slot_write_name(LLVMGenCtx *ctx,
-                                   ASTNode *node,
-                                   char *out,
-                                   size_t out_size,
-                                   const char *inner_type,
-                                   bool is_secure);
 
 #endif

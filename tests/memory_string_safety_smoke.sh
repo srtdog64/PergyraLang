@@ -427,8 +427,8 @@ require_literal "src/codegen/llvm_stmt_zone_action.c" \
     "llvm_zone_action_sync_name"
 require_literal "src/codegen/llvm_stmt_let_names.c" \
     "llvm_let_with_token_name"
-require_literal "src/codegen/llvm_stmt_let_names.c" \
-    "llvm_let_with_slot_write_name"
+require_literal "src/codegen/llvm_stmt_let_resources.c" \
+    "mir_abi_resource_runtime_fn_by_kind"
 require_literal "src/codegen/llvm_stmt_let_collections.c" \
     "llvm_stmt_collection_runtime_name"
 require_literal "src/codegen/llvm_stmt.c" \
@@ -442,7 +442,7 @@ require_literal "src/codegen/llvm_stmt_let_helpers.c" \
 require_literal "src/codegen/llvm_stmt_with.c" \
     "llvm_with_token_name"
 require_literal "src/codegen/llvm_stmt_with.c" \
-    "llvm_with_release_name"
+    "mir_abi_resource_runtime_fn_by_kind"
 require_literal "src/codegen/llvm_expr_emit_support.c" \
     "llvm_expr_runtime_name"
 require_literal "src/codegen/llvm_expr_emit_support.c" \

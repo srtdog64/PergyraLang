@@ -55,31 +55,4 @@ llvm_let_with_token_name(LLVMGenCtx *ctx, ASTNode *node,
     return false;
 }
 
-bool
-llvm_let_with_slot_write_name(LLVMGenCtx *ctx, ASTNode *node,
-                              char *out, size_t out_size,
-                              const char *inner_type, bool is_secure)
-{
-    int written;
-
-    if (out == NULL || out_size == 0)
-        return false;
-
-    written = snprintf(out, out_size,
-        is_secure ? "pgy_secure_write_%s" : "pgy_write_%s",
-        inner_type != NULL ? inner_type : "");
-    if (written >= 0 && (size_t)written < out_size)
-        return true;
-
-    if (ctx != NULL && !ctx->has_error) {
-        llvm_set_error_at_with_hints(ctx, node,
-            PGY_CODE_LLVM_SPEC_LIMIT,
-            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-            PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
-            "LLVM slot write runtime symbol is too long for type '%s'",
-            inner_type != NULL ? inner_type : "<type>");
-    }
-    return false;
-}
-
 #endif
