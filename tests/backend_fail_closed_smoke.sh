@@ -206,9 +206,48 @@ grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
     "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c"
 grep -Fq "MIR_RESOURCE_ABI_SECURE_SLOT" \
     "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c"
+grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
+grep -Fq "MIR_RESOURCE_ABI_SECURE_SLOT" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
 if grep -F 'is_secure ? "pgy_secure_read_%s" : "pgy_read_%s"' \
     "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c" >/dev/null; then
     echo "[backend-fail-closed] LLVM slot identifier auto-read must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'llvm_domain_slot_format_runtime_name' \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM slot method calls must not synthesize runtime function names locally" >&2
+    exit 1
+fi
+if grep -F '"pgy_secure_write", inner' \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM secure slot method Write must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F '"pgy_write", inner' \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM slot method Write must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F '"pgy_secure_read", inner' \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM secure slot method Read must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F '"pgy_read", inner' \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM slot method Read must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F '"pgy_secure_release", inner' \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM secure slot method Release must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F '"pgy_release", inner' \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM slot method Release must consume MIR ABI runtime rows" >&2
     exit 1
 fi
 if grep -F 'is_secure ? "pgy_secure_write" : "pgy_write"' \

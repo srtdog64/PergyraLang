@@ -415,7 +415,7 @@ Current beta closure snapshot:
   of synthesizing those names from type suffixes. LLVM Slot/SecureSlot/
   DeviceSlot claim/read/write/release declarations consume the same rows
   through `mir_abi_resource_runtime_fn_by_type_name(...)`; LLVM slot builtin
-  call emission and slot identifier auto-read consume them through
+  calls, slot method calls, and slot identifier auto-read consume them through
   `mir_abi_resource_runtime_fn_by_kind(...)`. Pin declarations, C direct source
   emitters, and async device submit remain separate ABI projections until their
   rows are cut over.

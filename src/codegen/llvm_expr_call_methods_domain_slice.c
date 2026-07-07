@@ -9,6 +9,7 @@
 #include "codegen_slot_type_policy.h"
 #include "llvm_internal_api.h"
 #include "parser/ast_api.h"
+#include "../compiler/mir_abi_layout.h"
 
 static LLVMValueRef
 llvm_domain_slice_error(ASTNode *node, LLVMGenCtx *ctx, const char *message)
@@ -22,31 +23,6 @@ llvm_domain_slice_error(ASTNode *node, LLVMGenCtx *ctx, const char *message)
             message != NULL ? message
                 : "LLVM domain/slice method could not be lowered");
     }
-    return NULL;
-}
-
-static bool
-llvm_domain_slot_format_runtime_name(char *out, size_t out_size,
-                                     const char *prefix, const char *inner)
-{
-    int written;
-
-    if (out == NULL || out_size == 0 || prefix == NULL || inner == NULL)
-        return false;
-    written = snprintf(out, out_size, "%s_%s", prefix, inner);
-    return written >= 0 && (size_t)written < out_size;
-}
-
-static LLVMValueRef
-llvm_domain_slot_runtime_name_error(ASTNode *node, LLVMGenCtx *ctx,
-                                    const char *method_name)
-{
-    llvm_set_error_at_with_hints(ctx, node,
-        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-        "LLVM slot method '%s' runtime function name is too long",
-        method_name != NULL ? method_name : "<unknown>");
     return NULL;
 }
 
@@ -167,13 +143,13 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                             method_name, &token_var))
                         return NULL;
                     {
-                        char fn_name[64];
+                        const char *runtime_fn =
+                            mir_abi_resource_runtime_fn_by_kind(
+                                MIR_RESOURCE_ABI_SECURE_SLOT, inner, "Write");
                         LLVMFuncEntry *fn;
-                        if (!llvm_domain_slot_format_runtime_name(fn_name,
-                                sizeof(fn_name), "pgy_secure_write", inner))
-                            return llvm_domain_slot_runtime_name_error(
-                                node, ctx, method_name);
-                        fn = llvm_lookup_function(ctx, fn_name);
+                        fn = runtime_fn != NULL
+                            ? llvm_lookup_function(ctx, runtime_fn)
+                            : NULL;
                         if (fn != NULL) {
                             LLVMValueRef args[] = {
                                 llvm_slot_runtime_arg(ctx, &slot_var),
@@ -184,19 +160,22 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                         } else if (!llvm_slot_inner_has_external_runtime_helpers(inner)) {
                             llvm_emit_structural_secure_slot_write(ctx, &slot_var, val);
                         } else {
+                            if (runtime_fn == NULL)
+                                return llvm_domain_slice_error(node, ctx,
+                                    "LLVM secure slot Write() requires MIR ABI runtime function row");
                             llvm_required_runtime_function(ctx, node,
-                                "secure slot", method_name, fn_name);
+                                "secure slot", method_name, runtime_fn);
                             return NULL;
                         }
                     }
                 } else {
-                    char fn_name[64];
+                    const char *runtime_fn =
+                        mir_abi_resource_runtime_fn_by_kind(
+                            MIR_RESOURCE_ABI_SLOT, inner, "Write");
                     LLVMFuncEntry *fn;
-                    if (!llvm_domain_slot_format_runtime_name(fn_name,
-                            sizeof(fn_name), "pgy_write", inner))
-                        return llvm_domain_slot_runtime_name_error(
-                            node, ctx, method_name);
-                    fn = llvm_lookup_function(ctx, fn_name);
+                    fn = runtime_fn != NULL
+                        ? llvm_lookup_function(ctx, runtime_fn)
+                        : NULL;
                     if (fn != NULL) {
                         LLVMValueRef args[] = {
                             llvm_slot_runtime_arg(ctx, &slot_var),
@@ -204,8 +183,11 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                         };
                         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
                     } else if (llvm_slot_inner_has_external_runtime_helpers(inner)) {
+                        if (runtime_fn == NULL)
+                            return llvm_domain_slice_error(node, ctx,
+                                "LLVM slot Write() requires MIR ABI runtime function row");
                         llvm_required_runtime_function(ctx, node,
-                            "slot", method_name, fn_name);
+                            "slot", method_name, runtime_fn);
                         return NULL;
                     } else {
                         llvm_direct_slot_write(ctx, &slot_var, val);
@@ -222,13 +204,13 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                             method_name, &token_var))
                         return NULL;
                     {
-                        char fn_name[64];
+                        const char *runtime_fn =
+                            mir_abi_resource_runtime_fn_by_kind(
+                                MIR_RESOURCE_ABI_SECURE_SLOT, inner, "Read");
                         LLVMFuncEntry *fn;
-                        if (!llvm_domain_slot_format_runtime_name(fn_name,
-                                sizeof(fn_name), "pgy_secure_read", inner))
-                            return llvm_domain_slot_runtime_name_error(
-                                node, ctx, method_name);
-                        fn = llvm_lookup_function(ctx, fn_name);
+                        fn = runtime_fn != NULL
+                            ? llvm_lookup_function(ctx, runtime_fn)
+                            : NULL;
                         if (fn != NULL) {
                             LLVMValueRef args[] = {
                                 llvm_slot_runtime_arg(ctx, &slot_var),
@@ -240,20 +222,23 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                         if (!llvm_slot_inner_has_external_runtime_helpers(inner))
                             return llvm_emit_structural_secure_slot_read(ctx,
                                 &slot_var, inner);
+                        if (runtime_fn == NULL)
+                            return llvm_domain_slice_error(node, ctx,
+                                "LLVM secure slot Read() requires MIR ABI runtime function row");
                         llvm_required_runtime_function(ctx, node,
-                            "secure slot", method_name, fn_name);
+                            "secure slot", method_name, runtime_fn);
                         return NULL;
                     }
                 }
 
                 {
-                    char fn_name[64];
+                    const char *runtime_fn =
+                        mir_abi_resource_runtime_fn_by_kind(
+                            MIR_RESOURCE_ABI_SLOT, inner, "Read");
                     LLVMFuncEntry *fn;
-                    if (!llvm_domain_slot_format_runtime_name(fn_name,
-                            sizeof(fn_name), "pgy_read", inner))
-                        return llvm_domain_slot_runtime_name_error(
-                            node, ctx, method_name);
-                    fn = llvm_lookup_function(ctx, fn_name);
+                    fn = runtime_fn != NULL
+                        ? llvm_lookup_function(ctx, runtime_fn)
+                        : NULL;
                     if (fn != NULL) {
                         LLVMValueRef args[] = {
                             llvm_slot_runtime_arg(ctx, &slot_var)
@@ -262,8 +247,11 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                             args, 1, llvm_tmp_name(ctx));
                     }
                     if (llvm_slot_inner_has_external_runtime_helpers(inner)) {
+                        if (runtime_fn == NULL)
+                            return llvm_domain_slice_error(node, ctx,
+                                "LLVM slot Read() requires MIR ABI runtime function row");
                         llvm_required_runtime_function(ctx, node,
-                            "slot", method_name, fn_name);
+                            "slot", method_name, runtime_fn);
                         return NULL;
                     }
                     return llvm_direct_slot_read(ctx, &slot_var, inner);
@@ -277,13 +265,13 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                             method_name, &token_var))
                         return NULL;
                     {
-                        char fn_name[64];
+                        const char *runtime_fn =
+                            mir_abi_resource_runtime_fn_by_kind(
+                                MIR_RESOURCE_ABI_SECURE_SLOT, inner, "Release");
                         LLVMFuncEntry *fn;
-                        if (!llvm_domain_slot_format_runtime_name(fn_name,
-                                sizeof(fn_name), "pgy_secure_release", inner))
-                            return llvm_domain_slot_runtime_name_error(
-                                node, ctx, method_name);
-                        fn = llvm_lookup_function(ctx, fn_name);
+                        fn = runtime_fn != NULL
+                            ? llvm_lookup_function(ctx, runtime_fn)
+                            : NULL;
                         if (fn != NULL) {
                             LLVMValueRef args[] = {
                                 llvm_slot_runtime_arg(ctx, &slot_var),
@@ -293,27 +281,33 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                         } else if (!llvm_slot_inner_has_external_runtime_helpers(inner)) {
                             llvm_emit_structural_secure_slot_release(ctx, &slot_var);
                         } else {
+                            if (runtime_fn == NULL)
+                                return llvm_domain_slice_error(node, ctx,
+                                    "LLVM secure slot Release() requires MIR ABI runtime function row");
                             llvm_required_runtime_function(ctx, node,
-                                "secure slot", method_name, fn_name);
+                                "secure slot", method_name, runtime_fn);
                             return NULL;
                         }
                     }
                 } else {
-                    char fn_name[64];
+                    const char *runtime_fn =
+                        mir_abi_resource_runtime_fn_by_kind(
+                            MIR_RESOURCE_ABI_SLOT, inner, "Release");
                     LLVMFuncEntry *fn;
-                    if (!llvm_domain_slot_format_runtime_name(fn_name,
-                            sizeof(fn_name), "pgy_release", inner))
-                        return llvm_domain_slot_runtime_name_error(
-                            node, ctx, method_name);
-                    fn = llvm_lookup_function(ctx, fn_name);
+                    fn = runtime_fn != NULL
+                        ? llvm_lookup_function(ctx, runtime_fn)
+                        : NULL;
                     if (fn != NULL) {
                         LLVMValueRef args[] = {
                             llvm_slot_runtime_arg(ctx, &slot_var)
                         };
                         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
                     } else if (llvm_slot_inner_has_external_runtime_helpers(inner)) {
+                        if (runtime_fn == NULL)
+                            return llvm_domain_slice_error(node, ctx,
+                                "LLVM slot Release() requires MIR ABI runtime function row");
                         llvm_required_runtime_function(ctx, node,
-                            "slot", method_name, fn_name);
+                            "slot", method_name, runtime_fn);
                         return NULL;
                     } else {
                         llvm_direct_slot_release(ctx, &slot_var);
