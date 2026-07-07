@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../compiler/mir_abi_layout.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
@@ -80,11 +81,14 @@ emit_pin_block_enter_local(ASTNode *node, TranspilerCtx *ctx)
 {
     SlotVarEntry *slot;
     int pin_id;
-    const char *mode;
+    const char *pin_op;
+    const char *pin_fn;
+    const char *cleanup_fn;
     char slot_addr[96];
     char token_addr[96];
     const char *slot_addr_expr;
     const char *token_addr_expr;
+    MIRResourceAbiKind abi_kind;
 
     if (node == NULL || ctx == NULL || node->type != AST_BLOCK
         || !ast_block_is_pin_block(node)
@@ -96,7 +100,21 @@ emit_pin_block_enter_local(ASTNode *node, TranspilerCtx *ctx)
         return false;
 
     pin_id = ctx->tmp_counter++;
-    mode = ast_block_pin_view_is_write(node) ? "write" : "read";
+    pin_op = ast_block_pin_view_is_write(node) ? "PinWrite" : "PinRead";
+    abi_kind = slot->is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
+                               : MIR_RESOURCE_ABI_SLOT;
+    pin_fn = mir_abi_resource_runtime_fn_by_kind(
+        abi_kind, slot->inner_type, pin_op);
+    cleanup_fn = mir_abi_resource_runtime_fn_by_kind(
+        abi_kind, slot->inner_type, "UnpinCleanup");
+    if (pin_fn == NULL || cleanup_fn == NULL) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "pin block requires MIR ABI runtime function rows");
+        return false;
+    }
 
     write_indent(ctx);
     codebuf_write(ctx->out, "{\n");
@@ -113,10 +131,11 @@ emit_pin_block_enter_local(ASTNode *node, TranspilerCtx *ctx)
         }
         codebuf_write(ctx->out,
             "PgyPinnedSecureSlotView_%s __pgy_pin_%d "
-            "__attribute__((cleanup(pgy_secure_unpin_cleanup_%s))) = "
-            "pgy_secure_pin_%s_%s(%s, %s);\n",
-            slot->inner_type, pin_id, slot->inner_type,
-            mode, slot->inner_type,
+            "__attribute__((cleanup(%s))) = "
+            "%s(%s, %s);\n",
+            slot->inner_type, pin_id,
+            cleanup_fn,
+            pin_fn,
             slot_addr_expr,
             token_addr_expr);
     } else {
@@ -128,10 +147,11 @@ emit_pin_block_enter_local(ASTNode *node, TranspilerCtx *ctx)
         }
         codebuf_write(ctx->out,
             "PgyPinnedSlotView_%s __pgy_pin_%d "
-            "__attribute__((cleanup(pgy_unpin_cleanup_%s))) = "
-            "pgy_pin_%s_%s(%s);\n",
-            slot->inner_type, pin_id, slot->inner_type,
-            mode, slot->inner_type,
+            "__attribute__((cleanup(%s))) = "
+            "%s(%s);\n",
+            slot->inner_type, pin_id,
+            cleanup_fn,
+            pin_fn,
             slot_addr_expr);
     }
 

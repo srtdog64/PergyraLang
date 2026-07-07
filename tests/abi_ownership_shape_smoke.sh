@@ -128,6 +128,7 @@ require_term "src/codegen/llvm_runtime.c" '"PinWrite"'
 require_term "src/codegen/llvm_runtime.c" '"PinReadInit"'
 require_term "src/codegen/llvm_runtime.c" '"PinWriteInit"'
 require_term "src/codegen/llvm_runtime.c" '"Unpin"'
+require_term "src/compiler/mir_abi_layout.c" '"UnpinCleanup"'
 reject_term "src/codegen/llvm_runtime.c" "llvm_runtime_slot_name"
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "claim", suffix)'
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "read", suffix)'
@@ -318,7 +319,15 @@ require_term "src/codegen/llvm_mir_block_emit.c" "if (!llvm_mir_emit_borrow_view
 require_term "src/codegen/llvm_mir_resource_view.c" "inst->resource_owner_slot_anchor"
 require_term "src/codegen/llvm_mir_resource_view.c" "inst->resource_owner_requires_metadata"
 require_term "src/codegen/llvm_mir_resource_view.c" "LLVM MIR borrow view alias '%s' is missing owner slot ABI metadata"
-require_term "src/codegen/transpiler_block_emit.c" "__attribute__((cleanup(pgy_unpin_cleanup_%s)))"
+require_term "src/codegen/transpiler_block_emit.c" "__attribute__((cleanup(%s)))"
+require_term "src/codegen/transpiler_block_emit.c" "mir_abi_resource_runtime_fn_by_kind("
+require_term "src/codegen/transpiler_block_emit.c" '"PinRead"'
+require_term "src/codegen/transpiler_block_emit.c" '"PinWrite"'
+require_term "src/codegen/transpiler_block_emit.c" '"UnpinCleanup"'
+reject_term "src/codegen/transpiler_block_emit.c" "pgy_pin_%s_%s"
+reject_term "src/codegen/transpiler_block_emit.c" "pgy_secure_pin_%s_%s"
+reject_term "src/codegen/transpiler_block_emit.c" "cleanup(pgy_unpin_cleanup_%s)"
+reject_term "src/codegen/transpiler_block_emit.c" "cleanup(pgy_secure_unpin_cleanup_%s)"
 require_term "src/codegen/llvm_runtime.c" '"PinReadInit"'
 require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"PinReadInit"'
 require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"PinWriteInit"'

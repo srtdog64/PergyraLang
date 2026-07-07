@@ -360,6 +360,10 @@ require_literal "src/codegen/transpiler_enum_decl_emit.c" \
 require_literal "src/codegen/transpiler_block_emit.c" \
     "transpiler_block_pin_address_too_long"
 require_literal "src/codegen/transpiler_block_emit.c" \
+    "mir_abi_resource_runtime_fn_by_kind"
+require_literal "src/codegen/transpiler_block_emit.c" \
+    "\"UnpinCleanup\""
+require_literal "src/codegen/transpiler_block_emit.c" \
     "written >= 0 && (size_t)written < buf_size"
 require_literal "src/codegen/transpiler_decl_lookup.c" \
     "transpiler_decl_lookup_cache_store"
