@@ -5,6 +5,7 @@
 
 #include "codegen_channel_runtime_abi.h"
 
+#include <stdio.h>
 #include <string.h>
 
 static const PgyChannelRuntimePayloadAbi k_payload_abi[] = {
@@ -50,4 +51,35 @@ const char *
 pgy_channel_runtime_payload_supported_list(void)
 {
     return "Channel<Int> and Channel<String>";
+}
+
+bool
+pgy_channel_runtime_name(char *out,
+                         size_t out_size,
+                         const char *op,
+                         const char *suffix)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || op == NULL || suffix == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "pgy_channel_%s_%s", op, suffix);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+bool
+pgy_lane_channel_runtime_name(char *out,
+                              size_t out_size,
+                              const char *op,
+                              const char *suffix)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || op == NULL || suffix == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "pgy_lane_channel_%s_%s",
+        op, suffix);
+    return written >= 0 && (size_t)written < out_size;
 }

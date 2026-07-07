@@ -5,11 +5,10 @@
 
 #ifdef PGY_LLVM_ENABLED
 
+#include "codegen_channel_runtime_abi.h"
 #include "llvm_expr_task_channel_calls.h"
 #include "llvm_expr_task_channel_policy.h"
 #include "../common/execution_lane_kind.h"
-
-#include <stdio.h>
 
 #include "llvm_internal_api.h"
 #include "llvm_expr_task_calls.h"
@@ -70,30 +69,6 @@ llvm_task_channel_error(LLVMGenCtx *ctx, ASTNode *node,
             message != NULL ? message : "could not be lowered");
     }
     return NULL;
-}
-
-static bool
-llvm_task_channel_format_runtime_name(char *out, size_t out_size,
-                                      const char *prefix, const char *inner)
-{
-    int written;
-
-    if (out == NULL || out_size == 0 || prefix == NULL || inner == NULL)
-        return false;
-    written = snprintf(out, out_size, "%s_%s", prefix, inner);
-    return written >= 0 && (size_t)written < out_size;
-}
-
-static bool
-llvm_task_channel_format_op_runtime_name(char *out, size_t out_size,
-                                         const char *op, const char *inner)
-{
-    int written;
-
-    if (out == NULL || out_size == 0 || op == NULL || inner == NULL)
-        return false;
-    written = snprintf(out, out_size, "pgy_channel_%s_%s", op, inner);
-    return written >= 0 && (size_t)written < out_size;
 }
 
 static LLVMValueRef
@@ -172,8 +147,8 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         if (!llvm_required_channel_var(ctx, node, callee_name,
                 &channel, &target))
             return NULL;
-        if (!llvm_task_channel_format_runtime_name(fname, sizeof(fname),
-                "pgy_channel_close", target.inner)) {
+        if (!pgy_channel_runtime_name(fname, sizeof(fname),
+                "close", target.inner)) {
             return llvm_task_channel_error(ctx, channel, callee_name,
                 "runtime function name is too long");
         }
@@ -199,8 +174,8 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         if (val == NULL)
             return llvm_task_channel_error(ctx, node, callee_name,
                 "could not lower send value expression");
-        if (!llvm_task_channel_format_runtime_name(fname, sizeof(fname),
-                "pgy_lane_channel_try_send", target.inner)) {
+        if (!pgy_lane_channel_runtime_name(fname, sizeof(fname),
+                "try_send", target.inner)) {
             return llvm_task_channel_error(ctx, channel, callee_name,
                 "runtime function name is too long");
         }
@@ -231,8 +206,8 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         if (val == NULL)
             return llvm_task_channel_error(ctx, node, callee_name,
                 "could not lower send status value expression");
-        if (!llvm_task_channel_format_runtime_name(fname,
-                sizeof(fname), "pgy_lane_channel_try_send_status_code",
+        if (!pgy_lane_channel_runtime_name(fname,
+                sizeof(fname), "try_send_status_code",
                 target.inner)) {
             return llvm_task_channel_error(ctx, channel, callee_name,
                 "runtime function name is too long");
@@ -277,8 +252,8 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
             timeout = LLVMBuildSExtOrBitCast(ctx->builder, timeout,
                 ctx->type_i64, llvm_tmp_name(ctx));
         }
-        if (!llvm_task_channel_format_runtime_name(fname, sizeof(fname),
-                "pgy_lane_channel_send_timeout", target.inner)) {
+        if (!pgy_lane_channel_runtime_name(fname, sizeof(fname),
+                "send_timeout", target.inner)) {
             return llvm_task_channel_error(ctx, channel, callee_name,
                 "runtime function name is too long");
         }
@@ -319,8 +294,8 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
             timeout = LLVMBuildSExtOrBitCast(ctx->builder, timeout,
                 ctx->type_i64, llvm_tmp_name(ctx));
         }
-        if (!llvm_task_channel_format_runtime_name(fname,
-                sizeof(fname), "pgy_lane_channel_send_timeout_status_code",
+        if (!pgy_lane_channel_runtime_name(fname,
+                sizeof(fname), "send_timeout_status_code",
                 target.inner)) {
             return llvm_task_channel_error(ctx, channel, callee_name,
                 "runtime function name is too long");
@@ -360,8 +335,8 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
                 "requires a concrete LLVM value type for Channel<T>");
 
         if (op == LLVM_TASK_CHANNEL_OP_TRY_RECV) {
-            if (!llvm_task_channel_format_runtime_name(fname, sizeof(fname),
-                    "pgy_lane_channel_try_recv_result", target.inner)) {
+            if (!pgy_lane_channel_runtime_name(fname, sizeof(fname),
+                    "try_recv_result", target.inner)) {
                 return llvm_task_channel_error(ctx, channel, callee_name,
                     "runtime function name is too long");
             }
@@ -386,8 +361,8 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
             timeout = LLVMBuildSExtOrBitCast(ctx->builder, timeout,
                 ctx->type_i64, llvm_tmp_name(ctx));
         }
-        if (!llvm_task_channel_format_runtime_name(fname, sizeof(fname),
-                "pgy_lane_channel_recv_timeout_result", target.inner)) {
+        if (!pgy_lane_channel_runtime_name(fname, sizeof(fname),
+                "recv_timeout_result", target.inner)) {
             return llvm_task_channel_error(ctx, channel, callee_name,
                 "runtime function name is too long");
         }
@@ -416,7 +391,7 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
             if (!llvm_required_channel_var(ctx, node, callee_name,
                     &channel, &target))
                 return NULL;
-            if (!llvm_task_channel_format_op_runtime_name(fname, sizeof(fname),
+            if (!pgy_channel_runtime_name(fname, sizeof(fname),
                     op, target.inner)) {
                 return llvm_task_channel_error(ctx, channel, callee_name,
                     "runtime function name is too long");

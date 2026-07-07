@@ -16,6 +16,14 @@ require_literal() {
         fail "$rel missing memory/string safety term: $term"
 }
 
+reject_literal() {
+    local rel="$1"
+    local term="$2"
+
+    ! grep -Fq -- "$term" "$ROOT_DIR/$rel" ||
+        fail "$rel still contains forbidden memory/string safety term: $term"
+}
+
 unsafe_calls="$(
     grep -RInE '\b(sprintf|vsprintf|strcpy|strncpy|strcat|strncat|gets)[[:space:]]*\(' \
         "$ROOT_DIR/src" \
@@ -119,16 +127,18 @@ require_literal "src/compiler/path_utils.c" \
     "ext_len > ((size_t)-1) - base_len - 1"
 require_literal "src/codegen/transpiler_mir_resource_op_core.c" \
     "return written >= 0 && (size_t)written < out_size"
-require_literal "src/codegen/llvm_expr_channel.c" \
+require_literal "src/codegen/codegen_channel_runtime_abi.c" \
+    "pgy_channel_runtime_name"
+require_literal "src/codegen/codegen_channel_runtime_abi.c" \
+    "pgy_lane_channel_runtime_name"
+require_literal "src/codegen/codegen_channel_runtime_abi.c" \
+    "return written >= 0 && (size_t)written < out_size"
+reject_literal "src/codegen/llvm_expr_channel.c" \
     "llvm_channel_format_runtime_name"
-require_literal "src/codegen/llvm_expr_channel.c" \
-    "return written >= 0 && (size_t)written < out_size"
-require_literal "src/codegen/llvm_expr_task_channel_calls.c" \
+reject_literal "src/codegen/llvm_expr_task_channel_calls.c" \
     "llvm_task_channel_format_runtime_name"
-require_literal "src/codegen/llvm_expr_task_channel_calls.c" \
+reject_literal "src/codegen/llvm_expr_task_channel_calls.c" \
     "llvm_task_channel_format_op_runtime_name"
-require_literal "src/codegen/llvm_expr_task_channel_calls.c" \
-    "return written >= 0 && (size_t)written < out_size"
 require_literal "src/codegen/llvm_stmt_parallel_names.c" \
     "llvm_select_channel_runtime_name"
 require_literal "src/codegen/llvm_stmt_parallel_names.c" \
@@ -270,9 +280,13 @@ require_literal "src/codegen/llvm_intent_emit_support.c" \
 require_literal "src/codegen/llvm_intent_emit_support.c" \
     "written >= 0 && (size_t)written < out_size"
 require_literal "src/codegen/llvm_runtime_channels.c" \
-    "llvm_runtime_channel_name"
+    "pgy_channel_runtime_name"
 require_literal "src/codegen/llvm_runtime_channels.c" \
-    "return written >= 0 && (size_t)written < out_size"
+    "pgy_lane_channel_runtime_name"
+reject_literal "src/codegen/llvm_runtime_channels.c" \
+    "llvm_runtime_channel_name"
+reject_literal "src/codegen/llvm_runtime_channels.c" \
+    "llvm_runtime_lane_channel_name"
 require_literal "src/codegen/llvm_runtime_secure_slot_decl.c" \
     "mir_abi_resource_runtime_fn_by_type_name"
 require_literal "src/codegen/llvm_runtime_secure_slot_decl.c" \

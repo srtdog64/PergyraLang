@@ -1436,4 +1436,34 @@ grep -Fq 'Do not let detached `async { ... }` capture local storage by pointer' 
 grep -Fq '`Channel<T>` is a mutex/condvar-backed value today' \
     "$ROOT_DIR/AGENTS.md"
 
+grep -Fq "pgy_channel_runtime_name" \
+    "$ROOT_DIR/src/codegen/codegen_channel_runtime_abi.c"
+grep -Fq "pgy_lane_channel_runtime_name" \
+    "$ROOT_DIR/src/codegen/codegen_channel_runtime_abi.c"
+if grep -F 'llvm_runtime_channel_name' \
+    "$ROOT_DIR/src/codegen/llvm_runtime_channels.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM channel runtime declarations must not synthesize runtime function names locally" >&2
+    exit 1
+fi
+if grep -F 'llvm_runtime_lane_channel_name' \
+    "$ROOT_DIR/src/codegen/llvm_runtime_channels.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM lane channel runtime declarations must not synthesize runtime function names locally" >&2
+    exit 1
+fi
+if grep -F 'llvm_channel_format_runtime_name' \
+    "$ROOT_DIR/src/codegen/llvm_expr_channel.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM channel expressions must consume channel runtime ABI names" >&2
+    exit 1
+fi
+if grep -F 'llvm_task_channel_format_runtime_name' \
+    "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM task/channel calls must consume channel runtime ABI names" >&2
+    exit 1
+fi
+if grep -F 'llvm_task_channel_format_op_runtime_name' \
+    "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM task/channel query calls must consume channel runtime ABI names" >&2
+    exit 1
+fi
+
 echo "[backend-fail-closed] C/LLVM fail-open fallback guards ok"
