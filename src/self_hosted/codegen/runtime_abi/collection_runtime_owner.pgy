@@ -3,6 +3,7 @@
 // Self-host C collection runtime symbol facts for the supported codegen subset.
 
 import "../text/text_owner.pgy";
+import "../../compiler/abi_layout_row_owner.pgy";
 
 // The AST-text bridge currently prints generic actuals as `Array<T: T>`.
 // Normalize bridge spelling at the owner boundary so emission participants
@@ -139,4 +140,19 @@ func CollectionRuntimeCIntMapFn() -> String {
 
 func CollectionRuntimeCIntFilterFn() -> String {
     return "pgy_ai_filter";
+}
+
+func CollectionRuntimeCodegenAstTextNodeArrayBlock() -> String {
+    let array_type: String = CompilerAbiLayoutArrayCodegenAstTextNodeCValueType();
+    let block: String = "";
+    block = Concat(block, Concat("typedef struct { CodegenAstTextNode *data; long long len; long long cap; } ", Concat(array_type, ";\n\n")));
+    block = Concat(block, Concat("static ", Concat(array_type, Concat(" ", Concat(CollectionRuntimeCNewFn(3), Concat("(void) { ", Concat(array_type, " a; a.data = NULL; a.len = 0; a.cap = 0; return a; }\n")))))));
+    block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCPushFn(3), Concat("(", Concat(array_type, " *a, CodegenAstTextNode v) {\n")))));
+    block = Concat(block, "    if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (CodegenAstTextNode *)realloc(a->data, (size_t)a->cap * sizeof(CodegenAstTextNode)); }\n");
+    block = Concat(block, "    a->data[a->len++] = v;\n}\n");
+    block = Concat(block, Concat("static CodegenAstTextNode ", Concat(CollectionRuntimeCGetFn(3), Concat("(", Concat(array_type, " a, long long i) { return a.data[i]; }\n")))));
+    block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCSetFn(3), Concat("(", Concat(array_type, " *a, long long i, CodegenAstTextNode v) { a->data[i] = v; }\n")))));
+    block = Concat(block, Concat("static long long ", Concat(CollectionRuntimeCLenFn(3), Concat("(", Concat(array_type, " a) { return a.len; }\n")))));
+    block = Concat(block, Concat("static CodegenAstTextNode ", Concat(CollectionRuntimeCPopFn(3), Concat("(", Concat(array_type, " *a) { return a->len > 0 ? a->data[--a->len] : (CodegenAstTextNode){0, \"\", -1, 0}; }\n\n")))));
+    return block;
 }
