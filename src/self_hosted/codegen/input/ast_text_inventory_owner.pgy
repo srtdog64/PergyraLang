@@ -310,62 +310,6 @@ func CodegenAstTextEnumName(node: CodegenAstTextNode) -> String {
     return node.name;
 }
 
-func CodegenAstTextEnumVariantPayload(node: CodegenAstTextNode) -> String {
-    if !CodegenAstTextIsEnumDecl(node) {
-        Die(Concat("expected enum declaration AST line: ", node.text));
-    }
-    return node.aux_payload;
-}
-
-func CodegenAstTextEnumVariantCount(node: CodegenAstTextNode) -> Int {
-    let rem: String = CodegenAstTextEnumVariantPayload(node);
-    let count: Int = 0;
-    while StringLength(rem) > 0 {
-        let comma_opt: Option<Int> = FindTopLevelComma(rem);
-        let part: String = "";
-        if !IsSome(comma_opt) {
-            part = StringTrim(rem);
-            rem = "";
-        } else {
-            let comma: Int = UnwrapOption(comma_opt);
-            part = StringTrim(Substring(rem, 0, comma));
-            rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
-        }
-        if StringLength(part) > 0 {
-            count = count + 1;
-        }
-    }
-    return count;
-}
-
-func CodegenAstTextEnumVariantNameAt(node: CodegenAstTextNode, index: Int) -> String {
-    let rem: String = CodegenAstTextEnumVariantPayload(node);
-    let cur: Int = 0;
-    while StringLength(rem) > 0 {
-        let comma_opt: Option<Int> = FindTopLevelComma(rem);
-        let part: String = "";
-        if !IsSome(comma_opt) {
-            part = StringTrim(rem);
-            rem = "";
-        } else {
-            let comma: Int = UnwrapOption(comma_opt);
-            part = StringTrim(Substring(rem, 0, comma));
-            rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
-        }
-        if StringLength(part) > 0 {
-            if cur == index {
-                if StringIndexOf(part, "(") >= 0 {
-                    Die(Concat("payload enum variants are not supported in self-host codegen subset: ", part));
-                }
-                return part;
-            }
-            cur = cur + 1;
-        }
-    }
-    Die(Concat("enum variant index out of bounds: ", ToString(index)));
-    return "";
-}
-
 func CodegenAstTextNominalName(node: CodegenAstTextNode) -> String {
     if !CodegenAstTextIsNominalDecl(node) || node.name == "" {
         Die(Concat("expected nominal declaration AST line: ", node.text));
