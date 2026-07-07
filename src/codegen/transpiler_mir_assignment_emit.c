@@ -13,7 +13,7 @@
 #include "../parser/ast_api.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
-#include "transpiler_expr_dispatch_emit.h"
+#include "transpiler_expr_assignment_emit.h"
 #include "transpiler_mir_block_emit_helpers.h"
 #include "transpiler_mir_expr_ssa.h"
 #include "transpiler_mir_local_binding.h"

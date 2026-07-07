@@ -768,7 +768,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_stmt_population.c" "mir_instruction_has_source_statement_order(&old_insts[r])"
     require_literal "src/compiler/mir_stmt_population.c" "mir_stmt_population_append"
     require_literal "src/codegen/transpiler_mir_assignment_emit.c" "transpiler_emit_mir_assignment_expr_stmt"
-    require_literal "src/codegen/transpiler_expr_dispatch_emit.h" "transpiler_emit_assignment_expression_parts"
+    require_literal "src/codegen/transpiler_expr_assignment_emit.h" "transpiler_emit_assignment_expression_parts"
     require_literal "src/codegen/transpiler_mir_assignment_emit.c" "transpiler_mir_def_is_source_assignment_emit"
     require_literal "src/codegen/transpiler_mir_preserved_let_emit.c" "source-local slot let"
     require_literal "src/codegen/transpiler_mir_preserved_let_emit.c" "source-local channel let"

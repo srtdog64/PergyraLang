@@ -476,9 +476,9 @@ if grep -F 'slot_builtin_strdup_fmt(const char *fmt' \
     exit 1
 fi
 grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
-    "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"
+    "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
 grep -Fq "C expression slot %s requires MIR ABI runtime function row" \
-    "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"
+    "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
 grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
     "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"
 grep -Fq "C slot method %s requires MIR ABI runtime function row" \
@@ -538,12 +538,12 @@ if grep -F 'pgy_submit_device_read_%s(&%s)' \
     exit 1
 fi
 if grep -F 'pgy_write_%s(%s, %s)' \
-    "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c" >/dev/null; then
+    "$ROOT_DIR/src/codegen/transpiler_expr_assignment_emit.c" >/dev/null; then
     echo "[backend-fail-closed] C expression slot Write must consume MIR ABI runtime rows" >&2
     exit 1
 fi
 if grep -F 'pgy_secure_write_%s(%s, %s, &%s)' \
-    "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c" >/dev/null; then
+    "$ROOT_DIR/src/codegen/transpiler_expr_assignment_emit.c" >/dev/null; then
     echo "[backend-fail-closed] C expression secure slot Write must consume MIR ABI runtime rows" >&2
     exit 1
 fi
