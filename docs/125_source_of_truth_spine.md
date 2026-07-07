@@ -427,7 +427,8 @@ Current beta closure snapshot:
   auto-release cleanup also consume row-backed runtime names. Source-level
   `with slot` alias claim/release emission consumes the same rows for Claim
   and Release. C MIR destructuring for `ClaimSlot`/`ClaimSecureSlot` consumes
-  the Claim rows as well. C source-level pin block emitters consume row-backed
+  the Claim rows as well. C class field-claim helpers consume Claim rows from
+  the same ABI owner. C source-level pin block emitters consume row-backed
   PinRead/PinWrite and UnpinCleanup names; cleanup attributes are not allowed
   to synthesize `pgy_claim_*`, `pgy_read_*`, `pgy_write_*`, `pgy_device_*`,
   `pgy_release_*`, or `pgy_unpin_cleanup_*` suffixes locally.
