@@ -1724,7 +1724,11 @@ reject_text "src/self_hosted/codegen/emission/program_emit.pgy" '"pgy_option_non
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCParamType"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCReturnType"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCFieldType"
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutIsVoidReturnType"
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "func AbiLayoutCDefaultReturnValue"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "AbiLayoutCLocalType"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "AbiLayoutIsVoidReturnType"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "AbiLayoutCDefaultReturnValue"
 require_text "src/self_hosted/codegen/text/text_owner.pgy" "func FindMatchingBracket(s: String, open_idx: Int) -> Option<Int>"
 require_text "src/self_hosted/codegen/text/text_owner.pgy" "func FindMatchingParen(s: String, open_idx: Int) -> Option<Int>"
 require_text "src/self_hosted/codegen/text/text_owner.pgy" "func FindTopLevelPlus(s: String) -> Option<Int>"
@@ -1791,6 +1795,9 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'return Concat("lon
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'return Concat("const char* "'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'return Concat("pgy_result_int "'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'return Concat("pgy_option_int "'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'bare = "return \"\";"'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'bare = "return 0.0;"'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'bare = "return 0;"'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"long long "'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '(long long)('
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '(double)('

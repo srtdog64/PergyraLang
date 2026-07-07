@@ -45,6 +45,28 @@ func AbiLayoutCReturnType(type_name: String, struct_env: String) -> String {
     return AbiLayoutCValueType(type_name, struct_env);
 }
 
+func AbiLayoutIsVoidReturnType(type_name: String) -> Bool {
+    return type_name == CompilerAbiLayoutVoidTypeName();
+}
+
+func AbiLayoutCDefaultReturnValue(type_name: String, struct_env: String) -> String {
+    AbiLayoutRequireCompilerRows();
+    if type_name == CompilerAbiLayoutStringTypeName() {
+        return "\"\"";
+    }
+    if type_name == CompilerAbiLayoutFloatTypeName() {
+        return "0.0";
+    }
+    if type_name == CompilerAbiLayoutIntTypeName() || type_name == CompilerAbiLayoutBoolTypeName() {
+        return "0";
+    }
+    if LookupKindType(struct_env, type_name, "enum") == "payload_free" {
+        return "0";
+    }
+    Die(Concat("unsupported bare return default for C ABI type: ", type_name));
+    return "";
+}
+
 func AbiLayoutCLocalType(type_name: String, struct_env: String) -> String {
     return AbiLayoutCValueType(type_name, struct_env);
 }

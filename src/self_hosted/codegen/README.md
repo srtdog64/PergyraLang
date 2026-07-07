@@ -94,7 +94,9 @@ recursion are free. `Main` lowers to `int main(void)`, or to
   `For: <var> in <a>..<b> { ... }` (exclusive upper bound -> C `for`), and
   `Break` / `Continue` -> structural lowering of the AST's indentation-nested
   `Block` / `Then` / `Else` via a recursive emitter.
-- `Return: <expr>` / bare `Return:` -> routed by the function's return type.
+- `Return: <expr>` / bare `Return:` -> routed by the function's return type;
+  bare-return defaults consume ABI owner facts and fail closed when no default
+  value is owned for the return type.
 - `Let: <name> : Array<Int>|Array<String> = [a, b, c]` -> growable struct
   (`pgy_ai` / `pgy_as`, a `{data,len,cap}`); the literal lowers to `new()` plus
   one `push` per element (`[]` is just `new()`). `ArrayPush(xs, v)`,

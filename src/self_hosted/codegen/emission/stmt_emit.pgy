@@ -346,16 +346,10 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
             ArraySet(cur, 0, idx + 1);
         } else if CodegenAstArenaIsBareReturnStmt(arena, idx) {
             // Bare return (the AST printer omits the colon when there is no
-            // value). The C form follows the *C* return type: void -> `return;`,
-            // otherwise a typed default (Main lowers to `int main`, so its
-            // cur_fn_ret is passed as "Int" -> `return 0;`).
+            // value). The C form follows owner-owned ABI return facts.
             let bare: String = "return;";
-            if cur_fn_ret == "String" {
-                bare = "return \"\";";
-            } else if cur_fn_ret == "Float" {
-                bare = "return 0.0;";
-            } else if cur_fn_ret != "Void" {
-                bare = "return 0;";
+            if !AbiLayoutIsVoidReturnType(cur_fn_ret) {
+                bare = Concat("return ", Concat(AbiLayoutCDefaultReturnValue(cur_fn_ret, env_box[0]), ";"));
             }
             result = Concat(result, deferred);
             result = Concat(result, active_defers);
