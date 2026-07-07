@@ -140,9 +140,9 @@ require_literal "src/runtime/slot_manager_security_stats.c" \
 require_literal "src/runtime/slot_manager_security_stats.c" \
     "localtime_r(&now, out)"
 require_literal "src/codegen/llvm_expr_slot_device_calls.c" \
-    "llvm_slot_format_runtime_name"
-require_literal "src/codegen/llvm_expr_slot_device_calls.c" \
-    "return written >= 0 && (size_t)written < out_size"
+    "mir_abi_resource_runtime_fn_by_kind"
+require_literal "src/compiler/mir_abi_layout.c" \
+    'ABI_RESOURCE_OP("DeviceSlot<Int>", "SubmitRead"'
 require_literal "src/codegen/llvm_expr_array_calls.c" \
     "llvm_array_format_runtime_name"
 require_literal "src/codegen/llvm_expr_array_calls.c" \

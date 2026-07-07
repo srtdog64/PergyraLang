@@ -82,33 +82,6 @@ llvm_slot_builtin_require_argc(ASTNode *node, LLVMGenCtx *ctx,
 }
 
 static bool
-llvm_slot_format_runtime_name(char *out, size_t out_size,
-                              const char *prefix, const char *inner)
-{
-    int written;
-
-    if (out == NULL || out_size == 0 || prefix == NULL || inner == NULL)
-        return false;
-    written = snprintf(out, out_size, "%s_%s", prefix, inner);
-    return written >= 0 && (size_t)written < out_size;
-}
-
-static bool
-llvm_slot_report_runtime_name(ASTNode *node, LLVMGenCtx *ctx,
-                              const char *callee_name, LLVMValueRef *out)
-{
-    llvm_set_error_at_with_hints(ctx, node,
-        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-        "LLVM %s runtime function name is too long",
-        callee_name != NULL ? callee_name : "slot operation");
-    if (out != NULL)
-        *out = NULL;
-    return true;
-}
-
-static bool
 llvm_slot_builtin_error_out(ASTNode *node, LLVMGenCtx *ctx,
                             const char *message, LLVMValueRef *out)
 {
@@ -408,7 +381,6 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                 out);
 
         const char *runtime_fn = NULL;
-        char fn_name[64];
         if (op == LLVM_SLOT_BUILTIN_OP_DEVICE_READ) {
             runtime_fn = mir_abi_resource_runtime_fn_by_kind(
                 MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "Read");
@@ -416,10 +388,8 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             runtime_fn = mir_abi_resource_runtime_fn_by_kind(
                 MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "Release");
         } else {
-            if (!llvm_slot_format_runtime_name(fn_name, sizeof(fn_name),
-                    "pgy_submit_device_read", inner))
-                return llvm_slot_report_runtime_name(node, ctx, callee_name, out);
-            runtime_fn = fn_name;
+            runtime_fn = mir_abi_resource_runtime_fn_by_kind(
+                MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "SubmitRead");
         }
         if (runtime_fn == NULL)
             return llvm_slot_builtin_error_out(node, ctx,

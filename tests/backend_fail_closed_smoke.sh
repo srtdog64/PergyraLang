@@ -148,6 +148,8 @@ if grep -F 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "release", suffix)'
 fi
 grep -Fq "mir_abi_resource_runtime_fn_by_type_name(device_abi_type_name," \
     "$ROOT_DIR/src/codegen/llvm_runtime.c"
+grep -Fq '"SubmitRead"' \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c"
 if grep -F 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "claim_device", suffix)' \
     "$ROOT_DIR/src/codegen/llvm_runtime.c" >/dev/null; then
     echo "[backend-fail-closed] LLVM device slot claim declaration must consume MIR ABI runtime function rows" >&2
@@ -166,6 +168,11 @@ fi
 if grep -F 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "release_device", suffix)' \
     "$ROOT_DIR/src/codegen/llvm_runtime.c" >/dev/null; then
     echo "[backend-fail-closed] LLVM device slot release declaration must consume MIR ABI runtime function rows" >&2
+    exit 1
+fi
+if grep -F 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "submit_device_read", suffix)' \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM device slot submit-read declaration must consume MIR ABI runtime function rows" >&2
     exit 1
 fi
 grep -Fq "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")" \
@@ -313,6 +320,16 @@ fi
 if grep -F '"pgy_release_device", inner' \
     "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c" >/dev/null; then
     echo "[backend-fail-closed] LLVM ReleaseDeviceSlot call emission must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F '"pgy_submit_device_read", inner' \
+    "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM SubmitDeviceRead call emission must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'llvm_slot_format_runtime_name' \
+    "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM slot/device call emission must not synthesize runtime function names locally" >&2
     exit 1
 fi
 if grep -F 'transpiler_format_slot_runtime_fn(' \

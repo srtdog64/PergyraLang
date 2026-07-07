@@ -113,6 +113,7 @@ require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("SecureSlot<Int>"
 require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("SecureSlot<Long>"'
 require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("DeviceSlot<Int>"'
 require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("DeviceSlot<Long>"'
+require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OP("DeviceSlot<Int>", "SubmitRead"'
 require_term "src/codegen/transpiler_mir_resource_op_core.c" "mir_abi_resource_runtime_fn(effective_layout, op_name)"
 reject_term "src/codegen/transpiler_mir_resource_op_core.c" "transpiler_format_slot_runtime_fn"
 require_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")"
@@ -124,10 +125,12 @@ reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "write", suffix)'
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "release", suffix)'
 require_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_fn_by_type_name(device_abi_type_name,"
+require_term "src/codegen/llvm_runtime.c" '"SubmitRead"'
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "claim_device", suffix)'
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "device_read", suffix)'
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "device_write", suffix)'
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "release_device", suffix)'
+reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "submit_device_read", suffix)'
 require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")"
 require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Read\")"
 require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Write\")"
@@ -169,6 +172,8 @@ reject_term "src/codegen/llvm_expr_slot_device_calls.c" 'is_secure ? "pgy_secure
 reject_term "src/codegen/llvm_expr_slot_device_calls.c" '"pgy_device_write", inner'
 reject_term "src/codegen/llvm_expr_slot_device_calls.c" '"pgy_device_read", inner'
 reject_term "src/codegen/llvm_expr_slot_device_calls.c" '"pgy_release_device", inner'
+reject_term "src/codegen/llvm_expr_slot_device_calls.c" '"pgy_submit_device_read", inner'
+reject_term "src/codegen/llvm_expr_slot_device_calls.c" "llvm_slot_format_runtime_name"
 require_term "src/test_abi_spec.c" "runtime size matches checked ABI"
 reject_term "src/test_abi_spec.c" "PGY_RUNTIME_SLOT_MODE_CHECKED"
 reject_term "src/test_abi_spec.c" "raw slot mode"

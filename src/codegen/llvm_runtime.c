@@ -225,11 +225,14 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef params[] = { ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_task_handle, params, 1, 0);
-          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "submit_device_read", suffix)) {
-              llvm_set_error(ctx, "device slot submit-read runtime name is too long");
+          const char *runtime_fn =
+              mir_abi_resource_runtime_fn_by_type_name(device_abi_type_name,
+                                                       "SubmitRead");
+          if (runtime_fn == NULL) {
+              llvm_set_error(ctx, "device slot submit-read runtime ABI row is missing");
               return;
           }
-          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_task_handle); }
     }
 

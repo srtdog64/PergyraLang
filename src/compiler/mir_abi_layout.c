@@ -262,11 +262,14 @@ typedef struct
     const char *runtime_fn;
 } MIRResourceRuntimeFnRow;
 
+#define ABI_RESOURCE_OP(type_name, op_name, runtime_fn) \
+    { (type_name), (op_name), (runtime_fn) }
+
 #define ABI_RESOURCE_OPS(type_name, claim_fn, read_fn, write_fn, release_fn) \
-    { (type_name), "Claim", (claim_fn) }, \
-    { (type_name), "Read", (read_fn) }, \
-    { (type_name), "Release", (release_fn) }, \
-    { (type_name), "Write", (write_fn) }
+    ABI_RESOURCE_OP((type_name), "Claim", (claim_fn)), \
+    ABI_RESOURCE_OP((type_name), "Read", (read_fn)), \
+    ABI_RESOURCE_OP((type_name), "Release", (release_fn)), \
+    ABI_RESOURCE_OP((type_name), "Write", (write_fn))
 
 static const MIRResourceRuntimeFnRow k_abi_resource_runtime_fn_table[] = {
     ABI_RESOURCE_OPS("Slot<Int>", "pgy_claim_Int", "pgy_read_Int",
@@ -319,12 +322,26 @@ static const MIRResourceRuntimeFnRow k_abi_resource_runtime_fn_table[] = {
     ABI_RESOURCE_OPS("DeviceSlot<String>", "pgy_claim_device_String",
                      "pgy_device_read_String", "pgy_device_write_String",
                      "pgy_release_device_String"),
+
+    ABI_RESOURCE_OP("DeviceSlot<Int>", "SubmitRead",
+                    "pgy_submit_device_read_Int"),
+    ABI_RESOURCE_OP("DeviceSlot<Long>", "SubmitRead",
+                    "pgy_submit_device_read_Long"),
+    ABI_RESOURCE_OP("DeviceSlot<Float>", "SubmitRead",
+                    "pgy_submit_device_read_Float"),
+    ABI_RESOURCE_OP("DeviceSlot<Double>", "SubmitRead",
+                    "pgy_submit_device_read_Double"),
+    ABI_RESOURCE_OP("DeviceSlot<Bool>", "SubmitRead",
+                    "pgy_submit_device_read_Bool"),
+    ABI_RESOURCE_OP("DeviceSlot<String>", "SubmitRead",
+                    "pgy_submit_device_read_String"),
 };
 
 #define PGY_ABI_RESOURCE_RUNTIME_FN_COUNT \
     (sizeof(k_abi_resource_runtime_fn_table) / sizeof(k_abi_resource_runtime_fn_table[0]))
 
 #undef ABI_RESOURCE_OPS
+#undef ABI_RESOURCE_OP
 
 static const MIRTypeLayout *
 abi_type_lookup_by_name(const char *pergyra_type_name)
