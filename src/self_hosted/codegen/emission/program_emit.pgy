@@ -10,6 +10,7 @@ import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/host_io_runtime_owner.pgy";
 import "../runtime_abi/math_runtime_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
+import "../runtime_abi/string_runtime_owner.pgy";
 import "function_emit.pgy";
 
 func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
@@ -177,16 +178,10 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
     }
     header = Concat(header, "\n");
     if uses_log {
-        // String Log: strip all trailing newlines, then emit exactly one (the
-        // oracle's `Log` semantics). Self-contained (no string.h dependency).
-        header = Concat(header, "static void pgy_log(const char *s)\n{\n");
-        header = Concat(header, "    long long n = 0;\n    while (s[n] != '\\0') { n++; }\n");
-        header = Concat(header, "    while (n > 0 && (s[n-1] == '\\n' || s[n-1] == '\\r')) { n--; }\n");
-        header = Concat(header, "    fwrite(s, 1, (size_t)n, stdout);\n    putchar('\\n');\n}\n\n");
+        header = Concat(header, StringRuntimeCLogBlock());
     }
     if uses_print {
-        // Print: write to stdout with no added newline.
-        header = Concat(header, "static void pgy_print(const char *s)\n{\n    fputs(s, stdout);\n}\n\n");
+        header = Concat(header, StringRuntimeCPrintBlock());
     }
     if uses_random_value {
         header = Concat(header, MathRuntimeCRandomValueBlock());
@@ -272,74 +267,7 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
         header = Concat(header, "    return a;\n}\n\n");
     }
     if uses_str {
-        header = Concat(header, "static char *pgy_concat(const char *a, const char *b)\n{\n");
-        header = Concat(header, "    size_t la = strlen(a);\n    size_t lb = strlen(b);\n");
-        header = Concat(header, "    char *r = (char *)malloc(la + lb + 1);\n");
-        header = Concat(header, "    memcpy(r, a, la);\n    memcpy(r + la, b, lb);\n    r[la + lb] = '\\0';\n");
-        header = Concat(header, "    return r;\n}\n\n");
-        header = Concat(header, "static long long pgy_strlen(const char *s)\n{\n");
-        header = Concat(header, "    return (long long)strlen(s);\n}\n\n");
-        header = Concat(header, "static char *pgy_charatn(const char *s, long long len, long long i)\n{\n");
-        header = Concat(header, "    if (s == NULL || i < 0 || i >= len) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
-        header = Concat(header, "    char *r = (char *)malloc(2);\n    r[0] = s[i];\n    r[1] = '\\0';\n    return r;\n}\n\n");
-        header = Concat(header, "static long long pgy_charcode(const char *s, long long len, long long i)\n{\n");
-        header = Concat(header, "    if (s == NULL || i < 0 || i >= len) return -1;\n");
-        header = Concat(header, "    return (long long)(unsigned char)s[i];\n}\n\n");
-        header = Concat(header, "static char *pgy_substr(const char *s, long long start, long long len)\n{\n");
-        header = Concat(header, "    char *r = (char *)malloc((size_t)len + 1);\n");
-        header = Concat(header, "    memcpy(r, s + start, (size_t)len);\n    r[len] = '\\0';\n");
-        header = Concat(header, "    return r;\n}\n\n");
-        header = Concat(header, "static long long pgy_strindexof(const char *hay, const char *needle)\n{\n");
-        header = Concat(header, "    const char *p = strstr(hay, needle);\n");
-        header = Concat(header, "    if (p == NULL) { return -1; }\n");
-        header = Concat(header, "    return (long long)(p - hay);\n}\n\n");
-        header = Concat(header, "static char *pgy_strtrim(const char *s)\n{\n");
-        header = Concat(header, "    while (*s == ' ' || *s == '\\t' || *s == '\\n' || *s == '\\r') { s++; }\n");
-        header = Concat(header, "    size_t len = strlen(s);\n");
-        header = Concat(header, "    while (len > 0 && (s[len-1] == ' ' || s[len-1] == '\\t' || s[len-1] == '\\n' || s[len-1] == '\\r')) { len--; }\n");
-        header = Concat(header, "    char *r = (char *)malloc(len + 1);\n");
-        header = Concat(header, "    memcpy(r, s, len);\n    r[len] = '\\0';\n");
-        header = Concat(header, "    return r;\n}\n\n");
-        header = Concat(header, "static char *pgy_tostr(long long v)\n{\n");
-        header = Concat(header, "    char *r = (char *)malloc(24);\n");
-        header = Concat(header, "    sprintf(r, \"%lld\", v);\n    return r;\n}\n\n");
-        header = Concat(header, "static int pgy_strcontains(const char *h, const char *n)\n{\n");
-        header = Concat(header, "    return strstr(h, n) != NULL ? 1 : 0;\n}\n\n");
-        header = Concat(header, "static long long pgy_subindexof_with_len(const char *s, long long source_len, long long start, long long len, const char *needle)\n{\n");
-        header = Concat(header, "    if (s == NULL || needle == NULL || source_len < 0 || start < 0 || start >= source_len || len <= 0) return -1;\n");
-        header = Concat(header, "    if (len > source_len - start) len = source_len - start;\n    size_t nl = strlen(needle);\n    if (nl == 0) return 0;\n    if ((size_t)len < nl) return -1;\n");
-        header = Concat(header, "    if (nl == 1) { const char *m = (const char *)memchr(s + start, needle[0], (size_t)len); return m ? (long long)(m - (s + start)) : -1; }\n");
-        header = Concat(header, "    long long limit = len - (long long)nl;\n    for (long long i = 0; i <= limit; i++) { if (memcmp(s + start + i, needle, nl) == 0) return i; }\n    return -1;\n}\n\n");
-        header = Concat(header, "static int pgy_subequals_with_len(const char *s, long long source_len, long long start, long long len, const char *other)\n{\n");
-        header = Concat(header, "    if (other == NULL) return 0;\n    if (s == NULL || source_len < 0 || start < 0 || start >= source_len || len <= 0) return strlen(other) == 0 ? 1 : 0;\n");
-        header = Concat(header, "    if (len > source_len - start) len = source_len - start;\n    size_t n = strlen(other);\n    if ((size_t)len != n) return 0;\n");
-        header = Concat(header, "    if (n == 0) return 1;\n    if (n == 1) return s[start] == other[0];\n    if (n == 2) return s[start] == other[0] && s[start + 1] == other[1];\n");
-        header = Concat(header, "    if (n == 3) return s[start] == other[0] && s[start + 1] == other[1] && s[start + 2] == other[2];\n");
-        header = Concat(header, "    if (n == 4) return s[start] == other[0] && s[start + 1] == other[1] && s[start + 2] == other[2] && s[start + 3] == other[3];\n");
-        header = Concat(header, "    return memcmp(s + start, other, n) == 0;\n}\n\n");
-        header = Concat(header, "static int pgy_subcontains_with_len(const char *s, long long source_len, long long start, long long len, const char *needle)\n{\n");
-        header = Concat(header, "    return pgy_subindexof_with_len(s, source_len, start, len, needle) >= 0;\n}\n\n");
-        header = Concat(header, "static int pgy_substartswith_with_len(const char *s, long long source_len, long long start, const char *prefix)\n{\n");
-        header = Concat(header, "    if (s == NULL || prefix == NULL || source_len < 0 || start < 0 || start > source_len) return 0;\n");
-        header = Concat(header, "    size_t n = strlen(prefix);\n    if (n == 0) return 1;\n    if ((size_t)(source_len - start) < n) return 0;\n");
-        header = Concat(header, "    return pgy_subequals_with_len(s, source_len, start, (long long)n, prefix);\n}\n\n");
-        header = Concat(header, "static long long pgy_toint(const char *s)\n{\n    return atoll(s);\n}\n\n");
-        header = Concat(header, "static char *pgy_toupper(const char *s)\n{\n");
-        header = Concat(header, "    size_t n = strlen(s);\n    char *r = (char *)malloc(n + 1);\n");
-        header = Concat(header, "    for (size_t i = 0; i < n; i++) { char c = s[i]; r[i] = (c >= 'a' && c <= 'z') ? (char)(c - 32) : c; }\n");
-        header = Concat(header, "    r[n] = '\\0';\n    return r;\n}\n\n");
-        header = Concat(header, "static char *pgy_tolower(const char *s)\n{\n");
-        header = Concat(header, "    size_t n = strlen(s);\n    char *r = (char *)malloc(n + 1);\n");
-        header = Concat(header, "    for (size_t i = 0; i < n; i++) { char c = s[i]; r[i] = (c >= 'A' && c <= 'Z') ? (char)(c + 32) : c; }\n");
-        header = Concat(header, "    r[n] = '\\0';\n    return r;\n}\n\n");
-        header = Concat(header, "static char *pgy_strreplace(const char *s, const char *from, const char *to)\n{\n");
-        header = Concat(header, "    size_t fl = strlen(from);\n    if (fl == 0) { return pgy_concat(s, \"\"); }\n");
-        header = Concat(header, "    size_t tl = strlen(to);\n    size_t cnt = 0;\n    const char *p = s;\n");
-        header = Concat(header, "    while ((p = strstr(p, from)) != NULL) { cnt++; p += fl; }\n");
-        header = Concat(header, "    char *r = (char *)malloc(strlen(s) + cnt * (tl > fl ? tl - fl : 0) + 1);\n");
-        header = Concat(header, "    char *w = r;\n    const char *q = s;\n");
-        header = Concat(header, "    while (*q) {\n        if (strncmp(q, from, fl) == 0) { memcpy(w, to, tl); w += tl; q += fl; }\n");
-        header = Concat(header, "        else { *w++ = *q++; }\n    }\n    *w = '\\0';\n    return r;\n}\n\n");
+        header = Concat(header, StringRuntimeCStringCoreBlock());
     }
     if uses_math {
         header = Concat(header, MathRuntimeCIntUtilityBlock());
