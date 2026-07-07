@@ -479,6 +479,10 @@ grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
     "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"
 grep -Fq "C expression slot %s requires MIR ABI runtime function row" \
     "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"
+grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"
+grep -Fq "C slot method %s requires MIR ABI runtime function row" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"
 if grep -F 'pgy_write_%s(%s, %s)' \
     "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c" >/dev/null; then
     echo "[backend-fail-closed] C source slot Write must consume MIR ABI runtime rows" >&2
@@ -537,6 +541,36 @@ fi
 if grep -F 'pgy_secure_read_%s(&%s, &%s)' \
     "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c" >/dev/null; then
     echo "[backend-fail-closed] C expression secure SSA slot Read must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'pgy_write_%s(%s, %s)' \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C slot method Write must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'pgy_secure_write_%s(%s, %s, &%s)' \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C secure slot method Write must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'pgy_read_%s(%s)' \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C slot method Read must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'pgy_secure_read_%s(%s, &%s)' \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C secure slot method Read must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'pgy_release_%s(%s)' \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C slot method Release must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'pgy_secure_release_%s(%s, &%s)' \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C secure slot method Release must consume MIR ABI runtime rows" >&2
     exit 1
 fi
 grep -Fq "typed declarator fails closed on malformed AST type" \

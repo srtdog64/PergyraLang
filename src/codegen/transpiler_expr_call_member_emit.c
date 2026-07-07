@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../compiler/mir_abi_layout.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "codegen_slot_type_policy.h"
@@ -52,6 +53,28 @@ transpiler_member_call_emit_part(TranspilerCtx *ctx,
         "C backend: member call %s could not lower %s expression",
         method_name != NULL ? method_name : "(anonymous-method)",
         role != NULL ? role : "operand");
+    return NULL;
+}
+
+static const char *
+member_slot_runtime_fn(TranspilerCtx *ctx,
+                       bool secure,
+                       const char *inner_type,
+                       const char *operation)
+{
+    const char *runtime_fn = mir_abi_resource_runtime_fn_by_kind(
+        secure ? MIR_RESOURCE_ABI_SECURE_SLOT : MIR_RESOURCE_ABI_SLOT,
+        inner_type, operation);
+    if (runtime_fn != NULL)
+        return runtime_fn;
+
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_INSPECT_MIR_INVENTORY,
+        "C slot method %s requires MIR ABI runtime function row",
+        operation != NULL ? operation : "<unknown>");
     return NULL;
 }
 
@@ -441,16 +464,26 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 if (is_secure && ast_call_arg_count(call) >= 2) {
                     char *tok = transpiler_member_call_emit_part(ctx,
                         ast_call_argument(call, 1), method, "write token");
+                    const char *write_fn;
                     if (tok == NULL) {
                         free(val_expr);
                         free(slot_ref);
                         free(obj_expr);
                         return NULL;
                     }
-                    result = strdup_fmt("pgy_secure_write_%s(%s, %s, &%s)",
-                                        inner, slot_ref, val_expr, tok);
+                    write_fn = member_slot_runtime_fn(ctx, true, inner, "Write");
+                    if (write_fn == NULL) {
+                        free(tok);
+                        free(val_expr);
+                        free(slot_ref);
+                        free(obj_expr);
+                        return NULL;
+                    }
+                    result = strdup_fmt("%s(%s, %s, &%s)",
+                                        write_fn, slot_ref, val_expr, tok);
                     free(tok);
                 } else if (is_secure) {
+                    const char *write_fn;
                     const char *token_name = require_slot_token_name(
                         ctx, obj_name, "SecureSlot method Write");
                     if (token_name == NULL) {
@@ -459,11 +492,26 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         free(obj_expr);
                         return NULL;
                     }
-                    result = strdup_fmt("pgy_secure_write_%s(%s, %s, &%s)",
-                                        inner, slot_ref, val_expr, token_name);
+                    write_fn = member_slot_runtime_fn(ctx, true, inner, "Write");
+                    if (write_fn == NULL) {
+                        free(val_expr);
+                        free(slot_ref);
+                        free(obj_expr);
+                        return NULL;
+                    }
+                    result = strdup_fmt("%s(%s, %s, &%s)",
+                                        write_fn, slot_ref, val_expr, token_name);
                 } else {
-                    result = strdup_fmt("pgy_write_%s(%s, %s)",
-                                        inner, slot_ref, val_expr);
+                    const char *write_fn =
+                        member_slot_runtime_fn(ctx, false, inner, "Write");
+                    if (write_fn == NULL) {
+                        free(val_expr);
+                        free(slot_ref);
+                        free(obj_expr);
+                        return NULL;
+                    }
+                    result = strdup_fmt("%s(%s, %s)",
+                                        write_fn, slot_ref, val_expr);
                 }
                 free(val_expr);
                 free(slot_ref);
@@ -472,6 +520,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             } else if (pgy_codegen_call_name_is_read(method)) {
                 char *result;
                 if (is_secure) {
+                    const char *read_fn;
                     const char *token_name = require_slot_token_name(
                         ctx, obj_name, "SecureSlot method Read");
                     if (token_name == NULL) {
@@ -479,10 +528,23 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         free(obj_expr);
                         return NULL;
                     }
-                    result = strdup_fmt("pgy_secure_read_%s(%s, &%s)",
-                                        inner, slot_ref, token_name);
+                    read_fn = member_slot_runtime_fn(ctx, true, inner, "Read");
+                    if (read_fn == NULL) {
+                        free(slot_ref);
+                        free(obj_expr);
+                        return NULL;
+                    }
+                    result = strdup_fmt("%s(%s, &%s)",
+                                        read_fn, slot_ref, token_name);
                 } else {
-                    result = strdup_fmt("pgy_read_%s(%s)", inner, slot_ref);
+                    const char *read_fn =
+                        member_slot_runtime_fn(ctx, false, inner, "Read");
+                    if (read_fn == NULL) {
+                        free(slot_ref);
+                        free(obj_expr);
+                        return NULL;
+                    }
+                    result = strdup_fmt("%s(%s)", read_fn, slot_ref);
                 }
                 free(slot_ref);
                 free(obj_expr);
@@ -490,6 +552,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             } else if (pgy_codegen_call_name_is_release(method)) {
                 char *result;
                 if (is_secure) {
+                    const char *release_fn;
                     const char *token_name = require_slot_token_name(
                         ctx, obj_name, "SecureSlot method Release");
                     if (token_name == NULL) {
@@ -497,10 +560,24 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         free(obj_expr);
                         return NULL;
                     }
-                    result = strdup_fmt("pgy_secure_release_%s(%s, &%s)",
-                                        inner, slot_ref, token_name);
+                    release_fn = member_slot_runtime_fn(
+                        ctx, true, inner, "Release");
+                    if (release_fn == NULL) {
+                        free(slot_ref);
+                        free(obj_expr);
+                        return NULL;
+                    }
+                    result = strdup_fmt("%s(%s, &%s)",
+                                        release_fn, slot_ref, token_name);
                 } else {
-                    result = strdup_fmt("pgy_release_%s(%s)", inner, slot_ref);
+                    const char *release_fn =
+                        member_slot_runtime_fn(ctx, false, inner, "Release");
+                    if (release_fn == NULL) {
+                        free(slot_ref);
+                        free(obj_expr);
+                        return NULL;
+                    }
+                    result = strdup_fmt("%s(%s)", release_fn, slot_ref);
                 }
                 for (int ri = 0; ri < ctx->slot_var_count; ri++) {
                     if (strcmp(ctx->slot_vars[ri].name,
