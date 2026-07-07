@@ -128,6 +128,7 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/codegen/text/expr_sequence_owner.pgy` -- top-level comma-separated expression sequence facts.
 - `src/self_hosted/codegen/text/struct_literal_call_owner.pgy` -- struct literal call-envelope facts.
 - `src/self_hosted/codegen/text/struct_literal_field_owner.pgy` -- struct literal field-name/value entry facts.
+- `src/self_hosted/codegen/text/struct_field_access_owner.pgy` -- dotted member-access field spelling projection facts.
 - `src/self_hosted/codegen/type_facts/type_env.pgy` -- type environment facts.
 - `src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy` -- self-host C ABI type spelling facts, including nominal struct type and empty parameter-list spelling.
 - `src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy` -- self-host C collection runtime symbol facts.
@@ -192,8 +193,8 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/compiler/abi_layout_row_manifest.pgy` -- runnable ABI row
   projection over the ABI layout row owner for parity/golden comparison.
 - `src/self_hosted/compiler/symbol_table_owner.pgy` -- cross-backend symbol row
-  fact vocabulary for C/LLVM/self-hosted projections, including inout parameter
-  and try/match emission temporary spelling.
+  fact vocabulary for C/LLVM/self-hosted projections, including struct field,
+  inout parameter, and try/match emission temporary spelling.
 - `src/self_hosted/compiler/stage_artifact_owner.pgy` -- stage artifact
   envelope facts that bind token, AST, semantic, and MIR stage actors to the
   compiler-world path manifest rows.

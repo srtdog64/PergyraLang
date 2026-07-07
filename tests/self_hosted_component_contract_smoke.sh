@@ -784,6 +784,7 @@ reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTarg
 reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetFallbackReasonAt(4) == "host_only_slot_boundary"'
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCQualifiedName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCTypeName"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCFieldName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolRequireTable"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "CompilerSymbolRequireTable();"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolSourceOwnerRow"
@@ -1279,6 +1280,7 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(env_box
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaTypeNameOrDie(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaAtomOrDie(arena, j)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaTypeNameOrDie(arena, j)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCFieldName(fname)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=pm:"'
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCInoutParamName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCTryTempName"
@@ -1517,9 +1519,19 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func ExpectText"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitCollectionElementValue"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitStructValue(value_expr, elem_type, env)"
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "AbiLayoutCStructTypeName(sname)"
+require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'import "../../compiler/symbol_table_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "CompilerSymbolCFieldName(fld)"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "AbiLayoutCStructTypeName(expected_type)"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'import "../text/struct_field_access_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "RewriteStructFieldAccess(b, env)"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CompilerSymbolCFieldName(fld)"
+require_text "src/self_hosted/codegen/text/struct_field_access_owner.pgy" "func RewriteStructFieldAccess"
+require_text "src/self_hosted/codegen/text/struct_field_access_owner.pgy" "CompilerSymbolCFieldName(field)"
 reject_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'Concat("(", Concat(sname, "){ "))'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'Concat("(", Concat(expected_type, "){ "))'
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(fname, ";\n")'
+reject_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'Concat(".", Concat(fld,'
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'Concat(".", Concat(fld,'
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "func RewriteInoutCallArgs"
 reject_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func ResolveCallSymbol"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func ParamTypeCsvAppend"
@@ -1557,6 +1569,8 @@ require_text "src/self_hosted/codegen/text/struct_literal_call_owner.pgy" "func 
 require_text "src/self_hosted/codegen/text/struct_literal_call_owner.pgy" "func StructLiteralCallFactOrDie"
 require_text "src/self_hosted/codegen/text/struct_literal_field_owner.pgy" "struct StructLiteralFieldEntryFact"
 require_text "src/self_hosted/codegen/text/struct_literal_field_owner.pgy" "func StructLiteralFieldEntryFactOrDie"
+require_text "src/self_hosted/codegen/text/struct_field_access_owner.pgy" 'import "../type_facts/type_env.pgy";'
+require_text "src/self_hosted/codegen/text/struct_field_access_owner.pgy" 'import "../../compiler/symbol_table_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'import "../text/struct_literal_call_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'import "../text/struct_literal_call_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'import "../text/struct_literal_field_owner.pgy";'

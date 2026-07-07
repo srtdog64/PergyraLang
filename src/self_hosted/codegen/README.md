@@ -25,7 +25,9 @@ resource-shaped subdirectories:
 - `run/` owns CLI-to-output orchestration.
 - `text/` owns AST/expression text scanning primitives.
 - `type_facts/` owns type binding facts consumed as read-mostly evidence.
-- `../compiler/symbol_table_owner.pgy` owns emitted-symbol spelling rows.
+- `../compiler/symbol_table_owner.pgy` owns emitted-symbol spelling rows,
+  including struct field spellings in declarations, literals, and member
+  access.
 - `abi_layout/` owns self-host C ABI type spelling for signatures, locals, and fields.
 - `runtime_abi/` owns self-host C collection, math/random, host I/O/argv,
   Option/Result, and string/text runtime helper symbol spelling.
@@ -182,6 +184,8 @@ lists so emission participants do not reimplement list splitting.
 `Name(...)` recognition plus the typed type-name/inner-payload fact row.
 `text/struct_literal_field_owner.pgy` owns the typed struct literal field-entry
 fact row, including positional field fallback from collected field rows.
+`text/struct_field_access_owner.pgy` owns dotted member-access field spelling
+projection from source-space field facts into emitted C field names.
 Function signature and statement body emission now
 consume this typed node owner for function headers, parameters, return lines,
 body markers, and statement reads. Parameter mode spelling (`inout`, `own`,
@@ -194,10 +198,11 @@ expression lowering used by `let`, assignment, and return paths;
 `emission/stmt_emit.pgy` consumes that boundary instead of owning struct literal
 policy directly. `compiler/symbol_table_owner.pgy` owns emitted-symbol spelling
 rows for function names, owner-qualified methods, role operator names,
-payload-free enum variants, `inout` temporary parameter names, and try/match
-emission temporary names in the supported subset; emitters must consume that
-compiler-world owner instead of locally concatenating owner/member or temporary
-spellings, and projection fails closed if the symbol row envelope is not ready.
+payload-free enum variants, struct fields, `inout` temporary parameter names,
+and try/match emission temporary names in the supported subset; emitters must
+consume that compiler-world owner instead of locally concatenating owner/member,
+field, or temporary spellings, and projection fails closed if the symbol row
+envelope is not ready.
 `abi_layout/abi_layout_owner.pgy` owns C ABI type spelling for parameter,
 return, local, struct/class field, nominal struct type, and empty
 parameter-list declarations in the supported subset; emitters must consume that

@@ -4,6 +4,7 @@ import "../text/expr_scan.pgy";
 import "../text/expr_sequence_owner.pgy";
 import "../text/struct_literal_call_owner.pgy";
 import "../text/struct_literal_field_owner.pgy";
+import "../text/struct_field_access_owner.pgy";
 import "../type_facts/type_env.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
@@ -293,7 +294,8 @@ func RewriteStructLiteralCallArg(expr: String, expected_type: String, env: Strin
             } else {
                 Die(Concat("unsupported struct argument field type: ", ftype));
             }
-            out = Concat(out, Concat(".", Concat(fld, Concat(" = (", Concat(cval, ")")))));
+            let c_fld: String = CompilerSymbolCFieldName(fld);
+            out = Concat(out, Concat(".", Concat(c_fld, Concat(" = (", Concat(cval, ")")))));
             first = false;
         }
         field_pos = field_pos + 1;
@@ -471,7 +473,8 @@ func RewriteTokens(e: String, env: String) -> String {
         some_scan_i = some_scan_i + 1;
     }
     let b: String = RewriteIndexing(optioned, env);
-    let c: String = ReplaceAllOutsideStrings(b, "StringLength(", Concat(StringRuntimeCStringLengthFn(), "("));
+    let fielded: String = RewriteStructFieldAccess(b, env);
+    let c: String = ReplaceAllOutsideStrings(fielded, "StringLength(", Concat(StringRuntimeCStringLengthFn(), "("));
     let d0: String = ReplaceAllOutsideStrings(c, "StringContains(", Concat(StringRuntimeCStringContainsFn(), "("));
     let d: String = ReplaceAllOutsideStrings(d0, "StringIndexOf(", Concat(StringRuntimeCStringIndexOfFn(), "("));
     let f0: String = ReplaceAllOutsideStrings(d, "Split(", Concat(StringRuntimeCSplitFn(), "("));

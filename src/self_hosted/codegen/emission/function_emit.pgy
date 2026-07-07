@@ -226,13 +226,14 @@ func CollectStructs(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAren
                 let fname: String = CodegenAstArenaAtomOrDie(arena, j);
                 let ftype: String = CodegenAstArenaTypeNameOrDie(arena, j);
                 let cfield_type: String = AbiLayoutCFieldType(ftype, env_box[0]);
+                let c_fname: String = CompilerSymbolCFieldName(fname);
                 if StringLength(field_names) == 0 {
                     field_names = fname;
                 } else {
                     field_names = Concat(field_names, Concat(",", fname));
                 }
                 ArraySet(env_box, 0, Concat(env_box[0], Concat(sname, Concat(".", Concat(fname, Concat("=field:", Concat(ftype, "|")))))));
-                fields_c = Concat(fields_c, Concat("    ", Concat(cfield_type, Concat(" ", Concat(fname, ";\n")))));
+                fields_c = Concat(fields_c, Concat("    ", Concat(cfield_type, Concat(" ", Concat(c_fname, ";\n")))));
                 j = j + 1;
             }
             typedefs = Concat(typedefs, Concat("typedef struct {\n", Concat(fields_c, Concat("} ", Concat(c_sname, ";\n\n")))));

@@ -1,0 +1,63 @@
+// Struct field member-access spelling projection for self-host C emission.
+
+import "text_owner.pgy";
+import "../type_facts/type_env.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+
+func RewriteStructFieldAccess(e: String, env: String) -> String {
+    let n: Int = StringLength(e);
+    let out: String = "";
+    let i: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CodegenCharAt(e, i);
+        if in_str {
+            out = Concat(out, c);
+            if c == "\\" && i + 1 < n {
+                out = Concat(out, CodegenCharAt(e, i + 1));
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            out = Concat(out, c);
+            i = i + 1;
+            continue;
+        }
+        if c == "." {
+            let receiver_start: Int = i;
+            while receiver_start > 0 &&
+                (IsIdentChar(CodegenCharAt(e, receiver_start - 1)) ||
+                 CodegenCharAt(e, receiver_start - 1) == ".") {
+                receiver_start = receiver_start - 1;
+            }
+            let has_receiver: Bool = receiver_start < i && IsIdentChar(CodegenCharAt(e, i - 1));
+            let has_field: Bool = i + 1 < n && IsIdentStart(CodegenCharAt(e, i + 1));
+            if has_receiver && has_field {
+                let j: Int = i + 1;
+                while j < n && IsIdentChar(CodegenCharAt(e, j)) {
+                    j = j + 1;
+                }
+                if j >= n || CodegenCharAt(e, j) != "(" {
+                    let receiver: String = Substring(e, receiver_start, i - receiver_start);
+                    let field: String = Substring(e, i + 1, j - (i + 1));
+                    let owner_type: String = ExprKind(receiver, env);
+                    if StringLength(LookupFieldType(env, owner_type, field)) > 0 {
+                        out = Concat(out, Concat(".", CompilerSymbolCFieldName(field)));
+                        i = j;
+                        continue;
+                    }
+                }
+            }
+        }
+        out = Concat(out, c);
+        i = i + 1;
+    }
+    return out;
+}

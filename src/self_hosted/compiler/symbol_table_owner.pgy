@@ -122,6 +122,9 @@ func CompilerSymbolCQualifiedName(owner_name: String, member_name: String) -> St
 func CompilerSymbolCTypeName(type_name: String) -> String {
     return CompilerSymbolCIdentifier(type_name);
 }
+func CompilerSymbolCFieldName(field_name: String) -> String {
+    return CompilerSymbolCIdentifier(field_name);
+}
 func CompilerSymbolCInoutParamName(param_name: String) -> String {
     return Concat("_pgy_inout_", CompilerSymbolCIdentifier(param_name));
 }
