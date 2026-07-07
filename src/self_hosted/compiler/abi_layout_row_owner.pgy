@@ -65,6 +65,9 @@ func CompilerAbiLayoutRowsReady() -> Bool {
         CompilerAbiLayoutRowMaterializationAt(0) == CompilerAbiLayoutFieldAllowedMaterialization() &&
         CompilerAbiLayoutRowTypeNameAt(9) == CompilerAbiLayoutOptionStringTypeName() &&
         CompilerAbiLayoutRowCValueTypeAt(9) == CompilerAbiLayoutOptionStringCValueType() &&
+        CompilerAbiLayoutVoidTypeName() != "" &&
+        CompilerAbiLayoutVoidCValueType() != "" &&
+        CompilerAbiLayoutPayloadFreeEnumCValueType() == CompilerAbiLayoutIntCValueType() &&
         CompilerAbiLayoutRowMaterializationAt(9) == CompilerAbiLayoutRuntimeValueOnlyMaterialization();
 }
 func CompilerAbiLayoutConcreteRowCount() -> Int {
@@ -99,6 +102,9 @@ func CompilerAbiLayoutOptionIntTypeName() -> String {
 }
 func CompilerAbiLayoutOptionStringTypeName() -> String {
     return "Option<String>";
+}
+func CompilerAbiLayoutVoidTypeName() -> String {
+    return "Void";
 }
 func CompilerAbiLayoutArrayIntExplicitTypeName() -> String {
     return "Array<Int: Int>";
@@ -160,6 +166,12 @@ func CompilerAbiLayoutOptionIntCValueType() -> String {
 }
 func CompilerAbiLayoutOptionStringCValueType() -> String {
     return "pgy_option_string";
+}
+func CompilerAbiLayoutVoidCValueType() -> String {
+    return "void";
+}
+func CompilerAbiLayoutPayloadFreeEnumCValueType() -> String {
+    return CompilerAbiLayoutIntCValueType();
 }
 func CompilerAbiLayoutRowCValueTypeAt(index: Int) -> String {
     if index == 0 { return CompilerAbiLayoutIntCValueType(); }

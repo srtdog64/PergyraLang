@@ -833,10 +833,16 @@ require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'import "
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutRowsReady()"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutRowIndex(type_name)"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutRowCValueTypeAt(UnwrapOption(row))"
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutVoidTypeName()"
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutVoidCValueType()"
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutPayloadFreeEnumCValueType()"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutFieldAllowed(type_name)"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'LookupKindType(struct_env, type_name, "enum") == "payload_free"'
 reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CollectionRuntimeKindFromTypeName"
 reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'import "../runtime_abi/collection_runtime_owner.pgy";'
+reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'type_name == "Void"'
+reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'return "void";'
+reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" 'return "long long";'
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutConcreteRowCount"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutRowIndex"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutRowCValueTypeAt"
@@ -859,6 +865,9 @@ require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerA
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutOptionStringTypeName"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutOptionStringCValueType"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutOptionStringExplicitTypeName"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutVoidTypeName"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutVoidCValueType"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutPayloadFreeEnumCValueType"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutFieldAllowedMaterialization"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutRuntimeValueOnlyMaterialization"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLayoutRowFactAt(0) == CompilerAbiLayoutDeclNameFact()"
@@ -871,6 +880,7 @@ require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLay
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLayoutRowTypeNameAt(9) == CompilerAbiLayoutOptionStringTypeName()"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLayoutRowCValueTypeAt(9) == CompilerAbiLayoutOptionStringCValueType()"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLayoutRowMaterializationAt(9) == CompilerAbiLayoutRuntimeValueOnlyMaterialization()"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLayoutPayloadFreeEnumCValueType() == CompilerAbiLayoutIntCValueType()"
 reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'CompilerAbiLayoutRowFactAt(0) == "decl_name"'
 reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'CompilerAbiLayoutRowFactAt(7) == "materialization_policy"'
 reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'CompilerAbiLayoutRowFieldOrderAt(4) == "data,len,cap"'
