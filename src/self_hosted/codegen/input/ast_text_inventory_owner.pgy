@@ -241,19 +241,6 @@ func CodegenAstTextProvenance(node: CodegenAstTextNode) -> String {
     return provenance;
 }
 
-func CodegenAstTextParamModeName(mode: Int) -> String {
-    if mode == 1 {
-        return "inout";
-    }
-    if mode == 2 {
-        return "own";
-    }
-    if mode == 3 {
-        return "ref";
-    }
-    return "default";
-}
-
 func CodegenAstTextIndentOf(raw: String) -> Int {
     let n: Int = StringLength(raw);
     let i: Int = 0;

@@ -395,6 +395,19 @@ func CodegenAstArenaModeOrDie(arena: AstArena, node_id: Int) -> Int {
     return UnwrapOption(mode);
 }
 
+func CodegenAstArenaParamModeName(mode: Int) -> String {
+    if mode == 1 {
+        return "inout";
+    }
+    if mode == 2 {
+        return "own";
+    }
+    if mode == 3 {
+        return "ref";
+    }
+    return "default";
+}
+
 func CodegenAstArenaParamTypeOrDie(arena: AstArena, node_id: Int, owner_name: String) -> String {
     let type_name: Option<String> = TypedAstArenaTypeName(arena, node_id);
     if IsSome(type_name) {
