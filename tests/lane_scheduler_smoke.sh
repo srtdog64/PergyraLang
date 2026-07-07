@@ -107,12 +107,15 @@ grep -Fq "pgy_lane_detach(_ah_" \
 grep -Fq 'pgy_lane_cancel(%s)' \
     "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.c" \
     || fail "C Cancel builtin does not consume the lane cancel facade"
-grep -Fq "pgy_lane_channel_send_%s(PGY_LANE_PINNED_ZONE" \
+grep -Fq "transpiler_spawn_channel_runtime_symbol" \
     "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c" \
-    || fail "C channel send lowering does not consume the pinned channel lane facade"
-grep -Fq "pgy_lane_channel_recv_val_%s(PGY_LANE_PINNED_ZONE" \
+    || fail "C spawn/channel lowering does not consume the channel runtime ABI owner"
+grep -Fq "\"send\", inner" \
     "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c" \
-    || fail "C channel recv lowering does not consume the pinned channel lane facade"
+    || fail "C channel send lowering does not preserve the pinned channel lane facade op"
+grep -Fq "\"recv_val\", inner" \
+    "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c" \
+    || fail "C channel recv lowering does not preserve the pinned channel lane facade op"
 grep -Fq "pgy_lane_channel_runtime_name" \
     "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.c" \
     || fail "C channel stdlib lowering does not consume the channel runtime ABI owner"

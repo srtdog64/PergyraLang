@@ -8,6 +8,7 @@
 #include "../semantic/diag_codes.h"
 #include "../compiler/execution_lane.h"
 
+#include "codegen_channel_runtime_abi.h"
 #include "transpiler_context.h"
 #include "transpiler_channel_type_query.h"
 #include "transpiler_decl_lookup.h"
@@ -42,6 +43,26 @@ transpiler_spawn_channel_emit_expr(TranspilerCtx *ctx,
         operation != NULL ? operation : "spawn/channel operation",
         role != NULL ? role : "operand");
     return NULL;
+}
+
+static bool
+transpiler_spawn_channel_runtime_symbol(TranspilerCtx *ctx,
+                                        const char *operation,
+                                        const char *runtime_op,
+                                        const char *inner,
+                                        char *out,
+                                        size_t out_size)
+{
+    if (pgy_lane_channel_runtime_name(out, out_size, runtime_op, inner))
+        return true;
+
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_INSPECT_MIR_INVENTORY,
+        "C backend: %s runtime function name is too long",
+        operation != NULL ? operation : "channel operation");
+    return false;
 }
 
 static bool
@@ -424,16 +445,23 @@ emit_channel_send(ASTNode *node, TranspilerCtx *ctx)
     char inner_buf[128];
     const char *inner = transpiler_require_channel_inner_type(
         ctx, channel, "channel send", inner_buf, sizeof(inner_buf));
+    char runtime_fn[128];
 
     if (inner == NULL) {
         free(ch);
         free(val);
         return NULL;
     }
+    if (!transpiler_spawn_channel_runtime_symbol(ctx, "channel send",
+            "send", inner, runtime_fn, sizeof(runtime_fn))) {
+        free(ch);
+        free(val);
+        return NULL;
+    }
 
     char *result = strdup_fmt(
-        "pgy_lane_channel_send_%s(PGY_LANE_PINNED_ZONE, &%s, %s)",
-        inner, ch, val);
+        "%s(PGY_LANE_PINNED_ZONE, &%s, %s)",
+        runtime_fn, ch, val);
     free(ch);
     free(val);
     return result;
@@ -452,15 +480,21 @@ emit_channel_recv(ASTNode *node, TranspilerCtx *ctx)
     char inner_buf[128];
     const char *inner = transpiler_require_channel_inner_type(
         ctx, channel, "channel receive", inner_buf, sizeof(inner_buf));
+    char runtime_fn[128];
 
     if (inner == NULL) {
         free(ch);
         return NULL;
     }
+    if (!transpiler_spawn_channel_runtime_symbol(ctx, "channel receive",
+            "recv_val", inner, runtime_fn, sizeof(runtime_fn))) {
+        free(ch);
+        return NULL;
+    }
 
     char *result = strdup_fmt(
-        "pgy_lane_channel_recv_val_%s(PGY_LANE_PINNED_ZONE, &%s)",
-        inner, ch);
+        "%s(PGY_LANE_PINNED_ZONE, &%s)",
+        runtime_fn, ch);
     free(ch);
     return result;
 }

@@ -1498,5 +1498,17 @@ grep -Fq "pgy_channel_runtime_name(init_fn, sizeof(init_fn), \"init\", inner)" \
     "$ROOT_DIR/src/codegen/transpiler_let_channel_emit.c"
 grep -Fq "pgy_channel_runtime_name(init_fn_name, sizeof(init_fn_name)," \
     "$ROOT_DIR/src/codegen/llvm_mir_source_resource_defs.c"
+if grep -F 'pgy_lane_channel_send_%s(PGY_LANE_PINNED_ZONE' \
+    "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C channel send lowering must consume channel runtime ABI names" >&2
+    exit 1
+fi
+if grep -F 'pgy_lane_channel_recv_val_%s(PGY_LANE_PINNED_ZONE' \
+    "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C channel recv lowering must consume channel runtime ABI names" >&2
+    exit 1
+fi
+grep -Fq "transpiler_spawn_channel_runtime_symbol" \
+    "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
 
 echo "[backend-fail-closed] C/LLVM fail-open fallback guards ok"
