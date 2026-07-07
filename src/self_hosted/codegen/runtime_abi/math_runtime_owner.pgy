@@ -2,6 +2,8 @@
 //
 // Self-host C math/random runtime symbol facts for the supported codegen subset.
 
+import "../../compiler/abi_layout_row_owner.pgy";
+
 func MathRuntimeCAbsFn() -> String {
     return "pgy_abs";
 }
@@ -36,4 +38,32 @@ func MathRuntimeCSeedRandomFn() -> String {
 
 func MathRuntimeCRandomFn() -> String {
     return "pgy_random";
+}
+
+func MathRuntimeCRandomValueBlock() -> String {
+    let int_type: String = CompilerAbiLayoutIntCValueType();
+    let block: String = "";
+    block = Concat(block, Concat("static ", Concat(int_type, Concat(" ", Concat(MathRuntimeCRandomFn(), Concat("(", Concat(int_type, " n)\n{\n")))))));
+    block = Concat(block, "    return n > 0 ? (long long)(rand() % n) : 0;\n}\n\n");
+    return block;
+}
+
+func MathRuntimeCSeedRandomBlock() -> String {
+    let int_type: String = CompilerAbiLayoutIntCValueType();
+    let block: String = "";
+    block = Concat(block, Concat("static void ", Concat(MathRuntimeCSeedRandomFn(), Concat("(", Concat(int_type, " seed)\n{\n")))));
+    block = Concat(block, "    srand((unsigned int)seed);\n}\n\n");
+    return block;
+}
+
+func MathRuntimeCIntUtilityBlock() -> String {
+    let int_type: String = CompilerAbiLayoutIntCValueType();
+    let block: String = "";
+    block = Concat(block, Concat("static ", Concat(int_type, Concat(" ", Concat(MathRuntimeCAbsFn(), Concat("(", Concat(int_type, " v)\n{\n")))))));
+    block = Concat(block, "    return v < 0 ? -v : v;\n}\n\n");
+    block = Concat(block, Concat("static ", Concat(int_type, Concat(" ", Concat(MathRuntimeCMinFn(), Concat("(", Concat(int_type, Concat(" a, ", Concat(int_type, " b)\n{\n")))))))));
+    block = Concat(block, "    return a < b ? a : b;\n}\n\n");
+    block = Concat(block, Concat("static ", Concat(int_type, Concat(" ", Concat(MathRuntimeCMaxFn(), Concat("(", Concat(int_type, Concat(" a, ", Concat(int_type, " b)\n{\n")))))))));
+    block = Concat(block, "    return a > b ? a : b;\n}\n\n");
+    return block;
 }

@@ -8,6 +8,7 @@ import "../input/ast_text_typed_arena_owner.pgy";
 import "../input/ast_usage_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/host_io_runtime_owner.pgy";
+import "../runtime_abi/math_runtime_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "function_emit.pgy";
 
@@ -188,14 +189,10 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
         header = Concat(header, "static void pgy_print(const char *s)\n{\n    fputs(s, stdout);\n}\n\n");
     }
     if uses_random_value {
-        // Random(n): rand() % n with the default (unseeded) sequence, matching
-        // the oracle's deterministic behavior.
-        header = Concat(header, "static long long pgy_random(long long n)\n{\n");
-        header = Concat(header, "    return n > 0 ? (long long)(rand() % n) : 0;\n}\n\n");
+        header = Concat(header, MathRuntimeCRandomValueBlock());
     }
     if uses_seed_random {
-        header = Concat(header, "static void pgy_seedrandom(long long seed)\n{\n");
-        header = Concat(header, "    srand((unsigned int)seed);\n}\n\n");
+        header = Concat(header, MathRuntimeCSeedRandomBlock());
     }
     if uses_result {
         header = Concat(header, OptionResultRuntimeCResultIntBlock());
@@ -345,9 +342,7 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
         header = Concat(header, "        else { *w++ = *q++; }\n    }\n    *w = '\\0';\n    return r;\n}\n\n");
     }
     if uses_math {
-        header = Concat(header, "static long long pgy_abs(long long v)\n{\n    return v < 0 ? -v : v;\n}\n\n");
-        header = Concat(header, "static long long pgy_min(long long a, long long b)\n{\n    return a < b ? a : b;\n}\n\n");
-        header = Concat(header, "static long long pgy_max(long long a, long long b)\n{\n    return a > b ? a : b;\n}\n\n");
+        header = Concat(header, MathRuntimeCIntUtilityBlock());
     }
     // pgy_strjoin needs both the pgy_as struct (uses_array) and string.h
     // (uses_str); emit it only when StringJoin is actually used so string-only
