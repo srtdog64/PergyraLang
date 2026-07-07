@@ -186,6 +186,14 @@ func EmitBackendOutputComparatorPaths() -> Void {
     }
 }
 
+func EmitAbiLayoutRowsPaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerHarnessAbiLayoutRowsPathCount() {
+        Log(CompilerHarnessAbiLayoutRowsPathAt(i));
+        i = i + 1;
+    }
+}
+
 func EmitAirGraphJsonValidatorPaths() -> Void {
     let i: Int = 0;
     while i < CompilerHarnessAirGraphJsonValidatorPathCount() {
@@ -456,6 +464,10 @@ func Main() -> Void {
     }
     if args[0] == CompilerHarnessBackendOutputComparatorSuiteName() {
         EmitBackendOutputComparatorPaths();
+        return;
+    }
+    if args[0] == CompilerHarnessAbiLayoutRowsSuiteName() {
+        EmitAbiLayoutRowsPaths();
         return;
     }
     if args[0] == CompilerHarnessAirGraphJsonValidatorSuiteName() {

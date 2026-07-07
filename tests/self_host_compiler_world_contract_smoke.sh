@@ -69,6 +69,7 @@ require_file "src/self_hosted/compiler/test_harness_owner.pgy"
 require_file "src/self_hosted/compiler/test_harness_manifest.pgy"
 require_file "src/self_hosted/compiler/subprocess_runner_owner.pgy"
 require_file "src/self_hosted/compiler/abi_layout_row_owner.pgy"
+require_file "src/self_hosted/compiler/abi_layout_row_manifest.pgy"
 require_file "src/self_hosted/compiler/symbol_table_owner.pgy"
 require_file "src/self_hosted/compiler/stage_artifact_owner.pgy"
 require_file "src/self_hosted/compiler/authority_owner.pgy"
@@ -89,6 +90,7 @@ require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPIL
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_STAGE_ARTIFACT_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_TEST_HARNESS_MANIFEST_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_AUTHORITY_PATH"
+require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_ABI_LAYOUT_ROW_MANIFEST_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_DRIVER_RUNG0_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_DRIVER_RUNG0_MAIN_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_DRIVER_CLI_PATH"
@@ -112,6 +114,7 @@ require_max_lines "src/self_hosted/compiler/test_harness_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/test_harness_manifest.pgy" 600
 require_max_lines "src/self_hosted/compiler/subprocess_runner_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/abi_layout_row_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/abi_layout_row_manifest.pgy" 600
 require_max_lines "src/self_hosted/compiler/symbol_table_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/stage_artifact_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/authority_owner.pgy" 600
@@ -327,6 +330,7 @@ for term in \
     "func CompilerTestHarnessManifestPath" \
     "func CompilerSubprocessRunnerOwnerPath" \
     "func CompilerAbiLayoutRowOwnerPath" \
+    "func CompilerAbiLayoutRowManifestPath" \
     "func CompilerSymbolTableOwnerPath" \
     "func CompilerStageArtifactOwnerPath" \
     "func CompilerDriverRung0OwnerPath" \
@@ -355,6 +359,7 @@ for term in \
     "return CompilerTestHarnessManifestPath();" \
     "return CompilerSubprocessRunnerOwnerPath();" \
     "return CompilerAbiLayoutRowOwnerPath();" \
+    "return CompilerAbiLayoutRowManifestPath();" \
     "return CompilerSymbolTableOwnerPath();" \
     "return CompilerStageArtifactOwnerPath();" \
     "return CompilerDriverRung0OwnerPath();" \
@@ -365,14 +370,14 @@ for term in \
     "return CompilerDriverRung1ParityPath();" \
     "return CompilerOwnerManifestPath();" \
     "CompilerParityPathCount() != 8" \
-    "CompilerWorldManifestPathCount() != 31" \
-    "CompilerWorldProjectionPathCount() != 34" \
+    "CompilerWorldManifestPathCount() != 32" \
+    "CompilerWorldProjectionPathCount() != 35" \
     "compiler-world-paths" \
     "CompilerStagePathManifestReady" \
-    "if index < 18" \
-    "CompilerStagePathAt(index - 13)" \
-    "if index < 26" \
-    "CompilerParityPathAt(index - 18)" \
+    "if index < 19" \
+    "CompilerStagePathAt(index - 14)" \
+    "if index < 27" \
+    "CompilerParityPathAt(index - 19)" \
     "lexer|TokenStreamZone|LexerStage|LexSource|LexerTokenPayloadContractReady" \
     "parser|AstTreeZone|ParserStage|ParseTokens|ParserAstTreePayloadContractReady" \
     "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics|SemanticVerdictPayloadContractReady" \
@@ -719,6 +724,7 @@ require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/artifact_zone
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/subprocess_runner_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/abi_layout_row_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/abi_layout_row_manifest.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/symbol_table_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/stage_artifact_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/driver_rung0_main.pgy"

@@ -886,6 +886,33 @@ reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'CompilerAbiLayo
 reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'CompilerAbiLayoutRowMaterializationAt(0) == "field_allowed"'
 reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'CompilerAbiLayoutRowMaterializationAt(9) == "runtime_value_only"'
 reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'StringIndexOf(type_name, "Int")'
+require_file "src/self_hosted/compiler/abi_layout_row_manifest.pgy"
+require_file "src/self_hosted/compiler/expected/abi_layout_rows.txt"
+require_max_lines "src/self_hosted/compiler/abi_layout_row_manifest.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/abi_layout_row_manifest.pgy"
+require_text "src/self_hosted/compiler/abi_layout_row_manifest.pgy" 'import "abi_layout_row_owner.pgy";'
+require_text "src/self_hosted/compiler/abi_layout_row_manifest.pgy" "func CompilerAbiLayoutManifestRowAt"
+require_text "src/self_hosted/compiler/abi_layout_row_manifest.pgy" "CompilerAbiLayoutRowSchema()"
+require_text "src/self_hosted/compiler/abi_layout_row_manifest.pgy" "CompilerAbiLayoutConcreteRowCount()"
+require_text "src/self_hosted/compiler/expected/abi_layout_rows.txt" "schema=pgy.selfhost.abi-layout-row.v1"
+require_text "src/self_hosted/compiler/expected/abi_layout_rows.txt" "9|Option<String>|pgy_option_string|is_some,value|bool_presence|none|tagged_value|selfhost-c|target-c-default|runtime_value_only"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessAbiLayoutRowsSuiteName"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessAbiLayoutRowsPathAt"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessAbiLayoutRowsReady"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "func EmitAbiLayoutRowsPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessAbiLayoutRowsSuiteName()"
+require_file "tests/self_hosted/parity/abi_layout_row_manifest_parity.sh"
+require_text "tests/self_hosted/parity/abi_layout_row_manifest_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/abi_layout_row_manifest_parity.sh" '"abi-layout-rows"'
+require_text "tests/self_hosted/parity/abi_layout_row_manifest_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/abi_layout_row_manifest_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_hosted/parity/abi_layout_row_manifest_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
+require_text "tests/self_hosted/parity/abi_layout_row_manifest_parity.sh" '"abi_layout"'
+require_text "tests/self_hosted/parity/abi_layout_row_manifest_parity.sh" "assert_llvm_leg"
+reject_text "tests/self_hosted/parity/abi_layout_row_manifest_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/compiler/abi_layout_row_manifest.pgy"'
+reject_text "tests/self_hosted/parity/abi_layout_row_manifest_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/src/self_hosted/compiler/expected/abi_layout_rows.txt"'
+require_text "Makefile" "self-host-abi-layout-row-parity-test-smoke"
+require_text "Makefile" "tests/self_hosted/parity/abi_layout_row_manifest_parity.sh"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIndentOf"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "struct CodegenAstTextNode"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let kind: Int"

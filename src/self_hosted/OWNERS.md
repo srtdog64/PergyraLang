@@ -189,6 +189,8 @@ compiler-stage `.pgy` source to be listed here.
   inventory, semantic target mapping, and monotone stage-pass minima.
 - `src/self_hosted/compiler/abi_layout_row_owner.pgy` -- cross-backend ABI row
   fact vocabulary for field order, niche, tags, ownership, and layout.
+- `src/self_hosted/compiler/abi_layout_row_manifest.pgy` -- runnable ABI row
+  projection over the ABI layout row owner for parity/golden comparison.
 - `src/self_hosted/compiler/symbol_table_owner.pgy` -- cross-backend symbol row
   fact vocabulary for C/LLVM/self-hosted projections.
 - `src/self_hosted/compiler/stage_artifact_owner.pgy` -- stage artifact

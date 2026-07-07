@@ -1,0 +1,39 @@
+// Runnable ABI row projection over abi_layout_row_owner.pgy.
+
+import "abi_layout_row_owner.pgy";
+
+func CompilerAbiLayoutManifestRowAt(index: Int) -> String {
+    let row0: String = Concat(ToString(index), "|");
+    let row1: String = Concat(row0, CompilerAbiLayoutRowTypeNameAt(index));
+    let row2: String = Concat(row1, "|");
+    let row3: String = Concat(row2, CompilerAbiLayoutRowCValueTypeAt(index));
+    let row4: String = Concat(row3, "|");
+    let row5: String = Concat(row4, CompilerAbiLayoutRowFieldOrderAt(index));
+    let row6: String = Concat(row5, "|");
+    let row7: String = Concat(row6, CompilerAbiLayoutRowTagKindAt(index));
+    let row8: String = Concat(row7, "|");
+    let row9: String = Concat(row8, CompilerAbiLayoutRowNicheAt(index));
+    let row10: String = Concat(row9, "|");
+    let row11: String = Concat(row10, CompilerAbiLayoutRowOwnershipShapeAt(index));
+    let row12: String = Concat(row11, "|");
+    let row13: String = Concat(row12, CompilerAbiLayoutRowTargetAbiAt(index));
+    let row14: String = Concat(row13, "|");
+    let row15: String = Concat(row14, CompilerAbiLayoutRowSizeAlignAt(index));
+    let row16: String = Concat(row15, "|");
+    return Concat(row16, CompilerAbiLayoutRowMaterializationAt(index));
+}
+
+func Main() -> Void {
+    if !CompilerAbiLayoutRowsReady() {
+        Log("ABI_LAYOUT ERROR: row owner is not ready");
+        Exit(1);
+        return;
+    }
+    Log(Concat("schema=", CompilerAbiLayoutRowSchema()));
+    Log(Concat("count=", ToString(CompilerAbiLayoutConcreteRowCount())));
+    let i: Int = 0;
+    while i < CompilerAbiLayoutConcreteRowCount() {
+        Log(CompilerAbiLayoutManifestRowAt(i));
+        i = i + 1;
+    }
+}

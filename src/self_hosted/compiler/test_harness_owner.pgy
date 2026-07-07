@@ -147,6 +147,35 @@ func CompilerHarnessBackendOutputComparatorArgExpectedJsonPath() -> String {
     return "src/self_hosted/tools/backend_output_comparator/expected/arg_self_hosted.json";
 }
 
+func CompilerHarnessAbiLayoutRowsSuiteName() -> String {
+    return "abi-layout-rows";
+}
+
+func CompilerHarnessAbiLayoutRowsToolSourcePath() -> String {
+    return "src/self_hosted/compiler/abi_layout_row_manifest.pgy";
+}
+
+func CompilerHarnessAbiLayoutRowsExpectedPath() -> String {
+    return "src/self_hosted/compiler/expected/abi_layout_rows.txt";
+}
+
+func CompilerHarnessAbiLayoutRowsPathCount() -> Int {
+    return 2;
+}
+
+func CompilerHarnessAbiLayoutRowsPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessAbiLayoutRowsToolSourcePath(); }
+    if index == 1 { return CompilerHarnessAbiLayoutRowsExpectedPath(); }
+    return "";
+}
+
+func CompilerHarnessAbiLayoutRowsReady() -> Bool {
+    return CompilerHarnessAbiLayoutRowsSuiteName() != "" &&
+        CompilerHarnessAbiLayoutRowsPathCount() == 2 &&
+        CompilerHarnessAbiLayoutRowsPathAt(0) == CompilerHarnessAbiLayoutRowsToolSourcePath() &&
+        CompilerHarnessAbiLayoutRowsPathAt(1) == CompilerHarnessAbiLayoutRowsExpectedPath();
+}
+
 func CompilerHarnessBackendOutputComparatorPathCount() -> Int {
     return 7;
 }
@@ -291,6 +320,7 @@ func CompilerTestHarnessReady() -> Bool {
         CompilerHarnessComparableArtifactPathAt(0) == CompilerHarnessExpectedComparableArtifactPath() &&
         CompilerHarnessComparableArtifactPathAt(1) == CompilerHarnessActualComparableArtifactPath() &&
         CompilerHarnessFindingCap() > 0 &&
+        CompilerHarnessAbiLayoutRowsReady() &&
         CompilerHarnessLinterParityReady() &&
         CompilerHarnessModuleManifestResolverReady() &&
         CompilerHarnessStableSubsetSectionReady() &&
