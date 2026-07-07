@@ -413,14 +413,14 @@ Current beta closure snapshot:
   Slot-like C MIR resource operations consume
   `mir_abi_resource_runtime_fn(...)` rows for Claim/Read/Write/Release instead
   of synthesizing those names from type suffixes. LLVM Slot/SecureSlot/
-  DeviceSlot claim/read/write/release/submit-read declarations consume the same rows
+  DeviceSlot claim/read/write/release/submit-read declarations and LLVM
+  Slot/SecureSlot pin/unpin declaration registries consume the same rows
   through `mir_abi_resource_runtime_fn_by_type_name(...)`; LLVM slot builtin
   calls, slot method calls, slot assignment writes, slot initializer writes,
-  with-slot cleanup releases, statement auto-release cleanup, and slot
-  identifier auto-read consume them
-  through `mir_abi_resource_runtime_fn_by_kind(...)`. Pin declarations and C
-  direct source emitters remain separate ABI projections until their rows are
-  cut over.
+  with-slot cleanup releases, statement auto-release cleanup, slot identifier
+  auto-read, and secure MIR pin enter/exit cleanup consume them through
+  `mir_abi_resource_runtime_fn_by_kind(...)`. C direct source emitters remain a
+  separate ABI projection until their rows are cut over.
   Debug/release is a build policy, not a second ABI type-name dimension:
   canonical runtime ABI names must not grow `_dbg` or `_rel` typedef aliases.
   Checked/raw mode differences are represented by policy macros and MIR ABI

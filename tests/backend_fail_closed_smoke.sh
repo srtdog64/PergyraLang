@@ -126,6 +126,21 @@ grep -Fq "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Write\")" \
     "$ROOT_DIR/src/codegen/llvm_runtime.c"
 grep -Fq "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Release\")" \
     "$ROOT_DIR/src/codegen/llvm_runtime.c"
+grep -Fq '"PinRead"' \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+grep -Fq '"PinWrite"' \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+grep -Fq '"PinReadInit"' \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+grep -Fq '"PinWriteInit"' \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+grep -Fq '"Unpin"' \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+if grep -F 'llvm_runtime_slot_name' \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM slot runtime declarations must not synthesize runtime function names locally" >&2
+    exit 1
+fi
 if grep -F 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "claim", suffix)' \
     "$ROOT_DIR/src/codegen/llvm_runtime.c" >/dev/null; then
     echo "[backend-fail-closed] LLVM slot claim declaration must consume MIR ABI runtime function rows" >&2
@@ -183,6 +198,21 @@ grep -Fq "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Write\")" \
     "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
 grep -Fq "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Release\")" \
     "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
+grep -Fq '"PinRead"' \
+    "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
+grep -Fq '"PinWrite"' \
+    "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
+grep -Fq '"PinReadInit"' \
+    "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
+grep -Fq '"PinWriteInit"' \
+    "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
+grep -Fq '"Unpin"' \
+    "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
+if grep -F 'llvm_runtime_secure_slot_name' \
+    "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM secure slot runtime declarations must not synthesize runtime function names locally" >&2
+    exit 1
+fi
 if grep -F 'llvm_runtime_secure_slot_name(fname, sizeof(fname), "claim_secure", suf)' \
     "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c" >/dev/null; then
     echo "[backend-fail-closed] LLVM secure slot claim declaration must consume MIR ABI runtime function rows" >&2
@@ -335,6 +365,29 @@ fi
 if grep -F 'transpiler_format_slot_runtime_fn(' \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c" >/dev/null; then
     echo "[backend-fail-closed] C MIR resource op must consume MIR ABI runtime function rows" >&2
+    exit 1
+fi
+grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+    "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c"
+grep -Fq '"PinReadInit"' \
+    "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c"
+grep -Fq '"PinWriteInit"' \
+    "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c"
+grep -Fq '"Unpin"' \
+    "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c"
+if grep -F 'pgy_secure_pin_%s_init_%s' \
+    "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM secure pin enter must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'pgy_secure_unpin_%s' \
+    "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM secure pin cleanup must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'llvm_mir_unpin_name' \
+    "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM pin cleanup must not synthesize runtime function names locally" >&2
     exit 1
 fi
 grep -Fq "if (fn == NULL)" \

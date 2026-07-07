@@ -271,6 +271,13 @@ typedef struct
     ABI_RESOURCE_OP((type_name), "Release", (release_fn)), \
     ABI_RESOURCE_OP((type_name), "Write", (write_fn))
 
+#define ABI_PIN_OPS(type_name, pin_read_fn, pin_write_fn, pin_read_init_fn, pin_write_init_fn, unpin_fn) \
+    ABI_RESOURCE_OP((type_name), "PinRead", (pin_read_fn)), \
+    ABI_RESOURCE_OP((type_name), "PinWrite", (pin_write_fn)), \
+    ABI_RESOURCE_OP((type_name), "PinReadInit", (pin_read_init_fn)), \
+    ABI_RESOURCE_OP((type_name), "PinWriteInit", (pin_write_init_fn)), \
+    ABI_RESOURCE_OP((type_name), "Unpin", (unpin_fn))
+
 static const MIRResourceRuntimeFnRow k_abi_resource_runtime_fn_table[] = {
     ABI_RESOURCE_OPS("Slot<Int>", "pgy_claim_Int", "pgy_read_Int",
                      "pgy_write_Int", "pgy_release_Int"),
@@ -303,6 +310,44 @@ static const MIRResourceRuntimeFnRow k_abi_resource_runtime_fn_table[] = {
     ABI_RESOURCE_OPS("SecureSlot<String>", "pgy_claim_secure_String",
                      "pgy_secure_read_String", "pgy_secure_write_String",
                      "pgy_secure_release_String"),
+
+    ABI_PIN_OPS("Slot<Int>", "pgy_pin_read_Int", "pgy_pin_write_Int",
+                "pgy_pin_read_init_Int", "pgy_pin_write_init_Int",
+                "pgy_unpin_Int"),
+    ABI_PIN_OPS("Slot<Long>", "pgy_pin_read_Long", "pgy_pin_write_Long",
+                "pgy_pin_read_init_Long", "pgy_pin_write_init_Long",
+                "pgy_unpin_Long"),
+    ABI_PIN_OPS("Slot<Float>", "pgy_pin_read_Float", "pgy_pin_write_Float",
+                "pgy_pin_read_init_Float", "pgy_pin_write_init_Float",
+                "pgy_unpin_Float"),
+    ABI_PIN_OPS("Slot<Double>", "pgy_pin_read_Double", "pgy_pin_write_Double",
+                "pgy_pin_read_init_Double", "pgy_pin_write_init_Double",
+                "pgy_unpin_Double"),
+    ABI_PIN_OPS("Slot<Bool>", "pgy_pin_read_Bool", "pgy_pin_write_Bool",
+                "pgy_pin_read_init_Bool", "pgy_pin_write_init_Bool",
+                "pgy_unpin_Bool"),
+    ABI_PIN_OPS("Slot<String>", "pgy_pin_read_String", "pgy_pin_write_String",
+                "pgy_pin_read_init_String", "pgy_pin_write_init_String",
+                "pgy_unpin_String"),
+
+    ABI_PIN_OPS("SecureSlot<Int>", "pgy_secure_pin_read_Int",
+                "pgy_secure_pin_write_Int", "pgy_secure_pin_read_init_Int",
+                "pgy_secure_pin_write_init_Int", "pgy_secure_unpin_Int"),
+    ABI_PIN_OPS("SecureSlot<Long>", "pgy_secure_pin_read_Long",
+                "pgy_secure_pin_write_Long", "pgy_secure_pin_read_init_Long",
+                "pgy_secure_pin_write_init_Long", "pgy_secure_unpin_Long"),
+    ABI_PIN_OPS("SecureSlot<Float>", "pgy_secure_pin_read_Float",
+                "pgy_secure_pin_write_Float", "pgy_secure_pin_read_init_Float",
+                "pgy_secure_pin_write_init_Float", "pgy_secure_unpin_Float"),
+    ABI_PIN_OPS("SecureSlot<Double>", "pgy_secure_pin_read_Double",
+                "pgy_secure_pin_write_Double", "pgy_secure_pin_read_init_Double",
+                "pgy_secure_pin_write_init_Double", "pgy_secure_unpin_Double"),
+    ABI_PIN_OPS("SecureSlot<Bool>", "pgy_secure_pin_read_Bool",
+                "pgy_secure_pin_write_Bool", "pgy_secure_pin_read_init_Bool",
+                "pgy_secure_pin_write_init_Bool", "pgy_secure_unpin_Bool"),
+    ABI_PIN_OPS("SecureSlot<String>", "pgy_secure_pin_read_String",
+                "pgy_secure_pin_write_String", "pgy_secure_pin_read_init_String",
+                "pgy_secure_pin_write_init_String", "pgy_secure_unpin_String"),
 
     ABI_RESOURCE_OPS("DeviceSlot<Int>", "pgy_claim_device_Int",
                      "pgy_device_read_Int", "pgy_device_write_Int",
@@ -341,6 +386,7 @@ static const MIRResourceRuntimeFnRow k_abi_resource_runtime_fn_table[] = {
     (sizeof(k_abi_resource_runtime_fn_table) / sizeof(k_abi_resource_runtime_fn_table[0]))
 
 #undef ABI_RESOURCE_OPS
+#undef ABI_PIN_OPS
 #undef ABI_RESOURCE_OP
 
 static const MIRTypeLayout *

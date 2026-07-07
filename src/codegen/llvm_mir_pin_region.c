@@ -12,6 +12,7 @@
 #include <stdio.h>
 
 #include "../compiler/mir_cfg_contract_pin.h"
+#include "../compiler/mir_abi_layout.h"
 #include "../common/string_compat.h"
 
 static bool
@@ -42,23 +43,6 @@ llvm_mir_pin_token_name(LLVMGenCtx *ctx, char *buf, size_t buf_size,
     if (written >= 0 && (size_t)written < buf_size)
         return true;
     llvm_set_mir_topology_invalid(ctx, "MIR pin token name is too long");
-    return false;
-}
-
-static bool
-llvm_mir_pin_init_name(LLVMGenCtx *ctx, char *buf, size_t buf_size,
-                       bool is_write, const char *inner)
-{
-    int written;
-
-    if (buf == NULL || buf_size == 0 || inner == NULL)
-        return false;
-    written = snprintf(buf, buf_size, "pgy_secure_pin_%s_init_%s",
-                       is_write ? "write" : "read", inner);
-    if (written >= 0 && (size_t)written < buf_size)
-        return true;
-    llvm_set_mir_topology_invalid(ctx,
-        "MIR pin init runtime name is too long");
     return false;
 }
 
@@ -185,24 +169,6 @@ llvm_mir_emit_plain_pin_inline_exit(LLVMGenCtx *ctx,
     return true;
 }
 
-static bool
-llvm_mir_unpin_name(LLVMGenCtx *ctx, char *buf, size_t buf_size,
-                    bool is_secure, const char *inner)
-{
-    int written;
-
-    if (buf == NULL || buf_size == 0 || inner == NULL)
-        return false;
-    written = snprintf(buf, buf_size,
-                       is_secure ? "pgy_secure_unpin_%s" : "pgy_unpin_%s",
-                       inner);
-    if (written >= 0 && (size_t)written < buf_size)
-        return true;
-    llvm_set_mir_topology_invalid(ctx,
-        "MIR pin cleanup runtime name is too long");
-    return false;
-}
-
 static LLVMValueRef
 llvm_mir_slot_pointer_arg(LLVMGenCtx *ctx, LLVMVarEntry *entry)
 {
@@ -229,7 +195,6 @@ llvm_mir_emit_pin_enter(const MIRBasicBlock *block, LLVMGenCtx *ctx)
     LLVMValueRef slot_ptr_arg;
     LLVMVarEntry view_entry;
     char pin_name[64];
-    char fn_name[128];
     char token_name[256];
 
     if (block == NULL || ctx == NULL || !block->is_pin_region)
@@ -264,18 +229,23 @@ llvm_mir_emit_pin_enter(const MIRBasicBlock *block, LLVMGenCtx *ctx)
             return false;
         }
         token_alloca = token_entry.alloca;
-        if (!llvm_mir_pin_init_name(ctx, fn_name, sizeof(fn_name),
-                block->pin_view_is_write, inner))
+        const char *runtime_fn = mir_abi_resource_runtime_fn_by_kind(
+            MIR_RESOURCE_ABI_SECURE_SLOT, inner,
+            block->pin_view_is_write ? "PinWriteInit" : "PinReadInit");
+        if (runtime_fn == NULL) {
+            llvm_set_mir_topology_invalid(ctx,
+                "LLVM MIR secure pin requires MIR ABI runtime function row");
             return false;
+        }
         pin_ty = llvm_pinned_secure_slot_struct_type(ctx, inner);
-        pin_fn = llvm_lookup_function(ctx, fn_name);
+        pin_fn = llvm_lookup_function(ctx, runtime_fn);
         if (pin_fn == NULL || pin_fn->fn == NULL) {
             llvm_set_error_at_with_hints(ctx, NULL,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_INSPECT_MIR_INVENTORY,
                 "LLVM MIR secure pin requires registered runtime function '%s'",
-                fn_name);
+                runtime_fn);
             return false;
         }
         pin_alloca = llvm_create_entry_alloca(ctx, pin_ty, pin_name);
@@ -348,7 +318,6 @@ llvm_mir_emit_pin_exit(const MIRBasicBlock *block, LLVMGenCtx *ctx)
     LLVMFuncEntry *unpin_fn;
     LLVMValueRef args[1];
     char pin_name[64];
-    char fn_name[128];
 
     if (block == NULL || ctx == NULL || !block->is_pin_region)
         return true;
@@ -377,16 +346,21 @@ llvm_mir_emit_pin_exit(const MIRBasicBlock *block, LLVMGenCtx *ctx)
             llvm_slot_struct_type(ctx, inner), pin_entry.type,
             pin_entry.alloca);
 
-    if (!llvm_mir_unpin_name(ctx, fn_name, sizeof(fn_name), is_secure, inner))
+    const char *runtime_fn = mir_abi_resource_runtime_fn_by_kind(
+        MIR_RESOURCE_ABI_SECURE_SLOT, inner, "Unpin");
+    if (runtime_fn == NULL) {
+        llvm_set_mir_topology_invalid(ctx,
+            "LLVM MIR pin cleanup requires MIR ABI runtime function row");
         return false;
-    unpin_fn = llvm_lookup_function(ctx, fn_name);
+    }
+    unpin_fn = llvm_lookup_function(ctx, runtime_fn);
     if (unpin_fn == NULL || unpin_fn->fn == NULL) {
         llvm_set_error_at_with_hints(ctx, NULL,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
             PGY_FIX_INSPECT_MIR_INVENTORY,
             "LLVM MIR pin cleanup requires registered runtime function '%s'",
-            fn_name);
+            runtime_fn);
         return false;
     }
 

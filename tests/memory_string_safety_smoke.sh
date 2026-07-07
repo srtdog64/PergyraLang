@@ -160,9 +160,13 @@ require_literal "src/codegen/llvm_mir_pin_region.c" \
 require_literal "src/codegen/llvm_mir_pin_region.c" \
     "llvm_mir_pin_token_name"
 require_literal "src/codegen/llvm_mir_pin_region.c" \
-    "llvm_mir_pin_init_name"
+    "mir_abi_resource_runtime_fn_by_kind"
 require_literal "src/codegen/llvm_mir_pin_region.c" \
-    "llvm_mir_unpin_name"
+    "\"PinReadInit\""
+require_literal "src/codegen/llvm_mir_pin_region.c" \
+    "\"PinWriteInit\""
+require_literal "src/codegen/llvm_mir_pin_region.c" \
+    "\"Unpin\""
 require_literal "src/codegen/llvm_mir_pin_region.c" \
     "written >= 0 && (size_t)written < buf_size"
 require_literal "src/codegen/transpiler_mir_resource_op_core.c" \
@@ -264,11 +268,11 @@ require_literal "src/codegen/llvm_runtime_channels.c" \
 require_literal "src/codegen/llvm_runtime_channels.c" \
     "return written >= 0 && (size_t)written < out_size"
 require_literal "src/codegen/llvm_runtime_secure_slot_decl.c" \
-    "llvm_runtime_secure_slot_name"
+    "mir_abi_resource_runtime_fn_by_type_name"
 require_literal "src/codegen/llvm_runtime_secure_slot_decl.c" \
-    "return written >= 0 && (size_t)written < out_size"
+    "\"PinReadInit\""
 require_literal "src/codegen/llvm_runtime.c" \
-    "llvm_runtime_slot_name"
+    "mir_abi_resource_runtime_fn_by_type_name"
 require_literal "src/codegen/llvm_runtime.c" \
     "llvm_runtime_export_name"
 require_literal "src/codegen/llvm_runtime.c" \

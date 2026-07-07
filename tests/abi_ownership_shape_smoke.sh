@@ -111,6 +111,8 @@ require_term "src/compiler/mir_abi_layout.c" "MIRResourceRuntimeFnRow"
 require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("Slot<Int>"'
 require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("SecureSlot<Int>"'
 require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("SecureSlot<Long>"'
+require_term "src/compiler/mir_abi_layout.c" 'ABI_PIN_OPS("Slot<Int>"'
+require_term "src/compiler/mir_abi_layout.c" 'ABI_PIN_OPS("SecureSlot<Int>"'
 require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("DeviceSlot<Int>"'
 require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("DeviceSlot<Long>"'
 require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OP("DeviceSlot<Int>", "SubmitRead"'
@@ -120,6 +122,13 @@ require_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_fn_by_type_n
 require_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Read\")"
 require_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Write\")"
 require_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Release\")"
+require_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name,"
+require_term "src/codegen/llvm_runtime.c" '"PinRead"'
+require_term "src/codegen/llvm_runtime.c" '"PinWrite"'
+require_term "src/codegen/llvm_runtime.c" '"PinReadInit"'
+require_term "src/codegen/llvm_runtime.c" '"PinWriteInit"'
+require_term "src/codegen/llvm_runtime.c" '"Unpin"'
+reject_term "src/codegen/llvm_runtime.c" "llvm_runtime_slot_name"
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "claim", suffix)'
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "read", suffix)'
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "write", suffix)'
@@ -135,6 +144,13 @@ require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "mir_abi_resource_run
 require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Read\")"
 require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Write\")"
 require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Release\")"
+require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name,"
+require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"PinRead"'
+require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"PinWrite"'
+require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"PinReadInit"'
+require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"PinWriteInit"'
+require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"Unpin"'
+reject_term "src/codegen/llvm_runtime_secure_slot_decl.c" "llvm_runtime_secure_slot_name"
 reject_term "src/codegen/llvm_runtime_secure_slot_decl.c" 'llvm_runtime_secure_slot_name(fname, sizeof(fname), "claim_secure", suf)'
 reject_term "src/codegen/llvm_runtime_secure_slot_decl.c" 'llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_read", suf)'
 reject_term "src/codegen/llvm_runtime_secure_slot_decl.c" 'llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_write", suf)'
@@ -297,20 +313,20 @@ require_term "src/codegen/llvm_mir_resource_view.c" "inst->resource_owner_slot_a
 require_term "src/codegen/llvm_mir_resource_view.c" "inst->resource_owner_requires_metadata"
 require_term "src/codegen/llvm_mir_resource_view.c" "LLVM MIR borrow view alias '%s' is missing owner slot ABI metadata"
 require_term "src/codegen/transpiler_block_emit.c" "__attribute__((cleanup(pgy_unpin_cleanup_%s)))"
-require_term "src/codegen/llvm_runtime.c" "pin_read"
-require_term "src/codegen/llvm_runtime.c" "pin_write"
-require_term "src/codegen/llvm_runtime.c" "pin_read_init"
-require_term "src/codegen/llvm_runtime.c" "pin_write_init"
-require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "llvm_runtime_secure_slot_name"
-require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "secure_pin_read_init"
-require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "secure_pin_write_init"
-require_term "src/codegen/llvm_runtime.c" "unpin"
+require_term "src/codegen/llvm_runtime.c" '"PinReadInit"'
+require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"PinReadInit"'
+require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"PinWriteInit"'
+require_term "src/codegen/llvm_runtime.c" '"Unpin"'
 require_term "src/codegen/llvm_mir_pin_region.c" "llvm_mir_emit_plain_pin_inline_enter"
 require_term "src/codegen/llvm_mir_pin_region.c" "LLVMBuildStructGEP2(ctx->builder, slot_ty, slot_ptr_arg, 1"
 reject_term "src/codegen/llvm_mir_pin_region.c" "pgy_pin_%s_init_%s"
-require_term "src/codegen/llvm_mir_pin_region.c" "pgy_secure_pin_%s_init_%s"
+reject_term "src/codegen/llvm_mir_pin_region.c" "pgy_secure_pin_%s_init_%s"
+require_term "src/codegen/llvm_mir_pin_region.c" '"PinReadInit"'
+require_term "src/codegen/llvm_mir_pin_region.c" '"PinWriteInit"'
 require_term "src/codegen/llvm_mir_pin_region.c" "llvm_mir_emit_plain_pin_inline_exit"
-require_term "src/codegen/llvm_mir_pin_region.c" "pgy_secure_unpin_%s"
+require_term "src/codegen/llvm_mir_pin_region.c" '"Unpin"'
+reject_term "src/codegen/llvm_mir_pin_region.c" "pgy_secure_unpin_%s"
+reject_term "src/codegen/llvm_mir_pin_region.c" "llvm_mir_unpin_name"
 
 require_term "src/compiler/mir_cleanup_fact_names.h" "pin-unpin-cleanup-edge"
 require_term "src/compiler/mir_cleanup_fact_names.h" "MIR_CLEANUP_FACT_PIN_UNPIN_EDGE"

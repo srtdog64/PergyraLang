@@ -27,15 +27,6 @@ llvm_runtime_export_name(char *out,
     return written >= 0 && (size_t)written < out_size;
 }
 
-static bool
-llvm_runtime_slot_name(char *out,
-    size_t out_size,
-    const char *op,
-    const char *suffix)
-{
-    return llvm_runtime_export_name(out, out_size, op, suffix);
-}
-
 void
 llvm_declare_runtime(LLVMGenCtx *ctx)
 {
@@ -100,7 +91,6 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
         LLVMTypeRef slot_ty = slot_types[i].slot_ty;
         LLVMTypeRef val_ty = slot_types[i].val_ty;
         LLVMTypeRef ptr_ty = LLVMPointerType(slot_ty, 0);
-        char fn_name[64];
 
         { LLVMTypeRef ft = LLVMFunctionType(slot_ty, NULL, 0, 0);
           const char *runtime_fn =
@@ -144,41 +134,54 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
         { LLVMTypeRef pinned_ty = llvm_pinned_slot_struct_type(ctx, suffix);
           LLVMTypeRef params[] = { ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(pinned_ty, params, 1, 0);
-          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "pin_read", suffix)) {
-              llvm_set_error(ctx, "slot pin-read runtime name is too long");
+          const char *runtime_fn =
+              mir_abi_resource_runtime_fn_by_type_name(abi_type_name,
+                                                       "PinRead");
+          if (runtime_fn == NULL) {
+              llvm_set_error(ctx, "slot pin-read runtime ABI row is missing");
               return;
           }
-          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, pinned_ty);
-          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "pin_write", suffix)) {
-              llvm_set_error(ctx, "slot pin-write runtime name is too long");
+          runtime_fn = mir_abi_resource_runtime_fn_by_type_name(abi_type_name,
+                                                               "PinWrite");
+          if (runtime_fn == NULL) {
+              llvm_set_error(ctx, "slot pin-write runtime ABI row is missing");
               return;
           }
-          fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, pinned_ty); }
         { LLVMTypeRef pinned_ty = llvm_pinned_slot_struct_type(ctx, suffix);
           LLVMTypeRef params[] = { LLVMPointerType(pinned_ty, 0), ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
-          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "pin_read_init", suffix)) {
-              llvm_set_error(ctx, "slot pin-read init runtime name is too long");
+          const char *runtime_fn =
+              mir_abi_resource_runtime_fn_by_type_name(abi_type_name,
+                                                       "PinReadInit");
+          if (runtime_fn == NULL) {
+              llvm_set_error(ctx, "slot pin-read init runtime ABI row is missing");
               return;
           }
-          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void);
-          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "pin_write_init", suffix)) {
-              llvm_set_error(ctx, "slot pin-write init runtime name is too long");
+          runtime_fn = mir_abi_resource_runtime_fn_by_type_name(abi_type_name,
+                                                               "PinWriteInit");
+          if (runtime_fn == NULL) {
+              llvm_set_error(ctx, "slot pin-write init runtime ABI row is missing");
               return;
           }
-          fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef pinned_ty = llvm_pinned_slot_struct_type(ctx, suffix);
           LLVMTypeRef params[] = { LLVMPointerType(pinned_ty, 0) };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
-          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "unpin", suffix)) {
-              llvm_set_error(ctx, "slot unpin runtime name is too long");
+          const char *runtime_fn =
+              mir_abi_resource_runtime_fn_by_type_name(abi_type_name,
+                                                       "Unpin");
+          if (runtime_fn == NULL) {
+              llvm_set_error(ctx, "slot unpin runtime ABI row is missing");
               return;
           }
-          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef ft = LLVMFunctionType(slot_ty, NULL, 0, 0);
           const char *runtime_fn =
