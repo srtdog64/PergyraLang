@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../compiler/mir_abi_layout.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "codegen_slot_type_policy.h"
@@ -13,6 +14,27 @@
 #include "codegen_type_mapping.h"
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
+
+static const char *
+transpiler_let_slot_runtime_fn(TranspilerCtx *ctx,
+                               MIRResourceAbiKind kind,
+                               const char *inner_type,
+                               const char *operation)
+{
+    const char *runtime_fn =
+        mir_abi_resource_runtime_fn_by_kind(kind, inner_type, operation);
+    if (runtime_fn != NULL)
+        return runtime_fn;
+
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_INSPECT_MIR_INVENTORY,
+        "C let-slot %s requires MIR ABI runtime function row",
+        operation != NULL ? operation : "<unknown>");
+    return NULL;
+}
 
 static bool
 transpiler_let_slot_constructed_type_name(char *out, size_t out_size,
@@ -163,18 +185,28 @@ transpiler_try_emit_let_slot_claim(ASTNode *node,
     }
 
     if (is_slot) {
+        const char *claim_fn = transpiler_let_slot_runtime_fn(
+            ctx,
+            is_secure_slot ? MIR_RESOURCE_ABI_SECURE_SLOT
+                           : MIR_RESOURCE_ABI_SLOT,
+            slot_inner, "Claim");
+        if (claim_fn == NULL) {
+            free(*ann_type_name_io);
+            *ann_type_name_io = NULL;
+            return true;
+        }
         register_slot_var(ctx, name, slot_inner, is_secure_slot, false);
         write_indent(ctx);
         if (is_secure_slot) {
             codebuf_write(ctx->out, "PgyToken_%s %s_token;\n", slot_inner, name);
             write_indent(ctx);
             codebuf_write(ctx->out,
-                "PgySecureSlot_%s %s = pgy_claim_secure_%s(&%s_token);\n",
-                slot_inner, name, slot_inner, name);
+                "PgySecureSlot_%s %s = %s(&%s_token);\n",
+                slot_inner, name, claim_fn, name);
         } else {
             codebuf_write(ctx->out,
-                "PgySlot_%s %s = pgy_claim_%s();\n",
-                slot_inner, name, slot_inner);
+                "PgySlot_%s %s = %s();\n",
+                slot_inner, name, claim_fn);
         }
         write_indent(ctx);
         codebuf_write(ctx->out, "(void)%s;\n", name);
@@ -192,10 +224,17 @@ transpiler_try_emit_let_slot_claim(ASTNode *node,
     }
 
     if (is_device_slot) {
+        const char *claim_fn = transpiler_let_slot_runtime_fn(
+            ctx, MIR_RESOURCE_ABI_DEVICE_SLOT, slot_inner, "Claim");
+        if (claim_fn == NULL) {
+            free(*ann_type_name_io);
+            *ann_type_name_io = NULL;
+            return true;
+        }
         write_indent(ctx);
         codebuf_write(ctx->out,
-            "PgyDeviceSlot_%s %s = pgy_claim_device_%s();\n",
-            slot_inner, name, slot_inner);
+            "PgyDeviceSlot_%s %s = %s();\n",
+            slot_inner, name, claim_fn);
         write_indent(ctx);
         codebuf_write(ctx->out, "(void)%s;\n", name);
         if (*ann_type_name_io != NULL) {
@@ -388,31 +427,55 @@ transpiler_try_emit_let_slot_sugar(TranspilerCtx *ctx,
         }
     }
 
+    const char *claim_fn = transpiler_let_slot_runtime_fn(
+        ctx,
+        sugar_secure ? MIR_RESOURCE_ABI_SECURE_SLOT : MIR_RESOURCE_ABI_SLOT,
+        sugar_inner, "Claim");
+    if (claim_fn == NULL) {
+        free(*ann_type_name_io);
+        *ann_type_name_io = NULL;
+        return true;
+    }
     register_slot_var(ctx, name, sugar_inner, sugar_secure, false);
     write_indent(ctx);
     if (sugar_secure) {
         codebuf_write(ctx->out, "PgyToken_%s %s_token;\n", sugar_inner, name);
         write_indent(ctx);
         codebuf_write(ctx->out,
-            "PgySecureSlot_%s %s = pgy_claim_secure_%s(&%s_token);\n",
-            sugar_inner, name, sugar_inner, name);
+            "PgySecureSlot_%s %s = %s(&%s_token);\n",
+            sugar_inner, name, claim_fn, name);
     } else {
         codebuf_write(ctx->out,
-            "PgySlot_%s %s = pgy_claim_%s();\n",
-            sugar_inner, name, sugar_inner);
+            "PgySlot_%s %s = %s();\n",
+            sugar_inner, name, claim_fn);
     }
 
     if (init != NULL) {
         char *init_expr = emit_expression(init, ctx);
+        if (init_expr == NULL) {
+            free(*ann_type_name_io);
+            *ann_type_name_io = NULL;
+            return true;
+        }
+        const char *write_fn = transpiler_let_slot_runtime_fn(
+            ctx,
+            sugar_secure ? MIR_RESOURCE_ABI_SECURE_SLOT : MIR_RESOURCE_ABI_SLOT,
+            sugar_inner, "Write");
+        if (write_fn == NULL) {
+            free(init_expr);
+            free(*ann_type_name_io);
+            *ann_type_name_io = NULL;
+            return true;
+        }
         write_indent(ctx);
         if (sugar_secure) {
             codebuf_write(ctx->out,
-                "pgy_secure_write_%s(&%s, %s, &%s_token);\n",
-                sugar_inner, name, init_expr, name);
+                "%s(&%s, %s, &%s_token);\n",
+                write_fn, name, init_expr, name);
         } else {
             codebuf_write(ctx->out,
-                "pgy_write_%s(&%s, %s);\n",
-                sugar_inner, name, init_expr);
+                "%s(&%s, %s);\n",
+                write_fn, name, init_expr);
         }
         free(init_expr);
     }
